@@ -1,0 +1,112 @@
+
+FILTER prepared_host_calls
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.15s
+     Running unittests src/lib.rs (target/debug/deps/conduit_std_host-d3bb2bbb32be20a0)
+
+running 3 tests
+test installed_std::prepared_host_calls::tests::absent_and_out_of_range_keys_cannot_alias_another_nodes_call ... ok
+test installed_std::prepared_host_calls::tests::first_match_duplicates_and_finite_index_storage_remain_exact ... ok
+test installed_std::prepared_host_calls::tests::lookup_and_first_observations_match_linear_oracles_without_play_allocations ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 816 filtered out; finished in 0.00s
+
+
+FILTER scalar_tape
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.15s
+     Running unittests src/lib.rs (target/debug/deps/conduit_std_host-d3bb2bbb32be20a0)
+
+running 10 tests
+test installed_std::pure_expression_back::scalar_tape_parity_tests::invalid_input_and_program_refusals_preserve_logical_attribution ... ok
+test installed_std::pure_expression_back::scalar_tape_parity_tests::checked_signed_values_and_overflow_have_identical_evaluator_outcomes ... ok
+test installed_std::pure_expression_back::scalar_tape_tests::tape_offer_refuses_unsupported_temporal_and_semantic_profiles ... ok
+test installed_std::pure_expression_back::scalar_tape_parity_tests::installed_back_refuses_foreign_provenance_and_malformed_configuration_before_play ... ok
+test installed_std::pure_expression_back::scalar_tape_parity_tests::source_identity_and_actual_kernel_outputs_match_for_negative_input ... ok
+test host_execution::scalar_tape_control_tests::output_adapter_refusal_is_preserved_without_hidden_retry_or_completion ... ok
+test host_execution::scalar_tape_control_tests::baseline_and_tape_cancel_before_input_with_identical_terminal_and_sign_kinds ... ok
+test installed_std::pure_expression_back::scalar_tape_parity_tests::actual_kernel_arithmetic_refusal_matches_baseline_sign_and_terminal ... ok
+test installed_std::pure_expression_back::scalar_tape_tests::actual_std_plan_and_kernel_play_select_the_scalar_tape_back ... ok
+test installed_std::pure_expression_back::scalar_tape_parity_tests::sealed_value_input_storage_and_one_value_scope_refuse_before_delivery ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 809 filtered out; finished in 3.51s
+
+
+FILTER installed_std_tests::math_conformance
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.15s
+     Running unittests src/lib.rs (target/debug/deps/conduit_std_host-d3bb2bbb32be20a0)
+
+running 7 tests
+test installed_std_tests::math_conformance::quantity_mapping_completes_one_admitted_kernel_request ... ok
+test installed_std_tests::math_conformance::deadband_scale_and_clamp_execute_together_through_the_production_kernel ... ok
+test installed_std_tests::math_conformance::canonical_quantity_face_completes_through_the_installed_back ... ok
+test installed_std_tests::math_conformance::quantity_refusals_do_not_make_a_connected_face ... ok
+test installed_std_tests::math_conformance::quantity_range_and_quantization_refusals_reach_the_production_kernel ... ok
+test installed_std_tests::math_conformance::authored_quantity_plots_execute_and_present_through_the_production_kernel ... ok
+test installed_std_tests::math_conformance::invalid_clamp_and_mutated_math_implementation_refuse_before_play ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 812 filtered out; finished in 1.68s
+
+
+FILTER installed_std_tests::layout_conformance
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.15s
+     Running unittests src/lib.rs (target/debug/deps/conduit_std_host-d3bb2bbb32be20a0)
+
+running 1 test
+test installed_std_tests::layout_conformance::representative_shell_and_front_execute_as_one_ordinary_plot ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 818 filtered out; finished in 0.67s
+
+
+FILTER installed_std_tests::face_composition
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.15s
+     Running unittests src/lib.rs (target/debug/deps/conduit_std_host-d3bb2bbb32be20a0)
+
+running 1 test
+test installed_std_tests::face_composition::ordinary_plot_executes_the_canonical_composition_family ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 818 filtered out; finished in 0.64s
+
+
+FILTER canonical_
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.15s
+     Running unittests src/lib.rs (target/debug/deps/conduit_std_host-d3bb2bbb32be20a0)
+
+running 26 tests
+test installed_std::speech_synthesis_back::tests::fake_provider_emits_three_canonical_contiguous_profile_blocks ... ok
+test installed_std::logic_backs::tests::not_rejects_noncanonical_bool_and_closure_releases_both_prepared_decisions ... ok
+test installed_std::flow_gate_back::tests::gate_waits_for_both_closures_and_bool_codec_rejects_noncanonical_bytes ... ok
+test browser_admission::tests::offer_evidence_tests::planning_disclosure_request_requires_current_identity_and_canonical_selection ... ok
+test installed_std::input_semantic_backs::tests::keymap_selection_uses_canonical_call_zero_before_key_call_one ... ok
+test installed_std::instrument_map_back::tests::wrong_profile_and_malformed_canonical_input_fail_closed ... ok
+test installed_std::state_select_back::tests::emits_canonical_current_values_without_retaining_input_references ... ok
+test installed_std::speech_recognition_adapter_back::tests::browser_shaped_pcm_normalizes_to_one_canonical_whisper_clip ... ok
+test state_value::durable::tests::durable_binding_refuses_more_than_the_canonical_text_bound ... ok
+test installed_std::house_prompt_back::tests::either_input_order_emits_only_after_both_canonical_values ... ok
+test hosted_speech_recognition::tests::exact_provider_emits_canonical_recognition_and_receipt ... ok
+test pico_admission::tests::decoded_pico_proof_enters_only_the_canonical_admission_manager ... ok
+test installed_std::streaming_speech_tests::text_flow_enters_canonical_committed_segments_with_explicit_work_limits ... ok
+test installed_std_tests::canonical_clock_has_zero_successful_post_play_start_allocations ... ok
+test body_chat_tests::generic_host_cannot_offer_body_truth_until_supervisor_installs_canonical_context ... ok
+test installed_std_tests::canonical_text_pipeline_has_zero_successful_post_play_start_allocations ... ok
+test terminal_face_mask::tests::controls_follow_canonical_clause_order_and_page_navigation_has_no_action ... ok
+test installed_std_tests::face_composition::ordinary_plot_executes_the_canonical_composition_family ... ok
+test installed_std_tests::canonical_state_count_executes_current_values_with_bounded_sign ... ok
+test terminal_mask_execution::planning::parsec_instruction_tests::parsec_instruction_stays_internal_to_canonical_mask_front ... ok
+test installed_std_tests::typed_state_conformance::optional_keep_plans_runs_and_retains_canonical_some_value ... ok
+test installed_std_tests::talking_polaroid_body::canonical_image_text_composition_coexists_in_one_body_play ... ok
+test installed_std_tests::typed_state_conformance::canonical_four_kib_text_keep_plans_on_the_durable_back_and_larger_refuses ... ok
+test installed_std_tests::canonical_greet_has_zero_successful_post_play_start_allocations ... ok
+test installed_std_tests::math_conformance::canonical_quantity_face_completes_through_the_installed_back ... ok
+test installed_std::preparation::body_workload_tests::canonical_button_clock_and_telegraph_share_admission_and_one_installed_kernel ... ok
+
+test result: ok. 26 passed; 0 failed; 0 ignored; 0 measured; 793 filtered out; finished in 1.98s
+
+
+FILTER authored_tone_cancellation
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.15s
+     Running unittests src/lib.rs (target/debug/deps/conduit_std_host-d3bb2bbb32be20a0)
+
+running 1 test
+test installed_std_tests::authored_tone_cancellation_routes_exact_observed_terminal_truth ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 818 filtered out; finished in 0.68s
+

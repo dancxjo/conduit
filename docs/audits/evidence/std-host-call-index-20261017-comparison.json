@@ -1,0 +1,648 @@
+{
+  "schema": "std-host-call-index-comparison@1",
+  "before_source": "2313ac8a4d6be87474c186d0788ba09676bba2b5",
+  "after_source": "3216580cf9e3846617c0b3b4f98da63c0691401b",
+  "config": {
+    "decisions": 1000,
+    "hosted_pipeline": true,
+    "repetitions": 3,
+    "samples": 1000,
+    "values": 1000000
+  },
+  "matched_rows": 27,
+  "exact_fields": [
+    "source_sha256",
+    "values",
+    "gears",
+    "ordered_output_sha256",
+    "kernel_decisions",
+    "kernel_logical_invocations",
+    "value_capacity_before",
+    "value_capacity_after",
+    "signs"
+  ],
+  "groups": [
+    {
+      "phase": "finite-ordinary-fusion-pipeline",
+      "case": "pure-chain-1-fused",
+      "metrics": {
+        "full_host_call.wall_ns": {
+          "before": {
+            "samples_ns": [
+              695800,
+              774561,
+              1009516
+            ],
+            "mean_ns": 826625.6666666666,
+            "sample_sd_ns": 163209.92402526672
+          },
+          "after": {
+            "samples_ns": [
+              688656,
+              875321,
+              946998
+            ],
+            "mean_ns": 836991.6666666666,
+            "sample_sd_ns": 133367.91438098345
+          },
+          "ratio_of_means_after_over_before": 1.012540138079429
+        },
+        "kernel_phase_wall.back_preparation_ns": {
+          "before": {
+            "samples_ns": [
+              299499,
+              317876,
+              360967
+            ],
+            "mean_ns": 326114,
+            "sample_sd_ns": 31551.184431016216
+          },
+          "after": {
+            "samples_ns": [
+              284309,
+              350273,
+              406885
+            ],
+            "mean_ns": 347155.6666666667,
+            "sample_sd_ns": 61347.430829117315
+          },
+          "ratio_of_means_after_over_before": 1.0645224267178555
+        },
+        "kernel_phase_wall.play_ns": {
+          "before": {
+            "samples_ns": [
+              297684,
+              352168,
+              461136
+            ],
+            "mean_ns": 370329.3333333333,
+            "sample_sd_ns": 83225.68472132467
+          },
+          "after": {
+            "samples_ns": [
+              327856,
+              424450,
+              399350
+            ],
+            "mean_ns": 383885.3333333333,
+            "sample_sd_ns": 50119.52858251296
+          },
+          "ratio_of_means_after_over_before": 1.0366052558623495
+        }
+      }
+    },
+    {
+      "phase": "finite-ordinary-fusion-pipeline",
+      "case": "pure-chain-1-local-unfused",
+      "metrics": {
+        "full_host_call.wall_ns": {
+          "before": {
+            "samples_ns": [
+              503873,
+              794588,
+              1051567
+            ],
+            "mean_ns": 783342.6666666666,
+            "sample_sd_ns": 274020.11340471584
+          },
+          "after": {
+            "samples_ns": [
+              446564,
+              963343,
+              931685
+            ],
+            "mean_ns": 780530.6666666666,
+            "sample_sd_ns": 289656.44835620926
+          },
+          "ratio_of_means_after_over_before": 0.9964102555373808
+        },
+        "kernel_phase_wall.back_preparation_ns": {
+          "before": {
+            "samples_ns": [
+              217508,
+              298381,
+              448594
+            ],
+            "mean_ns": 321494.3333333333,
+            "sample_sd_ns": 117264.03746389314
+          },
+          "after": {
+            "samples_ns": [
+              180128,
+              420259,
+              395283
+            ],
+            "mean_ns": 331890,
+            "sample_sd_ns": 132021.69756142359
+          },
+          "ratio_of_means_after_over_before": 1.0323354584787914
+        },
+        "kernel_phase_wall.play_ns": {
+          "before": {
+            "samples_ns": [
+              213578,
+              322327,
+              484964
+            ],
+            "mean_ns": 340289.6666666667,
+            "sample_sd_ns": 136581.78243943566
+          },
+          "after": {
+            "samples_ns": [
+              216555,
+              410568,
+              409258
+            ],
+            "mean_ns": 345460.3333333333,
+            "sample_sd_ns": 111637.21488076157
+          },
+          "ratio_of_means_after_over_before": 1.0151948976803096
+        }
+      }
+    },
+    {
+      "phase": "finite-ordinary-fusion-pipeline",
+      "case": "pure-chain-32-fused",
+      "metrics": {
+        "full_host_call.wall_ns": {
+          "before": {
+            "samples_ns": [
+              3663926,
+              3824182,
+              3489485
+            ],
+            "mean_ns": 3659197.6666666665,
+            "sample_sd_ns": 167398.59110617786
+          },
+          "after": {
+            "samples_ns": [
+              3281281,
+              3322212,
+              3256296
+            ],
+            "mean_ns": 3286596.3333333335,
+            "sample_sd_ns": 33277.91069663679
+          },
+          "ratio_of_means_after_over_before": 0.8981740350548614
+        },
+        "kernel_phase_wall.back_preparation_ns": {
+          "before": {
+            "samples_ns": [
+              868426,
+              997762,
+              865338
+            ],
+            "mean_ns": 910508.6666666666,
+            "sample_sd_ns": 75579.37595226182
+          },
+          "after": {
+            "samples_ns": [
+              809442,
+              828766,
+              787327
+            ],
+            "mean_ns": 808511.6666666666,
+            "sample_sd_ns": 20735.159038052574
+          },
+          "ratio_of_means_after_over_before": 0.8879780020398854
+        },
+        "kernel_phase_wall.play_ns": {
+          "before": {
+            "samples_ns": [
+              2386951,
+              2423995,
+              2301432
+            ],
+            "mean_ns": 2370792.6666666665,
+            "sample_sd_ns": 62858.89789308538
+          },
+          "after": {
+            "samples_ns": [
+              2259888,
+              2253601,
+              2256508
+            ],
+            "mean_ns": 2256665.6666666665,
+            "sample_sd_ns": 3146.4641001183113
+          },
+          "ratio_of_means_after_over_before": 0.9518612480945191
+        }
+      }
+    },
+    {
+      "phase": "finite-ordinary-fusion-pipeline",
+      "case": "pure-chain-32-local-unfused",
+      "metrics": {
+        "full_host_call.wall_ns": {
+          "before": {
+            "samples_ns": [
+              3299120,
+              5123535,
+              3692032
+            ],
+            "mean_ns": 4038229,
+            "sample_sd_ns": 960214.4526942926
+          },
+          "after": {
+            "samples_ns": [
+              3336082,
+              3336969,
+              3224369
+            ],
+            "mean_ns": 3299140,
+            "sample_sd_ns": 64755.1042235282
+          },
+          "ratio_of_means_after_over_before": 0.8169769470725905
+        },
+        "kernel_phase_wall.back_preparation_ns": {
+          "before": {
+            "samples_ns": [
+              606893,
+              929268,
+              667442
+            ],
+            "mean_ns": 734534.3333333334,
+            "sample_sd_ns": 171340.14722280746
+          },
+          "after": {
+            "samples_ns": [
+              622308,
+              629686,
+              573363
+            ],
+            "mean_ns": 608452.3333333334,
+            "sample_sd_ns": 30611.34930598998
+          },
+          "ratio_of_means_after_over_before": 0.8283511140618341
+        },
+        "kernel_phase_wall.play_ns": {
+          "before": {
+            "samples_ns": [
+              2477312,
+              3813590,
+              2671978
+            ],
+            "mean_ns": 2987626.6666666665,
+            "sample_sd_ns": 721897.0036628032
+          },
+          "after": {
+            "samples_ns": [
+              2501915,
+              2455665,
+              2457953
+            ],
+            "mean_ns": 2471844.3333333335,
+            "sample_sd_ns": 26067.07657819214
+          },
+          "ratio_of_means_after_over_before": 0.8273605135849192
+        }
+      }
+    },
+    {
+      "phase": "finite-ordinary-fusion-pipeline",
+      "case": "pure-chain-8-fused",
+      "metrics": {
+        "full_host_call.wall_ns": {
+          "before": {
+            "samples_ns": [
+              1794144,
+              2542395,
+              1758976
+            ],
+            "mean_ns": 2031838.3333333333,
+            "sample_sd_ns": 442504.5530436194
+          },
+          "after": {
+            "samples_ns": [
+              2902659,
+              2084062,
+              1617940
+            ],
+            "mean_ns": 2201553.6666666665,
+            "sample_sd_ns": 650368.3156814555
+          },
+          "ratio_of_means_after_over_before": 1.0835279709753811
+        },
+        "kernel_phase_wall.back_preparation_ns": {
+          "before": {
+            "samples_ns": [
+              601584,
+              929486,
+              578582
+            ],
+            "mean_ns": 703217.3333333334,
+            "sample_sd_ns": 196291.6328765272
+          },
+          "after": {
+            "samples_ns": [
+              863959,
+              728245,
+              527432
+            ],
+            "mean_ns": 706545.3333333334,
+            "sample_sd_ns": 169309.66328692916
+          },
+          "ratio_of_means_after_over_before": 1.0047325340861906
+        },
+        "kernel_phase_wall.play_ns": {
+          "before": {
+            "samples_ns": [
+              1054458,
+              1356493,
+              1042699
+            ],
+            "mean_ns": 1151216.6666666667,
+            "sample_sd_ns": 177871.71863546304
+          },
+          "after": {
+            "samples_ns": [
+              1705462,
+              1165489,
+              967619
+            ],
+            "mean_ns": 1279523.3333333333,
+            "sample_sd_ns": 381910.91244730534
+          },
+          "ratio_of_means_after_over_before": 1.1114531003431152
+        }
+      }
+    },
+    {
+      "phase": "finite-ordinary-fusion-pipeline",
+      "case": "pure-chain-8-local-unfused",
+      "metrics": {
+        "full_host_call.wall_ns": {
+          "before": {
+            "samples_ns": [
+              2134326,
+              1616886,
+              2320525
+            ],
+            "mean_ns": 2023912.3333333333,
+            "sample_sd_ns": 364582.4240419899
+          },
+          "after": {
+            "samples_ns": [
+              2371664,
+              1656640,
+              1563199
+            ],
+            "mean_ns": 1863834.3333333333,
+            "sample_sd_ns": 442268.05545995897
+          },
+          "ratio_of_means_after_over_before": 0.9209066532361333
+        },
+        "kernel_phase_wall.back_preparation_ns": {
+          "before": {
+            "samples_ns": [
+              553522,
+              357043,
+              587594
+            ],
+            "mean_ns": 499386.3333333333,
+            "sample_sd_ns": 124444.54067709573
+          },
+          "after": {
+            "samples_ns": [
+              534091,
+              421613,
+              391168
+            ],
+            "mean_ns": 448957.3333333333,
+            "sample_sd_ns": 75283.00210760284
+          },
+          "ratio_of_means_after_over_before": 0.8990180615008153
+        },
+        "kernel_phase_wall.play_ns": {
+          "before": {
+            "samples_ns": [
+              1402032,
+              1065927,
+              1470211
+            ],
+            "mean_ns": 1312723.3333333333,
+            "sample_sd_ns": 216433.39996482368
+          },
+          "after": {
+            "samples_ns": [
+              1563006,
+              1109365,
+              1040473
+            ],
+            "mean_ns": 1237614.6666666667,
+            "sample_sd_ns": 283894.64026700705
+          },
+          "ratio_of_means_after_over_before": 0.9427840849937916
+        }
+      }
+    },
+    {
+      "phase": "finite-ordinary-hosted-pipeline",
+      "case": "hosted-pipeline-1-gears-32-adds",
+      "metrics": {
+        "full_host_call.wall_ns": {
+          "before": {
+            "samples_ns": [
+              839548,
+              870314,
+              904692
+            ],
+            "mean_ns": 871518,
+            "sample_sd_ns": 32588.6850916081
+          },
+          "after": {
+            "samples_ns": [
+              718493,
+              866042,
+              964328
+            ],
+            "mean_ns": 849621,
+            "sample_sd_ns": 123737.41849982162
+          },
+          "ratio_of_means_after_over_before": 0.9748748734965887
+        },
+        "kernel_phase_wall.back_preparation_ns": {
+          "before": {
+            "samples_ns": [
+              374451,
+              377273,
+              397146
+            ],
+            "mean_ns": 382956.6666666667,
+            "sample_sd_ns": 12369.066510183107
+          },
+          "after": {
+            "samples_ns": [
+              352519,
+              406076,
+              450775
+            ],
+            "mean_ns": 403123.3333333333,
+            "sample_sd_ns": 49194.50237916157
+          },
+          "ratio_of_means_after_over_before": 1.0526604402586888
+        },
+        "kernel_phase_wall.play_ns": {
+          "before": {
+            "samples_ns": [
+              344605,
+              400067,
+              410305
+            ],
+            "mean_ns": 384992.3333333333,
+            "sample_sd_ns": 35349.0690306454
+          },
+          "after": {
+            "samples_ns": [
+              248208,
+              348144,
+              391671
+            ],
+            "mean_ns": 329341,
+            "sample_sd_ns": 73556.59521076271
+          },
+          "ratio_of_means_after_over_before": 0.8554482037304639
+        }
+      }
+    },
+    {
+      "phase": "finite-ordinary-hosted-pipeline",
+      "case": "hosted-pipeline-32-gears-32-adds",
+      "metrics": {
+        "full_host_call.wall_ns": {
+          "before": {
+            "samples_ns": [
+              7264253,
+              6718334,
+              7268075
+            ],
+            "mean_ns": 7083554,
+            "sample_sd_ns": 316295.5709791081
+          },
+          "after": {
+            "samples_ns": [
+              6205737,
+              6151970,
+              6090254
+            ],
+            "mean_ns": 6149320.333333333,
+            "sample_sd_ns": 57787.07790097483
+          },
+          "ratio_of_means_after_over_before": 0.8681122969251499
+        },
+        "kernel_phase_wall.back_preparation_ns": {
+          "before": {
+            "samples_ns": [
+              993738,
+              970560,
+              1032363
+            ],
+            "mean_ns": 998887,
+            "sample_sd_ns": 31221.576721876172
+          },
+          "after": {
+            "samples_ns": [
+              892792,
+              854673,
+              805378
+            ],
+            "mean_ns": 850947.6666666666,
+            "sample_sd_ns": 43825.91049063708
+          },
+          "ratio_of_means_after_over_before": 0.851895826721808
+        },
+        "kernel_phase_wall.play_ns": {
+          "before": {
+            "samples_ns": [
+              5922182,
+              5430156,
+              5883201
+            ],
+            "mean_ns": 5745179.666666667,
+            "sample_sd_ns": 273513.8250808052
+          },
+          "after": {
+            "samples_ns": [
+              5066181,
+              5060830,
+              5048092
+            ],
+            "mean_ns": 5058367.666666667,
+            "sample_sd_ns": 9292.485907082848
+          },
+          "ratio_of_means_after_over_before": 0.88045421730066
+        }
+      }
+    },
+    {
+      "phase": "finite-ordinary-hosted-pipeline",
+      "case": "hosted-pipeline-8-gears-32-adds",
+      "metrics": {
+        "full_host_call.wall_ns": {
+          "before": {
+            "samples_ns": [
+              2242231,
+              1991623,
+              1940301
+            ],
+            "mean_ns": 2058051.6666666667,
+            "sample_sd_ns": 161554.96600641322
+          },
+          "after": {
+            "samples_ns": [
+              2211574,
+              1969553,
+              1865079
+            ],
+            "mean_ns": 2015402,
+            "sample_sd_ns": 177739.4001255771
+          },
+          "ratio_of_means_after_over_before": 0.9792766783470774
+        },
+        "kernel_phase_wall.back_preparation_ns": {
+          "before": {
+            "samples_ns": [
+              552529,
+              485747,
+              469769
+            ],
+            "mean_ns": 502681.6666666667,
+            "sample_sd_ns": 43902.06830359287
+          },
+          "after": {
+            "samples_ns": [
+              567219,
+              529909,
+              457140
+            ],
+            "mean_ns": 518089.3333333333,
+            "sample_sd_ns": 55983.25598188563
+          },
+          "ratio_of_means_after_over_before": 1.0306509421137962
+        },
+        "kernel_phase_wall.play_ns": {
+          "before": {
+            "samples_ns": [
+              1546901,
+              1376820,
+              1336640
+            ],
+            "mean_ns": 1420120.3333333333,
+            "sample_sd_ns": 111618.14897378173
+          },
+          "after": {
+            "samples_ns": [
+              1460902,
+              1286307,
+              1284993
+            ],
+            "mean_ns": 1344067.3333333333,
+            "sample_sd_ns": 101183.92239053265
+          },
+          "ratio_of_means_after_over_before": 0.9464460875498578
+        }
+      }
+    }
+  ],
+  "scope": "one independently verified process per variant, three batches; uncontrolled host, descriptive only; no causal speedup or calibrated regression claim"
+}

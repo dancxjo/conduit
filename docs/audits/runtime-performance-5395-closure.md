@@ -12,7 +12,7 @@ CI requests. The performance regression gate remains report-only.
 | 3. Production Plan/Play 1/8/32 Gears versus native and equivalent pipeline | Ordinary std Host Call, local unfused and fused paths, same 64 inputs, retained Source/Host/Plan/Play/Signs; independent process evidence | Extend useful-output scaling and paired specialization/fusion reporting where eligible |
 | 4. Streaming/pressure | Kernel pressure/fairness correctness is tested, but existing runtime capture explicitly measures only 64 acknowledged items | Add measured high-rate finite streams, slow sink, small queues, batch/fan-out/payload cases, loss/pressure/fairness and latency with exact terminal/Sign checks |
 | 5. Representative domain | Product Theremin and ordinary audio execution have conformance tests | Measure deterministic admitted DSP/control workload through normal Plan/Play, validate useful outputs |
-| 6. Numerical meaning | Fixed-width exact computation and separate arithmetic refusal tests exist | Check current #5392 implementation and either pair admitted projections or name its scoped subsequent gate |
+| 6. Numerical meaning | Fixed-width exact computation and separate arithmetic refusal tests exist | Installed #5531 already executes rational and certified binary64 projections of the same 0.3 Source; add paired measurements with receipt/refusal validation |
 | Metadata and counters | Source/config/toolchain/CPU/affinity/frequency/OS, raw wall/process CPU, allocations, memory, size, Signs and decisions retained | Account copy/instruction/branch counters where supported, distinguish unavailable from zero, disclose observation and framing |
 | Repeatability and report | Three independent pinned worker processes with descriptive process-mean SD, report-only gate, retained failures | Repeat expanded workloads and publish the plain-language answer and uncertainty |
 | Browser | Browser performance remains explicitly deferred in existing receipts | Document the scoped subsequent browser/WASM gate once expanded hosted repeatability is demonstrated, as parent acceptance permits |
@@ -24,3 +24,11 @@ Compilation stays outside timed intervals. Raw evidence and verifiers must be
 inspectable and bound to the measured source; later dev commits do not change
 that identity. Hardware/physical/stable publication remain separate proof
 classes. This ledger itself is not completion evidence.
+
+The ordinary finite input feeder currently admits at most 64 values and waits
+for kernel ready work to drain before admitting another. Repeating this fixture
+does not prove a saturated streaming workload. Preserve this causal sequence
+behavior; use an explicit admitted streaming surface for overlapping ingress
+and pressure measurements rather than silently changing existing sequences.
+Hardware events were probed locally and refused under perf_event_paranoid=4;
+retain that unavailable counter evidence with the final report.

@@ -1,0 +1,3331 @@
+{
+  "source": "3216580cf9e3846617c0b3b4f98da63c0691401b",
+  "verified_artifact_hashes": 89,
+  "raw_records": 190,
+  "verified_repeated_distributions": 123,
+  "expression_cases_with_cross_mode_output_parity": 12,
+  "expression_outputs": {
+    "scalar-add1": {
+      "validation_sum": "500000500000000000",
+      "validation_sha256": "01dea24a407bf7f4dd54c0b6e6e9d4d24aa7cbf8b891812ccdd864c957d46ea1"
+    },
+    "scalar-add3": {
+      "validation_sum": "500002500000000000",
+      "validation_sha256": "16df2db6e80afefb0a2342f7601b9d99446ff29da63420f3e843d9f76e4fed8f"
+    },
+    "scalar-add32": {
+      "validation_sum": "500031500000000000",
+      "validation_sha256": "66d5cb5a5a32e7c59a0573beee98607f57297b1ace4549f21cff761e13c54e3b"
+    },
+    "scalar-add8": {
+      "validation_sum": "500007500000000000",
+      "validation_sha256": "097991f8eed668de388f10e27db6c616c8d61a6ba5dbdb980296faf4ce3ea202"
+    },
+    "scalar-comparison": {
+      "validation_sum": "999998",
+      "validation_sha256": "30e9c8b46212b38e2b7fcfa3b03a4621972b25350bf1df3e6cfba82961f8a597"
+    },
+    "scalar-conditional": {
+      "validation_sum": "500000500002000000",
+      "validation_sha256": "7ac5ce86233ec0b8639df77bc8cf06361f689a4d49daf360056fd1e28c85497b"
+    },
+    "u64-add1": {
+      "validation_sum": "500000500000",
+      "validation_sha256": "b2b5b1f037a29063a8be8daef40d1b3bb0a872bb2cb2edd8d042f5065097c292"
+    },
+    "u64-add3": {
+      "validation_sum": "500002500000",
+      "validation_sha256": "3e6c8adb95865e56d07129354b8e1fccf14d933575ef9f9a2297844022fce917"
+    },
+    "u64-add32": {
+      "validation_sum": "500031500000",
+      "validation_sha256": "87b456e53ed9fb6d38b17717bafcb8080054183605d5f524016247855988448b"
+    },
+    "u64-add8": {
+      "validation_sum": "500007500000",
+      "validation_sha256": "a0cdc74a803640a7329dbcee9d51266030247ceaa327fdd77819b8b8a8acad44"
+    },
+    "u64-comparison": {
+      "validation_sum": "999998",
+      "validation_sha256": "30e9c8b46212b38e2b7fcfa3b03a4621972b25350bf1df3e6cfba82961f8a597"
+    },
+    "u64-conditional": {
+      "validation_sum": "500000500002",
+      "validation_sha256": "c34fff91ca8b19ab6c23c2ebafda04b157509ede937d7d0892e564c4274b2bbd"
+    }
+  },
+  "hosted_rows": [
+    {
+      "case": "hosted-pipeline-1-gears-32-adds",
+      "repetition": 0,
+      "gears": 1,
+      "plan_id": "f59be8d867d04801f4bd7aa1b07cbc365d7dd1990db4568b85953672172dae44",
+      "active_play": {
+        "active_play_id": "38c0c963570d77c918b50c8e0b9a96993b836b45e542db64e85f03a0bea75dd6",
+        "boot_id": "boot/runtime-performance/d63d2fa6859d3809cab44a4215882565cee51b79c8606d5441ee88058f923942/1/0",
+        "host_id": "host/runtime-performance",
+        "plan_id": "f59be8d867d04801f4bd7aa1b07cbc365d7dd1990db4568b85953672172dae44",
+        "play_sequence": 0
+      },
+      "full_host_call": {
+        "allocator": {
+          "allocations": 2502,
+          "deallocations": 2145,
+          "live_heap_bytes_at_end": 307988,
+          "phase_peak_heap_bytes": 5900540,
+          "reallocations": 55,
+          "requested_bytes": 5867593
+        },
+        "process_cpu_ns": 718849,
+        "wall_ns": 718493
+      },
+      "kernel_decisions": 130,
+      "kernel_logical_invocations": 130,
+      "output_sha256": "aa04cb31d45b286386166775fb83148c12bfedcf20115f8ebb3a723869cc433e"
+    },
+    {
+      "case": "hosted-pipeline-1-gears-32-adds",
+      "repetition": 1,
+      "gears": 1,
+      "plan_id": "df68636a47de56ffd8f6d3be51d6fb4b0a53a7d7eb9c6b6e029472240115c054",
+      "active_play": {
+        "active_play_id": "f9e4ba7157feccef9be76ad0fd678807123541d4fb3773928c608bef88a09757",
+        "boot_id": "boot/runtime-performance/d63d2fa6859d3809cab44a4215882565cee51b79c8606d5441ee88058f923942/1/1",
+        "host_id": "host/runtime-performance",
+        "plan_id": "df68636a47de56ffd8f6d3be51d6fb4b0a53a7d7eb9c6b6e029472240115c054",
+        "play_sequence": 0
+      },
+      "full_host_call": {
+        "allocator": {
+          "allocations": 2502,
+          "deallocations": 2145,
+          "live_heap_bytes_at_end": 310998,
+          "phase_peak_heap_bytes": 5903550,
+          "reallocations": 55,
+          "requested_bytes": 5867593
+        },
+        "process_cpu_ns": 868009,
+        "wall_ns": 866042
+      },
+      "kernel_decisions": 130,
+      "kernel_logical_invocations": 130,
+      "output_sha256": "aa04cb31d45b286386166775fb83148c12bfedcf20115f8ebb3a723869cc433e"
+    },
+    {
+      "case": "hosted-pipeline-1-gears-32-adds",
+      "repetition": 2,
+      "gears": 1,
+      "plan_id": "4de653eda683a71a834dc204dcae687a50a7008b0791d2204670be8b26997690",
+      "active_play": {
+        "active_play_id": "b72fe7a87ea2619559a4e28eac3e7fdaf9f0fbfd424f1a045f3de02f5f6667fb",
+        "boot_id": "boot/runtime-performance/d63d2fa6859d3809cab44a4215882565cee51b79c8606d5441ee88058f923942/1/2",
+        "host_id": "host/runtime-performance",
+        "plan_id": "4de653eda683a71a834dc204dcae687a50a7008b0791d2204670be8b26997690",
+        "play_sequence": 0
+      },
+      "full_host_call": {
+        "allocator": {
+          "allocations": 2502,
+          "deallocations": 2145,
+          "live_heap_bytes_at_end": 314008,
+          "phase_peak_heap_bytes": 5906560,
+          "reallocations": 55,
+          "requested_bytes": 5867593
+        },
+        "process_cpu_ns": 964876,
+        "wall_ns": 964328
+      },
+      "kernel_decisions": 130,
+      "kernel_logical_invocations": 130,
+      "output_sha256": "aa04cb31d45b286386166775fb83148c12bfedcf20115f8ebb3a723869cc433e"
+    },
+    {
+      "case": "hosted-pipeline-8-gears-32-adds",
+      "repetition": 0,
+      "gears": 8,
+      "plan_id": "02cce15e2adb5837d0661440b49850d93534971dcaa9cb7d86295d4b6fa7e82f",
+      "active_play": {
+        "active_play_id": "de603df670fd6ca5f31d2a833c7d73c0efd234e6adf3d94f5f0c8037948b2011",
+        "boot_id": "boot/runtime-performance/d63d2fa6859d3809cab44a4215882565cee51b79c8606d5441ee88058f923942/8/0",
+        "host_id": "host/runtime-performance",
+        "plan_id": "02cce15e2adb5837d0661440b49850d93534971dcaa9cb7d86295d4b6fa7e82f",
+        "play_sequence": 0
+      },
+      "full_host_call": {
+        "allocator": {
+          "allocations": 4121,
+          "deallocations": 4039,
+          "live_heap_bytes_at_end": 368004,
+          "phase_peak_heap_bytes": 20771660,
+          "reallocations": 134,
+          "requested_bytes": 20945390
+        },
+        "process_cpu_ns": 2211909,
+        "wall_ns": 2211574
+      },
+      "kernel_decisions": 1296,
+      "kernel_logical_invocations": 1296,
+      "output_sha256": "aa04cb31d45b286386166775fb83148c12bfedcf20115f8ebb3a723869cc433e"
+    },
+    {
+      "case": "hosted-pipeline-8-gears-32-adds",
+      "repetition": 1,
+      "gears": 8,
+      "plan_id": "90fe6fbdb2b1c29689e55fefbcd449cc759adc3cc4159aba1d0e8d9454852462",
+      "active_play": {
+        "active_play_id": "9f16032daf84246ec444fe81b85281bcedb091949c17f44983ebe8ebab46ec4b",
+        "boot_id": "boot/runtime-performance/d63d2fa6859d3809cab44a4215882565cee51b79c8606d5441ee88058f923942/8/1",
+        "host_id": "host/runtime-performance",
+        "plan_id": "90fe6fbdb2b1c29689e55fefbcd449cc759adc3cc4159aba1d0e8d9454852462",
+        "play_sequence": 0
+      },
+      "full_host_call": {
+        "allocator": {
+          "allocations": 4121,
+          "deallocations": 4039,
+          "live_heap_bytes_at_end": 371014,
+          "phase_peak_heap_bytes": 20774670,
+          "reallocations": 134,
+          "requested_bytes": 20945390
+        },
+        "process_cpu_ns": 1970266,
+        "wall_ns": 1969553
+      },
+      "kernel_decisions": 1296,
+      "kernel_logical_invocations": 1296,
+      "output_sha256": "aa04cb31d45b286386166775fb83148c12bfedcf20115f8ebb3a723869cc433e"
+    },
+    {
+      "case": "hosted-pipeline-8-gears-32-adds",
+      "repetition": 2,
+      "gears": 8,
+      "plan_id": "54b8b92b7091d6436263ee7b8509186b37c0199e13c1e6cf5ed6bfe05bf6fa5a",
+      "active_play": {
+        "active_play_id": "e926e926ada64b359e4049cef2638d580f004ec92948c5194c74987c0bfc6056",
+        "boot_id": "boot/runtime-performance/d63d2fa6859d3809cab44a4215882565cee51b79c8606d5441ee88058f923942/8/2",
+        "host_id": "host/runtime-performance",
+        "plan_id": "54b8b92b7091d6436263ee7b8509186b37c0199e13c1e6cf5ed6bfe05bf6fa5a",
+        "play_sequence": 0
+      },
+      "full_host_call": {
+        "allocator": {
+          "allocations": 4121,
+          "deallocations": 4039,
+          "live_heap_bytes_at_end": 374024,
+          "phase_peak_heap_bytes": 20777680,
+          "reallocations": 134,
+          "requested_bytes": 20945390
+        },
+        "process_cpu_ns": 1865418,
+        "wall_ns": 1865079
+      },
+      "kernel_decisions": 1296,
+      "kernel_logical_invocations": 1296,
+      "output_sha256": "aa04cb31d45b286386166775fb83148c12bfedcf20115f8ebb3a723869cc433e"
+    },
+    {
+      "case": "hosted-pipeline-32-gears-32-adds",
+      "repetition": 0,
+      "gears": 32,
+      "plan_id": "bacc9da2a9ffc71a905af1cb1fe5cf5b81dc3b93d2b55d36b9e78657073ba118",
+      "active_play": {
+        "active_play_id": "7f1c759c2f0e207f926e5374201ebe7433a29ebd8607d89998c2722b52e93744",
+        "boot_id": "boot/runtime-performance/d63d2fa6859d3809cab44a4215882565cee51b79c8606d5441ee88058f923942/32/0",
+        "host_id": "host/runtime-performance",
+        "plan_id": "bacc9da2a9ffc71a905af1cb1fe5cf5b81dc3b93d2b55d36b9e78657073ba118",
+        "play_sequence": 0
+      },
+      "full_host_call": {
+        "allocator": {
+          "allocations": 9689,
+          "deallocations": 10543,
+          "live_heap_bytes_at_end": 552457,
+          "phase_peak_heap_bytes": 71784568,
+          "reallocations": 331,
+          "requested_bytes": 72877195
+        },
+        "process_cpu_ns": 6205901,
+        "wall_ns": 6205737
+      },
+      "kernel_decisions": 5184,
+      "kernel_logical_invocations": 5184,
+      "output_sha256": "aa04cb31d45b286386166775fb83148c12bfedcf20115f8ebb3a723869cc433e"
+    },
+    {
+      "case": "hosted-pipeline-32-gears-32-adds",
+      "repetition": 1,
+      "gears": 32,
+      "plan_id": "a854d7657b9ffb0c030fd0249a299848edbb1023e7411792199c0614413f7a08",
+      "active_play": {
+        "active_play_id": "c577a041c93c6af21fa65554fad305138bae55c81ec71265a8e4981b4f7585f4",
+        "boot_id": "boot/runtime-performance/d63d2fa6859d3809cab44a4215882565cee51b79c8606d5441ee88058f923942/32/1",
+        "host_id": "host/runtime-performance",
+        "plan_id": "a854d7657b9ffb0c030fd0249a299848edbb1023e7411792199c0614413f7a08",
+        "play_sequence": 0
+      },
+      "full_host_call": {
+        "allocator": {
+          "allocations": 9689,
+          "deallocations": 10543,
+          "live_heap_bytes_at_end": 555468,
+          "phase_peak_heap_bytes": 71787579,
+          "reallocations": 331,
+          "requested_bytes": 72877195
+        },
+        "process_cpu_ns": 6152561,
+        "wall_ns": 6151970
+      },
+      "kernel_decisions": 5184,
+      "kernel_logical_invocations": 5184,
+      "output_sha256": "aa04cb31d45b286386166775fb83148c12bfedcf20115f8ebb3a723869cc433e"
+    },
+    {
+      "case": "hosted-pipeline-32-gears-32-adds",
+      "repetition": 2,
+      "gears": 32,
+      "plan_id": "a7ab22f2858fa05f0047e5455519f74033efd07e2fbb665f023926d344c3af2b",
+      "active_play": {
+        "active_play_id": "1cc9d0a471452fd2a430a11d75924c79873f3b4e4b2fb1078d40c98474ffec77",
+        "boot_id": "boot/runtime-performance/d63d2fa6859d3809cab44a4215882565cee51b79c8606d5441ee88058f923942/32/2",
+        "host_id": "host/runtime-performance",
+        "plan_id": "a7ab22f2858fa05f0047e5455519f74033efd07e2fbb665f023926d344c3af2b",
+        "play_sequence": 0
+      },
+      "full_host_call": {
+        "allocator": {
+          "allocations": 9689,
+          "deallocations": 10543,
+          "live_heap_bytes_at_end": 558479,
+          "phase_peak_heap_bytes": 71790590,
+          "reallocations": 331,
+          "requested_bytes": 72877195
+        },
+        "process_cpu_ns": 6090405,
+        "wall_ns": 6090254
+      },
+      "kernel_decisions": 5184,
+      "kernel_logical_invocations": 5184,
+      "output_sha256": "aa04cb31d45b286386166775fb83148c12bfedcf20115f8ebb3a723869cc433e"
+    }
+  ],
+  "all_pipeline_rows": 27,
+  "verified_phase_wall_partitions": 27,
+  "verified_pipeline_execution_identities": [
+    {
+      "case": "hosted-pipeline-1-gears-32-adds",
+      "repetition": 0,
+      "active_play": {
+        "active_play_id": "38c0c963570d77c918b50c8e0b9a96993b836b45e542db64e85f03a0bea75dd6",
+        "boot_id": "boot/runtime-performance/d63d2fa6859d3809cab44a4215882565cee51b79c8606d5441ee88058f923942/1/0",
+        "host_id": "host/runtime-performance",
+        "plan_id": "f59be8d867d04801f4bd7aa1b07cbc365d7dd1990db4568b85953672172dae44",
+        "play_sequence": 0
+      }
+    },
+    {
+      "case": "hosted-pipeline-1-gears-32-adds",
+      "repetition": 1,
+      "active_play": {
+        "active_play_id": "f9e4ba7157feccef9be76ad0fd678807123541d4fb3773928c608bef88a09757",
+        "boot_id": "boot/runtime-performance/d63d2fa6859d3809cab44a4215882565cee51b79c8606d5441ee88058f923942/1/1",
+        "host_id": "host/runtime-performance",
+        "plan_id": "df68636a47de56ffd8f6d3be51d6fb4b0a53a7d7eb9c6b6e029472240115c054",
+        "play_sequence": 0
+      }
+    },
+    {
+      "case": "hosted-pipeline-1-gears-32-adds",
+      "repetition": 2,
+      "active_play": {
+        "active_play_id": "b72fe7a87ea2619559a4e28eac3e7fdaf9f0fbfd424f1a045f3de02f5f6667fb",
+        "boot_id": "boot/runtime-performance/d63d2fa6859d3809cab44a4215882565cee51b79c8606d5441ee88058f923942/1/2",
+        "host_id": "host/runtime-performance",
+        "plan_id": "4de653eda683a71a834dc204dcae687a50a7008b0791d2204670be8b26997690",
+        "play_sequence": 0
+      }
+    },
+    {
+      "case": "hosted-pipeline-8-gears-32-adds",
+      "repetition": 0,
+      "active_play": {
+        "active_play_id": "de603df670fd6ca5f31d2a833c7d73c0efd234e6adf3d94f5f0c8037948b2011",
+        "boot_id": "boot/runtime-performance/d63d2fa6859d3809cab44a4215882565cee51b79c8606d5441ee88058f923942/8/0",
+        "host_id": "host/runtime-performance",
+        "plan_id": "02cce15e2adb5837d0661440b49850d93534971dcaa9cb7d86295d4b6fa7e82f",
+        "play_sequence": 0
+      }
+    },
+    {
+      "case": "hosted-pipeline-8-gears-32-adds",
+      "repetition": 1,
+      "active_play": {
+        "active_play_id": "9f16032daf84246ec444fe81b85281bcedb091949c17f44983ebe8ebab46ec4b",
+        "boot_id": "boot/runtime-performance/d63d2fa6859d3809cab44a4215882565cee51b79c8606d5441ee88058f923942/8/1",
+        "host_id": "host/runtime-performance",
+        "plan_id": "90fe6fbdb2b1c29689e55fefbcd449cc759adc3cc4159aba1d0e8d9454852462",
+        "play_sequence": 0
+      }
+    },
+    {
+      "case": "hosted-pipeline-8-gears-32-adds",
+      "repetition": 2,
+      "active_play": {
+        "active_play_id": "e926e926ada64b359e4049cef2638d580f004ec92948c5194c74987c0bfc6056",
+        "boot_id": "boot/runtime-performance/d63d2fa6859d3809cab44a4215882565cee51b79c8606d5441ee88058f923942/8/2",
+        "host_id": "host/runtime-performance",
+        "plan_id": "54b8b92b7091d6436263ee7b8509186b37c0199e13c1e6cf5ed6bfe05bf6fa5a",
+        "play_sequence": 0
+      }
+    },
+    {
+      "case": "hosted-pipeline-32-gears-32-adds",
+      "repetition": 0,
+      "active_play": {
+        "active_play_id": "7f1c759c2f0e207f926e5374201ebe7433a29ebd8607d89998c2722b52e93744",
+        "boot_id": "boot/runtime-performance/d63d2fa6859d3809cab44a4215882565cee51b79c8606d5441ee88058f923942/32/0",
+        "host_id": "host/runtime-performance",
+        "plan_id": "bacc9da2a9ffc71a905af1cb1fe5cf5b81dc3b93d2b55d36b9e78657073ba118",
+        "play_sequence": 0
+      }
+    },
+    {
+      "case": "hosted-pipeline-32-gears-32-adds",
+      "repetition": 1,
+      "active_play": {
+        "active_play_id": "c577a041c93c6af21fa65554fad305138bae55c81ec71265a8e4981b4f7585f4",
+        "boot_id": "boot/runtime-performance/d63d2fa6859d3809cab44a4215882565cee51b79c8606d5441ee88058f923942/32/1",
+        "host_id": "host/runtime-performance",
+        "plan_id": "a854d7657b9ffb0c030fd0249a299848edbb1023e7411792199c0614413f7a08",
+        "play_sequence": 0
+      }
+    },
+    {
+      "case": "hosted-pipeline-32-gears-32-adds",
+      "repetition": 2,
+      "active_play": {
+        "active_play_id": "1cc9d0a471452fd2a430a11d75924c79873f3b4e4b2fb1078d40c98474ffec77",
+        "boot_id": "boot/runtime-performance/d63d2fa6859d3809cab44a4215882565cee51b79c8606d5441ee88058f923942/32/2",
+        "host_id": "host/runtime-performance",
+        "plan_id": "a7ab22f2858fa05f0047e5455519f74033efd07e2fbb665f023926d344c3af2b",
+        "play_sequence": 0
+      }
+    },
+    {
+      "case": "pure-chain-1-local-unfused",
+      "repetition": 0,
+      "active_play": {
+        "active_play_id": "8510667bfaec8547750737bc096cc8f1bec7da7d65707506491562f120108b37",
+        "boot_id": "boot/runtime-fusion/d63d2fa6859d3809cab44a4215882565cee51b79c8606d5441ee88058f923942/1/0/local-unfused",
+        "host_id": "host/runtime-performance",
+        "plan_id": "7fe696ac31e8bbc84561a1b49625bf8ddcbe56b110f73fd050f7dd078d04fce5",
+        "play_sequence": 0
+      }
+    },
+    {
+      "case": "pure-chain-1-fused",
+      "repetition": 0,
+      "active_play": {
+        "active_play_id": "c3fccf221ca22d1a6100e68a686f61b3a485923999ac4e92a52c3d8397a43334",
+        "boot_id": "boot/runtime-fusion/d63d2fa6859d3809cab44a4215882565cee51b79c8606d5441ee88058f923942/1/0/fused",
+        "host_id": "host/runtime-performance",
+        "plan_id": "c7a9898f9c533f39f4e713785fe06511ceedeb8e2f8259ded037868f5f67d0af",
+        "play_sequence": 0
+      }
+    },
+    {
+      "case": "pure-chain-1-fused",
+      "repetition": 1,
+      "active_play": {
+        "active_play_id": "3bcc821c28c506d4345c9bc40e4dd2d116da4189794b55344cbe969a05912a83",
+        "boot_id": "boot/runtime-fusion/d63d2fa6859d3809cab44a4215882565cee51b79c8606d5441ee88058f923942/1/1/fused",
+        "host_id": "host/runtime-performance",
+        "plan_id": "7172c36db01106065ec387a5611adc89568938bf8a0123fb5a2e7354947e455b",
+        "play_sequence": 0
+      }
+    },
+    {
+      "case": "pure-chain-1-local-unfused",
+      "repetition": 1,
+      "active_play": {
+        "active_play_id": "3a5e1434784cf6fe6d26414009c6c3de43c29d9f5fa81309b72a1c47a3d77de1",
+        "boot_id": "boot/runtime-fusion/d63d2fa6859d3809cab44a4215882565cee51b79c8606d5441ee88058f923942/1/1/local-unfused",
+        "host_id": "host/runtime-performance",
+        "plan_id": "56403d0a15c8092c0981bc608bef856cb4d50236f67483397c0c4f4867bc1ac1",
+        "play_sequence": 0
+      }
+    },
+    {
+      "case": "pure-chain-1-local-unfused",
+      "repetition": 2,
+      "active_play": {
+        "active_play_id": "e9c9a601fd902e291d82891529a7011faea08c33981f54f459ed2179407d1979",
+        "boot_id": "boot/runtime-fusion/d63d2fa6859d3809cab44a4215882565cee51b79c8606d5441ee88058f923942/1/2/local-unfused",
+        "host_id": "host/runtime-performance",
+        "plan_id": "cd73fbcb30c4db7dc127acdfeae6dc65a26cab9c24a7643a2e34bdd89d49f84f",
+        "play_sequence": 0
+      }
+    },
+    {
+      "case": "pure-chain-1-fused",
+      "repetition": 2,
+      "active_play": {
+        "active_play_id": "2b5706937b61ad4ebcb81f653582b58ed89a39fd7acd679d25fa8b0ac67b824a",
+        "boot_id": "boot/runtime-fusion/d63d2fa6859d3809cab44a4215882565cee51b79c8606d5441ee88058f923942/1/2/fused",
+        "host_id": "host/runtime-performance",
+        "plan_id": "b7560e2692af790e4985d7701bd132831c26685d3be2dc8b004c331a31ec301d",
+        "play_sequence": 0
+      }
+    },
+    {
+      "case": "pure-chain-8-local-unfused",
+      "repetition": 0,
+      "active_play": {
+        "active_play_id": "c4d269777a6e9ae0942a7747d2e2715253be78e3d754b0cbec6699ec0d127a05",
+        "boot_id": "boot/runtime-fusion/d63d2fa6859d3809cab44a4215882565cee51b79c8606d5441ee88058f923942/8/0/local-unfused",
+        "host_id": "host/runtime-performance",
+        "plan_id": "c46335593a540b1be6e8ba33aacd866ec3cf5237a2bd1e94f5b0f7a4b08467d1",
+        "play_sequence": 0
+      }
+    },
+    {
+      "case": "pure-chain-8-fused",
+      "repetition": 0,
+      "active_play": {
+        "active_play_id": "b59486a4160d2a044a0ed575d489a3afca24cdb9c5222204dd3e56cb0e91d147",
+        "boot_id": "boot/runtime-fusion/d63d2fa6859d3809cab44a4215882565cee51b79c8606d5441ee88058f923942/8/0/fused",
+        "host_id": "host/runtime-performance",
+        "plan_id": "1152c9772bcab3aa52f8efc76331410d0df715a40a133da06c16c6c38171c1f5",
+        "play_sequence": 0
+      }
+    },
+    {
+      "case": "pure-chain-8-fused",
+      "repetition": 1,
+      "active_play": {
+        "active_play_id": "7cb04e01227afa607b8a0827452955119b3e33c801159fb80d4171dd67d0548c",
+        "boot_id": "boot/runtime-fusion/d63d2fa6859d3809cab44a4215882565cee51b79c8606d5441ee88058f923942/8/1/fused",
+        "host_id": "host/runtime-performance",
+        "plan_id": "2e2553e230f304db5db353bd63a7bdc25d56809b1abbadf4426c8900416a5c84",
+        "play_sequence": 0
+      }
+    },
+    {
+      "case": "pure-chain-8-local-unfused",
+      "repetition": 1,
+      "active_play": {
+        "active_play_id": "1b5effe7bd3761c06c8dbf5df7b92fddd1b996fd82cfbdb716a686e4c4e164b8",
+        "boot_id": "boot/runtime-fusion/d63d2fa6859d3809cab44a4215882565cee51b79c8606d5441ee88058f923942/8/1/local-unfused",
+        "host_id": "host/runtime-performance",
+        "plan_id": "8ebcf0cfad390c4561652ebb4a917b9904ec7706522e31de951d1f0935b96ed8",
+        "play_sequence": 0
+      }
+    },
+    {
+      "case": "pure-chain-8-local-unfused",
+      "repetition": 2,
+      "active_play": {
+        "active_play_id": "e80b2fbf5d6140ae8690ea4c900d745751c5ed17481edea98d9cc3f67b3fa4e8",
+        "boot_id": "boot/runtime-fusion/d63d2fa6859d3809cab44a4215882565cee51b79c8606d5441ee88058f923942/8/2/local-unfused",
+        "host_id": "host/runtime-performance",
+        "plan_id": "712262917887868c694285ebe1f7b7ebb86e5583e0c143d049c7e1f174b8944b",
+        "play_sequence": 0
+      }
+    },
+    {
+      "case": "pure-chain-8-fused",
+      "repetition": 2,
+      "active_play": {
+        "active_play_id": "fec86649c7d76b80d5bbbcb63822650b76ca4c4a7ea02b64fc1297416718773c",
+        "boot_id": "boot/runtime-fusion/d63d2fa6859d3809cab44a4215882565cee51b79c8606d5441ee88058f923942/8/2/fused",
+        "host_id": "host/runtime-performance",
+        "plan_id": "d179b7be6564bb3c3b95a2ca875e42a9ac5535249ba7ed3bf00d592f3f7cf09d",
+        "play_sequence": 0
+      }
+    },
+    {
+      "case": "pure-chain-32-local-unfused",
+      "repetition": 0,
+      "active_play": {
+        "active_play_id": "fd783bbc5fd3aa9be22ac6769db704a03836c864cf974777c9b462e980351a5a",
+        "boot_id": "boot/runtime-fusion/d63d2fa6859d3809cab44a4215882565cee51b79c8606d5441ee88058f923942/32/0/local-unfused",
+        "host_id": "host/runtime-performance",
+        "plan_id": "1c0a010faf1493514a22db713fad05f41292229e2fa077c9f123cd14ac923ebf",
+        "play_sequence": 0
+      }
+    },
+    {
+      "case": "pure-chain-32-fused",
+      "repetition": 0,
+      "active_play": {
+        "active_play_id": "5bbbfac5ddd565218fb6042c3f9e9c971fa1bc1ddd0d79a6fc4ef46a916cb6b4",
+        "boot_id": "boot/runtime-fusion/d63d2fa6859d3809cab44a4215882565cee51b79c8606d5441ee88058f923942/32/0/fused",
+        "host_id": "host/runtime-performance",
+        "plan_id": "ca1519f8f2525f1ee5293fdbecc14eee9bd4ec986431011cd58bd2cebd7d8804",
+        "play_sequence": 0
+      }
+    },
+    {
+      "case": "pure-chain-32-fused",
+      "repetition": 1,
+      "active_play": {
+        "active_play_id": "0328a68deb22ae67441ef7761c82185b0b2333d4a3db3c59b221bab39ef29e06",
+        "boot_id": "boot/runtime-fusion/d63d2fa6859d3809cab44a4215882565cee51b79c8606d5441ee88058f923942/32/1/fused",
+        "host_id": "host/runtime-performance",
+        "plan_id": "e66190d9c4af8593fa28f58d581043edf7c6863f2fff36648cd8f5e6b7c2973a",
+        "play_sequence": 0
+      }
+    },
+    {
+      "case": "pure-chain-32-local-unfused",
+      "repetition": 1,
+      "active_play": {
+        "active_play_id": "5878f0b1f0a771121b52145f90cd836215af47daf7e3be89272c38c085e4fd87",
+        "boot_id": "boot/runtime-fusion/d63d2fa6859d3809cab44a4215882565cee51b79c8606d5441ee88058f923942/32/1/local-unfused",
+        "host_id": "host/runtime-performance",
+        "plan_id": "e8c87900ccc7ae7c9fd61c09811e6491bfa9cd845318f7dcc6d596f63d237adc",
+        "play_sequence": 0
+      }
+    },
+    {
+      "case": "pure-chain-32-local-unfused",
+      "repetition": 2,
+      "active_play": {
+        "active_play_id": "39271830a1c4d9ad29632f3e4d4917a85ee90db46fa8c34570ca76b37ee916fe",
+        "boot_id": "boot/runtime-fusion/d63d2fa6859d3809cab44a4215882565cee51b79c8606d5441ee88058f923942/32/2/local-unfused",
+        "host_id": "host/runtime-performance",
+        "plan_id": "e17d7afa52919ec8cf569364b793f5b8b5d34a7ab5fb740e224e4dcd5aaa2c8a",
+        "play_sequence": 0
+      }
+    },
+    {
+      "case": "pure-chain-32-fused",
+      "repetition": 2,
+      "active_play": {
+        "active_play_id": "67ed6703cd6d0fbb63fbc7243414d62877c8e61893fc07435129088330a943da",
+        "boot_id": "boot/runtime-fusion/d63d2fa6859d3809cab44a4215882565cee51b79c8606d5441ee88058f923942/32/2/fused",
+        "host_id": "host/runtime-performance",
+        "plan_id": "f19479bec2aca5fb1d76d6a2d79fa9e8fe530cbc346f48b31317fbbd7e219f46",
+        "play_sequence": 0
+      }
+    }
+  ],
+  "ordered_pipeline_output_sha256": "aa04cb31d45b286386166775fb83148c12bfedcf20115f8ebb3a723869cc433e",
+  "repeated_batches": [
+    {
+      "case": "hosted-pipeline-1-gears-32-adds",
+      "distribution": {
+        "count": 3,
+        "max_ns": 964876,
+        "mean_ns": 850578.0,
+        "min_ns": 718849,
+        "p50_ns": 868009,
+        "p95_ns": 964876,
+        "p99_ns": 964876,
+        "sample_standard_deviation_ns": 123936.2779939756
+      },
+      "metric": "full_host_call.process_cpu_ns",
+      "mode": "finite-ordinary-hosted-pipeline",
+      "samples_ns": [
+        718849,
+        868009,
+        964876
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "hosted-pipeline-1-gears-32-adds",
+      "distribution": {
+        "count": 3,
+        "max_ns": 964328,
+        "mean_ns": 849621.0,
+        "min_ns": 718493,
+        "p50_ns": 866042,
+        "p95_ns": 964328,
+        "p99_ns": 964328,
+        "sample_standard_deviation_ns": 123737.41849982162
+      },
+      "metric": "full_host_call.wall_ns",
+      "mode": "finite-ordinary-hosted-pipeline",
+      "samples_ns": [
+        718493,
+        866042,
+        964328
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "hosted-pipeline-1-gears-32-adds",
+      "distribution": {
+        "count": 3,
+        "max_ns": 67503,
+        "mean_ns": 57910.666666666664,
+        "min_ns": 46966,
+        "p50_ns": 59263,
+        "p95_ns": 67503,
+        "p99_ns": 67503,
+        "sample_standard_deviation_ns": 10335.071181822279
+      },
+      "metric": "kernel_phase_wall.after_play_ns",
+      "mode": "finite-ordinary-hosted-pipeline",
+      "samples_ns": [
+        46966,
+        59263,
+        67503
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "hosted-pipeline-1-gears-32-adds",
+      "distribution": {
+        "count": 3,
+        "max_ns": 450775,
+        "mean_ns": 403123.3333333333,
+        "min_ns": 352519,
+        "p50_ns": 406076,
+        "p95_ns": 450775,
+        "p99_ns": 450775,
+        "sample_standard_deviation_ns": 49194.502379161575
+      },
+      "metric": "kernel_phase_wall.back_preparation_ns",
+      "mode": "finite-ordinary-hosted-pipeline",
+      "samples_ns": [
+        352519,
+        406076,
+        450775
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "hosted-pipeline-1-gears-32-adds",
+      "distribution": {
+        "count": 3,
+        "max_ns": 70698,
+        "mean_ns": 59116.666666666664,
+        "min_ns": 52422,
+        "p50_ns": 54230,
+        "p95_ns": 70698,
+        "p99_ns": 70698,
+        "sample_standard_deviation_ns": 10070.386156118013
+      },
+      "metric": "kernel_phase_wall.before_preparation_ns",
+      "mode": "finite-ordinary-hosted-pipeline",
+      "samples_ns": [
+        70698,
+        52422,
+        54230
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "hosted-pipeline-1-gears-32-adds",
+      "distribution": {
+        "count": 3,
+        "max_ns": 964179,
+        "mean_ns": 849491.6666666666,
+        "min_ns": 718391,
+        "p50_ns": 865905,
+        "p95_ns": 964179,
+        "p99_ns": 964179,
+        "sample_standard_deviation_ns": 123713.3112051138
+      },
+      "metric": "kernel_phase_wall.call_wall_ns",
+      "mode": "finite-ordinary-hosted-pipeline",
+      "samples_ns": [
+        718391,
+        865905,
+        964179
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "hosted-pipeline-1-gears-32-adds",
+      "distribution": {
+        "count": 3,
+        "max_ns": 391671,
+        "mean_ns": 329341.0,
+        "min_ns": 248208,
+        "p50_ns": 348144,
+        "p95_ns": 391671,
+        "p99_ns": 391671,
+        "sample_standard_deviation_ns": 73556.59521076271
+      },
+      "metric": "kernel_phase_wall.play_ns",
+      "mode": "finite-ordinary-hosted-pipeline",
+      "samples_ns": [
+        248208,
+        348144,
+        391671
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "hosted-pipeline-32-gears-32-adds",
+      "distribution": {
+        "count": 3,
+        "max_ns": 6205901,
+        "mean_ns": 6149622.333333333,
+        "min_ns": 6090405,
+        "p50_ns": 6152561,
+        "p95_ns": 6205901,
+        "p99_ns": 6205901,
+        "sample_standard_deviation_ns": 57804.051115240356
+      },
+      "metric": "full_host_call.process_cpu_ns",
+      "mode": "finite-ordinary-hosted-pipeline",
+      "samples_ns": [
+        6205901,
+        6152561,
+        6090405
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "hosted-pipeline-32-gears-32-adds",
+      "distribution": {
+        "count": 3,
+        "max_ns": 6205737,
+        "mean_ns": 6149320.333333333,
+        "min_ns": 6090254,
+        "p50_ns": 6151970,
+        "p95_ns": 6205737,
+        "p99_ns": 6205737,
+        "sample_standard_deviation_ns": 57787.07790097471
+      },
+      "metric": "full_host_call.wall_ns",
+      "mode": "finite-ordinary-hosted-pipeline",
+      "samples_ns": [
+        6205737,
+        6151970,
+        6090254
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "hosted-pipeline-32-gears-32-adds",
+      "distribution": {
+        "count": 3,
+        "max_ns": 114037,
+        "mean_ns": 112367.33333333333,
+        "min_ns": 110841,
+        "p50_ns": 112224,
+        "p95_ns": 114037,
+        "p99_ns": 114037,
+        "sample_standard_deviation_ns": 1602.8138798167843
+      },
+      "metric": "kernel_phase_wall.after_play_ns",
+      "mode": "finite-ordinary-hosted-pipeline",
+      "samples_ns": [
+        114037,
+        110841,
+        112224
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "hosted-pipeline-32-gears-32-adds",
+      "distribution": {
+        "count": 3,
+        "max_ns": 892792,
+        "mean_ns": 850947.6666666666,
+        "min_ns": 805378,
+        "p50_ns": 854673,
+        "p95_ns": 892792,
+        "p99_ns": 892792,
+        "sample_standard_deviation_ns": 43825.91049063706
+      },
+      "metric": "kernel_phase_wall.back_preparation_ns",
+      "mode": "finite-ordinary-hosted-pipeline",
+      "samples_ns": [
+        892792,
+        854673,
+        805378
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "hosted-pipeline-32-gears-32-adds",
+      "distribution": {
+        "count": 3,
+        "max_ns": 132635,
+        "mean_ns": 127545.0,
+        "min_ns": 124468,
+        "p50_ns": 125532,
+        "p95_ns": 132635,
+        "p99_ns": 132635,
+        "sample_standard_deviation_ns": 4440.056193338098
+      },
+      "metric": "kernel_phase_wall.before_preparation_ns",
+      "mode": "finite-ordinary-hosted-pipeline",
+      "samples_ns": [
+        132635,
+        125532,
+        124468
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "hosted-pipeline-32-gears-32-adds",
+      "distribution": {
+        "count": 3,
+        "max_ns": 6205645,
+        "mean_ns": 6149227.666666667,
+        "min_ns": 6090162,
+        "p50_ns": 6151876,
+        "p95_ns": 6205645,
+        "p99_ns": 6205645,
+        "sample_standard_deviation_ns": 57787.032060258534
+      },
+      "metric": "kernel_phase_wall.call_wall_ns",
+      "mode": "finite-ordinary-hosted-pipeline",
+      "samples_ns": [
+        6205645,
+        6151876,
+        6090162
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "hosted-pipeline-32-gears-32-adds",
+      "distribution": {
+        "count": 3,
+        "max_ns": 5066181,
+        "mean_ns": 5058367.666666667,
+        "min_ns": 5048092,
+        "p50_ns": 5060830,
+        "p95_ns": 5066181,
+        "p99_ns": 5066181,
+        "sample_standard_deviation_ns": 9292.485907082977
+      },
+      "metric": "kernel_phase_wall.play_ns",
+      "mode": "finite-ordinary-hosted-pipeline",
+      "samples_ns": [
+        5066181,
+        5060830,
+        5048092
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "hosted-pipeline-8-gears-32-adds",
+      "distribution": {
+        "count": 3,
+        "max_ns": 2211909,
+        "mean_ns": 2015864.3333333333,
+        "min_ns": 1865418,
+        "p50_ns": 1970266,
+        "p95_ns": 2211909,
+        "p99_ns": 2211909,
+        "sample_standard_deviation_ns": 177689.08034072697
+      },
+      "metric": "full_host_call.process_cpu_ns",
+      "mode": "finite-ordinary-hosted-pipeline",
+      "samples_ns": [
+        2211909,
+        1970266,
+        1865418
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "hosted-pipeline-8-gears-32-adds",
+      "distribution": {
+        "count": 3,
+        "max_ns": 2211574,
+        "mean_ns": 2015402.0,
+        "min_ns": 1865079,
+        "p50_ns": 1969553,
+        "p95_ns": 2211574,
+        "p99_ns": 2211574,
+        "sample_standard_deviation_ns": 177739.4001255771
+      },
+      "metric": "full_host_call.wall_ns",
+      "mode": "finite-ordinary-hosted-pipeline",
+      "samples_ns": [
+        2211574,
+        1969553,
+        1865079
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "hosted-pipeline-8-gears-32-adds",
+      "distribution": {
+        "count": 3,
+        "max_ns": 76729,
+        "mean_ns": 67474.0,
+        "min_ns": 58358,
+        "p50_ns": 67335,
+        "p95_ns": 76729,
+        "p99_ns": 76729,
+        "sample_standard_deviation_ns": 9186.288750088363
+      },
+      "metric": "kernel_phase_wall.after_play_ns",
+      "mode": "finite-ordinary-hosted-pipeline",
+      "samples_ns": [
+        76729,
+        67335,
+        58358
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "hosted-pipeline-8-gears-32-adds",
+      "distribution": {
+        "count": 3,
+        "max_ns": 567219,
+        "mean_ns": 518089.3333333333,
+        "min_ns": 457140,
+        "p50_ns": 529909,
+        "p95_ns": 567219,
+        "p99_ns": 567219,
+        "sample_standard_deviation_ns": 55983.255981885624
+      },
+      "metric": "kernel_phase_wall.back_preparation_ns",
+      "mode": "finite-ordinary-hosted-pipeline",
+      "samples_ns": [
+        567219,
+        529909,
+        457140
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "hosted-pipeline-8-gears-32-adds",
+      "distribution": {
+        "count": 3,
+        "max_ns": 106605,
+        "mean_ns": 85648.0,
+        "min_ns": 64463,
+        "p50_ns": 85876,
+        "p95_ns": 106605,
+        "p99_ns": 106605,
+        "sample_standard_deviation_ns": 21071.925137490405
+      },
+      "metric": "kernel_phase_wall.before_preparation_ns",
+      "mode": "finite-ordinary-hosted-pipeline",
+      "samples_ns": [
+        106605,
+        85876,
+        64463
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "hosted-pipeline-8-gears-32-adds",
+      "distribution": {
+        "count": 3,
+        "max_ns": 2211455,
+        "mean_ns": 2015278.6666666667,
+        "min_ns": 1864954,
+        "p50_ns": 1969427,
+        "p95_ns": 2211455,
+        "p99_ns": 2211455,
+        "sample_standard_deviation_ns": 177742.84022804783
+      },
+      "metric": "kernel_phase_wall.call_wall_ns",
+      "mode": "finite-ordinary-hosted-pipeline",
+      "samples_ns": [
+        2211455,
+        1969427,
+        1864954
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "hosted-pipeline-8-gears-32-adds",
+      "distribution": {
+        "count": 3,
+        "max_ns": 1460902,
+        "mean_ns": 1344067.3333333333,
+        "min_ns": 1284993,
+        "p50_ns": 1286307,
+        "p95_ns": 1460902,
+        "p99_ns": 1460902,
+        "sample_standard_deviation_ns": 101183.92239053262
+      },
+      "metric": "kernel_phase_wall.play_ns",
+      "mode": "finite-ordinary-hosted-pipeline",
+      "samples_ns": [
+        1460902,
+        1286307,
+        1284993
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "pool-selection-1-realizations-1-resources",
+      "distribution": {
+        "count": 3,
+        "max_ns": 36593,
+        "mean_ns": 36222.666666666664,
+        "min_ns": 35953,
+        "p50_ns": 36122,
+        "p95_ns": 36593,
+        "p99_ns": 36593,
+        "sample_standard_deviation_ns": 331.66298155406616
+      },
+      "metric": "selection_wall_ns",
+      "mode": "production-selection-isolation",
+      "samples_ns": [
+        36122,
+        36593,
+        35953
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "pool-selection-1-realizations-4-resources",
+      "distribution": {
+        "count": 3,
+        "max_ns": 81694,
+        "mean_ns": 77241.33333333333,
+        "min_ns": 69460,
+        "p50_ns": 80570,
+        "p95_ns": 81694,
+        "p99_ns": 81694,
+        "sample_standard_deviation_ns": 6762.226359220261
+      },
+      "metric": "selection_wall_ns",
+      "mode": "production-selection-isolation",
+      "samples_ns": [
+        81694,
+        80570,
+        69460
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "pool-selection-32-realizations-1-resources",
+      "distribution": {
+        "count": 3,
+        "max_ns": 2365395,
+        "mean_ns": 2322609.0,
+        "min_ns": 2277874,
+        "p50_ns": 2324558,
+        "p95_ns": 2365395,
+        "p99_ns": 2365395,
+        "sample_standard_deviation_ns": 43793.039526847184
+      },
+      "metric": "selection_wall_ns",
+      "mode": "production-selection-isolation",
+      "samples_ns": [
+        2277874,
+        2365395,
+        2324558
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "pool-selection-32-realizations-4-resources",
+      "distribution": {
+        "count": 3,
+        "max_ns": 15599013,
+        "mean_ns": 15184952.0,
+        "min_ns": 14971497,
+        "p50_ns": 14984346,
+        "p95_ns": 15599013,
+        "p99_ns": 15599013,
+        "sample_standard_deviation_ns": 358644.89120995434
+      },
+      "metric": "selection_wall_ns",
+      "mode": "production-selection-isolation",
+      "samples_ns": [
+        15599013,
+        14984346,
+        14971497
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "pool-selection-8-realizations-1-resources",
+      "distribution": {
+        "count": 3,
+        "max_ns": 586738,
+        "mean_ns": 534425.3333333334,
+        "min_ns": 464369,
+        "p50_ns": 552169,
+        "p95_ns": 586738,
+        "p99_ns": 586738,
+        "sample_standard_deviation_ns": 63084.63616708376
+      },
+      "metric": "selection_wall_ns",
+      "mode": "production-selection-isolation",
+      "samples_ns": [
+        464369,
+        552169,
+        586738
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "pool-selection-8-realizations-4-resources",
+      "distribution": {
+        "count": 3,
+        "max_ns": 1741261,
+        "mean_ns": 1344525.3333333333,
+        "min_ns": 1105241,
+        "p50_ns": 1187074,
+        "p95_ns": 1741261,
+        "p99_ns": 1741261,
+        "sample_standard_deviation_ns": 346010.91294398985
+      },
+      "metric": "selection_wall_ns",
+      "mode": "production-selection-isolation",
+      "samples_ns": [
+        1741261,
+        1187074,
+        1105241
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "pure-chain-1-fused",
+      "distribution": {
+        "count": 3,
+        "max_ns": 948895,
+        "mean_ns": 838408.3333333334,
+        "min_ns": 689672,
+        "p50_ns": 876658,
+        "p95_ns": 948895,
+        "p99_ns": 948895,
+        "sample_standard_deviation_ns": 133777.4969205708
+      },
+      "metric": "full_host_call.process_cpu_ns",
+      "mode": "fused",
+      "samples_ns": [
+        689672,
+        876658,
+        948895
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "pure-chain-1-fused",
+      "distribution": {
+        "count": 3,
+        "max_ns": 946998,
+        "mean_ns": 836991.6666666666,
+        "min_ns": 688656,
+        "p50_ns": 875321,
+        "p95_ns": 946998,
+        "p99_ns": 946998,
+        "sample_standard_deviation_ns": 133367.91438098345
+      },
+      "metric": "full_host_call.wall_ns",
+      "mode": "fused",
+      "samples_ns": [
+        688656,
+        875321,
+        946998
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "pure-chain-1-fused",
+      "distribution": {
+        "count": 3,
+        "max_ns": 56850,
+        "mean_ns": 47191.666666666664,
+        "min_ns": 37427,
+        "p50_ns": 47298,
+        "p95_ns": 56850,
+        "p99_ns": 56850,
+        "sample_standard_deviation_ns": 9711.936590265268
+      },
+      "metric": "kernel_phase_wall.after_play_ns",
+      "mode": "fused",
+      "samples_ns": [
+        37427,
+        47298,
+        56850
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "pure-chain-1-fused",
+      "distribution": {
+        "count": 3,
+        "max_ns": 406885,
+        "mean_ns": 347155.6666666667,
+        "min_ns": 284309,
+        "p50_ns": 350273,
+        "p95_ns": 406885,
+        "p99_ns": 406885,
+        "sample_standard_deviation_ns": 61347.43082911731
+      },
+      "metric": "kernel_phase_wall.back_preparation_ns",
+      "mode": "fused",
+      "samples_ns": [
+        284309,
+        350273,
+        406885
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "pure-chain-1-fused",
+      "distribution": {
+        "count": 3,
+        "max_ns": 83710,
+        "mean_ns": 58554.333333333336,
+        "min_ns": 38883,
+        "p50_ns": 53070,
+        "p95_ns": 83710,
+        "p99_ns": 83710,
+        "sample_standard_deviation_ns": 22911.207221212357
+      },
+      "metric": "kernel_phase_wall.before_preparation_ns",
+      "mode": "fused",
+      "samples_ns": [
+        38883,
+        53070,
+        83710
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "pure-chain-1-fused",
+      "distribution": {
+        "count": 3,
+        "max_ns": 946795,
+        "mean_ns": 836787.0,
+        "min_ns": 688475,
+        "p50_ns": 875091,
+        "p95_ns": 946795,
+        "p99_ns": 946795,
+        "sample_standard_deviation_ns": 133351.80130766888
+      },
+      "metric": "kernel_phase_wall.call_wall_ns",
+      "mode": "fused",
+      "samples_ns": [
+        688475,
+        875091,
+        946795
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "pure-chain-1-fused",
+      "distribution": {
+        "count": 3,
+        "max_ns": 424450,
+        "mean_ns": 383885.3333333333,
+        "min_ns": 327856,
+        "p50_ns": 399350,
+        "p95_ns": 424450,
+        "p99_ns": 424450,
+        "sample_standard_deviation_ns": 50119.52858251296
+      },
+      "metric": "kernel_phase_wall.play_ns",
+      "mode": "fused",
+      "samples_ns": [
+        327856,
+        424450,
+        399350
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "pure-chain-1-local-unfused",
+      "distribution": {
+        "count": 3,
+        "max_ns": 965219,
+        "mean_ns": 781854.0,
+        "min_ns": 447175,
+        "p50_ns": 933168,
+        "p95_ns": 965219,
+        "p99_ns": 965219,
+        "sample_standard_deviation_ns": 290283.20900630817
+      },
+      "metric": "full_host_call.process_cpu_ns",
+      "mode": "local-unfused",
+      "samples_ns": [
+        447175,
+        965219,
+        933168
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "pure-chain-1-local-unfused",
+      "distribution": {
+        "count": 3,
+        "max_ns": 963343,
+        "mean_ns": 780530.6666666666,
+        "min_ns": 446564,
+        "p50_ns": 931685,
+        "p95_ns": 963343,
+        "p99_ns": 963343,
+        "sample_standard_deviation_ns": 289656.4483562093
+      },
+      "metric": "full_host_call.wall_ns",
+      "mode": "local-unfused",
+      "samples_ns": [
+        446564,
+        963343,
+        931685
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "pure-chain-1-local-unfused",
+      "distribution": {
+        "count": 3,
+        "max_ns": 58216,
+        "mean_ns": 45709.333333333336,
+        "min_ns": 24967,
+        "p50_ns": 53945,
+        "p95_ns": 58216,
+        "p99_ns": 58216,
+        "sample_standard_deviation_ns": 18089.87712322373
+      },
+      "metric": "kernel_phase_wall.after_play_ns",
+      "mode": "local-unfused",
+      "samples_ns": [
+        24967,
+        58216,
+        53945
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "pure-chain-1-local-unfused",
+      "distribution": {
+        "count": 3,
+        "max_ns": 420259,
+        "mean_ns": 331890.0,
+        "min_ns": 180128,
+        "p50_ns": 395283,
+        "p95_ns": 420259,
+        "p99_ns": 420259,
+        "sample_standard_deviation_ns": 132021.69756142359
+      },
+      "metric": "kernel_phase_wall.back_preparation_ns",
+      "mode": "local-unfused",
+      "samples_ns": [
+        180128,
+        420259,
+        395283
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "pure-chain-1-local-unfused",
+      "distribution": {
+        "count": 3,
+        "max_ns": 74091,
+        "mean_ns": 57302.0,
+        "min_ns": 24808,
+        "p50_ns": 73007,
+        "p95_ns": 74091,
+        "p99_ns": 74091,
+        "sample_standard_deviation_ns": 28145.848557114066
+      },
+      "metric": "kernel_phase_wall.before_preparation_ns",
+      "mode": "local-unfused",
+      "samples_ns": [
+        24808,
+        74091,
+        73007
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "pure-chain-1-local-unfused",
+      "distribution": {
+        "count": 3,
+        "max_ns": 963134,
+        "mean_ns": 780361.6666666666,
+        "min_ns": 446458,
+        "p50_ns": 931493,
+        "p95_ns": 963134,
+        "p99_ns": 963134,
+        "sample_standard_deviation_ns": 289601.5058322959
+      },
+      "metric": "kernel_phase_wall.call_wall_ns",
+      "mode": "local-unfused",
+      "samples_ns": [
+        446458,
+        963134,
+        931493
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "pure-chain-1-local-unfused",
+      "distribution": {
+        "count": 3,
+        "max_ns": 410568,
+        "mean_ns": 345460.3333333333,
+        "min_ns": 216555,
+        "p50_ns": 409258,
+        "p95_ns": 410568,
+        "p99_ns": 410568,
+        "sample_standard_deviation_ns": 111637.21488076157
+      },
+      "metric": "kernel_phase_wall.play_ns",
+      "mode": "local-unfused",
+      "samples_ns": [
+        216555,
+        410568,
+        409258
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "pure-chain-32-fused",
+      "distribution": {
+        "count": 3,
+        "max_ns": 3322809,
+        "mean_ns": 3287149.6666666665,
+        "min_ns": 3256807,
+        "p50_ns": 3281833,
+        "p95_ns": 3322809,
+        "p99_ns": 3322809,
+        "sample_standard_deviation_ns": 33320.65739647598
+      },
+      "metric": "full_host_call.process_cpu_ns",
+      "mode": "fused",
+      "samples_ns": [
+        3281833,
+        3322809,
+        3256807
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "pure-chain-32-fused",
+      "distribution": {
+        "count": 3,
+        "max_ns": 3322212,
+        "mean_ns": 3286596.3333333335,
+        "min_ns": 3256296,
+        "p50_ns": 3281281,
+        "p95_ns": 3322212,
+        "p99_ns": 3322212,
+        "sample_standard_deviation_ns": 33277.91069663684
+      },
+      "metric": "full_host_call.wall_ns",
+      "mode": "fused",
+      "samples_ns": [
+        3281281,
+        3322212,
+        3256296
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "pure-chain-32-fused",
+      "distribution": {
+        "count": 3,
+        "max_ns": 79164,
+        "mean_ns": 74200.33333333333,
+        "min_ns": 70882,
+        "p50_ns": 72555,
+        "p95_ns": 79164,
+        "p99_ns": 79164,
+        "sample_standard_deviation_ns": 4379.294730128737
+      },
+      "metric": "kernel_phase_wall.after_play_ns",
+      "mode": "fused",
+      "samples_ns": [
+        70882,
+        79164,
+        72555
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "pure-chain-32-fused",
+      "distribution": {
+        "count": 3,
+        "max_ns": 828766,
+        "mean_ns": 808511.6666666666,
+        "min_ns": 787327,
+        "p50_ns": 809442,
+        "p95_ns": 828766,
+        "p99_ns": 828766,
+        "sample_standard_deviation_ns": 20735.15903805256
+      },
+      "metric": "kernel_phase_wall.back_preparation_ns",
+      "mode": "fused",
+      "samples_ns": [
+        809442,
+        828766,
+        787327
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "pure-chain-32-fused",
+      "distribution": {
+        "count": 3,
+        "max_ns": 160583,
+        "mean_ns": 147116.0,
+        "min_ns": 139800,
+        "p50_ns": 140965,
+        "p95_ns": 160583,
+        "p99_ns": 160583,
+        "sample_standard_deviation_ns": 11677.301614671089
+      },
+      "metric": "kernel_phase_wall.before_preparation_ns",
+      "mode": "fused",
+      "samples_ns": [
+        140965,
+        160583,
+        139800
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "pure-chain-32-fused",
+      "distribution": {
+        "count": 3,
+        "max_ns": 3322114,
+        "mean_ns": 3286493.6666666665,
+        "min_ns": 3256190,
+        "p50_ns": 3281177,
+        "p95_ns": 3322114,
+        "p99_ns": 3322114,
+        "sample_standard_deviation_ns": 33282.03197422492
+      },
+      "metric": "kernel_phase_wall.call_wall_ns",
+      "mode": "fused",
+      "samples_ns": [
+        3281177,
+        3322114,
+        3256190
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "pure-chain-32-fused",
+      "distribution": {
+        "count": 3,
+        "max_ns": 2259888,
+        "mean_ns": 2256665.6666666665,
+        "min_ns": 2253601,
+        "p50_ns": 2256508,
+        "p95_ns": 2259888,
+        "p99_ns": 2259888,
+        "sample_standard_deviation_ns": 3146.464100118308
+      },
+      "metric": "kernel_phase_wall.play_ns",
+      "mode": "fused",
+      "samples_ns": [
+        2259888,
+        2253601,
+        2256508
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "pure-chain-32-local-unfused",
+      "distribution": {
+        "count": 3,
+        "max_ns": 3337857,
+        "mean_ns": 3299818.0,
+        "min_ns": 3224885,
+        "p50_ns": 3336712,
+        "p95_ns": 3337857,
+        "p99_ns": 3337857,
+        "sample_standard_deviation_ns": 64896.4068573908
+      },
+      "metric": "full_host_call.process_cpu_ns",
+      "mode": "local-unfused",
+      "samples_ns": [
+        3336712,
+        3337857,
+        3224885
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "pure-chain-32-local-unfused",
+      "distribution": {
+        "count": 3,
+        "max_ns": 3336969,
+        "mean_ns": 3299140.0,
+        "min_ns": 3224369,
+        "p50_ns": 3336082,
+        "p95_ns": 3336969,
+        "p99_ns": 3336969,
+        "sample_standard_deviation_ns": 64755.1042235282
+      },
+      "metric": "full_host_call.wall_ns",
+      "mode": "local-unfused",
+      "samples_ns": [
+        3336082,
+        3336969,
+        3224369
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "pure-chain-32-local-unfused",
+      "distribution": {
+        "count": 3,
+        "max_ns": 75092,
+        "mean_ns": 69818.33333333333,
+        "min_ns": 65732,
+        "p50_ns": 68631,
+        "p95_ns": 75092,
+        "p99_ns": 75092,
+        "sample_standard_deviation_ns": 4791.630237542681
+      },
+      "metric": "kernel_phase_wall.after_play_ns",
+      "mode": "local-unfused",
+      "samples_ns": [
+        65732,
+        75092,
+        68631
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "pure-chain-32-local-unfused",
+      "distribution": {
+        "count": 3,
+        "max_ns": 629686,
+        "mean_ns": 608452.3333333334,
+        "min_ns": 573363,
+        "p50_ns": 622308,
+        "p95_ns": 629686,
+        "p99_ns": 629686,
+        "sample_standard_deviation_ns": 30611.34930599
+      },
+      "metric": "kernel_phase_wall.back_preparation_ns",
+      "mode": "local-unfused",
+      "samples_ns": [
+        622308,
+        629686,
+        573363
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "pure-chain-32-local-unfused",
+      "distribution": {
+        "count": 3,
+        "max_ns": 176409,
+        "mean_ns": 148913.0,
+        "min_ns": 124322,
+        "p50_ns": 146008,
+        "p95_ns": 176409,
+        "p99_ns": 176409,
+        "sample_standard_deviation_ns": 26164.731242647995
+      },
+      "metric": "kernel_phase_wall.before_preparation_ns",
+      "mode": "local-unfused",
+      "samples_ns": [
+        146008,
+        176409,
+        124322
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "pure-chain-32-local-unfused",
+      "distribution": {
+        "count": 3,
+        "max_ns": 3336852,
+        "mean_ns": 3299028.0,
+        "min_ns": 3224269,
+        "p50_ns": 3335963,
+        "p95_ns": 3336852,
+        "p99_ns": 3336852,
+        "sample_standard_deviation_ns": 64744.719020164106
+      },
+      "metric": "kernel_phase_wall.call_wall_ns",
+      "mode": "local-unfused",
+      "samples_ns": [
+        3335963,
+        3336852,
+        3224269
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "pure-chain-32-local-unfused",
+      "distribution": {
+        "count": 3,
+        "max_ns": 2501915,
+        "mean_ns": 2471844.3333333335,
+        "min_ns": 2455665,
+        "p50_ns": 2457953,
+        "p95_ns": 2501915,
+        "p99_ns": 2501915,
+        "sample_standard_deviation_ns": 26067.076578192173
+      },
+      "metric": "kernel_phase_wall.play_ns",
+      "mode": "local-unfused",
+      "samples_ns": [
+        2501915,
+        2455665,
+        2457953
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "pure-chain-8-fused",
+      "distribution": {
+        "count": 3,
+        "max_ns": 2904625,
+        "mean_ns": 2203007.6666666665,
+        "min_ns": 1618845,
+        "p50_ns": 2085553,
+        "p95_ns": 2904625,
+        "p99_ns": 2904625,
+        "sample_standard_deviation_ns": 650887.2799043881
+      },
+      "metric": "full_host_call.process_cpu_ns",
+      "mode": "fused",
+      "samples_ns": [
+        2904625,
+        2085553,
+        1618845
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "pure-chain-8-fused",
+      "distribution": {
+        "count": 3,
+        "max_ns": 2902659,
+        "mean_ns": 2201553.6666666665,
+        "min_ns": 1617940,
+        "p50_ns": 2084062,
+        "p95_ns": 2902659,
+        "p99_ns": 2902659,
+        "sample_standard_deviation_ns": 650368.3156814554
+      },
+      "metric": "full_host_call.wall_ns",
+      "mode": "fused",
+      "samples_ns": [
+        2902659,
+        2084062,
+        1617940
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "pure-chain-8-fused",
+      "distribution": {
+        "count": 3,
+        "max_ns": 172217,
+        "mean_ns": 93524.33333333333,
+        "min_ns": 46416,
+        "p50_ns": 61940,
+        "p95_ns": 172217,
+        "p99_ns": 172217,
+        "sample_standard_deviation_ns": 68590.45476109145
+      },
+      "metric": "kernel_phase_wall.after_play_ns",
+      "mode": "fused",
+      "samples_ns": [
+        172217,
+        61940,
+        46416
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "pure-chain-8-fused",
+      "distribution": {
+        "count": 3,
+        "max_ns": 863959,
+        "mean_ns": 706545.3333333334,
+        "min_ns": 527432,
+        "p50_ns": 728245,
+        "p95_ns": 863959,
+        "p99_ns": 863959,
+        "sample_standard_deviation_ns": 169309.6632869292
+      },
+      "metric": "kernel_phase_wall.back_preparation_ns",
+      "mode": "fused",
+      "samples_ns": [
+        863959,
+        728245,
+        527432
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "pure-chain-8-fused",
+      "distribution": {
+        "count": 3,
+        "max_ns": 160720,
+        "mean_ns": 121746.66666666667,
+        "min_ns": 76327,
+        "p50_ns": 128193,
+        "p95_ns": 160720,
+        "p99_ns": 160720,
+        "sample_standard_deviation_ns": 42564.19883344844
+      },
+      "metric": "kernel_phase_wall.before_preparation_ns",
+      "mode": "fused",
+      "samples_ns": [
+        160720,
+        128193,
+        76327
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "pure-chain-8-fused",
+      "distribution": {
+        "count": 3,
+        "max_ns": 2902358,
+        "mean_ns": 2201339.6666666665,
+        "min_ns": 1617794,
+        "p50_ns": 2083867,
+        "p95_ns": 2902358,
+        "p99_ns": 2902358,
+        "sample_standard_deviation_ns": 650289.1957308942
+      },
+      "metric": "kernel_phase_wall.call_wall_ns",
+      "mode": "fused",
+      "samples_ns": [
+        2902358,
+        2083867,
+        1617794
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "pure-chain-8-fused",
+      "distribution": {
+        "count": 3,
+        "max_ns": 1705462,
+        "mean_ns": 1279523.3333333333,
+        "min_ns": 967619,
+        "p50_ns": 1165489,
+        "p95_ns": 1705462,
+        "p99_ns": 1705462,
+        "sample_standard_deviation_ns": 381910.91244730534
+      },
+      "metric": "kernel_phase_wall.play_ns",
+      "mode": "fused",
+      "samples_ns": [
+        1705462,
+        1165489,
+        967619
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "pure-chain-8-local-unfused",
+      "distribution": {
+        "count": 3,
+        "max_ns": 2363947,
+        "mean_ns": 1861760.6666666667,
+        "min_ns": 1564066,
+        "p50_ns": 1657269,
+        "p95_ns": 2363947,
+        "p99_ns": 2363947,
+        "sample_standard_deviation_ns": 437395.741682899
+      },
+      "metric": "full_host_call.process_cpu_ns",
+      "mode": "local-unfused",
+      "samples_ns": [
+        2363947,
+        1657269,
+        1564066
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "pure-chain-8-local-unfused",
+      "distribution": {
+        "count": 3,
+        "max_ns": 2371664,
+        "mean_ns": 1863834.3333333333,
+        "min_ns": 1563199,
+        "p50_ns": 1656640,
+        "p95_ns": 2371664,
+        "p99_ns": 2371664,
+        "sample_standard_deviation_ns": 442268.0554599589
+      },
+      "metric": "full_host_call.wall_ns",
+      "mode": "local-unfused",
+      "samples_ns": [
+        2371664,
+        1656640,
+        1563199
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "pure-chain-8-local-unfused",
+      "distribution": {
+        "count": 3,
+        "max_ns": 162926,
+        "mean_ns": 87629.66666666667,
+        "min_ns": 48867,
+        "p50_ns": 51096,
+        "p95_ns": 162926,
+        "p99_ns": 162926,
+        "sample_standard_deviation_ns": 65218.060921291835
+      },
+      "metric": "kernel_phase_wall.after_play_ns",
+      "mode": "local-unfused",
+      "samples_ns": [
+        162926,
+        48867,
+        51096
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "pure-chain-8-local-unfused",
+      "distribution": {
+        "count": 3,
+        "max_ns": 534091,
+        "mean_ns": 448957.3333333333,
+        "min_ns": 391168,
+        "p50_ns": 421613,
+        "p95_ns": 534091,
+        "p99_ns": 534091,
+        "sample_standard_deviation_ns": 75283.00210760284
+      },
+      "metric": "kernel_phase_wall.back_preparation_ns",
+      "mode": "local-unfused",
+      "samples_ns": [
+        534091,
+        421613,
+        391168
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "pure-chain-8-local-unfused",
+      "distribution": {
+        "count": 3,
+        "max_ns": 111424,
+        "mean_ns": 89458.0,
+        "min_ns": 76643,
+        "p50_ns": 80307,
+        "p95_ns": 111424,
+        "p99_ns": 111424,
+        "sample_standard_deviation_ns": 19111.124796829725
+      },
+      "metric": "kernel_phase_wall.before_preparation_ns",
+      "mode": "local-unfused",
+      "samples_ns": [
+        111424,
+        76643,
+        80307
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "pure-chain-8-local-unfused",
+      "distribution": {
+        "count": 3,
+        "max_ns": 2371447,
+        "mean_ns": 1863659.6666666667,
+        "min_ns": 1563044,
+        "p50_ns": 1656488,
+        "p95_ns": 2371447,
+        "p99_ns": 2371447,
+        "sample_standard_deviation_ns": 442231.7573448715
+      },
+      "metric": "kernel_phase_wall.call_wall_ns",
+      "mode": "local-unfused",
+      "samples_ns": [
+        2371447,
+        1656488,
+        1563044
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "pure-chain-8-local-unfused",
+      "distribution": {
+        "count": 3,
+        "max_ns": 1563006,
+        "mean_ns": 1237614.6666666667,
+        "min_ns": 1040473,
+        "p50_ns": 1109365,
+        "p95_ns": 1563006,
+        "p99_ns": 1563006,
+        "sample_standard_deviation_ns": 283894.64026700705
+      },
+      "metric": "kernel_phase_wall.play_ns",
+      "mode": "local-unfused",
+      "samples_ns": [
+        1563006,
+        1109365,
+        1040473
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "scalar-add1",
+      "distribution": {
+        "count": 3,
+        "max_ns": 2035660,
+        "mean_ns": 2019835.0,
+        "min_ns": 2007905,
+        "p50_ns": 2015940,
+        "p95_ns": 2035660,
+        "p99_ns": 2035660,
+        "sample_standard_deviation_ns": 14281.571167067019
+      },
+      "metric": "bulk_cpu_ns",
+      "mode": "native-optimized",
+      "samples_ns": [
+        2015940,
+        2007905,
+        2035660
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "scalar-add1",
+      "distribution": {
+        "count": 3,
+        "max_ns": 2035541,
+        "mean_ns": 2019711.6666666667,
+        "min_ns": 2007782,
+        "p50_ns": 2015812,
+        "p95_ns": 2035541,
+        "p99_ns": 2035541,
+        "sample_standard_deviation_ns": 14284.469550295958
+      },
+      "metric": "bulk_wall_ns",
+      "mode": "native-optimized",
+      "samples_ns": [
+        2015812,
+        2007782,
+        2035541
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "scalar-add1",
+      "distribution": {
+        "count": 3,
+        "max_ns": 62620715,
+        "mean_ns": 62417952.333333336,
+        "min_ns": 62266266,
+        "p50_ns": 62366876,
+        "p95_ns": 62620715,
+        "p99_ns": 62620715,
+        "sample_standard_deviation_ns": 182661.2089917642
+      },
+      "metric": "bulk_cpu_ns",
+      "mode": "prepared-reference",
+      "samples_ns": [
+        62266266,
+        62366876,
+        62620715
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "scalar-add1",
+      "distribution": {
+        "count": 3,
+        "max_ns": 62627482,
+        "mean_ns": 62422622.0,
+        "min_ns": 62268178,
+        "p50_ns": 62372206,
+        "p95_ns": 62627482,
+        "p99_ns": 62627482,
+        "sample_standard_deviation_ns": 184881.50501334632
+      },
+      "metric": "bulk_wall_ns",
+      "mode": "prepared-reference",
+      "samples_ns": [
+        62268178,
+        62372206,
+        62627482
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "scalar-add3",
+      "distribution": {
+        "count": 3,
+        "max_ns": 2210975,
+        "mean_ns": 2208747.0,
+        "min_ns": 2206699,
+        "p50_ns": 2208567,
+        "p95_ns": 2210975,
+        "p99_ns": 2210975,
+        "sample_standard_deviation_ns": 2143.67534855444
+      },
+      "metric": "bulk_cpu_ns",
+      "mode": "native-optimized",
+      "samples_ns": [
+        2208567,
+        2206699,
+        2210975
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "scalar-add3",
+      "distribution": {
+        "count": 3,
+        "max_ns": 2210847,
+        "mean_ns": 2208485.3333333335,
+        "min_ns": 2206565,
+        "p50_ns": 2208044,
+        "p95_ns": 2210847,
+        "p99_ns": 2210847,
+        "sample_standard_deviation_ns": 2174.847657499959
+      },
+      "metric": "bulk_wall_ns",
+      "mode": "native-optimized",
+      "samples_ns": [
+        2208044,
+        2206565,
+        2210847
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "scalar-add3",
+      "distribution": {
+        "count": 3,
+        "max_ns": 135693386,
+        "mean_ns": 135615861.66666666,
+        "min_ns": 135491568,
+        "p50_ns": 135662631,
+        "p95_ns": 135693386,
+        "p99_ns": 135693386,
+        "sample_standard_deviation_ns": 108734.3284631579
+      },
+      "metric": "bulk_cpu_ns",
+      "mode": "prepared-reference",
+      "samples_ns": [
+        135491568,
+        135662631,
+        135693386
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "scalar-add3",
+      "distribution": {
+        "count": 3,
+        "max_ns": 135703680,
+        "mean_ns": 135627385.66666666,
+        "min_ns": 135498940,
+        "p50_ns": 135679537,
+        "p95_ns": 135703680,
+        "p99_ns": 135703680,
+        "sample_standard_deviation_ns": 111890.2948263785
+      },
+      "metric": "bulk_wall_ns",
+      "mode": "prepared-reference",
+      "samples_ns": [
+        135498940,
+        135679537,
+        135703680
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "scalar-add32",
+      "distribution": {
+        "count": 3,
+        "max_ns": 5374344,
+        "mean_ns": 5371397.333333333,
+        "min_ns": 5368303,
+        "p50_ns": 5371545,
+        "p95_ns": 5374344,
+        "p99_ns": 5374344,
+        "sample_standard_deviation_ns": 3023.2059693864758
+      },
+      "metric": "bulk_cpu_ns",
+      "mode": "native-optimized",
+      "samples_ns": [
+        5371545,
+        5368303,
+        5374344
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "scalar-add32",
+      "distribution": {
+        "count": 3,
+        "max_ns": 5374308,
+        "mean_ns": 5371354.666666667,
+        "min_ns": 5368236,
+        "p50_ns": 5371520,
+        "p95_ns": 5374308,
+        "p99_ns": 5374308,
+        "sample_standard_deviation_ns": 3039.3744970524194
+      },
+      "metric": "bulk_wall_ns",
+      "mode": "native-optimized",
+      "samples_ns": [
+        5371520,
+        5368236,
+        5374308
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "scalar-add32",
+      "distribution": {
+        "count": 3,
+        "max_ns": 1209007593,
+        "mean_ns": 1203577295.6666667,
+        "min_ns": 1200767120,
+        "p50_ns": 1200957174,
+        "p95_ns": 1209007593,
+        "p99_ns": 1209007593,
+        "sample_standard_deviation_ns": 4703735.428043811
+      },
+      "metric": "bulk_cpu_ns",
+      "mode": "prepared-reference",
+      "samples_ns": [
+        1200767120,
+        1209007593,
+        1200957174
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "scalar-add32",
+      "distribution": {
+        "count": 3,
+        "max_ns": 1209131249,
+        "mean_ns": 1203690843.0,
+        "min_ns": 1200864798,
+        "p50_ns": 1201076482,
+        "p95_ns": 1209131249,
+        "p99_ns": 1209131249,
+        "sample_standard_deviation_ns": 4712718.494944399
+      },
+      "metric": "bulk_wall_ns",
+      "mode": "prepared-reference",
+      "samples_ns": [
+        1200864798,
+        1209131249,
+        1201076482
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "scalar-add8",
+      "distribution": {
+        "count": 3,
+        "max_ns": 2608874,
+        "mean_ns": 2608266.3333333335,
+        "min_ns": 2607496,
+        "p50_ns": 2608429,
+        "p95_ns": 2608874,
+        "p99_ns": 2608874,
+        "sample_standard_deviation_ns": 703.2541029623809
+      },
+      "metric": "bulk_cpu_ns",
+      "mode": "native-optimized",
+      "samples_ns": [
+        2608874,
+        2608429,
+        2607496
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "scalar-add8",
+      "distribution": {
+        "count": 3,
+        "max_ns": 2608746,
+        "mean_ns": 2608147.3333333335,
+        "min_ns": 2607387,
+        "p50_ns": 2608309,
+        "p95_ns": 2608746,
+        "p99_ns": 2608746,
+        "sample_standard_deviation_ns": 693.7739785646488
+      },
+      "metric": "bulk_wall_ns",
+      "mode": "native-optimized",
+      "samples_ns": [
+        2608746,
+        2608309,
+        2607387
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "scalar-add8",
+      "distribution": {
+        "count": 3,
+        "max_ns": 315815774,
+        "mean_ns": 315698525.3333333,
+        "min_ns": 315621940,
+        "p50_ns": 315657862,
+        "p95_ns": 315815774,
+        "p99_ns": 315815774,
+        "sample_standard_deviation_ns": 103116.6082516911
+      },
+      "metric": "bulk_cpu_ns",
+      "mode": "prepared-reference",
+      "samples_ns": [
+        315815774,
+        315621940,
+        315657862
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "scalar-add8",
+      "distribution": {
+        "count": 3,
+        "max_ns": 317716579,
+        "mean_ns": 316348710.6666667,
+        "min_ns": 315640667,
+        "p50_ns": 315688886,
+        "p95_ns": 317716579,
+        "p99_ns": 317716579,
+        "sample_standard_deviation_ns": 1184854.0420627105
+      },
+      "metric": "bulk_wall_ns",
+      "mode": "prepared-reference",
+      "samples_ns": [
+        317716579,
+        315640667,
+        315688886
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "scalar-comparison",
+      "distribution": {
+        "count": 3,
+        "max_ns": 2008471,
+        "mean_ns": 2007163.6666666667,
+        "min_ns": 2006255,
+        "p50_ns": 2006765,
+        "p95_ns": 2008471,
+        "p99_ns": 2008471,
+        "sample_standard_deviation_ns": 1160.5452741419685
+      },
+      "metric": "bulk_cpu_ns",
+      "mode": "native-optimized",
+      "samples_ns": [
+        2006765,
+        2006255,
+        2008471
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "scalar-comparison",
+      "distribution": {
+        "count": 3,
+        "max_ns": 2009746,
+        "mean_ns": 2007498.3333333333,
+        "min_ns": 2006130,
+        "p50_ns": 2006619,
+        "p95_ns": 2009746,
+        "p99_ns": 2009746,
+        "sample_standard_deviation_ns": 1961.8318820259458
+      },
+      "metric": "bulk_wall_ns",
+      "mode": "native-optimized",
+      "samples_ns": [
+        2006619,
+        2006130,
+        2009746
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "scalar-comparison",
+      "distribution": {
+        "count": 3,
+        "max_ns": 62871309,
+        "mean_ns": 62767717.333333336,
+        "min_ns": 62628150,
+        "p50_ns": 62803693,
+        "p95_ns": 62871309,
+        "p99_ns": 62871309,
+        "sample_standard_deviation_ns": 125508.01274951787
+      },
+      "metric": "bulk_cpu_ns",
+      "mode": "prepared-reference",
+      "samples_ns": [
+        62628150,
+        62803693,
+        62871309
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "scalar-comparison",
+      "distribution": {
+        "count": 3,
+        "max_ns": 62875399,
+        "mean_ns": 62772040.666666664,
+        "min_ns": 62633499,
+        "p50_ns": 62807224,
+        "p95_ns": 62875399,
+        "p99_ns": 62875399,
+        "sample_standard_deviation_ns": 124728.91688912209
+      },
+      "metric": "bulk_wall_ns",
+      "mode": "prepared-reference",
+      "samples_ns": [
+        62633499,
+        62807224,
+        62875399
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "scalar-conditional",
+      "distribution": {
+        "count": 3,
+        "max_ns": 2007932,
+        "mean_ns": 2006957.6666666667,
+        "min_ns": 2006270,
+        "p50_ns": 2006671,
+        "p95_ns": 2007932,
+        "p99_ns": 2007932,
+        "sample_standard_deviation_ns": 867.2913774120975
+      },
+      "metric": "bulk_cpu_ns",
+      "mode": "native-optimized",
+      "samples_ns": [
+        2007932,
+        2006671,
+        2006270
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "scalar-conditional",
+      "distribution": {
+        "count": 3,
+        "max_ns": 2007800,
+        "mean_ns": 2006827.0,
+        "min_ns": 2006169,
+        "p50_ns": 2006512,
+        "p95_ns": 2007800,
+        "p99_ns": 2007800,
+        "sample_standard_deviation_ns": 859.9180193483562
+      },
+      "metric": "bulk_wall_ns",
+      "mode": "native-optimized",
+      "samples_ns": [
+        2007800,
+        2006512,
+        2006169
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "scalar-conditional",
+      "distribution": {
+        "count": 3,
+        "max_ns": 123578102,
+        "mean_ns": 123505189.33333333,
+        "min_ns": 123415226,
+        "p50_ns": 123522240,
+        "p95_ns": 123578102,
+        "p99_ns": 123578102,
+        "sample_standard_deviation_ns": 82765.88529903855
+      },
+      "metric": "bulk_cpu_ns",
+      "mode": "prepared-reference",
+      "samples_ns": [
+        123522240,
+        123415226,
+        123578102
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "scalar-conditional",
+      "distribution": {
+        "count": 3,
+        "max_ns": 123608741,
+        "mean_ns": 123521103.66666667,
+        "min_ns": 123428379,
+        "p50_ns": 123526191,
+        "p95_ns": 123608741,
+        "p99_ns": 123608741,
+        "sample_standard_deviation_ns": 90288.55675739316
+      },
+      "metric": "bulk_wall_ns",
+      "mode": "prepared-reference",
+      "samples_ns": [
+        123526191,
+        123428379,
+        123608741
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "typed-cost-selection-1-hosts",
+      "distribution": {
+        "count": 3,
+        "max_ns": 2273603,
+        "mean_ns": 2193735.0,
+        "min_ns": 2142099,
+        "p50_ns": 2165503,
+        "p95_ns": 2273603,
+        "p99_ns": 2273603,
+        "sample_standard_deviation_ns": 70150.62274848313
+      },
+      "metric": "selection_wall_ns",
+      "mode": "production-typed-cost-selection-isolation",
+      "samples_ns": [
+        2165503,
+        2142099,
+        2273603
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "typed-cost-selection-1-hosts-std-owner-inventory",
+      "distribution": {
+        "count": 3,
+        "max_ns": 25086117,
+        "mean_ns": 24865481.333333332,
+        "min_ns": 24601324,
+        "p50_ns": 24909003,
+        "p95_ns": 25086117,
+        "p99_ns": 25086117,
+        "sample_standard_deviation_ns": 245309.32476025762
+      },
+      "metric": "selection_wall_ns",
+      "mode": "production-typed-cost-selection-isolation",
+      "samples_ns": [
+        24601324,
+        24909003,
+        25086117
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "typed-cost-selection-32-hosts",
+      "distribution": {
+        "count": 3,
+        "max_ns": 163748168,
+        "mean_ns": 163359746.33333334,
+        "min_ns": 162997835,
+        "p50_ns": 163333236,
+        "p95_ns": 163748168,
+        "p99_ns": 163748168,
+        "sample_standard_deviation_ns": 375868.3294084958
+      },
+      "metric": "selection_wall_ns",
+      "mode": "production-typed-cost-selection-isolation",
+      "samples_ns": [
+        162997835,
+        163748168,
+        163333236
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "typed-cost-selection-32-hosts-std-owner-inventory",
+      "distribution": {
+        "count": 3,
+        "max_ns": 1272870996,
+        "mean_ns": 1262341827.0,
+        "min_ns": 1242603849,
+        "p50_ns": 1271550636,
+        "p95_ns": 1272870996,
+        "p99_ns": 1272870996,
+        "sample_standard_deviation_ns": 17106334.185872875
+      },
+      "metric": "selection_wall_ns",
+      "mode": "production-typed-cost-selection-isolation",
+      "samples_ns": [
+        1242603849,
+        1271550636,
+        1272870996
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "typed-cost-selection-8-hosts",
+      "distribution": {
+        "count": 3,
+        "max_ns": 36436675,
+        "mean_ns": 36200996.333333336,
+        "min_ns": 35997956,
+        "p50_ns": 36168358,
+        "p95_ns": 36436675,
+        "p99_ns": 36436675,
+        "sample_standard_deviation_ns": 221173.09023100752
+      },
+      "metric": "selection_wall_ns",
+      "mode": "production-typed-cost-selection-isolation",
+      "samples_ns": [
+        35997956,
+        36436675,
+        36168358
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "typed-cost-selection-8-hosts-std-owner-inventory",
+      "distribution": {
+        "count": 3,
+        "max_ns": 258232208,
+        "mean_ns": 257626402.66666666,
+        "min_ns": 256832574,
+        "p50_ns": 257814426,
+        "p95_ns": 258232208,
+        "p99_ns": 258232208,
+        "sample_standard_deviation_ns": 718511.2482747467
+      },
+      "metric": "selection_wall_ns",
+      "mode": "production-typed-cost-selection-isolation",
+      "samples_ns": [
+        258232208,
+        256832574,
+        257814426
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "u64-add1",
+      "distribution": {
+        "count": 3,
+        "max_ns": 2049407,
+        "mean_ns": 2031312.0,
+        "min_ns": 2014176,
+        "p50_ns": 2030353,
+        "p95_ns": 2049407,
+        "p99_ns": 2049407,
+        "sample_standard_deviation_ns": 17635.067365904786
+      },
+      "metric": "bulk_cpu_ns",
+      "mode": "native-optimized",
+      "samples_ns": [
+        2014176,
+        2030353,
+        2049407
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "u64-add1",
+      "distribution": {
+        "count": 3,
+        "max_ns": 2049283,
+        "mean_ns": 2031175.3333333333,
+        "min_ns": 2014017,
+        "p50_ns": 2030226,
+        "p95_ns": 2049283,
+        "p99_ns": 2049283,
+        "sample_standard_deviation_ns": 17652.156081718018
+      },
+      "metric": "bulk_wall_ns",
+      "mode": "native-optimized",
+      "samples_ns": [
+        2014017,
+        2030226,
+        2049283
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "u64-add1",
+      "distribution": {
+        "count": 3,
+        "max_ns": 73189231,
+        "mean_ns": 73106637.33333333,
+        "min_ns": 73009972,
+        "p50_ns": 73120709,
+        "p95_ns": 73189231,
+        "p99_ns": 73189231,
+        "sample_standard_deviation_ns": 90454.1658650025
+      },
+      "metric": "bulk_cpu_ns",
+      "mode": "prepared-reference",
+      "samples_ns": [
+        73009972,
+        73189231,
+        73120709
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "u64-add1",
+      "distribution": {
+        "count": 3,
+        "max_ns": 73191611,
+        "mean_ns": 73112935.0,
+        "min_ns": 73012355,
+        "p50_ns": 73134839,
+        "p95_ns": 73191611,
+        "p99_ns": 73191611,
+        "sample_standard_deviation_ns": 91613.41220585554
+      },
+      "metric": "bulk_wall_ns",
+      "mode": "prepared-reference",
+      "samples_ns": [
+        73012355,
+        73191611,
+        73134839
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "u64-add3",
+      "distribution": {
+        "count": 3,
+        "max_ns": 2048859,
+        "mean_ns": 2027994.3333333333,
+        "min_ns": 2007794,
+        "p50_ns": 2027330,
+        "p95_ns": 2048859,
+        "p99_ns": 2048859,
+        "sample_standard_deviation_ns": 20540.558909955067
+      },
+      "metric": "bulk_cpu_ns",
+      "mode": "native-optimized",
+      "samples_ns": [
+        2027330,
+        2007794,
+        2048859
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "u64-add3",
+      "distribution": {
+        "count": 3,
+        "max_ns": 2048742,
+        "mean_ns": 2027857.3333333333,
+        "min_ns": 2007650,
+        "p50_ns": 2027180,
+        "p95_ns": 2048742,
+        "p99_ns": 2048742,
+        "sample_standard_deviation_ns": 20554.37183018091
+      },
+      "metric": "bulk_wall_ns",
+      "mode": "native-optimized",
+      "samples_ns": [
+        2027180,
+        2007650,
+        2048742
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "u64-add3",
+      "distribution": {
+        "count": 3,
+        "max_ns": 168790349,
+        "mean_ns": 168704228.66666666,
+        "min_ns": 168589327,
+        "p50_ns": 168733010,
+        "p95_ns": 168790349,
+        "p99_ns": 168790349,
+        "sample_standard_deviation_ns": 103555.46814308733
+      },
+      "metric": "bulk_cpu_ns",
+      "mode": "prepared-reference",
+      "samples_ns": [
+        168733010,
+        168589327,
+        168790349
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "u64-add3",
+      "distribution": {
+        "count": 3,
+        "max_ns": 168797801,
+        "mean_ns": 168710518.66666666,
+        "min_ns": 168595026,
+        "p50_ns": 168738729,
+        "p95_ns": 168797801,
+        "p99_ns": 168797801,
+        "sample_standard_deviation_ns": 104289.4641674507
+      },
+      "metric": "bulk_wall_ns",
+      "mode": "prepared-reference",
+      "samples_ns": [
+        168738729,
+        168595026,
+        168797801
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "u64-add32",
+      "distribution": {
+        "count": 3,
+        "max_ns": 2231481,
+        "mean_ns": 2126797.0,
+        "min_ns": 2010419,
+        "p50_ns": 2138491,
+        "p95_ns": 2231481,
+        "p99_ns": 2231481,
+        "sample_standard_deviation_ns": 110993.98266572833
+      },
+      "metric": "bulk_cpu_ns",
+      "mode": "native-optimized",
+      "samples_ns": [
+        2010419,
+        2138491,
+        2231481
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "u64-add32",
+      "distribution": {
+        "count": 3,
+        "max_ns": 2231337,
+        "mean_ns": 2126637.6666666665,
+        "min_ns": 2010268,
+        "p50_ns": 2138308,
+        "p95_ns": 2231337,
+        "p99_ns": 2231337,
+        "sample_standard_deviation_ns": 110995.59991429096
+      },
+      "metric": "bulk_wall_ns",
+      "mode": "native-optimized",
+      "samples_ns": [
+        2010268,
+        2138308,
+        2231337
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "u64-add32",
+      "distribution": {
+        "count": 3,
+        "max_ns": 1653684790,
+        "mean_ns": 1601670831.0,
+        "min_ns": 1563957340,
+        "p50_ns": 1587370363,
+        "p95_ns": 1653684790,
+        "p99_ns": 1653684790,
+        "sample_standard_deviation_ns": 46541716.337495476
+      },
+      "metric": "bulk_cpu_ns",
+      "mode": "prepared-reference",
+      "samples_ns": [
+        1563957340,
+        1587370363,
+        1653684790
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "u64-add32",
+      "distribution": {
+        "count": 3,
+        "max_ns": 1654144666,
+        "mean_ns": 1601919716.3333333,
+        "min_ns": 1564078159,
+        "p50_ns": 1587536324,
+        "p95_ns": 1654144666,
+        "p99_ns": 1654144666,
+        "sample_standard_deviation_ns": 46724248.5445856
+      },
+      "metric": "bulk_wall_ns",
+      "mode": "prepared-reference",
+      "samples_ns": [
+        1564078159,
+        1587536324,
+        1654144666
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "u64-add8",
+      "distribution": {
+        "count": 3,
+        "max_ns": 2065705,
+        "mean_ns": 2028041.6666666667,
+        "min_ns": 2007461,
+        "p50_ns": 2010959,
+        "p95_ns": 2065705,
+        "p99_ns": 2065705,
+        "sample_standard_deviation_ns": 32664.261959109546
+      },
+      "metric": "bulk_cpu_ns",
+      "mode": "native-optimized",
+      "samples_ns": [
+        2010959,
+        2007461,
+        2065705
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "u64-add8",
+      "distribution": {
+        "count": 3,
+        "max_ns": 2065566,
+        "mean_ns": 2027906.3333333333,
+        "min_ns": 2007340,
+        "p50_ns": 2010813,
+        "p95_ns": 2065566,
+        "p99_ns": 2065566,
+        "sample_standard_deviation_ns": 32660.424099104035
+      },
+      "metric": "bulk_wall_ns",
+      "mode": "native-optimized",
+      "samples_ns": [
+        2010813,
+        2007340,
+        2065566
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "u64-add8",
+      "distribution": {
+        "count": 3,
+        "max_ns": 403527824,
+        "mean_ns": 403401376.6666667,
+        "min_ns": 403149256,
+        "p50_ns": 403527050,
+        "p95_ns": 403527824,
+        "p99_ns": 403527824,
+        "sample_standard_deviation_ns": 218343.24511953985
+      },
+      "metric": "bulk_cpu_ns",
+      "mode": "prepared-reference",
+      "samples_ns": [
+        403149256,
+        403527824,
+        403527050
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "u64-add8",
+      "distribution": {
+        "count": 3,
+        "max_ns": 403570235,
+        "mean_ns": 403438439.0,
+        "min_ns": 403181174,
+        "p50_ns": 403563908,
+        "p95_ns": 403570235,
+        "p99_ns": 403570235,
+        "sample_standard_deviation_ns": 222820.48357590465
+      },
+      "metric": "bulk_wall_ns",
+      "mode": "prepared-reference",
+      "samples_ns": [
+        403181174,
+        403563908,
+        403570235
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "u64-comparison",
+      "distribution": {
+        "count": 3,
+        "max_ns": 2031810,
+        "mean_ns": 2014855.0,
+        "min_ns": 2006303,
+        "p50_ns": 2006452,
+        "p95_ns": 2031810,
+        "p99_ns": 2031810,
+        "sample_standard_deviation_ns": 14683.649716606564
+      },
+      "metric": "bulk_cpu_ns",
+      "mode": "native-optimized",
+      "samples_ns": [
+        2006452,
+        2006303,
+        2031810
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "u64-comparison",
+      "distribution": {
+        "count": 3,
+        "max_ns": 2031687,
+        "mean_ns": 2014735.3333333333,
+        "min_ns": 2006186,
+        "p50_ns": 2006333,
+        "p95_ns": 2031687,
+        "p99_ns": 2031687,
+        "sample_standard_deviation_ns": 14680.75796181295
+      },
+      "metric": "bulk_wall_ns",
+      "mode": "native-optimized",
+      "samples_ns": [
+        2006333,
+        2006186,
+        2031687
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "u64-comparison",
+      "distribution": {
+        "count": 3,
+        "max_ns": 67315368,
+        "mean_ns": 67199669.66666667,
+        "min_ns": 67115366,
+        "p50_ns": 67168275,
+        "p95_ns": 67315368,
+        "p99_ns": 67315368,
+        "sample_standard_deviation_ns": 103631.16723425269
+      },
+      "metric": "bulk_cpu_ns",
+      "mode": "prepared-reference",
+      "samples_ns": [
+        67315368,
+        67168275,
+        67115366
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "u64-comparison",
+      "distribution": {
+        "count": 3,
+        "max_ns": 67317488,
+        "mean_ns": 67202635.0,
+        "min_ns": 67117468,
+        "p50_ns": 67172949,
+        "p95_ns": 67317488,
+        "p99_ns": 67317488,
+        "sample_standard_deviation_ns": 103261.53227121898
+      },
+      "metric": "bulk_wall_ns",
+      "mode": "prepared-reference",
+      "samples_ns": [
+        67317488,
+        67172949,
+        67117468
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "u64-conditional",
+      "distribution": {
+        "count": 3,
+        "max_ns": 2078140,
+        "mean_ns": 2030557.3333333333,
+        "min_ns": 2006337,
+        "p50_ns": 2007195,
+        "p95_ns": 2078140,
+        "p99_ns": 2078140,
+        "sample_standard_deviation_ns": 41210.03113725269
+      },
+      "metric": "bulk_cpu_ns",
+      "mode": "native-optimized",
+      "samples_ns": [
+        2007195,
+        2006337,
+        2078140
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "u64-conditional",
+      "distribution": {
+        "count": 3,
+        "max_ns": 2078017,
+        "mean_ns": 2030407.3333333333,
+        "min_ns": 2006202,
+        "p50_ns": 2007003,
+        "p95_ns": 2078017,
+        "p99_ns": 2078017,
+        "sample_standard_deviation_ns": 41233.12588603168
+      },
+      "metric": "bulk_wall_ns",
+      "mode": "native-optimized",
+      "samples_ns": [
+        2007003,
+        2006202,
+        2078017
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "u64-conditional",
+      "distribution": {
+        "count": 3,
+        "max_ns": 144110711,
+        "mean_ns": 141297044.66666666,
+        "min_ns": 139881775,
+        "p50_ns": 139898648,
+        "p95_ns": 144110711,
+        "p99_ns": 144110711,
+        "sample_standard_deviation_ns": 2436721.1270542066
+      },
+      "metric": "bulk_cpu_ns",
+      "mode": "prepared-reference",
+      "samples_ns": [
+        144110711,
+        139881775,
+        139898648
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    },
+    {
+      "case": "u64-conditional",
+      "distribution": {
+        "count": 3,
+        "max_ns": 144126289,
+        "mean_ns": 141325713.66666666,
+        "min_ns": 139908194,
+        "p50_ns": 139942658,
+        "p95_ns": 144126289,
+        "p99_ns": 144126289,
+        "sample_standard_deviation_ns": 2425430.5988999815
+      },
+      "metric": "bulk_wall_ns",
+      "mode": "prepared-reference",
+      "samples_ns": [
+        144126289,
+        139942658,
+        139908194
+      ],
+      "scope": "repeated batches within one worker process; descriptive variance, not independent-process confidence"
+    }
+  ],
+  "metadata": {
+    "affinity": "Cpus_allowed_list:\t0-19",
+    "allocator_scope": "successful System allocator calls; atomic counters only on allocation/deallocation; heap peak includes retained harness data",
+    "binary_bytes": 22084704,
+    "cargo": "cargo 1.98.1 (797e8a9bc 2026-08-05)",
+    "compiler": "rustc 1.98.1 (48a229cea 2026-09-01)\nbinary: rustc\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\ncommit-date: 2026-09-01\nhost: x86_64-unknown-linux-gnu\nrelease: 1.98.1\nLLVM version: 22.1.8",
+    "cpu": "processor\t: 0\nmodel name\t: 12th Gen Intel(R) Core(TM) i9-12900H\ncpu MHz\t\t: 485.879\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 14\nprocessor\t: 1\nmodel name\t: 12th Gen Intel(R) Core(TM) i9-12900H\ncpu MHz\t\t: 507.752\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 14\nprocessor\t: 2\nmodel name\t: 12th Gen Intel(R) Core(TM) i9-12900H\ncpu MHz\t\t: 399.871\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 14\nprocessor\t: 3\nmodel name\t: 12th Gen Intel(R) Core(TM) i9-12900H\ncpu MHz\t\t: 635.122\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 14\nprocessor\t: 4\nmodel name\t: 12th Gen Intel(R) Core(TM) i9-12900H\ncpu MHz\t\t: 504.155\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 14\nprocessor\t: 5\nmodel name\t: 12th Gen Intel(R) Core(TM) i9-12900H\ncpu MHz\t\t: 460.029\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 14\nprocessor\t: 6\nmodel name\t: 12th Gen Intel(R) Core(TM) i9-12900H\ncpu MHz\t\t: 4887.619\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 14\nprocessor\t: 7\nmodel name\t: 12th Gen Intel(R) Core(TM) i9-12900H\ncpu MHz\t\t: 5000.000\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 14\nprocessor\t: 8\nmodel name\t: 12th Gen Intel(R) Core(TM) i9-12900H\ncpu MHz\t\t: 1004.338\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 14\nprocessor\t: 9\nmodel name\t: 12th Gen Intel(R) Core(TM) i9-12900H\ncpu MHz\t\t: 404.988\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 14\nprocessor\t: 10\nmodel name\t: 12th Gen Intel(R) Core(TM) i9-12900H\ncpu MHz\t\t: 482.587\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 14\nprocessor\t: 11\nmodel name\t: 12th Gen Intel(R) Core(TM) i9-12900H\ncpu MHz\t\t: 455.981\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 14\nprocessor\t: 12\nmodel name\t: 12th Gen Intel(R) Core(TM) i9-12900H\ncpu MHz\t\t: 502.674\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 14\nprocessor\t: 13\nmodel name\t: 12th Gen Intel(R) Core(TM) i9-12900H\ncpu MHz\t\t: 513.936\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 14\nprocessor\t: 14\nmodel name\t: 12th Gen Intel(R) Core(TM) i9-12900H\ncpu MHz\t\t: 523.482\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 14\nprocessor\t: 15\nmodel name\t: 12th Gen Intel(R) Core(TM) i9-12900H\ncpu MHz\t\t: 509.285\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 14\nprocessor\t: 16\nmodel name\t: 12th Gen Intel(R) Core(TM) i9-12900H\ncpu MHz\t\t: 739.686\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 14\nprocessor\t: 17\nmodel name\t: 12th Gen Intel(R) Core(TM) i9-12900H\ncpu MHz\t\t: 446.057\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 14\nprocessor\t: 18\nmodel name\t: 12th Gen Intel(R) Core(TM) i9-12900H\ncpu MHz\t\t: 469.000\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 14\nprocessor\t: 19\nmodel name\t: 12th Gen Intel(R) Core(TM) i9-12900H\ncpu MHz\t\t: 498.772\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 14",
+    "cpu_time_scope": "Linux process CPU for each bulk phase; per-selection isolation uses wall clocks; unsupported target CPU time is null",
+    "debug_assertions": false,
+    "git_sha": "3216580cf9e3846617c0b3b4f98da63c0691401b",
+    "hosted_phase_wall_schema": "installed-boundaries-wall@1",
+    "measurement_limitations": [
+      "no CPU affinity change",
+      "background load is not controlled; independently rerun on an idle host",
+      "no hardware cycles/instructions/branch-miss counters",
+      "internal copy accounting not yet instrumented",
+      "expression-only native uses registers; prepared uses canonical 8-byte inputs and canonical outputs; finite hosted native uses canonical input/output frames",
+      "isolated selection trials do not model steady mixed-workload fairness or full Plot dispatch"
+    ],
+    "os": "Linux 7.0.0-38-generic #38-Ubuntu SMP PREEMPT_DYNAMIC Fri Sep  4 09:10:14 UTC 2026 x86_64",
+    "profile": "release",
+    "release_overrides": {
+      "codegen_units": null,
+      "lto": null,
+      "opt_level": null
+    },
+    "required_follow_on_gates": [
+      "instruction/copy/Sign attribution within observed std Back preparation, Play and post-Play boundaries",
+      "continuous 1/8/32 real Gear scaling beyond optional 64-item finite hosted trials",
+      "streaming/pressure/fan-out/payload/batch/fairness",
+      "DSP representative",
+      "browser/WASM after hosted repeatability",
+      "review independent-run uncertainty and regression thresholds"
+    ],
+    "rustflags": null,
+    "schema": "conduit.runtime-performance@1",
+    "source_status": "clean"
+  },
+  "artifact_sha256": {
+    "conformance.json": "a0d8f4b28f7004a23258acadf2c13bdedbaf52b09f524e32c32e924aedae8812",
+    "conformance.stderr.log": "b84684d3453dcb78314aeb1a5de6dfdd49174e3a650681cd08bc528aa394610c",
+    "conformance.stdout.log": "63c0387bd9ddf929e4ef01048c0b5b74145adee4abb37ad0021388c2695e0a6c",
+    "metadata.json": "5496066a07d79f86a60d5137c44b3762dd3ef74ab0a3c658621d0a92d8e32890",
+    "raw.jsonl": "0e1a0681112e83c10e55091b26072455094d0cfdd5099c4044a831d8e01eabd1",
+    "report.json": "a21000a16af8b597e0bb5e2c8b87de9f0015ce88310553d4076e7f0c3433ab7c",
+    "sources/hosted-pipeline-1-gears-32-adds-0-host.json": "9f25ae4da8eaac5647ebb79bf949875f5c8652cc7b8e968d85ddd3f9e1dd5048",
+    "sources/hosted-pipeline-1-gears-32-adds-0-plan.json": "236bc18c465e94a953d8d3ef1dae241a6421687462040f832e0a322fabdef2f3",
+    "sources/hosted-pipeline-1-gears-32-adds-1-host.json": "60ee372477f562fa24ae7cbb4539dd73f7cddd8b439181ee696c2dd78937a432",
+    "sources/hosted-pipeline-1-gears-32-adds-1-plan.json": "0b5d302bad6fc243e3c6d7e3afb293484d48ae17bd6bb17ea9685a1d372897d4",
+    "sources/hosted-pipeline-1-gears-32-adds-2-host.json": "fd12ca422aa1f2a7af92982d44950dd956eb558765e6bfd621c9ce4170f5c98a",
+    "sources/hosted-pipeline-1-gears-32-adds-2-plan.json": "5caa38d1c3914fe17411dccd8c3204c2ec79cab4292ffa1e6b318af3bddb8327",
+    "sources/hosted-pipeline-1-gears-32-adds.plot": "f03945ae00cc1875f7825d0544245c6920c69b6281b0675532501d84de37ed28",
+    "sources/hosted-pipeline-32-gears-32-adds-0-host.json": "faaae4a84aeacf14d74b25487fc4be092df39d5829970bcc11b30f1ea7e4a5aa",
+    "sources/hosted-pipeline-32-gears-32-adds-0-plan.json": "a6171b48b0c453119e5e923f680f0343ea80809d3d06946c5cfc90536d4f7ac6",
+    "sources/hosted-pipeline-32-gears-32-adds-1-host.json": "0946be4f0de4f7b46afdc71edc44eab6c61817d89e178bb8834d66fec9a72084",
+    "sources/hosted-pipeline-32-gears-32-adds-1-plan.json": "0f98a74f2d7b2fc13ab0d4d0c81c8b04f58ec91a0b059d0809b6ea177fbb98a2",
+    "sources/hosted-pipeline-32-gears-32-adds-2-host.json": "4fb19dd756e28cdf95c91dda5a6211a35fc069a4d0a7ef52d138fc955caa7826",
+    "sources/hosted-pipeline-32-gears-32-adds-2-plan.json": "3db11355a40f62b8769eb832466402ac2f913900785b72866cbce045bfd2c014",
+    "sources/hosted-pipeline-32-gears-32-adds.plot": "664df381f48afc6c618efcdc7177c5bc78861d1c45306a135d607d2e2da985b9",
+    "sources/hosted-pipeline-8-gears-32-adds-0-host.json": "be328238c358c9a99759a623f8cf718a8895804a46a4a9a84ca525bb8289d953",
+    "sources/hosted-pipeline-8-gears-32-adds-0-plan.json": "ca05a390555cfe01d6981ee269656d2877234e0224dcd74bade3aa44b71622db",
+    "sources/hosted-pipeline-8-gears-32-adds-1-host.json": "7ecfa53902e5ea9275a72192b535e9f597e08acf2702d6736412f00363f36c55",
+    "sources/hosted-pipeline-8-gears-32-adds-1-plan.json": "6454b00919892cd3b9e5709ed8500a0b159c7ab8e48925315901d70d4137e4e6",
+    "sources/hosted-pipeline-8-gears-32-adds-2-host.json": "7e3b8173a144222236885a0c1a330b31f498dd2b2aaf71cd2ef8b6cd01872d11",
+    "sources/hosted-pipeline-8-gears-32-adds-2-plan.json": "8eb8cee5fe765b6081edb0d1b8490794fa3d4b3ab85ae18cef8bb8d08c1449aa",
+    "sources/hosted-pipeline-8-gears-32-adds.plot": "afbf42d154d8672afe61d656ca21ebf5d16d3af81b2b3b11bdbc7a3722300a6e",
+    "sources/pool-selection-1-realizations-1-resources.json": "7fe944a464e61911965e8a7fc18e8e496110fe23832071a067a20511f893ae54",
+    "sources/pool-selection-1-realizations-4-resources.json": "0abcff460745a1ae34770770e468866fd66472da495622b7d6a1769c86af53df",
+    "sources/pool-selection-32-realizations-1-resources.json": "993e7444b522fe50a8c037f354157b4164db6e373e3add6c7bcdfa55412f35a3",
+    "sources/pool-selection-32-realizations-4-resources.json": "4d266289aa9b2b3e04d0202247ebd61a68a42380b3c710705677660c77baed0a",
+    "sources/pool-selection-8-realizations-1-resources.json": "74c10feb541597b17d6b664f61dbe91b34d2e465dc58a1fcb767b707d15713a6",
+    "sources/pool-selection-8-realizations-4-resources.json": "4f83d839f73678274bc44b182f50bc43ae6d8869d0c3152938c5bc863d69de67",
+    "sources/pure-chain-1-fused-0-host.json": "29697327262b95e4c2bfddbd0fdb4fbe9d8c031995dfa7c123b542a1466d7505",
+    "sources/pure-chain-1-fused-0-plan.json": "63c017fd1152cf6cab9050c03173c9b431ca478442b5b02b020e2d9d9318a9b0",
+    "sources/pure-chain-1-fused-1-host.json": "c0e83c9da080cbde452383cf52006c88dc0cdadf6e0374642e4ab11c13ee5b39",
+    "sources/pure-chain-1-fused-1-plan.json": "381b5d9eb56741daa8dde18b7856e0fe089efa9cfe76c6c87ad699dadec44d49",
+    "sources/pure-chain-1-fused-2-host.json": "261f3b430792b54ebf533c60f10b885a04c59147719d54e2b79c36e1d7b0a9fe",
+    "sources/pure-chain-1-fused-2-plan.json": "b16dea8fcd4ec0f730eb2d775c9ede0b22523f655c7ca82b9dac399411a63768",
+    "sources/pure-chain-1-local-unfused-0-host.json": "90df2dbc212cbe648b9c46b5f2ad2655e2235208fa3da48d2a3a181fdb464656",
+    "sources/pure-chain-1-local-unfused-0-plan.json": "a1177975dc913798d60a7200639a56c869ca8cf552b3f1a90d1bcc1a9a390cbf",
+    "sources/pure-chain-1-local-unfused-1-host.json": "6937a4c3fb9af4900c9fd109fc61371d6c520c6ad37c5cb5faf6cd63ccca2366",
+    "sources/pure-chain-1-local-unfused-1-plan.json": "9251d870ef9ec65cf307b73c45e031a7c8bf7de252dd03a81a1394416e535a84",
+    "sources/pure-chain-1-local-unfused-2-host.json": "41ffafdbb322edc47497e8de80642d0dd3f51db947981b9444ba6be4e1834dcf",
+    "sources/pure-chain-1-local-unfused-2-plan.json": "204e4a64e6c5929e61565960b6357f7a6c4e95f7f34ae51b137f1735332038ef",
+    "sources/pure-chain-32-fused-0-host.json": "57dd85deb95b87a2017626df95f264b619512f1f6d3464f60dee9937f140f507",
+    "sources/pure-chain-32-fused-0-plan.json": "f844740652c5cf699862965603aef72688a03b7e94ccfcb3755d6bd9d1fff16b",
+    "sources/pure-chain-32-fused-1-host.json": "813ca7a9818f6a488a62ea55772b4891836c00717b7a60ff9805be0ee7c19135",
+    "sources/pure-chain-32-fused-1-plan.json": "255a6ef30aadedf67898e8245fe96aaabada888867410741dfdb911e1d43b0e2",
+    "sources/pure-chain-32-fused-2-host.json": "f89c175f473529d5766ae4b5e11c7d12d6ab9ef3e807e0c3e79e64eb2586ec1b",
+    "sources/pure-chain-32-fused-2-plan.json": "824eb1942ae1fd1e0d6e606fce37ed81b05357a8b243c76e107b7e45c1a3d2b5",
+    "sources/pure-chain-32-local-unfused-0-host.json": "e17affb2df6112ef4fa5a56296e417a2c1bcc90e1b96d76a10c13998621dfe73",
+    "sources/pure-chain-32-local-unfused-0-plan.json": "0d725e1d02b9a83aba2866144c9c91e13831b34feae603484ec48393abb135f1",
+    "sources/pure-chain-32-local-unfused-1-host.json": "2b07b9243cf3140ff1c78925364f499ee43f35a6e6df7012f7c071fe0a8d8fed",
+    "sources/pure-chain-32-local-unfused-1-plan.json": "99d20ce40e0790da04d1128b161286ff35d05d6b49a4c2f4d3bf9b7bfaf1911f",
+    "sources/pure-chain-32-local-unfused-2-host.json": "c9b9311390804a3c0b1717f54c29208d10c8cb4729d52934c4b01f817aa8a49a",
+    "sources/pure-chain-32-local-unfused-2-plan.json": "4a45f57f992b59cc905ebfa9756268151e1a49e5a983f741612188b843925b02",
+    "sources/pure-chain-8-fused-0-host.json": "55e77a04c7cacda216a9aa66421ab55d1e7ec4271ca22f5a364429d2cd8d1bdd",
+    "sources/pure-chain-8-fused-0-plan.json": "3a07ba8c067d82778eacc9324855f825f2d7d3e7ab8b0a293f371949795f4e32",
+    "sources/pure-chain-8-fused-1-host.json": "b33a6d2977ffdb7227c5028f93f6178543af4d675ed522f4aaf3992ba13986ec",
+    "sources/pure-chain-8-fused-1-plan.json": "90b1f1888330ec683ddf8692f233f9cd1169946ae7c657c43753f867f6825226",
+    "sources/pure-chain-8-fused-2-host.json": "1093842a6198bde45e79d1db2bc498d9d3872cc2fd5b8ec48b357920a272cb34",
+    "sources/pure-chain-8-fused-2-plan.json": "2b5ee7f63c34dae7887d7378266811d3d15e2ef3e4d2ef889e11f62918bc2e48",
+    "sources/pure-chain-8-local-unfused-0-host.json": "69254c46aeacd11efacda66ea97e9b07d4fcd8c3b29b0787fdd0446b77e4073b",
+    "sources/pure-chain-8-local-unfused-0-plan.json": "d17a5275a02b1564a26b2d884165f08de9a00092617a246eb67a4b06062e74a0",
+    "sources/pure-chain-8-local-unfused-1-host.json": "2b7b9509b5f23bc7916e1de38632b3c322fcc8786a0690114dcba43bcb68b98d",
+    "sources/pure-chain-8-local-unfused-1-plan.json": "07de4e092f60a5a2fd64b2435d537bc27b82c03bc94873377a8d1fcf19c19658",
+    "sources/pure-chain-8-local-unfused-2-host.json": "8c58aa86e438f4f629bbb34ba2c21afe010f7dc1575ac752a0f9ee5607d75522",
+    "sources/pure-chain-8-local-unfused-2-plan.json": "82f7b755e6ca28e7b276b0ac03dd6b42e6d153ca96d8d5a8ded3d3ef8414c576",
+    "sources/scalar-add1.plot": "8363d03b4a1dc459e8d9d525c71b370ad18ba5a4335ebf2c29d781ac7f700cbb",
+    "sources/scalar-add3.plot": "927126c121ba37ef9ecc60a769fc1b7f65e82218207624f1f0fb27eca0bf31cc",
+    "sources/scalar-add32.plot": "80283b691947b05db9bf50f5c848fb7cd76e002c9fdca5f6d9bd8e686e7d49e2",
+    "sources/scalar-add8.plot": "d7c98f468a97bcb99755dde9c398157815e3b68f3c0544eb83e01172c260ff8e",
+    "sources/scalar-comparison.plot": "dcfc2c104d67d1f5ff8ba23697ada79d36af4e7cf19041696789f4fda981d951",
+    "sources/scalar-conditional.plot": "6f64eabf5d6d2db28b64745a6e846ad6e2b33823d686b97bdd480d6bde7bc5da",
+    "sources/typed-cost-selection-1-hosts-std-owner-inventory.json": "f0bd72d36d7dac0a9e521f694483420c00002c32bfa0d4dd117f7e37f96dcece",
+    "sources/typed-cost-selection-1-hosts.json": "c8be91137149160b47ffff90e643617c5255f6c11549815ca3488c86d0b151fe",
+    "sources/typed-cost-selection-32-hosts-std-owner-inventory.json": "569fb30b713bf0d655a671ab5dfe65371f7971bad7dcd63cb7dfaf08950fcc85",
+    "sources/typed-cost-selection-32-hosts.json": "99d5e5fb9f4493fe4fc6f915c2ff871f3762a399adab2c0a2d8fa6279aadf225",
+    "sources/typed-cost-selection-8-hosts-std-owner-inventory.json": "a8e3d01aa0d3864143bca02ebff5201a03a3260689969b55b4f8f14c863e9853",
+    "sources/typed-cost-selection-8-hosts.json": "efb614dd46e6a9cf02a0326419fbc02b6577e8d0b7a13350820eaa56ed17b5ce",
+    "sources/u64-add1.plot": "72b725aa9ede9a090ead02e6246890427342b8e45319821727da9017ef1d1fcc",
+    "sources/u64-add3.plot": "04067ef4c9538f8a1d19d493b5855059ead8bca2456bba8894391588f4a7dc3d",
+    "sources/u64-add32.plot": "e6d3707c1abb86a48075b74e4e280c4dbf0801c46e2e2bfbcf6a51acd2bc3523",
+    "sources/u64-add8.plot": "f7fb57bbfd0e12e164afe3509db4fe5fd41cbae68ac5f7a0df3eb23810abef82",
+    "sources/u64-comparison.plot": "3957b6dfa06e694ea95af9c66fe26149488a6739dbe3b2695d96026e90042b7d",
+    "sources/u64-conditional.plot": "bdcd312553000904ed3fba4a973882a0d9d775ad708faeb7864cd3d2194242a9",
+    "stderr.log": "1ad7050d29fb614202dfadbea1b6753aa12cec0164edaafa099623ebece76bd3",
+    "stdout.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "process_resident_high_water": "VmHWM:\t  367508 kB",
+  "verifier_sha256": "6ed74267030897b9e62163af8a040ad93392cb3c524b517fe60b72fa501689ea",
+  "scope": "production evaluator/typed-cost/pool-selection isolation plus 64-item ordinary checked Plot/Plan/std Back/kernel 1/8/32-Gear trials; separate cold Back/Play phases, continuous streams, DSP/pressure/fairness and browser matrix remain required by #5395",
+  "limits": "descriptive sample standard deviation across repeated batches; raw repeated batches and per-event percentiles; no certified independent-run confidence interval or speedup claim; repeatability gate remains open"
+}
