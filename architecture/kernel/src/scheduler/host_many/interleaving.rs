@@ -336,3 +336,40 @@ fn completion_sign_refusal_preserves_queued_cancellation_until_accepted_retry() 
         assert_eq!(scheduler.values.used_items(), 0);
     }
 }
+
+#[test]
+fn packed_adapter_bound_reverts_after_early_slot_consumption_leaves_a_hole() {
+    let (mut scheduler, _) = pair();
+    step(&mut scheduler, 0);
+    step(&mut scheduler, 1);
+    assert_eq!(scheduler.host_slot_search_start, 2);
+    assert_eq!(scheduler.pending_host_count, 2);
+    compare_adapter(&mut scheduler, 1, false);
+    control(&mut scheduler, 0, 0);
+    step(&mut scheduler, 0);
+    complete(&mut scheduler, 0, 0);
+    step(&mut scheduler, 0);
+    compare_adapter(&mut scheduler, 1, false);
+    control(&mut scheduler, 0, 1);
+    step(&mut scheduler, 0);
+    complete(&mut scheduler, 0, 1);
+    step(&mut scheduler, 0);
+    assert!(scheduler.completed[0]);
+    assert_eq!(scheduler.pending_host_count, 1);
+    assert_eq!(scheduler.host_slot_search_start, 0);
+    assert!(scheduler.pending_host_calls[0].is_none());
+    assert!(scheduler.pending_host_calls[1].is_some());
+    for cursor in 0..4 {
+        scheduler.host_request_cursor = cursor;
+        scheduler.scan_counts.set(Default::default());
+        compare_adapter(&mut scheduler, 0, false);
+        assert_eq!(scheduler.undispatched_host_count, 1);
+        assert_eq!(
+            scheduler.scan_counts.get().dispatch_pending_slots,
+            if cursor == 1 { 1 } else { 2 }
+        );
+    }
+    compare_adapter(&mut scheduler, 3, false);
+    scheduler.cancel().unwrap();
+    assert_eq!(scheduler.values.used_items(), 0);
+}

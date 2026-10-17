@@ -50,7 +50,14 @@ where
         // There is at most one retained call per active node. First-free
         // allocation therefore cannot populate a slot beyond this prefix,
         // even after arbitrary completion consumption and slot reuse.
-        let slots = self.active_nodes.min(PENDING_REQUESTS);
+        // Every slot before the allocation hint is occupied. If that prefix
+        // accounts for all retained calls, its tail is empty. Count completed
+        // and dispatched calls too; holes keep the conservative node bound.
+        let slots = if self.host_slot_search_start == self.pending_host_count {
+            self.pending_host_count
+        } else {
+            self.active_nodes.min(PENDING_REQUESTS)
+        };
         let cursor = if self.host_request_cursor < slots {
             self.host_request_cursor
         } else {

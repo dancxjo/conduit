@@ -1,0 +1,167 @@
+   Compiling conduit-kernel v0.1.0 (/home/dancxjo/conduit/architecture/kernel)
+    Finished `release` profile [optimized] target(s) in 26.07s
+     Running unittests src/lib.rs (target/release/deps/conduit_kernel-0a8cf2075829b8e4)
+
+running 1 test
+PACKED_HOST_ADAPTER_ROW {"batch":0,"polls":4096,"slot_probes":4096,"wall_ns":16106}
+PACKED_HOST_ADAPTER_ROW {"batch":1,"polls":4096,"slot_probes":4096,"wall_ns":15580}
+PACKED_HOST_ADAPTER_ROW {"batch":2,"polls":4096,"slot_probes":4096,"wall_ns":16002}
+PACKED_HOST_ADAPTER_ROW {"batch":3,"polls":4096,"slot_probes":4096,"wall_ns":16006}
+PACKED_HOST_ADAPTER_ROW {"batch":4,"polls":4096,"slot_probes":4096,"wall_ns":15982}
+PACKED_HOST_ADAPTER_ROW {"batch":5,"polls":4096,"slot_probes":4096,"wall_ns":16003}
+PACKED_HOST_ADAPTER_ROW {"batch":6,"polls":4096,"slot_probes":4096,"wall_ns":15984}
+PACKED_HOST_ADAPTER_ROW {"batch":7,"polls":4096,"slot_probes":4096,"wall_ns":16014}
+test scheduler::tests::host_slot_allocation::one_packed_call_among_many_nodes_preserves_adapter_order ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 147 filtered out; finished in 0.00s
+
+     Running tests/active_prefix.rs (target/release/deps/active_prefix-7f70c5269f9c926a)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s
+
+     Running tests/back_failure.rs (target/release/deps/back_failure-bd0f9e59c8626f59)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/body_evidence_and_faults.rs (target/release/deps/body_evidence_and_faults-a9dccdc225876be4)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 8 filtered out; finished in 0.00s
+
+     Running tests/debug_observation.rs (target/release/deps/debug_observation-d176a5742bfb0d99)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 7 filtered out; finished in 0.00s
+
+     Running tests/execution_region.rs (target/release/deps/execution_region-23084883c4bac6e2)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/execution_region_unavailable.rs (target/release/deps/execution_region_unavailable-940752fe05ce7347)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/heterogeneous_value_store.rs (target/release/deps/heterogeneous_value_store-13ef40da622b49f2)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/keyboard_source.rs (target/release/deps/keyboard_source-8c261148ad544b82)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s
+
+     Running tests/ready_selection_allocation.rs (target/release/deps/ready_selection_allocation-7ceee56e64d32b86)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/scheduler_footprint.rs (target/release/deps/scheduler_footprint-7d1cb44b8b5f862c)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/shared_flow.rs (target/release/deps/shared_flow-ffac411d71291b2e)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.00s
+
+     Running tests/shared_pool.rs (target/release/deps/shared_pool-d841f34976713ac9)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.00s
+
+     Running tests/shared_pool_cost_selection.rs (target/release/deps/shared_pool_cost_selection-829e3a557716ce12)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s
+
+     Running tests/shared_pool_selection.rs (target/release/deps/shared_pool_selection-418c25f86f964210)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.00s
+
+     Running tests/sign_capacity_cost.rs (target/release/deps/sign_capacity_cost-65c1a9d88b8d1c55)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/sign_query_extent.rs (target/release/deps/sign_query_extent-b61f2695e0fc3733)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/sign_record_cost.rs (target/release/deps/sign_record_cost-59dcb84cba20d524)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s
+
+     Running tests/state_continuation.rs (target/release/deps/state_continuation-c8ca9ab249e9d1d9)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 6 filtered out; finished in 0.00s
+
+     Running tests/state_prepared_output.rs (target/release/deps/state_prepared_output-2cc41ff1ce29ad61)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s
+
+     Running tests/static_merge.rs (target/release/deps/static_merge-38498f5aa8889529)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s
+
+     Running tests/step_atomic_discard.rs (target/release/deps/step_atomic_discard-1bb4de7a775065ef)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.00s
+
+     Running tests/step_fuel.rs (target/release/deps/step_fuel-cbda3ba24eef4cac)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s
+
+     Running tests/step_input_bytes.rs (target/release/deps/step_input_bytes-dfff607738ef3b5c)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s
+
+     Running tests/value_generation.rs (target/release/deps/value_generation-62931d1d390e1779)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/value_store_model.rs (target/release/deps/value_store_model-50987039aff29647)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+

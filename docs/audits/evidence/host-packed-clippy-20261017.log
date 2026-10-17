@@ -1,0 +1,4 @@
+    Checking conduit-kernel v0.1.0 (/home/dancxjo/conduit/architecture/kernel)
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/conduit/architecture/plot)
+   Compiling conduit-human v0.1.0 (/home/dancxjo/conduit/semantics/human)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 16.26s

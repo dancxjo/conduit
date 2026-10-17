@@ -24,9 +24,9 @@ impl StepBack<PORTS> for Requester {
         StepOutcome::Progress
     }
 }
-#[test]
-fn host_slot_fill_is_linear_and_out_of_order_replacement_keeps_first_free_order() {
-    const N: usize = 64;
+type HostTable<const N: usize, const P: usize> =
+    FixedScheduler<Requester, FixedValueStore<1, 1>, FixedSignLog<256>, N, 0, PORTS, 1, 0, 0, N, P>;
+fn table<const N: usize, const P: usize>() -> HostTable<N, P> {
     let mut values = FixedValueStore::<1, 1>::new(1).unwrap();
     let input = values.store(b"").unwrap();
     let mut routes = FixedRoutes::<0, 0>::new(PORTS as u16);
@@ -45,11 +45,26 @@ fn host_slot_fill_is_linear_and_out_of_order_replacement_keeps_first_free_order(
             .unwrap();
     }
     bindings.seal().unwrap();
-    let mut scheduler = FixedScheduler::<_, _, _, N, 0, PORTS, 1, 0, 0, N, N>::new_with_active_counts_and_host_calls(
-        N, 0, core::array::from_fn(|_| node([None; PORTS])), [], routes, bindings,
-        core::array::from_fn(|_| Requester { input, requested: false }), values,
+    FixedScheduler::<_, _, _, N, 0, PORTS, 1, 0, 0, N, P>::new_with_active_counts_and_host_calls(
+        N,
+        0,
+        core::array::from_fn(|_| node([None; PORTS])),
+        [],
+        routes,
+        bindings,
+        core::array::from_fn(|_| Requester {
+            input,
+            requested: false,
+        }),
+        values,
         FixedSignLog::<256>::new(256 * core::mem::size_of::<crate::KernelEvent>() as u32).unwrap(),
-    ).unwrap();
+    )
+    .unwrap()
+}
+#[test]
+fn host_slot_fill_is_linear_and_out_of_order_replacement_keeps_first_free_order() {
+    const N: usize = 64;
+    let mut scheduler = table::<N, N>();
     for node in 0..N {
         assert_eq!(
             scheduler.step(),
@@ -99,4 +114,41 @@ fn host_slot_fill_is_linear_and_out_of_order_replacement_keeps_first_free_order(
     }
     scheduler.cancel().unwrap();
     assert_eq!(scheduler.pending_host_call_count(), 0);
+}
+
+#[test]
+fn one_packed_call_among_many_nodes_preserves_adapter_order() {
+    extern crate std;
+    std::thread::Builder::new().stack_size(32 * 1024 * 1024).spawn(|| {
+        let mut scheduler = table::<2048, 4096>();
+        scheduler.step().unwrap();
+        assert_eq!(scheduler.host_slot_search_start, 1);
+        assert_eq!(scheduler.pending_host_count, 1);
+        for batch in 0..8 {
+            scheduler.host_request_cursor = 1;
+            scheduler.scan_counts.set(Default::default());
+            let signs = scheduler.signs.entries;
+            let started = std::time::Instant::now();
+            let mut callbacks = 0;
+            for _ in 0..4096 {
+                assert!(std::hint::black_box(&mut scheduler).next_host_request_matching(|request| {
+                    assert_eq!(request.node, NodeId(0));
+                    callbacks += 1;
+                    false
+                }).is_none());
+            }
+            let wall_ns = started.elapsed().as_nanos();
+            assert_eq!(callbacks, 4096);
+            assert_eq!(scheduler.host_request_cursor, 1);
+            assert_eq!(scheduler.undispatched_host_count, 1);
+            assert_eq!(scheduler.signs.entries, signs);
+            std::println!("PACKED_HOST_ADAPTER_ROW {{\"batch\":{batch},\"polls\":4096,\"slot_probes\":{},\"wall_ns\":{wall_ns}}}", scheduler.scan_counts.get().dispatch_pending_slots);
+        }
+        assert_eq!(scheduler.next_host_request().unwrap().node, NodeId(0));
+        scheduler.scan_counts.set(Default::default());
+        assert!(scheduler.next_host_request().is_none());
+        assert_eq!(scheduler.scan_counts.get().dispatch_pending_slots, 0);
+        scheduler.cancel().unwrap();
+        assert_eq!(scheduler.values.used_items(), 0);
+    }).unwrap().join().unwrap();
 }

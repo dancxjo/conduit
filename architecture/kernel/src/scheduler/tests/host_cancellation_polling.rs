@@ -86,7 +86,7 @@ fn rejecting_adapter_stops_after_last_undispatched_request_without_moving_cursor
             scheduler.step().unwrap();
             // Reserved tail slots cannot hold calls: wrap directly to the
             // first-free allocation domain, retaining the public cursor.
-            for (cursor, probes) in [(0, 1), (4095, 1), (1, 2)] {
+            for (cursor, probes) in [(0, 1), (4095, 1), (1, 1)] {
                 scheduler.host_request_cursor = cursor;
                 scheduler.scan_counts.set(Default::default());
                 let mut calls = 0;
