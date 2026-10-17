@@ -1017,3 +1017,19 @@ are registered in their existing browser check/proof entrances. The fixture
 supplies declared spans only: these prove adapter bounds/text fidelity, not
 actual Rust token classification, Body/Play or fresh packaged/released WASM.
 The owning issue's full acceptance remains open.
+
+Revision focus restoration follow-up (#5631): restoration verifies that a
+candidate actually receives focus, instead of trusting a retained key whose
+component may now be plain text or a canvas container. If the prior graph subject
+is gone, available current tab stops/native controls are tried in reading order,
+then the root fallback. Disabled/hidden/inert candidates use the existing action
+availability check. Text selection is restored only to the retained control,
+never copied to an unrelated fallback editor.
+
+Both focus-loss regressions reproduced before repair. Fourteen focused pinned
+Chromium checks pass across the focused runs (one worker, zero retries), including
+removed graph subject, control-to-text change, retained versus replacement editor
+selection, nested groups, step indices, temporary peer unavailability and graph
+routing. Restoration emits no action; subsequent native Enter emits the exact
+current revision/action/subject. This is renderer keyboard proof, not Body/Play,
+fresh packaged WASM or release acceptance; #5631 remains open.

@@ -320,19 +320,29 @@ function rootIdentity(root) {
 
 function restoreInteraction(root, snapshot) {
   if (!snapshot) return;
-  let target = Array.from(root.querySelectorAll("[data-application-key]"))
-    .find((element) => element.dataset.applicationKey === snapshot.key && !element.disabled);
-  if (target && snapshot.subject) target = Array.from(target.querySelectorAll("[data-subject-identity]")).find(element => element.dataset.subjectIdentity === snapshot.subject) ?? target;
-  if (!target) target = root.querySelector('[tabindex="0"]')
-    ?? root.querySelector('button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled)');
-  if (!(target instanceof HTMLElement) && !(target instanceof SVGElement)) {
+  let preferred = Array.from(root.querySelectorAll("[data-application-key]"))
+    .find(element => element.dataset.applicationKey === snapshot.key);
+  if (preferred && snapshot.subject) preferred = Array.from(preferred.querySelectorAll("[data-subject-identity]"))
+    .find(element => element.dataset.subjectIdentity === snapshot.subject);
+  const candidates = new Set([preferred,
+    ...root.querySelectorAll('[tabindex="0"]'),
+    ...root.querySelectorAll('button, input, select, textarea, a[href], summary')]);
+  let target;
+  for (const candidate of candidates) {
+    if (!(candidate instanceof HTMLElement) && !(candidate instanceof SVGElement)) continue;
+    if (!candidate.isConnected || !root.contains(candidate) || !controlAvailable(candidate)) continue;
+    candidate.focus();
+    // A retained key may now name plain text or a non-focusable container.
+    if (candidate.ownerDocument.activeElement === candidate) { target = candidate; break; }
+  }
+  if (!target) {
     root.tabIndex = -1;
+    root.focus();
     target = root;
   }
-  target.focus();
   const textSelection = target instanceof HTMLTextAreaElement
     || (target instanceof HTMLInputElement && ["text", "search", "tel", "url", "password"].includes(target.type));
-  if (textSelection && snapshot.selection) {
+  if (target === preferred && textSelection && snapshot.selection) {
     const end = target.value.length;
     target.setSelectionRange(Math.min(snapshot.selection.start, end), Math.min(snapshot.selection.end, end), snapshot.selection.direction);
   }

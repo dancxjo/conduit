@@ -728,3 +728,67 @@ test('stepper tab entry preserves declared index across an unavailable peer', as
   await page.keyboard.press('Enter');
   expect(await page.evaluate(() => globalThis.indexFocusCalls)).toEqual(['third']);
 });
+
+for (const mode of ['removed-graph-subject', 'control-becomes-text']) {
+  test(`revision focus restoration finds an available control (${mode})`, async ({ page }) => {
+    await page.goto('/proof/browser/signal-dom-host.test.html');
+    await page.evaluate(async mode => {
+      const { encodeApplicationView, manifestApplicationView } = await import('/targets/browser/host/assets/application-face.mjs');
+      const root = document.createElement('section'); document.body.append(root);
+      const graph = identity => ['conduit.face/graph-canvas@1', 'checked', 'expanded', 'plan', 'body-plan', 'play', '',
+        '1', identity, identity, 'kind', '0', '0'].map(value => `${new TextEncoder().encode(value).length}:${value}`).join('');
+      const view = revision => ({ revision,
+        actions: [{ id: 'select', event: 'activate' }, { id: 'edit', event: 'input' }, { id: 'safe', event: 'activate' }],
+        nodes: [{ parent: null, component: 'shell', key: 'root', action: null },
+          mode === 'removed-graph-subject'
+            ? { parent: 0, component: 'patchbay-canvas', key: 'focus', text: 'Graph', value: graph(revision === 1 ? 'old' : 'current'), valueCapacity: 65_536, action: 0 }
+            : revision === 1
+              ? { parent: 0, component: 'text-input', key: 'focus', text: 'Old editor', value: 'source', valueCapacity: 32, action: 1 }
+              : { parent: 0, component: 'paragraph', key: 'focus', text: 'Completed editing', action: null },
+          { parent: 0, component: 'button', key: 'safe', text: 'Safe next action', action: 2 }],
+      });
+      globalThis.restoredFocusCalls = [];
+      const present = revision => manifestApplicationView(encodeApplicationView(view(revision)), root,
+        { onEvent: event => globalThis.restoredFocusCalls.push({ revision: event.revision, action: event.action,
+          value: new TextDecoder().decode(event.value) }) });
+      present(1);
+      globalThis.reviseFocusFixture = () => present(2);
+    }, mode);
+    if (mode === 'removed-graph-subject') await page.getByRole('button', { name: 'Gear old, kind', exact: true }).focus();
+    else await page.getByRole('textbox', { name: 'Old editor', exact: true }).focus();
+    await page.evaluate(() => globalThis.reviseFocusFixture());
+    const target = page.getByRole('button', { name: mode === 'removed-graph-subject' ? 'Gear current, kind' : 'Safe next action', exact: true });
+    await expect(target).toBeFocused();
+    expect(await page.evaluate(() => globalThis.restoredFocusCalls)).toEqual([]);
+    await page.keyboard.press('Enter');
+    expect(await page.evaluate(() => globalThis.restoredFocusCalls)).toEqual([
+      { revision: 2, action: mode === 'removed-graph-subject' ? 'select' : 'safe', value: mode === 'removed-graph-subject' ? 'current' : '' },
+    ]);
+  });
+}
+
+for (const retained of [true, false]) {
+  test(`text selection restoration follows the retained control only (${retained})`, async ({ page }) => {
+    await page.goto('/proof/browser/signal-dom-host.test.html');
+    await page.evaluate(async retained => {
+      const { encodeApplicationView, manifestApplicationView } = await import('/targets/browser/host/assets/application-face.mjs');
+      const root = document.createElement('section'); document.body.append(root);
+      globalThis.selectionRestoreCalls = [];
+      const present = revision => manifestApplicationView(encodeApplicationView({ revision,
+        actions: [{ id: 'edit', event: 'input' }], nodes: [
+          { parent: null, component: 'text-input', key: revision === 1 || retained ? 'editor' : 'replacement',
+            text: 'Source editor', value: 'source text', valueCapacity: 32, action: 0 },
+        ] }), root, { onEvent: event => globalThis.selectionRestoreCalls.push(event.action) });
+      present(1);
+      globalThis.reviseSelection = () => present(2);
+    }, retained);
+    const input = page.getByRole('textbox', { name: 'Source editor', exact: true });
+    await input.focus();
+    await input.evaluate(element => element.setSelectionRange(2, 4, 'backward'));
+    await page.evaluate(() => globalThis.reviseSelection());
+    await expect(input).toBeFocused();
+    expect(await input.evaluate(element => ({ start: element.selectionStart, end: element.selectionEnd, direction: element.selectionDirection })))
+      .toEqual(retained ? { start: 2, end: 4, direction: 'backward' } : { start: 11, end: 11, direction: 'forward' });
+    expect(await page.evaluate(() => globalThis.selectionRestoreCalls)).toEqual([]);
+  });
+}
