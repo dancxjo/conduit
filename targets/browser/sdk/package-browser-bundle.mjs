@@ -45,11 +45,25 @@ if (!Array.isArray(release.files) || release.files.length < 1 || release.files.l
   || !Array.isArray(image.files) || image.files.length + 1 !== release.files.length) {
   throw new Error("BrowserBundle package exceeds its finite file bound or has an incomplete IMAGE closure");
 }
+if (!Array.isArray(distribution.files) || distribution.files.length < 1 || distribution.files.length > 16
+  || JSON.stringify(distribution.files) !== JSON.stringify(image.files)) {
+  throw new Error("BrowserBundle distribution inventory does not match its IMAGE");
+}
+if (await digestFiles(distribution.files) !== distribution.bundle_sha256) {
+  throw new Error("BrowserBundle distribution content digest is invalid");
+}
 const imagePaths = new Set([...image.files.map((item) => item.path), IMAGE_PATH]);
 const releasePaths = new Set(release.files.map(item => item.path));
 if (imagePaths.size !== release.files.length || releasePaths.size !== release.files.length
   || release.files.some((item) => !imagePaths.has(item.path))) {
   throw new Error("BrowserBundle package contains duplicate or undeclared files outside the exact IMAGE");
+}
+if (image.files.some(file => {
+  const released = release.files.find(item => item.path === file.path);
+  return !released || released.bytes !== file.bytes || released.sha256 !== file.sha256
+    || released.media_type !== file.media_type;
+})) {
+  throw new Error("BrowserBundle IMAGE inventory does not match its release metadata");
 }
 if (await digestFiles(release.files) !== release.bundle_sha256) {
   throw new Error("BrowserBundle release content digest is invalid");

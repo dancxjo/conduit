@@ -291,7 +291,9 @@ sibling staging directory. The new output directory appears only after the whole
 package is ready. A failed attempt removes its staging files and can be retried
 at the same output path; an existing package is never replaced.
 The runtime must be present, fit the browser consumer's 20 MiB ceiling, and have
-the supported Wasm version header. Duplicate release paths are refused. These
+the supported Wasm version header. Duplicate release paths are refused. Distribution and IMAGE inventories must agree
+exactly, their distribution digest is recomputed, and each IMAGE asset must match
+the release size, digest and media type. These
 package checks do not replace runtime ABI admission in the browser.
 The consuming application only installs or serves that resulting directory;
 it does not invoke the producer or compile Conduit.

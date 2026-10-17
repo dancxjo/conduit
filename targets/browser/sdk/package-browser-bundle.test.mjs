@@ -191,6 +191,47 @@ try {
   }
   assert.deepEqual(runtimeResults, runtimeCases.map(entry => ({ name: entry.name, accepted: entry.accepted === true })));
 
+  const inventoryCases = ["distribution-missing", "distribution-duplicate", "distribution-size", "distribution-order",
+    "distribution-digest", "image-size", "image-digest", "image-media-type"];
+  const inventoryResults = [];
+  for (const name of inventoryCases) {
+    const variantSource = path.join(scratch, name);
+    const variantOutput = path.join(scratch, `${name}-package`);
+    await mkdir(variantSource);
+    const variantDistribution = structuredClone(distribution);
+    const variantImage = structuredClone(image);
+    if (name === "distribution-missing") delete variantDistribution.files;
+    if (name === "distribution-duplicate") variantDistribution.files = [runtimeFile, runtimeFile];
+    if (name === "distribution-size") variantDistribution.files[0].bytes++;
+    if (name === "distribution-order") variantDistribution.files.reverse();
+    if (name === "image-size") variantImage.files[0].bytes++;
+    if (name === "image-digest") variantImage.files[0].sha256 = `sha256:${"f".repeat(64)}`;
+    if (name === "image-media-type") variantImage.files[0].media_type = "text/plain";
+    if (name.startsWith("image-")) {
+      variantDistribution.files = structuredClone(variantImage.files);
+      variantDistribution.bundle_sha256 = await digestFiles(variantDistribution.files);
+    }
+    if (name === "distribution-digest") variantDistribution.bundle_sha256 = `sha256:${"f".repeat(64)}`;
+    variantImage.reviewed_distribution.distribution_digest = variantDistribution.bundle_sha256;
+    const variantImageBytes = new TextEncoder().encode(JSON.stringify(variantImage));
+    const variantFiles = [runtimeFile, bootFile, await fileIdentity("conduit-browser-image.json", variantImageBytes)];
+    await writeFile(path.join(variantSource, "browser-page.json"), JSON.stringify(variantDistribution));
+    await writeFile(path.join(variantSource, "browser-bundle-release.json"), JSON.stringify({ ...release,
+      distribution_sha256: variantDistribution.bundle_sha256, files: variantFiles, bundle_sha256: await digestFiles(variantFiles) }));
+    await writeFile(path.join(variantSource, "conduit-browser-image.json"), variantImageBytes);
+    await writeFile(path.join(variantSource, "runtime.wasm"), runtime);
+    await writeFile(path.join(variantSource, "browser-boot-profile.mjs"), boot);
+    const before = (await readdir(scratch)).sort();
+    const result = spawnSync(process.execPath, [path.join(root, "package-browser-bundle.mjs"), variantSource, variantOutput], { encoding: "utf8" });
+    inventoryResults.push({ name, accepted: result.status === 0 });
+    if (result.status !== 0) {
+      assert.match(result.stderr, /inventory|distribution.*digest/i);
+      await assert.rejects(lstat(variantOutput), { code: "ENOENT" });
+      assert.deepEqual((await readdir(scratch)).sort(), before);
+    }
+  }
+  assert.deepEqual(inventoryResults, inventoryCases.map(name => ({ name, accepted: false })));
+
   // Refusal after copying the first asset must not publish a partial package.
   const retryOutput = path.join(scratch, "retryable");
   await chmod(path.join(source, "browser-page.json"), 0o600);
