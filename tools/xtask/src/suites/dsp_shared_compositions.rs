@@ -17,9 +17,9 @@ pub const STEPS: &[Step] = &[
     ),
     Step::new(
         "dsp.product-authoring",
-        "Prove the ordinary product source loader checks and expands a public DSP Source Back",
+        "Prove product Source catalogs, existing authoring boundaries and public DSP Source Backs",
         "cargo",
-        &["test", "--locked", "-p", "conduit", "--lib", "product_authoring_expands_the_owned_public_dsp_back", "--", "--nocapture"],
+        &["test", "--locked", "-p", "conduit", "--lib", "plot_source::tests", "--", "--nocapture"],
     ),
     Step::new(
         "dsp.compact-voice-parity",

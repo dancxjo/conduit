@@ -386,3 +386,6 @@ fn invalid_experimental_coefficients_preserve_the_uncommitted_cursor() {
 
 #[path = "dsp_package_frames/independent.rs"]
 mod independent;
+
+#[path = "dsp_package_frames/modulation.rs"]
+mod modulation;
