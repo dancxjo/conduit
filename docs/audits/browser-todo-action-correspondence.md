@@ -577,3 +577,17 @@ The complete producer/static-package/refusal fixture passes. This proves the
 consumer module graph is present and importable under Node; its tiny runtime
 fixture does not prove browser ABI execution, a published npm package or public
 deployment. #5376 remains open.
+
+Generic manifestation custody follow-up (#5644): each successful application
+Face manifestation installs a private identity for its root. Retained listeners
+and explicit action requests from a replaced manifestation refuse with
+`stale-revision` before queueing or callback, even if the replacement reuses the
+same public revision. A failed decode/render does not publish a replacement.
+
+Both new pinned Chromium regressions reproduced two stale callbacks/queued events
+before the repair and now pass; native Enter on the current button emits exactly
+one action. The eight-test Face nucleus run has four passes and four failures:
+all four failures report `failed: browser runtime WASM artifact loads` before
+their assertions, so full runtime/Look/focus acceptance remains unproven. No
+rebuild or test weakening was performed. This renderer fence does not certify
+Body state, disconnected/reinserted surfaces or arbitrary CSS accessibility.
