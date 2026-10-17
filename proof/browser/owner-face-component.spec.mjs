@@ -387,12 +387,35 @@ for (const control of ['submit', 'argument']) {
     const focused = control === 'submit'
       ? element.getByRole('button', { name: 'Complete task', exact: true })
       : element.getByRole('textbox', { name: 'Text', exact: true });
+    if (control === 'argument') await focused.fill('abcdef');
     await focused.focus();
+    if (control === 'argument') {
+      await page.keyboard.press('Home');
+      await page.keyboard.press('ArrowRight'); await page.keyboard.press('ArrowRight');
+      await page.keyboard.press('ArrowRight'); await page.keyboard.press('ArrowRight');
+      await page.keyboard.press('Shift+ArrowLeft'); await page.keyboard.press('Shift+ArrowLeft');
+    }
     const next = { ...withInput, face_revision: 2, show_id: 'fixture/refreshed' };
     await element.evaluate((node, view) => node.show(view, {
       invoke: async call => { globalThis.calls.push(call); },
     }), next);
     await expect(focused).toBeFocused();
+    if (control === 'argument') {
+      expect(await focused.evaluate(node => [node.selectionStart, node.selectionEnd, node.selectionDirection]))
+        .toEqual([2, 4, 'backward']);
+      await page.keyboard.type('X');
+      await expect(focused).toHaveValue('abXef');
+      await page.keyboard.press('Shift+ArrowLeft');
+      await element.evaluate((node, view) => {
+        node.disabled = true;
+        node.show({ ...view, show_state: 'prepared', interactions_admitted: false }, { invoke: async () => {} });
+        node.show(view, { invoke: async call => { globalThis.calls.push(call); } });
+      }, next);
+      expect(await focused.evaluate(node => [node.selectionStart, node.selectionEnd, node.selectionDirection]))
+        .toEqual([2, 3, 'backward']);
+      await page.keyboard.press('Backspace');
+      await expect(focused).toHaveValue('abef');
+    }
     expect(await page.evaluate(() => globalThis.calls)).toEqual([]);
     await element.evaluate((node, view) => node.show({ ...view, actions: [{
       ...view.actions[0], availability: 'unavailable',

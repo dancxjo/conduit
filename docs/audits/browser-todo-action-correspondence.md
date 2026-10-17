@@ -219,3 +219,17 @@ new current button. A strengthened focused negative fixture also passes when the
 user moves focus outside during preparation, alongside changed-target refusal.
 This remains renderer/orchestration evidence with a fixture SDK, not full
 assistive-technology enactment or actual Body/packaged acceptance.
+
+Text selection continuity (#5631): local focus state now includes the input's
+text, selection start/end and direction. Restore that range only when the exact
+current control still contains the same text and supports native selection;
+changed/cleared drafts do not inherit a stale range. The same state crosses
+temporary disabling/prepared Shows, and disconnect clears it after disabling.
+This remains local editing state, with no action callback or additional authority.
+
+The backward-selection regression reproduced a jump to the end before repair.
+All thirty-seven component Chromium tests pass with one worker and zero retries.
+The strengthened focused selection/external-focus cases also pass, using trusted
+keyboard selection, replacement typing and Backspace to verify the preserved
+range through direct and prepared Show refreshes without invoking an action.
+Renderer fixtures do not establish actual Body or packaged/public acceptance.

@@ -33,19 +33,24 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
     // A removed surface no longer owns an active encounter. Reattachment or
     // re-enabling controls must not revive its old event-to-action bindings.
     this.#render = undefined;
-    this.#pendingFocus = undefined;
     this.#dispatched = true;
     this.disabled = true;
+    this.#pendingFocus = undefined;
   }
   set disabled(value) {
-    if (value && this.shadowRoot.activeElement?.dataset.ownerFocus) {
-      this.#pendingFocus = this.shadowRoot.activeElement.dataset.ownerFocus;
-    }
+    const focused = value ? this.#focusedState() : undefined;
+    if (focused) this.#pendingFocus = focused;
     this.#disabled = Boolean(value);
     this.setAttribute('aria-busy', String(this.#disabled));
     for (const control of this.#surface.querySelectorAll('button, input, select')) {
       control.disabled = this.#disabled || control.dataset.unavailable === 'true';
     }
+  }
+  #focusedState() {
+    const control = this.shadowRoot.activeElement;
+    if (!control?.dataset.ownerFocus) return;
+    return { key: control.dataset.ownerFocus, value: control.value,
+      start: control.selectionStart, end: control.selectionEnd, direction: control.selectionDirection };
   }
   #ready(view, action, render) {
     return render === this.#render && !this.#disabled && view.show_state === 'available'
@@ -60,7 +65,8 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
   }
   show(view, { invoke, projectCollections = () => ({ collections: [], placed: new Set() }),
     supportsAction = () => true } = {}) {
-    const focusedKey = this.shadowRoot.activeElement?.dataset.ownerFocus ?? this.#pendingFocus;
+    const focusState = this.#focusedState() ?? this.#pendingFocus;
+    const focusedKey = focusState?.key;
     const drafts = new Map();
     // Temporary refresh/preparation disables controls without submitting them.
     // A dispatched or disconnected encounter starts with fresh input.
@@ -422,8 +428,13 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
       const mayRestore = active === this || active === this.ownerDocument.body;
       this.#pendingFocus = undefined;
       if (mayRestore && current) {
-        if (!current.disabled && current.checkVisibility({ visibilityProperty: true })) current.focus();
-        else if (this.#disabled) this.#pendingFocus = focusedKey;
+        if (!current.disabled && current.checkVisibility({ visibilityProperty: true })) {
+          current.focus();
+          if (current.value === focusState.value && Number.isInteger(focusState.start)
+            && Number.isInteger(focusState.end) && typeof current.setSelectionRange === 'function') {
+            current.setSelectionRange(focusState.start, focusState.end, focusState.direction);
+          }
+        } else if (this.#disabled) this.#pendingFocus = focusState;
       }
     }
   }
