@@ -562,7 +562,7 @@ export const Conduit = Object.freeze({
         refuse("DistributionDigestMismatch", "reviewed BrowserBundle assets do not match the exact distribution manifest");
       }
 
-      const payloads = await readBundlePayloads(base, bundle, image);
+      const payloads = await readBundlePayloads(base, bundle, image, imageBytes);
       const runtimeBytes = requiredAsset(payloads, "runtime.wasm", MAXIMUM_RUNTIME_BYTES);
       const bootBytes = requiredAsset(payloads, "browser-boot-profile.mjs", MAXIMUM_MODULE_BYTES);
       const bootDigest = image.boot_module?.sha256;
@@ -669,7 +669,7 @@ function requireRelease(distribution, bundle, pkg, image) {
   }
 }
 
-async function readBundlePayloads(base, bundle, image) {
+async function readBundlePayloads(base, bundle, image, imageBytes) {
   let total = 0;
   const declared = new Map(bundle.files.map((file) => [file.path, file]));
   if (declared.size !== bundle.files.length || !declared.has(IMAGE_PATH)) {
@@ -683,7 +683,7 @@ async function readBundlePayloads(base, bundle, image) {
     if (!safeRelativePath(file.path) || !Number.isSafeInteger(file.bytes) || file.bytes < 1
       || file.bytes > (file.path === "runtime.wasm" ? MAXIMUM_RUNTIME_BYTES : MAXIMUM_MODULE_BYTES)
       || !digest(file.sha256)) refuse("ArtifactBound", `BrowserBundle asset ${file.path} exceeds its declared finite bound`);
-    const bytes = await fetchAsset(base, file.path, file.bytes);
+    const bytes = file.path === IMAGE_PATH ? imageBytes : await fetchAsset(base, file.path, file.bytes);
     if (bytes.byteLength !== file.bytes || await sha256(bytes) !== file.sha256) {
       refuse("ArtifactDigestMismatch", `BrowserBundle asset ${file.path} does not match its admitted identity`);
     }

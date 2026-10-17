@@ -162,3 +162,15 @@ repair. Five SDK Node tests now pass, including oversized cancellation after the
 first excess byte, exact-limit manifest admission into metadata validation and
 released stream locks. The producer fixture also passes. Synthetic response
 streams establish loader behavior; actual network/browser execution remains open.
+
+IMAGE byte-custody follow-up: SDK loading now verifies the retained IMAGE response
+against its release declaration instead of requesting that manifest again. The
+bytes parsed for metadata, admitted by digest and passed to Boot are identical.
+Other assets retain their bounded fetch and digest checks.
+
+A changed second IMAGE response reproduced unnecessary startup refusal before
+repair. Six SDK Node tests and the producer fixture pass. The new public-entrance
+fixture verifies one IMAGE request, valid bytes advancing to intentionally absent
+runtime admission and a false digest refusing the original bytes. These synthetic
+manifest/fetch fixtures establish byte custody, not successful Boot or public
+release corroboration.

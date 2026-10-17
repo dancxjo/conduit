@@ -138,3 +138,50 @@ test("Browser SDK cancels oversized manifest streams at the byte bound", async (
     }
   }
 });
+
+test("Browser SDK verifies the exact IMAGE bytes it interpreted without refetching", async () => {
+  const { Conduit } = await import("./browser-sdk.mjs");
+  const saved = Object.fromEntries(["document", "location", "fetch"].map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
+  const encoder = new TextEncoder();
+  const hash = async value => `sha256:${Buffer.from(await crypto.subtle.digest("SHA-256", encoder.encode(value))).toString("hex")}`;
+  try {
+    globalThis.document = { baseURI: "https://fixture.invalid/app/" };
+    globalThis.location = { origin: "https://fixture.invalid" };
+    for (const corrupt of [false, true]) {
+      const distributionDigest = await hash('conduit.release/host-bundle-content@1\0');
+      const image = { schema: "conduit.browser/bundle-image@1", image_id: `image:sha256:${"b".repeat(64)}`,
+        profile_id: `sha256:${"c".repeat(64)}`, files: [],
+        reviewed_distribution: { runtime_abi: "conduit.browser/runtime-abi@1", distribution_digest: distributionDigest } };
+      const imageText = JSON.stringify(image);
+      const file = { path: "conduit-browser-image.json", bytes: encoder.encode(imageText).length,
+        sha256: corrupt ? `sha256:${"a".repeat(64)}` : await hash(imageText), media_type: "application/json" };
+      const bundleDigest = await hash(`conduit.release/host-bundle-content@1\0${file.path}\0${file.sha256}\n`);
+      const pkg = { schema: "conduit.browser/sdk-package@1", runtime_abi: image.reviewed_distribution.runtime_abi,
+        package_id: "@conduit/browser", package_version: "0.1.0", target_id: "browser/wasm32/page",
+        image_id: image.image_id, profile_id: image.profile_id, bundle_sha256: bundleDigest, files: [file] };
+      const distribution = { schema: "conduit.release/host-bundle@1", target_id: pkg.target_id,
+        make_package_id: "browser-wasm@1", output: "browser-bundle", files: [], bundle_sha256: distributionDigest,
+        reviewed_distribution: { schema: "conduit.browser/reviewed-distribution@1", runtime_abi: pkg.runtime_abi, distribution_id: "fixture" } };
+      const bundle = { ...distribution, files: [file], bundle_sha256: bundleDigest, distribution_id: "fixture",
+        distribution_sha256: distributionDigest, browser_image_id: pkg.image_id, browser_profile_id: pkg.profile_id };
+      const assets = new Map([["browser-sdk-package.json", pkg], ["browser-page.json", distribution],
+        ["browser-bundle-release.json", bundle], [file.path, image]]);
+      let imageRequests = 0;
+      globalThis.fetch = async url => {
+        const name = url.pathname.split('/').at(-1);
+        if (name === file.path && ++imageRequests > 1) return new Response('changed after first read');
+        return new Response(JSON.stringify(assets.get(name)));
+      };
+      // Valid IMAGE bytes advance to the intentionally absent runtime; bad
+      // declared digests refuse those same retained bytes before that point.
+      await assert.rejects(Conduit.browser({ bundleRoot: './bundle/' }),
+        { code: corrupt ? 'ArtifactDigestMismatch' : 'ArtifactMissing' });
+      assert.equal(imageRequests, 1);
+    }
+  } finally {
+    for (const [key, descriptor] of Object.entries(saved)) {
+      if (descriptor) Object.defineProperty(globalThis, key, descriptor);
+      else delete globalThis[key];
+    }
+  }
+});
