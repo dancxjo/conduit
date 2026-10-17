@@ -15,6 +15,7 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
   #projectCollections;
   #supportsAction = () => true;
   #disabled = true;
+  #dispatched = false;
   #render;
   #layoutObserver;
   constructor() {
@@ -31,6 +32,7 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
     // A removed surface no longer owns an active encounter. Reattachment or
     // re-enabling controls must not revive its old event-to-action bindings.
     this.#render = undefined;
+    this.#dispatched = true;
     this.disabled = true;
   }
   set disabled(value) {
@@ -55,13 +57,15 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
     supportsAction = () => true } = {}) {
     const focusedKey = this.shadowRoot.activeElement?.dataset.ownerFocus;
     const drafts = new Map();
-    // Retain unsent UI input only. A dispatched/disabled form starts fresh.
-    if (!this.#disabled && typeof view.body_id === 'string' && view.body_id) {
+    // Temporary refresh/preparation disables controls without submitting them.
+    // A dispatched or disconnected encounter starts with fresh input.
+    if (!this.#dispatched && typeof view.body_id === 'string' && view.body_id) {
       for (const input of this.#surface.querySelectorAll('[data-owner-draft]')) {
-        if (!input.disabled) drafts.set(input.dataset.ownerDraft, input.value);
+        if (input.dataset.unavailable !== 'true') drafts.set(input.dataset.ownerDraft, input.value);
       }
     }
     const render = this.#render = {};
+    this.#dispatched = false;
     this.#invoke = invoke;
     this.#projectCollections = projectCollections;
     this.#supportsAction = supportsAction;
@@ -156,7 +160,7 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
         input.dataset.unavailable = String(action.availability !== 'available' || !this.#supportsAction(action));
         input.dataset.ownerDraft = JSON.stringify([view.body_id, action.identity, action.target, argument]);
         const draft = drafts.get(input.dataset.ownerDraft);
-        if (draft !== undefined && actionReady(action)
+        if (draft !== undefined && input.dataset.unavailable !== 'true'
           && (argument.choices.length ? argument.choices.includes(draft)
             : encoder.encode(draft).length <= argument.maximum_bytes)) input.value = draft;
         label.append(input);
@@ -188,6 +192,7 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
             ? `Use at most ${argument.maximum_bytes} UTF-8 bytes.` : '');
           if (!input.checkValidity()) return;
         }
+        this.#dispatched = true;
         this.disabled = true;
         await this.#invoke({ view, action, arguments: inputs.map(({ name, input }) => ({ name, value: input.value })) });
       });
@@ -329,6 +334,7 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
           choices.querySelectorAll('input').forEach((control, optionIndex) => {
             control.checked = selectedFlags[optionIndex][0].value;
           });
+          this.#dispatched = true;
           this.disabled = true;
           await this.#invoke({ view, action, arguments: [] });
         });

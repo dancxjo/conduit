@@ -610,6 +610,8 @@ test(`Handbook refresh preserves current controls and refuses interrupted ${inte
       <a class="handbook-start"></a><div class="handbook-first-steps"></div>
       <div class="handbook-next"></div><div class="handbook-local-note"></div><main></main>`;
     const shown = { ...view, body_id: 'body/fixture', face_revision: '1',
+      actions: [{ ...view.actions[0], arguments: [{ name: 'draft', value_name: 'Draft',
+        value_kind: 'value/text', maximum_bytes: 16, choices: [] }] }],
       mask_plot_id: 'fixture/mask', mask_plan_id: 'fixture/plan', mask_play_id: 'fixture/play',
       route: { plan_id: 'fixture/route', owner_host_id: 'host/owner', owner_boot_id: 'boot/owner',
         mask_host_id: 'host/browser', mask_boot_id: 'boot/browser' } };
@@ -658,6 +660,8 @@ test(`Handbook refresh preserves current controls and refuses interrupted ${inte
   await expect(page.locator('main')).toHaveAttribute('data-owner-face-shown', 'true');
   const button = owner.getByRole('button', { name: 'Complete task', exact: true });
   await expect(button).toBeEnabled();
+  const draft = owner.getByRole('textbox', { name: 'Draft', exact: true });
+  await draft.fill('é draft');
   await owner.evaluate(node => {
     globalThis.originalOwner = node;
     globalThis.disconnects = 0;
@@ -685,15 +689,17 @@ test(`Handbook refresh preserves current controls and refuses interrupted ${inte
   const currentRevision = interruption ? '3' : '2';
   await expect(owner).toHaveAttribute('data-face-revision', currentRevision);
   await expect(button).toBeEnabled();
+  await expect(draft).toHaveValue('é draft');
   expect(await owner.evaluate(node => node === globalThis.originalOwner && globalThis.disconnects === 0)).toBe(true);
   await button.focus();
   await page.keyboard.press('Enter');
   await expect.poll(() => page.evaluate(() => globalThis.calls.length)).toBe(1);
   await expect(owner).toHaveAttribute('data-face-revision', String(Number(currentRevision) + 1));
+  await expect(draft).toHaveValue('');
   await expect(button).toBeEnabled();
   expect(await page.evaluate(() => globalThis.calls[0])).toMatchObject({
     view: { show_id: `fixture/show/${currentRevision}`, face_revision: currentRevision },
-    actionId: view.actions[0].identity, target: view.actions[0].target, arguments: [], sequence: 1,
+    actionId: view.actions[0].identity, target: view.actions[0].target, arguments: [{ name: 'draft', value: 'é draft' }], sequence: 1,
   });
 });
 }
