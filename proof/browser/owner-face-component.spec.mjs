@@ -507,7 +507,8 @@ for (const reattach of [false, true]) {
   });
 }
 
-test('a disconnected exclusive-choice listener cannot dispatch or reset current selection', async ({ page }) => {
+for (const unavailable of ['disconnected', 'hidden']) {
+test(`a ${unavailable} exclusive-choice listener cannot dispatch or reset current selection`, async ({ page }) => {
   await page.goto('/proof/browser/signal-dom-host.test.html');
   const choices = {
     ...view,
@@ -522,7 +523,7 @@ test('a disconnected exclusive-choice listener cannot dispatch or reset current 
     actions: [0, 1].map(index => ({ ...view.actions[0], identity: `fixture/select/${index}`,
       target: `fixture/option/${index}`, name: `Select ${index}` })),
   };
-  await page.evaluate(async view => {
+  await page.evaluate(async ({ view, unavailable }) => {
     await import('/targets/browser/handbook/owner-face-component.mjs');
     document.body.replaceChildren();
     const element = document.createElement('conduit-owner-face');
@@ -532,11 +533,13 @@ test('a disconnected exclusive-choice listener cannot dispatch or reset current 
     element.show(view, { invoke });
     const obsolete = element.shadowRoot.querySelector('input[type=radio]');
     if (!obsolete) throw new Error('fixture did not render an exclusive choice');
-    element.remove();
-    document.body.append(element);
-    element.disabled = false;
+    if (unavailable === 'disconnected') {
+      element.remove();
+      document.body.append(element);
+      element.disabled = false;
+    } else obsolete.hidden = true;
     obsolete.dispatchEvent(new Event('change', { bubbles: true }));
-  }, choices);
+  }, { view: choices, unavailable });
   expect(await page.evaluate(() => globalThis.calls)).toEqual([]);
   const element = page.locator('conduit-owner-face');
   await element.evaluate((node, view) => node.show(view, {
@@ -550,3 +553,49 @@ test('a disconnected exclusive-choice listener cannot dispatch or reset current 
   expect(await page.evaluate(() => globalThis.calls)).toEqual([{ view: choices, action: choices.actions[1], arguments: [] }]);
   await expect(current).toBeDisabled();
 });
+}
+
+for (const hidden of ['attribute', 'visibility', 'disclosure', 'fieldset']) {
+  test(`hidden owner actions refuse dispatch (${hidden})`, async ({ page }) => {
+    await page.goto('/proof/browser/signal-dom-host.test.html');
+    await page.evaluate(async ({ view, hidden }) => {
+      await import('/targets/browser/handbook/owner-face-component.mjs');
+      document.body.replaceChildren();
+      const element = document.createElement('conduit-owner-face');
+      document.body.append(element);
+      globalThis.calls = [];
+      element.show(view, { invoke: async call => { globalThis.calls.push(call); } });
+      const form = element.shadowRoot.querySelector('form');
+      if (hidden === 'attribute') form.hidden = true;
+      if (hidden === 'visibility') form.style.visibility = 'hidden';
+      if (hidden === 'disclosure') {
+        const details = document.createElement('details');
+        const summary = document.createElement('summary'); summary.textContent = 'Actions';
+        form.before(details); details.append(summary, form);
+      }
+      if (hidden === 'fieldset') {
+        const fieldset = document.createElement('fieldset'); fieldset.disabled = true;
+        form.before(fieldset); fieldset.append(form);
+      }
+      // Deliberately adversarial: ordinary users cannot activate hidden/disabled controls.
+      form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    }, { view, hidden });
+    expect(await page.evaluate(() => globalThis.calls)).toEqual([]);
+    const element = page.locator('conduit-owner-face');
+    await element.evaluate(node => {
+      const form = node.shadowRoot.querySelector('form');
+      form.hidden = false; form.style.visibility = '';
+      const fieldset = form.closest('fieldset');
+      if (fieldset) fieldset.disabled = false;
+    });
+    if (hidden === 'disclosure') {
+      await element.getByText('Actions', { exact: true }).focus();
+      await page.keyboard.press('Enter');
+    }
+    const button = element.getByRole('button', { name: 'Complete task', exact: true });
+    await expect(button).toBeVisible();
+    await button.focus();
+    await page.keyboard.press('Enter');
+    expect(await page.evaluate(() => globalThis.calls)).toEqual([{ view, action: view.actions[0], arguments: [] }]);
+  });
+}

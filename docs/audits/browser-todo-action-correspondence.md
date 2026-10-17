@@ -107,3 +107,20 @@ the concurrent focus-preservation change, all eighteen component tests passed
 with one worker and zero retries. Fresh Shows restore trusted keyboard button/radio activation.
 Synthetic negative events establish renderer refusal only; these checks do not
 prove unchanged Body state, packaged acceptance or completion of #5644.
+
+
+Hidden-control follow-up (#5631 / #5644): form and radio dispatch now requires
+a connected, natively enabled control and the browser's visibility check with
+CSS visibility enabled. The [CSSOM visibility check](https://www.w3.org/TR/cssom-view/#dom-element-checkvisibility)
+also excludes skipped content inside closed details; bounding rectangles alone
+did not establish that condition in Chromium. Revealing a control permits
+ordinary keyboard activation without inventing a new action or return route.
+
+Three hidden-form regressions reproduced before repair. All twenty-three
+component Chromium tests pass with one worker and zero retries, covering hidden
+attributes, CSS visibility, closed disclosure, disabled fieldsets and hidden
+radio controls. After integrating concurrent same-Body draft continuity, all
+twenty-five component tests pass with the same settings. Successful activations use keyboard input; adversarial synthetic
+events are refusal fixtures only. These checks establish renderer behavior, not
+unchanged Body state, arbitrary Look accessibility, overlay hit-testing or
+packaged/public acceptance of either issue.
