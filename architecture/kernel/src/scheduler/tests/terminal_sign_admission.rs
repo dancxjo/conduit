@@ -4,13 +4,14 @@ use crate::SignError;
 struct Terminal {
     abnormal: bool,
     committed: u8,
+    terminal: CanonicalValue,
 }
 impl StepBack<PORTS> for Terminal {
     fn step(&mut self, _: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if self.abnormal {
             StepOutcome::Abnormal {
                 port: PortId(0),
-                terminal: CanonicalValue::new(b"lost").unwrap(),
+                terminal: self.terminal,
             }
         } else {
             StepOutcome::Complete
@@ -31,6 +32,14 @@ fn signs(remote: u16, ordinary: u32) -> FixedSignLog<16> {
     .unwrap()
 }
 fn scheduler(abnormal: bool, remote: u16, ordinary: u32) -> Scheduler {
+    scheduler_with_bytes(abnormal, remote, ordinary, 8)
+}
+fn scheduler_with_bytes(
+    abnormal: bool,
+    remote: u16,
+    ordinary: u32,
+    byte_capacity: u32,
+) -> Scheduler {
     let mut routes = FixedRoutes::new(PORTS as u16);
     let targets = core::array::from_fn::<_, 2, _>(|i| RouteTarget {
         cord: CordId(i as u16),
@@ -55,7 +64,7 @@ fn scheduler(abnormal: bool, remote: u16, ordinary: u32) -> Scheduler {
                 CordCapacity {
                     slot_start: i as u16,
                     item_capacity: 1,
-                    byte_capacity: 8,
+                    byte_capacity,
                     pressure_policy: Default::default(),
                 },
             )
@@ -69,6 +78,7 @@ fn scheduler(abnormal: bool, remote: u16, ordinary: u32) -> Scheduler {
         [Terminal {
             abnormal,
             committed: 0,
+            terminal: CanonicalValue::new(b"lost").unwrap(),
         }],
         FixedValueStore::new(16).unwrap(),
         signs(remote, ordinary),
@@ -127,4 +137,35 @@ fn remote_terminal_sign_pressure_refuses_before_step_commit() {
 #[test]
 fn terminal_sign_sequence_reserves_both_value_and_remote_closure() {
     refusal_and_retry(false);
+}
+
+#[test]
+fn oversized_abnormal_terminal_refuses_before_commit_and_allows_smaller_retry() {
+    let mut scheduler = scheduler_with_bytes(true, 2, 16, 3);
+    assert_eq!(scheduler.step(), Err(SchedulerError::QueueCapacityExceeded));
+    assert_eq!(scheduler.drivers[0].committed, 0);
+    assert!(!scheduler.completed[0]);
+    assert!(scheduler.ready.contains(0));
+    assert_eq!(scheduler.values.used_items(), 0);
+    assert_eq!(scheduler.signs.events().count(), 1);
+    for cord in &scheduler.cords {
+        assert_eq!(cord.len, 0);
+        assert!(!cord.producer_closed);
+        assert!(!cord.producer_abnormal);
+    }
+    scheduler.drivers[0].terminal = CanonicalValue::new(b"ok").unwrap();
+    assert_eq!(
+        scheduler.step(),
+        Ok(SchedulerStatus::Progress { node: NodeId(0) })
+    );
+    assert_eq!(scheduler.drivers[0].committed, 1);
+    assert!(scheduler.completed[0]);
+    let value = scheduler.peek(0).unwrap().unwrap();
+    assert_eq!(scheduler.values.get(value), Ok(b"ok".as_slice()));
+    assert_eq!(scheduler.values.reference_count(value), Ok(2));
+    assert_eq!(scheduler.peek(1).unwrap(), Some(value));
+    for cord in &scheduler.cords {
+        assert_eq!(cord.len, 1);
+        assert!(cord.producer_closed);
+    }
 }

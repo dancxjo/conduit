@@ -1,4 +1,4 @@
-//! Exact terminal publication evidence admission before Step commit.
+//! Terminal byte and publication evidence admission before Step commit.
 use super::*;
 
 impl<
@@ -33,17 +33,20 @@ where
     E: SignSink,
 {
     /// Reserve remote lifecycle storage and count every ordinary terminal Sign
-    /// before committing inputs, Back state, or the node's completed flag.
+    /// and check each terminal value fits its cord before committing inputs,
+    /// Back state, or the node's completed flag.
     pub(super) fn terminal_publication_signs(
         &self,
         node: usize,
         outcome: StepOutcome,
     ) -> Result<usize, SchedulerError> {
-        let (track, output) = match outcome {
-            StepOutcome::Complete => (AssignedConnectionTrack::NormalClose, None),
-            StepOutcome::Abnormal { port, .. } => {
-                (AssignedConnectionTrack::AbnormalTerminal, Some(port))
-            }
+        let (track, output, terminal_bytes) = match outcome {
+            StepOutcome::Complete => (AssignedConnectionTrack::NormalClose, None, 0),
+            StepOutcome::Abnormal { port, terminal } => (
+                AssignedConnectionTrack::AbnormalTerminal,
+                Some(port),
+                terminal.as_slice().len() as u32,
+            ),
             _ => return Ok(0),
         };
         let source = NodeId(as_u16(node)?);
@@ -58,7 +61,13 @@ where
                 continue;
             };
             for target in targets {
-                if self.cord_specs[usize::from(target.cord.0)].track == track {
+                let spec = self.cord_specs[usize::from(target.cord.0)];
+                if spec.track == track {
+                    // This refusal cannot be repaired by consuming a queued
+                    // input during commit: the value alone exceeds the budget.
+                    if spec.byte_capacity < terminal_bytes {
+                        return Err(SchedulerError::QueueCapacityExceeded);
+                    }
                     values = values.checked_add(1).ok_or(SchedulerError::InvalidPlan)?;
                 }
                 if matches!(target.sink, CordEndpoint::Remote(_)) {
