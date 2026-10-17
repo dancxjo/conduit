@@ -6,6 +6,8 @@ mod acoustic_flow;
 mod angle_reference;
 #[path = "../suites/dsp_shared_compositions.rs"]
 mod dsp_shared_compositions;
+#[path = "../suites/expression_baseline.rs"]
+mod expression_baseline;
 #[path = "../suites/inverse_angle.rs"]
 mod inverse_angle;
 #[path = "../suites/model_inference.rs"]
@@ -82,25 +84,7 @@ pub fn run(args: CheckArgs, opts: &GlobalOpts) -> Result<(), StepError> {
         CheckSuite::KernelTakeover => run_suite(KERNEL_TAKEOVER_STEPS, &root, opts),
         CheckSuite::PlanningS2 => run_suite(PLANNING_S2_STEPS, &root, opts),
         CheckSuite::PlotS3 => run_suite(PLOT_S3_STEPS, &root, opts),
-        CheckSuite::ExpressionBaseline => run_suite(
-            &[Step::new(
-                "expression.baseline",
-                "Report fixed 1/3/8/32 prepared expression parity and cold/warm timings",
-                "cargo",
-                &[
-                    "test",
-                    "-p",
-                    "conduit-plot",
-                    "--test",
-                    "expression_baseline",
-                    "--locked",
-                    "--",
-                    "--nocapture",
-                ],
-            )],
-            &root,
-            opts,
-        ),
+        CheckSuite::ExpressionBaseline => run_suite(expression_baseline::STEPS, &root, opts),
         CheckSuite::Observatory => run_suite(OBSERVATORY_READINESS_STEPS, &root, opts),
         CheckSuite::SemanticCatalog => run_suite(SEMANTIC_CATALOG_READINESS_STEPS, &root, opts),
         CheckSuite::QuantityMapping => run_suite(QUANTITY_MAPPING_STEPS, &root, opts),

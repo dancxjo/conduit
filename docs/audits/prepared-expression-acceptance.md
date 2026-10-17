@@ -49,6 +49,7 @@ realization/session identities.
 | Cancellation, terminal/Sign parity, output refusal without retry | Installed parity and `scalar_tape_control_tests` |
 | Warm allocations and fixed output/Value capacities | Plot allocation probe and actual std kernel post-Play allocation observations |
 | Recoverable prepared bounds and tamper refusal | Installed typed-property inspection and omitted/foreign-property refusal |
+| Executable additional target/profile parity | `scalar_tape_wasm` cdylib and `proof/expression/scalar-tape-wasm.mjs`, run by `cargo xtask check expression-baseline` |
 | Cold/warm cost and optimized Rust comparison | [Performance report](scalar-tape-performance.md) and [stack-profile comparison](scalar-tape-scratch-20261017.md), with raw receipts |
 
 The timing diagnostic additionally records calling-thread CPU nanoseconds on
@@ -61,10 +62,14 @@ not calibrated latency claims. Wall and CPU measurements remain distinct.
 
 Std offers `std/kernel-pure-scalar-tape@1`. Browser currently installs its
 reference expression evaluator; it does not advertise the std tape profile.
-Portable WASM compilation establishes an API availability boundary, not browser
-execution or installed tape parity. No no_std or tiny-device tape installation
-or physical performance is claimed. This is the named unsupported additional
-target boundary allowed by the parent acceptance contract.
+The executable portable-WASM proof runs the same checked integer/Boolean
+1/3/8/32-operation corpus in a real WebAssembly instance. Its 48 valid, overflow
+and malformed-input cases match the reference evaluator and independent integer
+scaling/Boolean identity oracles. Sixteen repeated paired evaluations per case
+allocate and reallocate zero times. Source, checked and expanded identities match
+the 128 retained std Plan/Play samples. This establishes target-level evaluator
+parity; it does not install a browser tape Back, run a browser UI, or establish
+no_std/tiny-device installation or physical performance.
 
 The retained measurements show evaluator improvements for useful larger
 expressions, cold preparation costs, and a one-operation regression before the
@@ -181,3 +186,20 @@ of #5396 acceptance, not a claim of nominal support.
 The retained CPU captures predate this admission guard. Their checked intrinsic
 integer/Boolean sources do not contain nominal Types; their exact source pins
 and raw measurements remain unchanged.
+
+
+## Executable portable-WASM parity
+
+`cargo xtask check expression-baseline` retains the native baseline and then
+builds the dedicated proof cdylib for `wasm32-unknown-unknown` and executes it
+using Node's WebAssembly engine. This developer check requires that Rust target
+and Node. The module has no ambient imports. It invokes the existing Plot
+reference and scalar-tape evaluators; there is no additional evaluator or kernel.
+The shared allocation probe observes only the prepared evaluation windows.
+
+The receipt retains exact programs, source/checked/expanded identities, inputs,
+outputs or named refusals, instruction/scratch/output bounds, and allocation
+counts. The runner checks all eight profiles, fixture hashes and semantic
+identities against the installed std raw evidence. It also checks that a second
+invocation refuses without rerunning or changing the one finite receipt.
+This isolated harness is a portable evaluator proof, not a deployable Host Back.
