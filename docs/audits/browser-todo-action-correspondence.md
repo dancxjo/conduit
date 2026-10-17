@@ -776,3 +776,13 @@ subject-event regression reproduced dispatch before repair; it now refuses as
 All 32 targeted pinned Chromium fixtures pass with one worker and zero retries.
 This proves temporary surface availability, not permanent manifestation
 revocation, arbitrary CSS accessibility or authoritative Body mutation.
+
+Graph codec identity follow-up (#5518): length-delimited graph fields preserve
+leading BOM characters instead of changing provenance, selected subject IDs,
+labels or kinds. Source input requires bounded scalar Unicode before UTF-8
+encoding, and a BOM-prefixed schema cannot normalize into the registered schema.
+The new codec regressions reproduced identity normalization and schema aliasing
+before repair. All 15 Node codec tests and four pinned Chromium graph-route
+fixtures pass (one worker, zero retries). This is browser codec/renderer proof,
+not equal graph truth across native/linear Masks or real resident Body/Play
+acceptance; #5518 remains open.

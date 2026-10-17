@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { decodeGraphCanvas } from '../../targets/browser/host/assets/application-graph-canvas.mjs';
 import { encodeApplicationView, decodeApplicationView, encodeApplicationEvent } from '../../targets/browser/host/assets/application-face.mjs';
 
 const description = () => ({ revision: 1, actions: [{ id: 'fixture.input', event: 'input' }], nodes: [
@@ -166,4 +167,24 @@ test('view encoding keeps admitted counts when source getters append entries', (
   assert.equal(decoded.actions.length, 1);
   assert.equal(decoded.nodes.length, 1);
   assert.equal(decoded.nodes[0].text, 'Source');
+});
+
+const graphFields = () => ['conduit.face/graph-canvas@1', 'checked', 'expanded', 'plan', 'body-plan', 'play', 'gear/source',
+  '1', 'gear/source', 'Source', 'source-kind', '0', '0'];
+const encodeGraphFields = fields => fields.map(value => `${new TextEncoder().encode(value).length}:${value}`).join('');
+test('graph codec preserves BOM-bearing provenance and subject identities', () => {
+  const fields = graphFields();
+  for (const index of [1, 2, 3, 4, 5, 6, 8, 9, 10]) fields[index] = '\ufeff' + fields[index];
+  const graph = decodeGraphCanvas(encodeGraphFields(fields));
+  for (const [index, key] of ['checked_plot', 'expanded_plot', 'plan', 'body_plan', 'play', 'selected'].entries()) {
+    assert.equal(graph[key], fields[index + 1]);
+  }
+  assert.deepEqual(graph.nodes, [{ identity: fields[8], label: fields[9], kind: fields[10] }]);
+});
+
+test('graph codec refuses schema normalization and surrogate replacement', () => {
+  const schema = graphFields(); schema[0] = '\ufeff' + schema[0];
+  assert.throws(() => decodeGraphCanvas(encodeGraphFields(schema)), /Unknown graph canvas schema/);
+  const malformed = graphFields(); malformed[9] = '\ud800';
+  assert.throws(() => decodeGraphCanvas(encodeGraphFields(malformed)), /scalar Unicode/);
 });
