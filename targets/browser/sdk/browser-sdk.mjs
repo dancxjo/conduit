@@ -1,6 +1,6 @@
 import { attachBrowserSyntaxEditor, projectBrowserSyntax } from "./browser-sdk-syntax.mjs";
 import { applicationContinuity, createSdkContinuity } from "./browser-sdk-continuity.mjs";
-import { checkedOwnerFaceArguments } from "./browser-sdk-face-actions.mjs";
+import { checkedOwnerFaceArguments, checkedAcknowledgedOwnerFaceArguments } from "./browser-sdk-face-actions.mjs";
 import { checkedOwnerWardrobeReport, checkedOwnerWardrobeAction } from "./browser-sdk-wardrobe.mjs";
 const PACKAGE_SCHEMA = "conduit.browser/sdk-package@1";
 const DISTRIBUTION_SCHEMA = "conduit.browser/reviewed-distribution@1";
@@ -293,7 +293,7 @@ export class BrowserBodyParticipation {
       });
     validateOwnerFaceAcknowledgement(view, shown);
     await this.#state.membership.acknowledgeFaceShow(this.#state.host.bridge.ownerFaceShowReceipt());
-    this.#state.lastOwnerShow = shown;
+    this.#state.lastOwnerShow = structuredClone(shown);
     return shown;
   }
   async selectOwnerComponentMask({ look, recipe, minimumTextScalePercent }) {
@@ -349,7 +349,8 @@ export class BrowserBodyParticipation {
     if (!Number.isSafeInteger(sequence) || sequence < 1) {
       throw new Error("choose one valid Face action sequence");
     }
-    const checked = checkedOwnerFaceArguments(view, actionId, target, actionArguments);
+    const checked = checkedAcknowledgedOwnerFaceArguments(this.#state.lastOwnerShow, view,
+      actionId, target, actionArguments);
     const submission = this.#state.host.bridge.ownerFaceInteract({
       show_id: view.show_id, face_id: view.face_id, face_revision: view.face_revision,
       action_id: actionId, target, arguments: checked, sequence,

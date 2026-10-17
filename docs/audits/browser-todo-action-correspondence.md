@@ -395,3 +395,17 @@ member all reproduced admission before repair. Three focused SDK Node tests and
 the producer fixture pass, including a valid Unicode choice at its exact byte
 limit. These establish SDK contract refusal, not Body mutation/receipt or
 packaged/public acceptance for the unpromoted changes.
+
+Acknowledged-contract SDK follow-up (#5646): owner interaction submission now
+requires the SDK's private last-acknowledged Show and exact matching Body, Show,
+Face and revision before the runtime bridge is invoked. Argument validation uses
+that acknowledged Show's declarations rather than the caller-owned view's table.
+Acknowledgement stores a structured clone so later caller edits cannot replace
+the retained contract. Runtime/Mask validation remains independent.
+
+Seven focused SDK argument/acknowledgement tests and the producer fixture pass.
+Coverage includes correct identity, each stale identity field, absent/prepared/
+unadmitted acknowledgement and a caller-expanded choice table. This is helper/
+SDK admission evidence; it does not prove an authoritative remote Body receipt
+or complete trusted DOM/Mask round trip. The initial new-helper test failed
+because that helper did not yet exist; no pre-fix runtime reproduction is claimed.
