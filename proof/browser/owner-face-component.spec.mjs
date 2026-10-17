@@ -1223,3 +1223,28 @@ for (const form of ['text', 'choice']) {
 }
 }
 }
+
+for (const selected of [' ', 'a\nb', 'a  b']) {
+  test(`owner choice labels expose significant whitespace (${JSON.stringify(selected)})`, async ({ page }) => {
+    await page.goto('/proof/browser/signal-dom-host.test.html');
+    const choices = [' ', 'a\nb', 'a b', 'a  b'];
+    const labels = ['"\\u0020"', '"a\\nb"', '"a\\u0020b"', '"a\\u0020\\u0020b"'];
+    const inputView = { ...view, actions: [{ ...view.actions[0], arguments: [{ name: 'value', value_name: 'Whitespace choice',
+      value_kind: 'value/text', maximum_bytes: 32, choices }] }] };
+    await page.evaluate(async view => {
+      await import('/targets/browser/handbook/owner-face-component.mjs');
+      document.body.replaceChildren(); globalThis.calls = [];
+      const element = document.createElement('conduit-owner-face'); document.body.append(element);
+      element.show(view, { invoke: async call => { globalThis.calls.push(call); } });
+    }, inputView);
+    const element = page.locator('conduit-owner-face');
+    const select = element.getByRole('combobox', { name: 'Whitespace choice', exact: true });
+    expect(await select.locator('option').evaluateAll(options => options.slice(1).map(option => option.label))).toEqual(labels);
+    for (const label of labels) await expect(select.getByRole('option', { name: label, exact: true })).toHaveCount(1);
+    await select.selectOption(selected);
+    const button = element.getByRole('button', { name: 'Complete task', exact: true });
+    await button.focus(); await page.keyboard.press('Enter');
+    expect(await page.evaluate(() => globalThis.calls)).toEqual([{ view: inputView, action: inputView.actions[0],
+      arguments: [{ name: 'value', value: selected }] }]);
+  });
+}
