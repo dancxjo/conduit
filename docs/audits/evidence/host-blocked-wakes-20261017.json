@@ -1,0 +1,148 @@
+{
+  "before_source": "d5ca5eb025ea6d0410088c9e04cfaba7c4e36452",
+  "after_source": "25aea4a9351e28e9e7250ac83e6d87441dbd4478",
+  "exact_replay_parity": true,
+  "runs_per_source": 3,
+  "nodes": 256,
+  "idle_polls": 8,
+  "candidate_probes": [
+    2048,
+    0
+  ],
+  "pending_probes": [
+    2048,
+    0
+  ],
+  "ready_bytes": [
+    2048,
+    40
+  ],
+  "allocations": [
+    0,
+    0
+  ],
+  "reallocations": [
+    0,
+    0
+  ],
+  "before_timing": {
+    "wake_ns": {
+      "samples_ns": [
+        12199,
+        12197,
+        12232
+      ],
+      "mean_ns": 12209.333333333334,
+      "process_sd_ns": 19.655363983740756
+    },
+    "idle_ns": {
+      "samples_ns": [
+        15527,
+        15514,
+        15580
+      ],
+      "mean_ns": 15540.333333333334,
+      "process_sd_ns": 34.961884007206095
+    }
+  },
+  "after_timing": {
+    "wake_ns": {
+      "samples_ns": [
+        12660,
+        12568,
+        12871
+      ],
+      "mean_ns": 12699.666666666666,
+      "process_sd_ns": 155.3458507116728
+    },
+    "idle_ns": {
+      "samples_ns": [
+        314,
+        329,
+        349
+      ],
+      "mean_ns": 330.6666666666667,
+      "process_sd_ns": 17.55942292142123
+    }
+  },
+  "raw_archive_sha256": "f2fd064c87c8e30c88076db1fb0c828ed070db81f947c69f0271a5bb1a532e80",
+  "raw_artifact_sha256": {
+    "capture-blocked-wakes.py": "436ce64a6a9513843988c65dc25c4d683e4c95c93b95ad441db2af3d2a1ddc7b",
+    "ready-blocked-common-verified.json": "876a8a1817cc81e4353cdac092375c3954a36d481775833729d0bcb3605a3f21",
+    "blocked-wakes-baseline/build.jsonl": "f367d7230dcb39d9d3cc9901b418f77a3da6f43a3695f32afebfe9ce114e1564",
+    "blocked-wakes-baseline/build.log": "75f16913468e6b162e067c7f96f5897fd081721dd7cb40a5ff15626ecfffa9c7",
+    "blocked-wakes-baseline/process-0.resource.log": "4c29c3291a4cbb875ce43a2543e2174e510cf753d813c59f86cb92a5dbfbdbeb",
+    "blocked-wakes-baseline/process-0.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "blocked-wakes-baseline/process-0.stdout.log": "33dd8e2c0ad5db228dc7518e46f42b8546fa4c44d897fd5458b2f75aee4474f2",
+    "blocked-wakes-baseline/process-1.resource.log": "79a424228eba2dc72f864c8c85c8eb6298a152a76fd8707596ce9d5fdddc6839",
+    "blocked-wakes-baseline/process-1.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "blocked-wakes-baseline/process-1.stdout.log": "63b212ea7ad55576ef86ef762ce3793929913058a76c6c03a837ac54e911de20",
+    "blocked-wakes-baseline/process-2.resource.log": "d516fed38733a27fff53e9681d741d9d00e8710ab5c0521aedab3c253483ebbc",
+    "blocked-wakes-baseline/process-2.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "blocked-wakes-baseline/process-2.stdout.log": "9154d88a17bfb4d973f50cca0413e5c9b8d34c95311631c137f276c0f04994aa",
+    "blocked-wakes-baseline/report.json": "3a709ee68b7bb4ea143d12191b5c661ee0d9061b0bc4689fecc8c50af5390a4d",
+    "blocked-wakes-baseline/status.json": "e83aa66172fbecdf4e748d291e8235d2575d8cc667ad74331b48cb46f15f2816",
+    "blocked-wakes-after/build.jsonl": "e523806f65700d4a7c2da2c1ee4c7cbd1fe2ebb0de800553378156c20eadaa65",
+    "blocked-wakes-after/build.log": "c9405ca74b59dde7dbf87d4b1f6016d8f2eed7e9842549d563390f4d855a2557",
+    "blocked-wakes-after/process-0.resource.log": "0a9f82fdeb4c13502c0669bf2fc3e400b2a960dfa084f939ff31191de6882413",
+    "blocked-wakes-after/process-0.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "blocked-wakes-after/process-0.stdout.log": "c81d1fd5928439451b5cd0312f3a2efadd742b009a6b4d95b75770179c9efd05",
+    "blocked-wakes-after/process-1.resource.log": "d10276c14807e933b835e5855c09dce43f84d169fbc01beed277a545294fd3d2",
+    "blocked-wakes-after/process-1.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "blocked-wakes-after/process-1.stdout.log": "c8b5d90048c736340783dd96add1fbb1d1ddceb0c5283bf1aaa02fac6b4aa765",
+    "blocked-wakes-after/process-2.resource.log": "cf91b12e4c2c3abefdea35f92e21719b22dd753fc48b7e44c8e0388bb6894438",
+    "blocked-wakes-after/process-2.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "blocked-wakes-after/process-2.stdout.log": "8f1466b75ce564060d6ab9513b7a9139015343b6cd7fa978c311d8edf3c422a1",
+    "blocked-wakes-after/report.json": "b198c19453be19fe05091931e29764df73d3caf67f7c0c4338f0262ed282e8c7",
+    "blocked-wakes-after/status.json": "bbb851ec4dc5202d4af6e54a1665dde38ec5d844b35b3e0b8aae9335b73a0edb",
+    "ready-blocked-common-before/build.jsonl": "398a8de4d166e87f12712eb1c80fdfb0bfb6b8c1a452205164768c925b93af30",
+    "ready-blocked-common-before/build.stderr.log": "93f1a344f35c8cbebccd37b993a69da068216b6d33344f4618123e2f2f5e009a",
+    "ready-blocked-common-before/clean.stderr.log": "f125225f4e20ce2d8d6c8412be2a00dc7a99d258952990453f6c2855073be20d",
+    "ready-blocked-common-before/clean.stdout.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "ready-blocked-common-before/metadata.json": "1b3edb82ae788a17ddece3014e6cfb897a1ea2e7fa57b6f8bdc8a79e80f5068b",
+    "ready-blocked-common-before/process-0.replays.json": "906b1f7e96e1f0b882c437aadd30e199032796d58a0866b5d0483332c42d8805",
+    "ready-blocked-common-before/process-0.resource.log": "5192828adf16c8124ba1ea5f656b6c501fc81c0882cd31ff5d8741d5b8b6028c",
+    "ready-blocked-common-before/process-0.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "ready-blocked-common-before/process-0.stdout.log": "fb54dcc3323f2393df521ae06b994a4741f9c8b80b59e6e0dc4328033081ea11",
+    "ready-blocked-common-before/process-1.replays.json": "906b1f7e96e1f0b882c437aadd30e199032796d58a0866b5d0483332c42d8805",
+    "ready-blocked-common-before/process-1.resource.log": "c44386d4ad4d1062e021682f6517692850d93b6a0a84fa96598c248e2f3390e3",
+    "ready-blocked-common-before/process-1.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "ready-blocked-common-before/process-1.stdout.log": "1339930dac230337cfca72e6b04b2678175a509d9f1bced39bfc6fc57e6cc88b",
+    "ready-blocked-common-before/process-2.replays.json": "906b1f7e96e1f0b882c437aadd30e199032796d58a0866b5d0483332c42d8805",
+    "ready-blocked-common-before/process-2.resource.log": "155181f50cb3da959d396943708897126f900ae2423c6304fa5d4acef63f3647",
+    "ready-blocked-common-before/process-2.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "ready-blocked-common-before/process-2.stdout.log": "b3775ef09893aeee2266df520672d6fe8654c6ecb1918601577caa0b420098f7",
+    "ready-blocked-common-before/processes.json": "f357e583c97542b2460b612f90a410927a7bc42dafc3261f7cf312e3c6119538",
+    "ready-blocked-common-before/raw.json": "a9e2d772318ea0b2d921f255fb98143477393a6f7224c39573c4a001b35d0cd4",
+    "ready-blocked-common-before/status.json": "e6e17e016d23fb37a56da3d52349c2a150e832ba9afc357210c8cf749cf1a701",
+    "ready-blocked-common-before/summary.json": "ce80b49e19d481c71435aa63bb893aec20396cf4ae84b4be30c891af3382b915",
+    "ready-blocked-common-after/build.jsonl": "132f2ad295cadd70cb1beec3229f37647891ef767a9765e44ff758001d5d3192",
+    "ready-blocked-common-after/build.stderr.log": "36eb8418feb53df49f74aeb864497d68e55e068dbce860a861bc5ae1f5020898",
+    "ready-blocked-common-after/clean.stderr.log": "36e5f326c419aa04266bfef7a9a66242167b10eca039427bb3f4c82677966fa6",
+    "ready-blocked-common-after/clean.stdout.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "ready-blocked-common-after/metadata.json": "3d676d1b868f1a67607a05bdbafda0de3a81dd935af2e5c2d3d4d48e1dc56a82",
+    "ready-blocked-common-after/process-0.replays.json": "906b1f7e96e1f0b882c437aadd30e199032796d58a0866b5d0483332c42d8805",
+    "ready-blocked-common-after/process-0.resource.log": "7871c235abf1acc1ce5920000142ab3fa83bf061e471a64542b1e9ebbc92ba9d",
+    "ready-blocked-common-after/process-0.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "ready-blocked-common-after/process-0.stdout.log": "656b40887df1c8fdb58e9cb11789216f58c09278b36411a7436015292fcddefa",
+    "ready-blocked-common-after/process-1.replays.json": "906b1f7e96e1f0b882c437aadd30e199032796d58a0866b5d0483332c42d8805",
+    "ready-blocked-common-after/process-1.resource.log": "c2489adecb4858e61d73f812d29c2329d03d205b11fc6b2ffd36d586751d2ea5",
+    "ready-blocked-common-after/process-1.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "ready-blocked-common-after/process-1.stdout.log": "76a5f799a6f90c2bb0b53a8ee2b95ad0d45d6a0634b1298a1b8690b1355b9f61",
+    "ready-blocked-common-after/process-2.replays.json": "906b1f7e96e1f0b882c437aadd30e199032796d58a0866b5d0483332c42d8805",
+    "ready-blocked-common-after/process-2.resource.log": "9f96c61ae93ecef2e8ebb60abc8fd6ee0d0a4935f6a60d67950608b9a15ecfb4",
+    "ready-blocked-common-after/process-2.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "ready-blocked-common-after/process-2.stdout.log": "4a4b9ac126d76a35b9c5694d08311327a43bc1605d2c53eb5004b5ffa60ed7c2",
+    "ready-blocked-common-after/processes.json": "a296e0b56060f1870397cfd2587095c9dc8adbc56b00be04e9d8bfa8f00c86f7",
+    "ready-blocked-common-after/raw.json": "5e580933d3923e3a91150d09869dac3604fd4aef3d8699d6767e911e643e9629",
+    "ready-blocked-common-after/status.json": "1aa2bb1d1359f823b642477d49dc2e8092a8907d269721b8bd0e8566f5b6faf0",
+    "ready-blocked-common-after/summary.json": "12a618c6ace3f2b1436006dd20839cf5c61d40cd20a7acfa985cb9c00167d559"
+  },
+  "limits": [
+    "Instrumented native production-kernel Host blocking fixture, not whole checked Host/FARGAN throughput.",
+    "Wake window includes real ingress, pressure refusal, values and mandatory Signs; idle window includes eight asserted Step calls.",
+    "Independent-process samples on a shared uncontrolled host; descriptive, not a calibrated speedup/regression gate.",
+    "CPU/RSS logs cover entire process including preparation, requests, completion/rearm, cancellation and serialization.",
+    "Native 8 MiB diagnostic thread stack is not a constrained-device reservation."
+  ]
+}
