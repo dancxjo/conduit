@@ -169,6 +169,12 @@ corrupt records, application and host admission exhaustion, browser quota
 exhaustion, unavailable storage, explicit deletion, and a stale application
 generation are distinct failures or lifecycle states.
 
+JSON reads verify that retained values are strings with exact, nonnegative,
+safe-integer UTF-8 byte metadata within the admitted value bound before parsing.
+Malformed metadata or oversized retained JSON receives `CorruptRecord`; refusal
+does not repair, reset or delete the record. Valid JSON at the exact byte ceiling
+remains readable.
+
 The `application-state` and `browser-host-identity` object stores are separate.
 Clearing one application's records cannot reset host identity, mutate body
 membership, or revoke a host. Book and Crèche receive only the bounded host

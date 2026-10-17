@@ -135,6 +135,11 @@ export async function openBrowserApplicationStorage(applicationIdentity, applica
     if (record.encoding !== undefined && record.encoding !== "json") {
       refuse("ValueKindMismatch", "application storage value is not JSON");
     }
+    if (typeof record.value !== "string" || !Number.isSafeInteger(record.valueBytes)
+      || record.valueBytes < 0 || record.valueBytes > MAXIMUM_VALUE_BYTES
+      || record.value.length > MAXIMUM_VALUE_BYTES || encoder.encode(record.value).length !== record.valueBytes) {
+      refuse("CorruptRecord", "application storage JSON value is malformed");
+    }
     try {
       return JSON.parse(record.value);
     } catch {

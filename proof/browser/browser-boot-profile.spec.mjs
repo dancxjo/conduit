@@ -445,3 +445,47 @@ async function hash(bytes) {
   const value = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
   return `sha256:${Array.from(value, (byte) => byte.toString(16).padStart(2, "0")).join("")}`;
 }
+
+test("JSON recovery refuses corrupt byte metadata and retains the original records", async ({ page }) => {
+  const result = await page.evaluate(async () => {
+    const { openBrowserApplicationStorage } = await import('/targets/browser/host/assets/browser-application-storage.mjs');
+    const application = 'proof/json-corruption';
+    const storage = await openBrowserApplicationStorage(application, 1, `sha256:${'d'.repeat(64)}`,
+      { implementationRegistry: ['browser/indexeddb@1'] });
+    await storage.writeJson('source', { source: 'retained' });
+    const request = indexedDB.open('conduit-browser-host-applications', 2);
+    const database = await new Promise((resolve, reject) => {
+      request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error);
+    });
+    const identity = `${application}@1\u0000source`;
+    const readRaw = async () => {
+      const tx = database.transaction('application-state', 'readonly');
+      const request = tx.objectStore('application-state').get(identity);
+      return new Promise((resolve, reject) => { request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); });
+    };
+    const original = await readRaw();
+    const variants = [
+      { ...original, valueBytes: original.valueBytes + 1 },
+      { ...original, valueBytes: -1 },
+      { ...original, valueBytes: 1.5 },
+      { ...original, value: 1, valueBytes: 1 },
+      { ...original, value: JSON.stringify('x'.repeat(64 * 1024)), valueBytes: 64 * 1024 + 2 },
+    ];
+    const outcomes = [];
+    for (const record of variants) {
+      const tx = database.transaction('application-state', 'readwrite');
+      tx.objectStore('application-state').put(record);
+      await new Promise((resolve, reject) => { tx.oncomplete = resolve; tx.onabort = () => reject(tx.error); });
+      let code = 'accepted';
+      try { await storage.readJson('source'); } catch (error) { code = error.code; }
+      const retained = await readRaw();
+      outcomes.push({ code, unchanged: retained.value === record.value && retained.valueBytes === record.valueBytes });
+    }
+    const maximumText = 'é'.repeat((storage.bounds.maximumValueBytes - 2) / 2);
+    await storage.writeJson('source', maximumText);
+    const exactBoundary = await storage.readJson('source') === maximumText;
+    await storage.clearApplication(); storage.close(); database.close();
+    return { outcomes, exactBoundary };
+  });
+  expect(result).toEqual({ outcomes: Array(5).fill({ code: 'CorruptRecord', unchanged: true }), exactBoundary: true });
+});
