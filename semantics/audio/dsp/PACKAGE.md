@@ -85,8 +85,9 @@ and production local-kernel execution. The latter checks independent integer
 recurrence, serialized partition resume, held outputs/cancellation, independent
 two-source histories and declared mixing headroom, with zero allocation during
 prepared child advancement. Independent periodic phase/envelope and invalid-coefficient cursor retention
-checks also pass. Public catalog/authoring integration and the complete parent acceptance audit
-still remain before claiming the full #5217 delivery. No
+checks also pass. Public catalog and product authoring integration are implemented in this
+development slice and covered by focused Source tests. The complete parent
+acceptance audit remains before claiming the full #5217 delivery. No
 device or physical audio is involved.
 
 ## Independent excitation experiment
@@ -121,3 +122,26 @@ carried topology passed the supported DSP suite (34 tests across 14 harnesses),
 including production local-kernel independence and five rejection classes, and
 strict Clippy. Prepared child advancement remains allocation-free in these
 fixtures; no whole-Host or physical-audio claim follows.
+
+## Ordinary public caller
+
+The product catalog registers closed `audio/dsp/...` component interfaces and
+shipped Types. Selected Source Backs retain their checked owner definitions,
+Native construction metadata and private primitive contracts. Caller helpers
+cannot capture those bodies; the private mixer aliases and pairing contracts
+are not installed as ambient caller definitions. No Host offer is invented by
+registering a Source interface.
+
+Check the ordinary public gain caller without executing effects:
+
+```sh
+conduit check semantics/audio/dsp/public-gain.conduit --json
+```
+
+The same product Source loader expands this caller for authoring. Ordinary
+expansion selects DSP Source Backs; the existing Morse recursive-Back selection
+remains opt-in. Public gain, complementary one-pole and composed control-frame
+callers also have catalog-level checking/expansion regressions. These compiler
+and product boundaries are included in `cargo xtask check dsp-shared-compositions`
+alongside the independent numerical and Kernel-fixture proofs. They do not
+establish a Patchbay palette, default physical audio provider or device playback.

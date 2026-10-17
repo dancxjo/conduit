@@ -1,0 +1,11 @@
+# Ordinary public DSP caller; checking and authoring perform no audio I/O.
+with audio/dsp/GainControl as Input
+with audio/dsp/GainOutcome as Output
+plot caller (
+    >> value: Input...|
+    result: Output...| >>
+) {
+    component: audio/dsp/gain()
+    value >> component.control
+    component.result >> result
+}
