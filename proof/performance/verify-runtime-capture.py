@@ -95,17 +95,36 @@ def verify(root, output):
     assert seen == groups.keys()
     expected_digest = hashlib.sha256(b''.join(((i + 32).to_bytes(8, 'little') for i in range(64)))).hexdigest()
     ordinary = []
+    identities = []
+    boots = set()
+    plays = set()
     for row in pipelines:
         assert row['values'] == 64 and row['ordered_output_sha256'] == expected_digest
         assert row['value_capacity_before'] == row['value_capacity_after']
         assert sum((e['kind'] == 'RemoteValueDelivered' for e in row['signs'])) == 64, 'mandatory output Sign count'
         sequences = [e['sequence'] for e in row['signs']]
         assert sequences == sorted(set(sequences))
+        # Dynamic names must identify files already covered by the manifest.
+        prefix = f"sources/{row['case']}-{row['repetition']}"
+        assert prefix + '-plan.json' in status['artifact_sha256']
+        assert prefix + '-host.json' in status['artifact_sha256']
+        plan = json.loads((root / (prefix + '-plan.json')).read_text())
+        host = json.loads((root / (prefix + '-host.json')).read_text())
+        play = row['active_play']
+        assert plan['plan_id'] == play['plan_id'], 'pipeline Plan custody'
+        assert row.get('plan_id', play['plan_id']) == play['plan_id'], 'pipeline Plan custody'
+        assert row.get('checked_plot_id', plan['checked_plot_id']) == plan['checked_plot_id']
+        assert (host['host_id'], host['boot_id']) == (play['host_id'], play['boot_id']), 'pipeline Host/Boot custody'
+        assert len(plan['fragments']) == 1
+        fragment = plan['fragments'][0]
+        assert (fragment['host_id'], fragment['boot_id'], fragment['plan_id']) == (play['host_id'], play['boot_id'], play['plan_id']), 'pipeline fragment custody'
+        assert fragment['offer_generation'] == host['offer_generation']
+        boot = (play['host_id'], play['boot_id'])
+        assert boot not in boots and play['active_play_id'] not in plays, 'pipeline execution identity reused'
+        boots.add(boot)
+        plays.add(play['active_play_id'])
+        identities.append({'case': row['case'], 'repetition': row['repetition'], 'active_play': play})
         if row['phase'] == 'finite-ordinary-hosted-pipeline':
-            plan = json.loads((root / 'sources' / f"{row['case']}-{row['repetition']}-plan.json").read_text())
-            assert plan['plan_id'] == row['plan_id']
-            play = row['active_play']
-            assert play['plan_id'] == row['plan_id']
             for observation in row['observations']:
                 assert observation['host_id'] == play['host_id'] and observation['boot_id'] == play['boot_id']
                 for key in ['plan_id', 'active_play_id']:
@@ -130,6 +149,7 @@ def verify(root, output):
         'expression_cases_with_cross_mode_output_parity': len(checksums),
         'hosted_rows': ordinary,
         'all_pipeline_rows': len(pipelines),
+        'verified_pipeline_execution_identities': identities,
         'ordered_pipeline_output_sha256': expected_digest,
         'repeated_batches': report['repeated_batches'],
         'metadata': metadata,

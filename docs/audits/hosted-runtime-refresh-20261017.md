@@ -60,3 +60,26 @@ python3 proof/performance/verify-runtime-capture.py \
 ```
 
 The verifier is a developer evidence tool for hosted captures, not another product entrance. The original measurement worker/fixtures are unchanged. No historical before/after speedup is claimed across different sources or CPUs. Million-value end-to-end streaming, DSP/pressure/fairness, independent-process uncertainty, hardware counters, browser/physical/stable acceptance and parent closure remain open. No CI dispatched or awaited.
+
+## Follow-up: custody for every local/fused trial
+
+The verifier now binds each of all 27 pipeline rows to its retained Plan and Host
+advertisement. It checks exact Plan/Host/Boot identity, fragment identity and
+offer generation, checked-Plot identity where recorded, and distinct Boot/Play
+identities across these finite fresh-Host trials. Dynamic artifact filenames
+must be present in the already-verified manifest. Ordinary observation custody
+checks remain in place. This is the fixture's fresh-Host contract, not a rule
+that arbitrary Plays must use a new Boot.
+
+Three rehashed counterexamples were accepted by the prior verifier: a foreign
+Boot in a fused raw row, a foreign Boot in its Host advertisement, and a foreign
+Plan identity in its retained Plan. The updated verifier rejects each while
+accepting the unmodified capture. `evidence/hosted-runtime-custody-20261017.json`
+retains the updated positive receipt and 27 execution identities;
+`evidence/hosted-runtime-custody-negative-20261017.json` records old acceptance
+versus new refusal and both verifier source identities. Original capture and
+receipts remain unchanged; no benchmark was rerun or timing claim added.
+
+Validation: positive verification of all 89 artifacts/190 raw rows/78
+statistics plus the three differential negative cases and diff checks. No Rust
+production changes, CI dispatch or CI wait are introduced by this slice.
