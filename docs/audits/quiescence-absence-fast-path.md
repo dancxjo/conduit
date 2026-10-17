@@ -106,8 +106,16 @@ Validation completed: 143 pre-change kernel tests; 145 after-change tests plus
 the linear-ready reference suite; strict all-target Clippy; exact ordinary and
 boxed active-prefix tests; existing quiescence rearming and terminal/cancellation
 exclusions; independent native/footprint comparisons. The new footprint probe
-also passed strict focused Clippy. Full workspace Clippy/tests required for the
-module extraction remain pending and must finish before publication.
+also passed strict focused Clippy. Strict full-workspace all-targets Clippy
+passed. The full workspace command with `conduitos/native-compositor` passed
+9,243 unit/integration tests and six doctest examples at Source
+`dec612af2720db64917f019036d80b94e7101a0d`, with 39 manual/other ignored cases.
+This command does not enable every optional workspace feature. Its exact
+command, counts and log digest are retained in the
+[workspace validation receipt](evidence/quiescence-workspace-validation.json).
+A later refresh onto accepted dev preserved all twelve owned files byte for
+byte before this validation-note update; historical measurement Sources remain
+unchanged.
 
 This slice does not close #5231. Its original 10,000-node, pending-call stress,
 full transition/fairness, FARGAN/end-to-end and timing-profile acceptance remains.
