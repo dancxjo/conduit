@@ -11,3 +11,12 @@ At repair source `634257f89d1ab5fa70f4f1855e2c929a49bcc9d8`, the full browser-wo
 The failure was first retained by [Candidate job 117503350781](https://github.com/dancxjo/conduit/actions/runs/39069133638/job/117503350781). The local before/after logs, compiler and source-file/executable identities, CI failure excerpt and patch are archived in `evidence/std-preparation-stack-20261017-raw.tar.gz`; `evidence/std-preparation-stack-20261017.json` indexes those observations. Baseline runtime code is current dev, and the Candidate's native files match it: that preview differs only in the four large-sparse measurement/audit files. The unrelated platform integration repair retains its own owner and proof.
 
 This is a prerequisite repair for #5231's failing gate. The completion-count optimization remains on its separate held branch; full #5231 acceptance, including its required FARGAN graph measurements, is not asserted by this fix.
+
+
+## Preserve early canvas control refusal
+
+The same Candidate's [foundation job](https://github.com/dancxjo/conduit/actions/runs/39069133638/job/117503350633) failed the resident-canvas negative test at its unwrap of an unknown-subject event encoding. Production Face admission already correctly refuses that value; the test was attempting to deliver a value which the trusted encoder would not create. The failure reproduces at `aff7f393ec6dc7e3a5b20e0dff0f5c7bd6e9bd95` under the foundation opt-level-one test profile.
+
+The regression now asserts encoder refusal, then replaces only the value bytes of a valid same-length wire event with an explicitly unlisted subject. The consumer must refuse that forged frame with `InvalidControlValue`, preserving both selected inspection and the whole current view. Valid selection and stale-revision checks remain. The production admission guard's bytes are unchanged.
+
+At `976468ad5a933c72a0f6a7799c6bda1d9f2bf914`, all 44 Patchbay application all-target tests and strict all-target package Clippy pass. Source identities, logs, the CI failure excerpt and six verified archived artifact hashes are retained in `evidence/canvas-control-refusal-20261017.json` and the matching raw archive. This test correction and the boxed-preparation change address the two observed Patchbay Candidate failures; neither relaxes production validation.
