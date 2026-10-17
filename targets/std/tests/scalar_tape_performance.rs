@@ -91,6 +91,28 @@ fn prepare(
 #[derive(Default)]
 struct PhaseClock {
     marks: [Option<std::time::Instant>; 3],
+    cpu: [Option<u128>; 3],
+}
+// Diagnostic only: Linux calling-thread CPU, excluding scheduler descheduling.
+// Unsupported targets report None rather than substituting elapsed wall time.
+fn thread_cpu_ns() -> Option<u128> {
+    #[cfg(target_os = "linux")]
+    {
+        let mut time = libc::timespec {
+            tv_sec: 0,
+            tv_nsec: 0,
+        };
+        // SAFETY: a valid writable timespec and a read-only thread clock id.
+        if unsafe { libc::clock_gettime(libc::CLOCK_THREAD_CPUTIME_ID, &mut time) } != 0 {
+            return None;
+        }
+        Some(time.tv_sec as u128 * 1_000_000_000 + time.tv_nsec as u128)
+    }
+    #[cfg(not(target_os = "linux"))]
+    None
+}
+fn cpu_elapsed(start: Option<u128>) -> Option<u128> {
+    thread_cpu_ns()?.checked_sub(start?)
 }
 impl TimerAdapter for PhaseClock {
     fn wait(&mut self, _: Duration) {
@@ -104,6 +126,7 @@ impl TimerAdapter for PhaseClock {
         };
         assert!(self.marks[index].is_none());
         self.marks[index] = Some(std::time::Instant::now());
+        self.cpu[index] = thread_cpu_ns();
     }
 }
 #[test]
@@ -118,10 +141,13 @@ fn source_pinned_scalar_profiles_measure_preparation_and_actual_kernel_play() {
         for tape in [false, true] {
             for row in 0..8 {
                 let authoring_started = std::time::Instant::now();
+                let authoring_cpu = thread_cpu_ns();
                 let (mut host, plan, program) =
                     prepare(source, &format!("baseline-{operations}"), tape);
                 let authoring_plan_wall_ns = authoring_started.elapsed().as_nanos();
+                let authoring_plan_cpu_ns = cpu_elapsed(authoring_cpu);
                 let evaluator_started = std::time::Instant::now();
+                let evaluator_cpu = thread_cpu_ns();
                 let mut evaluator = if tape {
                     conduit_plot::PreparedPortableExpressionEvaluator::new_scalar_tape(&program)
                         .unwrap()
@@ -129,15 +155,19 @@ fn source_pinned_scalar_profiles_measure_preparation_and_actual_kernel_play() {
                     conduit_plot::PreparedPortableExpressionEvaluator::new(&program).unwrap()
                 };
                 let evaluator_preparation_wall_ns = evaluator_started.elapsed().as_nanos();
+                let evaluator_preparation_cpu_ns = cpu_elapsed(evaluator_cpu);
                 let input = 7u64.to_le_bytes();
                 let expected = program.evaluate(&input).unwrap();
                 assert_eq!(evaluator.evaluate(&input).unwrap(), expected);
                 let warm_started = std::time::Instant::now();
+                let warm_cpu = thread_cpu_ns();
                 for _ in 0..100_000 {
                     std::hint::black_box(evaluator.evaluate(std::hint::black_box(&input)).unwrap());
                 }
                 let warm_evaluator_wall_ns = warm_started.elapsed().as_nanos();
+                let warm_evaluator_cpu_ns = cpu_elapsed(warm_cpu);
                 let rust_started = std::time::Instant::now();
+                let rust_cpu = thread_cpu_ns();
                 for _ in 0..100_000 {
                     std::hint::black_box(
                         std::hint::black_box(7u64)
@@ -146,6 +176,8 @@ fn source_pinned_scalar_profiles_measure_preparation_and_actual_kernel_play() {
                     );
                 }
                 let optimized_rust_wall_ns = rust_started.elapsed().as_nanos();
+                let optimized_rust_cpu_ns = cpu_elapsed(rust_cpu);
+                println!("SCALAR_CPU_SAMPLE source={source_identity} operations={operations} tape={tape} row={row} authoring_plan_cpu_ns={authoring_plan_cpu_ns:?} evaluator_preparation_cpu_ns={evaluator_preparation_cpu_ns:?} warm_evaluator_cpu_ns={warm_evaluator_cpu_ns:?} optimized_rust_cpu_ns={optimized_rust_cpu_ns:?}");
                 println!("SCALAR_MICRO_SAMPLE source={source_identity} operations={operations} tape={tape} row={row} iterations=100000 authoring_plan_wall_ns={authoring_plan_wall_ns} evaluator_preparation_wall_ns={evaluator_preparation_wall_ns} warm_evaluator_wall_ns={warm_evaluator_wall_ns} optimized_rust_wall_ns={optimized_rust_wall_ns} limits={:?}",evaluator.scalar_tape_limits());
                 let mut output = Outputs(Vec::with_capacity(1));
                 let mut clock = PhaseClock::default();
@@ -167,6 +199,13 @@ fn source_pinned_scalar_profiles_measure_preparation_and_actual_kernel_play() {
                     panic!("missing actual phase marker")
                 };
                 let kernel = report.kernel.unwrap();
+                let preparation_cpu_ns = clock.cpu[1]
+                    .zip(clock.cpu[0])
+                    .map(|(end, start)| end - start);
+                let play_cpu_ns = clock.cpu[2]
+                    .zip(clock.cpu[1])
+                    .map(|(end, start)| end - start);
+                println!("SCALAR_PRODUCT_CPU_SAMPLE source={source_identity} operations={operations} tape={tape} row={row} preparation_cpu_ns={preparation_cpu_ns:?} play_cpu_ns={play_cpu_ns:?}");
                 println!("SCALAR_PRODUCT_SAMPLE source={source_identity} operations={operations} tape={tape} row={row} preparation_wall_ns={} play_wall_ns={} plan={} play={} provider={} artifact={}",play.duration_since(start).as_nanos(),end.duration_since(play).as_nanos(),plan.plan_id.as_str(),kernel.active_play_id.as_str(),plan.fragments[0].placements[0].implementation_id.as_str(),plan.fragments[0].placements[0].artifact_id.as_str());
             }
         }

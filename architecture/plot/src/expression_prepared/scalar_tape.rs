@@ -228,4 +228,24 @@ impl PreparedPortableExpressionEvaluator {
             _ => None,
         }
     }
+
+    /// Retained tape heap payload, excluding allocator metadata and the evaluator
+    /// object. Literal capacities and the admitted instruction capacity are
+    /// charged even when a lazy branch does not execute them.
+    pub fn scalar_tape_storage_bytes(&self) -> Option<usize> {
+        let PreparedRoot::ScalarTape { tape, .. } = &self.root else {
+            return None;
+        };
+        Some(
+            tape.instructions.capacity() * core::mem::size_of::<Instruction>()
+                + tape
+                    .instructions
+                    .iter()
+                    .map(|instruction| match &instruction.operation {
+                        Operation::Literal(bytes) => bytes.capacity(),
+                        _ => 0,
+                    })
+                    .sum::<usize>(),
+        )
+    }
 }
