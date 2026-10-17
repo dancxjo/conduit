@@ -17,7 +17,10 @@ fn kernel() -> (PreparedNativeWorkset, NativeWorksetPlay) {
     let (body, exact_wake) = born.wake(2, "sign/woke".into()).unwrap();
     evidence.append_wake(body, exact_wake, 2).unwrap();
     let mut play = NativeWorksetPlay::prepare_with_biography(&prepared, &evidence).unwrap();
-    play.start().unwrap();
+    let active = conduit_body::BodyPlayIdentity::bind(&prepared.plan, 3);
+    play.start_for(&prepared.plan, &active).unwrap();
+    let memory = index(&prepared, NativePlot::MemoryLantern);
+    assert_eq!(play.take_face(memory).unwrap().text(), "");
     (prepared, play)
 }
 fn key(usage: u8, transition: KeyTransition) -> KeyEvent {
@@ -26,7 +29,7 @@ fn key(usage: u8, transition: KeyTransition) -> KeyEvent {
 fn type_key(play: &mut NativeWorksetPlay, plot: usize, usage: u8) -> String {
     play.input(plot, key(usage, KeyTransition::Pressed))
         .unwrap_or_else(|error| panic!("Plot {plot} usage {usage}: {error:?}"));
-    let text = play.take_presentation(plot).unwrap().text().to_owned();
+    let text = play.take_face(plot).unwrap().text().to_owned();
     play.input(plot, key(usage, KeyTransition::Released))
         .unwrap();
     text
@@ -51,7 +54,7 @@ fn tutorial_initial_view_and_event_cross_the_same_production_kernel() {
         .iter()
         .find(|action| action.id == "body.use-current")
         .unwrap();
-    let event = conduit_presentation::ApplicationEvent {
+    let event = conduit_face::ApplicationEvent {
         revision: initial.revision,
         action: action.id.clone(),
         kind: action.event,
@@ -81,20 +84,20 @@ fn patchbay_inspects_the_selected_plot_and_emits_bounded_edit_authority() {
             .iter()
             .any(|node| node.key == "plot" && node.text == "tour")
     );
-    let inspect = conduit_presentation::ApplicationEvent {
+    let inspect = conduit_face::ApplicationEvent {
         revision: initial.revision,
         action: patchbay_application::INSPECT_NEXT_ACTION_ID.into(),
-        kind: conduit_presentation::ApplicationEventKind::Activate,
+        kind: conduit_face::ApplicationEventKind::Activate,
         value: alloc::vec::Vec::new(),
     };
     play.application_event(patchbay, &inspect.encode(&initial).unwrap())
         .unwrap();
     let inspected = play.take_application_view(patchbay).unwrap();
     assert_eq!(inspected.revision, initial.revision + 1);
-    let edit = conduit_presentation::ApplicationEvent {
+    let edit = conduit_face::ApplicationEvent {
         revision: inspected.revision,
         action: patchbay_application::EDIT_CURRENT_ACTION_ID.into(),
-        kind: conduit_presentation::ApplicationEventKind::Activate,
+        kind: conduit_face::ApplicationEventKind::Activate,
         value: alloc::vec::Vec::new(),
     };
     play.application_event(patchbay, &edit.encode(&inspected).unwrap())
@@ -106,10 +109,10 @@ fn patchbay_inspects_the_selected_plot_and_emits_bounded_edit_authority() {
         ))
     ));
     let latest = play.take_application_view(patchbay).unwrap();
-    let repeated_edit = conduit_presentation::ApplicationEvent {
+    let repeated_edit = conduit_face::ApplicationEvent {
         revision: latest.revision,
         action: patchbay_application::EDIT_CURRENT_ACTION_ID.into(),
-        kind: conduit_presentation::ApplicationEventKind::Activate,
+        kind: conduit_face::ApplicationEventKind::Activate,
         value: alloc::vec::Vec::new(),
     };
     play.application_event(patchbay, &repeated_edit.encode(&latest).unwrap())
@@ -137,7 +140,7 @@ fn release_keeps_press_owner_and_cancel_retires_every_pending_request() {
     let memory = index(&prepared, NativePlot::MemoryLantern);
     let before = play.pending[memory].unwrap();
     play.input(canvas, key(4, KeyTransition::Pressed)).unwrap();
-    play.take_presentation(canvas).unwrap();
+    play.take_face(canvas).unwrap();
     let held = play.pending[canvas].unwrap();
     assert!(play.owns_release(key(4, KeyTransition::Released)));
     assert!(!play.owns_release(key(5, KeyTransition::Released)));
@@ -195,7 +198,7 @@ fn thousands_of_interactions_reuse_fixed_storage_and_disclose_sign_eviction() {
 }
 
 #[test]
-fn unread_presentation_pressure_refuses_input_without_overwriting_it() {
+fn unread_face_pressure_refuses_input_without_overwriting_it() {
     let (prepared, mut play) = kernel();
     let canvas = index(&prepared, NativePlot::KeyboardCanvas);
     play.input(canvas, key(4, KeyTransition::Pressed)).unwrap();
@@ -206,6 +209,42 @@ fn unread_presentation_pressure_refuses_input_without_overwriting_it() {
     );
     assert_eq!(play.pending[canvas].unwrap().request, pending.request);
     assert_eq!(play.held[5], None);
-    assert_eq!(play.take_presentation(canvas).unwrap().text(), "A");
+    assert_eq!(play.take_face(canvas).unwrap().text(), "A");
     assert_eq!(type_key(&mut play, canvas, 5), "B");
+}
+
+#[test]
+fn body_activation_rejects_wrong_plan_forged_play_replay_and_cancelled_restart() {
+    let (ids, offer) = native_workset::tests::fixture();
+    let wake = native_workset::tests::wake(&[NativePlot::KeyboardCanvas]);
+    let prepared = native_workset::prepare(&wake, &ids, &offer, "build").unwrap();
+    let mut kernel = NativeWorksetPlay::prepare(&prepared).unwrap();
+    let active = conduit_body::BodyPlayIdentity::bind(&prepared.plan, 7);
+    let mut forged = active.clone();
+    forged.play_sequence += 1;
+    assert_eq!(
+        kernel.start_for(&prepared.plan, &forged),
+        Err(PlayRefusal::Preparation)
+    );
+    assert!(kernel.pending_requests().iter().all(Option::is_none));
+    assert!(kernel.active_body_play.is_none());
+    let mut changed = prepared.plan.clone();
+    changed.workload_revision += 1;
+    assert_eq!(
+        kernel.start_for(&changed, &active),
+        Err(PlayRefusal::Preparation)
+    );
+    assert!(kernel.active_body_play.is_none());
+    kernel.start_for(&prepared.plan, &active).unwrap();
+    assert_eq!(kernel.active_body_play.as_ref(), Some(&active));
+    assert_eq!(
+        kernel.start_for(&prepared.plan, &active),
+        Err(PlayRefusal::Preparation)
+    );
+    kernel.cancel().unwrap();
+    assert!(kernel.active_body_play.is_none());
+    assert_eq!(
+        kernel.start_for(&prepared.plan, &active),
+        Err(PlayRefusal::Preparation)
+    );
 }

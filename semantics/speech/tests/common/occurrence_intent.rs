@@ -3,7 +3,7 @@ use conduit_speech::semantic::*;
 pub fn token(ordinal: u32, basis: [&str; 5]) -> LanguageSpeechTokenRef {
     LanguageSpeechTokenRef::new(
         SpeechInventoryId::new(basis[0].into()).unwrap(),
-        SpeechLanguageId::new(basis[1].into()).unwrap(),
+        LanguageId::new(basis[1].into()).unwrap(),
         ordinal,
         SpeechSegmentRevisionId::new(basis[2].into()).unwrap(),
         SpeechSegmentSequenceId::new(basis[3].into()).unwrap(),
@@ -23,8 +23,8 @@ fn provenance() -> SpeechEvidenceProvenance {
 fn sources() -> BoundedSequence<LanguageSegmentRef, 8> {
     BoundedSequence::try_from_iter([LanguageSegmentRef::text(
         LanguageTextSegmentKind::Word,
-        SpeechLanguageId::new("en".into()).unwrap(),
-        ListeningTextRange::new(1, 0).unwrap(),
+        LanguageId::new("en".into()).unwrap(),
+        LanguageTextRange::new(1, 0).unwrap(),
         LanguageTextRevisionId::new("source revision".into()).unwrap(),
         LanguageTextId::new("source".into()).unwrap(),
     )
@@ -79,7 +79,7 @@ pub fn intent(
     SpeechUtteranceIntent::new(
         BoundedSequence::try_from_iter(events).unwrap(),
         SpeechInventoryId::new(BASIS[0].into()).unwrap(),
-        SpeechLanguageId::new(BASIS[1].into()).unwrap(),
+        LanguageId::new(BASIS[1].into()).unwrap(),
         provenance(),
         SpeechSegmentRevisionId::new(BASIS[2].into()).unwrap(),
         SpeechUtteranceId::new(BASIS[4].into()).unwrap(),

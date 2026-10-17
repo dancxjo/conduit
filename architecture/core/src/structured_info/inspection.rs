@@ -2,7 +2,7 @@ use alloc::string::String;
 use alloc::vec::Vec;
 
 use crate::{
-    KindId, Observation, ObservationKind, Quantity, QuantityDecodeRefusal, SignId, QUANTITY_INFO_ID,
+    KindId, Observation, ObservationKind, Quantity, QuantityRefusal, SignId, QUANTITY_INFO_ID,
 };
 
 use super::{
@@ -47,7 +47,7 @@ pub enum StructuredInfoInspectionShape {
     Leaf {
         kind: KindId,
         byte_len: u32,
-        semantic: Option<StructuredInfoLeafSemantic>,
+        semantic: Option<alloc::boxed::Box<StructuredInfoLeafSemantic>>,
     },
     Collection {
         length: u16,
@@ -78,7 +78,7 @@ pub enum StructuredInfoInspectionRefusal {
     ProfileMismatch,
     InvalidStructuredValue(StructuredInfoRefusal),
     NodeCountOverflow,
-    InvalidQuantity(QuantityDecodeRefusal),
+    InvalidQuantity(QuantityRefusal),
 }
 
 impl StructuredInfoInspection {
@@ -89,7 +89,7 @@ impl StructuredInfoInspection {
         let value = match &observation.kind {
             ObservationKind::ValueProduced { value }
             | ObservationKind::ValueAccepted { value }
-            | ObservationKind::ValuePresented { value } => value,
+            | ObservationKind::ValuePresented { value, .. } => value,
             _ => return Err(StructuredInfoInspectionRefusal::NotValueSign),
         };
         let expected_profile = expected_type
@@ -225,9 +225,11 @@ fn inspection_shape(
         }
         (StructuredInfoTypeShape::Leaf(kind), StructuredInfoValueShape::Leaf(bytes)) => {
             let semantic = if kind.as_str() == QUANTITY_INFO_ID {
-                Some(StructuredInfoLeafSemantic::Quantity(
-                    Quantity::decode(bytes)
-                        .map_err(StructuredInfoInspectionRefusal::InvalidQuantity)?,
+                Some(alloc::boxed::Box::new(
+                    StructuredInfoLeafSemantic::Quantity(
+                        Quantity::decode(bytes)
+                            .map_err(StructuredInfoInspectionRefusal::InvalidQuantity)?,
+                    ),
                 ))
             } else {
                 None

@@ -1,0 +1,12 @@
+{
+  "schema": "conduit.proof/three-host-publication-event@1",
+  "source_commit": "9b79486146bfb0af3369f8133a81b3d14792bd1c",
+  "run_id": "three-host-5a9b4d4cd9a752c0c7205216",
+  "body_id": "ee3733747a44b61879ad714ce8ab178cdc54b227eba48752b43c966a428cce30",
+  "event_kind": "typed-interaction",
+  "event_id": "body/action/lull-clock/body-play/sha256:a117055bb87d0f02f22d93562f77c3fa9bb54a88733f44711d044a9186154bbb",
+  "resulting_face_revision": "26",
+  "outcome": "completed",
+  "observed_at_unix_ms": 1791387531595,
+  "observed_basis_sha256": "3f8239bdac69e7c1deabb4ef136266d6ed27f91a5b6a8e5e10610d2761d1c297"
+}

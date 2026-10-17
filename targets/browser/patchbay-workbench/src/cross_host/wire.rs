@@ -117,7 +117,7 @@ pub(super) fn expect_sequence(
         Ok(())
     } else {
         Err(CrossHostRendererError::Session(
-            "unexpected Presentation disposition".into(),
+            "unexpected Face disposition".into(),
         ))
     }
 }

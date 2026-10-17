@@ -43,7 +43,11 @@ impl TourSession {
             engine::BrowserHostEffect::PcmPlayback { frame } => Ok(TourHostEffect::AudioIo(
                 Box::new(protocol::TourAudioIoEffect {
                     schema: "conduit.browser/pcm-audio-effect@1",
-                    effect_kind: "pcm-playback",
+                    effect_kind: if frame.is_some() {
+                        "pcm-playback"
+                    } else {
+                        "pcm-playback-drain"
+                    },
                     source_document_id: fragment.source_document_id.as_str().into(),
                     checked_plot_id: fragment.checked_plot_id.as_str().into(),
                     expanded_plot_id: fragment.expanded_plot_id.as_str().into(),
@@ -58,7 +62,7 @@ impl TourSession {
                     maximum_gain_millionths: Some(
                         crate::installed_browser::audio_io::MAXIMUM_SAFE_GAIN_MILLIONTHS,
                     ),
-                    frame_hex: Some(hex_bytes(frame)),
+                    frame_hex: frame.as_ref().map(|frame| hex_bytes(frame)),
                     source_interaction: self.source_interaction.clone(),
                 }),
             )),
@@ -127,6 +131,7 @@ impl TourSession {
                     maximum_output_bytes: crate::installed_browser::MAXIMUM_BROWSER_VALUE_BYTES
                         as u32,
                     source_interaction: self.source_interaction.clone(),
+                    choice: None,
                 })))
             }
             engine::BrowserHostEffect::ClockObservation => Ok(TourHostEffect::ClockObservation(
@@ -145,6 +150,7 @@ impl TourSession {
                     request_sequence: pending.request.request.0,
                     maximum_output_bytes: 8,
                     source_interaction: self.source_interaction.clone(),
+                    choice: None,
                 }),
             )),
             engine::BrowserHostEffect::KeyEvent => {
@@ -163,6 +169,7 @@ impl TourSession {
                     request_sequence: pending.request.request.0,
                     maximum_output_bytes: conduit_human::KEY_EVENT_ENCODED_LEN as u32,
                     source_interaction: self.source_interaction.clone(),
+                    choice: None,
                 })))
             }
             engine::BrowserHostEffect::ButtonTransition => Ok(TourHostEffect::ButtonTransition(
@@ -186,7 +193,14 @@ impl TourSession {
             engine::BrowserHostEffect::ApplicationEvent => Ok(TourHostEffect::ApplicationEvent(
                 Box::new(TourKeyEventEffect {
                     schema: "conduit.browser/application-event-effect@1",
-                    effect_kind: "application-event",
+                    effect_kind: if self.scheduler.saved_choices
+                        [usize::from(pending.request.node.0)]
+                    .is_some()
+                    {
+                        "saved-choice"
+                    } else {
+                        "application-event"
+                    },
                     source_document_id: fragment.source_document_id.as_str().into(),
                     checked_plot_id: fragment.checked_plot_id.as_str().into(),
                     expanded_plot_id: fragment.expanded_plot_id.as_str().into(),
@@ -197,9 +211,17 @@ impl TourSession {
                     host_id: self.host_id.as_str().into(),
                     boot_id: self.boot_id.as_str().into(),
                     request_sequence: pending.request.request.0,
-                    maximum_output_bytes: conduit_presentation::MAX_APPLICATION_EVENT_ENCODED_BYTES
-                        as u32,
+                    maximum_output_bytes: if self.scheduler.saved_choices
+                        [usize::from(pending.request.node.0)]
+                    .is_some()
+                    {
+                        conduit_semantic_catalog::SAVED_CHOICE_MAXIMUM_ID_BYTES
+                    } else {
+                        conduit_face::MAX_APPLICATION_EVENT_ENCODED_BYTES as u32
+                    },
                     source_interaction: self.source_interaction.clone(),
+                    choice: self.scheduler.saved_choices[usize::from(pending.request.node.0)]
+                        .clone(),
                 }),
             )),
             engine::BrowserHostEffect::TutorialPresenterRequest => Ok(
@@ -218,6 +240,7 @@ impl TourSession {
                     request_sequence: pending.request.request.0,
                     maximum_output_bytes: conduit_ai::MAXIMUM_LLM_INPUT_BYTES as u32,
                     source_interaction: self.source_interaction.clone(),
+                    choice: None,
                 })),
             ),
             engine::BrowserHostEffect::Manifestation(manifestation) => {
@@ -230,7 +253,7 @@ impl TourSession {
                     })
                     .ok_or("manifestation partition is absent")?;
                 let observation_sequence = pending.request.request.0;
-                let presentation = bind_presentation(
+                let face = bind_face(
                     &self.active_play_id,
                     &placement.placement_id,
                     u64::from(observation_sequence),
@@ -245,11 +268,18 @@ impl TourSession {
                     plan_id: fragment.plan_id.as_str().into(),
                     fragment_id: fragment.fragment_id.as_str().into(),
                     active_play_id: self.active_play_id.as_str().into(),
-                    presentation_id: presentation.presentation_id.as_str().into(),
+                    face_id: face.face_id.as_str().into(),
                     placement_id: placement.placement_id.as_str().into(),
                     host_id: self.host_id.as_str().into(),
                     boot_id: self.boot_id.as_str().into(),
-                    presentation_kind: manifestation.kind_id.into(),
+                    face_kind: manifestation.kind_id.into(),
+                    data_label: manifestation.data_label.clone(),
+                    insertion_caret: (manifestation.kind_id
+                        == conduit_semantic_catalog::TEXT_FACE_KIND
+                        && conduit_semantic_catalog::text_face_insertion_caret(
+                            &placement.configuration,
+                        ))
+                    .then_some(true),
                     observation_sequence,
                     realization: self.realization.as_str(),
                     expanded_gears: self
@@ -266,11 +296,11 @@ impl TourSession {
                     segments,
                     text,
                     application_view: (manifestation.kind_id
-                        == conduit_semantic_catalog::APPLICATION_VIEW_PRESENTATION_KIND)
+                        == conduit_semantic_catalog::APPLICATION_VIEW_FACE_KIND)
                         .then(|| manifestation.canonical_value.clone()),
                     source_interaction: self.source_interaction.clone(),
                 };
-                self.latest_presentation = Some(presentation);
+                self.latest_face = Some(face);
                 Ok(TourHostEffect::Manifestation(Box::new(effect)))
             }
         }

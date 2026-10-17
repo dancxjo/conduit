@@ -36,9 +36,13 @@ pub fn primary_signal_startup_catalog() -> StartupCatalog {
     catalog
         .insert(KindSignature {
             kind: crate::SHOW_KIND.to_string(),
-            startup_parameters: Vec::new(),
+            startup_parameters: vec![StartupParameterSignature {
+                name: "label".into(),
+                value_type: "Text".into(),
+                default: None,
+            }],
         })
-        .expect("the Signal presentation signature is unique");
+        .expect("the Signal face signature is unique");
     catalog
 }
 
@@ -65,10 +69,14 @@ fn extend_auxiliary_startup_catalog(catalog: &mut StartupCatalog) {
         .expect("the Signal toggle signature is unique");
     catalog
         .insert(KindSignature {
-            kind: crate::trigger::TOGGLE_PRESENTATION_KIND.to_string(),
-            startup_parameters: Vec::new(),
+            kind: crate::trigger::TOGGLE_FACE_KIND.to_string(),
+            startup_parameters: vec![StartupParameterSignature {
+                name: "label".into(),
+                value_type: "Text".into(),
+                default: None,
+            }],
         })
-        .expect("the Boolean presentation signature is unique");
+        .expect("the Boolean face signature is unique");
     for kind in [
         crate::control::LEVEL_INPUT_KIND,
         crate::control::MERGE_THREE_SIGNAL_KIND,

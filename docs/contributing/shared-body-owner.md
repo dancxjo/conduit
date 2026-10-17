@@ -26,15 +26,47 @@ conduit host service install target/creche-host-releases/hosted-linux-x86_64.jso
 To make a speaker and eSpeak NG provider part of the Host's **initial**
 inventory, first inspect `conduit body speech-options --json`, then add the
 exact `--selected-speech --speaker-card CARD --speaker-device DEVICE
---speech-executable PATH --speech-data PATH --speech-engine PATH` values to
+--speech-executable PATH --speech-data PATH --speech-engine PATH
+--speech-language-coverage PATH` values to
 the install command. Repeat `--speech-engine` for each reported engine library
-dependency; `--speech-voice` is optional. The selection is retained across
+dependency; `--speech-voice` is optional. Create the artifact-bound native coverage
+declaration through [the runtime speech entrance](../proof/runtime-speech.md). The selection is retained across
 reinstalls. Each fresh Boot rechecks the selected equipment and provider
 before publishing a runtime marker or admitting a Body. If they are absent or
 changed, startup fails explicitly. Reinstall with a new selection to recover,
-or use `--without-selected-speech` to remove it. Omit both selection flags to
+or use `--without-selected-speech` to remove it. Omit all speech selection flags to
 preserve the installed choice. Use an isolated state directory when trying
 this development entrance; a running service is not reconfigured in place.
+
+For synthesis into retained WAV artifacts, choose `--selected-artifact-speech`
+with the same explicit executable, data, engine and Language coverage arguments.
+This mode requires no speaker card or device and is mutually exclusive with
+`--selected-speech`. Each fresh Boot verifies the exact provider before offering
+voice and artifact Backs. Direct spoken Show admission and acknowledgement still
+use the Owner's ordinary Face and Mask route. The WAV acknowledges synthesis; this mode
+records no device playback or human listening. After the direct opening Show is
+acknowledged, `conduit body spoken-mask --state-dir <installation-directory>
+read-remaining` uses the same selected Owner voice and artifact pool to read the
+remaining primary items. Its completed batch receipts distinguish WAV output
+from speaker delivery. A retained speaker selection still requires its matching
+equipment; missing equipment does not select artifact output instead.
+
+The selected voice Boot admits a finite pool of 64 create-new, per-Play WAV
+artifacts under `spoken-artifacts/`. Each admitted Play uses its own exact
+artifact destination; a physical speaker route separately checks current device
+availability and playback authority.
+
+An already local Ollama model can be offered by that same installed Host Boot:
+add `--selected-model MODEL --model-endpoint http://127.0.0.1:11434
+--model-memory-mib 2048` to the install command. Selection checks the local
+inventory and a bounded warmup; it never downloads a model. The installed
+record retains the exact model offer. Each fresh Boot reobserves and initializes
+that provider before publishing its Host advertisement; a changed model,
+runtime, or offer refuses startup until an explicit reinstall selects it again.
+Use `--without-selected-model` to remove the retained choice, or omit both
+selection flags to preserve it. This supplies a real owner Host model offer;
+an owner-selected LLM spoken Mask and its Show require a separately admitted
+route and are not implied by the installation alone.
 
 For a fresh installation, `--no-start` leaves the Host available for foreground
 ownership. Omitting it preserves the normal service activation behavior. It does
@@ -49,7 +81,7 @@ For example, save this as `hello.conduit`:
 
 ```conduit
 plot hello {
-  show: presentation/text
+  show: face/text("Message")
   "Hello." >> show
 }.
 ```
@@ -142,6 +174,22 @@ cleanup failure. An untyped Host admission refusal is retained as such; it does
 not invent typed resource evidence or a Play. The last receipt is historical
 on reopen. Fresh Boot recovery preserves the Body and marks interrupted
 realization honestly; it never restarts an old Play.
+
+A committed Todo Face revalidates successful write/read terminal Signs against
+both exact Plays, the restored state digest, selected content version and the
+complete read residence (Host, Boot, base and profile). It also requires the
+current canonical read Back and its authority requirements. A semantic content
+contract alone grants no authority. Read failures retain the actual typed kernel
+failure/detail and expose finite `todo-committed-*` refusal codes, including distinct
+missing, corrupt, inaccessible and storage-unavailable outcomes; diagnostic prose
+is retained separately. Changing an unrelated Mask offer generation preserves a
+valid immutable checkpoint witness.
+
+The local JSON control envelope admits at most 2 MiB, including a browser
+admission snapshot containing both Host advertisements. Remote session frames
+and payloads retain their separate 512 KiB ceiling. A rejected JSON client frame
+or failed response leaves the retained Owner service running; no action is
+replayed after a transport failure.
 
 Biography, installation binding, and bounded execution receipt are published
 through a recoverable journal. Invalid or corrupt retained state is refused,

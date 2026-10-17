@@ -3,8 +3,8 @@
 use core::fmt::Write as _;
 
 use conduit_create_oi::{
-    decode_sensor_packet, presentation_bytes_are_motion_free, require_provider, CreateUartProvider,
-    PRESENTATION_SAFE, PRESENTATION_START,
+    decode_sensor_packet, face_bytes_are_motion_free, require_provider, CreateUartProvider,
+    FACE_SAFE, FACE_START,
 };
 use embassy_rp::watchdog::Watchdog;
 use embassy_time::{Duration, Instant, Timer};
@@ -42,9 +42,9 @@ static CAPACITY_MAH: AtomicU16 = AtomicU16::new(0);
 static RAW_RX: [AtomicU8; GROUP_ZERO_BYTES] = [const { AtomicU8::new(0) }; GROUP_ZERO_BYTES];
 
 const _: () = {
-    assert!(presentation_bytes_are_motion_free(&PRESENTATION_START));
-    assert!(presentation_bytes_are_motion_free(&SENSOR_QUERY));
-    assert!(presentation_bytes_are_motion_free(&PRESENTATION_SAFE));
+    assert!(face_bytes_are_motion_free(&FACE_START));
+    assert!(face_bytes_are_motion_free(&SENSOR_QUERY));
+    assert!(face_bytes_are_motion_free(&FACE_SAFE));
 };
 
 #[derive(Clone, Copy, Eq, PartialEq)]
@@ -163,9 +163,9 @@ fn reset_report() {
 
 fn write_exact(provider: &mut Provider, bytes: &[u8]) -> bool {
     let admitted =
-        bytes == PRESENTATION_START || bytes == SENSOR_QUERY || bytes == PRESENTATION_SAFE;
+        bytes == FACE_START || bytes == SENSOR_QUERY || bytes == FACE_SAFE;
     if !admitted
-        || !presentation_bytes_are_motion_free(bytes)
+        || !face_bytes_are_motion_free(bytes)
         || require_provider(provider).is_err()
     {
         return false;
@@ -372,7 +372,7 @@ pub async fn execute(provider: &mut Provider, watchdog: &mut Watchdog) -> bool {
     reset_report();
     create_play::set_state(create_play::RequestState::Active);
 
-    let start = create_link_gate::authorized() && write_exact(provider, &PRESENTATION_START);
+    let start = create_link_gate::authorized() && write_exact(provider, &FACE_START);
     START_SENT.store(start, Ordering::Release);
     let prequery_readable = if start {
         watchdog_delay(watchdog, START_SETTLE_MS).await;
@@ -387,7 +387,7 @@ pub async fn execute(provider: &mut Provider, watchdog: &mut Watchdog) -> bool {
     let rx_valid = query && read_group_zero(provider, watchdog).await;
     RX_VALID.store(rx_valid, Ordering::Release);
 
-    let safe = create_link_gate::authorized() && write_exact(provider, &PRESENTATION_SAFE);
+    let safe = create_link_gate::authorized() && write_exact(provider, &FACE_SAFE);
     SAFE_SENT.store(safe, Ordering::Release);
     watchdog_delay(watchdog, START_SETTLE_MS).await;
 

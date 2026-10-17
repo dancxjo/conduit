@@ -11,8 +11,7 @@ use alloc::vec;
 use alloc::vec::Vec;
 use conduit_core::{
     kind_id, present_host_call_requirement, resource_requirement, wait_host_call_requirement,
-    HostCallRequirement, KindId, ResourceRequirement, PRESENTATION_RESOURCE_CLASS,
-    TIMER_RESOURCE_CLASS,
+    HostCallRequirement, KindId, ResourceRequirement, FACE_RESOURCE_CLASS, TIMER_RESOURCE_CLASS,
 };
 
 mod functional_front;
@@ -21,6 +20,8 @@ mod quantity_info;
 pub use functional_front::{realization_offer, RealizationOfferIdentity};
 pub use normalized_quantity::*;
 pub use quantity_info::*;
+mod saved_choice;
+pub use saved_choice::*;
 mod keyboard;
 pub use keyboard::*;
 mod application;
@@ -105,8 +106,10 @@ pub use conduit_process::*;
 pub use generalized_input_catalog::*;
 #[cfg(feature = "plot-catalog")]
 mod job_catalog;
+mod print_catalog;
 #[cfg(feature = "plot-catalog")]
 pub use job_catalog::*;
+pub use print_catalog::*;
 mod palette_metadata;
 #[cfg(feature = "plot-catalog")]
 mod palette_projection;
@@ -116,20 +119,20 @@ pub use palette_metadata::*;
 #[cfg(feature = "plot-catalog")]
 pub use palette_projection::*;
 pub use tick::*;
-mod tick_presentation;
-pub use tick_presentation::*;
-mod pulse_presentation;
-pub use pulse_presentation::*;
-mod rhythm_presentation;
-pub use rhythm_presentation::*;
-mod presentation_bool;
-pub use presentation_bool::*;
-mod presentation_indicator;
-pub use presentation_indicator::*;
-mod presentation_composition;
-pub use presentation_composition::*;
-mod presentation_execution;
-pub use presentation_execution::*;
+mod tick_face;
+pub use tick_face::*;
+mod pulse_face;
+pub use pulse_face::*;
+mod rhythm_face;
+pub use rhythm_face::*;
+mod face_bool;
+pub use face_bool::*;
+mod face_indicator;
+pub use face_indicator::*;
+mod face_composition;
+pub use face_composition::*;
+mod face_execution;
+pub use face_execution::*;
 mod browser_human_io;
 pub use browser_human_io::*;
 mod human_media_catalog;
@@ -142,8 +145,8 @@ mod body_coordination_plan;
 pub use body_coordination_plan::*;
 mod graphics;
 pub use graphics::*;
-mod graphics_presentation;
-pub use graphics_presentation::*;
+mod graphics_face;
+pub use graphics_face::*;
 mod time_every;
 pub use time_every::*;
 mod timing;
@@ -222,8 +225,8 @@ pub use schedule_realization::*;
 mod schedule_catalog;
 #[cfg(feature = "plot-catalog")]
 pub use schedule_catalog::*;
-mod text_presentation;
-pub use text_presentation::*;
+mod text_face;
+pub use text_face::*;
 mod text_transform;
 pub use text_transform::*;
 mod value_primitives;
@@ -245,7 +248,17 @@ pub use seeded_state::*;
 mod combine_latest;
 pub use combine_latest::*;
 mod flow_zip;
+mod value_pair;
 pub use flow_zip::*;
+pub use value_pair::*;
+mod flow_zip_schema;
+pub use flow_zip_schema::*;
+mod flow_singleton;
+pub use flow_singleton::*;
+mod flow_concat_finite;
+pub use flow_concat_finite::*;
+mod flow_merge_finite;
+pub use flow_merge_finite::*;
 mod flow_zip_finite;
 pub use flow_zip_finite::*;
 mod flow_each;
@@ -281,8 +294,8 @@ mod signal_garden_catalog;
 pub use signal_garden_catalog::*;
 mod layout;
 pub use layout::*;
-mod patchbay_presentation;
-pub use patchbay_presentation::*;
+mod patchbay_face;
+pub use patchbay_face::*;
 mod robotics;
 pub use robotics::*;
 mod robotics_hazard;
@@ -317,6 +330,14 @@ mod copy_file;
 pub use copy_file::*;
 mod sound;
 pub use sound::*;
+#[cfg(feature = "plot-catalog")]
+mod audio_dsp_catalog;
+#[cfg(feature = "plot-catalog")]
+pub use audio_dsp_catalog::*;
+#[cfg(feature = "plot-catalog")]
+mod audio_dsp_package;
+#[cfg(feature = "plot-catalog")]
+pub use audio_dsp_package::*;
 mod audio_render_demand;
 pub use audio_render_demand::*;
 mod alife;
@@ -331,9 +352,9 @@ pub use sound_stream::*;
 mod sound_catalog;
 #[cfg(feature = "plot-catalog")]
 pub use sound_catalog::{
-    install_audio_capture_push_to_talk_catalog, install_audio_continuous_tone_catalog,
-    install_audio_gain_catalog, install_audio_play_catalog, install_audio_tone_catalog,
-    install_sound_catalogs,
+    install_audio_capture_push_to_talk_catalog, install_audio_continuous_play_catalog,
+    install_audio_continuous_tone_catalog, install_audio_gain_catalog, install_audio_play_catalog,
+    install_audio_tone_catalog, install_sound_catalogs,
 };
 #[cfg(feature = "plot-catalog")]
 mod structured_music_plot;
@@ -343,7 +364,7 @@ mod supported_nucleus;
 pub use supported_nucleus::*;
 
 pub const PULSE_KIND: &str = "flow/pulse";
-pub const SHOW_KIND: &str = "presentation/show";
+pub const SHOW_KIND: &str = "face/show";
 pub const TEE_KIND: &str = "flow/tee";
 pub const GATE_KIND: &str = "flow/gate";
 pub const FIRST_KIND: &str = "flow/first";
@@ -367,39 +388,14 @@ mod contract;
 pub use conduit_core::{KindConfigurationField, KindConfigurationRule, KindTerminalBehavior};
 pub use contract::StandardKindContract;
 
-/// User-facing semantic contracts, including portable kinds without a currently
-/// installed std implementation. This is discovery truth, not a host offer.
-pub fn palette_contracts() -> Vec<StandardKindContract> {
-    let mut contracts = supported_nucleus_contracts();
-    contracts.extend(patchbay_presentation_contracts());
-    contracts.extend(alife_contracts());
-    contracts.extend(robotics_hazard_contracts());
-    contracts.push(keyboard_contract());
-    contracts.extend(application_contracts());
-    contracts.extend(http_contracts());
-    contracts
-}
-
+mod authoring_catalog;
 #[cfg(feature = "plot-catalog")]
-pub fn standard_profile_catalog() -> conduit_plot::ProfileCatalog {
-    use conduit_plot::ProfileCatalog;
-
-    let mut catalog = ProfileCatalog::new();
-    for (contract, revision) in supported_nucleus_contracts_with_revisions() {
-        let kind = match contract.kind_id.as_str() {
-            MATH_CLAMP_KIND => math_clamp_semantic_contract(),
-            MATH_SCALE_KIND => math_scale_semantic_contract(),
-            MATH_DEADBAND_KIND => math_deadband_semantic_contract(),
-            FIRST_KIND => flow_first_scalar_semantic_contract(),
-            AUDIO_TONE_KIND => audio_tone_semantic_contract(),
-            _ => contract.into_semantic_contract(revision),
-        };
-        catalog
-            .insert_kind(kind)
-            .expect("standard catalog kinds are unique");
-    }
-    catalog
-}
+mod palette_adapters;
+pub use authoring_catalog::palette_contracts;
+#[cfg(feature = "plot-catalog")]
+pub use authoring_catalog::standard_profile_catalog;
+#[cfg(feature = "plot-catalog")]
+pub use palette_adapters::PaletteAdapterSuggestion;
 
 pub fn standard_host_call_requirements(
     back_kind: &KindId,
@@ -408,7 +404,7 @@ pub fn standard_host_call_requirements(
     match back_kind.as_str() {
         PULSE_KIND | TICK_KIND => vec![wait_host_call_requirement()],
         SHOW_KIND => vec![present_host_call_requirement(
-            kind_id("presentation/stdout"),
+            kind_id("face/stdout"),
             maximum_value_bytes,
         )],
         _ => Vec::new(),
@@ -418,7 +414,7 @@ pub fn standard_host_call_requirements(
 pub fn standard_resource_requirements(kind_id: &KindId) -> Vec<ResourceRequirement> {
     match kind_id.as_str() {
         PULSE_KIND | TICK_KIND => vec![resource_requirement(TIMER_RESOURCE_CLASS, 1)],
-        SHOW_KIND => vec![resource_requirement(PRESENTATION_RESOURCE_CLASS, 1)],
+        SHOW_KIND => vec![resource_requirement(FACE_RESOURCE_CLASS, 1)],
         _ => Vec::new(),
     }
 }
@@ -445,20 +441,20 @@ mod supported_nucleus_tests {
                     contract.kind_id.as_str(),
                     conduit_time::TIME_EVERY_KIND
                         | STATE_COUNT_KIND
-                        | COUNT_PRESENTATION_KIND
-                        | BOOL_PRESENTATION_KIND
-                        | GRAPHICS_PRESENTATION_KIND
-                        | PATCHBAY_PRESENTATION_KIND
-                        | TEXT_PRESENTATION_KIND
+                        | COUNT_FACE_KIND
+                        | BOOL_FACE_KIND
+                        | GRAPHICS_FACE_KIND
+                        | PATCHBAY_FACE_KIND
+                        | TEXT_FACE_KIND
                         | LAYOUT_VIEWPORT_KIND
                         | LAYOUT_INSET_KIND
                         | LAYOUT_ROW_KIND
                         | LAYOUT_COLUMN_KIND
                         | LAYOUT_STACK_KIND
                         | LAYOUT_ALIGN_KIND
-                        | PRESENTATION_ICON_KIND
-                        | PRESENTATION_FRAME_KIND
-                        | PRESENTATION_BADGE_KIND
+                        | FACE_ICON_KIND
+                        | FACE_FRAME_KIND
+                        | FACE_BADGE_KIND
                         | GRAPHICS_RECT_KIND
                         | GRAPHICS_TEXT_KIND
                         | GRAPHICS_ICON_KIND
@@ -517,3 +513,24 @@ pub use pure_expression::{pure_expression_contract, pure_filter_contract};
 mod pure_expression_back;
 #[cfg(feature = "kernel-step")]
 pub use pure_expression_back::PureExpressionBack;
+
+#[cfg(feature = "kernel-step")]
+mod converted_equals_back;
+#[cfg(feature = "kernel-step")]
+pub use converted_equals_back::ConvertedEqualsBack;
+
+mod numerical_realization;
+pub use numerical_realization::*;
+#[cfg(feature = "kernel-step")]
+mod numerical_realization_back;
+#[cfg(feature = "kernel-step")]
+pub use numerical_realization_back::NumericalRealizationBack;
+
+mod data_label;
+pub use data_label::*;
+
+mod audio_analysis;
+pub use audio_analysis::*;
+
+mod pcm_packing;
+pub use pcm_packing::*;

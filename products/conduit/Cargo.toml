@@ -7,12 +7,18 @@ default-run = "conduit"
 [dependencies]
 clap = { version = "4", features = ["derive"] }
 conduit-alife = { path = "../../semantics/alife" }
+conduit-ai = { path = "../../semantics/ai" }
 conduit-core = { path = "../../architecture/core" }
 conduit-body = { path = "../../architecture/body" }
 conduit-body-make = { path = "../../make/body" }
 conduit-birth-plot = { path = "../../plots/birth" }
 conduit-chat = { path = "../../semantics/chat", features = ["plot-catalog"] }
 conduit-plot = { path = "../../architecture/plot" }
+conduit-todo-plot = { path = "../../plots/todo/model", features = ["authoring"] }
+conduit-thermostat-runtime = { path = "../../plots/thermostat/runtime" }
+conduit-thermostat-face = { path = "../../plots/thermostat/face" }
+conduit-thermostat-plot = { path = "../../plots/thermostat/model" }
+conduit-todo-face = { path = "../../plots/todo/face" }
 conduit-host-make = { path = "../../make/host" }
 conduit-kernel = { path = "../../architecture/kernel" }
 conduit-language = { path = "../../semantics/language" }
@@ -22,13 +28,13 @@ conduit-net = { path = "../../semantics/net", features = ["plot-catalog"] }
 conduit-observatory = { path = "../../architecture/observatory" }
 conduit-planner = { path = "../../architecture/planner" }
 conduit-patchbay-workbench = { path = "../../plots/patchbay/workbench/model" }
-conduit-presentation = { path = "../../semantics/presentation" }
+conduit-face = { path = "../../semantics/face" }
 conduit-conduitos-mask-offer = { path = "../../targets/conduitos/mask-offer" }
 conduit-browser-mask-offer = { path = "../../targets/browser/mask-offer" }
 conduit-host-browser-make = { path = "../../targets/browser/make" }
 conduit-plan-lowering = { path = "../../architecture/plan-lowering" }
 conduit-protected-line = { path = "../../architecture/protected-line" }
-conduit-speech = { path = "../../semantics/speech", features = ["kernel"] }
+conduit-speech = { path = "../../semantics/speech", features = ["kernel", "semantic-bindings"] }
 conduit-signal = { path = "../../semantics/signal", features = ["host-profile"] }
 conduit-std-host = { path = "../../targets/std" }
 conduit-std-offers = { path = "../../targets/std/offers" }
@@ -47,6 +53,7 @@ sha2 = "0.10"
 socket2 = "0.6"
 
 [dev-dependencies]
+conduitos = { path = "../../targets/conduitos", features = ["native-compositor"] }
 rcgen = "0.14"
 
 [lib]

@@ -143,6 +143,7 @@ fn portable_button_flow_becomes_one_timed_attempt_in_the_production_kernel() {
             keyboard: None,
             local_model: None,
             vector_search: None,
+            model_work: None,
             calendar: None,
             body_conversation_context: None,
         },

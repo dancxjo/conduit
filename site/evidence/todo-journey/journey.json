@@ -1,0 +1,174 @@
+{
+  "source_commit": "0f6b89e931e34d8b49b8f1aefedfaa1272b8ef65",
+  "run_id": "todo/8330a7e47752172809a9b7d21a06c44ba00f078b5d113aa3dd2e3e0a02f8feb9",
+  "body_id": "1f1d5d82f4eb8ee47011beb80e5b39c156d1c96f2ccdf611cd43e2fe0ff89f68",
+  "schema": "conduit.journey/todo@1",
+  "producer_terminal_receipt_id": "producer-terminal",
+  "chapters": [
+    {
+      "id": "birth",
+      "title": "Start a list",
+      "intention": "Keep a grocery list.",
+      "action": "Birth one Body named Groceries.",
+      "result": "The terminal acknowledges its first available Show.",
+      "why": "The list has one identity before any items are added.",
+      "next": "Add what you need.",
+      "media": [
+        {
+          "output_id": "birth-media-0",
+          "receipt_id": "birth-media-0-receipt",
+          "alt": "The newly born Groceries list in its terminal Show"
+        }
+      ],
+      "receipt_id": "birth-receipt",
+      "limitations": [
+        "Local installed Linux Owner; distinct browser Hosts share this physical machine."
+      ]
+    },
+    {
+      "id": "add",
+      "title": "Add three things",
+      "intention": "Remember three errands.",
+      "action": "Add items in the browser checklist.",
+      "result": "Buy milk · Prepare lunch · Water plants",
+      "why": "Each accepted action commits the same list.",
+      "next": "Join the list in a terminal.",
+      "media": [
+        {
+          "output_id": "add-media-0",
+          "receipt_id": "add-media-0-receipt",
+          "alt": "Three items added to the browser checklist"
+        }
+      ],
+      "receipt_id": "add-receipt",
+      "limitations": [
+        "Local installed Linux Owner; distinct browser Hosts share this physical machine."
+      ]
+    },
+    {
+      "id": "join",
+      "title": "Meet the same list",
+      "intention": "Use the list from another Mask.",
+      "action": "Wear and prefer the terminal Mask.",
+      "result": "The terminal shows the three browser-added items.",
+      "why": "Changing the presentation preserves the list.",
+      "next": "Complete the first errand.",
+      "media": [
+        {
+          "output_id": "join-media-0",
+          "receipt_id": "join-media-0-receipt",
+          "alt": "The same three items encountered in the terminal"
+        }
+      ],
+      "receipt_id": "join-receipt",
+      "limitations": [
+        "Local installed Linux Owner; distinct browser Hosts share this physical machine."
+      ]
+    },
+    {
+      "id": "complete",
+      "title": "Finish one errand",
+      "intention": "Mark an item done.",
+      "action": "Complete Buy milk in the terminal.",
+      "result": "The checkpoint commits the completed item.",
+      "why": "A terminal action changes the Body seen by the browser.",
+      "next": "Refresh the browser to inspect the result.",
+      "media": [
+        {
+          "output_id": "complete-media-0",
+          "receipt_id": "complete-media-0-receipt",
+          "alt": "Terminal completion of the first item"
+        }
+      ],
+      "receipt_id": "complete-receipt",
+      "limitations": [
+        "Local installed Linux Owner; distinct browser Hosts share this physical machine."
+      ]
+    },
+    {
+      "id": "inspect",
+      "title": "See what remains",
+      "intention": "Check the updated list.",
+      "action": "Refresh the browser after the terminal completion.",
+      "result": "2 things left · 1 completed",
+      "why": "The completed item stays subordinate to remaining work.",
+      "next": "Request a spoken opening.",
+      "media": [
+        {
+          "output_id": "inspect-media-0",
+          "receipt_id": "inspect-media-0-receipt",
+          "alt": "Two items remain and one completed item is collapsed"
+        }
+      ],
+      "receipt_id": "inspect-receipt",
+      "limitations": [
+        "Local installed Linux Owner; distinct browser Hosts share this physical machine."
+      ]
+    },
+    {
+      "id": "hear",
+      "title": "Hear the overview",
+      "intention": "Get a short spoken status.",
+      "action": "Select and start the direct spoken Mask.",
+      "result": "Groceries. 2 things left · 1 completed Prepare lunch. Water plants. You can add an item.",
+      "why": "The opening reports current list truth without reading every detail.",
+      "next": "Request the remaining items explicitly.",
+      "media": [
+        {
+          "output_id": "hear-media-0",
+          "receipt_id": "hear-media-0-receipt",
+          "alt": "Selected direct spoken opening recording"
+        }
+      ],
+      "receipt_id": "hear-receipt",
+      "limitations": [
+        "Selected WAV artifacts; zero speaker delivery and no attended human listening."
+      ]
+    },
+    {
+      "id": "read",
+      "title": "Read the remaining items",
+      "intention": "Hear every remaining item.",
+      "action": "Request the current items through the spoken Mask reader.",
+      "result": "Prepare lunch, item. Water plants, item.",
+      "why": "Finite batches cover the remaining items once, in order.",
+      "next": "Reencounter the list after the Owner stops.",
+      "media": [
+        {
+          "output_id": "read-media-0",
+          "receipt_id": "read-media-0-receipt",
+          "alt": "Remaining-item recording 1"
+        },
+        {
+          "output_id": "read-media-1",
+          "receipt_id": "read-media-1-receipt",
+          "alt": "Remaining-item recording 2"
+        }
+      ],
+      "receipt_id": "read-receipt",
+      "limitations": [
+        "Selected WAV artifacts; zero speaker delivery and no attended human listening."
+      ]
+    },
+    {
+      "id": "recover",
+      "title": "Return to your list",
+      "intention": "Keep the list across a fresh Owner Boot.",
+      "action": "Restart the installed Owner and join from a new browser Host.",
+      "result": "The same Body restores the exact committed state.",
+      "why": "A new Boot verifies the checkpoint instead of trusting a remembered list.",
+      "next": "Continue using the list.",
+      "media": [
+        {
+          "output_id": "recover-media-0",
+          "receipt_id": "recover-media-0-receipt",
+          "alt": "The same list reencountered after a fresh Owner Boot"
+        }
+      ],
+      "receipt_id": "recover-receipt",
+      "limitations": [
+        "Local installed Linux Owner; distinct browser Hosts share this physical machine."
+      ]
+    }
+  ]
+}

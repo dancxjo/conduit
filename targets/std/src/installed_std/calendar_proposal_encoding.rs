@@ -214,7 +214,7 @@ fn value_slots(
             StructuredInfoValue::variant(
                 element.clone(),
                 "unused",
-                conduit_semantic_catalog::leaf_value("value/unit", "")?,
+                conduit_semantic_catalog::leaf_value("value/empty", "")?,
             )
             .map_err(|error| format!("calendar unused slot refusal: {error:?}"))?,
         );

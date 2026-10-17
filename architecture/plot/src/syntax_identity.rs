@@ -281,6 +281,23 @@ pub(crate) fn canonical_expression(expression: &crate::ExpressionSyntax) -> Stri
             push_field(&mut value, "atomic");
             push_field(&mut value, &atomic.text);
         }
+        ExpressionSyntax::TypedGlyphLiteral(literal) => {
+            push_field(&mut value, "typed-glyph-literal");
+            push_field(&mut value, literal.source_document_id.as_str());
+            push_hex(&mut value, &literal.family_identity);
+            push_field(&mut value, &literal.alias.text);
+            push_field(&mut value, &format!("{:?}", literal.delimiter));
+            push_field(&mut value, &literal.authored.text);
+            push_field(&mut value, &literal.raw_payload.text);
+            push_field(&mut value, &literal.payload);
+            push_field(
+                &mut value,
+                &format!(
+                    "{}:{}:{}",
+                    literal.case_insensitive, literal.anchored_start, literal.anchored_end
+                ),
+            );
+        }
         ExpressionSyntax::Input(_) => push_field(&mut value, "input"),
         ExpressionSyntax::Projection {
             value: projected,
@@ -384,9 +401,21 @@ fn push_field(target: &mut String, value: &str) {
 pub(crate) fn canonical_value(value: &CanonicalStartupValue) -> String {
     match value {
         CanonicalStartupValue::Literal(value) => format!("literal:{value}"),
-        CanonicalStartupValue::Quantity(value) => {
-            format!("quantity:{}:{}", value.unit().semantic_id(), value.value())
-        }
+        CanonicalStartupValue::Quantity(value) => format!(
+            "exact-quantity:{:?}:{}",
+            value.value().encode(),
+            value.source()
+        ),
+        CanonicalStartupValue::Unit(value) => format!(
+            "physical-unit:{:?}:{}",
+            value.value().encode(),
+            value.source()
+        ),
+        CanonicalStartupValue::TemperatureDifference(value) => format!(
+            "temperature-difference:{:?}:{}",
+            value.value().storage_coordinate().encode(),
+            value.source()
+        ),
         CanonicalStartupValue::PlotParameter(name) => format!("parameter:{name}"),
         CanonicalStartupValue::PoolReference(pool) => {
             format!("pool-reference:{}", pool.as_str())

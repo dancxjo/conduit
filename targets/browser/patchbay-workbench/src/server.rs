@@ -1,13 +1,15 @@
-use crate::{RendererSnapshot, SnapshotError};
-use conduit_browser_host::application_package;
+use crate::RendererSnapshot;
 use conduit_core::SignId;
+use conduit_face::phosphor_look;
+use conduit_face::ManifestationFailure;
 use conduit_patchbay_workbench::PatchbayInteraction;
-use conduit_presentation::ManifestationFailure;
-use conduit_presentation::CONDUIT_APPLICATION_THEME;
 use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4, TcpListener, TcpStream};
 use std::time::Duration;
 
+mod authoring;
 mod body_execution;
+mod error;
+pub use error::{RendererDeliveryFailure, ServerError};
 mod body_execution_proposal;
 pub(crate) mod body_host_offer_evidence;
 pub(crate) mod body_host_planning_offer;
@@ -23,89 +25,19 @@ mod mask_control;
 mod navigation;
 mod observation;
 mod parts;
+mod resources;
 mod text_lab_loss;
 mod timeline;
 mod transition;
 mod watches;
 
-use crate::theme::render_theme_css;
+use crate::theme::render_look_css;
 use debug_control::DocumentaryDebuggerRuntime;
 use http::{read_request, write_response};
+use resources::*;
 
-pub const MAX_HTTP_REQUEST_BYTES: usize = 72 * 1024;
+pub const MAX_HTTP_REQUEST_BYTES: usize = patchbay_application::MAX_WORKSPACE_BYTES + 8 * 1024;
 pub const MAX_THEME_CSS_BYTES: usize = 2 * 1024;
-const INDEX: &[u8] = include_bytes!("../assets/index.html");
-const APPLICATION_TEMPLATE: &[u8] = include_bytes!("../assets/patchbay.application.template.json");
-const APPLICATION_LOADER: &[u8] =
-    include_bytes!("../../../../targets/browser/host/assets/browser-application-loader.mjs");
-const APPLICATION_STORAGE: &[u8] =
-    include_bytes!("../../../../targets/browser/host/assets/browser-application-storage.mjs");
-// Matches the runtime resource bound in patchbay.application.template.json.
-const MAX_BROWSER_WASM_BYTES: usize = 12 * 1024 * 1024;
-const EMPTY_BROWSER_WASM: &[u8] = b"\0asm\x01\0\0\0";
-
-#[derive(Debug)]
-pub enum ServerError {
-    Io(std::io::Error),
-    Snapshot(SnapshotError),
-    NonLoopbackBind,
-    ThemeCssTooLarge,
-    NavigationObservationTooLarge,
-    RequestTooLarge,
-    InvalidRequest,
-    Interaction(String),
-    ApplicationPackage(String),
-}
-
-impl std::fmt::Display for ServerError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Io(error) => write!(f, "Patchbay HTTP I/O error: {error}"),
-            Self::Snapshot(error) => write!(f, "Patchbay snapshot error: {error}"),
-            Self::NonLoopbackBind => f.write_str("Patchbay HTML binds only to IPv4 loopback"),
-            Self::ThemeCssTooLarge => {
-                f.write_str("Patchbay theme CSS exceeds its finite encoded bound")
-            }
-            Self::NavigationObservationTooLarge => {
-                f.write_str("Patchbay navigation observation exceeds its finite encoded bound")
-            }
-            Self::RequestTooLarge => f.write_str("Patchbay HTTP request exceeds its finite bound"),
-            Self::InvalidRequest => f.write_str("Patchbay HTTP request is not valid UTF-8"),
-            Self::Interaction(error) => write!(f, "Patchbay interaction error: {error}"),
-            Self::ApplicationPackage(error) => {
-                write!(f, "Patchbay application package error: {error}")
-            }
-        }
-    }
-}
-
-impl std::error::Error for ServerError {}
-
-#[derive(Debug)]
-pub struct RendererDeliveryFailure {
-    pub error: ServerError,
-    pub snapshot: Box<RendererSnapshot>,
-}
-
-impl std::fmt::Display for RendererDeliveryFailure {
-    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(formatter, "renderer delivery failed: {}", self.error)
-    }
-}
-
-impl std::error::Error for RendererDeliveryFailure {}
-
-impl From<std::io::Error> for ServerError {
-    fn from(value: std::io::Error) -> Self {
-        Self::Io(value)
-    }
-}
-
-impl From<SnapshotError> for ServerError {
-    fn from(value: SnapshotError) -> Self {
-        Self::Snapshot(value)
-    }
-}
 
 pub struct PatchbayHtmlServer {
     listener: TcpListener,
@@ -113,7 +45,7 @@ pub struct PatchbayHtmlServer {
     encoded_snapshot: Vec<u8>,
     theme_css: Vec<u8>,
     interaction: PatchbayInteraction,
-    navigation: Option<conduit_presentation::NavigationState>,
+    navigation: Option<conduit_face::NavigationState>,
     front_door:
         Option<std::sync::Arc<std::sync::Mutex<conduit_patchbay_workbench::LocalFrontDoor>>>,
     zero_body_front_door:
@@ -129,22 +61,6 @@ pub struct PatchbayHtmlServer {
 }
 
 impl PatchbayHtmlServer {
-    fn application_resource(&self, path: &str) -> Option<&[u8]> {
-        crate::application_resources::resource(
-            path,
-            self.browser_wasm.as_deref().unwrap_or(EMPTY_BROWSER_WASM),
-            &self.theme_css,
-        )
-        .map(|(_, bytes)| bytes)
-    }
-
-    fn application_manifest(&self) -> Result<Vec<u8>, ServerError> {
-        application_package::build_manifest(APPLICATION_TEMPLATE, |path| {
-            self.application_resource(path)
-        })
-        .map_err(ServerError::ApplicationPackage)
-    }
-
     pub fn bind(address: SocketAddr, snapshot: &RendererSnapshot) -> Result<Self, ServerError> {
         if address.ip() != Ipv4Addr::LOCALHOST {
             return Err(ServerError::NonLoopbackBind);
@@ -154,7 +70,12 @@ impl PatchbayHtmlServer {
         snapshot.mark_available(SignId::from("patchbay-html/document-ready"))?;
         let encoded_snapshot = snapshot.encode()?;
         let navigation = navigation_state(&snapshot)?;
-        let theme_css = render_theme_css(&CONDUIT_APPLICATION_THEME);
+        let look = phosphor_look().map_err(|error| {
+            ServerError::ApplicationPackage(format!("canonical Look admission: {error:?}"))
+        })?;
+        let theme_css = render_look_css(&look).map_err(|error| {
+            ServerError::ApplicationPackage(format!("canonical visual Look: {error:?}"))
+        })?;
         if theme_css.len() > MAX_THEME_CSS_BYTES {
             return Err(ServerError::ThemeCssTooLarge);
         }
@@ -214,13 +135,8 @@ impl PatchbayHtmlServer {
         let planning_plots = body_host_planning_offer::planning_plots(workset, &plots)?;
         conduit_body_make::body_planning_requirements(workset, &planning_plots)
             .map_err(|error| ServerError::Interaction(format!("Body planning plots: {error:?}")))?;
-        let selector_plot = if self
-            .snapshot
-            .presentation
-            .basis
-            .source_document_id
-            .is_none()
-            && self.snapshot.presentation.basis.checked_plot_id.is_none()
+        let selector_plot = if self.snapshot.face.basis.source_document_id.is_none()
+            && self.snapshot.face.basis.checked_plot_id.is_none()
         {
             Some(None)
         } else {
@@ -228,9 +144,9 @@ impl PatchbayHtmlServer {
                 .plots()
                 .iter()
                 .find(|resident| {
-                    self.snapshot.presentation.basis.source_document_id.as_ref()
+                    self.snapshot.face.basis.source_document_id.as_ref()
                         == Some(&resident.source_document_id)
-                        && self.snapshot.presentation.basis.checked_plot_id.as_ref()
+                        && self.snapshot.face.basis.checked_plot_id.as_ref()
                             == Some(&resident.checked_plot_id)
                 })
                 .cloned()
@@ -240,7 +156,7 @@ impl PatchbayHtmlServer {
             let manifestation = &self.snapshot.renderer.manifestation;
             self.mask_control = Some(
                 conduit_patchbay_workbench::MaskControlSession::new(
-                    self.snapshot.presentation.clone(),
+                    self.snapshot.face.clone(),
                     conduit_body::BodyFaceSelector {
                         plot,
                         source_placement_id: None,
@@ -392,6 +308,9 @@ impl PatchbayHtmlServer {
             );
         }
         if let Some(result) = self.deliver_body_route(first, &mut stream, &request.body) {
+            return result;
+        }
+        if let Some(result) = self.deliver_authoring_route(first, &mut stream, &request.body) {
             return result;
         }
         if first == "POST /api/front-door-transition HTTP/1.1" {
@@ -575,3 +494,5 @@ impl PatchbayHtmlServer {
 }
 
 use navigation::navigation_state;
+
+mod configuration_input;

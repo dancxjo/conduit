@@ -38,20 +38,23 @@ pub(super) fn expand_when_filter(
             ));
         }
     }
-    let expression = substitute_immutable_values(expression, source_plot, environment)?;
+    let mut expression = substitute_immutable_values(expression, source_plot, environment)?;
+    let (literal_types, canonical_literals) =
+        physical_literals::bind(&mut expression, source_plot, environment, catalog)?;
     let semantic_kinds = catalog
         .canonical_kinds()
         .values()
         .cloned()
         .map(|kind| (kind.kind_id.as_str().to_string(), kind))
         .collect::<BTreeMap<_, _>>();
-    let checked = crate::check_expression(
+    let mut checked = crate::check_expression(
         &expression,
         &crate::ExpressionTypeContext {
+            glyph_values: Some(&source_plot.glyph_values),
             input: &crate::CheckedExpressionType::Semantic(input_kind),
             immutable_values: &BTreeMap::new(),
             structured_types,
-            literal_types: &BTreeMap::new(),
+            literal_types: &literal_types,
             numeric_types: &BTreeSet::new(),
             semantic_kinds: &semantic_kinds,
         },
@@ -62,12 +65,18 @@ pub(super) fn expand_when_filter(
             &format!("when predicate is not well typed: {}", error.message),
         )
     })?;
+    checked.canonical_literals = canonical_literals;
+    checked.input_maximum_bytes = input_bound::checked_bound(source, source_plot, gears)?;
     let definition = crate::pure_filter_definition(&checked, temporal).map_err(|_| {
         diagnostic(
             source_span,
             "when predicate must return exactly Boolean and have a finite portable program",
         )
     })?;
+    let semantic_laws = crate::PortableExpressionProgram::from_checked(&checked)
+        .map_err(|_| diagnostic(source_span, "when predicate has no finite program"))?
+        .filter_semantic_laws(temporal)
+        .map_err(|_| diagnostic(source_span, "when predicate has invalid input bound"))?;
     let key = definition.kind_id.as_str().to_string();
     let count = anonymous_counts.entry(key.clone()).or_default();
     let name = format!("filter-{}-{count}", &hash_string(&key)[..12]);
@@ -97,7 +106,7 @@ pub(super) fn expand_when_filter(
         outputs: vec![output.clone()],
         semantic_contract: conduit_core::KindSemanticContract {
             configuration: definition.configuration.clone(),
-            laws: crate::pure_expression_semantic_laws(),
+            laws: semantic_laws,
         },
         terminal_transductions: Vec::new(),
         resource_ports: Vec::new(),
@@ -112,6 +121,7 @@ pub(super) fn expand_when_filter(
         pool_references: Vec::new(),
     });
     provenance.push(ExpandedGearProvenance {
+        construction_owner: None,
         gear_id: gear_id.as_str().to_string(),
         plot_path: path.to_vec(),
         source_plot: source_plot.name.clone(),

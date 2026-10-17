@@ -6,9 +6,8 @@
 
 use alloc::{format, string::String};
 use conduit_body::{PortableAdmissionReceipt, SPAWN_ADMISSION_RECEIPT_SCHEMA};
-use conduit_presentation::{
-    OWNER_FACE_RESPONSE_SCHEMA, OwnerFaceSnapshotResponse, Presentation, PresentationRole,
-    RemoteOwnerMaskRouteSeal,
+use conduit_face::{
+    Face, FaceRole, OWNER_FACE_RESPONSE_SCHEMA, OwnerFaceSnapshotResponse, RemoteOwnerMaskRouteSeal,
 };
 
 use crate::native_guest_part::NativeGuestPart;
@@ -16,7 +15,7 @@ use crate::native_guest_part::NativeGuestPart;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NativeGuestFace {
     credential_id: String,
-    presentation: Presentation,
+    face: Face,
     interactions_admitted: bool,
     route: Option<RemoteOwnerMaskRouteSeal>,
 }
@@ -62,17 +61,15 @@ impl NativeGuestFace {
         {
             return Err(GuestFaceRefusal::ReceiptBasis);
         }
-        let (presentation, interactions_admitted, route) = match response {
+        let (face, interactions_admitted, route) = match response {
             OwnerFaceSnapshotResponse::Snapshot {
                 schema,
-                presentation,
+                face,
                 interactions_admitted,
                 route,
-            } if schema == OWNER_FACE_RESPONSE_SCHEMA => (
-                *presentation,
-                interactions_admitted,
-                route.map(|route| *route),
-            ),
+            } if schema == OWNER_FACE_RESPONSE_SCHEMA => {
+                (*face, interactions_admitted, route.map(|route| *route))
+            }
             OwnerFaceSnapshotResponse::Refused { schema, code }
                 if schema == OWNER_FACE_RESPONSE_SCHEMA
                     && !code.is_empty()
@@ -87,16 +84,15 @@ impl NativeGuestFace {
             }
             _ => return Err(GuestFaceRefusal::ResponseSchema),
         };
-        presentation
-            .validate()
-            .map_err(|_| GuestFaceRefusal::Face)?;
+        face.validate().map_err(|_| GuestFaceRefusal::Face)?;
         let body = &receipt.credential.body_id;
         let body_subject = format!("body/{}", body.as_str());
-        if presentation.revision == 0
-            || presentation.basis.body_id.as_ref() != Some(body)
-            || !presentation.subjects.iter().any(|subject| {
-                subject.role == PresentationRole::Body && subject.identity == body_subject
-            })
+        if face.revision == 0
+            || face.basis.body_id.as_ref() != Some(body)
+            || !face
+                .subjects
+                .iter()
+                .any(|subject| subject.role == FaceRole::Body && subject.identity == body_subject)
         {
             return Err(GuestFaceRefusal::BodyBasis);
         }
@@ -108,16 +104,16 @@ impl NativeGuestFace {
                 .validate_mask_host_offer(&receipt.host_advertisement)
                 .map_err(|_| GuestFaceRefusal::MaskRoute)?;
             if route.body_id != *body
-                || route.face_id != presentation.identity
-                || route.face_revision != presentation.revision
-                || route.face_basis != presentation.basis
+                || route.face_id != face.identity
+                || route.face_revision != face.revision
+                || route.face_basis != face.basis
             {
                 return Err(GuestFaceRefusal::MaskRoute);
             }
         }
         Ok(Self {
             credential_id: receipt.credential.credential_id.as_str().into(),
-            presentation,
+            face,
             interactions_admitted,
             route,
         })
@@ -125,11 +121,11 @@ impl NativeGuestFace {
 
     pub fn matches_part(&self, part: &NativeGuestPart) -> bool {
         self.credential_id == part.credential().credential_id.as_str()
-            && self.presentation.basis.body_id.as_ref() == Some(&part.credential().body_id)
+            && self.face.basis.body_id.as_ref() == Some(&part.credential().body_id)
     }
 
-    pub fn presentation(&self) -> &Presentation {
-        &self.presentation
+    pub fn face(&self) -> &Face {
+        &self.face
     }
 
     pub fn interactions_admitted(&self) -> bool {
@@ -140,7 +136,7 @@ impl NativeGuestFace {
         self.route.as_ref()
     }
 
-    pub fn into_presentation(self) -> Presentation {
-        self.presentation
+    pub fn into_face(self) -> Face {
+        self.face
     }
 }

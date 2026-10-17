@@ -11,6 +11,7 @@ pub struct RetiredExecution<D, S, E, const NODES: usize> {
     pub signs: E,
     pub active_nodes: usize,
     pub decisions: u32,
+    pub logical_invocations: u64,
     pub cancelled: bool,
 }
 
@@ -63,8 +64,16 @@ where
         }
         self.values.clear();
         self.pending_host_calls.fill(None);
+        self.pending_host_count = 0;
+        self.host_slot_search_start = 0;
+        self.cancellation_search_start = 0;
+        self.undispatched_host_count = 0;
+        self.undispatched_cancellation_count = 0;
+        self.pending_host_slots.fill(None);
         self.queue_slots.fill(None);
+        self.armed_quiescence_count = 0;
         for cord in &mut self.cords[..self.active_cords] {
+            cord.quiescence_armed = false;
             cord.head = 0;
             cord.len = 0;
             cord.queued_bytes = 0;
@@ -72,7 +81,7 @@ where
             cord.offered_remote_sequence = None;
             cord.remote_accepted = false;
         }
-        self.ready.fill(false);
+        self.ready.clear();
         self.cancelled = true;
         self.signs
             .record(NodeId(0), None, None, KernelEventKind::RunCancelled)?;
@@ -101,6 +110,7 @@ where
             signs: self.signs,
             active_nodes: self.active_nodes,
             decisions: self.decisions,
+            logical_invocations: self.logical_invocations,
             cancelled: self.cancelled,
         })
     }

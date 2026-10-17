@@ -1,5 +1,6 @@
 use super::BrowserChatBack;
 use conduit_core::{bind_active_play, BaseImplementationId, BootId, HostId};
+use conduit_face::{Face, FaceBasis, FaceInteractionArgument, FaceInteractionLedger};
 use conduit_kernel::scheduler::{
     CordSpec, FixedScheduler, HostCallRequest, NodeSpec, RemoteValueOffer,
 };
@@ -15,17 +16,14 @@ use conduit_plot::{
     check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
     ProfileCatalog, StartupCatalog,
 };
-use conduit_presentation::{
-    FaceInteractionArgument, FaceInteractionLedger, Presentation, PresentationBasis,
-};
 use serde::Deserialize;
 use std::collections::BTreeMap;
 use std::fmt::Write as _;
 
 #[derive(Deserialize)]
 pub(super) struct InteractionFrame {
-    pub(super) presentation_id: String,
-    pub(super) presentation_revision: u64,
+    pub(super) face_id: String,
+    pub(super) face_revision: u64,
     pub(super) show_id: String,
     pub(super) action_id: String,
     pub(super) target: String,
@@ -89,9 +87,9 @@ pub(crate) struct BrowserChatSession {
     pub(super) identity_text: Vec<u8>,
     pub(super) value_capacity: (usize, usize),
     pub(super) identity_capacity: (usize, usize, usize),
-    pub(super) chat_state: conduit_chat::ChatPresentationState,
+    pub(super) chat_state: conduit_chat::ChatFaceState,
     pub(super) active_play: conduit_core::ActivePlayIdentity,
-    pub(super) presentation: Presentation,
+    pub(super) face: Face,
     pub(super) body_id: conduit_body::BodyId,
     pub(super) wake: conduit_body::Wake,
     pub(super) body_plan: conduit_body::BodyPlan,
@@ -160,12 +158,12 @@ impl BrowserChatSession {
                         track: conduit_core::ConnectionTrack::Payload,
                     },
                     conduit_planner::ConnectionQueueLimits {
-                        item_capacity: conduit_presentation::MAX_QUEUED_FACE_INTERACTIONS as u16,
+                        item_capacity: conduit_face::MAX_QUEUED_FACE_INTERACTIONS as u16,
                         byte_capacity: if direction == conduit_core::PortDirection::Input {
-                            conduit_presentation::MAX_FACE_INTERACTION_BYTES as u32
-                                * conduit_presentation::MAX_QUEUED_FACE_INTERACTIONS as u32
+                            conduit_face::MAX_FACE_INTERACTION_BYTES as u32
+                                * conduit_face::MAX_QUEUED_FACE_INTERACTIONS as u32
                         } else {
-                            conduit_presentation::MAX_PRESENTATION_TOTAL_BYTES as u32 * 2
+                            conduit_face::MAX_FACE_TOTAL_BYTES as u32 * 2
                         },
                     },
                 )
@@ -252,17 +250,16 @@ impl BrowserChatSession {
                 })
                 .ok_or(-212)
         };
-        let chat_state =
-            conduit_chat::ChatPresentationState::new(conduit_chat::ChatPresentationConfiguration {
-                title: text("title")?,
-                history_label: text("history-label")?,
-                input_label: text("input-label")?,
-                submit_label: text("submit-label")?,
-                status_label: text("status-label")?,
-                maximum_history_items: count("maximum-history-items")? as usize,
-                maximum_message_bytes: count("maximum-message-bytes")? as u32,
-            })
-            .map_err(|_| -212)?;
+        let chat_state = conduit_chat::ChatFaceState::new(conduit_chat::ChatFaceConfiguration {
+            title: text("title")?,
+            history_label: text("history-label")?,
+            input_label: text("input-label")?,
+            submit_label: text("submit-label")?,
+            status_label: text("status-label")?,
+            maximum_history_items: count("maximum-history-items")? as usize,
+            maximum_message_bytes: count("maximum-message-bytes")? as u32,
+        })
+        .map_err(|_| -212)?;
         let resident = conduit_body::ResidentPlot::new(
             fragment.source_document_id.clone(),
             fragment.checked_plot_id.clone(),
@@ -286,10 +283,10 @@ impl BrowserChatSession {
             }],
         )
         .map_err(|_| -212)?;
-        let presentation = chat_state
-            .presentation()
+        let face = chat_state
+            .face()
             .map_err(|_| -212)?
-            .with_basis(PresentationBasis {
+            .with_basis(FaceBasis {
                 body_id: Some(body_id.clone()),
                 wake_id: Some(wake.wake_id.clone()),
                 source_document_id: Some(fragment.source_document_id.clone()),
@@ -437,7 +434,7 @@ impl BrowserChatSession {
             identity_capacity,
             chat_state,
             active_play,
-            presentation,
+            face,
             body_id,
             wake,
             body_plan,

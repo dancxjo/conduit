@@ -10,6 +10,7 @@ const MAXIMUM_RESOURCES: usize = 64;
 const MAXIMUM_DEPENDENCIES: usize = 16;
 const MAXIMUM_HOST_IMPLEMENTATIONS: usize = 16;
 const MAXIMUM_RESOURCE_BYTES: usize = 16 * 1024 * 1024;
+const MAXIMUM_RUNTIME_BYTES: usize = 20 * 1024 * 1024;
 const MAXIMUM_TOTAL_RESOURCE_BYTES: usize = 32 * 1024 * 1024;
 
 #[derive(Deserialize)]
@@ -103,7 +104,12 @@ pub fn build_manifest<'a>(
             || !roles.insert(declaration.role.clone())
             || !paths.insert(declaration.path.clone())
             || declaration.maximum_bytes == 0
-            || declaration.maximum_bytes > MAXIMUM_RESOURCE_BYTES
+            || declaration.maximum_bytes
+                > if declaration.role == "runtime" {
+                    MAXIMUM_RUNTIME_BYTES
+                } else {
+                    MAXIMUM_RESOURCE_BYTES
+                }
             || declaration.dependencies.len() > MAXIMUM_DEPENDENCIES
         {
             return Err("browser application resource declaration is invalid".into());
@@ -213,6 +219,23 @@ mod tests {
         {"role":"runtime","kind":"wasm","path":"runtime.wasm","maximum_bytes":8,"dependencies":[]}
       ]
     }"#;
+
+    #[test]
+    fn runtime_download_bound_is_distinct_from_other_resources() {
+        let mut template: serde_json::Value = serde_json::from_slice(VALID).unwrap();
+        template["resources"][1]["maximum_bytes"] = MAXIMUM_RUNTIME_BYTES.into();
+        let admitted = serde_json::to_vec(&template).unwrap();
+        assert!(build_manifest(&admitted, |_| Some(b"wasm")).is_ok());
+        template["resources"][1]["maximum_bytes"] = (MAXIMUM_RUNTIME_BYTES + 1).into();
+        assert!(
+            build_manifest(&serde_json::to_vec(&template).unwrap(), |_| Some(b"wasm")).is_err()
+        );
+        template["resources"][1]["maximum_bytes"] = MAXIMUM_RUNTIME_BYTES.into();
+        template["resources"][0]["maximum_bytes"] = (MAXIMUM_RESOURCE_BYTES + 1).into();
+        assert!(
+            build_manifest(&serde_json::to_vec(&template).unwrap(), |_| Some(b"wasm")).is_err()
+        );
+    }
 
     #[test]
     fn exact_bytes_determine_package_identity_but_not_state_identity() {

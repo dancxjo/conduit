@@ -2,6 +2,18 @@
 
 use super::*;
 
+pub(super) fn fit_response(mut response: Response) -> Result<Response, String> {
+    let bytes = serde_json::to_vec(&response)
+        .map_err(|error| format!("encode native return response: {error}"))?;
+    if bytes.len() > super::super::response_document::MAX_OWNER_DOCUMENT_BYTES {
+        response.face = None;
+        if response.accepted {
+            response.code = "accepted-face-pressure";
+        }
+    }
+    Ok(response)
+}
+
 pub(super) fn apply(
     listener: &SecureWebSocketListener,
     state_dir: &Path,
@@ -60,26 +72,31 @@ pub(super) fn apply(
                 if available {
                     let selected = crate::durable_host_control::local_face_snapshot(state_dir)
                         .and_then(|(_, owner_offer)| {
-                            let binding = super::super::native_lines::binding_reference(
+                            grant.seal_mask_route(
                                 listener,
-                                &grant.binding_reference(action.sequence),
-                            );
-                            let (face_line, return_line) = super::super::native_lines::offer_pair(
-                                &owner_offer,
-                                &grant.receipt,
-                                &binding,
-                            );
-                            crate::durable_host_control::select_native_mask_route(
                                 state_dir,
-                                grant.receipt.clone(),
-                                face_line,
-                                return_line,
-                                grant.expires_at_millis,
+                                &owner_offer,
+                                action.sequence,
                             )
                         });
-                    if let Ok(selected) = selected {
-                        *route = Some(Box::new(selected));
-                        *interactions_admitted = true;
+                    match selected {
+                        Ok(selected) => {
+                            *route = Some(Box::new(selected));
+                            *interactions_admitted = true;
+                        }
+                        Err(error) => {
+                            let code = if error.len() <= 256
+                                && error.bytes().all(|byte| (32..=126).contains(&byte))
+                            {
+                                error.as_str()
+                            } else {
+                                "refreshed-route-detail-invalid"
+                            };
+                            eprintln!(
+                                "CONDUIT_OWNER_RETURN_DIAGNOSTIC {}",
+                                serde_json::json!({"phase":"refreshed-route-refused","code":code})
+                            );
+                        }
                     }
                 }
             }

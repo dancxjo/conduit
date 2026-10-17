@@ -1,14 +1,17 @@
-//! Conservative construction proof: exact forwarded refinements or constants.
+//! Conservative proof: exact forwarded laws, constants or scoped byte guards.
 //! Arithmetic and cross-field laws still require a separate admitted validator.
+use super::ByteFacts;
 use super::*;
 use crate::PortableExpressionProjection;
 use alloc::string::String;
+mod sequence_contract_path;
 
 pub(super) fn proves(
     node: &PortableExpressionNode,
     input: &conduit_core::StructuredInfoType,
     native: &CheckedNativeType,
     types: &[CheckedNativeType],
+    facts: &ByteFacts,
 ) -> bool {
     if node.value_type != native.value_type || !native.invariants.is_empty() {
         return false;
@@ -20,6 +23,7 @@ pub(super) fn proves(
             &required.contract,
             input,
             types,
+            facts,
         )
     })
 }
@@ -30,6 +34,7 @@ fn proves_at(
     required: &conduit_core::CheckedValueContract,
     input: &conduit_core::StructuredInfoType,
     types: &[CheckedNativeType],
+    facts: &ByteFacts,
 ) -> bool {
     let Ok(selected) = constructed_member(node, path) else {
         return false;
@@ -37,29 +42,89 @@ fn proves_at(
     let Some((value, remaining)) = selected else {
         return true;
     };
+    if let Some(rest) = remaining.strip_prefix("[]") {
+        if let Op::Collection(values) = &value.operation {
+            return values
+                .iter()
+                .all(|item| proves_at(item, rest, required, input, types, facts));
+        }
+    }
     if let Op::Conditional {
+        condition,
         when_true,
         when_false,
-        ..
     } = &value.operation
     {
-        return proves_at(when_true, remaining, required, input, types)
-            && proves_at(when_false, remaining, required, input, types);
+        return proves_at(
+            when_true,
+            remaining,
+            required,
+            input,
+            types,
+            &facts.branch(condition, true),
+        ) && proves_at(
+            when_false,
+            remaining,
+            required,
+            input,
+            types,
+            &facts.branch(condition, false),
+        );
     }
     if remaining.is_empty() && matches!(value.operation, Op::Literal(_)) {
         let constant = PortableExpressionProgram {
+            input_maximum_bytes: None,
             input_type: conduit_core::StructuredInfoType::leaf(conduit_core::kind_id(
-                conduit_core::UNIT_INFO_ID,
+                conduit_core::EMPTY_INFO_ID,
             ))
             .expect("Unit"),
             output_type: value.value_type.clone(),
             root: value.clone(),
         };
-        return constant
-            .evaluate(&[])
-            .is_ok_and(|bytes| required.validate(&bytes).is_ok());
+        return constant.evaluate(&[]).is_ok_and(|bytes| {
+            if matches!(value.value_type.shape(), StructuredInfoTypeShape::Leaf(_)) {
+                return required.validate(&bytes).is_ok();
+            }
+            conduit_core::StructuredInfoValue::from_canonical_bytes(&bytes).is_ok_and(|value| {
+                let conduit_core::StructuredInfoValueShape::Leaf(bytes) = value.shape() else {
+                    return false;
+                };
+                required.validate(bytes).is_ok()
+            })
+        });
     }
-    let Some(mut path) = input_path(value) else {
+    // A successful window has exactly its requested length; invalid source
+    // bounds refuse before producing a value. Only a literal length proves it.
+    if remaining.is_empty() && required.value_kind.as_str() == "value/bytes" {
+        if let Op::SemanticCall { kind, arguments } = &value.operation {
+            if kind == "bytes/window" {
+                if let [_, _, length] = arguments.as_slice() {
+                    if let Op::Literal(literal) = &length.operation {
+                        if let Ok(length) = literal.parse::<u32>() {
+                            return length <= required.maximum_bytes
+                                && required.constraints.iter().all(
+                                    |constraint| match constraint {
+                                        conduit_core::ValueConstraint::ByteLength {
+                                            minimum,
+                                            maximum,
+                                        } => length >= *minimum && length <= *maximum,
+                                        _ => false,
+                                    },
+                                );
+                        }
+                    }
+                }
+            }
+        }
+    }
+    if facts.proves(value, remaining, required) {
+        return true;
+    }
+    let Some(mut path) = input_path(value).or_else(|| {
+        // Element-wide declaration metadata is separate from branch-local
+        // projection facts: a guard on one index must never narrow another.
+        sequence_contract_path::bytes_path(value, required)
+    }) else {
         return false;
     };
     path.push_str(remaining);
@@ -82,6 +147,30 @@ fn retained_contract(
     }) {
         return true;
     }
+    if let Some(rest) = path.strip_prefix("[]") {
+        if required.value_kind.as_str() != "value/bytes" {
+            return false;
+        }
+        let element = match input.shape() {
+            StructuredInfoTypeShape::Collection { element, .. }
+            | StructuredInfoTypeShape::Sequence { element, .. } => element,
+            _ => return false,
+        };
+        return retained_contract(element, rest, required, types);
+    }
+    if let Some(rest) = path.strip_prefix('|') {
+        let end = rest.find(['.', '|', '[', '?']).unwrap_or(rest.len());
+        let (tag, remaining) = rest.split_at(end);
+        let StructuredInfoTypeShape::Variant { cases, .. } = input.shape() else {
+            return false;
+        };
+        return cases
+            .iter()
+            .find(|case| case.tag() == tag)
+            .is_some_and(|case| {
+                retained_contract(case.payload_type(), remaining, required, types)
+            });
+    }
     let Some(rest) = path.strip_prefix('.') else {
         return false;
     };
@@ -101,6 +190,7 @@ fn constructed_member<'a>(
     path: &'a str,
 ) -> Result<Option<(&'a PortableExpressionNode, &'a str)>, ()> {
     if path.is_empty()
+        || path.starts_with("[]")
         || matches!(
             node.operation,
             Op::Input | Op::Projection { .. } | Op::Conditional { .. }
@@ -130,7 +220,7 @@ fn constructed_member<'a>(
     constructed_member(value, remaining)
 }
 
-fn input_path(node: &PortableExpressionNode) -> Option<String> {
+pub(super) fn input_path(node: &PortableExpressionNode) -> Option<String> {
     match &node.operation {
         Op::Input => Some(String::new()),
         Op::Projection {
@@ -138,7 +228,15 @@ fn input_path(node: &PortableExpressionNode) -> Option<String> {
             member: PortableExpressionProjection::Field(field),
         } => {
             let mut path = input_path(value)?;
-            path.push('.');
+            match value.value_type.shape() {
+                StructuredInfoTypeShape::Variant { cases, .. } => {
+                    if !cases.iter().any(|case| case.tag() == field) {
+                        return None;
+                    }
+                    path.push('|');
+                }
+                _ => path.push('.'),
+            }
             path.push_str(field);
             Some(path)
         }

@@ -24,14 +24,14 @@ function startPublicEntrance() {
   return { child, errors, lines, url };
 }
 
-const semanticBasis = ({ presentation }) => ({
-  source_document_id: presentation.basis.source_document_id,
-  checked_plot_id: presentation.basis.checked_plot_id,
-  expanded_plot_id: presentation.basis.expanded_plot_id,
-  body_id: presentation.basis.body_id,
-  wake_id: presentation.basis.wake_id,
-  plan_id: presentation.basis.plan_id,
-  active_play_id: presentation.basis.active_play_id,
+const semanticBasis = ({ face }) => ({
+  source_document_id: face.basis.source_document_id,
+  checked_plot_id: face.basis.checked_plot_id,
+  expanded_plot_id: face.basis.expanded_plot_id,
+  body_id: face.basis.body_id,
+  wake_id: face.basis.wake_id,
+  plan_id: face.basis.plan_id,
+  active_play_id: face.basis.active_play_id,
 });
 
 async function snapshot(page) {
@@ -46,16 +46,16 @@ async function enactNavigation(page, steps, operation, enact) {
   await enact();
   const after = await (await response).json();
   expect(after.interaction.last_disposition).toBe("Succeeded");
-  expect(after.presentation.identity).toBe(before.presentation.identity);
-  expect(after.presentation.revision).toBe(before.presentation.revision);
+  expect(after.face.identity).toBe(before.face.identity);
+  expect(after.face.revision).toBe(before.face.revision);
   expect(after.navigation.navigation.identity).toBe(before.navigation.navigation.identity);
   expect(semanticBasis(after)).toEqual(semanticBasis(before));
   steps.push({
     sequence: steps.length,
     operation,
     disposition: after.interaction.last_disposition,
-    presentation_id: after.presentation.identity,
-    presentation_revision: after.presentation.revision,
+    face_id: after.face.identity,
+    face_revision: after.face.revision,
     navigation_id: after.navigation.navigation.identity,
     before_cursor: before.navigation.cursor,
     after_cursor: after.navigation.cursor,
@@ -73,8 +73,8 @@ async function refuseNavigation(page, refusals, operation, request, expected) {
   })).json(), request);
   expect(after.interaction.last_disposition).toBe(`Refused(${expected})`);
   expect(after.navigation.cursor).toEqual(before.navigation.cursor);
-  expect(after.presentation.identity).toBe(before.presentation.identity);
-  expect(after.presentation.revision).toBe(before.presentation.revision);
+  expect(after.face.identity).toBe(before.face.identity);
+  expect(after.face.revision).toBe(before.face.revision);
   expect(semanticBasis(after)).toEqual(semanticBasis(before));
   refusals.push({
     operation,
@@ -94,8 +94,8 @@ async function refuseInvocation(page, refusals, operation, request, expected) {
   })).json(), request);
   expect(after.interaction.last_disposition).toBe(`Refused(${expected})`);
   expect(after.navigation.cursor).toEqual(before.navigation.cursor);
-  expect(after.presentation.identity).toBe(before.presentation.identity);
-  expect(after.presentation.revision).toBe(before.presentation.revision);
+  expect(after.face.identity).toBe(before.face.identity);
+  expect(after.face.revision).toBe(before.face.revision);
   expect(semanticBasis(after)).toEqual(semanticBasis(before));
   refusals.push({
     operation,
@@ -115,7 +115,7 @@ test("public browser entrance stays unbodied until OPEN then explicit BIRTH", as
     expect(initial.entrance.body_id).toBeNull();
     expect(initial.entrance.selected_subject).toMatch(/^host\//);
     expect(initial.parts).toBeUndefined();
-    expect(initial.presentation.basis).toMatchObject({
+    expect(initial.face.basis).toMatchObject({
       body_id: null,
       wake_id: null,
       source_document_id: null,
@@ -124,11 +124,11 @@ test("public browser entrance stays unbodied until OPEN then explicit BIRTH", as
       plan_id: null,
       active_play_id: null,
     });
-    expect(initial.presentation.subjects.some(({ role }) => role === "Host")).toBe(true);
-    expect(initial.presentation.subjects.some(({ role }) => role === "Plot")).toBe(true);
-    expect(initial.presentation.subjects.some(({ role }) => role === "Body")).toBe(false);
-    expect(initial.presentation.subjects.some(({ role }) => role === "Part")).toBe(false);
-    expect(initial.presentation.properties).toEqual(expect.arrayContaining([
+    expect(initial.face.subjects.some(({ role }) => role === "Host")).toBe(true);
+    expect(initial.face.subjects.some(({ role }) => role === "Plot")).toBe(true);
+    expect(initial.face.subjects.some(({ role }) => role === "Body")).toBe(false);
+    expect(initial.face.subjects.some(({ role }) => role === "Part")).toBe(false);
+    expect(initial.face.properties).toEqual(expect.arrayContaining([
       expect.objectContaining({ name: "current-body", value: { Text: "none" } }),
       expect.objectContaining({ name: "this-host", value: { Flag: true } }),
     ]));
@@ -136,8 +136,8 @@ test("public browser entrance stays unbodied until OPEN then explicit BIRTH", as
     await page.goto(url);
     const navigationRefusals = [];
     await refuseNavigation(page, navigationRefusals, { kind: "show", aspect: "Plan" }, {
-      presentation_id: initial.presentation.identity,
-      presentation_revision: initial.presentation.revision,
+      face_id: initial.face.identity,
+      face_revision: initial.face.revision,
       navigation_id: initial.navigation.navigation.identity,
       operation: { kind: "show", aspect: "Plan" },
     }, "UnknownAspect");
@@ -151,11 +151,11 @@ test("public browser entrance stays unbodied until OPEN then explicit BIRTH", as
     const workspaceBox = await page.locator(".workspace").boundingBox();
     expect(workspaceBox.y + workspaceBox.height).toBeLessThanOrEqual(768);
     await expect(page.getByRole("button", { name: "Library", exact: true })).toHaveAttribute("aria-expanded", "true");
-    await expect(page.locator("#plot-results").getByRole("button")).toHaveCount(3);
+    await expect(page.locator("#plot-results").getByRole("button")).toHaveCount(4);
     await expect(page.getByRole("button", { name: "Open Plot Text Lab" })).toBeVisible();
     await page.getByRole("searchbox", { name: "Find Plots, Gears, and Parts" }).fill("hElLo");
-    await expect(page.locator("#plot-results-status")).toHaveText("1 of 3 Plots available");
-    const plot = initial.presentation.subjects.find(({ role, label }) => role === "Plot" && label === "Hello");
+    await expect(page.locator("#plot-results-status")).toHaveText("1 of 4 Plots available");
+    const plot = initial.face.subjects.find(({ role, name }) => role === "Plot" && name === "Hello");
     const formButton = page.getByRole("button", { name: "Open Plot Hello" });
     await page.getByRole("searchbox", { name: "Find Plots, Gears, and Parts" }).press("ArrowDown");
     await expect(formButton).toBeFocused();
@@ -182,7 +182,7 @@ test("public browser entrance stays unbodied until OPEN then explicit BIRTH", as
     await expect(birthButton).toBeEnabled();
     expect(openResponses.every((response) => response.ok())).toBe(true);
     await expect(page.getByRole("button", { name: "OPEN", exact: true })).toBeEnabled();
-    const openAction = initial.presentation.actions.find(
+    const openAction = initial.face.actions.find(
       ({ intent, target }) => intent === "conduit.intent/open@1" && target === plot.identity,
     );
     const opened = await (await fetch(`${url}/api/snapshot`)).json();
@@ -190,21 +190,21 @@ test("public browser entrance stays unbodied until OPEN then explicit BIRTH", as
     expect(opened.interaction.last_disposition).toBe("Succeeded");
     expect(openAction.identity).toMatch(/^action\/open\//);
     expect(opened.revision).toBe(initial.revision + 1);
-    expect(opened.presentation.basis.body_id).toBeNull();
+    expect(opened.face.basis.body_id).toBeNull();
     expect(opened.navigation.cursor.place).toBe("Program");
     expect(opened.parts).toBeUndefined();
-    expect(opened.presentation.properties).toContainEqual(
+    expect(opened.face.properties).toContainEqual(
       expect.objectContaining({ subject: plot.identity, name: "opened", value: { Flag: true } }),
     );
-    expect(opened.presentation.subjects).toEqual(expect.arrayContaining([
+    expect(opened.face.subjects).toEqual(expect.arrayContaining([
       expect.objectContaining({ role: "Plot" }),
-      expect.objectContaining({ role: "Gear", label: "hello/upper" }),
+      expect.objectContaining({ role: "Gear", name: expect.stringMatching(/^hello\/upper Gear/) }),
       expect.objectContaining({ role: "Cord" }),
     ]));
-    const upperFaceplate = page.locator('.faceplate-title[title="hello/upper"]');
+    const upperFaceplate = page.locator('.faceplate-title[title^="hello/upper Gear"]');
     await expect(upperFaceplate).toHaveText("upper");
-    await expect(upperFaceplate).toHaveAttribute("title", "hello/upper");
-    const birthAction = opened.presentation.actions.find(
+    await expect(upperFaceplate).toHaveAttribute("title", "hello/upper Gear, text/upper");
+    const birthAction = opened.face.actions.find(
       ({ intent, target }) => intent === "conduit.intent/birth@1" && target === plot.identity,
     );
     expect(birthAction.identity).toMatch(/^action\/birth\//);
@@ -238,31 +238,31 @@ test("public browser entrance stays unbodied until OPEN then explicit BIRTH", as
     const born = await (await fetch(`${url}/api/snapshot`)).json();
     expect(born.interaction.last_request_id).toMatch(/^navigation\//);
     expect(born.interaction.last_disposition).toBe("Succeeded");
-    expect(born.presentation.basis.body_id).toBeTruthy();
-    expect(born.presentation.basis.checked_plot_id).toBeTruthy();
-    expect(born.presentation.basis.wake_id).toBeNull();
-    expect(born.presentation.basis.plan_id).toBeNull();
-    expect(born.presentation.basis.active_play_id).toBeNull();
+    expect(born.face.basis.body_id).toBeTruthy();
+    expect(born.face.basis.checked_plot_id).toBeTruthy();
+    expect(born.face.basis.wake_id).toBeNull();
+    expect(born.face.basis.plan_id).toBeNull();
+    expect(born.face.basis.active_play_id).toBeNull();
     expect(born.parts.parts).toHaveLength(1);
     expect(born.parts.parts[0].state).toBe("Here");
-    expect(born.presentation.subjects.some(({ role }) => role === "Plot")).toBe(true);
+    expect(born.face.subjects.some(({ role }) => role === "Plot")).toBe(true);
 
-    const stale = await page.evaluate(async ({ presentationId, revision, subject }) =>
+    const stale = await page.evaluate(async ({ faceId, revision, subject }) =>
       (await fetch("/api/front-door-transition", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          presentation_id: presentationId,
+          face_id: faceId,
           revision,
           action: "birth",
           subject,
         }),
       })).json(),
-    { presentationId: opened.presentation.identity, revision: opened.revision, subject: plot.identity });
-    expect(stale.interaction.last_disposition).toBe("Refused(StalePresentation)");
-    expect(stale.presentation.basis.body_id).toBe(born.presentation.basis.body_id);
+    { faceId: opened.face.identity, revision: opened.revision, subject: plot.identity });
+    expect(stale.interaction.last_disposition).toBe("Refused(StaleFace)");
+    expect(stale.face.basis.body_id).toBe(born.face.basis.body_id);
 
-    const wakeAction = born.presentation.actions.find(
+    const wakeAction = born.face.actions.find(
       ({ intent }) => intent === "conduit.intent/wake@1",
     );
     expect(wakeAction.availability).toBe("Available");
@@ -277,19 +277,19 @@ test("public browser entrance stays unbodied until OPEN then explicit BIRTH", as
     ]);
     const awakened = await (await fetch(`${url}/api/snapshot`)).json();
     expect(awakened.interaction.last_disposition).toBe("Succeeded");
-    expect(awakened.presentation.basis.body_id).toBe(born.presentation.basis.body_id);
-    expect(awakened.presentation.basis.wake_id).toBeTruthy();
-    expect(awakened.presentation.basis.plan_id).toBeNull();
+    expect(awakened.face.basis.body_id).toBe(born.face.basis.body_id);
+    expect(awakened.face.basis.wake_id).toBeTruthy();
+    expect(awakened.face.basis.plan_id).toBeNull();
 
     await page.getByRole("button", { name: "Plan current plot" }).click();
     await expect(page.locator("#front-door-feedback")).toContainText("Plan Succeeded");
     const planned = await (await fetch(`${url}/api/snapshot`)).json();
-    expect(planned.presentation.basis.plan_id).toBeTruthy();
-    expect(planned.presentation.basis.active_play_id).toBeNull();
+    expect(planned.face.basis.plan_id).toBeTruthy();
+    expect(planned.face.basis.active_play_id).toBeNull();
     await page.getByRole("button", { name: "Play current plan" }).click();
     await expect(page.locator("#front-door-feedback")).toContainText("Play Succeeded");
     const playing = await (await fetch(`${url}/api/snapshot`)).json();
-    expect(playing.presentation.basis.active_play_id).toBeTruthy();
+    expect(playing.face.basis.active_play_id).toBeTruthy();
     expect(playing.parts.parts[0].in_plan).toBe(true);
     expect(playing.parts.parts[0].playing).toBe(true);
 
@@ -362,31 +362,31 @@ test("public browser entrance stays unbodied until OPEN then explicit BIRTH", as
 
     const current = navigated;
     const navigationRequest = operation => ({
-      presentation_id: current.presentation.identity,
-      presentation_revision: current.presentation.revision,
+      face_id: current.face.identity,
+      face_revision: current.face.revision,
       navigation_id: current.navigation.navigation.identity,
       operation,
     });
-    await refuseNavigation(page, navigationRefusals, { kind: "stale-presentation" }, {
+    await refuseNavigation(page, navigationRefusals, { kind: "stale-face" }, {
       ...navigationRequest({ kind: "enter", place: "Body" }),
-      presentation_revision: current.presentation.revision - 1,
-    }, "StalePresentation");
+      face_revision: current.face.revision - 1,
+    }, "StaleFace");
     await refuseNavigation(page, navigationRefusals, { kind: "focus", subject: "subject/absent" },
       navigationRequest({ kind: "focus", subject: "subject/absent" }), "UnknownSubject");
     await refuseNavigation(page, navigationRefusals, { kind: "follow", relationship: followIdentity },
       navigationRequest({ kind: "follow", relationship: followIdentity }), "UnknownSubject");
     await refuseNavigation(page, navigationRefusals, { kind: "enter", place: "Entrance" },
       navigationRequest({ kind: "enter", place: "Entrance" }), "UnknownPlace");
-    const currentAction = current.presentation.actions.find(({ availability }) => availability === "Available");
+    const currentAction = current.face.actions.find(({ availability }) => availability === "Available");
     expect(currentAction).toBeTruthy();
     await refuseInvocation(page, navigationRefusals, {
-      kind: "invoke", action_id: currentAction.identity, presentation_revision: current.presentation.revision - 1,
+      kind: "invoke", action_id: currentAction.identity, face_revision: current.face.revision - 1,
     }, {
-      presentation_id: current.presentation.identity,
-      presentation_revision: current.presentation.revision - 1,
+      face_id: current.face.identity,
+      face_revision: current.face.revision - 1,
       kind: "invoke",
       action_id: currentAction.identity,
-    }, "StalePresentation");
+    }, "StaleFace");
     expect(navigationRefusals).toHaveLength(6);
 
     const receiptPath = process.env.CONDUIT_PATCHBAY_FRONT_DOOR_RECEIPT_PATH;
@@ -398,22 +398,22 @@ test("public browser entrance stays unbodied until OPEN then explicit BIRTH", as
         browser_version: browser.version(),
         exact_initial_body: null,
         opened_plot_id: plot.identity,
-        born_body_id: playing.presentation.basis.body_id,
-        wake_id: playing.presentation.basis.wake_id,
+        born_body_id: playing.face.basis.body_id,
+        wake_id: playing.face.basis.wake_id,
         revisions: [initial.revision, opened.revision, born.revision, awakened.revision, planned.revision, playing.revision],
-        presentation_ids: [
-          initial.presentation.identity,
-          opened.presentation.identity,
-          born.presentation.identity,
-          awakened.presentation.identity,
-          planned.presentation.identity,
-          playing.presentation.identity,
+        face_ids: [
+          initial.face.identity,
+          opened.face.identity,
+          born.face.identity,
+          awakened.face.identity,
+          planned.face.identity,
+          playing.face.identity,
         ],
-        plan_id: playing.presentation.basis.plan_id,
-        active_play_id: playing.presentation.basis.active_play_id,
+        plan_id: playing.face.basis.plan_id,
+        active_play_id: playing.face.basis.active_play_id,
         stale_outcome: stale.interaction.last_disposition,
         navigation_journey: {
-          schema: "conduit.presentation/navigation-journey-receipt@1",
+          schema: "conduit.face/navigation-journey-receipt@1",
           maximum_steps: 16,
           start_cursor: journeyStartCursor,
           terminal_cursor: navigated.navigation.cursor,
@@ -423,12 +423,12 @@ test("public browser entrance stays unbodied until OPEN then explicit BIRTH", as
         },
         assertions: {
           no_body_on_entry: true,
-          open_is_inert: opened.presentation.basis.body_id === null,
+          open_is_inert: opened.face.basis.body_id === null,
           stale_transition_refused: true,
           explicit_birth_only: true,
           birth_does_not_imply_wake_plan_or_play: true,
           intent_plan_play_preserved_after_birth: true,
-          renderer_local_state_excluded_from_semantic_subjects: playing.presentation.subjects.every(
+          renderer_local_state_excluded_from_semantic_subjects: playing.face.subjects.every(
             ({ identity }) => !identity.startsWith("dom/") && !identity.startsWith("window/"),
           ),
           navigate_does_not_act: navigationSteps.every(step =>

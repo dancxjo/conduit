@@ -93,7 +93,7 @@ fn canonical_live_conversation_is_one_reviewed_temporal_plot() {
 
 fn synthetic_offer(definition: &Kind, host: &str) -> CapabilityOffer {
     let slug = definition.kind_id.as_str().replace('/', "-");
-    conduit_core::capability_offer_from_parts! {
+    let mut offered = conduit_core::capability_offer_from_parts! {
         semantic_contract: definition.semantic_contract(),
         startup_parameters: definition.startup_parameters.clone(),
         shorthand: definition.shorthand.clone(),
@@ -115,7 +115,31 @@ fn synthetic_offer(definition: &Kind, host: &str) -> CapabilityOffer {
             max_queue_items: 32,
             max_queue_bytes: 262_144,
         },
+    };
+    if definition.semantic_laws.iter().any(|law| {
+        matches!(law,
+            conduit_core::KindSemanticLaw::RealizationRequirement { property_profile, .. }
+                if property_profile == &conduit_language::language_coverage_profile()
+        )
+    }) {
+        use conduit_plot::rust_binding::BoundedSequence;
+        let coverage = conduit_language::LanguageCoverage::new(
+            offered.implementation.artifact_id.as_str().into(),
+            BoundedSequence::try_from_iter([conduit_language::LanguageId::new(
+                "language/english".into(),
+            )
+            .unwrap()])
+            .unwrap(),
+            BoundedSequence::try_from_iter([]).unwrap(),
+            "live-conversation-english-fixture@1".into(),
+            BoundedSequence::try_from_iter([]).unwrap(),
+            false,
+        )
+        .unwrap();
+        offered.realization_properties =
+            vec![conduit_language::language_coverage_property(coverage).unwrap()];
     }
+    offered
 }
 
 fn proof_host(name: &str, definitions: &[&Kind]) -> HostAdvertisement {

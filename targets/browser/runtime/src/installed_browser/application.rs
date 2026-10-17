@@ -9,13 +9,13 @@ use conduit_kernel::HostedValueStore;
 
 pub(crate) const EVENT_IMPLEMENTATION: &str = "browser/application-event-source@1";
 pub(crate) const STATE_IMPLEMENTATION: &str = "browser/retained-application@1";
-pub(crate) const PRESENTATION_IMPLEMENTATION: &str = "browser/application-view-presentation@1";
+pub(crate) const FACE_IMPLEMENTATION: &str = "browser/application-view-face@1";
 pub(crate) const EVENT_OPERATION: &str = "conduit.host/browser-application-next-event@1";
 pub(crate) const STATE_OPERATION: &str = "conduit.host/browser-application-apply-event@1";
-pub(crate) const PRESENTATION_OPERATION: &str = "conduit.host/browser-present-application-view@1";
+pub(crate) const FACE_OPERATION: &str = "conduit.host/browser-present-application-view@1";
 const ARTIFACT: &str = "conduit-browser-runtime/installed-application@1";
 pub(crate) const EVENT_BYTES: u32 = 4096;
-const VIEW_BYTES: u32 = 16 * 1024;
+const VIEW_BYTES: u32 = conduit_face::MAX_APPLICATION_VIEW_BYTES as u32;
 
 pub(super) static EVENT: BrowserInstallation = BrowserInstallation {
     implementation_id: EVENT_IMPLEMENTATION,
@@ -29,11 +29,11 @@ pub(super) static STATE: BrowserInstallation = BrowserInstallation {
     prepare: prepare_state,
     perform: None,
 };
-pub(super) static PRESENTATION: BrowserInstallation = BrowserInstallation {
-    implementation_id: PRESENTATION_IMPLEMENTATION,
-    offer: presentation_offer,
-    prepare: prepare_presentation,
-    perform: Some(perform_presentation),
+pub(super) static FACE: BrowserInstallation = BrowserInstallation {
+    implementation_id: FACE_IMPLEMENTATION,
+    offer: face_offer,
+    prepare: prepare_face,
+    perform: Some(perform_face),
 };
 
 fn event_offer() -> CapabilityOffer {
@@ -56,11 +56,11 @@ fn state_offer() -> CapabilityOffer {
         false,
     )
 }
-fn presentation_offer() -> CapabilityOffer {
+fn face_offer() -> CapabilityOffer {
     offer(
-        conduit_semantic_catalog::view_presentation_contract(),
-        PRESENTATION_IMPLEMENTATION,
-        PRESENTATION_OPERATION,
+        conduit_semantic_catalog::view_face_contract(),
+        FACE_IMPLEMENTATION,
+        FACE_OPERATION,
         VIEW_BYTES,
         0,
         true,
@@ -73,7 +73,7 @@ fn offer(
     operation: &'static str,
     input: u32,
     output: u32,
-    presentation: bool,
+    face: bool,
 ) -> CapabilityOffer {
     let mut result = conduit_semantic_catalog::realization_offer(
         contract,
@@ -91,11 +91,8 @@ fn offer(
             maximum_input_bytes: input,
             maximum_output_bytes: output,
         }],
-        if presentation {
-            vec![resource_requirement(
-                conduit_core::PRESENTATION_RESOURCE_CLASS,
-                1,
-            )]
+        if face {
+            vec![resource_requirement(conduit_core::FACE_RESOURCE_CLASS, 1)]
         } else {
             vec![]
         },
@@ -122,24 +119,22 @@ fn prepare_state(
     BrowserBack::application_state(values, EVENT_BYTES)
 }
 
-fn prepare_presentation(
+fn prepare_face(
     placement: &PlannedGear,
     _values: &mut HostedValueStore,
 ) -> Result<BrowserBack, String> {
-    validate_placement(placement, &presentation_offer())?;
-    Ok(BrowserBack::presentation(VIEW_BYTES, 1))
+    validate_placement(placement, &face_offer())?;
+    Ok(BrowserBack::face(VIEW_BYTES, 1))
 }
 
-fn perform_presentation(
-    _placement: &PlannedGear,
-    input: &[u8],
-) -> Result<BrowserHostResult, String> {
-    conduit_presentation::ApplicationView::decode(input)
+fn perform_face(placement: &PlannedGear, input: &[u8]) -> Result<BrowserHostResult, String> {
+    conduit_face::ApplicationView::decode(input)
         .map_err(|error| format!("decode application view: {error:?}"))?;
     Ok(BrowserHostResult {
         output: None,
         manifestation: Some(BrowserManifestation {
-            kind_id: conduit_semantic_catalog::APPLICATION_VIEW_PRESENTATION_KIND,
+            data_label: super::factory::manifestation_label(placement)?,
+            kind_id: conduit_semantic_catalog::APPLICATION_VIEW_FACE_KIND,
             canonical_value: input.to_vec(),
         }),
     })

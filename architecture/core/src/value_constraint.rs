@@ -4,7 +4,7 @@
 //! belongs to checking; Play never compiles a pattern or selects a Host regex
 //! dialect.
 
-use alloc::vec::Vec;
+use alloc::{boxed::Box, vec::Vec};
 use core::cmp::Ordering;
 use serde::{Deserialize, Serialize};
 
@@ -56,8 +56,8 @@ pub enum ValueConstraint {
         maximum_endpoint: IntervalEndpoint,
     },
     QuantityRange {
-        minimum: Option<crate::Quantity>,
-        maximum: Option<crate::Quantity>,
+        minimum: Option<Box<crate::Quantity>>,
+        maximum: Option<Box<crate::Quantity>>,
         minimum_endpoint: IntervalEndpoint,
         maximum_endpoint: IntervalEndpoint,
     },
@@ -429,8 +429,8 @@ impl ValueConstraint {
                 minimum_endpoint,
                 maximum_endpoint,
             } if open_quantity_range_is_invalid(
-                minimum.as_ref(),
-                maximum.as_ref(),
+                minimum.as_deref(),
+                maximum.as_deref(),
                 *minimum_endpoint,
                 *maximum_endpoint,
             ) =>
@@ -439,9 +439,10 @@ impl ValueConstraint {
             }
             Self::QuantityRange {
                 minimum, maximum, ..
-            } if value_kind != crate::QUANTITY_INFO_ID
-                && minimum.as_ref().or(maximum.as_ref()).is_some_and(|bound| {
-                    crate::quantity_info_dimension(value_kind) != Some(bound.dimension())
+            } if (value_kind != crate::QUANTITY_INFO_ID
+                && crate::parse_quantity_role_info_id(value_kind).is_none())
+                || minimum.iter().chain(maximum.iter()).any(|bound| {
+                    crate::validate_primitive_info(value_kind, &bound.encode()).is_err()
                 }) =>
             {
                 Err(ConstraintDefinitionError::WrongConstraintKind)
@@ -610,12 +611,12 @@ impl ValueConstraint {
                     .map_err(|_| ValueConstraintRefusal::QuantityRange)?;
                 let above_minimum = minimum.as_ref().is_none_or(|minimum| {
                     value
-                        .compare(*minimum)
+                        .compare(**minimum)
                         .is_ok_and(|order| lower_accepts(order, *minimum_endpoint))
                 });
                 let below_maximum = maximum.as_ref().is_none_or(|maximum| {
                     value
-                        .compare(*maximum)
+                        .compare(**maximum)
                         .is_ok_and(|order| upper_accepts(order, *maximum_endpoint))
                 });
                 (above_minimum && below_maximum)
@@ -1093,7 +1094,7 @@ mod tests {
 
     #[test]
     fn zero_byte_unit_and_exact_empty_text_remain_expressible() {
-        let unit = CheckedValueContract::new(crate::kind_id(crate::UNIT_INFO_ID), 0, vec![])
+        let unit = CheckedValueContract::new(crate::kind_id(crate::EMPTY_INFO_ID), 0, vec![])
             .expect("unit has an exact zero-byte canonical encoding");
         assert_eq!(unit.validate(&[]), Ok(()));
 
@@ -1187,19 +1188,19 @@ mod tests {
             crate::kind_id(crate::DISTANCE_INFO_ID),
             crate::QUANTITY_ENCODED_LEN as u32,
             vec![ValueConstraint::QuantityRange {
-                minimum: Some(crate::Quantity::new(1, crate::QuantityUnit::Meter)),
-                maximum: Some(crate::Quantity::new(2, crate::QuantityUnit::Meter)),
+                minimum: Some(crate::Quantity::new(1, crate::Unit::Meter).into()),
+                maximum: Some(crate::Quantity::new(2, crate::Unit::Meter).into()),
                 minimum_endpoint: IntervalEndpoint::Inclusive,
                 maximum_endpoint: IntervalEndpoint::Inclusive,
             }],
         )
         .unwrap();
         assert_eq!(
-            distance.validate(&crate::Quantity::new(150, crate::QuantityUnit::Centimeter).encode()),
+            distance.validate(&crate::Quantity::new(150, crate::Unit::Centimeter).encode()),
             Ok(())
         );
         assert_eq!(
-            distance.validate(&crate::Quantity::new(3, crate::QuantityUnit::Meter).encode()),
+            distance.validate(&crate::Quantity::new(3, crate::Unit::Meter).encode()),
             Err(ValueConstraintRefusal::QuantityRange)
         );
     }
@@ -1301,8 +1302,8 @@ mod tests {
                 crate::kind_id(crate::DISTANCE_INFO_ID),
                 crate::QUANTITY_ENCODED_LEN as u32,
                 vec![ValueConstraint::QuantityRange {
-                    minimum: Some(crate::Quantity::new(1, crate::QuantityUnit::Second)),
-                    maximum: Some(crate::Quantity::new(2, crate::QuantityUnit::Second)),
+                    minimum: Some(crate::Quantity::new(1, crate::Unit::Second).into()),
+                    maximum: Some(crate::Quantity::new(2, crate::Unit::Second).into()),
                     minimum_endpoint: IntervalEndpoint::Inclusive,
                     maximum_endpoint: IntervalEndpoint::Inclusive,
                 }],
@@ -1314,8 +1315,8 @@ mod tests {
                 crate::kind_id(crate::QUANTITY_INFO_ID),
                 crate::QUANTITY_ENCODED_LEN as u32,
                 vec![ValueConstraint::QuantityRange {
-                    minimum: Some(crate::Quantity::new(1, crate::QuantityUnit::Meter)),
-                    maximum: Some(crate::Quantity::new(2, crate::QuantityUnit::Second)),
+                    minimum: Some(crate::Quantity::new(1, crate::Unit::Meter).into()),
+                    maximum: Some(crate::Quantity::new(2, crate::Unit::Second).into()),
                     minimum_endpoint: IntervalEndpoint::Inclusive,
                     maximum_endpoint: IntervalEndpoint::Inclusive,
                 }],

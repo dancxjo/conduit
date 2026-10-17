@@ -45,7 +45,7 @@ impl PlotEditor {
                 "configuration is not representable by the common interaction contract".into(),
             )
         })?;
-        let rule = conduit_semantic_catalog::supported_nucleus_contracts()
+        let field = conduit_semantic_catalog::supported_nucleus_contracts()
             .into_iter()
             .find(|contract| contract.kind_id == gear.kind_id)
             .and_then(|contract| {
@@ -54,8 +54,7 @@ impl PlotEditor {
                     .into_iter()
                     .find(|field| field.key == key)
             })
-            .ok_or_else(|| PlotEditorError::UnknownConfiguration(key.into()))?
-            .rule;
+            .ok_or_else(|| PlotEditorError::UnknownConfiguration(key.into()))?;
         proposal
             .validate_against(&interaction.contract, &interaction.state)
             .map_err(|refusal| {
@@ -63,7 +62,8 @@ impl PlotEditor {
                     "common interaction refused: {refusal:?}"
                 ))
             })?;
-        let value = configuration_from_proposal(&interaction.contract.family, &rule, proposal)?;
+        let value =
+            configuration_from_proposal(&interaction.contract.family, &field.rule, proposal)?;
         self.set_gear_configuration_exact(
             offered_revision,
             offered_expanded_plot_id,
@@ -97,7 +97,7 @@ impl PlotEditor {
             .iter()
             .find(|control| control.key == key)
             .ok_or_else(|| PlotEditorError::UnknownConfiguration(key.into()))?;
-        let rule = conduit_semantic_catalog::supported_nucleus_contracts()
+        let field = conduit_semantic_catalog::supported_nucleus_contracts()
             .into_iter()
             .find(|contract| contract.kind_id == gear.kind_id)
             .and_then(|contract| {
@@ -106,13 +106,9 @@ impl PlotEditor {
                     .into_iter()
                     .find(|field| field.key == key)
             })
-            .ok_or_else(|| PlotEditorError::UnknownConfiguration(key.into()))?
-            .rule;
-        if !accepts(&rule, &value) {
-            return Err(PlotEditorError::InvalidConfiguration(
-                configuration_refusal(&rule),
-            ));
-        }
+            .ok_or_else(|| PlotEditorError::UnknownConfiguration(key.into()))?;
+        conduit_plot::validate_configuration_value(&field, &value)
+            .map_err(|error| PlotEditorError::InvalidConfiguration(error.to_string()))?;
         let interaction = control.interaction.as_ref().ok_or_else(|| {
             PlotEditorError::InvalidConfiguration(
                 "configuration is not representable by the common interaction contract".into(),
@@ -159,11 +155,8 @@ impl PlotEditor {
             .iter()
             .find(|field| field.key == key)
             .ok_or_else(|| PlotEditorError::UnknownConfiguration(key.into()))?;
-        if !accepts(&field.rule, &value) {
-            return Err(PlotEditorError::InvalidConfiguration(
-                configuration_refusal(&field.rule),
-            ));
-        }
+        conduit_plot::validate_configuration_value(field, &value)
+            .map_err(|error| PlotEditorError::InvalidConfiguration(error.to_string()))?;
 
         let document = parse_syntax_document(&self.source);
         let plot = document
@@ -244,7 +237,10 @@ fn proposal_for_configuration(
             )
         }
         (InteractionFamily::Scalar(_), ConfigurationValue::Quantity(value)) => {
-            InteractionValue::new(KindId::from(QUANTITY_INFO_ID), value.encode().to_vec())
+            InteractionValue::new(
+                KindId::from(QUANTITY_INFO_ID),
+                value.value().encode().to_vec(),
+            )
         }
         (InteractionFamily::ChooseOne(family), ConfigurationValue::Text(value)) => {
             InteractionValue::new(
@@ -255,6 +251,13 @@ fn proposal_for_configuration(
         (InteractionFamily::Text(_), ConfigurationValue::Text(value)) => {
             InteractionValue::new(KindId::from(TEXT_INFO_ID), value.into_bytes())
         }
+        (
+            InteractionFamily::Structured(_),
+            value @ (ConfigurationValue::Unit(_)
+            | ConfigurationValue::Quantity(_)
+            | ConfigurationValue::TemperatureDifference(_)),
+        ) => patchbay_graph::physical_interaction_value(&value)
+            .map_err(|_| conduit_human::InteractionRefusal::MalformedValue),
         _ => {
             return Err(PlotEditorError::InvalidConfiguration(
                 "value does not fit the common interaction family".into(),
@@ -308,24 +311,29 @@ fn configuration_from_proposal(
             let decoded = Quantity::decode(value.bytes()).map_err(|_| {
                 PlotEditorError::InvalidConfiguration("malformed scalar quantity".into())
             })?;
-            if *family.unit() == conduit_core::QuantityUnit::Millionth {
-                Ok(ConfigurationValue::I64(decoded.value()))
+            if *family.unit() == conduit_core::Unit::Millionth {
+                decoded
+                    .to_i64(*family.unit())
+                    .map(ConfigurationValue::I64)
+                    .map_err(|_| {
+                        PlotEditorError::InvalidConfiguration("inexact scalar quantity".into())
+                    })
             } else if matches!(rule, KindConfigurationRule::DurationMillis { .. }) {
                 decoded
-                    .convert(*family.unit())
-                    .and_then(|value| {
-                        u64::try_from(value.value())
-                            .map_err(|_| conduit_core::QuantityConversionRefusal::Overflow)
-                    })
+                    .convert_to_u64(*family.unit())
                     .map(ConfigurationValue::U64)
                     .map_err(|_| {
                         PlotEditorError::InvalidConfiguration(
                             "inexact, incompatible, or negative quantity".into(),
                         )
                     })
-            } else if *family.unit() != conduit_core::QuantityUnit::One {
+            } else if *family.unit() != conduit_core::Unit::One {
                 decoded
                     .convert(*family.unit())
+                    .and_then(|quantity| {
+                        conduit_core::QuantityConfigurationValue::from_value(quantity)
+                            .map_err(|_| conduit_core::QuantityConversionRefusal::Overflow)
+                    })
                     .map(ConfigurationValue::Quantity)
                     .map_err(|_| {
                         PlotEditorError::InvalidConfiguration(
@@ -334,14 +342,50 @@ fn configuration_from_proposal(
                     })
             } else {
                 decoded
-                    .value()
-                    .try_into()
+                    .convert_to_u64(*family.unit())
                     .map(ConfigurationValue::U64)
                     .map_err(|_| {
                         PlotEditorError::InvalidConfiguration(
                             "negative value for unsigned configuration".into(),
                         )
                     })
+            }
+        }
+        InteractionFamily::Structured(_) => {
+            let invalid = || {
+                PlotEditorError::InvalidConfiguration("malformed typed physical interaction".into())
+            };
+            let wrapped = conduit_core::StructuredInfoValue::from_canonical_bytes(value.bytes())
+                .map_err(|_| invalid())?;
+            let conduit_core::StructuredInfoValueShape::Leaf(bytes) = wrapped.shape() else {
+                return Err(invalid());
+            };
+            match rule {
+                KindConfigurationRule::Unit => {
+                    let unit = conduit_core::Unit::decode(bytes).map_err(|_| invalid())?;
+                    conduit_core::UnitConfigurationValue::new(unit, unit.canonical_symbol())
+                        .map(ConfigurationValue::Unit)
+                        .ok_or_else(invalid)
+                }
+                KindConfigurationRule::Quantity => {
+                    let quantity = Quantity::decode(bytes).map_err(|_| invalid())?;
+                    conduit_core::QuantityConfigurationValue::from_value(quantity)
+                        .map(ConfigurationValue::Quantity)
+                        .map_err(|_| invalid())
+                }
+                KindConfigurationRule::TemperatureDifference => {
+                    let quantity = Quantity::decode(bytes).map_err(|_| invalid())?;
+                    let difference =
+                        conduit_core::ExactTemperatureDifference::from_quantity(quantity)
+                            .map_err(|_| invalid())?;
+                    conduit_core::ExactTemperatureDifferenceConfigurationValue::new(
+                        difference,
+                        quantity.canonical_literal().map_err(|_| invalid())?,
+                    )
+                    .map(ConfigurationValue::TemperatureDifference)
+                    .ok_or_else(invalid)
+                }
+                _ => Err(invalid()),
             }
         }
         InteractionFamily::ChooseOne(_) | InteractionFamily::Text(_) => {
@@ -355,72 +399,6 @@ fn configuration_from_proposal(
         _ => Err(PlotEditorError::InvalidConfiguration(
             "unsupported configuration interaction family".into(),
         )),
-    }
-}
-
-fn accepts(rule: &KindConfigurationRule, value: &ConfigurationValue) -> bool {
-    match (rule, value) {
-        (KindConfigurationRule::Any, ConfigurationValue::Bool(_)) => true,
-        (KindConfigurationRule::U64Range { minimum, maximum }, ConfigurationValue::U64(value))
-        | (
-            KindConfigurationRule::DurationMillis { minimum, maximum },
-            ConfigurationValue::U64(value),
-        ) => (*minimum..=*maximum).contains(value),
-        (KindConfigurationRule::I64Range { minimum, maximum }, ConfigurationValue::I64(value)) => {
-            (*minimum..=*maximum).contains(value)
-        }
-        (KindConfigurationRule::TextBytes { maximum }, ConfigurationValue::Text(value)) => {
-            value.len() <= *maximum as usize
-        }
-        (KindConfigurationRule::TextOneOf { values }, ConfigurationValue::Text(value)) => {
-            values.contains(value)
-        }
-        (
-            KindConfigurationRule::QuantityRange {
-                minimum,
-                maximum,
-                canonical_unit,
-            },
-            ConfigurationValue::Quantity(value),
-        ) => value
-            .convert(*canonical_unit)
-            .map(|value| (*minimum..=*maximum).contains(&value.value()))
-            .unwrap_or(false),
-        _ => false,
-    }
-}
-
-fn configuration_refusal(rule: &KindConfigurationRule) -> String {
-    match rule {
-        KindConfigurationRule::Any => "expected a Boolean value".into(),
-        KindConfigurationRule::U64Range { minimum, maximum } => {
-            format!("enter a number from {minimum} through {maximum}")
-        }
-        KindConfigurationRule::I64Range { minimum, maximum } => {
-            format!("enter scalar microunits from {minimum} through {maximum}")
-        }
-        KindConfigurationRule::DurationMillis { minimum, maximum } => {
-            format!("enter milliseconds from {minimum} through {maximum}")
-        }
-        KindConfigurationRule::QuantityRange {
-            minimum,
-            maximum,
-            canonical_unit,
-        } => {
-            format!(
-                "enter an exact {} quantity from {minimum} through {maximum}",
-                canonical_unit.semantic_id()
-            )
-        }
-        KindConfigurationRule::TextBytes { maximum } => {
-            format!("enter at most {maximum} bytes of text")
-        }
-        KindConfigurationRule::TextOneOf { values } => {
-            format!("choose one of {}", values.join(", "))
-        }
-        KindConfigurationRule::Structured { profile } => {
-            format!("enter a value with exact profile {}", profile.as_str())
-        }
     }
 }
 
@@ -443,8 +421,8 @@ pub(crate) fn configuration_spelling(
             value.profile().as_str(),
             value.canonical_value().len()
         ),
-        (_, ConfigurationValue::Quantity(value)) => {
-            format!("{}{}", value.value(), value.unit().plot_suffix())
-        }
+        (_, ConfigurationValue::Quantity(value)) => value.source().to_string(),
+        (_, ConfigurationValue::Unit(value)) => value.source().to_string(),
+        (_, ConfigurationValue::TemperatureDifference(value)) => value.source().to_string(),
     }
 }

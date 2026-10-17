@@ -5,12 +5,12 @@
 
 use alloc::{vec, vec::Vec};
 use conduit_core::{Quantity, QuantityDimension, StructuredInfoType};
-use conduit_plot::rust_binding::NativeRustBinding;
-use conduit_presentation::{
+use conduit_face::{
     ImageColorProfile, ImageFormat, ImagePixelExtent, ImageResource, VisionColorSample,
     VisionDetection, VisionDetectionSlot, VisionDetectionsFour, VisionEvidenceClass,
     VisionKeypoint, VisionLandmarkSlot, VisionLandmarks, VisionProvenance, VisionRgbSample,
 };
+use conduit_plot::rust_binding::NativeRustBinding;
 
 pub const IMAGE_RESOURCE_TYPE: &str = "ImageResource";
 pub const VISION_DETECTION_TYPE: &str = "VisionDetection";
@@ -33,9 +33,9 @@ pub fn validate_confidence(confidence: Quantity) -> Result<(), VisionRefusal> {
         return Err(VisionRefusal::NonRatioConfidence);
     }
     let normalized = confidence
-        .convert(conduit_core::QuantityUnit::Millionth)
+        .to_i64(conduit_core::Unit::Millionth)
         .map_err(|_| VisionRefusal::ConfidenceOutOfRange)?;
-    if !(0..=1_000_000).contains(&normalized.value()) {
+    if !(0..=1_000_000).contains(&normalized) {
         return Err(VisionRefusal::ConfidenceOutOfRange);
     }
     Ok(())

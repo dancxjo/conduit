@@ -126,8 +126,8 @@
       "maximum_bytes": 24576,
       "dependencies": [
         {
-          "role": "application-syntax-presentation",
-          "specifier": "../../../targets/browser/host/assets/application-syntax-presentation.mjs"
+          "role": "application-syntax-face",
+          "specifier": "../../../targets/browser/host/assets/application-syntax-face.mjs"
         },
         {
           "role": "creche-plot-selection",
@@ -143,9 +143,9 @@
       "dependencies": []
     },
     {
-      "role": "application-syntax-presentation",
+      "role": "application-syntax-face",
       "kind": "module",
-      "path": "application-syntax-presentation.mjs",
+      "path": "application-syntax-face.mjs",
       "maximum_bytes": 8192,
       "dependencies": []
     },
@@ -153,7 +153,7 @@
       "role": "runtime",
       "kind": "wasm",
       "path": "runtime.wasm",
-      "maximum_bytes": 12582912,
+      "maximum_bytes": 20971520,
       "dependencies": []
     },
     {
@@ -245,10 +245,10 @@
       "maximum_bytes": 32768,
       "dependencies": [
         { "role": "creche-target-catalog", "specifier": "./creche-target-catalog.mjs" },
-        { "role": "creche-physical-presentation", "specifier": "./creche-physical-presentation.mjs" }
+        { "role": "creche-physical-face", "specifier": "./creche-physical-face.mjs" }
       ]
     },
-    { "role": "creche-physical-presentation", "kind": "module", "path": "creche-physical-presentation.mjs", "maximum_bytes": 8192, "dependencies": [] },
+    { "role": "creche-physical-face", "kind": "module", "path": "creche-physical-face.mjs", "maximum_bytes": 8192, "dependencies": [] },
     { "role": "creche-target-catalog", "kind": "module", "path": "creche-target-catalog.mjs", "maximum_bytes": 16384, "dependencies": [] },
     {
       "role": "creche-existing-computer",
@@ -326,10 +326,10 @@
     { "role": "device-base", "kind": "module", "path": "device-base.mjs", "maximum_bytes": 16384, "dependencies": [] },
     { "role": "usb-device-base", "kind": "module", "path": "usb-device-base.mjs", "maximum_bytes": 16384, "dependencies": [] },
     {
-      "role": "shared-presentation-style",
+      "role": "shared-face-style",
       "kind": "style",
       "path": "conduit.css",
-      "maximum_bytes": 16384,
+      "maximum_bytes": 32768,
       "dependencies": []
     },
     {
@@ -430,8 +430,12 @@
       "role": "browser-body-host",
       "kind": "module",
       "path": "browser-body-host.mjs",
-      "maximum_bytes": 24576,
+      "maximum_bytes": 32768,
       "dependencies": [
+        {
+          "role": "browser-saved-choice",
+          "specifier": "./browser-saved-choice.mjs"
+        },
         {
           "role": "browser-human-input",
           "specifier": "./browser-human-input.mjs"
@@ -439,6 +443,10 @@
         {
           "role": "browser-plot-effects",
           "specifier": "./browser-plot-effects.mjs"
+        },
+        {
+          "role": "browser-monotonic-timer",
+          "specifier": "./browser-monotonic-timer.mjs"
         },
         {
           "role": "browser-body-input",
@@ -453,19 +461,70 @@
           "specifier": "./browser-pcm-audio.mjs"
         },
         {
-          "role": "application-presentation",
-          "specifier": "./application-presentation.mjs"
+          "role": "application-face",
+          "specifier": "./application-face.mjs"
         },
         {
           "role": "browser-runtime-bridge",
           "specifier": "./browser-runtime-bridge.mjs"
+        },
+        {
+          "role": "browser-application-storage",
+          "specifier": "./browser-application-storage.mjs"
+        },
+        {
+          "role": "browser-resource-storage",
+          "specifier": "./browser-resource-storage.mjs"
         }
       ]
     },
     {
-      "role": "application-presentation",
+      "role": "browser-saved-choice",
       "kind": "module",
-      "path": "application-presentation.mjs",
+      "path": "browser-saved-choice.mjs",
+      "maximum_bytes": 8192,
+      "dependencies": [
+        {
+          "role": "application-face",
+          "specifier": "./application-face.mjs"
+        }
+      ]
+    },
+    {
+      "role": "browser-application-storage",
+      "kind": "module",
+      "path": "browser-application-storage.mjs",
+      "maximum_bytes": 16384,
+      "dependencies": []
+    },
+    {
+      "role": "browser-resource-storage",
+      "kind": "module",
+      "path": "browser-resource-storage.mjs",
+      "maximum_bytes": 4096,
+      "dependencies": [
+        {
+          "role": "browser-application-storage",
+          "specifier": "./browser-application-storage.mjs"
+        }
+      ]
+    },
+    {
+      "role": "browser-monotonic-timer",
+      "kind": "module",
+      "path": "browser-monotonic-timer.mjs",
+      "maximum_bytes": 8192,
+      "dependencies": [
+        {
+          "role": "browser-plot-effects",
+          "specifier": "./browser-plot-effects.mjs"
+        }
+      ]
+    },
+    {
+      "role": "application-face",
+      "kind": "module",
+      "path": "application-face.mjs",
       "maximum_bytes": 40960,
       "dependencies": [
         {
@@ -473,8 +532,8 @@
           "specifier": "./application-graph-canvas.mjs"
         },
         {
-          "role": "application-theme",
-          "specifier": "./application-theme.mjs"
+          "role": "application-look",
+          "specifier": "./application-look.mjs"
         }
       ]
     },
@@ -486,10 +545,10 @@
       "dependencies": []
     },
     {
-      "role": "application-theme",
+      "role": "application-look",
       "kind": "module",
-      "path": "application-theme.mjs",
-      "maximum_bytes": 8192,
+      "path": "application-look.mjs",
+      "maximum_bytes": 32768,
       "dependencies": []
     },
     {

@@ -4,11 +4,10 @@ use conduit_core::{
     ActivePlayId, AdmittedLine, ArtifactId, AuthorityBinding, AuthorityRequirement, BootId,
     CapabilityId, CapabilityLimits, CheckedPlotId, ConnectionId, ConnectionTerminalDisposition,
     DeviceAssociation, ExecutionProfileId, ExecutionRegionId, ExecutionScheduling, ExpandedPlotId,
-    FragmentId, HostAdvertisement, HostBaseId, HostBaseKindId, HostCallRequirement, HostId,
+    FaceId, FragmentId, HostAdvertisement, HostBaseId, HostBaseKindId, HostCallRequirement, HostId,
     HostProfileId, ImplementationId, KindId, KindIdentity, LineOffer, Observation, OfferGeneration,
-    PlacementId, Plan, PlanId, PlannerCapabilityOffer, PortDescriptor, PresentationId,
-    ResourceBinding, ResourceOffer, ResourceRequirement, SignId, SourceDocumentId,
-    TerminalDisposition,
+    PlacementId, Plan, PlanId, PlannerCapabilityOffer, PortDescriptor, ResourceBinding,
+    ResourceOffer, ResourceRequirement, SignId, SourceDocumentId, TerminalDisposition,
 };
 use serde::{Deserialize, Serialize};
 
@@ -298,6 +297,13 @@ pub struct ExecutionRegionRow {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ExecutionFusionRow {
+    pub plan_id: PlanId,
+    pub fragment_id: FragmentId,
+    pub fusion: conduit_core::PlannedFusion,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct FragmentRow {
     pub plan_id: PlanId,
     pub fragment_id: FragmentId,
@@ -305,8 +311,30 @@ pub struct FragmentRow {
     pub boot_id: BootId,
 }
 
+/// Original logical identity and Fore contracts, copied from the sealed Plan.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LogicalGearRow {
+    pub gear_id: conduit_core::GearId,
+    pub source_span: Option<conduit_core::SourceSpan>,
+    pub inputs: Vec<PortDescriptor>,
+    pub outputs: Vec<PortDescriptor>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LogicalCordRow {
+    pub source_port_id: conduit_core::PortId,
+    pub sink_port_id: conduit_core::PortId,
+    pub track: conduit_core::ConnectionTrack,
+    pub temporal: conduit_core::PortTemporal,
+    pub pressure_policy: conduit_core::DeliveryPressurePolicy,
+    pub abnormal_kind: Option<KindId>,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PlacementRow {
+    /// Older retained reports have unknown logical provenance, never invented IDs.
+    #[serde(default)]
+    pub logical_gear: Option<LogicalGearRow>,
     pub plan_id: PlanId,
     pub placement_id: PlacementId,
     pub host_id: HostId,
@@ -325,6 +353,8 @@ pub struct PlacementRow {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ConnectionRow {
+    #[serde(default)]
+    pub logical_cord: Option<LogicalCordRow>,
     pub plan_id: PlanId,
     pub connection_id: ConnectionId,
     pub source_placement_id: PlacementId,
@@ -340,7 +370,7 @@ pub struct ConnectionRow {
 pub struct SignRow {
     pub sign_id: SignId,
     pub active_play_id: Option<ActivePlayId>,
-    pub presentation_id: Option<PresentationId>,
+    pub face_id: Option<FaceId>,
     pub host_id: HostId,
     pub boot_id: BootId,
     pub plan_id: Option<PlanId>,
@@ -368,11 +398,16 @@ pub struct ObservatoryReport {
     pub lines: Vec<LineRow>,
     pub plans: Vec<PlanRow>,
     pub execution_regions: Vec<ExecutionRegionRow>,
+    #[serde(default)]
+    pub execution_fusions: Vec<ExecutionFusionRow>,
     pub fragments: Vec<FragmentRow>,
     pub placements: Vec<PlacementRow>,
     pub connections: Vec<ConnectionRow>,
     pub plays: Vec<PlayReport>,
     pub signs: Vec<SignRow>,
+    /// Read-only typed print event descriptions; not aggregate job state.
+    #[serde(default)]
+    pub print_events: Vec<String>,
     pub sealed_boot_provenance: Vec<SealedBootProvenanceReport>,
     pub retention: RetentionRow,
 }

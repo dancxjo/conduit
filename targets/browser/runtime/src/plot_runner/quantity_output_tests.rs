@@ -25,7 +25,7 @@ plot zz-quantity-output {{
  input: scalar/literal(value = {value})
  map: {name}
  wrap: structured-info/wrap-quantity
- show: presentation/quantity
+ show: face/quantity("Measured quantity")
  input.value >> map.control
  map.{output} >> wrap.in
  wrap.out >> show.input
@@ -37,20 +37,20 @@ plot zz-quantity-output {{
                 &source,
                 index as u64,
                 MorseRealization::Direct,
-                crate::installed_browser::PresentationProfile::Quantity,
+                crate::installed_browser::FaceProfile::Quantity,
             )
             .unwrap();
             let TourHostEffect::Manifestation(effect) = effect else {
-                panic!("expected an actual planned presentation");
+                panic!("expected an actual planned face");
             };
             assert_eq!(effect.text.as_deref(), Some(expected[index]));
             assert_eq!(
-                effect.presentation_kind,
-                conduit_semantic_catalog::QUANTITY_PRESENTATION_KIND
+                effect.face_kind,
+                conduit_semantic_catalog::QUANTITY_FACE_KIND
             );
             assert_eq!(effect.plan_id, session.fragments[0].plan_id.as_str());
             assert_eq!(effect.active_play_id, session.active_play_id.as_str());
-            assert!(!effect.presentation_id.is_empty());
+            assert!(!effect.face_id.is_empty());
             assert!(effect
                 .expanded_gears
                 .iter()

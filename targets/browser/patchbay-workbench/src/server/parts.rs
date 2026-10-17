@@ -7,7 +7,7 @@ use serde::Deserialize;
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct HtmlPartsInteractionInput {
-    presentation_id: String,
+    face_id: String,
     body_id: String,
     action: String,
     target: String,
@@ -26,11 +26,11 @@ impl PatchbayHtmlServer {
         self.snapshot.interaction.selected_part = None;
         self.snapshot.interaction.selected_candidate = None;
 
-        let stale = input.presentation_id != self.snapshot.presentation.identity.as_str()
+        let stale = input.face_id != self.snapshot.face.identity.as_str()
             || input.body_id != parts.body_id.as_str();
         let mut disposition = "Refused";
         let feedback = if stale {
-            "Parts action refused: the presentation or Body basis is stale".into()
+            "Parts action refused: the face or Body basis is stale".into()
         } else if input.action == "Inspect" {
             if parts
                 .parts
@@ -40,7 +40,7 @@ impl PatchbayHtmlServer {
                 let subject = format!("part/{}", input.target);
                 self.snapshot
                     .entrance
-                    .select(&self.snapshot.presentation, &subject)
+                    .select(&self.snapshot.face, &subject)
                     .map_err(|error| ServerError::Interaction(format!("{error:?}")))?;
                 self.snapshot.interaction.selected_part = Some(input.target);
                 disposition = "Succeeded";
@@ -53,7 +53,7 @@ impl PatchbayHtmlServer {
                 let subject = format!("candidate/{}", input.target);
                 self.snapshot
                     .entrance
-                    .select(&self.snapshot.presentation, &subject)
+                    .select(&self.snapshot.face, &subject)
                     .map_err(|error| ServerError::Interaction(format!("{error:?}")))?;
                 self.snapshot.interaction.selected_candidate = Some(input.target);
                 disposition = "Succeeded";

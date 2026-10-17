@@ -1,8 +1,6 @@
 //! Numeric composition and all runtime storage admission before Play.
 use super::*;
-use crate::keyboard_text_backs::{
-    ApplicationBack, KeyboardBack, PresentationBack, StreamTransformBack,
-};
+use crate::keyboard_text_backs::{ApplicationBack, FaceBack, KeyboardBack, StreamTransformBack};
 use alloc::vec::Vec;
 use conduit_kernel::{
     FixedHostCallBindings, FixedRoutes, ValueStorage,
@@ -27,7 +25,10 @@ pub(super) fn prepare(
         FixedValueStore::<10, 3072>::new(24_576).map_err(|_| WorksetRefusal::Kernel)?;
     let empty = values.store(&[]).map_err(|_| WorksetRefusal::Kernel)?;
     let mut bindings = [None; NODES];
+    #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
     let mut editors = core::array::from_fn(|_| None);
+    let mut keymaps = core::array::from_fn(|_| PreparedKeymap::default_layout());
+    let mut admitted_editors = [false; PLOTS];
     let mut operations = Vec::with_capacity(NODES);
     for (plot, part) in parts.iter().enumerate() {
         let fragment = &prepared.plan.plots[plot].plan.fragments[0];
@@ -75,17 +76,44 @@ pub(super) fn prepare(
                         initial: true,
                     }),
                 ),
-                super::super::application_delivery::PRESENTATION_IMPLEMENTATION => (
-                    Effect::ApplicationPresentation,
-                    PlannedBack::Presentation(PresentationBack {
+                super::super::application_delivery::FACE_IMPLEMENTATION => (
+                    Effect::ApplicationFace,
+                    PlannedBack::Face(FaceBack {
                         pending: None,
                         next: 0,
                     }),
                 ),
-                crate::keyboard_text_plan::KEYMAP_IMPLEMENTATION => (
-                    Effect::Keymap,
-                    PlannedBack::Keymap(StreamTransformBack::new(true)),
-                ),
+                crate::keyboard_text_plan::KEYMAP_IMPLEMENTATION => {
+                    // This Back has no selected-layout Host Call. Refuse a
+                    // wired selection rather than silently keep the startup layout.
+                    if fragment.connections.iter().any(|cord| {
+                        cord.sink_placement_id == placement.placement_id
+                            && cord.sink_port_id.as_str() == "selection"
+                    }) {
+                        return Err(WorksetRefusal::Plan);
+                    }
+                    let layout = placement
+                        .configuration
+                        .iter()
+                        .find_map(|entry| match (entry.key.as_str(), &entry.value) {
+                            ("layout", conduit_core::ConfigurationValue::Structured(layout)) => {
+                                Some(layout)
+                            }
+                            _ => None,
+                        })
+                        .ok_or(WorksetRefusal::Plan)?;
+                    #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+                    if layout != &conduit_human::default_keymap_configuration() {
+                        // The protected domain admits only its source-generated static layout.
+                        return Err(WorksetRefusal::Plan);
+                    }
+                    keymaps[plot] =
+                        PreparedKeymap::new(layout).map_err(|_| WorksetRefusal::Plan)?;
+                    (
+                        Effect::Keymap,
+                        PlannedBack::Keymap(StreamTransformBack::new(true)),
+                    )
+                }
                 crate::offer::TEXT_UPPER_IMPLEMENTATION => (
                     Effect::Upper,
                     PlannedBack::Upper(StreamTransformBack::new(false)),
@@ -101,30 +129,46 @@ pub(super) fn prepare(
                             _ => None,
                         })
                         .ok_or(WorksetRefusal::Plan)?;
-                    if editors[plot].is_some() {
+                    if admitted_editors[plot] {
                         return Err(WorksetRefusal::Plan);
                     }
-                    editors[plot] = Some(
-                        BoundedTextState::new(
-                            conduit_semantic_catalog::TextStateMode::Edit,
-                            maximum,
-                        )
-                        .map_err(|_| WorksetRefusal::Plan)?,
-                    );
+                    #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
+                    {
+                        editors[plot] = Some(
+                            BoundedTextState::new(
+                                conduit_semantic_catalog::TextStateMode::Edit,
+                                maximum,
+                            )
+                            .map_err(|_| WorksetRefusal::Plan)?,
+                        );
+                    }
+                    #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+                    if maximum == 0 || maximum > 256 {
+                        return Err(WorksetRefusal::Plan);
+                    }
+                    admitted_editors[plot] = true;
                     // Edit is an ordinary one-input/one-output transform; the
                     // installed host binding gives it retained text semantics.
                     (
                         Effect::Edit,
-                        PlannedBack::TextEdit(StreamTransformBack::new(false)),
+                        PlannedBack::TextEdit(StreamTransformBack::initially_empty(
+                            values.store(&[]).map_err(|_| WorksetRefusal::Kernel)?,
+                        )),
                     )
                 }
-                crate::offer::TEXT_PRESENTATION_IMPLEMENTATION => (
-                    Effect::Presentation,
-                    PlannedBack::Presentation(PresentationBack {
-                        pending: None,
-                        next: 0,
-                    }),
-                ),
+                crate::offer::TEXT_FACE_IMPLEMENTATION => {
+                    if conduit_semantic_catalog::text_face_insertion_caret(&placement.configuration)
+                    {
+                        return Err(WorksetRefusal::Plan);
+                    }
+                    (
+                        Effect::Face,
+                        PlannedBack::Face(FaceBack {
+                            pending: None,
+                            next: 0,
+                        }),
+                    )
+                }
                 _ => return Err(WorksetRefusal::Capability),
             };
             bindings[operations.len()] = Some(Binding {
@@ -232,18 +276,29 @@ pub(super) fn prepare(
         });
     }
     Ok(NativeWorksetPlay {
+        #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+        pure_results: core::array::from_fn(|_| None),
+        #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+        protected: core::array::from_fn(|_| None),
+        #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+        protection_admissions: core::array::from_fn(|index| {
+            prepared.protected_text.get(index).cloned().flatten()
+        }),
         scheduler: Box::new(scheduler),
         bindings,
-        keymaps: core::array::from_fn(|_| ConduitIntlKeymap::new()),
+        keymaps,
+        #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
         editors,
         pending: [None; PLOTS],
         held: [None; 256],
-        presentations: [None; PLOTS],
+        faces: [None; PLOTS],
         application_views: core::array::from_fn(|_| None),
         applications,
         application_requests: core::array::from_fn(|_| None),
         input_owners: core::array::from_fn(|index| prepared.input_owners.get(index).cloned()),
         plot_count: count,
         cancelled: false,
+        admitted_plan: prepared.plan.plan_id.clone(),
+        active_body_play: None,
     })
 }

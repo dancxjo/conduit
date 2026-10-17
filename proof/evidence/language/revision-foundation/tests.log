@@ -1,0 +1,103 @@
+   Compiling conduit-core v0.1.0 (/home/dancxjo/conduit-5196-revision-foundation/architecture/core)
+   Compiling conduit-assigned-plan v0.1.0 (/home/dancxjo/conduit-5196-revision-foundation/architecture/assigned-plan)
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/conduit-5196-revision-foundation/architecture/plot)
+   Compiling conduit-time v0.1.0 (/home/dancxjo/conduit-5196-revision-foundation/semantics/time)
+   Compiling syn v2.0.119
+   Compiling zeroize_derive v1.5.0
+   Compiling zeroize v1.9.0
+   Compiling subtle v2.6.1
+   Compiling conduit-data v0.1.0 (/home/dancxjo/conduit-5196-revision-foundation/semantics/data)
+   Compiling curve25519-dalek-derive v0.1.1
+   Compiling conduit-human v0.1.0 (/home/dancxjo/conduit-5196-revision-foundation/semantics/human)
+   Compiling curve25519-dalek v4.1.3
+   Compiling signature v2.2.0
+   Compiling ed25519 v2.2.3
+   Compiling postcard v1.1.3
+   Compiling ed25519-dalek v2.2.0
+   Compiling conduit-presentation v0.1.0 (/home/dancxjo/conduit-5196-revision-foundation/semantics/presentation)
+   Compiling conduit-audio v0.1.0 (/home/dancxjo/conduit-5196-revision-foundation/semantics/audio)
+   Compiling conduit-body v0.1.0 (/home/dancxjo/conduit-5196-revision-foundation/architecture/body)
+   Compiling conduit-kernel v0.1.0 (/home/dancxjo/conduit-5196-revision-foundation/architecture/kernel)
+   Compiling conduit-education v0.1.0 (/home/dancxjo/conduit-5196-revision-foundation/semantics/education)
+   Compiling conduit-process v0.1.0 (/home/dancxjo/conduit-5196-revision-foundation/semantics/process)
+   Compiling conduit-net v0.1.0 (/home/dancxjo/conduit-5196-revision-foundation/semantics/net)
+   Compiling conduit-web v0.1.0 (/home/dancxjo/conduit-5196-revision-foundation/semantics/web)
+   Compiling conduit-text v0.1.0 (/home/dancxjo/conduit-5196-revision-foundation/semantics/text)
+   Compiling conduit-robotics v0.1.0 (/home/dancxjo/conduit-5196-revision-foundation/semantics/robotics)
+   Compiling conduit-alife v0.1.0 (/home/dancxjo/conduit-5196-revision-foundation/semantics/alife)
+   Compiling conduit-purpose v0.1.0 (/home/dancxjo/conduit-5196-revision-foundation/semantics/purpose)
+   Compiling inout v0.1.4
+   Compiling cipher v0.4.4
+   Compiling conduit-midi v0.1.0 (/home/dancxjo/conduit-5196-revision-foundation/mechanisms/protocols/midi)
+   Compiling universal-hash v0.5.1
+   Compiling conduit-language v0.1.0 (/home/dancxjo/conduit-5196-revision-foundation/semantics/language)
+   Compiling poly1305 v0.8.0
+   Compiling conduit-semantic-catalog v0.1.0 (/home/dancxjo/conduit-5196-revision-foundation/semantics/catalog)
+   Compiling chacha20 v0.9.1
+   Compiling conduit-ai v0.1.0 (/home/dancxjo/conduit-5196-revision-foundation/semantics/ai)
+   Compiling aead v0.5.2
+   Compiling chacha20poly1305 v0.10.1
+   Compiling conduit-tutorial-plot v0.1.0 (/home/dancxjo/conduit-5196-revision-foundation/semantics/tutorial)
+   Compiling conduit-wire v0.1.0 (/home/dancxjo/conduit-5196-revision-foundation/architecture/wire)
+   Compiling conduit-home-model v0.1.0 (/home/dancxjo/conduit-5196-revision-foundation/semantics/home)
+   Compiling rand_core v0.6.4
+   Compiling x25519-dalek v2.0.1
+   Compiling noise-rust-crypto v0.6.2
+   Compiling patchbay-graph v0.1.0 (/home/dancxjo/conduit-5196-revision-foundation/plots/patchbay/graph)
+   Compiling conduit-plan-lowering v0.1.0 (/home/dancxjo/conduit-5196-revision-foundation/architecture/plan-lowering)
+   Compiling patchbay-control v0.1.0 (/home/dancxjo/conduit-5196-revision-foundation/plots/patchbay)
+   Compiling conduitos v0.1.0 (/home/dancxjo/conduit-5196-revision-foundation/targets/conduitos)
+   Compiling bitflags v2.13.2
+   Compiling limine v0.5.0
+   Compiling patchbay-application v0.1.0 (/home/dancxjo/conduit-5196-revision-foundation/plots/patchbay/application)
+   Compiling conduit-composite v0.1.0 (/home/dancxjo/conduit-5196-revision-foundation/architecture/composite)
+   Compiling conduit-protected-line v0.1.0 (/home/dancxjo/conduit-5196-revision-foundation/architecture/protected-line)
+   Compiling conduit-tour-model v0.1.0 (/home/dancxjo/conduit-5196-revision-foundation/plots/tour)
+   Compiling conduit-observatory v0.1.0 (/home/dancxjo/conduit-5196-revision-foundation/architecture/observatory)
+   Compiling conduit-planner v0.1.0 (/home/dancxjo/conduit-5196-revision-foundation/architecture/planner)
+   Compiling conduit-birth-plot v0.1.0 (/home/dancxjo/conduit-5196-revision-foundation/plots/birth)
+   Compiling conduit-synth v0.1.0 (/home/dancxjo/conduit-5196-revision-foundation/mechanisms/implementations/synth)
+   Compiling conduit-conduitos-mask-offer v0.1.0 (/home/dancxjo/conduit-5196-revision-foundation/targets/conduitos/mask-offer)
+    Finished `test` profile [unoptimized] target(s) in 51.71s
+     Running tests/lexical.rs (/home/dancxjo/conduit/target/debug/deps/lexical-d046862d53658be9)
+
+running 6 tests
+test unicode_runs_are_honest_unknown_units_not_segmented_language_claims ... ok
+test words_are_whole_and_lexical_ambiguity_is_profile_data ... ok
+test foreign_source_profiles_and_duplicate_data_refuse ... ok
+test stable_complete_occurrences_correspond_across_exact_revisions ... ok
+test scalar_spans_bounds_and_stale_source_are_checked ... ok
+test lexical_schemas_are_available_through_installed_catalog ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.08s
+
+     Running tests/parser_availability_foundation.rs (/home/dancxjo/conduit/target/debug/deps/parser_availability_foundation-58a2beb31947bd70)
+
+running 2 tests
+test source_availability_rejects_foreign_occurrence_revision_and_excess_extent ... ok
+test source_availability_keeps_incomplete_occurrences_out_and_finality_distinct ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.96s
+
+     Running tests/revision_lineage.rs (/home/dancxjo/conduit/target/debug/deps/revision_lineage-902717f1c0f79364)
+
+running 6 tests
+test source_sequence_is_exact_above_float_precision_and_refuses_overflow ... ok
+test metadata_lineage_does_not_authorize_rewriting_a_stable_scalar_prefix ... ok
+test lineage_schema_is_admitted_through_installed_catalog ... ok
+test source_refuses_foreign_identity_or_language ... ok
+test source_admits_exact_unchanged_material_and_whole_revision_advance ... ok
+test source_refuses_missing_foreign_stale_and_reused_revision_metadata ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+     Running tests/text_revision.rs (/home/dancxjo/conduit/target/debug/deps/text_revision-94ab8a084dc8fb13)
+
+running 4 tests
+test finality_and_stability_do_not_commit_or_bypass_finite_tail ... ok
+test exact_prior_and_sequence_are_required ... ok
+test refused_or_unpublished_candidates_preserve_previous_material ... ok
+test revisions_grow_and_revise_before_finality_on_scalar_basis ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

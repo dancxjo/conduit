@@ -45,7 +45,7 @@ pub(crate) fn temporal_instant_type() -> StructuredInfoType {
                     kind_id("time/scale@1"),
                     ["seconds", "milliseconds", "microseconds", "nanoseconds"]
                         .into_iter()
-                        .map(|tag| case(tag, leaf("value/unit")))
+                        .map(|tag| case(tag, leaf("value/empty")))
                         .collect(),
                 )
                 .unwrap(),
@@ -61,7 +61,7 @@ fn optional_calibration_type() -> StructuredInfoType {
         kind_id("experience/optional-calibration-profile@1"),
         vec![
             case("known", leaf("value/text")),
-            case("none", leaf("value/unit")),
+            case("none", leaf("value/empty")),
         ],
     )
     .unwrap()
@@ -84,7 +84,7 @@ pub(crate) fn observation_envelope_type(
     let availability = StructuredInfoType::variant(
         kind_id(&format!("{kind}/availability@1")),
         vec![
-            case("missing", leaf("value/unit")),
+            case("missing", leaf("value/empty")),
             case("present", present),
             case(
                 "unavailable",

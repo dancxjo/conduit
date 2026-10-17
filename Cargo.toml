@@ -25,7 +25,7 @@ members = [
 	"semantics/human",
 	"semantics/language",
 	"semantics/net",
-	"semantics/presentation",
+	"semantics/face",
 	"semantics/process",
 	"semantics/purpose",
 	"semantics/robotics",
@@ -50,17 +50,23 @@ members = [
 	"mechanisms/implementations/linear-framebuffer-make",
 	"mechanisms/implementations/emergency-keyword-spotter",
 	"mechanisms/implementations/synth",
+	"mechanisms/implementations/burn-model",
 	"mechanisms/protocols/bluetooth",
 	"mechanisms/protocols/midi",
 
 	# Product and application compositions.
 	"products/conduit",
 	"plots/birth",
+	"plots/todo/model",
 	"semantics/home",
 	"semantics/plot-library",
 	"semantics/tutorial",
 	"semantics/body-invitation",
 	"plots/tour",
+	"plots/todo/face",
+	"plots/thermostat/model",
+	"plots/thermostat/face",
+	"plots/thermostat/runtime",
 	"targets/std/patchbay-workbench",
 	"targets/browser/patchbay-workbench",
 	"plots/patchbay/workbench/model",
@@ -97,6 +103,7 @@ members = [
 	"proof/conformance/patchbay-workbench",
 	"proof/conformance/pete-workload",
 	"proof/conformance/signal",
+	"proof/performance/runtime",
 	"proof/fixtures/rp2040-pio-audio-extension",
 
 	# Repository-development tooling.
@@ -115,3 +122,13 @@ resolver = "2"
 [profile.release.package.conduit-browser-runtime]
 opt-level = "z"
 strip = "symbols"
+
+[profile.release]
+strip = "symbols"
+
+# Source checking and binding generation also run inside build dependencies.
+[profile.dev.build-override]
+opt-level = 1
+
+[profile.test.build-override]
+opt-level = 1

@@ -5,11 +5,11 @@ use conduit_core::{
     LinkLimits, OfferGeneration, PlanId, PortId, ResourceClassId, ResourceHandleId, SignId,
     PROTOCOL_VERSION,
 };
-use conduit_human::{MediaConstraints, MediaFlowBounds};
-use conduit_presentation::{
+use conduit_face::{
     OwnerFaceSnapshotRequest, OwnerFaceSnapshotResponse, OWNER_FACE_REQUEST_SCHEMA,
     OWNER_FACE_RESPONSE_SCHEMA,
 };
+use conduit_human::{MediaConstraints, MediaFlowBounds};
 use conduit_wire::{
     decode_session_frame, encode_session_frame_into, LineAttachment, SessionBinding,
     SessionEndpointIdentity, SessionFrame, SessionLimits, SessionMessage,
@@ -168,7 +168,7 @@ fn owner_face_frames_require_one_exact_credential_basis_and_bounded_response() {
             code: "face-unavailable".into(),
         },
     };
-    let mut output = [0; MAX_BROWSER_ADMISSION_FRAME_BYTES];
+    let mut output = vec![0; MAX_BROWSER_ADMISSION_FRAME_BYTES];
     let length = encode_browser_admission_frame(&response, &mut output).unwrap();
     assert_eq!(
         serde_json::from_slice::<BrowserAdmissionEgress>(&output[..length]).unwrap(),
@@ -271,7 +271,7 @@ fn acquired_media_truth_and_later_use_plan_are_exact_bounded_frames() {
         resource_handle: ResourceHandleId::from("track/opaque-1"),
         output_port: PortId::from("frame"),
     };
-    let mut output = [0; MAX_BROWSER_ADMISSION_FRAME_BYTES];
+    let mut output = vec![0; MAX_BROWSER_ADMISSION_FRAME_BYTES];
     let length = encode_browser_admission_frame(&plan, &mut output).unwrap();
     assert_eq!(
         serde_json::from_slice::<BrowserAdmissionEgress>(&output[..length]).unwrap(),
@@ -375,7 +375,7 @@ fn bounded_webrtc_grant_request_and_reply_round_trip() {
         total: 1,
         grant: Some(canonical_grant()),
     };
-    let mut output = [0; MAX_BROWSER_ADMISSION_FRAME_BYTES];
+    let mut output = vec![0; MAX_BROWSER_ADMISSION_FRAME_BYTES];
     let length = encode_browser_admission_frame(&reply, &mut output).unwrap();
     assert_eq!(
         serde_json::from_slice::<BrowserAdmissionEgress>(&output[..length]).unwrap(),
@@ -581,7 +581,7 @@ fn loopback_socket_carries_one_exact_inert_advertisement_and_refusal() {
         .unwrap();
         line.send_binary(&serde_json::to_vec(&expected).unwrap())
             .unwrap();
-        let mut response = [0; MAX_BROWSER_ADMISSION_FRAME_BYTES];
+        let mut response = vec![0; MAX_BROWSER_ADMISSION_FRAME_BYTES];
         let length = line.receive_binary(&mut response).unwrap();
         serde_json::from_slice::<BrowserAdmissionEgress>(&response[..length]).unwrap()
     });

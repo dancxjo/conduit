@@ -1,7 +1,7 @@
 //! Lower exact plans and admit child kernels, boundary routes and Host Call obligations.
 use super::*;
 use conduit_core::{bind_active_play, semantic_digest};
-use conduit_plan_lowering::lowering::{lower_plan_fragment, RemoteCordDirection};
+use conduit_plan_lowering::lowering::{lower_plan_fragment_from_plan, RemoteCordDirection};
 
 impl KernelCompositePreparation {
     pub fn prepare(plan: Plan) -> Result<Self, KernelCompositeError> {
@@ -11,8 +11,9 @@ impl KernelCompositePreparation {
         let mut children = BTreeMap::new();
         for fragment in &plan.fragments {
             let child = fragment.host_id.clone();
-            let lowered =
-                lower_plan_fragment(fragment).map_err(|error| KernelCompositeError::Lowering {
+            let lowered = lower_plan_fragment_from_plan(&plan, &fragment.fragment_id)
+                .map(|(lowered, _)| lowered)
+                .map_err(|error| KernelCompositeError::Lowering {
                     child: child.clone(),
                     error,
                 })?;
@@ -40,6 +41,15 @@ impl KernelCompositeHost {
     pub fn prepare(
         definition: KernelCompositeDefinition,
         registry: &KernelOperationRegistry,
+    ) -> Result<Self, KernelCompositeError> {
+        Self::prepare_with_sign_storage(definition, registry, KernelCompositeSignStorage::default())
+    }
+
+    /// Admit explicit extra finite Sign storage before any child starts Play.
+    pub fn prepare_with_sign_storage(
+        definition: KernelCompositeDefinition,
+        registry: &KernelOperationRegistry,
+        sign_storage: KernelCompositeSignStorage,
     ) -> Result<Self, KernelCompositeError> {
         let preparation = KernelCompositePreparation::prepare(definition.internal_plan.clone())?;
         let mut child_boundaries = BTreeMap::<HostId, Vec<BoundaryEndpoint>>::new();
@@ -196,6 +206,7 @@ impl KernelCompositeHost {
                 lowered,
                 child_boundaries.remove(&child).unwrap_or_default(),
                 registry,
+                sign_storage,
             )
             .map_err(|reason| KernelCompositeError::ChildRefused {
                 child: child.clone(),
@@ -226,6 +237,7 @@ impl KernelCompositeHost {
             fronts,
             links,
             active_plays,
+            parent_play_binding: None,
             started: false,
             cancelled: false,
             host_call_obligations,

@@ -207,9 +207,67 @@ fn nested_conditional_and_variant_fields_preserve_every_active_refinement() {
     assert!(compile(&source.replace("{address: 8}", "{address: 0}"))
         .unwrap_err()
         .contains("law validator"));
-    let variant = "type Query = {\n address: U8 in 8..=119\n}\ntype Choice =\n known Query\n | missing\nplot choose (\n >> query: Query\n result: Choice >>\n) = (.address == 8 ? known(.) : missing(unit))\n";
+    let variant = "type Query = {\n address: U8 in 8..=119\n}\ntype Choice =\n known Query\n | missing\nplot choose (\n >> query: Query\n result: Choice >>\n) = (.address == 8 ? known(.) : missing(empty))\n";
     assert!(compile(variant).is_ok());
     assert!(compile(&variant.replace("known(.)", "known({address: 0})"))
         .unwrap_err()
         .contains("law validator"));
+}
+
+#[test]
+fn variant_payload_projection_preserves_exact_forwarded_refinements() {
+    let source = "type Address = {\n address: U8 in 8..=119\n}\ntype Choice =\n known Address\n | missing\nplot choose (\n >> input: Choice\n output: Choice >>\n) = (. is known ? known({address: .known.address}) : missing(empty))\n";
+    assert!(compile(source).is_ok());
+    let broad_input = "type Broad = {\n address: U8 in 0..=255\n}\ntype InputChoice =\n known Broad\n | missing\n";
+    let rejected = format!(
+        "{broad_input}{}",
+        source.replace("input: Choice", "input: InputChoice")
+    );
+    assert!(compile(&rejected).unwrap_err().contains("law validator"));
+    assert!(
+        compile(&source.replace("address: .known.address", "address: .known.address + 1"))
+            .unwrap_err()
+            .contains("law validator")
+    );
+}
+
+#[test]
+fn named_sequence_construction_checks_each_nominal_element_and_empty_sequences() {
+    let source = "type Word = Text <= 4B not in [\"\"]\ntype Words = sequence Word <= 2\ntype Frame = {\n words: Words\n}\nplot choose (\n >> input: Boolean\n output: Frame >>\n) = ({words: [\"β\", \"one\"]})\n";
+    assert!(compile(source).is_ok());
+    assert!(compile(&source.replace("[\"β\", \"one\"]", "[]")).is_ok());
+    for invalid in ["[\"\"]", "[\"hello\"]", "[\"one\", \"hello\"]"] {
+        assert!(compile(&source.replace("[\"β\", \"one\"]", invalid)).is_err());
+    }
+}
+
+#[test]
+fn closed_record_construction_executes_its_where_laws_before_play() {
+    let source = "type Frame = {\n value: I64\n where .value >= 0\n}\nplot choose (\n >> input: Boolean\n output: Frame >>\n) = ({value: 1})\n";
+    assert!(compile(source).is_ok());
+    assert!(compile(&source.replace("value: 1", "value: -1")).is_err());
+    assert!(compile(&source.replace("value: 1", "value: . ? 1 : -1")).is_err());
+}
+
+#[test]
+fn closed_parent_laws_cannot_bypass_nested_record_collection_or_variant_laws() {
+    let types = "type Child = {\n value: I64\n where .value == 1\n}\ntype Wrapped = {\n child: Child\n}\ntype Choice =\n known Wrapped\n | unknown\n";
+    for (field, value) in [
+        ("child: Child", "child: {value: 1}"),
+        (
+            "children: sequence Child in 1..=2",
+            "children: [{value: 1}]",
+        ),
+        (
+            "choice: Choice",
+            "choice: Choice.known({child: {value: 1}})",
+        ),
+    ] {
+        let source = format!("{types}type Parent = {{\n {field}\n marker: I64\n where .marker == 1\n}}\nplot choose (\n >> input: Boolean\n output: Parent >>\n) = ({{{value}, marker: 1}})\n");
+        assert!(compile(&source).is_ok(), "valid {field}");
+        assert!(
+            compile(&source.replace("value: 1", "value: 2")).is_err(),
+            "parent must retain child law: {field}"
+        );
+    }
 }

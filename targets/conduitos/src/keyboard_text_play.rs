@@ -6,7 +6,7 @@ mod standing_tests;
 
 use alloc::boxed::Box;
 use conduit_core::PlanFragment;
-use conduit_human::{ConduitIntlKeymap, KeyEvent, KeymapDisposition};
+use conduit_human::{KeyEvent, PreparedKeymap};
 use conduit_kernel::{
     BoundedValueRef, Failure, FailureCode, FixedHostCallBindings, FixedRoutes, FixedSignLog,
     FixedValueStore, HostCallDisposition, HostCallOutcome, KernelEvent, NodeId, SignSink, ValueRef,
@@ -16,13 +16,13 @@ use conduit_kernel::{
 use conduit_plan_lowering::lowering::{FIXED_KERNEL_STORAGE_PORTS_PER_NODE, LoweredPlanFragment};
 
 use crate::{
-    keyboard_text_backs::{KeyboardBack, PlannedBack, PresentationBack, StreamTransformBack},
+    keyboard_text_backs::{FaceBack, KeyboardBack, PlannedBack, StreamTransformBack},
     keyboard_text_plan::PreparedKeyboardTextPlay,
     ordinary_plan::PreparationError,
 };
 
 pub const MAXIMUM_INPUT_EVENTS: usize = 48;
-pub const MAXIMUM_PRESENTATIONS: usize = 16;
+pub const MAXIMUM_FACES: usize = 16;
 const MAX_NODES: usize = 4;
 const MAX_CORDS: usize = 3;
 const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
@@ -51,21 +51,23 @@ type Scheduler = FixedScheduler<
 >;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct PresentationFragment {
-    bytes: [u8; 4],
+pub struct FaceFragment {
+    bytes: [u8; conduit_human::KEYMAP_MAXIMUM_TEXT_BYTES * 3],
     len: u8,
 }
 
-impl PresentationFragment {
+impl FaceFragment {
     pub fn as_bytes(&self) -> &[u8] {
         &self.bytes[..usize::from(self.len)]
     }
 
     fn from_bytes(bytes: &[u8]) -> Result<Self, PreparationError> {
-        if bytes.len() > 4 || core::str::from_utf8(bytes).is_err() {
+        if bytes.len() > conduit_human::KEYMAP_MAXIMUM_TEXT_BYTES * 3
+            || core::str::from_utf8(bytes).is_err()
+        {
             return Err(PreparationError::KernelRejected);
         }
-        let mut value = [0; 4];
+        let mut value = [0; conduit_human::KEYMAP_MAXIMUM_TEXT_BYTES * 3];
         value[..bytes.len()].copy_from_slice(bytes);
         Ok(Self {
             bytes: value,
@@ -76,8 +78,8 @@ impl PresentationFragment {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct KeyboardTextPlayReport {
-    pub presentations: [Option<PresentationFragment>; MAXIMUM_PRESENTATIONS],
-    pub presentation_count: u8,
+    pub faces: [Option<FaceFragment>; MAXIMUM_FACES],
+    pub face_count: u8,
     pub decisions: u32,
     pub signs: u16,
     pub completed: bool,
@@ -88,8 +90,8 @@ pub struct KeyboardTextKernel {
     keyboard_node: NodeId,
     keymap_node: NodeId,
     upper_node: NodeId,
-    presentation_node: NodeId,
-    keymap: ConduitIntlKeymap,
+    face_node: NodeId,
+    keymap: PreparedKeymap,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -97,7 +99,7 @@ pub enum KeyboardTextRequestKind {
     Keyboard,
     Keymap,
     Upper,
-    Presentation,
+    Face,
 }
 
 impl KeyboardTextKernel {
@@ -136,8 +138,8 @@ impl KeyboardTextKernel {
             Ok(KeyboardTextRequestKind::Keymap)
         } else if request.node == self.upper_node {
             Ok(KeyboardTextRequestKind::Upper)
-        } else if request.node == self.presentation_node {
-            Ok(KeyboardTextRequestKind::Presentation)
+        } else if request.node == self.face_node {
+            Ok(KeyboardTextRequestKind::Face)
         } else {
             Err(SchedulerError::InvalidHostCallAccess)
         }
@@ -172,20 +174,15 @@ impl KeyboardTextKernel {
         let input = self.scheduler.host_value(request.input.value)?;
         let event = KeyEvent::decode(input).map_err(|_| SchedulerError::InvalidHostCallAccess)?;
         let output = match self.keymap.apply(event) {
-            KeymapDisposition::Text(fragment) => Some(fragment),
-            KeymapDisposition::NoText | KeymapDisposition::Cancelled => None,
-            KeymapDisposition::Refused(_) => {
+            Ok(Some(fragment)) => Some(fragment),
+            Ok(None) => None,
+            Err(_) => {
                 return self.complete_failed(request, FailureCode::InvalidInput, 72);
             }
         };
         match output {
             Some(fragment) => {
-                let mut utf8 = [0; 4];
-                self.complete_with_output(
-                    request,
-                    self.keymap_node,
-                    fragment.encode_utf8(&mut utf8),
-                )
+                self.complete_with_output(request, self.keymap_node, fragment.as_slice())
             }
             None => self.complete_without_output(request, self.keymap_node),
         }
@@ -201,17 +198,16 @@ impl KeyboardTextKernel {
         self.complete_with_output(request, self.upper_node, output.as_bytes())
     }
 
-    pub fn complete_presentation(
+    pub fn complete_face(
         &mut self,
         request: HostCallRequest,
-    ) -> Result<PresentationFragment, SchedulerError> {
-        if request.node != self.presentation_node {
+    ) -> Result<FaceFragment, SchedulerError> {
+        if request.node != self.face_node {
             return Err(SchedulerError::InvalidHostCallAccess);
         }
-        let value =
-            PresentationFragment::from_bytes(self.scheduler.host_value(request.input.value)?)
-                .map_err(|_| SchedulerError::InvalidHostCallAccess)?;
-        self.complete_without_output(request, self.presentation_node)?;
+        let value = FaceFragment::from_bytes(self.scheduler.host_value(request.input.value)?)
+            .map_err(|_| SchedulerError::InvalidHostCallAccess)?;
+        self.complete_without_output(request, self.face_node)?;
         Ok(value)
     }
 
@@ -284,20 +280,20 @@ pub fn run(
     prepared: &PreparedKeyboardTextPlay,
     events: &[KeyEvent],
 ) -> Result<KeyboardTextPlayReport, PreparationError> {
-    run_with_presentation(prepared, events, |_| {})
+    run_with_face(prepared, events, |_| {})
 }
 
-pub fn run_with_presentation(
+pub fn run_with_face(
     prepared: &PreparedKeyboardTextPlay,
     events: &[KeyEvent],
-    mut present: impl FnMut(PresentationFragment),
+    mut present: impl FnMut(FaceFragment),
 ) -> Result<KeyboardTextPlayReport, PreparationError> {
     // ConduitOS admits this fixed-size kernel from its finite boot arena before
     // the play starts; scheduler progress itself performs no allocation.
     let mut kernel = Box::new(KeyboardTextKernel::prepare(prepared, events.len())?);
     let mut event_index = 0usize;
-    let mut presentations = [None; MAXIMUM_PRESENTATIONS];
-    let mut presentation_count = 0usize;
+    let mut faces = [None; MAXIMUM_FACES];
+    let mut face_count = 0usize;
     for _ in 0..2_048 {
         while let Some(request) = kernel.next_host_request() {
             if request.node == kernel.keyboard_node {
@@ -317,16 +313,16 @@ pub fn run_with_presentation(
                 kernel
                     .complete_upper(request)
                     .map_err(|_| PreparationError::KernelRejected)?;
-            } else if request.node == kernel.presentation_node {
-                let slot = presentations
-                    .get_mut(presentation_count)
+            } else if request.node == kernel.face_node {
+                let slot = faces
+                    .get_mut(face_count)
                     .ok_or(PreparationError::KernelRejected)?;
                 let fragment = kernel
-                    .complete_presentation(request)
+                    .complete_face(request)
                     .map_err(|_| PreparationError::KernelRejected)?;
                 present(fragment);
                 *slot = Some(fragment);
-                presentation_count += 1;
+                face_count += 1;
             } else {
                 return Err(PreparationError::KernelRejected);
             }
@@ -346,8 +342,8 @@ pub fn run_with_presentation(
                     return Err(PreparationError::KernelRejected);
                 }
                 return Ok(KeyboardTextPlayReport {
-                    presentations,
-                    presentation_count: presentation_count as u8,
+                    faces,
+                    face_count: face_count as u8,
                     decisions: kernel.scheduler.decisions(),
                     signs: kernel.scheduler.signs().len(),
                     completed: true,

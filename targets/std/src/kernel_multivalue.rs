@@ -5,13 +5,12 @@
 
 use super::TimerAdapter;
 use conduit_core::{
-    bind_active_play, bind_presentation, bind_sign, kind_id, port_id,
-    present_host_call_requirement, resource_offer, resource_requirement,
-    wait_host_call_requirement, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ConfigurationEntry, ConfigurationValue, ExecutionProfileId, HostAdvertisement, HostId,
-    HostProfileId, KindIdentity, Observation, ObservationKind, OfferGeneration, PlacementId,
-    PlanFragment, PortDescriptor, PortDirection, PresentationId, TerminalDisposition, ValuePayload,
-    PRESENTATION_RESOURCE_CLASS, PROTOCOL_VERSION, TIMER_RESOURCE_CLASS,
+    bind_active_play, bind_face, bind_sign, kind_id, port_id, present_host_call_requirement,
+    resource_offer, resource_requirement, wait_host_call_requirement, ArtifactId, CapabilityId,
+    CapabilityLimits, CapabilityOffer, ConfigurationEntry, ConfigurationValue, ExecutionProfileId,
+    FaceId, HostAdvertisement, HostId, HostProfileId, KindIdentity, Observation, ObservationKind,
+    OfferGeneration, PlacementId, PlanFragment, PortDescriptor, PortDirection, TerminalDisposition,
+    ValuePayload, FACE_RESOURCE_CLASS, PROTOCOL_VERSION, TIMER_RESOURCE_CLASS,
 };
 use conduit_kernel::scheduler::{
     FixedScheduler, HostCallRequest, SchedulerStatus, StepBack, StepInputBytes, StepIo, StepOutcome,
@@ -36,7 +35,7 @@ pub const TICK_KIND: &str = "time/tick";
 pub const TEE_KIND: &str = "flow/tee";
 pub const EVEN_FILTER_KIND: &str = "flow/filter-even";
 pub const LATEST_KIND: &str = "state/latest";
-pub const SHOW_KIND: &str = "presentation/show";
+pub const SHOW_KIND: &str = "face/show";
 
 const IN_PORT: &str = "in";
 const OUT_PORT: &str = "out";
@@ -105,7 +104,7 @@ pub struct MultiValueRunReport {
     pub kernel_events: u16,
     pub value_allocation_capacity_before: (usize, usize),
     pub value_allocation_capacity_after: (usize, usize),
-    pub presentation_ids: Vec<PresentationId>,
+    pub face_ids: Vec<FaceId>,
     pub pressure_connection_id: conduit_core::ConnectionId,
     pub pressure_items: u16,
     pub pressure_bytes: u32,
@@ -134,7 +133,7 @@ struct PreparedKernelProjection {
     branch: ManifestationBranch,
     ordinal: u64,
     tick: u64,
-    presentation: conduit_core::PresentationIdentity,
+    face: conduit_core::FaceIdentity,
     sign: conduit_core::SignIdentity,
     payload: ValuePayload,
 }
@@ -417,7 +416,7 @@ pub fn profile_catalog() -> ProfileCatalog {
             SHOW_KIND,
             vec![port(IN_PORT, PortDirection::Input)],
             vec![],
-            vec![],
+            conduit_core::data_label_configuration(),
         ),
     ] {
         catalog
@@ -440,7 +439,7 @@ pub fn advertisement(
         profile: HostProfileId::from("conduit.std/kernel-multivalue@1"),
         bases: vec![],
         resources: vec![
-            resource_offer("std/kernel-presentation", PRESENTATION_RESOURCE_CLASS, 2),
+            resource_offer("std/kernel-face", FACE_RESOURCE_CLASS, 2),
             resource_offer("std/kernel-timer", TIMER_RESOURCE_CLASS, 1),
         ],
         planner_capabilities: vec![],
@@ -449,7 +448,7 @@ pub fn advertisement(
             offer(TEE_KIND, "flow-tee", 0),
             offer(EVEN_FILTER_KIND, "flow-filter-even", 0),
             offer(LATEST_KIND, "state-latest", 0),
-            offer(SHOW_KIND, "presentation-show", 2),
+            offer(SHOW_KIND, "face-show", 2),
         ],
     }
 }
@@ -503,7 +502,7 @@ fn offer(kind: &str, capability: &str, resource_units: u32) -> CapabilityOffer {
     let host_calls = match kind {
         TICK_KIND => vec![wait_host_call_requirement()],
         SHOW_KIND => vec![present_host_call_requirement(
-            kind_id("presentation/stdout-tick@1"),
+            kind_id("face/stdout-tick@1"),
             8,
         )],
         _ => vec![],
@@ -511,7 +510,7 @@ fn offer(kind: &str, capability: &str, resource_units: u32) -> CapabilityOffer {
     let resource_requirements = match kind {
         TICK_KIND => vec![resource_requirement(TIMER_RESOURCE_CLASS, resource_units)],
         SHOW_KIND => vec![resource_requirement(
-            PRESENTATION_RESOURCE_CLASS,
+            FACE_RESOURCE_CLASS,
             resource_units / 2,
         )],
         _ => vec![],
@@ -521,15 +520,11 @@ fn offer(kind: &str, capability: &str, resource_units: u32) -> CapabilityOffer {
         .iter()
         .map(|field| conduit_core::FrontStartupParameter {
             name: field.key.clone(),
-            value_type: conduit_core::kind_id(match field.default_value {
-                ConfigurationValue::Bool(_) => "value/bool",
-                ConfigurationValue::I64(_) => "value/scalar",
-                ConfigurationValue::U64(_) => "value/count",
-                ConfigurationValue::Text(_) => "value/text",
-                ConfigurationValue::Structured(ref value) => value.profile().as_str(),
-                ConfigurationValue::Quantity(_) => conduit_core::QUANTITY_INFO_ID,
-            }),
-            has_default: true,
+            value_type: field.default_value.semantic_kind(),
+            has_default: !matches!(
+                field.rule,
+                conduit_core::KindConfigurationRule::DataLabel { .. }
+            ),
         })
         .collect();
     let semantic_contract = conduit_core::KindSemanticContract {
@@ -820,7 +815,7 @@ fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
         .map(|connection| connection.connection_id.clone());
     let mut receipts = Vec::with_capacity(3);
     let mut observations = Vec::with_capacity(4);
-    let mut presentation_ids = Vec::with_capacity(3);
+    let mut face_ids = Vec::with_capacity(3);
     let mut dispatched_requests = Vec::<HostCallRequest>::with_capacity(7);
     let mut manifestations = Vec::<KernelManifestation>::with_capacity(3);
     let sign_sequence_start = *next_sign_sequence;
@@ -840,7 +835,7 @@ fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
             ManifestationBranch::Even => &show_even_placement,
             ManifestationBranch::Latest => &show_latest_placement,
         };
-        let presentation = bind_presentation(
+        let face = bind_face(
             &active_play.active_play_id,
             &placement.placement_id,
             ordinal,
@@ -859,7 +854,7 @@ fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
             branch,
             ordinal,
             tick,
-            presentation,
+            face,
             sign,
             payload: ValuePayload {
                 value_kind: kind_id(conduit_time::TICK_VALUE_KIND),
@@ -1011,7 +1006,7 @@ fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
                             failure: None,
                         },
                     )
-                    .map_err(|error| format!("complete deferred presentation: {error:?}"))?;
+                    .map_err(|error| format!("complete deferred face: {error:?}"))?;
             }
             SchedulerStatus::Cancelled => {
                 return Err("multi-value kernel was cancelled".to_string())
@@ -1101,21 +1096,21 @@ fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
             }
         };
         execution_identity
-            .bind_presentation(
+            .bind_face(
                 &lowered.identity,
                 manifestation.request.node,
                 manifestation.request.request,
-                &prepared.presentation,
+                &prepared.face,
             )
-            .map_err(|error| format!("bind presentation identity: {error:?}"))?;
+            .map_err(|error| format!("bind face identity: {error:?}"))?;
         execution_identity
             .bind_sign(
                 &prepared.sign,
                 Some(manifestation.request.node),
                 Some(manifestation.request.request),
-                Some(&prepared.presentation.presentation_id),
+                Some(&prepared.face.face_id),
             )
-            .map_err(|error| format!("bind presentation sign identity: {error:?}"))?;
+            .map_err(|error| format!("bind face sign identity: {error:?}"))?;
         receipts.push(MultiValueReceipt {
             placement_id: placement.placement_id.clone(),
             tick: prepared.tick,
@@ -1123,17 +1118,18 @@ fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
         observations.push(Observation {
             sign_id: prepared.sign.sign_id,
             active_play_id: Some(active_play.active_play_id.clone()),
-            presentation_id: Some(prepared.presentation.presentation_id.clone()),
+            face_id: Some(prepared.face.face_id.clone()),
             host_id: host.host_id.clone(),
             boot_id: host.boot_id.clone(),
             plan_id: Some(fragment.plan_id.clone()),
             placement_id: Some(placement.placement_id.clone()),
             connection_id,
             kind: ObservationKind::ValuePresented {
+                label: conduit_semantic_catalog::face_data_label(&placement.configuration)?.into(),
                 value: prepared.payload,
             },
         });
-        presentation_ids.push(prepared.presentation.presentation_id);
+        face_ids.push(prepared.face.face_id);
     }
     *next_sign_sequence = sign_sequence_end;
     execution_identity
@@ -1142,7 +1138,7 @@ fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
     observations.push(Observation {
         sign_id: terminal.sign_id,
         active_play_id: Some(active_play.active_play_id.clone()),
-        presentation_id: None,
+        face_id: None,
         host_id: host.host_id.clone(),
         boot_id: host.boot_id.clone(),
         plan_id: Some(fragment.plan_id.clone()),
@@ -1166,7 +1162,7 @@ fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
         kernel_events: scheduler.signs().len(),
         value_allocation_capacity_before: value_allocation_before,
         value_allocation_capacity_after: value_allocation_after,
-        presentation_ids,
+        face_ids,
         pressure_connection_id,
         pressure_items,
         pressure_bytes,
@@ -1188,7 +1184,9 @@ fn configuration_u64(configuration: &[ConfigurationEntry], key: &str) -> Result<
             ConfigurationValue::I64(_) => None,
             ConfigurationValue::Text(_) => None,
             ConfigurationValue::Structured(_) => None,
-            ConfigurationValue::Quantity(_) => None,
+            ConfigurationValue::Quantity(_)
+            | ConfigurationValue::Unit(_)
+            | ConfigurationValue::TemperatureDifference(_) => None,
         })
         .ok_or_else(|| format!("missing u64 configuration '{key}'"))
 }
@@ -1293,7 +1291,7 @@ mod tests {
             report.value_allocation_capacity_before,
             report.value_allocation_capacity_after
         );
-        assert_eq!(report.presentation_ids.len(), 3);
+        assert_eq!(report.face_ids.len(), 3);
         assert_eq!(report.pressure_items, 1);
         assert_eq!(report.pressure_bytes, 8);
         assert_eq!(report.input_closed_events, 5);
@@ -1307,21 +1305,18 @@ mod tests {
                 .identity
                 .sign_identity(&observation.sign_id)
                 .expect("host sign reverses to its kernel identity row");
-            assert_eq!(
-                sign.presentation_id.as_ref(),
-                observation.presentation_id.as_ref()
-            );
-            let Some(presentation) = observation.presentation_id.as_ref() else {
+            assert_eq!(sign.face_id.as_ref(), observation.face_id.as_ref());
+            let Some(face) = observation.face_id.as_ref() else {
                 continue;
             };
             let dynamic = report
                 .identity
-                .presentation(presentation)
-                .expect("presentation reverses to one kernel request");
+                .face(face)
+                .expect("face reverses to one kernel request");
             let request = report
                 .identity
                 .request(dynamic.node, dynamic.request)
-                .expect("presentation request reverses to its Host Call contract");
+                .expect("face request reverses to its Host Call contract");
             assert!(report
                 .identity
                 .request_for_contract(dynamic.node, &request.contract_id)
@@ -1329,14 +1324,14 @@ mod tests {
             assert_eq!(
                 report
                     .identity
-                    .presentation_for_request(dynamic.node, dynamic.request)
-                    .map(|identity| &identity.presentation_id),
-                Some(presentation)
+                    .face_for_request(dynamic.node, dynamic.request)
+                    .map(|identity| &identity.face_id),
+                Some(face)
             );
             assert_eq!(
                 report
                     .identity
-                    .sign_for_presentation(presentation)
+                    .sign_for_face(face)
                     .map(|identity| &identity.sign_id),
                 Some(&observation.sign_id)
             );

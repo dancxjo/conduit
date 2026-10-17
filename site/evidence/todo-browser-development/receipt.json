@@ -1,0 +1,27 @@
+{
+  "schema": "conduit.proof/todo-owner-browser@1",
+  "owner_source_commit": "99399c157c6e1d7d7fe740a312315b4709dccafd",
+  "browser_runtime_source_commit": "f7778c323e1ffdc4c939ba27e59ca58cf0da7195",
+  "handbook_ui_source_commit": "99399c157c6e1d7d7fe740a312315b4709dccafd",
+  "handbook_ui_source_clean": true,
+  "handbook_package_digest": "sha256:86b3d9867402e51489baea3df72ce5a69732fc0e8cdb9b335e3ac44186335ef9",
+  "source_relation": "development-cross-source",
+  "body_id": "335e956d4370f3373b62cdef8a6990b4a1ed414cd693f3d8ee92403b5fcff287",
+  "browser_host_id": "browser/d694c0b8-d25e-4abc-848e-42cb6cdc4605",
+  "browser_boot_id": "browser-boot/5b53ddce-9c25-4644-a0da-45ff366d4ef9",
+  "item_text": "Pick up prescription",
+  "before": {
+    "face_id": "b5e8505be7014f238b3b11ad5df2751365c1a04e076227b2d725926705d5196d",
+    "face_revision": "8",
+    "show_id": "show/28e307db9f85cd998312319b51440ac8b76fdf5a2858904f653a3b3555a4c140"
+  },
+  "after": {
+    "face_id": "d8c702524387596292bfaeba2a0576ba144fc17004cefa85d3fa07c59ab90d08",
+    "face_revision": "17",
+    "show_id": "show/95a3c4e9b5492280f8fff8eb55a20343b04da4e82172cbcce308d7e4d68b1ee6"
+  },
+  "screenshots": [
+    "browser-before.png",
+    "browser-after.png"
+  ]
+}

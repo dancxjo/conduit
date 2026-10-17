@@ -1,0 +1,53 @@
+   Compiling conduit-assigned-plan v0.1.0 (/home/dancxjo/conduit-5196-revision-foundation/architecture/assigned-plan)
+    Checking conduit-plot v0.1.0 (/home/dancxjo/conduit-5196-revision-foundation/architecture/plot)
+   Compiling conduit-core v0.1.0 (/home/dancxjo/conduit-5196-revision-foundation/architecture/core)
+    Checking zeroize v1.9.0
+    Checking curve25519-dalek v4.1.3
+    Checking postcard v1.1.3
+    Checking ed25519-dalek v2.2.0
+    Checking conduit-body v0.1.0 (/home/dancxjo/conduit-5196-revision-foundation/architecture/body)
+    Checking inout v0.1.4
+    Checking cipher v0.4.4
+    Checking universal-hash v0.5.1
+    Checking poly1305 v0.8.0
+    Checking chacha20 v0.9.1
+    Checking aead v0.5.2
+    Checking chacha20poly1305 v0.10.1
+    Checking rand_core v0.6.4
+    Checking x25519-dalek v2.0.1
+    Checking noise-rust-crypto v0.6.2
+    Checking patchbay-control v0.1.0 (/home/dancxjo/conduit-5196-revision-foundation/plots/patchbay)
+   Compiling conduitos v0.1.0 (/home/dancxjo/conduit-5196-revision-foundation/targets/conduitos)
+    Checking bitflags v2.13.2
+    Checking limine v0.5.0
+    Checking conduit-composite v0.1.0 (/home/dancxjo/conduit-5196-revision-foundation/architecture/composite)
+    Checking conduit-protected-line v0.1.0 (/home/dancxjo/conduit-5196-revision-foundation/architecture/protected-line)
+    Checking conduit-observatory v0.1.0 (/home/dancxjo/conduit-5196-revision-foundation/architecture/observatory)
+   Compiling conduit-time v0.1.0 (/home/dancxjo/conduit-5196-revision-foundation/semantics/time)
+   Compiling conduit-human v0.1.0 (/home/dancxjo/conduit-5196-revision-foundation/semantics/human)
+   Compiling conduit-data v0.1.0 (/home/dancxjo/conduit-5196-revision-foundation/semantics/data)
+   Compiling conduit-presentation v0.1.0 (/home/dancxjo/conduit-5196-revision-foundation/semantics/presentation)
+   Compiling conduit-audio v0.1.0 (/home/dancxjo/conduit-5196-revision-foundation/semantics/audio)
+   Compiling conduit-education v0.1.0 (/home/dancxjo/conduit-5196-revision-foundation/semantics/education)
+   Compiling conduit-alife v0.1.0 (/home/dancxjo/conduit-5196-revision-foundation/semantics/alife)
+   Compiling conduit-purpose v0.1.0 (/home/dancxjo/conduit-5196-revision-foundation/semantics/purpose)
+   Compiling conduit-text v0.1.0 (/home/dancxjo/conduit-5196-revision-foundation/semantics/text)
+   Compiling conduit-process v0.1.0 (/home/dancxjo/conduit-5196-revision-foundation/semantics/process)
+   Compiling conduit-web v0.1.0 (/home/dancxjo/conduit-5196-revision-foundation/semantics/web)
+   Compiling conduit-robotics v0.1.0 (/home/dancxjo/conduit-5196-revision-foundation/semantics/robotics)
+   Compiling conduit-net v0.1.0 (/home/dancxjo/conduit-5196-revision-foundation/semantics/net)
+    Checking conduit-midi v0.1.0 (/home/dancxjo/conduit-5196-revision-foundation/mechanisms/protocols/midi)
+   Compiling conduit-language v0.1.0 (/home/dancxjo/conduit-5196-revision-foundation/semantics/language)
+    Checking conduit-semantic-catalog v0.1.0 (/home/dancxjo/conduit-5196-revision-foundation/semantics/catalog)
+   Compiling conduit-ai v0.1.0 (/home/dancxjo/conduit-5196-revision-foundation/semantics/ai)
+   Compiling conduit-wire v0.1.0 (/home/dancxjo/conduit-5196-revision-foundation/architecture/wire)
+   Compiling conduit-home-model v0.1.0 (/home/dancxjo/conduit-5196-revision-foundation/semantics/home)
+   Compiling conduit-tutorial-plot v0.1.0 (/home/dancxjo/conduit-5196-revision-foundation/semantics/tutorial)
+    Checking patchbay-graph v0.1.0 (/home/dancxjo/conduit-5196-revision-foundation/plots/patchbay/graph)
+    Checking patchbay-application v0.1.0 (/home/dancxjo/conduit-5196-revision-foundation/plots/patchbay/application)
+    Checking conduit-tour-model v0.1.0 (/home/dancxjo/conduit-5196-revision-foundation/plots/tour)
+    Checking conduit-birth-plot v0.1.0 (/home/dancxjo/conduit-5196-revision-foundation/plots/birth)
+    Checking conduit-synth v0.1.0 (/home/dancxjo/conduit-5196-revision-foundation/mechanisms/implementations/synth)
+    Checking conduit-planner v0.1.0 (/home/dancxjo/conduit-5196-revision-foundation/architecture/planner)
+    Checking conduit-conduitos-mask-offer v0.1.0 (/home/dancxjo/conduit-5196-revision-foundation/targets/conduitos/mask-offer)
+    Finished `dev` profile [unoptimized] target(s) in 43.85s

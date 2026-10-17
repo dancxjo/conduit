@@ -48,6 +48,8 @@ fn main() {
                 "ObservationValue.sampled-signal".into(),
                 "ObservationValue.tensor".into(),
                 "SignalCadence.irregular".into(),
+                "SignalCadence.regular".into(),
+                "ClockRelationQuality.estimated".into(),
                 "TabularQueryOutcomeFour.inline".into(),
             ]
             .into(),
@@ -92,6 +94,7 @@ fn main() {
                 "MeasurementThresholdDecision".into(),
                 "MeasurementWindowProfile".into(),
                 "MissingDataMask".into(),
+                "NamedTensor".into(),
                 "ObservationSet".into(),
                 "SignalWindow".into(),
                 "SignalSummary".into(),

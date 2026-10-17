@@ -1,0 +1,5 @@
+pack text/pattern (
+ version = 1.0.0
+) {
+ ship notation
+}

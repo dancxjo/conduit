@@ -15,7 +15,11 @@ use super::{
     riscv64_a0, target_lowering, ConduitosArch, ConduitosError,
 };
 
+pub(super) mod aarch64_domain;
 mod backbone;
+pub(super) mod ia32_domain;
+pub(super) mod loongarch64_domain;
+pub(super) mod riscv64_domain;
 
 pub fn execute_architecture_proof(
     arch: ConduitosArch,
@@ -71,7 +75,7 @@ fn execute_profile_for_role(
     let generated = paths.target.join("make-record.rs");
     let lowering = target_lowering::lower(manifest)?;
     let source = format!(
-        "pub const EMBEDDED_MAKE: MakeRecord = MakeRecord {{ schema: {schema:?}, profile_id: {profile:?}, build_id: {build:?}, image_binding: {binding:?}, target: {target:?}, implementations: {implementations}, facilities: {facilities}, resources: {resources}, bases: {bases}, drivers: {drivers}, presenters: {presenters}, proof_instrumentation: {proof_instrumentation}, presentation_surface_slots: {surface_slots}, presentation_surface_bytes: {surface_bytes}, runtime_arena_ceiling: {arena}, operation_slot_ceiling: {operations}, timer_slot_ceiling: {timers}, evidence_item_ceiling: {evidence} }};\n",
+        "pub const EMBEDDED_MAKE: MakeRecord = MakeRecord {{ schema: {schema:?}, profile_id: {profile:?}, build_id: {build:?}, image_binding: {binding:?}, target: {target:?}, implementations: {implementations}, facilities: {facilities}, resources: {resources}, bases: {bases}, drivers: {drivers}, presenters: {presenters}, proof_instrumentation: {proof_instrumentation}, face_surface_slots: {surface_slots}, face_surface_bytes: {surface_bytes}, runtime_arena_ceiling: {arena}, operation_slot_ceiling: {operations}, timer_slot_ceiling: {timers}, evidence_item_ceiling: {evidence} }};\n",
         schema = conduitos::make::MAKE_SCHEMA,
         profile = manifest.profile_id,
         build = manifest.build_id,
@@ -84,8 +88,8 @@ fn execute_profile_for_role(
         drivers = lowering.drivers,
         presenters = lowering.presenters,
         proof_instrumentation = lowering.proof_instrumentation,
-        surface_slots = lowering.presentation_surface_slots,
-        surface_bytes = lowering.presentation_surface_bytes,
+        surface_slots = lowering.face_surface_slots,
+        surface_bytes = lowering.face_surface_bytes,
         arena = runtime_arena_ceiling(manifest),
         operations = manifest.bounds.operation_slots,
         timers = manifest.bounds.timer_slots,
@@ -146,6 +150,40 @@ pub(super) fn execute_proof(
     execute_embedded_profile(
         arch,
         include_str!("../../proof/profiles/conduitos-proof.profile.json"),
+        ArtifactRole::ArchitectureProofAppliance,
+        opts,
+    )
+}
+
+pub(super) fn execute_usb_configuration(opts: &GlobalOpts) -> Result<BuildRecord, ConduitosError> {
+    execute_embedded_profile(
+        ConduitosArch::X86_64,
+        include_str!("../../proof/profiles/conduitos-usb-configuration-proof.profile.json"),
+        ArtifactRole::ArchitectureProofAppliance,
+        opts,
+    )
+}
+
+pub(super) fn execute_usb_endpoint(opts: &GlobalOpts) -> Result<BuildRecord, ConduitosError> {
+    execute_embedded_profile(
+        ConduitosArch::X86_64,
+        include_str!("../../proof/profiles/conduitos-usb-endpoint-read-proof.profile.json"),
+        ArtifactRole::ArchitectureProofAppliance,
+        opts,
+    )
+}
+
+pub(super) fn execute_usb_hid_endpoint(
+    opts: &GlobalOpts,
+    mouse: bool,
+) -> Result<BuildRecord, ConduitosError> {
+    execute_embedded_profile(
+        ConduitosArch::X86_64,
+        if mouse {
+            include_str!("../../proof/profiles/conduitos-usb-hid-mouse-proof.profile.json")
+        } else {
+            include_str!("../../proof/profiles/conduitos-usb-hid-endpoint-proof.profile.json")
+        },
         ArtifactRole::ArchitectureProofAppliance,
         opts,
     )
@@ -291,29 +329,22 @@ fn execute_with_features(
         .env("CONDUITOS_IMAGE_ID", image_binding);
     if arch == ConduitosArch::Ia32 {
         let linker = ia32_a0::rust_lld(&paths.root)?;
-        let script = paths
-            .root
-            .join("targets/conduitos/firmware/linker/ia32_product.ld");
         command.env(
             "RUSTFLAGS",
             format!(
-                "-C relocation-model=static -C panic=abort --cfg curve25519_dalek_backend=\"serial\" --cfg chacha20_force_soft --cfg poly1305_force_soft -C linker={} -C link-arg=-T{} -C link-arg=--nostdlib -C link-arg=-no-pie -C link-arg=-z -C link-arg=max-page-size=0x1000",
-                linker.display(),
-                script.display()
+                "-C relocation-model=static -C panic=abort --cfg curve25519_dalek_backend=\"serial\" --cfg chacha20_force_soft --cfg poly1305_force_soft -C linker={} -C link-arg=--nostdlib -C link-arg=-no-pie -C link-arg=-z -C link-arg=max-page-size=0x1000",
+                linker.display()
             ),
         );
     } else if arch == ConduitosArch::Riscv64 {
         let linker = riscv64_a0::rust_lld(&paths.root)?;
-        let script = paths
-            .root
-            .join("targets/conduitos/firmware/linker/riscv64_product.ld");
-        command.env("RUSTFLAGS", format!("-C relocation-model=static -C panic=abort --cfg curve25519_dalek_backend=\"serial\" -C linker={} -C link-arg=-T{} -C link-arg=--nostdlib", linker.display(), script.display()));
+        // build.rs owns the product linker script. Passing it twice makes
+        // the second empty section walk reset the executable extent symbols.
+        command.env("RUSTFLAGS", format!("-C relocation-model=static -C panic=abort --cfg curve25519_dalek_backend=\"serial\" -C linker={} -C link-arg=--nostdlib", linker.display()));
     } else if arch == ConduitosArch::Loongarch64 {
         let linker = loongarch64_a0::rust_lld(&paths.root)?;
-        let script = paths
-            .root
-            .join("targets/conduitos/firmware/linker/loongarch64_product.ld");
-        command.env("RUSTFLAGS", format!("-C relocation-model=static -C panic=abort --cfg curve25519_dalek_backend=\"serial\" -C linker={} -C link-arg=-T{} -C link-arg=--nostdlib", linker.display(), script.display()));
+        // build.rs owns this script and its executable extent symbols too.
+        command.env("RUSTFLAGS", format!("-C relocation-model=static -C panic=abort --cfg curve25519_dalek_backend=\"serial\" -C linker={} -C link-arg=--nostdlib", linker.display()));
     } else {
         command.env(
             "RUSTFLAGS",
@@ -363,6 +394,19 @@ fn execute_with_features(
         println!("ConduitOS ELF: {}", paths.kernel.display());
     }
     Ok(record)
+}
+
+pub(super) fn execute_ordinary_domain_proof(
+    opts: &GlobalOpts,
+) -> Result<BuildRecord, ConduitosError> {
+    execute_with_features(
+        ConduitosArch::X86_64,
+        opts,
+        &["native-compositor", "ordinary-domain-proof"],
+        None,
+        ArtifactRole::ArchitectureProofAppliance,
+        None,
+    )
 }
 
 pub(super) fn execute_isolation_proof(opts: &GlobalOpts) -> Result<BuildRecord, ConduitosError> {

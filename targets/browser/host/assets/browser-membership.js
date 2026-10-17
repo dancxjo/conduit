@@ -5,9 +5,106 @@ const INPUT_CAPACITY = 4096;
 const MEDIA_PLAN_TIMEOUT_MILLIS = 10_000;
 
 const MAXIMUM_WEB_RTC_GRANTS = 16;
-const OWNER_FACE_REQUEST_SCHEMA = "conduit.presentation/owner-face-request@1";
-const OWNER_FACE_RESPONSE_SCHEMA = "conduit.presentation/owner-face-response@1";
-const MAX_OWNER_FACE_RESPONSE_BYTES = 32768;
+const OWNER_FACE_REQUEST_SCHEMA = "conduit.face/owner-face-request@1";
+const OWNER_FACE_RESPONSE_SCHEMA = "conduit.face/owner-face-response@1";
+const MAX_OWNER_FACE_RESPONSE_BYTES = 60 * 1024;
+const MAX_OWNER_WARDROBE_REPORT_BYTES = 64 * 1024;
+const MAX_OWNER_WARDROBE_RESPONSE_BYTES = MAX_OWNER_WARDROBE_REPORT_BYTES + 1024;
+const MAX_U64 = 18_446_744_073_709_551_615n;
+const wardrobeEncoder = new TextEncoder();
+
+export function checkedComponentMaskResponse(frame, pending, byteLength) {
+  if (!pending || frame?.kind !== 'face-component-mask-response' || frame.protocol !== 1
+      || frame.request_id !== pending.requestId || !Number.isSafeInteger(byteLength)
+      || byteLength < 1 || byteLength > 4096 || typeof frame.accepted !== 'boolean'
+      || typeof frame.code !== 'string' || frame.code.length > 128
+      || (frame.accepted ? frame.code !== '' : frame.code === '')) {
+    throw new Error('invalid or mismatched component Mask response');
+  }
+  if (!frame.accepted) {
+    const error = new Error(`component Mask selection refused: ${frame.code}`);
+    error.code = frame.code;
+    throw error;
+  }
+}
+
+// Embed the actual WASM Show receipt without rounding its canonical integers.
+export function checkedComponentMaskRequestFrame({ requestId, request, showBytes, look, recipe }) {
+  if (typeof requestId !== 'string' || !/^browser-component:[1-9][0-9]{0,15}$/.test(requestId)
+      || !['compact', 'spacious'].includes(look) || !['flat', 'grouped'].includes(recipe)
+      || !(showBytes instanceof Uint8Array) || showBytes.length < 1 || showBytes.length > 64 * 1024) {
+    throw new Error('component Mask selection exceeds its declared finite fields');
+  }
+  const show = new TextDecoder('utf-8', { fatal: true }).decode(showBytes);
+  if (!show.startsWith('{') || !show.endsWith('}')) throw new Error('invalid current Mask Show receipt');
+  const prefix = JSON.stringify({ kind: 'face-component-mask-request', protocol: 1,
+    request_id: requestId, request, look, recipe });
+  const bytes = wardrobeEncoder.encode(`${prefix.slice(0, -1)},"show":${show}}`);
+  if (bytes.length > 193 * 1024) throw new Error('component Mask request exceeds its carrier bound');
+  return bytes;
+}
+
+
+export function checkedOwnerWardrobeResponse(frame, pending, frameLength) {
+  if (!pending || frame?.kind !== "face-wardrobe-response" || frame.protocol !== 1 ||
+      frame.request_id !== pending.requestId || !Number.isSafeInteger(frameLength) ||
+      frameLength < 1 || frameLength > MAX_OWNER_WARDROBE_RESPONSE_BYTES) {
+    throw new Error("unsolicited or mismatched owner wardrobe response");
+  }
+  if (frame.accepted === false && typeof frame.code === "string" && frame.code.length > 0 &&
+      frame.code.length <= 128 && frame.report === null) {
+    const error = new Error(`Body owner refused wardrobe: ${frame.code}`);
+    error.code = frame.code;
+    throw error;
+  }
+  if (frame.accepted !== true || frame.code !== "" ||
+      frame.report?.schema !== "conduit.body/owner-mask-wardrobe@1" ||
+      wardrobeEncoder.encode(JSON.stringify(frame.report)).length > MAX_OWNER_WARDROBE_REPORT_BYTES) {
+    throw new Error("invalid owner wardrobe response");
+  }
+  return frame.report;
+}
+
+function checkedWardrobeRevision(value) {
+  if (typeof value !== "string" || !/^(0|[1-9][0-9]{0,19})$/.test(value) ||
+      BigInt(value) > MAX_U64) throw new Error("wardrobe revision is not one exact u64");
+  return value;
+}
+
+export function checkedOwnerWardrobeRequestFrame({ requestId, request, ownerPlanId, basisRevision, action }) {
+  const revision = checkedWardrobeRevision(basisRevision);
+  const serialized = JSON.stringify({ kind: "face-wardrobe-request", protocol: 1,
+    request_id: requestId, request, owner_plan_id: ownerPlanId,
+    basis_revision: null, action });
+  const marker = '"basis_revision":null';
+  const pieces = serialized.split(marker);
+  if (pieces.length !== 2) throw new Error("owner wardrobe request has no unique revision slot");
+  return wardrobeEncoder.encode(`${pieces[0]}"basis_revision":${revision}${pieces[1]}`);
+}
+
+export function checkedSelectedSpeechResponse(frame, pending, frameLength) {
+  if (!pending || frame?.kind !== "selected-speech-response" || frame.protocol !== 1 ||
+      frame.request_id !== pending.requestId) throw new Error("unsolicited or mismatched selected speech response");
+  const expected = { start: "started", status: "status", stop: "stop-requested" }[pending.kind];
+  const status = frame.status;
+  const statusValid = pending.kind !== "status" ||
+    (status?.operation_id === pending.operationId &&
+      ((status.schema === "conduit.body/selected-speech-status@1" && status.state === "running") ||
+       (status.schema === "conduit.body/selected-speech-terminal@1" &&
+         ["completed", "cancelled", "refused", "failed", "play-refused-unclassified"].includes(status.outcome))));
+  if (!Number.isSafeInteger(frameLength) || frameLength < 1 || frameLength > 64 * 1024 ||
+      ![expected, "refused"].includes(frame.outcome) ||
+      (frame.outcome === "refused" && (typeof frame.code !== "string" || !frame.code || frame.code.length > 128)) ||
+      (frame.outcome !== "refused" && frame.code !== null) ||
+      (frame.operation_id !== null && (typeof frame.operation_id !== "string" || !frame.operation_id || frame.operation_id.length > 256)) ||
+      (frame.outcome !== "refused" &&
+        (!frame.operation_id || (pending.operationId !== null && frame.operation_id !== pending.operationId) ||
+         (pending.kind !== "status" && status !== null) || !statusValid))) {
+    throw new Error("invalid selected speech response");
+  }
+  if (frame.outcome === "refused") throw new Error(`Owner refused selected speech: ${frame.code}`);
+  return Object.freeze(frame);
+}
 
 export function immutableWebRtcGrantFrame(frame) {
   if (frame?.grant !== null && (typeof frame?.grant !== "object" ||
@@ -162,6 +259,12 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
   let pendingFaceSnapshot = null;
   let pendingFaceShow = null;
   let pendingFaceInteraction = null;
+  let pendingWardrobe = null;
+  let wardrobeSequence = 0;
+  let componentSequence = 0;
+  let pendingComponent = null;
+  let pendingSelectedSpeech = null;
+  let selectedSpeechSequence = 0;
   let pageLifecycle = document.visibilityState === "hidden" ? "hidden" : "visible";
   let freshnessProfile = Object.freeze({
     scheduling: "best-effort-browser-event-loop",
@@ -313,6 +416,31 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
       } else {
         pending.reject(new Error("invalid owner interaction response"));
       }
+    } else if (frame.kind === "face-wardrobe-response" && frame.protocol === 1) {
+      const pending = pendingWardrobe;
+      if (!pending || frame.request_id !== pending.requestId) {
+        throw new Error("unsolicited owner wardrobe response");
+      }
+      clearTimeout(pending.timeout);
+      pendingWardrobe = null;
+      try { pending.resolve(checkedOwnerWardrobeResponse(frame, pending, frameBytes.length)); }
+      catch (error) { pending.reject(error); }
+    } else if (frame.kind === "face-component-mask-response" && frame.protocol === 1) {
+      const pending = pendingComponent;
+      if (!pending || frame.request_id !== pending.requestId) throw new Error("unsolicited component Mask response");
+      clearTimeout(pending.timeout);
+      pendingComponent = null;
+      try {
+        checkedComponentMaskResponse(frame, pending, frameBytes.length);
+        pending.resolve();
+      } catch (error) { pending.reject(error); }
+    } else if (frame.kind === "selected-speech-response" && frame.protocol === 1) {
+      const pending = pendingSelectedSpeech;
+      if (!pending || frame.request_id !== pending.requestId) throw new Error("unsolicited or mismatched selected speech response");
+      clearTimeout(pending.timeout);
+      pendingSelectedSpeech = null;
+      try { pending.resolve(checkedSelectedSpeechResponse(frame, pending, frameBytes.length)); }
+      catch (error) { pending.reject(error); }
     } else if (frame.kind === "media-use-plan" && frame.protocol === 1) {
       if (!pendingMediaPlan || frame.resource_handle !== pendingMediaPlan.resourceHandle) {
         throw new Error("stale or mismatched media use Plan");
@@ -546,6 +674,11 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
         pendingMediaPlan.reject(new Error("media use planning Line closed"));
         pendingMediaPlan = null;
       }
+      if (pendingComponent) {
+        clearTimeout(pendingComponent.timeout);
+        pendingComponent.reject(new Error("component selection Line closed; outcome unknown"));
+        pendingComponent = null;
+      }
       if (pendingFaceSnapshot) {
         clearTimeout(pendingFaceSnapshot.timeout);
         pendingFaceSnapshot.reject(new Error("owner Face Line closed"));
@@ -560,6 +693,16 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
         clearTimeout(pendingFaceInteraction.timeout);
         pendingFaceInteraction.reject(new Error("owner interaction Line closed"));
         pendingFaceInteraction = null;
+      }
+      if (pendingWardrobe) {
+        clearTimeout(pendingWardrobe.timeout);
+        pendingWardrobe.reject(new Error("owner wardrobe Line closed; action outcome unknown"));
+        pendingWardrobe = null;
+      }
+      if (pendingSelectedSpeech) {
+        clearTimeout(pendingSelectedSpeech.timeout);
+        pendingSelectedSpeech.reject(new Error("selected speech owner Line closed"));
+        pendingSelectedSpeech = null;
       }
       if (state.startsWith("refused:")) return;
       if (!deliberateClose && presenceEstablished && reconnectPresence && reconnectAttempts === 0) {
@@ -709,6 +852,65 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
       pendingFaceInteraction = { resolve, reject, timeout };
     });
   }
+  function selectComponentMask({ showBytes, look, recipe }) {
+    if (!credential || presenceState !== "available" || socket?.readyState !== WebSocket.OPEN) {
+      return Promise.reject(new Error("current browser presence is required for component selection"));
+    }
+    if (pendingComponent) return Promise.reject(new Error("one component selection is already pending"));
+    const requestId = `browser-component:${++componentSequence}`;
+    const request = { schema: OWNER_FACE_REQUEST_SCHEMA, credential_id: credential.credential_id,
+      body_id: credential.body_id, part_id: credential.part_id, host_id: credential.host_id,
+      boot_id: credential.boot_id, last_seen_revision: null, last_seen_identity: null };
+    let bytes;
+    try { bytes = checkedComponentMaskRequestFrame({ requestId, request, showBytes, look, recipe }); }
+    catch (error) { return Promise.reject(error); }
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        if (pendingComponent?.requestId === requestId) {
+          pendingComponent = null;
+          socket.close(1000, "Component selection outcome unknown");
+          reject(new Error("component selection deadline; outcome unknown"));
+        }
+      }, MEDIA_PLAN_TIMEOUT_MILLIS);
+      pendingComponent = { requestId, resolve, reject, timeout };
+      try { socket.send(bytes); }
+      catch (error) { clearTimeout(timeout); pendingComponent = null; reject(error); }
+    });
+  }
+  function ownerWardrobe({ action = null, ownerPlanId = null, basisRevision = "0" } = {}) {
+    if (!credential || presenceState !== "available" || socket?.readyState !== WebSocket.OPEN) {
+      return Promise.reject(new Error("current browser presence is required for owner wardrobe"));
+    }
+    if (pendingWardrobe) return Promise.reject(new Error("one owner wardrobe request is already pending"));
+    if ((action === null) !== (ownerPlanId === null) ||
+        (ownerPlanId !== null && (typeof ownerPlanId !== "string" || !ownerPlanId || ownerPlanId.length > 256))) {
+      return Promise.reject(new Error("wardrobe action needs its exact owner Plan"));
+    }
+    if (action !== null && (typeof action !== "object" || Array.isArray(action) ||
+        Object.keys(action).length !== 1 || !["Wear", "Doff", "Prefer"].includes(Object.keys(action)[0]))) {
+      return Promise.reject(new Error("wardrobe action is not a declared Wear, Doff, or Prefer"));
+    }
+    const requestId = `browser-wardrobe:${++wardrobeSequence}`;
+    const request = { schema: OWNER_FACE_REQUEST_SCHEMA, credential_id: credential.credential_id,
+      body_id: credential.body_id, part_id: credential.part_id, host_id: credential.host_id,
+      boot_id: credential.boot_id, last_seen_revision: null, last_seen_identity: null };
+    let bytes;
+    try { bytes = checkedOwnerWardrobeRequestFrame({ requestId, request, ownerPlanId, basisRevision, action }); }
+    catch (error) { return Promise.reject(error); }
+    if (bytes.length > INPUT_CAPACITY) return Promise.reject(new Error("owner wardrobe request exceeds its finite bound"));
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        if (pendingWardrobe?.requestId === requestId) {
+          pendingWardrobe = null;
+          if (action !== null) socket.close(1000, "Wardrobe action outcome unknown");
+          reject(new Error("owner wardrobe response deadline; action outcome unknown"));
+        }
+      }, MEDIA_PLAN_TIMEOUT_MILLIS);
+      pendingWardrobe = { requestId, resolve, reject, timeout };
+      try { socket.send(bytes); }
+      catch (error) { clearTimeout(timeout); pendingWardrobe = null; reject(error); }
+    });
+  }
   function acknowledgeFaceShow(showBytes) {
     if (!credential || presenceState !== "available" || socket?.readyState !== WebSocket.OPEN) {
       return Promise.reject(new Error("current browser presence is required for owner Show"));
@@ -745,6 +947,46 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
       catch (error) { clearTimeout(timeout); pendingFaceShow = null; reject(error); }
     });
   }
+  function selectedSpeech(kind, { showBytes = null, operationId = null } = {}) {
+    if (!credential || presenceState !== "available" || socket?.readyState !== WebSocket.OPEN) {
+      return Promise.reject(new Error("current browser presence is required for selected speech"));
+    }
+    if (pendingSelectedSpeech) return Promise.reject(new Error("one selected speech request is already pending"));
+    if (!["start", "status", "stop"].includes(kind)) return Promise.reject(new Error("unknown selected speech request"));
+    const requestId = `browser-speech/${++selectedSpeechSequence}`;
+    let serialized;
+    if (kind === "start") {
+      if (!(showBytes instanceof Uint8Array) || showBytes.length < 1 || showBytes.length > 64 * 1024) {
+        return Promise.reject(new Error("current bounded owner Show receipt is required for speech"));
+      }
+      const show = decoder.decode(showBytes);
+      if (!show.startsWith('{') || !show.endsWith('}')) return Promise.reject(new Error("invalid owner Show receipt"));
+      const request = { schema: OWNER_FACE_REQUEST_SCHEMA, credential_id: credential.credential_id,
+        body_id: credential.body_id, part_id: credential.part_id, host_id: credential.host_id,
+        boot_id: credential.boot_id, last_seen_revision: null, last_seen_identity: null };
+      serialized = `{"kind":"selected-speech-start","protocol":1,"request_id":${JSON.stringify(requestId)},"request":${JSON.stringify(request)},"show":${show}}`;
+    } else {
+      if (typeof operationId !== "string" || !operationId || operationId.length > 256) {
+        return Promise.reject(new Error("one exact selected speech operation is required"));
+      }
+      serialized = JSON.stringify({ kind: `selected-speech-${kind}`, protocol: 1,
+        request_id: requestId, operation_id: operationId });
+    }
+    const bytes = encoder.encode(serialized);
+    if (bytes.length > 193 * 1024) return Promise.reject(new Error("selected speech frame exceeds its admitted bound"));
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        if (pendingSelectedSpeech?.requestId === requestId) {
+          pendingSelectedSpeech = null;
+          if (kind === "start") socket.close(1000, "Selected speech start outcome unknown");
+          reject(new Error("selected speech owner response deadline; outcome unknown"));
+        }
+      }, MEDIA_PLAN_TIMEOUT_MILLIS);
+      pendingSelectedSpeech = { requestId, kind, operationId, resolve, reject, timeout };
+      try { socket.send(bytes); }
+      catch (error) { clearTimeout(timeout); pendingSelectedSpeech = null; reject(error); }
+    });
+  }
   return Object.freeze({
     hostId,
     bootId,
@@ -753,7 +995,9 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
     offerEvidence: () => offerEvidence,
     requestOfferEvidence,
     requestFaceSnapshot,
+    ownerWardrobe,
     acknowledgeFaceShow,
+    selectedSpeech,
     state: () => state,
     presenceState: () => presenceState,
     pageLifecycle: () => pageLifecycle,
@@ -777,6 +1021,7 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
     replanWebRtc: () => webRtcSessions.replan(),
     advertisement: Object.freeze(advertisement),
     submitFaceInteraction,
+    selectComponentMask,
     publishMediaResource,
     close: () => {
       clearTimeout(renewalTimer);

@@ -1,0 +1,36 @@
+# Reviewable bounded semantic producer: explicitly request sixteen transmissions
+# of the admitted seed and sixteen receives. The CDC Back never invents these.
+plot cdc-serial-producer-start (
+    seed: SerialDuplexRequest...| >> state: CdcSerialState...|
+) = ({ request: ., phase: 0, operations: 0, reads: 0, terminal: !(. is transmit) ? true : bytes/length(.transmit.bytes) > 64 })
+plot cdc-serial-producer-route (
+    state: CdcSerialState...| >> route: CdcSerialPending...|
+) = (.terminal || .operations >= 32 ? stopped(empty) : running(.))
+plot cdc-serial-producer-request (
+    state: CdcSerialState...| >> request: SerialDuplexRequest...|
+) = (.operations % 2 == 0 ? .request : receive({ maximum: 64 }))
+plot cdc-serial-producer-result-event (
+    result: SerialDuplexResult...| >> event: CdcSerialEvent...|
+) = (serial(.))
+plot cdc-serial-producer-next (
+    pair: CdcSerialPair...| >> state: CdcSerialState...|
+) = ({ request: .0.request, phase: 0, reads: 0, operations: .0.operations < 32 ? .0.operations + 1 : .0.operations, terminal: .0.terminal || .0.operations >= 31 || !(.1 is serial) ? true : (.0.operations % 2 == 0 ? (.1.serial is transmitted ? (.1.serial.transmitted.ordinal != .0.operations || .1.serial.transmitted.requested != bytes/length(.0.request.transmit.bytes) || .1.serial.transmitted.actual != .1.serial.transmitted.requested) : true) : (.1.serial is received ? (.1.serial.received.ordinal != .0.operations || .1.serial.received.requested != 64 || .1.serial.received.actual > 64 || .1.serial.received.actual != bytes/length(.1.serial.received.bytes) || .1.serial.received.short != (.1.serial.received.actual < 64)) : true)) })
+# This consumer preserves typed observations and opaque octets; it does not
+# claim these serial bytes are text or implicitly apply UTF8/framing/TTY policy.
+plot cdc-serial-consumer (
+    result: SerialDuplexResult...| >> observation: SerialDuplexResult...|
+) = (.)
+plot cdc-serial-duplex-demonstration (
+    >> seed: SerialDuplexRequest...|
+    observation: SerialDuplexResult...| >>
+) {
+    producer: state/seeded/flow/until
+    join: flow/zip/feedback
+    provider: serial/duplex-bytes
+    seed >> cdc-serial-producer-start() >> producer.seed
+    producer.current >> cdc-serial-producer-route() >> select(CdcSerialPending.running, unmatched=drop) >> cdc-serial-producer-request() >> provider.request
+    producer.current >> cdc-serial-producer-route() >> select(CdcSerialPending.running, unmatched=drop) >> join.left
+    provider.result >> cdc-serial-producer-result-event() >> join.right
+    provider.result >> cdc-serial-consumer() >> observation
+    join.paired >> cdc-serial-producer-next() >> producer.next
+}

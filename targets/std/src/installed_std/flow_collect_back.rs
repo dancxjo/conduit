@@ -1,7 +1,7 @@
 //! Std installation of the shared allocation-prepared `flow/collect` Back.
 
 use super::back::{BackBudget, BackFactory, InstalledBack};
-use conduit_core::{BoundedCollectSemanticLaw, PlannedGear, UNIT_INFO_ID};
+use conduit_core::{BoundedCollectSemanticLaw, PlannedGear, EMPTY_INFO_ID};
 use conduit_kernel::CanonicalValue;
 
 pub(super) static FACTORY: BackFactory = BackFactory {
@@ -27,7 +27,7 @@ fn validate(placement: &PlannedGear) -> Result<&BoundedCollectSemanticLaw, Strin
     .map_err(str::to_string)?;
     let offer = conduit_std_offers::flow_collect_offer(&law.element, law.maximum_items)
         .map_err(str::to_string)?;
-    if law.overflow_disposition.value_kind.as_str() != UNIT_INFO_ID
+    if law.overflow_disposition.value_kind.as_str() != EMPTY_INFO_ID
         || law.overflow_disposition.maximum_bytes != 0
         || conduit_core::validate_primitive_info(law.overflow_disposition.value_kind.as_str(), &[])
             .is_err()

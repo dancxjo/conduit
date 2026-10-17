@@ -62,13 +62,13 @@ fn hello_and_unicode_cross_the_exact_four_gear_production_play() {
         release(0x0f, KeyModifiers::NONE),
         press(0x12, KeyModifiers::NONE),
         release(0x12, KeyModifiers::NONE),
-        press(0x04, KeyModifiers::RIGHT_ALT),
-        release(0x04, KeyModifiers::RIGHT_ALT),
+        press(0x1d, KeyModifiers::RIGHT_ALT),
+        release(0x1d, KeyModifiers::RIGHT_ALT),
     ];
     let report = run(&prepared(), &events).unwrap();
     let expected = ["H", "E", "L", "L", "O", "Æ"];
-    assert_eq!(usize::from(report.presentation_count), expected.len());
-    for (actual, expected) in report.presentations.iter().zip(expected) {
+    assert_eq!(usize::from(report.face_count), expected.len());
+    for (actual, expected) in report.faces.iter().zip(expected) {
         assert_eq!(actual.unwrap().as_bytes(), expected.as_bytes());
     }
     assert!(report.completed);

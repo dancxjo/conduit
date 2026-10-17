@@ -1,0 +1,331 @@
+//! USB storage admission preserves the ordinary shared kernel and exact owners.
+use super::*;
+
+mod storage_ingress;
+
+impl<P: I2cProvider> PreparedProtocolPlay<P> {
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
+    pub fn prepare_usb(
+        definition: KernelCompositeDefinition,
+        ready: crate::arch::ReadyUsbControlBase,
+        table: BaseCapabilityTable,
+        handle: BaseCapabilityHandle,
+        claim: BaseOperationClaim,
+        operations: crate::protocol_operations::ProtocolOperations,
+    ) -> Result<Self, ProtocolCallRefusal> {
+        Self::prepare_usb_with_sign_storage(definition, ready, table, handle, claim, operations, 0)
+    }
+
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
+    pub(crate) fn prepare_usb_with_sign_storage(
+        definition: KernelCompositeDefinition,
+        ready: crate::arch::ReadyUsbControlBase,
+        table: BaseCapabilityTable,
+        handle: BaseCapabilityHandle,
+        claim: BaseOperationClaim,
+        operations: crate::protocol_operations::ProtocolOperations,
+        additional_remote_sign_items: u16,
+    ) -> Result<Self, ProtocolCallRefusal> {
+        Self::prepare_selected(
+            definition,
+            operations,
+            false,
+            PhysicalMode::UsbControl,
+            conduit_composite::KernelCompositeSignStorage {
+                additional_local_items: 0,
+                additional_remote_items: additional_remote_sign_items,
+            },
+            |plan, zip, states| {
+                PreparedProtocolCalls::prepare_usb(plan, ready, table, handle, claim, zip, states)
+            },
+        )
+    }
+
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
+    pub(crate) fn prepare_usb_endpoint_only(
+        definition: KernelCompositeDefinition,
+        admission: UsbEndpointAdmission,
+        operations: crate::protocol_operations::ProtocolOperations,
+    ) -> Result<Self, ProtocolCallRefusal> {
+        Self::prepare_selected(
+            definition,
+            operations,
+            false,
+            PhysicalMode::UsbProtocol,
+            conduit_composite::KernelCompositeSignStorage {
+                additional_local_items: 0,
+                additional_remote_items: admission.additional_remote_sign_items,
+            },
+            |plan, zip, states| {
+                PreparedProtocolCalls::prepare_usb_endpoint_only(plan, admission, zip, states)
+            },
+        )
+    }
+
+    /// Both exact native operations retain one controller and ordinary kernel.
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
+    pub(crate) fn prepare_usb_protocol(
+        definition: KernelCompositeDefinition,
+        admission: UsbProtocolAdmission,
+        operations: crate::protocol_operations::ProtocolOperations,
+    ) -> Result<Self, ProtocolCallRefusal> {
+        Self::prepare_selected(
+            definition,
+            operations,
+            false,
+            PhysicalMode::UsbProtocol,
+            conduit_composite::KernelCompositeSignStorage {
+                additional_local_items: 0,
+                additional_remote_items: admission.additional_remote_sign_items,
+            },
+            |plan, zip, states| {
+                PreparedProtocolCalls::prepare_usb_protocol(
+                    plan,
+                    admission.ready,
+                    admission.control_table,
+                    admission.control_handle,
+                    admission.control_claim,
+                    admission.endpoint_table,
+                    admission.endpoint_handle,
+                    admission.endpoint_claim,
+                    zip,
+                    states,
+                )
+            },
+        )
+    }
+
+    /// Both exact native operations retain one controller and ordinary kernel.
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
+    pub(crate) fn prepare_usb_isochronous(
+        definition: KernelCompositeDefinition,
+        admission: UsbIsochronousAdmission,
+        operations: crate::protocol_operations::ProtocolOperations,
+    ) -> Result<Self, ProtocolCallRefusal> {
+        Self::prepare_selected(
+            definition,
+            operations,
+            false,
+            PhysicalMode::UsbIsochronous,
+            conduit_composite::KernelCompositeSignStorage {
+                additional_local_items: 0,
+                additional_remote_items: admission.additional_remote_sign_items,
+            },
+            |plan, zip, states| {
+                PreparedProtocolCalls::prepare_usb_isochronous(
+                    plan,
+                    admission.ready,
+                    admission.control_table,
+                    admission.control_handle,
+                    admission.control_claim,
+                    admission.endpoint_table,
+                    admission.endpoint_handle,
+                    admission.endpoint_claim,
+                    zip,
+                    states,
+                )
+            },
+        )
+    }
+
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
+    pub(crate) fn prepare_usb_duplex(
+        definition: KernelCompositeDefinition,
+        admission: UsbDuplexAdmission,
+        operations: crate::protocol_operations::ProtocolOperations,
+    ) -> Result<Self, ProtocolCallRefusal> {
+        Self::prepare_selected(
+            definition,
+            operations,
+            false,
+            PhysicalMode::UsbDuplex,
+            conduit_composite::KernelCompositeSignStorage {
+                additional_local_items: 0,
+                additional_remote_items: admission.additional_remote_sign_items,
+            },
+            |plan, zip, states| {
+                PreparedProtocolCalls::prepare_usb_duplex(plan, admission, zip, states)
+            },
+        )
+    }
+    /// USB class transfers and separately authorized frame Calls share one kernel.
+    #[cfg(all(
+        feature = "native-owner-network",
+        any(
+            target_arch = "x86_64",
+            all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+        )
+    ))]
+    pub(crate) fn prepare_usb_ethernet(
+        definition: KernelCompositeDefinition,
+        usb: UsbDuplexAdmission,
+        network: crate::protocol_host_calls::EthernetFrameAdmission,
+        operations: crate::protocol_operations::ProtocolOperations,
+    ) -> Result<Self, ProtocolCallRefusal> {
+        Self::prepare_selected(
+            definition,
+            operations,
+            false,
+            PhysicalMode::UsbEthernet,
+            conduit_composite::KernelCompositeSignStorage {
+                additional_local_items: 0,
+                additional_remote_items: usb.additional_remote_sign_items,
+            },
+            |plan, zip, states| {
+                PreparedProtocolCalls::prepare_usb_ethernet(plan, usb, network, zip, states)
+            },
+        )
+    }
+
+    #[cfg(all(
+        feature = "native-owner-network",
+        any(
+            target_arch = "x86_64",
+            all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+        )
+    ))]
+    pub(crate) fn poll_ethernet_network(
+        &mut self,
+        timestamp: smoltcp::time::Instant,
+    ) -> Result<Option<crate::virtio_tcp::VirtioTcpReceipt>, ProtocolCallRefusal> {
+        self.calls.poll_ethernet_network(timestamp)
+    }
+}
+
+/// Actual independently issued storage possessions; descriptive offers are separate.
+pub(crate) struct StorageScopePossession {
+    pub table: BaseCapabilityTable,
+    pub handle: BaseCapabilityHandle,
+    pub claim: BaseOperationClaim,
+}
+pub(crate) struct StorageUsbAdmission {
+    /// Independently Root-backed storage retention, separate from USB envelopes.
+    pub maximum_retained_bytes: u64,
+    pub usb: UsbDuplexAdmission,
+    pub authorize: StorageScopePossession,
+    pub settle: StorageScopePossession,
+}
+impl<P: I2cProvider> PreparedProtocolPlay<P> {
+    pub(crate) fn prepare_storage_usb_duplex(
+        definition: KernelCompositeDefinition,
+        admission: StorageUsbAdmission,
+        operations: crate::protocol_operations::ProtocolOperations,
+    ) -> Result<Self, ProtocolCallRefusal> {
+        Self::prepare_storage_usb_duplex_pairs(definition, admission, None, operations)
+    }
+
+    pub(crate) fn prepare_storage_usb_duplex_two_pairs(
+        definition: KernelCompositeDefinition,
+        admission: StorageUsbAdmission,
+        additional: crate::protocol_host_calls::AdditionalStoragePairAdmission,
+        operations: crate::protocol_operations::ProtocolOperations,
+    ) -> Result<Self, ProtocolCallRefusal> {
+        Self::prepare_storage_usb_duplex_pairs(definition, admission, Some(additional), operations)
+    }
+
+    fn prepare_storage_usb_duplex_pairs(
+        definition: KernelCompositeDefinition,
+        admission: StorageUsbAdmission,
+        additional: Option<crate::protocol_host_calls::AdditionalStoragePairAdmission>,
+        operations: crate::protocol_operations::ProtocolOperations,
+    ) -> Result<Self, ProtocolCallRefusal> {
+        // Ordinary ingress cannot submit raw USB calls alongside storage requests.
+        let plan = &definition.internal_plan;
+        let authorizers: alloc::vec::Vec<_> = plan
+            .fragments
+            .iter()
+            .flat_map(|fragment| &fragment.placements)
+            .filter(|gear| {
+                gear.implementation_id.as_str()
+                    == crate::storage_base::transaction_factory::AUTHORIZE_IMPLEMENTATION
+            })
+            .collect();
+        if authorizers.len() != if additional.is_some() { 2 } else { 1 } {
+            return Err(ProtocolCallRefusal::InvalidPlan);
+        }
+        if definition.boundary.input_fronts.len() != 1 {
+            return Err(ProtocolCallRefusal::InvalidPlan);
+        }
+        let ingress = &definition.boundary.input_fronts[0];
+        if authorizers.iter().any(|authorize| {
+            authorize.inputs.len() != 1
+                || ingress.external_port.value_kind != authorize.inputs[0].value_kind
+        }) {
+            return Err(ProtocolCallRefusal::InvalidPlan);
+        }
+        let placements: alloc::vec::Vec<_> = plan
+            .fragments
+            .iter()
+            .flat_map(|fragment| &fragment.placements)
+            .map(|gear| {
+                (
+                    gear.placement_id.as_str(),
+                    gear.implementation_id.as_str(),
+                    gear.base.is_some() || !gear.resources.is_empty() || !gear.authority.is_empty(),
+                )
+            })
+            .collect();
+        let connections: alloc::vec::Vec<_> = plan
+            .fragments
+            .iter()
+            .flat_map(|fragment| &fragment.connections)
+            .map(|connection| {
+                (
+                    connection.source_placement_id.as_str(),
+                    connection.sink_placement_id.as_str(),
+                )
+            })
+            .collect();
+        let authorization_ids: alloc::vec::Vec<_> = authorizers
+            .iter()
+            .map(|gear| gear.placement_id.as_str())
+            .collect();
+        if !storage_ingress::authorized_routes(
+            ingress.internal_placement_id.as_str(),
+            &authorization_ids,
+            &placements,
+            &connections,
+        ) {
+            return Err(super::preparation_diagnostic::invalid(
+                "storage-ingress",
+                "request bypasses storage authorization",
+            ));
+        }
+        Self::prepare_selected(
+            definition,
+            operations,
+            false,
+            PhysicalMode::StorageUsbDuplex,
+            conduit_composite::KernelCompositeSignStorage {
+                additional_local_items: 0,
+                additional_remote_items: admission.usb.additional_remote_sign_items,
+            },
+            |plan, zip, states| match additional {
+                Some(additional) => PreparedProtocolCalls::prepare_storage_usb_duplex_two_pairs(
+                    plan, admission, additional, zip, states,
+                ),
+                None => {
+                    PreparedProtocolCalls::prepare_storage_usb_duplex(plan, admission, zip, states)
+                }
+            },
+        )
+    }
+}

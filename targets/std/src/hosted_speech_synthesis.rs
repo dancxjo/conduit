@@ -11,11 +11,15 @@ use std::{ffi::OsString, time::Duration};
 mod discovery;
 pub(crate) mod streaming;
 mod wav;
+pub use crate::hosted_language::{
+    language_request_literal, read_language_coverage, read_language_request, HostedLanguageRefusal,
+};
 pub use discovery::EspeakDiscovery;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EspeakFailure {
     InvalidProvider,
+    Language(HostedLanguageRefusal),
     ProviderChanged,
     InvalidLimits,
     InvalidText,
@@ -42,6 +46,7 @@ impl EspeakFailure {
     ) -> (conduit_kernel::HostCallDisposition, conduit_kernel::Failure) {
         use conduit_kernel::{Failure, FailureCode as C, HostCallDisposition as D};
         let (disposition, code, detail) = match self {
+            Self::Language(refusal) => (D::Denied, C::HostCallDenied, refusal.host_detail()),
             Self::InvalidProvider => (D::Denied, C::HostCallDenied, 1),
             Self::ProviderChanged => (D::Denied, C::HostCallDenied, 2),
             Self::StaleProvider => (D::Denied, C::HostCallDenied, 3),
@@ -136,6 +141,12 @@ impl EspeakDiscovery {
     }
 }
 impl EspeakSpeechAdapter {
+    /// Recheck the selected provider's complete content before offering a
+    /// current route witness. A Boot-time grant alone cannot prove presence.
+    pub fn provider_is_current(&self) -> bool {
+        self.discovery.verify().is_ok()
+    }
+
     pub fn provider_sha256(&self) -> &str {
         &self.discovery.provider_sha256
     }
@@ -151,8 +162,27 @@ impl EspeakSpeechAdapter {
         }
         Ok(())
     }
+
+    /// The same initialized provider remains installed when this Host adds or
+    /// removes an unrelated terminal offer. Old Plans remain fenced by their
+    /// prior generation; only future placements may use the new one.
+    pub(crate) fn advance_offer_generation(
+        &mut self,
+        host: &HostId,
+        boot: &BootId,
+        prior: OfferGeneration,
+        next: OfferGeneration,
+    ) -> Result<(), EspeakFailure> {
+        self.validate_host(host, boot, prior)?;
+        self.generation = next;
+        Ok(())
+    }
     pub fn offer(&self) -> CapabilityOffer {
-        conduit_std_offers::espeak_speech_offer(self.discovery.content_requirement())
+        let mut offer =
+            conduit_std_offers::espeak_speech_offer(self.discovery.content_requirement());
+        offer.realization_properties =
+            crate::hosted_language::properties(self.discovery.coverage.as_ref());
+        offer
     }
     pub fn resource_offer(&self) -> ResourceOffer {
         let mut offer = resource_offer(
@@ -180,7 +210,11 @@ impl EspeakSpeechAdapter {
         )
     }
     pub fn streaming_offer(&self) -> CapabilityOffer {
-        conduit_std_offers::espeak_streaming_offer(self.discovery.content_requirement())
+        let mut offer =
+            conduit_std_offers::espeak_streaming_offer(self.discovery.content_requirement());
+        offer.realization_properties =
+            crate::hosted_language::properties(self.discovery.coverage.as_ref());
+        offer
     }
     pub fn streaming_authority_grant(&self) -> AuthorityGrant {
         let offer = self.streaming_offer();
@@ -217,8 +251,17 @@ impl EspeakSpeechAdapter {
             || placement.outputs != offer.outputs
             || placement.semantic_contract != offer.semantic_contract
             || placement.limits != offer.limits
+            || placement.realization_properties != offer.realization_properties
         {
             return Err(EspeakFailure::WrongPlacement);
+        }
+        let request =
+            crate::hosted_language::request(placement).map_err(EspeakFailure::Language)?;
+        let voice =
+            crate::hosted_language::provider_language(self.discovery.coverage.as_ref(), &request)
+                .map_err(EspeakFailure::Language)?;
+        if voice != self.discovery.voice {
+            return Err(EspeakFailure::Language(HostedLanguageRefusal::Mapping));
         }
         let [resource] = placement.resources.as_slice() else {
             return Err(EspeakFailure::WrongResource);
@@ -254,7 +297,14 @@ impl EspeakSpeechAdapter {
         if streaming {
             streaming::StreamLimits::from_placement(placement).map(|limits| limits.maximum_bytes)
         } else {
-            let [configuration] = placement.configuration.as_slice() else {
+            if placement.configuration.len() != 2 {
+                return Err(EspeakFailure::InvalidLimits);
+            }
+            let Some(configuration) = placement
+                .configuration
+                .iter()
+                .find(|entry| entry.key == "maximum-output-bytes")
+            else {
                 return Err(EspeakFailure::InvalidLimits);
             };
             match (&*configuration.key, &configuration.value) {

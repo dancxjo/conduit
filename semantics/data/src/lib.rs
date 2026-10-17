@@ -2,6 +2,8 @@
 
 extern crate alloc;
 
+pub mod bytes_literal;
+
 #[allow(dead_code, clippy::too_many_arguments)]
 mod generated {
     include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
@@ -20,11 +22,12 @@ pub use generated::{
     MeasurementSample, MeasurementSummary, MeasurementSummaryRefusal, MeasurementThresholdDecision,
     MeasurementThresholdPolicy, MeasurementThresholdRefusal, MeasurementThresholdState,
     MeasurementThresholdStateForm, MeasurementThresholdTransition, MeasurementWindowProfile,
-    MeasurementWindowRefusal, MissingDataMask, NormalizedQuantityRefusal, ObservationProvenance,
-    ObservationProvenanceDerived, ObservationProvenanceMeasured, ObservationSet, ObservationValue,
-    ObservationValueSampledSignal, ObservationValueTensor, QuantityMappingRefusal,
-    QuantizationPolicy, RangePolicy, SampledSignal, SampledSignalRefusal, ScalarComparison,
-    ScientificAlignmentRefusal, ScientificAlignmentRefusalObservation, ScientificCorpusRefusal,
+    MeasurementWindowRefusal, MissingDataMask, NamedTensor, NamedTensorBundle,
+    NormalizedQuantityRefusal, ObservationProvenance, ObservationProvenanceDerived,
+    ObservationProvenanceMeasured, ObservationSet, ObservationValue, ObservationValueSampledSignal,
+    ObservationValueTensor, QuantityMappingRefusal, QuantizationPolicy, RangePolicy, SampledSignal,
+    SampledSignalRefusal, ScalarComparison, ScientificAlignmentRefusal,
+    ScientificAlignmentRefusalObservation, ScientificCorpusRefusal,
     ScientificCorpusRefusalObservation, ScientificObservation, ScientificObservationIdentity,
     ScientificObservationRefusal, SignalCadence, SignalCadenceIrregular, SignalCadenceRegular,
     SignalContinuity, SignalContinuityClockReset, SignalContinuityDiscontinuous, SignalIdentity,
@@ -55,6 +58,12 @@ mod measurement_threshold_wire;
 mod measurement_window;
 mod measurement_window_catalog;
 mod measurement_wire;
+mod named_tensor;
+mod named_tensor_catalog;
+mod named_tensor_output;
+pub use named_tensor_output::*;
+mod named_tensor_view;
+pub use named_tensor_view::*;
 mod sampled_signal;
 mod scalar_comparison;
 mod scientific_alignment;
@@ -67,6 +76,8 @@ mod tabular_reference;
 mod tensor;
 mod tensor_catalog;
 mod tensor_codec;
+pub use named_tensor::*;
+pub use named_tensor_catalog::install_named_tensor_type;
 
 pub use data_catalog::*;
 pub use data_generation::*;
@@ -96,3 +107,6 @@ pub use tabular_catalog::*;
 pub use tabular_reference::*;
 pub use tensor::*;
 pub use tensor_catalog::*;
+
+mod tensor_view_axis;
+pub use tensor_view_axis::TensorAxisRoleView;

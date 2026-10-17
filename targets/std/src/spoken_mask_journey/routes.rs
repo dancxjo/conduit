@@ -5,7 +5,7 @@ use super::SpokenMaskExecution;
 pub struct SpokenMaskRouteSet {
     pub wake: conduit_body::Wake,
     pub body_plan: conduit_body::BodyPlan,
-    pub routes: conduit_presentation::AdmittedMaskPlotRoutes,
+    pub routes: conduit_face::AdmittedMaskPlotRoutes,
 }
 
 pub fn admit_spoken_mask_routes(
@@ -48,9 +48,7 @@ fn admit_spoken_mask_routes_for_wake(
     };
     let planned = executions
         .iter()
-        .map(|execution| {
-            conduit_presentation::PlannedMaskPlot::admit(&execution.mask, &execution.plan)
-        })
+        .map(|execution| conduit_face::PlannedMaskPlot::admit(&execution.mask, &execution.plan))
         .collect::<Result<Vec<_>, _>>()
         .map_err(|error| format!("admit planned spoken Mask: {error:?}"))?;
     let residents = planned
@@ -124,10 +122,12 @@ fn admit_spoken_mask_routes_for_wake(
         .enumerate()
         .zip(availability)
         .map(
-            |((index, item), currently_available)| conduit_presentation::SealedMaskPlotRoute {
+            |((index, item), currently_available)| conduit_face::SealedMaskPlotRoute {
                 route_id: format!("route/{evidence_id}/{index}"),
                 mask_plot: item.mask.plot_identity.clone(),
                 plan_id: body_plan.plan_id.clone(),
+                child_mask_plan_id: None,
+                owner_route_seal_id: None,
                 placement_ids: item
                     .plan
                     .fragments
@@ -139,7 +139,7 @@ fn admit_spoken_mask_routes_for_wake(
             },
         )
         .collect();
-    let routes = conduit_presentation::AdmittedMaskPlotRoutes::new(&body_plan, &planned, routes)
+    let routes = conduit_face::AdmittedMaskPlotRoutes::new(&body_plan, &planned, routes)
         .map_err(|error| format!("admit spoken Mask routes: {error:?}"))?;
     Ok(SpokenMaskRouteSet {
         wake,

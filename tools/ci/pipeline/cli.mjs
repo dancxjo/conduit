@@ -1,13 +1,18 @@
+import { readDeliveryStatus } from './delivery-status.mjs';
 import { appendFileSync, mkdirSync, readdirSync, existsSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { resolve } from 'node:path';
-import { planChanges } from './plan.mjs';
+import { planChanges, UNIT_SHARDS } from './plan.mjs';
+import { admissionPlan, nativeRisk, runAdmission } from './admission.mjs';
 import { sealTarget, verifyBundle } from './receipts.mjs';
 import { TARGETS, setupTarget, runTarget } from './targets.mjs';
 import { setupCi, setupUnit } from './setup.mjs';
 import { assertSourceCheckout } from './source.mjs';
 import { emitAcquisitionKey, measureAcquisition } from './acquisition/metrics.mjs';
 import { retainedOneBodyEvidence } from './one-body-evidence.mjs';
+import { retainedThreeHostDevelopmentEvidence } from './three-host-development-evidence.mjs';
+import { retainedDirectSpokenDevelopmentEvidence } from './direct-spoken-development-evidence.mjs';
+import { retainedTodoBrowserDevelopmentEvidence } from './todo-browser-development-evidence.mjs';
 
 function run(program, args, capture = false) {
   const result = spawnSync(program, args, { stdio: capture ? ['ignore', 'pipe', 'inherit'] : 'inherit', encoding: 'utf8' });
@@ -32,6 +37,10 @@ function target(id) {
 const [command, ...args] = process.argv.slice(2);
 try {
   switch (command) {
+    case 'status':
+      if (args.length !== 1) throw new Error('usage: status <owner/repository>');
+      console.log(JSON.stringify(await readDeliveryStatus(args[0]), null, 2));
+      break;
     case 'setup-ci':
       if (args.length) throw new Error('setup-ci accepts no arguments');
       await measureAcquisition('preflight', setupCi);
@@ -46,12 +55,30 @@ try {
       emitAcquisitionKey(args[0]);
       break;
     case 'scan': {
-      if (args.length !== 2) throw new Error('usage: scan <base-sha|all> <head-sha>');
+      if (args.length < 2 || args.length > 3 || (args[2] && args[2] !== 'candidate')) throw new Error('usage: scan <base-sha|all> <head-sha> [candidate]');
       const [base, head] = args;
       exactSha(head);
       const paths = base === 'all' ? [] : run('git', ['diff', '--name-only', '--no-renames', '-z', `${exactSha(base)}...${head}`], true).split('\0').filter(Boolean);
       const plan = planChanges(paths, { full: base === 'all' });
+      if (args[2] === 'candidate') {
+        plan.families = plan.families.filter(family =>
+          (family === 'conduitos' && nativeRisk(paths))
+          || (family === 'browser' && paths.some(path => /^(?:site|proof\/browser|targets\/browser)\//.test(path)))
+          || paths.some(path => path.startsWith(`targets/${family}/firmware/`)));
+      }
+      let broadAdmission = false;
+      if (args[2] === 'candidate' && !plan.docsOnly) {
+        const metadata = JSON.parse(run('cargo', ['metadata', '--locked', '--format-version', '1', '--no-deps'], true));
+        broadAdmission = admissionPlan(paths, metadata, process.cwd()).broad;
+        // Broad admission previously tested every workspace package in one job.
+        // Preserve that corpus even when target scanning selected fewer shards.
+        if (broadAdmission) plan.unitShards = [...UNIT_SHARDS];
+      }
+      output('broad-admission', String(broadAdmission));
+      output('has-targets', String(plan.families.length > 0));
       output('docs-only', String(plan.docsOnly));
+      output('unit-matrix', { shard: plan.unitShards });
+      output('conduitos-proof', String(plan.conduitosProof));
       output('matrix', { include: TARGETS.filter(item => plan.families.includes(item.family)) });
       output('sha', head);
       break;
@@ -64,14 +91,33 @@ try {
         // where CI retains the full history, before any expensive target work.
         run('git', ['merge-base', '--is-ancestor', oneBodyEvidence.sourceCommit, 'HEAD']);
       }
+      const threeHostDevelopment = oneBodyEvidence ? null : retainedThreeHostDevelopmentEvidence();
+      if (threeHostDevelopment) {
+        run('git', ['merge-base', '--is-ancestor', threeHostDevelopment.sourceCommit, 'HEAD']);
+      }
+      const directSpokenDevelopment = retainedDirectSpokenDevelopmentEvidence();
+      if (directSpokenDevelopment) {
+        run('git', ['merge-base', '--is-ancestor', directSpokenDevelopment.sourceCommit, 'HEAD']);
+      }
+      retainedTodoBrowserDevelopmentEvidence(undefined, run('git', ['rev-parse', 'HEAD'], true));
       run('git', ['diff', '--check', exactSha(args[0]), 'HEAD']);
       run('cargo', ['fmt', '--all', '--check']);
       run('cargo', ['metadata', '--locked', '--no-deps', '--format-version', '1'], true);
+      // Physical definitions are authored in Conduitese; derived bindings must
+      // remain reproducible from that source on every candidate.
+      run('python3', ['architecture/core/definitions/generate.py', '--check']);
       run('cargo', ['xtask', 'ci', 'standalone-locks', '--locked']);
       const specs = readdirSync('proof/ci').filter(name => name.startsWith('pipeline-') && name.endsWith('.spec.mjs')).map(name => `proof/ci/${name}`);
       run('node', ['--test', ...specs]);
       // Syntax validation is required in CI, not a silently optional dependency.
       run(resolve('target/ci-tools/actionlint'), []);
+      break;
+    }
+    case 'admission': {
+      if (args.length < 1 || args.length > 2 || (args[1] && args[1] !== '--workspace-checked')) throw new Error('usage: admission <base-sha> [--workspace-checked]');
+      const paths = run('git', ['diff', '--name-only', '--no-renames', '-z', `${exactSha(args[0])}...HEAD`], true).split('\0').filter(Boolean);
+      const metadata = JSON.parse(run('cargo', ['metadata', '--locked', '--no-deps', '--format-version', '1'], true));
+      runAdmission(paths, metadata, process.cwd(), run, { workspaceChecked: args[1] === '--workspace-checked' });
       break;
     }
     case 'setup':
@@ -104,7 +150,7 @@ try {
       await publish(args[0], resolve(args[1]));
       break;
     }
-    default: throw new Error('usage: cargo xtask ci pipeline <scan|preflight|unit|setup|target|verify|publish>');
+    default: throw new Error('usage: cargo xtask ci pipeline <scan|preflight|admission|unit|setup|target|verify|publish>');
   }
 } catch (error) {
   console.error(`FAILED: pipeline/${command}: ${error.message}`);

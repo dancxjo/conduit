@@ -55,11 +55,11 @@ export async function writeBrowserBodyJourneyTrack(source, screenshotPath, outpu
   }
   const interaction = inspectedMask.interaction;
   if (interaction?.schema !== "conduit.browser/mask-interaction@1"
-      || interaction.correlation?.presentation_id !== inspectedMask.presentation?.identity
-      || interaction.correlation?.presentation_revision !== inspectedMask.presentation?.revision
+      || interaction.correlation?.face_id !== inspectedMask.face?.identity
+      || interaction.correlation?.face_revision !== inspectedMask.face?.revision
       || interaction.correlation?.show_id !== inspectedMask.mask_show?.show_id
-      || interaction.correlation?.interaction?.face_id !== inspectedMask.presentation?.identity
-      || interaction.correlation?.interaction?.face_revision !== inspectedMask.presentation?.revision
+      || interaction.correlation?.interaction?.face_id !== inspectedMask.face?.identity
+      || interaction.correlation?.interaction?.face_revision !== inspectedMask.face?.revision
       || interaction.correlation?.interaction?.show_id !== inspectedMask.mask_show?.show_id) {
     throw new Error("browser track lacks exact Face/Show-correlated Mask interaction");
   }
@@ -72,7 +72,7 @@ export async function writeBrowserBodyJourneyTrack(source, screenshotPath, outpu
     boot: required(current.boot_id, "Boot identity"), peerHost: required(peer?.host_id, "peer Host identity"),
     peerBoot: required(peer?.boot_id, "peer Boot identity"), plan: required(plan.plan_id, "Plan identity"),
     play: required(plan.active_play_id, "Play identity"),
-    face: required(inspectedMask.presentation?.identity, "Face identity"),
+    face: required(inspectedMask.face?.identity, "Face identity"),
     show: required(inspectedMask.mask_show?.show?.manifestation_id, "Show identity"),
     maskPlot: required(inspectedMask.planned_mask?.mask?.plot_identity?.checked_plot_id, "Mask Plot identity"),
     maskPlan: required(inspectedMask.planned_mask?.plan?.plan_id, "Mask Plan identity"),
@@ -152,8 +152,8 @@ export async function writeBrowserBodyJourneyTrack(source, screenshotPath, outpu
     throw new Error("browser track lacks the exact producer-owned Mask journey");
   }
   for (const action of maskActions) {
-    action.face_id = action.presentation_id;
-    delete action.presentation_id;
+    action.face_id = action.face_id;
+    delete action.face_id;
   }
   for (let index = 0; index < maskActions.length; index += 1) {
     const action = maskActions[index];

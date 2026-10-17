@@ -1,62 +1,62 @@
 use super::*;
 use conduit_body::Body;
 use conduit_core::{CheckedPlotId, ExpandedPlotId, PlanId, SignId, SourceDocumentId};
-use conduit_presentation::*;
+use conduit_face::*;
 use std::path::Path;
 
-fn presentation() -> Presentation {
-    presentation_with_text("Ready.")
+fn face() -> Face {
+    face_with_text("Ready.")
 }
 
-pub(super) fn presentation_with_text(text: &str) -> Presentation {
+pub(super) fn face_with_text(text: &str) -> Face {
     let body = Body::born(
-        SourceDocumentId::from("source/presentation-fixture"),
-        CheckedPlotId::from("checked/presentation-fixture"),
+        SourceDocumentId::from("source/face-fixture"),
+        CheckedPlotId::from("checked/face-fixture"),
         1,
-        SignId::from("sign/presentation-fixture/born"),
+        SignId::from("sign/face-fixture/born"),
     )
     .unwrap();
-    Presentation::new_with_semantics(
+    Face::new_with_semantics(
         1,
-        PresentationBasis {
+        FaceBasis {
             body_id: Some(body.body_id),
             wake_id: None,
-            source_document_id: Some(SourceDocumentId::from("source/presentation-fixture")),
-            checked_plot_id: Some(CheckedPlotId::from("checked/presentation-fixture")),
-            expanded_plot_id: Some(ExpandedPlotId::from("expanded/presentation-fixture")),
-            plan_id: Some(PlanId::from("plan/presentation-fixture")),
+            source_document_id: Some(SourceDocumentId::from("source/face-fixture")),
+            checked_plot_id: Some(CheckedPlotId::from("checked/face-fixture")),
+            expanded_plot_id: Some(ExpandedPlotId::from("expanded/face-fixture")),
+            plan_id: Some(PlanId::from("plan/face-fixture")),
             active_play_id: None,
             sign_ids: vec![],
         },
-        vec![PresentationSubject {
+        vec![FaceSubject {
             identity: "body/current".into(),
-            role: PresentationRole::Body,
+            role: FaceRole::Body,
             name: "Current body".into(),
         }],
         vec![],
         vec![],
-        vec![PresentationText {
+        vec![FaceText {
             subject: "body/current".into(),
             text: text.into(),
         }],
         vec![],
-        vec![PresentationDisclosure {
+        vec![FaceDisclosure {
             subject: "body/current".into(),
-            level: PresentationDisclosureLevel::Primary,
+            level: FaceDisclosureLevel::Primary,
         }],
     )
     .unwrap()
 }
 
-pub(super) fn retained(presentation: Presentation) -> GeneratedManifestationCandidate {
-    let request = GenerativePresenterRequest::from_presentation(
+pub(super) fn retained(face: Face) -> GeneratedManifestationCandidate {
+    let request = GenerativePresenterRequest::from_face(
         "request/retained".into(),
         GenerativePresenterPolicy {
             template_contract_revision: "template/spoken-mask@1".into(),
             narrator_role: GenerativeNarratorRole::TransientFirstPersonBodyNarrator,
             instructions: "Speak the supplied text.".into(),
         },
-        presentation,
+        face,
         None,
         GenerativePresenterBounds::reviewed_default(),
     )
@@ -64,34 +64,29 @@ pub(super) fn retained(presentation: Presentation) -> GeneratedManifestationCand
     let mut manifestation = GeneratedManifestationCandidate {
         candidate_identity: String::new(),
         request_identity: request.request_identity.clone(),
-        source_presentation_identity: request.semantic_data.source_presentation_identity.clone(),
-        source_presentation_revision: request.semantic_data.source_presentation_revision,
+        source_face_identity: request.semantic_data.source_face_identity.clone(),
+        source_face_revision: request.semantic_data.source_face_revision,
         presenter_implementation_identity: "fixture/presenter@1".into(),
         provider_identity: "fixture/provider".into(),
         model_identity: "fixture/model".into(),
         template_contract_revision: request.policy.template_contract_revision.clone(),
-        mask_contract_revision: conduit_presentation::SPOKEN_MASK_CONTRACT_REVISION.into(),
+        mask_contract_revision: conduit_face::SPOKEN_MASK_CONTRACT_REVISION.into(),
         generation_run_identity: "run/spoken-mask".into(),
         disposition: GeneratedManifestationDisposition::Produced,
         content: vec![GeneratedContentSegment {
             role: GeneratedContentRole::Speech,
             source_text_index: 0,
-            bytes: request.semantic_data.presentation.text[0]
-                .text
-                .as_bytes()
-                .to_vec(),
+            bytes: request.semantic_data.face.text[0].text.as_bytes().to_vec(),
         }],
         affordances: vec![],
         correlations: vec![
             GeneratedSemanticCorrelation::Subject {
                 index: 0,
-                identity: request.semantic_data.presentation.subjects[0]
-                    .identity
-                    .clone(),
+                identity: request.semantic_data.face.subjects[0].identity.clone(),
             },
             GeneratedSemanticCorrelation::Text {
                 index: 0,
-                subject: request.semantic_data.presentation.text[0].subject.clone(),
+                subject: request.semantic_data.face.text[0].subject.clone(),
             },
         ],
         raw_provider_output: None,
@@ -103,11 +98,11 @@ pub(super) fn retained(presentation: Presentation) -> GeneratedManifestationCand
 
 #[test]
 fn finite_wording_replay_uses_the_presenter_policy_and_revalidates_the_face() {
-    let face = presentation();
+    let face = face();
     let mut candidate = retained(face.clone());
     let proposal = GeneratedWordingProposal {
-        source_presentation_identity: face.identity.as_str().into(),
-        source_presentation_revision: face.revision,
+        source_face_identity: face.identity.as_str().into(),
+        source_face_revision: face.revision,
         clauses: vec![GeneratedWordingClause::Text {
             index: 0,
             subject: face.text[0].subject.clone(),
@@ -126,13 +121,14 @@ fn finite_wording_replay_uses_the_presenter_policy_and_revalidates_the_face() {
         "finite-replay-fixture",
         face.clone(),
         candidate.clone(),
+        &crate::hosted_language::tests::request("language/english"),
     )
     .expect("the exact finite wording proposal must reach an acknowledged Show");
     assert_eq!(
         shown.shown.show.show.lifecycle,
         ManifestationLifecycle::Available
     );
-    assert_eq!(shown.shown.show.show.presentation_id, face.identity);
+    assert_eq!(shown.shown.show.show.face_id, face.identity);
 
     let mut invented = candidate.clone();
     let GeneratedWordingClause::Text { value, .. } =
@@ -147,6 +143,7 @@ fn finite_wording_replay_uses_the_presenter_policy_and_revalidates_the_face() {
         "invented-replay-fixture",
         face.clone(),
         invented,
+        &crate::hosted_language::tests::request("language/english"),
     )
     .is_err());
 
@@ -157,6 +154,7 @@ fn finite_wording_replay_uses_the_presenter_policy_and_revalidates_the_face() {
         "unknown-replay-fixture",
         face,
         candidate,
+        &crate::hosted_language::tests::request("language/english"),
     )
     .unwrap_err();
     assert!(refused.contains("unsupported spoken Mask template"));
@@ -173,11 +171,17 @@ fn installed_espeak_mask_retains_acknowledged_wav_through_plan_and_play() {
         &[engine],
     )
     .unwrap();
+    let coverage = crate::hosted_language::tests::fixture_coverage(
+        &discovery.provider_identity(),
+        "en-us",
+        "language/english",
+    );
+    let discovery = discovery.declare_language_coverage(coverage).unwrap();
     let directory =
         std::env::temp_dir().join(format!("conduit-real-mask-proof-{}", std::process::id()));
     std::fs::create_dir(&directory).unwrap();
     let destination = directory.join("ready.wav");
-    let face = presentation();
+    let face = face();
     let result = execute_retained_manifestation_mask_with_espeak(
         "real-spoken-proof",
         "real-spoken-proof",
@@ -185,6 +189,7 @@ fn installed_espeak_mask_retains_acknowledged_wav_through_plan_and_play() {
         retained(face),
         discovery,
         &destination,
+        &crate::hosted_language::tests::request("language/english"),
     )
     .unwrap();
     let shown = &result.execution.shown;
@@ -228,7 +233,7 @@ fn installed_espeak_mask_retains_acknowledged_wav_through_plan_and_play() {
 #[test]
 #[ignore = "requires installed eSpeak NG; validates real streaming Mask audio using an explicitly fixture Presenter candidate"]
 fn installed_espeak_streaming_mask_acknowledges_substantive_chapter() {
-    let words = "This Body keeps the clock you started. Change the interval, then inspect the connections to see how your action reaches the running work. You can pause the Body without erasing its history. When you return, inspect the current host and the new plan before starting again. If a presentation host disappears, the Body must show what stopped and which admitted route can continue. Your preference chooses among available Masks; it never invents a missing host.";
+    let words = "This Body keeps the clock you started. Change the interval, then inspect the connections to see how your action reaches the running work. You can pause the Body without erasing its history. When you return, inspect the current host and the new plan before starting again. If a face host disappears, the Body must show what stopped and which admitted route can continue. Your preference chooses among available Masks; it never invents a missing host.";
     let engine = std::fs::canonicalize("/usr/lib/x86_64-linux-gnu/libespeak-ng.so.1").unwrap();
     let discovery = crate::hosted_speech_synthesis::EspeakDiscovery::inspect(
         Path::new("/usr/bin/espeak-ng"),
@@ -237,13 +242,19 @@ fn installed_espeak_streaming_mask_acknowledges_substantive_chapter() {
         &[engine],
     )
     .unwrap();
+    let coverage = crate::hosted_language::tests::fixture_coverage(
+        &discovery.provider_identity(),
+        "en-us",
+        "language/english",
+    );
+    let discovery = discovery.declare_language_coverage(coverage).unwrap();
     let directory = std::env::temp_dir().join(format!(
         "conduit-streamed-mask-proof-{}",
         std::process::id()
     ));
     std::fs::create_dir(&directory).unwrap();
     let destination = directory.join("chapter.wav");
-    let face = presentation_with_text(words);
+    let face = face_with_text(words);
     let candidate = retained(face.clone());
     let result = execute_retained_manifestation_mask_with_streaming_espeak(
         "streamed-spoken-proof",
@@ -252,6 +263,7 @@ fn installed_espeak_streaming_mask_acknowledges_substantive_chapter() {
         candidate.clone(),
         discovery,
         &destination,
+        &crate::hosted_language::tests::request("language/english"),
     )
     .unwrap();
     let shown = &result.execution.shown;
@@ -292,4 +304,19 @@ fn installed_espeak_streaming_mask_acknowledges_substantive_chapter() {
     }
     std::fs::write(directory.join("words.txt"), words).unwrap();
     eprintln!("Actual streamed Mask audio retained at {} (fixture wording; no live model or playback claim)", directory.display());
+}
+
+#[test]
+fn french_mask_request_refuses_the_english_fixture_before_play() {
+    let face = face();
+    let error = execute_retained_manifestation_mask(
+        "french-mask-refusal",
+        "french-mask-refusal",
+        face.clone(),
+        retained(face),
+        &crate::hosted_language::tests::request("language/french"),
+    )
+    .unwrap_err();
+    assert!(error.contains("language/french"), "{error}");
+    assert!(error.contains("LanguageCoverageUnsatisfied"), "{error}");
 }

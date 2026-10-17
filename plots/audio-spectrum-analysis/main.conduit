@@ -1,0 +1,9 @@
+# Finite overlapping spectral windows; nominal digital full scale, no physical power claim.
+plot measure (
+    >> pcm: PcmFrames...|
+    observation: AudioSpectrumObservation...| >>
+) {
+    analyzer: audio/measure-spectrum(clock-id = 7, sample-rate = 8000Hz, source-frames = 64, window-frames = 32, stride-frames = 16, window = "periodic-hann", maximum-blocks = 1)
+    pcm >> analyzer.pcm
+    analyzer.observation >> observation
+}.

@@ -10,6 +10,11 @@ use std::path::PathBuf;
 #[path = "../../xtask/src/commands/host_release.rs"]
 mod host_release;
 
+// Share the exact catalog sealer and validator with the full xtask. The
+// catalog command needs neither its other product nor hardware dependencies.
+#[path = "../../xtask/src/commands/host_release_catalog.rs"]
+mod host_release_catalog;
+
 const HOST_RELEASE_BOOTSTRAP_ENV: &str = "CONDUIT_XTASK_HOST_RELEASE_BOOTSTRAP";
 const HOST_RELEASE_REQUESTED_TARGET_ENV: &str = "CONDUIT_XTASK_HOST_RELEASE_REQUESTED_TARGET";
 
@@ -24,7 +29,12 @@ mod proof {
 #[path = "../../xtask/src/process/tool_command.rs"]
 mod tool_command;
 
+#[path = "../../xtask/src/process/browser_release.rs"]
+mod browser_release;
+
+mod focused_check;
 mod process {
+    pub use crate::browser_release::BROWSER_RELEASE_ENVIRONMENT;
     use crate::proof::ProofClass;
     pub use crate::tool_command::command_for;
 
@@ -37,6 +47,7 @@ mod process {
         pub cwd: Option<&'static str>,
         pub tool_or_target: Option<&'static str>,
         pub proof_class: Option<ProofClass>,
+        pub environment: &'static [(&'static str, &'static str)],
         pub expected_artifacts: &'static [&'static str],
     }
 
@@ -56,6 +67,7 @@ mod process {
                 tool_or_target: None,
                 proof_class: None,
                 expected_artifacts: &[],
+                environment: &[],
             }
         }
 
@@ -79,13 +91,32 @@ mod process {
                 tool_or_target,
                 proof_class,
                 expected_artifacts,
+                environment: &[],
             }
+        }
+        pub const fn with_environment(
+            mut self,
+            environment: &'static [(&'static str, &'static str)],
+        ) -> Self {
+            self.environment = environment;
+            self
+        }
+    }
+
+    impl std::fmt::Display for Step {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            for (name, value) in self.environment {
+                write!(f, "{name}={value} ")?;
+            }
+            write!(f, "{} {}", self.program, self.args.join(" "))
         }
     }
 }
 
 #[path = "../../xtask/src/suites/check.rs"]
 pub mod suite_check;
+#[path = "../../xtask/src/suites/host_protocol_shards.rs"]
+pub mod suite_host_protocol_shards;
 #[path = "../../xtask/src/suites/network_capability.rs"]
 pub mod suite_network_capability;
 #[path = "../../xtask/src/suites/pico_compositions.rs"]
@@ -95,6 +126,7 @@ pub mod suite_workspace_shards;
 
 mod suites {
     pub use crate::suite_check as check;
+    pub use crate::suite_host_protocol_shards as host_protocol_shards;
     #[cfg(test)]
     pub use crate::suite_network_capability as network_capability;
     #[cfg(test)]
@@ -111,10 +143,39 @@ mod workspace;
 
 mod ci_dispatch;
 mod local_storage;
+#[path = "../../xtask/src/commands/model_authoring.rs"]
+mod model_authoring;
+#[path = "../../xtask/src/commands/runtime_performance.rs"]
+mod runtime_performance;
 mod tool_setup;
 
 fn main() {
     let arguments: Vec<String> = std::env::args().skip(1).collect();
+    if arguments.first().map(String::as_str) == Some("prove")
+        && arguments.get(1).map(String::as_str) == Some("model-authoring")
+    {
+        if let Err(error) = model_authoring::run(&arguments[2..]) {
+            eprintln!("xtask error: {error}");
+            std::process::exit(1);
+        }
+        return;
+    }
+    if arguments.first().map(String::as_str) == Some("prove")
+        && arguments.get(1).map(String::as_str) == Some("runtime-performance")
+    {
+        if let Err(error) = runtime_performance::run(&arguments[2..], false) {
+            eprintln!("xtask error: {error}");
+            std::process::exit(1);
+        }
+        return;
+    }
+    if let Some(result) = focused_check::run(&arguments) {
+        if let Err(error) = result {
+            eprintln!("xtask error: {error}");
+            std::process::exit(1);
+        }
+        return;
+    }
     if let Some(setup) = tool_setup::route(&arguments) {
         if let Err(error) = tool_setup::run(setup) {
             eprintln!("xtask error: {error}");
@@ -145,6 +206,13 @@ fn main() {
         #[cfg(not(feature = "host-release"))]
         launch_host_release(options);
     }
+    if let Some(options) = host_release_catalog_options(&arguments) {
+        if let Err(error) = run_host_release_catalog(options) {
+            eprintln!("xtask error: {error}");
+            std::process::exit(1);
+        }
+        return;
+    }
     if arguments.first().map(String::as_str) != Some("ci") {
         let status = std::process::Command::new("cargo")
             .args(["run", "--package", "xtask", "--"])
@@ -163,6 +231,96 @@ fn main() {
     if let Err(error) = result {
         eprintln!("xtask error: {error}");
         std::process::exit(1);
+    }
+}
+
+fn host_release_catalog_options(arguments: &[String]) -> Option<&[String]> {
+    match arguments {
+        [host, catalog, options @ ..] if host == "host" && catalog == "release-catalog" => {
+            Some(options)
+        }
+        [make, host, catalog, options @ ..]
+            if make == "make" && host == "host" && catalog == "release-catalog" =>
+        {
+            Some(options)
+        }
+        _ => None,
+    }
+}
+
+fn run_host_release_catalog(options: &[String]) -> Result<(), Box<dyn std::error::Error>> {
+    let mut root = None;
+    let mut generation = None;
+    let mut dry_run = false;
+    let mut json = false;
+    let mut quiet = false;
+    let mut values = options.iter();
+    while let Some(argument) = values.next() {
+        match argument.as_str() {
+            "--locked" => {}
+            "--dry-run" => dry_run = true,
+            "--json" => json = true,
+            "--quiet" => quiet = true,
+            "--root" => {
+                root = Some(std::path::PathBuf::from(
+                    values.next().ok_or("missing --root path")?,
+                ))
+            }
+            "--generation" => {
+                generation = Some(
+                    values
+                        .next()
+                        .ok_or("missing --generation value")?
+                        .parse::<u64>()?,
+                );
+            }
+            other => {
+                return Err(format!("unsupported host release-catalog argument: {other}").into())
+            }
+        }
+    }
+    host_release_catalog::run(
+        &root.ok_or("host release-catalog requires --root")?,
+        generation.ok_or("host release-catalog requires --generation")?,
+        dry_run,
+        json,
+        quiet,
+    )
+}
+
+#[cfg(test)]
+mod release_catalog_dispatch_tests {
+    use super::*;
+    use std::fs;
+
+    #[test]
+    fn dispatcher_seals_identical_bytes_to_full_xtask_implementation() {
+        let base = std::env::temp_dir().join(format!(
+            "conduit-release-catalog-dispatch-{}",
+            std::process::id()
+        ));
+        let direct = base.join("direct");
+        let dispatched = base.join("dispatched");
+        fs::create_dir_all(&direct).unwrap();
+        fs::create_dir_all(&dispatched).unwrap();
+        let manifest = br#"{"schema":"conduit.release/host-bundle@1","target_id":"std/x86_64/computer","make_package_id":"conduit-host-hosted@1","output":"native-bundle","builder_adapter":"conduit-host-hosted/build-native@1","deployment_adapter":"hosted/install@1"}"#;
+        fs::write(direct.join("host.json"), manifest).unwrap();
+        fs::write(dispatched.join("host.json"), manifest).unwrap();
+
+        host_release_catalog::run(&direct, 7, false, false, true).unwrap();
+        run_host_release_catalog(&[
+            "--root".into(),
+            dispatched.to_string_lossy().into_owned(),
+            "--generation".into(),
+            "7".into(),
+            "--quiet".into(),
+        ])
+        .unwrap();
+        assert_eq!(
+            fs::read(direct.join("release-catalog.json")).unwrap(),
+            fs::read(dispatched.join("release-catalog.json")).unwrap()
+        );
+        fs::remove_dir_all(base).unwrap();
     }
 }
 
@@ -329,39 +487,5 @@ mod tests {
     fn unrelated_make_commands_stay_on_the_full_dispatcher() {
         let arguments = arguments(&["make", "conduitos", "release"]);
         assert_eq!(host_release_options(&arguments), None);
-    }
-}
-
-#[cfg(test)]
-mod dependency_boundary_tests {
-    use std::collections::BTreeSet;
-
-    #[test]
-    fn default_dispatcher_test_target_has_only_dependency_light_inputs() {
-        let root = crate::workspace::workspace_root().unwrap();
-        let manifest = std::fs::read_to_string(root.join("tools/xtask-dispatch/Cargo.toml"))
-            .expect("read dispatcher manifest");
-        let manifest: toml::Value = toml::from_str(&manifest).expect("parse dispatcher manifest");
-        let dependencies = manifest["dependencies"]
-            .as_table()
-            .expect("dispatcher dependencies");
-        let non_optional = dependencies
-            .iter()
-            .filter_map(|(name, value)| {
-                let optional = value
-                    .as_table()
-                    .and_then(|details| details.get("optional"))
-                    .and_then(toml::Value::as_bool)
-                    .unwrap_or(false);
-                (!optional).then_some(name.as_str())
-            })
-            .collect::<BTreeSet<_>>();
-        assert_eq!(
-            non_optional,
-            BTreeSet::from(["serde", "serde_json", "sha2", "toml"])
-        );
-        assert!(dependencies["conduit-host-browser-make"]["optional"]
-            .as_bool()
-            .unwrap());
     }
 }

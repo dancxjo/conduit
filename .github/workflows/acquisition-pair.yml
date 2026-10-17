@@ -23,6 +23,8 @@ jobs:
   cold:
     runs-on: ${{ inputs.runner }}
     timeout-minutes: 60
+    outputs:
+      cache_key: ${{ steps.key.outputs.key }}
     defaults:
       run:
         shell: bash
@@ -106,14 +108,14 @@ jobs:
         run: cargo xtask ci pipeline acquisition-key "$TARGET"
       - name: Begin measurement
         env:
-          BENCHMARK_KEY: acquisition-benchmark-${{ github.run_id }}-${{ github.run_attempt }}-${{ steps.key.outputs.key }}
+          BENCHMARK_KEY: acquisition-benchmark-${{ github.run_id }}-${{ github.run_attempt }}-${{ needs.cold.outputs.cache_key }}
         run: node tools/ci/pipeline/acquisition/compare.mjs begin target/benchmark
       - name: Restore exact run-scoped project cache
         id: cache
         uses: actions/cache/restore@v6.1.0
         with:
           path: ${{ steps.key.outputs.paths }}
-          key: acquisition-benchmark-${{ github.run_id }}-${{ github.run_attempt }}-${{ steps.key.outputs.key }}
+          key: acquisition-benchmark-${{ github.run_id }}-${{ github.run_attempt }}-${{ needs.cold.outputs.cache_key }}
       - name: Record restore and require warm cache state
         env:
           CACHE_HIT: ${{ steps.cache.outputs.cache-hit }}

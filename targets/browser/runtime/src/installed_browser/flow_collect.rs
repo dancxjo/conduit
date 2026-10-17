@@ -5,7 +5,7 @@ use super::{BrowserBack, MAXIMUM_BROWSER_VALUE_BYTES};
 use conduit_core::{
     kind_id, validate_primitive_info, ArtifactId, Back, BackOfferBuilder,
     BoundedCollectSemanticLaw, CapabilityId, CapabilityOffer, CheckedValueContract,
-    ExecutionProfileId, ImplementationId, PlannedGear, UNIT_INFO_ID,
+    ExecutionProfileId, ImplementationId, PlannedGear, EMPTY_INFO_ID,
 };
 use conduit_kernel::CanonicalValue;
 
@@ -32,7 +32,7 @@ pub(crate) fn offer_for_expanded(
 }
 
 fn offer(element: &CheckedValueContract, maximum_items: u16) -> Result<CapabilityOffer, String> {
-    let overflow = CheckedValueContract::new(kind_id(UNIT_INFO_ID), 0, Vec::new())
+    let overflow = CheckedValueContract::new(kind_id(EMPTY_INFO_ID), 0, Vec::new())
         .map_err(|_| "browser flow/collect Unit overflow contract is invalid")?;
     let contract =
         conduit_semantic_catalog::flow_collect_semantic_contract(element, maximum_items, &overflow)
@@ -79,7 +79,7 @@ fn prepare(
 ) -> Result<BrowserBack, String> {
     let law = exact_law(placement)?;
     let exact = offer(&law.element, law.maximum_items)?;
-    if law.overflow_disposition.value_kind.as_str() != UNIT_INFO_ID
+    if law.overflow_disposition.value_kind.as_str() != EMPTY_INFO_ID
         || law.overflow_disposition.maximum_bytes != 0
         || validate_primitive_info(law.overflow_disposition.value_kind.as_str(), &[]).is_err()
         || placement.kind_id != exact.kind_id
@@ -155,7 +155,7 @@ mod tests {
     fn exact_unit_overflow_offer_prepares_the_shared_back() {
         let planned = placement();
         let law = exact_law(&planned).unwrap();
-        assert_eq!(law.overflow_disposition.value_kind.as_str(), UNIT_INFO_ID);
+        assert_eq!(law.overflow_disposition.value_kind.as_str(), EMPTY_INFO_ID);
         let mut values = conduit_kernel::HostedValueStore::new(8, 128, 1024).unwrap();
         assert!(prepare(&planned, &mut values).is_ok());
     }

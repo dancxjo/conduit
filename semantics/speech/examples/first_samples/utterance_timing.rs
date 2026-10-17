@@ -8,7 +8,7 @@ pub fn write(output: &str) -> Result<(), Box<dyn std::error::Error>> {
     let mut storage = [VoiceEvent::boundary(VoiceBoundary::word); MAXIMUM_EVENTS];
     let pronounced = pronounce("Hello, world!", &mut storage).map_err(|e| format!("{e:?}"))?;
     let inventory = SpeechInventoryId::new("timing/fixture".into()).unwrap();
-    let language = SpeechLanguageId::new("en".into()).unwrap();
+    let language = LanguageId::new("en".into()).unwrap();
     let revision = SpeechSegmentRevisionId::new("timing/revision".into()).unwrap();
     let sequence = SpeechSegmentSequenceId::new("timing/phones".into()).unwrap();
     let utterance = SpeechUtteranceId::new("timing/hello".into()).unwrap();
@@ -21,7 +21,7 @@ pub fn write(output: &str) -> Result<(), Box<dyn std::error::Error>> {
     let sources = BoundedSequence::try_from_iter([LanguageSegmentRef::text(
         LanguageTextSegmentKind::Phrase,
         language.clone(),
-        ListeningTextRange::new(13, 0).unwrap(),
+        LanguageTextRange::new(13, 0).unwrap(),
         LanguageTextRevisionId::new("fixture/text-revision".into()).unwrap(),
         LanguageTextId::new("fixture/text".into()).unwrap(),
     )

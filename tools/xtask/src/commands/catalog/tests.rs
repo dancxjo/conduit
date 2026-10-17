@@ -22,7 +22,7 @@ fn exact_profile_offers_drive_positive_cells() {
     assert_eq!(
         std_missing,
         vec![
-            conduit_semantic_catalog::PATCHBAY_PRESENTATION_KIND,
+            conduit_semantic_catalog::PATCHBAY_FACE_KIND,
             conduit_semantic_catalog::PATCHBAY_GEAR_FACE_KIND,
             conduit_semantic_catalog::PATCHBAY_PORT_KIND,
             conduit_semantic_catalog::PATCHBAY_CORD_KIND,
@@ -35,7 +35,7 @@ fn exact_profile_offers_drive_positive_cells() {
 
     let browser = build_report(&[CatalogHost::Browser], None).unwrap();
     assert!(browser.entries.iter().any(|entry| {
-        entry.kind_id == conduit_semantic_catalog::BOOL_PRESENTATION_KIND
+        entry.kind_id == conduit_semantic_catalog::BOOL_FACE_KIND
             && matches!(entry.coverage, Coverage::Direct)
     }));
 
@@ -148,7 +148,7 @@ fn report_vocabulary_preserves_future_truthful_states() {
 fn patchbay_high_level_and_subject_kinds_are_recursive_on_the_constrained_profile() {
     let report = build_report(&[CatalogHost::PatchbayConstrained], None).unwrap();
     for kind in [
-        conduit_semantic_catalog::PATCHBAY_PRESENTATION_KIND,
+        conduit_semantic_catalog::PATCHBAY_FACE_KIND,
         conduit_semantic_catalog::PATCHBAY_GEAR_FACE_KIND,
         conduit_semantic_catalog::PATCHBAY_PORT_KIND,
         conduit_semantic_catalog::PATCHBAY_CORD_KIND,
@@ -174,7 +174,7 @@ fn terminal_graphics_manifestation_is_direct_only_where_installed() {
     let entries = report
         .entries
         .iter()
-        .filter(|entry| entry.kind_id == conduit_semantic_catalog::GRAPHICS_PRESENTATION_KIND)
+        .filter(|entry| entry.kind_id == conduit_semantic_catalog::GRAPHICS_FACE_KIND)
         .collect::<Vec<_>>();
     assert_eq!(entries.len(), CatalogHost::ALL.len());
     let std_profile = profiles::advertisement(CatalogHost::Std)
@@ -189,7 +189,7 @@ fn terminal_graphics_manifestation_is_direct_only_where_installed() {
     assert!(matches!(std.coverage, Coverage::Direct));
     assert_eq!(
         std.implementation.as_ref().unwrap().implementation_id,
-        conduit_std_offers::GRAPHICS_PRESENTATION_IMPLEMENTATION
+        conduit_std_offers::GRAPHICS_FACE_IMPLEMENTATION
     );
     let conduitos_profile = profiles::advertisement(CatalogHost::Conduitos)
         .unwrap()
@@ -201,11 +201,9 @@ fn terminal_graphics_manifestation_is_direct_only_where_installed() {
         .find(|entry| entry.host_profile == conduitos_profile)
         .unwrap();
     assert!(matches!(conduitos.coverage, Coverage::Direct));
-    let conduitos_implementation = conduitos::presentation_nucleus::presentation_nucleus_offers()
+    let conduitos_implementation = conduitos::face_nucleus::face_nucleus_offers()
         .into_iter()
-        .find(|offer| {
-            offer.kind_id.as_str() == conduit_semantic_catalog::GRAPHICS_PRESENTATION_KIND
-        })
+        .find(|offer| offer.kind_id.as_str() == conduit_semantic_catalog::GRAPHICS_FACE_KIND)
         .unwrap()
         .implementation
         .implementation_id;

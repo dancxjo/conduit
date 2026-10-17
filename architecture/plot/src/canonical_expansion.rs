@@ -4,18 +4,23 @@ use crate::{
     CanonicalStartupValue, CheckedCanonicalGear, CheckedCanonicalPlot, CheckedConnection,
     CheckedCordStage, CheckedGear, CheckedSyntaxDocument, ConfigurationValue, ExpandedActivation,
     ExpandedAuthoringPlot, ExpandedCanonicalPlot, ExpandedGearProvenance, ExpandedSharedPool,
-    KindConfigurationRule, ProfileCatalog, RuntimePortDirection, MAXIMUM_PLOT_NESTING_DEPTH,
+    ProfileCatalog, RuntimePortDirection, MAXIMUM_PLOT_NESTING_DEPTH,
 };
 use alloc::collections::{BTreeMap, BTreeSet};
 use conduit_core::{GearId, KindId, PortDescriptor};
 
+mod connection_contract;
 mod construction;
+pub use connection_contract::{validate_connection_contract, validate_front_contract};
+mod configuration_contract;
+pub use configuration_contract::{validate_configuration_value, validate_startup_configuration};
 mod entry;
 mod graph;
 mod identity;
 mod literal;
 mod retained;
 mod shared_pool;
+mod startup;
 mod structured_selector;
 pub use entry::{
     expand_canonical_plot, expand_canonical_plot_for_authoring,
@@ -24,6 +29,7 @@ pub use entry::{
 use graph::*;
 use identity::{expanded_identity, provenance_digest};
 use shared_pool::{bind_pool_environment, expanded_pool_declarations, seal_pool_consumers};
+use startup::{bind_child_environment, canonical_initial_bytes, substitute};
 pub use structured_selector::structured_selector_definition;
 
 #[derive(Debug, Clone)]
@@ -111,6 +117,7 @@ fn expand_instance(
     plot: &CheckedCanonicalPlot,
     plots: &BTreeMap<&str, &CheckedCanonicalPlot>,
     structured_types: &BTreeMap<conduit_core::KindId, conduit_core::StructuredInfoType>,
+    exact_initial_info: &BTreeMap<(conduit_core::KindId, String), Vec<u8>>,
     catalog: &ProfileCatalog,
     backs: &CanonicalBackCatalog,
     environment: &BTreeMap<String, CanonicalStartupValue>,
@@ -125,19 +132,37 @@ fn expand_instance(
             format!("expanded plot exceeds the {MAXIMUM_PLOT_NESTING_DEPTH}-level bound"),
         ));
     }
-    if stack.iter().any(|name| name == &plot.name) {
+    // Local names and even a root's checked identity may coincide while its
+    // private helper definitions differ. Detect recursion in the lexical scope.
+    let scope = plots
+        .values()
+        .map(|plot| plot.checked_plot_id.as_str())
+        .collect::<Vec<_>>()
+        .join("|");
+    let scoped_plot = format!("{}@{}", plot.name, hash_string(&scope));
+    if stack.iter().any(|identity| identity == &scoped_plot) {
         let mut cycle = stack.clone();
-        cycle.push(plot.name.clone());
+        cycle.push(scoped_plot.clone());
         return Err(CanonicalExpansionDiagnostic::new(
             "CND-FRM-035",
-            format!("recursive plot expansion cycle: {}", cycle.join(" > ")),
+            format!(
+                "recursive plot expansion cycle: {}",
+                cycle
+                    .iter()
+                    .map(|entry| entry
+                        .rsplit_once('@')
+                        .map_or(entry.as_str(), |(name, _)| name))
+                    .collect::<Vec<_>>()
+                    .join(" > ")
+            ),
         ));
     }
-    stack.push(plot.name.clone());
+    stack.push(scoped_plot);
     let result = expand_instance_inner(
         plot,
         plots,
         structured_types,
+        exact_initial_info,
         catalog,
         backs,
         environment,
@@ -155,6 +180,7 @@ fn expand_instance_inner(
     plot: &CheckedCanonicalPlot,
     plots: &BTreeMap<&str, &CheckedCanonicalPlot>,
     structured_types: &BTreeMap<conduit_core::KindId, conduit_core::StructuredInfoType>,
+    exact_initial_info: &BTreeMap<(conduit_core::KindId, String), Vec<u8>>,
     catalog: &ProfileCatalog,
     backs: &CanonicalBackCatalog,
     environment: &BTreeMap<String, CanonicalStartupValue>,
@@ -181,6 +207,7 @@ fn expand_instance_inner(
             plot,
             plots,
             structured_types,
+            exact_initial_info,
             catalog,
             backs,
             environment,
@@ -227,6 +254,7 @@ fn expand_instance_inner(
                         plot,
                         plots,
                         structured_types,
+                        exact_initial_info,
                         catalog,
                         backs,
                         environment,
@@ -325,6 +353,7 @@ fn expand_instance_inner(
                         plot,
                         plots,
                         structured_types,
+                        exact_initial_info,
                         catalog,
                         backs,
                         environment,
@@ -350,6 +379,7 @@ fn expand_instance_inner(
                         plot,
                         plots,
                         structured_types,
+                        exact_initial_info,
                         catalog,
                         backs,
                         environment,
@@ -379,6 +409,7 @@ fn expand_instance_inner(
             plot,
             plots,
             structured_types,
+            exact_initial_info,
             catalog,
             backs,
             environment,
@@ -451,6 +482,7 @@ fn instantiate_gear(
     source_plot: &CheckedCanonicalPlot,
     plots: &BTreeMap<&str, &CheckedCanonicalPlot>,
     structured_types: &BTreeMap<conduit_core::KindId, conduit_core::StructuredInfoType>,
+    exact_initial_info: &BTreeMap<(conduit_core::KindId, String), Vec<u8>>,
     catalog: &ProfileCatalog,
     backs: &CanonicalBackCatalog,
     environment: &BTreeMap<String, CanonicalStartupValue>,
@@ -480,9 +512,21 @@ fn instantiate_gear(
             (Some(accumulator), Some(initial)) => Some(canonical_initial_bytes(
                 accumulator.value_kind.as_str(),
                 initial,
+                exact_initial_info,
             )?),
             _ => None,
         };
+        if initial_accumulator_bytes.as_ref().is_some_and(|bytes| {
+            activation
+                .accumulator_contract
+                .as_ref()
+                .is_none_or(|contract| contract.validate(bytes).is_err())
+        }) {
+            return Err(CanonicalExpansionDiagnostic::new(
+                "CND-FRM-064",
+                "fold/scan initial Form differs from its exact accumulator Value contract".into(),
+            ));
+        }
         let child = plots
             .get(activation.selected_plot.as_str())
             .copied()
@@ -551,6 +595,7 @@ fn instantiate_gear(
             pool_references: Vec::new(),
         });
         provenance.push(ExpandedGearProvenance {
+            construction_owner: None,
             gear_id: gear_id.as_str().to_string(),
             plot_path: path.to_vec(),
             source_plot: source_plot.name.clone(),
@@ -608,6 +653,7 @@ fn instantiate_gear(
             child,
             plots,
             structured_types,
+            exact_initial_info,
             catalog,
             backs,
             &child_environment,
@@ -647,6 +693,7 @@ fn instantiate_gear(
             }
             gears.push(state);
             provenance.push(ExpandedGearProvenance {
+                construction_owner: None,
                 gear_id: gear_id.as_str().to_string(),
                 plot_path: path.to_vec(),
                 source_plot: source_plot.name.clone(),
@@ -736,7 +783,7 @@ fn instantiate_gear(
                         ),
                     ));
                 };
-                if quantity.dimension() != expected_dimension {
+                if quantity.value().dimension() != expected_dimension {
                     return Err(CanonicalExpansionDiagnostic::new(
                         "CND-FRM-040",
                         format!(
@@ -747,7 +794,7 @@ fn instantiate_gear(
                 }
                 configuration.push(conduit_core::ConfigurationEntry {
                     key: "initial".into(),
-                    value: conduit_core::ConfigurationValue::Quantity(*quantity),
+                    value: conduit_core::ConfigurationValue::Quantity(quantity.clone()),
                 });
             }
             let input = PortDescriptor {
@@ -783,6 +830,7 @@ fn instantiate_gear(
                 pool_references: Vec::new(),
             });
             provenance.push(ExpandedGearProvenance {
+                construction_owner: None,
                 gear_id: gear_id.as_str().to_string(),
                 plot_path: path.to_vec(),
                 source_plot: source_plot.name.clone(),
@@ -852,11 +900,27 @@ fn instantiate_gear(
         selected.invocation_path = child_path.join("/");
         realization_backs.push(selected);
         let child_environment = bind_child_environment(gear, environment)?;
-        let fragment = expand_instance(
+        let owner = backs.context(&kind_id).ok_or_else(|| {
+            CanonicalExpansionDiagnostic::new(
+                "CND-FRM-037",
+                "selected Source Back has no checked owner context".into(),
+            )
+        })?;
+        let owner_plots = owner
+            .document
+            .plots
+            .iter()
+            .map(|plot| (plot.name.as_str(), plot))
+            .collect();
+        let mut owner_catalog = owner.catalog.as_ref().unwrap_or(catalog).clone();
+        owner_catalog.physical = owner.document.physical.clone();
+        owner_catalog.install_type_invariants(&owner.document.native_types);
+        let mut fragment = expand_instance(
             &back.plot,
-            plots,
-            structured_types,
-            catalog,
+            &owner_plots,
+            &owner.document.structured_types,
+            &owner.document.exact_initial_info,
+            &owner_catalog,
             backs,
             &child_environment,
             &child_path,
@@ -864,6 +928,11 @@ fn instantiate_gear(
             realization_backs,
             depth + 1,
         )?;
+        for provenance in &mut fragment.provenance {
+            if provenance.construction_owner.is_none() {
+                provenance.construction_owner = Some(kind_id.clone());
+            }
+        }
         gear_ids.extend(fragment.gears.iter().map(|op| op.gear_id.clone()));
         let abnormal = fragment.abnormal;
         gears.extend(fragment.gears);
@@ -917,6 +986,7 @@ fn instantiate_gear(
         pool_references,
     });
     provenance.push(ExpandedGearProvenance {
+        construction_owner: None,
         gear_id: gear_id.as_str().to_string(),
         plot_path: path.to_vec(),
         source_plot: source_plot.name.clone(),
@@ -979,132 +1049,4 @@ fn instantiate_gear(
         },
         terminal_transductions,
     })
-}
-
-fn bind_child_environment(
-    gear: &CheckedCanonicalGear,
-    parent: &BTreeMap<String, CanonicalStartupValue>,
-) -> Result<BTreeMap<String, CanonicalStartupValue>, CanonicalExpansionDiagnostic> {
-    gear.startup_bindings
-        .iter()
-        .map(|binding| {
-            let value = substitute(&binding.value, parent)?;
-            Ok((binding.name.clone(), value))
-        })
-        .collect()
-}
-
-fn substitute(
-    value: &CanonicalStartupValue,
-    environment: &BTreeMap<String, CanonicalStartupValue>,
-) -> Result<CanonicalStartupValue, CanonicalExpansionDiagnostic> {
-    match value {
-        CanonicalStartupValue::Literal(_) | CanonicalStartupValue::Quantity(_) => Ok(value.clone()),
-        CanonicalStartupValue::Structured(value) if value.try_concrete().is_some() => {
-            Ok(CanonicalStartupValue::Structured(value.clone()))
-        }
-        CanonicalStartupValue::Structured(_) => Err(CanonicalExpansionDiagnostic::new(
-            "CND-FRM-039",
-            "structured startup value remains unresolved".into(),
-        )),
-        CanonicalStartupValue::PoolReference(pool) => environment
-            .get(pool.as_str())
-            .cloned()
-            .map_or_else(|| Ok(value.clone()), Ok),
-        CanonicalStartupValue::PlotParameter(name) => {
-            environment.get(name).cloned().ok_or_else(|| {
-                CanonicalExpansionDiagnostic::new(
-                    "CND-FRM-039",
-                    format!("back references undeclared outer startup value '{name}'"),
-                )
-            })
-        }
-    }
-}
-
-fn canonical_initial_bytes(
-    kind: &str,
-    value: &CanonicalStartupValue,
-) -> Result<Vec<u8>, CanonicalExpansionDiagnostic> {
-    let bytes = match value {
-        CanonicalStartupValue::Structured(value) => value
-            .try_concrete()
-            .and_then(|value| value.canonical_bytes().ok()),
-        CanonicalStartupValue::Quantity(value) => Some(value.encode().to_vec()),
-        CanonicalStartupValue::Literal(literal) => match conduit_core::primitive_info_kind(kind) {
-            Some(conduit_core::PrimitiveInfoKind::Unit) if literal == "unit" => Some(Vec::new()),
-            Some(conduit_core::PrimitiveInfoKind::Bool) => match literal.as_str() {
-                "true" => Some(conduit_core::InfoBool::TRUE.encode().to_vec()),
-                "false" => Some(conduit_core::InfoBool::FALSE.encode().to_vec()),
-                _ => None,
-            },
-            Some(conduit_core::PrimitiveInfoKind::Text) => {
-                crate::text_value::parse_quoted_text(literal).map(String::into_bytes)
-            }
-            Some(conduit_core::PrimitiveInfoKind::Count)
-            | Some(conduit_core::PrimitiveInfoKind::U64) => literal
-                .parse::<u64>()
-                .ok()
-                .map(u64::to_le_bytes)
-                .map(Vec::from),
-            Some(conduit_core::PrimitiveInfoKind::U8) => {
-                literal.parse::<u8>().ok().map(|v| vec![v])
-            }
-            Some(conduit_core::PrimitiveInfoKind::U16) => literal
-                .parse::<u16>()
-                .ok()
-                .map(u16::to_le_bytes)
-                .map(Vec::from),
-            Some(conduit_core::PrimitiveInfoKind::U32) => literal
-                .parse::<u32>()
-                .ok()
-                .map(u32::to_le_bytes)
-                .map(Vec::from),
-            Some(conduit_core::PrimitiveInfoKind::U128) => literal
-                .parse::<u128>()
-                .ok()
-                .map(u128::to_le_bytes)
-                .map(Vec::from),
-            Some(conduit_core::PrimitiveInfoKind::I8) => {
-                literal.parse::<i8>().ok().map(|v| vec![v as u8])
-            }
-            Some(conduit_core::PrimitiveInfoKind::I16) => literal
-                .parse::<i16>()
-                .ok()
-                .map(i16::to_le_bytes)
-                .map(Vec::from),
-            Some(conduit_core::PrimitiveInfoKind::I32) => literal
-                .parse::<i32>()
-                .ok()
-                .map(i32::to_le_bytes)
-                .map(Vec::from),
-            Some(conduit_core::PrimitiveInfoKind::I64) => literal
-                .parse::<i64>()
-                .ok()
-                .map(i64::to_le_bytes)
-                .map(Vec::from),
-            Some(conduit_core::PrimitiveInfoKind::I128) => literal
-                .parse::<i128>()
-                .ok()
-                .map(i128::to_le_bytes)
-                .map(Vec::from),
-            _ => None,
-        },
-        CanonicalStartupValue::PlotParameter(_) | CanonicalStartupValue::PoolReference(_) => None,
-    }
-    .ok_or_else(|| {
-        CanonicalExpansionDiagnostic::new(
-            "CND-FRM-064",
-            "fold initial accumulator has no exact canonical encoding".into(),
-        )
-    })?;
-    if conduit_core::primitive_info_kind(kind).is_some() {
-        conduit_core::validate_primitive_info(kind, &bytes).map_err(|_| {
-            CanonicalExpansionDiagnostic::new(
-                "CND-FRM-064",
-                "fold initial accumulator differs from its exact Value contract".into(),
-            )
-        })?;
-    }
-    Ok(bytes)
 }

@@ -1,9 +1,6 @@
 //! Prose from the authored page that owns the native Tour's canonical specimen.
 use alloc::{format, string::String, vec::Vec};
-use conduit_presentation::{
-    PresentationRelationship, PresentationRelationshipKind, PresentationRole, PresentationSubject,
-    PresentationText,
-};
+use conduit_face::{FaceRelationship, FaceRelationshipKind, FaceRole, FaceSubject, FaceText};
 
 pub const TOUR_LESSON_SUBJECT: &str = "tour/lesson";
 const CHAPTERS: [&str; crate::TOUR_CHAPTER_COUNT as usize] = [
@@ -19,34 +16,34 @@ const MAX_BLOCKS: usize = 24;
 
 pub(crate) fn append(
     chapter: u8,
-    subjects: &mut Vec<PresentationSubject>,
-    relationships: &mut Vec<PresentationRelationship>,
-    text: &mut Vec<PresentationText>,
+    subjects: &mut Vec<FaceSubject>,
+    relationships: &mut Vec<FaceRelationship>,
+    text: &mut Vec<FaceText>,
 ) -> Result<(), &'static str> {
     let markdown = chapter_markdown(chapter)?;
-    subjects.push(PresentationSubject {
+    subjects.push(FaceSubject {
         identity: TOUR_LESSON_SUBJECT.into(),
-        role: PresentationRole::Document,
+        role: FaceRole::Document,
         name: "Tour lesson".into(),
     });
-    relationships.push(PresentationRelationship {
+    relationships.push(FaceRelationship {
         source: crate::TOUR_WORKSPACE_SUBJECT.into(),
         target: TOUR_LESSON_SUBJECT.into(),
-        kind: PresentationRelationshipKind::Contains,
+        kind: FaceRelationshipKind::Contains,
     });
     for (index, (heading, value)) in prose(markdown)?.into_iter().enumerate() {
         let identity = format!("{TOUR_LESSON_SUBJECT}/{index}");
-        subjects.push(PresentationSubject {
+        subjects.push(FaceSubject {
             identity: identity.clone(),
-            role: PresentationRole::Info,
+            role: FaceRole::Info,
             name: if heading { "Heading" } else { "Paragraph" }.into(),
         });
-        relationships.push(PresentationRelationship {
+        relationships.push(FaceRelationship {
             source: TOUR_LESSON_SUBJECT.into(),
             target: identity.clone(),
-            kind: PresentationRelationshipKind::Contains,
+            kind: FaceRelationshipKind::Contains,
         });
-        text.push(PresentationText {
+        text.push(FaceText {
             subject: identity,
             text: value,
         });
@@ -127,9 +124,7 @@ fn prose(markdown: &str) -> Result<Vec<(bool, String)>, &'static str> {
         }
         let heading = line.starts_with('#');
         let value = line.trim_start_matches('#').trim().replace("**", "");
-        if blocks.len() == MAX_BLOCKS
-            || value.len() > conduit_presentation::MAX_PRESENTATION_TEXT_BYTES
-        {
+        if blocks.len() == MAX_BLOCKS || value.len() > conduit_face::MAX_FACE_TEXT_BYTES {
             return Err("tour-lesson-prose-capacity");
         }
         blocks.push((heading, value));

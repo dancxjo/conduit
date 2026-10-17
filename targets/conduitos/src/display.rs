@@ -15,7 +15,7 @@ pub(crate) fn text_height(value: &str, width: u16) -> Result<u16, DisplayError> 
     text_layout::text_height(value, width)
 }
 
-use conduit_presentation::{
+use conduit_face::{
     GraphicsCommand, GraphicsCommandKind, GraphicsPaintRole, GraphicsScene, GraphicsShapeStyle,
     LayoutRect,
 };
@@ -85,7 +85,7 @@ impl DisplayFormat {
         .map_err(|_| DisplayError::InvalidExtent)
     }
 
-    fn pixel(self, red: u8, green: u8, blue: u8) -> u32 {
+    pub(crate) fn pixel(self, red: u8, green: u8, blue: u8) -> u32 {
         (u32::from(red) << self.red_shift)
             | (u32::from(green) << self.green_shift)
             | (u32::from(blue) << self.blue_shift)
@@ -206,10 +206,10 @@ pub fn render_scene(
 
 /// Manifest one portable gray8 bitmap on the selected finite display Base.
 /// Nearest-neighbor scaling is a mechanism choice below the bitmap and
-/// presentation contracts; it does not mutate their semantic truth.
+/// face contracts; it does not mutate their semantic truth.
 pub fn render_gray8_bitmap(
     target: &mut impl PixelTarget,
-    bitmap: &conduit_presentation::Gray8Bitmap,
+    bitmap: &conduit_face::Gray8Bitmap,
 ) -> Result<DisplayReceipt, DisplayError> {
     let format = target.format().validate()?;
     let source_width = u64::from(bitmap.width());
@@ -237,10 +237,27 @@ fn render_command(
     command: &GraphicsCommand,
     receipt: &mut DisplayReceipt,
 ) -> Result<(), DisplayError> {
+    render_command_with_color(
+        target,
+        format,
+        command,
+        receipt,
+        paint(format, command.paint),
+    )
+}
+
+/// Per-render paint resolution belongs to the admitted Mask, while geometry and
+/// text meaning remain the original portable scene commands.
+fn render_command_with_color(
+    target: &mut impl PixelTarget,
+    format: DisplayFormat,
+    command: &GraphicsCommand,
+    receipt: &mut DisplayReceipt,
+    color: u32,
+) -> Result<(), DisplayError> {
     let Some(bounds) = clipped(command.bounds, command.clip, format) else {
         return Ok(());
     };
-    let color = paint(format, command.paint);
     match command.kind {
         GraphicsCommandKind::OrthogonalPath => {
             let path = command.path_geometry().ok_or(DisplayError::InvalidExtent)?;

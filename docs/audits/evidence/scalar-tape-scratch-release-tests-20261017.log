@@ -1,0 +1,21 @@
+   Compiling serde_json v1.0.151
+   Compiling serde v1.0.229
+   Compiling conduit-assigned-plan v0.1.0 (/home/dancxjo/conduit/architecture/assigned-plan)
+   Compiling conduit-core v0.1.0 (/home/dancxjo/conduit/architecture/core)
+   Compiling conduit-kernel v0.1.0 (/home/dancxjo/conduit/architecture/kernel)
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/conduit/architecture/plot)
+    Finished `release` profile [optimized] target(s) in 18.94s
+     Running tests/scalar_tape.rs (target/release/deps/scalar_tape-2800c8cf7ce7b6fe)
+
+running 8 tests
+test structured_and_text_profiles_refuse_explicitly ... ok
+test unselected_conditional_branch_preserves_lazy_refusal_semantics ... ok
+test scratch_profiles_keep_failed_and_unselected_branch_values_isolated_without_allocating ... ok
+test checked_record_profile_stays_with_declared_reference_evaluator ... ok
+test checked_fixed_multiplication_and_boolean_negation_match_reference ... ok
+test prepared_instruction_bound_refuses_valid_program_without_runtime_fallback ... ok
+test checked_one_three_eight_thirty_two_operations_preserve_bytes_and_refusals_without_allocations ... ok
+test tape_scratch_profile_is_bounded_by_the_admitted_instruction_count ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+

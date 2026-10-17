@@ -276,7 +276,7 @@ fn verify_one_plot_two_fronts(root: &Path, manifest: &Manifest) -> Result<(), St
     if manifest.outputs.len() != expected.len() {
         return Err("complete two-fronts evidence must contain exactly four outputs".into());
     }
-    let mut presentation = None;
+    let mut face = None;
     for (id, kind, path) in expected {
         let output = manifest
             .outputs
@@ -309,8 +309,8 @@ fn verify_one_plot_two_fronts(root: &Path, manifest: &Manifest) -> Result<(), St
             || output.provenance.asserted_semantic_disposition.as_deref()
                 != Some("manifestation-available")
             || [
-                output.provenance.presentation_id.as_deref(),
-                output.provenance.presentation_revision.as_deref(),
+                output.provenance.face_id.as_deref(),
+                output.provenance.face_revision.as_deref(),
                 output.provenance.plan_id.as_deref(),
                 output.provenance.active_play_id.as_deref(),
                 output.provenance.manifestation_id.as_deref(),
@@ -334,13 +334,13 @@ fn verify_one_plot_two_fronts(root: &Path, manifest: &Manifest) -> Result<(), St
             ));
         }
         let identity = (
-            output.provenance.presentation_id.as_deref().unwrap(),
-            output.provenance.presentation_revision.as_deref().unwrap(),
+            output.provenance.face_id.as_deref().unwrap(),
+            output.provenance.face_revision.as_deref().unwrap(),
         );
-        if presentation.is_some_and(|prior| prior != identity) {
+        if face.is_some_and(|prior| prior != identity) {
             return Err("two-fronts outputs do not share one Presentation identity".into());
         }
-        presentation = Some(identity);
+        face = Some(identity);
         if kind == EvidenceKind::Screenshot {
             let bytes = fs::read(root.join(path))
                 .map_err(|error| format!("read two-fronts PNG: {error}"))?;
@@ -369,13 +369,10 @@ fn verify_two_fronts_receipt(root: &Path, manifest: &Manifest, native: bool) -> 
     )
     .map_err(|error| format!("decode two-fronts {side} receipt: {error}"))?;
     let expected = [
-        (
-            "presentation_id",
-            output.provenance.presentation_id.as_deref(),
-        ),
+        ("presentation_id", output.provenance.face_id.as_deref()),
         (
             "presentation_revision",
-            output.provenance.presentation_revision.as_deref(),
+            output.provenance.face_revision.as_deref(),
         ),
         ("renderer_plan_id", output.provenance.plan_id.as_deref()),
         (
@@ -483,6 +480,7 @@ fn verify_little_life(root: &Path, manifest: &Manifest) -> Result<(), String> {
                     EvidenceKind::ConsoleTranscript => "text/plain; charset=utf-8",
                     EvidenceKind::MachineReadableManifest => "application/json",
                     EvidenceKind::Audio => unreachable!(),
+                    EvidenceKind::Document => unreachable!(),
                 }
             || output.provenance.scenario_id != "little-life.orbium-lenia@1"
             || output.provenance.asserted_semantic_disposition.as_deref() != Some("completed")
@@ -725,8 +723,8 @@ fn complete_screenshot_provenance(provenance: &EvidenceProvenance) -> bool {
             provenance.device_scale_factor.as_deref(),
             provenance.locale.as_deref(),
             provenance.timezone.as_deref(),
-            provenance.presentation_id.as_deref(),
-            provenance.presentation_revision.as_deref(),
+            provenance.face_id.as_deref(),
+            provenance.face_revision.as_deref(),
             provenance.plan_id.as_deref(),
             provenance.active_play_id.as_deref(),
             provenance.manifestation_id.as_deref(),

@@ -1,0 +1,20 @@
+✔ complete actual parent walk admits self, ordinary, merge and reversed timestamps (98.745201ms)
+✔ unrelated, missing, noncommit and noncanonical identities refuse (420.752664ms)
+✔ missing reachable parent refuses even when source equals publication (88.353285ms)
+✔ shallow repositories refuse (88.217962ms)
+✔ replacement refs cannot invent ancestry or hide genuine ancestry (151.326007ms)
+✔ graft files refuse even if empty (92.872638ms)
+✔ complete fixture renders task sequence in shared shell with real media links (10.350374ms)
+✔ rejects partial and mixed evidence before publication (3.996178ms)
+✔ rejects substituted speech PCM even when the WAV file digest is updated (2.227234ms)
+✔ guest WAV may package the exact raw QEMU PCM but refuses another run output (2.658773ms)
+✔ rejects stale Face and source commit drift (2.437918ms)
+✔ requested spoken detail cannot be recast as a Body Face action (1.832114ms)
+ℹ tests 12
+ℹ suites 0
+ℹ pass 12
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1027.006164

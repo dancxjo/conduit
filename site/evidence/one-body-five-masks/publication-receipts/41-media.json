@@ -1,0 +1,13 @@
+{
+  "schema": "conduit.proof/three-host-publication-media@1",
+  "source_commit": "9b79486146bfb0af3369f8133a81b3d14792bd1c",
+  "run_id": "three-host-5a9b4d4cd9a752c0c7205216",
+  "body_id": "ee3733747a44b61879ad714ce8ab178cdc54b227eba48752b43c966a428cce30",
+  "event_kind": "typed-interaction-source-show",
+  "event_id": "show/4e3c443c9aadf6171a4e1348b3468620788c534a88c6275bcf8ee15813222558",
+  "face_revision": "11",
+  "media_path": "browser-after-browser.png",
+  "media_sha256": "25f66a5d24a24d5245f00581a7d5a7ce761c504068dd5698c22cba5652b3034b",
+  "capture_source": "pinned-chromium",
+  "observed_basis_sha256": "027474cbf8aa205ee89a32d570c45787c70792b750a8379c2faa8302ea27115b"
+}

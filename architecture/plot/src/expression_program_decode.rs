@@ -19,7 +19,16 @@ impl PortableExpressionProgram {
             return Err(PortableExpressionProgramRefusal::TooLarge);
         }
         let mut cursor = Cursor { remaining: encoded };
-        cursor.expect(HEADER)?;
+        let input_maximum_bytes = if encoded.starts_with(super::expression_program::input_bound::V3)
+        {
+            cursor.expect(super::expression_program::input_bound::V3)?;
+            Some(u32::from_le_bytes(cursor.take(4)?.try_into().map_err(
+                |_| PortableExpressionProgramRefusal::MalformedEncoding,
+            )?))
+        } else {
+            cursor.expect(HEADER)?;
+            None
+        };
         let input_type = cursor.value_type()?;
         let output_type = cursor.value_type()?;
         let mut remaining_nodes = MAXIMUM_STRUCTURED_INFO_NODES;
@@ -28,6 +37,7 @@ impl PortableExpressionProgram {
             return Err(PortableExpressionProgramRefusal::MalformedEncoding);
         }
         let value = Self {
+            input_maximum_bytes,
             input_type,
             output_type,
             root,
@@ -119,8 +129,26 @@ impl<'a> Cursor<'a> {
             .ok_or(PortableExpressionProgramRefusal::MalformedEncoding)?;
         let value_type = self.value_type()?;
         let operation = match self.byte()? {
+            11 => {
+                let length = self.length()?;
+                if length > conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES {
+                    return Err(PortableExpressionProgramRefusal::TooLarge);
+                }
+                let value =
+                    conduit_core::StructuredInfoValue::from_canonical_bytes(self.take(length)?)?;
+                if value.value_type() != &value_type {
+                    return Err(PortableExpressionProgramRefusal::MalformedEncoding);
+                }
+                PortableExpressionOperation::Constant(value)
+            }
             0 => PortableExpressionOperation::Input,
             1 => PortableExpressionOperation::Literal(self.text()?),
+            12 => {
+                let length = self.length()?;
+                let bytes = self.take(length)?.to_vec();
+                crate::expression_program::validate_capsule_literal(&value_type, &bytes)?;
+                PortableExpressionOperation::CanonicalLiteral(bytes)
+            }
             2 => {
                 let value = Box::new(self.node(depth + 1, remaining_nodes)?);
                 let member = match self.byte()? {

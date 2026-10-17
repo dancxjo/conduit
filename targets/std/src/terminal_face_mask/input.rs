@@ -1,5 +1,5 @@
 use super::*;
-use conduit_presentation::{FaceInteractionArgument, UTF8_TEXT_VALUE_KIND};
+use conduit_face::{FaceInteractionArgument, UTF8_TEXT_VALUE_KIND};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct TerminalControl {
@@ -32,6 +32,42 @@ pub enum TerminalInputOutcome {
 }
 
 impl TerminalFaceMask {
+    /// Select an existing argument-free action before the first rendered frame.
+    /// The resulting focus must still cross the ordinary renderer effect/Show.
+    pub(crate) fn focus_prepared_action(&mut self, identity: &str) -> Result<(), TerminalError> {
+        if !self.interaction_admitted
+            || self.frame_sequence != 0
+            || self.active_show.is_some()
+            || self.pending_frame.is_some()
+            || self.submitted
+        {
+            return Err(TerminalError::UnsupportedInput);
+        }
+        let action = self
+            .face
+            .actions
+            .iter()
+            .position(|action| {
+                action.identity == identity
+                    && action.availability.is_available()
+                    && action.arguments.is_empty()
+            })
+            .ok_or(TerminalError::UnknownControl)?;
+        let (row, control) = self
+            .document
+            .iter()
+            .enumerate()
+            .find_map(|(row, item)| {
+                item.control
+                    .filter(|control| control.action == action && control.argument.is_none())
+                    .map(|control| (row, control))
+            })
+            .ok_or(TerminalError::UnknownControl)?;
+        self.reading = row;
+        self.focus = Some(control);
+        self.reveal();
+        Ok(())
+    }
     pub fn input(
         &mut self,
         input: TerminalInput,

@@ -157,8 +157,8 @@ fn product_context_does_not_classify_base_identity_names() {
 
 #[test]
 fn portable_lenia_demo_executes_four_fields_through_the_product_entrance() {
-    let mut context = ProductExecutionContext::local_std().unwrap();
     let plot = lenia_plot();
+    let mut context = ProductExecutionContext::local_std_for_plot(&plot).unwrap();
     let plan = context.plan(&plot, None).unwrap();
     for connection in plan
         .fragments
@@ -193,7 +193,7 @@ fn heterogeneous_lines_use_their_exact_connection_bounds_independent_of_offer_or
         conduit_alife::ORBIUM_SEED_KIND => seed.advertisement(),
         conduit_time::TICK_KIND => clock.advertisement(),
         conduit_alife::LENIA_STEP_KIND => evolve.advertisement(),
-        conduit_alife::SCALAR_FIELD_PRESENTATION_KIND => show.advertisement(),
+        conduit_alife::SCALAR_FIELD_FACE_KIND => show.advertisement(),
         other => panic!("unexpected Lenia demo Kind '{other}'"),
     };
     let placements = PlacementChoices {

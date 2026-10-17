@@ -2,6 +2,20 @@
 use super::*;
 
 impl KernelCompositeHost {
+    /// Inspect the original child scheduler as well as surfaced dispatch slots.
+    /// Completion alone does not retire a scheduler's retained obligation.
+    pub fn has_retained_host_call_for_nodes(
+        &self,
+        child: &HostId,
+        nodes: &[NodeId],
+    ) -> Result<bool, KernelCompositeError> {
+        let kernel = self
+            .children
+            .get(child)
+            .ok_or(KernelCompositeError::StaleHostCallChild)?;
+        Ok(kernel.has_retained_host_call_for_nodes(nodes))
+    }
+
     pub fn next_host_request(&mut self) -> Option<KernelCompositeHostRequest> {
         if !self.started || self.cancelled {
             return None;

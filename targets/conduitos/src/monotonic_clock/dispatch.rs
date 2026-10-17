@@ -130,6 +130,18 @@ impl<P: MonotonicDeadlineProvider> PreparedClockDispatch<P> {
     pub fn has_pending(&self) -> bool {
         self.pending.is_some()
     }
+    pub fn monotonic_observation(
+        &mut self,
+        kernel: &KernelCompositeHost,
+    ) -> Result<MonotonicInstant, ProtocolCallRefusal> {
+        self.check_plan(kernel)?;
+        if self.pending.is_some() {
+            return Err(ProtocolCallRefusal::Clock(ClockCallRefusal::Pending));
+        }
+        self.owner
+            .observe_monotonic(self.node, HostCallId(0))
+            .map_err(ProtocolCallRefusal::Clock)
+    }
     /// One bounded provider poll. Pending means no Host Call completion is emitted.
     pub fn poll(&mut self, kernel: &mut KernelCompositeHost) -> Result<(), ProtocolCallRefusal> {
         self.check_plan(kernel)?;

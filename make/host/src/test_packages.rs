@@ -357,7 +357,7 @@ fn test_catalog_metadata() -> PackageCatalogContribution {
                     prerequisites: vec![
                         PrerequisiteNode::HostCall("conduit.host/present@1".into()),
                         PrerequisiteNode::Facility("compositor/native@1".into()),
-                        PrerequisiteNode::Resource("presentation/surface".into()),
+                        PrerequisiteNode::Resource("face/surface".into()),
                         PrerequisiteNode::Base("display/scanout".into()),
                     ],
                 },
@@ -368,7 +368,7 @@ fn test_catalog_metadata() -> PackageCatalogContribution {
                     targets: vec!["browser/wasm32/page".into()],
                     prerequisites: vec![
                         PrerequisiteNode::HostCall("conduit.host/present@1".into()),
-                        PrerequisiteNode::Resource("presentation/surface".into()),
+                        PrerequisiteNode::Resource("face/surface".into()),
                         PrerequisiteNode::Base("browser/dom".into()),
                     ],
                 },
@@ -387,7 +387,7 @@ fn test_catalog_metadata() -> PackageCatalogContribution {
         dependencies: BTreeMap::from([
             (
                 PrerequisiteNode::Facility("compositor/native@1".into()),
-                vec![PrerequisiteNode::Resource("presentation/surface".into())],
+                vec![PrerequisiteNode::Resource("face/surface".into())],
             ),
             (
                 PrerequisiteNode::Base("display/scanout".into()),
@@ -429,6 +429,7 @@ fn test_catalog_metadata() -> PackageCatalogContribution {
         ],
         profile_fragments: vec![
             "profile-fragment/conduitos-scripted-keyboard-proof@1".into(),
+            "profile-fragment/conduitos-usb-configuration-proof@1".into(),
             "profile-fragment/conduitos-hotplug-proof@1".into(),
             "profile-fragment/conduitos-ps2-input@1".into(),
         ],

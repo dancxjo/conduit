@@ -68,6 +68,11 @@ pub struct ControlCallOwner {
 }
 
 impl ControlCallOwner {
+    /// Inspect the original lease; revoking its table is not retirement.
+    pub(crate) fn has_pending_lease(&self) -> bool {
+        self.pending.is_some()
+    }
+
     /// Bind existing possession and an actual native attachment before Play.
     ///
     /// # Safety
@@ -247,6 +252,25 @@ impl ControlCallOwner {
             .complete(&mut self.handle, submission.lease.clone(), result_bytes)
             .map_err(ControlOwnerRefusal::Capability)?;
         encoded
+    }
+
+    /// # Safety
+    /// An acknowledged native endpoint/controller stop must cover this exact
+    /// retained submission and attachment. Software revocation alone is insufficient.
+    pub(crate) unsafe fn discard_quiesced(
+        &mut self,
+        submission: &NativeControlSubmission,
+    ) -> Result<(), ControlOwnerRefusal> {
+        if !self.pending.as_ref().is_some_and(|(sequence, lease)| {
+            *sequence == submission.request_id && *lease == submission.lease
+        }) || self.attachment != submission.attachment
+        {
+            return Err(ControlOwnerRefusal::StaleTransfer);
+        }
+        self.pending = None;
+        self.table
+            .complete(&mut self.handle, submission.lease.clone(), 0)
+            .map_err(ControlOwnerRefusal::Capability)
     }
 
     fn check_binding(&self, node: NodeId, call: HostCallId) -> Result<(), ControlOwnerRefusal> {

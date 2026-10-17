@@ -1,0 +1,25 @@
+# Ordinary component output, outside Face. This wording is candidate metadata:
+# neither the supplied available bit nor this producer grants current input.
+# The three ordered segments form one bounded instruction without truncation.
+# valid checks phase/action/revision only. Keyboard/control correlation and
+# current availability belong to the private runtime encounter, not this candidate.
+# b retains the original label's exact nonempty 64-byte law so existing native
+# construction admission can prove forwarding without widening its contract.
+type ParsecInputInstructionRequest = {
+    binding: ActionInputBindingProposalInfo
+    look: Text <= 16B not in [""]
+    state: ParsecMapState
+    withdrawal: Boolean
+}
+type ParsecInputInstructionInfo = {
+    a: Text <= 256B
+    b: Text <= 64B not in [""]
+    binding: ActionInputBindingProposalInfo
+    c: Text <= 256B
+    valid: Boolean
+    withdrawal: Boolean
+}
+plot parsec/input-instruction (
+ >> request: ParsecInputInstructionRequest
+ instruction: ParsecInputInstructionInfo >>
+) = {a: .withdrawal || !.binding.available ? "Input " : .look == "spoken" ? (.state.started ? "To Shoot, use " : "To Begin, use ") : .look == "linear" ? "Input: " : "Use ", b: .withdrawal || !.binding.available ? "unavailable" : .binding.control_label, binding: .binding, c: .withdrawal || !.binding.available ? "." : .look == "spoken" ? "." : .state.started ? " to Shoot." : " to Begin.", valid: (.look == "arcade" || .look == "linear" || .look == "spoken") && .binding.mapping_revision == .state.mapping_revision && (.state.started ? .binding.offered_action.action_identity == "game/shoot" : .binding.offered_action.action_identity == "game/start"), withdrawal: .withdrawal || !.binding.available}

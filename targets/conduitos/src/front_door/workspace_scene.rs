@@ -11,7 +11,7 @@ use crate::{
 const TEXT_STEP: i16 = (SPACE_XL + SPACE_SM) as i16;
 const TEXT_BOX_HEIGHT: u16 = SPACE_XL + SPACE_SM * 2;
 use alloc::format;
-use conduit_presentation::{
+use conduit_face::{
     ApplicationComponent, ApplicationView, GraphicsCommand, GraphicsPaintRole, GraphicsScene,
     GraphicsShapeStyle, GraphicsTextRole, LayoutRect,
 };
@@ -165,7 +165,7 @@ fn application_text(
     view: &ApplicationView,
     viewport: ApplicationViewport,
 ) -> Result<i16, Error> {
-    view.validate().map_err(|_| Error::Presentation)?;
+    view.validate().map_err(|_| Error::Face)?;
     let total = application_layout::rows(view, |_, _| {});
     let page = viewport.page.min(total.saturating_sub(1) / PAGE_ROWS);
     let mut rendered = Ok(());
@@ -258,9 +258,7 @@ fn result_text(
     }
     let mut remaining = value;
     while !remaining.is_empty() {
-        let mut split = remaining
-            .len()
-            .min(conduit_presentation::MAX_GRAPHICS_TEXT_BYTES);
+        let mut split = remaining.len().min(conduit_face::MAX_GRAPHICS_TEXT_BYTES);
         while !remaining.is_char_boundary(split) {
             split -= 1;
         }
@@ -305,7 +303,7 @@ fn text(
 mod tests {
     use super::*;
     use alloc::{string::String, vec};
-    use conduit_presentation::{
+    use conduit_face::{
         ApplicationAction, ApplicationEventKind, ApplicationNodeState, ApplicationViewNode,
     };
 

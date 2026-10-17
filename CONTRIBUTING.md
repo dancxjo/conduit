@@ -37,7 +37,7 @@ tooling, so allow time and disk space.
 | If you want to work on… | Begin with… |
 |---|---|
 | Examples and the programming experience | [reviewed plots](plots/README.md), [Try Conduit](docs/try-conduit.md) |
-| Human encounter and inspection | [universal Face grammar](docs/architecture/presentation-grammar-conformance.md), [Patchbay Plot graph](plots/patchbay/graph/README.md) |
+| Human encounter and inspection | [universal Face grammar](docs/architecture/face-grammar-conformance.md), [Patchbay Plot graph](plots/patchbay/graph/README.md) |
 | Language, planning, or execution | [Canon](docs/conduit-canon.md), [architecture index](docs/architecture/README.md) |
 | A device, host, or ConduitOS | [Targets](targets/README.md), then that target's README |
 | Setup, documentation, or tests | [Documentation index](docs/README.md), [repository map](docs/repository-layout.md), [CI guide](docs/contributing/ci.md) |
@@ -47,6 +47,35 @@ Choose a bounded part of an issue or describe the concrete problem you found.
 Check open PRs for overlap before substantial work. An issue's acceptance
 criteria define that slice; a small documentation fix does not need a new
 architecture proposal.
+
+## Keep ownership and handoffs small
+
+Choose one independently verifiable child issue and check current `dev`, open
+PR ownership, and origin branches before branching. Salvage useful existing
+work with its discussion and proof intact. Keep at most two overlapping
+implementation PRs in review across the flow, with at most one merge-ready PR
+changing shared core contracts. Give each a named owner and disjoint scope.
+Other tickets stay unbranched until a slot opens or the owner explicitly hands
+off; when parallel preparation is requested, use isolated worktrees and hold
+prepared changes locally rather than expanding the PR queue.
+
+Move a reviewed result through its required green merge/integration or an
+explicit handoff before admitting the next result. While checks run, continue
+independent investigation, proof, or requested isolated preparation. If combined
+`dev` is red, the shepherd repairs or reverts the smallest cause before feature
+admission; preserve held branches and evidence. A handoff names the issue,
+branch/head, owned files, completed proof, remaining gate, and next owner.
+
+| Follow-up | Share one PR when… | Separate when… |
+|---|---|---|
+| Code | A fix and its refusal tests establish the same behavior. | A second change alters an independently owned core contract. |
+| Docs | The changed command needs matching instructions and examples. | A broader tutorial has its own runnable acceptance and proof. |
+| Hardware proof | A driver fix needs the same exact-target receipt to prove it. | A new board or physical run has independent equipment, ownership, or acceptance; keep that issue open until its real proof arrives. |
+
+Merged PRs retain their discussion and receipts; a successor references them
+rather than rewriting another author's branch. Candidate admission establishes
+PR eligibility. Integration and publication keep their separate source-bound
+proof obligations in the [CI guide](docs/contributing/ci.md).
 
 ## Make a focused change
 
@@ -120,8 +149,11 @@ it. Link the owning issue when there is one. Include a screenshot or retained
 evidence link when it helps review a visible change. GitHub already records
 commits and checks; you do not need to copy their identities into the prose.
 
-PR admission checks portable meaning before the affected target lanes. Automation
-runs all targets once for combined development, then publishes those tested
+Draft and ready PRs receive the same formatting, lint, affected package tests
+and relevant smoke checks. Native isolation and device ownership changes retain
+stronger targeted platform proof. Mark a healthy draft ready when it can be
+reviewed and merged. Automation runs exhaustive proof once for combined
+development, then publishes those tested
 products after verifying their identities; release does not rebuild them.
 Contributors do not need to assemble promotion receipts or manage release
 branches. See [CI for contributors](docs/contributing/ci.md) when a real

@@ -1,0 +1,21 @@
+{
+  "aarch64_firmware_sha256": null,
+  "architecture": "x86_64",
+  "emulator": "/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-ecm-current-disconnect/qemu-wrapper.py",
+  "fixture_input": {
+    "command": null,
+    "injected": false,
+    "injection_gate": "CONDUIT_PROTOCOL_PLAY",
+    "maximum_reports": 0,
+    "requested": false
+  },
+  "image_sha256": "d1e0557ce4e158257f20c8ffc0787ab3b8b0b17154138d4e621c0429ee848507",
+  "maximum_transcript_bytes": 2097152,
+  "outcome": "play-refused:protocol-network-not-complete",
+  "physical_compatibility": "unverified",
+  "proof_class": "freestanding-emulator",
+  "qemu_profile": "q35-single-cpu-512m-headless",
+  "schema": "conduit.conduitos/protocol-run-receipt@1",
+  "serial_sha256": "f4c6e78ea400b946d93f516439dace7671a9698ee2ad66ff4545e933632abe1e",
+  "usb_devices": []
+}

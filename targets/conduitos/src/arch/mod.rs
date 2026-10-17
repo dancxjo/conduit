@@ -3,8 +3,29 @@
 //! Shared ConduitOS code depends on this surface. Architecture facts never flow
 //! upward into authored meaning or semantic implementation identity.
 
+// Native controller mechanism compilation does not advertise a USB Host offer.
+#[cfg(any(
+    target_arch = "x86_64",
+    all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+))]
+#[cfg_attr(target_arch = "aarch64", allow(dead_code))]
+mod xhci_mechanism;
+
+#[cfg(any(
+    target_arch = "x86_64",
+    all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+))]
+#[cfg_attr(target_arch = "aarch64", allow(dead_code))]
+pub(crate) mod usb_xhci;
+
+#[cfg(test)]
+#[path = "aarch64/xhci/pci.rs"]
+mod aarch64_pci_conformance;
+
 #[cfg(target_arch = "x86_64")]
 mod x86_64;
+#[cfg(all(target_arch = "x86_64", target_os = "none"))]
+pub use x86_64::TextDomain;
 
 #[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
 pub use x86_64::CandidateDeadline;
@@ -12,34 +33,54 @@ pub use x86_64::CandidateDeadline;
 pub use x86_64::run_isolation_proof;
 #[cfg(target_arch = "x86_64")]
 pub use x86_64::{
-    Clock, FTDI_PACKET_BYTES, FTDI_PAYLOAD_BYTES, FTDI_TRANSFER_TRBS, FtdiLineError, FtdiLineReady,
-    FtdiLineSession, HidError, HidKeyTransition, HidKeyboardSession, HidPointerError,
-    HidPointerReady, HidPointerSession, HidProof, I801PortWindow, Idle, Interrupts, Opl2,
-    PcSpeaker, Ps2Error, Ps2Input, Ps2Ready, RdrandEntropy, RebootBase, RebootError, Serial, Timer,
+    AttachmentBaseline, Clock, FTDI_PACKET_BYTES, FTDI_PAYLOAD_BYTES, FTDI_TRANSFER_TRBS,
+    FtdiLineError, FtdiLineReady, FtdiLineSession, HidError, HidKeyTransition, HidKeyboardSession,
+    HidPointerError, HidPointerReady, HidPointerSession, HidProof, I801PortWindow, Idle,
+    Interrupts, NativeMonotonicDeadlineClock, NativeUsbControlCall, Opl2, PcSpeaker, Ps2Error,
+    Ps2Input, Ps2Ready, RdrandEntropy, ReadyUsbControlBase, RebootBase, RebootError, Serial, Timer,
+    UsbConfigurationSnapshot, UsbControlCallRefusal, UsbControlHostCall, UsbControlSelection,
     UsbDevice, VirtioNetError, VirtioNetIdentity, VirtioNetReady, XhciReady,
-    admitted_i801_block_read_ports, admitted_i801_ports, boot_entropy, deterministic_exit,
-    early_write, emergency_halt, emergency_machine_profile, enumerate_attached_at_epochs,
-    enumerate_one_at_epoch, enumerate_usb, feature_basis, finish_boot_keyboard, initialize_machine,
-    initialize_virtio_net, initialize_xhci, local_reboot_base, pc_speaker_input_hz,
-    prepare_boot_keyboard, prepare_boot_pointer, prepare_ftdi_line, receive_boot_keyboard,
-    receive_first_boot_keyboard_report, retire_removed_device, run_boot_keyboard,
-    start_boot_keyboard_session, start_ftdi_line_session, start_pointer_session,
-    wait_for_attachment_state,
+    address_selected_root_port_at_epoch, admitted_i801_block_read_ports, admitted_i801_pci_ports,
+    admitted_i801_ports, admitted_monotonic_deadline_clock, append_boot_diagnostic, boot_entropy,
+    deterministic_exit, discover_configuration, early_write, emergency_halt,
+    emergency_machine_profile, enumerate_attached_at_epochs, enumerate_one_at_epoch,
+    enumerate_selected_root_port_at_epoch, enumerate_usb, feature_basis, finish_boot_keyboard,
+    initialize_machine, initialize_virtio_net, initialize_xhci, local_reboot_base,
+    pc_speaker_input_hz, prepare_boot_keyboard, prepare_boot_pointer, prepare_ftdi_line,
+    receive_boot_keyboard, receive_first_boot_keyboard_report, retire_removed_device,
+    run_boot_keyboard, space_protocol_clock_poll, start_boot_keyboard_session,
+    start_ftdi_line_session, start_pointer_session, wait_for_attachment_state,
 };
+#[cfg(target_arch = "x86_64")]
+pub use x86_64::{I801PciObservation, I801PciRefusal, observe_i801_pci};
 
 #[cfg(target_arch = "x86_64")]
 pub const ARCHITECTURE: &str = "x86_64";
+#[cfg(all(target_arch = "x86_64", feature = "scripted-keyboard-proof"))]
+pub use x86_64::{
+    run_usb_configuration_probe_proof, run_usb_control_kernel_proof, run_usb_device_probe_proof,
+};
 #[cfg(target_arch = "x86")]
 mod ia32;
+#[cfg(any(target_arch = "x86", test))]
+#[allow(dead_code)]
+#[path = "ia32/domain_gdt.rs"]
+mod ia32_domain_gdt;
+#[cfg(any(target_arch = "x86", test))]
+#[path = "ia32/timer_lifecycle.rs"]
+mod ia32_timer_lifecycle;
 #[cfg(any(target_arch = "x86", all(test, target_arch = "x86_64")))]
 #[cfg_attr(all(test, target_arch = "x86_64"), allow(dead_code))]
 #[path = "ia32/vga_text.rs"]
 mod ia32_vga_text;
+#[cfg(all(target_arch = "x86", target_os = "linux"))]
+pub use ia32::TextDomain;
 #[cfg(target_arch = "x86")]
 pub use ia32::{
-    Clock, Idle, InterruptFact, Interrupts, Serial, Timer, disable_interrupts, emergency_halt,
-    emergency_machine_profile, enable_interrupts, initialize_machine, interruptible_idle,
-    pop_interrupt, present, present_legacy_bios_receipt, read_counter, timer_arm,
+    Clock, Idle, InterruptFact, Interrupts, RdrandEntropy, Serial, Timer, disable_interrupts,
+    early_write, emergency_halt, emergency_machine_profile, enable_interrupts, initialize_machine,
+    interruptible_idle, pop_interrupt, present, present_legacy_bios_receipt, read_counter,
+    timer_arm,
 };
 #[cfg(target_arch = "x86")]
 pub const ARCHITECTURE: &str = "ia32";
@@ -48,11 +89,29 @@ mod aarch64;
 
 #[cfg(all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5")))]
 pub use aarch64::{
-    Clock, Idle, InterruptFact, Interrupts, Serial, Timer, disable_interrupts, emergency_halt,
-    emergency_machine_profile, enable_fp_simd, enable_interrupts, initialize_machine,
-    install_low_mmio_map, interruptible_idle, mmio_table_addresses, pop_interrupt, present,
-    read_counter, timer_arm,
+    Clock, Idle, InterruptFact, Interrupts, Serial, Timer, VirtXhciRefusal, append_boot_diagnostic,
+    disable_interrupts, emergency_halt, emergency_machine_profile, enable_fp_simd,
+    enable_interrupts, initialize_machine, initialize_xhci, install_low_mmio_map,
+    interruptible_idle, mmio_table_addresses, pop_interrupt, present, read_counter,
+    space_protocol_clock_poll, timer_arm,
 };
+
+#[cfg(all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5")))]
+pub use usb_xhci::{
+    AttachmentBaseline, EndpointNativeRefusal, EndpointWriteNativeRefusal, NativeUsbControlCall,
+    ReadyUsbControlBase, UsbConfigurationSnapshot, UsbControlCallRefusal, UsbControlHostCall,
+    UsbControlSelection, UsbDevice, UsbNativeHostRefusal, UsbNativeProtocolRefusal,
+    address_selected_root_port_at_epoch, discover_configuration,
+};
+#[cfg(all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5")))]
+pub(crate) use usb_xhci::{
+    NativeUsbDuplexHost, NativeUsbProtocolHost, ReadyUsbDuplexHost, ReadyUsbProtocolHost,
+    UsbConfiguredInboundEndpoint, UsbConfiguredOutboundEndpoint, UsbEndpointReceiveDma,
+    UsbEndpointTransmitDma, UsbInboundEndpointParameters, UsbOutboundEndpointParameters,
+    configure_usb_inbound, configure_usb_outbound,
+};
+#[cfg(all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5")))]
+pub use xhci_mechanism::XhciReady;
 
 #[cfg(all(target_arch = "aarch64", feature = "aarch64-orange-pi-5"))]
 mod aarch64_orange_pi_5;
@@ -75,8 +134,28 @@ pub use riscv64::{
 };
 #[cfg(target_arch = "riscv64")]
 pub const ARCHITECTURE: &str = "riscv64";
+#[cfg(target_arch = "riscv64")]
+pub use riscv64::SeedEntropy;
+#[cfg(all(
+    target_arch = "riscv64",
+    conduitos_protected_execution,
+    feature = "ordinary-domain-proof"
+))]
+pub use riscv64::start_pending_source_timer;
+#[cfg(target_arch = "riscv64")]
+pub use riscv64::{SeedEntropy as DomainEntropy, early_write};
+#[cfg(all(target_arch = "riscv64", feature = "riscv64-product"))]
+pub use riscv64::{TextDomain, initialize_domains};
 #[cfg(target_arch = "loongarch64")]
 mod loongarch64;
+#[cfg(target_arch = "loongarch64")]
+pub use loongarch64::FwCfgEntropy;
+#[cfg(test)]
+#[path = "loongarch64/entropy_directory.rs"]
+mod loongarch64_entropy_directory_test;
+#[cfg(test)]
+#[path = "riscv64/seed_conditioner.rs"]
+mod riscv64_seed_conditioner;
 #[cfg(target_arch = "loongarch64")]
 pub use loongarch64::{
     Clock, Idle, InterruptFact, Interrupts, Serial, Timer, disable_interrupts, emergency_halt,
@@ -98,3 +177,79 @@ pub use armv6::{
 };
 #[cfg(target_arch = "arm")]
 pub const ARCHITECTURE: &str = "armv6";
+
+#[cfg(all(target_arch = "x86_64", feature = "usb-endpoint-read-proof"))]
+pub use x86_64::run_usb_endpoint_read_proof;
+
+#[cfg(all(
+    feature = "ordinary-domain-proof",
+    any(
+        all(target_arch = "x86_64", target_os = "none"),
+        all(target_arch = "x86", target_os = "linux", feature = "ia32-product")
+    )
+))]
+mod domain_context_probe;
+
+#[cfg(all(
+    target_arch = "aarch64",
+    conduitos_protected_execution,
+    feature = "ordinary-domain-proof"
+))]
+pub use aarch64::start_pending_source_timer;
+#[cfg(all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5")))]
+pub use aarch64::{RndrEntropy as DomainEntropy, early_write};
+#[cfg(all(
+    target_arch = "aarch64",
+    target_os = "none",
+    not(feature = "aarch64-orange-pi-5")
+))]
+pub use aarch64::{TextDomain, initialize_domains};
+#[cfg(target_arch = "x86")]
+pub use ia32::RdrandEntropy as DomainEntropy;
+#[cfg(target_arch = "x86_64")]
+pub use x86_64::RdrandEntropy as DomainEntropy;
+
+#[cfg(all(target_arch = "loongarch64", feature = "ordinary-domain-proof"))]
+pub use loongarch64::entropy_storage_address;
+#[cfg(all(
+    target_arch = "loongarch64",
+    conduitos_protected_execution,
+    feature = "ordinary-domain-proof"
+))]
+pub use loongarch64::start_pending_source_timer;
+#[cfg(target_arch = "loongarch64")]
+pub use loongarch64::{FwCfgEntropy as DomainEntropy, early_write};
+#[cfg(all(target_arch = "loongarch64", feature = "loongarch64-product"))]
+pub use loongarch64::{TextDomain, initialize_domains};
+
+#[cfg(target_arch = "x86_64")]
+pub use x86_64::{
+    EndpointNativeRefusal, EndpointWriteNativeRefusal, UsbNativeHostRefusal,
+    UsbNativeProtocolRefusal,
+};
+#[cfg(target_arch = "x86_64")]
+pub(crate) use x86_64::{
+    NativeUsbDuplexHost, NativeUsbProtocolHost, ReadyUsbDuplexHost, ReadyUsbProtocolHost,
+};
+#[cfg(target_arch = "x86_64")]
+pub(crate) use x86_64::{
+    UsbConfiguredInboundEndpoint, UsbConfiguredOutboundEndpoint, UsbEndpointReceiveDma,
+    UsbEndpointTransmitDma, UsbInboundEndpointParameters, UsbOutboundEndpointParameters,
+    configure_usb_inbound, configure_usb_outbound,
+};
+
+#[cfg(any(
+    target_arch = "x86_64",
+    all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+))]
+#[allow(unused_imports)] // ISO admission adapter is owned by the integration branch.
+pub(crate) use usb_xhci::{
+    NativeUsbIsochronousHost, ReadyUsbIsochronousHost, UsbConfiguredIsochronousOutboundEndpoint,
+    configure_usb_isochronous_outbound,
+};
+
+#[cfg(any(
+    target_arch = "x86_64",
+    all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+))]
+pub use usb_xhci::UsbIsochronousCallRefusal;

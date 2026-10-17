@@ -1,5 +1,81 @@
 //! Host-owned speech and artifact attachment, before ordinary planning.
 impl crate::StdHost {
+    pub(crate) fn advance_retained_spoken_offer_generation(
+        &mut self,
+        next: conduit_core::OfferGeneration,
+    ) -> Result<(), String> {
+        let prior = self.advertisement.offer_generation;
+        let boot = &self.advertisement.boot_id;
+        if self
+            .playback
+            .as_ref()
+            .is_some_and(|selected| selected.boot_id != *boot || selected.offer_generation != prior)
+            || self.wav_artifact.as_ref().is_some_and(|artifact| {
+                artifact.boot_id != *boot || artifact.offer_generation != prior
+            })
+        {
+            return Err("retained spoken resource differs from current Host offer".into());
+        }
+        if let Some(adapter) = &mut self.speech_synthesis {
+            adapter
+                .advance_offer_generation(&self.advertisement.host_id, boot, prior, next)
+                .map_err(|error| format!("retained speech provider: {error:?}"))?;
+        }
+        if let Some(selected) = &mut self.playback {
+            selected.offer_generation = next;
+        }
+        if let Some(artifact) = &mut self.wav_artifact {
+            artifact.offer_generation = next;
+        }
+        Ok(())
+    }
+
+    /// Current selected provider possession, independent of retained
+    /// artifact capacity for a later Play.
+    pub fn spoken_mask_provider_is_current(&self) -> bool {
+        self.speech_synthesis
+            .as_ref()
+            .is_some_and(|provider| provider.provider_is_current())
+            && self.kernel_resources.is_idle()
+    }
+
+    /// A new artifact Play additionally needs the selected retained pool to
+    /// have a free slot or its fixed destination to be unpublished.
+    pub fn spoken_mask_artifact_route_is_current(&self) -> bool {
+        self.spoken_mask_provider_is_current()
+            && self
+                .wav_artifact
+                .as_ref()
+                .is_some_and(|artifact| artifact.is_unpublished())
+    }
+
+    /// An explicitly attached artifact route cannot stand in for selected
+    /// speaker equipment that was lost or omitted by the caller.
+    pub fn spoken_artifact_only_route_is_current(&self) -> bool {
+        self.playback.is_none() && self.spoken_mask_artifact_route_is_current()
+    }
+
+    /// Check the preattached route without changing this Boot's offers.
+    pub fn selected_spoken_equipment_matches(
+        &self,
+        playback: &crate::hosted_audio::HostedPlaybackSelection,
+        provider_sha256: &str,
+        realization_properties: &[conduit_core::StructuredConfigurationValue],
+    ) -> bool {
+        self.playback.as_ref() == Some(playback)
+            && self.speech_synthesis.as_ref().is_some_and(|adapter| {
+                adapter.provider_sha256() == provider_sha256
+                    && adapter.offer().realization_properties == realization_properties
+                    && adapter
+                        .validate_host(
+                            &self.advertisement.host_id,
+                            &self.advertisement.boot_id,
+                            self.advertisement.offer_generation,
+                        )
+                        .is_ok()
+            })
+    }
+
     /// Attach one explicitly selected speaker to this existing Host Boot.
     /// Discovery alone never authorizes playback; the caller must supply a
     /// separate grant to planning, and the adapter rechecks device availability
@@ -169,6 +245,14 @@ impl crate::StdHost {
         advertisement
             .capabilities
             .extend(conduit_std_offers::spoken_mask_offers());
+        // Select checked template computation during this idle Host equipment
+        // attachment, before publishing its advertisement or preparing a Mask.
+        advertisement
+            .capabilities
+            .extend(crate::flow_activation::required_spoken_template_offers()?);
+        advertisement
+            .capabilities
+            .extend(crate::flow_activation::required_todo_spoken_template_offers()?);
         if adapter.is_some() {
             let projection = conduit_std_offers::generated_stream_speech_offer();
             advertisement

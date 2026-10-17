@@ -175,14 +175,14 @@ fn fixed_sign_has_independent_item_and_byte_budgets() {
         NodeId(0),
         Some(PortId(1)),
         None,
-        KernelEventKind::ValueRouted,
+        KernelEventKind::BackFailed,
     )
     .unwrap();
     log.record(
         NodeId(1),
         None,
         Some(RequestId(2)),
-        KernelEventKind::HostCallCompleted,
+        KernelEventKind::BackCompleted,
     )
     .unwrap();
     assert_eq!(

@@ -133,9 +133,10 @@ fn queued_events_drain_when_input_closes_before_transition_completion() {
 
 fn run_queued_events(close_early: bool) {
     let (plan, owners, offer) = planned();
-    let (startup, _) = crate::i2c_base::contract::I2cContract::prepare()
+    let (mut startup, _) = crate::i2c_base::contract::I2cContract::prepare()
         .unwrap()
         .catalogs();
+    crate::protocol_test_support::install_clock_result(&mut startup);
     let types = check_syntax_document(&parse_syntax_document(LIFECYCLE), &startup).unwrap();
     let ty = |name| {
         &types

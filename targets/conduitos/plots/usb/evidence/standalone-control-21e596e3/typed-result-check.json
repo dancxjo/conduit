@@ -1,0 +1,9 @@
+{
+  "typed_descriptor_hex": "1201000202000008ffff17f1000101020301",
+  "transferred": 18,
+  "short": false,
+  "zero_play_allocations": true,
+  "acknowledged_retirement": true,
+  "wire_payload_matches": true,
+  "physical_compatibility": "unverified"
+}

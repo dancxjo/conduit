@@ -33,8 +33,8 @@ type SpeechFormantPhoneBinding = {
     where .phone is z ? .definition.ipa == "z" : true
     where .phone is sh ? .definition.ipa == "ʃ" : true
     where .phone is zh ? .definition.ipa == "ʒ" : true
-    where .phone is ch ? .definition.ipa == "tʃ" : true
-    where .phone is jh ? .definition.ipa == "dʒ" : true
+    where .phone is ch ? .definition.ipa == "t͡ʃ" : true
+    where .phone is jh ? .definition.ipa == "d͡ʒ" : true
     where .phone is m ? .definition.ipa == "m" : true
     where .phone is n ? .definition.ipa == "n" : true
     where .phone is ng ? .definition.ipa == "ŋ" : true
@@ -51,14 +51,21 @@ type SpeechFormantPhoneBinding = {
 type SpeechFormantVoiceProfile = {
     identity: Text <= 64B not in [""]
     inventory_id: SpeechInventoryId
-    language: SpeechLanguageId
+    language: LanguageId
     phones: sequence SpeechFormantPhoneBinding <= 64
 }
 type SpeechFormantProfileBasis = {
     inventory_id: SpeechInventoryId
-    language: SpeechLanguageId
+    language: LanguageId
     profile_inventory_id: SpeechInventoryId
-    profile_language: SpeechLanguageId
+    profile_language: LanguageId
     where .inventory_id == .profile_inventory_id
     where .language == .profile_language
+}
+
+# An explicit profile attaches an opaque feature key to the aspiration cue.
+# The enclosed voice is the exact base realization; IDs are never interpreted.
+type SpeechFormantAspirationProfile = {
+    feature_id: SpeechFeatureId
+    voice: SpeechFormantVoiceProfile
 }

@@ -94,7 +94,7 @@ fn compute_requirement(operation: ModelComputeOperation) -> ModelComputeRequirem
     ModelComputeRequirement {
         operation,
         model_format: "model/tongues-paired-linear-json@1".into(),
-        element: TensorElement::F64,
+        elements: vec![TensorElement::F64],
         rank: 2,
         model_bytes: 65_536,
         working_memory_bytes: 1_048_576,

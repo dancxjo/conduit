@@ -1,0 +1,11 @@
+# Optional checked Angle vocabulary; turn remains the canonical reference.
+# Import these declarations into an immutable physical catalogue, or include
+# them in authored Source. Spellings and UTF-8 bytes are deliberately exact.
+unit tour : Angle = { reference: turn, scale: 1 }
+unit toer : Angle = { reference: turn, scale: 1 }
+unit revolución : Angle = { reference: turn, scale: 1 }
+unit rivoluzione : Angle = { reference: turn, scale: 1 }
+unit revolução : Angle = { reference: turn, scale: 1 }
+unit Umdrehung : Angle = { reference: turn, scale: 1 }
+unit varv : Angle = { reference: turn, scale: 1 }
+unit obrót : Angle = { reference: turn, scale: 1 }

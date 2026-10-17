@@ -95,6 +95,7 @@ fn checked_calendar_request_prepares_then_emits_three_inert_candidates() {
             keyboard: None,
             local_model: None,
             vector_search: None,
+            model_work: None,
             calendar: None,
             body_conversation_context: None,
         },
@@ -183,6 +184,7 @@ fn stale_missing_and_over_profile_calendar_requests_refuse_before_play() {
                 keyboard: None,
                 local_model: None,
                 vector_search: None,
+                model_work: None,
                 calendar: None,
                 body_conversation_context: None,
             },
@@ -367,7 +369,7 @@ fn source(fixture: &Fixture, expected_hex: &str) -> String {
 
 fn slots(mut active: Vec<String>, maximum: u16) -> String {
     while active.len() < usize::from(maximum) {
-        active.push("unused(\"\")".into());
+        active.push("unused(empty)".into());
     }
     active.join(", ")
 }

@@ -1,6 +1,8 @@
 //! Native Host adapter around the one fixed production scheduler.
 mod effects;
 mod preparation;
+#[cfg(all(target_arch = "x86_64", target_os = "none"))]
+mod protection;
 #[cfg(test)]
 mod tests;
 
@@ -8,11 +10,12 @@ use super::application_delivery::NativeApplication;
 use super::{AdmittedPlotInput, PreparedNativeWorkset, WorksetRefusal};
 use crate::keyboard_text_backs::PlannedBack;
 use alloc::boxed::Box;
-use conduit_human::{ConduitIntlKeymap, KeyEvent, KeyTransition};
+use conduit_human::{KeyEvent, KeyTransition, PreparedKeymap};
 use conduit_kernel::{
     FixedSignLog, FixedValueStore, KernelEvent, NodeId,
     scheduler::{FixedScheduler, HostCallRequest, SchedulerStatus},
 };
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
 use conduit_semantic_catalog::BoundedTextState;
 
 const PLOTS: usize = super::NATIVE_PLOT_CAPACITY;
@@ -40,10 +43,10 @@ enum Effect {
     Keymap,
     Upper,
     Edit,
-    Presentation,
+    Face,
     ApplicationEvent,
     Application,
-    ApplicationPresentation,
+    ApplicationFace,
 }
 #[derive(Clone, Copy)]
 struct Binding {
@@ -54,6 +57,7 @@ struct Binding {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum PlayRefusal {
     Preparation,
+    Protection(crate::composition::MachineRunError),
     Kernel,
     Scheduler(conduit_kernel::scheduler::SchedulerError),
     HostFailure(conduit_kernel::Failure),
@@ -66,6 +70,7 @@ pub enum PlayRefusal {
 impl PlayRefusal {
     pub const fn as_str(self) -> &'static str {
         match self {
+            Self::Protection(error) => error.as_str(),
             Self::Preparation => "native-body-play-preparation-refused",
             Self::Kernel => "native-body-kernel-boundary-refused",
             Self::Scheduler(_) => "native-body-kernel-step-refused",
@@ -80,13 +85,13 @@ impl PlayRefusal {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct NativePresentation {
+pub struct NativeFace {
     bytes: [u8; 256],
     len: u16,
 }
-impl NativePresentation {
+impl NativeFace {
     pub fn text(&self) -> &str {
-        core::str::from_utf8(&self.bytes[..usize::from(self.len)]).expect("validated presentation")
+        core::str::from_utf8(&self.bytes[..usize::from(self.len)]).expect("validated face")
     }
     fn new(bytes: &[u8]) -> Result<Self, PlayRefusal> {
         if bytes.len() > 256 || core::str::from_utf8(bytes).is_err() {
@@ -102,19 +107,30 @@ impl NativePresentation {
 }
 
 pub struct NativeWorksetPlay {
+    #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+    pure_results: [Option<crate::text_protection::PureKeyboardOutput>; PLOTS],
+    #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+    protected: [Option<
+        crate::text_protection::ProtectedText<crate::protected_region::BodyRegionBinding>,
+    >; PLOTS],
+    #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+    protection_admissions: [Option<crate::text_protection::BodyTextAdmission>; PLOTS],
     scheduler: Box<Scheduler>,
     bindings: [Option<Binding>; NODES],
-    keymaps: [ConduitIntlKeymap; PLOTS],
+    keymaps: [PreparedKeymap; PLOTS],
+    #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
     editors: [Option<BoundedTextState>; PLOTS],
     pending: [Option<HostCallRequest>; PLOTS],
     held: [Option<u8>; 256],
-    presentations: [Option<NativePresentation>; PLOTS],
-    application_views: [Option<conduit_presentation::ApplicationView>; PLOTS],
+    faces: [Option<NativeFace>; PLOTS],
+    application_views: [Option<conduit_face::ApplicationView>; PLOTS],
     applications: [Option<NativeApplication>; PLOTS],
     application_requests: [Option<super::NativeApplicationRequest>; PLOTS],
     input_owners: [Option<AdmittedPlotInput>; PLOTS],
     plot_count: usize,
     cancelled: bool,
+    admitted_plan: conduit_core::PlanId,
+    active_body_play: Option<conduit_body::BodyPlayIdentity>,
 }
 
 impl NativeWorksetPlay {
@@ -156,16 +172,38 @@ impl NativeWorksetPlay {
         }
         Ok(())
     }
-    pub fn start(&mut self) -> Result<(), PlayRefusal> {
-        self.drive()
+    pub fn start_for(
+        &mut self,
+        plan: &conduit_body::BodyPlan,
+        play: &conduit_body::BodyPlayIdentity,
+    ) -> Result<(), PlayRefusal> {
+        if self.cancelled
+            || self.active_body_play.is_some()
+            || plan.plan_id != self.admitted_plan
+            || plan.verify_seal().is_err()
+            || !play.validate_for(plan)
+        {
+            return Err(PlayRefusal::Preparation);
+        }
+        #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+        if let Err(error) = self.activate_protection(plan, play) {
+            let _ = self.cancel();
+            return Err(error);
+        }
+        self.active_body_play = Some(play.clone());
+        if let Err(error) = self.drive() {
+            let _ = self.cancel();
+            return Err(error);
+        }
+        Ok(())
     }
     pub fn sign_retention_gap(&self) -> Option<conduit_kernel::SignRetentionGap> {
         conduit_kernel::SignQuery::retention_gap(self.scheduler.signs())
     }
-    pub fn take_presentation(&mut self, plot: usize) -> Option<NativePresentation> {
-        self.presentations.get_mut(plot)?.take()
+    pub fn take_face(&mut self, plot: usize) -> Option<NativeFace> {
+        self.faces.get_mut(plot)?.take()
     }
-    pub fn application_view(&self, plot: usize) -> Option<&conduit_presentation::ApplicationView> {
+    pub fn application_view(&self, plot: usize) -> Option<&conduit_face::ApplicationView> {
         self.application_views.get(plot)?.as_ref()
     }
     pub fn patchbay_graph(&self, plot: usize) -> Option<&patchbay_graph::PatchbayGraph> {
@@ -189,10 +227,7 @@ impl NativeWorksetPlay {
         self.pending[patchbay] = None;
         self.drive()
     }
-    pub fn take_application_view(
-        &mut self,
-        plot: usize,
-    ) -> Option<conduit_presentation::ApplicationView> {
+    pub fn take_application_view(&mut self, plot: usize) -> Option<conduit_face::ApplicationView> {
         self.application_views.get_mut(plot)?.take()
     }
     pub fn take_application_request(
@@ -255,7 +290,7 @@ impl NativeWorksetPlay {
         let owner = self.input_owners[foreground]
             .as_ref()
             .ok_or(PlayRefusal::InputOwnership)?;
-        if owner.value_kind.as_str() != conduit_presentation::APPLICATION_EVENT_INFO_ID {
+        if owner.value_kind.as_str() != conduit_face::APPLICATION_EVENT_INFO_ID {
             return Err(PlayRefusal::InputOwnership);
         }
         let request = self.pending[foreground].ok_or(PlayRefusal::InputPressure)?;
@@ -291,7 +326,7 @@ impl NativeWorksetPlay {
             return Err(PlayRefusal::InputOwnership);
         }
         let request = self.pending[owner].ok_or(PlayRefusal::InputPressure)?;
-        if self.presentations[owner].is_some() {
+        if self.faces[owner].is_some() {
             return Err(PlayRefusal::InputPressure);
         }
         self.output(request, Some(&event.encode()))?;
@@ -302,6 +337,8 @@ impl NativeWorksetPlay {
         Ok(true)
     }
     pub fn cancel(&mut self) -> Result<(), PlayRefusal> {
+        #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+        self.revoke_protection(crate::protection_domain::KernelRevocationCause::PlayCancelled);
         self.scheduler.cancel().map_err(|_| PlayRefusal::Kernel)?;
         self.pending.fill(None);
         self.application_requests.fill(None);
@@ -309,6 +346,7 @@ impl NativeWorksetPlay {
         for keymap in &mut self.keymaps {
             keymap.reset();
         }
+        self.active_body_play = None;
         self.cancelled = true;
         Ok(())
     }
@@ -320,6 +358,14 @@ impl NativeWorksetPlay {
             .ok_or(PlayRefusal::Kernel)
     }
     fn drive(&mut self) -> Result<(), PlayRefusal> {
+        let result = self.drive_inner();
+        #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+        if result.is_err() {
+            self.revoke_protection(crate::protection_domain::KernelRevocationCause::PlayFailed);
+        }
+        result
+    }
+    fn drive_inner(&mut self) -> Result<(), PlayRefusal> {
         for _ in 0..512 {
             while let Some(request) = self.scheduler.next_host_request() {
                 let binding = self.binding(request.node)?;

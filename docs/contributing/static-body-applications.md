@@ -15,6 +15,12 @@ cargo xtask make body static \
   --handbook --output target/handbook-static
 ```
 
+Browser release packaging requires Binaryen's `wasm-opt`; `cargo xtask doctor browser`
+reports whether it is available. The release builder applies `-Oz` with bulk-memory
+and sign-extension support after Rust linking and seals the optimized bytes. Existing application
+resource bounds still apply; no unoptimized fallback is published. CI acquires
+the optimizer with the browser target's other system tools.
+
 Choose a new output directory; the command refuses an existing destination. Without `--release`, it builds a reviewed browser release. `--release PATH` reuses an existing reviewed release directory. The `--handbook` option renders the existing `wiki/` prose and attaches the application to chapter pages.
 
 Copy the complete output directory to an ordinary static HTTP host. Use HTTPS for deployment or a trusted loopback origin for local development so the browser can provide durable storage and cooperative Web Locks. Do not open it as a `file:` URL. The output includes the application manifest, resources, SDK, reviewed BrowserBundle, runtime, profile and IMAGE identities, and initial Plot sources. No runtime Body, Boot, Plan, or Play identity is preassigned to visitors.

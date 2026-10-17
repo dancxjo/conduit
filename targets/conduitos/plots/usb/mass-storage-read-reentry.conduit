@@ -1,0 +1,241 @@
+with storage/block-read/request as BlockReadRequest
+with storage/block-read/result as BlockReadResult
+with storage/block-read/identity as BlockReadPermit
+with machine/usb/control/request as UsbControlRequest
+with machine/usb/control/result as UsbControlResult
+with machine/usb/endpoint-read/request as UsbEndpointReadRequest
+with machine/usb/endpoint-read/result as UsbEndpointReadResult
+with machine/usb/endpoint-write/request as UsbEndpointWriteRequest
+with machine/usb/endpoint-write/result as UsbEndpointWriteResult
+with flow/zip/feedback/paired as BotReentryPair
+# Exactly two caller requests. The first DATA must STALL after acknowledged
+# native queue retirement. Source alone requests BOT reset(interface0), clear
+# IN81 then OUT02. Only their exact zero-data acks permit original settlement.
+# The second independent storage owner is selected only after settle1 returns.
+# Native read ordinals are 0(stalled),1(DATA),2(CSW); both semantic owners begin
+# at ordinal0. CBW tags1/2 are independent Source-owned protocol correlations.
+# Root must opt in to read_only_reentry_approval and separately issue four
+# distinct storage capability selections and the same three native USB owners.
+type BotControlFacts = {
+ descriptor: Boolean
+ ack: Boolean
+}
+type BotReentryRead = {
+ result: UsbEndpointReadResult
+ ordinal: U64
+ data: Boolean
+ status: Boolean
+ tag: U64
+ residue: U64
+ status_code: U64
+}
+# Feedback carries scalar facts; the genuine settle result is forwarded unchanged.
+type BotReentrySettlement = {
+ block_size: U64
+ count: U64
+ lba: U64
+ ordinal: U64
+ stalled: Boolean
+ command_failed: Boolean
+ completed: Boolean
+ actual: U64
+ residue: U64
+ short: Boolean
+ length: U64
+}
+type BotReentryEvent =
+ startup Bytes <= 2048B
+ | closed
+ | command BlockReadRequest
+ | permit BlockReadPermit
+ | control BotControlFacts
+ | write UsbEndpointWriteResult
+ | read BotReentryRead
+ | settled BotReentrySettlement
+type BotReentryState = {
+ bank: Bytes <= 2048B
+ request: BlockReadRequest
+ permit: BlockReadPermit
+ data: UsbEndpointReadResult
+ phase: U64
+ phase_error: Boolean
+ failed: Boolean
+ terminal: Boolean
+}
+# A rejected active event terminates the physical state immediately. Its
+# original storage submission remains retained for Root acknowledged cancel;
+# this close never manufactures a settlement, permit or semantic result.
+# Raw request descendants terminate at a selected authorizer. This route never
+# sends raw payloads or closure observations into the physical state machine.
+type BotReentryAuthorizationRequest =
+ first BlockReadRequest
+ | second BlockReadRequest
+ | absent
+type BotReentryRoute =
+ ready BotReentryState
+ | control BotReentryState
+ | write BotReentryState
+ | read BotReentryState
+ | first-settle BotReentryState
+ | second-settle BotReentryState
+ | stopped BotReentryState
+type BotReentryPending =
+ running BotReentryState
+ | stopped
+type BotReentryTransition = {
+ previous: BotReentryState
+ event: BotReentryEvent
+ accepted: Boolean
+}
+# This pure marker is for policy regressions only; it constructs no result.
+# External results come only from the actual selected settle outputs.
+type BotReentryEmission =
+ emit
+ | absent
+
+# Exact topology/CSW predicates reused from mass-storage-read-native.
+plot bot-reentry-control-event (
+    result: UsbControlResult...| >> event: BotReentryEvent...|
+) = (control({ descriptor: !(. is completed) ? false : (.completed.transferred != 32 || .completed.short || sequence/length(.completed.input) != 32 ? false : (((((sequence/at(.completed.input, 0) == 9 && sequence/at(.completed.input, 1) == 2) && (sequence/at(.completed.input, 2) == 32 && sequence/at(.completed.input, 3) == 0)) && ((sequence/at(.completed.input, 4) == 1 && sequence/at(.completed.input, 5) == 1) && (sequence/at(.completed.input, 6) == 5 && sequence/at(.completed.input, 7) == 192))) && (((sequence/at(.completed.input, 8) == 0 && sequence/at(.completed.input, 9) == 9) && (sequence/at(.completed.input, 10) == 4 && sequence/at(.completed.input, 11) == 0)) && ((sequence/at(.completed.input, 12) == 0 && sequence/at(.completed.input, 13) == 2) && (sequence/at(.completed.input, 14) == 8 && sequence/at(.completed.input, 15) == 6)))) && ((((sequence/at(.completed.input, 16) == 80 && sequence/at(.completed.input, 17) == 0) && (sequence/at(.completed.input, 18) == 7 && sequence/at(.completed.input, 19) == 5)) && ((sequence/at(.completed.input, 20) == 129 && sequence/at(.completed.input, 21) == 2) && (sequence/at(.completed.input, 22) == 0 && sequence/at(.completed.input, 23) == 2))) && (((sequence/at(.completed.input, 24) == 0 && sequence/at(.completed.input, 25) == 7) && (sequence/at(.completed.input, 26) == 5 && sequence/at(.completed.input, 27) == 2)) && ((sequence/at(.completed.input, 28) == 2 && sequence/at(.completed.input, 29) == 0) && (sequence/at(.completed.input, 30) == 2 && sequence/at(.completed.input, 31) == 0)))))), ack: !(. is completed) ? false : (.completed.transferred == 0 && !.completed.short && sequence/length(.completed.input) == 0) }))
+plot bot-reentry-read-facts (
+    result: UsbEndpointReadResult...| >> event: BotReentryRead...|
+) = ({ result: ., ordinal: (. is completed ? .completed.ordinal : 0), data: (!(. is completed) ? false : (.completed.actual == 512 && bytes/length(.completed.wire) == 512 && !.completed.short)), status: (!(. is completed) ? false : (.completed.actual == 13 && !.completed.short && bytes/length(.completed.wire) == 13 ? ((((bytes/at(.completed.wire, 0) == 85 && bytes/at(.completed.wire, 1) == 83) && (bytes/at(.completed.wire, 2) == 66 && (bytes/at(.completed.wire, 3) == 83 && bytes/at(.completed.wire, 5) == 0))) && ((bytes/at(.completed.wire, 6) == 0 && bytes/at(.completed.wire, 7) == 0) && bytes/at(.completed.wire, 12) <= 2))) : false)), tag: (!(. is completed) ? 0 : (bytes/length(.completed.wire) == 13 ? value/u64(bytes/at(.completed.wire, 4)) : 0)), residue: (!(. is completed) ? 0 : (bytes/length(.completed.wire) == 13 ? value/u64(bytes/at(.completed.wire, 8)) + value/u64(bytes/at(.completed.wire, 9)) * 256 + value/u64(bytes/at(.completed.wire, 10)) * 65536 + value/u64(bytes/at(.completed.wire, 11)) * 16777216 : 0)), status_code: (!(. is completed) ? 0 : (bytes/length(.completed.wire) == 13 ? value/u64(bytes/at(.completed.wire, 12)) : 0)) })
+
+
+
+plot bot-reentry-bootstrap (
+    wire: Bytes <= 2048B >> event: BotReentryEvent
+) = (bytes/length(.) <= 2048 ? startup(.) : closed(empty))
+plot bot-reentry-start (
+    event: BotReentryEvent...| >> state: BotReentryState...|
+) = ({ bank: .startup, request: {block_size: 512, count: 1, lba: 0}, permit: {block_size: 512, count: 1, lba: 0, ordinal: 0}, data: unsupported(empty), phase: bytes/length(.startup) == 62 ? 0 : 16, phase_error: false, failed: bytes/length(.startup) != 62, terminal: false })
+plot bot-reentry-closed (
+    event: BotReentryEvent...| >> closed: BotReentryEvent...|
+) = (closed(empty))
+plot bot-reentry-command (
+    request: BlockReadRequest...| <= 4096B >> event: BotReentryEvent...|
+) = (command(.))
+plot bot-reentry-permit (
+    permit: BlockReadPermit...| <= 4096B >> event: BotReentryEvent...|
+) = (permit(.))
+plot bot-reentry-settled (
+    result: BlockReadResult...| <= 4096B >> event: BotReentryEvent...|
+) = (settled({ block_size: (. is stalled ? .stalled.block_size : (. is completed ? .completed.block_size : (. is command-failed ? .command-failed.block_size : 0))), count: (. is stalled ? .stalled.count : (. is completed ? .completed.count : (. is command-failed ? .command-failed.count : 0))), lba: (. is stalled ? .stalled.lba : (. is completed ? .completed.lba : (. is command-failed ? .command-failed.lba : 0))), ordinal: (. is stalled ? .stalled.ordinal : (. is completed ? .completed.ordinal : (. is command-failed ? .command-failed.ordinal : 0))), stalled: (. is stalled), command_failed: (. is command-failed), completed: (. is completed), actual: (. is completed ? .completed.actual : 0), residue: (. is completed ? .completed.residue : 0), short: (. is completed ? .completed.short : false), length: (. is completed ? bytes/length(.completed.bytes) : 0) }))
+plot bot-reentry-write-event (
+    result: UsbEndpointWriteResult...| <= 4096B >> event: BotReentryEvent...|
+) = (write(.))
+plot bot-reentry-read-observation (
+    facts: BotReentryRead...| >> event: BotReentryEvent...|
+) = (read(.))
+plot bot-reentry-read-event (
+    result: UsbEndpointReadResult...| <= 4096B >> event: BotReentryEvent...|
+) {
+ result >> bot-reentry-read-facts() >> bot-reentry-read-observation() >> event
+}
+plot bot-reentry-command-event (
+    pair: BotReentryPair...| >> event: BotReentryEvent...|
+) = (.1)
+plot bot-reentry-raw-authorization (
+    pair: BotReentryRequestPair...| >> route: BotReentryAuthorizationRequest...|
+) = (.0.failed || .0.terminal ? absent(empty) : (.0.phase == 0 ? first(.1) : (.0.phase == 10 ? second(.1) : absent(empty))))
+plot bot-reentry-route (
+    state: BotReentryState...| >> route: BotReentryRoute...|
+) = (.terminal || (.phase > 16 && .phase != 18) || .phase == 1 || .phase == 11 ? stopped(.) : (.failed ? ready(.) : (.phase == 0 || .phase == 10 || .phase == 16 ? ready(.) : (.phase == 9 ? first-settle(.) : (.phase == 15 ? second-settle(.) : (.phase == 4 || .phase == 12 ? write(.) : (.phase == 5 || .phase == 13 || .phase == 14 || .phase == 18 ? read(.) : control(.))))))))
+plot bot-reentry-pending (
+    route: BotReentryRoute...| >> pending: BotReentryPending...|
+) = (. is stopped ? stopped(empty) : (. is ready ? running(.ready) : (. is first-settle ? running(.first-settle) : (. is second-settle ? running(.second-settle) : (. is control ? running(.control) : (. is write ? running(.write) : running(.read)))))))
+plot bot-reentry-authorization (
+    state: BotReentryState...| >> request: BlockReadRequest...| <= 4096B
+) = (.request)
+plot bot-reentry-control-request (
+    state: BotReentryState...| >> request: UsbControlRequest...| <= 4096B
+) = ({ setup: .phase == 2 ? 0x0020000002000680 : (.phase == 3 ? 0x0000000000010900 : (.phase == 6 ? 0x000000000000ff21 : (.phase == 7 ? 0x0000008100000102 : 0x0000000200000102))), output: [] })
+plot bot-reentry-write-request (
+    state: BotReentryState...| >> request: UsbEndpointWriteRequest...| <= 4096B
+) = ({ wire: bytes/window(.bank, .phase == 4 ? 0 : 31, 31) })
+plot bot-reentry-read-request (
+    state: BotReentryState...| >> request: UsbEndpointReadRequest...| <= 4096B
+) = ({ length: (.phase == 14 || .phase == 18) ? 13 : 512 })
+plot bot-reentry-first-candidate (
+    state: BotReentryState...| >> candidate: BlockReadResult...| <= 4096B
+) = (.phase_error ? command-failed({ block_size: .permit.block_size, count: .permit.count, lba: .permit.lba, ordinal: .permit.ordinal }) : stalled({ block_size: .permit.block_size, count: .permit.count, lba: .permit.lba, ordinal: .permit.ordinal }))
+plot bot-reentry-second-candidate (
+    state: BotReentryState...| >> candidate: BlockReadResult...| <= 4096B
+) = (.data is completed ? (.data.completed.actual == 512 && bytes/length(.data.completed.wire) == 512 && !.data.completed.short ? completed({ actual: 512, block_size: .permit.block_size, bytes: .data.completed.wire, count: .permit.count, lba: .permit.lba, ordinal: .permit.ordinal, residue: 0, short: false }) : command-failed({ block_size: .permit.block_size, count: .permit.count, lba: .permit.lba, ordinal: .permit.ordinal })) : command-failed({ block_size: .permit.block_size, count: .permit.count, lba: .permit.lba, ordinal: .permit.ordinal }))
+
+# USB BOT 1.0 §5.3.3.1/§5.3.4: phase-error requires reset recovery.
+# §6.7.3 ignores CSW residue for status2; normal success still requires zero.
+plot bot-reentry-accept (
+    pair: BotReentryPair...| >> transition: BotReentryTransition...|
+) = ({ previous: .0, event: .1, accepted: (.0.terminal || (.0.phase > 16 && .0.phase != 18) || (.0.failed && .0.phase != 16) ? false : ((((.0.phase == 13 ? (.1 is read ? (.1.read.result is completed ? (((.1.read.data && .1.read.ordinal == (.0.phase_error ? 2 : 1)))) : false) : false) : false) || (.0.phase == 5 ? (.1 is read ? (.1.read.result is stalled ? true : (.1.read.result is completed ? (.1.read.data && .1.read.ordinal == 0) : false)) : false) : false)) || (((.0.phase == 0 || .0.phase == 10) ? (.1 is closed ? true : (.1 is permit ? ((.1.permit.block_size == 512 && .1.permit.count == 1) && (.1.permit.lba == 0 && .1.permit.ordinal == 0)) : false)) : false) || (.0.phase == 9 ? (.1 is settled ? ((.0.phase_error ? .1.settled.command_failed : .1.settled.stalled) ? (((.1.settled.block_size == .0.permit.block_size && .1.settled.count == .0.permit.count) && (.1.settled.lba == .0.permit.lba && .1.settled.ordinal == .0.permit.ordinal))) : false) : false) : false))) || (((((((.0.phase == 3 || .0.phase == 6) || (.0.phase == 7 || .0.phase == 8)) ? (.1 is control ? .1.control.ack : false) : false) || ((.0.phase == 16 ? (.1 is command || .1 is closed) : false) || (.0.phase == 2 ? (.1 is control ? .1.control.descriptor : false) : false))) || ((.0.phase == 4 || .0.phase == 12) ? (.1 is write ? (.1.write is completed ? .1.write.completed.actual == 31 : false) : false) : false)) || (.0.phase == 18 ? (.1 is read ? (.1.read.result is completed ? (.1.read.status && .1.read.ordinal == 1 && .1.read.tag == 1 && .1.read.status_code == 2) : false) : false) : false)) || ((.0.phase == 14 ? (.1 is read ? (.1.read.result is completed ? (((.1.read.status && .1.read.ordinal == (.0.phase_error ? 3 : 2)) && (.1.read.tag == 2 && (.1.read.residue == 0 && .1.read.status_code == 0)))) : false) : false) : false) || (.0.phase == 15 ? (.1 is settled ? (.1.settled.completed ? ((((.1.settled.block_size == .0.permit.block_size && .1.settled.count == .0.permit.count) && (.1.settled.lba == .0.permit.lba && .1.settled.ordinal == .0.permit.ordinal)) && ((.1.settled.actual == 512 && .1.settled.residue == 0) && (!.1.settled.short && .1.settled.length == 512)))) : false) : false) : false))))) })
+
+plot bot-reentry-advance (
+    transition: BotReentryTransition...| >> state: BotReentryState...|
+) = ({ bank: .previous.bank, request: (.accepted && .event is permit ? { block_size: .event.permit.block_size, count: .event.permit.count, lba: .event.permit.lba } : .previous.request), permit: (.accepted && .event is permit ? .event.permit : .previous.permit), data: (.accepted && (.previous.phase == 5 || .previous.phase == 13) ? (.event is read ? .event.read.result : .previous.data) : .previous.data), phase_error: (.previous.phase_error || (.accepted && .previous.phase == 18)), phase: (.accepted && .previous.phase == 18 ? 6 : (.accepted && .previous.phase == 5 ? (.event is read ? (.event.read.result is completed ? 18 : 6) : 16) : (.accepted && .event is closed ? 17 : (!.accepted || .previous.phase >= 16 ? 16 : (.previous.phase == 0 ? 2 : (.previous.phase == 10 ? 12 : .previous.phase + 1)))))), failed: (.previous.failed || !.accepted), terminal: (!.accepted || (.accepted && .event is closed)) })
+plot bot-reentry-emission (
+    transition: BotReentryTransition...| >> emission: BotReentryEmission...|
+) = (.accepted && (.previous.phase == 9 || .previous.phase == 15) ? (.event is settled ? emit(empty) : absent(empty)) : absent(empty))
+plot bot-storage-read-reentry (
+    request: BlockReadRequest...| <= 4096B >> result: BlockReadResult...| <= 4096B
+) {
+ literal: bytes/literal("55534243010000000002000080000a2800000000000000010000000000000055534243020000000002000080000a28000000000000000100000000000000")
+ singleton: flow/singleton
+ cell: state/seeded/flow/until
+ route: bot-reentry-route()
+ join: flow/zip/feedback
+ commands: flow/zip/feedback
+ request-gate: BotReentryRequestGate
+ authorize-route: bot-reentry-raw-authorization()
+ requests: flow/concat/finite
+ events: flow/merge/finite
+ permit-events: flow/merge/finite
+ settlement-events: flow/merge/finite
+ results: BotReentryResults
+ transport-events: flow/merge/finite
+ bulk-events: flow/merge/finite
+ combined-events: flow/merge/finite
+ first-authorize: storage/block-read/authorize
+ first-settle: storage/block-read/settle
+ second-authorize: storage/block-read/authorize
+ second-settle: storage/block-read/settle
+ control: machine/usb/control
+ write: machine/usb/endpoint-write
+ read: machine/usb/endpoint-read
+ observe-read: bot-reentry-read-event
+ literal >> bot-reentry-bootstrap() >> singleton.value
+ singleton.flow >> bot-reentry-start() >> cell.seed
+ singleton.flow >> bot-reentry-closed() >> requests.right
+ request >> request-gate.right
+ requests.concatenated >> commands.right
+ cell.current >> route
+ route >> bot-reentry-pending() >> select(BotReentryPending.running, unmatched=drop) >> join.left
+ route >> select(BotReentryRoute.ready, unmatched=drop) >> commands.left
+ route >> select(BotReentryRoute.ready, unmatched=drop) >> request-gate.left
+ request-gate.paired >> authorize-route
+ authorize-route >> select(BotReentryAuthorizationRequest.first, unmatched=drop) >> first-authorize.request
+ authorize-route >> select(BotReentryAuthorizationRequest.second, unmatched=drop) >> second-authorize.request
+ commands.paired >> bot-reentry-command-event() >> events.left
+ route >> select(BotReentryRoute.first-settle, unmatched=drop) >> bot-reentry-first-candidate() >> first-settle.request
+ route >> select(BotReentryRoute.second-settle, unmatched=drop) >> bot-reentry-second-candidate() >> second-settle.request
+ route >> select(BotReentryRoute.control, unmatched=drop) >> bot-reentry-control-request() >> control.request
+ route >> select(BotReentryRoute.write, unmatched=drop) >> bot-reentry-write-request() >> write.request
+ route >> select(BotReentryRoute.read, unmatched=drop) >> bot-reentry-read-request() >> read.request
+ first-authorize.result >> bot-reentry-permit() >> permit-events.left
+ second-authorize.result >> bot-reentry-permit() >> permit-events.right
+ first-settle.result >> bot-reentry-settled() >> settlement-events.left
+ first-settle.result >> results.left
+ second-settle.result >> bot-reentry-settled() >> settlement-events.right
+ second-settle.result >> results.right
+ permit-events.merged >> requests.left
+ settlement-events.merged >> combined-events.left
+ control.result >> bot-reentry-control-event() >> transport-events.left
+ write.result >> bot-reentry-write-event() >> bulk-events.left
+ read.result >> observe-read.result
+ observe-read.event >> bulk-events.right
+ bulk-events.merged >> transport-events.right
+ transport-events.merged >> combined-events.right
+ combined-events.merged >> events.right
+ events.merged >> join.right
+ join.paired >> bot-reentry-accept() >> bot-reentry-advance() >> cell.next
+ results.merged >> result
+}

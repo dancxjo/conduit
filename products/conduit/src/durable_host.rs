@@ -1,8 +1,6 @@
 //! Installed durable host ownership and its platform-service handoff.
 
 use crate::cli::HostServiceCommand;
-use conduit_core::{BootId, HostId, OfferGeneration};
-use conduit_std_host::{StdHost, StdHostConfig};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::{
@@ -18,19 +16,40 @@ pub(crate) mod owner;
 pub(crate) use owner::run as run_body_owner;
 #[path = "body_owner/lock.rs"]
 mod owner_lock;
+#[cfg(unix)]
+#[path = "durable_host_presentation.rs"]
+pub(crate) mod presentation;
 
 pub(crate) const INSTALL_SCHEMA: &str = "conduit.install/durable-host@1";
 const RUNTIME_SCHEMA: &str = "conduit.install/durable-host-runtime@1";
 const RELEASE_SCHEMA: &str = "conduit.release/host-bundle@1";
 const MAXIMUM_RELEASE_FILES: usize = 32;
 const MAXIMUM_RELEASE_FILE_BYTES: u64 = 64 * 1024 * 1024;
-const MAXIMUM_BODY_ADMISSION_BYTES: u64 = 512 * 1024;
+// Admission retains the exact Host inventory, including authored layout defaults.
+const MAXIMUM_BODY_ADMISSION_BYTES: u64 = 2 * 1024 * 1024;
+
+#[cfg(test)]
+#[path = "durable_host/selection_recovery_tests.rs"]
+mod selection_recovery_tests;
+
+#[path = "durable_host/installation_read.rs"]
+mod installation_read;
+use installation_read::{read_installation, read_installation_for_equipment_change};
+#[path = "durable_host/installation_configured.rs"]
+mod installation_configured;
+#[cfg(test)]
+use installation_configured::install_configured;
+use installation_configured::install_configured_with_todo;
 
 #[path = "durable_host/runtime_marker.rs"]
 mod runtime_marker;
 pub(crate) use runtime_marker::refresh_offer_generation;
+#[path = "durable_host/selected_model.rs"]
+mod selected_model;
 #[path = "durable_host/selected_speech.rs"]
-mod selected_speech;
+pub(crate) mod selected_speech;
+#[path = "durable_host/selected_todo.rs"]
+mod selected_todo;
 
 #[path = "durable_host_invitation.rs"]
 mod invitation;
@@ -69,6 +88,10 @@ struct Installation {
     joined_body_state: Option<membership::JoinedBodyBinding>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     selected_speech: Option<selected_speech::Selection>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    selected_model: Option<selected_model::Selection>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    selected_todo_checkpoint: Option<selected_todo::Selection>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -96,13 +119,23 @@ pub(crate) fn dispatch(command: HostServiceCommand) -> Result<(), String> {
             state_dir,
             no_start,
             speech,
+            model,
+            todo_checkpoint,
         } => (if no_start {
-            install_with_selection(&manifest, &state_dir, selected_speech::change(speech)?)
-        } else {
-            install_and_activate_with_selection(
+            install_with_equipment(
                 &manifest,
                 &state_dir,
                 selected_speech::change(speech)?,
+                selected_model::change(model)?,
+                selected_todo::change(todo_checkpoint)?,
+            )
+        } else {
+            install_and_activate_with_equipment(
+                &manifest,
+                &state_dir,
+                selected_speech::change(speech)?,
+                selected_model::change(model)?,
+                selected_todo::change(todo_checkpoint)?,
             )
         })
         .map(|installation| {
@@ -133,12 +166,69 @@ pub(crate) fn has_current_body(state_dir: &Path) -> Result<bool, String> {
 pub(crate) fn inspect_installation(path: &Path) -> Result<String, String> {
     let installation = read_installation(path)?;
     Ok(format!(
-        "Host {}\nrelease {}\nproduct {}\nbody {}\n",
+        "Host {}\nrelease {}\nproduct {}\nbody {}\nTodo checkpoint version {}\n",
         installation.host_id,
         installation.release_bundle_sha256,
         installation.product_executable,
         current_body_id(&installation).unwrap_or("none"),
+        installation
+            .selected_todo_checkpoint
+            .as_ref()
+            .map_or_else(|| "none".into(), selected_todo::Selection::version_hex),
     ))
+}
+
+#[derive(Clone)]
+#[allow(dead_code)] // Consumed by the installed Owner ingress slice stacked on this selection.
+pub(crate) struct SelectedTodoCheckpoint {
+    pub(crate) root: std::path::PathBuf,
+    pub(crate) content: conduit_core::ResourceContentRequirement,
+}
+
+/// The installed Host's explicit successor selection, held until the Owner
+/// can journal it together with the next resident Plot and Body proposal.
+pub(crate) struct NextSelectedTodoCheckpoint {
+    root: std::path::PathBuf,
+    read_content: conduit_core::ResourceContentRequirement,
+    selection: selected_todo::Selection,
+}
+
+impl NextSelectedTodoCheckpoint {
+    #[cfg(test)]
+    pub(crate) fn write_content(&self) -> conduit_core::ResourceContentRequirement {
+        self.selection.content()
+    }
+}
+
+pub(crate) fn next_selected_todo_checkpoint(
+    state_dir: &Path,
+) -> Result<NextSelectedTodoCheckpoint, String> {
+    let installation = read_installation(&state_dir.join("installation.json"))?;
+    let prior = installation
+        .selected_todo_checkpoint
+        .ok_or("installed Todo has no selected checkpoint residence")?;
+    let mut read_content = prior.content();
+    read_content.access = conduit_core::ResourceAccessMode::ReadPublished;
+    read_content.publication_slots = 0;
+    let root = prior.root().to_path_buf();
+    Ok(NextSelectedTodoCheckpoint {
+        root,
+        read_content,
+        selection: prior.next_generation()?,
+    })
+}
+
+#[allow(dead_code)] // Consumed by the installed Owner ingress slice stacked on this selection.
+pub(crate) fn selected_todo_checkpoint(
+    state_dir: &Path,
+) -> Result<Option<SelectedTodoCheckpoint>, String> {
+    let installation = read_installation(&state_dir.join("installation.json"))?;
+    Ok(installation
+        .selected_todo_checkpoint
+        .map(|selection| SelectedTodoCheckpoint {
+            root: selection.root().to_owned(),
+            content: selection.content(),
+        }))
 }
 
 pub(crate) fn install_and_activate(
@@ -150,12 +240,20 @@ pub(crate) fn install_and_activate(
     Ok(installation)
 }
 
-fn install_and_activate_with_selection(
+fn install_and_activate_with_equipment(
     manifest: &Path,
     state_dir: &Path,
-    change: selected_speech::Change,
+    speech_change: selected_speech::Change,
+    model_change: selected_model::Change,
+    todo_change: selected_todo::Change,
 ) -> Result<InstalledHostIdentity, String> {
-    let installation = install_with_selection(manifest, state_dir, change)?;
+    let installation = install_with_equipment(
+        manifest,
+        state_dir,
+        speech_change,
+        model_change,
+        todo_change,
+    )?;
     activate_service(state_dir)?;
     Ok(installation)
 }
@@ -172,7 +270,29 @@ fn install_with_selection(
     state_dir: &Path,
     change: selected_speech::Change,
 ) -> Result<InstalledHostIdentity, String> {
-    let installation = install_configured(manifest, state_dir, change)?;
+    install_with_equipment(
+        manifest,
+        state_dir,
+        change,
+        selected_model::Change::Preserve,
+        selected_todo::Change::Preserve,
+    )
+}
+
+fn install_with_equipment(
+    manifest: &Path,
+    state_dir: &Path,
+    speech_change: selected_speech::Change,
+    model_change: selected_model::Change,
+    todo_change: selected_todo::Change,
+) -> Result<InstalledHostIdentity, String> {
+    let installation = install_configured_with_todo(
+        manifest,
+        state_dir,
+        speech_change,
+        model_change,
+        todo_change,
+    )?;
     Ok(InstalledHostIdentity {
         host_id: installation.host_id,
         release_bundle_sha256: installation.release_bundle_sha256,
@@ -220,73 +340,12 @@ fn own_body(evidence_path: &Path, state_dir: &Path) -> Result<(), String> {
 
 #[cfg(test)]
 fn install(manifest_path: &Path, state_dir: &Path) -> Result<Installation, String> {
-    install_configured(manifest_path, state_dir, selected_speech::Change::Preserve)
-}
-
-fn install_configured(
-    manifest_path: &Path,
-    state_dir: &Path,
-    change: selected_speech::Change,
-) -> Result<Installation, String> {
-    let manifest_bytes = bounded_read(manifest_path, 256 * 1024)?;
-    let manifest: ReleaseManifest = serde_json::from_slice(&manifest_bytes)
-        .map_err(|error| format!("release manifest: {error}"))?;
-    validate_manifest(&manifest)?;
-    let bundle_dir = manifest_path
-        .parent()
-        .ok_or_else(|| "release manifest has no bundle directory".to_string())?;
-    for file in &manifest.files {
-        verify_release_file(bundle_dir, file)?;
-    }
-
-    fs::create_dir_all(state_dir).map_err(|error| format!("create state directory: {error}"))?;
-    restrict_directory(state_dir)?;
-    crate::durable_host_control::ensure_secret(state_dir)?;
-    let install_path = state_dir.join("installation.json");
-    let existing = if install_path.exists() {
-        Some(read_installation(&install_path)?)
-    } else {
-        None
-    };
-    let executable = manifest
-        .files
-        .iter()
-        .find(|file| file.path.starts_with("conduit-") && !file.path.contains("tour"))
-        .ok_or_else(|| "release has no installed Conduit product executable".to_string())?;
-    let release_dir = install_immutable_release(bundle_dir, state_dir, &manifest)?;
-    let product_executable = release_dir.join(
-        Path::new(&executable.path)
-            .file_name()
-            .ok_or_else(|| "product executable name is invalid".to_string())?,
-    );
-    make_executable(&product_executable)?;
-    let host_id = existing
-        .as_ref()
-        .map(|value| value.host_id.clone())
-        .unwrap_or_else(|| fresh_identity("host/installed", &manifest.bundle_sha256));
-    let retained_selection = match change {
-        selected_speech::Change::Preserve => existing
-            .as_ref()
-            .and_then(|value| value.selected_speech.clone()),
-        selected_speech::Change::Replace(selection) => {
-            selection.validate()?;
-            Some(selection)
-        }
-        selected_speech::Change::Remove => None,
-    };
-    let installation = Installation {
-        schema: INSTALL_SCHEMA.into(),
-        host_id,
-        release_source_identity: manifest.source_identity,
-        release_bundle_sha256: manifest.bundle_sha256,
-        product_executable: product_executable.display().to_string(),
-        body_state: existing.as_ref().and_then(|value| value.body_state.clone()),
-        joined_body_state: existing.and_then(|value| value.joined_body_state),
-        selected_speech: retained_selection,
-    };
-    write_json_atomic(&install_path, &installation)?;
-    write_service_definition(state_dir, &installation)?;
-    Ok(installation)
+    install_configured(
+        manifest_path,
+        state_dir,
+        selected_speech::Change::Preserve,
+        selected_model::Change::Preserve,
+    )
 }
 
 fn install_immutable_release(
@@ -352,6 +411,10 @@ fn release_file_name(file: &ReleaseFile) -> Result<&std::ffi::OsStr, String> {
         .ok_or_else(|| "release path has no file name".to_string())
 }
 
+#[path = "durable_host/runtime_preparation.rs"]
+mod runtime_preparation;
+use runtime_preparation::{prepare_runtime, prepare_runtime_with_scans, prepare_runtime_with_todo};
+
 fn run(state_dir: &Path) -> Result<(), String> {
     let _ownership = owner_lock::acquire(state_dir)?;
     let _body_ownership = owner_lock::body(state_dir)?;
@@ -391,46 +454,6 @@ fn start_runtime(state_dir: &Path) -> Result<RuntimeStatus, String> {
     prepare_runtime(state_dir).map(|(status, _)| status)
 }
 
-fn prepare_runtime(
-    state_dir: &Path,
-) -> Result<
-    (
-        RuntimeStatus,
-        crate::durable_host_control::DurableHostRuntime,
-    ),
-    String,
-> {
-    let installation = read_installation(&state_dir.join("installation.json"))?;
-    let boot_id = fresh_identity("boot/installed", &installation.host_id);
-    let config = StdHostConfig {
-        host_id: HostId::from(installation.host_id.as_str()),
-        boot_id: BootId::from(boot_id.as_str()),
-        offer_generation: OfferGeneration(1),
-    };
-    let mut host = StdHost::new_with_config(config);
-    if let Some(selection) = &installation.selected_speech {
-        selection.attach_to_fresh_host(&mut host)?;
-    }
-    let status = RuntimeStatus {
-        schema: RUNTIME_SCHEMA.into(),
-        host_id: host.advertisement().host_id.as_str().into(),
-        boot_id: host.advertisement().boot_id.as_str().into(),
-        offer_generation: host.advertisement().offer_generation.0,
-        process_id: std::process::id(),
-        body_id: current_body_id(&installation).map(str::to_owned),
-        release_bundle_sha256: installation.release_bundle_sha256,
-    };
-    write_json_atomic(&state_dir.join("runtime.json"), &status)?;
-    let executable = Path::new(&installation.product_executable);
-    let image_content_digest = digest(&bounded_read(executable, MAXIMUM_RELEASE_FILE_BYTES)?);
-    let runtime = crate::durable_host_control::DurableHostRuntime::new(
-        running_target_id()?.into(),
-        image_content_digest,
-        host,
-    );
-    Ok((status, runtime))
-}
-
 fn running_target_id() -> Result<&'static str, String> {
     match (std::env::consts::OS, std::env::consts::ARCH) {
         ("linux", "x86_64") => Ok("std/x86_64/computer"),
@@ -444,7 +467,30 @@ fn running_target_id() -> Result<&'static str, String> {
 
 fn status(state_dir: &Path, json: bool) -> Result<(), String> {
     let installation = read_installation(&state_dir.join("installation.json"))?;
-    if let Some(status) = observe_current_runtime(state_dir, &installation)? {
+    if let Some(mut status) = observe_current_runtime(state_dir, &installation)? {
+        // The runtime marker records the Boot at startup. Birth can happen on
+        // that same Boot, so its body_id is not current owner truth.
+        let current_installation = read_installation(&state_dir.join("installation.json"))?;
+        if current_installation.host_id != status.host_id
+            || current_installation.release_bundle_sha256 != status.release_bundle_sha256
+        {
+            return Err("durable host installation changed during status".into());
+        }
+        status.body_id = if current_installation.body_state.is_some() {
+            let truth = crate::durable_host_control::inspect_owned_body(state_dir)?;
+            let body_id = truth["biography"]["body_id"]
+                .as_str()
+                .ok_or("live Body owner omitted its Body identity")?;
+            if Some(body_id) != current_body_id(&current_installation)
+                || truth["host"]["host_id"] != status.host_id
+                || truth["host"]["boot_id"] != status.boot_id
+            {
+                return Err("live Body owner disagrees with current Host status".into());
+            }
+            Some(body_id.to_owned())
+        } else {
+            current_body_id(&current_installation).map(str::to_owned)
+        };
         if json {
             println!(
                 "{}",
@@ -589,7 +635,7 @@ fn observe_current_runtime(
     if !runtime.exists() {
         return Ok(None);
     }
-    let status = {
+    let mut status = {
         let bytes = bounded_read(&runtime, 64 * 1024)?;
         let status: RuntimeStatus = serde_json::from_slice(&bytes)
             .map_err(|error| format!("durable host runtime status: {error}"))?;
@@ -605,10 +651,14 @@ fn observe_current_runtime(
     let advertisement = &truth.advertisement;
     if advertisement.host_id.as_str() != status.host_id
         || advertisement.boot_id.as_str() != status.boot_id
-        || advertisement.offer_generation.0 != status.offer_generation
+        || advertisement.offer_generation.0 < status.offer_generation
     {
         return Err("durable host control truth disagrees with its runtime marker".into());
     }
+    // The marker proves the started Host Boot. A selected Back may advance its
+    // offers during the same Boot; the authenticated live Host owns the current
+    // generation, just as the live Body owns the current post-Birth identity.
+    status.offer_generation = advertisement.offer_generation.0;
     Ok(Some(status))
 }
 
@@ -666,42 +716,6 @@ fn verify_release_file(root: &Path, file: &ReleaseFile) -> Result<(), String> {
         ));
     }
     Ok(())
-}
-
-fn read_installation(path: &Path) -> Result<Installation, String> {
-    let bytes = bounded_read(path, 64 * 1024)?;
-    let value: Installation =
-        serde_json::from_slice(&bytes).map_err(|error| format!("installation state: {error}"))?;
-    if value.schema != INSTALL_SCHEMA
-        || value.host_id.is_empty()
-        || !valid_digest(&value.release_bundle_sha256)
-    {
-        return Err("installation state is invalid".into());
-    }
-    if let Some(selection) = &value.selected_speech {
-        selection.validate()?;
-    }
-    if let Some(binding) = &value.body_state {
-        if binding.body_id.is_empty()
-            || !valid_digest(&binding.biography_sha256)
-            || digest(&bounded_read(
-                Path::new(&binding.biography_path),
-                2 * 1024 * 1024,
-            )?) != binding.biography_sha256
-        {
-            return Err("retained body biography identity is invalid or stale".into());
-        }
-    }
-    if value.body_state.is_some() && value.joined_body_state.is_some() {
-        return Err("installed host cannot own and join different Body state".into());
-    }
-    if let Some(binding) = &value.joined_body_state {
-        if !valid_digest(&binding.credential_sha256) {
-            return Err("retained body membership credential is invalid or stale".into());
-        }
-        membership::validate(binding, &value)?;
-    }
-    Ok(value)
 }
 
 fn write_service_definition(state_dir: &Path, installation: &Installation) -> Result<(), String> {
@@ -939,7 +953,7 @@ fn bounded_read(path: &Path, maximum: u64) -> Result<Vec<u8>, String> {
     Ok(bytes)
 }
 
-fn fresh_identity(prefix: &str, basis: &str) -> String {
+pub(crate) fn fresh_identity(prefix: &str, basis: &str) -> String {
     let now = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap_or_default();
@@ -1003,7 +1017,7 @@ mod tests {
     use conduit_body::{AdmissionManager, SpawnInvitationSecret};
     use std::path::PathBuf;
 
-    fn fixture() -> (PathBuf, PathBuf) {
+    pub(super) fn fixture() -> (PathBuf, PathBuf) {
         let root =
             std::env::temp_dir().join(fresh_identity("conduit-durable-host-test", "fixture"));
         let bundle = root.join("bundle");
@@ -1049,6 +1063,8 @@ mod tests {
             state_dir: state.clone(),
             no_start: true,
             speech: Default::default(),
+            model: Default::default(),
+            todo_checkpoint: Default::default(),
         })
         .unwrap();
         let installed = read_installation(&state.join("installation.json")).unwrap();
@@ -1081,16 +1097,12 @@ mod tests {
         // Retained fixture represents previously reviewed equipment that has
         // since gone missing. The ordinary explicit CLI path reviews it before
         // persisting, and cannot manufacture this configuration from absence.
-        let selection: selected_speech::Selection = serde_json::from_value(serde_json::json!({
-            "card_id": "missing-card", "device": 0, "speaker_base_identity": "missing-card-identity",
-            "executable": "/missing/espeak-ng", "data_root": "/missing/espeak-ng-data",
-            "voice": "en-us", "engine_dependencies": ["/missing/libespeak-ng.so"],
-            "provider_sha256": "a".repeat(64),
-        })).unwrap();
+        let selection = selected_speech::fixture_retained_selection();
         let first = install_configured(
             &manifest,
             &state,
-            selected_speech::Change::Replace(selection),
+            selected_speech::Change::Replace(Box::new(selection)),
+            selected_model::Change::Preserve,
         )
         .unwrap();
         let second = install(&manifest, &state).unwrap();
@@ -1102,7 +1114,13 @@ mod tests {
             .contains("configured speaker"));
         assert!(!state.join("runtime.json").exists());
 
-        let third = install_configured(&manifest, &state, selected_speech::Change::Remove).unwrap();
+        let third = install_configured(
+            &manifest,
+            &state,
+            selected_speech::Change::Remove,
+            selected_model::Change::Preserve,
+        )
+        .unwrap();
         assert_eq!(first.host_id, third.host_id);
         assert!(third.selected_speech.is_none());
         assert_eq!(start_runtime(&state).unwrap().host_id, third.host_id);
@@ -1526,24 +1544,23 @@ mod tests {
         )
         .unwrap();
         let receipt_path = joining_state.parent().unwrap().join("receipt.json");
-        write_json_atomic(
-            &receipt_path,
-            &invitation::PortableAdmissionReceipt {
-                schema: "conduit.body/spawn-admission-receipt@1".into(),
-                credential: retained_admission
-                    .receipts
-                    .last()
-                    .unwrap()
-                    .credential
-                    .clone(),
-                host_advertisement: pending.request.host_advertisement.clone(),
-                membership_admitted: true,
-                current_offers_available: true,
-                plan_created: false,
-                play_created: false,
-            },
-        )
+        // Match the compact receipt emitted by the public JSON entrance.
+        let receipt_bytes = serde_json::to_vec(&invitation::PortableAdmissionReceipt {
+            schema: "conduit.body/spawn-admission-receipt@1".into(),
+            credential: retained_admission
+                .receipts
+                .last()
+                .unwrap()
+                .credential
+                .clone(),
+            host_advertisement: pending.request.host_advertisement.clone(),
+            membership_admitted: true,
+            current_offers_available: true,
+            plan_created: false,
+            play_created: false,
+        })
         .unwrap();
+        write_bytes_atomic(&receipt_path, &receipt_bytes).unwrap();
         complete_body_join(&receipt_path, &joining_state, true).unwrap();
         let joined_installation =
             read_installation(&joining_state.join("installation.json")).unwrap();

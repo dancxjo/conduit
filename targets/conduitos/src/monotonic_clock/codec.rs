@@ -31,8 +31,10 @@ pub struct PreparedClockCodec {
 }
 impl PreparedClockCodec {
     pub fn new(contract: &MonotonicClockContract) -> Result<Self, StructuredInfoRefusal> {
-        let mut unit =
-            PreparedStructuredComposer::new(&StructuredInfoType::leaf(kind_id("value/unit"))?, 64)?;
+        let mut unit = PreparedStructuredComposer::new(
+            &StructuredInfoType::leaf(kind_id("value/empty"))?,
+            64,
+        )?;
         Ok(Self {
             request: contract.request_validator()?,
             result: PreparedStructuredComposer::new(

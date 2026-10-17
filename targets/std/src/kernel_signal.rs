@@ -2,8 +2,8 @@
 
 use super::{SignalReceipt, StdKernelExecutionReport, StdRunReport, TimerAdapter};
 use conduit_core::{
-    bind_active_play, bind_presentation, bind_sign, HostAdvertisement, Observation,
-    ObservationKind, PlanFragment, TerminalDisposition, ValuePayload,
+    bind_active_play, bind_face, bind_sign, HostAdvertisement, Observation, ObservationKind,
+    PlanFragment, TerminalDisposition, ValuePayload,
 };
 use conduit_kernel::scheduler::{
     FixedScheduler, HostCallRequest, SchedulerStatus, StepBack, StepInputBytes, StepIo, StepOutcome,
@@ -27,8 +27,8 @@ const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 const ROUTE_SLOTS: usize = 4 * PORTS;
 
 /// Exact platform manifestation boundary for the installed Signal kernel.
-/// Implementations perform only the selected presentation effect; the kernel
-/// retains sequence, level, Presentation, Sign, and terminal truth.
+/// Implementations perform only the selected face effect; the kernel
+/// retains sequence, level, Face, Sign, and terminal truth.
 pub trait SignalManifestation {
     fn manifest(&mut self, signal: &Signal, operator_output: &mut dyn Write) -> Result<(), String>;
 }
@@ -71,7 +71,7 @@ type SignalScheduler<
 struct PreparedSignalProjection {
     node: conduit_kernel::NodeId,
     signal: Signal,
-    presentation: conduit_core::PresentationIdentity,
+    face: conduit_core::FaceIdentity,
     sign: conduit_core::SignIdentity,
     payload: ValuePayload,
     connection_id: Option<conduit_core::ConnectionId>,
@@ -500,36 +500,36 @@ fn run_signal_profile<
         &advertisement.boot_id,
         play_sequence,
     );
-    let presentation_capacity = count
+    let face_capacity = count
         .checked_mul(show_nodes.len())
-        .ok_or_else(|| "presentation identity capacity overflow".to_string())?;
-    let request_capacity = presentation_capacity
+        .ok_or_else(|| "face identity capacity overflow".to_string())?;
+    let request_capacity = face_capacity
         .checked_add(wait_count)
         .ok_or_else(|| "execution request identity capacity overflow".to_string())?;
-    let sign_capacity = presentation_capacity
+    let sign_capacity = face_capacity
         .checked_add(1)
         .ok_or_else(|| "execution sign identity capacity overflow".to_string())?;
     let mut execution_identity = KernelExecutionIdentityMap::new(
         &lowered.identity,
         &active_play,
         request_capacity,
-        presentation_capacity,
+        face_capacity,
         sign_capacity,
     )
     .map_err(|error| format!("prepare execution identity map: {error:?}"))?;
     let identity_capacity_before = execution_identity.allocation_capacities();
-    let mut receipts = Vec::with_capacity(presentation_capacity);
+    let mut receipts = Vec::with_capacity(face_capacity);
     let mut observations = Vec::with_capacity(sign_capacity);
-    let mut presentation_ids = Vec::with_capacity(presentation_capacity);
+    let mut face_ids = Vec::with_capacity(face_capacity);
     let mut dispatched_requests = Vec::<HostCallRequest>::with_capacity(request_capacity);
-    let mut manifested_requests = Vec::<HostCallRequest>::with_capacity(presentation_capacity);
+    let mut manifested_requests = Vec::<HostCallRequest>::with_capacity(face_capacity);
     let sign_sequence_start = *next_sign_sequence;
     let sign_count =
         u64::try_from(sign_capacity).map_err(|_| "execution sign count overflow".to_string())?;
     let sign_sequence_end = sign_sequence_start
         .checked_add(sign_count)
         .ok_or_else(|| "host sign sequence exhausted".to_string())?;
-    let mut prepared_projections = Vec::with_capacity(presentation_capacity);
+    let mut prepared_projections = Vec::with_capacity(face_capacity);
     for index in 0..count {
         let sequence =
             u64::try_from(index).map_err(|_| "signal projection sequence overflow".to_string())?;
@@ -540,7 +540,7 @@ fn run_signal_profile<
         .expect("planned Signal fields are valid");
         for show_node in &show_nodes {
             let show_placement = &fragment.placements[usize::from(show_node.node.0)];
-            let presentation = bind_presentation(
+            let face = bind_face(
                 &active_play.active_play_id,
                 &show_placement.placement_id,
                 sequence,
@@ -564,7 +564,7 @@ fn run_signal_profile<
                 node: show_node.node,
                 payload: encode_signal(&signal),
                 signal: signal.clone(),
-                presentation,
+                face,
                 sign,
                 connection_id,
             });
@@ -606,7 +606,7 @@ fn run_signal_profile<
                 writeln!(
                     output,
                     "receipt signal placement={} sequence={} level={}",
-                    expected.presentation.placement_id.as_str(),
+                    expected.face.placement_id.as_str(),
                     signal.sequence(),
                     signal.level()
                 )
@@ -639,7 +639,7 @@ fn run_signal_profile<
     #[cfg(test)]
     let post_play_start_allocations = play_start_probe.finish();
     if dispatched_requests.len() != request_capacity
-        || manifested_requests.len() != presentation_capacity
+        || manifested_requests.len() != face_capacity
         || scheduler.values().used_items() != 0
     {
         return Err("kernel completed with missing receipts or retained values".to_string());
@@ -668,40 +668,49 @@ fn run_signal_profile<
     }
     for (request, prepared) in manifested_requests.into_iter().zip(prepared_projections) {
         execution_identity
-            .bind_presentation(
+            .bind_face(
                 &lowered.identity,
                 request.node,
                 request.request,
-                &prepared.presentation,
+                &prepared.face,
             )
-            .map_err(|error| format!("bind presentation identity: {error:?}"))?;
+            .map_err(|error| format!("bind face identity: {error:?}"))?;
         execution_identity
             .bind_sign(
                 &prepared.sign,
                 Some(request.node),
                 Some(request.request),
-                Some(&prepared.presentation.presentation_id),
+                Some(&prepared.face.face_id),
             )
-            .map_err(|error| format!("bind presentation sign identity: {error:?}"))?;
+            .map_err(|error| format!("bind face sign identity: {error:?}"))?;
         receipts.push(SignalReceipt {
-            placement_id: prepared.presentation.placement_id.clone(),
+            placement_id: prepared.face.placement_id.clone(),
             sequence: *prepared.signal.sequence(),
             level: *prepared.signal.level(),
         });
         observations.push(Observation {
             sign_id: prepared.sign.sign_id,
             active_play_id: Some(active_play.active_play_id.clone()),
-            presentation_id: Some(prepared.presentation.presentation_id.clone()),
+            face_id: Some(prepared.face.face_id.clone()),
             host_id: advertisement.host_id.clone(),
             boot_id: advertisement.boot_id.clone(),
             plan_id: Some(fragment.plan_id.clone()),
-            placement_id: Some(prepared.presentation.placement_id.clone()),
+            placement_id: Some(prepared.face.placement_id.clone()),
             connection_id: prepared.connection_id,
             kind: ObservationKind::ValuePresented {
+                label: conduit_semantic_catalog::face_data_label(
+                    &fragment
+                        .placements
+                        .iter()
+                        .find(|placement| placement.placement_id == prepared.face.placement_id)
+                        .ok_or("signal Face effect has no planned Gear")?
+                        .configuration,
+                )?
+                .into(),
                 value: prepared.payload,
             },
         });
-        presentation_ids.push(prepared.presentation.presentation_id);
+        face_ids.push(prepared.face.face_id);
     }
     *next_sign_sequence = sign_sequence_end;
     execution_identity
@@ -710,7 +719,7 @@ fn run_signal_profile<
     observations.push(Observation {
         sign_id: terminal_sign.sign_id,
         active_play_id: Some(active_play.active_play_id.clone()),
-        presentation_id: None,
+        face_id: None,
         host_id: advertisement.host_id.clone(),
         boot_id: advertisement.boot_id.clone(),
         plan_id: Some(fragment.plan_id.clone()),
@@ -720,7 +729,7 @@ fn run_signal_profile<
             disposition: TerminalDisposition::Completed,
         },
     });
-    if execution_identity.lengths() != (request_capacity, presentation_capacity, sign_capacity)
+    if execution_identity.lengths() != (request_capacity, face_capacity, sign_capacity)
         || execution_identity.allocation_capacities() != identity_capacity_before
     {
         return Err("execution identity map is incomplete or grew after Play start".to_string());
@@ -737,11 +746,12 @@ fn run_signal_profile<
             active_play_id: active_play.active_play_id.clone(),
             active_play,
             decisions: scheduler.decisions(),
+            logical_invocations: scheduler.logical_invocations(),
             kernel_events: scheduler.signs().len(),
             kernel_sign: scheduler.signs().events().collect(),
             value_allocation_capacity_before: value_allocation_before,
             value_allocation_capacity_after: value_allocation_after,
-            presentation_ids,
+            face_ids,
             playback: Vec::new(),
             wav_artifacts: Vec::new(),
             midi_input: Vec::new(),

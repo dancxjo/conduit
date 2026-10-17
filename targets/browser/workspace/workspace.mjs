@@ -29,7 +29,7 @@ export async function startApplication(application) {
   const tutorial = root.querySelector('[data-body-tutorial]');
   const tutorialCore = tutorial.querySelector('[data-body-tutorial-core]');
   const tutorialResident = tutorial.querySelector('[data-body-tutorial-resident]');
-  const tutorialPresentation = application.presentationFor(tutorial);
+  const tutorialFace = application.faceFor(tutorial);
   let tutorialRevision = 0;
   const fail = error => {
     notice.textContent = error instanceof Error ? error.message : String(error);
@@ -129,8 +129,8 @@ export async function startApplication(application) {
       const argument = action.arguments[0];
       return session.interactWithTutorialMask({
         show_id: mask.show_id,
-        presentation_id: mask.presentation_id,
-        presentation_revision: mask.presentation_revision,
+        face_id: mask.face_id,
+        face_revision: mask.face_revision,
         action_id: event.action,
         target: action.target,
         arguments: [{
@@ -154,7 +154,7 @@ export async function startApplication(application) {
       // A freshly born or explicitly lulled Body has no current Wake/Body
       // Plan, so it truthfully has no current Mask Show. The semantic
       // lifecycle surface remains usable to request Wake; once a realization
-      // exists, every resident presentation and interaction crosses the exact
+      // exists, every resident face and interaction crosses the exact
       // sealed Mask route below.
       const mask = session.current()?.plan_id
         ? session.presentTutorialMask(revision, playback.state)
@@ -167,21 +167,21 @@ export async function startApplication(application) {
         tutorial.dataset.maskPlanId = mask.mask_plan_id;
         tutorial.dataset.maskPlayId = mask.mask_play.active_play_id;
         tutorial.dataset.maskPlacementId = mask.placement_id;
-        tutorial.dataset.presentationId = mask.presentation_id;
-        tutorial.dataset.presentationRevision = String(mask.presentation_revision);
+        tutorial.dataset.faceId = mask.face_id;
+        tutorial.dataset.faceRevision = String(mask.face_revision);
         return session.acknowledgeTutorialMask({
           show_id: mask.show_id,
           manifestation_id: mask.manifestation_id,
           mask_plan_id: mask.mask_plan_id,
           active_play_id: mask.mask_play.active_play_id,
           placement_id: mask.placement_id,
-          presentation_id: mask.presentation_id,
-          presentation_revision: mask.presentation_revision,
+          face_id: mask.face_id,
+          face_revision: mask.face_revision,
         });
       };
       if (resident) { applyMask(); return; }
-      tutorialPresentation.present('body-tutorial', session.tutorialView(revision, playback.state), { onEvent(event) {
-        tutorialPresentation.nextEvent('body-tutorial');
+      tutorialFace.present('body-tutorial', session.tutorialView(revision, playback.state), { onEvent(event) {
+        tutorialFace.nextEvent('body-tutorial');
         if (mask) {
           try {
             submitMaskInteraction(event);
@@ -209,7 +209,7 @@ export async function startApplication(application) {
         if (foreground?.required_kinds.includes('sound/startup-chime') || foreground?.checked_plot_id === tutorialPlot.checked_plot_id) {
           const visible = resident.find(plot => catalog.plots.some(candidate => candidate.checked_plot_id === plot.checked_plot_id
             && candidate.checked_plot_id !== tutorialPlot.checked_plot_id
-            && candidate.required_kinds.some(kind => kind.startsWith('presentation/'))));
+            && candidate.required_kinds.some(kind => kind.startsWith('face/'))));
           if (visible) await session.selectPlot(visible);
         }
         selected = session.foreground()?.checked_plot_id;
@@ -275,11 +275,11 @@ export async function startApplication(application) {
         document.title = 'Birth your body · Conduit';
         const slot = nursery.querySelector('[data-creche-content]');
         if (body) {
-          slot.replaceChildren(createFirstHostRunner({ host, presentationFor: application.presentationFor, nextSequence: session.nextMembershipSequence, onBodyChanged: bodyChanged }));
+          slot.replaceChildren(createFirstHostRunner({ host, faceFor: application.faceFor, nextSequence: session.nextMembershipSequence, onBodyChanged: bodyChanged }));
         } else {
           const birth = createBodyBirthRunner({
             source, sourceKey: 'workspace-creche', listingId: 'workspace-plots', host,
-            presentationFor: application.presentationFor, inventory, initialSelection: selection,
+            faceFor: application.faceFor, inventory, initialSelection: selection,
             nextSequence: session.nextSequence, onBodyChanged: bodyChanged,
             onSelection(selected) {
               selection = selected === null ? openPlotSelection(inventory) : { selected, refusals: [] };
@@ -338,8 +338,8 @@ export async function startApplication(application) {
         surface.hidden = true; inspection.hidden = true; library.show();
       });
       if (body.state !== 'FULFILLED') activities.append(browse);
-      if (!play) play = openWorkspacePlay({ host, session, source, planningLines: () => membership?.planningLines() ?? [], foregroundPlot: () => selected, inputTarget: input, outputRoot: root.querySelector('[data-plot-output]'),
-        presentationRootFor: ({ checkedPlotId }) => checkedPlotId === tutorialPlot.checked_plot_id ? tutorialResident : null,
+      if (!play) play = openWorkspacePlay({ host, session, storage: application.storage, source, planningLines: () => membership?.planningLines() ?? [], foregroundPlot: () => selected, inputTarget: input, outputRoot: root.querySelector('[data-plot-output]'),
+        faceRootFor: ({ checkedPlotId }) => checkedPlotId === tutorialPlot.checked_plot_id ? tutorialResident : null,
         onApplicationEvent: ({ checkedPlotId, event }) => {
           if (checkedPlotId === tutorialPlot.checked_plot_id) {
             try { submitMaskInteraction(event); }
@@ -425,10 +425,10 @@ export async function startApplication(application) {
     };
     library = openWorkspaceLibrary({ panel: root.querySelector('#workspace-library'), session, source: catalogSource, inventory: catalog,
       planningLines: () => membership?.planningLines() ?? [],
-      presentationFor: application.presentationFor, onUse: usePlot, onRemove: removePlot, onFailure: fail,
+      faceFor: application.faceFor, onUse: usePlot, onRemove: removePlot, onFailure: fail,
       onClose() { library.hide(); render(); root.querySelector('[data-open-library]')?.focus(); },
     });
-    globalThis.__conduitWorkspace = Object.freeze({ host, presentationFor: application.presentationFor, current: session.current, evidence: session.evidence,
+    globalThis.__conduitWorkspace = Object.freeze({ host, faceFor: application.faceFor, current: session.current, evidence: session.evidence,
       maskObservation: session.tutorialMaskObservation,
       maskJourney() {
         session.beginTutorialMaskJourney();
@@ -439,12 +439,12 @@ export async function startApplication(application) {
           tutorial.dataset.maskPlanId = mask.mask_plan_id;
           tutorial.dataset.maskPlayId = mask.mask_play.active_play_id;
           tutorial.dataset.maskPlacementId = mask.placement_id;
-          tutorial.dataset.presentationId = mask.presentation_id;
-          tutorial.dataset.presentationRevision = String(mask.presentation_revision);
+          tutorial.dataset.faceId = mask.face_id;
+          tutorial.dataset.faceRevision = String(mask.face_revision);
           session.acknowledgeTutorialMask({ show_id: mask.show_id, manifestation_id: mask.manifestation_id,
             mask_plan_id: mask.mask_plan_id, active_play_id: mask.mask_play.active_play_id,
-            placement_id: mask.placement_id, presentation_id: mask.presentation_id,
-            presentation_revision: mask.presentation_revision });
+            placement_id: mask.placement_id, face_id: mask.face_id,
+            face_revision: mask.face_revision });
         };
         realize(session.prepareTutorialMaskAlternate);
         realize(session.prepareTutorialMaskReplacement);
@@ -452,7 +452,7 @@ export async function startApplication(application) {
         return session.tutorialMaskJourney();
       },
       state: () => structuredClone(playback), settled: () => saving.then(session.settled) });
-    membership = openWorkspaceMembership({ root, session, host, hostCalls, invitation, presentationFor: application.presentationFor,
+    membership = openWorkspaceMembership({ root, session, host, hostCalls, invitation, faceFor: application.faceFor,
       invitationLabel: () => catalog.plots.find(plot => plot.checked_plot_id === selected)?.name === 'firefly-choir'
         ? 'Invite another phone' : 'Invite another host',
       async beforeAdmission() {
@@ -490,8 +490,8 @@ function readWorkspaceCatalog(source) {
     if (typeof plot?.title !== 'string' || typeof plot.entry !== 'string'
         || typeof plot.source !== 'string' || typeof plot.source_document_id !== 'string'
         || typeof plot.checked_plot_id !== 'string' || !Array.isArray(plot.required_kinds)
-        || !Number.isSafeInteger(plot.presentation_profile)
-        || plot.presentation_profile < 0 || plot.presentation_profile > 3
+        || !Number.isSafeInteger(plot.face_profile)
+        || plot.face_profile < 0 || plot.face_profile > 3
         || typeof plot.unavailable_hint !== 'string' || plot.unavailable_hint.length < 1
         || identities.has(plot.checked_plot_id)) {
       throw new Error('reviewed Workspace Plot catalog contains an invalid or duplicate entry');

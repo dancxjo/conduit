@@ -1,4 +1,15 @@
-This page starts with source that exists in the current `dev` tree, then moves into newer canonical surfaces.
+# Conduitese by example
+
+These examples cover current development source reviewed on **9 October 2026**.
+The standalone language examples can be saved as `.conduit` source and checked
+with `conduit check example.conduit`. Repository domain examples require their
+own reviewed catalog; not every domain Kind is installed in the standard CLI.
+Their source links identify that boundary. A source fragment is labeled as
+such. Checking, expansion and execution prove different things.
+
+For a deeper worked tutorial, start with [[units and quantities|Units-and-quantities]].
+The [[feature example index|Conduitese-feature-coverage]] maps the remaining
+language surfaces and separates current source from proposed extensions.
 
 ## Hello: a finite pipeline
 
@@ -7,7 +18,7 @@ Current tree: [plots/hello/main.conduit](https://github.com/dancxjo/conduit/blob
 ```conduit
 plot hello {
     upper: text/upper
-    show: presentation/text
+    show: face/text("Message")
 
     "Hello, world." >> upper >> show
 }.
@@ -24,7 +35,7 @@ Current tree: [plots/clock/main.conduit](https://github.com/dancxjo/conduit/blob
 ```conduit
 plot clock-demo {
     clock: time/every(1s)
-    clock >> presentation/tick
+    clock >> face/tick("Clock tick")
 }
 ```
 
@@ -36,12 +47,14 @@ No trailing full stop. The plot remains alive between ticks.
 
 Current tree: [plots/memory-lantern/main.conduit](https://github.com/dancxjo/conduit/blob/dev/plots/memory-lantern/main.conduit)
 
+The saved layout selector currently runs in the browser; native Hosts use the [keyboard-only companion](https://github.com/dancxjo/conduit/blob/dev/plots/memory-lantern/keyboard-only.conduit) with the same authored default layout.
+
 ```conduit
 plot memory_lantern {
     keyboard: input/keyboard
     keymap: input/keymap
     message: text/edit(maximum-bytes = 256)
-    show: presentation/text
+    show: face/text("Message")
 
     keyboard.key >> keymap.key
     keymap.text >> message.fragment
@@ -51,34 +64,83 @@ plot memory_lantern {
 
 The editor exposes current text. The plot does not own a window, DOM node, terminal, or framebuffer.
 
+`input/keymap` defaults to the complete US International layout with AltGr dead
+keys. Layouts themselves are typed Conduitese values. For a deliberately small
+custom layout, add these immutable values before the gears and pass `layout`:
+
+```conduit
+    base = [{ usage: 4, shift: false, altgr: false, action: text("a") }]
+    overlay = [{ usage: 4, shift: false, altgr: false, action: text("λ") }]
+    layout = { layers: [base, overlay], compositions: [] }
+    keymap: input/keymap(layout = layout)
+```
+
+Physical A now emits `λ`: later layers override earlier bindings for the same
+usage and modifier level. A reusable Plot can accept `layout: KeymapLayout` and
+forward that value. The complete [layered Memory Lantern](https://github.com/dancxjo/conduit/blob/dev/plots/memory-lantern/layered.conduit)
+keeps the ordinary keyboard → keymap → editor → face connections.
+See the [layout schema, four-level reference, and dead-key behavior](https://github.com/dancxjo/conduit/blob/dev/docs/input-semantics.md).
+
+
 ## Pocket Theremin: quantities and retained state
 
 Current tree: [plots/pocket-theremin/main.conduit](https://github.com/dancxjo/conduit/blob/dev/plots/pocket-theremin/main.conduit)
 
 ```conduit
-plot pocket-theremin (
+# The pitch law is ordinary Conduitese. Convert distance to a dimensionless
+# number of centimetres, then lower pitch by 55 Hz per centimetre. Clamping is
+# explicit; unit conversion and arithmetic never silently round.
+plot theremin-pitch (
     >> distance: Distance
+    frequency: Frequency >>
+) = (distance <= 0cm ? 1760Hz : distance >= 30cm ? 110Hz : 1760Hz - (distance / 1cm) * 55Hz)
+
+# The one canonical Theremin. Both controls describe portable meaning. Hosts
+# own acquisition, cadence, and playback; this Plot owns the instrument law.
+plot pocket-theremin (
+    >> pitch-distance: Distance
+    >> volume: Scalar
+    >> cadence: value/tick@1...
     audio: audio/pcm-frames@1...| >>
 ) {
-    map: math/map-distance-frequency(
-        source-minimum = 0cm,
-        source-maximum = 30cm,
-        target-minimum = 220Hz,
-        target-maximum = 880Hz
-    )
+    pitch: theremin-pitch
     frequency: keep Frequency(440Hz) for this play
-    tone: audio/tone
+    tone: audio/continuous-tone
+    gain: audio/apply-gain
 
-    distance >> map.distance
-    map.frequency >> frequency
+    pitch-distance >> pitch.distance
+    pitch.frequency >> frequency
     frequency >> tone.frequency
-    tone.audio >> audio
-}.
+    cadence >> tone.cadence
+    tone.audio >> gain.source-audio
+    volume >> gain.amplitude
+    gain.audio >> audio
+}
 ```
 
-The units are semantic. The `keep` is current frequency state. Browser audio, hosted audio, or a future native realization can sit behind the same meaning.
+The pitch law is visible Conduitese: each centimetre lowers pitch by 55 Hz,
+clamped to 110–1760 Hz. An expression plot can use its declared input name;
+`distance` denotes the value arriving at that input. The instrument ends with
+`}`, keeping its live completion policy. A trailing `}.` would declare semantic
+completion and is inappropriate for this continuously played instrument.
 
-The `@1` catalog spelling in some current-tree examples is implementation/migration history, not a reason to invent new version-suffix syntax in authored canon.
+`keep` retains the current pitch for this play, starting at 440 Hz. Every
+cadence tick samples that pitch and requests the next phase-continuous PCM
+block, even when the hand stays still. The tone reads the retained Current frequency
+on that cadence; its faults keep their declared abnormal propagation. The
+second control changes volume.
+The controller binding supplies a 40 ms cadence and selects
+`audio/continuous-play`. Playback remains externally driven until Stop or input
+closure, with at most two queued PCM blocks and the Host acoustic gain cap.
+The finite `audio/play` contract retains its lifetime quotas. Stop cancels queued
+audio and ends the play and its retained state.
+
+Quantity addition/subtraction, same-family ratios, and Scalar scaling are
+checked ordinary expressions. Ratios must fit Scalar's exact millionth carrier;
+unrepresentable results refuse instead of silently rounding. Dividing by `1cm`
+keeps this law exact for the controller's admitted values.
+[[The quantity tutorial|Units-and-quantities]] also has standalone conversion
+examples checkable in the installed CLI.
 
 ## Button across the room: meaning without transport
 
@@ -88,7 +150,7 @@ Current tree: [plots/button-across-room/main.conduit](https://github.com/dancxjo
 plot button_across_room {
     button: input/button
     state: input/button-indicator-state
-    indicator: presentation/indicator-state
+    indicator: face/indicator-state("Button state")
 
     button >> state >> indicator
 }
@@ -119,7 +181,12 @@ plot bounded-record-send (
 }
 ```
 
-These are two complete declarations excerpted from the larger Desk Telegraph source. A plot can itself define reusable semantic work and then be invoked like another kind.
+These are declarations excerpted from the larger Desk Telegraph source. A plot
+can itself define reusable semantic work and then be invoked like another kind.
+The standard CLI currently refuses these record Port profiles as exceeding
+canonical bounds; this source excerpt is not a standalone execution recipe.
+Use [[text identity|Conduitese-by-example#specialize-a-reusable-plot]] for a
+standalone checked reuse example.
 
 ## Firefly Choir: omission is semantic composition
 
@@ -130,7 +197,7 @@ plot pulse-manifestation (
     >> tick: value/tick@1...
 ) {
     observe: time/pulse-observe(period-ms = 240)
-    light: presentation/pulse
+    light: face/pulse("Pulse activity")
 
     tick >> observe.tick
     observe.observation >> light.pulse
@@ -148,7 +215,7 @@ plot pulse-light-tone-manifestation (
     >> tick: value/tick@1...
 ) {
     observe: time/pulse-observe(period-ms = 240)
-    light: presentation/pulse
+    light: face/pulse("Pulse activity")
     tone: sound/pulse-tone
 
     tick >> observe.tick
@@ -203,7 +270,7 @@ Current tree: [plots/body-chat/main.conduit](https://github.com/dancxjo/conduit/
 ```conduit
 plot body-chat (
     >> interaction: FaceInteraction...|
-    face: Presentation...| >>
+    face: Face...| >>
 ) {
     ui: chat/state(title = "Body Chat", history-label = "Conversation", input-label = "Message", submit-label = "Send", status-label = "Body", maximum-history-items = 16, maximum-message-bytes = 256)
     submit: chat/submit(action = "chat/send", maximum-message-bytes = 256)
@@ -216,7 +283,7 @@ plot body-chat (
 
     available.value >> availability.source
     availability.value >> ui.live
-    ui.presentation >> face
+    ui.face >> face
     interaction >> submit.interaction
     submit.message >> prompt.message
     context.context >> prompt.context
@@ -236,19 +303,19 @@ Current tree: [plots/native-graphical-mask/main.conduit](https://github.com/danc
 
 ```conduit
 plot native-graphical (
-    >> face: Presentation
+    >> face: Face
     interaction: FaceInteraction...| >>
     show: Show >>
 ) {
-    spread: presentation/tee
-    surface: presentation/show-resource-source
-    render: presentation/resource-renderer
-    human: face/interaction
+    spread: face/tee("Shared Face")
+    surface: face/show-resource-source("Output resource")
+    render: face/resource-renderer("Resource view")
+    human: face/interaction("User actions")
 
-    face >> spread.presentation
-    spread.presentation >> render.presentation
+    face >> spread.face
+    spread.face >> render.face
     surface.show-resource >> render.show-resource
-    spread.presentation >> human.presentation
+    spread.face >> human.face
     render.show >> human.show
     render.show >> show
     human.interaction >> interaction
@@ -267,11 +334,13 @@ plot guarded (
     >> count: Count in 1..=100
     >> code: Text <= 64B ~ /[A-Z]{2}[0-9]{2}/
 ) {
-    ...
 }
 ```
 
 These relations become part of checked semantic type identity.
+This declaration demonstrates the checked Fore only; its empty body supplies
+no consuming behavior. The refinements belong to the Types, rather than to
+runtime validation callbacks.
 
 ## Glyphs remain inspectable gears
 
@@ -390,14 +459,14 @@ host tiny-screen (
     target = conduitos/x86_64/pc
     build = release
 ) {
-    surface: resource presentation/surface (
+    surface: resource face/surface (
         slots = 2
         bytes = 2MiB
     )
 
     display: base machine/display
 
-    graphics: back presentation/graphics (
+    graphics: back face/graphics (
         surface = surface
         display = display
     )
@@ -462,3 +531,230 @@ Completed [#4639](https://github.com/dancxjo/conduit/issues/4639) carries this
 relation into consuming-plot arithmetic proofs: `.end - .start` can be proven
 safe, while `.end + 1` remains checked unless an upper bound justifies it.
 Only operations established safe by the proof lose their runtime check.
+
+## A pure plot with a default parameter
+
+```conduit
+plot increment (
+    factor: U8 = 2
+    >> value: U8
+    result: U8 >>
+) = (. * factor)
+```
+
+An expression plot has one current runtime input, `.`. It can capture an
+immutable startup parameter. Calling `increment(factor = 3)` specializes that
+parameter before play; `increment(3)` is the positional form. Omitting it uses
+2. Exact integer overflow remains checked; a default does not license wrapping.
+
+## Give an arithmetic invariant to the type
+
+```conduit
+type AlmostU32 = U32 where . < 4_294_967_295
+
+plot next (
+    >> value: AlmostU32
+    result: U32 >>
+) = (. + 1)
+```
+
+The input law establishes that adding one fits `U32`. This is a scalar law;
+the earlier `Interval` example is a record law. Both are checked facts.
+For explicit widening, the portable expression below returns 65313 for 255:
+
+```conduit
+plot widen (
+    value: U8 >> result: U64
+) = (value/u64(value/u16(.)) * 256 + 33)
+```
+
+See the [widening tests](https://github.com/dancxjo/conduit/blob/dev/architecture/plot/tests/integer_widening.rs).
+
+## Construct a nested record
+
+```conduit
+type Inner = {
+    value: I128
+}
+
+type Outer = {
+    inner: Inner
+}
+
+plot nested (
+    input: I128 >> output: Outer
+) = ({ inner: { value: . } })
+```
+
+For input 7, the result is `{ inner: { value: 7 } }`. A consuming expression
+can project `.inner.value`; the named record identity remains checked.
+
+## Choose a payload-bearing variant
+
+```conduit
+type Choice =
+    known I64
+    | unknown
+
+plot choose (
+    >> value: I64
+    result: Choice >>
+) = (. >= 0 ? Choice.known(.) : Choice.unknown)
+```
+
+Input 7 yields `Choice.known(7)`; input −1 yields `Choice.unknown`.
+Only the selected pure ternary branch evaluates. Payloadless construction
+requires no empty call. A routing companion to append to the same source is:
+
+```conduit
+plot route-choice (
+    >> value: Choice <= 4096B
+    known: I64 >>
+    unknown: Empty >>
+) {
+    value >> ? {
+        [Choice.known] >> known
+        [Choice.unknown] >> unknown
+    }
+}
+```
+
+Both alternatives have a route. Matching carries the selected payload directly
+to its destination. Current arm syntax uses `>>`, not a colon.
+
+## Finite collections and variable-length sequences
+
+```conduit
+type Samples = collection U16 = 2
+
+plot make-samples (
+    >> value: U16
+    result: Samples >>
+) = ([1, 2])
+```
+
+`Samples` has exactly two elements. The input activates this constant-producing
+expression; it does not change the two samples.
+
+```conduit
+type Labels = sequence Text <= 2
+
+plot labels (
+    >> value: Boolean
+    result: Labels >>
+) = (["alpha", "β"])
+```
+
+`Labels` admits zero, one or two elements. Replacing the result with `[]`
+produces a real empty sequence. Three labels or a Boolean element refuse.
+The sequence bound counts items; `Text <= 2B` bounds bytes instead.
+
+## Check an index against the actual length
+
+This complete checked-expression example comes from the
+[prepared selection tests](https://github.com/dancxjo/conduit/blob/dev/architecture/plot/tests/prepared_sequence_selection.rs):
+
+```conduit
+type Request = {
+    bytes: sequence U8 <= 4
+    index: U64
+}
+
+type Result =
+    octet U8
+    | short
+
+plot guarded-index (
+    value: Request >> result: Result
+) = (.index < sequence/length(.bytes) ? octet(sequence/at(.bytes, .index)) : short(empty))
+```
+
+The selected branch uses a finite checked semantic call. An index inside the
+capacity but outside the actual count yields `short`; capacity is not length.
+The unqualified constructors here are resolved from the exact expected `Result`
+Type, as in the test. Qualified constructors are useful when ambiguity exists.
+The [byte observation tests](https://github.com/dancxjo/conduit/blob/dev/architecture/plot/tests/prepared_byte_observation.rs)
+apply the same law with `Bytes <= 2048B`, `bytes/length` and `bytes/at`.
+
+## Specialize a reusable plot
+
+```conduit
+plot identity (
+    item: type
+    >> value: item
+    result: item >>
+) {
+    value >> result
+}
+
+plot text-identity (
+    >> value: Text
+    result: Text >>
+) {
+    value >> identity(item = Text) >> result
+}
+```
+
+The named argument binds a compile-time Type. When the Fore supplies enough
+information the checker can infer it; unresolved parameters never reach play.
+This differs from native `Pair<T>` family application.
+
+## A private nested plot
+
+```conduit
+plot outer (
+    item: type
+    >> value: item
+    mapped: item >>
+) {
+    plot helper (
+        >> inner: item
+        mapped: item >>
+    ) {
+        inner >> mapped
+    }
+
+    helper: helper
+    value >> helper >> mapped
+}
+```
+
+The helper captures the exact compile-time Type parameter. It is private to
+`outer`; it cannot capture an outer runtime input or startup value as a hidden
+closure. Pass such values through its own Fore explicitly.
+
+## One shared pool, explicit consumers
+
+The complete [pool webchat source](https://github.com/dancxjo/conduit/blob/dev/plots/pool-webchat/main.conduit)
+declares a finite pool and passes its identity to ordinary consumers:
+
+```conduit
+plot chat/peer (
+    recv: ChatMessage...| >> send: ChatMessage...|
+) {
+}
+
+plot pool-webchat {
+    pool peers: chat/peer(size = 32)
+    merge: flow/merge(peers)
+    room: chat/room(peers)
+    fan: flow/fan(peers)
+
+    merge.message >> room.recv
+    room.send >> fan.message
+}
+```
+
+The excerpt supplies the intended member Fore; its realization is separately
+selected. The standard CLI currently refuses this `ChatMessage` Port profile
+as exceeding canonical bounds. The finite pool language feature itself has
+[checking and expansion fixtures](https://github.com/dancxjo/conduit/blob/dev/architecture/plot/src/canonical_expansion_tests.rs)
+with their own exact catalogs; this excerpt is not an installed chat recipe. The three consumers refer to the same exact pool. Pool size is finite
+admission truth, not an unbounded spawn operation or a data-port value.
+
+## More exact surfaces
+
+Continue with the examples for [[pure expressions, filtering and selectors|Plots-and-flow]],
+[[optional values, retained state, references and Forms|Types-and-state]],
+and [[close, failure, quiescence, cancellation and temporal joins|Terminals-and-concurrency]].
+Each has a separate checked law; none is hidden inside an ordinary assignment.

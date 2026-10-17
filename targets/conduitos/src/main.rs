@@ -45,7 +45,9 @@ mod scripted_startup;
 #[cfg(target_os = "none")]
 #[unsafe(no_mangle)]
 extern "C" fn conduitos_start() -> ! {
-    match boot::normalize_boot() {
+    match boot::normalize_boot_with_arena_bytes(
+        conduitos::make::EMBEDDED_MAKE.runtime_arena_ceiling,
+    ) {
         Ok(record) => {
             #[cfg(feature = "emergency-halt-proof")]
             {
@@ -66,6 +68,18 @@ extern "C" fn conduitos_start() -> ! {
                         emit_machine_refusal(error.as_str());
                     }
                     initialize_runtime_arena(&record);
+                    #[cfg(feature = "ordinary-domain-proof")]
+                    run_ordinary_domain_proof(&record);
+                    // SAFETY: ordinary native startup is the sole privileged Root.
+                    // Protocol modules are local administrator boot configuration;
+                    // that administrator must separately approve firmware handoff
+                    // and electrical attachment before installing this profile.
+                    // Admission checks actual hardware and permanently reserves it.
+                    if let Err(reason) =
+                        unsafe { conduitos::protocol_boot::run_if_selected(&record) }
+                    {
+                        emit_machine_refusal(reason);
+                    }
                     #[cfg(feature = "native-compositor")]
                     graphical_startup::run(record);
                     #[cfg(not(feature = "native-compositor"))]
@@ -197,6 +211,11 @@ fn run_isolation_proof(record: &boot::BootRecord) {
     arch::run_isolation_proof(record, identities.host, identities.boot);
 }
 
+#[cfg(all(target_os = "none", feature = "ordinary-domain-proof"))]
+fn run_ordinary_domain_proof(record: &boot::BootRecord) {
+    conduitos::ordinary_domain_proof::run(record);
+}
+
 #[cfg(target_os = "none")]
 fn emit_machine_refusal(reason: &str) -> ! {
     if let Ok(sign) = sign_format::machine_refused(reason) {
@@ -218,6 +237,28 @@ fn emit_refusal(reason: &str) -> ! {
 
 #[panic_handler]
 #[cfg(target_os = "none")]
-fn panic(_info: &PanicInfo<'_>) -> ! {
-    emit_refusal("panic")
+fn panic(info: &PanicInfo<'_>) -> ! {
+    use core::fmt::Write;
+    let mut diagnostic = sign_format::FixedText::new();
+    if let Some(location) = info.location() {
+        let _ = writeln!(
+            diagnostic,
+            "CONDUIT_PANIC_LOCATION {}:{}:{}",
+            location.file(),
+            location.line(),
+            location.column()
+        );
+    }
+    let _ = writeln!(diagnostic, "CONDUIT_PANIC_DETAIL {}", info.message());
+    let _ = writeln!(
+        diagnostic,
+        "CONDUIT_PANIC_ARENA live={} capacity={}",
+        BOOT_ARENA.live_bytes(),
+        BOOT_ARENA.capacity()
+    );
+    if let Ok(sign) = sign_format::refused("panic") {
+        let _ = diagnostic.write_str(core::str::from_utf8(sign.as_bytes()).unwrap_or(""));
+    }
+    arch::early_write(diagnostic.as_bytes());
+    arch::deterministic_exit(false)
 }

@@ -344,14 +344,14 @@ fn leaf_value(identity: &str, bytes: Vec<u8>) -> Result<StructuredInfoValue, Hom
         .map_err(|_| HomeostasisRefusal::EncodingCapacity)
 }
 fn unit_value() -> Result<StructuredInfoValue, HomeostasisRefusal> {
-    leaf_value("value/unit", Vec::new())
+    leaf_value("value/empty", Vec::new())
 }
 
 fn variant_type(identity: &str, tags: &[&str]) -> StructuredInfoType {
     StructuredInfoType::variant(
         kind_id(identity),
         tags.iter()
-            .map(|tag| StructuredVariantCase::new(*tag, leaf("value/unit")).unwrap())
+            .map(|tag| StructuredVariantCase::new(*tag, leaf("value/empty")).unwrap())
             .collect(),
     )
     .unwrap()
@@ -453,7 +453,7 @@ fn source_evidence_type() -> StructuredInfoType {
     let availability = StructuredInfoType::variant(
         kind_id("pete/source-availability@1"),
         vec![
-            StructuredVariantCase::new("missing", leaf("value/unit")).unwrap(),
+            StructuredVariantCase::new("missing", leaf("value/empty")).unwrap(),
             StructuredVariantCase::new("present", present).unwrap(),
             StructuredVariantCase::new("unavailable", unavailable).unwrap(),
         ],
@@ -724,7 +724,9 @@ fn instant_value(value: &TemporalInstant) -> Result<StructuredInfoValue, Homeost
                         kind_id("time/scale@1"),
                         ["seconds", "milliseconds", "microseconds", "nanoseconds"]
                             .into_iter()
-                            .map(|tag| StructuredVariantCase::new(tag, leaf("value/unit")).unwrap())
+                            .map(|tag| {
+                                StructuredVariantCase::new(tag, leaf("value/empty")).unwrap()
+                            })
                             .collect(),
                     )
                     .unwrap(),
@@ -863,7 +865,7 @@ fn optional_calibration_type() -> StructuredInfoType {
         kind_id("experience/optional-calibration-profile@1"),
         vec![
             StructuredVariantCase::new("known", leaf("value/text")).unwrap(),
-            StructuredVariantCase::new("none", leaf("value/unit")).unwrap(),
+            StructuredVariantCase::new("none", leaf("value/empty")).unwrap(),
         ],
     )
     .unwrap()
@@ -1096,7 +1098,7 @@ fn optional_bool_type() -> StructuredInfoType {
         kind_id("experience/optional-bool@1"),
         vec![
             StructuredVariantCase::new("known", leaf("value/bool")).unwrap(),
-            StructuredVariantCase::new("unknown", leaf("value/unit")).unwrap(),
+            StructuredVariantCase::new("unknown", leaf("value/empty")).unwrap(),
         ],
     )
     .unwrap()

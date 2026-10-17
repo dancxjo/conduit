@@ -1,9 +1,10 @@
 use conduit_core::{
     process_owned_line_offer_with_limits, ArtifactId, BaseImplementationId, BootId,
     BoundedResourceRef, CapabilityId, ExecutionProfileId, HostAdvertisement, HostId, HostProfileId,
-    ImplementationId, LinkLimits, OfferGeneration, Quantity, QuantityUnit, StructuredInfoType,
-    StructuredInfoTypeShape, StructuredInfoValue, StructuredInfoValueShape, PROTOCOL_VERSION,
+    ImplementationId, LinkLimits, OfferGeneration, Quantity, StructuredInfoType,
+    StructuredInfoTypeShape, StructuredInfoValue, StructuredInfoValueShape, Unit, PROTOCOL_VERSION,
 };
+use conduit_face::{install_geometry_catalogs, point2_type, rect2_type};
 use conduit_planner::{
     plan_expanded_canonical_with_options, PlacementChoice, PlacementChoices, PlanningOptions,
 };
@@ -11,7 +12,6 @@ use conduit_plot::{
     check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
     ProfileCatalog, StartupCatalog,
 };
-use conduit_presentation::{install_geometry_catalogs, point2_type, rect2_type};
 use conduit_semantic_catalog::{
     deterministic_detect_image, deterministic_vision_fixture, image_resource_type,
     install_vision_catalogs, validate_confidence, vision_detection_type, vision_detections_type,
@@ -458,15 +458,15 @@ fn regions_and_landmarks_reuse_nominal_geometry_types() {
 #[test]
 fn confidence_and_pixel_storage_refuse_semantic_shortcuts() {
     assert_eq!(
-        validate_confidence(Quantity::new(1, QuantityUnit::Meter)),
+        validate_confidence(Quantity::new(1, Unit::Meter)),
         Err(VisionRefusal::NonRatioConfidence)
     );
     assert_eq!(
-        validate_confidence(Quantity::new(101, QuantityUnit::Percent)),
+        validate_confidence(Quantity::new(101, Unit::Percent)),
         Err(VisionRefusal::ConfidenceOutOfRange)
     );
     assert_eq!(
-        validate_confidence(Quantity::new(875_000, QuantityUnit::Millionth)),
+        validate_confidence(Quantity::new(875_000, Unit::Millionth)),
         Ok(())
     );
 

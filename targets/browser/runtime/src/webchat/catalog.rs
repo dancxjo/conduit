@@ -34,7 +34,7 @@ pub(crate) fn advertisement(host_id: HostId, boot_id: BootId) -> HostAdvertiseme
         }],
         capabilities: core::iter::once(socket.capability)
             .chain(chat.capabilities)
-            .chain(crate::presentation_nucleus::human_io_advertisement_offers())
+            .chain(crate::face_nucleus::human_io_advertisement_offers())
             .collect(),
     }
 }
@@ -55,7 +55,7 @@ mod tests {
         for kind in [
             conduit_semantic_catalog::CAMERA_ACQUIRE_KIND,
             conduit_semantic_catalog::MICROPHONE_ACQUIRE_KIND,
-            conduit_semantic_catalog::TEXT_PRESENTATION_KIND,
+            conduit_semantic_catalog::TEXT_FACE_KIND,
             conduit_semantic_catalog::GRAPHICS_RECT_KIND,
             conduit_semantic_catalog::CAMERA_FRAME_SINK_KIND,
         ] {

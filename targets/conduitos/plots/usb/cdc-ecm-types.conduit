@@ -1,0 +1,56 @@
+# Finite class policy state; no endpoint, address or authority facts.
+type CdcEcmOutcome =
+    completed
+    | pressure
+    | malformed
+    | stalled
+    | provider-lost
+    | unsupported
+    | timeout
+    | cancelled
+    | stale
+    | sequence-exhausted
+type CdcEcmControl = {
+    result: UsbControlResult
+    topology: Boolean
+    mac: Boolean
+    ack: Boolean
+}
+type CdcEcmRead = {
+    ordinal: U64
+    actual: U64
+    short: Boolean
+    gate: CdcEcmReceiveGate
+}
+type CdcEcmEvent =
+    control CdcEcmControl
+    | frame EthernetFrameResult
+    | write UsbEndpointWriteResult
+    | read CdcEcmRead
+type CdcEcmStart = {
+    terminator: UsbEndpointWriteRequest
+}
+type CdcEcmState = {
+    terminator: UsbEndpointWriteRequest
+    phase: U64
+    cycles: U64
+    transmitted: U64
+    transmit: EthernetFrameResult
+    receive: EthernetFrameRequest
+    terminal: Boolean
+    outcome: CdcEcmOutcome
+}
+type CdcEcmRoute =
+    control CdcEcmState
+    | frame CdcEcmState
+    | write CdcEcmState
+    | read CdcEcmState
+    | stopped CdcEcmState
+type CdcEcmPending =
+    running CdcEcmState
+    | stopped
+type CdcEcmTransition = {
+    previous: CdcEcmState
+    event: CdcEcmEvent
+    accepted: Boolean
+}

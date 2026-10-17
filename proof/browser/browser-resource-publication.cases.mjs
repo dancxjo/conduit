@@ -110,3 +110,118 @@ test("Resource effects preserve exact pending scope and restore opaque bytes thr
     duplicate: "PublishedImmutable", refused: Array(4).fill("StaleResourceEffect"), missing: "ResourceMissing", oversize: "ResourceRecordBound",
     invalid: ["ImplementationNotSelected", "ImplementationNotSelected", "ResourceRecordBound", "InvalidResourceEffect"] });
 });
+
+// The fake ABI only supplies an already-admitted Plan and records Host acknowledgements.
+// The production Body Host performs the effect against real IndexedDB on each page load.
+async function bodySnapshotEffect(page, operation) {
+  return page.evaluate(async ({ operation }) => {
+    const { acquireBrowserBodyHost } = await import("/targets/browser/host/assets/browser-body-host.mjs");
+    const { openBrowserApplicationStorage } = await import("/targets/browser/host/assets/browser-application-storage.mjs");
+    const storage = await openBrowserApplicationStorage("proof/body-snapshot-effect", 1,
+      `sha256:${"c".repeat(64)}`, { implementationRegistry: ["browser/indexeddb@1"] });
+    const publish = operation !== "read";
+    const contract = publish ? "conduit.host/resource-snapshot-publish@1" : "conduit.host/resource-snapshot-read@1";
+    const kind = publish ? "resource/snapshot-publish" : "resource/snapshot-read";
+    const memory = new WebAssembly.Memory({ initial: 8 });
+    const encoder = new TextEncoder();
+    let length = 0, acknowledgement = null;
+    const output = value => {
+      const bytes = encoder.encode(JSON.stringify(value));
+      new Uint8Array(memory.buffer, 1024, bytes.length).set(bytes);
+      length = bytes.length;
+    };
+    const receipt = { schema: "conduit.tour/manifestation-receipt@3", disposition: "completed", active_play_id: "play" };
+    const effect = {
+      schema: "conduit.browser/resource-effect@1", effect_kind: publish ? "resource-publish" : "resource-read",
+      host_id: "host", boot_id: "boot", active_play_id: "play", placement_id: "snapshot-placement",
+      request_sequence: 0, key: `resource/${"3".repeat(64)}`, record: publish ? [67, 68, 82, 83] : null,
+    };
+    new Uint8Array(memory.buffer).set(encoder.encode("conduit.browser/runtime-abi"), 0);
+    const api = {
+      memory,
+      conduit_browser_runtime_abi_identity_ptr: () => 0,
+      conduit_browser_runtime_abi_identity_len: () => 27,
+      conduit_browser_runtime_abi_revision: () => 1,
+      conduit_browser_plot_output_ptr: () => 1024,
+      conduit_browser_plot_output_len: () => length,
+      conduit_browser_body_input_ptr: () => 256 * 1024,
+      conduit_browser_body_input_capacity: () => 256 * 1024,
+      conduit_browser_plot_input_ptr: () => 128 * 1024,
+      conduit_browser_plot_input_capacity: () => 64 * 1024,
+      conduit_browser_plot_pending_capacity: () => 1,
+      conduit_browser_plot_human_machinery() {
+        output({ schema: "conduit.browser/selected-human-machinery@1", limits: { maximum_gears: 16 }, implementations: [] });
+        return 0;
+      },
+      conduit_browser_body_start() {
+        output({ schema: "conduit.browser/body-started@1", play: {
+          active_play_id: "play", plan_id: "body-plan", wake_id: "wake", body_id: "body",
+        }, progress: effect });
+        return 0;
+      },
+      conduit_browser_plot_poll_effect() { output({ disposition: "waiting" }); return 0; },
+      conduit_browser_plot_complete_effect(playLength, placementLength, sequence, bytesLength) {
+        const bytes = new Uint8Array(memory.buffer, 128 * 1024 + playLength + placementLength, bytesLength);
+        acknowledgement = { sequence, bytes: Array.from(bytes) };
+        output(receipt);return 0;
+      },
+      conduit_browser_plot_refuse_effect(playLength, placementLength, sequence, disposition, detail) {
+        acknowledgement = { sequence, disposition, detail };
+        output({ ...receipt, disposition: "failed" });return 0;
+      },
+      conduit_tour_cancel() { output({ ...receipt, disposition: "cancelled" });return 0; },
+    };
+    const placement = {
+      placement_id: "snapshot-placement", gear_id: "snapshot", kind_id: kind,
+      capability_id: contract, host_calls: [{ contract_id: contract }],
+      authority: [{ contract_id: "authority/resource-snapshot@1", host_call_contract_id: contract,
+        subject_kind: kind, host_id: "host", boot_id: "boot", capability_id: contract }],
+      resources: [{ pool_id: "snapshot-pool", class_id: "resource/snapshot@1", units: 1,
+        content: { owner_host: "host", owner_boot: "boot", base_id: "browser/indexeddb",
+          residence_profile: "browser/indexeddb@1", contract: { retention: "ExternalDurable",
+            sharing: "SingleWriterPublished", access: publish ? "WriteCandidatePublish" : "ReadPublished" } } }],
+    };
+    const proposal = { schema: "conduit.body/execution-proposal@1", wake: {
+      wake_id: "wake", lifecycle: "AwaitingPlan", plans: [],
+    }, plan: { plan_id: "body-plan", body_id: "body", plots: [{ plan: {
+      fragments: [{ host_id: "host", boot_id: "boot", offer_generation: 1, placements: [placement] }],
+    } }] } };
+    const root = document.createElement("main");document.body.append(root);
+    if (operation === "wrong-grant") {
+      placement.authority[0].host_call_contract_id = "conduit.host/foreign@1";
+      let refusal;
+      try { acquireBrowserBodyHost({ api, hostId: "host", bootId: "boot", proposal,
+        inputTarget: root, outputRoot: root, storage }); }
+      catch (error) { refusal = error.message; }
+      root.remove();storage.close();
+      return { refusal, acknowledgement };
+    }
+    const owner = acquireBrowserBodyHost({ api, hostId: "host", bootId: "boot", proposal,
+      inputTarget: root, outputRoot: root, storage });
+    const observed = owner.observations();
+    owner.start(1);
+    const result = await owner.run();
+    owner.close();root.remove();
+    if (operation === "read") await storage.clearApplication();
+    storage.close();
+    return { observed: observed.map(item => [item.pool_id, item.unreserved_units]),
+      disposition: result.disposition, acknowledgement };
+  }, { operation });
+}
+
+test("Body Host acknowledges exact snapshot publication and reads that generation after reload", async ({ page }) => {
+  await page.goto("/proof/browser/signal-dom-host.test.html");
+  const unauthorized = await bodySnapshotEffect(page, "wrong-grant");
+  expect(unauthorized).toEqual({ refusal: "snapshot binding lacks its selected durable storage or exact authority",
+    acknowledgement: null });
+  const published = await bodySnapshotEffect(page, "publish");
+  expect(published).toEqual({ observed: [["snapshot-pool", 1]], disposition: "completed",
+    acknowledgement: { sequence: 0, bytes: [] } });
+  const duplicate = await bodySnapshotEffect(page, "duplicate");
+  expect(duplicate).toEqual({ observed: [["snapshot-pool", 1]], disposition: "failed",
+    acknowledgement: { sequence: 0, disposition: 2, detail: 211 } });
+  await page.reload();
+  const restored = await bodySnapshotEffect(page, "read");
+  expect(restored).toEqual({ observed: [["snapshot-pool", 1]], disposition: "completed",
+    acknowledgement: { sequence: 0, bytes: [67, 68, 82, 83] } });
+});

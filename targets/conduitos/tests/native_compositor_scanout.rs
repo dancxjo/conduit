@@ -5,7 +5,7 @@ mod display;
 mod fixture;
 
 use conduit_core::PlanId;
-use conduit_presentation::LayoutRect;
+use conduit_face::LayoutRect;
 use display::MemoryDisplay;
 use fixture::{MAIN, TOP, fixture, update};
 
@@ -20,7 +20,7 @@ fn only_successful_scanout_mints_exact_revision_acknowledgement() {
     let frame = compositor.compose_frame(&mut display).unwrap();
     let ack = compositor.scanout_acknowledgement(&staged, 1).unwrap();
     assert_eq!(ack.composition(), &staged);
-    assert_eq!(ack.presentation_revision(), 1);
+    assert_eq!(ack.face_revision(), 1);
     assert_eq!(ack.frame_sequence(), frame.frame_sequence);
     assert_eq!(ack.pixels_written(), 12 * 8);
     assert_eq!(compositor.allocated_pixels(), allocated);

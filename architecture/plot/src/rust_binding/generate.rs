@@ -1,10 +1,14 @@
+mod carrier_traits;
+pub(super) use carrier_traits::copy_type;
+use carrier_traits::hash_type;
 mod names;
+use super::source_literal::byte_string_literal;
 use crate::prelude::*;
 use crate::{CheckedNativeType, CheckedTypeForm};
 use alloc::collections::{BTreeMap, BTreeSet};
 use conduit_core::{PrimitiveInfoKind, StructuredInfoType, StructuredInfoTypeShape};
 use core::fmt::Write;
-use names::{byte_literals, rust_screaming_identifier};
+use names::rust_screaming_identifier;
 pub(super) use names::{rust_pascal_identifier, rust_snake_identifier};
 
 pub use super::generate_options::RustBindingOptions;
@@ -82,122 +86,7 @@ pub fn generate_rust_bindings_with_forms_and_external_bindings(
         .map_err(ExternalRustBindingGenerationError::Generation)
 }
 
-pub(super) fn validate_external_bindings(
-    types: &[CheckedNativeType],
-    external_types: &[StructuredInfoType],
-    external_bindings: &[ExternalNativeRustBinding<'_>],
-) -> Result<BTreeMap<String, String>, ExternalRustBindingGenerationError> {
-    let owned = types
-        .iter()
-        .map(|value_type| value_type.identity.as_str().to_string())
-        .collect::<BTreeSet<_>>();
-    let mut available = BTreeSet::new();
-    for value_type in external_types {
-        collect_root_schema_identity(value_type, &mut available);
-    }
-    let mut required = BTreeSet::new();
-    for value_type in types {
-        collect_external_boundaries(&value_type.value_type, &owned, &available, &mut required);
-    }
-    let mut external_names = BTreeMap::new();
-    for binding in external_bindings {
-        if !super::generate_package::valid_rust_type_path(binding.rust_type_path) {
-            return Err(ExternalRustBindingGenerationError::InvalidExternalRustPath(
-                binding.rust_type_path.into(),
-            ));
-        }
-        if external_names
-            .insert(
-                binding.semantic_identity.into(),
-                binding.rust_type_path.into(),
-            )
-            .is_some()
-        {
-            return Err(
-                ExternalRustBindingGenerationError::DuplicateExternalBinding(
-                    binding.semantic_identity.into(),
-                ),
-            );
-        }
-        if !available.contains(binding.semantic_identity) {
-            return Err(
-                ExternalRustBindingGenerationError::ExternalBindingIdentityDrift(
-                    binding.semantic_identity.into(),
-                ),
-            );
-        }
-        if !required.contains(binding.semantic_identity) {
-            return Err(ExternalRustBindingGenerationError::UnusedExternalBinding(
-                binding.semantic_identity.into(),
-            ));
-        }
-    }
-    if let Some(missing) = required
-        .iter()
-        .find(|identity| !external_names.contains_key(identity.as_str()))
-    {
-        return Err(ExternalRustBindingGenerationError::MissingExternalBinding(
-            missing.clone(),
-        ));
-    }
-    Ok(external_names)
-}
-
-fn collect_root_schema_identity(
-    value_type: &StructuredInfoType,
-    identities: &mut BTreeSet<String>,
-) {
-    match value_type.shape() {
-        StructuredInfoTypeShape::Nominal { schema, .. }
-        | StructuredInfoTypeShape::Record { schema, .. }
-        | StructuredInfoTypeShape::Variant { schema, .. } => {
-            identities.insert(schema.as_str().into());
-        }
-        StructuredInfoTypeShape::Sequence { .. }
-        | StructuredInfoTypeShape::Collection { .. }
-        | StructuredInfoTypeShape::Leaf(_) => {}
-    }
-}
-
-fn collect_external_boundaries(
-    value_type: &StructuredInfoType,
-    owned: &BTreeSet<String>,
-    available: &BTreeSet<String>,
-    required: &mut BTreeSet<String>,
-) {
-    let schema = match value_type.shape() {
-        StructuredInfoTypeShape::Nominal { schema, .. }
-        | StructuredInfoTypeShape::Record { schema, .. }
-        | StructuredInfoTypeShape::Variant { schema, .. } => Some(schema.as_str()),
-        _ => None,
-    };
-    if let Some(schema) = schema {
-        if available.contains(schema) && !owned.contains(schema) {
-            required.insert(schema.into());
-            return;
-        }
-    }
-    match value_type.shape() {
-        StructuredInfoTypeShape::Nominal { representation, .. } => {
-            collect_external_boundaries(representation, owned, available, required);
-        }
-        StructuredInfoTypeShape::Record { fields, .. } => {
-            for field in fields {
-                collect_external_boundaries(field.value_type(), owned, available, required);
-            }
-        }
-        StructuredInfoTypeShape::Variant { cases, .. } => {
-            for case in cases {
-                collect_external_boundaries(case.payload_type(), owned, available, required);
-            }
-        }
-        StructuredInfoTypeShape::Sequence { element, .. }
-        | StructuredInfoTypeShape::Collection { element, .. } => {
-            collect_external_boundaries(element, owned, available, required);
-        }
-        StructuredInfoTypeShape::Leaf(_) => {}
-    }
-}
+use super::external_binding_validation::validate_external_bindings;
 
 pub(super) fn generate_rust_bindings_with_external_names(
     types: &[CheckedNativeType],
@@ -373,8 +262,8 @@ fn emit_type(
     let bytes = &bytes_by_identity[value_type.identity.as_str()];
     writeln!(
         out,
-        "pub const {constant}: &[u8] = &[{}];",
-        byte_literals(bytes)
+        "pub const {constant}: &[u8] = {};",
+        byte_string_literal(bytes)
     )
     .expect("String writing is infallible");
     writeln!(
@@ -630,11 +519,13 @@ fn validate_boxed_variant_payloads(
             .iter()
             .find(|case| case.tag() == case_name)
             .ok_or(RustBindingGenerationError::InvalidSemanticType)?;
-        let StructuredInfoTypeShape::Record { schema, .. } = case.payload_type().shape() else {
-            return Err(RustBindingGenerationError::InvalidSemanticType);
-        };
-        if external_names.contains_key(schema.as_str()) {
-            return Err(RustBindingGenerationError::InvalidSemanticType);
+        match case.payload_type().shape() {
+            StructuredInfoTypeShape::Record { schema, .. }
+                if !external_names.contains_key(schema.as_str()) => {}
+            StructuredInfoTypeShape::Leaf(kind) if !unit_type(case.payload_type()) => {
+                primitive_rust_type(kind.as_str())?;
+            }
+            _ => return Err(RustBindingGenerationError::InvalidSemanticType),
         }
     }
     Ok(())
@@ -713,56 +604,6 @@ fn emit_payload_struct(
     Ok(())
 }
 
-pub(super) fn copy_type(value_type: &StructuredInfoType) -> bool {
-    match value_type.shape() {
-        StructuredInfoTypeShape::Leaf(kind) => !matches!(
-            conduit_core::primitive_info_kind(kind.as_str()),
-            Some(PrimitiveInfoKind::Text | PrimitiveInfoKind::Bytes) | None
-        ),
-        StructuredInfoTypeShape::Nominal { representation, .. } => copy_type(representation),
-        StructuredInfoTypeShape::Record { fields, .. } => {
-            fields.iter().all(|field| copy_type(field.value_type()))
-        }
-        StructuredInfoTypeShape::Variant { cases, .. } => {
-            cases.iter().all(|case| copy_type(case.payload_type()))
-        }
-        StructuredInfoTypeShape::Sequence { .. } => false,
-        StructuredInfoTypeShape::Collection { element, .. } => copy_type(element),
-    }
-}
-
-fn hash_type(value_type: &StructuredInfoType) -> bool {
-    match value_type.shape() {
-        StructuredInfoTypeShape::Leaf(kind) => matches!(
-            conduit_core::primitive_info_kind(kind.as_str()),
-            Some(
-                PrimitiveInfoKind::Unit
-                    | PrimitiveInfoKind::CancellationRequest
-                    | PrimitiveInfoKind::Bool
-                    | PrimitiveInfoKind::Count
-                    | PrimitiveInfoKind::Text
-                    | PrimitiveInfoKind::I8
-                    | PrimitiveInfoKind::U8
-                    | PrimitiveInfoKind::I16
-                    | PrimitiveInfoKind::U16
-                    | PrimitiveInfoKind::I32
-                    | PrimitiveInfoKind::U32
-                    | PrimitiveInfoKind::I64
-                    | PrimitiveInfoKind::U64
-                    | PrimitiveInfoKind::I128
-                    | PrimitiveInfoKind::U128
-                    | PrimitiveInfoKind::F32
-                    | PrimitiveInfoKind::F64
-            )
-        ),
-        StructuredInfoTypeShape::Nominal { representation, .. } => hash_type(representation),
-        StructuredInfoTypeShape::Collection { element, .. } => hash_type(element),
-        StructuredInfoTypeShape::Record { .. }
-        | StructuredInfoTypeShape::Variant { .. }
-        | StructuredInfoTypeShape::Sequence { .. } => false,
-    }
-}
-
 fn emit_semantic_type_impl(out: &mut String, rust_name: &str, constant: &str) {
     writeln!(out, "impl {rust_name} {{").expect("String writing is infallible");
     writeln!(
@@ -816,65 +657,5 @@ pub(super) fn rust_type(
     }
 }
 
-pub(super) fn primitive_rust_type(identity: &str) -> Result<String, RustBindingGenerationError> {
-    let value = match conduit_core::primitive_info_kind(identity) {
-        Some(PrimitiveInfoKind::Unit | PrimitiveInfoKind::CancellationRequest) => "()",
-        Some(PrimitiveInfoKind::Bool) => "bool",
-        Some(PrimitiveInfoKind::Count) => "u64",
-        Some(PrimitiveInfoKind::Scalar) => "conduit_core::Scalar",
-        Some(PrimitiveInfoKind::Text) => "String",
-        Some(PrimitiveInfoKind::Bytes) | None
-            if identity.starts_with("data/generation-reference<") =>
-        {
-            "conduit_data::DataReference"
-        }
-        None if identity == conduit_core::RESOURCE_REFERENCE_INFO_ID => {
-            "conduit_core::BoundedResourceRef"
-        }
-        // A generated primitive carrier must be able to retain every byte
-        // value admitted by the checked semantic contract. Per-field and
-        // nominal limits are still enforced by generated value contracts;
-        // this binding capacity is the structured substrate's finite ceiling,
-        // not an additional 4 KiB semantic restriction.
-        Some(PrimitiveInfoKind::Bytes) => "BoundedBytes<65536>",
-        Some(
-            PrimitiveInfoKind::Quantity
-            | PrimitiveInfoKind::Distance
-            | PrimitiveInfoKind::Frequency
-            | PrimitiveInfoKind::Duration
-            | PrimitiveInfoKind::Voltage
-            | PrimitiveInfoKind::Temperature
-            | PrimitiveInfoKind::Angle
-            | PrimitiveInfoKind::Ratio
-            | PrimitiveInfoKind::PixelCount,
-        ) => "conduit_core::Quantity",
-        Some(PrimitiveInfoKind::QuantityUnit) => "conduit_core::QuantityUnit",
-        Some(PrimitiveInfoKind::U8) => "u8",
-        Some(PrimitiveInfoKind::U16) => "u16",
-        Some(PrimitiveInfoKind::U32) => "u32",
-        Some(PrimitiveInfoKind::U64) => "u64",
-        Some(PrimitiveInfoKind::U128) => "u128",
-        Some(PrimitiveInfoKind::I8) => "i8",
-        Some(PrimitiveInfoKind::I16) => "i16",
-        Some(PrimitiveInfoKind::I32) => "i32",
-        Some(PrimitiveInfoKind::I64) => "i64",
-        Some(PrimitiveInfoKind::I128) => "i128",
-        Some(PrimitiveInfoKind::F32) => "conduit_core::IeeeF32",
-        Some(PrimitiveInfoKind::F64) => "conduit_core::IeeeF64",
-        Some(PrimitiveInfoKind::Terminal) | None => {
-            return Err(RustBindingGenerationError::UnsupportedLeaf(identity.into()));
-        }
-    };
-    Ok(value.into())
-}
-
-pub(super) fn data_reference_content_kind(identity: &str) -> Option<&str> {
-    identity
-        .strip_prefix("data/generation-reference<")
-        .and_then(|identity| identity.strip_suffix('>'))
-        .filter(|identity| !identity.is_empty())
-}
-
-pub(super) fn unit_type(value_type: &StructuredInfoType) -> bool {
-    matches!(value_type.shape(), StructuredInfoTypeShape::Leaf(kind) if kind.as_str() == conduit_core::UNIT_INFO_ID)
-}
+mod primitive;
+pub(super) use primitive::{data_reference_content_kind, primitive_rust_type, unit_type};

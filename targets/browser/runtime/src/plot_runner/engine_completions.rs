@@ -42,7 +42,7 @@ pub(in crate::plot_runner) fn complete_host_effect_with_output(
             if value.value_type() != &conduit_semantic_catalog::pointer_event_type() {
                 return Err("pointer input has the wrong exact type".into());
             }
-            MAXIMUM_BROWSER_VALUE_BYTES as u32
+            crate::installed_browser::NORMALIZED_POINTER_VALUE_BYTES as u32
         }
         BrowserHostEffect::KeyEvent => {
             conduit_human::KeyEvent::decode(output)
@@ -65,16 +65,23 @@ pub(in crate::plot_runner) fn complete_host_effect_with_output(
                 + conduit_audio::PCM_FRAME_HEADER_ENCODED_LEN as u32
         }
         BrowserHostEffect::ApplicationEvent => {
-            if output.is_empty()
-                || output.len() > crate::installed_browser::application::EVENT_BYTES as usize
+            if let Some(choice) =
+                scheduler.saved_choices[usize::from(pending.request.node.0)].as_ref()
             {
-                return Err("application event exceeds its planned bound".into());
+                choice.validate_selection(output)?;
+                conduit_semantic_catalog::SAVED_CHOICE_MAXIMUM_ID_BYTES
+            } else {
+                if output.is_empty()
+                    || output.len() > crate::installed_browser::application::EVENT_BYTES as usize
+                {
+                    return Err("application event exceeds its planned bound".into());
+                }
+                crate::installed_browser::application::EVENT_BYTES
             }
-            crate::installed_browser::application::EVENT_BYTES
         }
         BrowserHostEffect::TutorialPresenterRequest => {
             let request =
-                serde_json::from_slice::<conduit_presentation::GenerativePresenterRequest>(output)
+                serde_json::from_slice::<conduit_face::GenerativePresenterRequest>(output)
                     .map_err(|error| format!("decode tutorial Presenter request: {error}"))?;
             request
                 .validate()

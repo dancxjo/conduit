@@ -1,0 +1,120 @@
+# Nonnegative exact duration, distinct from an anchored elapsed-time offset.
+type AudioTimeFraction = {
+    numerator_seconds: U64
+    denominator: U64 in 1..=18446744073709551615
+}
+type AudioSampleProjectionQuantity =
+    duration AudioTimeFraction
+    | cycle AudioCycleDuration
+type AudioFrameQuantization =
+    floor
+type AudioFrameGridFidelity =
+    exact
+    | floor_with_remainder
+type AudioSampleRateBasis = {
+    anchor: AudioTrajectoryAnchor
+    sample_rate_hz: U64 in 1..=18446744073709551615
+    quantization: AudioFrameQuantization
+}
+type AudioSampleProjectionRequest = {
+    basis: AudioSampleRateBasis
+    quantity: AudioSampleProjectionQuantity
+}
+# Raw exact numeric projection; the full typed original is retained alongside.
+type AudioSampleFraction = {
+    numerator_seconds: U64
+    denominator: U64
+}
+type AudioSampleProjectionEligible = {
+    request: AudioSampleProjectionRequest
+    fraction: AudioSampleFraction
+    where .fraction.numerator_seconds <= 4294967295
+    where .fraction.denominator > 0 && .fraction.denominator <= 4294967295
+    where .request.basis.sample_rate_hz <= 192000
+    where .fraction.numerator_seconds == (.request.quantity is duration ? .request.quantity.duration.numerator_seconds : .request.quantity.cycle.numerator_seconds)
+    where .fraction.denominator == (.request.quantity is duration ? .request.quantity.duration.denominator : .request.quantity.cycle.denominator)
+}
+type AudioSampleProjectionRaw = {
+    whole_frames: U64
+    remainder_numerator: U64
+}
+type AudioSampleProjectionResult = {
+    request: AudioSampleProjectionRequest
+    fraction: AudioSampleFraction
+    raw: AudioSampleProjectionRaw
+    fidelity: AudioFrameGridFidelity
+    where .fraction.denominator > 0
+    where .raw.remainder_numerator < .fraction.denominator
+    where .raw.whole_frames * .fraction.denominator + .raw.remainder_numerator == .fraction.numerator_seconds * .request.basis.sample_rate_hz
+    where .fidelity is exact ? .raw.remainder_numerator == 0 : .raw.remainder_numerator > 0
+    where .fraction.numerator_seconds == (.request.quantity is duration ? .request.quantity.duration.numerator_seconds : .request.quantity.cycle.numerator_seconds)
+    where .fraction.denominator == (.request.quantity is duration ? .request.quantity.duration.denominator : .request.quantity.cycle.denominator)
+}
+# Integer-grid target retains declared context; original/remainder live in receipt.
+type AudioIntegerFrameTarget = {
+    basis: AudioSampleRateBasis
+    whole_frames: U64
+}
+type AudioCumulativeFrameBasis = {
+    basis: AudioSampleRateBasis
+    denominator: U64 in 1..=18446744073709551615
+}
+type AudioCumulativeFrameCursor = {
+    basis: AudioCumulativeFrameBasis
+    whole_frames: U64
+    remainder_numerator: U64
+    where .remainder_numerator < .basis.denominator
+}
+type AudioCumulativeFrameRequest = {
+    cursor: AudioCumulativeFrameCursor
+    append: AudioSampleProjectionRequest
+}
+type AudioCumulativeFrameEligible = {
+    request: AudioCumulativeFrameRequest
+    fraction: AudioSampleFraction
+    where .fraction.numerator_seconds <= 4294967295
+    where .fraction.denominator > 0 && .fraction.denominator <= 4294967295
+    where .request.append.basis.sample_rate_hz <= 192000
+    where .request.cursor.basis.basis.sample_rate_hz <= 192000
+    where .request.cursor.basis.denominator <= 4294967295
+    where .request.cursor.whole_frames <= 9223372036854775807
+    where .fraction.numerator_seconds == (.request.append.quantity is duration ? .request.append.quantity.duration.numerator_seconds : .request.append.quantity.cycle.numerator_seconds)
+    where .fraction.denominator == (.request.append.quantity is duration ? .request.append.quantity.duration.denominator : .request.append.quantity.cycle.denominator)
+}
+type AudioCumulativeFrameRaw = {
+    frame_count: U64
+    whole_frames: U64
+    remainder_numerator: U64
+}
+type AudioCumulativeFrameResult = {
+    request: AudioCumulativeFrameRequest
+    fraction: AudioSampleFraction
+    raw: AudioCumulativeFrameRaw
+    cursor: AudioCumulativeFrameCursor
+    fidelity: AudioFrameGridFidelity
+    where .fraction.denominator > 0
+    where .fraction.denominator == .request.cursor.basis.denominator
+    where .fraction.numerator_seconds == (.request.append.quantity is duration ? .request.append.quantity.duration.numerator_seconds : .request.append.quantity.cycle.numerator_seconds)
+    where .fraction.denominator == (.request.append.quantity is duration ? .request.append.quantity.duration.denominator : .request.append.quantity.cycle.denominator)
+    where .request.append.basis.sample_rate_hz == .request.cursor.basis.basis.sample_rate_hz
+    where .request.append.basis.anchor.timeline.value == .request.cursor.basis.basis.anchor.timeline.value
+    where .request.append.basis.anchor.origin.value == .request.cursor.basis.basis.anchor.origin.value
+    where .request.append.basis.quantization == .request.cursor.basis.basis.quantization
+    where .cursor.basis.basis.anchor.timeline.value == .request.cursor.basis.basis.anchor.timeline.value
+    where .cursor.basis.basis.anchor.origin.value == .request.cursor.basis.basis.anchor.origin.value
+    where .cursor.basis.basis.quantization == .request.cursor.basis.basis.quantization
+    where .raw.whole_frames == .request.cursor.whole_frames + .raw.frame_count
+    where .raw.frame_count * .fraction.denominator + .raw.remainder_numerator == .fraction.numerator_seconds * .request.append.basis.sample_rate_hz + .request.cursor.remainder_numerator
+    where .cursor.whole_frames == .raw.whole_frames
+    where .cursor.remainder_numerator == .raw.remainder_numerator
+    where .cursor.basis.denominator == .request.cursor.basis.denominator
+    where .cursor.basis.basis.sample_rate_hz == .request.cursor.basis.basis.sample_rate_hz
+    where .fidelity is exact ? .raw.remainder_numerator == 0 : .raw.remainder_numerator > 0
+}
+type AudioSampleProjectionChain = {
+    basis: AudioCumulativeFrameBasis
+    quantities: sequence AudioSampleProjectionQuantity in 1..=16
+}
+type AudioFrameFidelityInput = {
+    remainder_numerator: U64
+}

@@ -14,6 +14,7 @@ enum PreparedShape {
     Input,
     Constant(Vec<u8>),
     Selected(super::member_selection::PreparedMemberSelection),
+    SequenceSelected(super::sequence_selection::PreparedSequenceSelection),
     Record(Vec<PreparedField>),
     Collection(Vec<PreparedChild>),
     Variant {
@@ -48,10 +49,11 @@ impl PreparedStructuredExpression {
             PortableExpressionOperation::Input if program.input_type == program.output_type => {
                 PreparedShape::Input
             }
-            PortableExpressionOperation::Literal(_) => {
+            PortableExpressionOperation::Literal(_) | PortableExpressionOperation::Constant(_) => {
                 let constant = PortableExpressionProgram {
+                    input_maximum_bytes: None,
                     input_type: StructuredInfoType::leaf(conduit_core::kind_id(
-                        conduit_core::UNIT_INFO_ID,
+                        conduit_core::EMPTY_INFO_ID,
                     ))
                     .map_err(|_| Refusal::InvalidProgram)?,
                     output_type: program.output_type.clone(),
@@ -60,8 +62,17 @@ impl PreparedStructuredExpression {
                 PreparedShape::Constant(constant.evaluate(&[])?)
             }
             PortableExpressionOperation::Projection { .. } => PreparedShape::Selected(
-                super::member_selection::prepare(program.root, program.input_type)?,
+                super::member_selection::prepare(program.root, program.input_type, prepared_input)?,
             ),
+            PortableExpressionOperation::SemanticCall { kind, .. } if kind == "sequence/at" => {
+                PreparedShape::SequenceSelected(
+                    super::sequence_selection::PreparedSequenceSelection::new(
+                        program.root,
+                        program.input_type,
+                        prepared_input,
+                    )?,
+                )
+            }
             PortableExpressionOperation::Tuple(values) => {
                 let fields = values
                     .iter()
@@ -133,7 +144,7 @@ impl PreparedStructuredExpression {
             _ => {
                 return Err(Refusal::UnsupportedType(
                     "structured expression runtime".into(),
-                ))
+                ));
             }
         };
         Ok(Self {
@@ -149,8 +160,11 @@ impl PreparedStructuredExpression {
         match &mut self.shape {
             PreparedShape::Input => return append(output, input),
             PreparedShape::Constant(bytes) => return append(output, bytes),
+            PreparedShape::SequenceSelected(selection) => {
+                return append(output, selection.evaluate(input)?);
+            }
             PreparedShape::Selected(selection) => {
-                return append(output, selection.evaluate(input)?)
+                return append(output, selection.evaluate(input)?);
             }
             _ => (),
         }
@@ -170,7 +184,10 @@ impl PreparedStructuredExpression {
         }
         append(output, &self.type_prefix)?;
         match &mut self.shape {
-            PreparedShape::Input | PreparedShape::Constant(_) | PreparedShape::Selected(_) => {
+            PreparedShape::Input
+            | PreparedShape::Constant(_)
+            | PreparedShape::Selected(_)
+            | PreparedShape::SequenceSelected(_) => {
                 unreachable!("identity selection handled before prefix")
             }
             PreparedShape::Record(fields) => {
@@ -226,6 +243,7 @@ fn child(
     prepared_input: &PreparedInput,
 ) -> Result<PreparedChild, Refusal> {
     let child = ProgramView {
+        input_maximum_bytes: program.input_maximum_bytes,
         input_type: program.input_type,
         output_type: &node.value_type,
         root: node,

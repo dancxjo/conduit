@@ -1,13 +1,13 @@
 //! Ordinary Observatory export for the completed keyboard-text Plot.
 
-use alloc::{format, string::String, vec, vec::Vec};
+use alloc::{string::String, vec, vec::Vec};
 
 use conduit_core::{
-    ArtifactId, ConnectionTerminalDisposition, HostBaseId, HostBaseKindId, Observation,
-    ObservationKind, SignId, TerminalDisposition, bind_sign,
+    ArtifactId, ConnectionTerminalDisposition, Observation, ObservationKind, SignId,
+    TerminalDisposition, bind_sign,
 };
 use conduit_observatory::{
-    BaseReport, BootProofClass, CapabilityAvailability, CapabilityStatusReport, CapabilitySupport,
+    BootProofClass, CapabilityAvailability, CapabilityStatusReport, CapabilitySupport,
     FramebufferBasis, HostReport, MemoryMapSummary, ObservatorySnapshot, OfferFreshness,
     OperationalState, PlanLifecycle, PlayConnectionReport, PlayPlacementReport, PlayReport,
     PressureReport, RetentionReport, SNAPSHOT_SCHEMA, SealedBootProvenanceReport,
@@ -60,25 +60,7 @@ pub fn completed_snapshot(
             availability: CapabilityAvailability::Available,
         })
         .collect();
-    let mut bases = offer
-        .bases
-        .iter()
-        .map(|base| BaseReport {
-            host_id: host_id.clone(),
-            boot_id: boot_id.clone(),
-            base_id: HostBaseId::from(crate::identity::hex(&base.id)),
-            provider_instance_id: conduit_core::BaseInstanceId::from(crate::identity::hex(
-                &base.provider_instance_id,
-            )),
-            provider_generation: base.provider_generation,
-            kind_id: HostBaseKindId::from(format!("conduitos.base/{}@1", base.kind.as_str())),
-            implementation_id: None,
-            enforcement_class: None,
-            lifecycle: None,
-            state: OperationalState::Available,
-            capacity_units: u64::from(base.capacity),
-        })
-        .collect::<Vec<_>>();
+    let mut bases = crate::observatory::fixed_base_reports(offer, &prepared.advertisement)?;
     crate::observatory::append_advertised_bases(&mut bases, &prepared.advertisement);
     crate::observatory::append_framebuffer_base(&mut bases, &host_id, &boot_id, framebuffer)?;
     let play = PlayReport {
@@ -177,10 +159,7 @@ pub fn completed_snapshot(
     };
     validate_snapshot(&snapshot).map_err(|_| ExportError::InvalidSnapshot)?;
     let encoded = serde_json::to_string(&snapshot).map_err(|_| ExportError::EncodingFailed)?;
-    if encoded.len() > crate::observatory::MAX_EXPORT_BYTES {
-        return Err(ExportError::ExportTooLarge);
-    }
-    Ok(encoded)
+    crate::observatory::bounded_export(encoded)
 }
 
 fn observation(
@@ -208,7 +187,7 @@ fn observation(
     Observation {
         sign_id: SignId::from(identity.sign_id.as_str()),
         active_play_id,
-        presentation_id: None,
+        face_id: None,
         host_id: prepared.advertisement.host_id.clone(),
         boot_id: prepared.advertisement.boot_id.clone(),
         plan_id,
@@ -241,7 +220,7 @@ mod tests {
                 rdrand: true,
                 invariant_tsc: true,
             },
-            1_048_576,
+            8 * 1024 * 1024,
         )
         .with_keyboard(
             KeyboardRealization {
@@ -271,7 +250,7 @@ mod tests {
             command_line_bytes: 0,
             runtime_arena: crate::boot::RuntimeArena {
                 physical_start: 6,
-                length: 1_048_576,
+                length: 8 * 1024 * 1024,
             },
         };
         let encoded = completed_snapshot(
@@ -286,7 +265,25 @@ mod tests {
         .unwrap();
         let snapshot: ObservatorySnapshot = serde_json::from_str(&encoded).unwrap();
         validate_snapshot(&snapshot).unwrap();
-        let advertised = &prepared.advertisement.bases[0];
+        let advertised = prepared
+            .advertisement
+            .bases
+            .iter()
+            .find(|base| base.mechanism_family.as_str() == "conduitos.base/keyboard-input@1")
+            .unwrap();
+        let serial = offer
+            .bases
+            .iter()
+            .find(|base| base.kind == crate::machine::BaseKind::Serial)
+            .unwrap();
+        let serial_reports = snapshot
+            .bases
+            .iter()
+            .filter(|base| base.base_id.as_str() == crate::identity::hex(&serial.id))
+            .collect::<Vec<_>>();
+        assert_eq!(serial_reports.len(), 1);
+        assert!(serial_reports[0].implementation_id.is_some());
+        assert_eq!(serial_reports[0].capacity_units, u64::from(serial.capacity));
         let reported = snapshot
             .bases
             .iter()

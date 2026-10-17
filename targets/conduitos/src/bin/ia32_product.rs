@@ -31,10 +31,13 @@ unsafe extern "C" {
 #[unsafe(link_section = ".multiboot")]
 static MULTIBOOT1_HEADER: [u32; 6] = [0x1bad_b002, 4, 0xe452_4ffa, 0, 0, 0];
 
-#[repr(align(4096))]
-struct AlignedArena([u8; 1024 * 1024]);
+// Storage follows the checked, source-authored Make budget.
+const RUNTIME_ARENA_BYTES: usize = EMBEDDED_MAKE.runtime_arena_ceiling as usize;
 
-static mut RUNTIME_ARENA: AlignedArena = AlignedArena([0; 1024 * 1024]);
+#[repr(align(4096))]
+struct AlignedArena([u8; RUNTIME_ARENA_BYTES]);
+
+static mut RUNTIME_ARENA: AlignedArena = AlignedArena([0; RUNTIME_ARENA_BYTES]);
 
 #[global_allocator]
 static BOOT_ARENA: BootArena = BootArena::new();
@@ -88,13 +91,13 @@ extern "C" fn conduitos_ia32_product_rust_entry(
         BOOT_ARENA
             .initialize(
                 core::ptr::addr_of_mut!(RUNTIME_ARENA.0) as *mut u8 as usize,
-                1024 * 1024,
+                RUNTIME_ARENA_BYTES,
             )
             .unwrap_or_else(|_| refuse("runtime-arena-initialization-failed"));
     }
     arch::initialize_machine();
     EMBEDDED_MAKE
-        .validate(1024 * 1024)
+        .validate(EMBEDDED_MAKE.runtime_arena_ceiling)
         .unwrap_or_else(|error| refuse(error.as_str()));
     if EMBEDDED_MAKE.target != "conduitos/ia32/pc" || !EMBEDDED_MAKE.includes(IMPL_LINEAR_PRESENTER)
     {
@@ -117,10 +120,10 @@ extern "C" fn conduitos_ia32_product_rust_entry(
         &EMBEDDED_MAKE,
         CpuFeatures {
             sse2: true,
-            rdrand: false,
+            rdrand: core::arch::x86::__cpuid(1).ecx & (1 << 30) != 0,
             invariant_tsc: false,
         },
-        1024 * 1024,
+        EMBEDDED_MAKE.runtime_arena_ceiling,
     )
     .unwrap_or_else(|error| refuse(error.as_str()));
     offer
@@ -144,8 +147,8 @@ extern "C" fn conduitos_ia32_product_rust_entry(
         5,
         false,
     );
-    let presentation = front_door
-        .presentation()
+    let face = front_door
+        .face()
         .unwrap_or_else(|error| refuse(error.as_str()));
     let mut presenter = LinearPresenter::prepare_with_realization(
         host_id,
@@ -159,10 +162,10 @@ extern "C" fn conduitos_ia32_product_rust_entry(
     )
     .unwrap_or_else(|_| refuse("linear-presenter-plan-refused"));
     let receipt = presenter
-        .present(&presentation)
+        .present(&face)
         .unwrap_or_else(|_| refuse("linear-presenter-manifestation-refused"));
-    for line in &receipt.presentation.lines {
-        arch::present(b"CONDUIT_LINEAR_PRESENTATION ");
+    for line in &receipt.face.lines {
+        arch::present(b"CONDUIT_LINEAR_FACE ");
         arch::present(line.as_bytes());
         arch::present(b"\n");
     }
@@ -199,7 +202,7 @@ extern "C" fn conduitos_ia32_product_rust_entry(
             physical_start: unsafe {
                 core::ptr::addr_of_mut!(RUNTIME_ARENA.0) as *mut u8 as usize as u64
             },
-            length: 1024 * 1024,
+            length: EMBEDDED_MAKE.runtime_arena_ceiling,
         },
     };
     let observatory_export = observatory::prepare_export(
@@ -227,6 +230,9 @@ extern "C" fn conduitos_ia32_product_rust_entry(
     )
     .unwrap_or_else(|error| refuse(error.as_str()));
 
+    #[cfg(feature = "ordinary-domain-proof")]
+    conduitos::ia32_domain_proof::run(&prepared.plan, &offer);
+
     arch::present(b"CONDUIT_IA32_PRODUCT {\"schema\":\"conduit.conduitos/ia32-product@1\",\"status\":\"ready\",\"profile_id\":\"");
     arch::present(EMBEDDED_MAKE.profile_id.as_bytes());
     arch::present(b"\",\"build_id\":\"");
@@ -237,19 +243,34 @@ extern "C" fn conduitos_ia32_product_rust_entry(
     arch::present(identity::hex(&identities.host).as_bytes());
     arch::present(b"\",\"boot_id\":\"");
     arch::present(identity::hex(&identities.boot).as_bytes());
-    arch::present(b"\",\"offer_generation\":1,\"body_id\":null,\"presentation_id\":\"");
-    arch::present(receipt.presentation.presentation_id.as_str().as_bytes());
+    arch::present(b"\",\"offer_generation\":1,\"body_id\":null,\"face_id\":\"");
+    arch::present(receipt.face.face_id.as_str().as_bytes());
     arch::present(b"\",\"manifestation_id\":\"");
     arch::present(receipt.manifestation_id.as_str().as_bytes());
     arch::present(b"\",\"presenter_implementation_id\":\"");
     arch::present(receipt.presenter_implementation_id.as_str().as_bytes());
     arch::present(b"\",\"presenter_plan_id\":\"");
     arch::present(receipt.plan_id.as_str().as_bytes());
+    arch::present(b"\",\"ordinary_source_document_id\":\"");
+    arch::present(prepared.source_document_id.as_str().as_bytes());
+    arch::present(b"\",\"ordinary_checked_plot_id\":\"");
+    arch::present(prepared.checked_plot_id.as_str().as_bytes());
+    arch::present(b"\",\"ordinary_expanded_plot_id\":\"");
+    arch::present(prepared.expanded_plot_id.as_str().as_bytes());
     arch::present(b"\",\"ordinary_plan_id\":\"");
     arch::present(prepared.plan.plan_id.as_str().as_bytes());
     arch::present(b"\",\"ordinary_play_id\":\"");
     arch::present(prepared.active_play.active_play_id.as_str().as_bytes());
     arch::present(b"\",\"semantic_result\":\"HELLO, CONDUITOS\",\"interactive_local_control\":false,\"long_lived\":true}\n");
+    let _ = core::fmt::Write::write_fmt(
+        &mut DiagnosticWriter,
+        format_args!(
+            "CONDUIT_IA32_ARENA {{\"peak_live_bytes\":{},\"live_bytes\":{},\"capacity_bytes\":{}}}\n",
+            BOOT_ARENA.used(),
+            BOOT_ARENA.live_bytes(),
+            BOOT_ARENA.capacity()
+        ),
+    );
     arch::present(observatory::EXPORT_PREFIX.as_bytes());
     arch::present(observatory_export.as_bytes());
     arch::present(b"\n");
@@ -341,7 +362,27 @@ extern "C" fn _Unwind_Resume() -> ! {
     refuse("unexpected-unwind")
 }
 
+struct DiagnosticWriter;
+impl core::fmt::Write for DiagnosticWriter {
+    fn write_str(&mut self, text: &str) -> core::fmt::Result {
+        arch::present(text.as_bytes());
+        Ok(())
+    }
+}
+
 #[panic_handler]
-fn panic(_info: &PanicInfo<'_>) -> ! {
+fn panic(info: &PanicInfo<'_>) -> ! {
+    arch::disable_interrupts();
+    arch::present(b"CONDUIT_IA32_PRODUCT_PANIC ");
+    let _ = core::fmt::Write::write_fmt(&mut DiagnosticWriter, format_args!("{info}\n"));
+    let _ = core::fmt::Write::write_fmt(
+        &mut DiagnosticWriter,
+        format_args!(
+            "CONDUIT_IA32_PANIC_ARENA peak={} live={} capacity={}\n",
+            BOOT_ARENA.used(),
+            BOOT_ARENA.live_bytes(),
+            BOOT_ARENA.capacity()
+        ),
+    );
     refuse("panic")
 }

@@ -49,8 +49,11 @@ use conduit_kernel::{
 };
 use conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 
-pub(crate) const MAX_NODES: usize = 16;
-pub(crate) const MAX_CORDS: usize = 32;
+// The complete checked bus/time protocol already expands to 32 gears. Keep
+// finite backing for that graph and its Source observation stages; preparation
+// still rejects plans beyond these bounds before execution begins.
+pub(crate) const MAX_NODES: usize = 64;
+pub(crate) const MAX_CORDS: usize = 128;
 const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 const MAX_QUEUE_SLOTS: usize = 256;
 const ROUTE_SLOTS: usize = MAX_NODES * PORTS;
@@ -88,8 +91,10 @@ pub(crate) struct BoundaryEndpoint {
 }
 
 pub(crate) struct ChildKernel {
-    scheduler: ChildScheduler,
+    // Hosted preparation allocates this finite scheduler before play.
+    scheduler: alloc::boxed::Box<ChildScheduler>,
     boundaries: BTreeMap<SemanticPortId, BoundaryEndpoint>,
+    input_targets: BTreeMap<SemanticPortId, Vec<(RemoteEndpointId, CordId)>>,
     status: SchedulerStatus,
 }
 
@@ -101,6 +106,10 @@ impl ChildKernel {
 
     pub(crate) fn status(&self) -> SchedulerStatus {
         self.status
+    }
+
+    pub(crate) fn has_retained_host_call_for_nodes(&self, nodes: &[NodeId]) -> bool {
+        self.scheduler.has_retained_host_call_for_nodes(nodes)
     }
 
     pub(crate) fn next_host_request(&mut self) -> Option<HostCallRequest> {
@@ -158,7 +167,13 @@ impl ChildKernel {
             return Err(ChildExecutionError::ValueKindMismatch);
         }
         self.scheduler
-            .admit_remote_input(boundary.endpoint, boundary.cord, sequence, &value.encoded)
+            .admit_remote_input_fanout(
+                self.input_targets
+                    .get(port_id)
+                    .ok_or(ChildExecutionError::UnknownFront)?,
+                sequence,
+                &value.encoded,
+            )
             .map_err(ChildExecutionError::from)
     }
 
@@ -166,13 +181,16 @@ impl ChildKernel {
         &mut self,
         port_id: &SemanticPortId,
     ) -> Result<(), ChildExecutionError> {
-        let boundary = self
-            .boundaries
+        self.boundaries
             .get(port_id)
             .filter(|boundary| boundary.direction == PortDirection::Input)
             .ok_or(ChildExecutionError::UnknownFront)?;
         self.scheduler
-            .close_remote_input(boundary.endpoint, boundary.cord)
+            .close_remote_input_fanout(
+                self.input_targets
+                    .get(port_id)
+                    .ok_or(ChildExecutionError::UnknownFront)?,
+            )
             .map_err(ChildExecutionError::from)
     }
 
@@ -191,7 +209,12 @@ impl ChildKernel {
         }
         let terminal = CanonicalValue::new(&terminal.encoded).map_err(ChildExecutionError::from)?;
         self.scheduler
-            .close_remote_input_abnormal(boundary.endpoint, boundary.cord, terminal)
+            .close_remote_input_fanout_abnormal(
+                self.input_targets
+                    .get(port_id)
+                    .ok_or(ChildExecutionError::UnknownFront)?,
+                terminal,
+            )
             .map_err(ChildExecutionError::from)
     }
 

@@ -1,11 +1,31 @@
-use std::collections::BTreeSet;
-
+#[path = "../suites/acoustic_control.rs"]
+mod acoustic_control;
+#[path = "../suites/acoustic_flow.rs"]
+mod acoustic_flow;
+#[path = "../suites/angle_reference.rs"]
+mod angle_reference;
+#[path = "../suites/dsp_shared_compositions.rs"]
+mod dsp_shared_compositions;
+#[path = "../suites/inverse_angle.rs"]
+mod inverse_angle;
+#[path = "../suites/model_inference.rs"]
+mod model_inference;
+#[path = "../suites/parser_scorer.rs"]
+mod parser_scorer;
+#[path = "../suites/physical_values.rs"]
+mod physical_values;
+#[path = "../suites/print_pool.rs"]
+mod print_pool;
+#[path = "../suites/speech_ipa.rs"]
+mod speech_ipa;
 #[path = "../suites/todo.rs"]
 mod todo;
+#[path = "../suites/todo_speech.rs"]
+mod todo_speech;
 
 use crate::{
     cli::GlobalOpts,
-    process::{run_step, run_step_with_arguments, run_suite, Step, StepError},
+    process::{run_suite, Step, StepError},
     suites::check::{
         BROWSER_CHECK_STEPS, INPUT_SEMANTICS_STEPS, KERNEL_TAKEOVER_STEPS,
         OBSERVATORY_READINESS_STEPS, PLANNING_S2_STEPS, PLOT_S3_STEPS,
@@ -18,6 +38,10 @@ use crate::{
 };
 
 mod cli;
+mod workspace;
+use workspace::run_workspace_shard;
+#[path = "check/owner_face.rs"]
+mod owner_face;
 pub use cli::{CheckArgs, CheckScope, CheckSuite};
 
 pub fn run(args: CheckArgs, opts: &GlobalOpts) -> Result<(), StepError> {
@@ -36,6 +60,18 @@ pub fn run(args: CheckArgs, opts: &GlobalOpts) -> Result<(), StepError> {
         CheckSuite::WorkspaceTestHosts => {
             run_workspace_shard(WorkspaceShard::TestHosts, &root, opts)
         }
+        CheckSuite::WorkspaceTestHostsStd => {
+            run_workspace_shard(WorkspaceShard::TestHostsStd, &root, opts)
+        }
+        CheckSuite::WorkspaceTestHostsBrowser => {
+            run_workspace_shard(WorkspaceShard::TestHostsBrowser, &root, opts)
+        }
+        CheckSuite::WorkspaceTestHostsConduitos => {
+            run_workspace_shard(WorkspaceShard::TestHostsConduitos, &root, opts)
+        }
+        CheckSuite::WorkspaceTestHostsWorkbench => {
+            run_workspace_shard(WorkspaceShard::TestHostsWorkbench, &root, opts)
+        }
         CheckSuite::WorkspaceTestProducts => {
             run_workspace_shard(WorkspaceShard::TestProducts, &root, opts)
         }
@@ -46,10 +82,44 @@ pub fn run(args: CheckArgs, opts: &GlobalOpts) -> Result<(), StepError> {
         CheckSuite::KernelTakeover => run_suite(KERNEL_TAKEOVER_STEPS, &root, opts),
         CheckSuite::PlanningS2 => run_suite(PLANNING_S2_STEPS, &root, opts),
         CheckSuite::PlotS3 => run_suite(PLOT_S3_STEPS, &root, opts),
+        CheckSuite::ExpressionBaseline => run_suite(
+            &[Step::new(
+                "expression.baseline",
+                "Report fixed 1/3/8/32 prepared expression parity and cold/warm timings",
+                "cargo",
+                &[
+                    "test",
+                    "-p",
+                    "conduit-plot",
+                    "--test",
+                    "expression_baseline",
+                    "--locked",
+                    "--",
+                    "--nocapture",
+                ],
+            )],
+            &root,
+            opts,
+        ),
         CheckSuite::Observatory => run_suite(OBSERVATORY_READINESS_STEPS, &root, opts),
         CheckSuite::SemanticCatalog => run_suite(SEMANTIC_CATALOG_READINESS_STEPS, &root, opts),
         CheckSuite::QuantityMapping => run_suite(QUANTITY_MAPPING_STEPS, &root, opts),
+        CheckSuite::AcousticControl => run_suite(acoustic_control::STEPS, &root, opts),
+        CheckSuite::TodoDurability => run_suite(todo::TODO_DURABILITY_STEPS, &root, opts),
+        CheckSuite::ModelInference => run_suite(model_inference::STEPS, &root, opts),
+        CheckSuite::AcousticFlow => run_suite(acoustic_flow::STEPS, &root, opts),
+        CheckSuite::ParserSelection => run_suite(parser_scorer::SELECTION, &root, opts),
+        CheckSuite::ParserScorer => run_suite(parser_scorer::STEPS, &root, opts),
+        CheckSuite::ParserScorerReproduce => run_suite(parser_scorer::REPRODUCE, &root, opts),
+        CheckSuite::PrintPool => run_suite(print_pool::STEPS, &root, opts),
+        CheckSuite::DspSharedCompositions => run_suite(dsp_shared_compositions::STEPS, &root, opts),
+        CheckSuite::SpeechIpa => run_suite(speech_ipa::STEPS, &root, opts),
+        CheckSuite::PhysicalValues => run_suite(physical_values::STEPS, &root, opts),
+        CheckSuite::AngleReference => run_suite(angle_reference::STEPS, &root, opts),
+        CheckSuite::InverseAngle => run_suite(inverse_angle::STEPS, &root, opts),
+        CheckSuite::TodoSpeech => run_suite(todo_speech::STEPS, &root, opts),
         CheckSuite::TodoState => run_suite(todo::TODO_STATE_STEPS, &root, opts),
+        CheckSuite::OwnerFace => run_suite(owner_face::STEPS, &root, opts),
         CheckSuite::InputSemantics => run_suite(INPUT_SEMANTICS_STEPS, &root, opts),
         CheckSuite::HostedBaseIsolation => run_suite(HOSTED_BASE_ISOLATION_STEPS, &root, opts),
         CheckSuite::IsolatedHttpBase => run_suite(ISOLATED_HTTP_BASE_STEPS, &root, opts),
@@ -362,7 +432,8 @@ const QUANTITY_MAPPING_STEPS: &[Step] = &[
             "tour-surface",
             "--locked",
         ],
-    ),
+    )
+    .with_environment(&crate::process::BROWSER_RELEASE_ENVIRONMENT),
     Step::new(
         "quantity-mapping.contract",
         "Check exact mapping refusals and bounded structured Quantity encoding",
@@ -416,199 +487,3 @@ const QUANTITY_MAPPING_STEPS: &[Step] = &[
         ],
     ),
 ];
-
-fn run_workspace_shard(
-    shard: WorkspaceShard,
-    root: &std::path::Path,
-    opts: &GlobalOpts,
-) -> Result<(), StepError> {
-    let planned_tests = planned_packages("CONDUIT_CI_TEST_PACKAGES")?;
-    if let Some(step) = shard.package_test_step() {
-        if let Some(packages) = planned_tests.as_ref() {
-            if let Some(arguments) = selective_package_test_arguments(step, packages)? {
-                run_step_with_arguments(step, &arguments, root, opts)?;
-            }
-        } else {
-            run_step(step, root, opts)?;
-        }
-    }
-    for step in WORKSPACE_STEPS
-        .iter()
-        .chain(NETWORK_CAPABILITY_STEPS)
-        .chain(PICO_COMPOSITION_STEPS)
-        .filter(|step| shard.owns(step))
-    {
-        if shard == WorkspaceShard::Lint && step.id == "check.clippy" {
-            if let Some(packages) = planned_packages("CONDUIT_CI_LINT_PACKAGES")? {
-                if packages.is_empty() {
-                    continue;
-                }
-                run_step_with_arguments(step, &selective_clippy_arguments(&packages), root, opts)?;
-                continue;
-            }
-        }
-        run_step(step, root, opts)?;
-    }
-    Ok(())
-}
-
-fn planned_packages(variable: &str) -> Result<Option<BTreeSet<String>>, StepError> {
-    let Some(full) = std::env::var_os("CONDUIT_CI_LINT_FULL") else {
-        return Ok(None);
-    };
-    match full.to_str() {
-        Some("true") => return Ok(None),
-        Some("false") => {}
-        _ => {
-            return Err(StepError::prereq(
-                "check.clippy.plan",
-                "CONDUIT_CI_LINT_FULL must be true or false",
-            ));
-        }
-    }
-    let encoded = std::env::var(variable).map_err(|_| {
-        StepError::prereq(
-            "check.workspace-plan",
-            format!("selective workspace checks require {variable}"),
-        )
-    })?;
-    let packages: BTreeSet<String> = serde_json::from_str(&encoded).map_err(|error| {
-        StepError::prereq(
-            "check.workspace-plan",
-            format!("invalid package JSON in {variable}: {error}"),
-        )
-    })?;
-    if packages.iter().any(String::is_empty) {
-        return Err(StepError::prereq(
-            "check.clippy.plan",
-            "lint package identities must not be empty",
-        ));
-    }
-    Ok(Some(packages))
-}
-
-fn selective_clippy_arguments(packages: &BTreeSet<String>) -> Vec<String> {
-    let mut arguments = vec!["clippy".to_owned()];
-    for package in packages {
-        arguments.extend(["-p".to_owned(), package.clone()]);
-    }
-    arguments.extend(
-        ["--all-targets", "--", "-D", "warnings"]
-            .into_iter()
-            .map(str::to_owned),
-    );
-    arguments
-}
-
-fn selective_package_test_arguments(
-    step: &Step,
-    selected: &BTreeSet<String>,
-) -> Result<Option<Vec<String>>, StepError> {
-    let mut arguments = Vec::new();
-    let mut selected_count = 0;
-    let mut index = 0;
-    while index < step.args.len() {
-        match step.args[index] {
-            "-p" => {
-                let package = step.args.get(index + 1).ok_or_else(|| {
-                    StepError::prereq(step.id, "package test step omits package after -p")
-                })?;
-                if selected.contains(*package) {
-                    arguments.extend(["-p".to_owned(), (*package).to_owned()]);
-                    selected_count += 1;
-                }
-                index += 2;
-            }
-            "--features" => {
-                let features = step.args.get(index + 1).ok_or_else(|| {
-                    StepError::prereq(step.id, "package test step omits --features value")
-                })?;
-                let retained = features
-                    .split(',')
-                    .filter(|feature| {
-                        feature
-                            .split_once('/')
-                            .is_none_or(|(package, _)| selected.contains(package))
-                    })
-                    .collect::<Vec<_>>()
-                    .join(",");
-                if !retained.is_empty() {
-                    arguments.extend(["--features".to_owned(), retained]);
-                }
-                index += 2;
-            }
-            argument => {
-                arguments.push(argument.to_owned());
-                index += 1;
-            }
-        }
-    }
-    Ok((selected_count != 0).then_some(arguments))
-}
-
-#[cfg(test)]
-mod tests {
-    use std::collections::BTreeSet;
-
-    use super::{selective_clippy_arguments, selective_package_test_arguments};
-    use crate::suites::workspace_shards::WorkspaceShard;
-
-    #[test]
-    fn selective_clippy_keeps_exact_packages_and_warning_gate() {
-        assert_eq!(
-            selective_clippy_arguments(&BTreeSet::from([
-                "conduit-pete".to_owned(),
-                "xtask".to_owned(),
-            ])),
-            [
-                "clippy",
-                "-p",
-                "conduit-pete",
-                "-p",
-                "xtask",
-                "--all-targets",
-                "--",
-                "-D",
-                "warnings",
-            ]
-        );
-    }
-
-    #[test]
-    fn selective_package_tests_keep_only_planned_packages_and_owned_features() {
-        let step = WorkspaceShard::TestProducts.package_test_step().unwrap();
-        let arguments = selective_package_test_arguments(
-            step,
-            &BTreeSet::from(["conduit-pete".to_owned(), "xtask".to_owned()]),
-        )
-        .unwrap()
-        .unwrap();
-        assert_eq!(
-            arguments,
-            [
-                "test",
-                "--no-fail-fast",
-                "-p",
-                "conduit-pete",
-                "-p",
-                "xtask"
-            ]
-        );
-
-        let tongues =
-            selective_package_test_arguments(step, &BTreeSet::from(["conduit-tongues".to_owned()]))
-                .unwrap()
-                .unwrap();
-        assert_eq!(
-            tongues,
-            [
-                "test",
-                "--no-fail-fast",
-                "-p",
-                "conduit-tongues",
-                "--features",
-                "conduit-tongues/speech",
-            ]
-        );
-    }
-}

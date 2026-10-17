@@ -1,0 +1,40 @@
+{
+  "base": "2e624104525c8e97adef8210c8eca8a91a8b29cc",
+  "before_source_sha256": "e66cee56510ad6ad55448a3afc4bbdaec21f7bd003798b8118836b1df7b07475",
+  "after_source_sha256": "5659545d611334e10e5d9e6dda13317a5e6682a7564839c673512c3c239d8c0c",
+  "test_sha256": "b289dc9b7c8a9b6c40b77323e0ad16d279a18876cd436ee6b2d9d50347420b66",
+  "fixture": {
+    "active_nodes": 128,
+    "active_quiescence_cords": 127,
+    "armed_cords": [
+      0
+    ],
+    "before_cord_visits": 254,
+    "after_cord_visits": 2
+  },
+  "oracle_layouts": 64,
+  "local_checks": {
+    "tests": {
+      "passed": 238,
+      "sha256": "18dab112104a1f2a34806a0bc34845174902feae0a0c91785decd338b27dd811"
+    },
+    "linear": {
+      "passed": 238,
+      "sha256": "f900e7ce7fe47934fd13a919d957eb032b456f055c02ce3b230fb1a27c4458fa"
+    },
+    "clippy": {
+      "sha256": "9eabb5a8cfff2829e6842c80ac6efcdecf3fa294beeea7ac2f6baa2c806bb0fe"
+    },
+    "no-std": {
+      "sha256": "5337bdfcca2de569df44065b4929e89dd072eb9cca514395ab0cd0feb3adbda0"
+    },
+    "fmt": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "limits": [
+    "Deterministic production-path work counts, not elapsed throughput or latency.",
+    "Remaining work is linear through the highest armed cord; no constant-time or dense/tiny timing regression claim.",
+    "No runtime storage added; existing armed-count invariant used for early exit."
+  ]
+}

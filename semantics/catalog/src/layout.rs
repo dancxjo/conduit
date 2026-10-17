@@ -11,7 +11,7 @@ use conduit_core::{
     kind_id, port_id, CapabilityLimits, ConfigurationValue, PortDescriptor, PortDirection,
     PortTemporal,
 };
-use conduit_presentation::{
+use conduit_face::{
     LAYOUT_FRAME_KIND, MAX_LAYOUT_CHILDREN, MAX_LAYOUT_EXTENT, MAX_LAYOUT_FRAME_BYTES,
 };
 

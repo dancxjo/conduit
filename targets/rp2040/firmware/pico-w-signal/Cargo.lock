@@ -282,8 +282,8 @@ name = "conduit-alife"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
+ "conduit-face",
  "conduit-plot",
- "conduit-presentation",
  "conduit-time",
  "sha2",
 ]
@@ -344,9 +344,9 @@ dependencies = [
  "conduit-ai",
  "conduit-body",
  "conduit-core",
+ "conduit-face",
  "conduit-net",
  "conduit-plot",
- "conduit-presentation",
  "conduit-text",
  "serde",
  "serde-json-core",
@@ -396,6 +396,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-face"
+version = "0.1.0"
+dependencies = [
+ "conduit-body",
+ "conduit-core",
+ "conduit-human",
+ "conduit-planner",
+ "conduit-plot",
+ "conduit-time",
+ "serde",
+ "serde_json",
+ "sha2",
+]
+
+[[package]]
 name = "conduit-human"
 version = "0.1.0"
 dependencies = [
@@ -403,6 +418,7 @@ dependencies = [
  "conduit-plot",
  "serde",
  "sha2",
+ "unicode-normalization",
 ]
 
 [[package]]
@@ -410,6 +426,14 @@ name = "conduit-kernel"
 version = "0.1.0"
 dependencies = [
  "conduit-assigned-plan",
+]
+
+[[package]]
+name = "conduit-language"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-plot",
 ]
 
 [[package]]
@@ -498,6 +522,7 @@ name = "conduit-planner"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
+ "conduit-language",
  "conduit-plot",
  "serde",
  "sha2",
@@ -509,20 +534,6 @@ version = "0.1.0"
 dependencies = [
  "conduit-core",
  "serde",
- "sha2",
-]
-
-[[package]]
-name = "conduit-presentation"
-version = "0.1.0"
-dependencies = [
- "conduit-body",
- "conduit-core",
- "conduit-human",
- "conduit-plot",
- "conduit-time",
- "serde",
- "serde_json",
  "sha2",
 ]
 
@@ -562,8 +573,8 @@ name = "conduit-robotics"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
+ "conduit-face",
  "conduit-plot",
- "conduit-presentation",
 ]
 
 [[package]]
@@ -582,11 +593,11 @@ dependencies = [
  "conduit-core",
  "conduit-data",
  "conduit-education",
+ "conduit-face",
  "conduit-human",
  "conduit-midi",
  "conduit-net",
  "conduit-plot",
- "conduit-presentation",
  "conduit-process",
  "conduit-purpose",
  "conduit-robotics",
@@ -634,16 +645,19 @@ dependencies = [
  "conduit-chat",
  "conduit-core",
  "conduit-data",
+ "conduit-face",
  "conduit-human",
+ "conduit-language",
  "conduit-midi",
  "conduit-net",
  "conduit-plot",
- "conduit-presentation",
  "conduit-robotics",
  "conduit-semantic-catalog",
  "conduit-signal",
  "conduit-text",
+ "conduit-thermostat-plot",
  "conduit-time",
+ "conduit-todo-plot",
  "conduit-web",
 ]
 
@@ -658,12 +672,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-thermostat-plot"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-kernel",
+ "conduit-plot",
+]
+
+[[package]]
 name = "conduit-time"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
  "conduit-plot",
  "serde",
+]
+
+[[package]]
+name = "conduit-todo-plot"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-web",
 ]
 
 [[package]]
@@ -2576,6 +2607,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "tinyvec"
+version = "1.13.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fd3ca314f692efd6c868f8408f53fe444634a845f96c028b97d35f6a1f79f0ee"
+
+[[package]]
 name = "tracing"
 version = "0.1.44"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2696,6 +2733,15 @@ name = "unicode-ident"
 version = "1.0.26"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d245f478577f809a851594d02313b640fb437e0bb33866753cff937863096954"
+
+[[package]]
+name = "unicode-normalization"
+version = "0.1.25"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5fd4f6878c9cb28d874b009da9e8d183b5abc80117c40bbd187a1fde336be6e8"
+dependencies = [
+ "tinyvec",
+]
 
 [[package]]
 name = "unicode-segmentation"

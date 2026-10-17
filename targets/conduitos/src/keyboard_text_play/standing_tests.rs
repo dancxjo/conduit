@@ -1,7 +1,7 @@
 use super::*;
 use conduit_human::{KeyModifiers, KeyTransition};
 
-fn idle(kernel: &mut KeyboardTextKernel) -> (HostCallRequest, Option<PresentationFragment>) {
+fn idle(kernel: &mut KeyboardTextKernel) -> (HostCallRequest, Option<FaceFragment>) {
     let mut pending = None;
     let mut result = None;
     for _ in 0..256 {
@@ -12,10 +12,10 @@ fn idle(kernel: &mut KeyboardTextKernel) -> (HostCallRequest, Option<Presentatio
                 }
                 KeyboardTextRequestKind::Keymap => kernel.complete_keymap(request).unwrap(),
                 KeyboardTextRequestKind::Upper => kernel.complete_upper(request).unwrap(),
-                KeyboardTextRequestKind::Presentation => {
+                KeyboardTextRequestKind::Face => {
                     assert!(
                         result
-                            .replace(kernel.complete_presentation(request).unwrap())
+                            .replace(kernel.complete_face(request).unwrap())
                             .is_none()
                     );
                 }
@@ -54,7 +54,7 @@ fn thousands_of_keys_reuse_values_and_retain_a_truthful_sign_gap_in_one_kernel()
         let (next, result) = idle(&mut kernel);
         assert_ne!(next.request, pending.request);
         assert_eq!(
-            result.as_ref().map(PresentationFragment::as_bytes),
+            result.as_ref().map(FaceFragment::as_bytes),
             pressed.then_some(&b"A"[..])
         );
         assert_eq!(kernel.scheduler.values().used_items(), items);

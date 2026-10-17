@@ -1,9 +1,12 @@
+use super::super::scoped_todo_initial;
 use super::*;
+use conduit_core::PlannedActivationEntry;
 use conduit_core::{BootId, HostId, OfferGeneration};
-use conduit_presentation::PresentationRole;
-use conduit_std_host::StdHostConfig;
-const SOURCE: &str = "plot hello {\n show: presentation/text\n \"Hello.\" >> show\n}.";
+use conduit_face::FaceRole;
+use conduit_std_host::{StdHostComposition, StdHostConfig};
+const SOURCE: &str = "plot hello {\n show: face/text(\"Message\")\n \"Hello.\" >> show\n}.";
 const CLOCK_SOURCE: &str = include_str!("../../../../plots/clock/main.conduit");
+const TODO_SOURCE: &str = include_str!("../../../../plots/todo/live.conduit");
 fn source() -> conduit_plot::ExpandedAuthoringPlot {
     crate::plot_source::parse(SOURCE)
         .unwrap()
@@ -25,6 +28,256 @@ fn resident(plot: &conduit_plot::ExpandedAuthoringPlot) -> ResidentPlot {
 }
 
 #[test]
+fn checked_todo_initial_selects_the_installed_host_before_owner_planning() {
+    let source = crate::plot_source::parse(TODO_SOURCE).unwrap();
+    let plot = source.expand_entry_for_authoring().unwrap();
+    assert_eq!(plot.expanded.name, "todo/main");
+    let (initial, maximum) = scoped_todo_initial(&plot).unwrap().unwrap();
+    assert_eq!(initial.title, "Groceries");
+    assert_eq!(maximum, 64);
+    let scoped = StdHost::new_for_todo_scan(
+        StdHostConfig {
+            host_id: HostId::from("host/owner-test"),
+            boot_id: BootId::from("boot/todo-scoped"),
+            offer_generation: OfferGeneration(1),
+        },
+        &initial,
+        maximum,
+    )
+    .unwrap();
+    let advertised = scoped.advertisement().clone();
+    let mut owner = Owner::open(scoped, resident(&plot), None, "Groceries").unwrap();
+    let unrelated = crate::plot_source::parse(SOURCE).unwrap();
+    assert!(owner
+        .plan_partition_with_source(&unrelated, &plot, &resident(&plot), &advertised)
+        .is_err());
+    owner.plan_with_source(&source, &plot).unwrap();
+    let planned = &owner.session.realization().unwrap().plan.plots[0].plan;
+    assert!(conduit_core::verify_plan(planned));
+    assert_eq!(planned.activations.len(), 1);
+    let PlannedActivationEntry::Scan(scan) = &planned.activations[0] else {
+        panic!("Todo must retain its planned scan child")
+    };
+    assert_eq!(scan.selected_plan_id, scan.selected_plan.plan_id);
+    assert!(scan.selected_plan.fragments.iter().any(|fragment| {
+        fragment.placements.iter().any(|placement| {
+            placement.kind_id == conduit_core::kind_id(conduit_todo_plot::TODO_COMBINE_KIND)
+        })
+    }));
+    assert_eq!(owner.host.advertisement(), &advertised);
+    assert_eq!(
+        owner.execute(1).unwrap_err(),
+        "installed Body Play has no activation ingress or egress"
+    );
+}
+
+#[test]
+fn checked_thermostat_selects_the_ordinary_installed_plot_path() {
+    let source =
+        crate::plot_source::parse(include_str!("../../../../plots/thermostat/main.conduit"))
+            .unwrap();
+    let plot = source.expand_entry_for_authoring().unwrap();
+    let (initial, maximum) = super::super::scoped_thermostat_initial(&plot)
+        .unwrap()
+        .unwrap();
+    assert_eq!(maximum, 256);
+    let scoped = StdHost::new_for_thermostat_scan(
+        StdHostConfig {
+            host_id: HostId::from("host/owner-thermostat-test"),
+            boot_id: BootId::from("boot/thermostat-scoped"),
+            offer_generation: OfferGeneration(1),
+        },
+        &initial,
+        maximum,
+    )
+    .unwrap();
+    let mut owner = Owner::open(scoped, resident(&plot), None, "Living room").unwrap();
+    owner.plan_with_source(&source, &plot).unwrap();
+    let plan = &owner.session.realization().unwrap().plan.plots[0].plan;
+    assert!(conduit_core::verify_plan(plan));
+    let PlannedActivationEntry::Scan(scan) = &plan.activations[0] else {
+        panic!("Thermostat keeps the ordinary scan activation")
+    };
+    assert_eq!(scan.limits.maximum_items, 256);
+    assert_eq!(
+        scan.selected_plan.fragments[0].placements[0]
+            .kind_id
+            .as_str(),
+        conduit_thermostat_plot::THERMOSTAT_KIND
+    );
+    let mut invalid = plot.clone();
+    invalid.expanded.activations[0].initial_accumulator_bytes = Some(vec![0xff]);
+    assert!(super::super::scoped_thermostat_initial(&invalid).is_err());
+    invalid = plot;
+    invalid.expanded.activations[0].selected_plot = "other/transition".into();
+    assert!(super::super::scoped_thermostat_initial(&invalid).is_err());
+}
+
+#[test]
+fn scoped_todo_host_refuses_invalid_checked_form_and_keeps_ordinary_source() {
+    assert!(scoped_todo_initial(&source()).unwrap().is_none());
+    let mut checked = crate::plot_source::parse(TODO_SOURCE)
+        .unwrap()
+        .expand_entry_for_authoring()
+        .unwrap();
+    checked.expanded.activations[0].initial_accumulator_bytes = Some(vec![0xff]);
+    assert!(scoped_todo_initial(&checked).is_err());
+}
+
+#[test]
+fn installed_owner_refuses_live_todo_before_shedding_its_scan_activation() {
+    let plot = crate::plot_source::parse(TODO_SOURCE)
+        .unwrap()
+        .expand_entry_for_authoring()
+        .unwrap();
+    let owner = Owner::open(host("boot/todo-plan"), resident(&plot), None, "Groceries").unwrap();
+    assert_eq!(
+        owner.plan_partition(&plot, &resident(&plot)).unwrap_err(),
+        "installed Body execution has no activation-aware Plan or Play"
+    );
+}
+
+#[test]
+fn spoken_next_play_capacity_report_is_safe_while_worker_owns_host() {
+    let plot = source();
+    let mut owner =
+        Owner::open(host("boot/spoken-capacity"), resident(&plot), None, "Test").unwrap();
+    let taken = owner.host.take_for_play().unwrap();
+    assert!(owner.host.is_playing());
+    assert!(!super::face_wardrobe_report::spoken_artifact_can_start_new_play(&owner.host));
+    owner.host.restore_after_play(taken).unwrap();
+}
+
+#[test]
+fn owner_refuses_worker_host_with_drifted_offer_generation() {
+    let checked = source();
+    let mut owner = Owner::open(host("boot/generation"), resident(&checked), None, "Test").unwrap();
+    let original = owner.host.take_for_play().unwrap();
+    let drifted = StdHost::new_with_config(StdHostConfig {
+        host_id: owner.host.advertisement().host_id.clone(),
+        boot_id: owner.host.advertisement().boot_id.clone(),
+        offer_generation: OfferGeneration(2),
+    });
+    assert!(owner.host.restore_after_play(drifted).is_err());
+    assert!(owner.host.is_playing());
+    owner.host.restore_after_play(original).unwrap();
+    assert_eq!(
+        owner.host.advertisement().offer_generation,
+        OfferGeneration(1)
+    );
+}
+
+#[test]
+fn owner_refuses_worker_host_with_changed_offers_at_same_generation() {
+    let checked = source();
+    let mut owner = Owner::open(host("boot/offers"), resident(&checked), None, "Test").unwrap();
+    let original = owner.host.take_for_play().unwrap();
+    let changed = StdHost::new_with_composition(
+        StdHostConfig {
+            host_id: owner.host.advertisement().host_id.clone(),
+            boot_id: owner.host.advertisement().boot_id.clone(),
+            offer_generation: owner.host.advertisement().offer_generation,
+        },
+        StdHostComposition::minimal(),
+    );
+    assert_ne!(changed.advertisement(), owner.host.advertisement());
+    assert!(owner.host.restore_after_play(changed).is_err());
+    assert!(owner.host.is_playing());
+    owner.host.restore_after_play(original).unwrap();
+}
+
+#[test]
+fn missing_owner_route_witness_keeps_the_sealed_plan_and_withdraws_availability() {
+    use conduit_face::{CurrentOwnerFaceRoute, MaskShowDisposition};
+
+    let checked = source();
+    let mut owner = Owner::open(
+        host("boot/wardrobe-loss"),
+        resident(&checked),
+        None,
+        "Wardrobe",
+    )
+    .unwrap();
+    let (attached, _peer) = std::os::unix::net::UnixStream::pair().unwrap();
+    owner.host.attach_terminal_mask(attached).unwrap();
+    let (face, seal) = owner.seal_attached_terminal_route().unwrap();
+    owner.attached_terminal_route = Some(seal.clone());
+    assert!(Owner::current_attached_terminal_route(
+        &owner.host,
+        owner.attached_terminal_route.as_ref(),
+        &owner.session,
+        &face,
+    )
+    .unwrap()
+    .is_some());
+    let next_face = conduit_face::Face::new(
+        face.revision + 1,
+        face.basis.clone(),
+        face.subjects.clone(),
+        face.relationships.clone(),
+        face.properties.clone(),
+        face.text.clone(),
+    )
+    .unwrap();
+    assert!(Owner::current_attached_terminal_route(
+        &owner.host,
+        owner.attached_terminal_route.as_ref(),
+        &owner.session,
+        &next_face,
+    )
+    .unwrap()
+    .is_none());
+    let current = [CurrentOwnerFaceRoute::Local {
+        seal: &seal,
+        owner_offer: owner.host.advertisement(),
+    }];
+    let mask = seal.planned_mask.mask.plot_identity.clone();
+    let mut wardrobe = face_wardrobe::OwnerFaceWardrobe::seal(
+        &owner.session,
+        &face,
+        &current,
+        vec![mask.clone()],
+        vec![mask],
+    )
+    .unwrap();
+    let plan_id = wardrobe.plan().plan_id.clone();
+    let lost = wardrobe
+        .admit_or_replace(&owner.session, &face, &[])
+        .unwrap();
+    assert_eq!(wardrobe.plan().plan_id, plan_id);
+    assert!(matches!(
+        lost.show,
+        MaskShowDisposition::NoCurrentShow { .. }
+    ));
+    assert!(
+        !wardrobe
+            .plan()
+            .admit_current_routes(&owner.session, &face, &[])
+            .unwrap()
+            .routes()[0]
+            .currently_available
+    );
+    let restored = wardrobe
+        .admit_or_replace(&owner.session, &face, &current)
+        .unwrap();
+    assert_eq!(wardrobe.plan().plan_id, plan_id);
+    assert!(matches!(
+        restored.show,
+        MaskShowDisposition::SelectSealed { .. }
+    ));
+    let mut stale_offer = owner.host.advertisement().clone();
+    stale_offer.offer_generation.0 += 1;
+    let stale = [CurrentOwnerFaceRoute::Local {
+        seal: &seal,
+        owner_offer: &stale_offer,
+    }];
+    assert!(wardrobe
+        .admit_or_replace(&owner.session, &face, &stale)
+        .is_err());
+    assert_eq!(wardrobe.plan().plan_id, plan_id);
+}
+
+#[test]
 fn owner_face_uses_checked_names_at_birth_and_after_fresh_boot() {
     let root = std::env::temp_dir().join(super::super::super::fresh_identity(
         "owner-face-names",
@@ -40,6 +293,8 @@ fn owner_face_uses_checked_names_at_birth_and_after_fresh_boot() {
         body_state: None,
         joined_body_state: None,
         selected_speech: None,
+        selected_model: None,
+        selected_todo_checkpoint: None,
     };
     super::super::super::write_json_atomic(&root.join("installation.json"), &installation).unwrap();
     let checked = source();
@@ -57,14 +312,14 @@ fn owner_face_uses_checked_names_at_birth_and_after_fresh_boot() {
         let body = face
             .subjects
             .iter()
-            .find(|subject| subject.role == PresentationRole::Body)
+            .find(|subject| subject.role == FaceRole::Body)
             .unwrap()
             .name
             .clone();
         let plot = face
             .subjects
             .iter()
-            .find(|subject| subject.role == PresentationRole::Plot)
+            .find(|subject| subject.role == FaceRole::Plot)
             .unwrap()
             .name
             .clone();
@@ -184,6 +439,8 @@ fn service_clock_runs_with_durable_live_play_and_explicit_lull() {
         body_state: None,
         joined_body_state: None,
         selected_speech: None,
+        selected_model: None,
+        selected_todo_checkpoint: None,
     };
     super::super::super::write_json_atomic(&root.join("installation.json"), &installation).unwrap();
     let plot = crate::plot_source::parse(CLOCK_SOURCE)
@@ -210,18 +467,33 @@ fn service_clock_runs_with_durable_live_play_and_explicit_lull() {
     }
     let play = owner.current_play_id().unwrap().clone();
     let playing_face = owner.local_face_snapshot().unwrap();
+    assert!(
+        conduit_std_host::spoken_face_mask::primary_face_clauses(&playing_face)
+            .unwrap()
+            .join(" ")
+            .contains("The ticker is running.")
+    );
     let stop = playing_face
         .actions
         .iter()
         .find(|action| action.intent == super::clock_interval::CLOCK_LULL_ACTION)
         .unwrap();
+    let lull = playing_face
+        .actions
+        .iter()
+        .find(|action| action.intent == "conduit.intent/lull@1")
+        .unwrap();
     assert_eq!(
         stop.availability,
-        conduit_presentation::PresentationActionAvailability::Available
+        conduit_face::FaceActionAvailability::Available
     );
-    let response = conduit_presentation::OwnerFaceSnapshotResponse::Snapshot {
-        schema: conduit_presentation::OWNER_FACE_RESPONSE_SCHEMA.into(),
-        presentation: Box::new(playing_face),
+    assert_eq!(
+        lull.availability,
+        conduit_face::FaceActionAvailability::Available
+    );
+    let response = conduit_face::OwnerFaceSnapshotResponse::Snapshot {
+        schema: conduit_face::OWNER_FACE_RESPONSE_SCHEMA.into(),
+        face: Box::new(playing_face),
         interactions_admitted: true,
         route: None,
     };
@@ -231,7 +503,7 @@ fn service_clock_runs_with_durable_live_play_and_explicit_lull() {
         "playing Face is only {face_bytes} bytes"
     );
     assert!(
-        face_bytes <= conduit_presentation::MAX_OWNER_FACE_RESPONSE_BYTES,
+        face_bytes <= conduit_face::MAX_OWNER_FACE_RESPONSE_BYTES,
         "playing Face needs {face_bytes} bytes"
     );
     assert_eq!(
@@ -266,7 +538,8 @@ fn service_clock_runs_with_durable_live_play_and_explicit_lull() {
         serde_json::to_value(conduit_core::TerminalDisposition::Cancelled {
             reason: conduit_core::CancellationReason::OperatorRequested,
         })
-        .unwrap()
+        .unwrap(),
+        "{receipt:?}"
     );
     assert!(
         receipt["output_utf8"]
@@ -300,6 +573,8 @@ fn lulled_clock_interval_replaces_checked_workset_and_next_plan_without_rebirth(
         body_state: None,
         joined_body_state: None,
         selected_speech: None,
+        selected_model: None,
+        selected_todo_checkpoint: None,
     };
     super::super::super::write_json_atomic(&root.join("installation.json"), &installation).unwrap();
     let initial = crate::plot_source::parse(CLOCK_SOURCE)
@@ -381,9 +656,7 @@ fn lulled_clock_interval_replaces_checked_workset_and_next_plan_without_rebirth(
 
 #[test]
 fn terminal_show_returns_one_typed_clock_change_to_the_same_owner() {
-    use conduit_presentation::{
-        FaceInteraction, FaceInteractionArgument, PresentationActionAvailability,
-    };
+    use conduit_face::{FaceActionAvailability, FaceInteraction, FaceInteractionArgument};
     use conduit_std_host::terminal_face_mask::{TerminalFaceMask, TerminalMaskExecution};
     use conduit_std_host::terminal_mask_execution::HostedTerminalMaskExecution;
 
@@ -401,6 +674,8 @@ fn terminal_show_returns_one_typed_clock_change_to_the_same_owner() {
         body_state: None,
         joined_body_state: None,
         selected_speech: None,
+        selected_model: None,
+        selected_todo_checkpoint: None,
     };
     super::super::super::write_json_atomic(&root.join("installation.json"), &installation).unwrap();
     let checked = crate::plot_source::parse(CLOCK_SOURCE)
@@ -418,29 +693,75 @@ fn terminal_show_returns_one_typed_clock_change_to_the_same_owner() {
         .iter()
         .find(|action| action.intent == super::clock_interval_action())
         .unwrap();
-    assert_eq!(
-        action.availability,
-        PresentationActionAvailability::Available
-    );
+    assert_eq!(action.name, "Change ticker pace");
+    assert!(face
+        .subjects
+        .iter()
+        .any(|subject| { subject.identity == action.target && subject.name == "Interval ticker" }));
+    let summary = conduit_std_host::spoken_face_mask::primary_face_clauses(&face)
+        .unwrap()
+        .join(" ");
+    assert!(summary.contains("The ticker is stopped."));
+    assert!(summary.contains("pulse every 1000 milliseconds"));
+    for metadata in [
+        "body-id",
+        "checked-plot-id",
+        "workload-revision",
+        "Unavailable",
+    ] {
+        assert!(
+            !summary.contains(metadata),
+            "unexpected primary speech: {summary}"
+        );
+    }
+    let inspection = conduit_std_host::spoken_face_mask::mechanical_face_clauses(&face)
+        .unwrap()
+        .join(" ");
+    assert!(inspection.contains("body-id"));
+    assert!(inspection.contains("checked-plot-id"));
+    assert!(face.disclosures.iter().any(|disclosure| {
+        disclosure.subject == action.target
+            && disclosure.level == conduit_face::FaceDisclosureLevel::Primary
+    }));
+    assert!(face
+        .text
+        .iter()
+        .any(|text| text.text == "The ticker emits a pulse every 1000 milliseconds."));
+    assert_eq!(action.availability, FaceActionAvailability::Available);
     assert_eq!(action.arguments.len(), 1);
     let start = face
         .actions
         .iter()
         .find(|action| action.intent == super::clock_interval::CLOCK_START_ACTION)
         .unwrap();
+    assert_eq!(start.name, "Start the ticker");
+    let wake = face
+        .actions
+        .iter()
+        .find(|action| action.intent == "conduit.intent/wake@1")
+        .unwrap();
     let stop = face
         .actions
         .iter()
         .find(|action| action.intent == super::clock_interval::CLOCK_LULL_ACTION)
         .unwrap();
-    assert_eq!(
-        start.availability,
-        PresentationActionAvailability::Available
-    );
+    assert_eq!(stop.name, "Stop the ticker");
+    assert_eq!(start.availability, FaceActionAvailability::Available);
+    assert_eq!(wake.availability, FaceActionAvailability::Available);
+    let overview = face
+        .actions
+        .iter()
+        .find(|action| action.intent == "conduit.intent/open-body-overview@1")
+        .unwrap();
+    assert!(matches!(
+        &overview.availability,
+        FaceActionAvailability::Unavailable { reason_code, .. }
+            if reason_code == "owner-action-return-not-admitted"
+    ));
     assert!(start.arguments.is_empty());
     assert!(matches!(
         stop.availability,
-        PresentationActionAvailability::Unavailable { .. }
+        FaceActionAvailability::Unavailable { .. }
     ));
     let mut mask = TerminalFaceMask::prepare(face.clone(), 80, 24).unwrap();
     let mut execution = HostedTerminalMaskExecution::new(owner.host.advertisement()).unwrap();
@@ -452,6 +773,14 @@ fn terminal_show_returns_one_typed_clock_change_to_the_same_owner() {
     assert_eq!(
         owner
             .resolve_clock_interaction(&show, &start_interaction)
+            .unwrap(),
+        super::clock_interval::ClockAction::Start
+    );
+    let wake_interaction =
+        FaceInteraction::new(&face, &show, &wake.identity, &wake.target, vec![], 1).unwrap();
+    assert_eq!(
+        owner
+            .resolve_clock_interaction(&show, &wake_interaction)
             .unwrap(),
         super::clock_interval::ClockAction::Start
     );
@@ -494,6 +823,9 @@ fn terminal_show_returns_one_typed_clock_change_to_the_same_owner() {
         .is_err());
     assert!(owner
         .resolve_clock_interaction(&show, &start_interaction)
+        .is_err());
+    assert!(owner
+        .resolve_clock_interaction(&show, &wake_interaction)
         .is_err());
     assert_eq!(owner.session.evidence().body.workload_revision, 2);
     assert_eq!(
@@ -543,8 +875,12 @@ fn subsequent_runs_keep_body_and_create_distinct_admitted_plays() {
 
 #[test]
 fn unsupported_advertised_call_retains_untyped_refusal_without_inventing_play() {
-    let plot = crate::plot_source::parse("plot refused {\n upper: text/upper\n show: presentation/text\n \"Hello.\" >> upper >> show\n}.")
-        .unwrap().expand_entry_for_authoring().unwrap();
+    let plot = crate::plot_source::parse(
+        "plot refused {\n upper: text/upper\n show: face/text(\"Message\")\n \"Hello.\" >> upper >> show\n}.",
+    )
+    .unwrap()
+    .expand_entry_for_authoring()
+    .unwrap();
     let mut owner = Owner::open(host("boot/refused"), resident(&plot), None, "Refused").unwrap();
     owner.plan(&plot).unwrap();
     let proposal = owner.session.realization().unwrap().plan.plan_id.clone();
@@ -575,6 +911,8 @@ fn actual_execution_receipt_survives_fresh_boot_as_history_only() {
         body_state: None,
         joined_body_state: None,
         selected_speech: None,
+        selected_model: None,
+        selected_todo_checkpoint: None,
     };
     super::super::super::write_json_atomic(&root.join("installation.json"), &installation).unwrap();
     let plot = source();
@@ -628,6 +966,8 @@ fn retained_invitation_admits_one_native_host_once_in_running_owner() {
         body_state: None,
         joined_body_state: None,
         selected_speech: None,
+        selected_model: None,
+        selected_todo_checkpoint: None,
     };
     super::super::super::write_json_atomic(&root.join("installation.json"), &installation).unwrap();
     let plot = source();

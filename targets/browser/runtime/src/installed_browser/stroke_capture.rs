@@ -18,6 +18,9 @@ pub(crate) const OPERATIONS: [&str; 2] = [
 ];
 const IMPLEMENTATION: &str = "browser/bounded-stroke-capture@1";
 const MAXIMUM_POINTS: u32 = 4;
+// Four bounded 2D points carry two canonical quantities each plus type/frame metadata.
+pub(crate) const MAXIMUM_PATH_BYTES: usize =
+    MAXIMUM_POINTS as usize * 2 * conduit_core::QUANTITY_ENCODED_LEN + 1024;
 const FINISH_INPUT: &[u8] = b"conduit.stroke-capture/finish@1";
 const FINISH_REQUEST: RequestId = RequestId(MAXIMUM_POINTS + 1);
 
@@ -29,7 +32,7 @@ pub(super) static INSTALLATION: BrowserInstallation = BrowserInstallation {
 };
 
 pub(crate) struct PreparedStrokeCapture {
-    capture: Option<conduit_presentation::BoundedStrokeCapture>,
+    capture: Option<conduit_face::BoundedStrokeCapture>,
 }
 
 impl PreparedStrokeCapture {
@@ -40,7 +43,7 @@ impl PreparedStrokeCapture {
         validate_placement(placement, &offer())?;
         Ok(Some(Self {
             capture: Some(
-                conduit_presentation::BoundedStrokeCapture::new(4, 4)
+                conduit_face::BoundedStrokeCapture::new(4, 4)
                     .map_err(|error| format!("prepare bounded stroke capture: {error:?}"))?,
             ),
         }))
@@ -66,7 +69,7 @@ impl PreparedStrokeCapture {
                     .map_err(capture_failure)?
                     .canonical_bytes()
                     .map_err(|_| failure(4))?;
-                if output.len() > MAXIMUM_BROWSER_VALUE_BYTES {
+                if output.len() > MAXIMUM_PATH_BYTES {
                     return Err(Failure {
                         code: FailureCode::StorageExhausted,
                         detail: 5,
@@ -80,7 +83,7 @@ impl PreparedStrokeCapture {
 }
 
 fn offer() -> CapabilityOffer {
-    let contract = conduit_presentation::capture_bounded_stroke_semantic_contract();
+    let contract = conduit_face::capture_bounded_stroke_semantic_contract();
     let target_kind = contract.kind_id.clone();
     BackOfferBuilder::new(
         contract,
@@ -88,7 +91,7 @@ fn offer() -> CapabilityOffer {
             capability_id: CapabilityId::from(IMPLEMENTATION),
             execution_profile_id: ExecutionProfileId::from(IMPLEMENTATION),
             implementation_id: ImplementationId::from(IMPLEMENTATION),
-            artifact_id: ArtifactId::from("conduit-presentation/bounded-stroke-capture@1"),
+            artifact_id: ArtifactId::from("conduit-face/bounded-stroke-capture@1"),
             host_calls: vec![
                 HostCallRequirement {
                     contract_id: OPERATIONS[0].into(),
@@ -102,7 +105,7 @@ fn offer() -> CapabilityOffer {
                     target_kind: Some(target_kind),
                     maximum_in_flight: 1,
                     maximum_input_bytes: FINISH_INPUT.len() as u32,
-                    maximum_output_bytes: MAXIMUM_BROWSER_VALUE_BYTES as u32,
+                    maximum_output_bytes: MAXIMUM_PATH_BYTES as u32,
                 },
             ],
             resource_requirements: Vec::new(),
@@ -112,7 +115,7 @@ fn offer() -> CapabilityOffer {
     .narrow_capacity(CapabilityLimits {
         max_active_instances: 2,
         max_queue_items: MAXIMUM_POINTS as u16,
-        max_queue_bytes: MAXIMUM_BROWSER_VALUE_BYTES as u32,
+        max_queue_bytes: MAXIMUM_PATH_BYTES as u32,
     })
     .expect("browser stroke-capture capacity narrows its semantic contract")
     .build()
@@ -221,8 +224,8 @@ impl<const PORTS: usize> StepBack<PORTS> for StrokeCaptureBack {
     }
 }
 
-fn capture_failure(error: conduit_presentation::StrokeCaptureRefusal) -> Failure {
-    use conduit_presentation::StrokeCaptureRefusal::*;
+fn capture_failure(error: conduit_face::StrokeCaptureRefusal) -> Failure {
+    use conduit_face::StrokeCaptureRefusal::*;
     match error {
         InvalidCapacity => failure(30),
         MalformedPoint => failure(31),
@@ -249,12 +252,12 @@ fn failure(detail: u16) -> Failure {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use conduit_core::{OfferGeneration, Quantity, QuantityUnit};
+    use conduit_core::{OfferGeneration, Quantity, Unit};
 
     #[test]
     fn browser_stroke_capture_preserves_semantics_and_narrows_capacity() {
         let offer = offer();
-        let semantic = conduit_presentation::capture_bounded_stroke_semantic_contract();
+        let semantic = conduit_face::capture_bounded_stroke_semantic_contract();
         assert_eq!(offer.startup_parameters, semantic.startup_parameters);
         assert_eq!(offer.kind_id, semantic.kind_id);
         assert_eq!(
@@ -299,10 +302,10 @@ mod tests {
     }
 
     fn point(frame: &str, x: i64) -> Vec<u8> {
-        conduit_presentation::point2_value(
+        conduit_face::point2_value(
             frame,
-            Quantity::new(x, QuantityUnit::Millimeter),
-            Quantity::new(0, QuantityUnit::Millimeter),
+            Quantity::new(x, Unit::Millimeter),
+            Quantity::new(0, Unit::Millimeter),
         )
         .unwrap()
         .canonical_bytes()
@@ -325,10 +328,7 @@ mod tests {
             .unwrap()
             .unwrap();
         let path = StructuredInfoValue::from_canonical_bytes(&output).unwrap();
-        assert_eq!(
-            path.value_type(),
-            &conduit_presentation::path2_type(4).unwrap()
-        );
+        assert_eq!(path.value_type(), &conduit_face::path2_type(4).unwrap());
     }
 
     #[test]

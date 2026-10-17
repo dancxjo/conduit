@@ -1,17 +1,16 @@
-//! Projection of Conduit's lifecycle truth into the shell status Presentation.
+//! Projection of Conduit's lifecycle truth into the shell status Face.
 
 use alloc::vec;
 
-use conduit_presentation::{
-    Presentation, PresentationBasis, PresentationRelationship, PresentationRelationshipKind,
-    PresentationRole, PresentationSubject,
+use conduit_face::{
+    Face, FaceBasis, FaceRelationship, FaceRelationshipKind, FaceRole, FaceSubject,
 };
 
 pub(super) fn with_presenter_host(
-    mut presentation: Presentation,
+    mut face: Face,
     host: &conduit_core::HostId,
-) -> Result<Presentation, TourShellError> {
-    let item = presentation
+) -> Result<Face, TourShellError> {
+    let item = face
         .text
         .iter_mut()
         .find(|item| item.subject == "tour/status/host")
@@ -27,46 +26,46 @@ pub(super) fn with_presenter_host(
             ""
         }
     );
-    presentation.subjects.push(PresentationSubject {
+    face.subjects.push(FaceSubject {
         identity: identity.into(),
-        role: PresentationRole::Host,
+        role: FaceRole::Host,
         name: alloc::format!("Native presenter Host {identity}"),
     });
-    presentation.relationships.push(PresentationRelationship {
+    face.relationships.push(FaceRelationship {
         source: "tour/status/host".into(),
         target: identity.into(),
-        kind: PresentationRelationshipKind::Observes,
+        kind: FaceRelationshipKind::Observes,
     });
-    Presentation::new(
-        presentation.revision,
-        presentation.basis,
-        presentation.subjects,
-        presentation.relationships,
-        presentation.properties,
-        presentation.text,
+    Face::new(
+        face.revision,
+        face.basis,
+        face.subjects,
+        face.relationships,
+        face.properties,
+        face.text,
     )
     .map_err(|_| TourShellError::Identity)
 }
 
 use crate::{display::PixelTarget, product_journey::JourneyProjection, tour_product::TourProduct};
 
-use super::{ShellPresentationReceipt, Slot, TourShellError, TourShellPresenter};
+use super::{ShellFaceReceipt, Slot, TourShellError, TourShellPresenter};
 
-/// Retained presentation input, copied only from the authoritative journey.
+/// Retained face input, copied only from the authoritative journey.
 pub(super) struct StatusSnapshot {
     name: Option<alloc::string::String>,
     status: crate::product_journey::JourneyStatus,
 }
 
 pub(super) fn with_status(
-    mut presentation: Presentation,
+    mut face: Face,
     snapshot: Option<&StatusSnapshot>,
-) -> Result<Presentation, TourShellError> {
+) -> Result<Face, TourShellError> {
     use crate::product_journey::JourneyStatus;
     let Some(snapshot) = snapshot else {
-        return Ok(presentation);
+        return Ok(face);
     };
-    let basis = &presentation.basis;
+    let basis = &face.basis;
     let body = if basis.body_id.is_some() {
         snapshot.name.as_deref().unwrap_or("Retained")
     } else {
@@ -107,26 +106,26 @@ pub(super) fn with_status(
         ("play", play),
     ] {
         let identity = alloc::format!("tour/status/{key}");
-        let item = presentation
+        let item = face
             .text
             .iter_mut()
             .find(|item| item.subject == identity)
             .ok_or(TourShellError::Identity)?;
         item.text = value.into();
     }
-    Presentation::new(
-        presentation.revision,
-        presentation.basis,
-        presentation.subjects,
-        presentation.relationships,
-        presentation.properties,
-        presentation.text,
+    Face::new(
+        face.revision,
+        face.basis,
+        face.subjects,
+        face.relationships,
+        face.properties,
+        face.text,
     )
     .map_err(|_| TourShellError::Identity)
 }
 
-pub(super) fn empty_lifecycle_basis() -> PresentationBasis {
-    PresentationBasis {
+pub(super) fn empty_lifecycle_basis() -> FaceBasis {
+    FaceBasis {
         body_id: None,
         wake_id: None,
         source_document_id: None,
@@ -138,7 +137,7 @@ pub(super) fn empty_lifecycle_basis() -> PresentationBasis {
     }
 }
 
-pub(super) fn basis_from_projection(lifecycle: &JourneyProjection) -> PresentationBasis {
+pub(super) fn basis_from_projection(lifecycle: &JourneyProjection) -> FaceBasis {
     let embodied = lifecycle.body_id.is_some();
     let planned = lifecycle.plan_id.is_some();
     let mut sign_ids = lifecycle
@@ -151,7 +150,7 @@ pub(super) fn basis_from_projection(lifecycle: &JourneyProjection) -> Presentati
         .collect::<alloc::vec::Vec<_>>();
     sign_ids.sort();
     sign_ids.dedup();
-    PresentationBasis {
+    FaceBasis {
         body_id: lifecycle.body_id.clone(),
         wake_id: embodied.then(|| lifecycle.wake_id.clone()).flatten(),
         source_document_id: lifecycle.source_document_id.clone(),
@@ -171,7 +170,7 @@ impl TourShellPresenter {
         tour: &TourProduct,
         lifecycle: &JourneyProjection,
         display: &mut impl PixelTarget,
-    ) -> Result<ShellPresentationReceipt, TourShellError> {
+    ) -> Result<ShellFaceReceipt, TourShellError> {
         self.lifecycle_revision = lifecycle.revision;
         self.lifecycle_basis = basis_from_projection(lifecycle);
         self.lifecycle_status = Some(StatusSnapshot {
@@ -207,28 +206,25 @@ mod tests {
             1,
             conduit_tour_model::TourWorkspacePhase::LessonReady,
         );
-        let original = state.status_presentation().unwrap();
+        let original = state.status_face().unwrap();
         let host = conduit_core::HostId::from("0123456789abcdef0123456789abcdef");
-        let presentation = with_presenter_host(original.clone(), &host).unwrap();
-        assert_eq!(presentation.basis, original.basis);
-        assert!(presentation.basis.body_id.is_none());
+        let face = with_presenter_host(original.clone(), &host).unwrap();
+        assert_eq!(face.basis, original.basis);
+        assert!(face.basis.body_id.is_none());
         assert!(
-            presentation
-                .subjects
+            face.subjects
                 .iter()
-                .any(|subject| subject.role == PresentationRole::Host
-                    && subject.identity == host.as_str())
+                .any(|subject| subject.role == FaceRole::Host && subject.identity == host.as_str())
         );
         assert!(
-            presentation
-                .relationships
+            face.relationships
                 .iter()
                 .any(|edge| edge.source == "tour/status/host"
                     && edge.target == host.as_str()
-                    && edge.kind == PresentationRelationshipKind::Observes)
+                    && edge.kind == FaceRelationshipKind::Observes)
         );
         assert!(
-            presentation.text.iter().any(
+            face.text.iter().any(
                 |item| item.subject == "tour/status/host" && item.text == "Native\n01234567..."
             )
         );
@@ -248,8 +244,7 @@ mod tests {
             assert!(height <= u32::from(crate::tour_workspace::STATUS_HEIGHT - 12));
         }
         assert!(
-            presentation
-                .text
+            face.text
                 .iter()
                 .any(|item| item.subject == "tour/status/lines" && item.text == "Unobserved")
         );

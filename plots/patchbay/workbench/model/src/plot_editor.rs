@@ -1,12 +1,16 @@
-//! Revisioned canonical Plot source and a presentation-only checked graph.
+//! Revisioned canonical Plot source and a face-only checked graph.
 
 use conduit_plot::{
-    check_syntax_document, parse_syntax_document, BackStatement, CheckedCordStage,
-    CheckedSyntaxDocument, PlotSyntax, Span, StartupCatalog, SyntaxCheckDiagnostic,
+    BackStatement, CheckedCordStage, CheckedSyntaxDocument, PlotSyntax, Span, StartupCatalog,
+    SyntaxCheckDiagnostic,
 };
 use std::path::{Path, PathBuf};
 
 use crate::plot_editor_catalogs::standard_catalogs;
+
+#[path = "plot_editor_checking.rs"]
+mod checking;
+pub(crate) use checking::check_revision_with_catalog;
 
 pub use crate::plot_editor_error::PlotEditorError;
 
@@ -112,8 +116,8 @@ pub struct PlotEditor {
     pub(crate) checked: CheckedRevision,
     pub(crate) open_plot: String,
     pub(crate) selection: Option<SourceSelection>,
-    startup_catalog: StartupCatalog,
-    profile_catalog: conduit_plot::ProfileCatalog,
+    pub(crate) startup_catalog: StartupCatalog,
+    pub(crate) profile_catalog: conduit_plot::ProfileCatalog,
 }
 
 impl PlotEditor {
@@ -130,7 +134,7 @@ impl PlotEditor {
     ) -> Result<Self, PlotEditorError> {
         validate_path(&path)?;
         ensure_source_bound(&source)?;
-        let checked = check_revision_with_catalog(0, &source, &startup_catalog)?;
+        let checked = check_revision_with_catalog(0, &source, &startup_catalog, &profile_catalog)?;
         let open_plot = checked
             .plots
             .first()
@@ -159,7 +163,19 @@ impl PlotEditor {
 
     /// Computes a result independently so an async host can publish it later.
     pub fn check_current(&self) -> Result<CheckedRevision, PlotEditorError> {
-        check_revision_with_catalog(self.revision, &self.source, &self.startup_catalog)
+        check_revision_with_catalog(
+            self.revision,
+            &self.source,
+            &self.startup_catalog,
+            &self.profile_catalog,
+        )
+    }
+
+    /// Immutable physical definitions admitted from this exact editor source.
+    pub fn checked_physical_catalog(&self) -> Result<StartupCatalog, PlotEditorError> {
+        let document = conduit_plot::parse_syntax_document(&self.source);
+        conduit_plot::checked_physical_catalog_for_document(&document, &self.startup_catalog)
+            .map_err(|error| PlotEditorError::Catalog(error.message))
     }
 
     pub fn publish_checked(&mut self, checked: CheckedRevision) -> Result<(), PlotEditorError> {
@@ -249,9 +265,9 @@ impl PlotEditor {
         &self,
         name: &str,
     ) -> Result<conduit_plot::ExpandedCanonicalPlot, PlotEditorError> {
-        let syntax = parse_syntax_document(&self.source);
-        let checked = check_syntax_document(&syntax, &self.startup_catalog)
-            .map_err(|diagnostic| PlotEditorError::Catalog(diagnostic.message))?;
+        let (_, checked) =
+            checking::checked_source(&self.source, &self.startup_catalog, &self.profile_catalog)
+                .map_err(|diagnostic| PlotEditorError::Catalog(diagnostic.message))?;
         conduit_plot::expand_canonical_plot(&checked, name, &self.profile_catalog)
             .map_err(|diagnostic| PlotEditorError::Catalog(diagnostic.to_string()))
     }
@@ -260,9 +276,9 @@ impl PlotEditor {
         &self,
         name: &str,
     ) -> Result<conduit_plot::ExpandedAuthoringPlot, PlotEditorError> {
-        let syntax = parse_syntax_document(&self.source);
-        let checked = check_syntax_document(&syntax, &self.startup_catalog)
-            .map_err(|diagnostic| PlotEditorError::Catalog(diagnostic.message))?;
+        let (_, checked) =
+            checking::checked_source(&self.source, &self.startup_catalog, &self.profile_catalog)
+                .map_err(|diagnostic| PlotEditorError::Catalog(diagnostic.message))?;
         conduit_plot::expand_canonical_plot_for_authoring(&checked, name, &self.profile_catalog)
             .map_err(|diagnostic| PlotEditorError::Catalog(diagnostic.to_string()))
     }
@@ -388,34 +404,6 @@ impl PlotEditor {
                 .map_err(|_| PlotEditorError::GraphTooLarge)?;
         }
         Ok(graph)
-    }
-}
-
-pub(crate) fn check_revision(
-    revision: u64,
-    source: &str,
-) -> Result<CheckedRevision, PlotEditorError> {
-    let (startup, _profile) = standard_catalogs()?;
-    check_revision_with_catalog(revision, source, &startup)
-}
-
-fn check_revision_with_catalog(
-    revision: u64,
-    source: &str,
-    startup: &StartupCatalog,
-) -> Result<CheckedRevision, PlotEditorError> {
-    let syntax = parse_syntax_document(source);
-    if let Some(diagnostic) = syntax.diagnostics.first() {
-        return Ok(invalid_revision(
-            revision,
-            diagnostic.code,
-            &diagnostic.message,
-            diagnostic.span,
-        ));
-    }
-    match check_syntax_document(&syntax, startup) {
-        Ok(checked) => graph_revision(revision, &syntax.plots, checked),
-        Err(diagnostic) => Ok(check_error_revision(revision, diagnostic)),
     }
 }
 
@@ -687,3 +675,7 @@ pub(crate) fn ensure_source_bound(source: &str) -> Result<(), PlotEditorError> {
 #[cfg(test)]
 #[path = "plot_editor_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "plot_editor_glyph_tests.rs"]
+mod glyph_tests;

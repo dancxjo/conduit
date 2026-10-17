@@ -1,0 +1,294 @@
+//! Plot catalog for portable finite geometry semantics.
+
+use alloc::{
+    format,
+    string::{String, ToString},
+    vec,
+    vec::Vec,
+};
+use conduit_core::{
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter, Kind, KindId,
+    KindIdentity, PortDescriptor, PortDirection, PortTemporal, Quantity,
+    StructuredConfigurationValue, StructuredInfoType, StructuredInfoValue, Unit,
+};
+use conduit_plot::{
+    KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
+    StartupParameterSignature,
+};
+
+use crate::{
+    path2_type, point2_type, point2_value, transform2_value, EXTENT2_TYPE, IMAGE_REGION2_TYPE,
+    PATH2_FOUR_TYPE, POINT2_TYPE, POINT3_TYPE, RECT2_TYPE, ROBOTICS_POSE2_TYPE, TRANSFORM2_TYPE,
+    VECTOR2_TYPE, VECTOR3_TYPE,
+};
+
+pub const POINT2_LITERAL_KIND: &str = "geometry/point2";
+pub const APPLY_TRANSFORM2_KIND: &str = "geometry/apply-transform2";
+pub const TRANSFORM_PATH2_FOUR_KIND: &str = "geometry/transform-path2-four";
+pub const CAPTURE_BOUNDED_STROKE_KIND: &str = "geometry/capture-bounded-stroke";
+pub const GEOMETRY_REVISION: &str = "conduit.std/geometry-spatial@1";
+
+pub fn geometry_semantic_contracts() -> Vec<Kind> {
+    let point = point2_type();
+    let path = path2_type(4).expect("four-point path is bounded");
+    let point_kind = point
+        .profile()
+        .expect("bounded Point2 profile")
+        .value_kind()
+        .clone();
+    let transform_kind = crate::transform2_type()
+        .profile()
+        .expect("bounded Transform2 profile")
+        .value_kind()
+        .clone();
+    let mut contracts = vec![
+        geometry_contract(
+            POINT2_LITERAL_KIND,
+            vec![],
+            vec![geometry_port("point", &point, PortDirection::Output)],
+            "value",
+            point_kind,
+        ),
+        geometry_contract(
+            APPLY_TRANSFORM2_KIND,
+            vec![geometry_port("source", &point, PortDirection::Input)],
+            vec![geometry_port("transformed", &point, PortDirection::Output)],
+            "transform",
+            transform_kind.clone(),
+        ),
+        geometry_contract(
+            TRANSFORM_PATH2_FOUR_KIND,
+            vec![geometry_port("source", &path, PortDirection::Input)],
+            vec![geometry_port("transformed", &path, PortDirection::Output)],
+            "transform",
+            transform_kind,
+        ),
+    ];
+    for (contract, default) in contracts.iter_mut().zip([
+        default_point2().expect("canonical Point2 default is valid"),
+        default_transform2().expect("canonical Transform2 default is valid"),
+        default_transform2().expect("canonical Transform2 default is valid"),
+    ]) {
+        contract.configuration =
+            vec![
+                structured_configuration_field(&contract.startup_parameters[0].name, default)
+                    .expect("canonical geometry default is bounded"),
+            ];
+    }
+    contracts
+}
+
+pub fn install_geometry_catalogs(
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
+) -> Result<(), String> {
+    for (name, value_type) in geometry_types() {
+        startup
+            .insert_structured_type(name, value_type)
+            .map_err(|error| error.to_string())?;
+    }
+    for contract in geometry_semantic_contracts() {
+        insert_contract(startup, profile, contract)?;
+    }
+    startup.insert(KindSignature {
+        kind: CAPTURE_BOUNDED_STROKE_KIND.into(),
+        startup_parameters: vec![],
+    })?;
+    profile
+        .insert(capture_bounded_stroke_kind_projection())
+        .map_err(|error| error.to_string())
+}
+
+pub fn capture_bounded_stroke_kind_projection() -> KindProjection {
+    let point = point2_type();
+    let stroke = path2_type(4).expect("four-point stroke bound is reviewed");
+    KindProjection {
+        kind_id: kind_id(CAPTURE_BOUNDED_STROKE_KIND),
+        kind_contract_revision: KindIdentity::from(GEOMETRY_REVISION),
+        inputs: vec![flow_geometry_port("point", &point, PortDirection::Input)],
+        outputs: vec![geometry_port("stroke", &stroke, PortDirection::Output)],
+        configuration: vec![],
+    }
+}
+
+pub fn capture_bounded_stroke_semantic_contract() -> conduit_core::Kind {
+    let definition = capture_bounded_stroke_kind_projection();
+    conduit_core::Kind {
+        startup_parameters: vec![],
+        shorthand: None,
+        kind_id: definition.kind_id,
+        kind_contract_revision: definition.kind_contract_revision,
+        inputs: definition.inputs,
+        outputs: definition.outputs,
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
+        limits: conduit_core::CapabilityLimits {
+            max_active_instances: 8,
+            max_queue_items: 4,
+            max_queue_bytes: (conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES * 4) as u32,
+        },
+    }
+}
+
+/// Install only the reviewed four-point path and capture operation into a host
+/// profile that already owns the canonical `Point2` type.
+pub fn install_bounded_stroke_capture_catalog(
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
+) -> Result<(), String> {
+    startup
+        .insert_structured_type(
+            PATH2_FOUR_TYPE,
+            path2_type(4).map_err(|error| format!("{error:?}"))?,
+        )
+        .map_err(|error| error.to_string())?;
+    startup
+        .insert(KindSignature {
+            kind: CAPTURE_BOUNDED_STROKE_KIND.into(),
+            startup_parameters: vec![],
+        })
+        .map_err(|error| error.to_string())?;
+    profile
+        .insert(capture_bounded_stroke_kind_projection())
+        .map_err(|error| error.to_string())
+}
+
+pub fn geometry_types() -> Vec<(&'static str, StructuredInfoType)> {
+    vec![
+        (POINT2_TYPE, crate::point2_type()),
+        (POINT3_TYPE, crate::point3_type()),
+        (VECTOR2_TYPE, crate::vector2_type()),
+        (VECTOR3_TYPE, crate::vector3_type()),
+        (EXTENT2_TYPE, crate::extent2_type()),
+        (RECT2_TYPE, crate::rect2_type()),
+        (TRANSFORM2_TYPE, crate::transform2_type()),
+        (PATH2_FOUR_TYPE, crate::path2_type(4).unwrap()),
+        (ROBOTICS_POSE2_TYPE, crate::robotics_pose2_type()),
+        (IMAGE_REGION2_TYPE, crate::image_region2_type()),
+    ]
+}
+
+fn geometry_contract(
+    kind: &str,
+    inputs: Vec<PortDescriptor>,
+    outputs: Vec<PortDescriptor>,
+    parameter: &str,
+    parameter_type: KindId,
+) -> Kind {
+    Kind {
+        startup_parameters: vec![FrontStartupParameter {
+            name: parameter.into(),
+            value_type: parameter_type,
+            has_default: false,
+        }],
+        shorthand: None,
+        kind_id: kind_id(kind),
+        kind_contract_revision: KindIdentity::from(GEOMETRY_REVISION),
+        inputs,
+        outputs,
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
+        limits: CapabilityLimits {
+            max_active_instances: 8,
+            max_queue_items: 4,
+            max_queue_bytes: conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
+        },
+    }
+}
+
+fn insert_contract(
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
+    contract: Kind,
+) -> Result<(), String> {
+    startup
+        .insert(KindSignature {
+            kind: contract.kind_id.as_str().to_string(),
+            startup_parameters: contract
+                .startup_parameters
+                .iter()
+                .map(|parameter| StartupParameterSignature {
+                    name: parameter.name.clone(),
+                    value_type: if contract.kind_id.as_str() == POINT2_LITERAL_KIND {
+                        POINT2_TYPE
+                    } else {
+                        TRANSFORM2_TYPE
+                    }
+                    .to_string(),
+                    default: None,
+                })
+                .collect(),
+        })
+        .map_err(|error| error.to_string())?;
+    profile
+        .insert_kind(contract)
+        .map_err(|error| error.to_string())
+}
+
+fn structured_configuration_field(
+    parameter: &str,
+    default: StructuredInfoValue,
+) -> Result<KindConfigurationField, String> {
+    let value_type = default.value_type().clone();
+    let value_profile = value_type.profile().map_err(|error| format!("{error:?}"))?;
+    let canonical = default
+        .canonical_bytes()
+        .map_err(|error| format!("{error:?}"))?;
+    Ok(KindConfigurationField {
+        key: parameter.to_string(),
+        default_value: ConfigurationValue::Structured(
+            StructuredConfigurationValue::new(value_profile.value_kind().clone(), canonical)
+                .ok_or_else(|| "geometry default exceeds structured bound".to_string())?,
+        ),
+        rule: KindConfigurationRule::Structured {
+            profile: value_profile.value_kind().clone(),
+        },
+    })
+}
+
+pub fn geometry_port(
+    name: &str,
+    value_type: &StructuredInfoType,
+    direction: PortDirection,
+) -> PortDescriptor {
+    PortDescriptor {
+        port_id: port_id(name),
+        value_kind: value_type
+            .profile()
+            .expect("bounded geometry type")
+            .value_kind()
+            .clone(),
+        direction,
+        temporal: PortTemporal::Value,
+        abnormal_kind: None,
+    }
+}
+
+fn flow_geometry_port(
+    name: &str,
+    value_type: &StructuredInfoType,
+    direction: PortDirection,
+) -> PortDescriptor {
+    let mut port = geometry_port(name, value_type, direction);
+    port.temporal = PortTemporal::Flow { closes: true };
+    port
+}
+
+fn default_point2() -> Result<StructuredInfoValue, String> {
+    point2_value(
+        "geometry/example",
+        Quantity::new(0, Unit::Millimeter),
+        Quantity::new(0, Unit::Millimeter),
+    )
+    .map_err(|error| format!("{error:?}"))
+}
+
+fn default_transform2() -> Result<StructuredInfoValue, String> {
+    transform2_value(
+        "geometry/example",
+        "geometry/example",
+        Quantity::new(0, Unit::Millimeter),
+        Quantity::new(0, Unit::Millimeter),
+    )
+    .map_err(|error| format!("{error:?}"))
+}

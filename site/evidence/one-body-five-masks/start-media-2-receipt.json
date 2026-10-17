@@ -1,0 +1,14 @@
+{
+  "schema": "conduit.journey/capture-receipt@2",
+  "source_commit": "9b79486146bfb0af3369f8133a81b3d14792bd1c",
+  "run_id": "three-host-5a9b4d4cd9a752c0c7205216",
+  "body_id": "ee3733747a44b61879ad714ce8ab178cdc54b227eba48752b43c966a428cce30",
+  "chapter_id": "start",
+  "event_id": "show/4e3c443c9aadf6171a4e1348b3468620788c534a88c6275bcf8ee15813222558",
+  "event_kind": "typed-interaction-source-show",
+  "face_revision": "11",
+  "source_receipt_id": "start-media-2-source",
+  "media_output_id": "start-media-2",
+  "media_sha256": "25f66a5d24a24d5245f00581a7d5a7ce761c504068dd5698c22cba5652b3034b",
+  "capture_source": "chromium"
+}

@@ -1,0 +1,25 @@
+{
+  "schema": "conduit.journey/chapter-receipt@2",
+  "source_commit": "9b79486146bfb0af3369f8133a81b3d14792bd1c",
+  "run_id": "three-host-5a9b4d4cd9a752c0c7205216",
+  "body_id": "ee3733747a44b61879ad714ce8ab178cdc54b227eba48752b43c966a428cce30",
+  "chapter_id": "lull",
+  "events": [
+    {
+      "kind": "typed-interaction",
+      "id": "body/action/start-clock/6",
+      "face_revision": "19",
+      "observed_at_unix_ms": 1791386832082,
+      "source_receipt_id": "lull-event-1-source"
+    },
+    {
+      "kind": "typed-interaction",
+      "id": "body/action/lull-clock/body-play/sha256:a117055bb87d0f02f22d93562f77c3fa9bb54a88733f44711d044a9186154bbb",
+      "face_revision": "26",
+      "observed_at_unix_ms": 1791387531595,
+      "source_receipt_id": "lull-event-2-source"
+    }
+  ],
+  "resulting_face_revision": "26",
+  "outcome": "completed"
+}

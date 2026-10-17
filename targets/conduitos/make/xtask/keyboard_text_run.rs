@@ -38,25 +38,21 @@ pub(super) fn validate(
         .lines()
         .filter_map(|line| line.strip_prefix("CONDUIT_KEYBOARD_UNICODE_PRESENT "))
         .collect();
-    let expected = ["H", "E", "L", "L", "O", "Æ", "É", "Λ"];
+    let expected = ["H", "E", "L", "L", "O", "Æ", "É", "À"];
     if sign.schema != "conduit.conduitos.keyboard-text-plot/v1"
         || sign.status != "completed"
         || sign.proof_class != "freestanding-emulator"
         || sign.host_id != keyboard.host_id
         || sign.boot_id != boot.boot_id
         || sign.plot_machine_facts
-        || sign.keymap_configuration != "conduit-intl"
-        || sign.physical_transition_count != 38
-        || sign
-            .presentation_fragments
-            .iter()
-            .map(String::as_str)
-            .ne(expected)
+        || sign.keymap_configuration != "us-intl"
+        || sign.physical_transition_count != 26
+        || sign.face_fragments.iter().map(String::as_str).ne(expected)
         || sign.visible_ascii != "HELLO"
         || !sign.bounded
         || !sign.completed
         || ascii != ["HELLO"]
-        || unicode != ["ÆÉΛ"]
+        || unicode != ["ÆÉÀ"]
         || !is_identity(&sign.source_document_id)
         || !is_identity(&sign.checked_plot_id)
         || !is_identity(&sign.expanded_plot_id)
@@ -83,7 +79,7 @@ fn validate_observatory(
         conduit_semantic_catalog::KEYBOARD_KIND,
         conduit_semantic_catalog::KEYMAP_KIND,
         conduit_text::TEXT_UPPER_KIND,
-        conduit_semantic_catalog::TEXT_PRESENTATION_KIND,
+        conduit_semantic_catalog::TEXT_FACE_KIND,
     ];
     let Some(plan) = snapshot.plans.first() else {
         return Err(ConduitosError::refusal(
@@ -125,7 +121,7 @@ fn validate_observatory(
         "kind=input/keyboard",
         "kind=input/keymap",
         "kind=text/upper",
-        "kind=presentation/text",
+        "kind=face/text",
         "implementation=conduitos/usb-hid-keyboard@1",
         "value_kind=input/key-event@1",
         "conduitos.base/xhci@1",

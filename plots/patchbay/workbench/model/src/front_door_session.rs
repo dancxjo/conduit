@@ -9,7 +9,7 @@ use conduit_core::{
     bind_active_play, ActivePlayId, ActivePlayIdentity, BootId, HostId, LineAvailability, LineId,
     LineOffer, OfferGeneration, PlanId, SignId,
 };
-use conduit_presentation::Presentation;
+use conduit_face::Face;
 use patchbay_application::PartsView;
 use std::sync::Arc;
 
@@ -20,7 +20,7 @@ use crate::{
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LocalFrontDoorProjection {
-    pub presentation: Presentation,
+    pub face: Face,
     pub navigation: patchbay_application::PatchbayNavigationProjection,
     pub parts: PartsView,
 }
@@ -55,7 +55,7 @@ impl LocalFrontDoor {
             HostId::from(format!("patchbay-native/{nonce:x}")),
             BootId::from(format!("patchbay-boot/{nonce:x}")),
             OfferGeneration(1),
-            crate::PatchbayHostProfile::Text,
+            crate::PatchbayHostProfile::Authoring,
         )?;
         Self::from_model(adapter, PatchbayModel::from_advertisement(advertisement))
     }
@@ -69,7 +69,7 @@ impl LocalFrontDoor {
             host_id,
             boot_id,
             OfferGeneration(1),
-            crate::PatchbayHostProfile::Text,
+            crate::PatchbayHostProfile::Authoring,
         )?;
         Self::from_model(adapter, PatchbayModel::from_advertisement(advertisement))
     }
@@ -296,7 +296,7 @@ impl LocalFrontDoor {
             host_id.clone(),
             boot_id.clone(),
             offer_generation,
-            crate::PatchbayHostProfile::Text,
+            crate::PatchbayHostProfile::Authoring,
         )?;
         let next_model = PatchbayModel::from_advertisement(advertisement);
         self.membership
@@ -485,7 +485,7 @@ impl LocalFrontDoor {
         self.revision = self
             .revision
             .checked_add(1)
-            .ok_or("front-door presentation revision exhausted")?;
+            .ok_or("front-door face revision exhausted")?;
         Ok(())
     }
 }

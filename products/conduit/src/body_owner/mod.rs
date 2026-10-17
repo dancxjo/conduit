@@ -1,14 +1,19 @@
 //! Foreground owner of one installed Linux Host's retained Body.
 mod controller;
+#[cfg(test)]
+pub(crate) use controller::published_todo_test_fixture;
 mod image;
 mod native_observation;
 mod state;
 use conduit_body::ResidentPlot;
+use conduit_plot::ActivationSyntax;
 #[cfg(unix)]
 pub(crate) use controller::run_service_window;
 pub(crate) use controller::{
     clock_interval_action, is_clock_control_intent, BrowserAdmittedSnapshot,
-    BrowserWindowAuthorization, ClockAction, Owner, RunWorker, CLOCK_RUN_MAXIMUM_MILLIS,
+    BrowserCarrierLineEvidence, BrowserWindowAuthorization, ClockAction, DirectSpokenStart,
+    LlmSpokenStart, Owner, RunWorker, ThermostatWorker, TodoWaitingWorker,
+    CLOCK_RUN_MAXIMUM_MILLIS,
 };
 use serde::Deserialize;
 use std::{
@@ -33,7 +38,17 @@ pub(crate) fn resume_service(
         owner.set_resident_plot_name(&checked)?;
     }
     owner.restore_execution(root)?;
-    owner.persist(root)?;
+    if owner.has_retained_verified_todo_read() {
+        let selected = super::selected_todo_checkpoint(root)?
+            .ok_or("Todo re-encounter has no selected checkpoint")?;
+        owner.reencounter_committed_todo(root, &selected.root, &selected.content, 5_000)?;
+    } else if owner.has_retained_failed_todo_read() {
+        let selected = super::selected_todo_checkpoint(root)?
+            .ok_or("Todo failed read has no selected checkpoint")?;
+        owner.retry_retained_failed_todo_read(root, &selected.root, &selected.content, 5_000)?;
+    } else {
+        owner.persist(root)?;
+    }
     Ok(owner)
 }
 
@@ -52,6 +67,90 @@ fn checked_retained_source(
     crate::plot_source::parse(source)?
         .expand_entry_for_authoring()
         .map(Some)
+}
+
+/// Only a checked, exact Todo scan can request the scoped production offer.
+/// Its initial Form comes from authored source, never from the display name.
+fn scoped_todo_initial(
+    checked: &conduit_plot::ExpandedAuthoringPlot,
+) -> Result<Option<(conduit_todo_plot::TodoState, u16)>, String> {
+    if checked.expanded.activations.is_empty() {
+        return Ok(None);
+    }
+    if checked.expanded.name != "todo/main" || checked.expanded.activations.len() != 1 {
+        return Err("installed Body supports no other activation source".into());
+    }
+    let activation = &checked.expanded.activations[0];
+    if activation.selected_plot != "todo/transition" {
+        return Err("installed Todo scan requires the exact transition child".into());
+    }
+    let ActivationSyntax::Scan { maximum_items, .. } = &activation.mode else {
+        return Err("installed Todo activation is not scan".into());
+    };
+    let bytes = activation
+        .initial_accumulator_bytes
+        .as_deref()
+        .ok_or("installed Todo scan has no checked initial Form")?;
+    let initial = conduit_todo_plot::TodoState::decode_info(bytes)
+        .map_err(|error| format!("installed Todo initial Form: {error:?}"))?;
+    if initial
+        .encode_info()
+        .map_err(|error| format!("installed Todo initial Form: {error:?}"))?
+        != bytes
+    {
+        return Err("installed Todo initial Form is not canonical".into());
+    }
+    Ok(Some((initial, *maximum_items)))
+}
+/// Recover only the exact checked Thermostat source's scoped initial Form.
+/// Service boot must advertise this Back before the retained owner can plan it.
+pub(super) fn retained_thermostat_scan(
+    root: &Path,
+) -> Result<Option<(conduit_thermostat_plot::ThermostatState, u16)>, String> {
+    let Some(checked) = checked_retained_source(root)? else {
+        return Ok(None);
+    };
+    if checked.expanded.name != "thermostat/main" {
+        return Ok(None);
+    }
+    scoped_thermostat_initial(&checked)
+}
+
+/// Only a checked, exact Thermostat scan can request the scoped production offer.
+/// Its initial Form comes from authored source, never from the display name.
+fn scoped_thermostat_initial(
+    checked: &conduit_plot::ExpandedAuthoringPlot,
+) -> Result<Option<(conduit_thermostat_plot::ThermostatState, u16)>, String> {
+    if checked.expanded.activations.is_empty() {
+        return Ok(None);
+    }
+    if checked.expanded.name != "thermostat/main" || checked.expanded.activations.len() != 1 {
+        return Err("installed Body supports no other activation source".into());
+    }
+    let activation = &checked.expanded.activations[0];
+    if activation.selected_plot != "thermostat/transition" {
+        return Err("installed Thermostat scan requires the exact transition child".into());
+    }
+    let ActivationSyntax::Scan { maximum_items, .. } = &activation.mode else {
+        return Err("installed Thermostat activation is not scan".into());
+    };
+    if *maximum_items == 0 || *maximum_items > 256 {
+        return Err("installed Thermostat scan admits 1..=256 controls".into());
+    }
+    let bytes = activation
+        .initial_accumulator_bytes
+        .as_deref()
+        .ok_or("installed Thermostat scan has no checked initial Form")?;
+    let initial = conduit_thermostat_plot::ThermostatState::decode_info(bytes)
+        .map_err(|error| format!("installed Thermostat initial Form: {error:?}"))?;
+    if initial
+        .encode_info()
+        .map_err(|error| format!("installed Thermostat initial Form: {error:?}"))?
+        != bytes
+    {
+        return Err("installed Thermostat initial Form is not canonical".into());
+    }
+    Ok(Some((initial, *maximum_items)))
 }
 #[derive(Deserialize)]
 #[serde(tag = "operation", rename_all = "kebab-case", deny_unknown_fields)]
@@ -94,13 +193,29 @@ pub(crate) fn run(source: &Path, directory: &Path, name: &str) -> Result<(), Str
     image::verify(&root)?;
     let source_bytes = super::bounded_read(source, MAXIMUM_SOURCE)?;
     let source_text = std::str::from_utf8(&source_bytes).map_err(|e| e.to_string())?;
-    let checked = crate::plot_source::parse(source_text)?.expand_entry_for_authoring()?;
+    let canonical_source = crate::plot_source::parse(source_text)?;
+    let checked = canonical_source.expand_entry_for_authoring()?;
     let resident = ResidentPlot::new(
         checked.expanded.source_document_id.clone(),
         checked.expanded.checked_plot_id.clone(),
     );
     let retained = state::load(&root)?;
-    let (mut status, runtime) = super::prepare_runtime(&root)?;
+    let (mut status, runtime) = if checked.expanded.name == "thermostat/main" {
+        let thermostat = scoped_thermostat_initial(&checked)?;
+        super::prepare_runtime_with_scans(
+            &root,
+            None,
+            thermostat
+                .as_ref()
+                .map(|(initial, maximum)| (initial, *maximum)),
+        )?
+    } else {
+        let todo = scoped_todo_initial(&checked)?;
+        super::prepare_runtime_with_todo(
+            &root,
+            todo.as_ref().map(|(initial, maximum)| (initial, *maximum)),
+        )?
+    };
     let result = (|| {
         let mut owner =
             controller::Owner::open(runtime.into_owner_host(), resident, retained, name)?;
@@ -176,7 +291,7 @@ pub(crate) fn run(source: &Path, directory: &Path, name: &str) -> Result<(), Str
                             let receipt = owner.admit_invited(&root, request, &expected_host_id)?;
                             emit(&serde_json::to_value(receipt).map_err(|e| e.to_string())?)?;
                         }
-                        Request::Plan => owner.plan(&checked)?,
+                        Request::Plan => owner.plan_with_source(&canonical_source, &checked)?,
                         Request::Run { maximum_millis } => {
                             owner.persist(&root)?;
                             owner.execute(maximum_millis)?;
@@ -220,3 +335,6 @@ fn emit(value: &serde_json::Value) -> Result<(), String> {
 mod cli_smoke;
 #[cfg(all(test, target_os = "linux"))]
 mod service_clock_smoke;
+
+#[cfg(test)]
+mod todo_speech_tests;

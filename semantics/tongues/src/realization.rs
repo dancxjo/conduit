@@ -76,13 +76,13 @@ pub fn speech_host_fixture(condition: OutputCondition) -> SpeechHostFixture {
         host_call(SYNTHESIZE_OPERATION, MAXIMUM_TEXT_BYTES, MAXIMUM_PCM_BYTES);
     let mut output_operation_requirement = host_call(output_operation, MAXIMUM_PCM_BYTES, 256);
     output_operation_requirement.target_kind = Some(kind_id(AUDIO_PLAY_KIND));
-    let synthesis = BackOfferBuilder::new(
+    let mut synthesis = BackOfferBuilder::new(
         synth,
         Back {
             capability_id: CapabilityId::from(format!("{host}/synthesize")),
             execution_profile_id: ExecutionProfileId::from("conduit.speech/deterministic-hosted@1"),
-            implementation_id: ImplementationId::from("tongues/fixture-tts-adapter@5748f20e"),
-            artifact_id: ArtifactId::from("tongues-pipeline/text-to-speech@5748f20e"),
+            implementation_id: ImplementationId::from("conduit-tongues/fixture-tts-adapter@2"),
+            artifact_id: ArtifactId::from("conduit-tongues/fixture-text-to-speech@2"),
             host_calls: vec![synthesis_operation],
             resource_requirements: {
                 let mut requirements = vec![
@@ -96,6 +96,22 @@ pub fn speech_host_fixture(condition: OutputCondition) -> SpeechHostFixture {
         },
     )
     .build();
+    let coverage = conduit_language::LanguageCoverage::new(
+        synthesis.implementation.artifact_id.as_str().into(),
+        conduit_plot::rust_binding::BoundedSequence::try_from_iter([
+            crate::specimen_language_request().language().clone(),
+        ])
+        .expect("one fixture Language"),
+        conduit_plot::rust_binding::BoundedSequence::try_from_iter([]).expect("no private mapping"),
+        "tongues-english-starter@5748f20e".into(),
+        conduit_plot::rust_binding::BoundedSequence::try_from_iter([])
+            .expect("no exact fixture variety"),
+        false,
+    )
+    .expect("finite fixture coverage");
+    synthesis.realization_properties =
+        vec![conduit_language::language_coverage_property(coverage)
+            .expect("native fixture coverage")];
     let output = BackOfferBuilder::new(
         present,
         Back {

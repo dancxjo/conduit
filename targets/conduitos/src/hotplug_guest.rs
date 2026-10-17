@@ -197,9 +197,7 @@ fn drive_to_keyboard(kernel: &mut KeyboardTextKernel) -> Result<HostCallRequest,
                 KeyboardTextRequestKind::Keyboard => return Ok(request),
                 KeyboardTextRequestKind::Keymap => kernel.complete_keymap(request),
                 KeyboardTextRequestKind::Upper => kernel.complete_upper(request),
-                KeyboardTextRequestKind::Presentation => {
-                    kernel.complete_presentation(request).map(|_| ())
-                }
+                KeyboardTextRequestKind::Face => kernel.complete_face(request).map(|_| ()),
             }
             .map_err(|_| "semantic-operation-refused")?;
         }
@@ -214,7 +212,7 @@ fn drive_to_keyboard(kernel: &mut KeyboardTextKernel) -> Result<HostCallRequest,
 }
 
 fn finish(kernel: &mut KeyboardTextKernel) -> Result<u8, &'static str> {
-    let mut presentations = 0_u8;
+    let mut faces = 0_u8;
     for _ in 0..256 {
         while let Some(request) = kernel.next_host_request() {
             match kernel
@@ -224,15 +222,15 @@ fn finish(kernel: &mut KeyboardTextKernel) -> Result<u8, &'static str> {
                 KeyboardTextRequestKind::Keyboard => return Err("unexpected-extra-key-request"),
                 KeyboardTextRequestKind::Keymap => kernel.complete_keymap(request),
                 KeyboardTextRequestKind::Upper => kernel.complete_upper(request),
-                KeyboardTextRequestKind::Presentation => {
-                    presentations += 1;
-                    kernel.complete_presentation(request).map(|_| ())
+                KeyboardTextRequestKind::Face => {
+                    faces += 1;
+                    kernel.complete_face(request).map(|_| ())
                 }
             }
             .map_err(|_| "semantic-operation-refused")?;
         }
         match kernel.step() {
-            Ok(SchedulerStatus::Drained) => return Ok(presentations),
+            Ok(SchedulerStatus::Drained) => return Ok(faces),
             Ok(SchedulerStatus::Progress { .. }) | Ok(SchedulerStatus::Idle) => {}
             _ => return Err("d2-kernel-terminal-invalid"),
         }

@@ -124,6 +124,7 @@ fn found_storage_result_feeds_reusable_comparison_through_checked_selectors() {
             keyboard: None,
             local_model: None,
             vector_search: None,
+            model_work: None,
             calendar: None,
             body_conversation_context: None,
         },

@@ -21,11 +21,40 @@ pub(super) fn key_pair(
     hid_qmp::send_named_keys(qmp, reader, &[key], false, label)
 }
 
+/// QMP acceptance acknowledges the host command, not guest consumption.
+/// Hold the lifecycle key until its complete semantic record is observed;
+/// release is still attempted on a refused observation, without replay.
+/// The journey owner retains a failed guest for diagnostics and then reaps it.
+pub(super) fn key_until_status(
+    qmp: &mut UnixStream,
+    reader: &mut qmp::Reader,
+    serial: &Path,
+    child: &mut Child,
+    key: &str,
+    status: &str,
+) -> Result<(), ConduitosError> {
+    held_key(
+        |down| hid_qmp::send_named_keys(qmp, reader, &[key], down, "journey-lifecycle"),
+        || wait_status_retaining_guest(serial, child, status),
+    )
+}
+fn held_key(
+    mut send: impl FnMut(bool) -> Result<(), ConduitosError>,
+    observe: impl FnOnce() -> Result<(), ConduitosError>,
+) -> Result<(), ConduitosError> {
+    send(true)?;
+    let observed = observe();
+    let released = send(false);
+    observed.and(released)
+}
+
 /// Birth the selected zero-Body Crèche plan through the ordinary keyboard Face.
 /// Keep the separate journey boots on the same authored interaction sequence.
 pub(super) fn birth_from_creche(
     qmp: &mut UnixStream,
     reader: &mut qmp::Reader,
+    serial: &Path,
+    child: &mut Child,
 ) -> Result<(), ConduitosError> {
     // The initial Face focuses the name argument. Three reverse controls in
     // the current semantic Face lead to Birth without traversing plot choices.
@@ -33,7 +62,10 @@ pub(super) fn birth_from_creche(
         hid_qmp::send_named_keys(qmp, reader, &["shift", "tab"], true, "creche-focus-birth")?;
         hid_qmp::send_named_keys(qmp, reader, &["shift", "tab"], false, "creche-focus-birth")?;
     }
-    key_pair(qmp, reader, "ret", "creche-birth")
+    // QMP command acceptance does not prove that the guest sampled Enter.
+    // Keep this single press live through the existing bounded Birth record
+    // observation, then release even if preparation refuses or times out.
+    key_until_status(qmp, reader, serial, child, "ret", "born-lulled")
 }
 
 pub(super) fn relative_motion(
@@ -83,11 +115,30 @@ pub(super) fn wait_status(
     child: &mut Child,
     status: &str,
 ) -> Result<(), ConduitosError> {
-    wait_for_record(
+    wait_status_inner(serial, child, status, true)
+}
+
+/// Leave the guest available for the journey owner’s failure capture and cleanup.
+pub(super) fn wait_status_retaining_guest(
+    serial: &Path,
+    child: &mut Child,
+    status: &str,
+) -> Result<(), ConduitosError> {
+    wait_status_inner(serial, child, status, false)
+}
+
+fn wait_status_inner(
+    serial: &Path,
+    child: &mut Child,
+    status: &str,
+    stop_on_timeout: bool,
+) -> Result<(), ConduitosError> {
+    wait_for_record_inner(
         serial,
         child,
         "product-journey-stage-timeout",
         status,
+        stop_on_timeout,
         |text| {
             journey_records::decode(text).map(|records| {
                 records
@@ -103,9 +154,24 @@ pub(super) fn wait_for_record(
     child: &mut Child,
     reason: &'static str,
     status: &str,
+    observed: impl FnMut(&str) -> Result<bool, ConduitosError>,
+) -> Result<(), ConduitosError> {
+    wait_for_record_inner(serial, child, reason, status, true, observed)
+}
+
+fn wait_for_record_inner(
+    serial: &Path,
+    child: &mut Child,
+    reason: &'static str,
+    status: &str,
+    stop_on_timeout: bool,
     mut observed: impl FnMut(&str) -> Result<bool, ConduitosError>,
 ) -> Result<(), ConduitosError> {
-    let deadline = std::time::Instant::now() + RECORD_WAIT_TIMEOUT;
+    let timeout = match status {
+        "born-lulled" | "awake" | "planned" => hid_qmp::COLD_PREPARATION_WAIT_TIMEOUT,
+        _ => RECORD_WAIT_TIMEOUT,
+    };
+    let deadline = std::time::Instant::now() + timeout;
     loop {
         let bytes = fs::read(serial).map_err(|error| {
             ConduitosError::refusal("product-journey-serial-unavailable", error.to_string())
@@ -114,6 +180,12 @@ pub(super) fn wait_for_record(
             return Ok(());
         }
         if std::time::Instant::now() >= deadline {
+            if !stop_on_timeout {
+                return Err(ConduitosError::refusal(
+                    reason,
+                    format!("no complete guest record for {status}"),
+                ));
+            }
             return hid_qmp::stop(
                 child,
                 reason,
@@ -165,6 +237,27 @@ mod tests {
         assert_eq!(complete_records(b"READY").unwrap(), "");
     }
 
+    #[test]
+    fn failed_journey_keeps_guest_available_until_owner_cleanup() {
+        let serial = std::env::temp_dir().join(format!(
+            "conduit-journey-timeout-test-{}.log",
+            std::process::id()
+        ));
+        fs::write(&serial, b"").unwrap();
+        let mut guest = std::process::Command::new("sleep")
+            .arg("60")
+            .spawn()
+            .unwrap();
+        let result = wait_status_retaining_guest(&serial, &mut guest, "stopped");
+        let guest_state = guest.try_wait();
+        let _ = guest.kill();
+        let reaped = guest.wait();
+        let _ = fs::remove_file(serial);
+        assert_eq!(result.unwrap_err().reason, "product-journey-stage-timeout");
+        assert!(guest_state.unwrap().is_none());
+        assert!(reaped.is_ok());
+    }
+
     fn acknowledged(action: impl FnOnce(&mut UnixStream, &mut qmp::Reader)) -> Value {
         let (mut client, mut server) = UnixStream::pair().unwrap();
         let worker = std::thread::spawn(move || {
@@ -208,5 +301,59 @@ mod tests {
         assert_eq!(button["id"], "0:press");
         assert_eq!(button["arguments"]["events"][0]["data"]["button"], "left");
         assert_eq!(button["arguments"]["events"][0]["data"]["down"], true);
+    }
+    #[test]
+    fn planning_release_follows_guest_record_not_qmp_acceptance() {
+        let events = std::cell::RefCell::new(Vec::new());
+        held_key(
+            |down| {
+                events.borrow_mut().push(if down { "down" } else { "up" });
+                Ok(())
+            },
+            || {
+                assert_eq!(*events.borrow(), ["down"]);
+                events.borrow_mut().push("guest-planned");
+                Ok(())
+            },
+        )
+        .unwrap();
+        assert_eq!(*events.borrow(), ["down", "guest-planned", "up"]);
+    }
+    #[test]
+    fn refused_guest_record_releases_once_and_preserves_original_failure() {
+        let events = std::cell::RefCell::new(Vec::new());
+        let error = held_key(
+            |down| {
+                events.borrow_mut().push(down);
+                if down {
+                    Ok(())
+                } else {
+                    Err(ConduitosError::refusal("release-failed", "QMP stopped"))
+                }
+            },
+            || {
+                Err(ConduitosError::refusal(
+                    "product-journey-stage-timeout",
+                    "no planned record",
+                ))
+            },
+        )
+        .unwrap_err();
+        assert_eq!(error.reason, "product-journey-stage-timeout");
+        assert_eq!(*events.borrow(), [true, false]);
+    }
+    #[test]
+    fn failed_press_never_waits_for_an_unissued_action() {
+        let observed = std::cell::Cell::new(false);
+        let error = held_key(
+            |_| Err(ConduitosError::refusal("press-failed", "QMP unavailable")),
+            || {
+                observed.set(true);
+                Ok(())
+            },
+        )
+        .unwrap_err();
+        assert_eq!(error.reason, "press-failed");
+        assert!(!observed.get());
     }
 }

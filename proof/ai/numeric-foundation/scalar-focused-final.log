@@ -1,0 +1,33 @@
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/conduit-5183-numeric-foundation/architecture/plot)
+    Finished `test` profile [unoptimized] target(s) in 3.47s
+     Running tests/finite_f32_arithmetic.rs (/home/dancxjo/conduit/target/debug/deps/finite_f32_arithmetic-d0047f500917cb73)
+
+running 2 tests
+test finite_f32_ordering_and_encoded_equality_have_reference_prepared_parity ... ok
+test finite_f32_arithmetic_preserves_selected_inputs_and_returns_bare_result ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/ieee_literal_expression.rs (/home/dancxjo/conduit/target/debug/deps/ieee_literal_expression-21dc7147f2eea5bb)
+
+running 2 tests
+test contextual_f32_bits_preserve_exact_payload_and_integer_context ... ok
+test nominal_finite_f32_rejects_nan_infinity_and_inexact_syntax ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/nominal_collection_expression.rs (/home/dancxjo/conduit/target/debug/deps/nominal_collection_expression-d47cd96054ba5c08)
+
+running 2 tests
+test nominal_exact_collection_preserves_profile_in_prepared_and_reference_execution ... ok
+test nominal_collection_refuses_wrong_length_and_invalid_refined_element ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/nominal_record_projection.rs (/home/dancxjo/conduit/target/debug/deps/nominal_record_projection-13603d5eaaf667ea)
+
+running 1 test
+test reference_and_prepared_projection_preserve_refined_nominal_primitive_record_fields ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

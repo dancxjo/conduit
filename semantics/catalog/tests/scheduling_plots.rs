@@ -1,9 +1,9 @@
 use conduit_core::{
     kind_id, ArtifactId, BaseImplementationId, BootId, CapabilityId, CapabilityLimits,
     CapabilityOffer, ExecutionProfileId, HostAdvertisement, HostId, HostProfileId,
-    ImplementationId, ImplementationOffer, OfferGeneration, Quantity, QuantityUnit,
-    StructuredInfoTypeShape, StructuredInfoValue, StructuredInfoValueShape,
-    MAXIMUM_STRUCTURED_CANONICAL_BYTES, PROTOCOL_VERSION,
+    ImplementationId, ImplementationOffer, OfferGeneration, Quantity, StructuredInfoTypeShape,
+    StructuredInfoValue, StructuredInfoValueShape, Unit, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    PROTOCOL_VERSION,
 };
 use conduit_plot::{
     check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
@@ -95,14 +95,14 @@ fn deterministic_fixture_produces_exact_late_assessment_without_executing() {
     };
     assert_eq!(
         Quantity::decode(bytes).unwrap(),
-        Quantity::new(2, QuantityUnit::Second)
+        Quantity::new(2, Unit::Second)
     );
 }
 
 #[test]
 fn lifecycle_timing_outcomes_remain_finite_and_distinct() {
-    let zero = Quantity::new(0, QuantityUnit::Millisecond);
-    let two = Quantity::new(2, QuantityUnit::Second);
+    let zero = Quantity::new(0, Unit::Millisecond);
+    let two = Quantity::new(2, Unit::Second);
     assert_eq!(
         assess_workflow_timing(
             WorkflowLifecycle::Pending,
@@ -170,7 +170,7 @@ fn lifecycle_timing_outcomes_remain_finite_and_distinct() {
         assess_workflow_timing(
             WorkflowLifecycle::Pending,
             ScheduleWindowPosition::Within,
-            Quantity::new(1, QuantityUnit::Meter),
+            Quantity::new(1, Unit::Meter),
             zero,
         ),
         Err(ScheduleRefusal::NonTemporalQuantity)

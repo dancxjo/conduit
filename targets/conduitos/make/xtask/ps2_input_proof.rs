@@ -88,7 +88,7 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
 
     let result = (|| {
         let (mut stream, mut reader) = qmp::connect(&socket, &mut child)?;
-        hid_qmp::wait_for_stage(
+        hid_qmp::wait_for_product_arrival(
             &serial_path,
             &mut child,
             "CONDUIT_BOOT_STAGE front-door-ready",

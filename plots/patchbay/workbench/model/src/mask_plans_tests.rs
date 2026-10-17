@@ -1,6 +1,6 @@
 use crate::{
     patchbay_mask_plans, portable_demonstration, InteractionDisposition, PatchbayInteraction,
-    PatchbayInteractionRequest, PATCHBAY_PRESENTATION_KIND,
+    PatchbayInteractionRequest, PATCHBAY_FACE_KIND,
 };
 use conduit_core::{BootId, HostId};
 use conduit_kernel::scheduler::{
@@ -90,13 +90,13 @@ fn unchanged_patchbay_meaning_has_distinct_truthful_direct_and_recursive_plans()
     assert_eq!(proof.recursive.realization_backs.len(), 4);
     assert_eq!(
         proof.direct.fragments[0].placements[0].kind_id.as_str(),
-        PATCHBAY_PRESENTATION_KIND
+        PATCHBAY_FACE_KIND
     );
     assert_eq!(
         proof.direct.fragments[0].placements[0]
             .implementation_id
             .as_str(),
-        "patchbay/direct/presentation-patchbay@1"
+        "patchbay/direct/face-patchbay@1"
     );
     let recursive_kinds = proof.recursive.fragments[0]
         .placements
@@ -108,16 +108,16 @@ fn unchanged_patchbay_meaning_has_distinct_truthful_direct_and_recursive_plans()
         "layout/column",
         "layout/align",
         "layout/stack",
-        "presentation/frame",
+        "face/frame",
         "graphics/rect",
         "graphics/text",
         "graphics/icon",
-        "presentation/graphics",
+        "face/graphics",
     ] {
         assert!(recursive_kinds.contains(&expected));
     }
     assert!(proof.recursive.realization_backs.iter().any(|back| {
-        back.kind_id.as_str() == PATCHBAY_PRESENTATION_KIND
+        back.kind_id.as_str() == PATCHBAY_FACE_KIND
             && back.invocation_path == "patchbay-capstone/canvas"
     }));
     assert!(conduit_core::verify_plan(&proof.direct));
@@ -138,38 +138,34 @@ fn unchanged_patchbay_meaning_has_distinct_truthful_direct_and_recursive_plans()
 
 #[test]
 fn production_projection_keeps_recursive_plots_behind_stable_front_gears() {
-    let presentation = crate::recursive_plot_demonstration().unwrap();
-    let recursive = presentation
+    let face = crate::recursive_plot_demonstration().unwrap();
+    let recursive = face
         .subjects
         .iter()
         .filter(|subject| {
-            presentation.properties.iter().any(|property| {
+            face.properties.iter().any(|property| {
                 property.subject == subject.identity
                     && property.name == "reviewed-back"
-                    && property.value
-                        == conduit_presentation::PresentationPropertyValue::Text("available".into())
+                    && property.value == conduit_face::FacePropertyValue::Text("available".into())
             })
         })
         .collect::<Vec<_>>();
     assert_eq!(recursive.len(), 4);
     assert!(recursive.iter().any(|subject| {
-        presentation.relationships.iter().any(|relationship| {
+        face.relationships.iter().any(|relationship| {
             relationship.source == subject.identity
-                && presentation.subjects.iter().any(|candidate| {
+                && face.subjects.iter().any(|candidate| {
                     candidate.identity == relationship.target
-                        && candidate.role == conduit_presentation::PresentationRole::Gear
+                        && candidate.role == conduit_face::FaceRole::Gear
                 })
         })
     }));
-    assert!(presentation.properties.iter().any(|property| {
+    assert!(face.properties.iter().any(|property| {
         property.name == "collapsed-sink-port"
-            && matches!(
-                property.value,
-                conduit_presentation::PresentationPropertyValue::Identity(_)
-            )
+            && matches!(property.value, conduit_face::FacePropertyValue::Identity(_))
     }));
     assert_eq!(
-        presentation.basis.plan_id.as_ref(),
+        face.basis.plan_id.as_ref(),
         Some(&crate::patchbay_mask_plans().unwrap().recursive.plan_id)
     );
 }
@@ -195,12 +191,9 @@ fn unavailable_direct_renderer_and_missing_recursive_leaf_fail_differently_witho
     let checked = proof.direct.checked_plot_id.clone();
 
     let mut unavailable = proof.recursive_host.clone();
-    unavailable.capabilities.retain(|offer| {
-        matches!(
-            offer.kind_id.as_str(),
-            "presentation/source" | "presentation/sink"
-        )
-    });
+    unavailable
+        .capabilities
+        .retain(|offer| matches!(offer.kind_id.as_str(), "face/source" | "face/sink"));
     let direct_error = conduit_planner::default_expanded_placements(
         &proof.direct_expanded,
         core::slice::from_ref(&unavailable),
@@ -220,7 +213,7 @@ fn unavailable_direct_renderer_and_missing_recursive_leaf_fail_differently_witho
 fn both_shapes_use_the_same_portable_selection_seam_and_normalized_subjects() {
     let proof = patchbay_mask_plans().unwrap();
     let base = portable_demonstration().unwrap();
-    let presentation = |plan: &conduit_core::Plan| {
+    let face = |plan: &conduit_core::Plan| {
         let mut basis = base.basis.clone();
         basis.source_document_id = Some(plan.source_document_id.clone());
         basis.checked_plot_id = Some(plan.checked_plot_id.clone());
@@ -228,7 +221,7 @@ fn both_shapes_use_the_same_portable_selection_seam_and_normalized_subjects() {
         basis.plan_id = Some(plan.plan_id.clone());
         basis.active_play_id = None;
         basis.sign_ids.clear();
-        conduit_presentation::Presentation::new_with_semantics(
+        conduit_face::Face::new_with_semantics(
             base.revision,
             basis,
             base.subjects.clone(),
@@ -240,14 +233,14 @@ fn both_shapes_use_the_same_portable_selection_seam_and_normalized_subjects() {
         )
         .unwrap()
     };
-    let direct = presentation(&proof.direct);
-    let recursive = presentation(&proof.recursive);
+    let direct = face(&proof.direct);
+    let recursive = face(&proof.recursive);
     assert_eq!(direct.subjects, recursive.subjects);
     assert_eq!(direct.relationships, recursive.relationships);
     assert_eq!(direct.properties, recursive.properties);
     assert_eq!(direct.text, recursive.text);
 
-    let execute = |presentation: &conduit_presentation::Presentation, suffix: &str| {
+    let execute = |face: &conduit_face::Face, suffix: &str| {
         let mut interaction = PatchbayInteraction::new(
             HostId::from(format!("interaction-{suffix}")),
             BootId::from(format!("interaction-{suffix}-boot")),
@@ -255,13 +248,13 @@ fn both_shapes_use_the_same_portable_selection_seam_and_normalized_subjects() {
         let request = PatchbayInteractionRequest::select(
             interaction.next_request_id("select").unwrap(),
             &crate::PatchbaySubjectRef {
-                expanded_plot_id: presentation.basis.expanded_plot_id.clone().unwrap(),
-                subject_identity: presentation.subjects[0].identity.clone(),
+                expanded_plot_id: face.basis.expanded_plot_id.clone().unwrap(),
+                subject_identity: face.subjects[0].identity.clone(),
             },
         )
         .unwrap();
         interaction
-            .execute_presentation(presentation, request, |_| unreachable!())
+            .execute_face(face, request, |_| unreachable!())
             .unwrap()
     };
     let direct_receipt = execute(&direct, "direct");

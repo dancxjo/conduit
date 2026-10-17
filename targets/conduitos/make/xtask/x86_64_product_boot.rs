@@ -15,6 +15,10 @@ use std::{
     time::{Duration, Instant},
 };
 
+const PRODUCT_EMULATOR_PROFILE: &str = conduitos::make::PC_PRODUCT_QEMU_PROFILE;
+const PRODUCT_GUEST_MEMORY_MIB: u64 = 512;
+const PRODUCT_GUEST_MEMORY_BYTES: u64 = PRODUCT_GUEST_MEMORY_MIB * 1024 * 1024;
+
 pub(super) fn boot_twice(
     image: &Path,
     profile: &str,
@@ -34,6 +38,8 @@ pub(super) fn boot_twice(
     let proof = serde_json::json!({
         "schema":"conduit.conduitos/x86_64-product-proof@1", "base_commit":git_head(&paths.root)?,
         "image_sha256":sha256_file(image)?, "first":first, "second":second,
+        "emulator_profile":PRODUCT_EMULATOR_PROFILE,
+        "guest_memory_bytes":PRODUCT_GUEST_MEMORY_BYTES,
         "fresh_host_id":true, "fresh_boot_id":true, "stopped_by_harness":true
     });
     fs::write(
@@ -54,14 +60,14 @@ fn boot_once(
 ) -> Result<serde_json::Value, ConduitosError> {
     let paths = Paths::new(ConduitosArch::X86_64)?;
     let serial_path = paths.target.join("profile-built-boot.log");
-    let socket = paths.target.join("profile-built-boot.qmp");
     let _ = fs::remove_file(&serial_path);
-    let _ = fs::remove_file(&socket);
     let serial = format!("file:{}", serial_path.to_string_lossy());
-    let qmp_arg = format!("unix:{},server=on,wait=off", socket.to_string_lossy());
     let image = image.to_str().ok_or_else(|| {
         ConduitosError::refusal("profile-built-image-path-invalid", "non-UTF-8 path")
     })?;
+    // This Host receipt owns the actual emulator configuration. The guest's
+    // legacy generic QEMU label is not verified evidence of its environment.
+    let guest_memory = format!("{PRODUCT_GUEST_MEMORY_MIB}M");
     let mut child = Command::new("qemu-system-x86_64")
         .args([
             "-M",
@@ -69,7 +75,7 @@ fn boot_once(
             "-cpu",
             "max",
             "-m",
-            "64M",
+            &guest_memory,
             "-smp",
             "1",
             "-display",
@@ -78,8 +84,6 @@ fn boot_once(
             "std",
             "-monitor",
             "none",
-            "-qmp",
-            &qmp_arg,
             "-serial",
             &serial,
             "-no-reboot",
@@ -100,11 +104,15 @@ fn boot_once(
         .stderr(Stdio::piped())
         .spawn()
         .map_err(|error| ConduitosError::refusal("missing-qemu", error.to_string()))?;
-    hid_qmp::wait_for_stage(
+    // Full typed layout catalogs and native Face preparation measured close to
+    // the former 20-second limit. Admit finite cold preparation separately from
+    // the unchanged post-ready receipt and interactive response budgets.
+    hid_qmp::wait_for_stage_with_budget(
         &serial_path,
         &mut child,
         "CONDUIT_CRECHE_CHECKPOINT ready",
         "profile-built-creche-ready-timeout",
+        Duration::from_secs(60),
     )?;
     let deadline = Instant::now() + Duration::from_secs(20);
     let (journey_json, boot_json) = loop {
@@ -172,7 +180,7 @@ fn boot_once(
         );
     }
     Ok(
-        serde_json::json!({"host_id":boot.host_id,"boot_id":boot.boot_id,"journey_status":journey["status"],"presenter_implementation_id":journey["presenter_implementation_id"],"profile_id":boot.profile_id,"build_id":boot.build_id,"image_binding":boot.image_binding}),
+        serde_json::json!({"host_id":boot.host_id,"boot_id":boot.boot_id,"journey_status":journey["status"],"presenter_implementation_id":journey["presenter_implementation_id"],"profile_id":boot.profile_id,"build_id":boot.build_id,"image_binding":boot.image_binding,"emulator_profile":PRODUCT_EMULATOR_PROFILE,"guest_memory_bytes":PRODUCT_GUEST_MEMORY_BYTES}),
     )
 }
 
@@ -234,7 +242,7 @@ fn validate(
             "journey",
             journey,
             "presenter_implementation_id",
-            serde_json::json!("presentation/renderer-conduitos-native@1"),
+            serde_json::json!("face/renderer-conduitos-native@1"),
         ),
         ("journey", journey, "body_id", serde_json::Value::Null),
         ("journey", journey, "plan_id", serde_json::Value::Null),

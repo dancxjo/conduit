@@ -9,7 +9,7 @@ use fixture::{definition, id, inventory};
 fn occurrence(sequence: &str, ordinal: u32) -> LanguageSpeechTokenRef {
     LanguageSpeechTokenRef::new(
         SpeechInventoryId::new("english-test".into()).unwrap(),
-        SpeechLanguageId::new("en".into()).unwrap(),
+        LanguageId::new("en".into()).unwrap(),
         ordinal,
         SpeechSegmentRevisionId::new("revision-2".into()).unwrap(),
         SpeechSegmentSequenceId::new(sequence.into()).unwrap(),
@@ -35,7 +35,7 @@ fn intent_with_stress(
     // Source provenance intentionally names another revision and inventory.
     let source = LanguageSegmentRef::phone(
         SpeechInventoryId::new("source-inventory".into()).unwrap(),
-        SpeechLanguageId::new("es".into()).unwrap(),
+        LanguageId::new("es".into()).unwrap(),
         77,
         SpeechSegmentRevisionId::new("source-revision".into()).unwrap(),
         SpeechSegmentSequenceId::new("source-phones".into()).unwrap(),
@@ -69,7 +69,7 @@ fn intent_with_stress(
     SpeechUtteranceIntent::new(
         BoundedSequence::try_from_iter([boundary, segment]).unwrap(),
         SpeechInventoryId::new("english-test".into()).unwrap(),
-        SpeechLanguageId::new("en".into()).unwrap(),
+        LanguageId::new("en".into()).unwrap(),
         provenance,
         SpeechSegmentRevisionId::new("revision-2".into()).unwrap(),
         SpeechUtteranceId::new("utterance-1".into()).unwrap(),
@@ -166,7 +166,7 @@ fn event_basis_and_definition_failures_are_distinct() {
     ));
     let foreign = LanguageSpeechTokenRef::new(
         SpeechInventoryId::new("other".into()).unwrap(),
-        SpeechLanguageId::new("en".into()).unwrap(),
+        LanguageId::new("en".into()).unwrap(),
         0,
         SpeechSegmentRevisionId::new("revision-2".into()).unwrap(),
         SpeechSegmentSequenceId::new("phones".into()).unwrap(),
@@ -184,7 +184,7 @@ fn voice(bindings: Vec<SpeechFormantPhoneBinding>, language: &str) -> SpeechForm
     SpeechFormantVoiceProfile::new(
         "intent-fixture".into(),
         SpeechInventoryId::new("english-test".into()).unwrap(),
-        SpeechLanguageId::new(language.into()).unwrap(),
+        LanguageId::new(language.into()).unwrap(),
         BoundedSequence::try_from_iter(bindings).unwrap(),
     )
     .unwrap()

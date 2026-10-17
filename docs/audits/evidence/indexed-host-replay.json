@@ -1,0 +1,19 @@
+{
+  "before_source": "6e795c15c8045fd98c1532a2260c4d0996d4f499",
+  "after_source": "2799dc27f4ebf4d78c36cef7317830fa8f5a6100",
+  "replays_verified": 64,
+  "exact_replay_and_non_timing_parity": true,
+  "native_growth_by_node_capacity": {
+    "1": 0,
+    "8": 32,
+    "32": 128,
+    "256": 1024
+  },
+  "before_log_sha256": "c51c943c6ca0151b5ed0f4f92f2bbbd5cc10f85c15750dba572fe2572972c0ee",
+  "after_log_sha256": "b4c57aec4264cc0fa594e420ada31fbd152d6f06fdcd742703c0a7e4bfc8f043",
+  "limits": [
+    "Native instrumented debug/test replay; no wall-clock speedup claim.",
+    "Live-table work bounds are checked by the separate 4096-slot fixture.",
+    "Other Host Call queries remain linear; other layouts unmeasured."
+  ]
+}

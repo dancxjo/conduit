@@ -12,7 +12,13 @@ pub fn install_sound_catalogs(
     profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), String> {
     for (contract, revision) in sound_contracts_with_revisions() {
-        if contract.kind_id.as_str() == super::AUDIO_TONE_KIND {
+        if contract.kind_id.as_str() == super::AUDIO_TIME_ANALYSIS_KIND {
+            super::install_audio_time_analysis_catalog(startup, profile)?;
+        } else if contract.kind_id.as_str() == super::AUDIO_PITCH_ANALYSIS_KIND {
+            super::install_audio_pitch_analysis_catalog(startup, profile)?;
+        } else if contract.kind_id.as_str() == super::AUDIO_SPECTRAL_ANALYSIS_KIND {
+            super::install_audio_spectral_analysis_catalog(startup, profile)?;
+        } else if contract.kind_id.as_str() == super::AUDIO_TONE_KIND {
             install_semantic_contract(startup, profile, super::audio_tone_semantic_contract())?;
         } else if contract.kind_id.as_str() == super::AUDIO_CONTINUOUS_TONE_KIND {
             install_semantic_contract(
@@ -38,6 +44,19 @@ pub fn install_audio_play_catalog(
         profile,
         super::audio_play_contract(),
         super::AUDIO_PLAY_REVISION,
+    )
+}
+
+/// Install externally driven playback without a cumulative duration quota.
+pub fn install_audio_continuous_play_catalog(
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
+) -> Result<(), String> {
+    install_contract(
+        startup,
+        profile,
+        super::audio_continuous_play_contract(),
+        super::AUDIO_CONTINUOUS_PLAY_REVISION,
     )
 }
 
@@ -139,8 +158,8 @@ fn configuration_source(value: &ConfigurationValue) -> String {
             value.profile().as_str(),
             value.canonical_value().len()
         ),
-        ConfigurationValue::Quantity(value) => {
-            format!("{}{}", value.value(), value.unit().plot_suffix())
-        }
+        ConfigurationValue::Quantity(value) => value.source().into(),
+        ConfigurationValue::Unit(value) => value.source().into(),
+        ConfigurationValue::TemperatureDifference(value) => value.source().into(),
     }
 }

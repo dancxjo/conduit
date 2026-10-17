@@ -1,3 +1,6 @@
+#[path = "support/gear_constructor_name.rs"]
+mod gear_constructor_name;
+
 use std::{fs, path::Path};
 
 /// Production constructors already migrated under #3718. Once a path enters
@@ -385,7 +388,7 @@ const MIGRATED_PRODUCTION_PATHS: &[(&str, usize, &str)] = &[
         "fully migrated",
     ),
     (
-        "targets/browser/runtime/src/presentation_nucleus/text_offer.rs",
+        "targets/browser/runtime/src/face_nucleus/text_offer.rs",
         0,
         "fully migrated",
     ),
@@ -405,7 +408,7 @@ const MIGRATED_PRODUCTION_PATHS: &[(&str, usize, &str)] = &[
         "fully migrated",
     ),
     (
-        "targets/browser/runtime/src/installed_browser/measurement_presentation.rs",
+        "targets/browser/runtime/src/installed_browser/measurement_face.rs",
         0,
         "fully migrated",
     ),
@@ -465,7 +468,7 @@ const MIGRATED_PRODUCTION_PATHS: &[(&str, usize, &str)] = &[
         "fully migrated",
     ),
     (
-        "targets/browser/runtime/src/installed_browser/presentation.rs",
+        "targets/browser/runtime/src/installed_browser/face.rs",
         0,
         "fully migrated",
     ),
@@ -551,11 +554,7 @@ const MIGRATED_PRODUCTION_PATHS: &[(&str, usize, &str)] = &[
         0,
         "fully migrated",
     ),
-    (
-        "semantics/presentation/src/contract.rs",
-        0,
-        "fully migrated",
-    ),
+    ("semantics/face/src/contract.rs", 0, "fully migrated"),
     ("targets/std/offers/src/copy_file.rs", 0, "fully migrated"),
     (
         "targets/std/offers/src/final_normalized_pattern.rs",
@@ -844,12 +843,7 @@ fn checked_and_planned_gears_cannot_bypass_their_construction_boundaries() {
                 .unwrap_or_else(|error| panic!("read {}: {error}", relative.display()));
             let lines = source.lines().collect::<Vec<_>>();
             for (line_number, line) in lines.iter().enumerate() {
-                let needle = format!("{type_name} {{");
-                let exact_name = line.match_indices(&needle).any(|(offset, _)| {
-                    offset == 0
-                        || !line.as_bytes()[offset - 1].is_ascii_alphanumeric()
-                            && line.as_bytes()[offset - 1] != b'_'
-                });
+                let exact_name = gear_constructor_name::has_constructor_name(line, type_name);
                 let first_body_line = lines[line_number + 1..]
                     .iter()
                     .find(|candidate| !candidate.trim().is_empty())

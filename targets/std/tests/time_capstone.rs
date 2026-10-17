@@ -6,7 +6,7 @@ use conduit_core::{
     AuthorityBinding, AuthorityContractId, AuthorityGrantId, BootId, CapabilityId,
     HostCallContractId, HostId, KindId, PlanId, SignId,
 };
-use conduit_presentation::present_timed_calendar_event;
+use conduit_face::present_timed_calendar_event;
 use conduit_semantic_catalog::{
     CALENDAR_CREATE_KIND, REMINDER_DELIVERY_AUTHORITY, REMINDER_DELIVER_KIND,
 };

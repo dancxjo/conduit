@@ -113,7 +113,6 @@ pub fn robotics_hazard_contracts() -> Vec<StandardKindContract> {
     ]
 }
 
-#[cfg(any(feature = "plot-catalog", test))]
 pub(crate) fn robotics_hazard_contracts_with_revisions() -> Vec<(StandardKindContract, &'static str)>
 {
     vec![

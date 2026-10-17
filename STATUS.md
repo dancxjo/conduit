@@ -1,7 +1,7 @@
 # Current project status
 
 Capability summary, with Face journey and documentation corrections reviewed on
-**2 October 2026**. Other entries retain their existing proof scope.
+**7 October 2026**. Other entries retain their existing proof scope.
 This is a capability summary, not a claim that every check has been rerun today.
 The [current-product truth surface](https://dancxjo.github.io/conduit/current-product.html)
 shows the exact latest development commit, accepted release, published Pages
@@ -12,6 +12,48 @@ preserves older proof receipts and limitations.
 **[Follow the ConduitOS journey](https://dancxjo.github.io/conduit/journeys/current/conduitos/x86_64/)**
 for the ordered actions, captured screens, and exact emulator evidence.
 
+Protection-domain work for [#5113](https://github.com/dancxjo/conduit/issues/5113)
+provides ordinary execution-region isolation on five reviewed native emulator
+profiles. Local x86_64 proofs exercise checked text Source and
+the ordinary graphical Keyboard canvas in CPL3 with capability-gated serial
+face. The keyboard domain binds the actual Body Plan and Play; Stop
+revokes it. Eighteen hostile entries, malformed capability requests and
+retained Compose state are checked. Keymap and Unicode uppercase share one
+protected entry; the graphical specimen uses five entries and one Base gate.
+The normal IA-32 BIOS product's text region also completes in CPL3, with its
+actual Plan/Play, one serial Base gate and completion revocation checked by
+the supported product receipt. Its independent emulator proof also checks
+memory and privilege denials, bounded loop preemption, exact capability and
+lifecycle refusals, floating-state restoration and one retained Source timer
+wake during preemption. The supported AArch64 emulator proof now executes
+the normal text region at EL0 and checks nineteen independent boundary entries,
+capability/lifecycle refusals, Source timer coexistence and restoration of all
+vector registers plus FPCR/FPSR before Root resumes or handles an interrupt.
+The supported RISC-V64 emulator proof runs the same normal text region in
+U-mode, verifies twenty-two independent boundary cases and the shared
+capability/lifecycle checks, restores all floating registers and FCSR before
+Root Rust code executes, and preserves one Source wake during budget preemption.
+The LoongArch64 text region now executes at PLV3 in a locally corrected
+diagnostic emulator, with twenty-three boundary cases, shared capability and
+lifecycle refusals, complete scalar floating/condition-state restoration and
+Source timer coexistence checked. Stock QEMU 10.2.1 lacks the required writable
+counter-disable control and receives `protected-execution-unsupported`.
+ARMv6's native diagnostic verifies the same refusal for an explicit protected
+text request before preparation; its separate A3 execution remains cooperative.
+Normal text-and-timer proof collectors on all five protected targets require
+the same checked Source and sealed semantic Plan shape; x86_64 uses the
+headless `prove` entrance separately from its graphical product journey. The IA-32 boundary lane retains
+two independent normal BIOS boots separately from its instrumented checks.
+The standing timer product now owns its production fixed scheduler and Count
+state inside a private domain, with separate capability-gated Timer and Count
+face operations. Local x86_64, IA-32, AArch64, RISC-V64 and LoongArch64
+proofs passed the physical 120 ms product, terminal replay refusal and complete
+zeroization. Each used eleven domain entries, four Base gates and 313 runtime
+bytes copied. Broader ordinary implementation coverage remains unfinished.
+These are freestanding-emulator boundary proofs; DMA/driver isolation remain
+false. Exact release and native acceptance are tracked in the owning issue.
+See the [exact per-target boundary](docs/architecture/conduitos-protection-domains.md#ordinary-protected-execution-5113).
+
 ## What exists
 
 | Area | Available behavior and evidence | Boundary |
@@ -19,10 +61,11 @@ for the ordered actions, captured screens, and exact emulator evidence.
 | **Language and composition** | Canonical `.conduit` parsing, located diagnostics, checking, recursive Plots through Fores/Backs, exact typed ports, open-ended numeric semantic ranges, and separate source/checked/expanded identities. Ordinary examples run through planning and the production kernel. | Every actual value and implementation resource envelope is finitely admitted even when a Type's semantic domain is open; a catalog entry does not promise an implementation on every Host. See [plots](plots/README.md). |
 | **Planning and execution** | One port-aware kernel, explicit fan-out, bounded queues and Host Calls, plan-owned per-Step fuel, fair cooperative yielding, resource and authority admission, immutable plans, pressure, and correlated signs. Exact abnormal-terminal kinds, separate terminal-transduction profiles, containing-Plot propagation, typed semantic cancellation requests, and cancellation-driven deadlines remain checked and planned through execution. Shared code serves hosted, browser, and embedded paths. Confined Wasm instruction fuel forcibly returns control even from a non-cooperative infinite loop. | A cancellation request is not proof of cancellation, and successful fallback does not manufacture semantic abnormal truth. Native in-process, browser, ConduitOS, and firmware Backs remain cooperative unless their exact Host profile names and proves a hard containment mechanism. General SMP, preemption, and physical real-time guarantees are not established by cooperative execution. |
 | **body lifecycle** | Zero/one/many initial plots, durable part membership, current/offline host presence, body-wide workload admission, one current plan and at most one active play. Multi-plot execution and workload changes have hosted and browser evidence. Live plots treat structural drain as quiescence; a canonical trailing full stop makes that drain semantic completion. | This is implemented, not merely the old #2062 proposal. Durable keep realization across Wake, Boot, and Body loss remains part of the open persistence vertical rather than an implicit lifecycle promise. |
-| **Face and Masks** | One bounded renderer-neutral Face grammar carries exact basis, subjects, relationships, typed content, wording, actions, inputs, semantic order, context, and provenance. Ordinary Plots contribute Face truth; ordinary Plots serving the Mask role realize exact Face revisions as Shows through deterministic-linear, browser, and native graphical routes. Bounded hosted terminal and mechanical spoken Mask implementations also consume that Face. Installed screen-free access can announce zero-Body arrival, perform user-driven Birth, and stream an explicitly selected eSpeak reading to an observed ALSA device. Authored Body source admits an unordered `wear …, …` eligibility set and optional ordered `want … over …` policy while runtime wear/doff remains replacement-planning input rather than Plan mutation. | The Rust carrier type is still named `Presentation` during migration. These implementations do not yet establish one live Body with owner-sealed Mask routes across three hosts, a complete screen-free journey after Birth, or human listening. Browser permission, device availability, tab lifetime, and supported profile still apply. |
+| **Face and Masks** | One bounded renderer-neutral Face grammar carries exact basis, subjects, relationships, typed content, wording, actions, inputs, semantic order, context, and provenance. Ordinary Plots contribute Face truth; ordinary Plots serving the Mask role realize exact Face revisions as Shows through deterministic-linear, browser, and native graphical routes. Bounded hosted terminal and mechanical spoken Mask implementations also consume that Face. The [one-Body journey](https://dancxjo.github.io/conduit/journeys/current/one-body-five-masks/) retains one live local run spanning a Linux owner, browser, and QEMU guest, with five Masks, user-driven screen-free Birth and operation, selected direct and model-assisted speaker Plays, and host/provider loss and recovery. Authored Body source admits an unordered `wear …, …` eligibility set and optional ordered `want … over …` policy while runtime wear/doff remains replacement-planning input rather than Plan mutation. | The retained run proves automated nonvisual interaction and selected device playback, not attended human listening, physical ConduitOS output, arbitrary workload migration, or automatic failover. Browser permission, device availability, tab lifetime, and supported profile still apply. |
 | **Patchbay** | A resident native projection shows the active plots on the present body with exact plan/play identities and Mask topology; broader native and browser inspection/editing, bounded Watches, observation replay, and scoped breakpoint/causal-trace support also exist. | Patchbay is a projection over authoritative body and execution truth, not a second scheduler. Replay is distinct from re-execution, and these features do not establish distributed stop-the-world debugging. |
 | **Crèche and make** | Birth a body with reviewed plots, prepare target-native artifacts, inspect membership, and retain body evidence into Patchbay. Make packages cover hosted computers, browser, ConduitOS, and board families. | Building or downloading an artifact is distinct from installing, booting, admitting a part, and executing work. Consult each [target](targets/README.md). |
 | **ConduitOS** | Five product targets: x86_64 and IA-32 PC, AArch64 and RISC-V64 virt, and LoongArch64 virt. The x86_64 graphical journey uses QMP keyboard input to arrive at Crèche, birth and wake one Body, plan and play it, open Patchbay, inspect its semantic Face and live graph, and stop. Ten screen captures and a correlated receipt come from the retained product image. Its graphical Mask moves one boot-discovered framebuffer resource through an exact planned resource Cord into renderer possession, authorizes one present operation, then revokes that possession at Play end; the other four targets have serial product media. | The illustrated journey is **freestanding-emulator** proof. Non-x86 targets still need interactive input and lifecycle loops for parity. The physical laptop campaign is open. A target's boot proof does not establish graphics, drivers, or hardware parity. |
+| **Device protocols (development)** | Reviewed, host-independent Source owns the complete BME280 probe, initialization, calibration, timed sample capture and compensation over finite I2C and clock Backs. x86_64 ConduitOS can package additional checked Source over an existing capable product kernel; a retained freestanding run publishes exact Plan/Play identities, a typed controller refusal and retirement. Deterministic native conformance also covers successful observations, wrong identity and clock loss. | Physical BME280 compatibility remains unverified. Root separately admits the controller, attachment, authority and clock; Source grants none of them. See [device protocol boundary](docs/architecture/device-protocol-plots.md) and [#4833](https://github.com/dancxjo/conduit/issues/4833). |
 | **lines and physical Pico work** | Recorded WebSocket/USB CDC execution and one-body Pico W control, including new-plan recovery and continuation over an already-admitted fallback line. | This is bounded, device-specific physical evidence. It does not imply arbitrary discovery, federation, public-Internet security, or a general reconnect policy. |
 | **Remote Host rendezvous** | One bounded CBOR/CDDL descriptor carries ordered authenticated direct, WebRTC DataChannel, protected user-operated relay, loopback WebSocket, and attended-serial candidates. Browser, native std, and ConduitOS consume the same candidate meanings; each target attempts only supported Lines. Candidate expiry, attempt count, timeout, ordered failure evidence, direct-versus-relayed truth, and the existing invitation/admission session remain distinct. | Automated proofs establish the shared wire semantics, finite fallback scheduler, real browser/native WebRTC transport, protected relay, and ordinary Host admission above a selected Line. They do not substitute for the attended multi-machine, multi-network run owned by [#3711](https://github.com/dancxjo/conduit/issues/3711). ConduitOS truthfully skips WebRTC rather than pretending to implement it. |
 | **Standard semantics and local tasks** | Executable text, time, state/flow, logic/math, input, Face composition, and other reviewed families; protected local file-copy operations exist. Catalog and target gap reports derive availability from code. | The old “copy a file is disabled” record describes a retired prototype. ConduitOS storage and physical file-copy remain separate unfinished work. |
@@ -38,6 +81,69 @@ present limitation.
 These source-level capabilities are present in the reviewed development tree.
 Their presence is not an additional physical or release acceptance claim:
 
+- **Language identity ownership (#4955–#4956, development):** Language owns
+  language/variety identity, explicit variety relationships and exact text
+  values/revisions/occurrences. Speech, listening and translation consume the
+  same generated carriers. Bounded exact external mapping preserves private
+  provider names and uses the #4952 report boundary; unknown mappings remain
+  insufficient. Non-Latin text and stale-occurrence fixtures prove this semantic
+  seam, not parser accuracy or multilingual availability. The #4957 development
+  slice now binds explicit Language/Variety requests to finite Back coverage,
+  gates default/policy/fixed placement planning, and retains exact declarations
+  in Plans. The four-token std/browser specimen retains exact Language-owned
+  source material and advertises limited English coverage. Native English
+  speech requires its declared experimental pronunciation variety. Hosted
+  eSpeak and Whisper offers start undeclared and require artifact-bound coverage
+  with explicit private voice/model-language mappings. Generic planner coverage
+  has stable acceptance; final source-material and speech-consumer proof and
+  acceptance remain open. See the
+  [Language contract](docs/architecture/language.md).
+
+- **Projection fidelity (#4952, development):** a bounded immutable core report
+  distinguishes exact/declared transformation, permitted loss, insufficient
+  results and canonical abnormal outcomes. Native evidence and score contracts
+  stay inspectable; exact policy admits loss, and strict consumers refuse
+  partial targets. Deterministic language/parser, model-private speech and
+  actual linear Face fixtures, plus borrowing Patchbay boundary inspection,
+  establish the [projection contract](docs/architecture/projection.md).
+  This does not establish live parser/model accuracy, physical face,
+  every adapter's integration or stable-release acceptance.
+
+
+- **Owner face routes (#4922, development):** The installed owner can
+  present its actual lulled clock Body through an attached terminal Mask without
+  inventing a workload Wake or Play. The ordinary Mask Plan/Play returns an
+  acknowledged Show and typed interval action to the same owner's workset.
+  Finite owner face Plans retain exact child routes and distinguish
+  already-sealed alternative selection from replacement and fresh Show
+  acknowledgement. `cargo xtask check owner-face` exercises actual
+  Unix-provider attachment/actions and deterministic seal, loss, cancellation,
+  bound and wardrobe contracts. The [route contract](docs/architecture/owner-face-routes.md)
+  records the browser carrier's narrower evidence boundary. This focused owner
+  check alone does not prove face during active installed workload
+  execution or a distributed Mask Plot; the separately retained
+  [live multi-host journey](https://dancxjo.github.io/conduit/journeys/current/one-body-five-masks/)
+  supplies its own correlated run and publication evidence.
+
+- **Bounded revision (#4951, development):** A borrowed, allocation-free core
+  lifecycle admits exact proposals, revisions, policy stability, monotonic
+  commitment, withdrawal, explicit correction and closure. Fixed history and
+  domain-owned cursor limits refuse pressure; explicit truncation cannot erase
+  committed history. Native language/ASR adapters and a tracking fixture prove
+  independent frontiers and deterministic history/current-view replay. The
+  [contract](docs/architecture/revision.md) records the #4907 consumer seam and
+  inspection API. This is deterministic library proof, not a live parser, audio
+  recognition, effect delivery or a new Patchbay panel.
+
+- **Typed claims and resolution (#4950, development):** Core admits immutable,
+  bounded domain assertions, lifecycle history, exact score contracts, and
+  policy-owned selection or abstention. Deterministic core/language fixtures
+  retain sensor/model alternatives and manual correction, revisioned dependency
+  alternatives with conservative shared facts, and unresolved runtime diagnoses.
+  The [contract](docs/architecture/claims.md) separates Signs, claims, resolution,
+  and authority. This establishes a library seam for #4907, not its complete
+  parser, a global claim store, or focused Patchbay integration.
+
 - **Static browser applications (#4804):** `cargo xtask make body static`
   packages the Handbook or another application as ordinary static files. The
   Handbook uses the public Browser SDK to birth/recover an application-scoped
@@ -48,7 +154,9 @@ Their presence is not an additional physical or release acceptance claim:
   derivation includes its birth sign; retained legacy identities remain valid.
   Protected integration, stable publication, and public verification completed
   on 2 October 2026; [#4804 is accepted](https://github.com/dancxjo/conduit/issues/4804#issuecomment-5960026693).
-  The live shared-Body journey remains separate work under #4807.
+  The distinct [live shared-Body journey](https://dancxjo.github.io/conduit/journeys/current/one-body-five-masks/)
+  was accepted through the 7 October 2026 release; the default Handbook remains
+  an application-scoped local Body, not an automatically joined shared Body.
 
 - **Native semantic Types and compact Forms (#4382, #4428):**
   Conduitese owns nominal scalar, record, variant, optional, data-reference,
@@ -80,6 +188,17 @@ Their presence is not an additional physical or release acceptance claim:
   identity/version/content contract, resource pool and authority grant matched
   to trusted host-local executable state; the OS path remains provider-local
   machinery rather than portable identity.
+
+- **Finite native Type value parameters (#5326):** typed U16 or
+  refined-U16 parameters specialize exact collections, independent bounded
+  sequences, scalar refinements and record laws through checked finite `+`/`*`
+  arithmetic. Shipped family aliases retain owner meaning and Source/package
+  provenance. The real Numeric migration and generated construction/decode,
+  exact Fore mismatch, and private temporal-capacity custody fixtures have local
+  proof, including browser/WASM Plan and acknowledged kernel execution.
+  See #5326 for independent stable-release acceptance. The capacity
+  witness preserves existing linguistic custody; it does not establish a new
+  gesture schema, phonological realization or model preparation.
 
 - **Record laws (#4638):** native record types own pure Boolean `where` laws,
   include them in checked identity, and enforce them at generated construction
@@ -136,8 +255,11 @@ Their presence is not an additional physical or release acceptance claim:
   than truncating. This is produced-audio evidence, not speaker playback,
   human hearing, or a refreshed Three Bodies documentary. Separately, an
   opt-in installed screen-free path has drained a multi-chunk reading through
-  a selected ALSA device without underrun; that is device playback evidence,
-  not attended listening or an owner-selected spoken wardrobe route. See
+  a selected ALSA device without underrun. The
+  [one-Body journey](https://dancxjo.github.io/conduit/journeys/current/one-body-five-masks/)
+  additionally retains owner-selected direct and model-assisted spoken Plays
+  and the same audio delivered to the selected listener route. This remains
+  device playback evidence, not attended listening. See
   [runtime speech](docs/proof/runtime-speech.md) for the supported proof entrance.
 
 - **Startup plots (#3152):** the optional browser Startup Chime and separate
@@ -171,11 +293,11 @@ Their presence is not an additional physical or release acceptance claim:
   do not prove the browser Workspace's living Tutorial. Native Workspace parity
   must honor the canonical
   `application = "tutorial"` configuration, project actual Body biography,
-  and expose the same lifecycle actions. Zero-Body arrival and user-driven
-  Birth now have an installed screen-free path; completing the remaining
-  screen-free journey remains part of
-  [#4807](https://github.com/dancxjo/conduit/issues/4807). Produced speech alone
-  does not establish interactive accessibility.
+  and expose the same lifecycle actions. The separately retained
+  [screen-free journey](https://dancxjo.github.io/conduit/journeys/current/one-body-five-masks/)
+  exercises zero-Body arrival, user-driven Birth, clock and wardrobe actions,
+  loss, recovery, Wake, and Lull through nonvisual input and selected playback.
+  This is automated interaction evidence, not attended usability proof.
 - **House speech:** recorded-audio recognition, address detection, model context,
   and conversation components exist. The attended, live named-house speech
   experience remains open in [#2297](https://github.com/dancxjo/conduit/issues/2297).
@@ -197,6 +319,56 @@ Their presence is not an additional physical or release acceptance claim:
 - **Reusable applications:** plots-as-gears is implemented, while several
   complete reusable application compositions still have open acceptance work.
   [The roadmap](docs/roadmap.md#reusable-plots) names those remaining slices.
+- **First-class physical values (#5390):** standalone normalized `Dimension`,
+  catalogue-resolved `Unit`,
+  bounded exact `Quantity`, and the distinct empty value `Empty` have canonical
+  checked codecs. Bare unit symbols and quantity literals pass through typed
+  startup parameters, structured fields and runtime connections; conversion
+  and comparison Fores consume checked values. The ordinary
+  `units/converted-equals` Gear projects validated receipts to Boolean, with
+  optional local `=?` aliasing. The reviewed 24-prefix catalogue,
+  bounded versioned decimal coordinates, ordinary conversion/comparison Gears,
+  distinct temperature differences, and existing Audio/Robotics projections
+  share one exact conversion law. std and browser Backs prepare finite receipts
+  before Play; no_std arithmetic and consumer checking do not imply an installed
+  firmware realization. [The quantity guide](docs/architecture/quantity-prefixes.md)
+  records profiles, refusals and proof classes. Linear Quantity products and
+  quotients derive bounded dimensions with exact reference coordinates and
+  retained nominal-family/origin identity; decimal projection refuses precision
+  or extent loss. The [physical acceptance map](docs/audits/physical-values-acceptance.md)
+  names focused std and browser proof. Local implementation and test evidence
+  must be distinguished from hosted candidate and stable acceptance.
+
+- **Browser-local Thermostat (#5399):** the static Handbook packages the original
+  `thermostat/main` and checks, plans and executes it in its own browser Body.
+  The installed browser scan shares the production kernel Back with std and
+  uses the same portable Thermostat transition. Canonical Face actions cross
+  an acknowledged browser Mask Show into the current typed command Fore;
+  settings are session-local and reset on a new Play. Pinned Chromium proves
+  exact Celsius values, settings, refusals, accessibility, lifecycle and
+  independent profiles with only static asset requests. Sensor and equipment
+  operation remain unconfirmed. The Linux-owned participation route remains
+  distinct. [PR #5407](https://github.com/dancxjo/conduit/pull/5407) is merged;
+  the exact merged source `84f15637fe22d4e559e163b046ce673db5b4dcc7`
+  passed [Integration](https://github.com/dancxjo/conduit/actions/runs/38151248168)
+  and [Pages publication](https://github.com/dancxjo/conduit/actions/runs/38154013617).
+  Fresh-profile execution on the public HTTPS Handbook verified the released
+  runtime, all mode/fan/preset options, exact quantities, typed returns,
+  accessibility, refusals and lifecycle. [#5399 is closed](https://github.com/dancxjo/conduit/issues/5399#issuecomment-6111069983).
+  This is public browser execution proof; physical HVAC activity is unconfirmed.
+
+- **Face/component/Look separation (#5364, in development):** the initial
+  finite visual facet has an exact checked structured startup Type and explicit
+  accessibility override/fallback outcomes. `ApplicationTheme` version-2 bytes
+  remain compatible. A shared configuration gate reconstructs checked expansion
+  and the ordinary Plan from the selected Host's planning inputs, then traces
+  source-owned recipes separately from renderer placement. Source/planner
+  custody tests and actual renderer integration remain distinct requirements.
+  The Look replacement evidence comparator refuses changed owner Play, canonical
+  Face, component recipe and stale-return effects. Its synthetic mutation tests
+  establish comparator behavior, not a native/browser Look replacement.
+  [The ownership boundary](docs/architecture/face-component-look.md) retains
+  the full outstanding renderer, accessibility and two-recipe proof gates.
 
 The current `cargo xtask make conduitos std-gap` report also identifies missing
 ConduitOS Host Calls for `math/map-quantity` and

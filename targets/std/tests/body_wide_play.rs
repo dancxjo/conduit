@@ -24,7 +24,7 @@ const SIGNS: usize = 64;
 const EVIDENCE_MARKER: &str = "CONDUIT_PLOT_EVIDENCE=";
 
 const MORSE_NETWORK: &str = include_str!("../../../plots/morse-network/main.conduit");
-const MEMORY_LANTERN: &str = include_str!("../../../plots/memory-lantern/main.conduit");
+const MEMORY_LANTERN: &str = include_str!("../../../plots/memory-lantern/keyboard-only.conduit");
 const DESK_TELEGRAPH: &str = include_str!("../../../plots/desk-telegraph/main.conduit");
 
 #[derive(Clone, Copy)]
@@ -113,7 +113,7 @@ fn canonical_constituent(
         .expect("the installed text state catalogs are disjoint");
     conduit_text::install_morse_catalogs(&mut startup, &mut profiles)
         .expect("the installed Morse catalogs are disjoint");
-    conduit_semantic_catalog::install_indicator_presentation_catalog(&mut startup, &mut profiles)
+    conduit_semantic_catalog::install_indicator_face_catalog(&mut startup, &mut profiles)
         .expect("the installed indicator catalog is disjoint");
     conduit_net::install_typed_record_catalogs(&mut startup, &mut profiles)
         .expect("the installed typed-record catalogs are disjoint");

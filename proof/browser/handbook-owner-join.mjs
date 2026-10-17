@@ -126,12 +126,12 @@ try {
   assert.match(beforeFace.show_id, /^show\/[a-f0-9]{64}$/);
   const clockAction = beforeFace.actions.find(action => action.intent === 'conduit.intent/change-clock-interval@1');
   assert.equal(clockAction.availability, 'available');
-  const clockControl = page.locator('[data-owner-action]').filter({ has: page.getByRole('button', { name: 'Change clock interval' }) });
+  const clockControl = page.locator('[data-owner-action]').filter({ has: page.getByRole('button', { name: 'Change ticker pace' }) });
   await clockControl.getByRole('combobox').selectOption('500');
-  await clockControl.getByRole('button', { name: 'Change clock interval' }).click();
+  await clockControl.getByRole('button', { name: 'Change ticker pace' }).click();
   await page.waitForFunction(previous => {
     const face = globalThis.__conduitOwnerParticipation.face();
-    return document.querySelector('[data-owner-action-result]')?.textContent === 'The owner accepted Change clock interval.'
+    return document.querySelector('[data-owner-action-result]')?.textContent === 'The owner accepted Change ticker pace.'
       && face?.face_revision !== previous && face?.subjects?.some(subject =>
         subject.text.some(text => text.includes('500 milliseconds')));
   }, beforeFace.face_revision);
@@ -146,9 +146,9 @@ try {
   await page.screenshot({ path: changedScreenshot, fullPage: true });
   const startAction = afterFace.actions.find(action => action.intent === 'conduit.intent/start-clock@1');
   assert.equal(startAction?.availability, 'available');
-  await page.getByRole('button', { name: 'Start the clock' }).click();
+  await page.getByRole('button', { name: 'Start the ticker' }).click();
   await page.waitForFunction(() => document.querySelector('[data-owner-action-result]')?.textContent
-    === 'The owner accepted Start the clock.');
+    === 'The owner accepted Start the ticker.');
   const status = () => {
     const result = spawnSync(installation.product_executable,
       ['body', 'status', '--state-dir', state, '--json'], { encoding: 'utf8', timeout: 5_000 });
@@ -185,10 +185,10 @@ try {
   assert.equal(await page.locator('[data-handbook-application]').getAttribute('data-owner-show-acknowledged'), playingFace.show_id);
   assert.equal(playingFace.show_state, 'available');
   assert.notEqual(playingFace.show_id, afterFace.show_id);
-  await page.getByRole('button', { name: 'Stop the clock' }).click();
+  await page.getByRole('button', { name: 'Stop the ticker' }).click();
   try {
     await page.waitForFunction(() => document.querySelector('[data-owner-action-result]')?.textContent
-      === 'The owner accepted Stop the clock.');
+      === 'The owner accepted Stop the ticker.');
   } catch (error) {
     await page.screenshot({ path: path.join(output, 'browser-clock-stop-diagnostic.png'), fullPage: true });
     const actionDiagnostic = await page.evaluate(() => ({

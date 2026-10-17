@@ -52,13 +52,13 @@ test("the ordinary face binds and admits one compiler-free reviewed browser Host
   const inspectedInteraction = captures["body.inspected"].mask?.interaction;
   expect(inspectedInteraction?.schema).toBe("conduit.browser/mask-interaction@1");
   expect(inspectedInteraction?.correlation).toMatchObject({
-    presentation_id: captures["body.inspected"].mask.presentation.identity,
-    presentation_revision: captures["body.inspected"].mask.presentation.revision,
+    face_id: captures["body.inspected"].mask.face.identity,
+    face_revision: captures["body.inspected"].mask.face.revision,
     show_id: captures["body.inspected"].mask.mask_show.show_id,
   });
   expect(inspectedInteraction?.correlation?.interaction).toMatchObject({
-    face_id: captures["body.inspected"].mask.presentation.identity,
-    face_revision: captures["body.inspected"].mask.presentation.revision,
+    face_id: captures["body.inspected"].mask.face.identity,
+    face_revision: captures["body.inspected"].mask.face.revision,
     show_id: captures["body.inspected"].mask.mask_show.show_id,
     action_id: "body.use-current",
   });
@@ -70,8 +70,8 @@ test("the ordinary face binds and admits one compiler-free reviewed browser Host
     "mask.admit-replacement-plan", "mask.inspect-replanned-show", "mask.doff-alternate",
     "mask.inspect-restored-show",
   ]);
-  expect(new Set(maskActions.map(({ presentation_id }) => presentation_id))).toEqual(
-    new Set([captures["body.inspected"].mask.presentation.identity]),
+  expect(new Set(maskActions.map(({ face_id }) => face_id))).toEqual(
+    new Set([captures["body.inspected"].mask.face.identity]),
   );
   expect(maskActions[2].plan_id).toBe(maskActions[0].plan_id);
   expect(maskActions[2].show_id).not.toBe(maskActions[0].show_id);
@@ -95,7 +95,7 @@ test("the ordinary face binds and admits one compiler-free reviewed browser Host
   await page.locator("#plot-input").click();
   await page.keyboard.type("hello");
   await page.keyboard.press("Enter");
-  await expect(page.locator("[data-plot-output] output:visible")).toHaveText("hello");
+  await expect(page.locator("[data-plot-output] output:visible")).toHaveText("Received message: hello");
   await capture("plot.used", "Typing hello into Desk Telegraph produces hello through the running plot.");
   expect((await page.evaluate(() => globalThis.__conduitWorkspace.current())).workload_revision).toBe(1);
   await page.getByRole("button", { name: "parts / hosts", exact: true }).click();
@@ -169,14 +169,14 @@ test("the ordinary face binds and admits one compiler-free reviewed browser Host
   const readyImplementationIds = evidence.realization.offers?.map(({ implementation_id }) => implementation_id)
     ?? evidence.realization.retained_summary?.ready_implementation_ids;
   expect(admittedImplementationIds.sort()).toEqual([
-    "browser/dom-presentation@1",
+    "browser/dom-face@1",
     "browser/dom@1",
     "browser/keyboard-events@1",
     "browser/media-devices-microphone@1",
     "browser/pointer-events@1",
   ]);
   expect(readyImplementationIds.sort()).toEqual([
-    "browser/dom-presentation@1",
+    "browser/dom-face@1",
     "browser/dom@1",
     "browser/keyboard-events@1",
     "browser/media-devices-microphone@1",
@@ -220,7 +220,7 @@ test("the ordinary face binds and admits one compiler-free reviewed browser Host
   expect(plannedFragments).toHaveLength(authoredPlots.length);
   expect(new Set(plannedFragments.map(({ host_id }) => host_id))).toEqual(new Set([added.current.host_id]));
   expect(plannedFragments.flatMap(({ placements }) => placements.map(({ implementation_id }) => implementation_id)))
-    .toContain("browser/presentation-rhythm@1");
+    .toContain("browser/face-rhythm@1");
   const failedWake = replan.evidence.evidence.wakes.at(-1);
   expect(failedWake).toMatchObject({
     lifecycle: "Failed",
@@ -273,7 +273,7 @@ test("the ordinary face binds and admits one compiler-free reviewed browser Host
   await page.locator("#plot-input").click();
   await page.keyboard.type("still here");
   await page.keyboard.press("Enter");
-  await expect(page.locator("[data-plot-output] output:visible")).toHaveText("still here");
+  await expect(page.locator("[data-plot-output] output:visible")).toHaveText("Received message: still here");
   const continued = await page.evaluate(() => globalThis.__conduitWorkspace.evidence().realization);
   expect(continued.play).toBeTruthy();
   expect(continued.play).toEqual(repaired.evidence.realization.play);
@@ -308,6 +308,9 @@ test("the ordinary face binds and admits one compiler-free reviewed browser Host
 });
 
 test("a second distinct browser Host explicitly joins through one canonical Body invitation", async ({ page, context, browser }) => {
+  // Several isolated contexts, signed admission and restored membership exceed
+  // the default single-page budget on CI; keep the same finite budget as above.
+  test.setTimeout(120_000);
   await page.addInitScript(() => Object.defineProperty(navigator, "share", {
     configurable: true,
     value: async value => { globalThis.__sharedInvitation = value; },
@@ -327,7 +330,7 @@ test("a second distinct browser Host explicitly joins through one canonical Body
 
   await page.getByLabel("parts and hosts").getByRole("button", { name: "Invite another phone", exact: true }).click();
   await expect(page.locator('[data-application-key="invitation-status"]')).toContainText("Single-use Body invitation");
-  const invitation = page.locator('[data-application-key="invitation-presentation"]');
+  const invitation = page.locator('[data-application-key="invitation-face"]');
   await expect(invitation.locator('[data-application-key="invitation-link"]')).toHaveCount(1);
   await expect(invitation).toHaveCSS("row-gap", "12px");
   const link = await invitation.locator('[data-application-key="invitation-link"]').textContent();

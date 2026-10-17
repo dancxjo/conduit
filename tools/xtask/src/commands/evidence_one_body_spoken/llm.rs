@@ -5,7 +5,7 @@ use super::{
     LiveContext,
 };
 use crate::evidence::{EvidenceKind, EvidenceManifest, EvidenceResult};
-use conduit_presentation::{
+use conduit_face::{
     GeneratedContentRole, GeneratedManifestationDisposition, GenerativePresenterBounds,
     GenerativePresenterRequest,
 };
@@ -32,7 +32,7 @@ pub(super) fn run(
     let source_commit = context.source_commit;
     let run_id = context.run_id;
     let body_id = first
-        .presentation
+        .face
         .basis
         .body_id
         .as_ref()
@@ -42,10 +42,10 @@ pub(super) fn run(
     let execution_nonce = execution_id
         .strip_prefix("journey-spoken-")
         .ok_or("invalid spoken execution identity")?;
-    let request = GenerativePresenterRequest::from_presentation(
+    let request = GenerativePresenterRequest::from_face(
         format!("request/journey-spoken/{execution_nonce}"),
         finite_face_wording_presenter_policy(),
-        first.presentation.clone(),
+        first.face.clone(),
         None,
         GenerativePresenterBounds::reviewed_default(),
     )
@@ -83,8 +83,8 @@ pub(super) fn run(
     let presenter = &model_proof.presenter;
     if !presenter.play_completed
         || presenter.request_identity != request.request_identity
-        || presenter.source_presentation_identity != first.presentation.identity.as_str()
-        || presenter.source_presentation_revision != first.presentation.revision
+        || presenter.source_face_identity != first.face.identity.as_str()
+        || presenter.source_face_revision != first.face.revision
         || presenter.policy_revision != request.policy.template_contract_revision
     {
         return Err("Presenter receipt does not match the current owner Face".into());
@@ -134,8 +134,9 @@ pub(super) fn run(
         "body_id": body_id.as_str(),
         "owner_host_id": first.advertisement.host_id,
         "owner_boot_id": first.advertisement.boot_id,
-        "face_id": first.presentation.identity,
-        "face_revision": first.presentation.revision,
+        "face_id": first.face.identity,
+        "face_revision": first.face.revision,
+        "face_revision_decimal": first.face.revision.to_string(),
         "request_id": request.request_identity,
         "presenter_plan_id": presenter.plan_id,
         "presenter_play_completed": presenter.play_completed,
@@ -179,10 +180,11 @@ pub(super) fn run(
     let mask = spoken_mask_journey::execute_retained_manifestation_mask_with_streaming_espeak(
         "one-body-journey-spoken",
         execution_id,
-        first.presentation.clone(),
+        first.face.clone(),
         candidate.clone(),
         speech.clone(),
         &wav,
+        &conduit_tongues::specimen_language_request(),
     )
     .inspect_err(|_| {
         let _ = manifest.finish(EvidenceResult::DiagnosticIncomplete);
@@ -195,7 +197,7 @@ pub(super) fn run(
         "body_id": body_id.as_str(),
         "chapter_id": "hear",
         "show_id": show_id,
-        "face_revision": first.presentation.revision.to_string(),
+        "face_revision": first.face.revision.to_string(),
         "text": spoken,
         "original_model_output": raw,
     });
@@ -221,7 +223,7 @@ pub(super) fn run(
             "run_id": run_id,
             "body_id": body_id.as_str(),
             "show_id": show_id,
-            "face_revision": first.presentation.revision.to_string(),
+            "face_revision": first.face.revision.to_string(),
             "provider_id": candidate.provider_identity,
             "model_id": candidate.model_identity,
             "original_output_sha256": format!("{:x}", Sha256::digest(raw.as_bytes())),
@@ -263,8 +265,9 @@ pub(super) fn run(
             "mask_host_id": mask.execution.shown.show.show.host_id,
             "mask_boot_id": mask.execution.shown.show.show.boot_id,
             "body_id": body_id.as_str(),
-            "face_id": first.presentation.identity,
-            "face_revision": first.presentation.revision,
+            "face_id": first.face.identity,
+            "face_revision": first.face.revision,
+            "face_revision_decimal": first.face.revision.to_string(),
             "request_id": request.request_identity,
             "presenter_plan_id": presenter.plan_id,
             "presenter_play_completed": presenter.play_completed,
@@ -317,7 +320,7 @@ pub(super) fn run(
 
 fn accepted_wording(
     request: &GenerativePresenterRequest,
-    candidate: &conduit_presentation::GeneratedManifestationCandidate,
+    candidate: &conduit_face::GeneratedManifestationCandidate,
 ) -> Result<String, String> {
     request
         .validate_candidate(candidate)
@@ -327,7 +330,7 @@ fn accepted_wording(
         .as_ref()
         .ok_or("finite Presenter omitted wording proposal")?;
     let spoken = proposal
-        .render_exact(&request.semantic_data.presentation)
+        .render_exact(&request.semantic_data.face)
         .map_err(|error| {
             format!("finite wording was not grounded in the current Face: {error:?}")
         })?;

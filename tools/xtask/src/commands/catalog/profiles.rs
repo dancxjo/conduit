@@ -33,14 +33,13 @@ fn browser_advertisement() -> Result<HostAdvertisement, CatalogError> {
     let mut browser = conduit_signal_conformance::distributed_browser_sink_advertisement();
     browser
         .capabilities
-        .extend(conduit_browser_runtime::presentation_nucleus::offers());
+        .extend(conduit_browser_runtime::face_nucleus::offers());
     let proof = conduit_patchbay_workbench_conformance::patchbay_mask_plans()
         .map_err(|error| CatalogError::new("patchbay-direct-profile-invalid", error))?;
     browser
         .capabilities
         .extend(proof.direct_host.capabilities.into_iter().filter(|offer| {
-            offer.kind_id.as_str()
-                == conduit_patchbay_workbench_conformance::PATCHBAY_PRESENTATION_KIND
+            offer.kind_id.as_str() == conduit_patchbay_workbench_conformance::PATCHBAY_FACE_KIND
         }));
     browser.resources.extend(proof.direct_host.resources);
     browser.resources.sort();
@@ -71,7 +70,7 @@ pub(crate) fn conduitos_advertisement() -> Result<HostAdvertisement, CatalogErro
     let mut portable_offers = conduit_std_host::supported_nucleus_offers();
     portable_offers.extend([
         conduitos::functional_offers::text_morse_offer(),
-        conduitos::functional_offers::indicator_presentation_offer(),
+        conduitos::functional_offers::indicator_face_offer(),
     ]);
     portable_offers.extend(conduitos::functional_offers::morse_composition_offers());
     let mut advertisement = HostAdvertisement {
@@ -107,13 +106,11 @@ pub(crate) fn conduitos_advertisement() -> Result<HostAdvertisement, CatalogErro
             })
             .collect::<Result<Vec<_>, CatalogError>>()?,
     };
-    let presentation = conduitos::presentation_nucleus::presentation_nucleus_offers();
-    advertisement.capabilities.retain(|capability| {
-        !presentation
-            .iter()
-            .any(|offer| offer.kind_id == capability.kind_id)
-    });
-    advertisement.capabilities.extend(presentation);
+    let face = conduitos::face_nucleus::face_nucleus_offers();
+    advertisement
+        .capabilities
+        .retain(|capability| !face.iter().any(|offer| offer.kind_id == capability.kind_id));
+    advertisement.capabilities.extend(face);
     advertisement
         .capabilities
         .push(conduitos::functional_offers::logic_not_offer());

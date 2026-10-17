@@ -1,9 +1,8 @@
 //! Project the exact typed Patchbay graph into renderer-neutral subjects.
 
 use crate::{FaceControlKind, PatchbayGraph, PlanDocument, PlayDocument};
-use conduit_presentation::{
-    PresentationIconKey, PresentationPropertyValue, PresentationRelationship,
-    PresentationRelationshipKind, PresentationRole,
+use conduit_face::{
+    FaceIconKey, FacePropertyValue, FaceRelationship, FaceRelationshipKind, FaceRole,
 };
 
 use crate::portable_projection::ContentBuilder;
@@ -19,7 +18,7 @@ pub(super) fn append_exact_graph(
     for composition in &graph.compositions {
         let subject = content.subject_with_identity(
             format!("gear/{}", composition.identity),
-            PresentationRole::Gear,
+            FaceRole::Gear,
             format!(
                 "Plot-backed Gear {} through checked Back {}",
                 composition.gear_name,
@@ -72,7 +71,7 @@ pub(super) fn append_exact_graph(
         for port in composition.inputs.iter().chain(&composition.outputs) {
             let port_subject = content.subject_with_identity(
                 format!("port/{}", port.identity),
-                PresentationRole::Port,
+                FaceRole::Port,
                 format!(
                     "Stable Front {:?} Port {} carrying {}",
                     port.descriptor.direction,
@@ -101,7 +100,7 @@ pub(super) fn append_exact_graph(
                 content.property(
                     &port_subject,
                     "value-contract",
-                    PresentationPropertyValue::ValueContract(contract.clone()),
+                    FacePropertyValue::ValueContract(contract.clone()),
                 );
             }
             text(
@@ -116,10 +115,10 @@ pub(super) fn append_exact_graph(
     for gear in &graph.gears {
         let icon = conduit_semantic_catalog::palette_metadata(&gear.kind_id)
             .map(|metadata| metadata.icon)
-            .unwrap_or(PresentationIconKey::GenericGear);
+            .unwrap_or(FaceIconKey::GenericGear);
         let subject = content.subject_with_identity(
             format!("gear/{}", gear.identity),
-            PresentationRole::Gear,
+            FaceRole::Gear,
             format!("{} Gear, {}", gear.gear_id.as_str(), gear.kind_id.as_str()),
         );
         let parent = graph
@@ -183,7 +182,7 @@ pub(super) fn append_exact_graph(
         for port in gear.inputs.iter().chain(&gear.outputs) {
             let port_subject = content.subject_with_identity(
                 format!("port/{}", port.identity),
-                PresentationRole::Port,
+                FaceRole::Port,
                 format!(
                     "{} {:?} Port carrying {}",
                     port.descriptor.port_id.as_str(),
@@ -212,7 +211,7 @@ pub(super) fn append_exact_graph(
                 content.property(
                     &port_subject,
                     "value-contract",
-                    PresentationPropertyValue::ValueContract(contract.clone()),
+                    FacePropertyValue::ValueContract(contract.clone()),
                 );
             }
             text(
@@ -227,7 +226,7 @@ pub(super) fn append_exact_graph(
     for cord in &graph.cords {
         let subject = content.subject_with_identity(
             format!("cord/{}", cord.identity),
-            PresentationRole::Cord,
+            FaceRole::Cord,
             format!("Cord from {} to {}", cord.source_port, cord.sink_port),
         );
         content.contains(plot, &subject);
@@ -267,10 +266,10 @@ pub(super) fn append_exact_graph(
                 .iter()
                 .find(|(identity, _)| *identity == endpoint)
             {
-                content.relationships.push(PresentationRelationship {
+                content.relationships.push(FaceRelationship {
                     source: subject.clone(),
                     target: port_subject.clone(),
-                    kind: PresentationRelationshipKind::Connects,
+                    kind: FaceRelationshipKind::Connects,
                 });
             }
         }
@@ -527,15 +526,11 @@ fn append_play(
 }
 
 fn identity(content: &mut ContentBuilder, subject: &str, name: &str, value: &str) {
-    content.property(
-        subject,
-        name,
-        PresentationPropertyValue::Identity(value.into()),
-    );
+    content.property(subject, name, FacePropertyValue::Identity(value.into()));
 }
 
 fn text(content: &mut ContentBuilder, subject: &str, name: &str, value: &str) {
-    content.property(subject, name, PresentationPropertyValue::Text(value.into()));
+    content.property(subject, name, FacePropertyValue::Text(value.into()));
 }
 
 fn control_value(value: &conduit_core::ConfigurationValue) -> String {
@@ -549,8 +544,10 @@ fn control_value(value: &conduit_core::ConfigurationValue) -> String {
             value.profile().as_str(),
             value.canonical_value().len()
         ),
-        conduit_core::ConfigurationValue::Quantity(value) => {
-            format!("{}{}", value.value(), value.unit().plot_suffix())
+        conduit_core::ConfigurationValue::Quantity(value) => value.source().to_string(),
+        conduit_core::ConfigurationValue::Unit(value) => value.source().to_string(),
+        conduit_core::ConfigurationValue::TemperatureDifference(value) => {
+            value.source().to_string()
         }
     }
 }
@@ -569,7 +566,7 @@ fn control_contract(kind: &FaceControlKind) -> String {
             maximum,
             unit,
         } => {
-            format!("{minimum}..{maximum}{}", unit.unwrap_or(""))
+            format!("{minimum}..{maximum}{}", unit.as_deref().unwrap_or(""))
         }
         FaceControlKind::ScalarNumber {
             minimum,
@@ -577,6 +574,10 @@ fn control_contract(kind: &FaceControlKind) -> String {
             unit,
         } => {
             format!("{minimum}..{maximum}{unit}")
+        }
+        FaceControlKind::StructuredSource => "typed Conduitese value; edit source".into(),
+        FaceControlKind::PhysicalSource { maximum_bytes } => {
+            format!("physical source, max {maximum_bytes} bytes")
         }
         FaceControlKind::ShortText { maximum_bytes } => format!("max {maximum_bytes} bytes"),
     }

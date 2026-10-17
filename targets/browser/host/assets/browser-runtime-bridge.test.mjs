@@ -6,7 +6,7 @@ const ABI = new TextEncoder().encode("conduit.browser/runtime-abi");
 
 function runtime({ revision = 1, identity = ABI, inputCapacity = 64, inputPointer = 0, outputCapacity = 1024, outputPointer = 0 } = {}) {
   const extent = (pointer, capacity) => Number.isSafeInteger(pointer) && Number.isSafeInteger(capacity)
-    && pointer >= 0 && capacity >= 0 && pointer + capacity <= 16 * 1024 * 1024
+    && pointer >= 0 && capacity >= 0 && pointer + capacity <= 64 * 1024 * 1024
     ? pointer + capacity : 0;
   const requiredBytes = Math.max(1024 + identity.length, extent(inputPointer, inputCapacity), extent(outputPointer, outputCapacity));
   const memory = new WebAssembly.Memory({ initial: Math.ceil(requiredBytes / (64 * 1024)) });
@@ -139,7 +139,7 @@ test("owner Face interaction bridge retains exact u64 emission bytes", () => {
   const api = runtime();
   const inputPointer = 2048;
   const outputPointer = 32768;
-  const emission = new TextEncoder().encode('{"show":{"presentation_revision":9007199254740993},"interaction":{"face_revision":9007199254740993}}');
+  const emission = new TextEncoder().encode('{"show":{"face_revision":9007199254740993},"interaction":{"face_revision":9007199254740993}}');
   api.conduit_browser_owner_face_input_ptr = () => inputPointer;
   api.conduit_browser_owner_face_input_capacity = () => 16 * 1024;
   api.conduit_browser_owner_face_output_ptr = () => outputPointer;
@@ -231,9 +231,9 @@ test("workspace binary request preserves opaque non-UTF-8 output", () => {
 });
 
 test("workspace request admits a bounded whole-Body snapshot larger than one operation", () => {
-  const outputCapacity = 16 * 128 * 1024 + 256 * 1024;
+  const outputCapacity = 16 * 2 * 1024 * 1024 + 256 * 1024;
   const api = runtime({ outputCapacity });
-  const expected = { schema: "conduit.workspace/proof@1", retained: "x".repeat(256 * 1024) };
+  const expected = { schema: "conduit.workspace/proof@1", retained: "x".repeat(2 * 1024 * 1024 + 256 * 1024) };
   api.conduit_workspace_request = () => {
     api.setWorkspaceOutput(new TextEncoder().encode(JSON.stringify(expected)));
     return 0;
@@ -268,4 +268,239 @@ test("initial workload review preserves its four exact fields and retires source
   assert.deepEqual(result.outputJson.requirements.kinds, []);
   assert.deepEqual([...new Uint8Array(api.memory.buffer, inputPointer, lengths.reduce((sum, length) => sum + length, 0))],
     new Array(lengths.reduce((sum, length) => sum + length, 0)).fill(0));
+});
+
+test("canonical owner Face observation preserves exact integer bytes and copies output", () => {
+  const api = runtime();
+  const pointer = 32768;
+  const bytes = new TextEncoder().encode('{"face":{"revision":18446744073709551615,"properties":[{"Count":9007199254740993}]}}');
+  api.conduit_browser_owner_face_output_ptr = () => pointer;
+  api.conduit_browser_owner_face_output_capacity = () => 64 * 1024;
+  api.conduit_browser_owner_face_output_len = () => bytes.length;
+  api.conduit_browser_owner_face_canonical_snapshot = () => {
+    new Uint8Array(api.memory.buffer, pointer, bytes.length).set(bytes);
+    return 0;
+  };
+  const bridge = bindBrowserRuntimeBridge(api, { context: "canonical observation proof" });
+  const captured = bridge.ownerFaceCanonicalSnapshot();
+  assert.deepEqual(captured, bytes);
+  new Uint8Array(api.memory.buffer, pointer, bytes.length).fill(0);
+  assert.deepEqual(captured, bytes);
+  api.conduit_browser_owner_face_canonical_snapshot = () => -5;
+  assert.throws(() => bridge.ownerFaceCanonicalSnapshot(), /snapshot refused/);
+});
+
+const sourceOperations = [
+  ['check', (bridge, source) => bridge.crecheReviewedInventory(source)],
+  ['patchbay', (bridge, source) => bridge.projectPatchbay(source, 1n)],
+  ['interaction', (bridge, source) => bridge.crecheAdmitSourceInteraction(source, 1n)],
+  ['review', (bridge, source) => bridge.crecheReviewInitialWorkload({ host: 'host/1', boot: 'boot/1', initialPlots: [], source })],
+  ['birth', (bridge, source) => bridge.crecheBirth({ host: 'host/1', boot: 'boot/1', friendlyName: 'Body', initialPlots: [], source, sequence: 1n })],
+];
+function sourceRuntime() {
+  const api = runtime();
+  let calls = 0;
+  const complete = () => {
+    calls++;
+    new Uint8Array(api.memory.buffer, 0, 2).set([123, 125]);
+    api.setProjectionOutput(Uint8Array.of(123, 125));
+    return 0;
+  };
+  for (const name of ['conduit_creche_reviewed_inventory', 'conduit_browser_project_patchbay',
+    'conduit_creche_admit_source_interaction', 'conduit_creche_review_initial_workload', 'conduit_creche_birth']) api[name] = complete;
+  api.conduit_creche_output_len = () => 2;
+  return { api, calls: () => calls };
+}
+for (const [name, invoke] of sourceOperations) {
+  test(`source ${name} refuses non-scalar text before invoking native code`, () => {
+    const fixture = sourceRuntime();
+    const bridge = bindBrowserRuntimeBridge(fixture.api, { context: "source ingress proof" });
+    for (const source of ['\ud800', '\udfff', 1]) assert.throws(() => invoke(bridge, source), /scalar Unicode/);
+    assert.equal(fixture.calls(), 0);
+  });
+  test(`source ${name} preflights its arena before UTF-8 allocation`, () => {
+    const fixture = sourceRuntime();
+    const bridge = bindBrowserRuntimeBridge(fixture.api, { context: "source ingress proof" });
+    const encode = TextEncoder.prototype.encode;
+    TextEncoder.prototype.encode = function(value) {
+      if (value.length > 1024) throw new Error('oversized encoding attempted');
+      return encode.call(this, value);
+    };
+    try { assert.throws(() => invoke(bridge, 'x'.repeat(1025)), /bound/); }
+    finally { TextEncoder.prototype.encode = encode; }
+    assert.equal(fixture.calls(), 0);
+  });
+}
+
+const sourceExports = {
+  check: ['conduit_creche_reviewed_inventory', 0, 0],
+  patchbay: ['conduit_browser_project_patchbay', 4096, 0],
+  interaction: ['conduit_creche_admit_source_interaction', 0, 0],
+  review: ['conduit_creche_review_initial_workload', 0, 3],
+  birth: ['conduit_creche_birth', 0, 4],
+};
+for (const [name, invoke] of sourceOperations) {
+  test(`source ${name} preserves BOM and scalar UTF-8 bytes exactly`, () => {
+    const fixture = sourceRuntime(), source = '\ufeffplot café { "😀" }';
+    const [exportName, pointer, sourceIndex] = sourceExports[name];
+    const complete = fixture.api[exportName];
+    let captured;
+    fixture.api[exportName] = (...lengths) => {
+      const offset = lengths.slice(0, sourceIndex).reduce((total, length) => total + length, 0);
+      captured = new Uint8Array(fixture.api.memory.buffer, pointer + offset, lengths[sourceIndex]).slice();
+      return complete();
+    };
+    invoke(bindBrowserRuntimeBridge(fixture.api, { context: 'source fidelity proof' }), source);
+    assert.deepEqual(captured, new TextEncoder().encode(source));
+    assert.equal(fixture.calls(), 1);
+  });
+  if (name === 'review' || name === 'birth') test(`source ${name} accounts for preceding fields before encoding`, () => {
+    const fixture = sourceRuntime(), source = 'x'.repeat(name === 'review' ? 1011 : 1007);
+    const bridge = bindBrowserRuntimeBridge(fixture.api, { context: 'multipart source proof' });
+    const encode = TextEncoder.prototype.encode;
+    TextEncoder.prototype.encode = function(value) {
+      if (value === source) throw new Error('overbudget source encoding attempted');
+      return encode.call(this, value);
+    };
+    try { assert.throws(() => invoke(bridge, source), /bound/); }
+    finally { TextEncoder.prototype.encode = encode; }
+    assert.equal(fixture.calls(), 0);
+  });
+}
+
+for (const mutation of ['wasm-grow', 'source-grow', 'source-transfer']) for (const fail of [false, true]) {
+  test(`input retirement keeps its admitted span (${mutation}, failure=${fail})`, () => {
+    const api = runtime();
+    const buffer = mutation === 'wasm-grow' ? api.memory.buffer : new ArrayBuffer(4, { maxByteLength: 16 });
+    const input = mutation === 'wasm-grow' ? new Uint8Array(buffer, 128, 4) : new Uint8Array(buffer);
+    input.set([1, 2, 3, 4]);
+    new Uint8Array(api.memory.buffer)[4] = 99;
+    let calls = 0;
+    api.conduit_creche_restore_durable = length => {
+      calls++;
+      assert.equal(length, 4);
+      assert.deepEqual([...new Uint8Array(api.memory.buffer, 0, length)], [1, 2, 3, 4]);
+      if (mutation === 'wasm-grow') api.memory.grow(1);
+      else if (mutation === 'source-grow') buffer.resize(16);
+      else structuredClone(input, { transfer: [input.buffer] });
+      if (fail) throw new Error('native failure');
+      return 1;
+    };
+    const bridge = bindBrowserRuntimeBridge(api, { context: 'input retirement proof' });
+    if (fail) assert.throws(() => bridge.crecheRestoreDurable(input), /native failure/);
+    else assert.equal(bridge.crecheRestoreDurable(input).status, 1);
+    assert.equal(calls, 1);
+    assert.deepEqual([...new Uint8Array(api.memory.buffer, 0, 4)], [0, 0, 0, 0]);
+    assert.equal(new Uint8Array(api.memory.buffer)[4], 99, 'adjacent bytes are outside the admitted input');
+  });
+}
+
+for (const value of [[256], '1', Uint16Array.of(256), Int8Array.of(-1)]) {
+  test(`effect completion refuses implicit byte conversion (${value.constructor.name})`, () => {
+    const api = runtime(); let calls = 0;
+    api.conduit_browser_plot_complete_effect = () => { calls++; api.setBodyOutput(Uint8Array.of(123, 125)); return 0; };
+    const bridge = bindBrowserRuntimeBridge(api, { context: 'effect byte proof' });
+    assert.throws(() => bridge.browserPlotCompleteEffect('play/1', 'placement/1', 1, value), /encoded bytes/);
+    assert.equal(calls, 0);
+  });
+}
+
+test('effect completion refuses overcapacity output before allocating its frame', () => {
+  const api = runtime(), output = new Uint8Array(1025);
+  const bridge = bindBrowserRuntimeBridge(api, { context: 'effect capacity proof' });
+  const Original = globalThis.Uint8Array;
+  globalThis.Uint8Array = new Proxy(Original, { construct(target, args, type) {
+    if (typeof args[0] === 'number' && args[0] > 1024) throw new Error('overcapacity frame allocated');
+    return Reflect.construct(target, args, type);
+  } });
+  try { assert.throws(() => bridge.browserPlotCompleteEffect('play/1', 'placement/1', 1, output), /bound/); }
+  finally { globalThis.Uint8Array = Original; }
+});
+
+test('effect completion reserves output capacity before encoding identity fields', () => {
+  const api = runtime(), output = new Uint8Array(1020);
+  const bridge = bindBrowserRuntimeBridge(api, { context: 'effect combined capacity proof' });
+  const encode = TextEncoder.prototype.encode;
+  TextEncoder.prototype.encode = function(value) {
+    if (value === 'play/1') throw new Error('overbudget identity encoded');
+    return encode.call(this, value);
+  };
+  try { assert.throws(() => bridge.browserPlotCompleteEffect('play/1', 'placement/1', 1, output), /bound/); }
+  finally { TextEncoder.prototype.encode = encode; }
+});
+
+for (const invalid of ['play', 'placement']) test(`effect completion refuses non-scalar ${invalid} identity`, () => {
+  const api = runtime(); let calls = 0;
+  api.conduit_browser_plot_complete_effect = () => { calls++; api.setBodyOutput(Uint8Array.of(123, 125)); return 0; };
+  const bridge = bindBrowserRuntimeBridge(api, { context: 'effect identity proof' });
+  assert.throws(() => bridge.browserPlotCompleteEffect(invalid === 'play' ? '\ud800' : 'play/1',
+    invalid === 'placement' ? '\udfff' : 'placement/1', 1, Uint8Array.of(42)), /scalar Unicode/);
+  assert.equal(calls, 0);
+});
+
+test('effect completion preserves exact opaque subview bytes and u32 request sequence', () => {
+  const api = runtime(), sequence = 0xffff_ffff;
+  const output = Uint8Array.of(99, 255, 0, 254, 99).subarray(1, 4);
+  let captured;
+  api.conduit_browser_plot_complete_effect = (playLength, placementLength, value, outputLength) => {
+    captured = { sequence: value, outputLength,
+      output: [...new Uint8Array(api.memory.buffer, playLength + placementLength, outputLength)] };
+    api.setBodyOutput(Uint8Array.of(123, 125)); return 0;
+  };
+  const result = bindBrowserRuntimeBridge(api, { context: 'opaque effect proof' })
+    .browserPlotCompleteEffect('play/1', 'placement/1', sequence, output);
+  assert.equal(result.status, 0);
+  assert.deepEqual(captured, { sequence, outputLength: 3, output: [255, 0, 254] });
+  assert.deepEqual([...new Uint8Array(api.memory.buffer, 0, 20)], Array(20).fill(0));
+});
+
+function integerEcho(type) {
+  return new WebAssembly.Instance(new WebAssembly.Module(Uint8Array.of(
+    0,97,115,109,1,0,0,0, 1,6,1,96,1,type,1,type, 3,2,1,0,
+    7,8,1,4,101,99,104,111,0,0, 10,6,1,4,0,32,0,11,
+  ))).exports.echo;
+}
+const echo64 = integerEcho(0x7e), echo32 = integerEcho(0x7f);
+test('WebAssembly integer conversion can alias out-of-range request identities', () => {
+  assert.equal(echo64((1n << 64n) + 1n), 1n);
+  assert.equal(echo32(0x1_0000_0001), 1);
+});
+const sequenceOperations = [
+  ['projection', 'u64', 'conduit_browser_project_patchbay', 1, (b,s) => b.projectPatchbay('plot x {}',s)],
+  ['source', 'u64', 'conduit_creche_admit_source_interaction', 1, (b,s) => b.crecheAdmitSourceInteraction('plot x {}',s)],
+  ['birth', 'u64', 'conduit_creche_birth', 5, (b,s) => b.crecheBirth({ host:'host/1',boot:'boot/1',friendlyName:'Body',initialPlots:[],source:'plot x {}',sequence:s })],
+  ['attach', 'u64', 'conduit_creche_attach_here', 2, (b,s) => b.crecheAttachHere(Uint8Array.of(1),Uint8Array.of(2),s)],
+  ['cancel', 'u32', 'conduit_browser_plot_acknowledge_cancellation', 2, (b,s) => b.browserPlotAcknowledgeCancellation('play/1','placement/1',s)],
+  ['complete', 'u32', 'conduit_browser_plot_complete_effect', 2, (b,s) => b.browserPlotCompleteEffect('play/1','placement/1',s,Uint8Array.of(42))],
+  ['refuse', 'u32', 'conduit_browser_plot_refuse_effect', 2, (b,s) => b.browserPlotRefuseEffect('play/1','placement/1',s,1,0)],
+];
+for (const [name, type, exportName, index, invoke] of sequenceOperations) {
+  test(`${name} rejects wrapping or coercing ${type} sequence before native entry`, () => {
+    const { api } = sourceRuntime(); let calls = 0;
+    api[exportName] = () => { calls++; api.setBodyOutput(Uint8Array.of(123,125)); api.setProjectionOutput(Uint8Array.of(123,125)); return 0; };
+    const bridge = bindBrowserRuntimeBridge(api, { context: 'integer admission proof' });
+    const invalid = type === 'u64' ? [1n << 64n,-1n,1,'1',true,{valueOf:()=>1n}]
+      : [0x1_0000_0001,-1,1.5,1n,'1',true,{valueOf:()=>1}];
+    for (const sequence of invalid) assert.throws(() => invoke(bridge,sequence), new RegExp(type));
+    assert.equal(calls,0);
+  });
+  test(`${name} preserves exact legal ${type} sequence endpoints`, () => {
+    const { api } = sourceRuntime(); const observed = [];
+    api[exportName] = (...args) => {
+      observed.push(type === 'u64' ? BigInt.asUintN(64,echo64(args[index])) : echo32(args[index]) >>> 0);
+      api.setBodyOutput(Uint8Array.of(123,125)); api.setProjectionOutput(Uint8Array.of(123,125)); return 0;
+    };
+    const bridge = bindBrowserRuntimeBridge(api, { context: 'integer endpoint proof' });
+    const valid = type === 'u64' ? [0n,9007199254740993n,(1n<<64n)-1n] : [0,1,0xffff_ffff];
+    for (const sequence of valid) invoke(bridge,sequence);
+    assert.deepEqual(observed,valid);
+  });
+}
+for (const field of ['disposition','detail']) test(`effect refusal rejects non-u32 ${field} before native entry`, () => {
+  const { api } = sourceRuntime(); let calls = 0;
+  api.conduit_browser_plot_refuse_effect = () => { calls++; api.setBodyOutput(Uint8Array.of(123,125)); return 0; };
+  const bridge = bindBrowserRuntimeBridge(api, { context: 'refusal integer proof' });
+  for (const value of [-1,0x1_0000_0001,1.5,1n,'1',true]) assert.throws(() =>
+    bridge.browserPlotRefuseEffect('play/1','placement/1',1,field === 'disposition' ? value : 1,field === 'detail' ? value : 0),/u32/);
+  assert.equal(calls,0);
 });

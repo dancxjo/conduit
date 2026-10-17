@@ -3,10 +3,12 @@
 //! typed action return through the retained Mask Play.
 
 use crate::durable_host_control::terminal_attach::TerminalWardrobeCommand;
-use conduit_presentation::{FaceInteraction, FaceInteractionArgument};
+use conduit_face::{Face, FaceInteraction, FaceInteractionArgument, MaskShow};
 use std::{
     io::{BufRead, Read, Write},
     path::Path,
+    thread,
+    time::{Duration, Instant},
 };
 
 const MAX_COMMAND_BYTES: u64 = 256;
@@ -37,12 +39,21 @@ pub(crate) fn run(
             let attached_boot = attached.advertisement.boot_id.clone();
             let attached_generation = attached.advertisement.offer_generation;
             drop(attached);
-            let (_, retired) = crate::durable_host_control::local_face_snapshot(state_dir)?;
-            if retired.host_id != attached_host
-                || retired.boot_id != attached_boot
-                || retired.offer_generation <= attached_generation
-            {
-                return Err("owner terminal detachment was not acknowledged".into());
+            // The service observes the closed provider socket on its next
+            // turn. Observe that retirement before reporting a clean exit.
+            let deadline = Instant::now() + Duration::from_secs(5);
+            loop {
+                let (_, retired) = crate::durable_host_control::local_face_snapshot(state_dir)?;
+                if retired.host_id != attached_host || retired.boot_id != attached_boot {
+                    return Err("owner terminal Host Boot changed during detachment".into());
+                }
+                if retired.offer_generation > attached_generation {
+                    break;
+                }
+                if Instant::now() >= deadline {
+                    return Err("owner terminal detachment was not acknowledged".into());
+                }
+                thread::sleep(Duration::from_millis(20));
             }
             return Ok(());
         }
@@ -75,46 +86,70 @@ pub(crate) fn run(
             }
             continue;
         }
-        if let Some(value) = command.strip_prefix("apply ") {
+        if command == "show" {
+            crate::durable_host_control::terminal_attach::refresh_show(
+                state_dir,
+                &mut attached,
+                output,
+            )?;
+            report_show(output, &attached)?;
+            wardrobe = crate::durable_host_control::attached_wardrobe(
+                state_dir,
+                &attached,
+                0,
+                TerminalWardrobeCommand::Inspect,
+            )?;
+            report_wardrobe(output, &wardrobe)?;
+            continue;
+        }
+        if command == "evidence" {
+            wardrobe = crate::durable_host_control::attached_wardrobe(
+                state_dir,
+                &attached,
+                0,
+                TerminalWardrobeCommand::Inspect,
+            )?;
+            let mut evidence = evidence_for_show(&attached.face, &attached.show)?;
+            evidence["owner_selected_show_current"] = serde_json::json!(
+                wardrobe["show_id"].as_str() == Some(attached.show.show_id.as_str())
+            );
+            evidence["route_plan_id"] = serde_json::json!(attached.route_plan_id);
+            evidence["host_id"] = serde_json::json!(attached.advertisement.host_id);
+            evidence["boot_id"] = serde_json::json!(attached.advertisement.boot_id);
+            evidence["bytes_written"] = serde_json::json!(attached.effect.bytes_written);
+            evidence["frame_sha256"] = serde_json::json!(attached.effect.frame_sha256);
+            evidence["show_sha256"] = serde_json::json!(attached.effect.show_sha256);
+            writeln!(output, "Owner terminal evidence {evidence}")
+                .map_err(|error| format!("write terminal evidence: {error}"))?;
+            output
+                .flush()
+                .map_err(|error| format!("flush terminal evidence: {error}"))?;
+            continue;
+        }
+        if command == "actions" {
+            report_actions(output, &attached.face)?;
+            continue;
+        }
+        let action_input = command.strip_prefix("action ").map(|input| {
+            input
+                .split_once(' ')
+                .map_or((input, ""), |(id, value)| (id, value))
+        });
+        if let Some((identity, value)) = action_input
+            .map(|(id, value)| (Some(id), value))
+            .or_else(|| command.strip_prefix("apply ").map(|value| (None, value)))
+        {
             if wardrobe["show_id"].is_null() {
-                writeln!(output, "Action refused: no current selected Mask Show. Detach and attach for a fresh Show.")
+                writeln!(output, "Action refused: no current selected Mask Show. Enter show to present a fresh Show on this terminal.")
                     .map_err(|error| format!("write stale Show refusal: {error}"))?;
                 continue;
             }
-            let mut available = attached
-                .face
-                .actions
-                .iter()
-                .filter(|action| action.availability.is_available());
-            let selected = available.next();
-            if available.next().is_some()
-                || selected.is_none_or(|action| action.arguments.len() != 1)
-            {
-                writeln!(
-                    output,
-                    "Apply needs exactly one available, single-value action."
-                )
-                .map_err(|error| format!("write owner terminal help: {error}"))?;
-                continue;
-            }
-            let action = selected.expect("checked one available action");
-            let argument = &action.arguments[0];
-            let interaction = FaceInteraction::new(
-                &attached.face,
-                &attached.show,
-                &action.identity,
-                &action.target,
-                vec![FaceInteractionArgument {
-                    name: argument.name.clone(),
-                    value_kind: argument.contract.value_kind.as_str().into(),
-                    value: value.as_bytes().to_vec(),
-                }],
-                1,
-            );
+            let interaction =
+                interaction_for_action(&attached.face, &attached.show, identity, value);
             let interaction = match interaction {
                 Ok(interaction) => interaction,
                 Err(error) => {
-                    writeln!(output, "Action refused: {error:?}")
+                    writeln!(output, "Action refused: {error}")
                         .map_err(|error| format!("write owner terminal refusal: {error}"))?;
                     continue;
                 }
@@ -126,6 +161,11 @@ pub(crate) fn run(
                 interaction,
             );
             match result {
+                Ok(value) if value["schema"] == "conduit.todo/committed-action@1" => writeln!(
+                    output,
+                    "Todo saved at revision {}.",
+                    value["state_revision"]
+                ),
                 Ok(value) => writeln!(output, "{value}"),
                 Err(error) => writeln!(output, "Action refused: {error}"),
             }
@@ -145,11 +185,81 @@ pub(crate) fn run(
         }
         writeln!(
             output,
-            "Enter wardrobe (inspect), wardrobe wear/doff/prefer (this terminal Mask only), apply <value>, or quit to detach."
+            "Enter wardrobe (inspect), wardrobe wear/doff/prefer (this terminal Mask only), show to present again, actions to list choices, action <identity> [value], apply <value>, or quit to detach."
         )
         .map_err(|error| format!("write owner terminal help: {error}"))?;
     }
 }
+
+pub(crate) fn report_actions(output: &mut impl Write, face: &Face) -> Result<(), String> {
+    let mut count = 0;
+    for action in face
+        .actions
+        .iter()
+        .filter(|action| action.availability.is_available())
+    {
+        let target = face
+            .subjects
+            .iter()
+            .find(|subject| subject.identity == action.target)
+            .map_or(action.target.as_str(), |subject| subject.name.as_str());
+        let argument = action
+            .arguments
+            .first()
+            .map_or(String::new(), |argument| format!(" <{}>", argument.name));
+        writeln!(
+            output,
+            "{} — {}: action {}{}",
+            action.name, target, action.identity, argument
+        )
+        .map_err(|error| format!("write terminal actions: {error}"))?;
+        count += 1;
+    }
+    if count == 0 {
+        writeln!(output, "No available actions on this Face.")
+            .map_err(|error| format!("write terminal actions: {error}"))?;
+    }
+    output
+        .flush()
+        .map_err(|error| format!("flush terminal actions: {error}"))
+}
+
+pub(crate) fn interaction_for_action(
+    face: &Face,
+    show: &MaskShow,
+    identity: Option<&str>,
+    value: &str,
+) -> Result<FaceInteraction, String> {
+    let mut available = face.actions.iter().filter(|action| {
+        action.availability.is_available()
+            && identity.is_none_or(|id| action.identity.as_str() == id)
+    });
+    let selected = available.next();
+    if available.next().is_some()
+        || selected.is_none_or(|action| {
+            action.arguments.len() > 1
+                || (identity.is_none() && action.arguments.len() != 1)
+                || (action.arguments.is_empty() && !value.is_empty())
+        })
+    {
+        return Err("Choose one available action: action <identity> [value]. Apply needs exactly one available, single-value action.".into());
+    }
+    let action = selected.expect("checked one available action");
+    let arguments = action
+        .arguments
+        .iter()
+        .map(|argument| FaceInteractionArgument {
+            name: argument.name.clone(),
+            value_kind: argument.contract.value_kind.as_str().into(),
+            value: value.as_bytes().to_vec(),
+        })
+        .collect();
+    FaceInteraction::new(face, show, &action.identity, &action.target, arguments, 1)
+        .map_err(|error| format!("{error:?}"))
+}
+
+#[cfg(test)]
+mod tests;
 
 fn report_wardrobe(output: &mut impl Write, report: &serde_json::Value) -> Result<(), String> {
     let worn = report["wardrobe"]["worn"]
@@ -160,14 +270,14 @@ fn report_wardrobe(output: &mut impl Write, report: &serde_json::Value) -> Resul
     let planning = &report["reconciliation"]["planning"];
     writeln!(
         output,
-        "Wardrobe (this foreground attachment only): {} worn terminal Mask, {} admitted route; selected route: {selected}; current Show: {show}; planning: {planning}. Preference: {}. Wear/doff/prefer address only this admitted terminal Mask; other Masks have no admitted route here.",
+        "Owner Body wardrobe: {} worn terminal Mask, {} admitted route; selected route: {selected}; current Show: {show}; planning: {planning}. Preference: {}. Wear/doff/prefer address the currently admitted terminal Mask; browser selection awaits a complete carrier-Line Mask Plan.",
         worn.len(),
         report["admitted_routes"].as_array().map_or(0, Vec::len),
         report["wardrobe"]["preference"],
     )
     .map_err(|error| format!("write owner wardrobe: {error}"))?;
     if report["fresh_show_required"] == true {
-        writeln!(output, "The sealed terminal route is selected, but its prior Show was doffed. Detach and reattach for a fresh acknowledged Show.")
+        writeln!(output, "The sealed terminal route is selected, but its prior Show is no longer current. Enter show for a fresh acknowledged Show.")
             .map_err(|error| format!("write wardrobe Show status: {error}"))?;
     }
     output
@@ -181,7 +291,7 @@ fn report_show(
 ) -> Result<(), String> {
     writeln!(
         output,
-        "\r\nOwner terminal Show {} · route Plan {} · Host {} · Boot {} · offer generation {} · {} bytes written and flushed. Enter apply <value> for the available action, or quit to detach.",
+        "\r\nOwner terminal Show {} · route Plan {} · Host {} · Boot {} · offer generation {} · {} bytes written and flushed. Enter actions to list choices, action <identity> [value] for an available action, apply <value> when only one value action is available, show to present again, or quit to detach.",
         attached.show.show_id.as_str(),
         attached.route_plan_id.as_str(),
         attached.advertisement.host_id.as_str(),
@@ -193,4 +303,22 @@ fn report_show(
     output
         .flush()
         .map_err(|error| format!("flush owner terminal receipt: {error}"))
+}
+
+pub(crate) fn evidence_for_show(face: &Face, show: &MaskShow) -> Result<serde_json::Value, String> {
+    show.validate(face)
+        .map_err(|error| format!("terminal evidence Show: {error:?}"))?;
+    if show.show.lifecycle != conduit_face::ManifestationLifecycle::Available {
+        return Err("terminal evidence requires the acknowledged available Show".into());
+    }
+    Ok(serde_json::json!({
+        "schema":"conduit.body/terminal-show-evidence@1",
+        "body_id":face.basis.body_id,
+        "face_id":face.identity,
+        "face_revision":face.revision.to_string(),
+        "show_id":show.show_id,
+        "mask_plan_id":show.planned_mask.plan.plan_id,
+        "mask_play_id":show.show.active_play_id,
+        "show_state":"available"
+    }))
 }

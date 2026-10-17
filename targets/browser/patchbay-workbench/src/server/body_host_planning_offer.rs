@@ -8,7 +8,8 @@ use conduit_body::{
 use conduit_core::{BaseImplementationId, HostAdvertisement, SignId, PROTOCOL_VERSION};
 use std::net::TcpStream;
 
-const MAX_BODY_HOST_PLANNING_OFFER_BYTES: usize = 32 * 1024;
+// The complete ordinary keyboard planning disclosure measures 427,250 bytes.
+pub(super) const MAX_BODY_HOST_PLANNING_OFFER_BYTES: usize = 1024 * 1024;
 
 impl PatchbayHtmlServer {
     pub(super) fn deliver_body_planning_requirements(
@@ -396,6 +397,10 @@ mod tests {
             .with_body_planning_plots(plots)
             .unwrap();
         let (summary, planning) = projections(&server);
+        eprintln!(
+            "measured Body planning offer: {} bytes",
+            serde_json::to_vec(&planning).unwrap().len()
+        );
         server
             .apply_body_host_offer_evidence(&serde_json::to_vec(&summary).unwrap())
             .unwrap();

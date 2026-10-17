@@ -1,0 +1,28 @@
+    Finished `dev` profile [unoptimized] target(s) in 0.13s
+     Running `../usb-target/debug/conduit-xtask-dispatch ci pipeline unit lint`
+UNIT lint: Clippy warnings check across workspace
+   Compiling conduit-speech v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/semantics/speech)
+    Checking conduit-composite v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/architecture/composite)
+   Compiling ring v0.17.14
+   Compiling rustls v0.23.45
+    Checking rustls-webpki v0.103.15
+    Checking ureq v3.4.2
+    Checking rcgen v0.14.10
+    Checking stun v0.17.2
+    Checking turn v0.17.2
+    Checking conduitos v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/targets/conduitos)
+    Checking conduit-pete v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/bodies/pete)
+    Checking conduit-language v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/semantics/language)
+    Checking conduit-presentation v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/semantics/presentation)
+    Checking conduit-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/architecture/core)
+    Checking conduit-browser-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/targets/browser/runtime)
+    Checking conduit-std-host v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/targets/std)
+    Checking conduit-patchbay-workbench v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/plots/patchbay/workbench/model)
+    Checking patchbay-hosted v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/targets/std/patchbay-workbench)
+    Checking conduit-thermostat-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/plots/thermostat/runtime)
+    Checking conduit v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/products/conduit)
+    Checking conduit-browser-patchbay-workbench v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/targets/browser/patchbay-workbench)
+    Checking xtask v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/tools/xtask)
+    Checking conduit-pete-workload-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/proof/conformance/pete-workload)
+    Checking conduit-body-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/make/body)
+    Finished `dev` profile [unoptimized] target(s) in 3m 40s

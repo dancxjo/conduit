@@ -4,7 +4,7 @@ use alloc::{format, vec, vec::Vec};
 use conduit_core::{
     ActivePlayIdentity, ArtifactId, BaseImplementationId, BootId, CapabilityId, ExecutionProfileId,
     HostAdvertisement, HostId, HostProfileId, ImplementationId, OfferGeneration, PROTOCOL_VERSION,
-    Plan, PlanId, ResourceOffer, bind_active_play, resource_offer,
+    Plan, PlanId, ResourceOffer, resource_offer,
 };
 use conduit_plan_lowering::lowering::lower_plan_fragment;
 use conduit_planner::{
@@ -19,7 +19,7 @@ use crate::{
     ordinary_plan::PreparationError,
 };
 
-pub const PLOT_SOURCE: &str = "plot conduitos-two-regions {\n    clock: time/tick(count = 1, period-ms = 1)\n    ticks: presentation/tick\n    upper: text/upper\n    text: presentation/text\n    clock >> ticks\n    \"Hello, ConduitOS\" >> upper >> text\n}\n";
+pub const PLOT_SOURCE: &str = "plot conduitos-two-regions {\n    clock: time/tick(count = 1, period-ms = 1)\n    ticks: face/tick(\"Clock tick\")\n    upper: text/upper\n    text: face/text(\"Message\")\n    clock >> ticks\n    \"Hello, ConduitOS\" >> upper >> text\n}\n";
 pub const TEXT_RESULT: &str = "HELLO, CONDUITOS";
 const PLACEMENT_COUNT: usize = 5;
 const CORD_COUNT: usize = 3;
@@ -92,10 +92,21 @@ pub fn prepare(
     {
         return Err(PreparationError::PlanRejected);
     }
-    let kernel = DualRegionKernel::prepare(fragment, &lowered)
+    #[allow(unused_mut)]
+    let mut kernel = DualRegionKernel::prepare(fragment, &lowered)
         .map_err(|_| PreparationError::KernelRejected)?;
     stage(b"kernel");
-    let active_play = bind_active_play(&plan.plan_id, &fragment.host_id, &fragment.boot_id, 0);
+    let active_play =
+        crate::ordinary_plan::new_play(&plan.plan_id, &fragment.host_id, &fragment.boot_id)?;
+    #[cfg(conduitos_protected_execution)]
+    kernel
+        .protect(&plan, &active_play, fixed_offer)
+        .map_err(|error| match error {
+            crate::composition::MachineRunError::ProtectionDomain(refusal) => {
+                PreparationError::Protection(refusal)
+            }
+            _ => PreparationError::KernelRejected,
+        })?;
     Ok(PreparedDualRegionPlay {
         kernel,
         advertisement,
@@ -140,7 +151,7 @@ fn checked_expanded_plot() -> Result<conduit_plot::ExpandedCanonicalPlot, Prepar
         .map_err(|_| PreparationError::PlotRejected)?;
     conduit_time::install_tick_catalog(&mut startup, &mut profile)
         .map_err(|_| PreparationError::PlotRejected)?;
-    conduit_semantic_catalog::install_tick_presentation_catalog(&mut startup, &mut profile)
+    conduit_semantic_catalog::install_tick_face_catalog(&mut startup, &mut profile)
         .map_err(|_| PreparationError::PlotRejected)?;
     stage(b"catalogs");
     let checked = conduit_plot::check_syntax_document(&syntax, &startup)
@@ -172,16 +183,12 @@ fn advertisement(
     }
     let mut capabilities = vec![
         crate::functional_offers::tick_offer(),
-        crate::presentation_offers::presentation_offer_for(
-            conduit_semantic_catalog::TICK_PRESENTATION_KIND,
-        )
-        .expect("ConduitOS owns tick presentation"),
+        crate::face_offers::face_offer_for(conduit_semantic_catalog::TICK_FACE_KIND)
+            .expect("ConduitOS owns tick face"),
         crate::functional_offers::text_literal_offer(),
         crate::functional_offers::text_upper_offer(),
-        crate::presentation_offers::presentation_offer_for(
-            conduit_semantic_catalog::TEXT_PRESENTATION_KIND,
-        )
-        .expect("ConduitOS owns text presentation"),
+        crate::face_offers::face_offer_for(conduit_semantic_catalog::TEXT_FACE_KIND)
+            .expect("ConduitOS owns text face"),
     ];
     for (index, capability) in capabilities.iter_mut().enumerate() {
         let fixed_capability = &fixed.capabilities[index];
@@ -214,6 +221,7 @@ fn advertisement(
         capabilities,
         planner_capabilities: Vec::new(),
     };
+    crate::ordinary_base::append_serial(&mut advertisement, fixed)?;
     if let Some(keyboard) = fixed.keyboard {
         crate::keyboard_offer::append_to_advertisement(&mut advertisement, keyboard, build_id)
             .map_err(|_| PreparationError::OfferMismatch)?;
@@ -237,11 +245,18 @@ fn bind_native_capability(
         ExecutionProfileId::from("conduitos/single-lane-cooperative@1");
     portable.implementation.implementation_id = ImplementationId::from(fixed.implementation);
     portable.implementation.artifact_id = ArtifactId::from(format!("conduitos-build/{build_id}"));
+    #[allow(unused_mut)]
+    let mut memory_bytes = 4096;
+    #[cfg(conduitos_protected_execution)]
+    if fixed.kind == conduit_text::TEXT_UPPER_KIND {
+        memory_bytes +=
+            crate::arch::TextDomain::RESERVED_BYTES + crate::text_protection::ROOT_METADATA_CEILING;
+    }
     portable
         .resource_requirements
         .push(conduit_core::resource_requirement(
             "conduit.resource/runtime-memory@1",
-            4_096,
+            memory_bytes,
         ));
     portable.resource_requirements.sort();
 }

@@ -1,0 +1,11 @@
+{
+  "schema": "conduit.usb/closure-order-correction@1",
+  "flow_zip_source_sha256": "56227abf4b3262ab6ae60711ca751dbaf51f63a6fbf4191cd9951557d2e1d529",
+  "files": {
+    "bot-reentry-closure-order-regression.log": "46db356d4b40c1817e140dcd8d4bb72ef08deebfe29f522fbfd7c8d4f30c13a4",
+    "closure-order-preflight.log": "6a2c9ba5d605f5793111b699dca8c6a11103d5633ca92254254bb5f2ded2260e",
+    "closure-order-workspace-lint.log": "8e10c25f214d3e9346ae2d34d29f879cb2a30acbec9bc0f2bc9a5e3776e9865d",
+    "feedback-right-first-regression.log": "cfb73b51db148fcf4cb3a9391d7bba22bf582720c20e8d0b08ea7e4679823a4f",
+    "feedback-zip-closure-order-tests.log": "c6aa17479d01bb06d1ee9a2a65efa9b62d02e8933073e8d408de4368e31b17d5"
+  }
+}

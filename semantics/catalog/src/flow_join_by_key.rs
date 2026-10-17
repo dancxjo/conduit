@@ -9,7 +9,7 @@ use conduit_core::{
     KeyedJoinOutputOrder, KeyedJoinPairing, KeyedJoinSemanticLaw, KeyedJoinUnmatchedCloseBehavior,
     Kind, KindIdentity, KindSemanticLaw, NormalCloseTransduction, PortDescriptor, PortDirection,
     PortTemporal, PreparedTuplePairEncoder, PreparedTupleTripleEncoder,
-    TerminalTransductionProfile, TERMINAL_INFO_ENCODED_LEN, TERMINAL_INFO_ID, UNIT_INFO_ID,
+    TerminalTransductionProfile, EMPTY_INFO_ID, TERMINAL_INFO_ENCODED_LEN, TERMINAL_INFO_ID,
 };
 
 pub const FLOW_JOIN_BY_KEY_KIND: &str = "flow/join/by-key";
@@ -28,7 +28,7 @@ pub fn flow_join_by_key_semantic_contract(
     right_value: &CheckedValueContract,
 ) -> Result<Kind, &'static str> {
     for contract in [key, left_value, right_value] {
-        if contract.maximum_bytes == 0 && contract.value_kind.as_str() != UNIT_INFO_ID {
+        if contract.maximum_bytes == 0 && contract.value_kind.as_str() != EMPTY_INFO_ID {
             return Err("flow/join/by-key requires finite canonical value envelopes");
         }
     }

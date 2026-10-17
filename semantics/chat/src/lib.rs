@@ -91,7 +91,7 @@ mod native_type_tests {
             ChatStateRefusal::OversizeMessage,
             ChatStateRefusal::MalformedMessage,
             ChatStateRefusal::SequenceExhausted,
-            ChatStateRefusal::InvalidPresentation,
+            ChatStateRefusal::InvalidFace,
         ] {
             assert_round_trip(refusal);
         }

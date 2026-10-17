@@ -1,7 +1,7 @@
 //! Fixed-capacity storage for Boot-scoped preparation.
 //!
 //! Dropping a prepared object returns its storage to this same admitted range.
-//! Successive graphical Presentations therefore reuse storage rather than
+//! Successive graphical Faces therefore reuse storage rather than
 //! consuming a new lifetime allocation on every refresh. Sealing still refuses
 //! all subsequent allocations; the kernel's allocation-free proof is unchanged.
 //! Interrupt handlers must not allocate or enter this preparation allocator.
@@ -16,8 +16,8 @@ use core::{
     sync::atomic::{AtomicBool, Ordering},
 };
 
-/// Maximum preparation range, including the graphical profile's current arena.
-pub const MAXIMUM_ARENA_BYTES: usize = 16 * 1024 * 1024;
+/// Maximum finite preparation range; Root selects its exact Make budget.
+pub const MAXIMUM_ARENA_BYTES: usize = 256 * 1024 * 1024;
 
 pub struct BootArena {
     locked: AtomicBool,
@@ -60,6 +60,12 @@ impl BootArena {
         self.with_state(|state| state.live_bytes())
     }
 
+    /// Monotonic GlobalAlloc entry counts, including refused attempts.
+    /// These expose churn even when allocations are immediately released.
+    pub fn attempts(&self) -> (u64, u64) {
+        self.with_state(|state| (state.allocation_attempts, state.reallocation_attempts))
+    }
+
     pub fn capacity(&self) -> usize {
         self.with_state(|state| state.capacity())
     }
@@ -98,10 +104,20 @@ pub enum ArenaError {
 
 unsafe impl GlobalAlloc for BootArena {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
-        self.with_state(|state| state.allocate(layout))
+        self.with_state(|state| {
+            state.allocation_attempts = state.allocation_attempts.saturating_add(1);
+            state.allocate(layout)
+        })
     }
     unsafe fn dealloc(&self, pointer: *mut u8, layout: Layout) {
         self.with_state(|state| state.release(pointer, layout));
+    }
+    unsafe fn realloc(&self, pointer: *mut u8, layout: Layout, new_size: usize) -> *mut u8 {
+        // SAFETY: GlobalAlloc supplies the exact live allocation and Layout.
+        self.with_state(|state| {
+            state.reallocation_attempts = state.reallocation_attempts.saturating_add(1);
+            unsafe { state.resize(pointer, layout, new_size) }
+        })
     }
 }
 

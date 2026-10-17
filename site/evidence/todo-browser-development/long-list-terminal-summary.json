@@ -1,0 +1,113 @@
+{
+  "schema": "conduit.proof/todo-long-list-terminal@1",
+  "owner_source_commit": "88f187fdb2263dee9cfca49b7e3182fd7df8a7dd",
+  "body_id": "335e956d4370f3373b62cdef8a6990b4a1ed414cd693f3d8ee92403b5fcff287",
+  "action_count": 19,
+  "face_id": "1a983d9fb9ca81f4d12f02e7f9253a0e8e927d48e2bdb72cb7e85b57538662e4",
+  "face_revision": 542,
+  "items": [
+    {
+      "id": "task-1",
+      "name": "Pick up prescription",
+      "complete": true
+    },
+    {
+      "id": "task-2",
+      "name": "Apples",
+      "complete": true
+    },
+    {
+      "id": "task-3",
+      "name": "Long-list item 03",
+      "complete": true
+    },
+    {
+      "id": "task-4",
+      "name": "Long-list item 04",
+      "complete": true
+    },
+    {
+      "id": "task-5",
+      "name": "Long-list item 05",
+      "complete": true
+    },
+    {
+      "id": "task-6",
+      "name": "Long-list item 06",
+      "complete": true
+    },
+    {
+      "id": "task-7",
+      "name": "Long-list item 07",
+      "complete": true
+    },
+    {
+      "id": "task-8",
+      "name": "Long-list item 08",
+      "complete": true
+    },
+    {
+      "id": "task-9",
+      "name": "Long-list item 09",
+      "complete": true
+    },
+    {
+      "id": "task-10",
+      "name": "Long-list item 10",
+      "complete": true
+    },
+    {
+      "id": "task-11",
+      "name": "Long-list item 11",
+      "complete": true
+    },
+    {
+      "id": "task-12",
+      "name": "Long-list item 12",
+      "complete": true
+    },
+    {
+      "id": "task-13",
+      "name": "Long-list item 13",
+      "complete": true
+    },
+    {
+      "id": "task-14",
+      "name": "Long-list item 14",
+      "complete": true
+    },
+    {
+      "id": "task-15",
+      "name": "Long-list item 15",
+      "complete": true
+    },
+    {
+      "id": "task-16",
+      "name": "Long-list item 16",
+      "complete": true
+    },
+    {
+      "id": "task-17",
+      "name": "Long-list item 17",
+      "complete": true
+    },
+    {
+      "id": "task-18",
+      "name": "Long-list item 18",
+      "complete": false
+    },
+    {
+      "id": "task-19",
+      "name": "Long-list item 19",
+      "complete": false
+    },
+    {
+      "id": "task-20",
+      "name": "Long-list item 20",
+      "complete": false
+    }
+  ],
+  "open": 3,
+  "completed": 17,
+  "status": "3 things left · 17 completed"
+}

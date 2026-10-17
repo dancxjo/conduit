@@ -1,5 +1,8 @@
 use super::*;
-use alloc::collections::{BTreeMap, BTreeSet};
+use alloc::{
+    boxed::Box,
+    collections::{BTreeMap, BTreeSet},
+};
 use conduit_plot::*;
 
 fn program() -> PortableExpressionProgram {
@@ -22,6 +25,7 @@ fn program() -> PortableExpressionProgram {
         &check_expression(
             &expression.syntax,
             &ExpressionTypeContext {
+                glyph_values: None,
                 input: &input,
                 immutable_values: &values,
                 structured_types: &types,
@@ -41,7 +45,17 @@ fn selected() -> (
     ActivePlayIdentity,
     PlacementId,
 ) {
-    let program = program();
+    selected_program(program())
+}
+
+fn selected_program(
+    program: PortableExpressionProgram,
+) -> (
+    PlanFragment,
+    LoweredPlanFragment,
+    ActivePlayIdentity,
+    PlacementId,
+) {
     let contract =
         conduit_semantic_catalog::pure_expression_contract(&program, PortTemporal::Value).unwrap();
     let scope = BaseCapabilityScope {
@@ -76,6 +90,7 @@ fn selected() -> (
     );
     let expected = offer(&program, PortTemporal::Value).unwrap();
     let gear = &mut fragment.placements[0];
+    gear.limits = expected.limits;
     gear.host_calls = expected.host_calls;
     gear.capability_id = expected.capability_id;
     gear.execution_profile_id = expected.implementation.execution_profile_id;
@@ -152,3 +167,120 @@ fn native_expression_refuses_stale_play_and_substituted_lowering() {
 mod kernel;
 
 mod planned;
+
+#[test]
+fn empty_unit_frames_keep_one_admitted_queue_cell_and_execute() {
+    let unit = StructuredInfoType::leaf(kind_id(EMPTY_INFO_ID)).unwrap();
+    let program = PortableExpressionProgram {
+        input_maximum_bytes: None,
+        input_type: unit.clone(),
+        output_type: unit.clone(),
+        root: PortableExpressionNode {
+            value_type: unit,
+            operation: PortableExpressionOperation::Input,
+        },
+    };
+    let (fragment, lowered, active, placement) = selected_program(program);
+    assert_eq!(fragment.placements[0].limits.max_queue_bytes, 1);
+    let mut call = ExpressionHostCall::prepare(&fragment, &lowered, &active, &placement).unwrap();
+    assert!(
+        call.invoke(call.node, HostCallId(0), RequestId(0), &[])
+            .unwrap()
+            .is_empty()
+    );
+}
+
+#[test]
+fn authored_input_ceiling_matches_native_offer_lowering_and_actual_call() {
+    let syntax = parse_syntax_document(
+        "plot length (\n wire: Bytes <= 2048B >> size: U64\n) = (bytes/length(.))\n",
+    );
+    assert!(syntax.diagnostics.is_empty());
+    let checked = check_syntax_document(&syntax, &StartupCatalog::new()).unwrap();
+    let expanded = expand_canonical_plot_for_authoring(&checked, "length", &ProfileCatalog::new())
+        .unwrap()
+        .expanded;
+    let ConfigurationValue::Text(encoded) = &expanded.gears[0].configuration[0].value else {
+        panic!("program")
+    };
+    let program = PortableExpressionProgram::from_canonical_hex(encoded).unwrap();
+    assert_eq!(program.input_maximum_bytes, Some(2048));
+    let offered = offer(&program, PortTemporal::Value).unwrap();
+    assert_eq!(offered.host_calls[0].maximum_input_bytes, 2048);
+    assert_eq!(offered.limits.max_queue_bytes, 2048);
+    assert_eq!(
+        offered
+            .checked_front()
+            .value_contract(&FrontValueLocation::Input(port_id("input")))
+            .unwrap()
+            .maximum_bytes,
+        2048
+    );
+    let (fragment, lowered, active, placement) = selected_program(program);
+    assert_eq!(lowered.nodes[0].inputs[0].maximum_value_bytes, Some(2048));
+    let mut call = ExpressionHostCall::prepare(&fragment, &lowered, &active, &placement).unwrap();
+    assert_eq!(
+        call.invoke(call.node, HostCallId(0), RequestId(0), &[7; 31])
+            .unwrap(),
+        31u64.to_le_bytes()
+    );
+    assert_eq!(
+        call.invoke(call.node, HostCallId(0), RequestId(1), &[7; 2049]),
+        Err(ExpressionCallRefusal::InvalidInput)
+    );
+}
+
+#[test]
+fn bounded_projection_output_matches_native_offer_and_kernel_budget() {
+    use conduit_composite::KernelOperationFactory;
+    let bytes = StructuredInfoType::leaf(kind_id("value/bytes")).unwrap();
+    let record = StructuredInfoType::record(
+        kind_id("test/bounded-wire"),
+        vec![StructuredFieldType::new("wire", bytes.clone()).unwrap()],
+    )
+    .unwrap();
+    let program = PortableExpressionProgram {
+        input_maximum_bytes: Some(4096),
+        input_type: record.clone(),
+        output_type: bytes.clone(),
+        root: PortableExpressionNode {
+            value_type: bytes.clone(),
+            operation: PortableExpressionOperation::Projection {
+                value: Box::new(PortableExpressionNode {
+                    value_type: record.clone(),
+                    operation: PortableExpressionOperation::Input,
+                }),
+                member: PortableExpressionProjection::Field("wire".into()),
+            },
+        },
+    };
+    let offered = offer(&program, PortTemporal::Value).unwrap();
+    assert_eq!(offered.host_calls[0].maximum_output_bytes, 4096);
+    assert_eq!(offered.limits.max_queue_bytes, 4096);
+    let (fragment, lowered, active, placement) = selected_program(program);
+    let budget = ExpressionOperationFactory::default()
+        .budget(&fragment.placements[0])
+        .unwrap();
+    assert_eq!(budget.maximum_value_bytes, 4096);
+    assert_eq!(budget.value_bytes, 16384);
+    let mut call = ExpressionHostCall::prepare(&fragment, &lowered, &active, &placement).unwrap();
+    let wire = vec![0xa5; 256];
+    let input = StructuredInfoValue::record(
+        record,
+        vec![
+            StructuredFieldValue::new(
+                "wire",
+                StructuredInfoValue::leaf(bytes, wire.clone()).unwrap(),
+            )
+            .unwrap(),
+        ],
+    )
+    .unwrap()
+    .canonical_bytes()
+    .unwrap();
+    assert_eq!(
+        call.invoke(call.node, HostCallId(0), RequestId(0), &input)
+            .unwrap(),
+        wire
+    );
+}

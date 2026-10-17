@@ -1,12 +1,26 @@
 use super::*;
 use conduit_core::ValueConstraint;
-use conduit_presentation::readable_finite_text_choices;
+use conduit_face::readable_finite_text_choices;
+
+/// The same bounded mechanical wording used by the interactive reader,
+/// available to an ordinary direct spoken Mask before it has produced a Show.
+/// This does not acknowledge speech, create a Show, or grant a Host effect.
+pub fn mechanical_face_clauses(face: &Face) -> Result<Vec<String>, SpokenFaceRefusal> {
+    let cursor = FaceReadingCursor::new(face).map_err(reading_refusal)?;
+    voice_clauses(face, cursor.plan())
+}
+
+/// The short first encounter for an artifact-output spoken Mask. The complete
+/// provenanced reading remains available through the interactive reader.
+pub fn primary_face_clauses(face: &Face) -> Result<Vec<String>, SpokenFaceRefusal> {
+    Ok(super::select_spoken_outline(face)?.clauses)
+}
 
 /// Keep the common Face's reading order and exact provenance; only the spoken
 /// phrasing changes. Unknown semantic roles remain readable as their human
 /// leaf name, while the full identity stays inspectable in the Face.
 pub(super) fn voice_clauses(
-    face: &Presentation,
+    face: &Face,
     plan: &FaceUtterancePlan,
 ) -> Result<Vec<String>, SpokenFaceRefusal> {
     const MAX_VOICED_CLAUSE_BYTES: usize = 4_096;
@@ -27,7 +41,7 @@ pub(super) fn voice_clauses(
     Ok(voiced)
 }
 
-fn voice_clause(face: &Presentation, clause: &FaceUtteranceClause) -> String {
+fn voice_clause(face: &Face, clause: &FaceUtteranceClause) -> String {
     match &clause.provenance {
         FaceUtteranceProvenance::Subject(source) => {
             let Some(subject) = face
@@ -54,12 +68,12 @@ fn voice_clause(face: &Presentation, clause: &FaceUtteranceClause) -> String {
                 return clause.text.clone();
             };
             match &relationship.kind {
-                PresentationRelationshipKind::Contains => format!("{from} contains {to}."),
-                PresentationRelationshipKind::Connects => format!("{from} connects to {to}."),
-                PresentationRelationshipKind::Describes => format!("{from} describes {to}."),
-                PresentationRelationshipKind::Realizes => format!("{from} realizes {to}."),
-                PresentationRelationshipKind::Observes => format!("{from} observes {to}."),
-                PresentationRelationshipKind::Semantic(id) => {
+                FaceRelationshipKind::Contains => format!("{from} contains {to}."),
+                FaceRelationshipKind::Connects => format!("{from} connects to {to}."),
+                FaceRelationshipKind::Describes => format!("{from} describes {to}."),
+                FaceRelationshipKind::Realizes => format!("{from} realizes {to}."),
+                FaceRelationshipKind::Observes => format!("{from} observes {to}."),
+                FaceRelationshipKind::Semantic(id) => {
                     format!("{from}: {}: {to}.", human_leaf(id.as_str()))
                 }
             }
@@ -75,16 +89,16 @@ fn voice_clause(face: &Presentation, clause: &FaceUtteranceClause) -> String {
                 .map(|item| item.name.as_str())
                 .unwrap_or("This item");
             match &property.value {
-                PresentationPropertyValue::Text(value) => {
+                FacePropertyValue::Text(value) => {
                     format!("{name}, {}: {value}.", property.name)
                 }
-                PresentationPropertyValue::Count(value) => {
+                FacePropertyValue::Count(value) => {
                     format!("{name}, {}: {value}.", property.name)
                 }
-                PresentationPropertyValue::Signed(value) => {
+                FacePropertyValue::Signed(value) => {
                     format!("{name}, {}: {value}.", property.name)
                 }
-                PresentationPropertyValue::Flag(value) => format!(
+                FacePropertyValue::Flag(value) => format!(
                     "{name}, {}: {}.",
                     property.name,
                     if *value { "yes" } else { "no" }
@@ -107,13 +121,13 @@ fn voice_clause(face: &Presentation, clause: &FaceUtteranceClause) -> String {
                 .map(|item| item.name.as_str())
                 .unwrap_or("this item");
             match &action.availability {
-                PresentationActionAvailability::Available => {
+                FaceActionAvailability::Available => {
                     format!("{}. For {target}. Available.", action.name)
                 }
-                PresentationActionAvailability::Unavailable { explanation, .. } => {
+                FaceActionAvailability::Unavailable { explanation, .. } => {
                     format!("{}. For {target}. Unavailable: {explanation}", action.name)
                 }
-                PresentationActionAvailability::Refused { explanation, .. } => {
+                FaceActionAvailability::Refused { explanation, .. } => {
                     format!("{}. For {target}. Refused: {explanation}", action.name)
                 }
             }
@@ -139,22 +153,28 @@ fn voice_clause(face: &Presentation, clause: &FaceUtteranceClause) -> String {
             ) {
                 (UTF8_TEXT_VALUE_KIND, [ValueConstraint::ByteLength { minimum, maximum }]) => {
                     format!(
-                        "{}. Enter {minimum} to {maximum} UTF-8 bytes, then activate {}.",
-                        argument.value_name, action.name
+                        "{}. Enter {minimum} to {maximum} UTF-8 bytes with edit {}, then activate {}.",
+                        argument.value_name, argument.name, action.name
                     )
                 }
                 ("value/bool", _) => format!(
-                    "{}. Choose true or false, then activate {}.",
-                    argument.value_name, action.name
+                    "{}. Choose true or false with edit {}, then activate {}.",
+                    argument.value_name, argument.name, action.name
                 ),
                 (UTF8_TEXT_VALUE_KIND, _) => readable_finite_text_choices(&argument.contract)
                     .map_or_else(
-                        || clause.text.clone(),
+                        || {
+                            format!(
+                                "{} Use edit {} to enter a valid value, then activate {}.",
+                                clause.text, argument.name, action.name
+                            )
+                        },
                         |choices| {
                             format!(
-                                "{}. Choose one of: {}. Then activate {}.",
+                                "{}. Choose one of: {}. Enter it with edit {}, then activate {}.",
                                 argument.value_name,
                                 choices.join(", "),
+                                argument.name,
                                 action.name
                             )
                         },
@@ -167,16 +187,16 @@ fn voice_clause(face: &Presentation, clause: &FaceUtteranceClause) -> String {
     }
 }
 
-fn spoken_role(role: &PresentationRole) -> String {
+fn spoken_role(role: &FaceRole) -> String {
     match role {
-        PresentationRole::Semantic(id) => human_leaf(id.as_str()),
-        PresentationRole::TextEntry => "text entry".into(),
-        PresentationRole::Info => "information".into(),
-        PresentationRole::Status => "status".into(),
-        PresentationRole::Region => "region".into(),
-        PresentationRole::Collection => "collection".into(),
-        PresentationRole::Item => "item".into(),
-        PresentationRole::Action => "action".into(),
+        FaceRole::Semantic(id) => human_leaf(id.as_str()),
+        FaceRole::TextEntry => "text entry".into(),
+        FaceRole::Info => "information".into(),
+        FaceRole::Status => "status".into(),
+        FaceRole::Region => "region".into(),
+        FaceRole::Collection => "collection".into(),
+        FaceRole::Item => "item".into(),
+        FaceRole::Action => "action".into(),
         other => format!("{other:?}").to_lowercase(),
     }
 }

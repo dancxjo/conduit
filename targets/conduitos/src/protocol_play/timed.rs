@@ -59,6 +59,16 @@ impl<P: I2cProvider, C: MonotonicDeadlineProvider> PreparedTimedProtocolPlay<P, 
         }
         Ok(status)
     }
+    /// The containing machine may idle between quanta while this owner awaits
+    /// a real deadline. This reports retained state and chooses no scheduling policy.
+    pub fn has_pending_clock(&self) -> bool {
+        self.clock.has_pending()
+    }
+
+    pub fn monotonic_observation(&mut self) -> Result<MonotonicInstant, ProtocolCallRefusal> {
+        self.clock.monotonic_observation(&self.play.kernel)
+    }
+
     pub fn cancel(&mut self) -> Result<(), ProtocolCallRefusal> {
         self.clock.revoke(&self.play.kernel)?;
         self.play.cancel()

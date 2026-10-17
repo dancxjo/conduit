@@ -2,6 +2,12 @@
 
 use conduit_body::{BodyFaceSelector, BodyId, BodyMaskChainPlan, BodyMaskTopology, BodyPlan, Wake};
 use conduit_core::{bind_active_play, ActivePlayIdentity, BootId, HostId, PortDirection, SignId};
+use conduit_face::{
+    AdmittedMaskPlotRoutes, BodyMaskWardrobe, Face, FaceAction, FaceInteraction,
+    FaceInteractionArgument, ManifestationLifecycle, MaskInteractionCorrelation, MaskPlot,
+    MaskShow, MaskWardrobe, MaskWardrobeAction, MaskWardrobeControl, MaskWardrobeControlEvidence,
+    MaskWardrobeLifetime, PlannedMaskPlot, SealedMaskPlotRoute,
+};
 use conduit_kernel::scheduler::{
     FixedScheduler, SchedulerStatus, StepBack, StepInputBytes, StepIo, StepOutcome,
 };
@@ -11,12 +17,6 @@ use conduit_kernel::{
 };
 use conduit_plan_lowering::lowering::{
     lower_plan_fragment, LoweredForePort, FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
-};
-use conduit_presentation::{
-    AdmittedMaskPlotRoutes, BodyMaskWardrobe, FaceInteraction, FaceInteractionArgument,
-    ManifestationLifecycle, MaskInteractionCorrelation, MaskPlot, MaskShow, MaskWardrobe,
-    MaskWardrobeAction, MaskWardrobeControl, MaskWardrobeControlEvidence, MaskWardrobeLifetime,
-    PlannedMaskPlot, Presentation, PresentationAction, SealedMaskPlotRoute,
 };
 use serde::{Deserialize, Serialize};
 
@@ -41,10 +41,10 @@ pub struct BrowserMaskEffect {
     pub show_id: String,
     pub manifestation_id: String,
     pub placement_id: conduit_core::PlacementId,
-    pub presentation_id: String,
-    pub presentation_revision: u64,
-    pub text: Vec<conduit_presentation::PresentationText>,
-    pub actions: Vec<conduit_presentation::PresentationAction>,
+    pub face_id: String,
+    pub face_revision: u64,
+    pub text: Vec<conduit_face::FaceText>,
+    pub actions: Vec<conduit_face::FaceAction>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -55,8 +55,8 @@ pub struct BrowserMaskAcknowledgement {
     pub mask_plan_id: conduit_core::PlanId,
     pub active_play_id: conduit_core::ActivePlayId,
     pub placement_id: conduit_core::PlacementId,
-    pub presentation_id: String,
-    pub presentation_revision: u64,
+    pub face_id: String,
+    pub face_revision: u64,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -67,7 +67,7 @@ pub struct BrowserMaskObservation {
     pub alternate: PlannedMaskPlot,
     pub body_plan: BodyPlan,
     pub mask_play: ActivePlayIdentity,
-    pub presentation: Presentation,
+    pub face: Face,
     pub mask_show: MaskShow,
     pub execution: BrowserMaskExecutionReceipt,
     pub interaction: Option<BrowserMaskInteractionReceipt>,
@@ -108,7 +108,7 @@ pub struct BrowserMaskRuntime {
     basis_plan: BodyPlan,
     wake: Wake,
     play: ActivePlayIdentity,
-    presentation: Presentation,
+    face: Face,
     show: MaskShow,
     scheduler: execution::MaskScheduler,
     show_boundary: LoweredForePort,
@@ -126,18 +126,32 @@ impl BrowserMaskRuntime {
         body_id: BodyId,
         host_id: HostId,
         boot_id: BootId,
-        presentation: Presentation,
+        face: Face,
         wake: Wake,
         base_plan: BodyPlan,
+    ) -> Result<(Self, BrowserMaskEffect), String> {
+        Self::prepare_sequenced(body_id, host_id, boot_id, face, wake, base_plan, 1)
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn prepare_sequenced(
+        body_id: BodyId,
+        host_id: HostId,
+        boot_id: BootId,
+        face: Face,
+        wake: Wake,
+        base_plan: BodyPlan,
+        play_sequence: u64,
     ) -> Result<(Self, BrowserMaskEffect), String> {
         Self::prepare_route(
             body_id,
             host_id,
             boot_id,
-            presentation,
+            face,
             wake,
             base_plan,
             false,
+            play_sequence,
         )
     }
 
@@ -146,10 +160,11 @@ impl BrowserMaskRuntime {
         body_id: BodyId,
         host_id: HostId,
         boot_id: BootId,
-        presentation: Presentation,
+        face: Face,
         wake: Wake,
         base_plan: BodyPlan,
         select_alternate: bool,
+        play_sequence: u64,
     ) -> Result<(Self, BrowserMaskEffect), String> {
         let host = crate::installed_browser::membership_advertisement(host_id, boot_id);
         let planned = plan::planned_mask(&host, plan::MASK_SOURCE, "browser-graphical")?;
@@ -210,24 +225,21 @@ impl BrowserMaskRuntime {
             &planned.plan.plan_id,
             &terminal.host_id,
             &terminal.boot_id,
-            1,
+            play_sequence,
         );
-        let face_subject = presentation
+        let face_subject = face
             .subjects
             .first()
-            .ok_or_else(|| "browser Mask refuses a Presentation without a subject".to_string())?
+            .ok_or_else(|| "browser Mask refuses a Face without a subject".to_string())?
             .identity
             .clone();
         let show = MaskShow::prepared(
             &planned,
-            &presentation,
+            &face,
             play.clone(),
             face_subject,
             "browser/document".into(),
-            SignId::from(format!(
-                "sign/browser-mask-prepared/{}",
-                presentation.revision
-            )),
+            SignId::from(format!("sign/browser-mask-prepared/{}", face.revision)),
         )
         .map_err(|error| format!("{error:?}"))?;
         let fragment = planned
@@ -245,18 +257,12 @@ impl BrowserMaskRuntime {
             execution::exact_boundary(&lowered.fore_ports, "interaction", PortDirection::Output)?
                 .clone();
         let mut scheduler = execution::mask_scheduler(fragment, &lowered)?;
-        let presentation_bytes =
-            serde_json::to_vec(&presentation).map_err(|error| error.to_string())?;
-        if presentation_bytes.len() > face_boundary.byte_capacity as usize {
+        let face_bytes = serde_json::to_vec(&face).map_err(|error| error.to_string())?;
+        if face_bytes.len() > face_boundary.byte_capacity as usize {
             return Err("browser Mask Face exceeds its sealed Fore bound".into());
         }
         match scheduler
-            .admit_remote_input(
-                face_boundary.endpoint,
-                face_boundary.cord,
-                0,
-                &presentation_bytes,
-            )
+            .admit_remote_input(face_boundary.endpoint, face_boundary.cord, 0, &face_bytes)
             .map_err(|error| format!("inject browser Mask Face: {error:?}"))?
         {
             conduit_kernel::scheduler::RemoteIngressOutcome::Accepted { sequence: 0 } => {}
@@ -288,8 +294,8 @@ impl BrowserMaskRuntime {
         let presented = scheduler
             .host_value(pending.input.value)
             .map_err(|error| format!("read browser Mask effect input: {error:?}"))?;
-        if presented != presentation_bytes.as_slice() {
-            return Err("browser Mask Back did not receive the exact Presentation".into());
+        if presented != face_bytes.as_slice() {
+            return Err("browser Mask Back did not receive the exact Face".into());
         }
         let fore_receipt = lowered
             .fore_ports
@@ -311,10 +317,10 @@ impl BrowserMaskRuntime {
             show_id: show.show_id.as_str().into(),
             manifestation_id: show.show.manifestation_id.as_str().into(),
             placement_id: show.show.placement_id.clone(),
-            presentation_id: presentation.identity.as_str().into(),
-            presentation_revision: presentation.revision,
-            text: presentation.text.clone(),
-            actions: presentation.actions.clone(),
+            face_id: face.identity.as_str().into(),
+            face_revision: face.revision,
+            text: face.text.clone(),
+            actions: face.actions.clone(),
         };
         Ok((
             Self {
@@ -326,7 +332,7 @@ impl BrowserMaskRuntime {
                 basis_plan: base_plan,
                 wake,
                 play,
-                presentation,
+                face,
                 show,
                 scheduler,
                 show_boundary,
@@ -348,8 +354,8 @@ impl BrowserMaskRuntime {
             && ack.mask_plan_id == self.planned.plan.plan_id
             && ack.active_play_id == self.play.active_play_id
             && ack.placement_id == self.show.show.placement_id
-            && ack.presentation_id == self.presentation.identity.as_str()
-            && ack.presentation_revision == self.presentation.revision;
+            && ack.face_id == self.face.identity.as_str()
+            && ack.face_revision == self.face.revision;
         if !exact {
             return Err("browser Mask acknowledgement is stale or mismatched".into());
         }
@@ -428,12 +434,12 @@ impl BrowserMaskRuntime {
                 ManifestationLifecycle::Available,
                 SignId::from(format!(
                     "sign/browser-mask-available/{}",
-                    self.presentation.revision
+                    self.face.revision
                 )),
             )
             .map_err(|error| format!("{error:?}"))?;
         self.show
-            .validate(&self.presentation)
+            .validate(&self.face)
             .map_err(|error| format!("{error:?}"))
     }
 
@@ -446,7 +452,7 @@ impl BrowserMaskRuntime {
             alternate: self.alternate.clone(),
             body_plan: self.body_plan.clone(),
             mask_play: self.play.clone(),
-            presentation: self.presentation.clone(),
+            face: self.face.clone(),
             mask_show: self.show.clone(),
             execution: BrowserMaskExecutionReceipt {
                 schema: "conduit.browser/mask-kernel-execution@1",
@@ -485,10 +491,11 @@ impl BrowserMaskRuntime {
             body_id,
             self.play.host_id.clone(),
             self.play.boot_id.clone(),
-            self.presentation.clone(),
+            self.face.clone(),
             self.wake.clone(),
             self.basis_plan.clone(),
             true,
+            1,
         )
     }
 
@@ -497,10 +504,11 @@ impl BrowserMaskRuntime {
             body_id,
             self.play.host_id.clone(),
             BootId::from(format!("{}/mask-replacement", self.play.boot_id.as_str())),
-            self.presentation.clone(),
+            self.face.clone(),
             self.wake.clone(),
             self.body_plan.clone(),
             true,
+            1,
         )
     }
 
@@ -509,10 +517,11 @@ impl BrowserMaskRuntime {
             body_id,
             self.play.host_id.clone(),
             self.play.boot_id.clone(),
-            self.presentation.clone(),
+            self.face.clone(),
             self.wake.clone(),
             self.basis_plan.clone(),
             false,
+            1,
         )
     }
 }

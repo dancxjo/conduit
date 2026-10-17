@@ -29,9 +29,17 @@ impl HostedKeyboardAdapter for Keys {
             })
     }
 }
-struct Clock;
+struct Clock {
+    now_ms: u64,
+}
 impl TimerAdapter for Clock {
-    fn wait(&mut self, _: std::time::Duration) {}
+    fn wait(&mut self, duration: std::time::Duration) {
+        self.now_ms += duration.as_millis() as u64;
+    }
+
+    fn monotonic_now_ms(&mut self) -> Option<u64> {
+        Some(self.now_ms)
+    }
 }
 
 #[test]
@@ -89,7 +97,7 @@ fn pending_keyboard_cancellation_releases_the_whole_workload_for_another_play() 
                 keyboard: Some(&mut keys),
             },
             &mut output,
-            &mut Clock,
+            &mut Clock { now_ms: 0 },
         )
         .unwrap();
     assert!(
@@ -113,7 +121,7 @@ fn pending_keyboard_cancellation_releases_the_whole_workload_for_another_play() 
                 keyboard: Some(&mut keys),
             },
             &mut Vec::new(),
-            &mut Clock,
+            &mut Clock { now_ms: 0 },
         )
         .unwrap();
     assert_eq!(

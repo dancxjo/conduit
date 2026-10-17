@@ -54,6 +54,9 @@ enum PlotsCommand {
         /// Report browser proof availability without acquiring permissions or devices.
         #[arg(long, conflicts_with = "deterministic")]
         browser: bool,
+        /// Execute one reviewed Plot instead of the full deterministic inventory.
+        #[arg(long, requires = "deterministic", conflicts_with = "browser")]
+        plot: Option<String>,
     },
     /// Emit the current bounded conformance report without running gated proofs.
     Report {
@@ -109,7 +112,7 @@ pub(super) struct InventoryPlot {
     #[serde(default)]
     initial_body_order: Option<u8>,
     #[serde(default)]
-    initial_body_presentation_profile: u8,
+    initial_body_face_profile: u8,
     #[serde(default = "default_true")]
     workspace_catalog: bool,
     pub(super) deterministic: Option<DeterministicOracle>,
@@ -209,6 +212,7 @@ pub fn run(args: PlotsArgs, opts: &GlobalOpts) -> Result<(), String> {
         PlotsCommand::Run {
             deterministic,
             browser,
+            plot,
         } => {
             if !deterministic && !browser {
                 return Err(
@@ -216,7 +220,7 @@ pub fn run(args: PlotsArgs, opts: &GlobalOpts) -> Result<(), String> {
                 );
             }
             let report = if deterministic {
-                build_report(&root, true, opts)?
+                build_selected_report(&root, true, opts, plot.as_deref())?
             } else {
                 browser::build_report(&root, opts)?
             };
@@ -255,7 +259,7 @@ fn bundle_workspace_catalog(root: &Path, output: &Path) -> Result<(), String> {
         source: String,
         source_document_id: String,
         checked_plot_id: String,
-        presentation_profile: u8,
+        face_profile: u8,
         required_kinds: Vec<String>,
         unavailable_hint: &'a str,
         #[serde(skip_serializing_if = "Option::is_none")]
@@ -330,7 +334,7 @@ fn bundle_workspace_catalog(root: &Path, output: &Path) -> Result<(), String> {
             source,
             source_document_id: checked.source_document_id.as_str().into(),
             checked_plot_id: entry.checked_plot_id.as_str().into(),
-            presentation_profile: plot.initial_body_presentation_profile,
+            face_profile: plot.initial_body_face_profile,
             required_kinds,
             unavailable_hint: plot
                 .browser_safe_not_applicable
@@ -387,7 +391,7 @@ fn bundle_initial_body(root: &Path, output: &Path) -> Result<(), String> {
         slug: &'a str,
         title: &'a str,
         entry: &'a str,
-        presentation_profile: u8,
+        face_profile: u8,
         source: String,
     }
     #[derive(Serialize)]
@@ -403,7 +407,7 @@ fn bundle_initial_body(root: &Path, output: &Path) -> Result<(), String> {
         plots.push(BundledPlot {
             slug: &plot.slug,
             title: &plot.title,
-            presentation_profile: plot.initial_body_presentation_profile,
+            face_profile: plot.initial_body_face_profile,
             entry: &plot.entry,
             source,
         });
@@ -421,10 +425,28 @@ fn build_report(
     execute_deterministic: bool,
     opts: &GlobalOpts,
 ) -> Result<Report, String> {
+    build_selected_report(root, execute_deterministic, opts, None)
+}
+
+fn build_selected_report(
+    root: &Path,
+    execute_deterministic: bool,
+    opts: &GlobalOpts,
+    selected: Option<&str>,
+) -> Result<Report, String> {
     let inventory = load_inventory(root)?;
+    if let Some(slug) = selected {
+        if !inventory.plots.iter().any(|plot| plot.slug == slug) {
+            return Err(format!("unknown reviewed Plot '{slug}'"));
+        }
+    }
     let catalogs = catalogs()?;
     let mut results = Vec::with_capacity(inventory.plots.len() * 2);
-    for plot in &inventory.plots {
+    for plot in inventory
+        .plots
+        .iter()
+        .filter(|plot| selected.is_none_or(|slug| plot.slug == slug))
+    {
         let source_path = format!("plots/{}/main.conduit", plot.slug);
         let started = Instant::now();
         let checked = check_one(root, &source_path, &plot.entry, &catalogs);
@@ -473,13 +495,15 @@ fn build_report(
             opts,
         ));
     }
-    results.extend(combined::results(
-        root,
-        &inventory,
-        &catalogs,
-        execute_deterministic,
-        opts,
-    ));
+    if selected.is_none() {
+        results.extend(combined::results(
+            root,
+            &inventory,
+            &catalogs,
+            execute_deterministic,
+            opts,
+        ));
+    }
     Ok(Report {
         schema: REPORT_SCHEMA,
         inventory_schema: inventory.schema,

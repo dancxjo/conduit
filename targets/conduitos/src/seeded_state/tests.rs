@@ -2,8 +2,7 @@ use super::*;
 use alloc::{collections::BTreeMap, vec};
 use conduit_composite::*;
 use conduit_planner::{
-    ConnectionQueueLimits, ForeBoundaryKey, PlanningOptions, default_expanded_placements,
-    plan_expanded_authoring_with_options,
+    PlanningOptions, default_expanded_placements, plan_expanded_authoring_with_connection_limits,
 };
 use conduit_plot::{
     ProfileCatalog, StartupCatalog, check_syntax_document, expand_canonical_plot_for_authoring,
@@ -66,31 +65,13 @@ fn planned_source(
         planner_capabilities: vec![],
     }];
     let placements = default_expanded_placements(&authoring.expanded, &hosts).unwrap();
-    let boundary_limits = authoring
-        .input_bindings
-        .iter()
-        .map(|binding| (PortDirection::Input, binding))
-        .chain(
-            authoring
-                .output_bindings
-                .iter()
-                .map(|binding| (PortDirection::Output, binding)),
-        )
-        .map(|(direction, binding)| {
-            (
-                ForeBoundaryKey {
-                    direction,
-                    front_port_id: binding.front_port_id.clone(),
-                    track: binding.track,
-                },
-                ConnectionQueueLimits {
-                    item_capacity: 1,
-                    byte_capacity: value.maximum_bytes.max(1),
-                },
-            )
-        })
-        .collect();
-    let plan = plan_expanded_authoring_with_options(
+    let limits = crate::protocol_kernel_fixture::queue_limits(
+        &authoring,
+        &hosts,
+        &placements,
+        value.maximum_bytes.max(1),
+    );
+    let plan = plan_expanded_authoring_with_connection_limits(
         &authoring,
         &hosts,
         &placements,
@@ -104,7 +85,8 @@ fn planned_source(
             protected_resource_grants: &[],
             line_offers: &[],
         },
-        &boundary_limits,
+        &limits.connections,
+        &limits.boundaries,
     )
     .unwrap();
     (plan, factory, offer)

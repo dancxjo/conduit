@@ -4,6 +4,10 @@
 mod attempt;
 #[path = "engine_completions.rs"]
 mod completions;
+#[path = "engine_input_effects.rs"]
+mod inputs;
+#[path = "engine_thermostat.rs"]
+pub(super) mod thermostat;
 pub(super) use completions::{complete_host_effect, complete_host_effect_with_output};
 #[path = "engine_preparation.rs"]
 pub(super) mod preparation;
@@ -17,12 +21,14 @@ use preparation::{prepare_scheduler, validate_envelope};
 #[path = "quantity_tests.rs"]
 mod quantity_tests;
 
+#[cfg(test)]
+use crate::installed_browser::BROWSER_TOTAL_VALUE_BYTES;
 use crate::installed_browser::{
     factory, BrowserBack, BrowserManifestation, BROWSER_HOST_CALLS_PER_GEAR,
     BROWSER_HOST_CALL_BINDINGS, BROWSER_PENDING_REQUESTS, BROWSER_PORTS_PER_GEAR,
     BROWSER_QUEUE_SLOTS, BROWSER_ROUTE_SLOTS, BROWSER_ROUTE_TARGETS, BROWSER_SIGN_ITEMS,
-    BROWSER_TOTAL_VALUE_BYTES, BROWSER_VALUE_ITEMS, MAXIMUM_BROWSER_CORDS, MAXIMUM_BROWSER_GEARS,
-    MAXIMUM_BROWSER_PLOT_CORDS, MAXIMUM_BROWSER_PLOT_GEARS, MAXIMUM_BROWSER_VALUE_BYTES,
+    BROWSER_VALUE_ITEMS, MAXIMUM_BROWSER_CORDS, MAXIMUM_BROWSER_GEARS, MAXIMUM_BROWSER_PLOT_CORDS,
+    MAXIMUM_BROWSER_PLOT_GEARS, MAXIMUM_BROWSER_VALUE_BYTES,
 };
 use conduit_core::PlanFragment;
 use conduit_kernel::scheduler::{
@@ -32,7 +38,9 @@ use conduit_kernel::{
     BoundedValueRef, CordId, FixedHostCallBindings, FixedRoutes, HostCallDisposition,
     HostCallOutcome, HostedSignLog, HostedValueStore, NodeId,
 };
-use conduit_plan_lowering::lowering::{lower_plan_fragment, LoweredPlanFragment};
+#[cfg(test)]
+use conduit_plan_lowering::lowering::lower_plan_fragment;
+use conduit_plan_lowering::lowering::{lower_plan_fragment_for_profile, LoweredPlanFragment};
 
 type BrowserKernel = FixedScheduler<
     BrowserBack,
@@ -48,6 +56,38 @@ type BrowserKernel = FixedScheduler<
     BROWSER_PENDING_REQUESTS,
 >;
 
+/// Exact Plan-bound storage receipt prepared before any kernel step.
+#[derive(Debug)]
+pub(super) struct PreparedStorageWitness {
+    pub(super) identities: Vec<(conduit_core::PlanId, conduit_core::FragmentId)>,
+    pub(super) slot_capacities: Vec<u32>,
+    pub(super) reserved_storage_bytes: usize,
+    pub(super) live_byte_quota: u32,
+    pub(super) data_memory_reservation: u64,
+}
+
+impl PreparedStorageWitness {
+    pub(super) fn matches(&self, partitions: &[(&PlanFragment, &LoweredPlanFragment)]) -> bool {
+        self.identities.len() == partitions.len()
+            && self
+                .identities
+                .iter()
+                .zip(partitions)
+                .all(|((plan, fragment), (selected, _))| {
+                    plan == &selected.plan_id && fragment == &selected.fragment_id
+                })
+            && self
+                .slot_capacities
+                .iter()
+                .map(|capacity| u64::from(*capacity))
+                .sum::<u64>()
+                == u64::from(self.live_byte_quota)
+            && self.slot_capacities.len() <= usize::from(BROWSER_VALUE_ITEMS)
+            && self.reserved_storage_bytes as u64 + self.data_memory_reservation
+                <= u64::from(crate::installed_browser::measurement_limits::MEMORY_POOL_BYTES)
+    }
+}
+
 /// Host-prepared state accompanies, but never replaces, the production kernel.
 pub(super) struct TourScheduler {
     pub(super) failure: Option<conduit_kernel::Failure>,
@@ -55,6 +95,7 @@ pub(super) struct TourScheduler {
     // one stable allocation avoids copying its bounded tables through native
     // and Wasm ABI session transitions. Play itself performs no allocation.
     kernel: Box<BrowserKernel>,
+    pub(super) _prepared_storage: PreparedStorageWitness,
     snapshots: Vec<Option<Box<resource_effect::SnapshotState>>>,
     selectors: Vec<Option<crate::installed_browser::pointer_selector::PreparedSelector>>,
     mappings: Vec<Option<conduit_semantic_catalog::QuantityMapping>>,
@@ -64,6 +105,8 @@ pub(super) struct TourScheduler {
     comparisons: Vec<Option<conduit_semantic_catalog::BoundedPatternComparisonCodec>>,
     timing: Vec<Option<crate::installed_browser::timing::PreparedTiming>>,
     keymaps: Vec<Option<crate::installed_browser::keymap::PreparedKeymap>>,
+    pub(super) saved_choices:
+        Vec<Option<crate::installed_browser::saved_choice::SavedChoiceConfiguration>>,
     text_states: Vec<Option<Box<crate::installed_browser::text_state::PreparedTextState>>>,
     deliveries: Vec<Option<conduit_net::BoundedRecordDeliveryStatusCodec>>,
     histories: Vec<Option<crate::installed_browser::historical::PreparedHistory>>,
@@ -83,6 +126,7 @@ pub(super) struct TourScheduler {
     stroke_captures:
         Vec<Option<Box<crate::installed_browser::stroke_capture::PreparedStrokeCapture>>>,
     applications: Vec<Option<Box<super::application_state::PreparedApplication>>>,
+    thermostat: Option<thermostat::ThermostatFore>,
 }
 
 impl core::ops::Deref for TourScheduler {
@@ -107,7 +151,7 @@ pub(super) struct PendingHostEffect {
 pub(super) enum BrowserHostEffect {
     AudioCue,
     AudioCapture,
-    PcmPlayback { frame: Vec<u8> },
+    PcmPlayback { frame: Option<Vec<u8>> },
     PitchTone { hertz: u32 },
     ClockObservation,
     Timer { duration_millis: u64 },
@@ -130,8 +174,11 @@ pub(super) enum DriveStatus {
 pub(super) fn prepare(
     fragment: &PlanFragment,
 ) -> Result<(TourScheduler, PendingHostEffect), String> {
-    let lowered = lower_plan_fragment(fragment)
-        .map_err(|error| format!("lower executable-tour Plan: {error:?}"))?;
+    let lowered = lower_plan_fragment_for_profile(
+        fragment,
+        crate::installed_browser::typed_state::storage_profile(),
+    )
+    .map_err(|error| format!("lower executable-tour Plan: {error:?}"))?;
     validate_envelope(fragment, &lowered, false)?;
     let mut scheduler = prepare_scheduler(fragment, &lowered)?;
     let pending = match drive(&mut scheduler, fragment)? {
@@ -152,8 +199,11 @@ pub(super) fn prepare(
 pub(super) fn prepare_remote_fragment(
     fragment: &PlanFragment,
 ) -> Result<(TourScheduler, LoweredPlanFragment), String> {
-    let lowered = lower_plan_fragment(fragment)
-        .map_err(|error| format!("lower multi-host executable-tour Plan: {error:?}"))?;
+    let lowered = lower_plan_fragment_for_profile(
+        fragment,
+        crate::installed_browser::typed_state::storage_profile(),
+    )
+    .map_err(|error| format!("lower multi-host executable-tour Plan: {error:?}"))?;
     validate_envelope(fragment, &lowered, true)?;
     let scheduler = prepare_scheduler(fragment, &lowered)?;
     Ok((scheduler, lowered))
@@ -200,6 +250,7 @@ fn drive_with_boundary<'a>(
     remote_egress: &[(conduit_kernel::RemoteEndpointId, CordId)],
 ) -> Result<DriveStatus, String> {
     loop {
+        thermostat::capture_output(scheduler)?;
         for &(endpoint, cord) in remote_egress {
             if scheduler
                 .remote_egress_offer(endpoint, cord)
@@ -251,13 +302,23 @@ fn drive_with_boundary<'a>(
                     effect: BrowserHostEffect::AudioCapture,
                 }));
             }
+            if operation.contract_id.as_str() == crate::installed_browser::audio_io::DRAIN_OPERATION
+            {
+                if !input.is_empty() {
+                    return Err("PCM drain input must be empty".into());
+                }
+                return Ok(DriveStatus::Effect(PendingHostEffect {
+                    request,
+                    effect: BrowserHostEffect::PcmPlayback { frame: None },
+                }));
+            }
             if operation.contract_id.as_str() == crate::installed_browser::audio_io::PLAY_OPERATION
             {
                 conduit_audio::PcmFrameHeader::decode_frame(&input)
                     .map_err(|error| format!("browser PCM playback frame: {error:?}"))?;
                 return Ok(DriveStatus::Effect(PendingHostEffect {
                     request,
-                    effect: BrowserHostEffect::PcmPlayback { frame: input },
+                    effect: BrowserHostEffect::PcmPlayback { frame: Some(input) },
                 }));
             }
             if operation.contract_id.as_str()
@@ -304,9 +365,9 @@ fn drive_with_boundary<'a>(
             if operation.contract_id.as_str() == crate::installed_browser::pitch_tone::HOST_CALL {
                 let quantity = conduit_core::Quantity::decode(&input)
                     .map_err(|error| format!("pitch tone quantity: {error:?}"))?
-                    .convert(conduit_core::QuantityUnit::Hertz)
+                    .to_i64(conduit_core::Unit::Hertz)
                     .map_err(|error| format!("pitch tone frequency: {error:?}"))?;
-                let hertz = u32::try_from(quantity.value())
+                let hertz = u32::try_from(quantity)
                     .map_err(|_| "pitch tone frequency must be positive".to_string())?;
                 if !(20..=20_000).contains(&hertz) {
                     return Err("pitch tone frequency must be between 20 Hz and 20000 Hz".into());
@@ -316,39 +377,8 @@ fn drive_with_boundary<'a>(
                     effect: BrowserHostEffect::PitchTone { hertz },
                 }));
             }
-            if operation.contract_id.as_str() == crate::installed_browser::KEY_EVENT_OPERATION {
-                return Ok(DriveStatus::Effect(PendingHostEffect {
-                    request,
-                    effect: BrowserHostEffect::KeyEvent,
-                }));
-            }
-            if operation.contract_id.as_str() == crate::installed_browser::POINTER_EVENT_OPERATION {
-                return Ok(DriveStatus::Effect(PendingHostEffect {
-                    request,
-                    effect: BrowserHostEffect::PointerEvent,
-                }));
-            }
-            if operation.contract_id.as_str() == crate::installed_browser::BUTTON_EVENT_OPERATION {
-                return Ok(DriveStatus::Effect(PendingHostEffect {
-                    request,
-                    effect: BrowserHostEffect::ButtonTransition,
-                }));
-            }
-            if operation.contract_id.as_str()
-                == crate::installed_browser::APPLICATION_EVENT_OPERATION
-            {
-                return Ok(DriveStatus::Effect(PendingHostEffect {
-                    request,
-                    effect: BrowserHostEffect::ApplicationEvent,
-                }));
-            }
-            if operation.contract_id.as_str()
-                == crate::installed_browser::tutorial_presenter::REQUEST_OPERATION
-            {
-                return Ok(DriveStatus::Effect(PendingHostEffect {
-                    request,
-                    effect: BrowserHostEffect::TutorialPresenterRequest,
-                }));
+            if let Some(effect) = inputs::effect(operation.contract_id.as_str()) {
+                return Ok(DriveStatus::Effect(PendingHostEffect { request, effect }));
             }
             let installation = factory(&placement.implementation_id)
                 .ok_or_else(|| "browser request implementation is not installed".to_string())?;
@@ -407,7 +437,9 @@ fn drive_with_boundary<'a>(
                     pending_effects: scheduler.pending_host_call_count(),
                 });
             }
-            SchedulerStatus::Idle if allow_remote_wait => return Ok(DriveStatus::Quiescent),
+            SchedulerStatus::Idle if allow_remote_wait || scheduler.thermostat.is_some() => {
+                return Ok(DriveStatus::Quiescent)
+            }
             SchedulerStatus::Idle => return Err("Tour Play became idle".into()),
             SchedulerStatus::Cancelled => return Err("Tour Play was cancelled".into()),
         }

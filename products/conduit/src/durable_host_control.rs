@@ -13,12 +13,12 @@ use conduit_core::{
     PoolMemberSessionDirection, PoolRealizationEnvelope, PoolRealizationObservation,
     PoolSelectionEvidence, SignId,
 };
+use conduit_face::{
+    Face, FaceInteraction, MaskShow, MaskWardrobeAction, OwnerFaceSnapshotRequest,
+    OwnerFaceSnapshotResponse, RemoteOwnerMaskRouteSeal,
+};
 use conduit_kernel::scheduler::{RemoteIngressOutcome, SchedulerStatus};
 use conduit_plan_lowering::lowering::RemoteCordDirection;
-use conduit_presentation::{
-    FaceInteraction, MaskShow, OwnerFaceSnapshotRequest, OwnerFaceSnapshotResponse, Presentation,
-    RemoteOwnerMaskRouteSeal,
-};
 use conduit_std_host::{
     browser_admission::{BrowserAdmissionEgress, BrowserAdmissionIngress},
     hosted_local_model::LocalModelAdapterTerminal,
@@ -37,6 +37,46 @@ use std::{
 const PROTOCOL: u16 = 1;
 pub(crate) const CONTROL_OUTCOME_UNKNOWN: &str = "control-outcome-unknown";
 const MAXIMUM_CONTROL_FRAME_BYTES: usize = 512 * 1024;
+// Local admission snapshots carry both complete reviewed Host advertisements.
+// This JSON envelope bound is separate from remote session payload/frame limits.
+pub(crate) const MAXIMUM_LOCAL_CONTROL_FRAME_BYTES: usize = 2 * 1024 * 1024;
+
+fn supports_remote_mask_action_intent(intent: &str) -> bool {
+    intent == crate::durable_host::owner::clock_interval_action()
+        || matches!(
+            intent,
+            "todo/add@1"
+                | "todo/complete@1"
+                | "todo/reopen@1"
+                | "todo/remove@1"
+                | "thermostat.lower@1"
+                | "thermostat.raise@1"
+                | "thermostat.mode.off@1"
+                | "thermostat.mode.heat@1"
+                | "thermostat.mode.cool@1"
+                | "thermostat.mode.auto@1"
+                | "thermostat.fan.auto@1"
+                | "thermostat.fan.on@1"
+                | "thermostat.preset.comfort@1"
+                | "thermostat.preset.eco@1"
+                | "thermostat.preset.sleep@1"
+        )
+}
+
+/// Native return needs a route before reviewed Plot actions become available.
+/// This permits route setup only; it does not make an unavailable action executable.
+pub(crate) fn has_native_return_route_intent(face: &Face) -> bool {
+    face.actions
+        .iter()
+        .any(|action| supports_remote_mask_action_intent(&action.intent))
+}
+
+/// Browser interaction admission still requires an available, dispatched action.
+pub(crate) fn has_remote_mask_action(face: &Face) -> bool {
+    face.actions.iter().any(|action| {
+        action.availability.is_available() && supports_remote_mask_action_intent(&action.intent)
+    })
+}
 
 #[path = "durable_host_control/body.rs"]
 mod body;
@@ -48,14 +88,33 @@ mod body_run;
 #[path = "durable_host_control/browser.rs"]
 pub(crate) mod browser;
 #[cfg(unix)]
+#[path = "durable_host_control/client_frame.rs"]
+mod client_frame;
+#[cfg(unix)]
+#[path = "durable_host_control/direct_spoken.rs"]
+pub(crate) mod direct_spoken;
+#[cfg(unix)]
+#[path = "durable_host_control/speech_route.rs"]
+pub(crate) mod speech_route;
+mod thermostat_action;
+#[cfg(not(unix))]
+pub(crate) mod direct_spoken {
+    pub(crate) fn run(_: &std::path::Path, _: crate::cli::SpokenMaskCommand) -> Result<(), String> {
+        Err("installed owner spoken Mask control needs a local Unix Host".into())
+    }
+}
+#[cfg(unix)]
 #[path = "durable_host_control/terminal_attach.rs"]
 pub(crate) mod terminal_attach;
+pub(crate) use body::local_wardrobe;
 pub(crate) use body::start_browser_window;
 #[cfg(unix)]
 pub(crate) use body::submit_attached_terminal_interaction;
 use body::HostSource;
 #[allow(unused_imports)]
-pub(crate) use body::{acknowledge_native_mask_show, select_native_mask_route};
+pub(crate) use body::{
+    acknowledge_native_mask_show, select_native_component_mask, select_native_mask_route,
+};
 #[allow(unused_imports)]
 // Native return consumes the expiry-bearing entrance after its route lands.
 pub(crate) use body::{
@@ -78,6 +137,10 @@ pub(crate) struct DurableHostTruth {
     pub(crate) advertisement: HostAdvertisement,
 }
 
+#[cfg(unix)]
+#[path = "durable_host_control/presentation_host.rs"]
+mod presentation_host;
+
 pub(crate) struct DurableHostRuntime {
     target_id: String,
     image_content_digest: String,
@@ -90,6 +153,13 @@ pub(crate) struct DurableHostRuntime {
     next_observation_sequence: u64,
     #[cfg(unix)]
     terminal_route: Option<terminal_attach::AttachedTerminalRoute>,
+    selected_speech_equipment: Option<crate::durable_host::selected_speech::AttachedEquipment>,
+    speech_worker: Option<body::speech::SpeechWorker>,
+    speech_terminal: Option<serde_json::Value>,
+    owner_spoken_worker: Option<body::owner_spoken::OwnerSpokenWorker>,
+    owner_spoken_terminal: Option<serde_json::Value>,
+    spoken_template_session:
+        Option<conduit_std_host::spoken_template_execution::SpokenTemplateExecutionSession>,
 }
 
 impl DurableHostRuntime {
@@ -114,14 +184,28 @@ impl DurableHostRuntime {
             next_observation_sequence: 0,
             #[cfg(unix)]
             terminal_route: None,
+            selected_speech_equipment: None,
+            speech_worker: None,
+            speech_terminal: None,
+            owner_spoken_worker: None,
+            owner_spoken_terminal: None,
+            spoken_template_session: None,
         }
+    }
+
+    pub(crate) fn with_selected_speech_equipment(
+        mut self,
+        equipment: Option<crate::durable_host::selected_speech::AttachedEquipment>,
+    ) -> Self {
+        self.selected_speech_equipment = equipment;
+        self
     }
 
     fn install_cancellation_signal(&mut self, state_dir: &Path) {
         self.cancellation_signal = Some(state_dir.join("remote-cancellation.signal"));
     }
 
-    fn truth(&self) -> DurableHostTruth {
+    pub(crate) fn truth(&self) -> DurableHostTruth {
         DurableHostTruth {
             target_id: self.target_id.clone(),
             image_content_digest: self.image_content_digest.clone(),
@@ -971,6 +1055,8 @@ enum Request {
         window_id: String,
         credential: MembershipCredential,
         binding: LinkBindingId,
+        #[serde(default)]
+        evidence: Option<Box<crate::durable_host::owner::BrowserCarrierLineEvidence>>,
     },
     BodyBrowserShow {
         protocol: u16,
@@ -979,6 +1065,26 @@ enum Request {
         binding: LinkBindingId,
         request: OwnerFaceSnapshotRequest,
         show: Box<MaskShow>,
+    },
+    BodyBrowserComponentMask {
+        protocol: u16,
+        token: Vec<u8>,
+        window_id: String,
+        binding: LinkBindingId,
+        request: OwnerFaceSnapshotRequest,
+        show: Box<MaskShow>,
+        look: conduit_std_host::browser_admission::BrowserComponentLook,
+        recipe: conduit_std_host::browser_admission::BrowserComponentRecipe,
+    },
+    BodyBrowserWardrobe {
+        protocol: u16,
+        token: Vec<u8>,
+        window_id: String,
+        binding: LinkBindingId,
+        request: OwnerFaceSnapshotRequest,
+        owner_plan_id: Option<conduit_core::PlanId>,
+        basis_revision: u64,
+        action: Option<MaskWardrobeAction>,
     },
     BodyBrowserAbort {
         protocol: u16,
@@ -996,7 +1102,7 @@ enum Request {
         window_id: String,
         credential: MembershipCredential,
     },
-    BodyFace {
+    Face {
         protocol: u16,
         token: Vec<u8>,
         request: OwnerFaceSnapshotRequest,
@@ -1005,13 +1111,39 @@ enum Request {
         protocol: u16,
         token: Vec<u8>,
     },
+    BodyLocalWardrobe {
+        protocol: u16,
+        token: Vec<u8>,
+        body_id: conduit_body::BodyId,
+        face_id: String,
+        face_revision: u64,
+        advertisement: conduit_core::HostAdvertisement,
+        owner_plan_id: Option<conduit_core::PlanId>,
+        basis_revision: u64,
+        action: Option<MaskWardrobeAction>,
+    },
     BodyNativeMaskRoute {
         protocol: u16,
         token: Vec<u8>,
         receipt: Box<PortableAdmissionReceipt>,
         face_line: Box<LineOffer>,
         return_line: Box<LineOffer>,
+        #[serde(default)]
+        terminal_interaction_line: Option<Box<LineOffer>>,
+        #[serde(default)]
+        spoken_selection: Option<
+            Box<conduit_std_host::direct_spoken_template_mask::RemoteSpokenTemplateSelection>,
+        >,
         expires_at_millis: u64,
+    },
+    BodyNativeComponentMask {
+        protocol: u16,
+        token: Vec<u8>,
+        receipt: Box<PortableAdmissionReceipt>,
+        request: OwnerFaceSnapshotRequest,
+        show: Box<MaskShow>,
+        look: conduit_std_host::browser_admission::BrowserComponentLook,
+        recipe: conduit_std_host::browser_admission::BrowserComponentRecipe,
     },
     BodyNativeMaskShow {
         protocol: u16,
@@ -1019,7 +1151,7 @@ enum Request {
         request: OwnerFaceSnapshotRequest,
         show: Box<MaskShow>,
     },
-    BirthFace {
+    BirthWidgetFace {
         protocol: u16,
         token: Vec<u8>,
     },
@@ -1054,6 +1186,13 @@ enum Request {
         basis_revision: u64,
         command: terminal_attach::TerminalWardrobeCommand,
     },
+    #[cfg(unix)]
+    BodyAttachedTerminalRefreshShow {
+        protocol: u16,
+        token: Vec<u8>,
+        route_plan_id: conduit_core::PlanId,
+        show: Box<MaskShow>,
+    },
     BodyBrowserInteraction {
         protocol: u16,
         token: Vec<u8>,
@@ -1077,6 +1216,8 @@ enum Request {
         protocol: u16,
         token: Vec<u8>,
         maximum_millis: u64,
+        #[serde(default)]
+        todo_new_list: Option<String>,
     },
     BodyLull {
         protocol: u16,
@@ -1176,6 +1317,13 @@ enum Response {
     BodyBrowserShowAccepted {
         protocol: u16,
     },
+    BodyBrowserComponentMaskAccepted {
+        protocol: u16,
+    },
+    BodyBrowserWardrobeReport {
+        protocol: u16,
+        report: Box<serde_json::Value>,
+    },
     BodyBrowserAborted {
         protocol: u16,
     },
@@ -1186,14 +1334,20 @@ enum Response {
         protocol: u16,
         biography: Box<BodyBiographyEvidence>,
     },
-    BodyFace {
+    Face {
         protocol: u16,
         response: Box<OwnerFaceSnapshotResponse>,
     },
     BodyLocalFace {
         protocol: u16,
-        presentation: Box<Presentation>,
+        face: Box<Face>,
         advertisement: HostAdvertisement,
+    },
+    BodyLocalWardrobe {
+        protocol: u16,
+        report: Box<serde_json::Value>,
+        face: Option<Box<Face>>,
+        reading_refusal: Option<String>,
     },
     BodyNativeMaskRoute {
         protocol: u16,
@@ -1202,19 +1356,19 @@ enum Response {
     BodyNativeMaskShowAccepted {
         protocol: u16,
     },
-    BirthFace {
+    BirthWidgetFace {
         protocol: u16,
-        presentation: Box<Presentation>,
+        face: Box<Face>,
         advertisement: HostAdvertisement,
     },
     BirthChanged {
         protocol: u16,
-        presentation: Box<Presentation>,
+        face: Box<Face>,
     },
     BirthCompleted {
         protocol: u16,
         body_id: conduit_body::BodyId,
-        presentation: Box<Presentation>,
+        face: Box<Face>,
     },
     BodyInteraction {
         protocol: u16,
@@ -1224,6 +1378,12 @@ enum Response {
     BodyAttachedTerminalWardrobe {
         protocol: u16,
         report: Box<serde_json::Value>,
+    },
+    #[cfg(unix)]
+    BodyAttachedTerminalRefreshedShow {
+        protocol: u16,
+        show: Box<MaskShow>,
+        advertisement: HostAdvertisement,
     },
     BodyRunRequested {
         protocol: u16,
@@ -1336,7 +1496,10 @@ pub(crate) fn serve(state_dir: &Path, mut runtime: DurableHostRuntime) -> Result
     let mut polling_play = false;
     loop {
         terminal_attach::retire_closed_attachment(state_dir, &mut runtime)?;
-        let running = runtime.host.body_is_running() || terminal_attach::is_attached(&mut runtime);
+        let running = runtime.host.body_is_running()
+            || runtime.speech_worker.is_some()
+            || runtime.owner_spoken_worker.is_some()
+            || terminal_attach::is_attached(&mut runtime);
         if running != polling_play {
             listener
                 .set_nonblocking(running)
@@ -1344,10 +1507,15 @@ pub(crate) fn serve(state_dir: &Path, mut runtime: DurableHostRuntime) -> Result
             polling_play = running;
         }
         runtime.progress_owned_body()?;
+        runtime.progress_browser_speech()?;
+        runtime.progress_owner_spoken()?;
         let mut stream = match listener.accept() {
             Ok((stream, _)) => stream,
             Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
-                let pause = if runtime.host.body_is_running() {
+                let pause = if runtime.host.body_is_running()
+                    || runtime.speech_worker.is_some()
+                    || runtime.owner_spoken_worker.is_some()
+                {
                     10
                 } else {
                     100
@@ -1357,23 +1525,7 @@ pub(crate) fn serve(state_dir: &Path, mut runtime: DurableHostRuntime) -> Result
             }
             Err(error) => return Err(format!("accept local host control: {error}")),
         };
-        stream
-            .set_read_timeout(Some(std::time::Duration::from_secs(2)))
-            .map_err(|error| format!("bound local host control read: {error}"))?;
-        stream
-            .set_write_timeout(Some(std::time::Duration::from_secs(2)))
-            .map_err(|error| format!("bound local host control write: {error}"))?;
-        let mut first = [0_u8; 1];
-        stream
-            .read_exact(&mut first)
-            .map_err(|error| format!("read local host control prefix: {error}"))?;
-        if first[0] == terminal_attach::MAGIC[0] {
-            terminal_attach::serve(state_dir, &mut stream, &mut runtime, &token, first[0])?;
-        } else {
-            let mut request = std::io::Cursor::new(first).chain(&mut stream);
-            let response = handle(read_frame(&mut request)?, &token, &mut runtime);
-            write_frame(&mut stream, &response)?;
-        }
+        client_frame::serve_client(state_dir, &mut stream, &mut runtime, &token)?;
     }
 }
 
@@ -1762,14 +1914,18 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
         | Request::BodyBrowserOffer { token, .. }
         | Request::BodyBrowserMaskRoute { token, .. }
         | Request::BodyBrowserShow { token, .. }
+        | Request::BodyBrowserComponentMask { token, .. }
+        | Request::BodyBrowserWardrobe { token, .. }
         | Request::BodyBrowserAbort { token, .. }
         | Request::BodyBrowserCancel { token, .. }
         | Request::BodyBrowserLeave { token, .. }
-        | Request::BodyFace { token, .. }
+        | Request::Face { token, .. }
         | Request::BodyLocalFace { token, .. }
+        | Request::BodyLocalWardrobe { token, .. }
         | Request::BodyNativeMaskRoute { token, .. }
+        | Request::BodyNativeComponentMask { token, .. }
         | Request::BodyNativeMaskShow { token, .. }
-        | Request::BirthFace { token, .. }
+        | Request::BirthWidgetFace { token, .. }
         | Request::BirthInteraction { token, .. }
         | Request::BodyInteraction { token, .. }
         | Request::BodyBrowserInteraction { token, .. }
@@ -1787,6 +1943,8 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
         Request::BodyAttachedTerminalInteraction { token, .. } => token,
         #[cfg(unix)]
         Request::BodyAttachedTerminalWardrobe { token, .. } => token,
+        #[cfg(unix)]
+        Request::BodyAttachedTerminalRefreshShow { token, .. } => token,
     };
     let authenticated = constant_time_equal(offered, token);
     offered.fill(0);
@@ -1798,11 +1956,15 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
             &request,
             Request::Status { .. }
                 | Request::BodyInspect { .. }
-                | Request::BodyFace { .. }
+                | Request::Face { .. }
                 | Request::BodyBrowserMaskRoute { .. }
                 | Request::BodyBrowserShow { .. }
+                | Request::BodyBrowserComponentMask { .. }
+                | Request::BodyBrowserWardrobe { .. }
                 | Request::BodyLocalFace { .. }
+                | Request::BodyLocalWardrobe { .. }
                 | Request::BodyNativeMaskRoute { .. }
+                | Request::BodyNativeComponentMask { .. }
                 | Request::BodyNativeMaskShow { .. }
                 | Request::BodyInteraction { .. }
                 | Request::BodyBrowserInteraction { .. }
@@ -1814,6 +1976,12 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
         )
     {
         return refused("body-play-active");
+    }
+    #[cfg(unix)]
+    if (runtime.speech_worker.is_some() || runtime.owner_spoken_worker.is_some())
+        && !speech_route::ordinary_request_allowed(&request)
+    {
+        return refused("selected-speech-active");
     }
     let truth = runtime.truth();
     match request {
@@ -1911,9 +2079,10 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
             window_id,
             credential,
             binding,
+            evidence,
             ..
         } if protocol == PROTOCOL => runtime
-            .browser_mask_route(&window_id, &credential, &binding)
+            .browser_mask_route(&window_id, &credential, &binding, evidence.as_deref())
             .map(|route| Response::BodyBrowserMaskRoute {
                 protocol: PROTOCOL,
                 route: Box::new(route),
@@ -1929,6 +2098,55 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
         } if protocol == PROTOCOL => runtime
             .browser_acknowledge_show(&window_id, &binding, &request, &show)
             .map(|()| Response::BodyBrowserShowAccepted { protocol: PROTOCOL })
+            .unwrap_or_else(|code| refused(&code)),
+        Request::BodyBrowserComponentMask {
+            protocol,
+            window_id,
+            binding,
+            request,
+            show,
+            look,
+            recipe,
+            ..
+        } if protocol == PROTOCOL => {
+            use conduit_std_host::browser_admission::{
+                BrowserComponentLook as L, BrowserComponentRecipe as R,
+            };
+            let look = match look {
+                L::Compact => conduit_face::ComponentMaskLook::Compact,
+                L::Spacious => conduit_face::ComponentMaskLook::Spacious,
+            };
+            let recipe = match recipe {
+                R::Flat => conduit_face::TodoComponentRecipe::Flat,
+                R::Grouped => conduit_face::TodoComponentRecipe::Grouped,
+            };
+            runtime
+                .select_browser_component_mask(&window_id, &binding, &request, &show, look, recipe)
+                .map(|_| Response::BodyBrowserComponentMaskAccepted { protocol: PROTOCOL })
+                .unwrap_or_else(|code| refused(&code))
+        }
+        Request::BodyBrowserWardrobe {
+            protocol,
+            window_id,
+            binding,
+            request,
+            owner_plan_id,
+            basis_revision,
+            action,
+            ..
+        } if protocol == PROTOCOL => runtime
+            .browser_wardrobe_report(
+                &window_id,
+                &binding,
+                &request,
+                owner_plan_id.as_ref(),
+                basis_revision,
+                action,
+            )
+            .map(|report| Response::BodyBrowserWardrobeReport {
+                protocol: PROTOCOL,
+                report: Box::new(report),
+            })
             .unwrap_or_else(|code| refused(&code)),
         Request::BodyBrowserAbort {
             protocol,
@@ -1958,21 +2176,53 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
                 biography: Box::new(biography),
             })
             .unwrap_or_else(|code| refused(&code)),
-        Request::BodyFace {
+        Request::Face {
             protocol, request, ..
         } if protocol == PROTOCOL => runtime
             .owned_body_face(&request)
-            .map(|response| Response::BodyFace {
+            .map(|response| Response::Face {
                 protocol: PROTOCOL,
                 response: Box::new(response),
             })
             .unwrap_or_else(|code| refused(&code)),
         Request::BodyLocalFace { protocol, .. } if protocol == PROTOCOL => runtime
             .owned_body_local_face()
-            .map(|(presentation, advertisement)| Response::BodyLocalFace {
+            .map(|(face, advertisement)| Response::BodyLocalFace {
                 protocol: PROTOCOL,
-                presentation: Box::new(presentation),
+                face: Box::new(face),
                 advertisement,
+            })
+            .unwrap_or_else(|code| refused(&code)),
+        Request::BodyLocalWardrobe {
+            protocol,
+            body_id,
+            face_id,
+            face_revision,
+            advertisement,
+            owner_plan_id,
+            basis_revision,
+            action,
+            ..
+        } if protocol == PROTOCOL => runtime
+            .owned_body_local_wardrobe(
+                &body_id,
+                (&face_id, face_revision),
+                &advertisement,
+                owner_plan_id.as_ref(),
+                basis_revision,
+                action,
+            )
+            .map(|(report, reading)| {
+                let (face, reading_refusal) = match reading {
+                    Ok(face) => (Some(Box::new(face)), None),
+                    Err(reason) => (None, Some(reason)),
+                };
+                Response::BodyLocalWardrobe {
+                    protocol: PROTOCOL,
+                    report: Box::new(report),
+                    face,
+                    reading_refusal,
+                }
             })
             .unwrap_or_else(|code| refused(&code)),
         Request::BodyNativeMaskRoute {
@@ -1980,15 +2230,57 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
             receipt,
             face_line,
             return_line,
+            terminal_interaction_line,
+            spoken_selection,
             expires_at_millis,
             ..
         } if protocol == PROTOCOL => runtime
-            .owned_body_native_mask_route(&receipt, &face_line, &return_line, expires_at_millis)
+            .owned_body_native_mask_route(
+                &receipt,
+                &face_line,
+                &return_line,
+                terminal_interaction_line.as_deref(),
+                spoken_selection.as_deref(),
+                expires_at_millis,
+            )
             .map(|route| Response::BodyNativeMaskRoute {
                 protocol: PROTOCOL,
                 route: Box::new(route),
             })
             .unwrap_or_else(|code| refused(&code)),
+        Request::BodyNativeComponentMask {
+            protocol,
+            receipt,
+            request,
+            show,
+            look,
+            recipe,
+            ..
+        } if protocol == PROTOCOL => {
+            let look = match look {
+                conduit_std_host::browser_admission::BrowserComponentLook::Compact => {
+                    conduit_face::ComponentMaskLook::Compact
+                }
+                conduit_std_host::browser_admission::BrowserComponentLook::Spacious => {
+                    conduit_face::ComponentMaskLook::Spacious
+                }
+            };
+            let recipe = match recipe {
+                conduit_std_host::browser_admission::BrowserComponentRecipe::Flat => {
+                    conduit_face::TodoComponentRecipe::Flat
+                }
+                conduit_std_host::browser_admission::BrowserComponentRecipe::Grouped => {
+                    conduit_face::TodoComponentRecipe::Grouped
+                }
+            };
+            runtime
+                .owned_body_native_component_mask(&request, &show, &receipt, look, recipe)
+                .map(|route| Response::BodyNativeMaskRoute {
+                    protocol: PROTOCOL,
+                    route: Box::new(route),
+                })
+                .unwrap_or_else(|code| refused(&code))
+        }
         Request::BodyNativeMaskShow {
             protocol,
             request,
@@ -1998,15 +2290,15 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
             .owned_body_native_mask_show(&request, &show)
             .map(|()| Response::BodyNativeMaskShowAccepted { protocol: PROTOCOL })
             .unwrap_or_else(|code| refused(&code)),
-        Request::BirthFace { protocol, .. } if protocol == PROTOCOL => runtime
+        Request::BirthWidgetFace { protocol, .. } if protocol == PROTOCOL => runtime
             .birth_root
             .clone()
             .as_deref()
             .ok_or_else(|| "service Birth is unavailable".to_string())
             .and_then(|root| runtime.birth_face(root))
-            .map(|(presentation, advertisement)| Response::BirthFace {
+            .map(|(face, advertisement)| Response::BirthWidgetFace {
                 protocol: PROTOCOL,
-                presentation: Box::new(presentation),
+                face: Box::new(face),
                 advertisement,
             })
             .unwrap_or_else(|code| refused(&code)),
@@ -2022,17 +2314,14 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
             .ok_or_else(|| "service Birth is unavailable".to_string())
             .and_then(|root| runtime.birth_interaction(root, &show, &interaction))
             .map(|result| match result {
-                BirthTransition::Changed(presentation) => Response::BirthChanged {
+                BirthTransition::Changed(face) => Response::BirthChanged {
                     protocol: PROTOCOL,
-                    presentation: Box::new(presentation),
+                    face: Box::new(face),
                 },
-                BirthTransition::Born {
-                    body_id,
-                    presentation,
-                } => Response::BirthCompleted {
+                BirthTransition::Born { body_id, face } => Response::BirthCompleted {
                     protocol: PROTOCOL,
                     body_id,
-                    presentation: Box::new(presentation),
+                    face: Box::new(face),
                 },
             })
             .unwrap_or_else(|code| refused(&code)),
@@ -2078,6 +2367,22 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
                 report: Box::new(report),
             })
             .unwrap_or_else(|code| refused(&code)),
+        #[cfg(unix)]
+        Request::BodyAttachedTerminalRefreshShow {
+            protocol,
+            route_plan_id,
+            show,
+            ..
+        } if protocol == PROTOCOL => runtime
+            .refresh_attached_terminal_show(&route_plan_id, &show)
+            .map(
+                |(show, advertisement)| Response::BodyAttachedTerminalRefreshedShow {
+                    protocol: PROTOCOL,
+                    show: Box::new(show),
+                    advertisement,
+                },
+            )
+            .unwrap_or_else(|code| refused(&code)),
         Request::BodyBrowserInteraction {
             protocol,
             window_id,
@@ -2121,9 +2426,10 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
         Request::BodyStart {
             protocol,
             maximum_millis,
+            todo_new_list,
             ..
         } if protocol == PROTOCOL => runtime
-            .start_owned_body(maximum_millis)
+            .start_owned_body(maximum_millis, todo_new_list)
             .map(|()| Response::BodyRunRequested {
                 protocol: PROTOCOL,
                 maximum_millis,
@@ -2298,10 +2604,10 @@ fn read_secret(path: &Path) -> Result<[u8; 32], String> {
 fn read_frame<R: Read, T: for<'de> Deserialize<'de>>(reader: &mut R) -> Result<T, String> {
     let mut bytes = Vec::with_capacity(4096);
     reader
-        .take((MAXIMUM_CONTROL_FRAME_BYTES + 1) as u64)
+        .take((MAXIMUM_LOCAL_CONTROL_FRAME_BYTES + 1) as u64)
         .read_to_end(&mut bytes)
         .map_err(|error| format!("read local control frame: {error}"))?;
-    if bytes.is_empty() || bytes.len() > MAXIMUM_CONTROL_FRAME_BYTES {
+    if bytes.is_empty() || bytes.len() > MAXIMUM_LOCAL_CONTROL_FRAME_BYTES {
         bytes.fill(0);
         return Err("local control frame violates its finite bound".into());
     }
@@ -2313,7 +2619,7 @@ fn read_frame<R: Read, T: for<'de> Deserialize<'de>>(reader: &mut R) -> Result<T
 
 fn write_frame<W: Write, T: Serialize>(writer: &mut W, value: &T) -> Result<(), String> {
     let bytes = serde_json::to_vec(value).map_err(|error| error.to_string())?;
-    if bytes.len() > MAXIMUM_CONTROL_FRAME_BYTES {
+    if bytes.len() > MAXIMUM_LOCAL_CONTROL_FRAME_BYTES {
         return Err("local control response violates its finite bound".into());
     }
     writer
@@ -2323,7 +2629,7 @@ fn write_frame<W: Write, T: Serialize>(writer: &mut W, value: &T) -> Result<(), 
 
 fn write_sensitive_frame<W: Write, T: Serialize>(writer: &mut W, value: &T) -> Result<(), String> {
     let mut bytes = serde_json::to_vec(value).map_err(|error| error.to_string())?;
-    if bytes.len() > MAXIMUM_CONTROL_FRAME_BYTES {
+    if bytes.len() > MAXIMUM_LOCAL_CONTROL_FRAME_BYTES {
         bytes.fill(0);
         return Err("local control response violates its finite bound".into());
     }
@@ -2353,6 +2659,107 @@ fn now_millis() -> Result<u64, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn local_admission_envelope_carries_two_host_offers_without_relaxing_remote_frames() {
+        // BrowserAdmittedSnapshot contains both full advertisements. Exercise
+        // that real payload shape rather than padding an otherwise tiny frame.
+        let owner = StdHost::new();
+        let browser = crate::std_websocket_line::host(crate::std_websocket_line::SINK_HOST);
+        let snapshot = serde_json::json!({
+            "owner_advertisement": owner.advertisement(),
+            "browser_advertisement": browser.advertisement(),
+        });
+        let mut bytes = Vec::new();
+        write_frame(&mut bytes, &snapshot).unwrap();
+        assert!(bytes.len() > MAXIMUM_CONTROL_FRAME_BYTES);
+        assert!(bytes.len() <= MAXIMUM_LOCAL_CONTROL_FRAME_BYTES);
+        let recovered: serde_json::Value = read_frame(&mut bytes.as_slice()).unwrap();
+        assert_eq!(recovered, snapshot);
+        assert_eq!(MAXIMUM_CONTROL_FRAME_BYTES, 512 * 1024);
+
+        let oversized = "x".repeat(MAXIMUM_LOCAL_CONTROL_FRAME_BYTES);
+        let mut refused_output = Vec::new();
+        assert!(write_frame(&mut refused_output, &oversized).is_err());
+        assert!(
+            refused_output.is_empty(),
+            "oversized response must write no partial frame"
+        );
+        let encoded = serde_json::to_vec(&oversized).unwrap();
+        assert!(read_frame::<_, String>(&mut encoded.as_slice()).is_err());
+    }
+
+    #[test]
+    fn unavailable_todo_and_thermostat_intents_can_open_native_return_but_cannot_dispatch() {
+        use conduit_face::{FaceActionAvailability, FaceActionRefusal};
+
+        let mut face: Face = serde_json::from_value(serde_json::json!({
+            "identity": "face/todo-return-fixture",
+            "revision": 1,
+            "basis": {
+                "body_id": null, "wake_id": null, "source_document_id": null,
+                "checked_plot_id": null, "expanded_plot_id": null, "plan_id": null,
+                "active_play_id": null, "sign_ids": []
+            },
+            "subjects": [], "relationships": [], "composition": [],
+            "properties": [], "text": [], "disclosures": [],
+            "actions": [{
+                "identity": "todo.add", "intent": "todo/add@1", "target": "todo/list",
+                "name": "Add item", "arguments": [], "disclosure": "Primary",
+                "availability": {"Unavailable": {
+                    "reason_code": "todo-return-route-unavailable",
+                    "explanation": "This Todo Play has no admitted action return route."
+                }}
+            }]
+        }))
+        .unwrap();
+        assert!(has_native_return_route_intent(&face));
+        assert!(!has_remote_mask_action(&face));
+        assert!(matches!(
+            face.resolve_action(1, "todo.add"),
+            Err(FaceActionRefusal::Unavailable { reason_code })
+                if reason_code == "todo-return-route-unavailable"
+        ));
+
+        face.actions[0].availability = FaceActionAvailability::Available;
+        assert!(has_remote_mask_action(&face));
+
+        for intent in [
+            "thermostat.lower@1",
+            "thermostat.raise@1",
+            "thermostat.mode.off@1",
+            "thermostat.mode.heat@1",
+            "thermostat.mode.cool@1",
+            "thermostat.mode.auto@1",
+            "thermostat.fan.auto@1",
+            "thermostat.fan.on@1",
+            "thermostat.preset.comfort@1",
+            "thermostat.preset.eco@1",
+            "thermostat.preset.sleep@1",
+        ] {
+            face.actions[0].intent = intent.into();
+            face.actions[0].availability = FaceActionAvailability::Unavailable {
+                reason_code: "return-route-unavailable".into(),
+                explanation: "This action has no admitted return route.".into(),
+            };
+            assert!(has_native_return_route_intent(&face), "{intent}");
+            assert!(!has_remote_mask_action(&face), "{intent}");
+            assert!(matches!(
+                face.resolve_action(1, "todo.add"),
+                Err(FaceActionRefusal::Unavailable { .. })
+            ));
+            face.actions[0].availability = FaceActionAvailability::Available;
+            assert!(has_remote_mask_action(&face), "{intent}");
+        }
+        assert!(!supports_remote_mask_action_intent("thermostat.observe@1"));
+        assert!(!supports_remote_mask_action_intent(
+            "thermostat.mode.heat@2"
+        ));
+
+        face.actions[0].intent = "unsupported/action@1".into();
+        assert!(!has_native_return_route_intent(&face));
+        assert!(!has_remote_mask_action(&face));
+    }
 
     #[test]
     fn expired_action_grant_is_rejected_before_owner_dispatch() {
@@ -2465,8 +2872,7 @@ mod tests {
                 .gears
                 .iter()
                 .map(|gear| {
-                    let host = if gear.kind_id.as_str()
-                        == conduit_semantic_catalog::TEXT_PRESENTATION_KIND
+                    let host = if gear.kind_id.as_str() == conduit_semantic_catalog::TEXT_FACE_KIND
                     {
                         &advertisements[1]
                     } else {

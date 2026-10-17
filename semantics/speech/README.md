@@ -1,5 +1,12 @@
 # Native speech and language segments
 
+The [pinned common-carrier audit](../../docs/audits/speech-utterance-carrier.md)
+maps Tongues fields to existing Types, checks and explicit omissions (#5664).
+
+The proposed [model-authoring tutorial](../../wiki/Creating-models.md) describes
+ConduitVoice training and exact FARGAN feature composition, including model-level
+and native-plot on-ramps and explicit artifact off-ramps.
+
 Development foundation for [#4832](https://github.com/dancxjo/conduit/issues/4832).
 Conduitese owns the segment, listening, and translation meaning. Checked plots
 own this compact English voice's realization choices and fixed-point equations.
@@ -67,6 +74,16 @@ full rich-to-compact segment realization,
 linguistic analysis, commitment and FARGAN execution remain unfinished. The
 new intent does not claim that artifact references have been resolved, that
 uncertain values have been committed, or that both voices already consume it.
+
+Language owns the legacy syntactic/discourse link vocabulary in
+`semantics/language/syntax.conduit`. Speech rule conditions consume that exact
+native Type through the checked catalog and external Rust bindings. The ordinary
+language startup catalog exposes it to authored Plots;
+`SpeechSyntacticLinkKind` remains a Rust re-export for callers. The optional
+semantic-bindings profile carries this dependency, while the compact renderer
+keeps its existing runtime dependencies. This ownership seam under #4907 does
+not establish a complete dependency inventory, parser, revision basis, or
+commitment frontier.
 
 `pronunciation.conduit` owns this first English orthography profile's case
 normalization, classification, small self-authored dictionary, ordered spelling
@@ -283,12 +300,16 @@ energy distributions; this is acoustic model evidence, not human intelligibility
 Sample rate and admission limits come from the checked literal
 `speech/profile` plot, without a second Rust copy of that policy.
 
-The optional `kernel` feature provides the exact `speech/english-utterance`
+The optional `kernel` feature provides the portable `speech/utterance`
 contract, offer and `NativeSpeechBack`. It accepts one bounded text value and
 emits canonical `audio/pcm-frames@1` on a closing Flow: mono s16le at 8 kHz,
 128-frame maximum blocks, a configured semantic media-clock identity, and
 contiguous frame positions. Preparation checks the selected Fore, Kind,
-implementation, source-bound artifact, limits and absence of resources/authority.
+implementation, source-bound artifact, exact Language coverage, limits and absence of resources/authority.
+An authored Language request is mandatory. The compiled Back declares only
+`language/english` with the exact `pronunciation/native-english@2` variety;
+French, undeclared coverage, and another pronunciation variety refuse during
+planning. Preparation checks the same request and retained declaration again.
 The kernel retains the original text value until the last block commits; private
 segment ranges therefore remain source-scoped. The Back stages a copied cursor
 and fixed PCM bytes, then advances only in `step_committed`. Existing kernel
@@ -632,6 +653,98 @@ typed refusals; absent features preserve observation uncertainty. Both component
 receipts remain available after mismatch. Evaluation does not select a rule,
 resolve its output features or establish linguistic commitment.
 
+`select_global_allophone_rule` prepares at most eight ordered standalone rules
+from an explicit inventory/language profile. It checks the original occurrence,
+profile basis and supplied feature occurrence even for an empty rule list.
+Native status policy and choice laws select the first permitted match; an earlier
+unresolved requirement or observation blocks lower matches. A Known requested
+phone remains an exact constraint on the rule output. Every permitted candidate
+retains its input, context and phone-constraint receipts, including candidates
+after a winner; unsupported obligations refuse the profile with the rule index.
+Excluded statuses retain an explicit unevaluated candidate. Candidate storage is
+reserved once during preparation. This stage has no default candidate and does
+not resolve output features, bind a voice profile, render or commit a phone.
+
+`prepare_rule_output_features` retains an original standalone rule and explicit
+optional default features and phone definition. The native
+`speech/output-feature-layer` law selects default realization, phone definition,
+then rule output by exact feature key. Later layers replace whole specifications,
+including Unknown and Unspecified; only a Known output phone inherits lower
+layers. Supplied phone definitions must match that Known phone's exact ID.
+Missing layers stay missing. The receipt borrows at most sixteen resulting
+features with their source layers; duplicate keys or an oversized merged result
+refuse before returning output. This establishes feature inheritance over
+supplied inputs, not inventory membership, occurrence provenance, rule selection,
+output-phone resolution or commitment.
+
+`prepare_chosen_global_rule_profile` binds a selected standalone rule's Known
+output phone to one exact inventory definition and the admitted voice's complete
+definition snapshot. Default-realization feature evidence is explicit, retains
+its provenance, and must name the original occurrence. Native output-feature
+inheritance retains the three layers before compact profile admission; every
+nonempty inherited feature bundle is currently refused rather than discarded.
+Unchosen/deferred states and selected unresolved outputs remain distinct typed
+refusals. Timing, source resolution and commitment remain separate obligations.
+The `global-rule-initial-aspiration-tata` fixture combines this bridge with native
+quantitative timing from the original manual intent through the existing renderer.
+
+`prepare_global_intent` combines global-rule choice, occurrence-bound default
+features, exact voice admission and quantitative timing for one immutable intent.
+Its evidence slots must align with the original events: segment evidence is
+required and boundaries have no segment evidence. All segment obligations and
+renderer admission must pass before a renderable result escapes. The private
+aggregate owns its frozen event tape and retains each choice, inherited feature
+receipt, definition/basis witnesses and profile binding. A late refusal returns
+no playable aggregate; boundary silence and original uncertainty remain explicit.
+Rendering borrows the admitted tapes. The
+`global-intent-initial-aspiration-tata` fixture exercises this whole preparation
+path. Source-material coverage and linguistic commitment remain separate checks;
+the optional rich preparation receipts do not establish whole-device MCU fit.
+
+`resolve_intent_inventory_phoneme` retains the original occurrence and one exact
+phoneme definition from the supplied inventory. Native occurrence, inventory
+basis and phoneme-identity witnesses are retained; a matching notation is not
+membership. Missing or ambiguous definitions and all five non-Known states
+refuse without case, Unicode or base-ID fallback. Whole global-intent preparation
+now requires this receipt before rule choice and retains it alongside the chosen
+phone. A late missing phoneme cannot produce a renderable aggregate even if a
+wildcard rule and output-phone binding would otherwise match. Definition features
+remain definition facts, without becoming observed token features or defaults.
+
+`finish_global_default_choice` completes standalone-rule selection using only
+the exact original phoneme definition's declared default phone. The existing
+native finish law preserves winners and earlier deferral; default selection
+requires explicit policy permission and compatibility with any Known requested
+phone. The receipt retains the original choice, native phoneme membership and
+optional exact default-ID witness. It does not invent a phone from spelling,
+resolve phone membership, admit acoustics or establish commitment.
+
+`prepare_global_default_profile` admits an already selected phoneme default
+through the same inventory's unique exact phone definition and the voice's full
+definition snapshot. Explicit default features require the original occurrence
+witness; nonempty default or definition features remain typed unsupported input.
+The receipt retains the selection, definition, feature provenance and exact
+binding. It does not rewrite the intent or establish timing, source coverage or
+commitment. The supported sample writer includes a declared-default “tata”.
+
+Whole-intent global preparation now completes native default choice before voice
+admission. Each private phone receipt retains the original rule-choice state,
+completed state and an explicit rule/default realization. Rule output features
+are available only for rule realization; default features retain their explicit
+occurrence evidence. Mixed rule/default events and boundaries share the same
+frozen timing and renderer. Earlier deferral or a late default-admission failure
+prevents a playable aggregate escaping. This does not establish source coverage
+or linguistic commitment.
+
+`prepare_sourced_global_intent` resolves every original segment and boundary
+source against explicitly supplied immutable materials in exact event/source
+order before global rule/default realization. Its private aggregate retains both source
+coverage and the prepared realization of the same original intent. Missing,
+stale, foreign or wrong-kind materials refuse through the existing native source
+contracts; failed realization cannot return a playable aggregate. The renderer
+uses the frozen admitted events. Source resolution establishes reference
+coverage, not authenticity, causality, authority or linguistic commitment.
+
 Original allophone conditions have borrowed preparation receipts for explicit
 careful style, previous/next matchers, singleton/set stress, and exact feature
 keys/values. Their decisions are native Plots; the Rust adapters project typed
@@ -673,9 +786,152 @@ after a winner; excluded declarations are retained without evaluating context.
 
 `prepare_chosen_allophone_profile` resolves the selected original phone to one
 exact inventory definition and admitted formant binding without rewriting the
-intent. This is hosted preparation with fixed candidate storage, not complete
+intent. This is hosted preparation with at most eight candidate receipts allocated before play, not complete
 utterance admission or a whole MCU footprint claim. Standalone global rules,
 inheritance, syntax, timing/source admission and commitment remain separate.
 The native-speech journey emits `allophone-default-tata.wav` and
 `allophone-initial-aspiration-tata.wav` from manually supplied linguistic facts
 and the existing bounded renderer; acoustic parameters are unchanged.
+
+`prepare_contextual_intent` combines contextual choice, exact profile binding
+and quantitative timing into a frozen bounded event tape. Explicit context has
+one slot per original event (Some for segments, None for boundaries). Deferred
+or absent phone choices, incompatible profiles, unresolved quantitative facts
+and renderer-domain failures refuse preparation before playback. Original
+intent, choice and timing receipts remain inspectable; source resolution and
+linguistic commitment are still separate obligations. Rich candidate storage is
+reserved during hosted preparation within the native eight-rule bound rather
+than copied as a large inline stack value. Rendering adds no collection growth.
+
+`prepare_sourced_contextual_intent` requires complete ordered source coverage
+against explicitly supplied immutable text, phone, phoneme or recognition
+materials before preparing the contextual tape. Both receipts retain the same
+original intent; stale revisions, missing coverage and realization failures
+remain distinct typed refusals. No material search or revision substitution
+occurs. Source resolution proves reference identity and range, not causality,
+authority, segmentation or linguistic commitment. The sourced-contextual
+listening fixtures retain the exact manual text revision alongside choice and
+timing receipts.
+
+The native choice transition carrier is a sum with 26 meaningful states: none,
+default, and eight indices each for selection, requirement deferral and
+observation deferral. Its shape prevents contradictory deferral reasons and
+meaningless none/default indices. The public preparation receipt preserves
+outcome/index/reason accessors and validates their correlation through native
+laws. Pure choice Plots construct the sum; native preparation validates the
+refined receipt separately, preserving the admitted law-validator boundary.
+
+The sourced aggregate also admits mixed rule/default intents through the same
+frozen event tape. The native-speech journey writes
+`sourced-global-rule-and-default-tata.wav`: its initial /t/ uses the selected
+aspiration rule and the remaining segments use exact declared phoneme defaults.
+Source coverage, default policy, original occurrence evidence and voice admission
+all finish before a renderer is returned; source coverage still does not imply
+linguistic commitment.
+
+The explicit `SpeechFormantAspirationProfile` encloses its exact base voice and
+maps one opaque feature ID to an aspiration cue. `prepare_aspirated_global_intent`
+realizes Known Boolean inherited values on selected rule outputs and declared
+defaults: plain p/t/k presets remain plain for false and become aspirated for true. A native Plot owns
+that decision. The original phone definition, whole inherited specification,
+layer, occurrence observation and declared profile remain inspectable; an
+acoustic preset change does not rewrite the semantic phone identity. Every
+inherited key must be covered before admission finishes. Other value kinds,
+all five non-Known states, unsupported base phones and unmapped keys produce
+typed refusals, including an exact event index for whole-intent preparation.
+Rule outputs retain default → definition → rule precedence. Declared defaults
+retain definition → explicit occurrence-feature precedence. Both merge whole
+specifications before acoustic admission, including unresolved overrides. The
+original strict profile APIs retain their existing feature refusals.
+`prepare_sourced_aspirated_global_intent` resolves all original source references
+before either rule or default realization, retaining that coverage alongside the
+feature receipts. This adds no inference, parser, commitment or physical-device
+claim.
+The native-speech proof writes `feature-aspiration-off-tata.wav` and
+`feature-aspiration-on-tata.wav`, plus the corresponding
+`feature-default-aspiration-off-tata.wav` and
+`feature-default-aspiration-on-tata.wav`; the existing empty-feature samples
+retain their approved acoustic balance.
+
+The compact text profile has native regular-ending pronunciation for twelve
+explicitly declared stems. Exact whole-word dictionary entries retain priority.
+The checked inflection Plots identify bounded suffix candidates, declare stem
+eligibility and select `-s` /s, z, ɪz/ or `-ed` /t, d, ɪd/ from the stem's final
+phoneme. Rust only traverses those results and borrows prefix slices; it contains
+no suffix spelling or voicing policy. Stem stress and dictionary provenance are
+retained; appended segments have `inflection_rule` origin and exact modeled
+suffix source spans. This is pronunciation correspondence, not a grammatical
+analysis, lemma claim, measured alignment or linguistic commitment.
+
+The declared `-s` stems are voice, world, device, conduit, synthesizer, speech,
+listen, thank, please, want, speak and read. Regular `-ed` is declared only for
+listen, thank, please, voice and want; the profile now includes a self-authored
+American /wɑnt/ dictionary entry for want. At most two prefix candidates are
+examined; each dictionary result has at most twelve phonemes and the ending has
+at most two. Existing text/word/event bounds and atomic output admission apply.
+Undeclared stems, consonant doubling, y changes and irregular past forms keep the
+existing spelling fallback and its uncertainty rather than gaining inflection
+provenance. This remains a small pronunciation profile, not general English
+morphology or eSpeak-equivalent lexical coverage.
+
+The pronunciation models follow the [British Council's -s teaching model](https://africa.teachingenglish.org.uk/classroom/pronunciation/snake-or-fly)
+and [Iowa State's -ed/-s pronunciation chapter](https://iastate.pressbooks.pub/teachingpronunciation/chapter/chapter-5-ed-and-s-endings/).
+The want entry follows the [Cambridge American pronunciation](https://dictionary.cambridge.org/dictionary/english/want).
+The native-speech xtask proof writes `text-regular-plurals.wav` and
+`text-regular-past.wav` through the same fixed-storage renderer; linked MCU
+footprint and physical playback remain distinct proof classes.
+
+
+## Canonical IPA and authored linguistic entities
+
+`SpeechPhone` and `SpeechPhoneme` are separate domain Types available to the
+product CLI's Conduit authoring catalog. Their occurrences, features, inventory
+and explicit allophone rules remain typed values. See
+[`examples/ipa/phones-and-phonemes.conduit`](examples/ipa/phones-and-phonemes.conduit)
+and [the notation contract](../../docs/design/speech-ipa-notation.md).
+
+The Unicode notation profile preserves declared multicodepoint units, exact
+source spelling and explicit alias provenance. Inventory admission binds those
+units to the complete supplied inventory and language variety, refusing foreign
+references and unsupported or ambiguous notation. A plain record is a definition;
+notation/inventory admission remains an explicit additional check.
+
+The candidate provides ordinary quoted constructors `speech/phone-from-ipa`,
+`speech/phonetic-from-ipa`, `speech/phoneme-from-ipa` and
+`speech/phonemic-from-ipa`. See the
+[universal transcription](examples/ipa/quoted-transcriptions.conduit) and
+[explicit inventory transcription](examples/ipa/quoted-phonemic.conduit).
+They prepare distinct typed values before Play; phonemic construction requires
+the complete supplied inventory, Language/Variety basis, revision and bindings.
+Human and JSON checking diagnostics retain original quoted-source spans.
+Native generation and public authoring import the same checked Language owner
+contracts; older shape-only schema IDs are not silently coerced.
+The baseline supported suite passes 454 tests and a Thumb no_std contract
+compile. Reconciliation with the competing constructor contract is required by
+#5329 before #5260 can close; these candidate APIs are not stable acceptance.
+Reusable checked basis references follow that decision under #5330.
+
+Run focused conformance with `cargo xtask check speech-ipa`. Typed delimiter
+glyphs such as `p[tʰ]` and `p/t/` are proposed syntax under #5317, not an
+implemented entrance. The same generic mechanism proposes `r/[A-Z]+/i` for
+portable patterns. Existing collections, indexing and bare regex forms retain
+their meanings.
+The compact `EnglishPhone`/`EnglishPhoneme` tags used by the native renderer are
+its terminal profile codes; they do not define canonical linguistic IPA.
+
+`correspondence::PreparedSpeechCorrespondence` checks a supplied
+`SpeechRealizationAlignment` component against the original intent, phoneme and
+phone sequences, complete text and executed `PreparedIpaInventory`. One-to-one,
+one-to-many, many-to-one, many-to-many, inserted and deleted occurrences retain
+separate identities. Each tape occurrence must appear exactly once; duplicate,
+missing, foreign, dangling and unresolved members refuse. Groups permit 1–8
+members on a populated side, and the component permits 1–64 groups. Each target
+phone must also have one matching original intent event. A multi-phoneme group
+or inserted phone uses `not_applicable` for the event's scalar phoneme slot;
+multiple simultaneous phonemes are carried by the group, never relabeled as
+uncertain alternatives. Existing nonempty `realized_as` copies must agree with
+the ordered targets; empty legacy copies supply no replacement correspondence.
+This explicit grouping is caller-supplied linguistic
+meaning, not pronunciation inference. A supplied relation does not establish
+external authenticity or commitment. Inventory revision and Variety stay on
+the retained full IPA basis, independently of utterance/text revisions.

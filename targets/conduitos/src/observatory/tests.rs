@@ -209,3 +209,12 @@ fn unrepresentable_boot_inputs_fail_before_play() {
         Some(ExportError::UnsupportedFramebuffer)
     );
 }
+
+#[test]
+fn export_budget_accepts_exact_boundary_and_refuses_one_more_byte() {
+    let exact = alloc::string::String::from_utf8(alloc::vec![b'x'; MAX_EXPORT_BYTES]).unwrap();
+    assert_eq!(bounded_export(exact).unwrap().len(), MAX_EXPORT_BYTES);
+    let oversized =
+        alloc::string::String::from_utf8(alloc::vec![b'x'; MAX_EXPORT_BYTES + 1]).unwrap();
+    assert_eq!(bounded_export(oversized), Err(ExportError::ExportTooLarge));
+}

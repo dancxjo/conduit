@@ -6,10 +6,12 @@ publish = false
 
 [features]
 default = []
-kernel = ["dep:conduit-core", "dep:conduit-plot", "dep:conduit-audio", "dep:conduit-kernel"]
-semantic-bindings = ["dep:conduit-core", "dep:conduit-plot"]
+kernel = ["dep:conduit-language", "dep:conduit-core", "dep:conduit-plot", "dep:conduit-audio", "dep:conduit-kernel"]
+semantic-bindings = ["dep:conduit-core", "dep:conduit-plot", "dep:conduit-language", "dep:postcard"]
 
 [dependencies]
+postcard = { version = "1", default-features = false, features = ["alloc"], optional = true }
+conduit-language = { path = "../language", optional = true }
 conduit-core = { path = "../../architecture/core", optional = true }
 conduit-plot = { path = "../../architecture/plot", optional = true }
 
@@ -17,10 +19,16 @@ conduit-audio = { path = "../audio", optional = true }
 conduit-kernel = { path = "../../architecture/kernel", optional = true }
 
 [build-dependencies]
+conduit-audio = { path = "../audio" }
+postcard = { version = "1", default-features = false, features = ["alloc"] }
+conduit-language = { path = "../language" }
 conduit-plot = { path = "../../architecture/plot" }
 conduit-core = { path = "../../architecture/core" }
 
 [dev-dependencies]
+conduitos = { path = "../../targets/conduitos" }
+conduit-composite = { path = "../../architecture/composite" }
+serde_json = "1"
 conduit-plot = { path = "../../architecture/plot" }
 conduit-core = { path = "../../architecture/core" }
 conduit-kernel = { path = "../../architecture/kernel", features = ["step-test-support", "alloc"] }

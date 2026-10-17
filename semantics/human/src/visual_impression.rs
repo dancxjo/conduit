@@ -1,6 +1,6 @@
 //! A validated construction view of a model-derived image interpretation.
 //!
-//! The portable `VisualImpression` is owned by Presentation Conduitese. This
+//! The portable `VisualImpression` is owned by Face Conduitese. This
 //! Human view retains core execution identities while an observation is being
 //! assembled and is converted exactly by the Catalog bridge (class C).
 

@@ -2,46 +2,76 @@ use super::*;
 
 #[test]
 fn native_make_uses_the_admitted_heap_arena_ceiling() {
-    let profile = check_host_configuration(
-        parse_host_configuration_conduit(include_str!(
-            "../../../profiles/conduitos-native.host.conduit"
-        ))
-        .unwrap(),
-        &conduit_workspace_make::catalog(),
-        &conduit_workspace_make::package_set(),
-    )
-    .unwrap()
-    .into_profile();
-    let (checked, _) = build_default_host_image(
-        profile,
-        &conduit_workspace_make::catalog(),
-        &conduit_workspace_make::package_set(),
-        &BuildInputs {
-            source_identity: "test-source".into(),
-            toolchain_available: true,
-        },
-    )
-    .unwrap();
-    assert_eq!(runtime_arena_ceiling(&checked.manifest), 16 * 1024 * 1024);
-    assert_ne!(
-        runtime_arena_ceiling(&checked.manifest),
-        checked.manifest.bounds.static_memory_bytes
-    );
+    for (source, expected) in [
+        (
+            include_str!("../../../profiles/conduitos-native.host.conduit"),
+            256 * 1024 * 1024,
+        ),
+        (
+            include_str!("../../../profiles/conduitos-ia32-pc.host.conduit"),
+            conduitos::make::NATIVE_PREPARATION_ARENA_BYTES,
+        ),
+        (
+            include_str!("../../../profiles/conduitos-x86_64-pc.host.conduit"),
+            conduitos::make::NATIVE_PREPARATION_ARENA_BYTES,
+        ),
+        (
+            include_str!("../../../profiles/conduitos-riscv64-virt.host.conduit"),
+            conduitos::make::NATIVE_PREPARATION_ARENA_BYTES,
+        ),
+        (
+            include_str!("../../../profiles/conduitos-loongarch64-virt.host.conduit"),
+            conduitos::make::NATIVE_PREPARATION_ARENA_BYTES,
+        ),
+        (
+            include_str!("../../../profiles/conduitos-protocol-source.host.conduit"),
+            256 * 1024 * 1024,
+        ),
+        (
+            include_str!("../../../profiles/conduitos-aarch64-virt.host.conduit"),
+            256 * 1024 * 1024,
+        ),
+    ] {
+        let profile = check_host_configuration(
+            parse_host_configuration_conduit(source).unwrap(),
+            &conduit_workspace_make::catalog(),
+            &conduit_workspace_make::package_set(),
+        )
+        .unwrap()
+        .into_profile();
+        let (checked, _) = build_default_host_image(
+            profile,
+            &conduit_workspace_make::catalog(),
+            &conduit_workspace_make::package_set(),
+            &BuildInputs {
+                source_identity: "test-source".into(),
+                toolchain_available: true,
+            },
+        )
+        .unwrap();
+        assert_eq!(runtime_arena_ceiling(&checked.manifest), expected);
+        assert_eq!(checked.manifest.bounds.heap_arena_bytes, expected);
+        assert_eq!(checked.manifest.bounds.static_memory_bytes, 8 * 1024 * 1024);
+        assert_ne!(
+            runtime_arena_ceiling(&checked.manifest),
+            checked.manifest.bounds.static_memory_bytes
+        );
+    }
 }
 
 #[test]
-fn headless_make_retains_its_static_arena_ceiling() {
+fn zero_heap_make_retains_its_static_arena_ceiling() {
     let packages = conduit_workspace_make::package_set();
-    let profile = check_host_configuration(
-        parse_host_configuration_conduit(include_str!(
-            "../../../profiles/conduitos-aarch64-virt.host.conduit"
-        ))
-        .unwrap(),
-        &conduit_workspace_make::catalog(),
-        &packages,
-    )
-    .unwrap()
-    .into_profile();
+    let mut configuration = parse_host_configuration_conduit(include_str!(
+        "../../../profiles/conduitos-aarch64-virt.host.conduit"
+    ))
+    .unwrap();
+    // Exercise the zero-heap fallback independently of product heap budgets.
+    configuration.limits.heap_arena_bytes = 0;
+    let profile =
+        check_host_configuration(configuration, &conduit_workspace_make::catalog(), &packages)
+            .unwrap()
+            .into_profile();
     let (checked, _) = build_default_host_image(
         profile,
         &conduit_workspace_make::catalog(),

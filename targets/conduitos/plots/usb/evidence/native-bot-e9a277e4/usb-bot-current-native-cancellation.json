@@ -1,0 +1,27 @@
+{
+  "schema": "conduit.usb/bot-root-cancellation@1",
+  "source_commit": "e9a277e4cb38805033c781355600122b49876d5f",
+  "maximum_steps": 20000,
+  "cases": [
+    {
+      "mode": "hold-in",
+      "root_outcome": "protocol-step-budget-exhausted",
+      "block_outputs": 0,
+      "retirement_refused": false,
+      "original_usb_cancel_id": 515485696,
+      "response_after_cancel_status": 1,
+      "late_native_completion_proven": false
+    },
+    {
+      "mode": "late-after-cancel",
+      "root_outcome": "protocol-step-budget-exhausted",
+      "block_outputs": 0,
+      "retirement_refused": false,
+      "original_usb_cancel_id": 515485696,
+      "response_after_cancel_status": 0,
+      "late_native_completion_proven": false
+    }
+  ],
+  "initial_matrix_decoder": "expected terminal block output incorrectly; cancellation-specific checks above pass",
+  "proof_class": "emulated-native-root-cancellation-and-device-wire"
+}

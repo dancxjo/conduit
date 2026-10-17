@@ -1,15 +1,29 @@
 use crate::prelude::*;
-use crate::{
-    plan_with_options, select_data_locality_candidate, CandidatePlacementDisposition,
-    LocalityPlanningBasis, PlannerError, PlanningOptions,
-};
+use crate::{CandidatePlacementDisposition, LocalityPlanningBasis, PlannerError, PlanningOptions};
 use alloc::collections::BTreeSet;
-use conduit_core::{BaseImplementationId, FusionId, GearId, HostAdvertisement, PlannedFusion};
+use conduit_core::{GearId, HostAdvertisement};
 use conduit_plot::CheckedPlot;
 mod model;
+mod planning;
 pub use model::*;
+pub use planning::{
+    plan_expanded_selected_optimization, plan_selected_optimization,
+    select_expanded_fusion_candidate,
+};
 
 pub fn select_fusion_candidate(
+    plot: &CheckedPlot,
+    hosts: &[HostAdvertisement],
+    candidates: &[FusionCandidate],
+    locality_basis: &LocalityPlanningBasis,
+    inputs: FusionPlanningInputs<'_>,
+) -> Result<FusionSelection, PlannerError> {
+    plot.validate_identities()
+        .map_err(|e| PlannerError::InvalidPlotIdentity(e.to_string()))?;
+    select_fusion_candidate_validated(plot, hosts, candidates, locality_basis, inputs)
+}
+
+fn select_fusion_candidate_validated(
     plot: &CheckedPlot,
     hosts: &[HostAdvertisement],
     candidates: &[FusionCandidate],
@@ -24,7 +38,7 @@ pub fn select_fusion_candidate(
     )?;
     let mut considered = Vec::with_capacity(candidates.len());
     for candidate in candidates {
-        let locality = match select_data_locality_candidate(
+        let locality = match crate::locality::select_data_locality_candidate_validated(
             plot,
             hosts,
             core::slice::from_ref(&candidate.realization),
@@ -70,9 +84,13 @@ pub fn select_fusion_candidate(
         .min_by_key(|(_, item)| (item.total_work_units, item.candidate_id.as_str()))
         .map(|(index, _)| index)
         .ok_or_else(|| {
-            PlannerError::CurrentResourceObservationUnavailable(
-                "no fusion candidate has complete admissible evidence".to_string(),
-            )
+            PlannerError::CurrentResourceObservationUnavailable(format!(
+                "no fusion candidate has complete admissible evidence: {:?}",
+                considered
+                    .iter()
+                    .map(|c| (&c.candidate_id, &c.disposition))
+                    .collect::<Vec<_>>()
+            ))
         })?;
     considered[selected_index].disposition = CandidatePlacementDisposition::Selected;
     let selected = &candidates[selected_index];
@@ -85,112 +103,6 @@ pub fn select_fusion_candidate(
         locality_basis: locality_basis.clone(),
         fusion_observations: inputs.observations.to_vec(),
     })
-}
-
-pub fn plan_selected_optimization(
-    plot: &CheckedPlot,
-    hosts: &[HostAdvertisement],
-    selection: &FusionSelection,
-    bases: &[BaseImplementationId],
-    options: PlanningOptions<'_>,
-) -> Result<OptimizedPlan, PlannerError> {
-    if selection.checked_plot_id != plot.checked_plot_id {
-        return Err(PlannerError::InvalidPlotIdentity(
-            "fusion selection belongs to a different checked plot".to_string(),
-        ));
-    }
-    let mut plan = plan_with_options(
-        plot,
-        hosts,
-        &selection.selected_realization.placements,
-        bases,
-        options,
-    )?;
-    for group in &selection.selected_fusion_groups {
-        let fragment = plan
-            .fragments
-            .iter_mut()
-            .find(|fragment| fragment.host_id == group.host_id && fragment.boot_id == group.boot_id)
-            .ok_or_else(|| {
-                PlannerError::InvalidPlanningObservation(
-                    "fusion Host has no matching Plan fragment".to_string(),
-                )
-            })?;
-        let mut preserved_placements = group
-            .preserved_gear_ids
-            .iter()
-            .map(|gear_id| {
-                fragment
-                    .placements
-                    .iter()
-                    .find(|placement| &placement.gear_id == gear_id)
-                    .map(|placement| placement.placement_id.clone())
-                    .ok_or_else(|| {
-                        PlannerError::InvalidPlanningObservation(
-                            "fusion Gear has no exact plan placement".to_string(),
-                        )
-                    })
-            })
-            .collect::<Result<Vec<_>, _>>()?;
-        preserved_placements.sort();
-        let mut preserved_connections = group
-            .preserved_cords
-            .iter()
-            .map(|(source_gear, sink_gear)| {
-                let source = fragment
-                    .placements
-                    .iter()
-                    .find(|placement| placement.gear_id == *source_gear)
-                    .expect("fusion Gear placement was collected");
-                let sink = fragment
-                    .placements
-                    .iter()
-                    .find(|placement| placement.gear_id == *sink_gear)
-                    .expect("fusion Gear placement was collected");
-                fragment
-                    .connections
-                    .iter()
-                    .find(|connection| {
-                        connection.source_placement_id == source.placement_id
-                            && connection.sink_placement_id == sink.placement_id
-                    })
-                    .map(|connection| connection.connection_id.clone())
-                    .ok_or_else(|| {
-                        PlannerError::InvalidPlanningObservation(
-                            "fusion Cord has no exact plan connection".to_string(),
-                        )
-                    })
-            })
-            .collect::<Result<Vec<_>, _>>()?;
-        preserved_connections.sort();
-        fragment.execution_fusions.push(PlannedFusion {
-            fusion_id: FusionId::from(group.fusion_id.clone()),
-            execution_profile_id: group.execution_profile_id.clone(),
-            implementation_id: group.implementation_id.clone(),
-            artifact_id: group.artifact_id.clone(),
-            preserved_placements,
-            preserved_connections,
-        });
-        fragment
-            .execution_fusions
-            .sort_by(|left, right| left.fusion_id.cmp(&right.fusion_id));
-    }
-    plan = conduit_core::seal_plan_with_realization_backs_and_completion(
-        plot.identity(),
-        plan.completion_policy,
-        plan.realization_backs.clone(),
-        plan.fragments,
-    );
-    let optimized = OptimizedPlan {
-        plan,
-        fusion_groups: selection.selected_fusion_groups.clone(),
-    };
-    if !optimized.verify() {
-        return Err(PlannerError::InvalidPlanningObservation(
-            "fusion explanation does not match the ordinary plan".to_string(),
-        ));
-    }
-    Ok(optimized)
 }
 
 fn apply_fusions(

@@ -1,0 +1,196 @@
+use super::execute_browser_nucleus;
+use conduit_face::{
+    MAX_APPLICATION_VIEW_BYTES, MAX_GRAPHICS_SCENE_BYTES, MAX_LAYOUT_FRAME_BYTES, MAX_LOOK_BYTES,
+};
+use conduit_plot::rust_binding::NativeRustBinding;
+use std::cell::RefCell;
+
+struct BrowserNucleusBuffers {
+    look: [u8; MAX_LOOK_BYTES],
+    look_len: usize,
+    application_view: [u8; MAX_APPLICATION_VIEW_BYTES],
+    application_view_len: usize,
+    graphics: [u8; MAX_GRAPHICS_SCENE_BYTES],
+    graphics_len: usize,
+    layout: [u8; MAX_LAYOUT_FRAME_BYTES],
+    layout_len: usize,
+    text: [u8; conduit_text::MAX_TEXT_BYTES as usize],
+    text_len: usize,
+    structured: [u8; 512],
+    structured_len: usize,
+}
+
+thread_local! {
+    static BROWSER_NUCLEUS: RefCell<Option<BrowserNucleusBuffers>> = const { RefCell::new(None) };
+}
+
+#[no_mangle]
+pub extern "C" fn conduit_browser_face_nucleus_run() -> i32 {
+    match execute_browser_nucleus() {
+        Ok(proof) => {
+            let encoded_look = match conduit_face::phosphor_look().and_then(|value| value.encode())
+            {
+                Ok(encoded) => encoded,
+                Err(_) => return -1,
+            };
+            if encoded_look.len() > MAX_LOOK_BYTES {
+                return -1;
+            }
+            let mut look = [0; MAX_LOOK_BYTES];
+            look[..encoded_look.len()].copy_from_slice(&encoded_look);
+            let encoded_application_view = match proof.application_view.encode() {
+                Ok(encoded) => encoded,
+                Err(_) => return -1,
+            };
+            let mut application_view = [0; MAX_APPLICATION_VIEW_BYTES];
+            application_view[..encoded_application_view.len()]
+                .copy_from_slice(&encoded_application_view);
+            let mut text = [0; conduit_text::MAX_TEXT_BYTES as usize];
+            text[..proof.text.len()].copy_from_slice(proof.text.as_bytes());
+            let (structured, structured_len) = encode_structured(&proof.structured);
+            BROWSER_NUCLEUS.with(|slot| {
+                *slot.borrow_mut() = Some(BrowserNucleusBuffers {
+                    look,
+                    look_len: encoded_look.len(),
+                    application_view,
+                    application_view_len: encoded_application_view.len(),
+                    graphics: proof.graphics.encode(),
+                    graphics_len: proof.graphics.encoded_len(),
+                    layout: proof.layout.encode(),
+                    layout_len: proof.layout.encoded_len(),
+                    text,
+                    text_len: proof.text.len(),
+                    structured,
+                    structured_len,
+                });
+            });
+            0
+        }
+        Err(_) => -1,
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn conduit_browser_face_nucleus_look_ptr() -> usize {
+    BROWSER_NUCLEUS.with(|slot| {
+        slot.borrow()
+            .as_ref()
+            .map_or(0, |proof| proof.look.as_ptr() as usize)
+    })
+}
+
+#[no_mangle]
+pub extern "C" fn conduit_browser_face_nucleus_look_len() -> usize {
+    BROWSER_NUCLEUS.with(|slot| slot.borrow().as_ref().map_or(0, |proof| proof.look_len))
+}
+
+#[no_mangle]
+pub extern "C" fn conduit_browser_face_nucleus_application_view_ptr() -> usize {
+    BROWSER_NUCLEUS.with(|slot| {
+        slot.borrow()
+            .as_ref()
+            .map_or(0, |proof| proof.application_view.as_ptr() as usize)
+    })
+}
+
+#[no_mangle]
+pub extern "C" fn conduit_browser_face_nucleus_application_view_len() -> usize {
+    BROWSER_NUCLEUS.with(|slot| {
+        slot.borrow()
+            .as_ref()
+            .map_or(0, |proof| proof.application_view_len)
+    })
+}
+
+fn encode_structured(artifact: &conduit_face::StructuredSignFace) -> ([u8; 512], usize) {
+    use conduit_face::FacePropertyValue;
+    let mut schema = "";
+    let mut variant = "";
+    let mut unit = "";
+    let mut unit_symbol = "";
+    let mut quantity = "";
+    for property in &artifact.face.properties {
+        match (property.name.as_str(), &property.value) {
+            ("record-schema", FacePropertyValue::Identity(value))
+                if value == "education/feedback@1" =>
+            {
+                schema = value
+            }
+            ("active-variant-tag", FacePropertyValue::Identity(value)) => variant = value,
+            ("quantity-unit", FacePropertyValue::Identity(value)) => unit = value,
+            ("quantity-value", FacePropertyValue::Text(value)) => quantity = value,
+            ("quantity-unit-symbol", FacePropertyValue::Text(value)) => unit_symbol = value,
+            _ => {}
+        }
+    }
+    let mut encoded = [0_u8; 512];
+    encoded[0] = 3;
+    let mut offset = 1;
+    for value in [schema, variant, unit, quantity, unit_symbol] {
+        encoded[offset] = value.len() as u8;
+        offset += 1;
+        encoded[offset..offset + value.len()].copy_from_slice(value.as_bytes());
+        offset += value.len();
+    }
+    (encoded, offset)
+}
+
+#[no_mangle]
+pub extern "C" fn conduit_browser_face_nucleus_graphics_ptr() -> usize {
+    BROWSER_NUCLEUS.with(|slot| {
+        slot.borrow()
+            .as_ref()
+            .map_or(0, |proof| proof.graphics.as_ptr() as usize)
+    })
+}
+
+#[no_mangle]
+pub extern "C" fn conduit_browser_face_nucleus_graphics_len() -> usize {
+    BROWSER_NUCLEUS.with(|slot| slot.borrow().as_ref().map_or(0, |proof| proof.graphics_len))
+}
+
+#[no_mangle]
+pub extern "C" fn conduit_browser_face_nucleus_layout_ptr() -> usize {
+    BROWSER_NUCLEUS.with(|slot| {
+        slot.borrow()
+            .as_ref()
+            .map_or(0, |proof| proof.layout.as_ptr() as usize)
+    })
+}
+
+#[no_mangle]
+pub extern "C" fn conduit_browser_face_nucleus_layout_len() -> usize {
+    BROWSER_NUCLEUS.with(|slot| slot.borrow().as_ref().map_or(0, |proof| proof.layout_len))
+}
+
+#[no_mangle]
+pub extern "C" fn conduit_browser_face_nucleus_text_ptr() -> usize {
+    BROWSER_NUCLEUS.with(|slot| {
+        slot.borrow()
+            .as_ref()
+            .map_or(0, |proof| proof.text.as_ptr() as usize)
+    })
+}
+
+#[no_mangle]
+pub extern "C" fn conduit_browser_face_nucleus_text_len() -> usize {
+    BROWSER_NUCLEUS.with(|slot| slot.borrow().as_ref().map_or(0, |proof| proof.text_len))
+}
+
+#[no_mangle]
+pub extern "C" fn conduit_browser_face_nucleus_structured_ptr() -> usize {
+    BROWSER_NUCLEUS.with(|slot| {
+        slot.borrow()
+            .as_ref()
+            .map_or(0, |proof| proof.structured.as_ptr() as usize)
+    })
+}
+
+#[no_mangle]
+pub extern "C" fn conduit_browser_face_nucleus_structured_len() -> usize {
+    BROWSER_NUCLEUS.with(|slot| {
+        slot.borrow()
+            .as_ref()
+            .map_or(0, |proof| proof.structured_len)
+    })
+}

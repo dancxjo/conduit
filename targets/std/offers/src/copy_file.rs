@@ -4,7 +4,7 @@ use conduit_core::{
     kind_id, present_host_call_requirement, protected_resource_requirement, resource_requirement,
     ArtifactId, AuthorityContractId, AuthorityRequirement, Back, BackOfferBuilder, CapabilityId,
     CapabilityOffer, ExecutionProfileId, HostCallContractId, HostCallRequirement, ImplementationId,
-    PRESENTATION_RESOURCE_CLASS,
+    FACE_RESOURCE_CLASS,
 };
 
 pub const COPY_FILE_EXECUTION_PROFILE: &str = "conduit.std/file-copy-kernel-hosted@1";
@@ -18,8 +18,7 @@ pub const COPY_FILE_CAPABILITY: &str = "file-copy-v1";
 pub const COPY_FILE_HOST_CALL_CONTRACT: &str = "conduit.host/file-copy-step@1";
 pub const ISOLATED_COPY_FILE_AUTHORITY_CONTRACT: &str = "conduit.authority/file-copy@1";
 pub const COPY_COMMAND_BYTES: u32 = 1;
-pub const COPY_RESULT_PRESENTATION_IMPLEMENTATION: &str =
-    "std/kernel-file-copy-result-presentation@1";
+pub const COPY_RESULT_FACE_IMPLEMENTATION: &str = "std/kernel-file-copy-result-face@1";
 
 pub fn copy_file_offer() -> CapabilityOffer {
     copy_file_offer_for(
@@ -86,23 +85,23 @@ fn copy_file_offer_for(
     )
 }
 
-pub fn copy_result_presentation_offer() -> CapabilityOffer {
-    let contract = conduit_semantic_catalog::structured_presentation_contract(
+pub fn copy_result_face_offer() -> CapabilityOffer {
+    let contract = conduit_semantic_catalog::structured_face_contract(
         conduit_semantic_catalog::COPY_RESULT_TYPE,
         &conduit_semantic_catalog::copy_result_type(),
     );
     BackOfferBuilder::new(
         contract.into(),
         Back {
-            capability_id: CapabilityId::from("std-file-copy-result-presentation"),
+            capability_id: CapabilityId::from("std-file-copy-result-face"),
             execution_profile_id: ExecutionProfileId::from(COPY_FILE_EXECUTION_PROFILE),
-            implementation_id: ImplementationId::from(COPY_RESULT_PRESENTATION_IMPLEMENTATION),
+            implementation_id: ImplementationId::from(COPY_RESULT_FACE_IMPLEMENTATION),
             artifact_id: ArtifactId::from(COPY_FILE_ARTIFACT),
             host_calls: vec![present_host_call_requirement(
-                kind_id(conduit_semantic_catalog::STRUCTURED_PRESENTATION_TARGET),
+                kind_id(conduit_semantic_catalog::STRUCTURED_FACE_TARGET),
                 conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
             )],
-            resource_requirements: vec![resource_requirement(PRESENTATION_RESOURCE_CLASS, 1)],
+            resource_requirements: vec![resource_requirement(FACE_RESOURCE_CLASS, 1)],
             authority_requirements: Vec::new(),
         },
     )
@@ -142,8 +141,8 @@ mod tests {
 
     #[test]
     fn copy_result_presenter_preserves_the_generic_structured_contract() {
-        let offer = copy_result_presentation_offer();
-        let contract = conduit_semantic_catalog::structured_presentation_contract(
+        let offer = copy_result_face_offer();
+        let contract = conduit_semantic_catalog::structured_face_contract(
             conduit_semantic_catalog::COPY_RESULT_TYPE,
             &conduit_semantic_catalog::copy_result_type(),
         );

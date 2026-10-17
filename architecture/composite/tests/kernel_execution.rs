@@ -672,6 +672,66 @@ fn bounded_scan_repeated_n_emits_each_progression_without_growth_or_extra_values
 }
 
 #[test]
+fn bounded_scan_child_signs_bind_distinct_invocations_to_one_parent_play() {
+    let definition = fold_definition();
+    let planned = planned_scan(&definition, 2);
+    let mut host =
+        BoundedScanActivationHost::prepare(&planned, definition, &fold_registry()).unwrap();
+    let parent = conduit_core::ActivePlayId::from("body/play/admitted");
+    host.bind_parent_play(&parent).unwrap();
+    assert!(host.bind_parent_play(&parent).is_err());
+    host.admit(&value(b"1")).unwrap();
+    assert_eq!(drain_scan_output(&mut host), value(b"1"));
+    host.admit(&value(b"2")).unwrap();
+    assert_eq!(drain_scan_output(&mut host), value(b"2"));
+    host.close_input().unwrap();
+    assert_eq!(*host.step().unwrap(), BoundedScanState::Complete);
+    let receipts = host.child_sign_receipts().unwrap();
+    assert_eq!(receipts.len(), 2);
+    assert_eq!(receipts[0].invocation, 0);
+    assert_eq!(receipts[1].invocation, 1);
+    for receipt in &receipts {
+        assert_eq!(receipt.parent_active_play_id, parent);
+        assert_eq!(receipt.activation_id, planned.activation_id);
+        assert_eq!(receipt.selected_plan_id, planned.selected_plan_id);
+        assert!(!receipt.events.is_empty());
+    }
+    assert_ne!(
+        receipts[0].child_active_play_id,
+        receipts[1].child_active_play_id
+    );
+}
+
+#[test]
+fn same_child_plan_under_two_scan_owners_keeps_activation_sign_identity() {
+    let definition = fold_definition();
+    let mut left = planned_scan(&definition, 1);
+    left.activation_id = "scan/left".into();
+    let mut right = planned_scan(&definition, 1);
+    right.activation_id = "scan/right".into();
+    let parent = conduit_core::ActivePlayId::from("body/play/shared");
+    let mut receipts = Vec::new();
+    for planned in [&left, &right] {
+        let mut host =
+            BoundedScanActivationHost::prepare(planned, definition.clone(), &fold_registry())
+                .unwrap();
+        host.bind_parent_play(&parent).unwrap();
+        host.admit(&value(b"1")).unwrap();
+        assert_eq!(drain_scan_output(&mut host), value(b"1"));
+        receipts.push(host.child_sign_receipts().unwrap().remove(0));
+    }
+    assert_eq!(receipts[0].selected_plan_id, receipts[1].selected_plan_id);
+    assert_eq!(receipts[0].parent_active_play_id, parent);
+    assert_eq!(receipts[1].parent_active_play_id, parent);
+    assert_eq!(receipts[0].activation_id, "scan/left");
+    assert_eq!(receipts[1].activation_id, "scan/right");
+    assert_ne!(
+        receipts[0].child_active_play_id,
+        receipts[1].child_active_play_id
+    );
+}
+
+#[test]
 fn bounded_scan_distinguishes_pressure_from_n_plus_one() {
     let definition = fold_definition();
     let mut host = BoundedScanActivationHost::prepare(

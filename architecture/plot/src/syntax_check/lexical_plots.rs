@@ -335,7 +335,7 @@ fn visit_expression(
                 visit_expression(argument, visit)?;
             }
         }
-        ExpressionSyntax::Input(_) => {}
+        ExpressionSyntax::Input(_) | ExpressionSyntax::TypedGlyphLiteral(_) => {}
     }
     Ok(())
 }
@@ -472,7 +472,9 @@ fn rewrite_expression_syntax(
                 rewrite_expression_syntax(argument, visible);
             }
         }
-        ExpressionSyntax::Atomic(_) | ExpressionSyntax::Input(_) => {}
+        ExpressionSyntax::Atomic(_)
+        | ExpressionSyntax::Input(_)
+        | ExpressionSyntax::TypedGlyphLiteral(_) => {}
     }
 }
 

@@ -3,10 +3,7 @@ extern crate std;
 use super::*;
 use alloc::vec;
 use conduit_birth_plot::{BirthDraft, BirthFaceBasis, BirthPlotChoice};
-use conduit_presentation::{
-    Face, FaceContext, FaceFocus, PresentationBasis, PresentationRole, PresentationSubject,
-    PresentationText,
-};
+use conduit_face::{BodyFace, FaceBasis, FaceContext, FaceFocus, FaceRole, FaceSubject, FaceText};
 
 fn producer() -> NativeFaceSnapshotProducer {
     NativeFaceSnapshotProducer::prepare(
@@ -18,8 +15,8 @@ fn producer() -> NativeFaceSnapshotProducer {
     .unwrap()
 }
 
-fn basis(producer: &NativeFaceSnapshotProducer) -> PresentationBasis {
-    PresentationBasis {
+fn basis(producer: &NativeFaceSnapshotProducer) -> FaceBasis {
+    FaceBasis {
         body_id: None,
         wake_id: None,
         source_document_id: Some(producer.plan.source_document_id.clone()),
@@ -31,7 +28,7 @@ fn basis(producer: &NativeFaceSnapshotProducer) -> PresentationBasis {
     }
 }
 
-fn arrival(producer: &NativeFaceSnapshotProducer) -> Presentation {
+fn arrival(producer: &NativeFaceSnapshotProducer) -> Face {
     // The real Birth projection and checked native inventory, with no invented
     // producer Plan or Body. This test executes the production forwarding path.
     let choices = crate::native_workset::profile()
@@ -65,11 +62,11 @@ fn real_zero_body_birth_face_crosses_exact_kernel_fore_without_changing_facts() 
     std::println!("real native Birth Face: {} bytes", bytes.len());
     let published = producer.forward(face.clone(), 7, 11).unwrap();
     assert!(conduit_core::verify_plan(producer.plan()));
-    assert_eq!(published.presentation, face);
+    assert_eq!(published.face, face);
     assert_eq!(published.receipt.observed_face_basis, face.basis);
-    assert!(published.presentation.basis.body_id.is_none());
-    assert!(published.presentation.basis.wake_id.is_none());
-    assert!(published.presentation.basis.active_play_id.is_none());
+    assert!(published.face.basis.body_id.is_none());
+    assert!(published.face.basis.wake_id.is_none());
+    assert!(published.face.basis.active_play_id.is_none());
     assert_eq!(published.receipt.observation_sequence, 7);
     assert_eq!(published.receipt.encoded_bytes as usize, bytes.len());
     assert_eq!(published.receipt.producer_plan_id, producer.plan.plan_id);
@@ -89,7 +86,7 @@ fn real_zero_body_birth_face_crosses_exact_kernel_fore_without_changing_facts() 
     );
     assert!(
         published
-            .presentation
+            .face
             .actions
             .iter()
             .any(|action| action.identity == "creche.birth")
@@ -102,7 +99,7 @@ fn resting_body_snapshot_forwarding_does_not_wake_the_body() {
     let body =
         conduit_body::Body::born_with_plots(conduit_body::BodyWorkset::default(), 1, "born".into())
             .unwrap();
-    let face = Face::project(
+    let face = BodyFace::project(
         &body,
         None,
         2,
@@ -111,16 +108,13 @@ fn resting_body_snapshot_forwarding_does_not_wake_the_body() {
         vec![],
     )
     .unwrap()
-    .presentation;
+    .face;
     let published = producer.forward(face.clone(), 2, 1).unwrap();
-    assert_eq!(published.presentation, face);
+    assert_eq!(published.face, face);
     assert_eq!(published.receipt.observed_face_basis, face.basis);
-    assert_eq!(
-        published.presentation.basis.body_id,
-        Some(body.body_id.clone())
-    );
-    assert!(published.presentation.basis.wake_id.is_none());
-    assert!(published.presentation.basis.active_play_id.is_none());
+    assert_eq!(published.face.basis.body_id, Some(body.body_id.clone()));
+    assert!(published.face.basis.wake_id.is_none());
+    assert!(published.face.basis.active_play_id.is_none());
     assert_eq!(body.state, conduit_body::BodyState::Lulled);
 }
 
@@ -145,20 +139,20 @@ fn another_plan_or_claimed_body_play_cannot_be_laundered_as_snapshot_provenance(
 #[test]
 fn whole_valid_face_above_profile_capacity_is_refused_before_execution() {
     let mut producer = producer();
-    let face = Presentation::new_with_semantics(
+    let face = Face::new_with_semantics(
         1,
         basis(&producer),
-        vec![PresentationSubject {
+        vec![FaceSubject {
             identity: "host/snapshot".into(),
-            role: PresentationRole::Host,
+            role: FaceRole::Host,
             name: "Host observation".into(),
         }],
         vec![],
         vec![],
-        (0..32)
-            .map(|_| PresentationText {
+        (0..64)
+            .map(|_| FaceText {
                 subject: "host/snapshot".into(),
-                text: "x".repeat(conduit_presentation::MAX_PRESENTATION_TEXT_BYTES),
+                text: "x".repeat(conduit_face::MAX_FACE_TEXT_BYTES),
             })
             .collect(),
         vec![],
@@ -170,6 +164,37 @@ fn whole_valid_face_above_profile_capacity_is_refused_before_execution() {
         producer.prepare_snapshot(face, 1, 1),
         Err(FaceSnapshotRefusal::Capacity)
     ));
+}
+
+#[test]
+fn long_semantic_face_crosses_the_admitted_native_fore() {
+    let mut producer = producer();
+    let face = Face::new_with_semantics(
+        1,
+        basis(&producer),
+        vec![FaceSubject {
+            identity: "host/snapshot".into(),
+            role: FaceRole::Host,
+            name: "Long owner observation".into(),
+        }],
+        vec![],
+        vec![],
+        (0..40)
+            .map(|_| FaceText {
+                subject: "host/snapshot".into(),
+                text: "x".repeat(900),
+            })
+            .collect(),
+        vec![],
+        vec![],
+    )
+    .unwrap();
+    let length = serde_json::to_vec(&face).unwrap().len();
+    assert!(length > 32 * 1024 && length < MAX_SNAPSHOT_BYTES);
+    let published = producer.forward(face.clone(), 1, 1).unwrap();
+    assert_eq!(published.face, face);
+    assert_eq!(published.receipt.encoded_bytes as usize, length);
+    assert!(published.receipt.kernel_signs > 0);
 }
 
 #[test]
@@ -187,7 +212,7 @@ fn prepared_kernel_can_cancel_without_publishing_or_changing_the_snapshot() {
     ));
     // Cancellation leaves no retained kernel or output attached to the producer.
     let published = producer.forward(face.clone(), 2, 2).unwrap();
-    assert_eq!(published.presentation, face);
+    assert_eq!(published.face, face);
 }
 
 #[test]

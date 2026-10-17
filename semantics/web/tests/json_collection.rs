@@ -1,7 +1,33 @@
 use conduit_web::{
-    json_collection_step, json_collection_step_bytes, JsonCollectionRefusal as Refusal,
-    JsonRefusal, JsonValue,
+    json_collection_combine, json_collection_step, json_collection_step_bytes,
+    JsonCollectionRefusal as Refusal, JsonRefusal, JsonValue,
 };
+
+#[test]
+fn scan_combine_uses_the_same_bounded_transition_without_mutating_prior_state() {
+    let initial = request("[]");
+    let add = request(
+        r#"{"key":"id","op":"append-unique","value":{"complete":false,"id":"a","text":"Buy milk"}}"#,
+    );
+    let first = json_collection_combine(&initial, &add).unwrap();
+    let complete = request(
+        r#"{"field":"complete","key":"id","match":"a","op":"set-field-by-key","value":true}"#,
+    );
+    let second = json_collection_combine(&first, &complete).unwrap();
+    assert_eq!(
+        first.encode_text().unwrap(),
+        br#"[{"complete":false,"id":"a","text":"Buy milk"}]"#
+    );
+    assert_eq!(
+        second.encode_text().unwrap(),
+        br#"[{"complete":true,"id":"a","text":"Buy milk"}]"#
+    );
+    assert_eq!(initial.encode_text().unwrap(), b"[]");
+    assert_eq!(
+        json_collection_combine(&initial, &complete),
+        Err(Refusal::MissingIndex)
+    );
+}
 
 fn request(text: &str) -> JsonValue {
     JsonValue::decode_text(text.as_bytes()).unwrap()
@@ -107,5 +133,78 @@ fn replace_and_clear_are_explicit_and_round_trip_canonical_bytes() {
                 .unwrap(),
             expected.as_bytes()
         );
+    }
+}
+
+#[test]
+fn keyed_commands_preserve_identity_and_explicit_set_is_idempotent() {
+    let mut collection = "[]".to_owned();
+    let cases = [
+        (
+            r#"{"key":"id","op":"append-unique","value":{"complete":false,"id":"task-7","text":"Buy milk"}}"#,
+            r#"[{"complete":false,"id":"task-7","text":"Buy milk"}]"#,
+        ),
+        (
+            r#"{"field":"complete","key":"id","match":"task-7","op":"set-field-by-key","value":true}"#,
+            r#"[{"complete":true,"id":"task-7","text":"Buy milk"}]"#,
+        ),
+        (
+            r#"{"field":"complete","key":"id","match":"task-7","op":"set-field-by-key","value":true}"#,
+            r#"[{"complete":true,"id":"task-7","text":"Buy milk"}]"#,
+        ),
+        (
+            r#"{"field":"complete","key":"id","match":"task-7","op":"set-field-by-key","value":false}"#,
+            r#"[{"complete":false,"id":"task-7","text":"Buy milk"}]"#,
+        ),
+        (
+            r#"{"key":"id","match":"task-7","op":"remove-by-key"}"#,
+            "[]",
+        ),
+    ];
+    for (command, expected) in cases {
+        let input = request(&format!(
+            r#"{{"collection":{collection},"command":{command}}}"#
+        ));
+        let output = json_collection_step_bytes(&input.encode_info().unwrap()).unwrap();
+        collection = String::from_utf8(
+            JsonValue::decode_info(&output)
+                .unwrap()
+                .encode_text()
+                .unwrap(),
+        )
+        .unwrap();
+        assert_eq!(collection, expected);
+    }
+}
+
+#[test]
+fn keyed_commands_refuse_ambiguous_or_missing_identity_without_mutation() {
+    let cases = [
+        (
+            r#"{"collection":[{"id":"a"}],"command":{"key":"id","op":"append-unique","value":{"id":"a"}}}"#,
+            Refusal::InvalidCommand,
+        ),
+        (
+            r#"{"collection":[{"id":"a"},{"id":"a"}],"command":{"key":"id","match":"a","op":"remove-by-key"}}"#,
+            Refusal::InvalidCollection,
+        ),
+        (
+            r#"{"collection":[{"id":"a"}],"command":{"key":"id","match":"b","op":"remove-by-key"}}"#,
+            Refusal::MissingIndex,
+        ),
+        (
+            r#"{"collection":[{"id":"a"}],"command":{"field":"id","key":"id","match":"a","op":"set-field-by-key","value":"b"}}"#,
+            Refusal::InvalidCommand,
+        ),
+        (
+            r#"{"collection":[{"id":"a"}],"command":{"field":"complete","key":"id","match":"a","op":"set-field-by-key","value":true}}"#,
+            Refusal::MissingField,
+        ),
+    ];
+    for (text, expected) in cases {
+        let input = request(text);
+        let before = input.encode_info().unwrap();
+        assert_eq!(json_collection_step(&input), Err(expected));
+        assert_eq!(input.encode_info().unwrap(), before);
     }
 }

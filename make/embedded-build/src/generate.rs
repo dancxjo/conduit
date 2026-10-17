@@ -198,6 +198,11 @@ fn generate_configuration(
                 ConfigurationValue::Bool(value) => GeneratedConfigurationValue::Bool(*value),
                 ConfigurationValue::I64(value) => GeneratedConfigurationValue::I64(*value),
                 ConfigurationValue::U64(value) => GeneratedConfigurationValue::U64(*value),
+                ConfigurationValue::Text(value)
+                    if entry.key == "label" && conduit_core::valid_data_label(value) =>
+                {
+                    GeneratedConfigurationValue::Text(value.clone())
+                }
                 ConfigurationValue::Text(_) => {
                     return Err(GenerationError::Unsupported(
                         UnsupportedPlanFeature::TextConfiguration,
@@ -208,7 +213,9 @@ fn generate_configuration(
                         UnsupportedPlanFeature::StructuredConfiguration,
                     ));
                 }
-                ConfigurationValue::Quantity(_) => {
+                ConfigurationValue::Quantity(_)
+                | ConfigurationValue::Unit(_)
+                | ConfigurationValue::TemperatureDifference(_) => {
                     return Err(GenerationError::Unsupported(
                         UnsupportedPlanFeature::QuantityConfiguration,
                     ));

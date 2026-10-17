@@ -153,18 +153,18 @@ fn checked_in_configurations_cover_every_catalog_target_with_exact_provenance() 
         ),
         (
             "targets/conduitos/profiles/conduitos-aarch64-virt.host.conduit",
-            "sha256:71fc9606071b9c54889f893f7ba8d5e343786387500d56480579058ace404d99",
-            "sha256:4971b8216a9fd9180a00a6113c741143d85202e157ed7d02b6cddef25582b936",
+            "sha256:19a7cdcadd4372e51ef3ec477159b18d66dc70011fac2df78c5f077690635cd5",
+            "sha256:7041516dd03cffea8701c7bd6b3651d2cd585e8950b22f36fc4a8dfd066a1aef",
         ),
         (
             "targets/conduitos/profiles/conduitos-native.host.conduit",
-            "sha256:5df112bf7039ed264faae5da7fc824558166cf6f66111a57f9bb60d60995f586",
-            "sha256:c817b0db0f2290d3c4a31dbc2c14f28fffce3d6449675ad1e8e65d9064aaa3d3",
+            "sha256:4d95e55fcbc813f344adef10c62518c3a9dea35c36e867c2de9c1a4f70ea5e03",
+            "sha256:0cff773abd0b177ddcbac249c7a9ce22ed4e9fdb9151a5683c03d0f8acf4f5cd",
         ),
         (
             "targets/conduitos/profiles/conduitos-x86_64-pc.host.conduit",
-            "sha256:f8210a6ca39760a6ee86cb001ddcba428b815fbba9490debd86d72a5afd66d6d",
-            "sha256:3afd9b6f8e0814f0fc2862563e427640d49c6c5359e5cc08fd0b116af5d54d39",
+            "sha256:9a31125f3588aa00afa3abbe75ddfbe5214b97b3b66bc590e581faad2dabefe2",
+            "sha256:1ce15b181e243033995f418e5ce265e2c4d64f689ad605355b33b902331be82f",
         ),
         (
             "targets/rp2040/profiles/pico-w.host.conduit",

@@ -11,6 +11,8 @@ mod construction;
 mod front_controls;
 mod graph;
 mod inspection;
+mod projection_inspection;
+pub use projection_inspection::*;
 mod recursive_graph;
 mod recursive_projection;
 mod types;
@@ -19,7 +21,7 @@ pub use recursive_projection::{
 };
 
 pub use front_controls::{
-    project_controls as project_front_controls, FaceControl, FaceControlKind, FaceInteraction,
-    MAX_FACE_CONTROLS,
+    physical_interaction_value, project_controls as project_front_controls, FaceControl,
+    FaceControlKind, FaceInteraction, MAX_FACE_CONTROLS,
 };
 pub use types::*;

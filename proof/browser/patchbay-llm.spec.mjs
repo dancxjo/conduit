@@ -17,7 +17,7 @@ function startServer() {
 }
 
 function property(snapshot,subject,name) {
-  return snapshot.presentation.properties.find(item=>item.subject===subject&&item.name===name)?.value;
+  return snapshot.face.properties.find(item=>item.subject===subject&&item.name===name)?.value;
 }
 
 test("LLM Gear remains an ordinary typed, bounded, provenance-explicit Patchbay subject",async({page})=>{
@@ -25,19 +25,22 @@ test("LLM Gear remains an ordinary typed, bounded, provenance-explicit Patchbay 
   try {
     const url=await server.url;
     const snapshot=await(await fetch(`${url}/api/snapshot`)).json();
-    const gear=snapshot.presentation.subjects.find(subject=>subject.identity==="gear/interpreter");
+    const gear=snapshot.face.subjects.find(subject=>subject.identity==="gear/interpreter");
     expect(gear.role).toBe("Gear");
-    const ports=snapshot.presentation.relationships
+    const ports=snapshot.face.relationships
       .filter(relation=>relation.source===gear.identity&&relation.kind==="Contains")
-      .map(relation=>snapshot.presentation.subjects.find(subject=>subject.identity===relation.target))
+      .map(relation=>snapshot.face.subjects.find(subject=>subject.identity===relation.target))
       .filter(subject=>subject?.role==="Port");
-    expect(ports.map(port=>port.label)).toEqual(["request","result"]);
+    expect(ports.map(port=>port.name)).toEqual([
+      "llm/interpret request carrying llm/interpretation-request@1",
+      "llm/interpret result carrying llm/interpretation-result@1",
+    ]);
     expect(ports.map(port=>property(snapshot,port.identity,"value-kind").Identity)).toEqual([
       "llm/interpretation-request@1","llm/interpretation-result@1",
     ]);
     expect(property(snapshot,gear.identity,"model-name").Text).toBe("gpt-oss:20b");
     expect(property(snapshot,gear.identity,"maximum-output-bytes").Count).toBe(1024);
-    expect(snapshot.presentation.actions).toEqual([]);
+    expect(snapshot.face.actions).toEqual([]);
 
     await page.goto(url);
     await page.getByRole("button",{name:"Plot",exact:true}).click();
@@ -70,7 +73,7 @@ test("LLM Gear remains an ordinary typed, bounded, provenance-explicit Patchbay 
     const systemSign=page.locator('#structured-navigator input[type="radio"][data-role="Sign"]');
     await systemSign.click();
     await expect(page.locator("#inspector .selected-summary")).toContainText("SYSTEM SIGN EVIDENCE");
-    await expect(page.locator("#sign")).toContainText("SYSTEM SIGN");
+    await expect(page.locator("#sign")).toContainText("System evidence produced after an admitted effect request");
 
     await page.getByRole("button",{name:"Structure",exact:true}).click();
     const decisions=page.locator('#structured-navigator input[type="radio"][data-subject^="decision/"]');

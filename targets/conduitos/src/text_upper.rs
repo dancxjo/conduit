@@ -2,15 +2,11 @@
 
 pub const MAXIMUM_BYTES: usize = conduit_text::MAX_TEXT_BYTES as usize;
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum UppercaseError {
-    MalformedUtf8,
-    OutputOverflow,
-}
+pub use crate::text_transform::UppercaseError;
 
 pub struct UppercaseText {
-    bytes: [u8; MAXIMUM_BYTES],
-    len: usize,
+    pub(crate) bytes: [u8; MAXIMUM_BYTES],
+    pub(crate) len: usize,
 }
 
 impl UppercaseText {
@@ -20,22 +16,11 @@ impl UppercaseText {
 }
 
 pub fn uppercase(input: &[u8]) -> Result<UppercaseText, UppercaseError> {
-    let text = core::str::from_utf8(input).map_err(|_| UppercaseError::MalformedUtf8)?;
     let mut output = UppercaseText {
         bytes: [0; MAXIMUM_BYTES],
         len: 0,
     };
-    for character in text.chars().flat_map(char::to_uppercase) {
-        let mut encoded = [0_u8; 4];
-        let bytes = character.encode_utf8(&mut encoded).as_bytes();
-        let end = output
-            .len
-            .checked_add(bytes.len())
-            .filter(|end| *end <= MAXIMUM_BYTES)
-            .ok_or(UppercaseError::OutputOverflow)?;
-        output.bytes[output.len..end].copy_from_slice(bytes);
-        output.len = end;
-    }
+    output.len = crate::text_transform::uppercase_into(input, &mut output.bytes)?;
     Ok(output)
 }
 

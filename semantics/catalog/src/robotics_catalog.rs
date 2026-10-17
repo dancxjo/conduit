@@ -49,23 +49,14 @@ fn configuration_type(field: &KindConfigurationField) -> &'static str {
             conduit_core::QuantityDimension::Angle => "Angle",
             conduit_core::QuantityDimension::Ratio => "Ratio",
             conduit_core::QuantityDimension::PixelCount => "PixelCount",
-            conduit_core::QuantityDimension::Current
-            | conduit_core::QuantityDimension::Charge
-            | conduit_core::QuantityDimension::DataSize
-            | conduit_core::QuantityDimension::Mass
-            | conduit_core::QuantityDimension::Area
-            | conduit_core::QuantityDimension::Volume
-            | conduit_core::QuantityDimension::Speed
-            | conduit_core::QuantityDimension::Acceleration
-            | conduit_core::QuantityDimension::Force
-            | conduit_core::QuantityDimension::Energy
-            | conduit_core::QuantityDimension::Power
-            | conduit_core::QuantityDimension::Pressure => "Quantity",
+            _ => "Quantity",
         },
         (_, ConfigurationValue::Text(_)) => "Text",
         (_, ConfigurationValue::U64(_)) => "Count",
         (_, ConfigurationValue::I64(_)) => "Scalar",
         (_, ConfigurationValue::Quantity(_)) => "Quantity",
+        (_, ConfigurationValue::Unit(_)) => "Unit",
+        (_, ConfigurationValue::TemperatureDifference(_)) => "TemperatureDifference",
         _ => unreachable!("robotics configuration is finite text/integer/quantity"),
     }
 }
@@ -75,9 +66,9 @@ fn configuration_source(field: &KindConfigurationField) -> String {
         ConfigurationValue::Text(value) => format!("\"{value}\""),
         ConfigurationValue::U64(value) => value.to_string(),
         ConfigurationValue::I64(value) => value.to_string(),
-        ConfigurationValue::Quantity(value) => {
-            format!("{}{}", value.value(), value.unit().plot_suffix())
-        }
+        ConfigurationValue::Quantity(value) => value.source().into(),
+        ConfigurationValue::Unit(value) => value.source().into(),
+        ConfigurationValue::TemperatureDifference(value) => value.source().into(),
         _ => unreachable!("robotics configuration is finite text/integer"),
     }
 }

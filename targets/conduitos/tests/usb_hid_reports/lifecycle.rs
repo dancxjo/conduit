@@ -1,0 +1,53 @@
+use conduitos::protocol_source::{
+    PreparedProtocolSource, ProtocolSourcePackage, ProtocolSpecializationRequest,
+    ProtocolValueReference,
+};
+
+fn value(name: &str) -> ProtocolValueReference {
+    ProtocolValueReference {
+        type_name: name.into(),
+        maximum_bytes: 4096,
+    }
+}
+
+pub(super) fn package() -> ProtocolSourcePackage {
+    let lifecycle = include_str!("../../plots/usb/hid-keyboard-lifecycle.conduit");
+    let (header, body) = lifecycle.split_once("\n\n").unwrap();
+    let source = format!(
+        "{header}\n{}\n{}\n{body}",
+        super::common::SOURCE,
+        include_str!("../../plots/usb/hid-keyboard-state.conduit")
+    );
+    ProtocolSourcePackage::compile(
+        source,
+        &[
+            ProtocolSpecializationRequest::SeededUntil {
+                value: value("UsbKeyboardState"),
+            },
+            ProtocolSpecializationRequest::FeedbackZip {
+                left: value("UsbKeyboardState"),
+                right: value("UsbKeyboardCommand"),
+            },
+            ProtocolSpecializationRequest::Zip {
+                left: value("UsbKeyboardDeltaInput"),
+                right: value("UsbKeyboardTransitionBatch"),
+            },
+            ProtocolSpecializationRequest::Concat {
+                value: value("UsbKeyboardCommand"),
+            },
+            ProtocolSpecializationRequest::Merge {
+                value: value("UsbKeyboardState"),
+            },
+        ],
+    )
+    .unwrap()
+}
+
+#[test]
+fn keyboard_lifecycle_checks_with_exact_retained_state_zip_and_merge_types() {
+    let prepared = PreparedProtocolSource::prepare(package()).unwrap();
+    for entry in ["usb-hid-keyboard-lifecycle", "usb-hid-keyboard-received"] {
+        let expanded = prepared.expand(entry).unwrap();
+        assert!(!expanded.expanded.gears.is_empty());
+    }
+}

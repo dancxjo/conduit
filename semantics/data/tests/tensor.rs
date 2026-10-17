@@ -1,6 +1,6 @@
 use conduit_core::{
-    kind_id, BoundedResourceRef, QuantityUnit, ResourceClassId, ResourceExtent, ResourceLifetime,
-    ResourceSemanticIdentity, ResourceVersionIdentity,
+    kind_id, BoundedResourceRef, ResourceClassId, ResourceExtent, ResourceLifetime,
+    ResourceSemanticIdentity, ResourceVersionIdentity, Unit,
 };
 use conduit_data::*;
 use conduit_plot::rust_binding::{BoundedBytes, BoundedSequence};
@@ -14,12 +14,12 @@ fn axes() -> Vec<TensorAxis> {
         TensorAxis {
             role: TensorAxisRole::Time,
             identity: Some("speech-frame".into()),
-            unit: Some(QuantityUnit::Millisecond),
+            unit: Some(Unit::Millisecond),
         },
         TensorAxis {
             role: TensorAxisRole::SpatialCoordinate,
             identity: Some("articulatory-coordinate".into()),
-            unit: Some(QuantityUnit::Millimeter),
+            unit: Some(Unit::Millimeter),
         },
     ]
 }
@@ -82,10 +82,19 @@ fn resource_backing_preserves_tensor_meaning_without_host_placement() {
         direct.summary().unwrap().dimensions
     );
     assert_eq!(external.semantic_digest(), direct.semantic_digest());
-    assert!(
-        external.encode().unwrap().len()
-            < usize::try_from(external.byte_count().unwrap()).unwrap() + 512
-    );
+    // Unit capsules belong to axis meaning, independently of tensor backing.
+    let metadata = external.encode().unwrap();
+    assert_eq!(TensorValue::decode(&metadata), Ok(external.clone()));
+    let mut larger = external.clone();
+    larger.dimensions = BoundedSequence::try_from_iter([300, 2]).unwrap();
+    larger.backing = TensorBacking::Resource(reference(
+        larger.byte_count().unwrap(),
+        600,
+        larger.resource_profile(),
+        larger.content_digest,
+    ));
+    // Increasing resource extent does not inline the referenced tensor samples.
+    assert_eq!(larger.encode().unwrap().len(), metadata.len());
     let debug = format!("{external:?}");
     assert!(!debug.contains("cuda"));
     assert!(!debug.contains("cpu"));

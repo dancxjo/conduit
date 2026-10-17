@@ -27,8 +27,14 @@ impl MeasurementWindowProfile {
         if self.clock_basis.is_empty() {
             return Err(MeasurementWindowRefusal::InvalidClockProfile);
         }
-        if self.range.minimum.unit() != self.range.maximum.unit()
-            || self.range.minimum.value() > self.range.maximum.value()
+        if self.range.minimum.role() != self.range.maximum.role()
+            || self.range.minimum.unit() != self.range.maximum.unit()
+            || self
+                .range
+                .minimum
+                .compare(self.range.maximum)
+                .map_err(|_| MeasurementWindowRefusal::InvalidRange)?
+                == core::cmp::Ordering::Greater
         {
             return Err(MeasurementWindowRefusal::InvalidRange);
         }
@@ -102,22 +108,33 @@ impl BoundedMeasurementWindow {
             .validate()
             .map_err(|_| MeasurementWindowRefusal::InvalidTimestamp)?;
         let unit = self.profile.range.minimum.unit();
-        if sample.value.unit() != unit {
+        if sample.value.role() != self.profile.range.minimum.role() || sample.value.unit() != unit {
             return Err(MeasurementWindowRefusal::UnitMismatch);
         }
         if sample.observed_at.clock_basis != self.profile.clock_basis {
             return Err(MeasurementWindowRefusal::ClockMismatch);
         }
         if let Some(uncertainty) = sample.uncertainty {
-            if uncertainty.unit() != unit {
+            if sample.value.role() == conduit_core::QuantityRole::Point {
+                return Err(MeasurementWindowRefusal::PointDifferenceRequired);
+            }
+            if uncertainty.role() != sample.value.role() || uncertainty.unit() != unit {
                 return Err(MeasurementWindowRefusal::UncertaintyUnitMismatch);
             }
-            if uncertainty.value() < 0 {
+            if uncertainty.coefficient() < 0 {
                 return Err(MeasurementWindowRefusal::NegativeUncertainty);
             }
         }
-        if sample.value.value() < self.profile.range.minimum.value()
-            || sample.value.value() > self.profile.range.maximum.value()
+        if sample
+            .value
+            .compare(self.profile.range.minimum)
+            .map_err(|_| MeasurementWindowRefusal::OutOfRange)?
+            == core::cmp::Ordering::Less
+            || sample
+                .value
+                .compare(self.profile.range.maximum)
+                .map_err(|_| MeasurementWindowRefusal::OutOfRange)?
+                == core::cmp::Ordering::Greater
         {
             return Err(MeasurementWindowRefusal::OutOfRange);
         }

@@ -3,8 +3,8 @@ use super::super::*;
 
 pub(in crate::plot_runner) fn request() -> BodyStartRequest {
     request_from_sources(&[
-        "plot first {\n text: text/literal(\"first\")\n show: presentation/text\n text >> show\n}.\n",
-        "plot second {\n text: text/literal(\"second\")\n show: presentation/text\n text >> show\n}.\n",
+        "plot first {\n text: text/literal(\"first\")\n show: face/text(\"Message\")\n text >> show\n}.\n",
+        "plot second {\n text: text/literal(\"second\")\n show: face/text(\"Message\")\n text >> show\n}.\n",
     ])
 }
 
@@ -22,11 +22,30 @@ pub(in crate::plot_runner) fn request_from_sources(sources: &[&str]) -> BodyStar
                 &startup,
             )
             .unwrap();
-            let entry = super::executable_entry(&checked).unwrap();
-            let plot = conduit_plot::expand_canonical_plot(&checked, &entry, &catalog).unwrap();
-            let placements = default_expanded_placements(&plot, &hosts).unwrap();
-            plan_expanded_canonical_with_options(
-                &plot,
+            let entry = if checked
+                .plots
+                .iter()
+                .any(|plot| plot.name == "thermostat/main")
+            {
+                "thermostat/main".to_string()
+            } else {
+                super::executable_entry(&checked).unwrap()
+            };
+            let authoring =
+                conduit_plot::expand_canonical_plot_for_authoring(&checked, &entry, &catalog)
+                    .unwrap();
+            let plot = &authoring.expanded;
+            let mut hosts = hosts.clone();
+            hosts[0].capabilities.extend(
+                crate::installed_browser::catalogs::offers_for_expanded_pure_expressions(plot)
+                    .unwrap(),
+            );
+            let placements = default_expanded_placements(plot, &hosts).unwrap();
+            conduit_planner::plan_expanded_authoring_with_activations(
+                &checked,
+                &authoring,
+                &catalog,
+                &conduit_plot::CanonicalBackCatalog::new(),
                 &hosts,
                 &placements,
                 &local_bases(),
@@ -39,6 +58,11 @@ pub(in crate::plot_runner) fn request_from_sources(sources: &[&str]) -> BodyStar
                     authority_grants: &[],
                     protected_resource_grants: &[],
                     line_offers: &[],
+                },
+                &if entry == "thermostat/main" {
+                    crate::installed_browser::thermostat_scan_offer::fore_bounds()
+                } else {
+                    BTreeMap::new()
                 },
             )
             .unwrap()

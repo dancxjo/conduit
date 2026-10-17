@@ -445,3 +445,299 @@ async function hash(bytes) {
   const value = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
   return `sha256:${Array.from(value, (byte) => byte.toString(16).padStart(2, "0")).join("")}`;
 }
+
+test("JSON recovery refuses corrupt byte metadata and retains the original records", async ({ page }) => {
+  const result = await page.evaluate(async () => {
+    const { openBrowserApplicationStorage } = await import('/targets/browser/host/assets/browser-application-storage.mjs');
+    const application = 'proof/json-corruption';
+    const storage = await openBrowserApplicationStorage(application, 1, `sha256:${'d'.repeat(64)}`,
+      { implementationRegistry: ['browser/indexeddb@1'] });
+    await storage.writeJson('source', { source: 'retained' });
+    const request = indexedDB.open('conduit-browser-host-applications', 2);
+    const database = await new Promise((resolve, reject) => {
+      request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error);
+    });
+    const identity = `${application}@1\u0000source`;
+    const readRaw = async () => {
+      const tx = database.transaction('application-state', 'readonly');
+      const request = tx.objectStore('application-state').get(identity);
+      return new Promise((resolve, reject) => { request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); });
+    };
+    const original = await readRaw();
+    const variants = [
+      { ...original, valueBytes: original.valueBytes + 1 },
+      { ...original, valueBytes: -1 },
+      { ...original, valueBytes: 1.5 },
+      { ...original, value: 1, valueBytes: 1 },
+      { ...original, value: JSON.stringify('x'.repeat(64 * 1024)), valueBytes: 64 * 1024 + 2 },
+    ];
+    const outcomes = [];
+    for (const record of variants) {
+      const tx = database.transaction('application-state', 'readwrite');
+      tx.objectStore('application-state').put(record);
+      await new Promise((resolve, reject) => { tx.oncomplete = resolve; tx.onabort = () => reject(tx.error); });
+      let code = 'accepted';
+      try { await storage.readJson('source'); } catch (error) { code = error.code; }
+      const retained = await readRaw();
+      outcomes.push({ code, unchanged: retained.value === record.value && retained.valueBytes === record.valueBytes });
+    }
+    const restore = database.transaction('application-state', 'readwrite');
+    restore.objectStore('application-state').put(original);
+    await new Promise((resolve, reject) => { restore.oncomplete = resolve; restore.onabort = () => reject(restore.error); });
+    const maximumText = 'é'.repeat((storage.bounds.maximumValueBytes - 2) / 2);
+    await storage.writeJson('source', maximumText);
+    const exactBoundary = await storage.readJson('source') === maximumText;
+    await storage.clearApplication(); storage.close(); database.close();
+    return { outcomes, exactBoundary };
+  });
+  expect(result).toEqual({ outcomes: Array(5).fill({ code: 'CorruptRecord', unchanged: true }), exactBoundary: true });
+});
+
+test("corrupt host byte accounting refuses every publication without changing records", async ({ page }) => {
+  const result = await page.evaluate(async () => {
+    const { openBrowserApplicationStorage } = await import('/targets/browser/host/assets/browser-application-storage.mjs');
+    const selected = { implementationRegistry: ['browser/indexeddb@1'] };
+    const digest = `sha256:${'e'.repeat(64)}`;
+    const source = await openBrowserApplicationStorage('proof/corrupt-accounting', 1, digest, selected);
+    const target = await openBrowserApplicationStorage('proof/accounting-target', 1, digest, selected);
+    await source.writeJson('retained', { source: 'keep me' });
+    const request = indexedDB.open('conduit-browser-host-applications', 2);
+    const database = await new Promise((resolve, reject) => {
+      request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error);
+    });
+    const identity = 'proof/corrupt-accounting@1\u0000retained';
+    const tx = database.transaction('application-state', 'readwrite');
+    const store = tx.objectStore('application-state');
+    const get = store.get(identity);
+    const original = await new Promise((resolve, reject) => { get.onsuccess = () => resolve(get.result); get.onerror = () => reject(get.error); });
+    store.put({ ...original, valueBytes: NaN });
+    await new Promise((resolve, reject) => { tx.oncomplete = resolve; tx.onabort = () => reject(tx.error); });
+    const operations = [
+      () => target.writeJson('single', { next: true }),
+      () => target.writeJsonBatch([{ key: 'batch', value: { next: true } }]),
+      () => target.writeBytes('bytes', new Uint8Array([1])),
+      () => target.publishBytes('published', new Uint8Array([2])),
+      () => source.writeJson('replacement', { next: true }),
+    ];
+    const codes = [];
+    for (const operation of operations) {
+      try { await operation(); codes.push('accepted'); } catch (error) { codes.push(error.code); }
+    }
+    const read = database.transaction('application-state', 'readonly').objectStore('application-state').getAll();
+    const records = await new Promise((resolve, reject) => { read.onsuccess = () => resolve(read.result); read.onerror = () => reject(read.error); });
+    const unchanged = records.length === 1 && records[0].value === original.value && Number.isNaN(records[0].valueBytes);
+    await source.clearApplication(); await target.clearApplication(); source.close(); target.close(); database.close();
+    return { codes, unchanged };
+  });
+  expect(result).toEqual({ codes: Array(5).fill('CorruptRecord'), unchanged: true });
+});
+
+test("application namespace separators cannot alias and delete another application's record", async ({ page }) => {
+  const result = await page.evaluate(async () => {
+    const { openBrowserApplicationStorage } = await import('/targets/browser/host/assets/browser-application-storage.mjs');
+    const selected = { implementationRegistry: ['browser/indexeddb@1'] };
+    const digest = `sha256:${'f'.repeat(64)}`;
+    const application = 'proof/namespace';
+    const key = 'branch@1\u0000record';
+    const owner = await openBrowserApplicationStorage(application, 1, digest, selected);
+    await owner.writeJson(key, { source: 'original' });
+    let code = 'accepted';
+    try {
+      const alias = await openBrowserApplicationStorage(`${application}@1\u0000branch`, 1, digest, selected);
+      await alias.deleteJson('record');
+      alias.close();
+    } catch (error) { code = error.code; }
+    const retained = await owner.readJson(key);
+    // An ordinary identity containing @ remains valid and independent.
+    const independent = await openBrowserApplicationStorage(`${application}@1`, 2, digest, selected);
+    await independent.writeJson(key, { source: 'independent' });
+    const other = await independent.readJson(key);
+    await owner.clearApplication(); await independent.clearApplication(); owner.close(); independent.close();
+    return { code, retained, other };
+  });
+  expect(result).toEqual({ code: 'AdmissionBound', retained: { source: 'original' }, other: { source: 'independent' } });
+});
+
+test("corrupt record ownership cannot bypass immutable publication", async ({ page }) => {
+  const result = await page.evaluate(async () => {
+    const { openBrowserApplicationStorage } = await import('/targets/browser/host/assets/browser-application-storage.mjs');
+    const application = 'proof/immutable-ownership';
+    const storage = await openBrowserApplicationStorage(application, 1, `sha256:${'a'.repeat(64)}`,
+      { implementationRegistry: ['browser/indexeddb@1'] });
+    await storage.writeJsonBatch([{ key: 'original', value: { evidence: 'retain' }, immutable: true }]);
+    const request = indexedDB.open('conduit-browser-host-applications', 2);
+    const database = await new Promise((resolve, reject) => { request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); });
+    const identity = `${application}@1\u0000original`;
+    const readRaw = async () => {
+      const get = database.transaction('application-state', 'readonly').objectStore('application-state').get(identity);
+      return new Promise((resolve, reject) => { get.onsuccess = () => resolve(get.result); get.onerror = () => reject(get.error); });
+    };
+    const original = await readRaw();
+    const results = [];
+    for (const change of [{ applicationIdentity: 'proof/other-owner' }, { applicationVersion: 2 }, { key: 'other-key' },
+      { immutable: 'true' }, { immutable: 1 }, { immutable: null }, { immutable: [] },
+      { packageDigest: 'unchecked' }]) {
+      const record = { ...original, ...change };
+      const tx = database.transaction('application-state', 'readwrite');
+      tx.objectStore('application-state').put(record);
+      await new Promise((resolve, reject) => { tx.oncomplete = resolve; tx.onabort = () => reject(tx.error); });
+      const codes = [];
+      for (const write of [() => storage.writeJson('original', { evidence: 'replacement' }),
+        () => storage.writeJsonBatch([{ key: 'original', value: { evidence: 'replacement' } }])]) {
+        try { await write(); codes.push('accepted'); } catch (error) { codes.push(error.code); }
+      }
+      results.push({ codes, unchanged: JSON.stringify(await readRaw()) === JSON.stringify(record) });
+    }
+    // Explicit test teardown through the raw connection; refusal must not repair ownership.
+    const cleanup = database.transaction('application-state', 'readwrite');
+    cleanup.objectStore('application-state').delete(identity);
+    await new Promise((resolve, reject) => { cleanup.oncomplete = resolve; cleanup.onabort = () => reject(cleanup.error); });
+    database.close(); storage.close(); return results;
+  });
+  expect(result).toEqual(Array(8).fill({ codes: ['CorruptRecord', 'CorruptRecord'], unchanged: true }));
+});
+
+test("storage version changes release the connection and fence the old handle", async ({ page }) => {
+  const result = await page.evaluate(async () => {
+    const { openBrowserApplicationStorage } = await import('/targets/browser/host/assets/browser-application-storage.mjs');
+    const application = 'proof/version-change';
+    const storage = await openBrowserApplicationStorage(application, 1, `sha256:${'b'.repeat(64)}`,
+      { implementationRegistry: ['browser/indexeddb@1'] });
+    await storage.writeJson('source', { source: 'retained' });
+    const request = indexedDB.open('conduit-browser-host-applications', 3);
+    let blocked = false;
+    let observed;
+    const observation = new Promise(resolve => { observed = resolve; });
+    const upgraded = new Promise((resolve, reject) => {
+      request.onblocked = () => { blocked = true; observed(); };
+      request.onsuccess = () => { observed(); resolve(request.result); };
+      request.onerror = () => reject(request.error);
+    });
+    await observation;
+    let stale = 'accepted';
+    try { await storage.writeJson('late', { source: 'stale' }); } catch (error) { stale = error.code; }
+    storage.close();
+    const database = await upgraded;
+    const read = database.transaction('application-state', 'readonly').objectStore('application-state').getAll();
+    const records = await new Promise((resolve, reject) => { read.onsuccess = () => resolve(read.result); read.onerror = () => reject(read.error); });
+    database.close();
+    return { blocked, stale, records: records.map(record => ({ key: record.key, value: JSON.parse(record.value) })) };
+  });
+  expect(result).toEqual({ blocked: false, stale: 'StaleApplicationGeneration',
+    records: [{ key: 'source', value: { source: 'retained' } }] });
+});
+
+for (const path of ['created', 'existing', 'race', 'reset', 'malformed']) {
+  test(`Host identity connections settle before database upgrade (${path})`, async ({ page }) => {
+    const result = await page.evaluate(async path => {
+      const { openBrowserHostIdentity, resetBrowserHostIdentity } = await import('/targets/browser/host/assets/browser-host-identity.mjs');
+      const first = await openBrowserHostIdentity();
+      let stable = true;
+      let refused = false;
+      if (path === 'existing') stable = (await openBrowserHostIdentity()).hostId === first.hostId;
+      if (path === 'race') {
+        await resetBrowserHostIdentity();
+        const identities = await Promise.all([openBrowserHostIdentity(), openBrowserHostIdentity()]);
+        stable = identities[0].hostId === identities[1].hostId;
+      }
+      if (path === 'reset') await resetBrowserHostIdentity();
+      if (path === 'malformed') {
+        const open = indexedDB.open('conduit-browser-host-applications', 2);
+        const database = await new Promise((resolve, reject) => { open.onsuccess = () => resolve(open.result); open.onerror = () => reject(open.error); });
+        const tx = database.transaction('browser-host-identity', 'readwrite');
+        const store = tx.objectStore('browser-host-identity');
+        const get = store.get('durable-browser-host');
+        const record = await new Promise((resolve, reject) => { get.onsuccess = () => resolve(get.result); get.onerror = () => reject(get.error); });
+        store.put({ ...record, seed: Array(32).fill(0) });
+        await new Promise((resolve, reject) => { tx.oncomplete = resolve; tx.onabort = () => reject(tx.error); });
+        database.close();
+        try { await openBrowserHostIdentity(); } catch { refused = true; }
+      }
+      const request = indexedDB.open('conduit-browser-host-applications', 3);
+      const upgrade = await new Promise((resolve, reject) => {
+        request.onblocked = () => resolve('blocked');
+        request.onsuccess = () => { request.result.close(); resolve('upgraded'); };
+        request.onerror = () => reject(request.error);
+      });
+      return { upgrade, stable, refused };
+    }, path);
+    expect(result).toEqual({ upgrade: 'upgraded', stable: true, refused: path === 'malformed' });
+  });
+}
+
+test("Host identity refuses sparse signing seeds without filling or replacing them", async ({ page }) => {
+  const result = await page.evaluate(async () => {
+    const { openBrowserHostIdentity } = await import('/targets/browser/host/assets/browser-host-identity.mjs');
+    await openBrowserHostIdentity();
+    const open = indexedDB.open('conduit-browser-host-applications', 2);
+    const database = await new Promise((resolve, reject) => { open.onsuccess = () => resolve(open.result); open.onerror = () => reject(open.error); });
+    const readRaw = async () => {
+      const get = database.transaction('browser-host-identity', 'readonly').objectStore('browser-host-identity').get('durable-browser-host');
+      return new Promise((resolve, reject) => { get.onsuccess = () => resolve(get.result); get.onerror = () => reject(get.error); });
+    };
+    const original = await readRaw();
+    const put = async record => {
+      const tx = database.transaction('browser-host-identity', 'readwrite');
+      tx.objectStore('browser-host-identity').put(record);
+      await new Promise((resolve, reject) => { tx.oncomplete = resolve; tx.onabort = () => reject(tx.error); });
+    };
+    const outcomes = [];
+    for (const index of [0, 15, 31]) {
+      const seed = new Array(32); seed[index] = 1;
+      await put({ ...original, seed });
+      let refused = false;
+      try { await openBrowserHostIdentity(); } catch { refused = true; }
+      const retained = await readRaw();
+      outcomes.push({ refused, unchanged: retained.hostId === original.hostId
+        && retained.seed.length === 32 && Object.keys(retained.seed).length === 1 && retained.seed[index] === 1 });
+    }
+    // Actual zero bytes are valid when all 32 positions exist and the seed is nonzero.
+    const dense = Array(32).fill(0); dense[15] = 1;
+    await put({ ...original, seed: dense });
+    const restored = await openBrowserHostIdentity();
+    const exactDense = restored.hostId === original.hostId && restored.seed.every((byte, index) => byte === dense[index]);
+    database.close(); return { outcomes, exactDense };
+  });
+  expect(result).toEqual({ outcomes: Array(3).fill({ refused: true, unchanged: true }), exactDense: true });
+});
+
+for (const client of ['application', 'identity']) {
+  test(`blocked ${client} startup refuses without a deferred schema upgrade`, async ({ page }) => {
+    const result = await page.evaluate(async client => {
+      const nativeFactory = indexedDB;
+      const descriptor = Object.getOwnPropertyDescriptor(globalThis, 'indexedDB');
+      const first = nativeFactory.open('conduit-browser-host-applications', 1);
+      first.onupgradeneeded = () => first.result.createObjectStore('legacy');
+      const held = await new Promise((resolve, reject) => { first.onsuccess = () => resolve(first.result); first.onerror = () => reject(first.error); });
+      let blocked, terminal;
+      const blockedEvent = new Promise(resolve => { blocked = resolve; });
+      const terminalEvent = new Promise(resolve => { terminal = resolve; });
+      Object.defineProperty(globalThis, 'indexedDB', { configurable: true, value: { open(...args) {
+        const request = nativeFactory.open(...args);
+        request.addEventListener('blocked', blocked, { once: true });
+        request.addEventListener('success', terminal, { once: true });
+        request.addEventListener('error', terminal, { once: true });
+        return request;
+      } } });
+      try {
+        const attempt = client === 'application'
+          ? (await import('/targets/browser/host/assets/browser-application-storage.mjs')).openBrowserApplicationStorage(
+            'proof/blocked', 1, `sha256:${'c'.repeat(64)}`, { implementationRegistry: ['browser/indexeddb@1'] })
+          : (await import('/targets/browser/host/assets/browser-host-identity.mjs')).openBrowserHostIdentity();
+        const outcome = attempt.then(value => { value.close?.(); return 'opened'; }, error =>
+          client === 'application' ? error.code : /blocked/.test(error.message) ? 'blocked' : error.message);
+        await blockedEvent;
+        held.close();
+        const code = await outcome;
+        await terminalEvent;
+        const inspect = nativeFactory.open('conduit-browser-host-applications');
+        const database = await new Promise((resolve, reject) => { inspect.onsuccess = () => resolve(inspect.result); inspect.onerror = () => reject(inspect.error); });
+        const retained = { version: database.version, stores: Array.from(database.objectStoreNames) };
+        database.close();
+        return { code, retained };
+      } finally { held.close(); Object.defineProperty(globalThis, 'indexedDB', descriptor); }
+    }, client);
+    expect(result).toEqual({ code: client === 'application' ? 'StorageUnavailable' : 'blocked',
+      retained: { version: 1, stores: ['legacy'] } });
+  });
+}

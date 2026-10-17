@@ -1,0 +1,190 @@
+{
+  "issue": 5691,
+  "related": [
+    5692,
+    5693
+  ],
+  "source": "4c042ee9afeda867ee8245910ec55546f1986fda",
+  "proof_class": "development Source and ordinary planning; no numerical Model Play or model Host Call claim",
+  "checks": [
+    {
+      "source": "4c042ee9afeda867ee8245910ec55546f1986fda",
+      "log": "../onnx-exact-core-final-clippy.log",
+      "content": {
+        "sha256": "8074ff89eeaaba66dc68aa07ba36a2c53cbcece7596400acb2afe413deb2021b",
+        "bytes": 209
+      }
+    },
+    {
+      "source": "4c042ee9afeda867ee8245910ec55546f1986fda",
+      "log": "../onnx-model-planning-clippy.log",
+      "content": {
+        "sha256": "bbb3f80a4025de2f1749be9d3d4d93ca97fc772c353b5f072e812a6662236b25",
+        "bytes": 7392
+      }
+    },
+    {
+      "source": "4c042ee9afeda867ee8245910ec55546f1986fda",
+      "log": "../onnx-dtype-burn-owner-check.log",
+      "content": {
+        "sha256": "1b2588470298a3f770d29214d3fe7ebc84b2408efbf75b69dfa8019173e8669e",
+        "bytes": 5288
+      }
+    },
+    {
+      "source": "4c042ee9afeda867ee8245910ec55546f1986fda",
+      "log": "../onnx-dtype-tongues-owner-check.log",
+      "content": {
+        "sha256": "6140623154b2f4bda1e2831933ee42e7406016f2be21b05a4e38a8cdc31340db",
+        "bytes": 4988
+      }
+    }
+  ],
+  "test_groups": [
+    {
+      "source": "724f45fd4916978f81256a93057171a688460529",
+      "tests": 4,
+      "log": "../onnx-dtype-set-tests.log",
+      "content": {
+        "sha256": "2830ba190ad29681b04ca04338e918a79561827df0b519858404661361902da9",
+        "bytes": 1196
+      }
+    },
+    {
+      "source": "724f45fd4916978f81256a93057171a688460529",
+      "tests": 3,
+      "log": "../onnx-dtype-set-host-tests.log",
+      "content": {
+        "sha256": "6fb8da59926ddd02efa27b70764a89503324c4f4aa63edc37a19b9bc16258d5a",
+        "bytes": 17901
+      }
+    },
+    {
+      "source": "bdb4aadd469e897a574627d68e29102819e501ec",
+      "tests": 102,
+      "log": "../onnx-exact-core-combined-tests.log",
+      "content": {
+        "sha256": "346055a1c9f0e507fd1eec6c31e76a6da0127e8a1106410fabfdbe0d58ca9192",
+        "bytes": 10339
+      }
+    },
+    {
+      "source": "b1534c00622e6b623c12409c461d2f91212339c2",
+      "tests": 2,
+      "log": "../onnx-model-planning-verified-tests.log",
+      "content": {
+        "sha256": "26162c403c2d3619ba4af22e68aeb29f5fd02faedc1682b8a595c57b78f20cfb",
+        "bytes": 3783
+      }
+    }
+  ],
+  "format": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "code_files": {
+    "architecture/core/src/configuration.rs": {
+      "sha256": "30f9126dd02157cd7b400ad05b1b5d5e5ff520078ff84a765eb9d064566a3f21",
+      "bytes": 17480
+    },
+    "architecture/core/src/kind_effects.rs": {
+      "sha256": "ec9ea244be0e5de2c0e9728a839f31184b12818b6084a73dff9ffe63ab9aea75",
+      "bytes": 16136
+    },
+    "architecture/core/src/kind_effects/semantic_work.rs": {
+      "sha256": "1390d66c6515750b53f43eafdf72df57e035c207330330c85bd51dcd4c382877",
+      "bytes": 3903
+    },
+    "architecture/core/src/plan_fingerprint.rs": {
+      "sha256": "c8b35152f215b52c93a4c72d022367815197ef94daea622dcb6e7b5eac3daacb",
+      "bytes": 38561
+    },
+    "architecture/core/src/plan_fingerprint/semantic_contract.rs": {
+      "sha256": "202610893418c42161105c842eb9d24eba0d0e04c18fd3730c8c7832d0d1dcce",
+      "bytes": 16955
+    },
+    "architecture/core/src/realization_properties.rs": {
+      "sha256": "9d7416ff1d171b24f62e86ba1d1d7e514c858ff1f1eaeca266a44636f75f15f8",
+      "bytes": 3952
+    },
+    "architecture/core/tests/exact_realization_property.rs": {
+      "sha256": "234f0745b3cc3a2bd3224b6808112c6893454df7ea7749d7634565b145eb95df",
+      "bytes": 3670
+    },
+    "architecture/planner/src/exact_realization.rs": {
+      "sha256": "c1a67917821b27e7eeedb62a2fd791f5ece6a29b5fdf034fb0c8639df6c82e9b",
+      "bytes": 2574
+    },
+    "architecture/planner/src/language_coverage.rs": {
+      "sha256": "9a6fe21609db0b9bca5eb6dbe470f47ba8345f86d595ce371b7c9ce6eb7b0be5",
+      "bytes": 10849
+    },
+    "architecture/planner/src/lib.rs": {
+      "sha256": "db01aa1c7fd95054ac0a59a1c044339b83bc6ddfdccd4f1d66ee267139a2fbab",
+      "bytes": 40511
+    },
+    "architecture/planner/tests/model_signature_realization.rs": {
+      "sha256": "72ae15fb353df4317eb8b176bd2547905636e06b0867ea31f52037e546f28672",
+      "bytes": 4012
+    },
+    "mechanisms/implementations/burn-model/src/adapter.rs": {
+      "sha256": "33fa6fafe39e6c6b74907683e6241f5aa20bf0061230bb3c1309098ff20ebc16",
+      "bytes": 15537
+    },
+    "mechanisms/implementations/burn-model/src/inference.rs": {
+      "sha256": "867fb6f1d629f0fe2c15e88dc9879c9aecc21473d0bc041beccb895c1caa3d04",
+      "bytes": 10959
+    },
+    "semantics/ai/src/model_compute.rs": {
+      "sha256": "28516bae5a57f9fa77641de06794d53e884052c21b56730930d3e65d3cd47741",
+      "bytes": 14593
+    },
+    "semantics/ai/src/model_infer_catalog.rs": {
+      "sha256": "2b2686afe4c9009089690f9a1bb59bbebd8595cc29b9b8a90a75dae6d1fc3bb9",
+      "bytes": 6781
+    },
+    "semantics/ai/tests/model_compute.rs": {
+      "sha256": "7b986fb38db88af591397acda5124f807ad775c07119e3441d79156fb5e2f17b",
+      "bytes": 7476
+    },
+    "semantics/tongues/src/research_compute.rs": {
+      "sha256": "47e7d89993815dde38f4a91721cbbdf9672647d345d3872b8e328b61932a6010",
+      "bytes": 4284
+    },
+    "targets/std/src/hosted_model_compute.rs": {
+      "sha256": "ec6a1f10cd4323b6ce11778271cf35a0ddbcf787c80e371e91d05e2fc8166ecb",
+      "bytes": 9013
+    },
+    "targets/std/tests/burn_model_host.rs": {
+      "sha256": "a85f60aa4d97291c1712a86f6639cf91ea99bb472f2e933cacc70787fe1bf50e",
+      "bytes": 4727
+    },
+    "targets/std/tests/model_compute_host.rs": {
+      "sha256": "6d02fce34dbdb8a908df22ba9e984805a9fff93f0ef74371a4037fb778c8b295",
+      "bytes": 7576
+    }
+  },
+  "origin_reuse": "outputs/origin-exact-realization-reuse-inventory.json",
+  "remaining": [
+    "Canonical named-tensor invocation migration",
+    "Genuine exact model/compute/resource Back and numerical Source/Plan/Play",
+    "Full workspace lint/tests for the coherent Core extractions and new matching law before publication",
+    "Optional std Burn Host feature check remains running; no pass claimed"
+  ],
+  "active_check": {
+    "tool_session": 22923,
+    "log": "work/onnx-dtype-burn-host-check.log",
+    "source": "4c042ee9afeda867ee8245910ec55546f1986fda"
+  },
+  "optional_host_followup": {
+    "source": "4c042ee9afeda867ee8245910ec55546f1986fda",
+    "state": "PASS",
+    "proof_class": "typecheck only; no Burn numerical execution claim",
+    "command": "cargo +1.98.1 check --locked -p conduit-std-host --features burn-model --test burn_model_host",
+    "log": "work/onnx-dtype-burn-host-check.log",
+    "content": {
+      "sha256": "985e8baf7a1153f11a2fe2e7b1ea9be628bea2f313ad99f6fdfcba32338646b9",
+      "bytes": 17391
+    }
+  }
+}

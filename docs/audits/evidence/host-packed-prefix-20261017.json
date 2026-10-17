@@ -1,0 +1,156 @@
+{
+  "base": "a3b13ed3a2ad5bd13d80dc7cddd009ff42a73a05",
+  "production_before_sha256": "d01323fa840f05bda9dafa116ae59db12ec324e33418a89a94dbf31f33b025e2",
+  "production_after_sha256": "0207820e295e169c709d38b57942e69910cf5cdc64e848e2e1de46c05dda3ab4",
+  "fixture_sha256": "9d7a0deb754b05324662b02b23844a12d93f3bd25a07742cc43d6849dc030ae5",
+  "fixture": {
+    "active_nodes": 2048,
+    "pending_capacity": 4096,
+    "retained_calls": 1,
+    "occupied_slot": 0,
+    "cursor": 1
+  },
+  "measurements": {
+    "before": {
+      "rows": [
+        {
+          "batch": 0,
+          "polls": 4096,
+          "slot_probes": 8388608,
+          "wall_ns": 15712579
+        },
+        {
+          "batch": 1,
+          "polls": 4096,
+          "slot_probes": 8388608,
+          "wall_ns": 10659213
+        },
+        {
+          "batch": 2,
+          "polls": 4096,
+          "slot_probes": 8388608,
+          "wall_ns": 10194601
+        },
+        {
+          "batch": 3,
+          "polls": 4096,
+          "slot_probes": 8388608,
+          "wall_ns": 10189242
+        },
+        {
+          "batch": 4,
+          "polls": 4096,
+          "slot_probes": 8388608,
+          "wall_ns": 10180835
+        },
+        {
+          "batch": 5,
+          "polls": 4096,
+          "slot_probes": 8388608,
+          "wall_ns": 10188146
+        },
+        {
+          "batch": 6,
+          "polls": 4096,
+          "slot_probes": 8388608,
+          "wall_ns": 10163564
+        },
+        {
+          "batch": 7,
+          "polls": 4096,
+          "slot_probes": 8388608,
+          "wall_ns": 10193394
+        }
+      ],
+      "mean_batch_wall_ns": 10935196.75,
+      "median_batch_wall_ns": 10191318.0,
+      "sample_sd_batch_wall_ns": 1937498.8899743732,
+      "log_sha256": "fbdb45937f02a6265f6a222e74585d17bbf7cfc393b7b78a2e280592a5b01651"
+    },
+    "after": {
+      "rows": [
+        {
+          "batch": 0,
+          "polls": 4096,
+          "slot_probes": 4096,
+          "wall_ns": 16106
+        },
+        {
+          "batch": 1,
+          "polls": 4096,
+          "slot_probes": 4096,
+          "wall_ns": 15580
+        },
+        {
+          "batch": 2,
+          "polls": 4096,
+          "slot_probes": 4096,
+          "wall_ns": 16002
+        },
+        {
+          "batch": 3,
+          "polls": 4096,
+          "slot_probes": 4096,
+          "wall_ns": 16006
+        },
+        {
+          "batch": 4,
+          "polls": 4096,
+          "slot_probes": 4096,
+          "wall_ns": 15982
+        },
+        {
+          "batch": 5,
+          "polls": 4096,
+          "slot_probes": 4096,
+          "wall_ns": 16003
+        },
+        {
+          "batch": 6,
+          "polls": 4096,
+          "slot_probes": 4096,
+          "wall_ns": 15984
+        },
+        {
+          "batch": 7,
+          "polls": 4096,
+          "slot_probes": 4096,
+          "wall_ns": 16014
+        }
+      ],
+      "mean_batch_wall_ns": 15959.625,
+      "median_batch_wall_ns": 16002.5,
+      "sample_sd_batch_wall_ns": 158.30344956082652,
+      "log_sha256": "b53e3864d04087be48ec3587f41b7327f6c320f395e97837ed0b26f4282c4a29"
+    }
+  },
+  "local_checks": {
+    "tests": {
+      "log_sha256": "ffec7bd41b1d7011795aa1e0def65f6cd0d2cc4ad3e74c01f113ccf3ee90b32c",
+      "passed": 240
+    },
+    "linear": {
+      "log_sha256": "214f23f1dc82b6ae72351b4272f36bd23c21d89498408aac8ba0af201cfaa234",
+      "passed": 240
+    },
+    "clippy": {
+      "log_sha256": "e09bb9212fc6ca34a63ed313c9fe396d7e7b8ad9fce553747a0d3971d40d82c5"
+    },
+    "fmt": {
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "portable": {
+      "log_sha256": "beccb62ad686e1134486f14a7abd5f5d2b184c60b0ee606ff8eaf7779a2656a2"
+    }
+  },
+  "compiler": "rustc 1.98.1 (48a229cea 2026-09-01)\nbinary: rustc\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\ncommit-date: 2026-09-01\nhost: x86_64-unknown-linux-gnu\nrelease: 1.98.1\nLLVM version: 22.1.8\n",
+  "os": "Linux-7.0.0-38-generic-x86_64-with-glibc2.43",
+  "cpu_model": "model name\t: 12th Gen Intel(R) Core(TM) i9-12900H",
+  "limits": [
+    "One diagnostic process per variant, eight within-process batches; not independent confidence.",
+    "Instrumented real FixedScheduler adapter path with a fixture Back, not checked Plan/Play throughput.",
+    "Baseline adds the diagnostic test to base; production file hashes distinguish before/after, not a clean whole-source capture.",
+    "No affinity/frequency/load control. No calibrated regression threshold or tiny/dense wall-time assurance.",
+    "No runtime fields, allocations, policy, Signs or eligibility changes."
+  ]
+}

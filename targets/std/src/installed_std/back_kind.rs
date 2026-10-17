@@ -1,18 +1,19 @@
 //! Closed inventory of operations installed in the production std kernel profile.
 
-use super::alife_backs::{LeniaStepBack, OrbiumSeedBack, ScalarFieldPresentationBack};
+use super::alife_backs::{LeniaStepBack, OrbiumSeedBack, ScalarFieldFaceBack};
 use super::audio_play_back::AudioPlayBack;
 use super::audio_tone_back::AudioToneBack;
 use super::body_chat_prompt_back::BodyChatPromptBack;
 use super::body_conversation_context_back::BodyConversationContextBack;
-use super::bool_presentation::BoolPresentationBack;
+use super::bool_face::BoolFaceBack;
 use super::calendar_proposal_back::CalendarProposalBack;
 use super::calendar_provider_back::CalendarProviderBack;
 use super::combine_latest_back::CombineLatestBack;
-use super::count_backs::{CountPresentationBack, StateCountBack};
+use super::count_backs::{CountFaceBack, StateCountBack};
 use super::current_sample_back::CurrentSampleBack;
 use super::data_text_back::DataTextBack;
 use super::distance_frequency_back::DistanceFrequencyBack;
+use super::face_composition::{FaceCompositionBack, GraphicsFaceBack};
 use super::final_normalized_pattern_back::FinalNormalizedPatternBack;
 use super::flow_first_back::FlowFirstBack;
 use super::flow_gate_back::FlowGateScalarBack;
@@ -38,11 +39,11 @@ use super::microphone_clip_back::MicrophoneClipBack;
 use super::midi_input_back::MidiInputBack;
 use super::midi_output_back::MidiOutputBack;
 use super::model_text_back::ModelTextBack;
+use super::model_work_back::ModelWorkBack;
 use super::navigation_backs::NavigationBack;
 use super::pacing_backs::{DelayBack, ThrottleBack};
 use super::pattern_comparison_back::PatternComparisonBack;
 use super::pcm_profile_conversion_back::PcmProfileConversionBack;
-use super::presentation_composition::{GraphicsPresentationBack, PresentationCompositionBack};
 use super::pure_expression_back::PureExpressionBack;
 use super::recognized_turn_commit_back::RecognizedTurnCommitBack;
 use super::record_delivery_back::RecordDeliveryStatusBack;
@@ -59,10 +60,10 @@ use super::speech_recognition_adapter_back::{
     SpeechResultToEventStreamBack, SpeechWindowToClipBack,
 };
 use super::speech_synthesis_back::SpeechSynthesisBack;
-use super::spoken_mask_backs::SpokenArtifactBack;
+use super::spoken_mask_backs::{FaceTeeBack, SpokenArtifactBack};
 use super::state_select_back::StateSelectScalarBack;
 use super::structured_selector_back::StructuredSelectorBack;
-use super::structured_values_back::{StructuredLiteralBack, StructuredPresentationBack};
+use super::structured_values_back::{StructuredFaceBack, StructuredLiteralBack};
 use super::synth_back::MusicSynthBack;
 use super::template_storage_back::TemplateStorageBack;
 #[cfg(test)]
@@ -73,12 +74,12 @@ use super::test_local_model_io::{TestLocalModelSinkBack, TestLocalModelSourceBac
 use super::test_structured_selector::{
     SinkBack as TestStructuredSinkBack, SourceBack as TestStructuredSourceBack,
 };
-use super::text_backs::{TextLiteralBack, TextPresentationBack, TextTransformBack};
+use super::text_backs::{TextFaceBack, TextLiteralBack, TextTransformBack};
 use super::text_state_back::TextStateBack;
 #[cfg(test)]
 use super::tick_backs::TestObserverBack;
 use super::tick_backs::TickBack;
-use super::tick_presentation::TickPresentationBack;
+use super::tick_face::TickFaceBack;
 use super::time_sample_back::TimeSampleBack;
 use super::time_window_back::TimeWindowBack;
 use super::timed_button_attempt_back::TimedButtonAttemptBack;
@@ -90,11 +91,19 @@ use super::vector_search_back::VectorSearchBack;
 use super::vision_describe_back::VisionDescribeBack;
 use super::vision_experience_back::VisionExperienceBack;
 use super::wav_artifact_back::WavArtifactBack;
+use conduit_composite::KernelScanBack as BodyScanBack;
 use conduit_data::FlowCollectBack;
+use conduit_todo_plot::TodoCombineBack;
 
+// Todo's fixed scratch is prepared on the heap before Play so every installed
+// operation shares a small driver envelope on the bounded runner stack.
+#[allow(clippy::large_enum_variant)]
 pub(super) enum InstalledBack {
     NativeSpeech(Box<conduit_speech::kernel::NativeSpeechBack>),
     DistanceFrequency(DistanceFrequencyBack),
+    AudioTimeAnalysis(super::audio_time_analysis_back::AudioTimeAnalysisBack),
+    AudioPitchAnalysis(super::audio_pitch_analysis_back::AudioPitchAnalysisBack),
+    AudioSpectralAnalysis(super::audio_spectral_analysis_back::AudioSpectralAnalysisBack),
     #[cfg(any(test, feature = "local-model-proof"))]
     RecordedSpeech(super::recorded_speech_back::RecordedSpeechBack),
     WhisperSpeech(super::whisper_speech_back::WhisperSpeechBack),
@@ -123,19 +132,19 @@ pub(super) enum InstalledBack {
     Recurrence(RecurrenceBack),
     CalendarProposal(CalendarProposalBack),
     CalendarProvider(CalendarProviderBack),
-    TickPresentation(TickPresentationBack),
-    BoolPresentation(BoolPresentationBack),
+    TickFace(TickFaceBack),
+    BoolFace(BoolFaceBack),
     OrbiumSeed(OrbiumSeedBack),
     LeniaStep(LeniaStepBack),
-    ScalarFieldPresentation(ScalarFieldPresentationBack),
+    ScalarFieldFace(ScalarFieldFaceBack),
     TextLiteral(TextLiteralBack),
     TextUpper(TextTransformBack),
     TextJoin(TextTransformBack),
-    TextPresentation(TextPresentationBack),
+    TextFace(TextFaceBack),
     TextState(TextStateBack),
     StateCount(StateCountBack),
     StateToggle(StateToggleBack),
-    CountPresentation(CountPresentationBack),
+    CountFace(CountFaceBack),
     FlowBackpressure(FlowPressureBack),
     FlowCoalesceLatest(FlowPressureBack),
     StateLatestScalar(StateLatestScalarBack),
@@ -143,8 +152,13 @@ pub(super) enum InstalledBack {
     StateSelectScalar(StateSelectScalarBack),
     CurrentSample(CurrentSampleBack),
     CombineLatest(CombineLatestBack),
+    TodoCombine(Box<TodoCombineBack>),
+    ThermostatCombine(Box<conduit_thermostat_plot::ThermostatBack>),
+    TodoCheckpoint(crate::todo_checkpoint_call::TodoCheckpointBack),
+    TodoCheckpointRead(crate::todo_checkpoint_read_call::TodoCheckpointReadBack),
     FlowZip(FlowZipBack),
     FlowCollect(Box<FlowCollectBack>),
+    BodyScan(Box<BodyScanBack>),
     FlowJoinByKey(Box<FlowJoinByKeyBack>),
     FlowGateScalar(FlowGateScalarBack),
     FlowFirst(FlowFirstBack),
@@ -166,24 +180,26 @@ pub(super) enum InstalledBack {
     LogicSelectScalar(LogicSelectScalarBack),
     MathScalar(MathScalarBack),
     Layout(LayoutBack),
-    PresentationComposition(PresentationCompositionBack),
-    GraphicsPresentation(GraphicsPresentationBack),
+    FaceComposition(FaceCompositionBack),
+    GraphicsFace(GraphicsFaceBack),
     #[cfg(test)]
-    TestPresentationSink(super::presentation_composition::PresentationSinkBack),
+    TestFaceSink(super::face_composition::FaceSinkBack),
     #[cfg(test)]
     TestLayoutSink(super::layout_backs::LayoutSinkBack),
     RoboticsSource(RoboticsSourceBack),
     RoboticsDrive(RoboticsDriveBack),
     MusicSynth(MusicSynthBack),
     SpeechSynthesis(SpeechSynthesisBack),
-    SpokenPresentationRequest(crate::spoken_mask_runtime::PresentationToGenerativeRequestBack),
+    SpokenFaceRequest(crate::spoken_mask_runtime::FaceToGenerativeRequestBack),
     GeneratedValidationEnvelope(super::generated_validation_backs::GeneratedValidationBack),
     GeneratedSemanticValidator(super::generated_validation_backs::GeneratedValidatorBack),
     RetainGeneratedValidation(super::generated_validation_backs::GeneratedValidationBack),
     SpokenGeneratedSpeech(crate::spoken_mask_runtime::GeneratedManifestationToSpeechBack),
+    DirectFaceWording(crate::direct_spoken_mask_runtime::DirectFaceWordingBack),
     SpokenArtifact(SpokenArtifactBack),
     SpokenArtifactShow(crate::spoken_mask_runtime::ArtifactAcknowledgedShowBack),
     SpokenNoInteraction(crate::spoken_mask_runtime::ClosingNoInteractionBack),
+    FaceTee(FaceTeeBack),
     AudioRenderDemand(AudioRenderDemandBack),
     AudioPlay(AudioPlayBack),
     AudioTone(AudioToneBack),
@@ -203,6 +219,7 @@ pub(super) enum InstalledBack {
     GeneratedSpeechCommit(GeneratedSpeechCommitBack),
     Navigation(NavigationBack),
     VectorSearch(VectorSearchBack),
+    ModelWork(ModelWorkBack),
     HttpClient(HttpClientBack),
     HttpServer(HttpServerBack),
     Json(JsonBack),
@@ -217,8 +234,11 @@ pub(super) enum InstalledBack {
     StructuredSelector(StructuredSelectorBack),
     PureFilter(StructuredSelectorBack),
     PureExpression(PureExpressionBack),
+    LocalExpression(crate::flow_activation::PreparedLocalExpressionBack),
+    Numerical(conduit_semantic_catalog::NumericalRealizationBack),
     StructuredLiteral(StructuredLiteralBack),
-    StructuredPresentation(StructuredPresentationBack),
+    ConvertedEquals(Box<conduit_semantic_catalog::ConvertedEqualsBack>),
+    StructuredFace(StructuredFaceBack),
     #[cfg(test)]
     TestTextSource(super::test_text_source::TestTextSourceBack),
     #[cfg(test)]

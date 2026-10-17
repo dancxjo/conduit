@@ -5,6 +5,10 @@ on:
       sha:
         type: string
         required: true
+      exhaustive:
+        type: boolean
+        default: true
+        description: Run exhaustive integration proof instead of PR admission
       base:
         type: string
         required: true
@@ -19,11 +23,17 @@ env:
   CONDUIT_CHECKOUT_SHA: ${{ inputs.sha }}
 jobs:
   preflight:
+    name: candidate/quick
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     outputs:
+      base: ${{ steps.base.outputs.sha }}
       matrix: ${{ steps.scan.outputs.matrix }}
+      unit-matrix: ${{ steps.scan.outputs.unit-matrix }}
+      conduitos-proof: ${{ steps.scan.outputs.conduitos-proof }}
       docs-only: ${{ steps.scan.outputs.docs-only }}
+      has-targets: ${{ steps.scan.outputs.has-targets }}
+      broad-admission: ${{ steps.scan.outputs.broad-admission }}
     steps:
       - uses: actions/checkout@v7.0.1
         with:
@@ -36,17 +46,39 @@ jobs:
       - uses: actions/setup-node@v7.0.0
         with:
           node-version: 22
+      - name: Resolve proof base
+        id: base
+        env:
+          BASE: ${{ inputs.base }}
+          SHA: ${{ inputs.sha }}
+          EXHAUSTIVE: ${{ inputs.exhaustive }}
+        run: |
+          proof_base="$BASE"
+          if test "$EXHAUSTIVE" != true; then
+            # PR metadata can retain an older base SHA after dev advances.
+            # The tested merge preview's first parent is its actual dev base.
+            test "$(git show -s --format=%P "$SHA" | wc -w)" -eq 2
+            proof_base=$(git rev-parse "$SHA^1")
+            git merge-base --is-ancestor "$BASE" "$proof_base"
+          fi
+          printf 'sha=%s\n' "$proof_base" >> "$GITHUB_OUTPUT"
       - name: Install CI validation tools
         run: cargo xtask ci pipeline setup-ci
       - name: Scan changed targets
         id: scan
         env:
-          BASE: ${{ inputs.base }}
+          BASE: ${{ steps.base.outputs.sha }}
           SHA: ${{ inputs.sha }}
-        run: cargo xtask ci pipeline scan "$BASE" "$SHA"
+          EXHAUSTIVE: ${{ inputs.exhaustive }}
+        run: |
+          if test "$EXHAUSTIVE" = true; then
+            cargo xtask ci pipeline scan "$BASE" "$SHA"
+          else
+            cargo xtask ci pipeline scan "$BASE" "$SHA" candidate
+          fi
       - name: Check patch, formatting, repository and CI invariants
         env:
-          BASE: ${{ inputs.base }}
+          BASE: ${{ steps.base.outputs.sha }}
           SHA: ${{ inputs.sha }}
         run: cargo xtask ci pipeline preflight "${BASE/all/$SHA}"
       - name: Retain acquisition measurements
@@ -59,13 +91,16 @@ jobs:
           retention-days: 14
   unit:
     needs: preflight
-    if: needs.preflight.outputs.docs-only != 'true'
+    if: ${{ (inputs.exhaustive || needs.preflight.outputs.broad-admission == 'true') && needs.preflight.outputs.docs-only != 'true' }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 40
+    # Cold foundation tests, doc-tests and the separate alloc pass need headroom.
+    # Products also compiles and executes the optimized browser Owner proof.
+    # Full ConduitOS Source/Kernel class proof needs more than the measured 70-minute cold run.
+    # Other independently scheduled host groups retain their existing bound.
+    timeout-minutes: ${{ matrix.shard == 'hosts-conduitos' && 120 || matrix.shard == 'foundation' && 90 || (matrix.shard == 'products' || startsWith(matrix.shard, 'hosts-')) && 70 || 40 }}
     strategy:
       fail-fast: false
-      matrix:
-        shard: [foundation, hosts, products, lint]
+      matrix: ${{ fromJSON(needs.preflight.outputs.unit-matrix) }}
     steps:
       - uses: actions/checkout@v7.0.1
         with:
@@ -86,7 +121,26 @@ jobs:
       - name: Prove portable meaning
         env:
           SHARD: ${{ matrix.shard }}
+          # Portable Source proof and installed Owner tests share the optimized
+          # candidate profile, retaining assertions and checked arithmetic.
+          CARGO_PROFILE_TEST_OPT_LEVEL: ${{ (matrix.shard == 'foundation' || matrix.shard == 'products' || matrix.shard == 'hosts-std' || matrix.shard == 'hosts-browser' || matrix.shard == 'hosts-conduitos') && 1 || 0 }}
+          CARGO_PROFILE_TEST_DEBUG_ASSERTIONS: "true"
+          CARGO_PROFILE_TEST_OVERFLOW_CHECKS: "true"
+          CONDUIT_CI_CONDUITOS_PROOF: ${{ needs.preflight.outputs.conduitos-proof }}
         run: cargo xtask ci pipeline unit "$SHARD"
+      - name: Replay public CPU model tutorial commands
+        if: matrix.shard == 'hosts-std'
+        run: |
+          cargo xtask prove model-authoring --documented-command --output "$RUNNER_TEMP/model-authoring-ci/docs"
+          cargo xtask prove model-authoring --plot-journey --output "$RUNNER_TEMP/model-authoring-ci/plot"
+      - name: Retain CPU model tutorial receipts
+        if: ${{ always() && matrix.shard == 'hosts-std' }}
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: model-authoring-cpu
+          path: ${{ runner.temp }}/model-authoring-ci
+          if-no-files-found: error
+          retention-days: 14
       - name: Retain acquisition measurements
         if: always()
         uses: actions/upload-artifact@v7.0.1
@@ -95,9 +149,57 @@ jobs:
           path: target/acquisition/unit.json
           if-no-files-found: warn
           retention-days: 14
-  target:
+  admission:
     needs: [preflight, unit]
-    if: needs.preflight.outputs.docs-only != 'true'
+    if: ${{ always() && !cancelled() && !inputs.exhaustive && needs.preflight.result == 'success' && needs.preflight.outputs.docs-only != 'true' }}
+    runs-on: ubuntu-24.04
+    # Admission can own the same cold ConduitOS tests as the 120-minute unit shard.
+    timeout-minutes: 120
+    env:
+      # Exact arithmetic reference matrices are prohibitively slow unoptimized.
+      # Preserve debug assertions and overflow checks while optimizing execution.
+      CARGO_PROFILE_TEST_OPT_LEVEL: 1
+    steps:
+      - name: Require the selected admission route
+        env:
+          BROAD_ADMISSION: ${{ needs.preflight.outputs.broad-admission }}
+          UNIT_RESULT: ${{ needs.unit.result }}
+        run: |
+          case "$BROAD_ADMISSION" in
+            true) test "$UNIT_RESULT" = success ;;
+            false) ;; # Existing affected-package commands below own this route.
+            *) echo "Missing or invalid admission route" >&2; exit 1 ;;
+          esac
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ inputs.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@1.98.1
+        with:
+          components: clippy
+          targets: wasm32-unknown-unknown
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version: 22
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: admission
+          cache-on-failure: false
+      - run: cargo xtask ci pipeline setup-unit
+      - name: Lint, affected tests and relevant integration smoke
+        env:
+          BASE: ${{ needs.preflight.outputs.base }}
+          BROAD_ADMISSION: ${{ needs.preflight.outputs.broad-admission }}
+        run: |
+          if test "$BROAD_ADMISSION" = true; then
+            cargo xtask ci pipeline admission "$BASE" --workspace-checked
+          else
+            cargo xtask ci pipeline admission "$BASE"
+          fi
+  target:
+    needs: preflight
+    if: needs.preflight.outputs.has-targets == 'true'
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.preflight.outputs.matrix) }}
@@ -111,6 +213,8 @@ jobs:
       - uses: actions/checkout@v7.0.1
         with:
           ref: ${{ inputs.sha }}
+          # Site assembly verifies retained evidence against publication ancestry.
+          fetch-depth: ${{ matrix.id == 'browser' && '0' || '1' }}
           persist-credentials: false
       - uses: dtolnay/rust-toolchain@1.98.1
       - uses: actions/setup-node@v7.0.0
@@ -180,22 +284,30 @@ jobs:
             target/conduitos/**/*.log
             target/conduitos/**/*.json
             target/conduitos/**/*.png
+            target/conduitos/x86_64/conduitos
           if-no-files-found: ignore
           retention-days: 7
   complete:
-    if: ${{ always() }}
-    needs: [preflight, unit, target]
+    if: ${{ always() && !cancelled() }}
+    needs: [preflight, unit, admission, target]
     runs-on: ubuntu-24.04
     steps:
       - name: Require every selected lane
         env:
           PREFLIGHT: ${{ needs.preflight.result }}
+          EXHAUSTIVE: ${{ inputs.exhaustive }}
           DOCS_ONLY: ${{ needs.preflight.outputs.docs-only }}
+          ADMISSION: ${{ needs.admission.result }}
+          HAS_TARGETS: ${{ needs.preflight.outputs.has-targets }}
           UNIT: ${{ needs.unit.result }}
           TARGET: ${{ needs.target.result }}
         run: |
           test "$PREFLIGHT" = success
-          if test "$DOCS_ONLY" != true; then
+          if test "$EXHAUSTIVE" = true && test "$DOCS_ONLY" != true; then
             test "$UNIT" = success
+          elif test "$DOCS_ONLY" != true; then
+            test "$ADMISSION" = success
+          fi
+          if test "$HAS_TARGETS" = true; then
             test "$TARGET" = success
           fi

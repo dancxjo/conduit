@@ -6,7 +6,7 @@ use crate::{
 };
 use conduit_body::{Body, BodyWorkset, Wake};
 
-pub(super) fn fixture() -> (BootIdentities, HostOffer<'static>) {
+pub(crate) fn fixture() -> (BootIdentities, HostOffer<'static>) {
     let identities = BootIdentities {
         host: [1; 32],
         boot: [2; 32],
@@ -38,7 +38,7 @@ pub(super) fn fixture() -> (BootIdentities, HostOffer<'static>) {
     (identities, offer)
 }
 
-pub(super) fn wake(plots: &[NativePlot]) -> Wake {
+pub(crate) fn wake(plots: &[NativePlot]) -> Wake {
     let workset =
         BodyWorkset::from_plots(plots.iter().map(|plot| resident(*plot).unwrap())).unwrap();
     Body::born_with_plots(workset, 1, "sign/born".into())
@@ -61,7 +61,7 @@ fn native_inventory_preserves_existing_plots_and_adds_the_canonical_tour_identit
     assert_ne!(canvas, resident(NativePlot::MemoryLantern).unwrap());
     assert_eq!(
         NativePlot::MemoryLantern.source(),
-        include_str!("../../../../plots/memory-lantern/main.conduit")
+        include_str!("../../../../plots/memory-lantern/keyboard-only.conduit")
     );
     assert_eq!(
         NativePlot::Tour.source(),
@@ -174,7 +174,7 @@ fn four_plots_reserve_exact_input_deliveries_from_one_initialized_keyboard() {
             );
             assert_eq!(
                 owner.value_kind.as_str(),
-                conduit_presentation::APPLICATION_EVENT_INFO_ID
+                conduit_face::APPLICATION_EVENT_INFO_ID
             );
             assert_eq!(
                 source.implementation_id.as_str(),

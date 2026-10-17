@@ -3,8 +3,8 @@
 use crate::{
     machine::KernelInterest,
     text_kernel_backs::{
-        LiteralBack, LiteralState, PlannedBack, PresentationBack, TickPresentationBack, TimerBack,
-        TimerState, UpperBack,
+        FaceBack, LiteralBack, LiteralState, PlannedBack, TickFaceBack, TimerBack, TimerState,
+        UpperBack,
     },
 };
 use conduit_core::{ConfigurationValue, PlanFragment};
@@ -46,9 +46,11 @@ type Scheduler = FixedScheduler<
 pub struct DualRegionKernel {
     scheduler: Scheduler,
     timer_node: NodeId,
-    tick_presentation_node: NodeId,
+    tick_face_node: NodeId,
     upper_node: NodeId,
-    text_presentation_node: NodeId,
+    text_face_node: NodeId,
+    #[cfg(conduitos_protected_execution)]
+    protected: Option<crate::text_protection::ProtectedText>,
 }
 
 impl DualRegionKernel {
@@ -59,11 +61,9 @@ impl DualRegionKernel {
         validate_shape(fragment, lowered)?;
         let literal_index = placement_index(fragment, conduit_text::TEXT_LITERAL_KIND)?;
         let upper_index = placement_index(fragment, conduit_text::TEXT_UPPER_KIND)?;
-        let text_presentation_index =
-            placement_index(fragment, conduit_semantic_catalog::TEXT_PRESENTATION_KIND)?;
+        let text_face_index = placement_index(fragment, conduit_semantic_catalog::TEXT_FACE_KIND)?;
         let timer_index = placement_index(fragment, conduit_semantic_catalog::TICK_KIND)?;
-        let tick_presentation_index =
-            placement_index(fragment, conduit_semantic_catalog::TICK_PRESENTATION_KIND)?;
+        let tick_face_index = placement_index(fragment, conduit_semantic_catalog::TICK_FACE_KIND)?;
 
         let literal = configured_text(&fragment.placements[literal_index].configuration, "value")?;
         let period_ms =
@@ -110,7 +110,7 @@ impl DualRegionKernel {
             pending: false,
             emitted: false,
         }));
-        drivers[text_presentation_index] = Some(PlannedBack::Presentation(PresentationBack {
+        drivers[text_face_index] = Some(PlannedBack::Face(FaceBack {
             pending: false,
             complete: false,
         }));
@@ -119,11 +119,10 @@ impl DualRegionKernel {
             tick,
             state: TimerState::Waiting,
         }));
-        drivers[tick_presentation_index] =
-            Some(PlannedBack::TickPresentation(TickPresentationBack {
-                pending: false,
-                complete: false,
-            }));
+        drivers[tick_face_index] = Some(PlannedBack::TickFace(TickFaceBack {
+            pending: false,
+            complete: false,
+        }));
         let drivers = drivers
             .into_iter()
             .collect::<Option<alloc::vec::Vec<_>>>()
@@ -137,9 +136,11 @@ impl DualRegionKernel {
                 nodes, cords, routes, bindings, drivers, values, signs,
             )?,
             timer_node: NodeId(timer_index as u16),
-            tick_presentation_node: NodeId(tick_presentation_index as u16),
+            tick_face_node: NodeId(tick_face_index as u16),
             upper_node: NodeId(upper_index as u16),
-            text_presentation_node: NodeId(text_presentation_index as u16),
+            text_face_node: NodeId(text_face_index as u16),
+            #[cfg(conduitos_protected_execution)]
+            protected: None,
         })
     }
 
@@ -153,6 +154,91 @@ impl DualRegionKernel {
 
     pub fn host_value(&self, value: ValueRef) -> Result<&[u8], SchedulerError> {
         self.scheduler.host_value(value)
+    }
+
+    #[cfg(conduitos_protected_execution)]
+    pub(crate) fn protect(
+        &mut self,
+        plan: &conduit_core::Plan,
+        active: &conduit_core::ActivePlayIdentity,
+        fixed: &crate::offer::HostOffer<'_>,
+    ) -> Result<(), crate::composition::MachineRunError> {
+        let next = crate::text_protection::ProtectedText::prepare_with_kernel_bytes(
+            plan,
+            active,
+            fixed,
+            core::mem::size_of::<Self>(),
+        )?;
+        self.finish_protection(crate::protection_domain::KernelRevocationCause::PlanReplaced);
+        self.protected = Some(next);
+        Ok(())
+    }
+
+    pub(crate) fn compute_upper(
+        &mut self,
+        request: HostCallRequest,
+    ) -> Result<crate::text_upper::UppercaseText, crate::composition::MachineRunError> {
+        use crate::composition::MachineRunError as Error;
+        if !self.is_upper_request(&request) {
+            return Err(Error::UnexpectedHostCall);
+        }
+        let input = self
+            .scheduler
+            .host_value(request.input.value)
+            .map_err(|_| Error::KernelFailure)?;
+        #[cfg(conduitos_protected_execution)]
+        {
+            self.protected
+                .as_mut()
+                .ok_or(Error::KernelConstruction)?
+                .uppercase(input)
+        }
+        #[cfg(not(conduitos_protected_execution))]
+        {
+            crate::text_upper::uppercase(input).map_err(|error| match error {
+                crate::text_upper::UppercaseError::MalformedUtf8 => Error::TextMalformedUtf8,
+                crate::text_upper::UppercaseError::OutputOverflow => Error::TextOutputOverflow,
+            })
+        }
+    }
+
+    pub(crate) fn present_text(
+        &mut self,
+        request: HostCallRequest,
+        serial: &mut impl crate::machine::SerialBase,
+    ) -> Result<(), crate::composition::MachineRunError> {
+        use crate::composition::MachineRunError as Error;
+        if !self.is_text_face_request(&request) {
+            return Err(Error::UnexpectedHostCall);
+        }
+        let input = self
+            .scheduler
+            .host_value(request.input.value)
+            .map_err(|_| Error::KernelFailure)?;
+        core::str::from_utf8(input).map_err(|_| Error::SerialBaseFailure)?;
+        #[cfg(conduitos_protected_execution)]
+        {
+            self.protected
+                .as_mut()
+                .ok_or(Error::KernelConstruction)?
+                .present(input, serial)
+        }
+        #[cfg(not(conduitos_protected_execution))]
+        {
+            serial.present(input).map_err(|_| Error::SerialBaseFailure)
+        }
+    }
+
+    pub(crate) fn finish_protection(
+        &mut self,
+        cause: crate::protection_domain::KernelRevocationCause,
+    ) {
+        #[cfg(conduitos_protected_execution)]
+        if let Some(mut domain) = self.protected.take() {
+            domain.revoke(cause);
+        }
+        #[cfg(not(conduitos_protected_execution))]
+        let _ = cause;
     }
 
     pub fn is_timer_request(&self, request: &HostCallRequest) -> bool {
@@ -211,21 +297,16 @@ impl DualRegionKernel {
         )
     }
 
-    pub fn is_text_presentation_request(&self, request: &HostCallRequest) -> bool {
-        request.node == self.text_presentation_node && request.call == conduit_kernel::HostCallId(0)
+    pub fn is_text_face_request(&self, request: &HostCallRequest) -> bool {
+        request.node == self.text_face_node && request.call == conduit_kernel::HostCallId(0)
     }
 
-    pub fn is_tick_presentation_request(&self, request: &HostCallRequest) -> bool {
-        request.node == self.tick_presentation_node && request.call == conduit_kernel::HostCallId(0)
+    pub fn is_tick_face_request(&self, request: &HostCallRequest) -> bool {
+        request.node == self.tick_face_node && request.call == conduit_kernel::HostCallId(0)
     }
 
-    pub fn complete_presentation(
-        &mut self,
-        request: HostCallRequest,
-    ) -> Result<(), SchedulerError> {
-        if !self.is_text_presentation_request(&request)
-            && !self.is_tick_presentation_request(&request)
-        {
+    pub fn complete_face(&mut self, request: HostCallRequest) -> Result<(), SchedulerError> {
+        if !self.is_text_face_request(&request) && !self.is_tick_face_request(&request) {
             return Err(SchedulerError::InvalidHostCallAccess);
         }
         self.scheduler.complete_host_call(
@@ -240,6 +321,7 @@ impl DualRegionKernel {
     }
 
     pub fn cancel(&mut self) -> Result<(), SchedulerError> {
+        self.finish_protection(crate::protection_domain::KernelRevocationCause::PlayCancelled);
         self.scheduler.cancel()
     }
 

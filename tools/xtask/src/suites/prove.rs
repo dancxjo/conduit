@@ -71,6 +71,16 @@ pub const PROVE_EMERGENCY_CONTROL_STEPS: &[Step] = &[
 
 pub const PROVE_RECURSIVE_RECOVERY_STEPS: &[Step] = &[
     Step::typed(
+        "prove.recursive-recovery.source-owner",
+        "Prove selected Source Backs retain their checked private context without granting caller authority",
+        "cargo",
+        &["test", "--locked", "-p", "conduit-plot", "--test", "source_back_owner_context"],
+        None,
+        None,
+        Some(ProofClass::DeterministicUnit),
+        &[],
+    ),
+    Step::typed(
         "prove.recursive-recovery.vertical",
         "Prove bounded full-profile recovery from a lost direct implementation through an exact cross-host Back",
         "cargo",
@@ -231,7 +241,7 @@ pub const PROVE_LOCAL_MODEL_POOL_STEPS: &[Step] = &[
         "prove.local-model-pool.plan-play",
         "Prove two exact llm/generate Hosts use bounded in-Plan selection, refusal, and fresh replanning truth",
         "cargo",
-        &["test", "-p", "conduit-planner", "--test", "local_model_pool"],
+        &["test", "-p", "conduit-planner", "--test", "local_model_pool", "--test", "replan_triggers"],
         None,
         None,
         Some(ProofClass::HostedIntegration),
@@ -271,8 +281,8 @@ pub const PROVE_LLM_EMBODIMENT_STEPS: &[Step] = &[
         &[],
     ),
     Step::typed(
-        "prove.llm-embodiment.presentation",
-        "Prove Patchbay Presentation distinguishes Plots, Ports, Cords, proposals, decisions, and effect Signs",
+        "prove.llm-embodiment.face",
+        "Prove Patchbay Face distinguishes Plots, Ports, Cords, proposals, decisions, and effect Signs",
         "cargo",
         &["test", "-p", "conduit-patchbay-workbench", "--test", "llm_embodiment"],
         None,
@@ -282,7 +292,7 @@ pub const PROVE_LLM_EMBODIMENT_STEPS: &[Step] = &[
     ),
     Step::typed(
         "prove.llm-embodiment.patchbay-build",
-        "Build the isolated shared-Presentation Patchbay documentary fixture",
+        "Build the isolated shared-Face Patchbay documentary fixture",
         "cargo",
         &["build", "-p", "conduit-browser-patchbay-workbench"],
         None,
@@ -427,7 +437,8 @@ pub const PROVE_BODY_MEMBERSHIP_STEPS: &[Step] = &[
         Some("wasm32-unknown-unknown"),
         Some(ProofClass::ContractCompile),
         &["proof/browser/conduit_browser_runtime.wasm"],
-    ),
+    )
+    .with_environment(&crate::process::BROWSER_RELEASE_ENVIRONMENT),
     Step::typed(
         "prove.body-membership.browser-servers",
         "Build bounded browser chat and Body admission Line servers",
@@ -511,7 +522,8 @@ pub const PROVE_BODY_MEMBERSHIP_HIL_BROWSER_STEPS: &[Step] = &[
         Some("wasm32-unknown-unknown"),
         Some(ProofClass::ContractCompile),
         &["proof/browser/conduit_browser_runtime.wasm"],
-    ),
+    )
+    .with_environment(&crate::process::BROWSER_RELEASE_ENVIRONMENT),
     Step::typed(
         "prove.body-membership-hil.native",
         "Build the native same-Body physical membership verifier",
@@ -585,7 +597,8 @@ pub const PROVE_STD_BROWSER_S4_STEPS: &[Step] = &[
         Some("wasm32-unknown-unknown"),
         Some(ProofClass::ContractCompile),
         &["proof/browser/conduit_browser_runtime.wasm"],
-    ),
+    )
+    .with_environment(&crate::process::BROWSER_RELEASE_ENVIRONMENT),
     Step::typed(
         "prove.std-browser-s4.patchbay-native-build",
         "Build native Patchbay distributed source artifact",
@@ -631,7 +644,8 @@ pub const PROVE_STD_BROWSER_TOGGLE_STEPS: &[Step] = &[
         Some("wasm32-unknown-unknown"),
         Some(ProofClass::ContractCompile),
         &["proof/browser/conduit_browser_runtime.wasm"],
-    ),
+    )
+    .with_environment(&crate::process::BROWSER_RELEASE_ENVIRONMENT),
     Step::typed(
         "prove.std-browser-toggle.playwright",
         "Run Playwright distributed toggle spec",
@@ -663,20 +677,13 @@ pub const PROVE_BROWSER_HOST_STEPS: &[Step] = &[
     ),
     Step::typed(
         "prove.browser-host.wasm-build",
-        "Build conduit-browser-runtime WASM artifact",
+        "Seal optimized browser runtime for standalone Host and static fixtures",
         "cargo",
-        &[
-            "build",
-            "-p",
-            "conduit-browser-runtime",
-            "--target",
-            "wasm32-unknown-unknown",
-            "--release",
-        ],
+        crate::commands::browser::RUNTIME_RELEASE_ARGS,
         None,
-        Some("wasm32-unknown-unknown"),
+        Some("wasm-opt"),
         Some(ProofClass::ContractCompile),
-        &["proof/browser/conduit_browser_runtime.wasm"],
+        &["target/browser-host-release/runtime.wasm"],
     ),
     Step::typed(
         "prove.browser-host.entrance-build",
@@ -687,19 +694,6 @@ pub const PROVE_BROWSER_HOST_STEPS: &[Step] = &[
         None,
         Some(ProofClass::ContractCompile),
         &["target/debug/conduit-browser-host"],
-    ),
-    Step::typed(
-        "prove.browser-host.patchbay-native-build",
-        "Build native Patchbay distributed source artifact",
-        "cargo",
-        &["build", "-p", "patchbay-native"],
-        None,
-        None,
-        Some(ProofClass::ContractCompile),
-        &[
-            "target/debug/patchbay-native",
-            "target/debug/browser-parts-capstone",
-        ],
     ),
     Step::typed(
         "prove.browser-host.conduit-browser-patchbay-workbench-build",
@@ -794,6 +788,22 @@ pub const PROVE_BROWSER_HOST_STEPS: &[Step] = &[
         &["target/debug/browser-body-camera-realization-capstone"],
     ),
     Step::typed(
+        "prove.browser-host.text-lab-live-server-build",
+        "Build the live Text Lab server used by the HTML Patchbay matrix",
+        "cargo",
+        &[
+            "build",
+            "-p",
+            "conduit-std-host",
+            "--bin",
+            "text-lab-live-server",
+        ],
+        None,
+        None,
+        Some(ProofClass::ContractCompile),
+        &["target/debug/text-lab-live-server"],
+    ),
+    Step::typed(
         "prove.browser-host.playwright",
         "Run browser host test suite",
         "npm",
@@ -802,7 +812,8 @@ pub const PROVE_BROWSER_HOST_STEPS: &[Step] = &[
         Some("playwright"),
         Some(ProofClass::LiveBrowser),
         &[],
-    ),
+    )
+    .with_environment(crate::commands::browser::RUNTIME_ENVIRONMENT),
     Step::typed(
         "prove.browser-host.conduit-browser-patchbay-workbench-matrix",
         "Run read-only HTML Patchbay browser matrix",
@@ -868,7 +879,7 @@ pub const PROVE_PATCHBAY_FRONT_DOOR_STEPS: &[Step] = &[
         Some("wasm32-unknown-unknown"),
         Some(ProofClass::ContractCompile),
         &["proof/browser/conduit_browser_runtime.wasm"],
-    ),
+    ).with_environment(&crate::process::BROWSER_RELEASE_ENVIRONMENT),
     Step::typed(
         "prove.patchbay-front-door.artifacts",
         "Build the native, HTML, and live front-door capstone artifacts",

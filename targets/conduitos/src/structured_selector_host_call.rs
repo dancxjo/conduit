@@ -20,6 +20,12 @@ pub fn offer(
         maximum_prepared_canonical_value_bytes(ty)
             .map_err(|_| StructuredInfoRefusal::MalformedCanonicalEncoding)
     };
+    let input_bytes = bound(selector.input_type())?;
+    let output_bytes = bound(selector.output_type())?;
+    // The native one-value operation needs only its exact frame envelope.
+    // Advertising the generic Kind ceiling would inflate every kernel slot.
+    let mut limits = contract.limits.clone();
+    limits.max_queue_bytes = limits.max_queue_bytes.min(input_bytes.max(output_bytes));
     Ok(BackOfferBuilder::new(
         contract,
         Back {
@@ -31,13 +37,15 @@ pub fn offer(
                 contract_id: HostCallContractId::from(CALL),
                 target_kind: Some(kind),
                 maximum_in_flight: 1,
-                maximum_input_bytes: bound(selector.input_type())?,
-                maximum_output_bytes: bound(selector.output_type())?,
+                maximum_input_bytes: input_bytes,
+                maximum_output_bytes: output_bytes,
             }],
             resource_requirements: Vec::new(),
             authority_requirements: Vec::new(),
         },
     )
+    .narrow_capacity(limits)
+    .map_err(|_| StructuredInfoRefusal::MalformedCanonicalEncoding)?
     .build())
 }
 

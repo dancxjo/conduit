@@ -1,7 +1,7 @@
 //! Fixed Backs for the native Tour fan-out/Morse Play.
 
 use crate::text_kernel_backs::{
-    LiteralBack, PresentationBack, StepDetails, UpperBack, step_sink, step_transform,
+    FaceBack, LiteralBack, StepDetails, UpperBack, step_sink, step_transform,
 };
 use conduit_kernel::RequestId;
 use conduit_kernel::scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome};
@@ -34,7 +34,7 @@ pub(super) struct LeafBack {
 pub(super) enum TourMorseBack {
     Literal(LiteralBack),
     Upper(UpperBack),
-    TextPresentation(PresentationBack),
+    TextFace(FaceBack),
     Morse(MorseBack),
     Indicator(IndicatorBack),
     Leaf(LeafBack),
@@ -49,7 +49,7 @@ impl StepBack<PORTS> for TourMorseBack {
         match self {
             Self::Literal(back) => back.step(io),
             Self::Upper(back) => back.step(io),
-            Self::TextPresentation(back) => back.step(io),
+            Self::TextFace(back) => back.step(io),
             Self::Morse(back) => step_transform(
                 &mut back.pending,
                 &mut back.emitted,
@@ -99,7 +99,7 @@ impl StepBack<PORTS> for TourMorseBack {
         match self {
             Self::Literal(back) => back.state = crate::text_kernel_backs::LiteralState::Cancelled,
             Self::Upper(back) => back.pending = false,
-            Self::TextPresentation(back) => back.pending = false,
+            Self::TextFace(back) => back.pending = false,
             Self::Morse(back) => back.pending = false,
             Self::Indicator(back) => back.pending = false,
             Self::Leaf(back) => back.pending = false,

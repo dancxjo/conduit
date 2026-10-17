@@ -7,6 +7,14 @@ pub(super) fn validate(program: ProgramView<'_>) -> Result<(), Refusal> {
     if &program.root.value_type != program.output_type {
         return Err(Refusal::InvalidProgram);
     }
+    let mut representation = program.output_type;
+    while let StructuredInfoTypeShape::Nominal {
+        representation: inner,
+        ..
+    } = representation.shape()
+    {
+        representation = inner;
+    }
     match &program.root.operation {
         PortableExpressionOperation::Record(nodes) => {
             let StructuredInfoTypeShape::Record { fields, .. } = program.output_type.shape() else {
@@ -39,7 +47,7 @@ pub(super) fn validate(program: ProgramView<'_>) -> Result<(), Refusal> {
             }
         }
         PortableExpressionOperation::Collection(nodes) => {
-            let (element, minimum, maximum) = match program.output_type.shape() {
+            let (element, minimum, maximum) = match representation.shape() {
                 StructuredInfoTypeShape::Collection { element, length } => {
                     (element, length, length)
                 }

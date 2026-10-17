@@ -2,11 +2,12 @@
 //! Original Plan/fragment identities remain on each partition. This creates
 //! neither an authored plot nor a synthetic Plan and performs no scheduling.
 use crate::lowering::{
-    lower_plan_fragment_for_profile, KernelStorageProfile, LoweredPlanFragment, LoweringError,
+    lower_plan_fragment_for_profile, lower_plan_fragment_for_profile_from_plan,
+    KernelStorageProfile, LoweredPlanFragment, LoweringError,
 };
 use alloc::vec::Vec;
-use conduit_core::PlanFragment;
-use conduit_kernel::{CordEndpoint, SignExpectationTarget};
+use conduit_core::{Plan, PlanFragment, PortDirection, StateLifetime};
+use conduit_kernel::{CordEndpoint, RemoteEndpointId, SignExpectationTarget};
 
 #[derive(Clone, Copy, Debug)]
 pub struct FragmentSetBounds {
@@ -43,6 +44,8 @@ pub struct FragmentSetCapacityDeficit {
 pub struct LoweredFragmentSet {
     /// Numeric IDs are global to this set; string identities remain original.
     pub partitions: Vec<LoweredPlanFragment>,
+    /// Distinct fresh State cells admitted by the selected storage profile.
+    pub state_slots: u16,
     pub nodes: u16,
     pub cords: u16,
     pub queue_slots: u16,
@@ -60,6 +63,38 @@ pub fn lower_local_fragment_set(
     profile: KernelStorageProfile,
     bounds: FragmentSetBounds,
 ) -> Result<LoweredFragmentSet, FragmentSetError> {
+    lower_local_fragment_set_with(fragments, profile, bounds, |_, fragment| {
+        lower_plan_fragment_for_profile(fragment, profile)
+    })
+}
+
+/// Lower local fragments through their complete sealed Plans, preserving
+/// activation commitments that fragment-only PlanId verification cannot see.
+pub fn lower_local_fragment_set_from_plans(
+    plans: &[&Plan],
+    profile: KernelStorageProfile,
+    bounds: FragmentSetBounds,
+) -> Result<LoweredFragmentSet, FragmentSetError> {
+    let fragments = plans
+        .iter()
+        .map(|plan| {
+            plan.fragments
+                .first()
+                .filter(|_| plan.fragments.len() == 1)
+                .ok_or(FragmentSetError::Fragment(LoweringError::InvalidFragment))
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    lower_local_fragment_set_with(&fragments, profile, bounds, |index, fragment| {
+        lower_plan_fragment_for_profile_from_plan(plans[index], &fragment.fragment_id, profile)
+    })
+}
+
+fn lower_local_fragment_set_with(
+    fragments: &[&PlanFragment],
+    profile: KernelStorageProfile,
+    bounds: FragmentSetBounds,
+    mut lower: impl FnMut(usize, &PlanFragment) -> Result<LoweredPlanFragment, LoweringError>,
+) -> Result<LoweredFragmentSet, FragmentSetError> {
     let first = fragments.first().ok_or(FragmentSetError::Empty)?;
     if fragments.len() > usize::from(bounds.fragments) {
         return Err(capacity(
@@ -70,6 +105,7 @@ pub fn lower_local_fragment_set(
     }
     let mut result = LoweredFragmentSet {
         partitions: Vec::with_capacity(fragments.len()),
+        state_slots: 0,
         nodes: 0,
         cords: 0,
         queue_slots: 0,
@@ -79,6 +115,7 @@ pub fn lower_local_fragment_set(
     };
     let mut route_targets = 0_u16;
     let mut sign_expectations = 0_u16;
+    let mut fore_endpoints = 0_u16;
     for (index, fragment) in fragments.iter().enumerate() {
         if fragment.host_id != first.host_id
             || fragment.boot_id != first.boot_id
@@ -91,14 +128,34 @@ pub fn lower_local_fragment_set(
         }) {
             return Err(FragmentSetError::DuplicateFragment);
         }
-        let mut lowered = lower_plan_fragment_for_profile(fragment, profile)
-            .map_err(FragmentSetError::Fragment)?;
-        if !lowered.remote_endpoints.is_empty() {
+        let mut lowered = lower(index, fragment).map_err(FragmentSetError::Fragment)?;
+        if !lowered.remote_endpoints.is_empty()
+            || lowered
+                .fore_ports
+                .iter()
+                .any(|fore| fore.selected_line.is_some())
+        {
             return Err(FragmentSetError::RemoteUnsupported);
         }
-        if !lowered.states.is_empty() {
+        if lowered.states.iter().any(|state| {
+            state.contract.retained.is_some()
+                || !matches!(
+                    state.contract.lifetime,
+                    StateLifetime::Step | StateLifetime::Play
+                )
+        }) {
             return Err(FragmentSetError::StateUnsupported);
         }
+        // Each partition is individually admitted by the profile above. The
+        // same selected cell table must also contain their combined fresh State.
+        let next_state_slots = bounded(
+            "state-slots",
+            result.state_slots,
+            count("state-slots", lowered.states.len())?,
+            profile
+                .state_storage()
+                .map_or(0, |(instances, _)| instances),
+        )?;
         if !lowered.fusions.is_empty() {
             return Err(FragmentSetError::FusionUnsupported);
         }
@@ -164,15 +221,22 @@ pub fn lower_local_fragment_set(
             sign_expectations,
             count("sign-expectations", lowered.signs.len())?,
         )?;
+        let next_fore_endpoints = add(
+            "fore-endpoints",
+            fore_endpoints,
+            count("fore-endpoints", lowered.fore_ports.len())?,
+        )?;
         reindex(
             &mut lowered,
             result.nodes,
             result.cords,
-            result.queue_slots,
+            (result.queue_slots, result.state_slots),
             route_targets,
             sign_expectations,
+            fore_endpoints,
         )?;
         result.partitions.push(lowered);
+        result.state_slots = next_state_slots;
         result.nodes = next_nodes;
         result.cords = next_cords;
         result.queue_slots = next_slots;
@@ -181,6 +245,7 @@ pub fn lower_local_fragment_set(
         result.sign_bytes = next_sign_bytes;
         route_targets = next_targets;
         sign_expectations = next_expectations;
+        fore_endpoints = next_fore_endpoints;
     }
     Ok(result)
 }
@@ -219,9 +284,17 @@ fn bounded(
         Ok(value)
     }
 }
-fn endpoint(endpoint: &mut CordEndpoint, nodes: u16) -> Result<(), FragmentSetError> {
+fn endpoint(
+    endpoint: &mut CordEndpoint,
+    nodes: u16,
+    fore_offset: u16,
+    expected_fore: Option<RemoteEndpointId>,
+) -> Result<(), FragmentSetError> {
     match endpoint {
         CordEndpoint::Local { node, .. } => node.0 = add("node-index", node.0, nodes)?,
+        CordEndpoint::Remote(id) if Some(*id) == expected_fore => {
+            id.0 = add("fore-endpoint-index", id.0, fore_offset)?;
+        }
         CordEndpoint::Remote(_) => return Err(FragmentSetError::RemoteUnsupported),
     }
     Ok(())
@@ -231,9 +304,10 @@ fn reindex(
     part: &mut LoweredPlanFragment,
     nodes: u16,
     cords: u16,
-    slots: u16,
+    slots: (u16, u16),
     targets: u16,
     signs: u16,
+    fore_offset: u16,
 ) -> Result<(), FragmentSetError> {
     for node in &mut part.nodes {
         node.node.0 = add("node-index", node.node.0, nodes)?;
@@ -247,18 +321,38 @@ fn reindex(
         }
     }
     for cord in &mut part.cords {
+        let local_cord = cord.spec.cord;
+        let input_fore = part
+            .fore_ports
+            .iter()
+            .find(|fore| fore.cord == local_cord && fore.direction == PortDirection::Input)
+            .map(|fore| fore.endpoint);
+        let output_fore = part
+            .fore_ports
+            .iter()
+            .find(|fore| fore.cord == local_cord && fore.direction == PortDirection::Output)
+            .map(|fore| fore.endpoint);
         cord.spec.cord.0 = add("cord-index", cord.spec.cord.0, cords)?;
-        cord.spec.slot_start = add("queue-slot-index", cord.spec.slot_start, slots)?;
-        endpoint(&mut cord.spec.source, nodes)?;
-        endpoint(&mut cord.spec.sink, nodes)?;
+        cord.spec.slot_start = add("queue-slot-index", cord.spec.slot_start, slots.0)?;
+        endpoint(&mut cord.spec.source, nodes, fore_offset, input_fore)?;
+        endpoint(&mut cord.spec.sink, nodes, fore_offset, output_fore)?;
     }
     for route in &mut part.routes {
         route.source_node.0 = add("node-index", route.source_node.0, nodes)?;
         route.range.start = add("route-target-index", route.range.start, targets)?;
         for target in &mut route.targets {
+            let output_fore = part
+                .fore_ports
+                .iter()
+                .find(|fore| fore.cord == target.cord && fore.direction == PortDirection::Output)
+                .map(|fore| fore.endpoint);
             target.cord.0 = add("cord-index", target.cord.0, cords)?;
-            endpoint(&mut target.sink, nodes)?;
+            endpoint(&mut target.sink, nodes, fore_offset, output_fore)?;
         }
+    }
+    for state in &mut part.states {
+        state.slot = add("state-slot-index", state.slot, slots.1)?;
+        state.node.0 = add("node-index", state.node.0, nodes)?;
     }
     for call in &mut part.host_calls {
         call.node.0 = add("node-index", call.node.0, nodes)?;
@@ -290,6 +384,14 @@ fn reindex(
     for (cord, _) in &mut part.identity.connections {
         cord.0 = add("cord-index", cord.0, cords)?;
     }
+    for fore in &mut part.fore_ports {
+        fore.endpoint.0 = add("fore-endpoint-index", fore.endpoint.0, fore_offset)?;
+        fore.cord.0 = add("cord-index", fore.cord.0, cords)?;
+    }
+    for fore in &mut part.identity.fore_endpoints {
+        fore.endpoint.0 = add("fore-endpoint-index", fore.endpoint.0, fore_offset)?;
+        fore.cord.0 = add("cord-index", fore.cord.0, cords)?;
+    }
     for (node, _, _) in &mut part.identity.host_calls {
         node.0 = add("node-index", node.0, nodes)?;
     }
@@ -300,4 +402,19 @@ fn reindex(
         node.0 = add("node-index", node.0, nodes)?;
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn unknown_remote_endpoint_is_not_mistaken_for_a_local_fore() {
+        let mut foreign = CordEndpoint::Remote(RemoteEndpointId(7));
+        assert_eq!(
+            endpoint(&mut foreign, 1, 2, Some(RemoteEndpointId(0))),
+            Err(FragmentSetError::RemoteUnsupported)
+        );
+        assert_eq!(foreign, CordEndpoint::Remote(RemoteEndpointId(7)));
+    }
 }

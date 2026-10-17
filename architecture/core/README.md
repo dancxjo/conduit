@@ -13,9 +13,11 @@ depends on semantic, application, target, or proof packages.
 | `base_registry.rs` | universal architecture | Bounded thin-host truth for exact base provider identity, generation, lifecycle, enforcement class, and ordinary capability/resource offer aggregation; no planning, authority issuance, or effects. |
 | `base_capability.rs` | universal architecture | Opaque issuer-private base capability possession, exact per-play scope narrowing, finite operation leases, revocation, and non-secret lifecycle inspection. |
 | `capability_offer.rs` | universal architecture | Generic bounded host capability offers, realization limits, and exact implementation, operation, resource, and authority requirements. |
+| `capability_offer_record.rs` | universal architecture | Exact Host/Boot capability offer record, including finite typed realization properties; semantic domains own their property meanings. |
 | `consequential_effect.rs` | universal architecture | Generic attended last-mile gating for bounded consequential physical effects, including exact resource generation, safety readiness, one-shot authority, uncertain outcomes, and safe disposition. |
 | `characteristic.rs` | universal architecture | Generic realization, resource, topology, base, and observation characteristics. |
 | `completion.rs` | universal architecture | Exact live-versus-semantic-completion policy sealed from checked plot meaning into plan and fragment identity. |
+| `data_label.rs` | universal architecture | Bounded explicit construction names carried separately from typed data; validation and required startup declarations. |
 | `configuration.rs` | universal architecture | Generic bounded configuration values carried by checked plots and plans. |
 | `flow_semantic_laws.rs` | universal architecture | Finite flow transformation laws and value contracts shared by checking, planning and realization. |
 | `control_loop.rs` | universal architecture | Generic plan satisfaction, recovery, and replan decisions over current truth. |
@@ -29,6 +31,8 @@ depends on semantic, application, target, or proof packages.
 | `plan_realization.rs` | universal architecture | Exact reusable back identity retained in an expanded plot and plan. |
 | `planned_activation.rs` | universal architecture | Exact bounded activation of one recursively verified selected Plan, including owner, Value fronts, finite pressure, effect multiplicity, terminal and cancellation laws, and per-activation Sign storage. |
 | `planned_gear.rs` | universal architecture | Checked named-field construction and minimum identity validation for one fully selected Gear in a Plan. |
+| `planned_gear_record.rs` | universal architecture | One selected Gear record retaining exact implementation, admission, and realization properties in its Plan identity. |
+| `realization_properties.rs` | universal architecture | Finite profile-keyed realization property validation, unique profile identities, canonical byte bounds, and generic requirement validation. |
 | `port.rs` | universal architecture | Typed port direction and temporal shape. |
 | `preparation.rs` | universal architecture | Finite cross-host admission before one exact plan starts. |
 | `resource_content.rs`, `resource_canonical.rs`, `resource.rs`, `resource_port.rs` | universal architecture | Generic resource requirements, offers, observations, bindings, compute topology, and the checked distinction between serializable info ports and unforgeable resource-authority ports. |
@@ -50,14 +54,23 @@ depends on semantic, application, target, or proof packages.
 | `info.rs` | generic value mechanism | Minimal bool/scalar envelopes, decode refusal, and semantic digest used by unrelated domains. |
 | `primitive_info.rs` | generic value mechanism | Closed canonical primitive identity registry plus allocation-free validation and count encoding. |
 | `value_constraint.rs` | generic value mechanism | Exact finite reusable value contracts, deterministic refusal, and portable bounded text-pattern automata shared by checking, planning, Faces, and Hosts. |
+| `exact_numeric.rs` and children | generic value mechanism | Fixed-extent rational denotation and optional rational Quantity coordinates with canonical codecs, explicit bounded limb work and type-safe integer projections; physical Unit conversion and numerical realization remain separate. |
 | `fixed_integer.rs` | generic value mechanism | Exact fixed-width signed and unsigned integer values, encoding, and checked arithmetic. |
 | `ieee_float.rs` | generic value mechanism | Exact IEEE-754 binary32/binary64 bit identity, canonical little-endian encoding, finite classification, and total ordering without target-native equality drift. |
 | `kind_effects.rs` | universal architecture | Reviewed semantic effect facts used to admit pure Kind calls without inferring behavior from names. |
 | `retry_evidence.rs` | universal architecture | Finite provider-owned retained evidence for one exact semantic operation, prior realization, and retry law; proves eligibility without inventing a retry loop or treating Step failure as semantic terminal truth. |
-| `quantity.rs` | generic value mechanism | Exact finite dimensioned quantity and exact-only conversion used across unrelated domains. |
+| `quantity.rs` and children | generic value mechanism | One canonical bounded decimal Quantity codec carrying its full Unit descriptor, exact literals, physical comparison and rational conversion. |
+| `physical_definition.rs` and children | generic value mechanism | Self-contained immutable family, dimension, role and Unit capsules admitted from authoritative Conduitese definitions; bounded exact scalar and explicit prefix policies. |
+| `quantity_suffix.rs` | generic value mechanism | Borrowed source evidence checked against the embedded Unit descriptor, with generated built-in convenience resolution. |
+| `unit.rs` | generic value mechanism | Standalone bounded physical Unit codec carrying complete declaration identity, reference anchor, exact affine law and admitted spelling. |
+| `dimension.rs` | generic value mechanism | Standalone versioned normalized Dimension codec and finite composition, independent of Unit coordinates and nominal quantity families. |
+| `quantity_configuration.rs` | generic value mechanism | Checked exact Quantity, physical Unit and temperature-difference startup values with separate bounded source evidence. |
 | `structured_info.rs` and children | generic value mechanism | Finite canonical structured type/value, selection, inspection, transport, and profile machinery. |
 | `temporal.rs` | generic value mechanism | Exact finite temporal identity, instant, relation, and offset-only civil primitives without clocks or timezone databases. |
 | `temporal_clock.rs` | generic mechanism | Explicit host/boot monotonic-clock identity and wall-clock correlation truth. |
+| `body_time.rs` | generic mechanism | Bounded Host-local to BodyTime correlation, drift estimation, non-regressing reconciliation, and physical interval relation. |
+| `body_time_exchange.rs` | generic mechanism | Four-stamp peer exchange and exact Body, Host, Boot, policy, and generation checks. |
+| `body_time_quality.rs` | generic mechanism | Typed uncertainty tolerance and finite-horizon quality admission with execution bounds. |
 | `temporal_civil_conversion.rs` | generic value mechanism | Exact offset-only conversion between retained temporal primitives. |
 | `temporal_quantity.rs` | generic value mechanism | Exact conversion between generic temporal scales and quantities. |
 

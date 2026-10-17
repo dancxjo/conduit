@@ -1,0 +1,362 @@
+{
+  "command_info_kind": "conduit.todo/command@1",
+  "command_maximum_bytes": 75,
+  "first": {
+    "body_id": "41f222e0c2513e8d8de29d24e3a079e6df245305929a419fb136134d37545561",
+    "checked_plot_id": "24f29c55b9f8adc95e7020735eb53d7c5f6630dcb4cc1ad639883e908fe135c6",
+    "child_invocations": 7,
+    "command_sha256": [
+      "sha256:9a8a150b1c75ab68fa0ef7546378ad72fb39d2cd9ce0dd1134ae0d4ad01bb8b7",
+      "sha256:5d9412e2105e2e8200cf6b965be41ee531fd4ba1e80b34c5723bac2cf4c93fee",
+      "sha256:df71d0f7b576fdc6c7db6cef5f48c2da39accb1e91da683004c08efeb58371d3",
+      "sha256:a69ae0b18f206c21f46634585d99ca9e548d04950322e8135b917a5b7277713c",
+      "sha256:a69ae0b18f206c21f46634585d99ca9e548d04950322e8135b917a5b7277713c",
+      "sha256:21831a9f84d866ddd632b6808c3b0161734b58ca778218fd2c88355fa4cf8da6",
+      "sha256:4ec6e6ae2f35104b4d4157c0548382df1e26fb56622958ef9e24308447cfac06"
+    ],
+    "failure": null,
+    "initial_state_sha256": "sha256:2bfbceb30af5ab3a67a02b70d7fba1496c90a3d8fe53a19792797d602b72dd3a",
+    "plan_id": "body-plan/sha256:b6d67e6856b4c9d87968bfe9d92cc7b2e04214370a02d08424c299dcb6411391",
+    "play": {
+      "active_play_id": "body-play/sha256:2577d25d2fca05e4b742b73aef43ad5b4f8b2e4e9decf06338dcd1422c2ec8a2",
+      "body_id": "41f222e0c2513e8d8de29d24e3a079e6df245305929a419fb136134d37545561",
+      "plan_id": "body-plan/sha256:b6d67e6856b4c9d87968bfe9d92cc7b2e04214370a02d08424c299dcb6411391",
+      "play_sequence": 0,
+      "wake_id": "ad699d22dfa7c4d60d788534ea57ddb45ec4828040cd70a60d3e58c6a138a3c0"
+    },
+    "source_document_id": "198060b0dca63aa5c718754aff6c87db22baab34196844fbcb27fa63a04c890d",
+    "states": [
+      {
+        "items": [
+          {
+            "complete": false,
+            "id": "task-1",
+            "text": "Milk"
+          }
+        ],
+        "next_id": 2,
+        "revision": 1,
+        "sha256": "sha256:d677c15373f7a4750d8d1e5af3483eb88dcca61ce102aac9f2b775d5c3fa079d",
+        "title": "Groceries"
+      },
+      {
+        "items": [
+          {
+            "complete": false,
+            "id": "task-1",
+            "text": "Milk"
+          },
+          {
+            "complete": false,
+            "id": "task-2",
+            "text": "Eggs"
+          }
+        ],
+        "next_id": 3,
+        "revision": 2,
+        "sha256": "sha256:8c97381dea3feea2b86156beba0a835f4439c12a28641f64a084b488d153198b",
+        "title": "Groceries"
+      },
+      {
+        "items": [
+          {
+            "complete": false,
+            "id": "task-1",
+            "text": "Milk"
+          },
+          {
+            "complete": false,
+            "id": "task-2",
+            "text": "Eggs"
+          },
+          {
+            "complete": false,
+            "id": "task-3",
+            "text": "Bread"
+          }
+        ],
+        "next_id": 4,
+        "revision": 3,
+        "sha256": "sha256:d5060edf07499d3bb9f410539f421df567c73758b17703da93e4f7a1804d4975",
+        "title": "Groceries"
+      },
+      {
+        "items": [
+          {
+            "complete": true,
+            "id": "task-1",
+            "text": "Milk"
+          },
+          {
+            "complete": false,
+            "id": "task-2",
+            "text": "Eggs"
+          },
+          {
+            "complete": false,
+            "id": "task-3",
+            "text": "Bread"
+          }
+        ],
+        "next_id": 4,
+        "revision": 4,
+        "sha256": "sha256:11ac0e37be11c298a5654b68270aca7290d4d24e6612a11ed588507e7a3a31be",
+        "title": "Groceries"
+      },
+      {
+        "items": [
+          {
+            "complete": true,
+            "id": "task-1",
+            "text": "Milk"
+          },
+          {
+            "complete": false,
+            "id": "task-2",
+            "text": "Eggs"
+          },
+          {
+            "complete": false,
+            "id": "task-3",
+            "text": "Bread"
+          }
+        ],
+        "next_id": 4,
+        "revision": 4,
+        "sha256": "sha256:11ac0e37be11c298a5654b68270aca7290d4d24e6612a11ed588507e7a3a31be",
+        "title": "Groceries"
+      },
+      {
+        "items": [
+          {
+            "complete": false,
+            "id": "task-1",
+            "text": "Milk"
+          },
+          {
+            "complete": false,
+            "id": "task-2",
+            "text": "Eggs"
+          },
+          {
+            "complete": false,
+            "id": "task-3",
+            "text": "Bread"
+          }
+        ],
+        "next_id": 4,
+        "revision": 5,
+        "sha256": "sha256:9c9abb9d27401a8b251c835f1a0c64432258b22a5a67099d5c5507551be0cd37",
+        "title": "Groceries"
+      },
+      {
+        "items": [
+          {
+            "complete": false,
+            "id": "task-1",
+            "text": "Milk"
+          },
+          {
+            "complete": false,
+            "id": "task-3",
+            "text": "Bread"
+          }
+        ],
+        "next_id": 4,
+        "revision": 6,
+        "sha256": "sha256:8b3ebc5638d334a8da49a3198d1b3a9b9ff5f832e47d729f5ff8fde0a4e5452f",
+        "title": "Groceries"
+      }
+    ],
+    "terminal": "Completed",
+    "terminal_sign": {
+      "active_play_id": "body-play/sha256:2577d25d2fca05e4b742b73aef43ad5b4f8b2e4e9decf06338dcd1422c2ec8a2",
+      "boot_id": "boot/todo-replay/first",
+      "host_id": "host/todo-replay/first",
+      "sequence": 2,
+      "sign_id": "749634cca56555c05e2d01504101873b7321903d063ade051ff044b25151d801"
+    }
+  },
+  "limits": "Two independent fresh-Body replay fixtures; no persistence, Masks or Host-change continuity claim",
+  "proof_class": "executable-hosted",
+  "schema": "conduit.test/todo-core-replay@1",
+  "second": {
+    "body_id": "e0d0b63d89065b4f4ae68bb21a91c2f67643b0749bbc9f91197ac4b0e400ff32",
+    "checked_plot_id": "24f29c55b9f8adc95e7020735eb53d7c5f6630dcb4cc1ad639883e908fe135c6",
+    "child_invocations": 7,
+    "command_sha256": [
+      "sha256:9a8a150b1c75ab68fa0ef7546378ad72fb39d2cd9ce0dd1134ae0d4ad01bb8b7",
+      "sha256:5d9412e2105e2e8200cf6b965be41ee531fd4ba1e80b34c5723bac2cf4c93fee",
+      "sha256:df71d0f7b576fdc6c7db6cef5f48c2da39accb1e91da683004c08efeb58371d3",
+      "sha256:a69ae0b18f206c21f46634585d99ca9e548d04950322e8135b917a5b7277713c",
+      "sha256:a69ae0b18f206c21f46634585d99ca9e548d04950322e8135b917a5b7277713c",
+      "sha256:21831a9f84d866ddd632b6808c3b0161734b58ca778218fd2c88355fa4cf8da6",
+      "sha256:4ec6e6ae2f35104b4d4157c0548382df1e26fb56622958ef9e24308447cfac06"
+    ],
+    "failure": null,
+    "initial_state_sha256": "sha256:2bfbceb30af5ab3a67a02b70d7fba1496c90a3d8fe53a19792797d602b72dd3a",
+    "plan_id": "body-plan/sha256:3195bac642467f23d43963dffae167858075f6d5cc48b43d4923c95eccc5146c",
+    "play": {
+      "active_play_id": "body-play/sha256:9d79e6ca1e2edada731b060f33446f689272dea842371cae0f274594fbc77005",
+      "body_id": "e0d0b63d89065b4f4ae68bb21a91c2f67643b0749bbc9f91197ac4b0e400ff32",
+      "plan_id": "body-plan/sha256:3195bac642467f23d43963dffae167858075f6d5cc48b43d4923c95eccc5146c",
+      "play_sequence": 0,
+      "wake_id": "18e5ad57222188a6ba55dc9ed9cc16ceeb8379ce87a7c4a8dd2e5be1ee6dce70"
+    },
+    "source_document_id": "198060b0dca63aa5c718754aff6c87db22baab34196844fbcb27fa63a04c890d",
+    "states": [
+      {
+        "items": [
+          {
+            "complete": false,
+            "id": "task-1",
+            "text": "Milk"
+          }
+        ],
+        "next_id": 2,
+        "revision": 1,
+        "sha256": "sha256:d677c15373f7a4750d8d1e5af3483eb88dcca61ce102aac9f2b775d5c3fa079d",
+        "title": "Groceries"
+      },
+      {
+        "items": [
+          {
+            "complete": false,
+            "id": "task-1",
+            "text": "Milk"
+          },
+          {
+            "complete": false,
+            "id": "task-2",
+            "text": "Eggs"
+          }
+        ],
+        "next_id": 3,
+        "revision": 2,
+        "sha256": "sha256:8c97381dea3feea2b86156beba0a835f4439c12a28641f64a084b488d153198b",
+        "title": "Groceries"
+      },
+      {
+        "items": [
+          {
+            "complete": false,
+            "id": "task-1",
+            "text": "Milk"
+          },
+          {
+            "complete": false,
+            "id": "task-2",
+            "text": "Eggs"
+          },
+          {
+            "complete": false,
+            "id": "task-3",
+            "text": "Bread"
+          }
+        ],
+        "next_id": 4,
+        "revision": 3,
+        "sha256": "sha256:d5060edf07499d3bb9f410539f421df567c73758b17703da93e4f7a1804d4975",
+        "title": "Groceries"
+      },
+      {
+        "items": [
+          {
+            "complete": true,
+            "id": "task-1",
+            "text": "Milk"
+          },
+          {
+            "complete": false,
+            "id": "task-2",
+            "text": "Eggs"
+          },
+          {
+            "complete": false,
+            "id": "task-3",
+            "text": "Bread"
+          }
+        ],
+        "next_id": 4,
+        "revision": 4,
+        "sha256": "sha256:11ac0e37be11c298a5654b68270aca7290d4d24e6612a11ed588507e7a3a31be",
+        "title": "Groceries"
+      },
+      {
+        "items": [
+          {
+            "complete": true,
+            "id": "task-1",
+            "text": "Milk"
+          },
+          {
+            "complete": false,
+            "id": "task-2",
+            "text": "Eggs"
+          },
+          {
+            "complete": false,
+            "id": "task-3",
+            "text": "Bread"
+          }
+        ],
+        "next_id": 4,
+        "revision": 4,
+        "sha256": "sha256:11ac0e37be11c298a5654b68270aca7290d4d24e6612a11ed588507e7a3a31be",
+        "title": "Groceries"
+      },
+      {
+        "items": [
+          {
+            "complete": false,
+            "id": "task-1",
+            "text": "Milk"
+          },
+          {
+            "complete": false,
+            "id": "task-2",
+            "text": "Eggs"
+          },
+          {
+            "complete": false,
+            "id": "task-3",
+            "text": "Bread"
+          }
+        ],
+        "next_id": 4,
+        "revision": 5,
+        "sha256": "sha256:9c9abb9d27401a8b251c835f1a0c64432258b22a5a67099d5c5507551be0cd37",
+        "title": "Groceries"
+      },
+      {
+        "items": [
+          {
+            "complete": false,
+            "id": "task-1",
+            "text": "Milk"
+          },
+          {
+            "complete": false,
+            "id": "task-3",
+            "text": "Bread"
+          }
+        ],
+        "next_id": 4,
+        "revision": 6,
+        "sha256": "sha256:8b3ebc5638d334a8da49a3198d1b3a9b9ff5f832e47d729f5ff8fde0a4e5452f",
+        "title": "Groceries"
+      }
+    ],
+    "terminal": "Completed",
+    "terminal_sign": {
+      "active_play_id": "body-play/sha256:9d79e6ca1e2edada731b060f33446f689272dea842371cae0f274594fbc77005",
+      "boot_id": "boot/todo-replay/second",
+      "host_id": "host/todo-replay/second",
+      "sequence": 2,
+      "sign_id": "b878644ad811af9562a94fbfd1d51ebab36d8541a49281b596c9976aa7417833"
+    }
+  },
+  "source_sha256": "sha256:dadfa13ffff7afd6b30c52dd03155a446b4d7c8900645f8d9882207368eb1f8f",
+  "state_info_kind": "conduit.todo/state@1",
+  "state_maximum_bytes": 1635
+}

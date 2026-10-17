@@ -1,0 +1,13 @@
+# Exact whole-revision metadata correlation, independent of playback authority.
+# Stable/committed scalar prefix admission remains validate_text_revision's owner.
+# An unchanged revision can support a new analysis without inventing text advance.
+type LanguageTextRevisionLineage = {
+    previous: LanguageTextRevision
+    next: LanguageTextRevision
+    where .previous.material.identity == .next.material.identity
+    where .previous.material.language == .next.material.language
+    where .previous == .next ? true : .previous.material.revision != .next.material.revision
+    where .previous == .next ? true : (.next.prior is some ? .next.prior.some.revision == .previous.material.revision : false)
+    where .previous == .next ? true : (.next.prior is some ? .next.prior.some.sequence == .previous.sequence : false)
+    where .previous == .next ? true : (.previous.sequence < 18446744073709551615 ? .next.sequence == .previous.sequence + 1 : false)
+}

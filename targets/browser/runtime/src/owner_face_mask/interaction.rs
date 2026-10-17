@@ -13,14 +13,14 @@ impl OwnerBrowserMask {
             return Err("owner interaction return is not admitted for this Show".into());
         }
         if proposed.show_id != self.show.show_id.as_str()
-            || proposed.face_id != self.presentation.identity.as_str()
-            || proposed.face_revision != self.presentation.revision.to_string()
+            || proposed.face_id != self.face.identity.as_str()
+            || proposed.face_revision != self.face.revision.to_string()
         {
             return Err("owner browser interaction has a stale Face or Show".into());
         }
         let action = self
-            .presentation
-            .resolve_action(self.presentation.revision, &proposed.action_id)
+            .face
+            .resolve_action(self.face.revision, &proposed.action_id)
             .map_err(|error| format!("owner browser action refused: {error:?}"))?;
         if action.target != proposed.target || action.arguments.len() != proposed.arguments.len() {
             return Err(
@@ -44,7 +44,7 @@ impl OwnerBrowserMask {
             })
             .collect::<Result<Vec<_>, &str>>()?;
         let interaction = FaceInteraction::new(
-            &self.presentation,
+            &self.face,
             &self.show,
             &proposed.action_id,
             &proposed.target,
@@ -56,27 +56,31 @@ impl OwnerBrowserMask {
         if bytes.len() > self.interaction_boundary.byte_capacity as usize {
             return Err("owner browser interaction exceeds its sealed Fore bound".into());
         }
+        let (node, request) = self
+            .pending_interaction
+            .ok_or("owner browser Mask interaction Fore is terminal")?;
         let value = self
             .scheduler
             .store_host_value(&bytes)
             .map_err(|error| format!("store owner browser interaction: {error:?}"))?;
-        let (node, request) = self
-            .pending_interaction
-            .take()
-            .ok_or("owner browser Mask interaction Fore is terminal")?;
-        self.scheduler
-            .complete_host_call(
-                node,
-                request,
-                HostCallOutcome {
-                    disposition: HostCallDisposition::Completed,
-                    output: Some(
-                        BoundedValueRef::new(value, MASK_BYTES).map_err(|_| "interaction bound")?,
-                    ),
-                    failure: None,
-                },
-            )
-            .map_err(|error| format!("complete owner browser interaction: {error:?}"))?;
+        let completion = self.scheduler.complete_host_call(
+            node,
+            request,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
+                output: Some(
+                    BoundedValueRef::new(value, MASK_BYTES).map_err(|_| "interaction bound")?,
+                ),
+                failure: None,
+            },
+        );
+        if let Err(error) = completion {
+            self.scheduler
+                .discard_host_value(value)
+                .map_err(|release| format!("release refused owner interaction: {release:?}"))?;
+            return Err(format!("complete owner browser interaction: {error:?}"));
+        }
+        self.pending_interaction = None;
         let offer = loop {
             if let Some(offer) = self
                 .scheduler

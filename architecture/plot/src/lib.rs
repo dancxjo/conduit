@@ -24,19 +24,36 @@ mod canonical_expansion;
 mod checked_syntax;
 mod diagnostic;
 mod ecmascript_binding;
+mod expression_angle_reference;
 mod expression_check;
 mod expression_definition;
 mod expression_evaluate;
+mod expression_f32;
+mod expression_inverse_trigonometry;
+pub use expression_inverse_trigonometry::inverse_angle_failure_detail;
+pub use expression_quantity::quantity_arithmetic_failure_detail;
 mod expression_numeric_type;
 mod expression_prepared;
 mod expression_program;
 mod expression_program_decode;
 mod expression_proof;
+mod expression_quantity;
 mod expression_semantic_call;
+mod expression_trigonometry;
 mod functional_front;
+mod glyph_notation;
+#[cfg(test)]
+mod glyph_notation_test_support;
 mod integer_literal;
+mod mathematical_value;
 mod native_type;
 mod package_bundle;
+pub use glyph_notation::{
+    admit_glyph_values, check_syntax_document_with_literal_constructors,
+    check_syntax_document_with_prepared_glyph_literals, resolve_glyph_notation_scope,
+    AdmittedGlyphValues, CheckedGlyphNotation, GlyphNotationScope, LiteralPreparationRefusal,
+    LiteralValueConstructor, PreparedGlyphLiteral, ScopedGlyphNotation,
+};
 #[cfg(test)]
 mod package_bundle_tests;
 mod package_check;
@@ -45,8 +62,20 @@ mod package_check_tests;
 mod package_resolution;
 #[cfg(test)]
 mod package_resolution_tests;
+mod physical_declarations;
 mod pure_expression;
+pub mod quantity_conversion;
+mod quantity_literal;
+pub use physical_declarations::*;
+pub mod dimension_operation;
+mod quoted_text_source;
+pub use quoted_text_source::{source_span, QuotedTextSourceMap};
 pub mod rust_binding;
+mod static_constructor;
+pub use static_constructor::{
+    prepare_static_constructor, PreparedStaticValue, StaticConstructorRefusal,
+    StaticValueConstructor,
+};
 mod structured_expression;
 mod structured_selector;
 mod structured_startup;
@@ -54,9 +83,12 @@ mod surface_lex;
 mod surface_parser;
 pub mod syntax;
 mod syntax_check;
+mod syntax_format;
+pub use syntax_format::*;
 mod syntax_highlight;
 mod syntax_identity;
 mod text_value;
+pub use text_value::text_startup_literal;
 mod type_form;
 mod value_pattern;
 mod value_pattern_lookahead;
@@ -379,6 +411,7 @@ impl From<&conduit_core::Kind> for KindProjection {
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct ProfileCatalog {
+    pub(crate) physical: crate::physical_declarations::CheckedPhysicalCatalogue,
     kinds: BTreeMap<KindId, KindProjection>,
     canonical_kinds: BTreeMap<KindId, conduit_core::Kind>,
     variadic_fores: BTreeMap<KindId, HomogeneousVariadicFore>,
@@ -547,8 +580,8 @@ impl ProfileCatalog {
     }
 
     /// Derives the startup names and defaults needed to check canonical source.
-    /// Structured startup types still require an explicitly assembled
-    /// [`StartupCatalog`].
+    /// Checked structured configuration defaults supply their exact Types and
+    /// canonical values. Additional authored Types require an assembled catalog.
     pub fn startup_catalog(&self) -> Result<StartupCatalog, String> {
         let mut startup = StartupCatalog::new();
         for definition in self.kinds.values() {
@@ -584,6 +617,11 @@ impl ProfileCatalog {
                     },
                 ),
             };
+            configuration_projection::install_structured_defaults(
+                &mut startup,
+                &signature,
+                &definition.configuration,
+            )?;
             startup.insert(signature)?;
             let fore = if let Some(kind) = canonical_kind {
                 kind.checked_front()
@@ -688,6 +726,16 @@ impl core::fmt::Display for PlotError {
 
 impl core::error::Error for PlotError {}
 
+/// Parse fixed literal glyph positions using only explicitly imported checked
+/// family metadata. This recognizes syntax; ordinary constructor admission is
+/// still required before any payload becomes checked Info.
+pub fn parse_syntax_document_with_glyph_notations(
+    source: &str,
+    startup: &StartupCatalog,
+) -> SyntaxDocument {
+    surface_parser::parse_surface_scoped(source, startup)
+}
+
 /// Parses the canonical `plot NAME (...) { ... }` surface without performing
 /// catalog lookup or semantic lowering.
 pub fn parse_syntax_document(source: &str) -> SyntaxDocument {
@@ -715,11 +763,11 @@ pub fn parse_with_startup(
     startup: &StartupCatalog,
     catalog: &ProfileCatalog,
 ) -> Result<CheckedPlot, PlotError> {
-    let syntax = parse_syntax_document(source);
+    let syntax = parse_syntax_document_with_glyph_notations(source, startup);
     if let Some(diagnostic) = syntax.diagnostics.first() {
         return Err(PlotError::InvalidSyntax(diagnostic.message.clone()));
     }
-    let checked = check_syntax_document(&syntax, startup)
+    let checked = check_syntax_document_with_literal_constructors(&syntax, startup, catalog)
         .map_err(|diagnostic| PlotError::InvalidSyntax(diagnostic.message))?;
     let entry = checked
         .plots
@@ -986,7 +1034,7 @@ fn validate_export_fronts(export: &CheckedExport, gears: &[CheckedGear]) -> Resu
                     matches!(
                         endpoint.temporal,
                         conduit_core::PortTemporal::Flow { closes: true }
-                    ) && front.external_port.value_kind.as_str() == conduit_core::UNIT_INFO_ID
+                    ) && front.external_port.value_kind.as_str() == conduit_core::EMPTY_INFO_ID
                         && front.external_port.temporal == conduit_core::PortTemporal::Value
                 }
                 conduit_core::ConnectionTrack::AbnormalTerminal => {
@@ -995,7 +1043,7 @@ fn validate_export_fronts(export: &CheckedExport, gears: &[CheckedGear]) -> Resu
                 }
                 conduit_core::ConnectionTrack::Quiescence => {
                     matches!(endpoint.temporal, conduit_core::PortTemporal::Flow { .. })
-                        && front.external_port.value_kind.as_str() == conduit_core::UNIT_INFO_ID
+                        && front.external_port.value_kind.as_str() == conduit_core::EMPTY_INFO_ID
                         && front.external_port.temporal == conduit_core::PortTemporal::Value
                 }
             };
@@ -1232,46 +1280,6 @@ fn push_identity_field(canonical: &mut String, value: &str) {
     canonical.push('|');
 }
 
-fn projected_startup_parameter(field: &KindConfigurationField) -> StartupParameterSignature {
-    StartupParameterSignature {
-        name: field.key.clone(),
-        value_type: match (&field.rule, &field.default_value) {
-            (
-                KindConfigurationRule::QuantityRange { canonical_unit, .. },
-                ConfigurationValue::Quantity(_),
-            ) => canonical_unit.dimension().info_id(),
-            (_, ConfigurationValue::Bool(_)) => "Boolean",
-            (_, ConfigurationValue::U64(_)) => "Count",
-            (_, ConfigurationValue::I64(_)) => "Scalar",
-            (_, ConfigurationValue::Text(_)) => "Text",
-            (_, ConfigurationValue::Structured(value)) => value.profile().as_str(),
-            (_, ConfigurationValue::Quantity(_)) => "Quantity",
-        }
-        .into(),
-        // A legacy projection has no independently declared callable Fore, so
-        // its historical configuration default remains the only available
-        // omission contract. Canonical Kinds take the stricter branch above.
-        default: Some(render_value(&field.default_value)),
-    }
-}
-
-fn render_value(value: &ConfigurationValue) -> String {
-    match value {
-        ConfigurationValue::Bool(value) => value.to_string(),
-        ConfigurationValue::U64(value) => value.to_string(),
-        ConfigurationValue::I64(value) => value.to_string(),
-        ConfigurationValue::Text(value) => format!("{value:?}"),
-        ConfigurationValue::Structured(value) => alloc::format!(
-            "<structured:{}:{}-bytes>",
-            value.profile().as_str(),
-            value.canonical_value().len()
-        ),
-        ConfigurationValue::Quantity(value) => {
-            alloc::format!("{}{}", value.value(), value.unit().plot_suffix())
-        }
-    }
-}
-
 fn hash_string(text: &str) -> String {
     let digest = Sha256::digest(text.as_bytes());
     let mut encoded = String::with_capacity(digest.len() * 2);
@@ -1307,3 +1315,13 @@ mod refinement_tests;
 
 #[cfg(test)]
 mod canonical_expansion_tests;
+
+mod source_type_preparation;
+pub use source_type_preparation::{prepare_source_types, PreparedSourceTypes};
+
+mod ieee_literal;
+
+mod authored_quantity;
+
+mod configuration_projection;
+use configuration_projection::{projected_startup_parameter, render_value};

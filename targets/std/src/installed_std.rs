@@ -1,8 +1,11 @@
 mod address_detect_back;
 mod alife_backs;
 mod alife_host;
+mod audio_pitch_analysis_back;
 mod audio_play_back;
+mod audio_spectral_analysis_back;
 mod audio_stream_budget;
+mod audio_time_analysis_back;
 mod audio_tone_back;
 mod back;
 mod back_capacity;
@@ -11,7 +14,8 @@ mod back_step;
 mod body_chat_prompt_back;
 mod body_conversation_context_back;
 pub(crate) mod body_kernel;
-mod bool_presentation;
+mod body_scan_back;
+mod bool_face;
 mod calendar_proposal_back;
 mod calendar_proposal_codec;
 pub(super) mod calendar_proposal_encoding;
@@ -44,10 +48,21 @@ mod image_text_record_back;
 mod indicator_host;
 mod input_semantic_backs;
 mod instrument_map_back;
+mod ipa_constructor_back;
+mod numerical_back;
+mod value_fore_outputs;
+pub(crate) use numerical_back::{offers as numerical_offers, owns_offer as owns_numerical_offer};
+pub(crate) mod parsec_instruction_source_admission;
+pub(crate) mod parsec_instruction_source_back;
+mod quantity_conversion_back;
+pub(super) use quantity_conversion_back::offers as quantity_conversion_offers;
+mod fusion;
 mod json_backs;
 mod json_summary_back;
 mod kernel_preparation;
 mod keyboard_input_back;
+mod keyboard_input_binding;
+mod keyboard_input_completion;
 mod keyboard_input_host;
 mod layout_backs;
 mod local_model_back;
@@ -82,12 +97,15 @@ mod combine_latest_back;
 mod current_sample_back;
 mod data_text_back;
 mod data_text_host;
+mod face_composition;
+mod face_construction_host;
 mod flow_collect_back;
 mod flow_join_by_key_back;
 mod flow_zip_back;
 mod fore_sign_storage;
-mod presentation_composition;
-mod presentation_construction_host;
+mod model_infer_back;
+mod model_work_back;
+mod model_work_host;
 mod pulse_observation_back;
 #[cfg(test)]
 mod pulse_observation_sink;
@@ -111,13 +129,13 @@ pub(super) mod rhythm_compare_host;
 mod robotics_backs;
 mod robotics_effect;
 mod sequence_normalization_back;
-mod simple_presentation_host;
+mod simple_face_host;
 mod speech_recognition_adapter_back;
 mod speech_synthesis_back;
 mod speech_synthesis_host;
 mod spoken_mask_backs;
 mod state_select_back;
-mod structured_presentation_host;
+mod structured_face_host;
 mod structured_selector_back;
 mod structured_values_back;
 mod synth_back;
@@ -159,8 +177,9 @@ mod text_backs;
 #[cfg(test)]
 mod text_backs_tests;
 mod text_state_back;
+mod thermostat_combine_back;
 mod tick_backs;
-mod tick_presentation;
+mod tick_face;
 mod time_sample_back;
 mod time_window_back;
 mod timed_button_attempt_back;
@@ -168,6 +187,9 @@ mod timed_button_attempt_host;
 mod timed_pattern_back;
 mod timing_backs;
 mod timing_configuration;
+mod todo_checkpoint_back;
+mod todo_checkpoint_read_back;
+mod todo_combine_back;
 mod toggle_back;
 mod typed_record_back;
 mod vector_search_back;
@@ -175,6 +197,7 @@ mod vector_search_host;
 mod vision_describe_back;
 mod vision_experience_back;
 mod wav_artifact_back;
+mod whisper_language;
 mod whisper_speech_back;
 
 use self::back::InstalledBack;
@@ -202,9 +225,7 @@ use conduit_kernel::{
     BoundedValueRef, HostCallDisposition, HostCallOutcome, HostedSignLog, HostedValueStore,
     SignSink, ValueStorage,
 };
-use conduit_plan_lowering::lowering::{
-    KernelExecutionIdentityMap, FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
-};
+use conduit_plan_lowering::lowering::KernelExecutionIdentityMap;
 use std::io::Write;
 use std::time::Duration;
 
@@ -217,17 +238,12 @@ fn record_request(requests: &mut Vec<HostCallRequest>, request: HostCallRequest)
     }
 }
 
-const MAX_NODES: usize = 16;
-const MAX_CORDS: usize = 16;
-const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
-const MAX_QUEUE_SLOTS: usize = 64;
-const ROUTE_SLOTS: usize = MAX_NODES * PORTS;
-const ROUTE_TARGETS: usize = 64;
-
+mod storage_profile;
 pub(crate) use facade::*;
-const HOST_CALLS_PER_NODE: u16 = 4;
-const HOST_BINDING_SLOTS: usize = MAX_NODES * HOST_CALLS_PER_NODE as usize;
-const PENDING_REQUESTS: usize = MAX_NODES;
+use storage_profile::{
+    HOST_BINDING_SLOTS, HOST_CALLS_PER_NODE, MAX_CORDS, MAX_NODES, MAX_QUEUE_SLOTS,
+    PENDING_REQUESTS, PORTS, ROUTE_SLOTS, ROUTE_TARGETS,
+};
 const PROOF_PCM_CLIP_SOURCE_OPERATION: &str = "conduit.host/proof-recorded-pcm-clip@1";
 
 pub(in crate::installed_std) type InstalledScheduler = FixedScheduler<
@@ -256,6 +272,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     timer: &mut T,
     lifecycle: RunLifecycle<'_, '_, '_>,
 ) -> Result<crate::state_value::RetainedStdRun, String> {
+    timer.observe_kernel_phase(crate::KernelTimingPhase::PreparationStarted);
     let RunLifecycle {
         control,
         retained,
@@ -268,6 +285,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         mut vision,
         mut external_fore,
         spoken_mask,
+        direct_spoken_mask,
         durable_state,
     } = lifecycle;
     let InstalledRunHost {
@@ -278,6 +296,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         keyboard,
         mut local_model,
         mut vector_search,
+        mut model_work,
         mut calendar,
         body_conversation_context,
     } = host;
@@ -302,6 +321,8 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     {
         return Err("fragment exceeds the installed std kernel profile".to_string());
     }
+    let whisper_languages =
+        whisper_language::WhisperLanguages::prepare(fragment, &lowered.identity)?;
     let planned_inputs = lowered
         .fore_ports
         .iter()
@@ -374,6 +395,12 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         .as_ref()
         .map(|preparation| preparation.prepare_session(active_play.clone()))
         .transpose()?;
+    let mut direct_spoken_mask_session = direct_spoken_mask
+        .map(|preparation| preparation.prepare_session(active_play.clone()))
+        .transpose()?;
+    if spoken_mask_session.is_some() && direct_spoken_mask_session.is_some() {
+        return Err("one Play cannot prepare two spoken Mask semantic sessions".into());
+    }
     let drivers = preparation::prepare_operations(
         fragment,
         &lowered,
@@ -413,7 +440,8 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         .sum::<usize>();
     let value_allocation_before = values.allocation_capacities();
 
-    let kernel_tables = kernel_preparation::KernelTables::prepare(&[&lowered])?;
+    let mut kernel_tables = kernel_preparation::KernelTables::prepare(&[&lowered])?;
+    kernel_tables.bind_fusions(fragment, &lowered)?;
     let external_input_items = fore_inputs.input_items();
     let remote_sign_items =
         external_fore_feeder::remote_sign_items(&lowered.fore_ports, external_input_items)?;
@@ -451,6 +479,8 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
             .count()
             .saturating_mul(usize::from(external_input_items)),
     );
+    let mut prepared_value_fore_outputs =
+        value_fore_outputs::PreparedValueForeOutputs::prepare(&lowered.fore_ports);
     fore_inputs.start(&mut scheduler)?;
     if lowered
         .fore_ports
@@ -461,20 +491,20 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         return Err("sealed external Fore output has no acknowledging adapter".into());
     }
 
-    let presentation_capacity = fragment
+    let face_capacity = fragment
         .placements
         .iter()
         .filter(|placement| {
             placement.implementation_id.as_str()
-                == conduit_std_offers::STRUCTURED_PRESENTATION_STD_IMPLEMENTATION
+                == conduit_std_offers::STRUCTURED_FACE_STD_IMPLEMENTATION
         })
         .count();
     let mut execution_identity = KernelExecutionIdentityMap::new(
         &lowered.identity,
         &active_play,
         request_capacity,
-        presentation_capacity,
-        presentation_capacity.saturating_add(2),
+        face_capacity,
+        face_capacity.saturating_add(2),
     )
     .map_err(|error| format!("prepare std execution identity: {error:?}"))?;
     let mut requests = Vec::<HostCallRequest>::with_capacity(request_capacity);
@@ -490,9 +520,8 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         conduit_std_offers::button::NEXT_TRANSITION_HOST_CALL,
     );
     let mut deadlines = deadline_host::InstalledDeadlineHost::<PENDING_REQUESTS>::new();
-    let graphics_presentation_target_kind = kind_id("presentation/graphics-scene");
-    let structured_presentation_target_kind =
-        kind_id(conduit_semantic_catalog::STRUCTURED_PRESENTATION_TARGET);
+    let graphics_face_target_kind = kind_id("face/graphics-scene");
+    let structured_face_target_kind = kind_id(conduit_semantic_catalog::STRUCTURED_FACE_TARGET);
     let upper_contract_id =
         conduit_core::HostCallContractId::from(conduit_std_offers::TEXT_UPPER_HOST_CALL_CONTRACT);
     let upper_target_kind = kind_id(conduit_std_offers::TEXT_UPPER_HOST_CALL_TARGET);
@@ -513,12 +542,21 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         conduit_core::HostCallContractId::from(conduit_std_offers::CHORDS_HOST_CALL);
     let chords_target_kind = kind_id(conduit_std_offers::CHORDS_HOST_TARGET);
     let mut math_host = math_host::MathHost::prepare(fragment)?;
-    let presentation_construction =
-        presentation_construction_host::PresentationConstructionHost::prepare();
+    let face_construction = face_construction_host::FaceConstructionHost::prepare();
     let mut text_output_buffer = Vec::with_capacity(
         (contract::MAX_TEXT_BYTES as usize).max(conduit_text::MAXIMUM_MORSE_PATTERN_BYTES),
     );
-    let mut input_keymaps = [conduit_human::ConduitIntlKeymap::new(); MAX_NODES];
+    let mut input_keymaps = input_semantic_backs::prepare_keymaps::<MAX_NODES>(
+        fragment.placements.iter().map(|placement| {
+            (
+                lowered
+                    .identity
+                    .node_for_placement(&placement.placement_id)
+                    .map(|node| usize::from(node.0)),
+                placement,
+            )
+        }),
+    )?;
     let mut text_state_hosts = fragment
         .placements
         .iter()
@@ -588,11 +626,8 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     let mut navigation_hosts = navigation_backs::prepare_hosts(fragment);
     let mut typed_record_hosts = typed_record_back::prepare_hosts(fragment);
     let mut record_delivery_hosts = record_delivery_back::prepare_hosts(fragment)?;
-    let mut structured_presentation_host =
-        structured_presentation_host::StructuredPresentationHost::prepare(
-            fragment,
-            &lowered.identity,
-        )?;
+    let mut structured_face_host =
+        structured_face_host::StructuredFaceHost::prepare(fragment, &lowered.identity)?;
     let mut rhythm_compare_hosts = fragment
         .placements
         .iter()
@@ -633,6 +668,8 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         &lowered.identity,
         &active_play,
     )?;
+    let mut model_work_output =
+        Vec::with_capacity(conduit_ai::MODEL_WORK_MAXIMUM_OUTPUT_BYTES as usize);
     let mut local_model_output = Vec::with_capacity(conduit_ai::MAXIMUM_LLM_OUTPUT_BYTES as usize);
     let mut vector_search_output =
         Vec::with_capacity(conduit_ai::MAXIMUM_VECTOR_SEARCH_OUTPUT_BYTES as usize);
@@ -682,7 +719,13 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
             if placement.implementation_id.as_str()
                 == conduit_std_offers::AUDIO_WAV_ARTIFACT_IMPLEMENTATION
             {
-                wav_artifact_back::prepare_session(placement, wav_artifact).map(Some)
+                wav_artifact_back::prepare_session(
+                    &fragment.plan_id,
+                    &active_play.active_play_id,
+                    placement,
+                    wav_artifact,
+                )
+                .map(Some)
             } else {
                 Ok(None)
             }
@@ -711,6 +754,17 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
             .iter()
             .map(|operation| &operation.contract_id),
     );
+    if keyboard_input_binding::has_input_source(&lowered.host_calls) {
+        keyboard_host.install_request_admission(
+            keyboard_input_binding::KeyboardRequestAdmission::prepare(
+                advertisement,
+                fragment,
+                &lowered.identity,
+                &lowered.host_calls,
+                &active_play,
+            )?,
+        )?;
+    }
     let mut indicator_host = indicator_host::IndicatorHost::prepare(
         indicator,
         advertisement,
@@ -752,6 +806,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
             .contract_id;
     #[cfg(test)]
     let observer_target_kind = kind_id("conduit-test/tick-observation");
+    timer.observe_kernel_phase(crate::KernelTimingPhase::PlayStarted);
     #[cfg(test)]
     let play_start_probe = crate::allocation_probe::begin();
     let mut accepted_stop = None;
@@ -765,22 +820,28 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 .remote_egress_offer(planned.endpoint, planned.cord)
                 .map_err(|error| format!("offer external Fore output: {error:?}"))?
             {
-                let bytes = scheduler
+                let borrowed = scheduler
                     .host_value(offer.value)
-                    .map_err(|error| format!("read external Fore output: {error:?}"))?
-                    .to_vec();
-                let delivery = crate::ExternalForeDelivery {
-                    front_port_id: planned.front_port_id.clone(),
-                    track: planned.track,
-                    value_kind: planned.value_kind.clone(),
-                    sequence: offer.sequence,
-                    bytes,
-                };
+                    .map_err(|error| format!("read external Fore output: {error:?}"))?;
+                let (delivery, adapter_delivery) =
+                    if planned.temporal == conduit_core::PortTemporal::Value {
+                        prepared_value_fore_outputs.take(planned, offer.sequence, borrowed)?
+                    } else {
+                        let delivery = crate::ExternalForeDelivery {
+                            front_port_id: planned.front_port_id.clone(),
+                            track: planned.track,
+                            value_kind: planned.value_kind.clone(),
+                            sequence: offer.sequence,
+                            bytes: borrowed.to_vec(),
+                        };
+                        let adapter = delivery.clone();
+                        (delivery, adapter)
+                    };
                 external_fore
                     .as_mut()
                     .expect("output adapter checked above")
                     .output
-                    .deliver(delivery.clone())?;
+                    .deliver(adapter_delivery)?;
                 scheduler
                     .remote_egress_accept(planned.endpoint, planned.cord, offer.sequence)
                     .map_err(|error| format!("accept external Fore output: {error:?}"))?;
@@ -872,6 +933,10 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 == conduit_ai::VECTOR_SEARCH_OPERATION
             {
                 if let Some(adapter) = &mut vector_search {
+                    adapter.cancel();
+                }
+            } else if cancelled_operation.contract_id.as_str() == conduit_ai::MODEL_WORK_OPERATION {
+                if let Some(adapter) = &mut model_work {
                     adapter.cancel();
                 }
             } else {
@@ -2112,7 +2177,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 continue;
             } else if matches!(
                 contract.as_str(),
-                conduit_std_offers::PRESENTATION_REQUEST_OPERATION
+                conduit_std_offers::FACE_REQUEST_OPERATION
                     | conduit_std_offers::REGISTER_VALIDATION_REQUEST_OPERATION
                     | conduit_std_offers::BUILD_VALIDATION_ENVELOPE_OPERATION
                     | conduit_std_offers::ASSESS_GENERATED_ENVELOPE_OPERATION
@@ -2121,42 +2186,68 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     | conduit_std_offers::GENERATED_SPEECH_OPERATION
                     | conduit_std_offers::REGISTER_MANIFESTATION_OPERATION
                     | conduit_std_offers::ARTIFACT_SHOW_OPERATION
+                    | conduit_std_offers::DIRECT_FACE_WORDING_OPERATION
+                    | conduit_std_offers::REGISTER_DIRECT_FACE_OPERATION
+                    | conduit_std_offers::DIRECT_ARTIFACT_SHOW_OPERATION
             ) {
-                let session = spoken_mask_session.as_mut().ok_or_else(|| {
-                    "spoken Mask semantic Host Call has no exact prepared session".to_string()
-                })?;
-                let result = match contract.as_str() {
-                    conduit_std_offers::PRESENTATION_REQUEST_OPERATION => {
-                        session.adapt_presentation(input).map(Some)
+                let result = if matches!(
+                    contract.as_str(),
+                    conduit_std_offers::DIRECT_FACE_WORDING_OPERATION
+                        | conduit_std_offers::REGISTER_DIRECT_FACE_OPERATION
+                        | conduit_std_offers::DIRECT_ARTIFACT_SHOW_OPERATION
+                ) {
+                    let session = direct_spoken_mask_session.as_mut().ok_or_else(|| {
+                        "direct spoken Mask Host Call has no exact prepared session".to_string()
+                    })?;
+                    match contract.as_str() {
+                        conduit_std_offers::DIRECT_FACE_WORDING_OPERATION => {
+                            session.next_wording(input)
+                        }
+                        conduit_std_offers::REGISTER_DIRECT_FACE_OPERATION => {
+                            session.register_face(input).map(|()| None)
+                        }
+                        conduit_std_offers::DIRECT_ARTIFACT_SHOW_OPERATION => {
+                            session.acknowledge_artifact_and_build_show(input).map(Some)
+                        }
+                        _ => unreachable!(),
                     }
-                    conduit_std_offers::REGISTER_VALIDATION_REQUEST_OPERATION => {
-                        session.register_validation_request(input).map(|()| None)
+                } else {
+                    let session = spoken_mask_session.as_mut().ok_or_else(|| {
+                        "spoken Mask semantic Host Call has no exact prepared session".to_string()
+                    })?;
+                    match contract.as_str() {
+                        conduit_std_offers::FACE_REQUEST_OPERATION => {
+                            session.adapt_face(input).map(Some)
+                        }
+                        conduit_std_offers::REGISTER_VALIDATION_REQUEST_OPERATION => {
+                            session.register_validation_request(input).map(|()| None)
+                        }
+                        conduit_std_offers::BUILD_VALIDATION_ENVELOPE_OPERATION => {
+                            session.finish_validation_envelope(input).map(Some)
+                        }
+                        conduit_std_offers::ASSESS_GENERATED_ENVELOPE_OPERATION => {
+                            session.assess_generated_envelope(input).map(Some)
+                        }
+                        conduit_std_offers::REGISTER_GENERATED_CANDIDATE_OPERATION => {
+                            session.register_generated_candidate(input).map(|()| None)
+                        }
+                        conduit_std_offers::RETAIN_GENERATED_ASSESSMENT_OPERATION => {
+                            session.retain_generated_assessment(input).map(Some)
+                        }
+                        conduit_std_offers::GENERATED_SPEECH_OPERATION => session
+                            .validate_and_extract_speech_bounded(
+                                input,
+                                lowered_operation.binding.maximum_output_bytes,
+                            )
+                            .map(Some),
+                        conduit_std_offers::REGISTER_MANIFESTATION_OPERATION => session
+                            .register_generated_manifestation(input)
+                            .map(|()| None),
+                        conduit_std_offers::ARTIFACT_SHOW_OPERATION => {
+                            session.acknowledge_artifact_and_build_show(input).map(Some)
+                        }
+                        _ => unreachable!(),
                     }
-                    conduit_std_offers::BUILD_VALIDATION_ENVELOPE_OPERATION => {
-                        session.finish_validation_envelope(input).map(Some)
-                    }
-                    conduit_std_offers::ASSESS_GENERATED_ENVELOPE_OPERATION => {
-                        session.assess_generated_envelope(input).map(Some)
-                    }
-                    conduit_std_offers::REGISTER_GENERATED_CANDIDATE_OPERATION => {
-                        session.register_generated_candidate(input).map(|()| None)
-                    }
-                    conduit_std_offers::RETAIN_GENERATED_ASSESSMENT_OPERATION => {
-                        session.retain_generated_assessment(input).map(Some)
-                    }
-                    conduit_std_offers::GENERATED_SPEECH_OPERATION => session
-                        .validate_and_extract_speech_bounded(
-                            input,
-                            lowered_operation.binding.maximum_output_bytes,
-                        )
-                        .map(Some),
-                    conduit_std_offers::REGISTER_MANIFESTATION_OPERATION => session
-                        .register_generated_manifestation(input)
-                        .map(|()| None),
-                    conduit_std_offers::ARTIFACT_SHOW_OPERATION => {
-                        session.acknowledge_artifact_and_build_show(input).map(Some)
-                    }
-                    _ => unreachable!(),
                 };
                 let (output_value, failure) = match result {
                     Ok(Some(bytes)) => {
@@ -2365,19 +2456,13 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
             } else if contract.as_str() == conduit_std_offers::WHISPER_SPEECH_OPERATION
                 || contract.as_str() == conduit_std_offers::WHISPER_CLIP_SPEECH_OPERATION
             {
-                let recognition = if contract.as_str()
-                    == conduit_std_offers::WHISPER_CLIP_SPEECH_OPERATION
-                {
-                    whisper_speech_back::execute_clip(
-                        speech_recognition.as_deref_mut(),
-                        input,
-                        || control.requested_stop().is_some(),
-                    )
-                } else {
-                    whisper_speech_back::execute(speech_recognition.as_deref_mut(), input, || {
-                        control.requested_stop().is_some()
-                    })
-                };
+                let recognition = whisper_language::execute(
+                    speech_recognition.as_deref_mut(),
+                    whisper_languages.get(request.node)?,
+                    contract.as_str(),
+                    input,
+                    || control.requested_stop().is_some(),
+                );
                 let outcome = match recognition {
                     Ok(encoded) => {
                         let value = scheduler
@@ -2856,6 +2941,38 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     .complete_host_call(request.node, request.request, completion.outcome(output))
                     .map_err(|error| format!("complete model operation: {error:?}"))?;
                 continue;
+            } else if contract.as_str() == conduit_ai::MODEL_WORK_OPERATION
+                || contract.as_str() == crate::hosted_model_infer::MODEL_INFER_OPERATION
+            {
+                let placement = fragment
+                    .placements
+                    .get(usize::from(request.node.0))
+                    .ok_or_else(|| "model-work request has no exact placement".to_string())?;
+                let completion = model_work_host::execute(
+                    placement,
+                    input,
+                    match &mut model_work {
+                        Some(adapter) => Some(&mut **adapter),
+                        None => None,
+                    },
+                    &mut model_work_output,
+                )?;
+                let output = if completion.has_output() {
+                    let value = scheduler
+                        .store_host_value(&model_work_output)
+                        .map_err(|error| format!("store model-work output: {error:?}"))?;
+                    Some(
+                        BoundedValueRef::new(value, lowered_operation.binding.maximum_output_bytes)
+                            .map_err(|error| format!("bound model-work output: {error:?}"))?,
+                    )
+                } else {
+                    None
+                };
+                record_request(&mut requests, request);
+                scheduler
+                    .complete_host_call(request.node, request.request, completion.outcome(output))
+                    .map_err(|error| format!("complete model-work operation: {error:?}"))?;
+                continue;
             } else if contract.as_str() == conduit_ai::VECTOR_SEARCH_OPERATION {
                 let placement = fragment
                     .placements
@@ -3002,12 +3119,12 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 continue;
             } else if contract == &wait_contract_id {
                 let duration = decode_tick(input).map_err(|error| error.to_string())?;
-                if let Some(now_ms) = timer.monotonic_now_ms() {
-                    deadlines.arm(request, duration, now_ms)?;
-                    record_request(&mut requests, request);
-                    continue;
-                }
-                timer.wait(Duration::from_millis(duration));
+                let now_ms = timer
+                    .monotonic_now_ms()
+                    .ok_or_else(|| "admitted monotonic wait Base is unavailable".to_string())?;
+                deadlines.arm(request, duration, now_ms)?;
+                record_request(&mut requests, request);
+                continue;
             } else if contract == &deadline_contract_id {
                 let duration = conduit_core::decode_monotonic_duration(input)
                     .map_err(|error| format!("decode admitted deadline: {error:?}"))?;
@@ -3115,17 +3232,23 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     )
                     .map_err(|error| format!("complete flow/gate bool decode: {error:?}"))?;
                 continue;
-            } else if (contract == &keymap_contract_id
-                && lowered_operation.target_kind.as_ref() == Some(&keymap_target_kind))
+            } else if contract.as_str() == conduit_std_offers::KEYMAP_SELECT_HOST_CALL
+                || (contract == &keymap_contract_id
+                    && lowered_operation.target_kind.as_ref() == Some(&keymap_target_kind))
                 || (contract == &chords_contract_id
                     && lowered_operation.target_kind.as_ref() == Some(&chords_target_kind))
             {
                 let node = usize::from(request.node.0);
-                let completion = input_semantic_backs::execute_host(
-                    contract == &keymap_contract_id,
-                    &mut input_keymaps[node],
-                    input,
-                );
+                let completion = if contract.as_str() == conduit_std_offers::KEYMAP_SELECT_HOST_CALL
+                {
+                    input_semantic_backs::select_host(&mut input_keymaps[node], input)
+                } else {
+                    input_semantic_backs::execute_host(
+                        contract == &keymap_contract_id,
+                        &mut input_keymaps[node],
+                        input,
+                    )
+                };
                 let outcome = match completion {
                     Ok(Some(encoded)) => {
                         let value = scheduler
@@ -3164,10 +3287,8 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
             } else if math_host.matches(contract, lowered_operation.target_kind.as_ref()) {
                 math_host.complete(fragment, request, &mut scheduler, &mut requests)?;
                 continue;
-            } else if presentation_construction
-                .matches(contract, lowered_operation.target_kind.as_ref())
-            {
-                presentation_construction.complete(
+            } else if face_construction.matches(contract, lowered_operation.target_kind.as_ref()) {
+                face_construction.complete(
                     fragment,
                     request,
                     contract,
@@ -3183,27 +3304,38 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     .complete_host_call(request.node, request.request, outcome)
                     .map_err(|error| format!("complete indicator operation: {error:?}"))?;
                 continue;
-            } else if lowered_operation.target_kind.as_ref()
-                == Some(&graphics_presentation_target_kind)
-            {
-                let scene =
-                    conduit_presentation::GraphicsScene::decode(input).map_err(|error| {
-                        format!("graphics presentation input is invalid: {error:?}")
-                    })?;
+            } else if lowered_operation.target_kind.as_ref() == Some(&graphics_face_target_kind) {
+                let scene = conduit_face::GraphicsScene::decode(input)
+                    .map_err(|error| format!("graphics face input is invalid: {error:?}"))?;
                 writeln!(
                     _output,
                     "graphics scene commands={}",
                     scene.commands().len()
                 )
                 .map_err(|error| error.to_string())?;
-            } else if lowered_operation.target_kind.as_ref()
-                == Some(&structured_presentation_target_kind)
-            {
-                structured_presentation_host.capture(request, input)?;
-            } else if !simple_presentation_host::present(
+            } else if lowered_operation.target_kind.as_ref() == Some(&structured_face_target_kind) {
+                structured_face_host.capture(request, input)?;
+            } else if !simple_face_host::present_named(
                 lowered_operation.target_kind.as_ref(),
                 input,
                 _output,
+                fragment
+                    .placements
+                    .iter()
+                    .find(|placement| {
+                        lowered.identity.node_for_placement(&placement.placement_id)
+                            == Some(request.node)
+                    })
+                    .filter(|placement| {
+                        placement
+                            .configuration
+                            .iter()
+                            .any(|entry| entry.key == "label")
+                    })
+                    .map(|placement| {
+                        conduit_semantic_catalog::face_data_label(&placement.configuration)
+                    })
+                    .transpose()?,
             )? {
                 #[cfg(test)]
                 {
@@ -3239,7 +3371,12 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         if accepted_stop.is_none() && control.stop_requested() {
             continue;
         }
-        let status = match scheduler.step() {
+        let step = if lowered.fusions.is_empty() {
+            scheduler.step()
+        } else {
+            scheduler.step_with_checkpoint(|_| accepted_stop.is_some() || !control.stop_requested())
+        };
+        let status = match step {
             Ok(status) => status,
             Err(conduit_kernel::scheduler::SchedulerError::BackFailed(failure))
                 if math_host.accept_failure(
@@ -3262,8 +3399,11 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     reason: conduit_core::FailureReason::RequiredBranchFailed,
                 };
             }
-            Err(error) => return Err(format!("installed kernel step: {error:?}")),
+            Err(error) => return Err(fusion::step_failure(error, &scheduler, fragment, &lowered)),
         };
+        if !lowered.fusions.is_empty() && accepted_stop.is_none() && control.stop_requested() {
+            continue;
+        }
         match status {
             SchedulerStatus::Progress { .. } => {}
             SchedulerStatus::Drained if lifecycle::drained_completes(fragment, attach_live) => {
@@ -3351,7 +3491,8 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 if deadlines.complete_next(&mut scheduler, timer)? {
                     continue;
                 }
-                if pending_midi_input
+                if !deadlines.is_empty()
+                    || pending_midi_input
                     || keyboard_host.is_pending()
                     || body_conversation_context_host.is_pending()
                 {
@@ -3398,6 +3539,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     if !deadlines.is_empty() {
         return Err("installed deadline effects survived terminal Play state".to_string());
     }
+    timer.observe_kernel_phase(crate::KernelTimingPhase::PlayFinished);
     #[cfg(test)]
     let post_play_start_allocations = play_start_probe.finish();
 
@@ -3491,9 +3633,9 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
             .map_err(|error| format!("bind std request identity: {error:?}"))?;
     }
     if !matches!(terminal_disposition, TerminalDisposition::Completed) {
-        structured_presentation_host.retain_realized_effects();
+        structured_face_host.retain_realized_effects();
     }
-    let (mut observations, presentation_ids) = structured_presentation_host.project(
+    let (mut observations, face_ids) = structured_face_host.project(
         advertisement,
         fragment,
         &active_play,
@@ -3525,7 +3667,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     observations.push(Observation {
         sign_id: terminal_sign.sign_id,
         active_play_id: Some(active_play.active_play_id.clone()),
-        presentation_id: None,
+        face_id: None,
         host_id: advertisement.host_id.clone(),
         boot_id: advertisement.boot_id.clone(),
         plan_id: Some(fragment.plan_id.clone()),
@@ -3589,11 +3731,12 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
             active_play_id: active_play.active_play_id.clone(),
             active_play,
             decisions: scheduler.decisions(),
+            logical_invocations: scheduler.logical_invocations(),
             kernel_events: scheduler.signs().len(),
             kernel_sign: scheduler.signs().events().collect(),
             value_allocation_capacity_before: value_allocation_before,
             value_allocation_capacity_after: value_allocation_after,
-            presentation_ids,
+            face_ids,
             playback,
             wav_artifacts,
             midi_input,

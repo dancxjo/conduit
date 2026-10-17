@@ -121,8 +121,16 @@ export class BrowserBodyParticipation {
   requestOfferEvidence(options: { capabilityIds?: readonly string[]; resourcePoolIds?: readonly string[] }): void;
   /** Read the authoritative owner Face while this Host and Boot have current presence. */
   ownerFaceSnapshot(options?: { lastSeenRevision?: string | null; lastSeenIdentity?: string | null }): Promise<Uint8Array>;
+  /** Inspect owner-produced eligible, worn, preference, route, and selected Show facts. */
+  inspectOwnerWardrobe(): Promise<Readonly<Record<string, unknown>>>;
+  /** Request one revision-bound Wear, Doff, or Prefer while the Body is lulled. */
+  changeOwnerWardrobe(report: Readonly<Record<string, unknown>>, routeId: string, verb: "wear" | "doff" | "prefer"): Promise<Readonly<Record<string, unknown>>>;
   prepareOwnerFaceMask(options?: { lastSeenRevision?: string | null; lastSeenIdentity?: string | null }): Promise<Readonly<Record<string, unknown>>>;
   acknowledgeOwnerFaceMask(view: Readonly<Record<string, unknown>>): Promise<Readonly<Record<string, unknown>>>;
+  /** Direct readout of the current acknowledged graphical Show by installed owner equipment. */
+  selectedDirectSpeechStart(view: Readonly<Record<string, unknown>>): Promise<Readonly<Record<string, unknown>>>;
+  selectedDirectSpeechStatus(operationId: string): Promise<Readonly<Record<string, unknown>>>;
+  selectedDirectSpeechStop(operationId: string): Promise<Readonly<Record<string, unknown>>>;
   /** Submit one checked Face action through this Host's Mask and current owner window. */
   submitOwnerFaceInteraction(options: {
     view: Readonly<Record<string, unknown>>;
@@ -262,7 +270,7 @@ export class BrowserBody {
   /** Stream retained runtime events; replay is opt-in and notifications are polled/coalesced from bounded evidence. */
   events(options?: { replay?: boolean; pollIntervalMillis?: number; signal?: AbortSignal }): AsyncIterable<BrowserBodyEvent>;
   /** Propose, admit, and start one exact runtime Play through the reviewed Browser Host adapters. */
-  wake(options?: { root?: Element | ShadowRoot; presentationRootFor?: (placement: Readonly<{
+  wake(options?: { root?: Element | ShadowRoot; faceRootFor?: (placement: Readonly<{
     checkedPlotId: string; placementId: string; gearId: string;
   }>) => Element | ShadowRoot }): Promise<BrowserPlay>;
   /** Terminate or close the current Play and record the exact Body lull transition. */
@@ -344,7 +352,7 @@ export class BrowserPlay {
 }
 
 export interface BrowserOptions {
-  /** An application-owned Element or ShadowRoot used only for presentation. */
+  /** An application-owned Element or ShadowRoot used only for face. */
   root?: Element | ShadowRoot;
   /** Same-origin directory containing the exact package-bound BrowserBundle. */
   bundleRoot?: string | URL;

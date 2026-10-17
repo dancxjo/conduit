@@ -2,7 +2,8 @@
 
 use super::{
     bounded_read, current_time_millis, digest, read_installation, restrict_directory,
-    write_json_atomic, Installation, RuntimeStatus, MAXIMUM_BODY_ADMISSION_BYTES, RUNTIME_SCHEMA,
+    write_bytes_atomic, write_json_atomic, Installation, RuntimeStatus,
+    MAXIMUM_BODY_ADMISSION_BYTES, RUNTIME_SCHEMA,
 };
 use conduit_body::{
     AdmissionManager, AdmissionSigns, BodyBiographyEvidence, SpawnAdmissionProof,
@@ -283,16 +284,20 @@ pub(super) fn admit_body_request_document(
         .expect("owned Body checked above")
         .biography_sha256 = digest(&biography_bytes);
     let transaction_path = state_dir.join("body/admission-transaction.json");
-    write_json_atomic(
-        &transaction_path,
-        &AdmissionTransaction {
-            schema: "conduit.body/admission-transaction@1".into(),
-            admission,
-            biography,
-            installation,
-            receipt: receipt.clone(),
-        },
-    )?;
+    // Keep the internal journal compact: indentation of complete retained
+    // semantic contracts can exceed the recovery bound by itself.
+    let transaction_bytes = serde_json::to_vec(&AdmissionTransaction {
+        schema: "conduit.body/admission-transaction@1".into(),
+        admission,
+        biography,
+        installation,
+        receipt: receipt.clone(),
+    })
+    .map_err(|error| format!("encode Body admission transaction: {error}"))?;
+    if transaction_bytes.len() > 2 * 1024 * 1024 {
+        return Err("Body admission transaction exceeds its finite file bound".into());
+    }
+    write_bytes_atomic(&transaction_path, &transaction_bytes)?;
     recover_admission_transaction(state_dir, &biography_path)?;
     Ok(receipt)
 }
@@ -422,14 +427,13 @@ pub(super) fn prepare_body_join(
     fs::create_dir_all(&body_dir)
         .map_err(|error| format!("create Body state directory: {error}"))?;
     restrict_directory(&body_dir)?;
-    write_json_atomic(
-        &body_dir.join("pending-join.json"),
-        &PendingBodyJoin {
-            schema: "conduit.body/pending-join@1".into(),
-            invitation,
-            request: request.clone(),
-        },
-    )?;
+    let pending = PendingBodyJoin {
+        schema: "conduit.body/pending-join@1".into(),
+        invitation,
+        request: request.clone(),
+    };
+    let bytes = encode_admission_document(&pending)?;
+    write_bytes_atomic(&body_dir.join("pending-join.json"), &bytes)?;
     Ok(request)
 }
 
@@ -443,4 +447,33 @@ fn bounded_stdin(maximum: u64) -> Result<Vec<u8>, String> {
         return Err("standard input violates the finite invitation bound".into());
     }
     Ok(bytes)
+}
+
+// Native typed configuration bytes expand substantially under pretty JSON.
+// Persist the machine-owned record compactly and enforce its read bound before
+// publication, so a successfully issued request remains consumable.
+fn encode_admission_document(value: &impl serde::Serialize) -> Result<Vec<u8>, String> {
+    let bytes = serde_json::to_vec(value).map_err(|error| error.to_string())?;
+    if bytes.is_empty() || bytes.len() as u64 > MAXIMUM_BODY_ADMISSION_BYTES {
+        return Err("pending Body join exceeds its finite file bound".into());
+    }
+    Ok(bytes)
+}
+
+#[cfg(test)]
+mod document_bounds_tests {
+    use super::*;
+
+    #[test]
+    fn pending_document_accepts_exact_bound_and_refuses_one_more_byte() {
+        let maximum = MAXIMUM_BODY_ADMISSION_BYTES as usize;
+        // JSON string quotes consume the other two bytes.
+        assert_eq!(
+            encode_admission_document(&"x".repeat(maximum - 2))
+                .unwrap()
+                .len(),
+            maximum
+        );
+        assert!(encode_admission_document(&"x".repeat(maximum - 1)).is_err());
+    }
 }

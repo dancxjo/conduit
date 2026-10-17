@@ -1,37 +1,133 @@
 //! Exact adapters for kernel-issued calls; protocol scheduling remains in the graph.
+use crate::protocol_play::preparation_diagnostic::invalid as invalid_plan;
 use crate::{
-    expression_host_call::{self, ExpressionCallRefusal, ExpressionHostCall},
+    expression_host_call,
     i2c_base::{
         I2cProvider,
         contract::{I2C_CALL, I2cContract},
         installation::{I2C_IMPLEMENTATION, ReadyI2cBase},
-        owner::{I2cCallRefusal, I2cCallSelection, I2cHostCall},
+        owner::{I2cCallSelection, I2cHostCall},
     },
-    structured_selector_host_call::{self, SelectorCallRefusal, SelectorHostCall},
+    pure_protocol_owner::PureProtocolOwner,
+    structured_selector_host_call,
 };
 use alloc::{boxed::Box, vec::Vec};
-use conduit_composite::{KernelCompositeError, KernelCompositeHost, KernelCompositeHostRequest};
+use conduit_composite::{AdmittedKernelCompositeHostRequest, KernelCompositeHost};
 use conduit_core::*;
-use conduit_kernel::{
-    Failure, FailureCode, HostCallDisposition, HostCallId, HostCallOutcome, NodeId,
-};
+use conduit_kernel::{HostCallId, NodeId};
 use conduit_plan_lowering::lowering::lower_plan_fragment;
 
-#[derive(Debug)]
-pub enum ProtocolCallRefusal {
-    InvalidPlan,
-    Unsupported,
-    Kernel(KernelCompositeError),
-    Expression(ExpressionCallRefusal),
-    Selector(SelectorCallRefusal),
-    I2c(I2cCallRefusal),
-    Clock(crate::monotonic_clock::owner::ClockCallRefusal),
-}
+pub use crate::protocol_call_refusal::ProtocolCallRefusal;
+
+mod dispatch;
+#[cfg(all(
+    feature = "native-owner-network",
+    any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    )
+))]
+mod ethernet_preparation;
+#[cfg(all(
+    feature = "native-owner-network",
+    any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    )
+))]
+pub(crate) use ethernet_preparation::EthernetFrameAdmission;
+#[cfg(any(
+    target_arch = "x86_64",
+    all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+))]
+mod storage;
+#[cfg(any(
+    target_arch = "x86_64",
+    all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+))]
+mod storage_preparation;
+#[cfg(any(
+    target_arch = "x86_64",
+    all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+))]
+pub(crate) use storage_preparation::AdditionalStoragePairAdmission;
+#[cfg(any(
+    target_arch = "x86_64",
+    all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+))]
+mod subordinate;
+#[cfg(any(
+    target_arch = "x86_64",
+    all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+))]
+mod usb_preparation;
 
 enum Owner<P> {
-    Expression(Box<ExpressionHostCall>),
-    Selector(Box<SelectorHostCall>),
+    Pure(PureProtocolOwner),
     I2c(Box<I2cHostCall<P>>),
+    #[cfg(feature = "native-owner-network")]
+    EthernetFrame(Box<crate::ethernet_frame::owned_installation::OwnedNativeEthernetFrameHost>),
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
+    UsbControl(Box<crate::arch::NativeUsbControlCall>),
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
+    UsbProtocolControl,
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
+    UsbProtocolEndpoint,
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
+    UsbDuplexControl,
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
+    UsbDuplexRead,
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
+    UsbDuplexWrite,
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
+    StorageAuthorize,
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
+    StorageSettle,
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
+    UsbIsochronousControl,
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
+    UsbIsochronousOut,
+}
+#[cfg(any(
+    target_arch = "x86_64",
+    all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+))]
+#[derive(Clone, Copy)]
+enum PendingUsbKind {
+    ProtocolRead,
+    DuplexRead,
+    DuplexWrite,
+    IsochronousOut,
 }
 struct Binding<P> {
     node: NodeId,
@@ -42,8 +138,48 @@ struct Binding<P> {
 /// Admitted native owners and exact dispatch bindings prepared before Play.
 pub struct PreparedProtocolCalls<P> {
     plan_id: PlanId,
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
+    storage: Option<storage::StorageAssociations>,
     identity: PreparationHostIdentity,
     bindings: Vec<Binding<P>>,
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
+    usb_protocol: Option<crate::arch::NativeUsbProtocolHost>,
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
+    usb_duplex: Option<crate::arch::NativeUsbDuplexHost>,
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
+    usb_isochronous: Option<crate::arch::NativeUsbIsochronousHost>,
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
+    pending_usb_kind: PendingUsbKind,
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
+    pending_usb: Option<AdmittedKernelCompositeHostRequest>,
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
+    pending_usb_failed: bool,
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
+    pending_duplex: [Option<(conduit_kernel::NodeId, AdmittedKernelCompositeHostRequest)>; 2],
 }
 impl<P: I2cProvider> PreparedProtocolCalls<P> {
     pub fn prepare(
@@ -91,59 +227,112 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
         zip: &crate::flow_zip::FlowZipOperationFactory,
         states: &crate::seeded_state::SeededStateOperationFactory,
     ) -> Result<Self, ProtocolCallRefusal> {
+        Self::prepare_selected(
+            plan,
+            I2C_IMPLEMENTATION,
+            zip,
+            states,
+            |fragment, lowered, active, placement| {
+                let contract =
+                    I2cContract::prepare().map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
+                ready
+                    .bind_selected(
+                        table,
+                        handle,
+                        claim,
+                        I2cCallSelection {
+                            contract: &contract,
+                            fragment,
+                            lowered,
+                            active,
+                            placement,
+                        },
+                    )
+                    .map(|owner| Owner::I2c(Box::new(owner)))
+                    .map_err(ProtocolCallRefusal::I2c)
+            },
+        )
+    }
+
+    fn prepare_pure(
+        plan: &Plan,
+        implementations: &[&str],
+        zip: &crate::flow_zip::FlowZipOperationFactory,
+        states: &crate::seeded_state::SeededStateOperationFactory,
+    ) -> Result<
+        (
+            conduit_plan_lowering::lowering::LoweredPlanFragment,
+            ActivePlayIdentity,
+            Vec<Binding<P>>,
+        ),
+        ProtocolCallRefusal,
+    > {
         use ProtocolCallRefusal as Refusal;
         if !verify_plan(plan) || plan.fragments.len() != 1 {
             return Err(Refusal::InvalidPlan);
         }
         states
             .validate_plan(plan)
-            .map_err(|_| Refusal::InvalidPlan)?;
+            .map_err(|error| invalid_plan("pure/preparation", error))?;
         let fragment = &plan.fragments[0];
-        let lowered = lower_plan_fragment(fragment).map_err(|_| Refusal::InvalidPlan)?;
+        let lowered = lower_plan_fragment(fragment).map_err(|error| {
+            crate::protocol_play::preparation_diagnostic::lowering(fragment, error)
+        })?;
         let active = bind_active_play(&plan.plan_id, &fragment.host_id, &fragment.boot_id, 0);
-        let mut physical = fragment
-            .placements
-            .iter()
-            .filter(|gear| gear.implementation_id.as_str() == I2C_IMPLEMENTATION);
-        let i2c = physical.next().ok_or(Refusal::Unsupported)?;
-        if physical.next().is_some()
-            || fragment.placements.iter().any(|gear| {
-                !matches!(
+        for implementation in implementations {
+            let count = fragment
+                .placements
+                .iter()
+                .filter(|gear| gear.implementation_id.as_str() == *implementation)
+                .count();
+            #[cfg(any(
+                target_arch = "x86_64",
+                all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+            ))]
+            let storage_count = storage_preparation::selected_count_allowed(implementation, count);
+            #[cfg(not(any(
+                target_arch = "x86_64",
+                all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+            )))]
+            let storage_count = false;
+            if count != 1 && !storage_count {
+                return Err(Refusal::Unsupported);
+            }
+        }
+        if fragment.placements.iter().any(|gear| {
+            !implementations.contains(&gear.implementation_id.as_str())
+                && !matches!(
                     gear.implementation_id.as_str(),
-                    I2C_IMPLEMENTATION
-                        | expression_host_call::IMPLEMENTATION
+                    expression_host_call::IMPLEMENTATION
+                        | crate::offer::TEXT_LITERAL_IMPLEMENTATION
+                        | crate::bytes_literal::IMPLEMENTATION
+                        | crate::flow_singleton::IMPLEMENTATION
                         | structured_selector_host_call::IMPLEMENTATION
                         | crate::flow_zip::IMPLEMENTATION
+                        | crate::flow_concat_finite::IMPLEMENTATION
+                        | crate::flow_merge_finite::IMPLEMENTATION
                         | crate::seeded_state::IMPLEMENTATION
                         | crate::current_sample::IMPLEMENTATION
                         | crate::monotonic_clock::installation::CLOCK_IMPLEMENTATION
                 )
-            })
-        {
+        }) {
             return Err(Refusal::Unsupported);
         }
         // Validate pure typed storage before binding the physical owner.
-        zip.validate_plan(plan).map_err(|_| Refusal::InvalidPlan)?;
+        zip.validate_plan(plan)
+            .map_err(|error| invalid_plan("pure/preparation", error))?;
         for gear in &fragment.placements {
             if gear.implementation_id.as_str() == crate::current_sample::IMPLEMENTATION {
                 use conduit_composite::KernelOperationFactory;
                 crate::current_sample::CurrentSampleOperationFactory::default()
                     .budget(gear)
-                    .map_err(|_| Refusal::InvalidPlan)?;
+                    .map_err(|error| invalid_plan("pure/preparation", error))?;
             }
         }
         let mut bindings = Vec::with_capacity(fragment.placements.len());
         for gear in &fragment.placements {
-            let owner = match gear.implementation_id.as_str() {
-                expression_host_call::IMPLEMENTATION => Owner::Expression(Box::new(
-                    ExpressionHostCall::prepare(fragment, &lowered, &active, &gear.placement_id)
-                        .map_err(Refusal::Expression)?,
-                )),
-                structured_selector_host_call::IMPLEMENTATION => Owner::Selector(Box::new(
-                    SelectorHostCall::prepare(fragment, &lowered, &active, &gear.placement_id)
-                        .map_err(Refusal::Selector)?,
-                )),
-                _ => continue,
+            let Some(owner) = PureProtocolOwner::prepare(fragment, &lowered, &active, gear)? else {
+                continue;
             };
             bindings.push(Binding {
                 node: lowered
@@ -152,24 +341,34 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
                     .ok_or(Refusal::InvalidPlan)?,
                 resources: gear.resources.clone(),
                 authorities: gear.authority.clone(),
-                owner,
+                owner: Owner::Pure(owner),
             });
         }
-        let contract = I2cContract::prepare().map_err(|_| Refusal::InvalidPlan)?;
-        let owner = ready
-            .bind_selected(
-                table,
-                handle,
-                claim,
-                I2cCallSelection {
-                    contract: &contract,
-                    fragment,
-                    lowered: &lowered,
-                    active: &active,
-                    placement: &i2c.placement_id,
-                },
-            )
-            .map_err(Refusal::I2c)?;
+        Ok((lowered, active, bindings))
+    }
+
+    fn prepare_selected(
+        plan: &Plan,
+        implementation: &str,
+        zip: &crate::flow_zip::FlowZipOperationFactory,
+        states: &crate::seeded_state::SeededStateOperationFactory,
+        bind: impl FnOnce(
+            &PlanFragment,
+            &conduit_plan_lowering::lowering::LoweredPlanFragment,
+            &ActivePlayIdentity,
+            &PlacementId,
+        ) -> Result<Owner<P>, ProtocolCallRefusal>,
+    ) -> Result<Self, ProtocolCallRefusal> {
+        use ProtocolCallRefusal as Refusal;
+        let (lowered, active, mut bindings) =
+            Self::prepare_pure(plan, &[implementation], zip, states)?;
+        let fragment = &plan.fragments[0];
+        let i2c = fragment
+            .placements
+            .iter()
+            .find(|gear| gear.implementation_id.as_str() == implementation)
+            .ok_or(Refusal::Unsupported)?;
+        let owner = bind(fragment, &lowered, &active, &i2c.placement_id)?;
         bindings.push(Binding {
             node: lowered
                 .identity
@@ -177,111 +376,57 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
                 .ok_or(Refusal::InvalidPlan)?,
             resources: i2c.resources.clone(),
             authorities: i2c.authority.clone(),
-            owner: Owner::I2c(Box::new(owner)),
+            owner,
         });
         Ok(Self {
             plan_id: plan.plan_id.clone(),
+            #[cfg(any(
+                target_arch = "x86_64",
+                all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+            ))]
+            storage: None,
             identity: PreparationHostIdentity {
                 host_id: fragment.host_id.clone(),
                 boot_id: fragment.boot_id.clone(),
                 offer_generation: fragment.offer_generation,
             },
             bindings,
+            #[cfg(any(
+                target_arch = "x86_64",
+                all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+            ))]
+            usb_protocol: None,
+            #[cfg(any(
+                target_arch = "x86_64",
+                all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+            ))]
+            usb_duplex: None,
+            #[cfg(any(
+                target_arch = "x86_64",
+                all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+            ))]
+            usb_isochronous: None,
+            #[cfg(any(
+                target_arch = "x86_64",
+                all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+            ))]
+            pending_usb_kind: PendingUsbKind::ProtocolRead,
+            #[cfg(any(
+                target_arch = "x86_64",
+                all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+            ))]
+            pending_usb: None,
+            #[cfg(any(
+                target_arch = "x86_64",
+                all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+            ))]
+            pending_usb_failed: false,
+            #[cfg(any(
+                target_arch = "x86_64",
+                all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+            ))]
+            pending_duplex: [None, None],
         })
-    }
-
-    /// Service exactly one surfaced token. No request creation, retry or private stepping loop.
-    pub fn dispatch(
-        &mut self,
-        kernel: &mut KernelCompositeHost,
-        request: &KernelCompositeHostRequest,
-    ) -> Result<(), ProtocolCallRefusal> {
-        use ProtocolCallRefusal as Refusal;
-        if kernel.definition().internal_plan.plan_id != self.plan_id {
-            return Err(Refusal::InvalidPlan);
-        }
-        let view = kernel.host_request_view(request).map_err(Refusal::Kernel)?;
-        if *view.child != self.identity.host_id || view.request.call != HostCallId(0) {
-            return Err(Refusal::InvalidPlan);
-        }
-        let node = view.request.node;
-        let binding = self
-            .bindings
-            .iter_mut()
-            .find(|binding| binding.node == node)
-            .ok_or(Refusal::Unsupported)?;
-        let required = kernel
-            .host_request_obligation(request)
-            .map_err(Refusal::Kernel)?;
-        let expected = match binding.owner {
-            Owner::Expression(_) => expression_host_call::CALL,
-            Owner::Selector(_) => structured_selector_host_call::CALL,
-            Owner::I2c(_) => I2C_CALL,
-        };
-        if required.requirement.contract_id.as_str() != expected {
-            return Err(Refusal::InvalidPlan);
-        }
-        let admitted = kernel
-            .admit_host_request(
-                request,
-                &self.identity,
-                &binding.resources,
-                &binding.authorities,
-            )
-            .map_err(Refusal::Kernel)?;
-        let call = *kernel
-            .admitted_host_request_view(&admitted)
-            .map_err(Refusal::Kernel)?
-            .request;
-        let input = kernel
-            .host_request_input(&admitted)
-            .map_err(Refusal::Kernel)?;
-        let result = match &mut binding.owner {
-            Owner::Expression(owner) => owner
-                .invoke(node, call.call, call.request, input)
-                .map(Some)
-                .map_err(Refusal::Expression),
-            Owner::Selector(owner) => owner
-                .invoke(node, call.call, call.request, input)
-                .map_err(Refusal::Selector),
-            Owner::I2c(owner) => owner
-                .invoke(node, call.call, call.request, input)
-                .map(Some)
-                .map_err(Refusal::I2c),
-        };
-        match result {
-            Ok(None) => kernel
-                .complete_host_call(
-                    &admitted,
-                    HostCallOutcome {
-                        disposition: HostCallDisposition::Completed,
-                        output: None,
-                        failure: None,
-                    },
-                )
-                .map_err(Refusal::Kernel),
-            Ok(Some(bytes)) => kernel
-                .complete_host_call_bytes(&admitted, bytes)
-                .map_err(Refusal::Kernel),
-            Err(error) => {
-                let failure = error.failure();
-                kernel
-                    .complete_host_call(
-                        &admitted,
-                        HostCallOutcome {
-                            disposition: if failure.code == FailureCode::HostCallDenied {
-                                HostCallDisposition::Denied
-                            } else {
-                                HostCallDisposition::Failed
-                            },
-                            output: None,
-                            failure: Some(failure),
-                        },
-                    )
-                    .map_err(Refusal::Kernel)?;
-                Err(error)
-            }
-        }
     }
 
     /// Revoke actual bus ownership as well as cancelling kernel and computation state.
@@ -290,8 +435,58 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
         if kernel.definition().internal_plan.plan_id != self.plan_id {
             return Err(Refusal::InvalidPlan);
         }
+        #[cfg(any(
+            target_arch = "x86_64",
+            all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+        ))]
+        if let Some(storage) = &mut self.storage {
+            storage.request_cancel()?;
+        }
+
+        #[cfg(any(
+            target_arch = "x86_64",
+            all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+        ))]
+        if let Some(host) = &mut self.usb_protocol {
+            host.cancel().map_err(Refusal::UsbProtocol)?;
+            self.pending_duplex = [None, None];
+            self.pending_usb = None;
+            self.pending_usb_failed = false;
+        }
+        #[cfg(any(
+            target_arch = "x86_64",
+            all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+        ))]
+        if let Some(host) = &mut self.usb_duplex {
+            host.cancel().map_err(Refusal::UsbProtocol)?;
+            self.pending_duplex = [None, None];
+            self.pending_usb = None;
+            self.pending_usb_failed = false;
+        }
+        #[cfg(any(
+            target_arch = "x86_64",
+            all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+        ))]
+        if let Some(host) = &mut self.usb_isochronous {
+            host.cancel().map_err(Refusal::UsbIsochronous)?;
+            self.pending_usb = None;
+            self.pending_usb_failed = false;
+        }
         // Revoke the physics-facing owner first, even if kernel cancellation later refuses.
         for binding in &mut self.bindings {
+            #[cfg(any(
+                target_arch = "x86_64",
+                all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+            ))]
+            if let Owner::UsbControl(owner) = &mut binding.owner {
+                owner
+                    .revoke(binding.node, HostCallId(0))
+                    .map_err(Refusal::Usb)?;
+            }
+            #[cfg(feature = "native-owner-network")]
+            if let Owner::EthernetFrame(owner) = &mut binding.owner {
+                owner.cancel().map_err(Refusal::EthernetFrame)?;
+            }
             if let Owner::I2c(owner) = &mut binding.owner {
                 owner
                     .revoke(binding.node, HostCallId(0))
@@ -300,68 +495,24 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
         }
         let cancelled = kernel.cancel().map_err(Refusal::Kernel);
         for binding in &mut self.bindings {
-            if let Owner::Expression(owner) = &mut binding.owner {
-                owner
-                    .cancel(binding.node, HostCallId(0))
-                    .map_err(Refusal::Expression)?;
+            if let Owner::Pure(owner) = &mut binding.owner {
+                owner.cancel(binding.node, HostCallId(0))?;
             }
         }
-        for binding in &mut self.bindings {
-            if let Owner::Selector(owner) = &mut binding.owner {
-                owner
-                    .cancel(binding.node, HostCallId(0))
-                    .map_err(Refusal::Selector)?;
-            }
-        }
-        cancelled
+        cancelled?;
+        #[cfg(any(
+            target_arch = "x86_64",
+            all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+        ))]
+        self.retire_cancelled_storage(kernel)?;
+        Ok(())
     }
 }
 
-impl ProtocolCallRefusal {
-    pub fn failure(&self) -> Failure {
-        use crate::monotonic_clock::owner::ClockCallRefusal as Clock;
-        use ExpressionCallRefusal as Expression;
-        use I2cCallRefusal as I2c;
-        use SelectorCallRefusal as Selector;
-        let (code, detail) = match self {
-            Self::InvalidPlan => (FailureCode::InvalidLifecycle, 1020),
-            Self::Unsupported => (FailureCode::HostCallDenied, 1021),
-            Self::Kernel(_) => (FailureCode::HostCallFailed, 1022),
-            Self::Expression(
-                Expression::WrongBinding | Expression::StaleRequest | Expression::InvalidProgram,
-            ) => (FailureCode::InvalidLifecycle, 1023),
-            Self::Expression(Expression::InvalidInput) => (FailureCode::InvalidInput, 1024),
-            Self::Expression(Expression::SequenceExhausted) => {
-                (FailureCode::IdentityCapacityExhausted, 1025)
-            }
-            Self::Expression(Expression::Cancelled) => (FailureCode::Cancelled, 1026),
-            Self::Expression(Expression::Evaluation(_)) => (FailureCode::HostCallFailed, 1027),
-            Self::Selector(
-                Selector::WrongBinding | Selector::InvalidSelector | Selector::StaleRequest,
-            ) => (FailureCode::InvalidLifecycle, 1040),
-            Self::Selector(Selector::InvalidInput) => (FailureCode::InvalidInput, 1041),
-            Self::Selector(Selector::SequenceExhausted) => {
-                (FailureCode::IdentityCapacityExhausted, 1042)
-            }
-            Self::Selector(Selector::Cancelled) => (FailureCode::Cancelled, 1043),
-            Self::Selector(Selector::Selection(_)) => (FailureCode::InvalidInput, 1044),
-            Self::Clock(Clock::WrongBinding | Clock::StaleRequest | Clock::Pending) => {
-                (FailureCode::InvalidLifecycle, 1060)
-            }
-            Self::Clock(Clock::Possession | Clock::Capability(_)) => {
-                (FailureCode::HostCallDenied, 1061)
-            }
-            Self::Clock(Clock::SequenceExhausted) => (FailureCode::IdentityCapacityExhausted, 1062),
-            Self::Clock(Clock::Cancelled) => (FailureCode::Cancelled, 1063),
-            Self::Clock(Clock::Canonical(_)) => (FailureCode::InvalidInput, 1064),
-            Self::I2c(I2c::WrongBinding | I2c::StaleRequest) => {
-                (FailureCode::InvalidLifecycle, 1030)
-            }
-            Self::I2c(I2c::Possession | I2c::Capability(_)) => (FailureCode::HostCallDenied, 1031),
-            Self::I2c(I2c::SequenceExhausted) => (FailureCode::IdentityCapacityExhausted, 1032),
-            Self::I2c(I2c::Decode(_)) => (FailureCode::InvalidInput, 1033),
-            Self::I2c(I2c::Result(_) | I2c::Canonical(_)) => (FailureCode::HostCallFailed, 1034),
-        };
-        Failure { code, detail }
-    }
-}
+#[cfg(all(test, target_arch = "x86_64"))]
+mod recovery_tests;
+
+#[cfg(all(test, target_arch = "x86_64"))]
+pub(crate) use recovery_tests::{
+    plan as recovery_fixture_plan, prepare as recovery_fixture_kernel,
+};

@@ -124,7 +124,7 @@ fn quantity_range_and_quantization_refusals_reach_the_production_kernel() {
         let source = format!(
             r#"plot quantity_refusal {{
  source: conduit-test/scalar-literal
- map: math/map-quantity(source-minimum = {minimum}, source-maximum = {maximum}, target-minimum = 0, target-maximum = 100, target-granularity = 1, unit = "%", range-policy = "refuse", quantization = "exact")
+ map: math/map-quantity(source-minimum = {minimum}, source-maximum = {maximum}, target-minimum = 0, target-maximum = 100, target-granularity = 1, unit = %, range-policy = "refuse", quantization = "exact")
  source.value >> map.in
 }}
 "#
@@ -142,7 +142,10 @@ fn quantity_range_and_quantization_refusals_reach_the_production_kernel() {
             conduit_std_offers::QUANTITY_MAP_IMPLEMENTATION
         );
         assert_eq!(mapping.host_calls[0].maximum_input_bytes, 8);
-        assert_eq!(mapping.host_calls[0].maximum_output_bytes, 9);
+        assert_eq!(
+            mapping.host_calls[0].maximum_output_bytes,
+            conduit_core::QUANTITY_ENCODED_LEN as u32
+        );
         let mut output = Vec::new();
         let mut timer = RecordingTimer { waits: Vec::new() };
         let report = host
@@ -180,17 +183,19 @@ fn quantity_range_and_quantization_refusals_reach_the_production_kernel() {
 
 fn run_presented_quantity(source: &str, entry: &str) -> (conduit_core::Plan, crate::StdRunReport) {
     let mut catalog = installed_std::test_catalog();
-    let value_type = conduit_semantic_catalog::wrapped_quantity_type();
-    let contract =
-        conduit_semantic_catalog::structured_presentation_contract("Quantity", &value_type);
     catalog
-        .insert(conduit_plot::KindProjection {
-            kind_id: contract.kind_id,
-            kind_contract_revision: contract.kind_contract_revision,
-            inputs: contract.inputs,
-            outputs: contract.outputs,
-            configuration: Default::default(),
-        })
+        .insert_kind(
+            conduit_semantic_catalog::scalar_literal_contract().into_semantic_contract(
+                conduit_semantic_catalog::VALUE_PRIMITIVE_CONTRACT_REVISION,
+            ),
+        )
+        .unwrap();
+    let value_type = conduit_semantic_catalog::wrapped_quantity_type();
+    catalog
+        .insert_kind(conduit_semantic_catalog::structured_face_semantic_contract(
+            "Quantity",
+            &value_type,
+        ))
         .unwrap();
     let syntax = conduit_plot::parse_syntax_document(source);
     let mut startup = catalog.startup_catalog().unwrap();
@@ -215,7 +220,7 @@ fn run_presented_quantity(source: &str, entry: &str) -> (conduit_core::Plan, cra
             let bytes = if cord.value_kind.as_str() == conduit_core::SCALAR_INFO_ID {
                 8
             } else if cord.value_kind.as_str() == conduit_core::QUANTITY_INFO_ID {
-                9
+                conduit_core::QUANTITY_ENCODED_LEN as u32
             } else {
                 conduit_semantic_catalog::QUANTITY_INFO_MAXIMUM_BYTES as u32
             };
@@ -236,7 +241,7 @@ fn run_presented_quantity(source: &str, entry: &str) -> (conduit_core::Plan, cra
     let mut advertisement = host("quantity-output-host").advertisement().clone();
     advertisement
         .capabilities
-        .push(conduit_std_offers::structured_presentation_std_offer(
+        .push(conduit_std_offers::structured_face_std_offer(
             "Quantity",
             &value_type,
         ));
@@ -254,7 +259,7 @@ fn run_presented_quantity(source: &str, entry: &str) -> (conduit_core::Plan, cra
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),
             connection_item_capacity: 1,
-            connection_byte_capacity: conduit_semantic_catalog::QUANTITY_INFO_MAXIMUM_BYTES as u32,
+            connection_byte_capacity: SCALAR_ENCODED_LEN as u32,
             authority_grants: &[],
             protected_resource_grants: &[],
             line_offers: &[],
@@ -273,6 +278,7 @@ fn run_presented_quantity(source: &str, entry: &str) -> (conduit_core::Plan, cra
             keyboard: None,
             local_model: None,
             vector_search: None,
+            model_work: None,
             calendar: None,
             body_conversation_context: None,
         },
@@ -289,12 +295,75 @@ fn run_presented_quantity(source: &str, entry: &str) -> (conduit_core::Plan, cra
 }
 
 #[test]
+fn canonical_quantity_face_completes_through_the_installed_back() {
+    let source = r#"plot quantity_face {
+ source: scalar/literal(value = -1)
+ map: math/map-quantity(source-minimum = -2, source-maximum = 0, target-maximum = 100, unit = %)
+ wrap: structured-info/wrap-quantity
+ show: face/quantity("Battery charge")
+ source.value >> map.in
+ map.out >> wrap.in
+ wrap.out >> show.input
+}
+"#;
+    let (plan, report) = run_presented_quantity(source, "quantity_face");
+    assert_quantity_presented(
+        &plan,
+        &report,
+        conduit_core::Quantity::new(50, conduit_core::Unit::Percent),
+    );
+    let show = plan.fragments[0]
+        .placements
+        .iter()
+        .find(|placement| placement.kind_id.as_str() == "face/quantity")
+        .unwrap();
+    assert_eq!(
+        show.inputs,
+        conduit_semantic_catalog::quantity_face_semantic_contract().inputs
+    );
+    assert_eq!(
+        show.implementation_id.as_str(),
+        conduit_std_offers::STRUCTURED_FACE_STD_IMPLEMENTATION
+    );
+    let observed = report
+        .observations
+        .iter()
+        .find(|sign| matches!(&sign.kind, ObservationKind::ValuePresented { .. }))
+        .unwrap();
+    let ObservationKind::ValuePresented { label, .. } = &observed.kind else {
+        unreachable!()
+    };
+    assert_eq!(label, "Battery charge");
+    assert_eq!(report.kernel.unwrap().post_play_start_allocations, 0);
+    for changed_revision in [false, true] {
+        let mut fragment = plan.fragments[0].clone();
+        let show = fragment
+            .placements
+            .iter_mut()
+            .find(|placement| placement.kind_id.as_str() == "face/quantity")
+            .unwrap();
+        if changed_revision {
+            show.kind_contract_revision = "face/quantity@uninstalled".into();
+        } else {
+            show.inputs[0].value_kind = conduit_core::kind_id(conduit_core::BOOL_INFO_ID);
+        }
+        let mut host = host("quantity-output-host");
+        let mut output = Vec::new();
+        let mut timer = RecordingTimer { waits: Vec::new() };
+        assert!(host
+            .run_fragment_to(fragment, &mut output, &mut timer)
+            .is_err());
+        assert!(timer.waits.is_empty());
+    }
+}
+
+#[test]
 fn quantity_mapping_completes_one_admitted_kernel_request() {
     let source = r#"plot quantity_success {
  source: conduit-test/scalar-literal
- map: math/map-quantity(source-minimum = -2, source-maximum = 0, target-maximum = 100, unit = "%")
+ map: math/map-quantity(source-minimum = -2, source-maximum = 0, target-maximum = 100, unit = %)
  wrap: structured-info/wrap-quantity
- show: presentation/structured-info
+ show: face/structured-info("Observation")
  source.value >> map.in
  map.out >> wrap.in
  wrap.out >> show.input
@@ -304,7 +373,7 @@ fn quantity_mapping_completes_one_admitted_kernel_request() {
     assert_quantity_presented(
         &plan,
         &report,
-        conduit_core::Quantity::new(50, conduit_core::QuantityUnit::Percent),
+        conduit_core::Quantity::new(50, conduit_core::Unit::Percent),
     );
     assert_eq!(
         report
@@ -330,7 +399,7 @@ fn assert_quantity_presented(
         .iter()
         .find(|sign| matches!(sign.kind, ObservationKind::ValuePresented { .. }))
         .unwrap();
-    let ObservationKind::ValuePresented { value } = &presented.kind else {
+    let ObservationKind::ValuePresented { value, .. } = &presented.kind else {
         unreachable!()
     };
     let expected =
@@ -353,7 +422,7 @@ fn assert_quantity_presented(
     ));
     let kernel = report.kernel.as_ref().unwrap();
     let identity = kernel.identity.sign_identity(&presented.sign_id).unwrap();
-    assert_eq!(identity.presentation_id, presented.presentation_id);
+    assert_eq!(identity.face_id, presented.face_id);
     assert!(kernel
         .identity
         .request(identity.node.unwrap(), identity.request.unwrap())
@@ -370,15 +439,15 @@ fn assert_quantity_presented(
 }
 
 #[test]
-fn quantity_refusals_do_not_make_a_connected_presentation() {
+fn quantity_refusals_do_not_make_a_connected_face() {
     for (minimum, maximum, expected) in [(0, 1_000_000, "out-of-range"), (-1_000_000, 0, "inexact")]
     {
         let source = format!(
             r#"plot quantity_refusal {{
  source: conduit-test/scalar-literal
- map: math/map-quantity(source-minimum = {minimum}, source-maximum = {maximum}, target-maximum = 100, unit = "%", range-policy = "refuse", quantization = "exact")
+ map: math/map-quantity(source-minimum = {minimum}, source-maximum = {maximum}, target-maximum = 100, unit = %, range-policy = "refuse", quantization = "exact")
  wrap: structured-info/wrap-quantity
- show: presentation/structured-info
+ show: face/structured-info("Observation")
  source.value >> map.in
  map.out >> wrap.in
  wrap.out >> show.input
@@ -415,25 +484,25 @@ fn quantity_refusals_do_not_make_a_connected_presentation() {
             Some(&kernel.active_play_id)
         );
         assert_eq!(kernel.post_play_start_allocations, 0);
-        assert!(kernel.presentation_ids.is_empty());
+        assert!(kernel.face_ids.is_empty());
     }
 }
 
 #[test]
 fn authored_quantity_plots_execute_and_present_through_the_production_kernel() {
-    use conduit_core::{Quantity, QuantityUnit};
+    use conduit_core::{Quantity, Unit};
     for (authored, name, output, expected) in [
         (
             include_str!("../../../../plots/quantity-range-map/main.conduit"),
             "quantity-range-map",
             "quantity",
-            Quantity::new(10010, QuantityUnit::Hertz),
+            Quantity::new(10010, Unit::Hertz),
         ),
         (
             include_str!("../../../../plots/normalized-light-intensity/main.conduit"),
             "normalized-light-intensity",
             "intensity",
-            Quantity::new(50, QuantityUnit::Percent),
+            Quantity::new(50, Unit::Percent),
         ),
     ] {
         let source = format!(
@@ -443,7 +512,7 @@ plot quantity_composition {{
  input: math/scale(gain = -500000000000)
  map: {name}
  wrap: structured-info/wrap-quantity
- show: presentation/structured-info
+ show: face/structured-info("Observation")
  source.value >> input.in
  input.out >> map.control
  map.{output} >> wrap.in

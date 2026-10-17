@@ -83,6 +83,9 @@ pub(crate) struct Args {
     speech_data: PathBuf,
     #[arg(long, required = true, num_args = 1..)]
     speech_engine: Vec<PathBuf>,
+    /// Native LanguageCoverage bound to this exact selected provider source.
+    #[arg(long)]
+    speech_language_coverage: PathBuf,
     #[arg(long, default_value = "en-us")]
     speech_voice: String,
 }
@@ -118,7 +121,7 @@ pub(super) fn run(args: Args) -> Result<(), Box<dyn std::error::Error>> {
         first.advertisement.host_id.as_str(),
     )?;
     let body_id = first
-        .presentation
+        .face
         .basis
         .body_id
         .as_ref()
@@ -128,7 +131,7 @@ pub(super) fn run(args: Args) -> Result<(), Box<dyn std::error::Error>> {
         "{}/{}/{}/{}",
         source_commit,
         body_id.as_str(),
-        first.presentation.revision,
+        first.face.revision,
         run_nonce,
     );
     let run_digest = format!("{:x}", Sha256::digest(run_seed.as_bytes()));
@@ -154,6 +157,10 @@ pub(super) fn run(args: Args) -> Result<(), Box<dyn std::error::Error>> {
         &args.speech_voice,
         &args.speech_engine,
     )?;
+    let coverage = conduit_std_host::hosted_speech_synthesis::read_language_coverage(
+        &args.speech_language_coverage,
+    )?;
+    let speech = speech.declare_language_coverage(coverage)?;
 
     fs::create_dir(&args.output)?;
     let mut manifest = EvidenceManifest::new(&args.output, &workspace, PROOF_ID, SUITE_ID)?;

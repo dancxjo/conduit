@@ -60,7 +60,7 @@ fn denied_and_unavailable_audio_remain_visible_while_keyboard_plots_continue() {
     for denied in [true, false] {
         let request = request_from_sources(&[
             include_str!("../../../../../plots/startup-chime/main.conduit"),
-            include_str!("../../../../../plots/memory-lantern/main.conduit"),
+            include_str!("../../../../../plots/memory-lantern/keyboard-only.conduit"),
         ]);
         let (mut session, started) = prepare(request).unwrap();
         let mut progress = started.progress;
@@ -71,6 +71,35 @@ fn denied_and_unavailable_audio_remain_visible_while_keyboard_plots_continue() {
                 TourProgress::Effect(effect) => match *effect {
                     TourHostEffect::AudioCue(effect) => cue = Some(effect),
                     TourHostEffect::KeyEvent(effect) => keyboard = Some(effect),
+                    TourHostEffect::Manifestation(effect) => {
+                        assert_eq!(effect.text.as_deref(), Some(""));
+                        let request_sequence = session
+                            .pending
+                            .iter()
+                            .find(|pending| {
+                                placement_in_fragments(&session.fragments, pending.request.node)
+                                    .is_some_and(|(_, gear)| {
+                                        gear.placement_id.as_str() == effect.placement_id
+                                    })
+                                    && matches!(
+                                        pending.effect,
+                                        engine::BrowserHostEffect::Manifestation(_)
+                                    )
+                            })
+                            .expect("initial manifestation retains its exact pending request")
+                            .request
+                            .request
+                            .0;
+                        progress = session
+                            .complete_effect(
+                                &effect.active_play_id,
+                                &effect.placement_id,
+                                request_sequence,
+                                None,
+                            )
+                            .unwrap();
+                        continue;
+                    }
                     _ => panic!("unexpected startup effect"),
                 },
                 TourProgress::Waiting { .. } => break,
@@ -231,7 +260,9 @@ fn live_inspection_exposes_kernel_gaps_and_a_bounded_host_completion_window() {
     let (mut session, mut effect) =
         TourSession::prepare("host/gaps", "boot/gaps", source, 1).unwrap();
     let mut transitions = 0_u64;
-    for _ in 0..100 {
+    // Exercise actual retention overflow even as the admitted Sign table grows.
+    let completions = usize::from(crate::installed_browser::BROWSER_SIGN_ITEMS);
+    for _ in 0..completions {
         let (play, placement, request, output) = match effect {
             TourHostEffect::ButtonTransition(value) => {
                 let bytes = conduit_semantic_catalog::button_transition_value(
@@ -267,8 +298,32 @@ fn live_inspection_exposes_kernel_gaps_and_a_bounded_host_completion_window() {
         };
     }
     let observed = serde_json::to_value(session.kernel_signs()).unwrap();
+    let storage = &observed["prepared_storage"];
+    let live_quota = storage["live_byte_quota"].as_u64().unwrap();
+    let reserved = storage["reserved_storage_bytes"].as_u64().unwrap();
+    let capacities = storage["slot_capacities"].as_array().unwrap();
+    assert_eq!(
+        capacities
+            .iter()
+            .map(|value| value.as_u64().unwrap())
+            .sum::<u64>(),
+        live_quota
+    );
+    assert!(reserved >= live_quota);
+    assert!(
+        reserved + storage["data_memory_reservation"].as_u64().unwrap()
+            <= storage["memory_pool_bytes"].as_u64().unwrap()
+    );
+    let partitions = storage["partitions"].as_array().unwrap();
+    assert!(!partitions.is_empty());
+    for placement in observed["placements"].as_array().unwrap() {
+        assert!(partitions
+            .iter()
+            .any(|partition| partition["plan_id"] == placement["plan_id"]
+                && partition["fragment_id"] == placement["fragment_id"]));
+    }
     assert!(observed["retention_gap"]["entries"].as_u64().unwrap() > 0);
-    assert_eq!(observed["host_completions"]["omitted"], 36);
+    assert_eq!(observed["host_completions"]["omitted"], completions - 64);
     assert_eq!(
         observed["host_completions"]["records"]
             .as_array()

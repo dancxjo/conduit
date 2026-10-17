@@ -31,7 +31,10 @@ fn main() {
             semantic_identity: &timing_identity,
             rust_type_path: "conduit_audio::TimingFeedback",
         }],
-        &RustBindingOptions::default(),
+        &RustBindingOptions {
+            boxed_variant_payloads: ["EducationAssessmentOutcome.partial".into()].into(),
+            ..RustBindingOptions::default()
+        },
     )
     .expect("education semantic Types must generate exact Rust bindings");
     let output = PathBuf::from(env::var_os("OUT_DIR").expect("Cargo supplies OUT_DIR"))

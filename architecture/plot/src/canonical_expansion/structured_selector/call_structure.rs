@@ -51,7 +51,9 @@ pub(super) fn isolate_nested_semantic_call(
                         .into(),
                 ));
             }
-            ExpressionSyntax::Atomic(_) => expression.clone(),
+            ExpressionSyntax::Atomic(_) | ExpressionSyntax::TypedGlyphLiteral(_) => {
+                expression.clone()
+            }
             ExpressionSyntax::Projection {
                 value,
                 member,
@@ -161,6 +163,8 @@ pub(super) fn contains_semantic_call(expression: &crate::ExpressionSyntax) -> bo
             .iter()
             .any(|field| contains_semantic_call(&field.value)),
         crate::ExpressionSyntax::Variant { payload, .. } => contains_semantic_call(payload),
-        crate::ExpressionSyntax::Input(_) | crate::ExpressionSyntax::Atomic(_) => false,
+        crate::ExpressionSyntax::Input(_)
+        | crate::ExpressionSyntax::Atomic(_)
+        | crate::ExpressionSyntax::TypedGlyphLiteral(_) => false,
     }
 }

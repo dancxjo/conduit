@@ -1,12 +1,15 @@
+mod primitive_bound;
 use crate::prelude::*;
 use crate::SyntaxCheckDiagnostic;
 use conduit_core::{IntervalEndpoint, KindId, PrimitiveInfoKind, ValueConstraint};
+use primitive_bound::intrinsic_maximum_bytes;
 
 pub(crate) fn checked_refinements(
     refinements: &[crate::ValueRefinement],
     maximum_bytes: Option<u64>,
     value_kind: &KindId,
     bound_span: crate::Span,
+    catalog: &crate::StartupCatalog,
 ) -> Result<(u32, Vec<ValueConstraint>), SyntaxCheckDiagnostic> {
     let maximum_bytes = maximum_bytes
         .or_else(|| intrinsic_maximum_bytes(value_kind.as_str()).map(u64::from))
@@ -37,6 +40,7 @@ pub(crate) fn checked_refinements(
                 Ok(ValueConstraint::FloatFinite)
             }
             crate::ValueRefinement::TextPattern {
+                glyph,
                 source,
                 case_insensitive,
                 anchored_start,
@@ -51,6 +55,13 @@ pub(crate) fn checked_refinements(
                         message: "the ~ and !~ relations may refine only canonical Text info"
                             .into(),
                     });
+                }
+                if let Some(expression) = glyph {
+                    let crate::ExpressionSyntax::TypedGlyphLiteral(literal) = &expression.syntax else {
+                        return Err(SyntaxCheckDiagnostic { code: "CND-GLY-004", span: expression.span, message: "pattern refinement requires one typed glyph literal".into() });
+                    };
+                    return catalog.glyph_text_constraint(literal, maximum_bytes, *negated)
+                        .map_err(|message| SyntaxCheckDiagnostic { code: "CND-GLY-004", span: expression.span, message });
                 }
                 let mut expression = crate::parse_text_pattern(&source.text).map_err(|error| {
                     SyntaxCheckDiagnostic {
@@ -261,8 +272,8 @@ fn checked_range(
             minimum_endpoint = endpoint_or_inclusive(minimum.is_some(), minimum_endpoint);
             maximum_endpoint = endpoint_or_inclusive(maximum.is_some(), maximum_endpoint);
             Ok(ValueConstraint::QuantityRange {
-                minimum,
-                maximum,
+                minimum: minimum.map(Into::into),
+                maximum: maximum.map(Into::into),
                 minimum_endpoint,
                 maximum_endpoint,
             })
@@ -323,7 +334,7 @@ fn checked_member(
         ),
     };
     let bytes = match conduit_core::primitive_info_kind(value_kind.as_str()) {
-        Some(PrimitiveInfoKind::Unit) if member.text == "()" => Vec::new(),
+        Some(PrimitiveInfoKind::Empty) if member.text == "()" => Vec::new(),
         Some(PrimitiveInfoKind::Bool) => match member.text.as_str() {
             "false" => conduit_core::InfoBool::FALSE.encode().to_vec(),
             "true" => conduit_core::InfoBool::TRUE.encode().to_vec(),
@@ -343,9 +354,17 @@ fn checked_member(
         Some(PrimitiveInfoKind::Text) => crate::text_value::parse_quoted_text(&member.text)
             .map(|value| value.into_bytes())
             .ok_or_else(|| invalid("expected a quoted Text literal"))?,
+        Some(PrimitiveInfoKind::Quantity) => {
+            conduit_core::Quantity::parse_plot_literal(&member.text)
+                .map(|value| value.encode().to_vec())
+                .map_err(|refusal| {
+                    invalid(&alloc::format!(
+                        "exact decimal quantity refused: {refusal:?}"
+                    ))
+                })?
+        }
         Some(
-            PrimitiveInfoKind::Quantity
-            | PrimitiveInfoKind::Distance
+            PrimitiveInfoKind::Distance
             | PrimitiveInfoKind::Frequency
             | PrimitiveInfoKind::Duration
             | PrimitiveInfoKind::Voltage
@@ -437,38 +456,6 @@ fn checked_integer_member(
     };
     let (bytes, length) = value.encode();
     Some(bytes[..length].to_vec())
-}
-
-fn intrinsic_maximum_bytes(value_kind: &str) -> Option<u32> {
-    match conduit_core::primitive_info_kind(value_kind)? {
-        PrimitiveInfoKind::Unit | PrimitiveInfoKind::CancellationRequest => Some(0),
-        PrimitiveInfoKind::Bool => Some(conduit_core::BOOL_ENCODED_LEN as u32),
-        PrimitiveInfoKind::Count => Some(conduit_core::COUNT_ENCODED_LEN as u32),
-        PrimitiveInfoKind::Scalar => Some(conduit_core::SCALAR_ENCODED_LEN as u32),
-        PrimitiveInfoKind::Quantity
-        | PrimitiveInfoKind::Distance
-        | PrimitiveInfoKind::Frequency
-        | PrimitiveInfoKind::Duration
-        | PrimitiveInfoKind::Voltage
-        | PrimitiveInfoKind::Temperature
-        | PrimitiveInfoKind::Angle
-        | PrimitiveInfoKind::Ratio
-        | PrimitiveInfoKind::PixelCount => Some(conduit_core::QUANTITY_ENCODED_LEN as u32),
-        PrimitiveInfoKind::QuantityUnit => Some(conduit_core::QUANTITY_UNIT_ENCODED_LEN as u32),
-        kind @ (PrimitiveInfoKind::U8
-        | PrimitiveInfoKind::U16
-        | PrimitiveInfoKind::U32
-        | PrimitiveInfoKind::U64
-        | PrimitiveInfoKind::U128
-        | PrimitiveInfoKind::I8
-        | PrimitiveInfoKind::I16
-        | PrimitiveInfoKind::I32
-        | PrimitiveInfoKind::I64
-        | PrimitiveInfoKind::I128) => Some(conduit_core::fixed_integer_bytes(kind) as u32),
-        PrimitiveInfoKind::F32 => Some(conduit_core::IeeeF32::ENCODED_LEN as u32),
-        PrimitiveInfoKind::F64 => Some(conduit_core::IeeeF64::ENCODED_LEN as u32),
-        PrimitiveInfoKind::Text | PrimitiveInfoKind::Bytes | PrimitiveInfoKind::Terminal => None,
-    }
 }
 
 fn constraint_rank(constraint: &ValueConstraint) -> u8 {

@@ -1,0 +1,15 @@
+# One Todo command per exact Plan/Play. The selected checkpoint Gear publishes
+# one immutable generation before the committed state reaches the output Fore.
+# The next Play supplies current through an independently admitted restore.
+plot todo/checkpoint-once (
+    >> current: conduit.todo/state@1 <= 1635B
+    >> command: conduit.todo/command@1 <= 75B
+    committed: conduit.todo/state@1 <= 1635B >>
+) {
+    reducer: todo/combine
+    checkpoint: todo/checkpoint
+    current >> reducer.accumulator
+    command >> reducer.item
+    reducer.combined >> checkpoint.candidate
+    checkpoint.committed >> committed
+}

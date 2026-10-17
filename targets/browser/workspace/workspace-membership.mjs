@@ -108,7 +108,7 @@ function invitationUrl(location, artifact) {
 }
 
 function renderInvitationQr(root, projection) {
-  if (projection?.schema !== "conduit.presentation/invitation-qr@1"
+  if (projection?.schema !== "conduit.face/invitation-qr@1"
       || !Number.isSafeInteger(projection.width) || projection.width < 21 || projection.width > 177
       || !Array.isArray(projection.rows) || projection.rows.length !== projection.width
       || projection.rows.some(row => typeof row !== "string" || row.length !== projection.width || /[^01]/u.test(row))) {
@@ -128,13 +128,13 @@ function renderInvitationQr(root, projection) {
   svg.append(background, path); root.replaceChildren(svg); root.hidden = false;
 }
 
-export function openWorkspaceMembership({ root, session, host, hostCalls, invitation, invitationLabel, presentationFor, beforeAdmission, onChanged, onFailure }) {
+export function openWorkspaceMembership({ root, session, host, hostCalls, invitation, invitationLabel, faceFor, beforeAdmission, onChanged, onFailure }) {
   const panel = root.querySelector("#workspace-membership");
   const content = panel.querySelector("[data-membership-content]");
   const openButton = root.querySelector("[data-open-membership]");
   const inviteButton = root.querySelector("[data-invite-host]");
   const closeButton = root.querySelector("[data-close-membership]");
-  const invitationPresentation = presentationFor(content);
+  const invitationFace = faceFor(content);
   const channels = new Set();
   const joinedLines = new Map();
   let runningHost = null;
@@ -234,7 +234,7 @@ export function openWorkspaceMembership({ root, session, host, hostCalls, invita
       }
       content.append(actions);
     };
-    outfitter = createBrowserConfigurationOutfitter({ host, presentationFor, onChange: redraw });
+    outfitter = createBrowserConfigurationOutfitter({ host, faceFor, onChange: redraw });
     redraw();
   }
 
@@ -247,7 +247,7 @@ export function openWorkspaceMembership({ root, session, host, hostCalls, invita
     const runner = createPhysicalHostRunner({
       host,
       hostCalls,
-      presentationFor,
+      faceFor,
       targetCatalog: createInstalledCrecheTargetCatalog(),
       adapterContext: {
         async prepareSpore({ targetId, imageDigest = null, reviewedImage = null, nowMillis, entropy }) {
@@ -287,7 +287,7 @@ export function openWorkspaceMembership({ root, session, host, hostCalls, invita
     const runner = createPhysicalHostRunner({
       host,
       hostCalls,
-      presentationFor,
+      faceFor,
       targetCatalog: catalog,
       adapterContext: {
         configurationSelection,
@@ -413,17 +413,17 @@ export function openWorkspaceMembership({ root, session, host, hostCalls, invita
     const view = session.invitationView({ invitation_id: claim.invitation_id, body_id: claim.body_id,
       body_name: body.friendly_name, expires_at_millis: claim.expires_at_millis, transfer_uri: url, revision,
       clipboard_available: typeof navigator.clipboard?.writeText === "function", share_available: typeof navigator.share === "function" });
-    invitationPresentation.present("workspace-invitation", view, { async onEvent(event) {
-      invitationPresentation.nextEvent("workspace-invitation");
+    invitationFace.present("workspace-invitation", view, { async onEvent(event) {
+      invitationFace.nextEvent("workspace-invitation");
       if (event.revision !== invitationRevision || event.kind !== 1 || event.value.length !== 0) {
-        onFailure(new Error("This invitation presentation is stale")); return;
+        onFailure(new Error("This invitation face is stale")); return;
       }
       try {
         if (event.action === "invitation.show-qr") renderInvitationQr(content.querySelector("[data-invitation-qr]"), session.invitationQr(url));
         else if (event.action === "invitation.copy-link") await navigator.clipboard.writeText(url);
         else if (event.action === "invitation.share") await navigator.share({ title: `Join ${body.friendly_name}`, url });
         else if (event.action === "invitation.dismiss") { channel.close(); channels.delete(channel); render(); }
-        else throw new Error("Unknown invitation presentation action");
+        else throw new Error("Unknown invitation face action");
       } catch (error) { onFailure(error); }
     } });
   }

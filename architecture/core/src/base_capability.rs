@@ -4,6 +4,8 @@
 //! this table is [`BaseCapabilityHandle`], whose bearer bytes have no public
 //! constructor and are derived from issuer-private key material.
 
+mod capacity;
+
 use crate::{
     ActivePlayId, AuthorityContractId, AuthorityGrant, AuthorityGrantId, BaseInstanceId, BootId,
     CapabilityEnvelopeId, CapabilityId, CapabilityPossessionId, HostCallContractId, HostId,
@@ -212,6 +214,7 @@ impl BaseCapabilityTable {
             CapabilityPossessionId::from(hex_digest(&inspection_digest(issuance, &request.scope)));
         self.entries.push(CapabilityEntry {
             bearer,
+            active_sequences: Vec::with_capacity(usize::from(request.scope.maximum_in_flight)),
             inspection: CapabilityInspection {
                 possession_id,
                 scope: request.scope,
@@ -221,7 +224,6 @@ impl BaseCapabilityTable {
             },
             revocation_generation: 1,
             next_operation_sequence: 1,
-            active_sequences: Vec::new(),
         });
         Ok(BaseCapabilityHandle { bearer })
     }

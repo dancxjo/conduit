@@ -3,13 +3,13 @@ const REVIEW_SCHEMA = "conduit.creche/checked-browser-configuration@1";
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
-export function createBrowserConfigurationOutfitter({ host, presentationFor, restoredSelection = null, onChange }) {
+export function createBrowserConfigurationOutfitter({ host, faceFor, restoredSelection = null, onChange }) {
   const catalog = call(host.runtime, "conduit_creche_browser_configuration_catalog");
   requireCatalog(catalog);
   let selected = new Set(restoredSelection?.implementations ?? catalog.defaults);
   let checked = null;
   let diagnostic = null;
-  let presentationRevision = 0;
+  let faceRevision = 0;
 
   if (restoredSelection) {
     try {
@@ -26,10 +26,10 @@ export function createBrowserConfigurationOutfitter({ host, presentationFor, res
     render() {
       const root = document.createElement("section");
       root.className = "browser-configuration";
-      const presentation = presentationFor(root);
+      const face = faceFor(root);
       if (checked) {
-        const slot = presentationSlot(root, "browser-configuration-review");
-        presentView(presentation, slot.dataset.applicationSlot, "review", null, (event) => {
+        const slot = faceSlot(root, "browser-configuration-review");
+        presentView(face, slot.dataset.applicationSlot, "review", null, (event) => {
           if (event.action === "configuration.edit") {
             checked = null;
             onChange();
@@ -38,10 +38,10 @@ export function createBrowserConfigurationOutfitter({ host, presentationFor, res
         return root;
       }
       const groups = [...new Set(catalog.entries.map((entry) => entry.group))];
-      const actionsSlot = presentationSlot(root, "browser-configuration-actions");
-      presentView(presentation, actionsSlot.dataset.applicationSlot, "actions", null, (event) => {
+      const actionsSlot = faceSlot(root, "browser-configuration-actions");
+      presentView(face, actionsSlot.dataset.applicationSlot, "actions", null, (event) => {
         const presets = new Map([
-          ["configuration.preset.minimal", ["browser/dom@1", "browser/dom-presentation@1"]],
+          ["configuration.preset.minimal", ["browser/dom@1", "browser/dom-face@1"]],
           ["configuration.preset.interactive", catalog.defaults],
           ["configuration.preset.custom", [...selected]],
         ]);
@@ -57,8 +57,8 @@ export function createBrowserConfigurationOutfitter({ host, presentationFor, res
         }
       });
       groups.forEach((group, index) => {
-        const groupSlot = presentationSlot(root, `browser-configuration-group-${index}`);
-        presentView(presentation, groupSlot.dataset.applicationSlot, "group", group, (event) => {
+        const groupSlot = faceSlot(root, `browser-configuration-group-${index}`);
+        presentView(face, groupSlot.dataset.applicationSlot, "group", group, (event) => {
           const match = /^implementation\.change-(\d+)$/u.exec(event.action);
           const entry = match ? catalog.entries[Number(match[1])] : null;
           if (!entry) throw new Error("browser configuration event is not admitted");
@@ -72,7 +72,7 @@ export function createBrowserConfigurationOutfitter({ host, presentationFor, res
 
       function presentView(view, slot, mode, group, onEvent) {
         const request = encoder.encode(JSON.stringify({
-          revision: ++presentationRevision,
+          revision: ++faceRevision,
           mode,
           catalog_generation: mode === "review" ? checked.catalog_generation : catalog.generation,
           implementations: [...selected].sort(),
@@ -80,12 +80,12 @@ export function createBrowserConfigurationOutfitter({ host, presentationFor, res
           diagnostic: mode === "actions" ? diagnostic : null,
         }));
         if (request.length > host.runtime.conduit_creche_input_capacity()) {
-          throw new Error("browser configuration presentation request exceeds its bound");
+          throw new Error("browser configuration face request exceeds its bound");
         }
         new Uint8Array(host.runtime.memory.buffer, host.runtime.conduit_creche_input_ptr(), request.length).set(request);
         const code = host.runtime.conduit_creche_browser_configuration_view(request.length);
         if (code < 0) {
-          throw outputError(host.runtime, "browser configuration presentation", code);
+          throw outputError(host.runtime, "browser configuration face", code);
         }
         const encodedView = new Uint8Array(
           host.runtime.memory.buffer,
@@ -110,7 +110,7 @@ export function createBrowserConfigurationOutfitter({ host, presentationFor, res
   }
 }
 
-function presentationSlot(root, identity) {
+function faceSlot(root, identity) {
   const slot = root.ownerDocument.createElement("div");
   slot.dataset.applicationSlot = identity;
   root.append(slot);

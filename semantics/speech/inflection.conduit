@@ -1,0 +1,57 @@
+# This finite pronunciation profile declares regular stems explicitly. It does
+# not infer grammatical analyses, lemmas, number, tense, or commitment.
+type EnglishRegularSuffix =
+    s
+    | ed
+type EnglishInflectionScanInput = {
+    length: U32 in 0..=32
+    last: I32 in 0..=127
+    before: I32 in 0..=127
+}
+type EnglishStemStrip =
+    absent
+    | present U32
+type EnglishInflectionCandidate = {
+    suffix: EnglishRegularSuffix
+    first_strip: U32 in 1..=2
+    second_strip: EnglishStemStrip
+}
+type EnglishInflectionScanResult =
+    absent
+    | candidate EnglishInflectionCandidate
+plot speech/english-inflection-scan (
+    >> value: EnglishInflectionScanInput
+    result: EnglishInflectionScanResult >>
+) = (.length > 2 && .last == 100 && .before == 101 ? EnglishInflectionScanResult.candidate({suffix: EnglishRegularSuffix.ed, first_strip: 2, second_strip: EnglishStemStrip.present(1)}) : .length > 1 && .last == 115 ? EnglishInflectionScanResult.candidate({suffix: EnglishRegularSuffix.s, first_strip: 1, second_strip: .length > 2 && .before == 101 ? EnglishStemStrip.present(2) : EnglishStemStrip.absent}) : EnglishInflectionScanResult.absent)
+
+type EnglishRegularStemClass =
+    ineligible
+    | s_only
+    | regular_both
+plot speech/english-inflection-stem-class (
+    >> value: EnglishWord
+    result: EnglishRegularStemClass >>
+) = ((. == "listen" || . == "thank" || . == "please" || . == "voice" || . == "want") ? EnglishRegularStemClass.regular_both : (. == "world" || . == "device" || . == "conduit" || . == "synthesizer" || . == "speech" || . == "speak" || . == "read") ? EnglishRegularStemClass.s_only : EnglishRegularStemClass.ineligible)
+type EnglishInflectionBasis = {
+    stem_class: EnglishRegularStemClass
+    suffix: EnglishRegularSuffix
+}
+plot speech/english-inflection-eligible (
+    >> value: EnglishInflectionBasis
+    result: Boolean >>
+) = (.stem_class is regular_both || (.suffix is s && .stem_class is s_only))
+
+type EnglishInflectionEndingInput = {
+    suffix: EnglishRegularSuffix
+    final_phoneme: EnglishPhoneme
+}
+type EnglishInflectionEnding = {
+    first: EnglishPhonemeSlot
+    second: EnglishPhonemeSlot
+}
+# Sibilants take an unstressed syllable; otherwise the ending follows voicing.
+# Dental stops take an unstressed syllable before the regular -ed /d/.
+plot speech/english-inflection-ending (
+    >> value: EnglishInflectionEndingInput
+    result: EnglishInflectionEnding >>
+) = (.suffix is s ? ((.final_phoneme is s || .final_phoneme is z || .final_phoneme is sh || .final_phoneme is zh || .final_phoneme is ch || .final_phoneme is jh) ? {first: EnglishPhonemeSlot.present({phoneme: EnglishPhoneme.ih, stress: EnglishStress.unstressed}), second: EnglishPhonemeSlot.present({phoneme: EnglishPhoneme.z, stress: EnglishStress.unspecified})} : {first: EnglishPhonemeSlot.present({phoneme: (.final_phoneme is p || .final_phoneme is t || .final_phoneme is k || .final_phoneme is f || .final_phoneme is th || .final_phoneme is h) ? EnglishPhoneme.s : EnglishPhoneme.z, stress: EnglishStress.unspecified}), second: EnglishPhonemeSlot.absent}) : ((.final_phoneme is t || .final_phoneme is d) ? {first: EnglishPhonemeSlot.present({phoneme: EnglishPhoneme.ih, stress: EnglishStress.unstressed}), second: EnglishPhonemeSlot.present({phoneme: EnglishPhoneme.d, stress: EnglishStress.unspecified})} : {first: EnglishPhonemeSlot.present({phoneme: (.final_phoneme is p || .final_phoneme is k || .final_phoneme is f || .final_phoneme is th || .final_phoneme is h || .final_phoneme is s || .final_phoneme is sh || .final_phoneme is ch) ? EnglishPhoneme.t : EnglishPhoneme.d, stress: EnglishStress.unspecified}), second: EnglishPhonemeSlot.absent}))

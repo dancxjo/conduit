@@ -3,31 +3,30 @@
 //! Categories, tags, and icons help people find a kind. They are deliberately
 //! absent from Kind contracts and therefore cannot alter semantic identity.
 
-use conduit_alife::{LENIA_STEP_KIND, ORBIUM_SEED_KIND, SCALAR_FIELD_PRESENTATION_KIND};
+use conduit_alife::{LENIA_STEP_KIND, ORBIUM_SEED_KIND, SCALAR_FIELD_FACE_KIND};
 use conduit_core::KindId;
-pub use conduit_presentation::PresentationIconKey as PaletteIconKey;
-use conduit_presentation::BITMAP_PRESENTATION_KIND;
+pub use conduit_face::FaceIconKey as PaletteIconKey;
+use conduit_face::BITMAP_FACE_KIND;
 
 use crate::{
-    APPLICATION_EVENT_SOURCE_KIND, APPLICATION_VIEW_PRESENTATION_KIND, AUDIO_CONTINUOUS_TONE_KIND,
-    AUDIO_GAIN_KIND, AUDIO_RENDER_DEMAND_KIND, AUDIO_TONE_KIND, BOOL_PRESENTATION_KIND,
-    CHORDS_KIND, COPY_FILE_KIND, COUNT_PRESENTATION_KIND, DISTANCE_FREQUENCY_MAP_KIND, FIRST_KIND,
-    GATE_KIND, GRAPHICS_ICON_KIND, GRAPHICS_PRESENTATION_KIND, GRAPHICS_RECT_KIND,
-    GRAPHICS_TEXT_KIND, KEYBOARD_KIND, KEYMAP_KIND, KEY_EVENT_TEE_KIND, LATEST_KIND,
-    LAYOUT_ALIGN_KIND, LAYOUT_COLUMN_KIND, LAYOUT_INSET_KIND, LAYOUT_ROW_KIND, LAYOUT_STACK_KIND,
-    LAYOUT_VIEWPORT_KIND, LOGIC_COMPARE_KIND, LOGIC_NOT_KIND, LOGIC_SELECT_KIND, MATH_CLAMP_KIND,
-    MATH_DEADBAND_KIND, MATH_SCALE_KIND, MUSIC_INPUT_KIND, MUSIC_SYNTH_KIND,
-    NORMALIZED_DISTANCE_MAP_KIND, PATCHBAY_CORD_KIND, PATCHBAY_GEAR_FACE_KIND, PATCHBAY_PORT_KIND,
-    PATCHBAY_PRESENTATION_KIND, PRESENTATION_BADGE_KIND, PRESENTATION_FRAME_KIND,
-    PRESENTATION_ICON_KIND, QUANTITY_MAP_KIND, RETAINED_APPLICATION_KIND, ROBOTICS_DOCK_KIND,
+    APPLICATION_EVENT_SOURCE_KIND, APPLICATION_VIEW_FACE_KIND, AUDIO_CONTINUOUS_TONE_KIND,
+    AUDIO_GAIN_KIND, AUDIO_RENDER_DEMAND_KIND, AUDIO_TONE_KIND, BOOL_FACE_KIND, CHORDS_KIND,
+    COPY_FILE_KIND, COUNT_FACE_KIND, DISTANCE_FREQUENCY_MAP_KIND, FACE_BADGE_KIND, FACE_FRAME_KIND,
+    FACE_ICON_KIND, FIRST_KIND, GATE_KIND, GRAPHICS_FACE_KIND, GRAPHICS_ICON_KIND,
+    GRAPHICS_RECT_KIND, GRAPHICS_TEXT_KIND, KEYBOARD_KIND, KEYMAP_KIND, KEY_EVENT_TEE_KIND,
+    LATEST_KIND, LAYOUT_ALIGN_KIND, LAYOUT_COLUMN_KIND, LAYOUT_INSET_KIND, LAYOUT_ROW_KIND,
+    LAYOUT_STACK_KIND, LAYOUT_VIEWPORT_KIND, LOGIC_COMPARE_KIND, LOGIC_NOT_KIND, LOGIC_SELECT_KIND,
+    MATH_CLAMP_KIND, MATH_DEADBAND_KIND, MATH_SCALE_KIND, MUSIC_INPUT_KIND, MUSIC_SYNTH_KIND,
+    NORMALIZED_DISTANCE_MAP_KIND, PATCHBAY_CORD_KIND, PATCHBAY_FACE_KIND, PATCHBAY_GEAR_FACE_KIND,
+    PATCHBAY_PORT_KIND, QUANTITY_MAP_KIND, RETAINED_APPLICATION_KIND, ROBOTICS_DOCK_KIND,
     ROBOTICS_DRIVE_DIFFERENTIAL_KIND, ROBOTICS_OBSERVE_ACCELERATION_KIND,
     ROBOTICS_OBSERVE_BATTERY_KIND, ROBOTICS_OBSERVE_BEACON_KIND, ROBOTICS_OBSERVE_BUMP_KIND,
     ROBOTICS_OBSERVE_BUTTONS_KIND, ROBOTICS_OBSERVE_CHARGING_KIND, ROBOTICS_OBSERVE_CLIFF_KIND,
     ROBOTICS_OBSERVE_CONTACT_KIND, ROBOTICS_OBSERVE_IMU_KIND, ROBOTICS_OBSERVE_ODOMETRY_KIND,
     ROBOTICS_OBSERVE_PROXIMITY_KIND, ROBOTICS_OBSERVE_RANGE_KIND, ROBOTICS_OBSERVE_WHEEL_DROP_KIND,
     ROBOTICS_VELOCITY_INTENT_KIND, STATE_COUNT_KIND, STATE_SELECT_KIND, STATE_TOGGLE_KIND,
-    TEE_KIND, TEXT_PRESENTATION_KIND, TICK_KIND, TICK_PRESENTATION_KIND, TIME_DEADLINE_KIND,
-    TIME_DEBOUNCE_KIND, TIME_DELAY_KIND, TIME_THROTTLE_KIND, TIME_TIMEOUT_KIND,
+    TEE_KIND, TEXT_FACE_KIND, TICK_FACE_KIND, TICK_KIND, TIME_DEADLINE_KIND, TIME_DEBOUNCE_KIND,
+    TIME_DELAY_KIND, TIME_THROTTLE_KIND, TIME_TIMEOUT_KIND,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -35,7 +34,7 @@ pub enum PaletteCategory {
     TimeAndFlow,
     Transform,
     State,
-    Presentation,
+    Face,
     Files,
     Robotics,
     Input,
@@ -47,7 +46,7 @@ impl PaletteCategory {
         Self::TimeAndFlow,
         Self::Transform,
         Self::State,
-        Self::Presentation,
+        Self::Face,
         Self::Files,
         Self::Robotics,
         Self::Input,
@@ -59,7 +58,7 @@ impl PaletteCategory {
             Self::TimeAndFlow => "Time & Flow",
             Self::Transform => "Transform",
             Self::State => "State",
-            Self::Presentation => "Presentation",
+            Self::Face => "Face",
             Self::Files => "Files",
             Self::Robotics => "Robotics",
             Self::Input => "Input",
@@ -87,10 +86,10 @@ pub fn palette_metadata(kind_id: &KindId) -> Option<PaletteMetadata> {
             &["application", "retained", "state", "semantic"],
             PaletteIconKey::Body,
         ),
-        APPLICATION_VIEW_PRESENTATION_KIND => metadata(
-            PaletteCategory::Presentation,
-            &["application", "view", "semantic", "presentation"],
-            PaletteIconKey::Presentation,
+        APPLICATION_VIEW_FACE_KIND => metadata(
+            PaletteCategory::Face,
+            &["application", "view", "semantic", "face"],
+            PaletteIconKey::Face,
         ),
         TICK_KIND => metadata(
             PaletteCategory::TimeAndFlow,
@@ -142,10 +141,10 @@ pub fn palette_metadata(kind_id: &KindId) -> Option<PaletteMetadata> {
             &["alife", "lenia", "evolve", "scalar-field"],
             PaletteIconKey::Repeat2,
         ),
-        SCALAR_FIELD_PRESENTATION_KIND => metadata(
-            PaletteCategory::Presentation,
+        SCALAR_FIELD_FACE_KIND => metadata(
+            PaletteCategory::Face,
             &["alife", "lenia", "scalar-field", "presenter"],
-            PaletteIconKey::Presentation,
+            PaletteIconKey::Face,
         ),
         TIME_DEBOUNCE_KIND => metadata(
             PaletteCategory::TimeAndFlow,
@@ -191,6 +190,11 @@ pub fn palette_metadata(kind_id: &KindId) -> Option<PaletteMetadata> {
             PaletteCategory::Input,
             &["input", "keyboard", "modifier", "command"],
             PaletteIconKey::Keyboard,
+        ),
+        crate::SCALAR_LITERAL_KIND => metadata(
+            PaletteCategory::Input,
+            &["scalar", "literal", "constant", "value"],
+            PaletteIconKey::Type,
         ),
         conduit_text::TEXT_LITERAL_KIND => metadata(
             PaletteCategory::Transform,
@@ -293,49 +297,49 @@ pub fn palette_metadata(kind_id: &KindId) -> Option<PaletteMetadata> {
             PaletteIconKey::Combine,
         ),
         LAYOUT_VIEWPORT_KIND => metadata(
-            PaletteCategory::Presentation,
+            PaletteCategory::Face,
             &["layout", "viewport", "extent"],
-            PaletteIconKey::Presentation,
+            PaletteIconKey::Face,
         ),
         LAYOUT_INSET_KIND => metadata(
-            PaletteCategory::Presentation,
+            PaletteCategory::Face,
             &["layout", "inset", "clip"],
-            PaletteIconKey::Presentation,
+            PaletteIconKey::Face,
         ),
         LAYOUT_ROW_KIND => metadata(
-            PaletteCategory::Presentation,
+            PaletteCategory::Face,
             &["layout", "row", "horizontal"],
             PaletteIconKey::Combine,
         ),
         LAYOUT_COLUMN_KIND => metadata(
-            PaletteCategory::Presentation,
+            PaletteCategory::Face,
             &["layout", "column", "vertical"],
             PaletteIconKey::Combine,
         ),
         LAYOUT_STACK_KIND => metadata(
-            PaletteCategory::Presentation,
+            PaletteCategory::Face,
             &["layout", "stack", "overlay"],
             PaletteIconKey::Combine,
         ),
         LAYOUT_ALIGN_KIND => metadata(
-            PaletteCategory::Presentation,
+            PaletteCategory::Face,
             &["layout", "align", "placement"],
-            PaletteIconKey::Presentation,
+            PaletteIconKey::Face,
         ),
-        PRESENTATION_ICON_KIND => metadata(
-            PaletteCategory::Presentation,
-            &["presentation", "icon", "accessible"],
-            PaletteIconKey::Presentation,
+        FACE_ICON_KIND => metadata(
+            PaletteCategory::Face,
+            &["face", "icon", "accessible"],
+            PaletteIconKey::Face,
         ),
-        PRESENTATION_FRAME_KIND => metadata(
-            PaletteCategory::Presentation,
-            &["presentation", "frame", "group"],
-            PaletteIconKey::Presentation,
+        FACE_FRAME_KIND => metadata(
+            PaletteCategory::Face,
+            &["face", "frame", "group"],
+            PaletteIconKey::Face,
         ),
-        PRESENTATION_BADGE_KIND => metadata(
-            PaletteCategory::Presentation,
-            &["presentation", "badge", "status"],
-            PaletteIconKey::Presentation,
+        FACE_BADGE_KIND => metadata(
+            PaletteCategory::Face,
+            &["face", "badge", "status"],
+            PaletteIconKey::Face,
         ),
         ROBOTICS_OBSERVE_BUMP_KIND => metadata(
             PaletteCategory::Robotics,
@@ -417,68 +421,68 @@ pub fn palette_metadata(kind_id: &KindId) -> Option<PaletteMetadata> {
             &["robot", "acceleration", "imu", "impact"],
             PaletteIconKey::ChartColumnsIncreasing,
         ),
-        TICK_PRESENTATION_KIND => metadata(
-            PaletteCategory::Presentation,
+        TICK_FACE_KIND => metadata(
+            PaletteCategory::Face,
             &["display", "tick", "indicator"],
-            PaletteIconKey::Presentation,
+            PaletteIconKey::Face,
         ),
-        BOOL_PRESENTATION_KIND => metadata(
-            PaletteCategory::Presentation,
+        BOOL_FACE_KIND => metadata(
+            PaletteCategory::Face,
             &["boolean", "state", "present"],
-            PaletteIconKey::Presentation,
+            PaletteIconKey::Face,
         ),
-        TEXT_PRESENTATION_KIND => metadata(
-            PaletteCategory::Presentation,
+        TEXT_FACE_KIND => metadata(
+            PaletteCategory::Face,
             &["display", "text", "screen"],
-            PaletteIconKey::Presentation,
+            PaletteIconKey::Face,
         ),
-        COUNT_PRESENTATION_KIND => metadata(
-            PaletteCategory::Presentation,
+        COUNT_FACE_KIND => metadata(
+            PaletteCategory::Face,
             &["display", "count", "chart"],
             PaletteIconKey::ChartColumnsIncreasing,
         ),
         GRAPHICS_RECT_KIND => metadata(
-            PaletteCategory::Presentation,
+            PaletteCategory::Face,
             &["graphics", "rectangle", "frame", "clip"],
-            PaletteIconKey::Presentation,
+            PaletteIconKey::Face,
         ),
         GRAPHICS_TEXT_KIND => metadata(
-            PaletteCategory::Presentation,
+            PaletteCategory::Face,
             &["graphics", "resolved", "text", "clip"],
             PaletteIconKey::Type,
         ),
         GRAPHICS_ICON_KIND => metadata(
-            PaletteCategory::Presentation,
+            PaletteCategory::Face,
             &["graphics", "resolved", "icon", "clip"],
-            PaletteIconKey::Presentation,
+            PaletteIconKey::Face,
         ),
-        GRAPHICS_PRESENTATION_KIND => metadata(
-            PaletteCategory::Presentation,
+        GRAPHICS_FACE_KIND => metadata(
+            PaletteCategory::Face,
             &["graphics", "scene", "manifest", "surface"],
-            PaletteIconKey::Presentation,
+            PaletteIconKey::Face,
         ),
-        BITMAP_PRESENTATION_KIND => metadata(
-            PaletteCategory::Presentation,
+        BITMAP_FACE_KIND => metadata(
+            PaletteCategory::Face,
             &["graphics", "bitmap", "gray8", "pixels", "manifest"],
-            PaletteIconKey::Presentation,
+            PaletteIconKey::Face,
         ),
-        PATCHBAY_PRESENTATION_KIND => metadata(
-            PaletteCategory::Presentation,
+        PATCHBAY_FACE_KIND => metadata(
+            PaletteCategory::Face,
             &["patchbay", "canvas", "portable", "presenter"],
-            PaletteIconKey::Presentation,
+            PaletteIconKey::Face,
         ),
         PATCHBAY_GEAR_FACE_KIND => metadata(
-            PaletteCategory::Presentation,
+            PaletteCategory::Face,
             &["patchbay", "gear", "front", "controls"],
-            PaletteIconKey::Presentation,
+            PaletteIconKey::Face,
         ),
         PATCHBAY_PORT_KIND => metadata(
-            PaletteCategory::Presentation,
+            PaletteCategory::Face,
             &["patchbay", "port", "typed", "accessible"],
             PaletteIconKey::Combine,
         ),
         PATCHBAY_CORD_KIND => metadata(
-            PaletteCategory::Presentation,
+            PaletteCategory::Face,
             &["patchbay", "cord", "connection", "line"],
             PaletteIconKey::Combine,
         ),
@@ -507,7 +511,7 @@ pub fn palette_metadata(kind_id: &KindId) -> Option<PaletteMetadata> {
             &["json", "decode", "parse", "protocol"],
             PaletteIconKey::Combine,
         ),
-        _ => return None,
+        _ => return crate::audio_analysis::audio_analysis_palette_metadata(kind_id),
     };
     Some(metadata)
 }

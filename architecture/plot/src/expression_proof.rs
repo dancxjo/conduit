@@ -223,6 +223,7 @@ fn visit_children(node: &ExpressionSyntax, checked: &mut CheckedExpression, fact
             analyze(value, checked, facts);
         }
         ExpressionSyntax::Input(_)
+        | ExpressionSyntax::TypedGlyphLiteral(_)
         | ExpressionSyntax::Atomic(_)
         | ExpressionSyntax::Binary { .. } => {}
     }

@@ -1,0 +1,105 @@
+{
+  "capture_entrance": "cargo xtask prove todo-journey",
+  "capture_tool_commit": "611df0bd3d936b4e7a92d009199eecc8cd5e7066",
+  "chapter_scope": [
+    "birth",
+    "add"
+  ],
+  "error": null,
+  "finished_at_unix_ms": 1791481772747,
+  "installed_executable_sha256": "cb7fa3c97ecfd638ce7ee133bc8d8730ed8ad28d19ca03c9b4e9ee5f643c2b56",
+  "installed_product_source_commit": "611df0bd3d936b4e7a92d009199eecc8cd5e7066",
+  "missing_for_publication": [
+    "remaining six continuous chapters",
+    "Add queue and child Sign correlation",
+    "native and QMP captures",
+    "requested-detail same-Play speech",
+    "new-Boot recovery",
+    "complete producer events and terminal receipt"
+  ],
+  "observation": {
+    "add": {
+      "after": {
+        "face_id": "53271ec0f73e0f68754cd81ca8dd9794fab99656fcd0f75eafcc515abd675d1a",
+        "face_revision": "7150306028042729945",
+        "show_id": "show/b19f4ec21680ed2d2767080af413a982737c09dc938791c15bfb69f4705bf503"
+      },
+      "before": {
+        "face_id": "6f9f250e5dc686d9398291c217e9ccaf4631a34a2c19019672e459d8c8015693",
+        "face_revision": "7150306028042729936",
+        "show_id": "show/59d28ed95beddc923e1b6b088dc4c7070539642ee0a9c106bd1010c46344c77c"
+      },
+      "command": {
+        "exit_code": 0,
+        "stderr": {
+          "bytes": 0,
+          "path": "browser-add.stderr",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 0,
+          "path": "browser-add.stdout",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      },
+      "owner_face_id": "a8968dd403faf8190b61e3ab5929af3b9cd9a897b9bbb41dbebed73c1b1271a4",
+      "owner_face_revision": 7150306028042729946,
+      "receipt": {
+        "bytes": 1243,
+        "path": "browser/receipt.json",
+        "sha256": "dbdd8374f53149e745aa51b329fd93ebd1b6bff9b89f739a968926c18b1a9b99"
+      },
+      "screenshots": [
+        {
+          "bytes": 97288,
+          "path": "browser/browser-before.png",
+          "sha256": "793675980c1a4d2e8a878737c7b50780d3dd81ba0d328a596dcbc8f74e56eb71"
+        },
+        {
+          "bytes": 64584,
+          "path": "browser/browser-after.png",
+          "sha256": "b4749b7bdaae5d64a9b355bf00fae16ff55e0ac4a3e4cfb88dc2052edbcad7e9"
+        }
+      ]
+    },
+    "birth": {
+      "command": {
+        "exit_code": 0,
+        "stderr": {
+          "bytes": 0,
+          "path": "birth.stderr",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 180735,
+          "path": "birth.stdout",
+          "sha256": "0721a6a5cf8fbe95ab3d4054f0970e1598edd8666c80775f22542b323cb5aad4"
+        }
+      },
+      "face_id": "decbe3561f81f1d4bdf3af27fa5790e064160d75a138f48e0a7397c7b6aadc82",
+      "face_revision": 7150306028042729931
+    },
+    "body_id": "3723b30a4b0647f3f005842f812504528be33dae84c0f750919a35491f1d87a2",
+    "checkpoint_after": {
+      "entries": [
+        [
+          "8a19bc3465ec4d7b205dae32ba4bfb39f3da31b8d2a5e48449b07fd0dfc91615.2e8a4cf1daf3c0bbdf7af2c8662eace3aa4d601f385211f8b1308d6e324a2f3a.checkpoint",
+          "251718307be27b5912649ca167d55668362065d6d4bf60c603b9270bf3cb6400"
+        ],
+        [
+          "8a19bc3465ec4d7b205dae32ba4bfb39f3da31b8d2a5e48449b07fd0dfc91615.current",
+          "fbab0ef421f7791ec5f6974a2687e153cd27621281aed5c4524ba91079690c53"
+        ]
+      ],
+      "files": 2
+    },
+    "checkpoint_before": {
+      "entries": [],
+      "files": 0
+    },
+    "selected_checkpoint_root": "/home/dancxjo/Documents/Codex/2026-10-08/todo-fresh-611df0/selected-checkpoints"
+  },
+  "publication_ready": false,
+  "schema": "conduit.todo-journey/partial-live-capture@1",
+  "started_at_unix_ms": 1791481765378
+}

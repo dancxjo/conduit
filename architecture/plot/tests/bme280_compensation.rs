@@ -1,3 +1,5 @@
+#[path = "common/linear_expression_pipeline.rs"]
+mod linear_expression_pipeline;
 use conduit_core::{
     ConfigurationValue, StructuredFieldValue, StructuredInfoTypeShape, StructuredInfoValue,
 };
@@ -186,7 +188,7 @@ fn collection(ty: conduit_core::StructuredInfoType, octets: &[u8]) -> Structured
 
 #[test]
 fn wire_calibration_retains_unsigned_and_negative_packed_coefficients() {
-    let p = program("bme280-decode-calibration");
+    let p = linear_expression_pipeline::Programs::new(SOURCE, "bme280-decode-calibration");
     let StructuredInfoTypeShape::Record { fields, .. } = p.input_type.shape() else {
         panic!("calibration")
     };
@@ -255,8 +257,7 @@ fn wire_calibration_retains_unsigned_and_negative_packed_coefficients() {
     ] {
         assert_eq!(get(name), expected, "{name}");
     }
-    let (mut prepared, storage) =
-        allocation_probe::observe(|| PreparedPortableExpressionEvaluator::new(&p).unwrap());
+    let (mut prepared, storage) = allocation_probe::observe(|| p.prepare());
     assert!(storage.peak_bytes < 1024 * 1024, "{storage:?}");
     let (_, play) = allocation_probe::observe(|| {
         for _ in 0..1000 {
@@ -268,7 +269,7 @@ fn wire_calibration_retains_unsigned_and_negative_packed_coefficients() {
 
 #[test]
 fn wire_sample_masks_reserved_nibbles_and_retains_disabled_sentinels() {
-    let p = program("bme280-decode-sample");
+    let p = linear_expression_pipeline::Programs::new(SOURCE, "bme280-decode-sample");
     let StructuredInfoTypeShape::Record { fields, .. } = p.input_type.shape() else {
         panic!("wire record")
     };
@@ -291,7 +292,7 @@ fn wire_sample_masks_reserved_nibbles_and_retains_disabled_sentinels() {
         program("bme280-sample-disabled").evaluate(&output).unwrap(),
         [1]
     );
-    let mut prepared = PreparedPortableExpressionEvaluator::new(&p).unwrap();
+    let mut prepared = p.prepare();
     assert_eq!(prepared.evaluate(&bytes).unwrap(), output);
 }
 

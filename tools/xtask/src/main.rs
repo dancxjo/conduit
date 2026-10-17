@@ -61,6 +61,27 @@ fn main() {
                     Err("a structured proof operation cannot be combined with a proof target, --list, --verify, or --run-obligation".into())
                 } else {
                     match command {
+                        ProveCommand::RuntimePerformance { arguments } => {
+                            commands::runtime_performance::run(&arguments, opts.dry_run)
+                        }
+                        ProveCommand::ModelAuthoring {
+                            output,
+                            cuda,
+                            documented_command,
+                        } => {
+                            let mut arguments = Vec::new();
+                            if let Some(output) = output {
+                                arguments
+                                    .extend(["--output".to_owned(), output.display().to_string()]);
+                            }
+                            if documented_command {
+                                arguments.push("--documented-command".to_owned());
+                            }
+                            if cuda {
+                                arguments.push("--cuda".to_owned());
+                            }
+                            commands::model_authoring::run(&arguments)
+                        }
                         ProveCommand::AudioPlayback(args) => commands::audio::prove(
                             &opts,
                             &args.card_id,
@@ -72,6 +93,7 @@ fn main() {
                         }
                         ProveCommand::Pete(args) => commands::pete_std_observe::run(args, &opts),
                         ProveCommand::Journey(args) => run_journey(args, &opts),
+                        ProveCommand::TodoJourney(args) => commands::todo_journey::run(args, &opts),
                         ProveCommand::Evidence(evidence) => commands::evidence::run(evidence),
                     }
                 }
@@ -100,6 +122,7 @@ fn main() {
 fn run_journey(args: cli::DemoArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
     match args.command {
         DemoCommand::Workspace(args) => commands::workspace::run(&args, opts),
+        DemoCommand::Thermostat(args) => commands::demo::run_thermostat(&args, opts),
         DemoCommand::Std => commands::demo::run_std(opts),
         DemoCommand::Triple => commands::demo::run_triple(opts),
         DemoCommand::Patchbay(args) => commands::demo::run_patchbay(&args, opts),

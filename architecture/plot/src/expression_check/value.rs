@@ -38,9 +38,16 @@ pub(super) fn atomic(
     if let Some(value_type) = context.literal_types.get(text) {
         return expected_or_exact(value_type.clone(), expected, span);
     }
-    if text == "unit" {
+    if conduit_core::Unit::resolve(text).is_ok() {
         return expected_or_exact(
             CheckedExpressionType::semantic(conduit_core::UNIT_INFO_ID),
+            expected,
+            span,
+        );
+    }
+    if text == "empty" {
+        return expected_or_exact(
+            CheckedExpressionType::semantic(conduit_core::EMPTY_INFO_ID),
             expected,
             span,
         );
@@ -62,9 +69,25 @@ pub(super) fn atomic(
             span,
         );
     }
+    if expected
+        .and_then(CheckedExpressionType::value_kind)
+        .is_some_and(|kind| kind.as_str() == conduit_core::QUANTITY_INFO_ID)
+    {
+        conduit_core::Quantity::parse_plot_literal(text).map_err(|refusal| {
+            diagnostic(
+                span,
+                &format!("selected exact quantity profile refused '{text}': {refusal:?}"),
+            )
+        })?;
+        return Ok(expected.unwrap().clone());
+    }
     if let Ok(quantity) = conduit_core::Quantity::parse_plot_literal(text) {
         return expected_or_exact(
-            CheckedExpressionType::semantic(quantity.dimension().info_id()),
+            CheckedExpressionType::semantic(
+                &conduit_core::quantity_role_info_id(quantity.family(), quantity.role()).map_err(
+                    |reason| diagnostic(span, &format!("invalid physical family role: {reason:?}")),
+                )?,
+            ),
             expected,
             span,
         );
@@ -91,6 +114,14 @@ pub(super) fn atomic(
             _ => None,
         })
         .unwrap_or(kind.as_str());
+    if represented_kind == conduit_core::MATHEMATICAL_VALUE_ID {
+        crate::mathematical_value::encode(text).map_err(|message| diagnostic(span, &message))?;
+        return Ok(expected.clone());
+    }
+    if represented_kind == conduit_core::F32_INFO_ID {
+        crate::ieee_literal::f32_bits(text).map_err(|message| diagnostic(span, &message))?;
+        return Ok(expected.clone());
+    }
     if crate::integer_literal::canonicalize(text, represented_kind)
         .map_err(|message| diagnostic(span, &message))?
         .is_some()
@@ -130,7 +161,7 @@ pub(super) fn qualified_variant(
     };
     Some(
         match cases.iter().find(|candidate| candidate.tag() == case.text) {
-            Some(candidate) if matches!(candidate.payload_type().shape(), StructuredInfoTypeShape::Leaf(kind) if kind.as_str() == conduit_core::UNIT_INFO_ID) => {
+            Some(candidate) if matches!(candidate.payload_type().shape(), StructuredInfoTypeShape::Leaf(kind) if kind.as_str() == conduit_core::EMPTY_INFO_ID) => {
                 Ok(CheckedExpressionType::Semantic(identity.clone()))
             }
             Some(_) => refuse(span, "payload-bearing variant requires its exact payload"),

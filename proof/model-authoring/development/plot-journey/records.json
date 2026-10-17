@@ -1,0 +1,84 @@
+{
+  "scope": "local development diagnostics before final-head CI",
+  "records": [
+    {
+      "path": "5208-burn-regression.log",
+      "bytes": 7955,
+      "sha256": "8b5d51d06a972888800d6682a417cb92aeee2c777456ef3c4ed35bb5934729f1"
+    },
+    {
+      "path": "5208-clippy-final-2.log",
+      "bytes": 357,
+      "sha256": "07022769e3717d1ed020d882ae7c23eeb21ae43b89832724f1a19e000da9f1e4"
+    },
+    {
+      "path": "5208-model-work-contract-final.log",
+      "bytes": 1111,
+      "sha256": "ac9bf06c9c402562b59d69e47c896cea8e46db095e4d6e7434355c6d2dbeb9de"
+    },
+    {
+      "path": "5208-model-work-contract.log",
+      "bytes": 1111,
+      "sha256": "4daaaf880b9eb310072fb636ad35531f77e1cbaeff67eceba708bd58c92b28a1"
+    },
+    {
+      "path": "5208-plot-journey-2.log",
+      "bytes": 2050,
+      "sha256": "c80c5b3b1efe84d13bf82bd064f9f1825b2c945899a620c1d80924036eb83f2b"
+    },
+    {
+      "path": "5208-plot-journey-4.log",
+      "bytes": 1149,
+      "sha256": "a9be2c90b7e18809a01d7469949da183b8118b41d7a900dcf69eb5a384c0da5c"
+    },
+    {
+      "path": "5208-plot-journey-6.log",
+      "bytes": 592,
+      "sha256": "9702a9033c48a7b8b100a8d1f54b78aa33699babf7f0bbe2dc34933614dd624a"
+    },
+    {
+      "path": "5208-plot-journey-final.log",
+      "bytes": 1732,
+      "sha256": "91c3a801e76bd0258037410d0e1872e5d2bc4b6fa10033f20942273bc9222290"
+    },
+    {
+      "path": "5208-plot-journey.log",
+      "bytes": 16410,
+      "sha256": "ec366e6720ef2e3b1ee15b94711106f8efcef0cf620013b8745f8ee9e58fa585"
+    },
+    {
+      "path": "5208-xtask-plot-final.log",
+      "bytes": 1624,
+      "sha256": "ce769a2478ffffdfed5fe201a0fde6b8da2ac5752c416a14ee459f4b052a89a4"
+    },
+    {
+      "path": "5208-xtask-plot-public.log",
+      "bytes": 881,
+      "sha256": "f6b6fb8bef84f012df72adfc7ae006c58df011b51b4691e6b4042778acd1ff0e"
+    },
+    {
+      "path": "public-command-manifest.json",
+      "bytes": 822,
+      "sha256": "1477bbacee495a35db2353738a775068dac5ce8e269cb0a93860adeb82f06b94"
+    }
+  ],
+  "claims": {
+    "ordinary_plot_host_calls": 90,
+    "stale_generation_refuses": true,
+    "cpu_loss_millionths": [
+      9000000,
+      4003
+    ],
+    "fresh_runtime_resume_steps": [
+      80,
+      81
+    ],
+    "exact_same_device_inference_reload": true
+  },
+  "limitations": [
+    "Final-head CI remains required",
+    "No trained voice or CUDA Plot journey",
+    "No general corpus shuffle cursor or real-time guarantee",
+    "The initial proof-command probe passed its test but rejected output-directory status changes; the corrected public command passes. Local runs precede the final evidence commit."
+  ]
+}

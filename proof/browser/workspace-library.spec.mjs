@@ -1,4 +1,6 @@
+import { BROWSER_COLD_PREPARATION_MS, waitForWorkspacePreparation } from "./browser-preparation.mjs";
 import { expect, test } from "@playwright/test";
+import { writeFile } from "node:fs/promises";
 import { startStaticProduct } from "./static-product-server.mjs";
 
 let entrance, pageErrors;
@@ -36,6 +38,9 @@ test("five ordinary plots start together beyond the old aggregate placement ceil
 });
 
 test("repeated Wake and Lull compacts retained evidence instead of exhausting lifecycle Signs", async ({ page }) => {
+  // Twelve complete durable lifecycle transitions can exceed the default
+  // aggregate budget on hosted runners; keep every transition assertion.
+  test.setTimeout(60_000 + BROWSER_COLD_PREPARATION_MS);
   await birth(page);
   const identity = (await current(page)).body_id;
   for (let index = 0; index < 12; index++) {
@@ -47,11 +52,15 @@ test("repeated Wake and Lull compacts retained evidence instead of exhausting li
   expect((await current(page)).body_id).toBe(identity);
   await page.evaluate(() => globalThis.__conduitWorkspace.settled());
   await page.reload();
-  await expect(page.locator("[data-play-state]")).toHaveText("Playing");
+  await waitForWorkspacePreparation(page);
   expect((await current(page)).body_id).toBe(identity);
 });
 
 test("Use installs into the same body; repeated Use preserves Play and removal survives reload", async ({ page }, testInfo) => {
+  // This journey includes three workset changes, interactive execution and reload.
+  // Two retained Candidate traces passed preceding assertions but exhausted the
+  // default 20-second aggregate budget during the final lifecycle/reload step.
+  test.setTimeout(45_000 + BROWSER_COLD_PREPARATION_MS);
   await page.setViewportSize({ width: 1280, height: 1000 });
   await birth(page);
   const initial = await current(page);
@@ -76,14 +85,14 @@ test("Use installs into the same body; repeated Use preserves Play and removal s
   await page.locator("#plot-input").focus();
   await page.keyboard.type("hello");
   await page.keyboard.press("Enter");
-  await expect(page.locator("[data-plot-output] output:visible")).toHaveText("hello");
+  await expect(page.locator("[data-plot-output] output:visible")).toHaveText("Received message: hello");
   await page.keyboard.type("again");
   await page.keyboard.press("Enter");
-  await expect(page.locator("[data-plot-output] output:visible")).toHaveText("again");
+  await expect(page.locator("[data-plot-output] output:visible")).toHaveText("Received message: again");
   await openLibrary(page);
   await card(page, "Desk Telegraph").getByRole("button", { name: "Use", exact: true }).click();
   expect((await current(page)).active_play_id).toBe(installed.active_play_id);
-  await expect(page.locator("[data-plot-output] output:visible")).toHaveText("again");
+  await expect(page.locator("[data-plot-output] output:visible")).toHaveText("Received message: again");
   await page.screenshot({ path: testInfo.outputPath("workspace-installed-plot.png"), fullPage: true });
   await openLibrary(page);
   await card(page, "Desk Telegraph").getByRole("button", { name: "Remove", exact: true }).click();
@@ -93,20 +102,21 @@ test("Use installs into the same body; repeated Use preserves Play and removal s
   await expect(page.locator("[data-play-state]")).toHaveText("Playing");
   await page.locator("#plot-input").focus();
   await page.keyboard.press("r");
-  await expect(page.locator("[data-plot-output] output:visible")).toHaveText("r");
+  await expect(page.locator("[data-plot-output] output[data-face-kind='face/text']:visible [data-text-value]")).toHaveText("r");
   await page.evaluate(() => globalThis.__conduitWorkspace.settled());
   await page.reload();
-  await expect(page.locator("[data-play-state]")).toHaveText("Playing");
+  await waitForWorkspacePreparation(page);
   const restored = await current(page);
   expect(restored.body_id).toBe(initial.body_id);
   expect(restored.workload_revision).toBe(2);
   expect(restored.initial_plots).toEqual(initial.initial_plots);
 });
 
-test("Pocket Theremin plays continuous two-axis PCM on the browser host", async ({ page }) => {
+test("Pocket Theremin plays continuous two-axis PCM on the browser host", async ({ page }, testInfo) => {
+  test.setTimeout(90_000);
   await page.addInitScript(() => {
     const NativeAudioContext = window.AudioContext;
-    globalThis.__thereminAudio = { blocks: [], starts: [] };
+    globalThis.__thereminAudio = { blocks: [], starts: [], pcm: [], captureEnabled: true };
     window.AudioContext = class extends NativeAudioContext {
       createBuffer(channels, frames, sampleRate) {
         globalThis.__thereminAudio.blocks.push({ channels, frames, sampleRate });
@@ -115,6 +125,9 @@ test("Pocket Theremin plays continuous two-axis PCM on the browser host", async 
       createBufferSource() {
         const source = super.createBufferSource();
         const start = source.start.bind(source);
+        const connect = source.connect.bind(source);
+        let outputGain;
+        source.connect = target => { outputGain = target.gain; return connect(target); };
         source.start = when => {
           const samples = source.buffer.getChannelData(0);
           let peak = 0, crossings = 0;
@@ -122,7 +135,10 @@ test("Pocket Theremin plays continuous two-axis PCM on the browser host", async 
             peak = Math.max(peak, Math.abs(samples[index]));
             if (index > 0 && samples[index - 1] <= 0 && samples[index] > 0) crossings += 1;
           }
-          globalThis.__thereminAudio.starts.push({ when, peak, crossings });
+          globalThis.__thereminAudio.starts.push({ when, peak, crossings, duration: source.buffer.duration, scheduledAt: source.context.currentTime });
+          if (globalThis.__thereminAudio.captureEnabled && globalThis.__thereminAudio.pcm.length < 120) {
+            globalThis.__thereminAudio.pcm.push(Array.from(samples, value => value * outputGain.value));
+          }
           return start(when);
         };
         return source;
@@ -148,14 +164,28 @@ test("Pocket Theremin plays continuous two-axis PCM on the browser host", async 
   expect(bounds.y + bounds.height * 0.85).toBeLessThan(viewport.height);
   await page.mouse.move(bounds.x + bounds.width * 0.15, bounds.y + bounds.height * 0.85);
   await page.mouse.down();
-  await expect.poll(() => page.evaluate(() => globalThis.__thereminAudio.starts.length)).toBeGreaterThan(2);
+  await expect.poll(() => page.evaluate(() => globalThis.__thereminAudio.starts.length)).toBeGreaterThan(48);
+  // Hold the pointer still: cadence must keep producing audio without new input.
+  const stationaryStart = await page.evaluate(() => { globalThis.__thereminAudio.captureEnabled = false; return globalThis.__thereminAudio.starts.length; });
+  // Exceed the former 30-second playback quota with no further input.
+  await expect.poll(() => page.evaluate(() => globalThis.__thereminAudio.starts.length), { timeout: 45_000 }).toBeGreaterThan(stationaryStart + 750);
+  await page.evaluate(() => { globalThis.__thereminAudio.captureEnabled = true; });
   const highPitchEnd = await page.evaluate(() => globalThis.__thereminAudio.starts.length);
   await page.mouse.move(bounds.x + bounds.width * 0.98, bounds.y + bounds.height * 0.85, { steps: 8 });
   await expect.poll(() => page.evaluate(end => globalThis.__thereminAudio.starts.slice(end + 1).some(block => block.crossings <= 10), highPitchEnd)).toBe(true);
+  await expect.poll(() => page.evaluate(() => globalThis.__thereminAudio.starts.length)).toBeGreaterThan(highPitchEnd + 24);
   const loudEnd = await page.evaluate(() => globalThis.__thereminAudio.starts.length);
   const loudPeak = await page.evaluate(({ start, end }) => Math.max(...globalThis.__thereminAudio.starts.slice(start + 1, end).map(block => block.peak)), { start: highPitchEnd, end: loudEnd });
   await page.mouse.move(bounds.x + bounds.width * 0.98, bounds.y + bounds.height * 0.15, { steps: 8 });
   await expect.poll(() => page.evaluate(({ end, threshold }) => globalThis.__thereminAudio.starts.slice(end + 1).some(block => block.peak < threshold), { end: loudEnd, threshold: loudPeak * 0.4 })).toBe(true);
+  await expect.poll(() => page.evaluate(() => globalThis.__thereminAudio.starts.length)).toBeGreaterThan(loudEnd + 24);
+  // Scheduling is contiguous and bounded while a stationary hand sustains tone.
+  const sustained = await page.evaluate(({ start, end }) => globalThis.__thereminAudio.starts.slice(start + 1, end), { start: stationaryStart, end: highPitchEnd });
+  expect(sustained.length).toBeGreaterThanOrEqual(750);
+  for (let index = 1; index < sustained.length; index += 1) {
+    expect(sustained[index].when).toBeCloseTo(sustained[index - 1].when + sustained[index - 1].duration, 8);
+    expect(sustained[index].when - sustained[index].scheduledAt).toBeLessThanOrEqual(sustained[index].duration * 2);
+  }
   const audio = await page.evaluate(() => globalThis.__thereminAudio);
   expect(audio.blocks.every(block => block.channels === 1 && block.frames === 2000 && block.sampleRate === 48000)).toBe(true);
   expect(audio.starts[1].when).toBeGreaterThanOrEqual(audio.starts[0].when);
@@ -165,7 +195,20 @@ test("Pocket Theremin plays continuous two-axis PCM on the browser host", async 
   expect(audio.starts.slice(highPitchEnd + 1, loudEnd).some(block => block.crossings <= 10)).toBe(true);
   const quietPeak = Math.min(...audio.starts.slice(loudEnd + 1).map(block => block.peak));
   expect(quietPeak).toBeLessThan(loudPeak * 0.4);
+  const pcm = await page.evaluate(() => globalThis.__thereminAudio.pcm.flat());
+  const wav = Buffer.alloc(44 + pcm.length * 2);
+  wav.write("RIFF", 0); wav.writeUInt32LE(wav.length - 8, 4); wav.write("WAVEfmt ", 8);
+  wav.writeUInt32LE(16, 16); wav.writeUInt16LE(1, 20); wav.writeUInt16LE(1, 22);
+  wav.writeUInt32LE(48000, 24); wav.writeUInt32LE(96000, 28);
+  wav.writeUInt16LE(2, 32); wav.writeUInt16LE(16, 34); wav.write("data", 36);
+  wav.writeUInt32LE(pcm.length * 2, 40);
+  pcm.forEach((value, index) => wav.writeInt16LE(Math.round(Math.max(-1, Math.min(1, value)) * 32767), 44 + index * 2));
+  const recording = testInfo.outputPath("pocket-theremin.wav");
+  await writeFile(recording, wav);
+  await testInfo.attach("pocket-theremin.wav", { path: recording, contentType: "audio/wav" });
   await page.mouse.up();
+  await page.getByRole("button", { name: "lull body", exact: true }).click();
+  await expect(page.locator("[data-play-state]")).toHaveText("Lulled");
 });
 
 test("the reviewed shelf reveals conversation Plots without pretending this browser can run them", async ({ page }) => {
@@ -175,7 +218,7 @@ test("the reviewed shelf reveals conversation Plots without pretending this brow
   await expect(card(page, "Body Chat")).toContainText("Needs capability");
   await expect(card(page, "Body Chat")).toContainText("current body supervisor and an admitted model realization");
   await expect(card(page, "Live Conversation")).toContainText("Needs capability");
-  await expect(card(page, "Live Conversation")).toContainText("live audio acquisition, streaming model generation, synthesis, and presentation");
+  await expect(card(page, "Live Conversation")).toContainText("live audio acquisition, streaming model generation, synthesis, and face");
   await expect(card(page, "Live Conversation")).toContainText("Text fallback: Body Chat");
   await expect(card(page, "Live Conversation")).toContainText("The fallback still needs capability");
   await expect(card(page, "House Spoken Response")).toContainText("Text fallback: House Conversation");
@@ -200,6 +243,10 @@ test("window focus loss retires the pending Play and lets the same body wake aga
 });
 
 test("removing the final Plot retains an empty Body that can acquire Plots again", async ({ page }, testInfo) => {
+  // This full lifecycle includes two library removals, a durable reload, and
+  // a fresh Play. CI traces show all assertions can pass after the shared
+  // 20-second suite deadline; give this multi-stage journey its own bound.
+  test.setTimeout(30_000);
   await page.setViewportSize({ width: 390, height: 844 });
   await birth(page);
   const initial = await current(page);
@@ -222,11 +269,12 @@ test("removing the final Plot retains an empty Body that can acquire Plots again
   await expect(page.locator("[data-play-state]")).toHaveText("Playing");
   await expect(page.getByRole("button", { name: "lull body", exact: true })).toBeVisible();
   await page.keyboard.press("a");
-  await expect(page.locator("[data-plot-output] output:visible")).toHaveText("a");
+  await expect(page.locator("[data-plot-output] output[data-face-kind='face/text']:visible [data-text-value]")).toHaveText("a");
   expect((await current(page)).body_id).toBe(initial.body_id);
 });
 
 test("a failed workset save stops before replacement effects and reload recovers the saved workload", async ({ page }) => {
+  test.setTimeout(20_000 + BROWSER_COLD_PREPARATION_MS);
   await page.addInitScript(() => {
     const put = IDBObjectStore.prototype.put;
     globalThis.__failedWorksetWrites = 0;
@@ -255,7 +303,7 @@ test("a failed workset save stops before replacement effects and reload recovers
   await page.reload();
   await expect(page.locator("[data-play-state]")).toHaveText("Lulled");
   await page.getByRole("button", { name: "wake body", exact: true }).click();
-  await expect(page.locator("[data-play-state]")).toHaveText("Playing");
+  await waitForWorkspacePreparation(page);
   const restored = await current(page);
   expect(restored.body_id).toBe(initial.body_id);
   expect(restored.workload_revision).toBe(0);
@@ -281,12 +329,15 @@ function handoffUrl(plot) {
 }
 
 test('a Gallery handoff installs in the retained body and cannot reinstall a later removed Plot on reload', async ({ page }) => {
+  // Birth, handoff recovery, removal and final recovery share one aggregate budget.
+  // Only handoff preparation gets an additional budget; ordinary responses retain their deadlines.
+  test.setTimeout(45_000 + BROWSER_COLD_PREPARATION_MS);
   await birth(page);
   const initial = await current(page);
   const plot = await reviewedPlot(page, 'desk_telegraph');
   await page.evaluate(() => globalThis.__conduitWorkspace.settled());
   await page.goto(handoffUrl(plot));
-  await expect(page.locator('#surface-title')).toHaveText('Desk Telegraph');
+  await waitForWorkspacePreparation(page, { surfaceTitle: 'Desk Telegraph' });
   await expect(page.locator('[data-play-state]')).toHaveText('Playing');
   expect((await current(page)).body_id).toBe(initial.body_id);
   expect((await current(page)).initial_plots).toHaveLength(3);
@@ -296,11 +347,13 @@ test('a Gallery handoff installs in the retained body and cannot reinstall a lat
   await expect(card(page, 'Desk Telegraph')).toContainText('Not in your body');
   await page.evaluate(() => globalThis.__conduitWorkspace.settled());
   await page.reload();
+  await waitForWorkspacePreparation(page);
   await expect(page.locator('[data-play-state]')).toHaveText('Playing');
   expect((await current(page)).initial_plots).toEqual(initial.initial_plots);
 });
 
 test('a new Gallery arrival selects the plot in the actual Crèche; a stale handoff leaves the body usable', async ({ page }) => {
+  test.setTimeout(20_000 + BROWSER_COLD_PREPARATION_MS);
   await page.goto(entrance.url);
   await expect(page.getByRole('heading', { name: 'A body of your own' })).toBeVisible();
   const plot = await reviewedPlot(page, 'desk_telegraph');
@@ -314,7 +367,7 @@ test('a new Gallery arrival selects the plot in the actual Crèche; a stale hand
   const initial = await current(page);
   await page.evaluate(() => globalThis.__conduitWorkspace.settled());
   await page.goto(handoffUrl({ ...plot, checked_plot_id: 'checked/stale' }));
-  await expect(page.locator('[data-play-state]')).toHaveText('Playing');
+  await waitForWorkspacePreparation(page);
   await expect(page.locator('[data-workspace-notice]')).toContainText('checked identity has changed');
   expect((await current(page)).body_id).toBe(initial.body_id);
   expect((await current(page)).initial_plots).toEqual(initial.initial_plots);
@@ -334,7 +387,7 @@ for (const [title, kind] of [['Firefly Choir', 'pulse'], ['Night Radio', 'text']
     const surface = page.locator('#plot-input');
     const output = page.locator('[data-plot-output] output:visible');
     if (kind === 'pulse') {
-      await expect.poll(async () => Number((await output.filter({ hasText: /^pulse / }).textContent())?.match(/^pulse (\d+) ·/)?.[1] ?? 0)).toBeGreaterThanOrEqual(5);
+      await expect.poll(async () => Number((await output.filter({ hasText: /^Pulse activity: pulse / }).textContent())?.match(/^Pulse activity: pulse (\d+) ·/)?.[1] ?? 0)).toBeGreaterThanOrEqual(5);
     } else if (kind === 'text') {
       await page.keyboard.type('first'); await page.keyboard.press('Enter');
       await expect(output).toContainText('first');
@@ -342,8 +395,8 @@ for (const [title, kind] of [['Firefly Choir', 'pulse'], ['Night Radio', 'text']
       await expect(output).toContainText('second');
     } else {
       await page.locator('[data-plot-output] output').evaluate(element => {
-        element.dataset.presentationCount = '0';
-        new MutationObserver(() => element.dataset.presentationCount = String(Number(element.dataset.presentationCount) + 1))
+        element.dataset.faceCount = '0';
+        new MutationObserver(() => element.dataset.faceCount = String(Number(element.dataset.faceCount) + 1))
           .observe(element, { childList: true, characterData: true, subtree: true });
       });
       await surface.hover();
@@ -352,7 +405,7 @@ for (const [title, kind] of [['Firefly Choir', 'pulse'], ['Night Radio', 'text']
           for (const transition of transitions) await page.mouse[transition]();
           await expect(output).toContainText('matched:');
           await expect(output).toContainText('score_millionths:');
-          await expect(output).toHaveAttribute('data-presentation-count', transitions.length === 5 ? '1' : '2');
+          await expect(output).toHaveAttribute('data-face-count', transitions.length === 5 ? '1' : '2');
         }
       } finally { await page.mouse.up(); }
     }

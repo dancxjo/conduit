@@ -147,7 +147,13 @@ impl TourSession {
             }
             engine::DriveStatus::Quiescent => Ok(TourProgress::Waiting {
                 schema: "conduit.browser/pending-effects@1",
-                disposition: "quiescent_awaiting_input",
+                disposition: if self.scheduler.thermostat_state().is_some()
+                    && self.pending.is_empty()
+                {
+                    "externally_admitted_input"
+                } else {
+                    "quiescent_awaiting_input"
+                },
                 active_play_id: self.active_play_id.as_str().into(),
                 pending_effects: self.pending.len(),
                 timer_completions: self.timer_completions,
@@ -163,7 +169,7 @@ mod tests {
 
     #[test]
     fn correlated_completion_preserves_other_pending_effects_and_rejects_stale_identity() {
-        let source = "plot concurrent {\n button: input/button\n state: input/button-indicator-state\n indicator: presentation/indicator-state\n clock: time/every(freq = 100ms)\n count: state/count(start = 0)\n show: presentation/count\n button >> state >> indicator\n clock.tick >> count.bump\n count.value >> show.value\n}\n";
+        let source = "plot concurrent {\n button: input/button\n state: input/button-indicator-state\n indicator: face/indicator-state(\"Button state\")\n clock: time/every(freq = 100ms)\n count: state/count(start = 0)\n show: face/count(\"Current count\")\n button >> state >> indicator\n clock.tick >> count.bump\n count.value >> show.value\n}\n";
         let (mut session, _) =
             TourSession::prepare("browser/test", "boot/test", source, 1).unwrap();
         let capacity = session.pending.capacity();

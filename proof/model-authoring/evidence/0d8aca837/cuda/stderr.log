@@ -1,0 +1,3 @@
+   Compiling conduit-burn-model v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-07/take-on-dancxjo-conduit-5205-5207/work/conduit/mechanisms/implementations/burn-model)
+    Finished `test` profile [unoptimized] target(s) in 5.13s
+     Running tests/device_contract.rs (target/debug/deps/device_contract-8585523846214aa5)

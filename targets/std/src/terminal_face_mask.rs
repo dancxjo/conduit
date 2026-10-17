@@ -3,14 +3,15 @@
 //! Formatting and flushing never mint a Show. `TerminalMaskExecution` is the
 //! integration seam for the ordinary planned Mask and its actual Host Calls.
 //! Local reading/focus/paging do not invent portable navigation or app state.
-use conduit_presentation::{
-    FaceInteraction, FaceInteractionRefusal, ManifestationLifecycle, MaskInteractionCorrelation,
-    MaskShow, Presentation,
+use conduit_face::{
+    Face, FaceInteraction, FaceInteractionRefusal, ManifestationLifecycle,
+    MaskInteractionCorrelation, MaskShow,
 };
 use std::io::Write;
 
 #[path = "terminal_face_mask/document.rs"]
 mod document;
+mod footer;
 #[path = "terminal_face_mask/input.rs"]
 mod input;
 #[path = "terminal_face_mask/keyboard.rs"]
@@ -74,7 +75,7 @@ impl TerminalEffectReceipt {
 /// `interact` returns only after the typed interaction traverses its declared
 /// Fore. This trait does not grant a formatter authority to fabricate a Show.
 pub trait TerminalMaskExecution {
-    fn begin_render(&mut self, face: &Presentation) -> Result<MaskShow, TerminalError>;
+    fn begin_render(&mut self, face: &Face) -> Result<MaskShow, TerminalError>;
     fn complete_render(
         &mut self,
         receipt: &TerminalEffectReceipt,
@@ -88,7 +89,7 @@ pub trait TerminalMaskExecution {
 }
 
 pub struct TerminalFaceMask {
-    face: Presentation,
+    face: Face,
     interaction_admitted: bool,
     columns: usize,
     rows: usize,
@@ -105,7 +106,7 @@ pub struct TerminalFaceMask {
     submitted: bool,
 }
 impl TerminalFaceMask {
-    pub fn prepare(face: Presentation, columns: usize, rows: usize) -> Result<Self, TerminalError> {
+    pub fn prepare(face: Face, columns: usize, rows: usize) -> Result<Self, TerminalError> {
         Self::prepare_with_interactions(face, columns, rows, true)
     }
 
@@ -113,7 +114,7 @@ impl TerminalFaceMask {
     /// not yet been admitted. Local reading remains available, but control
     /// focus and submission cannot imply an executable action.
     pub fn prepare_read_only(
-        face: Presentation,
+        face: Face,
         columns: usize,
         rows: usize,
     ) -> Result<Self, TerminalError> {
@@ -121,7 +122,7 @@ impl TerminalFaceMask {
     }
 
     fn prepare_with_interactions(
-        face: Presentation,
+        face: Face,
         columns: usize,
         rows: usize,
         interaction_admitted: bool,
@@ -157,7 +158,7 @@ impl TerminalFaceMask {
             submitted: false,
         })
     }
-    pub fn presentation(&self) -> &Presentation {
+    pub fn face(&self) -> &Face {
         &self.face
     }
     pub fn show(&self) -> Option<&MaskShow> {
@@ -180,7 +181,7 @@ impl TerminalFaceMask {
         }
     }
     fn page_rows(&self) -> usize {
-        self.rows - 5
+        self.rows - 4 - footer::rows(self.interaction_admitted, self.columns)
     }
 
     /// Actual output effect only. A failed/partial write or flush yields no
@@ -272,9 +273,7 @@ impl TerminalFaceMask {
     }
 
     fn check_show(&self, expected: &MaskShow) -> Result<(), TerminalError> {
-        if expected.presentation_id != self.face.identity
-            || expected.presentation_revision != self.face.revision
-        {
+        if expected.face_id != self.face.identity || expected.face_revision != self.face.revision {
             return Err(TerminalError::StaleFace);
         }
         if self.active_show.as_ref() != Some(expected) || self.submitted {

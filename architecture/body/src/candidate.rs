@@ -10,16 +10,21 @@ use crate::{BodyId, BodyLifecycleError, CandidateId, DiscoveryProofId};
 pub const MAX_CANDIDATES: usize = 16;
 pub const MAX_CANDIDATE_HISTORY: usize = 64;
 pub const MAX_INGRESS_REFUSALS: usize = 16;
-// Keep finite bounds that admit the real installed browser catalog, at least 1 KiB of transport
-// framing, and a small number of explicit capabilities instead of hiding installations.
-pub const MAX_CANDIDATE_ADVERTISEMENT_BYTES: u32 = 192 * 1024;
+// Admit the exact installed inventory and complete authored keyboard defaults
+// within a finite preparation envelope, with room for transport framing.
+pub const MAX_CANDIDATE_ADVERTISEMENT_BYTES: u32 = 2 * 1024 * 1024;
 pub const MAX_CANDIDATE_TOTAL_BYTES: u32 = 4 * MAX_CANDIDATE_ADVERTISEMENT_BYTES;
 pub const MAX_CANDIDATE_LABEL_BYTES: usize = 128;
 pub const MAX_CANDIDATE_RESOURCES: usize = 32;
 /// Finite discovery envelope, including the portable application seam, tutorial Presenter,
 /// the browser's exact bounded two-axis audio realization, Ratio normalization,
-/// and its separately admitted DOM Mask Back.
-pub const MAX_CANDIDATE_CAPABILITIES: usize = 125;
+/// its separately admitted DOM Mask Back, and the four exact quantity conversion
+/// and comparison roles, standalone Unit/Quantity Dimension introspection,
+/// the portable Thermostat transition and bounded scan, and the separately
+/// admitted source-configured component Mask Back, saved-choice operation,
+/// and independently selected continuous PCM playback Back.
+/// The encoded advertisement byte bound remains independent.
+pub const MAX_CANDIDATE_CAPABILITIES: usize = 137;
 pub const MAX_CANDIDATE_PLANNER_CAPABILITIES: usize = 8;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -36,7 +41,7 @@ pub enum CandidateState {
 pub struct CandidateObservation {
     /// The exact current advertisement is retained without semantic reinterpretation.
     pub advertisement: HostAdvertisement,
-    /// Untrusted presentation data; never identity or authentication.
+    /// Untrusted face data; never identity or authentication.
     pub friendly_label: String,
     /// Exact already-observed Line provenance. This does not admit or plan the Line.
     pub observed_binding_id: LinkBindingId,

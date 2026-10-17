@@ -16,6 +16,8 @@ use super::{WorksetRefusal, catalog};
 use crate::{identity::BootIdentities, offer::HostOffer};
 
 pub struct PreparedNativeWorkset {
+    #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+    pub(super) protected_text: Vec<Option<crate::text_protection::BodyTextAdmission>>,
     pub(super) advertisement: HostAdvertisement,
     pub(super) plan: BodyPlan,
     pub(super) lowered: LoweredFragmentSet,
@@ -68,7 +70,7 @@ pub(crate) fn propose_partitions(
         }
     }
     let (advertisement, _) = host(identities, offer, build_id)?;
-    let plots = plan_plots(workset.plots(), &advertisement)?;
+    let plots = plan_plots(workset.plots(), &advertisement, offer)?;
     for plot in &plots {
         admitted_plot_input(plot)?;
     }
@@ -108,7 +110,34 @@ pub(crate) fn prepare_exact(
         .map(admitted_plot_input)
         .collect::<Result<Vec<_>, _>>()?;
     let lowered = lower_plots(&plan.plots)?;
+    #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+    let protected_text = plan
+        .plots
+        .iter()
+        .map(|partition| {
+            let protected = partition
+                .plan
+                .fragments
+                .iter()
+                .flat_map(|f| &f.placements)
+                .any(|p| {
+                    matches!(
+                        p.kind_id.as_str(),
+                        conduit_text::TEXT_UPPER_KIND | conduit_semantic_catalog::TEXT_EDIT_KIND
+                    )
+                });
+            if protected {
+                crate::text_protection::BodyTextAdmission::prepare(plan, &partition.plot, offer)
+                    .map(Some)
+                    .map_err(|_| WorksetRefusal::Plan)
+            } else {
+                Ok(None)
+            }
+        })
+        .collect::<Result<Vec<_>, WorksetRefusal>>()?;
     Ok(PreparedNativeWorkset {
+        #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+        protected_text,
         advertisement,
         plan: plan.clone(),
         lowered,
@@ -141,7 +170,7 @@ fn admitted_plot_input(plot: &BodyPlotPlan) -> Result<AdmittedPlotInput, Workset
     let application = placement.kind_id.as_str()
         == conduit_semantic_catalog::APPLICATION_EVENT_SOURCE_KIND
         && connection.source_port_id.as_str() == conduit_semantic_catalog::APPLICATION_EVENT_PORT
-        && connection.value_kind.as_str() == conduit_presentation::APPLICATION_EVENT_INFO_ID;
+        && connection.value_kind.as_str() == conduit_face::APPLICATION_EVENT_INFO_ID;
     if !keyboard && !application {
         return Err(WorksetRefusal::Plan);
     }
@@ -163,7 +192,7 @@ pub fn review(
 ) -> Result<(), WorksetRefusal> {
     let (advertisement, _) = host(identities, offer, build_id)?;
     let plot = catalog::resident(plot)?;
-    let plots = plan_plots(core::slice::from_ref(&plot), &advertisement)?;
+    let plots = plan_plots(core::slice::from_ref(&plot), &advertisement, offer)?;
     validate_combined(&advertisement, plots.iter().map(|plot| &plot.plan))?;
     lower_plots(&plots)?;
     Ok(())
@@ -190,8 +219,7 @@ fn host(
     for capability in &mut advertisement.capabilities {
         if matches!(
             capability.kind_id.as_str(),
-            conduit_semantic_catalog::KEYMAP_KIND
-                | conduit_semantic_catalog::TEXT_PRESENTATION_KIND
+            conduit_semantic_catalog::KEYMAP_KIND | conduit_semantic_catalog::TEXT_FACE_KIND
         ) {
             capability.limits.max_active_instances = 2;
         }
@@ -208,6 +236,7 @@ fn host(
 fn plan_plots(
     identities: &[conduit_body::ResidentPlot],
     advertisement: &HostAdvertisement,
+    fixed: &HostOffer<'_>,
 ) -> Result<Vec<BodyPlotPlan>, WorksetRefusal> {
     let mut plots = Vec::with_capacity(identities.len());
     for identity in identities {
@@ -260,6 +289,19 @@ fn plan_plots(
             &limits,
         )
         .map_err(|_| WorksetRefusal::Plan)?;
+        // The connected keyboard chain stays one region; Root delivers input
+        // and admits face while its pure implementations run protected.
+        let plan = if plan.fragments[0].placements.iter().any(|placement| {
+            matches!(
+                placement.kind_id.as_str(),
+                conduit_text::TEXT_UPPER_KIND | conduit_semantic_catalog::TEXT_EDIT_KIND
+            )
+        }) {
+            crate::execution_region::seal_execution_region(plan, advertisement, fixed)
+                .map_err(|_| WorksetRefusal::Plan)?
+        } else {
+            plan
+        };
         plots.push(BodyPlotPlan {
             plot: identity.clone(),
             plan,

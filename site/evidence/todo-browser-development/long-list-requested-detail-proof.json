@@ -1,0 +1,23 @@
+{
+  "release_source_identity": "c49b89b58170762299cbceb36c4e52ea7d71eb9b",
+  "body_id": "335e956d4370f3373b62cdef8a6990b4a1ed414cd693f3d8ee92403b5fcff287",
+  "host_id": "host/installed/df02b1cb1afdad1f94980315da6114c5810de1f057e61bf7041172f71a3c834b",
+  "boot_id": "boot/installed/f3292b13a27c37b22f55ed26b91103d48f980b70f2f8f3ccf2cd0927e92b0242",
+  "face_id": "183fef4e21031bed66ca1172416e38edaa4b9966a1a4f3bf4554a24fa84338aa",
+  "face_revision": 596,
+  "show_id": "show/259c40d58a62ffdee595409d4562e2f0eb4b24ac81e224b7e335a8b0157bd64d",
+  "speech_plan_id": "7c14d4fe0f6e55d9a2989dd8c6f0728c5e02496e2cf3fef4694c4e00766cf49f",
+  "speech_play_id": "6c7480dcc4e40c0c4f03e91297334dd8b3a047b762df7458cd8ae1bb2b093585",
+  "words": [
+    "Long-list item 18, item.",
+    "Long-list item 19, item.",
+    "Long-list item 20, item."
+  ],
+  "turn_outcome": "Completed",
+  "play_outcome": "Completed",
+  "same_play_wav": "/home/dancxjo/Documents/Codex/2026-10-08/todo-same-body-detail-c49b89b58/requested-items-same-play.wav",
+  "same_play_wav_sha256": "8acebee4bca50b7feb6e5185bb86a311453c296cee8e268251efe81b53d4fc10",
+  "speaker_frames_committed": 304582,
+  "sample_rate_hz": 48000,
+  "channels": 2
+}

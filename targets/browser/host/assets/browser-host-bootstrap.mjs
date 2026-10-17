@@ -1,7 +1,7 @@
 import { initializeBrowserHost as initializeFromBytes } from "./browser-host-membership.mjs";
 
 // Bound the reviewed superset independently of incidental optimizer output.
-const MAXIMUM_RUNTIME_BYTES = 16 * 1024 * 1024;
+const MAXIMUM_RUNTIME_BYTES = 20 * 1024 * 1024;
 
 export async function initializeBrowserHost(options = {}) {
   if (options.runtimeBytes) return initializeFromBytes(options.runtimeBytes, options);

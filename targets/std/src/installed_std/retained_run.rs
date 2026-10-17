@@ -27,6 +27,7 @@ pub(crate) struct RunLifecycle<'a, 'indicator, 'external> {
     pub vision: Option<&'a mut crate::hosted_vision::FiniteHostedVisionBase>,
     pub external_fore: Option<crate::host_execution::ExternalForeRun<'external>>,
     pub spoken_mask: Option<crate::spoken_mask_runtime::SpokenMaskPreparation>,
+    pub direct_spoken_mask: Option<crate::direct_spoken_mask_runtime::DirectSpokenMaskPreparation>,
     pub durable_state: Option<DurableStateRun<'a>>,
 }
 
@@ -40,6 +41,8 @@ pub(crate) struct InstalledRunHost<'a, 'keyboard, 'model> {
         Option<&'model mut (dyn crate::hosted_local_model::HostedLocalModelAdapter + 'static)>,
     pub vector_search:
         Option<&'model mut (dyn crate::hosted_vector_search::HostedVectorSearchAdapter + 'static)>,
+    pub model_work:
+        Option<&'model mut (dyn crate::hosted_model_work::HostedModelWorkAdapter + 'static)>,
     pub calendar: Option<&'model mut (dyn crate::hosted_calendar::HostedCalendarAdapter + 'static)>,
     pub body_conversation_context: Option<&'a crate::BodyConversationContextSource>,
 }
@@ -73,6 +76,7 @@ pub(crate) fn run_fragment<W: Write, T: TimerAdapter>(
             vision: None,
             external_fore: None,
             spoken_mask: None,
+            direct_spoken_mask: None,
             durable_state: None,
         },
     )
@@ -81,7 +85,7 @@ pub(crate) fn run_fragment<W: Write, T: TimerAdapter>(
 
 pub(super) fn finish(
     report: StdRunReport,
-    scheduler: InstalledScheduler,
+    scheduler: Box<InstalledScheduler>,
     state_count: usize,
 ) -> Result<RetainedStdRun, String> {
     let mut states = Vec::with_capacity(state_count);

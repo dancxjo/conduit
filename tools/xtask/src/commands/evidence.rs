@@ -23,7 +23,7 @@ pub(crate) enum EvidenceCommand {
     ThreeBodyJourneyContract(ThreeBodyJourneyContractArgs),
     /// Add an already-verified three-Body Journey to a built Pages gallery.
     StageThreeBodyJourney(StageThreeBodyJourneyArgs),
-    /// Refresh only the presentation of a retained three-body record.
+    /// Refresh only the face of a retained three-body record.
     RenderRecordedThreeBody { root: PathBuf },
     /// Refresh the gallery around retained evidence without a new capture.
     RefreshGallery { site_root: PathBuf },
@@ -31,7 +31,7 @@ pub(crate) enum EvidenceCommand {
     RenderOneBodyJourney(OneBodyJourneyArgs),
     /// Capture one installed owner's current Face through a live finite Presenter and spoken Mask.
     OneBodySpokenChapter(one_body_spoken::Args),
-    /// Retain native and pinned-browser pixels for one exact Presentation.
+    /// Retain native and pinned-browser pixels for one exact Face.
     OnePlotTwoFronts(TwoFrontsArgs),
     /// Retain four exact checkpoints from the bounded Orbium/Lenia journey.
     LittleLife(EvidenceLittleLifeArgs),

@@ -1,5 +1,11 @@
 //! Exact local whisper.cpp discovery and bounded speech recognition.
 
+mod discovery;
+pub use crate::hosted_language::{
+    language_request_literal, read_language_coverage, read_language_request, HostedLanguageRefusal,
+};
+pub use discovery::WhisperDiscovery;
+
 use conduit_audio::{PcmChannelLayout, PcmFrameHeader, PcmSampleRepresentation};
 use sha2::{Digest, Sha256};
 use std::fs::File;
@@ -10,8 +16,6 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
-const MAXIMUM_EXECUTABLE_BYTES: u64 = 64 * 1024 * 1024;
-const MAXIMUM_MODEL_BYTES: u64 = 256 * 1024 * 1024;
 const MAXIMUM_DIAGNOSTIC_BYTES: usize = 8 * 1024;
 static NEXT_WORKSPACE: AtomicU64 = AtomicU64::new(0);
 
@@ -48,26 +52,19 @@ impl WhisperLimits {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct WhisperDiscovery {
-    executable: PathBuf,
-    model: PathBuf,
-    pub executable_sha256: String,
-    pub model_sha256: String,
-    pub model_bytes: u64,
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum WhisperFailure {
     MissingProvider,
     InvalidProvider,
     InvalidLimits,
+    Language(HostedLanguageRefusal),
     InvalidPcm,
     InvalidClip,
     UnsupportedPcmProfile,
     AudioOverflow,
     SpawnFailed,
     ProviderLost,
+    ProviderChanged,
     ReadFailed,
     OutputOverflow,
     Timeout,
@@ -112,30 +109,9 @@ impl WhisperEvidenceText {
 }
 
 impl WhisperDiscovery {
-    pub fn inspect(
-        executable: impl AsRef<Path>,
-        model: impl AsRef<Path>,
-    ) -> Result<Self, WhisperFailure> {
-        let executable = exact_file(executable.as_ref(), MAXIMUM_EXECUTABLE_BYTES)?;
-        let model = exact_file(model.as_ref(), MAXIMUM_MODEL_BYTES)?;
-        if !is_executable(&executable)? {
-            return Err(WhisperFailure::InvalidProvider);
-        }
-        let model_bytes = model
-            .metadata()
-            .map_err(|_| WhisperFailure::InvalidProvider)?
-            .len();
-        Ok(Self {
-            executable_sha256: digest_file(&executable)?,
-            model_sha256: digest_file(&model)?,
-            model_bytes,
-            executable,
-            model,
-        })
-    }
-
     pub fn initialize(self, limits: WhisperLimits) -> Result<WhisperSpeechAdapter, WhisperFailure> {
         let limits = limits.validate()?;
+        self.verify()?;
         let sequence = NEXT_WORKSPACE.fetch_add(1, Ordering::Relaxed);
         let workspace =
             std::env::temp_dir().join(format!("conduit-whisper-{}-{sequence}", std::process::id()));
@@ -186,21 +162,42 @@ impl WhisperSpeechAdapter {
         &self.discovery
     }
 
+    pub(crate) fn validate_language_declaration(
+        &self,
+        expected: &conduit_language::LanguageCoverage,
+    ) -> Result<(), WhisperFailure> {
+        if self.discovery.coverage.as_ref() != Some(expected) {
+            return Err(WhisperFailure::Language(HostedLanguageRefusal::Artifact));
+        }
+        Ok(())
+    }
+
     pub fn limits(&self) -> WhisperLimits {
         self.limits
     }
 
     pub fn provider_identity(&self) -> String {
-        let mut digest = Sha256::new();
-        digest.update(b"conduit-whisper-provider-v1\0");
-        digest.update(self.discovery.executable_sha256.as_bytes());
-        digest.update(self.discovery.model_sha256.as_bytes());
-        format!("whisper/provider/{:x}", digest.finalize())
+        self.discovery.provider_identity()
+    }
+
+    pub fn offer(&self) -> conduit_core::CapabilityOffer {
+        let mut offer = conduit_std_offers::whisper_speech_offer();
+        offer.realization_properties =
+            crate::hosted_language::properties(self.discovery.coverage.as_ref());
+        offer
+    }
+
+    pub fn clip_offer(&self) -> conduit_core::CapabilityOffer {
+        let mut offer = conduit_std_offers::whisper_clip_speech_offer();
+        offer.realization_properties =
+            crate::hosted_language::properties(self.discovery.coverage.as_ref());
+        offer
     }
 
     pub fn recognize(
         &mut self,
         encoded: &[u8],
+        language: &conduit_language::LanguageRequest,
         cancelled: impl FnMut() -> bool,
     ) -> Result<Vec<u8>, WhisperFailure> {
         if encoded.len() > self.limits.maximum_audio_bytes as usize {
@@ -216,12 +213,19 @@ impl WhisperSpeechAdapter {
             return Err(WhisperFailure::UnsupportedPcmProfile);
         }
         let audio_sha256: [u8; 32] = Sha256::digest(encoded).into();
-        self.recognize_payload(payload, audio_sha256, encoded.len() as u32, cancelled)
+        self.recognize_payload(
+            payload,
+            audio_sha256,
+            encoded.len() as u32,
+            language,
+            cancelled,
+        )
     }
 
     pub fn recognize_clip(
         &mut self,
         encoded: &[u8],
+        language: &conduit_language::LanguageRequest,
         cancelled: impl FnMut() -> bool,
     ) -> Result<Vec<u8>, WhisperFailure> {
         if encoded.len() > self.limits.maximum_audio_bytes as usize {
@@ -247,7 +251,13 @@ impl WhisperSpeechAdapter {
             payload.extend_from_slice(block.payload);
         }
         let audio_sha256: [u8; 32] = Sha256::digest(encoded).into();
-        self.recognize_payload(&payload, audio_sha256, encoded.len() as u32, cancelled)
+        self.recognize_payload(
+            &payload,
+            audio_sha256,
+            encoded.len() as u32,
+            language,
+            cancelled,
+        )
     }
 
     fn recognize_payload(
@@ -255,15 +265,19 @@ impl WhisperSpeechAdapter {
         payload: &[u8],
         audio_sha256: [u8; 32],
         audio_extent_bytes: u32,
+        language: &conduit_language::LanguageRequest,
         mut cancelled: impl FnMut() -> bool,
     ) -> Result<Vec<u8>, WhisperFailure> {
         if cancelled() {
             return Err(WhisperFailure::Cancelled);
         }
+        // This trusted installed-provider profile verifies finite source bytes;
+        // it does not claim hostile-code confinement of the operating system.
+        self.discovery.verify()?;
         let wav = self.workspace.join("input.wav");
         let output_base = self.workspace.join("result");
         write_wav(&wav, payload)?;
-        let mut child = self.spawn(&wav, &output_base)?;
+        let mut child = self.spawn(&wav, &output_base, language)?;
         let stderr = child.stderr.take();
         let diagnostics =
             std::thread::spawn(move || bounded_read(stderr, MAXIMUM_DIAGNOSTIC_BYTES));
@@ -339,8 +353,17 @@ impl WhisperSpeechAdapter {
         self.last_receipt.take()
     }
 
-    fn spawn(&self, wav: &Path, output_base: &Path) -> Result<Child, WhisperFailure> {
+    fn spawn(
+        &self,
+        wav: &Path,
+        output_base: &Path,
+        language: &conduit_language::LanguageRequest,
+    ) -> Result<Child, WhisperFailure> {
+        let private_language =
+            crate::hosted_language::provider_language(self.discovery.coverage.as_ref(), language)
+                .map_err(WhisperFailure::Language)?;
         Command::new(&self.discovery.executable)
+            .args(["--language", private_language])
             .args(["--model"])
             .arg(&self.discovery.model)
             .args(["--file"])
@@ -413,180 +436,5 @@ fn stop(child: &mut Child) {
     let _ = child.wait();
 }
 
-fn exact_file(path: &Path, maximum: u64) -> Result<PathBuf, WhisperFailure> {
-    let path = path
-        .canonicalize()
-        .map_err(|_| WhisperFailure::MissingProvider)?;
-    let metadata = path
-        .metadata()
-        .map_err(|_| WhisperFailure::MissingProvider)?;
-    if !metadata.is_file() || metadata.len() == 0 || metadata.len() > maximum {
-        return Err(WhisperFailure::InvalidProvider);
-    }
-    Ok(path)
-}
-
-#[cfg(unix)]
-fn is_executable(path: &Path) -> Result<bool, WhisperFailure> {
-    use std::os::unix::fs::PermissionsExt;
-    Ok(path
-        .metadata()
-        .map_err(|_| WhisperFailure::InvalidProvider)?
-        .permissions()
-        .mode()
-        & 0o111
-        != 0)
-}
-
-#[cfg(not(unix))]
-fn is_executable(_path: &Path) -> Result<bool, WhisperFailure> {
-    Ok(false)
-}
-
-fn digest_file(path: &Path) -> Result<String, WhisperFailure> {
-    let mut file = File::open(path).map_err(|_| WhisperFailure::InvalidProvider)?;
-    let mut digest = Sha256::new();
-    let mut bytes = [0_u8; 64 * 1024];
-    loop {
-        let read = file
-            .read(&mut bytes)
-            .map_err(|_| WhisperFailure::InvalidProvider)?;
-        if read == 0 {
-            break;
-        }
-        digest.update(&bytes[..read]);
-    }
-    Ok(format!("{:x}", digest.finalize()))
-}
-
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use std::fs;
-    use std::os::unix::fs::PermissionsExt;
-
-    fn fixture(script: &str) -> (PathBuf, PathBuf, PathBuf) {
-        let root = std::env::temp_dir().join(format!(
-            "conduit-whisper-adapter-test-{}-{}",
-            std::process::id(),
-            NEXT_WORKSPACE.fetch_add(1, Ordering::Relaxed)
-        ));
-        fs::create_dir(&root).unwrap();
-        let executable = root.join("whisper-cli");
-        let model = root.join("model.bin");
-        fs::write(&executable, script).unwrap();
-        fs::set_permissions(&executable, fs::Permissions::from_mode(0o700)).unwrap();
-        fs::write(&model, b"bounded model").unwrap();
-        (root, executable, model)
-    }
-
-    fn pcm(samples: &[i16]) -> Vec<u8> {
-        let payload = samples
-            .iter()
-            .flat_map(|sample| sample.to_le_bytes())
-            .collect::<Vec<_>>();
-        PcmFrameHeader::new(
-            PcmSampleRepresentation::Signed16LittleEndian,
-            16_000,
-            PcmChannelLayout::Mono,
-            samples.len() as u16,
-            1,
-            0,
-            false,
-        )
-        .unwrap()
-        .encode_frame(&payload)
-        .unwrap()
-    }
-
-    fn limits(timeout: Duration) -> WhisperLimits {
-        WhisperLimits {
-            maximum_audio_bytes: conduit_tongues::MAXIMUM_RECOGNITION_AUDIO_BYTES as u32,
-            maximum_text_bytes: conduit_tongues::MAXIMUM_RECOGNIZED_TEXT_BYTES as u16,
-            threads: 2,
-            timeout,
-        }
-    }
-
-    #[test]
-    fn exact_provider_emits_canonical_recognition_and_receipt() {
-        let (root, executable, model) = fixture(
-            "#!/bin/sh\nout=\nwhile [ $# -gt 0 ]; do\n  if [ \"$1\" = --output-file ]; then out=$2; shift 2; else shift; fi\ndone\nprintf 'Rosehip House, status\\n' > \"${out}.txt\"\n",
-        );
-        let discovery = WhisperDiscovery::inspect(&executable, &model).unwrap();
-        let expected_model = discovery.model_sha256.clone();
-        let mut adapter = discovery
-            .initialize(limits(Duration::from_secs(2)))
-            .unwrap();
-        let evidence = adapter.enable_evidence_text();
-        let audio = pcm(&[1, -2, 3, -4]);
-        let encoded = adapter.recognize(&audio, || false).unwrap();
-        let result = conduit_tongues::decode_speech_recognition_result(&encoded).unwrap();
-        let conduit_tongues::SpeechRecognitionResult::Recognized(result) = result else {
-            panic!("fixture provider did not produce recognized semantic info")
-        };
-        assert_eq!(result.text().get(), "Rosehip House, status");
-        assert_eq!(evidence.bytes().unwrap(), b"Rosehip House, status");
-        let receipt = adapter.take_receipt().unwrap();
-        assert_eq!(receipt.audio_sha256, Sha256::digest(&audio).as_slice());
-        assert_eq!(adapter.discovery().model_sha256, expected_model);
-        drop(adapter);
-        fs::remove_dir_all(root).unwrap();
-    }
-
-    #[test]
-    fn timeout_kills_provider_and_missing_output_is_failure() {
-        let (root, executable, model) = fixture("#!/bin/sh\nsleep 2\n");
-        let mut adapter = WhisperDiscovery::inspect(&executable, &model)
-            .unwrap()
-            .initialize(limits(Duration::from_millis(20)))
-            .unwrap();
-        assert_eq!(
-            adapter.recognize(&pcm(&[1]), || false),
-            Err(WhisperFailure::Timeout)
-        );
-        drop(adapter);
-        fs::write(&executable, "#!/bin/sh\nexit 0\n").unwrap();
-        let mut adapter = WhisperDiscovery::inspect(&executable, &model)
-            .unwrap()
-            .initialize(limits(Duration::from_secs(1)))
-            .unwrap();
-        assert_eq!(
-            adapter.recognize(&pcm(&[1]), || false),
-            Err(WhisperFailure::ReadFailed)
-        );
-        drop(adapter);
-        fs::remove_dir_all(root).unwrap();
-    }
-
-    #[test]
-    fn profile_bounds_and_cancellation_fail_distinctly() {
-        let (root, executable, model) = fixture("#!/bin/sh\nsleep 2\n");
-        let mut adapter = WhisperDiscovery::inspect(&executable, &model)
-            .unwrap()
-            .initialize(limits(Duration::from_secs(1)))
-            .unwrap();
-        assert_eq!(
-            adapter.recognize(&pcm(&[1]), || true),
-            Err(WhisperFailure::Cancelled)
-        );
-        let stereo = PcmFrameHeader::new(
-            PcmSampleRepresentation::Signed16LittleEndian,
-            16_000,
-            PcmChannelLayout::StereoLeftRight,
-            1,
-            1,
-            0,
-            false,
-        )
-        .unwrap()
-        .encode_frame(&[0, 0, 0, 0])
-        .unwrap();
-        assert_eq!(
-            adapter.recognize(&stereo, || false),
-            Err(WhisperFailure::UnsupportedPcmProfile)
-        );
-        drop(adapter);
-        fs::remove_dir_all(root).unwrap();
-    }
-}
+mod tests;

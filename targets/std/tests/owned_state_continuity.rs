@@ -1,7 +1,7 @@
 use conduit_core::*;
 use conduit_kernel::{
     scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
-    ValueRef,
+    PortId, ValueRef,
 };
 use conduit_plan_lowering::lowering::{
     lower_plan_fragment_for_profile, LoweredState, FIXED_KERNEL_STORAGE_PROFILE,
@@ -149,10 +149,13 @@ fn owned_state_moves_to_new_boot_and_larger_capacity_without_resetting_generatio
         continued.step(&mut initial_io, &StepInputBytes::test_frame([None], None),),
         StepOutcome::Progress
     );
-    let (_, value) = initial_io
-        .test_canonical_output()
-        .expect("replacement publishes retained current");
-    assert_eq!(value.as_slice(), next);
+    assert_eq!(
+        initial_io.test_prepared_output(),
+        Some((PortId(0), next.len() as u32))
+    );
+    let value = StepBack::<1>::prepared_output(&continued, PortId(0))
+        .expect("replacement stages its prepared retained current");
+    assert_eq!(value, next);
     StepBack::<1>::cancel(&mut continued);
     let second = continued
         .try_retire()

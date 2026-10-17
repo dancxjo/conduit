@@ -4,7 +4,7 @@ use conduit_speech::{semantic::*, text_admission::*};
 fn material(text: &str) -> LanguageText {
     LanguageText::new(
         LanguageTextId::new("text".into()).unwrap(),
-        SpeechLanguageId::new("es".into()).unwrap(),
+        LanguageId::new("es".into()).unwrap(),
         LanguageTextRevisionId::new("revision".into()).unwrap(),
         text.into(),
     )
@@ -13,8 +13,8 @@ fn material(text: &str) -> LanguageText {
 fn reference(start: u32, end: u32, id: &str, revision: &str, language: &str) -> LanguageSegmentRef {
     LanguageSegmentRef::text(
         LanguageTextSegmentKind::Word,
-        SpeechLanguageId::new(language.into()).unwrap(),
-        ListeningTextRange::new(end, start).unwrap(),
+        LanguageId::new(language.into()).unwrap(),
+        LanguageTextRange::new(end, start).unwrap(),
         LanguageTextRevisionId::new(revision.into()).unwrap(),
         LanguageTextId::new(id.into()).unwrap(),
     )
@@ -53,7 +53,7 @@ fn identical_spelling_cannot_resolve_foreign_basis_or_out_of_range() {
             Err(TextReferenceRefusal::Native(_))
         ));
     }
-    assert!(ListeningTextRange::new(0, 1).is_err());
+    assert!(LanguageTextRange::new(0, 1).is_err());
 }
 #[test]
 fn empty_material_and_maximum_scalar_extent_are_exact() {
@@ -66,7 +66,7 @@ fn empty_material_and_maximum_scalar_extent_are_exact() {
     let snapshot = material("");
     let phone = LanguageSegmentRef::phone(
         SpeechInventoryId::new("inventory".into()).unwrap(),
-        SpeechLanguageId::new("es".into()).unwrap(),
+        LanguageId::new("es".into()).unwrap(),
         0,
         SpeechSegmentRevisionId::new("revision".into()).unwrap(),
         SpeechSegmentSequenceId::new("sequence".into()).unwrap(),

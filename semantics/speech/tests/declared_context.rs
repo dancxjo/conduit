@@ -53,7 +53,7 @@ fn inventory(
     .unwrap();
     SpeechInventory::new(
         SpeechInventoryId::new("inventory".into()).unwrap(),
-        SpeechLanguageId::new("en".into()).unwrap(),
+        LanguageId::new("en".into()).unwrap(),
         BoundedSequence::try_from_iter([phoneme]).unwrap(),
         BoundedSequence::try_from_iter([phone::definition("phone/t")]).unwrap(),
     )

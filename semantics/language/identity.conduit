@@ -1,0 +1,62 @@
+# Language owns linguistic identity and exact text occurrences.
+# External tags and locale never imply these identities.
+
+type LanguageId = Text <= 32B not in [""]
+
+type VarietyId = Text <= 64B not in [""]
+
+# Exact Unicode-scalar text ranges, never UTF-8 byte indices.
+type LanguageTextRange = {
+    start: U32
+    end: U32
+    where .start <= .end
+}
+
+type LanguageTextId = Text <= 64B not in [""]
+
+type LanguageTextRevisionId = Text <= 64B not in [""]
+
+type LanguageTextSegmentKind =
+    grapheme
+    | morpheme
+    | word
+    | phrase
+    | utterance
+
+type LanguageTextSegmentRef = {
+    text_id: LanguageTextId
+    revision_id: LanguageTextRevisionId
+    language: LanguageId
+    kind: LanguageTextSegmentKind
+    range: LanguageTextRange
+}
+
+type LanguageText = {
+    identity: LanguageTextId
+    revision: LanguageTextRevisionId
+    language: LanguageId
+    text: Text <= 4096B
+}
+
+# A text reference binds to supplied immutable material, not a global registry.
+# scalar_count is derived from that material during preparation.
+type LanguageTextReferenceMatch = {
+    material: LanguageText
+    reference: LanguageTextSegmentRef
+    scalar_count: U32 in 0..=4096
+    where .reference.text_id == .material.identity
+    where .reference.revision_id == .material.revision
+    where .reference.language == .material.language
+    where .reference.range.end <= .scalar_count
+}
+
+type LanguageVariety = {
+    identity: VarietyId
+    language: LanguageId
+}
+
+# External tags/model rows are exact references under their own contract.
+type LanguageExternalIdentity = {
+    contract: Text <= 128B not in [""]
+    name: Text <= 128B not in [""]
+}

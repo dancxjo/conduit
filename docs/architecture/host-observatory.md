@@ -18,7 +18,7 @@ One versioned `ObservatorySnapshot` contains:
 - per-play placement and connection lifecycle, terminal disposition, failure,
   and optional measured pressure;
 - current and retained historical runtime-issued observations with distinct
-  play, presentation, and sign identities;
+  play, face, and sign identities;
 - optional sealed historical boot provenance tied to one reported host/boot,
   including adapter, image/build, normalized memory summary, artifacts,
   framebuffer basis, and proof classification;
@@ -31,7 +31,7 @@ from planned queue limits.
 `validate_snapshot` rejects unsupported schemas, invalid or duplicate plans,
 duplicate hosts/boots/bases/provenance, bases or provenance naming unknown
 host/boot identities, links whose endpoints lack exact host reports, plays or
-signs naming unknown identities, presentation signs without a play, invalid
+signs naming unknown identities, face signs without a play, invalid
 framebuffer provenance, and inconsistent retention accounting.
 
 ## Operator path
@@ -63,7 +63,7 @@ projection use those same rows; no graph canvas or UI state is required.
 
 Capabilities keep kind, contract, execution profile, implementation, limits,
 freshness, support, and availability separate. plays keep plan, host, boot,
-placement, connection, pressure, failure, terminal disposition, presentation,
+placement, connection, pressure, failure, terminal disposition, face,
 and sign identities separate. Pressure is `unknown` unless an authoritative
 producer supplies measurements.
 

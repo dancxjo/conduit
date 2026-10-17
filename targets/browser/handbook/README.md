@@ -25,8 +25,8 @@ The production SDK and WASM runtime prove
 admission and display the owner's biography. The browser builds native controls
 from the current Face's declared action names, bounded text inputs, and finite
 choices; WASM checks the selected bytes before emitting a typed interaction.
-The installed owner currently accepts the reviewed clock interval action while
-that authorized window and browser presence remain current. Lull a running clock
+The installed owner currently accepts the reviewed ticker pace action while
+that authorized window and browser presence remain current. Lull a running ticker
 first; the owner checks the current credential, Part, Face, Show, and typed
 argument, changes its checked workset, then supplies a fresh Face. The next
 start requires a replacement Plan. A closed window does not remain an action
@@ -35,10 +35,52 @@ Plan, Play, or remotely executed Plot. A public
 HTTPS deployment cannot use this loopback window to reach a different computer;
 the ordinary static Handbook remains independent of it.
 
-Open the Handbook, choose **A clock you can stop** or **Turn keystrokes into text**, and edit the Plot source. Live highlighting comes from the packaged Rust/WASM syntax projection. **Try in my Handbook** checks and installs the exact source in your local Body; an invalid edit reports its refusal. **Lull** ends execution, and **Wake** admits another run.
+When the Linux owner was installed with selected speech equipment, **Read this
+view aloud** asks that owner to read the browser's current acknowledged Show.
+**Check reading** reports the owner's running or terminal outcome, and **Stop
+reading** requests cancellation. The owner checks the current carrier, Face,
+Show, Host Boot, and selected equipment before starting. Sound comes from the
+Linux speaker; the browser does not synthesize it. This direct readout is a
+prerequisite for a spoken Mask, not yet an owner-spoken Mask Show or proof that a
+person heard the playback.
+
+Open the Handbook, choose **A ticker you can stop** or **Turn keystrokes into text**, and edit the Plot source. The ticker emits a repeating pulse; it does not tell the time of day. Live highlighting comes from the packaged Rust/WASM syntax projection. **Try in my Handbook** checks and installs the exact source in your local Body; an invalid edit reports its refusal. **Lull** ends execution, and **Wake** admits another run.
+
+Choose **Thermostat**, then **Try in my Handbook**, to run the original
+`thermostat/main` in this browser's own Body. Mode, fan, preset and half-degree
+target changes enter the bounded typed command Fore of the current scan Play.
+The contributed Face shows only its accepted settings. **Sensor unavailable**
+means there is no measured room temperature; equipment operation is unconfirmed.
+No owner window or backend is required for this local example.
+
+Thermostat settings are session-local. Lull/Wake and reload admit a fresh Play
+with the checked initial settings: Off, Auto fan, Comfort, 21°C. Retaining the
+browser's Body identity and source edits does not retain those settings.
+The reviewed browser Backs are `browser/kernel-thermostat-scan@1` and
+`browser/kernel-thermostat-combine@1`; the combine uses the same portable
+Thermostat reducer as the Linux owner. Its ordinary browser Mask requires a
+correlated Show acknowledgement before accepting a revision-bound action.
 
 **Open in Patchbay** opens the resident Patchbay application. Select the example from its list to inspect the actual checked Plot and execution projection. DOM/SVG is the browser Mask realization of this Show, not a second semantic graph store.
 
 Reload and chapter navigation recover your retained Body under a fresh Boot. A second browser profile gets its own Body. Open **Your body and browser** to inspect evidence, **Release this tab** for another tab, or **Start my Handbook over**. Starting over clears the application's Body and state while preserving the browser Host identity.
 
 The template names reviewed resources; `birth.json` names initial resident Plots and lesson sources. Prose remains in `wiki/`. The application module orchestrates public SDK operations, while Rust owns checking, lifecycle, workset and planning. See [Static Body applications](../../../docs/contributing/static-body-applications.md) for packaging, identity isolation, resource boundaries and required acceptance evidence.
+
+## Typed units lessons
+
+The reviewed quantity plots use ordinary checked values:
+`units/convert(source = 1kHz, to = Hz)`. `source` is `Quantity`, and `to` is
+`Unit`; quotation marks would select Text and fail the Fore. Native quantities
+and Units need no notation imports. The pitch lesson uses
+`units/converted-equals(expected = 1000Hz)` to turn its validated runtime receipt
+into a Boolean decision. False covers different magnitudes, incompatible
+expected dimensions and valid refusals; invalid receipts fail admission.
+The retained receipt remains the source of exact conversion/refusal evidence.
+
+The temperature-change lesson uses the distinct temperature-difference Fore,
+which scales the change without adding an absolute temperature origin.
+See [Units and quantities](../../../wiki/Units-and-quantities.md) and the
+[first-class values design](../../../docs/design/first-class-units.md).
+Source changes and component checks do not establish a deployed public
+Handbook or browser execution; those require their own build/execution receipts.

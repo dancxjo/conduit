@@ -1,0 +1,108 @@
+# IPA spelling is notation, never phoneme/phone identity or membership.
+# This contract describes a finite supported notation profile. Its preparation
+# must validate supported Unicode grammar and ambiguous segmentation separately.
+# It does not make arbitrary nonempty Text into a validated IPA transcription.
+type SpeechIpaNotationProfileId = Text <= 128B not in [""]
+type SpeechIpaUnitId = Text <= 64B not in [""]
+type SpeechIpaSpelling = Text <= 64B not in [""]
+type SpeechIpaDisplayKind =
+    phonemic
+    | phonetic
+
+type SpeechIpaUnitKind =
+    segment
+    | primary_stress
+    | secondary_stress
+    | length
+    | syllable_boundary
+# Canonical units may contain multiple scalars (tie bars/combining marks).
+# Aliases are explicit profile claims, not global Unicode/phonetic equivalence.
+type SpeechIpaUnitDefinition = {
+    identity: SpeechIpaUnitId
+    spelling: SpeechIpaSpelling
+    kind: SpeechIpaUnitKind
+    provenance: SpeechEvidenceProvenance
+}
+type SpeechIpaSpellingAlias = {
+    source: SpeechIpaSpelling
+    target: SpeechIpaUnitId
+    provenance: SpeechEvidenceProvenance
+}
+type SpeechIpaNotationProfile = {
+    identity: SpeechIpaNotationProfileId
+    revision: SpeechSegmentRevisionId
+    inventory_id: SpeechInventoryId
+    variety: LanguageVariety
+    units: sequence SpeechIpaUnitDefinition in 1..=256
+    aliases: sequence SpeechIpaSpellingAlias <= 256
+    provenance: SpeechEvidenceProvenance
+}
+# Byte and scalar spans preserve exact original spelling. Neither is a phone
+# ordinal; the parser checks the complete ordered source partition.
+type SpeechIpaUnitOccurrence = {
+    unit: SpeechIpaUnitId
+    source_spelling: SpeechIpaSpelling
+    start: U64
+    end: U64
+    scalar_start: U64
+    scalar_end: U64
+    where .end > .start
+    where .scalar_end > .scalar_start
+}
+type SpeechIpaTranscription = {
+    profile_id: SpeechIpaNotationProfileId
+    profile_revision: SpeechSegmentRevisionId
+    inventory_id: SpeechInventoryId
+    variety: LanguageVariety
+    display: SpeechIpaDisplayKind
+    original: Text <= 4096B not in [""]
+    units: sequence SpeechIpaUnitOccurrence in 1..=256
+    provenance: SpeechEvidenceProvenance
+}
+# Exact supplied profile correlation is separate from parser conformance and
+# from phoneme/phone inventory admission. Retain the whole prepared profile.
+type SpeechIpaProfileMatch = {
+    transcription: SpeechIpaTranscription
+    profile: SpeechIpaNotationProfile
+    where .transcription.profile_id == .profile.identity
+    where .transcription.profile_revision == .profile.revision
+    where .transcription.inventory_id == .profile.inventory_id
+    where .transcription.variety == .profile.variety
+}
+
+# Universal phonetic notation is independent of any language inventory.
+# The supported segment grammar is checked by the qualified constructor.
+type SpeechPhoneNotation = {
+    spelling: SpeechIpaSpelling
+    provenance: SpeechEvidenceProvenance
+    where (((((.spelling == "p" || .spelling == "b") || (.spelling == "t" || (.spelling == "d" || .spelling == "k"))) || ((.spelling == "ɡ" || (.spelling == "m" || .spelling == "n")) || (.spelling == "ŋ" || (.spelling == "f" || .spelling == "v")))) || (((.spelling == "θ" || (.spelling == "ð" || .spelling == "s")) || (.spelling == "z" || (.spelling == "ʃ" || .spelling == "ʒ"))) || ((.spelling == "h" || (.spelling == "ɹ" || .spelling == "r")) || (.spelling == "ɾ" || (.spelling == "l" || .spelling == "j"))))) || ((((.spelling == "w" || (.spelling == "i" || .spelling == "ɪ")) || (.spelling == "e" || (.spelling == "ɛ" || .spelling == "æ"))) || ((.spelling == "a" || (.spelling == "ɑ" || .spelling == "ɒ")) || (.spelling == "ɔ" || (.spelling == "o" || .spelling == "ʊ")))) || (((.spelling == "u" || (.spelling == "ə" || .spelling == "ʌ")) || (.spelling == "ɜ" || (.spelling == "t͡ʃ" || .spelling == "d͡ʒ"))) || ((.spelling == "pʰ" || (.spelling == "tʰ" || .spelling == "kʰ")) || (.spelling == "n̩" || (.spelling == "ã" || .spelling == "ã"))))))
+}
+
+# Universal phonetic events have no language, inventory or phoneme basis.
+# Stress, length and boundaries are events, not phones or inferred syllables.
+type SpeechPhoneticPhone = {
+    phone: SpeechPhoneNotation
+}
+type SpeechPhoneticEvent =
+    phone SpeechPhoneticPhone
+    | primary_stress
+    | secondary_stress
+    | length
+    | syllable_boundary
+
+type SpeechPhoneticOccurrence = {
+    value: SpeechPhoneticEvent
+    source_spelling: SpeechIpaSpelling
+    start: U64
+    end: U64
+    scalar_start: U64
+    scalar_end: U64
+    where .end > .start
+    where .scalar_end > .scalar_start
+}
+type SpeechPhoneticTranscription = {
+    grammar_revision: Text <= 64B in ["speech/ipa/version1"]
+    original: Text <= 4096B not in [""]
+    units: sequence SpeechPhoneticOccurrence in 1..=256
+    provenance: SpeechEvidenceProvenance
+}

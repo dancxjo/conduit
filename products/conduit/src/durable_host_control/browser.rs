@@ -1,15 +1,75 @@
 //! Short authenticated owner operations used by the loopback browser worker.
 //! Network waits remain on that worker; this control carrier never decides
 //! admission, membership, authority, or elapsed authorization time.
+use super::speech_route::{call as speech_call, SpeechReply, SpeechRequest};
 use super::{read_frame, read_secret, write_frame, Request, Response, PROTOCOL};
 use crate::durable_host::owner::{BrowserAdmittedSnapshot, BrowserWindowAuthorization};
 use conduit_body::{
     BodyBiographyEvidence, HostOfferProjection, MembershipCredential, OfferDisclosureRequest,
 };
 use conduit_core::LinkBindingId;
-use conduit_presentation::{OwnerFaceSnapshotRequest, RemoteOwnerMaskRouteSeal};
+use conduit_face::{
+    MaskShow, MaskWardrobeAction, OwnerFaceSnapshotRequest, RemoteOwnerMaskRouteSeal,
+};
 use conduit_std_host::browser_admission::{BrowserAdmissionEgress, BrowserAdmissionIngress};
 use std::path::Path;
+
+pub(crate) fn selected_speech_start(
+    state_dir: &Path,
+    window_id: &str,
+    binding: LinkBindingId,
+    request: OwnerFaceSnapshotRequest,
+    show: conduit_face::MaskShow,
+) -> Result<String, String> {
+    match speech_call(state_dir, |token| SpeechRequest::Start {
+        protocol: PROTOCOL,
+        token,
+        window_id: window_id.into(),
+        binding,
+        request: Box::new(request),
+        show: Box::new(show),
+    })? {
+        SpeechReply::Started {
+            protocol: PROTOCOL,
+            operation_id,
+        } => Ok(operation_id),
+        SpeechReply::Refused { code, .. } => Err(code),
+        _ => Err("owner returned the wrong selected speech start response".into()),
+    }
+}
+
+pub(crate) fn selected_speech_status(
+    state_dir: &Path,
+    operation_id: &str,
+) -> Result<serde_json::Value, String> {
+    match speech_call(state_dir, |token| SpeechRequest::Status {
+        protocol: PROTOCOL,
+        token,
+        operation_id: operation_id.into(),
+    })? {
+        SpeechReply::Status {
+            protocol: PROTOCOL,
+            status,
+        } => Ok(*status),
+        SpeechReply::Refused { code, .. } => Err(code),
+        _ => Err("owner returned the wrong selected speech status response".into()),
+    }
+}
+
+pub(crate) fn selected_speech_stop(state_dir: &Path, operation_id: &str) -> Result<(), String> {
+    match speech_call(state_dir, |token| SpeechRequest::Stop {
+        protocol: PROTOCOL,
+        token,
+        operation_id: operation_id.into(),
+    })? {
+        SpeechReply::StopRequested {
+            protocol: PROTOCOL,
+            operation_id: returned,
+        } if returned == operation_id => Ok(()),
+        SpeechReply::Refused { code, .. } => Err(code),
+        _ => Err("owner returned the wrong selected speech stop response".into()),
+    }
+}
 
 pub(crate) fn spawn_window(
     state_dir: &Path,
@@ -32,6 +92,8 @@ fn call(state_dir: &Path, request: impl FnOnce(Vec<u8>) -> Request) -> Result<Re
         | Request::BodyBrowserOffer { token, .. }
         | Request::BodyBrowserMaskRoute { token, .. }
         | Request::BodyBrowserShow { token, .. }
+        | Request::BodyBrowserComponentMask { token, .. }
+        | Request::BodyBrowserWardrobe { token, .. }
         | Request::BodyBrowserAbort { token, .. }
         | Request::BodyBrowserLeave { token, .. }
         | Request::BodyBrowserCancel { token, .. } => token.fill(0),
@@ -117,6 +179,7 @@ pub(crate) fn mask_route(
     window_id: &str,
     credential: MembershipCredential,
     binding: LinkBindingId,
+    evidence: crate::durable_host::owner::BrowserCarrierLineEvidence,
 ) -> Result<RemoteOwnerMaskRouteSeal, String> {
     match call(state_dir, |token| Request::BodyBrowserMaskRoute {
         protocol: PROTOCOL,
@@ -124,6 +187,7 @@ pub(crate) fn mask_route(
         window_id: window_id.into(),
         credential,
         binding,
+        evidence: Some(Box::new(evidence)),
     })? {
         Response::BodyBrowserMaskRoute {
             protocol: PROTOCOL,
@@ -139,7 +203,7 @@ pub(crate) fn acknowledge_show(
     window_id: &str,
     binding: LinkBindingId,
     request: OwnerFaceSnapshotRequest,
-    show: conduit_presentation::MaskShow,
+    show: conduit_face::MaskShow,
 ) -> Result<(), String> {
     match call(state_dir, |token| Request::BodyBrowserShow {
         protocol: PROTOCOL,
@@ -152,6 +216,59 @@ pub(crate) fn acknowledge_show(
         Response::BodyBrowserShowAccepted { protocol: PROTOCOL } => Ok(()),
         Response::Refused { code, .. } => Err(code),
         _ => Err("Body owner returned the wrong browser Show response".into()),
+    }
+}
+
+pub(crate) fn component_mask(
+    state_dir: &Path,
+    window_id: &str,
+    binding: LinkBindingId,
+    request: OwnerFaceSnapshotRequest,
+    show: Box<MaskShow>,
+    look: conduit_std_host::browser_admission::BrowserComponentLook,
+    recipe: conduit_std_host::browser_admission::BrowserComponentRecipe,
+) -> Result<(), String> {
+    match call(state_dir, |token| Request::BodyBrowserComponentMask {
+        protocol: PROTOCOL,
+        token,
+        window_id: window_id.into(),
+        binding,
+        request,
+        show,
+        look,
+        recipe,
+    })? {
+        Response::BodyBrowserComponentMaskAccepted { protocol: PROTOCOL } => Ok(()),
+        Response::Refused { code, .. } => Err(code),
+        _ => Err("Body owner returned the wrong component selection response".into()),
+    }
+}
+
+pub(crate) fn wardrobe(
+    state_dir: &Path,
+    window_id: &str,
+    binding: LinkBindingId,
+    request: OwnerFaceSnapshotRequest,
+    owner_plan_id: Option<conduit_core::PlanId>,
+    basis_revision: u64,
+    action: Option<MaskWardrobeAction>,
+) -> Result<serde_json::Value, String> {
+    match call(state_dir, |token| Request::BodyBrowserWardrobe {
+        protocol: PROTOCOL,
+        token,
+        window_id: window_id.into(),
+        binding,
+        request,
+        owner_plan_id,
+        basis_revision,
+        action,
+    })? {
+        Response::BodyBrowserWardrobeReport {
+            protocol: PROTOCOL,
+            report,
+        } => Ok(*report),
+        Response::Refused { code, .. } => Err(code),
+        _ => Err("Body owner returned the wrong wardrobe response".into()),
     }
 }
 

@@ -18,6 +18,10 @@ test('each ConduitOS package set includes only its own emulator/firmware', () =>
     assert.deepEqual(packages.filter(name => /^(qemu|ovmf|u-boot)/.test(name)), selected);
     assert.equal(packages.length, new Set(packages).size);
     assert.ok(packages.includes('libssl-dev') && packages.includes('xorriso'));
+    for (const dependency of ['libglib2.0-dev', 'libfdt-dev', 'zlib1g-dev', 'ninja-build', 'python3-venv']) {
+      assert.equal(packages.includes(dependency), ['riscv64', 'loongarch64'].includes(arch), dependency);
+    }
+    assert.equal(packages.includes('patch'), arch === 'loongarch64');
   }
   assert.throws(() => targetPackages({ family: 'conduitos', id: 'conduitos-unknown' }));
   assert.ok(targetPackages({ id: 'raspberry-pi' }).includes('mtools'));

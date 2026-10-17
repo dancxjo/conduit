@@ -4,7 +4,48 @@
 pub mod control_contract;
 pub mod control_decode;
 pub mod control_factory;
+pub mod control_offer;
 pub mod control_owner;
 pub mod control_payload;
+pub mod control_proof_plan;
 pub mod control_request;
 pub mod control_result;
+pub(crate) mod control_ring;
+
+pub mod device_probe_proof_plan;
+pub mod hid_boot_control_proof_plan;
+
+pub mod device_probe_proof_kernel;
+
+pub mod configuration_probe_proof_plan;
+
+pub mod endpoint_read_contract;
+pub mod endpoint_read_request;
+pub mod endpoint_read_result;
+
+pub mod endpoint_read_factory;
+pub mod endpoint_read_offer;
+pub mod endpoint_read_owner;
+
+pub(crate) mod endpoint_ring;
+
+pub mod endpoint_read_proof_plan;
+
+pub mod hid_endpoint_proof_plan;
+pub mod hid_source_kernel;
+pub mod hid_source_plan;
+
+pub mod hid_endpoint_proof_kernel;
+
+pub mod installation;
+
+pub mod endpoint_write_contract;
+pub mod endpoint_write_factory;
+pub mod endpoint_write_offer;
+pub mod endpoint_write_owner;
+pub mod endpoint_write_request;
+pub mod endpoint_write_result;
+
+pub mod isochronous_schedule;
+
+pub mod isochronous;

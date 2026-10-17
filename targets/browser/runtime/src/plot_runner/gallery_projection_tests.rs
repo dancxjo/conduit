@@ -1,6 +1,6 @@
 //! Projection and execution must agree even when reusable Plots follow a root.
 use super::super::{MorseRealization, TourSession};
-use super::{project_with_presentation, PresentationProfile};
+use super::{project_with_face, FaceProfile};
 
 #[test]
 fn gallery_projection_uses_the_same_closed_root_as_play() {
@@ -8,15 +8,15 @@ fn gallery_projection_uses_the_same_closed_root_as_play() {
         (
             include_str!("../../../../../plots/firefly-choir/main.conduit"),
             "firefly-choir",
-            PresentationProfile::Annotation,
+            FaceProfile::Annotation,
         ),
         (
             include_str!("../../../../../plots/secret-knock/main.conduit"),
             "secret-knock-demo",
-            PresentationProfile::PatternComparison,
+            FaceProfile::PatternComparison,
         ),
     ] {
-        let projection = project_with_presentation(source, 1, false, profile).unwrap();
+        let projection = project_with_face(source, 1, false, profile).unwrap();
         let (session, _) = TourSession::prepare_with_profile(
             "browser/gallery-proof",
             "boot/gallery-proof",

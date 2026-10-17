@@ -1,0 +1,20 @@
+{
+  "schema": "conduit.proof/todo-browser-after-native@1",
+  "proof_class": "read-only-pinned-chromium-rejoin-of-isolated-fork",
+  "source_commit": "56481bf14857bdc62f54d30b1c424cfe5c92f896",
+  "browser_source_commit": "459e672cbb83495f4677a3cff60be18be55a8a04",
+  "body_id": "335e956d4370f3373b62cdef8a6990b4a1ed414cd693f3d8ee92403b5fcff287",
+  "face_id": "305e252fe053e9721a396e503c1a60bfab321318d5955c48b3331e1339298a41",
+  "face_revision": "630",
+  "show_id": "show/d75dd724c0f535ac2685537bf1db517312e0e22b7304dcf48ee8397daf1050c5",
+  "show_state": "available",
+  "acknowledged_show_id": "show/d75dd724c0f535ac2685537bf1db517312e0e22b7304dcf48ee8397daf1050c5",
+  "owner_face_id": "305e252fe053e9721a396e503c1a60bfab321318d5955c48b3331e1339298a41",
+  "owner_face_revision": 630,
+  "status": "2 things left \u00b7 18 completed",
+  "screenshot": "browser-todo-after-native.png",
+  "todo_actions": 0,
+  "page_errors": [],
+  "screenshot_bytes": 32357,
+  "screenshot_sha256": "be16da5de7268e8dbc076294efe065c61a685aa1ed7df0f0c2f21b99c52bec2b"
+}

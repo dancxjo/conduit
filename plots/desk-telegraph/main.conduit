@@ -7,7 +7,7 @@ plot text-record (
     wrap.record >> record
 }
 
-# A non-text record refuses here instead of becoming presentation text.
+# A non-text record refuses here instead of becoming face text.
 plot text-from-record (
     record: TypedRecord >> text: Text
 ) {
@@ -40,7 +40,7 @@ plot desk_telegraph {
     send: bounded-record-send(4, 4096)
     deframe: record/deframe-typed
     decode: text-from-record
-    show: presentation/text
+    show: face/text("Received message")
 
     keyboard.key >> keymap.key
     keymap.text >> message.fragment

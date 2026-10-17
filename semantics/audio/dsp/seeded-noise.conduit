@@ -1,0 +1,45 @@
+# Portable 16-bit LCG excitation. State and remaining work are explicit.
+# One full period is admitted; zero remaining work cannot enter another step.
+type NoiseStepInput = {
+    word: I32 in 0..=65535
+    remaining: U32 in 1..=65536
+}
+# Dynamic composition submits a candidate; the transition below checks every
+# domain before arithmetic. The strict entry retains its existing request Type.
+type NoiseStepCandidate = {
+    word: I32
+    remaining: U32
+}
+# The arithmetic yields word 0..=65535 and remaining 0..=65535.
+# Reentry is checked against NoiseStepInput, including the exhausted-zero case.
+type NoiseStepOutput = {
+    word: I32
+    remaining: U32
+    sample: I32
+}
+type NoiseStepOutcome =
+    advanced NoiseStepOutput
+    | invalid_seed
+    | exhausted
+    | invalid_profile
+
+plot dsp/noise-step (
+    >> state: NoiseStepInput...|
+    next: NoiseStepOutcome...| >>
+) {
+    candidate: dsp/noise-candidate()
+    transition: dsp/noise-step-candidate()
+    state >> candidate.state
+    candidate.candidate >> transition.state
+    transition.next >> next
+}
+
+plot dsp/noise-candidate (
+    >> state: NoiseStepInput...|
+    candidate: NoiseStepCandidate...| >>
+) = ({word: .word, remaining: .remaining})
+
+plot dsp/noise-step-candidate (
+    >> state: NoiseStepCandidate...|
+    next: NoiseStepOutcome...| >>
+) = (.word < 0 || .word > 65535 ? NoiseStepOutcome.invalid_seed : .remaining == 0 ? NoiseStepOutcome.exhausted : .remaining > 65536 ? NoiseStepOutcome.invalid_profile : NoiseStepOutcome.advanced({word: (.word * 25173 + 13849) % 65536, remaining: .remaining - 1, sample: ((.word * 25173 + 13849) % 65536) - 32768}))

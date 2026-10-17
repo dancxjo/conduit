@@ -6,6 +6,8 @@ use conduit_core::{
 };
 
 mod call_structure;
+mod input_bound;
+mod physical_literals;
 mod semantic_call;
 mod substitution;
 mod temporal;
@@ -85,6 +87,7 @@ pub(super) fn resolve_selectors(
     source_plot: &CheckedCanonicalPlot,
     plots: &BTreeMap<&str, &CheckedCanonicalPlot>,
     structured_types: &BTreeMap<conduit_core::KindId, conduit_core::StructuredInfoType>,
+    exact_initial_info: &BTreeMap<(conduit_core::KindId, String), Vec<u8>>,
     catalog: &ProfileCatalog,
     backs: &CanonicalBackCatalog,
     environment: &BTreeMap<String, CanonicalStartupValue>,
@@ -216,6 +219,7 @@ pub(super) fn resolve_selectors(
             source_plot,
             plots,
             structured_types,
+            exact_initial_info,
             catalog,
             backs,
             environment,
@@ -285,9 +289,43 @@ fn expand_expression(
     }
 
     let input_type = crate::CheckedExpressionType::Semantic(input_kind);
-    let expression = substitute_immutable_values(expression, source_plot, environment)?;
-    let immutable_values = BTreeMap::new();
-    let literal_types = BTreeMap::new();
+    let mut expression = substitute_immutable_values(expression, source_plot, environment)?;
+    let constants = substitution::structured_constants(&expression, source_plot, environment)?;
+    let immutable_values = constants
+        .iter()
+        .map(|(name, value)| {
+            (
+                name.clone(),
+                crate::CheckedExpressionType::from_member(value.value_type()),
+            )
+        })
+        .collect();
+    let mut structured_types = structured_types.clone();
+    for value in constants.values() {
+        let ty = value.value_type();
+        let kind = ty
+            .profile()
+            .map_err(|error| {
+                CanonicalExpansionDiagnostic::new(
+                    "CND-FRM-046",
+                    format!("immutable value has no finite profile: {error:?}"),
+                )
+            })?
+            .value_kind()
+            .clone();
+        if structured_types
+            .get(&kind)
+            .is_some_and(|existing| existing != ty)
+        {
+            return Err(CanonicalExpansionDiagnostic::new(
+                "CND-FRM-046",
+                "immutable value conflicts with the exact Type registry".into(),
+            ));
+        }
+        structured_types.insert(kind, ty.clone());
+    }
+    let (literal_types, canonical_literals) =
+        physical_literals::bind(&mut expression, source_plot, environment, catalog)?;
     let numeric_types = BTreeSet::new();
     let semantic_kinds = catalog
         .canonical_kinds()
@@ -307,9 +345,10 @@ fn expand_expression(
         &expression,
         expected_output.as_ref(),
         &crate::ExpressionTypeContext {
+            glyph_values: Some(&source_plot.glyph_values),
             input: &input_type,
             immutable_values: &immutable_values,
-            structured_types,
+            structured_types: &structured_types,
             literal_types: &literal_types,
             numeric_types: &numeric_types,
             semantic_kinds: &semantic_kinds,
@@ -324,6 +363,9 @@ fn expand_expression(
             ),
         )
     })?;
+    checked.input_maximum_bytes = input_bound::checked_bound(source, source_plot, gears)?;
+    checked.canonical_literals = canonical_literals;
+    checked.immutable_constants = constants;
     if let Some(invariants) = catalog.type_invariants(
         checked
             .input_type
@@ -338,12 +380,13 @@ fn expand_expression(
             input_type
                 .value_kind()
                 .expect("Cord input has one exact semantic Kind"),
+            source,
             expected_output
                 .as_ref()
                 .and_then(crate::CheckedExpressionType::value_kind),
             source_span,
             source_plot,
-            structured_types,
+            &structured_types,
             catalog,
             path,
             gears,
@@ -359,6 +402,8 @@ fn expand_expression(
             "pure expression has no finite exact Port identity".into(),
         )
     })?;
+    let semantic_laws = input_bound::semantic_laws(&checked)?;
+    drop(checked);
     let key = definition.kind_id.as_str().to_string();
     let count = anonymous_counts.entry(key.clone()).or_default();
     let name = format!("expression-{}-{count}", &hash_string(&key)[..12]);
@@ -396,7 +441,7 @@ fn expand_expression(
         outputs: vec![output.clone()],
         semantic_contract: conduit_core::KindSemanticContract {
             configuration: definition.configuration.clone(),
-            laws: crate::pure_expression_semantic_laws(),
+            laws: semantic_laws,
         },
         terminal_transductions: Vec::new(),
         resource_ports: Vec::new(),
@@ -404,6 +449,7 @@ fn expand_expression(
         pool_references: Vec::new(),
     });
     provenance.push(ExpandedGearProvenance {
+        construction_owner: None,
         gear_id: gear_id.as_str().to_string(),
         plot_path: path.to_vec(),
         source_plot: source_plot.name.clone(),

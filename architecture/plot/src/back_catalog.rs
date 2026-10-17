@@ -14,6 +14,14 @@ pub struct CanonicalBackDefinition {
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct CanonicalBackCatalog {
     backs: BTreeMap<KindId, CanonicalBackDefinition>,
+    contexts: BTreeMap<KindId, CanonicalBackContext>,
+}
+
+/// The exact checked owner includes private Types, laws, literals and helpers.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct CanonicalBackContext {
+    pub(crate) document: CheckedSyntaxDocument,
+    pub(crate) catalog: Option<crate::ProfileCatalog>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -44,6 +52,23 @@ impl CanonicalBackCatalog {
         plot_name: &str,
     ) -> Result<(), CanonicalBackError> {
         self.insert_checked(kind, document, plot_name)
+    }
+
+    /// Retain the admitted primitive contracts used by a Source owner as well
+    /// as its checked lexical context. They do not leak into the caller catalogue.
+    pub fn insert_with_catalog(
+        &mut self,
+        kind: &Kind,
+        document: &CheckedSyntaxDocument,
+        plot_name: &str,
+        catalog: &crate::ProfileCatalog,
+    ) -> Result<(), CanonicalBackError> {
+        self.insert_checked(kind, document, plot_name)?;
+        self.contexts
+            .get_mut(&kind.kind_id)
+            .expect("inserted Back context")
+            .catalog = Some(catalog.clone());
+        Ok(())
     }
 
     /// Installs a Back only when the whole checked front is equal, including
@@ -127,19 +152,34 @@ impl CanonicalBackCatalog {
             source_document_id: document.source_document_id.clone(),
             checked_plot_id: plot.checked_plot_id.clone(),
         };
-        if self
-            .backs
-            .insert(
-                kind.kind_id.clone(),
-                CanonicalBackDefinition { realization, plot },
-            )
-            .is_some()
-        {
+        if self.backs.contains_key(&kind.kind_id) {
             return Err(CanonicalBackError::DuplicateKind(
                 kind.kind_id.as_str().into(),
             ));
         }
+        self.contexts.insert(
+            kind.kind_id.clone(),
+            CanonicalBackContext {
+                document: document.clone(),
+                catalog: None,
+            },
+        );
+        self.backs.insert(
+            kind.kind_id.clone(),
+            CanonicalBackDefinition { realization, plot },
+        );
         Ok(())
+    }
+
+    /// Borrow the exact checked definition admitted for this Kind. Face
+    /// preparation uses this custody record to follow a selected invocation;
+    /// it does not replace compiler expansion or planner applicability checks.
+    pub fn checked_definition(&self, kind: &KindId) -> Option<&CanonicalBackDefinition> {
+        self.backs.get(kind)
+    }
+
+    pub(crate) fn context(&self, kind: &KindId) -> Option<&CanonicalBackContext> {
+        self.contexts.get(kind)
     }
 
     pub(crate) fn get(&self, kind: &KindId) -> Option<&CanonicalBackDefinition> {

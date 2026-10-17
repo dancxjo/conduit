@@ -6,13 +6,12 @@ use conduit_core::{
     resource_offer, BaseImplementationId, BootId, CapabilityOffer, HostAdvertisement, HostId,
     HostProfileId, OfferGeneration, PROTOCOL_VERSION,
 };
+use conduit_face::{
+    Face, FaceAspect, FaceBasis, FaceDepth, FacePlace, FacePropertyValue, FaceRole, ProjectionItem,
+};
 use conduit_plot::{
     check_syntax_document, expand_canonical_plot, parse_syntax_document, ProfileCatalog,
     StartupCatalog,
-};
-use conduit_presentation::{
-    Presentation, PresentationAspect, PresentationBasis, PresentationDepth, PresentationPlace,
-    PresentationPropertyValue, PresentationRole, ProjectionItem,
 };
 use conduit_std_host::hosted_vector_index::{
     hosted_hnsw_vector_search_offer, HostedHnswProfile, HostedHnswProviderIdentity,
@@ -70,18 +69,15 @@ fn plan(
 fn projected_property_names(
     expanded: &conduit_plot::ExpandedCanonicalPlot,
     plan: &conduit_core::Plan,
-    aspect: PresentationAspect,
-) -> Vec<(String, PresentationPropertyValue)> {
+    aspect: FaceAspect,
+) -> Vec<(String, FacePropertyValue)> {
     let graph = PatchbayGraph::from_expanded(expanded).unwrap();
     let mut content = ContentBuilder::new();
-    let body_subject = content.subject_with_identity(
-        "body/vector-search",
-        PresentationRole::Body,
-        "Vector search Body",
-    );
+    let body_subject =
+        content.subject_with_identity("body/vector-search", FaceRole::Body, "Vector search Body");
     let plot = content.subject_with_identity(
         format!("plot/{}", plan.checked_plot_id.as_str()),
-        PresentationRole::Plot,
+        FaceRole::Plot,
         "Portable vector retrieval Plot",
     );
     content.contains(&body_subject, &plot);
@@ -90,7 +86,7 @@ fn projected_property_names(
         &graph,
         Some(
             &crate::PlanDocument::from_plan(
-                crate::PatchbayRequestId::new("vector/presentation").unwrap(),
+                crate::PatchbayRequestId::new("vector/face").unwrap(),
                 plan,
             )
             .unwrap(),
@@ -105,9 +101,9 @@ fn projected_property_names(
         "sign/vector-search-born".into(),
     )
     .unwrap();
-    let presentation = Presentation::new(
+    let face = Face::new(
         1,
-        PresentationBasis {
+        FaceBasis {
             body_id: Some(body.body_id),
             wake_id: None,
             source_document_id: Some(plan.source_document_id.clone()),
@@ -123,26 +119,26 @@ fn projected_property_names(
         content.text,
     )
     .unwrap();
-    let navigation = PatchbayNavigationProjection::for_embodied(&presentation).unwrap();
-    let gear = presentation
+    let navigation = PatchbayNavigationProjection::for_embodied(&face).unwrap();
+    let gear = face
         .subjects
         .iter()
-        .find(|subject| subject.role == PresentationRole::Gear)
+        .find(|subject| subject.role == FaceRole::Gear)
         .unwrap();
     let mut cursor = navigation.cursor.clone();
-    cursor.place = PresentationPlace::Program;
+    cursor.place = FacePlace::Program;
     cursor.aspect = aspect;
     cursor.focus = Some(gear.identity.clone());
-    cursor.depth = PresentationDepth::Exact;
+    cursor.depth = FaceDepth::Exact;
     navigation
         .projection
-        .project(&presentation, &navigation.navigation, &cursor)
+        .project(&face, &navigation.navigation, &cursor)
         .unwrap()
         .items
         .iter()
         .filter_map(|membership| match membership.item {
             ProjectionItem::Property(index) => {
-                let property = &presentation.properties[usize::from(index)];
+                let property = &face.properties[usize::from(index)];
                 (property.subject == gear.identity)
                     .then(|| (property.name.clone(), property.value.clone()))
             }
@@ -175,13 +171,12 @@ fn unchanged_semantics_disclose_distinct_exact_and_hnsw_realizations() {
         ),
     );
 
-    let exact_structure =
-        projected_property_names(&expanded, &exact, PresentationAspect::Structure);
-    let hnsw_structure = projected_property_names(&expanded, &hnsw, PresentationAspect::Structure);
+    let exact_structure = projected_property_names(&expanded, &exact, FaceAspect::Structure);
+    let hnsw_structure = projected_property_names(&expanded, &hnsw, FaceAspect::Structure);
     assert_eq!(exact_structure, hnsw_structure);
     assert!(exact_structure.iter().any(|(name, value)| {
         name == "kind-id"
-            && value == &PresentationPropertyValue::Identity(conduit_ai::VECTOR_SEARCH_KIND.into())
+            && value == &FacePropertyValue::Identity(conduit_ai::VECTOR_SEARCH_KIND.into())
     }));
     for forbidden in [
         "implementation-id",
@@ -192,27 +187,27 @@ fn unchanged_semantics_disclose_distinct_exact_and_hnsw_realizations() {
         assert!(!exact_structure.iter().any(|(name, _)| name == forbidden));
     }
 
-    let exact_plan = projected_property_names(&expanded, &exact, PresentationAspect::Plan);
-    let hnsw_plan = projected_property_names(&expanded, &hnsw, PresentationAspect::Plan);
+    let exact_plan = projected_property_names(&expanded, &exact, FaceAspect::Plan);
+    let hnsw_plan = projected_property_names(&expanded, &hnsw, FaceAspect::Plan);
     assert!(exact_plan.iter().any(|(name, value)| {
         name == "vector-search-proof-class"
-            && value == &PresentationPropertyValue::Text("deterministic-exact".into())
+            && value == &FacePropertyValue::Text("deterministic-exact".into())
     }));
     assert!(hnsw_plan.iter().any(|(name, value)| {
         name == "vector-search-proof-class"
-            && value == &PresentationPropertyValue::Text("approximate".into())
+            && value == &FacePropertyValue::Text("approximate".into())
     }));
     assert!(hnsw_plan.iter().any(|(name, value)| {
         name == "execution-profile-id"
-            && matches!(value, PresentationPropertyValue::Identity(profile) if profile.contains("hnsw/cosine") && profile.contains("ef-search-16"))
+            && matches!(value, FacePropertyValue::Identity(profile) if profile.contains("hnsw/cosine") && profile.contains("ef-search-16"))
     }));
     assert!(exact_plan.iter().any(|(name, value)| {
         name == "vector-index-resource"
-            && matches!(value, PresentationPropertyValue::Text(resource) if resource.contains("pool=pool/exact/vector-index") && resource.contains("class=resource/vector-index@1"))
+            && matches!(value, FacePropertyValue::Text(resource) if resource.contains("pool=pool/exact/vector-index") && resource.contains("class=resource/vector-index@1"))
     }));
     assert!(hnsw_plan.iter().any(|(name, value)| {
         name == "vector-index-resource"
-            && matches!(value, PresentationPropertyValue::Text(resource) if resource.contains("pool=pool/hnsw/vector-index") && resource.contains("units=65536"))
+            && matches!(value, FacePropertyValue::Text(resource) if resource.contains("pool=pool/hnsw/vector-index") && resource.contains("units=65536"))
     }));
 }
 

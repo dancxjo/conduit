@@ -51,12 +51,27 @@ pub(super) struct Args {
     speaker_card: Option<String>,
     #[arg(long, requires = "speaker_card")]
     speaker_device: Option<u16>,
-    #[arg(long, requires_all = ["speech_data", "speech_engine"])]
+    #[arg(long, requires_all = ["speech_data", "speech_engine", "speech_language_coverage"])]
     speech_executable: Option<PathBuf>,
     #[arg(long, requires = "speech_executable")]
     speech_data: Option<PathBuf>,
     #[arg(long, requires = "speech_executable")]
     speech_engine: Option<PathBuf>,
+    /// Explicit provider-bound Language coverage declaration.
+    #[arg(long, requires = "speech_executable")]
+    speech_language_coverage: Option<PathBuf>,
+    /// Already-local Ollama model for a same-run validated spoken chapter.
+    #[arg(long, requires = "speech_executable")]
+    model: Option<String>,
+    /// Explicit loopback Ollama origin, reached through a producer-owned route.
+    #[arg(long, default_value = "http://127.0.0.1:11434")]
+    ollama_endpoint: String,
+    /// Finite model memory admission in MiB.
+    #[arg(long, default_value_t = 2048)]
+    admitted_memory_mib: u32,
+    /// Private control socket of the exact model route selected at owner install.
+    #[arg(long, requires = "model")]
+    owner_model_route_control: Option<PathBuf>,
 }
 
 pub(super) fn execute(args: &Args, opts: &GlobalOpts) -> Result<(), ConduitosError> {
@@ -127,12 +142,24 @@ pub(super) fn execute(args: &Args, opts: &GlobalOpts) -> Result<(), ConduitosErr
         &args.speech_executable,
         &args.speech_data,
         &args.speech_engine,
+        &args.speech_language_coverage,
     ] {
         if let Some(path) = path {
             command.arg(path);
         } else {
             command.arg("-");
         }
+    }
+    command.arg(args.model.as_deref().unwrap_or("-"));
+    if args.model.is_some() {
+        command
+            .arg(&args.ollama_endpoint)
+            .arg(args.admitted_memory_mib.to_string())
+            .arg(
+                args.owner_model_route_control
+                    .as_ref()
+                    .map_or_else(|| "-".into(), |path| path.display().to_string()),
+            );
     }
     let status = command.status().map_err(|error| {
         ConduitosError::refusal("screen-free-three-host-launch", error.to_string())

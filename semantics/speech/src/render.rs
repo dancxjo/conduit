@@ -27,6 +27,7 @@ pub struct Renderer<'a> {
     events: &'a [VoiceEvent],
     frame_counts: Option<&'a [i32]>,
     controls: Option<&'a [SpeechEventVoiceControl]>,
+    pitch: Option<&'a [Option<SpeechPitchProjectionInput>]>,
     cursor: RenderCursor,
 }
 
@@ -110,13 +111,14 @@ impl RenderCursor {
         events: &[VoiceEvent],
         output: &mut [i16],
     ) -> Result<usize, RenderRefusal> {
-        self.render_prepared(events, None, None, output)
+        self.render_prepared(events, None, None, None, output)
     }
     fn render_prepared(
         &mut self,
         events: &[VoiceEvent],
         frame_counts: Option<&[i32]>,
         controls: Option<&[SpeechEventVoiceControl]>,
+        pitch: Option<&[Option<SpeechPitchProjectionInput>]>,
         output: &mut [i16],
     ) -> Result<usize, RenderRefusal> {
         if output.len() > MAXIMUM_BLOCK_FRAMES {
@@ -176,7 +178,20 @@ impl RenderCursor {
                                 Some(controls) => SpeechFrameCycleControl {
                                     mode: controls[self.event_index].cycle_mode,
                                     phase_q8: self.phase_q8,
-                                    period_q8: controls[self.event_index].period_q8,
+                                    period_q8: match pitch
+                                        .and_then(|values| values[self.event_index])
+                                    {
+                                        Some(input) => i32::try_from(
+                                            speech_pitch_period_q8(SpeechPitchProjectionInput {
+                                                frame: u64::try_from(self.event_frame)
+                                                    .map_err(|_| RenderRefusal::Arithmetic)?,
+                                                ..input
+                                            })
+                                            .ok_or(RenderRefusal::Arithmetic)?,
+                                        )
+                                        .map_err(|_| RenderRefusal::Arithmetic)?,
+                                        None => controls[self.event_index].period_q8,
+                                    },
                                 },
                                 None => SpeechFrameCycleControl {
                                     mode: SpeechCycleControlMode::profile,
@@ -227,6 +242,7 @@ impl<'a> Renderer<'a> {
             events,
             frame_counts: None,
             controls: None,
+            pitch: None,
             cursor: RenderCursor::prepare(events)?,
         })
     }
@@ -240,6 +256,7 @@ impl<'a> Renderer<'a> {
             events,
             frame_counts: Some(frame_counts),
             controls: None,
+            pitch: None,
             cursor: RenderCursor::prepare_timed(events, Some(frame_counts))?,
         })
     }
@@ -258,6 +275,7 @@ impl<'a> Renderer<'a> {
             events,
             frame_counts: Some(&storage[..counts.len()]),
             controls: None,
+            pitch: None,
             cursor,
         })
     }
@@ -281,6 +299,23 @@ impl<'a> Renderer<'a> {
         self.controls = Some(controls);
         Ok(self)
     }
+    #[cfg(feature = "semantic-bindings")]
+    pub(crate) fn with_pitch(
+        mut self,
+        pitch: &'a [Option<SpeechPitchProjectionInput>],
+    ) -> Result<Self, RenderRefusal> {
+        if self.rendered_frames() != 0 {
+            return Err(RenderRefusal::ControlAfterStart);
+        }
+        if pitch.len() != self.events.len()
+            || self.controls.is_none()
+            || self.frame_counts.is_none()
+        {
+            return Err(RenderRefusal::ControlCount);
+        }
+        self.pitch = Some(pitch);
+        Ok(self)
+    }
     pub fn prepare_controlled(
         events: &'a [VoiceEvent],
         controls: &'a [SpeechEventVoiceControl],
@@ -301,8 +336,13 @@ impl<'a> Renderer<'a> {
         if self.frame_counts.is_none() && self.controls.is_none() {
             self.cursor.render(self.events, output)
         } else {
-            self.cursor
-                .render_prepared(self.events, self.frame_counts, self.controls, output)
+            self.cursor.render_prepared(
+                self.events,
+                self.frame_counts,
+                self.controls,
+                self.pitch,
+                output,
+            )
         }
     }
 }

@@ -9,8 +9,9 @@ conduit-browser-host = { path = "../../../targets/browser/host" }
 conduit-core = { path = "../../../architecture/core" }
 conduit-kernel = { path = "../../../architecture/kernel", features = ["alloc"] }
 conduit-body-make = { path = "../../../make/body" }
-conduit-presentation = { path = "../../../semantics/presentation" }
+conduit-face = { path = "../../../semantics/face" }
 conduit-plan-lowering = { path = "../../../architecture/plan-lowering", default-features = false }
+conduit-plot = { path = "../../../architecture/plot" }
 conduit-std-host = { path = "../../../targets/std" }
 conduit-semantic-catalog = { path = "../../../semantics/catalog" }
 conduit-tongues = { path = "../../../semantics/tongues" }

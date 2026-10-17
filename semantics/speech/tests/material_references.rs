@@ -6,7 +6,7 @@ use conduit_speech::{reference_admission::*, semantic::*};
 fn basis() -> SpeechTokenSequenceBasis {
     SpeechTokenSequenceBasis::new(
         SpeechInventoryId::new("inventory".into()).unwrap(),
-        SpeechLanguageId::new("en".into()).unwrap(),
+        LanguageId::new("en".into()).unwrap(),
         SpeechSegmentRevisionId::new("revision".into()).unwrap(),
         SpeechSegmentSequenceId::new("sequence".into()).unwrap(),
         SpeechUtteranceId::new("utterance".into()).unwrap(),
@@ -15,7 +15,7 @@ fn basis() -> SpeechTokenSequenceBasis {
 }
 fn reference(phone: bool, ordinal: u32, revision: &str, sequence: &str) -> LanguageSegmentRef {
     let inventory = SpeechInventoryId::new("inventory".into()).unwrap();
-    let language = SpeechLanguageId::new("en".into()).unwrap();
+    let language = LanguageId::new("en".into()).unwrap();
     let revision = SpeechSegmentRevisionId::new(revision.into()).unwrap();
     let sequence = SpeechSegmentSequenceId::new(sequence.into()).unwrap();
     let utterance = SpeechUtteranceId::new("utterance".into()).unwrap();
@@ -151,7 +151,7 @@ fn phonemes_remain_phonemes_and_retain_their_realization_evidence() {
 fn match_receipts_check_all_basis_fields_and_material_counts() {
     let reference = LanguageSpeechTokenRef::new(
         SpeechInventoryId::new("inventory".into()).unwrap(),
-        SpeechLanguageId::new("en".into()).unwrap(),
+        LanguageId::new("en".into()).unwrap(),
         0,
         SpeechSegmentRevisionId::new("revision".into()).unwrap(),
         SpeechSegmentSequenceId::new("sequence".into()).unwrap(),
@@ -178,7 +178,7 @@ fn match_receipts_check_all_basis_fields_and_material_counts() {
     ] {
         let basis = SpeechTokenSequenceBasis::new(
             SpeechInventoryId::new(inventory.into()).unwrap(),
-            SpeechLanguageId::new(language.into()).unwrap(),
+            LanguageId::new(language.into()).unwrap(),
             SpeechSegmentRevisionId::new(revision.into()).unwrap(),
             SpeechSegmentSequenceId::new(sequence.into()).unwrap(),
             SpeechUtteranceId::new(utterance.into()).unwrap(),

@@ -9,11 +9,12 @@ use std::time::Duration;
 
 mod audio_playback_conformance;
 mod body_causal_evidence_conformance;
-mod bool_presentation_conformance;
+mod bool_face_conformance;
 mod calendar_proposal_conformance;
 mod calendar_provider_conformance;
 mod data_text_conformance;
 mod external_fore_conformance;
+mod face_composition;
 mod final_normalized_pattern_conformance;
 mod gate_conformance;
 mod graphics_conformance;
@@ -30,7 +31,6 @@ mod midi_input_conformance;
 mod midi_output_conformance;
 mod navigation_conformance;
 mod pattern_comparison_conformance;
-mod presentation_composition;
 mod pure_expression_conformance;
 mod recurrence_conformance;
 mod remote_fragment_conformance;
@@ -62,6 +62,10 @@ impl TimerAdapter for RecordingTimer {
     fn wait(&mut self, duration: Duration) {
         self.waits.push(duration);
     }
+
+    fn monotonic_now_ms(&mut self) -> Option<u64> {
+        u64::try_from(self.waits.iter().map(Duration::as_millis).sum::<u128>()).ok()
+    }
 }
 
 struct StopAfterWaits {
@@ -79,6 +83,10 @@ impl TimerAdapter for StopAfterWaits {
                 self.control.request_stop(request).unwrap();
             }
         }
+    }
+
+    fn monotonic_now_ms(&mut self) -> Option<u64> {
+        u64::try_from(self.waits.iter().map(Duration::as_millis).sum::<u128>()).ok()
     }
 }
 
@@ -184,7 +192,7 @@ fn current_frequency_drives_bounded_pcm_through_one_ordinary_play() {
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),
             connection_item_capacity: 1,
-            connection_byte_capacity: conduit_semantic_catalog::AUDIO_TONE_PCM_BLOCK_BYTES,
+            connection_byte_capacity: conduit_semantic_catalog::AUDIO_TONE_QUEUE_BYTES,
             authority_grants: &[],
             protected_resource_grants: &[],
             line_offers: &[],
@@ -242,7 +250,7 @@ fn theremin_pitch_distance_maps_near_high_and_far_low() {
     .unwrap();
     let frequency_initial = conduit_core::StructuredInfoValue::leaf(
         frequency_type.clone(),
-        conduit_core::Quantity::new(440, conduit_core::QuantityUnit::Hertz)
+        conduit_core::Quantity::new(440, conduit_core::Unit::Hertz)
             .encode()
             .to_vec(),
     )
@@ -262,7 +270,7 @@ fn theremin_pitch_distance_maps_near_high_and_far_low() {
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),
             connection_item_capacity: 1,
-            connection_byte_capacity: conduit_semantic_catalog::AUDIO_TONE_PCM_BLOCK_BYTES,
+            connection_byte_capacity: conduit_semantic_catalog::AUDIO_TONE_QUEUE_BYTES,
             authority_grants: &[],
             protected_resource_grants: &[],
             line_offers: &[],
@@ -279,15 +287,20 @@ fn theremin_pitch_distance_maps_near_high_and_far_low() {
     for (key, expected) in [
         (
             "target-minimum",
-            conduit_core::Quantity::new(1760, conduit_core::QuantityUnit::Hertz),
+            conduit_core::Quantity::new(1760, conduit_core::Unit::Hertz),
         ),
         (
             "target-maximum",
-            conduit_core::Quantity::new(110, conduit_core::QuantityUnit::Hertz),
+            conduit_core::Quantity::new(110, conduit_core::Unit::Hertz),
         ),
     ] {
         assert!(mapping.configuration.iter().any(|entry| {
-            entry.key == key && entry.value == conduit_core::ConfigurationValue::Quantity(expected)
+            entry.key == key
+                && entry.value
+                    == conduit_core::ConfigurationValue::Quantity(
+                        conduit_core::QuantityConfigurationValue::from_value(expected)
+                            .expect("bounded quantity configuration"),
+                    )
         }));
     }
     let report = host
@@ -327,7 +340,7 @@ fn authored_tone_cancellation_routes_exact_observed_terminal_truth() {
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),
             connection_item_capacity: 1,
-            connection_byte_capacity: conduit_semantic_catalog::AUDIO_TONE_PCM_BLOCK_BYTES,
+            connection_byte_capacity: conduit_semantic_catalog::AUDIO_TONE_QUEUE_BYTES,
             authority_grants: &[],
             protected_resource_grants: &[],
             line_offers: &[],
@@ -466,7 +479,7 @@ fn typed_latest_and_tee_plan_and_execute_with_capacity_one_pressure() {
     assert!(output.contains("/latest kind=state/latest"));
     assert!(output.contains("/split kind=flow/tee"));
     assert!(output.contains(" complete\n"));
-    assert_eq!(timer.waits, vec![Duration::ZERO; 3]);
+    assert!(timer.waits.is_empty());
     assert!(matches!(
         report.observations.last().map(|item| &item.kind),
         Some(ObservationKind::PlanTerminal {
@@ -583,37 +596,34 @@ fn mutated_tick_executable_identity_fails_before_any_wait() {
 fn text_plan(host: &StdHost, invalid: bool) -> conduit_core::Plan {
     let plot = parse(
         &format!(
-            "plot text_demo {{\n source: conduit-test/text-source(invalid = {invalid})\n show: presentation/text\n source.text >> show.text\n}}\n"
+            "plot text_demo {{\n source: conduit-test/text-source(invalid = {invalid})\n show: face/text(\"Message\")\n source.text >> show.text\n}}\n"
         ),
         &installed_std::test_catalog(),
     )
     .expect("typed text fixture parses");
-    host.plan_local(&plot, None)
-        .expect("typed text presentation plans")
+    host.plan_local(&plot, None).expect("typed text face plans")
 }
 
 #[test]
 fn typed_text_plans_presents_and_completes_through_the_installed_kernel() {
     let mut host = host("typed-text-host");
     let plan = text_plan(&host, false);
-    let presentation = plan.fragments[0]
+    let face = plan.fragments[0]
         .placements
         .iter()
-        .find(|placement| {
-            placement.kind_id.as_str() == installed_std::contract::TEXT_PRESENTATION_KIND
-        })
-        .expect("text presentation placement exists");
+        .find(|placement| placement.kind_id.as_str() == installed_std::contract::TEXT_FACE_KIND)
+        .expect("text face placement exists");
     assert_eq!(
-        presentation.kind_contract_revision.as_str(),
-        installed_std::contract::TEXT_PRESENTATION_CONTRACT_REVISION
+        face.kind_contract_revision.as_str(),
+        installed_std::contract::TEXT_FACE_CONTRACT_REVISION
     );
     assert_eq!(
-        presentation.implementation_id.as_str(),
-        installed_std::contract::TEXT_PRESENTATION_IMPLEMENTATION
+        face.implementation_id.as_str(),
+        installed_std::contract::TEXT_FACE_IMPLEMENTATION
     );
     assert_eq!(
-        presentation.inputs[0].value_kind.as_str(),
-        installed_std::contract::TEXT_PRESENTATION_VALUE_KIND
+        face.inputs[0].value_kind.as_str(),
+        installed_std::contract::TEXT_FACE_VALUE_KIND
     );
 
     let mut output = Vec::with_capacity(1_024);
@@ -639,14 +649,14 @@ fn typed_text_plans_presents_and_completes_through_the_installed_kernel() {
 }
 
 #[test]
-fn invalid_utf8_fails_before_a_successful_text_presentation() {
+fn invalid_utf8_fails_before_a_successful_text_face() {
     let mut host = host("invalid-text-host");
     let plan = text_plan(&host, true);
     let mut output = Vec::with_capacity(1_024);
     let mut timer = RecordingTimer { waits: Vec::new() };
     let error = host
         .run_fragment_to(plan.fragments[0].clone(), &mut output, &mut timer)
-        .expect_err("invalid UTF-8 must fail before presentation succeeds");
+        .expect_err("invalid UTF-8 must fail before face succeeds");
     assert!(
         error.contains("not valid UTF-8"),
         "unexpected error: {error}"
@@ -656,17 +666,15 @@ fn invalid_utf8_fails_before_a_successful_text_presentation() {
 }
 
 #[test]
-fn every_text_presentation_executable_identity_mutation_fails_before_output() {
+fn every_text_face_executable_identity_mutation_fails_before_output() {
     let baseline_host = host("mutated-text-host");
     let plan = text_plan(&baseline_host, false);
     let baseline = plan.fragments[0].clone();
-    let presentation_index = baseline
+    let face_index = baseline
         .placements
         .iter()
-        .position(|placement| {
-            placement.kind_id.as_str() == installed_std::contract::TEXT_PRESENTATION_KIND
-        })
-        .expect("text presentation placement exists");
+        .position(|placement| placement.kind_id.as_str() == installed_std::contract::TEXT_FACE_KIND)
+        .expect("text face placement exists");
     let mutations: [fn(&mut conduit_core::PlannedGear); 14] = [
         |placement| placement.kind_id = conduit_core::KindId::from("wrong/text"),
         |placement| {
@@ -688,8 +696,7 @@ fn every_text_presentation_executable_identity_mutation_fails_before_output() {
         |placement| placement.offer_generation = conduit_core::OfferGeneration(99),
         |placement| placement.configuration[0].value = conduit_core::ConfigurationValue::U64(5),
         |placement| {
-            placement.host_calls[0].target_kind =
-                Some(conduit_core::KindId::from("wrong/presentation"))
+            placement.host_calls[0].target_kind = Some(conduit_core::KindId::from("wrong/face"))
         },
         |placement| {
             placement.resources[0].pool_id = conduit_core::ResourcePoolId::from("wrong-pool")
@@ -697,7 +704,7 @@ fn every_text_presentation_executable_identity_mutation_fails_before_output() {
     ];
     for mutate in mutations {
         let mut fragment = baseline.clone();
-        mutate(&mut fragment.placements[presentation_index]);
+        mutate(&mut fragment.placements[face_index]);
         let mut host = host("mutated-text-host");
         let mut output = Vec::with_capacity(1_024);
         let mut timer = RecordingTimer { waits: Vec::new() };
@@ -712,7 +719,7 @@ fn every_text_presentation_executable_identity_mutation_fails_before_output() {
 fn canonical_text_pipeline_has_zero_successful_post_play_start_allocations() {
     let source = r#"plot hello {
     upper: text/upper
-    show: presentation/text
+    show: face/text("Message")
     "Hello, world." >> upper >> show
 }
 "#;
@@ -746,7 +753,7 @@ fn canonical_greet_has_zero_successful_post_play_start_allocations() {
 }
 plot welcome {
     hello: greet("Welcome")
-    "Travis" >> hello >> presentation/text
+    "Travis" >> hello >> face/text("Message")
 }
 "#;
     let mut startup = conduit_plot::StartupCatalog::new();
@@ -771,12 +778,11 @@ plot welcome {
 #[test]
 fn canonical_clock_has_zero_successful_post_play_start_allocations() {
     let source =
-        "plot clock-demo {\n    clock: time/every(1s)\n    clock >> presentation/tick\n}\n";
+        "plot clock-demo {\n    clock: time/every(1s)\n    clock >> face/tick(\"Clock tick\")\n}\n";
     let mut startup = conduit_plot::StartupCatalog::new();
     let mut profile = conduit_plot::ProfileCatalog::new();
     conduit_time::install_time_every_catalog(&mut startup, &mut profile).unwrap();
-    conduit_semantic_catalog::install_tick_presentation_catalog(&mut startup, &mut profile)
-        .unwrap();
+    conduit_semantic_catalog::install_tick_face_catalog(&mut startup, &mut profile).unwrap();
     let syntax = conduit_plot::parse_syntax_document(source);
     let checked = conduit_plot::check_syntax_document(&syntax, &startup).unwrap();
     let expanded = conduit_plot::expand_canonical_plot(&checked, "clock-demo", &profile).unwrap();
@@ -812,15 +818,14 @@ fn canonical_state_count_executes_current_values_with_bounded_sign() {
 plot count-demo {
     clock: time/every(1s)
     count: count(2)
-    show: presentation/count
+    show: face/count("Current count")
     clock >> count >> show
 }
 "#;
     let mut startup = conduit_plot::StartupCatalog::new();
     let mut profile = conduit_plot::ProfileCatalog::new();
     conduit_time::install_time_every_catalog(&mut startup, &mut profile).unwrap();
-    conduit_semantic_catalog::install_tick_presentation_catalog(&mut startup, &mut profile)
-        .unwrap();
+    conduit_semantic_catalog::install_tick_face_catalog(&mut startup, &mut profile).unwrap();
     conduit_semantic_catalog::install_count_pipeline_catalogs(&mut startup, &mut profile).unwrap();
     let syntax = conduit_plot::parse_syntax_document(source);
     let checked = conduit_plot::check_syntax_document(&syntax, &startup).unwrap();
@@ -858,7 +863,7 @@ plot count-demo {
     let output = String::from_utf8(output).unwrap();
     let counts = output
         .lines()
-        .filter_map(|line| line.strip_prefix("count value="))
+        .filter_map(|line| line.strip_prefix("Current count: count value="))
         .map(|value| value.parse::<u64>().unwrap())
         .collect::<Vec<_>>();
     assert!(counts.len() > 5, "counts={counts:?}");

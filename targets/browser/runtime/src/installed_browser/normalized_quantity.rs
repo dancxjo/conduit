@@ -222,13 +222,13 @@ mod tests {
             .unwrap()
         };
         assert_eq!(
-            transform(&leaf(250_000, conduit_core::QuantityUnit::Millionth)),
+            transform(&leaf(250_000, conduit_core::Unit::Millionth)),
             Ok(conduit_core::Scalar::from_raw_microunits(250_000).encode())
         );
         for (bytes, detail) in [
             (Vec::new(), 11),
-            (leaf(50, conduit_core::QuantityUnit::Percent), 12),
-            (leaf(-1, conduit_core::QuantityUnit::Millionth), 13),
+            (leaf(50, conduit_core::Unit::Percent), 12),
+            (leaf(-1, conduit_core::Unit::Millionth), 13),
         ] {
             let reason = transform(&bytes).unwrap_err();
             assert_eq!(reason, failure(detail));

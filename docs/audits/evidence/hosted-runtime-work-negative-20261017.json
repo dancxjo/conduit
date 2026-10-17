@@ -1,0 +1,30 @@
+{
+  "verifier_sha256": "9fa59d9c3a899da2635f5712f9c7c978c92ae553b5f17ad19681366231669bdc",
+  "previous_verifier_git_source": "cd440491707c2071685df90c658ee748abfcd7e5",
+  "checks": [
+    {
+      "case": "swapped-gear-labels",
+      "previous_exit_code": 0,
+      "current_exit_code": 1,
+      "refusal": "AssertionError: pipeline Gear count/Plan placements"
+    },
+    {
+      "case": "false-materializations",
+      "previous_exit_code": 0,
+      "current_exit_code": 1,
+      "refusal": "AssertionError: pipeline intermediate materializations"
+    },
+    {
+      "case": "missing-preserved-cord",
+      "previous_exit_code": 0,
+      "current_exit_code": 1,
+      "refusal": "AssertionError: fusion logical connection preservation"
+    },
+    {
+      "case": "foreign-source",
+      "previous_exit_code": 0,
+      "current_exit_code": 1,
+      "refusal": "AssertionError: pipeline source custody"
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+warning: unused import: `storage_preparation::AdditionalStoragePairAdmission`
+  --> targets/conduitos/src/protocol_host_calls.rs:53:16
+   |
+53 | pub(crate) use storage_preparation::AdditionalStoragePairAdmission;
+   |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: associated function `prepare_storage_usb_duplex_two_pairs` is never used
+  --> targets/conduitos/src/protocol_host_calls/storage_preparation.rs:29:19
+   |
+19 | impl<P: I2cProvider> PreparedProtocolCalls<P> {
+   | --------------------------------------------- associated function in this implementation
+...
+29 |     pub(crate) fn prepare_storage_usb_duplex_two_pairs(
+   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `conduitos` (lib test) generated 2 warnings (run `cargo fix --lib -p conduitos --tests` to apply 1 suggestion)
+    Finished `test` profile [unoptimized] target(s) in 0.15s
+     Running unittests src/lib.rs (../usb-target/debug/deps/conduitos-6ed99a4ed0c43888)
+
+running 9 tests
+test storage_base::transaction_owner::retention::tests::inline_output_and_body_allocation_are_charged_before_admission ... ok
+test storage_base::transaction_owner::tests::cancellation_retains_physical_submission_until_exact_stop_receipt ... ok
+test storage_base::transaction_owner::tests::original_claim_capacity_is_bounded_even_when_its_identity_bytes_match ... ok
+test storage_base::transaction_owner::tests::partial_extent_stays_incomplete_and_cannot_become_a_completed_block ... ok
+test storage_base::transaction_owner::tests::selected_dual_scopes_reject_exact_identity_substitution_before_authorization ... ok
+test storage_base::transaction_owner::tests::settlement_candidate_requires_full_original_request_and_ordinal ... ok
+test storage_base::transaction_owner::tests::short_contradictory_candidate_retains_storage_possession_and_original_receipt ... ok
+test storage_base::transaction_owner::tests::stopped_receipt_rejects_observed_blocks_and_retains_original_submission ... ok
+test storage_base::transaction_owner::tests::two_placements_have_distinct_exact_contracts_without_broadening_block_result ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 937 filtered out; finished in 2.73s
+

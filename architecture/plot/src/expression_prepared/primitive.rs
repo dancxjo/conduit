@@ -1,9 +1,10 @@
 //! Borrow large leaf values; keep only arithmetic results inline during play.
-use super::{fixed_integer, kind_name, quantity_kind, signed_integer, Refusal};
+use super::Refusal;
 use crate::{BinaryOperator, UnaryOperator};
 use conduit_core::{
-    decode_count, encode_count, FixedInteger, InfoBool, PrimitiveInfoKind, Quantity, Scalar,
-    MAXIMUM_STRUCTURED_LEAF_BYTES,
+    decode_count, encode_count, primitive_info_kind, FixedInteger, InfoBool, PrimitiveInfoKind,
+    Quantity, Scalar, StructuredInfoTypeShape, BOOL_INFO_ID, COUNT_INFO_ID,
+    MAXIMUM_STRUCTURED_LEAF_BYTES, SCALAR_INFO_ID,
 };
 use core::cmp::Ordering;
 
@@ -45,6 +46,12 @@ impl<'a> PrimitiveValue<'a> {
         })
     }
 
+    pub(super) fn into_borrowed(self) -> Result<&'a [u8], Refusal> {
+        match self.bytes {
+            PrimitiveBytes::Borrowed(bytes) => Ok(bytes),
+            PrimitiveBytes::Inline(_) => Err(Refusal::InvalidProgram),
+        }
+    }
     pub(super) fn as_slice(&self) -> &[u8] {
         match &self.bytes {
             PrimitiveBytes::Borrowed(bytes) => bytes,
@@ -102,6 +109,49 @@ pub(super) fn evaluate_binary(
         return PrimitiveValue::new(expected, &InfoBool::new(value).encode());
     }
     if matches!(
+        left.kind,
+        PrimitiveInfoKind::MathematicalValue | PrimitiveInfoKind::MathematicalAngle
+    ) && matches!(operator, BinaryOperator::Equal | BinaryOperator::NotEqual)
+    {
+        let equal = if left.kind == PrimitiveInfoKind::MathematicalAngle {
+            crate::mathematical_value::angle_equal(left.as_slice(), right.as_slice())?
+        } else {
+            crate::mathematical_value::equal(left.as_slice(), right.as_slice())?
+        };
+        return PrimitiveValue::new(
+            expected,
+            &InfoBool::new(equal != (operator == BinaryOperator::NotEqual)).encode(),
+        );
+    }
+    if matches!(
+        left.kind,
+        PrimitiveInfoKind::F32
+            | PrimitiveInfoKind::Unit
+            | PrimitiveInfoKind::Dimension
+            | PrimitiveInfoKind::Empty
+    ) && matches!(operator, BinaryOperator::Equal | BinaryOperator::NotEqual)
+    {
+        let equal = if left.kind == PrimitiveInfoKind::Unit {
+            conduit_core::Unit::decode(left.as_slice())
+                .map_err(|_| Refusal::InvalidProgram)?
+                .same_physical_definition(
+                    conduit_core::Unit::decode(right.as_slice())
+                        .map_err(|_| Refusal::InvalidProgram)?,
+                )
+        } else {
+            left.as_slice() == right.as_slice()
+        };
+        return PrimitiveValue::new(
+            expected,
+            &InfoBool::new(if matches!(operator, BinaryOperator::Equal) {
+                equal
+            } else {
+                !equal
+            })
+            .encode(),
+        );
+    }
+    if matches!(
         operator,
         BinaryOperator::Less
             | BinaryOperator::LessOrEqual
@@ -121,6 +171,12 @@ pub(super) fn evaluate_binary(
             _ => unreachable!(),
         };
         return PrimitiveValue::new(expected, &InfoBool::new(value).encode());
+    }
+    if left.kind == PrimitiveInfoKind::F32 {
+        let encoded =
+            crate::expression_f32::arithmetic(operator, left.as_slice(), right.as_slice())
+                .ok_or(Refusal::Arithmetic)?;
+        return PrimitiveValue::new(expected, &encoded);
     }
     if left.kind == PrimitiveInfoKind::Count {
         let left = decode_count(left.as_slice()).map_err(|_| Refusal::InvalidProgram)?;
@@ -175,6 +231,10 @@ pub(super) fn evaluate_binary(
 
 fn compare(left: &PrimitiveValue<'_>, right: &PrimitiveValue<'_>) -> Result<Ordering, Refusal> {
     match left.kind {
+        PrimitiveInfoKind::F32 => {
+            crate::expression_f32::ordering(left.as_slice(), right.as_slice())
+                .ok_or(Refusal::Arithmetic)
+        }
         PrimitiveInfoKind::Bool | PrimitiveInfoKind::Text => {
             Ok(left.as_slice().cmp(right.as_slice()))
         }
@@ -248,4 +308,104 @@ pub(super) fn evaluate_widen(
     .map_err(|_| Refusal::InvalidProgram)?;
     let (bytes, length) = widened.encode();
     PrimitiveValue::new(expected, &bytes[..length])
+}
+
+pub(super) fn leaf_info_kind(
+    value_type: &conduit_core::StructuredInfoType,
+) -> Result<&str, Refusal> {
+    match value_type.shape() {
+        StructuredInfoTypeShape::Leaf(kind) => Ok(kind.as_str()),
+        StructuredInfoTypeShape::Nominal { representation, .. } => leaf_info_kind(representation),
+        _ => Err(Refusal::InvalidProgram),
+    }
+}
+
+pub(super) fn leaf_kind(
+    value_type: &conduit_core::StructuredInfoType,
+) -> Result<PrimitiveInfoKind, Refusal> {
+    match value_type.shape() {
+        StructuredInfoTypeShape::Leaf(kind) => primitive_info_kind(kind.as_str())
+            .ok_or_else(|| Refusal::UnsupportedType(kind.as_str().into())),
+        StructuredInfoTypeShape::Nominal { representation, .. } => leaf_kind(representation),
+        _ => Err(Refusal::UnsupportedType(
+            "structured expression runtime".into(),
+        )),
+    }
+}
+
+pub(super) const fn fixed_integer(kind: PrimitiveInfoKind) -> bool {
+    matches!(
+        kind,
+        PrimitiveInfoKind::U8
+            | PrimitiveInfoKind::U16
+            | PrimitiveInfoKind::U32
+            | PrimitiveInfoKind::U64
+            | PrimitiveInfoKind::U128
+            | PrimitiveInfoKind::I8
+            | PrimitiveInfoKind::I16
+            | PrimitiveInfoKind::I32
+            | PrimitiveInfoKind::I64
+            | PrimitiveInfoKind::I128
+    )
+}
+
+pub(super) const fn signed_integer(kind: PrimitiveInfoKind) -> bool {
+    matches!(
+        kind,
+        PrimitiveInfoKind::I8
+            | PrimitiveInfoKind::I16
+            | PrimitiveInfoKind::I32
+            | PrimitiveInfoKind::I64
+            | PrimitiveInfoKind::I128
+    )
+}
+
+pub(super) const fn quantity_kind(kind: PrimitiveInfoKind) -> bool {
+    matches!(
+        kind,
+        PrimitiveInfoKind::Quantity
+            | PrimitiveInfoKind::Distance
+            | PrimitiveInfoKind::Frequency
+            | PrimitiveInfoKind::Duration
+            | PrimitiveInfoKind::Voltage
+            | PrimitiveInfoKind::Temperature
+            | PrimitiveInfoKind::Angle
+            | PrimitiveInfoKind::Ratio
+            | PrimitiveInfoKind::PixelCount
+    )
+}
+
+pub(super) const fn kind_name(kind: PrimitiveInfoKind) -> &'static str {
+    match kind {
+        PrimitiveInfoKind::Empty => conduit_core::EMPTY_INFO_ID,
+        PrimitiveInfoKind::Bool => BOOL_INFO_ID,
+        PrimitiveInfoKind::Text => conduit_core::TEXT_INFO_ID,
+        PrimitiveInfoKind::F32 => conduit_core::F32_INFO_ID,
+        PrimitiveInfoKind::Count => COUNT_INFO_ID,
+        PrimitiveInfoKind::Scalar => SCALAR_INFO_ID,
+        PrimitiveInfoKind::U8 => "value/u8",
+        PrimitiveInfoKind::U16 => "value/u16",
+        PrimitiveInfoKind::U32 => "value/u32",
+        PrimitiveInfoKind::U64 => "value/u64",
+        PrimitiveInfoKind::U128 => "value/u128",
+        PrimitiveInfoKind::I8 => "value/i8",
+        PrimitiveInfoKind::I16 => "value/i16",
+        PrimitiveInfoKind::I32 => "value/i32",
+        PrimitiveInfoKind::I64 => "value/i64",
+        PrimitiveInfoKind::I128 => "value/i128",
+        PrimitiveInfoKind::Unit => conduit_core::UNIT_INFO_ID,
+        PrimitiveInfoKind::Dimension => conduit_core::DIMENSION_INFO_ID,
+        PrimitiveInfoKind::MathematicalValue => conduit_core::MATHEMATICAL_VALUE_ID,
+        PrimitiveInfoKind::MathematicalAngle => conduit_core::MATHEMATICAL_ANGLE_ID,
+        PrimitiveInfoKind::Quantity => conduit_core::QUANTITY_INFO_ID,
+        PrimitiveInfoKind::Distance => conduit_core::DISTANCE_INFO_ID,
+        PrimitiveInfoKind::Frequency => conduit_core::FREQUENCY_INFO_ID,
+        PrimitiveInfoKind::Duration => conduit_core::DURATION_INFO_ID,
+        PrimitiveInfoKind::Voltage => conduit_core::VOLTAGE_INFO_ID,
+        PrimitiveInfoKind::Temperature => conduit_core::TEMPERATURE_INFO_ID,
+        PrimitiveInfoKind::Angle => conduit_core::ANGLE_INFO_ID,
+        PrimitiveInfoKind::Ratio => conduit_core::RATIO_INFO_ID,
+        PrimitiveInfoKind::PixelCount => conduit_core::PIXEL_COUNT_INFO_ID,
+        _ => "unsupported",
+    }
 }

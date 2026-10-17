@@ -15,6 +15,11 @@ pub fn initialize_machine(
     gdt::initialize();
     crate::arch::early_write(b"CONDUIT_BOOT_STAGE machine-idt\n");
     idt::initialize();
+    #[cfg(target_os = "none")]
+    {
+        super::domain_memory::initialize(record.hhdm_offset);
+        super::domain_budget::initialize();
+    }
     crate::arch::early_write(b"CONDUIT_BOOT_STAGE machine-pic\n");
     pic::initialize();
     crate::arch::early_write(b"CONDUIT_BOOT_STAGE machine-acpi\n");
@@ -29,7 +34,6 @@ pub fn initialize_machine(
         crate::arch::early_write(b"\n");
         cpu::deterministic_exit(false)
     });
-    #[cfg(feature = "native-owner-network")]
     {
         if super::deadline::initialize_hpet(
             topology.hpet_address,
@@ -70,6 +74,9 @@ impl Default for Clock {
 }
 
 impl MonotonicClockBase for Clock {
+    fn provider_generation(&self) -> Option<u64> {
+        Some(1)
+    }
     fn now(&mut self) -> u64 {
         let observed = cpu::read_tsc();
         self.last = observed.max(self.last);
@@ -81,6 +88,7 @@ pub struct Timer {
     slots: FixedTimerSlots<1>,
     active: Option<TimerToken>,
     wakes: u32,
+    duration: Option<(super::deadline::CandidateDeadline, u64)>,
 }
 
 impl Timer {
@@ -89,6 +97,7 @@ impl Timer {
             slots: FixedTimerSlots::new(),
             active: None,
             wakes: 0,
+            duration: None,
         }
     }
 
@@ -104,24 +113,50 @@ impl Default for Timer {
 }
 
 impl TimerBase for Timer {
+    fn arm_after_milliseconds(
+        &mut self,
+        interest: KernelInterest,
+        milliseconds: u64,
+    ) -> Result<TimerToken, BaseError> {
+        crate::timer_duration::duration_ticks(milliseconds, 1000, 1)?;
+        let _interrupts = cpu::InterruptMask::new();
+        let counter = super::deadline::CandidateDeadline::admit_duration(
+            u32::try_from(milliseconds + crate::timer_duration::MAXIMUM_MILLISECONDS)
+                .map_err(|_| BaseError::Unavailable)?,
+        )
+        .ok_or(BaseError::Unavailable)?;
+        let token = self.arm(interest)?;
+        self.duration = Some((counter, milliseconds));
+        Ok(token)
+    }
+
+    fn provider_generation(&self) -> Option<u64> {
+        Some(1)
+    }
     fn arm(&mut self, interest: KernelInterest) -> Result<TimerToken, BaseError> {
+        let _interrupts = cpu::InterruptMask::new();
         let token = self.slots.arm(interest).inspect_err(|error| {
             crate::arch::early_write(b"CONDUIT_TIMER_REFUSAL ");
             crate::arch::early_write(error.as_str().as_bytes());
             crate::arch::early_write(b"\n");
         })?;
         self.active = Some(token);
+        self.duration = None;
         interrupt_controller::arm_timer();
         Ok(token)
     }
 
     fn cancel(&mut self, token: TimerToken) -> Result<KernelInterest, BaseError> {
+        let _interrupts = cpu::InterruptMask::new();
+        let interest = self.slots.cancel(token)?;
         interrupt_controller::cancel_timer();
         self.active = None;
-        self.slots.cancel(token)
+        self.duration = None;
+        Ok(interest)
     }
 
     fn take_wake(&mut self) -> Result<Option<KernelInterest>, BaseError> {
+        let _interrupts = cpu::InterruptMask::new();
         let Some(vector) = irq::pop().inspect_err(|error| {
             crate::arch::early_write(b"CONDUIT_TIMER_REFUSAL ");
             crate::arch::early_write(error.as_str().as_bytes());
@@ -134,6 +169,16 @@ impl TimerBase for Timer {
             crate::arch::early_write(b"CONDUIT_TIMER_REFUSAL unexpected-vector\n");
             return Err(BaseError::Unavailable);
         }
+        if let Some((counter, milliseconds)) = self.duration {
+            let elapsed = counter.elapsed_millis().ok_or(BaseError::Unavailable)?;
+            if elapsed < milliseconds as i64 {
+                // The diagnostic IRQ is only a poll quantum. Retain the exact
+                // logical arm until the calibrated counter reaches its duration.
+                interrupt_controller::arm_timer();
+                return Ok(None);
+            }
+        }
+        self.duration = None;
         let token = self.active.take().ok_or_else(|| {
             crate::arch::early_write(b"CONDUIT_TIMER_REFUSAL stale-wake\n");
             BaseError::StaleWake
@@ -154,16 +199,16 @@ impl TimerBase for Timer {
 }
 
 pub struct Serial {
-    presentations: u32,
+    faces: u32,
 }
 
 impl Serial {
     pub const fn new() -> Self {
-        Self { presentations: 0 }
+        Self { faces: 0 }
     }
 
-    pub const fn presentations(&self) -> u32 {
-        self.presentations
+    pub const fn faces(&self) -> u32 {
+        self.faces
     }
 }
 
@@ -174,17 +219,17 @@ impl Default for Serial {
 }
 
 impl SerialBase for Serial {
+    fn provider_generation(&self) -> Option<u64> {
+        Some(1)
+    }
     fn present(&mut self, bytes: &[u8]) -> Result<(), BaseError> {
         serial::present(bytes)?;
-        self.presentations = self
-            .presentations
-            .checked_add(1)
-            .ok_or(BaseError::Unavailable)?;
+        self.faces = self.faces.checked_add(1).ok_or(BaseError::Unavailable)?;
         Ok(())
     }
 
-    fn presentation_count(&self) -> u32 {
-        self.presentations
+    fn face_count(&self) -> u32 {
+        self.faces
     }
 }
 

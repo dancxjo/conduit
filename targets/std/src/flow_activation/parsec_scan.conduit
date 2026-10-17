@@ -1,0 +1,19 @@
+# One finite application scan retains the actual source transition result.
+plot parsec/transition (
+    >> accumulator: ParsecMapTransitionResult <= 4096B
+    >> item: ParsecMapCommand <= 4096B
+    combined: ParsecMapTransitionResult <= 4096B >>
+) {
+    step: parsec/map-combine
+    accumulator >> step.accumulator
+    item >> step.item
+    step.combined >> combined
+}
+plot parsec/main (
+    >> commands: ParsecMapCommand...| <= 4096B
+    states: ParsecMapTransitionResult...| <= 4096B >>
+) {
+    reducer: scan("Pregame Fire", maximum-items = 32) parsec/transition()
+    commands >> reducer.item
+    reducer.combined >> states
+}.

@@ -2,14 +2,14 @@
 use crate::{emit_machine_refusal, emit_refusal};
 use alloc::format;
 use conduitos::{arch, boot, identity, sign_format};
-use conduitos::{display::PixelTarget, presentation_nucleus};
+use conduitos::{display::PixelTarget, face_nucleus};
 
 pub fn run(record: boot::BootRecord) -> ! {
     let make = &conduitos::make::EMBEDDED_MAKE;
     if !make.includes(conduitos::make::IMPL_NATIVE_PRESENTER)
         || !make.includes_facility(conduitos::make::FACILITY_NATIVE_COMPOSITOR)
     {
-        emit_machine_refusal("make-presentation-unavailable");
+        emit_machine_refusal("make-face-unavailable");
     }
     arch::early_write(b"CONDUIT_BOOT_STAGE xhci-start\n");
     let mut xhci =
@@ -40,11 +40,11 @@ pub fn run(record: boot::BootRecord) -> ! {
     arch::initialize_machine(&record, boot::executable_physical_address);
     let entropy = arch::boot_entropy(record.timestamp, record.image_physical_start);
     let identities = identity::derive(entropy, record.timestamp, record.image_physical_start);
-    let mut presentation_display = match boot::framebuffer_display() {
+    let mut face_display = match boot::framebuffer_display() {
         Ok(display) => display,
         Err(error) => emit_machine_refusal(error.as_str()),
     };
-    let display_format = presentation_display.format();
+    let display_format = face_display.format();
     let display_base = identity::derive_base(&identities.boot, "conduitos/display/limine/0");
     let framebuffer_basis = conduit_observatory::FramebufferBasis {
         base_id: conduit_core::HostBaseId::from(identity::hex(&display_base)),
@@ -54,28 +54,24 @@ pub fn run(record: boot::BootRecord) -> ! {
         bits_per_pixel: display_format.bits_per_pixel,
     };
     if cfg!(feature = "scripted-keyboard-proof") {
-        let prepared_presentation = match presentation_nucleus::prepare(
+        let prepared_face = match face_nucleus::prepare(
             &identity::hex(&identities.host),
             &identity::hex(&identities.boot),
         ) {
             Ok(prepared) => prepared,
             Err(error) => emit_machine_refusal(error.as_str()),
         };
-        let presentation =
-            match presentation_nucleus::run(&prepared_presentation, &mut presentation_display) {
-                Ok(proof) => proof,
-                Err(error) => emit_machine_refusal(error.as_str()),
-            };
-        let presentation_sign = format!(
-            "CONDUIT_PRESENTATION_SIGN {{\"schema\":\"conduit.conduitos.framebuffer-presentation/v1\",\"status\":\"completed\",\"proof_class\":\"freestanding-emulator\",\"realization\":\"recursive\",\"back_kind\":\"{}\",\"back_contract_revision\":\"{}\",\"back_invocation_path\":\"{}\",\"back_source_document_id\":\"{}\",\"back_checked_plot_id\":\"{}\",\"host_id\":\"{}\",\"boot_id\":\"{}\",\"display_base_id\":\"{}\",\"display_width\":{},\"display_height\":{},\"display_pitch\":{},\"display_bits_per_pixel\":{},\"execution_profile\":\"{}\",\"artifact\":\"{}\",\"source_document_id\":\"{}\",\"checked_plot_id\":\"{}\",\"expanded_plot_id\":\"{}\",\"plan_id\":\"{}\",\"fragment_id\":\"{}\",\"node_count\":{},\"cord_count\":{},\"text\":\"{}\",\"layout_children\":{},\"graphics_commands\":{},\"text_commands\":{},\"text_pixels_written\":{},\"graphics_pixels_written\":{},\"kernel_signs\":{},\"bounded\":true,\"completed\":true}}\n",
-            presentation.realization_back.kind_id.as_str(),
-            presentation
-                .realization_back
-                .kind_contract_revision
-                .as_str(),
-            presentation.realization_back.invocation_path,
-            presentation.realization_back.source_document_id.as_str(),
-            presentation.realization_back.checked_plot_id.as_str(),
+        let face = match face_nucleus::run(&prepared_face, &mut face_display) {
+            Ok(proof) => proof,
+            Err(error) => emit_machine_refusal(error.as_str()),
+        };
+        let face_sign = format!(
+            "CONDUIT_FACE_SIGN {{\"schema\":\"conduit.conduitos.framebuffer-face/v1\",\"status\":\"completed\",\"proof_class\":\"freestanding-emulator\",\"realization\":\"recursive\",\"back_kind\":\"{}\",\"back_contract_revision\":\"{}\",\"back_invocation_path\":\"{}\",\"back_source_document_id\":\"{}\",\"back_checked_plot_id\":\"{}\",\"host_id\":\"{}\",\"boot_id\":\"{}\",\"display_base_id\":\"{}\",\"display_width\":{},\"display_height\":{},\"display_pitch\":{},\"display_bits_per_pixel\":{},\"execution_profile\":\"{}\",\"artifact\":\"{}\",\"source_document_id\":\"{}\",\"checked_plot_id\":\"{}\",\"expanded_plot_id\":\"{}\",\"plan_id\":\"{}\",\"fragment_id\":\"{}\",\"node_count\":{},\"cord_count\":{},\"text\":\"{}\",\"layout_children\":{},\"graphics_commands\":{},\"text_commands\":{},\"text_pixels_written\":{},\"graphics_pixels_written\":{},\"kernel_signs\":{},\"bounded\":true,\"completed\":true}}\n",
+            face.realization_back.kind_id.as_str(),
+            face.realization_back.kind_contract_revision.as_str(),
+            face.realization_back.invocation_path,
+            face.realization_back.source_document_id.as_str(),
+            face.realization_back.checked_plot_id.as_str(),
             identity::hex(&identities.host),
             identity::hex(&identities.boot),
             identity::hex(&display_base),
@@ -83,24 +79,24 @@ pub fn run(record: boot::BootRecord) -> ! {
             display_format.height,
             display_format.pitch,
             display_format.bits_per_pixel,
-            conduitos::presentation_nucleus::CONDUITOS_PRESENTATION_PROFILE,
-            conduitos::presentation_nucleus::CONDUITOS_PRESENTATION_ARTIFACT,
-            prepared_presentation.plan.source_document_id.as_str(),
-            prepared_presentation.plan.checked_plot_id.as_str(),
-            prepared_presentation.plan.expanded_plot_id.as_str(),
-            presentation.plan_id.as_str(),
-            presentation.fragment_id.as_str(),
-            presentation.node_count,
-            presentation.cord_count,
-            presentation.text,
-            presentation.layout_children,
-            presentation.graphics_commands,
-            presentation.text_display.commands,
-            presentation.text_display.pixels_written,
-            presentation.display.pixels_written,
-            presentation.kernel_signs,
+            conduitos::face_nucleus::CONDUITOS_FACE_PROFILE,
+            conduitos::face_nucleus::CONDUITOS_FACE_ARTIFACT,
+            prepared_face.plan.source_document_id.as_str(),
+            prepared_face.plan.checked_plot_id.as_str(),
+            prepared_face.plan.expanded_plot_id.as_str(),
+            face.plan_id.as_str(),
+            face.fragment_id.as_str(),
+            face.node_count,
+            face.cord_count,
+            face.text,
+            face.layout_children,
+            face.graphics_commands,
+            face.text_display.commands,
+            face.text_display.pixels_written,
+            face.display.pixels_written,
+            face.kernel_signs,
         );
-        arch::early_write(presentation_sign.as_bytes());
+        arch::early_write(face_sign.as_bytes());
     }
     let xhci_base =
         identity::derive_base(&identities.boot, "conduitos/xhci/0000:00:01.0/1b36:000d");
@@ -127,6 +123,39 @@ pub fn run(record: boot::BootRecord) -> ! {
         xhci.sign_slots,
     );
     arch::early_write(xhci_sign.as_bytes());
+    #[cfg(feature = "scripted-keyboard-proof")]
+    let usb = match arch::run_usb_control_kernel_proof(
+        &mut xhci,
+        usb,
+        boot::executable_physical_address,
+        &identities,
+        &xhci_base,
+    ) {
+        Ok(device) => device,
+        Err(error) => emit_machine_refusal(error),
+    };
+    #[cfg(feature = "scripted-keyboard-proof")]
+    let usb = match arch::run_usb_device_probe_proof(
+        &mut xhci,
+        usb,
+        boot::executable_physical_address,
+        &identities,
+        &xhci_base,
+    ) {
+        Ok(device) => device,
+        Err(error) => emit_machine_refusal(error),
+    };
+    #[cfg(feature = "usb-configuration-proof")]
+    let usb = match arch::run_usb_configuration_probe_proof(
+        &mut xhci,
+        usb,
+        boot::executable_physical_address,
+        &identities,
+        &xhci_base,
+    ) {
+        Ok(device) => device,
+        Err(error) => emit_machine_refusal(error),
+    };
     let device_id = identity::derive_usb_device(
         &identities.boot,
         &xhci_base,
@@ -191,6 +220,23 @@ pub fn run(record: boot::BootRecord) -> ! {
         usb.sign_slots,
     );
     arch::early_write(usb_sign.as_bytes());
+    #[cfg(feature = "usb-endpoint-read-proof")]
+    if cfg!(feature = "usb-endpoint-read-proof") {
+        // This appliance exits before product input offers are initialized.
+        let sign = sign_format::accepted(&record, &identities, make, 0)
+            .unwrap_or_else(|_| emit_refusal("boot-sign-storage-full"));
+        arch::early_write(sign.as_bytes());
+        if let Err(reason) = arch::run_usb_endpoint_read_proof(
+            &mut xhci,
+            usb,
+            boot::executable_physical_address,
+            &identities,
+            &xhci_base,
+        ) {
+            emit_machine_refusal(reason);
+        }
+        arch::deterministic_exit(true);
+    }
     arch::early_write(b"CONDUIT_BOOT_STAGE hid-start\n");
     let hid_ready =
         match arch::prepare_boot_keyboard(&mut xhci, &usb, boot::executable_physical_address) {
@@ -394,7 +440,7 @@ pub fn run(record: boot::BootRecord) -> ! {
             &offer,
             make,
             &framebuffer_basis,
-            &mut presentation_display,
+            &mut face_display,
             Some(&mut hid_session),
             &mut xhci,
             xhci_base,

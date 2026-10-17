@@ -2,6 +2,9 @@
 //! Every image is captured after an observed guest transition, never fabricated
 //! from a fixture or a retired Tour surface.
 
+mod failure_stack;
+mod keyboard_domain;
+
 use std::{
     fs,
     path::Path,
@@ -45,10 +48,22 @@ pub(super) fn execute_supplied(
     }
     let paths = Paths::new(ConduitosArch::X86_64)?;
     fs::create_dir_all(&paths.target).map_err(io_error)?;
-    let monitor_socket = paths.target.join("journey-monitor.sock");
+    // Unix sockets have a small pathname limit, independent of filesystem limits.
+    let monitor_socket =
+        std::env::temp_dir().join(format!("conduit-journey-{}.sock", std::process::id()));
     let serial_path = paths.target.join("journey-serial.log");
     let _ = fs::remove_file(&monitor_socket);
     let _ = fs::remove_file(&serial_path);
+    for name in [
+        "journey-failure-registers.json",
+        "journey-failure-stack.json",
+    ] {
+        match fs::remove_file(paths.target.join(name)) {
+            Ok(()) => {}
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+            Err(error) => return Err(io_error(error)),
+        }
+    }
     let mut command = Command::new("qemu-system-x86_64");
     command
         .args([
@@ -57,7 +72,7 @@ pub(super) fn execute_supplied(
             "-cpu",
             "max",
             "-m",
-            "64M",
+            conduitos::make::PC_PRODUCT_QEMU_MEMORY,
             "-smp",
             "1",
             "-display",
@@ -106,7 +121,7 @@ pub(super) fn execute_supplied(
             &mut child,
             Some(&paths.target.join("journey-qmp.log")),
         )?;
-        hid_qmp::wait_for_stage(
+        hid_qmp::wait_for_product_arrival(
             &serial_path,
             &mut child,
             "CONDUIT_BOOT_STAGE front-door-ready",
@@ -114,18 +129,38 @@ pub(super) fn execute_supplied(
         )?;
         artifacts.capture(&mut qmp, &mut reader, "front-door-ready", false)?;
 
-        journey_input::birth_from_creche(&mut qmp, &mut reader)?;
-        journey_input::wait_status(&serial_path, &mut child, "born-lulled")?;
+        journey_input::birth_from_creche(&mut qmp, &mut reader, &serial_path, &mut child)?;
         artifacts.capture(&mut qmp, &mut reader, "body-born", true)?;
         for (key, status, frame) in [
             ("f4", "awake", "body-woken"),
             ("f5", "planned", "body-planned"),
             ("f6", "quiescent-awaiting-input", "body-playing"),
         ] {
-            journey_input::key_pair(&mut qmp, &mut reader, key, "journey-lifecycle")?;
-            journey_input::wait_status(&serial_path, &mut child, status)?;
+            if key == "f5" {
+                journey_input::key_until_status(
+                    &mut qmp,
+                    &mut reader,
+                    &serial_path,
+                    &mut child,
+                    key,
+                    status,
+                )?;
+            } else {
+                journey_input::key_pair(&mut qmp, &mut reader, key, "journey-lifecycle")?;
+                journey_input::wait_status_retaining_guest(&serial_path, &mut child, status)?;
+            }
             artifacts.capture(&mut qmp, &mut reader, frame, true)?;
         }
+
+        let keyboard_identity =
+            keyboard_domain::exercise(&serial_path, &mut child, &mut qmp, &mut reader)?;
+        artifacts.capture(&mut qmp, &mut reader, "protected-keyboard-canvas", true)?;
+
+        let editor_identity =
+            keyboard_domain::exercise_editor(&serial_path, &mut child, &mut qmp, &mut reader)?;
+        artifacts.capture(&mut qmp, &mut reader, "protected-memory-lantern", true)?;
+
+        keyboard_domain::verify_sibling(&serial_path, &mut child, &mut qmp, &mut reader)?;
 
         journey_input::key_pair(&mut qmp, &mut reader, "esc", "journey-home")?;
         hid_qmp::wait_for_stage(
@@ -170,12 +205,48 @@ pub(super) fn execute_supplied(
         )?;
         artifacts.capture(&mut qmp, &mut reader, "patchbay-diagram", true)?;
 
+        let inspected_view = latest_workspace_view(&serial_path)?;
+        for (key, frame) in [
+            ("1", "patchbay-gear-details"),
+            ("f3", "patchbay-diagram-returned"),
+        ] {
+            let before = stage_count(&serial_path, "CONDUIT_WORKSPACE_VIEW ")?;
+            journey_input::key_pair(&mut qmp, &mut reader, key, "journey-gear-inspection")?;
+            hid_qmp::wait_for_stage_count(
+                &serial_path,
+                &mut child,
+                "CONDUIT_WORKSPACE_VIEW ",
+                before + 1,
+                "journey-gear-inspection-timeout",
+            )?;
+            artifacts.capture(&mut qmp, &mut reader, frame, true)?;
+            let current = latest_workspace_view(&serial_path)?;
+            for field in ["face_id", "body_id", "view_sha256", "status"] {
+                if inspected_view[field].as_str().is_none()
+                    || current[field] != inspected_view[field]
+                {
+                    return Err(refusal(format!("Gear inspection changed owner {field}")));
+                }
+            }
+        }
+
         journey_input::key_pair(&mut qmp, &mut reader, "f8", "journey-stop-through-face")?;
-        journey_input::wait_status(&serial_path, &mut child, "stopped")?;
+        journey_input::wait_status_retaining_guest(&serial_path, &mut child, "stopped")?;
         artifacts.capture(&mut qmp, &mut reader, "body-stopped", true)?;
         let serial = fs::read_to_string(&serial_path).map_err(io_error)?;
         let records = journey_records::decode(&serial)?;
         let identity = validate(&records, &serial)?;
+        let keyboard_cost = keyboard_domain::validate_cost(&serial, &keyboard_identity, 5, 1)?;
+        // Initial empty Current manifests the caret before input: one extra
+        // Face Host Call and its two protected domain entries.
+        let editor_cost = keyboard_domain::validate_cost(&serial, &editor_identity, 23, 6)?;
+        if keyboard_cost["domain_id"] == editor_cost["domain_id"]
+            || keyboard_cost["partition_plan_id"] == editor_cost["partition_plan_id"]
+        {
+            return Err(refusal(
+                "keyboard and retained editor shared a protection domain or partition",
+            ));
+        }
         if child.try_wait().map_err(io_error)?.is_some() {
             return Err(refusal("guest exited before the journey finished"));
         }
@@ -188,7 +259,9 @@ pub(super) fn execute_supplied(
             "host_id":identity.host_id, "boot_id":identity.boot_id,
             "body_id":records.iter().find(|r|r["status"]=="born-lulled").unwrap()["body_id"],
             "input":"real-qmp-keyboard", "screenshots":"journey-frames/manifest.json",
-            "steps":["arrive","birth","wake","plan","play","home","patchbay","face","diagram","stop"],
+            "protected_keyboard_domain": keyboard_cost,
+            "protected_retained_text_domain": editor_cost,
+            "steps":["arrive","birth","wake","plan","play","protected-keyboard-canvas","protected-memory-lantern","home","patchbay","face","diagram","gear-details","diagram-return","stop"],
             "physical_evidence":false, "human_enactment":false,
         });
         fs::write(
@@ -206,6 +279,40 @@ pub(super) fn execute_supplied(
     })();
     if result.is_err() {
         if let Ok((mut qmp, mut reader)) = hid_qmp::connect(&monitor_socket, &mut child) {
+            // Freeze only after failure so registers and stack describe one CPU state.
+            if let Err(error) = super::qmp::request(
+                &mut qmp,
+                &mut reader,
+                br#"{"execute":"stop"}"#,
+                "journey-failure-stop",
+            ) {
+                artifacts.diagnostic_failure(&error);
+            }
+            let registers = super::qmp::request_value(
+                &mut qmp,
+                &mut reader,
+                br#"{"execute":"human-monitor-command","arguments":{"command-line":"info registers"}}"#,
+                "journey-failure-registers",
+            );
+            match registers {
+                Ok(value) => {
+                    if let Err(error) =
+                        failure_stack::capture(&mut qmp, &mut reader, &value, &paths.target)
+                    {
+                        artifacts.diagnostic_failure(&error);
+                    }
+                    let retained = serde_json::to_vec_pretty(&value)
+                        .map_err(|error| refusal(error.to_string()))
+                        .and_then(|bytes| {
+                            fs::write(paths.target.join("journey-failure-registers.json"), bytes)
+                                .map_err(io_error)
+                        });
+                    if let Err(error) = retained {
+                        artifacts.diagnostic_failure(&error);
+                    }
+                }
+                Err(error) => artifacts.diagnostic_failure(&error),
+            }
             if let Err(error) = artifacts.capture(&mut qmp, &mut reader, "failure", false) {
                 artifacts.diagnostic_failure(&error);
             }
@@ -319,6 +426,17 @@ fn refusal(detail: impl Into<String>) -> ConduitosError {
 }
 fn io_error(error: std::io::Error) -> ConduitosError {
     ConduitosError::refusal("face-journey-io", error.to_string())
+}
+
+/// Read the latest actual guest record; a missing or malformed record refuses.
+fn latest_workspace_view(path: &Path) -> Result<Value, ConduitosError> {
+    let serial = fs::read_to_string(path).map_err(io_error)?;
+    let encoded = serial
+        .lines()
+        .rev()
+        .find_map(|line| line.strip_prefix("CONDUIT_WORKSPACE_VIEW "))
+        .ok_or_else(|| refusal("Gear inspection lacks a workspace-view receipt"))?;
+    serde_json::from_str(encoded).map_err(|error| refusal(error.to_string()))
 }
 
 #[cfg(test)]

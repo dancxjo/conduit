@@ -68,18 +68,18 @@ fn uncertain_age_remains_a_bounded_relation_not_a_scalar_guess() {
 }
 
 #[test]
-fn model_and_human_presentation_consume_the_same_canonical_relation() {
+fn model_and_human_face_consume_the_same_canonical_relation() {
     let fact = provenance();
     let source = fact
         .canonical_source_instant(TemporalSource::Observed)
         .unwrap();
-    let reference = conduit_presentation::TemporalReference {
+    let reference = conduit_face::TemporalReference {
         identity: "model-turn/reference".into(),
         instant: fact.canonical_reference_instant().unwrap(),
     };
-    let presented = conduit_presentation::PresentationTemporalFact::new(
+    let presented = conduit_face::FaceTemporalFact::new(
         "retrieved/fact".into(),
-        conduit_presentation::PresentationTemporalRole::Observation,
+        conduit_face::FaceTemporalRole::Observation,
         None,
         source,
         &reference,
@@ -90,7 +90,7 @@ fn model_and_human_presentation_consume_the_same_canonical_relation() {
         fact.relation(TemporalSource::Observed).unwrap()
     );
     assert_eq!(
-        conduit_presentation::format_relative_time(&presented),
+        conduit_face::format_relative_time(&presented),
         "between 0 and 1 second ago"
     );
 }

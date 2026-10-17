@@ -5,6 +5,10 @@ const e = React.createElement;
 function PortRow({ port, onActivate }) {
   const receiving = port.direction === "receiving";
   const activity = port.debugger;
+  const compatibility = port.compatibility
+    ? (port.compatibility.compatible ? "compatible" : "incompatible")
+    : "unknown";
+  const diagnostic = port.compatibility?.diagnostic || undefined;
   const handle = e(Flow.Handle, {
     id: port.id,
     type: receiving ? "target" : "source",
@@ -15,8 +19,10 @@ function PortRow({ port, onActivate }) {
     "aria-label": port.accessibilityName,
     "data-port-id": port.id,
     "data-port-direction": port.direction,
+    "data-compatibility": compatibility,
+    title: diagnostic,
   });
-  return e("div", { className: `faceplate-port ${port.direction}${port.diagnosticError ? " diagnostic-error" : ""}${activity ? ` debugger-${activity.phase}` : ""}`, "data-port-id": port.id, "data-debugger-phase": activity?.phase || "inactive", onClick:event=>{event.stopPropagation();onActivate(port.id);} },
+  return e("div", { className: `faceplate-port ${port.direction}${port.diagnosticError ? " diagnostic-error" : ""}${activity ? ` debugger-${activity.phase}` : ""}`, "data-port-id": port.id, "data-compatibility": compatibility, title: diagnostic, "data-debugger-phase": activity?.phase || "inactive", onClick:event=>{event.stopPropagation();onActivate(port.id);} },
     receiving && handle,
     e("span", { className: "faceplate-port-name", title: port.accessibilityName }, port.label),
     e("code", { title: port.valueKind }, port.valueKind),
@@ -28,7 +34,7 @@ function PortRow({ port, onActivate }) {
 export function FaceplateNode({ data }) {
   const title = data.role === "Gear" ? data.label.slice(data.label.lastIndexOf("/") + 1) : data.label;
   return e("article", {
-    className: `flow-frontplate role-${data.role.toLowerCase()}${data.semanticSelected ? " semantic-selected" : ""}${data.diagnosticError ? " diagnostic-error" : ""}${data.debugger ? ` debugger-${data.debugger.phase}` : ""}`,
+    className: `flow-frontplate role-${data.role.toLowerCase()}${data.workspaceCollapsed ? " workspace-collapsed" : ""}${data.semanticSelected ? " semantic-selected" : ""}${data.diagnosticError ? " diagnostic-error" : ""}${data.debugger ? ` debugger-${data.debugger.phase}` : ""}`,
     "data-subject": data.subjectIdentity,
     "data-subject-id": data.subjectIdentity,
     "data-lens": data.lens,

@@ -1,0 +1,58 @@
+{
+  "accepted_wording": "One Body Clock is lulled with one resident plot.",
+  "active_play_id": "01101b5dbd3a1cde5b7873d1c2d7545d954cf6badcfbaf220c49508f38d35e7e",
+  "artifact": {
+    "active_play_id": "01101b5dbd3a1cde5b7873d1c2d7545d954cf6badcfbaf220c49508f38d35e7e",
+    "artifact_identity": "artifact/wav/87cda7728f7309134ffd1863eec50bc2d8c47424a3ff669a3f5ff30776edf750",
+    "artifact_locator": "/home/dancxjo/conduit-4807-evidence-78c7da11/owner-state-cn-72be39434/spoken-artifacts/play-69fbb39f2353258028dede906f7ee95d79ebdcf6081b7fc1132beef59fa883fd.wav",
+    "blocks": 2640,
+    "completion_sign_id": "1f0e9cdbe65522d72ebb5d4d5148f46e1c0c505c45dbeb8117da7a4c6c5eb2ba",
+    "content_sha256": "87cda7728f7309134ffd1863eec50bc2d8c47424a3ff669a3f5ff30776edf750",
+    "frames": 143654,
+    "pcm_bytes": 574616,
+    "placement_id": "17577774bdaa645f98d5f21143e91589f5b83a004532e6114377cd4e18c7c12b",
+    "plan_id": "c0fc33e0c8bca3260294e42ae1214f362f72afb1a51b882c234743384ebb3ac5"
+  },
+  "generated_manifestation_identity": "sha256:c7dcc2653e03e7203c4e3f874aae7a5b880212550efc3c41940b68465deda6ae",
+  "generation_evidence": {
+    "candidate_digest": "sha256:c7dcc2653e03e7203c4e3f874aae7a5b880212550efc3c41940b68465deda6ae",
+    "model_identity": "conduit-journey:3366-celsius/daaf6a13454ca9b5226d78950ff4ac3d60187f538567b83a0b43476234b680e0",
+    "original_model_output": "{\"proposal\":{\"clauses\":[{\"index\":0,\"kind\":\"text\",\"style\":\"direct\",\"subject\":\"body/6e58aa1b3db1b51e2cda77d7a15647fc91898b56f6b127bea5660dfaf6a7a141\",\"value\":\"One Body Clock is lulled with one resident plot.\"}],\"source_presentation_identity\":\"2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d\",\"source_presentation_revision\":13},\"suggested_action_identities\":[]}",
+    "provider_identity": "ollama/ollama version is 0.34.1",
+    "validation_receipt_identity": "sha256:33b1e07b774b88062ab0063d222d1b3ecaff9bd6d8025fcaf4a2d4ae72337451"
+  },
+  "mode": "llm-assisted",
+  "operation_id": "owner-spoken-mask/fa24b947cb7e9216bda8da58b9815c7879bee439f0a4f271518550fd97d65592",
+  "outcome": "available",
+  "route_plan_id": "plan/local-owner-mask/060e36e09c6ebfc35682d34651b3e1f80d69b5540fdc9d7bf2024f018c650522",
+  "schema": "conduit.body/owner-spoken-terminal@1",
+  "show_id": "show/eb667043e0608571094322845d5b164567498ba4b524427d7e722ba3c46dd95d",
+  "source_face_id": "2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d",
+  "speaker_playback": {
+    "boot_id": "boot/installed/66fc356c35f081c4b0cfeb1ecf4ef0d8456f357f980542fd9079c16c3b94e6a9",
+    "host_id": "host/installed/e049770e0b0962778e4f8e7373f5958dfcb712b6e3ff4cd720c41adffbdc73ab",
+    "outcome": "completed",
+    "pcm_blocks": 2640,
+    "pcm_bytes": 574616,
+    "pcm_sha256": "87cda7728f7309134ffd1863eec50bc2d8c47424a3ff669a3f5ff30776edf750",
+    "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+    "play_id": "01a547211bfb2bf0587cfa9af7aa7bf72d9eda3a54fd8f880cc9737b53a38d48",
+    "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+    "schema": "conduit.body/owner-spoken-speaker-play@1",
+    "source_face_id": "2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d",
+    "source_face_revision_decimal": "13",
+    "source_segments_sha256": "1646784e82e1d12245880012aa4f364d117b935b471325543d04966c87989f57",
+    "source_show_id": "show/eb667043e0608571094322845d5b164567498ba4b524427d7e722ba3c46dd95d",
+    "speaker_blocks_committed": 2640,
+    "speaker_frames_committed": 143654,
+    "spoken_segments": [
+      "One Body Clock is lulled with one resident plot."
+    ],
+    "stream_identity": "show/eb667043e0608571094322845d5b164567498ba4b524427d7e722ba3c46dd95d/accepted-wording",
+    "wav_artifact_locator": "/home/dancxjo/conduit-4807-evidence-78c7da11/owner-state-cn-72be39434/spoken-artifacts/play-eb54d232662bac0b809b9bcbd01059ce71aca96eda4cdd18f69d8cd3c3478fce.wav",
+    "wav_bytes": 574660,
+    "wav_sha256": "875d70f0c13213f267455a55ef15bce8aab8151cae70634c00cd7c3b14d870b5"
+  },
+  "speaker_played": true,
+  "stop_requested": false
+}

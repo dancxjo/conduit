@@ -51,7 +51,7 @@ fn requirement(operation: ModelComputeOperation) -> ModelComputeRequirement {
     ModelComputeRequirement {
         operation,
         model_format: "model/reference-linear".into(),
-        element: TensorElement::F32,
+        elements: vec![TensorElement::F32],
         rank: 1,
         model_bytes: 128,
         working_memory_bytes: 512,
@@ -111,6 +111,32 @@ fn selection_covers_general_operation_families_and_refuses_known_mismatches() {
         offer.admits(&bad_format),
         Err(ModelComputeRefusal::UnsupportedFormat)
     );
+}
+
+#[test]
+fn one_model_requires_every_dtype_in_its_finite_signature() {
+    let mut requirement = requirement(ModelComputeOperation::Inference);
+    requirement.elements = vec![TensorElement::I64, TensorElement::F32];
+    let mut host = offer();
+    assert_eq!(
+        host.admits(&requirement),
+        Err(ModelComputeRefusal::UnsupportedElement)
+    );
+    host.supported_elements.push(TensorElement::I64);
+    host.admits(&requirement).unwrap();
+    requirement.elements.reverse();
+    host.admits(&requirement).unwrap();
+    for invalid in [
+        vec![],
+        vec![TensorElement::F32; 2],
+        vec![TensorElement::F32; MAXIMUM_MODEL_COMPUTE_DTYPES + 1],
+    ] {
+        requirement.elements = invalid;
+        assert_eq!(
+            host.admits(&requirement),
+            Err(ModelComputeRefusal::UnsupportedElement)
+        );
+    }
 }
 
 #[test]

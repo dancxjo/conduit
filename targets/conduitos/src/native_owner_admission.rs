@@ -12,7 +12,7 @@ use conduit_body::{
     SpawnRendezvousDescriptor,
 };
 use conduit_core::HostAdvertisement;
-use conduit_presentation::{
+use conduit_face::{
     MAX_OWNER_FACE_RESPONSE_BYTES, OWNER_FACE_REQUEST_SCHEMA, OwnerFaceSnapshotRequest,
     OwnerFaceSnapshotResponse,
 };
@@ -60,7 +60,7 @@ pub struct NativeOwnerReturnGrant {
 }
 
 impl NativeOwnerReturnGrant {
-    fn matches_receipt(&self, receipt: &PortableAdmissionReceipt) -> bool {
+    pub(crate) fn matches_receipt(&self, receipt: &PortableAdmissionReceipt) -> bool {
         let credential = &receipt.credential;
         self.schema == "conduit.body/native-owner-return-grant@1"
             && self.token != [0; 32]

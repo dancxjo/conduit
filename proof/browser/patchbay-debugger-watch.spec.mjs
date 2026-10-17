@@ -96,7 +96,7 @@ test("the real Patchbay shows one bounded Tongues system across signals, belief,
     await expect(page.locator('.learned-plot circle[data-disposition="inferred"]')).not.toHaveCount(0);
     await expect(page.locator(".learned-watch-list")).toContainText("0 dropped");
     const final = await (await fetch(`${url}/api/snapshot`)).json();
-    expect(final.presentation).toEqual(initial.presentation);
+    expect(final.face).toEqual(initial.face);
     expect(final.debugger).toEqual(initial.debugger);
   } finally {
     server.lines.close();
@@ -126,7 +126,7 @@ test("an exact Cord Watch is keyboard operable, finite, and survives reload", as
     expect(admitted.resourceRoles).toContain("browser-host-identity");
     await expect(page.locator('script[src="/assets/app.js"]')).toHaveCount(0);
     await expect(page.locator('[data-application-slot="product-masthead"]')).toHaveAttribute("data-application-revision", /^\d+$/);
-    await expect(page.locator('[data-application-key="product-status"]')).toContainText("Presentation revision");
+    await expect(page.locator('[data-application-key="product-status"]')).toContainText("Face revision");
     await enterDebug(page);
     await openRelatedSubjects(page);
     const subject = page.locator(`#subjects input[type="radio"][data-subject="${cord}"]`);
@@ -148,7 +148,7 @@ test("an exact Cord Watch is keyboard operable, finite, and survives reload", as
     await expect(page.locator('#watch-history [data-application-component="artifact"]')).toHaveCount(1);
 
     const afterAdd = await (await fetch(`${url}/api/snapshot`)).json();
-    expect(afterAdd.presentation).toEqual(initial.presentation);
+    expect(afterAdd.face).toEqual(initial.face);
     expect(afterAdd.watches.watches).toHaveLength(1);
     await page.reload();
     await expect(page.locator("body")).toHaveAttribute("data-application-ready", "true");
@@ -168,7 +168,7 @@ test("an exact Cord Watch is keyboard operable, finite, and survives reload", as
     await page.getByRole("button", { name: "Remove Watch", exact: true }).press("Enter");
     await expect(page.locator(".watch-card")).toHaveCount(0);
     const afterRemove = await (await fetch(`${url}/api/snapshot`)).json();
-    expect(afterRemove.presentation).toEqual(initial.presentation);
+    expect(afterRemove.face).toEqual(initial.face);
   } finally {
     server.lines.close();
     server.child.kill("SIGTERM");
@@ -215,7 +215,7 @@ test("timeline replay and exact event rows stay linked to the graph and Watch", 
     await expect(page.locator(".timeline-status")).toContainText("Following live observations");
     await expect(watch.locator('[data-application-component="definition"]').filter({ hasText: "State and latest" })).toContainText("current · 42");
     const final = await (await fetch(`${url}/api/snapshot`)).json();
-    expect(final.presentation).toEqual(initial.presentation);
+    expect(final.face).toEqual(initial.face);
   } finally {
     server.lines.close();
     server.child.kill("SIGTERM");
@@ -264,7 +264,7 @@ test("real breakpoint control and exact causal fault tracing remain distinct fro
     await page.getByRole("button", { name: "Trace downstream" }).click();
     await expect(page.locator('.timeline-events [data-application-component="artifact"][data-causal-trace="exact"]')).toHaveCount(4);
     const final = await (await fetch(`${url}/api/snapshot`)).json();
-    expect(final.presentation).toEqual(initial.presentation);
+    expect(final.face).toEqual(initial.face);
   } finally {
     server.lines.close();
     server.child.kill("SIGTERM");

@@ -1,6 +1,6 @@
-//! Native paragraph layout and scrolling; prose remains owned by Tour Presentation.
+//! Native paragraph layout and scrolling; prose remains owned by Tour Face.
 use super::*;
-use conduit_presentation::MAX_GRAPHICS_TEXT_BYTES;
+use conduit_face::MAX_GRAPHICS_TEXT_BYTES;
 use conduit_tour_model::TOUR_LESSON_SUBJECT;
 
 const TOP: u16 = 40;
@@ -37,17 +37,17 @@ pub(super) fn append(
             .map_err(TourWorkspaceSceneRefusal::Graphics)?,
         )
         .map_err(TourWorkspaceSceneRefusal::Graphics)?;
-    let presentation = state
-        .workspace_presentation()
+    let face = state
+        .workspace_face()
         .map_err(|_| TourWorkspaceSceneRefusal::MissingRegion)?;
     let prefix = alloc::format!("{TOUR_LESSON_SUBJECT}/");
     let mut y = TOP;
-    for item in presentation
+    for item in face
         .text
         .iter()
         .filter(|item| item.subject.starts_with(&prefix))
     {
-        let subject = presentation
+        let subject = face
             .subjects
             .iter()
             .find(|subject| subject.identity == item.subject)
@@ -172,7 +172,7 @@ pub(crate) fn extent(scene: &GraphicsScene) -> Option<(u16, u16)> {
 // above TOP and the other workspace regions retain their own geometry.
 #[cfg(any(test, all(target_arch = "x86_64", feature = "native-compositor")))]
 fn is_prose(command: &GraphicsCommand) -> bool {
-    command.kind == conduit_presentation::GraphicsCommandKind::Text
+    command.kind == conduit_face::GraphicsCommandKind::Text
         && command.clip.x == 0
         && command.clip.y == TOP as i16
         && command.bounds.x == 8

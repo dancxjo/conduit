@@ -19,8 +19,13 @@ pub(crate) fn inspect(path: &Path) -> Result<String, String> {
 }
 
 fn inspect_plot(path: &Path) -> Result<String, String> {
-    let plot = crate::plot_source::load(path)?.expand_entry()?;
-    Ok(format!(
+    let source = crate::plot_source::load(path)?;
+    let type_view = crate::source_expansion::render_source(&source, false)?;
+    if source.syntax.plots.is_empty() {
+        return Ok(type_view);
+    }
+    let plot = source.expand_entry()?;
+    let mut rendered = format!(
         "Plot {}\nsource {}\nchecked {}\nexpanded {}\ngears {}\nconnections {}\nshared pools {}\n",
         plot.name,
         plot.source_document_id.as_str(),
@@ -29,7 +34,17 @@ fn inspect_plot(path: &Path) -> Result<String, String> {
         plot.gears.len(),
         plot.connections.len(),
         plot.shared_pools.len(),
-    ))
+    );
+    if !source.syntax.types.is_empty()
+        || source
+            .syntax
+            .uses
+            .iter()
+            .any(|import| source.startup.typed_literal_family(&import.path).is_some())
+    {
+        rendered.push_str(&type_view);
+    }
+    Ok(rendered)
 }
 
 fn inspect_json(path: &Path, bytes: &[u8]) -> Result<String, String> {
@@ -103,7 +118,7 @@ fn inspect_sign(bytes: &[u8]) -> Result<String, String> {
         serde_json::from_slice(bytes).map_err(|error| format!("decode Sign artifact: {error}"))?;
     conduit_observatory::validate_sign_artifact(&artifact)?;
     Ok(format!(
-        "Sign {}\nHost {}\nBoot {}\nsequence {}\nPlay {}\nPlan {}\nplacement {}\nconnection {}\npresentation {}\nkind {:?}\n",
+        "Sign {}\nHost {}\nBoot {}\nsequence {}\nPlay {}\nPlan {}\nplacement {}\nconnection {}\nface {}\nkind {:?}\n",
         artifact.identity.sign_id.as_str(),
         artifact.identity.host_id.as_str(),
         artifact.identity.boot_id.as_str(),
@@ -130,9 +145,9 @@ fn inspect_sign(bytes: &[u8]) -> Result<String, String> {
             .map_or("none", conduit_core::ConnectionId::as_str),
         artifact
             .sign
-            .presentation_id
+            .face_id
             .as_ref()
-            .map_or("none", conduit_core::PresentationId::as_str),
+            .map_or("none", conduit_core::FaceId::as_str),
         artifact.sign.kind,
     ))
 }

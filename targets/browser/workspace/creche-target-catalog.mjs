@@ -12,8 +12,8 @@ const encoder = new TextEncoder();
 // Finite workflow ceilings shared by the catalog and its existing-computer adapter.
 // The release-ABI conformance test checks advertisement capacity plus join framing.
 export const PHYSICAL_HOST_EVIDENCE_MAXIMA = Object.freeze({
-  maximumOperationEvidenceBytes: 200 * 1024,
-  maximumRetainedEvidenceBytes: 224 * 1024,
+  maximumOperationEvidenceBytes: 2 * 1024 * 1024 + 8 * 1024,
+  maximumRetainedEvidenceBytes: 2 * 1024 * 1024 + 32 * 1024,
 });
 
 export const PHYSICAL_HOST_INTENTIONS = Object.freeze([
@@ -105,7 +105,7 @@ export function createPhysicalHostTargetCatalog({
     });
   }
 
-  function createAdapter({ targetId, host, presentationFor, ...context }) {
+  function createAdapter({ targetId, host, faceFor, ...context }) {
     const record = records.find(({ entry }) => entry.target.id === targetId);
     if (!record) {
       refuse("UnknownTarget", "selected physical Host target is absent from the current catalog generation", generation, {
@@ -114,7 +114,7 @@ export function createPhysicalHostTargetCatalog({
     }
     let adapter;
     try {
-      adapter = record.createAdapter({ host, presentationFor, ...context });
+      adapter = record.createAdapter({ host, faceFor, ...context });
     } catch (error) {
       refuse("IncompatibleAdapter", "physical Host target adapter factory refused its catalog entry", generation, {
         target_id: targetId,

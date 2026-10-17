@@ -1,6 +1,6 @@
 use conduit_core::{verify_plan, BaseImplementationId, BootId, HostId, SignId};
-use conduit_presentation::{
-    plan_face_utterances, render_linear_presentation, FaceUtteranceProvenance, ManifestationError,
+use conduit_face::{
+    plan_face_utterances, render_linear_face, FaceUtteranceProvenance, ManifestationError,
     ManifestationFailure, ManifestationLifecycle, RendererExecution, RendererExecutionError,
 };
 use patchbay_application::{
@@ -22,23 +22,23 @@ fn identity(host: &str, boot: &str, target: &str) -> RendererAdapterIdentity {
 }
 
 #[test]
-fn one_portable_presentation_plans_to_distinct_real_renderer_executions() {
-    let presentation = portable_demonstration().unwrap();
+fn one_portable_face_plans_to_distinct_real_renderer_executions() {
+    let face = portable_demonstration().unwrap();
     let mut native = prepare_renderer_execution(
-        presentation.clone(),
+        face.clone(),
         RendererAdapterKind::NativeWayland,
         identity("native-host", "native-boot", "native/display-0"),
         SignId::from("native/prepared"),
     )
     .unwrap();
     let html = prepare_renderer_execution(
-        presentation.clone(),
+        face.clone(),
         RendererAdapterKind::HtmlDomSvg,
         identity("html-host", "html-boot", "html/document-0"),
         SignId::from("html/prepared"),
     )
     .unwrap();
-    assert_eq!(native.presentation.identity, html.presentation.identity);
+    assert_eq!(native.face.identity, html.face.identity);
     assert_ne!(native.plan.plan_id, html.plan.plan_id);
     assert_ne!(native.active_play_id, html.active_play_id);
     let native_placement = &native.plan.fragments[0].placements[0];
@@ -47,7 +47,7 @@ fn one_portable_presentation_plans_to_distinct_real_renderer_executions() {
     assert_eq!(native_placement.boot_id.as_str(), "native-boot");
     assert_eq!(
         native_placement.implementation_id.as_str(),
-        "presentation/renderer-wayland@1"
+        "face/renderer-wayland@1"
     );
     assert_eq!(
         native_placement.host_calls[0]
@@ -55,14 +55,14 @@ fn one_portable_presentation_plans_to_distinct_real_renderer_executions() {
             .as_ref()
             .unwrap()
             .as_str(),
-        "presentation/base/wayland-surface@1"
+        "face/base/wayland-surface@1"
     );
     assert_eq!(native_placement.resources.len(), 1);
     assert_eq!(html_placement.host_id.as_str(), "html-host");
     assert_eq!(html_placement.boot_id.as_str(), "html-boot");
     assert_eq!(
         html_placement.implementation_id.as_str(),
-        "presentation/renderer-dom-svg@1"
+        "face/renderer-dom-svg@1"
     );
     assert_eq!(
         html_placement.host_calls[0]
@@ -70,7 +70,7 @@ fn one_portable_presentation_plans_to_distinct_real_renderer_executions() {
             .as_ref()
             .unwrap()
             .as_str(),
-        "presentation/base/dom-svg@1"
+        "face/base/dom-svg@1"
     );
     assert_eq!(html_placement.resources.len(), 1);
     assert_eq!(
@@ -109,7 +109,7 @@ fn production_patchbay_face_preserves_meaning_across_graphical_aural_and_linear_
     )
     .unwrap();
     session.plan_and_play().unwrap();
-    let face = session.project().unwrap().presentation;
+    let face = session.project().unwrap().face;
     let native_entrance = PatchbayEntranceState::enter(&face).unwrap();
     let browser_entrance = PatchbayEntranceState::enter(&face).unwrap();
     let equivalence = compare_entrances(&face, &native_entrance, &browser_entrance).unwrap();
@@ -129,14 +129,14 @@ fn production_patchbay_face_preserves_meaning_across_graphical_aural_and_linear_
     )
     .unwrap();
     let aural = plan_face_utterances(&face).unwrap();
-    let linear = render_linear_presentation(&face).unwrap();
+    let linear = render_linear_face(&face).unwrap();
 
-    for realized in [&native.presentation, &browser.presentation] {
+    for realized in [&native.face, &browser.face] {
         assert_eq!(realized, &face);
     }
     assert_eq!(aural.source_face_identity, face.identity.as_str());
     assert_eq!(aural.source_face_revision, face.revision);
-    assert_eq!(linear.presentation_id, face.identity);
+    assert_eq!(linear.face_id, face.identity);
     assert_eq!(linear.revision, face.revision);
 
     let records = linear.lines.join("\n");
@@ -190,41 +190,41 @@ fn native_and_browser_share_selection_actions_and_layers_without_renderer_identi
     )
     .unwrap();
     session.plan_and_play().unwrap();
-    let presentation = session.project().unwrap().presentation;
-    let mut native = PatchbayEntranceState::enter(&presentation).unwrap();
-    let mut browser = PatchbayEntranceState::enter(&presentation).unwrap();
-    let host = presentation
+    let face = session.project().unwrap().face;
+    let mut native = PatchbayEntranceState::enter(&face).unwrap();
+    let mut browser = PatchbayEntranceState::enter(&face).unwrap();
+    let host = face
         .subjects
         .iter()
-        .find(|subject| subject.role == conduit_presentation::PresentationRole::Host)
+        .find(|subject| subject.role == conduit_face::FaceRole::Host)
         .unwrap()
         .identity
         .clone();
-    native.select(&presentation, &host).unwrap();
-    browser.select(&presentation, &host).unwrap();
+    native.select(&face, &host).unwrap();
+    browser.select(&face, &host).unwrap();
     native
-        .show_layer(&presentation, EntranceLayer::Realization)
+        .show_layer(&face, EntranceLayer::Realization)
         .unwrap();
     browser
-        .show_layer(&presentation, EntranceLayer::Realization)
+        .show_layer(&face, EntranceLayer::Realization)
         .unwrap();
     assert_eq!(
-        native.select(&presentation, "renderer-local/native/window"),
+        native.select(&face, "renderer-local/native/window"),
         Err(EntranceRefusal::UnknownSubject)
     );
     assert_eq!(
-        browser.select(&presentation, "renderer-local/browser/dom"),
+        browser.select(&face, "renderer-local/browser/dom"),
         Err(EntranceRefusal::UnknownSubject)
     );
 
-    let report = compare_entrances(&presentation, &native, &browser).unwrap();
+    let report = compare_entrances(&face, &native, &browser).unwrap();
     assert!(report.equivalent);
     assert_eq!(report.selected_subject.as_deref(), Some(host.as_str()));
     assert_eq!(report.refusal, Some(EntranceRefusal::UnknownSubject));
     assert!(report
         .subjects
         .iter()
-        .any(|subject| subject.role == conduit_presentation::PresentationRole::Play));
+        .any(|subject| subject.role == conduit_face::FaceRole::Play));
     assert!(report.temporal_references.is_empty());
     assert!(report.temporal_facts.is_empty());
     let encoded = serde_json::to_string(&report).unwrap();
@@ -232,18 +232,18 @@ fn native_and_browser_share_selection_actions_and_layers_without_renderer_identi
 
     browser.layer = EntranceLayer::World;
     assert_eq!(
-        compare_entrances(&presentation, &native, &browser),
+        compare_entrances(&face, &native, &browser),
         Err(EntranceEquivalenceError::SemanticDrift)
     );
 }
 
 #[test]
 fn renderer_failure_is_typed_and_cannot_mutate_source_play_identity() {
-    let presentation = portable_demonstration().unwrap();
-    let source_play = presentation.basis.active_play_id.clone();
-    let source_identity = presentation.identity.clone();
+    let face = portable_demonstration().unwrap();
+    let source_play = face.basis.active_play_id.clone();
+    let source_identity = face.identity.clone();
     let mut execution = prepare_renderer_execution(
-        presentation,
+        face,
         RendererAdapterKind::NativeWayland,
         identity("native-host", "native-boot", "native/display-0"),
         SignId::from("native/prepared"),
@@ -263,22 +263,22 @@ fn renderer_failure_is_typed_and_cannot_mutate_source_play_identity() {
         execution.manifestation.failure,
         Some(ManifestationFailure::OutputRejected)
     );
-    assert_eq!(execution.presentation.identity, source_identity);
-    assert_eq!(execution.presentation.basis.active_play_id, source_play);
+    assert_eq!(execution.face.identity, source_identity);
+    assert_eq!(execution.face.basis.active_play_id, source_play);
     assert!(execution.validate().is_ok());
 }
 
 #[test]
 fn stale_manifestation_correlation_fails_closed() {
-    let presentation = portable_demonstration().unwrap();
+    let face = portable_demonstration().unwrap();
     let mut execution = prepare_renderer_execution(
-        presentation,
+        face,
         RendererAdapterKind::HtmlDomSvg,
         identity("html-host", "html-boot", "html/document-0"),
         SignId::from("html/prepared"),
     )
     .unwrap();
-    execution.manifestation.presentation_revision += 1;
+    execution.manifestation.face_revision += 1;
     assert_eq!(
         execution.validate(),
         Err(RendererExecutionError::Manifestation(
@@ -289,9 +289,9 @@ fn stale_manifestation_correlation_fails_closed() {
 
 #[test]
 fn self_inspection_is_the_exact_renderer_plan_placement_and_sign_chain() {
-    let presentation = portable_demonstration().unwrap();
+    let face = portable_demonstration().unwrap();
     let mut execution = prepare_renderer_execution(
-        presentation,
+        face,
         RendererAdapterKind::NativeWayland,
         identity("native-host", "native-boot", "native/display-0"),
         SignId::from("native/prepared"),
@@ -305,8 +305,8 @@ fn self_inspection_is_the_exact_renderer_plan_placement_and_sign_chain() {
     assert_eq!(inspection.plan, execution.plan);
     assert_eq!(inspection.manifestation, execution.manifestation);
     assert_eq!(placement.placement_id, execution.placement_id);
-    assert_eq!(placement.inputs, conduit_presentation::renderer_inputs());
-    assert_eq!(placement.outputs, conduit_presentation::renderer_outputs());
+    assert_eq!(placement.inputs, conduit_face::renderer_inputs());
+    assert_eq!(placement.outputs, conduit_face::renderer_outputs());
     assert_eq!(placement.resources.len(), 1);
     assert_eq!(placement.host_calls.len(), 1);
     assert_eq!(inspection.manifestation.signs.len(), 2);
@@ -314,9 +314,9 @@ fn self_inspection_is_the_exact_renderer_plan_placement_and_sign_chain() {
 
 #[test]
 fn self_inspection_rejects_tampered_plan_placement_and_manifestation_sign() {
-    let presentation = portable_demonstration().unwrap();
+    let face = portable_demonstration().unwrap();
     let execution = prepare_renderer_execution(
-        presentation.clone(),
+        face.clone(),
         RendererAdapterKind::HtmlDomSvg,
         identity("html-host", "html-boot", "html/document-0"),
         SignId::from("html/prepared"),
@@ -325,15 +325,15 @@ fn self_inspection_rejects_tampered_plan_placement_and_manifestation_sign() {
     let mut inspection = execution.self_inspection().unwrap();
     inspection.plan.fragments[0].placements[0].artifact_id =
         conduit_core::ArtifactId::from("tampered");
-    assert!(inspection.validate_against(&presentation).is_err());
+    assert!(inspection.validate_against(&face).is_err());
 
     let mut inspection = execution.self_inspection().unwrap();
     inspection.manifestation.placement_id = conduit_core::PlacementId::from("missing");
-    assert!(inspection.validate_against(&presentation).is_err());
+    assert!(inspection.validate_against(&face).is_err());
 
     let mut inspection = execution.self_inspection().unwrap();
     inspection.manifestation.signs[0].plan_id = conduit_core::PlanId::from("tampered");
-    assert!(inspection.validate_against(&presentation).is_err());
+    assert!(inspection.validate_against(&face).is_err());
 }
 
 #[test]
@@ -364,9 +364,9 @@ fn unchanged_renderer_plot_plans_one_exact_cross_host_websocket_line() {
         .unwrap();
     assert_eq!(
         source.placements[0].kind_id.as_str(),
-        "presentation/patchbay-project"
+        "face/patchbay-project"
     );
-    assert_eq!(sink.placements[0].kind_id.as_str(), "presentation/renderer");
+    assert_eq!(sink.placements[0].kind_id.as_str(), "face/renderer");
     let connection = source.connections.first().unwrap();
     assert_eq!(
         connection.selected_line.as_ref().unwrap().binding.base,
@@ -375,7 +375,7 @@ fn unchanged_renderer_plot_plans_one_exact_cross_host_websocket_line() {
     assert_eq!(connection.item_capacity, 1);
     assert_eq!(
         connection.byte_capacity,
-        conduit_presentation::MAX_RENDERER_VALUE_BYTES
+        conduit_face::MAX_RENDERER_VALUE_BYTES
     );
     let binding = conduit_wire::SessionBinding::from_planned_connection(
         exact.plan.plan_id.clone(),
@@ -405,17 +405,17 @@ fn planned_renderer_execution_distinguishes_missing_and_ambiguous_placements() {
         ),
     )
     .unwrap();
-    let presentation = portable_demonstration().unwrap();
+    let face = portable_demonstration().unwrap();
 
     let mut missing = exact.plan.clone();
     for fragment in &mut missing.fragments {
         fragment
             .placements
-            .retain(|placement| placement.kind_id.as_str() != "presentation/renderer");
+            .retain(|placement| placement.kind_id.as_str() != "face/renderer");
     }
     assert_eq!(
         RendererExecution::prepare_planned(
-            presentation.clone(),
+            face.clone(),
             missing,
             "html/document-0".into(),
             SignId::from("missing"),
@@ -428,13 +428,13 @@ fn planned_renderer_execution_distinguishes_missing_and_ambiguous_placements() {
         .fragments
         .iter()
         .flat_map(|fragment| &fragment.placements)
-        .find(|placement| placement.kind_id.as_str() == "presentation/renderer")
+        .find(|placement| placement.kind_id.as_str() == "face/renderer")
         .unwrap()
         .clone();
     ambiguous.fragments[0].placements.push(duplicate);
     assert_eq!(
         RendererExecution::prepare_planned(
-            presentation,
+            face,
             ambiguous,
             "html/document-0".into(),
             SignId::from("ambiguous"),

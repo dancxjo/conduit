@@ -130,7 +130,7 @@ pub struct GuestKernelSign {
     pub kernel_signs: u16,
     pub timer_irq_wakes: u32,
     pub idle_entries: u32,
-    pub serial_presentations: u32,
+    pub serial_faces: u32,
     pub clock_monotonic: bool,
     pub pending_host_calls: u8,
     pub overlap_witness: bool,
@@ -144,7 +144,7 @@ pub struct GuestKernelSign {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct GuestPresentationSign {
+pub struct GuestFaceSign {
     pub schema: String,
     pub status: String,
     pub proof_class: String,
@@ -376,7 +376,7 @@ pub struct GuestKeyboardTextSign {
     pub plot_machine_facts: bool,
     pub keymap_configuration: String,
     pub physical_transition_count: usize,
-    pub presentation_fragments: Vec<String>,
+    pub face_fragments: Vec<String>,
     pub visible_ascii: String,
     pub bounded: bool,
     pub completed: bool,
@@ -385,7 +385,7 @@ pub struct GuestKeyboardTextSign {
 #[derive(Debug, Clone)]
 pub struct GuestRun {
     pub boot: GuestBootSign,
-    pub presentation: GuestPresentationSign,
+    pub face: GuestFaceSign,
     pub pc_speaker: GuestPcSpeakerSign,
     pub xhci: GuestXhciSign,
     pub usb: GuestUsbSign,
@@ -411,13 +411,15 @@ pub struct ProofRecord {
     pub iso_sha256: String,
     pub reproducible_image: bool,
     pub first_boot: GuestBootSign,
-    pub first_presentation: GuestPresentationSign,
+    pub first_face: GuestFaceSign,
     pub first_kernel: GuestKernelSign,
     pub first_observatory: conduit_observatory::ObservatorySnapshot,
+    pub first_source_conformance: serde_json::Value,
     pub second_boot: GuestBootSign,
-    pub second_presentation: GuestPresentationSign,
+    pub second_face: GuestFaceSign,
     pub second_kernel: GuestKernelSign,
     pub second_observatory: conduit_observatory::ObservatorySnapshot,
+    pub second_source_conformance: serde_json::Value,
     pub fresh_host_id: bool,
     pub fresh_boot_id: bool,
     pub stable_semantic_identities: bool,

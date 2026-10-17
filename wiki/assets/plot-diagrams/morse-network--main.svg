@@ -36,7 +36,7 @@
 <text class="port-name" text-anchor="end" x="2099" y="414">pattern</text>
 </g>
 <g><rect class="gear" x="2450" y="330" width="280" height="120" rx="10"/><path class="header" d="M2450,340 q0,-10 10,-10 h260 q10,0 10,10 v42 h-280 z"/>
-<title>morse_network/light — kind presentation/indicator</title>
+<title>morse_network/light — kind face/indicator</title>
 <use href="#gear-mark" x="2462" y="341" width="28" height="28"/><text class="label" x="2500" y="352">light</text><text class="kind" x="2500" y="373">morse_network/light</text>
 <g><title>pattern: value/morse-pattern@1</title><circle class="port input-port" cx="2450" cy="410" r="5"/></g>
 <text class="port-name" text-anchor="start" x="2461" y="414">pattern</text>

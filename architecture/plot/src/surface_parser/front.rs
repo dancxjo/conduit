@@ -1,13 +1,12 @@
 //! Parsing for the checked callable boundary of one authored Plot.
 
+pub(crate) mod pattern;
+
 mod kind_parameter;
 mod startup;
 
 use super::Parser;
-use crate::surface_lex::{
-    split_declaration, split_top_level, split_top_level_token, top_level_positions,
-    top_level_token_positions,
-};
+use crate::surface_lex::{split_declaration, split_top_level_token};
 use crate::syntax::{
     Expression, KindParameter, PlotFront, RuntimePort, RuntimePortDirection, RuntimePortTemporal,
     ShorthandPair, TypeParameter,
@@ -76,17 +75,6 @@ pub(crate) fn canonical_default_bound(value_type: &str) -> Option<u64> {
     }
 }
 
-pub(super) fn split_default(text: &str) -> (&str, Option<&str>) {
-    top_level_positions(text, '=')
-        .into_iter()
-        .find(|position| {
-            *position == 0 || !matches!(text.as_bytes()[position - 1], b'<' | b'>' | b'!' | b'=')
-        })
-        .map_or((text, None), |position| {
-            (&text[..position], Some(&text[position + 1..]))
-        })
-}
-
 impl Parser<'_> {
     pub(super) fn parse_front(
         &mut self,
@@ -145,7 +133,7 @@ impl Parser<'_> {
             }
             if text.contains(">>") {
                 self.parse_front_runtime(text, start, &mut front)?;
-            } else if !top_level_positions(text, '>').is_empty() {
+            } else if !self.top_level_positions(text, '>').is_empty() {
                 return Err((
                     PlotError::InvalidSyntax(
                         "'>' is not a Conduitese cord or fore; use '>>'".into(),
@@ -153,7 +141,7 @@ impl Parser<'_> {
                     self.span(start, start + text.len()),
                 ));
             } else {
-                let (left, default) = split_default(text);
+                let (left, default) = self.split_default(text);
                 let declaration = split_declaration(left);
                 if declaration.is_some_and(|(_, value_type)| value_type == "type") {
                     if default.is_some() {
@@ -181,7 +169,7 @@ impl Parser<'_> {
         start: usize,
         front: &mut PlotFront,
     ) -> Result<(), (PlotError, Span)> {
-        let arrows = top_level_token_positions(text, ">>");
+        let arrows = self.top_level_token_positions(text, ">>");
         if arrows.len() != 1 {
             return Err((
                 PlotError::InvalidSyntax("malformed front arrows".into()),
@@ -291,15 +279,65 @@ impl Parser<'_> {
                 return Err(self.invalid_statement(line, start));
             };
             if relation == "pattern" {
-                let (pattern, case_insensitive, anchored_start, anchored_end, consumed) =
-                    slash_pattern(&source[body_start..])
-                        .ok_or_else(|| self.invalid_statement(line, start))?;
+                let entrance = &source[body_start..];
+                let binding = self.glyph_scope.as_ref().and_then(|scope| {
+                    scope.bindings().find(|binding| {
+                        entrance.strip_prefix(&binding.alias).is_some_and(|tail| {
+                            binding
+                                .family
+                                .branches
+                                .iter()
+                                .any(|branch| tail.starts_with(branch.delimiter.pair().0))
+                        })
+                    })
+                });
+                let (
+                    pattern,
+                    case_insensitive,
+                    anchored_start,
+                    anchored_end,
+                    consumed,
+                    glyph,
+                    payload_offset,
+                ) = if let Some(binding) = binding {
+                    let scope = self.glyph_scope.as_ref().unwrap();
+                    let scanned = scope
+                        .scan_literal(&binding.alias, entrance)
+                        .map_err(|_| self.invalid_statement(line, start))?;
+                    let offset = start + source_offset + body_start;
+                    let expression = scope
+                        .parse_expression(
+                            self.source,
+                            self.span(offset, offset + scanned.consumed_bytes),
+                        )
+                        .map_err(|(message, span)| (PlotError::InvalidSyntax(message), span))?;
+                    (
+                        scanned.payload,
+                        scanned.case_insensitive,
+                        scanned.anchored_start,
+                        scanned.anchored_end,
+                        scanned.consumed_bytes,
+                        Some(alloc::boxed::Box::new(expression)),
+                        scanned.payload_bytes.start + usize::from(scanned.anchored_start),
+                    )
+                } else {
+                    let (payload, insensitive, begins, ends, consumed) =
+                        pattern::slash_pattern(entrance)
+                            .ok_or_else(|| self.invalid_statement(line, start))?;
+                    (
+                        payload,
+                        insensitive,
+                        begins,
+                        ends,
+                        consumed,
+                        None,
+                        1 + usize::from(begins),
+                    )
+                };
                 let clause_end = body_start + consumed;
-                let pattern_offset = start
-                    + source_offset
-                    + body_start
-                    + source[body_start..clause_end].find(pattern).unwrap();
+                let pattern_offset = start + source_offset + body_start + payload_offset;
                 refinements.push(crate::ValueRefinement::TextPattern {
+                    glyph,
                     source: self.spanned(pattern, pattern_offset),
                     case_insensitive,
                     anchored_start,
@@ -318,7 +356,7 @@ impl Parser<'_> {
                     .ok_or_else(|| self.invalid_statement(line, start))?;
                 let clause_end = body_start + consumed;
                 let body = &source[body_start + 1..clause_end - 1];
-                let values = split_top_level(body, ',');
+                let values = self.split_top_level(body, ',');
                 if values.is_empty() || values.len() > conduit_core::MAX_MEMBERSHIP_VALUES {
                     return Err(self.invalid_statement(line, start));
                 }
@@ -423,64 +461,4 @@ fn bracketed_members(source: &str) -> Option<usize> {
         }
     }
     None
-}
-
-fn slash_pattern(source: &str) -> Option<(&str, bool, bool, bool, usize)> {
-    if !source.starts_with('/') {
-        return None;
-    }
-    let mut escaped = false;
-    let mut class = false;
-    for (offset, character) in source.char_indices().skip(1) {
-        if escaped {
-            escaped = false;
-            continue;
-        }
-        match character {
-            '\\' => escaped = true,
-            '[' => class = true,
-            ']' => class = false,
-            '/' if !class => {
-                let flags_end = source[offset + 1..]
-                    .find(|character: char| !character.is_ascii_alphabetic())
-                    .map_or(source.len(), |relative| offset + 1 + relative);
-                let flags = &source[offset + 1..flags_end];
-                let case_insensitive = match flags {
-                    "" => false,
-                    "i" => true,
-                    _ => return None,
-                };
-                let mut pattern = &source[1..offset];
-                let anchored_start = pattern.starts_with('^');
-                if anchored_start {
-                    pattern = &pattern[1..];
-                }
-                let anchored_end = pattern.ends_with('$') && trailing_dollar_is_anchor(pattern);
-                if anchored_end {
-                    pattern = &pattern[..pattern.len() - 1];
-                }
-                if pattern.is_empty() {
-                    return None;
-                }
-                return Some((
-                    pattern,
-                    case_insensitive,
-                    anchored_start,
-                    anchored_end,
-                    flags_end,
-                ));
-            }
-            _ => {}
-        }
-    }
-    None
-}
-
-fn trailing_dollar_is_anchor(pattern: &str) -> bool {
-    let preceding_backslashes = pattern[..pattern.len().saturating_sub(1)]
-        .bytes()
-        .rev()
-        .take_while(|byte| *byte == b'\\')
-        .count();
-    preceding_backslashes % 2 == 0
 }

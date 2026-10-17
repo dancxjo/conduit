@@ -1,5 +1,5 @@
 schema = "conduit.reviewed-plot-inventory/v2"
-maximum_plots = 118
+maximum_plots = 128
 maximum_combined_workloads = 4
 
 # Membership is explicit: repository path discovery validates this list but never creates it.
@@ -46,7 +46,7 @@ title = "Live Conversation"
 entry = "spoken-live-conversation"
 reusable_entries = [{ entry = "live-conversation", title = "Live Conversation Pipeline", composition = { parent = "spoken-live-conversation", occurrences = ["conversation"] }, deterministic = { package = "conduit-std-host", test = "live_conversation_execution", case = "checked_live_plot_executes_one_streaming_turn_with_fake_asr_model_and_tts" } }]
 deterministic = { package = "conduit-std-host", test = "live_conversation", case = "spoken_live_conversation_wraps_the_unchanged_pipeline_with_portable_audio_edges" }
-browser_safe_not_applicable = "live audio acquisition, streaming model generation, synthesis, and presentation require explicitly admitted realizations"
+browser_safe_not_applicable = "live audio acquisition, streaming model generation, synthesis, and face require explicitly admitted realizations"
 graceful_fallback = "body-chat"
 [[plots]]
 slug = "house-spoken-response"
@@ -66,7 +66,37 @@ slug = "bench-telemetry"
 title = "Bench Telemetry"
 entry = "bench-telemetry"
 deterministic = { package = "conduit-data", test = "measurement_processing_reuse", case = "bench_consumes_the_exact_little_seismograph_plot_back_without_copying_source" }
-browser_safe_not_applicable = "the reusable plot Back is browser-installed, but Bench device acquisition and presentation remain separate unfinished Plots"
+browser_safe_not_applicable = "the reusable plot Back is browser-installed, but Bench device acquisition and face remain separate unfinished Plots"
+[[plots]]
+slug = "audio-time-analysis"
+title = "PCM Time Analysis"
+entry = "measure"
+deterministic = { package = "conduit-std-host", test = "audio_time_analysis", case = "ordinary_checked_plot_plans_and_measures_real_pcm_in_production_kernel" }
+browser_safe_not_applicable = "portable PCM observation Types are shared; the browser has no admitted audio/measure-time Back"
+[[plots]]
+slug = "audio-spectrum-analysis"
+title = "PCM Spectrum Analysis"
+entry = "measure"
+deterministic = { package = "conduit-std-host", test = "audio_spectral_analysis", case = "ordinary_checked_plot_emits_all_overlapping_spectral_rows" }
+browser_safe_not_applicable = "portable spectral Types are shared; no browser audio/measure-spectrum Back is admitted"
+[[plots]]
+slug = "audio-pitch-analysis"
+title = "PCM Periodicity Analysis"
+entry = "measure"
+deterministic = { package = "conduit-std-host", test = "audio_pitch_analysis", case = "ordinary_source_plan_play_emits_four_observation_states_with_exact_custody" }
+browser_safe_not_applicable = "portable observation Types are shared; no browser audio/measure-pitch Back is admitted"
+[[plots]]
+slug = "model-authoring"
+title = "Model Authoring"
+entry = "model-authoring"
+deterministic = { package = "conduit-std-host", features = ["burn-model"], test = "burn_plot_journey", case = "ordinary_plot_trains_saves_reloads_and_infers" }
+browser_safe_not_applicable = "training and checkpoint persistence require a prepared hosted model session; the browser advertises no model/work realization"
+[[plots]]
+slug = "print-contract"
+title = "Finite Print Contract"
+entry = "print-contract"
+deterministic = { package = "conduit-semantic-catalog", test = "printing", case = "three_print_jobs_use_ordinary_checked_ports_and_explicit_host_authority" }
+browser_safe_not_applicable = "typed protocol and explicit authority proof; no browser or physical printer Back is installed"
 [[plots]]
 slug = "bounded-job"
 title = "Bounded Job"
@@ -94,7 +124,7 @@ browser_safe_not_applicable = "portable replay projection has no installed brows
 slug = "bounded-stroke-capture"
 title = "Bounded Stroke Capture"
 entry = "bounded-stroke-capture"
-deterministic = { package = "conduit-presentation", test = "stroke_capture_plot", case = "capture_and_route_consumer_are_checked_and_mechanism_free" }
+deterministic = { package = "conduit-face", test = "stroke_capture_plot", case = "capture_and_route_consumer_are_checked_and_mechanism_free" }
 browser_safe_not_applicable = "portable stroke semantics have no reviewed browser Host execution oracle"
 [[plots]]
 slug = "bounded-typed-history"
@@ -193,7 +223,7 @@ browser_safe_not_applicable = "portable image-text delivery recording has no rev
 slug = "image-text-inspection"
 title = "Image Text Inspection"
 entry = "image-text-inspection"
-deterministic = { package = "conduit-semantic-catalog", features = ["plot-catalog"], test = "image_text_plot", case = "reusable_and_composed_inspection_plots_use_generic_structured_presentation" }
+deterministic = { package = "conduit-semantic-catalog", features = ["plot-catalog"], test = "image_text_plot", case = "reusable_and_composed_inspection_plots_use_generic_structured_face" }
 browser_safe_not_applicable = "portable structured inspection has no reviewed browser Host execution oracle"
 [[plots]]
 slug = "lenia-orbium"
@@ -205,7 +235,7 @@ slug = "little-life"
 title = "Little Life"
 entry = "little-life"
 deterministic = { package = "conduit", test = "little_life", case = "canonical_little_life_completes_exactly_thirty_two_presented_generations", plan_play_evidence = true }
-browser_safe_not_applicable = "the journey uses the installed std scalar-field terminal presentation; retained PNGs are derived documentary evidence rather than browser execution"
+browser_safe_not_applicable = "the journey uses the installed std scalar-field terminal face; retained PNGs are derived documentary evidence rather than browser execution"
 [[plots]]
 slug = "linguistic-annotations"
 title = "Linguistic Annotations"
@@ -231,7 +261,7 @@ initial_body_order = 13
 reusable_entries = [
   { entry = "measurement-window", title = "Measurement Window", composition = { parent = "little-seismograph-processing", occurrences = ["samples"] }, deterministic = { package = "conduit-data", test = "measurement_window", case = "reusable_window_has_an_exact_checked_plot_contract" } },
   { entry = "measurement-summary", title = "Measurement Summary", composition = { parent = "little-seismograph-processing", occurrences = ["summarize"] }, deterministic = { package = "conduit-data", test = "measurement_summary", case = "canonical_summary_is_a_reusable_exact_typed_plot" } },
-  { entry = "measurement-threshold", title = "Measurement Threshold", composition = { parent = "little-seismograph-processing", occurrences = ["decide"] }, deterministic = { package = "conduit-data", test = "measurement_threshold", case = "threshold_is_a_reusable_plot_independent_of_presentation" } },
+  { entry = "measurement-threshold", title = "Measurement Threshold", composition = { parent = "little-seismograph-processing", occurrences = ["decide"] }, deterministic = { package = "conduit-data", test = "measurement_threshold", case = "threshold_is_a_reusable_plot_independent_of_face" } },
   { entry = "measurement-plot", title = "Measurement Plot", composition = { parent = "little-seismograph-processing", occurrences = ["plot"] }, deterministic = { package = "conduit-data", test = "measurement_plot", case = "reusable_plot_projection_has_an_exact_checked_plot_contract" } },
 ]
 deterministic = { package = "conduit-little-seismograph-fixture", test = "little_seismograph", case = "processing_composes_four_reusable_plots_without_source_copying" }
@@ -281,7 +311,7 @@ slug = "night-radio"
 title = "Night Radio"
 entry = "night-radio"
 initial_body_order = 9
-deterministic = { package = "conduit-net", features = ["plot-catalog"], test = "typed_record", case = "night_radio_composes_existing_framing_queue_and_presentation" }
+deterministic = { package = "conduit-net", features = ["plot-catalog"], test = "typed_record", case = "night_radio_composes_existing_framing_queue_and_face" }
 browser_safe = { spec = "proof/browser/reviewed-plot-conformance.spec.mjs", case = "reviewed plot night-radio runs browser-safe" }
 [[plots]]
 slug = "normalized-light-intensity"
@@ -289,6 +319,12 @@ title = "Normalized Light Intensity"
 entry = "normalized-light-intensity"
 deterministic = { package = "conduit-semantic-catalog", test = "quantity_mapping_plot", case = "reusable_mapping_and_outside_consumer_are_checked_and_host_neutral" }
 browser_safe_not_applicable = "portable quantity mapping has no installed browser realization"
+[[plots]]
+slug = "numerics"
+title = "Numerical Realizations"
+entry = "numerics"
+deterministic = { package = "conduit", test = "numerical_realization", case = "ordinary_product_source_retains_exact_meaning_through_selected_std_receipts" }
+browser_safe_not_applicable = "certified numerical realizations are currently installed by the std host"
 [[plots]]
 slug = "patchbay-front-door"
 title = "Patchbay Front Door"
@@ -333,8 +369,8 @@ slug = "pocket-theremin"
 title = "Pocket Theremin"
 entry = "phone-two-axis-controller"
 initial_body_order = 11
-initial_body_presentation_profile = 1
-deterministic = { package = "conduit-browser-runtime", test = "lib", case = "phone_theremin_checks_with_exact_two_axis_browser_realizations" }
+initial_body_face_profile = 1
+deterministic = { package = "conduit-browser-runtime", test = "lib", case = "creche::typed_workset_tests::phone_theremin_checks_with_exact_two_axis_browser_realizations" }
 browser_safe = { spec = "proof/browser/workspace-library.spec.mjs", case = "Pocket Theremin plays continuous two-axis PCM on the browser host" }
 [[plots]]
 slug = "pool-webchat"
@@ -378,7 +414,7 @@ browser_safe_not_applicable = "portable simulated range semantics have no review
 slug = "route-annotation-stroke"
 title = "Route Annotation Stroke"
 entry = "route-annotation-stroke"
-deterministic = { package = "conduit-presentation", test = "stroke_capture_plot", case = "capture_and_route_consumer_are_checked_and_host_neutral" }
+deterministic = { package = "conduit-face", test = "stroke_capture_plot", case = "capture_and_route_consumer_are_checked_and_host_neutral" }
 browser_safe_not_applicable = "portable stroke semantics have no reviewed browser Host execution oracle"
 [[plots]]
 slug = "scheduled-reminder"
@@ -396,7 +432,7 @@ slug = "secret-knock"
 title = "Secret Knock"
 entry = "secret-knock-demo"
 initial_body_order = 10
-initial_body_presentation_profile = 3
+initial_body_face_profile = 3
 reusable_entries = [{ entry = "secret-knock", title = "Secret Knock Recognizer", composition = { parent = "secret-knock-demo", occurrences = ["recognize"] } }, { entry = "compare-pattern", title = "Timing Pattern Comparison", composition = { parent = "secret-knock", occurrences = ["compare"] } }, { entry = "derive-intervals", title = "Ordered Event Intervals", composition = { parent = "secret-knock", occurrences = ["intervals"] } }, { entry = "normalize-durations", title = "Relative Duration Normalization", composition = { parent = "secret-knock", occurrences = ["normalize"] } }]
 deterministic = { package = "conduit-semantic-catalog", features = ["plot-catalog"], test = "secret_knock_plot", case = "canonical_secret_knock_is_a_host_free_composition_of_reusable_plots" }
 browser_safe_not_applicable = "the retired standalone Tour carrier owned this browser-device journey; deterministic kernel execution remains current"
@@ -450,6 +486,13 @@ slug = "text-lab"
 title = "Text Lab"
 entry = "text-lab"
 [[plots]]
+slug = "thermostat"
+title = "Thermostat"
+entry = "thermostat/main"
+reusable_entries = [{ entry = "thermostat/transition", title = "Thermostat State Transition", composition = { parent = "thermostat/main", occurrences = ["reducer"] } }]
+deterministic = { package = "conduit-thermostat-runtime", test = "authored_kernel", case = "authored_thermostat_commands_execute_exact_plan_and_play", plan_play_evidence = true }
+browser_safe = { spec = "proof/browser/thermostat-local.spec.mjs", case = "static Handbook Thermostat uses one real local Play, acknowledged Face actions, refusals and recovery" }
+[[plots]]
 slug = "todo"
 title = "Todo State Slice"
 entry = "todo/command-snapshot"
@@ -458,7 +501,7 @@ reusable_entries = [
   { entry = "todo/snapshot", title = "Todo Snapshot", composition = { parent = "todo/command-snapshot", occurrences = ["persistable"] } },
 ]
 deterministic_not_applicable = "production-kernel fixture proof is cargo xtask check todo-state; this inventory runner requires an integration-test oracle"
-browser_safe_not_applicable = "state-transition slice has no admitted browser input, persistent Resource, or presentation realization"
+browser_safe_not_applicable = "state-transition slice has no admitted browser input, persistent Resource, or face realization"
 [[plots]]
 slug = "tongues-bidirectional-inference"
 title = "Tongues Bidirectional Inference"
@@ -568,3 +611,19 @@ entry = "bme280-observation"
 workspace_catalog = false
 deterministic = { package = "conduit-plot", test = "bme280_observation", case = "complete_compensation_yields_one_exact_typed_observation" }
 browser_safe_not_applicable = "reusable observation transformation requires exact calibration and sample inputs; device admission and production lifecycle integration remain open"
+
+[[plots]]
+slug = "physical-values"
+title = "Exact Physical Values"
+entry = "physical-values"
+workspace_catalog = false
+deterministic = { package = "conduit-std-host", test = "physical_values_product", case = "reviewed_physical_values_source_executes_exact_receipt_and_comparison", plan_play_evidence = true }
+browser_safe_not_applicable = "exact custom-unit conversion requires an admitted math Host; no browser realization is claimed"
+
+[[plots]]
+slug = "commons"
+title = "Commons Places"
+entry = "commons"
+workspace_catalog = false
+deterministic = { package = "conduit-std-host", test = "commons_places", case = "commons_source_places_and_relations_execute_in_installed_plan_play", plan_play_evidence = true }
+browser_safe_not_applicable = "checked domain blueprint only; lifecycle actions and cross-Mask traversal remain separate"

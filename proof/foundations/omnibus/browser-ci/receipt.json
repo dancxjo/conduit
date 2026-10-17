@@ -1,0 +1,15 @@
+{
+  "tested_parent_head": "d932da60c7f04bde62c797126e298e38aa9819d0",
+  "tested_cursor_head": "7f8069c3aebaa63cb12f9cb112b1dbeaa5fe4d57",
+  "timeout_fix_source": "38df9a163",
+  "parent_run": 37845100419,
+  "first_browser_job": 113547793109,
+  "retry_browser_job": 113561043000,
+  "cursor_run": 37849229396,
+  "cursor_browser_job": 113559366048,
+  "logs": {
+    "foundation-omnibus-browser-failure.log": "da81084ae0505562143378e08ae77b1e988d3f1893a0c6b84528a880decd6518",
+    "foundation-omnibus-browser-retry.log": "1211c4916ae7982ad671c0e25f5aa814f4594a19971acd8ed98d3d03a64d871b",
+    "burn-corpus-browser-failure.log": "390c675a771e98bab9dbbe88ea05f55ba0bb5efb4c82801765e7b716b349ec0d"
+  }
+}

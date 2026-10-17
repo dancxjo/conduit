@@ -1,0 +1,27 @@
+{
+  "schema": "conduit.proof/browser-capture-observation@1",
+  "source_commit": "72be394341e79f1d2340df785c65de983abd8080",
+  "run_id": "three-host-20d405d340483425e46e96f6",
+  "body_id": "6e58aa1b3db1b51e2cda77d7a15647fc91898b56f6b127bea5660dfaf6a7a141",
+  "browser_host_id": "browser/93b45309-e2da-4904-af53-1a83e7a32fce",
+  "browser_boot_id": "browser-boot/71b019b9-1d57-4700-b180-3b35fa1e6cc6",
+  "cause": {
+    "kind": "terminal-semantic-action",
+    "interaction_id": "8f881ba1e6e37ed14e0c6c8f1ef7ae6b4e01c1be2b0ab59d186b07d6fe8227eb",
+    "source_face_id": "f8cf58cc52f21d1f09a9723237e2b6a97c917a8b4445b07295eb0b25bde88fde",
+    "source_face_revision": 11,
+    "source_show_id": "show/f2a691d522090b74af0cfde3aaba5b82d4e508df35cd45029291c4559abcf88d",
+    "outcome": "accepted"
+  },
+  "resulting_face": {
+    "face_id": "2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d",
+    "face_revision": "13",
+    "show_id": "show/687ce3b1c81850656a65231dae01bd8dcc5ed10cc219fea0e1fdea1c1784a2b3"
+  },
+  "capture": {
+    "source": "pinned-chromium",
+    "path": "browser-after-terminal.png",
+    "bytes": 164080,
+    "sha256": "829ce3d8a98d388c489f2748e7c855c0986552323d864cc9c0342fb0c82863f2"
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "base": "a2fea6a2295e7ab34cfb32a9c187753e59b32585",
+  "source_sha256": {
+    "Cargo.lock": "156c2402318f4e43974d61a32e74a647df8979e1204ea61b8d882da581838763",
+    "semantics/ai/Cargo.toml": "05aa58256cd64afb3dac2870d0ea25f3e51ac346997334eb6336c8faee25a0cf",
+    "semantics/ai/src/lib.rs": "e2062bb22feaf5e5585caee1a89e48171461a8739f928c06d25f2be28cc1a4ca",
+    "semantics/ai/src/integer_categorical.rs": "6a5755ad63c32a762b9c5284ba49f726f4435a94619f1e5a8fdfa3d6ca3da16c",
+    "semantics/ai/src/integer_categorical_step.rs": "2689d5910d18fc6d6dc4f51847e377cb2fd09f62bed1bd93275a6b079ab7b1f6",
+    "semantics/ai/src/model_resource.rs": "ad2dd1473a293e5f4a82bbb7f8d52071c4532456ecb5ae5d55d8800cdae3ad3f",
+    "semantics/ai/tests/model_artifact.rs": "36108d8f47d2499ecbec4c1dd1f8dd937c50289204d4e79454dff7839f79d7d2",
+    "semantics/ai/tests/integer_categorical_step.rs": "8e16799bbfccb6004d902a5ac05ac7bc0169f32824127705608ddbeb07dfe4fc",
+    "targets/std/src/lib.rs": "c66b3b0621a79da33394b163c5fdad6b12f339b267a8bb4586fd0bc18eab2cb9",
+    "targets/std/src/hosted_integer_categorical.rs": "71f66c7fc5600f4d6a07579f662310870b6a805deea0f83a2491596f63420e6f"
+  },
+  "environment": {
+    "target": "/home/dancxjo/conduit/target",
+    "jobs": 4,
+    "debug": 0,
+    "incremental": false
+  },
+  "checks": [
+    {
+      "command": "cargo +stable test --locked -p conduit-ai --features kernel-operation-owners --test integer_categorical_step --test model_artifact",
+      "result": "pass",
+      "tests": 10
+    },
+    {
+      "command": "cargo +stable clippy --locked -p conduit-ai --features kernel-operation-owners --lib --test integer_categorical_step --test model_artifact -- -D warnings",
+      "result": "pass"
+    },
+    {
+      "command": "cargo +stable fmt --package conduit-ai --package conduit-std-host --check",
+      "result": "pass"
+    },
+    {
+      "command": "git diff --check",
+      "result": "pass"
+    },
+    {
+      "command": "cargo +stable clippy --locked -p conduit-std-host --lib -- -D warnings",
+      "result": "pass"
+    }
+  ],
+  "limitations": [
+    "No whole preparation allocation ceiling, linguistic accuracy, public Session or issue closure claim"
+  ],
+  "preserved_local_failure": "work/integer-categorical/tests-missing-export.log records initial omitted public MODEL_READ_AUTHORITY export, corrected before passing tests",
+  "local_logs": "work/integer-categorical/",
+  "local_log_sha256": {
+    "work/integer-categorical/fmt.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "work/integer-categorical/scorer-tests.log": "229c7f6129dea12e09e328db30f19fa360956762e8e96cf8abcbe5bd1b5baa6b",
+    "work/integer-categorical/fmt-final.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "work/integer-categorical/hosted-clippy.log": "5afacaa13337c13ce48d4e38df4efdffe6f4c0822eaa2cb9107aaf4959b1dd57",
+    "work/integer-categorical/clippy.log": "fd5164c95c1d3d1de30e0840de0f31995e85a1652959736e8b5b32d67a9e0824",
+    "work/integer-categorical/tests.log": "03f5715281a408ca0db35ecb1699c945193581e14e506e4529ab3eb52994aeb2",
+    "work/integer-categorical/tests-missing-export.log": "663908c7042a261bba14daa94d8dddfbc650f88638e5acb3e1b431dd975efc4f"
+  }
+}

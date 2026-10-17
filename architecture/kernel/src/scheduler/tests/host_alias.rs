@@ -53,7 +53,7 @@ impl StepBack<2> for AliasDriver {
                 io.request_host_call(
                     RequestId(u32::from(*port)),
                     HostCallId(0),
-                    BoundedValueRef::new(value, 4).unwrap(),
+                    BoundedValueRef::new(value, value.byte_len).unwrap(),
                 )
                 .unwrap();
                 *pending = true;
@@ -75,8 +75,12 @@ impl StepBack<2> for AliasDriver {
 }
 
 fn exercise(consume: bool, borrow: bool) {
+    exercise_input(consume, borrow, &[42], 4);
+}
+
+fn exercise_input(consume: bool, borrow: bool, input: &[u8], maximum_input_bytes: u32) {
     let mut values = FixedValueStore::<2, 4>::new(8).unwrap();
-    let value = values.store(&[42]).unwrap();
+    let value = values.store(input).unwrap();
     let mut routes = FixedRoutes::<4, 2>::new(2);
     routes
         .install(
@@ -102,7 +106,7 @@ fn exercise(consume: bool, borrow: bool) {
             NodeId(1),
             HostCallBinding {
                 call: HostCallId(0),
-                maximum_input_bytes: 4,
+                maximum_input_bytes,
                 maximum_output_bytes: 4,
             },
         )
@@ -150,7 +154,7 @@ fn exercise(consume: bool, borrow: bool) {
             assert!(consume || borrow);
             assert_eq!(request.input.value, value);
             assert_eq!(request.request, RequestId(requests));
-            assert_eq!(scheduler.host_value(value).unwrap(), &[42]);
+            assert_eq!(scheduler.host_value(value).unwrap(), input);
             requests += 1;
             scheduler
                 .complete_host_call(
@@ -179,4 +183,14 @@ fn unconsumed_queued_reference_cannot_be_borrowed_for_host_work() {
 #[test]
 fn explicitly_pinned_reference_stays_queued_until_host_completion() {
     exercise(false, true);
+}
+
+#[test]
+fn consumed_unit_reference_releases_each_alias_after_completion() {
+    exercise_input(true, false, &[], 0);
+}
+
+#[test]
+fn pinned_unit_reference_remains_valid_until_its_cord_is_consumed() {
+    exercise_input(false, true, &[], 0);
 }

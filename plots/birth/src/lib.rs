@@ -12,9 +12,9 @@ mod actions;
 mod draft;
 mod face;
 pub mod names;
-mod presentation;
+mod widget_face;
 
 pub use actions::{BirthActionOutcome, BirthActions};
 pub use draft::{BirthDraft, BirthDraftRefusal, BirthPlotChoice, BirthSelection};
 pub use face::{BirthFaceBasis, BirthFaceRefusal, HostOwnedBirthFaceBasis};
-pub use presentation::BirthPresentation;
+pub use widget_face::BirthWidgetFace;

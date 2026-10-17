@@ -1,0 +1,43 @@
+with flow/zip/feedback/paired as BmePair
+with flow/zip/finite/paired as BmeClockPair
+
+plot bme280-clock-join (
+    pair: BmeClockPair...| >> completion: BmeClockCompletion...|
+) = ({ context: .0, result: .1 })
+
+# Bus results and deadline completions feed the same Source transition loop.
+# Source terminal frames close the feedback loop after the final state is observed.
+plot bme280-autonomous (
+    >> begin: BmeProtocolBegin...|
+    captured: BmeProtocolState...| >>
+    observation: BmeObservationResult...| >>
+    refused: BmeProtocolFailure...| >>
+    clock_failed: ClockResult...| >>
+) {
+    cell: state/seeded/flow/until
+    states: bme280-protocol-frame-value
+    join: flow/zip/feedback
+    contexts: flow/merge/finite
+    timed: flow/zip/finite
+    bus: machine/i2c/transact
+    clock: machine/clock/at
+    actions: bme280-protocol-action
+    outcomes: bme280-clock-event
+    begin >> bme280-protocol-initialize() >> bme280-protocol-frame() >> cell.seed
+    cell.current >> states
+    states >> join.left
+    states >> actions
+    actions >> select(BmeProtocolAction.transact, unmatched=drop) >> bus.request
+    actions >> bme280-clock-action-context() >> select(BmeOptionalClockContext.available, unmatched=drop) >> contexts.left
+    actions >> select(BmeProtocolAction.captured, unmatched=drop) >> captured
+    actions >> select(BmeProtocolAction.captured, unmatched=drop) >> bme280-observation-from-capture() >> observation
+    actions >> select(BmeProtocolAction.refused, unmatched=drop) >> refused
+    bus.result >> bme280-clock-bus-context() >> contexts.right
+    contexts.merged >> timed.left
+    contexts.merged >> bme280-clock-request() >> clock.request
+    clock.result >> timed.right
+    timed.paired >> bme280-clock-join() >> outcomes
+    outcomes >> bme280-clock-feedback-event() >> join.right
+    outcomes >> select(BmeClockEvent.failed, unmatched=drop) >> clock_failed
+    join.paired >> bme280-join() >> bme280-protocol-transition() >> bme280-protocol-frame() >> cell.next
+}

@@ -19,7 +19,7 @@ use conduit_body::{
     RendezvousAuthentication, RendezvousCandidate, RendezvousLineFamily, RoutedAdmissionRequest,
     RoutedAdmissionResponse, ROUTED_ADMISSION_REQUEST_SCHEMA, ROUTED_ADMISSION_RESPONSE_SCHEMA,
 };
-use conduit_presentation::{
+use conduit_face::{
     OwnerFaceSnapshotResponse, MAX_OWNER_FACE_RESPONSE_BYTES, OWNER_FACE_RESPONSE_SCHEMA,
 };
 use conduit_std_host::secure_websocket::{
@@ -31,7 +31,8 @@ use std::net::{SocketAddr, ToSocketAddrs};
 use std::path::Path;
 use std::time::Duration;
 
-const MAXIMUM_ROUTE_FRAME_BYTES: usize = 512 * 1024;
+// Routed admission carries the same exact inventory as the bounded document.
+const MAXIMUM_ROUTE_FRAME_BYTES: usize = MAXIMUM_BODY_ADMISSION_BYTES as usize;
 
 pub(crate) fn serve_body_invitation_route(
     state_dir: &Path,
@@ -330,7 +331,7 @@ fn route_server_identity(url: &str) -> Result<String, String> {
     Ok(identity.into())
 }
 
-fn route_address(url: &str) -> Result<SocketAddr, String> {
+pub(super) fn route_address(url: &str) -> Result<SocketAddr, String> {
     let authority = url
         .strip_prefix("wss://")
         .and_then(|remainder| remainder.split('/').next())

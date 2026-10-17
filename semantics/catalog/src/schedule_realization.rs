@@ -2,8 +2,8 @@
 
 use alloc::{vec, vec::Vec};
 use conduit_core::{
-    Quantity, QuantityUnit, StructuredFieldValue, StructuredInfoRefusal, StructuredInfoType,
-    StructuredInfoTypeShape, StructuredInfoValue, StructuredInfoValueShape,
+    Quantity, StructuredFieldValue, StructuredInfoRefusal, StructuredInfoType,
+    StructuredInfoTypeShape, StructuredInfoValue, StructuredInfoValueShape, Unit,
 };
 use conduit_plot::rust_binding::NativeRustBinding;
 
@@ -79,15 +79,12 @@ pub fn deterministic_schedule_fixture() -> Result<ScheduleFixture, ScheduleInfoR
         schedule_observation_type(),
         vec![
             ("observed_at", observed),
-            (
-                "offset_from_boundary",
-                quantity_value(2, QuantityUnit::Second)?,
-            ),
+            ("offset_from_boundary", quantity_value(2, Unit::Second)?),
             (
                 "position",
                 unit_variant(schedule_window_position_type(), "after")?,
             ),
-            ("uncertainty", quantity_value(0, QuantityUnit::Second)?),
+            ("uncertainty", quantity_value(0, Unit::Second)?),
         ],
     )?;
     Ok(ScheduleFixture {
@@ -191,10 +188,7 @@ fn wall_occurrence_instant(ticks: u64) -> Result<StructuredInfoValue, ScheduleIn
     )?)
 }
 
-fn quantity_value(
-    value: i64,
-    unit: QuantityUnit,
-) -> Result<StructuredInfoValue, ScheduleInfoRefusal> {
+fn quantity_value(value: i64, unit: Unit) -> Result<StructuredInfoValue, ScheduleInfoRefusal> {
     quantity(Quantity::new(value, unit))
 }
 
@@ -218,7 +212,7 @@ fn unit_variant(
 }
 
 fn unit_value() -> Result<StructuredInfoValue, ScheduleInfoRefusal> {
-    leaf_value("value/unit", Vec::new())
+    leaf_value("value/empty", Vec::new())
 }
 
 fn text_value(value: &str) -> StructuredInfoValue {

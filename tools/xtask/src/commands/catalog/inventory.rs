@@ -5,7 +5,8 @@ use sha2::{Digest, Sha256};
 use super::CatalogError;
 
 pub const SCHEMA: &str = "conduit.std/supported-nucleus-inventory@1";
-pub const MAXIMUM_ENTRIES: usize = 64;
+// The supported nucleus plus Patchbay faces contains 67 exact entries.
+pub const MAXIMUM_ENTRIES: usize = 67;
 
 #[derive(Clone, Serialize)]
 pub struct InventoryEntry {
@@ -28,13 +29,13 @@ pub struct Inventory {
 
 pub fn catalog_contracts() -> Vec<conduit_semantic_catalog::StandardKindContract> {
     let mut contracts = conduit_semantic_catalog::supported_nucleus_contracts();
-    contracts.extend(conduit_semantic_catalog::patchbay_presentation_contracts());
+    contracts.extend(conduit_semantic_catalog::patchbay_face_contracts());
     contracts
 }
 
 pub fn catalog_offers() -> Vec<conduit_core::CapabilityOffer> {
     let mut offers = conduit_std_host::supported_nucleus_offers();
-    offers.extend(conduit_std_offers::patchbay_presentation_offers());
+    offers.extend(conduit_std_offers::patchbay_face_offers());
     offers
 }
 

@@ -1,0 +1,33 @@
+# An admitted UD vocative edge supplies an addressed token occurrence. It never
+# resolves a real person, prescribes timing, or grants playback authority.
+type LanguageDiscourseRole =
+    addressee
+
+type LanguageVocativeDiscourseAdmission = {
+    identity: Text <= 64B not in [""]
+    source: LanguageTextRevision
+    analysis: LanguageAnalysisRevisionId
+    basis: LanguageDependencyArc
+    provenance: LinguisticDerivationProvenance
+    where .basis.relation.base is vocative
+    where .basis.dependent.revision == .analysis
+    where .basis.dependent.token.text_identity == .source.material.identity
+    where .basis.dependent.token.text_revision == .source.material.revision
+}
+type LanguageVocativeDiscourseFact = {
+    identity: Text <= 64B not in [""]
+    source: LanguageTextRevision
+    analysis: LanguageAnalysisRevisionId
+    basis: LanguageDependencyArc
+    provenance: LinguisticDerivationProvenance
+    role: LanguageDiscourseRole
+    where .basis.relation.base is vocative
+    where .basis.dependent.revision == .analysis
+    where .basis.dependent.token.text_identity == .source.material.identity
+    where .basis.dependent.token.text_revision == .source.material.revision
+}
+
+plot language/vocative-discourse (
+    >> value: LanguageVocativeDiscourseAdmission
+    result: LanguageDiscourseRole >>
+) = (LanguageDiscourseRole.addressee)

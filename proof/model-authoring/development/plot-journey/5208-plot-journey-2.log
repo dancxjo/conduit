@@ -1,0 +1,30 @@
+   Compiling conduit-ai v0.1.0 (/home/dancxjo/conduit-5208-plot-journey/semantics/ai)
+   Compiling conduit-chat v0.1.0 (/home/dancxjo/conduit-5208-plot-journey/semantics/chat)
+   Compiling conduit-tongues v0.1.0 (/home/dancxjo/conduit-5208-plot-journey/semantics/tongues)
+   Compiling conduit-std-offers v0.1.0 (/home/dancxjo/conduit-5208-plot-journey/targets/std/offers)
+   Compiling conduit-host-hosted v0.1.0 (/home/dancxjo/conduit-5208-plot-journey/targets/std/make)
+   Compiling conduit-signal-conformance v0.1.0 (/home/dancxjo/conduit-5208-plot-journey/proof/conformance/signal)
+   Compiling conduit-tutorial-plot v0.1.0 (/home/dancxjo/conduit-5208-plot-journey/semantics/tutorial)
+   Compiling conduit-r1-network-conformance v0.1.0 (/home/dancxjo/conduit-5208-plot-journey/proof/conformance/network-r1)
+   Compiling conduit-browser-runtime v0.1.0 (/home/dancxjo/conduit-5208-plot-journey/targets/browser/runtime)
+   Compiling conduit-burn-model v0.1.0 (/home/dancxjo/conduit-5208-plot-journey/mechanisms/implementations/burn-model)
+   Compiling conduit-workspace-make v0.1.0 (/home/dancxjo/conduit-5208-plot-journey/make/workspace)
+   Compiling conduit-std-host v0.1.0 (/home/dancxjo/conduit-5208-plot-journey/targets/std)
+    Finished `test` profile [unoptimized] target(s) in 27.33s
+     Running tests/burn_plot_journey.rs (/home/dancxjo/conduit/target/debug/deps/burn_plot_journey-ec03032f313bcde4)
+
+running 1 test
+
+thread 'ordinary_plot_trains_saves_reloads_and_infers' (1814548) panicked at targets/std/tests/burn_plot_journey.rs:120:10:
+called `Result::unwrap()` on an `Err` value: "external Fore sequence does not match its sealed input Flow"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test ordinary_plot_trains_saves_reloads_and_infers ... FAILED
+
+failures:
+
+failures:
+    ordinary_plot_trains_saves_reloads_and_infers
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+error: test failed, to rerun pass `-p conduit-std-host --test burn_plot_journey`

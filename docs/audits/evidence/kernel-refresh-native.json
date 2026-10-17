@@ -1,0 +1,451 @@
+{
+  "before_source": "33f01225da164644e7545303f8d05facd2314094",
+  "after_source": "88187d381835b40585af635e0f7f8f964e107a7f",
+  "same_reported_hardware_and_affinity": false,
+  "timing_comparison_permitted": false,
+  "verified_artifact_hashes": 36,
+  "cases_per_capture": 144,
+  "exact_sign_remote_output_readiness_value_terminal_replay_parity": true,
+  "allocation_and_copy_counter_parity": true,
+  "work_changes": {
+    "pending_slots_scanned": [
+      [
+        1,
+        false,
+        2,
+        0
+      ],
+      [
+        1,
+        true,
+        2,
+        0
+      ],
+      [
+        8,
+        false,
+        16,
+        0
+      ],
+      [
+        8,
+        true,
+        2,
+        0
+      ],
+      [
+        32,
+        false,
+        64,
+        0
+      ],
+      [
+        32,
+        true,
+        2,
+        0
+      ]
+    ],
+    "context_pending_slots": [
+      [
+        1,
+        false,
+        2,
+        0
+      ],
+      [
+        1,
+        true,
+        2,
+        0
+      ],
+      [
+        8,
+        false,
+        16,
+        0
+      ],
+      [
+        8,
+        true,
+        2,
+        0
+      ],
+      [
+        32,
+        false,
+        64,
+        0
+      ],
+      [
+        32,
+        true,
+        2,
+        0
+      ]
+    ]
+  },
+  "instrumented_scheduler_bytes": {
+    "1": {
+      "before": 181248,
+      "after": 181360,
+      "delta": 112
+    },
+    "8": {
+      "before": 185216,
+      "after": 185384,
+      "delta": 168
+    },
+    "32": {
+      "before": 198800,
+      "after": 199160,
+      "delta": 360
+    }
+  },
+  "timing_summary": [
+    {
+      "active": 1,
+      "sparse": false,
+      "before": {
+        "process_mean_fixture_advance_ns": [
+          3238.375,
+          4087.375,
+          2211
+        ],
+        "mean_fixture_advance_ns": 3178.9166666666665,
+        "sample_sd_process_mean_ns": 939.5995185228296,
+        "mean_ns_per_useful_received_value": 3178.9166666666665,
+        "useful_received_values_per_fixture": 1,
+        "samples": 24
+      },
+      "after": {
+        "process_mean_fixture_advance_ns": [
+          862.875,
+          865.5,
+          878.875
+        ],
+        "mean_fixture_advance_ns": 869.0833333333334,
+        "sample_sd_process_mean_ns": 8.580804643699409,
+        "mean_ns_per_useful_received_value": 869.0833333333334,
+        "useful_received_values_per_fixture": 1,
+        "samples": 24
+      },
+      "descriptive_after_before_ratio": null
+    },
+    {
+      "active": 1,
+      "sparse": true,
+      "before": {
+        "process_mean_fixture_advance_ns": [
+          2655.5,
+          3313.875,
+          1739.125
+        ],
+        "mean_fixture_advance_ns": 2569.5,
+        "sample_sd_process_mean_ns": 790.889619747914,
+        "mean_ns_per_useful_received_value": 2569.5,
+        "useful_received_values_per_fixture": 1,
+        "samples": 24
+      },
+      "after": {
+        "process_mean_fixture_advance_ns": [
+          287.5,
+          218.25,
+          270.5
+        ],
+        "mean_fixture_advance_ns": 258.75,
+        "sample_sd_process_mean_ns": 36.089298967976646,
+        "mean_ns_per_useful_received_value": 258.75,
+        "useful_received_values_per_fixture": 1,
+        "samples": 24
+      },
+      "descriptive_after_before_ratio": null
+    },
+    {
+      "active": 8,
+      "sparse": false,
+      "before": {
+        "process_mean_fixture_advance_ns": [
+          19847.75,
+          25231,
+          13638.375
+        ],
+        "mean_fixture_advance_ns": 19572.375,
+        "sample_sd_process_mean_ns": 5801.216436285152,
+        "mean_ns_per_useful_received_value": 2446.546875,
+        "useful_received_values_per_fixture": 8,
+        "samples": 24
+      },
+      "after": {
+        "process_mean_fixture_advance_ns": [
+          1822.625,
+          1619.75,
+          1805.625
+        ],
+        "mean_fixture_advance_ns": 1749.3333333333333,
+        "sample_sd_process_mean_ns": 112.54390347030501,
+        "mean_ns_per_useful_received_value": 218.66666666666666,
+        "useful_received_values_per_fixture": 8,
+        "samples": 24
+      },
+      "descriptive_after_before_ratio": null
+    },
+    {
+      "active": 8,
+      "sparse": true,
+      "before": {
+        "process_mean_fixture_advance_ns": [
+          2539.125,
+          3304.25,
+          1812.625
+        ],
+        "mean_fixture_advance_ns": 2552.0,
+        "sample_sd_process_mean_ns": 745.8958435163719,
+        "mean_ns_per_useful_received_value": 2552.0,
+        "useful_received_values_per_fixture": 1,
+        "samples": 24
+      },
+      "after": {
+        "process_mean_fixture_advance_ns": [
+          452.375,
+          262.875,
+          321.375
+        ],
+        "mean_fixture_advance_ns": 345.5416666666667,
+        "sample_sd_process_mean_ns": 97.03392877408054,
+        "mean_ns_per_useful_received_value": 345.5416666666667,
+        "useful_received_values_per_fixture": 1,
+        "samples": 24
+      },
+      "descriptive_after_before_ratio": null
+    },
+    {
+      "active": 32,
+      "sparse": false,
+      "before": {
+        "process_mean_fixture_advance_ns": [
+          70316.5,
+          104106.25,
+          45708.75
+        ],
+        "mean_fixture_advance_ns": 73377.16666666667,
+        "sample_sd_process_mean_ns": 29318.8124230132,
+        "mean_ns_per_useful_received_value": 2293.0364583333335,
+        "useful_received_values_per_fixture": 32,
+        "samples": 24
+      },
+      "after": {
+        "process_mean_fixture_advance_ns": [
+          4587.75,
+          4025.625,
+          4591.375
+        ],
+        "mean_fixture_advance_ns": 4401.583333333333,
+        "sample_sd_process_mean_ns": 325.5945123283458,
+        "mean_ns_per_useful_received_value": 137.54947916666666,
+        "useful_received_values_per_fixture": 32,
+        "samples": 24
+      },
+      "descriptive_after_before_ratio": null
+    },
+    {
+      "active": 32,
+      "sparse": true,
+      "before": {
+        "process_mean_fixture_advance_ns": [
+          2441.75,
+          3408.75,
+          1557.75
+        ],
+        "mean_fixture_advance_ns": 2469.4166666666665,
+        "sample_sd_process_mean_ns": 925.8100957179789,
+        "mean_ns_per_useful_received_value": 2469.4166666666665,
+        "useful_received_values_per_fixture": 1,
+        "samples": 24
+      },
+      "after": {
+        "process_mean_fixture_advance_ns": [
+          387.875,
+          467.875,
+          543
+        ],
+        "mean_fixture_advance_ns": 466.25,
+        "sample_sd_process_mean_ns": 77.57526587128142,
+        "mean_ns_per_useful_received_value": 466.25,
+        "useful_received_values_per_fixture": 1,
+        "samples": 24
+      },
+      "descriptive_after_before_ratio": null
+    }
+  ],
+  "before_metadata": {
+    "source": "33f01225da164644e7545303f8d05facd2314094",
+    "build_command": [
+      "cargo",
+      "test",
+      "--locked",
+      "--release",
+      "-p",
+      "conduit-kernel",
+      "--features",
+      "alloc,step-test-support",
+      "--lib",
+      "--no-run",
+      "--message-format=json"
+    ],
+    "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)\nbinary: rustc\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\ncommit-date: 2026-09-01\nhost: x86_64-unknown-linux-gnu\nrelease: 1.98.1\nLLVM version: 22.1.8\n",
+    "executable": "/home/dancxjo/Documents/Codex/2026-10-13/goal-scan-the-open-conduit-issues/work/quiescence-absence-fast-path/../quiescence-absence-target/release/deps/conduit_kernel-a0d81f604a53611a",
+    "executable_sha256": "f240cd34fe12f31f5e98eabb0e77544ffdd5d6188f423524d1bc7030ea17a73b",
+    "system": "Linux",
+    "release": "7.0.0-38-generic",
+    "machine": "x86_64",
+    "cpu_model": "12th Gen Intel(R) Core(TM) i7-12700",
+    "affinity": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19
+    ],
+    "profile": {
+      "CARGO_PROFILE_RELEASE_OVERFLOW_CHECKS": "true",
+      "CARGO_PROFILE_RELEASE_DEBUG_ASSERTIONS": "false",
+      "CARGO_PROFILE_RELEASE_OPT_LEVEL": "3",
+      "CARGO_PROFILE_RELEASE_DEBUG": "0"
+    },
+    "scope": "test-only observations of production FixedScheduler/FixedValueStore; native Linux",
+    "limits": [
+      "instrumented Step wall time includes observation/harness work",
+      "copy bytes count successful fixed-value-store writes only",
+      "compiler moves, Sign copies and Host transport copies are unmeasured",
+      "test-only allocator/scan observations are absent from product builds",
+      "no browser/WASM attribution: native test allocator and observation seams are not installed in that product",
+      "no timing threshold, causal speedup, independent confidence interval or parent5395 completion"
+    ]
+  },
+  "after_metadata": {
+    "source": "88187d381835b40585af635e0f7f8f964e107a7f",
+    "build_command": [
+      "cargo",
+      "test",
+      "--locked",
+      "--release",
+      "-p",
+      "conduit-kernel",
+      "--features",
+      "alloc,step-test-support",
+      "--lib",
+      "--no-run",
+      "--message-format=json"
+    ],
+    "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)\nbinary: rustc\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\ncommit-date: 2026-09-01\nhost: x86_64-unknown-linux-gnu\nrelease: 1.98.1\nLLVM version: 22.1.8\n",
+    "executable": "/home/dancxjo/conduit/target/release/deps/conduit_kernel-a0d81f604a53611a",
+    "executable_sha256": "b1127ffd4c4f9016128aeae69835a5fccd30b8368ef9898cce960677b599bdc2",
+    "system": "Linux",
+    "release": "7.0.0-38-generic",
+    "machine": "x86_64",
+    "cpu_model": "12th Gen Intel(R) Core(TM) i9-12900H",
+    "affinity": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19
+    ],
+    "profile": {
+      "CARGO_PROFILE_RELEASE_OPT_LEVEL": "3",
+      "CARGO_PROFILE_RELEASE_DEBUG": "0",
+      "CARGO_PROFILE_RELEASE_OVERFLOW_CHECKS": "true",
+      "CARGO_PROFILE_RELEASE_DEBUG_ASSERTIONS": "false"
+    },
+    "scope": "test-only observations of production FixedScheduler/FixedValueStore; native Linux",
+    "limits": [
+      "instrumented Step wall time includes observation/harness work",
+      "copy bytes count successful fixed-value-store writes only",
+      "compiler moves, Sign copies and Host transport copies are unmeasured",
+      "test-only allocator/scan observations are absent from product builds",
+      "no browser/WASM attribution: native test allocator and observation seams are not installed in that product",
+      "no timing threshold, causal speedup, independent confidence interval or parent5395 completion"
+    ]
+  },
+  "capture_artifact_hashes": {
+    "before": {
+      "build.jsonl": "064aa513623280b741b01a3431cc9115e450b62ca2d519fac6a71108784b1ea1",
+      "build.stderr.log": "1ff8bbcb4151dc887e69b78a29bc241d5062cba4757aa5f4639926ae712a8181",
+      "metadata.json": "7399def9e19eee428f6f1193a4efcf7c9d4363a08b65c6e377c93ffdf12a942f",
+      "process-0.replays.json": "92f4a5ff60ba8c3bfdb7fdcbf80c7256a43f6ec911f513dfcf0523d173a55c18",
+      "process-0.resource.log": "288758e09d52aa13281e17b6f10b7f7e7cc019cf43661ce3a4bbb4f6c7d23fd1",
+      "process-0.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "process-0.stdout.log": "47bab4f887a0b73d60fe8aa4f3a1ebedb8ebb9d311107e682ad350ebf3c2a125",
+      "process-1.replays.json": "92f4a5ff60ba8c3bfdb7fdcbf80c7256a43f6ec911f513dfcf0523d173a55c18",
+      "process-1.resource.log": "c53ce355f310d339773a6e9a28a523666de116c19e3cbf324d84eb20b159a9a5",
+      "process-1.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "process-1.stdout.log": "2e9b16ad2b8a77f56fa9eb0c5d36553450cdbfc7c654f56e37b52804f725f27d",
+      "process-2.replays.json": "92f4a5ff60ba8c3bfdb7fdcbf80c7256a43f6ec911f513dfcf0523d173a55c18",
+      "process-2.resource.log": "1a11fa4731b08b1d304b0908cd7bec68232850d8c4cd0b80d9e2c94ec6ab8f7e",
+      "process-2.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "process-2.stdout.log": "02ac8a162017c9fc178b5ba1f57c51cb79a9a7e0e102c91a7821c9070a2f39d1",
+      "processes.json": "58f3ff5faf08d2b3772f1ffb77d2e6c6a09db27dc333f6e31cc178f76343dfd8",
+      "raw.json": "5215b3e889f2baff42a1df23ebef533da9787d63af6e78f5de5404a45ab4818c",
+      "summary.json": "9b6a53b03ab8ab5bc08590b090a5bc82d28afb867f8681e18af6001a8d5f3416"
+    },
+    "after": {
+      "build.jsonl": "d62bcb4a1b63b8e65998677a73959bd42306cb3efa57e74f364fb33804ad94fb",
+      "build.stderr.log": "91fa9d718d73fd664b08a2875c7f18b837c46c21cc1399bd0505297be6e1e000",
+      "metadata.json": "276ce4371c833f21037d8e01ed3898e3da4ced6a17a7168031ccd3c94aaf68d9",
+      "process-0.replays.json": "cb2ce8167d735da706ff446edfdbc9459e5fbf13566caf61e79b834aba90db0f",
+      "process-0.resource.log": "c4a56e0e945575b211bc2df958aed3e1373620a909de75c1d8ec329264c1b0c4",
+      "process-0.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "process-0.stdout.log": "eb92797f8a251655b0b99eefb813d574cb950268126f5aa2fe9f0dccf7051b76",
+      "process-1.replays.json": "cb2ce8167d735da706ff446edfdbc9459e5fbf13566caf61e79b834aba90db0f",
+      "process-1.resource.log": "196d18680c798faa2e1ce129d2672d5fc74cb49d737fa6b14e6a920d76f070ad",
+      "process-1.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "process-1.stdout.log": "0de868b084d432c5b68f9962188b1cab10b948920e84a6f158d25f9a095dab3a",
+      "process-2.replays.json": "cb2ce8167d735da706ff446edfdbc9459e5fbf13566caf61e79b834aba90db0f",
+      "process-2.resource.log": "42faa1941c22034dffddc841fabf53f4e0c75295a8f3c9b12ba9b27620cf8aab",
+      "process-2.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "process-2.stdout.log": "9474f643f8895cdcd999974f2d614de693361e3a2139785441c3d3259c524916",
+      "processes.json": "e9981f0645662081cce4270f4325efb3439b5c704d5a983979233dc64a9b2c5c",
+      "raw.json": "d8abcacc8800cb6ed5f103476f4af7682dba9d92180bea5d1630e74e89963cec",
+      "summary.json": "a15084a4be9b6e10064d1e3d03ce67859bfcfc4bb4f2924462fc90a492c529cf"
+    }
+  },
+  "limits": [
+    "Uncontrolled captures at different times; different reported CPUs prohibit timing ratios. Even matching CPUs do not prove causal speedup.",
+    "Instrumented native fixed-kernel one-byte sinks; not checked hosted Plan/Play or FARGAN.",
+    "Step time spans the fixture advance, with harness counters, not one logical invocation.",
+    "No Host Calls or quiescence tracks in these fixtures; no measurement of those optimizations.",
+    "Object sizes include test counters; not production footprint evidence.",
+    "No physical, browser, stable-release or parent-issue completion claim."
+  ]
+}

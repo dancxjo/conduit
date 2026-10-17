@@ -306,6 +306,9 @@ struct ExactTourSerial<'a, S> {
 }
 
 impl<S: SerialBase> SerialBase for ExactTourSerial<'_, S> {
+    fn provider_generation(&self) -> Option<u64> {
+        self.inner.provider_generation()
+    }
     fn present(&mut self, bytes: &[u8]) -> Result<(), BaseError> {
         if bytes != self.expected.as_bytes() || self.observed {
             self.mismatch = true;
@@ -316,8 +319,8 @@ impl<S: SerialBase> SerialBase for ExactTourSerial<'_, S> {
         Ok(())
     }
 
-    fn presentation_count(&self) -> u32 {
-        self.inner.presentation_count()
+    fn face_count(&self) -> u32 {
+        self.inner.face_count()
     }
 }
 
@@ -349,7 +352,7 @@ mod tests {
             self.0.push(bytes.into());
             Ok(())
         }
-        fn presentation_count(&self) -> u32 {
+        fn face_count(&self) -> u32 {
             self.0.len() as u32
         }
     }
@@ -442,7 +445,7 @@ mod tests {
         assert_eq!(evidence.active_play_id, prepared.active_play.active_play_id);
         assert_eq!(evidence.result, CANONICAL_RESULT);
         assert_eq!(evidence.run.logical_operations, 3);
-        assert_eq!(evidence.run.serial_presentations, 1);
+        assert_eq!(evidence.run.serial_faces, 1);
         assert_eq!(evidence.run.pending_host_calls, 0);
     }
 
@@ -464,7 +467,7 @@ mod tests {
     }
 
     #[test]
-    fn result_correlation_refuses_wrong_or_duplicate_presentations() {
+    fn result_correlation_refuses_wrong_or_duplicate_faces() {
         let mut serial = Serial::default();
         let mut exact = ExactTourSerial {
             inner: &mut serial,

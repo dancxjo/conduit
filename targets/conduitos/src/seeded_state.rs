@@ -15,6 +15,7 @@ struct OfferedState {
     schema: StructuredInfoType,
     value: CheckedValueContract,
     offer: CapabilityOffer,
+    until: bool,
 }
 
 pub struct SeededStateOperationFactory {
@@ -39,7 +40,7 @@ impl SeededStateOperationFactory {
         value: &CheckedValueContract,
         schema: &StructuredInfoType,
     ) -> Result<CapabilityOffer, &'static str> {
-        self.install_mode(value, schema, false)
+        self.install_mode(value, schema, false, false, false)
     }
 
     /// Retain a closing observation Flow with exactly one item per generation.
@@ -48,7 +49,23 @@ impl SeededStateOperationFactory {
         value: &CheckedValueContract,
         schema: &StructuredInfoType,
     ) -> Result<CapabilityOffer, &'static str> {
-        self.install_mode(value, schema, true)
+        self.install_mode(value, schema, true, false, false)
+    }
+
+    pub fn install_until(
+        &mut self,
+        value: &CheckedValueContract,
+        schema: &StructuredInfoType,
+    ) -> Result<CapabilityOffer, &'static str> {
+        self.install_mode(value, schema, true, true, false)
+    }
+
+    pub(crate) fn install_until_instance(
+        &mut self,
+        value: &CheckedValueContract,
+        schema: &StructuredInfoType,
+    ) -> Result<CapabilityOffer, &'static str> {
+        self.install_mode(value, schema, true, true, true)
     }
 
     fn install_mode(
@@ -56,28 +73,49 @@ impl SeededStateOperationFactory {
         value: &CheckedValueContract,
         schema: &StructuredInfoType,
         flow: bool,
+        until: bool,
+        typed: bool,
     ) -> Result<CapabilityOffer, &'static str> {
         if self.states.len() >= MAXIMUM_SPECIALIZATIONS || value.maximum_bytes > MAXIMUM_BYTES {
             return Err("native seeded state exceeds its finite prepared profile");
         }
-        let kind = if flow {
+        let mut kind = if until {
+            conduit_semantic_catalog::seeded_state_until_semantic_contract(value, schema)?
+        } else if flow {
             conduit_semantic_catalog::seeded_state_flow_semantic_contract(value, schema)?
         } else {
             conduit_semantic_catalog::seeded_state_semantic_contract(value, schema)?
         };
+        if typed {
+            let value = crate::protocol_source::ProtocolValue {
+                contract: value.clone(),
+                schema: schema.clone(),
+            };
+            kind.kind_id = crate::protocol_source::instances::instance_kind_id(
+                kind.kind_id.as_str(),
+                &[&value],
+            )
+            .map_err(|_| "native seeded state instance identity encoding refused")?;
+        }
+        let instance_capability =
+            typed.then(|| CapabilityId::from(format!("conduitos/{}@1", kind.kind_id.as_str())));
         let offer = BackOfferBuilder::new(
             kind,
             Back {
-                capability_id: CapabilityId::from(format!(
-                    "conduitos/{}/{}/{}@1",
-                    if flow {
-                        "seeded-state-flow-finite"
-                    } else {
-                        "seeded-state-finite"
-                    },
-                    value.value_kind.as_str(),
-                    value.maximum_bytes
-                )),
+                capability_id: instance_capability.unwrap_or_else(|| {
+                    CapabilityId::from(format!(
+                        "conduitos/{}/{}/{}@1",
+                        if until {
+                            "seeded-state-flow-until"
+                        } else if flow {
+                            "seeded-state-flow-finite"
+                        } else {
+                            "seeded-state-finite"
+                        },
+                        value.value_kind.as_str(),
+                        value.maximum_bytes
+                    ))
+                }),
                 execution_profile_id: ExecutionProfileId::from(PROFILE),
                 implementation_id: ImplementationId::from(IMPLEMENTATION),
                 artifact_id: ArtifactId::from(ARTIFACT),
@@ -98,6 +136,7 @@ impl SeededStateOperationFactory {
             schema: schema.clone(),
             value: value.clone(),
             offer: offer.clone(),
+            until,
         });
         Ok(offer)
     }
@@ -171,7 +210,9 @@ impl KernelOperationFactory for SeededStateOperationFactory {
         _: &mut HostedValueStore,
     ) -> Result<Box<dyn StepBack<FIXED_KERNEL_STORAGE_PORTS_PER_NODE> + Send>, String> {
         let state = self.selected(gear)?;
-        let back = if state.offer.outputs[0].temporal == (PortTemporal::Flow { closes: true }) {
+        let back = if state.until {
+            SeededStateBack::prepare_until(&state.value, &state.schema)
+        } else if state.offer.outputs[0].temporal == (PortTemporal::Flow { closes: true }) {
             SeededStateBack::prepare_flow(&state.value, &state.schema)
         } else {
             SeededStateBack::prepare(&state.value, &state.schema)

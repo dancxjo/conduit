@@ -1,10 +1,11 @@
-//! Reuse the generic Face reader's order and exact provenance. Primary graphics
-//! group human wording by subject; full contract/identity clauses remain in Details.
+//! Keep the ordinary view focused on current human wording and usable controls.
+//! The exact Face reader remains available in Details, including relationships,
+//! properties, unavailable actions, input contracts, and provenance.
 use super::*;
 use alloc::{format, string::String};
-use conduit_presentation::{
-    FaceUtteranceProvenance as Provenance, PresentationActionAvailability,
-    PresentationDisclosureLevel, PresentationPropertyValue, PresentationRole, plan_face_utterances,
+use conduit_face::{
+    FaceActionAvailability, FaceDisclosureLevel, FacePropertyValue, FaceRole,
+    FaceUtteranceProvenance as Provenance, plan_face_utterances, readable_finite_text_choices,
 };
 
 pub(super) struct Item {
@@ -13,6 +14,8 @@ pub(super) struct Item {
     pub paint: GraphicsPaintRole,
     pub control: Option<FaceControl>,
     pub indent: u8,
+    pub subject_index: Option<usize>,
+    pub region: Option<u8>,
 }
 
 fn item(text: String, role: GraphicsTextRole) -> Item {
@@ -22,16 +25,53 @@ fn item(text: String, role: GraphicsTextRole) -> Item {
         paint: GraphicsPaintRole::Foreground,
         control: None,
         indent: 0,
+        subject_index: None,
+        region: None,
     }
 }
 
 pub(super) fn prepare(
-    face: &Presentation,
+    face: &Face,
     interaction_admitted: bool,
 ) -> Result<(Vec<Item>, Vec<Item>), FaceSceneError> {
     let plan = plan_face_utterances(face).map_err(|_| FaceSceneError::DocumentBound)?;
     let mut primary = Vec::new();
     let mut details = Vec::with_capacity(plan.clauses.len());
+    for (index, subject) in face.subjects.iter().enumerate().filter(|(_, subject)| {
+        matches!(
+            subject.role,
+            FaceRole::Gear | FaceRole::Port | FaceRole::Cord
+        )
+    }) {
+        let mut identity = item(
+            format!("{:?} identity: {}", subject.role, subject.identity),
+            GraphicsTextRole::Body,
+        );
+        identity.subject_index = Some(index);
+        details.push(identity);
+        let mut name = item(format!("Name: {}", subject.name), GraphicsTextRole::Body);
+        name.subject_index = Some(index);
+        details.push(name);
+        if subject.role == FaceRole::Cord {
+            let mut endpoints = item(
+                super::ports::cord_summary(face, subject),
+                GraphicsTextRole::Body,
+            );
+            endpoints.subject_index = Some(index);
+            details.push(endpoints);
+            for relation in face.relationships.iter().filter(|relation| {
+                relation.source == subject.identity
+                    && relation.kind == conduit_face::FaceRelationshipKind::Connects
+            }) {
+                let mut endpoint = item(
+                    format!("{} connects {}", subject.identity, relation.target),
+                    GraphicsTextRole::Body,
+                );
+                endpoint.subject_index = Some(index);
+                details.push(endpoint);
+            }
+        }
+    }
     for clause in &plan.clauses {
         let mut detail = item(clause.text.clone(), GraphicsTextRole::Body);
         let action_name = match &clause.provenance {
@@ -77,21 +117,21 @@ pub(super) fn prepare(
             .ok_or(FaceSceneError::InvalidFace)?;
         if face.disclosures.iter().any(|disclosure| {
             disclosure.subject == subject.identity
-                && matches!(
+                && (matches!(
                     disclosure.level,
-                    PresentationDisclosureLevel::SelectedDetail
-                        | PresentationDisclosureLevel::ExactProvenance
-                )
+                    FaceDisclosureLevel::CurrentAction
+                        | FaceDisclosureLevel::SelectedDetail
+                        | FaceDisclosureLevel::ExactProvenance
+                ) || (disclosure.level == FaceDisclosureLevel::Context
+                    && !matches!(subject.role, FaceRole::Collection | FaceRole::Document)))
         }) {
             continue;
         }
         let role = match subject.role {
-            PresentationRole::Document | PresentationRole::Body | PresentationRole::Host => {
-                GraphicsTextRole::Title
-            }
-            PresentationRole::Region | PresentationRole::Collection => GraphicsTextRole::Heading,
-            PresentationRole::Status => GraphicsTextRole::Status,
-            PresentationRole::Diagnostic => GraphicsTextRole::Warning,
+            FaceRole::Document | FaceRole::Body | FaceRole::Host => GraphicsTextRole::Title,
+            FaceRole::Region | FaceRole::Collection => GraphicsTextRole::Heading,
+            FaceRole::Status => GraphicsTextRole::Status,
+            FaceRole::Diagnostic => GraphicsTextRole::Warning,
             _ => GraphicsTextRole::Label,
         };
         // Contains is Face truth. Its visual indentation is Mask geometry;
@@ -101,10 +141,7 @@ pub(super) fn prepare(
         while depth < 2 {
             let Some(parent) = face.relationships.iter().find(|relation| {
                 relation.target == ancestor
-                    && matches!(
-                        relation.kind,
-                        conduit_presentation::PresentationRelationshipKind::Contains
-                    )
+                    && matches!(relation.kind, conduit_face::FaceRelationshipKind::Contains)
             }) else {
                 break;
             };
@@ -113,61 +150,52 @@ pub(super) fn prepare(
         }
         let mut append = |mut item: Item| {
             item.indent = depth;
+            item.subject_index = face
+                .subjects
+                .iter()
+                .position(|candidate| candidate.identity == subject.identity);
             primary.push(item);
         };
-        let mut heading = item(subject.name.clone(), role);
+        let name = if subject.role == FaceRole::Item {
+            face.properties
+                .iter()
+                .find(|property| {
+                    property.subject == subject.identity && property.name == "complete"
+                })
+                .and_then(|property| match &property.value {
+                    FacePropertyValue::Flag(complete) => Some(*complete),
+                    _ => None,
+                })
+                .map(|complete| format!("[{}] {}", if complete { 'x' } else { ' ' }, subject.name))
+                .unwrap_or_else(|| subject.name.clone())
+        } else {
+            subject.name.clone()
+        };
+        let mut heading = item(name, role);
         heading.paint = match subject.role {
-            PresentationRole::Diagnostic => GraphicsPaintRole::Warning,
-            PresentationRole::Status => GraphicsPaintRole::Foreground,
-            PresentationRole::Region | PresentationRole::Collection => GraphicsPaintRole::Accent,
+            FaceRole::Diagnostic => GraphicsPaintRole::Warning,
+            FaceRole::Status => GraphicsPaintRole::Foreground,
+            FaceRole::Region | FaceRole::Collection => GraphicsPaintRole::Accent,
             _ => GraphicsPaintRole::Foreground,
         };
         append(heading);
-        for text in face
-            .text
-            .iter()
-            .filter(|text| text.subject == subject.identity)
-        {
-            append(item(text.text.clone(), GraphicsTextRole::Body));
-        }
-        // The common reader owns the wording and semantic order. A graphical
-        // Mask may place these connections beside their source subject, but
-        // must not invent a diagram edge or interpret an open domain kind.
-        for clause in &plan.clauses {
-            let belongs_here = match &clause.provenance {
-                Provenance::Relationship(provenance) => {
-                    face.relationships[*provenance.index() as usize].source == subject.identity
-                }
-                Provenance::Composition(provenance) => face.composition.iter().any(|relation| {
-                    relation.identity.as_str() == provenance.identity()
-                        && relation.source == subject.identity
-                }),
-                _ => false,
-            };
-            if belongs_here {
-                let mut connection = item(clause.text.clone(), GraphicsTextRole::Body);
-                connection.paint = GraphicsPaintRole::Muted;
-                append(connection);
+        // The Body name anchors the encounter. Its generic lifecycle and
+        // resident-count sentence is inspection context; application subjects
+        // supply the ordinary view's useful content.
+        if subject.role != FaceRole::Body {
+            for text in face
+                .text
+                .iter()
+                .filter(|text| text.subject == subject.identity)
+            {
+                append(item(text.text.clone(), GraphicsTextRole::Body));
             }
         }
-        for clause in &plan.clauses {
-            if let Provenance::Property(provenance) = &clause.provenance {
-                let property = &face.properties[*provenance.index() as usize];
-                if property.subject == subject.identity
-                    && matches!(
-                        property.value,
-                        PresentationPropertyValue::Text(_)
-                            | PresentationPropertyValue::Count(_)
-                            | PresentationPropertyValue::Signed(_)
-                            | PresentationPropertyValue::Flag(_)
-                    )
-                {
-                    append(item(clause.text.clone(), GraphicsTextRole::Body));
-                }
-            }
-        }
-        // Action order comes from the same semantic subject ordering as the
-        // common reader, never an application's action-name convention.
+        // Contains already determines indentation. Readable primary wording
+        // comes from this subject's Face text; technical relationships and
+        // properties remain inspectable in Details without becoming a second
+        // copy of the main view.
+        // Action order comes from the Face, never an application-name convention.
         for clause in &plan.clauses {
             let Provenance::Action(provenance) = &clause.provenance else {
                 continue;
@@ -181,30 +209,19 @@ pub(super) fn prepare(
             if action.target != subject.identity {
                 continue;
             }
-            let (text, paint) = match &action.availability {
-                PresentationActionAvailability::Available => (
-                    if action.name == subject.name {
-                        action.name.clone()
-                    } else {
-                        format!("{} · {}", action.name, subject.name)
-                    },
-                    if interaction_admitted {
-                        GraphicsPaintRole::Accent
-                    } else {
-                        GraphicsPaintRole::Muted
-                    },
-                ),
-                PresentationActionAvailability::Unavailable { explanation, .. }
-                | PresentationActionAvailability::Refused { explanation, .. } => (
-                    format!("{} — {}", action.name, explanation),
-                    GraphicsPaintRole::Warning,
-                ),
+            if !matches!(action.availability, FaceActionAvailability::Available) {
+                continue;
+            }
+            let paint = if interaction_admitted {
+                GraphicsPaintRole::Accent
+            } else {
+                GraphicsPaintRole::Muted
             };
             append(Item {
                 text: if interaction_admitted {
-                    text
+                    action.name.clone()
                 } else {
-                    format!("{text} · View only on this host")
+                    format!("{} · View only on this host", action.name)
                 },
                 role: GraphicsTextRole::Action,
                 paint,
@@ -213,21 +230,17 @@ pub(super) fn prepare(
                     argument: None,
                 }),
                 indent: 0,
+                subject_index: None,
+                region: None,
             });
             for (argument_index, argument) in action.arguments.iter().enumerate() {
+                let hint = if argument.contract.value_kind.as_str() == "value/bool" {
+                    "false or true".into()
+                } else {
+                    argument_hint(argument)
+                };
                 append(Item {
-                    text: format!(
-                        "{} · {} · {}",
-                        subject.name,
-                        argument.value_name,
-                        if !interaction_admitted {
-                            "view only on this host"
-                        } else if argument.contract.value_kind.as_str() == "value/bool" {
-                            "0 false · 1 true · Enter applies"
-                        } else {
-                            "enter a replacement value"
-                        }
-                    ),
+                    text: format!("{} · {}", argument.value_name, hint),
                     role: GraphicsTextRole::Label,
                     paint,
                     control: interaction_admitted.then_some(FaceControl {
@@ -235,9 +248,18 @@ pub(super) fn prepare(
                         argument: Some(argument_index),
                     }),
                     indent: 0,
+                    subject_index: None,
+                    region: None,
                 });
             }
         }
     }
     Ok((primary, details))
+}
+
+fn argument_hint(argument: &conduit_face::FaceActionArgument) -> String {
+    readable_finite_text_choices(&argument.contract).map_or_else(
+        || "Enter a value".into(),
+        |choices| format!("Choose {}", choices.join(", ")),
+    )
 }

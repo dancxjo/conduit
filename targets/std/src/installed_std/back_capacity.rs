@@ -5,6 +5,8 @@ use super::back::InstalledBack;
 impl InstalledBack {
     pub(super) fn allocation_capacity(&self) -> usize {
         match self {
+            Self::LocalExpression(back) => back.output_capacity(),
+            Self::Numerical(back) => back.retained_capacity_bytes(),
             Self::DistanceFrequency(_) => 0,
             Self::KeyboardInput(_) => 0,
             Self::ButtonInput(operation) => operation.allocation_capacity(),
@@ -18,6 +20,7 @@ impl InstalledBack {
             Self::TimeSample(operation) => operation.allocation_capacity(),
             Self::TimeWindow(operation) => operation.allocation_capacity(),
             Self::FlowCollect(operation) => operation.allocation_capacity(),
+            Self::BodyScan(operation) => operation.allocation_capacity(),
             Self::TimedButtonAttempt(operation) => operation.allocation_capacity(),
             Self::StateCount(operation) => operation.allocation_capacity(),
             Self::RoboticsSource(operation) => operation.allocation_capacity(),

@@ -7,6 +7,11 @@ const root = resolve(process.argv[3] ?? ".");
 const port = Number.parseInt(process.argv[2] ?? "4173", 10);
 const mount = normalizeMount(process.argv[4] ?? "/");
 const mountEntrance = mount === "/" ? "/" : mount.slice(0, -1);
+// Legacy proof URL: when explicitly selected by the launcher, this URI serves
+// the sealed runtime rather than the diagnostic Cargo file named by the URL.
+// Failed selection never falls back to an unreviewed/raw artifact.
+const runtimeAlias = "target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm";
+const selectedRuntime = process.env.CONDUIT_BROWSER_RUNTIME_WASM;
 const mediaTypes = new Map([
   [".css", "text/css; charset=utf-8"],
   [".html", "text/html; charset=utf-8"],
@@ -33,6 +38,18 @@ const server = createServer(async (request, response) => {
     if (file !== root && !file.startsWith(`${root}${sep}`)) {
       response.writeHead(404).end();
       return;
+    }
+    if (relative === runtimeAlias && selectedRuntime !== undefined) {
+      if (!selectedRuntime) {
+        response.writeHead(404).end();
+        return;
+      }
+      file = resolve(selectedRuntime);
+      const selected = await stat(file);
+      if (!selected.isFile()) {
+        response.writeHead(404).end();
+        return;
+      }
     }
     let metadata = await stat(file);
     if (metadata.isDirectory()) {

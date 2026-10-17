@@ -1,0 +1,22 @@
+{
+  "proof_class": "deterministic-native-mechanism-simulation",
+  "validated_head": "0064040b9d1b6389e1b3538484862fd44659872a",
+  "tests_passed": 5,
+  "raw_fault_codes": {
+    "short": 13,
+    "missed_service": 23,
+    "underrun": 14
+  },
+  "completed_prefix": 4,
+  "native_endpoint_max_packet": 192,
+  "source_authored_packets": 72,
+  "genuine_iso_lease_and_kernel_obligation": true,
+  "native_encoded_result_through_checked_source": true,
+  "exact_kernel_delivery_and_ack": true,
+  "pressure_and_premature_drain_guards": true,
+  "failed_stop_quarantine": true,
+  "late_original_stop_and_kernel_token_rejection": true,
+  "allocation_assertions": 0,
+  "log_sha256": "de9ee77ebb831b5d670f2ddbbdfd90a429cdc42d08539bee7653a622f96bd7a1",
+  "scope": "Raw controller observations and Configure Endpoint are simulated. Native decoding, original acknowledged stop, lease/result handling, nine checked Source stages and Kernel token delivery execute. Setup/clock/physical acceptance are separate ordinary guest proofs."
+}

@@ -1,0 +1,306 @@
+//! Keep packaged Source and retained operation owners together through admission.
+use super::*;
+use crate::protocol_artifact::{AdmittedProtocolArtifact, ProtocolArtifactIdentity};
+use crate::protocol_host_calls::ProtocolCallRefusal;
+use conduit_core::{ArtifactId, BaseImplementationId, HostAdvertisement};
+use conduit_planner::{PlacementChoices, PlanningOptions};
+use conduit_plot::ExpandedAuthoringPlot;
+
+pub struct PreparedProtocolArtifact {
+    artifact: AdmittedProtocolArtifact,
+    operations: ProtocolOperations,
+    package_digest: Option<[u8; 32]>,
+}
+
+impl PreparedProtocolSource {
+    /// Native callers supply selected offers and grants. This entrance neither
+    /// discovers providers nor creates authority from package metadata.
+    pub fn plan_artifact(
+        self,
+        expanded: &ExpandedAuthoringPlot,
+        artifact: ArtifactId,
+        hosts: &[HostAdvertisement],
+        placements: &PlacementChoices,
+        bases: &[BaseImplementationId],
+        options: PlanningOptions<'_>,
+    ) -> Result<PreparedProtocolArtifact, ProtocolSourceRefusal> {
+        let limits = self.queue_limits(expanded, hosts, placements)?;
+        self.plan_with_limits(
+            expanded, artifact, hosts, placements, bases, options, limits,
+        )
+    }
+
+    pub(super) fn plan_retained_artifact(
+        self,
+        expanded: &ExpandedAuthoringPlot,
+        artifact: ArtifactId,
+        hosts: &[HostAdvertisement],
+        placements: &PlacementChoices,
+        bases: &[BaseImplementationId],
+        options: PlanningOptions<'_>,
+    ) -> Result<PreparedProtocolArtifact, ProtocolSourceRefusal> {
+        let limits = self.retained_queue_limits(expanded, hosts, placements)?;
+        self.plan_with_limits(
+            expanded, artifact, hosts, placements, bases, options, limits,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn plan_with_limits(
+        self,
+        expanded: &ExpandedAuthoringPlot,
+        artifact: ArtifactId,
+        hosts: &[HostAdvertisement],
+        placements: &PlacementChoices,
+        bases: &[BaseImplementationId],
+        options: PlanningOptions<'_>,
+        limits: ProtocolQueueLimits,
+    ) -> Result<PreparedProtocolArtifact, ProtocolSourceRefusal> {
+        let plan = conduit_planner::plan_expanded_authoring_with_connection_limits(
+            expanded,
+            hosts,
+            placements,
+            bases,
+            options,
+            &limits.connections,
+            &limits.boundaries,
+        )
+        .map_err(ProtocolSourceRefusal::Plan)?;
+        self.operations
+            .states
+            .validate_plan(&plan)
+            .map_err(|_| ProtocolSourceRefusal::Offer)?;
+        self.operations
+            .joins
+            .validate_plan(&plan)
+            .map_err(|_| ProtocolSourceRefusal::Offer)?;
+        self.operations
+            .concats
+            .validate_plan(&plan)
+            .map_err(|_| ProtocolSourceRefusal::Offer)?;
+        self.operations
+            .merges
+            .validate_plan(&plan)
+            .map_err(|_| ProtocolSourceRefusal::Offer)?;
+        let identity = ProtocolArtifactIdentity {
+            source: self.checked.source_document_id.clone(),
+            checked: expanded.expanded.checked_plot_id.clone(),
+            expanded: expanded.expanded.expanded_plot_id.clone(),
+            artifact,
+        };
+        let artifact = AdmittedProtocolArtifact::admit(identity, plan)
+            .map_err(ProtocolSourceRefusal::Admission)?;
+        Ok(PreparedProtocolArtifact {
+            artifact,
+            operations: self.operations,
+            package_digest: None,
+        })
+    }
+}
+
+impl PreparedProtocolArtifact {
+    /// Exact packaged bytes are retained only through PreparedProtocolEntry.
+    /// The digest is correlation/provenance, never storage possession.
+    pub fn package_digest(&self) -> Option<&[u8; 32]> {
+        self.package_digest.as_ref()
+    }
+
+    pub(super) fn retain_package_digest(mut self, digest: [u8; 32]) -> Self {
+        self.package_digest = Some(digest);
+        self
+    }
+
+    pub(crate) fn into_preparation_parts(
+        self,
+    ) -> (
+        conduit_composite::KernelCompositeDefinition,
+        ProtocolOperations,
+    ) {
+        (self.artifact.into_definition(), self.operations)
+    }
+
+    pub fn artifact(&self) -> &AdmittedProtocolArtifact {
+        &self.artifact
+    }
+
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
+    pub(crate) fn prepare_storage_usb_duplex<P: crate::i2c_base::I2cProvider>(
+        self,
+        admission: crate::protocol_play::StorageUsbAdmission,
+    ) -> Result<crate::protocol_play::PreparedProtocolPlay<P>, ProtocolCallRefusal> {
+        crate::protocol_play::PreparedProtocolPlay::prepare_storage_usb_duplex(
+            self.artifact.into_definition(),
+            admission,
+            self.operations,
+        )
+    }
+
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
+    pub(crate) fn prepare_storage_usb_duplex_two_pairs<P: crate::i2c_base::I2cProvider>(
+        self,
+        admission: crate::protocol_play::StorageUsbAdmission,
+        additional: crate::protocol_host_calls::AdditionalStoragePairAdmission,
+    ) -> Result<crate::protocol_play::PreparedProtocolPlay<P>, ProtocolCallRefusal> {
+        crate::protocol_play::PreparedProtocolPlay::prepare_storage_usb_duplex_two_pairs(
+            self.artifact.into_definition(),
+            admission,
+            additional,
+            self.operations,
+        )
+    }
+
+    /// Consume the exact local Plan and retained generic operation owners.
+    /// This profile executes computation/state only; it cannot admit a physical
+    /// implementation, transport Line, resource Cord, or device authority.
+    /// The containing machine reserves all additional Sign storage before Play.
+    pub fn prepare_pure(
+        self,
+        storage: conduit_composite::KernelCompositeSignStorage,
+    ) -> Result<crate::pure_protocol_play::PreparedPureProtocolPlay, ProtocolCallRefusal> {
+        crate::pure_protocol_play::PreparedPureProtocolPlay::prepare(
+            self.artifact.into_definition(),
+            self.operations,
+            storage,
+        )
+    }
+
+    /// Contribute the exact retained protocol Plan to ordinary body admission.
+    /// The caller seals every current resident partition together with
+    /// `BodyPlan::seal`; this projection creates neither a Wake nor a Play and
+    /// leaves the operation owners retained by this artifact.
+    pub fn body_partition(&self) -> conduit_body::BodyPlotPlan {
+        let identity = self.artifact.identity();
+        conduit_body::BodyPlotPlan {
+            plot: conduit_body::ResidentPlot::new(
+                identity.source.clone(),
+                identity.checked.clone(),
+            ),
+            plan: self.artifact.definition().internal_plan.clone(),
+        }
+    }
+
+    /// Consume the same admitted artifact with independently issued USB possession.
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
+    pub fn prepare_usb<P: crate::i2c_base::I2cProvider>(
+        self,
+        usb: crate::protocol_play::UsbControlAdmission,
+    ) -> Result<crate::protocol_play::PreparedProtocolPlay<P>, ProtocolCallRefusal> {
+        crate::protocol_play::PreparedProtocolPlay::prepare_usb_with_sign_storage(
+            self.artifact.into_definition(),
+            usb.ready,
+            usb.table,
+            usb.handle,
+            usb.claim,
+            self.operations,
+            usb.additional_remote_sign_items,
+        )
+    }
+
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
+    pub(crate) fn prepare_usb_endpoint_only<P: crate::i2c_base::I2cProvider>(
+        self,
+        usb: crate::protocol_play::UsbEndpointAdmission,
+    ) -> Result<crate::protocol_play::PreparedProtocolPlay<P>, ProtocolCallRefusal> {
+        crate::protocol_play::PreparedProtocolPlay::prepare_usb_endpoint_only(
+            self.artifact.into_definition(),
+            usb,
+            self.operations,
+        )
+    }
+
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
+    pub(crate) fn prepare_usb_protocol<P: crate::i2c_base::I2cProvider>(
+        self,
+        usb: crate::protocol_play::UsbProtocolAdmission,
+    ) -> Result<crate::protocol_play::PreparedProtocolPlay<P>, ProtocolCallRefusal> {
+        crate::protocol_play::PreparedProtocolPlay::prepare_usb_protocol(
+            self.artifact.into_definition(),
+            usb,
+            self.operations,
+        )
+    }
+
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
+    pub(crate) fn prepare_usb_isochronous<P: crate::i2c_base::I2cProvider>(
+        self,
+        usb: crate::protocol_play::UsbIsochronousAdmission,
+    ) -> Result<crate::protocol_play::PreparedProtocolPlay<P>, ProtocolCallRefusal> {
+        crate::protocol_play::PreparedProtocolPlay::prepare_usb_isochronous(
+            self.artifact.into_definition(),
+            usb,
+            self.operations,
+        )
+    }
+
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
+    pub(crate) fn prepare_usb_duplex<P: crate::i2c_base::I2cProvider>(
+        self,
+        usb: crate::protocol_play::UsbDuplexAdmission,
+    ) -> Result<crate::protocol_play::PreparedProtocolPlay<P>, ProtocolCallRefusal> {
+        crate::protocol_play::PreparedProtocolPlay::prepare_usb_duplex(
+            self.artifact.into_definition(),
+            usb,
+            self.operations,
+        )
+    }
+
+    /// Consume the retained package owners together with actual native possession.
+    #[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
+    pub(crate) fn prepare_usb_ethernet<P: crate::i2c_base::I2cProvider>(
+        self,
+        usb: crate::protocol_play::UsbDuplexAdmission,
+        network: crate::protocol_host_calls::EthernetFrameAdmission,
+    ) -> Result<crate::protocol_play::PreparedProtocolPlay<P>, ProtocolCallRefusal> {
+        crate::protocol_play::PreparedProtocolPlay::prepare_usb_ethernet(
+            self.artifact.into_definition(),
+            usb,
+            network,
+            self.operations,
+        )
+    }
+
+    /// Consume the retained package owners together with actual native possession.
+    pub fn prepare_timed<P, C>(
+        self,
+        bus: crate::protocol_play::I2cAdmission<P>,
+        clock: crate::protocol_play::ClockAdmission<C>,
+    ) -> Result<
+        crate::protocol_play::PreparedTimedProtocolPlay<P, C>,
+        crate::protocol_host_calls::ProtocolCallRefusal,
+    >
+    where
+        P: crate::i2c_base::I2cProvider,
+        C: crate::monotonic_clock::owner::MonotonicDeadlineProvider,
+    {
+        crate::protocol_play::PreparedTimedProtocolPlay::prepare(
+            self.artifact.into_definition(),
+            bus.ready,
+            bus.table,
+            bus.handle,
+            bus.claim,
+            self.operations,
+            clock,
+        )
+    }
+}

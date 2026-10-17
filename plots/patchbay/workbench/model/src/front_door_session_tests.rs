@@ -6,10 +6,10 @@ use conduit_core::{
     HostProfileId, LineAvailability, LineId, LinkBindingId, LinkLimits, OfferGeneration, SignId,
     PROTOCOL_VERSION,
 };
-use conduit_presentation::PresentationRole;
-use conduit_presentation::{NavigationOperation, NavigationState, PresentationPlace};
+use conduit_face::FaceRole;
+use conduit_face::{FacePlace, NavigationOperation, NavigationState};
 use patchbay_application::{
-    EntranceAction, EntranceUpdateDisposition, PartPresentationState, PatchbayEntranceState,
+    EntranceAction, EntranceUpdateDisposition, PartFaceState, PatchbayEntranceState,
 };
 
 fn browser_advertisement(identity: &BrowserAdmissionIdentity) -> HostAdvertisement {
@@ -37,18 +37,18 @@ fn fresh_session_projects_only_current_canonical_truth() {
     let projection = session.project().unwrap();
     assert_eq!(projection.parts.parts.len(), 1);
     assert!(projection.parts.wants_to_join.is_empty());
-    assert!(projection.presentation.basis.plan_id.is_none());
+    assert!(projection.face.basis.plan_id.is_none());
     assert_eq!(
         projection
-            .presentation
+            .face
             .subjects
             .iter()
-            .filter(|subject| subject.role == PresentationRole::Part)
+            .filter(|subject| subject.role == FaceRole::Part)
             .count(),
         1
     );
     assert!(projection
-        .presentation
+        .face
         .subjects
         .iter()
         .all(|subject| { !subject.name.contains("Pico") && !subject.name.contains("tab 3") }));
@@ -63,17 +63,17 @@ fn plan_play_restart_and_replan_are_distinct_revisioned_truth() {
     )
     .unwrap();
     let initial = session.project().unwrap();
-    let mut entrance = PatchbayEntranceState::enter(&initial.presentation).unwrap();
+    let mut entrance = PatchbayEntranceState::enter(&initial.face).unwrap();
     let selected = entrance.selected_subject.clone();
 
     let (first_plan, first_play) = session.plan_and_play().unwrap();
     let playing = session.project().unwrap();
-    assert_eq!(playing.presentation.basis.plan_id, Some(first_plan.clone()));
-    assert_eq!(playing.presentation.basis.active_play_id, Some(first_play));
+    assert_eq!(playing.face.basis.plan_id, Some(first_plan.clone()));
+    assert_eq!(playing.face.basis.active_play_id, Some(first_play));
     assert!(playing.parts.parts[0].in_plan);
     assert!(playing.parts.parts[0].playing);
     assert_eq!(
-        entrance.update(&playing.presentation).unwrap(),
+        entrance.update(&playing.face).unwrap(),
         EntranceUpdateDisposition::SelectionPreserved
     );
     assert_eq!(entrance.selected_subject, selected);
@@ -82,32 +82,27 @@ fn plan_play_restart_and_replan_are_distinct_revisioned_truth() {
         .observe_local_restart(BootId::from("front-door/local/boot-2"), OfferGeneration(2))
         .unwrap();
     let restarted = session.project().unwrap();
-    assert_eq!(
-        restarted.presentation.basis.plan_id,
-        Some(first_plan.clone())
-    );
+    assert_eq!(restarted.face.basis.plan_id, Some(first_plan.clone()));
     assert!(!restarted.parts.parts[0].in_plan);
     assert!(!restarted.parts.parts[0].playing);
     assert_eq!(
-        entrance.update(&restarted.presentation).unwrap(),
+        entrance.update(&restarted.face).unwrap(),
         EntranceUpdateDisposition::SelectionPreserved
     );
-    assert!(restarted.presentation.properties.iter().any(|property| {
+    assert!(restarted.face.properties.iter().any(|property| {
         property.name == "boot-id"
             && property.value
-                == conduit_presentation::PresentationPropertyValue::Identity(
-                    "front-door/local/boot-2".into(),
-                )
+                == conduit_face::FacePropertyValue::Identity("front-door/local/boot-2".into())
     }));
 
     let (replacement, _) = session.plan_and_play().unwrap();
     assert_ne!(replacement, first_plan);
     let replanned = session.project().unwrap();
-    assert_eq!(replanned.presentation.basis.plan_id, Some(replacement));
+    assert_eq!(replanned.face.basis.plan_id, Some(replacement));
     assert!(replanned.parts.parts[0].in_plan);
     assert!(replanned.parts.parts[0].playing);
     assert_eq!(
-        entrance.update(&replanned.presentation).unwrap(),
+        entrance.update(&replanned.face).unwrap(),
         EntranceUpdateDisposition::SelectionPreserved
     );
 }
@@ -138,60 +133,60 @@ fn planned_gear_and_host_are_exact_bidirectional_cross_place_follows() {
                 && follow.target_subject == forward.source_subject
         })
         .unwrap();
-    assert_eq!(forward.target_place, PresentationPlace::Body);
-    assert_eq!(reverse.target_place, PresentationPlace::Program);
+    assert_eq!(forward.target_place, FacePlace::Body);
+    assert_eq!(reverse.target_place, FacePlace::Program);
 
-    let before = projected.presentation.clone();
+    let before = projected.face.clone();
     let mut state = NavigationState::new(
         navigation,
         projected.navigation.cursor.clone(),
-        conduit_presentation::MAX_NAVIGATION_HISTORY,
+        conduit_face::MAX_NAVIGATION_HISTORY,
     )
     .unwrap();
     state
         .navigate(
-            &projected.presentation,
+            &projected.face,
             navigation,
-            projected.presentation.revision,
-            NavigationOperation::Enter(PresentationPlace::Program),
+            projected.face.revision,
+            NavigationOperation::Enter(FacePlace::Program),
         )
         .unwrap();
     state
         .navigate(
-            &projected.presentation,
+            &projected.face,
             navigation,
-            projected.presentation.revision,
+            projected.face.revision,
             NavigationOperation::Focus(forward.source_subject.clone()),
         )
         .unwrap();
     let at_host = state
         .navigate(
-            &projected.presentation,
+            &projected.face,
             navigation,
-            projected.presentation.revision,
+            projected.face.revision,
             NavigationOperation::Follow(forward.identity.clone()),
         )
         .unwrap()
         .clone();
-    assert_eq!(at_host.place, PresentationPlace::Body);
+    assert_eq!(at_host.place, FacePlace::Body);
     assert_eq!(
         at_host.focus.as_deref(),
         Some(forward.target_subject.as_str())
     );
     let at_gear = state
         .navigate(
-            &projected.presentation,
+            &projected.face,
             navigation,
-            projected.presentation.revision,
+            projected.face.revision,
             NavigationOperation::Follow(reverse.identity.clone()),
         )
         .unwrap();
-    assert_eq!(at_gear.place, PresentationPlace::Program);
+    assert_eq!(at_gear.place, FacePlace::Program);
     assert_eq!(
         at_gear.focus.as_deref(),
         Some(forward.source_subject.as_str())
     );
-    assert_eq!(projected.presentation, before);
+    assert_eq!(projected.face, before);
 }
 
 #[test]
@@ -237,9 +232,9 @@ fn browser_candidate_requires_proof_then_survives_offline_as_a_durable_part() {
         .unwrap();
     let candidate_projection = session.project().unwrap();
     let candidate_subject = format!("candidate/{}", candidate_id.as_str());
-    let mut entrance = PatchbayEntranceState::enter(&candidate_projection.presentation).unwrap();
+    let mut entrance = PatchbayEntranceState::enter(&candidate_projection.face).unwrap();
     entrance
-        .select(&candidate_projection.presentation, &candidate_subject)
+        .select(&candidate_projection.face, &candidate_subject)
         .unwrap();
     assert_eq!(
         entrance.available_actions,
@@ -275,12 +270,12 @@ fn browser_candidate_requires_proof_then_survives_offline_as_a_durable_part() {
     assert_eq!(attached.parts.parts.len(), 2);
     assert!(attached.parts.wants_to_join.is_empty());
     assert_eq!(
-        entrance.update(&attached.presentation).unwrap(),
+        entrance.update(&attached.face).unwrap(),
         EntranceUpdateDisposition::SelectionBecameStale
     );
     let part_subject = format!("part/{}", credential.part_id.as_str());
     entrance
-        .select(&attached.presentation, "line/line/browser/front-door")
+        .select(&attached.face, "line/line/browser/front-door")
         .unwrap();
 
     session
@@ -291,31 +286,28 @@ fn browser_candidate_requires_proof_then_survives_offline_as_a_durable_part() {
         )
         .unwrap();
     let line_lost = session.project().unwrap();
-    assert!(line_lost.presentation.subjects.iter().any(|subject| {
-        subject.role == PresentationRole::Line && subject.identity == "line/line/browser/front-door"
+    assert!(line_lost.face.subjects.iter().any(|subject| {
+        subject.role == FaceRole::Line && subject.identity == "line/line/browser/front-door"
     }));
-    assert!(line_lost.presentation.properties.iter().any(|property| {
+    assert!(line_lost.face.properties.iter().any(|property| {
         property.subject == "line/line/browser/front-door"
             && property.name == "availability"
-            && property.value
-                == conduit_presentation::PresentationPropertyValue::Text("Unavailable".into())
+            && property.value == conduit_face::FacePropertyValue::Text("Unavailable".into())
     }));
     assert!(line_lost
-        .presentation
+        .face
         .basis
         .sign_ids
         .contains(&SignId::from("front-door/browser/line-unavailable")));
-    assert!(line_lost.presentation.subjects.iter().any(|subject| {
-        subject.role == PresentationRole::Sign
+    assert!(line_lost.face.subjects.iter().any(|subject| {
+        subject.role == FaceRole::Sign
             && subject.identity == "sign/front-door/browser/line-unavailable"
     }));
     assert_eq!(
-        entrance.update(&line_lost.presentation).unwrap(),
+        entrance.update(&line_lost.face).unwrap(),
         EntranceUpdateDisposition::SelectionPreserved
     );
-    entrance
-        .select(&line_lost.presentation, &part_subject)
-        .unwrap();
+    entrance.select(&line_lost.face, &part_subject).unwrap();
 
     session
         .observe_part_offline(
@@ -326,7 +318,7 @@ fn browser_candidate_requires_proof_then_survives_offline_as_a_durable_part() {
         .unwrap();
     let offline = session.project().unwrap();
     assert_eq!(
-        entrance.update(&offline.presentation).unwrap(),
+        entrance.update(&offline.face).unwrap(),
         EntranceUpdateDisposition::SelectionPreserved
     );
     assert_eq!(
@@ -339,7 +331,7 @@ fn browser_candidate_requires_proof_then_survives_offline_as_a_durable_part() {
         .iter()
         .find(|part| part.details.part_id == credential.part_id)
         .unwrap();
-    assert_eq!(durable.state, PartPresentationState::Offline);
+    assert_eq!(durable.state, PartFaceState::Offline);
     assert!(!durable.available);
     for expected in [
         "front-door/browser/part-admitted",
@@ -347,13 +339,13 @@ fn browser_candidate_requires_proof_then_survives_offline_as_a_durable_part() {
         "front-door/browser/offline",
     ] {
         assert!(offline
-            .presentation
+            .face
             .basis
             .sign_ids
             .iter()
             .any(|sign| sign.as_str() == expected));
-        assert!(offline.presentation.subjects.iter().any(|subject| {
-            subject.role == PresentationRole::Sign && subject.identity == format!("sign/{expected}")
+        assert!(offline.face.subjects.iter().any(|subject| {
+            subject.role == FaceRole::Sign && subject.identity == format!("sign/{expected}")
         }));
     }
 }
@@ -413,21 +405,19 @@ fn front_door_projects_a_bounded_pico_profile_fixture_without_promoting_it_to_li
         advertisement.host_id.as_str(),
         advertisement.boot_id.as_str()
     );
-    assert!(projection.presentation.properties.iter().any(|property| {
+    assert!(projection.face.properties.iter().any(|property| {
         property.subject == host
             && property.name == "profile-id"
             && property.value
-                == conduit_presentation::PresentationPropertyValue::Identity(
-                    advertisement.profile.as_str().into(),
-                )
+                == conduit_face::FacePropertyValue::Identity(advertisement.profile.as_str().into())
     }));
     assert_eq!(
         projection
-            .presentation
+            .face
             .subjects
             .iter()
             .filter(|subject| {
-                subject.role == PresentationRole::Capability
+                subject.role == FaceRole::Capability
                     && subject.identity.contains(advertisement.host_id.as_str())
             })
             .count(),

@@ -1,0 +1,53 @@
+# Reviewed finite lexical data proposes alternatives, never syntactic truth.
+type LanguageLexicalPos =
+    noun
+    | verb
+    | proper_noun
+    | adjective
+    | adverb
+    | pronoun
+    | auxiliary
+    | coordinating_conjunction
+    | subordinating_conjunction
+    | adposition
+    | numeral
+    | particle
+    | interjection
+    | punctuation
+    | symbol
+    | determiner
+    | other
+
+type LanguageLexicalCandidate = {
+    lemma: Text <= 128B not in [""]
+    pos: LanguageLexicalPos
+    morphology: sequence LinguisticTokenFeature <= 8
+}
+type LanguageLexicalEntry = {
+    surface: Text <= 256B not in [""]
+    candidates: sequence LanguageLexicalCandidate in 1..=4
+}
+type LanguageLexicalProfile = {
+    identity: Text <= 64B not in [""]
+    language: LanguageId
+    entries: sequence LanguageLexicalEntry <= 64
+    provenance: LinguisticDerivationProvenance
+}
+type LanguageLexicalCompleteness =
+    complete
+    | trailing_partial
+
+type LanguageLexicalToken = {
+    identity: LinguisticTokenIdentity
+    span: TextSpan
+    surface: Text <= 256B not in [""]
+    category: LinguisticTokenCategory
+    completeness: LanguageLexicalCompleteness
+    candidates: sequence LanguageLexicalCandidate <= 4
+    prior_occurrence: LinguisticTokenIdentity?
+}
+type LanguageLexicalTape = {
+    source: LanguageTextRevision
+    profile: LanguageLexicalProfile
+    tokens: sequence LanguageLexicalToken <= 128
+}

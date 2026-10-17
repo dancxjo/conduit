@@ -1,0 +1,3 @@
+Actual x86_64 product guest failed clear-IN recovery. Exact original READ10 stalls, reset succeeds, clear-IN stalls. No clear-OUT, fresh authorization/read or semantic result is fabricated. Kernel graph drains, and Root acknowledges cancellation/Stop of the original storage submission with zero Play allocator/reallocator attempts. This is emulator evidence, not physical hardware proof.
+
+From the repository root run `python3 targets/conduitos/proof/usb-bot/verify_failed_reentry.py --serial targets/conduitos/plots/usb/evidence/bot-reentry-failed-clear-a783be37/serial.log --wire targets/conduitos/plots/usb/evidence/bot-reentry-failed-clear-a783be37/wire.jsonl`.

@@ -1,0 +1,22 @@
+{
+  "aarch64_firmware_sha256": null,
+  "architecture": "x86_64",
+  "emulator": "/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/targets/conduitos/proof/usb-bot/qemu_bot_wrapper.py",
+  "fixture_input": {
+    "command": null,
+    "injected": false,
+    "injection_gate": "CONDUIT_PROTOCOL_PLAY",
+    "maximum_reports": 0,
+    "requested": false
+  },
+  "image_sha256": "37d1ca3a5b01b9b37c209a754555b57ff1d8411a8aeec1573925ca77ecc238bb",
+  "maximum_transcript_bytes": 2097152,
+  "outcome": "root-refused:protocol-usb-plan-admission-refused",
+  "physical_compatibility": "unverified",
+  "proof_class": "freestanding-emulator",
+  "qemu_profile": "q35-single-cpu-512m-headless",
+  "schema": "conduit.conduitos/protocol-run-receipt@1",
+  "serial_sha256": "9063722b582fc3d5334e5bfa86de74973af73c8f96b161a5818b10fe13a552a6",
+  "usb_devices": [],
+  "usb_storage_fixture": null
+}

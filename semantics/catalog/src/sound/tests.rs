@@ -31,7 +31,8 @@ fn audio_tone_is_exactly_typed_bounded_and_cancellable() {
     );
     assert_eq!(contract.inputs[0].temporal, PortTemporal::Current);
     assert_eq!(contract.limits.max_queue_items, 1);
-    assert_eq!(contract.limits.max_queue_bytes, AUDIO_TONE_PCM_BLOCK_BYTES);
+    assert_eq!(contract.limits.max_queue_bytes, AUDIO_TONE_QUEUE_BYTES);
+    assert!(contract.limits.max_queue_bytes >= conduit_core::QUANTITY_ENCODED_LEN as u32);
     assert_eq!(contract.outputs[0].value_kind.as_str(), AUDIO_PCM_INFO_ID);
     assert_eq!(
         contract.outputs[0].abnormal_kind.as_ref().unwrap().as_str(),
@@ -199,4 +200,32 @@ fn synth_playback_realization_is_an_ordinary_recursive_plot() {
         .any(|gear| gear.kind_id.as_str() == AUDIO_PLAY_KIND));
     assert_eq!(expanded.connections.len(), 3);
     expanded.validate_expansion().unwrap();
+}
+
+#[test]
+fn continuous_tone_retains_current_frequency_and_preserves_explicit_terminal_laws() {
+    let continuous = audio_continuous_tone_semantic_contract();
+    let tone = audio_tone_semantic_contract();
+    assert_eq!(
+        continuous.kind_contract_revision.as_str(),
+        "conduit.std/audio-continuous-tone@2"
+    );
+    assert_eq!(continuous.inputs[0], tone.inputs[0]);
+    assert_eq!(continuous.inputs[0].temporal, PortTemporal::Current);
+    assert_eq!(continuous.inputs[1].port_id.as_str(), "cadence");
+    assert_eq!(
+        continuous.inputs[1].temporal,
+        PortTemporal::Flow { closes: false }
+    );
+    assert_eq!(continuous.inputs[2], tone.inputs[1]);
+    assert_eq!(continuous.outputs, tone.outputs);
+    assert_eq!(
+        continuous
+            .terminal_transductions()
+            .collect::<alloc::vec::Vec<_>>(),
+        tone.terminal_transductions()
+            .collect::<alloc::vec::Vec<_>>()
+    );
+    assert_eq!(tone.kind_contract_revision.as_str(), AUDIO_TONE_REVISION);
+    continuous.validate().unwrap();
 }

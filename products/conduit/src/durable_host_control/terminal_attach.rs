@@ -3,10 +3,7 @@
 
 use super::{body::HostSource, constant_time_equal, DurableHostRuntime, PROTOCOL};
 use conduit_core::PlanId;
-use conduit_presentation::{
-    BodyMaskWardrobe, FaceInteraction, LocalOwnerMaskRouteSeal, MaskShow, MaskWardrobe,
-    MaskWardrobeAction, MaskWardrobeControl, MaskWardrobeLifetime,
-};
+use conduit_face::{FaceInteraction, LocalOwnerMaskRouteSeal, MaskShow, MaskWardrobeAction};
 use conduit_std_host::{
     terminal_face_mask::TerminalMaskExecution, terminal_mask_execution::HostedTerminalMaskExecution,
 };
@@ -17,18 +14,16 @@ use std::{os::unix::net::UnixStream, path::Path};
 mod client;
 #[path = "terminal_attach/wire.rs"]
 mod wire;
-pub(crate) use client::{attach_and_show, attached_wardrobe, AttachedTerminalSession};
+pub(crate) use client::{
+    attach_and_show, attached_wardrobe, refresh_show, AttachedTerminalSession,
+};
 pub(super) use wire::MAGIC;
 use wire::{AttachReply, AttachRequest};
 
 pub(super) struct AttachedTerminalRoute {
     pub seal: LocalOwnerMaskRouteSeal,
     pub show: MaskShow,
-    pub wardrobe: MaskWardrobeControl,
     pub execution: HostedTerminalMaskExecution,
-    /// Doff retires this acknowledgement. Rewear selects a sealed route, but
-    /// cannot silently make the old Show current again.
-    pub acknowledged_show_selected: bool,
 }
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize)]
@@ -51,6 +46,7 @@ pub(super) fn serve(
 ) -> Result<(), String> {
     let mut attached_here = false;
     let mut attached_reply_sent = false;
+    let mut frame_acknowledged = false;
     let result = (|| {
         let mut request = wire::read_request(stream, first)?;
         let authenticated = constant_time_equal(&request.token, token);
@@ -63,6 +59,7 @@ pub(super) fn serve(
         }
         attach(stream, runtime, &request)?;
         attached_here = true;
+        runtime.advance_selected_speech_equipment()?;
         refresh_marker(state_dir, runtime)?;
         let HostSource::Body { owner, .. } = &mut runtime.host else {
             unreachable!("only an installed Body can attach a terminal");
@@ -74,27 +71,13 @@ pub(super) fn serve(
             .host
             .current_mut()
             .present_attached_terminal_face_with_interaction(&face)?;
-        let routes = owner.admit_attached_terminal_show(&seal, &show)?;
-        let mask = seal.planned_mask.mask.plot_identity.clone();
-        let wardrobe = MaskWardrobeControl::new_from_admitted_routes(
-            BodyMaskWardrobe::new(
-                seal.body_id.clone(),
-                None,
-                MaskWardrobe::new(MaskWardrobeLifetime::Body, vec![mask.clone()], vec![mask])
-                    .map_err(|error| format!("wear attached terminal Mask: {error:?}"))?,
-            )
-            .map_err(|error| format!("scope attached terminal Mask: {error:?}"))?,
-            &routes,
-            None,
-        )
-        .map_err(|error| format!("select attached terminal Mask: {error:?}"))?;
+        frame_acknowledged = true;
+        owner.acknowledge_attached_terminal_show(&seal, &show)?;
         let advertisement = owner.host.advertisement().clone();
         runtime.terminal_route = Some(AttachedTerminalRoute {
             seal: seal.clone(),
             show: show.clone(),
-            wardrobe,
             execution,
-            acknowledged_show_selected: true,
         });
         wire::write_reply(
             stream,
@@ -113,7 +96,9 @@ pub(super) fn serve(
             // publishing a different offer generation would be false truth.
             retire(state_dir, runtime)?;
         }
-        if !attached_reply_sent {
+        if !attached_reply_sent || frame_acknowledged {
+            // After the actual frame was acknowledged, a later owner refusal
+            // is known. Before then a failed effect remains outcome-unknown.
             let _ = wire::write_reply(
                 stream,
                 &AttachReply::Refused {
@@ -127,6 +112,59 @@ pub(super) fn serve(
 }
 
 impl DurableHostRuntime {
+    fn advance_selected_speech_equipment(&mut self) -> Result<(), String> {
+        let Some(equipment) = &mut self.selected_speech_equipment else {
+            return Ok(());
+        };
+        let HostSource::Body { owner, .. } = &self.host else {
+            return Err("selected speech has no installed Body owner".into());
+        };
+        equipment.advance_offer_generation(owner.host.current())
+    }
+
+    pub(super) fn refresh_attached_terminal_show(
+        &mut self,
+        route_plan_id: &PlanId,
+        old_show: &MaskShow,
+    ) -> Result<(MaskShow, conduit_core::HostAdvertisement), String> {
+        use conduit_std_host::terminal_face_mask::TerminalMaskExecution;
+        let mut route = self
+            .terminal_route
+            .take()
+            .ok_or("no current attached terminal route")?;
+        let HostSource::Body {
+            owner,
+            running: None,
+            ..
+        } = &mut self.host
+        else {
+            return Err("terminal Show requires a lulled Body".into());
+        };
+        if &route.seal.route_plan_id != route_plan_id || &route.show != old_show {
+            self.terminal_route = Some(route);
+            return Err("attached terminal route or Show differs".into());
+        }
+        owner.validate_attached_terminal_route(&route.seal, old_show)?;
+        route
+            .execution
+            .validate_current_host(owner.host.advertisement())
+            .map_err(|error| format!("attached terminal Host changed: {error:?}"))?;
+        route
+            .execution
+            .close_without_input()
+            .map_err(|error| format!("close prior terminal Mask Play: {error:?}"))?;
+        let face = owner.local_face_snapshot()?;
+        let show = owner
+            .host
+            .current_mut()
+            .represent_attached_terminal_face_with_execution(&face, &mut route.execution)?;
+        owner.acknowledge_attached_terminal_show(&route.seal, &show)?;
+        let advertisement = owner.host.advertisement().clone();
+        route.show = show.clone();
+        self.terminal_route = Some(route);
+        Ok((show, advertisement))
+    }
+
     pub(super) fn attached_terminal_wardrobe(
         &mut self,
         route_plan_id: &PlanId,
@@ -149,64 +187,18 @@ impl DurableHostRuntime {
         if &route.seal.route_plan_id != route_plan_id || &route.show != show {
             return Err("attached terminal route or Show differs".into());
         }
-        owner.validate_attached_terminal_route(&route.seal, show)?;
         route
             .execution
             .validate_current_host(owner.host.advertisement())
             .map_err(|error| format!("attached terminal Host changed: {error:?}"))?;
-        let routes = owner.admit_attached_terminal_show(&route.seal, show)?;
         let mask = route.seal.planned_mask.mask.plot_identity.clone();
-        let transition = match command {
+        let action = match command {
             TerminalWardrobeCommand::Inspect => None,
             TerminalWardrobeCommand::Wear => Some(MaskWardrobeAction::Wear(mask)),
             TerminalWardrobeCommand::Doff => Some(MaskWardrobeAction::Doff(mask)),
             TerminalWardrobeCommand::Prefer => Some(MaskWardrobeAction::Prefer(vec![mask])),
-        }
-        .map(|action| {
-            route
-                .wardrobe
-                .apply(basis_revision, action, &routes)
-                .map_err(|error| format!("attached terminal wardrobe refused: {error:?}"))
-        })
-        .transpose()?;
-        if matches!(command, TerminalWardrobeCommand::Doff) {
-            route.acknowledged_show_selected = false;
-        }
-        let reconciliation = route
-            .wardrobe
-            .scoped_wardrobe
-            .wardrobe
-            .reconcile(
-                &route.wardrobe.active_plan_id,
-                routes.routes(),
-                route.wardrobe.selected.as_ref(),
-            )
-            .map_err(|error| format!("inspect attached terminal wardrobe: {error:?}"))?;
-        let selected = route.wardrobe.selected.as_ref();
-        Ok(serde_json::json!({
-            "schema": "conduit.body/attached-terminal-wardrobe@1",
-            "scope": "foreground-terminal-attachment",
-            "durable": false,
-            "body_id": route.seal.body_id,
-            "face_id": route.seal.face_id,
-            "face_revision": route.seal.face_revision,
-            "host_id": route.seal.owner_offer.host_id,
-            "boot_id": route.seal.owner_offer.boot_id,
-            "offer_generation": route.seal.owner_offer.offer_generation.0,
-            "route_plan_id": route.seal.route_plan_id,
-            "wardrobe": route.wardrobe.scoped_wardrobe.wardrobe,
-            "admitted_routes": routes.routes(),
-            "selected": selected,
-            "show_id": if route.acknowledged_show_selected && selected.is_some() {
-                Some(show.show_id.as_str())
-            } else {
-                None
-            },
-            "fresh_show_required": selected.is_some() && !route.acknowledged_show_selected,
-            "reconciliation": reconciliation,
-            "transition": transition,
-            "unadmitted_masks": "not selectable through this attached terminal route",
-        }))
+        };
+        owner.attached_terminal_wardrobe_report(&route.seal, show, basis_revision, action)
     }
 
     /// Only the installed owner can consume the retained Mask's typed return.
@@ -233,23 +225,25 @@ impl DurableHostRuntime {
         if &route.seal.route_plan_id != route_plan_id || &route.show != show {
             return Err("attached terminal route or Show differs".into());
         }
-        if !route.acknowledged_show_selected
-            || route.wardrobe.selected.as_ref().is_none_or(|selected| {
-                selected.plan_id != *route_plan_id
-                    || selected.mask_plot != route.seal.planned_mask.mask.plot_identity
-            })
-        {
-            return Err("attached terminal Mask is no longer selected".into());
-        }
-        owner.validate_attached_terminal_route(&route.seal, show)?;
+        owner.validate_selected_terminal_show(&route.seal, show)?;
         route
             .execution
             .validate_current_host(owner.host.advertisement())
             .map_err(|error| format!("attached terminal Host changed: {error:?}"))?;
+        owner.forget_attached_terminal_show(&route.seal);
         let correlated = route
             .execution
             .interact(interaction)
             .map_err(|error| format!("attached terminal Mask return refused: {error:?}"))?;
+        if correlated.interaction.action_id.starts_with("todo.") {
+            let resolved =
+                owner.resolve_committed_todo_interaction(show, &correlated.interaction)?;
+            let state_dir = root.clone();
+            // Consume and retire this exact Mask before StdHost moves into
+            // the next admitted workload Play. No concurrent Host is made.
+            retire(&state_dir, self)?;
+            return self.submit_committed_todo_action(show, &correlated.interaction, resolved);
+        }
         owner.apply_clock_interval_interaction(root, show, &correlated.interaction)
     }
 }
@@ -293,7 +287,9 @@ pub(super) fn is_attached(runtime: &mut DurableHostRuntime) -> bool {
             owner,
             running: None,
             ..
-        } => owner.host.current_mut().terminal_attachment_mut().is_some(),
+        } if !owner.host.is_playing() => {
+            owner.host.current_mut().terminal_attachment_mut().is_some()
+        }
         _ => false,
     }
 }
@@ -305,8 +301,7 @@ pub(super) fn retire_closed_attachment(
     runtime: &mut DurableHostRuntime,
 ) -> Result<(), String> {
     if !is_attached(runtime) {
-        runtime.terminal_route = None;
-        return Ok(());
+        return retire(state_dir, runtime);
     }
     let HostSource::Body { owner, .. } = &runtime.host else {
         unreachable!("only an installed Body can attach a terminal");
@@ -328,7 +323,11 @@ pub(super) fn retire_closed_attachment(
 }
 
 fn retire(state_dir: &Path, runtime: &mut DurableHostRuntime) -> Result<(), String> {
-    runtime.terminal_route = None;
+    if let Some(route) = runtime.terminal_route.take() {
+        if let HostSource::Body { owner, .. } = &mut runtime.host {
+            owner.forget_attached_terminal_show(&route.seal);
+        }
+    }
     if !is_attached(runtime) {
         return Ok(());
     }
@@ -336,6 +335,7 @@ fn retire(state_dir: &Path, runtime: &mut DurableHostRuntime) -> Result<(), Stri
         unreachable!("only an installed Body can attach a terminal");
     };
     owner.host.current_mut().detach_terminal_mask()?;
+    runtime.advance_selected_speech_equipment()?;
     refresh_marker(state_dir, runtime)
 }
 

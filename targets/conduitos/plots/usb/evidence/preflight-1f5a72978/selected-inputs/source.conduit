@@ -1,0 +1,282 @@
+with machine/usb/control/request as UsbControlRequest
+with machine/usb/control/result as UsbControlResult
+with machine/usb/endpoint-read/request as UsbEndpointReadRequest
+with machine/usb/endpoint-read/result as UsbEndpointReadResult
+with machine/usb/endpoint-write/request as UsbEndpointWriteRequest
+with machine/usb/endpoint-write/result as UsbEndpointWriteResult
+with flow/zip/feedback/paired as CdcSerialPair
+with flow/zip/finite/paired as CdcSerialControlPair
+# Ordered duplex serial octets. No Unicode, line discipline, device, USB,
+# address, line coding, clock or authority is selected by these values.
+type SerialTransmit = {
+    bytes: Bytes <= 2048B
+}
+type SerialReceive = {
+    maximum: U64
+}
+type SerialDuplexRequest =
+    transmit SerialTransmit
+    | receive SerialReceive
+# Ordinal counts requests in one admitted provider lifetime, across both
+# directions. Partial actual extents remain observations, never implicit retries.
+type SerialTransmitted = {
+    ordinal: U64
+    requested: U64
+    actual: U64
+}
+type SerialReceived = {
+    ordinal: U64
+    requested: U64
+    actual: U64
+    short: Boolean
+    bytes: Bytes <= 2048B
+}
+type SerialDuplexResult =
+    transmitted SerialTransmitted
+    | received SerialReceived
+    | stalled
+    | provider-lost
+    | unsupported
+    | timeout
+
+# A finite, setup-once CDC realization of generic duplex serial octets.
+type CdcAcmDescriptorSupported = {
+    supported: Boolean
+}
+type CdcSerialControl = {
+    result: UsbControlResult
+    descriptor: Boolean
+    set-coding: Boolean
+    coding: Boolean
+    ack: Boolean
+}
+type CdcSerialEvent =
+    closed
+    | serial SerialDuplexResult
+    | command SerialDuplexRequest
+    | control CdcSerialControl
+    | write UsbEndpointWriteResult
+    | read UsbEndpointReadResult
+type CdcSerialState = {
+    request: SerialDuplexRequest
+    phase: U64
+    operations: U64
+    reads: U64
+    terminal: Boolean
+}
+type CdcSerialRoute =
+    ready CdcSerialState
+    | control CdcSerialState
+    | write CdcSerialState
+    | read CdcSerialState
+    | stopped CdcSerialState
+type CdcSerialPending =
+    running CdcSerialState
+    | stopped
+type CdcSerialTransition = {
+    previous: CdcSerialState
+    event: CdcSerialEvent
+    accepted: Boolean
+}
+type CdcSerialEmission =
+    emit SerialDuplexResult
+    | absent
+
+# Descriptive Root-selected geometry is information, never possession or grants.
+# The configuration is an actual frozen standard-descriptor completion.
+type UsbDiscoveryGeometry = {
+    address: U64
+    epoch: U64
+    interval: U64
+    packet: U64
+    transfer: U64
+}
+type UsbDiscoverySelection =
+    absent
+    | selected UsbDiscoveryGeometry
+type UsbProtocolDiscovery = {
+    attachment: U64
+    configuration: UsbControlResult
+    read: UsbDiscoverySelection
+    write: UsbDiscoverySelection
+}
+
+# The pure finite join completes after both immutable observations close.
+
+# Pin the complete 67-byte first-profile descriptor, including CDC Header,
+# Call Management, ACM and Union records, comm0/data1 and bulk81/02 max64.
+# Notification83 is recognized but unconsumed: unsolicited notification policy
+# is unsupported by this first control+bulk profile; no IRQ provider is selected.
+type CdcAcmTopologyObservation = {
+    completion: UsbControlResult
+    selections: Boolean
+}
+plot cdc-acm-topology-supported (
+    observation: CdcAcmTopologyObservation...| >> supported: Boolean...|
+) = (!.selections ? false : !(.completion is completed) ? false : (.completion.completed.transferred != 67 || .completion.completed.short || sequence/length(.completion.completed.input) != 67 ? false : (((((((sequence/at(.completion.completed.input, 0) == 9 && sequence/at(.completion.completed.input, 1) == 2) && (sequence/at(.completion.completed.input, 2) == 67 && sequence/at(.completion.completed.input, 3) == 0)) && ((sequence/at(.completion.completed.input, 4) == 2 && sequence/at(.completion.completed.input, 5) == 1) && (sequence/at(.completion.completed.input, 6) == 0 && sequence/at(.completion.completed.input, 7) == 128))) && (((sequence/at(.completion.completed.input, 8) == 50 && sequence/at(.completion.completed.input, 9) == 9) && (sequence/at(.completion.completed.input, 10) == 4 && sequence/at(.completion.completed.input, 11) == 0)) && ((sequence/at(.completion.completed.input, 12) == 0 && sequence/at(.completion.completed.input, 13) == 1) && (sequence/at(.completion.completed.input, 14) == 2 && sequence/at(.completion.completed.input, 15) == 2)))) && ((((sequence/at(.completion.completed.input, 16) == 1 && sequence/at(.completion.completed.input, 17) == 0) && (sequence/at(.completion.completed.input, 18) == 5 && sequence/at(.completion.completed.input, 19) == 36)) && ((sequence/at(.completion.completed.input, 20) == 0 && sequence/at(.completion.completed.input, 21) == 16) && (sequence/at(.completion.completed.input, 22) == 1 && sequence/at(.completion.completed.input, 23) == 5))) && (((sequence/at(.completion.completed.input, 24) == 36 && sequence/at(.completion.completed.input, 25) == 1) && (sequence/at(.completion.completed.input, 26) == 0 && sequence/at(.completion.completed.input, 27) == 1)) && ((sequence/at(.completion.completed.input, 28) == 4 && sequence/at(.completion.completed.input, 29) == 36) && (sequence/at(.completion.completed.input, 30) == 2 && (sequence/at(.completion.completed.input, 31) == 2 && sequence/at(.completion.completed.input, 32) == 5)))))) && (((((sequence/at(.completion.completed.input, 33) == 36 && sequence/at(.completion.completed.input, 34) == 6) && (sequence/at(.completion.completed.input, 35) == 0 && sequence/at(.completion.completed.input, 36) == 1)) && ((sequence/at(.completion.completed.input, 37) == 7 && sequence/at(.completion.completed.input, 38) == 5) && (sequence/at(.completion.completed.input, 39) == 131 && sequence/at(.completion.completed.input, 40) == 3))) && (((sequence/at(.completion.completed.input, 41) == 16 && sequence/at(.completion.completed.input, 42) == 0) && (sequence/at(.completion.completed.input, 43) == 16 && sequence/at(.completion.completed.input, 44) == 9)) && ((sequence/at(.completion.completed.input, 45) == 4 && sequence/at(.completion.completed.input, 46) == 1) && (sequence/at(.completion.completed.input, 47) == 0 && (sequence/at(.completion.completed.input, 48) == 2 && sequence/at(.completion.completed.input, 49) == 10))))) && ((((sequence/at(.completion.completed.input, 50) == 0 && sequence/at(.completion.completed.input, 51) == 0) && (sequence/at(.completion.completed.input, 52) == 0 && sequence/at(.completion.completed.input, 53) == 7)) && ((sequence/at(.completion.completed.input, 54) == 5 && sequence/at(.completion.completed.input, 55) == 129) && (sequence/at(.completion.completed.input, 56) == 2 && sequence/at(.completion.completed.input, 57) == 64))) && (((sequence/at(.completion.completed.input, 58) == 0 && sequence/at(.completion.completed.input, 59) == 0) && (sequence/at(.completion.completed.input, 60) == 7 && sequence/at(.completion.completed.input, 61) == 5)) && ((sequence/at(.completion.completed.input, 62) == 2 && sequence/at(.completion.completed.input, 63) == 2) && (sequence/at(.completion.completed.input, 64) == 64 && (sequence/at(.completion.completed.input, 65) == 0 && sequence/at(.completion.completed.input, 66) == 0))))))))))
+
+plot cdc-acm-no-data-ack (
+    completion: UsbControlResult...| >> supported: Boolean...|
+) = (!(. is completed) ? false : (.completed.transferred == 0 && !.completed.short && sequence/length(.completed.input) == 0))
+
+plot cdc-acm-line-coding-ack (
+    completion: UsbControlResult...| >> supported: Boolean...|
+) = (!(. is completed) ? false : (.completed.transferred != 7 || .completed.short || sequence/length(.completed.input) != 7 ? false : (sequence/at(.completed.input, 0) == 0 && sequence/at(.completed.input, 1) == 194 && sequence/at(.completed.input, 2) == 1 && sequence/at(.completed.input, 3) == 0 && sequence/at(.completed.input, 4) == 0 && sequence/at(.completed.input, 5) == 0 && sequence/at(.completed.input, 6) == 8)))
+
+
+# Pure Root preflight and the class Back share the SAME checked topology law.
+# Descriptive geometry is checked here; it creates no native authority.
+plot cdc-serial-root-topology-observation (
+    discovery: UsbProtocolDiscovery...| >> observation: CdcAcmTopologyObservation...|
+) = ({ completion: .configuration, selections: (.attachment == 0 || !(.read is selected) || !(.write is selected) ? false : ((.read.selected.address == 129 && .read.selected.transfer == 2 && .read.selected.packet == 64 && .read.selected.interval == 0 && .read.selected.epoch > 0) && (.write.selected.address == 2 && .write.selected.transfer == 2 && .write.selected.packet == 64 && .write.selected.interval == 0 && .write.selected.epoch > 0))) })
+# The certified class path consumes an already accepted Root handoff. Native
+# class completion remains untouched; this is a pure policy observation.
+plot cdc-serial-class-topology-observation (
+    completion: UsbControlResult...| >> observation: CdcAcmTopologyObservation...|
+) = ({ completion: ., selections: true })
+plot cdc-serial-profile-preflight (
+    >> discovery: UsbProtocolDiscovery...|
+    supported: Boolean...| >>
+) {
+    discovery >> cdc-serial-root-topology-observation() >> cdc-acm-topology-supported() >> supported
+}
+
+plot cdc-serial-closed (
+    start: Text >> event: CdcSerialEvent
+) = (closed(empty))
+plot cdc-serial-start (
+    start: CdcSerialEvent...| >> state: CdcSerialState...|
+) = ({ request: receive({ maximum: 64 }), phase: 0, operations: 0, reads: 0, terminal: false })
+plot cdc-serial-route (
+    state: CdcSerialState...| >> route: CdcSerialRoute...|
+) = (.terminal || .phase > 8 || .operations > 32 ? stopped(.) : (.phase == 0 || .phase == 8 ? ready(.) : (.phase <= 5 ? control(.) : (.phase == 6 ? write(.) : read(.)))))
+plot cdc-serial-pending (
+    route: CdcSerialRoute...| >> pending: CdcSerialPending...|
+) = (. is stopped ? stopped(empty) : (. is ready ? running(.ready) : (. is control ? running(.control) : (. is write ? running(.write) : running(.read)))))
+plot cdc-serial-command (
+    request: SerialDuplexRequest...| >> event: CdcSerialEvent...|
+) = (command(.))
+plot cdc-serial-command-event (
+    pair: CdcSerialPair...| >> event: CdcSerialEvent...|
+) = (.1)
+plot cdc-serial-control-request (
+    state: CdcSerialState...| >> request: UsbControlRequest...|
+) = (.phase == 1 ? { setup: 0x0043000002000680, output: [] } : (.phase == 2 ? { setup: 0x0000000000010900, output: [] } : (.phase == 3 ? { setup: 0x0007000000002021, output: [0, 194, 1, 0, 0, 0, 8] } : (.phase == 4 ? { setup: 0x00070000000021a1, output: [] } : { setup: 0x0000000000032221, output: [] }))))
+plot cdc-serial-write-request (
+    state: CdcSerialState...| >> request: UsbEndpointWriteRequest...|
+) = ({ wire: .request.transmit.bytes })
+plot cdc-serial-read-request (
+    state: CdcSerialState...| >> request: UsbEndpointReadRequest...|
+) = ({ length: .request.receive.maximum })
+plot cdc-serial-descriptor-flag (
+    supported: Boolean...| >> flag: CdcAcmDescriptorSupported...| <= 256B
+) = ({ supported: . })
+plot cdc-serial-control-event (
+    pair: CdcSerialControlPair...| >> event: CdcSerialEvent...|
+) = (control({ result: .0, descriptor: .1.supported, set-coding: !(.0 is completed) ? false : (.0.completed.transferred == 7 && !.0.completed.short && sequence/length(.0.completed.input) == 0), coding: !(.0 is completed) ? false : (.0.completed.transferred != 7 || .0.completed.short || sequence/length(.0.completed.input) != 7 ? false : (((sequence/at(.0.completed.input, 0) == 0 && (sequence/at(.0.completed.input, 1) == 194 && sequence/at(.0.completed.input, 2) == 1)) && ((sequence/at(.0.completed.input, 3) == 0 && sequence/at(.0.completed.input, 4) == 0) && (sequence/at(.0.completed.input, 5) == 0 && sequence/at(.0.completed.input, 6) == 8))))), ack: !(.0 is completed) ? false : (.0.completed.transferred == 0 && !.0.completed.short && sequence/length(.0.completed.input) == 0) }))
+plot cdc-serial-observe-control (
+    >> result: UsbControlResult...| <= 4096B
+    event: CdcSerialEvent...| <= 4096B >>
+) {
+    pair: flow/zip/finite
+    result >> pair.left
+    result >> cdc-serial-class-topology-observation() >> cdc-acm-topology-supported() >> cdc-serial-descriptor-flag() >> pair.right
+    pair.paired >> cdc-serial-control-event() >> event
+}
+plot cdc-serial-write-event (
+    result: UsbEndpointWriteResult...| >> event: CdcSerialEvent...|
+) = (write(.))
+plot cdc-serial-read-event (
+    result: UsbEndpointReadResult...| >> event: CdcSerialEvent...|
+) = (read(.))
+plot cdc-serial-accept (
+    pair: CdcSerialPair...| >> transition: CdcSerialTransition...|
+) = ({ previous: .0, event: .1, accepted: .0.terminal || .0.operations > 32 || .0.phase > 8 ? false : (.0.phase == 0 || .0.phase == 8 ? (.1 is closed ? true : (.1 is command && .0.operations < 32 ? (.1.command is transmit ? bytes/length(.1.command.transmit.bytes) <= 64 : (.1.command.receive.maximum > 0 && .1.command.receive.maximum <= 64)) : false)) : (.0.phase <= 5 ? (.1 is control ? (.0.phase == 1 ? .1.control.descriptor : (.0.phase == 3 ? .1.control.set-coding : (.0.phase == 4 ? .1.control.coding : .1.control.ack))) : false) : (.0.phase == 6 ? (.1 is write ? (.1.write is completed ? .1.write.completed.actual <= bytes/length(.0.request.transmit.bytes) : false) : false) : (.1 is read ? (.1.read is completed ? (.1.read.completed.ordinal == .0.reads && .1.read.completed.actual <= .0.request.receive.maximum && .1.read.completed.actual == bytes/length(.1.read.completed.wire) && .1.read.completed.short == (.1.read.completed.actual < .0.request.receive.maximum)) : false) : false)))) })
+plot cdc-serial-advance (
+    transition: CdcSerialTransition...| >> next: CdcSerialState...|
+) = ({ request: .accepted && .event is command && (.previous.phase == 0 || .previous.phase == 8) ? .event.command : .previous.request, phase: !.accepted || .event is closed ? 9 : (.previous.phase == 0 ? 1 : (.previous.phase == 8 || .previous.phase == 5 ? ((.previous.phase == 8 ? .event.command : .previous.request) is transmit ? 6 : 7) : (.previous.phase < 5 ? .previous.phase + 1 : 8))), operations: .accepted && (.previous.phase == 6 || .previous.phase == 7) && .previous.operations < 32 ? .previous.operations + 1 : .previous.operations, reads: .accepted && .previous.phase == 7 && .previous.reads < 32 ? .previous.reads + 1 : .previous.reads, terminal: !.accepted || .event is closed })
+plot cdc-serial-emission (
+    transition: CdcSerialTransition...| >> emission: CdcSerialEmission...|
+) = (.accepted ? (.previous.phase == 6 ? emit(transmitted({ ordinal: .previous.operations, requested: bytes/length(.previous.request.transmit.bytes), actual: .event.write.completed.actual })) : (.previous.phase == 7 ? emit(received({ ordinal: .previous.operations, requested: .previous.request.receive.maximum, actual: .event.read.completed.actual, short: .event.read.completed.short, bytes: .event.read.completed.wire })) : absent(empty))) : emit(.event is closed ? unsupported(empty) : (.event is serial ? unsupported(empty) : (.event is command ? unsupported(empty) : (.event is control ? (.event.control.result is stalled ? stalled(empty) : (.event.control.result is provider-lost ? provider-lost(empty) : unsupported(empty))) : (.event is write ? (.event.write is stalled ? stalled(empty) : (.event.write is provider-lost ? provider-lost(empty) : unsupported(empty))) : (.event.read is stalled ? stalled(empty) : (.event.read is provider-lost ? provider-lost(empty) : (.event.read is timeout ? timeout(empty) : unsupported(empty))))))))))
+
+# Genuine one semantic request per corresponding result; no synthetic repeated
+# transmissions. This first bounded profile supports at most32 operations.
+# Root must select this checked Plot Back exactly, admit its USB subordinate
+# calls and storage, and supply a reviewed bounded producer/consumer.
+# Ordered concat appends exactly one closing event after the request Flow.
+# The readiness feedback gate observes it after the final physical completion.
+plot cdc-serial-provider (
+    request: SerialDuplexRequest...| <= 4096B >> result: SerialDuplexResult...| <= 4096B
+) {
+    singleton: flow/singleton
+    cell: state/seeded/flow/until
+    route: cdc-serial-route()
+    join: flow/zip/feedback
+    commands: flow/zip/feedback
+    requests: flow/concat/finite
+    events: flow/merge/finite
+    transport-events: flow/merge/finite
+    bulk-events: flow/merge/finite
+    control: machine/usb/control
+    observe-control: cdc-serial-observe-control
+    write: machine/usb/endpoint-write
+    read: machine/usb/endpoint-read
+    "start" >> cdc-serial-closed() >> singleton.value
+    singleton.flow >> cdc-serial-start() >> cell.seed
+    singleton.flow >> requests.right
+    request >> cdc-serial-command() >> requests.left
+    requests.concatenated >> commands.right
+    cell.current >> route
+    route >> cdc-serial-pending() >> select(CdcSerialPending.running, unmatched=drop) >> join.left
+    route >> select(CdcSerialRoute.ready, unmatched=drop) >> commands.left
+    commands.paired >> cdc-serial-command-event() >> events.left
+    route >> select(CdcSerialRoute.control, unmatched=drop) >> cdc-serial-control-request() >> control.request
+    route >> select(CdcSerialRoute.write, unmatched=drop) >> cdc-serial-write-request() >> write.request
+    route >> select(CdcSerialRoute.read, unmatched=drop) >> cdc-serial-read-request() >> read.request
+    control.result >> observe-control.result
+    observe-control.event >> transport-events.left
+    write.result >> cdc-serial-write-event() >> bulk-events.left
+    read.result >> cdc-serial-read-event() >> bulk-events.right
+    bulk-events.merged >> transport-events.right
+    transport-events.merged >> events.right
+    events.merged >> join.right
+    join.paired >> cdc-serial-accept() >> cdc-serial-advance() >> cell.next
+    join.paired >> cdc-serial-accept() >> cdc-serial-emission() >> select(CdcSerialEmission.emit, unmatched=drop) >> result
+}
+
+# Reviewable bounded semantic producer: explicitly request sixteen transmissions
+# of the admitted seed and sixteen receives. The CDC Back never invents these.
+plot cdc-serial-producer-start (
+    seed: SerialDuplexRequest...| >> state: CdcSerialState...|
+) = ({ request: ., phase: 0, operations: 0, reads: 0, terminal: !(. is transmit) ? true : bytes/length(.transmit.bytes) > 64 })
+plot cdc-serial-producer-route (
+    state: CdcSerialState...| >> route: CdcSerialPending...|
+) = (.terminal || .operations >= 32 ? stopped(empty) : running(.))
+plot cdc-serial-producer-request (
+    state: CdcSerialState...| >> request: SerialDuplexRequest...|
+) = (.operations % 2 == 0 ? .request : receive({ maximum: 64 }))
+plot cdc-serial-producer-result-event (
+    result: SerialDuplexResult...| >> event: CdcSerialEvent...|
+) = (serial(.))
+plot cdc-serial-producer-next (
+    pair: CdcSerialPair...| >> state: CdcSerialState...|
+) = ({ request: .0.request, phase: 0, reads: 0, operations: .0.operations < 32 ? .0.operations + 1 : .0.operations, terminal: .0.terminal || .0.operations >= 31 || !(.1 is serial) ? true : (.0.operations % 2 == 0 ? (.1.serial is transmitted ? (.1.serial.transmitted.ordinal != .0.operations || .1.serial.transmitted.requested != bytes/length(.0.request.transmit.bytes) || .1.serial.transmitted.actual != .1.serial.transmitted.requested) : true) : (.1.serial is received ? (.1.serial.received.ordinal != .0.operations || .1.serial.received.requested != 64 || .1.serial.received.actual > 64 || .1.serial.received.actual != bytes/length(.1.serial.received.bytes) || .1.serial.received.short != (.1.serial.received.actual < 64)) : true)) })
+# This consumer preserves typed observations and opaque octets; it does not
+# claim these serial bytes are text or implicitly apply UTF8/framing/TTY policy.
+plot cdc-serial-consumer (
+    result: SerialDuplexResult...| >> observation: SerialDuplexResult...|
+) = (.)
+plot cdc-serial-duplex-demonstration (
+    >> seed: SerialDuplexRequest...|
+    observation: SerialDuplexResult...| >>
+) {
+    producer: state/seeded/flow/until
+    join: flow/zip/feedback
+    provider: serial/duplex-bytes
+    seed >> cdc-serial-producer-start() >> producer.seed
+    producer.current >> cdc-serial-producer-route() >> select(CdcSerialPending.running, unmatched=drop) >> cdc-serial-producer-request() >> provider.request
+    producer.current >> cdc-serial-producer-route() >> select(CdcSerialPending.running, unmatched=drop) >> join.left
+    provider.result >> cdc-serial-producer-result-event() >> join.right
+    provider.result >> cdc-serial-consumer() >> observation
+    join.paired >> cdc-serial-producer-next() >> producer.next
+}

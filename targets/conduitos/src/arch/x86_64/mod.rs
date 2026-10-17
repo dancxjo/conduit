@@ -1,13 +1,29 @@
 mod acpi;
 mod cpu;
-#[cfg(feature = "native-owner-network")]
 mod deadline;
+#[cfg(target_os = "none")]
+mod domain_budget;
+#[cfg(target_os = "none")]
+mod domain_memory;
+#[cfg(target_os = "none")]
+mod domain_transition;
 mod entropy;
 mod ftdi_line;
 mod gdt;
+#[cfg(target_os = "none")]
+#[path = "../ordinary_domain.rs"]
+mod ordinary_domain;
+
+#[cfg(target_os = "none")]
+fn domain_ticks() -> u64 {
+    cpu::read_tsc()
+}
+#[cfg(target_os = "none")]
+pub use ordinary_domain::TextDomain;
 mod hid;
 mod hid_pointer;
 mod hid_transfer_ring;
+mod i2c_pci;
 mod i2c_ports;
 mod idt;
 mod interrupt_controller;
@@ -24,7 +40,7 @@ mod providers;
 mod ps2;
 mod reboot;
 mod serial;
-mod usb;
+pub(crate) use super::usb_xhci as usb;
 mod virtio_net;
 mod virtio_net_pci;
 mod xhci;
@@ -32,6 +48,9 @@ mod xhci;
 pub use cpu::{boot_entropy, deterministic_exit, emergency_halt, feature_basis};
 #[cfg(feature = "native-owner-network")]
 pub use deadline::CandidateDeadline;
+pub use deadline::{
+    NativeMonotonicDeadlineClock, admitted_monotonic_deadline_clock, space_protocol_clock_poll,
+};
 
 pub const fn emergency_machine_profile() -> crate::machine::EmergencyMachineProfile {
     crate::machine::EmergencyMachineProfile {
@@ -53,7 +72,10 @@ pub use hid_pointer::{
     HidPointerError, HidPointerReady, HidPointerSession, prepare_boot_pointer,
     start_pointer_session,
 };
-pub use i2c_ports::{I801PortWindow, admitted_i801_block_read_ports, admitted_i801_ports};
+pub use i2c_pci::{I801PciObservation, I801PciRefusal, observe_i801_pci};
+pub use i2c_ports::{
+    I801PortWindow, admitted_i801_block_read_ports, admitted_i801_pci_ports, admitted_i801_ports,
+};
 pub use opl2::Opl2;
 pub use pc_speaker::PcSpeaker;
 #[cfg(feature = "conduitos-isolation-proof")]
@@ -65,10 +87,17 @@ pub const fn pc_speaker_input_hz() -> u64 {
     pc_speaker::PIT_INPUT_HZ
 }
 pub use reboot::{RebootBase, RebootError, local_reboot_base};
-pub use serial::early_write;
+pub use serial::{append_boot_diagnostic, early_write};
 pub use usb::{
-    UsbDevice, enumerate_attached_at_epochs, enumerate_one as enumerate_usb,
-    enumerate_one_at_epoch, retire_removed_device, wait_for_attachment_state,
+    AttachmentBaseline, NativeUsbControlCall, ReadyUsbControlBase, UsbConfigurationSnapshot,
+    UsbControlCallRefusal, UsbControlHostCall, UsbControlSelection, UsbDevice,
+    address_selected_root_port_at_epoch, discover_configuration, enumerate_attached_at_epochs,
+    enumerate_one as enumerate_usb, enumerate_one_at_epoch, enumerate_selected_root_port_at_epoch,
+    retire_removed_device, wait_for_attachment_state,
+};
+#[cfg(feature = "scripted-keyboard-proof")]
+pub use usb::{
+    run_usb_configuration_probe_proof, run_usb_control_kernel_proof, run_usb_device_probe_proof,
 };
 pub use virtio_net::{VirtioNetError, VirtioNetIdentity, VirtioNetReady, initialize_virtio_net};
 pub use xhci::{XhciReady, initialize_xhci};
@@ -82,3 +111,19 @@ extern "C" fn conduitos_exception_handler(vector: u64) -> ! {
     serial::early_write(b"\n");
     cpu::deterministic_exit(false)
 }
+
+#[cfg(feature = "usb-endpoint-read-proof")]
+pub use usb::run_usb_endpoint_read_proof;
+
+pub use usb::{
+    EndpointNativeRefusal, EndpointWriteNativeRefusal, UsbNativeHostRefusal,
+    UsbNativeProtocolRefusal,
+};
+pub(crate) use usb::{
+    NativeUsbDuplexHost, NativeUsbProtocolHost, ReadyUsbDuplexHost, ReadyUsbProtocolHost,
+};
+pub(crate) use usb::{
+    UsbConfiguredInboundEndpoint, UsbConfiguredOutboundEndpoint, UsbEndpointReceiveDma,
+    UsbEndpointTransmitDma, UsbInboundEndpointParameters, UsbOutboundEndpointParameters,
+    configure_usb_inbound, configure_usb_outbound,
+};

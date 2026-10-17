@@ -132,7 +132,8 @@ operation.text >> upper
             &mut RecordingTimer { waits: Vec::new() },
         )
         .unwrap_err();
-    assert!(refusal.contains("one exact input Flow"));
+    // Multi-Flow sequences still cannot reinterpret this Value port as a Flow.
+    assert!(refusal.contains("exact closing input Flows"));
 }
 
 #[test]
@@ -430,7 +431,7 @@ fn finite_sequence_uses_one_sealed_flow_and_delivers_in_order_under_capacity_one
         )
         .unwrap_err()
         .contains("sealed input Flow"));
-    let oversized = vec![values[0].clone(); 33];
+    let oversized = vec![values[0].clone(); 65];
     assert!(host_with_commit()
         .run_external_plot_sequence_to(
             plan.fragments[0].clone(),
@@ -440,5 +441,5 @@ fn finite_sequence_uses_one_sealed_flow_and_delivers_in_order_under_capacity_one
             &mut RecordingTimer { waits: Vec::new() },
         )
         .unwrap_err()
-        .contains("one to 32"));
+        .contains("one to 64"));
 }

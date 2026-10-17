@@ -1,4 +1,4 @@
-use conduit_core::{Quantity, QuantityUnit, TemporalInstant, TemporalScale};
+use conduit_core::{Quantity, TemporalInstant, TemporalScale, Unit};
 use conduit_data::*;
 use conduit_plot::{
     check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
@@ -9,8 +9,8 @@ fn window(count: usize) -> BoundedMeasurementWindow {
     let mut window = BoundedMeasurementWindow::new(MeasurementWindowProfile {
         capacity: 8,
         range: MeasurementRange {
-            minimum: Quantity::new(-100, QuantityUnit::Millivolt),
-            maximum: Quantity::new(100, QuantityUnit::Millivolt),
+            minimum: Quantity::new(-100, Unit::Millivolt),
+            maximum: Quantity::new(100, Unit::Millivolt),
         },
         clock_basis: "fixture-clock".into(),
         full_policy: FullWindowPolicy::Reject,
@@ -19,7 +19,7 @@ fn window(count: usize) -> BoundedMeasurementWindow {
     for index in 0..count {
         window
             .push(MeasurementSample {
-                value: Quantity::new(-100 + index as i64 * 25, QuantityUnit::Millivolt),
+                value: Quantity::new(-100 + index as i64 * 25, Unit::Millivolt),
                 observed_at: TemporalInstant {
                     ticks: index as u64 + 1,
                     scale: TemporalScale::Milliseconds,

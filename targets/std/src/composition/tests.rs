@@ -27,14 +27,14 @@ fn a_selected_family_contributes_only_its_exact_operation_offers() {
     assert!(offered(&host, "text/literal"));
     assert!(offered(&host, "text/upper"));
     assert!(offered(&host, "text/join"));
-    assert!(offered(&host, "presentation/text"));
+    assert!(offered(&host, "face/text"));
     assert!(!offered(&host, "flow/pulse"));
     assert!(!offered(&host, "time/every"));
     assert!(!offered(&host, "state/count"));
     assert_eq!(host.advertisement().resources.len(), 1);
     assert_eq!(
         host.advertisement().resources[0].pool_id.as_str(),
-        "std/presentation"
+        "std/face"
     );
 }
 
@@ -92,7 +92,7 @@ fn compiled_families_are_not_ambient_runtime_promises() {
 
     for kind in [
         "flow/pulse",
-        "presentation/show",
+        "face/show",
         "time/tick",
         "time/every",
         "time/debounce",
@@ -102,10 +102,10 @@ fn compiled_families_are_not_ambient_runtime_promises() {
         "text/literal",
         "text/upper",
         "text/join",
-        "presentation/text",
+        "face/text",
         "state/count",
         "state/toggle",
-        "presentation/count",
+        "face/count",
         "state/latest",
         "flow/tee",
         "flow/gate",
@@ -169,10 +169,17 @@ fn reference_host_advertises_every_supported_std_revision_and_no_legacy_revision
         .filter(|offer| {
             let revision = offer.kind_contract_revision.as_str();
             offer.kind_id.as_str() != conduit_semantic_catalog::INSTRUMENT_MAP_KIND
+                && offer.kind_id.as_str() != conduit_semantic_catalog::QUANTITY_FACE_KIND
+                && offer.kind_id.as_str() != conduit_semantic_catalog::SCALAR_LITERAL_KIND
                 && (revision.starts_with("conduit.std/")
                     || revision.starts_with("conduit.input/")
-                    || offer.kind_id.as_str() == conduit_semantic_catalog::BOOL_PRESENTATION_KIND
-                    || offer.kind_id.as_str() == conduit_presentation::BITMAP_PRESENTATION_KIND)
+                    || offer.kind_id.as_str() == conduit_semantic_catalog::BOOL_FACE_KIND
+                    || offer.kind_id.as_str() == conduit_face::BITMAP_FACE_KIND
+                    || offer.kind_id.as_str() == conduit_semantic_catalog::AUDIO_TIME_ANALYSIS_KIND
+                    || offer.kind_id.as_str()
+                        == conduit_semantic_catalog::AUDIO_SPECTRAL_ANALYSIS_KIND
+                    || offer.kind_id.as_str()
+                        == conduit_semantic_catalog::AUDIO_PITCH_ANALYSIS_KIND)
         })
         .cloned()
         .collect::<Vec<_>>();
@@ -193,6 +200,16 @@ fn reference_host_advertises_every_supported_std_revision_and_no_legacy_revision
         .capabilities
         .iter()
         .any(|offer| { offer == &conduit_std_offers::instrument_map_std_offer() }));
+    assert!(host
+        .advertisement()
+        .capabilities
+        .iter()
+        .any(|offer| { offer == &conduit_std_offers::quantity_face_std_offer() }));
+    assert!(host
+        .advertisement()
+        .capabilities
+        .iter()
+        .any(|offer| offer == &conduit_std_offers::scalar_literal_std_offer()));
 }
 
 #[test]

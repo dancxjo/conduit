@@ -27,10 +27,16 @@ impl DurableHostRuntime {
         interaction: &FaceInteraction,
     ) -> Result<serde_json::Value, String> {
         {
-            let HostSource::Body { owner, .. } = &self.host else {
+            let HostSource::Body { owner, .. } = &mut self.host else {
                 return Err("installed Host does not own a live Body session".into());
             };
-            owner.validate_browser_mask_show(window_id, binding, request, show)?;
+            owner.validate_browser_mask_interaction(
+                window_id,
+                binding,
+                request,
+                show,
+                interaction,
+            )?;
         }
         self.owned_body_clock_action(Some(request), show, interaction)
     }
@@ -43,10 +49,10 @@ impl DurableHostRuntime {
         show: &MaskShow,
         interaction: &FaceInteraction,
     ) -> Result<serde_json::Value, String> {
-        let HostSource::Body { owner, .. } = &self.host else {
+        let HostSource::Body { owner, .. } = &mut self.host else {
             return Err("installed Host does not own a live Body session".into());
         };
-        owner.validate_native_mask_show(request, show)?;
+        owner.validate_native_mask_interaction(request, show, interaction)?;
         self.owned_body_clock_action(Some(request), show, interaction)
     }
 
@@ -67,13 +73,26 @@ impl DurableHostRuntime {
                 if show.show.host_id != request.host_id
                     || show.show.boot_id != request.boot_id
                     || show.show.body_id.as_ref() != Some(&request.body_id)
-                    || show.presentation_id != face.identity
-                    || show.presentation_revision != face.revision
+                    || show.face_id != face.identity
+                    || show.face_revision != face.revision
                 {
                     return Err("browser-show-basis-mismatch".into());
                 }
             }
-            owner.resolve_clock_interaction(show, interaction)?
+            if interaction.action_id.starts_with("todo.")
+                || interaction.action_id.starts_with("thermostat.")
+            {
+                None
+            } else {
+                Some(owner.resolve_clock_interaction(show, interaction)?)
+            }
+        };
+        let Some(action) = action else {
+            return if interaction.action_id.starts_with("thermostat.") {
+                self.submit_owned_thermostat_action(show, interaction)
+            } else {
+                self.submit_owned_todo_action(show, interaction)
+            };
         };
         match action {
             crate::durable_host::owner::ClockAction::ChangeInterval => {
@@ -91,7 +110,7 @@ impl DurableHostRuntime {
                 owner.apply_clock_interval_interaction(root, show, interaction)
             }
             crate::durable_host::owner::ClockAction::Start => {
-                self.start_owned_body(crate::durable_host::owner::CLOCK_RUN_MAXIMUM_MILLIS)?;
+                self.start_owned_body(crate::durable_host::owner::CLOCK_RUN_MAXIMUM_MILLIS, None)?;
                 Ok(serde_json::json!({
                     "schema":"conduit.body/clock-start-requested@1",
                     "body_id":show.show.body_id,

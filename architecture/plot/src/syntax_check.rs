@@ -4,7 +4,6 @@ use crate::checked_syntax::{
     KindSignature, SourceSugarExpansion, SourceSugarOperandBinding, StartupCatalog,
     StartupParameterSignature, SyntaxCheckDiagnostic, SyntaxCheckError,
 };
-use crate::hash_string;
 use crate::prelude::*;
 use crate::syntax::{
     Argument, BackStatement, CordStage, Invocation, MatchedRoute, MatchedRoutePattern, PlotSyntax,
@@ -13,17 +12,19 @@ use crate::syntax::{
 use crate::syntax_identity::{canonical_cord, canonical_gear, checked_identity};
 use alloc::collections::{BTreeMap, BTreeSet};
 use conduit_core::{
-    CheckedFront, SourceDocumentId, StructuredInfoTypeShape, StructuredSelector,
-    UnmatchedVariantDisposition,
+    CheckedFront, StructuredInfoTypeShape, StructuredSelector, UnmatchedVariantDisposition,
 };
 
+mod expression_body;
+use expression_body::expression_body_expansion;
 mod lexical_plots;
 mod matched_route;
 mod resolution;
 mod shared_pool;
 mod specialization;
 mod structured_selector;
-use resolution::{is_atomic_literal, Resolver};
+use resolution::is_atomic_literal;
+pub(crate) use resolution::Resolver;
 use shared_pool::{check_pool_declarations, checked_pool};
 use specialization::specialize_named_type_parameters;
 
@@ -61,9 +62,20 @@ pub(crate) fn check_document(
             message: diagnostic.message.clone(),
         });
     }
-    let aliased_catalog = crate::native_type::install_import_aliases(document, catalog)?;
+    let physical_catalog =
+        crate::physical_declarations::context::install_borrowed(document, catalog)?;
+    let aliased_catalog =
+        crate::native_type::install_import_aliases_borrowed(document, &physical_catalog)?;
+    let glyph_notation_scope = crate::resolve_glyph_notation_scope(document, catalog)?;
+    let glyph_notations = crate::glyph_notation::verify_declarations(document, catalog, None)?;
+    let used = catalog
+        .prepared_glyph_values
+        .values()
+        .map(|(literal, _)| literal.alias.text.clone())
+        .collect();
+    glyph_notation_scope.require_used(&used)?;
     let (native_types, checked_catalog) =
-        crate::native_type::check_native_types(&document.types, &aliased_catalog)?;
+        crate::native_type::check_native_types_borrowed(&document.types, &aliased_catalog)?;
     let type_forms =
         crate::type_form::check_type_forms(&document.type_forms, &document.types, &native_types)?;
     let catalog = &checked_catalog;
@@ -198,48 +210,17 @@ pub(crate) fn check_document(
         structured_types.insert(value_kind, retained.value_type.clone());
     }
     Ok(CheckedSyntaxDocument {
-        source_document_id: SourceDocumentId::from(hash_string(&format!(
-            "canonical-source:{}",
-            document.round_trip()
-        ))),
+        physical: catalog.physical.clone(),
+        glyph_values: crate::AdmittedGlyphValues::for_document(catalog),
+        source_document_id: document.source_document_id(),
         native_types,
         retained_native_types: catalog.retained_native_types(),
         type_forms,
+        glyph_notations,
         plots: checked_plots,
         source_sugar_expansions,
         structured_types,
-    })
-}
-
-fn expression_body_expansion(plot: &PlotSyntax) -> Option<PendingSourceSugarExpansion> {
-    let body = plot.expression_body.as_ref()?;
-    let input = plot
-        .front
-        .runtime_ports
-        .iter()
-        .find(|port| port.direction == crate::RuntimePortDirection::Input)?;
-    let output = plot
-        .front
-        .runtime_ports
-        .iter()
-        .find(|port| port.direction == crate::RuntimePortDirection::Output)?;
-    Some(PendingSourceSugarExpansion {
-        plot: plot.name.text.clone(),
-        authored: alloc::format!("= {}", body.expression.text),
-        source_span: body.span,
-        ordinary_kind: "conduitese/pure-expression-operation@1".into(),
-        input_ports: alloc::vec![input.name.text.clone()],
-        output_ports: alloc::vec![output.name.text.clone()],
-        operand_bindings: alloc::vec![SourceSugarOperandBinding {
-            source: input.name.text.clone(),
-            input_port: "value".into(),
-        }],
-        canonical_replacement: Some(alloc::format!(
-            "{{\n    {} >> {} >> {}\n}}",
-            input.name.text,
-            body.expression.text,
-            output.name.text
-        )),
+        exact_initial_info: catalog.exact_initial_info.clone(),
     })
 }
 
@@ -259,7 +240,10 @@ pub(crate) fn resolve_use_declarations(
     }
     for declaration in &document.uses {
         let path = declaration.path.as_str();
-        if catalog.structured_type(path).is_some() {
+        if catalog.structured_type(path).is_some()
+            || catalog.native_families.contains_key(path)
+            || catalog.typed_literal_family(path).is_some()
+        {
             continue;
         }
         let canonical = if catalog.get(path).is_some() || plots.contains_key(path) {
@@ -769,7 +753,23 @@ fn check_plot(
         }
     }
 
-    let mut resolver = Resolver::new(locals, parameter_names, runtime_names, pool_names);
+    let parameter_types = signature
+        .startup_parameters
+        .iter()
+        .map(|p| {
+            Ok((
+                p.name.clone(),
+                crate::value_type::checked_value_kind(&p.value_type, catalog).map_err(|_| {
+                    SyntaxCheckError::QuantityLiteral(format!(
+                        "unknown startup Type '{}'",
+                        p.value_type
+                    ))
+                    .diagnostic(plot.name.span)
+                })?,
+            ))
+        })
+        .collect::<Result<BTreeMap<_, _>, SyntaxCheckDiagnostic>>()?;
+    let mut resolver = Resolver::new(locals, parameter_types, runtime_names, pool_names, catalog);
     let mut gears = Vec::new();
     let mut cords = Vec::new();
     let mut pools = Vec::new();
@@ -923,7 +923,10 @@ fn check_plot(
         &cords,
         &pools,
     );
+    let glyph_values = crate::AdmittedGlyphValues::for_plot(catalog, plot.span);
+    let checked_plot_id = glyph_values.bind_identity(checked_plot_id);
     Ok(CheckedCanonicalPlot {
+        glyph_values,
         checked_plot_id,
         name: plot.name.text.clone(),
         completion: plot.completion,
@@ -1348,7 +1351,11 @@ fn check_invocation(
                     resolver
                         .resolve_expression(
                             expression,
-                            catalog.structured_type(&parameter.value_type),
+                            crate::quantity_literal::selected_profile(
+                                catalog,
+                                &parameter.value_type,
+                            )
+                            .as_deref(),
                         )
                         .map_err(|error| error.diagnostic(expression.span))?,
                 );
@@ -1374,8 +1381,11 @@ fn check_invocation(
                     resolver
                         .resolve_expression(
                             value,
-                            catalog
-                                .structured_type(&signature.startup_parameters[index].value_type),
+                            crate::quantity_literal::selected_profile(
+                                catalog,
+                                &signature.startup_parameters[index].value_type,
+                            )
+                            .as_deref(),
                         )
                         .map_err(|error| error.diagnostic(value.span))?,
                 );
@@ -1491,12 +1501,50 @@ fn checked_activation(
         let initial = resolver
             .resolve_expression(
                 initial,
-                catalog.structured_type(accumulator.value_kind.as_str()),
+                crate::quantity_literal::selected_profile(catalog, accumulator.value_kind.as_str())
+                    .as_deref(),
             )
             .and_then(|value| {
                 canonicalize_integer_value(value, accumulator.value_kind.as_str(), catalog)
             })
             .map_err(|error| error.diagnostic(initial.span))?;
+        let accumulator_contract = contract(conduit_core::FrontValueLocation::Input(
+            accumulator.port_id.clone(),
+        ))
+        .ok_or_else(|| SyntaxCheckDiagnostic {
+            code,
+            span: invocation.span,
+            message: format!("{name} accumulator requires one exact finite value contract"),
+        })?;
+        let initial_accumulator_bytes = if let CanonicalStartupValue::Literal(literal) = &initial {
+            if conduit_core::primitive_info_kind(accumulator.value_kind.as_str()).is_none() {
+                let bytes = catalog
+                    .exact_initial_info
+                    .get(&(accumulator.value_kind.clone(), literal.clone()))
+                    .ok_or_else(|| SyntaxCheckDiagnostic {
+                        code: "CND-FRM-064",
+                        span: invocation.span,
+                        message: format!(
+                            "{name} initial custom Info has no owner-validated exact Form"
+                        ),
+                    })?
+                    .clone();
+                accumulator_contract
+                    .validate(&bytes)
+                    .map_err(|_| SyntaxCheckDiagnostic {
+                        code: "CND-FRM-064",
+                        span: invocation.span,
+                        message: format!(
+                            "{name} initial Form differs from its exact accumulator Value contract"
+                        ),
+                    })?;
+                Some(bytes)
+            } else {
+                None
+            }
+        } else {
+            None
+        };
         return Ok(crate::CheckedActivation {
             mode,
             selected_plot: invocation.kind.text.clone(),
@@ -1504,7 +1552,7 @@ fn checked_activation(
             accumulator_input: Some(accumulator.clone()),
             output: combined.clone(),
             initial_accumulator: Some(initial),
-            initial_accumulator_bytes: None,
+            initial_accumulator_bytes,
             input_contract: contract(conduit_core::FrontValueLocation::Input(
                 item.port_id.clone(),
             ))
@@ -1526,16 +1574,7 @@ fn checked_activation(
                     item.port_id.clone(),
                 ))
             }),
-            accumulator_contract: Some(
-                contract(conduit_core::FrontValueLocation::Input(
-                    accumulator.port_id.clone(),
-                ))
-                .ok_or_else(|| SyntaxCheckDiagnostic {
-                    code,
-                    span: invocation.span,
-                    message: format!("{name} accumulator requires one exact finite value contract"),
-                })?,
-            ),
+            accumulator_contract: Some(accumulator_contract),
         });
     }
     let ([input], [output]) = (front.inputs(), front.outputs()) else {
@@ -1603,6 +1642,38 @@ fn canonicalize_integer_value(
     source_type: &str,
     catalog: &StartupCatalog,
 ) -> Result<CanonicalStartupValue, SyntaxCheckError> {
+    let target = crate::value_type::checked_value_kind(source_type, catalog).map_err(|_| {
+        SyntaxCheckError::InvalidIntegerLiteral(format!("unknown startup Type '{source_type}'"))
+    })?;
+    if let Some(actual) = crate::authored_quantity::value_kind(&value) {
+        let compatible = match &value {
+            CanonicalStartupValue::Quantity(q) => {
+                conduit_core::validate_primitive_info(target.as_str(), &q.value().encode()).is_ok()
+            }
+            CanonicalStartupValue::Unit(u) => {
+                conduit_core::validate_primitive_info(target.as_str(), &u.value().encode()).is_ok()
+            }
+            _ => actual == target,
+        };
+        if !compatible {
+            return Err(SyntaxCheckError::QuantityLiteral(format!(
+                "physical value of Type '{}' cannot satisfy '{source_type}'; declared Units: {}",
+                actual.as_str(),
+                catalog
+                    .physical
+                    .units
+                    .iter()
+                    .filter(|(_, unit)| catalog
+                        .physical
+                        .quantities
+                        .get(source_type)
+                        .is_some_and(|role| role.family == unit.family()))
+                    .map(|(symbol, _)| symbol.as_str())
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            )));
+        }
+    }
     let CanonicalStartupValue::Literal(literal) = value else {
         return Ok(value);
     };
@@ -1629,6 +1700,21 @@ fn resolve_bound_value(
         return Ok(value.clone());
     }
     let parameter = &signature.startup_parameters[index];
+    if let Some(value) = catalog
+        .structured_defaults
+        .get(&(signature.kind.clone(), parameter.name.clone()))
+        .filter(|_| catalog.signature(&signature.kind) == Some(signature))
+    {
+        let resolved = value.resolve().map_err(|error| {
+            SyntaxCheckError::StructuredExpression(
+                format!("invalid checked structured default: {error:?}"),
+                None,
+            )
+        })?;
+        let value = CanonicalStartupValue::Structured(resolved);
+        values[index] = Some(value.clone());
+        return Ok(value);
+    }
     let default = parameter
         .default
         .as_deref()
@@ -1647,7 +1733,19 @@ fn resolve_bound_value(
         } else {
             CanonicalStartupValue::PlotParameter(default.to_string())
         }
-    } else if let Some(expected) = catalog.structured_type(&parameter.value_type) {
+    } else if let Some(role) =
+        crate::quantity_literal::selected_profile(catalog, &parameter.value_type)
+            .as_deref()
+            .and_then(crate::authored_quantity::expected_role)
+    {
+        let expected = crate::quantity_literal::selected_profile(catalog, &parameter.value_type);
+        crate::physical_declarations::value::parse_value(default, expected.as_deref(), catalog)?
+            .ok_or_else(|| {
+                SyntaxCheckError::QuantityLiteral(format!("default is not a declared {role} value"))
+            })?
+    } else if let Some(expected) =
+        crate::quantity_literal::selected_profile(catalog, &parameter.value_type).as_deref()
+    {
         let syntax = crate::structured_expression::parse(default, default, 0)
             .map_err(|(message, _)| SyntaxCheckError::StructuredExpression(message, None))?;
         let checked = crate::structured_startup::check_structured_expression(
@@ -1684,14 +1782,9 @@ fn resolve_bound_value(
         }
         CanonicalStartupValue::Structured(checked)
     } else {
-        match conduit_core::Quantity::parse_plot_literal(default) {
-            Ok(value) => CanonicalStartupValue::Quantity(value),
-            Err(conduit_core::QuantityLiteralRefusal::NonCanonicalUnit { canonical }) => {
-                return Err(SyntaxCheckError::QuantityLiteral(format!(
-                    "non-canonical quantity unit in '{default}'; use '{canonical}'"
-                )));
-            }
-            Err(_) => CanonicalStartupValue::Literal(default.to_string()),
+        match crate::quantity_literal::startup_quantity(default)? {
+            Some(value) => CanonicalStartupValue::Quantity(value),
+            None => CanonicalStartupValue::Literal(default.to_string()),
         }
     };
     visiting.remove(&index);
@@ -1709,7 +1802,7 @@ fn validate_quantity_type(
     };
     let kind = crate::value_type::canonical_value_kind(source_type);
     if kind.as_str() == conduit_core::QUANTITY_INFO_ID
-        || conduit_core::validate_primitive_info(kind.as_str(), &quantity.encode()).is_ok()
+        || conduit_core::validate_primitive_info(kind.as_str(), &quantity.value().encode()).is_ok()
     {
         return Ok(());
     }
@@ -1718,8 +1811,8 @@ fn validate_quantity_type(
         span,
         message: format!(
             "quantity unit '{}' has dimension {:?}, which cannot satisfy '{}'",
-            quantity.unit().plot_suffix(),
-            quantity.dimension(),
+            quantity.value().unit().plot_suffix(),
+            quantity.value().dimension(),
             source_type
         ),
     })

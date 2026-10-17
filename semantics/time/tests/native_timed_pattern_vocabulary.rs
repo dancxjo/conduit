@@ -1,4 +1,4 @@
-use conduit_core::{Quantity, QuantityUnit};
+use conduit_core::{Quantity, Unit};
 use conduit_plot::rust_binding::NativeRustBinding;
 use conduit_time::{
     ScheduleRefusal, TemporalWindowPosition, TimedPatternRefusal, WorkflowLifecycle,
@@ -67,7 +67,7 @@ fn schedule_vocabulary_uses_exact_native_types() {
 
 #[test]
 fn workflow_timing_outcomes_keep_duration_payloads_in_the_native_type() {
-    let duration = Quantity::new(2, QuantityUnit::Second);
+    let duration = Quantity::new(2, Unit::Second);
     for outcome in [
         WorkflowTimingOutcome::Awaiting,
         WorkflowTimingOutcome::OnTime,

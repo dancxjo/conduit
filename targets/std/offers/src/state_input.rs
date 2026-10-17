@@ -4,7 +4,7 @@ use conduit_core::{
     kind_id, ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
     HostCallContractId, HostCallRequirement, ImplementationId, Kind,
 };
-use conduit_human::{CHORD_ENCODED_LEN, KEY_EVENT_ENCODED_LEN};
+use conduit_human::{CHORD_ENCODED_LEN, KEYMAP_MAXIMUM_TEXT_BYTES, KEY_EVENT_ENCODED_LEN};
 
 pub const STATE_COUNT_EXECUTION_PROFILE: &str = "conduit.std/state-count-kernel-hosted@1";
 pub const STATE_COUNT_IMPLEMENTATION: &str = "std/kernel-state-count@1";
@@ -23,6 +23,8 @@ pub const KEYMAP_PROFILE: &str = "conduit.input/keymap-kernel-hosted@1";
 pub const KEYMAP_IMPLEMENTATION: &str = "std/kernel-keymap@1";
 pub const KEYMAP_ARTIFACT: &str = "conduit-std-host/keymap@1";
 pub const KEYMAP_CAPABILITY: &str = "input-keymap-v1";
+pub const KEYMAP_SELECT_HOST_CALL: &str = "conduit.host/input-keymap-select@1";
+pub const KEYMAP_SELECT_HOST_TARGET: &str = "input/keymap-selection";
 pub const KEYMAP_HOST_CALL: &str = "conduit.host/input-keymap@1";
 pub const KEYMAP_HOST_TARGET: &str = "input/keymap-text-fragment";
 pub const CHORDS_PROFILE: &str = "conduit.input/chords-kernel-hosted@1";
@@ -66,14 +68,27 @@ pub fn key_event_tee_offer() -> CapabilityOffer {
 }
 
 pub fn keymap_offer() -> CapabilityOffer {
-    offer(
+    let mut result = offer(
         conduit_semantic_catalog::keymap_semantic_contract(),
         KEYMAP_CAPABILITY,
         KEYMAP_PROFILE,
         KEYMAP_IMPLEMENTATION,
         KEYMAP_ARTIFACT,
-        Some((KEYMAP_HOST_CALL, KEYMAP_HOST_TARGET, 4)),
-    )
+        Some((
+            KEYMAP_HOST_CALL,
+            KEYMAP_HOST_TARGET,
+            KEYMAP_MAXIMUM_TEXT_BYTES as u32,
+        )),
+    );
+    result.host_calls.push(HostCallRequirement {
+        contract_id: HostCallContractId::from(KEYMAP_SELECT_HOST_CALL),
+        target_kind: Some(kind_id(KEYMAP_SELECT_HOST_TARGET)),
+        maximum_in_flight: 1,
+        maximum_input_bytes: 32,
+        maximum_output_bytes: 0,
+    });
+    result.host_calls.sort();
+    result
 }
 
 pub fn chords_offer() -> CapabilityOffer {

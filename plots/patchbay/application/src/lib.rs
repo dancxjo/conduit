@@ -5,11 +5,11 @@ extern crate alloc;
 
 use alloc::{format, string::String, vec, vec::Vec};
 use conduit_core::{ActivePlayId, PlanId};
-use conduit_plot::ExpandedCanonicalPlot;
-use conduit_presentation::{
+use conduit_face::{
     ApplicationAction, ApplicationComponent, ApplicationEvent, ApplicationEventKind,
     ApplicationNodeState, ApplicationView, ApplicationViewNode, ApplicationViewRefusal,
 };
+use conduit_plot::ExpandedCanonicalPlot;
 use patchbay_control::PatchbayAction;
 use patchbay_graph::{PatchbayGraph, PatchbayGraphError, PatchbayInspection};
 
@@ -19,9 +19,9 @@ pub const SELECT_PLOT_ACTION_PREFIX: &str = "patchbay.plot.";
 mod debugger_control;
 #[cfg(test)]
 mod debugger_control_tests;
-mod debugger_presentation;
+mod debugger_face;
 #[cfg(test)]
-mod debugger_presentation_tests;
+mod debugger_face_tests;
 mod debugger_timeline;
 #[cfg(test)]
 mod debugger_timeline_tests;
@@ -30,6 +30,7 @@ mod debugger_watch;
 mod debugger_watch_tests;
 mod entrance;
 mod entrance_equivalence;
+mod face_layout;
 mod learned_watch;
 #[cfg(test)]
 mod learned_watch_tests;
@@ -39,7 +40,6 @@ mod parts_projection;
 mod portable_composition;
 mod portable_graphics;
 mod portable_layout;
-mod presentation_layout;
 mod resident_canvas;
 mod resident_view;
 pub use mask::{PatchbayMaskMode, PatchbayMaskStage, PatchbayMaskTopology, CHANGE_MASKS_ACTION_ID};
@@ -51,15 +51,20 @@ pub use inspection::{
 mod topology;
 mod topology_projection;
 mod workbench_layout;
+mod workspace;
+mod workspace_migration;
+pub use workspace::*;
+pub use workspace_migration::*;
+#[cfg(test)]
+mod workspace_tests;
 pub use debugger_control::{
     DebuggerExecutionControl, DebuggerExecutionControlState, DEBUGGER_CONTROL_SCHEMA,
     MAX_DEBUGGER_BREAKPOINT_SUBJECTS, MAX_DEBUGGER_CONTROL_REASON_BYTES,
 };
-pub use debugger_presentation::{
-    DebuggerActivityPhase, DebuggerExecutionIdentity, DebuggerGapPresentation,
-    DebuggerPresentation, DebuggerPresentationError, DebuggerSubjectActivity,
-    DebuggerSubjectBinding, DebuggerValueKind, DebuggerValuePresentation,
-    DEBUGGER_PRESENTATION_SCHEMA, MAX_DEBUGGER_SUBJECTS, MAX_DEBUGGER_SUMMARY_BYTES,
+pub use debugger_face::{
+    DebuggerActivityPhase, DebuggerExecutionIdentity, DebuggerFace, DebuggerFaceError,
+    DebuggerGapFace, DebuggerSubjectActivity, DebuggerSubjectBinding, DebuggerValueFace,
+    DebuggerValueKind, DEBUGGER_FACE_SCHEMA, MAX_DEBUGGER_SUBJECTS, MAX_DEBUGGER_SUMMARY_BYTES,
     RECENT_ACTIVITY_TICKS,
 };
 pub use debugger_timeline::{
@@ -82,6 +87,10 @@ pub use entrance_equivalence::{
     compare_entrances, EntranceEquivalenceError, EntranceEquivalenceReport,
     ENTRANCE_EQUIVALENCE_SCHEMA, ONE_PLOT_TWO_FACES_BOOT_ID, ONE_PLOT_TWO_FACES_HOST_ID,
 };
+pub use face_layout::{
+    fit_measured_text, FaceLayoutError, FaceOverflow, FacePriority, FaceRegion, FaceRegionId,
+    FaceRegionMode, LayoutCollision, MeasuredTextFit, ResponsivePatchbayLayout, MAX_FACE_REGIONS,
+};
 pub use learned_watch::{
     ClockAlignment, DynamicsWatch, LearnedLifecyclePhase, LearnedLifecycleWatch,
     LearnedWatchProjection, LearnedWatchProjectionKind, ObjectiveComponent,
@@ -94,15 +103,10 @@ pub use learned_watch::{
 pub use navigation_projection::PatchbayNavigationProjection;
 pub use parts_projection::*;
 pub use portable_composition::{
-    constrained_frame_layout, constrained_graphics_scene, DirectObligation, DirectPresentation,
+    constrained_frame_layout, constrained_graphics_scene, DirectFace, DirectObligation,
 };
 pub use portable_graphics::{NativeGraphicsMask, NativeGraphicsObligation};
 pub use portable_layout::{DirectLayoutEvaluator, DirectLayoutOperation};
-pub use presentation_layout::{
-    fit_measured_text, LayoutCollision, MeasuredTextFit, PresentationLayoutError,
-    PresentationOverflow, PresentationPriority, PresentationRegion, PresentationRegionId,
-    PresentationRegionMode, ResponsivePatchbayLayout, MAX_PRESENTATION_REGIONS,
-};
 pub use topology::*;
 pub use topology_projection::project_mask_topology;
 pub use workbench_layout::{
@@ -226,7 +230,7 @@ impl PatchbayApplicationPort {
         if plots.is_empty() {
             return Err(PatchbayApplicationRefusal::EmptyActivePlots);
         }
-        if plots.len() + 4 > conduit_presentation::MAX_APPLICATION_ACTIONS {
+        if plots.len() + 4 > conduit_face::MAX_APPLICATION_ACTIONS {
             return Err(PatchbayApplicationRefusal::TooManyActivePlots);
         }
         Ok(Self {

@@ -1,0 +1,118 @@
+# Finite ordinary composition preserves all16 separately checked block laws.
+# Boolean pair metadata is the existing exact finite-zip specialization.
+with flow/zip/finite/paired as UsbAudioBooleanPair
+plot usb-audio-block-boolean-and (
+ pair: UsbAudioBooleanPair...| >> supported: Boolean...|
+) = (.0 && .1)
+plot usb-audio-block-supported (
+ pcm: UsbAudioPcmBlock...| >> supported: Boolean...|
+) {
+    law0: usb-audio-block-header-supported()
+    law1: usb-audio-block-packet-0-supported()
+    law2: usb-audio-block-packet-1-supported()
+    law3: usb-audio-block-packet-2-supported()
+    law4: usb-audio-block-packet-3-supported()
+    law5: usb-audio-block-packet-4-supported()
+    law6: usb-audio-block-packet-5-supported()
+    law7: usb-audio-block-packet-6-supported()
+    law8: usb-audio-block-packet-7-supported()
+    law9: usb-audio-block-adjacent-0-supported()
+    law10: usb-audio-block-adjacent-1-supported()
+    law11: usb-audio-block-adjacent-2-supported()
+    law12: usb-audio-block-adjacent-3-supported()
+    law13: usb-audio-block-adjacent-4-supported()
+    law14: usb-audio-block-adjacent-5-supported()
+    law15: usb-audio-block-adjacent-6-supported()
+    join0: flow/zip/finite
+    and0: usb-audio-block-boolean-and()
+    join1: flow/zip/finite
+    and1: usb-audio-block-boolean-and()
+    join2: flow/zip/finite
+    and2: usb-audio-block-boolean-and()
+    join3: flow/zip/finite
+    and3: usb-audio-block-boolean-and()
+    join4: flow/zip/finite
+    and4: usb-audio-block-boolean-and()
+    join5: flow/zip/finite
+    and5: usb-audio-block-boolean-and()
+    join6: flow/zip/finite
+    and6: usb-audio-block-boolean-and()
+    join7: flow/zip/finite
+    and7: usb-audio-block-boolean-and()
+    join8: flow/zip/finite
+    and8: usb-audio-block-boolean-and()
+    join9: flow/zip/finite
+    and9: usb-audio-block-boolean-and()
+    join10: flow/zip/finite
+    and10: usb-audio-block-boolean-and()
+    join11: flow/zip/finite
+    and11: usb-audio-block-boolean-and()
+    join12: flow/zip/finite
+    and12: usb-audio-block-boolean-and()
+    join13: flow/zip/finite
+    and13: usb-audio-block-boolean-and()
+    join14: flow/zip/finite
+    and14: usb-audio-block-boolean-and()
+    pcm >> law0
+    pcm >> law1
+    pcm >> law2
+    pcm >> law3
+    pcm >> law4
+    pcm >> law5
+    pcm >> law6
+    pcm >> law7
+    pcm >> law8
+    pcm >> law9
+    pcm >> law10
+    pcm >> law11
+    pcm >> law12
+    pcm >> law13
+    pcm >> law14
+    pcm >> law15
+    law0 >> join0.left
+    law1 >> join0.right
+    join0.paired >> and0
+    law2 >> join1.left
+    law3 >> join1.right
+    join1.paired >> and1
+    law4 >> join2.left
+    law5 >> join2.right
+    join2.paired >> and2
+    law6 >> join3.left
+    law7 >> join3.right
+    join3.paired >> and3
+    law8 >> join4.left
+    law9 >> join4.right
+    join4.paired >> and4
+    law10 >> join5.left
+    law11 >> join5.right
+    join5.paired >> and5
+    law12 >> join6.left
+    law13 >> join6.right
+    join6.paired >> and6
+    law14 >> join7.left
+    law15 >> join7.right
+    join7.paired >> and7
+    and0 >> join8.left
+    and1 >> join8.right
+    join8.paired >> and8
+    and2 >> join9.left
+    and3 >> join9.right
+    join9.paired >> and9
+    and4 >> join10.left
+    and5 >> join10.right
+    join10.paired >> and10
+    and6 >> join11.left
+    and7 >> join11.right
+    join11.paired >> and11
+    and8 >> join12.left
+    and9 >> join12.right
+    join12.paired >> and12
+    and10 >> join13.left
+    and11 >> join13.right
+    join13.paired >> and13
+    and12 >> join14.left
+    and13 >> join14.right
+    join14.paired >> and14
+    and14 >> supported
+}

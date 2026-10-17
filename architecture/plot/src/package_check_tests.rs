@@ -299,3 +299,144 @@ plot public (
             .collect::<Vec<_>>()
     );
 }
+
+#[test]
+fn shipped_closed_specialization_retains_private_owner_dependencies() {
+    let manifest_source = "pack example/shapes (\n version = 1.0.0\n) {\n ship Window\n}\n";
+    let manifest_document = parse_syntax_document(manifest_source);
+    let manifest = &manifest_document.packages[0];
+    let source = "type Dimension = U16 in 1..=64\ntype Vector<N: Dimension> = collection U8 = N\ntype Window = {\n samples: Vector<32>\n}\n";
+    let sources = [PackageMemberSource {
+        path: "main",
+        source,
+    }];
+    let bundle = CheckedPackageBundle::from_sources(manifest_source, manifest, &sources).unwrap();
+    let exports =
+        PackageExportCatalog::from_bundle(&bundle, manifest_source, manifest, &sources).unwrap();
+    let owner = check_package_bundle(
+        &bundle,
+        manifest_source,
+        manifest,
+        &sources,
+        &StartupCatalog::new(),
+    )
+    .unwrap();
+    let mut catalog = StartupCatalog::new();
+    let shipped = exports.install_shipped_types(&mut catalog).unwrap();
+    assert_eq!(shipped.len(), 1);
+    assert_eq!(
+        shipped[0],
+        *owner
+            .native_types
+            .iter()
+            .find(|value| value.name == "Window")
+            .unwrap()
+    );
+    assert!(catalog.structured_type("Dimension").is_none());
+    let consumer = check_syntax_document(
+        &parse_syntax_document(
+            "with example/shapes/Window as Samples\nplot consume (\n >> samples: Samples\n) {\n}\n",
+        ),
+        &catalog,
+    )
+    .unwrap();
+    assert_eq!(
+        consumer.plots[0].checked_front().inputs()[0].value_kind,
+        shipped[0]
+            .value_type
+            .profile()
+            .unwrap()
+            .value_kind()
+            .clone()
+    );
+    let foreign = parse_syntax_document("type Dimension = U32\n");
+    let (_, mut foreign_catalog) =
+        crate::native_type::check_native_types(&foreign.types, &StartupCatalog::new()).unwrap();
+    let before = foreign_catalog.clone();
+    assert!(exports.install_shipped_types(&mut foreign_catalog).is_err());
+    assert_eq!(foreign_catalog, before);
+    let changed = [PackageMemberSource {
+        path: "main",
+        source: "type Window = U8\n",
+    }];
+    assert!(
+        PackageExportCatalog::from_bundle(&bundle, manifest_source, manifest, &changed).is_err()
+    );
+}
+
+#[test]
+fn shipped_type_conflict_does_not_partially_mutate_the_import_catalog() {
+    let manifest_source = "pack example/shapes (\n version = 1.0.0\n) {\n ship A\n ship B\n}\n";
+    let manifest_document = parse_syntax_document(manifest_source);
+    let manifest = &manifest_document.packages[0];
+    let sources = [PackageMemberSource {
+        path: "main",
+        source: "type A = U16\ntype B = U32\n",
+    }];
+    let bundle = CheckedPackageBundle::from_sources(manifest_source, manifest, &sources).unwrap();
+    let exports =
+        PackageExportCatalog::from_bundle(&bundle, manifest_source, manifest, &sources).unwrap();
+    let mut catalog = StartupCatalog::new();
+    catalog
+        .insert_structured_type(
+            "example/shapes/B",
+            conduit_core::StructuredInfoType::leaf(conduit_core::kind_id("value/u8")).unwrap(),
+        )
+        .unwrap();
+    let before = catalog.clone();
+    assert!(exports.install_shipped_types(&mut catalog).is_err());
+    assert_eq!(catalog, before);
+}
+
+#[test]
+fn shipped_value_families_use_owner_dependencies_and_transparent_import_aliases() {
+    let manifest_source = "pack example/shapes (\n version = 1.0.0\n) {\n ship History\n}\n";
+    let manifest_document = parse_syntax_document(manifest_source);
+    let manifest = &manifest_document.packages[0];
+    let source = "type Dimension = U16 in 1..=64\ntype Sample = U8 in 1..=255\ntype Vector<N: Dimension> = collection Sample = N\ntype History<H: Dimension, D: Dimension> = collection Vector<D> = H\n";
+    let sources = [PackageMemberSource {
+        path: "main",
+        source,
+    }];
+    let bundle = CheckedPackageBundle::from_sources(manifest_source, manifest, &sources).unwrap();
+    let exports =
+        PackageExportCatalog::from_bundle(&bundle, manifest_source, manifest, &sources).unwrap();
+    let mut catalog = StartupCatalog::new();
+    assert!(exports
+        .install_shipped_types(&mut catalog)
+        .unwrap()
+        .is_empty());
+    let consumer =
+        "with example/shapes/History as Frames\ntype Sample = U32\ntype Value = Frames<2, 32>\n";
+    let first = check_syntax_document(&parse_syntax_document(consumer), &catalog).unwrap();
+    let second = check_syntax_document(
+        &parse_syntax_document(&consumer.replace("Frames", "Archive")),
+        &catalog,
+    )
+    .unwrap();
+    let owner = check_syntax_document(
+        &parse_syntax_document(&format!("{source}type Value = History<2, 32>\n")),
+        &StartupCatalog::new(),
+    )
+    .unwrap();
+    let value = |checked: &crate::CheckedSyntaxDocument| {
+        checked
+            .native_types
+            .iter()
+            .find(|value| value.name == "Value")
+            .unwrap()
+            .clone()
+    };
+    assert_eq!(value(&first), value(&second));
+    assert_eq!(value(&first), value(&owner));
+    let failure = check_syntax_document(
+        &parse_syntax_document(&consumer.replace("Frames<2, 32>", "Frames<2, 65>")),
+        &catalog,
+    )
+    .unwrap_err();
+    assert!(
+        failure.message.contains("scalar contract"),
+        "{}",
+        failure.message
+    );
+}

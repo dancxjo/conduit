@@ -18,9 +18,9 @@ use conduit_core::{
     ActivePlayId, ArtifactId, BootId, CapabilityId, HostBaseId, HostId, ImplementationId,
     OfferGeneration, PlacementId, Plan, PlanId,
 };
-use conduit_presentation::{
-    GraphicsScene, LayoutRect, Manifestation, ManifestationError, ManifestationId,
-    ManifestationLifecycle, Presentation, PresentationContentId,
+use conduit_face::{
+    Face, FaceContentId, GraphicsScene, LayoutRect, Manifestation, ManifestationError,
+    ManifestationId, ManifestationLifecycle,
 };
 use damage::DamageState;
 use surface_buffer::{SurfaceBuffer, SurfaceBufferPool, surface_pixels};
@@ -47,7 +47,7 @@ pub struct CompositorAdmission {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CompositionReceipt {
-    pub presentation_id: PresentationContentId,
+    pub face_id: FaceContentId,
     pub manifestation_id: ManifestationId,
     pub plan_id: PlanId,
     pub active_play_id: ActivePlayId,
@@ -64,6 +64,7 @@ pub struct CompositionReceipt {
     pub surface_id: String,
     /// Work used to render this revision into its retained offscreen buffer.
     pub display: DisplayReceipt,
+    pub visual_expression: Option<conduit_face::AdmittedVisualExpression>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -201,6 +202,7 @@ pub(super) struct CompositorSurface {
     z: u8,
     visible: bool,
     buffer: SurfaceBuffer,
+    visual_expression: Option<conduit_face::AdmittedVisualExpression>,
     binding: Option<SurfaceBinding>,
     receipt: Option<CompositionReceipt>,
     input_ready: bool,
@@ -213,7 +215,7 @@ impl CompositorSurface {
     /// A binding is routable and composable only while pixels for that exact
     /// Manifestation revision inhabit the current surface extent. Resizing
     /// retains the binding's revision fence but invalidates those pixels until
-    /// a newer Presentation revision is manifested.
+    /// a newer Face revision is manifested.
     pub(super) const fn is_ready(&self) -> bool {
         self.is_raster_ready() && self.input_ready
     }
@@ -296,6 +298,7 @@ impl NativeCompositor {
             z,
             visible: true,
             buffer,
+            visual_expression: None,
             binding: None,
             receipt: None,
             input_ready: false,

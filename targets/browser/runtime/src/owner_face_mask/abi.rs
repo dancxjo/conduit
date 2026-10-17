@@ -3,7 +3,9 @@
 use super::*;
 use std::cell::{Cell, RefCell};
 
-const INPUT_CAPACITY: usize = 40 * 1024;
+// The owner frame is bounded separately at 60 KiB; admission basis bytes
+// accompany it at this WASM entrance without crossing the owner Line.
+const INPUT_CAPACITY: usize = 72 * 1024;
 const OUTPUT_CAPACITY: usize = 64 * 1024;
 
 thread_local! {
@@ -70,7 +72,7 @@ pub extern "C" fn conduit_browser_owner_face_prepare(basis_len: usize, frame_len
     match frame.response {
         OwnerFaceSnapshotResponse::Snapshot {
             schema,
-            presentation,
+            face,
             interactions_admitted,
             route,
         } if schema == OWNER_FACE_RESPONSE_SCHEMA => {
@@ -91,13 +93,9 @@ pub extern "C" fn conduit_browser_owner_face_prepare(basis_len: usize, frame_len
             let Some(route) = route else {
                 return -5;
             };
-            let Ok(mask) = OwnerBrowserMask::prepare(
-                basis,
-                *presentation,
-                *route,
-                sequence,
-                interactions_admitted,
-            ) else {
+            let Ok(mask) =
+                OwnerBrowserMask::prepare(basis, *face, *route, sequence, interactions_admitted)
+            else {
                 return -5;
             };
             let result = write_output(&mask.view());
@@ -109,7 +107,7 @@ pub extern "C" fn conduit_browser_owner_face_prepare(basis_len: usize, frame_len
                             ManifestationLifecycle::Replaced,
                             SignId::from(format!(
                                 "sign/browser-owner-face-replaced/{}",
-                                previous.presentation.revision
+                                previous.face.revision
                             )),
                         ) {
                             Ok(show) => show,
@@ -141,8 +139,8 @@ pub extern "C" fn conduit_browser_owner_face_prepare(basis_len: usize, frame_len
             if mask.body_id != basis.body_id
                 || mask.play.host_id != basis.host_id
                 || mask.play.boot_id != basis.boot_id
-                || mask.presentation.revision != revision
-                || mask.presentation.identity != identity
+                || mask.face.revision != revision
+                || mask.face.identity != identity
             {
                 return -6;
             }
@@ -228,6 +226,29 @@ pub extern "C" fn conduit_browser_owner_face_show_receipt() -> i32 {
     })
 }
 
+/// Read the retained original Face without the lossy human-readable projection.
+/// This is observation only; it neither refreshes nor acknowledges a Show.
+#[no_mangle]
+pub extern "C" fn conduit_browser_owner_face_canonical_snapshot() -> i32 {
+    OUTPUT.with(|output| output.borrow_mut().clear());
+    CURRENT.with(|current| {
+        let current = current.borrow();
+        let Some(mask) = current.as_ref() else {
+            return -6;
+        };
+        if mask.show.show.lifecycle != ManifestationLifecycle::Available {
+            return -5;
+        }
+        write_output(&serde_json::json!({
+            "schema": "conduit.browser/owner-canonical-face@1",
+            "face": &mask.face,
+            "face_revision_decimal": mask.face.revision.to_string(),
+            "route": &mask.route,
+            "show_id": mask.show.show_id.as_str(),
+        }))
+    })
+}
+
 #[no_mangle]
 pub extern "C" fn conduit_browser_owner_face_clear() {
     CURRENT.with(|current| {
@@ -243,7 +264,7 @@ mod tests {
     use super::*;
     use conduit_body::Body;
     use conduit_core::{CheckedPlotId, SourceDocumentId};
-    use conduit_presentation::{Face, FaceContext, FaceFocus};
+    use conduit_face::{BodyFace, FaceContext, FaceFocus};
 
     fn send(basis: &serde_json::Value, response: &OwnerFaceSnapshotResponse) -> i32 {
         let basis = serde_json::to_vec(basis).unwrap();
@@ -261,6 +282,70 @@ mod tests {
     }
 
     #[test]
+    fn canonical_observation_requires_acknowledged_show_and_preserves_original_bytes() {
+        conduit_browser_owner_face_clear();
+        OUTPUT.with(|output| output.borrow_mut().extend_from_slice(b"stale"));
+        assert_eq!(conduit_browser_owner_face_canonical_snapshot(), -6);
+        assert_eq!(conduit_browser_owner_face_output_len(), 0);
+        let body = Body::born(
+            SourceDocumentId::from("source/canonical-observation"),
+            CheckedPlotId::from("checked/canonical-observation"),
+            1,
+            SignId::from("sign/canonical-observation"),
+        )
+        .unwrap();
+        let face = BodyFace::project(
+            &body,
+            None,
+            u64::MAX,
+            FaceContext::Overview,
+            FaceFocus::Body,
+            vec![],
+        )
+        .unwrap()
+        .face;
+        let mask = OwnerBrowserMask::prepare_component_fixture(
+            HostBasis {
+                body_id: body.body_id.clone(),
+                host_id: HostId::from("host/canonical-observation"),
+                boot_id: BootId::from("boot/canonical-observation"),
+                visual_constraints: None,
+            },
+            face.clone(),
+            1,
+            false,
+        )
+        .unwrap();
+        let prepared = mask.view();
+        CURRENT.with(|current| *current.borrow_mut() = Some(mask));
+        assert_eq!(conduit_browser_owner_face_canonical_snapshot(), -5);
+        CURRENT.with(|current| {
+            current
+                .borrow_mut()
+                .as_mut()
+                .unwrap()
+                .acknowledge(Acknowledgement {
+                    show_id: prepared.show_id.clone(),
+                    face_id: prepared.face_id,
+                    face_revision: prepared.face_revision,
+                })
+                .unwrap()
+        });
+        assert_eq!(conduit_browser_owner_face_canonical_snapshot(), 0);
+        let bytes = OUTPUT.with(|output| output.borrow().clone());
+        assert!(std::str::from_utf8(&bytes)
+            .unwrap()
+            .contains("18446744073709551615"));
+        let observed: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+        let retained: Face = serde_json::from_value(observed["face"].clone()).unwrap();
+        assert_eq!(retained, face);
+        assert_eq!(observed["show_id"], prepared.show_id);
+        assert_eq!(conduit_browser_owner_face_canonical_snapshot(), 0);
+        assert_eq!(OUTPUT.with(|output| output.borrow().clone()), bytes);
+        conduit_browser_owner_face_clear();
+    }
+
+    #[test]
     fn raw_owner_face_frame_refuses_a_snapshot_without_an_owner_route() {
         conduit_browser_owner_face_clear();
         let body = Body::born(
@@ -271,7 +356,7 @@ mod tests {
         )
         .unwrap();
         let revision = 9_007_199_254_740_993;
-        let face = Face::project(
+        let face = BodyFace::project(
             &body,
             None,
             revision,
@@ -280,7 +365,7 @@ mod tests {
             vec![],
         )
         .unwrap()
-        .presentation;
+        .face;
         let basis = serde_json::json!({
             "body_id": body.body_id,
             "host_id": "host/browser-owner-abi",
@@ -291,7 +376,7 @@ mod tests {
                 &basis,
                 &OwnerFaceSnapshotResponse::Snapshot {
                     schema: OWNER_FACE_RESPONSE_SCHEMA.into(),
-                    presentation: Box::new(face.clone()),
+                    face: Box::new(face.clone()),
                     interactions_admitted: false,
                     route: None,
                 }

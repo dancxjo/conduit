@@ -1,5 +1,5 @@
 use super::{host, installed_std, RecordingTimer};
-use conduit_core::{BaseImplementationId, KindIdentity, Quantity, QuantityUnit};
+use conduit_core::{BaseImplementationId, KindIdentity, Quantity, Unit};
 use conduit_plot::{
     check_expression, check_syntax_document, expand_canonical_plot, parse_syntax_document,
     BackStatement, CheckedExpressionType, CordStage, ExpressionTypeContext, KindConfigurationField,
@@ -16,7 +16,7 @@ fn fixed_integer_expression_plans_and_plays_through_the_std_host() {
 #[test]
 fn scientific_quantity_comparison_plans_and_plays_through_the_std_host() {
     assert_expression_plans_and_plays(
-        &Quantity::new(31, QuantityUnit::Celsius).encode(),
+        &Quantity::new(31, Unit::Celsius).encode(),
         &conduit_core::InfoBool::TRUE.encode(),
         conduit_core::TEMPERATURE_INFO_ID,
         conduit_core::BOOL_INFO_ID,
@@ -55,6 +55,7 @@ fn anonymous_record_and_tuple_plan_and_play_through_the_std_host() {
     let checked = check_expression(
         &expression.syntax,
         &ExpressionTypeContext {
+            glyph_values: None,
             input: &input_type,
             immutable_values: &empty_values,
             structured_types: &empty_types,
@@ -306,6 +307,7 @@ fn assert_pipeline_plans_and_plays(
             keyboard: None,
             local_model: None,
             vector_search: None,
+            model_work: None,
             calendar: None,
             body_conversation_context: None,
         },

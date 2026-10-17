@@ -1,0 +1,1318 @@
+{
+  "reviewed_source": "7989c14248d479715b5bd6e5379da11eb617fa87",
+  "fixture_definition": "targets/conduitos/src/front_door/shell_audit_tests.rs",
+  "fixture_sha256": "02ca5a0848461655b63fdf2186353252b36fa85744b8920c261b05d40b764809",
+  "proof": "39 front-door tests passed; CPU scene raster delivery to a sink; no QEMU or physical display acceptance",
+  "cases": [
+    {
+      "case": "body-workspace",
+      "face": {
+        "actions": [
+          {
+            "arguments": [],
+            "availability": {
+              "Unavailable": {
+                "explanation": "Open is not available while lifecycle state is lulled.",
+                "reason_code": "lifecycle/not-current"
+              }
+            },
+            "disclosure": "CurrentAction",
+            "identity": "action/open-back/plot/17c0d8962880ba7741154c4b6fec12238470fea590ae9ea99b42ae27041358fa",
+            "intent": "conduit.intent/open@1",
+            "name": "Open",
+            "target": "plot/17c0d8962880ba7741154c4b6fec12238470fea590ae9ea99b42ae27041358fa"
+          },
+          {
+            "arguments": [],
+            "availability": {
+              "Unavailable": {
+                "explanation": "Birth is not available while lifecycle state is lulled.",
+                "reason_code": "lifecycle/not-current"
+              }
+            },
+            "disclosure": "CurrentAction",
+            "identity": "action/birth/plot/17c0d8962880ba7741154c4b6fec12238470fea590ae9ea99b42ae27041358fa",
+            "intent": "conduit.intent/birth@1",
+            "name": "Birth",
+            "target": "plot/17c0d8962880ba7741154c4b6fec12238470fea590ae9ea99b42ae27041358fa"
+          },
+          {
+            "arguments": [],
+            "availability": "Available",
+            "disclosure": "CurrentAction",
+            "identity": "action/wake/body/5791829c9b89404510510dc2d7694c96102e48ad43218d7f494b62ef54b8f6a8",
+            "intent": "conduit.intent/wake@1",
+            "name": "Wake",
+            "target": "body/5791829c9b89404510510dc2d7694c96102e48ad43218d7f494b62ef54b8f6a8"
+          },
+          {
+            "arguments": [],
+            "availability": {
+              "Unavailable": {
+                "explanation": "Plan is not available while lifecycle state is lulled.",
+                "reason_code": "lifecycle/not-current"
+              }
+            },
+            "disclosure": "CurrentAction",
+            "identity": "action/plan/body/5791829c9b89404510510dc2d7694c96102e48ad43218d7f494b62ef54b8f6a8",
+            "intent": "conduit.intent/plan@1",
+            "name": "Plan",
+            "target": "body/5791829c9b89404510510dc2d7694c96102e48ad43218d7f494b62ef54b8f6a8"
+          },
+          {
+            "arguments": [],
+            "availability": {
+              "Unavailable": {
+                "explanation": "Play is not available while lifecycle state is lulled.",
+                "reason_code": "lifecycle/not-current"
+              }
+            },
+            "disclosure": "CurrentAction",
+            "identity": "action/play/body/5791829c9b89404510510dc2d7694c96102e48ad43218d7f494b62ef54b8f6a8",
+            "intent": "conduit.intent/play@1",
+            "name": "Play",
+            "target": "body/5791829c9b89404510510dc2d7694c96102e48ad43218d7f494b62ef54b8f6a8"
+          },
+          {
+            "arguments": [],
+            "availability": {
+              "Unavailable": {
+                "explanation": "Stop is not available while lifecycle state is lulled.",
+                "reason_code": "lifecycle/not-current"
+              }
+            },
+            "disclosure": "CurrentAction",
+            "identity": "action/stop/body/5791829c9b89404510510dc2d7694c96102e48ad43218d7f494b62ef54b8f6a8",
+            "intent": "conduit.intent/stop@1",
+            "name": "Stop",
+            "target": "body/5791829c9b89404510510dc2d7694c96102e48ad43218d7f494b62ef54b8f6a8"
+          },
+          {
+            "arguments": [],
+            "availability": {
+              "Unavailable": {
+                "explanation": "Lull is not available while lifecycle state is lulled.",
+                "reason_code": "lifecycle/not-current"
+              }
+            },
+            "disclosure": "CurrentAction",
+            "identity": "action/lull/body/5791829c9b89404510510dc2d7694c96102e48ad43218d7f494b62ef54b8f6a8",
+            "intent": "conduit.intent/lull@1",
+            "name": "Lull",
+            "target": "body/5791829c9b89404510510dc2d7694c96102e48ad43218d7f494b62ef54b8f6a8"
+          },
+          {
+            "arguments": [],
+            "availability": "Available",
+            "disclosure": "CurrentAction",
+            "identity": "action/fulfill/body/5791829c9b89404510510dc2d7694c96102e48ad43218d7f494b62ef54b8f6a8",
+            "intent": "conduit.intent/fulfill@1",
+            "name": "Fulfill",
+            "target": "body/5791829c9b89404510510dc2d7694c96102e48ad43218d7f494b62ef54b8f6a8"
+          }
+        ],
+        "basis": {
+          "active_play_id": null,
+          "body_id": "5791829c9b89404510510dc2d7694c96102e48ad43218d7f494b62ef54b8f6a8",
+          "checked_plot_id": null,
+          "expanded_plot_id": null,
+          "plan_id": null,
+          "sign_ids": [],
+          "source_document_id": null,
+          "wake_id": null
+        },
+        "composition": [],
+        "disclosures": [
+          {
+            "level": "Primary",
+            "subject": "plot/17c0d8962880ba7741154c4b6fec12238470fea590ae9ea99b42ae27041358fa"
+          },
+          {
+            "level": "Context",
+            "subject": "host/host/boot"
+          }
+        ],
+        "identity": "dfcb2450f6893388ec2816a44c1478b1e0f8438120bf69237abb3f8ff6d7ca0c",
+        "interaction_context": {
+          "basis": [],
+          "identity": "face/context/general"
+        },
+        "properties": [
+          {
+            "name": "current-body",
+            "subject": "host/host/boot",
+            "value": {
+              "Identity": "5791829c9b89404510510dc2d7694c96102e48ad43218d7f494b62ef54b8f6a8"
+            }
+          },
+          {
+            "name": "host-id",
+            "subject": "host/host/boot",
+            "value": {
+              "Identity": "host"
+            }
+          },
+          {
+            "name": "boot-id",
+            "subject": "host/host/boot",
+            "value": {
+              "Identity": "boot"
+            }
+          },
+          {
+            "name": "offer-generation",
+            "subject": "host/host/boot",
+            "value": {
+              "Count": 3
+            }
+          },
+          {
+            "name": "offer-count",
+            "subject": "host/host/boot",
+            "value": {
+              "Count": 7
+            }
+          },
+          {
+            "name": "source-document-id",
+            "subject": "plot/17c0d8962880ba7741154c4b6fec12238470fea590ae9ea99b42ae27041358fa",
+            "value": {
+              "Identity": "86d6750675827761908f1bea11b189139fb57c94cb28097cc7c3d791cc92f948"
+            }
+          },
+          {
+            "name": "checked-plot-id",
+            "subject": "plot/17c0d8962880ba7741154c4b6fec12238470fea590ae9ea99b42ae27041358fa",
+            "value": {
+              "Identity": "17c0d8962880ba7741154c4b6fec12238470fea590ae9ea99b42ae27041358fa"
+            }
+          },
+          {
+            "name": "opened",
+            "subject": "plot/17c0d8962880ba7741154c4b6fec12238470fea590ae9ea99b42ae27041358fa",
+            "value": {
+              "Flag": false
+            }
+          },
+          {
+            "name": "body-id",
+            "subject": "body/5791829c9b89404510510dc2d7694c96102e48ad43218d7f494b62ef54b8f6a8",
+            "value": {
+              "Identity": "5791829c9b89404510510dc2d7694c96102e48ad43218d7f494b62ef54b8f6a8"
+            }
+          },
+          {
+            "name": "expanded-plot-id",
+            "subject": "plot/17c0d8962880ba7741154c4b6fec12238470fea590ae9ea99b42ae27041358fa",
+            "value": {
+              "Identity": "expanded"
+            }
+          },
+          {
+            "name": "input-events",
+            "subject": "host/host/boot",
+            "value": {
+              "Count": 0
+            }
+          },
+          {
+            "name": "result-omitted-bytes",
+            "subject": "host/host/boot",
+            "value": {
+              "Count": 0
+            }
+          }
+        ],
+        "relationships": [
+          {
+            "kind": "Observes",
+            "source": "host/host/boot",
+            "target": "plot/17c0d8962880ba7741154c4b6fec12238470fea590ae9ea99b42ae27041358fa"
+          },
+          {
+            "kind": "Contains",
+            "source": "host/host/boot",
+            "target": "body/5791829c9b89404510510dc2d7694c96102e48ad43218d7f494b62ef54b8f6a8"
+          }
+        ],
+        "revision": 2,
+        "subjects": [
+          {
+            "identity": "host/host/boot",
+            "name": "This host",
+            "role": "Host"
+          },
+          {
+            "identity": "plot/17c0d8962880ba7741154c4b6fec12238470fea590ae9ea99b42ae27041358fa",
+            "name": "ConduitOS entrance Plot",
+            "role": "Plot"
+          },
+          {
+            "identity": "body/5791829c9b89404510510dc2d7694c96102e48ad43218d7f494b62ef54b8f6a8",
+            "name": "Roseau",
+            "role": "Body"
+          }
+        ],
+        "temporal_facts": [],
+        "temporal_references": [],
+        "text": [
+          {
+            "subject": "host/host/boot",
+            "text": "Body retained; the prior Wake has ended."
+          },
+          {
+            "subject": "plot/17c0d8962880ba7741154c4b6fec12238470fea590ae9ea99b42ae27041358fa",
+            "text": "IMAGE-embedded checked plot; OPEN permits inspection only"
+          }
+        ]
+      },
+      "shown": [
+        "Conduit",
+        "Roseau",
+        "Memory Lantern",
+        "Body lulled. Its installed plots remain included.",
+        "lulled  ·  F2 details  ·  F9 Tutorial  ·  End Fulfill"
+      ]
+    },
+    {
+      "case": "creche",
+      "face": {
+        "actions": [
+          {
+            "arguments": [],
+            "availability": "Available",
+            "disclosure": "CurrentAction",
+            "identity": "creche.name",
+            "intent": "conduit.intent/creche.name@1",
+            "name": "Edit Body name",
+            "target": "host/host/boot"
+          },
+          {
+            "arguments": [],
+            "availability": "Available",
+            "disclosure": "CurrentAction",
+            "identity": "creche.naming",
+            "intent": "conduit.intent/creche.naming@1",
+            "name": "Use naming tradition",
+            "target": "host/host/boot"
+          },
+          {
+            "arguments": [],
+            "availability": "Available",
+            "disclosure": "CurrentAction",
+            "identity": "creche.suggest",
+            "intent": "conduit.intent/creche.suggest@1",
+            "name": "Suggest another name",
+            "target": "host/host/boot"
+          },
+          {
+            "arguments": [],
+            "availability": "Available",
+            "disclosure": "CurrentAction",
+            "identity": "creche.search",
+            "intent": "conduit.intent/creche.search@1",
+            "name": "Search Plots",
+            "target": "host/host/boot"
+          },
+          {
+            "arguments": [],
+            "availability": "Available",
+            "disclosure": "CurrentAction",
+            "identity": "creche.plot.0",
+            "intent": "conduit.intent/creche.plot.0@1",
+            "name": "Include Plot",
+            "target": "host/host/boot"
+          },
+          {
+            "arguments": [],
+            "availability": "Available",
+            "disclosure": "CurrentAction",
+            "identity": "creche.plot.1",
+            "intent": "conduit.intent/creche.plot.1@1",
+            "name": "Include Plot",
+            "target": "host/host/boot"
+          },
+          {
+            "arguments": [],
+            "availability": "Available",
+            "disclosure": "CurrentAction",
+            "identity": "creche.plot.2",
+            "intent": "conduit.intent/creche.plot.2@1",
+            "name": "Include Plot",
+            "target": "host/host/boot"
+          },
+          {
+            "arguments": [],
+            "availability": "Available",
+            "disclosure": "CurrentAction",
+            "identity": "creche.plot.3",
+            "intent": "conduit.intent/creche.plot.3@1",
+            "name": "Include Plot",
+            "target": "host/host/boot"
+          },
+          {
+            "arguments": [],
+            "availability": "Available",
+            "disclosure": "CurrentAction",
+            "identity": "creche.birth",
+            "intent": "conduit.intent/creche.birth@1",
+            "name": "Birth Body",
+            "target": "host/host/boot"
+          }
+        ],
+        "basis": {
+          "active_play_id": null,
+          "body_id": null,
+          "checked_plot_id": null,
+          "expanded_plot_id": null,
+          "plan_id": null,
+          "sign_ids": [],
+          "source_document_id": null,
+          "wake_id": null
+        },
+        "composition": [],
+        "disclosures": [
+          {
+            "level": "Primary",
+            "subject": "host/host/boot"
+          }
+        ],
+        "identity": "1a306c3a1c290f528d6a4e62ae6f306364fc3575cc96bed79398450030c8f24d",
+        "interaction_context": {
+          "basis": [],
+          "identity": "face/context/general"
+        },
+        "properties": [
+          {
+            "name": "naming-tradition",
+            "subject": "host/host/boot",
+            "value": {
+              "Identity": "surprise"
+            }
+          },
+          {
+            "name": "selected-control",
+            "subject": "host/host/boot",
+            "value": {
+              "Count": 0
+            }
+          },
+          {
+            "name": "friendly-name",
+            "subject": "host/host/boot",
+            "value": {
+              "Text": "Shibata Aoi"
+            }
+          },
+          {
+            "name": "name-empty",
+            "subject": "host/host/boot",
+            "value": {
+              "Flag": false
+            }
+          },
+          {
+            "name": "source-document-id",
+            "subject": "plot/8045c13b9ca2bf58470c7beb24a06c89a868728df1ac0814047dac3dada34aae",
+            "value": {
+              "Identity": "fd681a367856550384d5155c8ba3e7f36c6c008c249029b009aa075ac6c23516"
+            }
+          },
+          {
+            "name": "checked-plot-id",
+            "subject": "plot/8045c13b9ca2bf58470c7beb24a06c89a868728df1ac0814047dac3dada34aae",
+            "value": {
+              "Identity": "8045c13b9ca2bf58470c7beb24a06c89a868728df1ac0814047dac3dada34aae"
+            }
+          },
+          {
+            "name": "selected",
+            "subject": "plot/8045c13b9ca2bf58470c7beb24a06c89a868728df1ac0814047dac3dada34aae",
+            "value": {
+              "Flag": true
+            }
+          },
+          {
+            "name": "choice-index",
+            "subject": "plot/8045c13b9ca2bf58470c7beb24a06c89a868728df1ac0814047dac3dada34aae",
+            "value": {
+              "Count": 0
+            }
+          },
+          {
+            "name": "source-document-id",
+            "subject": "plot/17c0d8962880ba7741154c4b6fec12238470fea590ae9ea99b42ae27041358fa",
+            "value": {
+              "Identity": "86d6750675827761908f1bea11b189139fb57c94cb28097cc7c3d791cc92f948"
+            }
+          },
+          {
+            "name": "checked-plot-id",
+            "subject": "plot/17c0d8962880ba7741154c4b6fec12238470fea590ae9ea99b42ae27041358fa",
+            "value": {
+              "Identity": "17c0d8962880ba7741154c4b6fec12238470fea590ae9ea99b42ae27041358fa"
+            }
+          },
+          {
+            "name": "selected",
+            "subject": "plot/17c0d8962880ba7741154c4b6fec12238470fea590ae9ea99b42ae27041358fa",
+            "value": {
+              "Flag": true
+            }
+          },
+          {
+            "name": "choice-index",
+            "subject": "plot/17c0d8962880ba7741154c4b6fec12238470fea590ae9ea99b42ae27041358fa",
+            "value": {
+              "Count": 1
+            }
+          },
+          {
+            "name": "source-document-id",
+            "subject": "plot/ecac33a08de2f696f8745a4cc1882adf207cf023d7dbc9fd977149841f0847ab",
+            "value": {
+              "Identity": "aa98b04cce0746f84fc8965cd59890e2d45cf79677e17b7a4eb908e8bff212b3"
+            }
+          },
+          {
+            "name": "checked-plot-id",
+            "subject": "plot/ecac33a08de2f696f8745a4cc1882adf207cf023d7dbc9fd977149841f0847ab",
+            "value": {
+              "Identity": "ecac33a08de2f696f8745a4cc1882adf207cf023d7dbc9fd977149841f0847ab"
+            }
+          },
+          {
+            "name": "selected",
+            "subject": "plot/ecac33a08de2f696f8745a4cc1882adf207cf023d7dbc9fd977149841f0847ab",
+            "value": {
+              "Flag": true
+            }
+          },
+          {
+            "name": "choice-index",
+            "subject": "plot/ecac33a08de2f696f8745a4cc1882adf207cf023d7dbc9fd977149841f0847ab",
+            "value": {
+              "Count": 2
+            }
+          },
+          {
+            "name": "source-document-id",
+            "subject": "plot/3de5d2f5dcfefb501afc8883e3fd1d94ee4fc055daef528c90c6b2c6f50dc8b8",
+            "value": {
+              "Identity": "28d183f5a74de23b9b9c76bd3ec6e82ffea3600ee1cad52907d69a3cf34ed3be"
+            }
+          },
+          {
+            "name": "checked-plot-id",
+            "subject": "plot/3de5d2f5dcfefb501afc8883e3fd1d94ee4fc055daef528c90c6b2c6f50dc8b8",
+            "value": {
+              "Identity": "3de5d2f5dcfefb501afc8883e3fd1d94ee4fc055daef528c90c6b2c6f50dc8b8"
+            }
+          },
+          {
+            "name": "selected",
+            "subject": "plot/3de5d2f5dcfefb501afc8883e3fd1d94ee4fc055daef528c90c6b2c6f50dc8b8",
+            "value": {
+              "Flag": true
+            }
+          },
+          {
+            "name": "choice-index",
+            "subject": "plot/3de5d2f5dcfefb501afc8883e3fd1d94ee4fc055daef528c90c6b2c6f50dc8b8",
+            "value": {
+              "Count": 3
+            }
+          }
+        ],
+        "relationships": [],
+        "revision": 2,
+        "subjects": [
+          {
+            "identity": "host/host/boot",
+            "name": "Crèche — a body of your own",
+            "role": "Host"
+          },
+          {
+            "identity": "plot/8045c13b9ca2bf58470c7beb24a06c89a868728df1ac0814047dac3dada34aae",
+            "name": "Keyboard canvas",
+            "role": "Plot"
+          },
+          {
+            "identity": "plot/17c0d8962880ba7741154c4b6fec12238470fea590ae9ea99b42ae27041358fa",
+            "name": "Memory Lantern",
+            "role": "Plot"
+          },
+          {
+            "identity": "plot/ecac33a08de2f696f8745a4cc1882adf207cf023d7dbc9fd977149841f0847ab",
+            "name": "Tutorial",
+            "role": "Plot"
+          },
+          {
+            "identity": "plot/3de5d2f5dcfefb501afc8883e3fd1d94ee4fc055daef528c90c6b2c6f50dc8b8",
+            "name": "Patchbay",
+            "role": "Plot"
+          }
+        ],
+        "temporal_facts": [],
+        "temporal_references": [],
+        "text": [
+          {
+            "subject": "host/host/boot",
+            "text": "Name your body and choose its installed plots."
+          }
+        ]
+      },
+      "shown": [
+        "Conduit / Crèche",
+        "A body of your own",
+        "Give it a name, or use a suggestion.",
+        "Friendly Body name",
+        "Shibata Aoi",
+        "Naming tradition: Surprise me",
+        "Suggest another name  ·  F2",
+        "Search Plots: ",
+        "Plots to include",
+        "●  Keyboard canvas",
+        "●  Memory Lantern",
+        "●  Tutorial",
+        "●  Patchbay",
+        "Birth Body  ·  Enter / F3",
+        "Selected: 4 · Review Birth choices",
+        "Tab moves  ·  Arrows choose",
+        "conduit-confirm"
+      ]
+    },
+    {
+      "case": "home",
+      "face": {
+        "actions": [
+          {
+            "arguments": [],
+            "availability": {
+              "Unavailable": {
+                "explanation": "Open is not available while lifecycle state is lulled.",
+                "reason_code": "lifecycle/not-current"
+              }
+            },
+            "disclosure": "CurrentAction",
+            "identity": "action/open-back/plot/17c0d8962880ba7741154c4b6fec12238470fea590ae9ea99b42ae27041358fa",
+            "intent": "conduit.intent/open@1",
+            "name": "Open",
+            "target": "plot/17c0d8962880ba7741154c4b6fec12238470fea590ae9ea99b42ae27041358fa"
+          },
+          {
+            "arguments": [],
+            "availability": {
+              "Unavailable": {
+                "explanation": "Birth is not available while lifecycle state is lulled.",
+                "reason_code": "lifecycle/not-current"
+              }
+            },
+            "disclosure": "CurrentAction",
+            "identity": "action/birth/plot/17c0d8962880ba7741154c4b6fec12238470fea590ae9ea99b42ae27041358fa",
+            "intent": "conduit.intent/birth@1",
+            "name": "Birth",
+            "target": "plot/17c0d8962880ba7741154c4b6fec12238470fea590ae9ea99b42ae27041358fa"
+          },
+          {
+            "arguments": [],
+            "availability": "Available",
+            "disclosure": "CurrentAction",
+            "identity": "action/wake/body/5791829c9b89404510510dc2d7694c96102e48ad43218d7f494b62ef54b8f6a8",
+            "intent": "conduit.intent/wake@1",
+            "name": "Wake",
+            "target": "body/5791829c9b89404510510dc2d7694c96102e48ad43218d7f494b62ef54b8f6a8"
+          },
+          {
+            "arguments": [],
+            "availability": {
+              "Unavailable": {
+                "explanation": "Plan is not available while lifecycle state is lulled.",
+                "reason_code": "lifecycle/not-current"
+              }
+            },
+            "disclosure": "CurrentAction",
+            "identity": "action/plan/body/5791829c9b89404510510dc2d7694c96102e48ad43218d7f494b62ef54b8f6a8",
+            "intent": "conduit.intent/plan@1",
+            "name": "Plan",
+            "target": "body/5791829c9b89404510510dc2d7694c96102e48ad43218d7f494b62ef54b8f6a8"
+          },
+          {
+            "arguments": [],
+            "availability": {
+              "Unavailable": {
+                "explanation": "Play is not available while lifecycle state is lulled.",
+                "reason_code": "lifecycle/not-current"
+              }
+            },
+            "disclosure": "CurrentAction",
+            "identity": "action/play/body/5791829c9b89404510510dc2d7694c96102e48ad43218d7f494b62ef54b8f6a8",
+            "intent": "conduit.intent/play@1",
+            "name": "Play",
+            "target": "body/5791829c9b89404510510dc2d7694c96102e48ad43218d7f494b62ef54b8f6a8"
+          },
+          {
+            "arguments": [],
+            "availability": {
+              "Unavailable": {
+                "explanation": "Stop is not available while lifecycle state is lulled.",
+                "reason_code": "lifecycle/not-current"
+              }
+            },
+            "disclosure": "CurrentAction",
+            "identity": "action/stop/body/5791829c9b89404510510dc2d7694c96102e48ad43218d7f494b62ef54b8f6a8",
+            "intent": "conduit.intent/stop@1",
+            "name": "Stop",
+            "target": "body/5791829c9b89404510510dc2d7694c96102e48ad43218d7f494b62ef54b8f6a8"
+          },
+          {
+            "arguments": [],
+            "availability": {
+              "Unavailable": {
+                "explanation": "Lull is not available while lifecycle state is lulled.",
+                "reason_code": "lifecycle/not-current"
+              }
+            },
+            "disclosure": "CurrentAction",
+            "identity": "action/lull/body/5791829c9b89404510510dc2d7694c96102e48ad43218d7f494b62ef54b8f6a8",
+            "intent": "conduit.intent/lull@1",
+            "name": "Lull",
+            "target": "body/5791829c9b89404510510dc2d7694c96102e48ad43218d7f494b62ef54b8f6a8"
+          },
+          {
+            "arguments": [],
+            "availability": "Available",
+            "disclosure": "CurrentAction",
+            "identity": "action/fulfill/body/5791829c9b89404510510dc2d7694c96102e48ad43218d7f494b62ef54b8f6a8",
+            "intent": "conduit.intent/fulfill@1",
+            "name": "Fulfill",
+            "target": "body/5791829c9b89404510510dc2d7694c96102e48ad43218d7f494b62ef54b8f6a8"
+          }
+        ],
+        "basis": {
+          "active_play_id": null,
+          "body_id": "5791829c9b89404510510dc2d7694c96102e48ad43218d7f494b62ef54b8f6a8",
+          "checked_plot_id": null,
+          "expanded_plot_id": null,
+          "plan_id": null,
+          "sign_ids": [],
+          "source_document_id": null,
+          "wake_id": null
+        },
+        "composition": [],
+        "disclosures": [
+          {
+            "level": "Primary",
+            "subject": "plot/17c0d8962880ba7741154c4b6fec12238470fea590ae9ea99b42ae27041358fa"
+          },
+          {
+            "level": "Context",
+            "subject": "host/host/boot"
+          },
+          {
+            "level": "Primary",
+            "subject": "conduitos/shell/home"
+          }
+        ],
+        "identity": "6702126e449bc5b9f85adb393bd11b49b8d7daf91cb696dcbcc068df9ef6c8d0",
+        "interaction_context": {
+          "basis": [],
+          "identity": "face/context/general"
+        },
+        "properties": [
+          {
+            "name": "current-body",
+            "subject": "host/host/boot",
+            "value": {
+              "Identity": "5791829c9b89404510510dc2d7694c96102e48ad43218d7f494b62ef54b8f6a8"
+            }
+          },
+          {
+            "name": "host-id",
+            "subject": "host/host/boot",
+            "value": {
+              "Identity": "host"
+            }
+          },
+          {
+            "name": "boot-id",
+            "subject": "host/host/boot",
+            "value": {
+              "Identity": "boot"
+            }
+          },
+          {
+            "name": "offer-generation",
+            "subject": "host/host/boot",
+            "value": {
+              "Count": 3
+            }
+          },
+          {
+            "name": "offer-count",
+            "subject": "host/host/boot",
+            "value": {
+              "Count": 7
+            }
+          },
+          {
+            "name": "source-document-id",
+            "subject": "plot/17c0d8962880ba7741154c4b6fec12238470fea590ae9ea99b42ae27041358fa",
+            "value": {
+              "Identity": "86d6750675827761908f1bea11b189139fb57c94cb28097cc7c3d791cc92f948"
+            }
+          },
+          {
+            "name": "checked-plot-id",
+            "subject": "plot/17c0d8962880ba7741154c4b6fec12238470fea590ae9ea99b42ae27041358fa",
+            "value": {
+              "Identity": "17c0d8962880ba7741154c4b6fec12238470fea590ae9ea99b42ae27041358fa"
+            }
+          },
+          {
+            "name": "opened",
+            "subject": "plot/17c0d8962880ba7741154c4b6fec12238470fea590ae9ea99b42ae27041358fa",
+            "value": {
+              "Flag": false
+            }
+          },
+          {
+            "name": "body-id",
+            "subject": "body/5791829c9b89404510510dc2d7694c96102e48ad43218d7f494b62ef54b8f6a8",
+            "value": {
+              "Identity": "5791829c9b89404510510dc2d7694c96102e48ad43218d7f494b62ef54b8f6a8"
+            }
+          },
+          {
+            "name": "expanded-plot-id",
+            "subject": "plot/17c0d8962880ba7741154c4b6fec12238470fea590ae9ea99b42ae27041358fa",
+            "value": {
+              "Identity": "expanded"
+            }
+          },
+          {
+            "name": "input-events",
+            "subject": "host/host/boot",
+            "value": {
+              "Count": 0
+            }
+          },
+          {
+            "name": "result-omitted-bytes",
+            "subject": "host/host/boot",
+            "value": {
+              "Count": 0
+            }
+          },
+          {
+            "name": "view",
+            "subject": "conduitos/shell/home",
+            "value": {
+              "Text": "launcher"
+            }
+          },
+          {
+            "name": "selected-launcher-index",
+            "subject": "conduitos/shell/home",
+            "value": {
+              "Count": 0
+            }
+          }
+        ],
+        "relationships": [
+          {
+            "kind": "Observes",
+            "source": "host/host/boot",
+            "target": "plot/17c0d8962880ba7741154c4b6fec12238470fea590ae9ea99b42ae27041358fa"
+          },
+          {
+            "kind": "Contains",
+            "source": "host/host/boot",
+            "target": "body/5791829c9b89404510510dc2d7694c96102e48ad43218d7f494b62ef54b8f6a8"
+          },
+          {
+            "kind": "Observes",
+            "source": "conduitos/shell/home",
+            "target": "host/host/boot"
+          }
+        ],
+        "revision": 3,
+        "subjects": [
+          {
+            "identity": "host/host/boot",
+            "name": "This host",
+            "role": "Host"
+          },
+          {
+            "identity": "plot/17c0d8962880ba7741154c4b6fec12238470fea590ae9ea99b42ae27041358fa",
+            "name": "ConduitOS entrance Plot",
+            "role": "Plot"
+          },
+          {
+            "identity": "body/5791829c9b89404510510dc2d7694c96102e48ad43218d7f494b62ef54b8f6a8",
+            "name": "Roseau",
+            "role": "Body"
+          },
+          {
+            "identity": "conduitos/shell/home",
+            "name": "ConduitOS Home",
+            "role": "Region"
+          }
+        ],
+        "temporal_facts": [],
+        "temporal_references": [],
+        "text": [
+          {
+            "subject": "host/host/boot",
+            "text": "Body retained; the prior Wake has ended."
+          },
+          {
+            "subject": "plot/17c0d8962880ba7741154c4b6fec12238470fea590ae9ea99b42ae27041358fa",
+            "text": "IMAGE-embedded checked plot; OPEN permits inspection only"
+          },
+          {
+            "subject": "conduitos/shell/home",
+            "text": "Persistent launcher and finite Conduit command bar"
+          }
+        ]
+      },
+      "shown": [
+        "CONDUIT",
+        "Roseau",
+        "TOUR",
+        "PATCHBAY",
+        "PLOTS",
+        "BODY",
+        "CRECHE",
+        "PROMPT",
+        ">  type anywhere for Prompt",
+        "BODY Roseau  |  WAKE -  |  PLAN idle  |  PLAY -  |  LINES 0  |  HOST host"
+      ]
+    },
+    {
+      "case": "patchbay-workspace",
+      "face": {
+        "actions": [
+          {
+            "arguments": [],
+            "availability": {
+              "Unavailable": {
+                "explanation": "Open is not available while lifecycle state is lulled.",
+                "reason_code": "lifecycle/not-current"
+              }
+            },
+            "disclosure": "CurrentAction",
+            "identity": "action/open-back/plot/3de5d2f5dcfefb501afc8883e3fd1d94ee4fc055daef528c90c6b2c6f50dc8b8",
+            "intent": "conduit.intent/open@1",
+            "name": "Open",
+            "target": "plot/3de5d2f5dcfefb501afc8883e3fd1d94ee4fc055daef528c90c6b2c6f50dc8b8"
+          },
+          {
+            "arguments": [],
+            "availability": {
+              "Unavailable": {
+                "explanation": "Birth is not available while lifecycle state is lulled.",
+                "reason_code": "lifecycle/not-current"
+              }
+            },
+            "disclosure": "CurrentAction",
+            "identity": "action/birth/plot/3de5d2f5dcfefb501afc8883e3fd1d94ee4fc055daef528c90c6b2c6f50dc8b8",
+            "intent": "conduit.intent/birth@1",
+            "name": "Birth",
+            "target": "plot/3de5d2f5dcfefb501afc8883e3fd1d94ee4fc055daef528c90c6b2c6f50dc8b8"
+          },
+          {
+            "arguments": [],
+            "availability": "Available",
+            "disclosure": "CurrentAction",
+            "identity": "action/wake/body/7dc323e9a15fc3cbd2ba507b7ec6bf0312698f3ca8492ced841f92e023769829",
+            "intent": "conduit.intent/wake@1",
+            "name": "Wake",
+            "target": "body/7dc323e9a15fc3cbd2ba507b7ec6bf0312698f3ca8492ced841f92e023769829"
+          },
+          {
+            "arguments": [],
+            "availability": {
+              "Unavailable": {
+                "explanation": "Plan is not available while lifecycle state is lulled.",
+                "reason_code": "lifecycle/not-current"
+              }
+            },
+            "disclosure": "CurrentAction",
+            "identity": "action/plan/body/7dc323e9a15fc3cbd2ba507b7ec6bf0312698f3ca8492ced841f92e023769829",
+            "intent": "conduit.intent/plan@1",
+            "name": "Plan",
+            "target": "body/7dc323e9a15fc3cbd2ba507b7ec6bf0312698f3ca8492ced841f92e023769829"
+          },
+          {
+            "arguments": [],
+            "availability": {
+              "Unavailable": {
+                "explanation": "Play is not available while lifecycle state is lulled.",
+                "reason_code": "lifecycle/not-current"
+              }
+            },
+            "disclosure": "CurrentAction",
+            "identity": "action/play/body/7dc323e9a15fc3cbd2ba507b7ec6bf0312698f3ca8492ced841f92e023769829",
+            "intent": "conduit.intent/play@1",
+            "name": "Play",
+            "target": "body/7dc323e9a15fc3cbd2ba507b7ec6bf0312698f3ca8492ced841f92e023769829"
+          },
+          {
+            "arguments": [],
+            "availability": {
+              "Unavailable": {
+                "explanation": "Stop is not available while lifecycle state is lulled.",
+                "reason_code": "lifecycle/not-current"
+              }
+            },
+            "disclosure": "CurrentAction",
+            "identity": "action/stop/body/7dc323e9a15fc3cbd2ba507b7ec6bf0312698f3ca8492ced841f92e023769829",
+            "intent": "conduit.intent/stop@1",
+            "name": "Stop",
+            "target": "body/7dc323e9a15fc3cbd2ba507b7ec6bf0312698f3ca8492ced841f92e023769829"
+          },
+          {
+            "arguments": [],
+            "availability": {
+              "Unavailable": {
+                "explanation": "Lull is not available while lifecycle state is lulled.",
+                "reason_code": "lifecycle/not-current"
+              }
+            },
+            "disclosure": "CurrentAction",
+            "identity": "action/lull/body/7dc323e9a15fc3cbd2ba507b7ec6bf0312698f3ca8492ced841f92e023769829",
+            "intent": "conduit.intent/lull@1",
+            "name": "Lull",
+            "target": "body/7dc323e9a15fc3cbd2ba507b7ec6bf0312698f3ca8492ced841f92e023769829"
+          },
+          {
+            "arguments": [],
+            "availability": "Available",
+            "disclosure": "CurrentAction",
+            "identity": "action/fulfill/body/7dc323e9a15fc3cbd2ba507b7ec6bf0312698f3ca8492ced841f92e023769829",
+            "intent": "conduit.intent/fulfill@1",
+            "name": "Fulfill",
+            "target": "body/7dc323e9a15fc3cbd2ba507b7ec6bf0312698f3ca8492ced841f92e023769829"
+          }
+        ],
+        "basis": {
+          "active_play_id": null,
+          "body_id": "7dc323e9a15fc3cbd2ba507b7ec6bf0312698f3ca8492ced841f92e023769829",
+          "checked_plot_id": null,
+          "expanded_plot_id": null,
+          "plan_id": null,
+          "sign_ids": [],
+          "source_document_id": null,
+          "wake_id": null
+        },
+        "composition": [],
+        "disclosures": [
+          {
+            "level": "Primary",
+            "subject": "plot/3de5d2f5dcfefb501afc8883e3fd1d94ee4fc055daef528c90c6b2c6f50dc8b8"
+          },
+          {
+            "level": "Context",
+            "subject": "host/host/boot"
+          }
+        ],
+        "identity": "be5df48ddc25043d16f3f605d7f99ff042e4b9e9d51ef26561898c309ab94fb5",
+        "interaction_context": {
+          "basis": [],
+          "identity": "face/context/general"
+        },
+        "properties": [
+          {
+            "name": "current-body",
+            "subject": "host/host/boot",
+            "value": {
+              "Identity": "7dc323e9a15fc3cbd2ba507b7ec6bf0312698f3ca8492ced841f92e023769829"
+            }
+          },
+          {
+            "name": "host-id",
+            "subject": "host/host/boot",
+            "value": {
+              "Identity": "host"
+            }
+          },
+          {
+            "name": "boot-id",
+            "subject": "host/host/boot",
+            "value": {
+              "Identity": "boot"
+            }
+          },
+          {
+            "name": "offer-generation",
+            "subject": "host/host/boot",
+            "value": {
+              "Count": 3
+            }
+          },
+          {
+            "name": "offer-count",
+            "subject": "host/host/boot",
+            "value": {
+              "Count": 7
+            }
+          },
+          {
+            "name": "source-document-id",
+            "subject": "plot/3de5d2f5dcfefb501afc8883e3fd1d94ee4fc055daef528c90c6b2c6f50dc8b8",
+            "value": {
+              "Identity": "28d183f5a74de23b9b9c76bd3ec6e82ffea3600ee1cad52907d69a3cf34ed3be"
+            }
+          },
+          {
+            "name": "checked-plot-id",
+            "subject": "plot/3de5d2f5dcfefb501afc8883e3fd1d94ee4fc055daef528c90c6b2c6f50dc8b8",
+            "value": {
+              "Identity": "3de5d2f5dcfefb501afc8883e3fd1d94ee4fc055daef528c90c6b2c6f50dc8b8"
+            }
+          },
+          {
+            "name": "opened",
+            "subject": "plot/3de5d2f5dcfefb501afc8883e3fd1d94ee4fc055daef528c90c6b2c6f50dc8b8",
+            "value": {
+              "Flag": false
+            }
+          },
+          {
+            "name": "body-id",
+            "subject": "body/7dc323e9a15fc3cbd2ba507b7ec6bf0312698f3ca8492ced841f92e023769829",
+            "value": {
+              "Identity": "7dc323e9a15fc3cbd2ba507b7ec6bf0312698f3ca8492ced841f92e023769829"
+            }
+          },
+          {
+            "name": "expanded-plot-id",
+            "subject": "plot/3de5d2f5dcfefb501afc8883e3fd1d94ee4fc055daef528c90c6b2c6f50dc8b8",
+            "value": {
+              "Identity": "expanded"
+            }
+          },
+          {
+            "name": "input-events",
+            "subject": "host/host/boot",
+            "value": {
+              "Count": 0
+            }
+          },
+          {
+            "name": "result-omitted-bytes",
+            "subject": "host/host/boot",
+            "value": {
+              "Count": 0
+            }
+          }
+        ],
+        "relationships": [
+          {
+            "kind": "Observes",
+            "source": "host/host/boot",
+            "target": "plot/3de5d2f5dcfefb501afc8883e3fd1d94ee4fc055daef528c90c6b2c6f50dc8b8"
+          },
+          {
+            "kind": "Contains",
+            "source": "host/host/boot",
+            "target": "body/7dc323e9a15fc3cbd2ba507b7ec6bf0312698f3ca8492ced841f92e023769829"
+          }
+        ],
+        "revision": 2,
+        "subjects": [
+          {
+            "identity": "host/host/boot",
+            "name": "This host",
+            "role": "Host"
+          },
+          {
+            "identity": "plot/3de5d2f5dcfefb501afc8883e3fd1d94ee4fc055daef528c90c6b2c6f50dc8b8",
+            "name": "ConduitOS entrance Plot",
+            "role": "Plot"
+          },
+          {
+            "identity": "body/7dc323e9a15fc3cbd2ba507b7ec6bf0312698f3ca8492ced841f92e023769829",
+            "name": "Roseau",
+            "role": "Body"
+          }
+        ],
+        "temporal_facts": [],
+        "temporal_references": [],
+        "text": [
+          {
+            "subject": "host/host/boot",
+            "text": "Body retained; the prior Wake has ended."
+          },
+          {
+            "subject": "plot/3de5d2f5dcfefb501afc8883e3fd1d94ee4fc055daef528c90c6b2c6f50dc8b8",
+            "text": "IMAGE-embedded checked plot; OPEN permits inspection only"
+          }
+        ]
+      },
+      "shown": [
+        "Conduit",
+        "Roseau",
+        "Patchbay",
+        "Body lulled. Its installed plots remain included.",
+        "lulled  ·  F2 details  ·  F9 Tutorial  ·  End Fulfill"
+      ]
+    },
+    {
+      "case": "zero-body",
+      "face": {
+        "actions": [
+          {
+            "arguments": [],
+            "availability": "Available",
+            "disclosure": "CurrentAction",
+            "identity": "action/open-back/plot/checked",
+            "intent": "conduit.intent/open@1",
+            "name": "Open",
+            "target": "plot/checked"
+          },
+          {
+            "arguments": [],
+            "availability": {
+              "Unavailable": {
+                "explanation": "Birth is not available while lifecycle state is world.",
+                "reason_code": "lifecycle/not-current"
+              }
+            },
+            "disclosure": "CurrentAction",
+            "identity": "action/birth/plot/checked",
+            "intent": "conduit.intent/birth@1",
+            "name": "Birth",
+            "target": "plot/checked"
+          }
+        ],
+        "basis": {
+          "active_play_id": null,
+          "body_id": null,
+          "checked_plot_id": null,
+          "expanded_plot_id": null,
+          "plan_id": null,
+          "sign_ids": [],
+          "source_document_id": null,
+          "wake_id": null
+        },
+        "composition": [],
+        "disclosures": [
+          {
+            "level": "Primary",
+            "subject": "plot/checked"
+          },
+          {
+            "level": "Context",
+            "subject": "host/host/boot"
+          }
+        ],
+        "identity": "6e87fbd6e7e9d2830e20978c733b486118d754688d401fe1fc67008e1875d504",
+        "interaction_context": {
+          "basis": [],
+          "identity": "face/context/general"
+        },
+        "properties": [
+          {
+            "name": "current-body",
+            "subject": "host/host/boot",
+            "value": {
+              "Text": "none"
+            }
+          },
+          {
+            "name": "host-id",
+            "subject": "host/host/boot",
+            "value": {
+              "Identity": "host"
+            }
+          },
+          {
+            "name": "boot-id",
+            "subject": "host/host/boot",
+            "value": {
+              "Identity": "boot"
+            }
+          },
+          {
+            "name": "offer-generation",
+            "subject": "host/host/boot",
+            "value": {
+              "Count": 3
+            }
+          },
+          {
+            "name": "offer-count",
+            "subject": "host/host/boot",
+            "value": {
+              "Count": 7
+            }
+          },
+          {
+            "name": "source-document-id",
+            "subject": "plot/checked",
+            "value": {
+              "Identity": "source"
+            }
+          },
+          {
+            "name": "checked-plot-id",
+            "subject": "plot/checked",
+            "value": {
+              "Identity": "checked"
+            }
+          },
+          {
+            "name": "opened",
+            "subject": "plot/checked",
+            "value": {
+              "Flag": false
+            }
+          }
+        ],
+        "relationships": [
+          {
+            "kind": "Observes",
+            "source": "host/host/boot",
+            "target": "plot/checked"
+          }
+        ],
+        "revision": 1,
+        "subjects": [
+          {
+            "identity": "host/host/boot",
+            "name": "This host",
+            "role": "Host"
+          },
+          {
+            "identity": "plot/checked",
+            "name": "ConduitOS entrance Plot",
+            "role": "Plot"
+          }
+        ],
+        "temporal_facts": [],
+        "temporal_references": [],
+        "text": [
+          {
+            "subject": "host/host/boot",
+            "text": "BODY NONE; entering Patchbay creates no Body, Wake, Plan, or Play"
+          },
+          {
+            "subject": "plot/checked",
+            "text": "IMAGE-embedded checked plot; OPEN permits inspection only"
+          }
+        ]
+      },
+      "shown": [
+        "CONDUIT / PATCHBAY / WORLD",
+        "THIS HOST    BODY: NONE",
+        "BODIES NEARBY    NONE OBSERVED",
+        "PLOTS",
+        "  CONDUITOS ENTRANCE PLOT",
+        "> DETAILS",
+        "ARROWS SELECT  ENTER OPEN  F2 DETAILS  F9 TOUR"
+      ]
+    }
+  ]
+}

@@ -21,6 +21,20 @@ fn fixture() -> (BootIdentities, HostOffer<'static>) {
 }
 
 #[test]
+fn protected_request_never_falls_back_to_cooperative_preparation() {
+    let (identities, offer) = fixture();
+    let allocations = crate::test_allocations::allocations(|| {
+        assert!(matches!(
+            prepare_protected(&identities, &offer, "build"),
+            Err(PreparationError::Protection(
+                crate::protected_region::DomainRefusal::Unsupported
+            ))
+        ));
+    });
+    assert_eq!(allocations, 0);
+}
+
+#[test]
 fn ordinary_source_checks_plans_lowers_and_installs() {
     let (identities, offer) = fixture();
     let prepared = prepare(&identities, &offer, "build").unwrap();
@@ -87,9 +101,8 @@ fn shared_fanout_stage_checks_against_native_morse_and_indicator_offers() {
             && placement.implementation_id.as_str() == crate::offer::TEXT_MORSE_IMPLEMENTATION
     }));
     assert!(planned.iter().any(|placement| {
-        placement.kind_id.as_str() == conduit_semantic_catalog::INDICATOR_PRESENTATION_KIND
-            && placement.implementation_id.as_str()
-                == crate::offer::INDICATOR_PRESENTATION_IMPLEMENTATION
+        placement.kind_id.as_str() == conduit_semantic_catalog::INDICATOR_FACE_KIND
+            && placement.implementation_id.as_str() == crate::offer::INDICATOR_FACE_IMPLEMENTATION
     }));
 }
 
@@ -137,7 +150,7 @@ fn unavailable_execution_lane_is_rejected_before_play() {
 }
 
 #[test]
-fn revoked_presentation_base_refuses_that_plan_without_collapsing_the_host() {
+fn revoked_face_base_refuses_that_plan_without_collapsing_the_host() {
     let (identities, mut offer) = fixture();
     offer
         .bases
@@ -263,7 +276,7 @@ fn undersized_cord_reserve_and_stale_planned_boot_fail_closed() {
 #[test]
 fn oversized_text_is_refused_during_source_checking() {
     let oversized = "x".repeat(conduit_text::MAX_TEXT_BYTES as usize + 1);
-    let source = format!("plot too-large {{\n    \"{oversized}\" >> presentation/text\n}}\n");
+    let source = format!("plot too-large {{\n    \"{oversized}\" >> face/text(\"Message\")\n}}\n");
     let syntax = conduit_plot::parse_syntax_document(&source);
     let mut startup = conduit_plot::StartupCatalog::new();
     let mut profile = conduit_plot::ProfileCatalog::new();
@@ -272,7 +285,7 @@ fn oversized_text_is_refused_during_source_checking() {
     assert!(conduit_plot::expand_canonical_plot(&checked, "too-large", &profile).is_err());
 
     let malformed = conduit_plot::parse_syntax_document(
-        "plot malformed {\n    \"bad\\q\" >> presentation/text\n}\n",
+        "plot malformed {\n    \"bad\\q\" >> face/text(\"Message\")\n}\n",
     );
     assert!(conduit_plot::check_syntax_document(&malformed, &startup).is_err());
 }

@@ -4,6 +4,8 @@
 //! not derive semantic identity from Rust names, layout, or traits.
 
 mod bounded;
+mod native_contracts;
+pub use native_contracts::{validate_native_contracts_borrowed, BorrowedNativeContractRefusal};
 mod generate;
 mod generate_conversion;
 mod generate_direct;
@@ -16,6 +18,7 @@ mod generate_package;
 mod generate_tests;
 mod generate_value;
 mod primitive;
+mod source_literal;
 mod value;
 
 pub use bounded::{BoundedBytes, BoundedSequence, BoundedSequenceCapacityRefusal, BoundedText};
@@ -43,3 +46,5 @@ pub enum NativeFormRefusal {
     WrongLength { actual: usize },
     InvalidTag { actual: u8 },
 }
+
+mod external_binding_validation;

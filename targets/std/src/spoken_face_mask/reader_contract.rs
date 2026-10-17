@@ -1,8 +1,8 @@
 //! Commands, outcomes, and refusals for the mechanical Face reader.
 
-use conduit_presentation::{
-    FaceInteraction, FaceInteractionRefusal, FaceReadingRefusal, FaceUtterancePlanError,
-    ManifestationLifecycle, MaskShow, Presentation, PresentationRole,
+use conduit_face::{
+    Face, FaceInteraction, FaceInteractionRefusal, FaceReadingRefusal, FaceRole,
+    FaceUtterancePlanError, ManifestationLifecycle, MaskShow,
 };
 
 use super::SpokenTurnReceipt;
@@ -10,7 +10,15 @@ use super::SpokenTurnReceipt;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ReaderCommand {
     Help,
+    /// Give the same concise Face-derived opening as the direct spoken Mask.
+    Summary,
     ReadAll,
+    /// Read the currently primary Item subjects without selected-detail spill.
+    ReadCurrentItems,
+    /// Begin a finite page of primary items from the current Face.
+    ReadItemPage,
+    /// Continue that exact Face selection; refuse after a revision change.
+    MoreItems,
     Next,
     Previous,
     Repeat,
@@ -18,8 +26,8 @@ pub enum ReaderCommand {
     PreviousSubject,
     NextAction,
     PreviousAction,
-    NextRole(PresentationRole),
-    PreviousRole(PresentationRole),
+    NextRole(FaceRole),
+    PreviousRole(FaceRole),
     FocusSubject(String),
     /// Move to an action offered by this exact Face without invoking it.
     FocusAction(String),
@@ -92,7 +100,7 @@ pub(super) fn reading_refusal(refusal: FaceReadingRefusal) -> SpokenFaceRefusal 
     }
 }
 
-pub(super) fn check_show(face: &Presentation, show: &MaskShow) -> Result<(), SpokenFaceRefusal> {
+pub(super) fn check_show(face: &Face, show: &MaskShow) -> Result<(), SpokenFaceRefusal> {
     show.validate(face)
         .map_err(|_| SpokenFaceRefusal::StaleShow)?;
     if show.show.lifecycle != ManifestationLifecycle::Available {

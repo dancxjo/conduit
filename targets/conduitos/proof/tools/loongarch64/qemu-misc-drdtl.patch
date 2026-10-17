@@ -1,0 +1,27 @@
+--- a/target/loongarch/csr.c
++++ b/target/loongarch/csr.c
+@@ -31 +31 @@
+-    CSR_OFF_FLAGS(MISC, CSRFL_READONLY),
++    CSR_OFF_FLAGS(MISC, CSRFL_EXITTB),
+--- a/target/loongarch/tcg/helper.h
++++ b/target/loongarch/tcg/helper.h
+@@ -103,0 +104 @@
++DEF_HELPER_2(csrwr_misc_drdtl, i64, env, tl)
+--- a/target/loongarch/tcg/insn_trans/trans_privileged.c.inc
++++ b/target/loongarch/tcg/insn_trans/trans_privileged.c.inc
+@@ -76,0 +77 @@
++    SET_CSR_FUNC(MISC, NULL, gen_helper_csrwr_misc_drdtl);
+--- a/target/loongarch/tcg/csr_helper.c
++++ b/target/loongarch/tcg/csr_helper.c
+@@ -20,0 +21,11 @@
++/* Diagnostic profile implements only the architected PLV1..3 counter-disable
++ * bits. Other currently unimplemented MISC fields retain their existing value.
++ */
++target_ulong helper_csrwr_misc_drdtl(CPULoongArchState *env, target_ulong val)
++{
++    target_ulong old = env->CSR_MISC;
++    const target_ulong mask = (1ULL << 5) | (1ULL << 6) | (1ULL << 7);
++    env->CSR_MISC = (old & ~mask) | (val & mask);
++    return old;
++}
++

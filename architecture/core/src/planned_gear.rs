@@ -16,7 +16,8 @@ impl PlannedGear {
     /// from entering those seals through fixtures or composition code.
     #[doc(hidden)]
     pub fn validate_constructed_identity(&self) -> bool {
-        !self.placement_id.as_str().is_empty()
+        crate::valid_realization_properties(&self.realization_properties)
+            && !self.placement_id.as_str().is_empty()
             && !self.gear_id.as_str().is_empty()
             && !self.kind_id.as_str().is_empty()
             && !self.kind_contract_revision.as_str().is_empty()
@@ -37,9 +38,10 @@ impl PlannedGear {
 /// omitted, and so every explicit record receives the same identity checks.
 #[macro_export]
 macro_rules! planned_gear_from_parts {
-    ($($fields:tt)*) => {{
+    (realization_properties: $properties:expr, $($fields:tt)*) => {{
         let gear = $crate::PlannedGear {
             source_span: None,
+            realization_properties: $properties,
             $($fields)*
         };
         assert!(
@@ -47,5 +49,11 @@ macro_rules! planned_gear_from_parts {
             "PlannedGear requires complete semantic and realization identities"
         );
         gear
+    }};
+    ($($fields:tt)*) => {{
+        $crate::planned_gear_from_parts! {
+            realization_properties: ::core::default::Default::default(),
+            $($fields)*
+        }
     }};
 }

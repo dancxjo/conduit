@@ -1,0 +1,34 @@
+   Compiling proc-macro2 v1.0.107
+   Compiling quote v1.0.47
+   Compiling serde_core v1.0.229
+   Compiling syn v3.0.6
+   Compiling serde v1.0.229
+   Compiling hashbrown v0.17.1
+   Compiling indexmap v2.14.2
+   Compiling serde_derive v1.0.229
+   Compiling serde_json v1.0.151
+   Compiling serde_spanned v0.6.9
+   Compiling toml_datetime v0.6.11
+   Compiling toml_edit v0.22.27
+   Compiling toml v0.8.23
+   Compiling conduit-xtask-dispatch v0.1.0 (/home/dancxjo/conduit-5208-plot-journey/tools/xtask-dispatch)
+    Finished `dev` profile [unoptimized] target(s) in 4.30s
+     Running `/home/dancxjo/conduit/target/debug/conduit-xtask-dispatch prove model-authoring --plot-journey --output work/model-authoring-plot-final-20261008`
+
+running 1 test
+ordinary model Plot: loss 9000000 -> 4003 millionths; 80 steps; fresh resume80 ->81; exact inference reload; 90 successful HostCalls; stale step refused
+test ordinary_plot_trains_saves_reloads_and_infers ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.47s
+
+   Compiling ring v0.17.14
+   Compiling rustls v0.23.45
+   Compiling rustls-webpki v0.103.15
+   Compiling stun v0.17.2
+   Compiling turn v0.17.2
+   Compiling ureq v3.4.2
+   Compiling conduit-std-host v0.1.0 (/home/dancxjo/conduit-5208-plot-journey/targets/std)
+   Compiling rcgen v0.14.10
+    Finished `test` profile [unoptimized] target(s) in 16.88s
+     Running tests/burn_plot_journey.rs (/home/dancxjo/conduit/target/debug/deps/burn_plot_journey-ec03032f313bcde4)
+xtask error: model-authoring proof failed; retained evidence at work/model-authoring-plot-final-20261008

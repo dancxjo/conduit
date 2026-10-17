@@ -31,13 +31,18 @@ Current source uses `plot` for executable composition and `form` for portable
 representation. See [[Current language surface|Current-language-surface]] for
 the checked grammar and proof boundaries.
 
+Read [[Conduitese by example|Conduitese-by-example]] for complete source,
+[[units and quantities|Units-and-quantities]] for dimensional meaning and exact
+conversion, and [[the feature example index|Conduitese-feature-coverage]] for
+every reviewed surface and the explicitly proposed additions.
+
 ## plots are semantic graphs
 
 ```conduit
 plot button_across_room {
     button: input/button
     state: input/button-indicator-state
-    indicator: presentation/indicator-state
+    indicator: face/indicator-state("Button state")
 
     button >> state >> indicator
 }
@@ -73,7 +78,7 @@ A plot without a trailing full stop is live:
 ```conduit
 plot clock-demo {
     clock: time/every(1s)
-    clock >> presentation/tick
+    clock >> face/tick("Clock tick")
 }
 ```
 
@@ -98,7 +103,8 @@ The `.` is not an executable "stop now" statement. It changes the meaning of the
 
 ## Finite by default
 
-Every checked value type has an exact finite bound.
+Every actual executable value has a finite admitted carrier. A semantic numeric
+domain may remain open-ended; that does not promise unlimited runtime storage.
 
 ```conduit
 title: Text
@@ -265,7 +271,7 @@ host conduitos-native (
     build = release
     loader = limine
 ) {
-    surface: resource presentation/surface (
+    surface: resource face/surface (
         slots = 4
         bytes = 8MiB
     )
@@ -276,7 +282,7 @@ host conduitos-native (
         memory = mmio
     )
 
-    graphics: back presentation/graphics (
+    graphics: back face/graphics (
         surface = surface
         display = framebuffer
     )

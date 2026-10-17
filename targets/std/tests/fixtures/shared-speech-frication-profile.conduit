@@ -1,0 +1,9 @@
+# Explicit finite sibilant-frication specimen policy, not a phonetic quality claim.
+# The input is the existing admitted Unicode IPA phone carrier. A different phone
+# is an explicit unsupported profile; it is not relabeled or guessed as a sibilant.
+# The profile fixes seed7, 160 frames interpreted at 8kHz (no clock projection asserted),
+# Q8 envelope and Q14 coefficients. The reusable DSP owns no IPA parser or policy.
+plot shared-speech-frication-profile (
+    >> value: SpeechPhoneNotation <= 32768B
+    result: SharedExcitationStage >>
+) = (.spelling == "s" || .spelling == "ʃ" ? SharedExcitationStage.context({cursor: {word: 7, remaining: 160, frame: 0, total: 160, attack: 8, release: 16, sample: 0, periodic: false, period_q8: 4096, phase_q8: 0, b: (.spelling == "s" ? -8192 : -4096), c: -4096, y1: 0, y2: 0}, next_word: 7, next_remaining: 160, noise: 0, level: 0, valid: false}) : SharedExcitationStage.rejected(empty))

@@ -114,6 +114,9 @@ pub(crate) fn offer(
     let contract = conduit_semantic_catalog::pure_expression_contract(program, temporal)
         .map_err(|error| format!("pure expression contract: {error:?}"))?;
     let target = contract.kind_id.clone();
+    // Raising the hosted ceiling does not expand this browser profile.
+    let mut limits = contract.limits.clone();
+    limits.max_active_instances = limits.max_active_instances.min(16);
     Ok(BackOfferBuilder::new(
         contract,
         Back {
@@ -134,6 +137,8 @@ pub(crate) fn offer(
             authority_requirements: Vec::new(),
         },
     )
+    .narrow_capacity(limits)
+    .map_err(|error| format!("pure expression capacity: {error:?}"))?
     .build())
 }
 
@@ -258,8 +263,37 @@ fn failure(refusal: conduit_plot::PortableExpressionEvaluationRefusal) -> Failur
         conduit_plot::PortableExpressionEvaluationRefusal::InvalidProgram => 2,
         conduit_plot::PortableExpressionEvaluationRefusal::InvalidLiteral => 3,
         conduit_plot::PortableExpressionEvaluationRefusal::Arithmetic => 4,
+        conduit_plot::PortableExpressionEvaluationRefusal::QuantityProduct(_)
+        | conduit_plot::PortableExpressionEvaluationRefusal::QuantityProjection(_)
+        | conduit_plot::PortableExpressionEvaluationRefusal::QuantityEncoding(_) => {
+            conduit_plot::quantity_arithmetic_failure_detail(&refusal)
+        }
         conduit_plot::PortableExpressionEvaluationRefusal::UnsupportedSemanticCall(_) => 5,
         conduit_plot::PortableExpressionEvaluationRefusal::UnsupportedType(_) => 6,
+        conduit_plot::PortableExpressionEvaluationRefusal::UnprovedMathematicalComparison => 7,
+        conduit_plot::PortableExpressionEvaluationRefusal::InverseAngle(reason) => {
+            conduit_plot::inverse_angle_failure_detail(&reason)
+        }
+        conduit_plot::PortableExpressionEvaluationRefusal::AngleReference(reason) => match reason {
+            conduit_core::AngleReferenceRefusal::NotLinearAngle => 16,
+            conduit_core::AngleReferenceRefusal::SourceEvidence(_) => 17,
+            conduit_core::AngleReferenceRefusal::Coordinate(_) => 18,
+            conduit_core::AngleReferenceRefusal::Denotation(_) => 19,
+        },
+        // 8/9 are existing filter failures above. Keep the new Angle domain
+        // causes separate rather than flattening an undefined pole to arithmetic.
+        conduit_plot::PortableExpressionEvaluationRefusal::AngleTrigonometry(reason) => {
+            match reason {
+                conduit_core::AngleTrigonometryRefusal::NotAngle => 10,
+                conduit_core::AngleTrigonometryRefusal::UnsupportedRole => 11,
+                conduit_core::AngleTrigonometryRefusal::SourceEvidence(_) => 12,
+                conduit_core::AngleTrigonometryRefusal::Coordinate(_) => 13,
+                conduit_core::AngleTrigonometryRefusal::Denotation(
+                    conduit_core::MathematicalValueRefusal::TrigonometricPole,
+                ) => 14,
+                conduit_core::AngleTrigonometryRefusal::Denotation(_) => 15,
+            }
+        }
     };
     Failure {
         code: FailureCode::InvalidInput,

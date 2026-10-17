@@ -2,7 +2,7 @@
 
 use super::{PatchbayHtmlServer, ServerError};
 use conduit_core::SignId;
-use conduit_presentation::PresentationActionAvailability;
+use conduit_face::FaceActionAvailability;
 use serde::Deserialize;
 use std::net::TcpStream;
 
@@ -27,8 +27,8 @@ pub(super) fn open(
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct BodyWorkloadInput {
-    presentation_id: String,
-    presentation_revision: u64,
+    face_id: String,
+    face_revision: u64,
     workload_revision: u64,
     action_id: String,
 }
@@ -79,18 +79,17 @@ impl PatchbayHtmlServer {
         }
         let input: BodyWorkloadInput =
             serde_json::from_slice(bytes).map_err(|_| ServerError::InvalidRequest)?;
-        let stale_presentation = input.presentation_id
-            != self.snapshot.presentation.identity.as_str()
-            || input.presentation_revision != self.snapshot.presentation.revision;
+        let stale_face = input.face_id != self.snapshot.face.identity.as_str()
+            || input.face_revision != self.snapshot.face.revision;
         let action = self
             .snapshot
-            .presentation
+            .face
             .actions
             .iter()
             .find(|action| action.identity == input.action_id)
             .cloned();
-        if stale_presentation {
-            return self.body_workload_refusal("StalePresentation");
+        if stale_face {
+            return self.body_workload_refusal("StaleFace");
         }
         let Some(action) = action else {
             return self.body_workload_refusal("UnknownAction");
@@ -100,10 +99,7 @@ impl PatchbayHtmlServer {
             "conduit.intent/remove-plot@1" => "remove",
             _ => return self.body_workload_refusal("ActionUnavailable"),
         };
-        if !matches!(
-            action.availability,
-            PresentationActionAvailability::Available
-        ) {
+        if !matches!(action.availability, FaceActionAvailability::Available) {
             return self.body_workload_refusal("ActionUnavailable");
         }
 
@@ -219,14 +215,14 @@ mod tests {
     fn request(server: &PatchbayHtmlServer, workload_revision: u64, intent: &str) -> Vec<u8> {
         let action = server
             .snapshot
-            .presentation
+            .face
             .actions
             .iter()
             .find(|action| action.intent == intent)
             .unwrap();
         serde_json::to_vec(&serde_json::json!({
-            "presentation_id": server.snapshot.presentation.identity,
-            "presentation_revision": server.snapshot.presentation.revision,
+            "face_id": server.snapshot.face.identity,
+            "face_revision": server.snapshot.face.revision,
             "workload_revision": workload_revision,
             "action_id": action.identity,
         }))
@@ -238,21 +234,21 @@ mod tests {
         let snapshot = crate::body_workbench_fixture_snapshot(false).unwrap();
         let body_id = snapshot.body_workbench.as_ref().unwrap().body_id.clone();
         let mut server = PatchbayHtmlServer::bind_ephemeral(&snapshot).unwrap();
-        let mut stale_presentation: serde_json::Value =
+        let mut stale_face: serde_json::Value =
             serde_json::from_slice(&request(&server, 0, "conduit.intent/remove-plot@1")).unwrap();
-        stale_presentation["presentation_revision"] = serde_json::json!(99);
-        let stale_presentation: crate::RendererSnapshot = serde_json::from_slice(
+        stale_face["face_revision"] = serde_json::json!(99);
+        let stale_face: crate::RendererSnapshot = serde_json::from_slice(
             &server
-                .apply_body_workload(&serde_json::to_vec(&stale_presentation).unwrap())
+                .apply_body_workload(&serde_json::to_vec(&stale_face).unwrap())
                 .unwrap(),
         )
         .unwrap();
         assert_eq!(
-            stale_presentation.interaction.last_disposition.as_deref(),
-            Some("Refused(StalePresentation)")
+            stale_face.interaction.last_disposition.as_deref(),
+            Some("Refused(StaleFace)")
         );
         assert_eq!(
-            stale_presentation.body_workbench.as_ref().unwrap().current["workload_revision"],
+            stale_face.body_workbench.as_ref().unwrap().current["workload_revision"],
             0
         );
 
@@ -299,10 +295,7 @@ mod tests {
             .is_empty());
         assert_eq!(workbench.history["entries"].as_array().unwrap().len(), 6);
         let navigation = last.navigation.as_ref().unwrap();
-        assert_eq!(
-            navigation.cursor.place,
-            conduit_presentation::PresentationPlace::Body
-        );
+        assert_eq!(navigation.cursor.place, conduit_face::FacePlace::Body);
         assert_eq!(navigation.navigation.places.len(), 1);
 
         let add = request(&server, 2, "conduit.intent/add-plot@1");

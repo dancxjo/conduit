@@ -1,0 +1,19 @@
+# A selected inbound endpoint supplies bytes. No request chooses an endpoint,
+# controller, attachment, DMA buffer or authority. Root owns those facts.
+type UsbEndpointReadRequest = {
+    length: U64
+}
+# Ordinals are zero-based physical submissions within this admitted endpoint
+# lifetime. They describe ordering and grant no authority.
+type UsbEndpointReadFrame = {
+    ordinal: U64
+    actual: U64
+    short: Boolean
+    wire: Bytes <= 2048B
+}
+type UsbEndpointReadResult =
+    completed UsbEndpointReadFrame
+    | stalled
+    | provider-lost
+    | unsupported
+    | timeout

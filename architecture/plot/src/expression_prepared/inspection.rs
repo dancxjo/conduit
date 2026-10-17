@@ -60,17 +60,15 @@ impl PreparedInspection {
             }
             "sequence/length"
                 if arguments.len() == 1
-                    && matches!(
-                        source.value_type.shape(),
-                        StructuredInfoTypeShape::Collection { .. }
-                            | StructuredInfoTypeShape::Sequence { .. }
-                    ) =>
+                    && crate::expression_semantic_call::collection_element(&source.value_type)
+                        .is_some() =>
             {
                 Operation::Length
             }
             _ => return Err(Refusal::InvalidProgram),
         };
         let program = ProgramView {
+            input_maximum_bytes: prepared_input.maximum_bytes(),
             input_type: input,
             output_type: &source.value_type,
             root: source,

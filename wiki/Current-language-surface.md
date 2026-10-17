@@ -1,7 +1,8 @@
 # Current language surface
 
 This reference describes the checked development surface reviewed on
-**1 October 2026**, with the Plot/Form vocabulary reviewed on **2 October 2026**.
+**9 October 2026**. The [[feature example index|Conduitese-feature-coverage]]
+maps the complete reviewed surface and distinguishes the open language proposals.
 Source tests linked below establish grammar and checking;
 target tests establish the named execution paths. Published products can lag
 `dev`. Detailed semantic laws live on the topic pages in the sidebar.
@@ -23,22 +24,17 @@ and [syntax tests](https://github.com/dancxjo/conduit/blob/dev/architecture/plot
 
 ### Named type parameters
 
-This signature sketch omits its implementation; `...` below is an editorial
-placeholder, not runnable body syntax. The complete bounded `flow/each` example
-later on this page shows a checked generic implementation.
-
 ```conduit
-plot latest (
+plot identity (
     item: type
-
-    >> values: item...
-    current: $item >>
+    >> value: item
+    result: item >>
 ) {
-    ...
+    value >> result
 }
 ```
 
-`type` is the canonical compile-time parameter declaration. When inference is insufficient, explicit application uses ordinary named arguments such as `latest(item = Text)`. This plot-parameter surface does not require runtime erasure, implicit `any`, or hidden closures. Owner: #4059.
+`type` is the canonical compile-time parameter declaration. When inference is insufficient, explicit application uses ordinary named arguments such as `identity(item = Text)`. This plot-parameter surface does not require runtime erasure, implicit `any`, or hidden closures. Owner: #4059.
 
 ### Explicit Current sampling
 
@@ -65,12 +61,17 @@ Graph matching is:
 
 ```conduit
 event >> ? {
-    [MusicEvent.note]: . >> play-note
-    [MusicEvent.rest]: . >> keep-silence
+    [MusicEvent.note] >> play-note
+    [MusicEvent.rest] >> keep-silence
 }
 ```
 
-Within a selected payload-bearing case, `.` is the case payload. Payloadless cases omit empty-call ceremony. Closed variants remain exhaustive. Owner: #4002.
+The route carries the selected case payload to the destination. Within a pure
+expression that consumes it, `.` denotes that payload. Current route arms use
+`>>`; the optional leading `_` stage is a carried-value placeholder, not a
+discard. Payloadless constructors omit empty-call ceremony. Closed variants
+remain exhaustive. Owner: #4002. See the
+[selector tests](https://github.com/dancxjo/conduit/blob/dev/architecture/plot/tests/structured_selectors.rs).
 
 ### gear glyphs
 
@@ -116,6 +117,9 @@ Checked expansion, plans and signs expose the ordinary gear behind every glyph. 
 choice: Text <= 8B in ["x", "y", "z"]
 count: Count in 1..=100
 code: Text <= 64B ~ /matches(?:lookahead)(?<name>[A-Z]+)/i
+name: Text <= 8B not in ["admin", "root"]
+excluded: Text <= 8B !~ /[A-Z]{2}/i
+probability: F32 finite in 0.0..=1.0
 ```
 
 Adjacent refinement relations are conjunctive:
@@ -130,9 +134,38 @@ code: Text <= 8B in ["AB12", "CD34"] ~ /[A-Z]{2}[0-9]{2}/
 
 `~ /pattern/` succeeds when the pattern has a match within the bounded text. Authors use canonical anchors when whole-value matching is intended. Flags are a finite reviewed Conduit set and participate in checked identity; a Boolean refinement does not admit a meaningless global-iteration flag.
 
+`!~` excludes matching text. `not in` excludes membership. `finite` refines
+only `F32`/`F64`, excluding infinity and NaN; a numeric range is a separate law.
+These examples are Fore fragments. Complete checked fixtures and refusals are
+in the [refinement tests](https://github.com/dancxjo/conduit/blob/dev/architecture/plot/src/refinement_tests.rs).
+
 The older `where pattern(...)`, `where range(...)` and `where member(...)` spellings are migration targets, not compatibility aliases. Owner: #4199.
 
 ## Native types, Forms, and record laws
+
+### Quantities and finite containers
+
+Native `250ms` is a checked `Quantity`; bare `Hz`, `kHz` and `°C` are checked
+`Unit` values. Neither needs notation imports or quotation marks. `Quantity`
+uses one bounded exact decimal codec carrying the full Unit descriptor;
+`Empty` is the distinct empty product value. Dimension-specific consumer Types
+use the same quantity codec and enforce their dimensions. Integer realizations
+perform explicit checked projections with precision and range refusal.
+Current development provides typed `units/convert(source = 1kHz, to = Hz)`,
+`units/compare`, distinct temperature-difference operations, and all 24 SI
+prefixes. `units/converted-equals(expected = 1000Hz)` consumes a validated
+conversion receipt and emits an explicit Boolean projection. The optional
+scoped import `with units/converted-equals as =?` abbreviates that same Fore. [[Units and quantities|Units-and-quantities]] contains complete plots,
+prefix examples and precise representation/refusal boundaries.
+
+```conduit
+type Samples = collection U16 = 2
+type Labels = sequence Text <= 2
+```
+
+An exact collection has two items; this sequence has zero to two. Element
+constraints, actual count and named Type identity remain checked. See
+[[container construction and indexing|Conduitese-by-example#finite-collections-and-variable-length-sequences]].
 
 ### Generic native types
 
@@ -160,6 +193,51 @@ A real current family is
 [`DataGenerationValue<T>`](https://github.com/dancxjo/conduit/blob/dev/semantics/data/types.conduit),
 whose text specialization is bounded to 4096 bytes. This language support does
 not mean all generic domain families have already migrated.
+
+### Finite native Type value parameters (#5326)
+
+A typed parameter binds an exact checking-time Info value; an unannotated
+parameter still binds a Type:
+
+```conduit
+type Vector<T, N: U16> = collection T = N
+type Tier<T, Capacity: U16> = sequence T <= Capacity
+type Window<H: U16, D: U16> = {
+    window: Vector<U8, (H + 1) * D>
+    history: Vector<Vector<U8, D>, H>
+}
+type Window2x64 = Window<2, 64>
+```
+
+The Window computes 192 items and a two-by-64 history. The first Info profile
+uses U16 or a checked U16 refinement. Literals, `+`, `*`, and parentheses have
+checked U16 intermediate arithmetic; every exact collection extent and sequence
+maximum must fit the finite profile (currently 1 through 1024). Sequence minima
+may be zero. Wrong kinds/arity, runtime dimensions, overflow, cycles and excessive
+specialization refuse at Source spans. Refinements and `where` laws substitute
+through nested shapes and validate generated construction and decode.
+
+For the same declaration, `32 + 32` and `64` produce the same specialization.
+A newly named declaration remains nominally distinct; a transparent `with`
+alias preserves its owner's meaning. Shipped families retain checked private
+helpers, integral domains, laws and original module/Source/package provenance.
+`conduit expand file.conduit --json` and `conduit inspect file.conduit` expose
+authored arguments and closed representations, including Type-only files.
+
+The [actual Numeric Source](https://github.com/dancxjo/conduit/blob/dev/semantics/ai/fixed_numeric.conduit)
+uses five families for the original vectors, matrix/bias references, history
+and Window. Resource references, 32-byte digests and the closed `f32` case retain
+their meaning. Its catalogue revision changes because checked identities change;
+persisted old identities require an explicit migration, rather than relabeling.
+
+An exact vector differs from a bounded variable sequence. Independent temporal
+tiers can retain different actual counts, overlapping elapsed-time spans and
+many-to-many occurrence relations. Capacity does not imply a shared phone index
+or sampling clock. The private [compatibility witness](https://github.com/dancxjo/conduit/blob/dev/semantics/speech/tests/value_parameter_gesture_capacity.rs)
+uses existing intent, IPA inventory, revision and anchored Audio trajectory
+admission; it does not implement phonological gesture realization or replace
+the common linguistic IR. Implementation and independent stable-release evidence
+are tracked separately in [#5326](https://github.com/dancxjo/conduit/issues/5326).
 
 ### Compact Forms
 
@@ -215,6 +293,27 @@ and scalar invariant facts into consuming-plot arithmetic proofs. For example,
 [portable arithmetic tests](https://github.com/dancxjo/conduit/blob/dev/architecture/plot/src/canonical_expansion_tests.rs)
 cover both outcomes. This is bounded proof propagation, not permission to erase
 arbitrary arithmetic checks.
+
+## Quantity expressions and named expression inputs
+
+An expression-bodied plot can use its declared runtime input by name:
+
+```conduit
+plot distance-to-pitch (
+    >> distance: Distance
+    frequency: Frequency >>
+) = (1760Hz - (distance / 1cm) * 55Hz)
+```
+
+The name lowers to the same incoming-value operation as `.`. Neither spelling
+introduces a loop or determines cadence. Authored spelling and spans remain
+available for inspection. Linear quantities support compatible addition and
+subtraction, same-family division to an exact Scalar ratio, and multiplication
+or division by Scalar. Scaling preserves the physical family and Unit.
+Affine Points and products of two dimensional quantities are refused by this
+surface. Results must fit the admitted exact carriers: in particular, ratios
+must fit Scalar's millionth representation without rounding. See the
+[[continuous Theremin example|Conduitese-by-example#pocket-theremin-quantities-and-retained-state]].
 
 ## Bounded each, select, fold, and scan
 
@@ -293,7 +392,7 @@ Canonical authored type spelling is `resource T`:
 
 ```conduit
 region: resource machine/memory/mmio/region
-surface: resource presentation/surface
+surface: resource face/surface
 ```
 
 Keep distinct:
@@ -361,7 +460,7 @@ host conduitos-native (
     build = release
     loader = limine
 ) {
-    surface: resource presentation/surface (
+    surface: resource face/surface (
         slots = 4
         bytes = 8MiB
     )
@@ -372,7 +471,7 @@ host conduitos-native (
         memory = mmio
     )
 
-    graphics: back presentation/graphics (
+    graphics: back face/graphics (
         surface = surface
         display = framebuffer
     )

@@ -1,5 +1,6 @@
 mod aarch64_a0;
 mod aarch64_a1;
+mod aarch64_domain_proof;
 mod acceptance;
 mod active_rescue_proof;
 mod architecture_matrix;
@@ -16,6 +17,7 @@ mod armv6_rpi_flash;
 #[path = "../../../raspberry-pi/make/xtask/armv6_rpi_physical.rs"]
 mod armv6_rpi_physical;
 mod build;
+mod command;
 mod demo;
 mod emergency_halt_proof;
 mod emitted_line;
@@ -30,6 +32,7 @@ mod hotplug_qmp;
 mod ia32_a0;
 mod ia32_a1;
 mod ia32_a2;
+mod ia32_domain_proof;
 mod ia32_physical_proof;
 mod ia32_product_boot;
 mod ia32_vga_receipt;
@@ -51,6 +54,9 @@ mod loongarch64_a2;
 #[allow(dead_code)]
 mod loongarch64_a3;
 mod loongarch64_a4;
+mod loongarch64_domain_proof;
+mod loongarch64_emulator;
+mod loongarch64_entropy_input;
 mod loongarch64_product_boot;
 mod make_resolution;
 mod opl2_proof;
@@ -58,18 +64,30 @@ mod opl2_proof;
 mod orange_pi_5_image;
 #[path = "../../../orange-pi/make/xtask/orange_pi_5_media.rs"]
 mod orange_pi_5_media;
+mod ordinary_domain_proof;
+mod ordinary_source_conformance;
 mod owner_action_proof;
 mod owner_boot;
+mod owner_model_route;
 mod pc_speaker_proof;
 mod prepared_proof_image;
 mod product_journey_gate;
+mod product_observatory;
 mod product_patchbay;
 mod product_readiness_matrix;
 mod profile;
+mod protected_morse_proof;
+mod protected_product_receipt;
+mod protected_timer_proof;
+mod protocol_image;
+mod protocol_input;
+mod protocol_run;
+mod protocol_source;
 mod prove;
 mod prove_many;
 mod ps2_input_proof;
 mod qemu_artifacts;
+mod qemu_source;
 mod qmp;
 mod qmp_display;
 mod removable_media;
@@ -83,6 +101,8 @@ mod riscv64_a2;
 #[allow(dead_code)]
 mod riscv64_a3;
 mod riscv64_a4;
+mod riscv64_domain_proof;
+mod riscv64_emulator;
 mod riscv64_product_boot;
 mod run;
 mod screen_free_three_host_proof;
@@ -101,104 +121,13 @@ mod xhci_proof;
 
 use std::{fmt, path::PathBuf};
 
-use clap::{Args, Subcommand, ValueEnum};
+use clap::{Args, ValueEnum};
 
 use crate::cli::GlobalOpts;
 use make_resolution::{reject_board_for_non_armv6, require_make_target};
 
-#[derive(Args, Debug)]
-pub struct ConduitosArgs {
-    #[command(subcommand)]
-    command: ConduitosCommand,
-}
-
-#[derive(Subcommand, Debug)]
-enum ConduitosCommand {
-    /// Boot one exact Crèche-exported ConduitOS spore through the product journey.
-    Acceptance(AcceptanceArgs),
-    /// Verify and report the pinned Limine architecture/backend matrix.
-    ArchitectureMatrix,
-    /// Report exact earned Product Spine cells independently of A0-A4.
-    ProductReadinessMatrix,
-    /// Compile and mechanically inspect one bounded architecture proof appliance.
-    Build(TargetArgs),
-    /// Package one bounded architecture proof appliance into its pinned boot image.
-    Image(TargetArgs),
-    /// Build canonical bootable media for one normal ConduitOS product Host.
-    Live(LiveArgs),
-    /// Boot the canonical live artifact without building a parallel demo image.
-    LiveBoot(LiveArgs),
-    /// Boot one private owner-provisioned x86 product ISO with its exact VirtIO route.
-    LiveOwnerBoot(LiveOwnerBootArgs),
-    /// Prove one typed native clock action through a live installed owner.
-    LiveOwnerActionProof(LiveOwnerActionProofArgs),
-    /// Prove one Body across an installed owner, QMP guest, and pinned Chromium.
-    LiveThreeHostProof(Box<three_host_proof::Args>),
-    /// Birth one Body through the installed screen-free client, then prove three live Hosts.
-    ScreenFreeThreeHostProof(Box<screen_free_three_host_proof::Args>),
-    /// Prove the canonical IA-32 live artifact through legacy BIOS only.
-    Ia32LegacyBiosProof,
-    /// Seal two attended physical Mabel boots of one byte-verified IA-32 medium.
-    Ia32MabelPhysicalProof(ia32_physical_proof::Args),
-    /// Report every current live artifact and every excluded capability gap.
-    LiveMatrix,
-    /// Build one exact bare-metal ConduitOS Orange Pi 5 RK3588S SD image.
-    OrangePi5Image,
-    /// Erase, write, and byte-verify one explicitly confirmed removable device.
-    Flash(FlashArgs),
-    /// Capture and validate one exact physical BCM2835 Raspberry Pi UART boot.
-    RpiPhysicalProof(RpiPhysicalProofArgs),
-    /// Open a visible interactive QEMU session without making proof claims.
-    Demo(DemoArgs),
-    /// Prove the normal IMAGE zero-body front door and long-lived interaction.
-    FrontDoorProof,
-    /// Prove the normal IMAGE Body/Wake/Plan/Play product journey.
-    JourneyProof,
-    /// Prove the default graphical profile through the canonical live ISO and retained gallery.
-    GraphicalProfileProof,
-    /// Boot one architecture proof appliance and validate its bounded terminal Sign.
-    Run(TargetArgs),
-    /// Prove compile/link/image/boot truth and fresh boot identities.
-    Prove(ProveArgs),
-    /// Execute selected x86 proofs concurrently in one prepared environment.
-    ProveMany(prove_many::ProveManyArgs),
-    /// Inventory the portable std nucleus and classify the exact ConduitOS gap.
-    StdGap,
-    /// Prove one exact deterministic deadline-bounded local plan and refusal.
-    TimingProfile,
-    /// Prove one real bounded xHCI Base and fail-closed controller absence.
-    XhciProof(PreparedProofArgs),
-    /// Prove one real bounded root-attached USB device without semantic input.
-    UsbProof(PreparedProofArgs),
-    /// Check shared USB wire plots and machine register-possession fixtures.
-    UsbPlotsCheck {
-        /// Type-check the shared library for each product CPU architecture.
-        #[arg(long)]
-        cross: bool,
-    },
-    /// Prove one real HID boot-keyboard press/release stream without semantics.
-    HidProof(PreparedProofArgs),
-    /// Prove the exact portable keyboard offer, Plan, Play, and event values.
-    KeyboardProof(PreparedProofArgs),
-    /// Prove bounded PS/2 keyboard and pointer input through ordinary product semantics.
-    Ps2InputProof,
-    /// Build one immutable x86 proof image for bounded downstream PLAY jobs.
-    PrepareProofImage,
-    /// Prove the exact PC-speaker offer, Plan, production-kernel Play, and Base effects.
-    PcSpeakerProof,
-    /// Prove real USB keyboard detach/reattach across immutable and fresh Plans.
-    HotplugProof,
-    /// Prove one low-level local rescue request and real fresh boot.
-    RescueProof(PreparedProofArgs),
-    /// Prove the x86_64 emergency callback enters a terminal CPU halt.
-    EmergencyHaltProof,
-    /// Prove one exact native OPL2 musical realization on QEMU AdLib.
-    Opl2Proof,
-    /// Prove one x86_64 ring-3 protection domain and exact kernel capability gate.
-    IsolationProof,
-    /// Prove one real fixed-ring VirtIO-net exchange with the QEMU gateway.
-    VirtioNetProof,
-}
+pub use command::ConduitosArgs;
+use command::ConduitosCommand;
 
 #[derive(Args, Debug, Clone)]
 struct AcceptanceArgs {
@@ -302,6 +231,51 @@ struct LiveOwnerActionProofArgs {
     /// Pause at both Face checkpoints for a live browser participant.
     #[arg(long)]
     coordinate: bool,
+}
+
+#[derive(Args, Debug, Clone)]
+struct LiveOwnerTodoFaceProofArgs {
+    #[command(flatten)]
+    route: LiveOwnerActionProofArgs,
+    /// Body expected in the exact installed Owner admission receipt.
+    #[arg(long)]
+    expected_body_id: String,
+    /// Installed product executable that owns this Body.
+    #[arg(long)]
+    owner_conduit_bin: PathBuf,
+    /// Installed state directory for an independent current Face read.
+    #[arg(long)]
+    owner_state_dir: PathBuf,
+    /// Expected number of Todo item subjects in the current Face.
+    #[arg(long)]
+    expected_item_count: usize,
+    /// Expected human-facing progress text in the current Todo Face.
+    #[arg(long)]
+    expected_status: String,
+}
+
+#[derive(Args, Debug, Clone)]
+struct LiveOwnerTodoActionProofArgs {
+    #[command(flatten)]
+    face: LiveOwnerTodoFaceProofArgs,
+    /// Exact installed checkpoint directory of a disposable, isolated fork.
+    #[arg(long)]
+    isolated_checkpoint_root: PathBuf,
+    /// Exact selected checkpoint version from the installed Owner selection.
+    #[arg(long)]
+    selected_checkpoint_version_hex: String,
+    /// Original checkpoint directory to inventory before and after the action.
+    #[arg(long)]
+    protected_checkpoint_root: PathBuf,
+    /// Exact available Todo action to require in the Owner Face and serial receipt.
+    #[arg(long)]
+    expected_action_id: String,
+    /// Bounded Tab presses to reach that action through the native Mask.
+    #[arg(long)]
+    tab_count: u8,
+    /// Expected human progress text after the Owner accepts the action.
+    #[arg(long)]
+    expected_after_status: String,
 }
 
 #[derive(ValueEnum, Debug, Clone, Copy, PartialEq, Eq)]
@@ -475,6 +449,10 @@ impl std::error::Error for ConduitosError {}
 pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError> {
     match args.command {
         ConduitosCommand::Acceptance(args) => acceptance::execute(&args.spore, opts),
+        ConduitosCommand::ProtocolSource(args) => protocol_source::execute(args, opts),
+        ConduitosCommand::ProtocolImage(args) => protocol_image::execute(args, opts),
+        ConduitosCommand::ProtocolInput(args) => protocol_input::execute(args, opts),
+        ConduitosCommand::ProtocolRun(args) => protocol_run::execute(args, opts),
         ConduitosCommand::ArchitectureMatrix => architecture_matrix::execute(opts),
         ConduitosCommand::ProductReadinessMatrix => product_readiness_matrix::execute(opts),
         ConduitosCommand::Build(target) => {
@@ -507,10 +485,17 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
             opts,
         ),
         ConduitosCommand::LiveOwnerActionProof(args) => owner_action_proof::execute(&args, opts),
+        ConduitosCommand::LiveOwnerTodoFaceProof(args) => {
+            owner_action_proof::execute_todo_face(&args, opts)
+        }
+        ConduitosCommand::LiveOwnerTodoActionProof(args) => {
+            owner_action_proof::execute_todo_action(&args, opts)
+        }
         ConduitosCommand::LiveThreeHostProof(args) => three_host_proof::execute(&args, opts),
         ConduitosCommand::ScreenFreeThreeHostProof(args) => {
             screen_free_three_host_proof::execute(&args, opts)
         }
+        ConduitosCommand::OwnerModelRoute(args) => owner_model_route::execute(&args, opts),
         ConduitosCommand::Ia32LegacyBiosProof => live_media::prove_ia32_legacy_bios(opts),
         ConduitosCommand::Ia32MabelPhysicalProof(args) => ia32_physical_proof::execute(&args, opts),
         ConduitosCommand::LiveMatrix => live_media::matrix(opts),
@@ -581,7 +566,8 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
         ConduitosCommand::StdGap => std_gap::execute(opts),
         ConduitosCommand::TimingProfile => timing_profile::execute(opts),
         ConduitosCommand::XhciProof(args) => xhci_proof::execute(args.prepared_image, opts),
-        ConduitosCommand::UsbProof(args) => usb_proof::execute(args.prepared_image, opts),
+        ConduitosCommand::UsbProof(args) => usb_proof::execute(args, opts),
+        ConduitosCommand::UsbConfigurationProof => usb_proof::execute_configuration(opts),
         ConduitosCommand::UsbPlotsCheck { cross } => usb_plots_check::execute(cross, opts),
         ConduitosCommand::HidProof(args) => hid_proof::execute(args.prepared_image, opts),
         ConduitosCommand::KeyboardProof(args) => keyboard_proof::execute(args.prepared_image, opts),
@@ -593,6 +579,13 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
         ConduitosCommand::EmergencyHaltProof => emergency_halt_proof::execute(opts),
         ConduitosCommand::Opl2Proof => opl2_proof::execute(opts),
         ConduitosCommand::IsolationProof => isolation_proof::execute(opts),
+        ConduitosCommand::OrdinaryDomainProof => ordinary_domain_proof::execute(opts),
+        ConduitosCommand::Ia32OrdinaryDomainProof => ia32_domain_proof::execute(opts),
+        ConduitosCommand::Aarch64OrdinaryDomainProof => aarch64_domain_proof::execute(opts),
+        ConduitosCommand::Riscv64OrdinaryDomainProof => riscv64_domain_proof::execute(opts),
+        ConduitosCommand::Loongarch64OrdinaryDomainProof => loongarch64_domain_proof::execute(opts),
+        ConduitosCommand::PrepareRiscv64DomainEmulator => riscv64_emulator::prepare(opts),
+        ConduitosCommand::PrepareLoongarch64DomainEmulator => loongarch64_emulator::prepare(opts),
         ConduitosCommand::VirtioNetProof => virtio_net_proof::execute(opts),
     }
 }
@@ -621,7 +614,7 @@ mod tests {
                     .unwrap_or_else(|error| panic!("{name}: {error}"));
             assert!(matches!(
                 parsed.command,
-                Command::Make(MakeArgs {
+                Command::Make(args) if matches!(*args, MakeArgs {
                     target: MakeTarget::Conduitos(_)
                 })
             ));
@@ -635,7 +628,7 @@ mod tests {
                 .unwrap();
         assert!(matches!(
             parsed.command,
-            Command::Make(MakeArgs {
+            Command::Make(args) if matches!(*args, MakeArgs {
                 target: MakeTarget::Conduitos(_)
             })
         ));
@@ -670,7 +663,7 @@ mod tests {
             let parsed = Cli::try_parse_from(arguments).unwrap();
             assert!(matches!(
                 parsed.command,
-                Command::Make(MakeArgs {
+                Command::Make(args) if matches!(*args, MakeArgs {
                     target: MakeTarget::Conduitos(_)
                 })
             ));
@@ -740,6 +733,17 @@ mod tests {
     fn prepared_image_build_and_play_flags_are_explicit() {
         let build = Cli::try_parse_from(["xtask", "make", "conduitos", "prepare-proof-image"]);
         assert!(build.is_ok());
+        assert!(
+            Cli::try_parse_from(["xtask", "make", "conduitos", "usb-configuration-proof"]).is_ok()
+        );
+        assert!(Cli::try_parse_from([
+            "xtask",
+            "make",
+            "conduitos",
+            "usb-configuration-proof",
+            "--prepared-image"
+        ])
+        .is_err());
         for proof in [
             "xhci-proof",
             "usb-proof",

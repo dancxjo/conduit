@@ -1,7 +1,7 @@
 //! Finite semantic Host Calls shared by ordinary ConduitOS planned plays.
 
 use conduit_core::{InfoBool, Scalar};
-use conduit_human::{ChordInfo, ConduitIntlKeymap, KeyEvent, KeymapDisposition, KeymapRefusal};
+use conduit_human::{ChordInfo, KeyEvent, PreparedKeymap};
 
 const OUTPUT_BYTES: usize = conduit_web::JSON_MAXIMUM_ENCODED_BYTES;
 const TEXT_OUTPUT_BYTES: usize = conduit_text::MAX_TEXT_BYTES as usize;
@@ -40,13 +40,13 @@ impl BoundedOutput {
 }
 
 pub struct BoundedHostCalls {
-    keymap: ConduitIntlKeymap,
+    keymap: PreparedKeymap,
 }
 
 impl Default for BoundedHostCalls {
     fn default() -> Self {
         Self {
-            keymap: ConduitIntlKeymap::new(),
+            keymap: PreparedKeymap::default_layout(),
         }
     }
 }
@@ -121,17 +121,9 @@ impl BoundedHostCalls {
     pub fn keymap(&mut self, input: &[u8]) -> Result<Option<BoundedOutput>, BoundedHostCallError> {
         let event = KeyEvent::decode(input).map_err(|_| BoundedHostCallError::InvalidInput)?;
         match self.keymap.apply(event) {
-            KeymapDisposition::Text(fragment) => {
-                let mut utf8 = [0; 4];
-                BoundedOutput::from_slice(fragment.encode_utf8(&mut utf8)).map(Some)
-            }
-            KeymapDisposition::NoText | KeymapDisposition::Cancelled => Ok(None),
-            KeymapDisposition::Refused(
-                KeymapRefusal::UnknownComposeSequence
-                | KeymapRefusal::EmptyUnicodeEntry
-                | KeymapRefusal::UnicodeEntryOverflow
-                | KeymapRefusal::InvalidUnicodeScalar,
-            ) => Err(BoundedHostCallError::InvalidInput),
+            Ok(Some(fragment)) => BoundedOutput::from_slice(fragment.as_slice()).map(Some),
+            Ok(None) => Ok(None),
+            Err(_) => Err(BoundedHostCallError::InvalidInput),
         }
     }
 
@@ -218,6 +210,47 @@ mod tests {
         assert_eq!(
             host.keymap(&[0xff]),
             Err(BoundedHostCallError::InvalidInput)
+        );
+    }
+
+    #[test]
+    fn default_keymap_uses_altgr_dead_keys_and_preserves_fallback_fragments() {
+        let mut host = BoundedHostCalls::default();
+        let encode = |usage, transition, modifiers| {
+            KeyEvent::new(usage, transition, modifiers)
+                .unwrap()
+                .encode()
+        };
+        let dead = encode(52, KeyTransition::Pressed, KeyModifiers::RIGHT_ALT);
+        assert!(host.keymap(&dead).unwrap().is_none());
+        assert!(
+            host.keymap(&encode(52, KeyTransition::Released, KeyModifiers::NONE))
+                .unwrap()
+                .is_none()
+        );
+        assert_eq!(
+            host.keymap(&encode(8, KeyTransition::Pressed, KeyModifiers::NONE))
+                .unwrap()
+                .unwrap()
+                .as_bytes(),
+            "é".as_bytes()
+        );
+        assert!(host.keymap(&dead).unwrap().is_none());
+        assert_eq!(
+            host.keymap(&encode(20, KeyTransition::Pressed, KeyModifiers::NONE))
+                .unwrap()
+                .unwrap()
+                .as_bytes(),
+            "´q".as_bytes()
+        );
+        assert!(host.keymap(&dead).unwrap().is_none());
+        host.reset();
+        assert_eq!(
+            host.keymap(&encode(8, KeyTransition::Pressed, KeyModifiers::NONE))
+                .unwrap()
+                .unwrap()
+                .as_bytes(),
+            b"e"
         );
     }
 

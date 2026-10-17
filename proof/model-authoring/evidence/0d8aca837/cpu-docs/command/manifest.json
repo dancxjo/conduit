@@ -1,0 +1,26 @@
+{
+  "build_profile": {
+    "debug_symbols": false,
+    "incremental": false,
+    "jobs": 2
+  },
+  "cuda_requested": false,
+  "device_evidence": null,
+  "does_not_establish": [
+    "ordinary Plot/HostCall execution",
+    "ConduitVoice training",
+    "FARGAN reconstruction",
+    "attended listening",
+    "stable acceptance"
+  ],
+  "establishes": "Burn authoring, atomic training/evaluation, safe checkpoint and fresh-runtime resume contracts",
+  "exit_code": 0,
+  "log_sha256": "0df2c4f78a4b36a5a20dd4a06865d3127d96d29d0c78a2fc85db92fa98a6f2a3",
+  "passed": true,
+  "proof_class": "deterministic-unit",
+  "schema": "conduit.proof/model-authoring@1",
+  "scope": "hosted-model-library",
+  "source_head": "0d8aca837a2a83d53fab010bf150e25db1547910",
+  "source_unchanged": true,
+  "working_tree_dirty": false
+}

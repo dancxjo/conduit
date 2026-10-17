@@ -1,5 +1,5 @@
 use super::{font, profile, typography};
-use conduit_presentation::GraphicsTextRole as Role;
+use conduit_face::GraphicsTextRole as Role;
 
 #[test]
 fn proportional_prose_and_monospace_code_have_distinct_metrics() {

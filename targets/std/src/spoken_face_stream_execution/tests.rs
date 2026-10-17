@@ -7,14 +7,14 @@ use crate::spoken_face_mask::{
     ReaderCommand, SpokenBatchDelivery, SpokenFaceRefusal, SpokenFaceSession, SpokenTurnOutcome,
 };
 use conduit_core::{BootId, HostId, OfferGeneration};
-use conduit_presentation::{PresentationRole, PresentationSubject};
+use conduit_face::{FaceRole, FaceSubject};
 
-// Both spoken contracts share the one established presentation fixture source.
+// Both spoken contracts share the one established face fixture source.
 #[allow(clippy::duplicate_mod)]
-#[path = "../../../../semantics/presentation/tests/common/mod.rs"]
+#[path = "../../../../semantics/face/tests/common/mod.rs"]
 mod common;
 
-fn source(subjects: usize) -> (Presentation, MaskShow) {
+fn source(subjects: usize) -> (Face, MaskShow) {
     let plot = common::checked_renderer_plot();
     let plan = common::plan_for(
         &plot,
@@ -22,24 +22,24 @@ fn source(subjects: usize) -> (Presentation, MaskShow) {
             "linux-host",
             "linux-boot",
             "renderer-wayland",
-            "presentation/renderer-wayland@1",
+            "face/renderer-wayland@1",
             "patchbay-native/wayland@1",
-            "presentation/base/wayland-surface@1",
+            "face/base/wayland-surface@1",
             common::WAYLAND_RESOURCE,
         ),
     );
-    let base = common::presentation(&plot, &plan);
+    let base = common::face(&plot, &plan);
     let mut basis = base.basis;
     basis.body_id = None;
     basis.wake_id = None;
     let subjects = (0..subjects)
-        .map(|index| PresentationSubject {
+        .map(|index| FaceSubject {
             identity: if index == 0 {
                 "patchbay/plot".into()
             } else {
                 format!("item/{index}")
             },
-            role: PresentationRole::Region,
+            role: FaceRole::Region,
             name: if index == 0 {
                 "Welcome".into()
             } else {
@@ -47,22 +47,13 @@ fn source(subjects: usize) -> (Presentation, MaskShow) {
             },
         })
         .collect();
-    let face = Presentation::new_with_semantics(
-        1,
-        basis,
-        subjects,
-        vec![],
-        vec![],
-        vec![],
-        vec![],
-        vec![],
-    )
-    .unwrap();
+    let face = Face::new_with_semantics(1, basis, subjects, vec![], vec![], vec![], vec![], vec![])
+        .unwrap();
     let show = common::available_mask_show(&face);
     (face, show)
 }
 
-fn batch(face: &Presentation, show: &MaskShow) -> (SpokenFaceSession, SpokenBatch) {
+fn batch(face: &Face, show: &MaskShow) -> (SpokenFaceSession, SpokenBatch) {
     let mut reader = SpokenFaceSession::new(face.clone(), show.clone()).unwrap();
     reader
         .command(face, show, ReaderCommand::ReadAll, 1)
@@ -164,7 +155,7 @@ fn selected_playback_block_admission_covers_its_declared_duration() {
     assert!(blocks <= u64::from(conduit_semantic_catalog::AUDIO_STREAM_MAXIMUM_BLOCKS));
     assert!(blocks <= u64::from(conduit_semantic_catalog::AUDIO_PLAY_ALSA_MAXIMUM_BLOCKS));
     assert_eq!(
-        SPOKEN_PLAYBACK_PLOT
+        spoken_playback_plot(&crate::hosted_language::tests::request("language/english"))
             .matches("maximum-blocks = 32768, maximum-audio-millis = 30000")
             .count(),
         2,
@@ -191,12 +182,14 @@ fn deterministic_playback(
         &face,
         &show,
         &batch,
+        &crate::hosted_language::tests::request("language/english"),
         &"00".repeat(32),
         config,
         selection,
         &authorization,
         control,
         &mut host,
+        false,
     )?;
     Ok((reader, execution))
 }
@@ -217,24 +210,28 @@ fn selected_playback_keeps_the_same_host_across_two_plays() {
         &face,
         &show,
         &batch,
+        &crate::hosted_language::tests::request("language/english"),
         &"00".repeat(32),
         config.clone(),
         selection.clone(),
         &authorization,
         &crate::RunControl::default(),
         &mut host,
+        false,
     )
     .unwrap();
     let second = super::playback::run_selected_spoken_playback(
         &face,
         &show,
         &batch,
+        &crate::hosted_language::tests::request("language/english"),
         &"00".repeat(32),
         config,
         selection,
         &authorization,
         &crate::RunControl::default(),
         &mut host,
+        false,
     )
     .unwrap();
     assert_eq!(host.advertisement(), &original);
@@ -259,6 +256,7 @@ fn attached_host_entrance_refuses_a_missing_speech_provider() {
         &face,
         &show,
         &batch,
+        &crate::hosted_language::tests::request("language/english"),
         &selection,
         &authorization,
         &crate::RunControl::default(),
@@ -293,6 +291,165 @@ fn selected_speaker_play_is_distinct_from_wav_and_drains_ordered_segments() {
         .unwrap();
     assert_eq!(finished.outcome, SpokenTurnOutcome::Completed);
     assert_eq!(finished.completed_segments, 1);
+}
+
+#[test]
+fn selected_speaker_and_wav_share_one_play_and_one_converted_pcm_stream() {
+    use std::sync::atomic::{AtomicU64, Ordering};
+    static NEXT: AtomicU64 = AtomicU64::new(0);
+    let (face, show) = source(1);
+    let (_, batch) = batch(&face, &show);
+    let (config, selection, authorization) = selected_fake_playback(FakePlaybackBehavior::Success);
+    let root = std::env::temp_dir().join(format!(
+        "conduit-same-play-{}-{}",
+        std::process::id(),
+        NEXT.fetch_add(1, Ordering::Relaxed)
+    ));
+    std::fs::create_dir(&root).unwrap();
+    let mut host = StdHost::new_with_playback(
+        config.clone(),
+        StdHostComposition::minimal().with_text(),
+        selection.clone(),
+    )
+    .unwrap();
+    host.attach_deterministic_speech_and_wav_artifact(
+        crate::hosted_wav_artifact::WavArtifactSelection::per_play_root(
+            &root,
+            config.boot_id.clone(),
+            config.offer_generation,
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    let result = super::playback::run_selected_spoken_playback(
+        &face,
+        &show,
+        &batch,
+        &crate::hosted_language::tests::request("language/english"),
+        &"00".repeat(32),
+        config.clone(),
+        selection.clone(),
+        &authorization,
+        &crate::RunControl::default(),
+        &mut host,
+        true,
+    )
+    .unwrap();
+    assert_eq!(result.outcome, SpokenPlaybackOutcome::Completed);
+    let capture = result.same_play_capture.unwrap();
+    assert_eq!(
+        u32::from(capture.pcm_blocks),
+        result.playback.metrics.blocks_committed
+    );
+    assert_eq!(
+        capture.pcm_bytes as u64,
+        result.playback.metrics.frames_committed * 4
+    );
+    let wav = std::fs::read(&capture.wav_path).unwrap();
+    assert_eq!(capture.wav_bytes, wav.len() as u64);
+    assert_eq!(
+        capture.pcm_sha256,
+        format!("{:x}", Sha256::digest(&wav[44..]))
+    );
+    assert_eq!(capture.pcm_sha256, result.playback.committed_pcm_sha256);
+    assert_eq!(capture.wav_sha256, format!("{:x}", Sha256::digest(&wav)));
+    assert!(capture
+        .wav_path
+        .file_name()
+        .unwrap()
+        .to_string_lossy()
+        .starts_with("play-"));
+    let second = super::playback::run_selected_spoken_playback(
+        &face,
+        &show,
+        &batch,
+        &crate::hosted_language::tests::request("language/english"),
+        &"00".repeat(32),
+        config,
+        selection,
+        &authorization,
+        &crate::RunControl::default(),
+        &mut host,
+        true,
+    )
+    .unwrap();
+    assert_eq!(second.outcome, SpokenPlaybackOutcome::Completed);
+    assert_ne!(result.playback_play_id, second.playback_play_id);
+    let second_capture = second.same_play_capture.unwrap();
+    assert_ne!(capture.wav_path, second_capture.wav_path);
+    let second_wav = std::fs::read(&second_capture.wav_path).unwrap();
+    assert_eq!(second_capture.wav_bytes, second_wav.len() as u64);
+    assert_eq!(
+        second_capture.wav_sha256,
+        format!("{:x}", Sha256::digest(&second_wav))
+    );
+    assert_eq!(
+        second_capture.pcm_sha256,
+        format!("{:x}", Sha256::digest(&second_wav[44..]))
+    );
+    assert_eq!(
+        second_capture.pcm_sha256,
+        second.playback.committed_pcm_sha256
+    );
+    assert_eq!(
+        u32::from(second_capture.pcm_blocks),
+        second.playback.metrics.blocks_committed
+    );
+    assert_eq!(
+        u64::from(second_capture.pcm_bytes) / 4,
+        second.playback.metrics.frames_committed
+    );
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn selected_speaker_refuses_full_wav_pool_before_a_completed_play() {
+    use std::sync::atomic::{AtomicU64, Ordering};
+    static NEXT: AtomicU64 = AtomicU64::new(0);
+    let (face, show) = source(1);
+    let (_, batch) = batch(&face, &show);
+    let (config, selection, authorization) = selected_fake_playback(FakePlaybackBehavior::Success);
+    let root = std::env::temp_dir().join(format!(
+        "conduit-same-play-full-{}-{}",
+        std::process::id(),
+        NEXT.fetch_add(1, Ordering::Relaxed)
+    ));
+    std::fs::create_dir(&root).unwrap();
+    let mut host = StdHost::new_with_playback(
+        config.clone(),
+        StdHostComposition::minimal().with_text(),
+        selection.clone(),
+    )
+    .unwrap();
+    host.attach_deterministic_speech_and_wav_artifact(
+        crate::hosted_wav_artifact::WavArtifactSelection::per_play_root(
+            &root,
+            config.boot_id.clone(),
+            config.offer_generation,
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    for index in 0..64 {
+        std::fs::write(root.join(format!("play-{index:064x}.wav")), b"retained").unwrap();
+    }
+    let refusal = super::playback::run_selected_spoken_playback(
+        &face,
+        &show,
+        &batch,
+        &crate::hosted_language::tests::request("language/english"),
+        &"00".repeat(32),
+        config,
+        selection,
+        &authorization,
+        &crate::RunControl::default(),
+        &mut host,
+        true,
+    )
+    .unwrap_err();
+    assert!(matches!(refusal, SpokenStreamExecutionRefusal::Plan(_)));
+    assert_eq!(std::fs::read_dir(&root).unwrap().count(), 64);
+    std::fs::remove_dir_all(root).unwrap();
 }
 
 #[test]
@@ -354,137 +511,8 @@ fn selected_speaker_loss_is_not_a_completed_spoken_show() {
     );
 }
 
-/// Explicit local device proof. The caller must name an exact currently
-/// discovered card and device; no default or first-device fallback is allowed.
-#[test]
-#[ignore = "requires installed eSpeak NG, explicit ALSA card/device, and speaker output"]
-fn installed_espeak_stream_drains_selected_alsa_speaker() {
-    let card = std::env::var("CONDUIT_SPOKEN_TEST_ALSA_CARD").unwrap();
-    let device = std::env::var("CONDUIT_SPOKEN_TEST_ALSA_DEVICE")
-        .unwrap()
-        .parse::<u16>()
-        .unwrap();
-    let observed = crate::hosted_audio::discover_alsa_playback()
-        .unwrap()
-        .into_iter()
-        .find(|item| item.card_id == card && item.device == device)
-        .expect("explicitly selected speaker is absent from current discovery");
-    let config = StdHostConfig {
-        host_id: HostId::from("local-spoken-playback-host"),
-        boot_id: BootId::from(format!("local-spoken-playback-boot-{}", std::process::id())),
-        offer_generation: OfferGeneration(1),
-    };
-    let selected = HostedPlaybackSelection::from_observation(
-        observed,
-        config.boot_id.clone(),
-        config.offer_generation,
-    );
-    let discovery = EspeakDiscovery::inspect(
-        Path::new("/usr/bin/espeak-ng"),
-        Path::new("/usr/lib/x86_64-linux-gnu/espeak-ng-data"),
-        "en-us",
-        &[PathBuf::from(
-            "/usr/lib/x86_64-linux-gnu/libespeak-ng.so.1.1.51",
-        )],
-    )
-    .unwrap();
-    let (face, show) = source(2);
-    let (_, batch) = batch(&face, &show);
-    let authorization = ExplicitPlaybackAuthorization::new("grant/local-spoken-speaker").unwrap();
-    let result = execute_real_spoken_batch_to_selected_playback(
-        &face,
-        &show,
-        &batch,
-        discovery,
-        config,
-        selected,
-        &authorization,
-        &crate::RunControl::default(),
-    )
-    .unwrap();
-    assert_eq!(result.outcome, SpokenPlaybackOutcome::Completed);
-    assert_eq!(result.playback.lifecycle, PlaybackLifecycle::StoppedClosed);
-    assert!(result.playback.metrics.blocks_committed > 1);
-    assert_eq!(result.source_segments_sha256, batch.source_segments_sha256);
-    eprintln!("selected spoken playback receipt: {result:?}");
-}
+#[path = "tests/platform.rs"]
+mod platform;
 
-/// Installed eSpeak is a platform proof, kept explicit and run only where its
-/// trusted executable, data, and engine are present. It retains the WAV in a
-/// fresh temporary directory so the returned bytes can be inspected.
-#[test]
-#[ignore = "requires installed eSpeak NG and writes a real WAV"]
-fn installed_espeak_produces_exact_plan_play_pcm_receipt() {
-    let (face, show) = source(2);
-    let (mut reader, batch) = batch(&face, &show);
-    let discovery = EspeakDiscovery::inspect(
-        Path::new("/usr/bin/espeak-ng"),
-        Path::new("/usr/lib/x86_64-linux-gnu/espeak-ng-data"),
-        "en-us",
-        &[PathBuf::from(
-            "/usr/lib/x86_64-linux-gnu/libespeak-ng.so.1.1.51",
-        )],
-    )
-    .unwrap();
-    let directory =
-        std::env::temp_dir().join(format!("conduit-spoken-face-real-{}", std::process::id()));
-    fs::create_dir(&directory).unwrap();
-    let wav = directory.join("speech.wav");
-    let result = execute_real_spoken_batch(&face, &show, &batch, discovery, &wav).unwrap();
-    assert!(result.receipt.pcm_bytes > 0);
-    assert!(result.receipt.pcm_blocks > 0);
-    assert_eq!(result.receipt.wav_bytes, fs::metadata(&wav).unwrap().len());
-    let produced = fs::read(&wav).unwrap();
-    assert!(produced[44..].iter().any(|sample| *sample != 0));
-    assert_eq!(
-        result.receipt.wav_sha256,
-        format!("{:x}", Sha256::digest(&produced))
-    );
-    assert_eq!(
-        result.receipt.source_segments_sha256,
-        batch.source_segments_sha256
-    );
-    let sources = serde_json::json!({
-        "faceId": batch.face_id,
-        "faceRevision": batch.face_revision,
-        "sourceShowId": batch.source_show_id,
-        "streamIdentity": batch.stream_identity,
-        "sourceSegmentsSha256": batch.source_segments_sha256,
-        "segments": batch.segments.iter().map(|item| serde_json::json!({
-            "sequence": item.segment.sequence,
-            "text": item.segment.text,
-            "textSha256": item.text_sha256,
-            "reason": item.segment.reason,
-        })).collect::<Vec<_>>(),
-    });
-    fs::write(
-        directory.join("source-segments.json"),
-        serde_json::to_vec_pretty(&sources).unwrap(),
-    )
-    .unwrap();
-    let receipt = &result.receipt;
-    let produced_receipt = serde_json::json!({
-        "sourceSegmentsSha256": receipt.source_segments_sha256,
-        "streamIdentity": receipt.stream_identity,
-        "sourceShowId": receipt.source_show_id,
-        "speechPlanId": receipt.speech_plan_id,
-        "speechPlayId": receipt.speech_play_id,
-        "providerSha256": receipt.provider_sha256,
-        "wavSha256": receipt.wav_sha256,
-        "wavBytes": receipt.wav_bytes,
-        "pcmBytes": receipt.pcm_bytes,
-        "pcmBlocks": receipt.pcm_blocks,
-    });
-    fs::write(
-        directory.join("speech-receipt.json"),
-        serde_json::to_vec_pretty(&produced_receipt).unwrap(),
-    )
-    .unwrap();
-    let terminal = reader
-        .acknowledge_batch(SpokenBatchDelivery::Completed(result.receipt))
-        .unwrap()
-        .unwrap();
-    assert_eq!(terminal.outcome, SpokenTurnOutcome::Completed);
-    assert_eq!(terminal.completed_segments, 2);
-    eprintln!("real spoken Face WAV: {}", wav.display());
-}
+#[path = "tests/language.rs"]
+mod language;

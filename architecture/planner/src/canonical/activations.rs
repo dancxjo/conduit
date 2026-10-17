@@ -207,6 +207,24 @@ fn attach_activations(
                     "progression activation differs from its selected coordinator law".into(),
                 ));
             }
+            let retained = law
+                .4
+                .checked_mul(2)
+                .and_then(|bytes| {
+                    law.5
+                        .checked_mul(2)
+                        .and_then(|items| bytes.checked_add(items))
+                })
+                .ok_or_else(|| {
+                    PlannerError::InvalidConnectionBudget(
+                        "progression activation retained storage overflows".into(),
+                    )
+                })?;
+            if limits.maximum_queue_bytes < retained {
+                return Err(PlannerError::InvalidConnectionBudget(
+                    "progression activation coordinator lacks finite retained queue bytes".into(),
+                ));
+            }
             let accumulator_input = PlannedActivationFront {
                 front_port_id: accumulator.port_id.clone(),
                 value_kind: accumulator.value_kind.clone(),

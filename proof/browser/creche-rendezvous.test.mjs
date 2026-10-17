@@ -333,6 +333,29 @@ test("one code carries a current advertisement and exactly one invitation proof"
   await assert.rejects(() => session.invite(prepared), { code: "Replay" });
 });
 
+test("complete Host inventories cross rendezvous while oversized inventories refuse", async () => {
+  class CompleteInventorySocket extends FakeWebSocket {
+    constructor(url) {
+      super(url);
+      this.inventory = "x".repeat(902_000);
+    }
+  }
+  const session = await connectRendezvousHost(`C1-WS-104D-${"AB".repeat(32)}`, {
+    WebSocketClass: CompleteInventorySocket,
+  });
+  assert.equal(session.descriptor.advertisement.inventory.length, 902_000);
+  session.cancel();
+  class OversizedInventorySocket extends FakeWebSocket {
+    constructor(url) {
+      super(url);
+      this.inventory = "x".repeat(2 * 1024 * 1024);
+    }
+  }
+  await assert.rejects(() => connectRendezvousHost(`C1-WS-104D-${"AB".repeat(32)}`, {
+    WebSocketClass: OversizedInventorySocket,
+  }), { code: "FrameBound" });
+});
+
 test("Workspace may retain the authenticated joined Line until explicit close", async () => {
   const session = await connectRendezvousHost(`C1-WS-104D-${"AB".repeat(32)}`, {
     WebSocketClass: FakeWebSocket,
@@ -468,7 +491,8 @@ class FakeWebSocket extends EventTarget {
     const request = JSON.parse(new TextDecoder().decode(bytes));
     this.sent.push(request);
     if (request.kind === "close") return;
-    const advertisement = { host_id: "host/test", boot_id: "boot/test", offer_generation: 1 };
+    const advertisement = { host_id: "host/test", boot_id: "boot/test", offer_generation: 1,
+      ...(this.inventory ? { inventory: this.inventory } : {}) };
     const response = request.kind === "hello" ? {
       kind: "host", protocol: 1, friendly_label: "This running computer",
       target_id: "std/x86_64/computer", image_content_digest: `sha256:${"1".repeat(64)}`,

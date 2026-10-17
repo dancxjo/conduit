@@ -1,8 +1,9 @@
 use conduit_language::{
     annotation_bundle_four_type, dependency_edge_type, linguistic_annotation_type,
     linguistic_segment_type, linguistic_token_type, linguistic_tokens_four_type, text_span_type,
-    AnnotationBundleFour, LinguisticAnnotation, LinguisticDependencyEdge, LinguisticOffsetBasis,
-    LinguisticSegment, LinguisticToken, LinguisticTokensFour, TextSpan,
+    AnnotationBundleFour, LanguageTextId, LanguageTextRevisionId, LinguisticAnnotation,
+    LinguisticDependencyEdge, LinguisticOffsetBasis, LinguisticSegment, LinguisticToken,
+    LinguisticTokensFour, TextSpan,
 };
 use conduit_plot::rust_binding::{NativeBindingRefusal, NativeRustBinding};
 
@@ -41,7 +42,8 @@ fn text_span_round_trips_and_refuses_empty_identity() {
         LinguisticOffsetBasis::unicode_scalar(),
         9,
         3,
-        "text/example".into(),
+        LanguageTextId::new("text/example".into()).unwrap(),
+        LanguageTextRevisionId::new("source/1".into()).unwrap(),
     )
     .unwrap();
     assert_eq!(
@@ -49,7 +51,7 @@ fn text_span_round_trips_and_refuses_empty_identity() {
         span
     );
     assert!(matches!(
-        TextSpan::new(LinguisticOffsetBasis::unicode_scalar(), 0, 0, String::new()),
+        LanguageTextId::new(String::new()),
         Err(NativeBindingRefusal::ViolatedConstraint { .. })
     ));
     assert!(matches!(
@@ -57,7 +59,8 @@ fn text_span_round_trips_and_refuses_empty_identity() {
             LinguisticOffsetBasis::unicode_scalar(),
             2,
             3,
-            "text/example".into()
+            LanguageTextId::new("text/example".into()).unwrap(),
+            LanguageTextRevisionId::new("source/1".into()).unwrap()
         ),
         Err(NativeBindingRefusal::ViolatedInvariant { .. })
     ));

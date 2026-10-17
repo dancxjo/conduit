@@ -3,9 +3,7 @@ use super::*;
 use crate::display::{DisplayError, DisplayFormat, PixelTarget};
 use crate::native_compositor::{CompositorAdmission, NativeCompositor};
 use conduit_core::{HostBaseId, HostId, SignId};
-use conduit_presentation::{
-    GraphicsScene, LayoutRect, PresentationBasis, PresentationRole, PresentationSubject,
-};
+use conduit_face::{FaceBasis, FaceRole, FaceSubject, GraphicsScene, LayoutRect};
 
 struct FixturePixelTarget {
     writes: u32,
@@ -50,9 +48,9 @@ fn fixture_scanout(sequence: u64) -> (PreparedNativeMaskPlay, NativeCompositor) 
     )
     .unwrap();
     let (body, wake) = body.wake(1, SignId::from("wake/native-mask")).unwrap();
-    let presentation = Presentation::new(
+    let face = Face::new(
         1,
-        PresentationBasis {
+        FaceBasis {
             body_id: Some(body.body_id),
             wake_id: Some(wake.wake_id),
             source_document_id: Some(plan.source_document_id.clone()),
@@ -62,9 +60,9 @@ fn fixture_scanout(sequence: u64) -> (PreparedNativeMaskPlay, NativeCompositor) 
             active_play_id: None,
             sign_ids: alloc::vec![SignId::from("face/native-mask")],
         },
-        alloc::vec![PresentationSubject {
+        alloc::vec![FaceSubject {
             identity: "front/native-mask".into(),
-            role: PresentationRole::Document,
+            role: FaceRole::Document,
             name: "Native Mask".into()
         }],
         Vec::new(),
@@ -72,28 +70,28 @@ fn fixture_scanout(sequence: u64) -> (PreparedNativeMaskPlay, NativeCompositor) 
         Vec::new(),
     )
     .unwrap();
-    let presentation = Presentation::new_with_semantics(
-        presentation.revision,
-        presentation.basis,
-        presentation.subjects,
-        presentation.relationships,
-        presentation.properties,
-        presentation.text,
-        alloc::vec![conduit_presentation::PresentationAction {
+    let face = Face::new_with_semantics(
+        face.revision,
+        face.basis,
+        face.subjects,
+        face.relationships,
+        face.properties,
+        face.text,
+        alloc::vec![conduit_face::FaceAction {
             identity: "action/activate".into(),
             intent: "action/activate".into(),
             target: "front/native-mask".into(),
             name: "Activate".into(),
             arguments: Vec::new(),
-            disclosure: conduit_presentation::PresentationDisclosureLevel::CurrentAction,
-            availability: conduit_presentation::PresentationActionAvailability::Available,
+            disclosure: conduit_face::FaceDisclosureLevel::CurrentAction,
+            availability: conduit_face::FaceActionAvailability::Available,
         }],
-        presentation.disclosures,
+        face.disclosures,
     )
     .unwrap();
     let pending = PreparedNativeMaskPlay::prepare(
         &stage.planned_mask,
-        &presentation,
+        &face,
         sequence,
         "front/native-mask",
         "surface/native-mask",
@@ -136,7 +134,7 @@ fn stage(
     let request = pending.renderer_request();
     compositor
         .update_pending_mask_surface(
-            request.presentation(),
+            request.face(),
             request.prepared_show(),
             request.display_base_id(),
             &GraphicsScene::empty(),
@@ -150,11 +148,7 @@ fn renderer_waits_for_exact_scanout_before_delivering_its_show_fore() {
     let (pending, mut compositor) = fixture_scanout(1);
     let request = pending.renderer_request();
     assert_eq!(
-        run(
-            &request.prepared_show().planned_mask,
-            request.presentation(),
-            1
-        ),
+        run(&request.prepared_show().planned_mask, request.face(), 1),
         Err(NativeMaskPlayError::PendingRenderer)
     );
     let staged = stage(&pending, &mut compositor);
@@ -171,7 +165,7 @@ fn renderer_waits_for_exact_scanout_before_delivering_its_show_fore() {
     let receipt = pending.complete(&ack).unwrap();
     assert_eq!(receipt.mask_plan_id, staged.plan_id);
     assert_eq!(receipt.active_play_id, staged.active_play_id);
-    assert_eq!(receipt.presentation_id, staged.presentation_id.as_str());
+    assert_eq!(receipt.face_id, staged.face_id.as_str());
     assert!(receipt.kernel_signs > 0);
     compositor.focus_surface("surface/native-mask").unwrap();
 }
@@ -227,11 +221,9 @@ fn fixture_session(sequence: u64) -> NativeMaskInteractionSession {
     pending.complete_render(&ack).unwrap()
 }
 
-fn fixture_interaction(
-    session: &NativeMaskInteractionSession,
-) -> conduit_presentation::FaceInteraction {
-    conduit_presentation::FaceInteraction::new(
-        &session.play.renderer.presentation,
+fn fixture_interaction(session: &NativeMaskInteractionSession) -> conduit_face::FaceInteraction {
+    conduit_face::FaceInteraction::new(
+        &session.play.renderer.face,
         session.show(),
         "action/activate",
         "front/native-mask",
@@ -248,7 +240,7 @@ fn exact_interaction_crosses_same_mask_host_call_and_fore() {
     let receipt = session.render_receipt();
     assert_eq!(
         show.show.lifecycle,
-        conduit_presentation::ManifestationLifecycle::Available
+        conduit_face::ManifestationLifecycle::Available
     );
     assert_eq!(receipt.active_play_id, show.show.active_play_id);
     assert_eq!(session.request.request, conduit_kernel::RequestId(1));
@@ -271,7 +263,7 @@ fn exact_interaction_crosses_same_mask_host_call_and_fore() {
 
 #[test]
 fn stale_face_show_and_substituted_action_are_refused() {
-    use conduit_presentation::FaceInteractionRefusal as Refusal;
+    use conduit_face::FaceInteractionRefusal as Refusal;
     for (field, refusal) in [
         (0, Refusal::StaleFace),
         (1, Refusal::StaleShow),
@@ -378,23 +370,23 @@ fn storage_preparation_checks_the_exact_plan_queue_and_host_result_budgets() {
 fn complete_large_faces_cross_the_fore_and_oversized_faces_are_refused() {
     let (fixture, _) = fixture_scanout(1);
     let request = fixture.renderer_request();
-    let original = request.presentation();
+    let original = request.face();
     let make_face = |paragraphs: usize| {
         let mut subjects = original.subjects.clone();
         let mut text = original.text.clone();
         for index in 0..paragraphs {
             let subject = alloc::format!("document/paragraph/{index}");
-            subjects.push(PresentationSubject {
+            subjects.push(FaceSubject {
                 identity: subject.clone(),
-                role: PresentationRole::Document,
+                role: FaceRole::Document,
                 name: alloc::format!("Paragraph {index}"),
             });
-            text.push(conduit_presentation::PresentationText {
+            text.push(conduit_face::FaceText {
                 subject,
                 text: "x".repeat(1024),
             });
         }
-        Presentation::new_with_semantics(
+        Face::new_with_semantics(
             original.revision,
             original.basis.clone(),
             subjects,
@@ -406,7 +398,7 @@ fn complete_large_faces_cross_the_fore_and_oversized_faces_are_refused() {
         )
         .unwrap()
     };
-    let prepare = |face: &Presentation| {
+    let prepare = |face: &Face| {
         PreparedNativeMaskPlay::prepare(
             &request.prepared_show().planned_mask,
             face,
@@ -416,13 +408,13 @@ fn complete_large_faces_cross_the_fore_and_oversized_faces_are_refused() {
             request.display_base_id().clone(),
         )
     };
-    let face = make_face(10);
+    let face = make_face(35);
     let bytes = serde_json::to_vec(&face).unwrap();
-    assert!(bytes.len() >= 11_550 && bytes.len() <= MAX_MASK_VALUE_BYTES);
+    assert!(bytes.len() > 32 * 1024 && bytes.len() <= MAX_MASK_VALUE_BYTES);
     let pending = prepare(&face).unwrap();
-    assert_eq!(pending.renderer_request().presentation(), &face);
+    assert_eq!(pending.renderer_request().face(), &face);
     pending.cancel().unwrap();
-    let oversized = make_face(40);
+    let oversized = make_face(55);
     assert!(serde_json::to_vec(&oversized).unwrap().len() > MAX_MASK_VALUE_BYTES);
     assert!(matches!(
         prepare(&oversized),

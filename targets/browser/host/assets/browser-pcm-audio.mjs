@@ -92,6 +92,7 @@ export function acquireBrowserPcmAudio({
   if (!Number.isInteger(maximumCaptureBlocks) || maximumCaptureBlocks < 1 ||
       maximumCaptureBlocks > MAXIMUM_CAPTURE_BLOCKS) throw new Error("capture block bound is invalid");
   let closed = false, pressed = false, waiter = null, capture = null, context = null, playbackTail = 0;
+  const playback = [];
   const setPressed = value => {
     pressed = value;
     if (value && waiter) { const resolve = waiter; waiter = null; resolve(); }
@@ -200,25 +201,57 @@ export function acquireBrowserPcmAudio({
         output[index] = sample(frame, index * frame.channels + channel);
       }
     }
+    if (signal.aborted) throw new Error("browser PCM playback cancelled");
+    if (playback.length >= 2) throw new Error("browser PCM playback queue is full");
     const source = context.createBufferSource();
     const gain = context.createGain();
     gain.gain.value = effect.maximum_gain_millionths / 1_000_000;
     source.buffer = buffer;
     source.connect(gain); gain.connect(context.destination);
-    const start = Math.max(context.currentTime, playbackTail);
+    // A fresh stream reserves one block of lookahead so its next cadence tick
+    // can arrive before playback starts consuming the first block.
+    const start = Math.max(context.currentTime + (playback.length === 0 ? buffer.duration : 0), playbackTail);
     playbackTail = start + buffer.duration;
-    await new Promise((resolve, reject) => {
-      const abort = () => { source.stop(); reject(new Error("browser PCM playback cancelled")); };
-      signal.addEventListener("abort", abort, { once: true });
-      source.addEventListener("ended", () => { signal.removeEventListener("abort", abort); resolve(); }, { once: true });
-      source.start(start);
-    }).catch(error => refuse("failed", 24, error.message));
-    source.disconnect(); gain.disconnect();
+    let complete;
+    const entry = { source, ended: new Promise(resolve => { complete = resolve; }), stop: null };
+    let finished = false;
+    const finish = () => {
+      if (finished) return;
+      finished = true;
+      signal.removeEventListener("abort", abort);
+      source.disconnect(); gain.disconnect();
+      const index = playback.indexOf(entry);
+      if (index >= 0) playback.splice(index, 1);
+      if (playback.length === 0) playbackTail = context.currentTime;
+      complete();
+    };
+    const abort = () => { try { source.stop(); } finally { finish(); } };
+    entry.stop = abort;
+    source.addEventListener("ended", finish, { once: true });
+    signal.addEventListener("abort", abort, { once: true });
+    playback.push(entry);
+    try { source.start(start); } catch (error) { finish(); throw error; }
+    // One Host call at a time. Return the first credit immediately, then hold
+    // each next credit until the preceding source ends: at most two sources,
+    // and the next block is scheduled before its predecessor has finished.
+    if (playback.length === 2) await Promise.race([playback[0].ended, entry.ended]);
+    if (signal.aborted) throw new Error("browser PCM playback cancelled");
+  }
+
+  async function drainPlayback(signal) {
+    if (signal.aborted) throw new Error("browser PCM playback cancelled");
+    const abort = () => { for (const entry of [...playback]) entry.stop(); };
+    signal.addEventListener("abort", abort, { once: true });
+    try {
+      await Promise.all(playback.map(entry => entry.ended));
+      if (signal.aborted) throw new Error("browser PCM playback cancelled");
+    } finally { signal.removeEventListener("abort", abort); }
   }
 
   async function perform(effect, signal) {
     if (effect.effect_kind === "audio-capture") return captureFrame(signal);
     if (effect.effect_kind === "pcm-playback") return play(effect, signal);
+    if (effect.effect_kind === "pcm-playback-drain") return drainPlayback(signal);
     throw new Error("unsupported browser PCM audio effect");
   }
 
@@ -229,9 +262,13 @@ export function acquireBrowserPcmAudio({
     pushToTalkTarget.removeEventListener("pointerup", up);
     pushToTalkTarget.removeEventListener("pointercancel", up);
     pushToTalkTarget.removeEventListener("lostpointercapture", up);
+    for (const entry of [...playback]) entry.stop();
     await stopCapture();
     await context?.close();
   }
 
+  // Resource capacity counts one playback installation / serialized Host call.
+  // That installation owns at most two queued or playing PCM sources; this is
+  // lookahead storage, not permission for concurrent playback Host calls.
   return Object.freeze({ capacity: Object.freeze({ capture: 1, playback: 1 }), perform, close });
 }

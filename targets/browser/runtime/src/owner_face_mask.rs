@@ -7,21 +7,23 @@
 use crate::workspace_mask::execution;
 use conduit_body::BodyId;
 use conduit_core::{bind_active_play, BootId, HostId, PortDirection, SignId, ValueConstraint};
+use conduit_face::{
+    Face, FaceInteraction, FaceInteractionArgument, ManifestationLifecycle, MaskShow,
+    OwnerFaceSnapshotResponse, RemoteOwnerMaskRouteSeal, OWNER_FACE_RESPONSE_SCHEMA,
+};
 use conduit_kernel::scheduler::{RemoteIngressOutcome, SchedulerStatus};
 use conduit_kernel::{BoundedValueRef, HostCallDisposition, HostCallOutcome};
 use conduit_plan_lowering::lowering::lower_plan_fragment;
-use conduit_presentation::{
-    FaceInteraction, FaceInteractionArgument, ManifestationLifecycle, MaskShow,
-    OwnerFaceSnapshotResponse, Presentation, RemoteOwnerMaskRouteSeal, OWNER_FACE_RESPONSE_SCHEMA,
-};
 use serde::{Deserialize, Serialize};
 
 #[path = "owner_face_mask/abi.rs"]
 mod abi;
+#[path = "owner_face_mask/component.rs"]
+mod component;
 #[path = "owner_face_mask/interaction.rs"]
 mod interaction;
 #[path = "owner_face_mask/view.rs"]
-mod view;
+pub(crate) mod view;
 
 use crate::installed_browser::dom_mask::MASK_BYTES;
 
@@ -31,6 +33,8 @@ struct HostBasis {
     body_id: BodyId,
     host_id: HostId,
     boot_id: BootId,
+    #[serde(default)]
+    visual_constraints: Option<component::VisualConstraints>,
 }
 
 #[derive(Deserialize)]
@@ -79,8 +83,26 @@ struct SubjectView {
     identity: String,
     name: String,
     role: String,
+    semantic_role: Option<String>,
+    choice_multiplicity: Option<String>,
+    values: Vec<ValueView>,
+    disclosure: String,
     text: Vec<String>,
     properties: Vec<String>,
+    flags: Vec<FlagView>,
+}
+
+#[derive(Serialize)]
+struct ValueView {
+    name: String,
+    kind: String,
+    text: String,
+}
+
+#[derive(Serialize)]
+struct FlagView {
+    name: String,
+    value: bool,
 }
 
 #[derive(Serialize)]
@@ -96,6 +118,7 @@ struct ActionView {
     name: String,
     intent: String,
     target: String,
+    disclosure: String,
     availability: String,
     explanation: Option<String>,
     reason_code: Option<String>,
@@ -112,17 +135,21 @@ struct ArgumentView {
 }
 
 #[derive(Serialize)]
-struct FaceView {
+pub(crate) struct FaceView {
     schema: &'static str,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    component: Option<component::ComponentView>,
     body_id: String,
     face_id: String,
     face_revision: String,
     mask_plot_id: String,
+    mask_expanded_plot_id: String,
     mask_plan_id: String,
     mask_play_id: String,
     route: Option<RouteView>,
     show_id: String,
     show_state: &'static str,
+    show_failure: Option<conduit_face::ManifestationFailure>,
     interactions_admitted: bool,
     subjects: Vec<SubjectView>,
     relationships: Vec<RelationshipView>,
@@ -139,9 +166,10 @@ struct RouteView {
 }
 
 struct OwnerBrowserMask {
+    component: Option<component::ComponentView>,
     body_id: BodyId,
-    presentation: Presentation,
-    planned: conduit_presentation::PlannedMaskPlot,
+    face: Face,
+    planned: conduit_face::PlannedMaskPlot,
     play: conduit_core::ActivePlayIdentity,
     route: Option<RouteView>,
     show: MaskShow,
@@ -157,20 +185,19 @@ struct OwnerBrowserMask {
 impl OwnerBrowserMask {
     fn prepare(
         basis: HostBasis,
-        presentation: Presentation,
+        face: Face,
         route: RemoteOwnerMaskRouteSeal,
         play_sequence: u64,
         interactions_admitted: bool,
     ) -> Result<Self, String> {
-        presentation
-            .validate()
+        face.validate()
             .map_err(|error| format!("owner Face invalid: {error:?}"))?;
-        if presentation.basis.body_id.as_ref() != Some(&basis.body_id) {
+        if face.basis.body_id.as_ref() != Some(&basis.body_id) {
             return Err("owner Face belongs to another Body".into());
         }
         if route.body_id != basis.body_id
-            || route.face_id != presentation.identity
-            || route.face_revision != presentation.revision
+            || route.face_id != face.identity
+            || route.face_revision != face.revision
         {
             return Err("owner route differs from the current Face".into());
         }
@@ -188,11 +215,17 @@ impl OwnerBrowserMask {
             mask_host_id: route.mask_host.host_id.as_str().into(),
             mask_boot_id: route.mask_host.boot_id.as_str().into(),
         };
+        let selected_lines = (
+            route.face_line.clone(),
+            route.return_line.clone(),
+            route.interaction_line.clone(),
+        );
         Self::prepare_planned(
             basis,
-            presentation,
+            face,
             route.planned_mask,
             Some(inspection),
+            Some(selected_lines),
             play_sequence,
             interactions_admitted,
         )
@@ -203,7 +236,7 @@ impl OwnerBrowserMask {
     #[cfg(test)]
     fn prepare_component_fixture(
         basis: HostBasis,
-        presentation: Presentation,
+        face: Face,
         play_sequence: u64,
         interactions_admitted: bool,
     ) -> Result<Self, String> {
@@ -218,8 +251,9 @@ impl OwnerBrowserMask {
         )?;
         Self::prepare_planned(
             basis,
-            presentation,
+            face,
             planned,
+            None,
             None,
             play_sequence,
             interactions_admitted,
@@ -228,12 +262,18 @@ impl OwnerBrowserMask {
 
     fn prepare_planned(
         basis: HostBasis,
-        presentation: Presentation,
-        planned: conduit_presentation::PlannedMaskPlot,
+        face: Face,
+        planned: conduit_face::PlannedMaskPlot,
         route: Option<RouteView>,
+        selected_lines: Option<(
+            conduit_core::AdmittedLine,
+            conduit_core::AdmittedLine,
+            Option<conduit_core::AdmittedLine>,
+        )>,
         play_sequence: u64,
         interactions_admitted: bool,
     ) -> Result<Self, String> {
+        let component = component::prepare(&basis, &planned, &face)?;
         let terminal = planned.show_placement();
         let play = bind_active_play(
             &planned.plan.plan_id,
@@ -241,7 +281,7 @@ impl OwnerBrowserMask {
             &terminal.boot_id,
             play_sequence,
         );
-        let face_subject = presentation
+        let face_subject = face
             .subjects
             .first()
             .ok_or("owner Face has no semantic subject")?
@@ -249,13 +289,13 @@ impl OwnerBrowserMask {
             .clone();
         let show = MaskShow::prepared(
             &planned,
-            &presentation,
+            &face,
             play.clone(),
             face_subject,
             "browser/document".into(),
             SignId::from(format!(
                 "sign/browser-owner-face-prepared/{}",
-                presentation.revision
+                face.revision
             )),
         )
         .map_err(|error| format!("prepare owner Face Show: {error:?}"))?;
@@ -273,8 +313,20 @@ impl OwnerBrowserMask {
         let interaction_boundary =
             execution::exact_boundary(&lowered.fore_ports, "interaction", PortDirection::Output)?
                 .clone();
+        if let Some((face_line, return_line, interaction_line)) = selected_lines {
+            let selected = face_boundary.selected_line.is_some()
+                || show_boundary.selected_line.is_some()
+                || interaction_boundary.selected_line.is_some();
+            if selected
+                && (face_boundary.selected_line.as_ref() != Some(&face_line)
+                    || show_boundary.selected_line.as_ref() != Some(&return_line)
+                    || interaction_boundary.selected_line != interaction_line)
+            {
+                return Err("browser Mask lowered a different selected carrier Line".into());
+            }
+        }
         let mut scheduler = execution::mask_scheduler(fragment, &lowered)?;
-        let bytes = serde_json::to_vec(&presentation).map_err(|error| error.to_string())?;
+        let bytes = serde_json::to_vec(&face).map_err(|error| error.to_string())?;
         if bytes.len() > face_boundary.byte_capacity as usize {
             return Err("owner Face exceeds the browser Mask Fore bound".into());
         }
@@ -299,8 +351,8 @@ impl OwnerBrowserMask {
                 SchedulerStatus::Progress { .. } => {}
                 other => {
                     return Err(format!(
-                        "owner Face Mask did not request DOM presentation: {other:?}"
-                    ))
+                        "owner Face Mask did not request DOM face: {other:?}"
+                    ));
                 }
             }
         };
@@ -311,8 +363,9 @@ impl OwnerBrowserMask {
             return Err("browser Mask received a different owner Face".into());
         }
         Ok(Self {
+            component,
             body_id: basis.body_id,
-            presentation,
+            face,
             planned,
             play,
             route,
@@ -329,8 +382,8 @@ impl OwnerBrowserMask {
 
     fn acknowledge(&mut self, ack: Acknowledgement) -> Result<(), String> {
         if ack.show_id != self.show.show_id.as_str()
-            || ack.face_id != self.presentation.identity.as_str()
-            || ack.face_revision != self.presentation.revision.to_string()
+            || ack.face_id != self.face.identity.as_str()
+            || ack.face_revision != self.face.revision.to_string()
             || self.show.show.lifecycle != ManifestationLifecycle::Prepared
         {
             return Err("owner Face Show acknowledgement is stale or mismatched".into());
@@ -406,12 +459,12 @@ impl OwnerBrowserMask {
                 ManifestationLifecycle::Available,
                 SignId::from(format!(
                     "sign/browser-owner-face-shown/{}",
-                    self.presentation.revision
+                    self.face.revision
                 )),
             )
             .map_err(|error| format!("activate owner Face Show: {error:?}"))?;
         self.show
-            .validate(&self.presentation)
+            .validate(&self.face)
             .map_err(|error| format!("validate owner Face Show: {error:?}"))
     }
 }
@@ -419,3 +472,27 @@ impl OwnerBrowserMask {
 #[cfg(test)]
 #[path = "owner_face_mask/tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "owner_face_mask/open_domain_tests.rs"]
+mod open_domain_tests;
+
+#[cfg(test)]
+#[path = "owner_face_mask/patchbay_tests.rs"]
+mod patchbay_tests;
+
+#[cfg(test)]
+#[path = "owner_face_mask/lifecycle_corpus_tests.rs"]
+mod lifecycle_corpus_tests;
+
+#[cfg(test)]
+#[path = "owner_face_mask/committed_todo_tests.rs"]
+mod committed_todo_tests;
+
+#[cfg(test)]
+#[path = "owner_face_mask/prebirth_tests.rs"]
+mod prebirth_tests;
+
+#[cfg(test)]
+#[path = "owner_face_mask/parsec_agency_tests.rs"]
+mod parsec_agency_tests;

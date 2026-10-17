@@ -4,11 +4,42 @@ use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 
 mod providers;
 pub use providers::{Clock, Idle, Interrupts, Serial, Timer};
+mod domain_budget;
+#[cfg(feature = "loongarch64-product")]
+mod domain_memory;
+#[cfg(feature = "loongarch64-product")]
+mod domain_refill;
+#[cfg(feature = "loongarch64-product")]
+mod domain_transition;
+mod floating;
+#[cfg(feature = "loongarch64-product")]
+#[path = "../ordinary_domain.rs"]
+mod ordinary_domain;
+#[cfg(feature = "loongarch64-product")]
+pub use ordinary_domain::TextDomain;
+#[cfg(feature = "loongarch64-product")]
+pub fn initialize_domains(record: &crate::boot::BootRecord) {
+    domain_memory::initialize(record);
+}
+#[cfg(feature = "loongarch64-product")]
+fn domain_ticks() -> u64 {
+    read_counter()
+}
+pub fn early_write(bytes: &[u8]) {
+    present(bytes);
+}
+#[cfg(feature = "ordinary-domain-proof")]
+pub fn start_pending_source_timer() {
+    providers::start_pending_source_timer();
+}
+mod entropy;
+pub use entropy::FwCfgEntropy;
+#[cfg(feature = "ordinary-domain-proof")]
+pub use entropy::storage_address as entropy_storage_address;
 
 const CRMD_IE: usize = 1 << 2;
 const TIMER_INTERRUPT: usize = 11;
 const ECFG_TIMER: usize = 1 << TIMER_INTERRUPT;
-const TCFG_ENABLE: usize = 1;
 const UART: *mut u8 = 0x1fe0_01e0 as *mut u8;
 
 static FACT_PRESENT: AtomicBool = AtomicBool::new(false);
@@ -27,7 +58,7 @@ core::arch::global_asm!(
     .align 12
     .global conduitos_loongarch64_trap_vector
 conduitos_loongarch64_trap_vector:
-    addi.d $r3, $r3, -160
+    addi.d $r3, $r3, -432
     st.d $r1,  $r3,   0
     st.d $r4,  $r3,   8
     st.d $r5,  $r3,  16
@@ -46,7 +77,11 @@ conduitos_loongarch64_trap_vector:
     st.d $r18, $r3, 120
     st.d $r19, $r3, 128
     st.d $r20, $r3, 136
+    addi.d $t0, $sp, 160
+    bl conduitos_loongarch64_save_floating
     bl conduitos_loongarch64_trap_handler
+    addi.d $t0, $sp, 160
+    bl conduitos_loongarch64_load_floating
     ld.d $r1,  $r3,   0
     ld.d $r4,  $r3,   8
     ld.d $r5,  $r3,  16
@@ -65,7 +100,7 @@ conduitos_loongarch64_trap_vector:
     ld.d $r18, $r3, 120
     ld.d $r19, $r3, 128
     ld.d $r20, $r3, 136
-    addi.d $r3, $r3, 160
+    addi.d $r3, $r3, 432
     ertn
 "#
 );
@@ -98,6 +133,9 @@ fn change_csr<const CSR: u32>(value: usize, mask: usize) {
 
 pub fn initialize_machine() -> bool {
     disable_interrupts();
+    // The product requests a boot state with EUEN=0. Rust's target ABI uses
+    // scalar F/D; enable that bank before any preparation or IRQ Rust runs.
+    change_csr::<0x02>(1, 1);
     FACT_PRESENT.store(false, Ordering::Release);
     FACT_OVERFLOW.store(false, Ordering::Release);
     write_csr::<0x0c>(unsafe { &conduitos_loongarch64_trap_vector as *const u8 as usize });
@@ -107,9 +145,7 @@ pub fn initialize_machine() -> bool {
 }
 
 pub fn timer_arm() -> bool {
-    write_csr::<0x44>(1);
-    write_csr::<0x41>((100_000 << 2) | TCFG_ENABLE);
-    read_csr::<0x41>() & TCFG_ENABLE != 0
+    domain_budget::source_arm()
 }
 pub fn enable_interrupts() {
     change_csr::<0x00>(CRMD_IE, CRMD_IE);
@@ -171,11 +207,21 @@ pub fn read_counter() -> u64 {
 extern "C" fn conduitos_loongarch64_trap_handler() {
     let status = read_csr::<0x05>();
     let cause = (status & 0x1fff).trailing_zeros() as u64;
-    write_csr::<0x44>(1);
-    change_csr::<0x04>(0, ECFG_TIMER);
+    if (status >> 16) & 0x3f == 0 && status & 0x1fff == ECFG_TIMER {
+        domain_budget::interrupt(false);
+        return;
+    }
     if FACT_PRESENT.swap(true, Ordering::AcqRel) {
         FACT_OVERFLOW.store(true, Ordering::Release);
     } else {
         FACT_CAUSE.store(cause, Ordering::Release);
+    }
+}
+
+fn record_timer_interrupt() {
+    if FACT_PRESENT.swap(true, Ordering::AcqRel) {
+        FACT_OVERFLOW.store(true, Ordering::Release);
+    } else {
+        FACT_CAUSE.store(TIMER_INTERRUPT as u64, Ordering::Release);
     }
 }

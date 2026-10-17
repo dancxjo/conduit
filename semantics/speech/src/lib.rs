@@ -42,13 +42,19 @@ pub mod boundary_admission;
 #[cfg(feature = "semantic-bindings")]
 pub mod chosen_allophone_profile;
 #[cfg(feature = "semantic-bindings")]
+pub mod chosen_global_rule_profile;
+#[cfg(feature = "semantic-bindings")]
 pub mod context_match;
 #[cfg(feature = "semantic-bindings")]
 pub mod control;
 #[cfg(feature = "semantic-bindings")]
+pub mod correspondence;
+#[cfg(feature = "semantic-bindings")]
 pub mod declared_context;
 #[cfg(feature = "semantic-bindings")]
 pub mod declared_realization;
+#[cfg(feature = "semantic-bindings")]
+pub mod default_output_features;
 #[cfg(feature = "semantic-bindings")]
 pub mod duration;
 #[cfg(feature = "semantic-bindings")]
@@ -56,9 +62,17 @@ pub mod feature_bundle;
 #[cfg(feature = "semantic-bindings")]
 pub mod feature_match;
 #[cfg(feature = "semantic-bindings")]
+pub mod feature_realization;
+#[cfg(feature = "semantic-bindings")]
+pub mod global_intent_realization;
+#[cfg(feature = "semantic-bindings")]
+pub mod global_rule_selection;
+#[cfg(feature = "semantic-bindings")]
 pub mod intent_admission;
 #[cfg(feature = "semantic-bindings")]
 pub mod intent_inventory;
+#[cfg(feature = "semantic-bindings")]
+pub mod intent_phoneme_inventory;
 #[cfg(feature = "semantic-bindings")]
 pub mod intent_prosody;
 #[cfg(feature = "semantic-bindings")]
@@ -67,12 +81,24 @@ pub mod intent_realization;
 pub mod intent_sources;
 #[cfg(feature = "semantic-bindings")]
 pub mod inventory_admission;
+#[cfg(feature = "semantic-bindings")]
+pub mod ipa_constructors;
 #[cfg(feature = "kernel")]
 pub mod kernel;
+#[cfg(feature = "semantic-bindings")]
+pub mod language_projection;
+#[cfg(feature = "semantic-bindings")]
+pub mod language_revision;
+#[cfg(feature = "semantic-bindings")]
+pub mod linguistic_prosody;
 #[cfg(feature = "semantic-bindings")]
 pub mod neighbor_match;
 #[cfg(feature = "semantic-bindings")]
 pub mod occurrence_context;
+#[cfg(feature = "semantic-bindings")]
+pub mod output_features;
+#[cfg(feature = "semantic-bindings")]
+pub mod pitch_trajectory;
 #[cfg(feature = "semantic-bindings")]
 pub mod profile_admission;
 #[cfg(feature = "semantic-bindings")]
@@ -94,6 +120,8 @@ pub mod rule_stress;
 #[cfg(feature = "semantic-bindings")]
 pub mod rule_style;
 #[cfg(feature = "semantic-bindings")]
+pub mod rule_syntax;
+#[cfg(feature = "semantic-bindings")]
 pub mod text_admission;
 #[cfg(feature = "semantic-bindings")]
 pub mod timing;
@@ -108,6 +136,11 @@ pub mod utterance_timing;
 // This optional module is absent from the compact renderer's default profile.
 #[allow(dead_code, clippy::large_enum_variant)]
 pub mod semantic {
+    pub use conduit_language::LinguisticSyntacticLinkKind as SpeechSyntacticLinkKind;
+    pub use conduit_language::{
+        LanguageId, LanguageText, LanguageTextId, LanguageTextRange, LanguageTextReferenceMatch,
+        LanguageTextRevisionId, LanguageTextSegmentKind, LanguageTextSegmentRef, VarietyId,
+    };
     include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
 }
 
@@ -179,3 +212,61 @@ mod rule_input_parity;
 
 #[cfg(all(test, feature = "semantic-bindings"))]
 mod allophone_selection_parity;
+
+#[cfg(feature = "semantic-bindings")]
+pub mod contextual_intent_realization;
+
+#[cfg(test)]
+mod output_features_parity;
+
+#[cfg(feature = "semantic-bindings")]
+pub mod global_default_choice;
+
+#[cfg(feature = "semantic-bindings")]
+pub mod global_default_profile;
+
+#[cfg(feature = "semantic-bindings")]
+pub mod sourced_global_intent;
+
+#[cfg(test)]
+mod aspiration_parity;
+
+#[cfg(test)]
+mod inflection_parity;
+
+#[cfg(feature = "semantic-bindings")]
+pub mod revision;
+
+#[cfg(feature = "semantic-bindings")]
+pub mod ipa_admission;
+#[cfg(feature = "semantic-bindings")]
+pub mod ipa_inventory;
+#[cfg(feature = "semantic-bindings")]
+pub mod ipa_notation;
+#[cfg(feature = "semantic-bindings")]
+mod ipa_partition;
+#[cfg(feature = "semantic-bindings")]
+mod ipa_unicode;
+
+#[cfg(feature = "semantic-bindings")]
+pub mod authoring;
+
+#[cfg(feature = "semantic-bindings")]
+pub mod ipa_phone;
+
+#[cfg(feature = "semantic-bindings")]
+pub mod ipa_diagnostic;
+#[cfg(feature = "semantic-bindings")]
+mod ipa_order;
+#[cfg(feature = "semantic-bindings")]
+mod ipa_phoneme_partition;
+#[cfg(feature = "semantic-bindings")]
+pub mod ipa_phonemic;
+#[cfg(feature = "semantic-bindings")]
+pub mod ipa_phonetic;
+
+#[cfg(feature = "semantic-bindings")]
+pub mod syllable_intent;
+
+#[cfg(feature = "semantic-bindings")]
+pub mod syllable_structure;

@@ -1,5 +1,7 @@
 //! Shared finite table installation for the existing std execution kernel.
 //! Partitions retain their own provenance; this module creates no Plan or Play.
+//! Hosted tables and the installed kernel are heap-owned during preparation,
+//! avoiding wide table values retained in runner call frames throughout Play.
 use super::{
     InstalledBack, InstalledScheduler, HOST_BINDING_SLOTS, HOST_CALLS_PER_NODE, MAX_CORDS,
     MAX_NODES, PORTS, ROUTE_SLOTS, ROUTE_TARGETS,
@@ -9,6 +11,8 @@ use conduit_kernel::{FixedHostCallBindings, FixedRoutes, HostedSignLog, HostedVa
 use conduit_plan_lowering::lowering::LoweredPlanFragment;
 
 pub(super) struct KernelTables {
+    chains: Vec<Vec<conduit_kernel::NodeId>>,
+    expected_fusions: usize,
     active_nodes: usize,
     active_cords: usize,
     nodes: [NodeSpec<PORTS>; MAX_NODES],
@@ -19,8 +23,10 @@ pub(super) struct KernelTables {
 }
 
 impl KernelTables {
-    pub(super) fn prepare(partitions: &[&LoweredPlanFragment]) -> Result<Self, String> {
-        let mut tables = Self {
+    pub(super) fn prepare(partitions: &[&LoweredPlanFragment]) -> Result<Box<Self>, String> {
+        let mut tables = Box::new(Self {
+            chains: Vec::new(),
+            expected_fusions: 0,
             active_nodes: 0,
             active_cords: 0,
             nodes: [NodeSpec {
@@ -31,8 +37,9 @@ impl KernelTables {
             routes: FixedRoutes::new(PORTS as u16),
             host_bindings: FixedHostCallBindings::new(HOST_CALLS_PER_NODE),
             terminal_transductions: [[None; PORTS]; MAX_NODES],
-        };
+        });
         for partition in partitions {
+            tables.expected_fusions += partition.fusions.len();
             if partition.nodes.len() != partition.node_specs.len() {
                 return Err("invalid kernel partition tables".into());
             }
@@ -97,12 +104,25 @@ impl KernelTables {
         Ok(tables)
     }
 
+    pub(super) fn bind_fusions(
+        &mut self,
+        fragment: &conduit_core::PlanFragment,
+        lowered: &LoweredPlanFragment,
+    ) -> Result<(), String> {
+        self.chains
+            .extend(super::fusion::prepare_chains(fragment, lowered)?);
+        Ok(())
+    }
+
     pub(super) fn install(
-        self,
+        self: Box<Self>,
         drivers: [InstalledBack; MAX_NODES],
         values: HostedValueStore,
         sign: HostedSignLog,
-    ) -> Result<InstalledScheduler, String> {
+    ) -> Result<Box<InstalledScheduler>, String> {
+        if self.chains.len() != self.expected_fusions {
+            return Err("selected fusion requires exact installed Back preparation".into());
+        }
         let mut scheduler = InstalledScheduler::new_with_active_counts_and_host_calls(
             self.active_nodes,
             self.active_cords,
@@ -115,10 +135,15 @@ impl KernelTables {
             sign,
         )
         .map_err(|error| format!("install std scheduler: {error:?}"))?;
+        for chain in &self.chains {
+            scheduler
+                .bind_execution_chain(chain)
+                .map_err(|error| format!("bind std fusion: {error:?}"))?;
+        }
         scheduler
             .bind_terminal_transductions(self.terminal_transductions)
             .map_err(|error| format!("bind std terminal transductions: {error:?}"))?;
-        Ok(scheduler)
+        Ok(Box::new(scheduler))
     }
 }
 

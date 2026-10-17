@@ -4,7 +4,7 @@
 
 use conduit_body::BodyId;
 use conduit_core::{BootId, HostAdvertisement, HostId, OfferGeneration, PlanId};
-use conduit_presentation::{MaskShow, PresentationContentId};
+use conduit_face::{FaceContentId, MaskShow};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use std::{
     io::{Read, Write},
@@ -14,7 +14,10 @@ use std::{
 
 pub(crate) const MAGIC: &[u8; 8] = b"CDTERM01";
 const MAX_HANDSHAKE_BYTES: usize = 4_096;
-const MAX_REPLY_BYTES: usize = 512 * 1024;
+// A local Show reply carries the complete current Host advertisement, just
+// like the local control snapshots. Selected speech adds reviewed contracts
+// which need not fit the smaller remote-control frame budget.
+const MAX_REPLY_BYTES: usize = super::super::MAXIMUM_LOCAL_CONTROL_FRAME_BYTES;
 const HANDSHAKE_DEADLINE: Duration = Duration::from_secs(2);
 
 #[derive(Serialize, Deserialize)]
@@ -26,7 +29,7 @@ pub(super) struct AttachRequest {
     pub host_id: HostId,
     pub boot_id: BootId,
     pub offer_generation: OfferGeneration,
-    pub face_id: PresentationContentId,
+    pub face_id: FaceContentId,
     pub face_revision: u64,
 }
 

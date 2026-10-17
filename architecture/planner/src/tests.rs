@@ -15,7 +15,7 @@ use conduit_signal::{
     pulse_contract_revision, pulse_execution_profile, pulse_host_call_requirements, pulse_outputs,
     pulse_resource_requirements, show_contract_revision, show_execution_profile,
     show_host_call_requirements, show_inputs, show_resource_requirements, signal_profile_catalog,
-    signal_resource_offers, PULSE_KIND, SHOW_KIND, SIGNAL_ENCODED_LEN, SIGNAL_PRESENTATION_KIND,
+    signal_resource_offers, PULSE_KIND, SHOW_KIND, SIGNAL_ENCODED_LEN, SIGNAL_FACE_KIND,
 };
 use conduit_signal_conformance::{
     pico_local_advertisement, DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS, PICO_LOCAL_HOST_ID,
@@ -23,10 +23,11 @@ use conduit_signal_conformance::{
 use std::collections::BTreeMap;
 
 mod protected_resource_tests;
+mod quantity_connection_limits;
 
 pub(crate) fn plot() -> conduit_plot::CheckedPlot {
     parse_with_startup(
-            "plot signal-demo {\n    pulse: flow/pulse(count = 2, period-ms = 0, initial = false)\n    show: presentation/show\n\n\n    pulse >> show\n}\n",
+            "plot signal-demo {\n    pulse: flow/pulse(count = 2, period-ms = 0, initial = false)\n    show: face/show(\"Signal\")\n\n\n    pulse >> show\n}\n",
             &conduit_signal::signal_startup_catalog(),
             &signal_profile_catalog(),
         )
@@ -41,7 +42,7 @@ pub(crate) fn host() -> HostAdvertisement {
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("rust-std"),
         bases: vec![],
-        resources: signal_resource_offers("test/timer", "test/presentation", 4),
+        resources: signal_resource_offers("test/timer", "test/face", 4),
         planner_capabilities: vec![],
         capabilities: vec![
             conduit_core::capability_offer_from_parts! {
@@ -69,7 +70,7 @@ pub(crate) fn host() -> HostAdvertisement {
             },
             conduit_core::capability_offer_from_parts! {
                 semantic_contract: conduit_signal::show_semantic_contract().semantic_contract(),
-                startup_parameters: vec![],
+                startup_parameters: conduit_core::data_label_startup_front(),
                 shorthand: None,
                 capability_id: conduit_core::CapabilityId::from("stdout-show-1"),
                 kind_id: kind_id(SHOW_KIND),
@@ -244,7 +245,8 @@ fn retained_duration_derives_exact_state_plan_truth() {
         temporal: conduit_core::PortTemporal::Current,
         abnormal_kind: None,
     }];
-    let initial = conduit_core::Quantity::new(3, conduit_core::QuantityUnit::Meter);
+    placement.limits.max_queue_bytes = conduit_core::QUANTITY_ENCODED_LEN as u32;
+    let initial = conduit_core::Quantity::new(3, conduit_core::Unit::Meter);
     placement.configuration = vec![
         conduit_core::ConfigurationEntry {
             key: "retained-duration".into(),
@@ -256,7 +258,9 @@ fn retained_duration_derives_exact_state_plan_truth() {
         },
         conduit_core::ConfigurationEntry {
             key: "initial".into(),
-            value: conduit_core::ConfigurationValue::Quantity(initial),
+            value: conduit_core::ConfigurationValue::Quantity(
+                conduit_core::QuantityConfigurationValue::from_value(initial).unwrap(),
+            ),
         },
     ];
     let state = planned_keep_state(&placement).unwrap().unwrap();
@@ -459,7 +463,7 @@ fn planning_seals_canonical_terminal_transduction_into_the_exact_placement() {
         .insert_kind(conduit_signal::show_semantic_contract())
         .unwrap();
     let plot = conduit_plot::parse(
-        "plot signal-demo {\n pulse: flow/pulse\n show: presentation/show\n pulse >> show\n}\n",
+        "plot signal-demo {\n pulse: flow/pulse\n show: face/show(\"Signal\")\n pulse >> show\n}\n",
         &catalog,
     )
     .unwrap();
@@ -725,7 +729,7 @@ fn planning_rejects_invalid_unavailable_ambiguous_and_exhausted_resources() {
     let mut advertised = host();
     advertised
         .resources
-        .retain(|resource| resource.class_id.as_str() != conduit_core::PRESENTATION_RESOURCE_CLASS);
+        .retain(|resource| resource.class_id.as_str() != conduit_core::FACE_RESOURCE_CLASS);
     let placements = default_placements(&plot, std::slice::from_ref(&advertised))
         .expect("placements still resolve");
     assert!(matches!(
@@ -740,8 +744,8 @@ fn planning_rejects_invalid_unavailable_ambiguous_and_exhausted_resources() {
 
     let mut advertised = host();
     advertised.resources.push(conduit_core::resource_offer(
-        "zz-test/presentation",
-        conduit_core::PRESENTATION_RESOURCE_CLASS,
+        "zz-test/face",
+        conduit_core::FACE_RESOURCE_CLASS,
         4,
     ));
     let placements = default_placements(&plot, std::slice::from_ref(&advertised))
@@ -799,7 +803,7 @@ fn planning_binds_exact_authority_and_rejects_missing_stale_or_ambiguous_grants(
         host_call_contract_id: conduit_core::HostCallContractId::from(
             conduit_core::WAIT_HOST_CALL_CONTRACT,
         ),
-        subject_kind: kind_id(SIGNAL_PRESENTATION_KIND),
+        subject_kind: kind_id(SIGNAL_FACE_KIND),
     }];
     let invalid_placements = default_placements(&plot, std::slice::from_ref(&invalid))
         .expect("placements resolve before authority validation");
@@ -815,7 +819,7 @@ fn planning_binds_exact_authority_and_rejects_missing_stale_or_ambiguous_grants(
     ));
 
     let mut advertised = host();
-    let requirement = present_authority_requirement(kind_id(SIGNAL_PRESENTATION_KIND));
+    let requirement = present_authority_requirement(kind_id(SIGNAL_FACE_KIND));
     advertised.capabilities[1].authority_requirements = vec![requirement.clone()];
     let placements = default_placements(&plot, std::slice::from_ref(&advertised))
         .expect("placements resolve without implying authority");

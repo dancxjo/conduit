@@ -2,7 +2,12 @@ import { cpSync, existsSync, readFileSync, readdirSync, writeFileSync } from 'no
 import path from 'node:path';
 import { cargo, command, digest, xtask } from './common.mjs';
 import { assembleSite } from './site.mjs';
+import { publicationHistorySnapshot } from '../complete-publication-history.mjs';
+import { retainedTodoBrowserDevelopmentEvidence } from '../todo-browser-development-evidence.mjs';
 import { retainWorkspaceEvidence } from './workspace-evidence.mjs';
+import { retainExactQuantityEvidence } from './quantity-evidence.mjs';
+import { retainNativeValueEvidence } from './native-value-evidence.mjs';
+import { retainThermostatEvidence } from './thermostat-evidence.mjs';
 
 // Exact staged Workspace acceptance plus independent browser adapter contracts.
 // Cross-target deployment tests require another lane's artifacts and are not
@@ -13,9 +18,9 @@ const SPECS = [
   'workspace-continuity', 'workspace-shared-journey',
   'field-station-clock',
   'sdk-body-participation',
-  'static-body-application',
+  'static-body-application', 'thermostat-local', 'owner-face-component',
   'creche-browser-configuration', 'creche-rendezvous',
-  'signal-dom-host', 'browser-host-calls', 'browser-pointer', 'browser-human-input',
+  'native-value-types', 'exact-quantity', 'scoped-glyphs', 'signal-dom-host', 'browser-body-time', 'browser-host-calls', 'browser-pointer', 'browser-human-input', 'browser-keymap', 'browser-preparation',
   'browser-host-entrance', 'browser-media-host', 'browser-device-base', 'browser-usb-device-base',
   'rp2040-browser-deployment', 'esp32-browser-deployment',
 ];
@@ -30,6 +35,9 @@ function inventory(directory, prefix = '') {
 }
 
 export function browser(directory) {
+  publicationHistorySnapshot('browser-start');
+  retainedTodoBrowserDevelopmentEvidence(undefined, process.env.CONDUIT_CHECKOUT_SHA);
+  console.log('PASS: retained Todo browser ancestry before browser build');
   const product = 'target/workspace-product';
   const releases = path.join(directory, 'host-release');
   if (existsSync(product)) throw new Error(`Stale staged product exists: ${product}; use a clean target lane`);
@@ -50,6 +58,7 @@ export function browser(directory) {
   const handbookBefore = inventory('target/handbook-static');
   const clockBefore = inventory('target/handbook-static-second');
   command('node', ['--test',
+    'tools/ci/thermostat-journey.spec.mjs', 'tools/ci/exact-capture-json.spec.mjs',
     ...readdirSync('targets/browser/sdk').filter(name => name.endsWith('.test.mjs')).map(name => `targets/browser/sdk/${name}`),
     'targets/browser/tools/static-application-csp.test.mjs',
     'proof/browser/application-graph-canvas.test.mjs', ...[
@@ -61,8 +70,15 @@ export function browser(directory) {
     '--config', 'proof/browser/playwright.config.mjs', '--project', 'chromium',
     '--workers', '1', '--retries', '0', ...SPECS.map(name => `${name}.spec.mjs`)], {
     env: { ...process.env, RUSTUP_TOOLCHAIN: process.env.RUSTUP_TOOLCHAIN || 'stable',
-      CONDUIT_CRECHE_RENDEZVOUS_PRODUCT: product },
+      CONDUIT_CRECHE_RENDEZVOUS_PRODUCT: product,
+      CONDUIT_BROWSER_RUNTIME_WASM: path.resolve(releases, 'runtime.wasm') },
   });
+  retainExactQuantityEvidence('proof/browser/test-results', path.join(directory, 'exact-quantity'),
+    path.join(releases, 'runtime.wasm'), process.env.CONDUIT_CHECKOUT_SHA);
+  retainNativeValueEvidence('proof/browser/test-results', path.join(directory, 'native-value-types'),
+    path.join(releases, 'runtime.wasm'), process.env.CONDUIT_CHECKOUT_SHA);
+  retainThermostatEvidence('proof/browser/test-results', path.join(directory, 'thermostat-local'),
+    path.join(releases, 'runtime.wasm'), process.env.CONDUIT_CHECKOUT_SHA);
   command('node', ['tools/ci/pipeline/targets/browser-smoke.mjs', product, path.join(directory, 'accessibility.json')]);
   retainWorkspaceEvidence('proof/browser/test-results', path.join(directory, 'workspace-journey'),
     JSON.parse(readFileSync('proof/journeys/workspace.json', 'utf8')).actions);
@@ -72,7 +88,10 @@ export function browser(directory) {
   if (JSON.stringify(handbookBefore) !== JSON.stringify(inventory('target/handbook-static'))
     || JSON.stringify(clockBefore) !== JSON.stringify(inventory('target/handbook-static-second'))) throw new Error('Static Body proof modified its products');
   const site = path.join(directory, 'site');
+  publicationHistorySnapshot('before-site');
   assembleSite(site, process.env.CONDUIT_CHECKOUT_SHA);
+  cpSync(path.join(directory, 'thermostat-local'), path.join(site, 'evidence/thermostat-local'),
+    { recursive: true, errorOnExist: true, force: false });
   command('node', ['proof/browser/verify-public-site.mjs', site, path.join(directory, 'site-proof')]);
   writeFileSync(path.join(directory, 'proof-scope.json'), JSON.stringify({
     product: 'workspace/', project: 'chromium', workers: 1, retries: 0, specs: SPECS,

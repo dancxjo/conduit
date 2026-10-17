@@ -52,7 +52,7 @@ fn request_mask_change(
         .unwrap();
     assert!(
         journey
-            .accept_application_event(&conduit_presentation::ApplicationEvent {
+            .accept_application_event(&conduit_face::ApplicationEvent {
                 revision: view.revision,
                 action: action.id.clone(),
                 kind: action.event,
@@ -87,8 +87,7 @@ fn native_birth_keeps_four_plots_in_one_body_plan_play_and_switches_only_foregro
             input.plot == plot.plot
                 && matches!(
                     input.value_kind.as_str(),
-                    conduit_human::KEY_EVENT_INFO_ID
-                        | conduit_presentation::APPLICATION_EVENT_INFO_ID
+                    conduit_human::KEY_EVENT_INFO_ID | conduit_face::APPLICATION_EVENT_INFO_ID
                 )
         })
     }));
@@ -97,6 +96,7 @@ fn native_birth_keeps_four_plots_in_one_body_plan_play_and_switches_only_foregro
         journey.foreground_input_owner().unwrap().plot,
         native_workset::resident(NativePlot::KeyboardCanvas).unwrap()
     );
+    let canvas_partition = journey.projection().partition_plan_id.unwrap();
     type_key(&mut journey, 4);
     assert_eq!(journey.projection().result.as_deref(), Some("A"));
     select(&mut journey, NativePlot::MemoryLantern);
@@ -104,10 +104,17 @@ fn native_birth_keeps_four_plots_in_one_body_plan_play_and_switches_only_foregro
         journey.foreground_input_owner().unwrap().plot,
         native_workset::resident(NativePlot::MemoryLantern).unwrap()
     );
+    assert_eq!(journey.projection().result.as_deref(), Some(""));
+    let editor_partition = journey.projection().partition_plan_id.unwrap();
+    assert_ne!(canvas_partition, editor_partition);
     type_key(&mut journey, 5);
     type_key(&mut journey, 6);
     assert_eq!(journey.projection().result.as_deref(), Some("bc"));
     select(&mut journey, NativePlot::KeyboardCanvas);
+    assert_eq!(
+        journey.projection().partition_plan_id.as_ref(),
+        Some(&canvas_partition)
+    );
     type_key(&mut journey, 7);
     assert_eq!(journey.projection().result.as_deref(), Some("AD"));
     select(&mut journey, NativePlot::MemoryLantern);
@@ -125,10 +132,7 @@ fn native_birth_keeps_four_plots_in_one_body_plan_play_and_switches_only_foregro
         1
     );
     let before = journey.projection();
-    assert_eq!(
-        journey.select_next_plot(0),
-        Err(JourneyError::StalePresentation)
-    );
+    assert_eq!(journey.select_next_plot(0), Err(JourneyError::StaleFace));
     assert_eq!(journey.projection(), before);
 }
 
@@ -175,7 +179,7 @@ fn resident_patchbay_replans_its_own_graphical_and_speech_masks() {
     let before_stale = journey.projection();
     assert_eq!(
         journey.replan_masks(stale_add, &ids, &offer, "build"),
-        Err(JourneyError::StalePresentation)
+        Err(JourneyError::StaleFace)
     );
     assert_eq!(journey.projection(), before_stale);
 
@@ -194,7 +198,7 @@ fn resident_patchbay_replans_its_own_graphical_and_speech_masks() {
     assert_eq!(mask.route_disposition, "planned-route-awaiting-show");
     assert_eq!(mask.planning_disposition, "not-required");
     assert!(mask.show_id.is_none() && mask.manifestation_id.is_none());
-    assert!(mask.presentation_id.is_none() && mask.presentation_revision.is_none());
+    assert!(mask.face_id.is_none() && mask.face_revision.is_none());
     assert!(mask.mask_actions.is_empty() && mask.shows.is_empty());
     assert_eq!(mask.kernel_signs, 0);
     assert_eq!(mask.fore_endpoints, 0);
@@ -315,10 +319,10 @@ fn current_tutorial_refuses_retired_chapter_actions_without_changing_play() {
     let before = journey.projection();
     let view = journey.foreground_application_view().unwrap().clone();
     assert_eq!(
-        journey.accept_application_event(&conduit_presentation::ApplicationEvent {
+        journey.accept_application_event(&conduit_face::ApplicationEvent {
             revision: view.revision,
             action: conduit_tour_model::RUN_ACTION_ID.into(),
-            kind: conduit_presentation::ApplicationEventKind::Activate,
+            kind: conduit_face::ApplicationEventKind::Activate,
             value: Vec::new(),
         }),
         Err(JourneyError::WrongTarget)
@@ -338,7 +342,7 @@ fn current_tutorial_request_comes_from_shared_biography_guidance() {
         .find(|action| action.id == "body.use-current")
         .unwrap();
     journey
-        .accept_application_event(&conduit_presentation::ApplicationEvent {
+        .accept_application_event(&conduit_face::ApplicationEvent {
             revision: view.revision,
             action: action.id.clone(),
             kind: action.event,

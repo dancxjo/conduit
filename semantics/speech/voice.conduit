@@ -68,10 +68,15 @@ type ResonatorInput = {
     y1: I32
     y2: I32
 }
+type SpeechResonatorPair = ResonatorRecurrenceResult<ResonatorInput,I32>
 plot speech/resonator (
     >> value: ResonatorInput
     result: I32 >>
-) = ((.drive + .b * .y1 + .c * .y2) / 16384)
+) {
+    recurrence: dsp/resonator-recurrence(item = ResonatorInput, paired = SpeechResonatorPair, output = I32)
+    value >> recurrence.value
+    recurrence.result >> result
+}.
 
 plot speech/limit (
     >> value: I32
@@ -369,8 +374,8 @@ plot speech/frame-excite (
     >> value: SpeechFrameInput
     result: SpeechFrameWorking >>
 ) {
-    phase: speech/subframe-source-phase(item = SpeechFrameSourceRequest, output = SpeechFrameSourcePhase)
-    flow: speech/source-flow(item = SpeechFrameSourcePhase, output = SpeechFrameSourceFlow)
+    phase: dsp/periodic-phase-pair(item = SpeechFrameSourceRequest, output = SpeechFrameSourcePhase)
+    flow: dsp/cubic-flow-pair(item = SpeechFrameSourcePhase, output = SpeechFrameSourceFlow)
     mix: speech/source-mix(item = SpeechFrameSourceFlow, output = SpeechFrameSourceResult)
     finish: speech/frame-source-result
     value >> ({source: {phase_q8: .cycle.mode is profile ? .state.phase * 256 : .cycle.phase_q8, period_q8: .cycle.mode is profile ? .period * 256 : .cycle.period_q8, open_q8: .cycle.mode is profile ? (.period * 3 / 4) * 256 : (.cycle.period_q8 * 3 / 4 / 256) * 256, noise: (.state.noise * 25173 + 13849) % 65536, voiced: .target.voiced, frication: .target.frication}, context: .}) >> phase.value
@@ -379,18 +384,76 @@ plot speech/frame-excite (
     mix.result >> finish.value
     finish.result >> result
 }
+# Generic Audio arithmetic carries this Speech-owned context unchanged.
+type SpeechFrameResonatorInput = {
+    input: SpeechFrameWorking
+    drive: I32
+    b: I32
+    c: I32
+    y1: I32
+    y2: I32
+}
+type SpeechFrameResonatorPair = ResonatorRecurrenceResult<SpeechFrameResonatorInput,I32>
+plot speech/frame-first-input (
+    >> value: SpeechFrameWorking
+    result: SpeechFrameResonatorInput >>
+) = ({input: ., drive: ((.input.target.voiced == 1 && .input.target.frication == 1 && .input.target.closure == 0) ? .voicing : .excitation) * .input.target.gain1, b: .input.target.b1, c: .input.target.c1, y1: .input.state.first1, y2: .input.state.first2})
+plot speech/frame-first-output (
+    >> value: SpeechFrameResonatorPair
+    result: SpeechFrameWorking >>
+) = ({phase_q8: .input.input.phase_q8, input: .input.input.input, voicing: .input.input.voicing, upper_excitation: .input.input.upper_excitation, phase: .input.input.phase, noise: .input.input.noise, excitation: .input.input.excitation, first: (.sample < -32767 ? -32767 : .sample > 32767 ? 32767 : .sample), second: .input.input.second, third: .input.input.third, envelope: .input.input.envelope})
 plot speech/frame-first (
     >> value: SpeechFrameWorking
     result: SpeechFrameWorking >>
-) = ({phase_q8: .phase_q8, input: .input, voicing: .voicing, upper_excitation: .upper_excitation, phase: .phase, noise: .noise, excitation: .excitation, first: (((((.input.target.voiced == 1 && .input.target.frication == 1 && .input.target.closure == 0) ? .voicing : .excitation) * .input.target.gain1 + .input.target.b1 * .input.state.first1 + .input.target.c1 * .input.state.first2) / 16384) < -32767 ? -32767 : ((((.input.target.voiced == 1 && .input.target.frication == 1 && .input.target.closure == 0) ? .voicing : .excitation) * .input.target.gain1 + .input.target.b1 * .input.state.first1 + .input.target.c1 * .input.state.first2) / 16384) > 32767 ? 32767 : ((((.input.target.voiced == 1 && .input.target.frication == 1 && .input.target.closure == 0) ? .voicing : .excitation) * .input.target.gain1 + .input.target.b1 * .input.state.first1 + .input.target.c1 * .input.state.first2) / 16384)), second: .second, third: .third, envelope: .envelope})
+) {
+    prepare: speech/frame-first-input()
+    recurrence: dsp/resonator-recurrence-carry(item = SpeechFrameResonatorInput, output = SpeechFrameResonatorPair)
+    finish: speech/frame-first-output()
+    value >> prepare.value
+    prepare.result >> recurrence.value
+    recurrence.result >> finish.value
+    finish.result >> result
+}.
+plot speech/frame-second-input (
+    >> value: SpeechFrameWorking
+    result: SpeechFrameResonatorInput >>
+) = ({input: ., drive: .upper_excitation * .input.target.gain2, b: .input.target.b2, c: .input.target.c2, y1: .input.state.second1, y2: .input.state.second2})
+plot speech/frame-second-output (
+    >> value: SpeechFrameResonatorPair
+    result: SpeechFrameWorking >>
+) = ({phase_q8: .input.input.phase_q8, input: .input.input.input, voicing: .input.input.voicing, upper_excitation: .input.input.upper_excitation, phase: .input.input.phase, noise: .input.input.noise, excitation: .input.input.excitation, first: .input.input.first, second: (.sample < -32767 ? -32767 : .sample > 32767 ? 32767 : .sample), third: .input.input.third, envelope: .input.input.envelope})
 plot speech/frame-second (
     >> value: SpeechFrameWorking
     result: SpeechFrameWorking >>
-) = ({phase_q8: .phase_q8, input: .input, voicing: .voicing, upper_excitation: .upper_excitation, phase: .phase, noise: .noise, excitation: .excitation, first: .first, second: (((.upper_excitation * .input.target.gain2 + .input.target.b2 * .input.state.second1 + .input.target.c2 * .input.state.second2) / 16384) < -32767 ? -32767 : ((.upper_excitation * .input.target.gain2 + .input.target.b2 * .input.state.second1 + .input.target.c2 * .input.state.second2) / 16384) > 32767 ? 32767 : ((.upper_excitation * .input.target.gain2 + .input.target.b2 * .input.state.second1 + .input.target.c2 * .input.state.second2) / 16384)), third: .third, envelope: .envelope})
+) {
+    prepare: speech/frame-second-input()
+    recurrence: dsp/resonator-recurrence-carry(item = SpeechFrameResonatorInput, output = SpeechFrameResonatorPair)
+    finish: speech/frame-second-output()
+    value >> prepare.value
+    prepare.result >> recurrence.value
+    recurrence.result >> finish.value
+    finish.result >> result
+}.
+plot speech/frame-third-input (
+    >> value: SpeechFrameWorking
+    result: SpeechFrameResonatorInput >>
+) = ({input: ., drive: .upper_excitation * .input.target.gain3, b: .input.target.b3, c: .input.target.c3, y1: .input.state.third1, y2: .input.state.third2})
+plot speech/frame-third-output (
+    >> value: SpeechFrameResonatorPair
+    result: SpeechFrameWorking >>
+) = ({phase_q8: .input.input.phase_q8, input: .input.input.input, voicing: .input.input.voicing, upper_excitation: .input.input.upper_excitation, phase: .input.input.phase, noise: .input.input.noise, excitation: .input.input.excitation, first: .input.input.first, second: .input.input.second, third: (.sample < -32767 ? -32767 : .sample > 32767 ? 32767 : .sample), envelope: .input.input.envelope})
 plot speech/frame-third (
     >> value: SpeechFrameWorking
     result: SpeechFrameWorking >>
-) = ({phase_q8: .phase_q8, input: .input, voicing: .voicing, upper_excitation: .upper_excitation, phase: .phase, noise: .noise, excitation: .excitation, first: .first, second: .second, third: (((.upper_excitation * .input.target.gain3 + .input.target.b3 * .input.state.third1 + .input.target.c3 * .input.state.third2) / 16384) < -32767 ? -32767 : ((.upper_excitation * .input.target.gain3 + .input.target.b3 * .input.state.third1 + .input.target.c3 * .input.state.third2) / 16384) > 32767 ? 32767 : ((.upper_excitation * .input.target.gain3 + .input.target.b3 * .input.state.third1 + .input.target.c3 * .input.state.third2) / 16384)), envelope: .envelope})
+) {
+    prepare: speech/frame-third-input()
+    recurrence: dsp/resonator-recurrence-carry(item = SpeechFrameResonatorInput, output = SpeechFrameResonatorPair)
+    finish: speech/frame-third-output()
+    value >> prepare.value
+    prepare.result >> recurrence.value
+    recurrence.result >> finish.value
+    finish.result >> result
+}.
 plot speech/frame-result (
     >> value: SpeechFrameWorking
     result: SpeechFrameResult >>

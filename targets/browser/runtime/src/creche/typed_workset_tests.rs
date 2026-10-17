@@ -1,4 +1,4 @@
-//! Reviewed presentation profiles select existing exact typed realizations in one body.
+//! Reviewed face profiles select existing exact typed realizations in one body.
 use super::{initial_plots, session};
 
 fn bundle() -> String {
@@ -6,28 +6,25 @@ fn bundle() -> String {
         "schema": "conduit.creche/reviewed-plot-bundle@2",
         "plots": [
             {"slug": "memory-lantern", "entry": "memory_lantern", "source": include_str!("../../../../../plots/memory-lantern/main.conduit")},
-            {"slug": "secret-knock", "entry": "secret-knock-demo", "presentation_profile": 3, "source": include_str!("../../../../../plots/secret-knock/main.conduit")}
+            {"slug": "secret-knock", "entry": "secret-knock-demo", "face_profile": 3, "source": include_str!("../../../../../plots/secret-knock/main.conduit")}
         ]
     }).to_string()
 }
 
 #[test]
-fn canonical_theremin_checks_without_inventing_a_browser_state_back() {
+fn canonical_theremin_uses_installed_play_state_back() {
     let source = serde_json::json!({
         "schema": "conduit.creche/reviewed-plot-bundle@2",
         "plots": [{
             "slug": "pocket-theremin",
             "entry": "pocket-theremin",
-            "presentation_profile": 1,
+            "face_profile": 1,
             "source": include_str!("../../../../../plots/pocket-theremin/main.conduit"),
         }],
     })
     .to_string();
     let inventory = initial_plots::reviewed_inventory(&source).unwrap();
     assert_eq!(inventory.plots.len(), 1);
-    assert!(!inventory.plots[0]
-        .required_kinds
-        .contains(&"state/latest".to_owned()));
     assert!(inventory.plots[0]
         .required_kinds
         .contains(&"audio/continuous-tone".to_owned()));
@@ -41,16 +38,31 @@ fn canonical_theremin_checks_without_inventing_a_browser_state_back() {
         .capabilities
         .iter()
         .any(|offer| offer.kind_id.as_str() == "state/latest"));
+    assert!(host
+        .capabilities
+        .iter()
+        .any(|offer| offer.kind_id.as_str() == conduit_core::STATE_VALUE_KIND));
 }
 
 #[test]
 fn phone_theremin_checks_with_exact_two_axis_browser_realizations() {
+    let document = conduit_plot::parse_syntax_document(include_str!(
+        "../../../../../plots/pocket-theremin/main.conduit"
+    ));
+    for name in ["pocket-theremin", "phone-two-axis-controller"] {
+        let plot = document
+            .plots
+            .iter()
+            .find(|plot| plot.name.text == name)
+            .unwrap();
+        assert_eq!(plot.completion, conduit_plot::PlotCompletionPolicy::Live);
+    }
     let source = serde_json::json!({
         "schema": "conduit.creche/reviewed-plot-bundle@2",
         "plots": [{
             "slug": "pocket-theremin",
             "entry": "phone-two-axis-controller",
-            "presentation_profile": 1,
+            "face_profile": 1,
             "source": include_str!("../../../../../plots/pocket-theremin/main.conduit"),
         }],
     })
@@ -59,8 +71,7 @@ fn phone_theremin_checks_with_exact_two_axis_browser_realizations() {
     let required = &inventory.plots[0].required_kinds;
     for kind in [
         "input/pointer-source",
-        "math/map-normalized-distance",
-        "audio/play",
+        "audio/continuous-play",
         "pocket-theremin",
     ] {
         assert!(required.iter().any(|required| required == kind), "{kind}");
@@ -75,7 +86,6 @@ fn phone_theremin_checks_with_exact_two_axis_browser_realizations() {
         "browser/plot-pointer-source@1",
         "browser/kernel-audio-tone@1",
         "browser/kernel-audio-apply-gain@1",
-        "browser/kernel-map-distance-frequency@1",
     ] {
         assert!(
             host.capabilities
@@ -84,6 +94,45 @@ fn phone_theremin_checks_with_exact_two_axis_browser_realizations() {
             "{implementation}"
         );
     }
+    let (startup, mut profile) = crate::installed_browser::catalogs_for_face(
+        crate::installed_browser::FaceProfile::Quantity,
+    )
+    .unwrap();
+    let checked = initial_plots::check_source_with_catalogs(
+        include_str!("../../../../../plots/pocket-theremin/main.conduit"),
+        &startup,
+        &profile,
+    )
+    .unwrap();
+    crate::installed_browser::catalogs::install_checked_structured_selectors(
+        &checked,
+        &mut profile,
+    )
+    .unwrap();
+    let backs = crate::installed_browser::backs(&startup, &profile).unwrap();
+    let expanded = conduit_plot::expand_canonical_plot_with_backs(
+        &checked,
+        "phone-two-axis-controller",
+        &profile,
+        &backs,
+    )
+    .unwrap();
+    let hosts = [host.clone()];
+    let placements = conduit_planner::default_expanded_placements(&expanded, &hosts).unwrap();
+    super::review::queue_plan::plan(
+        &expanded,
+        &hosts,
+        &placements,
+        &crate::installed_browser::local_bases(),
+        &[],
+        super::PlanningAuthority {
+            browser_audio: true,
+        },
+    )
+    .unwrap();
+    assert!(!required.iter().any(
+        |kind| kind == "math/map-distance-frequency" || kind == "math/map-normalized-distance"
+    ));
     let gain = host
         .capabilities
         .iter()
@@ -129,7 +178,7 @@ fn typed_inventory_accepts_canonical_default_aliases() {
 }
 
 #[test]
-fn text_and_pattern_presentations_plan_together_under_one_body() {
+fn text_and_pattern_faces_plan_together_under_one_body() {
     session::clear_for_test();
     let source = bundle();
     let inventory = initial_plots::reviewed_inventory(&source).unwrap();
@@ -188,7 +237,7 @@ fn text_and_pattern_presentations_plan_together_under_one_body() {
             sign_bytes: u32::from(limits.sign_items)
                 * core::mem::size_of::<conduit_kernel::KernelEvent>() as u32,
         };
-        lower_local_fragment_set(
+        let lowered = lower_local_fragment_set(
             &fragments,
             conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PROFILE,
             bounds,
@@ -202,7 +251,7 @@ fn text_and_pattern_presentations_plan_together_under_one_body() {
                 < page_profile["bounds"]["heap_arena_bytes"].as_u64().unwrap()
         );
         let too_small = FragmentSetBounds {
-            value_bytes: 640 * 1024,
+            value_bytes: lowered.value_bytes - 1,
             ..bounds
         };
         let refusal = lower_local_fragment_set(
@@ -259,4 +308,24 @@ fn text_and_pattern_presentations_plan_together_under_one_body() {
         }
     }
     session::clear_for_test();
+}
+
+#[test]
+fn retained_state_installs_without_an_incidental_pure_expression() {
+    let source = serde_json::json!({
+        "schema": "conduit.creche/reviewed-plot-bundle@2",
+        "plots": [{"slug": "retained", "entry": "retained", "face_profile": 1,
+            "source": "plot retained {\n frequency: keep Frequency(440Hz) for this play\n}\n"}],
+    })
+    .to_string();
+    let host = initial_plots::reviewed_browser_host(
+        &source,
+        "host/retained".into(),
+        "boot/retained".into(),
+    )
+    .unwrap();
+    assert!(host
+        .capabilities
+        .iter()
+        .any(|offer| { offer.kind_id.as_str() == conduit_core::STATE_VALUE_KIND }));
 }

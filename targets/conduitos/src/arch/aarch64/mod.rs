@@ -5,8 +5,48 @@ use core::{
     sync::atomic::{AtomicBool, AtomicU32, Ordering},
 };
 
+#[cfg(target_os = "none")]
+mod domain_budget;
+#[cfg(target_os = "none")]
+mod domain_memory;
+#[cfg(target_os = "none")]
+mod domain_transition;
+#[cfg(target_os = "none")]
+#[path = "../ordinary_domain.rs"]
+mod ordinary_domain;
+#[cfg(target_os = "none")]
+pub use ordinary_domain::TextDomain;
+// These native leaves are not yet a product USB offer; keep their compilation
+// separate from acceptance until ordinary Root/Plot execution is integrated.
+#[allow(dead_code)]
+mod xhci;
+pub use xhci::{VirtXhciRefusal, initialize_xhci};
+mod entropy;
+pub use entropy::RndrEntropy;
+
+#[cfg(target_os = "none")]
+pub fn initialize_domains(record: &crate::boot::BootRecord) {
+    domain_memory::initialize(record);
+}
+#[cfg(target_os = "none")]
+fn domain_ticks() -> u64 {
+    read_counter()
+}
+pub fn early_write(bytes: &[u8]) {
+    present(bytes);
+}
+
+mod protocol_diagnostic;
+pub use protocol_diagnostic::append_boot_diagnostic;
+mod protocol_clock_spacing;
+pub use protocol_clock_spacing::space_protocol_clock_poll;
 mod providers;
 pub use providers::{Clock, Idle, Interrupts, Serial, Timer};
+
+#[cfg(feature = "ordinary-domain-proof")]
+pub fn start_pending_source_timer() {
+    providers::start_pending_source_timer();
+}
 
 const UART_BASE: usize = 0x0900_0000;
 const GICD_BASE: usize = 0x0800_0000;
@@ -103,6 +143,10 @@ pub fn initialize_machine() {
 
 pub fn timer_arm() {
     let ticks = (counter_frequency() / 1_000).max(1);
+    timer_arm_ticks(ticks);
+}
+
+fn timer_arm_ticks(ticks: u64) {
     unsafe {
         core::arch::asm!("msr cntv_tval_el0, {ticks:x}", ticks = in(reg) ticks, options(nostack));
         core::arch::asm!("msr cntv_ctl_el0, {enabled:x}", enabled = in(reg) 1_u64, options(nostack));
@@ -183,6 +227,10 @@ fn counter_frequency() -> u64 {
 #[unsafe(no_mangle)]
 extern "C" fn conduitos_aarch64_irq_handler() {
     let acknowledge = unsafe { read32(GICC_BASE + 0x00c) };
+    service_interrupt(acknowledge);
+}
+
+fn service_interrupt(acknowledge: u32) {
     unsafe {
         core::arch::asm!("msr cntv_ctl_el0, {disabled:x}", disabled = in(reg) 0_u64, options(nostack));
     }

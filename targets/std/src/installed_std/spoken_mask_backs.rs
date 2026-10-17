@@ -2,8 +2,8 @@
 
 use super::back::{BackBudget, BackFactory, InstalledBack};
 use crate::spoken_mask_runtime::{
-    ArtifactAcknowledgedShowBack, ClosingNoInteractionBack, GeneratedManifestationToSpeechBack,
-    PresentationToGenerativeRequestBack,
+    ArtifactAcknowledgedShowBack, ClosingNoInteractionBack, FaceToGenerativeRequestBack,
+    GeneratedManifestationToSpeechBack,
 };
 use conduit_core::PlannedGear;
 use conduit_kernel::{
@@ -12,10 +12,10 @@ use conduit_kernel::{
     PortId, RequestId, ValueRef, ValueStorage,
 };
 
-pub(super) static PRESENTATION_REQUEST_FACTORY: BackFactory = BackFactory {
-    implementation_id: conduit_std_offers::PRESENTATION_REQUEST_IMPLEMENTATION,
+pub(super) static FACE_REQUEST_FACTORY: BackFactory = BackFactory {
+    implementation_id: conduit_std_offers::FACE_REQUEST_IMPLEMENTATION,
     budget: adapter_budget,
-    prepare: prepare_presentation_request,
+    prepare: prepare_face_request,
 };
 pub(super) static GENERATED_SPEECH_FACTORY: BackFactory = BackFactory {
     implementation_id: conduit_std_offers::GENERATED_SPEECH_IMPLEMENTATION,
@@ -37,11 +37,68 @@ pub(super) static ARTIFACT_SHOW_FACTORY: BackFactory = BackFactory {
     budget: show_budget,
     prepare: prepare_show,
 };
+pub(super) static DIRECT_FACE_WORDING_FACTORY: BackFactory = BackFactory {
+    implementation_id: conduit_std_offers::DIRECT_FACE_WORDING_IMPLEMENTATION,
+    budget: direct_wording_budget,
+    prepare: prepare_direct_wording,
+};
+pub(super) static DIRECT_ARTIFACT_SHOW_FACTORY: BackFactory = BackFactory {
+    implementation_id: conduit_std_offers::DIRECT_ARTIFACT_SHOW_IMPLEMENTATION,
+    budget: direct_show_budget,
+    prepare: prepare_direct_show,
+};
 pub(super) static NO_INTERACTION_FACTORY: BackFactory = BackFactory {
     implementation_id: conduit_std_offers::NO_INTERACTION_IMPLEMENTATION,
     budget: no_interaction_budget,
     prepare: prepare_no_interaction,
 };
+pub(super) static FACE_TEE_FACTORY: BackFactory = BackFactory {
+    implementation_id: conduit_std_offers::FACE_TEE_IMPLEMENTATION,
+    budget: tee_budget,
+    prepare: prepare_tee,
+};
+
+pub(super) struct FaceTeeBack;
+
+impl<const PORTS: usize> StepBack<PORTS> for FaceTeeBack {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if let Some(value) = io.input(PortId(0)) {
+            if !io.output_ready(PortId(0)) {
+                return StepOutcome::Await;
+            }
+            io.consume(PortId(0)).expect("present Face tee input");
+            if io.send(PortId(0), value).is_err() {
+                return StepOutcome::Fail(Failure {
+                    code: FailureCode::StorageExhausted,
+                    detail: 40,
+                });
+            }
+            StepOutcome::Progress
+        } else if io.input_closed(PortId(0)) {
+            io.consume_closed(PortId(0))
+                .expect("observed Face tee closure");
+            StepOutcome::Complete
+        } else {
+            StepOutcome::Await
+        }
+    }
+}
+
+fn tee_budget(placement: &PlannedGear) -> Result<BackBudget, String> {
+    validate(placement, conduit_std_offers::FACE_TEE_IMPLEMENTATION)?;
+    Ok(BackBudget {
+        value_items: 0,
+        value_bytes: 0,
+        host_requests: 0,
+        sign_items: 16,
+        maximum_value_bytes: conduit_face::MAX_RENDERER_VALUE_BYTES,
+    })
+}
+
+fn prepare_tee(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<InstalledBack, String> {
+    tee_budget(placement)?;
+    Ok(InstalledBack::FaceTee(FaceTeeBack))
+}
 
 pub(super) struct SpokenArtifactBack {
     work: super::audio_stream_budget::AudioStreamBudget,
@@ -135,19 +192,14 @@ impl<const PORTS: usize> StepBack<PORTS> for SpokenArtifactBack {
     }
 }
 
-fn prepare_presentation_request(
+fn prepare_face_request(
     placement: &PlannedGear,
     _: &mut HostedValueStore,
 ) -> Result<InstalledBack, String> {
-    validate(
-        placement,
-        conduit_std_offers::PRESENTATION_REQUEST_IMPLEMENTATION,
-    )?;
-    Ok(InstalledBack::SpokenPresentationRequest(
-        PresentationToGenerativeRequestBack::new(
-            conduit_presentation::MAX_GENERATIVE_PRESENTER_INPUT_BYTES as u32,
-        )
-        .map_err(str::to_string)?,
+    validate(placement, conduit_std_offers::FACE_REQUEST_IMPLEMENTATION)?;
+    Ok(InstalledBack::SpokenFaceRequest(
+        FaceToGenerativeRequestBack::new(conduit_face::MAX_GENERATIVE_PRESENTER_INPUT_BYTES as u32)
+            .map_err(str::to_string)?,
     ))
 }
 
@@ -158,7 +210,7 @@ fn prepare_generated_speech(
     validate(placement, placement.implementation_id.as_str())?;
     Ok(InstalledBack::SpokenGeneratedSpeech(
         GeneratedManifestationToSpeechBack::new(
-            conduit_presentation::MAX_GENERATIVE_PRESENTER_OUTPUT_BYTES as u32,
+            conduit_face::MAX_GENERATIVE_PRESENTER_OUTPUT_BYTES as u32,
         )
         .map_err(str::to_string)?,
     ))
@@ -191,8 +243,51 @@ fn prepare_show(
     validate(placement, conduit_std_offers::ARTIFACT_SHOW_IMPLEMENTATION)?;
     Ok(InstalledBack::SpokenArtifactShow(
         ArtifactAcknowledgedShowBack::new(
-            conduit_presentation::MAX_GENERATIVE_PRESENTER_OUTPUT_BYTES as u32,
+            conduit_face::MAX_GENERATIVE_PRESENTER_OUTPUT_BYTES as u32,
             4_096,
+            planned_call(
+                placement,
+                conduit_std_offers::REGISTER_MANIFESTATION_OPERATION,
+            )?,
+            planned_call(placement, conduit_std_offers::ARTIFACT_SHOW_OPERATION)?,
+        )
+        .map_err(str::to_string)?,
+    ))
+}
+
+fn prepare_direct_wording(
+    placement: &PlannedGear,
+    _: &mut HostedValueStore,
+) -> Result<InstalledBack, String> {
+    validate(
+        placement,
+        conduit_std_offers::DIRECT_FACE_WORDING_IMPLEMENTATION,
+    )?;
+    Ok(InstalledBack::DirectFaceWording(
+        crate::direct_spoken_mask_runtime::DirectFaceWordingBack::new(),
+    ))
+}
+
+fn prepare_direct_show(
+    placement: &PlannedGear,
+    _: &mut HostedValueStore,
+) -> Result<InstalledBack, String> {
+    validate(
+        placement,
+        conduit_std_offers::DIRECT_ARTIFACT_SHOW_IMPLEMENTATION,
+    )?;
+    Ok(InstalledBack::SpokenArtifactShow(
+        ArtifactAcknowledgedShowBack::new(
+            conduit_face::MAX_GENERATIVE_PRESENTER_INPUT_BYTES as u32,
+            4_096,
+            planned_call(
+                placement,
+                conduit_std_offers::REGISTER_DIRECT_FACE_OPERATION,
+            )?,
+            planned_call(
+                placement,
+                conduit_std_offers::DIRECT_ARTIFACT_SHOW_OPERATION,
+            )?,
         )
         .map_err(str::to_string)?,
     ))
@@ -227,14 +322,24 @@ fn validate(placement: &PlannedGear, implementation: &str) -> Result<(), String>
     Ok(())
 }
 
+fn planned_call(placement: &PlannedGear, contract: &str) -> Result<HostCallId, String> {
+    placement
+        .host_calls
+        .iter()
+        .position(|call| call.contract_id.as_str() == contract)
+        .and_then(|index| u16::try_from(index).ok())
+        .map(HostCallId)
+        .ok_or_else(|| format!("planned spoken Show omitted Host Call {contract}"))
+}
+
 fn adapter_budget(placement: &PlannedGear) -> Result<BackBudget, String> {
     validate(placement, placement.implementation_id.as_str())?;
     Ok(BackBudget {
         value_items: 2,
-        value_bytes: conduit_presentation::MAX_GENERATIVE_PRESENTER_INPUT_BYTES as u32 * 2,
+        value_bytes: conduit_face::MAX_GENERATIVE_PRESENTER_INPUT_BYTES as u32 * 2,
         host_requests: 1,
         sign_items: 16,
-        maximum_value_bytes: conduit_presentation::MAX_GENERATIVE_PRESENTER_INPUT_BYTES as u32,
+        maximum_value_bytes: conduit_face::MAX_GENERATIVE_PRESENTER_INPUT_BYTES as u32,
     })
 }
 
@@ -258,7 +363,35 @@ fn show_budget(placement: &PlannedGear) -> Result<BackBudget, String> {
     validate(placement, conduit_std_offers::ARTIFACT_SHOW_IMPLEMENTATION)?;
     Ok(BackBudget {
         value_items: 3,
-        value_bytes: conduit_presentation::MAX_GENERATIVE_PRESENTER_OUTPUT_BYTES as u32 + 266_240,
+        value_bytes: conduit_face::MAX_GENERATIVE_PRESENTER_OUTPUT_BYTES as u32 + 266_240,
+        host_requests: 2,
+        sign_items: 24,
+        maximum_value_bytes: 262_144,
+    })
+}
+
+fn direct_wording_budget(placement: &PlannedGear) -> Result<BackBudget, String> {
+    validate(
+        placement,
+        conduit_std_offers::DIRECT_FACE_WORDING_IMPLEMENTATION,
+    )?;
+    Ok(BackBudget {
+        value_items: 2,
+        value_bytes: conduit_face::MAX_GENERATIVE_PRESENTER_INPUT_BYTES as u32 + 1024,
+        host_requests: 33,
+        sign_items: 64,
+        maximum_value_bytes: conduit_face::MAX_GENERATIVE_PRESENTER_INPUT_BYTES as u32,
+    })
+}
+
+fn direct_show_budget(placement: &PlannedGear) -> Result<BackBudget, String> {
+    validate(
+        placement,
+        conduit_std_offers::DIRECT_ARTIFACT_SHOW_IMPLEMENTATION,
+    )?;
+    Ok(BackBudget {
+        value_items: 3,
+        value_bytes: conduit_face::MAX_GENERATIVE_PRESENTER_INPUT_BYTES as u32 + 266_240,
         host_requests: 2,
         sign_items: 24,
         maximum_value_bytes: 262_144,
@@ -295,6 +428,9 @@ pub(super) fn prepare_artifact_hosts(
     active_play: &conduit_core::ActivePlayIdentity,
     selection: Option<&crate::hosted_wav_artifact::WavArtifactSelection>,
 ) -> Result<Vec<Option<SpokenArtifactHost>>, String> {
+    if active_play.plan_id != fragment.plan_id {
+        return Err("spoken artifact Play identity is stale for its Plan".into());
+    }
     fragment
         .placements
         .iter()
@@ -312,6 +448,7 @@ pub(super) fn prepare_artifact_hosts(
                 .ok_or_else(|| "spoken Mask has no selected artifact destination".to_string())?;
             if selection.boot_id != placement.boot_id
                 || selection.offer_generation != placement.offer_generation
+                || active_play.boot_id != placement.boot_id
             {
                 return Err("spoken Mask artifact destination is stale".into());
             }
@@ -319,8 +456,13 @@ pub(super) fn prepare_artifact_hosts(
                 session: {
                     let work =
                         super::audio_stream_budget::AudioStreamBudget::from_placement(placement)?;
+                    let exact = selection.for_play(
+                        &fragment.plan_id,
+                        &active_play.active_play_id,
+                        &placement.placement_id,
+                    )?;
                     crate::hosted_wav_artifact::WavArtifactSession::prepare_bounded(
-                        selection.clone(),
+                        exact,
                         work.blocks,
                         work.millis,
                     )?
@@ -345,9 +487,10 @@ pub(super) fn execute_artifact(
             .session
             .content_sha256()
             .ok_or_else(|| "completed spoken artifact has no digest".to_string())?;
-        let receipt = conduit_presentation::SpokenMaskArtifactReceipt {
+        let receipt = conduit_face::SpokenMaskArtifactReceipt {
             artifact_identity: format!("artifact/wav/{content_sha256}"),
             content_sha256,
+            artifact_locator: host.session.locator(),
             pcm_bytes: report.pcm_bytes,
             frames: report.frames,
             blocks: report.blocks,
@@ -362,5 +505,34 @@ pub(super) fn execute_artifact(
     } else {
         host.session.write_frame(input)?;
         Ok(None)
+    }
+}
+
+#[cfg(test)]
+mod tee_tests {
+    use super::*;
+
+    #[test]
+    fn long_face_needs_its_admitted_cord_and_never_panics_on_pressure() {
+        let face = ValueRef {
+            slot: 0,
+            generation: 1,
+            byte_len: 36_648,
+        };
+        let input = StepInputBytes::test_frame([None], None);
+        let mut small = StepIo::test_frame([Some(face)], [false], [Some(16_384)], None, 8);
+        assert_eq!(
+            FaceTeeBack.step(&mut small, &input),
+            StepOutcome::Fail(Failure {
+                code: FailureCode::StorageExhausted,
+                detail: 40,
+            })
+        );
+        let mut admitted = StepIo::test_frame([Some(face)], [false], [Some(64 * 1024)], None, 8);
+        assert_eq!(
+            FaceTeeBack.step(&mut admitted, &input),
+            StepOutcome::Progress
+        );
+        assert_eq!(admitted.test_output(PortId(0)), Some(face));
     }
 }

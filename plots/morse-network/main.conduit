@@ -3,7 +3,7 @@ plot morse_network {
     keyboard: input/keyboard
     keymap: input/keymap
     morse: text/morse(120)
-    light: presentation/indicator
+    light: face/indicator("Light signal")
 
     keyboard.key >> keymap.key
     keymap.text >> morse >> light

@@ -15,6 +15,7 @@ fn maximum_text_leaves_do_not_become_recursive_stack_storage() {
                 operation: PortableExpressionOperation::Input,
             };
             let program = PortableExpressionProgram {
+                input_maximum_bytes: None,
                 input_type: text.clone(),
                 output_type: text.clone(),
                 root: input.clone(),
@@ -30,6 +31,7 @@ fn maximum_text_leaves_do_not_become_recursive_stack_storage() {
 
             let boolean = StructuredInfoType::leaf(KindId::from("value/bool")).unwrap();
             let comparison = PortableExpressionProgram {
+                input_maximum_bytes: None,
                 input_type: text,
                 output_type: boolean.clone(),
                 root: PortableExpressionNode {

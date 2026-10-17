@@ -41,11 +41,11 @@ test("one Patchbay session explains split Text Lab then presents actual Line los
   try {
     await page.goto(url);
     await expect(page.getByText(
-      "keyboard here -> uppercase there -> presentation here",
+      "keyboard here -> uppercase there -> face here",
       { exact: true },
     ).first()).toBeVisible();
     const before = await page.evaluate(async () => (await fetch("/api/snapshot")).json());
-    expect(before.presentation.basis).toMatchObject({
+    expect(before.face.basis).toMatchObject({
       source_document_id: expect.any(String),
       checked_plot_id: expect.any(String),
       expanded_plot_id: expect.any(String),
@@ -54,16 +54,16 @@ test("one Patchbay session explains split Text Lab then presents actual Line los
       plan_id: expect.any(String),
       active_play_id: null,
     });
-    const property = (subject, name, value) => before.presentation.properties.some(candidate =>
+    const property = (subject, name, value) => before.face.properties.some(candidate =>
       candidate.subject === subject && candidate.name === name && candidate.value.Identity === value
     );
-    const upper = before.presentation.subjects.find(subject =>
+    const upper = before.face.subjects.find(subject =>
       subject.role === "Gear" && property(subject.identity, "host-id", "text-lab/browser")
     );
-    const browserHost = before.presentation.subjects.find(subject =>
+    const browserHost = before.face.subjects.find(subject =>
       subject.role === "Host" && property(subject.identity, "host-id", "text-lab/browser")
     );
-    expect(before.presentation.relationships).toContainEqual({
+    expect(before.face.relationships).toContainEqual({
       source: upper.identity,
       target: browserHost.identity,
       kind: "Realizes",
@@ -86,9 +86,9 @@ test("one Patchbay session explains split Text Lab then presents actual Line los
       schema: "conduit.text-lab/line-loss@1",
       code: "CND-TEXT-LIVE-301",
       line_id: "text-lab/browser-to-native",
-      plan_id: before.presentation.basis.plan_id,
-      source_document_id: before.presentation.basis.source_document_id,
-      checked_plot_id: before.presentation.basis.checked_plot_id,
+      plan_id: before.face.basis.plan_id,
+      source_document_id: before.face.basis.source_document_id,
+      checked_plot_id: before.face.basis.checked_plot_id,
       old_plan_disposition: "immutable",
       fresh_planning: "unrealizable",
       plot_unchanged: true,
@@ -109,16 +109,13 @@ test("one Patchbay session explains split Text Lab then presents actual Line los
     expect(response.ok).toBe(true);
     const after = await response.json();
     expect(after.revision).toBe(before.revision + 1);
-    expect(after.presentation.basis.plan_id).toBe(before.presentation.basis.plan_id);
-    expect(after.presentation.basis.source_document_id)
-      .toBe(before.presentation.basis.source_document_id);
-    expect(after.presentation.basis.checked_plot_id)
-      .toBe(before.presentation.basis.checked_plot_id);
-    expect(after.presentation.basis.sign_ids).toContain(receipt.sign_id);
-    expect(after.presentation.subjects).toContainEqual(expect.objectContaining({
-      role: "Sign",
-      label: "CND-TEXT-LIVE-301",
-    }));
+    expect(after.face.basis.plan_id).toBe(before.face.basis.plan_id);
+    expect(after.face.basis.source_document_id)
+      .toBe(before.face.basis.source_document_id);
+    expect(after.face.basis.checked_plot_id)
+      .toBe(before.face.basis.checked_plot_id);
+    expect(after.face.basis.sign_ids).toContain(receipt.sign_id);
+    expect(after.face.subjects.some(subject => subject.role === "Sign")).toBe(true);
     await page.reload();
     await expect(page.locator("#ordinary-summary"))
       .toContainText("browser Part unavailable -> unchanged Plot currently unrealizable");

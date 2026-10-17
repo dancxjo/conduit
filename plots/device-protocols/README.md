@@ -66,7 +66,8 @@ produced. A time provider must return its observed completion time, rather than
 counting repeated ticks. Native admission tests now
 execute initialization and action selection through the production kernel and
 issue the source-authored identity read through the retained I2C owner. The
-complete clock/feedback path and boot admission remain development work.
+complete clock/feedback path also executes through the native kernel; packaged
+Source enters the x86_64 product through Root admission and ordinary Plan/Play.
 Deterministic transcripts check exact register order, response lengths, both
 protocol addresses, refusal preservation, deadlines and finite poll exhaustion.
 Prepared transition reuse allocates nothing. The source initializer owns the
@@ -80,8 +81,33 @@ event closure retains a pending event and waits for the last state return.
 Ordinary `flow/zip/finite` keeps its existing unmatched-value discard behavior.
 Native kernel tests exercise queued events, input closure during transition,
 and normal completion with the exact retained state and pairing owners. This
-proves Source feedback execution with supplied events, while automatic bus/time
-event production and boot admission remain development work.
+proves Source feedback execution with supplied events. The autonomous entry
+adds native bus/time event production and terminal closure.
+
+`bme280-autonomous.conduit` now checks and expands the bus/time event topology
+into 52 gears including decoding, compensation and terminal closure. Source adapters request exact wait deadlines, timestamp bus
+results with the clock's observed time, and preserve clock failures separately.
+The generic `flow/merge/finite` retains both input lifetimes and closes only
+after both inputs drain. The graph plans against separately retained I2C and
+clock offers with exact authority. Deterministic fixtures prepare, start and
+cancel its native play without provider effects. The composite profile
+admits at most 64 gears and 128 cords; its fixed scheduler is allocated during
+preparation through the kernel’s allocated preparation entrance. A wrong-identity fixture executes a bus completion and clock observation through
+the actual Source feedback loop, emits the exact refusal and issues no retry.
+Each Cord has its own finite queue admission; an oversized clock queue is
+rejected. A complete transcript fixture also executes probe, reset, configuration,
+calibration reads, both deadline waits, sample capture and the exact fixed-point
+temperature, pressure and humidity observation through those owners. Shared
+Source decoding stages retain companion data without duplicated wire formulas.
+Decoding and observation entrances use finite closing flows. Terminal closure
+retires the native owners and canonical Body. Root admits the exact package,
+controller, attachment, authority and clock before native execution.
+
+The x86_64 clock provider reuses the calibrated invariant-TSC or ACPI HPET
+counter with an explicit finite provider lifetime. Each poll observes the counter
+once; unsupported deadlines, expiry and revocation remain distinct. Clock
+availability is independent of networking. Counter conformance tests establish
+conversion and refusal behavior, not hardware compatibility.
 
 Its `bme280-observation` entry assembles one typed fixed-point temperature,
 pressure and humidity observation from decoded calibration and samples.
@@ -93,10 +119,18 @@ The reviewed inventory registers this reusable observation entry with workspace
 discovery disabled. Its oracle proves checked arithmetic and prepared reuse;
 it does not advertise a sensor provider or claim hardware execution.
 
-These remain arithmetic, finite frame and bus foundations. They do not yet
-supply an integrated production device lifecycle or an installed hardware Back.
+The complete BME280 lifecycle runs through the production kernel with separately
+admitted finite I2C and clock Backs. The supported `protocol-source`,
+`protocol-input`, `protocol-image` and `protocol-run` xtask commands check Source,
+prepare exact typed inputs, package over an existing capable kernel and observe
+bounded native execution. See the [packaging and admission guide](../../docs/architecture/device-protocol-plots.md).
+A retained freestanding x86_64 emulator run publishes exact Plan/Play identities,
+emits the truthful controller refusal when no BME280 is attached, and retires.
+Deterministic conformance separately proves successful observations, wrong
+identity and clock loss. Physical BME280 compatibility remains unverified.
+
 CRC check-vector tests compose the steps in a deterministic test harness; they
-do not yet establish a complete authored CRC flow through the production kernel.
+do not establish a complete authored CRC flow through the production kernel.
 
 The repository entrance is:
 
@@ -106,4 +140,7 @@ cargo xtask check device-protocols
 
 It checks/expands the source and exercises endian round trips, signed extremes,
 bitfield boundaries, overflow and standard CRC check vectors with stable prepared
-storage, exact possession/replay/revocation and finite controller termination. These checks do not claim ConduitOS bus execution or hardware support.
+storage, exact possession/replay/revocation, finite controller termination and
+complete BME280 native kernel lifecycle conformance. This suite is deterministic
+proof; native emulator observation uses the separate supported `protocol-run`
+entrance, and neither establishes physical compatibility.

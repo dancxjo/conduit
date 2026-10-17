@@ -56,17 +56,17 @@ fn drive_sink(
 ) -> Result<(), String> {
     for _ in 0..32 {
         if let Some(request) = runtime.next_host_request() {
-            return complete_text_presentation(runtime, request, output);
+            return complete_text_face(runtime, request, output);
         }
         match runtime.step()? {
             SchedulerStatus::Progress { .. } => {}
-            state => return Err(format!("sink reached {state:?} before presentation")),
+            state => return Err(format!("sink reached {state:?} before face")),
         }
     }
-    Err("sink exceeded bounded steps before presentation".into())
+    Err("sink exceeded bounded steps before face".into())
 }
 
-fn complete_text_presentation(
+fn complete_text_face(
     runtime: &mut InstalledRemoteFragment,
     request: HostCallRequest,
     output: &mut impl Write,
@@ -106,7 +106,7 @@ fn drain_sink(
 ) -> Result<(), String> {
     for _ in 0..32 {
         if let Some(request) = runtime.next_host_request() {
-            complete_text_presentation(runtime, request, output)?;
+            complete_text_face(runtime, request, output)?;
         }
         if matches!(runtime.step()?, SchedulerStatus::Drained) {
             return Ok(());

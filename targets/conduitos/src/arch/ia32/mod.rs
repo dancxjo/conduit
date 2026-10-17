@@ -1,20 +1,53 @@
 //! IA-32 PC mechanisms below the generic machine/Base seam.
 
+use super::ia32_timer_lifecycle::{IrqMailbox, TimerState};
 use crate::machine::{
-    BaseError, FixedTimerSlots, IdleBase, InterruptBase, InterruptState, KernelInterest,
-    MonotonicClockBase, SerialBase, TimerBase, TimerToken,
+    BaseError, IdleBase, InterruptBase, InterruptState, KernelInterest, MonotonicClockBase,
+    SerialBase, TimerBase, TimerToken,
 };
-use core::sync::atomic::{AtomicBool, Ordering};
+
+#[cfg(target_os = "linux")]
+mod domain_budget;
+#[cfg(target_os = "linux")]
+mod domain_memory;
+#[cfg(target_os = "linux")]
+mod domain_transition;
+#[cfg(target_os = "linux")]
+#[path = "../ordinary_domain.rs"]
+mod ordinary_domain;
+#[cfg(target_os = "linux")]
+pub use ordinary_domain::TextDomain;
+mod entropy;
+pub use entropy::RdrandEntropy;
+
+#[cfg(target_os = "linux")]
+fn domain_ticks() -> u64 {
+    read_counter()
+}
+pub fn early_write(bytes: &[u8]) {
+    present(bytes);
+}
+mod timer_hardware;
 
 pub const PIT_IRQ: u8 = 32;
-static FACT_PRESENT: AtomicBool = AtomicBool::new(false);
-static FACT_OVERFLOW: AtomicBool = AtomicBool::new(false);
-static TIMER_ARM_PENDING: AtomicBool = AtomicBool::new(false);
+static TIMER_IRQ: IrqMailbox = IrqMailbox::new();
 static mut IDT: [u64; 256] = [0; 256];
+
+#[cfg(target_os = "linux")]
+unsafe fn install_domain_gate(vector: u8, handler: u32, attributes: u8) {
+    let gate = u64::from(handler & 0xffff)
+        | (0x08_u64 << 16)
+        | (u64::from(attributes) << 40)
+        | (u64::from(handler >> 16) << 48);
+    unsafe {
+        IDT[vector as usize] = gate;
+    }
+}
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum InterruptFact {
     Timer,
+    UnarmedTimer,
     WrongSource(u8),
     Overflow,
 }
@@ -33,6 +66,12 @@ conduitos_ia32_irq_entry:
 
 pub fn initialize_machine() {
     disable_interrupts();
+    super::ia32_domain_gdt::initialize();
+    #[cfg(target_os = "linux")]
+    domain_budget::initialize();
+    timer_hardware::report_inherited_state();
+    timer_hardware::stop();
+    TIMER_IRQ.retire();
     let handler = conduitos_ia32_irq_entry as *const () as usize as u32;
     let selector: u16;
     unsafe {
@@ -53,21 +92,25 @@ pub fn initialize_machine() {
     }
 }
 
+// Raw architecture appliance entrance; production uses its admitted token.
 pub fn timer_arm() {
-    const TICKS: u16 = 1193;
-    unsafe {
-        outb(0x43, 0x30);
-        outb(0x40, TICKS as u8);
-        outb(0x40, (TICKS >> 8) as u8);
-    }
+    with_interrupts_masked(|| {
+        timer_hardware::quiesce()
+            .and_then(|()| TIMER_IRQ.start(1))
+            .unwrap_or_else(|error| {
+                timer_refusal("appliance-arm", error);
+                emergency_halt()
+            });
+        timer_hardware::start();
+    });
 }
 
 pub fn enable_interrupts() {
-    unsafe { core::arch::asm!("sti", options(nomem, nostack, preserves_flags)) }
+    unsafe { core::arch::asm!("sti", options(nostack, preserves_flags)) }
 }
 
 pub fn disable_interrupts() {
-    unsafe { core::arch::asm!("cli", options(nomem, nostack, preserves_flags)) }
+    unsafe { core::arch::asm!("cli", options(nostack, preserves_flags)) }
 }
 
 fn interrupts_enabled() -> bool {
@@ -100,13 +143,23 @@ fn interruptible_idle_once() {
     unsafe { core::arch::asm!("sti", "hlt", "cli", options(nomem, nostack)) }
 }
 
-pub fn pop_interrupt() -> Option<InterruptFact> {
-    if FACT_OVERFLOW.swap(false, Ordering::AcqRel) {
-        return Some(InterruptFact::Overflow);
+fn with_interrupts_masked<T>(operation: impl FnOnce() -> T) -> T {
+    let enabled = interrupts_enabled();
+    disable_interrupts();
+    let result = operation();
+    if enabled {
+        enable_interrupts();
     }
-    FACT_PRESENT
-        .swap(false, Ordering::AcqRel)
-        .then_some(InterruptFact::Timer)
+    result
+}
+
+pub fn pop_interrupt() -> Option<InterruptFact> {
+    with_interrupts_masked(|| match TIMER_IRQ.pop() {
+        Err(_) => Some(InterruptFact::Overflow),
+        Ok(Some(0)) => Some(InterruptFact::UnarmedTimer),
+        Ok(Some(_)) => Some(InterruptFact::Timer),
+        Ok(None) => None,
+    })
 }
 
 pub fn present(bytes: &[u8]) {
@@ -138,9 +191,7 @@ unsafe extern "C" {
 
 #[unsafe(no_mangle)]
 extern "C" fn conduitos_ia32_irq_handler() {
-    if FACT_PRESENT.swap(true, Ordering::AcqRel) {
-        FACT_OVERFLOW.store(true, Ordering::Release);
-    }
+    TIMER_IRQ.publish();
     unsafe { outb(0x20, 0x20) };
 }
 
@@ -160,15 +211,23 @@ unsafe fn remap_pic() {
         outb(0xa1, 0x02);
         outb(0x21, 0x01);
         outb(0xa1, 0x01);
-        outb(0x21, 0xfe);
+        outb(0x21, 0xff);
         outb(0xa1, 0xff);
     }
 }
 
 unsafe fn outb(port: u16, value: u8) {
     unsafe {
-        core::arch::asm!("out dx, al", in("dx") port, in("al") value, options(nomem, nostack, preserves_flags))
+        core::arch::asm!("out dx, al", in("dx") port, in("al") value, options(nostack, preserves_flags))
     };
+}
+
+unsafe fn inb(port: u16) -> u8 {
+    let value;
+    unsafe {
+        core::arch::asm!("in al, dx", in("dx") port, out("al") value, options(nostack, preserves_flags))
+    };
+    value
 }
 
 pub struct Clock(u64);
@@ -178,6 +237,9 @@ impl Clock {
     }
 }
 impl MonotonicClockBase for Clock {
+    fn provider_generation(&self) -> Option<u64> {
+        Some(1)
+    }
     fn now(&mut self) -> u64 {
         self.0 = read_counter().max(self.0);
         self.0
@@ -185,63 +247,118 @@ impl MonotonicClockBase for Clock {
 }
 
 pub struct Timer {
-    slots: FixedTimerSlots<1>,
-    active: Option<TimerToken>,
+    state: TimerState,
     wakes: u32,
+    duration: Option<(TimerToken, crate::timer_duration::PitDuration)>,
 }
 impl Timer {
     pub const fn new() -> Self {
         Self {
-            slots: FixedTimerSlots::new(),
-            active: None,
+            state: TimerState::new(),
             wakes: 0,
+            duration: None,
         }
+    }
+    fn arm_count(&mut self, interest: KernelInterest, ticks: u16) -> Result<TimerToken, BaseError> {
+        with_interrupts_masked(|| {
+            let token = self
+                .state
+                .arm(interest)
+                .map_err(|error| timer_refusal("arm-slot", error))?;
+            // Check mailbox eligibility before touching an existing hardware
+            // arm. CPU masking fences this generation until quiesce and the
+            // complete new PIT count have both been written.
+            let start = TIMER_IRQ
+                .start(token.generation)
+                .map_err(|error| timer_refusal("arm-irq", error))
+                .and_then(|()| {
+                    timer_hardware::quiesce().map_err(|error| {
+                        TIMER_IRQ.retire();
+                        timer_refusal("arm-quiesce", error)
+                    })
+                });
+            if let Err(error) = start {
+                // A refused hardware arm must not leave an occupied slot.
+                self.state
+                    .cancel(token)
+                    .map_err(|error| timer_refusal("arm-rollback", error))?;
+                return Err(error);
+            }
+            timer_hardware::start_count(ticks);
+            Ok(token)
+        })
     }
 }
 impl TimerBase for Timer {
+    fn provider_generation(&self) -> Option<u64> {
+        Some(1)
+    }
+    fn arm_after_milliseconds(
+        &mut self,
+        interest: KernelInterest,
+        milliseconds: u64,
+    ) -> Result<TimerToken, BaseError> {
+        let mut duration = crate::timer_duration::PitDuration::new(milliseconds)?;
+        let ticks = duration.next_count().ok_or(BaseError::Unavailable)?;
+        with_interrupts_masked(|| {
+            let token = self.arm_count(interest, ticks)?;
+            self.duration = Some((token, duration));
+            Ok(token)
+        })
+    }
     fn arm(&mut self, interest: KernelInterest) -> Result<TimerToken, BaseError> {
-        let token = self
-            .slots
-            .arm(interest)
-            .map_err(|error| timer_refusal("arm-slot", error))?;
-        if self.active.replace(token).is_some() {
-            return Err(timer_refusal("arm-active", BaseError::SlotFull));
-        }
-        TIMER_ARM_PENDING.store(true, Ordering::Release);
-        Ok(token)
+        with_interrupts_masked(|| {
+            let token = self.arm_count(interest, 1193)?;
+            self.duration = None;
+            Ok(token)
+        })
     }
     fn cancel(&mut self, token: TimerToken) -> Result<KernelInterest, BaseError> {
-        self.active = None;
-        TIMER_ARM_PENDING.store(false, Ordering::Release);
-        self.slots
-            .cancel(token)
-            .map_err(|error| timer_refusal("cancel-slot", error))
+        with_interrupts_masked(|| {
+            // Validate first: a stale cancellation cannot stop the current PIT.
+            let interest = self
+                .state
+                .cancel(token)
+                .map_err(|error| timer_refusal("cancel-slot", error))?;
+            self.duration = None;
+            TIMER_IRQ.retire();
+            timer_hardware::quiesce().map_err(|error| timer_refusal("cancel-quiesce", error))?;
+            Ok(interest)
+        })
     }
     fn take_wake(&mut self) -> Result<Option<KernelInterest>, BaseError> {
-        match pop_interrupt() {
-            None => Ok(None),
-            Some(InterruptFact::Timer) => {
-                let token = self
-                    .active
-                    .take()
-                    .ok_or_else(|| timer_refusal("wake-active", BaseError::StaleWake))?;
-                let interest = self
-                    .slots
-                    .wake(token)
-                    .map_err(|error| timer_refusal("wake-slot", error))?;
-                self.wakes = self
-                    .wakes
-                    .checked_add(1)
-                    .ok_or_else(|| timer_refusal("wake-count", BaseError::Unavailable))?;
-                Ok(Some(interest))
+        with_interrupts_masked(|| {
+            let Some(generation) = TIMER_IRQ
+                .pop()
+                .map_err(|error| timer_refusal("wake-overflow", error))?
+            else {
+                return Ok(None);
+            };
+            if let Some((token, duration)) = self.duration.as_mut() {
+                if token.generation != generation {
+                    return Err(BaseError::StaleWake);
+                }
+                if let Some(ticks) = duration.next_count() {
+                    TIMER_IRQ.retire();
+                    timer_hardware::quiesce()?;
+                    TIMER_IRQ.start(generation)?;
+                    timer_hardware::start_count(ticks);
+                    return Ok(None);
+                }
             }
-            Some(InterruptFact::WrongSource(_)) => {
-                Err(timer_refusal("wake-wrong-source", BaseError::Unavailable))
-            }
-            Some(InterruptFact::Overflow) => {
-                Err(timer_refusal("wake-overflow", BaseError::Unavailable))
-            }
-        }
+            let interest = self
+                .state
+                .wake(generation)
+                .map_err(|error| timer_refusal("wake-slot", error))?;
+            self.duration = None;
+            TIMER_IRQ.retire();
+            timer_hardware::quiesce().map_err(|error| timer_refusal("wake-quiesce", error))?;
+            self.wakes = self
+                .wakes
+                .checked_add(1)
+                .ok_or_else(|| timer_refusal("wake-count", BaseError::Unavailable))?;
+            Ok(Some(interest))
+        })
     }
     fn wake_count(&self) -> u32 {
         self.wakes
@@ -266,12 +383,15 @@ impl Serial {
     }
 }
 impl SerialBase for Serial {
+    fn provider_generation(&self) -> Option<u64> {
+        Some(1)
+    }
     fn present(&mut self, bytes: &[u8]) -> Result<(), BaseError> {
         present(bytes);
         self.0 = self.0.checked_add(1).ok_or(BaseError::Unavailable)?;
         Ok(())
     }
-    fn presentation_count(&self) -> u32 {
+    fn face_count(&self) -> u32 {
         self.0
     }
 }
@@ -314,10 +434,13 @@ impl Idle {
 impl IdleBase for Idle {
     fn wait_for_interrupt(&mut self) -> Result<(), BaseError> {
         self.0 = self.0.checked_add(1).ok_or(BaseError::Unavailable)?;
-        if TIMER_ARM_PENDING.swap(false, Ordering::AcqRel) {
-            timer_arm();
-        }
-        interruptible_idle_once();
+        with_interrupts_masked(|| {
+            // Delivery may have happened after arm restored an enabled caller.
+            // Never sleep past an already captured fact (including overflow).
+            if !TIMER_IRQ.has_fact() {
+                interruptible_idle_once();
+            }
+        });
         Ok(())
     }
     fn idle_count(&self) -> u32 {

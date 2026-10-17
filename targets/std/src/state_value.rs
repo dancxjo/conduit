@@ -79,6 +79,12 @@ pub struct RetainedStdRun {
 }
 
 impl<const PORTS: usize> StepBack<PORTS> for TypedStateBack {
+    fn prepared_output(&self, port: PortId) -> Option<&[u8]> {
+        <StateBack<{ conduit_std_offers::STATE_VALUE_STD_MAXIMUM_BYTES as usize }> as StepBack<
+            PORTS,
+        >>::prepared_output(&self.back, port)
+    }
+
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,
@@ -87,14 +93,14 @@ impl<const PORTS: usize> StepBack<PORTS> for TypedStateBack {
         let port = self.back.next_port();
         if io.input(port).is_some() {
             let Some(canonical) = input_bytes.input(port) else {
-                <StateBack<100> as StepBack<PORTS>>::cancel(&mut self.back);
+                <StateBack<{ conduit_std_offers::STATE_VALUE_STD_MAXIMUM_BYTES as usize }> as StepBack<PORTS>>::cancel(&mut self.back);
                 return StepOutcome::Fail(Failure {
                     code: FailureCode::InvalidInput,
                     detail: 9,
                 });
             };
             if let Err(error) = self.validator.validate(canonical) {
-                <StateBack<100> as StepBack<PORTS>>::cancel(&mut self.back);
+                <StateBack<{ conduit_std_offers::STATE_VALUE_STD_MAXIMUM_BYTES as usize }> as StepBack<PORTS>>::cancel(&mut self.back);
                 let capacity = matches!(
                     error,
                     conduit_core::StructuredInfoRefusal::CanonicalEncodingTooLarge
@@ -109,21 +115,27 @@ impl<const PORTS: usize> StepBack<PORTS> for TypedStateBack {
                 });
             }
         }
-        <StateBack<100> as StepBack<PORTS>>::step(&mut self.back, io, input_bytes)
+        <StateBack<{ conduit_std_offers::STATE_VALUE_STD_MAXIMUM_BYTES as usize }> as StepBack<
+            PORTS,
+        >>::step(&mut self.back, io, input_bytes)
     }
 
     fn step_committed(&mut self) {
-        <StateBack<100> as StepBack<PORTS>>::step_committed(&mut self.back);
+        <StateBack<{ conduit_std_offers::STATE_VALUE_STD_MAXIMUM_BYTES as usize }> as StepBack<
+            PORTS,
+        >>::step_committed(&mut self.back);
     }
 
     fn cancel(&mut self) {
-        <StateBack<100> as StepBack<PORTS>>::cancel(&mut self.back);
+        <StateBack<{ conduit_std_offers::STATE_VALUE_STD_MAXIMUM_BYTES as usize }> as StepBack<
+            PORTS,
+        >>::cancel(&mut self.back);
     }
 }
 
 pub struct TypedStateBack {
     binding: Option<continuity::StateExecutionBinding>,
-    back: StateBack<100>,
+    back: StateBack<{ conduit_std_offers::STATE_VALUE_STD_MAXIMUM_BYTES as usize }>,
     validator: StateValueValidator,
 }
 
@@ -163,7 +175,7 @@ impl TypedStateBack {
         let cell =
             StateDelay::externally_continued(slot, state.maximum_value_bytes as usize, initial)
                 .map_err(|error| format!("State storage: {error:?}"))?;
-        let back = StateBack::new(cell, next, current)
+        let back = StateBack::new_prepared(cell, next, current)
             .map_err(|error| format!("State back: {error:?}"))?;
         Ok(Self {
             binding: None,

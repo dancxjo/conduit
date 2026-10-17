@@ -17,7 +17,7 @@ use crate::{
     ordinary_plan::{PreparationError, advertisement},
 };
 
-pub const PLOT_SOURCE: &str = "plot conduitos-keyboard-upper {\n    keyboard: input/keyboard\n    keymap: input/keymap\n    upper: text/upper\n    show: presentation/text\n    keyboard.key >> keymap.key\n    keymap.text >> upper.source\n    upper.text >> show.text\n}\n";
+pub const PLOT_SOURCE: &str = "plot conduitos-keyboard-upper {\n    keyboard: input/keyboard\n    keymap: input/keymap\n    upper: text/upper\n    show: face/text(\"Message\")\n    keyboard.key >> keymap.key\n    keymap.text >> upper.source\n    upper.text >> show.text\n}\n";
 pub const KEYMAP_IMPLEMENTATION: &str = "conduitos/kernel-keymap@1";
 pub const KEYMAP_EXECUTION_PROFILE: &str = "conduitos/portable-input-cooperative@1";
 const PLACEMENTS: usize = 4;
@@ -122,6 +122,12 @@ pub fn validate(
     {
         return Err(PreparationError::PlanRejected);
     }
+    if fragment.placements.iter().any(|placement| {
+        placement.kind_id.as_str() == conduit_semantic_catalog::TEXT_FACE_KIND
+            && conduit_semantic_catalog::text_face_insertion_caret(&placement.configuration)
+    }) {
+        return Err(PreparationError::PlanRejected);
+    }
     for (kind, implementation) in [
         (
             conduit_semantic_catalog::KEYBOARD_KIND,
@@ -133,8 +139,8 @@ pub fn validate(
             crate::offer::TEXT_UPPER_IMPLEMENTATION,
         ),
         (
-            conduit_semantic_catalog::TEXT_PRESENTATION_KIND,
-            crate::offer::TEXT_PRESENTATION_IMPLEMENTATION,
+            conduit_semantic_catalog::TEXT_FACE_KIND,
+            crate::offer::TEXT_FACE_IMPLEMENTATION,
         ),
     ] {
         let placement = fragment
@@ -158,10 +164,21 @@ pub fn validate(
         .iter()
         .find(|placement| placement.kind_id.as_str() == conduit_semantic_catalog::KEYMAP_KIND)
         .ok_or(PreparationError::PlanRejected)?;
-    if keymap.configuration.len() != 1
-        || keymap.configuration[0].key.as_str() != "layout"
-        || keymap.configuration[0].value
-            != conduit_core::ConfigurationValue::Text(conduit_human::CONDUIT_INTL_LAYOUT.into())
+    if keymap.configuration.len() != 2
+        || !keymap.configuration.iter().any(|entry| {
+            entry.key.as_str() == "layout"
+                && entry.value
+                    == conduit_core::ConfigurationValue::Structured(
+                        conduit_human::default_keymap_configuration(),
+                    )
+        })
+        || !keymap.configuration.iter().any(|entry| {
+            entry.key.as_str() == "choices"
+                && entry.value
+                    == conduit_core::ConfigurationValue::Structured(
+                        conduit_human::default_choices_configuration(),
+                    )
+        })
         || keymap.host_calls.len() != 1
         || keymap.host_calls[0].contract_id.as_str() != crate::functional_offers::KEYMAP_HOST_CALL
     {
@@ -180,14 +197,14 @@ pub fn validate(
             "text",
             "upper",
             "source",
-            conduit_semantic_catalog::TEXT_PRESENTATION_VALUE_KIND,
+            conduit_semantic_catalog::TEXT_FACE_VALUE_KIND,
         ),
         (
             "upper",
             "text",
             "show",
             "text",
-            conduit_semantic_catalog::TEXT_PRESENTATION_VALUE_KIND,
+            conduit_semantic_catalog::TEXT_FACE_VALUE_KIND,
         ),
     ];
     for (source_gear, source_port, sink_gear, sink_port, value_kind) in expected {
@@ -233,7 +250,11 @@ pub(crate) fn append_keymap_offer(advertisement: &mut HostAdvertisement, build_i
 
 fn checked_expanded_plot() -> Result<conduit_plot::ExpandedCanonicalPlot, PreparationError> {
     let syntax = conduit_plot::parse_syntax_document(PLOT_SOURCE);
-    let mut startup = conduit_plot::StartupCatalog::new();
+    let mut startup = conduit_plot::checked_physical_catalog_for_document(
+        &conduit_plot::parse_syntax_document(""),
+        &conduit_plot::StartupCatalog::new(),
+    )
+    .map_err(|_| PreparationError::PlotRejected)?;
     let mut profile = conduit_plot::ProfileCatalog::new();
     conduit_semantic_catalog::install_keyboard_catalogs(&mut startup, &mut profile)
         .map_err(|_| PreparationError::PlotRejected)?;
@@ -353,15 +374,13 @@ mod tests {
             .unwrap();
         conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile)
             .unwrap();
-        let checked = conduit_plot::check_syntax_document(&syntax, &startup).unwrap();
-        assert!(
-            conduit_plot::expand_canonical_plot(&checked, "conduitos-keyboard-upper", &profile,)
-                .is_err()
-        );
+        // Layouts are exact structured values; a locale Text now refuses at
+        // source checking, before expansion or any Host is selected.
+        assert!(conduit_plot::check_syntax_document(&syntax, &startup).is_err());
     }
 
     #[test]
-    fn presentation_base_loss_and_cord_underprovision_refuse_before_play() {
+    fn face_base_loss_and_cord_underprovision_refuse_before_play() {
         let (identities, mut offer) = fixture();
         offer
             .bases

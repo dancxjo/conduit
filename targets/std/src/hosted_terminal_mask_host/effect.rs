@@ -2,7 +2,7 @@
 //! The client must write and flush the exact bytes before returning an ack;
 //! a timeout, bad digest, or EOF never produces a terminal effect receipt.
 use crate::terminal_face_mask::MAX_TERMINAL_DOCUMENT_BYTES;
-use conduit_presentation::MaskShow;
+use conduit_face::MaskShow;
 use sha2::{Digest, Sha256};
 use std::{
     io::{self, Read, Write},

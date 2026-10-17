@@ -1,0 +1,8 @@
+# A selected ReadPublished checkpoint version becomes one typed state Fore.
+# Missing, stale, or corrupt residence refuses the Play without an output.
+plot todo/checkpoint-restore (
+    restored: conduit.todo/state@1 <= 1635B >>
+) {
+    checkpoint: todo/checkpoint-read
+    checkpoint.restored >> restored
+}

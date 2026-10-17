@@ -48,7 +48,7 @@ impl SpokenMaskSemanticSession {
         let mut speech_segments = generated
             .content()
             .iter()
-            .filter(|segment| segment.role == conduit_presentation::GeneratedContentRole::Speech);
+            .filter(|segment| segment.role == conduit_face::GeneratedContentRole::Speech);
         let speech = speech_segments
             .next()
             .ok_or_else(|| "generated manifestation has no outward Speech".to_string())?;

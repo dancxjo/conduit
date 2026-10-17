@@ -1,0 +1,33 @@
+{
+  "parent": "b1c5a2b281e07d97b621057f3c504d808f14a3ce",
+  "git_version": "git version 2.53.0",
+  "source_files": {
+    "tools/ci/pipeline/exact-ancestor.mjs": "1b050e7135727ab9b732cb18b55444f0ddde7837699290fe709e026c1efeb707",
+    "tools/ci/pipeline/todo-journey.mjs": "4a360f17c3a7745bea898c3652f101b6ae7fa8d8452963d78b3948ded0e7b3a8",
+    "tools/ci/pipeline/todo-browser-development-evidence.mjs": "f9548e0dfd0bb96281aabad847f15367652302ab309fe3ce27c170d3442ec222",
+    "proof/ci/pipeline-exact-ancestor.spec.mjs": "da0dca04041aceeab1fe0f0004bdfd01842812e5d95d0eac8bfbef93cc35544f"
+  },
+  "logs": {
+    "node-tests.log": "eeee5904e357be332d73eedabf0490defa7aef2b7174ba122bb7dbe91d6d9507",
+    "pipeline-tests.log": "4482b5831fd4005ea27df03d65593d5f8f048189fc691d0fe27c8751b0112462",
+    "retained-todo-gate.log": "087292a4c591c38024d0bbca782cfd9da3ff0b62ed5a0ae15253cacab9314716",
+    "original-ci-browser-failure.log": "0a9e6194c24d8169bd9635e65d1e3ed4718ea8c5758aa873496a1b35dfbc4620",
+    "root-git255-tests.log": "43235c0cd940381c4004f7d44ac6f0fd017541f826652bf88107ad54935bc9bd",
+    "root-git255-pipeline-tests.log": "7398afac04bbba8c4d7ff236a04e5bcb73325fc9e0cf529a3e762efcd9deda82",
+    "root-git255-retained.log": "3a4c374380d02d082cc672d8aa530c6c348e5809d9b285f5a7d943a602edacbb"
+  },
+  "results": {
+    "focused_node_tests": 12,
+    "pipeline_node_tests": 160,
+    "actual_retained_todo_gate": "pass",
+    "original_ci_failing_pair": "pass"
+  },
+  "rationale": "CI merge-base false remains unexplained; Git version difference not reproduced by root. Complete successful unpruned actual-parent walk preserves ancestry requirement and avoids optimized ancestry-query assumptions.",
+  "source_commit": "672da0ad8285002b44a87ac842a3e0170b9d611a",
+  "root_git255": {
+    "official_source": "e9019fcafe0040228b8631c30f97ae1adb61bcdc",
+    "helper_tests": 6,
+    "pipeline_tests": 160,
+    "actual_retained_todo_b1": "pass"
+  }
+}

@@ -1,3 +1,7 @@
+#[cfg(test)]
+#[path = "../../../semantics/face/tests/common/mod.rs"]
+mod mask_test_common;
+
 mod birth_identity;
 mod body_face_json;
 mod body_product;
@@ -13,6 +17,10 @@ mod host_install;
 mod host_rendezvous;
 mod inspection;
 mod native_package_install;
+#[cfg(test)]
+mod parsec_cross_mask_counterexample_tests;
+#[cfg(test)]
+mod parsec_instruction_encounter_tests;
 mod plot_diagram;
 mod plot_source;
 mod product_execution;
@@ -25,7 +33,9 @@ mod rendezvous_relay;
 mod report_artifact;
 mod screen_free_birth;
 mod source_expansion;
+mod source_format;
 mod std_websocket_line;
+mod thermostat_run;
 #[cfg(test)]
 mod two_std_line_tests;
 #[cfg(test)]
@@ -108,11 +118,23 @@ fn run_with_placements(
     await_terminal: bool,
 ) -> Result<(), String> {
     let source = plot_source::load(Path::new(path))?;
+    if source
+        .syntax
+        .plots
+        .last()
+        .is_some_and(|plot| plot.name.text == "thermostat/main")
+    {
+        let authoring = source.expand_entry_for_authoring()?;
+        if placements_path.is_some() || body_path.is_some() {
+            return Err("Thermostat stdin Play currently accepts local source without placement or Body overrides".into());
+        }
+        return thermostat_run::run(&source, &authoring, report_path, artifact_directory);
+    }
     let plot = source.expand_entry()?;
     let body_product = body_path.map(body_product::prepare).transpose()?;
     let mut context = match body_product {
         Some(product) => product.context,
-        None => product_execution::ProductExecutionContext::local_std()?,
+        None => product_execution::ProductExecutionContext::local_std_for_plot(&plot)?,
     };
     let plan = context.plan(&plot, placements_path)?;
     let completion_policy = plan.completion_policy;
@@ -271,15 +293,24 @@ fn main() {
             command: Some(cli::BodyCommand::Face { state_dir, json }),
         }) => body_face_json::run(&state_dir, json),
         Some(cli::Command::Body {
-            command: Some(cli::BodyCommand::Start { state_dir, maximum_millis }),
-        }) => durable_host_control::start_owned_body(&state_dir, maximum_millis),
+            command: Some(cli::BodyCommand::SpokenMask { state_dir, command }),
+        }) => durable_host_control::direct_spoken::run(&state_dir, command),
+        Some(cli::Command::Body {
+            command: Some(cli::BodyCommand::Start { state_dir, maximum_millis, todo_new_list }),
+        }) => durable_host_control::start_owned_body(&state_dir, maximum_millis, todo_new_list),
         Some(cli::Command::Body {
             command: Some(cli::BodyCommand::Lull { state_dir }),
         }) => durable_host_control::lull_owned_body(&state_dir),
         Some(cli::Command::Body {
-            command: Some(cli::BodyCommand::Terminal { state_dir, owner_show }),
+            command: Some(cli::BodyCommand::Terminal { state_dir, owner_show, invitation, authorize_join }),
         }) => {
-            if owner_show {
+            if let Some(invitation) = invitation {
+                #[cfg(unix)]
+                { durable_host::presentation::run(&state_dir, &invitation, authorize_join,
+                    &mut io::stdin().lock(), &mut io::stdout().lock()) }
+                #[cfg(not(unix))]
+                { let _ = (invitation, authorize_join); Err("presentation terminal requires a local Unix Host".into()) }
+            } else if owner_show {
                 #[cfg(unix)]
                 {
                     body_terminal_owner::run(
@@ -436,6 +467,9 @@ fn main() {
             Ok(false) => std::process::exit(1),
             Err(error) => Err(error),
         },
+        Some(cli::Command::Fmt { source, check }) => {
+            source_format::run(&source, check).map(|rendered| print!("{rendered}"))
+        }
         Some(cli::Command::Expand { plot, json }) => {
             source_expansion::run(&plot, json).map(|rendered| print!("{rendered}"))
         }
@@ -455,35 +489,4 @@ fn main() {
 }
 
 #[cfg(test)]
-mod product_entrance_tests {
-    use super::*;
-
-    #[test]
-    fn resident_entrance_uses_the_workspace_browser_application() {
-        let root = std::env::temp_dir().join(format!(
-            "conduit-workspace-entrance-{}-{}",
-            std::process::id(),
-            std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
-                .as_nanos()
-        ));
-        let application = root.join("conduit-workspace");
-        std::fs::create_dir_all(&application).unwrap();
-        std::fs::write(application.join("index.html"), b"workspace").unwrap();
-
-        let command = workspace_command(&root.join("conduit")).unwrap();
-        assert_eq!(command.get_program(), "conduit-browser-host");
-        assert_eq!(
-            command.get_args().collect::<Vec<_>>(),
-            [
-                std::ffi::OsStr::new("--application"),
-                application.as_os_str(),
-                std::ffi::OsStr::new("--mount"),
-                std::ffi::OsStr::new("/workspace/"),
-            ]
-        );
-
-        std::fs::remove_dir_all(root).unwrap();
-    }
-}
+mod product_entrance_tests;

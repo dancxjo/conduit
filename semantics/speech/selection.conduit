@@ -22,33 +22,49 @@ type SpeechAllophoneChoiceOutcome =
     | deferred
     | selected_default
 
-# Index/reason are ignored for none/default. Deferred retains the first
-# blocking candidate and distinguishes requirement from observation uncertainty.
+# The pure transition carrier has exactly the meaningful states. A deferred
+# case cannot carry a match or mismatch reason; none/default carry no index.
+type SpeechAllophoneCandidateIndex = {
+    index: U32 in 0..=7
+}
+type SpeechAllophoneChoiceFold =
+    none
+    | selected_allophone SpeechAllophoneCandidateIndex
+    | requirement_deferred SpeechAllophoneCandidateIndex
+    | observation_deferred SpeechAllophoneCandidateIndex
+    | selected_default
+
+# The preparation receipt retains the public outcome/reason vocabulary, with
+# native law validation. Pure Plots construct the sum carrier above instead.
 type SpeechAllophoneChoiceState = {
     outcome: SpeechAllophoneChoiceOutcome
     index: U32 in 0..=7
     reason: SpeechContextDecision
+    where .outcome is deferred ? (.reason is requirement_unresolved || .reason is observation_unresolved) : true
+    where .outcome is selected_allophone ? .reason is matched : true
+    where .outcome is selected_default ? (.index == 0 && .reason is matched) : true
+    where .outcome is none ? (.index == 0 && .reason is mismatched) : true
 }
 type SpeechAllophoneChoiceInput = {
-    state: SpeechAllophoneChoiceState
+    state: SpeechAllophoneChoiceFold
     index: U32 in 0..=7
     admitted: Boolean
     decision: SpeechContextDecision
 }
 plot speech/allophone-choice-step (
     >> value: SpeechAllophoneChoiceInput
-    result: SpeechAllophoneChoiceState >>
-) = (!(.state.outcome is none) || !.admitted || .decision is mismatched ? .state : .decision is matched ? {outcome: SpeechAllophoneChoiceOutcome.selected_allophone, index: .index, reason: .decision} : {outcome: SpeechAllophoneChoiceOutcome.deferred, index: .index, reason: .decision})
+    result: SpeechAllophoneChoiceFold >>
+) = (!(.state is none) || !.admitted || .decision is mismatched ? .state : .decision is matched ? SpeechAllophoneChoiceFold.selected_allophone({index: .index}) : .decision is requirement_unresolved ? SpeechAllophoneChoiceFold.requirement_deferred({index: .index}) : SpeechAllophoneChoiceFold.observation_deferred({index: .index}))
 
 type SpeechAllophoneChoiceFinishInput = {
-    state: SpeechAllophoneChoiceState
+    state: SpeechAllophoneChoiceFold
     allow_default: Boolean
     default_available: Boolean
 }
 plot speech/allophone-choice-finish (
     >> value: SpeechAllophoneChoiceFinishInput
-    result: SpeechAllophoneChoiceState >>
-) = (.state.outcome is none && .allow_default && .default_available ? {outcome: SpeechAllophoneChoiceOutcome.selected_default, index: 0, reason: SpeechContextDecision.matched} : .state)
+    result: SpeechAllophoneChoiceFold >>
+) = (.state is none && .allow_default && .default_available ? SpeechAllophoneChoiceFold.selected_default : .state)
 
 # A Known phone remains a constraint, not permission to replace it. Unspecified
 # is the explicit unconstrained request; other states are unresolved/refused.

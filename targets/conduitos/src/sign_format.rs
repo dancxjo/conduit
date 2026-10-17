@@ -11,6 +11,19 @@ use crate::{
     offer::{HostOffer, SERIAL_MAXIMUM_BYTES},
 };
 
+#[cfg(any(test, target_arch = "x86_64"))]
+const BOOT_QEMU_PROFILE: &str = if cfg!(feature = "usb-hid-mouse-proof") {
+    crate::make::USB_HID_MOUSE_QEMU_PROFILE
+} else if cfg!(feature = "usb-hid-endpoint-proof") {
+    crate::make::USB_HID_ENDPOINT_QEMU_PROFILE
+} else if cfg!(feature = "usb-endpoint-read-proof") {
+    crate::make::USB_ENDPOINT_QEMU_PROFILE
+} else if cfg!(feature = "usb-configuration-proof") {
+    crate::make::USB_CONFIGURATION_QEMU_PROFILE
+} else {
+    "q35-single-cpu-64m-headless-xhci-usb-kbd-usb-mouse-usb-ftdi-adlib"
+};
+
 pub const BOOT_SIGN_SCHEMA: &str = "conduit.conduitos.boot-sign/v1";
 pub const MAX_BOOT_SIGN_BYTES: usize = 1024;
 pub const MACHINE_SIGN_SCHEMA: &str = "conduit.conduitos.kernel-sign/v2";
@@ -65,9 +78,15 @@ pub fn accepted(
     offer_generation: u64,
 ) -> Result<FixedText, fmt::Error> {
     let mut output = FixedText::new();
+    let qemu_profile =
+        if make.proof_instrumentation == 0 && make.runtime_arena_ceiling > 64 * 1024 * 1024 {
+            crate::make::PC_PRODUCT_QEMU_PROFILE
+        } else {
+            BOOT_QEMU_PROFILE
+        };
     write!(
         output,
-        "CONDUIT_BOOT_SIGN {{\"schema\":\"{BOOT_SIGN_SCHEMA}\",\"status\":\"accepted\",\"arch\":\"{}\",\"firmware\":\"{}\",\"profile_id\":\"{}\",\"build_id\":\"{}\",\"image_binding\":\"{}\",\"offer_generation\":{},\"limine\":\"12.5.2\",\"qemu_profile\":\"q35-single-cpu-64m-headless-xhci-usb-kbd-usb-mouse-usb-ftdi-adlib\",\"host_id\":\"",
+        "CONDUIT_BOOT_SIGN {{\"schema\":\"{BOOT_SIGN_SCHEMA}\",\"status\":\"accepted\",\"arch\":\"{}\",\"firmware\":\"{}\",\"profile_id\":\"{}\",\"build_id\":\"{}\",\"image_binding\":\"{}\",\"offer_generation\":{},\"limine\":\"12.5.2\",\"qemu_profile\":\"{qemu_profile}\",\"host_id\":\"",
         crate::arch::ARCHITECTURE,
         record.firmware.as_str(),
         make.profile_id,
@@ -150,7 +169,7 @@ pub fn machine_accepted(
     }
     writeln!(
         output,
-        "],\"base_count\":{},\"memory_arena_bytes\":{},\"execution_regions\":2,\"execution_lanes\":2,\"region_ids\":[\"region/text\",\"region/timer\"],\"lane_resource_ids\":[\"{}\",\"{}\"],\"lane_base_id\":\"{}\",\"timer_slots\":1,\"serial_slots\":2,\"serial_maximum_bytes\":{},\"interrupt_fact_slots\":{},\"sign_item_slots\":{},\"logical_operations\":{},\"kernel_decisions\":{},\"kernel_signs\":{},\"timer_irq_wakes\":{},\"idle_entries\":{},\"serial_presentations\":{},\"clock_monotonic\":{},\"pending_host_calls\":{},\"overlap_witness\":{},\"timer_pending_during_text_progress\":{},\"physical_parallelism\":{},\"preemption\":false,\"isolation\":false,\"sse2\":{},\"rdrand\":{},\"invariant_tsc\":{}}}",
+        "],\"base_count\":{},\"memory_arena_bytes\":{},\"execution_regions\":2,\"execution_lanes\":2,\"region_ids\":[\"region/text\",\"region/timer\"],\"lane_resource_ids\":[\"{}\",\"{}\"],\"lane_base_id\":\"{}\",\"timer_slots\":1,\"serial_slots\":2,\"serial_maximum_bytes\":{},\"interrupt_fact_slots\":{},\"sign_item_slots\":{},\"logical_operations\":{},\"kernel_decisions\":{},\"kernel_signs\":{},\"timer_irq_wakes\":{},\"idle_entries\":{},\"serial_faces\":{},\"clock_monotonic\":{},\"pending_host_calls\":{},\"overlap_witness\":{},\"timer_pending_during_text_progress\":{},\"physical_parallelism\":{},\"preemption\":false,\"isolation\":false,\"sse2\":{},\"rdrand\":{},\"invariant_tsc\":{}}}",
         offer.bases.len(),
         offer.runtime_arena_bytes,
         text_region.lane_resource.pool_id.as_str(),
@@ -164,7 +183,7 @@ pub fn machine_accepted(
         report.kernel_signs,
         report.timer_irq_wakes,
         report.idle_entries,
-        report.serial_presentations,
+        report.serial_faces,
         report.clock_monotonic,
         report.pending_host_calls,
         report.overlap_witness,
@@ -228,13 +247,13 @@ mod tests {
                 & !crate::make::IMPL_LINEAR_PRESENTER
                 & !crate::make::IMPL_HTTP_CLIENT,
             facilities: crate::make::FACILITY_NATIVE_COMPOSITOR,
-            resources: crate::make::RESOURCE_PRESENTATION_SURFACE,
+            resources: crate::make::RESOURCE_FACE_SURFACE,
             bases: crate::make::BASE_DISPLAY_SCANOUT,
             drivers: crate::make::DRIVER_LINEAR_FRAMEBUFFER,
             presenters: crate::make::PRESENTER_NATIVE_GRAPHICAL,
             proof_instrumentation: 0,
-            presentation_surface_slots: 4,
-            presentation_surface_bytes: 4 * 1024 * 1024,
+            face_surface_slots: 4,
+            face_surface_bytes: 4 * 1024 * 1024,
             runtime_arena_ceiling: 262_144,
             operation_slot_ceiling: 64,
             timer_slot_ceiling: 32,
@@ -284,7 +303,7 @@ mod tests {
                 kernel_signs: 12,
                 timer_irq_wakes: 1,
                 idle_entries: 1,
-                serial_presentations: 1,
+                serial_faces: 1,
                 clock_monotonic: true,
                 pending_host_calls: 0,
                 overlap_witness: true,

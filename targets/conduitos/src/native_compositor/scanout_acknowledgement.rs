@@ -9,7 +9,7 @@ use super::{CompositionReceipt, NativeCompositor};
 /// borrowing its compositor prevents mutation while the acknowledgement is used.
 pub struct ScanoutAcknowledgement<'a> {
     composition: &'a CompositionReceipt,
-    presentation_revision: u64,
+    face_revision: u64,
     frame_sequence: u64,
     pixels_written: u32,
 }
@@ -18,8 +18,8 @@ impl ScanoutAcknowledgement<'_> {
     pub fn composition(&self) -> &CompositionReceipt {
         self.composition
     }
-    pub const fn presentation_revision(&self) -> u64 {
-        self.presentation_revision
+    pub const fn face_revision(&self) -> u64 {
+        self.face_revision
     }
     pub const fn frame_sequence(&self) -> u64 {
         self.frame_sequence
@@ -36,7 +36,7 @@ impl NativeCompositor {
     pub fn scanout_acknowledgement(
         &self,
         expected: &CompositionReceipt,
-        presentation_revision: u64,
+        face_revision: u64,
     ) -> Option<ScanoutAcknowledgement<'_>> {
         if !self.damage.pending().is_empty() {
             return None;
@@ -50,14 +50,12 @@ impl NativeCompositor {
             return None;
         }
         let composition = surface.receipt.as_ref()?;
-        if composition != expected
-            || surface.binding.as_ref()?.last_revision != presentation_revision
-        {
+        if composition != expected || surface.binding.as_ref()?.last_revision != face_revision {
             return None;
         }
         Some(ScanoutAcknowledgement {
             composition,
-            presentation_revision,
+            face_revision,
             frame_sequence: self.frame_sequence,
             pixels_written: self.scanout_pixels[index],
         })

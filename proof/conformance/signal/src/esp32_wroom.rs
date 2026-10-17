@@ -23,8 +23,7 @@ use crate::{
 pub const ESP32_WROOM_BUILD_FIXTURE_HOST_ID: &str = "fixture/build/esp32/wroom32/hw-463";
 pub const ESP32_WROOM_BUILD_FIXTURE_BOOT_ID: &str = "fixture/build/esp32/wroom32/no-boot";
 pub const ESP32_WROOM_BUILD_FIXTURE_TIMER_POOL_ID: &str = "fixture/build/esp32/wroom32/systimer";
-pub const ESP32_WROOM_BUILD_FIXTURE_PRESENTATION_POOL_ID: &str =
-    "fixture/build/esp32/wroom32/uart0-sign";
+pub const ESP32_WROOM_BUILD_FIXTURE_FACE_POOL_ID: &str = "fixture/build/esp32/wroom32/uart0-sign";
 
 /// Supplies exact finite planner input during IMAGE construction only.
 ///
@@ -40,7 +39,7 @@ pub fn esp32_wroom_build_fixture_advertisement() -> HostAdvertisement {
         bases: vec![],
         resources: signal_resource_offers(
             ESP32_WROOM_BUILD_FIXTURE_TIMER_POOL_ID,
-            ESP32_WROOM_BUILD_FIXTURE_PRESENTATION_POOL_ID,
+            ESP32_WROOM_BUILD_FIXTURE_FACE_POOL_ID,
             1,
         ),
         planner_capabilities: vec![],
@@ -71,7 +70,7 @@ pub fn esp32_wroom_build_fixture_advertisement() -> HostAdvertisement {
                 },
             },
             conduit_core::capability_offer_from_parts! {
-                startup_parameters: vec![],
+                startup_parameters: conduit_core::data_label_startup_front(),
                 shorthand: None,
                 capability_id: CapabilityId::from("esp32-wroom-uart-show-1"),
                 kind_id: show_kind(),

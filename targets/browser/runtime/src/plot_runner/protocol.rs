@@ -1,7 +1,7 @@
 //! Bounded Tour ABI effects, receipts, and manifestation decoding.
 
 use crate::source_interaction::SourceInteractionEvidence;
-use conduit_core::{PresentationIdentity, SignIdentity};
+use conduit_core::{FaceIdentity, SignIdentity};
 use serde::Serialize;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
@@ -20,11 +20,16 @@ pub(super) struct TourEffect {
     pub(super) plan_id: String,
     pub(super) fragment_id: String,
     pub(super) active_play_id: String,
-    pub(super) presentation_id: String,
+    pub(super) face_id: String,
     pub(super) placement_id: String,
     pub(super) host_id: String,
     pub(super) boot_id: String,
-    pub(super) presentation_kind: String,
+    pub(super) face_kind: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(super) data_label: Option<String>,
+    /// An authored semantic insertion point at the end of the current text.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(super) insertion_caret: Option<bool>,
     pub(super) observation_sequence: u32,
     pub(super) realization: &'static str,
     pub(super) expanded_gears: Vec<TourGearEvidence>,
@@ -74,6 +79,8 @@ pub(super) struct TourKeyEventEffect {
     pub(super) maximum_output_bytes: u32,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(super) source_interaction: Option<SourceInteractionEvidence>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(super) choice: Option<crate::installed_browser::saved_choice::SavedChoiceConfiguration>,
 }
 
 #[derive(Debug, Serialize)]
@@ -180,7 +187,7 @@ pub(super) struct TourReceipt {
     pub(super) disposition: &'static str,
     pub(super) active_play_id: String,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub(super) presentation_id: Option<String>,
+    pub(super) face_id: Option<String>,
     pub(super) terminal_sign_id: String,
     pub(super) timer_completions: u32,
     pub(super) manifestation_completions: u32,
@@ -267,7 +274,7 @@ pub(super) fn decode_manifestation(
     manifestation: &crate::installed_browser::BrowserManifestation,
 ) -> Result<(u16, Vec<IndicatorSegment>, Option<String>), String> {
     match manifestation.kind_id {
-        conduit_semantic_catalog::INDICATOR_PRESENTATION_KIND => {
+        conduit_semantic_catalog::INDICATOR_FACE_KIND => {
             let pattern = conduit_text::MorsePattern::decode(&manifestation.canonical_value)
                 .map_err(|error| format!("decode planned indicator effect: {error:?}"))?;
             Ok((
@@ -283,17 +290,17 @@ pub(super) fn decode_manifestation(
                 None,
             ))
         }
-        conduit_semantic_catalog::TEXT_PRESENTATION_KIND => {
+        conduit_semantic_catalog::TEXT_FACE_KIND => {
             let text = String::from_utf8(manifestation.canonical_value.clone())
                 .map_err(|_| "planned text manifestation is not UTF-8")?;
             Ok((0, Vec::new(), Some(text)))
         }
-        conduit_semantic_catalog::APPLICATION_VIEW_PRESENTATION_KIND => {
-            conduit_presentation::ApplicationView::decode(&manifestation.canonical_value)
+        conduit_semantic_catalog::APPLICATION_VIEW_FACE_KIND => {
+            conduit_face::ApplicationView::decode(&manifestation.canonical_value)
                 .map_err(|error| format!("decode planned application view: {error:?}"))?;
             Ok((0, Vec::new(), None))
         }
-        conduit_data::MEASUREMENT_PLOT_PRESENTATION_KIND => {
+        conduit_data::MEASUREMENT_PLOT_FACE_KIND => {
             let value = conduit_core::StructuredInfoValue::from_canonical_bytes(
                 &manifestation.canonical_value,
             )
@@ -316,17 +323,17 @@ pub(super) fn decode_manifestation(
                 )),
             ))
         }
-        conduit_presentation::GENERATED_MANIFESTATION_CANDIDATE_KIND => {
-            serde_json::from_slice::<conduit_presentation::GeneratedManifestationCandidate>(
+        conduit_face::GENERATED_MANIFESTATION_CANDIDATE_KIND => {
+            serde_json::from_slice::<conduit_face::GeneratedManifestationCandidate>(
                 &manifestation.canonical_value,
             )
             .map_err(|error| format!("decode generated manifestation candidate: {error}"))?;
             Err(
-                "generated manifestation candidate requires semantic validation before browser presentation"
+                "generated manifestation candidate requires semantic validation before browser face"
                     .into(),
             )
         }
-        conduit_data::MEASUREMENT_THRESHOLD_PRESENTATION_KIND => {
+        conduit_data::MEASUREMENT_THRESHOLD_FACE_KIND => {
             let value = conduit_core::StructuredInfoValue::from_canonical_bytes(
                 &manifestation.canonical_value,
             )
@@ -350,7 +357,7 @@ pub(super) fn decode_manifestation(
                 )),
             ))
         }
-        conduit_semantic_catalog::STRUCTURED_PRESENTATION_KIND => {
+        conduit_semantic_catalog::STRUCTURED_FACE_KIND => {
             let value = conduit_core::StructuredInfoValue::from_canonical_bytes(
                 &manifestation.canonical_value,
             )
@@ -359,7 +366,7 @@ pub(super) fn decode_manifestation(
                 return Ok((
                     0,
                     Vec::new(),
-                    Some(crate::installed_browser::comparison_presentation::text(
+                    Some(crate::installed_browser::comparison_face::text(
                         &manifestation.canonical_value,
                     )?),
                 ));
@@ -369,7 +376,7 @@ pub(super) fn decode_manifestation(
                 return Ok((
                     0,
                     Vec::new(),
-                    Some(crate::installed_browser::normalized_presentation::text(
+                    Some(crate::installed_browser::normalized_face::text(
                         &manifestation.canonical_value,
                     )?),
                 ));
@@ -377,15 +384,7 @@ pub(super) fn decode_manifestation(
             if value.value_type() == &conduit_semantic_catalog::wrapped_quantity_type() {
                 let quantity =
                     crate::installed_browser::decode_quantity_leaf(&manifestation.canonical_value)?;
-                return Ok((
-                    0,
-                    Vec::new(),
-                    Some(format!(
-                        "{} {}",
-                        quantity.value(),
-                        quantity.unit().plot_suffix()
-                    )),
-                ));
+                return Ok((0, Vec::new(), Some(quantity_text(quantity))));
             }
             if value.value_type() != &conduit_language::annotation_bundle_four_type() {
                 return Err("structured manifestation has the wrong exact type".into());
@@ -399,40 +398,32 @@ pub(super) fn decode_manifestation(
                 )),
             ))
         }
-        conduit_semantic_catalog::QUANTITY_PRESENTATION_KIND => {
+        conduit_semantic_catalog::QUANTITY_FACE_KIND => {
             let quantity =
                 crate::installed_browser::decode_quantity_leaf(&manifestation.canonical_value)?;
-            Ok((
-                0,
-                Vec::new(),
-                Some(format!(
-                    "{} {}",
-                    quantity.value(),
-                    quantity.unit().plot_suffix()
-                )),
-            ))
+            Ok((0, Vec::new(), Some(quantity_text(quantity))))
         }
-        conduit_semantic_catalog::SCALAR_VALUE_PRESENTATION_KIND => {
+        conduit_semantic_catalog::SCALAR_VALUE_FACE_KIND => {
             let scalar = conduit_core::Scalar::decode(&manifestation.canonical_value)
                 .map_err(|error| format!("decode scalar manifestation: {error:?}"))?;
             Ok((0, Vec::new(), Some(format_scalar(scalar))))
         }
-        conduit_semantic_catalog::BOOL_VALUE_PRESENTATION_KIND => {
+        conduit_semantic_catalog::BOOL_VALUE_FACE_KIND => {
             let value = conduit_core::InfoBool::decode(&manifestation.canonical_value)
                 .map_err(|error| format!("decode Boolean manifestation: {error:?}"))?;
             Ok((0, Vec::new(), Some(value.get().to_string())))
         }
-        conduit_semantic_catalog::BOOL_PRESENTATION_KIND => {
+        conduit_semantic_catalog::BOOL_FACE_KIND => {
             let value = conduit_core::InfoBool::decode(&manifestation.canonical_value)
                 .map_err(|error| format!("decode current Boolean manifestation: {error:?}"))?;
             Ok((0, Vec::new(), Some(value.get().to_string())))
         }
-        conduit_semantic_catalog::INDICATOR_STATE_PRESENTATION_KIND => {
+        conduit_semantic_catalog::INDICATOR_STATE_FACE_KIND => {
             let value = conduit_core::InfoBool::decode(&manifestation.canonical_value)
                 .map_err(|error| format!("decode indicator state manifestation: {error:?}"))?;
             Ok((0, Vec::new(), Some(value.get().to_string())))
         }
-        conduit_semantic_catalog::COUNT_PRESENTATION_KIND => {
+        conduit_semantic_catalog::COUNT_FACE_KIND => {
             let encoded: [u8; conduit_semantic_catalog::COUNT_ENCODED_LEN as usize] = manifestation
                 .canonical_value
                 .as_slice()
@@ -440,17 +431,17 @@ pub(super) fn decode_manifestation(
                 .map_err(|_| "planned count manifestation is not an exact Count")?;
             Ok((0, Vec::new(), Some(u64::from_le_bytes(encoded).to_string())))
         }
-        conduit_semantic_catalog::TICK_PRESENTATION_KIND => {
+        conduit_semantic_catalog::TICK_FACE_KIND => {
             let sequence = conduit_time::decode_tick(&manifestation.canonical_value)
                 .map_err(|error| error.to_string())?;
             Ok((0, Vec::new(), Some(sequence.to_string())))
         }
-        conduit_semantic_catalog::PULSE_PRESENTATION_KIND => {
+        conduit_semantic_catalog::PULSE_FACE_KIND => {
             let pulse = conduit_time::decode_pulse_observation(&manifestation.canonical_value)
                 .map_err(|error| format!("decode pulse manifestation: {error:?}"))?;
             Ok((
                 u16::try_from(*pulse.sequence())
-                    .map_err(|_| "pulse manifestation sequence exceeds presentation bound")?,
+                    .map_err(|_| "pulse manifestation sequence exceeds face bound")?,
                 Vec::new(),
                 Some(format!(
                     "pulse {} · {} ms",
@@ -459,12 +450,12 @@ pub(super) fn decode_manifestation(
                 )),
             ))
         }
-        conduit_semantic_catalog::RHYTHM_PRESENTATION_KIND => {
+        conduit_semantic_catalog::RHYTHM_FACE_KIND => {
             let rhythm = conduit_time::decode_rhythm_state(&manifestation.canonical_value)
                 .map_err(|error| format!("decode rhythm manifestation: {error:?}"))?;
             Ok((
                 u16::try_from(rhythm.sequence)
-                    .map_err(|_| "rhythm manifestation sequence exceeds presentation bound")?,
+                    .map_err(|_| "rhythm manifestation sequence exceeds face bound")?,
                 Vec::new(),
                 Some(format!(
                     "rhythm {} · next {} ms · period {} ms · peer {}",
@@ -475,7 +466,7 @@ pub(super) fn decode_manifestation(
                 )),
             ))
         }
-        conduit_semantic_catalog::GARDEN_STATE_PRESENTATION_KIND => {
+        conduit_semantic_catalog::GARDEN_STATE_FACE_KIND => {
             let state =
                 conduit_semantic_catalog::decode_garden_state(&manifestation.canonical_value)
                     .map_err(|_| "decode Garden state manifestation: malformed exact state")?;
@@ -508,7 +499,7 @@ fn format_scalar(value: conduit_core::Scalar) -> String {
 pub(super) fn receipt(
     disposition: &'static str,
     active_play_id: &conduit_core::ActivePlayId,
-    presentation: Option<&PresentationIdentity>,
+    face: Option<&FaceIdentity>,
     sign: &SignIdentity,
     timer_completions: u32,
     manifestation_completions: u32,
@@ -517,7 +508,7 @@ pub(super) fn receipt(
         schema: "conduit.tour/manifestation-receipt@3",
         disposition,
         active_play_id: active_play_id.as_str().into(),
-        presentation_id: presentation.map(|identity| identity.presentation_id.as_str().into()),
+        face_id: face.map(|identity| identity.face_id.as_str().into()),
         terminal_sign_id: sign.sign_id.as_str().into(),
         timer_completions,
         manifestation_completions,
@@ -543,4 +534,12 @@ pub(super) struct SnapshotEffect {
     pub record: Option<Vec<u8>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub source_interaction: Option<SourceInteractionEvidence>,
+}
+
+fn quantity_text(quantity: conduit_core::Quantity) -> String {
+    let magnitude = quantity
+        .to_i64(quantity.unit())
+        .map(|value| value.to_string())
+        .unwrap_or_else(|_| format!("{}e{}", quantity.coefficient(), quantity.exponent()));
+    format!("{magnitude} {}", quantity.unit().plot_suffix())
 }

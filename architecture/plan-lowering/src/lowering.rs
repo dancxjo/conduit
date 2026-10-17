@@ -5,10 +5,9 @@ use alloc::collections::{BTreeMap, BTreeSet};
 use alloc::vec::Vec;
 use conduit_core::{
     ActivePlayId, ActivePlayIdentity, AdmittedLine, BootId, ConnectionId, ConnectionTrack,
-    ExpectedSign, FragmentId, HostCallContractId, HostId, KindId, LinkEndpoint, PlacementId,
-    PlanFragment, PlanId, PortDirection, PortId as PlanPortId, PortTemporal, PresentationId,
-    PresentationIdentity, ResourceBinding as PlanResourceBinding, SharedPoolId, SignId,
-    SignIdentity,
+    ExpectedSign, FaceId, FaceIdentity, FragmentId, HostCallContractId, HostId, KindId,
+    LinkEndpoint, PlacementId, PlanFragment, PlanId, PortDirection, PortId as PlanPortId,
+    PortTemporal, ResourceBinding as PlanResourceBinding, SharedPoolId, SignId, SignIdentity,
 };
 use conduit_kernel::{
     scheduler::{AssignedPressurePolicy, CordCapacity, CordSpec, NodeSpec},
@@ -84,12 +83,12 @@ fn source_contract_matches(
         }
         ConnectionTrack::NormalClose => {
             descriptor.temporal == (PortTemporal::Flow { closes: true })
-                && value_kind.as_str() == conduit_core::UNIT_INFO_ID
+                && value_kind.as_str() == conduit_core::EMPTY_INFO_ID
                 && temporal == PortTemporal::Value
         }
         ConnectionTrack::Quiescence => {
             matches!(descriptor.temporal, PortTemporal::Flow { .. })
-                && value_kind.as_str() == conduit_core::UNIT_INFO_ID
+                && value_kind.as_str() == conduit_core::EMPTY_INFO_ID
                 && temporal == PortTemporal::Value
         }
     }
@@ -286,6 +285,9 @@ pub struct LoweredForePort {
     pub temporal: conduit_core::PortTemporal,
     pub item_capacity: u16,
     pub byte_capacity: u32,
+    /// Selected external carrier identity; execution must recheck its live
+    /// availability before crossing this Fore.
+    pub selected_line: Option<conduit_core::AdmittedLine>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -512,7 +514,7 @@ pub enum ExecutionIdentityError {
     UnknownNode,
     UnknownHostCall,
     UnknownRequest,
-    UnknownPresentation,
+    UnknownFace,
     DuplicateIdentity,
     CapacityExceeded,
 }
@@ -526,10 +528,10 @@ pub struct KernelHostRequestIdentity {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct KernelPresentationIdentity {
+pub struct KernelFaceIdentity {
     pub node: NodeId,
     pub request: conduit_kernel::RequestId,
-    pub presentation_id: PresentationId,
+    pub face_id: FaceId,
     pub placement_id: PlacementId,
 }
 
@@ -539,7 +541,7 @@ pub struct KernelSignIdentity {
     pub sequence: u64,
     pub node: Option<NodeId>,
     pub request: Option<conduit_kernel::RequestId>,
-    pub presentation_id: Option<PresentationId>,
+    pub face_id: Option<FaceId>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -549,7 +551,7 @@ pub struct KernelExecutionIdentityMap {
     host_id: HostId,
     boot_id: BootId,
     requests: Vec<KernelHostRequestIdentity>,
-    presentations: Vec<KernelPresentationIdentity>,
+    faces: Vec<KernelFaceIdentity>,
     signs: Vec<KernelSignIdentity>,
 }
 
@@ -558,7 +560,7 @@ impl KernelExecutionIdentityMap {
         lowered: &KernelIdentityMap,
         active_play: &ActivePlayIdentity,
         request_capacity: usize,
-        presentation_capacity: usize,
+        face_capacity: usize,
         sign_capacity: usize,
     ) -> Result<Self, ExecutionIdentityError> {
         if active_play.plan_id != lowered.plan_id {
@@ -570,7 +572,7 @@ impl KernelExecutionIdentityMap {
             host_id: active_play.host_id.clone(),
             boot_id: active_play.boot_id.clone(),
             requests: Vec::with_capacity(request_capacity),
-            presentations: Vec::with_capacity(presentation_capacity),
+            faces: Vec::with_capacity(face_capacity),
             signs: Vec::with_capacity(sign_capacity),
         })
     }
@@ -604,36 +606,36 @@ impl KernelExecutionIdentityMap {
         Ok(())
     }
 
-    pub fn bind_presentation(
+    pub fn bind_face(
         &mut self,
         lowered: &KernelIdentityMap,
         node: NodeId,
         request: conduit_kernel::RequestId,
-        presentation: &PresentationIdentity,
+        face: &FaceIdentity,
     ) -> Result<(), ExecutionIdentityError> {
-        if presentation.active_play_id != self.active_play_id {
+        if face.active_play_id != self.active_play_id {
             return Err(ExecutionIdentityError::WrongActivePlay);
         }
-        if lowered.node_for_placement(&presentation.placement_id) != Some(node) {
+        if lowered.node_for_placement(&face.placement_id) != Some(node) {
             return Err(ExecutionIdentityError::UnknownNode);
         }
         if self.request(node, request).is_none() {
             return Err(ExecutionIdentityError::UnknownRequest);
         }
-        if self.presentations.len() >= self.presentations.capacity() {
+        if self.faces.len() >= self.faces.capacity() {
             return Err(ExecutionIdentityError::CapacityExceeded);
         }
-        if self.presentations.iter().any(|identity| {
-            identity.presentation_id == presentation.presentation_id
+        if self.faces.iter().any(|identity| {
+            identity.face_id == face.face_id
                 || (identity.node == node && identity.request == request)
         }) {
             return Err(ExecutionIdentityError::DuplicateIdentity);
         }
-        self.presentations.push(KernelPresentationIdentity {
+        self.faces.push(KernelFaceIdentity {
             node,
             request,
-            presentation_id: presentation.presentation_id.clone(),
-            placement_id: presentation.placement_id.clone(),
+            face_id: face.face_id.clone(),
+            placement_id: face.placement_id.clone(),
         });
         Ok(())
     }
@@ -643,7 +645,7 @@ impl KernelExecutionIdentityMap {
         sign: &SignIdentity,
         node: Option<NodeId>,
         request: Option<conduit_kernel::RequestId>,
-        presentation_id: Option<&PresentationId>,
+        face_id: Option<&FaceId>,
     ) -> Result<(), ExecutionIdentityError> {
         if sign.active_play_id.as_ref() != Some(&self.active_play_id) {
             return Err(ExecutionIdentityError::WrongActivePlay);
@@ -659,12 +661,12 @@ impl KernelExecutionIdentityMap {
                 return Err(ExecutionIdentityError::UnknownRequest);
             }
         }
-        if let Some(presentation_id) = presentation_id {
-            let presentation = self
-                .presentation(presentation_id)
-                .ok_or(ExecutionIdentityError::UnknownPresentation)?;
-            if Some(presentation.node) != node || Some(presentation.request) != request {
-                return Err(ExecutionIdentityError::UnknownPresentation);
+        if let Some(face_id) = face_id {
+            let face = self
+                .face(face_id)
+                .ok_or(ExecutionIdentityError::UnknownFace)?;
+            if Some(face.node) != node || Some(face.request) != request {
+                return Err(ExecutionIdentityError::UnknownFace);
             }
         }
         if self.signs.len() >= self.signs.capacity() {
@@ -682,7 +684,7 @@ impl KernelExecutionIdentityMap {
             sequence: sign.sequence,
             node,
             request,
-            presentation_id: presentation_id.cloned(),
+            face_id: face_id.cloned(),
         });
         Ok(())
     }
@@ -707,21 +709,16 @@ impl KernelExecutionIdentityMap {
             .filter(move |identity| identity.node == node && &identity.contract_id == contract)
     }
 
-    pub fn presentation(
-        &self,
-        presentation: &PresentationId,
-    ) -> Option<&KernelPresentationIdentity> {
-        self.presentations
-            .iter()
-            .find(|identity| &identity.presentation_id == presentation)
+    pub fn face(&self, face: &FaceId) -> Option<&KernelFaceIdentity> {
+        self.faces.iter().find(|identity| &identity.face_id == face)
     }
 
-    pub fn presentation_for_request(
+    pub fn face_for_request(
         &self,
         node: NodeId,
         request: conduit_kernel::RequestId,
-    ) -> Option<&KernelPresentationIdentity> {
-        self.presentations
+    ) -> Option<&KernelFaceIdentity> {
+        self.faces
             .iter()
             .find(|identity| identity.node == node && identity.request == request)
     }
@@ -730,29 +727,22 @@ impl KernelExecutionIdentityMap {
         self.signs.iter().find(|identity| &identity.sign_id == sign)
     }
 
-    pub fn sign_for_presentation(
-        &self,
-        presentation: &PresentationId,
-    ) -> Option<&KernelSignIdentity> {
+    pub fn sign_for_face(&self, face: &FaceId) -> Option<&KernelSignIdentity> {
         self.signs
             .iter()
-            .find(|identity| identity.presentation_id.as_ref() == Some(presentation))
+            .find(|identity| identity.face_id.as_ref() == Some(face))
     }
 
     pub fn allocation_capacities(&self) -> (usize, usize, usize) {
         (
             self.requests.capacity(),
-            self.presentations.capacity(),
+            self.faces.capacity(),
             self.signs.capacity(),
         )
     }
 
     pub fn lengths(&self) -> (usize, usize, usize) {
-        (
-            self.requests.len(),
-            self.presentations.len(),
-            self.signs.len(),
-        )
+        (self.requests.len(), self.faces.len(), self.signs.len())
     }
 }
 
@@ -793,12 +783,10 @@ pub fn lower_plan_fragment_from_plan(
 > {
     let activations = crate::activation_fragment::lower_fragment_activations(plan, fragment_id)
         .map_err(|_| LoweringError::InvalidFragment)?;
-    let fragment = plan
-        .fragments
-        .iter()
-        .find(|part| &part.fragment_id == fragment_id)
-        .ok_or(LoweringError::InvalidFragment)?;
-    Ok((lower_plan_fragment(fragment)?, activations))
+    Ok((
+        lower_plan_fragment_for_profile_from_plan(plan, fragment_id, FIXED_KERNEL_STORAGE_PROFILE)?,
+        activations,
+    ))
 }
 
 /// Lowers fragment-local kernel facts only. This API cannot establish whether
@@ -815,6 +803,32 @@ pub fn lower_plan_fragment_for_profile(
     profile: KernelStorageProfile,
 ) -> Result<LoweredPlanFragment, LoweringError> {
     admission::validate_fragment(fragment, profile)?;
+    lower_verified_fragment_for_profile(fragment, profile)
+}
+
+/// Lower a fragment whose identity is committed by the complete sealed Plan.
+/// This entrance is required when the PlanId also commits activation entries.
+pub fn lower_plan_fragment_for_profile_from_plan(
+    plan: &conduit_core::Plan,
+    fragment_id: &FragmentId,
+    profile: KernelStorageProfile,
+) -> Result<LoweredPlanFragment, LoweringError> {
+    if !conduit_core::verify_plan(plan) {
+        return Err(LoweringError::InvalidFragment);
+    }
+    let fragment = plan
+        .fragments
+        .iter()
+        .find(|part| &part.fragment_id == fragment_id)
+        .ok_or(LoweringError::InvalidFragment)?;
+    admission::validate_verified_fragment(fragment, profile)?;
+    lower_verified_fragment_for_profile(fragment, profile)
+}
+
+fn lower_verified_fragment_for_profile(
+    fragment: &PlanFragment,
+    profile: KernelStorageProfile,
+) -> Result<LoweredPlanFragment, LoweringError> {
     let mut placement_nodes = BTreeMap::new();
     let mut nodes = Vec::with_capacity(fragment.placements.len());
     let mut node_specs = Vec::with_capacity(fragment.placements.len());
@@ -1218,12 +1232,12 @@ pub fn lower_plan_fragment_for_profile(
             }
             ConnectionTrack::NormalClose => {
                 descriptor.temporal == (PortTemporal::Flow { closes: true })
-                    && planned.value_kind.as_str() == conduit_core::UNIT_INFO_ID
+                    && planned.value_kind.as_str() == conduit_core::EMPTY_INFO_ID
                     && planned.temporal == PortTemporal::Value
             }
             ConnectionTrack::Quiescence => {
                 matches!(descriptor.temporal, PortTemporal::Flow { .. })
-                    && planned.value_kind.as_str() == conduit_core::UNIT_INFO_ID
+                    && planned.value_kind.as_str() == conduit_core::EMPTY_INFO_ID
                     && planned.temporal == PortTemporal::Value
             }
         };
@@ -1299,6 +1313,7 @@ pub fn lower_plan_fragment_for_profile(
             temporal: planned.temporal,
             item_capacity: planned.item_capacity,
             byte_capacity: planned.byte_capacity,
+            selected_line: planned.selected_line.clone(),
         });
     }
 
@@ -1602,6 +1617,7 @@ mod terminal_track_tests {
             temporal: PortTemporal::Value,
             item_capacity: 1,
             byte_capacity: conduit_core::COUNT_ENCODED_LEN as u32,
+            selected_line: None,
         };
         assert_eq!(port.validate_value(&conduit_core::encode_count(3)), Ok(()));
         assert_eq!(
@@ -1627,7 +1643,7 @@ mod terminal_track_tests {
         assert!(source_contract_matches(
             &descriptor,
             ConnectionTrack::NormalClose,
-            &kind_id(conduit_core::UNIT_INFO_ID),
+            &kind_id(conduit_core::EMPTY_INFO_ID),
             PortTemporal::Value
         ));
         let mut standing = descriptor.clone();
@@ -1635,7 +1651,7 @@ mod terminal_track_tests {
         assert!(!source_contract_matches(
             &standing,
             ConnectionTrack::NormalClose,
-            &kind_id(conduit_core::UNIT_INFO_ID),
+            &kind_id(conduit_core::EMPTY_INFO_ID),
             PortTemporal::Value
         ));
         assert!(!source_contract_matches(
@@ -1647,7 +1663,7 @@ mod terminal_track_tests {
         assert!(!source_contract_matches(
             &descriptor,
             ConnectionTrack::NormalClose,
-            &kind_id(conduit_core::UNIT_INFO_ID),
+            &kind_id(conduit_core::EMPTY_INFO_ID),
             PortTemporal::Flow { closes: true }
         ));
     }

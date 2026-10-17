@@ -14,7 +14,10 @@ conduit-audio = { path = "../../../semantics/audio" }
 conduit-ai = { path = "../../../semantics/ai" }
 conduit-core = { path = "../../../architecture/core" }
 conduit-data = { path = "../../../semantics/data" }
+conduit-language = { path = "../../../semantics/language" }
 conduit-plot = { path = "../../../architecture/plot" }
+conduit-todo-plot = { path = "../../../plots/todo/model" }
+conduit-thermostat-plot = { path = "../../../plots/thermostat/model" }
 conduit-human = { path = "../../../semantics/human" }
 conduit-midi = { path = "../../../mechanisms/protocols/midi" }
 conduit-net = { path = "../../../semantics/net", features = ["plot-catalog"] }
@@ -24,6 +27,6 @@ conduit-time = { path = "../../../semantics/time" }
 conduit-text = { path = "../../../semantics/text" }
 conduit-tongues = { path = "../../../semantics/tongues", optional = true }
 conduit-chat = { path = "../../../semantics/chat", features = ["plot-catalog"] }
-conduit-presentation = { path = "../../../semantics/presentation" }
+conduit-face = { path = "../../../semantics/face" }
 conduit-robotics = { path = "../../../semantics/robotics" }
 conduit-web = { path = "../../../semantics/web" }

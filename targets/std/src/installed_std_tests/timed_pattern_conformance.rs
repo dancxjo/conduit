@@ -103,6 +103,7 @@ fn reusable_ordered_event_intervals_plan_and_execute_through_one_kernel_play() {
             keyboard: None,
             local_model: None,
             vector_search: None,
+            model_work: None,
             calendar: None,
             body_conversation_context: None,
         },

@@ -58,7 +58,7 @@ fn capability(capability_id: &str, implementation_id: &str, is_pulse: bool) -> C
         startup_parameters: if is_pulse {
             crate::pulse_front_startup_parameters()
         } else {
-            vec![]
+            conduit_core::data_label_startup_front()
         },
         shorthand: None,
         capability_id: CapabilityId::from(capability_id),
@@ -142,9 +142,7 @@ pub fn browser_advertisement() -> HostAdvertisement {
         bases: vec![],
         resources: signal_resource_offers("s4/triple-browser-unused-timer", "s4/triple-dom", 1)
             .into_iter()
-            .filter(|resource| {
-                resource.class_id.as_str() == conduit_core::PRESENTATION_RESOURCE_CLASS
-            })
+            .filter(|resource| resource.class_id.as_str() == conduit_core::FACE_RESOURCE_CLASS)
             .collect(),
         planner_capabilities: vec![],
         capabilities: vec![capability(
@@ -165,9 +163,7 @@ pub fn pico_advertisement() -> HostAdvertisement {
         bases: vec![],
         resources: signal_resource_offers("s4/triple-pico-unused-timer", "s4/triple-cyw43-led", 1)
             .into_iter()
-            .filter(|resource| {
-                resource.class_id.as_str() == conduit_core::PRESENTATION_RESOURCE_CLASS
-            })
+            .filter(|resource| resource.class_id.as_str() == conduit_core::FACE_RESOURCE_CLASS)
             .collect(),
         planner_capabilities: vec![],
         capabilities: vec![capability(

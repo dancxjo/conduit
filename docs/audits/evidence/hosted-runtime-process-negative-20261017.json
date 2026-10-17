@@ -1,0 +1,30 @@
+{
+  "comparison_sha256": "51f6f6d8c141c719b61015b8d73c11c57efd8f983e8fa1c776c7414a5eee69e3",
+  "checks": [
+    {
+      "case": "duplicate-capture",
+      "exit_code": 1,
+      "refusal": "AssertionError: capture directory reused"
+    },
+    {
+      "case": "duplicate-worker",
+      "exit_code": 1,
+      "refusal": "AssertionError: worker process identity reused"
+    },
+    {
+      "case": "wrong-observed-affinity",
+      "exit_code": 1,
+      "refusal": "AssertionError: observed worker affinity differs"
+    },
+    {
+      "case": "rehashed-worker-affinity",
+      "exit_code": 1,
+      "refusal": "AssertionError: worker affinity differs"
+    },
+    {
+      "case": "disabled-assertions",
+      "exit_code": 1,
+      "refusal": "verification requires Python assertions; do not use -O"
+    }
+  ]
+}

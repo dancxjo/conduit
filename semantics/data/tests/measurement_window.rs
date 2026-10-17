@@ -1,4 +1,4 @@
-use conduit_core::{Quantity, QuantityUnit, TemporalInstant, TemporalScale};
+use conduit_core::{Quantity, TemporalInstant, TemporalScale, Unit};
 use conduit_data::*;
 use conduit_plot::{
     check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
@@ -9,8 +9,8 @@ fn profile(policy: FullWindowPolicy) -> MeasurementWindowProfile {
     MeasurementWindowProfile {
         capacity: 3,
         range: MeasurementRange {
-            minimum: Quantity::new(-2_000, QuantityUnit::Millivolt),
-            maximum: Quantity::new(2_000, QuantityUnit::Millivolt),
+            minimum: Quantity::new(-2_000, Unit::Millivolt),
+            maximum: Quantity::new(2_000, Unit::Millivolt),
         },
         clock_basis: "sensor-clock".into(),
         full_policy: policy,
@@ -19,7 +19,7 @@ fn profile(policy: FullWindowPolicy) -> MeasurementWindowProfile {
 
 fn sample(value: i64, ticks: u64) -> MeasurementSample {
     MeasurementSample {
-        value: Quantity::new(value, QuantityUnit::Millivolt),
+        value: Quantity::new(value, Unit::Millivolt),
         observed_at: TemporalInstant {
             ticks,
             scale: TemporalScale::Milliseconds,
@@ -29,7 +29,7 @@ fn sample(value: i64, ticks: u64) -> MeasurementSample {
         }
         .try_into()
         .unwrap(),
-        uncertainty: Some(Quantity::new(2, QuantityUnit::Millivolt)),
+        uncertainty: Some(Quantity::new(2, Unit::Millivolt)),
     }
 }
 
@@ -47,7 +47,7 @@ fn count_window_is_finite_and_pressure_policy_is_explicit() {
         reject
             .samples()
             .iter()
-            .map(|value| value.value.value())
+            .map(|value| value.value.to_i64(Unit::Millivolt).unwrap())
             .collect::<Vec<_>>(),
         [0, 1, 2]
     );
@@ -60,7 +60,7 @@ fn count_window_is_finite_and_pressure_policy_is_explicit() {
         sliding
             .samples()
             .iter()
-            .map(|value| value.value.value())
+            .map(|value| value.value.to_i64(Unit::Millivolt).unwrap())
             .collect::<Vec<_>>(),
         [1, 2, 3]
     );
@@ -73,7 +73,7 @@ fn unit_range_clock_and_timestamp_refusals_stay_distinct() {
     window.push(sample(100, 2)).unwrap();
 
     let mut wrong_unit = sample(100, 3);
-    wrong_unit.value = Quantity::new(100, QuantityUnit::Millimeter);
+    wrong_unit.value = Quantity::new(100, Unit::Millimeter);
     assert_eq!(
         window.push(wrong_unit),
         Err(MeasurementWindowRefusal::UnitMismatch)
@@ -104,7 +104,7 @@ fn unit_range_clock_and_timestamp_refusals_stay_distinct() {
     );
 
     let mut wrong_uncertainty = sample(100, 3);
-    wrong_uncertainty.uncertainty = Some(Quantity::new(1, QuantityUnit::Millimeter));
+    wrong_uncertainty.uncertainty = Some(Quantity::new(1, Unit::Millimeter));
     assert_eq!(
         window.push(wrong_uncertainty),
         Err(MeasurementWindowRefusal::UncertaintyUnitMismatch)
@@ -172,8 +172,8 @@ fn capacity_and_profile_ranges_refuse_before_storage_exists() {
     );
 
     let mut invalid = profile(FullWindowPolicy::Reject);
-    invalid.range.minimum = Quantity::new(1, QuantityUnit::Millivolt);
-    invalid.range.maximum = Quantity::new(0, QuantityUnit::Millivolt);
+    invalid.range.minimum = Quantity::new(1, Unit::Millivolt);
+    invalid.range.maximum = Quantity::new(0, Unit::Millivolt);
     assert_eq!(
         BoundedMeasurementWindow::new(invalid),
         Err(MeasurementWindowRefusal::InvalidRange)

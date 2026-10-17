@@ -6,6 +6,175 @@ pub(super) fn intrinsic_call(
     mut arguments: Vec<Value>,
     expected: &StructuredInfoType,
 ) -> Result<Value, PortableExpressionEvaluationRefusal> {
+    if let Some(function) = crate::expression_inverse_trigonometry::function(kind) {
+        return crate::expression_inverse_trigonometry::evaluate(function, &arguments, expected);
+    }
+    if kind == crate::expression_angle_reference::CALL {
+        let [argument] = arguments.as_slice() else {
+            return Err(PortableExpressionEvaluationRefusal::InvalidProgram);
+        };
+        return crate::expression_angle_reference::evaluate(argument, expected);
+    }
+    if let Some(function) = crate::expression_trigonometry::function(kind) {
+        let [argument] = arguments.as_slice() else {
+            return Err(PortableExpressionEvaluationRefusal::InvalidProgram);
+        };
+        let angle = StructuredInfoType::leaf(conduit_core::kind_id(conduit_core::ANGLE_INFO_ID))
+            .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?;
+        let target =
+            StructuredInfoType::leaf(conduit_core::kind_id(conduit_core::MATHEMATICAL_VALUE_ID))
+                .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?;
+        if argument.value_type != angle || expected != &target {
+            return Err(PortableExpressionEvaluationRefusal::InvalidProgram);
+        }
+        let mut encoded = alloc::vec![0;crate::expression_trigonometry::MAXIMUM_ENCODED_BYTES];
+        let length =
+            crate::expression_trigonometry::encode(function, &argument.encoded, &mut encoded)?;
+        encoded.truncate(length);
+        return Ok(Value {
+            value_type: target,
+            encoded,
+        });
+    }
+    if kind == "text/material" {
+        let [argument] = arguments.as_slice() else {
+            return Err(PortableExpressionEvaluationRefusal::InvalidProgram);
+        };
+        let target = StructuredInfoType::leaf(conduit_core::kind_id(conduit_core::TEXT_INFO_ID))
+            .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?;
+        if expected != &target || leaf_kind(&argument.value_type)? != conduit_core::TEXT_INFO_ID {
+            return Err(PortableExpressionEvaluationRefusal::InvalidProgram);
+        }
+        let encoded = primitive_bytes(argument)?;
+        conduit_core::validate_primitive_info(conduit_core::TEXT_INFO_ID, &encoded)
+            .map_err(|_| PortableExpressionEvaluationRefusal::InvalidInput)?;
+        return Ok(Value {
+            value_type: target,
+            encoded,
+        });
+    }
+    if kind == "bytes/window" {
+        let source_type = StructuredInfoType::leaf(conduit_core::kind_id("value/bytes"))
+            .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?;
+        let integer_type = StructuredInfoType::leaf(conduit_core::kind_id("value/u64"))
+            .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?;
+        if arguments.len() != 3
+            || expected != &source_type
+            || arguments[0].value_type != source_type
+            || arguments[1].value_type != integer_type
+            || arguments[2].value_type != integer_type
+        {
+            return Err(PortableExpressionEvaluationRefusal::InvalidProgram);
+        }
+        let integer = |value: &Value| -> Result<u64, PortableExpressionEvaluationRefusal> {
+            Ok(u64::from_le_bytes(
+                value
+                    .encoded
+                    .as_slice()
+                    .try_into()
+                    .map_err(|_| PortableExpressionEvaluationRefusal::InvalidInput)?,
+            ))
+        };
+        let offset = integer(&arguments[1])?;
+        let length = integer(&arguments[2])?;
+        let start = usize::try_from(offset)
+            .map_err(|_| PortableExpressionEvaluationRefusal::InvalidInput)?;
+        let end = usize::try_from(
+            offset
+                .checked_add(length)
+                .ok_or(PortableExpressionEvaluationRefusal::InvalidInput)?,
+        )
+        .map_err(|_| PortableExpressionEvaluationRefusal::InvalidInput)?;
+        let encoded = arguments[0]
+            .encoded
+            .get(start..end)
+            .ok_or(PortableExpressionEvaluationRefusal::InvalidInput)?
+            .to_vec();
+        return Ok(Value {
+            value_type: source_type,
+            encoded,
+        });
+    }
+    if matches!(kind, "bytes/length" | "bytes/at") {
+        let count = if kind == "bytes/at" { 2 } else { 1 };
+        let source_type = StructuredInfoType::leaf(conduit_core::kind_id("value/bytes"))
+            .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?;
+        let expected_type =
+            StructuredInfoType::leaf(conduit_core::kind_id(if kind == "bytes/at" {
+                "value/u8"
+            } else {
+                "value/u64"
+            }))
+            .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?;
+        if arguments.len() != count
+            || arguments[0].value_type != source_type
+            || expected != &expected_type
+        {
+            return Err(PortableExpressionEvaluationRefusal::InvalidProgram);
+        }
+        let bytes = &arguments[0].encoded;
+        let encoded = if kind == "bytes/at" {
+            if arguments[1].value_type
+                != StructuredInfoType::leaf(conduit_core::kind_id("value/u64"))
+                    .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?
+            {
+                return Err(PortableExpressionEvaluationRefusal::InvalidProgram);
+            }
+            let index = u64::from_le_bytes(
+                arguments[1]
+                    .encoded
+                    .as_slice()
+                    .try_into()
+                    .map_err(|_| PortableExpressionEvaluationRefusal::InvalidInput)?,
+            );
+            let index = usize::try_from(index)
+                .map_err(|_| PortableExpressionEvaluationRefusal::InvalidInput)?;
+            core::slice::from_ref(
+                bytes
+                    .get(index)
+                    .ok_or(PortableExpressionEvaluationRefusal::InvalidInput)?,
+            )
+            .to_vec()
+        } else {
+            (bytes.len() as u64).to_le_bytes().to_vec()
+        };
+        return Ok(Value {
+            value_type: expected_type,
+            encoded,
+        });
+    }
+    if kind == "sequence/at" {
+        let [source, index] = arguments.as_slice() else {
+            return Err(PortableExpressionEvaluationRefusal::InvalidProgram);
+        };
+        let element = crate::expression_semantic_call::collection_element(&source.value_type)
+            .ok_or(PortableExpressionEvaluationRefusal::InvalidProgram)?;
+        if element != expected
+            || index.value_type
+                != StructuredInfoType::leaf(conduit_core::kind_id("value/u64"))
+                    .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?
+        {
+            return Err(PortableExpressionEvaluationRefusal::InvalidProgram);
+        }
+        let index = u64::from_le_bytes(
+            index
+                .encoded
+                .as_slice()
+                .try_into()
+                .map_err(|_| PortableExpressionEvaluationRefusal::InvalidInput)?,
+        );
+        let index = usize::try_from(index)
+            .map_err(|_| PortableExpressionEvaluationRefusal::InvalidInput)?;
+        let source = StructuredInfoValue::from_canonical_bytes(&source.encoded)
+            .map_err(|_| PortableExpressionEvaluationRefusal::InvalidInput)?;
+        let StructuredInfoValueShape::Collection(values) = source.shape() else {
+            return Err(PortableExpressionEvaluationRefusal::InvalidProgram);
+        };
+        let selected = values
+            .get(index)
+            .ok_or(PortableExpressionEvaluationRefusal::InvalidInput)?;
+        return super::structured::encoded_structured(selected.clone());
+    }
     if kind == "sequence/length" {
         let [argument] = arguments.as_slice() else {
             return Err(PortableExpressionEvaluationRefusal::InvalidProgram);

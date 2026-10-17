@@ -6,15 +6,15 @@ use alloc::string::String;
 use alloc::{vec, vec::Vec};
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, Kind, PortDescriptor, PortDirection, PortTemporal,
-    Quantity, QuantityUnit, StructuredInfoType, StructuredInfoValue, QUANTITY_ENCODED_LEN,
+    Quantity, StructuredInfoType, StructuredInfoValue, Unit, QUANTITY_ENCODED_LEN,
     QUANTITY_INFO_ID,
 };
 
 pub const QUANTITY_INFO_WRAP_KIND: &str = "structured-info/wrap-quantity";
 pub const QUANTITY_INFO_WRAP_REVISION: &str = "conduit.std/wrap-quantity@1";
-pub const QUANTITY_PRESENTATION_KIND: &str = "presentation/quantity";
-pub const QUANTITY_PRESENTATION_REVISION: &str = "conduit.std/presentation-quantity@1";
-pub const QUANTITY_INFO_MAXIMUM_BYTES: usize = 128;
+pub const QUANTITY_FACE_KIND: &str = "face/quantity";
+pub const QUANTITY_FACE_REVISION: &str = "conduit.std/face-quantity@1";
+pub const QUANTITY_INFO_MAXIMUM_BYTES: usize = 4096;
 
 pub fn wrapped_quantity_type() -> StructuredInfoType {
     StructuredInfoType::leaf(kind_id(QUANTITY_INFO_ID)).expect("Quantity is an exact leaf")
@@ -22,7 +22,7 @@ pub fn wrapped_quantity_type() -> StructuredInfoType {
 
 /// Prepare the canonical envelope before Play; subsequent wrapping only copies bytes.
 pub fn quantity_info_prefix() -> Vec<u8> {
-    let quantity = Quantity::new(0, QuantityUnit::One).encode();
+    let quantity = Quantity::new(0, Unit::One).encode();
     let mut envelope = StructuredInfoValue::leaf(wrapped_quantity_type(), quantity.to_vec())
         .expect("canonical Quantity leaf")
         .canonical_bytes()
@@ -88,23 +88,23 @@ pub fn quantity_info_wrap_semantic_contract() -> Kind {
     }
 }
 
-pub fn quantity_presentation_definition() -> conduit_plot::KindProjection {
-    let contract = quantity_presentation_semantic_contract();
+pub fn quantity_face_definition() -> conduit_plot::KindProjection {
+    let contract = quantity_face_semantic_contract();
     conduit_plot::KindProjection {
         kind_id: contract.kind_id,
         kind_contract_revision: contract.kind_contract_revision,
         inputs: contract.inputs,
         outputs: contract.outputs,
-        configuration: Default::default(),
+        configuration: contract.configuration,
     }
 }
 
-pub fn quantity_presentation_semantic_contract() -> Kind {
+pub fn quantity_face_semantic_contract() -> Kind {
     Kind {
-        startup_parameters: Vec::new(),
+        startup_parameters: crate::startup_front(&crate::data_label_configuration()),
         shorthand: None,
-        kind_id: kind_id(QUANTITY_PRESENTATION_KIND),
-        kind_contract_revision: QUANTITY_PRESENTATION_REVISION.into(),
+        kind_id: kind_id(QUANTITY_FACE_KIND),
+        kind_contract_revision: QUANTITY_FACE_REVISION.into(),
         inputs: vec![PortDescriptor {
             port_id: port_id("input"),
             value_kind: wrapped_quantity_type()
@@ -117,7 +117,7 @@ pub fn quantity_presentation_semantic_contract() -> Kind {
             abnormal_kind: None,
         }],
         outputs: Vec::new(),
-        configuration: Default::default(),
+        configuration: crate::data_label_configuration(),
         semantic_laws: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 4,
@@ -140,11 +140,11 @@ pub fn install_quantity_info_catalog(
         .insert_kind(quantity_info_wrap_semantic_contract())
         .map_err(|error| alloc::format!("{error}"))?;
     startup.insert(conduit_plot::KindSignature {
-        kind: QUANTITY_PRESENTATION_KIND.into(),
-        startup_parameters: Vec::new(),
+        kind: QUANTITY_FACE_KIND.into(),
+        startup_parameters: crate::data_label_startup_signature(),
     })?;
     profile
-        .insert_kind(quantity_presentation_semantic_contract())
+        .insert_kind(quantity_face_semantic_contract())
         .map_err(|error| alloc::format!("{error}"))
 }
 
@@ -156,11 +156,11 @@ mod tests {
     fn prepared_quantity_prefix_preserves_canonical_values_and_units() {
         let prefix = quantity_info_prefix();
         for unit in [
-            QuantityUnit::Hertz,
-            QuantityUnit::Percent,
-            QuantityUnit::One,
-            QuantityUnit::Nanosecond,
-            QuantityUnit::Mebibyte,
+            Unit::Hertz,
+            Unit::Percent,
+            Unit::One,
+            Unit::Nanosecond,
+            Unit::Mebibyte,
         ] {
             for value in [i64::MIN, -1, 0, 1, i64::MAX] {
                 let quantity = Quantity::new(value, unit).encode();

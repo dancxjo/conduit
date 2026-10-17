@@ -56,7 +56,8 @@ pub struct ModelComputeOffer {
 pub struct ModelComputeRequirement {
     pub operation: ModelComputeOperation,
     pub model_format: String,
-    pub element: TensorElement,
+    /// All input/output dtypes required by the exact prepared signature.
+    pub elements: Vec<TensorElement>,
     pub rank: u8,
     pub model_bytes: u64,
     pub working_memory_bytes: u64,
@@ -143,7 +144,11 @@ impl ModelComputeOffer {
         if !self.accepted_formats.contains(&requirement.model_format) {
             return Err(ModelComputeRefusal::UnsupportedFormat);
         }
-        if !self.supported_elements.contains(&requirement.element) {
+        if requirement
+            .elements
+            .iter()
+            .any(|element| !self.supported_elements.contains(element))
+        {
             return Err(ModelComputeRefusal::UnsupportedElement);
         }
         if requirement.rank > self.limits.maximum_rank {
@@ -215,6 +220,12 @@ impl ModelComputeRequirement {
     fn validate(&self) -> Result<(), ModelComputeRefusal> {
         text(&self.model_format)?;
         text(&self.determinism_profile)?;
+        if self.elements.is_empty()
+            || self.elements.len() > MAXIMUM_MODEL_COMPUTE_DTYPES
+            || duplicate(&self.elements)
+        {
+            return Err(ModelComputeRefusal::UnsupportedElement);
+        }
         if self.rank == 0
             || self.model_bytes == 0
             || self.working_memory_bytes == 0

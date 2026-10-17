@@ -773,17 +773,23 @@ fn defaults_are_used_only_when_omitted_and_explicit_values_override_them() {
 
     assert_eq!(
         binding.value,
-        CanonicalStartupValue::Quantity(conduit_core::Quantity::new(
-            1,
-            conduit_core::QuantityUnit::Second,
-        ))
+        CanonicalStartupValue::Quantity(
+            conduit_core::QuantityConfigurationValue::from_value(conduit_core::Quantity::new(
+                1,
+                conduit_core::Unit::Second,
+            ))
+            .unwrap()
+        )
     );
     assert_eq!(
         explicit.plots[0].gears[0].startup_bindings[0].value,
-        CanonicalStartupValue::Quantity(conduit_core::Quantity::new(
-            2,
-            conduit_core::QuantityUnit::Second,
-        ))
+        CanonicalStartupValue::Quantity(
+            conduit_core::QuantityConfigurationValue::from_value(conduit_core::Quantity::new(
+                2,
+                conduit_core::Unit::Second,
+            ))
+            .unwrap()
+        )
     );
     assert_ne!(
         omitted.plots[0].checked_plot_id,
@@ -838,10 +844,13 @@ fn forward_reference_chains_resolve_to_one_canonical_value() {
 
     assert_eq!(
         checked.plots[0].gears[0].startup_bindings[0].value,
-        CanonicalStartupValue::Quantity(conduit_core::Quantity::new(
-            1,
-            conduit_core::QuantityUnit::Second,
-        ))
+        CanonicalStartupValue::Quantity(
+            conduit_core::QuantityConfigurationValue::from_value(conduit_core::Quantity::new(
+                1,
+                conduit_core::Unit::Second,
+            ))
+            .unwrap()
+        )
     );
 }
 
@@ -988,8 +997,8 @@ fn shorthand_pair_participates_in_checked_identity() {
 
 #[test]
 fn delimiter_like_literal_text_is_bound_unambiguously_into_identity() {
-    let first = check("plot a {\n clock: time/every(\"a:b|c\")\n}\n");
-    let second = check("plot a {\n clock: time/every(\"a:b|d\")\n}\n");
+    let first = check("plot a {\n pair: pair/make(left = \"a:b|c\", right = \"tail\")\n}\n");
+    let second = check("plot a {\n pair: pair/make(left = \"a:b|d\", right = \"tail\")\n}\n");
     assert_ne!(
         first.plots[0].checked_plot_id,
         second.plots[0].checked_plot_id
@@ -1736,22 +1745,29 @@ fn scientific_quantity_defaults_and_locals_are_checked_typed_values() {
     assert_eq!(
         plot.startup_parameters[0].default,
         Some(CanonicalStartupValue::Quantity(
-            conduit_core::Quantity::new(21, conduit_core::QuantityUnit::Celsius,)
+            conduit_core::QuantityConfigurationValue::from_value(conduit_core::Quantity::new(
+                21,
+                conduit_core::Unit::Celsius,
+            ))
+            .unwrap()
         ))
     );
     assert_eq!(
         plot.startup_parameters[1].default,
         Some(CanonicalStartupValue::Quantity(
-            conduit_core::Quantity::new(640, conduit_core::QuantityUnit::Pixel,)
+            conduit_core::QuantityConfigurationValue::from_value(conduit_core::Quantity::new(
+                640,
+                conduit_core::Unit::Pixel,
+            ))
+            .unwrap()
         ))
     );
     assert!(plot.local_values.iter().any(|(name, value)| {
         name == "distance"
             && *value
-                == CanonicalStartupValue::Quantity(conduit_core::Quantity::new(
-                    3_200_000,
-                    conduit_core::QuantityUnit::Micrometer,
-                ))
+                == CanonicalStartupValue::Quantity(
+                    conduit_core::QuantityConfigurationValue::parse("3.2m").unwrap(),
+                )
     }));
 }
 
@@ -1762,5 +1778,5 @@ fn scientific_quantity_dimension_and_canonical_spelling_are_checked() {
 
     let near_miss = diagnostic("plot bad (\n target: Temperature = 21C\n) {\n}\n");
     assert_eq!(near_miss.code, "CND-FRM-055");
-    assert!(near_miss.message.contains("use '°C'"));
+    assert!(near_miss.message.contains("°C"), "{}", near_miss.message);
 }

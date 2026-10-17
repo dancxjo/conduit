@@ -1,16 +1,16 @@
 use super::*;
 
-#[path = "../../../../semantics/presentation/tests/common/mod.rs"]
+#[path = "../../../../semantics/face/tests/common/mod.rs"]
 mod common;
 
 use conduit_core::{kind_id, CheckedValueContract, ValueConstraint};
-use conduit_presentation::{
-    FaceActionArgument, ManifestationLifecycle, PresentationAction, PresentationDisclosureLevel,
-    PresentationProperty, PresentationPropertyValue, PresentationRelationship,
-    PresentationRelationshipKind, PresentationRole, PresentationSubject, PresentationText,
+use conduit_face::{
+    FaceAction, FaceActionArgument, FaceDisclosure, FaceDisclosureLevel, FaceProperty,
+    FacePropertyValue, FaceRelationship, FaceRelationshipKind, FaceRole, FaceSubject, FaceText,
+    ManifestationLifecycle,
 };
 
-fn face_with_action() -> (Presentation, MaskShow) {
+fn face_with_action() -> (Face, MaskShow) {
     let plot = common::checked_renderer_plot();
     let plan = common::plan_for(
         &plot,
@@ -18,49 +18,49 @@ fn face_with_action() -> (Presentation, MaskShow) {
             "linux-host",
             "linux-boot",
             "renderer-wayland",
-            "presentation/renderer-wayland@1",
+            "face/renderer-wayland@1",
             "patchbay-native/wayland@1",
-            "presentation/base/wayland-surface@1",
+            "face/base/wayland-surface@1",
             common::WAYLAND_RESOURCE,
         ),
     );
-    let base = common::presentation(&plot, &plan);
+    let base = common::face(&plot, &plan);
     let mut basis = base.basis;
     // This is a Host-owned Crèche Face. No Body exists at this stage.
     basis.body_id = None;
     basis.wake_id = None;
-    let face = Presentation::new_with_semantics(
+    let face = Face::new_with_semantics(
         1,
         basis,
         vec![
-            PresentationSubject {
+            FaceSubject {
                 identity: "patchbay/plot".into(),
-                role: PresentationRole::Region,
+                role: FaceRole::Region,
                 name: "Current view".into(),
             },
-            PresentationSubject {
+            FaceSubject {
                 identity: "arrival".into(),
-                role: PresentationRole::Region,
+                role: FaceRole::Region,
                 name: "Welcome".into(),
             },
-            PresentationSubject {
+            FaceSubject {
                 identity: "draft".into(),
-                role: PresentationRole::TextEntry,
+                role: FaceRole::TextEntry,
                 name: "Body name".into(),
             },
         ],
         vec![],
-        vec![PresentationProperty {
+        vec![FaceProperty {
             subject: "draft".into(),
             name: "current name".into(),
-            value: PresentationPropertyValue::Text("New Body".into()),
+            value: FacePropertyValue::Text("New Body".into()),
         }],
-        vec![PresentationText {
+        vec![FaceText {
             subject: "arrival".into(),
             text: "Choose a name, then decide when to begin.".into(),
         }],
         vec![
-            PresentationAction {
+            FaceAction {
                 identity: "birth/set-name".into(),
                 intent: "birth/set-name".into(),
                 target: "draft".into(),
@@ -68,17 +68,17 @@ fn face_with_action() -> (Presentation, MaskShow) {
                 arguments: vec![
                     FaceActionArgument::text("name".into(), "Body name".into(), 1, 32).unwrap(),
                 ],
-                disclosure: PresentationDisclosureLevel::CurrentAction,
-                availability: PresentationActionAvailability::Available,
+                disclosure: FaceDisclosureLevel::CurrentAction,
+                availability: FaceActionAvailability::Available,
             },
-            PresentationAction {
+            FaceAction {
                 identity: "birth/confirm".into(),
                 intent: "birth/confirm".into(),
                 target: "arrival".into(),
                 name: "Create Body".into(),
                 arguments: vec![],
-                disclosure: PresentationDisclosureLevel::CurrentAction,
-                availability: PresentationActionAvailability::Available,
+                disclosure: FaceDisclosureLevel::CurrentAction,
+                availability: FaceActionAvailability::Available,
             },
         ],
         vec![],
@@ -89,34 +89,415 @@ fn face_with_action() -> (Presentation, MaskShow) {
 }
 
 #[test]
+fn mechanical_projection_matches_interactive_wording_before_any_show() {
+    let (face, show) = face_with_action();
+    let projected = mechanical_face_clauses(&face).unwrap();
+    let reader = SpokenFaceSession::new(face, show).unwrap();
+    assert_eq!(projected, reader.voiced);
+    assert!(projected
+        .iter()
+        .any(|clause| clause.contains("Create Body")));
+}
+
+#[test]
+fn direct_opening_leads_with_context_then_result_and_leaves_detail_to_read_all() {
+    let (base, _) = face_with_action();
+    let mut actions = base.actions.clone();
+    actions[0].availability = FaceActionAvailability::Unavailable {
+        reason_code: "not-now".into(),
+        explanation: "This action cannot be used now.".into(),
+    };
+    let face = Face::new_with_semantics(
+        2,
+        base.basis,
+        vec![
+            FaceSubject {
+                identity: "body".into(),
+                role: FaceRole::Body,
+                name: "Current Body".into(),
+            },
+            FaceSubject {
+                identity: "result".into(),
+                role: FaceRole::Status,
+                name: "Result".into(),
+            },
+            FaceSubject {
+                identity: "context".into(),
+                role: FaceRole::Region,
+                name: "Groceries".into(),
+            },
+            FaceSubject {
+                identity: "draft".into(),
+                role: FaceRole::TextEntry,
+                name: "Draft".into(),
+            },
+            FaceSubject {
+                identity: "arrival".into(),
+                role: FaceRole::Region,
+                name: "Arrival".into(),
+            },
+        ],
+        vec![],
+        vec![],
+        vec![
+            FaceText {
+                subject: "body".into(),
+                text: "Lulled with one resident Plot.".into(),
+            },
+            FaceText {
+                subject: "result".into(),
+                text: "Two things remain.".into(),
+            },
+            FaceText {
+                subject: "context".into(),
+                text: "Groceries list.".into(),
+            },
+        ],
+        actions,
+        vec![
+            FaceDisclosure {
+                subject: "body".into(),
+                level: FaceDisclosureLevel::Primary,
+            },
+            FaceDisclosure {
+                subject: "result".into(),
+                level: FaceDisclosureLevel::Primary,
+            },
+            FaceDisclosure {
+                subject: "context".into(),
+                level: FaceDisclosureLevel::Context,
+            },
+        ],
+    )
+    .unwrap();
+    let opening = primary_face_clauses(&face).unwrap().join(" ");
+    assert!(opening.starts_with("Groceries list. Two things remain."));
+    assert!(!opening.contains("resident Plot"));
+    assert!(!opening.contains("Unavailable"));
+    assert!(!opening.contains("birth/"));
+    let complete = mechanical_face_clauses(&face).unwrap().join(" ");
+    assert!(complete.contains("Unavailable"));
+}
+
+#[test]
+fn direct_opening_offers_content_action_without_generic_context_navigation() {
+    let (base, _) = face_with_action();
+    let make_face = |actions| {
+        Face::new_with_semantics(
+            base.revision,
+            base.basis.clone(),
+            base.subjects.clone(),
+            base.relationships.clone(),
+            base.properties.clone(),
+            base.text.clone(),
+            actions,
+            vec![FaceDisclosure {
+                subject: "arrival".into(),
+                level: FaceDisclosureLevel::Context,
+            }],
+        )
+        .unwrap()
+    };
+    let generic = base.actions[1].clone();
+    let content = base.actions[0].clone();
+    let opening = primary_face_clauses(&make_face(vec![generic.clone(), content])).unwrap();
+    assert!(opening
+        .iter()
+        .any(|clause| clause == "You can Set Body name."));
+    assert!(!opening
+        .iter()
+        .any(|clause| clause == "You can Create Body."));
+
+    let opening = primary_face_clauses(&make_face(vec![generic])).unwrap();
+    assert!(!opening.iter().any(|clause| clause.starts_with("You can ")));
+}
+
+#[test]
+fn direct_opening_bounds_long_collections_without_losing_full_reading() {
+    let (base, _) = face_with_action();
+    let mut subjects = base.subjects;
+    let mut disclosures = base.disclosures;
+    subjects.push(FaceSubject {
+        identity: "todo/list".into(),
+        role: FaceRole::Collection,
+        name: "Groceries".into(),
+    });
+    disclosures.push(FaceDisclosure {
+        subject: "todo/list".into(),
+        level: FaceDisclosureLevel::Primary,
+    });
+    subjects.push(FaceSubject {
+        identity: "todo/status".into(),
+        role: FaceRole::Status,
+        name: "Progress".into(),
+    });
+    disclosures.push(FaceDisclosure {
+        subject: "todo/status".into(),
+        level: FaceDisclosureLevel::Primary,
+    });
+    for index in 0..20 {
+        let identity = format!("item/{index}");
+        subjects.push(FaceSubject {
+            identity: identity.clone(),
+            role: FaceRole::Item,
+            name: if index < 3 {
+                format!("Open item {index}")
+            } else {
+                format!("Completed item {index}")
+            },
+        });
+        disclosures.push(FaceDisclosure {
+            subject: identity,
+            level: if index < 3 {
+                FaceDisclosureLevel::Primary
+            } else {
+                FaceDisclosureLevel::SelectedDetail
+            },
+        });
+    }
+    let face = Face::new_with_semantics(
+        2,
+        base.basis,
+        subjects,
+        base.relationships,
+        base.properties,
+        vec![FaceText {
+            subject: "todo/status".into(),
+            text: "3 things left · 17 completed".into(),
+        }],
+        vec![FaceAction {
+            identity: "todo.add".into(),
+            intent: "todo/add@1".into(),
+            target: "todo/list".into(),
+            name: "add an item".into(),
+            arguments: vec![
+                FaceActionArgument::text("text".into(), "Item text".into(), 1, 256).unwrap(),
+            ],
+            disclosure: FaceDisclosureLevel::CurrentAction,
+            availability: FaceActionAvailability::Available,
+        }],
+        disclosures,
+    )
+    .unwrap();
+    let opening = primary_face_clauses(&face).unwrap().join(" ");
+    assert!(opening.starts_with("Groceries. 3 things left · 17 completed"));
+    let show = common::available_mask_show(&face);
+    let mut reader = SpokenFaceSession::new(face.clone(), show.clone()).unwrap();
+    reader
+        .command(&face, &show, ReaderCommand::Summary, 1)
+        .unwrap();
+    assert_eq!(
+        reader.take_text_readout().unwrap().unwrap().clauses,
+        vec![opening.clone()]
+    );
+    assert!(!opening.contains("Progress"));
+    for index in 0..3 {
+        assert!(opening.contains(&format!("Open item {index}.")));
+    }
+    assert!(!opening.contains("Completed item"));
+    assert!(opening.contains("You can add an item."));
+    let direct = crate::direct_spoken_mask_runtime::prepare_wording_items(&face).unwrap();
+    let direct = std::str::from_utf8(direct.front().unwrap()).unwrap();
+    assert!(direct.contains("Open item 2."));
+    assert!(!direct.contains("Completed item"));
+    assert!(mechanical_face_clauses(&face)
+        .unwrap()
+        .join(" ")
+        .contains("Completed item 17."));
+}
+
+#[test]
+fn read_current_items_uses_the_same_show_without_completed_detail() {
+    let (base, _) = face_with_action();
+    let mut subjects = base.subjects;
+    let mut disclosures = base.disclosures;
+    for index in 0..20 {
+        subjects.push(FaceSubject {
+            identity: format!("item/{index}"),
+            role: FaceRole::Item,
+            name: format!("Task {index}"),
+        });
+        disclosures.push(FaceDisclosure {
+            subject: format!("item/{index}"),
+            level: if index < 3 {
+                FaceDisclosureLevel::Primary
+            } else {
+                FaceDisclosureLevel::SelectedDetail
+            },
+        });
+    }
+    let face = Face::new_with_semantics(
+        2,
+        base.basis,
+        subjects,
+        base.relationships,
+        base.properties,
+        base.text,
+        base.actions,
+        disclosures,
+    )
+    .unwrap();
+    let show = common::available_mask_show(&face);
+    let mut reader = SpokenFaceSession::new(face.clone(), show.clone()).unwrap();
+    reader
+        .command(&face, &show, ReaderCommand::ReadCurrentItems, 1)
+        .unwrap();
+    let readout = reader.take_text_readout().unwrap().unwrap();
+    assert_eq!(readout.face_id, face.identity.as_str());
+    assert_eq!(readout.show_id, show.show_id.as_str());
+    assert_eq!(
+        readout.clauses,
+        ["Task 0, item.", "Task 1, item.", "Task 2, item."]
+    );
+    reader
+        .command(&face, &show, ReaderCommand::ReadAll, 2)
+        .unwrap();
+    let complete = reader.take_text_readout().unwrap().unwrap();
+    assert!(complete.clauses.iter().any(|item| item == "Task 19, item."));
+
+    let mut finished = face;
+    finished.revision += 1;
+    for disclosure in &mut finished.disclosures {
+        if disclosure.subject.starts_with("item/") {
+            disclosure.level = FaceDisclosureLevel::SelectedDetail;
+        }
+    }
+    let finished = Face::new_with_semantics(
+        finished.revision,
+        finished.basis,
+        finished.subjects,
+        finished.relationships,
+        finished.properties,
+        finished.text,
+        finished.actions,
+        finished.disclosures,
+    )
+    .unwrap();
+    let finished_show = common::available_mask_show(&finished);
+    let mut reader = SpokenFaceSession::new(finished.clone(), finished_show.clone()).unwrap();
+    reader
+        .command(
+            &finished,
+            &finished_show,
+            ReaderCommand::ReadCurrentItems,
+            3,
+        )
+        .unwrap();
+    assert_eq!(
+        reader.take_text_readout().unwrap().unwrap().clauses,
+        ["No current items."]
+    );
+}
+
+#[test]
+fn long_primary_list_reads_bounded_items_and_offers_exact_detail_command() {
+    let (base, _) = face_with_action();
+    let mut subjects = base.subjects;
+    let mut disclosures = base.disclosures;
+    subjects.push(FaceSubject {
+        identity: "todo/status".into(),
+        role: FaceRole::Status,
+        name: "4 remaining".into(),
+    });
+    disclosures.push(FaceDisclosure {
+        subject: "todo/status".into(),
+        level: FaceDisclosureLevel::Primary,
+    });
+    for index in 0..4 {
+        let identity = format!("item/{index}");
+        subjects.push(FaceSubject {
+            identity: identity.clone(),
+            role: FaceRole::Item,
+            name: format!("Open item {index}"),
+        });
+        disclosures.push(FaceDisclosure {
+            subject: identity,
+            level: FaceDisclosureLevel::Primary,
+        });
+    }
+    let face = Face::new_with_semantics(
+        2,
+        base.basis,
+        subjects,
+        base.relationships,
+        base.properties,
+        vec![FaceText {
+            subject: "todo/status".into(),
+            text: "4 remaining".into(),
+        }],
+        base.actions,
+        disclosures,
+    )
+    .unwrap();
+    let opening = primary_face_clauses(&face).unwrap().join(" ");
+    assert!(opening.starts_with("4 remaining"));
+    assert!(opening.contains("Type read current items to hear what remains."));
+    assert!(opening.contains("Open item 0."));
+    assert!(opening.contains("Open item 2."));
+    assert!(!opening.contains("Open item 3."));
+    let direct = crate::direct_spoken_mask_runtime::prepare_wording_items(&face).unwrap();
+    let direct = std::str::from_utf8(direct.front().unwrap()).unwrap();
+    assert!(direct.contains("Type read current items to hear what remains."));
+}
+
+#[test]
+fn accepted_wording_keeps_exact_text_and_current_show_in_one_bounded_flow() {
+    let (face, show) = face_with_action();
+    let wording = "Welcome to your Body. Its clock is ready, and the current state is retained.";
+    let batch =
+        SpokenBatch::from_accepted_wording(&face, &show, wording, "accepted/model/one".into())
+            .unwrap();
+    assert!(batch.segments.len() > 1);
+    assert_eq!(
+        batch
+            .segments
+            .iter()
+            .map(|item| item.segment.text.as_str())
+            .collect::<String>(),
+        wording
+    );
+    assert_eq!(batch.source_show_id, show.show_id.as_str());
+    assert_eq!(
+        batch.segments.last().unwrap().segment.reason,
+        SpeechCommitReason::FinalFlush
+    );
+    assert!(batch.validate(&face, &show).is_ok());
+    assert!(SpokenBatch::from_accepted_wording(&face, &show, "", "empty".into()).is_err());
+    assert!(
+        SpokenBatch::from_accepted_wording(&face, &show, &"x".repeat(1025), "too-long".into())
+            .is_err()
+    );
+}
+
+#[test]
 fn screen_free_reader_reaches_below_viewport_and_navigates_semantic_roles() {
     let (base, _) = face_with_action();
     let mut subjects = base.subjects.clone();
     for subject in &mut subjects {
         subject.role = match subject.identity.as_str() {
-            "arrival" => PresentationRole::Semantic(kind_id("document/main")),
-            "draft" => PresentationRole::Semantic(kind_id("document/article")),
-            _ => PresentationRole::Semantic(kind_id("document/navigation")),
+            "arrival" => FaceRole::Semantic(kind_id("document/main")),
+            "draft" => FaceRole::Semantic(kind_id("document/article")),
+            _ => FaceRole::Semantic(kind_id("document/navigation")),
         };
     }
-    subjects.extend((0..80).map(|number| PresentationSubject {
+    subjects.extend((0..80).map(|number| FaceSubject {
         identity: format!("item/{number:03}"),
-        role: PresentationRole::Item,
+        role: FaceRole::Item,
         name: format!("Item {number}"),
     }));
     let mut actions = base.actions.clone();
-    actions[1].availability = PresentationActionAvailability::Unavailable {
+    actions[1].availability = FaceActionAvailability::Unavailable {
         reason_code: "birth/name-missing".into(),
         explanation: "Give the Body a name first.".into(),
     };
-    let face = Presentation::new_with_semantics(
+    let face = Face::new_with_semantics(
         base.revision + 1,
         base.basis,
         subjects,
-        vec![PresentationRelationship {
+        vec![FaceRelationship {
             source: "arrival".into(),
             target: "draft".into(),
-            kind: PresentationRelationshipKind::Contains,
+            kind: FaceRelationshipKind::Contains,
         }],
         base.properties,
         base.text,
@@ -156,7 +537,7 @@ fn screen_free_reader_reaches_below_viewport_and_navigates_semantic_roles() {
         .command(
             &face,
             &show,
-            ReaderCommand::NextRole(PresentationRole::Semantic(kind_id("document/article"))),
+            ReaderCommand::NextRole(FaceRole::Semantic(kind_id("document/article"))),
             3,
         )
         .unwrap();
@@ -184,7 +565,7 @@ fn spoken_reader_names_finite_text_choices_and_refuses_unoffered_value() {
         }],
     )
     .unwrap();
-    let face = Presentation::new_with_semantics(
+    let face = Face::new_with_semantics(
         base.revision + 1,
         base.basis,
         base.subjects,
@@ -202,7 +583,7 @@ fn spoken_reader_names_finite_text_choices_and_refuses_unoffered_value() {
         .unwrap();
     let clauses = reader.take_text_readout().unwrap().unwrap().clauses;
     assert!(clauses.iter().any(|clause| clause
-        == "Interval in milliseconds. Choose one of: 1000, 2000, 250, 500. Then activate Change interval."));
+        == "Interval in milliseconds. Choose one of: 1000, 2000, 250, 500. Enter it with edit interval-ms, then activate Change interval."));
 
     reader
         .command(
@@ -242,7 +623,7 @@ fn spoken_reader_names_finite_text_choices_and_refuses_unoffered_value() {
     boolean[0].arguments[0].value_name = "Include Plot".into();
     boolean[0].arguments[0].contract =
         CheckedValueContract::new(kind_id("value/bool"), 1, vec![]).unwrap();
-    let boolean_face = Presentation::new_with_semantics(
+    let boolean_face = Face::new_with_semantics(
         face.revision + 1,
         face.basis.clone(),
         face.subjects.clone(),
@@ -261,7 +642,7 @@ fn spoken_reader_names_finite_text_choices_and_refuses_unoffered_value() {
         .unwrap();
     let boolean_clauses = boolean_reader.take_text_readout().unwrap().unwrap().clauses;
     assert!(boolean_clauses.iter().any(|clause| {
-        clause == "Include Plot. Choose true or false, then activate Change interval."
+        clause == "Include Plot. Choose true or false with edit interval-ms, then activate Change interval."
     }));
 
     // More than eight exact choices stay on the Face's generic bounded
@@ -276,7 +657,7 @@ fn spoken_reader_names_finite_text_choices_and_refuses_unoffered_value() {
         }],
     )
     .unwrap();
-    let crowded = Presentation::new_with_semantics(
+    let crowded = Face::new_with_semantics(
         face.revision + 1,
         face.basis,
         face.subjects,
@@ -310,7 +691,7 @@ fn spoken_reader_names_finite_text_choices_and_refuses_unoffered_value() {
         }],
     )
     .unwrap();
-    let disguised = Presentation::new_with_semantics(
+    let disguised = Face::new_with_semantics(
         crowded.revision + 1,
         crowded.basis,
         crowded.subjects,
@@ -367,6 +748,62 @@ fn fixture_batch_receipt(batch: &SpokenBatch) -> SpokenBatchAudioReceipt {
         pcm_bytes: 256,
         pcm_blocks: 1,
     }
+}
+
+#[test]
+fn requested_items_close_before_later_non_item_face_clauses() {
+    let (base, _) = face_with_action();
+    let mut subjects = base.subjects;
+    let mut disclosures = base.disclosures;
+    for number in 18..=20 {
+        let identity = format!("todo/item/{number}");
+        subjects.push(FaceSubject {
+            identity: identity.clone(),
+            role: FaceRole::Item,
+            name: format!("Long-list item {number}"),
+        });
+        disclosures.push(FaceDisclosure {
+            subject: identity,
+            level: FaceDisclosureLevel::Primary,
+        });
+    }
+    let face = Face::new_with_semantics(
+        base.revision + 1,
+        base.basis,
+        subjects,
+        base.relationships,
+        base.properties,
+        base.text,
+        base.actions,
+        disclosures,
+    )
+    .unwrap();
+    let show = common::available_mask_show(&face);
+    let mut reader = SpokenFaceSession::new(face.clone(), show.clone()).unwrap();
+    reader
+        .command(&face, &show, ReaderCommand::ReadCurrentItems, 1)
+        .unwrap();
+
+    let batch = reader.next_batch_with_limits(4, 64).unwrap().unwrap();
+    assert_eq!(batch.segments.len(), 3);
+    for (number, segment) in (18..=20).zip(&batch.segments) {
+        assert!(segment
+            .segment
+            .text
+            .contains(&format!("Long-list item {number}")));
+    }
+    assert_eq!(
+        batch.segments.last().unwrap().segment.reason,
+        SpeechCommitReason::FinalFlush
+    );
+    let turn = reader
+        .acknowledge_batch(SpokenBatchDelivery::Completed(fixture_batch_receipt(
+            &batch,
+        )))
+        .unwrap()
+        .unwrap();
+    assert_eq!(turn.outcome, SpokenTurnOutcome::Completed);
+    assert!(reader.next_batch_with_limits(4, 64).unwrap().is_none());
 }
 
 #[test]
@@ -455,7 +892,66 @@ fn smaller_closing_flows_preserve_all_face_text_and_cancel_between_batches() {
     assert!(reader.next_batch_with_limits(2, 64).unwrap().is_none());
 }
 
-fn focus_action(session: &mut SpokenFaceSession, face: &Presentation, show: &MaskShow, id: &str) {
+#[test]
+fn final_primary_item_batch_completes_before_excluded_completed_detail() {
+    let (base, _) = face_with_action();
+    let mut subjects = base.subjects;
+    let mut disclosures = base.disclosures;
+    for index in 0..20 {
+        subjects.push(FaceSubject {
+            identity: format!("item/{index}"),
+            role: FaceRole::Item,
+            name: format!("Task {index}"),
+        });
+        disclosures.push(FaceDisclosure {
+            subject: format!("item/{index}"),
+            level: if index < 3 {
+                FaceDisclosureLevel::Primary
+            } else {
+                FaceDisclosureLevel::SelectedDetail
+            },
+        });
+    }
+    let face = Face::new_with_semantics(
+        base.revision + 1,
+        base.basis,
+        subjects,
+        base.relationships,
+        base.properties,
+        base.text,
+        base.actions,
+        disclosures,
+    )
+    .unwrap();
+    let show = common::available_mask_show(&face);
+    let mut reader = SpokenFaceSession::new(face.clone(), show.clone()).unwrap();
+    reader
+        .command(&face, &show, ReaderCommand::ReadCurrentItems, 1)
+        .unwrap();
+    for index in 0..3 {
+        let batch = reader.next_batch_with_limits(1, 64).unwrap().unwrap();
+        assert_eq!(batch.segments.len(), 1);
+        assert_eq!(
+            batch.segments[0].segment.text,
+            format!("Task {index}, item.")
+        );
+        let terminal = reader
+            .acknowledge_batch(SpokenBatchDelivery::Completed(fixture_batch_receipt(
+                &batch,
+            )))
+            .unwrap();
+        if index == 2 {
+            let terminal = terminal.expect("final selected item must close the turn");
+            assert_eq!(terminal.outcome, SpokenTurnOutcome::Completed);
+            assert_eq!(terminal.completed_segments, 3);
+        } else {
+            assert!(terminal.is_none());
+        }
+    }
+    assert!(reader.next_batch_with_limits(1, 64).unwrap().is_none());
+}
+
+fn focus_action(session: &mut SpokenFaceSession, face: &Face, show: &MaskShow, id: &str) {
     let target = session
         .plan()
         .clauses
@@ -548,6 +1044,82 @@ fn host_owned_text_readout_and_focus_claim_no_audio() {
             3,
         ),
         Err(SpokenFaceRefusal::UnknownAction)
+    );
+}
+
+#[test]
+fn refused_navigation_or_input_preserves_the_current_read_all_turn() {
+    let (face, show) = face_with_action();
+    let mut reference = SpokenFaceSession::new(face.clone(), show.clone()).unwrap();
+    reference
+        .command(&face, &show, ReaderCommand::ReadAll, 1)
+        .unwrap();
+    let expected = reference.take_text_readout().unwrap().unwrap().clauses;
+
+    let mut reader = SpokenFaceSession::new(face.clone(), show.clone()).unwrap();
+    reader
+        .command(&face, &show, ReaderCommand::ReadAll, 1)
+        .unwrap();
+    assert_eq!(
+        reader.command(
+            &face,
+            &show,
+            ReaderCommand::FocusSubject("absent".into()),
+            2,
+        ),
+        Err(SpokenFaceRefusal::UnknownSubject)
+    );
+    assert_eq!(
+        reader.command(&face, &show, ReaderCommand::FocusAction("absent".into()), 3,),
+        Err(SpokenFaceRefusal::UnknownAction)
+    );
+    assert_eq!(
+        reader.command(
+            &face,
+            &show,
+            ReaderCommand::Edit {
+                argument: "name".into(),
+                value: b"Ada".to_vec(),
+            },
+            4,
+        ),
+        Err(SpokenFaceRefusal::NoActionInFocus)
+    );
+    assert_eq!(
+        reader.command(&face, &show, ReaderCommand::Activate, 5),
+        Err(SpokenFaceRefusal::NoActionInFocus)
+    );
+    assert_eq!(reader.focused_index(), 0);
+    assert_eq!(
+        reader.take_text_readout().unwrap().unwrap().clauses,
+        expected
+    );
+}
+
+#[test]
+fn accepted_navigation_retires_only_the_old_turn_and_reads_the_new_focus() {
+    let (face, show) = face_with_action();
+    let mut reference = SpokenFaceSession::new(face.clone(), show.clone()).unwrap();
+    reference
+        .command(&face, &show, ReaderCommand::Next, 1)
+        .unwrap();
+    let expected = reference.take_text_readout().unwrap().unwrap().clauses;
+
+    let mut reader = SpokenFaceSession::new(face.clone(), show.clone()).unwrap();
+    reader
+        .command(&face, &show, ReaderCommand::ReadAll, 1)
+        .unwrap();
+    let moved = reader
+        .command(&face, &show, ReaderCommand::Next, 2)
+        .unwrap();
+    assert_eq!(
+        moved.interrupted.unwrap().outcome,
+        SpokenTurnOutcome::Cancelled
+    );
+    assert_eq!(moved.focused_clause, 1);
+    assert_eq!(
+        reader.take_text_readout().unwrap().unwrap().clauses,
+        expected
     );
 }
 
@@ -675,8 +1247,8 @@ fn utf8_chunking_never_splits_a_character() {
 fn one_long_face_fact_streams_in_order_and_refresh_resets_indexed_focus() {
     let (base, _) = face_with_action();
     let mut properties = base.properties.clone();
-    properties[0].value = PresentationPropertyValue::Text("é".repeat(512));
-    let face = Presentation::new_with_semantics(
+    properties[0].value = FacePropertyValue::Text("é".repeat(512));
+    let face = Face::new_with_semantics(
         base.revision + 1,
         base.basis.clone(),
         base.subjects.clone(),
@@ -728,8 +1300,8 @@ fn one_long_face_fact_streams_in_order_and_refresh_resets_indexed_focus() {
     assert!(reader.next_segment().unwrap().is_none());
 
     let mut changed = face.clone();
-    changed.properties[0].value = PresentationPropertyValue::Text("New name".into());
-    changed = Presentation::new_with_semantics(
+    changed.properties[0].value = FacePropertyValue::Text("New name".into());
+    changed = Face::new_with_semantics(
         face.revision + 1,
         changed.basis,
         changed.subjects,
@@ -777,3 +1349,6 @@ fn stop_never_turns_a_late_audio_completion_into_success() {
     assert_eq!(terminal.outcome, SpokenTurnOutcome::Cancelled);
     assert_eq!(terminal.completed_segments, 1);
 }
+
+#[path = "selection_tests.rs"]
+mod selection;

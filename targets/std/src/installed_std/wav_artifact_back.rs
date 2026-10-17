@@ -200,6 +200,8 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
 }
 
 pub(super) fn prepare_session(
+    plan_id: &conduit_core::PlanId,
+    active_play_id: &conduit_core::ActivePlayId,
     placement: &PlannedGear,
     selected: Option<&crate::hosted_wav_artifact::WavArtifactSelection>,
 ) -> Result<crate::hosted_wav_artifact::WavArtifactSession, String> {
@@ -213,11 +215,8 @@ pub(super) fn prepare_session(
         return Err("planned WAV artifact destination is stale or differs from selection".into());
     }
     let work = super::audio_stream_budget::AudioStreamBudget::from_placement(placement)?;
-    crate::hosted_wav_artifact::WavArtifactSession::prepare_bounded(
-        selected.clone(),
-        work.blocks,
-        work.millis,
-    )
+    let exact = selected.for_play(plan_id, active_play_id, &placement.placement_id)?;
+    crate::hosted_wav_artifact::WavArtifactSession::prepare_bounded(exact, work.blocks, work.millis)
 }
 
 pub(super) fn execute(

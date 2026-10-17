@@ -1,4 +1,4 @@
-use conduit_core::{ConfigurationValue, Quantity, QuantityUnit};
+use conduit_core::{ConfigurationValue, Quantity, Unit};
 
 use crate::{FaceControlKind, PatchbayGraph, PlotEditor, PlotEditorError};
 
@@ -14,14 +14,20 @@ fn front_controls_project_actual_values_and_visible_contracts() {
     assert_eq!(controls.len(), 1);
     assert_eq!(
         controls[0].value,
-        ConfigurationValue::Quantity(Quantity::new(25, QuantityUnit::Millisecond))
+        ConfigurationValue::Quantity(
+            conduit_core::QuantityConfigurationValue::from_value(Quantity::new(
+                25,
+                Unit::Millisecond
+            ))
+            .unwrap()
+        )
     );
     assert!(matches!(
         controls[0].kind,
         FaceControlKind::Number {
-            unit: Some("ms"),
+            unit: Some(ref unit),
             ..
-        }
+        } if unit == "ms"
     ));
 }
 
@@ -38,8 +44,8 @@ fn timing_controls_expose_bounded_duration_policy_and_capacity() {
         FaceControlKind::Number {
             minimum: 0,
             maximum: conduit_semantic_catalog::TIME_MAXIMUM_DURATION_MS,
-            unit: Some("ms")
-        }
+            unit: Some(ref unit)
+        } if unit == "ms"
     ));
     assert!(matches!(
         controls[1].kind,
@@ -58,7 +64,7 @@ fn timing_controls_expose_bounded_duration_policy_and_capacity() {
 
 #[test]
 fn input_semantic_controls_project_authoritative_finite_defaults() {
-    let editor =
+    let mut editor =
         editor("plot input_controls {\n    keymap: input/keymap\n    chords: input/chords\n}\n");
     let graph =
         PatchbayGraph::from_expanded(&editor.expand_plot("input_controls").unwrap()).unwrap();
@@ -69,13 +75,13 @@ fn input_semantic_controls_project_authoritative_finite_defaults() {
         .unwrap();
     assert_eq!(
         keymap.controls[0].value,
-        ConfigurationValue::Text(conduit_human::CONDUIT_INTL_LAYOUT.into())
+        ConfigurationValue::Structured(conduit_human::default_keymap_configuration())
     );
     assert!(matches!(
         keymap.controls[0].kind,
-        FaceControlKind::TextChoice { ref choices }
-            if choices == &[conduit_human::CONDUIT_INTL_LAYOUT.to_string()]
+        FaceControlKind::StructuredSource
     ));
+    assert!(keymap.controls[0].interaction.is_none());
     let chords = graph
         .gears
         .iter()
@@ -85,6 +91,19 @@ fn input_semantic_controls_project_authoritative_finite_defaults() {
         chords.controls[0].value,
         ConfigurationValue::Text(conduit_human::CORE_CHORD_MAP.into())
     );
+    let source = editor.view().source;
+    assert!(matches!(
+        editor.set_gear_configuration(
+            0,
+            &graph.expanded_plot_id,
+            "keymap",
+            "layout",
+            ConfigurationValue::Structured(conduit_human::default_keymap_configuration()),
+        ),
+        Err(PlotEditorError::InvalidConfiguration(message))
+            if message.contains("common interaction contract")
+    ));
+    assert_eq!(editor.view().source, source);
 }
 
 #[test]
@@ -273,7 +292,13 @@ fn front_edit_preserves_gear_identity_and_reseals_all_plot_identities() {
             &before.expanded_plot_id,
             "clock",
             "freq",
-            ConfigurationValue::Quantity(Quantity::new(26, QuantityUnit::Millisecond)),
+            ConfigurationValue::Quantity(
+                conduit_core::QuantityConfigurationValue::from_value(Quantity::new(
+                    26,
+                    Unit::Millisecond,
+                ))
+                .unwrap(),
+            ),
         )
         .unwrap();
     let after = editor.expand_plot("controls").unwrap();
@@ -287,7 +312,7 @@ fn front_edit_preserves_gear_identity_and_reseals_all_plot_identities() {
 #[test]
 fn front_edit_accepts_an_open_back_with_runtime_front_ports() {
     let mut editor = editor(
-        "plot greet (\n    name: Text >> text: Text\n) {\n    join: text/join(\"Hello\")\n    name >> join >> text\n}\n\nplot welcome {\n    hello: greet\n    \"Travis\" >> hello >> presentation/text\n}\n",
+        "plot greet (\n    name: Text >> text: Text\n) {\n    join: text/join(\"Hello\")\n    name >> join >> text\n}\n\nplot welcome {\n    hello: greet\n    \"Travis\" >> hello >> face/text(\"Message\")\n}\n",
     );
     editor.open_back("greet").unwrap();
     let before = editor.expand_plot_for_authoring("greet").unwrap();
@@ -314,10 +339,13 @@ fn default_value_becomes_an_authored_named_argument() {
             &before.expanded_plot_id,
             "stable",
             "duration-ms",
-            ConfigurationValue::Quantity(conduit_core::Quantity::new(
-                3,
-                conduit_core::QuantityUnit::Millisecond,
-            )),
+            ConfigurationValue::Quantity(
+                conduit_core::QuantityConfigurationValue::from_value(conduit_core::Quantity::new(
+                    3,
+                    conduit_core::Unit::Millisecond,
+                ))
+                .unwrap(),
+            ),
         )
         .unwrap();
     assert!(editor
@@ -341,7 +369,7 @@ fn invalid_and_stale_edits_are_immediate_atomic_refusals() {
         )
         .unwrap_err();
     assert!(
-        matches!(error, PlotEditorError::InvalidConfiguration(ref message) if message.contains("1 through 8")),
+        matches!(error, PlotEditorError::InvalidConfiguration(ref message) if message.contains("CND-FRM-040")),
         "{error:?}"
     );
     assert_eq!(editor.view().source, source);
@@ -397,7 +425,44 @@ fn finite_text_contract_projects_an_exact_choice_and_rejects_invented_values() {
             "operator",
             ConfigurationValue::Text("contains".into()),
         ),
-        Err(PlotEditorError::InvalidConfiguration(message)) if message.contains("choose one of")
+        Err(PlotEditorError::InvalidConfiguration(message)) if message.contains("CND-FRM-040")
     ));
     assert_eq!(editor.view().source, source);
+}
+
+#[test]
+fn physical_unit_control_keeps_typed_source_when_edited() {
+    let mut editor = editor("plot controls {\n    map: math/map-quantity(unit = Hz)\n}\n");
+    let before = editor.expand_plot("controls").unwrap();
+    let graph = PatchbayGraph::from_expanded(&before).unwrap();
+    let control = graph.gears[0]
+        .controls
+        .iter()
+        .find(|control| control.key == "unit")
+        .unwrap();
+    assert!(matches!(
+        control.kind,
+        FaceControlKind::PhysicalSource { .. }
+    ));
+    assert!(matches!(control.value, ConfigurationValue::Unit(_)));
+    editor
+        .set_gear_configuration(
+            0,
+            &before.expanded_plot_id,
+            "map",
+            "unit",
+            ConfigurationValue::Unit(conduit_core::UnitConfigurationValue::parse("kHz").unwrap()),
+        )
+        .unwrap();
+    assert!(editor.view().source.contains("unit = kHz"));
+    let after = editor.expand_plot("controls").unwrap();
+    let graph = PatchbayGraph::from_expanded(&after).unwrap();
+    let control = graph.gears[0]
+        .controls
+        .iter()
+        .find(|control| control.key == "unit")
+        .unwrap();
+    assert!(
+        matches!(&control.value, ConfigurationValue::Unit(value) if value.value() == conduit_core::Unit::resolve("kHz").unwrap())
+    );
 }

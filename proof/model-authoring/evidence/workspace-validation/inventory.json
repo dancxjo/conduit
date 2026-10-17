@@ -1,0 +1,46 @@
+{
+  "schema": "conduit.proof/local-validation-archive@1",
+  "kind": "historical-local-checks",
+  "files": [
+    {
+      "path": "workspace-tests-c57560302.log",
+      "bytes": 802487,
+      "sha256": "b04de193cefb407b3251715f7ad0b747bf50585da62a80379bb5db353d686a25"
+    },
+    {
+      "path": "admission-clippy-v2.log",
+      "bytes": 1046,
+      "sha256": "8274d21b2dafda4c90e34b579bbeab40af1b3ab398da9f117323e7dd986c4026"
+    },
+    {
+      "path": "checkpoint-exclusive-clippy.log",
+      "bytes": 11112,
+      "sha256": "0c07eb5788be027083b33584136cc9c2ae17fd3a385066b356f0bfa5706ae023"
+    },
+    {
+      "path": "checkpoint-exclusive-host.log",
+      "bytes": 1168,
+      "sha256": "0d2332e634e7154c9314d53bbf1ff57ce6bd8c20e0a73d623bf207b254a1df8e"
+    },
+    {
+      "path": "format-34c7a6418.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs-verify-c57560302.log",
+      "bytes": 2845,
+      "sha256": "e0d698a48f2388b5f9f52f46680570c5ef70d58c332ba03c2e328c7fdc5ff39d"
+    },
+    {
+      "path": "handbook-c57560302.log",
+      "bytes": 318,
+      "sha256": "c1ab3953f931553da54023d1182c5f957442386452bb1e00a5b850252fbf6313"
+    },
+    {
+      "path": "integration-c57560302.log",
+      "bytes": 428,
+      "sha256": "3cf493cebd70116ef115d7d6e5ae0bf0e279e1d16ce75a2b7673346a7c77395d"
+    }
+  ]
+}

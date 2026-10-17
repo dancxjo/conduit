@@ -1,6 +1,8 @@
 //! Current plot check, exact boot-scoped planning, and numeric lowering.
 
 use alloc::{format, vec, vec::Vec};
+use core::sync::atomic::{AtomicU32, Ordering};
+static NEXT_PLAY: AtomicU32 = AtomicU32::new(1);
 
 use conduit_core::{
     ActivePlayIdentity, ArtifactId, BaseImplementationId, BootId, CapabilityId, ExecutionProfileId,
@@ -19,12 +21,34 @@ use crate::{
     text_planned_kernel::TextPlannedKernel,
 };
 
-pub const ORDINARY_PLOT_SOURCE: &str = "plot conduitos-text-upper {\n    upper: text/upper\n    show: presentation/text\n    \"Hello, ConduitOS\" >> upper >> show\n}\n";
+pub const ORDINARY_PLOT_SOURCE: &str = "plot conduitos-text-upper {\n    upper: text/upper\n    show: face/text(\"Message\")\n    \"Hello, ConduitOS\" >> upper >> show\n}\n";
 pub const TEXT_LITERAL: &str = "Hello, ConduitOS";
 pub const TEXT_RESULT: &str = "HELLO, CONDUITOS";
 const CORD_BYTES: u32 = conduit_text::MAX_TEXT_BYTES;
 const ORDINARY_PLACEMENT_COUNT: usize = 3;
 pub const COOPERATIVE_REGION_PROFILE: &str = "conduitos/cooperative-bounded-step@1";
+pub const PROTECTED_REGION_PROFILE: &str = "conduitos/protected-region@1";
+
+pub(crate) const fn region_profile(protected: bool) -> &'static str {
+    if protected {
+        PROTECTED_REGION_PROFILE
+    } else {
+        COOPERATIVE_REGION_PROFILE
+    }
+}
+
+pub(crate) fn new_play(
+    plan: &PlanId,
+    host: &HostId,
+    boot: &BootId,
+) -> Result<ActivePlayIdentity, PreparationError> {
+    let sequence = NEXT_PLAY
+        .fetch_update(Ordering::AcqRel, Ordering::Acquire, |value| {
+            value.checked_add(1)
+        })
+        .map_err(|_| PreparationError::PlayIdentityExhausted)?;
+    Ok(bind_active_play(plan, host, boot, u64::from(sequence)))
+}
 
 pub struct PreparedOrdinaryPlay {
     pub kernel: TextPlannedKernel,
@@ -48,6 +72,8 @@ pub enum PreparationError {
     PlanRejected,
     LoweringRejected,
     KernelRejected,
+    Protection(crate::protected_region::DomainRefusal),
+    PlayIdentityExhausted,
 }
 
 impl PreparationError {
@@ -59,6 +85,8 @@ impl PreparationError {
             Self::PlanRejected => "ordinary-plan-rejected",
             Self::LoweringRejected => "ordinary-lowering-rejected",
             Self::KernelRejected => "ordinary-kernel-rejected",
+            Self::Protection(refusal) => refusal.as_str(),
+            Self::PlayIdentityExhausted => "ordinary-play-identity-capacity-exhausted",
         }
     }
 }
@@ -76,6 +104,27 @@ pub fn prepare(
         "conduitos-text-upper",
         TEXT_LITERAL,
     )
+}
+
+/// Require a protected text region. Unsupported builds refuse before planning
+/// or constructing a cooperative kernel; supported builds still validate the
+/// actual machine and domain during preparation.
+pub fn prepare_protected(
+    identities: &BootIdentities,
+    fixed_offer: &HostOffer<'_>,
+    build_id: &str,
+) -> Result<PreparedOrdinaryPlay, PreparationError> {
+    #[cfg(conduitos_protected_execution)]
+    {
+        prepare(identities, fixed_offer, build_id)
+    }
+    #[cfg(not(conduitos_protected_execution))]
+    {
+        let _ = (identities, fixed_offer, build_id);
+        Err(PreparationError::Protection(
+            crate::protected_region::DomainRefusal::Unsupported,
+        ))
+    }
 }
 
 pub fn prepare_source(
@@ -131,9 +180,19 @@ pub fn prepare_source(
     {
         return Err(PreparationError::PlanRejected);
     }
-    let kernel = TextPlannedKernel::prepare_with_literal(fragment, &lowered, expected_literal)
+    #[allow(unused_mut)]
+    let mut kernel = TextPlannedKernel::prepare_with_literal(fragment, &lowered, expected_literal)
         .map_err(|_| PreparationError::KernelRejected)?;
-    let active_play = bind_active_play(&plan.plan_id, &fragment.host_id, &fragment.boot_id, 0);
+    let active_play = new_play(&plan.plan_id, &fragment.host_id, &fragment.boot_id)?;
+    #[cfg(conduitos_protected_execution)]
+    kernel
+        .protect(&plan, &active_play, fixed_offer)
+        .map_err(|error| match error {
+            crate::composition::MachineRunError::ProtectionDomain(refusal) => {
+                PreparationError::Protection(refusal)
+            }
+            _ => PreparationError::KernelRejected,
+        })?;
     Ok(PreparedOrdinaryPlay {
         kernel,
         advertisement,
@@ -165,20 +224,19 @@ pub(crate) fn advertisement(
         || fixed.capabilities[2].contract_revision != conduit_text::TEXT_LITERAL_CONTRACT_REVISION
         || fixed.capabilities[3].kind != conduit_text::TEXT_UPPER_KIND
         || fixed.capabilities[3].contract_revision != conduit_text::TEXT_UPPER_CONTRACT_REVISION
-        || fixed.capabilities[4].kind != conduit_semantic_catalog::TEXT_PRESENTATION_KIND
+        || fixed.capabilities[4].kind != conduit_semantic_catalog::TEXT_FACE_KIND
         || fixed.capabilities[4].contract_revision
-            != conduit_semantic_catalog::TEXT_PRESENTATION_CONTRACT_REVISION
+            != conduit_semantic_catalog::TEXT_FACE_CONTRACT_REVISION
         || fixed.capabilities[2].implementation != crate::offer::TEXT_LITERAL_IMPLEMENTATION
         || fixed.capabilities[3].implementation != crate::offer::TEXT_UPPER_IMPLEMENTATION
-        || fixed.capabilities[4].implementation != crate::offer::TEXT_PRESENTATION_IMPLEMENTATION
+        || fixed.capabilities[4].implementation != crate::offer::TEXT_FACE_IMPLEMENTATION
         || fixed.capabilities[5].kind != conduit_text::TEXT_MORSE_KIND
         || fixed.capabilities[5].contract_revision != conduit_text::TEXT_MORSE_CONTRACT_REVISION
         || fixed.capabilities[5].implementation != crate::offer::TEXT_MORSE_IMPLEMENTATION
-        || fixed.capabilities[6].kind != conduit_semantic_catalog::INDICATOR_PRESENTATION_KIND
+        || fixed.capabilities[6].kind != conduit_semantic_catalog::INDICATOR_FACE_KIND
         || fixed.capabilities[6].contract_revision
-            != conduit_semantic_catalog::INDICATOR_PRESENTATION_CONTRACT_REVISION
-        || fixed.capabilities[6].implementation
-            != crate::offer::INDICATOR_PRESENTATION_IMPLEMENTATION
+            != conduit_semantic_catalog::INDICATOR_FACE_CONTRACT_REVISION
+        || fixed.capabilities[6].implementation != crate::offer::INDICATOR_FACE_IMPLEMENTATION
         || [
             (
                 conduit_text::TEXT_CHARACTERS_KIND,
@@ -221,9 +279,9 @@ pub(crate) fn advertisement(
                 crate::offer::STATE_COUNT_IMPLEMENTATION,
             ),
             (
-                conduit_semantic_catalog::COUNT_PRESENTATION_KIND,
-                conduit_semantic_catalog::COUNT_PRESENTATION_CONTRACT_REVISION,
-                crate::offer::COUNT_PRESENTATION_IMPLEMENTATION,
+                conduit_semantic_catalog::COUNT_FACE_KIND,
+                conduit_semantic_catalog::COUNT_FACE_CONTRACT_REVISION,
+                crate::offer::COUNT_FACE_IMPLEMENTATION,
             ),
         ]
         .iter()
@@ -238,7 +296,7 @@ pub(crate) fn advertisement(
         || fixed.capabilities[2].maximum_output_bytes != conduit_text::MAX_TEXT_BYTES
         || fixed.capabilities[2].output.is_none_or(|port| {
             port.name != "text"
-                || port.value_kind != conduit_semantic_catalog::TEXT_PRESENTATION_VALUE_KIND
+                || port.value_kind != conduit_semantic_catalog::TEXT_FACE_VALUE_KIND
                 || port.direction != crate::offer::PortDirection::Output
         })
         || fixed.capabilities[3].required_base != crate::machine::BaseKind::Memory
@@ -250,7 +308,7 @@ pub(crate) fn advertisement(
         || fixed.capabilities[4].maximum_input_bytes != crate::offer::SERIAL_MAXIMUM_BYTES
         || fixed.capabilities[4].input.is_none_or(|port| {
             port.name != "text"
-                || port.value_kind != conduit_semantic_catalog::TEXT_PRESENTATION_VALUE_KIND
+                || port.value_kind != conduit_semantic_catalog::TEXT_FACE_VALUE_KIND
                 || port.direction != crate::offer::PortDirection::Input
         })
         || fixed
@@ -290,24 +348,17 @@ pub(crate) fn advertisement(
     );
     let mut upper = crate::functional_offers::text_upper_offer();
     bind_native_capability(&mut upper, &fixed.capabilities[3], build_id, "text-upper");
-    let mut presentation = crate::presentation_offers::presentation_offer_for(
-        conduit_semantic_catalog::TEXT_PRESENTATION_KIND,
-    )
-    .expect("ConduitOS owns text presentation");
-    bind_native_capability(
-        &mut presentation,
-        &fixed.capabilities[4],
-        build_id,
-        "presentation-text",
-    );
+    let mut face = crate::face_offers::face_offer_for(conduit_semantic_catalog::TEXT_FACE_KIND)
+        .expect("ConduitOS owns text face");
+    bind_native_capability(&mut face, &fixed.capabilities[4], build_id, "face-text");
     let mut morse = crate::functional_offers::text_morse_offer();
     bind_native_capability(&mut morse, &fixed.capabilities[5], build_id, "text-morse");
-    let mut indicator = crate::functional_offers::indicator_presentation_offer();
+    let mut indicator = crate::functional_offers::indicator_face_offer();
     bind_native_capability(
         &mut indicator,
         &fixed.capabilities[6],
         build_id,
-        "presentation-indicator",
+        "face-indicator",
     );
     let mut composition = crate::functional_offers::morse_composition_offers();
     for ((index, capability), name) in composition.iter_mut().enumerate().zip([
@@ -323,15 +374,14 @@ pub(crate) fn advertisement(
     bind_native_capability(&mut every, &fixed.capabilities[12], build_id, "time-every");
     let mut count = crate::functional_offers::state_count_offer();
     bind_native_capability(&mut count, &fixed.capabilities[13], build_id, "state-count");
-    let mut count_presentation = crate::presentation_offers::presentation_offer_for(
-        conduit_semantic_catalog::COUNT_PRESENTATION_KIND,
-    )
-    .expect("ConduitOS owns count presentation");
+    let mut count_face =
+        crate::face_offers::face_offer_for(conduit_semantic_catalog::COUNT_FACE_KIND)
+            .expect("ConduitOS owns count face");
     bind_native_capability(
-        &mut count_presentation,
+        &mut count_face,
         &fixed.capabilities[14],
         build_id,
-        "presentation-count",
+        "face-count",
     );
     let mut advertisement = HostAdvertisement {
         protocol_version: PROTOCOL_VERSION,
@@ -352,13 +402,15 @@ pub(crate) fn advertisement(
                 )
             })
             .collect::<Vec<ResourceOffer>>(),
-        capabilities: vec![literal, upper, presentation, morse, indicator],
+        capabilities: vec![literal, upper, face, morse, indicator],
         planner_capabilities: Vec::new(),
     };
     advertisement.capabilities.append(&mut composition);
     advertisement
         .capabilities
-        .extend([every, count, count_presentation]);
+        .extend([every, count, count_face]);
+    crate::ordinary_base::append_serial(&mut advertisement, fixed)?;
+    crate::ordinary_base::append_timer(&mut advertisement, fixed)?;
     if let Some(keyboard) = fixed.keyboard {
         crate::keyboard_offer::append_to_advertisement(&mut advertisement, keyboard, build_id)
             .map_err(|_| PreparationError::OfferMismatch)?;
@@ -411,11 +463,23 @@ fn bind_native_capability(
         ExecutionProfileId::from("conduitos/single-lane-cooperative@1");
     portable.implementation.implementation_id = ImplementationId::from(fixed.implementation);
     portable.implementation.artifact_id = ArtifactId::from(format!("conduitos-build/{build_id}"));
+    #[allow(unused_mut)]
+    let mut memory_bytes = 4096;
+    #[cfg(conduitos_protected_execution)]
+    if fixed.kind == conduit_text::TEXT_UPPER_KIND {
+        memory_bytes +=
+            crate::arch::TextDomain::RESERVED_BYTES + crate::text_protection::ROOT_METADATA_CEILING;
+    }
+    #[cfg(conduitos_protected_execution)]
+    if fixed.kind == conduit_time::TIME_EVERY_KIND {
+        memory_bytes +=
+            crate::arch::TextDomain::RESERVED_BYTES + crate::protected_timer::ROOT_METADATA_CEILING;
+    }
     portable
         .resource_requirements
         .push(conduit_core::resource_requirement(
             "conduit.resource/runtime-memory@1",
-            4_096,
+            memory_bytes,
         ));
     portable.resource_requirements.sort();
 }

@@ -8,6 +8,11 @@ pub(super) static FACTORY: BackFactory = BackFactory {
     budget,
     prepare,
 };
+pub(super) static SCALAR_TAPE_FACTORY: BackFactory = BackFactory {
+    implementation_id: conduit_std_offers::PURE_SCALAR_TAPE_STD_IMPLEMENTATION,
+    budget,
+    prepare,
+};
 pub(super) static FILTER_FACTORY: BackFactory = BackFactory {
     implementation_id: conduit_std_offers::PURE_FILTER_STD_IMPLEMENTATION,
     budget,
@@ -36,6 +41,7 @@ pub(super) fn prepare_hosts(
             if matches!(
                 placement.implementation_id.as_str(),
                 conduit_std_offers::PURE_EXPRESSION_STD_IMPLEMENTATION
+                    | conduit_std_offers::PURE_SCALAR_TAPE_STD_IMPLEMENTATION
                     | conduit_std_offers::PURE_FILTER_STD_IMPLEMENTATION
             ) {
                 PureExpressionHost::from_placement(placement).map(Some)
@@ -69,8 +75,14 @@ impl PureExpressionHost {
             None
         };
         Ok(Self {
-            evaluator: conduit_plot::PreparedPortableExpressionEvaluator::new(&program)
-                .map_err(|error| format!("prepare pure expression evaluator: {error:?}"))?,
+            evaluator: if placement.implementation_id.as_str()
+                == conduit_std_offers::PURE_SCALAR_TAPE_STD_IMPLEMENTATION
+            {
+                conduit_plot::PreparedPortableExpressionEvaluator::new_scalar_tape(&program)
+            } else {
+                conduit_plot::PreparedPortableExpressionEvaluator::new(&program)
+            }
+            .map_err(|error| format!("prepare pure expression evaluator: {error:?}"))?,
             filter_output,
         })
     }
@@ -111,7 +123,7 @@ impl PureExpressionHost {
     }
 }
 
-fn program_from_placement(
+pub(super) fn program_from_placement(
     placement: &PlannedGear,
 ) -> Result<conduit_plot::PortableExpressionProgram, String> {
     let [entry] = placement.configuration.as_slice() else {
@@ -133,13 +145,19 @@ fn validate_placement(
         .first()
         .map(|port| port.temporal)
         .ok_or("pure expression input is absent")?;
-    let offer =
-        if placement.kind_contract_revision.as_str() == conduit_plot::PURE_FILTER_REVISION {
-            conduit_std_offers::pure_filter_std_offer(program, temporal)
-        } else {
-            conduit_std_offers::pure_expression_std_offer(program, temporal)
-        }
-        .map_err(|error| format!("pure expression offer refusal: {error:?}"))?;
+    let offer = if placement.implementation_id.as_str()
+        == conduit_std_offers::PURE_SCALAR_TAPE_STD_IMPLEMENTATION
+    {
+        conduit_std_offers::pure_scalar_tape_std_offer(program, temporal)?
+    } else {
+        let result =
+            if placement.kind_contract_revision.as_str() == conduit_plot::PURE_FILTER_REVISION {
+                conduit_std_offers::pure_filter_std_offer(program, temporal)
+            } else {
+                conduit_std_offers::pure_expression_std_offer(program, temporal)
+            };
+        result.map_err(|error| format!("pure expression offer refusal: {error:?}"))?
+    };
     if placement.kind_id != offer.kind_id
         || placement.kind_contract_revision != offer.kind_contract_revision
         || placement.execution_profile_id != offer.implementation.execution_profile_id
@@ -191,7 +209,73 @@ pub(super) fn refusal_detail(refusal: &conduit_plot::PortableExpressionEvaluatio
         conduit_plot::PortableExpressionEvaluationRefusal::InvalidProgram => 2,
         conduit_plot::PortableExpressionEvaluationRefusal::InvalidLiteral => 3,
         conduit_plot::PortableExpressionEvaluationRefusal::Arithmetic => 4,
+        conduit_plot::PortableExpressionEvaluationRefusal::QuantityProduct(_)
+        | conduit_plot::PortableExpressionEvaluationRefusal::QuantityProjection(_)
+        | conduit_plot::PortableExpressionEvaluationRefusal::QuantityEncoding(_) => {
+            conduit_plot::quantity_arithmetic_failure_detail(refusal)
+        }
         conduit_plot::PortableExpressionEvaluationRefusal::UnsupportedSemanticCall(_) => 5,
         conduit_plot::PortableExpressionEvaluationRefusal::UnsupportedType(_) => 6,
+        conduit_plot::PortableExpressionEvaluationRefusal::UnprovedMathematicalComparison => 7,
+        conduit_plot::PortableExpressionEvaluationRefusal::InverseAngle(reason) => {
+            conduit_plot::inverse_angle_failure_detail(reason)
+        }
+        conduit_plot::PortableExpressionEvaluationRefusal::AngleReference(reason) => match reason {
+            conduit_core::AngleReferenceRefusal::NotLinearAngle => 16,
+            conduit_core::AngleReferenceRefusal::SourceEvidence(_) => 17,
+            conduit_core::AngleReferenceRefusal::Coordinate(_) => 18,
+            conduit_core::AngleReferenceRefusal::Denotation(_) => 19,
+        },
+        // 8/9 are existing filter failures above. Keep the new Angle domain
+        // causes separate rather than flattening an undefined pole to arithmetic.
+        conduit_plot::PortableExpressionEvaluationRefusal::AngleTrigonometry(reason) => {
+            match reason {
+                conduit_core::AngleTrigonometryRefusal::NotAngle => 10,
+                conduit_core::AngleTrigonometryRefusal::UnsupportedRole => 11,
+                conduit_core::AngleTrigonometryRefusal::SourceEvidence(_) => 12,
+                conduit_core::AngleTrigonometryRefusal::Coordinate(_) => 13,
+                conduit_core::AngleTrigonometryRefusal::Denotation(
+                    conduit_core::MathematicalValueRefusal::TrigonometricPole,
+                ) => 14,
+                conduit_core::AngleTrigonometryRefusal::Denotation(_) => 15,
+            }
+        }
     }
 }
+
+// Reuse the computational Back already used by admitted child kernels. Its
+// exact local Offer is checked before storage is prepared; no Host Call is
+// silently removed from a hosted realization.
+pub(super) static LOCAL_FACTORY: BackFactory = BackFactory {
+    implementation_id: conduit_std_offers::PURE_EXPRESSION_LOCAL_IMPLEMENTATION,
+    budget: local_budget,
+    prepare: prepare_local,
+};
+pub(super) fn local_budget(placement: &PlannedGear) -> Result<BackBudget, String> {
+    let factory = crate::flow_activation::LocalExpressionFactory;
+    let budget = conduit_composite::KernelOperationFactory::budget(&factory, placement)?;
+    Ok(BackBudget {
+        value_items: budget.value_items,
+        value_bytes: budget.value_bytes,
+        maximum_value_bytes: budget.maximum_value_bytes,
+        host_requests: budget.host_requests as usize,
+        sign_items: budget.sign_items,
+    })
+}
+fn prepare_local(
+    placement: &PlannedGear,
+    _: &mut conduit_kernel::HostedValueStore,
+) -> Result<InstalledBack, String> {
+    local_budget(placement)?;
+    Ok(InstalledBack::LocalExpression(
+        crate::flow_activation::PreparedLocalExpressionBack::from_placement(placement)?,
+    ))
+}
+
+#[cfg(test)]
+#[path = "pure_expression_back/scalar_tape_tests.rs"]
+mod scalar_tape_tests;
+
+#[cfg(test)]
+#[path = "pure_expression_back/scalar_tape_parity_tests.rs"]
+mod scalar_tape_parity_tests;

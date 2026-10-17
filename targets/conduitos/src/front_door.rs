@@ -2,13 +2,12 @@
 
 use alloc::{format, string::String, vec};
 use conduit_core::{BootId, CheckedPlotId, HostId, OfferGeneration, SourceDocumentId};
-use conduit_human::KeyEvent;
-use conduit_presentation::{
-    Presentation, PresentationAction, PresentationActionRefusal, PresentationBasis,
-    PresentationDisclosure, PresentationDisclosureLevel, PresentationProperty,
-    PresentationPropertyValue, PresentationRelationship, PresentationRelationshipKind,
-    PresentationRole, PresentationSubject, PresentationText,
+use conduit_face::{
+    Face, FaceAction, FaceActionRefusal, FaceBasis, FaceDisclosure, FaceDisclosureLevel,
+    FaceProperty, FacePropertyValue, FaceRelationship, FaceRelationshipKind, FaceRole, FaceSubject,
+    FaceText,
 };
+use conduit_human::KeyEvent;
 
 use crate::display::DisplayError;
 use crate::product_journey::{JourneyProjection, JourneyStatus};
@@ -65,7 +64,7 @@ pub struct FrontDoor {
     home: Option<home::Home>,
     refusal: Option<workspace::WorkspaceRefusal>,
     workspace: Option<crate::product_journey::WorkspaceProjection>,
-    application_view: Option<conduit_presentation::ApplicationView>,
+    application_view: Option<conduit_face::ApplicationView>,
     patchbay_graph: Option<patchbay_graph::PatchbayGraph>,
     application_viewport: application_layout::ApplicationViewport,
 }
@@ -104,7 +103,7 @@ pub enum Error {
     UnknownAction,
     ActionUnavailable,
     ActionRefused,
-    Presentation,
+    Face,
     Display(DisplayError),
     Scene,
 }
@@ -117,7 +116,7 @@ impl Error {
             Self::UnknownAction => "front-door-action-unknown",
             Self::ActionUnavailable => "front-door-action-unavailable",
             Self::ActionRefused => "front-door-action-refused",
-            Self::Presentation => "front-door-presentation-refused",
+            Self::Face => "front-door-face-refused",
             Self::Display(error) => error.as_str(),
             Self::Scene => "front-door-scene-refused",
         }
@@ -188,7 +187,7 @@ impl FrontDoor {
                 .as_ref()
                 .is_some_and(|identity| identity != &self.checked_plot_id)
         {
-            return Err(Error::Presentation);
+            return Err(Error::Face);
         }
         self.plot_open = projection.status == JourneyStatus::PlotOpened;
         self.journey = Some(projection);
@@ -206,7 +205,7 @@ impl FrontDoor {
             != Some(&projection.body_id)
             || projection.line_id.is_empty()
         {
-            return Err(Error::Presentation);
+            return Err(Error::Face);
         }
         self.connectivity = Some(projection);
         self.advance()
@@ -261,32 +260,34 @@ impl FrontDoor {
     }
 
     fn advance(&mut self) -> Result<(), Error> {
-        self.revision = self.revision.checked_add(1).ok_or(Error::Presentation)?;
+        self.revision = self.revision.checked_add(1).ok_or(Error::Face)?;
         Ok(())
     }
 
     pub fn resolve_action(
         &self,
         action: patchbay_control::PatchbayAction,
-        presentation_revision: u64,
-    ) -> Result<PresentationAction, Error> {
-        let presentation = self.presentation()?;
-        let semantic = presentation
+        face_revision: u64,
+    ) -> Result<FaceAction, Error> {
+        let face = self.face()?;
+        let semantic = face
             .actions
             .iter()
-            .find(|candidate| candidate.intent == action.presentation_intent())
-            .ok_or(Error::Presentation)?;
-        presentation
-            .resolve_action(presentation_revision, &semantic.identity)
+            .find(|candidate| candidate.intent == action.face_intent())
+            .ok_or(Error::Face)?;
+        face.resolve_action(face_revision, &semantic.identity)
             .cloned()
             .map_err(|error| match error {
-                PresentationActionRefusal::StaleRevision => Error::StaleAction,
-                PresentationActionRefusal::UnknownAction => Error::UnknownAction,
-                PresentationActionRefusal::Unavailable { .. } => Error::ActionUnavailable,
-                PresentationActionRefusal::Refused { .. } => Error::ActionRefused,
+                FaceActionRefusal::StaleRevision => Error::StaleAction,
+                FaceActionRefusal::UnknownAction => Error::UnknownAction,
+                FaceActionRefusal::Unavailable { .. } => Error::ActionUnavailable,
+                FaceActionRefusal::Refused { .. } => Error::ActionRefused,
             })
     }
 }
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod shell_audit_tests;

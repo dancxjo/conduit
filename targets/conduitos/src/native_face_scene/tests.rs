@@ -1,15 +1,16 @@
 use super::*;
 use alloc::{string::String, vec};
+use conduit_core::{CheckedValueContract, ValueConstraint, kind_id};
+use conduit_face::*;
 use conduit_human::{KeyEvent, KeyModifiers, KeyTransition};
-use conduit_presentation::*;
 #[path = "fixture.rs"]
 pub(crate) mod fixture;
 
-pub(crate) fn face(revision: u64) -> Presentation {
+pub(crate) fn face(revision: u64) -> Face {
     let producer = fixture::producer_plan();
-    Presentation::new_with_semantics(
+    Face::new_with_semantics(
         revision,
-        PresentationBasis {
+        FaceBasis {
             body_id: Some(serde_json::from_str("\"body/native-face-fixture\"").unwrap()),
             wake_id: None,
             source_document_id: Some(producer.source_document_id),
@@ -20,33 +21,33 @@ pub(crate) fn face(revision: u64) -> Presentation {
             sign_ids: vec![],
         },
         vec![
-            PresentationSubject {
+            FaceSubject {
                 identity: "z-first".into(),
-                role: PresentationRole::Document,
+                role: FaceRole::Document,
                 name: "A readable encounter".into(),
             },
-            PresentationSubject {
+            FaceSubject {
                 identity: "a-field".into(),
-                role: PresentationRole::TextEntry,
+                role: FaceRole::TextEntry,
                 name: "Friendly name".into(),
             },
         ],
-        vec![PresentationRelationship {
+        vec![FaceRelationship {
             source: "z-first".into(),
             target: "a-field".into(),
-            kind: PresentationRelationshipKind::Contains,
+            kind: FaceRelationshipKind::Contains,
         }],
-        vec![PresentationProperty {
+        vec![FaceProperty {
             subject: "z-first".into(),
             name: "producer".into(),
-            value: PresentationPropertyValue::Identity("opaque/sha256:producer".into()),
+            value: FacePropertyValue::Identity("opaque/sha256:producer".into()),
         }],
-        vec![PresentationText {
+        vec![FaceText {
             subject: "a-field".into(),
             text: "Give this encounter a name.".into(),
         }],
         vec![
-            PresentationAction {
+            FaceAction {
                 identity: "edit".into(),
                 intent: "test/edit".into(),
                 target: "a-field".into(),
@@ -54,17 +55,17 @@ pub(crate) fn face(revision: u64) -> Presentation {
                 arguments: vec![
                     FaceActionArgument::text("value".into(), "Name".into(), 0, 64).unwrap(),
                 ],
-                disclosure: PresentationDisclosureLevel::CurrentAction,
-                availability: PresentationActionAvailability::Available,
+                disclosure: FaceDisclosureLevel::CurrentAction,
+                availability: FaceActionAvailability::Available,
             },
-            PresentationAction {
+            FaceAction {
                 identity: "finish".into(),
                 intent: "test/finish".into(),
                 target: "z-first".into(),
                 name: "Finish".into(),
                 arguments: vec![],
-                disclosure: PresentationDisclosureLevel::CurrentAction,
-                availability: PresentationActionAvailability::Available,
+                disclosure: FaceDisclosureLevel::CurrentAction,
+                availability: FaceActionAvailability::Available,
             },
         ],
         vec![],
@@ -83,12 +84,12 @@ fn bounded_local_return_notice_does_not_mutate_owner_face() {
     scene
         .set_local_notice("Owner accepted: Face refreshed")
         .unwrap();
-    assert_eq!(scene.presentation(), &owner_face);
+    assert_eq!(scene.face(), &owner_face);
     assert!(matches!(
         scene.set_local_notice(&"x".repeat(97)),
         Err(FaceSceneError::InputBound)
     ));
-    assert_eq!(scene.presentation(), &owner_face);
+    assert_eq!(scene.face(), &owner_face);
 }
 
 #[test]
@@ -112,7 +113,7 @@ fn incomplete_local_input_can_be_corrected_on_the_same_show() {
         panic!("corrected input must submit on the original Show");
     };
     assert_eq!(interaction.arguments[0].value, b"a");
-    assert_eq!(scene.presentation(), &owner_face);
+    assert_eq!(scene.face(), &owner_face);
 }
 
 #[test]
@@ -164,10 +165,7 @@ fn creche_name_argument_reverses_to_birth_without_inventory_index_guessing() {
         .unwrap();
     for expected in ["creche.name", "creche.suggest", "creche.birth"] {
         let control = scene.focus_next(false).unwrap();
-        assert_eq!(
-            scene.presentation().actions[control.action].identity,
-            expected
-        );
+        assert_eq!(scene.face().actions[control.action].identity, expected);
         assert_eq!(control.argument, None);
     }
 }
@@ -204,7 +202,7 @@ fn full_face_retained_and_semantic_order_is_not_action_index_order() {
     let original = face(1);
     let mut scene = NativeFaceScene::prepare(original.clone(), 640, 480).unwrap();
     let frame = scene.frame().unwrap();
-    assert_eq!(frame.presentation_id, &original.identity);
+    assert_eq!(frame.face_id, &original.identity);
     assert_eq!(frame.revision, 1);
     assert_eq!(frame.page, scene.page());
     assert_eq!(frame.pages, scene.pages());
@@ -259,35 +257,44 @@ fn full_face_retained_and_semantic_order_is_not_action_index_order() {
     );
     scene.show_details(true);
     scene.turn_page(true);
-    assert_eq!(scene.presentation(), &original);
+    assert_eq!(scene.face(), &original);
 }
 
 #[test]
-fn primary_view_explains_face_relationships_and_composition_without_new_meaning() {
+fn primary_view_keeps_relationships_and_composition_in_inspection() {
     let original = face(10)
-        .with_composition(vec![PresentationCompositionRelation {
+        .with_composition(vec![FaceCompositionRelation {
             identity: "name-after-document".into(),
             source: "a-field".into(),
             target: "z-first".into(),
-            kind: PresentationCompositionKind::RevealAfter,
+            kind: FaceCompositionKind::RevealAfter,
         }])
         .unwrap();
     let scene = NativeFaceScene::prepare(original.clone(), 640, 480).unwrap();
     let spoken = plan_face_utterances(&original).unwrap();
-    for clause in spoken.clauses.iter().filter(|clause| {
-        matches!(
-            clause.provenance,
-            FaceUtteranceProvenance::Relationship(_) | FaceUtteranceProvenance::Composition(_)
-        )
-    }) {
-        assert!(scene.primary.iter().any(|row| row.text == clause.text));
-    }
     assert!(
-        scene
+        !scene
             .primary
             .iter()
-            .any(|row| row.text == "Change name · Friendly name")
+            .any(|row| row.text.contains("Contains ·"))
     );
+    for clause in spoken
+        .clauses
+        .iter()
+        .filter(|clause| matches!(clause.provenance, FaceUtteranceProvenance::Composition(_)))
+    {
+        assert!(scene.details.iter().any(|row| row.text == clause.text));
+    }
+    assert!(
+        spoken
+            .clauses
+            .iter()
+            .filter(|clause| {
+                matches!(clause.provenance, FaceUtteranceProvenance::Relationship(_))
+            })
+            .all(|clause| scene.details.iter().any(|row| row.text == clause.text))
+    );
+    assert!(scene.primary.iter().any(|row| row.text == "Change name"));
     assert!(
         scene
             .details
@@ -297,13 +304,249 @@ fn primary_view_explains_face_relationships_and_composition_without_new_meaning(
 }
 
 #[test]
+fn primary_view_leaves_properties_in_details() {
+    let mut original = face(32);
+    original.properties.extend([
+        FaceProperty {
+            subject: "z-first".into(),
+            name: "lifecycle-state".into(),
+            value: FacePropertyValue::Text("lulled".into()),
+        },
+        FaceProperty {
+            subject: "z-first".into(),
+            name: "workload-revision".into(),
+            value: FacePropertyValue::Count(2),
+        },
+    ]);
+    let original = Face::new_with_semantics(
+        33,
+        original.basis,
+        original.subjects,
+        original.relationships,
+        original.properties,
+        original.text,
+        original.actions,
+        original.disclosures,
+    )
+    .unwrap();
+    let scene = NativeFaceScene::prepare(original.clone(), 640, 480).unwrap();
+    assert!(
+        !scene
+            .primary
+            .iter()
+            .any(|row| row.text.contains("workload revision"))
+    );
+    assert!(
+        !scene
+            .primary
+            .iter()
+            .any(|row| row.text.contains("lifecycle state"))
+    );
+    for clause in plan_face_utterances(&original)
+        .unwrap()
+        .clauses
+        .iter()
+        .filter(|clause| matches!(clause.provenance, FaceUtteranceProvenance::Property(_)))
+    {
+        assert!(scene.details.iter().any(|row| row.text == clause.text));
+    }
+    let frame = scene.frame().unwrap();
+    assert!(frame.scene.commands().iter().any(|command| {
+        command.kind == GraphicsCommandKind::Rect
+            && command.paint == GraphicsPaintRole::Accent
+            && command.bounds.width == 3
+    }));
+}
+
+#[test]
+fn ordinary_graphics_lead_with_primary_content_and_keep_context_inspectable() {
+    let mut original = face(34);
+    original.subjects[0].role = FaceRole::Body;
+    original.text.push(FaceText {
+        subject: "z-first".into(),
+        text: "Groceries is lulled with one resident plot.".into(),
+    });
+    original.subjects.push(FaceSubject {
+        identity: "todo-list".into(),
+        role: FaceRole::Collection,
+        name: "Groceries".into(),
+    });
+    original.disclosures.push(FaceDisclosure {
+        subject: "todo-list".into(),
+        level: FaceDisclosureLevel::Context,
+    });
+    original.subjects.push(FaceSubject {
+        identity: "todo-summary".into(),
+        role: FaceRole::Status,
+        name: "Remaining".into(),
+    });
+    original.text.push(FaceText {
+        subject: "todo-summary".into(),
+        text: "Three things remain.".into(),
+    });
+    original.disclosures.push(FaceDisclosure {
+        subject: "todo-summary".into(),
+        level: FaceDisclosureLevel::Primary,
+    });
+    original.subjects.push(FaceSubject {
+        identity: "context".into(),
+        role: FaceRole::Region,
+        name: "Current overview context".into(),
+    });
+    original.text.push(FaceText {
+        subject: "context".into(),
+        text: "Workload revision 18.".into(),
+    });
+    original.disclosures.push(FaceDisclosure {
+        subject: "context".into(),
+        level: FaceDisclosureLevel::Context,
+    });
+    let current = Face::new_with_semantics(
+        original.revision + 1,
+        original.basis,
+        original.subjects,
+        original.relationships,
+        original.properties,
+        original.text,
+        original.actions,
+        original.disclosures,
+    )
+    .unwrap();
+    let scene = NativeFaceScene::prepare(current, 640, 480).unwrap();
+    assert!(scene.primary.iter().any(|row| row.text == "Groceries"));
+    assert!(
+        scene
+            .primary
+            .iter()
+            .any(|row| row.text == "Three things remain.")
+    );
+    assert!(
+        !scene
+            .primary
+            .iter()
+            .any(|row| row.text.contains("resident plot"))
+    );
+    assert!(
+        !scene
+            .primary
+            .iter()
+            .any(|row| row.text == "Current overview context")
+    );
+    assert!(
+        !scene
+            .primary
+            .iter()
+            .any(|row| row.text == "Workload revision 18.")
+    );
+    assert!(
+        scene
+            .details
+            .iter()
+            .any(|row| row.text.contains("Current overview context"))
+    );
+    assert!(
+        scene
+            .details
+            .iter()
+            .any(|row| row.text == "Workload revision 18.")
+    );
+    assert!(
+        scene
+            .details
+            .iter()
+            .any(|row| row.text.contains("resident plot"))
+    );
+}
+
+#[test]
+fn primary_action_names_bounded_text_choices_from_current_face_contract() {
+    let mut current = face(31);
+    current.actions[0].arguments[0].value_name = "Interval in milliseconds".into();
+    current.actions[0].arguments[0].contract = CheckedValueContract::new(
+        kind_id(UTF8_TEXT_VALUE_KIND),
+        4,
+        vec![ValueConstraint::CanonicalMembership {
+            members: ["1000", "2000", "250", "500"]
+                .map(|value| value.as_bytes().to_vec())
+                .into(),
+            negated: false,
+        }],
+    )
+    .unwrap();
+    let current = Face::new_with_semantics(
+        current.revision + 1,
+        current.basis,
+        current.subjects,
+        current.relationships,
+        current.properties,
+        current.text,
+        current.actions,
+        current.disclosures,
+    )
+    .unwrap();
+    let scene = NativeFaceScene::prepare(current.clone(), 640, 480).unwrap();
+    assert!(scene.primary.iter().any(|row| {
+        row.text
+            .contains("Interval in milliseconds · Choose 1000, 2000, 250, 500")
+    }));
+    let show = fixture::show(&current);
+    let interaction = scene
+        .interaction(
+            &current.identity,
+            current.revision,
+            FaceControl {
+                action: 0,
+                argument: Some(0),
+            },
+            &show,
+            vec![FaceInteractionArgument {
+                name: "value".into(),
+                value_kind: UTF8_TEXT_VALUE_KIND.into(),
+                value: b"500".to_vec(),
+            }],
+            1,
+        )
+        .unwrap();
+    assert_eq!(interaction.arguments[0].value, b"500");
+
+    let mut many = current.actions.clone();
+    many[0].arguments[0].contract = CheckedValueContract::new(
+        kind_id(UTF8_TEXT_VALUE_KIND),
+        2,
+        vec![ValueConstraint::CanonicalMembership {
+            members: (0u8..9).map(|value| vec![b'0' + value]).collect(),
+            negated: false,
+        }],
+    )
+    .unwrap();
+    let crowded = Face::new_with_semantics(
+        current.revision + 1,
+        current.basis,
+        current.subjects,
+        current.relationships,
+        current.properties,
+        current.text,
+        many,
+        current.disclosures,
+    )
+    .unwrap();
+    let crowded_scene = NativeFaceScene::prepare(crowded, 640, 480).unwrap();
+    assert!(
+        crowded_scene
+            .primary
+            .iter()
+            .any(|row| row.text.contains("Enter a value"))
+    );
+}
+
+#[test]
 fn focused_action_has_visible_focus_and_unavailable_action_has_no_hit() {
     let mut original = face(11);
-    original.actions[1].availability = PresentationActionAvailability::Unavailable {
+    original.actions[1].availability = FaceActionAvailability::Unavailable {
         reason_code: "test/not-ready".into(),
         explanation: "Waiting for a name".into(),
     };
-    let original = Presentation::new_with_semantics(
+    let original = Face::new_with_semantics(
         11,
         original.basis,
         original.subjects,
@@ -325,9 +568,18 @@ fn focused_action_has_visible_focus_and_unavailable_action_has_no_hit() {
     assert!(frame.scene.commands().iter().any(|command| {
         command.paint == GraphicsPaintRole::Focus && command.kind == GraphicsCommandKind::Rect
     }));
-    assert!(scene.primary.iter().any(|row| {
-        row.paint == GraphicsPaintRole::Warning && row.text.contains("Waiting for a name")
-    }));
+    assert!(
+        !scene
+            .primary
+            .iter()
+            .any(|row| row.text.contains("Waiting for a name"))
+    );
+    assert!(
+        scene
+            .details
+            .iter()
+            .any(|row| row.text.contains("Waiting for a name"))
+    );
     assert!(frame.hits.iter().all(|hit| hit.action.identity != "finish"));
 }
 
@@ -335,25 +587,25 @@ fn focused_action_has_visible_focus_and_unavailable_action_has_no_hit() {
 fn patchbay_diagram_uses_exact_face_gears_ports_and_cord_endpoints() {
     let mut original = face(12);
     for (identity, role, name) in [
-        ("gear/a", PresentationRole::Gear, "Source Gear"),
-        ("gear/b", PresentationRole::Gear, "Sink Gear"),
-        ("port/a", PresentationRole::Port, "Out · text"),
-        ("port/b", PresentationRole::Port, "In · text"),
-        ("cord/a-b", PresentationRole::Cord, "Text to display"),
+        ("gear/a", FaceRole::Gear, "Source Gear"),
+        ("gear/b", FaceRole::Gear, "Sink Gear"),
+        ("port/a", FaceRole::Port, "Out · text"),
+        ("port/b", FaceRole::Port, "In · text"),
+        ("cord/a-b", FaceRole::Cord, "Text to display"),
     ] {
-        original.subjects.push(PresentationSubject {
+        original.subjects.push(FaceSubject {
             identity: identity.into(),
             role,
             name: name.into(),
         });
     }
     for (source, target, kind) in [
-        ("gear/a", "port/a", PresentationRelationshipKind::Contains),
-        ("gear/b", "port/b", PresentationRelationshipKind::Contains),
-        ("cord/a-b", "port/a", PresentationRelationshipKind::Connects),
-        ("cord/a-b", "port/b", PresentationRelationshipKind::Connects),
+        ("gear/a", "port/a", FaceRelationshipKind::Contains),
+        ("gear/b", "port/b", FaceRelationshipKind::Contains),
+        ("cord/a-b", "port/a", FaceRelationshipKind::Connects),
+        ("cord/a-b", "port/b", FaceRelationshipKind::Connects),
     ] {
-        original.relationships.push(PresentationRelationship {
+        original.relationships.push(FaceRelationship {
             source: source.into(),
             target: target.into(),
             kind,
@@ -363,41 +615,41 @@ fn patchbay_diagram_uses_exact_face_gears_ports_and_cord_endpoints() {
         (
             "port/a",
             "semantic-id",
-            PresentationPropertyValue::Identity("out".into()),
+            FacePropertyValue::Identity("out".into()),
         ),
         (
             "port/b",
             "semantic-id",
-            PresentationPropertyValue::Identity("in".into()),
+            FacePropertyValue::Identity("in".into()),
         ),
         (
             "port/a",
             "direction",
-            PresentationPropertyValue::Text("outgoing".into()),
+            FacePropertyValue::Text("outgoing".into()),
         ),
         (
             "port/b",
             "direction",
-            PresentationPropertyValue::Text("receiving".into()),
+            FacePropertyValue::Text("receiving".into()),
         ),
         (
             "cord/a-b",
             "source-port",
-            PresentationPropertyValue::Identity("out".into()),
+            FacePropertyValue::Identity("out".into()),
         ),
         (
             "cord/a-b",
             "sink-port",
-            PresentationPropertyValue::Identity("in".into()),
+            FacePropertyValue::Identity("in".into()),
         ),
     ] {
-        original.properties.push(PresentationProperty {
+        original.properties.push(FaceProperty {
             subject: subject.into(),
             name: name.into(),
             value,
         });
     }
-    let original = Presentation::new_with_semantics(
+    let original = Face::new_with_semantics(
         12,
         original.basis,
         original.subjects,
@@ -425,14 +677,14 @@ fn patchbay_diagram_uses_exact_face_gears_ports_and_cord_endpoints() {
             .scene
             .commands()
             .iter()
-            .any(|command| command.payload() == "Source Gear")
+            .any(|command| command.payload() == "1 · Source Gear")
     );
     assert!(
         frame
             .scene
             .commands()
             .iter()
-            .any(|command| command.payload() == "Sink Gear")
+            .any(|command| command.payload() == "2 · Sink Gear")
     );
     assert!(frame.hits.is_empty());
     scene.show_details(true);
@@ -442,7 +694,7 @@ fn patchbay_diagram_uses_exact_face_gears_ports_and_cord_endpoints() {
             .iter()
             .any(|row| row.text.contains("Text to display"))
     );
-    assert_eq!(scene.presentation(), &original);
+    assert_eq!(scene.face(), &original);
     let mut compact = NativeFaceScene::prepare(original, 320, 240).unwrap();
     compact.show_diagram(true);
     assert_eq!(compact.pages(), 2);
@@ -457,12 +709,12 @@ fn patchbay_diagram_uses_exact_face_gears_ports_and_cord_endpoints() {
 fn every_utf8_byte_survives_layout_pages_with_bounded_commands() {
     let mut original = face(2);
     let long = "é中 long readable words ".repeat(30);
-    original.text = vec![PresentationText {
+    original.text = vec![FaceText {
         subject: "a-field".into(),
         text: long.clone(),
     }];
     // Use the canonical constructor to recompute identity after replacing text.
-    original = Presentation::new_with_semantics(
+    original = Face::new_with_semantics(
         2,
         original.basis,
         original.subjects,
@@ -497,7 +749,7 @@ fn every_utf8_byte_survives_layout_pages_with_bounded_commands() {
         );
         scene.turn_page(true);
     }
-    assert_eq!(scene.presentation(), &original);
+    assert_eq!(scene.face(), &original);
 }
 
 #[test]
@@ -536,7 +788,7 @@ fn typing_and_tab_commit_exact_argument_then_refuse_more_input_on_old_show() {
         scene.key(press(40), &show, 8),
         Err(FaceSceneError::StaleFace)
     ));
-    assert_eq!(scene.presentation(), &original);
+    assert_eq!(scene.face(), &original);
 }
 
 #[test]
@@ -572,11 +824,11 @@ fn stale_show_unacknowledged_show_and_stale_mapping_refuse() {
 #[test]
 fn pointer_mapping_retains_contract_and_never_invokes_an_unavailable_action() {
     let mut original = face(6);
-    original.actions[1].availability = PresentationActionAvailability::Unavailable {
+    original.actions[1].availability = FaceActionAvailability::Unavailable {
         reason_code: "test/no".into(),
         explanation: "Not ready".into(),
     };
-    original = Presentation::new_with_semantics(
+    original = Face::new_with_semantics(
         6,
         original.basis,
         original.subjects,
@@ -661,4 +913,313 @@ fn face_words_render_as_nonuniform_scene_pixels() {
     )
     .unwrap();
     assert!(pixels.0.windows(2).any(|pair| pair[0] != pair[1]));
+}
+
+#[test]
+fn checked_native_recipe_marks_contiguous_runs_without_reordering_controls() {
+    let mut original = face(7);
+    original.subjects[0].role = FaceRole::Collection;
+    original.subjects[1].role = FaceRole::Item;
+    let original = Face::new_with_semantics(
+        original.revision,
+        original.basis,
+        original.subjects,
+        original.relationships,
+        original.properties,
+        original.text,
+        original.actions,
+        original.disclosures,
+    )
+    .unwrap();
+    let provider = fixture::framebuffer_provider_entry();
+    let host = conduit_conduitos_mask_offer::native_host_advertisement(
+        &"host/native".into(),
+        &"boot/native".into(),
+        1,
+        &provider,
+    );
+    let mut scenes = Vec::new();
+    for recipe in [TodoComponentRecipe::Flat, TodoComponentRecipe::Grouped] {
+        let (_, configuration) = conduit_conduitos_mask_offer::prepare_component_stage_from_offer(
+            &host,
+            ComponentMaskLook::Spacious,
+            recipe,
+        )
+        .unwrap();
+        let recipe = prepare_component_recipe(
+            conduit_core::StructuredInfoValue::from_canonical_bytes(
+                configuration.recipe.canonical_value(),
+            )
+            .unwrap(),
+            &original,
+        )
+        .unwrap();
+        let expression = admit_visual_expression(
+            Ok(visual_expression_from_info(
+                conduit_core::StructuredInfoValue::from_canonical_bytes(
+                    configuration.expression.canonical_value(),
+                )
+                .unwrap(),
+            )
+            .unwrap()),
+            VisualUserConstraints {
+                forced_colors: false,
+                reduced_motion: true,
+                minimum_text_scale_percent: 100,
+                maximum_supported_text_scale_percent: 200,
+            },
+        )
+        .unwrap();
+        let fallback = NativeFaceScene::prepare_visual_fallback(
+            original.clone(),
+            1000,
+            480,
+            true,
+            &expression,
+        )
+        .unwrap();
+        assert_eq!(fallback.face(), &original);
+        assert_eq!(fallback.text_scale_percent(), 125);
+        assert!(fallback.frame().is_ok());
+        scenes.push(
+            NativeFaceScene::prepare_configured(
+                original.clone(),
+                1000,
+                480,
+                true,
+                &recipe,
+                &expression,
+            )
+            .unwrap(),
+        );
+    }
+    assert_eq!(scenes[0].face(), &original);
+    assert_eq!(scenes[1].face(), &original);
+    let controls = |scene: &NativeFaceScene| {
+        scene
+            .primary
+            .iter()
+            .filter_map(|row| row.control)
+            .collect::<Vec<_>>()
+    };
+    assert_eq!(controls(&scenes[0]), controls(&scenes[1]));
+    assert_eq!(
+        scenes[0]
+            .primary
+            .iter()
+            .filter(|row| row.region_start)
+            .count(),
+        1
+    );
+    assert_eq!(
+        scenes[1]
+            .primary
+            .iter()
+            .filter(|row| row.region_start)
+            .count(),
+        2
+    );
+    assert_eq!(scenes[0].text_scale_percent(), 125);
+    assert_eq!(scenes[1].text_scale_percent(), 125);
+}
+
+#[test]
+fn maximum_todo_projection_keeps_all_controls_and_detail_pages_in_both_native_looks() {
+    use conduit_todo_face::todo_fragment;
+    use conduit_todo_plot::{TodoItem, TodoState};
+    let state = TodoState {
+        title: "Things".into(),
+        revision: 20,
+        next_id: 21,
+        items: (1..=20)
+            .map(|number| TodoItem {
+                id: alloc::format!("task-{number}"),
+                text: alloc::format!("{number:02}{}", "é".repeat(35)),
+                complete: number % 2 == 0,
+            })
+            .collect(),
+    };
+    state.validate().unwrap();
+    let fragment = todo_fragment(
+        &state,
+        FaceContributionBasis {
+            checked_plot_id: "checked/todo".into(),
+            plan_id: "plan/todo".into(),
+            active_play_id: "play/todo".into(),
+            required_interaction_context: None,
+        },
+        true,
+    )
+    .unwrap();
+    let original = Face::new_with_semantics(
+        7,
+        face(7).basis,
+        fragment.subjects,
+        fragment.relationships,
+        fragment.properties,
+        fragment.text,
+        fragment.actions,
+        fragment.disclosures,
+    )
+    .unwrap();
+    assert!(!original.actions[0].availability.is_available());
+    let provider = fixture::framebuffer_provider_entry();
+    let host = conduit_conduitos_mask_offer::native_host_advertisement(
+        &"host/native".into(),
+        &"boot/native".into(),
+        1,
+        &provider,
+    );
+    for look in [ComponentMaskLook::Compact, ComponentMaskLook::Spacious] {
+        for recipe in [TodoComponentRecipe::Flat, TodoComponentRecipe::Grouped] {
+            let (_, configuration) =
+                conduit_conduitos_mask_offer::prepare_component_stage_from_offer(
+                    &host, look, recipe,
+                )
+                .unwrap();
+            let recipe = prepare_component_recipe(
+                conduit_core::StructuredInfoValue::from_canonical_bytes(
+                    configuration.recipe.canonical_value(),
+                )
+                .unwrap(),
+                &original,
+            )
+            .unwrap();
+            let expression = admit_visual_expression(
+                visual_expression_from_info(
+                    conduit_core::StructuredInfoValue::from_canonical_bytes(
+                        configuration.expression.canonical_value(),
+                    )
+                    .unwrap(),
+                ),
+                VisualUserConstraints {
+                    forced_colors: true,
+                    reduced_motion: true,
+                    minimum_text_scale_percent: 200,
+                    maximum_supported_text_scale_percent: 200,
+                },
+            )
+            .unwrap();
+            let mut scene = NativeFaceScene::prepare_configured(
+                original.clone(),
+                320,
+                240,
+                true,
+                &recipe,
+                &expression,
+            )
+            .unwrap();
+            assert_eq!(scene.face(), &original);
+            assert_eq!(scene.text_scale_percent(), 200);
+            assert!(expression.platform_forced_colors);
+            scene.show_details(true);
+            assert!(scene.pages() > 1);
+            let text: alloc::string::String =
+                scene.details.iter().map(|row| row.text.as_str()).collect();
+            for item in &state.items {
+                assert!(text.contains(&item.text));
+            }
+            let mut expected = Vec::new();
+            for row in &scene.details {
+                if let Some(control) = row.control
+                    && original.actions[control.action].availability.is_available()
+                    && !expected.contains(&control)
+                {
+                    expected.push(control);
+                }
+            }
+            assert_eq!(expected.len(), 40);
+            let mut reached = Vec::new();
+            for _ in 0..expected.len() {
+                let control = scene.focus_next(true).unwrap();
+                assert!(!reached.contains(&control));
+                assert!(original.actions[control.action].availability.is_available());
+                scene.frame().unwrap();
+                reached.push(control);
+            }
+            assert_eq!(reached, expected);
+            assert_eq!(scene.focus_next(true), expected.first().copied());
+            assert_eq!(scene.face(), &original);
+        }
+    }
+}
+
+#[test]
+fn native_density_changes_measured_padding_without_changing_source_geometry() {
+    let original = face(7);
+    let provider = fixture::framebuffer_provider_entry();
+    let host = conduit_conduitos_mask_offer::native_host_advertisement(
+        &"host/native".into(),
+        &"boot/native".into(),
+        1,
+        &provider,
+    );
+    let mut scenes = Vec::new();
+    for look in [ComponentMaskLook::Compact, ComponentMaskLook::Spacious] {
+        let (_, configuration) = conduit_conduitos_mask_offer::prepare_component_stage_from_offer(
+            &host,
+            look,
+            TodoComponentRecipe::Flat,
+        )
+        .unwrap();
+        let recipe = prepare_component_recipe(
+            conduit_core::StructuredInfoValue::from_canonical_bytes(
+                configuration.recipe.canonical_value(),
+            )
+            .unwrap(),
+            &original,
+        )
+        .unwrap();
+        let expression = admit_visual_expression(
+            visual_expression_from_info(
+                conduit_core::StructuredInfoValue::from_canonical_bytes(
+                    configuration.expression.canonical_value(),
+                )
+                .unwrap(),
+            ),
+            VisualUserConstraints {
+                forced_colors: false,
+                reduced_motion: true,
+                minimum_text_scale_percent: 200,
+                maximum_supported_text_scale_percent: 200,
+            },
+        )
+        .unwrap();
+        scenes.push(
+            NativeFaceScene::prepare_configured(
+                original.clone(),
+                1000,
+                480,
+                true,
+                &recipe,
+                &expression,
+            )
+            .unwrap(),
+        );
+    }
+    assert_eq!(scenes[0].primary[0].padding, SPACE_SM);
+    assert_eq!(scenes[1].primary[0].padding, SPACE_SM * 2);
+    assert_eq!(scenes[0].primary[0].bounds.x, scenes[1].primary[0].bounds.x);
+    assert_eq!(
+        scenes[0].primary[0].bounds.width,
+        scenes[1].primary[0].bounds.width
+    );
+    assert_eq!(
+        scenes[1].primary[0].bounds.height,
+        scenes[0].primary[0].bounds.height + SPACE_SM * 2
+    );
+    assert_eq!(
+        scenes[0].primary[0].text_bounds().height,
+        scenes[1].primary[0].text_bounds().height
+    );
+    let controls = |scene: &NativeFaceScene| {
+        scene
+            .primary
+            .iter()
+            .filter_map(|row| row.control)
+            .collect::<Vec<_>>()
+    };
+    assert_eq!(controls(&scenes[0]), controls(&scenes[1]));
+    assert_eq!(scenes[0].face(), &original);
+    assert_eq!(scenes[1].face(), &original);
 }

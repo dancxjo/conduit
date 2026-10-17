@@ -6,11 +6,17 @@ use crate::{
 use alloc::{boxed::Box, string::String, vec::Vec};
 use conduit_core::{StructuredInfoRefusal, StructuredInfoType};
 
+mod checked_encoding;
+mod constant;
+pub(crate) mod input_bound;
+pub(crate) use checked_encoding::checked_canonical_hex;
+
 pub const MAXIMUM_PURE_EXPRESSION_PROGRAM_BYTES: usize = crate::MAXIMUM_PLOT_SOURCE_BYTES * 64;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PortableExpressionProgram {
     pub input_type: StructuredInfoType,
+    pub input_maximum_bytes: Option<u32>,
     pub output_type: StructuredInfoType,
     pub root: PortableExpressionNode,
 }
@@ -25,6 +31,10 @@ pub struct PortableExpressionNode {
 pub enum PortableExpressionOperation {
     Input,
     Literal(String),
+    /// Checked self-contained physical capsule; never reparsed using ambient names.
+    CanonicalLiteral(Vec<u8>),
+    /// Already admitted ordinary constructor result; no runtime parsing.
+    Constant(conduit_core::StructuredInfoValue),
     Projection {
         value: Box<PortableExpressionNode>,
         member: PortableExpressionProjection,
@@ -83,6 +93,7 @@ impl PortableExpressionProgram {
         expression: &CheckedExpression,
     ) -> Result<Self, PortableExpressionProgramRefusal> {
         let value = Self {
+            input_maximum_bytes: expression.input_maximum_bytes,
             input_type: expression
                 .input_type
                 .structured_info_type_with(&expression.semantic_structures)?,
@@ -91,33 +102,77 @@ impl PortableExpressionProgram {
                 .structured_info_type_with(&expression.semantic_structures)?,
             root: node(&expression.syntax, expression)?,
         };
-        if value.canonical_bytes()?.len() > MAXIMUM_PURE_EXPRESSION_PROGRAM_BYTES {
+        if value.canonical_size()? > MAXIMUM_PURE_EXPRESSION_PROGRAM_BYTES {
             return Err(PortableExpressionProgramRefusal::TooLarge);
         }
         Ok(value)
     }
 
+    fn canonical_size(&self) -> Result<usize, PortableExpressionProgramRefusal> {
+        let mut encoded = ProgramSink {
+            storage: ProgramStorage::Count,
+            length: 0,
+        };
+        self.encode(&mut encoded)?;
+        Ok(encoded.length)
+    }
+
     pub fn canonical_bytes(&self) -> Result<Vec<u8>, PortableExpressionProgramRefusal> {
-        let mut encoded = b"conduit.pure-expression.program.v2".to_vec();
-        push_type(&mut encoded, &self.input_type)?;
-        push_type(&mut encoded, &self.output_type)?;
-        push_node(&mut encoded, &self.root)?;
-        if encoded.len() > MAXIMUM_PURE_EXPRESSION_PROGRAM_BYTES {
-            Err(PortableExpressionProgramRefusal::TooLarge)
-        } else {
-            Ok(encoded)
-        }
+        let length = self.canonical_size()?;
+        let mut encoded = ProgramSink {
+            storage: ProgramStorage::Bytes(Vec::with_capacity(length)),
+            length: 0,
+        };
+        self.encode(&mut encoded)?;
+        let ProgramStorage::Bytes(bytes) = encoded.storage else {
+            unreachable!("byte encoder owns its admitted storage");
+        };
+        Ok(bytes)
     }
 
     pub fn canonical_hex(&self) -> Result<String, PortableExpressionProgramRefusal> {
-        let bytes = self.canonical_bytes()?;
-        let mut encoded = String::with_capacity(bytes.len() * 2);
-        const HEX: &[u8; 16] = b"0123456789abcdef";
-        for byte in bytes {
-            encoded.push(char::from(HEX[usize::from(byte >> 4)]));
-            encoded.push(char::from(HEX[usize::from(byte & 0x0f)]));
+        let length = self.canonical_size()?;
+        let mut encoded = ProgramSink {
+            storage: ProgramStorage::Hex(String::with_capacity(length * 2)),
+            length: 0,
+        };
+        self.encode(&mut encoded)?;
+        let ProgramStorage::Hex(text) = encoded.storage else {
+            unreachable!("hex encoder owns its admitted storage");
+        };
+        Ok(text)
+    }
+}
+
+// Counting and writing share the exact same serialization walk. Preparation
+// admits the complete byte buffer once, without allocating a disposable copy
+// or growing it while the typed program is also retained.
+enum ProgramStorage {
+    Count,
+    Bytes(Vec<u8>),
+    Hex(String),
+}
+struct ProgramSink {
+    storage: ProgramStorage,
+    length: usize,
+}
+impl ProgramSink {
+    fn push(&mut self, byte: u8) {
+        self.extend_from_slice(core::slice::from_ref(&byte));
+    }
+    fn extend_from_slice(&mut self, value: &[u8]) {
+        self.length = self.length.saturating_add(value.len());
+        match &mut self.storage {
+            ProgramStorage::Count => {}
+            ProgramStorage::Bytes(bytes) => bytes.extend_from_slice(value),
+            ProgramStorage::Hex(text) => {
+                const HEX: &[u8; 16] = b"0123456789abcdef";
+                for byte in value {
+                    text.push(char::from(HEX[usize::from(byte >> 4)]));
+                    text.push(char::from(HEX[usize::from(byte & 0x0f)]));
+                }
+            }
         }
-        Ok(encoded)
     }
 }
 
@@ -133,8 +188,33 @@ fn node(
         .value_type
         .structured_info_type_with(&checked.semantic_structures)?;
     let operation = match syntax {
+        ExpressionSyntax::TypedGlyphLiteral(literal) => {
+            let value = checked
+                .glyph_values
+                .resolve(literal)
+                .and_then(crate::CanonicalStructuredStartupValue::try_concrete)
+                .ok_or(PortableExpressionProgramRefusal::MissingCheckedNodeType)?;
+            if value.value_type() != &value_type {
+                return Err(PortableExpressionProgramRefusal::MalformedEncoding);
+            }
+            PortableExpressionOperation::Constant(value)
+        }
         ExpressionSyntax::Input(_) => PortableExpressionOperation::Input,
-        ExpressionSyntax::Atomic(value) => PortableExpressionOperation::Literal(value.text.clone()),
+        ExpressionSyntax::Atomic(value) => {
+            if let Some(constant) = checked.immutable_constants.get(&value.text) {
+                if constant.value_type() != &value_type {
+                    return Err(PortableExpressionProgramRefusal::MalformedEncoding);
+                }
+                PortableExpressionOperation::Constant(constant.clone())
+            } else if let Some(bytes) = checked
+                .canonical_literals
+                .get(&(value.span.start, value.span.end))
+            {
+                PortableExpressionOperation::CanonicalLiteral(bytes.clone())
+            } else {
+                PortableExpressionOperation::Literal(value.text.clone())
+            }
+        }
         ExpressionSyntax::Projection { value, member, .. }
             if matches!(
                 value_type.shape(),
@@ -240,15 +320,30 @@ fn same_span(left: Span, right: Span) -> bool {
 }
 
 fn push_node(
-    encoded: &mut Vec<u8>,
+    encoded: &mut ProgramSink,
     node: &PortableExpressionNode,
 ) -> Result<(), PortableExpressionProgramRefusal> {
     push_type(encoded, &node.value_type)?;
     match &node.operation {
+        PortableExpressionOperation::Constant(value) => {
+            if value.value_type() != &node.value_type {
+                return Err(PortableExpressionProgramRefusal::MalformedEncoding);
+            }
+            let bytes = value.canonical_bytes()?;
+            encoded.push(11);
+            push_len(encoded, bytes.len());
+            encoded.extend_from_slice(&bytes);
+        }
         PortableExpressionOperation::Input => encoded.push(0),
         PortableExpressionOperation::Literal(value) => {
             encoded.push(1);
             push_text(encoded, value);
+        }
+        PortableExpressionOperation::CanonicalLiteral(value) => {
+            validate_capsule_literal(&node.value_type, value)?;
+            encoded.push(12);
+            push_len(encoded, value.len());
+            encoded.extend_from_slice(value);
         }
         PortableExpressionOperation::Projection { value, member } => {
             encoded.push(2);
@@ -322,7 +417,7 @@ fn push_node(
 }
 
 fn push_nodes(
-    encoded: &mut Vec<u8>,
+    encoded: &mut ProgramSink,
     values: &[PortableExpressionNode],
 ) -> Result<(), PortableExpressionProgramRefusal> {
     push_len(encoded, values.len());
@@ -333,7 +428,7 @@ fn push_nodes(
 }
 
 fn push_type(
-    encoded: &mut Vec<u8>,
+    encoded: &mut ProgramSink,
     value_type: &StructuredInfoType,
 ) -> Result<(), PortableExpressionProgramRefusal> {
     let bytes = value_type.canonical_bytes()?;
@@ -342,12 +437,12 @@ fn push_type(
     Ok(())
 }
 
-fn push_text(encoded: &mut Vec<u8>, value: &str) {
+fn push_text(encoded: &mut ProgramSink, value: &str) {
     push_len(encoded, value.len());
     encoded.extend_from_slice(value.as_bytes());
 }
 
-fn push_len(encoded: &mut Vec<u8>, value: usize) {
+fn push_len(encoded: &mut ProgramSink, value: usize) {
     encoded.extend_from_slice(&(value as u64).to_le_bytes());
 }
 
@@ -379,4 +474,19 @@ const fn binary_tag(operator: BinaryOperator) -> u8 {
         BinaryOperator::BooleanAnd => 16,
         BinaryOperator::BooleanOr => 17,
     }
+}
+
+pub(crate) fn validate_capsule_literal(
+    ty: &StructuredInfoType,
+    bytes: &[u8],
+) -> Result<(), PortableExpressionProgramRefusal> {
+    let conduit_core::StructuredInfoTypeShape::Leaf(kind) = ty.shape() else {
+        return Err(PortableExpressionProgramRefusal::MalformedEncoding);
+    };
+    if crate::authored_quantity::expected_role(ty).is_none()
+        || conduit_core::validate_primitive_info(kind.as_str(), bytes).is_err()
+    {
+        return Err(PortableExpressionProgramRefusal::MalformedEncoding);
+    }
+    Ok(())
 }

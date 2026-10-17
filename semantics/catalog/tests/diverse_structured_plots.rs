@@ -28,7 +28,10 @@ fn specimens() -> [Specimen; 5] {
             default_value: conduit_semantic_catalog::geometry_region_example(),
             literal: "{frame: \"image/content\", height: 480mm, width: 640mm, x: 12mm, y: 24mm}",
             field: "width",
-            selected_type: leaf(conduit_core::QUANTITY_INFO_ID),
+            selected_type: selected_field_type(
+                &conduit_semantic_catalog::geometry_region_type(),
+                "width",
+            ),
         },
         Specimen {
             plot_name: "robotics-range",
@@ -37,7 +40,10 @@ fn specimens() -> [Specimen; 5] {
             default_value: conduit_robotics::robotics_range_sample_example(),
             literal: "{distance: 850mm, frame: \"sensor/forward\", uncertainty: 5mm}",
             field: "distance",
-            selected_type: leaf(conduit_core::QUANTITY_INFO_ID),
+            selected_type: selected_field_type(
+                &conduit_robotics::robotics_range_sample_type(),
+                "distance",
+            ),
         },
         Specimen {
             plot_name: "language-annotation",
@@ -65,7 +71,10 @@ fn specimens() -> [Specimen; 5] {
             default_value: conduit_semantic_catalog::education_feedback_example(),
             literal: "{outcome: passed(true), prompt_id: \"question/3\", score: 88%}",
             field: "score",
-            selected_type: leaf(conduit_core::QUANTITY_INFO_ID),
+            selected_type: selected_field_type(
+                &conduit_semantic_catalog::education_feedback_type(),
+                "score",
+            ),
         },
     ]
 }
@@ -84,8 +93,18 @@ fn five_unrelated_plots_use_exact_structured_values_and_the_same_selector_substr
             &mut profile,
         )
         .unwrap();
+        // This selector transports the structured leaf envelope, rather than
+        // the unwrapped physical primitive's canonical bytes.
         startup
-            .insert_structured_type("SelectedValue", specimen.selected_type.clone())
+            .insert_value_kind_alias(
+                "SelectedValue",
+                specimen
+                    .selected_type
+                    .profile()
+                    .unwrap()
+                    .value_kind()
+                    .clone(),
+            )
             .unwrap();
         let source = format!(
             "plot {} (\n    selected: SelectedValue >>\n) {{\n value: structured-info/literal(value = {})\n value >> project({}.{}) >> selected\n}}\n",
@@ -213,38 +232,36 @@ fn structured_selector_proof_offer(
 }
 
 #[test]
-fn one_typed_presentation_path_inspects_all_five_domains_without_leaf_text() {
+fn one_typed_face_path_inspects_all_five_domains_without_leaf_text() {
     for (sequence, specimen) in specimens().into_iter().enumerate() {
         let observation = Observation {
             sign_id: SignId::from(format!("sign/{sequence}")),
             active_play_id: None,
-            presentation_id: None,
+            face_id: None,
             host_id: HostId::from("host/diverse-structured-proof"),
             boot_id: BootId::from("boot/diverse-structured-proof"),
             plan_id: None,
             placement_id: None,
             connection_id: None,
             kind: ObservationKind::ValuePresented {
+                label: "Domain specimen".into(),
                 value: ValuePayload {
                     value_kind: specimen.value_type.profile().unwrap().value_kind().clone(),
                     encoded: specimen.default_value.canonical_bytes().unwrap(),
                 },
             },
         };
-        let artifact = conduit_presentation::StructuredSignPresentation::from_sign(
+        let artifact = conduit_face::StructuredSignFace::from_sign(
             sequence as u64,
             &observation,
             &specimen.value_type,
         )
         .unwrap();
-        assert_eq!(
-            artifact.presentation.basis.sign_ids,
-            vec![observation.sign_id]
-        );
-        assert!(artifact.presentation.text.is_empty());
-        assert!(artifact.presentation.properties.iter().any(|property| {
+        assert_eq!(artifact.face.basis.sign_ids, vec![observation.sign_id]);
+        assert!(artifact.face.text.is_empty());
+        assert!(artifact.face.properties.iter().any(|property| {
             property.name == "leaf-content-redacted"
-                && property.value == conduit_presentation::PresentationPropertyValue::Flag(true)
+                && property.value == conduit_face::FacePropertyValue::Flag(true)
         }));
     }
 }
@@ -265,4 +282,16 @@ fn host(capabilities: Vec<CapabilityOffer>) -> HostAdvertisement {
         planner_capabilities: vec![],
         capabilities,
     }
+}
+
+fn selected_field_type(value_type: &StructuredInfoType, name: &str) -> StructuredInfoType {
+    let conduit_core::StructuredInfoTypeShape::Record { fields, .. } = value_type.shape() else {
+        panic!("specimen record");
+    };
+    fields
+        .iter()
+        .find(|field| field.name() == name)
+        .unwrap()
+        .value_type()
+        .clone()
 }

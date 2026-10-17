@@ -1,8 +1,6 @@
 //! Allocation-independent installation of the lowered ordinary text Plan.
 
-use crate::text_kernel_backs::{
-    LiteralBack, LiteralState, PlannedBack, PresentationBack, UpperBack,
-};
+use crate::text_kernel_backs::{FaceBack, LiteralBack, LiteralState, PlannedBack, UpperBack};
 use conduit_core::{ConfigurationValue, PlanFragment};
 #[cfg(test)]
 use conduit_kernel::RequestId;
@@ -12,6 +10,8 @@ use conduit_kernel::{
     scheduler::{FixedScheduler, HostCallRequest, SchedulerError, SchedulerStatus},
 };
 use conduit_plan_lowering::lowering::{FIXED_KERNEL_STORAGE_PORTS_PER_NODE, LoweredPlanFragment};
+
+mod protection;
 
 const MAX_NODES: usize = 3;
 const MAX_CORDS: usize = 2;
@@ -43,7 +43,9 @@ type Scheduler = FixedScheduler<
 pub struct TextPlannedKernel {
     scheduler: Scheduler,
     upper_node: NodeId,
-    presentation_node: NodeId,
+    face_node: NodeId,
+    #[cfg(conduitos_protected_execution)]
+    protected: Option<crate::text_protection::ProtectedText>,
 }
 
 impl TextPlannedKernel {
@@ -66,11 +68,11 @@ impl TextPlannedKernel {
             .iter()
             .position(|placement| placement.kind_id.as_str() == conduit_text::TEXT_LITERAL_KIND)
             .ok_or(SchedulerError::InvalidPlan)?;
-        let presentation_index = fragment
+        let face_index = fragment
             .placements
             .iter()
             .position(|placement| {
-                placement.kind_id.as_str() == conduit_semantic_catalog::TEXT_PRESENTATION_KIND
+                placement.kind_id.as_str() == conduit_semantic_catalog::TEXT_FACE_KIND
             })
             .ok_or(SchedulerError::InvalidPlan)?;
         let upper_index = fragment
@@ -105,7 +107,7 @@ impl TextPlannedKernel {
             text,
             state: LiteralState::Emitting,
         });
-        let presentation_driver = PlannedBack::Presentation(PresentationBack {
+        let face_driver = PlannedBack::Face(FaceBack {
             pending: false,
             complete: false,
         });
@@ -116,7 +118,7 @@ impl TextPlannedKernel {
         let mut drivers = [None, None, None];
         drivers[literal_index] = Some(literal_driver);
         drivers[upper_index] = Some(upper_driver);
-        drivers[presentation_index] = Some(presentation_driver);
+        drivers[face_index] = Some(face_driver);
         let [Some(first), Some(second), Some(third)] = drivers else {
             return Err(SchedulerError::InvalidPlan);
         };
@@ -133,12 +135,28 @@ impl TextPlannedKernel {
                 signs,
             )?,
             upper_node: NodeId(upper_index as u16),
-            presentation_node: NodeId(presentation_index as u16),
+            face_node: NodeId(face_index as u16),
+            #[cfg(conduitos_protected_execution)]
+            protected: None,
         })
     }
 
     pub fn step(&mut self) -> Result<SchedulerStatus, SchedulerError> {
-        self.scheduler.step()
+        let result = self.scheduler.step();
+        #[cfg(conduitos_protected_execution)]
+        if result.is_err()
+            && let Some(domain) = &mut self.protected
+        {
+            domain.revoke(crate::protection_domain::KernelRevocationCause::PlayFailed);
+        }
+        let status = result?;
+        #[cfg(conduitos_protected_execution)]
+        if status == SchedulerStatus::Drained
+            && let Some(domain) = &mut self.protected
+        {
+            domain.revoke(crate::protection_domain::KernelRevocationCause::PlayCompleted);
+        }
+        Ok(status)
     }
 
     pub fn next_host_request(&mut self) -> Option<HostCallRequest> {
@@ -149,11 +167,8 @@ impl TextPlannedKernel {
         self.scheduler.host_value(value)
     }
 
-    pub fn complete_presentation(
-        &mut self,
-        request: HostCallRequest,
-    ) -> Result<(), SchedulerError> {
-        if request.node != self.presentation_node || request.call != conduit_kernel::HostCallId(0) {
+    pub fn complete_face(&mut self, request: HostCallRequest) -> Result<(), SchedulerError> {
+        if request.node != self.face_node || request.call != conduit_kernel::HostCallId(0) {
             return Err(SchedulerError::InvalidHostCallAccess);
         }
         self.scheduler.complete_host_call(
@@ -188,9 +203,8 @@ impl TextPlannedKernel {
             },
         )
     }
-    #[cfg(test)]
-    fn fail_presentation(&mut self, request: HostCallRequest) -> Result<(), SchedulerError> {
-        if !self.is_presentation_request(&request) {
+    fn fail_face(&mut self, request: HostCallRequest) -> Result<(), SchedulerError> {
+        if !self.is_face_request(&request) {
             return Err(SchedulerError::InvalidHostCallAccess);
         }
         self.scheduler.complete_host_call(
@@ -206,14 +220,18 @@ impl TextPlannedKernel {
             },
         )
     }
-    pub fn is_presentation_request(&self, request: &HostCallRequest) -> bool {
-        request.node == self.presentation_node && request.call == conduit_kernel::HostCallId(0)
+    pub fn is_face_request(&self, request: &HostCallRequest) -> bool {
+        request.node == self.face_node && request.call == conduit_kernel::HostCallId(0)
     }
     pub fn is_upper_request(&self, request: &HostCallRequest) -> bool {
         request.node == self.upper_node && request.call == conduit_kernel::HostCallId(0)
     }
 
     pub fn cancel(&mut self) -> Result<(), SchedulerError> {
+        #[cfg(conduitos_protected_execution)]
+        if let Some(domain) = &mut self.protected {
+            domain.revoke(crate::protection_domain::KernelRevocationCause::PlayCancelled);
+        }
         self.scheduler.cancel()
     }
     pub fn decisions(&self) -> u32 {
@@ -281,12 +299,10 @@ fn validate_shape(
         .iter()
         .find(|placement| placement.kind_id.as_str() == conduit_text::TEXT_LITERAL_KIND)
         .ok_or(SchedulerError::InvalidPlan)?;
-    let presentation = fragment
+    let face = fragment
         .placements
         .iter()
-        .find(|placement| {
-            placement.kind_id.as_str() == conduit_semantic_catalog::TEXT_PRESENTATION_KIND
-        })
+        .find(|placement| placement.kind_id.as_str() == conduit_semantic_catalog::TEXT_FACE_KIND)
         .ok_or(SchedulerError::InvalidPlan)?;
     let upper = fragment
         .placements
@@ -295,7 +311,7 @@ fn validate_shape(
         .ok_or(SchedulerError::InvalidPlan)?;
     if literal.implementation_id.as_str() != crate::offer::TEXT_LITERAL_IMPLEMENTATION
         || upper.implementation_id.as_str() != crate::offer::TEXT_UPPER_IMPLEMENTATION
-        || presentation.implementation_id.as_str() != crate::offer::TEXT_PRESENTATION_IMPLEMENTATION
+        || face.implementation_id.as_str() != crate::offer::TEXT_FACE_IMPLEMENTATION
         || upper.host_calls.len() != 1
         || upper.host_calls[0].contract_id.as_str()
             != crate::functional_offers::TEXT_UPPER_HOST_CALL
@@ -307,8 +323,9 @@ fn validate_shape(
         || upper.host_calls[0].maximum_in_flight != 1
         || upper.host_calls[0].maximum_input_bytes != conduit_text::MAX_TEXT_BYTES
         || upper.host_calls[0].maximum_output_bytes != conduit_text::MAX_TEXT_BYTES
+        || conduit_semantic_catalog::text_face_insertion_caret(&face.configuration)
         || configured_text(&literal.configuration, "value")? != expected_literal
-        || configured_u64(&presentation.configuration, "maximum-values")?
+        || configured_u64(&face.configuration, "maximum-values")?
             != conduit_semantic_catalog::MAX_TEXT_VALUES
     {
         return Err(SchedulerError::InvalidPlan);
@@ -353,10 +370,10 @@ mod tests {
     }
 
     #[test]
-    fn malformed_presentation_completion_is_rejected() {
+    fn malformed_face_completion_is_rejected() {
         let mut kernel = kernel();
         assert_eq!(
-            kernel.complete_presentation(HostCallRequest {
+            kernel.complete_face(HostCallRequest {
                 node: NodeId(99),
                 request: RequestId(99),
                 call: conduit_kernel::HostCallId(0),
@@ -402,7 +419,7 @@ mod tests {
     }
 
     #[test]
-    fn presentation_base_loss_remains_a_distinct_terminal_failure() {
+    fn face_base_loss_remains_a_distinct_terminal_failure() {
         let mut kernel = kernel();
         let request = loop {
             assert!(matches!(
@@ -420,7 +437,7 @@ mod tests {
                 }
             }
         };
-        kernel.fail_presentation(request).unwrap();
+        kernel.fail_face(request).unwrap();
         loop {
             match kernel.step() {
                 Ok(SchedulerStatus::Progress { .. }) => {}

@@ -356,3 +356,60 @@ fn empty_feedback_close_waits_for_initial_state_without_growth() {
     });
     assert_eq!(allocations, 0);
 }
+
+#[test]
+fn feedback_left_close_waits_for_delayed_right_payload_and_its_real_close() {
+    let ty = StructuredInfoType::leaf(kind_id("value/count")).unwrap();
+    let contract = CheckedValueContract::new(kind_id("value/count"), 8, vec![]).unwrap();
+    let mut operation =
+        FlowZipBack::prepare_typed_feedback(&contract, ty.clone(), &contract, ty).unwrap();
+    let bytes = conduit_core::encode_count(9);
+    let allocations = crate::test_support::allocation::allocations_during(|| {
+        let mut io = StepIo::test_frame([None; 2], [true, false], [None; 2], None, 16);
+        assert_eq!(
+            operation.step(&mut io, &StepInputBytes::test_frame([None; 2], None)),
+            StepOutcome::Progress
+        );
+        assert!(io.test_consumed_closed(PortId(0)));
+        <FlowZipBack as StepBack<2>>::step_committed(&mut operation);
+        for delayed in [false, true, false, true, false] {
+            let mut io = StepIo::test_frame(
+                [None, delayed.then(|| reference(1, &bytes))],
+                [false; 2],
+                [None; 2],
+                None,
+                16,
+            );
+            assert_eq!(
+                operation.step(
+                    &mut io,
+                    &StepInputBytes::test_frame([None, delayed.then_some(bytes.as_slice())], None)
+                ),
+                if delayed {
+                    StepOutcome::Progress
+                } else {
+                    StepOutcome::Await
+                }
+            );
+            assert_eq!(io.test_consumed(PortId(1)), delayed);
+            assert!(<FlowZipBack as StepBack<2>>::prepared_output(&operation, PortId(0)).is_none());
+            <FlowZipBack as StepBack<2>>::step_committed(&mut operation);
+        }
+        let mut io = StepIo::test_frame([None; 2], [false, true], [None; 2], None, 16);
+        assert_eq!(
+            operation.step(&mut io, &StepInputBytes::test_frame([None; 2], None)),
+            StepOutcome::Progress
+        );
+        assert!(io.test_consumed_closed(PortId(1)));
+        <FlowZipBack as StepBack<2>>::step_committed(&mut operation);
+        let mut io = StepIo::test_frame([None; 2], [false; 2], [None; 2], None, 16);
+        assert_eq!(
+            operation.step(&mut io, &StepInputBytes::test_frame([None; 2], None)),
+            StepOutcome::Complete
+        );
+    });
+    assert_eq!(allocations, 0);
+}
+
+#[path = "feedback_close_tests.rs"]
+mod feedback_close_tests;

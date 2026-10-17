@@ -5,8 +5,8 @@ use conduit_core::{
     BaseImplementationId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
     DeliveryContract, ExecutionProfileId, HostAdvertisement, HostCallContractId,
     HostCallRequirement, HostId, HostProfileId, ImplementationId, OfferGeneration,
-    ResourceRequirement, StructuredInfoValue, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
-    PRESENTATION_RESOURCE_CLASS, PROTOCOL_VERSION,
+    ResourceRequirement, StructuredInfoValue, FACE_RESOURCE_CLASS,
+    MAXIMUM_STRUCTURED_CANONICAL_BYTES, PROTOCOL_VERSION,
 };
 use conduit_kernel::scheduler::{
     FixedScheduler, SchedulerStatus, StepBack, StepInputBytes, StepIo, StepOutcome,
@@ -17,11 +17,11 @@ use conduit_kernel::{
 };
 use conduit_plan_lowering::lowering::{lower_plan_fragment, FIXED_KERNEL_STORAGE_PORTS_PER_NODE};
 use conduit_planner::{plan_expanded_canonical_with_options, PlanningOptions};
-use conduit_plot::{KindProjection, KindSignature, ProfileCatalog, StartupCatalog};
+use conduit_plot::{KindSignature, ProfileCatalog, StartupCatalog};
 use conduit_semantic_catalog::{
     normalized_pointer_value, pointer_event_type, reviewed_delivery_contract,
     NormalizedPointerSample, POINTER_EVENT_INFO_ID, POINTER_EVENT_TYPE, POINTER_SOURCE_KIND,
-    STRUCTURED_PRESENTATION_KIND,
+    STRUCTURED_FACE_KIND,
 };
 use std::collections::BTreeMap;
 
@@ -35,7 +35,7 @@ mod tests;
 const SOURCE_OPERATION: &str = "browser.host/pointer-source@1";
 const PROFILE: &str = "browser/pointer-source@1";
 const ARTIFACT: &str = "conduit-browser-runtime/pointer-source@1";
-const PLOT_SOURCE: &str = "plot browser-pointer {\n pointer: input/pointer-source\n show: presentation/structured-info\n pointer.pointer >> show.input\n}\n";
+const PLOT_SOURCE: &str = "plot browser-pointer {\n pointer: input/pointer-source\n show: face/structured-info(\"Observation\")\n pointer.pointer >> show.input\n}\n";
 const NODES: usize = 2;
 const CORDS: usize = 1;
 const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
@@ -149,7 +149,7 @@ impl StepBack<PORTS> for PointerBack {
                 }
                 if let Some(value) = io.input(PortId(0)) {
                     let input = BoundedValueRef::new(value, *maximum_input_bytes)
-                        .expect("pointer presentation input is admitted");
+                        .expect("pointer face input is admitted");
                     if io.consume(PortId(0)).is_err()
                         || io
                             .request_host_call(RequestId(0), HostCallId(0), input)
@@ -252,10 +252,10 @@ pub fn execute_browser_pointer(
                         },
                     )
                     .map_err(|error| format!("complete browser pointer source: {error:?}"))?;
-            } else if placement.kind_id.as_str() == STRUCTURED_PRESENTATION_KIND {
+            } else if placement.kind_id.as_str() == STRUCTURED_FACE_KIND {
                 let bytes = scheduler
                     .host_value(request.input.value)
-                    .map_err(|error| format!("read browser pointer presentation: {error:?}"))?
+                    .map_err(|error| format!("read browser pointer face: {error:?}"))?
                     .to_vec();
                 if captured.replace(bytes).is_some() {
                     return Err("browser pointer was presented more than once".into());
@@ -270,7 +270,7 @@ pub fn execute_browser_pointer(
                             failure: None,
                         },
                     )
-                    .map_err(|error| format!("complete browser pointer presentation: {error:?}"))?;
+                    .map_err(|error| format!("complete browser pointer face: {error:?}"))?;
             } else {
                 return Err("browser pointer Plan selected an unsupported Kind".into());
             }
@@ -304,7 +304,7 @@ pub fn execute_browser_pointer(
         play_id: active.active_play_id.as_str().to_string(),
         sign_id: sign.sign_id.as_str().to_string(),
         source_placement_id: fragment.placements[0].placement_id.as_str().to_string(),
-        presentation_placement_id: fragment.placements[1].placement_id.as_str().to_string(),
+        face_placement_id: fragment.placements[1].placement_id.as_str().to_string(),
         schema: "input/pointer-event@1".to_string(),
         value_kind: pointer_event_type()
             .profile()
@@ -340,22 +340,16 @@ fn catalogs(value: &StructuredInfoValue) -> Result<(StartupCatalog, ProfileCatal
     conduit_semantic_catalog::install_generalized_input_catalogs(&mut startup, &mut profile)?;
     startup
         .insert(KindSignature {
-            kind: STRUCTURED_PRESENTATION_KIND.into(),
-            startup_parameters: Vec::new(),
+            kind: STRUCTURED_FACE_KIND.into(),
+            startup_parameters: conduit_semantic_catalog::data_label_startup_signature(),
         })
         .map_err(|error| error.to_string())?;
-    let presenter = conduit_semantic_catalog::structured_presentation_contract(
+    let presenter = conduit_semantic_catalog::structured_face_semantic_contract(
         POINTER_EVENT_TYPE,
         value.value_type(),
     );
     profile
-        .insert(KindProjection {
-            kind_id: presenter.kind_id,
-            kind_contract_revision: presenter.kind_contract_revision,
-            inputs: presenter.inputs,
-            outputs: presenter.outputs,
-            configuration: Default::default(),
-        })
+        .insert_kind(presenter)
         .map_err(|error| error.to_string())?;
     Ok((startup, profile))
 }
@@ -370,13 +364,13 @@ pub(crate) fn advertisement() -> HostAdvertisement {
         MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
         Vec::new(),
     );
-    let presenter = crate::structured_offers::structured_presentation_offer(
+    let presenter = crate::structured_offers::structured_face_offer(
         POINTER_EVENT_TYPE,
         &value_type,
         crate::structured_offers::BrowserOfferIdentity {
-            capability: "browser-pointer-presentation@1",
+            capability: "browser-pointer-face@1",
             profile: PROFILE,
-            implementation: "browser/pointer-presentation@1",
+            implementation: "browser/pointer-face@1",
             artifact: ARTIFACT,
         },
     );
@@ -388,8 +382,8 @@ pub(crate) fn advertisement() -> HostAdvertisement {
         profile: HostProfileId::from(PROFILE),
         bases: vec![],
         resources: vec![resource_offer(
-            "browser-pointer-presentation-slot",
-            PRESENTATION_RESOURCE_CLASS,
+            "browser-pointer-face-slot",
+            FACE_RESOURCE_CLASS,
             1,
         )],
         planner_capabilities: Vec::new(),
@@ -436,6 +430,11 @@ fn scheduler(
     fragment: &conduit_core::PlanFragment,
     lowered: &conduit_plan_lowering::lowering::LoweredPlanFragment,
 ) -> Result<PointerScheduler, String> {
+    for placement in &fragment.placements {
+        if conduit_semantic_catalog::face_data_label_required(placement.kind_id.as_str()) {
+            conduit_semantic_catalog::face_data_label(&placement.configuration)?;
+        }
+    }
     if fragment.placements.len() != NODES || lowered.cords.len() != CORDS {
         return Err("browser pointer Plan has an unexpected finite shape".into());
     }
@@ -480,7 +479,7 @@ fn scheduler(
                 emitted: false,
                 maximum_output_bytes: placement.host_calls[0].maximum_output_bytes,
             },
-            STRUCTURED_PRESENTATION_KIND => PointerBack::Sink {
+            STRUCTURED_FACE_KIND => PointerBack::Sink {
                 pending: false,
                 complete: false,
                 maximum_input_bytes: placement.host_calls[0].maximum_input_bytes,

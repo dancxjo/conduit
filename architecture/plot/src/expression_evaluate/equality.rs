@@ -10,9 +10,26 @@ pub(super) fn equal(
         return Err(PortableExpressionEvaluationRefusal::InvalidProgram);
     }
     if let Ok(kind) = leaf_kind(&left.value_type) {
+        if kind == conduit_core::MATHEMATICAL_ANGLE_ID {
+            return crate::mathematical_value::angle_equal(&left.encoded, &right.encoded);
+        }
+        if kind == conduit_core::MATHEMATICAL_VALUE_ID {
+            return crate::mathematical_value::equal(&left.encoded, &right.encoded);
+        }
+        if kind == conduit_core::UNIT_INFO_ID {
+            let left = conduit_core::Unit::decode(&left.encoded)
+                .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?;
+            let right = conduit_core::Unit::decode(&right.encoded)
+                .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?;
+            return Ok(left.same_physical_definition(right));
+        }
         return if matches!(
             kind,
-            conduit_core::F32_INFO_ID | conduit_core::F64_INFO_ID | conduit_core::UNIT_INFO_ID
+            conduit_core::F32_INFO_ID
+                | conduit_core::F64_INFO_ID
+                | conduit_core::EMPTY_INFO_ID
+                | conduit_core::UNIT_INFO_ID
+                | conduit_core::DIMENSION_INFO_ID
         ) {
             Ok(left.encoded == right.encoded)
         } else {
@@ -33,9 +50,26 @@ fn equal_structured(
     match (left.shape(), right.shape()) {
         (StructuredInfoValueShape::Leaf(a), StructuredInfoValueShape::Leaf(b)) => {
             let kind = leaf_kind(left.value_type())?;
+            if kind == conduit_core::MATHEMATICAL_ANGLE_ID {
+                return crate::mathematical_value::angle_equal(a, b);
+            }
+            if kind == conduit_core::MATHEMATICAL_VALUE_ID {
+                return crate::mathematical_value::equal(a, b);
+            }
+            if kind == conduit_core::UNIT_INFO_ID {
+                let left = conduit_core::Unit::decode(a)
+                    .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?;
+                let right = conduit_core::Unit::decode(b)
+                    .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?;
+                return Ok(left.same_physical_definition(right));
+            }
             if matches!(
                 kind,
-                conduit_core::F32_INFO_ID | conduit_core::F64_INFO_ID | conduit_core::UNIT_INFO_ID
+                conduit_core::F32_INFO_ID
+                    | conduit_core::F64_INFO_ID
+                    | conduit_core::EMPTY_INFO_ID
+                    | conduit_core::UNIT_INFO_ID
+                    | conduit_core::DIMENSION_INFO_ID
             ) {
                 Ok(a == b)
             } else {

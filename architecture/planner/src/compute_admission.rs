@@ -2,7 +2,7 @@ use crate::prelude::*;
 use crate::{PlacementChoices, PlannerError};
 use alloc::collections::BTreeMap;
 use conduit_core::{CapabilityId, HostAdvertisement, HostId, ResourcePoolId};
-use conduit_plot::CheckedPlot;
+use conduit_plot::CheckedGear;
 
 pub(crate) type RemainingComputeMinimum = BTreeMap<(HostId, ResourcePoolId), u32>;
 
@@ -10,12 +10,12 @@ pub(crate) type RemainingComputeMinimum = BTreeMap<(HostId, ResourcePoolId), u32
 /// lanes toward preferences. This is the compute-specific part of the existing
 /// whole-plot finite resource allocator, not a separate scheduler.
 pub(crate) fn admit_minima(
-    plot: &CheckedPlot,
+    gears: &[CheckedGear],
     hosts: &BTreeMap<HostId, &HostAdvertisement>,
     placements: &PlacementChoices,
 ) -> Result<RemainingComputeMinimum, PlannerError> {
     let mut remaining = BTreeMap::<(HostId, ResourcePoolId), u32>::new();
-    for gear in &plot.gears {
+    for gear in gears {
         let choice = placements
             .by_gear
             .get(&gear.gear_id)
@@ -32,20 +32,11 @@ pub(crate) fn admit_minima(
             if requirement.compute.is_none() {
                 continue;
             }
-            let mut pools = host
-                .resources
-                .iter()
-                .filter(|pool| pool.class_id == requirement.class_id);
-            let pool = pools.next().ok_or_else(|| {
-                PlannerError::UnavailableResource(requirement.class_id.as_str().to_string())
-            })?;
-            if pools.next().is_some() {
-                return Err(PlannerError::InvalidResourceContract(format!(
-                    "host '{}' has multiple pools for class '{}' in the first planning profile",
-                    host.host_id.as_str(),
-                    requirement.class_id.as_str()
-                )));
-            }
+            let pool = crate::resource_binding::resolve_resource_pool(
+                host,
+                capability,
+                &requirement.class_id,
+            )?;
             let minimum = remaining
                 .entry((host.host_id.clone(), pool.pool_id.clone()))
                 .or_insert(0);

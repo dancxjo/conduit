@@ -14,8 +14,8 @@ use conduit_plan_lowering::lowering::{
     FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
 };
 use conduit_semantic_catalog::{
-    exact_text_lab_split_plan, KEYBOARD_KIND, KEYMAP_KIND, TEXT_LAB_MAXIMUM_VALUES,
-    TEXT_LAB_NATIVE_HOST, TEXT_PRESENTATION_KIND,
+    exact_text_lab_split_plan, KEYBOARD_KIND, KEYMAP_KIND, TEXT_FACE_KIND, TEXT_LAB_MAXIMUM_VALUES,
+    TEXT_LAB_NATIVE_HOST,
 };
 use conduit_text::MAX_TEXT_BYTES;
 
@@ -48,7 +48,7 @@ enum NativeBack {
         pending: Option<RequestId>,
         next: u32,
     },
-    Presentation {
+    Face {
         pending: Option<RequestId>,
         next: u32,
     },
@@ -167,7 +167,7 @@ impl StepBack<PORTS> for NativeBack {
                 }
                 StepOutcome::Await
             }
-            Self::Presentation { pending, next } => {
+            Self::Face { pending, next } => {
                 if let Some(expected) = *pending {
                     let Some((request, outcome)) = io.host_completion() else {
                         return StepOutcome::Await;
@@ -215,7 +215,7 @@ impl StepBack<PORTS> for NativeBack {
         match self {
             Self::Keyboard { pending, .. }
             | Self::Keymap { pending, .. }
-            | Self::Presentation { pending, .. } => *pending = None,
+            | Self::Face { pending, .. } => *pending = None,
         }
     }
 }
@@ -240,7 +240,7 @@ impl NativeTextLabFragment {
     pub fn prepare(base_instance: &str) -> Result<Self, String> {
         let exact = exact_text_lab_split_plan(
             base_instance,
-            &conduit_browser_runtime::presentation_nucleus::browser_text_upper_offer(),
+            &conduit_browser_runtime::face_nucleus::browser_text_upper_offer(),
         )?;
         let fragment = exact
             .plan
@@ -293,7 +293,7 @@ impl NativeTextLabFragment {
                     pending: None,
                     next: 0,
                 },
-                TEXT_PRESENTATION_KIND => NativeBack::Presentation {
+                TEXT_FACE_KIND => NativeBack::Face {
                     pending: None,
                     next: 0,
                 },
@@ -394,7 +394,7 @@ impl NativeTextLabFragment {
                         .map_err(|error| format!("{error:?}"))?,
                 )
             }
-            TEXT_PRESENTATION_KIND => {
+            TEXT_FACE_KIND => {
                 let bytes = self
                     .scheduler
                     .host_value(request.input.value)

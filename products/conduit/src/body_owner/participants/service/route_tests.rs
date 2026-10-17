@@ -1,8 +1,63 @@
 use super::*;
 
+pub(super) fn fixture_carrier_evidence(
+    snapshot: &BrowserAdmittedSnapshot,
+) -> BrowserCarrierLineEvidence {
+    let authorization = snapshot.line_authorization.as_ref().unwrap().clone();
+    let owner = snapshot.owner_advertisement.as_deref().unwrap();
+    let browser = snapshot.browser_advertisement.as_deref().unwrap();
+    let descriptor = &conduit_host_browser_make::BROWSER_LINE_REALIZATIONS[0];
+    let limits = conduit_core::LinkLimits {
+        maximum_in_flight_items: descriptor.maximum_in_flight_items,
+        maximum_payload_bytes: descriptor.maximum_payload_bytes,
+        maximum_buffered_bytes: descriptor.maximum_buffered_bytes,
+        maximum_frame_bytes: descriptor.maximum_frame_bytes,
+    };
+    let line = |direction: &str,
+                source: &conduit_core::HostAdvertisement,
+                sink: &conduit_core::HostAdvertisement,
+                grant: &conduit_core::AuthorityGrantId| {
+        let carrier = authorization.carrier_binding.as_str();
+        let mut offer = conduit_core::process_owned_line_offer_with_limits(
+            &format!("line/browser-mask/{carrier}/{direction}"),
+            &format!("binding/browser-mask/{carrier}/{direction}"),
+            conduit_core::BaseImplementationId::from(descriptor.base_implementation_id),
+            &format!("base-instance/{carrier}"),
+            source,
+            sink,
+            limits,
+        );
+        offer.binding.credential = conduit_core::LinkCredentialReference::Opaque(
+            conduit_core::CredentialReferenceId::from(snapshot.credential.credential_id.as_str()),
+        );
+        offer.binding.authority = conduit_core::LinkAuthorityReference::Grant(grant.clone());
+        offer.binding.source.endpoint_id =
+            conduit_core::LinkEndpointId::from(format!("endpoint/{carrier}/{direction}/source"));
+        offer.binding.sink.endpoint_id =
+            conduit_core::LinkEndpointId::from(format!("endpoint/{carrier}/{direction}/sink"));
+        offer.availability.sign_id =
+            conduit_core::SignId::from(format!("sign/browser-mask/{carrier}/{direction}/ready"));
+        offer.contract = descriptor.contract;
+        offer
+    };
+    BrowserCarrierLineEvidence {
+        face: line("face", owner, browser, &authorization.face_grant_id),
+        returned: line("return", browser, owner, &authorization.return_grant_id),
+        interaction: line(
+            "interaction",
+            browser,
+            owner,
+            &authorization.interaction_grant_id,
+        ),
+        authorization,
+    }
+}
+
 #[test]
-fn browser_mask_planning_requires_the_reviewed_back_and_presentation_resource() {
+fn browser_mask_planning_requires_the_reviewed_back_and_face_resource() {
     let (mut owner, root, _) = setup();
+    let (terminal, _terminal_peer) = std::os::unix::net::UnixStream::pair().unwrap();
+    owner.host.attach_terminal_mask(terminal).unwrap();
     let mut advertisement = host("host/browser-test", "boot/browser/first")
         .advertisement()
         .clone();
@@ -10,10 +65,10 @@ fn browser_mask_planning_requires_the_reviewed_back_and_presentation_resource() 
     advertisement.capabilities.push(mask.clone());
     advertisement
         .resources
-        .retain(|resource| resource.class_id.as_str() != conduit_core::PRESENTATION_RESOURCE_CLASS);
+        .retain(|resource| resource.class_id.as_str() != conduit_core::FACE_RESOURCE_CLASS);
     advertisement.resources.push(conduit_core::resource_offer(
-        "browser/presentation",
-        conduit_core::PRESENTATION_RESOURCE_CLASS,
+        "browser/face",
+        conduit_core::FACE_RESOURCE_CLASS,
         1,
     ));
     advertisement
@@ -65,13 +120,39 @@ fn browser_mask_planning_requires_the_reviewed_back_and_presentation_resource() 
             },
         )
         .unwrap();
+    let (terminal_face, terminal_seal) = owner.seal_attached_terminal_route().unwrap();
+    let terminal_placement = terminal_seal.planned_mask.show_placement();
+    let terminal_play = conduit_core::bind_active_play(
+        &terminal_seal.planned_mask.plan.plan_id,
+        &terminal_placement.host_id,
+        &terminal_placement.boot_id,
+        1,
+    );
+    let terminal_show = conduit_face::MaskShow::prepared(
+        &terminal_seal.planned_mask,
+        &terminal_face,
+        terminal_play,
+        terminal_face.subjects[0].identity.clone(),
+        "terminal/test".into(),
+        conduit_core::SignId::from("sign/test/terminal-prepared"),
+    )
+    .unwrap()
+    .transition(
+        conduit_face::ManifestationLifecycle::Available,
+        conduit_core::SignId::from("sign/test/terminal-available"),
+    )
+    .unwrap();
+    owner
+        .acknowledge_attached_terminal_show(&terminal_seal, &terminal_show)
+        .unwrap();
+    let carrier_evidence = fixture_carrier_evidence(&snapshot);
     // The admission authorization may expire while this exact admitted
     // carrier continues to realize and acknowledge its current Mask route.
     owner.pending_browser.as_mut().unwrap().deadline = Instant::now() - Duration::from_millis(1);
     let request = OfferDisclosureRequest {
         stage: OfferDisclosureStage::Planning,
         capability_ids: vec![mask.capability_id.clone()],
-        resource_pool_ids: vec![conduit_core::ResourcePoolId::from("browser/presentation")],
+        resource_pool_ids: vec![conduit_core::ResourcePoolId::from("browser/face")],
     };
     owner
         .browser_planning_offer(&authorized.window_id, &snapshot.credential, &request)
@@ -81,27 +162,305 @@ fn browser_mask_planning_requires_the_reviewed_back_and_presentation_resource() 
             &authorized.window_id,
             &snapshot.credential,
             &LinkBindingId::from("line/test/other-carrier"),
+            Some(&carrier_evidence),
         ),
         Err("browser-route-carrier-mismatch".into())
+    );
+    let current_binding = LinkBindingId::from("line/test/browser-mask");
+    assert_eq!(
+        owner.browser_mask_route(
+            &authorized.window_id,
+            &snapshot.credential,
+            &current_binding,
+            None
+        ),
+        Err("browser-line-evidence-missing".into())
+    );
+    let mut stale_authority = carrier_evidence.clone();
+    stale_authority.authorization.face_grant_id =
+        conduit_core::AuthorityGrantId::from("grant/forged");
+    assert_eq!(
+        owner.browser_mask_route(
+            &authorized.window_id,
+            &snapshot.credential,
+            &current_binding,
+            Some(&stale_authority)
+        ),
+        Err("browser-line-authority-missing-or-stale".into())
+    );
+    let WindowState::Active {
+        line_authorization, ..
+    } = &mut owner.pending_browser.as_mut().unwrap().state
+    else {
+        unreachable!()
+    };
+    let original_authorization = line_authorization.clone();
+    line_authorization.window_id = "browser-window/other".into();
+    let mut wrong_window = carrier_evidence.clone();
+    wrong_window.authorization.window_id = "browser-window/other".into();
+    assert_eq!(
+        owner.browser_mask_route(
+            &authorized.window_id,
+            &snapshot.credential,
+            &current_binding,
+            Some(&wrong_window)
+        ),
+        Err("browser-line-authority-missing-or-stale".into())
+    );
+    let WindowState::Active {
+        line_authorization, ..
+    } = &mut owner.pending_browser.as_mut().unwrap().state
+    else {
+        unreachable!()
+    };
+    *line_authorization = original_authorization;
+    let mut stale_boot = carrier_evidence.clone();
+    stale_boot.face.binding.sink.boot_id = conduit_core::BootId::from("boot/browser/stale");
+    assert_eq!(
+        owner.browser_mask_route(
+            &authorized.window_id,
+            &snapshot.credential,
+            &current_binding,
+            Some(&stale_boot)
+        ),
+        Err("browser-line-evidence-mismatch".into())
+    );
+    let mut lost_return = carrier_evidence.clone();
+    lost_return.returned.availability.availability = conduit_core::LineAvailability::Unavailable;
+    assert_eq!(
+        owner.browser_mask_route(
+            &authorized.window_id,
+            &snapshot.credential,
+            &current_binding,
+            Some(&lost_return)
+        ),
+        Err("browser-line-evidence-mismatch".into())
+    );
+    let mut lost_interaction = carrier_evidence.clone();
+    lost_interaction.interaction.availability.availability =
+        conduit_core::LineAvailability::Unavailable;
+    assert_eq!(
+        owner.browser_mask_route(
+            &authorized.window_id,
+            &snapshot.credential,
+            &current_binding,
+            Some(&lost_interaction)
+        ),
+        Err("browser-line-evidence-mismatch".into())
+    );
+    let mut wrong_base = carrier_evidence.clone();
+    wrong_base.face.binding.base = conduit_core::BaseImplementationId::from("base/forged");
+    assert_eq!(
+        owner.browser_mask_route(
+            &authorized.window_id,
+            &snapshot.credential,
+            &current_binding,
+            Some(&wrong_base)
+        ),
+        Err("browser-line-evidence-mismatch".into())
+    );
+    let mut wrong_credential = carrier_evidence.clone();
+    wrong_credential.returned.binding.credential = conduit_core::LinkCredentialReference::None;
+    assert_eq!(
+        owner.browser_mask_route(
+            &authorized.window_id,
+            &snapshot.credential,
+            &current_binding,
+            Some(&wrong_credential)
+        ),
+        Err("browser-line-evidence-mismatch".into())
+    );
+    let wardrobe_request = conduit_face::OwnerFaceSnapshotRequest {
+        schema: conduit_face::OWNER_FACE_REQUEST_SCHEMA.into(),
+        credential_id: snapshot.credential.credential_id.as_str().into(),
+        body_id: snapshot.credential.body_id.clone(),
+        part_id: snapshot.credential.part_id.clone(),
+        host_id: snapshot.credential.host_id.clone(),
+        boot_id: snapshot.credential.boot_id.clone(),
+        last_seen_revision: None,
+        last_seen_identity: None,
+    };
+    let terminal_only_plan_id = owner.face_wardrobe.as_ref().unwrap().plan().plan_id.clone();
+    assert_eq!(
+        owner.browser_wardrobe_report(
+            &authorized.window_id,
+            &current_binding,
+            &wardrobe_request,
+            Some(&terminal_only_plan_id),
+            0,
+            Some(conduit_face::MaskWardrobeAction::Prefer(vec![
+                terminal_seal.planned_mask.mask.plot_identity.clone(),
+            ])),
+        ),
+        Err("browser-wardrobe-face-route-unavailable".into())
     );
     let selected = owner
         .browser_mask_route(
             &authorized.window_id,
             &snapshot.credential,
             &LinkBindingId::from("line/test/browser-mask"),
+            Some(&carrier_evidence),
         )
         .unwrap();
+    let owner_plan_id = owner.face_wardrobe.as_ref().unwrap().plan().plan_id.clone();
+    let report = owner
+        .browser_wardrobe_report(
+            &authorized.window_id,
+            &current_binding,
+            &wardrobe_request,
+            None,
+            0,
+            None,
+        )
+        .unwrap();
+    assert_eq!(report["schema"], "conduit.body/owner-mask-wardrobe@1");
+    assert_eq!(report["wardrobe_revision_decimal"], "0");
+    assert_eq!(report["admitted_routes"].as_array().unwrap().len(), 2);
+    assert_eq!(report["route_descriptions"].as_array().unwrap().len(), 2);
+    assert_eq!(
+        owner.browser_wardrobe_report(
+            &authorized.window_id,
+            &current_binding,
+            &wardrobe_request,
+            Some(&conduit_core::PlanId::from("plan/unknown")),
+            0,
+            Some(conduit_face::MaskWardrobeAction::Prefer(vec![
+                terminal_seal.planned_mask.mask.plot_identity.clone(),
+            ])),
+        ),
+        Err("owner-wardrobe-plan-stale".into())
+    );
+    let WindowState::Active {
+        route: Some(route), ..
+    } = &mut owner.pending_browser.as_mut().unwrap().state
+    else {
+        unreachable!()
+    };
+    route.face_revision += 1;
+    assert!(owner
+        .browser_wardrobe_report(
+            &authorized.window_id,
+            &current_binding,
+            &wardrobe_request,
+            None,
+            0,
+            None,
+        )
+        .is_err());
+    let WindowState::Active {
+        route: Some(route), ..
+    } = &mut owner.pending_browser.as_mut().unwrap().state
+    else {
+        unreachable!()
+    };
+    route.face_revision -= 1;
+    let browser_mask = selected.planned_mask.mask.plot_identity.clone();
+    let apply = |owner: &mut Owner, revision, action| {
+        owner.browser_wardrobe_report(
+            &authorized.window_id,
+            &current_binding,
+            &wardrobe_request,
+            Some(&owner_plan_id),
+            revision,
+            Some(action),
+        )
+    };
+    assert!(owner
+        .browser_wardrobe_report(
+            &authorized.window_id,
+            &LinkBindingId::from("line/test/forged"),
+            &wardrobe_request,
+            None,
+            0,
+            None,
+        )
+        .is_err());
+    apply(
+        &mut owner,
+        0,
+        conduit_face::MaskWardrobeAction::Wear(browser_mask.clone()),
+    )
+    .unwrap();
+    assert!(apply(
+        &mut owner,
+        0,
+        conduit_face::MaskWardrobeAction::Prefer(vec![browser_mask.clone()])
+    )
+    .is_err());
+    apply(
+        &mut owner,
+        1,
+        conduit_face::MaskWardrobeAction::Doff(
+            terminal_seal.planned_mask.mask.plot_identity.clone(),
+        ),
+    )
+    .unwrap();
+    let report = apply(
+        &mut owner,
+        2,
+        conduit_face::MaskWardrobeAction::Prefer(vec![browser_mask]),
+    )
+    .unwrap();
+    assert_eq!(report["owner_plan_id"], serde_json::json!(owner_plan_id));
+    assert_eq!(report["wardrobe_revision_decimal"], "3");
     assert_eq!(selected.mask_host.host_id, snapshot.credential.host_id);
+    let fores = &selected.planned_mask.plan.fragments[0].fore_ports;
+    let selected_line = |name| {
+        fores
+            .iter()
+            .find(|fore| fore.front_port_id.as_str() == name)
+            .unwrap()
+            .selected_line
+            .clone()
+    };
+    assert_eq!(
+        selected_line("face"),
+        Some(carrier_evidence.face.admitted_line())
+    );
+    assert_eq!(
+        selected_line("show"),
+        Some(carrier_evidence.returned.admitted_line())
+    );
+    assert_eq!(
+        selected_line("interaction"),
+        Some(carrier_evidence.interaction.admitted_line())
+    );
+    assert_eq!(
+        selected.interaction_line,
+        Some(carrier_evidence.interaction.admitted_line())
+    );
+    let mut missing_interaction = selected.clone();
+    missing_interaction.interaction_line = None;
+    assert_eq!(
+        missing_interaction.verify_seal(),
+        Err(conduit_face::RemoteOwnerMaskRouteError::InvalidSeal)
+    );
+    assert_eq!(selected.validate_interaction_payload(128), Ok(()));
+    assert_eq!(
+        selected.validate_interaction_payload(conduit_face::MAX_FACE_INTERACTION_BYTES + 1),
+        Err(conduit_face::RemoteOwnerMaskRouteError::ReturnExceedsFore)
+    );
     let issued_face = owner.local_face_snapshot().unwrap();
-    let issued_response = conduit_presentation::OwnerFaceSnapshotResponse::Snapshot {
-        schema: conduit_presentation::OWNER_FACE_RESPONSE_SCHEMA.into(),
-        presentation: Box::new(issued_face),
+    assert_eq!(
+        selected.validate_current(
+            &owner.session,
+            &issued_face,
+            owner.host.advertisement(),
+            &browser_offer,
+            &carrier_evidence.face,
+            &carrier_evidence.returned,
+        ),
+        Err(conduit_face::RemoteOwnerMaskRouteError::MissingOrInvalidLine)
+    );
+    let issued_response = conduit_face::OwnerFaceSnapshotResponse::Snapshot {
+        schema: conduit_face::OWNER_FACE_RESPONSE_SCHEMA.into(),
+        face: Box::new(issued_face),
         interactions_admitted: true,
         route: Some(Box::new(selected.clone())),
     };
     assert!(
         serde_json::to_vec(&issued_response).unwrap().len()
-            <= conduit_presentation::MAX_OWNER_FACE_RESPONSE_BYTES
+            <= conduit_face::MAX_OWNER_FACE_RESPONSE_BYTES
     );
     let WindowState::Active { route, .. } = &owner.pending_browser.as_ref().unwrap().state else {
         panic!("expected active browser route")
@@ -148,7 +507,7 @@ fn browser_mask_planning_requires_the_reviewed_back_and_presentation_resource() 
         &placement.boot_id,
         1,
     );
-    let available_show = conduit_presentation::MaskShow::prepared(
+    let available_show = conduit_face::MaskShow::prepared(
         &selected.planned_mask,
         &face,
         play,
@@ -158,12 +517,12 @@ fn browser_mask_planning_requires_the_reviewed_back_and_presentation_resource() 
     )
     .unwrap()
     .transition(
-        conduit_presentation::ManifestationLifecycle::Available,
+        conduit_face::ManifestationLifecycle::Available,
         conduit_core::SignId::from("sign/test/browser-mask-available"),
     )
     .unwrap();
-    let face_request = conduit_presentation::OwnerFaceSnapshotRequest {
-        schema: conduit_presentation::OWNER_FACE_REQUEST_SCHEMA.into(),
+    let face_request = conduit_face::OwnerFaceSnapshotRequest {
+        schema: conduit_face::OWNER_FACE_REQUEST_SCHEMA.into(),
         credential_id: snapshot.credential.credential_id.as_str().into(),
         body_id: snapshot.credential.body_id.clone(),
         part_id: snapshot.credential.part_id.clone(),
@@ -189,6 +548,34 @@ fn browser_mask_planning_requires_the_reviewed_back_and_presentation_resource() 
             &available_show,
         )
         .unwrap();
+    let wardrobe = owner.face_wardrobe.as_ref().unwrap();
+    assert_eq!(wardrobe.plan().routes.len(), 2);
+    assert_eq!(
+        wardrobe.control().selected.as_ref().unwrap().route_id,
+        format!("route/{}", selected.route_plan_id.as_str())
+    );
+    let face = owner.local_face_snapshot().unwrap();
+    let current = Owner::current_face_routes(
+        owner.host.advertisement(),
+        owner.pending_browser.as_ref(),
+        Owner::current_attached_terminal_route(
+            &owner.host,
+            owner.attached_terminal_route.as_ref(),
+            &owner.session,
+            &face,
+        )
+        .unwrap(),
+    );
+    let admitted = wardrobe
+        .plan()
+        .admit_current_routes(&owner.session, &face, &current)
+        .unwrap();
+    assert_eq!(admitted.routes().len(), 2);
+    assert!(admitted
+        .routes()
+        .iter()
+        .all(|route| route.currently_available));
+    assert_eq!(wardrobe.plan().plan_id, owner_plan_id);
     owner
         .validate_browser_mask_show(
             &authorized.window_id,
@@ -197,12 +584,123 @@ fn browser_mask_planning_requires_the_reviewed_back_and_presentation_resource() 
             &available_show,
         )
         .unwrap();
+    let WindowState::Active { line_evidence, .. } =
+        &mut owner.pending_browser.as_mut().unwrap().state
+    else {
+        unreachable!()
+    };
+    let retained = line_evidence.take();
+    assert_eq!(
+        owner.validate_browser_mask_show(
+            &authorized.window_id,
+            &current_binding,
+            &face_request,
+            &available_show,
+        ),
+        Err("browser-line-evidence-lost".into())
+    );
+    let WindowState::Active { line_evidence, .. } =
+        &mut owner.pending_browser.as_mut().unwrap().state
+    else {
+        unreachable!()
+    };
+    *line_evidence = retained;
+    let current_interaction = line_evidence.as_ref().unwrap().interaction.clone();
+    line_evidence
+        .as_mut()
+        .unwrap()
+        .interaction
+        .availability
+        .availability = conduit_core::LineAvailability::Unavailable;
+    let face = owner.local_face_snapshot().unwrap();
+    let current = Owner::current_face_routes(
+        owner.host.advertisement(),
+        owner.pending_browser.as_ref(),
+        Owner::current_attached_terminal_route(
+            &owner.host,
+            owner.attached_terminal_route.as_ref(),
+            &owner.session,
+            &face,
+        )
+        .unwrap(),
+    );
+    let wardrobe = owner.face_wardrobe.as_mut().unwrap();
+    let lost = wardrobe
+        .admit_or_replace(&owner.session, &face, &current)
+        .unwrap();
+    assert_eq!(wardrobe.plan().plan_id, owner_plan_id);
+    assert!(matches!(
+        lost.show,
+        conduit_face::MaskShowDisposition::NoCurrentShow { .. }
+    ));
+    let admitted = wardrobe
+        .plan()
+        .admit_current_routes(&owner.session, &face, &current)
+        .unwrap();
+    assert_eq!(
+        admitted
+            .routes()
+            .iter()
+            .filter(|route| route.currently_available)
+            .count(),
+        1
+    );
+    assert_eq!(
+        owner.validate_browser_mask_show(
+            &authorized.window_id,
+            &current_binding,
+            &face_request,
+            &available_show,
+        ),
+        Err("browser-line-evidence-mismatch".into())
+    );
+    let WindowState::Active { line_evidence, .. } =
+        &mut owner.pending_browser.as_mut().unwrap().state
+    else {
+        unreachable!()
+    };
+    line_evidence.as_mut().unwrap().interaction = current_interaction.clone();
+    line_evidence
+        .as_mut()
+        .unwrap()
+        .interaction
+        .binding
+        .binding_id = LinkBindingId::from("binding/forged-ready-interaction");
+    let face = owner.local_face_snapshot().unwrap();
+    let current = Owner::current_face_routes(
+        owner.host.advertisement(),
+        owner.pending_browser.as_ref(),
+        Owner::current_attached_terminal_route(
+            &owner.host,
+            owner.attached_terminal_route.as_ref(),
+            &owner.session,
+            &face,
+        )
+        .unwrap(),
+    );
+    assert!(owner
+        .face_wardrobe
+        .as_mut()
+        .unwrap()
+        .admit_or_replace(&owner.session, &face, &current)
+        .is_err());
+    assert_eq!(
+        owner.face_wardrobe.as_ref().unwrap().plan().plan_id,
+        owner_plan_id
+    );
+    let WindowState::Active { line_evidence, .. } =
+        &mut owner.pending_browser.as_mut().unwrap().state
+    else {
+        unreachable!()
+    };
+    line_evidence.as_mut().unwrap().interaction = current_interaction;
     assert_eq!(
         owner
             .browser_mask_route(
                 &authorized.window_id,
                 &snapshot.credential,
                 &LinkBindingId::from("line/test/browser-mask"),
+                Some(&carrier_evidence),
             )
             .unwrap(),
         selected
@@ -232,7 +730,7 @@ fn browser_mask_planning_requires_the_reviewed_back_and_presentation_resource() 
             &available_show,
         )
         .is_err());
-    let seal = conduit_presentation::RemoteOwnerMaskRouteSeal::seal_lulled(
+    let seal = conduit_face::RemoteOwnerMaskRouteSeal::seal_lulled(
         &owner.session,
         &face,
         &owner_offer,
@@ -244,11 +742,11 @@ fn browser_mask_planning_requires_the_reviewed_back_and_presentation_resource() 
     .unwrap();
     let route_bytes = serde_json::to_vec(&seal).unwrap().len();
     let face_bytes = serde_json::to_vec(&face).unwrap().len();
-    assert!(route_bytes + face_bytes + 1024 <= conduit_presentation::MAX_OWNER_FACE_RESPONSE_BYTES);
+    assert!(route_bytes + face_bytes + 1024 <= conduit_face::MAX_OWNER_FACE_RESPONSE_BYTES);
     let mut process_owned = face_line.clone();
     process_owned.binding.authority = conduit_core::LinkAuthorityReference::ProcessOwned;
     assert_eq!(
-        conduit_presentation::RemoteOwnerMaskRouteSeal::seal_lulled(
+        conduit_face::RemoteOwnerMaskRouteSeal::seal_lulled(
             &owner.session,
             &face,
             &owner_offer,
@@ -257,12 +755,12 @@ fn browser_mask_planning_requires_the_reviewed_back_and_presentation_resource() 
             &process_owned,
             &return_line,
         ),
-        Err(conduit_presentation::RemoteOwnerMaskRouteError::MissingOrInvalidLine)
+        Err(conduit_face::RemoteOwnerMaskRouteError::MissingOrInvalidLine)
     );
     let mut missing_credential = return_line.clone();
     missing_credential.binding.credential = conduit_core::LinkCredentialReference::None;
     assert_eq!(
-        conduit_presentation::RemoteOwnerMaskRouteSeal::seal_lulled(
+        conduit_face::RemoteOwnerMaskRouteSeal::seal_lulled(
             &owner.session,
             &face,
             &owner_offer,
@@ -271,12 +769,12 @@ fn browser_mask_planning_requires_the_reviewed_back_and_presentation_resource() 
             &face_line,
             &missing_credential,
         ),
-        Err(conduit_presentation::RemoteOwnerMaskRouteError::MissingOrInvalidLine)
+        Err(conduit_face::RemoteOwnerMaskRouteError::MissingOrInvalidLine)
     );
     let mut wrong_line = face_line.clone();
     wrong_line.binding.sink.boot_id = conduit_core::BootId::from("boot/browser/wrong");
     assert_eq!(
-        conduit_presentation::RemoteOwnerMaskRouteSeal::seal_lulled(
+        conduit_face::RemoteOwnerMaskRouteSeal::seal_lulled(
             &owner.session,
             &face,
             &owner_offer,
@@ -285,14 +783,14 @@ fn browser_mask_planning_requires_the_reviewed_back_and_presentation_resource() 
             &wrong_line,
             &return_line,
         ),
-        Err(conduit_presentation::RemoteOwnerMaskRouteError::MissingOrInvalidLine)
+        Err(conduit_face::RemoteOwnerMaskRouteError::MissingOrInvalidLine)
     );
     let mut missing_back = browser_offer.clone();
     missing_back
         .capabilities
         .retain(|offer| offer.capability_id != mask.capability_id);
     assert!(matches!(
-        conduit_presentation::RemoteOwnerMaskRouteSeal::seal_lulled(
+        conduit_face::RemoteOwnerMaskRouteSeal::seal_lulled(
             &owner.session,
             &face,
             &owner_offer,
@@ -301,11 +799,11 @@ fn browser_mask_planning_requires_the_reviewed_back_and_presentation_resource() 
             &face_line,
             &return_line,
         ),
-        Err(conduit_presentation::RemoteOwnerMaskRouteError::InvalidMaskPlan(_))
+        Err(conduit_face::RemoteOwnerMaskRouteError::InvalidMaskPlan(_))
     ));
     assert_eq!(
         seal.validate_return_payload(64 * 1024 + 1),
-        Err(conduit_presentation::RemoteOwnerMaskRouteError::ReturnExceedsLine)
+        Err(conduit_face::RemoteOwnerMaskRouteError::ReturnExceedsLine)
     );
     seal.validate_current(
         &owner.session,
@@ -327,7 +825,7 @@ fn browser_mask_planning_requires_the_reviewed_back_and_presentation_resource() 
             &face_line,
             &unavailable,
         ),
-        Err(conduit_presentation::RemoteOwnerMaskRouteError::LineUnavailable)
+        Err(conduit_face::RemoteOwnerMaskRouteError::LineUnavailable)
     );
     let mut altered_browser = browser_offer.clone();
     altered_browser.offer_generation.0 += 1;
@@ -340,7 +838,7 @@ fn browser_mask_planning_requires_the_reviewed_back_and_presentation_resource() 
             &face_line,
             &return_line,
         ),
-        Err(conduit_presentation::RemoteOwnerMaskRouteError::StaleHost)
+        Err(conduit_face::RemoteOwnerMaskRouteError::StaleHost)
     );
     let WindowState::Active { observation, .. } =
         &mut owner.pending_browser.as_mut().unwrap().state
@@ -380,7 +878,7 @@ fn browser_mask_planning_requires_the_reviewed_back_and_presentation_resource() 
     observation
         .advertisement
         .resources
-        .retain(|resource| resource.pool_id.as_str() != "browser/presentation");
+        .retain(|resource| resource.pool_id.as_str() != "browser/face");
     assert_eq!(
         owner.browser_planning_offer(&authorized.window_id, &snapshot.credential, &request),
         Err("browser-mask-offer-mismatch".into())

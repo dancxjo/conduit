@@ -1,0 +1,47 @@
+{
+  "authority_grant_id": "grant/conduit/installed-screen-free-selected-speaker",
+  "boot_id": "boot/installed/72c9a3ff5addd9fe8481725081ad129ca063a01e2ef60e9c9b106fa44ab1a557",
+  "checked_plot_id": "8be0db87ed93e1e45c05c809382727adfb019874336068fdb54cd1711d0d473d",
+  "face_id": "5d673c9378a300eef9ed29138e743957ca50a0d6e2c20af68facf46153d216dd",
+  "face_revision": 7150306028042729974,
+  "face_revision_decimal": "7150306028042729974",
+  "host_id": "host/installed/6b3dffaf4e8d9bd12a706830a9b4b3fbd228641f55307e68a6f8d79fed1f1282",
+  "offer_generation": 2,
+  "outcome": "Completed",
+  "plan_id": "aed42526e3bdcffc4b81862a3fa069230baa3aaf47b937018f2cd3957b5d19d7",
+  "play_id": "c1fe69aa7191802ac8af87ae2cfd41b54387b03e09d32c7d7c0bbb7aa19b24c3",
+  "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+  "same_play_capture": {
+    "pcm_blocks": 3110,
+    "pcm_bytes": 676860,
+    "pcm_sha256": "de0a2878304afcb3cef5bea6e62866de7a167651f12b52431bee1951372a44f7",
+    "wav_artifact_locator": "/home/dancxjo/Documents/Codex/2026-10-08/todo-fresh-611df0/owner-state/screen-free-spoken-artifacts/play-35fa9e24d5645d2192504bbaaafebd652e9b84631c200bbf6bb1666e314e6b62.wav",
+    "wav_bytes": 676904,
+    "wav_sha256": "829a761ed3e7c502da579f332ed0d6b5fb3250eecd456a76ef7aed194aae511e"
+  },
+  "schema": "conduit.body/spoken-face-playback@1",
+  "selected_resource_pool_id": "std/audio/alsa/skl_hda_dsp_generic/card-sofhdadsp/device-0",
+  "source_document_id": "338d018990f4ace633fdc895832e735569117460fcfdd24318df3fd54c8837d5",
+  "source_segments_sha256": "fb20150af8893f525c734ff87e2c47d8a002af9b7a6d9263d4366de1bda44946",
+  "source_show_id": "show/0a57272450375eb50314b1bee77e1636d3dbd2bcb351282930585801b96ef20c",
+  "speaker_blocks_committed": 3110,
+  "speaker_frames_committed": 169215,
+  "speaker_lifecycle": "StoppedClosed",
+  "speaker_underruns": 0,
+  "spoken_segments": [
+    {
+      "clause_index": null,
+      "clause_provenance_debug": "None",
+      "face_id": "5d673c9378a300eef9ed29138e743957ca50a0d6e2c20af68facf46153d216dd",
+      "face_revision_decimal": "7150306028042729974",
+      "reason": "final-flush",
+      "reason_code": 1,
+      "sequence": 0,
+      "show_id": "show/0a57272450375eb50314b1bee77e1636d3dbd2bcb351282930585801b96ef20c",
+      "text": "Groceries. 1 thing left \u00b7 0 completed Buy milk.",
+      "text_sha256": "5179a21cbb77fcc395e14aee12f355490ce84392a444ea742c259d3a42e14808"
+    }
+  ],
+  "stream_identity": "face/5d673c9378a300eef9ed29138e743957ca50a0d6e2c20af68facf46153d216dd/7150306028042729974/turn/1/batch/0",
+  "voice": "en-us"
+}

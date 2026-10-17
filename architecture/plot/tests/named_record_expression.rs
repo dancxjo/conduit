@@ -90,7 +90,7 @@ fn custom(source: &str, entry: &str) -> Result<PortableExpressionProgram, String
 fn variants_keep_case_payload_identity_and_do_not_evaluate_unselected_failure() {
     let prelude =
         "type Reply =\\n completed {\\n value: U8\\n }\\n | refused\\n".replace("\\n", "\n");
-    let source = format!("{prelude}plot reply (\n input: U8 >> reply: Reply\n) = (. == 0 ? refused(unit) : completed({{ value: 1 / . }}))");
+    let source = format!("{prelude}plot reply (\n input: U8 >> reply: Reply\n) = (. == 0 ? refused(empty) : completed({{ value: 1 / . }}))");
     let p = custom(&source, "reply").unwrap();
     let mut prepared = PreparedPortableExpressionEvaluator::new(&p).unwrap();
     for input in [0_u8, 1, 255] {
@@ -104,7 +104,7 @@ fn variants_keep_case_payload_identity_and_do_not_evaluate_unselected_failure() 
         assert_eq!(tag, if input == 0 { "refused" } else { "completed" });
     }
     for body in [
-        "unknown(unit)",
+        "unknown(empty)",
         "refused(true)",
         "completed({ value: true })",
         "completed({ other: . })",
@@ -143,7 +143,7 @@ static ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;
 
 #[test]
 fn finite_constructor_play_never_allocates_or_grows_with_reuse() {
-    let source = "type Reply =\n completed {\n octets: sequence U8 <= 2\n }\n | refused\nplot reply (\n input: U8 >> reply: Reply\n) = (. == 0 ? refused(unit) : completed({ octets: [., .] }))";
+    let source = "type Reply =\n completed {\n octets: sequence U8 <= 2\n }\n | refused\nplot reply (\n input: U8 >> reply: Reply\n) = (. == 0 ? refused(empty) : completed({ octets: [., .] }))";
     let p = custom(source, "reply").unwrap();
     let outputs: Vec<_> = [0_u8, 1, 255]
         .into_iter()
@@ -169,7 +169,7 @@ fn checked_case_and_actual_length_guard_optional_sequence_members_without_alloca
     let source = format!("{types}plot first (\n input: Reply >> octet: U8\n) = (variant/is(., \"completed\") ? (sequence/length(.completed.octets) == 1 ? .completed.octets.0 : 0) : 0)");
     let p = custom(&source, "first").unwrap();
     let inputs: Vec<_> = [
-        "refused(unit)",
+        "refused(empty)",
         "completed({ octets: [] })",
         "completed({ octets: [.] })",
         "completed({ octets: [., .] })",

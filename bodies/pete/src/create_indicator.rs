@@ -1,4 +1,4 @@
-//! Exact Create 1 indicator realization of canonical Signal presentation.
+//! Exact Create 1 indicator realization of canonical Signal face.
 
 use std::collections::BTreeMap;
 
@@ -6,7 +6,7 @@ use conduit_core::{
     authority_grant, kind_id, present_authority_requirement, resource_offer, resource_requirement,
     ArtifactId, BaseImplementationId, BootId, CapabilityId, CapabilityLimits, GearId,
     HostAdvertisement, HostId, HostProfileId, ImplementationId, ImplementationOffer,
-    OfferGeneration, PRESENTATION_RESOURCE_CLASS, PROTOCOL_VERSION,
+    OfferGeneration, FACE_RESOURCE_CLASS, PROTOCOL_VERSION,
 };
 use conduit_planner::{
     plan_with_options, PlacementChoice, PlacementChoices, PlannerError, PlanningOptions,
@@ -96,7 +96,7 @@ pub fn live_indicator_advertisement(
     pulse.limits.max_queue_items = 4;
     pulse.limits.max_queue_bytes = 4 * conduit_signal::SIGNAL_ENCODED_LEN;
     let present_authority =
-        present_authority_requirement(kind_id(conduit_signal::SIGNAL_PRESENTATION_KIND));
+        present_authority_requirement(kind_id(conduit_signal::SIGNAL_FACE_KIND));
     let serial_pool = format!("{}/indicator-operation", observation.serial_base_id);
     let mut resources = vec![
         resource_offer(
@@ -104,23 +104,20 @@ pub fn live_indicator_advertisement(
             conduit_core::TIMER_RESOURCE_CLASS,
             1,
         ),
-        resource_offer(
-            &observation.indicator_resource_id,
-            PRESENTATION_RESOURCE_CLASS,
-            1,
-        ),
+        resource_offer(&observation.indicator_resource_id, FACE_RESOURCE_CLASS, 1),
         resource_offer(&serial_pool, SERIAL_OPERATION_RESOURCE, 1),
     ];
     resources.sort();
     let mut requirements = vec![
-        resource_requirement(PRESENTATION_RESOURCE_CLASS, 1),
+        resource_requirement(FACE_RESOURCE_CLASS, 1),
         resource_requirement(SERIAL_OPERATION_RESOURCE, 1),
     ];
     requirements.sort();
+    let contract = conduit_signal::show_semantic_contract();
     let show = conduit_core::capability_offer_from_parts! {
-        semantic_contract: Default::default(),
-        startup_parameters: Vec::new(),
-        shorthand: None,
+        semantic_contract: contract.semantic_contract(),
+        startup_parameters: contract.startup_parameters,
+        shorthand: contract.shorthand,
         capability_id: CapabilityId::from(INDICATOR_CAPABILITY),
         kind_id: conduit_signal::show_kind(),
         kind_contract_revision: conduit_signal::show_contract_revision(),
@@ -189,8 +186,7 @@ pub fn create_indicator_plan(
             ),
         ]),
     };
-    let requirement =
-        present_authority_requirement(kind_id(conduit_signal::SIGNAL_PRESENTATION_KIND));
+    let requirement = present_authority_requirement(kind_id(conduit_signal::SIGNAL_FACE_KIND));
     let grant = authority_granted.then(|| {
         authority_grant(
             INDICATOR_GRANT,

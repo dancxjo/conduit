@@ -92,6 +92,9 @@ fn walk_word(
             }
         }
         EnglishLexiconDecision::unknown => {
+            if walk_inflected(word, &mut emit)? {
+                return Ok(());
+            }
             let mut index = 0;
             while index < word.len() {
                 let context = EnglishSpellingContext {
@@ -127,6 +130,91 @@ fn walk_word(
         }
     }
     Ok(())
+}
+/// Bounded traversal of native candidate, eligibility, lexicon and ending
+/// results. Stem spelling and phonological decisions belong to those Plots.
+fn walk_inflected(
+    word: &[u8],
+    emit: &mut impl FnMut(
+        EnglishPronouncedPhoneme,
+        usize,
+        usize,
+        EnglishPronunciationOrigin,
+    ) -> Result<(), TextRefusal>,
+) -> Result<bool, TextRefusal> {
+    let scan = speech_english_inflection_scan(EnglishInflectionScanInput {
+        length: word.len() as u32,
+        last: word.last().copied().unwrap_or(0) as i32,
+        before: word
+            .len()
+            .checked_sub(2)
+            .and_then(|i| word.get(i))
+            .copied()
+            .unwrap_or(0) as i32,
+    })
+    .ok_or(TextRefusal::Arithmetic)?;
+    let EnglishInflectionScanResult::candidate(candidate) = scan else {
+        return Ok(false);
+    };
+    for strip in [
+        EnglishStemStrip::present(candidate.first_strip),
+        candidate.second_strip,
+    ] {
+        let EnglishStemStrip::present(strip) = strip else {
+            continue;
+        };
+        let end = word
+            .len()
+            .checked_sub(strip as usize)
+            .filter(|end| *end > 0)
+            .ok_or(TextRefusal::Arithmetic)?;
+        let stem = core::str::from_utf8(&word[..end]).map_err(|_| TextRefusal::Arithmetic)?;
+        if !speech_english_inflection_eligible(EnglishInflectionBasis {
+            stem_class: speech_english_inflection_stem_class(stem)
+                .ok_or(TextRefusal::Arithmetic)?,
+            suffix: candidate.suffix,
+        })
+        .ok_or(TextRefusal::Arithmetic)?
+        {
+            continue;
+        }
+        let EnglishLexiconDecision::matched(phones) =
+            speech_english_lexicon(stem).ok_or(TextRefusal::Arithmetic)?
+        else {
+            continue;
+        };
+        let phones = slots(phones);
+        let final_phoneme = phones
+            .iter()
+            .rev()
+            .find_map(|slot| match slot {
+                EnglishPhonemeSlot::present(value) => Some(value.phoneme),
+                _ => None,
+            })
+            .ok_or(TextRefusal::Arithmetic)?;
+        let ending = speech_english_inflection_ending(EnglishInflectionEndingInput {
+            suffix: candidate.suffix,
+            final_phoneme,
+        })
+        .ok_or(TextRefusal::Arithmetic)?;
+        for slot in phones {
+            if let EnglishPhonemeSlot::present(phone) = slot {
+                emit(phone, 0, end, EnglishPronunciationOrigin::dictionary)?;
+            }
+        }
+        for slot in [ending.first, ending.second] {
+            if let EnglishPhonemeSlot::present(phone) = slot {
+                emit(
+                    phone,
+                    end,
+                    word.len(),
+                    EnglishPronunciationOrigin::inflection_rule,
+                )?;
+            }
+        }
+        return Ok(true);
+    }
+    Ok(false)
 }
 fn word_events(
     word: &[u8],

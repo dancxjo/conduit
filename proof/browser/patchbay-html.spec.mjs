@@ -25,10 +25,10 @@ async function captureCanonical(page,browser,evidenceRoot,name,snapshot,disposit
       device_scale_factor:"1",
       locale:"en-US",
       timezone:"UTC",
-      presentation_id:snapshot.presentation.identity,
-      presentation_revision:String(snapshot.presentation.revision),
-      plan_id:snapshot.presentation.basis.plan_id,
-      active_play_id:snapshot.presentation.basis.active_play_id,
+      face_id:snapshot.face.identity,
+      face_revision:String(snapshot.face.revision),
+      plan_id:snapshot.face.basis.plan_id,
+      active_play_id:snapshot.face.basis.active_play_id,
       manifestation_id:snapshot.renderer.manifestation.manifestation_id,
       renderer_id:"patchbay-html/dom-svg@1",
       asserted_semantic_disposition:disposition,
@@ -102,11 +102,11 @@ async function expectFaceplateTextContained(page) {
 }
 
 async function cordGeometry(page,snapshot) {
-  return page.locator("#flow-root .react-flow__edge.flow-cord").evaluateAll((edges,presentation)=>{
+  return page.locator("#flow-root .react-flow__edge.flow-cord").evaluateAll((edges,face)=>{
     const value=property=>property?.value?.Identity??property?.value?.Text;
-    const semanticSubjects=new Map(presentation.properties.filter(property=>property.name==="semantic-id").map(property=>[value(property),property.subject]));
-    const cordPorts=presentation.subjects.filter(subject=>subject.role==="Cord").map(cord=>{
-      const properties=presentation.properties.filter(property=>property.subject===cord.identity);
+    const semanticSubjects=new Map(face.properties.filter(property=>property.name==="semantic-id").map(property=>[value(property),property.subject]));
+    const cordPorts=face.subjects.filter(subject=>subject.role==="Cord").map(cord=>{
+      const properties=face.properties.filter(property=>property.subject===cord.identity);
       return {id:cord.identity,ports:[semanticSubjects.get(value(properties.find(property=>property.name==="source-port"))),semanticSubjects.get(value(properties.find(property=>property.name==="sink-port")))]};
     }).filter(cord=>cord.ports.every(Boolean)).sort((left,right)=>left.id.localeCompare(right.id));
     const center=element=>{const box=element.getBoundingClientRect();return {x:box.x+box.width/2,y:box.y+box.height/2,node:element.closest(".react-flow__node")?.dataset.id};};
@@ -116,7 +116,7 @@ async function cordGeometry(page,snapshot) {
       const length=path.getTotalLength(),start=screenPoint(path,0),end=screenPoint(path,length),direct=Math.hypot(target.x-source.x,target.y-source.y);
       return {id,d:path.getAttribute("d"),marker:path.getAttribute("marker-end"),source,target,start,end,length,direct,forward:target.x>source.x};
     });
-  },snapshot.presentation);
+  },snapshot.face);
 }
 
 function startServer() {
@@ -137,10 +137,10 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     const snapshot=await (await fetch(`${url}/api/snapshot`)).json();
     await page.goto(url);
     await expect(page.getByRole("navigation",{name:"Conduit products"}).getByRole("link")).toHaveCount(3);
-    await expect(page.getByRole("link",{name:"Conduit home"})).toHaveAttribute("href","/conduit");
+    await expect(page.getByRole("link",{name:"conduit",exact:true})).toHaveAttribute("href","/conduit");
     await expect(page.locator('style[data-application-resource="flow-style"]')).toHaveCount(1);
     await expect(page.locator("#flow-root .flow-frontplate").first()).toHaveCSS("width", "240px");
-    await expect(page.locator('[data-application-key="product-status"]')).toContainText("Presentation revision 1");
+    await expect(page.locator('[data-application-key="product-status"]')).toContainText("Face revision 1");
     await expect(page.locator('[data-application-key="product-status"]')).toContainText("Manifestation Available");
     await expect(page.locator('[data-application-slot="product-masthead"]')).toHaveAttribute("data-application-revision", /^\d+$/);
     expect(snapshot.temporal_context).toHaveLength(1);
@@ -174,19 +174,19 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     await expect(page.locator('#candidate-rows [data-application-component="artifact"]')).toHaveCount(1);
     await expect(page.locator("#candidate-rows")).toContainText("Browser · tab 3");
     await expect(page.locator("#parts-possibilities")).toContainText("current plan remains unchanged");
-    const partPlan=snapshot.presentation.basis.plan_id;
+    const partPlan=snapshot.face.basis.plan_id;
     const candidateInspect=page.locator("#candidate-rows").getByRole("button",{name:"Inspect"});
     await candidateInspect.focus();await candidateInspect.press("Enter");
     await expect(page.locator("#parts-feedback")).toContainText("without admitting it");
     await expect(page.locator("#parts-details")).toContainText(snapshot.parts.wants_to_join[0].candidate_id);
     const inspectedParts=await (await fetch(`${url}/api/snapshot`)).json();
     expect(inspectedParts.parts.wants_to_join).toHaveLength(1);
-    expect(inspectedParts.presentation.basis.plan_id).toBe(partPlan);
+    expect(inspectedParts.face.basis.plan_id).toBe(partPlan);
     await page.locator("#candidate-rows").getByRole("button",{name:"Admit"}).click();
     await expect(page.locator("#parts-feedback")).toContainText("refused nonfatally");
     const refusedParts=await (await fetch(`${url}/api/snapshot`)).json();
     expect(refusedParts.parts.wants_to_join).toHaveLength(1);
-    expect(refusedParts.presentation.basis.plan_id).toBe(partPlan);
+    expect(refusedParts.face.basis.plan_id).toBe(partPlan);
     await expect(page.getByRole("button",{name:"+ Browser Part"})).toBeVisible();
     await expect(page.getByRole("button",{name:"Plan again"})).toBeVisible();
     await expect(page.getByRole("heading",{name:"Body topology"})).toBeVisible();
@@ -200,15 +200,15 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     await expect(page.locator('#diagnostics [data-application-component="code-block"]')).toHaveCount(0);
     await expect(page.locator('#realizations [data-application-component="disclosure"]').first()).toBeVisible();
     await page.locator('#realizations [data-application-component="disclosure"] summary').first().click();
-    await expect(page.locator("#plan")).toContainText("presentation/renderer");
-    await expect(page.locator("#plan")).toContainText("presentation/renderer-dom-svg@1");
+    await expect(page.locator("#plan")).toContainText("face/renderer");
+    await expect(page.locator("#plan")).toContainText("face/renderer-dom-svg@1");
     await expect(page.locator("#plan")).toContainText("patchbay-html/dom-svg@1");
-    await expect(page.locator("#realizations")).toContainText("Port presentation · Input · Info presentation/presentation@1 · Value");
-    await expect(page.locator("#realizations")).toContainText("Port show · Output · Info presentation/show@1 · Value");
-    await expect(page.locator("#realizations")).toContainText("Resource patchbay-html/host/presentation");
-    await expect(page.locator("#realizations")).toContainText("Base conduit.host/present@1 · target presentation/base/dom-svg@1");
-    await expect(page.locator("#realizations")).toContainText("project · host patchbay-presentation/host · boot patchbay-presentation/boot");
-    await expect(page.locator("#realizations")).toContainText("presentation -> presentation · Info presentation/presentation@1");
+    await expect(page.locator("#realizations")).toContainText("Port face · Input · Info face/face@1 · Value");
+    await expect(page.locator("#realizations")).toContainText("Port show · Output · Info face/show@1 · Value");
+    await expect(page.locator("#realizations")).toContainText("Resource patchbay-html/host/face");
+    await expect(page.locator("#realizations")).toContainText("Base conduit.host/present@1 · target face/base/dom-svg@1");
+    await expect(page.locator("#realizations")).toContainText("project · host patchbay-face/host · boot patchbay-face/boot");
+    await expect(page.locator("#realizations")).toContainText("face -> face · Info face/face@1");
     await expect(page.locator("#realizations")).toContainText("Line patchbay-renderer/line/websocket");
     await expect(page.locator("#realizations")).toContainText("base conduit.base/websocket-rfc6455@1");
     await expect(page.locator("#realizations")).toContainText("binding patchbay-renderer/binding/websocket");
@@ -229,7 +229,7 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     expect(inspector.x).toBeGreaterThan(canvas.x);
     await expect(page.getByRole("navigation",{name:"Patchbay workspace"})).toContainText("Library");
 
-    expect(await page.evaluate(()=>getComputedStyle(document.documentElement).getPropertyValue("--conduit-theme-identity").trim())).toBe('"conduit.presentation/phosphor@1"');
+    expect(await page.evaluate(()=>getComputedStyle(document.documentElement).getPropertyValue("--conduit-theme-identity").trim())).toBe('"conduit.look/phosphor@1"');
     expect(await page.evaluate(()=>getComputedStyle(document.body).backgroundColor)).toBe("rgb(5, 7, 11)");
     expect(await page.locator("h1").evaluate(element=>getComputedStyle(element).color)).toBe("rgb(233, 163, 37)");
     expect(await page.locator(".faceplate-title").first().evaluate(element=>getComputedStyle(element).color)).toBe("rgb(233, 163, 37)");
@@ -241,8 +241,8 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     await expect(paletteButton).toHaveCSS("outline-color","rgb(244, 196, 0)");
     await page.evaluate(()=>document.fonts.ready);
     if(canonical) {
-      expect(await page.evaluate(()=>document.fonts.check('16px "DejaVu Sans"'))).toBe(true);
-      expect((await page.evaluate(()=>getComputedStyle(document.documentElement).fontFamily)).replaceAll('"',"")).toBe("DejaVu Sans, sans-serif");
+      const font=await page.evaluate(async()=>{await document.fonts.ready;const style=getComputedStyle(document.documentElement);return {actual:style.fontFamily,declared:style.getPropertyValue("--conduit-font-body").trim()};});
+      expect(font.actual.replaceAll('"',"")).toBe(font.declared.replaceAll('"',""));
     }
 
     await page.getByRole("button",{name:"Plot",exact:true}).click();
@@ -270,9 +270,9 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     await expect(page.locator("#plot svg[role=img]")).toHaveCount(0);
     await page.locator("#structured-navigator").evaluate(element=>{element.closest("details").open=false;});
     expect(await principalNode.evaluate((node,current)=>node.isSameNode(current),await page.locator("#flow-root .react-flow__node").first().elementHandle())).toBe(true);
-    await expect(page.locator("#flow-root .flow-gear")).toHaveCount(snapshot.presentation.subjects.filter(item=>item.role==="Gear").length);
-    await expect(page.locator("#flow-root .faceplate-port")).toHaveCount(snapshot.presentation.subjects.filter(item=>item.role==="Port").length);
-    await expect(page.locator("#flow-root .flow-cord")).toHaveCount(snapshot.presentation.properties.filter(item=>item.name==="source-port").length);
+    await expect(page.locator("#flow-root .flow-gear")).toHaveCount(snapshot.face.subjects.filter(item=>item.role==="Gear").length);
+    await expect(page.locator("#flow-root .faceplate-port")).toHaveCount(snapshot.face.subjects.filter(item=>item.role==="Port").length);
+    await expect(page.locator("#flow-root .flow-cord")).toHaveCount(snapshot.face.properties.filter(item=>item.name==="source-port").length);
     await expect(page.locator("#flow-root .flow-cord .react-flow__edge-text").first()).not.toHaveText("Cord");
     const routes=await cordGeometry(page,snapshot);
     expect(routes.length).toBeGreaterThan(0);
@@ -316,7 +316,7 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
       return {width:parseFloat(style.width),maxWidth:parseFloat(style.maxWidth)};
     })).toEqual({width:240,maxWidth:240});
     if(canonical)await captureCanonical(page,browser,evidenceRoot,"selected-gear",selectedSnapshot,"selection-succeeded-and-inspector-correlated");
-    const stableLensIdentity={presentation:selectedSnapshot.presentation.identity,plan:selectedSnapshot.presentation.basis.plan_id,play:selectedSnapshot.presentation.basis.active_play_id};
+    const stableLensIdentity={face:selectedSnapshot.face.identity,plan:selectedSnapshot.face.basis.plan_id,play:selectedSnapshot.face.basis.active_play_id};
     await page.getByRole("button",{name:"Realization",exact:true}).click();await expect(page.locator("body")).toHaveAttribute("data-lens","plan");await expect(page.locator("#lens-label")).toHaveText("PROGRAM · PLAN");await expect(page.locator("#flow-root .flow-gear")).toHaveCount(3);await expectFlowDominant(page,{inspector:true});
     await expect(page.locator("#flow-root .flow-cord .react-flow__edge-text").first()).toContainText(/item/);
     expect(await page.locator("#flow-root .flow-cord").evaluateAll(edges=>edges.every(edge=>parseFloat(getComputedStyle(edge.querySelector(".react-flow__edge-path")).strokeWidth)>=2))).toBe(true);
@@ -326,10 +326,10 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     await expect(page.locator("#flow-root .flow-cord .react-flow__edge-text").first()).toContainText("Completed");
     await expect(page.locator("#flow-root .flow-cord .react-flow__edge-text").first()).toContainText("pressure unavailable");
     if(canonical)await captureCanonical(page,browser,evidenceRoot,"play-lens",selectedSnapshot,"same-graph-active-play-state-and-pressure-overlay");
-    await page.getByRole("button",{name:"Debug",exact:true}).click();await expect(page.locator("#lens-label")).toHaveText("PROGRAM · SIGNS");await expect(page.locator("#flow-root .flow-frontplate")).toHaveCount(0);await expect(page.locator("#flow-root .react-flow")).toBeVisible();
+    await page.getByRole("button",{name:"Debug",exact:true}).click();await expect(page.locator("#lens-label")).toHaveText("PROGRAM · SIGNS");await expect(page.locator("#flow-root .flow-frontplate").first()).toBeVisible();await expect(page.locator("#flow-root .react-flow")).toBeVisible();
     if(canonical)await captureCanonical(page,browser,evidenceRoot,"signs-lens",selectedSnapshot,"same-graph-selected-subject-causal-evidence");
     await page.getByRole("button",{name:"Structure",exact:true}).click();await expect(page.locator("#flow-root .flow-gear")).toHaveCount(3);
-    const afterLenses=await (await fetch(`${url}/api/snapshot`)).json();expect({presentation:afterLenses.presentation.identity,plan:afterLenses.presentation.basis.plan_id,play:afterLenses.presentation.basis.active_play_id}).toEqual(stableLensIdentity);expect(afterLenses.navigation.cursor.focus).toBeNull();expect(afterLenses.interaction.revision).toBeGreaterThan(selectedSnapshot.interaction.revision);
+    const afterLenses=await (await fetch(`${url}/api/snapshot`)).json();expect({face:afterLenses.face.identity,plan:afterLenses.face.basis.plan_id,play:afterLenses.face.basis.active_play_id}).toEqual(stableLensIdentity);expect(afterLenses.navigation.cursor.focus).toBeNull();expect(afterLenses.interaction.revision).toBeGreaterThan(selectedSnapshot.interaction.revision);
     expect(await page.locator("#flow-root .react-flow__node").first().getAttribute("data-id")).toBe(await principalNode.getAttribute("data-id"));
     await prepareCanvasEvidence(page,{structured:true});
     await page.getByRole("button",{name:"Body",exact:true}).click();
@@ -360,14 +360,14 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     await prepareCanvasEvidence(page,{inspector:true,structured:true});
     if(canonical)await captureCanonical(page,browser,evidenceRoot,"interaction",interactionSnapshot,"control-invocation-plan-play-succeeded");
     const selectedBeforeStale=await page.locator("#subjects input[type=radio]:checked").getAttribute("data-subject");
-    const stale=await page.evaluate(async stateForTest=>await (await fetch("/api/interaction",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({presentation_id:"presentation/stale",presentation_revision:stateForTest.presentation.revision,kind:"select",subject:"dom-node-should-not-apply"})})).json(), snapshot);
-    expect(stale.interaction.last_disposition).toBe("Refused(StalePresentation)");
+    const stale=await page.evaluate(async stateForTest=>await (await fetch("/api/interaction",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({face_id:"face/stale",face_revision:stateForTest.face.revision,kind:"select",subject:"dom-node-should-not-apply"})})).json(), snapshot);
+    expect(stale.interaction.last_disposition).toBe("Refused(StaleFace)");
     expect(stale.navigation.cursor.focus).toBe(selectedBeforeStale);
-    const unknown=await page.evaluate(async stateForTest=>await (await fetch("/api/interaction",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({presentation_id:stateForTest.presentation.identity,presentation_revision:stateForTest.presentation.revision,kind:"select",subject:"subject/unknown"})})).json(), snapshot);
+    const unknown=await page.evaluate(async stateForTest=>await (await fetch("/api/interaction",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({face_id:stateForTest.face.identity,face_revision:stateForTest.face.revision,kind:"select",subject:"subject/unknown"})})).json(), snapshot);
     expect(unknown.interaction.last_disposition).toBe("Refused(UnknownSubject)");
     expect(unknown.navigation.cursor.focus).toBe(selectedBeforeStale);
-    const staleAction=await page.evaluate(async stateForTest=>{const action=stateForTest.presentation.actions.find(candidate=>candidate.intent==="conduit.intent/toggle-linear-view@1");return await (await fetch("/api/interaction",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({presentation_id:stateForTest.presentation.identity,presentation_revision:stateForTest.presentation.revision-1,kind:"invoke",action_id:action.identity})})).json();}, snapshot);
-    expect(staleAction.interaction.last_disposition).toBe("Refused(StalePresentation)");
+    const staleAction=await page.evaluate(async stateForTest=>{const action=stateForTest.face.actions.find(candidate=>candidate.intent==="conduit.intent/toggle-linear-view@1");return await (await fetch("/api/interaction",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({face_id:stateForTest.face.identity,face_revision:stateForTest.face.revision-1,kind:"invoke",action_id:action.identity})})).json();}, snapshot);
+    expect(staleAction.interaction.last_disposition).toBe("Refused(StaleFace)");
     expect(staleAction.navigation.cursor.focus).toBe(selectedBeforeStale);
     await page.evaluate(()=>window.patchbayReload());
     await expect(page.locator("#subjects input[type=radio]:checked")).toHaveAttribute("data-subject",selectedBeforeStale);
@@ -380,7 +380,7 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     expect(projectedText.length).toBeGreaterThan(0);
 
     expect(snapshot.renderer.manifestation.lifecycle).toBe("Available");
-    const identitiesBefore={content:snapshot.presentation.identity,plan:snapshot.presentation.basis.plan_id,play:snapshot.presentation.basis.active_play_id,manifestation:snapshot.renderer.manifestation.manifestation_id,subjects:listSubjects};
+    const identitiesBefore={content:snapshot.face.identity,plan:snapshot.face.basis.plan_id,play:snapshot.face.basis.active_play_id,manifestation:snapshot.renderer.manifestation.manifestation_id,subjects:listSubjects};
     await page.locator("#deep-inspection > summary").click();
     await page.locator("#toggle-inspector").click();
     await page.locator("#toggle-palette").click();
@@ -397,26 +397,26 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     expect(await page.locator("#subjects [data-subject]").evaluateAll(items=>items.map(item=>item.dataset.subject).sort())).toEqual(identitiesBefore.subjects);
     await expect(page.locator('[data-application-key="product-status"]')).toContainText(identitiesBefore.content);await expect(page.locator("#plan")).toContainText(identitiesBefore.plan);await expect(page.locator("#plan")).toContainText(identitiesBefore.manifestation);await expect(page.locator("#play")).toContainText(identitiesBefore.play);
     const contrastSnapshot=await (await fetch(`${url}/api/snapshot`)).json();
-    expect(contrastSnapshot.presentation.identity).toBe(identitiesBefore.content);
-    expect(contrastSnapshot.presentation.basis.plan_id).toBe(identitiesBefore.plan);
-    expect(contrastSnapshot.presentation.basis.active_play_id).toBe(identitiesBefore.play);
+    expect(contrastSnapshot.face.identity).toBe(identitiesBefore.content);
+    expect(contrastSnapshot.face.basis.plan_id).toBe(identitiesBefore.plan);
+    expect(contrastSnapshot.face.basis.active_play_id).toBe(identitiesBefore.play);
     await prepareCanvasEvidence(page);
     await expectFlowDominant(page);
-    if(canonical)await captureCanonical(page,browser,evidenceRoot,"high-contrast",contrastSnapshot,"presentation-changed-semantic-identities-stable");
+    if(canonical)await captureCanonical(page,browser,evidenceRoot,"high-contrast",contrastSnapshot,"face-changed-semantic-identities-stable");
 
     const planBefore=await page.locator("#plan").textContent(); await page.reload();
-    await expect(page.locator("#plan")).toContainText(snapshot.presentation.basis.plan_id); expect(await page.locator("#plan").textContent()).toBe(planBefore);
+    await expect(page.locator("#plan")).toContainText(snapshot.face.basis.plan_id); expect(await page.locator("#plan").textContent()).toBe(planBefore);
     server.process.kill("SIGTERM"); await new Promise(resolve=>server.process.once("exit",resolve));
     await page.evaluate(()=>window.patchbayReload());
     await expect(page.locator('[data-application-key="product-status"]')).toContainText("Renderer disconnected; retained revision 1");
-    await expect(page.locator("#plan")).toContainText(snapshot.presentation.basis.plan_id);
+    await expect(page.locator("#plan")).toContainText(snapshot.face.basis.plan_id);
     await prepareCanvasEvidence(page);
     await expectFlowDominant(page);
     if(canonical)await captureCanonical(page,browser,evidenceRoot,"disconnected",contrastSnapshot,"delivery-unavailable-revision-and-plan-retained");
   } finally { server.lines.close(); if(server.process.exitCode===null)server.process.kill("SIGTERM"); }
 });
 
-test("full-window Flow mechanics remain presentation-only", async ({page}) => {
+test("full-window Flow mechanics remain face-only", async ({page}) => {
   const server=startServer();
   try {
     const url=await server.url;
@@ -426,11 +426,11 @@ test("full-window Flow mechanics remain presentation-only", async ({page}) => {
     await expect(page.locator("#flow-root .flow-frontplate").first()).toBeVisible();
     const before=await (await fetch(`${url}/api/snapshot`)).json();
     const identities={
-      presentation:before.presentation.identity,
-      plan:before.presentation.basis.plan_id,
-      play:before.presentation.basis.active_play_id,
+      face:before.face.identity,
+      plan:before.face.basis.plan_id,
+      play:before.face.basis.active_play_id,
       manifestation:before.renderer.manifestation.manifestation_id,
-      subjects:before.presentation.subjects.map(subject=>subject.identity).sort(),
+      subjects:before.face.subjects.map(subject=>subject.identity).sort(),
     };
     const root=await page.locator("#patchbay-root").boundingBox();
     const flow=await page.locator("#flow-root").boundingBox();
@@ -460,9 +460,8 @@ test("full-window Flow mechanics remain presentation-only", async ({page}) => {
       expect(Math.abs(after.x-before.x)+Math.abs(after.y-before.y)).toBeGreaterThan(40);
       moved.push({id:await node.getAttribute("data-id"),box:after});
     }
-    const viewportAfter=await page.evaluate(()=>window.patchbayFlowViewport());
-    const presentationOnly=await (await fetch(`${url}/api/snapshot`)).json();
-    expect(presentationOnly.interaction.revision).toBe(before.interaction.revision);
+    const faceOnly=await (await fetch(`${url}/api/snapshot`)).json();
+    expect(faceOnly.interaction.revision).toBe(before.interaction.revision);
     const clickableIndex=await nodes.evaluateAll(items=>items.findIndex(item=>{const box=item.getBoundingClientRect(),hit=document.elementFromPoint(box.x+box.width/2,box.y+box.height/2);return hit?.closest(".react-flow__node")===item;}));
     expect(clickableIndex).toBeGreaterThanOrEqual(0);
     const firstFace=nodes.nth(clickableIndex).locator('input[type="radio"]');
@@ -494,17 +493,18 @@ test("full-window Flow mechanics remain presentation-only", async ({page}) => {
     expect(after.interaction.revision).toBe(spaceSelection.interaction.revision+2);
     expect(after.navigation.cursor.focus).toBeNull();
     expect({
-      presentation:after.presentation.identity,
-      plan:after.presentation.basis.plan_id,
-      play:after.presentation.basis.active_play_id,
+      face:after.face.identity,
+      plan:after.face.basis.plan_id,
+      play:after.face.basis.active_play_id,
       manifestation:after.renderer.manifestation.manifestation_id,
-      subjects:after.presentation.subjects.map(subject=>subject.identity).sort(),
+      subjects:after.face.subjects.map(subject=>subject.identity).sort(),
     }).toEqual(identities);
     await prepareCanvasEvidence(page);
+    const viewportAfter=await page.evaluate(()=>window.patchbayFlowViewport());
     const persisted=[];for(const {id} of moved)persisted.push({id,box:await page.locator(`#flow-root .react-flow__node[data-id="${id.replaceAll('"','\\"')}"]`).boundingBox()});
     await expect.poll(()=>page.evaluate(()=>window.patchbayFlowStorageSettled())).toBe("Stored");
     await page.reload();
-    await expect(page.locator("#flow-root")).toHaveAttribute("data-presentation-id",identities.presentation);
+    await expect(page.locator("#flow-root")).toHaveAttribute("data-face-id",identities.face);
     await expect.poll(async()=>{const restored=await page.evaluate(()=>window.patchbayFlowViewport());return restored?{x:restored.x,zoom:restored.zoom}:null;}).toEqual({x:viewportAfter.x,zoom:viewportAfter.zoom});
     for(const {id} of persisted)await expect(page.locator(`#flow-root .react-flow__node[data-id="${id.replaceAll('"','\\"')}"]`)).toHaveCount(1);
   } finally { server.lines.close(); if(server.process.exitCode===null)server.process.kill("SIGTERM"); }
@@ -579,11 +579,11 @@ test("narrow enlarged-content workspace has exclusive drawers and restored focus
     await inspectorLauncher.click();
     await page.locator("#structured-navigator").evaluate(element=>{element.closest("details").open=true;});
     const snapshot=await (await fetch(`${url}/api/snapshot`)).json();
-    const target=snapshot.presentation.actions[0]?.target;
+    const target=snapshot.face.actions[0]?.target;
     if(target){
       const structured=page.locator(`#subjects [data-subject="${target.replaceAll('"','\\"')}"]`);
       await structured.click();
-      const actions=snapshot.presentation.actions.filter(action=>action.target===target);
+      const actions=snapshot.face.actions.filter(action=>action.target===target);
       await expect(page.locator("#semantic-actions button")).toHaveCount(actions.length);
       for(const [index,action] of actions.entries()){
         const control=page.locator(`#semantic-actions [data-application-key="semantic-${index}"]`);
@@ -629,14 +629,14 @@ test("Flow scene reconciliation is finite and identity-exact", async ({page}) =>
       first.viewport={x:31,y:-27,zoom:1.4};
       const duplicate=scene.reconcileFlowScene(scene.projectFlowScene(canonical),first);
       const added=structuredClone(canonical);
-      added.presentation.subjects.push({identity:"subject/new",role:"Gear",name:"New gear"});
+      added.face.subjects.push({identity:"subject/new",role:"Gear",name:"New gear"});
       const withNew=scene.reconcileFlowScene(scene.projectFlowScene(added),duplicate);
       const withNewAgain=scene.reconcileFlowScene(scene.projectFlowScene(added),duplicate);
       const removed=structuredClone(added);
-      removed.presentation.subjects=removed.presentation.subjects.filter(subject=>subject.identity!==first.nodes[0].id);
+      removed.face.subjects=removed.face.subjects.filter(subject=>subject.identity!==first.nodes[0].id);
       const withoutRemoved=scene.reconcileFlowScene(scene.projectFlowScene(removed),withNew);
-      const encoded=scene.encodeFlowPresentation(withoutRemoved);
-      const decoded=scene.decodeFlowPresentation(encoded,scene.projectFlowScene(removed));
+      const encoded=scene.encodeFlowFace(withoutRemoved);
+      const decoded=scene.decodeFlowFace(encoded,scene.projectFlowScene(removed));
       const acyclic=layout.layoutFlowScene(
         [{id:"a"},{id:"b"},{id:"c"}],
         [{source:"a",target:"b"},{source:"b",target:"c"}],
@@ -659,7 +659,7 @@ test("Flow scene reconciliation is finite and identity-exact", async ({page}) =>
         encodedBytes:encoded.length,
         decodedIds:decoded.nodes.map(node=>node.id).sort(),
         currentIds:withoutRemoved.nodes.map(node=>node.id).sort(),
-        oversized:scene.decodeFlowPresentation("x".repeat(scene.MAX_FLOW_STATE_BYTES+1),projected),
+        oversized:scene.decodeFlowFace("x".repeat(scene.MAX_FLOW_STATE_BYTES+1),projected),
         portIds:projected.nodes.flatMap(node=>node.data.ports.map(port=>port.id)),
         handles:projected.edges.map(edge=>[edge.sourceHandle,edge.targetHandle]),
         edgeTypes:projected.edges.map(edge=>edge.type),

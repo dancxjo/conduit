@@ -7,19 +7,18 @@ use conduit_core::{
     ImplementationId, Kind, KindIdentity, OfferGeneration, PortDescriptor, PortDirection,
     PortTemporal, SignId, PROTOCOL_VERSION,
 };
+use conduit_face::{
+    install_mask_plot_value_aliases, AdmittedMaskPlotRoutes, BodyMaskWardrobe, Face, FaceBasis,
+    FaceRole, FaceSubject, FaceText, ManifestationLifecycle, MaskPlanningDisposition, MaskPlot,
+    MaskShow, MaskShowDisposition, MaskWardrobe, MaskWardrobeLifetime, PlannedMaskPlot,
+    SealedMaskPlotRoute, FACE_INTERACTION_VALUE_KIND, FACE_VALUE_KIND, SHOW_VALUE_KIND,
+};
 use conduit_plot::{
     check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
     KindSignature, ProfileCatalog, StartupCatalog,
 };
-use conduit_presentation::{
-    install_mask_plot_value_aliases, AdmittedMaskPlotRoutes, BodyMaskWardrobe,
-    ManifestationLifecycle, MaskPlanningDisposition, MaskPlot, MaskShow, MaskShowDisposition,
-    MaskWardrobe, MaskWardrobeLifetime, PlannedMaskPlot, Presentation, PresentationBasis,
-    PresentationRole, PresentationSubject, PresentationText, SealedMaskPlotRoute,
-    FACE_INTERACTION_VALUE_KIND, PRESENTATION_VALUE_KIND, SHOW_VALUE_KIND,
-};
 
-use conduit_presentation::{MaskWardrobeAction, MaskWardrobeControl};
+use conduit_face::{MaskWardrobeAction, MaskWardrobeControl};
 use patchbay_application::project_mask_inspection;
 
 struct Fixture {
@@ -50,11 +49,11 @@ fn fixture(available: bool) -> Fixture {
     let definition = Kind {
         startup_parameters: vec![],
         shorthand: None,
-        kind_id: kind_id("presentation/test-mask"),
-        kind_contract_revision: KindIdentity::from("conduit.test/presentation-mask@1"),
+        kind_id: kind_id("face/test-mask"),
+        kind_contract_revision: KindIdentity::from("conduit.test/face-mask@1"),
         inputs: vec![port(
-            "presentation",
-            PRESENTATION_VALUE_KIND,
+            "face",
+            FACE_VALUE_KIND,
             PortDirection::Input,
             PortTemporal::Value,
         )],
@@ -91,7 +90,7 @@ fn fixture(available: bool) -> Fixture {
         .unwrap();
     profiles.insert_kind(definition.clone()).unwrap();
     let source = parse_syntax_document(
-        "plot browser-mask (\n    >> face: Presentation\n    interaction: FaceInteraction...| >>\n    show: Show >>\n) {\n    mask: presentation/test-mask\n    face >> mask.presentation\n    mask.interaction >> interaction\n    mask.show >> show\n}\n",
+        "plot browser-mask (\n    >> face: Face\n    interaction: FaceInteraction...| >>\n    show: Show >>\n) {\n    mask: face/test-mask\n    face >> mask.face\n    mask.interaction >> interaction\n    mask.show >> show\n}\n",
     );
     let checked = check_syntax_document(&source, &startup).unwrap();
     let authoring =
@@ -209,6 +208,8 @@ fn fixture(available: bool) -> Fixture {
         route_id: "route/browser-mask".into(),
         mask_plot: mask.plot_identity.clone(),
         plan_id: body_plan.plan_id.clone(),
+        child_mask_plan_id: None,
+        owner_route_seal_id: None,
         placement_ids: plan
             .fragments
             .iter()
@@ -257,9 +258,9 @@ fn wardrobe_control_and_inspection_use_one_real_plot_plan() {
     };
     assert_eq!(selected.plan_id, fixture.body_plan.plan_id);
 
-    let presentation = Presentation::new(
+    let face = Face::new(
         1,
-        PresentationBasis {
+        FaceBasis {
             body_id: Some(body.body_id),
             wake_id: Some(wake.wake_id),
             source_document_id: Some(fixture.mask.plot_identity.source_document_id.clone()),
@@ -267,18 +268,18 @@ fn wardrobe_control_and_inspection_use_one_real_plot_plan() {
             expanded_plot_id: Some(fixture.mask.plot_identity.expanded_plot_id.clone()),
             plan_id: Some(fixture.planned.plan.plan_id.clone()),
             active_play_id: None,
-            sign_ids: vec![SignId::from("sign/presentation")],
+            sign_ids: vec![SignId::from("sign/face")],
         },
-        vec![PresentationSubject {
+        vec![FaceSubject {
             identity: "mask/plot".into(),
-            role: PresentationRole::Plot,
+            role: FaceRole::Plot,
             name: "Browser Mask Plot".into(),
         }],
         vec![],
         vec![],
-        vec![PresentationText {
+        vec![FaceText {
             subject: "mask/plot".into(),
-            text: "One ordinary Plot realizes this Presentation".into(),
+            text: "One ordinary Plot realizes this Face".into(),
         }],
     )
     .unwrap();
@@ -291,7 +292,7 @@ fn wardrobe_control_and_inspection_use_one_real_plot_plan() {
     );
     let show = MaskShow::prepared(
         &fixture.planned,
-        &presentation,
+        &face,
         active_play,
         "mask/plot".into(),
         "browser/document".into(),

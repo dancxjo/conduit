@@ -323,7 +323,7 @@ type InteractionFamily =
         maximum-selections: U16
     }
     | scalar {
-        unit: QuantityUnit
+        unit: Unit
         minimum: I64
         minimum-bound: InteractionBoundKind
         maximum: I64
@@ -331,7 +331,7 @@ type InteractionFamily =
         granularity: I64
     }
     | relative-adjustment {
-        unit: QuantityUnit
+        unit: Unit
         minimum-delta: I64
         maximum-delta: I64
         granularity: I64

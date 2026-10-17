@@ -79,6 +79,9 @@ pub fn execute(board: Armv6RpiBoard, opts: &GlobalOpts) -> Result<BuildRecord, C
         ])
         .current_dir(&paths.root)
         .env("RUSTC_BOOTSTRAP", "1")
+        // This proof verifies the exact entry symbol after linking. Preserve
+        // the symbol table even when the workspace strips release products.
+        .env("CARGO_PROFILE_RELEASE_STRIP", "debuginfo")
         .env(
             "CONDUITOS_BUILD_ID",
             format!("conduitos-build/{base_commit}/{}/v1", board.identity_slug()),

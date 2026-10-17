@@ -1,9 +1,7 @@
 //! Deterministic gamepad, pointer, touch, button, and rotary fixtures.
 
 use alloc::{string::ToString, vec, vec::Vec};
-use conduit_core::{
-    Quantity, QuantityDimension, QuantityUnit, StructuredInfoRefusal, StructuredInfoValue,
-};
+use conduit_core::{Quantity, QuantityDimension, StructuredInfoRefusal, StructuredInfoValue, Unit};
 use conduit_human::{
     GamepadState, InputAxisSlot, InputAxisSlots, InputButtonPhase, InputButtonSlot,
     InputButtonSlots, InputButtonTransition, InputPressure, InputPressurePolicy, InputSurfacePoint,
@@ -79,9 +77,9 @@ fn validate_ratio(
         return Err(GeneralizedInputRefusal::NonRatio);
     }
     let normalized = value
-        .convert(QuantityUnit::Millionth)
+        .to_i64(Unit::Millionth)
         .map_err(|_| GeneralizedInputRefusal::OutsideNormalizedRange)?;
-    if !(minimum..=maximum).contains(&normalized.value()) {
+    if !(minimum..=maximum).contains(&normalized) {
         return Err(GeneralizedInputRefusal::OutsideNormalizedRange);
     }
     Ok(())
@@ -196,7 +194,7 @@ pub fn deterministic_generalized_input_fixture(
 }
 
 fn ratio(value: i64) -> Quantity {
-    Quantity::new(value, QuantityUnit::Millionth)
+    Quantity::new(value, Unit::Millionth)
 }
 
 fn axis(identity: &str, normalized: i64) -> Result<InputAxisSlot, GeneralizedInputRefusal> {

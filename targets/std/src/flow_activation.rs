@@ -10,6 +10,102 @@ use conduit_core::{
     PreparationHostIdentity, PreparedFragmentReceipt, PreparedPlan,
 };
 
+mod value_scan;
+pub use value_scan::{
+    install_value_scan, value_scan_child_steps, value_scan_offer, VALUE_SCAN_ARTIFACT,
+    VALUE_SCAN_IMPLEMENTATION, VALUE_SCAN_MAXIMUM_ITEMS, VALUE_SCAN_PROFILE,
+};
+
+mod value_pair;
+pub use value_pair::PreparedValuePairFactory;
+
+mod local_expression;
+pub use local_expression::{LocalExpressionFactory, PreparedLocalExpressionBack};
+
+mod parsec_combine;
+mod parsec_combine_back;
+mod parsec_input_instruction_plan;
+pub(crate) mod parsec_instruction_source_offer;
+mod parsec_scan_offer;
+mod parsec_source_plan;
+pub use parsec_input_instruction_plan::{
+    required_parsec_input_instruction_offer, ParsecInputInstructionSourcePlan,
+};
+mod spoken_template_plan;
+pub(crate) use spoken_template_plan::prepare_wording_for_offer;
+pub use spoken_template_plan::{required_spoken_template_offers, SpokenTemplateSourcePlan};
+mod pure_parsec_scan;
+pub use parsec_combine::{
+    command_kind as parsec_command_kind, parsec_combine_kind, parsec_combine_offer,
+    result_kind as parsec_result_kind, ParsecCombineFactory,
+};
+pub(crate) use parsec_scan_offer::validate_planned_parsec_scan;
+pub use parsec_scan_offer::{
+    install_parsec_scan_catalogs, parsec_initial_bytes, parsec_initial_result, parsec_scan_offer,
+    PARSEC_SCAN_SOURCE,
+};
+pub use parsec_source_plan::{
+    required_parsec_input_policy_offer, required_parsec_source_offers, ParsecInputPolicySourcePlan,
+    ParsecSourcePlans,
+};
+pub use pure_parsec_scan::install_pure_parsec_scan;
+
+mod pure_thermostat_scan;
+mod thermostat_combine;
+mod thermostat_scan_offer;
+pub use pure_thermostat_scan::install_pure_thermostat_scan;
+pub use thermostat_combine::{offer as thermostat_combine_offer, ThermostatCombineFactory};
+#[cfg(test)]
+pub(crate) use thermostat_scan_offer::tests::authored_thermostat_plan_on_host;
+pub use thermostat_scan_offer::thermostat_scan_offer;
+pub(crate) use thermostat_scan_offer::validate_planned_thermostat_scan;
+mod pure_todo_scan;
+mod todo_combine;
+mod todo_scan_offer;
+pub use pure_todo_scan::install_pure_todo_scan;
+pub(crate) fn maximum_scan_child_steps(
+    planned: &conduit_core::PlannedScanActivation,
+) -> Result<u32, String> {
+    if planned.item_input.value_kind.as_str() == conduit_thermostat_plot::COMMAND_KIND {
+        thermostat_combine::maximum_scan_child_steps(planned)
+    } else if planned.item_input.value_kind == parsec_command_kind()? {
+        parsec_combine::maximum_scan_child_steps(planned)
+    } else {
+        todo_combine::maximum_scan_child_steps(planned)
+    }
+}
+pub use todo_combine::{offer as todo_combine_offer, TodoCombineFactory};
+#[cfg(test)]
+pub(crate) use todo_scan_offer::tests::authored_todo_plan;
+#[cfg(test)]
+pub(crate) use todo_scan_offer::tests::authored_todo_plan_on_host;
+pub use todo_scan_offer::todo_scan_offer;
+pub(crate) use todo_scan_offer::validate_planned_todo_scan;
+
+/// Production child operations that the std activation host can actually
+/// prepare. The scan coordinator is selected by the whole Plan, not by this
+/// registry of child Backs.
+pub fn standard_child_registry() -> Result<KernelOperationRegistry, String> {
+    let mut registry = KernelOperationRegistry::new();
+    registry.install(TodoCombineFactory)?;
+    registry.install(ThermostatCombineFactory)?;
+    registry.install(LocalExpressionFactory)?;
+    Ok(registry)
+}
+
+/// Scoped registry: Parsec computational source custody must come from the
+/// caller's actual Host offers before parent planning/preparation.
+pub fn parsec_child_registry(
+    sources: std::sync::Arc<ParsecSourcePlans>,
+) -> Result<KernelOperationRegistry, String> {
+    let mut registry = standard_child_registry()?;
+    registry.install(ParsecCombineFactory::new(sources))?;
+    Ok(registry)
+}
+
+#[cfg(test)]
+mod parsec_scan_tests;
+
 /// One current std boot's installed kernel implementations and prepared
 /// fragment reservations. This is preparation machinery, not a scheduler.
 pub struct StdActivationHost {
@@ -137,4 +233,17 @@ impl PlannedActivationChildPoolHost for StdActivationHost {
 }
 
 #[cfg(test)]
-mod tests;
+pub(crate) mod tests;
+
+mod todo_spoken_template_plan;
+pub use todo_spoken_template_plan::{
+    required_todo_spoken_template_offers, TodoSpokenTemplateSourcePlan,
+};
+
+mod pcm_packing;
+pub use pcm_packing::PreparedPcm16PackingBack;
+
+mod pcm_packing_factory;
+pub use pcm_packing_factory::Pcm16PackingFactory;
+mod value_scan_factory;
+pub use value_scan_factory::PreparedValueScanFactory;

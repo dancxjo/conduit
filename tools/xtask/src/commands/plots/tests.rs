@@ -8,7 +8,7 @@ fn inventory_plot() -> InventoryPlot {
         entry: "composition".into(),
         reusable_entries: Vec::new(),
         initial_body_order: None,
-        initial_body_presentation_profile: 0,
+        initial_body_face_profile: 0,
         workspace_catalog: true,
         deterministic: None,
         deterministic_not_applicable: None,
@@ -109,7 +109,7 @@ fn explicit_inventory_covers_canonical_sources_and_checks_every_entry() {
         .iter()
         .filter(|result| result.proof_mode == "reusable-check")
         .collect();
-    assert_eq!(reusable.len(), 29);
+    assert_eq!(reusable.len(), 30);
     assert!(reusable.iter().all(|result| {
         result.status == "passed"
             && result.source_document_id.is_some()
@@ -128,13 +128,13 @@ fn explicit_inventory_covers_canonical_sources_and_checks_every_entry() {
         .iter()
         .filter(|result| result.proof_mode == "composition-check")
         .collect();
-    assert_eq!(composition.len(), 29);
+    assert_eq!(composition.len(), 30);
     assert_eq!(
         composition
             .iter()
             .filter(|result| result.status == "passed")
             .count(),
-        26
+        27
     );
     assert_eq!(
         composition
@@ -157,7 +157,7 @@ fn explicit_inventory_covers_canonical_sources_and_checks_every_entry() {
         .iter()
         .filter(|result| result.proof_mode == "reusable-deterministic")
         .collect();
-    assert_eq!(reusable_deterministic.len(), 29);
+    assert_eq!(reusable_deterministic.len(), 30);
     assert!(reusable_deterministic
         .iter()
         .all(|result| result.status == "unavailable"));
@@ -364,4 +364,79 @@ fn combined_workload_is_projected_without_static_execution_claims() {
             && result.source_document_id.is_some()
             && result.checked_plot_id.is_some()
     }));
+}
+
+#[test]
+fn selected_plot_report_excludes_unrelated_and_combined_workloads() {
+    let root = crate::workspace::workspace_root().unwrap();
+    let report = build_selected_report(
+        &root,
+        false,
+        &GlobalOpts::default(),
+        Some("physical-values"),
+    )
+    .unwrap();
+    assert_eq!(report.results.len(), 2);
+    assert!(report
+        .results
+        .iter()
+        .all(|result| result.slug == "physical-values"));
+    assert_eq!(report.results[0].status, "passed");
+    assert!(build_selected_report(
+        &root,
+        false,
+        &GlobalOpts::default(),
+        Some("missing-reviewed-plot")
+    )
+    .is_err());
+}
+
+#[test]
+fn selected_plot_cli_refuses_browser_mode() {
+    use clap::Parser;
+    #[derive(Parser)]
+    struct Entrance {
+        #[command(flatten)]
+        args: PlotsArgs,
+    }
+    assert!(Entrance::try_parse_from([
+        "plots",
+        "run",
+        "--deterministic",
+        "--plot",
+        "physical-values"
+    ])
+    .is_ok());
+    assert!(
+        Entrance::try_parse_from(["plots", "run", "--browser", "--plot", "physical-values"])
+            .is_err()
+    );
+}
+
+#[test]
+fn workspace_catalog_preserves_memory_lantern_saved_choice_requirement() {
+    let root = crate::workspace::workspace_root().unwrap();
+    let output = std::env::temp_dir().join(format!(
+        "conduit-saved-choice-workspace-catalog-{}.json",
+        std::process::id()
+    ));
+    bundle_workspace_catalog(&root, &output).unwrap();
+    let bytes = fs::read(&output).unwrap();
+    fs::remove_file(&output).unwrap();
+    let catalog: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+    let memory = catalog["plots"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|plot| plot["slug"] == "memory-lantern")
+        .unwrap();
+    assert!(memory["required_kinds"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|kind| kind == conduit_semantic_catalog::SAVED_CHOICE_KIND));
+    assert_eq!(
+        memory["source"],
+        fs::read_to_string(root.join("plots/memory-lantern/main.conduit")).unwrap()
+    );
 }

@@ -1,6 +1,7 @@
 //! Finite browser projection of canonical Conduit syntax-highlight spans.
 
-use conduit_plot::{highlight_syntax, SyntaxHighlightKind, SyntaxHighlightRefusal};
+use conduit_plot::{SyntaxHighlightKind, SyntaxHighlightRefusal};
+mod notation;
 use serde::Serialize;
 use std::cell::RefCell;
 
@@ -30,7 +31,7 @@ struct SyntaxProjection {
     pub source_bytes: u32,
     pub kinds: &'static [&'static str; 10],
     /// Compact tuples keep every admitted Tour projection inside the shared
-    /// 128 KiB application-presentation aggregate bound.
+    /// 128 KiB application-face aggregate bound.
     pub spans: Vec<(u32, u32, u8)>,
 }
 
@@ -52,8 +53,7 @@ enum SyntaxKind {
 fn project(source: &str) -> Result<SyntaxProjection, String> {
     let source_bytes = u32::try_from(source.len())
         .map_err(|_| "Tour syntax source length exceeds u32".to_owned())?;
-    let spans = highlight_syntax(source)
-        .map_err(refusal)?
+    let spans = notation::highlight(source)?
         .into_iter()
         .map(|span| {
             let start = u32::try_from(span.start)

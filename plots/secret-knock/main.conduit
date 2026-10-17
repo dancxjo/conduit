@@ -1,4 +1,4 @@
-# A bounded timing-pattern Plot. Trigger, clock, storage, and presentation
+# A bounded timing-pattern Plot. Trigger, clock, storage, and face
 # realizations remain Host choices made by an exact plan.
 plot secret-knock (
     >> transitions: InputButtonTransition...
@@ -13,7 +13,7 @@ plot secret-knock (
     storage: storage/named-pattern-templates(maximum-commands = 2)
     final_template: sequence/final-normalized-pattern(maximum-values = 1)
     compare: compare-pattern(metric = "maximum-absolute-millionths@1", tolerance-millionths = 150000)
-    manifest: presentation/structured-info
+    manifest: face/structured-info("Knock comparison")
 
     transitions >> attempt.transition
     attempt.events >> intervals.events

@@ -8,8 +8,9 @@ use crate::{
     MeasurementWireRefusal, MAXIMUM_MEASUREMENT_WINDOW_SAMPLES,
 };
 
-pub const MAXIMUM_MEASUREMENT_WINDOW_PROFILE_BYTES: usize = 1_024;
-pub const MAXIMUM_MEASUREMENT_SAMPLE_BYTES: usize = 1_024;
+pub const MAXIMUM_MEASUREMENT_WINDOW_PROFILE_BYTES: usize =
+    2 * conduit_core::QUANTITY_ENCODED_LEN + 1_024;
+pub const MAXIMUM_MEASUREMENT_SAMPLE_BYTES: usize = 2 * conduit_core::QUANTITY_ENCODED_LEN + 1_024;
 
 pub fn encode_measurement_window_profile(
     profile: &MeasurementWindowProfile,
@@ -71,7 +72,10 @@ pub fn encode_measurement_sample(
         .validate()
         .map_err(|_| MeasurementWireRefusal::Malformed)?;
     if sample.uncertainty.is_some_and(|uncertainty| {
-        uncertainty.unit() != sample.value.unit() || uncertainty.value() < 0
+        sample.value.role() == conduit_core::QuantityRole::Point
+            || uncertainty.role() != sample.value.role()
+            || uncertainty.unit() != sample.value.unit()
+            || uncertainty.coefficient() < 0
     }) {
         return Err(MeasurementWireRefusal::Malformed);
     }
@@ -220,15 +224,15 @@ impl<'a> Input<'a> {
 mod tests {
     use super::*;
     use crate::FullWindowPolicy;
-    use conduit_core::QuantityUnit;
+    use conduit_core::Unit;
 
     #[test]
     fn profile_and_sample_payloads_round_trip_without_host_defaults() {
         let profile = MeasurementWindowProfile {
             capacity: 8,
             range: MeasurementRange {
-                minimum: Quantity::new(-100, QuantityUnit::Millivolt),
-                maximum: Quantity::new(100, QuantityUnit::Millivolt),
+                minimum: Quantity::new(-100, Unit::Millivolt),
+                maximum: Quantity::new(100, Unit::Millivolt),
             },
             clock_basis: "source-clock".into(),
             full_policy: FullWindowPolicy::DropOldest,
@@ -240,7 +244,7 @@ mod tests {
             Ok(profile)
         );
         let sample = MeasurementSample {
-            value: Quantity::new(25, QuantityUnit::Millivolt),
+            value: Quantity::new(25, Unit::Millivolt),
             observed_at: TemporalInstant {
                 ticks: 10,
                 scale: TemporalScale::Milliseconds,
@@ -250,7 +254,7 @@ mod tests {
             }
             .try_into()
             .unwrap(),
-            uncertainty: Some(Quantity::new(1, QuantityUnit::Millivolt)),
+            uncertainty: Some(Quantity::new(1, Unit::Millivolt)),
         };
         assert_eq!(
             decode_measurement_sample(&encode_measurement_sample(&sample).unwrap()),

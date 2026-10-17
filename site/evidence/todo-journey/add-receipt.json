@@ -1,0 +1,26 @@
+{
+  "source_commit": "0f6b89e931e34d8b49b8f1aefedfaa1272b8ef65",
+  "run_id": "todo/8330a7e47752172809a9b7d21a06c44ba00f078b5d113aa3dd2e3e0a02f8feb9",
+  "body_id": "1f1d5d82f4eb8ee47011beb80e5b39c156d1c96f2ccdf611cd43e2fe0ff89f68",
+  "schema": "conduit.todo-journey/chapter-receipt@1",
+  "chapter_id": "add",
+  "event_id": "todo/8330a7e47752172809a9b7d21a06c44ba00f078b5d113aa3dd2e3e0a02f8feb9/add",
+  "face_id": "1d3b1d8f6f384fd22a3e87d95d5390da97b4dae28f496b2c66f8b50569278762",
+  "face_revision": "5055164355942367099",
+  "show_id": "show/794e3e42d6d8ec606196c366b38d2c825dfef61f683bf5e0f527604cc4bb63af",
+  "observed_at_unix_ms": 1791565442212,
+  "interaction_id": "c72dee421213ca30e9d0730c02139a820578c23aaacb4e815796ac4662c2d314",
+  "action_id": "todo.add",
+  "queue_sequence": 3,
+  "child_sign_id": "3b27fc48fac2e4b6ef48c0e187b36d57d8ebb62c363459aa13dcb5a248de7963",
+  "outcome": "produced",
+  "mask_kind": "chromium",
+  "media": [
+    {
+      "media_output_id": "add-media-0",
+      "capture_source": "chromium",
+      "media_sha256": "b26ec03e193313f82fc5171e7d2d3ee1338d4326f75556dfcdb800aaf149db5e"
+    }
+  ],
+  "source_receipt_id": "add-source"
+}

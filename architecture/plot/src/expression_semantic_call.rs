@@ -15,6 +15,127 @@ pub(super) fn check(
         Option<&CheckedExpressionType>,
     ) -> Result<CheckedExpressionType, ExpressionTypeDiagnostic>,
 ) -> Result<CheckedExpressionType, ExpressionTypeDiagnostic> {
+    if let Some(function) = crate::expression_inverse_trigonometry::function(&name.text) {
+        use crate::expression_inverse_trigonometry::Function;
+        let expected = CheckedExpressionType::semantic(conduit_core::MATHEMATICAL_VALUE_ID);
+        match function {
+            Function::Unary(_) => {
+                let [argument] = arguments else {
+                    return Err(diagnostic(
+                        span,
+                        "inverse function requires one exact MathematicalValue",
+                    ));
+                };
+                let ty = check_argument(argument, Some(&expected))?;
+                if ty
+                    .value_kind()
+                    .is_none_or(|k| k.as_str() != conduit_core::MATHEMATICAL_VALUE_ID)
+                {
+                    return Err(diagnostic(
+                        argument.span(),
+                        "inverse function requires a dimensionless exact MathematicalValue",
+                    ));
+                }
+            }
+            Function::Atan2 => {
+                let [y, x] = arguments else {
+                    return Err(diagnostic(span, "atan2 requires two typed Quantities"));
+                };
+                if crate::expression_inverse_trigonometry::closed_zero(y)
+                    && crate::expression_inverse_trigonometry::closed_zero(x)
+                {
+                    return Err(diagnostic(span, "atan2 is undefined for the zero pair"));
+                }
+                let y_type = check_argument(y, None)?;
+                let x_type = check_argument(x, None)?;
+                let dimension = |ty: &CheckedExpressionType| {
+                    ty.value_kind().and_then(|kind| {
+                        crate::expression_inverse_trigonometry::quantity_dimension(kind.as_str())
+                    })
+                };
+                let (Some(y_dimension), Some(x_dimension)) =
+                    (dimension(&y_type), dimension(&x_type))
+                else {
+                    return Err(diagnostic(
+                        span,
+                        "atan2 requires Quantities; bare scalars have no implicit Unit",
+                    ));
+                };
+                if y_dimension.zip(x_dimension).is_some_and(|(y, x)| y != x) {
+                    return Err(diagnostic(
+                        span,
+                        "atan2 requires the same Dimension on both operands",
+                    ));
+                }
+            }
+        }
+        return Ok(CheckedExpressionType::semantic(
+            conduit_core::MATHEMATICAL_ANGLE_ID,
+        ));
+    }
+    if crate::expression_trigonometry::function(&name.text).is_some()
+        || name.text == crate::expression_angle_reference::CALL
+    {
+        let [argument] = arguments else {
+            return Err(diagnostic(
+                span,
+                "Angle intrinsic requires exactly one typed Angle",
+            ));
+        };
+        // Never provide an Angle expectation that could attach a unit to a
+        // bare numeric literal. Preserve the inner reason under the typed call.
+        let source = check_argument(argument, None).map_err(|why| {
+            diagnostic(
+                argument.span(),
+                &format!("Angle argument could not be admitted: {}", why.message),
+            )
+        })?;
+        if source
+            .value_kind()
+            .is_none_or(|kind| kind.as_str() != conduit_core::ANGLE_INFO_ID)
+        {
+            return Err(diagnostic(
+                argument.span(),
+                "Angle intrinsic requires Angle; scalar radians are not implicit",
+            ));
+        }
+        return Ok(CheckedExpressionType::semantic(
+            conduit_core::MATHEMATICAL_VALUE_ID,
+        ));
+    }
+    if name.text == "text/material" {
+        let [argument] = arguments else {
+            return Err(diagnostic(
+                span,
+                "text/material requires exactly one text value",
+            ));
+        };
+        let source = check_argument(argument, None)?;
+        let ty = source
+            .structured_info_type_with(context.structured_types)
+            .map_err(|_| {
+                diagnostic(
+                    argument.span(),
+                    "text/material requires text representation",
+                )
+            })?;
+        let mut representation = &ty;
+        while let conduit_core::StructuredInfoTypeShape::Nominal {
+            representation: inner,
+            ..
+        } = representation.shape()
+        {
+            representation = inner;
+        }
+        if !matches!(representation.shape(), conduit_core::StructuredInfoTypeShape::Leaf(kind) if kind.as_str() == conduit_core::TEXT_INFO_ID)
+        {
+            return Err(diagnostic(
+                argument.span(),
+                "text/material requires text representation",
+            ));
+        }
+        return Ok(CheckedExpressionType::semantic(conduit_core::TEXT_INFO_ID));
+    }
     if let Some(target) = integer_widening_target(&name.text) {
         if arguments.len() != 1 {
             return Err(diagnostic(
@@ -37,6 +158,87 @@ pub(super) fn check(
         }
         return Ok(CheckedExpressionType::semantic(target));
     }
+    if name.text == "bytes/window" {
+        if arguments.len() != 3 {
+            return Err(diagnostic(
+                span,
+                "byte window requires Bytes, U64 offset and U64 length",
+            ));
+        }
+        let bytes = CheckedExpressionType::semantic("value/bytes");
+        let integer = CheckedExpressionType::semantic("value/u64");
+        if check_argument(&arguments[0], Some(&bytes))? != bytes
+            || check_argument(&arguments[1], Some(&integer))? != integer
+            || check_argument(&arguments[2], Some(&integer))? != integer
+        {
+            return Err(diagnostic(
+                span,
+                "byte window requires exact Bytes and U64 bounds",
+            ));
+        }
+        return Ok(bytes);
+    }
+    if matches!(
+        name.text.as_str(),
+        "bytes/length" | "bytes/at" | "bytes/window"
+    ) {
+        let expected_count = if name.text == "bytes/at" { 2 } else { 1 };
+        if arguments.len() != expected_count {
+            return Err(diagnostic(
+                span,
+                "byte observation requires Bytes and, for indexing, a U64 index",
+            ));
+        }
+        let bytes = CheckedExpressionType::semantic("value/bytes");
+        if check_argument(&arguments[0], None)? != bytes {
+            return Err(diagnostic(
+                arguments[0].span(),
+                "byte observation requires exact Bytes",
+            ));
+        }
+        if name.text == "bytes/at" {
+            let index = CheckedExpressionType::semantic("value/u64");
+            if check_argument(&arguments[1], Some(&index))? != index {
+                return Err(diagnostic(
+                    arguments[1].span(),
+                    "byte index requires exact U64",
+                ));
+            }
+            return Ok(CheckedExpressionType::semantic("value/u8"));
+        }
+        return Ok(CheckedExpressionType::semantic("value/u64"));
+    }
+    if name.text == "sequence/at" {
+        let [source, index] = arguments else {
+            return Err(diagnostic(
+                span,
+                "sequence selection requires a collection and U64 index",
+            ));
+        };
+        let source_type = check_argument(source, None)?;
+        let expected_index = CheckedExpressionType::semantic("value/u64");
+        if check_argument(index, Some(&expected_index))? != expected_index {
+            return Err(diagnostic(
+                index.span(),
+                "sequence index requires exact U64",
+            ));
+        }
+        let ty = source_type
+            .structured_info_type_with(context.structured_types)
+            .map_err(|_| {
+                diagnostic(
+                    source.span(),
+                    "sequence selection requires an exact finite collection Type",
+                )
+            })?;
+        let element = collection_element(&ty).ok_or_else(|| {
+            diagnostic(
+                source.span(),
+                "sequence selection requires an exact finite collection Type",
+            )
+        })?;
+        return Ok(CheckedExpressionType::from_member(element));
+    }
     if name.text == "sequence/length" {
         let [argument] = arguments else {
             return Err(diagnostic(
@@ -46,19 +248,14 @@ pub(super) fn check(
         };
         let source = check_argument(argument, None)?;
         let ty = source
-            .value_kind()
-            .and_then(|kind| context.structured_types.get(kind))
-            .ok_or_else(|| {
+            .structured_info_type_with(context.structured_types)
+            .map_err(|_| {
                 diagnostic(
                     argument.span(),
                     "sequence length requires an exact finite collection Type",
                 )
             })?;
-        if !matches!(
-            ty.shape(),
-            conduit_core::StructuredInfoTypeShape::Sequence { .. }
-                | conduit_core::StructuredInfoTypeShape::Collection { .. }
-        ) {
+        if collection_element(&ty).is_none() {
             return Err(diagnostic(
                 argument.span(),
                 "sequence length requires an exact finite collection Type",
@@ -171,6 +368,26 @@ pub(super) fn check(
     ))
 }
 
+/// Observe collection representation without changing its or its elements' Type.
+pub(crate) fn collection_element(
+    value_type: &conduit_core::StructuredInfoType,
+) -> Option<&conduit_core::StructuredInfoType> {
+    let mut value_type = value_type;
+    for _ in 0..=conduit_core::MAXIMUM_STRUCTURED_INFO_DEPTH {
+        match value_type.shape() {
+            conduit_core::StructuredInfoTypeShape::Nominal { representation, .. } => {
+                value_type = representation;
+            }
+            conduit_core::StructuredInfoTypeShape::Collection { element, .. }
+            | conduit_core::StructuredInfoTypeShape::Sequence { element, .. } => {
+                return Some(element);
+            }
+            _ => return None,
+        }
+    }
+    None
+}
+
 pub(crate) fn integer_widening_target(name: &str) -> Option<&str> {
     matches!(
         name,
@@ -254,6 +471,19 @@ fn diagnostic(span: Span, message: &str) -> ExpressionTypeDiagnostic {
 }
 
 pub(crate) fn is_intrinsic(name: &str) -> bool {
-    integer_widening_target(name).is_some()
-        || matches!(name, "variant/tag" | "variant/is" | "sequence/length")
+    crate::expression_inverse_trigonometry::function(name).is_some()
+        || crate::expression_trigonometry::function(name).is_some()
+        || name == crate::expression_angle_reference::CALL
+        || integer_widening_target(name).is_some()
+        || matches!(
+            name,
+            "text/material"
+                | "variant/tag"
+                | "variant/is"
+                | "sequence/length"
+                | "sequence/at"
+                | "bytes/length"
+                | "bytes/at"
+                | "bytes/window"
+        )
 }

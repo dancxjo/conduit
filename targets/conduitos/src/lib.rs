@@ -2,6 +2,13 @@
 
 extern crate alloc;
 
+#[cfg(test)]
+#[macro_use]
+extern crate std;
+#[cfg(test)]
+#[path = "../../../architecture/plot/tests/prepared_structured_payload/allocation.rs"]
+mod test_allocations;
+
 pub mod allocation;
 pub mod arch;
 pub mod boot;
@@ -14,11 +21,28 @@ pub mod cooperative_timer_lane;
 pub mod cryptographic_entropy;
 pub mod current_sample;
 pub mod display;
+pub mod domain_image;
+#[cfg(any(target_os = "none", all(target_arch = "x86", target_os = "linux")))]
+#[path = "../domain/layout.rs"]
+pub(crate) mod domain_layout;
+#[cfg(test)]
+#[path = "../domain/memory_words.rs"]
+mod domain_memory_words;
+mod domain_scope_identity;
+pub mod domain_serial_scope;
+pub mod domain_timer_gate;
+pub mod domain_timer_scope;
 pub mod dual_region_composition;
 pub mod dual_region_kernel;
 pub mod dual_region_plan;
+pub mod ethernet_frame;
 mod execution_region;
 pub mod expression_host_call;
+#[path = "face_nucleus/offers.rs"]
+mod face_offers;
+pub mod flow_concat_finite;
+pub mod flow_merge_finite;
+pub mod flow_singleton;
 pub mod flow_zip;
 #[cfg(any(
     test,
@@ -105,6 +129,13 @@ pub mod opl2_offer;
 pub mod opl2_plan;
 #[cfg(target_arch = "x86_64")]
 pub mod opl2_play;
+mod ordinary_base;
+#[cfg(all(
+    target_os = "none",
+    target_arch = "x86_64",
+    feature = "ordinary-domain-proof"
+))]
+pub mod ordinary_domain_proof;
 pub mod ordinary_plan;
 mod ordinary_plot;
 pub mod outbound_network;
@@ -121,20 +152,34 @@ pub mod pc_speaker_play;
 pub mod planned_kernel;
 #[cfg(any(test, target_arch = "x86_64"))]
 pub mod pointer_offer;
-#[path = "presentation_nucleus/offers.rs"]
-mod presentation_offers;
 pub mod protected_line_support;
+pub mod protected_region;
 #[cfg(feature = "native-owner-network")]
 pub mod protected_relay_support;
+#[cfg(conduitos_protected_execution)]
+mod protected_timer;
 pub mod protected_wire_session;
 pub mod protection_domain;
+mod protocol_call_refusal;
 pub mod protocol_host_calls;
 pub mod protocol_operations;
+mod pure_protocol_owner;
+pub mod pure_protocol_play;
+pub mod serial_base;
+#[cfg(target_arch = "x86_64")]
+pub mod source_keyboard_batch;
+pub mod source_pointer_sample;
+
+pub mod protocol_artifact;
 pub mod protocol_play;
+pub mod protocol_source;
+#[cfg(test)]
+mod protocol_test_support;
 pub mod rendezvous_descriptor;
 #[cfg(feature = "native-owner-network")]
 pub mod secure_rendezvous_support;
 pub mod seeded_state;
+pub mod storage_base;
 pub mod structured_selector_host_call;
 pub mod usb_base;
 #[cfg(any(test, target_arch = "x86_64"))]
@@ -158,6 +203,8 @@ pub mod virtio_tls_fixture;
 mod wss_candidate_support;
 // Product entrances remain out of A0-A4 proof appliances. Non-x86_64 targets
 // admit these modules only through distinct PROFILE-selected product features.
+#[cfg(any(test, target_arch = "x86_64", feature = "hosted-tools"))]
+pub mod face_nucleus;
 #[cfg(any(
     test,
     target_arch = "x86_64",
@@ -210,8 +257,6 @@ mod native_surface_possession;
     feature = "aarch64-orange-pi-5"
 ))]
 mod native_surface_provider;
-#[cfg(any(test, target_arch = "x86_64", feature = "hosted-tools"))]
-pub mod presentation_nucleus;
 #[cfg(any(test, target_arch = "x86_64"))]
 pub mod product_bases;
 #[cfg(any(
@@ -245,6 +290,7 @@ pub mod rescue_guest;
 pub mod sign_format;
 // Pending join facts are shared with the portable front door on every arch;
 // only the boot-specific serial emission is target-gated inside the module.
+pub mod bytes_literal;
 pub mod native_guest_part;
 pub mod spore_join;
 pub mod spore_provision;
@@ -252,9 +298,14 @@ pub mod spore_provision;
 pub mod synth_nucleus;
 pub mod text_composition;
 mod text_kernel_backs;
+pub mod text_literal;
 mod text_offer;
 pub mod text_planned_kernel;
+#[cfg(conduitos_protected_execution)]
+mod text_protection;
+mod text_transform;
 pub mod text_upper;
+pub mod timer_duration;
 #[cfg(any(test, target_arch = "x86_64"))]
 pub mod timer_nucleus;
 mod timing_plan;
@@ -274,6 +325,10 @@ pub mod tour_shell;
 mod tour_timer_kernel;
 mod tour_timer_offer;
 pub mod tour_timer_plan;
+#[cfg(not(conduitos_protected_execution))]
+mod tour_timer_play;
+#[cfg(conduitos_protected_execution)]
+#[path = "protected_timer_play.rs"]
 mod tour_timer_play;
 mod tour_two_host;
 mod tour_two_host_kernel;
@@ -283,3 +338,32 @@ pub mod tour_workspace;
 
 #[cfg(test)]
 mod protocol_kernel_fixture;
+
+pub mod protocol_boot;
+
+#[cfg(all(
+    target_arch = "aarch64",
+    conduitos_protected_execution,
+    feature = "ordinary-domain-proof"
+))]
+pub mod aarch64_domain_proof;
+#[cfg(all(
+    target_arch = "x86",
+    target_os = "linux",
+    feature = "ia32-product",
+    feature = "ordinary-domain-proof"
+))]
+pub mod ia32_domain_proof;
+#[cfg(all(
+    target_arch = "riscv64",
+    conduitos_protected_execution,
+    feature = "ordinary-domain-proof"
+))]
+pub mod riscv64_domain_proof;
+
+#[cfg(all(
+    target_arch = "loongarch64",
+    conduitos_protected_execution,
+    feature = "ordinary-domain-proof"
+))]
+pub mod loongarch64_domain_proof;

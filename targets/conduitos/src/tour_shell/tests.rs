@@ -7,7 +7,7 @@ mod chooser_control_tests;
 #[path = "revision_churn_tests.rs"]
 mod revision_churn_tests;
 
-use conduit_presentation::{ApplicationEvent, ApplicationEventKind};
+use conduit_face::{ApplicationEvent, ApplicationEventKind};
 use conduit_semantic_catalog::NormalizedPointerSample;
 use conduit_tour_model::{OPEN_PATCHBAY_ACTION_ID, TourPointerOutcome, TourTransientKind};
 
@@ -26,10 +26,7 @@ fn selected_gear_manifests_independent_focused_inspector_and_dismisses_it() {
     let (mut tour, mut shell, mut display) = fixture();
     let initial = shell.present(&tour, &mut display).unwrap();
     assert!(initial.inspector.is_none());
-    assert_ne!(
-        initial.workspace.presentation_id,
-        initial.status.presentation_id
-    );
+    assert_ne!(initial.workspace.face_id, initial.status.face_id);
 
     let outcome = tour.accept_pointer(pointer(), 640, 480).unwrap();
     assert_eq!(
@@ -43,10 +40,7 @@ fn selected_gear_manifests_independent_focused_inspector_and_dismisses_it() {
         .inspector
         .expect("selected gear must manifest its inspector");
     assert_eq!(inspector.surface_id, INSPECTOR_SURFACE);
-    assert_ne!(
-        inspector.presentation_id,
-        selected.workspace.presentation_id
-    );
+    assert_ne!(inspector.face_id, selected.workspace.face_id);
     let routed = delivered(shell.route_pointer(500, 100, true).unwrap());
     assert_eq!(routed.surface_id, INSPECTOR_SURFACE);
     assert!(matches!(
@@ -151,10 +145,7 @@ fn transient_is_an_independent_related_surface_and_dismissal_exposes_parent() {
         .unwrap();
     assert!(shell.has_transient());
     assert_eq!(transient.transient.surface_id, TRANSIENT_SURFACE);
-    assert_ne!(
-        transient.parent_presentation_id,
-        transient.transient.presentation_id
-    );
+    assert_ne!(transient.parent_face_id, transient.transient.face_id);
     assert_eq!(
         delivered(shell.route_pointer(320, 240, true).unwrap()).surface_id,
         TRANSIENT_SURFACE
@@ -210,7 +201,7 @@ fn chooser_fits_all_gears_without_empty_scrolling() {
     assert_eq!(state.scroll.offset(), state.scroll.maximum_offset());
     let scene = transient_scene(
         state.bounds.unwrap(),
-        state.presentation.as_ref().unwrap(),
+        state.face.as_ref().unwrap(),
         state.scroll.offset(),
     )
     .unwrap();
@@ -404,17 +395,16 @@ fn status_surface_uses_exact_body_wake_plan_and_play_basis() {
 }
 
 fn assert_lifecycle_status(shell: &TourShellPresenter, key: &str, value: &str) {
-    let presentation = shell
+    let face = shell
         .surfaces
         .iter()
         .find(|surface| surface.slot == Slot::Status)
         .unwrap()
-        .presentation
+        .face
         .as_ref()
         .unwrap();
     assert!(
-        presentation
-            .text
+        face.text
             .iter()
             .any(|item| item.subject == format!("tour/status/{key}") && item.text == value)
     );
@@ -452,10 +442,7 @@ fn status_revision_advances_when_tour_state_changes_under_one_lifecycle_basis() 
         .present_with_lifecycle(&tour, &lifecycle, &mut display)
         .unwrap();
     assert!(updated.status.display.commands > 0);
-    assert_ne!(
-        initial.status.presentation_id,
-        updated.status.presentation_id
-    );
+    assert_ne!(initial.status.face_id, updated.status.face_id);
 }
 
 fn invoke_journey(
@@ -615,7 +602,7 @@ impl SerialBase for Serial {
         self.0.push(bytes.into());
         Ok(())
     }
-    fn presentation_count(&self) -> u32 {
+    fn face_count(&self) -> u32 {
         self.0.len() as u32
     }
 }

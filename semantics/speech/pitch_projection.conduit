@@ -1,0 +1,23 @@
+# Representation-only numeric input; native admission retains source meanings.
+type SpeechPitchProjectionInput = {
+    start_numerator: U64
+    start_denominator: U64
+    end_numerator: U64
+    end_denominator: U64
+    duration_numerator: U64
+    duration_denominator: U64
+    sample_rate_hz: U64
+    frame: U64
+}
+type SpeechPitchCycleFraction = {
+    numerator: U64
+    denominator: U64
+}
+plot speech/pitch-cycle-fraction (
+    >> value: SpeechPitchProjectionInput
+    result: SpeechPitchCycleFraction >>
+) = ({numerator: .start_numerator * .end_denominator * (.duration_numerator * .sample_rate_hz - .frame * .duration_denominator) + .end_numerator * .start_denominator * .frame * .duration_denominator, denominator: .start_denominator * .end_denominator * .duration_numerator * .sample_rate_hz})
+plot speech/pitch-period-q8 (
+    >> value: SpeechPitchProjectionInput
+    result: U64 >>
+) = ((.start_numerator * .end_denominator * (.duration_numerator * .sample_rate_hz - .frame * .duration_denominator) + .end_numerator * .start_denominator * .frame * .duration_denominator) * .sample_rate_hz * 256 / (.start_denominator * .end_denominator * .duration_numerator * .sample_rate_hz))

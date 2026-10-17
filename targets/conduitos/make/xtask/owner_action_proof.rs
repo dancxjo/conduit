@@ -15,12 +15,20 @@ use crate::cli::GlobalOpts;
 
 use super::{
     demo, journey_input, owner_boot, profile::Paths, qmp, qmp_display, report::git_head,
-    ConduitosArch, ConduitosError, LiveOwnerActionProofArgs,
+    ConduitosArch, ConduitosError, LiveOwnerActionProofArgs, LiveOwnerTodoActionProofArgs,
+    LiveOwnerTodoFaceProofArgs,
 };
 
 #[path = "owner_action_coordination.rs"]
 mod coordination;
 use coordination::{wait_for_resume, write_checkpoint};
+#[path = "owner_action_validation.rs"]
+mod validation;
+use validation::{refreshed_show_after_action, validate_success};
+#[path = "owner_todo_action_proof.rs"]
+mod todo_action;
+#[path = "owner_todo_face_validation.rs"]
+mod todo_validation;
 
 const MAX_SERIAL_BYTES: u64 = 2 * 1024 * 1024;
 const OWNER_FACE: &str = "CONDUIT_NATIVE_OWNER_FACE ";
@@ -30,6 +38,44 @@ const OWNER_ACTION: &str = "CONDUIT_NATIVE_OWNER_ACTION ";
 pub(super) fn execute(
     args: &LiveOwnerActionProofArgs,
     opts: &GlobalOpts,
+) -> Result<(), ConduitosError> {
+    execute_mode(args, opts, None, None)
+}
+
+pub(super) fn execute_todo_face(
+    args: &LiveOwnerTodoFaceProofArgs,
+    opts: &GlobalOpts,
+) -> Result<(), ConduitosError> {
+    if !args.route.coordinate || args.expected_body_id.is_empty() || args.expected_status.is_empty()
+    {
+        return Err(refusal("native-todo-face-requires-coordinated-body"));
+    }
+    execute_mode(&args.route, opts, Some(args), None)
+}
+
+pub(super) fn execute_todo_action(
+    args: &LiveOwnerTodoActionProofArgs,
+    opts: &GlobalOpts,
+) -> Result<(), ConduitosError> {
+    if !args.face.route.coordinate
+        || args.face.expected_body_id.is_empty()
+        || args.face.expected_status.is_empty()
+        || args.expected_after_status.is_empty()
+        || !(1..=64).contains(&args.tab_count)
+        || !args.expected_action_id.starts_with("todo.")
+    {
+        return Err(refusal(
+            "native-todo-action-requires-bounded-coordinated-body",
+        ));
+    }
+    execute_mode(&args.face.route, opts, Some(&args.face), Some(args))
+}
+
+fn execute_mode(
+    args: &LiveOwnerActionProofArgs,
+    opts: &GlobalOpts,
+    expected_todo: Option<&LiveOwnerTodoFaceProofArgs>,
+    expected_todo_action: Option<&LiveOwnerTodoActionProofArgs>,
 ) -> Result<(), ConduitosError> {
     if opts.dry_run {
         return Err(refusal("native-owner-proof-requires-live-input"));
@@ -59,6 +105,9 @@ pub(super) fn execute(
     if source != route.source_identity || !clean_source(&root)? {
         return Err(refusal("native-owner-proof-source-not-exact"));
     }
+    let isolated = expected_todo_action
+        .map(|action| todo_action::validate_isolated_installation(action, &source))
+        .transpose()?;
     let spore = fs::canonicalize(&args.spore)
         .map_err(|error| ConduitosError::refusal("native-owner-proof-spore", error.to_string()))?;
     let spore_str = spore
@@ -94,11 +143,20 @@ pub(super) fn execute(
         &route,
         &qemu_args,
         args.coordinate,
+        expected_todo,
+        expected_todo_action,
+        isolated.as_ref(),
     );
     let _ = child.kill();
     let _ = child.wait();
     let receipt = result?;
-    let path = directory.join("owner-action-proof.json");
+    let path = directory.join(if expected_todo_action.is_some() {
+        "owner-todo-action-proof.json"
+    } else if expected_todo.is_some() {
+        "owner-todo-face-proof.json"
+    } else {
+        "owner-action-proof.json"
+    });
     fs::write(
         &path,
         serde_json::to_vec_pretty(&receipt).map_err(|error| {
@@ -114,6 +172,10 @@ pub(super) fn execute(
     Ok(())
 }
 
+#[expect(
+    clippy::too_many_arguments,
+    reason = "one local proof invocation carries exact QMP and owner evidence"
+)]
 fn prove(
     directory: &std::path::Path,
     serial_path: &std::path::Path,
@@ -122,15 +184,140 @@ fn prove(
     route: &owner_boot::PreparedOwnerBoot,
     qemu_args: &[String],
     coordinate: bool,
+    expected_todo: Option<&LiveOwnerTodoFaceProofArgs>,
+    expected_todo_action: Option<&LiveOwnerTodoActionProofArgs>,
+    isolated: Option<&todo_action::Isolation>,
 ) -> Result<Value, ConduitosError> {
     let (mut qmp, mut reader) =
         qmp::connect_traced(qmp_path, child, Some(&directory.join("qmp.jsonl")))?;
+    let (standby_part, standby_face, return_route_available) = wait_for_standby(
+        serial_path,
+        child,
+        Duration::from_secs(120),
+        expected_todo.is_some(),
+    )?;
+    if let Some(args) = expected_todo {
+        if standby_part["body_id"] != args.expected_body_id {
+            return Err(refusal("native-todo-face-body-mismatch"));
+        }
+    }
+    let todo_face = expected_todo
+        .map(|args| todo_validation::read_and_validate(args, &standby_face))
+        .transpose()?;
+    let (standby_image, health) =
+        qmp_display::capture(&mut qmp, &mut reader, directory, "owner-standby")?;
+    if let Some(error) = health {
+        return Err(error);
+    }
+    if let (Some(todo_face), false) = (&todo_face, return_route_available) {
+        if child
+            .try_wait()
+            .map_err(|error| ConduitosError::refusal("native-todo-face-qemu", error.to_string()))?
+            .is_some()
+        {
+            return Err(refusal("native-todo-face-guest-not-live-at-capture"));
+        }
+        return Ok(json!({
+            "schema":"conduit.conduitos/native-todo-face-proof@1",
+            "proof_class":"live-local-qmp-installed-owner-read-only",
+            "source_commit":route.source_identity,
+            "spore_build_id":route.build_id,
+            "spore_sha256":route.artifact_sha256,
+            "candidate_id":route.candidate_id,
+            "reachability":route.reachability,
+            "qemu_argv":qemu_args,
+            "guest_part":standby_part,
+            "owner_todo_face":todo_face,
+            "face_shown":standby_face,
+            "show_ack":null,
+            "native_return_route_available":false,
+            "interactions_admitted":false,
+            "screenshots":[standby_image],
+            "qemu_alive_at_capture":true,
+            "coordinated":false,
+            "mutations":0,
+        }));
+    }
+    if coordinate {
+        write_checkpoint(
+            directory,
+            "native-standby.json",
+            &json!({
+                "schema":"conduit.conduitos/native-owner-coordination@1",
+                "stage":"standby",
+                "guest_part":standby_part.clone(),
+                "face":standby_face.clone(),
+            }),
+        )?;
+        wait_for_resume(
+            directory,
+            "resume-native-activation",
+            child,
+            Duration::from_secs(35 * 60),
+        )?;
+    }
+    // An actual native user requests this Mask after the owner has selected
+    // its admitted route. No policy changes occur in the guest or harness.
+    journey_input::key_pair(&mut qmp, &mut reader, "f5", "native-owner-activate")?;
     let (part, before, before_ack) =
         wait_for_arrival(serial_path, child, Duration::from_secs(120))?;
+    if part != standby_part
+        || (expected_todo_action.is_none() && before.get("face_id") != standby_face.get("face_id"))
+    {
+        return Err(refusal("native-owner-standby-basis-changed"));
+    }
     let (before_image, health) =
         qmp_display::capture(&mut qmp, &mut reader, directory, "owner-before")?;
     if let Some(error) = health {
         return Err(error);
+    }
+    if let Some(args) = expected_todo_action {
+        return todo_action::continue_after_arrival(
+            args,
+            isolated.ok_or_else(|| refusal("native-todo-action-isolation-absent"))?,
+            directory,
+            serial_path,
+            child,
+            &mut qmp,
+            &mut reader,
+            route,
+            qemu_args,
+            &standby_part,
+            &standby_face,
+            &part,
+            &before,
+            &before_ack,
+            &standby_image,
+            &before_image,
+        );
+    }
+    if expected_todo.is_some() {
+        if child
+            .try_wait()
+            .map_err(|error| ConduitosError::refusal("native-todo-face-qemu", error.to_string()))?
+            .is_some()
+        {
+            return Err(refusal("native-todo-face-guest-not-live-at-capture"));
+        }
+        return Ok(json!({
+            "schema":"conduit.conduitos/native-todo-face-proof@1",
+            "proof_class":"live-local-qmp-installed-owner-read-only",
+            "source_commit":route.source_identity,
+            "spore_build_id":route.build_id,
+            "spore_sha256":route.artifact_sha256,
+            "candidate_id":route.candidate_id,
+            "reachability":route.reachability,
+            "qemu_argv":qemu_args,
+            "guest_part":part,
+            "face_standby":standby_face,
+            "owner_todo_face":todo_face,
+            "face_shown":before,
+            "show_ack":before_ack,
+            "screenshots":[standby_image,before_image],
+            "qemu_alive_at_capture":true,
+            "coordinated":coordinate,
+            "mutations":0,
+        }));
     }
     if coordinate {
         write_checkpoint(
@@ -144,11 +331,16 @@ fn prove(
                 "show_ack":before_ack,
             }),
         )?;
-        wait_for_resume(directory, "resume-native-action", child)?;
+        wait_for_resume(
+            directory,
+            "resume-native-action",
+            child,
+            Duration::from_secs(120),
+        )?;
     }
-    // Keyboard traffic is the actual native Mask Fore: focus the only
-    // available clock interval action, replace it with 500, then submit.
-    for key in ["tab", "5", "0", "0", "ret"] {
+    // The first available control is Wake; the second is the checked clock
+    // interval argument. Traverse both through the ordinary native Mask.
+    for key in ["tab", "tab", "5", "0", "0", "ret"] {
         journey_input::key_pair(&mut qmp, &mut reader, key, "native-owner-clock-input")?;
     }
     let (action, after, after_ack) = wait_for_action(serial_path, child, Duration::from_secs(30))?;
@@ -170,7 +362,14 @@ fn prove(
                 "show_ack":after_ack,
             }),
         )?;
-        wait_for_resume(directory, "resume-native-finish", child)?;
+        // The guest must remain alive while the owner completes a full spoken
+        // Face and the separate model chapters before the final QMP receipt.
+        wait_for_resume(
+            directory,
+            "resume-native-finish",
+            child,
+            Duration::from_secs(45 * 60),
+        )?;
     }
     if child
         .try_wait()
@@ -194,45 +393,44 @@ fn prove(
         "action":action,
         "face_after":after,
         "show_ack_after":after_ack,
-        "screenshots":[before_image,after_image],
+        "screenshots":[standby_image,before_image,after_image],
         "qemu_alive_at_capture":true,
         "coordinated":coordinate,
     }))
 }
 
-fn validate_success(
-    before: &Value,
-    before_ack: &Value,
-    action: &Value,
-    after: &Value,
-    after_ack: &Value,
-) -> Result<(), ConduitosError> {
-    if action.get("status").and_then(Value::as_str) != Some("accepted")
-        || action.get("face_refreshed").and_then(Value::as_bool) != Some(true)
-        || action.get("requested_interval_ms").and_then(Value::as_u64) != Some(500)
-        || !action
-            .get("action_id")
-            .and_then(Value::as_str)
-            .is_some_and(|id| id.starts_with("body/action/change-clock-interval/"))
-        || after.get("status").and_then(Value::as_str) != Some("shown")
-        || before_ack.get("status").and_then(Value::as_str) != Some("acknowledged")
-        || after_ack.get("status").and_then(Value::as_str) != Some("acknowledged")
-        || before_ack.get("show_id") != before.get("show_id")
-        || after_ack.get("show_id") != after.get("show_id")
-        || after.get("local_show_available").and_then(Value::as_bool) != Some(true)
-        || after
-            .get("owner_show_acknowledged")
-            .and_then(Value::as_bool)
-            != Some(false)
-        || action.get("prior_show_id") != before.get("show_id")
-        || action.get("face_id") != before.get("face_id")
-        || action.get("face_revision") != before.get("face_revision")
-        || before.get("show_id") == after.get("show_id")
-        || before.get("face_id") == after.get("face_id")
-    {
-        return Err(refusal("native-owner-action-not-accepted-and-refreshed"));
+fn wait_for_standby(
+    serial_path: &std::path::Path,
+    child: &mut Child,
+    timeout: Duration,
+    allow_read_only: bool,
+) -> Result<(Value, Value, bool), ConduitosError> {
+    let deadline = Instant::now() + timeout;
+    loop {
+        let serial = bounded_serial(serial_path)?;
+        let part = records(&serial, GUEST_PART)?;
+        let faces = records(&serial, OWNER_FACE)?;
+        let routes = records(&serial, "CONDUIT_NATIVE_OWNER_ROUTE")?;
+        let shown = faces.iter().find(|value| {
+            value.get("status").and_then(Value::as_str) == Some("shown")
+                && value.get("interactions_admitted") == Some(&Value::Bool(false))
+                && value.get("local_show_available") == Some(&Value::Bool(true))
+        });
+        let route_available = routes.iter().any(|value| {
+            value.get("status").and_then(Value::as_str) == Some("standby")
+                && value.get("activation").and_then(Value::as_str) == Some("F5")
+        });
+        if serial.contains("CONDUIT_BOOT_STAGE front-door-ready")
+            && (route_available || allow_read_only)
+        {
+            if let (Some(part), Some(shown)) = (part.last(), shown) {
+                if part.get("membership_installed") == Some(&Value::Bool(true)) {
+                    return Ok((part.clone(), shown.clone(), route_available));
+                }
+            }
+        }
+        wait_or_refuse(child, deadline, "native-owner-standby-not-ready")?;
     }
-    Ok(())
 }
 
 fn clean_source(root: &std::path::Path) -> Result<bool, ConduitosError> {
@@ -323,19 +521,9 @@ fn wait_for_action(
                 ));
             }
         }
-        let shown: Vec<&Value> = faces
-            .iter()
-            .filter(|value| value.get("status").and_then(Value::as_str) == Some("shown"))
-            .collect();
-        let acknowledged: Vec<&Value> = faces
-            .iter()
-            .filter(|value| value.get("status").and_then(Value::as_str) == Some("acknowledged"))
-            .collect();
-        if let (Some(action), Some(after), Some(ack)) =
-            (actions.last(), shown.get(1), acknowledged.get(1))
-        {
-            if ack.get("show_id") == after.get("show_id") {
-                return Ok((action.clone(), (*after).clone(), (*ack).clone()));
+        if let Some(action) = actions.last() {
+            if let Some((after, ack)) = refreshed_show_after_action(action, &faces) {
+                return Ok((action.clone(), after, ack));
             }
         }
         wait_or_refuse(child, deadline, "native-owner-action-not-observed")?;
@@ -353,7 +541,7 @@ fn bounded_serial(path: &std::path::Path) -> Result<String, ConduitosError> {
             return Err(ConduitosError::refusal(
                 "native-owner-serial-io",
                 error.to_string(),
-            ))
+            ));
         }
     }
     fs::read_to_string(path)
@@ -362,7 +550,15 @@ fn bounded_serial(path: &std::path::Path) -> Result<String, ConduitosError> {
 
 fn records(serial: &str, prefix: &str) -> Result<Vec<Value>, ConduitosError> {
     let mut result = Vec::new();
-    for line in serial.lines().filter_map(|line| line.strip_prefix(prefix)) {
+    // QEMU appends this file while the proof polls it. The final unterminated
+    // line is still in flight; only a newline makes a serial record complete.
+    let complete = serial
+        .rsplit_once('\n')
+        .map_or("", |(complete, _)| complete);
+    for line in complete
+        .lines()
+        .filter_map(|line| line.strip_prefix(prefix))
+    {
         if line.len() > 1024 || result.len() == 8 {
             return Err(refusal("native-owner-record-pressure"));
         }
@@ -408,7 +604,12 @@ mod tests {
         assert_eq!(parsed.len(), 1);
         assert_eq!(parsed[0]["status"], "accepted");
         assert!(records(&line.repeat(9), OWNER_ACTION).is_err());
-        assert!(records(&format!("{OWNER_ACTION}not-json"), OWNER_ACTION).is_err());
+        assert!(records(&format!("{OWNER_ACTION}not-json\n"), OWNER_ACTION).is_err());
+        assert!(records(
+            &format!("{line}{OWNER_ACTION}{{\"status\":\"pend"),
+            OWNER_ACTION
+        )
+        .is_ok_and(|records| records.len() == 1));
     }
 
     #[test]
@@ -419,39 +620,5 @@ mod tests {
         assert_eq!(args[2], "none");
         assert_eq!(args[4], "file:/tmp/guest.serial.log");
         assert!(replace_qemu_option(&mut args, "-qmp", "bad").is_err());
-    }
-
-    #[test]
-    fn action_proof_rejects_stale_basis_and_unaccepted_return() {
-        let before =
-            json!({"status":"shown","show_id":"show/one","face_id":"face/one","face_revision":1});
-        let accepted = json!({
-            "status":"accepted","face_refreshed":true,"requested_interval_ms":500,
-            "action_id":"body/action/change-clock-interval/1",
-            "prior_show_id":"show/one","face_id":"face/one","face_revision":1,
-        });
-        let after = json!({"status":"shown","local_show_available":true,"owner_show_acknowledged":false,"show_id":"show/two","face_id":"face/two"});
-        let before_ack = json!({"status":"acknowledged","show_id":"show/one"});
-        let after_ack = json!({"status":"acknowledged","show_id":"show/two"});
-        assert!(validate_success(&before, &before_ack, &accepted, &after, &after_ack).is_ok());
-        let mut invented_owner_ack = after.clone();
-        invented_owner_ack["owner_show_acknowledged"] = json!(true);
-        assert!(validate_success(
-            &before,
-            &before_ack,
-            &accepted,
-            &invented_owner_ack,
-            &after_ack
-        )
-        .is_err());
-        let mut stale = accepted.clone();
-        stale["prior_show_id"] = json!("show/older");
-        assert!(validate_success(&before, &before_ack, &stale, &after, &after_ack).is_err());
-        let mut refused = accepted.clone();
-        refused["status"] = json!("refused");
-        assert!(validate_success(&before, &before_ack, &refused, &after, &after_ack).is_err());
-        let mut wrong_value = accepted;
-        wrong_value["requested_interval_ms"] = json!(250);
-        assert!(validate_success(&before, &before_ack, &wrong_value, &after, &after_ack).is_err());
     }
 }

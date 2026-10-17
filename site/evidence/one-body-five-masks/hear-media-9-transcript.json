@@ -1,0 +1,10 @@
+{
+  "schema": "conduit.journey/speech-transcript@1",
+  "source_commit": "9b79486146bfb0af3369f8133a81b3d14792bd1c",
+  "run_id": "three-host-5a9b4d4cd9a752c0c7205216",
+  "body_id": "ee3733747a44b61879ad714ce8ab178cdc54b227eba48752b43c966a428cce30",
+  "chapter_id": "hear",
+  "show_id": "show/df484d31b39fcb4f2a1105b882b2ea3043e7760b38264745c5fcd28b1511260c",
+  "face_revision": "13",
+  "text": "of: 1000, 2000, 250, 500. Enter it with edit clock/interval-ms,  then activate Change clock interval. Stop the clock. For clock-demo. Unavailable: Start the clock  before stopping it."
+}

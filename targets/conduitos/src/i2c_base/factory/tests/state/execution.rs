@@ -5,7 +5,8 @@ use conduit_plot::{CompositeFrontTerminal, PreparedPortableExpressionEvaluator};
 
 fn source_state(address: u8) -> Vec<u8> {
     let contract = I2cContract::prepare().unwrap();
-    let (startup, profile) = contract.catalogs();
+    let (mut startup, profile) = contract.catalogs();
+    crate::protocol_test_support::install_clock_result(&mut startup);
     let checked = check_syntax_document(
         &parse_syntax_document(include_str!(
             "../../../../../../../plots/device-protocols/bme280-lifecycle.conduit"

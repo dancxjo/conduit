@@ -32,6 +32,30 @@ fn manifest(source: &str) -> BuildManifest {
 }
 
 #[test]
+fn compiled_usb_transport_is_present_only_in_supported_product_lowering() {
+    for source in [
+        include_str!("../../../profiles/conduitos-protocol-source.host.conduit"),
+        include_str!("../../../profiles/conduitos-x86_64-pc.host.conduit"),
+        include_str!("../../../profiles/conduitos-aarch64-virt.host.conduit"),
+    ] {
+        assert_ne!(
+            lower(&manifest(source)).unwrap().implementations & conduitos::make::IMPL_USB_TRANSPORT,
+            0
+        );
+    }
+    for source in [
+        include_str!("../../../profiles/conduitos-ia32-pc.host.conduit"),
+        include_str!("../../../profiles/conduitos-riscv64-virt.host.conduit"),
+        include_str!("../../../profiles/conduitos-loongarch64-virt.host.conduit"),
+    ] {
+        assert_eq!(
+            lower(&manifest(source)).unwrap().implementations & conduitos::make::IMPL_USB_TRANSPORT,
+            0
+        );
+    }
+}
+
+#[test]
 fn resolved_profiles_lower_to_distinct_exact_product_inputs() {
     let native = lower(&manifest(include_str!(
         "../../../profiles/conduitos-native.host.conduit"
@@ -45,10 +69,10 @@ fn resolved_profiles_lower_to_distinct_exact_product_inputs() {
     assert!(headless.cargo_features.is_empty());
     assert_ne!(native.implementations, headless.implementations);
     assert_eq!(headless.presenters, 0);
-    assert_eq!(headless.presentation_surface_slots, 0);
-    assert_eq!(headless.presentation_surface_bytes, 0);
-    assert_eq!(native.presentation_surface_slots, 4);
-    assert_eq!(native.presentation_surface_bytes, 8_388_608);
+    assert_eq!(headless.face_surface_slots, 0);
+    assert_eq!(headless.face_surface_bytes, 0);
+    assert_eq!(native.face_surface_slots, 4);
+    assert_eq!(native.face_surface_bytes, 8_388_608);
     assert_eq!(native.proof_instrumentation, 0);
 }
 
@@ -287,7 +311,7 @@ fn proof_profiles_are_checked_distinct_and_normal_products_stay_clean() {
     );
     assert_eq!(
         hotplug.proof_instrumentation,
-        conduitos::make::ALL_KNOWN_PROOF_INSTRUMENTATION
+        conduitos::make::PROOF_HOTPLUG | conduitos::make::PROOF_SCRIPTED_KEYBOARD
     );
     assert_eq!(ps2.cargo_features, ["native-compositor", "ps2-input"]);
     assert_eq!(ps2.proof_instrumentation, 0);
@@ -323,8 +347,8 @@ fn aarch64_virt_lowers_to_a_distinct_linear_product_inventory() {
         conduitos::make::PRESENTER_NATIVE_GRAPHICAL
     );
     assert_eq!(lowered.proof_instrumentation, 0);
-    assert_eq!(lowered.presentation_surface_slots, 0);
-    assert_eq!(lowered.presentation_surface_bytes, 0);
+    assert_eq!(lowered.face_surface_slots, 0);
+    assert_eq!(lowered.face_surface_bytes, 0);
     assert_eq!(
         lowered.implementations
             & (conduitos::make::IMPL_KEYBOARD
@@ -361,4 +385,44 @@ fn aarch64_virt_rejects_x86_leaks_and_incomplete_serial_closure() {
         .unwrap_err()
         .to_string()
         .contains("aarch64-product-closure-mismatch"));
+}
+
+#[test]
+fn usb_configuration_proof_owns_its_finite_profile_and_requires_keyboard_closure() {
+    let source =
+        include_str!("../../../proof/profiles/conduitos-usb-configuration-proof.profile.json");
+    let admitted = manifest(source);
+    assert_eq!(
+        admitted.bounds.heap_arena_bytes,
+        conduitos::make::USB_CONFIGURATION_ARENA_BYTES
+    );
+    let usb = lower(&admitted).unwrap();
+    assert_eq!(
+        usb.cargo_features,
+        [
+            "native-compositor",
+            "scripted-keyboard-proof",
+            "usb-configuration-proof"
+        ]
+    );
+    assert_eq!(
+        usb.proof_instrumentation,
+        conduitos::make::PROOF_SCRIPTED_KEYBOARD | conduitos::make::PROOF_USB_CONFIGURATION
+    );
+    let ordinary = manifest(include_str!(
+        "../../../proof/profiles/conduitos-proof.profile.json"
+    ));
+    assert_eq!(
+        ordinary.bounds.heap_arena_bytes,
+        conduitos::make::NATIVE_PREPARATION_ARENA_BYTES
+    );
+    assert!(!lower(&ordinary)
+        .unwrap()
+        .cargo_features
+        .contains(&"usb-configuration-proof"));
+    let mut missing_keyboard = admitted;
+    missing_keyboard
+        .profile_fragments
+        .retain(|item| item != SCRIPTED_KEYBOARD_PROOF);
+    assert!(lower(&missing_keyboard).is_err());
 }

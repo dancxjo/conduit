@@ -10,25 +10,39 @@ use std::{
 
 use socket2::{Domain, SockAddr, Socket, Type};
 
-use super::super::{Request, Response, CONTROL_OUTCOME_UNKNOWN, MAXIMUM_CONTROL_FRAME_BYTES};
-
-const CONTROL_DEADLINE: Duration = Duration::from_secs(2);
+use super::super::{Request, Response, CONTROL_OUTCOME_UNKNOWN, MAXIMUM_LOCAL_CONTROL_FRAME_BYTES};
+use super::{CONTROL_DEADLINE, TODO_ACTION_DEADLINE};
 
 pub(crate) fn call(state_dir: &Path, mut request: Request) -> Result<Response, String> {
+    let deadline = match &request {
+        Request::BodyInteraction { interaction, .. }
+        | Request::BodyBrowserInteraction { interaction, .. }
+        | Request::BodyNativeGuestInteraction { interaction, .. }
+            if interaction.action_id.starts_with("todo.") =>
+        {
+            TODO_ACTION_DEADLINE
+        }
+        Request::BodyAttachedTerminalInteraction { interaction, .. }
+            if interaction.action_id.starts_with("todo.") =>
+        {
+            TODO_ACTION_DEADLINE
+        }
+        _ => CONTROL_DEADLINE,
+    };
     let mut bytes = serde_json::to_vec(&request)
         .map_err(|error| format!("encode local control request: {error}"))?;
     clear_token(&mut request);
-    if bytes.len() > MAXIMUM_CONTROL_FRAME_BYTES {
+    if bytes.len() > MAXIMUM_LOCAL_CONTROL_FRAME_BYTES {
         bytes.fill(0);
         return Err("local control request violates its finite bound".into());
     }
-    let result = round_trip(&state_dir.join("control.sock"), &bytes);
+    let result = round_trip(&state_dir.join("control.sock"), &bytes, deadline);
     bytes.fill(0);
     result
 }
 
-fn round_trip(path: &Path, bytes: &[u8]) -> Result<Response, String> {
-    let deadline = Instant::now() + CONTROL_DEADLINE;
+fn round_trip(path: &Path, bytes: &[u8], maximum: Duration) -> Result<Response, String> {
+    let deadline = Instant::now() + maximum;
     let socket = Socket::new(Domain::UNIX, Type::STREAM, None)
         .map_err(|error| format!("open local control socket: {error}"))?;
     let address =
@@ -60,7 +74,7 @@ fn round_trip(path: &Path, bytes: &[u8]) -> Result<Response, String> {
         match stream.read(&mut chunk) {
             Ok(0) => break,
             Ok(count) => {
-                if response.len().saturating_add(count) > MAXIMUM_CONTROL_FRAME_BYTES {
+                if response.len().saturating_add(count) > MAXIMUM_LOCAL_CONTROL_FRAME_BYTES {
                     return Err(CONTROL_OUTCOME_UNKNOWN.into());
                 }
                 response.extend_from_slice(&chunk[..count]);
@@ -89,18 +103,23 @@ fn clear_token(request: &mut Request) {
         | Request::BodyBrowserOffer { token, .. }
         | Request::BodyBrowserMaskRoute { token, .. }
         | Request::BodyBrowserShow { token, .. }
+        | Request::BodyBrowserWardrobe { token, .. }
+        | Request::BodyBrowserComponentMask { token, .. }
         | Request::BodyBrowserAbort { token, .. }
         | Request::BodyBrowserCancel { token, .. }
         | Request::BodyBrowserLeave { token, .. }
-        | Request::BodyFace { token, .. }
+        | Request::Face { token, .. }
         | Request::BodyLocalFace { token, .. }
+        | Request::BodyLocalWardrobe { token, .. }
         | Request::BodyNativeMaskRoute { token, .. }
+        | Request::BodyNativeComponentMask { token, .. }
         | Request::BodyNativeMaskShow { token, .. }
-        | Request::BirthFace { token, .. }
+        | Request::BirthWidgetFace { token, .. }
         | Request::BirthInteraction { token, .. }
         | Request::BodyInteraction { token, .. }
         | Request::BodyAttachedTerminalInteraction { token, .. }
         | Request::BodyAttachedTerminalWardrobe { token, .. }
+        | Request::BodyAttachedTerminalRefreshShow { token, .. }
         | Request::BodyBrowserInteraction { token, .. }
         | Request::BodyNativeGuestInteraction { token, .. }
         | Request::BodyStart { token, .. }
@@ -150,9 +169,110 @@ mod tests {
             assert_eq!(request, b"{}");
             release.recv_timeout(Duration::from_secs(3)).unwrap();
         });
-        assert!(matches!(round_trip(&path, b"{}"), Err(code) if code == CONTROL_OUTCOME_UNKNOWN));
+        assert!(
+            matches!(round_trip(&path, b"{}", CONTROL_DEADLINE), Err(code) if code == CONTROL_OUTCOME_UNKNOWN)
+        );
         finished.send(()).unwrap();
         server.join().unwrap();
         fs::remove_dir_all(directory).unwrap();
+    }
+
+    #[test]
+    fn local_control_request_uses_the_servers_finite_bound() {
+        // Transport fixture: application identity validation belongs to the owner.
+        let request = |size| Request::BodyBrowserStart {
+            protocol: 1,
+            token: vec![7; 32],
+            expected_host_id: "x".repeat(size),
+            new_host_verifying_key: None,
+            maximum_millis: 10,
+        };
+        let directory = std::env::temp_dir().join(format!(
+            "conduit-control-request-{}-{}",
+            std::process::id(),
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        fs::create_dir(&directory).unwrap();
+        let listener = UnixListener::bind(directory.join("control.sock")).unwrap();
+        let server = thread::spawn(move || {
+            let (mut stream, _) = listener.accept().unwrap();
+            let mut bytes = Vec::new();
+            stream.read_to_end(&mut bytes).unwrap();
+            assert!(bytes.len() > 512 * 1024 && bytes.len() < MAXIMUM_LOCAL_CONTROL_FRAME_BYTES);
+            let decoded: Request = serde_json::from_slice(&bytes).unwrap();
+            assert!(
+                matches!(decoded, Request::BodyBrowserStart { expected_host_id, .. }
+                if expected_host_id.len() == 600 * 1024)
+            );
+            let response = Response::BodyTruth {
+                protocol: 1,
+                truth: serde_json::json!({}),
+            };
+            stream
+                .write_all(&serde_json::to_vec(&response).unwrap())
+                .unwrap();
+        });
+        assert!(matches!(
+            call(&directory, request(600 * 1024)).unwrap(),
+            Response::BodyTruth { .. }
+        ));
+        server.join().unwrap();
+        assert!(
+            matches!(call(&directory, request(MAXIMUM_LOCAL_CONTROL_FRAME_BYTES)),
+            Err(code) if code == "local control request violates its finite bound")
+        );
+        fs::remove_dir_all(directory).unwrap();
+    }
+
+    #[test]
+    fn local_control_reply_uses_its_distinct_finite_response_bound() {
+        fn reply(payload_bytes: usize) -> Result<Response, String> {
+            let directory = std::env::temp_dir().join(format!(
+                "conduit-control-reply-{}-{}",
+                std::process::id(),
+                SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .unwrap()
+                    .as_nanos(),
+            ));
+            fs::create_dir(&directory).unwrap();
+            let path = directory.join("control.sock");
+            let listener = UnixListener::bind(&path).unwrap();
+            let server = thread::spawn(move || {
+                let (mut stream, _) = listener.accept().unwrap();
+                stream
+                    .set_write_timeout(Some(Duration::from_secs(3)))
+                    .unwrap();
+                let mut request = Vec::new();
+                stream.read_to_end(&mut request).unwrap();
+                assert_eq!(request, b"{}");
+                let response = serde_json::to_vec(&Response::BodyTruth {
+                    protocol: 1,
+                    truth: serde_json::json!({"payload":"x".repeat(payload_bytes)}),
+                })
+                .unwrap();
+                // Refusing an oversized reply closes the peer mid-write.
+                let _ = stream.write_all(&response);
+            });
+            let result = round_trip(&path, b"{}", Duration::from_secs(3));
+            server.join().unwrap();
+            fs::remove_dir_all(directory).unwrap();
+            result
+        }
+
+        assert_eq!(super::super::super::MAXIMUM_CONTROL_FRAME_BYTES, 512 * 1024);
+        assert_eq!(MAXIMUM_LOCAL_CONTROL_FRAME_BYTES, 2 * 1024 * 1024);
+        match reply(600 * 1024).unwrap() {
+            Response::BodyTruth { protocol, truth } => {
+                assert_eq!(protocol, 1);
+                assert_eq!(truth["payload"].as_str().unwrap().len(), 600 * 1024);
+            }
+            _ => panic!("the finite local Body response must survive the round trip"),
+        }
+        assert!(matches!(reply(MAXIMUM_LOCAL_CONTROL_FRAME_BYTES + 1),
+            Err(code) if code == CONTROL_OUTCOME_UNKNOWN));
     }
 }

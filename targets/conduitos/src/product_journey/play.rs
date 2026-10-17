@@ -4,8 +4,8 @@ use crate::{identity::BootIdentities, native_workset, offer::HostOffer};
 use alloc::{boxed::Box, format};
 use conduit_body::BodyPlayIdentity;
 use conduit_core::{SignId, bind_sign};
+use conduit_face::{ApplicationEvent, ApplicationView};
 use conduit_human::KeyEvent;
-use conduit_presentation::{ApplicationEvent, ApplicationView};
 
 impl ProductJourney {
     pub fn foreground_input_owner(&self) -> Option<&native_workset::AdmittedPlotInput> {
@@ -162,7 +162,7 @@ impl ProductJourney {
             self.input_count
         )));
         for index in 0..self.plots.len() {
-            if let Some(value) = kernel.take_presentation(index) {
+            if let Some(value) = kernel.take_face(index) {
                 self.results[index].record(
                     self.plots[index].ok_or(JourneyError::Kernel)?,
                     value,
@@ -284,7 +284,12 @@ impl ProductJourney {
             .map_err(|_| JourneyError::InvalidTransition)?;
         // Record Play only after actual kernel start. Any refusal retires
         // partial execution before lulling the still-unstarted proposal.
-        if let Err(error) = self.kernel.as_mut().ok_or(JourneyError::Kernel)?.start() {
+        if let Err(error) = self
+            .kernel
+            .as_mut()
+            .ok_or(JourneyError::Kernel)?
+            .start_for(&plan, &play)
+        {
             self.retire_realization()?;
             return Err(JourneyError::Play(error));
         }
@@ -314,6 +319,21 @@ impl ProductJourney {
             self.retire_realization()?;
             return Err(error);
         }
+        let kernel = self.kernel.as_mut().ok_or(JourneyError::Kernel)?;
+        for index in 0..self.plots.len() {
+            if let Some(value) = kernel.take_face(index) {
+                self.results[index].record(
+                    self.plots[index].ok_or(JourneyError::Kernel)?,
+                    value,
+                    SignId::from(format!(
+                        "conduitos/product/initial-result/{}/{}",
+                        play.active_play_id.as_str(),
+                        index,
+                    )),
+                )?;
+                self.results[index].input_sequence = None;
+            }
+        }
         Ok(())
     }
 
@@ -334,7 +354,7 @@ impl ProductJourney {
         if self.status != JourneyStatus::QuiescentAwaitingInput
             || self.current_plan().map(|plan| &plan.plan_id) != Some(&basis_plan_id)
         {
-            return Err(JourneyError::StalePresentation);
+            return Err(JourneyError::StaleFace);
         }
         self.revision
             .checked_add(1)

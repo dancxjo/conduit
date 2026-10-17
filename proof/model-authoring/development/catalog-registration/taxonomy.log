@@ -1,0 +1,15 @@
+   Compiling conduit-xtask-dispatch v0.1.0 (/home/dancxjo/conduit-5208-plot-journey/tools/xtask-dispatch)
+    Finished `test` profile [unoptimized] target(s) in 0.30s
+     Running tests/repository_taxonomy.rs (/home/dancxjo/conduit/target/debug/deps/repository_taxonomy-2ac1ea9c73820e25)
+
+running 7 tests
+test product_source_cannot_return_to_the_generic_browser_host ... ok
+test retired_roots_and_unowned_packages_are_rejected ... ok
+test resident_naming_data_does_not_promote_an_authored_plot ... ok
+test reviewed_resident_rust_packages_require_a_manifest_without_authored_promotion ... ok
+test canonical_paths_follow_the_existing_inventory_without_promoting_fixtures ... ok
+test untracked_local_directories_are_outside_the_guard_input ... ok
+test tracked_repository_structure_has_explicit_owners ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+

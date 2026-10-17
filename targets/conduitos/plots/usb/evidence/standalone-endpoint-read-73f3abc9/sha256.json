@@ -1,0 +1,16 @@
+{
+  "package.json": "bf6b059f818d05dcac3f65afcaab1c5bb8f3caf2a1623038e4debae849327896",
+  "canonical_decoder.py": "8da23349084b55e0b4e5b263e2517ec45948501ede5dce38d476036a456a5295",
+  "README.md": "b2337ff4dbe9680c2177aca07239003fc8c8448c353e15b1ed0d3f219bd1507b",
+  "source.conduit": "5bd390862f7dead14cbd37edc5154352f835dd2d9a364fec9b7140efc3b9b938",
+  "root.json": "56c52395a70d494db072410295f3629d5fd439314e3560344e8edd3b3ee84368",
+  "check.py": "ac9d1d92e2487ec982312aceb337ee222a325e562018d70cfc592729c6bb0109",
+  "image-receipt.json": "e2e5de8aab15af0a0a9b6010e44d48624109c3fe1f4472291b47461368c10ca3",
+  "build.json": "9a1b428d6bebed30c1be6a264ddeb49877d60e841857dfd84ab1f03da736c9cc",
+  "source-check.json": "fac57eed7dbe49613e9862992057a9606316e5496335758c4004ad6b2a2d6041",
+  "run/serial.log": "c427cdece58295258b46dfed508cabdd396d384f8571778eaad7ff5cd5312875",
+  "run/qemu.log": "b9b555ea9ae21137611bafed51b643f20e7a7b32f02b52c825fb027da46c09c7",
+  "run/receipt.json": "ecbf5133bb6c39d02e5c7ac8244ba3ad1d77ee61eafd2238cc560e124ee58cbd",
+  "run/device.log": "fdb161e2d0ba3b0ba4b701850f1df7160f19985dc6de9b85473d02a313b952fc",
+  "run/wire.jsonl": "48ea5846bd22736362bb9c4118dbab3eeccefda41eeb5f83506bbb793e6f1a61"
+}

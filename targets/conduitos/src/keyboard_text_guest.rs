@@ -1,4 +1,4 @@
-//! Freestanding presentation of the reviewed keyboard-text Plays.
+//! Freestanding face of the reviewed keyboard-text Plays.
 
 use alloc::format;
 use conduit_human::KeyEvent;
@@ -8,7 +8,7 @@ use crate::{
     keyboard_text_play, offer::HostOffer,
 };
 
-pub const PHYSICAL_TRANSITIONS: usize = 38;
+pub const PHYSICAL_TRANSITIONS: usize = 26;
 
 pub fn run_reviewed_sequences(
     record: &BootRecord,
@@ -22,7 +22,7 @@ pub fn run_reviewed_sequences(
     let prepared = prepare(identities, offer, build_id)?;
     arch::early_write(b"CONDUIT_KEYBOARD_TEXT_PRESENT ");
     let mut presented = 0usize;
-    let report = keyboard_text_play::run_with_presentation(&prepared, events, |fragment| {
+    let report = keyboard_text_play::run_with_face(&prepared, events, |fragment| {
         if presented == 5 {
             arch::early_write(b"\nCONDUIT_KEYBOARD_UNICODE_PRESENT ");
         }
@@ -42,11 +42,11 @@ pub fn run_reviewed_sequences(
             b"O",
             "Æ".as_bytes(),
             "É".as_bytes(),
-            "Λ".as_bytes(),
+            "À".as_bytes(),
         ],
     )?;
     let sign = format!(
-        "CONDUIT_KEYBOARD_TEXT_SIGN {{\"schema\":\"conduit.conduitos.keyboard-text-plot/v1\",\"status\":\"completed\",\"proof_class\":\"freestanding-emulator\",\"source_document_id\":\"{}\",\"checked_plot_id\":\"{}\",\"expanded_plot_id\":\"{}\",\"plan_id\":\"{}\",\"active_play_id\":\"{}\",\"host_id\":\"{}\",\"boot_id\":\"{}\",\"plot_machine_facts\":false,\"keymap_configuration\":\"conduit-intl\",\"physical_transition_count\":{},\"presentation_fragments\":[\"H\",\"E\",\"L\",\"L\",\"O\",\"Æ\",\"É\",\"Λ\"],\"visible_ascii\":\"HELLO\",\"bounded\":true,\"completed\":true}}\n",
+        "CONDUIT_KEYBOARD_TEXT_SIGN {{\"schema\":\"conduit.conduitos.keyboard-text-plot/v1\",\"status\":\"completed\",\"proof_class\":\"freestanding-emulator\",\"source_document_id\":\"{}\",\"checked_plot_id\":\"{}\",\"expanded_plot_id\":\"{}\",\"plan_id\":\"{}\",\"active_play_id\":\"{}\",\"host_id\":\"{}\",\"boot_id\":\"{}\",\"plot_machine_facts\":false,\"keymap_configuration\":\"us-intl\",\"physical_transition_count\":{},\"face_fragments\":[\"H\",\"E\",\"L\",\"L\",\"O\",\"Æ\",\"É\",\"À\"],\"visible_ascii\":\"HELLO\",\"bounded\":true,\"completed\":true}}\n",
         prepared.source_document_id.as_str(),
         prepared.checked_plot_id.as_str(),
         prepared.expanded_plot_id.as_str(),
@@ -88,16 +88,12 @@ fn require(
     expected: &[&[u8]],
 ) -> Result<(), &'static str> {
     if !report.completed
-        || usize::from(report.presentation_count) != expected.len()
-        || report
-            .presentations
-            .iter()
-            .zip(expected)
-            .any(|(actual, expected)| {
-                actual
-                    .map(|value| value.as_bytes() != *expected)
-                    .unwrap_or(true)
-            })
+        || usize::from(report.face_count) != expected.len()
+        || report.faces.iter().zip(expected).any(|(actual, expected)| {
+            actual
+                .map(|value| value.as_bytes() != *expected)
+                .unwrap_or(true)
+        })
     {
         return Err("keyboard-text-semantic-result-invalid");
     }

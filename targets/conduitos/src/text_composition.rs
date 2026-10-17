@@ -65,41 +65,30 @@ where
     for _ in 0..MAXIMUM_KERNEL_STEPS {
         while let Some(request) = kernel.next_host_request() {
             if kernel.is_upper_request(&request) {
-                let output = {
+                {
                     let value = kernel
                         .host_value(request.input.value)
                         .map_err(|_| MachineRunError::KernelFailure)?;
                     observed.upper_input.set(value)?;
-                    crate::text_upper::uppercase(value).map_err(|error| match error {
-                        crate::text_upper::UppercaseError::MalformedUtf8 => {
-                            MachineRunError::TextMalformedUtf8
-                        }
-                        crate::text_upper::UppercaseError::OutputOverflow => {
-                            MachineRunError::TextOutputOverflow
-                        }
-                    })?
-                };
+                }
+                let output = kernel.compute_upper(request)?;
                 observed.upper_output.set(output.as_bytes())?;
                 kernel
                     .complete_upper(request, output.as_bytes())
                     .map_err(|_| MachineRunError::KernelFailure)?;
                 continue;
             }
-            if !kernel.is_presentation_request(&request) {
+            if !kernel.is_face_request(&request) {
                 return Err(MachineRunError::UnexpectedHostCall);
             }
-            {
-                let value = kernel
+            kernel.present_value(request, serial)?;
+            observed.face_input.set(
+                kernel
                     .host_value(request.input.value)
-                    .map_err(|_| MachineRunError::KernelFailure)?;
-                core::str::from_utf8(value).map_err(|_| MachineRunError::SerialBaseFailure)?;
-                serial
-                    .present(value)
-                    .map_err(|_| MachineRunError::SerialBaseFailure)?;
-                observed.presentation_input.set(value)?;
-            }
+                    .map_err(|_| MachineRunError::KernelFailure)?,
+            )?;
             kernel
-                .complete_presentation(request)
+                .complete_face(request)
                 .map_err(|_| MachineRunError::KernelFailure)?;
         }
 
@@ -121,7 +110,7 @@ where
                     kernel_signs: kernel.sign_count(),
                     timer_irq_wakes: 0,
                     idle_entries: idle.idle_count(),
-                    serial_presentations: serial.presentation_count(),
+                    serial_faces: serial.face_count(),
                     clock_monotonic: clock.now() >= started,
                     pending_host_calls: kernel.pending_host_calls() as u8,
                     overlap_witness: false,

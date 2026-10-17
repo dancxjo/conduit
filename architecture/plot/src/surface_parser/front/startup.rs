@@ -1,8 +1,7 @@
 //! Parsing for one compile-time startup value in a Plot front.
 
 use super::{
-    canonical_default_bound, parse_port_type, split_declaration, split_default, split_type_bound,
-    Parser,
+    canonical_default_bound, parse_port_type, split_declaration, split_type_bound, Parser,
 };
 use crate::syntax::{RuntimePortTemporal, StartupParameter};
 use crate::{PlotError, Span};
@@ -13,7 +12,7 @@ impl Parser<'_> {
         text: &str,
         start: usize,
     ) -> Result<StartupParameter, (PlotError, Span)> {
-        let (left, default) = split_default(text);
+        let (left, default) = self.split_default(text);
         let (name, value_type) =
             split_declaration(left).ok_or_else(|| self.invalid_statement(text, start))?;
         let span = self.span(start, start + text.len());

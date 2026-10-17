@@ -1,0 +1,71 @@
+# Exact correlation with the Source contiguous-commit operation output.
+# Retains the whole stable admission, commit query and Native runtime snapshot.
+type LanguageParserCommittedDependencyAdmission = {
+ admission: LanguageParserStableDependencyAdmission
+ commit: LanguageParserJointCommitQuery
+ runtime: LanguageParserJointRuntimeBeam
+ where .commit.fact == .admission.fact
+ where .runtime.beam.basis == .commit.fact.query.beam.basis
+ where .runtime.beam.lexical == .commit.fact.query.beam.lexical
+ where .runtime.beam.invocation == .commit.fact.query.beam.invocation
+ where .runtime.beam.candidate0.choices == .commit.fact.query.beam.candidate0.choices
+ where .runtime.beam.candidate0.parser.active == .commit.fact.query.beam.candidate0.parser.active
+ where .runtime.beam.candidate0.parser.identity == .commit.fact.query.beam.candidate0.parser.identity
+ where .runtime.beam.candidate0.parser.score == .commit.fact.query.beam.candidate0.parser.score
+ where .runtime.beam.candidate0.parser.state.basis == .commit.fact.query.beam.candidate0.parser.state.basis
+ where .runtime.beam.candidate0.parser.state.token_count == .commit.fact.query.beam.candidate0.parser.state.token_count
+ where .runtime.beam.candidate0.parser.state.unread == .commit.fact.query.beam.candidate0.parser.state.unread
+ where .runtime.beam.candidate0.parser.state.depth == .commit.fact.query.beam.candidate0.parser.state.depth
+ where .runtime.beam.candidate0.parser.state.stack == .commit.fact.query.beam.candidate0.parser.state.stack
+ where .runtime.beam.candidate0.parser.state.heads == .commit.fact.query.beam.candidate0.parser.state.heads
+ where .runtime.beam.candidate0.parser.state.relation0 == .commit.fact.query.beam.candidate0.parser.state.relation0
+ where .runtime.beam.candidate0.parser.state.relation1 == .commit.fact.query.beam.candidate0.parser.state.relation1
+ where .runtime.beam.candidate0.parser.state.relation2 == .commit.fact.query.beam.candidate0.parser.state.relation2
+ where .runtime.beam.candidate0.parser.state.relation3 == .commit.fact.query.beam.candidate0.parser.state.relation3
+ where .runtime.beam.candidate0.parser.state.committed == .commit.fact.query.beam.candidate0.parser.state.committed + (.commit.fact.query.beam.candidate0.parser.active ? 1 : 0)
+ where .runtime.beam.candidate1.choices == .commit.fact.query.beam.candidate1.choices
+ where .runtime.beam.candidate1.parser.active == .commit.fact.query.beam.candidate1.parser.active
+ where .runtime.beam.candidate1.parser.identity == .commit.fact.query.beam.candidate1.parser.identity
+ where .runtime.beam.candidate1.parser.score == .commit.fact.query.beam.candidate1.parser.score
+ where .runtime.beam.candidate1.parser.state.basis == .commit.fact.query.beam.candidate1.parser.state.basis
+ where .runtime.beam.candidate1.parser.state.token_count == .commit.fact.query.beam.candidate1.parser.state.token_count
+ where .runtime.beam.candidate1.parser.state.unread == .commit.fact.query.beam.candidate1.parser.state.unread
+ where .runtime.beam.candidate1.parser.state.depth == .commit.fact.query.beam.candidate1.parser.state.depth
+ where .runtime.beam.candidate1.parser.state.stack == .commit.fact.query.beam.candidate1.parser.state.stack
+ where .runtime.beam.candidate1.parser.state.heads == .commit.fact.query.beam.candidate1.parser.state.heads
+ where .runtime.beam.candidate1.parser.state.relation0 == .commit.fact.query.beam.candidate1.parser.state.relation0
+ where .runtime.beam.candidate1.parser.state.relation1 == .commit.fact.query.beam.candidate1.parser.state.relation1
+ where .runtime.beam.candidate1.parser.state.relation2 == .commit.fact.query.beam.candidate1.parser.state.relation2
+ where .runtime.beam.candidate1.parser.state.relation3 == .commit.fact.query.beam.candidate1.parser.state.relation3
+ where .runtime.beam.candidate1.parser.state.committed == .commit.fact.query.beam.candidate1.parser.state.committed + (.commit.fact.query.beam.candidate1.parser.active ? 1 : 0)
+ where .runtime.beam.candidate2.choices == .commit.fact.query.beam.candidate2.choices
+ where .runtime.beam.candidate2.parser.active == .commit.fact.query.beam.candidate2.parser.active
+ where .runtime.beam.candidate2.parser.identity == .commit.fact.query.beam.candidate2.parser.identity
+ where .runtime.beam.candidate2.parser.score == .commit.fact.query.beam.candidate2.parser.score
+ where .runtime.beam.candidate2.parser.state.basis == .commit.fact.query.beam.candidate2.parser.state.basis
+ where .runtime.beam.candidate2.parser.state.token_count == .commit.fact.query.beam.candidate2.parser.state.token_count
+ where .runtime.beam.candidate2.parser.state.unread == .commit.fact.query.beam.candidate2.parser.state.unread
+ where .runtime.beam.candidate2.parser.state.depth == .commit.fact.query.beam.candidate2.parser.state.depth
+ where .runtime.beam.candidate2.parser.state.stack == .commit.fact.query.beam.candidate2.parser.state.stack
+ where .runtime.beam.candidate2.parser.state.heads == .commit.fact.query.beam.candidate2.parser.state.heads
+ where .runtime.beam.candidate2.parser.state.relation0 == .commit.fact.query.beam.candidate2.parser.state.relation0
+ where .runtime.beam.candidate2.parser.state.relation1 == .commit.fact.query.beam.candidate2.parser.state.relation1
+ where .runtime.beam.candidate2.parser.state.relation2 == .commit.fact.query.beam.candidate2.parser.state.relation2
+ where .runtime.beam.candidate2.parser.state.relation3 == .commit.fact.query.beam.candidate2.parser.state.relation3
+ where .runtime.beam.candidate2.parser.state.committed == .commit.fact.query.beam.candidate2.parser.state.committed + (.commit.fact.query.beam.candidate2.parser.active ? 1 : 0)
+ where .runtime.beam.candidate3.choices == .commit.fact.query.beam.candidate3.choices
+ where .runtime.beam.candidate3.parser.active == .commit.fact.query.beam.candidate3.parser.active
+ where .runtime.beam.candidate3.parser.identity == .commit.fact.query.beam.candidate3.parser.identity
+ where .runtime.beam.candidate3.parser.score == .commit.fact.query.beam.candidate3.parser.score
+ where .runtime.beam.candidate3.parser.state.basis == .commit.fact.query.beam.candidate3.parser.state.basis
+ where .runtime.beam.candidate3.parser.state.token_count == .commit.fact.query.beam.candidate3.parser.state.token_count
+ where .runtime.beam.candidate3.parser.state.unread == .commit.fact.query.beam.candidate3.parser.state.unread
+ where .runtime.beam.candidate3.parser.state.depth == .commit.fact.query.beam.candidate3.parser.state.depth
+ where .runtime.beam.candidate3.parser.state.stack == .commit.fact.query.beam.candidate3.parser.state.stack
+ where .runtime.beam.candidate3.parser.state.heads == .commit.fact.query.beam.candidate3.parser.state.heads
+ where .runtime.beam.candidate3.parser.state.relation0 == .commit.fact.query.beam.candidate3.parser.state.relation0
+ where .runtime.beam.candidate3.parser.state.relation1 == .commit.fact.query.beam.candidate3.parser.state.relation1
+ where .runtime.beam.candidate3.parser.state.relation2 == .commit.fact.query.beam.candidate3.parser.state.relation2
+ where .runtime.beam.candidate3.parser.state.relation3 == .commit.fact.query.beam.candidate3.parser.state.relation3
+ where .runtime.beam.candidate3.parser.state.committed == .commit.fact.query.beam.candidate3.parser.state.committed + (.commit.fact.query.beam.candidate3.parser.active ? 1 : 0)
+}

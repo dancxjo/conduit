@@ -156,7 +156,7 @@ pub fn prove(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         serde_json::to_vec_pretty(&first.observatory).map_err(encoding)?,
     )
     .map_err(|error| refusal("proof-record-failed", error.to_string()))?;
-    prove_native_patchbay(&paths, &snapshot_path, &first.kernel)?;
+    prove_native_patchbay(&snapshot_path, &first.kernel)?;
     let proof = A3Proof {
         schema: "conduit.conduitos.ia32-a4-proof/v1",
         proof_class: "freestanding-ia32-emulator-observatory-patchbay",
@@ -369,7 +369,7 @@ fn validate(run: &A3Run, paths: &Paths) -> Result<(), ConduitosError> {
         || kernel.interrupt_fact_slots == 0
         || kernel.timer_irq_wakes != 1
         || kernel.idle_entries == 0
-        || kernel.serial_presentations != 2
+        || kernel.serial_faces != 2
         || kernel.pending_host_calls != 0
         || !kernel.overlap_witness
         || !kernel.timer_pending_during_text_progress
@@ -414,29 +414,10 @@ fn validate(run: &A3Run, paths: &Paths) -> Result<(), ConduitosError> {
 }
 
 fn prove_native_patchbay(
-    paths: &Paths,
     snapshot: &std::path::Path,
     kernel: &GuestKernelSign,
 ) -> Result<(), ConduitosError> {
-    let snapshot = snapshot
-        .to_str()
-        .ok_or_else(|| refusal("patchbay-rejected-report", "non-UTF-8 path"))?;
-    let output = super::profile::command(
-        "cargo",
-        &[
-            "run",
-            "--quiet",
-            "-p",
-            "patchbay-native",
-            "--",
-            "--linear-observatory-snapshot",
-            snapshot,
-        ],
-        &paths.root,
-        "patchbay-rejected-report",
-    )?;
-    let linear = String::from_utf8(output.stdout)
-        .map_err(|error| refusal("patchbay-rejected-report", error.to_string()))?;
+    let linear = super::product_patchbay::render(snapshot, "patchbay-rejected-report")?;
     for required in [
         kernel.host_id.as_str(),
         kernel.boot_id.as_str(),

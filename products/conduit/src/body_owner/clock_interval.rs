@@ -1,13 +1,12 @@
-//! Checked Face controls for the installed owner's small clock.
+//! Checked Face controls for the installed owner's interval ticker.
 //! An interval change replaces the Body workset only while lulled; a start
 //! seals a new Plan and Play, and a stop requests a real terminal receipt.
 use super::{debug, state, Owner};
 use conduit_body::{BodyState, ResidentPlot};
 use conduit_core::{kind_id, CheckedValueContract, ValueConstraint};
-use conduit_presentation::{
-    FaceActionArgument, FaceInteraction, MaskShow, Presentation, PresentationAction,
-    PresentationActionAvailability, PresentationDisclosureLevel, PresentationProperty,
-    PresentationPropertyValue, PresentationText, UTF8_TEXT_VALUE_KIND,
+use conduit_face::{
+    Face, FaceAction, FaceActionArgument, FaceActionAvailability, FaceDisclosureLevel,
+    FaceInteraction, FaceProperty, FacePropertyValue, FaceText, MaskShow, UTF8_TEXT_VALUE_KIND,
 };
 use std::path::Path;
 
@@ -16,6 +15,8 @@ const INTERVALS_MS: [u64; 4] = [250, 500, 1_000, 2_000];
 pub(super) const CLOCK_INTERVAL_ACTION: &str = "conduit.intent/change-clock-interval@1";
 pub(super) const CLOCK_START_ACTION: &str = "conduit.intent/start-clock@1";
 pub(super) const CLOCK_LULL_ACTION: &str = "conduit.intent/lull-clock@1";
+const BODY_WAKE_ACTION: &str = "conduit.intent/wake@1";
+const BODY_LULL_ACTION: &str = "conduit.intent/lull@1";
 pub(crate) const CLOCK_RUN_MAXIMUM_MILLIS: u64 = 60_000;
 
 pub(crate) fn is_clock_control_intent(intent: &str) -> bool {
@@ -31,7 +32,7 @@ pub(crate) enum ClockAction {
 
 fn source_for(interval_ms: u64) -> String {
     format!(
-        "plot clock-demo {{\n    # Standing clock: bounded instantaneous pressure, alive until Stop.\n    clock: time/every({interval_ms}ms)\n    clock >> presentation/tick\n}}\n"
+        "plot clock-demo {{\n    # Standing clock: bounded instantaneous pressure, alive until Stop.\n    clock: time/every({interval_ms}ms)\n    clock >> face/tick(\"Clock tick\")\n}}\n"
     )
 }
 
@@ -61,7 +62,7 @@ pub(super) fn recognized_interval(resident: &ResidentPlot) -> Option<u64> {
         })
 }
 
-pub(super) fn with_clock_action(owner: &Owner, face: Presentation) -> Result<Presentation, String> {
+pub(super) fn with_clock_action(owner: &Owner, face: Face) -> Result<Face, String> {
     let Some(interval_ms) = owner.clock_interval_ms else {
         return Ok(face);
     };
@@ -70,6 +71,12 @@ pub(super) fn with_clock_action(owner: &Owner, face: Presentation) -> Result<Pre
         .as_ref()
         .ok_or("clock has no resident Plot")?;
     let target = format!("plot/{}", resident.checked_plot_id.as_str());
+    let mut disclosures = face.disclosures.clone();
+    disclosures
+        .iter_mut()
+        .find(|disclosure| disclosure.subject == target)
+        .ok_or("clock Plot has no Face disclosure")?
+        .level = FaceDisclosureLevel::Primary;
     let lulled = owner.session.evidence().body.state == BodyState::Lulled
         && owner.session.realization().is_none()
         && !owner.host.is_playing();
@@ -84,7 +91,7 @@ pub(super) fn with_clock_action(owner: &Owner, face: Presentation) -> Result<Pre
     members.sort();
     let argument = FaceActionArgument {
         name: "clock/interval-ms".into(),
-        value_name: "Interval in milliseconds: 250, 500, 1000, or 2000".into(),
+        value_name: "Time between ticks in milliseconds: 250, 500, 1000, or 2000".into(),
         contract: CheckedValueContract::new(
             kind_id(UTF8_TEXT_VALUE_KIND),
             4,
@@ -95,98 +102,128 @@ pub(super) fn with_clock_action(owner: &Owner, face: Presentation) -> Result<Pre
         )
         .map_err(debug)?,
     };
+    let mut subjects = face.subjects.clone();
+    subjects
+        .iter_mut()
+        .find(|subject| subject.identity == target)
+        .ok_or("ticker Plot has no Face subject")?
+        .name = "Interval ticker".into();
     let mut properties = face.properties.clone();
-    properties.push(PresentationProperty {
+    properties.push(FaceProperty {
         subject: target.clone(),
         name: "interval-ms".into(),
-        value: PresentationPropertyValue::Count(interval_ms),
+        value: FacePropertyValue::Count(interval_ms),
     });
     let mut text = face.text.clone();
-    text.push(PresentationText {
+    text.push(FaceText {
         subject: target.clone(),
-        text: format!("The current clock interval is {interval_ms} milliseconds."),
+        text: if owner.current_play_id().is_some() && owner.host.is_playing() {
+            "The ticker is running."
+        } else if lulled {
+            "The ticker is stopped."
+        } else {
+            "The ticker is waiting to start."
+        }
+        .into(),
+    });
+    text.push(FaceText {
+        subject: target.clone(),
+        text: format!("The ticker emits a pulse every {interval_ms} milliseconds."),
     });
     let mut actions = face.actions.clone();
     for action in &mut actions {
-        action.availability = PresentationActionAvailability::Unavailable {
-            reason_code: "owner-action-return-not-admitted".into(),
-            explanation:
-                "This owner return route currently accepts only the checked clock control actions."
+        if action.intent == BODY_WAKE_ACTION && terminal_attached {
+            action.availability = FaceActionAvailability::Unavailable {
+                reason_code: "terminal-mask-attached".into(),
+                explanation: "Detach the terminal Mask before waking this ticker Body.".into(),
+            };
+        } else if action.intent == BODY_LULL_ACTION && owner.current_play_id().is_none() {
+            action.availability = FaceActionAvailability::Unavailable {
+                reason_code: "clock-not-playing".into(),
+                explanation: "The ticker Play has not started yet.".into(),
+            };
+        } else if !matches!(action.intent.as_str(), BODY_WAKE_ACTION | BODY_LULL_ACTION)
+            && action.availability.is_available()
+        {
+            action.availability = FaceActionAvailability::Unavailable {
+                reason_code: "owner-action-return-not-admitted".into(),
+                explanation: "This owner return route does not yet accept this semantic action."
                     .into(),
-        };
+            };
+        }
     }
-    actions.push(PresentationAction {
+    actions.push(FaceAction {
         identity: format!(
             "body/action/change-clock-interval/{}",
             owner.session.evidence().body.workload_revision
         ),
         intent: CLOCK_INTERVAL_ACTION.into(),
         target: target.clone(),
-        name: "Change clock interval".into(),
+        name: "Change ticker pace".into(),
         arguments: vec![argument],
-        disclosure: PresentationDisclosureLevel::CurrentAction,
+        disclosure: FaceDisclosureLevel::CurrentAction,
         availability: if lulled {
-            PresentationActionAvailability::Available
+            FaceActionAvailability::Available
         } else {
-            PresentationActionAvailability::Unavailable {
+            FaceActionAvailability::Unavailable {
                 reason_code: "clock-play-must-lull".into(),
-                explanation: "Lull the current clock Play before changing its checked interval. The next start will require a replacement Plan.".into(),
+                explanation: "Lull the current ticker Play before changing its checked interval. The next start will require a replacement Plan.".into(),
             }
         },
     });
-    actions.push(PresentationAction {
+    actions.push(FaceAction {
         identity: format!(
             "body/action/start-clock/{}",
             owner.session.evidence().body.workload_revision
         ),
         intent: CLOCK_START_ACTION.into(),
         target: target.clone(),
-        name: "Start the clock".into(),
+        name: "Start the ticker".into(),
         arguments: vec![],
-        disclosure: PresentationDisclosureLevel::CurrentAction,
+        disclosure: FaceDisclosureLevel::CurrentAction,
         availability: if lulled && !terminal_attached {
-            PresentationActionAvailability::Available
+            FaceActionAvailability::Available
         } else if terminal_attached {
-            PresentationActionAvailability::Unavailable {
+            FaceActionAvailability::Unavailable {
                 reason_code: "terminal-mask-attached".into(),
-                explanation: "Detach the terminal Mask before starting a new clock Play.".into(),
+                explanation: "Detach the terminal Mask before starting a new ticker Play.".into(),
             }
         } else {
-            PresentationActionAvailability::Unavailable {
+            FaceActionAvailability::Unavailable {
                 reason_code: "clock-already-started".into(),
-                explanation: "The clock needs to finish or be lulled before it starts again."
+                explanation: "The ticker needs to finish or be lulled before it starts again."
                     .into(),
             }
         },
     });
-    actions.push(PresentationAction {
+    actions.push(FaceAction {
         identity: format!(
             "body/action/lull-clock/{}",
             owner.current_play_id().map_or("none", |play| play.as_str())
         ),
         intent: CLOCK_LULL_ACTION.into(),
         target,
-        name: "Stop the clock".into(),
+        name: "Stop the ticker".into(),
         arguments: vec![],
-        disclosure: PresentationDisclosureLevel::CurrentAction,
+        disclosure: FaceDisclosureLevel::CurrentAction,
         availability: if owner.current_play_id().is_some() {
-            PresentationActionAvailability::Available
+            FaceActionAvailability::Available
         } else {
-            PresentationActionAvailability::Unavailable {
+            FaceActionAvailability::Unavailable {
                 reason_code: "clock-not-playing".into(),
-                explanation: "Start the clock before stopping it.".into(),
+                explanation: "Start the ticker before stopping it.".into(),
             }
         },
     });
-    let revised = Presentation::new_with_semantics_and_temporal(
+    let revised = Face::new_with_semantics_and_temporal(
         face.revision,
         face.basis,
-        face.subjects,
+        subjects,
         face.relationships,
         properties,
         text,
         actions,
-        face.disclosures,
+        disclosures,
         face.temporal_references,
         face.temporal_facts,
     )
@@ -212,10 +249,14 @@ impl Owner {
         let action = face
             .resolve_action(interaction.face_revision, &interaction.action_id)
             .map_err(debug)?;
+        // The installed clock's Wake prepares its current checked workset and
+        // starts the owner Play; Lull requests that same Play's terminal sign.
+        // These are the lifecycle operations performed by Start and Stop below,
+        // through one owner path rather than a Mask-owned state transition.
         match (action.intent.as_str(), interaction.arguments.len()) {
             (CLOCK_INTERVAL_ACTION, 1) => Ok(ClockAction::ChangeInterval),
-            (CLOCK_START_ACTION, 0) => Ok(ClockAction::Start),
-            (CLOCK_LULL_ACTION, 0) => Ok(ClockAction::Lull),
+            (CLOCK_START_ACTION | BODY_WAKE_ACTION, 0) => Ok(ClockAction::Start),
+            (CLOCK_LULL_ACTION | BODY_LULL_ACTION, 0) => Ok(ClockAction::Lull),
             _ => Err("owner action is not a current clock control".into()),
         }
     }
@@ -322,12 +363,13 @@ impl Owner {
                 &advertised.boot_id,
             )
             .map_err(debug)?;
-        state::retain_with_source(
+        state::retain_session(
             root,
-            staged.evidence(),
+            &mut staged,
             self.last_execution.as_ref(),
             self.admissions.as_ref(),
             Some(next_source.as_bytes()),
+            None,
         )?;
         self.session = staged;
         self.resident = Some(next_resident);

@@ -22,6 +22,8 @@ test("Crèche evidence budgets cover the release runtime's canonical advertiseme
 });
 
 test("one reviewed distribution makes materially different, capability-enforcing browser Hosts", async ({ browser }) => {
+  // This capstone completes two sequential Host make/boot workflows plus active use.
+  test.setTimeout(40_000);
   const viewerPage = await browser.newPage();
   const richPage = await browser.newPage();
   const capabilityPage = await browser.newPage();
@@ -133,7 +135,7 @@ test("browser outfitting is catalog-driven, editable, and handed to checked make
     boot_module_sha256: expect.stringMatching(/^sha256:/),
   });
   expect(realized.implementation_registry.map(({ id }) => id).sort()).toEqual(
-    ["browser/dom-presentation@1", "browser/dom@1", "browser/indexeddb@1", "browser/keyboard-events@1", "browser/pointer-events@1"].sort(),
+    ["browser/dom-face@1", "browser/dom@1", "browser/indexeddb@1", "browser/keyboard-events@1", "browser/pointer-events@1"].sort(),
   );
   expect(realized.inspection.every(({ configured }) => configured)).toBe(true);
   expect(realized.inspection.some(({ implementation_id }) => implementation_id === "browser/media-devices-camera@1")).toBe(false);
@@ -148,7 +150,7 @@ test("stale restored browser choices are refused before lifecycle change", async
     root.id = "stale-browser-configuration";
     const outfitter = createBrowserConfigurationOutfitter({
       host: globalThis.__conduitWorkspace.host,
-      presentationFor: globalThis.__conduitWorkspace.presentationFor,
+      faceFor: globalThis.__conduitWorkspace.faceFor,
       restoredSelection: { catalog_generation: 0, implementations: ["browser/retired@1"] },
       onChange() {},
     });
@@ -280,7 +282,7 @@ async function retainCapstoneReport(evidence) {
   await mkdir(root, { recursive: true });
   const has = (profile, id) => profile.implementations.some((item) => item.id === id) ? "yes" : "no";
   const serial = evidence.rich.inspection.find(({ implementation_id }) => implementation_id === "browser/webserial@1");
-  const markdown = `# Browser two-profile make capstone\n\nExact evidence: \`browser-two-profile-capstone.json\`\n\n| capability | viewer | rich host |\n|---|---:|---:|\n| presentation | ${has(evidence.viewer, "browser/dom-presentation@1")} | ${has(evidence.rich, "browser/dom-presentation@1")} |\n| pointer | ${has(evidence.viewer, "browser/pointer-events@1")} | active plan/Play |\n| storage | ${has(evidence.viewer, "browser/indexeddb@1")} | active plan/Play |\n| WebSerial | ${has(evidence.viewer, "browser/webserial@1")} | selected / ${serial?.refusal ?? "current"} |\n| WebSocket | ${has(evidence.viewer, "browser/websocket@1")} | unavailable, then offered without IMAGE mutation |\n`;
+  const markdown = `# Browser two-profile make capstone\n\nExact evidence: \`browser-two-profile-capstone.json\`\n\n| capability | viewer | rich host |\n|---|---:|---:|\n| face | ${has(evidence.viewer, "browser/dom-face@1")} | ${has(evidence.rich, "browser/dom-face@1")} |\n| pointer | ${has(evidence.viewer, "browser/pointer-events@1")} | active plan/Play |\n| storage | ${has(evidence.viewer, "browser/indexeddb@1")} | active plan/Play |\n| WebSerial | ${has(evidence.viewer, "browser/webserial@1")} | selected / ${serial?.refusal ?? "current"} |\n| WebSocket | ${has(evidence.viewer, "browser/websocket@1")} | unavailable, then offered without IMAGE mutation |\n`;
   await writeFile(new URL("browser-two-profile-capstone.json", root), `${JSON.stringify(evidence, null, 2)}\n`);
   await writeFile(new URL("browser-two-profile-capstone.md", root), markdown);
 }

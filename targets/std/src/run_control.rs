@@ -50,6 +50,7 @@ struct RunControlState {
     requested: Option<RunControlRequestId>,
     accepted: bool,
     quiescent: bool,
+    activity_generation: u64,
 }
 
 impl RunControl {
@@ -65,7 +66,62 @@ impl RunControl {
             });
         }
         state.requested = Some(request_id);
+        self.state.1.notify_all();
         Ok(())
+    }
+
+    pub(crate) fn same_source(&self, other: &Self) -> bool {
+        Arc::ptr_eq(&self.state, &other.state)
+    }
+
+    /// Wakes a live Fore runner after a bounded action or close is admitted.
+    pub(crate) fn signal_activity(&self) {
+        let mut state = self.state.0.lock().expect("run control lock poisoned");
+        // At most the admitted finite Fore items, close, and terminal signals
+        // occur in a Play; wrapping cannot alias a still-waiting observation.
+        state.activity_generation = state.activity_generation.wrapping_add(1);
+        self.state.1.notify_all();
+    }
+
+    pub(crate) fn activity_generation(&self) -> u64 {
+        self.state
+            .0
+            .lock()
+            .expect("run control lock poisoned")
+            .activity_generation
+    }
+
+    pub(crate) fn wait_for_activity_or_stop(&self, observed: u64) {
+        let state = self.state.0.lock().expect("run control lock poisoned");
+        drop(
+            self.state
+                .1
+                .wait_while(state, |state| {
+                    state.activity_generation == observed
+                        && state.requested.is_none()
+                        && !state.accepted
+                })
+                .expect("run control lock poisoned"),
+        );
+    }
+
+    /// Host-local safety bound for a waiting one-command Fore. This does not
+    /// invent a semantic deadline or retry an effect.
+    pub(crate) fn wait_for_activity_or_stop_for(&self, observed: u64, timeout: Duration) -> bool {
+        let state = self.state.0.lock().expect("run control lock poisoned");
+        let (state, result) = self
+            .state
+            .1
+            .wait_timeout_while(state, timeout, |state| {
+                state.activity_generation == observed
+                    && state.requested.is_none()
+                    && !state.accepted
+            })
+            .expect("run control lock poisoned");
+        result.timed_out()
+            && state.activity_generation == observed
+            && state.requested.is_none()
+            && !state.accepted
     }
 
     /// Observe cancellation during a Host effect without consuming the exact
@@ -131,5 +187,34 @@ mod tests {
                 .disposition,
             RunControlDisposition::RejectedAlreadyRequested
         );
+    }
+
+    #[test]
+    fn activity_between_observation_and_wait_is_not_lost() {
+        let control = RunControl::default();
+        let observed = control.activity_generation();
+        control.signal_activity();
+        control.wait_for_activity_or_stop(observed);
+        assert_ne!(control.activity_generation(), observed);
+    }
+
+    #[test]
+    fn stop_notifies_an_idle_waiter_without_polling() {
+        let control = RunControl::default();
+        let observed = control.activity_generation();
+        let (ready, listening) = std::sync::mpsc::channel();
+        let (done, finished) = std::sync::mpsc::channel();
+        let waiting = control.clone();
+        let thread = std::thread::spawn(move || {
+            ready.send(()).unwrap();
+            waiting.wait_for_activity_or_stop(observed);
+            done.send(()).unwrap();
+        });
+        listening.recv().unwrap();
+        control
+            .request_stop(RunControlRequestId::new("stop-waiter").unwrap())
+            .unwrap();
+        finished.recv_timeout(Duration::from_secs(1)).unwrap();
+        thread.join().unwrap();
     }
 }

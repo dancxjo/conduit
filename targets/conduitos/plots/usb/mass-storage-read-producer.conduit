@@ -1,0 +1,35 @@
+# Reviewed demonstration: issue the next read only after storage settlement.
+# Each request consumes the independently admitted storage and USB budgets.
+type BotReadProducerState = {
+    request: BlockReadRequest
+    operations: U64
+    terminal: Boolean
+}
+type BotReadProducerRoute =
+    running BotReadProducerState
+    | stopped
+plot bot-read-producer-start (
+    request: BlockReadRequest...| <= 4096B >> state: BotReadProducerState...|
+) = ({ request: ., operations: 0, terminal: .block_size != 512 || .count != 1 || .lba != 0 })
+plot bot-read-producer-route (
+    state: BotReadProducerState...| >> route: BotReadProducerRoute...|
+) = (.terminal || .operations >= 16 ? stopped(empty) : running(.))
+plot bot-read-producer-request (
+    state: BotReadProducerState...| >> request: BlockReadRequest...|
+) = (.request)
+plot bot-read-producer-next (
+    pair: BotReadProducerPair...| >> state: BotReadProducerState...|
+) = ({ request: .0.request, operations: .0.operations < 16 ? .0.operations + 1 : .0.operations, terminal: .0.terminal || .0.operations >= 15 ? true : (!(.1 is completed) ? true : (.1.completed.ordinal != .0.operations || .1.completed.block_size != 512 || .1.completed.count != 1 || .1.completed.lba != 0 || .1.completed.actual != 512 || .1.completed.residue != 0 || .1.completed.short)) })
+plot bot-storage-sixteen-read-demonstration (
+    request: BlockReadRequest...| <= 4096B >> result: BlockReadResult...| <= 4096B
+) {
+    producer: ProducerCell
+    join: ProducerJoin
+    provider: bot-storage-one-read
+    request >> bot-read-producer-start() >> producer.seed
+    producer.current >> bot-read-producer-route() >> select(BotReadProducerRoute.running, unmatched=drop) >> bot-read-producer-request() >> provider.request
+    producer.current >> bot-read-producer-route() >> select(BotReadProducerRoute.running, unmatched=drop) >> join.left
+    provider.result >> join.right
+    provider.result >> result
+    join.paired >> bot-read-producer-next() >> producer.next
+}

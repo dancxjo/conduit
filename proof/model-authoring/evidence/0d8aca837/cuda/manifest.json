@@ -1,0 +1,35 @@
+{
+  "build_profile": {
+    "debug_symbols": false,
+    "incremental": false,
+    "jobs": 2
+  },
+  "cuda_requested": true,
+  "device_evidence": {
+    "driver_device_information": [
+      "Model: \t\t NVIDIA GeForce RTX 3060\nIRQ:   \t\t 174\nGPU UUID: \t GPU-5a2f7af4-601a-d55c-583b-fc2cf9ffd0a2\nVideo BIOS: \t 94.06.2f.00.ed\nBus Type: \t PCIe\nDMA Size: \t 47 bits\nDMA Mask: \t 0x7fffffffffff\nBus Location: \t 0000:01:00.0\nDevice Minor: \t 0\nGPU Firmware: \t 595.91.07\nGPU Excluded:\t No\n"
+    ],
+    "host": "victus",
+    "independently_trained_output_absolute_tolerance": 0.001,
+    "precision": "number/ieee754-f32-le",
+    "same_checkpoint_inference_absolute_tolerance": 0.001,
+    "selected_profile": "burn/cuda/0"
+  },
+  "does_not_establish": [
+    "ordinary Plot/HostCall execution",
+    "ConduitVoice training",
+    "FARGAN reconstruction",
+    "attended listening",
+    "stable acceptance"
+  ],
+  "establishes": "explicit CUDA training, checkpoint and resume",
+  "exit_code": 0,
+  "log_sha256": "900dce13bebe7f593fa77ce7f352f968abd213305ae7a094cb9240de5920f1cb",
+  "passed": true,
+  "proof_class": "physical-local-hardware",
+  "schema": "conduit.proof/model-authoring@1",
+  "scope": "hosted-model-library",
+  "source_head": "0d8aca837a2a83d53fab010bf150e25db1547910",
+  "source_unchanged": true,
+  "working_tree_dirty": false
+}

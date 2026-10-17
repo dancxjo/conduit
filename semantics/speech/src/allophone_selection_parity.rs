@@ -17,65 +17,51 @@ fn reason(value: SpeechContextDecision) -> &'static str {
         SpeechContextDecision::observation_unresolved => "observation_unresolved",
     }
 }
-fn outcome(value: SpeechAllophoneChoiceOutcome) -> &'static str {
-    match value {
-        SpeechAllophoneChoiceOutcome::none => "none",
-        SpeechAllophoneChoiceOutcome::selected_allophone => "selected_allophone",
-        SpeechAllophoneChoiceOutcome::deferred => "deferred",
-        SpeechAllophoneChoiceOutcome::selected_default => "selected_default",
-    }
-}
-fn state(ty: &StructuredInfoType, value: SpeechAllophoneChoiceState) -> StructuredInfoValue {
-    record(
-        ty,
-        &[
-            (
-                "outcome",
-                variant(field_type(ty, "outcome"), outcome(value.outcome)),
-            ),
-            (
+fn state(ty: &StructuredInfoType, value: SpeechAllophoneChoiceFold) -> StructuredInfoValue {
+    use SpeechAllophoneChoiceFold as Fold;
+    let (tag, candidate) = match value {
+        Fold::none => ("none", None),
+        Fold::selected_default => ("selected_default", None),
+        Fold::selected_allophone(candidate) => ("selected_allophone", Some(candidate)),
+        Fold::requirement_deferred(candidate) => ("requirement_deferred", Some(candidate)),
+        Fold::observation_deferred(candidate) => ("observation_deferred", Some(candidate)),
+    };
+    let Some(candidate) = candidate else {
+        return variant(ty, tag);
+    };
+    let conduit_core::StructuredInfoTypeShape::Variant { cases, .. } = ty.shape() else {
+        panic!("variant")
+    };
+    let payload = cases
+        .iter()
+        .find(|case| case.tag() == tag)
+        .unwrap()
+        .payload_type();
+    StructuredInfoValue::variant(
+        ty.clone(),
+        tag,
+        record(
+            payload,
+            &[(
                 "index",
-                leaf(field_type(ty, "index"), &value.index.to_le_bytes()),
-            ),
-            (
-                "reason",
-                variant(field_type(ty, "reason"), reason(value.reason)),
-            ),
-        ],
+                leaf(field_type(payload, "index"), &candidate.index.to_le_bytes()),
+            )],
+        ),
     )
+    .unwrap()
 }
-fn states() -> impl Iterator<Item = SpeechAllophoneChoiceState> {
-    [
-        SpeechAllophoneChoiceOutcome::none,
-        SpeechAllophoneChoiceOutcome::selected_allophone,
-        SpeechAllophoneChoiceOutcome::deferred,
-        SpeechAllophoneChoiceOutcome::selected_default,
-    ]
-    .into_iter()
-    .flat_map(|outcome| {
-        (0..8).flat_map(move |index| {
+fn states() -> impl Iterator<Item = SpeechAllophoneChoiceFold> {
+    use SpeechAllophoneChoiceFold as Fold;
+    [Fold::none, Fold::selected_default]
+        .into_iter()
+        .chain((0..8).flat_map(|index| {
+            let candidate = SpeechAllophoneCandidateIndex { index };
             [
-                SpeechContextDecision::matched,
-                SpeechContextDecision::mismatched,
-                SpeechContextDecision::requirement_unresolved,
-                SpeechContextDecision::observation_unresolved,
+                Fold::selected_allophone(candidate),
+                Fold::requirement_deferred(candidate),
+                Fold::observation_deferred(candidate),
             ]
-            .into_iter()
-            .filter(move |reason| {
-                !matches!(outcome, SpeechAllophoneChoiceOutcome::deferred)
-                    || matches!(
-                        reason,
-                        SpeechContextDecision::requirement_unresolved
-                            | SpeechContextDecision::observation_unresolved
-                    )
-            })
-            .map(move |reason| SpeechAllophoneChoiceState {
-                outcome,
-                index,
-                reason,
-            })
-        })
-    })
+        }))
 }
 #[test]
 fn every_legal_priority_fold_carrier_matches_checked_portable_evaluation() {
@@ -140,7 +126,7 @@ fn every_legal_priority_fold_carrier_matches_checked_portable_evaluation() {
             }
         }
     }
-    assert_eq!(count, 7168);
+    assert_eq!(count, 1664);
 }
 #[test]
 fn every_finish_carrier_matches_checked_portable_evaluation() {
@@ -190,7 +176,7 @@ fn every_finish_carrier_matches_checked_portable_evaluation() {
             }
         }
     }
-    assert_eq!(count, 448);
+    assert_eq!(count, 104);
 }
 #[test]
 fn every_status_mask_matches_portable_law_and_uses_the_original_native_type() {

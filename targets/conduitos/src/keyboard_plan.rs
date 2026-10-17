@@ -232,7 +232,12 @@ mod tests {
         assert!(prepare(&identities, &absent, "build").is_err());
         let absent_advertisement =
             crate::ordinary_plan::advertisement(&identities, &absent, "build").unwrap();
-        assert!(absent_advertisement.bases.is_empty());
+        assert!(
+            absent_advertisement
+                .bases
+                .iter()
+                .all(|base| base.mechanism_family.as_str() != "conduitos.base/keyboard-input@1")
+        );
         assert!(!absent_advertisement.capabilities.is_empty());
 
         let prepared = prepare(&identities, &offer, "build").unwrap();

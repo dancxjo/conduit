@@ -26,7 +26,7 @@ pub(super) fn run(
     manifest: &mut EvidenceManifest,
     speech: EspeakDiscovery,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let face = &context.face.presentation;
+    let face = &context.face.face;
     let body_id = face
         .basis
         .body_id
@@ -75,6 +75,7 @@ pub(super) fn run(
             "owner_boot_id": context.face.advertisement.boot_id,
             "face_id": face.identity,
             "face_revision": face.revision,
+            "face_revision_decimal": face.revision.to_string(),
             "terminal_plan": terminal_plan,
             "acknowledged_show": show,
             "rendered_frame_sha256": format!("{:x}", Sha256::digest(&terminal_output)),
@@ -109,7 +110,10 @@ pub(super) fn run(
             .iter()
             .map(|item| item.segment.text.len())
             .sum::<usize>();
-        let output = execute_real_spoken_batch(face, &show, &batch, speech.clone(), &wav_path)
+        let output = execute_real_spoken_batch(face, &show, &batch, speech.clone(), &conduit_language::LanguageRequest::new(
+    conduit_language::LanguageId::new("language/english".into()).expect("English mechanical Mask Language"),
+    None, conduit_language::LanguageVarietyPolicy::LanguageSufficient,
+).expect("explicit mechanical Mask request"), &wav_path)
             .map_err(|error| {
                 let _ = manifest.finish(EvidenceResult::DiagnosticIncomplete);
                 format!(
@@ -171,6 +175,7 @@ pub(super) fn run(
                 "source_show_id": show.show_id.as_str(),
                 "face_id": face.identity,
                 "face_revision": face.revision,
+                "face_revision_decimal": face.revision.to_string(),
                 "speech_host_id": output.host_id,
                 "speech_boot_id": output.boot_id,
                 "speech_source_document_id": output.source_document_id,
@@ -259,6 +264,7 @@ pub(super) fn run(
             "body_id": body_id.as_str(),
             "face_id": face.identity,
             "face_revision": face.revision,
+            "face_revision_decimal": face.revision.to_string(),
             "source_show_id": show.show_id.as_str(),
             "source_mask_kind": "terminal",
             "direct_spoken_mask_show_observed": false,

@@ -1,8 +1,15 @@
 //! Checked catalogs and recursive backs of the installed browser profile.
 use super::{linguistics, quantity_output};
 use conduit_core::{CapabilityOffer, PortTemporal};
+use std::cell::RefCell;
+type InstalledCatalogs = (conduit_plot::StartupCatalog, conduit_plot::ProfileCatalog);
+thread_local! {
+    // Exactly four immutable installed face profiles. Document-local
+    // declarations/selectors mutate only independent copies returned below.
+    static INSTALLED_CATALOGS: RefCell<Vec<(FaceProfile, InstalledCatalogs)>> = const { RefCell::new(Vec::new()) };
+}
 #[derive(Clone, Copy, PartialEq, Eq)]
-pub(crate) enum PresentationProfile {
+pub(crate) enum FaceProfile {
     Annotation,
     Quantity,
     NormalizedDurations,
@@ -11,16 +18,34 @@ pub(crate) enum PresentationProfile {
 
 pub(crate) fn catalogs(
 ) -> Result<(conduit_plot::StartupCatalog, conduit_plot::ProfileCatalog), String> {
-    catalogs_for_presentation(PresentationProfile::Annotation)
+    catalogs_for_face(FaceProfile::Annotation)
 }
 
-pub(crate) fn catalogs_for_presentation(
-    presentation: PresentationProfile,
-) -> Result<(conduit_plot::StartupCatalog, conduit_plot::ProfileCatalog), String> {
+pub(crate) fn catalogs_for_face(face: FaceProfile) -> Result<InstalledCatalogs, String> {
+    if let Some(catalogs) = INSTALLED_CATALOGS.with(|cache| {
+        cache
+            .borrow()
+            .iter()
+            .find(|(profile, _)| *profile == face)
+            .map(|(_, catalogs)| catalogs.clone())
+    }) {
+        return Ok(catalogs);
+    }
+    let catalogs = build_catalogs_for_face(face)?;
+    INSTALLED_CATALOGS.with(|cache| cache.borrow_mut().push((face, catalogs.clone())));
+    Ok(catalogs)
+}
+
+fn build_catalogs_for_face(face: FaceProfile) -> Result<InstalledCatalogs, String> {
     let mut startup = conduit_plot::StartupCatalog::new();
     let mut profile = conduit_plot::ProfileCatalog::new();
     conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_saved_choice_catalogs(&mut startup, &mut profile)?;
+    conduit_thermostat_plot::install_catalogs(&mut startup, &mut profile)?;
     conduit_text::install_morse_catalogs(&mut startup, &mut profile)?;
+    conduit_speech::authoring::install(&mut startup)?;
+    conduit_speech::ipa_constructors::install(&mut startup, &mut profile)?;
+    conduit_speech::ipa_constructors::install_notation(&mut startup, &profile)?;
     conduit_web::install_json_catalogs(&mut startup, &mut profile)?;
     conduit_net::install_typed_record_catalogs(&mut startup, &mut profile)?;
     conduit_net::install_ordered_record_queue_catalog(&mut startup, &mut profile)?;
@@ -42,22 +67,20 @@ pub(crate) fn catalogs_for_presentation(
     )?;
     conduit_semantic_catalog::install_resource_snapshot_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_signal_garden_catalog(&mut startup, &mut profile)?;
-    conduit_semantic_catalog::install_indicator_presentation_catalog(&mut startup, &mut profile)?;
-    match presentation {
-        PresentationProfile::Annotation => {
-            linguistics::install_catalogs(&mut startup, &mut profile)?
-        }
-        PresentationProfile::Quantity => {
+    conduit_semantic_catalog::install_indicator_face_catalog(&mut startup, &mut profile)?;
+    match face {
+        FaceProfile::Annotation => linguistics::install_catalogs(&mut startup, &mut profile)?,
+        FaceProfile::Quantity => {
             conduit_language::install_linguistics_catalogs(&mut startup, &mut profile)?;
             quantity_output::install_catalogs(&mut startup, &mut profile)?;
         }
-        PresentationProfile::PatternComparison => {
+        FaceProfile::PatternComparison => {
             conduit_language::install_linguistics_catalogs(&mut startup, &mut profile)?;
-            super::comparison_presentation::install_catalogs(&mut startup, &mut profile)?;
+            super::comparison_face::install_catalogs(&mut startup, &mut profile)?;
         }
-        PresentationProfile::NormalizedDurations => {
+        FaceProfile::NormalizedDurations => {
             conduit_language::install_linguistics_catalogs(&mut startup, &mut profile)?;
-            super::normalized_presentation::install_catalogs(&mut startup, &mut profile)?;
+            super::normalized_face::install_catalogs(&mut startup, &mut profile)?;
         }
     }
     conduit_semantic_catalog::install_value_primitive_catalogs(&mut startup, &mut profile)?;
@@ -65,11 +88,13 @@ pub(crate) fn catalogs_for_presentation(
     conduit_semantic_catalog::install_math_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_quantity_mapping_catalog(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_pitch_tone_catalog(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_audio_continuous_play_catalog(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_quantity_info_catalog(&mut startup, &mut profile)?;
+    conduit_plot::quantity_conversion::install(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_normalized_quantity_catalog(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_generalized_input_catalogs(&mut startup, &mut profile)?;
     super::pointer_selector::install_types(&mut startup, &mut profile)?;
-    conduit_presentation::install_bounded_stroke_capture_catalog(&mut startup, &mut profile)?;
+    conduit_face::install_bounded_stroke_capture_catalog(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_logic_catalogs(&mut startup, &mut profile)?;
     // Reviewed Plots are checked before realization eligibility is known. Keep
     // the canonical retained-State contract available to the checker even
@@ -87,26 +112,24 @@ pub(crate) fn catalogs_for_presentation(
     )?;
     conduit_time::install_time_every_catalog(&mut startup, &mut profile)?;
     conduit_time::install_rhythm_catalog(&mut startup, &mut profile)?;
-    conduit_semantic_catalog::install_tick_presentation_catalog(&mut startup, &mut profile)?;
-    conduit_semantic_catalog::install_pulse_presentation_catalog(&mut startup, &mut profile)?;
-    conduit_semantic_catalog::install_rhythm_presentation_catalog(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_tick_face_catalog(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_pulse_face_catalog(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_rhythm_face_catalog(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_count_pipeline_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_layout_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_keyboard_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_input_semantic_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_text_state_catalogs(&mut startup, &mut profile)?;
-    conduit_semantic_catalog::install_patchbay_presentation_catalogs(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_patchbay_face_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_button_indicator_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_application_catalogs(&mut startup, &mut profile)?;
     super::tutorial_presenter::install_catalogs(&mut startup, &mut profile)?;
-    conduit_semantic_catalog::install_presentation_composition_catalogs(
-        &mut startup,
-        &mut profile,
-    )?;
+    conduit_semantic_catalog::install_face_composition_catalogs(&mut startup, &mut profile)?;
     conduit_chat::install_browser_chat_catalogs(&mut startup, &mut profile)?;
     conduit_chat::install_body_chat_catalog(&mut startup, &mut profile)?;
     conduit_ai::install_llm_semantic_catalog(&mut startup, &mut profile)?;
     conduit_ai::install_model_text_catalog(&mut startup, &mut profile)?;
+    conduit_ai::install_model_work_catalog(&mut startup, &mut profile)?;
     conduit_tongues::install_house_conversation_catalog(&mut startup, &mut profile)?;
     conduit_tongues::install_house_conversation_plot_catalog(&mut startup, &mut profile)?;
     conduit_tongues::install_speech_recognition_catalog(&mut startup, &mut profile)?;
@@ -123,11 +146,11 @@ pub(crate) fn catalogs_for_presentation(
         conduit_core::kind_id(conduit_audio::AUDIO_PCM_INFO_ID),
     )?;
     startup.insert(conduit_plot::KindSignature {
-        kind: conduit_semantic_catalog::BOOL_PRESENTATION_KIND.into(),
-        startup_parameters: Vec::new(),
+        kind: conduit_semantic_catalog::BOOL_FACE_KIND.into(),
+        startup_parameters: conduit_semantic_catalog::data_label_startup_signature(),
     })?;
-    conduit_semantic_catalog::install_bool_presentation_catalog(&mut profile)?;
-    if presentation == PresentationProfile::Quantity {
+    conduit_semantic_catalog::install_bool_face_catalog(&mut profile)?;
+    if face == FaceProfile::Quantity {
         startup.insert_value_kind_alias(
             "Scalar",
             conduit_core::kind_id(conduit_core::SCALAR_INFO_ID),
@@ -137,6 +160,11 @@ pub(crate) fn catalogs_for_presentation(
             conduit_core::kind_id(conduit_core::QUANTITY_INFO_ID),
         )?;
     }
+    let startup = conduit_plot::checked_physical_catalog_for_document(
+        &conduit_plot::parse_syntax_document(""),
+        &startup,
+    )
+    .map_err(|error| format!("installed physical catalogue refused: {error:?}"))?;
     Ok((startup, profile))
 }
 
@@ -183,6 +211,10 @@ pub(crate) fn offers_for_expanded_pure_expressions(
 ) -> Result<Vec<CapabilityOffer>, String> {
     let mut offers = Vec::new();
     for gear in &expanded.gears {
+        if let Some(offer) = super::typed_state::offer_for_expanded(gear)? {
+            offers.push(offer);
+            continue;
+        }
         if !matches!(
             gear.kind_contract_revision.as_str(),
             conduit_plot::PURE_EXPRESSION_REVISION | conduit_plot::PURE_FILTER_REVISION
@@ -258,6 +290,35 @@ pub(crate) fn backs(
 #[cfg(test)]
 mod conversation_tests {
     use super::*;
+
+    #[test]
+    fn browser_workspace_can_check_model_authoring_without_offering_training() {
+        let (startup, profile) = catalogs().unwrap();
+        let syntax = conduit_plot::parse_syntax_document(include_str!(
+            "../../../../../plots/model-authoring/main.conduit"
+        ));
+        assert!(syntax.diagnostics.is_empty());
+        let checked = conduit_plot::check_syntax_document(&syntax, &startup).unwrap();
+        let expanded = conduit_plot::expand_canonical_plot_for_authoring(
+            &checked,
+            "model-authoring",
+            &profile,
+        )
+        .unwrap()
+        .expanded;
+        assert_eq!(
+            expanded.gears[0].kind_id.as_str(),
+            conduit_ai::MODEL_WORK_KIND
+        );
+        assert!(conduit_planner::default_expanded_placements(
+            &expanded,
+            &[crate::installed_browser::advertisement(
+                "browser/model-catalog".into(),
+                "boot/model-catalog".into(),
+            )],
+        )
+        .is_err());
+    }
 
     #[test]
     fn browser_workspace_can_check_and_expand_conversation_meaning_without_offering_it() {

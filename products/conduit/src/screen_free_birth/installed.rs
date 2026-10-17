@@ -6,7 +6,7 @@ use std::{
 };
 
 use conduit_core::HostAdvertisement;
-use conduit_presentation::{MaskShow, Presentation};
+use conduit_face::{Face, MaskShow};
 use conduit_std_host::spoken_face_mask::{ReaderCommand, SpokenFaceSession};
 use conduit_std_host::terminal_face_mask::{TerminalFaceMask, TerminalMaskExecution};
 use conduit_std_host::terminal_mask_execution::HostedTerminalMaskExecution;
@@ -14,9 +14,10 @@ use conduit_std_host::terminal_mask_execution::HostedTerminalMaskExecution;
 use super::{
     command_input::{CommandInput, DirectInput, InputEvent, SpokenInput},
     debug_error,
-    input::{parse_command, SCREEN_FREE_COMMANDS},
+    input::parse_command,
     selected_playback::SelectedPlayback,
     selected_readout::{emit_readout, OutputPhase},
+    wardrobe::{self, WardrobeReadout},
 };
 use crate::{
     cli::BirthSpeechOptions,
@@ -70,7 +71,7 @@ fn run_retained_with_input(
         .clone()
         .ok_or("installed owner has no retained Body to read")?;
     let playback = speech_options
-        .map(|options| SelectedPlayback::prepare(options, &advertisement))
+        .map(|options| SelectedPlayback::prepare(options, &advertisement, state_dir))
         .transpose()?;
     run_body(
         state_dir,
@@ -91,37 +92,42 @@ fn run_with_input(
 ) -> Result<(), String> {
     let (mut face, advertisement) = durable_host_control::birth_face(state_dir)?;
     let playback = speech_options
-        .map(|options| SelectedPlayback::prepare(options, &advertisement))
+        .map(|options| SelectedPlayback::prepare(options, &advertisement, state_dir))
         .transpose()?;
     let mut execution = HostedTerminalMaskExecution::new(&advertisement).map_err(debug_error)?;
     let mut show = present(&face, &mut execution, output)?;
     let mut reader = SpokenFaceSession::new(face.clone(), show.clone()).map_err(debug_error)?;
     writeln!(
         output,
-        "Installed Host screen-free Birth. {} {SCREEN_FREE_COMMANDS}",
+        "Welcome to Birth. {} Type help for commands.",
         if playback.is_some() {
-            "Selected speaker playback; receipts follow each drained Play."
+            "Speech is on."
         } else {
-            "Text readout; no speech audio has been produced."
+            "Text readout is on."
         }
     )
     .map_err(|error| error.to_string())?;
-    let mut sequence = 1_u64;
-    reader
-        .command(&face, &show, ReaderCommand::ReadAll, sequence)
-        .map_err(debug_error)?;
-    emit_readout(
-        state_dir,
-        input,
-        playback.as_ref(),
-        &mut reader,
-        &face,
-        &show,
-        &advertisement,
-        &mut sequence,
-        OutputPhase::Birth,
-        output,
-    )?;
+    let mut sequence = 0_u64;
+    for command in opening_commands(playback.is_some()) {
+        sequence += 1;
+        reader
+            .command(&face, &show, command, sequence)
+            .map_err(debug_error)?;
+        if emit_readout(
+            state_dir,
+            input,
+            playback.as_ref(),
+            &mut reader,
+            &face,
+            &show,
+            &advertisement,
+            &mut sequence,
+            OutputPhase::Birth,
+            output,
+        )? {
+            break;
+        }
+    }
 
     loop {
         write!(output, "birth> ").map_err(|error| error.to_string())?;
@@ -174,6 +180,15 @@ fn run_with_input(
             continue;
         };
         let correlated = execution.interact(interaction).map_err(debug_error)?;
+        writeln!(
+            output,
+            "Birth interaction: action={} face-id={} face-revision={} show={}",
+            correlated.interaction.action_id,
+            correlated.interaction.face_id,
+            correlated.interaction.face_revision,
+            correlated.interaction.show_id,
+        )
+        .map_err(|error| error.to_string())?;
         let transition = match durable_host_control::submit_birth_interaction(
             state_dir,
             show.clone(),
@@ -234,11 +249,8 @@ fn run_with_input(
                     output,
                 )?;
             }
-            BirthTransition::Born {
-                body_id,
-                presentation,
-            } => {
-                if presentation.basis.body_id.as_ref() != Some(&body_id) {
+            BirthTransition::Born { body_id, face } => {
+                if face.basis.body_id.as_ref() != Some(&body_id) {
                     return Err("retained Birth response names a different Body".into());
                 }
                 writeln!(
@@ -247,15 +259,7 @@ fn run_with_input(
                     body_id.as_str()
                 )
                 .map_err(|error| error.to_string())?;
-                return run_body(
-                    state_dir,
-                    body_id,
-                    presentation,
-                    None,
-                    input,
-                    playback,
-                    output,
-                );
+                return run_body(state_dir, body_id, face, None, input, playback, output);
             }
         }
     }
@@ -264,7 +268,7 @@ fn run_with_input(
 fn run_body(
     state_dir: &Path,
     body_id: conduit_body::BodyId,
-    mut face: Presentation,
+    mut face: Face,
     expected_host: Option<HostAdvertisement>,
     input: &mut impl CommandInput,
     playback: Option<SelectedPlayback>,
@@ -287,26 +291,31 @@ fn run_body(
     let mut reader = SpokenFaceSession::new(face.clone(), show.clone()).map_err(debug_error)?;
     writeln!(
         output,
-        "Continuing retained Body {}. Commands: {SCREEN_FREE_COMMANDS} refresh.",
-        body_id.as_str()
+        "Welcome back. Type help for commands. Your current overview follows."
     )
     .map_err(|error| error.to_string())?;
-    let mut sequence = 1_u64;
-    reader
-        .command(&face, &show, ReaderCommand::ReadAll, sequence)
-        .map_err(debug_error)?;
-    emit_readout(
-        state_dir,
-        input,
-        playback.as_ref(),
-        &mut reader,
-        &face,
-        &show,
-        &advertisement,
-        &mut sequence,
-        OutputPhase::Body,
-        output,
-    )?;
+    let mut sequence = 0_u64;
+    let mut wardrobe: Option<WardrobeReadout> = None;
+    for command in opening_body_commands(playback.is_some()) {
+        sequence += 1;
+        reader
+            .command(&face, &show, command, sequence)
+            .map_err(debug_error)?;
+        if emit_readout(
+            state_dir,
+            input,
+            playback.as_ref(),
+            &mut reader,
+            &face,
+            &show,
+            &advertisement,
+            &mut sequence,
+            OutputPhase::Body,
+            output,
+        )? {
+            break;
+        }
+    }
     loop {
         write!(output, "body> ").map_err(|error| error.to_string())?;
         output.flush().map_err(|error| error.to_string())?;
@@ -330,10 +339,7 @@ fn run_body(
         if current.basis.body_id.as_ref() != Some(&body_id) {
             return Err("installed owner changed Body identity".into());
         }
-        if current.identity != face.identity
-            || current.revision != face.revision
-            || host != advertisement
-        {
+        if current != face || host != advertisement {
             // The line was entered while the previous Face was on offer. Even
             // a bare `activate` must never be reinterpreted after refreshing
             // the reader's focus and Show against a different owner state.
@@ -345,29 +351,99 @@ fn run_body(
             reader
                 .refresh(face.clone(), show.clone())
                 .map_err(debug_error)?;
+            wardrobe = None;
             writeln!(
                 output,
-                "Owner Face or Host Boot changed. Refused the pending command; Face revision {} is current. Enter read all or help, then choose an action again.",
+                "Owner Face or Host Boot changed. Face revision {} is current. Read-only help and read all use the new Face; actions must be chosen again.",
                 face.revision
             )
                 .map_err(|error| error.to_string())?;
-            emit_readout(
-                state_dir,
-                input,
-                playback.as_ref(),
-                &mut reader,
-                &face,
-                &show,
-                &advertisement,
-                &mut sequence,
-                OutputPhase::Body,
-                output,
-            )?;
-            continue;
+            if line != "read all" && line != "help" {
+                writeln!(
+                    output,
+                    "Refused the pending command because it named an older Face."
+                )
+                .map_err(|error| error.to_string())?;
+                emit_readout(
+                    state_dir,
+                    input,
+                    playback.as_ref(),
+                    &mut reader,
+                    &face,
+                    &show,
+                    &advertisement,
+                    &mut sequence,
+                    OutputPhase::Body,
+                    output,
+                )?;
+                continue;
+            }
         }
         if line == "refresh" {
             writeln!(output, "Owner Face revision {} is current.", face.revision)
                 .map_err(|error| error.to_string())?;
+            continue;
+        }
+        if line == "wardrobe" || line.starts_with("wardrobe ") {
+            match wardrobe::command(
+                &line,
+                state_dir,
+                &face,
+                &advertisement,
+                &mut wardrobe,
+                output,
+            ) {
+                Ok(reading_face) => {
+                    if let Some(reading_face) = reading_face {
+                        let mut reading_execution =
+                            HostedTerminalMaskExecution::new(&advertisement)
+                                .map_err(debug_error)?;
+                        let reading_show = present(&reading_face, &mut reading_execution, output)?;
+                        let mut speaking =
+                            SpokenFaceSession::new(reading_face.clone(), reading_show.clone())
+                                .map_err(debug_error)?;
+                        sequence = sequence.checked_add(1).ok_or("input sequence exhausted")?;
+                        speaking
+                            .command(
+                                &reading_face,
+                                &reading_show,
+                                ReaderCommand::ReadAll,
+                                sequence,
+                            )
+                            .map_err(debug_error)?;
+                        emit_readout(
+                            state_dir,
+                            input,
+                            playback.as_ref(),
+                            &mut speaking,
+                            &reading_face,
+                            &reading_show,
+                            &advertisement,
+                            &mut sequence,
+                            OutputPhase::Wardrobe,
+                            output,
+                        )?;
+                    }
+                    if line != "wardrobe" {
+                        // The user's old action focus was chosen before this
+                        // wardrobe revision. Require a fresh explicit choice.
+                        execution.close_without_input().map_err(debug_error)?;
+                        execution = HostedTerminalMaskExecution::new(&advertisement)
+                            .map_err(debug_error)?;
+                        show = present(&face, &mut execution, output)?;
+                        reader = SpokenFaceSession::new(face.clone(), show.clone())
+                            .map_err(debug_error)?;
+                        writeln!(
+                            output,
+                            "Wardrobe changed. Choose a current Face action again."
+                        )
+                        .map_err(|error| error.to_string())?;
+                    }
+                }
+                Err(refusal) => {
+                    wardrobe::report_refusal(&refusal, output)?;
+                }
+            }
             continue;
         }
         let command = match parse_command(&line, &reader, &face) {
@@ -399,6 +475,14 @@ fn run_body(
             output,
         )?;
         if let Some(interaction) = result.interaction {
+            writeln!(
+                output,
+                "Interaction: action={} face-revision={} show={}",
+                interaction.action_id,
+                face.revision,
+                show.show_id.as_str()
+            )
+            .map_err(|error| error.to_string())?;
             let correlated = execution.interact(interaction).map_err(debug_error)?;
             match durable_host_control::submit_local_face_interaction(
                 state_dir,
@@ -421,6 +505,7 @@ fn run_body(
             reader
                 .refresh(face.clone(), show.clone())
                 .map_err(debug_error)?;
+            wardrobe = None;
             emit_readout(
                 state_dir,
                 input,
@@ -438,7 +523,7 @@ fn run_body(
 }
 
 fn present(
-    face: &Presentation,
+    face: &Face,
     execution: &mut HostedTerminalMaskExecution,
     output: &mut impl Write,
 ) -> Result<MaskShow, String> {
@@ -448,4 +533,24 @@ fn present(
     mask.show()
         .cloned()
         .ok_or_else(|| "terminal did not acknowledge a Show".into())
+}
+
+pub(super) fn opening_commands(spoken: bool) -> impl Iterator<Item = ReaderCommand> {
+    // Lead with the useful Crèche summary. The complete command guide is
+    // available on request, so Birth does not begin with a long help Play.
+    std::iter::once(if spoken {
+        ReaderCommand::Summary
+    } else {
+        ReaderCommand::ReadAll
+    })
+    .chain(spoken.then_some(ReaderCommand::FocusAction("creche.name".into())))
+}
+
+/// A returning spoken user gets immediate orientation, then chooses whether
+/// to read the whole view. Reading it automatically can outlast a live Play
+/// and make its current Stop action unreachable through nonvisual input.
+fn opening_body_commands(_spoken: bool) -> impl Iterator<Item = ReaderCommand> {
+    // Reuse the direct spoken Mask's Face-derived summary instead of reading
+    // whichever structural clause happens to occupy the cursor's first slot.
+    std::iter::once(ReaderCommand::Summary)
 }

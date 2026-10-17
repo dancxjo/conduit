@@ -4,14 +4,16 @@
 //! Pages and focus belong to this Mask; an ordinary Mask executor must still
 //! acknowledge scanout before using the returned mappings to make interactions.
 use alloc::{string::String, vec::Vec};
-use conduit_presentation::{
-    FaceActionArgument, FaceInteraction, FaceInteractionArgument, GraphicsCommand,
-    GraphicsPaintRole, GraphicsScene, GraphicsShapeStyle, GraphicsTextRole, LayoutRect, MaskShow,
-    Presentation, PresentationAction, PresentationContentId,
+use conduit_face::{
+    Face, FaceAction, FaceActionArgument, FaceContentId, FaceInteraction, FaceInteractionArgument,
+    GraphicsCommand, GraphicsPaintRole, GraphicsScene, GraphicsShapeStyle, GraphicsTextRole,
+    LayoutRect, MaskShow,
 };
 
 use crate::display::{SPACE_SM, SPACE_XL, typography::TextLayout};
 
+#[path = "native_face_scene/connected_layout.rs"]
+mod connected_layout;
 #[path = "native_face_scene/diagram.rs"]
 mod diagram;
 #[path = "native_face_scene/document.rs"]
@@ -20,6 +22,8 @@ mod document;
 mod input;
 #[path = "native_face_scene/layout.rs"]
 mod layout;
+#[path = "native_face_scene/ports.rs"]
+mod ports;
 pub use input::{FaceFocusRequest, FaceSceneInput};
 #[cfg(test)]
 #[path = "native_face_scene/tests.rs"]
@@ -53,13 +57,13 @@ pub struct FaceControl {
 pub struct FaceHit<'a> {
     pub bounds: LayoutRect,
     pub control: FaceControl,
-    pub action: &'a PresentationAction,
+    pub action: &'a FaceAction,
     pub argument: Option<&'a FaceActionArgument>,
 }
 
 pub struct FaceFrame<'a> {
     pub scene: GraphicsScene,
-    pub presentation_id: &'a PresentationContentId,
+    pub face_id: &'a FaceContentId,
     pub revision: u64,
     pub page: usize,
     pub pages: usize,
@@ -81,8 +85,9 @@ impl FaceFrame<'_> {
 /// One admitted display extent. Changing extent prepares a new scene document;
 /// it cannot reinterpret, replace, or mutate its retained semantic Face.
 pub struct NativeFaceScene {
-    face: Presentation,
+    face: Face,
     screen: LayoutRect,
+    text_scale_percent: u16,
     primary: Vec<layout::Row>,
     details: Vec<layout::Row>,
     page: usize,
@@ -95,12 +100,12 @@ pub struct NativeFaceScene {
 }
 
 impl NativeFaceScene {
-    pub fn prepare(face: Presentation, width: u16, height: u16) -> Result<Self, FaceSceneError> {
+    pub fn prepare(face: Face, width: u16, height: u16) -> Result<Self, FaceSceneError> {
         Self::prepare_with_input(face, width, height, true)
     }
 
     pub fn prepare_with_input(
-        face: Presentation,
+        face: Face,
         width: u16,
         height: u16,
         interaction_admitted: bool,
@@ -121,6 +126,7 @@ impl NativeFaceScene {
             details: layout::admit(details, screen)?,
             face,
             screen,
+            text_scale_percent: 100,
             page: 0,
             focus: None,
             showing_details: false,
@@ -131,7 +137,88 @@ impl NativeFaceScene {
         })
     }
 
-    pub fn presentation(&self) -> &Presentation {
+    /// Realize source-owned structural geometry and the admitted visual facet
+    /// over this exact Face. Layout retains all original control references.
+    pub fn prepare_configured(
+        face: Face,
+        width: u16,
+        height: u16,
+        interaction_admitted: bool,
+        recipe: &conduit_face::PreparedComponentRecipe,
+        expression: &conduit_face::AdmittedVisualExpression,
+    ) -> Result<Self, FaceSceneError> {
+        if recipe.reading.source_face_identity != face.identity.as_str()
+            || recipe.reading.source_face_revision != face.revision
+        {
+            return Err(FaceSceneError::StaleFace);
+        }
+        let geometry = recipe
+            .geometry_for_width(width)
+            .map_err(|_| FaceSceneError::InvalidExtent)?;
+        let mut scene = Self::prepare_with_input(face, width, height, interaction_admitted)?;
+        let (mut primary, details) = document::prepare(&scene.face, interaction_admitted)?;
+        for item in &mut primary {
+            item.region = item
+                .subject_index
+                .and_then(|subject| recipe.subject_regions.get(subject).copied().flatten())
+                .and_then(|region| recipe.recipe.regions().as_slice().get(region))
+                .map(|region| *region.group());
+        }
+        let scale = expression.expression.text_scale_percent;
+        let padding = match expression.expression.density {
+            conduit_face::VisualDensity::Compact => SPACE_SM,
+            conduit_face::VisualDensity::Spacious => SPACE_SM * 2,
+        };
+        scene.primary = layout::admit_with_expression(
+            primary,
+            scene.screen,
+            geometry.gutter,
+            geometry.columns,
+            scale,
+            padding,
+        )?;
+        scene.details = layout::admit_with_expression(
+            details,
+            scene.screen,
+            geometry.gutter,
+            geometry.columns,
+            scale,
+            padding,
+        )?;
+        scene.text_scale_percent = scale;
+        Ok(scene)
+    }
+
+    /// Generic semantic projection when configured structural capacity is unavailable.
+    /// User text requirements still use the same measured and rasterized scale.
+    pub fn prepare_visual_fallback(
+        face: Face,
+        width: u16,
+        height: u16,
+        interaction_admitted: bool,
+        expression: &conduit_face::AdmittedVisualExpression,
+    ) -> Result<Self, FaceSceneError> {
+        let mut scene = Self::prepare_with_input(face, width, height, interaction_admitted)?;
+        let (primary, details) = document::prepare(&scene.face, interaction_admitted)?;
+        let scale = expression.expression.text_scale_percent;
+        let padding = match expression.expression.density {
+            conduit_face::VisualDensity::Compact => SPACE_SM,
+            conduit_face::VisualDensity::Spacious => SPACE_SM * 2,
+        };
+        scene.primary =
+            layout::admit_with_expression(primary, scene.screen, SPACE_XL, 1, scale, padding)?;
+        scene.details =
+            layout::admit_with_expression(details, scene.screen, SPACE_XL, 1, scale, padding)?;
+        scene.text_scale_percent = scale;
+        Ok(scene)
+    }
+
+    /// The selected renderer must use this same scale for rasterization.
+    pub fn text_scale_percent(&self) -> u16 {
+        self.text_scale_percent
+    }
+
+    pub fn face(&self) -> &Face {
         &self.face
     }
 
@@ -246,11 +333,11 @@ impl NativeFaceScene {
     /// Resolve a retained frame mapping only against its exact Face identity.
     pub fn resolve(
         &self,
-        presentation_id: &PresentationContentId,
+        face_id: &FaceContentId,
         revision: u64,
         control: FaceControl,
-    ) -> Result<(&PresentationAction, Option<&FaceActionArgument>), FaceSceneError> {
-        if presentation_id != &self.face.identity || revision != self.face.revision {
+    ) -> Result<(&FaceAction, Option<&FaceActionArgument>), FaceSceneError> {
+        if face_id != &self.face.identity || revision != self.face.revision {
             return Err(FaceSceneError::StaleFace);
         }
         let action = self
@@ -277,7 +364,7 @@ impl NativeFaceScene {
     /// arguments are supplied atomically and validated by the existing boundary.
     pub fn interaction(
         &self,
-        presentation_id: &PresentationContentId,
+        face_id: &FaceContentId,
         revision: u64,
         control: FaceControl,
         show: &MaskShow,
@@ -287,7 +374,7 @@ impl NativeFaceScene {
         if !self.interaction_admitted {
             return Err(FaceSceneError::InputUnavailable);
         }
-        let (action, _) = self.resolve(presentation_id, revision, control)?;
+        let (action, _) = self.resolve(face_id, revision, control)?;
         FaceInteraction::new(
             &self.face,
             show,
@@ -388,17 +475,7 @@ impl NativeFaceScene {
             } else {
                 row.paint
             };
-            if row.control.is_some() {
-                push(
-                    &mut scene,
-                    GraphicsCommand::rect(
-                        row.bounds,
-                        self.screen,
-                        outline,
-                        GraphicsShapeStyle::Stroke,
-                    ),
-                )?;
-            }
+            layout::append_row_chrome(&mut scene, row, self.screen, outline, self.showing_details)?;
             push(
                 &mut scene,
                 GraphicsCommand::text(row.text_bounds(), self.screen, row.paint, &row.text)
@@ -420,12 +497,12 @@ impl NativeFaceScene {
             .clone()
             .or_else(|| self.input.preview(self.focus))
             .unwrap_or_else(|| {
-                if !self.interaction_admitted && self.has_diagram() {
+                if self.showing_diagram {
+                    diagram::link_notice(&self.face, self.screen, self.page)
+                } else if !self.interaction_admitted && self.has_diagram() {
                     "Read only · PgUp/PgDn pages · F2 facts · F3 Patchbay".into()
                 } else if !self.interaction_admitted {
                     "Read only · PgUp/PgDn pages · F2 facts".into()
-                } else if self.showing_diagram {
-                    "Visible links only · F2 all facts · F3 return".into()
                 } else if self.showing_details {
                     "PgUp/PgDn pages · Tab next · F2 return".into()
                 } else if self.has_diagram() {
@@ -461,7 +538,7 @@ impl NativeFaceScene {
         )?;
         Ok(FaceFrame {
             scene,
-            presentation_id: &self.face.identity,
+            face_id: &self.face.identity,
             revision: self.face.revision,
             page: self.page,
             pages: self.pages(),
@@ -491,9 +568,13 @@ impl NativeFaceScene {
 
 fn push(
     scene: &mut GraphicsScene,
-    command: Result<GraphicsCommand, conduit_presentation::GraphicsError>,
+    command: Result<GraphicsCommand, conduit_face::GraphicsError>,
 ) -> Result<(), FaceSceneError> {
     scene
         .push(command.map_err(|_| FaceSceneError::SceneBound)?)
         .map_err(|_| FaceSceneError::SceneBound)
 }
+
+#[cfg(test)]
+#[path = "native_face_scene/open_domain_tests.rs"]
+mod open_domain_tests;

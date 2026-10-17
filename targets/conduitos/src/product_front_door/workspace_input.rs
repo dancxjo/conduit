@@ -43,7 +43,7 @@ impl PendingInput {
         }
         door.observe_product(journey)
             .map_err(|error| error.as_str())?;
-        // Stage an exact retained presentation for metadata-only changes too.
+        // Stage an exact retained face for metadata-only changes too.
         // Its receipt is observation evidence; only compose writes scanout.
         let receipt = presenter
             .stage(door, display)
@@ -111,13 +111,13 @@ fn update(
     door: &mut FrontDoor,
     report_refusal: impl FnOnce(&str),
 ) -> Result<bool, &'static str> {
-    let previous = journey.foreground_presentation_sequence();
+    let previous = journey.foreground_face_sequence();
     match journey.accept_play_input(event) {
         Ok(false) => Ok(false),
         Ok(true) => {
             door.observe_product(journey)
                 .map_err(|error| error.as_str())?;
-            Ok(journey.foreground_presentation_sequence() != previous)
+            Ok(journey.foreground_face_sequence() != previous)
         }
         Err(error @ JourneyError::Play(_)) if journey.status() == JourneyStatus::Stopped => {
             door.observe_product(journey)

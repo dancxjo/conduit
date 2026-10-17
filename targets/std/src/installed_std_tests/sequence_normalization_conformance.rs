@@ -107,6 +107,7 @@ fn reusable_normalization_plot_executes_outside_secret_knock_without_play_alloca
             keyboard: None,
             local_model: None,
             vector_search: None,
+            model_work: None,
             calendar: None,
             body_conversation_context: None,
         },

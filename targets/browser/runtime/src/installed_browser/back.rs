@@ -1,5 +1,8 @@
 //! Generic finite kernel verbs used by installed browser implementations.
 
+mod unary;
+use unary::UnaryBack;
+
 use conduit_core::Scalar;
 use conduit_kernel::scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome};
 use conduit_kernel::ValueStorage;
@@ -60,6 +63,16 @@ impl BrowserBack {
 
     pub(crate) fn unary(maximum_input_bytes: u32, _maximum_values: u32) -> Self {
         Self::installed_step(UnaryBack {
+            initial: None,
+            maximum_input_bytes,
+            next_request: 0,
+            pending: None,
+        })
+    }
+
+    pub(crate) fn unary_with_initial(maximum_input_bytes: u32, initial: ValueRef) -> Self {
+        Self::installed_step(UnaryBack {
+            initial: Some(initial),
             maximum_input_bytes,
             next_request: 0,
             pending: None,
@@ -81,8 +94,8 @@ impl BrowserBack {
         })
     }
 
-    pub(crate) fn presentation(maximum_input_bytes: u32, _maximum_values: u32) -> Self {
-        Self::installed_step(PresentationBack {
+    pub(crate) fn face(maximum_input_bytes: u32, _maximum_values: u32) -> Self {
+        Self::installed_step(FaceBack {
             maximum_input_bytes,
             next_request: 0,
             pending: None,
@@ -274,6 +287,10 @@ impl StepBack<{ super::BROWSER_PORTS_PER_GEAR }> for BrowserBack {
         self.step.step(io, input_bytes)
     }
 
+    fn prepared_output(&self, port: PortId) -> Option<&[u8]> {
+        self.step.prepared_output(port)
+    }
+
     fn accepts_input_while_host_call_pending(&self) -> bool {
         self.step.accepts_input_while_host_call_pending()
     }
@@ -363,85 +380,13 @@ impl<const PORTS: usize> StepBack<PORTS> for SourceBack {
     }
 }
 
-struct UnaryBack {
+struct FaceBack {
     maximum_input_bytes: u32,
     next_request: u32,
     pending: Option<RequestId>,
 }
 
-impl<const PORTS: usize> StepBack<PORTS> for UnaryBack {
-    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
-        if let Some((request, outcome)) = io.host_completion() {
-            if self.pending != Some(request) {
-                return fail(2);
-            }
-            match (outcome.disposition, outcome.output, outcome.failure) {
-                (HostCallDisposition::Completed, output, None) => {
-                    if output.is_some() && !io.output_ready(PortId(0)) {
-                        return StepOutcome::Await;
-                    }
-                    let Some(next) = self.next_request.checked_add(1) else {
-                        return identity_exhausted(2);
-                    };
-                    io.consume_host_completion()
-                        .expect("observed unary Host Call completion");
-                    if let Some(output) = output {
-                        io.send(PortId(0), output.value)
-                            .expect("ready unary output");
-                    }
-                    self.pending = None;
-                    self.next_request = next;
-                    return StepOutcome::Progress;
-                }
-                (HostCallDisposition::Failed, None, Some(reason)) => {
-                    self.pending = None;
-                    return StepOutcome::Fail(reason);
-                }
-                (HostCallDisposition::Cancelled, None, None) => {
-                    self.pending = None;
-                    return StepOutcome::Fail(Failure {
-                        code: FailureCode::Cancelled,
-                        detail: 0,
-                    });
-                }
-                _ => return fail(2),
-            }
-        }
-        if let Some(value) = io.input(PortId(0)) {
-            if self.pending.is_some() {
-                return fail(2);
-            }
-            let input = match BoundedValueRef::new(value, self.maximum_input_bytes) {
-                Ok(input) => input,
-                Err(_) => return fail(2),
-            };
-            let request = RequestId(self.next_request);
-            io.consume(PortId(0)).expect("present unary input");
-            io.request_host_call(request, HostCallId(0), input)
-                .expect("unary Host Call");
-            self.pending = Some(request);
-            return StepOutcome::Progress;
-        }
-        if io.input_closed(PortId(0)) && self.pending.is_none() {
-            io.consume_closed(PortId(0))
-                .expect("observed unary input closure");
-            return StepOutcome::Complete;
-        }
-        StepOutcome::Await
-    }
-
-    fn cancel(&mut self) {
-        self.pending = None;
-    }
-}
-
-struct PresentationBack {
-    maximum_input_bytes: u32,
-    next_request: u32,
-    pending: Option<RequestId>,
-}
-
-impl<const PORTS: usize> StepBack<PORTS> for PresentationBack {
+impl<const PORTS: usize> StepBack<PORTS> for FaceBack {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some((request, outcome)) = io.host_completion() {
             if self.pending != Some(request) {
@@ -453,7 +398,7 @@ impl<const PORTS: usize> StepBack<PORTS> for PresentationBack {
                         return identity_exhausted(3);
                     };
                     io.consume_host_completion()
-                        .expect("observed presentation completion");
+                        .expect("observed face completion");
                     self.pending = None;
                     self.next_request = next;
                     return StepOutcome::Progress;
@@ -473,15 +418,15 @@ impl<const PORTS: usize> StepBack<PORTS> for PresentationBack {
                 Err(_) => return fail(3),
             };
             let request = RequestId(self.next_request);
-            io.consume(PortId(0)).expect("present presentation input");
+            io.consume(PortId(0)).expect("present face input");
             io.request_host_call(request, HostCallId(0), input)
-                .expect("presentation Host Call");
+                .expect("face Host Call");
             self.pending = Some(request);
             return StepOutcome::Progress;
         }
         if io.input_closed(PortId(0)) && self.pending.is_none() {
             io.consume_closed(PortId(0))
-                .expect("observed presentation input closure");
+                .expect("observed face input closure");
             return StepOutcome::Complete;
         }
         StepOutcome::Await
@@ -709,7 +654,3 @@ fn identity_exhausted(detail: u16) -> StepOutcome {
         detail,
     })
 }
-
-#[cfg(test)]
-#[path = "unary_outcome_tests.rs"]
-mod unary_outcome_tests;

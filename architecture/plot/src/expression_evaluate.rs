@@ -1,6 +1,8 @@
 //! Portable semantic evaluation for one already checked expression program.
 
+mod arithmetic;
 mod equality;
+use arithmetic::binary;
 mod intrinsic;
 mod literal;
 mod structured;
@@ -28,6 +30,13 @@ pub enum PortableExpressionEvaluationRefusal {
     InvalidProgram,
     InvalidLiteral,
     Arithmetic,
+    QuantityProduct(conduit_core::RationalQuantityRefusal),
+    QuantityProjection(conduit_core::ExactNumericRefusal),
+    QuantityEncoding(conduit_core::QuantityRefusal),
+    UnprovedMathematicalComparison,
+    AngleTrigonometry(conduit_core::AngleTrigonometryRefusal),
+    InverseAngle(conduit_core::InverseAngleEncodingRefusal),
+    AngleReference(conduit_core::AngleReferenceRefusal),
     UnsupportedSemanticCall(String),
     UnsupportedType(String),
 }
@@ -40,6 +49,14 @@ impl PortableExpressionProgram {
     /// installations prepare bounded scratch storage before exposing the same
     /// evaluator through the execution kernel.
     pub fn evaluate(&self, input: &[u8]) -> Result<Vec<u8>, PortableExpressionEvaluationRefusal> {
+        self.validate_input_bound()
+            .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?;
+        if self
+            .input_maximum_bytes
+            .is_some_and(|maximum| input.len() > maximum as usize)
+        {
+            return Err(PortableExpressionEvaluationRefusal::InvalidInput);
+        }
         validate_input(&self.input_type, input)?;
         let output = evaluate_node(&self.root, input, &self.input_type)?;
         if output.value_type != self.output_type {
@@ -60,6 +77,12 @@ fn evaluate_node(
     input_type: &StructuredInfoType,
 ) -> Result<Value, PortableExpressionEvaluationRefusal> {
     let value = match &node.operation {
+        PortableExpressionOperation::Constant(value) => {
+            if value.value_type() != &node.value_type {
+                return Err(PortableExpressionEvaluationRefusal::InvalidProgram);
+            }
+            encoded_structured(value.clone())?
+        }
         PortableExpressionOperation::Input => {
             if &node.value_type != input_type {
                 return Err(PortableExpressionEvaluationRefusal::InvalidProgram);
@@ -70,6 +93,13 @@ fn evaluate_node(
             }
         }
         PortableExpressionOperation::Literal(literal) => literal_value(&node.value_type, literal)?,
+        PortableExpressionOperation::CanonicalLiteral(bytes) => {
+            validate_input(&node.value_type, bytes)?;
+            Value {
+                value_type: node.value_type.clone(),
+                encoded: bytes.clone(),
+            }
+        }
         PortableExpressionOperation::Projection { value, member } => projection(
             evaluate_node(value, input, input_type)?,
             member,
@@ -181,125 +211,12 @@ fn unary(
     primitive_value(expected, encoded)
 }
 
-fn binary(
-    operator: BinaryOperator,
-    proven: bool,
-    left: Value,
-    right: Value,
-    expected: &StructuredInfoType,
-) -> Result<Value, PortableExpressionEvaluationRefusal> {
-    if left.value_type != right.value_type {
-        return Err(PortableExpressionEvaluationRefusal::InvalidProgram);
-    }
-    if matches!(operator, BinaryOperator::Equal | BinaryOperator::NotEqual) {
-        let equal = equality::equal(left, right)?;
-        return primitive_value(
-            expected,
-            InfoBool::new(if matches!(operator, BinaryOperator::Equal) {
-                equal
-            } else {
-                !equal
-            })
-            .encode()
-            .to_vec(),
-        );
-    }
-    let comparison = matches!(
-        operator,
-        BinaryOperator::Less
-            | BinaryOperator::LessOrEqual
-            | BinaryOperator::Greater
-            | BinaryOperator::GreaterOrEqual
-            | BinaryOperator::Equal
-            | BinaryOperator::NotEqual
-    );
-    let encoded = if matches!(
-        operator,
-        BinaryOperator::BooleanAnd | BinaryOperator::BooleanOr
-    ) {
-        let left = decode_bool(&left)?;
-        let right = decode_bool(&right)?;
-        InfoBool::new(match operator {
-            BinaryOperator::BooleanAnd => left && right,
-            BinaryOperator::BooleanOr => left || right,
-            _ => unreachable!(),
-        })
-        .encode()
-        .to_vec()
-    } else if comparison {
-        let ordering = compare(&left, &right)?;
-        InfoBool::new(match operator {
-            BinaryOperator::Less => ordering.is_lt(),
-            BinaryOperator::LessOrEqual => !ordering.is_gt(),
-            BinaryOperator::Greater => ordering.is_gt(),
-            BinaryOperator::GreaterOrEqual => !ordering.is_lt(),
-            BinaryOperator::Equal => ordering.is_eq(),
-            BinaryOperator::NotEqual => !ordering.is_eq(),
-            _ => unreachable!(),
-        })
-        .encode()
-        .to_vec()
-    } else if leaf_kind(&left.value_type)? == COUNT_INFO_ID {
-        let left = decode_count(&primitive_bytes(&left)?)
-            .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?;
-        let right = decode_count(&primitive_bytes(&right)?)
-            .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?;
-        let result = match operator {
-            BinaryOperator::Multiply => left.checked_mul(right),
-            BinaryOperator::Divide if right != 0 => left.checked_div(right),
-            BinaryOperator::Remainder if right != 0 => left.checked_rem(right),
-            BinaryOperator::Add => left.checked_add(right),
-            BinaryOperator::Subtract => left.checked_sub(right),
-            _ => None,
-        }
-        .ok_or(PortableExpressionEvaluationRefusal::Arithmetic)?;
-        encode_count(result).to_vec()
-    } else if leaf_kind(&left.value_type)? == SCALAR_INFO_ID {
-        let left = Scalar::decode(&primitive_bytes(&left)?)
-            .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?;
-        let right = Scalar::decode(&primitive_bytes(&right)?)
-            .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?;
-        match operator {
-            BinaryOperator::Multiply => left.checked_mul(right),
-            BinaryOperator::Divide => left.checked_div(right),
-            BinaryOperator::Remainder => left.checked_rem(right),
-            BinaryOperator::Add => left.checked_add(right),
-            BinaryOperator::Subtract => left.checked_sub(right),
-            _ => return Err(PortableExpressionEvaluationRefusal::InvalidProgram),
-        }
-        .map_err(|_| PortableExpressionEvaluationRefusal::Arithmetic)?
-        .encode()
-        .to_vec()
-    } else {
-        let left = decode_integer(&left)?;
-        let right_integer = decode_integer(&right)?;
-        let result = match (operator, proven) {
-            (BinaryOperator::Multiply, true) => left.wrapping_mul(right_integer),
-            (BinaryOperator::Add, true) => left.wrapping_add(right_integer),
-            (BinaryOperator::Subtract, true) => left.wrapping_sub(right_integer),
-            (BinaryOperator::Multiply, false) => left.checked_mul(right_integer),
-            (BinaryOperator::Divide, _) => left.checked_div(right_integer),
-            (BinaryOperator::Remainder, _) => left.checked_rem(right_integer),
-            (BinaryOperator::Add, false) => left.checked_add(right_integer),
-            (BinaryOperator::Subtract, false) => left.checked_sub(right_integer),
-            (BinaryOperator::BitAnd, _) => left.bit_and(right_integer),
-            (BinaryOperator::BitXor, _) => left.bit_xor(right_integer),
-            (BinaryOperator::BitOr, _) => left.bit_or(right_integer),
-            (BinaryOperator::ShiftLeft, _) => left.checked_shift_left(shift_count(right_integer)?),
-            (BinaryOperator::ShiftRight, _) => {
-                left.checked_shift_right(shift_count(right_integer)?)
-            }
-            _ => return Err(PortableExpressionEvaluationRefusal::InvalidProgram),
-        }
-        .map_err(|_| PortableExpressionEvaluationRefusal::Arithmetic)?;
-        encode_integer(result)
-    };
-    primitive_value(expected, encoded)
-}
-
 fn compare(left: &Value, right: &Value) -> Result<Ordering, PortableExpressionEvaluationRefusal> {
     let kind = leaf_kind(&left.value_type)?;
-    if fixed_integer(
+    if kind == conduit_core::F32_INFO_ID {
+        crate::expression_f32::ordering(&primitive_bytes(left)?, &primitive_bytes(right)?)
+            .ok_or(PortableExpressionEvaluationRefusal::Arithmetic)
+    } else if fixed_integer(
         primitive_info_kind(kind)
             .ok_or_else(|| PortableExpressionEvaluationRefusal::UnsupportedType(kind.into()))?,
     ) {
@@ -324,6 +241,8 @@ fn compare(left: &Value, right: &Value) -> Result<Ordering, PortableExpressionEv
             ))
     } else if conduit_core::quantity_info_dimension(kind).is_some()
         || kind == conduit_core::QUANTITY_INFO_ID
+        || conduit_core::primitive_info_kind(kind)
+            == Some(conduit_core::PrimitiveInfoKind::Quantity)
     {
         Quantity::decode(&left.encoded)
             .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?

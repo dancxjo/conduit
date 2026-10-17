@@ -172,12 +172,17 @@ default = []
 hosted-tools = []
 hotplug-proof = []
 scripted-keyboard-proof = []
+usb-configuration-proof = []
+usb-endpoint-read-proof = ["scripted-keyboard-proof"]
+usb-hid-endpoint-proof = ["usb-endpoint-read-proof"]
+usb-hid-mouse-proof = ["usb-hid-endpoint-proof"]
 native-compositor = ["dep:fontdue", "native-owner-network"]
 # The product's invitation-bound owner exchange uses the same bounded network
 # machinery as the isolated transport proof, without selecting its entrypoint.
 native-owner-network = ["dep:embedded-io", "dep:embedded-tls", "dep:embedded-websocket", "dep:rand_chacha", "dep:rand_core", "dep:serde-json-core", "dep:smoltcp"]
 native-http-client = []
 conduitos-isolation-proof = []
+ordinary-domain-proof = []
 emergency-halt-proof = []
 virtio-net-proof = ["native-owner-network"]
 ps2-input = []
@@ -222,7 +227,7 @@ conduit-kernel = { path = "../../architecture/kernel", features = ["alloc"] }
 conduit-observatory = { path = "../../architecture/observatory" }
 conduit-planner = { path = "../../architecture/planner" }
 conduit-protected-line = { path = "../../architecture/protected-line", default-features = false, features = ["noise-session"] }
-conduit-presentation = { path = "../../semantics/presentation" }
+conduit-face = { path = "../../semantics/face" }
 conduit-conduitos-mask-offer = { path = "mask-offer" }
 conduit-tour-model = { path = "../../plots/tour" }
 conduit-tutorial-plot = { path = "../../semantics/tutorial" }
@@ -239,6 +244,7 @@ ed25519-dalek = { version = "2.2", default-features = false, features = ["alloc"
 conduit-semantic-catalog = { path = "../../semantics/catalog", default-features = false, features = ["plot-catalog", "kernel-step"] }
 conduit-time = { path = "../../semantics/time" }
 conduit-text = { path = "../../semantics/text", default-features = false }
+conduit-data = { path = "../../semantics/data", default-features = false }
 conduit-web = { path = "../../semantics/web", default-features = false }
 conduit-synth = { path = "../../mechanisms/implementations/synth" }
 sha2 = { version = "=0.10.9", default-features = false }
@@ -251,6 +257,8 @@ limine = "=0.5.0"
 
 [dev-dependencies]
 conduit-std-host = { path = "../std" }
+conduit-todo-face = { path = "../../plots/todo/face" }
+conduit-todo-plot = { path = "../../plots/todo/model" }
 
 [build-dependencies]
 # Make-only rasterization: no font parser or atlas allocation in Play.

@@ -1,0 +1,7 @@
+glyph notation notation = {
+ revision: "conduit.text/portable-pattern-notation@1",
+ branches: [
+  { delimiter: "slash", lexical-policy: "portable-pattern", parser: "conduit.text/portable-pattern@1", constructor: "text/pattern-from-source", constructor-revision: "conduit.text/portable-pattern@1", result: "PortablePatternSpecification", maximum-payload-bytes: 4096 },
+  { delimiter: "double-square", lexical-policy: "portable-pattern", parser: "conduit.text/portable-pattern@1", constructor: "text/pattern-from-source", constructor-revision: "conduit.text/portable-pattern@1", result: "PortablePatternSpecification", maximum-payload-bytes: 4096 }
+ ]
+}

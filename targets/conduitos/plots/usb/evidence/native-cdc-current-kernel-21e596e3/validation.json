@@ -1,0 +1,29 @@
+{
+  "proof_class": "native-x86_64-emulator-external-device",
+  "source_package_sha256": "15a4b501b95e978c03c0f3a2bc9e966d44fa182280d6349f2664c754b9fca8b1",
+  "kernel_build": {
+    "schema": "conduit.conduitos.build/v2",
+    "artifact_role": "product-host",
+    "base_commit": "21e596e341c025b0d541717dc8405030dcfee49c",
+    "architecture": "x86_64",
+    "rust_target": "x86_64-unknown-none",
+    "limine_crate": "0.5.0",
+    "elf_sha256": "8fa1f767f50907d0aec9b6f3b57b13f28c8329e9067c3f743e549e912fe978b4"
+  },
+  "serial_results": 32,
+  "transmitted": 16,
+  "received": 16,
+  "exact_ordered_octets": true,
+  "source_controls": 5,
+  "discovery_controls": 2,
+  "play_allocations": 0,
+  "play_reallocations": 0,
+  "acknowledged_stop": true,
+  "normal_retirement": true,
+  "physical_proof": false,
+  "files": {
+    "serial.log": "21a9ababed2da1f1216442dc9a5b6c5ca5302f27ae50aa2b96978b087acd2790",
+    "wire.jsonl": "2fe2a38e6ff994f0722aa64f88d2aa64140d73d45c40f91e71d223063720b61b",
+    "receipt.json": "04797078789f466bbf769780161237c84b388459cc101790677b908aa5ba0599"
+  }
+}

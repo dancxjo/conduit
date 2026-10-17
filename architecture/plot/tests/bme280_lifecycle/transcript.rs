@@ -1,5 +1,26 @@
 use super::fixture::*;
 use conduit_core::StructuredInfoValue;
+
+#[test]
+fn every_clock_failure_is_preserved_and_terminates_without_inventing_time() {
+    let mut fixture = Fixture::new();
+    for failure in [
+        "unavailable",
+        "provider-lost",
+        "unsupported-deadline",
+        "malformed",
+        "timeout",
+    ] {
+        let initial = fixture.initial();
+        let state = fixture.advance(initial, fixture.clock_failure(failure));
+        assert_eq!(byte(field(&state, "phase")), 15);
+        assert_eq!(field(&state, "clock"), field(&fixture.initial(), "clock"));
+        let action = fixture.action(&state);
+        assert_eq!(tag(&action), "refused");
+        assert_eq!(tag(payload(&action)), "clock");
+        assert_eq!(tag(payload(payload(&action))), failure);
+    }
+}
 fn request(f: &mut Fixture, state: &StructuredInfoValue, write: &[u8], read: u8) {
     let action = f.action(state);
     assert_eq!(tag(&action), "transact");

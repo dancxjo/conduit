@@ -20,7 +20,12 @@ cargo xtask prove browser-host
 `check browser` runs deterministic runtime, ABI, SDK, package, and compile
 contracts without launching a browser or fabricating product shells. `prove
 browser-host` stages the required artifacts and runs the pinned live-browser
-evidence matrix. Inspect prerequisites with `cargo xtask doctor browser`.
+evidence matrix for the maintained browser Host controls, Body-granted WebRTC
+in Chromium and Firefox, and the HTML Patchbay captures. It does not build the
+retired native Patchbay shell or its former membership capstones; the current
+one-Body Linux, QMP, and browser proof has its own
+[three-Host entrance](../../docs/contributing/native-three-host-proof.md).
+Inspect prerequisites with `cargo xtask doctor browser`.
 For reviewed canonical plots specifically, use
 `cargo xtask check plots run --browser`. See the [visual evidence guide](../../docs/visual-evidence.md)
 for capture and publication rules.

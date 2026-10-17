@@ -3,9 +3,25 @@ name = "conduit-language"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+parser-model = ["dep:conduit-ai", "dep:conduit-data"]
+
 [dependencies]
+conduit-ai = { path = "../ai", optional = true, features = ["kernel-operation-owners"] }
+conduit-data = { path = "../data", optional = true }
 conduit-core = { path = "../../architecture/core" }
 conduit-plot = { path = "../../architecture/plot" }
 
 [build-dependencies]
+conduit-core = { path = "../../architecture/core" }
 conduit-plot = { path = "../../architecture/plot" }
+
+[dev-dependencies]
+conduit-ai = { path = "../ai" }
+conduit-data = { path = "../data" }
+conduitos = { path = "../../targets/conduitos" }
+conduit-composite = { path = "../../architecture/composite" }
+conduit-kernel = { path = "../../architecture/kernel", features = ["alloc"] }
+conduit-plan-lowering = { path = "../../architecture/plan-lowering" }
+conduit-planner = { path = "../../architecture/planner" }
+serde_json = "1"

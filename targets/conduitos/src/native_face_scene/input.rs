@@ -1,8 +1,8 @@
 //! Mask-local replacement buffers. No current value is inferred from Face prose.
 use super::*;
 use alloc::{boxed::Box, string::String, vec};
-use conduit_human::{ConduitIntlKeymap, KeyEvent, KeyModifiers, KeyTransition, KeymapDisposition};
-use conduit_presentation::{ManifestationLifecycle, UTF8_TEXT_VALUE_KIND};
+use conduit_face::{ManifestationLifecycle, UTF8_TEXT_VALUE_KIND};
+use conduit_human::{KeyEvent, KeyModifiers, KeyTransition, PreparedKeymap};
 
 /// A navigation wish, resolved afresh after the producer accepts an interaction.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -23,7 +23,7 @@ pub enum FaceSceneInput {
 
 #[derive(Default)]
 pub(super) struct InputState {
-    keymap: ConduitIntlKeymap,
+    keymap: PreparedKeymap,
     action: Option<usize>,
     values: Vec<Option<Vec<u8>>>,
     submitted: bool,
@@ -95,6 +95,42 @@ impl NativeFaceScene {
         Ok(())
     }
 
+    /// Read one exact graph subject through the existing complete Details reader.
+    /// This changes Mask-local reading position, never an action or owner state.
+    pub fn inspect_subject(
+        &mut self,
+        face_id: &FaceContentId,
+        revision: u64,
+        identity: &str,
+    ) -> Result<(), FaceSceneError> {
+        if face_id != &self.face.identity || revision != self.face.revision {
+            return Err(FaceSceneError::StaleFace);
+        }
+        let subject = self
+            .face
+            .subjects
+            .iter()
+            .position(|subject| {
+                subject.identity == identity
+                    && matches!(
+                        subject.role,
+                        conduit_face::FaceRole::Gear
+                            | conduit_face::FaceRole::Port
+                            | conduit_face::FaceRole::Cord
+                    )
+            })
+            .ok_or(FaceSceneError::UnknownControl)?;
+        let page = self
+            .details
+            .iter()
+            .find(|row| row.subject_index == Some(subject))
+            .ok_or(FaceSceneError::DocumentBound)?
+            .page;
+        self.show_details(true);
+        self.page = page;
+        Ok(())
+    }
+
     /// Pointer coordinates use the exact currently displayed page. Clicking a
     /// field focuses it; clicking an argument-free action submits it. Dirty
     /// replacement input commits before changing focus, returning a fresh-focus
@@ -107,6 +143,25 @@ impl NativeFaceScene {
         sequence: u64,
     ) -> Result<FaceSceneInput, FaceSceneError> {
         self.check_show(show)?;
+        if self.showing_diagram {
+            let mut drawing = GraphicsScene::empty();
+            let hits = diagram::append(&mut drawing, &self.face, self.screen, self.page)?;
+            let selected = hits
+                .into_iter()
+                .flatten()
+                .find(|(bounds, _)| {
+                    i32::from(x) >= i32::from(bounds.x)
+                        && i32::from(y) >= i32::from(bounds.y)
+                        && i32::from(x) < i32::from(bounds.x) + i32::from(bounds.width)
+                        && i32::from(y) < i32::from(bounds.y) + i32::from(bounds.height)
+                })
+                .map(|(_, identity)| String::from(identity));
+            if let Some(identity) = selected {
+                self.inspect_subject(&self.face.identity.clone(), self.face.revision, &identity)?;
+                return Ok(FaceSceneInput::Changed);
+            }
+            return Ok(FaceSceneInput::Unchanged);
+        }
         if !self.interaction_admitted {
             return Ok(FaceSceneInput::Unchanged);
         }
@@ -140,6 +195,20 @@ impl NativeFaceScene {
         sequence: u64,
     ) -> Result<FaceSceneInput, FaceSceneError> {
         self.check_show(show)?;
+        if self.showing_diagram
+            && event.transition() == KeyTransition::Pressed
+            && (30..=35).contains(&event.usage())
+        {
+            let mut drawing = GraphicsScene::empty();
+            let hits = diagram::append(&mut drawing, &self.face, self.screen, self.page)?;
+            let selected =
+                hits[usize::from(event.usage() - 30)].map(|(_, identity)| String::from(identity));
+            if let Some(identity) = selected {
+                self.inspect_subject(&self.face.identity.clone(), self.face.revision, &identity)?;
+                return Ok(FaceSceneInput::Changed);
+            }
+            return Ok(FaceSceneInput::Unchanged);
+        }
         if !self.interaction_admitted {
             if event.transition() != KeyTransition::Pressed {
                 return Ok(FaceSceneInput::Unchanged);
@@ -153,7 +222,7 @@ impl NativeFaceScene {
             return Ok(FaceSceneInput::Changed);
         }
         if event.transition() != KeyTransition::Pressed {
-            self.input.keymap.apply(event);
+            let _ = self.input.keymap.apply(event);
             return Ok(FaceSceneInput::Unchanged);
         }
         if !self.input.keymap.is_composing() {
@@ -204,7 +273,7 @@ impl NativeFaceScene {
         // Modifier reports have no text payload. They must remain harmless
         // even while an argument-free action owns focus.
         if (224..=231).contains(&event.usage()) {
-            self.input.keymap.apply(event);
+            let _ = self.input.keymap.apply(event);
             return Ok(FaceSceneInput::Unchanged);
         }
         let Some(control) = self.focus else {
@@ -236,20 +305,19 @@ impl NativeFaceScene {
                 core::str::from_utf8(&value).map_err(|_| FaceSceneError::UnsupportedInput)?;
             let end = text.char_indices().last().map_or(0, |(index, _)| index);
             value.truncate(end);
-        } else if let KeymapDisposition::Text(fragment) = disposition {
+        } else if let Ok(Some(fragment)) = disposition {
             if kind == "value/bool" {
-                value = match fragment.as_char() {
-                    '0' => vec![0],
-                    '1' => vec![1],
+                value = match fragment.as_slice() {
+                    b"0" => vec![0],
+                    b"1" => vec![1],
                     _ => return Err(FaceSceneError::UnsupportedInput),
                 };
             } else {
-                let mut bytes = [0; 4];
-                value.extend_from_slice(fragment.encode_utf8(&mut bytes));
+                value.extend_from_slice(fragment.as_slice());
             }
         } else {
             return match disposition {
-                KeymapDisposition::Refused(_) => Err(FaceSceneError::UnsupportedInput),
+                Err(_) => Err(FaceSceneError::UnsupportedInput),
                 _ => Ok(FaceSceneInput::Unchanged),
             };
         }
@@ -269,7 +337,7 @@ impl NativeFaceScene {
             .map(|(_, value)| value.as_ref().map_or(0, Vec::len))
             .sum::<usize>()
             + value.len();
-        if total > conduit_presentation::MAX_FACE_INTERACTION_BYTES {
+        if total > conduit_face::MAX_FACE_INTERACTION_BYTES {
             return Err(FaceSceneError::InputBound);
         }
         self.input.values[argument_index] = Some(value);

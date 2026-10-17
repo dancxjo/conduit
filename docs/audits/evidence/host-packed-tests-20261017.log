@@ -1,0 +1,411 @@
+   Compiling conduit-kernel v0.1.0 (/home/dancxjo/conduit/architecture/kernel)
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/conduit/architecture/plot)
+   Compiling conduit-human v0.1.0 (/home/dancxjo/conduit/semantics/human)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 19.82s
+     Running unittests src/lib.rs (target/debug/deps/conduit_kernel-e5c0ec00260d019f)
+
+running 168 tests
+test execution_disposition::tests::drained_work_is_quiescent_unless_semantics_explicitly_complete ... ok
+test scheduler::active_capacity::tests::admits_zero_cord_calls_but_not_zero_nodes_or_capacity_overflow ... ok
+test scheduler::host_call_index::tests::index_represents_the_entire_u16_node_cardinality_without_a_sentinel_collision ... ok
+test scheduler::quiescence::tests::ordinary_preparation_uses_only_active_cords ... ok
+test scheduler::fanout_value::tests::invalid_fanout_count_refuses_before_storage_mutation ... ok
+test scheduler::quiescence::tests::sparse_armed_quiescence_ignores_unarmed_tail_without_losing_ineligible_edges ... ok
+test scheduler::quiescence::tests::quiescence_arming_visits_only_the_sources_routed_targets ... ok
+test hosted::tests::mixed_hosted_capacities_keep_smallest_fit_and_first_equal_slot ... ok
+test execution_disposition::tests::stable_names_keep_semantic_and_embodiment_outcomes_distinct ... ok
+test scheduler::quiescence::tests::boxed_preparation_uses_only_active_cords ... ok
+test execution_disposition::tests::exact_failure_categories_survive_classification ... ok
+test fixed_value_store::tests::dense_store_and_released_holes_preserve_first_free_slot_identity ... ok
+test fixed_value_store::tests::refused_storage_and_stale_release_do_not_move_free_bound ... ok
+test hosted::tests::full_hosted_store_preserves_size_and_byte_refusal_precedence ... ok
+test scheduler::scan_characterization::capture_small_and_large_selector_replay ... ignored, manual deterministic replay and timing; diagnostic fixed stack, no SMP claim
+test scheduler::scan_characterization::characterize_loaded_and_sparse_fixed_scheduler_scans ... ignored, manual optimized instrumented kernel scan baseline; no timing threshold
+test scheduler::cord_prefix::tests::prefix_acceptance_matches_pairwise_oracle_for_unordered_and_invalid_layouts ... ok
+test scheduler::cord_prefix::tests::ordered_ten_thousand_cords_need_no_pairwise_prefix_probes ... ok
+test scheduler::queue_index::tests::bounded_ring_positions_match_wide_arithmetic ... ok
+test scheduler::quiescence::tests::prepared_quiescence_bound_includes_last_match_and_ignores_empty_prefix ... ok
+test scheduler::route_membership::tests::source_fanout_targets_are_validated_once_without_reverse_walks ... ok
+test scheduler::route_membership::tests::missing_empty_and_incomplete_routes_preserve_exact_refusals ... ok
+test scheduler::route_membership::tests::duplicate_and_cross_source_route_targets_remain_invalid ... ok
+test scheduler::route_membership::tests::ingress_only_preparation_needs_no_route_membership_scratch ... ok
+test scheduler::route_membership::tests::routed_preparation_initializes_cord_membership_once ... ok
+test scheduler::route_membership::tests::boxed_preparation_initializes_cord_membership_once ... ok
+test scheduler::scan_characterization::overhead_observation::allocator_probe_counts_real_storage_without_other_thread_noise ... ok
+test scheduler::scan_characterization::host_many::interleaving::packed_adapter_bound_reverts_after_early_slot_consumption_leaves_a_hole ... ok
+test scheduler::scan_characterization::host_many::interleaving::global_cancel_clears_reinserted_and_queued_cancellations ... ok
+test scheduler::remote_target_prefix::tests::ten_thousand_increasing_targets_skip_all_prefix_comparisons ... ok
+test scheduler::scan_characterization::overhead_observation::value_observation_delegates_custody_and_counts_only_successful_copies ... ok
+test scheduler::scan_characterization::host_many::interleaving::earlier_cancellation_reinsertion_preserves_order_through_completion_races ... ok
+test scheduler::scan_characterization::host_many::interleaving::completion_sign_refusal_preserves_queued_cancellation_until_accepted_retry ... ok
+test scheduler::tests::a_back_cannot_evade_exposed_abnormal_truth_by_awaiting ... ok
+test scheduler::tests::a_cancellation_request_cannot_be_consumed_as_normal_completion ... ok
+test scheduler::tests::a_back_observes_and_transduces_exact_abnormal_input_truth ... ok
+test scheduler::tests::abnormal_track_transduces_semantic_terminal_without_manufacturing_back_failure ... ok
+test scheduler::tests::all_inputs_close_contract_consumes_early_close_and_completes_on_last_close ... ok
+test scheduler::tests::abnormal_finalization_is_finite_across_steps_and_output_pressure ... ok
+test scheduler::tests::abnormal_terminal_fanout_is_atomic_across_every_explicit_track ... ok
+test scheduler::tests::blocked_join_preserves_every_input_until_atomic_commit ... ok
+test scheduler::tests::cancellation_rejects_late_host_completion_and_releases_pending_input ... ok
+test scheduler::ready_set::tests::isolated_wake_clear_and_large_boundaries_preserve_independent_membership ... ok
+test scheduler::tests::fanout_storage::refused_normal_close_fanout_reclaims_unpublished_references ... ok
+test scheduler::tests::coalescing_cords_supersede_the_newest_pending_item_without_growth ... ok
+test scheduler::tests::fanout_storage::refused_quiescence_fanout_reclaims_unpublished_references ... ok
+test scheduler::tests::cancellation_request_remains_pending_until_typed_disposition_after_multiple_steps ... ok
+test scheduler::tests::cancellation_releases_queued_and_driver_owned_values_and_is_terminal ... ok
+test scheduler::ready_set::tests::sparse_large_selection_skips_empty_groups_without_growing_storage ... ok
+test scheduler::scan_characterization::loaded_and_sparse_scan_counts_preserve_fairness_and_pressure ... ok
+test hosted::tests::full_hosted_store_refuses_without_inspecting_slots_and_reopens_on_release ... ok
+test scheduler::tests::fanout_storage::refused_abnormal_fanout_reclaims_unpublished_references ... ok
+test scheduler::tests::generated_value_envelope::generated_output_semantic_envelope_precedes_full_storage ... ok
+test scheduler::tests::host_alias::consumed_reference_can_transfer_while_another_input_keeps_its_alias ... ok
+test scheduler::tests::host_alias::explicitly_pinned_reference_stays_queued_until_host_completion ... ok
+test scheduler::tests::host_alias::consumed_unit_reference_releases_each_alias_after_completion ... ok
+test scheduler::tests::host_alias::pinned_unit_reference_remains_valid_until_its_cord_is_consumed ... ok
+test scheduler::tests::host_alias::unconsumed_queued_reference_cannot_be_borrowed_for_host_work ... ok
+test scheduler::tests::host_cancellation::global_cancellation_clears_pending_occupancy_with_the_request_table ... ok
+test scheduler::tests::host_cancellation::accepted_completion_wins_before_cancellation ... ok
+test scheduler::tests::host_cancellation::cancels_and_replaces_one_dispatched_request ... ok
+test scheduler::fanout_value::tests::maximum_representable_fanout_preserves_exact_reference_count ... ok
+test scheduler::tests::host_cancellation::refuses_cancellation_until_the_exact_request_is_dispatched ... ok
+test scheduler::tests::host_cancellation::hosted_and_fixed_vectors_match ... ok
+test scheduler::tests::host_index::distinct_nodes_keep_exact_slots_through_out_of_order_completion ... ok
+test scheduler::tests::host_output_bytes_are_borrowed_and_derived_output_uses_admitted_storage ... ok
+test scheduler::tests::hosted_and_fixed_cancellation_vectors_match ... ok
+test scheduler::tests::host_slot_allocation::host_slot_fill_is_linear_and_out_of_order_replacement_keeps_first_free_order ... ok
+test scheduler::tests::hosted_and_fixed_host_call_vectors_match ... ok
+test scheduler::tests::host_value_occupancy::host_value_cleanup_skips_empty_reserved_tables ... ok
+test scheduler::tests::hosted_and_fixed_join_rollback_vectors_match ... ok
+test scheduler::tests::host_cancellation::unrelated_ready_node_does_not_scan_a_large_live_host_table ... ok
+test scheduler::tests::host_cancellation::indexed_completion_admission_preserves_exact_refusals_with_a_large_table ... ok
+test scheduler::tests::host_cancellation_polling::rejecting_adapter_stops_after_last_undispatched_request_without_moving_cursor ... ok
+test scheduler::tests::hosted_executor_keeps_allocation_shape_after_play_start ... ok
+test scheduler::tests::local_coalescing::local_steps_coalesce_newest_values_and_preserve_blocked_fanout ... ok
+test scheduler::scan_characterization::host_many::interleaving::adapter_selection_matches_full_scan_through_competition_completion_and_reuse ... ok
+test scheduler::tests::hosted_and_fixed_schedulers_have_matching_multi_value_vectors ... ok
+test scheduler::tests::non_flushing_all_inputs_close_contract_waits_for_the_last_close ... ok
+test scheduler::tests::normal_close_track_delivers_one_unit_value_and_never_payload ... ok
+test scheduler::tests::host_value_pending::pending_ownership_skips_unused_tail_without_skipping_holes_or_completion_outputs ... ok
+test scheduler::tests::only_a_plan_bound_recovery_contract_resolves_projected_abnormal_truth ... ok
+test scheduler::tests::normal_close_flush_is_finite_across_steps_and_output_pressure ... ok
+test scheduler::tests::multi_value_port_graph_handles_pressure_closure_and_uneven_consumers ... ok
+test scheduler::tests::host_cancellation_polling::cancellation_polling_skips_absent_settled_and_dispatched_obligations ... ok
+test scheduler::tests::prepared_back_storage_emits_beyond_the_inline_derived_value_envelope ... ok
+test scheduler::tests::remote_fanout::abnormal_closure_preserves_one_exact_terminal_on_every_branch ... ok
+test scheduler::tests::remote_fanout::empty_remote_fanout_preserves_admitted_coalescing_policy ... ok
+test scheduler::tests::quiescence_track_fires_once_per_active_epoch_and_rearms_after_new_work ... ok
+test scheduler::tests::remote_fanout::empty_remote_payload_is_admitted_with_item_room_and_pressured_when_slots_fill ... ok
+test scheduler::tests::remote_delivery_sign_exhaustion_preserves_the_in_flight_value ... ok
+test scheduler::tests::remote_fanout::empty_remote_payload_obeys_item_pressure_without_allocating_or_partial_fanout ... ok
+test scheduler::tests::remote_cords_keep_values_owned_until_delivery_and_retry_full_without_growth ... ok
+test scheduler::tests::remote_fanout::exhausted_sign_sequence_refuses_fanout_before_payload_or_closure_mutation ... ok
+test scheduler::tests::remote_fanout::invalid_or_pressured_closure_leaves_every_ingress_branch_open ... ok
+test scheduler::tests::remote_fanout::pressured_remote_ingress_branch_refuses_atomic_payload_fanout_without_partial_delivery ... ok
+test scheduler::tests::host_value_occupancy::wrapped_and_coalescing_queued_values_remain_owned ... ok
+test scheduler::tests::remote_fanout::remote_fanout_pressure_cannot_hide_invalid_or_stale_sibling_targets ... ok
+test scheduler::tests::remote_fanout::remote_payloads_obey_semantic_value_bounds_before_pressure_or_coalescing ... ok
+test scheduler::tests::remote_ingress_sign_exhaustion_preserves_queue_sequence_and_open_state ... ok
+test scheduler::scan_characterization::large_sparse_and_loaded_pressure_preserve_outputs_and_readiness ... ok
+test scheduler::tests::host_cancellation_polling::sparse_reserved_host_adapter_polling_observation ... ok
+test scheduler::tests::remote_fanout::remote_fanout_rejects_more_targets_than_admitted_cords_even_under_pressure ... ok
+test scheduler::tests::remote_payload_terminal_retains_exact_abnormal_truth ... ok
+test scheduler::tests::scheduler_rejects_unbound_host_call_before_consumption_commit ... ok
+test scheduler::tests::scheduler_never_reuses_a_retired_request_identity ... ok
+test scheduler::tests::scheduler_admits_correlates_and_wakes_host_calls ... ok
+test scheduler::tests::semantic_value_bound_is_enforced_independently_of_queue_storage ... ok
+test scheduler::tests::simultaneous_terminals_use_each_inputs_exact_contract_in_port_order ... ok
+test scheduler::tests::terminal_sign_admission::oversized_abnormal_terminal_refuses_before_commit_and_allows_smaller_retry ... ok
+test scheduler::tests::terminal_failure_and_cancellation_never_emit_quiescence ... ok
+test scheduler::tests::terminal_sign_admission::abnormal_terminal_obeys_each_branch_semantic_envelope_before_commit ... ok
+test scheduler::tests::terminal_sign_admission::remote_terminal_sign_pressure_refuses_before_step_commit ... ok
+test sign_retention::tests::fixed_byte_pressure_reclaims_transient_history_before_item_slots_fill ... ok
+test scheduler::tests::terminal_sign_admission::terminal_sign_sequence_reserves_both_value_and_remote_closure ... ok
+test scheduler::tests::unconnected_checked_terminal_is_semantic_truth_not_invalid_port_access ... ok
+test sign_retention::tests::fixed_gap_overflow_preserves_complete_history ... ok
+test sign_retention::tests::fixed_remote_and_sequence_failures_do_not_publish_retained_entries ... ok
+test sign_retention::tests::fixed_remote_byte_pressure_publishes_or_preserves_history_atomically ... ok
+test sign_retention::tests::fixed_remote_sequence_overflow_preserves_history_and_sidecar ... ok
+test sign_retention::tests::fixed_reservation_checks_byte_pressure_gap_growth_for_the_entire_batch ... ok
+test sign_retention::tests::fixed_reservation_checks_event_sequence_before_publication ... ok
+test sign_retention::tests::hosted_byte_pressure_reclaims_transient_history_before_item_slots_fill ... ok
+test sign_retention::tests::hosted_gap_overflow_preserves_complete_history ... ok
+test sign_retention::tests::hosted_remote_and_sequence_failures_do_not_publish_retained_entries ... ok
+test sign_retention::tests::hosted_remote_byte_pressure_publishes_or_preserves_history_atomically ... ok
+test sign_retention::tests::hosted_remote_sequence_overflow_preserves_history_and_sidecar ... ok
+test sign_retention::tests::hosted_reservation_checks_byte_pressure_gap_growth_for_the_entire_batch ... ok
+test sign_retention::tests::hosted_reservation_checks_event_sequence_before_publication ... ok
+test sign_retention::tests::maximum_reservation_uses_retained_count_without_narrowing_overflow ... ok
+test single_source::tests::exact_single_source_uses_the_shared_step_and_sign_contracts ... ok
+test state_delay::continuation_tests::cancellation_discards_candidate_without_renewing_or_relabeling_it ... ok
+test state_delay::continuation_tests::finite_transition_budget_still_exhausts_without_committing_candidate ... ok
+test state_delay::continuation_tests::generation_capacity_refuses_without_wrap_or_silent_reset ... ok
+test state_delay::tests::absent_and_multiple_candidates_have_finite_outcomes ... ok
+test state_delay::tests::cancellation_failure_and_reset_are_deterministic_and_observable ... ok
+test state_delay::tests::fixed_and_hosted_profiles_share_numeric_recurrence_semantics ... ok
+test state_delay::tests::same_primitive_expresses_parameter_updates ... ok
+test state_delay::transfer::tests::a_larger_profile_continues_committed_state_and_generation ... ok
+test state_delay::transfer::tests::destination_bounds_must_fit_the_concrete_profile ... ok
+test state_delay::transfer::tests::insufficient_capacity_returns_the_unchanged_source ... ok
+test state_delay::transfer::tests::pending_candidate_is_not_silently_dropped ... ok
+test state_delay::transfer::tests::transfer_does_not_renew_transition_or_identity_capacity ... ok
+test tests::admitted_sink_host_call_may_have_no_output_payload ... ok
+test tests::admitted_source_host_call_may_have_no_input_payload ... ok
+test scheduler::tests::queue_ring_bounds::admitted_queue_arena_can_cross_the_u16_slot_address_boundary ... ok
+test tests::fixed_sign_evicts_transient_history_with_an_exact_gap_but_keeps_terminal_truth ... ok
+test tests::fixed_sign_has_independent_item_and_byte_budgets ... ok
+test tests::fixed_value_store_enforces_items_bytes_generation_and_fanout_references ... ok
+test tests::only_plan_admitted_host_calls_cross_the_boundary ... ok
+test tests::hosted_and_fixed_value_profiles_produce_the_same_storage_vector ... ok
+test tests::prebound_routes_never_broadcast_between_output_ports ... ok
+test tests::remote_sign_evicts_transient_history_but_preserves_remote_lifecycle_identity ... ok
+test tests::remote_sign_identity_requires_separate_admission_and_fails_atomically ... ok
+test state_delay::continuation_tests::externally_driven_state_has_finite_storage_without_a_semantic_step_count ... ok
+test scheduler::quiescence::tests::sparse_quiescence_matches_full_scan_eligibility_and_sign_order ... ok
+test scheduler::tests::host_slot_allocation::one_packed_call_among_many_nodes_preserves_adapter_order ... ok
+test scheduler::tests::queue_ring_bounds::large_wrapped_queue_preserves_order_and_coalescing_without_u16_addition ... ok
+test scheduler::tests::remote_fanout::shared_remote_publication_uses_remaining_fresh_generation_slot ... ok
+test scheduler::scan_characterization::sparse_large::two_ready_among_ten_thousand_preserve_fairness_pressure_and_ownership ... ok
+test scheduler::tests::remote_fanout::exhausted_generations_refuse_remote_publication_without_state_changes ... ok
+test scheduler::scan_characterization::remote_many::ten_thousand_remote_targets_preserve_atomic_admission_and_terminal_lineage ... ok
+test scheduler::remote_target_prefix::tests::duplicate_results_match_tuple_prefix_oracle_for_arbitrary_order ... ok
+test scheduler::scan_characterization::host_many::thousands_of_host_cancellations_complete_rearm_and_cancel_without_prefix_rescans ... ok
+test scheduler::ready_set::tests::packed_iteration_matches_linear_round_robin_at_every_cursor ... ok
+test sign_retention::tests::fixed_retained_count_matches_history_through_eviction_and_refused_records ... ok
+test sign_retention::tests::hosted_retained_count_matches_history_through_eviction_and_refused_records ... ok
+test scheduler::ready_set::tests::summary_iteration_matches_linear_for_partial_active_prefixes ... ok
+
+test result: ok. 166 passed; 0 failed; 2 ignored; 0 measured; 0 filtered out; finished in 0.16s
+
+     Running tests/active_prefix.rs (target/debug/deps/active_prefix-33676196755ab1af)
+
+running 3 tests
+test sealed_tables_cannot_reference_inactive_nodes_or_cords ... ok
+test inactive_capacity_is_rejected_and_never_cancelled ... ok
+test one_scheduler_capacity_runs_two_different_active_shapes ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/back_failure.rs (target/debug/deps/back_failure-cedcb33a1efca750)
+
+running 1 test
+test identical_detail_codes_do_not_erase_distinct_back_failures ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/body_evidence_and_faults.rs (target/debug/deps/body_evidence_and_faults-b336a76aa02c7cdd)
+
+running 8 tests
+test fault_scope_isolated_degraded_replaced_and_stale_completion_refused ... ok
+test metadata_lookup_lends_exact_identity_without_changing_graph_storage ... ok
+test cycles_and_excessive_direct_fan_in_refuse_before_mutation ... ok
+test semantic_terminal_digest_resolves_to_exact_causal_evidence ... ok
+test local_and_distributed_causal_chains_are_exact_not_temporal_guesses ... ok
+test oldest_edges_compact_deterministically_and_make_truncation_explicit ... ok
+test trace_preserves_branching_and_merging_without_timestamp_inference ... ok
+test terminal_correlation_never_guesses_after_ambiguity_or_compaction ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/debug_observation.rs (target/debug/deps/debug_observation-b101d788fee9f2c2)
+
+running 7 tests
+test invalid_record_and_preview_budgets_refuse_before_attachment ... ok
+test stale_unknown_malformed_and_nonmonotonic_inputs_refuse_without_replacing_history ... ok
+test stale_and_distributed_breakpoints_refuse_before_execution_control ... ok
+test attach_detach_and_fault_observation_do_not_change_execution_result ... ok
+test pressure_overwrites_only_debug_history_and_exposes_the_exact_gap ... ok
+test exact_gear_breakpoint_suspends_real_execution_and_resume_is_one_shot ... ok
+test production_scheduler_emits_exact_bounded_start_value_and_completion_observations ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/execution_region.rs (target/debug/deps/execution_region-ddbcedfc28968e54)
+
+running 5 tests
+test invalid_overlapping_and_late_chains_refuse_before_mutation ... ok
+test execution_owner_can_stop_before_every_logical_gear_without_later_steps ... ok
+test logical_outputs_pressure_terminal_signs_and_allocation_match ... ok
+test every_logical_failure_point_survives_grouping ... ok
+test every_logical_checkpoint_can_suspend_then_cancel_or_resume ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/execution_region_unavailable.rs (target/debug/deps/execution_region_unavailable-6afeef5383ef1dc1)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/heterogeneous_value_store.rs (target/debug/deps/heterogeneous_value_store-b077dc791fb24b4e)
+
+running 2 tests
+test heterogeneous_live_quota_and_shape_exhaustion_are_independent ... ok
+test heterogeneous_slots_preserve_large_slots_and_never_allocate_during_use ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/keyboard_source.rs (target/debug/deps/keyboard_source-2a6796408a32bcd3)
+
+running 3 tests
+test cancellation_and_host_input_failure_remain_distinct ... ok
+test full_key_cord_waits_under_pressure_without_dropping_or_overwriting ... ok
+test portable_vectors_cross_capacity_one_cord_and_close_exactly ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/ready_selection_allocation.rs (target/debug/deps/ready_selection_allocation-74f5f8fb8e7054e6)
+
+running 1 test
+test thirty_two_ready_nodes_remain_fair_without_play_allocation ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/scheduler_footprint.rs (target/debug/deps/scheduler_footprint-8ea771f0a2731488)
+
+running 1 test
+test observe_production_scheduler_footprint ... ignored, manual native production-layout observation; no size threshold
+
+test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/shared_flow.rs (target/debug/deps/shared_flow-5fb0b083e841118c)
+
+running 4 tests
+test fan_preserves_per_branch_delivery_failure_and_cancellation ... ok
+test fan_rejects_duplicate_recipients_before_retaining_an_item ... ok
+test fan_retains_one_snapshot_and_value_until_every_addressed_branch_terminates ... ok
+test merge_is_bounded_ordered_and_preserves_exact_source_member_identity ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/shared_pool.rs (target/debug/deps/shared_pool-654683b05d701845)
+
+running 4 tests
+test authority_realization_preparation_and_lifecycle_fail_independently ... ok
+test fan_snapshot_is_key_ordered_and_does_not_change_when_membership_changes ... ok
+test keyed_membership_is_finite_and_slot_reuse_rejects_stale_epochs ... ok
+test sign_exhaustion_never_partially_mutates_membership ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/shared_pool_cost_selection.rs (target/debug/deps/shared_pool_cost_selection-b9c6cd17a1cf038b)
+
+running 3 tests
+test completion_policy_beats_capacity_reference_then_preserves_atomic_occupation_and_pinning ... ok
+test duplicate_cost_bounds_authority_and_evidence_refuse_before_occupation ... ok
+test mismatched_or_stale_costs_keep_distinct_refusals_and_use_capacity_fallback ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/shared_pool_selection.rs (target/debug/deps/shared_pool_selection-d3bb240188fa0014)
+
+running 5 tests
+test every_resource_must_be_current_and_each_observation_sign_is_retained ... ok
+test new_work_fills_two_sealed_realizations_without_replanning ... ok
+test healthy_but_occupied_capacity_is_not_provider_exhaustion ... ok
+test provider_loss_is_not_replay_but_later_work_uses_the_sealed_alternative ... ok
+test stale_and_unsealed_truth_cannot_escape_the_plan_envelope ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/sign_capacity_cost.rs (target/debug/deps/sign_capacity_cost-ca656660015c989e)
+
+running 2 tests
+test observe_production_sign_capacity_cost ... ignored, manual Sign reservation cost capture; no timing threshold
+test capacity_probe_preserves_empty_sparse_full_and_sticky_logs ... ok
+
+test result: ok. 1 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/sign_query_extent.rs (target/debug/deps/sign_query_extent-fddc3a2e31c6b026)
+
+running 2 tests
+test hosted_queries_use_occupied_prefix_through_eviction ... ok
+test fixed_queries_use_occupied_prefix_through_eviction ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/sign_record_cost.rs (target/debug/deps/sign_record_cost-52ec2da8be132fe8)
+
+running 2 tests
+test observe_production_sign_record_cost ... ignored, manual optimized native Sign cost observations; no timing threshold
+test probe_preserves_exact_events_and_full_log_retention ... ok
+
+test result: ok. 1 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/state_continuation.rs (target/debug/deps/state_continuation-2066b02d24f9cd04)
+
+running 6 tests
+test a_larger_transition_allowance_executes_the_same_input_without_hiding_exhaustion ... ok
+test cancelling_a_pressured_update_retires_only_the_last_committed_state ... ok
+test derived_emission_capacity_is_checked_before_back_start ... ok
+test retirement_refuses_input_wait_and_preserves_state_after_explicit_cancellation ... ok
+test output_pressure_does_not_drop_the_queued_next_state ... ok
+test input_wait_continued_back_and_explicit_closure_are_distinct ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/state_prepared_output.rs (target/debug/deps/state_prepared_output-5fa1e4747c67e116)
+
+running 3 tests
+test prepared_state_preserves_empty_and_actual_short_extent ... ok
+test cancellation_during_pressure_retains_only_the_published_generation ... ok
+test large_initialization_updates_and_pressure_preserve_exact_committed_values ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/static_merge.rs (target/debug/deps/static_merge-e6982ac5f6f97721)
+
+running 2 tests
+test exact_static_sources_merge_in_kernel_order ... ok
+test unknown_source_reordering_and_pressure_fail_distinctly ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/step_atomic_discard.rs (target/debug/deps/step_atomic_discard-b7c27d1161f44b62)
+
+running 4 tests
+test discard_overflow_is_a_step_protocol_refusal ... ok
+test duplicate_and_stale_discard_fail_before_partial_commit ... ok
+test two_distinct_values_discard_in_one_terminal_step ... ok
+test blocked_output_preserves_both_discards_until_atomic_commit ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/step_fuel.rs (target/debug/deps/step_fuel-750d8bcded4520a3)
+
+running 3 tests
+test cancellation_is_observed_between_finite_steps ... ok
+test exceeding_a_plan_owned_grant_is_atomic_and_observable ... ok
+test cooperative_continuations_consume_each_grant_and_remain_fair ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/step_input_bytes.rs (target/debug/deps/step_input_bytes-c4cac610ad7217fb)
+
+running 2 tests
+test stale_identity_fails_before_a_step_payload_decision ... ok
+test fixed_and_hosted_stores_expose_the_same_exact_step_input_bytes ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/value_generation.rs (target/debug/deps/value_generation-8180275c626a5fa2)
+
+running 2 tests
+test fixed_generations_retire_on_final_release_or_clear ... ok
+test hosted_generations_retire_on_final_release_or_clear ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+     Running tests/value_store_model.rs (target/debug/deps/value_store_model-905a700ed70e3490)
+
+running 2 tests
+test fixed_store_matches_full_scan_model_through_interleaved_lifecycles ... ok
+test hosted_uniform_and_mixed_stores_match_full_scan_lifecycle_model ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
+
+   Doc-tests conduit_kernel
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

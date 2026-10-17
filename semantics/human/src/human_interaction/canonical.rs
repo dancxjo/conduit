@@ -3,7 +3,7 @@ use sha2::{Digest, Sha256};
 
 use super::{InteractionDomain, InteractionFamily, InteractionValue};
 use crate::OptionAvailability;
-use conduit_core::QuantityUnit;
+use conduit_core::Unit;
 
 pub(super) fn encode_family(output: &mut Vec<u8>, family: &InteractionFamily) {
     match family {
@@ -59,7 +59,7 @@ pub(super) fn encode_family(output: &mut Vec<u8>, family: &InteractionFamily) {
 
 fn encode_quantity_profile(
     output: &mut Vec<u8>,
-    unit: QuantityUnit,
+    unit: Unit,
     minimum: i64,
     maximum: i64,
     granularity: i64,

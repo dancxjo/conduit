@@ -1,0 +1,62 @@
+[
+  {
+    "kind": "singleton",
+    "value": {
+      "type_name": "BotReentryEvent",
+      "maximum_bytes": 4096
+    }
+  },
+  {
+    "kind": "seeded-until",
+    "value": {
+      "type_name": "BotReentryState",
+      "maximum_bytes": 4096
+    }
+  },
+  {
+    "kind": "concat",
+    "value": {
+      "type_name": "BotReentryEvent",
+      "maximum_bytes": 4096
+    }
+  },
+  {
+    "kind": "merge",
+    "value": {
+      "type_name": "BotReentryEvent",
+      "maximum_bytes": 4096
+    }
+  },
+  {
+    "kind": "feedback-zip",
+    "left": {
+      "type_name": "BotReentryState",
+      "maximum_bytes": 4096
+    },
+    "right": {
+      "type_name": "BotReentryEvent",
+      "maximum_bytes": 4096
+    }
+  },
+  {
+    "kind": "merge-instance",
+    "value": {
+      "type_name": "BlockReadResult",
+      "maximum_bytes": 4096
+    },
+    "alias": "BotReentryResults"
+  },
+  {
+    "kind": "feedback-zip-instance",
+    "alias": "BotReentryRequestGate",
+    "paired_alias": "BotReentryRequestPair",
+    "left": {
+      "type_name": "BotReentryState",
+      "maximum_bytes": 4096
+    },
+    "right": {
+      "type_name": "BlockReadRequest",
+      "maximum_bytes": 4096
+    }
+  }
+]

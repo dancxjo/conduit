@@ -317,7 +317,7 @@ fn nonempty(value: &str) -> bool {
     !value.is_empty()
 }
 
-/// Identity-only helper for presentations that need to render a selected route
+/// Identity-only helper for faces that need to render a selected route
 /// without copying base or credential facts into the event vocabulary.
 pub fn selected_admitted_line<'a>(
     event: &ControlLoopEvent,

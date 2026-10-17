@@ -21,7 +21,7 @@ fn offer() -> conduit_core::CapabilityOffer {
         "browser/plot-pointer-source@1",
         "browser/plot-pointer-source@1",
         "conduit-browser-runtime/plot-pointer-source@1",
-        super::MAXIMUM_BROWSER_VALUE_BYTES as u32,
+        super::NORMALIZED_POINTER_VALUE_BYTES as u32,
         vec![conduit_core::ResourceRequirement {
             class_id: super::input::WINDOW_INPUT_RESOURCE_CLASS.into(),
             units: 1,
@@ -73,7 +73,7 @@ impl<const PORTS: usize> StepBack<PORTS> for PointerSource {
             }
             match (outcome.disposition, outcome.output, outcome.failure) {
                 (HostCallDisposition::Completed, Some(output), None)
-                    if output.admitted_bytes == super::MAXIMUM_BROWSER_VALUE_BYTES as u32 =>
+                    if output.admitted_bytes == super::NORMALIZED_POINTER_VALUE_BYTES as u32 =>
                 {
                     if !io.output_ready(PortId(0)) {
                         return StepOutcome::Await;
@@ -138,7 +138,7 @@ mod tests {
         let mut io = StepIo::test_frame(
             [None; super::super::BROWSER_PORTS_PER_GEAR],
             [false; super::super::BROWSER_PORTS_PER_GEAR],
-            [Some(super::super::MAXIMUM_BROWSER_VALUE_BYTES as u32);
+            [Some(super::super::NORMALIZED_POINTER_VALUE_BYTES as u32);
                 super::super::BROWSER_PORTS_PER_GEAR],
             None,
             4,
@@ -163,7 +163,7 @@ mod tests {
             io = StepIo::test_frame(
                 [None; super::super::BROWSER_PORTS_PER_GEAR],
                 [false; super::super::BROWSER_PORTS_PER_GEAR],
-                [Some(super::super::MAXIMUM_BROWSER_VALUE_BYTES as u32);
+                [Some(super::super::NORMALIZED_POINTER_VALUE_BYTES as u32);
                     super::super::BROWSER_PORTS_PER_GEAR],
                 Some((
                     RequestId((slot - 1).into()),
@@ -172,7 +172,7 @@ mod tests {
                         output: Some(
                             BoundedValueRef::new(
                                 value,
-                                super::super::MAXIMUM_BROWSER_VALUE_BYTES as u32,
+                                super::super::NORMALIZED_POINTER_VALUE_BYTES as u32,
                             )
                             .unwrap(),
                         ),

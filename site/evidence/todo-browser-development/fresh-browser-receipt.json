@@ -1,0 +1,27 @@
+{
+  "schema": "conduit.proof/todo-owner-browser@1",
+  "owner_source_commit": "611df0bd3d936b4e7a92d009199eecc8cd5e7066",
+  "browser_runtime_source_commit": "611df0bd3d936b4e7a92d009199eecc8cd5e7066",
+  "handbook_ui_source_commit": "611df0bd3d936b4e7a92d009199eecc8cd5e7066",
+  "handbook_ui_source_clean": true,
+  "handbook_package_digest": "sha256:fd5a452832af5d69afdd32f3084bdeada7be0720775d33369302f87dd3dfbc00",
+  "source_relation": "exact-source",
+  "body_id": "3723b30a4b0647f3f005842f812504528be33dae84c0f750919a35491f1d87a2",
+  "browser_host_id": "browser/c8fd8974-1775-4fb6-80c4-be9bdb74ac44",
+  "browser_boot_id": "browser-boot/b2c07978-b555-4223-b4d8-40118ee0316f",
+  "item_text": "Buy milk",
+  "before": {
+    "face_id": "6f9f250e5dc686d9398291c217e9ccaf4631a34a2c19019672e459d8c8015693",
+    "face_revision": "7150306028042729936",
+    "show_id": "show/59d28ed95beddc923e1b6b088dc4c7070539642ee0a9c106bd1010c46344c77c"
+  },
+  "after": {
+    "face_id": "53271ec0f73e0f68754cd81ca8dd9794fab99656fcd0f75eafcc515abd675d1a",
+    "face_revision": "7150306028042729945",
+    "show_id": "show/b19f4ec21680ed2d2767080af413a982737c09dc938791c15bfb69f4705bf503"
+  },
+  "screenshots": [
+    "browser-before.png",
+    "browser-after.png"
+  ]
+}

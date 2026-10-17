@@ -7,7 +7,7 @@ use conduit_core::{BootId, CapabilityId, HostId, OfferGeneration};
 use conduit_std_host::{StdHost, StdHostConfig};
 use std::path::PathBuf;
 
-const SOURCE: &str = "plot hello {\n show: presentation/text\n \"Hello.\" >> show\n}.";
+const SOURCE: &str = "plot hello {\n show: face/text(\"Message\")\n \"Hello.\" >> show\n}.";
 // Ed25519 public key for the deterministic test secret [7; 32].
 const BROWSER_KEY: [u8; 32] = [
     0xea, 0x4a, 0x6c, 0x63, 0xe2, 0x9c, 0x52, 0x0a, 0xbe, 0xf5, 0x50, 0x7b, 0x13, 0x2e, 0xc5, 0xf9,
@@ -37,6 +37,8 @@ fn setup() -> (Owner, PathBuf, ResidentPlot) {
         body_state: None,
         joined_body_state: None,
         selected_speech: None,
+        selected_model: None,
+        selected_todo_checkpoint: None,
     };
     crate::durable_host::write_json_atomic(&root.join("installation.json"), &installation).unwrap();
     let plot = crate::plot_source::parse(SOURCE)
@@ -84,7 +86,11 @@ fn advertise(owner: &mut Owner, window_id: &str) -> conduit_body::AdmissionChall
 
 #[path = "route_tests.rs"]
 mod route_tests;
+#[path = "terminal_transition_tests.rs"]
+mod terminal_transition_tests;
 
+#[path = "native_face_reseal_tests.rs"]
+mod native_face_reseal_tests;
 #[path = "native_route_tests.rs"]
 mod native_route_tests;
 
@@ -118,6 +124,10 @@ fn current_browser_window_discloses_only_requested_planning_offer_detail() {
     assert_eq!(
         authorized.presence_maximum_millis,
         MAX_BROWSER_PRESENCE_MILLIS
+    );
+    assert!(
+        authorized.presence_maximum_millis >= 30 * 60_000,
+        "the finite browser carrier must admit a complete selected-speaker nonvisual reading"
     );
     owner.pending_browser.as_mut().unwrap().deadline = Instant::now() - Duration::from_millis(1);
     assert!(owner

@@ -1,3 +1,8 @@
+mod spoken_mask;
+pub(crate) use spoken_mask::SpokenMaskCommand;
+mod speech;
+pub(crate) use speech::{BirthSpeechOptions, InstalledSpeechOptions};
+
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use std::path::PathBuf;
 
@@ -50,6 +55,13 @@ pub(crate) enum Command {
         plot: PathBuf,
         #[arg(long)]
         json: bool,
+    },
+    /// Format Source indentation while preserving literal spelling.
+    Fmt {
+        source: PathBuf,
+        /// Refuse when formatting would change the Source; emit no rewrite.
+        #[arg(long)]
+        check: bool,
     },
     /// Explain concise source as the ordinary checked semantics it names.
     Expand {
@@ -265,6 +277,9 @@ pub(crate) enum RendezvousCarrier {
 }
 
 #[derive(Debug, Subcommand)]
+// This one-shot command keeps its reviewed speech and model selections explicit
+// for Clap's flattened arguments; the enum is not retained in a running Play.
+#[allow(clippy::large_enum_variant)]
 pub(crate) enum HostServiceCommand {
     /// Verify and install one reviewed release bundle without replacing durable identity.
     Install {
@@ -276,6 +291,10 @@ pub(crate) enum HostServiceCommand {
         no_start: bool,
         #[command(flatten)]
         speech: InstalledSpeechOptions,
+        #[command(flatten)]
+        model: InstalledModelOptions,
+        #[command(flatten)]
+        todo_checkpoint: InstalledTodoCheckpointOptions,
     },
     /// Run the durable host in the foreground for a platform service manager.
     Run {
@@ -300,27 +319,33 @@ pub(crate) enum HostServiceCommand {
     },
 }
 
-/// Exact local equipment selected for every fresh installed Host Boot.
+/// One reviewed local model offered by every fresh installed Host Boot.
 #[derive(Debug, Default, Args)]
-pub(crate) struct InstalledSpeechOptions {
-    /// Select a currently observed speaker and verified eSpeak NG provider.
-    #[arg(long, requires_all = ["speaker_card", "speaker_device", "speech_executable", "speech_data", "speech_engine"])]
-    pub(crate) selected_speech: bool,
-    /// Remove a previously retained speech selection on reinstall.
-    #[arg(long, conflicts_with = "selected_speech")]
-    pub(crate) without_selected_speech: bool,
-    #[arg(long, requires = "selected_speech")]
-    pub(crate) speaker_card: Option<String>,
-    #[arg(long, requires = "selected_speech")]
-    pub(crate) speaker_device: Option<u16>,
-    #[arg(long, requires = "selected_speech")]
-    pub(crate) speech_executable: Option<PathBuf>,
-    #[arg(long, requires = "selected_speech")]
-    pub(crate) speech_data: Option<PathBuf>,
-    #[arg(long, requires = "selected_speech", num_args = 1..)]
-    pub(crate) speech_engine: Vec<PathBuf>,
-    #[arg(long, requires = "selected_speech")]
-    pub(crate) speech_voice: Option<String>,
+pub(crate) struct InstalledModelOptions {
+    /// Select an already local Ollama model for this installed Host.
+    #[arg(long, requires_all = ["model_endpoint", "model_memory_mib"])]
+    pub(crate) selected_model: Option<String>,
+    /// Remove the retained model selection on reinstall.
+    #[arg(long, conflicts_with = "selected_model")]
+    pub(crate) without_selected_model: bool,
+    #[arg(long, requires = "selected_model")]
+    pub(crate) model_endpoint: Option<String>,
+    #[arg(long, requires = "selected_model")]
+    pub(crate) model_memory_mib: Option<u32>,
+}
+
+/// One explicitly selected durable Todo checkpoint residence for this Host.
+#[derive(Debug, Default, Args)]
+pub(crate) struct InstalledTodoCheckpointOptions {
+    /// Existing directory selected as the Todo checkpoint residence.
+    #[arg(long, conflicts_with = "without_selected_todo_checkpoint")]
+    pub(crate) selected_todo_checkpoint_root: Option<PathBuf>,
+    /// Exact existing generation for an explicit second-Host or rejoin selection.
+    #[arg(long, requires = "selected_todo_checkpoint_root")]
+    pub(crate) selected_todo_checkpoint_version: Option<String>,
+    /// Remove the retained Todo checkpoint selection on reinstall.
+    #[arg(long, conflicts_with = "selected_todo_checkpoint_root")]
+    pub(crate) without_selected_todo_checkpoint: bool,
 }
 
 #[derive(Debug, Subcommand)]
@@ -330,6 +355,13 @@ pub(crate) enum BodyCommand {
         /// Emit a bounded machine-readable observation; opens no speaker.
         #[arg(long)]
         json: bool,
+    },
+    /// Produce an exact spoken Mask Show from the installed owner's current Face.
+    SpokenMask {
+        #[arg(long)]
+        state_dir: PathBuf,
+        #[command(subcommand)]
+        command: SpokenMaskCommand,
     },
     /// Enter the birth encounter for a Host that does not yet belong to a Body.
     Birth {
@@ -387,6 +419,9 @@ pub(crate) enum BodyCommand {
         /// Finite execution deadline; the Play can be lulled earlier.
         #[arg(long, default_value_t = 300_000, value_parser = clap::value_parser!(u64).range(1..=900_000))]
         maximum_millis: u64,
+        /// Explicitly admit one new Todo list under this Body before its first action.
+        #[arg(long)]
+        todo_new_list: Option<String>,
     },
     /// Request that the current service-owned Body Play stop and lull.
     Lull {
@@ -400,6 +435,11 @@ pub(crate) enum BodyCommand {
         /// Attach this terminal to the owner Host for an acknowledged Show and typed action.
         #[arg(long)]
         owner_show: bool,
+        /// Join this fresh installed presentation Host through a pinned owner invitation.
+        #[arg(long, conflicts_with = "owner_show")]
+        invitation: Option<PathBuf>,
+        #[arg(long, requires = "invitation")]
+        authorize_join: bool,
     },
     /// Issue one bounded invitation from the body owned by this installed host.
     Invite {
@@ -491,32 +531,6 @@ pub(crate) enum BodyCommand {
     },
 }
 
-/// Explicit local synthesis and speaker selection for a screen-free session.
-#[derive(Debug, Default, Args)]
-pub(crate) struct BirthSpeechOptions {
-    /// Speak through one selected, currently discovered ALSA speaker.
-    #[arg(long, requires_all = ["speaker_card", "speaker_device", "speech_executable", "speech_data", "speech_engine"])]
-    pub(crate) speak: bool,
-    /// ALSA card ID from `conduit body speech-options`.
-    #[arg(long, requires = "speak")]
-    pub(crate) speaker_card: Option<String>,
-    /// ALSA device number on the selected card.
-    #[arg(long, requires = "speak")]
-    pub(crate) speaker_device: Option<u16>,
-    /// Exact installed eSpeak NG executable.
-    #[arg(long, requires = "speak")]
-    pub(crate) speech_executable: Option<PathBuf>,
-    /// Exact installed espeak-ng-data directory.
-    #[arg(long, requires = "speak")]
-    pub(crate) speech_data: Option<PathBuf>,
-    /// Exact eSpeak NG engine library and any same-directory dependencies.
-    #[arg(long, requires = "speak", num_args = 1..)]
-    pub(crate) speech_engine: Vec<PathBuf>,
-    /// Voice within the selected installed data tree (default: en-us).
-    #[arg(long, requires = "speak")]
-    pub(crate) speech_voice: Option<String>,
-}
-
 #[cfg(test)]
 mod public_surface_tests {
     use super::*;
@@ -594,6 +608,8 @@ mod public_surface_tests {
             "/usr/lib/espeak-ng-data",
             "--speech-engine",
             "/usr/lib/libespeak-ng.so.1",
+            "--speech-language-coverage",
+            "coverage.native",
         ])
         .unwrap();
         assert!(matches!(
@@ -620,6 +636,8 @@ mod public_surface_tests {
             "/usr/lib/espeak-ng-data",
             "--speech-engine",
             "/usr/lib/libespeak-ng.so.1",
+            "--speech-language-coverage",
+            "coverage.native",
         ])
         .unwrap();
         assert!(matches!(
@@ -637,7 +655,7 @@ mod public_surface_tests {
     fn public_help_names_intent_not_retired_shells_or_protocol_phases() {
         let help = Cli::command().render_long_help().to_string();
         for entrance in [
-            "run", "check", "expand", "diagram", "inspect", "body", "host",
+            "run", "check", "fmt", "expand", "diagram", "inspect", "body", "host",
         ] {
             assert!(help.contains(entrance), "missing {entrance} in:\n{help}");
         }
@@ -827,6 +845,8 @@ mod public_surface_tests {
             "/data/espeak-ng-data",
             "--speech-engine",
             "/lib/libespeak-ng.so.1",
+            "--speech-language-coverage",
+            "coverage.native",
         ]);
         assert!(matches!(
             Cli::try_parse_from(selected).unwrap().command,
@@ -847,6 +867,107 @@ mod public_surface_tests {
                 .copied()
                 .chain(["--without-selected-speech", "--selected-speech"])
         )
+        .is_err());
+    }
+
+    #[test]
+    fn service_install_model_requires_exact_endpoint_and_memory() {
+        let base = [
+            "conduit",
+            "host",
+            "service",
+            "install",
+            "release.json",
+            "--state-dir",
+            "state",
+        ];
+        assert!(
+            Cli::try_parse_from(base.iter().copied().chain(["--selected-model", "local"])).is_err()
+        );
+        assert!(Cli::try_parse_from(
+            base.iter()
+                .copied()
+                .chain(["--model-endpoint", "http://127.0.0.1:11434"])
+        )
+        .is_err());
+        let selected = base.iter().copied().chain([
+            "--selected-model",
+            "local",
+            "--model-endpoint",
+            "http://127.0.0.1:11434",
+            "--model-memory-mib",
+            "2048",
+        ]);
+        assert!(matches!(
+            Cli::try_parse_from(selected).unwrap().command,
+            Some(Command::Host {
+                command: Some(HostCommand::Service {
+                    command: HostServiceCommand::Install {
+                        model: InstalledModelOptions {
+                            selected_model: Some(_),
+                            model_memory_mib: Some(2048),
+                            ..
+                        },
+                        ..
+                    }
+                })
+            })
+        ));
+        assert!(Cli::try_parse_from(base.iter().copied().chain([
+            "--without-selected-model",
+            "--selected-model",
+            "local",
+            "--model-endpoint",
+            "http://127.0.0.1:11434",
+            "--model-memory-mib",
+            "2048",
+        ]))
+        .is_err());
+    }
+
+    #[test]
+    fn service_install_todo_checkpoint_requires_explicit_root_for_existing_version() {
+        let base = [
+            "conduit",
+            "host",
+            "service",
+            "install",
+            "release.json",
+            "--state-dir",
+            "state",
+        ];
+        assert!(Cli::try_parse_from(
+            base.iter()
+                .copied()
+                .chain(["--selected-todo-checkpoint-version", &"11".repeat(32),])
+        )
+        .is_err());
+        let parsed = Cli::try_parse_from(base.iter().copied().chain([
+            "--selected-todo-checkpoint-root",
+            "/existing/checkpoint",
+            "--selected-todo-checkpoint-version",
+            &"11".repeat(32),
+        ]))
+        .unwrap();
+        assert!(matches!(
+            parsed.command,
+            Some(Command::Host {
+                command: Some(HostCommand::Service {
+                    command: HostServiceCommand::Install {
+                        todo_checkpoint: InstalledTodoCheckpointOptions {
+                            selected_todo_checkpoint_root: Some(_),
+                            ..
+                        },
+                        ..
+                    }
+                })
+            })
+        ));
+        assert!(Cli::try_parse_from(base.iter().copied().chain([
+            "--selected-todo-checkpoint-root",
+            "/existing/checkpoint",
+            "--without-selected-todo-checkpoint",
+        ]))
         .is_err());
     }
 }

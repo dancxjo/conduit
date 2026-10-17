@@ -9,6 +9,7 @@ use conduit_core::{
     HostAdvertisement, HostProfileId, PlannerCapabilityOffer, PlannerProfileId, PROTOCOL_VERSION,
 };
 
+mod math;
 mod resources;
 mod signal;
 
@@ -20,7 +21,7 @@ pub struct StdHostComposition {
     /// Ordered nominal pulse observation; selected independently of the broad reference image.
     pub pulse_observation: bool,
     pub text: bool,
-    /// Compiled checked English pronunciation and voice, independent of devices/providers.
+    /// Checked IPA preparation and compiled English voice, independent of devices/providers.
     pub native_speech: bool,
     pub input: bool,
     pub state: bool,
@@ -28,7 +29,7 @@ pub struct StdHostComposition {
     pub logic: bool,
     pub math: bool,
     pub layout: bool,
-    pub presentation: bool,
+    pub face: bool,
     pub robotics: bool,
     pub navigation: bool,
     pub files: bool,
@@ -36,6 +37,7 @@ pub struct StdHostComposition {
     pub http: bool,
     pub json: bool,
     pub json_collection: bool,
+    pub todo: bool,
     pub alife: bool,
 }
 
@@ -54,7 +56,7 @@ impl StdHostComposition {
             logic: true,
             math: true,
             layout: true,
-            presentation: true,
+            face: true,
             robotics: true,
             navigation: true,
             files: true,
@@ -62,6 +64,7 @@ impl StdHostComposition {
             http: true,
             json: true,
             json_collection: false,
+            todo: true,
             alife: true,
         }
     }
@@ -81,7 +84,7 @@ impl StdHostComposition {
             logic: false,
             math: false,
             layout: false,
-            presentation: false,
+            face: false,
             robotics: false,
             navigation: false,
             files: false,
@@ -89,6 +92,7 @@ impl StdHostComposition {
             http: false,
             json: false,
             json_collection: false,
+            todo: false,
             alife: false,
         }
     }
@@ -148,8 +152,8 @@ impl StdHostComposition {
         self
     }
 
-    pub const fn with_presentation(mut self) -> Self {
-        self.presentation = true;
+    pub const fn with_face(mut self) -> Self {
+        self.face = true;
         self
     }
 
@@ -180,6 +184,11 @@ impl StdHostComposition {
 
     pub const fn with_json_collection(mut self) -> Self {
         self.json_collection = true;
+        self
+    }
+
+    pub const fn with_todo(mut self) -> Self {
+        self.todo = true;
         self
     }
 
@@ -225,8 +234,8 @@ pub(super) fn build_advertisement(
             conduit_std_offers::time_deadline_offer(),
             conduit_std_offers::recurrence_std_offer(),
             conduit_std_offers::calendar_proposal_std_offer(),
-            conduit_std_offers::tick_presentation_offer(),
-            conduit_std_offers::bool_presentation_offer(),
+            conduit_std_offers::tick_face_offer(),
+            conduit_std_offers::bool_face_offer(),
         ]);
     }
     if composition.pulse_observation {
@@ -249,6 +258,10 @@ pub(super) fn build_advertisement(
     }
     if composition.native_speech {
         capabilities.push(conduit_speech::kernel::offer());
+        capabilities.extend(
+            conduit_speech::ipa_constructors::IpaConstructor::ALL
+                .map(conduit_speech::ipa_constructors::offer),
+        );
     }
     if composition.input {
         capabilities.extend([
@@ -282,7 +295,7 @@ pub(super) fn build_advertisement(
         capabilities.extend([
             conduit_std_offers::state_count_offer(),
             conduit_std_offers::state_toggle_offer(),
-            conduit_std_offers::count_presentation_offer(),
+            conduit_std_offers::count_face_offer(),
             conduit_std_offers::state_latest_scalar_offer(),
             conduit_std_offers::flow_tee_scalar_offer(),
             conduit_std_offers::flow_first_scalar_offer(),
@@ -308,14 +321,7 @@ pub(super) fn build_advertisement(
         ]);
     }
     if composition.math {
-        capabilities.extend([
-            conduit_std_offers::math_clamp_offer(),
-            conduit_std_offers::math_scale_offer(),
-            conduit_std_offers::math_deadband_offer(),
-            conduit_std_offers::quantity_map_offer(),
-            conduit_std_offers::distance_frequency_map_offer(),
-            conduit_std_offers::quantity_info_offer(),
-        ]);
+        math::append(&mut capabilities);
     }
     if composition.layout {
         capabilities.extend([
@@ -327,17 +333,18 @@ pub(super) fn build_advertisement(
             conduit_std_offers::layout_align_offer(),
         ]);
     }
-    if composition.presentation {
+    if composition.face {
         capabilities.extend([
-            conduit_std_offers::presentation_icon_offer(),
-            conduit_std_offers::presentation_frame_offer(),
-            conduit_std_offers::presentation_badge_offer(),
+            conduit_std_offers::quantity_face_std_offer(),
+            conduit_std_offers::face_icon_offer(),
+            conduit_std_offers::face_frame_offer(),
+            conduit_std_offers::face_badge_offer(),
             conduit_std_offers::graphics_rect_offer(),
             conduit_std_offers::graphics_text_offer(),
             conduit_std_offers::graphics_icon_offer(),
-            conduit_std_offers::graphics_presentation_offer(),
-            conduit_std_offers::bitmap_presentation_offer(),
-            conduit_std_offers::indicator_presentation_offer(),
+            conduit_std_offers::graphics_face_offer(),
+            conduit_std_offers::bitmap_face_offer(),
+            conduit_std_offers::indicator_face_offer(),
         ]);
     }
     if composition.robotics {
@@ -357,7 +364,7 @@ pub(super) fn build_advertisement(
     if composition.files {
         capabilities.extend([
             conduit_std_offers::copy_file_offer(),
-            conduit_std_offers::copy_result_presentation_offer(),
+            conduit_std_offers::copy_result_face_offer(),
         ]);
     }
     if composition.external_websocket {
@@ -374,6 +381,9 @@ pub(super) fn build_advertisement(
             conduit_std_offers::json_collection_step_std_offer(),
             conduit_std_offers::json_boolean_summary_std_offer(),
         ]);
+    }
+    if composition.todo {
+        capabilities.push(conduit_std_offers::todo_combine_offer());
     }
     if composition.json {
         capabilities.extend([

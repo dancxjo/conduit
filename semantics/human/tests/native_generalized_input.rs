@@ -1,4 +1,4 @@
-use conduit_core::{Quantity, QuantityUnit};
+use conduit_core::{Quantity, Unit};
 use conduit_human::{
     InputAxisSlot, InputAxisSlots, InputPressure, InputPressurePolicy, InputSurfacePoint,
 };
@@ -9,7 +9,7 @@ fn generalized_input_values_round_trip_through_authored_types() {
     let axis = InputAxisSlot::axis(
         "axis/x".into(),
         "input/normalized-bipolar@1".into(),
-        Quantity::new(-250_000, QuantityUnit::Millionth),
+        Quantity::new(-250_000, Unit::Millionth),
     )
     .unwrap();
     let axes = InputAxisSlots::new([
@@ -25,8 +25,8 @@ fn generalized_input_values_round_trip_through_authored_types() {
     let pressure = InputPressure::new(2, 1, InputPressurePolicy::CoalesceLatestState, 8).unwrap();
     let point = InputSurfacePoint::new(
         "input/surface-normalized".into(),
-        Quantity::new(400_000, QuantityUnit::Millionth),
-        Quantity::new(600_000, QuantityUnit::Millionth),
+        Quantity::new(400_000, Unit::Millionth),
+        Quantity::new(600_000, Unit::Millionth),
     )
     .unwrap();
     let structured = point.clone().into_structured().unwrap();

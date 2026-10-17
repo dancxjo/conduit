@@ -2,6 +2,8 @@
 //! The service holds `body-owner.lock` for its lifetime, so these operations
 //! are the only live writer of its biography and invitation authority.
 
+#[path = "body/native_mask_route.rs"]
+mod native_mask_route;
 #[cfg(unix)]
 use super::read_secret;
 use super::DurableHostRuntime;
@@ -13,9 +15,10 @@ use conduit_body::{
     RendezvousCandidate,
 };
 use conduit_core::LinkBindingId;
-use conduit_presentation::{
-    FaceInteraction, MaskShow, OwnerFaceSnapshotRequest, OwnerFaceSnapshotResponse, Presentation,
-    RemoteOwnerMaskRouteSeal, MAX_OWNER_FACE_RESPONSE_BYTES, OWNER_FACE_RESPONSE_SCHEMA,
+use conduit_face::{
+    Face, FaceInteraction, MaskShow, MaskWardrobeAction, OwnerFaceSnapshotRequest,
+    OwnerFaceSnapshotResponse, RemoteOwnerMaskRouteSeal, MAX_OWNER_FACE_RESPONSE_BYTES,
+    OWNER_FACE_RESPONSE_SCHEMA,
 };
 use conduit_std_host::browser_admission::{BrowserAdmissionEgress, BrowserAdmissionIngress};
 use conduit_std_host::StdHost;
@@ -24,11 +27,24 @@ use std::{
     path::{Path, PathBuf},
 };
 
+/// The one local-control round-trip budget, including an action's durable
+/// acknowledgement. Timeout leaves the result unknown to its caller.
+pub(super) const CONTROL_DEADLINE: std::time::Duration = std::time::Duration::from_secs(2);
+/// One Todo action may wait for a bounded write and a second admitted read
+/// before its committed-state Face is safe to return to the caller.
+pub(super) const TODO_ACTION_DEADLINE: std::time::Duration = std::time::Duration::from_secs(8);
+
 #[path = "body/clock_action.rs"]
 mod clock_action;
 #[cfg(unix)]
 #[path = "body/control_client.rs"]
 mod control_client;
+#[path = "body/owner_spoken.rs"]
+pub(super) mod owner_spoken;
+#[path = "body/owner_spoken_playback.rs"]
+mod owner_spoken_playback;
+#[path = "body/speech.rs"]
+pub(super) mod speech;
 #[cfg(unix)]
 pub(super) use control_client::call;
 
@@ -39,7 +55,7 @@ pub(super) enum HostSource {
     Body {
         owner: Box<crate::durable_host::owner::Owner>,
         root: PathBuf,
-        running: Option<crate::durable_host::owner::RunWorker>,
+        running: Option<super::body_run::OwnedRunWorker>,
     },
 }
 
@@ -86,6 +102,34 @@ impl DerefMut for HostSource {
 }
 
 impl DurableHostRuntime {
+    /// Local nonvisual wardrobe input is authenticated by the installed
+    /// control token and bound to the Face, Body, and Host Boot the person read.
+    /// The owner still checks the exact face Plan and wardrobe revision.
+    pub(super) fn owned_body_local_wardrobe(
+        &mut self,
+        body_id: &conduit_body::BodyId,
+        face: (&str, u64),
+        advertisement: &conduit_core::HostAdvertisement,
+        owner_plan_id: Option<&conduit_core::PlanId>,
+        basis_revision: u64,
+        action: Option<MaskWardrobeAction>,
+    ) -> Result<(serde_json::Value, Result<Face, String>), String> {
+        let HostSource::Body { owner, .. } = &mut self.host else {
+            return Err("installed Host does not own a live Body session".into());
+        };
+        let current = owner.local_face_snapshot()?;
+        if current.basis.body_id.as_ref() != Some(body_id)
+            || current.identity.as_str() != face.0
+            || current.revision != face.1
+            || owner.host.advertisement() != advertisement
+        {
+            return Err("owner-wardrobe-face-or-host-stale".into());
+        }
+        let report = owner.owner_wardrobe_report(owner_plan_id, basis_revision, action)?;
+        let reading = owner.wardrobe_reading_face(&report);
+        Ok((report, reading))
+    }
+
     pub(super) fn start_browser_window(
         &mut self,
         expected_host_id: &str,
@@ -175,10 +219,30 @@ impl DurableHostRuntime {
         window_id: &str,
         credential: &MembershipCredential,
         binding: &LinkBindingId,
+        evidence: Option<&crate::durable_host::owner::BrowserCarrierLineEvidence>,
     ) -> Result<RemoteOwnerMaskRouteSeal, String> {
         match &mut self.host {
             HostSource::Body { owner, .. } => {
-                owner.browser_mask_route(window_id, credential, binding)
+                owner.browser_mask_route(window_id, credential, binding, evidence)
+            }
+            HostSource::Bare(_) | HostSource::Transitioning => {
+                Err("installed Host does not own a live Body session".into())
+            }
+        }
+    }
+
+    pub(super) fn select_browser_component_mask(
+        &mut self,
+        window_id: &str,
+        binding: &LinkBindingId,
+        request: &OwnerFaceSnapshotRequest,
+        show: &MaskShow,
+        look: conduit_face::ComponentMaskLook,
+        recipe: conduit_face::TodoComponentRecipe,
+    ) -> Result<RemoteOwnerMaskRouteSeal, String> {
+        match &mut self.host {
+            HostSource::Body { owner, .. } => {
+                owner.select_browser_component_mask(window_id, binding, request, show, look, recipe)
             }
             HostSource::Bare(_) | HostSource::Transitioning => {
                 Err("installed Host does not own a live Body session".into())
@@ -203,6 +267,30 @@ impl DurableHostRuntime {
         }
     }
 
+    pub(super) fn browser_wardrobe_report(
+        &mut self,
+        window_id: &str,
+        binding: &LinkBindingId,
+        request: &OwnerFaceSnapshotRequest,
+        owner_plan_id: Option<&conduit_core::PlanId>,
+        basis_revision: u64,
+        action: Option<MaskWardrobeAction>,
+    ) -> Result<serde_json::Value, String> {
+        match &mut self.host {
+            HostSource::Body { owner, .. } => owner.browser_wardrobe_report(
+                window_id,
+                binding,
+                request,
+                owner_plan_id,
+                basis_revision,
+                action,
+            ),
+            HostSource::Bare(_) | HostSource::Transitioning => {
+                Err("installed Host does not own a live Body session".into())
+            }
+        }
+    }
+
     pub(super) fn browser_abort(&mut self, window_id: &str) -> Result<(), String> {
         match &mut self.host {
             HostSource::Body { owner, .. } => owner.browser_abort(window_id),
@@ -213,12 +301,16 @@ impl DurableHostRuntime {
     }
 
     pub(super) fn browser_cancel_window(&mut self, window_id: &str) -> Result<(), String> {
-        match &mut self.host {
+        let result = match &mut self.host {
             HostSource::Body { owner, root, .. } => owner.browser_cancel_window(root, window_id),
             HostSource::Bare(_) | HostSource::Transitioning => {
                 Err("installed Host does not own a live Body session".into())
             }
+        };
+        if result.is_ok() {
+            self.stop_speech_from_window(window_id);
         }
+        result
     }
 
     pub(super) fn browser_leave(
@@ -226,14 +318,18 @@ impl DurableHostRuntime {
         window_id: &str,
         credential: &MembershipCredential,
     ) -> Result<BodyBiographyEvidence, String> {
-        match &mut self.host {
+        let result = match &mut self.host {
             HostSource::Body { owner, root, .. } => {
                 owner.browser_leave(root, window_id, credential)
             }
             HostSource::Bare(_) | HostSource::Transitioning => {
                 Err("installed Host does not own a live Body session".into())
             }
+        };
+        if result.is_ok() {
+            self.stop_speech_from_window(window_id);
         }
+        result
     }
 
     pub(crate) fn with_owned_body(self, root: &Path) -> Result<Self, String> {
@@ -249,11 +345,30 @@ impl DurableHostRuntime {
             next_observation_sequence,
             #[cfg(unix)]
             terminal_route,
+            mut selected_speech_equipment,
+            speech_worker,
+            speech_terminal,
+            owner_spoken_worker,
+            owner_spoken_terminal,
+            spoken_template_session,
         } = self;
         let HostSource::Bare(host) = host else {
             return Err("durable Host already owns a Body session".into());
         };
+        let previous_generation = host.advertisement().offer_generation;
         let owner = crate::durable_host::owner::resume_service(*host, root)?;
+        let current = owner.host.advertisement();
+        if current.offer_generation != previous_generation {
+            crate::durable_host::refresh_offer_generation(
+                root,
+                &current.host_id,
+                &current.boot_id,
+                current.offer_generation,
+            )?;
+        }
+        if let Some(equipment) = &mut selected_speech_equipment {
+            equipment.advance_offer_generation(owner.host.current())?;
+        }
         Ok(Self {
             target_id,
             image_content_digest,
@@ -270,6 +385,12 @@ impl DurableHostRuntime {
             next_observation_sequence,
             #[cfg(unix)]
             terminal_route,
+            selected_speech_equipment,
+            speech_worker,
+            speech_terminal,
+            owner_spoken_worker,
+            owner_spoken_terminal,
+            spoken_template_session,
         })
     }
 
@@ -296,19 +417,19 @@ impl DurableHostRuntime {
         let HostSource::Body { owner, .. } = &self.host else {
             return Err("installed Host does not own a live Body session".into());
         };
-        let presentation = owner.face_snapshot(request)?;
-        let response = if request.last_seen_revision == Some(presentation.revision)
-            && request.last_seen_identity.as_ref() == Some(&presentation.identity)
+        let face = owner.face_snapshot(request)?;
+        let response = if request.last_seen_revision == Some(face.revision)
+            && request.last_seen_identity.as_ref() == Some(&face.identity)
         {
             OwnerFaceSnapshotResponse::Unchanged {
                 schema: OWNER_FACE_RESPONSE_SCHEMA.into(),
-                revision: presentation.revision,
-                identity: presentation.identity,
+                revision: face.revision,
+                identity: face.identity,
             }
         } else {
             OwnerFaceSnapshotResponse::Snapshot {
                 schema: OWNER_FACE_RESPONSE_SCHEMA.into(),
-                presentation: Box::new(presentation),
+                face: Box::new(face),
                 interactions_admitted: false,
                 route: None,
             }
@@ -323,32 +444,33 @@ impl DurableHostRuntime {
 
     pub(super) fn owned_body_local_face(
         &self,
-    ) -> Result<(Presentation, conduit_core::HostAdvertisement), String> {
+    ) -> Result<(Face, conduit_core::HostAdvertisement), String> {
         let HostSource::Body { owner, .. } = &self.host else {
             return Err("installed Host does not own a live Body session".into());
         };
-        let presentation = owner.local_face_snapshot()?;
-        if serde_json::to_vec(&presentation)
+        let face = owner.local_face_snapshot()?;
+        if serde_json::to_vec(&face)
             .map_err(|error| format!("encode local owner Face: {error}"))?
             .len()
             > MAX_OWNER_FACE_RESPONSE_BYTES
         {
             return Err("face-frame-pressure".into());
         }
-        Ok((presentation, owner.host.advertisement().clone()))
+        Ok((face, owner.host.advertisement().clone()))
     }
 
-    pub(super) fn owned_body_native_mask_route(
+    pub(super) fn owned_body_native_component_mask(
         &mut self,
+        request: &OwnerFaceSnapshotRequest,
+        show: &MaskShow,
         receipt: &PortableAdmissionReceipt,
-        face_line: &conduit_core::LineOffer,
-        return_line: &conduit_core::LineOffer,
-        expires_at_millis: u64,
-    ) -> Result<conduit_presentation::RemoteOwnerMaskRouteSeal, String> {
+        look: conduit_face::ComponentMaskLook,
+        recipe: conduit_face::TodoComponentRecipe,
+    ) -> Result<RemoteOwnerMaskRouteSeal, String> {
         let HostSource::Body { owner, .. } = &mut self.host else {
             return Err("installed Host does not own a live Body session".into());
         };
-        owner.seal_native_mask_route(receipt, face_line, return_line, expires_at_millis)
+        owner.select_native_component_mask(request, show, receipt, look, recipe)
     }
 
     pub(super) fn owned_body_native_mask_show(
@@ -528,13 +650,13 @@ pub(crate) fn face_snapshot(
 ) -> Result<OwnerFaceSnapshotResponse, String> {
     match call(
         state_dir,
-        Request::BodyFace {
+        Request::Face {
             protocol: PROTOCOL,
             token: token(state_dir)?,
             request,
         },
     )? {
-        Response::BodyFace {
+        Response::Face {
             protocol: PROTOCOL,
             response,
         } => Ok(*response),
@@ -549,8 +671,12 @@ pub(crate) fn select_native_mask_route(
     receipt: PortableAdmissionReceipt,
     face_line: conduit_core::LineOffer,
     return_line: conduit_core::LineOffer,
+    terminal_interaction_line: Option<conduit_core::LineOffer>,
+    spoken_selection: Option<
+        conduit_std_host::direct_spoken_template_mask::RemoteSpokenTemplateSelection,
+    >,
     expires_at_millis: u64,
-) -> Result<conduit_presentation::RemoteOwnerMaskRouteSeal, String> {
+) -> Result<conduit_face::RemoteOwnerMaskRouteSeal, String> {
     match call(
         state_dir,
         Request::BodyNativeMaskRoute {
@@ -559,6 +685,8 @@ pub(crate) fn select_native_mask_route(
             receipt: Box::new(receipt),
             face_line: Box::new(face_line),
             return_line: Box::new(return_line),
+            terminal_interaction_line: terminal_interaction_line.map(Box::new),
+            spoken_selection: spoken_selection.map(Box::new),
             expires_at_millis,
         },
     )? {
@@ -598,8 +726,12 @@ pub(crate) fn select_native_mask_route(
     _receipt: PortableAdmissionReceipt,
     _face_line: conduit_core::LineOffer,
     _return_line: conduit_core::LineOffer,
+    _terminal_interaction_line: Option<conduit_core::LineOffer>,
+    _spoken_selection: Option<
+        conduit_std_host::direct_spoken_template_mask::RemoteSpokenTemplateSelection,
+    >,
     _expires_at_millis: u64,
-) -> Result<conduit_presentation::RemoteOwnerMaskRouteSeal, String> {
+) -> Result<conduit_face::RemoteOwnerMaskRouteSeal, String> {
     Err("no reviewed local durable host control carrier exists on this platform".into())
 }
 
@@ -615,7 +747,7 @@ pub(crate) fn acknowledge_native_mask_show(
 #[cfg(unix)]
 pub(crate) fn local_face_snapshot(
     state_dir: &Path,
-) -> Result<(Presentation, conduit_core::HostAdvertisement), String> {
+) -> Result<(Face, conduit_core::HostAdvertisement), String> {
     match call(
         state_dir,
         Request::BodyLocalFace {
@@ -625,11 +757,52 @@ pub(crate) fn local_face_snapshot(
     )? {
         Response::BodyLocalFace {
             protocol: PROTOCOL,
-            presentation,
+            face,
             advertisement,
-        } => Ok((*presentation, advertisement)),
+        } => Ok((*face, advertisement)),
         Response::Refused { code, .. } => Err(format!("Body owner refused local Face: {code}")),
         _ => Err("Body owner returned the wrong local Face response".into()),
+    }
+}
+
+#[cfg(unix)]
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn local_wardrobe(
+    state_dir: &Path,
+    body_id: conduit_body::BodyId,
+    face_id: String,
+    face_revision: u64,
+    advertisement: conduit_core::HostAdvertisement,
+    owner_plan_id: Option<conduit_core::PlanId>,
+    basis_revision: u64,
+    action: Option<MaskWardrobeAction>,
+) -> Result<(serde_json::Value, Result<Face, String>), String> {
+    match call(
+        state_dir,
+        Request::BodyLocalWardrobe {
+            protocol: PROTOCOL,
+            token: token(state_dir)?,
+            body_id,
+            face_id,
+            face_revision,
+            advertisement,
+            owner_plan_id,
+            basis_revision,
+            action,
+        },
+    )? {
+        Response::BodyLocalWardrobe {
+            protocol: PROTOCOL,
+            report,
+            face,
+            reading_refusal,
+        } => match (face, reading_refusal) {
+            (Some(face), None) => Ok((*report, Ok(*face))),
+            (None, Some(reason)) => Ok((*report, Err(reason))),
+            _ => Err(super::CONTROL_OUTCOME_UNKNOWN.into()),
+        },
+        Response::Refused { code, .. } => Err(code),
+        _ => Err(super::CONTROL_OUTCOME_UNKNOWN.into()),
     }
 }
 
@@ -792,7 +965,22 @@ pub(crate) fn submit_native_guest_face_interaction_until(
 #[cfg(not(unix))]
 pub(crate) fn local_face_snapshot(
     _state_dir: &Path,
-) -> Result<(Presentation, conduit_core::HostAdvertisement), String> {
+) -> Result<(Face, conduit_core::HostAdvertisement), String> {
+    Err("no reviewed local durable host control carrier exists on this platform".into())
+}
+
+#[cfg(not(unix))]
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn local_wardrobe(
+    _state_dir: &Path,
+    _body_id: conduit_body::BodyId,
+    _face_id: String,
+    _face_revision: u64,
+    _advertisement: conduit_core::HostAdvertisement,
+    _owner_plan_id: Option<conduit_core::PlanId>,
+    _basis_revision: u64,
+    _action: Option<MaskWardrobeAction>,
+) -> Result<(serde_json::Value, Result<Face, String>), String> {
     Err("no reviewed local durable host control carrier exists on this platform".into())
 }
 
@@ -848,3 +1036,61 @@ pub(crate) fn admit_owned_request(
 #[cfg(test)]
 #[path = "body/tests.rs"]
 mod tests;
+
+#[cfg(unix)]
+pub(crate) fn select_native_component_mask(
+    state_dir: &Path,
+    receipt: PortableAdmissionReceipt,
+    request: OwnerFaceSnapshotRequest,
+    show: MaskShow,
+    look: conduit_face::ComponentMaskLook,
+    recipe: conduit_face::TodoComponentRecipe,
+) -> Result<RemoteOwnerMaskRouteSeal, String> {
+    let look = match look {
+        conduit_face::ComponentMaskLook::Compact => {
+            conduit_std_host::browser_admission::BrowserComponentLook::Compact
+        }
+        conduit_face::ComponentMaskLook::Spacious => {
+            conduit_std_host::browser_admission::BrowserComponentLook::Spacious
+        }
+    };
+    let recipe = match recipe {
+        conduit_face::TodoComponentRecipe::Flat => {
+            conduit_std_host::browser_admission::BrowserComponentRecipe::Flat
+        }
+        conduit_face::TodoComponentRecipe::Grouped => {
+            conduit_std_host::browser_admission::BrowserComponentRecipe::Grouped
+        }
+    };
+    match call(
+        state_dir,
+        Request::BodyNativeComponentMask {
+            protocol: PROTOCOL,
+            token: token(state_dir)?,
+            receipt: Box::new(receipt),
+            request,
+            show: Box::new(show),
+            look,
+            recipe,
+        },
+    )? {
+        Response::BodyNativeMaskRoute {
+            protocol: PROTOCOL,
+            route,
+        } => Ok(*route),
+        Response::Refused { code, .. } => Err(code),
+        _ => Err("Body owner returned the wrong native component route response".into()),
+    }
+}
+
+#[cfg(not(unix))]
+pub(crate) fn select_native_component_mask(
+    _state_dir: &Path,
+    _receipt: PortableAdmissionReceipt,
+    _request: OwnerFaceSnapshotRequest,
+    _show: MaskShow,
+    _look: conduit_face::ComponentMaskLook,
+    _recipe: conduit_face::TodoComponentRecipe,
+) -> Result<RemoteOwnerMaskRouteSeal, String> {
+    Err("no reviewed local durable host control carrier exists on this platform".into())
+}

@@ -12,11 +12,11 @@ use conduit_plot::{
 
 pub const ORBIUM_SEED_KIND: &str = "alife/orbium-seed";
 pub const LENIA_STEP_KIND: &str = "alife/lenia-step";
-pub const SCALAR_FIELD_PRESENTATION_KIND: &str = "presentation/scalar-field";
+pub const SCALAR_FIELD_FACE_KIND: &str = "face/scalar-field";
 
 pub const ORBIUM_SEED_REVISION: &str = "conduit.alife/orbium-seed@1";
 pub const LENIA_STEP_REVISION: &str = "conduit.alife/lenia-step@1";
-pub const SCALAR_FIELD_PRESENTATION_REVISION: &str = "conduit.presentation/scalar-field@1";
+pub const SCALAR_FIELD_FACE_REVISION: &str = "conduit.face/scalar-field@1";
 
 pub const ORBIUM_WIDTH_KEY: &str = "width";
 pub const ORBIUM_HEIGHT_KEY: &str = "height";
@@ -32,7 +32,7 @@ pub const NUMERIC_PROFILE_KEY: &str = "numeric_profile";
 pub const TITLE_KEY: &str = "title";
 pub const MINIMUM_KEY: &str = "minimum";
 pub const MAXIMUM_KEY: &str = "maximum";
-/// Finite upper bound for one admitted scalar-field presentation stream.
+/// Finite upper bound for one admitted scalar-field face stream.
 ///
 /// Thirty-two generations cover the bounded Little Life journey while keeping
 /// preparation responsible for every value, byte, request, and Sign.
@@ -52,7 +52,11 @@ pub fn install_lenia_catalogs(
                 .map(|field| StartupParameterSignature {
                     name: field.key.clone(),
                     value_type: value_type(&field.default_value).to_string(),
-                    default: Some(render_default(&field.default_value)),
+                    default: if matches!(field.rule, KindConfigurationRule::DataLabel { .. }) {
+                        None
+                    } else {
+                        Some(render_default(&field.default_value))
+                    },
                 })
                 .collect(),
         })?;
@@ -70,7 +74,7 @@ fn canonical_lenia_kind(definition: KindProjection) -> conduit_core::Kind {
         .map(|field| conduit_core::FrontStartupParameter {
             name: field.key.clone(),
             value_type: field.default_value.semantic_kind(),
-            has_default: true,
+            has_default: !matches!(field.rule, KindConfigurationRule::DataLabel { .. }),
         })
         .collect();
     let shorthand = match (definition.inputs.as_slice(), definition.outputs.as_slice()) {
@@ -94,7 +98,7 @@ fn canonical_lenia_kind(definition: KindProjection) -> conduit_core::Kind {
                 max_queue_bytes: crate::LENIA_MAXIMUM_FIELD_BYTES + 64,
             },
         ),
-        SCALAR_FIELD_PRESENTATION_KIND => (
+        SCALAR_FIELD_FACE_KIND => (
             KindTerminalBehavior::PresentsEachFieldAndCompletesWhenInputCloses,
             conduit_core::CapabilityLimits {
                 max_active_instances: 1,
@@ -122,7 +126,7 @@ pub fn lenia_definitions() -> Vec<KindProjection> {
     vec![
         orbium_seed_definition(),
         lenia_step_definition(),
-        scalar_field_presentation_definition(),
+        scalar_field_face_definition(),
     ]
 }
 
@@ -181,25 +185,28 @@ pub fn lenia_step_definition() -> KindProjection {
     }
 }
 
-pub fn scalar_field_presentation_definition() -> KindProjection {
+pub fn scalar_field_face_definition() -> KindProjection {
     KindProjection {
-        kind_id: kind_id(SCALAR_FIELD_PRESENTATION_KIND),
-        kind_contract_revision: KindIdentity::from(SCALAR_FIELD_PRESENTATION_REVISION),
+        kind_id: kind_id(SCALAR_FIELD_FACE_KIND),
+        kind_contract_revision: KindIdentity::from(SCALAR_FIELD_FACE_REVISION),
         inputs: vec![field_port(
             "field",
             PortDirection::Input,
             PortTemporal::Flow { closes: true },
         )],
         outputs: Vec::new(),
-        configuration: vec![
-            KindConfigurationField {
-                key: TITLE_KEY.to_string(),
-                default_value: ConfigurationValue::Text("Scalar field".to_string()),
-                rule: KindConfigurationRule::TextBytes { maximum: 64 },
-            },
-            i64_field(MINIMUM_KEY, 0, 0, 1_000_000),
-            i64_field(MAXIMUM_KEY, 1_000_000, 0, 1_000_000),
-        ],
+        configuration: conduit_core::data_label_configuration()
+            .into_iter()
+            .chain(vec![
+                KindConfigurationField {
+                    key: TITLE_KEY.to_string(),
+                    default_value: ConfigurationValue::Text(alloc::string::String::new()),
+                    rule: KindConfigurationRule::TextBytes { maximum: 64 },
+                },
+                i64_field(MINIMUM_KEY, 0, 0, 1_000_000),
+                i64_field(MAXIMUM_KEY, 1_000_000, 0, 1_000_000),
+            ])
+            .collect(),
     }
 }
 
@@ -247,6 +254,8 @@ fn value_type(value: &ConfigurationValue) -> &'static str {
         ConfigurationValue::Bool(_) => "Boolean",
         ConfigurationValue::Structured(_) => "Structured",
         ConfigurationValue::Quantity(_) => "Quantity",
+        ConfigurationValue::Unit(_) => "Unit",
+        ConfigurationValue::TemperatureDifference(_) => "TemperatureDifference",
     }
 }
 
@@ -257,9 +266,9 @@ fn render_default(value: &ConfigurationValue) -> alloc::string::String {
         ConfigurationValue::Text(value) => format!("\"{value}\""),
         ConfigurationValue::Bool(value) => value.to_string(),
         ConfigurationValue::Structured(_) => "structured".to_string(),
-        ConfigurationValue::Quantity(value) => {
-            format!("{}{}", value.value(), value.unit().plot_suffix())
-        }
+        ConfigurationValue::Quantity(value) => value.source().into(),
+        ConfigurationValue::Unit(value) => value.source().into(),
+        ConfigurationValue::TemperatureDifference(value) => value.source().into(),
     }
 }
 

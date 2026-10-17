@@ -60,15 +60,15 @@ pub fn execute(
         == second.kernel.source_document_id
         && first.kernel.checked_plot_id == second.kernel.checked_plot_id
         && first.kernel.expanded_plot_id == second.kernel.expanded_plot_id
-        && first.presentation.source_document_id == second.presentation.source_document_id
-        && first.presentation.checked_plot_id == second.presentation.checked_plot_id
-        && first.presentation.expanded_plot_id == second.presentation.expanded_plot_id;
+        && first.face.source_document_id == second.face.source_document_id
+        && first.face.checked_plot_id == second.face.checked_plot_id
+        && first.face.expanded_plot_id == second.face.expanded_plot_id;
     let fresh_realization_identities = first.kernel.plan_id != second.kernel.plan_id
         && first.kernel.fragment_id != second.kernel.fragment_id
         && first.kernel.active_play_id != second.kernel.active_play_id
-        && first.presentation.plan_id != second.presentation.plan_id
-        && first.presentation.fragment_id != second.presentation.fragment_id
-        && first.presentation.display_base_id != second.presentation.display_base_id;
+        && first.face.plan_id != second.face.plan_id
+        && first.face.fragment_id != second.face.fragment_id
+        && first.face.display_base_id != second.face.display_base_id;
     if !stable_semantic_identities || !fresh_realization_identities {
         return Err(ConduitosError::refusal(
             "observatory-identity-stage-collapse",
@@ -117,12 +117,18 @@ pub fn execute(
         iso_sha256: image.iso_sha256,
         reproducible_image,
         first_boot: first.boot,
-        first_presentation: first.presentation,
+        first_face: first.face,
         first_kernel: first.kernel,
         first_observatory: first.observatory.clone(),
+        first_source_conformance: super::ordinary_source_conformance::capture(
+            &first.observatory.plans[0],
+        )?,
         second_boot: second.boot,
-        second_presentation: second.presentation,
+        second_face: second.face,
         second_kernel: second.kernel,
+        second_source_conformance: super::ordinary_source_conformance::capture(
+            &second.observatory.plans[0],
+        )?,
         second_observatory: second.observatory,
         fresh_host_id,
         fresh_boot_id,
@@ -262,14 +268,7 @@ fn prove_native_patchbay(paths: &Paths, proof: &ProofRecord) -> Result<usize, Co
         "implementation=conduitos/kernel-text-literal@1",
         "implementation=conduitos/kernel-text-upper@1",
         "implementation=conduitos/kernel-serial-text@1",
-        "profile=conduitos/cooperative-bounded-step@1",
-        "REGION region/text",
-        "REGION region/timer",
         "ExecutionRegionOverlap",
-        "runtime-memory=12288",
-        "runtime-memory=8192",
-        "timer-slots=0",
-        "timer-slots=1",
         "lifecycle=Completed",
         "visible_gaps=0",
         "history=current",
@@ -284,7 +283,49 @@ fn prove_native_patchbay(paths: &Paths, proof: &ProofRecord) -> Result<usize, Co
             ));
         }
     }
+    require_region_projection(&linear, &proof.first_observatory.plans[0])?;
     Ok(linear.lines().count())
+}
+
+fn require_region_projection(
+    linear: &str,
+    plan: &conduit_core::Plan,
+) -> Result<(), ConduitosError> {
+    for fragment in &plan.fragments {
+        for region in &fragment.execution_regions {
+            let prefix = format!("REGION {} ", region.region_id.as_str());
+            let matching = linear
+                .lines()
+                .map(str::trim)
+                .filter(|line| line.starts_with(&prefix))
+                .collect::<Vec<_>>();
+            let fields = [
+                format!("plan={}", plan.plan_id.as_str()),
+                format!("fragment={}", fragment.fragment_id.as_str()),
+                format!("profile={}", region.execution_profile_id.as_str()),
+                format!(
+                    "runtime-memory={}",
+                    region.requirements.runtime_memory_bytes
+                ),
+                format!("timer-slots={}", region.requirements.timer_slots),
+            ];
+            if matching.len() != 1
+                || fields.iter().any(|field| {
+                    let key = field.split_once('=').unwrap().0;
+                    let mut values = matching[0]
+                        .split_whitespace()
+                        .filter(|token| token.split_once('=').is_some_and(|(name, _)| name == key));
+                    values.next() != Some(field.as_str()) || values.next().is_some()
+                })
+            {
+                return Err(ConduitosError::refusal(
+                    "patchbay-linear-projection-incomplete",
+                    format!("native Patchbay omitted exact admitted fields for {prefix}"),
+                ));
+            }
+        }
+    }
+    Ok(())
 }
 
 fn qemu_version(paths: &Paths) -> Result<String, ConduitosError> {
@@ -297,4 +338,66 @@ fn qemu_version(paths: &Paths) -> Result<String, ConduitosError> {
     String::from_utf8(output.stdout)
         .map(|value| value.lines().next().unwrap_or_default().to_owned())
         .map_err(|error| ConduitosError::refusal("missing-qemu", error.to_string()))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn protected_region_projection_requires_exact_correlated_fields_on_one_line() {
+        let identities = conduitos::identity::BootIdentities {
+            host: [1; 32],
+            boot: [2; 32],
+        };
+        let offer = conduitos::offer::HostOffer::new(
+            &identities,
+            "build",
+            conduitos::offer::CpuFeatures {
+                sse2: true,
+                rdrand: true,
+                invariant_tsc: true,
+            },
+            512 * 1024,
+        );
+        let mut plan = conduitos::dual_region_plan::prepare(&identities, &offer, "build")
+            .unwrap()
+            .plan;
+        let region = &mut plan.fragments[0].execution_regions[0];
+        region.execution_profile_id = conduitos::ordinary_plan::PROTECTED_REGION_PROFILE.into();
+        region.requirements.runtime_memory_bytes = 150000;
+        let mut linear = String::new();
+        for fragment in &plan.fragments {
+            for region in &fragment.execution_regions {
+                linear.push_str(&format!(
+                    "    REGION {} plan={} fragment={} profile={} runtime-memory={} timer-slots={}\n",
+                    region.region_id.as_str(), plan.plan_id.as_str(), fragment.fragment_id.as_str(),
+                    region.execution_profile_id.as_str(), region.requirements.runtime_memory_bytes,
+                    region.requirements.timer_slots,
+                ));
+            }
+        }
+        assert!(require_region_projection(&linear, &plan).is_ok());
+        for altered in [
+            linear.replace("runtime-memory=150000", "runtime-memory=12288"),
+            linear.replace("runtime-memory=150000", "runtime-memory=1500000"),
+            linear.replace(
+                "runtime-memory=150000",
+                "runtime-memory=150000 runtime-memory=12288",
+            ),
+            linear.replace(
+                conduitos::ordinary_plan::PROTECTED_REGION_PROFILE,
+                conduitos::ordinary_plan::COOPERATIVE_REGION_PROFILE,
+            ),
+            linear.replace(&format!("plan={}", plan.plan_id.as_str()), "plan=stale"),
+            linear.replace("REGION region/text", "REGION other"),
+            format!("{linear}{linear}"),
+            format!(
+                "{}\nruntime-memory=150000\n",
+                linear.replace("runtime-memory=150000", "")
+            ),
+        ] {
+            assert!(require_region_projection(&altered, &plan).is_err());
+        }
+    }
 }

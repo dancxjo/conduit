@@ -3,7 +3,7 @@
 use crate::{
     machine::BaseKind,
     offer::{
-        COUNT_PRESENTATION_IMPLEMENTATION, CapabilityOffer, PortDirection, PortOffer,
+        COUNT_FACE_IMPLEMENTATION, CapabilityOffer, PortDirection, PortOffer,
         STATE_COUNT_IMPLEMENTATION, TIME_EVERY_IMPLEMENTATION,
     },
 };
@@ -57,13 +57,13 @@ pub(super) fn count(build_id: &str) -> CapabilityOffer<'_> {
     }
 }
 
-pub(super) fn presentation(build_id: &str) -> CapabilityOffer<'_> {
+pub(super) fn face(build_id: &str) -> CapabilityOffer<'_> {
     CapabilityOffer {
-        kind: conduit_semantic_catalog::COUNT_PRESENTATION_KIND,
-        contract_revision: conduit_semantic_catalog::COUNT_PRESENTATION_CONTRACT_REVISION,
-        implementation: COUNT_PRESENTATION_IMPLEMENTATION,
+        kind: conduit_semantic_catalog::COUNT_FACE_KIND,
+        contract_revision: conduit_semantic_catalog::COUNT_FACE_CONTRACT_REVISION,
+        implementation: COUNT_FACE_IMPLEMENTATION,
         artifact_build: build_id,
-        host_call: Some("conduit.host/present-count@1"),
+        host_call: Some(conduit_core::PRESENT_HOST_CALL_CONTRACT),
         required_base: BaseKind::Serial,
         secondary_base: None,
         input: Some(PortOffer {

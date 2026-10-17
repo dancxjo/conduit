@@ -2,6 +2,9 @@
 //! The invariant TSC's CPUID frequency is preferred; ACPI-discovered HPET
 //! supplies the same elapsed-millisecond contract under QEMU TCG.
 
+mod monotonic;
+pub use monotonic::{NativeMonotonicDeadlineClock, admitted_monotonic_deadline_clock};
+
 use core::{
     arch::x86_64::__cpuid,
     ptr::{read_volatile, write_volatile},
@@ -78,6 +81,28 @@ pub(super) fn initialize_hpet(
 }
 
 impl CandidateDeadline {
+    /// Physical duration admission rounds the TSC ratio upward. The diagnostic
+    /// deadline's floored milliseconds must not permit an early timer wake.
+    pub fn admit_duration(timeout_millis: u32) -> Option<Self> {
+        let counter = Self::admit(timeout_millis)?;
+        if let Self::Tsc { start_ticks, .. } = counter {
+            let frequency = __cpuid(0x15);
+            let numerator = u64::from(frequency.ecx).checked_mul(u64::from(frequency.ebx))?;
+            let ticks_per_millisecond =
+                crate::timer_duration::duration_ticks(1, numerator, u64::from(frequency.eax))
+                    .ok()?;
+            let end_ticks = start_ticks
+                .checked_add(ticks_per_millisecond.checked_mul(u64::from(timeout_millis))?)?;
+            Some(Self::Tsc {
+                start_ticks,
+                end_ticks,
+                ticks_per_millisecond,
+            })
+        } else {
+            Some(counter)
+        }
+    }
+
     pub fn admit(timeout_millis: u32) -> Option<Self> {
         if timeout_millis == 0 {
             return None;
@@ -195,6 +220,22 @@ fn calibrated_ticks_per_millisecond(
         .checked_div(u64::from(denominator))?
         .checked_div(1_000)?;
     (ticks_per_millisecond > 0).then_some(ticks_per_millisecond)
+}
+
+/// Bootstrap Root spacing for a pending protocol deadline. Both counter reads
+/// and elapsed time are bounded; a stalled/regressed counter refuses.
+pub fn space_protocol_clock_poll() -> Result<(), &'static str> {
+    let counter = CandidateDeadline::admit(1000).ok_or("protocol-clock-spacing-unavailable")?;
+    for _ in 0..1000000 {
+        let elapsed = counter
+            .elapsed_millis()
+            .ok_or("protocol-clock-spacing-lost")?;
+        if elapsed >= 1 {
+            return Ok(());
+        }
+        core::hint::spin_loop();
+    }
+    Err("protocol-clock-spacing-no-progress")
 }
 
 #[cfg(test)]

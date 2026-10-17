@@ -1,0 +1,192 @@
+   Compiling serde v1.0.229
+   Compiling conduit-assigned-plan v0.1.0 (/home/dancxjo/conduit-5216-audio-foundation/architecture/assigned-plan)
+   Compiling conduit-core v0.1.0 (/home/dancxjo/conduit-5216-audio-foundation/architecture/core)
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/conduit-5216-audio-foundation/architecture/plot)
+   Compiling conduit-time v0.1.0 (/home/dancxjo/conduit-5216-audio-foundation/semantics/time)
+   Compiling conduit-audio v0.1.0 (/home/dancxjo/conduit-5216-audio-foundation/semantics/audio)
+   Compiling conduit-data v0.1.0 (/home/dancxjo/conduit-5216-audio-foundation/semantics/data)
+    Finished `test` profile [unoptimized] target(s) in 15.39s
+     Running unittests src/lib.rs (/home/dancxjo/conduit/target/debug/deps/conduit_audio-3a0f96dff4c4f715)
+
+running 6 tests
+test audio_info::tests::pcm_frame_is_exact_bounded_and_canonical ... ok
+test tone_terminal::tests::cancellation_is_exact_bounded_terminal_info ... ok
+test acoustic_quantities::amplitude_admission_tests::raw_square_is_not_semantic_admission ... ok
+test pcm_clip::tests::multiple_contiguous_frames_round_trip_canonically ... ok
+test pcm_clip::tests::gaps_mixed_clocks_and_trailing_bytes_fail_distinctly ... ok
+test decibel_projection::tests::forged_zero_raw_denominator_refuses_semantic_admission ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/acoustic_quantities.rs (/home/dancxjo/conduit/target/debug/deps/acoustic_quantities-5e18a9b280cf1c71)
+
+running 4 tests
+test native_storage_sizes_are_inspectable ... ok
+test resonator_fields_are_independent_and_not_sample_rate_bounded ... ok
+test positive_domains_refuse_zero_and_malformed_inputs ... ok
+test reciprocal_source_executes_exact_authored_fractions ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.11s
+
+     Running tests/amplitude_power.rs (/home/dancxjo/conduit/target/debug/deps/amplitude_power-5e97414b8605603d)
+
+running 4 tests
+test forged_typed_request_refuses_before_arithmetic ... ok
+test actual_native_type_and_value_sizes ... ok
+test full_quantity_domain_does_not_imply_square_eligibility ... ok
+test exact_square_matches_independent_u128_reference ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/decibel_projection.rs (/home/dancxjo/conduit/target/debug/deps/decibel_projection-2aaaf8251e1a246b)
+
+running 7 tests
+test source_reference_role_laws_and_public_corrupt_frame_refusal ... ok
+test actual_native_type_and_value_sizes ... ok
+test core_exact_fidelity_report_rejects_invented_preservation_and_changed_target ... ok
+test explicit_same_proportionality_reference_pair_connects_amplitude_power_and_db ... ok
+test zero_has_explicit_negative_infinity_and_unreduced_original_is_preserved ... ok
+test unsupported_numeric_profiles_retain_original_and_source_recognition ... ok
+test all_exact_exponents_and_inverse_execute_source_with_independent_u128_reference ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.05s
+
+     Running tests/native_audio_frame_contracts.rs (/home/dancxjo/conduit/target/debug/deps/native_audio_frame_contracts-93c2ff426607b07a)
+
+running 2 tests
+test render_demand_owns_the_exact_checked_interval_without_losing_domain_refusals ... ok
+test pcm_header_derives_and_owns_every_exact_representation_width ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/native_instrument.rs (/home/dancxjo/conduit/target/debug/deps/native_instrument-3b96d3099bffb93b)
+
+running 2 tests
+test instrument_mapping_round_trips_through_its_authored_type ... ok
+test both_instrument_control_payloads_are_native ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/native_musical_control_event.rs (/home/dancxjo/conduit/target/debug/deps/native_musical_control_event-10b10fd0e9e1fffc)
+
+running 2 tests
+test musical_control_event_enforces_time_boundary_and_typed_decode_refusals ... ok
+test musical_control_event_round_trips_and_preserves_codec_and_digest ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/native_musical_note_family.rs (/home/dancxjo/conduit/target/debug/deps/native_musical_note_family-5f1ede8311cac117)
+
+running 2 tests
+test musical_note_event_preserves_exact_codec_digest_and_bounds ... ok
+test note_occurrence_and_event_have_exact_native_round_trips ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/native_musical_pitch.rs (/home/dancxjo/conduit/target/debug/deps/native_musical_pitch-922f3fd25fa1fdec)
+
+running 2 tests
+test musical_pitch_bounds_belong_to_the_native_constructor ... ok
+test musical_pitch_has_exact_native_and_twenty_byte_round_trips ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/native_pcm_clip_profile.rs (/home/dancxjo/conduit/target/debug/deps/native_pcm_clip_profile-d6c8ce21f77afd61)
+
+running 2 tests
+test pcm_clip_profile_round_trips_exact_values ... ok
+test pcm_clip_profile_enforces_sample_rate_and_clock_bounds ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/native_timing_feedback.rs (/home/dancxjo/conduit/target/debug/deps/native_timing_feedback-e54b2f400e040af0)
+
+running 2 tests
+test timing_records_keep_the_exact_fields_and_primitive_bounds ... ok
+test complete_timing_feedback_family_round_trips_through_native_types ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/native_tone_intent.rs (/home/dancxjo/conduit/target/debug/deps/native_tone_intent-bed56318d2222efa)
+
+running 2 tests
+test tone_intent_native_constructor_owns_exact_bounds ... ok
+test tone_intent_preserves_native_identity_codec_and_digest ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/native_tone_terminal.rs (/home/dancxjo/conduit/target/debug/deps/native_tone_terminal-53af65aae6803d06)
+
+running 5 tests
+test native_tone_terminal_owns_semantic_identity_while_wire_codec_stays_explicit ... ok
+test musical_unit_variants_have_native_semantic_identity_and_exact_round_trips ... ok
+test pcm_unit_variants_have_native_semantic_identity_and_exact_round_trips ... ok
+test sound_stream_and_compatibility_vocabularies_have_native_identity ... ok
+test musical_control_payloads_round_trip_and_own_their_refinements ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/ownership.rs (/home/dancxjo/conduit/target/debug/deps/ownership-f9ae72a5a46a3ffe)
+
+running 1 test
+test portable_audio_meaning_has_one_host_neutral_owner ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/quantity_trajectory.rs (/home/dancxjo/conduit/target/debug/deps/quantity_trajectory-b2c3cd7460be4d4f)
+
+running 14 tests
+test refusals::forged_typed_zero_denominator_refuses_native_boundary ... ok
+test refusals::full_domain_values_are_not_silently_reduced_into_arithmetic_profile ... ok
+test arithmetic_profile_extremes_remain_exact_and_within_u64 ... ok
+test step_u32::original_full_u64_step_fractions_and_u32_cross_products_remain_exact ... ok
+test hz_and_cycle_interpolation_are_distinct_named_domains ... ok
+test power_ratio_and_zero_amplitude_keep_distinct_quantity_identity ... ok
+test refusals::shared_boundary_is_right_continuous_and_final_endpoint_retains_authored_fraction ... ok
+test independent_overlapping_controls_and_fractional_time_preserve_identity ... ok
+test refusals::ordering_coincident_and_domain_refusals_are_source_owned ... ok
+test refusals::gaps_outside_and_foreign_anchors_refuse_without_extrapolation ... ok
+test step_linear_and_exact_endpoint_receipts_execute_source ... ok
+test refusals::segment_count_and_provenance_bounds_are_native_admission ... ok
+test linear_fraction_results_match_independent_u128_reference ... ok
+test step_u32::real_formant_step_values_and_sample_time_queries_execute_exactly ... ok
+
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.61s
+
+     Running tests/rate_projection.rs (/home/dancxjo/conduit/target/debug/deps/rate_projection-de9d3368ab220567)
+
+running 11 tests
+test refusals::forged_full_cursor_frame_refuses_before_source_arithmetic ... ok
+test refusals::finite_chain_and_native_result_laws_refuse_forged_values ... ok
+test refusals::full_source_domains_do_not_imply_projection_eligibility ... ok
+test reports::projection_report_rejects_omission_fabricated_preservation_and_other_loss ... ok
+test refusals::foreign_rate_anchor_and_unreduced_denominator_refuse_before_append ... ok
+test independent_u128_projection_reference_and_profile_extremes ... ok
+test one_authored_duration_and_200hz_cycle_project_at_8_16_48khz ... ok
+test native_projection_storage_costs_are_inspectable ... ok
+test refusals::cumulative_profile_checks_carry_and_cursor_before_multiply_add ... ok
+test reports::core_reports_distinguish_integer_grid_loss_from_retained_exact_source ... ok
+test repeated_thirds_carry_fractional_frames_without_drift ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.19s
+
+     Running tests/sampled_signal_mapping.rs (/home/dancxjo/conduit/target/debug/deps/sampled_signal_mapping-6a44db7f632280f3)
+
+running 1 test
+test every_pcm_representation_maps_losslessly_to_the_generic_clock_contract ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/sound_info.rs (/home/dancxjo/conduit/target/debug/deps/sound_info-1606d183e80fff56)
+
+running 7 tests
+test microtonal_pitch_and_explicit_tuning_are_not_midi_numbers ... ok
+test pitch_consumes_typed_frequency_without_changing_canonical_identity ... ok
+test overlapping_equal_pitches_retain_occurrence_identity ... ok
+test sustain_hold_and_release_are_distinct_ordered_events ... ok
+test render_demand_round_trips_one_exact_nonempty_clock_interval ... ok
+test every_portable_event_round_trips_and_reserved_bytes_refuse ... ok
+test velocity_and_pitch_bend_cover_their_exact_extrema ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

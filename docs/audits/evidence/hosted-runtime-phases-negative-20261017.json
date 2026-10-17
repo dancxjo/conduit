@@ -1,0 +1,23 @@
+{
+  "checks": [
+    {
+      "mutation": "partition",
+      "refused": true,
+      "reason": "phase partition differs"
+    },
+    {
+      "mutation": "order",
+      "refused": true,
+      "reason": "phase markers not monotonic"
+    },
+    {
+      "mutation": "outer-bound",
+      "refused": true,
+      "reason": "phase call exceeds measured outer call"
+    }
+  ],
+  "verifier_sha256": "6ed74267030897b9e62163af8a040ad93392cb3c524b517fe60b72fa501689ea",
+  "mutation_proof_sha256": "8ba87bb01fd5f46e999c2c320f76b3b009fefc598426ddb9c59185c39172aa7a",
+  "capture_sha": "06fe8d914d2798ce90de7010f6dd25609d01e05f",
+  "scope": "Rehashed temporary raw capture mutations, original capture untouched."
+}

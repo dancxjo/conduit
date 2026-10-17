@@ -1,0 +1,201 @@
+{
+  "purpose": "Pinned pre-reconciliation Native Type identity comparison; not final combined-head acceptance.",
+  "canonical_candidate": "5319",
+  "candidates": {
+    "5319": {
+      "candidate": "#5319",
+      "head": "25ae8f84f266a187fe08d07d7841250bac0cacc7",
+      "rust_sources_head": "af154bb58872db770aad768fe844d66dcd6163df",
+      "generated_source": "target/debug/build/conduit-speech-533e90edddf64602/out/semantic_types.rs",
+      "generated_source_sha256": "17c3b8c8488aa2c64c01d1c692b84ec4d414b42833596a3f682c0f3d13f0ea85",
+      "types": {
+        "SpeechIpaUniversalRequest": {
+          "native_schema": "type/SpeechIpaUniversalRequest@6d50bd3797903b218fdaf76498212336ff740edbf413ab294f13b14048b0f3e7",
+          "value_kind": "structured-info/profile-0546bda5ee47a423e25dff1ba288af6e12c97fbd3c5e7b48032eabb8cb6ba65b@1",
+          "canonical_type_sha256": "8be40b0e6e3e46fe74db45180332995b68d2e21af6dfb0ba481dd2a93aa55881",
+          "canonical_type_bytes": 1052
+        },
+        "SpeechPhoneNotation": {
+          "native_schema": "type/SpeechPhoneNotation@0fc503a8b4ee896ca296e9749d1c03fc32148621f02f673ce75c6af136901786",
+          "value_kind": "structured-info/profile-2b4bff3e5440f95a7f88a4d25ef6410d9551d67b99c07da2dcc677fe6609b123@1",
+          "canonical_type_sha256": "e4bad5afbea172a3f7ddc62035fdba43690017944160f57de77ed8cf05b17adf",
+          "canonical_type_bytes": 1138
+        },
+        "SpeechPhoneticTranscription": {
+          "native_schema": "type/SpeechPhoneticTranscription@d0656ad7809d63485f87b2ef157b9c60226becd1a4f5f274c2d57d82697a3562",
+          "value_kind": "structured-info/profile-44d591ffe3ab2943165a6dfe7232746f0d55808c89b653036107ed78e9b3d190@1",
+          "canonical_type_sha256": "104262b898133a55d4e307bce7a0e9006d827446c1aa0e5964919f758e748308",
+          "canonical_type_bytes": 2924
+        },
+        "SpeechPhonemeNotation": {
+          "native_schema": "type/SpeechPhonemeNotation@9bf07477dfda2248d0893172483ddbfde3cc206de057fa1b9eb1a1fa8f049139",
+          "value_kind": "structured-info/profile-06fc55c18ccb27462b8a731b70f1eeeac16a62322b86ecf37ba791fd995f7ead@1",
+          "canonical_type_sha256": "6b8e369cbf0f884b9593e0456f5560e78d3b3ec6de390c7fcba4b618128a7730",
+          "canonical_type_bytes": 30075
+        },
+        "SpeechPhonemicTranscription": {
+          "native_schema": "type/SpeechPhonemicTranscription@4345279a1ad3b9f668aaf700e75143a90fc450cb26c227bb15acb4afebd3f773",
+          "value_kind": "structured-info/profile-0f06af5e66a7a8884bf9f6d1b28d4f039f81ececb78b6d205fdfa6f66a924b8d@1",
+          "canonical_type_sha256": "70f8b3821aa1aabb5035505e78e60c73ce68561f9daac693df1d6f55437b246a",
+          "canonical_type_bytes": 9993
+        },
+        "SpeechInventory": {
+          "native_schema": "type/SpeechInventory@6c594f6c5ab169e1d015637646eced6dfecc941fa2da29227f8499942af5eaf3",
+          "value_kind": "structured-info/profile-34d3ac9b8f55047c673fa03079051d03b7837ee93e0612b3b8c6ebd18652577b@1",
+          "canonical_type_sha256": "aa26241cb3cf03d88b3fa217800c87c3c93c2aef153dfe9fc9c73b7d5f84b262",
+          "canonical_type_bytes": 23575
+        },
+        "SpeechIpaInventoryNotationBasis": {
+          "native_schema": "type/SpeechIpaInventoryNotationBasis@6399af1d452d68d6ee9ea3bb18b6a3a8bb9e353f7297135a3955156acdcd8d04",
+          "value_kind": "structured-info/profile-bdfd6b86946a6d7cd7073a6976012827d227af1b1a3a1b349c438cd30f995b65@1",
+          "canonical_type_sha256": "5b5b8350d76a31b0d7c04bee86ba09572de1de55ad0b3b1a25201b70bde55833",
+          "canonical_type_bytes": 5339
+        },
+        "SpeechIpaPhoneBindings": {
+          "native_schema": "type/SpeechIpaPhoneBindings@7af9fb6fc5b1530f2ed1d76b67c80c687dde0438b73556d263203f5c5f69cc27",
+          "value_kind": "structured-info/profile-38e3f0d7b6b49bc3d45eeec62825edaa35d34e24ba9b2414c30fd144d3665007@1",
+          "canonical_type_sha256": "79633e58d29b8626451b31c3f63bf5705fd74527f024c22a2bccdbfd429389fb",
+          "canonical_type_bytes": 1372
+        },
+        "SpeechIpaPhonemeBindings": {
+          "native_schema": "type/SpeechIpaPhonemeBindings@ddb6d84543f285309d325d93e59f58dcee95c99a8ce659df2600ab3ad7c57d2c",
+          "value_kind": "structured-info/profile-c1e83b233edaf2addbb5b94a6fd0190503c4e0e53c40f576c829cba2275cb54e@1",
+          "canonical_type_sha256": "1363868646fb399512a15af27280828911f9d90b51358f669495508c383876da",
+          "canonical_type_bytes": 1380
+        }
+      },
+      "cross_check": {
+        "method": "direct Native API profile probe against already compiled candidate; internal inspection, not a new supported proof",
+        "library": "target/debug/deps/libconduit_speech-12b7a743fb57132c.rlib",
+        "result": "all profiles match canonical-type extraction"
+      }
+    },
+    "5327": {
+      "candidate": "#5327",
+      "head": "7a5a5788bb12d9416e6b9f0e616444feeade335e",
+      "latest_equivalent_public_sources": "7acbfc70270915addee9cd380f09d7eeafd808c5",
+      "generated_source": "target/5327-audit/debug/build/conduit-speech-2851307ecb635180/out/semantic_types.rs",
+      "generated_source_sha256": "76992bcf51fe6e4dc56ca3ac24cba53643b737a9fc5a45a55300c8b20d379b33",
+      "build": "cargo check -p conduit-speech --no-default-features --features semantic-bindings --locked; terminal exit 0",
+      "extraction": "Repository canonical record/variant schema prefix; SHA256(conduit.structured-info.type.v1 || u32LE(byte length) || canonical type bytes). This is contract inspection, not final combined-head runtime proof.",
+      "types": {
+        "SpeechPhoneticIpaRequest": {
+          "native_schema": "type/SpeechPhoneticIpaRequest@3156e36a9e83acbbff578c88d0d3a021557c69cedba2657f20b087481ddb4d29",
+          "value_kind": "structured-info/profile-ba4edb5ac61edd36b42f8fa830dfa9b385c1cecaba7f6d7dfb7cce23cf5f66dc@1",
+          "canonical_type_sha256": "908cd9387ecd00e35312d983d9a7bb5e26bd135f71ec28f423321e2a5e8c4079",
+          "canonical_type_bytes": 5141
+        },
+        "SpeechPhonemicIpaRequest": {
+          "native_schema": "type/SpeechPhonemicIpaRequest@22648fd86742b19f286a6cbb06ec9c13352d4ae8aa9a1dd57e81e1e7e438ca65",
+          "value_kind": "structured-info/profile-df125b489a9a22d92dada0be077dc8ddc4e1c3f43a270e85dd53f6eed15bc392@1",
+          "canonical_type_sha256": "843ba626d11efb2c9194fc6d414fe7f379f85b48f3fcdeb04d30f6452c4378cc",
+          "canonical_type_bytes": 8734
+        },
+        "SpeechPhoneticIpaOutcome": {
+          "native_schema": "type/SpeechPhoneticIpaOutcome@67f3592deef633006c487f0ad03175bb3d36c413aca95f456f42ad6a1990d602",
+          "value_kind": "structured-info/profile-8ea04e7652d3de12234eaffec1d9692748da02fecfc28e1842155f99f3031c02@1",
+          "canonical_type_sha256": "3b423c9952b6ca1fc6f64ab27340ec589f19ae9137005c3a94106227fd26be6d",
+          "canonical_type_bytes": 6273
+        },
+        "SpeechPhonemicIpaOutcome": {
+          "native_schema": "type/SpeechPhonemicIpaOutcome@0732402fe5083ef38802391f50740717333a629e7b0610b3bd2c84cab272d0d7",
+          "value_kind": "structured-info/profile-fef0364ed0f5552bb635371ad7226cf07862c3324afea78efff2cdec6b2966bc@1",
+          "canonical_type_sha256": "4ef86fc55c1668e10e87218529577c976ea5bf5c5e089ef1454d786440ea206f",
+          "canonical_type_bytes": 9350
+        },
+        "SpeechPhoneticIpaTranscription": {
+          "native_schema": "type/SpeechPhoneticIpaTranscription@e257fa8e7e0f535658403b09a5728dae4b0958875693873dcee43d6397e285a7",
+          "value_kind": "structured-info/profile-6fd58b4f364567a4b956480768a556e4950a00502d3a4a37ebd8229771d880a5@1",
+          "canonical_type_sha256": "b3099002902cc8cd635bdc80a5d1205e2e6c9615ac0043447d5cf997fbb96cc4",
+          "canonical_type_bytes": 5546
+        },
+        "SpeechPhonemicIpaTranscription": {
+          "native_schema": "type/SpeechPhonemicIpaTranscription@7327313a7c3f8e5441be289d9afaf7dc0a32ee85e6c985761774b58cfd6aa5cd",
+          "value_kind": "structured-info/profile-3a0d35c1b7a93a071cdbfa3d654c2f50998df4cc965eb773f69017e7dea54b7e@1",
+          "canonical_type_sha256": "c3379df659988a59fe4db00c3241a3a6676a9636e4535a7237ac8f0a26153a9d",
+          "canonical_type_bytes": 8623
+        },
+        "SpeechPhoneticIpaPhone": {
+          "native_schema": "type/SpeechPhoneticIpaPhone@5b1cf39e53ab012dc04686bb6cd9d8ae8684b73797caa226787a58ed85a06385",
+          "value_kind": "structured-info/profile-6a8c632c5bab022b7a188a92093317d01fc70941094c31ff43c935c55e02718e@1",
+          "canonical_type_sha256": "a7fec898adf40462d735fc58613978341415208b47ea243108b94ae2007200ed",
+          "canonical_type_bytes": 6454
+        },
+        "SpeechPhoneticIpaProfile": {
+          "native_schema": "type/SpeechPhoneticIpaProfile@8ebb7f18a914e88976e787f3d077faf2da50bab0db5c67dc171af6f687aeb388",
+          "value_kind": "structured-info/profile-19623da2dc08ad960e766b187a289c9a57285235298df18154ff0ff57f24c174@1",
+          "canonical_type_sha256": "6afb1be8c3b9ee4070fdc9dbc7c3df077fc66752a8904ed024f4f6245dfa29db",
+          "canonical_type_bytes": 4079
+        },
+        "SpeechInventory": {
+          "native_schema": "type/SpeechInventory@18be04a2cf4dee09e520c22f45fcea3ea4bbc5f4b5e4f9d3859305ab5eb0c656",
+          "value_kind": "structured-info/profile-e2aeddf11da371949e571a934ee428580c67d223de4161d9178767b6d79a5193@1",
+          "canonical_type_sha256": "603f0cbaaf805e6e3552fb6d86a7c2dbf7671143c3e121f7860d4afca64dd765",
+          "canonical_type_bytes": 23575
+        },
+        "SpeechIpaNotationProfile": {
+          "native_schema": "type/SpeechIpaNotationProfile@032bee90f5286d5893d9bb39bf2275ee5eff17f22389f2e290fbb3895de355db",
+          "value_kind": "structured-info/profile-4f5025b3035f9dc64e88dde62a6d0d5ae34eead0ee9ddfa3eb69988e273c3cf5@1",
+          "canonical_type_sha256": "3fa5dc23f1d733cdbddf4586d0dd474909fe4f809bb0a7d9e61c2959951df0fd",
+          "canonical_type_bytes": 4530
+        },
+        "SpeechIpaLocatedRefusal": {
+          "native_schema": "type/SpeechIpaLocatedRefusal@66e8e8e827ccc2e025475d8af7ae4da2650225aca542028011553be84852217a",
+          "value_kind": "structured-info/profile-7ba6f238360dc21c6e0226c291edd6a3e70f6591c89e946455fff2e5d0e0c4a7@1",
+          "canonical_type_sha256": "4fc0dab6b6316eb7fa025e306a665b610fc60ba7967ec7f96b821f8aa9da6dae",
+          "canonical_type_bytes": 601
+        }
+      }
+    }
+  },
+  "selected_offers": {
+    "kind_revision": "conduit.speech/ipa-quoted@1",
+    "execution_profile": "conduit-native/checked-ipa@1",
+    "native_source_id": "495cfdae3b0954eaad92717d766ecfd4369da179ff96ce4a1d007b8a5348f538",
+    "verification": "Generated binding source SHA256 on combined head 3ae2ccb4b is identical to the pinned #5319 generator output. Artifact IDs follow the inspected offer factory exactly.",
+    "host_calls": [],
+    "resources": [],
+    "authority": [],
+    "maximum_active_instances": 8,
+    "queue_items": 1,
+    "queue_bytes": 262144,
+    "offers": {
+      "speech/phone-from-ipa": {
+        "capability_id": "conduit-native/ipa-phone@1",
+        "implementation_id": "conduit-native/ipa-phone@1",
+        "artifact_id": "conduit-native/ipa-phone@1/495cfdae3b0954eaad92717d766ecfd4369da179ff96ce4a1d007b8a5348f538",
+        "fore": "value",
+        "temporal": "Value",
+        "result_type": "SpeechPhoneNotation",
+        "result_value_kind": "structured-info/profile-2b4bff3e5440f95a7f88a4d25ef6410d9551d67b99c07da2dcc677fe6609b123@1"
+      },
+      "speech/phonetic-from-ipa": {
+        "capability_id": "conduit-native/ipa-phonetic@1",
+        "implementation_id": "conduit-native/ipa-phonetic@1",
+        "artifact_id": "conduit-native/ipa-phonetic@1/495cfdae3b0954eaad92717d766ecfd4369da179ff96ce4a1d007b8a5348f538",
+        "fore": "value",
+        "temporal": "Value",
+        "result_type": "SpeechPhoneticTranscription",
+        "result_value_kind": "structured-info/profile-44d591ffe3ab2943165a6dfe7232746f0d55808c89b653036107ed78e9b3d190@1"
+      },
+      "speech/phoneme-from-ipa": {
+        "capability_id": "conduit-native/ipa-phoneme@1",
+        "implementation_id": "conduit-native/ipa-phoneme@1",
+        "artifact_id": "conduit-native/ipa-phoneme@1/495cfdae3b0954eaad92717d766ecfd4369da179ff96ce4a1d007b8a5348f538",
+        "fore": "value",
+        "temporal": "Value",
+        "result_type": "SpeechPhonemeNotation",
+        "result_value_kind": "structured-info/profile-06fc55c18ccb27462b8a731b70f1eeeac16a62322b86ecf37ba791fd995f7ead@1"
+      },
+      "speech/phonemic-from-ipa": {
+        "capability_id": "conduit-native/ipa-phonemic@1",
+        "implementation_id": "conduit-native/ipa-phonemic@1",
+        "artifact_id": "conduit-native/ipa-phonemic@1/495cfdae3b0954eaad92717d766ecfd4369da179ff96ce4a1d007b8a5348f538",
+        "fore": "value",
+        "temporal": "Value",
+        "result_type": "SpeechPhonemicTranscription",
+        "result_value_kind": "structured-info/profile-0f06af5e66a7a8884bf9f6d1b28d4f039f81ececb78b6d205fdfa6f66a924b8d@1"
+      }
+    }
+  }
+}

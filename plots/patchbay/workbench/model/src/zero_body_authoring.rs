@@ -26,6 +26,19 @@ impl PlotCandidate {
 }
 
 impl ZeroBodyFrontDoor {
+    pub fn opened_plot_editor(&self) -> Option<crate::PlotEditor> {
+        let OpenedFrontDoorSubject::Plot {
+            checked_plot_id, ..
+        } = self.opened.as_ref()?
+        else {
+            return None;
+        };
+        self.plots
+            .iter()
+            .find(|plot| &plot.checked_plot_id == checked_plot_id)
+            .map(|plot| plot.editor.clone())
+    }
+
     pub fn opened_plot_document(&self) -> Option<PlotDocumentView> {
         let OpenedFrontDoorSubject::Plot {
             checked_plot_id, ..
@@ -52,7 +65,7 @@ impl ZeroBodyFrontDoor {
                 PlotEditorError::InvalidConfiguration(_) | PlotEditorError::UnknownConfiguration(_),
             ) => PatchbayInvocationOutcome::Refused(PatchbayRefusal::InvalidConfiguration),
             Err(PlotEditorError::StaleRevision { .. } | PlotEditorError::StaleGraphBasis) => {
-                PatchbayInvocationOutcome::Refused(PatchbayRefusal::StalePresentation)
+                PatchbayInvocationOutcome::Refused(PatchbayRefusal::StaleFace)
             }
             Err(_) => PatchbayInvocationOutcome::Refused(PatchbayRefusal::OperationRejected),
         }
@@ -85,9 +98,17 @@ impl ZeroBodyFrontDoor {
         let revision = basis.source_revision;
         let expanded = &basis.expanded_plot_id;
         match edit {
-            PatchbayEdit::PlaceGear { kind_id, .. } => plot
+            PatchbayEdit::PlaceGear {
+                kind_id,
+                data_label,
+                ..
+            } => plot
                 .editor
-                .place_palette_kind(revision, &conduit_core::kind_id(kind_id))
+                .place_palette_kind_with_label(
+                    revision,
+                    &conduit_core::kind_id(kind_id),
+                    data_label.as_deref(),
+                )
                 .map(|_| ()),
             PatchbayEdit::DuplicateGear {
                 subject_identity, ..

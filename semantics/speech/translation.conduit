@@ -1,8 +1,6 @@
 # Translation relates exact segment occurrences. Symbols, array offsets alone,
 # language tags, and similar spelling never establish an alignment.
 
-type LanguageTextId = Text <= 64B not in [""]
-type LanguageTextRevisionId = Text <= 64B not in [""]
 type SpeechUtteranceId = Text <= 64B not in [""]
 type SpeechSegmentRevisionId = Text <= 64B not in [""]
 type SpeechSegmentSequenceId = Text <= 64B not in [""]
@@ -11,20 +9,7 @@ type TranslationAlignmentId = Text <= 64B not in [""]
 type LocalizationLocaleId = Text <= 64B not in [""]
 type LocalizationMessageId = Text <= 128B not in [""]
 
-type LanguageTextSegmentKind =
-    grapheme
-    | morpheme
-    | word
-    | phrase
-    | utterance
 
-type LanguageTextSegmentRef = {
-    text_id: LanguageTextId
-    revision_id: LanguageTextRevisionId
-    language: SpeechLanguageId
-    kind: LanguageTextSegmentKind
-    range: ListeningTextRange
-}
 
 # Ordinal is scoped to an exact utterance, inventory and sequence revision.
 # Two occurrences of /t/ never collapse to one PhonemeId or PhoneId.
@@ -33,7 +18,7 @@ type LanguageSpeechTokenRef = {
     sequence_id: SpeechSegmentSequenceId
     revision_id: SpeechSegmentRevisionId
     inventory_id: SpeechInventoryId
-    language: SpeechLanguageId
+    language: LanguageId
     ordinal: U32
 }
 
@@ -43,12 +28,6 @@ type LanguageSegmentRef =
     | phone LanguageSpeechTokenRef
     | recognition ListeningEventRef
 
-type LanguageText = {
-    identity: LanguageTextId
-    revision: LanguageTextRevisionId
-    language: SpeechLanguageId
-    text: Text <= 4096B
-}
 
 type TranslationAlignedGroup = {
     sources: sequence LanguageSegmentRef in 1..=8
@@ -122,7 +101,7 @@ type TranslationEvent =
 type LocalizationRequest = {
     message_id: LocalizationMessageId
     source: LanguageText
-    target_language: SpeechLanguageId
+    target_language: LanguageId
     locale: LocalizationLocaleId?
 }
 
@@ -134,7 +113,7 @@ type SpeechTokenSequenceBasis = {
     sequence_id: SpeechSegmentSequenceId
     revision_id: SpeechSegmentRevisionId
     inventory_id: SpeechInventoryId
-    language: SpeechLanguageId
+    language: LanguageId
 }
 type SpeechPhoneSequence = {
     basis: SpeechTokenSequenceBasis
@@ -161,16 +140,4 @@ type SpeechSequenceReferenceMatch = {
     basis_match: SpeechSequenceBasisMatch
     token_count: U32 in 0..=256
     where .basis_match.reference.ordinal < .token_count
-}
-
-# A text reference binds to supplied immutable material, not a global registry.
-# scalar_count is derived from that material during preparation.
-type LanguageTextReferenceMatch = {
-    material: LanguageText
-    reference: LanguageTextSegmentRef
-    scalar_count: U32 in 0..=4096
-    where .reference.text_id == .material.identity
-    where .reference.revision_id == .material.revision
-    where .reference.language == .material.language
-    where .reference.range.end <= .scalar_count
 }

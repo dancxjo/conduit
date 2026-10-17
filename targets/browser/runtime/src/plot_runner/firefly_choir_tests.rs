@@ -6,8 +6,8 @@ fn pulse_sinks(plot: &conduit_plot::ExpandedCanonicalPlot) -> Vec<&str> {
         .filter(|gear| {
             matches!(
                 gear.kind_id.as_str(),
-                conduit_semantic_catalog::PULSE_PRESENTATION_KIND
-                    | conduit_semantic_catalog::PULSE_TONE_PRESENTATION_KIND
+                conduit_semantic_catalog::PULSE_FACE_KIND
+                    | conduit_semantic_catalog::PULSE_TONE_FACE_KIND
             )
         })
         .map(|gear| gear.kind_id.as_str())
@@ -37,14 +37,14 @@ fn pulse_light_and_tone_are_explicit_and_sound_omission_removes_its_cord() {
     assert_eq!(
         pulse_sinks(&enriched.expanded),
         [
-            conduit_semantic_catalog::PULSE_PRESENTATION_KIND,
-            conduit_semantic_catalog::PULSE_TONE_PRESENTATION_KIND,
+            conduit_semantic_catalog::PULSE_FACE_KIND,
+            conduit_semantic_catalog::PULSE_TONE_FACE_KIND,
         ]
     );
     assert_eq!(enriched.expanded.connections.len(), 2);
     assert_eq!(
         pulse_sinks(&light_only.expanded),
-        [conduit_semantic_catalog::PULSE_PRESENTATION_KIND]
+        [conduit_semantic_catalog::PULSE_FACE_KIND]
     );
     assert_eq!(light_only.expanded.connections.len(), 1);
     let browser =
@@ -52,10 +52,11 @@ fn pulse_light_and_tone_are_explicit_and_sound_omission_removes_its_cord() {
     assert!(browser
         .capabilities
         .iter()
-        .any(|offer| offer.kind_id.as_str() == conduit_semantic_catalog::PULSE_PRESENTATION_KIND));
-    assert!(browser.capabilities.iter().all(|offer| {
-        offer.kind_id.as_str() != conduit_semantic_catalog::PULSE_TONE_PRESENTATION_KIND
-    }));
+        .any(|offer| offer.kind_id.as_str() == conduit_semantic_catalog::PULSE_FACE_KIND));
+    assert!(browser
+        .capabilities
+        .iter()
+        .all(|offer| { offer.kind_id.as_str() != conduit_semantic_catalog::PULSE_TONE_FACE_KIND }));
 }
 
 #[test]
@@ -70,11 +71,11 @@ fn canonical_firefly_choir_manifests_pulse_five_and_remains_alive() {
             TourHostEffect::Timer(timer) => {
                 assert_eq!(timer.duration_millis, 240)
             }
-            TourHostEffect::Manifestation(value) => match value.presentation_kind.as_str() {
-                conduit_semantic_catalog::PULSE_PRESENTATION_KIND => {
+            TourHostEffect::Manifestation(value) => match value.face_kind.as_str() {
+                conduit_semantic_catalog::PULSE_FACE_KIND => {
                     pulses.push((value.observation_sequence, value.text.unwrap()));
                 }
-                conduit_semantic_catalog::RHYTHM_PRESENTATION_KIND => {
+                conduit_semantic_catalog::RHYTHM_FACE_KIND => {
                     rhythms.push(value.text.unwrap());
                 }
                 _ => panic!("Firefly Choir manifested an unrelated Kind"),

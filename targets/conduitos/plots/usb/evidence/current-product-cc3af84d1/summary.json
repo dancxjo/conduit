@@ -1,0 +1,86 @@
+{
+  "schema": "conduit.usb/current-product-duplex-proof@1",
+  "source_commit": "cc3af84d1265e7ba159df0bbe5939d665e5d2006",
+  "proof_class": "freestanding-emulator",
+  "physical_compatibility": "unverified",
+  "unit_tests": {
+    "passed": 14,
+    "filter": "duplex",
+    "session": 20938
+  },
+  "strict_clippy": {
+    "exit_code": 0,
+    "session": 60691
+  },
+  "cases": [
+    {
+      "architecture": "x86",
+      "outcome": "play-retired",
+      "validation": "passed",
+      "serial": {
+        "serial_results": 32,
+        "transmitted": 16,
+        "received": 16,
+        "ordered": true,
+        "retired": true
+      },
+      "wire": {
+        "source_controls": 5,
+        "discovery_controls": 2,
+        "actual_transmit": 16,
+        "actual_receive": 16,
+        "status_success": true,
+        "exact_octets": true,
+        "preflight": "supported",
+        "discovery_configuration_hex": "090243000201008032090400000102020100052400100105240100010424020205240600010705830310001009040100020a0000000705810240000007050202400000"
+      },
+      "files": {
+        "serial.log": "451e1e9555e40299fdf6c6fb504e963f0e839dc0f1fee07b9307049389b50b3a",
+        "qemu.log": "2a640d08346df159849c5285acfda79828f60a20f1f25cee45d5b4fd33a4be46",
+        "receipt.json": "23470dd3a3691d375899ab38c636f1c0ceaa257f1814110207ff08478274656e",
+        "device.log": "7723b11e583efcdde35d13b9f9c22d392f24d7cfbb9cc548dc5ddd93d2021152",
+        "build-manifest.json": "1f403bc5aac2880d2999bfa66d11b3e09ab07bff82b9f2e60032ffa41ae1a14e",
+        "build.json": "b2f1722f92203add6c0c322afbe43e204cf79adbc857a60938a4f75a0e45ffef",
+        "wire.jsonl": "04e55027143295d046ac275f4e857bce9fda5235f08067dd82c3ee658653f4e2",
+        "protocol-receipt.json": "1551697b0ede9b1f5951a35902b525f07bfed6a07dfc249cda521ed253ccbd67"
+      }
+    },
+    {
+      "architecture": "aarch64",
+      "outcome": "play-retired",
+      "validation": "passed",
+      "serial": {
+        "serial_results": 32,
+        "transmitted": 16,
+        "received": 16,
+        "ordered": true,
+        "retired": true
+      },
+      "wire": {
+        "source_controls": 5,
+        "discovery_controls": 2,
+        "actual_transmit": 16,
+        "actual_receive": 16,
+        "status_success": true,
+        "exact_octets": true,
+        "preflight": "supported",
+        "discovery_configuration_hex": "090243000201008032090400000102020100052400100105240100010424020205240600010705830310001009040100020a0000000705810240000007050202400000"
+      },
+      "files": {
+        "serial.log": "97714ec0808146073b1e1c91c7efedc16d7cb59627d19f0ef0ba5c037a47a10c",
+        "qemu.log": "d09c2974e008147ee4c6335866adc72ea84f37861188b66b530520a7a3a3033f",
+        "receipt.json": "901c48500a6591885ac3f8f1013030f3663242a0d4532e428cd46e1de13059c7",
+        "device.log": "0049ca529f9d12cf244ac005c76335ead392f6a6759b8d06069da28652ca744d",
+        "build-manifest.json": "4ce57add76aa6676594c23218dbfba19342af4c66e47f17814af4818673f0502",
+        "build.json": "64e81b494dc1e03a3c67a0f63c78154bb64c3f25897b6a6a30d3621110ef21d3",
+        "wire.jsonl": "4ba22d7061a558f235a3204931e7599a39c2a30ebe97869678477542ed559701",
+        "protocol-receipt.json": "29de8a6d7c0b7b68c94ad94f181d4ea00bef05beec4724dc9bf0970ab3039410"
+      }
+    }
+  ],
+  "inputs": {
+    "package.json": "e245021b78df2c4dc8fc9ff7cf4858200db320e8ad6db1443c8745214b5a3a1d",
+    "source.conduit": "361edaa79607a0b5ac0c05a5b24955407f567c336af5d47b4de3f15d36d1ad34",
+    "root.json": "dcbdacbc7f1867b76dff69c50bf3c315d07b955480bf621c6677ac46165ec8db"
+  }
+}

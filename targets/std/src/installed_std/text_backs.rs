@@ -6,15 +6,13 @@ use conduit_kernel::{
     ValueStorage,
 };
 use conduit_semantic_catalog::{
-    MAX_TEXT_VALUES, TEXT_PRESENTATION_CONTRACT_REVISION, TEXT_PRESENTATION_KIND,
-    TEXT_PRESENTATION_VALUE_KIND,
+    MAX_TEXT_VALUES, TEXT_FACE_CONTRACT_REVISION, TEXT_FACE_KIND, TEXT_FACE_VALUE_KIND,
 };
 use conduit_std_offers::{
-    TEXT_JOIN_ARTIFACT, TEXT_JOIN_EXECUTION_PROFILE, TEXT_JOIN_IMPLEMENTATION,
-    TEXT_LITERAL_ARTIFACT, TEXT_LITERAL_EXECUTION_PROFILE, TEXT_LITERAL_IMPLEMENTATION,
-    TEXT_PRESENTATION_ARTIFACT, TEXT_PRESENTATION_EXECUTION_PROFILE,
-    TEXT_PRESENTATION_IMPLEMENTATION, TEXT_UPPER_ARTIFACT, TEXT_UPPER_EXECUTION_PROFILE,
-    TEXT_UPPER_IMPLEMENTATION,
+    TEXT_FACE_ARTIFACT, TEXT_FACE_EXECUTION_PROFILE, TEXT_FACE_IMPLEMENTATION, TEXT_JOIN_ARTIFACT,
+    TEXT_JOIN_EXECUTION_PROFILE, TEXT_JOIN_IMPLEMENTATION, TEXT_LITERAL_ARTIFACT,
+    TEXT_LITERAL_EXECUTION_PROFILE, TEXT_LITERAL_IMPLEMENTATION, TEXT_UPPER_ARTIFACT,
+    TEXT_UPPER_EXECUTION_PROFILE, TEXT_UPPER_IMPLEMENTATION,
 };
 use conduit_text::{
     MAX_TEXT_BYTES, TEXT_JOIN_CONTRACT_REVISION, TEXT_JOIN_KIND, TEXT_LITERAL_CONTRACT_REVISION,
@@ -39,10 +37,10 @@ pub(super) static TEXT_JOIN_FACTORY: BackFactory = BackFactory {
     prepare: prepare_text_join,
 };
 
-pub(super) static TEXT_PRESENTATION_FACTORY: BackFactory = BackFactory {
-    implementation_id: TEXT_PRESENTATION_IMPLEMENTATION,
-    budget: text_presentation_budget,
-    prepare: prepare_text_presentation,
+pub(super) static TEXT_FACE_FACTORY: BackFactory = BackFactory {
+    implementation_id: TEXT_FACE_IMPLEMENTATION,
+    budget: text_face_budget,
+    prepare: prepare_text_face,
 };
 
 pub(super) struct TextLiteralBack {
@@ -115,7 +113,7 @@ impl<const PORTS: usize> StepBack<PORTS> for TextTransformBack {
     }
 }
 
-impl<const PORTS: usize> StepBack<PORTS> for TextPresentationBack {
+impl<const PORTS: usize> StepBack<PORTS> for TextFaceBack {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some((request, outcome)) = io.host_completion() {
             if self.pending != Some(request)
@@ -126,7 +124,7 @@ impl<const PORTS: usize> StepBack<PORTS> for TextPresentationBack {
                 return StepOutcome::Fail(step_failure(5));
             }
             io.consume_host_completion()
-                .expect("observed text Presentation completion");
+                .expect("observed text Face completion");
             self.pending = None;
             self.next += 1;
             return StepOutcome::Progress;
@@ -139,16 +137,15 @@ impl<const PORTS: usize> StepBack<PORTS> for TextPresentationBack {
                 return StepOutcome::Fail(step_failure(5));
             };
             let request = RequestId(self.next);
-            io.consume(PortId(0))
-                .expect("present text Presentation input");
+            io.consume(PortId(0)).expect("present text Face input");
             io.request_host_call(request, HostCallId(0), input)
-                .expect("single text Presentation Host Call");
+                .expect("single text Face Host Call");
             self.pending = Some(request);
             return StepOutcome::Progress;
         }
         if io.input_closed(PortId(0)) && self.pending.is_none() {
             io.consume_closed(PortId(0))
-                .expect("observed text Presentation closure");
+                .expect("observed text Face closure");
             return StepOutcome::Complete;
         }
         StepOutcome::Await
@@ -173,7 +170,7 @@ pub(super) struct TextTransformBack {
     maximum_input_bytes: u32,
 }
 
-pub(super) struct TextPresentationBack {
+pub(super) struct TextFaceBack {
     pending: Option<RequestId>,
     next: u32,
     maximum_values: u32,
@@ -196,7 +193,7 @@ impl TextTransformBack {
     }
 }
 
-impl TextPresentationBack {
+impl TextFaceBack {
     pub(super) fn bounded(maximum_values: u32) -> Self {
         Self {
             pending: None,
@@ -275,8 +272,8 @@ fn prepare_text_join(
     )))
 }
 
-fn text_presentation_budget(placement: &PlannedGear) -> Result<BackBudget, String> {
-    validate_text_presentation(placement)?;
+fn text_face_budget(placement: &PlannedGear) -> Result<BackBudget, String> {
+    validate_text_face(placement)?;
     let maximum_values = maximum_values(placement)?;
     Ok(BackBudget {
         value_items: 0,
@@ -287,12 +284,12 @@ fn text_presentation_budget(placement: &PlannedGear) -> Result<BackBudget, Strin
     })
 }
 
-fn prepare_text_presentation(
+fn prepare_text_face(
     placement: &PlannedGear,
     _values: &mut conduit_kernel::HostedValueStore,
 ) -> Result<InstalledBack, String> {
-    validate_text_presentation(placement)?;
-    Ok(InstalledBack::TextPresentation(TextPresentationBack {
+    validate_text_face(placement)?;
+    Ok(InstalledBack::TextFace(TextFaceBack {
         pending: None,
         next: 0,
         maximum_values: maximum_values(placement)? as u32,
@@ -330,7 +327,7 @@ fn maximum_values(placement: &PlannedGear) -> Result<u64, String> {
             ConfigurationValue::U64(value) if (1..=MAX_TEXT_VALUES).contains(&value) => Some(value),
             _ => None,
         })
-        .ok_or_else(|| "text presentation maximum-values is invalid".to_string())
+        .ok_or_else(|| "text face maximum-values is invalid".to_string())
 }
 
 fn validate_text_literal(placement: &PlannedGear) -> Result<(), String> {
@@ -374,14 +371,18 @@ fn validate_text_join(placement: &PlannedGear) -> Result<(), String> {
     text_configuration(placement, "prefix", MAX_TEXT_BYTES).map(|_| ())
 }
 
-fn validate_text_presentation(placement: &PlannedGear) -> Result<(), String> {
+fn validate_text_face(placement: &PlannedGear) -> Result<(), String> {
+    conduit_semantic_catalog::face_data_label(&placement.configuration)?;
+    if conduit_semantic_catalog::text_face_insertion_caret(&placement.configuration) {
+        return Err("stdout text Face does not support an insertion caret".into());
+    }
     validate_identity(
         placement,
-        TEXT_PRESENTATION_KIND,
-        TEXT_PRESENTATION_CONTRACT_REVISION,
-        TEXT_PRESENTATION_EXECUTION_PROFILE,
-        TEXT_PRESENTATION_IMPLEMENTATION,
-        TEXT_PRESENTATION_ARTIFACT,
+        TEXT_FACE_KIND,
+        TEXT_FACE_CONTRACT_REVISION,
+        TEXT_FACE_EXECUTION_PROFILE,
+        TEXT_FACE_IMPLEMENTATION,
+        TEXT_FACE_ARTIFACT,
         1,
         0,
     )?;
@@ -413,12 +414,12 @@ fn validate_identity(
                 } else {
                     "text"
                 }
-                || port.value_kind.as_str() != TEXT_PRESENTATION_VALUE_KIND
+                || port.value_kind.as_str() != TEXT_FACE_VALUE_KIND
                 || port.direction != PortDirection::Input
         })
         || placement.outputs.iter().any(|port| {
             port.port_id.as_str() != "text"
-                || port.value_kind.as_str() != TEXT_PRESENTATION_VALUE_KIND
+                || port.value_kind.as_str() != TEXT_FACE_VALUE_KIND
                 || port.direction != PortDirection::Output
         })
     {

@@ -6,18 +6,45 @@ Every exposed entry is versioned, targets `browser/wasm32/page`, binds to `condu
 
 The `cargo xtask make host release --platform browser` recipe builds the entire
 WASM dependency graph with size optimization
-(`opt-level = z`) and thin LTO. The reviewed superset measured 9,463,432 bytes
-with that recipe; fat LTO with one codegen unit still measured 8,735,379 bytes.
-The native server and browser bootstrap therefore admit runtime artifacts up to
-16 MiB. This download bound is separate from the unchanged 8 MiB page-profile
+(`opt-level = z`), fat LTO and one codegen unit. On source `5b344df52`, with the
+scoped glyph and checked IPA authoring consumers, the recipe produced
+16,515,525 bytes; the thin-LTO comparison produced 17,429,951 bytes. The combined scoped-glyph and physical-unit candidate `199f35a0a` produced
+17,231,460 bytes with the same recipe. The workspace application template
+reserves 20 MiB for its runtime, matching the native server, SDK, static
+application runtime resource envelope and browser bootstrap download bound. This download bound is separate from the unchanged 8 MiB page-profile
 heap allowance. Body Play reserves a finite 2,176 KiB value arena before
 execution: the reviewed resident Theremin workload requires 2,150,400 bytes
 under the current native structured contracts. Larger workloads still fail
 ordinary capacity admission.
 
+The installed product and canonical std Plot editor prepare their compiled
+semantic catalogs once per process, including the checked builtin physical
+source custody. Each source/editor receives its own catalog copy; authored
+local types, Host observations, offers and planning remain independently
+admitted. This avoids repeating physical and IPA catalog preparation while
+opening the installed Crèche inventory under the finite control deadline.
+
+Workspace preparation and each Plot library render retain one immutable installed catalog pair while
+checking consecutive documents with the same face profile. A profile
+change drops that pair before preparing its replacement; finishing the operation
+drops the preparation owner. Checking, local offers and planning share the same
+original checked inventory. Each library render also prepares the installed Plot backs once per profile.
+Independent library admission checks run grouped by profile against one fresh
+Host observation; the shelf retains its original authored order. Graceful
+fallbacks use the same original entry admission from that operation.
+Entries without structured selectors borrow the installed profile and backs;
+document-specific selectors modify a profile copy and rederive its backs,
+and glyph receipts remain bound to their original document. This avoids
+repeated installed-Type preparation without caching source admission, Host
+observations, commitment or Play authority.
+Resident Patchbay preparation checks its original inventory once for all active
+subjects. Expansions and titles come from that same checked entry and retain
+the Body Plan order and exact Source/Plot identities; foreign residents and
+missing lexical glyph bindings still refuse.
+
 | Runtime mechanism | Make classification | Runtime prerequisite truth |
 | --- | --- | --- |
-| DOM presentation | selectable structural and portable presentation bases | initialized surface |
+| DOM face | selectable structural and portable face bases | initialized surface |
 | keyboard and pointer | selectable portable human-input bases | focus/page lifecycle; no permission claim at BUILD |
 | IndexedDB application storage | selectable durable-storage base | secure context, availability, quota, schema and corruption checks |
 | WebSocket | selectable line base | secure context plus endpoint and credential truth |
@@ -26,7 +53,7 @@ ordinary capacity admission.
 | Web Audio output | no selectable reviewed realization | API presence alone is insufficient; intentionally unadvertised |
 | WebSerial and WebUSB | selectable device bases | secure context, user activation, permission, explicit device acquisition |
 | browser host identity and body membership | host mechanism, not a configurable semantic base | durable profile and admitted membership authority |
-| application package loader/presentation bridge | Host Call and product substrate | exact admitted package bytes |
+| application package loader/face bridge | Host Call and product substrate | exact admitted package bytes |
 | Book runners and browser proof fixtures | application/proof code, never ordinary host choices | intentionally excluded |
 | touch and gamepad | portable value contracts and deterministic fixtures exist, but no selectable live browser realization exists | intentionally unadvertised |
 
@@ -96,14 +123,14 @@ one selected PROFILE; only their artifact layout and size may differ.
 
 ## Human-facing realization boundary
 
-`BROWSER_HUMAN_PRESENTATION_REALIZATIONS` is the checked join between each
+`BROWSER_HUMAN_FACE_REALIZATIONS` is the checked join between each
 make identity and its portable kind, ordinary runtime implementation,
 runtime artifact identity, Host Call contract, and finite limits. Runtime
 tests compare that table to the real installed `CapabilityOffer`s so a label in
 the configurator cannot silently drift away from what the planner selects.
 
 The ordinary installed-browser advertisement is constructed from the selected
-make identities. A viewer with only `browser/dom-presentation@1` has no
+make identities. A viewer with only `browser/dom-face@1` has no
 keyboard offer and no window-input resource. The control-surface profile adds
 `browser/keyboard-events@1` and `browser/pointer-events@1`; their presence in a
 superset WASM alone grants no offer.
@@ -141,6 +168,44 @@ package revisions can intentionally share one state schema. Version mismatch,
 corrupt records, application and host admission exhaustion, browser quota
 exhaustion, unavailable storage, explicit deletion, and a stale application
 generation are distinct failures or lifecycle states.
+
+Application identities cannot contain the NUL storage namespace separator.
+Admission refuses such identities before opening the database; this prevents
+an application/version prefix from aliasing another application's record key.
+Ordinary `@` characters in identities and NUL characters in record keys remain
+valid. Existing record identities are not rewritten or migrated by this check.
+
+JSON reads verify that retained values are strings with exact, nonnegative,
+safe-integer UTF-8 byte metadata within the admitted value bound before parsing.
+Malformed metadata or oversized retained JSON receives `CorruptRecord`; refusal
+does not repair, reset or delete the record. Valid JSON at the exact byte ceiling
+remains readable.
+
+Before single or batch publication, the storage transaction checks the exact
+byte accounting of every retained Host record used in its capacity totals.
+Nonfinite, negative, fractional, oversized or mismatched counts refuse with
+`CorruptRecord` before writing. Since capacity is Host-wide, malformed accounting
+in another application's record also refuses publication; records remain intact
+and explicit inspection/deletion stays separate from admission.
+
+Retained record ownership must also match its exact database key: bounded
+application identity, positive version and bounded record key reconstruct the
+stored identity without ambiguity. Reads and publication refuse inconsistent
+ownership as `CorruptRecord`. Publication checks this before filtering records
+by application, so corrupt ownership cannot hide an immutable record from the
+replacement guard. Refusal leaves the original evidence intact.
+
+Publication metadata also requires an exact string package digest and a boolean
+immutable flag when present. Older records without an immutable flag remain
+mutable; a malformed flag is corruption, never permission to replace evidence.
+These checks detect malformed metadata, not undetectable edits from one valid
+value to another by hostile code with direct same-origin database access.
+
+A database `versionchange` retires the adapter handle and closes its connection,
+allowing another connection's schema upgrade or deletion request to proceed.
+Subsequent operations refuse with `StaleApplicationGeneration`; the handler does
+not delete or migrate records. Unexpected browser connection closure also marks
+the handle stale. Existing transactions retain IndexedDB's settlement semantics.
 
 The `application-state` and `browser-host-identity` object stores are separate.
 Clearing one application's records cannot reset host identity, mutate body

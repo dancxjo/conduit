@@ -28,6 +28,10 @@ pub enum CheckSuite {
     WorkspaceLint,
     WorkspaceTestFoundation,
     WorkspaceTestHosts,
+    WorkspaceTestHostsStd,
+    WorkspaceTestHostsBrowser,
+    WorkspaceTestHostsConduitos,
+    WorkspaceTestHostsWorkbench,
     WorkspaceTestProducts,
     WorkspacePortable,
     WorkspacePico,
@@ -36,13 +40,45 @@ pub enum CheckSuite {
     KernelTakeover,
     PlanningS2,
     PlotS3,
+    /// Report the fixed prepared-expression semantic and timing baseline.
+    ExpressionBaseline,
     Observatory,
     SemanticCatalog,
-    /// Execute authored quantity mappings through the std production kernel and presentation.
+    /// Execute authored quantity mappings through the std production kernel and face.
     QuantityMapping,
+    /// Check exact acoustic control conversions and installed Source projections.
+    AcousticControl,
     /// Prove bounded Todo state transitions and recursive Plot execution.
     TodoState,
+    /// Prove selected Todo checkpoint persistence and same-Body Host continuity.
+    TodoDurability,
+    /// Check canonical IPA notation and first-class phone/phoneme authoring.
+    SpeechIpa,
+    /// Prove imported model admission and prepared named-tensor Source/Plan/Play.
+    ModelInference,
+    /// Prove exact Angle-to-radian reference transport and certified numerical realization.
+    AngleReference,
+    /// Prove first-class physical values, derived quantities and installed Plan/Play.
+    PhysicalValues,
+    /// Prove exact inverse Angle Source, error bounds and installed kernel execution.
+    InverseAngle,
+    /// Prove authored finite acoustic state and PCM transport through the production kernel.
+    AcousticFlow,
+    /// Prove shared speech/music DSP components, finite state and compact-voice parity.
+    DspSharedCompositions,
+    /// Prove typed fixture printers with the generic shared-pool scheduler.
+    PrintPool,
+    /// Check the finite parser action artifact and numerical admission.
+    ParserScorer,
+    /// Download pinned corpus into temporary storage and reproduce the parser artifact.
+    ParserScorerReproduce,
+    /// Exercise optional admitted parser scoring through ordinary Plan/Play.
+    ParserSelection,
+    /// Prove bounded speech selection and explicit detail from exact Faces.
+    TodoSpeech,
     InputSemantics,
+    /// Prove owner-issued face routes without waking the workload.
+    OwnerFace,
     /// Run the Linux Landlock/seccomp hosted Base confinement proof.
     HostedBaseIsolation,
     /// Prove the exact-endpoint OS-capability-mediated HTTP Base.

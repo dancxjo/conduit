@@ -6,12 +6,12 @@ use conduit_core::{
     HostCallRequirement, HostId, HostProfileId, ImplementationId, OfferGeneration, SignId,
     PROTOCOL_VERSION,
 };
+use conduit_face::{
+    renderer_kind_projection, renderer_offer, Face, RendererExecution, RendererExecutionError,
+    RendererRealizationOffer, MAX_RENDERER_VALUE_BYTES,
+};
 use conduit_planner::{default_placements, plan};
 use conduit_plot::{parse, ProfileCatalog};
-use conduit_presentation::{
-    renderer_kind_projection, renderer_offer, Presentation, RendererExecution,
-    RendererExecutionError, RendererRealizationOffer, MAX_RENDERER_VALUE_BYTES,
-};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum RendererAdapterKind {
@@ -43,16 +43,16 @@ impl core::fmt::Display for RendererPreparationError {
 impl std::error::Error for RendererPreparationError {}
 
 pub fn prepare_renderer_execution(
-    presentation: Presentation,
+    face: Face,
     adapter: RendererAdapterKind,
     identity: RendererAdapterIdentity,
     sign_id: SignId,
 ) -> Result<RendererExecution, RendererPreparationError> {
-    prepare_renderer_execution_with_offer_generation(presentation, adapter, identity, 1, sign_id)
+    prepare_renderer_execution_with_offer_generation(face, adapter, identity, 1, sign_id)
 }
 
 pub fn prepare_renderer_execution_with_offer_generation(
-    presentation: Presentation,
+    face: Face,
     adapter: RendererAdapterKind,
     identity: RendererAdapterIdentity,
     offer_generation: u64,
@@ -65,7 +65,7 @@ pub fn prepare_renderer_execution_with_offer_generation(
         .map_err(|_| RendererPreparationError::Planning)?;
     let plan = plan(&plot, &[advertisement], &placements, &[])
         .map_err(|_| RendererPreparationError::Planning)?;
-    RendererExecution::prepare_planned(presentation, plan, identity.target_subject, sign_id)
+    RendererExecution::prepare_planned(face, plan, identity.target_subject, sign_id)
         .map_err(RendererPreparationError::Execution)
 }
 
@@ -75,7 +75,7 @@ fn renderer_plot() -> Result<conduit_plot::CheckedPlot, RendererPreparationError
         .insert(renderer_kind_projection())
         .map_err(|_| RendererPreparationError::InvalidRendererPlot)?;
     parse(
-        "plot patchbay-show {\n    renderer: presentation/renderer\n}\n",
+        "plot patchbay-show {\n    renderer: face/renderer(\"Body view\")\n}\n",
         &catalog,
     )
     .map_err(|_| RendererPreparationError::InvalidRendererPlot)
@@ -88,23 +88,23 @@ pub(crate) fn renderer_host(
     let (capability, implementation, artifact, target_kind, resource_class) = match adapter {
         RendererAdapterKind::NativeWayland => (
             "renderer-wayland",
-            "presentation/renderer-wayland@1",
+            "face/renderer-wayland@1",
             "patchbay-native/wayland@1",
-            "presentation/base/wayland-surface@1",
+            "face/base/wayland-surface@1",
             "conduit.resource/wayland-surface@1",
         ),
         RendererAdapterKind::HtmlDomSvg => (
             "renderer-dom-svg",
-            "presentation/renderer-dom-svg@1",
+            "face/renderer-dom-svg@1",
             "patchbay-html/dom-svg@1",
-            "presentation/base/dom-svg@1",
+            "face/base/dom-svg@1",
             "conduit.resource/browser-document@1",
         ),
         RendererAdapterKind::TestSpeech => (
             "renderer-test-speech",
-            "presentation/renderer-test-speech@1",
+            "face/renderer-test-speech@1",
             "patchbay/test-speech@1",
-            "presentation/base/test-speech@1",
+            "face/base/test-speech@1",
             "conduit.resource/test-speech-sink@1",
         ),
     };
@@ -118,16 +118,16 @@ pub(crate) fn renderer_host(
         host_id: identity.host_id.clone(),
         boot_id: identity.boot_id.clone(),
         offer_generation: OfferGeneration(1),
-        profile: HostProfileId::from("presentation/host@1"),
+        profile: HostProfileId::from("face/host@1"),
         bases: vec![],
         resources: vec![resource_offer(
-            &format!("{}/presentation", identity.host_id.as_str()),
+            &format!("{}/face", identity.host_id.as_str()),
             resource_class,
             1,
         )],
         capabilities: vec![renderer_offer(RendererRealizationOffer {
             capability_id: CapabilityId::from(capability),
-            execution_profile_id: ExecutionProfileId::from("presentation/renderer-hosted@1"),
+            execution_profile_id: ExecutionProfileId::from("face/renderer-hosted@1"),
             implementation_id: ImplementationId::from(implementation),
             artifact_id: ArtifactId::from(artifact),
             host_call: HostCallRequirement {

@@ -1,0 +1,18 @@
+# Exact portable representation of an independently admitted parser fact.
+# The caller may mechanically propose the arc, but these Source laws retain
+# the whole original query and correlate every endpoint and relation.
+type LanguageParserStableDependencyAdmission = {
+ fact: LanguageParserJointStableFact
+ arc: LanguageDependencyArc
+ head: U64
+ subtype: LanguageParserSubtype
+ where .head == sequence/at(.fact.query.beam.candidate0.parser.state.heads,.fact.query.dependent)
+ where .arc.dependent.revision == .fact.query.beam.basis.analysis_revision
+ where .arc.dependent.token == sequence/at(.fact.query.beam.lexical.tape.tokens,.fact.query.dependent).identity
+ where (.head == 4) == variant/is(.arc.governor,"root")
+ where variant/is(.arc.governor,"token") ? .arc.governor.token.revision == .fact.query.beam.basis.analysis_revision : true
+ where variant/is(.arc.governor,"token") ? .arc.governor.token.token == sequence/at(.fact.query.beam.lexical.tape.tokens,.head).identity : true
+ where variant/tag(.arc.relation.base) == variant/tag(.fact.query.dependent == 0 ? .fact.query.beam.candidate0.parser.state.relation0.base : (.fact.query.dependent == 1 ? .fact.query.beam.candidate0.parser.state.relation1.base : (.fact.query.dependent == 2 ? .fact.query.beam.candidate0.parser.state.relation2.base : .fact.query.beam.candidate0.parser.state.relation3.base)))
+ where .subtype == (.fact.query.dependent == 0 ? .fact.query.beam.candidate0.parser.state.relation0.subtype : (.fact.query.dependent == 1 ? .fact.query.beam.candidate0.parser.state.relation1.subtype : (.fact.query.dependent == 2 ? .fact.query.beam.candidate0.parser.state.relation2.subtype : .fact.query.beam.candidate0.parser.state.relation3.subtype)))
+ where .arc.relation.subtype is some ? text/material(.arc.relation.subtype.some) == text/material(.subtype) : .subtype == ""
+}

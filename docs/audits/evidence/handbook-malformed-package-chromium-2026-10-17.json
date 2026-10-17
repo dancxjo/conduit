@@ -1,0 +1,32 @@
+{
+  "observed_at_utc": "2026-10-17T17:55:40.441Z",
+  "url": "https://dancxjo.github.io/conduit/handbook/",
+  "browser": "151.0.7922.34",
+  "fresh_context": true,
+  "method": "One Chromium context; native selectOption/fill/click. HTTPS public runtime with locally intercepted, correctly rehashed malformed lesson/package. No public writes.",
+  "original_package_digest": "sha256:fdd92ab3401bb299ed8838c735653e24838ef4abbb3917f2b4b2af113dfba449",
+  "fixture_package_digest": "sha256:1fea41377bd98cb32bfe797e4bcdc9c0d8448ba76d5ad130c7f67bf16aa9a6ef",
+  "canonical_source_sha256": "sha256:20c581cac1ba8525577fb95975f38b98f4a5831bc8f43f844864f11e32db630e",
+  "malformed_source": "plot convert-pitch-demo {\n    operation: units/convert(source = \"1kHz\", to = Hz)\n    show: face/text(\"Message\")\n    operation.receipt >> ((variant/is(.result, \"converted\") ? (.result.converted.coefficient == 1 ? .result.converted.exponent == 3 : false) : false) ? \"Exactly 1000 Hz\" : \"The result is not exactly 1000 Hz\") >> show.text\n}.\n",
+  "editor_enabled_during_refusal": true,
+  "selector_enabled_during_refusal": true,
+  "continuity_before_correction": null,
+  "continuity_after_correction": null,
+  "saved_correction": [
+    {
+      "name": "convert-pitch-demo",
+      "original": "plot convert-pitch-demo {\n    operation: units/convert(source = \"1kHz\", to = Hz)\n    show: face/text(\"Message\")\n    operation.receipt >> ((variant/is(.result, \"converted\") ? (.result.converted.coefficient == 1 ? .result.converted.exponent == 3 : false) : false) ? \"Exactly 1000 Hz\" : \"The result is not exactly 1000 Hz\") >> show.text\n}.\n",
+      "source": "plot convert-pitch-demo {\n    operation: units/convert(source = 1kHz, to = Hz)\n    show: face/text(\"Message\")\n    operation.receipt >> ((variant/is(.result, \"converted\") ? (.result.converted.coefficient == 1 ? .result.converted.exponent == 3 : false) : false) ? \"Exactly 1000 Hz\" : \"The result is not exactly 1000 Hz\") >> show.text\n}.\n"
+    }
+  ],
+  "explicit_reload_reopened": true,
+  "corrected_output": "Exactly 1000 Hz",
+  "body_id_after_reload": "9d08d5df30ef021884022f9a4ebc0bd09a9e3232c2280ce28d8cdebb09a52733",
+  "page_errors": [],
+  "limits": [
+    "Malformed package is a local interception fixture, not a faulty public deployment.",
+    "Does not prove unpromoted live renderer changes.",
+    "Historical reporting browser source/cache and malformed retained recovery not inspected.",
+    "No release-train or accepted-main receipt verified."
+  ]
+}

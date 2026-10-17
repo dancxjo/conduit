@@ -57,7 +57,7 @@ pub(super) fn write(
         .requests
         .iter()
         .find(|request| {
-            let basis = &request.semantic_data.presentation.basis;
+            let basis = &request.semantic_data.face.basis;
             basis.source_document_id.is_some()
                 && basis.checked_plot_id.is_some()
                 && basis.expanded_plot_id.is_some()
@@ -69,32 +69,36 @@ pub(super) fn write(
         .iter()
         .find(|candidate| candidate.request_identity == request.request_identity)
         .ok_or("Orifina live proof lacks its planned generative Mask Show")?;
-    let presentation = request.semantic_data.presentation.clone();
+    let face = request.semantic_data.face.clone();
     let retained = manifestation.manifestation.clone();
     let initial = conduit_std_host::spoken_mask_journey::execute_retained_manifestation_mask(
         "spoken-initial",
         "orifina-spoken-initial",
-        presentation.clone(),
+        face.clone(),
         retained.clone(),
+        &conduit_tongues::specimen_language_request(),
     )?;
     let alternate = conduit_std_host::spoken_mask_journey::execute_retained_manifestation_mask(
         "spoken-generative",
         "orifina-spoken-alternate",
-        presentation.clone(),
+        face.clone(),
         retained.clone(),
+        &conduit_tongues::specimen_language_request(),
     )?;
     let replacement_alternate =
         conduit_std_host::spoken_mask_journey::execute_retained_manifestation_mask(
             "spoken-generative",
             "orifina-spoken-replanned",
-            presentation.clone(),
+            face.clone(),
             retained.clone(),
+            &conduit_tongues::specimen_language_request(),
         )?;
     let restored = conduit_std_host::spoken_mask_journey::execute_retained_manifestation_mask(
         "spoken-initial",
         "orifina-spoken-restored",
-        presentation.clone(),
+        face.clone(),
         retained,
+        &conduit_tongues::specimen_language_request(),
     )?;
     let initial_routes = conduit_std_host::spoken_mask_journey::admit_spoken_mask_routes(
         &[initial.clone(), alternate.clone()],
@@ -107,14 +111,14 @@ pub(super) fn write(
             &[true, true],
             &initial_routes.wake,
         )?;
-    use conduit_presentation::MaskJourneyAction as A;
+    use conduit_face::MaskJourneyAction as A;
     struct HostedSpokenJourney {
-        presentation_id: String,
+        face_id: String,
         initial: Vec<conduit_std_host::spoken_mask_journey::SpokenMaskExecution>,
         replacement: Vec<conduit_std_host::spoken_mask_journey::SpokenMaskExecution>,
         initial_routes: conduit_std_host::spoken_mask_journey::SpokenMaskRouteSet,
         replacement_routes: conduit_std_host::spoken_mask_journey::SpokenMaskRouteSet,
-        control: conduit_presentation::MaskWardrobeControl,
+        control: conduit_face::MaskWardrobeControl,
         current: Option<(bool, usize)>,
     }
 
@@ -146,7 +150,7 @@ pub(super) fn write(
             conduit_std_host::spoken_mask_journey::SpokenMaskJourneyObservation {
                 action_id: action.id().into(),
                 concrete_event: event.into(),
-                presentation_id: self.presentation_id.clone(),
+                face_id: self.face_id.clone(),
                 selected_mask_plot_id: self
                     .control
                     .selected
@@ -194,12 +198,12 @@ pub(super) fn write(
         }
     }
 
-    impl conduit_presentation::MaskJourneyEmbodiment for HostedSpokenJourney {
+    impl conduit_face::MaskJourneyEmbodiment for HostedSpokenJourney {
         type Outcome = conduit_std_host::spoken_mask_journey::SpokenMaskJourneyObservation;
         type Error = String;
 
         fn perform(&mut self, action: A) -> Result<Self::Outcome, Self::Error> {
-            use conduit_presentation::{MaskShowDisposition, MaskWardrobeAction};
+            use conduit_face::{MaskShowDisposition, MaskWardrobeAction};
             Ok(match action {
                 A::InspectInitialShow => {
                     self.current = Some((false, 0));
@@ -252,20 +256,20 @@ pub(super) fn write(
         }
     }
     let initial_identity = initial.mask.plot_identity.clone();
-    let selected = conduit_presentation::SelectedMaskPlotRoute {
+    let selected = conduit_face::SelectedMaskPlotRoute {
         route_id: initial_routes.routes.routes()[0].route_id.clone(),
         mask_plot: initial_identity.clone(),
         plan_id: initial_routes.body_plan.plan_id.clone(),
     };
-    let wardrobe = conduit_presentation::MaskWardrobe::new(
-        conduit_presentation::MaskWardrobeLifetime::Body,
+    let wardrobe = conduit_face::MaskWardrobe::new(
+        conduit_face::MaskWardrobeLifetime::Body,
         vec![initial_identity],
         vec![],
     )
     .map_err(|error| format!("create hosted spoken wardrobe: {error:?}"))?;
-    let control = conduit_presentation::MaskWardrobeControl::new(
+    let control = conduit_face::MaskWardrobeControl::new(
         &initial_routes.body_plan.body_id,
-        conduit_presentation::BodyMaskWardrobe::new(
+        conduit_face::BodyMaskWardrobe::new(
             initial_routes.body_plan.body_id.clone(),
             None,
             wardrobe,
@@ -277,7 +281,7 @@ pub(super) fn write(
     )
     .map_err(|error| format!("initialize hosted spoken wardrobe control: {error:?}"))?;
     let mut journey_run = HostedSpokenJourney {
-        presentation_id: presentation.identity.as_str().into(),
+        face_id: face.identity.as_str().into(),
         initial: vec![initial, alternate],
         replacement: vec![replacement_alternate, restored],
         initial_routes,
@@ -286,7 +290,7 @@ pub(super) fn write(
         current: None,
     };
     let mut mask_actions = Vec::new();
-    conduit_presentation::actualize_mask_journey(&mut journey_run, |_, outcome| {
+    conduit_face::actualize_mask_journey(&mut journey_run, |_, outcome| {
         mask_actions.push(outcome.clone());
     })
     .map_err(|error| {
@@ -309,7 +313,7 @@ pub(super) fn write(
         serde_json::json!({"body_id": journey.receipt.body_id, "born_sign_id": born}),
         serde_json::json!({"wake_sign_id": wake, "plan_id": journey.receipt.plan_ids[0]}),
         serde_json::json!({"plan_id": journey.receipt.plan_ids[0], "play_id": journey.receipt.play_ids[0]}),
-        serde_json::json!({"face_id": manifestation.source_presentation_identity, "show": manifestation.manifestation}),
+        serde_json::json!({"face_id": manifestation.source_face_identity, "show": manifestation.manifestation}),
         serde_json::json!({"workload_revision": journey.receipt.workload_revision, "workload_sign_id": workload}),
         serde_json::json!({"host_id": journey.receipt.host_ids[1], "boot_id": journey.receipt.boot_ids[1], "membership": evidence.membership}),
         serde_json::json!({"reason": journey.receipt.fault_reason, "fault_sign_id": failed}),
@@ -362,7 +366,7 @@ pub(super) fn write(
                     .last()
                     .cloned()
                     .ok_or("missing Orifina Play")?,
-                face: manifestation.source_presentation_identity.clone(),
+                face: manifestation.source_face_identity.clone(),
                 show: manifestation.manifestation.candidate_identity.clone(),
                 line: None,
                 signs: BTreeMap::from([

@@ -3,11 +3,12 @@
 use super::*;
 use conduit_body::Body;
 use conduit_core::{
-    kind_id, CheckedPlotId, CheckedValueContract, SignId, SourceDocumentId, ValueConstraint,
+    kind_id, process_owned_line_offer_with_limits, BaseImplementationId, CheckedPlotId,
+    CheckedValueContract, LineOffer, LinkLimits, SignId, SourceDocumentId, ValueConstraint,
 };
-use conduit_presentation::{
-    Face, FaceActionArgument, FaceContext, FaceFocus, PresentationAction,
-    PresentationActionAvailability, PresentationDisclosureLevel, UTF8_TEXT_VALUE_KIND,
+use conduit_face::{
+    BodyFace, FaceAction, FaceActionArgument, FaceActionAvailability, FaceContext,
+    FaceDisclosureLevel, FaceFocus, UTF8_TEXT_VALUE_KIND,
 };
 
 #[test]
@@ -20,7 +21,7 @@ fn exact_owner_face_runs_the_browser_mask_and_acknowledges_its_show() {
     )
     .unwrap();
     let revision = 9_007_199_254_740_993;
-    let face = Face::project(
+    let face = BodyFace::project(
         &body,
         None,
         revision,
@@ -29,8 +30,9 @@ fn exact_owner_face_runs_the_browser_mask_and_acknowledges_its_show() {
         vec![],
     )
     .unwrap()
-    .presentation;
+    .face;
     let basis = HostBasis {
+        visual_constraints: None,
         body_id: body.body_id.clone(),
         host_id: HostId::from("host/browser-owner-face"),
         boot_id: BootId::from("boot/browser-owner-face"),
@@ -58,6 +60,156 @@ fn exact_owner_face_runs_the_browser_mask_and_acknowledges_its_show() {
 }
 
 #[test]
+fn selected_carrier_lines_survive_browser_lowering_and_bound_show() {
+    let body = Body::born(
+        SourceDocumentId::from("source/selected-owner-face"),
+        CheckedPlotId::from("checked/selected-owner-face"),
+        1,
+        SignId::from("sign/selected-owner-face"),
+    )
+    .unwrap();
+    let face = BodyFace::project(
+        &body,
+        None,
+        4,
+        FaceContext::Overview,
+        FaceFocus::Body,
+        vec![],
+    )
+    .unwrap()
+    .face;
+    let basis = HostBasis {
+        visual_constraints: None,
+        body_id: body.body_id,
+        host_id: HostId::from("host/selected-browser"),
+        boot_id: BootId::from("boot/selected-browser"),
+    };
+    let browser = crate::installed_browser::membership_advertisement(
+        basis.host_id.clone(),
+        basis.boot_id.clone(),
+    );
+    let mut owner = browser.clone();
+    owner.host_id = HostId::from("host/selected-owner");
+    owner.boot_id = BootId::from("boot/selected-owner");
+    let limits = LinkLimits {
+        maximum_in_flight_items: 1,
+        maximum_payload_bytes: 64 * 1024,
+        maximum_buffered_bytes: 256 * 1024,
+        maximum_frame_bytes: 64 * 1024,
+    };
+    let line = |id: &str,
+                source: &conduit_core::HostAdvertisement,
+                sink: &conduit_core::HostAdvertisement|
+     -> LineOffer {
+        let mut offered = process_owned_line_offer_with_limits(
+            id,
+            &format!("binding/{id}"),
+            BaseImplementationId::from("conduit.base/websocket-rfc6455@1"),
+            "websocket/selected",
+            source,
+            sink,
+            limits,
+        );
+        offered.contract = conduit_host_browser_make::BROWSER_LINE_REALIZATIONS[0].contract;
+        offered
+    };
+    let face_line = line("face/selected", &owner, &browser);
+    let return_line = line("return/selected", &browser, &owner);
+    let planned = conduit_browser_mask_offer::planned_owner_face_show_mask(
+        &browser,
+        &owner,
+        &face_line,
+        &return_line,
+        conduit_browser_mask_offer::MASK_SOURCE,
+        "browser-graphical",
+    )
+    .unwrap();
+    assert!(OwnerBrowserMask::prepare_planned(
+        HostBasis {
+            visual_constraints: None,
+            body_id: basis.body_id.clone(),
+            host_id: basis.host_id.clone(),
+            boot_id: basis.boot_id.clone(),
+        },
+        face.clone(),
+        planned.clone(),
+        None,
+        Some((return_line.admitted_line(), face_line.admitted_line(), None)),
+        1,
+        false,
+    )
+    .is_err());
+    let interaction_line = line("interaction/selected", &browser, &owner);
+    let full_plan = conduit_browser_mask_offer::planned_owner_face_show_interaction_mask(
+        &browser,
+        &owner,
+        &face_line,
+        &return_line,
+        &interaction_line,
+        conduit_browser_mask_offer::MASK_SOURCE,
+        "browser-graphical",
+    )
+    .unwrap();
+    let full_basis = HostBasis {
+        visual_constraints: None,
+        body_id: basis.body_id.clone(),
+        host_id: basis.host_id.clone(),
+        boot_id: basis.boot_id.clone(),
+    };
+    assert!(OwnerBrowserMask::prepare_planned(
+        full_basis,
+        face.clone(),
+        full_plan.clone(),
+        None,
+        Some((face_line.admitted_line(), return_line.admitted_line(), None)),
+        1,
+        false,
+    )
+    .is_err());
+    OwnerBrowserMask::prepare_planned(
+        HostBasis {
+            visual_constraints: None,
+            body_id: basis.body_id.clone(),
+            host_id: basis.host_id.clone(),
+            boot_id: basis.boot_id.clone(),
+        },
+        face.clone(),
+        full_plan,
+        None,
+        Some((
+            face_line.admitted_line(),
+            return_line.admitted_line(),
+            Some(interaction_line.admitted_line()),
+        )),
+        1,
+        false,
+    )
+    .unwrap();
+    let mut mask = OwnerBrowserMask::prepare_planned(
+        basis,
+        face,
+        planned,
+        None,
+        Some((face_line.admitted_line(), return_line.admitted_line(), None)),
+        1,
+        false,
+    )
+    .unwrap();
+    let prepared = mask.view();
+    mask.acknowledge(Acknowledgement {
+        show_id: prepared.show_id,
+        face_id: prepared.face_id,
+        face_revision: prepared.face_revision,
+    })
+    .unwrap();
+    assert_eq!(mask.view().show_state, "available");
+    assert!(
+        serde_json::to_vec(&mask.show).unwrap().len()
+            <= conduit_face::MAX_OWNER_FACE_RESPONSE_BYTES
+    );
+}
+
+#[test]
 fn current_browser_mask_emits_one_exact_typed_clock_interaction() {
     let body = Body::born(
         SourceDocumentId::from("source/owner-browser-action"),
@@ -67,7 +219,7 @@ fn current_browser_mask_emits_one_exact_typed_clock_interaction() {
     )
     .unwrap();
     let revision = 9_007_199_254_740_993;
-    let face = Face::project(
+    let face = BodyFace::project(
         &body,
         None,
         revision,
@@ -76,9 +228,9 @@ fn current_browser_mask_emits_one_exact_typed_clock_interaction() {
         vec![],
     )
     .unwrap()
-    .presentation;
+    .face;
     let target = face.subjects[0].identity.clone();
-    let action = PresentationAction {
+    let action = FaceAction {
         identity: "body/action/change-clock-interval/1".into(),
         intent: "conduit.intent/change-clock-interval@1".into(),
         target: target.clone(),
@@ -96,10 +248,10 @@ fn current_browser_mask_emits_one_exact_typed_clock_interaction() {
             )
             .unwrap(),
         }],
-        disclosure: PresentationDisclosureLevel::CurrentAction,
-        availability: PresentationActionAvailability::Available,
+        disclosure: FaceDisclosureLevel::CurrentAction,
+        availability: FaceActionAvailability::Available,
     };
-    let face = Presentation::new_with_semantics_and_temporal(
+    let face = Face::new_with_semantics_and_temporal(
         face.revision,
         face.basis,
         face.subjects,
@@ -113,6 +265,7 @@ fn current_browser_mask_emits_one_exact_typed_clock_interaction() {
     )
     .unwrap();
     let basis = HostBasis {
+        visual_constraints: None,
         body_id: body.body_id,
         host_id: HostId::from("host/browser-owner-action"),
         boot_id: BootId::from("boot/browser-owner-action"),
@@ -150,13 +303,48 @@ fn current_browser_mask_emits_one_exact_typed_clock_interaction() {
     let mut wrong_argument = proposed(&prepared.face_revision, "500");
     wrong_argument.arguments[0].name = "clock/other".into();
     assert!(mask.interact(wrong_argument).is_err());
+    // Exhaust the admitted twelve-slot store without completing the request.
+    // Refusal must preserve it so the same typed action can proceed after drain.
+    let pending = mask.pending_interaction;
+    let mut held = Vec::new();
+    for _ in 0..=12 {
+        match mask.scheduler.store_host_value(&[0]) {
+            Ok(value) => held.push(value),
+            Err(_) => break,
+        }
+    }
+    assert!(!held.is_empty() && held.len() <= 12);
+    match mask.interact(proposed(&prepared.face_revision, "500")) {
+        Err(reason) => assert_eq!(
+            reason,
+            "store owner browser interaction: Storage(ItemCapacityExceeded)"
+        ),
+        Ok(_) => panic!("pressured interaction consumed its request"),
+    }
+    assert_eq!(mask.pending_interaction, pending);
+    assert!(mask
+        .scheduler
+        .remote_egress_offer(
+            mask.interaction_boundary.endpoint,
+            mask.interaction_boundary.cord
+        )
+        .unwrap()
+        .is_none());
+    for value in held {
+        mask.scheduler.discard_host_value(value).unwrap();
+    }
     let emitted = mask
         .interact(proposed(&prepared.face_revision, "500"))
         .unwrap();
     assert_eq!(emitted.interaction.face_revision, revision);
     assert_eq!(emitted.interaction.arguments[0].value, b"500");
     assert_eq!(emitted.show.show_id.as_str(), prepared.show_id);
-    assert!(mask
-        .interact(proposed(&prepared.face_revision, "250"))
-        .is_err());
+    // A consumed Fore must stay terminal under repeated input, rather than
+    // allocating one undeliverable value per refusal until storage fills.
+    for _ in 0..16 {
+        match mask.interact(proposed(&prepared.face_revision, "250")) {
+            Err(reason) => assert_eq!(reason, "owner browser Mask interaction Fore is terminal"),
+            Ok(_) => panic!("consumed interaction Fore emitted twice"),
+        }
+    }
 }

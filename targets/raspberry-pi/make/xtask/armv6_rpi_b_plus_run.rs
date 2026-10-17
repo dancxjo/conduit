@@ -1,6 +1,7 @@
 use std::{
     fs,
     io::Read,
+    path::Path,
     process::{Command, Stdio},
     thread,
     time::{Duration, Instant},
@@ -22,6 +23,8 @@ const MACHINE: &str = "raspi0";
 const ENTRY_SIGN_PREFIX: &str = "CONDUIT_ARMV6_RPI_ENTRY_SIGN ";
 const KERNEL_SIGN_PREFIX: &str = "CONDUIT_KERNEL_SIGN ";
 const IDENTITY_SIGN_PREFIX: &str = "CONDUIT_ARMV6_RPI_A3_IDENTITY ";
+const PROTECTION_REFUSAL: &str =
+    "CONDUIT_ARMV6_PROTECTED_EXECUTION_REFUSAL protected-execution-unsupported";
 const MAXIMUM_TRANSCRIPT_BYTES: usize = 8192;
 
 #[derive(Serialize)]
@@ -43,6 +46,8 @@ struct RunRecord {
     transcript_bytes: usize,
     runtime_bases_available: bool,
     physical_boot_claimed: bool,
+    protected_execution_refused: bool,
+    cooperative_execution: bool,
 }
 
 pub fn execute(board: Armv6RpiBoard, opts: &GlobalOpts) -> Result<(), ConduitosError> {
@@ -56,12 +61,16 @@ pub fn execute(board: Armv6RpiBoard, opts: &GlobalOpts) -> Result<(), ConduitosE
     armv6_rpi_b_plus_a0::execute(board, opts)?;
     let paths = Paths::new(ConduitosArch::Armv6)?;
     let kernel_path = paths.target.join("kernel.img");
-    let qemu_version = command_text(
-        "qemu-system-arm",
-        &["--version"],
-        "armv6-emulator-unavailable",
-    )?;
-    let mut child = Command::new("qemu-system-arm")
+    let local_qemu = paths
+        .root
+        .join("target/conduitos/toolchain/riscv64-root/usr/bin/qemu-system-arm");
+    let qemu = if local_qemu.is_file() {
+        local_qemu.as_path()
+    } else {
+        Path::new("qemu-system-arm")
+    };
+    let qemu_version = command_text(qemu, &["--version"], "armv6-emulator-unavailable")?;
+    let mut child = Command::new(qemu)
         .args(["-M", MACHINE, "-device"])
         .arg(format!(
             "loader,file={},addr=0x8000,cpu-num=0,force-raw=on",
@@ -121,6 +130,13 @@ pub fn execute(board: Armv6RpiBoard, opts: &GlobalOpts) -> Result<(), ConduitosE
     }
     let transcript_text = String::from_utf8(transcript)
         .map_err(|error| refusal("armv6-emulator-transcript-invalid", error))?;
+    fs::write(
+        paths
+            .target
+            .join(format!("{}-emulator.log", board.artifact_slug())),
+        &transcript_text,
+    )
+    .map_err(|error| refusal("run-record-failed", error))?;
     let entry_sign = one_sign(&transcript_text, ENTRY_SIGN_PREFIX, "entry")?;
     let entry: serde_json::Value = serde_json::from_str(&entry_sign[ENTRY_SIGN_PREFIX.len()..])
         .map_err(|error| refusal("armv6-entry-sign-invalid", error))?;
@@ -131,6 +147,7 @@ pub fn execute(board: Armv6RpiBoard, opts: &GlobalOpts) -> Result<(), ConduitosE
     let identity: serde_json::Value =
         serde_json::from_str(&identity_sign[IDENTITY_SIGN_PREFIX.len()..])
             .map_err(|error| refusal("armv6-identity-sign-invalid", error))?;
+    validate_protection_disposition(&transcript_text, &kernel, &identity)?;
     let commit = git_head(&paths.root)?;
     if kernel["schema"] != "conduit.conduitos.kernel-sign/v2"
         || kernel["status"] != "accepted"
@@ -174,6 +191,8 @@ pub fn execute(board: Armv6RpiBoard, opts: &GlobalOpts) -> Result<(), ConduitosE
         transcript_bytes: transcript_text.len(),
         runtime_bases_available: true,
         physical_boot_claimed: false,
+        protected_execution_refused: true,
+        cooperative_execution: true,
     };
     fs::write(
         paths
@@ -196,6 +215,30 @@ pub fn execute(board: Armv6RpiBoard, opts: &GlobalOpts) -> Result<(), ConduitosE
     Ok(())
 }
 
+fn validate_protection_disposition(
+    transcript: &str,
+    kernel: &serde_json::Value,
+    identity: &serde_json::Value,
+) -> Result<(), ConduitosError> {
+    if transcript
+        .lines()
+        .filter(|line| *line == PROTECTION_REFUSAL)
+        .count()
+        != 1
+        || identity["protected_execution"] != "unsupported"
+        || identity["cooperative_execution"] != true
+        || kernel["isolation"] != false
+        || kernel["preemption"] != false
+        || transcript.contains("CONDUIT_DOMAIN_COST ")
+    {
+        return Err(refusal(
+            "armv6-protection-disposition-invalid",
+            "protected request must refuse; cooperative diagnostics cannot claim confinement",
+        ));
+    }
+    Ok(())
+}
+
 fn one_sign<'a>(transcript: &'a str, prefix: &str, name: &str) -> Result<&'a str, ConduitosError> {
     let signs = transcript
         .lines()
@@ -211,7 +254,7 @@ fn one_sign<'a>(transcript: &'a str, prefix: &str, name: &str) -> Result<&'a str
 }
 
 fn command_text(
-    program: &str,
+    program: &Path,
     args: &[&str],
     reason: &'static str,
 ) -> Result<String, ConduitosError> {
@@ -232,6 +275,33 @@ fn refusal(reason: &'static str, detail: impl std::fmt::Display) -> ConduitosErr
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn protected_refusal_and_cooperative_truth_must_agree() {
+        let kernel = serde_json::json!({"isolation":false,"preemption":false});
+        let identity =
+            serde_json::json!({"protected_execution":"unsupported","cooperative_execution":true});
+        assert!(validate_protection_disposition(PROTECTION_REFUSAL, &kernel, &identity).is_ok());
+        for text in [
+            String::new(),
+            format!("{PROTECTION_REFUSAL}\n{PROTECTION_REFUSAL}"),
+            format!("{PROTECTION_REFUSAL}\nCONDUIT_DOMAIN_COST {{}}"),
+        ] {
+            assert!(validate_protection_disposition(&text, &kernel, &identity).is_err());
+        }
+        assert!(validate_protection_disposition(
+            PROTECTION_REFUSAL,
+            &serde_json::json!({"isolation":true,"preemption":false}),
+            &identity
+        )
+        .is_err());
+        assert!(validate_protection_disposition(
+            PROTECTION_REFUSAL,
+            &kernel,
+            &serde_json::json!({"cooperative_execution":true})
+        )
+        .is_err());
+    }
 
     #[test]
     fn missing_and_duplicate_signs_refuse() {

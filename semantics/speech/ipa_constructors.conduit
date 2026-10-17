@@ -1,0 +1,27 @@
+# Finite requests for reviewed quoted-IPA constructors. No display delimiter,
+# inferred inventory, host implementation or playback authority is authored.
+type SpeechIpaUniversalRequest = {
+ original: Text <= 4096B not in [""]
+ provenance: SpeechEvidenceProvenance
+}
+type SpeechIpaPhoneBindings = {
+ values: sequence SpeechIpaPhoneDefinitionBinding <= 64
+}
+type SpeechIpaPhonemeBindings = {
+ values: sequence SpeechIpaPhonemeDefinitionBinding <= 64
+}
+# A resolved single phoneme is distinct from a universal phone or a sequence.
+# The executed constructor retains the complete request in its admitted plan;
+# decoding this candidate alone never establishes inventory membership.
+type SpeechPhonemeNotation = {
+ basis: SpeechIpaInventoryNotationBasis
+ definition: SpeechPhoneme
+ binding: SpeechIpaPhonemeDefinitionBinding
+ notation: SpeechIpaTranscription
+ where .definition.identity == .binding.phoneme
+ where .notation.display is phonemic
+ where .notation.inventory_id == .basis.inventory_id
+ where .notation.variety == .basis.variety
+ where .notation.profile_id == .basis.profile.identity
+ where .notation.profile_revision == .basis.revision
+}

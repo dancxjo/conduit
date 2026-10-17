@@ -3,8 +3,8 @@ use std::collections::{BTreeMap, BTreeSet};
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, ConfigurationValue, ExternalEffectBehavior, Kind, KindId,
     KindIdentity, KindSemanticLaw, PortDescriptor, PortDirection, PortTemporal, Quantity,
-    QuantityUnit, ReplayBehavior, SemanticDependence, StructuredFieldType, StructuredFieldValue,
-    StructuredInfoType, StructuredInfoValue, SuspensionBehavior, TemporalStateBehavior,
+    ReplayBehavior, SemanticDependence, StructuredFieldType, StructuredFieldValue,
+    StructuredInfoType, StructuredInfoValue, SuspensionBehavior, TemporalStateBehavior, Unit,
     VariabilityBehavior,
 };
 use conduit_plot::{
@@ -40,6 +40,7 @@ fn context<'a>(
     semantic_kinds: &'a BTreeMap<String, Kind>,
 ) -> ExpressionTypeContext<'a> {
     ExpressionTypeContext {
+        glyph_values: None,
         input,
         immutable_values,
         structured_types,
@@ -245,7 +246,7 @@ fn nominal_structured_input_projects_into_anonymous_structures() {
 
 #[test]
 fn scientific_literal_unit_supplies_its_exact_expression_type() {
-    let temperature = CheckedExpressionType::semantic("value/temperature");
+    let temperature = CheckedExpressionType::semantic(conduit_core::TEMPERATURE_INFO_ID);
     let input = temperature.clone();
     let empty = BTreeMap::new();
     let no_structured = BTreeMap::new();
@@ -268,20 +269,20 @@ fn scientific_literal_unit_supplies_its_exact_expression_type() {
     let program = PortableExpressionProgram::from_checked(&checked).unwrap();
     assert_eq!(
         program
-            .evaluate(&Quantity::new(31, QuantityUnit::Celsius).encode())
+            .evaluate(&Quantity::new(31, Unit::Celsius).encode())
             .unwrap(),
         conduit_core::InfoBool::TRUE.encode()
     );
     assert_eq!(
         program
-            .evaluate(&Quantity::new(303_150, QuantityUnit::Millikelvin).encode())
+            .evaluate(&Quantity::new(303_150, Unit::Millikelvin).encode())
             .unwrap(),
         conduit_core::InfoBool::FALSE.encode()
     );
     let mut prepared = PreparedPortableExpressionEvaluator::new(&program).unwrap();
     assert_eq!(
         prepared
-            .evaluate(&Quantity::new(31, QuantityUnit::Celsius).encode())
+            .evaluate(&Quantity::new(31, Unit::Celsius).encode())
             .unwrap(),
         conduit_core::InfoBool::TRUE.encode()
     );
@@ -293,19 +294,20 @@ fn reviewed_pure_semantic_kind_call_uses_its_exact_front() {
     let empty = BTreeMap::new();
     let no_structured = BTreeMap::new();
     let no_numeric = BTreeSet::new();
-    let kinds = BTreeMap::from([("math/sin".into(), pure_kind("math/sin"))]);
+    // Use a fixture-owned name: math/sin now owns the typed Angle contract.
+    let kinds = BTreeMap::from([("fixture/pure".into(), pure_kind("fixture/pure"))]);
     let pure_context = context(&input, &empty, &no_structured, &empty, &no_numeric, &kinds);
     assert_eq!(
-        check_expression(&expression("math/sin(.)"), &pure_context)
+        check_expression(&expression("fixture/pure(.)"), &pure_context)
             .unwrap()
             .value_type,
         input
     );
 
-    let mut effectful = pure_kind("math/sin");
+    let mut effectful = pure_kind("fixture/pure");
     effectful.semantic_laws[0] =
         KindSemanticLaw::ExternalEffects(ExternalEffectBehavior::Observable);
-    let effectful = BTreeMap::from([("math/sin".into(), effectful)]);
+    let effectful = BTreeMap::from([("fixture/pure".into(), effectful)]);
     let context = context(
         &input,
         &empty,
@@ -314,7 +316,7 @@ fn reviewed_pure_semantic_kind_call_uses_its_exact_front() {
         &no_numeric,
         &effectful,
     );
-    assert!(check_expression(&expression("math/sin(.)"), &context).is_err());
+    assert!(check_expression(&expression("fixture/pure(.)"), &context).is_err());
 }
 
 #[test]

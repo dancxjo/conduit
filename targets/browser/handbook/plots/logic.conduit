@@ -1,0 +1,6 @@
+plot logic-demo {
+    source: boolean/literal(true)
+    invert: logic/not
+    show: face/bool-value("Result")
+    source >> invert >> show
+}.

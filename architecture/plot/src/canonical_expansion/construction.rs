@@ -6,13 +6,33 @@ use crate::{
     PortableExpressionProgram,
 };
 use conduit_core::StructuredInfoTypeShape;
+mod byte_facts;
 mod refinement;
+use byte_facts::ByteFacts;
 
 pub(super) fn validate(
     gears: &[CheckedGear],
     types: &[CheckedNativeType],
+    provenance: &[ExpandedGearProvenance],
+    backs: &CanonicalBackCatalog,
 ) -> Result<(), CanonicalExpansionDiagnostic> {
+    let owners = provenance
+        .iter()
+        .filter_map(|entry| {
+            entry
+                .construction_owner
+                .as_ref()
+                .map(|kind| (entry.gear_id.as_str(), kind))
+        })
+        .collect::<BTreeMap<_, _>>();
     for gear in gears {
+        let types = owners
+            .get(gear.gear_id.as_str())
+            .copied()
+            .and_then(|kind| backs.context(kind))
+            .map_or(types, |owner| {
+                owner.document.retained_native_types.as_slice()
+            });
         if gear.kind_contract_revision.as_str() != crate::PURE_EXPRESSION_REVISION {
             continue;
         }
@@ -26,7 +46,12 @@ pub(super) fn validate(
         };
         let program =
             PortableExpressionProgram::from_canonical_hex(encoded).map_err(|_| refusal())?;
-        validate_node(&program.root, &program.input_type, types)?;
+        validate_node(
+            &program.root,
+            &program.input_type,
+            types,
+            &ByteFacts::default(),
+        )?;
     }
     Ok(())
 }
@@ -35,10 +60,11 @@ fn validate_node(
     node: &PortableExpressionNode,
     input_type: &conduit_core::StructuredInfoType,
     types: &[CheckedNativeType],
+    facts: &ByteFacts,
 ) -> Result<(), CanonicalExpansionDiagnostic> {
     if matches!(
         node.operation,
-        Op::Record(_) | Op::Variant { .. } | Op::Literal(_)
+        Op::Record(_) | Op::Variant { .. } | Op::Collection(_) | Op::Literal(_)
     ) {
         let is_native = match node.value_type.shape() {
             StructuredInfoTypeShape::Record { schema, .. }
@@ -64,15 +90,18 @@ fn validate_node(
         // Passing their existing values is legal; constructing one must refuse.
         if (native.is_some_and(|ty| !ty.invariants.is_empty() || !ty.value_contracts.is_empty())
             || (is_native && native.is_none()))
-            && !native.is_some_and(|native| refinement::proves(node, input_type, native, types))
+            && !native
+                .is_some_and(|native| refinement::proves(node, input_type, native, types, facts))
         {
-            if matches!(node.operation, Op::Literal(_)) {
+            let mut admitted_closed = false;
+            if closed(node) {
                 if let Some(native) = native.filter(|ty| ty.value_type == node.value_type) {
                     // A closed constant can establish its own laws before Play.
                     // It must not disable the existing proof of input arithmetic.
                     let constant = PortableExpressionProgram {
+                        input_maximum_bytes: None,
                         input_type: conduit_core::StructuredInfoType::leaf(conduit_core::kind_id(
-                            conduit_core::UNIT_INFO_ID,
+                            conduit_core::EMPTY_INFO_ID,
                         ))
                         .map_err(|_| refusal())?,
                         output_type: node.value_type.clone(),
@@ -89,32 +118,41 @@ fn validate_node(
                             )
                         })
                         .map_err(|_| refusal())?;
-                    return Ok(());
+                    // The parent's own laws do not establish nested Types'
+                    // where laws. Continue through every constructed child.
+                    admitted_closed = true;
                 }
             }
-            return Err(refusal());
+            if !admitted_closed {
+                return Err(refusal());
+            }
         }
     }
     match &node.operation {
         Op::Projection { value, .. } | Op::Unary { operand: value, .. } => {
-            validate_node(value, input_type, types)?
+            validate_node(value, input_type, types, facts)?
         }
         Op::Binary { left, right, .. } => {
-            validate_node(left, input_type, types)?;
-            validate_node(right, input_type, types)?;
+            validate_node(left, input_type, types, facts)?;
+            validate_node(right, input_type, types, facts)?;
         }
         Op::Conditional {
             condition,
             when_true,
             when_false,
         } => {
-            validate_node(condition, input_type, types)?;
-            validate_node(when_true, input_type, types)?;
-            validate_node(when_false, input_type, types)?;
+            validate_node(condition, input_type, types, facts)?;
+            validate_node(when_true, input_type, types, &facts.branch(condition, true))?;
+            validate_node(
+                when_false,
+                input_type,
+                types,
+                &facts.branch(condition, false),
+            )?;
         }
         Op::Record(fields) => {
             for (_, value) in fields {
-                validate_node(value, input_type, types)?;
+                validate_node(value, input_type, types, facts)?;
             }
         }
         Op::Tuple(values)
@@ -123,13 +161,25 @@ fn validate_node(
             arguments: values, ..
         } => {
             for value in values {
-                validate_node(value, input_type, types)?;
+                validate_node(value, input_type, types, facts)?;
             }
         }
-        Op::Variant { payload, .. } => validate_node(payload, input_type, types)?,
-        Op::Input | Op::Literal(_) => {}
+        Op::Variant { payload, .. } => validate_node(payload, input_type, types, facts)?,
+        Op::Input | Op::Literal(_) | Op::CanonicalLiteral(_) | Op::Constant(_) => {}
     }
     Ok(())
+}
+
+// Closed authored constructors can execute the same Native laws at preparation
+// time. An input-dependent expression cannot use this route to evade proof.
+fn closed(node: &PortableExpressionNode) -> bool {
+    match &node.operation {
+        Op::Literal(_) | Op::CanonicalLiteral(_) => true,
+        Op::Record(fields) => fields.iter().all(|(_, value)| closed(value)),
+        Op::Tuple(values) | Op::Collection(values) => values.iter().all(closed),
+        Op::Variant { payload, .. } => closed(payload),
+        _ => false,
+    }
 }
 
 // Inline record payloads have their own exact schema but retain the owning

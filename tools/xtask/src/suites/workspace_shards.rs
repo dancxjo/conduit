@@ -1,5 +1,9 @@
 use crate::process::Step;
 
+#[cfg(test)]
+#[path = "workspace_shard_features_tests.rs"]
+mod feature_coverage;
+
 macro_rules! package_test_shard {
     ($packages:ident, $step:ident, $id:literal, $description:literal, [$($package:literal),+ $(,)?], [$($trailing:literal),* $(,)?]) => {
         #[cfg(test)]
@@ -45,6 +49,7 @@ package_test_shard!(
         "conduit-ssd1306",
         "conduit-embedded-build",
         "conduit-kernel",
+        "conduit-runtime-performance",
         "conduit-language",
         "conduit-plan-lowering",
         "conduit-plot",
@@ -58,7 +63,7 @@ package_test_shard!(
         "conduit-patchbay-workbench-conformance",
         "conduit-semantic-catalog",
         "conduit-midi",
-        "conduit-presentation",
+        "conduit-face",
         "conduit-protected-line",
         "conduit-process",
         "conduit-purpose",
@@ -79,7 +84,10 @@ package_test_shard!(
         "patchbay-application",
         "patchbay-svg-mask",
     ],
-    ["--features", "conduit-speech/semantic-bindings"]
+    [
+        "--features",
+        "conduit-speech/semantic-bindings,conduit-runtime-performance/hosted-pipeline,conduit-language/parser-model"
+    ]
 );
 
 // Host tests launch real local providers and device-discovery subprocesses.
@@ -107,6 +115,58 @@ package_test_shard!(
     ["--", "--test-threads=1"]
 );
 
+// Separate runners isolate these host proof surfaces while each binary remains serial.
+package_test_shard!(
+    HOST_STD_TEST_PACKAGES,
+    HOST_STD_TEST_STEP,
+    "check.test.hosts-std",
+    "Std host unit and integration tests",
+    ["conduit-std-host", "conduit-std-offers",],
+    [
+        "--features",
+        "conduit-std-host/burn-model,conduit-std-host/local-model-proof,conduit-std-host/pete-create",
+        "--",
+        "--test-threads=1"
+    ]
+);
+
+package_test_shard!(
+    HOST_BROWSER_TEST_PACKAGES,
+    HOST_BROWSER_TEST_STEP,
+    "check.test.hosts-browser",
+    "Browser host unit and integration tests",
+    [
+        "conduit-browser-host",
+        "conduit-browser-runtime",
+        "conduit-browser-mask-offer",
+    ],
+    ["--", "--test-threads=1"]
+);
+
+package_test_shard!(
+    HOST_CONDUITOS_TEST_PACKAGES,
+    HOST_CONDUITOS_TEST_STEP,
+    "check.test.hosts-conduitos",
+    "Conduitos host unit and integration tests",
+    ["conduit-conduitos-mask-offer",],
+    ["--", "--test-threads=1"]
+);
+
+package_test_shard!(
+    HOST_WORKBENCH_TEST_PACKAGES,
+    HOST_WORKBENCH_TEST_STEP,
+    "check.test.hosts-workbench",
+    "Workbench host unit and integration tests",
+    [
+        "conduit-little-seismograph-fixture",
+        "patchbay-hosted",
+        "conduit-patchbay-workbench",
+        "patchbay-workbench-host-contract",
+        "conduit-browser-patchbay-workbench",
+    ],
+    ["--", "--test-threads=1"]
+);
+
 package_test_shard!(
     PRODUCT_TEST_PACKAGES,
     PRODUCT_TEST_STEP,
@@ -114,6 +174,7 @@ package_test_shard!(
     "Product and integration unit and integration tests",
     [
         "conduit-ai",
+        "conduit-burn-model",
         "conduit-chat",
         "conduit-synth",
         "conduit-composite",
@@ -125,12 +186,20 @@ package_test_shard!(
         "conduit-body-lifecycle-conformance",
         "conduit-tour-model",
         "conduit-tutorial-plot",
+        "conduit-todo-plot",
+        "conduit-todo-face",
+        "conduit-thermostat-plot",
+        "conduit-thermostat-face",
+        "conduit-thermostat-runtime",
         "conduit-plot-library",
         "conduit",
         "conduit-xtask-dispatch",
         "xtask",
     ],
-    ["--features", "conduit-tongues/speech"]
+    [
+        "--features",
+        "conduit-tongues/speech,conduit-todo-plot/kernel-step,conduit-ai/kernel-operation-owners"
+    ]
 );
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -138,6 +207,10 @@ pub enum WorkspaceShard {
     Lint,
     TestFoundation,
     TestHosts,
+    TestHostsStd,
+    TestHostsBrowser,
+    TestHostsConduitos,
+    TestHostsWorkbench,
     TestProducts,
     Portable,
     Pico,
@@ -145,10 +218,13 @@ pub enum WorkspaceShard {
 
 impl WorkspaceShard {
     #[cfg(test)]
-    pub const ALL: [Self; 6] = [
+    pub const ALL: [Self; 9] = [
         Self::Lint,
         Self::TestFoundation,
-        Self::TestHosts,
+        Self::TestHostsStd,
+        Self::TestHostsBrowser,
+        Self::TestHostsConduitos,
+        Self::TestHostsWorkbench,
         Self::TestProducts,
         Self::Portable,
         Self::Pico,
@@ -158,9 +234,31 @@ impl WorkspaceShard {
         match self {
             Self::TestFoundation => Some(&FOUNDATION_TEST_STEP),
             Self::TestHosts => Some(&HOST_TEST_STEP),
+            Self::TestHostsStd => Some(&HOST_STD_TEST_STEP),
+            Self::TestHostsBrowser => Some(&HOST_BROWSER_TEST_STEP),
+            Self::TestHostsConduitos => Some(&HOST_CONDUITOS_TEST_STEP),
+            Self::TestHostsWorkbench => Some(&HOST_WORKBENCH_TEST_STEP),
             Self::TestProducts => Some(&PRODUCT_TEST_STEP),
             _ => None,
         }
+    }
+
+    /// Keep the cross-Mask proof in the canonical product feature context.
+    pub fn product_mask_arguments(self, step: &Step) -> Option<Vec<String>> {
+        if self != Self::TestProducts || step.id != "check.committed-todo-mask-exchange" {
+            return None;
+        }
+        let context = serde_json::json!({
+            "schema": "conduit.ci/product-cargo-context@1",
+            "args": PRODUCT_TEST_STEP.args,
+        });
+        Some(
+            step.args
+                .iter()
+                .map(|arg| (*arg).to_owned())
+                .chain(["--products-context-json".to_owned(), context.to_string()])
+                .collect(),
+        )
     }
 
     pub fn owns(self, step: &Step) -> bool {
@@ -169,8 +267,12 @@ impl WorkspaceShard {
             Self::TestFoundation => {
                 matches!(step.id, "check.kernel-alloc" | "check.system-continuity")
             }
-            Self::TestHosts => false,
-            Self::TestProducts => false,
+            Self::TestHosts
+            | Self::TestHostsStd
+            | Self::TestHostsBrowser
+            | Self::TestHostsConduitos
+            | Self::TestHostsWorkbench => false,
+            Self::TestProducts => step.id == "check.committed-todo-mask-exchange",
             Self::Portable => {
                 step.id.starts_with("check.no-std.")
                     || (step.id.starts_with("check.thumb.")
@@ -188,14 +290,35 @@ impl WorkspaceShard {
 mod tests {
     use std::{collections::BTreeSet, process::Command};
 
-    use super::{
-        WorkspaceShard, FOUNDATION_TEST_PACKAGES, FOUNDATION_TEST_STEP, HOST_TEST_PACKAGES,
-        HOST_TEST_STEP, PRODUCT_TEST_PACKAGES, PRODUCT_TEST_STEP,
-    };
+    use super::*;
     use crate::suites::{
         check::WORKSPACE_STEPS, network_capability::NETWORK_CAPABILITY_STEPS,
         pico_compositions::PICO_COMPOSITION_STEPS,
     };
+
+    #[test]
+    fn product_mask_context_retains_the_complete_canonical_cargo_arguments() {
+        let step = WORKSPACE_STEPS
+            .iter()
+            .find(|s| s.id == "check.committed-todo-mask-exchange")
+            .unwrap();
+        let args = WorkspaceShard::TestProducts
+            .product_mask_arguments(step)
+            .unwrap();
+        assert_eq!(&args[..step.args.len()], step.args);
+        assert_eq!(args[step.args.len()], "--products-context-json");
+        let payload: serde_json::Value = serde_json::from_str(args.last().unwrap()).unwrap();
+        assert_eq!(payload["args"], serde_json::json!(PRODUCT_TEST_STEP.args));
+        assert_eq!(payload["schema"], "conduit.ci/product-cargo-context@1");
+        for shard in WorkspaceShard::ALL {
+            if shard != WorkspaceShard::TestProducts {
+                assert!(shard.product_mask_arguments(step).is_none());
+            }
+        }
+        assert!(WorkspaceShard::TestProducts
+            .product_mask_arguments(&PRODUCT_TEST_STEP)
+            .is_none());
+    }
 
     #[test]
     fn every_workspace_gate_step_belongs_to_exactly_one_shard() {
@@ -245,7 +368,11 @@ mod tests {
             .collect();
         let assigned: Vec<_> = FOUNDATION_TEST_PACKAGES
             .iter()
-            .chain(HOST_TEST_PACKAGES)
+            .chain(HOST_STD_TEST_PACKAGES)
+            .chain(HOST_BROWSER_TEST_PACKAGES)
+            .chain(HOST_CONDUITOS_TEST_PACKAGES)
+            .chain(HOST_WORKBENCH_TEST_PACKAGES)
+            .chain([&crate::suites::host_protocol_shards::PACKAGE])
             .chain(PRODUCT_TEST_PACKAGES)
             .copied()
             .collect();
@@ -259,8 +386,36 @@ mod tests {
     }
 
     #[test]
+    fn foundation_exercises_the_optional_admitted_language_scorer() {
+        let features = FOUNDATION_TEST_STEP
+            .args
+            .windows(2)
+            .find_map(|pair| (pair[0] == "--features").then_some(pair[1]))
+            .expect("foundation feature context");
+        assert!(features
+            .split(',')
+            .any(|feature| feature == "conduit-language/parser-model"));
+    }
+
+    #[test]
+    fn host_groups_preserve_the_legacy_host_suite() {
+        let grouped: BTreeSet<_> = HOST_STD_TEST_PACKAGES
+            .iter()
+            .chain(HOST_BROWSER_TEST_PACKAGES)
+            .chain(HOST_CONDUITOS_TEST_PACKAGES)
+            .chain(HOST_WORKBENCH_TEST_PACKAGES)
+            .chain([&crate::suites::host_protocol_shards::PACKAGE])
+            .copied()
+            .collect();
+        assert_eq!(grouped, HOST_TEST_PACKAGES.iter().copied().collect());
+    }
+
+    #[test]
     fn every_test_shard_names_packages_with_an_explicit_package_flag() {
-        for step in [&FOUNDATION_TEST_STEP, &HOST_TEST_STEP, &PRODUCT_TEST_STEP] {
+        for step in WorkspaceShard::ALL
+            .into_iter()
+            .filter_map(WorkspaceShard::package_test_step)
+        {
             assert_eq!(step.args.first(), Some(&"test"), "{} command", step.id);
             assert_eq!(
                 step.args[1], "--no-fail-fast",
@@ -277,17 +432,8 @@ mod tests {
             for pair in packages.as_chunks::<2>().0 {
                 assert_eq!(pair[0], "-p", "{} package flag for {}", step.id, pair[1]);
             }
-            if step.id == "check.test.hosts" {
-                assert_eq!(
-                    &options[package_end..],
-                    ["--", "--test-threads=1"],
-                    "{} serial process fixtures",
-                    step.id
-                );
-            } else if package_end < options.len() {
-                let ["--features", features] = &options[package_end..] else {
-                    panic!("{} has unsupported trailing options", step.id);
-                };
+            let mut trailing = &options[package_end..];
+            if let ["--features", features, rest @ ..] = trailing {
                 for feature in features.split(',') {
                     let (package, feature) = feature
                         .split_once('/')
@@ -303,6 +449,21 @@ mod tests {
                         step.id
                     );
                 }
+                trailing = rest;
+            }
+            if step.id.starts_with("check.test.hosts") {
+                assert_eq!(
+                    trailing,
+                    ["--", "--test-threads=1"],
+                    "{} serial process fixtures",
+                    step.id
+                );
+            } else {
+                assert!(
+                    trailing.is_empty(),
+                    "{} unsupported trailing options",
+                    step.id
+                );
             }
         }
     }

@@ -6,7 +6,7 @@ use crate::cli::GlobalOpts;
 
 use super::{live_media, ConduitosArch, ConduitosError};
 
-pub const DEMO_PROFILE: &str = "q35-single-cpu-64m-visible-gtk-xhci-usb-kbd-mouse";
+pub const DEMO_PROFILE: &str = "q35-single-cpu-512m-visible-gtk-xhci-usb-kbd-mouse";
 
 pub fn execute(arch: ConduitosArch, opts: &GlobalOpts) -> Result<(), ConduitosError> {
     if arch != ConduitosArch::X86_64 {
@@ -110,7 +110,7 @@ pub(super) fn qemu_args<'a>(
         "-cpu",
         "max",
         "-m",
-        "64M",
+        conduitos::make::PC_PRODUCT_QEMU_MEMORY,
         "-smp",
         "1",
         "-display",
@@ -161,7 +161,9 @@ mod tests {
         assert!(args.windows(2).any(|pair| pair == ["-display", "gtk"]));
         assert!(args.windows(2).any(|pair| pair == ["-serial", "stdio"]));
         assert!(args.windows(2).any(|pair| pair == ["-M", "q35"]));
-        assert!(args.windows(2).any(|pair| pair == ["-m", "64M"]));
+        assert!(args
+            .windows(2)
+            .any(|pair| pair == ["-m", conduitos::make::PC_PRODUCT_QEMU_MEMORY]));
         assert!(args.contains(&"qemu-xhci,id=conduitos-xhci,p2=2,p3=0"));
         assert!(args.contains(&"usb-kbd,bus=conduitos-xhci.0,port=1"));
         assert!(args.contains(&"usb-mouse,bus=conduitos-xhci.0,port=2"));

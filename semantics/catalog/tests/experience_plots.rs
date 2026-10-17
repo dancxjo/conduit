@@ -14,7 +14,7 @@ const SOURCE: &str = include_str!("../../../plots/experiencer/main.conduit");
 fn experiencer_is_one_portable_typed_convergence_without_effect_authority() {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
-    conduit_presentation::install_geometry_catalogs(&mut startup, &mut profile).unwrap();
+    conduit_face::install_geometry_catalogs(&mut startup, &mut profile).unwrap();
     conduit_semantic_catalog::install_vision_catalogs(&mut startup, &mut profile).unwrap();
     conduit_semantic_catalog::install_experience_catalogs(&mut startup, &mut profile).unwrap();
 
@@ -98,7 +98,7 @@ fn epistemic_source_types_remain_nominally_distinct_and_bounded() {
 fn one_checked_experiencer_moves_between_compatible_hosts_without_changing_meaning() {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
-    conduit_presentation::install_geometry_catalogs(&mut startup, &mut profile).unwrap();
+    conduit_face::install_geometry_catalogs(&mut startup, &mut profile).unwrap();
     conduit_semantic_catalog::install_vision_catalogs(&mut startup, &mut profile).unwrap();
     conduit_semantic_catalog::install_experience_catalogs(&mut startup, &mut profile).unwrap();
 

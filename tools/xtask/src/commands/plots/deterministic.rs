@@ -172,21 +172,25 @@ pub(super) fn execute(
     if !oracle.features.is_empty() {
         process.args(["--features", &oracle.features.join(",")]);
     }
-    process.args([
-        "-p",
-        &oracle.package,
-        "--test",
-        &oracle.test,
-        &oracle.case,
-        "--",
-        "--exact",
-    ]);
+    process.args(oracle_arguments(oracle));
     if oracle.plan_play_evidence {
         process.arg("--nocapture");
     }
     let output = process.output();
     let duration = started.elapsed().as_millis();
     match output {
+        Ok(output) if output.status.success() && !ran_one_test(&output.stdout) => result(
+            plot,
+            path,
+            duration,
+            "failed",
+            &format!(
+                "{} succeeded without exactly one passing test",
+                command(oracle)
+            ),
+            identities,
+            mode,
+        ),
         Ok(output) if output.status.success() => {
             let mut proof = result(
                 plot,
@@ -256,10 +260,33 @@ fn command(oracle: &DeterministicOracle) -> String {
     } else {
         ""
     };
+    let target = if oracle.test == "lib" {
+        "--lib".to_string()
+    } else {
+        format!("--test {}", oracle.test)
+    };
     format!(
-        "cargo test -p {}{} --test {} {} -- --exact{}",
-        oracle.package, features, oracle.test, oracle.case, evidence
+        "cargo test -p {}{} {} {} -- --exact{}",
+        oracle.package, features, target, oracle.case, evidence
     )
+}
+
+fn oracle_arguments(oracle: &DeterministicOracle) -> Vec<String> {
+    let mut arguments = vec!["-p".into(), oracle.package.clone()];
+    if oracle.test == "lib" {
+        arguments.push("--lib".into());
+    } else {
+        arguments.extend(["--test".into(), oracle.test.clone()]);
+    }
+    arguments.extend([oracle.case.clone(), "--".into(), "--exact".into()]);
+    arguments
+}
+
+// Cargo succeeds even when --exact selects no tests. Proof requires execution.
+fn ran_one_test(stdout: &[u8]) -> bool {
+    String::from_utf8_lossy(stdout)
+        .lines()
+        .any(|line| line.starts_with("test result: ok. 1 passed; 0 failed; 0 ignored;"))
 }
 
 fn evidence(output: &Output) -> Result<ExecutionEvidence, String> {
@@ -296,7 +323,7 @@ mod tests {
             entry: "fixture".into(),
             reusable_entries: Vec::new(),
             initial_body_order: None,
-            initial_body_presentation_profile: 0,
+            initial_body_face_profile: 0,
             workspace_catalog: true,
             deterministic: None,
             deterministic_not_applicable: None,
@@ -329,6 +356,42 @@ mod tests {
         assert_eq!(
             availability(&item, "plots/fixture/main.conduit", None).status,
             "refused"
+        );
+    }
+
+    #[test]
+    fn theremin_library_oracle_selects_one_fully_qualified_test() {
+        let oracle = DeterministicOracle {
+            package: "conduit-browser-runtime".into(),
+            features: vec![],
+            test: "lib".into(),
+            case: "creche::typed_workset_tests::phone_theremin_checks_with_exact_two_axis_browser_realizations".into(),
+            plan_play_evidence: false,
+            workload_revision_evidence: false,
+        };
+        let arguments = oracle_arguments(&oracle);
+        assert_eq!(
+            arguments,
+            [
+                "-p",
+                "conduit-browser-runtime",
+                "--lib",
+                &oracle.case,
+                "--",
+                "--exact"
+            ]
+        );
+        assert!(command(&oracle).contains(" --lib creche::typed_workset_tests::"));
+        assert!(!command(&oracle).contains("--test lib"));
+        assert!(!ran_one_test(
+            b"running 0 tests\ntest result: ok. 0 passed; 0 failed; 0 ignored; 1 filtered out\n"
+        ));
+        assert!(ran_one_test(b"running 1 test\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out\n"));
+        let mut integration = oracle;
+        integration.test = "integration".into();
+        assert_eq!(
+            &oracle_arguments(&integration)[2..4],
+            ["--test", "integration"]
         );
     }
 

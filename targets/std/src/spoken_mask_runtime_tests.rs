@@ -15,6 +15,14 @@ use conduit_core::{
     ExpandedPlotId, HostId, OfferGeneration, PlanId, PlannedGear, PoolRealizationHealth,
     PortDirection, SignId, SourceDocumentId,
 };
+use conduit_face::{
+    ArtifactAcknowledgedSpokenShow, Face, FaceBasis, FaceDisclosure, FaceDisclosureLevel, FaceRole,
+    FaceSubject, FaceText, GeneratedContentRole, GeneratedContentSegment,
+    GeneratedManifestationCandidate, GeneratedManifestationDisposition,
+    GeneratedSemanticCorrelation, GenerativeNarratorRole, GenerativePresenterBounds,
+    GenerativePresenterPolicy, GenerativePresenterRequest, ManifestationLifecycle, MaskPlot,
+    PlannedMaskPlot,
+};
 use conduit_planner::{
     default_expanded_placements, plan_expanded_authoring_with_options, ConnectionQueueLimits,
     ForeBoundaryKey, PlanningOptions,
@@ -22,14 +30,6 @@ use conduit_planner::{
 use conduit_plot::{
     check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
     ProfileCatalog, StartupCatalog,
-};
-use conduit_presentation::{
-    ArtifactAcknowledgedSpokenShow, GeneratedContentRole, GeneratedContentSegment,
-    GeneratedManifestationCandidate, GeneratedManifestationDisposition,
-    GeneratedSemanticCorrelation, GenerativeNarratorRole, GenerativePresenterBounds,
-    GenerativePresenterPolicy, GenerativePresenterRequest, ManifestationLifecycle, MaskPlot,
-    PlannedMaskPlot, Presentation, PresentationBasis, PresentationDisclosure,
-    PresentationDisclosureLevel, PresentationRole, PresentationSubject, PresentationText,
 };
 use std::collections::BTreeMap;
 
@@ -59,37 +59,29 @@ impl HostedLocalModelAdapter for FixturePresenter {
         let mut manifestation = GeneratedManifestationCandidate {
             candidate_identity: String::new(),
             request_identity: request.request_identity.clone(),
-            source_presentation_identity: request
-                .semantic_data
-                .source_presentation_identity
-                .clone(),
-            source_presentation_revision: request.semantic_data.source_presentation_revision,
+            source_face_identity: request.semantic_data.source_face_identity.clone(),
+            source_face_revision: request.semantic_data.source_face_revision,
             presenter_implementation_identity: "fixture/presenter@1".into(),
             provider_identity: "fixture/provider".into(),
             model_identity: "fixture/model".into(),
             template_contract_revision: request.policy.template_contract_revision.clone(),
-            mask_contract_revision: conduit_presentation::SPOKEN_MASK_CONTRACT_REVISION.into(),
+            mask_contract_revision: conduit_face::SPOKEN_MASK_CONTRACT_REVISION.into(),
             generation_run_identity: "run/spoken-mask".into(),
             disposition: GeneratedManifestationDisposition::Produced,
             content: vec![GeneratedContentSegment {
                 role: GeneratedContentRole::Speech,
                 source_text_index: 0,
-                bytes: request.semantic_data.presentation.text[0]
-                    .text
-                    .as_bytes()
-                    .to_vec(),
+                bytes: request.semantic_data.face.text[0].text.as_bytes().to_vec(),
             }],
             affordances: vec![],
             correlations: vec![
                 GeneratedSemanticCorrelation::Subject {
                     index: 0,
-                    identity: request.semantic_data.presentation.subjects[0]
-                        .identity
-                        .clone(),
+                    identity: request.semantic_data.face.subjects[0].identity.clone(),
                 },
                 GeneratedSemanticCorrelation::Text {
                     index: 0,
-                    subject: request.semantic_data.presentation.text[0].subject.clone(),
+                    subject: request.semantic_data.face.text[0].subject.clone(),
                 },
             ],
             raw_provider_output: None,
@@ -153,41 +145,41 @@ impl TimerAdapter for NoopTimer {
     fn wait(&mut self, _: std::time::Duration) {}
 }
 
-fn presentation() -> Presentation {
+fn face() -> Face {
     let body = Body::born(
-        SourceDocumentId::from("source/presentation-fixture"),
-        CheckedPlotId::from("checked/presentation-fixture"),
+        SourceDocumentId::from("source/face-fixture"),
+        CheckedPlotId::from("checked/face-fixture"),
         1,
-        SignId::from("sign/presentation-fixture/born"),
+        SignId::from("sign/face-fixture/born"),
     )
     .unwrap();
-    Presentation::new_with_semantics(
+    Face::new_with_semantics(
         1,
-        PresentationBasis {
+        FaceBasis {
             body_id: Some(body.body_id),
             wake_id: None,
-            source_document_id: Some(SourceDocumentId::from("source/presentation-fixture")),
-            checked_plot_id: Some(CheckedPlotId::from("checked/presentation-fixture")),
-            expanded_plot_id: Some(ExpandedPlotId::from("expanded/presentation-fixture")),
-            plan_id: Some(PlanId::from("plan/presentation-fixture")),
+            source_document_id: Some(SourceDocumentId::from("source/face-fixture")),
+            checked_plot_id: Some(CheckedPlotId::from("checked/face-fixture")),
+            expanded_plot_id: Some(ExpandedPlotId::from("expanded/face-fixture")),
+            plan_id: Some(PlanId::from("plan/face-fixture")),
             active_play_id: None,
             sign_ids: vec![],
         },
-        vec![PresentationSubject {
+        vec![FaceSubject {
             identity: "body/current".into(),
-            role: PresentationRole::Body,
+            role: FaceRole::Body,
             name: "Current body".into(),
         }],
         vec![],
         vec![],
-        vec![PresentationText {
+        vec![FaceText {
             subject: "body/current".into(),
             text: "The Body has awakened.".into(),
         }],
         vec![],
-        vec![PresentationDisclosure {
+        vec![FaceDisclosure {
             subject: "body/current".into(),
-            level: PresentationDisclosureLevel::Primary,
+            level: FaceDisclosureLevel::Primary,
         }],
     )
     .unwrap()
@@ -198,7 +190,18 @@ fn execute_spoken_mask(
     host_id: &str,
     boot_id: &str,
     grant_id: &str,
-    presentation: Presentation,
+    face: Face,
+) -> (ArtifactAcknowledgedSpokenShow, conduit_core::Plan, MaskPlot) {
+    execute_spoken_mask_with_final_slot(plot_name, host_id, boot_id, grant_id, face, false)
+}
+
+fn execute_spoken_mask_with_final_slot(
+    plot_name: &str,
+    host_id: &str,
+    boot_id: &str,
+    grant_id: &str,
+    face: Face,
+    final_slot: bool,
 ) -> (ArtifactAcknowledgedSpokenShow, conduit_core::Plan, MaskPlot) {
     let config = StdHostConfig {
         host_id: HostId::from(host_id),
@@ -220,40 +223,58 @@ fn execute_spoken_mask(
         config.host_id.as_str().replace('/', "-")
     ));
     let _ = std::fs::remove_file(&destination);
-    host.attach_deterministic_speech_and_wav_artifact(
+    let artifact_root = destination.with_extension("artifacts");
+    let selection = if final_slot {
+        let _ = std::fs::remove_dir_all(&artifact_root);
+        std::fs::create_dir(&artifact_root).unwrap();
+        for index in 0..63 {
+            std::fs::write(
+                artifact_root.join(format!("prior-{index}.wav")),
+                b"retained",
+            )
+            .unwrap();
+        }
+        crate::hosted_wav_artifact::WavArtifactSelection::per_play_root(
+            &artifact_root,
+            config.boot_id.clone(),
+            config.offer_generation,
+        )
+        .unwrap()
+    } else {
         crate::hosted_wav_artifact::WavArtifactSelection::new(
             &destination,
             config.boot_id.clone(),
             config.offer_generation,
         )
-        .unwrap(),
-    )
-    .unwrap();
+        .unwrap()
+    };
+    host.attach_deterministic_speech_and_wav_artifact(selection.clone())
+        .unwrap();
 
     let mut startup = StartupCatalog::new();
     let mut profiles = ProfileCatalog::new();
-    conduit_presentation::install_mask_plot_value_aliases(&mut startup).unwrap();
-    conduit_presentation::install_spoken_mask_catalog(&mut startup, &mut profiles).unwrap();
+    conduit_face::install_mask_plot_value_aliases(&mut startup).unwrap();
+    conduit_face::install_spoken_mask_catalog(&mut startup, &mut profiles).unwrap();
     conduit_ai::install_llm_semantic_catalog(&mut startup, &mut profiles).unwrap();
     conduit_tongues::install_speech_synthesis_catalog(&mut startup, &mut profiles).unwrap();
     conduit_semantic_catalog::install_sound_catalogs(&mut startup, &mut profiles).unwrap();
     let source = r#"plot PLOT_NAME (
- >> face: Presentation
+ >> face: Face
  interaction: FaceInteraction...| >>
  show: Show >>
 ) {
- request: presentation/adapt-generative-request
+ request: face/adapt-generative-request("Adapt generative request")
  language: llm/present
- envelope: presentation/build-generated-validation-envelope
- validator: presentation/generated-semantic-validator
- accepted: presentation/retain-generated-validation
- speech: presentation/generated-manifestation-speech
- voice: speech/synthesize(maximum-output-bytes = 32768)
+ envelope: face/build-generated-validation-envelope("Build generated validation envelope")
+ validator: face/generated-semantic-validator("Validated output")
+ accepted: face/retain-generated-validation("Retain generated validation")
+ speech: face/generated-manifestation-speech("Generated manifestation speech")
+ voice: speech/synthesize(language-request = { language: "language/english", variety: none(empty), variety_policy: language_sufficient(empty) }, maximum-output-bytes = 32768)
  convert: audio/convert-pcm-profile(output-sample-rate-hz = 48000, output-channel-layout = "stereo-left-right")
- artifact: presentation/spoken-artifact
- shown: presentation/artifact-acknowledged-show
- no-input: presentation/no-interaction
- face >> request.presentation
+ artifact: face/spoken-artifact("Spoken output")
+ shown: face/artifact-acknowledged-show("Artifact acknowledged show")
+ no-input: face/no-interaction("Interaction completion")
+ face >> request.face
  request.request >> language.request
  request.request >> envelope.request
  language.result >> envelope.candidate
@@ -324,28 +345,28 @@ fn execute_spoken_mask(
     .unwrap();
     let planned = PlannedMaskPlot::admit(&mask, &plan).unwrap();
 
-    let request = GenerativePresenterRequest::from_presentation(
+    let request = GenerativePresenterRequest::from_face(
         "request/spoken-mask".into(),
         GenerativePresenterPolicy {
             template_contract_revision: "template/spoken-mask@1".into(),
             narrator_role: GenerativeNarratorRole::TransientFirstPersonBodyNarrator,
-            instructions: "Speak one truthful sentence from the supplied Presentation.".into(),
+            instructions: "Speak one truthful sentence from the supplied Face.".into(),
         },
-        presentation.clone(),
+        face.clone(),
         None,
         GenerativePresenterBounds::reviewed_default(),
     )
     .unwrap();
     let preparation = crate::spoken_mask_runtime::SpokenMaskPreparation {
         request,
-        presentation: presentation.clone(),
+        face: face.clone(),
         planned_mask: planned,
         front_subject: "body/current".into(),
         target_subject: "artifact/spoken-mask".into(),
         prepared_sign: SignId::from("sign/spoken-mask/prepared"),
         available_sign: SignId::from("sign/spoken-mask/available"),
     };
-    let encoded = serde_json::to_vec(&presentation).unwrap();
+    let encoded = serde_json::to_vec(&face).unwrap();
     let mut collector = Collector::default();
     let report = host
         .run_spoken_mask_plot_to(
@@ -366,16 +387,41 @@ fn execute_spoken_mask(
     let shown: ArtifactAcknowledgedSpokenShow =
         serde_json::from_slice(&collector.0[0].bytes).unwrap();
     assert_eq!(shown.show.show.lifecycle, ManifestationLifecycle::Available);
-    assert_eq!(shown.show.show.presentation_id, presentation.identity);
+    assert_eq!(shown.show.show.face_id, face.identity);
+    assert_eq!(shown.accepted_wording, face.text[0].text);
     assert!(shown.artifact.pcm_bytes > 0);
     assert!(shown.artifact.blocks > 0);
     let kernel = report.kernel.unwrap();
     assert_eq!(shown.artifact.plan_id, plan.plan_id);
     assert_eq!(shown.artifact.active_play_id, kernel.active_play_id);
-    assert!(destination.is_file());
-    assert!(std::fs::metadata(&destination).unwrap().len() > 44);
-    std::fs::remove_file(destination).unwrap();
+    if final_slot {
+        assert!(
+            !selection.is_unpublished(),
+            "a full pool refuses the next Play"
+        );
+        shown.show.validate(&face).unwrap();
+        let locator = shown.artifact.artifact_locator.as_ref().unwrap();
+        assert!(std::path::Path::new(locator).is_file());
+        assert!(std::fs::metadata(locator).unwrap().len() > 44);
+        std::fs::remove_dir_all(artifact_root).unwrap();
+    } else {
+        assert!(destination.is_file());
+        assert!(std::fs::metadata(&destination).unwrap().len() > 44);
+        std::fs::remove_file(destination).unwrap();
+    }
     (shown, plan, mask)
+}
+
+#[test]
+fn final_artifact_slot_still_acks_its_completed_show() {
+    execute_spoken_mask_with_final_slot(
+        "spoken-final-slot",
+        "host/spoken-final-slot",
+        "boot/spoken-final-slot",
+        "grant/spoken-final-slot",
+        face(),
+        true,
+    );
 }
 
 #[test]
@@ -385,7 +431,7 @@ fn registered_spoken_mask_executes_to_an_artifact_acknowledged_show() {
         "host/spoken-mask-proof",
         "boot/spoken-mask-proof",
         "grant/spoken-mask-proof",
-        presentation(),
+        face(),
     );
 }
 
@@ -394,13 +440,13 @@ fn producer_callable_replays_a_retained_live_manifestation_through_the_spoken_ma
     let mut retained = GeneratedManifestationCandidate {
         candidate_identity: String::new(),
         request_identity: "request/original-live-presenter".into(),
-        source_presentation_identity: presentation().identity.as_str().into(),
-        source_presentation_revision: 1,
+        source_face_identity: face().identity.as_str().into(),
+        source_face_revision: 1,
         presenter_implementation_identity: "std/local-open-weight-model@1".into(),
         provider_identity: "fixture/live-provider".into(),
         model_identity: "fixture/live-model".into(),
         template_contract_revision: "template/spoken-mask@1".into(),
-        mask_contract_revision: conduit_presentation::SPOKEN_MASK_CONTRACT_REVISION.into(),
+        mask_contract_revision: conduit_face::SPOKEN_MASK_CONTRACT_REVISION.into(),
         generation_run_identity: "run/retained-live-result".into(),
         disposition: GeneratedManifestationDisposition::Produced,
         content: vec![GeneratedContentSegment {
@@ -426,8 +472,9 @@ fn producer_callable_replays_a_retained_live_manifestation_through_the_spoken_ma
     let executed = crate::spoken_mask_journey::execute_retained_manifestation_mask(
         "spoken-producer-callable",
         "spoken-producer-callable",
-        presentation(),
+        face(),
         retained,
+        &crate::hosted_language::tests::request("language/english"),
     )
     .unwrap();
     assert_eq!(
@@ -438,8 +485,8 @@ fn producer_callable_replays_a_retained_live_manifestation_through_the_spoken_ma
 }
 
 struct SpokenJourney {
-    presentation: Presentation,
-    wardrobe: conduit_presentation::MaskWardrobe,
+    face: Face,
+    wardrobe: conduit_face::MaskWardrobe,
     alternate_mask: conduit_core::PlotIdentity,
     initial: Option<(ArtifactAcknowledgedSpokenShow, conduit_core::Plan, MaskPlot)>,
     replacement: Option<(ArtifactAcknowledgedSpokenShow, conduit_core::Plan, MaskPlot)>,
@@ -449,7 +496,7 @@ struct SpokenJourney {
 impl SpokenJourney {
     fn observation(
         &self,
-        action: conduit_presentation::MaskJourneyAction,
+        action: conduit_face::MaskJourneyAction,
         concrete_event: &str,
         selected: Option<&ArtifactAcknowledgedSpokenShow>,
         plan_id: &conduit_core::PlanId,
@@ -459,7 +506,7 @@ impl SpokenJourney {
         crate::spoken_mask_journey::SpokenMaskJourneyObservation {
             action_id: action.id().into(),
             concrete_event: concrete_event.into(),
-            presentation_id: self.presentation.identity.as_str().into(),
+            face_id: self.face.identity.as_str().into(),
             selected_mask_plot_id: selected
                 .map(|show| show.show.mask_plot.checked_plot_id.as_str().to_string()),
             plan_id: plan_id.as_str().into(),
@@ -470,22 +517,22 @@ impl SpokenJourney {
     }
 }
 
-impl conduit_presentation::MaskJourneyEmbodiment for SpokenJourney {
+impl conduit_face::MaskJourneyEmbodiment for SpokenJourney {
     type Outcome = crate::spoken_mask_journey::SpokenMaskJourneyObservation;
     type Error = String;
 
     fn perform(
         &mut self,
-        action: conduit_presentation::MaskJourneyAction,
+        action: conduit_face::MaskJourneyAction,
     ) -> Result<Self::Outcome, Self::Error> {
-        use conduit_presentation::MaskJourneyAction::*;
+        use conduit_face::MaskJourneyAction::*;
         if action == InspectInitialShow {
             self.initial = Some(execute_spoken_mask(
                 "spoken-initial",
                 "host/spoken-mask-initial",
                 "boot/spoken-mask-initial",
                 "grant/spoken-mask-initial",
-                self.presentation.clone(),
+                self.face.clone(),
             ));
         }
         if action == AdmitReplacementPlan {
@@ -494,7 +541,7 @@ impl conduit_presentation::MaskJourneyEmbodiment for SpokenJourney {
                 "host/spoken-mask-replacement",
                 "boot/spoken-mask-replacement",
                 "grant/spoken-mask-replacement",
-                self.presentation.clone(),
+                self.face.clone(),
             ));
         }
         if action == InspectRestoredShow {
@@ -503,7 +550,7 @@ impl conduit_presentation::MaskJourneyEmbodiment for SpokenJourney {
                 "host/spoken-mask-replacement",
                 "boot/spoken-mask-restoration",
                 "grant/spoken-mask-restoration",
-                self.presentation.clone(),
+                self.face.clone(),
             ));
         }
         let (initial_show, initial_plan, _) = self
@@ -640,13 +687,13 @@ impl conduit_presentation::MaskJourneyEmbodiment for SpokenJourney {
 
 #[test]
 fn screen_free_spoken_producer_actualizes_the_shared_ten_action_journey() {
-    let presentation = presentation();
+    let face = face();
     let initial = execute_spoken_mask(
         "spoken-initial",
         "host/spoken-mask-bootstrap",
         "boot/spoken-mask-bootstrap",
         "grant/spoken-mask-bootstrap",
-        presentation.clone(),
+        face.clone(),
     );
     let initial_identity = initial.2.plot_identity.clone();
     let alternate_identity = execute_spoken_mask(
@@ -654,14 +701,14 @@ fn screen_free_spoken_producer_actualizes_the_shared_ten_action_journey() {
         "host/spoken-mask-identity",
         "boot/spoken-mask-identity",
         "grant/spoken-mask-identity",
-        presentation.clone(),
+        face.clone(),
     )
     .2
     .plot_identity;
     let mut journey = SpokenJourney {
-        presentation,
-        wardrobe: conduit_presentation::MaskWardrobe::new(
-            conduit_presentation::MaskWardrobeLifetime::Body,
+        face,
+        wardrobe: conduit_face::MaskWardrobe::new(
+            conduit_face::MaskWardrobeLifetime::Body,
             vec![initial_identity],
             vec![],
         )
@@ -672,7 +719,7 @@ fn screen_free_spoken_producer_actualizes_the_shared_ten_action_journey() {
         restoration: None,
     };
     let mut observations = Vec::new();
-    conduit_presentation::actualize_mask_journey(&mut journey, |_, outcome| {
+    conduit_face::actualize_mask_journey(&mut journey, |_, outcome| {
         observations.push(outcome.clone());
     })
     .unwrap();

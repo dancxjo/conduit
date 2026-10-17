@@ -267,7 +267,7 @@ mod tests {
             entry: "fixture".into(),
             reusable_entries: Vec::new(),
             initial_body_order: None,
-            initial_body_presentation_profile: 0,
+            initial_body_face_profile: 0,
             workspace_catalog: true,
             deterministic: None,
             deterministic_not_applicable: None,

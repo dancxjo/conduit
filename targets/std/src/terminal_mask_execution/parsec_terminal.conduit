@@ -1,0 +1,21 @@
+# The supplementary instruction remains internal component data outside Face.
+plot parsec/terminal-mask (
+    >> face: Face
+    interaction: FaceInteraction...| >>
+    show: Show >>
+) {
+    spread: face/tee("Shared Face")
+    render: face/renderer("Body view")
+    human: face/interaction("User actions")
+    current: parsec/current-input-instruction
+    instruction: parsec/input-instruction-effect
+
+    face >> spread.source
+    spread.face >> render.face
+    spread.face >> human.face
+    render.show >> human.show
+    render.show >> show
+    render.show >> current.shown
+    current.instruction >> instruction.instruction
+    human.interaction >> interaction
+}

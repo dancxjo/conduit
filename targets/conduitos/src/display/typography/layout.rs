@@ -1,8 +1,8 @@
 //! Allocation-free layout over one admitted graphical command payload.
 
-use super::{GlyphRaster, TextRole, glyph, metrics};
+use super::{GlyphRaster, TextRole, TextScale, metrics, scaled_glyph};
 use crate::display::DisplayError;
-use conduit_presentation::MAX_GRAPHICS_TEXT_BYTES;
+use conduit_face::MAX_GRAPHICS_TEXT_BYTES;
 
 pub struct PositionedGlyph {
     pub glyph: GlyphRaster,
@@ -15,6 +15,7 @@ pub struct PositionedGlyph {
 pub struct TextLayout<'a> {
     remaining: &'a str,
     role: TextRole,
+    scale: TextScale,
     width: u32,
     x: u32,
     line: u32,
@@ -23,6 +24,15 @@ pub struct TextLayout<'a> {
 
 impl<'a> TextLayout<'a> {
     pub fn new(value: &'a str, role: TextRole, width: u16) -> Result<Self, DisplayError> {
+        Self::new_scaled(value, role, width, 100)
+    }
+    pub fn new_scaled(
+        value: &'a str,
+        role: TextRole,
+        width: u16,
+        text_scale_percent: u16,
+    ) -> Result<Self, DisplayError> {
+        let scale = TextScale::new(text_scale_percent)?;
         if value.len() > MAX_GRAPHICS_TEXT_BYTES {
             return Err(DisplayError::BufferTooSmall);
         }
@@ -32,6 +42,7 @@ impl<'a> TextLayout<'a> {
         Ok(Self {
             remaining: value,
             role,
+            scale,
             width: u32::from(width) * 64,
             x: 0,
             line: 0,
@@ -47,7 +58,10 @@ impl<'a> TextLayout<'a> {
     /// Height after consuming the whole iterator, including a trailing newline.
     pub fn finish_height(mut self) -> u32 {
         for _ in self.by_ref() {}
-        (self.line + 1) * u32::from(metrics(self.role).line_height)
+        (self.line + 1)
+            * self
+                .scale
+                .unsigned(u32::from(metrics(self.role).line_height))
     }
 }
 
@@ -64,7 +78,11 @@ impl Iterator for TextLayout<'_> {
                 continue;
             }
             let whitespace = character == ' ' || character == '\t';
-            let raster = glyph(self.role, if character == '\t' { ' ' } else { character });
+            let raster = scaled_glyph(
+                self.role,
+                if character == '\t' { ' ' } else { character },
+                self.scale,
+            );
             let advance = u32::from(raster.advance()) * if character == '\t' { 4 } else { 1 };
             if self.word_start && !whitespace {
                 let word_width = advance
@@ -72,7 +90,9 @@ impl Iterator for TextLayout<'_> {
                         .remaining
                         .chars()
                         .take_while(|character| !matches!(character, ' ' | '\t' | '\n'))
-                        .map(|character| u32::from(glyph(self.role, character).advance()))
+                        .map(|character| {
+                            u32::from(scaled_glyph(self.role, character, self.scale).advance())
+                        })
                         .sum::<u32>();
                 if self.x > 0 && word_width <= self.width && self.x + word_width > self.width {
                     self.newline();
@@ -87,8 +107,12 @@ impl Iterator for TextLayout<'_> {
             }
             let pen = (
                 (self.x / 64) as i32,
-                (self.line * u32::from(metrics(self.role).line_height)) as i32
-                    + i32::from(metrics(self.role).ascent),
+                (self.line
+                    * self
+                        .scale
+                        .unsigned(u32::from(metrics(self.role).line_height)))
+                    as i32
+                    + self.scale.unsigned(metrics(self.role).ascent as u32) as i32,
             );
             self.x += advance;
             return Some(PositionedGlyph { glyph: raster, pen });
@@ -98,7 +122,45 @@ impl Iterator for TextLayout<'_> {
 
 #[cfg(test)]
 mod tests {
+    use super::super::glyph;
     use super::*;
+
+    #[test]
+    fn admitted_scale_changes_the_same_glyphs_and_line_metrics() {
+        for percent in [100, 125, 200] {
+            let scale = TextScale::new(percent).unwrap();
+            let role = TextRole::Body;
+            let items: alloc::vec::Vec<_> = TextLayout::new_scaled("W\ni", role, 100, percent)
+                .unwrap()
+                .collect();
+            assert_eq!(
+                items[1].pen.1 - items[0].pen.1,
+                scale.unsigned(u32::from(metrics(role).line_height)) as i32
+            );
+            assert_eq!(
+                TextLayout::new_scaled("W\ni", role, 100, percent)
+                    .unwrap()
+                    .finish_height(),
+                2 * scale.unsigned(u32::from(metrics(role).line_height))
+            );
+            let original = glyph(role, 'W');
+            let (w, h) = original.extent();
+            assert_eq!(
+                items[0].glyph.extent(),
+                (
+                    scale.unsigned(u32::from(w)) as u8,
+                    scale.unsigned(u32::from(h)) as u8
+                )
+            );
+            assert_eq!(
+                items[0].glyph.advance(),
+                scale.unsigned(u32::from(original.advance())) as u16
+            );
+        }
+        for percent in [0, 99, 201, u16::MAX] {
+            assert!(TextLayout::new_scaled("W", TextRole::Body, 100, percent).is_err());
+        }
+    }
 
     #[test]
     fn explicit_lines_and_height_use_same_metrics() {

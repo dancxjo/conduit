@@ -4,7 +4,7 @@ import { acquireBrowserBodyHost } from "../../targets/browser/host/assets/browse
 
 const ABI_IDENTITY = new TextEncoder().encode("conduit.browser/runtime-abi");
 
-function fixture({ applicationEvent = false, timer = false, timerEffects = timer ? 1 : 0, timerDuration = 10_000, inputUnits = 0, text = "hello", quiescent = false, immediate = false } = {}) {
+function fixture({ applicationEvent = false, timer = false, timerEffects = timer ? 1 : 0, timerDuration = 10_000, clock = false, inputUnits = 0, text = "hello", quiescent = false, immediate = false } = {}) {
   const memory = new WebAssembly.Memory({ initial: 8 });
   let length = 0, starts = 0, cancels = 0, polls = 0, completions = 0, request;
   const output = value => {
@@ -14,15 +14,15 @@ function fixture({ applicationEvent = false, timer = false, timerEffects = timer
   new Uint8Array(memory.buffer, 448 * 1024, ABI_IDENTITY.length).set(ABI_IDENTITY);
   const effect = index => ({ host_id: "host", boot_id: "boot", active_play_id: "play", placement_id: `placement-${index}`, plan_id: "partition", request_sequence: index,
     ...(applicationEvent ? { effect_kind: "application-event", checked_plot_id: "checked/application", request_sequence: index } : timerEffects ? { effect_kind: "timer", duration_millis: timerDuration } : {
-      effect_kind: "manifestation", presentation_id: "presentation", observation_sequence: index,
-      presentation_kind: "presentation/text", text,
+      effect_kind: "manifestation", face_id: "face", observation_sequence: index,
+      face_kind: "face/text", data_label: "Greeting", text,
     }) });
   const api = {
     memory,
     conduit_browser_runtime_abi_revision: () => 1,
     conduit_browser_runtime_abi_identity_ptr: () => 448 * 1024,
     conduit_browser_runtime_abi_identity_len: () => ABI_IDENTITY.length,
-    conduit_browser_plot_human_machinery() { output({ schema: "conduit.browser/selected-human-machinery@1", limits: { maximum_gears: 32 }, implementations: [{ id: "browser/dom-presentation@1", revision: 1 }, { id: "browser/pointer-events@1", revision: 1 }] });return 0; },
+    conduit_browser_plot_human_machinery() { output({ schema: "conduit.browser/selected-human-machinery@1", limits: { maximum_gears: 32 }, implementations: [{ id: "browser/dom-face@1", revision: 1 }, { id: "browser/pointer-events@1", revision: 1 }] });return 0; },
     conduit_browser_plot_output_ptr: () => 0, conduit_browser_plot_output_len: () => length,
     conduit_browser_body_input_ptr: () => 256 * 1024, conduit_browser_body_input_capacity: () => 256 * 1024,
     conduit_browser_body_start(length) {
@@ -57,8 +57,9 @@ function fixture({ applicationEvent = false, timer = false, timerEffects = timer
   });
   const resource = inputUnits > 0
     ? { pool_id: "browser/window-input", class_id: "conduit.resource/browser-window-input@1", units: inputUnits }
+    : clock ? { pool_id: "browser/monotonic-millisecond-timer", class_id: "conduit.resource/monotonic-millisecond-timer-slot@1", units: 1 }
     : timerEffects ? { pool_id: "browser/timer", class_id: "conduit.resource/timer-slot@1", units: 1 }
-      : { pool_id: "browser/presentation", class_id: "conduit.resource/presentation-slot@1", units: 1 };
+      : { pool_id: "browser/face", class_id: "conduit.resource/face-slot@1", units: 1 };
   const placements = Array.from({ length: timerEffects || 1 }, (_, index) => ({ placement_id: `placement-${index}`, gear_id: `gear-${index}`, resources: [resource] }));
   const proposal = { schema: "conduit.body/execution-proposal@1", wake: {
     wake_id: "wake", lifecycle: "AwaitingPlan", plans: [],
@@ -73,6 +74,21 @@ test("one acquired window-input adapter reports every admitted logical input uni
   const owner = acquireBrowserBodyHost(f);
   assert.equal(owner.observations()[0].unreserved_units, 16);
   owner.close();
+});
+
+test("acquired browser clock exposes a basis-qualified sample and refuses after close", () => {
+  const owner = acquireBrowserBodyHost(fixture({ clock: true }));
+  const first = owner.monotonicObservation();
+  const second = owner.monotonicObservation();
+  assert.deepEqual([first.host_id, first.boot_id, first.scale], ["host", "boot", "Microseconds"]);
+  assert.match(first.basis_id, /^browser\/performance-[0-9a-f]{32}$/);
+  assert.equal(second.basis_id, first.basis_id);
+  assert.ok(second.ticks >= first.ticks);
+  owner.close();
+  assert.throws(() => owner.monotonicObservation(), /resources lost/);
+  const withoutClock = acquireBrowserBodyHost(fixture({ timer: true }));
+  assert.throws(() => withoutClock.monotonicObservation(), /clock not acquired/);
+  withoutClock.close();
 });
 
 test("three admitted timer slots run independently through the page Host", async () => {
@@ -108,7 +124,7 @@ test("acquisition reports owned slots without starting a play or copying offer c
   assert.throws(() => owner.observations(), /reserved/);
   const receipt = await owner.run();
   assert.equal(receipt.disposition, "completed");
-  assert.equal(f.outputRoot.children[0].textContent, "hello");
+  assert.equal(f.outputRoot.children[0].textContent, "Greeting: hello");
   assert.deepEqual(f.outputRoot.children[0].dataset, {
     hostId: "host",
     bootId: "boot",
@@ -116,9 +132,10 @@ test("acquisition reports owned slots without starting a play or copying offer c
     planId: "partition",
     activePlayId: "play",
     placementId: "placement-0",
-    presentationId: "presentation",
+    faceId: "face",
     observationSequence: 0,
-    presentationKind: "presentation/text",
+    faceKind: "face/text",
+    dataLabel: "Greeting",
   });
   assert.throws(() => owner.run(), /exactly once/);
   const closed = owner.close();
@@ -328,4 +345,33 @@ test("closing a failed dispatcher preserves its original rejection and returns a
   assert.equal(closed.receipt.disposition, "cancelled");
   await assert.rejects(completion, error => error === original);
   assert.equal(owner.close(), closed);
+});
+
+test("runtime memory bindings admit the finite pool and refuse aggregate excess", () => {
+  const f = fixture();
+  const placement = f.proposal.plan.plots[0].plan.fragments[0].placements[0];
+  placement.resources.push({ pool_id: "browser/runtime-memory", class_id: "conduit.resource/runtime-memory@1", units: 1024 });
+  const owner = acquireBrowserBodyHost(f);
+  const memory = owner.observations().find(item => item.class_id === "conduit.resource/runtime-memory@1");
+  assert.equal(memory.unreserved_units, 8 * 1024 * 1024);
+  owner.close();
+  placement.resources.at(-1).units = 8 * 1024 * 1024 + 1;
+  assert.throws(() => acquireBrowserBodyHost(f), /resource demand exceeds local bounds/);
+});
+
+test("saved-choice acquisition reports its exact admitted units and requires initialized storage", () => {
+  const f = fixture();
+  const placement = f.proposal.plan.plots[0].plan.fragments[0].placements[0];
+  placement.resources.push({ pool_id: "browser/saved-choice", class_id: "conduit.resource/saved-choice-slot@1", units: 4 });
+  assert.throws(() => acquireBrowserBodyHost(f), /saved choice requires initialized durable browser storage/);
+  const storage = { implementationId: "browser/indexeddb@1", state: "Initialized", async readJson() { return null; }, async writeJson() {} };
+  const owner = acquireBrowserBodyHost({ ...f, storage });
+  const acquired = owner.observations().find(item => item.class_id === "conduit.resource/saved-choice-slot@1");
+  assert.equal(acquired.unreserved_units, 4);
+  assert.equal(acquired.utilized_units, 0);
+  assert.equal(f.count().starts, 0);
+  owner.close();
+  placement.resources.at(-1).units = 5;
+  assert.throws(() => acquireBrowserBodyHost({ ...f, storage }), /resource demand exceeds local bounds/);
+  assert.throws(() => acquireBrowserBodyHost({ ...f, storage: { ...storage, state: "Unavailable" } }), /saved choice requires initialized durable browser storage/);
 });

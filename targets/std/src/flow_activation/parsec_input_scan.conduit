@@ -1,0 +1,19 @@
+# Exact authored parent for the installed shared keyboard adapter. The sources
+# are standing nonclosing Flows; the owning Body explicitly cancels them.
+# Their canonical Back Fores are unannotated. Exact staging queue capacities
+# remain three bytes for keys and BUTTON_TRANSITION_MAXIMUM_BYTES for fire.
+# Check beside parsec_scan.conduit to reuse its source-evaluated transition child.
+plot parsec/input-main (
+    >> commands: ParsecMapCommand...| <= 4096B
+    states: ParsecMapTransitionResult...| <= 4096B >>
+    keys: KeyEvent... >>
+    fire: InputButtonTransition... >>
+) {
+    keyboard: input/keyboard
+    button: input/button
+    reducer: scan("Pregame Fire", maximum-items = 32) parsec/transition()
+    commands >> reducer.item
+    reducer.combined >> states
+    keyboard.key >> keys
+    button.transition >> fire
+}.

@@ -140,7 +140,7 @@ Variant cases are tested by typed identity, not tag text:
 
 The case must belong to the exact checked variant Type. Unknown, renamed, or
 foreign cases refuse during checking; payload contents are irrelevant to the
-test. `variant/tag(...)` remains reflection for presentation and logging, not
+test. `variant/tag(...)` remains reflection for face and logging, not
 the semantic discrimination surface.
 
 A native Type may bind checked portable Type parameters and concrete source may
@@ -155,14 +155,43 @@ type Pair<T> = {
 type TextPair = Pair<Text>
 ```
 
-Parameters range only over finite checked semantic
-Types. Checking substitutes them through the complete structural definition
+An unannotated parameter such as `T` ranges over finite checked semantic
+Types. A parameter such as `N: U16` instead binds an exact finite Info value
+available during checking. The first value profile admits U16 and checked U16
+refinements, including imported nominal integral domains. Literal arguments,
+`+`, `*`, and parentheses evaluate with checked U16 intermediate arithmetic.
+Runtime inputs cannot instantiate a Type family.
+
+```conduit
+type Vector<T, N: U16> = collection T = N
+type Tier<T, Maximum: U16> = sequence T <= Maximum
+type Window<H: U16, D: U16> = {
+    window: Vector<U8, (H + 1) * D>
+    history: Vector<Vector<U8, D>, H>
+}
+type Window2x64 = Window<2, 64>
+```
+
+An exact collection has its declared count; a sequence has an independently
+bounded actual count. A capacity change neither inserts elements nor equates
+counts across tiers. Temporal anchors, units, overlap, occurrence correspondence,
+IPA inventory, source revision and commitment remain their domain owners'
+meaning. Fixed numeric shapes are permitted downstream representations, not
+a universal linguistic or gestural carrier.
+
+Checking substitutes arguments through the complete structural definition
 and its laws, rejects unused, duplicate, missing, excess, unknown, recursive,
 or unbounded applications, and leaves no open parameter or dynamic dispatcher
 for play. Each concrete identity includes the exact generic declaration and
 the exact semantic arguments. A generated binding may use target generics or
 finite monomorphized types; that representation choice is absent from Type
-identity.
+identity. Value arguments normalize to evaluated values for the same originating
+declaration; newly named declarations remain nominally distinct. Imported
+families and transparent `with` aliases retain checked owner dependencies,
+original module/Source spans and package content provenance. Specialization,
+syntax and captured metadata have finite work/storage limits and explicit
+refusals. Instantiated scalar refinements and record laws survive generated
+construction and decode.
 
 A kind is not a gear, and neither is an implementation. A port is not a renderer jack, queue slot, line endpoint, or base handle. info is specifically shaped/typed data and is not automatically Signal. A fore is not its back or an exact realization. An installed implementation is not necessarily initialized. An initialized implementation is not necessarily advertised. An advertised capability offer is not selected. A selected offer is not reserved. A reservation is not an active play.
 
@@ -313,12 +342,48 @@ failover unless each hop has its own explicit bounded contract and current
 authority. Transport confidentiality, peer authentication, membership/line
 admission, and effect authorization remain separate inspection facts.
 
+### Evidence, claims, and resolution
+
+Signs establish bounded evidence of what was observed or happened. Claims are
+typed, evidence-supported assertions about exact domain-owned targets.
+Resolutions select or abstain deterministically under one exact domain policy.
+Authority independently governs effects; support and confidence grant none.
+Losing, revised, and invalidated claims remain inspectable, and correcting
+committed truth creates explicit later truth rather than rewriting history.
+The [claim contract](architecture/claims.md) owns this bounded separation without
+a universal entity ontology, truth scalar, or global source-priority ladder.
+
+### Revisable semantic truth
+
+Revision explicitly replaces an exact proposal; it is not mutation or a value
+diff. Domains own typed deltas and cursor units. Stability is policy evidence,
+not commitment. Commitment advances monotonically through a finite revisable
+region; ordinary revision cannot rewrite its past. Explicit correction preserves
+that committed history. Closure stops ordinary revisions without claiming
+external finality or effect delivery. Independent stages retain independent
+frontiers. The [revision contract](architecture/revision.md) admits bounded
+history and honest truncation without changing ordinary flows or making every
+keep event-sourced.
+
+### Semantic projection fidelity
+
+Projection maps semantic obligations between exact contracts; representation
+specifies encoding. A projection may be lossy, but its loss must be explicit.
+Exact preservation, declared target transformation, policy-permitted loss,
+semantic insufficiency, refusal, mechanism failure and cancellation remain
+distinct. Unknown native facts and scores retain their bounded external
+contracts instead of becoming portable meaning or normalized confidence by
+coercion. The [projection contract](architecture/projection.md) binds exact
+source, target, projector and policy identities, and correlates already-admitted
+realizations without replacing Plan or Sign truth. Inspection borrows the same
+report; it owns no second result store.
+
 ### Execution and Face
 
-The Body's Face speaks one bounded, immutable semantic graph. The current Rust
-type carrying that graph is named `Presentation`; that is migration-era type
-history, not a second architectural noun. Face is the universal human-facing
-grammar: exact basis and provenance, subjects,
+The Body's Face speaks one bounded, immutable semantic graph. The Rust `Face`
+carrier lives in `conduit-face`; `BodyFace` projects the Body's current truth
+into that carrier. Face is the universal human-facing grammar: exact basis
+and provenance, subjects,
 relationships, properties, typed content, wording, actions, inputs, semantic
 order, rhetorical composition, time, interaction context, and portable
 projection/navigation. It says
@@ -333,8 +398,17 @@ forge or overwrite that authoritative truth.
 A Mask is an ordinary planned plot that consumes one exact Face revision and
 produces one finite Show. Graphical, deterministic-linear, spoken, generative,
 tactile, and future masks all receive the same semantic grammar. A mask may
-project disclosure, navigation, wording, layout, or medium-specific presentation, but
+project disclosure, navigation, wording, layout, or medium-specific face, but
 it may not redefine the Face's facts or authority.
+
+The owner may seal a finite face route independently of a workload
+Wake, so a lulled Body can expose its current Face and available actions.
+Its ordinary Mask Plan, Mask Play and acknowledged Show remain distinct from
+the Body workload Plan and Play; it never creates a placeholder Wake or a
+second workload scheduler. Exact current offers, resources, authority and any
+required Lines bind the route. Loss or stale basis revokes its Show; choosing
+an already-sealed alternative differs from replacement planning. See
+[owner face routes](architecture/owner-face-routes.md).
 
 Projection chooses which truth matters now. Semantic composition says how
 those truths are meant to stand together: grouped, contrasted, juxtaposed,
@@ -346,14 +420,19 @@ contains no panes, slides, windows, coordinates, typography, CSS, or widgets.
 The DOM, stdout, LEDs, spoken sentences, dashboards, slides, panels, buttons,
 and workbench canvases are downstream realizations. They do not own semantic
 truth, lifecycle truth, plan identity, authority, or sign.
-`PresentationMechanism`, `SemanticApplicationView`, and `ApplicationView` are
+`FaceMechanism`, `SemanticApplicationView`, and `ApplicationView` are
 historical Rust names or downstream adapters, not the Face contract.
 
 A Face may summarize or arrange runtime facts. It may not manufacture
 them. Semantic order is explicit when order is meaning; serialization order,
 geometry, DOM order, and spoken order do not silently become semantic order.
 Typed content is exact finite semantic data, never a DOM node, filesystem path,
-provider URL, framebuffer, or mask-owned cache.
+provider URL, framebuffer, or mask-owned cache. A Face property can carry either
+an exact bounded content-generation reference or a finite inline canonical value
+with its checked value contract. Inline values admit at most 1024 bytes and
+validate their portable kind, encoding, and constraints before projection.
+Graphical and spoken Masks interpret that same typed value; domain-specific
+integer scaling and unit inference do not belong in the renderer.
 
 A semantic Type states meaning independently of any target. A named **form**
 states one portable way to carry or store that Type; its exact compatibility
@@ -454,9 +533,15 @@ Fan-out is an explicit planned property. One emission is admitted atomically to 
 
 Authored and runtime numeric meaning uses four distinct layers. `Count` is a
 nonnegative cardinality, index, or finite whole-number count. `Scalar` is a
-dimensionless signed fixed-point value. `Quantity` is an exact integer paired
-with a reviewed physical or dimensional unit; startup configuration retains
-that value and unit through checking, planning, and realization. A domain Info
+dimensionless signed fixed-point value. `Quantity` is a bounded exact decimal paired
+with a source-defined physical or dimensional `Unit`. Quantity families, exact
+unit relationships, point/delta roles, and prefix policies are authoritative
+Conduitese declarations admitted into an immutable catalogue. Startup
+configuration retains the complete checked value through planning and
+realization. Family-and-role leaf identities validate its self-contained capsule
+at runtime, including records and ports. Bare temperature literals are points;
+differences use an explicit constructor such as `TemperatureDelta(21, °C)`.
+A domain Info
 record supplies the surrounding context—such as frame, source, freshness, or
 provenance—and may contain or expose Quantities without collapsing into one.
 Targets refuse incompatible or inexact conversion rather than reconstructing a
@@ -466,7 +551,7 @@ unit from a parameter name.
 offer characteristics and preserves the ownership and stability law of those
 offers. Count-like domains such as tokens, frames, items, and identifiers may
 remain there. It is not a second author-facing physical-unit catalog and must
-not grow new physical dimensions that belong to `QuantityUnit`.
+not grow new physical dimensions that belong to `Unit`.
 
 ### Bounded before play start
 

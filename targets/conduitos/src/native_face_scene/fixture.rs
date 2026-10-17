@@ -1,12 +1,12 @@
 //! Canonically checked/planned Mask fixture, not a product effect acknowledgement.
-//! Uses the same ordinary Mask construction as presentation interaction conformance.
+//! Uses the same ordinary Mask construction as face interaction conformance.
 use alloc::{format, vec, vec::Vec};
 use conduit_core::*;
+use conduit_face::*;
 use conduit_plot::{
     KindSignature, ProfileCatalog, StartupCatalog, check_syntax_document,
     expand_canonical_plot_for_authoring, parse_syntax_document,
 };
-use conduit_presentation::*;
 fn mask_port(
     name: &str,
     kind: &str,
@@ -42,13 +42,13 @@ fn mask_kind(name: &str, inputs: Vec<PortDescriptor>, outputs: Vec<PortDescripto
 
 /// The explicit Available transition simulates acknowledgement for validation
 /// tests only; this fixture proves neither delivery nor physical output.
-pub(super) fn prepared(face: &Presentation) -> MaskShow {
+pub(super) fn prepared(face: &Face) -> MaskShow {
     let definitions = vec![
         mask_kind(
             "web/dom",
             vec![mask_port(
-                "presentation",
-                PRESENTATION_VALUE_KIND,
+                "face",
+                FACE_VALUE_KIND,
                 PortDirection::Input,
                 PortTemporal::Value,
             )],
@@ -84,7 +84,7 @@ pub(super) fn prepared(face: &Presentation) -> MaskShow {
     install_mask_plot_value_aliases(&mut startup).unwrap();
     let checked = check_syntax_document(
         &parse_syntax_document(
-            "plot browser (\n >> face: Presentation\n interaction: FaceInteraction...| >>\n show: Show >>\n) {\n output: web/dom\n input: web/input\n face >> output.presentation\n output.show >> show\n input.interaction >> interaction\n}\n",
+            "plot browser (\n >> face: Face\n interaction: FaceInteraction...| >>\n show: Show >>\n) {\n output: web/dom\n input: web/input\n face >> output.face\n output.show >> show\n input.interaction >> interaction\n}\n",
         ),
         &startup,
     )
@@ -190,7 +190,7 @@ pub(super) fn prepared(face: &Presentation) -> MaskShow {
 }
 
 /// Fixture acknowledgement only; production must observe its actual effect.
-pub(crate) fn show(face: &Presentation) -> MaskShow {
+pub(crate) fn show(face: &Face) -> MaskShow {
     prepared(face)
         .transition(
             ManifestationLifecycle::Available,
@@ -204,7 +204,7 @@ pub(super) fn producer_plan() -> Plan {
         vec![],
         vec![mask_port(
             "face",
-            PRESENTATION_VALUE_KIND,
+            FACE_VALUE_KIND,
             PortDirection::Output,
             PortTemporal::Value,
         )],
@@ -243,4 +243,25 @@ pub(super) fn producer_plan() -> Plan {
     let placements =
         conduit_planner::default_placements(&plot, core::slice::from_ref(&host)).unwrap();
     conduit_planner::plan(&plot, &[host], &placements, &[]).unwrap()
+}
+
+/// Fixture-only observed framebuffer Base for shared scene conformance.
+pub(crate) fn framebuffer_provider_entry() -> BaseProviderEntry {
+    BaseProviderEntry {
+        base_id: HostBaseId::from("conduitos/test/framebuffer"),
+        provider_instance_id: BaseInstanceId::from("conduitos/test/framebuffer/provider/1"),
+        provider_generation: 1,
+        implementation_id: BaseImplementationId::from("conduitos/framebuffer@1"),
+        mechanism_family: HostBaseKindId::from("conduitos.base/framebuffer@1"),
+        enforcement_class: BaseEnforcementClass::ConduitOsKernelEnforced,
+        lifecycle: BaseLifecycle::Ready,
+        capabilities: Vec::new(),
+        resources: vec![ResourceOffer {
+            pool_id: ResourcePoolId::from("conduitos/test/framebuffer/surface"),
+            class_id: ResourceClassId::from(SHOW_RESOURCE_CLASS),
+            capacity_units: 1,
+            compute: None,
+            content: None,
+        }],
+    }
 }

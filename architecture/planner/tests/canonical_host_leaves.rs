@@ -49,8 +49,12 @@ fn catalogs() -> (StartupCatalog, ProfileCatalog) {
         .unwrap();
     startup
         .insert(KindSignature {
-            kind: "presentation/text".into(),
-            startup_parameters: vec![],
+            kind: "face/text".into(),
+            startup_parameters: vec![StartupParameterSignature {
+                name: "label".into(),
+                value_type: "Text".into(),
+                default: None,
+            }],
         })
         .unwrap();
 
@@ -82,11 +86,11 @@ fn catalogs() -> (StartupCatalog, ProfileCatalog) {
         .unwrap();
     profile
         .insert(KindProjection {
-            kind_id: kind_id("presentation/text"),
-            kind_contract_revision: KindIdentity::from("presentation/text@1"),
+            kind_id: kind_id("face/text"),
+            kind_contract_revision: KindIdentity::from("face/text@1"),
             inputs: vec![port("text", PortDirection::Input)],
             outputs: vec![],
-            configuration: vec![],
+            configuration: conduit_core::data_label_configuration(),
         })
         .unwrap();
     (startup, profile)
@@ -104,7 +108,7 @@ fn expanded() -> conduit_plot::ExpandedCanonicalPlot {
 plot welcome {
     source: text/source
     hello: greet(2)
-    show: presentation/text
+    show: face/text("Message")
     source >> hello >> show
 }
 "#;
@@ -133,8 +137,10 @@ fn offer(definition: &KindProjection) -> CapabilityOffer {
                     ConfigurationValue::Text(_) => "value/text",
                     ConfigurationValue::Structured(ref value) => value.profile().as_str(),
                     ConfigurationValue::Quantity(_) => conduit_core::QUANTITY_INFO_ID,
+                    ConfigurationValue::Unit(_) => conduit_core::UNIT_INFO_ID,
+                    ConfigurationValue::TemperatureDifference(_) => conduit_core::EXACT_TEMPERATURE_DIFFERENCE_INFO_ID,
                 }),
-                has_default: true,
+                has_default: !matches!(field.rule, KindConfigurationRule::DataLabel { .. }),
             })
             .collect(),
         shorthand: None,
@@ -169,7 +175,7 @@ fn host() -> HostAdvertisement {
         profile: HostProfileId::from("test/host"),
         bases: vec![],
         resources: vec![],
-        capabilities: ["text/source", "text/join", "presentation/text"]
+        capabilities: ["text/source", "text/join", "face/text"]
             .into_iter()
             .map(|kind| offer(profile.get(&kind_id(kind)).unwrap()))
             .collect(),
@@ -248,11 +254,7 @@ fn nested_plot_terminates_only_in_exact_planned_host_call_leaves() {
             .collect::<Vec<_>>(),
         [
             ("text/join", "std/text-join", "test/text-join"),
-            (
-                "presentation/text",
-                "std/presentation-text",
-                "test/presentation-text"
-            ),
+            ("face/text", "std/face-text", "test/face-text"),
             ("text/source", "std/text-source", "test/text-source"),
         ]
     );
@@ -263,7 +265,7 @@ fn nested_plot_terminates_only_in_exact_planned_host_call_leaves() {
 fn explicit_plot_completion_reaches_the_exact_plan() {
     let source = r#"plot finite {
     source: text/source
-    show: presentation/text
+    show: face/text("Message")
     source >> show
 }.
 "#;

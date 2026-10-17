@@ -1,6 +1,49 @@
+import "./owner-face-component.mjs";
+
 // Optional, explicitly authorized participation in a Body owned by a running
 // Linux Host. All admission and biography facts come from the production SDK.
 const encoder = new TextEncoder();
+
+// A Mask-local layout choice over the current Face, never a second Todo store.
+export function projectFaceCollections(view) {
+  const subjects = new Map((view.subjects ?? []).map(subject => [subject.identity, subject]));
+  const collections = [];
+  const placed = new Set();
+  const hasExtraFacts = (subject, representedFlag) => Boolean(subject.properties?.length || subject.values?.length
+    || (Array.isArray(subject.flags) && subject.flags.some(flag => flag?.name !== representedFlag)));
+  for (const collection of view.subjects ?? []) {
+    if (collection.role !== 'Collection' || !['Primary', 'Context'].includes(collection.disclosure)
+      || hasExtraFacts(collection)) continue;
+    const members = (view.relationships ?? [])
+      .filter(relation => relation.kind === 'Contains' && relation.source === collection.identity)
+      .map(relation => subjects.get(relation.target));
+    const items = members.filter(item => item?.role === 'Item');
+    if (new Set(items.map(item => item.identity)).size !== items.length || items.some(item => {
+      const complete = Array.isArray(item.flags) ? item.flags.filter(flag => flag?.name === 'complete') : [];
+      return hasExtraFacts(item, 'complete') || item.text?.length || complete.length !== 1 || typeof complete[0].value !== 'boolean'
+        || item.disclosure !== (complete[0].value ? 'SelectedDetail' : 'Primary');
+    })) continue;
+    const open = items.filter(item => !item.flags.find(flag => flag.name === 'complete').value);
+    const completed = items.filter(item => item.flags.find(flag => flag.name === 'complete').value);
+    const count = `${open.length} ${open.length === 1 ? 'thing' : 'things'} left · ${completed.length} completed`;
+    // A partial Face must not invent a total from its visible item subset.
+    // Require the source Status to corroborate the specialized count wording.
+    const statuses = members.filter(subject => subject?.role === 'Status');
+    if (!statuses.length || statuses.some(subject => subject.text?.length !== 1 || subject.text[0] !== count)) continue;
+    const matchingStatus = statuses.find(subject => !hasExtraFacts(subject)
+      && !(view.actions ?? []).some(action => action.target === subject.identity));
+    collections.push({ collection, open, completed, count });
+    placed.add(collection.identity);
+    for (const item of items) placed.add(item.identity);
+    if (matchingStatus) placed.add(matchingStatus.identity);
+  }
+  return { collections, placed };
+}
+
+export function faceActionReady(view, action) {
+  return view.interactions_admitted === true && view.show_state === 'available'
+    && action.availability === 'available';
+}
 
 export function checkedLoopbackOwnerWindow(value) {
   if (typeof value !== 'string' || value.length > 2048) throw new Error('Enter one bounded owner window URL.');
@@ -85,6 +128,20 @@ export async function startOwnerParticipation(application, root) {
       <button type="button" data-owner-face-refresh disabled>Refresh this Face</button>
       <details><summary>Inspect the current Face, route, Plan, and Show</summary><pre data-owner-face-evidence>No Show yet.</pre></details>
     </section>
+    <section class="owner-wardrobe" aria-labelledby="owner-wardrobe-title">
+      <header><p class="eyebrow">Owner policy · at rest</p><h3 id="owner-wardrobe-title">Choose how this Body can meet you</h3>
+        <p>Inspect the owner's eligible Mask routes, what is worn, and its preference order. Wear and doff change that Body policy; Prefer replaces the preference list with one Mask. These changes work only while the Body is lulled. The owner may refuse while a Plot is running; refresh after Lull. A selected route needs a fresh Show before interaction.</p></header>
+      <button type="button" data-owner-wardrobe-refresh disabled>Inspect current wardrobe</button>
+      <p role="status" data-owner-wardrobe-status>Join the Body to inspect its wardrobe.</p>
+      <div data-owner-wardrobe-rows></div>
+      <details><summary>Exact owner wardrobe report</summary><pre data-owner-wardrobe-evidence>No owner report yet.</pre></details>
+    </section>
+    <section aria-labelledby="owner-speech-title"><h3 id="owner-speech-title">Hear this view</h3>
+      <p>Ask the installed Linux owner to read the current Face through its selected speaker. Playback happens on that Host; this browser shows its reported outcome.</p>
+      <button type="button" data-owner-speech-start disabled>Read this view aloud</button>
+      <button type="button" data-owner-speech-status disabled>Check reading</button>
+      <button type="button" data-owner-speech-stop disabled>Stop reading</button>
+      <p role="status" data-owner-speech-result>Join and show the Face first.</p></section>
     <button type="button" data-owner-leave disabled>Leave this window</button>
     <p><a href="?">Return to my local Handbook</a>. Your local Body remains retained; this join mode does not open or change it.</p>`;
   const status = root.querySelector('[data-owner-status]');
@@ -97,149 +154,174 @@ export async function startOwnerParticipation(application, root) {
   const faceDocument = root.querySelector('[data-owner-face-document]');
   const faceEvidence = root.querySelector('[data-owner-face-evidence]');
   const faceRefresh = root.querySelector('[data-owner-face-refresh]');
+  const wardrobeRefresh = root.querySelector('[data-owner-wardrobe-refresh]');
+  const wardrobeStatus = root.querySelector('[data-owner-wardrobe-status]');
+  const wardrobeRows = root.querySelector('[data-owner-wardrobe-rows]');
+  const wardrobeEvidence = root.querySelector('[data-owner-wardrobe-evidence]');
+  const speechStart = root.querySelector('[data-owner-speech-start]');
+  const speechStatus = root.querySelector('[data-owner-speech-status]');
+  const speechStop = root.querySelector('[data-owner-speech-stop]');
+  const speechResult = root.querySelector('[data-owner-speech-result]');
   let host, participation, expectedBodyId = null, faceView = null, faceBusy = false, actionSequence = 0;
-  const faceNode = (tag, text, className) => {
-    const node = document.createElement(tag);
-    node.textContent = text;
-    if (className) node.className = className;
-    return node;
+  let faceRouteEpoch = 0;
+  let speechOperationId = null, speechBusy = false;
+  let wardrobeReport = null, wardrobeBusy = false;
+  const renderWardrobe = current => {
+    const list = document.createElement('ul');
+    list.className = 'owner-wardrobe-list';
+    for (const route of current.rows) {
+      const item = document.createElement('li');
+      const name = document.createElement('h4'); name.textContent = route.maskName; item.append(name);
+      const facts = document.createElement('p');
+      facts.textContent = `Host ${route.hostId} · ${route.available ? 'available' : 'unavailable'} · ${route.worn ? 'worn' : 'not worn'} · ${route.preferenceRank ? `preference ${route.preferenceRank}` : 'not preferred'}${route.selected ? ' · selected Show route' : ''}`;
+      item.append(facts);
+      const controls = document.createElement('div'); controls.className = 'owner-wardrobe-controls';
+      for (const [verb, label, enabled] of [['wear', 'Wear', !route.worn], ['doff', 'Doff', route.worn], ['prefer', 'Prefer only', route.worn && (route.preferenceRank !== 1 || current.preferenceCount !== 1)]]) {
+        const button = document.createElement('button'); button.type = 'button';
+        button.textContent = `${label} ${route.maskName}`;
+        button.disabled = !enabled;
+        button.addEventListener('click', () => changeWardrobe(current.raw, route.routeId, verb));
+        controls.append(button);
+      }
+      item.append(controls); list.append(item);
+    }
+    if (!current.rows.length) {
+      const empty = document.createElement('p'); empty.textContent = 'The owner reports no admitted Mask routes.';
+      wardrobeRows.replaceChildren(empty);
+    } else wardrobeRows.replaceChildren(list);
+    wardrobeEvidence.textContent = JSON.stringify(current.raw, null, 2);
+    wardrobeStatus.textContent = `Owner wardrobe revision ${current.revision}. ${current.rows.length} admitted routes. ${current.rows.filter(row => row.available).length} currently available. ${current.freshShowRequired ? 'A fresh Show is required.' : current.selectedShowId ? 'The owner reports a selected Show.' : 'No selected Show is reported.'}`;
+    delete wardrobeStatus.dataset.refused;
   };
+  const refreshWardrobe = async () => {
+    if (!participation || wardrobeBusy || participation.presenceState() !== 'available') return;
+    wardrobeBusy = true; wardrobeRefresh.disabled = true;
+    for (const button of wardrobeRows.querySelectorAll('button')) button.disabled = true;
+    wardrobeStatus.textContent = 'Inspecting the current owner wardrobe…';
+    try {
+      const current = await participation.inspectOwnerWardrobe();
+      wardrobeReport = current.raw;
+      if (faceView && (current.freshShowRequired || current.selectedShowId !== faceView.show_id)) {
+        faceView = null;
+        faceDocument.replaceChildren();
+        faceStatus.textContent = 'The owner selected another Show. Refresh this Face before interaction.';
+        delete root.dataset.ownerFaceShown;
+        delete root.dataset.ownerShowAcknowledged;
+        speechControls();
+      }
+      renderWardrobe(current);
+    } catch (error) {
+      wardrobeReport = null;
+      wardrobeRows.replaceChildren();
+      wardrobeStatus.textContent = `Owner wardrobe unavailable: ${error.message}`;
+      wardrobeStatus.dataset.refused = 'true';
+      wardrobeEvidence.textContent = 'Previous wardrobe evidence is historical.';
+    } finally { wardrobeBusy = false; wardrobeRefresh.disabled = participation?.presenceState() !== 'available'; }
+  };
+  const changeWardrobe = async (report, routeId, verb) => {
+    if (!participation || wardrobeBusy || report !== wardrobeReport) return;
+    wardrobeBusy = true; wardrobeRefresh.disabled = true;
+    for (const button of wardrobeRows.querySelectorAll('button')) button.disabled = true;
+    wardrobeStatus.textContent = `Asking the owner to ${verb} this Mask on this Body…`;
+    try {
+      const current = await participation.changeOwnerWardrobe(report, routeId, verb);
+      wardrobeReport = current.raw;
+      faceView = null;
+      faceDocument.replaceChildren();
+      delete root.dataset.ownerFaceShown;
+      delete root.dataset.ownerShowAcknowledged;
+      faceStatus.textContent = 'Wardrobe changed. Ask the owner for a fresh Face and Show.';
+      faceRefresh.disabled = false;
+      speechControls();
+      renderWardrobe(current);
+    } catch (error) {
+      wardrobeReport = null;
+      faceView = null;
+      faceDocument.replaceChildren();
+      delete root.dataset.ownerFaceShown;
+      delete root.dataset.ownerShowAcknowledged;
+      faceStatus.textContent = 'Wardrobe action refused or uncertain. Ask the owner for a fresh Face and Show.';
+      speechControls();
+      wardrobeRows.replaceChildren();
+      wardrobeStatus.textContent = `Owner refused ${verb}: ${error.message}. Inspect again before another change.`;
+      wardrobeStatus.dataset.refused = 'true';
+      wardrobeEvidence.textContent = 'The last wardrobe report is historical.';
+    } finally { wardrobeBusy = false; wardrobeRefresh.disabled = participation?.presenceState() !== 'available'; }
+  };
+  const speechControls = () => {
+    const current = participation?.presenceState() === 'available';
+    speechStart.disabled = !current || !faceView || faceBusy || speechBusy || Boolean(speechOperationId);
+    speechStatus.disabled = !current || !speechOperationId || speechBusy;
+    speechStop.disabled = !current || !speechOperationId || speechBusy;
+    if (speechOperationId) {
+      faceRefresh.disabled = true;
+      faceComponent.disabled = true;
+    } else if (current && !faceBusy) {
+      faceRefresh.disabled = false;
+    }
+  };
+  const faceComponent = document.createElement('conduit-owner-face');
   const renderFace = view => {
-    const names = new Map(view.subjects.map(subject => [subject.identity, subject.name]));
-    const documentNode = faceNode('article', '', 'owner-face-document');
-    const overview = faceNode('p', `${view.subjects.length} subjects · ${view.relationships.length} relationships · ${view.actions.length} described actions`, 'owner-face-summary');
-    documentNode.append(overview);
-    for (const subject of view.subjects) {
-      const node = document.createElement(subject.role === 'Body' || subject.role === 'Plot' ? 'article' : 'section');
-      node.className = 'owner-face-subject';
-      node.dataset.faceRole = subject.role;
-      node.append(faceNode('span', subject.role, 'owner-face-role'));
-      node.append(faceNode(subject.role === 'Body' ? 'h4' : 'h5', subject.name));
-      for (const text of subject.text) node.append(faceNode('p', text));
-      if (subject.properties.length) {
-        const details = document.createElement('details');
-        details.append(faceNode('summary', 'Exact facts'));
-        const list = document.createElement('ul');
-        for (const property of subject.properties) {
-          const item = document.createElement('li'); item.textContent = property; list.append(item);
+    // Attach before Show, and retain the surface across ordinary refreshes.
+    // Replacing an already attached custom element revokes its render bindings.
+    if (faceComponent.parentNode !== faceDocument) faceDocument.replaceChildren(faceComponent);
+    faceComponent.show(view, { projectCollections: projectFaceCollections,
+      invoke: async ({ view, action, arguments: actionArguments }) => {
+        if (faceBusy || !participation || faceView?.show_id !== view.show_id) return;
+        faceBusy = true;
+        try {
+          const outcome = await participation.submitOwnerFaceInteraction({
+            view: faceView, actionId: action.identity, target: action.target,
+            arguments: actionArguments, sequence: ++actionSequence,
+          });
+          if (outcome.accepted !== true) throw new Error('owner did not accept the interaction');
+          actionResult.textContent = `The owner accepted ${action.name}.`;
+          delete actionResult.dataset.refused;
+        } catch (error) {
+          actionResult.textContent = `${action.name} refused: ${error.message}`;
+          actionResult.dataset.refused = 'true';
+        } finally {
+          faceBusy = false;
+          faceView = null;
+          await refreshFace();
         }
-        details.append(list); node.append(details);
-      }
-      documentNode.append(node);
-    }
-    if (view.relationships.length) {
-      const relations = document.createElement('details');
-      relations.append(faceNode('summary', 'How these parts relate'));
-      const list = document.createElement('ul');
-      for (const relationship of view.relationships) {
-        const item = document.createElement('li');
-        item.textContent = `${names.get(relationship.source) ?? relationship.source} ${relationship.kind.toLowerCase()} ${names.get(relationship.target) ?? relationship.target}`;
-        list.append(item);
-      }
-      relations.append(list); documentNode.append(relations);
-    }
-    if (view.actions.length) {
-      const actions = document.createElement('section');
-      actions.append(faceNode('h4', 'What you can do'));
-      for (const action of view.actions) {
-        const control = document.createElement('form');
-        control.dataset.ownerAction = action.identity;
-        control.append(faceNode('h5', action.name));
-        const inputs = [];
-        let supported = Array.isArray(action.arguments) && action.arguments.length <= 64;
-        for (const argument of action.arguments ?? []) {
-          const label = faceNode('label', argument.value_name);
-          let input;
-          if (Array.isArray(argument.choices) && argument.choices.length) {
-            if (argument.choices.length > 64 || argument.choices.includes('')) {
-              supported = false;
-              continue;
-            }
-            input = document.createElement('select');
-            const prompt = document.createElement('option');
-            prompt.value = ''; prompt.textContent = 'Choose an option';
-            input.append(prompt);
-            for (const choice of argument.choices) {
-              const option = document.createElement('option');
-              option.value = choice; option.textContent = choice;
-              input.append(option);
-            }
-            input.required = true;
-          } else if (Array.isArray(argument.choices) && argument.value_kind === 'value/text'
-            && Number.isSafeInteger(argument.maximum_bytes) && argument.maximum_bytes <= 4096) {
-            input = document.createElement('input');
-            input.type = 'text'; input.maxLength = argument.maximum_bytes;
-            input.addEventListener('input', () => input.setCustomValidity(
-              encoder.encode(input.value).length > argument.maximum_bytes
-                ? `Use at most ${argument.maximum_bytes} UTF-8 bytes.` : ''));
-          } else {
-            supported = false;
-            continue;
-          }
-          label.append(input);
-          control.append(label);
-          inputs.push({ name: argument.name, input });
-        }
-        const button = faceNode('button', action.name);
-        button.type = 'submit';
-        button.disabled = !view.interactions_admitted || view.show_state !== 'available'
-          || !supported || inputs.length !== action.arguments.length
-          || action.availability !== 'available';
-        control.append(button);
-        if (button.disabled) control.append(faceNode('p', action.explanation ??
-          (supported ? 'This owner action is unavailable.' : 'This input has no supported browser form.')));
-        control.addEventListener('submit', async event => {
-          event.preventDefault();
-          if (faceBusy || !participation || faceView?.show_id !== view.show_id) return;
-          faceBusy = true;
-          button.disabled = true;
-          try {
-            const outcome = await participation.submitOwnerFaceInteraction({
-              view: faceView, actionId: action.identity, target: action.target,
-              arguments: inputs.map(({ name, input }) => ({ name, value: input.value })),
-              sequence: ++actionSequence,
-            });
-            if (outcome.accepted !== true) throw new Error('owner did not accept the interaction');
-            actionResult.textContent = `The owner accepted ${action.name}.`;
-            delete actionResult.dataset.refused;
-          } catch (error) {
-            actionResult.textContent = `${action.name} refused: ${error.message}`;
-            actionResult.dataset.refused = 'true';
-          } finally {
-            faceBusy = false;
-            faceView = null;
-            await refreshFace();
-          }
-        });
-        actions.append(control);
-      }
-      documentNode.append(actions);
-    }
-    faceDocument.replaceChildren(documentNode);
+      },
+    });
     faceDocument.dataset.faceId = view.face_id;
     faceDocument.dataset.faceRevision = view.face_revision;
     faceDocument.dataset.showId = view.show_id;
   };
-  const refreshFace = async () => {
+  const refreshFace = async (selection = null) => {
     if (!participation || faceBusy || participation.presenceState() !== 'available') return;
     faceBusy = true; faceRefresh.disabled = true;
+    const routeEpoch = faceRouteEpoch;
+    const requireCurrentRoute = () => {
+      if (routeEpoch !== faceRouteEpoch || participation.presenceState() !== 'available') {
+        throw new Error('The owner route changed during Face preparation. Refresh this Face after reconnecting.');
+      }
+    };
     const priorFace = faceView;
     faceView = null;
     delete root.dataset.ownerFaceShown;
     delete root.dataset.ownerShowAcknowledged;
     faceEvidence.textContent = 'Checking the current owner route and Show…';
-    for (const button of faceDocument.querySelectorAll('[data-owner-action] button')) button.disabled = true;
+    faceComponent.disabled = true;
     try {
       faceStatus.textContent = 'Asking the owner for its current Face…';
-      const prepared = await participation.prepareOwnerFaceMask(priorFace ? {
-        lastSeenRevision: priorFace.face_revision, lastSeenIdentity: priorFace.face_id,
-      } : undefined);
+      const prepared = selection?.look && selection?.recipe
+        ? await participation.selectOwnerComponentMask(selection)
+        : await participation.prepareOwnerFaceMask(priorFace ? {
+          lastSeenRevision: priorFace.face_revision, lastSeenIdentity: priorFace.face_id,
+        } : undefined);
+      requireCurrentRoute();
       renderFace(prepared);
       const shown = await participation.acknowledgeOwnerFaceMask(prepared);
+      requireCurrentRoute();
       const inspectedRoute = checkedOwnerRouteEvidence(shown, participation.hostId, participation.bootId);
       root.dataset.ownerShowAcknowledged = shown.show_id;
       faceView = shown;
       renderFace(shown);
+      speechControls();
       faceStatus.textContent = 'The browser is showing the owner’s current Face.';
       delete faceStatus.dataset.refused;
       faceEvidence.textContent = JSON.stringify(inspectedRoute, null, 2);
@@ -251,19 +333,74 @@ export async function startOwnerParticipation(application, root) {
     } finally {
       faceBusy = false;
       faceRefresh.disabled = participation?.presenceState() !== 'available';
+      applyFace.disabled = !faceView || faceRefresh.disabled || Boolean(speechOperationId);
+      speechControls();
+      if (!wardrobeReport) queueMicrotask(refreshWardrobe);
     }
   };
+  const faceControls = document.createElement('fieldset');
+  const faceLegend = document.createElement('legend');
+  faceLegend.textContent = 'Face';
+  const lookLabel = document.createElement('label');
+  lookLabel.textContent = 'Look ';
+  const lookSelect = document.createElement('select');
+  for (const value of ['compact', 'spacious']) {
+    const option = document.createElement('option'); option.value = value;
+    option.textContent = value === 'compact' ? 'Compact' : 'Spacious'; lookSelect.append(option);
+  }
+  lookLabel.append(lookSelect);
+  const recipeLabel = document.createElement('label'); recipeLabel.textContent = 'Layout ';
+  const recipeSelect = document.createElement('select');
+  for (const [value, name] of [['flat', 'Single section'], ['grouped', 'Grouped sections']]) {
+    const option = document.createElement('option'); option.value = value; option.textContent = name;
+    recipeSelect.append(option);
+  }
+  recipeLabel.append(recipeSelect);
+  const textScaleLabel = document.createElement('label');
+  textScaleLabel.textContent = 'Minimum text size ';
+  const textScaleSelect = document.createElement('select');
+  for (const percent of [100, 150, 200]) {
+    const option = document.createElement('option');
+    option.value = String(percent); option.textContent = `${percent}%`;
+    textScaleSelect.append(option);
+  }
+  textScaleLabel.append(textScaleSelect);
+  const applyFace = document.createElement('button'); applyFace.type = 'button';
+  applyFace.textContent = 'Apply face';
+  applyFace.disabled = true;
+  applyFace.addEventListener('click', () => {
+    if (!faceView || faceBusy || speechOperationId) return;
+    refreshFace({ look: lookSelect.value, recipe: recipeSelect.value,
+      minimumTextScalePercent: Number(textScaleSelect.value) });
+  });
+  faceControls.append(faceLegend, lookLabel, recipeLabel, textScaleLabel, applyFace);
+  faceRefresh.insertAdjacentElement('afterend', faceControls);
   const showState = state => {
     status.textContent = `Browser participation: ${state}.`;
     status.dataset.state = state;
     if (state === 'offline' || state.startsWith('refused:')) {
+      // Presence can recover before a pending response completes. That response
+      // still belongs to the interrupted route and cannot restore current agency.
+      faceRouteEpoch++;
+      delete root.dataset.ownerFaceShown;
+      delete root.dataset.ownerShowAcknowledged;
+      wardrobeReport = null;
+      wardrobeRefresh.disabled = true;
+      for (const button of wardrobeRows.querySelectorAll('button')) button.disabled = true;
+      wardrobeStatus.textContent = 'The owner window is closed. Wardrobe evidence is historical.';
+      wardrobeStatus.dataset.refused = 'true';
+      wardrobeEvidence.textContent = 'Previous wardrobe evidence is historical.';
       if (faceView) faceStatus.textContent = 'The route to the owner is lost. The last Face is historical.';
       faceView = null;
       faceRefresh.disabled = true;
+      applyFace.disabled = true;
       faceEvidence.textContent = 'No current sealed browser Show. Previous route evidence is historical.';
-      for (const button of faceDocument.querySelectorAll('[data-owner-action] button')) button.disabled = true;
+      faceComponent.disabled = true;
       actionResult.textContent = 'The owner window is closed; this browser has no current action return.';
       actionResult.dataset.refused = 'true';
+      speechOperationId = null;
+      speechResult.textContent = 'The owner route was lost. The owner requests cancellation; return for a new current Show.';
+      speechControls();
     }
   };
   const showBiography = biography => {
@@ -321,8 +458,10 @@ export async function startOwnerParticipation(application, root) {
           if (state === 'offline' || state.startsWith('refused:')) {
             leave.disabled = true;
             faceRefresh.disabled = true;
+            wardrobeRefresh.disabled = true;
           } else if (state === 'admitted' && participation?.presenceState() === 'available') {
             faceRefresh.disabled = false;
+            wardrobeRefresh.disabled = false;
             if (!faceView) queueMicrotask(refreshFace);
           }
         },
@@ -333,6 +472,7 @@ export async function startOwnerParticipation(application, root) {
       if (received) showBiography(received);
       if (participation.presenceState() === 'available') {
         faceRefresh.disabled = false;
+        wardrobeRefresh.disabled = false;
         queueMicrotask(refreshFace);
       }
     } catch (error) {
@@ -345,9 +485,48 @@ export async function startOwnerParticipation(application, root) {
     if (!participation) return;
     participation.close();
     leave.disabled = true;
-    showState('leaving');
+    showState('offline');
   });
   faceRefresh.addEventListener('click', refreshFace);
+  wardrobeRefresh.addEventListener('click', refreshWardrobe);
+  speechStart.addEventListener('click', async () => {
+    if (!participation || !faceView || speechBusy || speechOperationId) return;
+    speechBusy = true; speechControls();
+    try {
+      const reply = await participation.selectedDirectSpeechStart(faceView);
+      if (reply.outcome !== 'started' || !reply.operation_id) throw new Error('owner did not report a started reading');
+      speechOperationId = reply.operation_id;
+      speechResult.textContent = 'The owner started reading this Show. Check its outcome or stop it.';
+      delete speechResult.dataset.refused;
+    } catch (error) {
+      speechResult.textContent = `Reading refused or uncertain: ${error.message}`;
+      speechResult.dataset.refused = 'true';
+    } finally { speechBusy = false; speechControls(); }
+  });
+  speechStatus.addEventListener('click', async () => {
+    if (!participation || !speechOperationId || speechBusy) return;
+    speechBusy = true; speechControls();
+    try {
+      const reply = await participation.selectedDirectSpeechStatus(speechOperationId);
+      if (reply.outcome !== 'status' || reply.operation_id !== speechOperationId) throw new Error('mismatched owner reading');
+      const status = reply.status;
+      speechResult.textContent = status?.state === 'running' ? 'The owner is still reading.'
+        : `Owner reading ended: ${status?.outcome ?? 'unknown'}.` +
+          (status?.source_show_still_current === false ? ' That source Show is now historical.' : '');
+      if (status?.state !== 'running') speechOperationId = null;
+    } catch (error) { speechResult.textContent = `Reading status unavailable: ${error.message}`; speechResult.dataset.refused = 'true'; }
+    finally { speechBusy = false; speechControls(); if (!speechOperationId) queueMicrotask(refreshFace); }
+  });
+  speechStop.addEventListener('click', async () => {
+    if (!participation || !speechOperationId || speechBusy) return;
+    speechBusy = true; speechControls();
+    try {
+      const reply = await participation.selectedDirectSpeechStop(speechOperationId);
+      if (reply.outcome !== 'stop-requested' || reply.operation_id !== speechOperationId) throw new Error('mismatched owner reading');
+      speechResult.textContent = 'Stop requested. Check reading for the terminal outcome.';
+    } catch (error) { speechResult.textContent = `Stop refused or uncertain: ${error.message}`; speechResult.dataset.refused = 'true'; }
+    finally { speechBusy = false; speechControls(); }
+  });
   globalThis.__conduitOwnerParticipation = Object.freeze({
     host: () => host.current(),
     admissionIdentity: () => host.admissionIdentity(),
@@ -356,5 +535,18 @@ export async function startOwnerParticipation(application, root) {
     credential: () => participation?.membershipCredential() ?? null,
     biography: () => participation?.biographyEvidence() ?? null,
     face: () => faceView,
+    // Preserve exact canonical JSON text for proof capture before any JS parse.
+    selectFace: (look, recipe, minimumTextScalePercent) =>
+      refreshFace({ look, recipe, minimumTextScalePercent }),
+    submitFaceInteraction: ({ view, actionId, target, arguments: actionArguments }) => {
+      if (!participation) throw new Error('Join a current owner before interaction.');
+      return participation.submitOwnerFaceInteraction({ view, actionId, target,
+        arguments: actionArguments, sequence: ++actionSequence });
+    },
+    canonicalFaceJSON: () => {
+      if (!participation) throw new Error('Join a current owner before canonical observation.');
+      return new TextDecoder('utf-8', { fatal: true }).decode(
+        participation.ownerCanonicalFaceSnapshot());
+    },
   });
 }

@@ -1,0 +1,9 @@
+
+running 1 test
+independent CPU/CUDA training: max absolute output drift 0.0005168915; bound 0.001 after 80 steps
+same-checkpoint CPU/CUDA inference: max absolute output drift 0.0003466606; bound 0.001
+device=ModelComputeRuntimeIdentity { provider_name: "conduit-burn", runtime_name: "Burn", runtime_version: "0.22.0", runtime_build_identity: "test/build@1", adapter_artifact_identity: "test/burn-adapter@1", device_evidence: "burn/cuda/0", precision_profile: "number/ieee754-f32-le" }, before=9000000, after=4025, resumed_steps=81
+test admitted_cuda_training_and_resume ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 1.45s
+

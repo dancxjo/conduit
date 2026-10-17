@@ -1,0 +1,380 @@
+//! Ordinary direct speech Mask: one Face, one bounded opening artifact Show.
+//!
+//! The source has no device or provider facts. The selected Host must offer
+//! its wording, voice, conversion, and create-new artifact Backs before Plan.
+//! A selected speaker reads the complete Face in separate bounded Plays
+//! sourced from the available Show; this artifact alone proves the opening.
+
+use std::collections::BTreeMap;
+
+use conduit_core::{AuthorityGrant, BaseImplementationId, ConnectionTrack, Plan, PortDirection};
+use conduit_face::{Face, MaskPlot, PlannedMaskPlot};
+use conduit_planner::{
+    default_expanded_placements, plan_expanded_authoring_with_connection_limits,
+    ConnectionQueueLimits, ForeBoundaryKey, PlanningOptions,
+};
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
+    ProfileCatalog, StartupCatalog,
+};
+
+pub struct PreparedDirectSpokenMask {
+    pub plan: Plan,
+    pub mask: MaskPlot,
+    pub planned_mask: PlannedMaskPlot,
+    pub authority_grants: Vec<AuthorityGrant>,
+}
+
+impl crate::StdHost {
+    /// Plan against this installed Host, its exact selected voice, and its
+    /// one create-new artifact resource. No replay Host or BodyPlan is made.
+    pub fn prepare_direct_spoken_mask(
+        &self,
+        face: &Face,
+    ) -> Result<PreparedDirectSpokenMask, String> {
+        self.prepare_direct_spoken_mask_named(face, "owner_direct_spoken_mask")
+    }
+
+    pub(crate) fn prepare_direct_spoken_mask_named(
+        &self,
+        face: &Face,
+        plot_name: &str,
+    ) -> Result<PreparedDirectSpokenMask, String> {
+        face.validate()
+            .map_err(|error| format!("prepare direct Face: {error:?}"))?;
+        // Refuse an oversized reading before sealing an advertised route.
+        crate::direct_spoken_mask_runtime::prepare_wording_items(face)?;
+        let authority_grants = vec![
+            self.spoken_mask_artifact_authority_grant("grant/owner-direct-speech/artifact")?,
+            self.streaming_speech_authority_grant()?,
+        ];
+        plan_for_offer(face, self.advertisement(), plot_name, authority_grants)
+    }
+}
+
+/// Reproduce the exact ordinary Plan from an observed offer and disclosed grants.
+/// This validates planning eligibility; it creates neither admission nor effects.
+pub(crate) fn plan_for_offer(
+    face: &Face,
+    host: &conduit_core::HostAdvertisement,
+    plot_name: &str,
+    authority_grants: Vec<AuthorityGrant>,
+) -> Result<PreparedDirectSpokenMask, String> {
+    face.validate()
+        .map_err(|error| format!("prepare direct Face: {error:?}"))?;
+    let (authoring, mask) = checked_source(plot_name)?;
+    let hosts = [host.clone()];
+    let placements = default_expanded_placements(&authoring.expanded, &hosts)
+        .map_err(|error| format!("place direct spoken Mask: {error:?}"))?;
+    let face_bytes = u32::try_from(
+        serde_json::to_vec(face)
+            .map_err(|error| format!("encode direct spoken Face: {error}"))?
+            .len(),
+    )
+    .map_err(|_| "direct spoken Face exceeds one Cord".to_string())?;
+    // The hosted control reading uses the existing 64 KiB logical carrier.
+    // Its actual Face and artifact Show are independently checked at emission.
+    // Larger general-purpose readers keep their separately admitted profile.
+    let boundary_bytes = if plot_name == "owner_spoken_control_template_mask" {
+        64 * 1024
+    } else {
+        524_288
+    };
+    if face_bytes > boundary_bytes {
+        return Err("direct spoken Face exceeds admitted Fore bound".into());
+    }
+    let face_connection_limits: BTreeMap<_, _> = authoring
+        .expanded
+        .connections
+        .iter()
+        .filter(|connection| connection.value_kind.as_str() == conduit_face::FACE_VALUE_KIND)
+        .map(|connection| {
+            (
+                (
+                    connection.source_gear_id.clone(),
+                    connection.source_port_id.clone(),
+                    connection.sink_gear_id.clone(),
+                    connection.sink_port_id.clone(),
+                ),
+                ConnectionQueueLimits {
+                    item_capacity: 1,
+                    byte_capacity: face_bytes,
+                },
+            )
+        })
+        .collect();
+    if face_connection_limits.len() != 2 {
+        return Err("direct spoken Mask needs its two exact Face Cords".into());
+    }
+    let boundary_limits = authoring
+        .front
+        .inputs()
+        .iter()
+        .map(|port| (PortDirection::Input, port))
+        .chain(
+            authoring
+                .front
+                .outputs()
+                .iter()
+                .map(|port| (PortDirection::Output, port)),
+        )
+        .map(|(direction, port)| {
+            (
+                ForeBoundaryKey {
+                    direction,
+                    front_port_id: port.port_id.clone(),
+                    track: ConnectionTrack::Payload,
+                },
+                ConnectionQueueLimits {
+                    item_capacity: 1,
+                    byte_capacity: boundary_bytes,
+                },
+            )
+        })
+        .collect();
+    let plan = plan_expanded_authoring_with_connection_limits(
+        &authoring,
+        &hosts,
+        &placements,
+        &[BaseImplementationId::from("conduit.base/local@1")],
+        PlanningOptions {
+            connection_bases: &BTreeMap::new(),
+            line_candidates: &BTreeMap::new(),
+            connection_item_capacity: 1,
+            connection_byte_capacity: 16_384,
+            authority_grants: &authority_grants,
+            protected_resource_grants: &[],
+            line_offers: &[],
+        },
+        &face_connection_limits,
+        &boundary_limits,
+    )
+    .map_err(|error| format!("plan direct spoken Mask: {error:?}"))?;
+    let planned_mask = PlannedMaskPlot::admit(&mask, &plan)
+        .map_err(|error| format!("seal direct spoken Mask: {error:?}"))?;
+    Ok(PreparedDirectSpokenMask {
+        plan,
+        mask,
+        planned_mask,
+        authority_grants,
+    })
+}
+
+/// Reproduce source and graph custody without creating a Host or granting effects.
+pub(crate) fn checked_source(
+    plot_name: &str,
+) -> Result<(conduit_plot::ExpandedAuthoringPlot, MaskPlot), String> {
+    let mut startup = StartupCatalog::new();
+    let mut profiles = ProfileCatalog::new();
+    conduit_face::install_mask_plot_value_aliases(&mut startup)?;
+    conduit_face::install_mask_mechanism_catalog(&mut startup, &mut profiles)?;
+    conduit_face::install_spoken_mask_catalog(&mut startup, &mut profiles)?;
+    conduit_tongues::install_speech_synthesis_catalog(&mut startup, &mut profiles)?;
+    conduit_tongues::install_speech_commit_catalog(&mut startup, &mut profiles)?;
+    conduit_semantic_catalog::install_sound_catalogs(&mut startup, &mut profiles)?;
+    let checked = check_syntax_document(&parse_syntax_document(&source(plot_name)), &startup)
+        .map_err(|error| format!("check direct spoken Mask: {error:?}"))?;
+    let authoring = expand_canonical_plot_for_authoring(&checked, plot_name, &profiles)
+        .map_err(|error| format!("expand direct spoken Mask: {error:?}"))?;
+    let mask = MaskPlot::admit(&authoring)
+        .map_err(|error| format!("admit direct spoken Mask: {error:?}"))?;
+    Ok((authoring, mask))
+}
+
+/// A finite direct route. The wording Back streams one exact Face-derived
+/// opening; the Show Back accepts the artifact receipt after synthesis ends.
+pub fn source(plot_name: &str) -> String {
+    let language = conduit_language::LanguageRequest::new(
+        conduit_language::LanguageId::new("language/english".into())
+            .expect("direct spoken Mask Language"),
+        None,
+        conduit_language::LanguageVarietyPolicy::LanguageSufficient,
+    )
+    .expect("direct spoken Mask request");
+    let language_request = crate::hosted_language::language_request_literal(&language);
+    format!(
+        r#"plot {plot_name} (
+ >> face: Face
+ interaction: FaceInteraction...| >>
+ show: Show >>
+) {{
+ spread: face/tee("Shared Face")
+ wording: face/direct-face-wording("Spoken words")
+ commit: speech/commit-generated-text
+ voice: speech/synthesize-stream(language-request = {language_request}, maximum-output-bytes = 1323000, maximum-audio-millis = 30000, maximum-segments = 32)
+ convert: audio/convert-pcm-profile(output-sample-rate-hz = 48000, output-channel-layout = "stereo-left-right", maximum-blocks = 32768, maximum-audio-millis = 30000)
+ artifact: face/spoken-artifact(label = "Spoken output", maximum-blocks = 32768, maximum-audio-millis = 30000)
+ shown: face/direct-artifact-show("Direct artifact show")
+ no-input: face/no-interaction("Interaction completion")
+ face >> spread.source
+ spread.face >> wording.face
+ spread.face >> shown.face
+ wording.speech >> commit.generated
+ commit.segments >> voice.text
+ voice.audio >> convert.audio
+ convert.converted >> artifact.audio
+ artifact.receipt >> shown.artifact
+ shown.show >> show
+ no-input.interaction >> interaction
+}}
+"#
+    )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn direct_face_artifact_graph_is_an_ordinary_checked_mask() {
+        let mut startup = StartupCatalog::new();
+        let mut profiles = ProfileCatalog::new();
+        conduit_face::install_mask_plot_value_aliases(&mut startup).unwrap();
+        conduit_face::install_mask_mechanism_catalog(&mut startup, &mut profiles).unwrap();
+        conduit_face::install_spoken_mask_catalog(&mut startup, &mut profiles).unwrap();
+        conduit_tongues::install_speech_synthesis_catalog(&mut startup, &mut profiles).unwrap();
+        conduit_tongues::install_speech_commit_catalog(&mut startup, &mut profiles).unwrap();
+        conduit_semantic_catalog::install_sound_catalogs(&mut startup, &mut profiles).unwrap();
+        let checked = check_syntax_document(
+            &parse_syntax_document(&source("direct_spoken_test")),
+            &startup,
+        )
+        .unwrap();
+        let authoring =
+            expand_canonical_plot_for_authoring(&checked, "direct_spoken_test", &profiles).unwrap();
+        assert_eq!(authoring.front.inputs().len(), 1);
+        assert_eq!(authoring.front.outputs().len(), 2);
+        assert_eq!(authoring.input_bindings.len(), 1);
+        assert_eq!(authoring.output_bindings.len(), 2);
+        let mask = MaskPlot::admit(&authoring).unwrap();
+        assert_eq!(mask.plot_name, "direct_spoken_test");
+    }
+
+    #[test]
+    fn attached_spoken_output_advertises_the_installed_face_tee() {
+        let mut host = crate::StdHost::new_with_composition(
+            crate::StdHostConfig {
+                host_id: "host/direct-spoken-tee".into(),
+                boot_id: "boot/direct-spoken-tee".into(),
+                offer_generation: conduit_core::OfferGeneration(1),
+            },
+            crate::StdHostComposition::minimal(),
+        );
+        assert!(!host
+            .advertisement()
+            .capabilities
+            .iter()
+            .any(|offer| { offer.kind_id.as_str() == conduit_face::FACE_TEE_KIND }));
+        let artifact = crate::hosted_wav_artifact::WavArtifactSelection::new(
+            std::env::temp_dir().join("conduit-direct-spoken-tee-offer.wav"),
+            host.advertisement().boot_id.clone(),
+            host.advertisement().offer_generation,
+        )
+        .unwrap();
+        host.attach_deterministic_speech_and_wav_artifact(artifact)
+            .unwrap();
+        let offered = host
+            .advertisement()
+            .capabilities
+            .iter()
+            .find(|offer| offer.kind_id.as_str() == conduit_face::FACE_TEE_KIND)
+            .expect("attached spoken Host offers its installed Face tee");
+        assert_eq!(
+            offered.implementation.implementation_id.as_str(),
+            conduit_std_offers::FACE_TEE_IMPLEMENTATION
+        );
+        assert!(offered.host_calls.is_empty());
+        assert!(offered.resource_requirements.is_empty());
+    }
+
+    #[test]
+    #[ignore = "requires installed eSpeak NG and data; proves live-provider planning, not audio playback"]
+    fn installed_espeak_admits_the_direct_face_mask_without_terminal_attachment() {
+        use conduit_core::{CheckedPlotId, SignId, SourceDocumentId};
+        use conduit_face::{FaceBasis, FaceRole, FaceSubject, FaceText};
+        use std::{path::Path, time::Duration};
+
+        let config = crate::StdHostConfig {
+            host_id: "host/direct-spoken-plan".into(),
+            boot_id: "boot/direct-spoken-plan".into(),
+            offer_generation: conduit_core::OfferGeneration(1),
+        };
+        let engine = std::fs::canonicalize("/usr/lib/x86_64-linux-gnu/libespeak-ng.so.1").unwrap();
+        let discovery = crate::hosted_speech_synthesis::EspeakDiscovery::inspect(
+            Path::new("/usr/bin/espeak-ng"),
+            Path::new("/usr/lib/x86_64-linux-gnu/espeak-ng-data"),
+            "en-us",
+            &[engine],
+        )
+        .unwrap();
+        let coverage = crate::hosted_language::tests::fixture_coverage(
+            &discovery.provider_identity(),
+            "en-us",
+            "language/english",
+        );
+        let adapter = discovery
+            .declare_language_coverage(coverage)
+            .unwrap()
+            .initialize(
+                config.host_id.clone(),
+                config.boot_id.clone(),
+                config.offer_generation,
+                "grant/direct-spoken-plan".into(),
+                Duration::from_secs(30),
+            )
+            .unwrap();
+        let artifact = crate::hosted_wav_artifact::WavArtifactSelection::new(
+            std::env::temp_dir().join("conduit-direct-spoken-plan.wav"),
+            config.boot_id.clone(),
+            config.offer_generation,
+        )
+        .unwrap();
+        let mut host =
+            crate::StdHost::new_with_composition(config, crate::StdHostComposition::minimal());
+        host.attach_espeak_speech_and_wav_artifact(adapter, artifact)
+            .unwrap();
+        let body = conduit_body::Body::born(
+            SourceDocumentId::from("source/direct-spoken-plan"),
+            CheckedPlotId::from("checked/direct-spoken-plan"),
+            1,
+            SignId::from("sign/direct-spoken-plan/born"),
+        )
+        .unwrap();
+        let face = Face::new(
+            1,
+            FaceBasis {
+                body_id: Some(body.body_id),
+                wake_id: None,
+                source_document_id: None,
+                checked_plot_id: None,
+                expanded_plot_id: None,
+                plan_id: None,
+                active_play_id: None,
+                sign_ids: vec![],
+            },
+            vec![FaceSubject {
+                identity: "body/current".into(),
+                role: FaceRole::Body,
+                name: "Current Body".into(),
+            }],
+            vec![],
+            vec![],
+            vec![FaceText {
+                subject: "body/current".into(),
+                text: "Ready to speak.".into(),
+            }],
+        )
+        .unwrap();
+        let prepared = host.prepare_direct_spoken_mask(&face).unwrap();
+        assert!(prepared
+            .plan
+            .fragments
+            .iter()
+            .flat_map(|fragment| &fragment.placements)
+            .any(|placement| {
+                placement.kind_id.as_str() == conduit_face::FACE_TEE_KIND
+                    && placement.implementation_id.as_str()
+                        == conduit_std_offers::FACE_TEE_IMPLEMENTATION
+            }));
+    }
+}

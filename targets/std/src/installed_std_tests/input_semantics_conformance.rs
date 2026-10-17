@@ -4,7 +4,7 @@ use conduit_planner::{default_placements, plan_with_options, PlanningOptions};
 use conduit_plot::parse;
 use std::collections::BTreeMap;
 
-const SPLIT_FORM: &str = "plot portable_input {\n source: conduit-test/key-event-source\n split: input/key-tee\n keymap: input/keymap\n show: presentation/text\n chords: input/chords\n control: conduit-test/chord-sink\n source.key >> split.key\n split.text-keys >> keymap.key\n keymap.text >> show.text\n split.chord-keys >> chords.key\n chords.chord >> control.chord\n}\n";
+const SPLIT_FORM: &str = "plot portable_input {\n source: conduit-test/key-event-source\n split: input/key-tee\n keymap: input/keymap\n show: face/text(\"Message\")\n chords: input/chords\n control: conduit-test/chord-sink\n source.key >> split.key\n split.text-keys >> keymap.key\n keymap.text >> show.text\n split.chord-keys >> chords.key\n chords.chord >> control.chord\n}\n";
 
 fn plan(source: &str) -> (super::StdHost, conduit_core::PlanFragment) {
     let host = host("portable-input-host");
@@ -65,7 +65,7 @@ fn ordinary_plot_splits_text_and_chords_through_the_production_kernel() {
         .unwrap();
     assert_eq!(
         keymap.configuration[0].value,
-        conduit_core::ConfigurationValue::Text(conduit_human::CONDUIT_INTL_LAYOUT.into())
+        conduit_core::ConfigurationValue::Structured(conduit_human::default_keymap_configuration())
     );
     let chords = fragment
         .placements
@@ -85,8 +85,8 @@ fn ordinary_plot_splits_text_and_chords_through_the_production_kernel() {
         .run_fragment_to(fragment, &mut output, &mut timer)
         .expect("split input Plot executes through the installed production scheduler");
     let output = String::from_utf8(output).unwrap();
-    assert!(output.contains("\na\n"), "{output}");
-    assert!(output.contains("\nb\n"), "{output}");
+    assert!(output.contains("\nMessage: a\n"), "{output}");
+    assert!(output.contains("\nMessage: b\n"), "{output}");
     assert!(matches!(
         report.observations.last().map(|item| &item.kind),
         Some(ObservationKind::PlanTerminal {
@@ -109,7 +109,7 @@ fn ordinary_plot_splits_text_and_chords_through_the_production_kernel() {
 
 #[test]
 fn keymap_text_flows_directly_into_text_upper_without_an_adapter() {
-    let plot = "plot upper_input {\n source: conduit-test/key-event-source\n keymap: input/keymap\n upper: text/upper\n show: presentation/text\n source.key >> keymap.key\n keymap.text >> upper.source\n upper.text >> show.text\n}\n";
+    let plot = "plot upper_input {\n source: conduit-test/key-event-source\n keymap: input/keymap\n upper: text/upper\n show: face/text(\"Message\")\n source.key >> keymap.key\n keymap.text >> upper.source\n upper.text >> show.text\n}\n";
     let (mut host, fragment) = plan(plot);
     let mut output = Vec::with_capacity(16_384);
     let mut timer = RecordingTimer {
@@ -118,8 +118,8 @@ fn keymap_text_flows_directly_into_text_upper_without_an_adapter() {
     host.run_fragment_to(fragment, &mut output, &mut timer)
         .expect("keymap output is canonical text accepted by text/upper");
     let output = String::from_utf8(output).unwrap();
-    assert!(output.contains("\nA\n"), "{output}");
-    assert!(output.contains("\nB\n"), "{output}");
+    assert!(output.contains("\nMessage: A\n"), "{output}");
+    assert!(output.contains("\nMessage: B\n"), "{output}");
 }
 
 #[test]
@@ -132,4 +132,25 @@ fn unsupported_layout_and_cross_plane_wiring_refuse_before_play() {
 
     let incompatible = SPLIT_FORM.replace("keymap.text >> show.text", "chords.chord >> show.text");
     assert!(parse(&incompatible, &installed_std::test_catalog()).is_err());
+}
+
+#[test]
+fn stdout_caret_request_is_refused_before_text_effects_and_default_false_executes() {
+    for enabled in [false, true] {
+        let source = format!("plot stdout_cue {{\n show: face/text(\"Cue\", insertion-caret = {enabled})\n \"cue\" >> show.text\n}}\n");
+        let (mut host, fragment) = plan(&source);
+        let mut output = Vec::new();
+        let mut timer = RecordingTimer { waits: Vec::new() };
+        let result = host.run_fragment_to(fragment, &mut output, &mut timer);
+        let output = String::from_utf8(output).unwrap();
+        if enabled {
+            assert!(result
+                .unwrap_err()
+                .contains("stdout text Face does not support an insertion caret"));
+            assert!(!output.contains("FACE-TEXT"), "{output}");
+        } else {
+            assert!(result.is_ok());
+            assert!(output.contains("cue\n"), "{output}");
+        }
+    }
 }

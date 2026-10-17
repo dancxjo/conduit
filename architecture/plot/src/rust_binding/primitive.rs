@@ -102,11 +102,20 @@ impl NativePrimitive for Quantity {
     }
 }
 
-impl NativePrimitive for conduit_core::QuantityUnit {
+impl NativePrimitive for conduit_core::Unit {
     fn encode_primitive(&self) -> Vec<u8> {
         self.encode().to_vec()
     }
 
+    fn decode_primitive(canonical: &[u8]) -> Option<Self> {
+        Self::decode(canonical).ok()
+    }
+}
+
+impl NativePrimitive for conduit_core::Dimension {
+    fn encode_primitive(&self) -> Vec<u8> {
+        self.encode().to_vec()
+    }
     fn decode_primitive(canonical: &[u8]) -> Option<Self> {
         Self::decode(canonical).ok()
     }
@@ -163,3 +172,43 @@ macro_rules! ieee_float {
 }
 
 ieee_float!(IeeeF32, IeeeF64);
+
+impl NativePrimitive for conduit_core::MathematicalValue {
+    fn encode_primitive(&self) -> Vec<u8> {
+        let mut bytes = vec![0; conduit_core::MATHEMATICAL_VALUE_MAX_ENCODED_BYTES];
+        let length = self
+            .encode(&mut bytes)
+            .expect("checked finite mathematical value");
+        bytes.truncate(length);
+        bytes
+    }
+    fn decode_primitive(canonical: &[u8]) -> Option<Self> {
+        Self::decode(
+            canonical,
+            &mut conduit_core::ExactNumericWork::new(
+                conduit_core::MATHEMATICAL_VALUE_VALIDATION_WORK,
+            ),
+        )
+        .ok()
+    }
+}
+
+impl NativePrimitive for conduit_core::MathematicalAngle {
+    fn encode_primitive(&self) -> Vec<u8> {
+        let mut bytes = vec![0; conduit_core::MATHEMATICAL_ANGLE_MAX_ENCODED_BYTES];
+        let length = self
+            .encode(&mut bytes)
+            .expect("checked finite mathematical Angle");
+        bytes.truncate(length);
+        bytes
+    }
+    fn decode_primitive(canonical: &[u8]) -> Option<Self> {
+        Self::decode(
+            canonical,
+            &mut conduit_core::ExactNumericWork::new(
+                conduit_core::MATHEMATICAL_VALUE_VALIDATION_WORK,
+            ),
+        )
+        .ok()
+    }
+}

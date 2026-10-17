@@ -12,8 +12,29 @@ impl ChildKernel {
         mut lowered: LoweredPlanFragment,
         boundaries: Vec<BoundaryEndpoint>,
         registry: &KernelOperationRegistry,
+        sign_storage: crate::KernelCompositeSignStorage,
     ) -> Result<Self, String> {
         augment_boundary_cords(&mut lowered, &boundaries)?;
+        let mut input_targets = BTreeMap::new();
+        for boundary in boundaries
+            .iter()
+            .filter(|boundary| boundary.direction == PortDirection::Input)
+        {
+            let targets = if boundary.already_lowered {
+                lowered
+                    .fore_ports
+                    .iter()
+                    .filter(|fore| {
+                        fore.front_port_id == boundary.external_port_id
+                            && fore.direction == PortDirection::Input
+                    })
+                    .map(|fore| (fore.endpoint, fore.cord))
+                    .collect()
+            } else {
+                vec![(boundary.endpoint, boundary.cord)]
+            };
+            input_targets.insert(boundary.external_port_id.clone(), targets);
+        }
         let active_nodes = lowered.nodes.len();
         let active_cords = lowered.cords.len();
         if active_nodes == 0
@@ -61,6 +82,14 @@ impl ChildKernel {
                 .checked_add(budget.sign_items)
                 .ok_or_else(|| "kernel composite Sign bound overflow".to_string())?;
         }
+        sign_items = sign_items
+            .checked_add(sign_storage.additional_local_items)
+            .ok_or_else(|| "kernel composite Sign bound overflow".to_string())?;
+        let remote_sign_items = u16::try_from(active_cords * 8)
+            .map_err(debug)?
+            .max(1)
+            .checked_add(sign_storage.additional_remote_items)
+            .ok_or_else(|| "kernel composite remote Sign bound overflow".to_string())?;
         if usize::from(host_requests) > PENDING_REQUESTS {
             return Err("child exceeds the admitted kernel host-request profile".into());
         }
@@ -122,14 +151,12 @@ impl ChildKernel {
         let signs = HostedSignLog::new_with_remote_storage(
             sign_items,
             sign_bytes,
-            u16::try_from(active_cords * 8).map_err(debug)?.max(1),
-            conduit_kernel::remote_sign_storage_bytes(
-                u16::try_from(active_cords * 8).map_err(debug)?.max(1),
-            )
-            .ok_or_else(|| "kernel composite remote Sign byte bound overflow".to_string())?,
+            remote_sign_items,
+            conduit_kernel::remote_sign_storage_bytes(remote_sign_items)
+                .ok_or_else(|| "kernel composite remote Sign byte bound overflow".to_string())?,
         )
         .map_err(debug)?;
-        let mut scheduler = ChildScheduler::new_with_active_counts_and_host_calls(
+        let mut scheduler = ChildScheduler::new_boxed_with_active_counts_and_host_calls(
             active_nodes,
             active_cords,
             nodes,
@@ -163,6 +190,7 @@ impl ChildKernel {
             .map_err(debug)?;
         Ok(Self {
             scheduler,
+            input_targets,
             boundaries: boundaries
                 .into_iter()
                 .map(|boundary| (boundary.external_port_id.clone(), boundary))

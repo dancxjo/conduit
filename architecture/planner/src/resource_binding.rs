@@ -11,6 +11,9 @@ use conduit_core::{
 };
 use conduit_plot::CheckedGear;
 
+mod pool_selection;
+pub(crate) use pool_selection::resolve_resource_pool;
+
 pub(crate) struct ResourcePlanningState<'a> {
     pub writers: &'a mut BTreeSet<(HostId, ResourcePoolId)>,
     pub usage: &'a mut BTreeMap<(HostId, ResourcePoolId), u32>,
@@ -30,24 +33,7 @@ pub(crate) fn bind_resources(
     let consumed_protected_handles = state.protected_handles;
     let mut resource_bindings = Vec::with_capacity(capability.resource_requirements.len());
     for requirement in &capability.resource_requirements {
-        let mut matches = host
-            .resources
-            .iter()
-            .filter(|resource| resource.class_id == requirement.class_id);
-        let Some(resource) = matches.next() else {
-            return Err(PlannerError::UnavailableResource(format!(
-                "host '{}' has no pool for class '{}'",
-                host.host_id.as_str(),
-                requirement.class_id.as_str()
-            )));
-        };
-        if matches.next().is_some() {
-            return Err(PlannerError::InvalidResourceContract(format!(
-                "host '{}' has multiple pools for class '{}' in the first planning profile",
-                host.host_id.as_str(),
-                requirement.class_id.as_str()
-            )));
-        }
+        let resource = resolve_resource_pool(host, capability, &requirement.class_id)?;
         let used = resource_usage
             .entry((host.host_id.clone(), resource.pool_id.clone()))
             .or_insert(0);

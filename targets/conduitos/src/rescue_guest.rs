@@ -1,4 +1,4 @@
-//! Freestanding presentation and execution of the admitted local rescue contract.
+//! Freestanding face and execution of the admitted local rescue contract.
 
 use alloc::format;
 

@@ -6,15 +6,15 @@ use super::factory::{
 use super::BrowserBack;
 use conduit_core::{
     kind_id, ConfigurationValue, HostCallContractId, HostCallRequirement, InfoBool, PlannedGear,
-    Scalar, BOOL_ENCODED_LEN, PRESENTATION_RESOURCE_CLASS, SCALAR_ENCODED_LEN,
+    Scalar, BOOL_ENCODED_LEN, FACE_RESOURCE_CLASS, SCALAR_ENCODED_LEN,
 };
 use conduit_kernel::{HostedValueStore, ValueStorage};
 
 const ARTIFACT: &str = "conduit-browser-runtime/installed-values@1";
 const SCALAR_LITERAL_IMPLEMENTATION: &str = "browser/kernel-scalar-literal@1";
 const BOOL_LITERAL_IMPLEMENTATION: &str = "browser/kernel-boolean-literal@1";
-const SCALAR_PRESENTATION_IMPLEMENTATION: &str = "browser/presentation-scalar@1";
-const BOOL_PRESENTATION_IMPLEMENTATION: &str = "browser/presentation-bool-value@1";
+const SCALAR_FACE_IMPLEMENTATION: &str = "browser/face-scalar@1";
+const BOOL_FACE_IMPLEMENTATION: &str = "browser/face-bool-value@1";
 
 pub(super) static SCALAR_LITERAL: BrowserInstallation = BrowserInstallation {
     implementation_id: SCALAR_LITERAL_IMPLEMENTATION,
@@ -28,17 +28,17 @@ pub(super) static BOOL_LITERAL: BrowserInstallation = BrowserInstallation {
     prepare: prepare_literal,
     perform: None,
 };
-pub(super) static SCALAR_PRESENTATION: BrowserInstallation = BrowserInstallation {
-    implementation_id: SCALAR_PRESENTATION_IMPLEMENTATION,
-    offer: scalar_presentation_offer,
-    prepare: prepare_presentation,
-    perform: Some(perform_scalar_presentation),
+pub(super) static SCALAR_FACE: BrowserInstallation = BrowserInstallation {
+    implementation_id: SCALAR_FACE_IMPLEMENTATION,
+    offer: scalar_face_offer,
+    prepare: prepare_face,
+    perform: Some(perform_scalar_face),
 };
-pub(super) static BOOL_PRESENTATION: BrowserInstallation = BrowserInstallation {
-    implementation_id: BOOL_PRESENTATION_IMPLEMENTATION,
-    offer: bool_presentation_offer,
-    prepare: prepare_presentation,
-    perform: Some(perform_bool_presentation),
+pub(super) static BOOL_FACE: BrowserInstallation = BrowserInstallation {
+    implementation_id: BOOL_FACE_IMPLEMENTATION,
+    offer: bool_face_offer,
+    prepare: prepare_face,
+    perform: Some(perform_bool_face),
 };
 
 fn scalar_literal_offer() -> conduit_core::CapabilityOffer {
@@ -55,17 +55,17 @@ fn bool_literal_offer() -> conduit_core::CapabilityOffer {
         false,
     )
 }
-fn scalar_presentation_offer() -> conduit_core::CapabilityOffer {
+fn scalar_face_offer() -> conduit_core::CapabilityOffer {
     offer(
-        conduit_semantic_catalog::scalar_value_presentation_contract(),
-        SCALAR_PRESENTATION_IMPLEMENTATION,
+        conduit_semantic_catalog::scalar_value_face_contract(),
+        SCALAR_FACE_IMPLEMENTATION,
         true,
     )
 }
-fn bool_presentation_offer() -> conduit_core::CapabilityOffer {
+fn bool_face_offer() -> conduit_core::CapabilityOffer {
     offer(
-        conduit_semantic_catalog::bool_value_presentation_contract(),
-        BOOL_PRESENTATION_IMPLEMENTATION,
+        conduit_semantic_catalog::bool_value_face_contract(),
+        BOOL_FACE_IMPLEMENTATION,
         true,
     )
 }
@@ -73,9 +73,9 @@ fn bool_presentation_offer() -> conduit_core::CapabilityOffer {
 fn offer(
     contract: conduit_semantic_catalog::StandardKindContract,
     implementation: &str,
-    presentation: bool,
+    face: bool,
 ) -> conduit_core::CapabilityOffer {
-    let host_calls = presentation
+    let host_calls = face
         .then(|| HostCallRequirement {
             contract_id: HostCallContractId::from(implementation),
             target_kind: Some(kind_id(implementation)),
@@ -95,8 +95,7 @@ fn offer(
             artifact: ARTIFACT,
         },
         host_calls,
-        presentation
-            .then(|| conduit_core::resource_requirement(PRESENTATION_RESOURCE_CLASS, 1))
+        face.then(|| conduit_core::resource_requirement(FACE_RESOURCE_CLASS, 1))
             .into_iter()
             .collect(),
         Vec::new(),
@@ -127,42 +126,49 @@ fn prepare_literal(
     Ok(BrowserBack::source(stored))
 }
 
-fn prepare_presentation(
+fn prepare_face(
     placement: &PlannedGear,
     _values: &mut HostedValueStore,
 ) -> Result<BrowserBack, String> {
     let offer = match placement.implementation_id.as_str() {
-        SCALAR_PRESENTATION_IMPLEMENTATION => scalar_presentation_offer(),
-        BOOL_PRESENTATION_IMPLEMENTATION => bool_presentation_offer(),
-        _ => return Err("unknown value presentation installation".into()),
+        SCALAR_FACE_IMPLEMENTATION => scalar_face_offer(),
+        BOOL_FACE_IMPLEMENTATION => bool_face_offer(),
+        _ => return Err("unknown value face installation".into()),
     };
     validate_placement(placement, &offer)?;
-    Ok(BrowserBack::presentation(
+    Ok(BrowserBack::face(
         placement.host_calls[0].maximum_input_bytes,
         1,
     ))
 }
 
-fn perform_scalar_presentation(_: &PlannedGear, input: &[u8]) -> Result<BrowserHostResult, String> {
+fn perform_scalar_face(placement: &PlannedGear, input: &[u8]) -> Result<BrowserHostResult, String> {
     Scalar::decode(input).map_err(debug_error)?;
     manifestation(
-        conduit_semantic_catalog::SCALAR_VALUE_PRESENTATION_KIND,
+        placement,
+        conduit_semantic_catalog::SCALAR_VALUE_FACE_KIND,
         input,
     )
 }
 
-fn perform_bool_presentation(_: &PlannedGear, input: &[u8]) -> Result<BrowserHostResult, String> {
+fn perform_bool_face(placement: &PlannedGear, input: &[u8]) -> Result<BrowserHostResult, String> {
     InfoBool::decode(input).map_err(debug_error)?;
     manifestation(
-        conduit_semantic_catalog::BOOL_VALUE_PRESENTATION_KIND,
+        placement,
+        conduit_semantic_catalog::BOOL_VALUE_FACE_KIND,
         input,
     )
 }
 
-fn manifestation(kind_id: &'static str, input: &[u8]) -> Result<BrowserHostResult, String> {
+fn manifestation(
+    placement: &PlannedGear,
+    kind_id: &'static str,
+    input: &[u8],
+) -> Result<BrowserHostResult, String> {
     Ok(BrowserHostResult {
         output: None,
         manifestation: Some(BrowserManifestation {
+            data_label: super::factory::manifestation_label(placement)?,
             kind_id,
             canonical_value: input.to_vec(),
         }),

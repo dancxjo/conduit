@@ -14,6 +14,7 @@ mod base_capability;
 mod base_registry;
 mod capability_offer;
 mod characteristic;
+pub mod claims;
 mod completion;
 mod configuration;
 mod consequential_effect;
@@ -21,6 +22,7 @@ mod control_loop;
 mod deadline;
 mod delivery;
 mod device;
+mod exact_numeric;
 mod execution;
 mod execution_fusion;
 mod fixed_integer;
@@ -30,17 +32,27 @@ mod implementation;
 mod info;
 mod interop;
 mod kind_effects;
+mod physical_definition;
 mod plan_realization;
 mod planned_activation;
 mod port;
 mod preparation;
 mod primitive_info;
 mod quantity;
+mod quantity_configuration;
+pub use physical_definition::*;
+mod dimension;
+mod quantity_suffix;
 mod resource;
 mod resource_canonical;
 mod resource_content;
 mod resource_port;
+pub mod revision;
+mod unit;
 use resource_canonical::push_resource_binding;
+mod body_time;
+mod body_time_exchange;
+mod body_time_quality;
 mod plan_fingerprint;
 mod planned_gear;
 mod resource_acquisition;
@@ -67,6 +79,9 @@ mod value_constraint;
 pub use activation_contract::*;
 pub use base_capability::*;
 pub use base_registry::*;
+pub use body_time::*;
+pub use body_time_exchange::*;
+pub use body_time_quality::*;
 pub use capability_offer::*;
 pub use characteristic::*;
 pub use completion::*;
@@ -90,6 +105,7 @@ pub use control_loop::*;
 pub use deadline::*;
 pub use delivery::*;
 pub use device::*;
+pub use exact_numeric::*;
 pub use execution::*;
 pub use execution_fusion::*;
 pub use fixed_integer::*;
@@ -107,6 +123,10 @@ pub use port::{PortDescriptor, PortDirection, PortTemporal};
 pub use preparation::*;
 pub use primitive_info::*;
 pub use quantity::*;
+pub use quantity_configuration::*;
+
+pub use dimension::*;
+pub use quantity_suffix::*;
 pub use resource::*;
 pub use resource_acquisition::*;
 pub use resource_admission::*;
@@ -127,6 +147,7 @@ pub use temporal_civil_conversion::*;
 pub use temporal_clock::*;
 pub use temporal_quantity::*;
 pub use terminal_info::*;
+pub use unit::*;
 pub use value_constraint::*;
 
 pub const PROTOCOL_VERSION: u16 = 1;
@@ -135,10 +156,10 @@ pub const DEFAULT_CONNECTION_BYTE_CAPACITY: u32 = 64;
 pub const WAIT_HOST_CALL_CONTRACT: &str = "conduit.host/wait@1";
 pub const PRESENT_HOST_CALL_CONTRACT: &str = "conduit.host/present@1";
 pub const AWAIT_TRIGGER_HOST_CALL_CONTRACT: &str = "conduit.host/await-trigger@1";
-pub const MAX_PRESENTATION_COMPLETION_BYTES: u32 = 256;
+pub const MAX_FACE_COMPLETION_BYTES: u32 = 256;
 pub const TIMER_RESOURCE_CLASS: &str = "conduit.resource/timer-slot@1";
 pub const RUNTIME_MEMORY_RESOURCE_CLASS: &str = "conduit.resource/runtime-memory@1";
-pub const PRESENTATION_RESOURCE_CLASS: &str = "conduit.resource/presentation-slot@1";
+pub const FACE_RESOURCE_CLASS: &str = "conduit.resource/face-slot@1";
 pub const INPUT_RESOURCE_CLASS: &str = "conduit.resource/input-slot@1";
 pub const PRESENT_AUTHORITY_CONTRACT: &str = "conduit.authority/present@1";
 pub const SHARED_POOL_ADMIT_AUTHORITY_CONTRACT: &str = "conduit.authority/shared-pool-admit@1";
@@ -198,7 +219,7 @@ identity_type!(ExpandedPlotId);
 identity_type!(PlanId);
 identity_type!(ActivePlayId);
 identity_type!(SignId);
-identity_type!(PresentationId);
+identity_type!(FaceId);
 identity_type!(FragmentId);
 identity_type!(PlacementId);
 identity_type!(ConnectionId);
@@ -308,8 +329,8 @@ pub struct SignIdentity {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct PresentationIdentity {
-    pub presentation_id: PresentationId,
+pub struct FaceIdentity {
+    pub face_id: FaceId,
     pub active_play_id: ActivePlayId,
     pub placement_id: PlacementId,
     pub sequence: u64,
@@ -383,18 +404,18 @@ pub fn bind_sign(
     }
 }
 
-pub fn bind_presentation(
+pub fn bind_face(
     active_play_id: &ActivePlayId,
     placement_id: &PlacementId,
     sequence: u64,
-) -> PresentationIdentity {
+) -> FaceIdentity {
     let mut canonical = Vec::new();
-    push_string(&mut canonical, "presentation");
+    push_string(&mut canonical, "face");
     push_string(&mut canonical, active_play_id.as_str());
     push_string(&mut canonical, placement_id.as_str());
     push_u64(&mut canonical, sequence);
-    PresentationIdentity {
-        presentation_id: PresentationId::from(hash_bytes(&canonical)),
+    FaceIdentity {
+        face_id: FaceId::from(hash_bytes(&canonical)),
         active_play_id: active_play_id.clone(),
         placement_id: placement_id.clone(),
         sequence,
@@ -458,29 +479,8 @@ pub struct AuthorityBinding {
     pub capability_id: CapabilityId,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct CapabilityOffer {
-    #[serde(default)]
-    pub startup_parameters: Vec<FrontStartupParameter>,
-    #[serde(default)]
-    pub shorthand: Option<(PortId, PortId)>,
-    pub capability_id: CapabilityId,
-    pub kind_id: KindId,
-    pub kind_contract_revision: KindIdentity,
-    pub inputs: Vec<PortDescriptor>,
-    pub outputs: Vec<PortDescriptor>,
-    pub semantic_contract: KindSemanticContract,
-    #[serde(flatten)]
-    pub implementation: ImplementationOffer,
-    /// Exact keep-duration support of this Back. Absence means that the Back
-    /// makes no retained-State promise.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub state_retention: Option<StateRetentionSupport>,
-    pub host_calls: Vec<HostCallRequirement>,
-    pub resource_requirements: Vec<ResourceRequirement>,
-    pub authority_requirements: Vec<AuthorityRequirement>,
-    pub limits: CapabilityLimits,
-}
+mod capability_offer_record;
+pub use capability_offer_record::CapabilityOffer;
 
 /// Finite request shape accepted by one optional planner profile.
 ///
@@ -559,41 +559,8 @@ pub enum ConnectionOutcome {
     Terminal,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct PlannedGear {
-    pub placement_id: PlacementId,
-    pub gear_id: GearId,
-    pub kind_id: KindId,
-    pub kind_contract_revision: KindIdentity,
-    /// Authored provenance where one exists. Generated realization machinery
-    /// remains honestly spanless rather than borrowing a nearby location.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub source_span: Option<SourceSpan>,
-    pub execution_profile_id: ExecutionProfileId,
-    pub configuration: Vec<ConfigurationEntry>,
-    pub host_id: HostId,
-    pub boot_id: BootId,
-    pub offer_generation: OfferGeneration,
-    pub capability_id: CapabilityId,
-    pub implementation_id: ImplementationId,
-    pub artifact_id: ArtifactId,
-    /// Exact current provider for Base-backed work. Pure work remains `None`.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub base: Option<BaseProviderBinding>,
-    #[serde(default)]
-    pub realization_characteristics: Vec<RealizationCharacteristic>,
-    pub limits: CapabilityLimits,
-    pub inputs: Vec<PortDescriptor>,
-    pub outputs: Vec<PortDescriptor>,
-    pub semantic_contract: KindSemanticContract,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub terminal_transductions: Vec<TerminalTransductionProfile>,
-    pub host_calls: Vec<HostCallRequirement>,
-    pub resources: Vec<ResourceBinding>,
-    pub authority: Vec<AuthorityBinding>,
-    #[serde(default)]
-    pub pool_references: Vec<SharedPoolId>,
-}
+mod planned_gear_record;
+pub use planned_gear_record::PlannedGear;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ExpectedTerminal {
@@ -739,6 +706,10 @@ pub struct PlannedForePort {
     pub pressure_policy: DeliveryPressurePolicy,
     pub item_capacity: u16,
     pub byte_capacity: u32,
+    /// Exact external Line selected for this Fore, if it crosses a Host.
+    /// Availability remains a current Sign and must be checked at use.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub selected_line: Option<AdmittedLine>,
 }
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -1004,9 +975,45 @@ pub(crate) fn verify_plan_at_depth(plan: &Plan, depth: u8) -> bool {
         })
         && state_delay::verify_plan_states(plan)
         && verify_plan_shared_pools(plan)
+        && verify_plan_fore_lines(plan)
         && verify_plan_connections(plan)
         && planned_activation::verify_planned_activations(plan, depth)
         && planned_activation::verify_activation_preparations(plan)
+}
+
+fn verify_plan_fore_lines(plan: &Plan) -> bool {
+    verify_fore_line_capacity(
+        plan.fragments
+            .iter()
+            .flat_map(|fragment| fragment.fore_ports.iter()),
+    )
+}
+
+fn verify_fore_line_capacity<'a, I>(fores: I) -> bool
+where
+    I: Iterator<Item = &'a PlannedForePort> + Clone,
+{
+    fores.clone().all(|fore| {
+        let Some(line) = &fore.selected_line else {
+            return true;
+        };
+        let shared = fores.clone().filter(|other| {
+            other
+                .selected_line
+                .as_ref()
+                .is_some_and(|candidate| candidate.line_id == line.line_id)
+        });
+        let (items, bytes, same_identity) = shared.fold((0_u32, 0_u64, true), |acc, other| {
+            (
+                acc.0 + u32::from(other.item_capacity),
+                acc.1 + u64::from(other.byte_capacity),
+                acc.2 && other.selected_line.as_ref() == Some(line),
+            )
+        });
+        same_identity
+            && items <= u32::from(line.binding.limits.maximum_in_flight_items)
+            && bytes <= u64::from(line.binding.limits.maximum_buffered_bytes)
+    })
 }
 
 fn verify_plan_shared_pools(plan: &Plan) -> bool {
@@ -1269,6 +1276,10 @@ fn verify_fragment_fore_ports(fragment: &PlanFragment) -> bool {
         .all(|(index, boundary)| {
             boundary.item_capacity > 0
                 && boundary.byte_capacity > 0
+                && boundary
+                    .selected_line
+                    .as_ref()
+                    .is_none_or(|line| valid_fore_line(fragment, boundary, line))
                 && !fragment.fore_ports[..index].iter().any(|prior| {
                     let same_fore = prior.front_port_id == boundary.front_port_id
                         && prior.direction == boundary.direction
@@ -1302,12 +1313,12 @@ fn verify_fragment_fore_ports(fragment: &PlanFragment) -> bool {
                                 }
                                 ConnectionTrack::NormalClose => {
                                     port.temporal == (PortTemporal::Flow { closes: true })
-                                        && boundary.value_kind.as_str() == UNIT_INFO_ID
+                                        && boundary.value_kind.as_str() == EMPTY_INFO_ID
                                         && boundary.temporal == PortTemporal::Value
                                 }
                                 ConnectionTrack::Quiescence => {
                                     matches!(port.temporal, PortTemporal::Flow { .. })
-                                        && boundary.value_kind.as_str() == UNIT_INFO_ID
+                                        && boundary.value_kind.as_str() == EMPTY_INFO_ID
                                         && boundary.temporal == PortTemporal::Value
                                 }
                             };
@@ -1337,6 +1348,36 @@ fn verify_fragment_fore_ports(fragment: &PlanFragment) -> bool {
                         })
                 })
         })
+        && verify_fore_line_capacity(fragment.fore_ports.iter())
+}
+
+fn valid_fore_line(fragment: &PlanFragment, fore: &PlannedForePort, line: &AdmittedLine) -> bool {
+    let binding = &line.binding;
+    let (local, peer) = match fore.direction {
+        PortDirection::Input => (&binding.sink, &binding.source),
+        PortDirection::Output => (&binding.source, &binding.sink),
+    };
+    !line.line_id.as_str().is_empty()
+        && !binding.binding_id.as_str().is_empty()
+        && binding.base.as_str() != LOCAL_BASE_IMPLEMENTATION_ID
+        && line.contract.scope != LineScope::Process
+        && line.contract.traffic_shape == LineTrafficShape::Message
+        && line.contract.ordering == LineOrdering::Ordered
+        && line.contract.reliability == LineReliability::Reliable
+        && !binding.base_instance_id.as_str().is_empty()
+        && !local.endpoint_id.as_str().is_empty()
+        && !peer.endpoint_id.as_str().is_empty()
+        && local.host_id == fragment.host_id
+        && local.boot_id == fragment.boot_id
+        && peer.host_id != fragment.host_id
+        && !peer.host_id.as_str().is_empty()
+        && !peer.boot_id.as_str().is_empty()
+        && binding.limits.maximum_in_flight_items >= fore.item_capacity
+        && binding.limits.maximum_payload_bytes >= fore.byte_capacity
+        && binding.limits.maximum_buffered_bytes >= fore.byte_capacity
+        && binding.limits.maximum_frame_bytes >= binding.limits.maximum_payload_bytes
+        && !matches!(&binding.credential, LinkCredentialReference::Opaque(id) if id.as_str().is_empty())
+        && !matches!(&binding.authority, LinkAuthorityReference::Grant(id) if id.as_str().is_empty())
 }
 
 fn push_string(canonical: &mut Vec<u8>, value: &str) {
@@ -1457,7 +1498,7 @@ pub struct ConnectionTerminalDisposition {
 pub struct Observation {
     pub sign_id: SignId,
     pub active_play_id: Option<ActivePlayId>,
-    pub presentation_id: Option<PresentationId>,
+    pub face_id: Option<FaceId>,
     pub host_id: HostId,
     pub boot_id: BootId,
     pub plan_id: Option<PlanId>,
@@ -1485,6 +1526,8 @@ pub enum ObservationKind {
         value: ValuePayload,
     },
     ValuePresented {
+        /// Meaningful data name declared by the authored Face Gear.
+        label: String,
         value: ValuePayload,
     },
     PlacementCompleted,
@@ -1521,10 +1564,10 @@ pub enum HostCommand {
         plan_id: PlanId,
         placement_id: PlacementId,
     },
-    CompletePresentation {
+    CompleteFace {
         plan_id: PlanId,
         active_play_id: ActivePlayId,
-        presentation_id: PresentationId,
+        face_id: FaceId,
         placement_id: PlacementId,
         value: ValuePayload,
         success: bool,
@@ -1573,9 +1616,9 @@ pub enum HostEvent {
     PresentValueRequested {
         plan_id: PlanId,
         active_play_id: ActivePlayId,
-        presentation_id: PresentationId,
+        face_id: FaceId,
         placement_id: PlacementId,
-        presentation_kind: KindId,
+        face_kind: KindId,
         value: ValuePayload,
     },
     ConnectionBlocked {
@@ -1596,14 +1639,14 @@ pub enum HostEvent {
     ManifestationCompleted {
         plan_id: PlanId,
         active_play_id: ActivePlayId,
-        presentation_id: PresentationId,
+        face_id: FaceId,
         placement_id: PlacementId,
         value: ValuePayload,
     },
     ManifestationFailed {
         plan_id: PlanId,
         active_play_id: ActivePlayId,
-        presentation_id: PresentationId,
+        face_id: FaceId,
         placement_id: PlacementId,
         value: ValuePayload,
         reason: FailureReason,
@@ -1651,7 +1694,7 @@ pub enum HostEvent {
 /// Host-neutral work requested by an installed semantic implementation.
 ///
 /// A std adapter may map `PresentValue` to stdout, a browser adapter may map it to DOM
-/// presentation, and a Pico W adapter may map it to an LED. Those manifestations are adapter
+/// face, and a Pico W adapter may map it to an LED. Those manifestations are adapter
 /// policy; the semantic operation remains unaware of the platform.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum PlatformEffect {
@@ -1663,9 +1706,9 @@ pub enum PlatformEffect {
     PresentValue {
         plan_id: PlanId,
         active_play_id: ActivePlayId,
-        presentation_id: PresentationId,
+        face_id: FaceId,
         placement_id: PlacementId,
-        presentation_kind: KindId,
+        face_kind: KindId,
         value: ValuePayload,
     },
     TransmitConnection {
@@ -1743,7 +1786,7 @@ pub fn present_host_call_requirement(
         target_kind: Some(target_kind),
         maximum_in_flight: 1,
         maximum_input_bytes,
-        maximum_output_bytes: MAX_PRESENTATION_COMPLETION_BYTES,
+        maximum_output_bytes: MAX_FACE_COMPLETION_BYTES,
     }
 }
 
@@ -1872,3 +1915,12 @@ mod tests;
 mod flow_semantic_laws;
 mod source_seeded_state;
 pub use source_seeded_state::{source_seeded_state_boundary, SourceSeededStateBoundary};
+
+/// Bounded semantic fidelity at an exact projection boundary.
+pub mod projection;
+
+mod realization_properties;
+pub use realization_properties::*;
+
+mod data_label;
+pub use data_label::*;

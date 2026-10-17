@@ -11,7 +11,7 @@ The user authors a **plot**: a portable description of the intended course of se
 ```conduit
 plot hello {
     upper: text/upper
-    show: presentation/text
+    show: face/text("Message")
 
     "Hello, world." >> upper >> show
 }.
@@ -30,7 +30,7 @@ The declaration is executable `plot` source. [[Current language surface|Current-
 Inside the plot, each named **gear** is one occurrence of a semantic **kind**.
 
 ```text
-literal → text/upper → presentation/text
+literal → text/upper → face/text
 ```
 
 A kind says what reusable work means. Its **fore** is the function-like signature presented to authors: startup parameters and typed runtime ports, including their direction, value type, and temporal shape. **cords** connect compatible ports named by those fores.
@@ -46,7 +46,7 @@ A **back** is one concrete realization of a kind.
 A host might offer several backs for the same semantic kind:
 
 ```text
-presentation/text
+face/text
   ↳ native graphical back
   ↳ browser back
   ↳ speech back
@@ -256,7 +256,7 @@ CONTINUITY
 
 body persists across hosts, boots, plans, plays, wakes, and lulls
 
-PRESENTATION
+FACE
 
 face → mask → show
 ```

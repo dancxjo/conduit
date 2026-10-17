@@ -1,6 +1,7 @@
 //! Connection compatibility and finite composition admission.
 use crate::{prelude::*, *};
-use conduit_core::PortTemporal;
+use conduit_core::ConnectionTrack;
+use conduit_plot::{validate_connection_contract, validate_front_contract};
 
 impl PatchbayGraph {
     pub fn connection_candidates(&self, source_identity: &str) -> Vec<PatchbayConnectionCandidate> {
@@ -71,13 +72,44 @@ impl PatchbayGraph {
                 PatchbayPortCompatibility::UnknownPort
             };
         };
-        if source.value_kind != sink.value_kind {
-            return PatchbayPortCompatibility::IncompatibleInfo {
-                source: source.value_kind.clone(),
-                sink: sink.value_kind.clone(),
-            };
+        let source_front = self
+            .front_inputs
+            .iter()
+            .any(|port| port.identity == source_identity);
+        let sink_front = self
+            .front_outputs
+            .iter()
+            .any(|port| port.identity == sink_identity);
+        if source_front && sink_front {
+            // Source expansion requires Fore passthrough to cross an admitted Gear.
+            return PatchbayPortCompatibility::InvalidDirection;
         }
-        if !temporal_compatible(source.temporal, sink.temporal) {
+        let contract = if source_front {
+            validate_front_contract(
+                source.port_id.as_str(),
+                &source.value_kind,
+                source.temporal,
+                sink,
+                true,
+            )
+        } else if sink_front {
+            validate_front_contract(
+                sink.port_id.as_str(),
+                &sink.value_kind,
+                sink.temporal,
+                source,
+                false,
+            )
+        } else {
+            validate_connection_contract(source, sink, ConnectionTrack::Payload)
+        };
+        if contract.is_err() {
+            if source.value_kind != sink.value_kind {
+                return PatchbayPortCompatibility::IncompatibleInfo {
+                    source: source.value_kind.clone(),
+                    sink: sink.value_kind.clone(),
+                };
+            }
             return PatchbayPortCompatibility::IncompatibleTemporal {
                 source: source.temporal,
                 sink: sink.temporal,
@@ -163,16 +195,4 @@ impl PatchbayGraph {
         self.compositions.push(composition);
         Ok(())
     }
-}
-
-pub(crate) fn temporal_compatible(source: PortTemporal, sink: PortTemporal) -> bool {
-    source == sink
-        || matches!(
-            (source, sink),
-            (PortTemporal::Flow { .. }, PortTemporal::Value)
-                | (
-                    PortTemporal::Flow { closes: true },
-                    PortTemporal::Flow { closes: false }
-                )
-        )
 }

@@ -86,6 +86,7 @@ impl Kind {
     }
 
     pub fn validate(&self) -> Result<(), KindValidationError> {
+        crate::realization_properties::validate_kind_requirements(self)?;
         if self.kind_id.as_str().is_empty() {
             return Err(KindValidationError::EmptyId);
         }
@@ -134,7 +135,10 @@ impl Kind {
                 ) => crate::kind_id(crate::DURATION_INFO_ID),
                 _ => field.default_value.semantic_kind(),
             };
-            if front.value_type != semantic_kind {
+            if front.value_type != semantic_kind
+                || (matches!(field.rule, crate::KindConfigurationRule::DataLabel { .. })
+                    && front.has_default)
+            {
                 return Err(KindValidationError::ConfigurationFrontMismatch);
             }
         }
@@ -549,6 +553,7 @@ pub(crate) fn validate_terminal_transduction_ports(
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum KindValidationError {
+    InvalidRealizationRequirement,
     EmptyId,
     EmptyIdentity,
     DuplicateConfigurationKey,
@@ -695,6 +700,7 @@ impl BackOfferBuilder {
                 artifact_id: self.realization.artifact_id,
             },
             state_retention: self.state_retention,
+            realization_properties: Vec::new(),
             host_calls: self.realization.host_calls,
             resource_requirements: self.realization.resource_requirements,
             authority_requirements: self.realization.authority_requirements,
@@ -753,7 +759,7 @@ impl CapabilityOffer {
 #[macro_export]
 macro_rules! capability_offer_from_parts {
     ($($fields:tt)*) => {{
-        let offer = $crate::CapabilityOffer { state_retention: None, $($fields)* };
+        let offer = $crate::CapabilityOffer { state_retention: None, realization_properties: ::core::default::Default::default(), $($fields)* };
         if let Err(error) = offer.validate_constructed_semantic_contract() {
             panic!("CapabilityOffer requires a valid semantic contract: {:?}", error);
         }
@@ -1297,6 +1303,21 @@ mod tests {
         );
         let decoded: CapabilityOffer = serde_json::from_value(json).unwrap();
         assert_eq!(decoded.state_retention, Some(support));
+    }
+
+    #[test]
+    fn data_label_contract_cannot_advertise_an_implicit_name() {
+        let mut kind = contract();
+        kind.startup_parameters = crate::data_label_startup_front();
+        kind.configuration = crate::data_label_configuration();
+        assert_eq!(kind.validate(), Ok(()));
+        kind.startup_parameters[0].has_default = true;
+        kind.configuration[0].default_value =
+            crate::ConfigurationValue::Text("Room temperature".into());
+        assert_eq!(
+            kind.validate(),
+            Err(KindValidationError::ConfigurationFrontMismatch)
+        );
     }
 
     #[test]

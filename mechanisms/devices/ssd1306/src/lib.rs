@@ -1,6 +1,6 @@
 //! Allocator-free SSD1306 128x32 I2C device protocol.
 //!
-//! Presentation selection, Host identity, planning, and safety live above this
+//! Face selection, Host identity, planning, and safety live above this
 //! exact display mechanism.
 
 #![no_std]

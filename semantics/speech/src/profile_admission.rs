@@ -141,6 +141,47 @@ pub(crate) fn prepare_binding<'a>(
     ),
     ProfileRefusal,
 > {
+    prepare_binding_inner(
+        inventory,
+        definition,
+        profile,
+        stress,
+        token_has_features,
+        false,
+    )
+}
+/// Private base projection. Callers must lower every inherited feature before
+/// publishing a playable receipt; it does not admit features by itself.
+pub(crate) fn prepare_feature_binding<'a>(
+    inventory: &semantic::SpeechInventory,
+    definition: &semantic::SpeechPhone,
+    profile: &'a semantic::SpeechFormantVoiceProfile,
+    stress: &semantic::StressSpecification,
+) -> Result<
+    (
+        &'a semantic::SpeechFormantPhoneBinding,
+        semantic::SpeechFormantProfileBasis,
+        VoiceEvent,
+    ),
+    ProfileRefusal,
+> {
+    prepare_binding_inner(inventory, definition, profile, stress, false, true)
+}
+fn prepare_binding_inner<'a>(
+    inventory: &semantic::SpeechInventory,
+    definition: &semantic::SpeechPhone,
+    profile: &'a semantic::SpeechFormantVoiceProfile,
+    stress: &semantic::StressSpecification,
+    token_has_features: bool,
+    lower_definition_features: bool,
+) -> Result<
+    (
+        &'a semantic::SpeechFormantPhoneBinding,
+        semantic::SpeechFormantProfileBasis,
+        VoiceEvent,
+    ),
+    ProfileRefusal,
+> {
     let basis = semantic::SpeechFormantProfileBasis::new(
         inventory.identity().clone(),
         inventory.language().clone(),
@@ -163,7 +204,7 @@ pub(crate) fn prepare_binding<'a>(
     }
     // Feature-to-acoustics lowering is unsupported by this exact compact profile.
     // Do not silently discard supplied feature constraints when realizing a phone.
-    if !definition.features().get().as_slice().is_empty() {
+    if !lower_definition_features && !definition.features().get().as_slice().is_empty() {
         return Err(ProfileRefusal::UnsupportedDefinitionFeatures);
     }
     if token_has_features {

@@ -1,0 +1,495 @@
+//! The containing machine owns the bounded loop around the admitted kernel.
+#[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
+#[path = "runtime_network.rs"]
+mod network;
+#[cfg(target_arch = "x86_64")]
+use super::{owners::NativeOwners, request::ProtocolBootRequest};
+use crate::{
+    arch,
+    protocol_source::{PreparedProtocolBodyPlay, PreparedProtocolEntry},
+};
+use alloc::{vec, vec::Vec};
+use conduit_composite::KernelCompositeStatus;
+use conduit_core::*;
+
+#[cfg(target_arch = "x86_64")]
+type NativePlay = PreparedProtocolBodyPlay<
+    crate::i2c_base::i801::I801Controller<arch::I801PortWindow>,
+    arch::NativeMonotonicDeadlineClock,
+>;
+
+#[cfg(target_arch = "aarch64")]
+type NativePlay = PreparedProtocolBodyPlay<
+    super::absent_providers::AbsentI2c,
+    super::absent_providers::AbsentClock,
+>;
+
+#[cfg(target_arch = "x86_64")]
+use crate::protocol_source::{NativeProtocolPreparationLimits, prepare_native_protocol};
+
+#[path = "runtime/execution_receipt.rs"]
+mod execution_receipt;
+
+pub(super) struct Output {
+    port: PortId,
+    value: ValuePayload,
+}
+
+#[cfg(target_arch = "x86_64")]
+pub(super) fn prepare(
+    entry: PreparedProtocolEntry,
+    request: &ProtocolBootRequest,
+    host: HostId,
+    boot: BootId,
+    owners: NativeOwners,
+) -> Result<(NativePlay, Vec<Output>), &'static str> {
+    validate_input_values(&entry, &request.inputs)?;
+    let session = super::body::admit(entry.resident(), &host, &boot)?;
+    let advertisement = HostAdvertisement {
+        protocol_version: PROTOCOL_VERSION,
+        host_id: host,
+        boot_id: boot,
+        offer_generation: OfferGeneration(1),
+        profile: "conduitos/native@1".into(),
+        bases: vec![],
+        resources: vec![],
+        capabilities: vec![],
+        planner_capabilities: vec![],
+    };
+    let play = prepare_native_protocol(
+        entry,
+        session,
+        advertisement,
+        owners,
+        NativeProtocolPreparationLimits {
+            body_play_sequence: 0,
+            bus_work_units: 1,
+            clock_work_units: crate::monotonic_clock::owner::MAXIMUM_POLL_STEPS,
+        },
+    )
+    .map_err(|_| "protocol-plan-admission-refused")?;
+    prepare_outputs(play, &request.inputs)
+}
+
+#[path = "runtime_usb_preparation.rs"]
+mod usb_preparation;
+pub(super) use usb_preparation::prepare_usb;
+
+fn validate_input_values(
+    entry: &PreparedProtocolEntry,
+    inputs: &[super::ProtocolBootInput],
+) -> Result<(), &'static str> {
+    for input in inputs {
+        let port: PortId = input.port.clone().into();
+        let schema = entry
+            .input_schema(&port)
+            .ok_or("protocol-input-port-missing")?;
+        let contract = entry
+            .expanded()
+            .front
+            .value_contract(&FrontValueLocation::Input(port));
+        for bytes in core::iter::once(&input.canonical_bytes).chain(&input.subsequent_values) {
+            if let Some(contract) = contract {
+                contract
+                    .validate(bytes)
+                    .map_err(|_| "protocol-input-contract-refused")?;
+            }
+            if matches!(schema.shape(), StructuredInfoTypeShape::Leaf(_)) {
+                StructuredInfoValue::leaf(schema.clone(), bytes.clone())
+                    .map_err(|_| "protocol-input-value-refused")?;
+            } else {
+                let value = StructuredInfoValue::from_canonical_bytes(bytes)
+                    .map_err(|_| "protocol-input-value-refused")?;
+                if value.value_type() != &schema {
+                    return Err("protocol-input-kind-refused");
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
+fn prepare_outputs(
+    play: NativePlay,
+    inputs: &[super::ProtocolBootInput],
+) -> Result<(NativePlay, Vec<Output>), &'static str> {
+    let definition = play
+        .kernel()
+        .ok_or("protocol-kernel-unavailable")?
+        .definition();
+    if inputs.len() != definition.external_capability.inputs.len()
+        || inputs.iter().any(|input| {
+            !definition
+                .external_capability
+                .inputs
+                .iter()
+                .any(|port| port.port_id.as_str() == input.port)
+        })
+    {
+        return Err("protocol-input-workset-mismatch");
+    }
+    let mut outputs = Vec::with_capacity(definition.external_capability.outputs.len());
+    for port in &definition.external_capability.outputs {
+        let maximum = definition
+            .internal_plan
+            .fragments
+            .iter()
+            .flat_map(|fragment| &fragment.fore_ports)
+            .filter(|boundary| {
+                boundary.front_port_id == port.port_id
+                    && boundary.direction == PortDirection::Output
+                    && boundary.track == ConnectionTrack::Payload
+            })
+            .map(|boundary| boundary.byte_capacity)
+            .min()
+            .ok_or("protocol-output-boundary-missing")?;
+        if maximum > crate::protocol_source::MAXIMUM_PROTOCOL_OUTPUT_FORE_BYTES {
+            return Err("protocol-output-envelope-unsupported");
+        }
+        outputs.push(Output {
+            port: port.port_id.clone(),
+            value: ValuePayload {
+                value_kind: port.value_kind.clone(),
+                encoded: Vec::with_capacity(maximum as usize),
+            },
+        });
+    }
+    report_plan(&definition.internal_plan)?;
+    Ok((play, outputs))
+}
+
+#[cfg(target_arch = "x86_64")]
+pub(super) fn execute(
+    play: &mut NativePlay,
+    outputs: &mut [Output],
+    request: &ProtocolBootRequest,
+) -> Result<(), &'static str> {
+    execute_workload(
+        play,
+        outputs,
+        &request.inputs,
+        request.maximum_steps,
+        #[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
+        None,
+    )
+}
+
+pub(super) fn execute_usb(
+    play: &mut NativePlay,
+    outputs: &mut [Output],
+    request: &super::usb_request::UsbProtocolBootRequest,
+) -> Result<(), &'static str> {
+    #[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
+    let network_deadline = network::prepare(request)?;
+    execute_workload(
+        play,
+        outputs,
+        &request.inputs,
+        request.maximum_steps,
+        #[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
+        network_deadline,
+    )
+}
+
+fn execute_workload(
+    play: &mut NativePlay,
+    outputs: &mut [Output],
+    authored_inputs: &[super::ProtocolBootInput],
+    maximum_steps: u32,
+    #[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
+    mut network_deadline: Option<network::RuntimeNetwork>,
+) -> Result<(), &'static str> {
+    // All allocations and Fore shape checks precede start. Ingress does not
+    // dispatch physical effects; refusal cancels before the first Step.
+    let definition = play
+        .kernel()
+        .ok_or("protocol-kernel-unavailable")?
+        .definition();
+    let mut inputs = Vec::with_capacity(authored_inputs.len());
+    for input in authored_inputs {
+        let port = definition
+            .external_capability
+            .inputs
+            .iter()
+            .find(|port| port.port_id.as_str() == input.port)
+            .ok_or("protocol-input-port-missing")?;
+        let maximum = definition
+            .internal_plan
+            .fragments
+            .iter()
+            .flat_map(|fragment| &fragment.fore_ports)
+            .filter(|boundary| {
+                boundary.front_port_id == port.port_id
+                    && boundary.direction == PortDirection::Input
+                    && boundary.track == ConnectionTrack::Payload
+            })
+            .map(|boundary| boundary.byte_capacity)
+            .min()
+            .ok_or("protocol-input-boundary-missing")?;
+        if core::iter::once(&input.canonical_bytes)
+            .chain(&input.subsequent_values)
+            .any(|bytes| bytes.len() > maximum as usize)
+        {
+            return Err("protocol-input-envelope-exceeded");
+        }
+        if !input.subsequent_values.is_empty()
+            && !matches!(port.temporal, PortTemporal::Flow { closes: true })
+        {
+            return Err("protocol-input-sequence-requires-finite-flow");
+        }
+        let values = core::iter::once(&input.canonical_bytes)
+            .chain(&input.subsequent_values)
+            .map(|bytes| ValuePayload {
+                value_kind: port.value_kind.clone(),
+                encoded: bytes.clone(),
+            })
+            .collect::<Vec<_>>();
+        inputs.push((
+            port.port_id.clone(),
+            values,
+            0usize,
+            matches!(port.temporal, PortTemporal::Flow { closes: true }),
+        ));
+    }
+    let allocation_before = crate::allocation::BOOT_ARENA.attempts();
+    play.start().map_err(|_| "protocol-start-refused")?;
+    let result = (|| {
+        report_play(play)?;
+        for _ in 0..maximum_steps {
+            for (port, values, next, closes) in &mut inputs {
+                if *next < values.len() {
+                    match play
+                        .admit_input(port, *next as u64, &values[*next])
+                        .map_err(|_| "protocol-input-refused")?
+                    {
+                        conduit_kernel::scheduler::RemoteIngressOutcome::Accepted { .. } => {
+                            *next += 1;
+                            if *next == values.len() && *closes {
+                                play.close_input(port)
+                                    .map_err(|_| "protocol-input-close-refused")?;
+                            }
+                        }
+                        conduit_kernel::scheduler::RemoteIngressOutcome::Full { .. } => {}
+                    }
+                }
+            }
+            #[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
+            if let Some(network) = network_deadline.as_mut()
+                && network.poll(play)?
+            {
+                return Ok(());
+            }
+            let status = play.step().map_err(|error| {
+                if let Some(identity) = play.session().realization().and_then(|r| r.play.as_ref()) {
+                    match super::step_failure::format(&error, identity) {
+                        Ok(Some(report)) => {
+                            let _ = arch::append_boot_diagnostic(report.as_bytes());
+                        }
+                        Err(_) => {
+                            let _ = arch::append_boot_diagnostic(
+                                b"CONDUIT_PROTOCOL_STEP_FAILURE_UNRETAINED envelope-exceeded\n",
+                            );
+                        }
+                        Ok(None) => {}
+                    }
+                }
+                "protocol-step-refused"
+            })?;
+            for output in &mut *outputs {
+                if let Some(sequence) = play
+                    .output_into(&output.port, &mut output.value)
+                    .map_err(|_| "protocol-output-refused")?
+                {
+                    // Bootstrap diagnostics retain the exact typed bytes. This
+                    // does not reinterpret device data or manufacture a Face.
+                    report_output(&output.port, &output.value)?;
+                    play.complete_output(&output.port, sequence)
+                        .map_err(|error| output_close_refusal(&error))?;
+                }
+            }
+            if status == KernelCompositeStatus::Complete {
+                if inputs
+                    .iter()
+                    .any(|(_, values, next, _)| *next != values.len())
+                {
+                    return Err("protocol-input-sequence-incomplete");
+                }
+                #[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
+                network::require_complete(network_deadline.as_ref())?;
+                return Ok(());
+            }
+            if status == KernelCompositeStatus::Cancelled {
+                return Err("protocol-unexpected-cancellation");
+            }
+            if play.has_pending_clock() {
+                arch::space_protocol_clock_poll()?;
+            }
+        }
+        Err("protocol-step-budget-exhausted")
+    })();
+    let allocation_after = crate::allocation::BOOT_ARENA.attempts();
+    let stopped = execution_receipt::before_stop(play, allocation_before, allocation_after);
+    // Diagnostics must never bypass retirement. The bound receipt is published
+    // only after native stop, kernel cancellation and Body Lull all succeed.
+    play.cancel().map_err(|_| "protocol-retirement-refused")?;
+    if let Some(stopped) = stopped {
+        let _ = arch::append_boot_diagnostic(stopped.as_bytes());
+    }
+    result
+}
+
+fn report_output(port: &PortId, value: &ValuePayload) -> Result<(), &'static str> {
+    use core::fmt::Write;
+    let mut header = crate::sign_format::FixedText::new();
+    writeln!(
+        header,
+        "CONDUIT_PROTOCOL_OUTPUT port={} kind={} bytes={}",
+        port.as_str(),
+        value.value_kind.as_str(),
+        value.encoded.len()
+    )
+    .map_err(|_| "protocol-diagnostic-envelope-exceeded")?;
+    arch::append_boot_diagnostic(header.as_bytes())
+        .map_err(|_| "protocol-diagnostic-unavailable")?;
+    const HEX: &[u8; 16] = b"0123456789abcdef";
+    for byte in &value.encoded {
+        arch::append_boot_diagnostic(&[HEX[(byte >> 4) as usize], HEX[(byte & 15) as usize]])
+            .map_err(|_| "protocol-diagnostic-unavailable")?;
+    }
+    arch::append_boot_diagnostic(b"\n").map_err(|_| "protocol-diagnostic-unavailable")?;
+    Ok(())
+}
+
+fn report_plan(plan: &Plan) -> Result<(), &'static str> {
+    use core::fmt::Write;
+    let mut text = crate::sign_format::FixedText::new();
+    writeln!(
+        text,
+        "CONDUIT_PROTOCOL_PLAN source={} checked={} expanded={} plan={}",
+        plan.source_document_id.as_str(),
+        plan.checked_plot_id.as_str(),
+        plan.expanded_plot_id.as_str(),
+        plan.plan_id.as_str()
+    )
+    .map_err(|_| "protocol-plan-sign-envelope-exceeded")?;
+    arch::append_boot_diagnostic(text.as_bytes()).map_err(|_| "protocol-diagnostic-unavailable")?;
+    for fragment in &plan.fragments {
+        for gear in &fragment.placements {
+            let Some(base) = &gear.base else {
+                continue;
+            };
+            let mut selected = crate::sign_format::FixedText::new();
+            writeln!(selected,
+                "CONDUIT_PROTOCOL_BASE plan={} placement={} host={} boot={} base={} provider={} generation={} artifact={}",
+                plan.plan_id.as_str(), gear.placement_id.as_str(), fragment.host_id.as_str(),
+                fragment.boot_id.as_str(), base.base_id.as_str(), base.provider_instance_id.as_str(),
+                base.provider_generation, gear.artifact_id.as_str())
+                .map_err(|_| "protocol-base-sign-envelope-exceeded")?;
+            arch::append_boot_diagnostic(selected.as_bytes())
+                .map_err(|_| "protocol-diagnostic-unavailable")?;
+            for resource in &gear.resources {
+                let mut selected = crate::sign_format::FixedText::new();
+                writeln!(
+                    selected,
+                    "CONDUIT_PROTOCOL_RESOURCE plan={} placement={} pool={} class={} units={}",
+                    plan.plan_id.as_str(),
+                    gear.placement_id.as_str(),
+                    resource.pool_id.as_str(),
+                    resource.class_id.as_str(),
+                    resource.units
+                )
+                .map_err(|_| "protocol-resource-sign-envelope-exceeded")?;
+                arch::append_boot_diagnostic(selected.as_bytes())
+                    .map_err(|_| "protocol-diagnostic-unavailable")?;
+            }
+        }
+    }
+    Ok(())
+}
+
+fn report_play(play: &NativePlay) -> Result<(), &'static str> {
+    use core::fmt::Write;
+    let identity = play
+        .session()
+        .realization()
+        .and_then(|current| current.play.as_ref())
+        .ok_or("protocol-current-play-missing")?;
+    let mut text = crate::sign_format::FixedText::new();
+    writeln!(
+        text,
+        "CONDUIT_PROTOCOL_PLAY body={} wake={} plan={} play={}",
+        identity.body_id.as_str(),
+        identity.wake_id.as_str(),
+        identity.plan_id.as_str(),
+        identity.active_play_id.as_str()
+    )
+    .map_err(|_| "protocol-play-sign-envelope-exceeded")?;
+    arch::append_boot_diagnostic(text.as_bytes()).map_err(|_| "protocol-diagnostic-unavailable")?;
+    Ok(())
+}
+
+// Keep the exact finite-storage refusal observable without allocating in Play.
+fn output_close_refusal(error: &crate::protocol_source::ProtocolBodyRefusal) -> &'static str {
+    use conduit_composite::{ChildExecutionError, KernelCompositeError};
+    use conduit_kernel::{SignError, scheduler::SchedulerError};
+    let crate::protocol_source::ProtocolBodyRefusal::Call(
+        crate::protocol_host_calls::ProtocolCallRefusal::Kernel(KernelCompositeError::Execution {
+            reason: ChildExecutionError::Scheduler(SchedulerError::Sign(reason)),
+            ..
+        }),
+    ) = error
+    else {
+        return "protocol-output-close-refused";
+    };
+    match reason {
+        SignError::InvalidBudget => "protocol-output-sign-invalid-budget",
+        SignError::ItemCapacityExceeded => "protocol-output-sign-items-exhausted",
+        SignError::ByteCapacityExceeded => "protocol-output-sign-bytes-exhausted",
+        SignError::RemoteItemCapacityExceeded => "protocol-output-sign-remote-items-exhausted",
+        SignError::RemoteByteCapacityExceeded => "protocol-output-sign-remote-bytes-exhausted",
+        SignError::SequenceOverflow => "protocol-output-sign-sequence-overflow",
+    }
+}
+
+#[cfg(test)]
+mod reuse_tests;
+
+fn report_preparation_refusal(reason: &impl core::fmt::Debug) {
+    use core::fmt::Write;
+    let mut report = crate::sign_format::FixedText::new();
+    if writeln!(report, "CONDUIT_PROTOCOL_PREPARATION_REFUSAL {reason:?}").is_ok() {
+        let _ = arch::append_boot_diagnostic(report.as_bytes());
+    }
+}
+
+#[cfg(test)]
+mod input_tests {
+    use super::*;
+    #[test]
+    fn every_flow_value_is_checked_before_play() {
+        let package = crate::protocol_source::ProtocolSourcePackage::compile(
+            "plot checked (
+ >> input: Boolean...|
+ output: Boolean...| >>
+) = (.)"
+                .into(),
+            &[],
+        )
+        .unwrap();
+        let bytes = serde_json::to_vec(&package).unwrap();
+        let entry = PreparedProtocolEntry::prepare(&bytes, "checked").unwrap();
+        let mut input = super::super::ProtocolBootInput {
+            port: "input".into(),
+            canonical_bytes: vec![1],
+            subsequent_values: vec![vec![0]; 15],
+        };
+        assert_eq!(
+            validate_input_values(&entry, core::slice::from_ref(&input)),
+            Ok(())
+        );
+        input.subsequent_values[14] = vec![2];
+        assert!(validate_input_values(&entry, core::slice::from_ref(&input)).is_err());
+        input.subsequent_values[14] = vec![0; 4096];
+        assert!(validate_input_values(&entry, core::slice::from_ref(&input)).is_err());
+    }
+}

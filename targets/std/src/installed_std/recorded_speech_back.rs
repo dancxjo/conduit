@@ -10,9 +10,9 @@ use conduit_kernel::{
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
 };
 
-pub(crate) const IMPLEMENTATION: &str = "conduit-proof/recorded-speech-recognizer@1";
+pub(crate) const IMPLEMENTATION: &str = "conduit-proof/recorded-speech-recognizer@2";
 const PROFILE: &str = "conduit-proof/recorded-speech-recognizer-hosted@1";
-const ARTIFACT: &str = "conduit-std-host/proof-recorded-speech-recognizer@1";
+const ARTIFACT: &str = "conduit-std-host/proof-recorded-speech-recognizer@2";
 pub(crate) const HOST_CALL: &str = "conduit.host/proof-recorded-speech-recognize@1";
 
 pub(super) static FACTORY: BackFactory = BackFactory {
@@ -84,7 +84,7 @@ const fn step_fail(code: FailureCode, detail: u16) -> StepOutcome {
 impl RecordedSpeechBack {}
 
 pub(crate) fn offer() -> CapabilityOffer {
-    BackOfferBuilder::new(
+    let mut offered = BackOfferBuilder::new(
         conduit_tongues::speech_recognition_contract().into_semantic_capability_contract(),
         Back {
             capability_id: CapabilityId::from("proof-recorded-speech-recognizer"),
@@ -102,7 +102,23 @@ pub(crate) fn offer() -> CapabilityOffer {
             authority_requirements: Vec::new(),
         },
     )
-    .build()
+    .build();
+    use conduit_plot::rust_binding::BoundedSequence;
+    let coverage = conduit_language::LanguageCoverage::new(
+        ARTIFACT.into(),
+        BoundedSequence::try_from_iter([conduit_language::LanguageId::new(
+            "language/english".into(),
+        )
+        .expect("fixture Language")])
+        .expect("one recorded fixture Language"),
+        BoundedSequence::try_from_iter([]).expect("no private mapping"),
+        "recorded-house-english@1".into(),
+        BoundedSequence::try_from_iter([]).expect("no exact fixture variety"),
+        false,
+    )
+    .expect("finite recorded fixture coverage");
+    offered.realization_properties = crate::hosted_language::properties(Some(&coverage));
+    offered
 }
 
 pub(super) struct RecordedSpeechHost {
@@ -166,10 +182,13 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
         || placement.inputs != offer.inputs
         || placement.outputs != offer.outputs
         || placement.host_calls != offer.host_calls
-        || !placement.configuration.is_empty()
+        || placement.configuration.len() != 1
+        || placement.realization_properties != offer.realization_properties
     {
         return Err("planned recorded recognizer does not match proof installation".into());
     }
+    crate::hosted_language::admit(placement)
+        .map_err(|error| format!("recorded fixture Language admission: {error:?}"))?;
     Ok(())
 }
 

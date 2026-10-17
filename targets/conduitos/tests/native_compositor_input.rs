@@ -1,4 +1,4 @@
-use conduit_presentation::LayoutRect;
+use conduit_face::LayoutRect;
 use conduitos::native_compositor::{
     DamageRect, InputRoute, MAX_COMPOSITOR_PIXELS, NativeCompositorError, SurfacePlacementReceipt,
 };
@@ -12,9 +12,9 @@ use fixture_support::{MAIN, TOP, delivered, fixture, update, update_with_scene};
 
 #[test]
 fn pointer_routing_obeys_z_geometry_visibility_removal_and_empty_space() {
-    let (presentation, plan, main, top, mut compositor) = fixture(1);
-    update(&mut compositor, &presentation, &plan, &main, MAIN);
-    update(&mut compositor, &presentation, &plan, &top, TOP);
+    let (face, plan, main, top, mut compositor) = fixture(1);
+    update(&mut compositor, &face, &plan, &main, MAIN);
+    update(&mut compositor, &face, &plan, &top, TOP);
 
     let route = delivered(compositor.route_pointer(7, 4, false).unwrap());
     assert_eq!(route.surface_id, TOP);
@@ -58,9 +58,9 @@ fn pointer_routing_obeys_z_geometry_visibility_removal_and_empty_space() {
 
 #[test]
 fn activation_focuses_exact_surface_and_keyboard_never_falls_through() {
-    let (presentation, plan, main, top, mut compositor) = fixture(1);
-    update(&mut compositor, &presentation, &plan, &main, MAIN);
-    update(&mut compositor, &presentation, &plan, &top, TOP);
+    let (face, plan, main, top, mut compositor) = fixture(1);
+    update(&mut compositor, &face, &plan, &main, MAIN);
+    update(&mut compositor, &face, &plan, &top, TOP);
 
     let route = delivered(compositor.route_pointer(7, 4, true).unwrap());
     assert_eq!(route.surface_id, TOP);
@@ -84,9 +84,9 @@ fn activation_focuses_exact_surface_and_keyboard_never_falls_through() {
 
 #[test]
 fn cursor_hover_and_focus_are_visible_bounded_and_clear_with_surface_loss() {
-    let (presentation, plan, main, top, mut compositor) = fixture(1);
-    update(&mut compositor, &presentation, &plan, &main, MAIN);
-    update(&mut compositor, &presentation, &plan, &top, TOP);
+    let (face, plan, main, top, mut compositor) = fixture(1);
+    update(&mut compositor, &face, &plan, &main, MAIN);
+    update(&mut compositor, &face, &plan, &top, TOP);
     let mut display = MemoryDisplay::new();
     compositor.compose_frame(&mut display).unwrap();
     display.reset_writes();
@@ -123,18 +123,12 @@ fn cursor_hover_and_focus_are_visible_bounded_and_clear_with_surface_loss() {
 
 #[test]
 fn stale_manifestation_routes_refuse_distinctly_from_no_target() {
-    let (presentation, plan, main, _top, mut compositor) = fixture(1);
-    update(&mut compositor, &presentation, &plan, &main, MAIN);
+    let (face, plan, main, _top, mut compositor) = fixture(1);
+    update(&mut compositor, &face, &plan, &main, MAIN);
     let old_route = delivered(compositor.route_pointer(2, 2, true).unwrap());
 
-    let (next_presentation, next_plan, next_main, _, _) = fixture(2);
-    update(
-        &mut compositor,
-        &next_presentation,
-        &next_plan,
-        &next_main,
-        MAIN,
-    );
+    let (next_face, next_plan, next_main, _, _) = fixture(2);
+    update(&mut compositor, &next_face, &next_plan, &next_main, MAIN);
     assert_eq!(
         compositor.validate_pointer_route(&old_route),
         Err(NativeCompositorError::StaleSurfaceBinding)
@@ -153,8 +147,8 @@ fn stale_manifestation_routes_refuse_distinctly_from_no_target() {
 
 #[test]
 fn resizing_invalidates_pixels_and_input_until_a_fresh_manifestation_revision() {
-    let (presentation, plan, main, _top, mut compositor) = fixture(1);
-    update(&mut compositor, &presentation, &plan, &main, MAIN);
+    let (face, plan, main, _top, mut compositor) = fixture(1);
+    update(&mut compositor, &face, &plan, &main, MAIN);
     assert!(matches!(
         compositor.route_pointer(2, 2, true).unwrap(),
         InputRoute::Delivered(_)
@@ -189,33 +183,27 @@ fn resizing_invalidates_pixels_and_input_until_a_fresh_manifestation_revision() 
     assert_eq!(compositor.receipts().count(), 0);
     assert_eq!(
         compositor.update_surface(
-            &presentation,
+            &face,
             &main,
             &plan,
             MAIN,
             &conduit_core::HostBaseId::from(fixture_support::BASE),
-            &conduit_presentation::GraphicsScene::empty(),
+            &conduit_face::GraphicsScene::empty(),
         ),
         Err(NativeCompositorError::StaleSurfaceRevision)
     );
 
-    let (next_presentation, next_plan, next_main, _, _) = fixture(2);
-    update(
-        &mut compositor,
-        &next_presentation,
-        &next_plan,
-        &next_main,
-        MAIN,
-    );
+    let (next_face, next_plan, next_main, _, _) = fixture(2);
+    update(&mut compositor, &next_face, &next_plan, &next_main, MAIN);
     let routed = delivered(compositor.route_pointer(2, 2, true).unwrap());
     assert_eq!(routed.manifestation_id, next_main.manifestation_id);
 }
 
 #[test]
 fn invalidated_top_surface_blocks_input_fallthrough() {
-    let (presentation, plan, main, top, mut compositor) = fixture(1);
-    update(&mut compositor, &presentation, &plan, &main, MAIN);
-    update(&mut compositor, &presentation, &plan, &top, TOP);
+    let (face, plan, main, top, mut compositor) = fixture(1);
+    update(&mut compositor, &face, &plan, &main, MAIN);
+    update(&mut compositor, &face, &plan, &top, TOP);
     compositor
         .place_surface(
             TOP,
@@ -237,8 +225,8 @@ fn invalidated_top_surface_blocks_input_fallthrough() {
 
 #[test]
 fn over_capacity_resize_preserves_the_last_current_surface_transactionally() {
-    let (presentation, plan, main, _top, mut compositor) = fixture(1);
-    update(&mut compositor, &presentation, &plan, &main, MAIN);
+    let (face, plan, main, _top, mut compositor) = fixture(1);
+    update(&mut compositor, &face, &plan, &main, MAIN);
     let mut display = MemoryDisplay::new();
     compositor.compose_frame(&mut display).unwrap();
     let before = delivered(compositor.route_pointer(2, 2, true).unwrap());
@@ -270,8 +258,8 @@ fn over_capacity_resize_preserves_the_last_current_surface_transactionally() {
 
 #[test]
 fn repeated_resize_and_relayout_reuses_one_finite_pool() {
-    let (presentation, plan, main, _top, mut compositor) = fixture(1);
-    update(&mut compositor, &presentation, &plan, &main, MAIN);
+    let (face, plan, main, _top, mut compositor) = fixture(1);
+    update(&mut compositor, &face, &plan, &main, MAIN);
     for revision in 2..=18 {
         let width = if revision % 2 == 0 { 8 } else { 12 };
         assert!(matches!(
@@ -289,14 +277,8 @@ fn repeated_resize_and_relayout_reuses_one_finite_pool() {
                 .unwrap(),
             SurfacePlacementReceipt::RasterInvalidated { .. }
         ));
-        let (next_presentation, next_plan, next_main, _, _) = fixture(revision);
-        update(
-            &mut compositor,
-            &next_presentation,
-            &next_plan,
-            &next_main,
-            MAIN,
-        );
+        let (next_face, next_plan, next_main, _, _) = fixture(revision);
+        update(&mut compositor, &next_face, &next_plan, &next_main, MAIN);
     }
     assert!(compositor.allocated_pixels() <= MAX_COMPOSITOR_PIXELS);
     assert!(matches!(
@@ -307,8 +289,8 @@ fn repeated_resize_and_relayout_reuses_one_finite_pool() {
 
 #[test]
 fn damage_is_bounded_partial_clean_clipped_and_retryable() {
-    let (presentation, plan, main, _top, mut compositor) = fixture(1);
-    update(&mut compositor, &presentation, &plan, &main, MAIN);
+    let (face, plan, main, _top, mut compositor) = fixture(1);
+    update(&mut compositor, &face, &plan, &main, MAIN);
     let mut display = MemoryDisplay::new();
     let initial = compositor.compose_frame(&mut display).unwrap();
     assert_eq!(initial.damage_count, 1);
@@ -329,14 +311,8 @@ fn damage_is_bounded_partial_clean_clipped_and_retryable() {
         (0, 0, 0)
     );
 
-    let (next_presentation, next_plan, next_main, _, _) = fixture(2);
-    update(
-        &mut compositor,
-        &next_presentation,
-        &next_plan,
-        &next_main,
-        MAIN,
-    );
+    let (next_face, next_plan, next_main, _, _) = fixture(2);
+    update(&mut compositor, &next_face, &next_plan, &next_main, MAIN);
     display.fail_after = Some(5);
     assert_eq!(
         compositor.compose_frame(&mut display),
@@ -377,9 +353,9 @@ fn damage_is_bounded_partial_clean_clipped_and_retryable() {
 
 #[test]
 fn surface_operations_damage_only_changed_output_regions() {
-    let (presentation, plan, main, top, mut compositor) = fixture(1);
-    update(&mut compositor, &presentation, &plan, &main, MAIN);
-    update(&mut compositor, &presentation, &plan, &top, TOP);
+    let (face, plan, main, top, mut compositor) = fixture(1);
+    update(&mut compositor, &face, &plan, &main, MAIN);
+    update(&mut compositor, &face, &plan, &top, TOP);
     let mut display = MemoryDisplay::new();
     compositor.compose_frame(&mut display).unwrap();
 
@@ -396,14 +372,8 @@ fn surface_operations_damage_only_changed_output_regions() {
         )
         .unwrap();
     compositor.compose_frame(&mut display).unwrap();
-    let (next_presentation, next_plan, _, next_top, _) = fixture(2);
-    update(
-        &mut compositor,
-        &next_presentation,
-        &next_plan,
-        &next_top,
-        TOP,
-    );
+    let (next_face, next_plan, _, next_top, _) = fixture(2);
+    update(&mut compositor, &next_face, &next_plan, &next_top, TOP);
     display.reset_writes();
     let isolated_update = compositor.compose_frame(&mut display).unwrap();
     assert_eq!(isolated_update.pixels_written, 70);
@@ -464,9 +434,9 @@ fn surface_operations_damage_only_changed_output_regions() {
 
 #[test]
 fn z_changes_damage_exact_overlap_and_fragmentation_falls_back() {
-    let (presentation, plan, main, top, mut compositor) = fixture(1);
-    update(&mut compositor, &presentation, &plan, &main, MAIN);
-    update(&mut compositor, &presentation, &plan, &top, TOP);
+    let (face, plan, main, top, mut compositor) = fixture(1);
+    update(&mut compositor, &face, &plan, &main, MAIN);
+    update(&mut compositor, &face, &plan, &top, TOP);
     let mut display = MemoryDisplay::new();
     compositor.compose_frame(&mut display).unwrap();
 
@@ -528,29 +498,24 @@ fn z_changes_damage_exact_overlap_and_fragmentation_falls_back() {
 }
 
 #[test]
-fn patchbay_presentation_revision_recomposes_only_its_native_surface() {
+fn patchbay_face_revision_recomposes_only_its_native_surface() {
     use conduit_tour_model::TourWorkspacePhase;
 
-    let (presentation, plan, _main, top, mut compositor) = fixture(1);
+    let (face, plan, _main, top, mut compositor) = fixture(1);
+    // The Tour reserves a 64-pixel status edge. Build its supported logical
+    // viewport; the compositor still clips into the admitted 10-by-7 surface.
     let initial_scene =
-        conduitos::tour_workspace::scene(10, 7, 1, TourWorkspacePhase::LessonReady).unwrap();
-    update_with_scene(
-        &mut compositor,
-        &presentation,
-        &plan,
-        &top,
-        TOP,
-        &initial_scene,
-    );
+        conduitos::tour_workspace::scene(640, 480, 1, TourWorkspacePhase::LessonReady).unwrap();
+    update_with_scene(&mut compositor, &face, &plan, &top, TOP, &initial_scene);
     let mut display = MemoryDisplay::new();
     compositor.compose_frame(&mut display).unwrap();
 
-    let (next_presentation, next_plan, _, next_top, _) = fixture(2);
+    let (next_face, next_plan, _, next_top, _) = fixture(2);
     let patchbay_scene =
-        conduitos::tour_workspace::scene(10, 7, 2, TourWorkspacePhase::PatchbayOpen).unwrap();
+        conduitos::tour_workspace::scene(640, 480, 2, TourWorkspacePhase::PatchbayOpen).unwrap();
     update_with_scene(
         &mut compositor,
-        &next_presentation,
+        &next_face,
         &next_plan,
         &next_top,
         TOP,

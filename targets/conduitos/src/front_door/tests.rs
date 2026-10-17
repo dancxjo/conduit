@@ -48,6 +48,7 @@ pub(super) fn born_projection(body_id: conduit_body::BodyId) -> JourneyProjectio
         wake_id: None,
         wake_sign_id: None,
         plan_id: None,
+        partition_plan_id: None,
         plan_sign_id: None,
         active_play_id: None,
         play_sign_id: None,
@@ -99,24 +100,23 @@ impl PixelTarget for Sink {
 }
 
 #[test]
-fn entrance_is_a_zero_body_portable_presentation_and_finite_scene() {
+fn entrance_is_a_zero_body_portable_face_and_finite_scene() {
     let door = door();
-    let presentation = door.presentation().unwrap();
-    assert!(presentation.basis.body_id.is_none());
-    assert!(presentation.basis.plan_id.is_none());
-    assert_eq!(presentation.subjects[1].role, PresentationRole::Plot);
-    assert_eq!(presentation.actions.len(), 2);
+    let face = door.face().unwrap();
+    assert!(face.basis.body_id.is_none());
+    assert!(face.basis.plan_id.is_none());
+    assert_eq!(face.subjects[1].role, FaceRole::Plot);
+    assert_eq!(face.actions.len(), 2);
     assert!(
-        presentation
-            .actions
+        face.actions
             .iter()
             .any(|action| action.intent == "conduit.intent/open@1")
     );
-    assert!(presentation.actions.iter().any(|action| {
+    assert!(face.actions.iter().any(|action| {
         action.intent == "conduit.intent/birth@1"
             && matches!(
                 action.availability,
-                conduit_presentation::PresentationActionAvailability::Unavailable { .. }
+                conduit_face::FaceActionAvailability::Unavailable { .. }
             )
     }));
     let scene = door.scene(&Sink).unwrap();
@@ -134,9 +134,9 @@ fn open_is_inert_and_details_are_progressive() {
     assert!(door.accept(key(ENTER), 2).unwrap());
     assert!(door.plot_open);
     assert_eq!(door.revision(), 3);
-    assert!(door.presentation().unwrap().basis.body_id.is_none());
+    assert!(door.face().unwrap().basis.body_id.is_none());
     assert!(door.accept(key(F2), 3).unwrap());
-    let details = door.presentation().unwrap();
+    let details = door.face().unwrap();
     assert!(door.exact_details_open());
     assert!(
         details
@@ -160,8 +160,8 @@ fn stale_input_and_capacity_are_explicit_without_body_transition() {
         Err(Error::ActionUnavailable)
     );
     door.revision = u64::MAX;
-    assert_eq!(door.accept(key(ENTER), u64::MAX), Err(Error::Presentation));
-    assert!(door.presentation().unwrap().basis.body_id.is_none());
+    assert_eq!(door.accept(key(ENTER), u64::MAX), Err(Error::Face));
+    assert!(door.face().unwrap().basis.body_id.is_none());
 }
 
 #[test]
@@ -171,7 +171,7 @@ fn bounded_lifecycle_surface_resolves_revision_and_fulfillment_transitions() {
     projection.status = JourneyStatus::QuiescentAwaitingInput;
     projection.workload_capacity_available = true;
     door.observe_journey(projection.clone()).unwrap();
-    assert_eq!(door.presentation().unwrap().actions.len(), 8);
+    assert_eq!(door.face().unwrap().actions.len(), 8);
     assert!(
         door.resolve_action(patchbay_control::PatchbayAction::AdmitPlot, door.revision())
             .is_ok()
@@ -180,7 +180,7 @@ fn bounded_lifecycle_surface_resolves_revision_and_fulfillment_transitions() {
     projection.status = JourneyStatus::Lulled;
     projection.workload_capacity_available = false;
     door.observe_journey(projection).unwrap();
-    assert_eq!(door.presentation().unwrap().actions.len(), 8);
+    assert_eq!(door.face().unwrap().actions.len(), 8);
     assert!(
         door.resolve_action(patchbay_control::PatchbayAction::Fulfill, door.revision())
             .is_ok()
@@ -201,7 +201,7 @@ fn releases_and_unrelated_keys_do_not_act() {
 }
 
 #[test]
-fn connectivity_is_projected_through_the_current_body_presentation() {
+fn connectivity_is_projected_through_the_current_body_face() {
     let mut door = door();
     let body_id = body_id(1);
     door.observe_journey(born_projection(body_id.clone()))
@@ -214,18 +214,19 @@ fn connectivity_is_projected_through_the_current_body_presentation() {
     })
     .unwrap();
 
-    let presentation = door.presentation().unwrap();
-    assert!(presentation.subjects.iter().any(|subject| {
-        subject.identity == "line:usb:one" && subject.role == PresentationRole::Line
+    let face = door.face().unwrap();
+    assert!(
+        face.subjects.iter().any(|subject| {
+            subject.identity == "line:usb:one" && subject.role == FaceRole::Line
+        })
+    );
+    assert!(face.relationships.iter().any(|relationship| {
+        relationship.target == "line:usb:one" && relationship.kind == FaceRelationshipKind::Connects
     }));
-    assert!(presentation.relationships.iter().any(|relationship| {
-        relationship.target == "line:usb:one"
-            && relationship.kind == PresentationRelationshipKind::Connects
-    }));
-    assert!(presentation.properties.iter().any(|property| {
+    assert!(face.properties.iter().any(|property| {
         property.subject == "line:usb:one"
             && property.name == "received-value"
-            && property.value == PresentationPropertyValue::Text("HELLO USB LINE".into())
+            && property.value == FacePropertyValue::Text("HELLO USB LINE".into())
     }));
 }
 
@@ -238,13 +239,10 @@ fn connectivity_refuses_an_absent_or_different_body() {
         value: None,
         body_id: body_id(1),
     };
-    assert_eq!(
-        door.observe_connectivity(line.clone()),
-        Err(Error::Presentation)
-    );
+    assert_eq!(door.observe_connectivity(line.clone()), Err(Error::Face));
 
     door.observe_journey(born_projection(body_id(2))).unwrap();
-    assert_eq!(door.observe_connectivity(line), Err(Error::Presentation));
+    assert_eq!(door.observe_connectivity(line), Err(Error::Face));
 }
 
 #[test]
@@ -255,12 +253,12 @@ fn resting_and_fulfilled_faces_keep_body_identity_without_live_execution() {
     for status in [JourneyStatus::Lulled, JourneyStatus::Fulfilled] {
         projection.status = status;
         door.observe_journey(projection.clone()).unwrap();
-        let face = door.presentation().unwrap();
+        let face = door.face().unwrap();
         face.validate().unwrap();
         assert_eq!(face.basis.body_id.as_ref(), Some(&body));
         assert!(face.properties.iter().any(|property| {
             property.name == "current-body"
-                && property.value == PresentationPropertyValue::Identity(body.as_str().into())
+                && property.value == FacePropertyValue::Identity(body.as_str().into())
         }));
         assert!(face.basis.wake_id.is_none());
         assert!(face.basis.plan_id.is_none());
@@ -329,7 +327,7 @@ fn selected_patchbay_graph_becomes_exact_face_subjects_for_the_native_mask() {
             temporal: PortTemporal::Value,
         }],
     });
-    let face = door.presentation().unwrap();
+    let face = door.face().unwrap();
     #[cfg(feature = "native-compositor")]
     {
         let scene =
@@ -339,11 +337,11 @@ fn selected_patchbay_graph_becomes_exact_face_subjects_for_the_native_mask() {
     assert!(face.relationships.iter().any(|relation| {
         relation.source == "cord/source-to-sink"
             && relation.target == "port/sink/in"
-            && relation.kind == PresentationRelationshipKind::Connects
+            && relation.kind == FaceRelationshipKind::Connects
     }));
     assert!(face.properties.iter().any(|property| {
         property.subject == "port/source/out"
             && property.name == "direction"
-            && property.value == PresentationPropertyValue::Text("outgoing".into())
+            && property.value == FacePropertyValue::Text("outgoing".into())
     }));
 }

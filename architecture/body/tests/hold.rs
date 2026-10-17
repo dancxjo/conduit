@@ -1,16 +1,123 @@
 use conduit_body::{
-    Body, BodyLifecycleError, HoldPolicy, HoldReasonId, HoldReleaseAuthority, HoldReleaseOutcome,
-    HoldSourceId, PlanningBasis, WakeLifecycle, WakeLifecycleEvent, WakePlanState,
-    MAX_HOLD_BASIS_SIGNS,
+    Body, BodyHostClockEvidence, BodyLifecycleError, BodyPlan, BodyPlanTimeRefusal, BodyPlotPlan,
+    HoldPolicy, HoldReasonId, HoldReleaseAuthority, HoldReleaseOutcome, HoldSourceId,
+    PlanningBasis, WakeLifecycle, WakeLifecycleEvent, WakePlanState, MAX_HOLD_BASIS_SIGNS,
 };
 use conduit_core::{
-    mandatory_sign_storage_requirement, seal_plan, ArtifactId, BootId, CancellationPolicy,
-    CapabilityId, CapabilityLimits, CheckedPlotId, ExecutionProfileId, ExpandedPlotId,
-    ExpectedSign, ExpectedTerminal, FragmentId, GearId, HostId, ImplementationId, KindId,
-    KindIdentity, OfferGeneration, PlacementId, Plan, PlanFragment, PlanId, PlotIdentity,
-    ResourceBinding, ResourceClassId, ResourcePoolId, SignId, SignStorageBudget, SourceDocumentId,
+    mandatory_sign_storage_requirement, seal_plan, ArtifactId, BodyClockCorrelation,
+    BodyTimeQuality, BodyTimeRequirement, BodyTimeTolerance, BootId, CancellationPolicy,
+    CapabilityId, CapabilityLimits, CheckedPlotId, ClockProvenance, ExecutionProfileId,
+    ExpandedPlotId, ExpectedSign, ExpectedTerminal, FragmentId, GearId, HostId, ImplementationId,
+    KindId, KindIdentity, MonotonicClockIdentity, MonotonicDuration, MonotonicInstant,
+    OfferGeneration, PlacementId, Plan, PlanFragment, PlanId, PlotIdentity, ResourceBinding,
+    ResourceClassId, ResourcePoolId, SignId, SignStorageBudget, SourceDocumentId, TemporalScale,
     TerminalPolicy,
 };
+
+#[test]
+fn body_time_plan_admits_every_host_and_refuses_missing_or_duplicate_evidence() {
+    let wake = body().wake(1, SignId::from("woke")).unwrap().1;
+    let first = exact_plan("shared", "host-a");
+    let second = exact_plan("shared", "host-b");
+    let plan = seal_plan(
+        PlotIdentity {
+            source_document_id: first.source_document_id.clone(),
+            checked_plot_id: first.checked_plot_id.clone(),
+            expanded_plot_id: first.expanded_plot_id.clone(),
+        },
+        vec![first.fragments[0].clone(), second.fragments[0].clone()],
+    );
+    let requirement = BodyTimeRequirement::new(
+        wake.body_id.as_str().into(),
+        BodyTimeTolerance::new(10, TemporalScale::Milliseconds),
+        MonotonicDuration::new(100, TemporalScale::Milliseconds),
+    )
+    .unwrap();
+    let body_plan = BodyPlan::seal_with_body_time(
+        &wake,
+        vec![BodyPlotPlan {
+            plot: wake.workset.plots()[0].clone(),
+            plan,
+        }],
+        requirement,
+    )
+    .unwrap();
+    let samples = ["host-a", "host-b"].map(|host| {
+        MonotonicInstant::new(
+            1_000,
+            MonotonicClockIdentity::new(
+                HostId::from(host),
+                BootId::from(format!("{host}-boot")),
+                "steady".into(),
+                TemporalScale::Milliseconds,
+                1,
+                1,
+            )
+            .unwrap(),
+        )
+        .unwrap()
+    });
+    let correlations = samples.clone().map(|sample| {
+        BodyClockCorrelation::new(
+            wake.body_id.as_str().into(),
+            TemporalScale::Milliseconds,
+            1,
+            sample,
+            10_000,
+            0,
+            1,
+            1,
+            10_000,
+            ClockProvenance::External {
+                provider_id: "test/provider".into(),
+                admission_reference: "test/admission".into(),
+                policy_id: "test/policy".into(),
+            },
+        )
+        .unwrap()
+    });
+    let evidence = [0, 1].map(|index| BodyHostClockEvidence {
+        sample: &samples[index],
+        correlation: &correlations[index],
+        transport_uncertainty: MonotonicDuration::new(1, TemporalScale::Milliseconds),
+        scheduler_uncertainty: MonotonicDuration::new(1, TemporalScale::Milliseconds),
+    });
+    let admitted = body_plan.admit_body_time(&evidence).unwrap();
+    assert_eq!(admitted.plan_id(), &body_plan.plan_id);
+    assert_eq!(admitted.hosts().len(), 2);
+    assert!(admitted
+        .for_host(&HostId::from("host-b"), &BootId::from("host-b-boot"))
+        .is_some());
+    assert_eq!(
+        body_plan.admit_body_time(&evidence[..1]),
+        Err(BodyPlanTimeRefusal::MissingHost(
+            HostId::from("host-b"),
+            BootId::from("host-b-boot")
+        ))
+    );
+    assert_eq!(
+        body_plan.admit_body_time(&[evidence[0], evidence[0]]),
+        Err(BodyPlanTimeRefusal::DuplicateHost(
+            HostId::from("host-a"),
+            BootId::from("host-a-boot")
+        ))
+    );
+    let stale = MonotonicInstant::new(11_001, samples[1].clock().clone()).unwrap();
+    let stale_evidence = BodyHostClockEvidence {
+        sample: &stale,
+        ..evidence[1]
+    };
+    assert!(matches!(
+        body_plan.admit_body_time(&[evidence[0], stale_evidence]),
+        Err(BodyPlanTimeRefusal::Quality(
+            host_id,
+            boot_id,
+            quality
+        )) if host_id == HostId::from("host-b")
+            && boot_id == BootId::from("host-b-boot")
+            && matches!(*quality, BodyTimeQuality::Unsupported { .. })
+    ));
+}
 
 fn body() -> Body {
     Body::born(

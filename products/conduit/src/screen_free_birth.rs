@@ -12,12 +12,12 @@ use std::sync::Arc;
 
 #[cfg(test)]
 use conduit_birth_plot::{BirthActionOutcome, HostOwnedBirthFaceBasis};
+use conduit_face::Face;
 #[cfg(test)]
 use conduit_patchbay_workbench::{PatchbayModel, ZeroBodyFrontDoor};
-use conduit_presentation::Presentation;
-#[cfg(test)]
-use conduit_std_host::spoken_face_mask::ReaderCommand;
 use conduit_std_host::spoken_face_mask::SpokenFaceSession;
+#[cfg(test)]
+use conduit_std_host::spoken_face_mask::{ReaderCommand, SpokenBatchDelivery};
 #[cfg(test)]
 use conduit_std_host::terminal_face_mask::{TerminalFaceMask, TerminalMaskExecution};
 #[cfg(test)]
@@ -42,6 +42,7 @@ pub(crate) use installed::{run_retained, run_retained_spoken};
 mod selected_playback;
 mod selected_readout;
 mod speech_options;
+mod wardrobe;
 pub(crate) use speech_options::run as speech_options;
 
 #[cfg(test)]
@@ -181,13 +182,7 @@ fn present(
     basis: &HostOwnedBirthFaceBasis,
     execution: &mut HostedTerminalMaskExecution,
     output: &mut impl Write,
-) -> Result<
-    (
-        conduit_presentation::Presentation,
-        conduit_presentation::MaskShow,
-    ),
-    String,
-> {
+) -> Result<(conduit_face::Face, conduit_face::MaskShow), String> {
     let face = draft.host_owned_face(basis).map_err(debug_error)?;
     let mut mask = TerminalFaceMask::prepare(face.clone(), 80, 24).map_err(debug_error)?;
     mask.present(execution, output).map_err(debug_error)?;
@@ -202,8 +197,8 @@ fn present(
 #[cfg(test)]
 fn read(
     reader: &mut SpokenFaceSession,
-    face: &conduit_presentation::Presentation,
-    show: &conduit_presentation::MaskShow,
+    face: &conduit_face::Face,
+    show: &conduit_face::MaskShow,
     command: ReaderCommand,
     sequence: u64,
     speech: Option<&mut BirthSpeechOutput>,
@@ -217,8 +212,8 @@ fn read(
 
 fn emit_readout(
     reader: &mut SpokenFaceSession,
-    face: &Presentation,
-    show: &conduit_presentation::MaskShow,
+    face: &Face,
+    show: &conduit_face::MaskShow,
     speech: Option<&mut BirthSpeechOutput>,
     output: &mut impl Write,
 ) -> Result<(), String> {
@@ -325,6 +320,165 @@ mod tests {
             read_command_line(&mut input).unwrap(),
             Ok(Some("quit".into()))
         );
+    }
+
+    #[test]
+    fn selected_spoken_birth_opens_with_current_creche_and_help_on_request() {
+        let host = StdHost::new();
+        let advertisement = host.advertisement().clone();
+        let door = ZeroBodyFrontDoor::from_model(
+            Arc::new(HostedPatchbayAdapter),
+            PatchbayModel::from_advertisement(advertisement.clone()),
+        )
+        .unwrap();
+        let basis = HostOwnedBirthFaceBasis {
+            host_id: advertisement.host_id.clone(),
+            boot_id: advertisement.boot_id.clone(),
+            encounter_id: crate::birth_identity::fresh_uuid().unwrap(),
+        };
+        let draft = door.creche_draft(basis.encounter_id.clone()).unwrap();
+        let mut execution = HostedTerminalMaskExecution::new(&advertisement).unwrap();
+        let (face, show) = present(&draft, &basis, &mut execution, &mut Vec::new()).unwrap();
+        assert!(face.basis.body_id.is_none());
+        let mut first_batch = SpokenFaceSession::new(face.clone(), show.clone()).unwrap();
+        first_batch
+            .command(
+                &face,
+                &show,
+                installed::opening_commands(true).next().unwrap(),
+                1,
+            )
+            .unwrap();
+        let first = first_batch.next_batch_with_limits(1, 64).unwrap().unwrap();
+        assert_eq!(first.face_id, face.identity.as_str());
+        assert_eq!(first.source_show_id, show.show_id.as_str());
+        let words = selected_playback::verified_spoken_segments(&face, &show, &first).unwrap();
+        assert_eq!(words.len(), 1);
+        assert_eq!(
+            words[0]["text"].as_str(),
+            Some(first.segments[0].segment.text.as_str())
+        );
+        assert_eq!(
+            words[0]["text_sha256"].as_str(),
+            Some(first.segments[0].text_sha256.as_str())
+        );
+        assert_eq!(words[0]["reason_code"], 1);
+        assert_eq!(words[0]["face_id"], face.identity.as_str());
+        assert_eq!(words[0]["show_id"], show.show_id.as_str());
+        let mut altered = first.clone();
+        altered.segments[0].segment.text.push('!');
+        assert!(selected_playback::verified_spoken_segments(&face, &show, &altered).is_err());
+        let mut wrong_digest = first.clone();
+        wrong_digest.source_segments_sha256 = "00".repeat(32);
+        assert!(selected_playback::verified_spoken_segments(&face, &show, &wrong_digest).is_err());
+        assert!(first.segments[0]
+            .segment
+            .text
+            .contains("A body of your own"));
+        let stopped = first_batch
+            .acknowledge_batch(SpokenBatchDelivery::Cancelled)
+            .unwrap()
+            .unwrap();
+        assert!(selected_readout::turn_interrupted(&stopped.outcome));
+        let mut reader = SpokenFaceSession::new(face.clone(), show.clone()).unwrap();
+        let readings = installed::opening_commands(true)
+            .enumerate()
+            .map(|(index, command)| {
+                reader
+                    .command(&face, &show, command, index as u64 + 1)
+                    .unwrap();
+                reader.take_text_readout().unwrap().unwrap()
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(readings.len(), 2);
+        for reading in &readings {
+            assert_eq!(reading.face_id, face.identity.as_str());
+            assert_eq!(reading.show_id, show.show_id.as_str());
+        }
+        assert!(readings[0].clauses[0].contains("A body of your own"));
+        assert_eq!(readings[1].clauses.len(), 1);
+        assert!(readings[1].clauses[0].contains("Friendly Body name"));
+        reader
+            .command(&face, &show, ReaderCommand::Help, 3)
+            .unwrap();
+        let help = reader
+            .take_text_readout()
+            .unwrap()
+            .unwrap()
+            .clauses
+            .join(" ");
+        for command in [
+            "Type help",
+            "Type read all",
+            "Type focus",
+            "Type edit",
+            "type activate",
+            "Type stop",
+        ] {
+            assert!(help.contains(command), "missing command {command}");
+        }
+        assert_eq!(
+            installed::opening_commands(false).collect::<Vec<_>>(),
+            vec![ReaderCommand::ReadAll]
+        );
+    }
+
+    #[test]
+    fn selected_speech_refused_input_does_not_interrupt_current_play() {
+        use command_input::{CommandInput, InputEvent, SpokenInput};
+        use std::sync::mpsc;
+
+        let host = StdHost::new();
+        let advertisement = host.advertisement().clone();
+        let door = ZeroBodyFrontDoor::from_model(
+            Arc::new(HostedPatchbayAdapter),
+            PatchbayModel::from_advertisement(advertisement.clone()),
+        )
+        .unwrap();
+        let basis = HostOwnedBirthFaceBasis {
+            host_id: advertisement.host_id.clone(),
+            boot_id: advertisement.boot_id.clone(),
+            encounter_id: crate::birth_identity::fresh_uuid().unwrap(),
+        };
+        let draft = door.creche_draft(basis.encounter_id.clone()).unwrap();
+        let mut execution = HostedTerminalMaskExecution::new(&advertisement).unwrap();
+        let (face, show) = present(&draft, &basis, &mut execution, &mut Vec::new()).unwrap();
+        let mut reader = SpokenFaceSession::new(face.clone(), show.clone()).unwrap();
+        reader
+            .command(
+                &face,
+                &show,
+                ReaderCommand::FocusAction("creche.name".into()),
+                1,
+            )
+            .unwrap();
+        let batch = reader.next_batch_with_limits(1, 64).unwrap().unwrap();
+        let (sender, receiver) = mpsc::sync_channel(1);
+        let mut input = SpokenInput::from_receiver(receiver);
+
+        for refused in [
+            "focus absent",
+            "focus subject absent",
+            "edit absent value",
+            "activate",
+            "unknown command",
+        ] {
+            sender.send(InputEvent::Line(refused.into())).unwrap();
+            assert!(!input.interrupting_command(&reader, &face, &show, 2));
+            assert!(matches!(input.next(), InputEvent::Line(line) if line == refused));
+            assert_eq!(
+                reader.next_batch_with_limits(1, 64).unwrap_err(),
+                conduit_std_host::spoken_face_mask::SpokenFaceRefusal::SpeechPressure
+            );
+        }
+        sender.send(InputEvent::Line("next".into())).unwrap();
+        assert!(input.interrupting_command(&reader, &face, &show, 2));
+        assert!(matches!(input.next(), InputEvent::Line(line) if line == "next"));
+        sender.send(InputEvent::Line("stop".into())).unwrap();
+        assert!(input.interrupting_command(&reader, &face, &show, 2));
+        sender.send(InputEvent::Eof).unwrap();
+        assert!(matches!(input.next(), InputEvent::Eof));
+        assert_eq!(batch.source_show_id, show.show_id.as_str());
     }
 
     /// Explicit local-provider proof. This uses the actual zero-Body draft,

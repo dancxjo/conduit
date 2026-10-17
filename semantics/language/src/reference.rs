@@ -16,10 +16,8 @@ struct Lexeme {
     word: bool,
 }
 
-pub fn tokenize_four(
-    text_identity: &str,
-    text: &str,
-) -> Result<StructuredInfoValue, LinguisticRefusal> {
+pub fn tokenize_four(source: &LanguageText) -> Result<StructuredInfoValue, LinguisticRefusal> {
+    let text = source.text().as_str();
     if text.len() > MAXIMUM_LINGUISTIC_TEXT_BYTES as usize {
         return Err(LinguisticRefusal::TextTooLarge);
     }
@@ -70,7 +68,7 @@ pub fn tokenize_four(
     let tokens = lexemes
         .iter()
         .enumerate()
-        .map(|(ordinal, lexeme)| token(text_identity, ordinal as u64, lexeme))
+        .map(|(ordinal, lexeme)| token(source, ordinal as u64, lexeme))
         .collect::<Result<Vec<_>, _>>()?;
     let tokens: [LinguisticToken; 4] =
         tokens.try_into().map_err(|tokens: Vec<LinguisticToken>| {
@@ -82,7 +80,7 @@ pub fn tokenize_four(
     let segment = LinguisticSegment::new(
         "segment/0".to_string(),
         LinguisticSegmentKind::sentence(),
-        span(text_identity, 0, scalar)?,
+        span(source, 0, scalar)?,
     )?;
     Ok(LinguisticTokensFour::new(
         provenance(
@@ -91,6 +89,7 @@ pub fn tokenize_four(
             "unicode-scalar@1",
         )?,
         [segment],
+        source.clone(),
         tokens,
     )?
     .into_structured()?)
@@ -119,7 +118,7 @@ fn push_lexeme(
 }
 
 fn token(
-    text_identity: &str,
+    source: &LanguageText,
     ordinal: u64,
     lexeme: &Lexeme,
 ) -> Result<LinguisticToken, LinguisticRefusal> {
@@ -133,9 +132,9 @@ fn token(
             LinguisticTokenFeatureSlot::unused(),
             LinguisticTokenFeatureSlot::unused(),
         ],
-        token_identity(text_identity, ordinal)?,
+        token_identity(source, ordinal)?,
         LinguisticOptionalText::absent(),
-        span(text_identity, lexeme.start, lexeme.end)?,
+        span(source, lexeme.start, lexeme.end)?,
         lexeme.surface.clone(),
     )?)
 }
@@ -167,6 +166,7 @@ fn annotation_bundle(
 ) -> Result<StructuredInfoValue, LinguisticRefusal> {
     let tokens = LinguisticTokensFour::from_structured(tokens.clone())
         .map_err(|_| LinguisticRefusal::MalformedInfo)?;
+    crate::validate_linguistic_source(&tokens)?;
     let annotations = tokens
         .tokens()
         .iter()
@@ -203,7 +203,13 @@ fn annotation_bundle(
             LinguisticDependencyRelation::punctuation(),
         )?,
     ];
-    Ok(AnnotationBundleFour::new(annotations, dependencies, provenance)?.into_structured()?)
+    Ok(AnnotationBundleFour::new(
+        annotations,
+        dependencies,
+        provenance,
+        tokens.source().clone(),
+    )?
+    .into_structured()?)
 }
 
 fn dependency(
@@ -216,22 +222,24 @@ fn dependency(
     )?)
 }
 
-fn span(text_identity: &str, start: u64, end: u64) -> Result<TextSpan, LinguisticRefusal> {
+fn span(source: &LanguageText, start: u64, end: u64) -> Result<TextSpan, LinguisticRefusal> {
     Ok(TextSpan::new(
         LinguisticOffsetBasis::unicode_scalar(),
         end,
         start,
-        text_identity.to_string(),
+        source.identity().clone(),
+        source.revision().clone(),
     )?)
 }
 
 fn token_identity(
-    text_identity: &str,
+    source: &LanguageText,
     ordinal: u64,
 ) -> Result<LinguisticTokenIdentity, LinguisticRefusal> {
     Ok(LinguisticTokenIdentity::new(
         ordinal,
-        text_identity.to_string(),
+        source.identity().clone(),
+        source.revision().clone(),
     )?)
 }
 

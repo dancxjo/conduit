@@ -14,6 +14,7 @@ use conduitos::{
     identity, keyboard_text_plan,
     linear_presenter::LinearPresenter,
     make::{EMBEDDED_MAKE, IMPL_LINEAR_PRESENTER},
+    observatory,
     offer::CpuFeatures,
     offer_make::ImageBoundHostOffer,
     spore_join,
@@ -28,7 +29,9 @@ pub extern "C" fn conduitos_aarch64_product_start() -> ! {
     let l2 = boot::executable_physical_address(l2).unwrap_or_else(|| refuse("mmio-l2-invalid"));
     arch::install_low_mmio_map(l0, l1, l2);
     arch::initialize_machine();
-    let record = boot::normalize_boot().unwrap_or_else(|error| refuse(error.as_str()));
+    let record = boot::normalize_boot_with_arena_bytes(EMBEDDED_MAKE.runtime_arena_ceiling)
+        .unwrap_or_else(|error| refuse(error.as_str()));
+    arch::initialize_domains(&record);
     let arena = record
         .hhdm_offset
         .checked_add(record.runtime_arena.physical_start)
@@ -48,6 +51,12 @@ pub extern "C" fn conduitos_aarch64_product_start() -> ! {
     if !EMBEDDED_MAKE.includes(IMPL_LINEAR_PRESENTER) {
         refuse("linear-presenter-absent-from-image");
     }
+
+    // SAFETY: this ordinary product startup is the sole Root, before other
+    // native owners; selected local modules require independent administrator
+    // firmware and electrical approval and permanently retain their resources.
+    unsafe { conduitos::protocol_boot::run_if_selected(&record) }
+        .unwrap_or_else(|reason| refuse(reason));
 
     let counter = arch::read_counter();
     let identities = identity::derive(
@@ -75,8 +84,10 @@ pub extern "C" fn conduitos_aarch64_product_start() -> ! {
         .validate()
         .unwrap_or_else(|error| refuse(error.as_str()));
 
-    let host_id = HostId::from(identity::hex(&identities.host));
-    let boot_id = BootId::from(identity::hex(&identities.boot));
+    let host_identity = identity::hex(&identities.host);
+    let boot_identity = identity::hex(&identities.boot);
+    let host_id = HostId::from(host_identity.as_str());
+    let boot_id = BootId::from(boot_identity.as_str());
     let generation = OfferGeneration(offer.generation);
     let plot =
         keyboard_text_plan::checked_plot_identity().unwrap_or_else(|error| refuse(error.as_str()));
@@ -92,8 +103,8 @@ pub extern "C" fn conduitos_aarch64_product_start() -> ! {
         5,
         false,
     );
-    let presentation = front_door
-        .presentation()
+    let face = front_door
+        .face()
         .unwrap_or_else(|error| refuse(error.as_str()));
     let mut presenter = LinearPresenter::prepare(
         host_id,
@@ -104,10 +115,10 @@ pub extern "C" fn conduitos_aarch64_product_start() -> ! {
     )
     .unwrap_or_else(|_| refuse("linear-presenter-plan-refused"));
     let receipt = presenter
-        .present(&presentation)
+        .present(&face)
         .unwrap_or_else(|_| refuse("linear-presenter-manifestation-refused"));
-    for line in &receipt.presentation.lines {
-        arch::present(b"CONDUIT_LINEAR_PRESENTATION ");
+    for line in &receipt.face.lines {
+        arch::present(b"CONDUIT_LINEAR_FACE ");
         arch::present(line.as_bytes());
         arch::present(b"\n");
     }
@@ -128,6 +139,22 @@ pub extern "C" fn conduitos_aarch64_product_start() -> ! {
         arch::present(&join);
         arch::present(b"\n");
     }
+    let export = observatory::prepare_export(
+        &record,
+        &identities,
+        &offer,
+        &prepared,
+        EMBEDDED_MAKE.build_id,
+        EMBEDDED_MAKE.image_binding,
+        None,
+    )
+    .unwrap_or_else(|error| refuse(error.as_str()));
+    // Diagnostic Plays prepare independently after the ordinary Play.
+    let before = if cfg!(feature = "ordinary-domain-proof") {
+        BOOT_ARENA.used()
+    } else {
+        BOOT_ARENA.seal()
+    };
     let mut clock = arch::Clock::new();
     let mut timer = arch::Timer::new();
     let mut serial = arch::Serial::new();
@@ -143,6 +170,12 @@ pub extern "C" fn conduitos_aarch64_product_start() -> ! {
     )
     .unwrap_or_else(|error| refuse(error.as_str()));
 
+    if BOOT_ARENA.used() != before {
+        refuse("allocation-during-play");
+    }
+    #[cfg(feature = "ordinary-domain-proof")]
+    conduitos::aarch64_domain_proof::run(&prepared.plan, &offer);
+
     arch::present(b"CONDUIT_AARCH64_PRODUCT {\"schema\":\"conduit.conduitos/aarch64-product@1\",\"status\":\"ready\",\"profile_id\":\"");
     arch::present(EMBEDDED_MAKE.profile_id.as_bytes());
     arch::present(b"\",\"build_id\":\"");
@@ -150,17 +183,23 @@ pub extern "C" fn conduitos_aarch64_product_start() -> ! {
     arch::present(b"\",\"image_id\":\"");
     arch::present(EMBEDDED_MAKE.image_binding.as_bytes());
     arch::present(b"\",\"host_id\":\"");
-    arch::present(identity::hex(&identities.host).as_bytes());
+    arch::present(host_identity.as_bytes());
     arch::present(b"\",\"boot_id\":\"");
-    arch::present(identity::hex(&identities.boot).as_bytes());
-    arch::present(b"\",\"offer_generation\":1,\"body_id\":null,\"presentation_id\":\"");
-    arch::present(receipt.presentation.presentation_id.as_str().as_bytes());
+    arch::present(boot_identity.as_bytes());
+    arch::present(b"\",\"offer_generation\":1,\"body_id\":null,\"face_id\":\"");
+    arch::present(receipt.face.face_id.as_str().as_bytes());
     arch::present(b"\",\"manifestation_id\":\"");
     arch::present(receipt.manifestation_id.as_str().as_bytes());
     arch::present(b"\",\"presenter_implementation_id\":\"");
     arch::present(receipt.presenter_implementation_id.as_str().as_bytes());
     arch::present(b"\",\"presenter_plan_id\":\"");
     arch::present(receipt.plan_id.as_str().as_bytes());
+    arch::present(b"\",\"ordinary_source_document_id\":\"");
+    arch::present(prepared.source_document_id.as_str().as_bytes());
+    arch::present(b"\",\"ordinary_checked_plot_id\":\"");
+    arch::present(prepared.checked_plot_id.as_str().as_bytes());
+    arch::present(b"\",\"ordinary_expanded_plot_id\":\"");
+    arch::present(prepared.expanded_plot_id.as_str().as_bytes());
     arch::present(b"\",\"ordinary_plan_id\":\"");
     arch::present(prepared.plan.plan_id.as_str().as_bytes());
     arch::present(b"\",\"ordinary_play_id\":\"");
@@ -169,6 +208,9 @@ pub extern "C" fn conduitos_aarch64_product_start() -> ! {
     let _ = report;
     arch::present(b"HELLO, CONDUITOS");
     arch::present(b"\",\"interactive_local_control\":false,\"long_lived\":true}\n");
+    arch::present(observatory::EXPORT_PREFIX.as_bytes());
+    arch::present(export.as_bytes());
+    arch::present(b"\n");
     arch::present(b"CONDUIT_BOOT_STAGE aarch64-product-ready\n");
     loop {
         unsafe { core::arch::asm!("wfi", options(nomem, nostack)) };
@@ -186,6 +228,26 @@ fn refuse(reason: &str) -> ! {
 }
 
 #[panic_handler]
-fn panic(_info: &PanicInfo<'_>) -> ! {
+fn panic(info: &PanicInfo<'_>) -> ! {
+    use core::fmt::Write;
+    arch::disable_interrupts();
+    let mut diagnostic = conduitos::sign_format::FixedText::new();
+    if let Some(location) = info.location() {
+        let _ = writeln!(
+            diagnostic,
+            "CONDUIT_PANIC_LOCATION {}:{}:{}",
+            location.file(),
+            location.line(),
+            location.column()
+        );
+    }
+    let _ = writeln!(diagnostic, "CONDUIT_PANIC_DETAIL {}", info.message());
+    let _ = writeln!(
+        diagnostic,
+        "CONDUIT_PANIC_ARENA live={} capacity={}",
+        BOOT_ARENA.live_bytes(),
+        BOOT_ARENA.capacity()
+    );
+    arch::present(diagnostic.as_bytes());
     refuse("panic")
 }

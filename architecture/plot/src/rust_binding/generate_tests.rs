@@ -145,7 +145,7 @@ fn byte_bindings_retain_the_full_checked_structured_capacity() {
 #[test]
 fn quantity_unit_fields_use_the_canonical_native_unit_vocabulary() {
     let checked = crate::check_syntax_document(
-        &crate::parse_syntax_document("type Axis = {\n unit: QuantityUnit?\n}\n"),
+        &crate::parse_syntax_document("type Axis = {\n unit: Unit?\n}\n"),
         &crate::StartupCatalog::new(),
     )
     .unwrap();
@@ -154,7 +154,7 @@ fn quantity_unit_fields_use_the_canonical_native_unit_vocabulary() {
 
     assert!(generated
         .source
-        .contains("unit: Option<conduit_core::QuantityUnit>"));
+        .contains("unit: Option<conduit_core::Unit>"));
 }
 
 #[test]
@@ -691,8 +691,8 @@ mod generated_round_trip {
         assert_eq!(MusicEvent::decode(&encoded).unwrap(), rest);
 
         let position = Position::new(
-            conduit_core::Quantity::new(3, conduit_core::QuantityUnit::Meter),
-            conduit_core::Quantity::new(5, conduit_core::QuantityUnit::Meter),
+            conduit_core::Quantity::new(3, conduit_core::Unit::Meter),
+            conduit_core::Quantity::new(5, conduit_core::Unit::Meter),
         ).unwrap();
         let encoded = position.clone().encode().unwrap();
         assert_eq!(Position::decode(&encoded).unwrap(), position);

@@ -207,3 +207,59 @@ form audio/gate = Gate as u8
     on
 
 form audio/modulation-destination = ModulationDestination as u8
+
+# Exact acoustic quantities, independent of any renderer or sample rate.
+# Authored fractions are retained without normalization.
+type AudioFrequencyHz = {
+    numerator_hz: U64 in 1..=18446744073709551615
+    denominator: U64 in 1..=18446744073709551615
+}
+
+type AudioCycleDuration = {
+    numerator_seconds: U64 in 1..=18446744073709551615
+    denominator: U64 in 1..=18446744073709551615
+}
+
+# Bandwidth is independent from center frequency, not a normalized Q factor.
+type AudioResonator = {
+    center: AudioFrequencyHz
+    bandwidth: AudioFrequencyHz
+}
+
+# Nonnegative magnitude relative to a positive matching amplitude reference.
+# This is not a signed waveform, probability, gain, power or dB.
+type AudioRelativeAmplitude = {
+    numerator: U64
+    denominator: U64 in 1..=18446744073709551615
+}
+
+# Nonnegative power relative to a positive matching power reference.
+type AudioPowerRatio = {
+    numerator: U64
+    denominator: U64 in 1..=18446744073709551615
+}
+
+# A declared relationship, not proof of measured reference or impedance.
+# Both signal and reference have the same positive proportionality P = k A².
+type AudioAmplitudePowerRelationship =
+    same-positive-proportionality
+
+type AudioAmplitudePowerRequest = {
+    amplitude: AudioRelativeAmplitude
+    relationship: AudioAmplitudePowerRelationship
+}
+
+# Conversion eligibility preserves the full authored request; the quantity
+# domain itself remains full U64. No reduction precedes these bounds.
+type AudioAmplitudePowerEligible = {
+    request: AudioAmplitudePowerRequest
+    where .request.amplitude.numerator <= 4294967295
+    where .request.amplitude.denominator <= 4294967295
+}
+
+# Private arithmetic result; semantic PowerRatio is Native-admitted afterward.
+# Neither this carrier nor a raw expression success establishes positive units.
+type AudioAmplitudePowerSquared = {
+    numerator: U64
+    denominator: U64
+}

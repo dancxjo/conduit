@@ -1,0 +1,14 @@
+    Finished `dev` profile [unoptimized] target(s) in 0.13s
+     Running `target/debug/conduit-xtask-dispatch integrate`
+    Finished `dev` profile [unoptimized] target(s) in 0.17s
+     Running `target/debug/xtask integrate`
+✓ language
+✓ planner/kernel, std Host, representative Plot
+✓ Body lifecycle
+✓ Body history
+✓ local multi-placement
+✓ failure/recovery
+✓ Patchbay
+✓ browser/WASM
+
+Local integration passed.

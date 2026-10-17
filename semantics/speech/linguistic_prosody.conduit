@@ -1,0 +1,32 @@
+# Acoustic quantities are selected profile data, not syntax or comma timing.
+type SpeechLinguisticProsodyRealization = {
+    segment: SpeechSegmentProsodyIntent
+    boundary_kind: SpeechBoundarySpecification
+    boundary_duration: SpeechDurationSpecification
+}
+type SpeechLinguisticProsodyBinding = {
+    identity: Text <= 64B not in [""]
+    profile_id: Text <= 64B not in [""]
+    language: LanguageId
+    choice: LanguageProsodyChoice
+    realization: SpeechLinguisticProsodyRealization
+    provenance: SpeechEvidenceProvenance
+}
+type SpeechLinguisticProsodyAdmission = {
+    profile_id: Text <= 64B not in [""]
+    language: LanguageId
+    requested: LanguageProsodyChoice
+    binding: SpeechLinguisticProsodyBinding
+    where .profile_id == .binding.profile_id
+    where .language == .binding.language
+    where .requested == .binding.choice
+    # This segment-only quantitative seam has no pitch-trajectory carrier.
+    # Rich rising/falling intent must remain unsupported here.
+    where .requested.pitch is level
+    where .requested.boundary is none ? (.binding.realization.boundary_kind is known ? .binding.realization.boundary_kind.known is word : false) : (.binding.realization.boundary_kind is known ? .binding.realization.boundary_kind.known is phrase : false)
+    where .requested.boundary is none ? (.binding.realization.boundary_duration is known ? .binding.realization.boundary_duration.known.numerator_seconds == 0 : false) : true
+}
+plot speech/linguistic-prosody (
+    >> value: SpeechLinguisticProsodyAdmission
+    result: SpeechLinguisticProsodyRealization >>
+) = (.binding.realization)

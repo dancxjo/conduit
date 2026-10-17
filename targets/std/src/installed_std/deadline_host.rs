@@ -77,9 +77,7 @@ impl<const SLOTS: usize> InstalledDeadlineHost<SLOTS> {
         let DeadlineWake::Fired(key) = wake else {
             return match wake {
                 DeadlineWake::Empty => Ok(false),
-                DeadlineWake::Pending { .. } => {
-                    Err("monotonic deadline wait returned before its exact deadline".to_string())
-                }
+                DeadlineWake::Pending { .. } => Ok(false),
                 DeadlineWake::Fired(_) => unreachable!(),
             };
         };

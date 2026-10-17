@@ -10,13 +10,17 @@ pub(crate) fn advertisement(host_id: HostId, boot_id: BootId) -> HostAdvertiseme
             .retain(|prior| prior.capability_id != offer.capability_id);
         advertised.capabilities.push(offer);
     }
-    // The DOM Mask has its own bounded presentation executor and is not a
+    // The DOM Mask has its own bounded face executor and is not a
     // general workload Back in the ordinary browser plot runner.
-    let mask = super::dom_mask::offer();
-    advertised
-        .capabilities
-        .retain(|prior| prior.capability_id != mask.capability_id);
-    advertised.capabilities.push(mask);
+    for mask in [
+        super::dom_mask::offer(),
+        super::dom_mask::configured_offer(),
+    ] {
+        advertised
+            .capabilities
+            .retain(|prior| prior.capability_id != mask.capability_id);
+        advertised.capabilities.push(mask);
+    }
     for resource in local.resources {
         advertised
             .resources
@@ -44,6 +48,12 @@ mod tests {
         let local = crate::installed_browser::advertisement(host, boot);
         let execution = crate::installed_browser::execution_capability_ids();
         assert_eq!(execution.len(), local.capabilities.len());
+        let component = super::super::dom_mask::configured_offer();
+        assert!(advertised.capabilities.contains(&component));
+        assert!(
+            !execution.contains(&component.capability_id),
+            "component Mask must not become an ordinary Body workload Back"
+        );
         for offer in local.capabilities {
             assert!(advertised.capabilities.contains(&offer));
             assert!(execution.contains(&offer.capability_id));
@@ -68,6 +78,28 @@ mod tests {
             "installed membership advertisement: {} bytes, {} capabilities",
             bytes.len(),
             advertised.capabilities.len()
+        );
+        let body = conduit_body::Body::born(
+            conduit_core::SourceDocumentId::from("source/membership-budget"),
+            conduit_core::CheckedPlotId::from("checked/membership-budget"),
+            1,
+            conduit_core::SignId::from("sign/membership-budget"),
+        )
+        .unwrap();
+        let mut inventory = conduit_body::CandidateInventory::new(body.body_id).unwrap();
+        let observation = conduit_body::CandidateObservation {
+            advertisement: advertised.clone(),
+            friendly_label: "Installed browser".into(),
+            observed_binding_id: conduit_core::LinkBindingId::from("line/membership-budget"),
+            observation_sign_id: conduit_core::SignId::from("sign/membership-observed"),
+            proof_id: conduit_body::DiscoveryProofId::bind("proof/membership-budget").unwrap(),
+            freshness_sequence: 1,
+            encoded_bytes: u32::try_from(bytes.len() + 1024).unwrap(),
+        };
+        inventory.observe(observation).unwrap();
+        assert_eq!(
+            inventory.candidates[0].observation.advertisement,
+            advertised
         );
     }
 }

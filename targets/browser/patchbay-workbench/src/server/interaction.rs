@@ -11,22 +11,21 @@ impl PatchbayHtmlServer {
     pub(super) fn apply_interaction(&mut self, bytes: &[u8]) -> Result<Vec<u8>, ServerError> {
         let input: HtmlInteractionInput =
             serde_json::from_slice(bytes).map_err(|_| ServerError::InvalidRequest)?;
-        let stale_presentation = input.presentation_id
-            != self.snapshot.presentation.identity.as_str()
-            || input.presentation_revision != self.snapshot.presentation.revision;
+        let stale_face = input.face_id != self.snapshot.face.identity.as_str()
+            || input.face_revision != self.snapshot.face.revision;
         if input.kind == "invoke"
-            && !stale_presentation
+            && !stale_face
             && self.body_planning.is_some()
-            && self.snapshot.presentation.actions.iter().any(|action| {
+            && self.snapshot.face.actions.iter().any(|action| {
                 Some(action.identity.as_str()) == input.action_id.as_deref()
                     && action.intent == "conduit.intent/lull@1"
                     && matches!(
                         action.availability,
-                        conduit_presentation::PresentationActionAvailability::Available
+                        conduit_face::FaceActionAvailability::Available
                     )
                     && self
                         .snapshot
-                        .presentation
+                        .face
                         .basis
                         .body_id
                         .as_ref()
@@ -50,15 +49,10 @@ impl PatchbayHtmlServer {
         if input.kind == "clear" {
             self.snapshot.interaction.revision =
                 self.snapshot.interaction.revision.saturating_add(1);
-            if stale_presentation {
-                self.snapshot.interaction.last_disposition =
-                    Some("Refused(StalePresentation)".into());
+            if stale_face {
+                self.snapshot.interaction.last_disposition = Some("Refused(StaleFace)".into());
             } else {
-                match self
-                    .snapshot
-                    .entrance
-                    .clear_selection(&self.snapshot.presentation)
-                {
+                match self.snapshot.entrance.clear_selection(&self.snapshot.face) {
                     Ok(()) => {
                         self.snapshot.interaction.selected_subject = None;
                         self.snapshot.interaction.last_disposition = Some("Succeeded".into());
@@ -72,19 +66,14 @@ impl PatchbayHtmlServer {
             self.encoded_snapshot = self.snapshot.encode()?;
             return Ok(self.encoded_snapshot.clone());
         }
-        if self.snapshot.presentation.basis.expanded_plot_id.is_none() && input.kind == "select" {
+        if self.snapshot.face.basis.expanded_plot_id.is_none() && input.kind == "select" {
             self.snapshot.interaction.revision =
                 self.snapshot.interaction.revision.saturating_add(1);
-            if stale_presentation {
-                self.snapshot.interaction.last_disposition =
-                    Some("Refused(StalePresentation)".into());
+            if stale_face {
+                self.snapshot.interaction.last_disposition = Some("Refused(StaleFace)".into());
             } else {
                 let subject = input.subject.ok_or(ServerError::InvalidRequest)?;
-                match self
-                    .snapshot
-                    .entrance
-                    .select(&self.snapshot.presentation, &subject)
-                {
+                match self.snapshot.entrance.select(&self.snapshot.face, &subject) {
                     Ok(()) => {
                         self.snapshot.interaction.selected_subject = Some(subject);
                         self.snapshot.interaction.last_disposition = Some("Succeeded".into());
@@ -106,11 +95,11 @@ impl PatchbayHtmlServer {
             "select" => PatchbayInteractionRequest::select(
                 request_id,
                 &PatchbaySubjectRef {
-                    expanded_plot_id: if stale_presentation {
-                        conduit_core::ExpandedPlotId::from(input.presentation_id.clone())
+                    expanded_plot_id: if stale_face {
+                        conduit_core::ExpandedPlotId::from(input.face_id.clone())
                     } else {
                         self.snapshot
-                            .presentation
+                            .face
                             .basis
                             .expanded_plot_id
                             .clone()
@@ -121,26 +110,42 @@ impl PatchbayHtmlServer {
             ),
             "invoke" => PatchbayInteractionRequest::invoke(
                 request_id,
-                &self.snapshot.presentation,
+                &self.snapshot.face,
                 input
                     .action_id
                     .as_deref()
                     .ok_or(ServerError::InvalidRequest)?,
             ),
-            "edit" => PatchbayInteractionRequest::edit(
-                request_id,
-                parse_html_edit(input.edit.ok_or(ServerError::InvalidRequest)?)?,
-            ),
+            "edit" => {
+                let edit = input.edit.ok_or(ServerError::InvalidRequest)?;
+                let catalog = if let Some(session) = self
+                    .zero_body_front_door
+                    .as_ref()
+                    .filter(|_| edit.operation == "configure-gear")
+                {
+                    session
+                        .lock()
+                        .map_err(|_| ServerError::InvalidRequest)?
+                        .opened_plot_editor()
+                        .map(|editor| editor.checked_physical_catalog())
+                        .transpose()
+                        .map_err(|_| ServerError::InvalidRequest)?
+                        .unwrap_or_default()
+                } else {
+                    conduit_plot::StartupCatalog::new()
+                };
+                PatchbayInteractionRequest::edit(request_id, parse_html_edit(edit, &catalog)?)
+            }
             _ => return Err(ServerError::InvalidRequest),
         }
         .map_err(|error| ServerError::Interaction(format!("{error:?}")))?;
         if let PatchbayInteractionRequest::Invoke { invocation, .. } = &mut request {
-            invocation.presentation_id = input.presentation_id.clone();
-            invocation.presentation_revision = input.presentation_revision;
+            invocation.face_id = input.face_id.clone();
+            invocation.face_revision = input.face_revision;
         }
         let expected_plot_target = self
             .snapshot
-            .presentation
+            .face
             .basis
             .expanded_plot_id
             .as_ref()
@@ -153,7 +158,7 @@ impl PatchbayHtmlServer {
         let mut prepared_zero_body = None;
         let prepared_outcome = match requested_action {
             Some(PatchbayAction::Wake | PatchbayAction::Plan | PatchbayAction::Play)
-                if !stale_presentation
+                if !stale_face
                     && matches!(
                         &request,
                         PatchbayInteractionRequest::Invoke { invocation, .. }
@@ -186,7 +191,7 @@ impl PatchbayHtmlServer {
                     },
                 )
             }
-            Some(PatchbayAction::OpenBack | PatchbayAction::Birth) if !stale_presentation => {
+            Some(PatchbayAction::OpenBack | PatchbayAction::Birth) if !stale_face => {
                 self.zero_body_front_door.as_ref().map_or(
                     PatchbayInvocationOutcome::Refused(PatchbayRefusal::OperationUnavailable),
                     |session| {
@@ -197,16 +202,14 @@ impl PatchbayHtmlServer {
                         match &request {
                             PatchbayInteractionRequest::Invoke { invocation, .. } => {
                                 let result = if invocation.action == PatchbayAction::Birth {
-                                    candidate
-                                        .birth(invocation.presentation_revision)
-                                        .map(|born| {
-                                            prepared_front_door = Some(born);
-                                        })
+                                    candidate.birth(invocation.face_revision).map(|born| {
+                                        prepared_front_door = Some(born);
+                                    })
                                 } else {
                                     candidate
                                         .open_subject(
                                             &invocation.target_identity,
-                                            invocation.presentation_revision,
+                                            invocation.face_revision,
                                         )
                                         .map(|_| prepared_zero_body = Some(candidate))
                                 };
@@ -223,25 +226,23 @@ impl PatchbayHtmlServer {
                     },
                 )
             }
-            Some(PatchbayAction::Save) if !stale_presentation => {
-                self.zero_body_front_door.as_ref().map_or(
-                    PatchbayInvocationOutcome::Refused(PatchbayRefusal::OperationUnavailable),
-                    |session| {
-                        let Ok(session) = session.lock() else {
-                            return PatchbayInvocationOutcome::Failed;
-                        };
-                        let mut candidate = session.clone();
-                        match save_opened_plot(&mut candidate) {
-                            Ok(()) => {
-                                prepared_zero_body = Some(candidate);
-                                PatchbayInvocationOutcome::Succeeded
-                            }
-                            Err(_) => PatchbayInvocationOutcome::Failed,
+            Some(PatchbayAction::Save) if !stale_face => self.zero_body_front_door.as_ref().map_or(
+                PatchbayInvocationOutcome::Refused(PatchbayRefusal::OperationUnavailable),
+                |session| {
+                    let Ok(session) = session.lock() else {
+                        return PatchbayInvocationOutcome::Failed;
+                    };
+                    let mut candidate = session.clone();
+                    match save_opened_plot(&mut candidate) {
+                        Ok(()) => {
+                            prepared_zero_body = Some(candidate);
+                            PatchbayInvocationOutcome::Succeeded
                         }
-                    },
-                )
-            }
-            None if !stale_presentation
+                        Err(_) => PatchbayInvocationOutcome::Failed,
+                    }
+                },
+            ),
+            None if !stale_face
                 && matches!(&request, PatchbayInteractionRequest::Edit { .. })
                 && self.zero_body_front_door.is_some() =>
             {
@@ -265,12 +266,12 @@ impl PatchbayHtmlServer {
         };
         let zero_body_edit_prepared = matches!(&request, PatchbayInteractionRequest::Edit { .. })
             && self.zero_body_front_door.is_some();
-        let presentation = self.snapshot.presentation.clone();
+        let face = self.snapshot.face.clone();
         let receipt = self
             .interaction
-            .execute_presentation(&presentation, request, |request| match request {
-                PatchbayInteractionRequest::Invoke { .. } if stale_presentation => {
-                    PatchbayInvocationOutcome::Refused(PatchbayRefusal::StalePresentation)
+            .execute_face(&face, request, |request| match request {
+                PatchbayInteractionRequest::Invoke { .. } if stale_face => {
+                    PatchbayInvocationOutcome::Refused(PatchbayRefusal::StaleFace)
                 }
                 PatchbayInteractionRequest::Invoke { invocation, .. }
                     if invocation.action == PatchbayAction::ToggleLinearView =>
@@ -290,8 +291,8 @@ impl PatchbayHtmlServer {
                 {
                     prepared_outcome
                 }
-                PatchbayInteractionRequest::Edit { .. } if stale_presentation => {
-                    PatchbayInvocationOutcome::Refused(PatchbayRefusal::StalePresentation)
+                PatchbayInteractionRequest::Edit { .. } if stale_face => {
+                    PatchbayInvocationOutcome::Refused(PatchbayRefusal::StaleFace)
                 }
                 PatchbayInteractionRequest::Edit { .. } if zero_body_edit_prepared => {
                     prepared_outcome
@@ -300,7 +301,7 @@ impl PatchbayHtmlServer {
                     if Some(edit.basis().expanded_plot_id.as_str())
                         != expected_plot_target.as_deref() =>
                 {
-                    PatchbayInvocationOutcome::Refused(PatchbayRefusal::StalePresentation)
+                    PatchbayInvocationOutcome::Refused(PatchbayRefusal::StaleFace)
                 }
                 _ => PatchbayInvocationOutcome::Refused(PatchbayRefusal::OperationUnavailable),
             })
@@ -313,7 +314,7 @@ impl PatchbayHtmlServer {
             {
                 self.snapshot
                     .entrance
-                    .select(&presentation, subject_identity)
+                    .select(&face, subject_identity)
                     .map_err(|error| ServerError::Interaction(format!("{error:?}")))?;
                 self.snapshot.interaction.selected_subject = Some(subject_identity.clone());
             }
@@ -381,8 +382,8 @@ fn save_opened_plot(
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct HtmlInteractionInput {
-    presentation_id: String,
-    presentation_revision: u64,
+    face_id: String,
+    face_revision: u64,
     kind: String,
     subject: Option<String>,
     action_id: Option<String>,
@@ -397,12 +398,16 @@ struct HtmlEditInput {
     expanded_plot_id: String,
     operation: String,
     primary: String,
+    data_label: Option<String>,
     secondary: Option<String>,
     key: Option<String>,
-    value: Option<conduit_core::ConfigurationValue>,
+    value: Option<super::configuration_input::ConfigurationInput>,
 }
 
-fn parse_html_edit(input: HtmlEditInput) -> Result<PatchbayEdit, ServerError> {
+fn parse_html_edit(
+    input: HtmlEditInput,
+    catalog: &conduit_plot::StartupCatalog,
+) -> Result<PatchbayEdit, ServerError> {
     let basis = PatchbayEditBasis::new(
         conduit_core::SourceDocumentId::from(input.source_document_id),
         input.source_revision,
@@ -413,6 +418,7 @@ fn parse_html_edit(input: HtmlEditInput) -> Result<PatchbayEdit, ServerError> {
         "place-gear" => Ok(PatchbayEdit::PlaceGear {
             basis,
             kind_id: input.primary,
+            data_label: input.data_label,
         }),
         "duplicate-gear" => Ok(PatchbayEdit::DuplicateGear {
             basis,
@@ -440,7 +446,11 @@ fn parse_html_edit(input: HtmlEditInput) -> Result<PatchbayEdit, ServerError> {
             basis,
             subject_identity: input.primary,
             key: input.key.ok_or(ServerError::InvalidRequest)?,
-            value: input.value.ok_or(ServerError::InvalidRequest)?,
+            value: input
+                .value
+                .ok_or(ServerError::InvalidRequest)?
+                .checked_with_catalog(catalog)
+                .map_err(|_| ServerError::InvalidRequest)?,
         }),
         _ => Err(ServerError::InvalidRequest),
     }

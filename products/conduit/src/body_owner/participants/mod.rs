@@ -1,23 +1,28 @@
 //! One explicitly authorized browser admission window while the Body is lulled.
 //! The window bounds admission authorization, not carrier handshake/close latency.
-//! The owner may issue a presentation-only browser Mask route on the admitted
+//! The owner may issue a face-only browser Mask route on the admitted
 //! carrier; the Body workload remains on its authoritative Host.
 mod admission;
 mod service;
 #[cfg(unix)]
 mod service_worker;
+#[cfg(unix)]
+mod speech;
 mod transport;
+mod wardrobe;
 use super::Owner;
 use conduit_body::{BodyState, HostPresenceClock, HostPresenceClockScale, HostPresenceTable};
 use conduit_core::{HostId, LinkBindingId, SignId};
-use conduit_presentation::{
+use conduit_face::{
     OwnerFaceSnapshotResponse, MAX_OWNER_FACE_RESPONSE_BYTES, OWNER_FACE_RESPONSE_SCHEMA,
 };
 use conduit_std_host::browser_admission::{
     BrowserAdmissionEgress as Out, BrowserAdmissionIngress as In,
     BROWSER_ADMISSION_PROTOCOL as PROTOCOL,
 };
-pub(crate) use service::{BrowserAdmittedSnapshot, BrowserWindow, BrowserWindowAuthorization};
+pub(crate) use service::{
+    BrowserAdmittedSnapshot, BrowserCarrierLineEvidence, BrowserWindow, BrowserWindowAuthorization,
+};
 #[cfg(unix)]
 pub(crate) use service_worker::run_service_window;
 use std::{
@@ -28,8 +33,10 @@ const LEASE_MS: u64 = 2000;
 const RENEW_MS: u64 = 500;
 const MAX_CONNECTIONS: usize = 8;
 /// A signed admission opens a finite carrier presence independent of the
-/// short window in which the proof was authorized.
-const MAX_BROWSER_PRESENCE_MILLIS: u64 = 600_000;
+/// short window in which the proof was authorized. A continuing browser must
+/// still renew its separate short lease; the longer session bound admits
+/// complete nonvisual readings without expiring an otherwise live carrier.
+const MAX_BROWSER_PRESENCE_MILLIS: u64 = 3_600_000;
 // Permit a renewal every RENEW_MS plus three bounded interactions per renewal.
 const MAX_PRESENCE_FRAMES: usize = (MAX_BROWSER_PRESENCE_MILLIS / RENEW_MS) as usize * 4;
 
@@ -82,16 +89,10 @@ impl Owner {
             let Some(remaining) = deadline.checked_duration_since(Instant::now()) else {
                 break;
             };
-            let Some(mut socket) = listener.accept(remaining)? else {
+            let Some(mut socket) = listener.accept(remaining, "line/owner-browser")? else {
                 break;
             };
-            let binding = LinkBindingId::from(format!(
-                "line/owner-browser/{}",
-                nonce()?
-                    .iter()
-                    .map(|b| format!("{b:02x}"))
-                    .collect::<String>()
-            ));
+            let binding = socket.binding().clone();
             let result = (|| {
                 let (credential, observation) = admission::admit(
                     self,
@@ -199,6 +200,8 @@ fn serve_presence(
         evidence: snapshot.offer.clone(),
     })?;
     acknowledge_presence(socket, &presence)?;
+    #[cfg(unix)]
+    let mut selected_speech = speech::CarrierSpeech::default();
     for _ in 0..MAX_PRESENCE_FRAMES {
         let lease = &presence.leases[0];
         let Some(window_left) = deadline.checked_duration_since(Instant::now()) else {
@@ -275,7 +278,7 @@ fn serve_presence(
                         .into(),
                     });
                 if let OwnerFaceSnapshotResponse::Snapshot {
-                    presentation,
+                    face,
                     interactions_admitted,
                     route,
                     ..
@@ -288,25 +291,26 @@ fn serve_presence(
                             "owner route requires the installed service actor".to_string()
                         })
                         .and_then(|(dir, window)| {
+                            let evidence = socket.line_evidence(snapshot, window)?;
                             crate::durable_host_control::browser::mask_route(
                                 dir,
                                 window,
                                 credential.clone(),
                                 binding.clone(),
+                                evidence,
                             )
                         });
                     #[cfg(not(unix))]
-                    let selected = Err::<conduit_presentation::RemoteOwnerMaskRouteSeal, String>(
+                    let selected = Err::<conduit_face::RemoteOwnerMaskRouteSeal, String>(
                         "owner route requires an installed Unix service actor".into(),
                     );
                     match selected {
                         Ok(selected)
-                            if selected.face_id == presentation.identity
-                                && selected.face_revision == presentation.revision =>
+                            if selected.face_id == face.identity
+                                && selected.face_revision == face.revision =>
                         {
-                            *interactions_admitted = presentation.actions.iter().any(|action| {
-                                action.intent == crate::durable_host::owner::clock_interval_action()
-                            });
+                            *interactions_admitted =
+                                crate::durable_host_control::has_remote_mask_action(face);
                             *route = Some(Box::new(selected));
                         }
                         _ => {
@@ -381,6 +385,70 @@ fn serve_presence(
                         }
                     }),
                 })?;
+            }
+            In::FaceComponentMaskRequest {
+                protocol: PROTOCOL,
+                request_id,
+                request,
+                show,
+                look,
+                recipe,
+            } => {
+                #[cfg(unix)]
+                let result = state_dir
+                    .zip(window_id)
+                    .ok_or_else(|| {
+                        "component selection requires the installed service actor".to_string()
+                    })
+                    .and_then(|(dir, window)| {
+                        crate::durable_host_control::browser::component_mask(
+                            dir,
+                            window,
+                            binding.clone(),
+                            request,
+                            show,
+                            look,
+                            recipe,
+                        )
+                    });
+                #[cfg(not(unix))]
+                let result = {
+                    let _ = (request, show, look, recipe);
+                    Err::<(), String>("owner-unavailable".into())
+                };
+                let code = result.as_ref().err().map_or_else(String::new, |error| {
+                    if error.contains("stale") || error.contains("Stale") {
+                        "stale-face-or-show".into()
+                    } else {
+                        "component-mask-selection-unavailable".into()
+                    }
+                });
+                socket.send(&Out::FaceComponentMaskResponse {
+                    protocol: PROTOCOL,
+                    request_id,
+                    accepted: result.is_ok(),
+                    code,
+                })?;
+            }
+            In::FaceWardrobeRequest {
+                protocol: PROTOCOL,
+                request_id,
+                request,
+                owner_plan_id,
+                basis_revision,
+                action,
+            } => {
+                wardrobe::respond(
+                    socket,
+                    state_dir,
+                    window_id,
+                    binding,
+                    request_id,
+                    request,
+                    owner_plan_id,
+                    basis_revision,
+                    action,
+                )?;
             }
             In::FaceShowAcknowledgement {
                 protocol: PROTOCOL, ..
@@ -467,6 +535,18 @@ fn serve_presence(
                     code: "credential-mismatch".into(),
                 })?;
                 return Err("owner interaction differs from admitted browser carrier".into());
+            }
+            #[cfg(unix)]
+            frame @ (In::SelectedSpeechStart {
+                protocol: PROTOCOL, ..
+            }
+            | In::SelectedSpeechStatus {
+                protocol: PROTOCOL, ..
+            }
+            | In::SelectedSpeechStop {
+                protocol: PROTOCOL, ..
+            }) => {
+                selected_speech.handle(frame, snapshot, socket, binding, state_dir, window_id)?;
             }
             In::OfferDisclosureRequest {
                 protocol: PROTOCOL,

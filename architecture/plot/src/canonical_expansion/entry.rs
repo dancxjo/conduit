@@ -78,11 +78,13 @@ pub fn expand_canonical_plot_for_authoring_with_backs(
     let mut stack = Vec::new();
     let mut realization_backs = Vec::new();
     let mut catalog = catalog.clone();
+    catalog.physical = document.physical.clone();
     catalog.install_type_invariants(&document.native_types);
     let fragment = expand_instance(
         plot,
         &plots,
         document.structured_types(),
+        &document.exact_initial_info,
         &catalog,
         backs,
         &environment,
@@ -128,7 +130,12 @@ pub fn expand_canonical_plot_for_authoring_with_backs(
                 gear_port_id: endpoint.port.port_id.clone(),
             });
     let mut gears = fragment.gears;
-    super::construction::validate(&gears, &document.retained_native_types)?;
+    super::construction::validate(
+        &gears,
+        &document.retained_native_types,
+        &fragment.provenance,
+        backs,
+    )?;
     let mut connections = fragment.connections;
     let mut shared_pools = fragment.shared_pools;
     let mut provenance = fragment.provenance;

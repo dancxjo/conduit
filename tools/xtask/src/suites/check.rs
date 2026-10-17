@@ -4,8 +4,18 @@ use crate::{process::Step, proof::ProofClass};
 mod browser_check;
 pub use browser_check::BROWSER_CHECK_STEPS;
 
+#[path = "input_semantics_check.rs"]
+mod input_semantics_check;
+pub use input_semantics_check::INPUT_SEMANTICS_STEPS;
+
 /// Authoritative definition of the normal Rust workspace check gate.
 pub const WORKSPACE_STEPS: &[Step] = &[
+    Step::new(
+        "check.committed-todo-mask-exchange",
+        "Prove fresh owner checkpoint Faces through native, linear, aural and checked browser Masks",
+        "node",
+        &["proof/conformance/face-waist/committed-todo-exchange.mjs"],
+    ),
     Step::new(
         "check.fmt",
         "Check formatting across workspace",
@@ -97,13 +107,13 @@ pub const WORKSPACE_STEPS: &[Step] = &[
         ],
     ),
     Step::new(
-        "check.no-std.presentation",
-        "Portable presentation no-default-features check",
+        "check.no-std.face",
+        "Portable face no-default-features check",
         "cargo",
         &[
             "check",
             "-p",
-            "conduit-presentation",
+            "conduit-face",
             "--no-default-features",
         ],
     ),
@@ -349,13 +359,13 @@ pub const WORKSPACE_STEPS: &[Step] = &[
         &[],
     ),
     Step::typed(
-        "check.thumb.presentation",
-        "Portable presentation Thumb target check",
+        "check.thumb.face",
+        "Portable face Thumb target check",
         "cargo",
         &[
             "check",
             "-p",
-            "conduit-presentation",
+            "conduit-face",
             "--no-default-features",
             "--target",
             "thumbv6m-none-eabi",
@@ -677,7 +687,7 @@ pub const PLOT_S3_STEPS: &[Step] = &[
     Step::new("check.plot.composite-input-output-only", "test input_only_and_output_only_exports_plan_as_ordinary_operations", "cargo", &["test", "-p", "conduit-composite", "input_only_and_output_only_exports_plan_as_ordinary_operations"]),
     Step::new("check.plot.composite-front-mapping-mutation", "test composite_definition_rejects_every_front_mapping_mutation", "cargo", &["test", "-p", "conduit-composite", "composite_definition_rejects_every_front_mapping_mutation"]),
     Step::new("check.plot.composite-terminal-failure", "test named_front_delivery_failure_and_cancellation_are_parent_terminal_without_topology_leaks", "cargo", &["test", "-p", "conduit-composite", "named_front_delivery_failure_and_cancellation_are_parent_terminal_without_topology_leaks"]),
-    Step::new("check.plot.execution-identity-chain", "test execution_identity_chain_keeps_plan_play_sign_and_presentation_distinct", "cargo", &["test", "-p", "conduit-core", "execution_identity_chain_keeps_plan_play_sign_and_presentation_distinct"]),
+    Step::new("check.plot.execution-identity-chain", "test execution_identity_chain_keeps_plan_play_sign_and_face_distinct", "cargo", &["test", "-p", "conduit-core", "execution_identity_chain_keeps_plan_play_sign_and_face_distinct"]),
     Step::new("check.plot.observatory-current-plan", "test projects exact current plan truth", "cargo", &["test", "-p", "conduit-observatory", "projects_exact_std_pico_usb_arrangement_without_promoting_physical_proof"]),
 ];
 
@@ -719,69 +729,6 @@ pub const SEMANTIC_CATALOG_READINESS_STEPS: &[Step] = &[
         "cargo",
         &[
             "check",
-            "-p",
-            "conduit-semantic-catalog",
-            "--no-default-features",
-            "--target",
-            "thumbv6m-none-eabi",
-        ],
-        None,
-        Some("thumbv6m-none-eabi"),
-        Some(ProofClass::ContractCompile),
-        &[],
-    ),
-];
-
-/// Deterministic K5/K5b contracts plus K8's two truthful platform seams.
-pub const INPUT_SEMANTICS_STEPS: &[Step] = &[
-    Step::new(
-        "check.input-semantics.core",
-        "test the reusable keymap and chord contracts",
-        "cargo",
-        &["test", "-p", "conduit-core", "--test", "input_semantics"],
-    ),
-    Step::new(
-        "check.input-semantics.std-host",
-        "test ordinary std Host input Plots and bounded operations",
-        "cargo",
-        &["test", "-p", "conduit-std-host", "input_semantics"],
-    ),
-    Step::new(
-        "check.input-semantics.patchbay",
-        "test finite Patchbay input controls",
-        "cargo",
-        &[
-            "test",
-            "-p",
-            "conduit-patchbay-workbench",
-            "input_semantic_controls",
-        ],
-    ),
-    Step::new(
-        "check.input-semantics.conduitos-peer-vectors",
-        "test ConduitOS USB conversion against shared peer vectors",
-        "cargo",
-        &[
-            "test",
-            "-p",
-            "conduitos",
-            "keyboard_bridge::tests::usb_bridge_matches_every_shared_peer_conformance_value",
-        ],
-    ),
-    Step::new(
-        "check.input-semantics.native-peer",
-        "test native physical-key mapping, shared semantics, planning, and finite failures",
-        "cargo",
-        &["test", "-p", "patchbay-native", "portable_keyboard_tests"],
-    ),
-    Step::typed(
-        "check.input-semantics.thumb",
-        "check reusable input contracts for the thumb target",
-        "cargo",
-        &[
-            "check",
-            "-p",
-            "conduit-core",
             "-p",
             "conduit-semantic-catalog",
             "--no-default-features",

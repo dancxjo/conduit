@@ -2,7 +2,7 @@
 
 use conduit_body::{Body, BodyMembership, MembershipProofId, Wake};
 use conduit_core::{BootId, CheckedPlotId, HostId, SignId, SourceDocumentId};
-use conduit_presentation::Presentation;
+use conduit_face::Face;
 
 use crate::{LocalFrontDoor, PatchbayModel, PlotEditor};
 use std::sync::Arc;
@@ -237,7 +237,7 @@ pub enum OpenedFrontDoorSubject {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ZeroBodyFrontDoorProjection {
-    pub presentation: Presentation,
+    pub face: Face,
     pub navigation: patchbay_application::PatchbayNavigationProjection,
 }
 
@@ -262,7 +262,7 @@ impl ZeroBodyFrontDoor {
             HostId::from(format!("patchbay-native/{nonce:x}")),
             BootId::from(format!("patchbay-boot/{nonce:x}")),
             conduit_core::OfferGeneration(1),
-            crate::PatchbayHostProfile::Text,
+            crate::PatchbayHostProfile::Authoring,
         )?;
         Self::from_model(adapter, PatchbayModel::from_advertisement(advertisement))
     }
@@ -276,7 +276,7 @@ impl ZeroBodyFrontDoor {
             host_id,
             boot_id,
             conduit_core::OfferGeneration(1),
-            crate::PatchbayHostProfile::Text,
+            crate::PatchbayHostProfile::Authoring,
         )?;
         Self::from_model(adapter, PatchbayModel::from_advertisement(advertisement))
     }
@@ -294,18 +294,32 @@ impl ZeroBodyFrontDoor {
             1,
         )?;
         let clock = PlotCandidate::from_source(
-            "Clock",
+            "Interval ticker",
             "plots/clock/main.conduit",
             include_str!("../../../../../plots/clock/main.conduit"),
             "reviewed plot inventory; opening is inert and BIRTH remains explicit",
             SignId::from("patchbay/front-door/clock-available"),
             2,
         )?;
+        let mut plots = vec![morse_network, clock];
+        if model.advertisement().capabilities.iter().any(|offer| {
+            offer.implementation.implementation_id.as_str()
+                == conduit_std_offers::TODO_CHECKPOINT_IMPLEMENTATION
+        }) {
+            plots.push(PlotCandidate::from_source(
+                "Todo list",
+                "plots/todo/checkpoint-once.conduit",
+                include_str!("../../../../../plots/todo/checkpoint-once.conduit"),
+                "reviewed Todo Plot; requires this Host's selected checkpoint residence",
+                SignId::from("patchbay/front-door/todo-checkpoint-available"),
+                3,
+            )?);
+        }
         Ok(Self {
             adapter,
             model,
             body_candidates: Vec::new(),
-            plots: vec![morse_network, clock],
+            plots,
             opened: None,
             refusals: Vec::new(),
             revision: 1,
@@ -332,7 +346,7 @@ impl ZeroBodyFrontDoor {
     }
 
     pub fn record_refusal(&mut self, code: &str) -> Result<SignId, String> {
-        if !matches!(code, "StalePresentation" | "StaleDiscovery" | "StalePlot") {
+        if !matches!(code, "StaleFace" | "StaleDiscovery" | "StalePlot") {
             return Err("unsupported front-door refusal code".into());
         }
         if self.refusals.len() == MAX_FRONT_DOOR_REFUSAL_SIGNS {
@@ -491,7 +505,7 @@ impl ZeroBodyFrontDoor {
         self.revision = self
             .revision
             .checked_add(1)
-            .ok_or("front-door presentation revision exhausted")?;
+            .ok_or("front-door face revision exhausted")?;
         Ok(())
     }
 }

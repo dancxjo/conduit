@@ -69,10 +69,7 @@ fn pointer_crosses_checked_plan_and_kernel_with_exact_identities() {
     assert!(!receipt.plan_id.is_empty());
     assert!(!receipt.play_id.is_empty());
     assert!(!receipt.sign_id.is_empty());
-    assert_ne!(
-        receipt.source_placement_id,
-        receipt.presentation_placement_id
-    );
+    assert_ne!(receipt.source_placement_id, receipt.face_placement_id);
 }
 
 #[test]

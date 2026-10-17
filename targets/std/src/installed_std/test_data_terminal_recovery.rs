@@ -6,7 +6,7 @@ use conduit_core::{
     CapabilityId, CapabilityLimits, CapabilityOffer, CheckedValueContract, ExecutionProfileId,
     FrontValueContract, FrontValueLocation, ImplementationId, Kind, KindIdentity, KindSemanticLaw,
     NormalCloseTransduction, PlannedGear, PortDescriptor, PortDirection, PortTemporal,
-    TerminalTransductionProfile, UNIT_INFO_ID,
+    TerminalTransductionProfile, EMPTY_INFO_ID,
 };
 use conduit_kernel::{
     scheduler::{
@@ -332,7 +332,7 @@ fn contract(kind: TerminalKind) -> Kind {
     };
     let output = PortDescriptor {
         port_id: port_id("recovered"),
-        value_kind: kind_id(UNIT_INFO_ID),
+        value_kind: kind_id(EMPTY_INFO_ID),
         direction: PortDirection::Output,
         temporal: PortTemporal::Value,
         abnormal_kind: None,

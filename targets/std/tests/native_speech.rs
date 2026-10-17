@@ -51,12 +51,27 @@ impl ExternalForeOutputAdapter for Collector {
         Ok(())
     }
 }
+const ENGLISH_REQUEST: &str = r#"{ language: "language/english", variety: some({ identity: "pronunciation/native-english@2", language: "language/english" }), variety_policy: exact_variety(empty) }"#;
+
+fn source(request: &str) -> String {
+    r#"plot native-voice (
+ >> text: Text <= 512B
+ audio: PcmFrames...| <= 285B >>
+) {
+ voice: speech/utterance(clock=7, language-request = REQUEST)
+ text >> voice.text
+ voice.audio >> audio
+}.
+"#
+    .replace("REQUEST", request)
+}
+
 fn run(text: &str) -> (Collector, conduit_std_host::StdRunReport) {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     conduit_speech::kernel::install(&mut startup, &mut profile).unwrap();
-    let source = "plot native-voice (\n >> text: Text <= 512B\n audio: PcmFrames...| <= 285B >>\n) {\n voice: speech/english-utterance(clock=7)\n text >> voice.text\n voice.audio >> audio\n}.\n";
-    let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
+    let source = source(ENGLISH_REQUEST);
+    let checked = check_syntax_document(&parse_syntax_document(&source), &startup).unwrap();
     let authored = expand_canonical_plot_for_authoring(&checked, "native-voice", &profile).unwrap();
     let mut host =
         StdHost::new_with_composition(config(), StdHostComposition::minimal().with_native_speech());
@@ -179,8 +194,62 @@ fn minimal_and_reference_compositions_truthfully_select_the_native_family() {
         .iter()
         .filter(|offer| !baseline.contains(offer))
         .collect();
-    assert_eq!(added, vec![&conduit_speech::kernel::offer()]);
+    // #5327's offer-fixture repair exposed this assumption. The reconciled
+    // native family contains the voice Back and exactly four static IPA Backs.
+    let mut expected = vec![conduit_speech::kernel::offer()];
+    expected.extend(
+        conduit_speech::ipa_constructors::IpaConstructor::ALL
+            .map(conduit_speech::ipa_constructors::offer),
+    );
+    assert_eq!(added.len(), expected.len());
+    for offer in &expected {
+        assert!(added.contains(&offer));
+    }
     assert!(offers(StdHostComposition::reference())
         .iter()
         .any(|o| *o == conduit_speech::kernel::offer()));
+}
+
+#[test]
+fn installed_native_voice_refuses_other_languages_and_pronunciation_varieties_before_play() {
+    use conduit_language::LanguageCoverageRefusal;
+    use conduit_planner::PlannerError;
+    let mut startup = StartupCatalog::new();
+    let mut profile = ProfileCatalog::new();
+    conduit_speech::kernel::install(&mut startup, &mut profile).unwrap();
+    let host =
+        StdHost::new_with_composition(config(), StdHostComposition::minimal().with_native_speech());
+    let hosts = [host.advertisement().clone()];
+    for (request, language, expected) in [
+        (
+            r#"{ language: "language/french", variety: none(empty), variety_policy: language_sufficient(empty) }"#,
+            "language/french",
+            LanguageCoverageRefusal::Language,
+        ),
+        (
+            r#"{ language: "language/english", variety: some({ identity: "pronunciation/other-english", language: "language/english" }), variety_policy: exact_variety(empty) }"#,
+            "language/english",
+            LanguageCoverageRefusal::Variety,
+        ),
+        (
+            r#"{ language: "language/english", variety: none(empty), variety_policy: language_sufficient(empty) }"#,
+            "language/english",
+            LanguageCoverageRefusal::MissingVariety,
+        ),
+    ] {
+        let checked =
+            check_syntax_document(&parse_syntax_document(&source(request)), &startup).unwrap();
+        let authored =
+            expand_canonical_plot_for_authoring(&checked, "native-voice", &profile).unwrap();
+        let error =
+            conduit_planner::default_expanded_placements(&authored.expanded, &hosts).unwrap_err();
+        let PlannerError::LanguageCoverageUnsatisfied(evidence) = error else {
+            panic!("expected exact coverage refusal: {error:?}");
+        };
+        assert_eq!(evidence.requirements[0].request.language().get(), language);
+        assert!(evidence.candidates.iter().any(|candidate| candidate
+            .checks
+            .iter()
+            .any(|check| check.result == Err(expected))));
+    }
 }

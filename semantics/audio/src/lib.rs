@@ -7,6 +7,20 @@
 
 extern crate alloc;
 
+mod pitch_analysis;
+mod pitch_encoding;
+mod pitch_native;
+mod pitch_profile;
+mod pitch_projection_report;
+pub use generated::{
+    AudioPitchCorrelation, AudioPitchDigest, AudioPitchEstimator, AudioPitchObservation,
+    AudioPitchState,
+};
+pub use pitch_analysis::*;
+pub use pitch_encoding::*;
+pub use pitch_profile::*;
+pub use pitch_projection_report::*;
+
 #[allow(
     clippy::clone_on_copy,
     clippy::manual_range_contains,
@@ -26,7 +40,10 @@ mod generated {
 }
 
 pub use generated::{
-    AudioRenderDemand, AudioToneTerminal, AudioToneTerminalForm, BeatReference,
+    AudioAmplitudePowerEligible, AudioAmplitudePowerRelationship, AudioAmplitudePowerRequest,
+    AudioCycleDuration, AudioFrequencyControl, AudioFrequencyHz, AudioPhaseReference,
+    AudioPhaseReferenceMatch, AudioPowerRatio, AudioRelativeAmplitude, AudioRenderDemand,
+    AudioResonator, AudioTimeControl, AudioToneTerminal, AudioToneTerminalForm, BeatReference,
     CancellationDisposition, Gate, GateForm, IncompatibilityReason, InstrumentAnalogEvent,
     InstrumentButtonEvent, InstrumentControl, InstrumentMapping, InstrumentPitchMillihertz,
     ModulationDestination, ModulationDestinationForm, MusicalControl, MusicalControlEvent,
@@ -39,6 +56,7 @@ pub use generated::{
 
 mod audio_info;
 mod audio_render_demand;
+mod exact_quantity_projection;
 mod pcm_clip;
 mod sampled_signal_mapping;
 mod sound_info;
@@ -50,3 +68,121 @@ pub use pcm_clip::*;
 pub use sampled_signal_mapping::*;
 pub use sound_info::*;
 pub use tone_terminal::*;
+
+mod exact_controls;
+pub use exact_controls::*;
+
+mod acoustic_quantities;
+pub use acoustic_quantities::*;
+
+mod source_programs {
+    include!(concat!(env!("OUT_DIR"), "/acoustic_programs.rs"));
+}
+mod trajectory;
+pub use generated::{
+    AudioExactTimeOffset, AudioOriginIdentity, AudioQuantityTrajectory, AudioTimelineIdentity,
+    AudioTrajectoryAnchor, AudioTrajectoryDomain, AudioTrajectoryEndpoints,
+    AudioTrajectoryInterpolation, AudioTrajectoryOutside, AudioTrajectoryProvenance,
+    AudioTrajectoryProvenanceKind, AudioTrajectoryQuantity, AudioTrajectoryQuery,
+    AudioTrajectorySegment,
+};
+pub use trajectory::*;
+
+mod source_execution;
+pub use source_execution::{AudioSourceExecution, AudioSourceExecutionRefusal};
+mod rate_projection;
+pub use generated::{
+    AudioCumulativeFrameBasis, AudioCumulativeFrameCursor, AudioCumulativeFrameRequest,
+    AudioCumulativeFrameResult, AudioFrameGridFidelity, AudioFrameQuantization,
+    AudioIntegerFrameTarget, AudioSampleProjectionChain, AudioSampleProjectionQuantity,
+    AudioSampleProjectionRequest, AudioSampleProjectionResult, AudioSampleRateBasis,
+    AudioTimeFraction,
+};
+pub use rate_projection::*;
+mod rate_projection_report;
+pub use rate_projection_report::*;
+
+mod decibel_projection;
+pub use decibel_projection::*;
+pub use generated::{
+    AudioAmplitudePowerReferences, AudioDecibelBasis, AudioDecibelConvention, AudioDecibelFraction,
+    AudioDecibelLevel, AudioDecibelReference, AudioDecibelReferenceRole, AudioDecibelValue,
+    AudioLevelRatio, AudioReferencedAmplitudePowerRequest, AudioReferencedLevelRatio,
+};
+mod decibel_projection_report;
+pub use decibel_projection_report::*;
+
+pub use generated::{
+    AudioFiniteDecibelLevel, AudioPositiveLevelRatio, AudioPositivePowerRatio,
+    AudioPositiveReferencedLevelRatio, AudioPositiveRelativeAmplitude,
+};
+mod positive_levels;
+pub use positive_levels::*;
+
+pub use generated::{
+    AudioControlConflictPolicy, AudioControlGapPolicy, AudioControlPriorityDecision,
+    AudioControlPriorityInput, AudioControlTrajectorySet, AudioScopedControlTrajectory,
+};
+mod control_trajectories;
+pub use control_trajectories::*;
+
+pub use generated::AudioControlDomainMatch;
+
+mod time_analysis;
+pub use time_analysis::*;
+
+pub use generated::{
+    AudioTimeAnalysisDigest, AudioTimeAnalysisObservation, AudioTimeAnalysisReference,
+    AudioTimeAnalysisWaveform, AudioTimeAnalysisWaveformPage, AudioTimeAnalysisWindow,
+};
+
+mod time_analysis_native;
+
+mod time_analysis_encoding;
+pub use time_analysis_encoding::*;
+
+pub use generated::{
+    AudioTimeAmplitudeMagnitude, AudioTimeMeanSquarePower, AudioTimeSampleAmplitude,
+    AudioTimeSquareSum,
+};
+
+/// Shared portable phase/pulse-flow laws; opaque context is preserved.
+pub const PERIODIC_FLOW_SOURCE: &str = include_str!("../dsp/periodic-flow.conduit");
+
+pub use generated::{
+    AudioPeriodicAdvanced, AudioPeriodicCursor, AudioPeriodicOutcome, AudioPeriodicProfile,
+    AudioPeriodicProjection, AudioPeriodicReference, AudioPeriodicRequest,
+    AudioPeriodicStartOutcome, AudioPeriodicStepInput,
+};
+/// Portable oscillator realization and finite state transition Source.
+pub const PERIODIC_OSCILLATOR_SOURCE: &str = include_str!("../dsp/periodic-oscillator.conduit");
+
+pub use generated::{AudioPeriodicCursorCandidate, AudioPeriodicProjectionCandidate};
+/// Executable predicates derived from the same Source snapshot laws.
+pub const PERIODIC_VALIDATION_SOURCE: &str =
+    include_str!(concat!(env!("OUT_DIR"), "/periodic-validators.conduit"));
+mod spectral_analysis;
+mod spectral_fft;
+pub use spectral_analysis::*;
+
+pub use generated::{
+    AudioSpectrumAmplitude, AudioSpectrumAmplitudes, AudioSpectrumBinRequest, AudioSpectrumDigest,
+    AudioSpectrumEstimator, AudioSpectrumMeanSquare, AudioSpectrumMeanSquares,
+    AudioSpectrumObservation, AudioSpectrumReference, AudioSpectrumWindow,
+};
+
+mod spectral_geometry;
+pub use spectral_geometry::*;
+
+mod spectral_native;
+pub use spectral_native::*;
+
+mod spectral_encoding;
+pub use spectral_encoding::*;
+
+/// Shared authored recurrence; profile admission remains with its caller.
+pub const RESONATOR_RECURRENCE_SOURCE: &str = include_str!("../dsp/resonator-recurrence.conduit");
+
+mod pcm_packing;
+pub use generated::{AudioPcm16PackingFrame, AudioPcm16PackingInput};
+pub use pcm_packing::*;

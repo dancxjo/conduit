@@ -12,12 +12,14 @@ use conduit_body::{
     MAX_DISCLOSED_RESOURCES,
 };
 use conduit_core::{BootId, HostAdvertisement, HostId, PlanId, PortId, ResourceHandleId};
-use conduit_human::{AcquiredMediaResource, MediaResourceAvailability};
-use conduit_presentation::{
-    FaceInteraction, MaskShow, OwnerFaceSnapshotRequest, OwnerFaceSnapshotResponse,
-    MAX_FACE_INTERACTION_BYTES, MAX_OWNER_FACE_RESPONSE_BYTES, OWNER_FACE_RESPONSE_SCHEMA,
+use conduit_face::{
+    FaceInteraction, MaskShow, MaskWardrobeAction, OwnerFaceSnapshotRequest,
+    OwnerFaceSnapshotResponse, MAX_FACE_INTERACTION_BYTES, MAX_OWNER_FACE_RESPONSE_BYTES,
+    OWNER_FACE_RESPONSE_SCHEMA,
 };
+use conduit_human::{AcquiredMediaResource, MediaResourceAvailability};
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use std::time::Duration;
 
 use crate::websocket::{NativeWebSocketError, NativeWebSocketLine, NativeWebSocketListener};
@@ -38,6 +40,19 @@ pub use webrtc_signaling::{
 pub const BROWSER_ADMISSION_PROTOCOL: u16 = 1;
 pub const MAX_BROWSER_ADMISSION_FRAME_BYTES: usize =
     MAX_CANDIDATE_ADVERTISEMENT_BYTES as usize + 1_024;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum BrowserComponentLook {
+    Compact,
+    Spacious,
+}
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum BrowserComponentRecipe {
+    Flat,
+    Grouped,
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "kebab-case", deny_unknown_fields)]
@@ -94,11 +109,43 @@ pub enum BrowserAdmissionIngress {
         request: OwnerFaceSnapshotRequest,
         show: Box<MaskShow>,
     },
+    FaceComponentMaskRequest {
+        protocol: u16,
+        request_id: String,
+        request: OwnerFaceSnapshotRequest,
+        show: Box<MaskShow>,
+        look: BrowserComponentLook,
+        recipe: BrowserComponentRecipe,
+    },
+    FaceWardrobeRequest {
+        protocol: u16,
+        request_id: String,
+        request: OwnerFaceSnapshotRequest,
+        owner_plan_id: Option<PlanId>,
+        basis_revision: u64,
+        action: Option<MaskWardrobeAction>,
+    },
     FaceInteractionRequest {
         protocol: u16,
         request: OwnerFaceSnapshotRequest,
         show: Box<MaskShow>,
         interaction: FaceInteraction,
+    },
+    SelectedSpeechStart {
+        protocol: u16,
+        request_id: String,
+        request: OwnerFaceSnapshotRequest,
+        show: Box<MaskShow>,
+    },
+    SelectedSpeechStatus {
+        protocol: u16,
+        request_id: String,
+        operation_id: String,
+    },
+    SelectedSpeechStop {
+        protocol: u16,
+        request_id: String,
+        operation_id: String,
     },
     OfferDisclosureRequest {
         protocol: u16,
@@ -190,10 +237,31 @@ pub enum BrowserAdmissionEgress {
         accepted: bool,
         code: String,
     },
+    FaceComponentMaskResponse {
+        protocol: u16,
+        request_id: String,
+        accepted: bool,
+        code: String,
+    },
+    FaceWardrobeResponse {
+        protocol: u16,
+        request_id: String,
+        accepted: bool,
+        code: String,
+        report: Option<Box<Value>>,
+    },
     FaceInteractionResponse {
         protocol: u16,
         accepted: bool,
         code: String,
+    },
+    SelectedSpeechResponse {
+        protocol: u16,
+        request_id: String,
+        outcome: String,
+        operation_id: Option<String>,
+        status: Option<Box<Value>>,
+        code: Option<String>,
     },
     MediaUsePlan {
         protocol: u16,
@@ -444,6 +512,43 @@ fn validate_ingress(frame: &BrowserAdmissionIngress) -> Result<(), BrowserAdmiss
             }
             protocol
         }
+        BrowserAdmissionIngress::FaceComponentMaskRequest {
+            protocol,
+            request_id,
+            request,
+            show,
+            ..
+        } => {
+            if !request.has_exact_basis()
+                || !valid_component_request_id(request_id)
+                || show.show.host_id != request.host_id
+                || show.show.boot_id != request.boot_id
+                || show.show.body_id.as_ref() != Some(&request.body_id)
+                || serde_json::to_vec(show)
+                    .map_err(|_| BrowserAdmissionFrameError::InvalidFaceSnapshot)?
+                    .len()
+                    > 64 * 1024
+            {
+                return Err(BrowserAdmissionFrameError::InvalidFaceSnapshot);
+            }
+            protocol
+        }
+        BrowserAdmissionIngress::FaceWardrobeRequest {
+            protocol,
+            request_id,
+            request,
+            owner_plan_id,
+            action,
+            ..
+        } => {
+            if !request.has_exact_basis()
+                || !valid_wardrobe_request_id(request_id)
+                || owner_plan_id.is_some() != action.is_some()
+            {
+                return Err(BrowserAdmissionFrameError::InvalidFaceSnapshot);
+            }
+            protocol
+        }
         BrowserAdmissionIngress::FaceInteractionRequest {
             protocol,
             request,
@@ -453,11 +558,46 @@ fn validate_ingress(frame: &BrowserAdmissionIngress) -> Result<(), BrowserAdmiss
             if !request.has_exact_basis()
                 || interaction.encode().len() > MAX_FACE_INTERACTION_BYTES
                 || interaction.show_id != show.show_id.as_str()
-                || interaction.face_revision != show.presentation_revision
-                || interaction.face_id != show.presentation_id.as_str()
+                || interaction.face_revision != show.face_revision
+                || interaction.face_id != show.face_id.as_str()
                 || show.show.host_id != request.host_id
                 || show.show.boot_id != request.boot_id
             {
+                return Err(BrowserAdmissionFrameError::InvalidFaceSnapshot);
+            }
+            protocol
+        }
+        BrowserAdmissionIngress::SelectedSpeechStart {
+            protocol,
+            request_id,
+            request,
+            show,
+        } => {
+            if !valid_speech_id(request_id)
+                || !request.has_exact_basis()
+                || show.show.host_id != request.host_id
+                || show.show.boot_id != request.boot_id
+                || show.show.body_id.as_ref() != Some(&request.body_id)
+                || serde_json::to_vec(show)
+                    .map_err(|_| BrowserAdmissionFrameError::InvalidFaceSnapshot)?
+                    .len()
+                    > 64 * 1024
+            {
+                return Err(BrowserAdmissionFrameError::InvalidFaceSnapshot);
+            }
+            protocol
+        }
+        BrowserAdmissionIngress::SelectedSpeechStatus {
+            protocol,
+            request_id,
+            operation_id,
+        }
+        | BrowserAdmissionIngress::SelectedSpeechStop {
+            protocol,
+            request_id,
+            operation_id,
+        } => {
+            if !valid_speech_id(request_id) || !valid_speech_id(operation_id) {
                 return Err(BrowserAdmissionFrameError::InvalidFaceSnapshot);
             }
             protocol
@@ -540,6 +680,157 @@ fn validate_ingress(frame: &BrowserAdmissionIngress) -> Result<(), BrowserAdmiss
     Ok(())
 }
 
+fn valid_speech_id(value: &str) -> bool {
+    !value.is_empty() && value.len() <= 256 && value.bytes().all(|byte| byte.is_ascii_graphic())
+}
+
+fn valid_component_request_id(value: &str) -> bool {
+    value
+        .strip_prefix("browser-component:")
+        .is_some_and(|sequence| {
+            !sequence.is_empty()
+                && sequence.len() <= 16
+                && !sequence.starts_with('0')
+                && sequence.bytes().all(|byte| byte.is_ascii_digit())
+        })
+}
+
+fn valid_wardrobe_request_id(value: &str) -> bool {
+    !value.is_empty()
+        && value.len() <= 128
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'_' | b':' | b'-'))
+}
+
+#[cfg(test)]
+mod wardrobe_wire_tests {
+    use super::*;
+
+    #[test]
+    fn wardrobe_request_uses_correlated_revision_bound_action_shape() {
+        let mask = conduit_core::PlotIdentity {
+            source_document_id: conduit_core::SourceDocumentId::from("source/mask"),
+            checked_plot_id: conduit_core::CheckedPlotId::from("checked/mask"),
+            expanded_plot_id: conduit_core::ExpandedPlotId::from("expanded/mask"),
+        };
+        let body = conduit_body::Body::born(
+            conduit_core::SourceDocumentId::from("source/wardrobe-test"),
+            conduit_core::CheckedPlotId::from("checked/wardrobe-test"),
+            1,
+            conduit_core::SignId::from("sign/wardrobe-test/born"),
+        )
+        .unwrap();
+        let part_id = PartId::bind(&body.body_id, "part/wardrobe-test", 1).unwrap();
+        let request = OwnerFaceSnapshotRequest {
+            schema: conduit_face::OWNER_FACE_REQUEST_SCHEMA.into(),
+            credential_id: "credential/test".into(),
+            body_id: body.body_id,
+            part_id,
+            host_id: HostId::from("host/test"),
+            boot_id: BootId::from("boot/test"),
+            last_seen_revision: None,
+            last_seen_identity: None,
+        };
+        let frame = BrowserAdmissionIngress::FaceWardrobeRequest {
+            protocol: BROWSER_ADMISSION_PROTOCOL,
+            request_id: "wardrobe:1".into(),
+            request,
+            owner_plan_id: Some(PlanId::from("plan/owner")),
+            basis_revision: 7,
+            action: Some(MaskWardrobeAction::Wear(mask)),
+        };
+        let value = serde_json::to_value(&frame).unwrap();
+        assert_eq!(value["kind"], "face-wardrobe-request");
+        assert_eq!(value["request_id"], "wardrobe:1");
+        assert_eq!(value["owner_plan_id"], "plan/owner");
+        assert_eq!(value["basis_revision"], 7);
+        assert_eq!(value["action"]["Wear"]["source_document_id"], "source/mask");
+        assert!(decode_browser_admission_frame(&serde_json::to_vec(&frame).unwrap()).is_ok());
+        let response = BrowserAdmissionEgress::FaceWardrobeResponse {
+            protocol: BROWSER_ADMISSION_PROTOCOL,
+            request_id: "wardrobe:1".into(),
+            accepted: true,
+            code: String::new(),
+            report: Some(Box::new(
+                serde_json::json!({"schema":"conduit.body/owner-mask-wardrobe@1"}),
+            )),
+        };
+        let value = serde_json::to_value(response).unwrap();
+        assert_eq!(value["kind"], "face-wardrobe-response");
+        assert_eq!(
+            value["report"]["schema"],
+            "conduit.body/owner-mask-wardrobe@1"
+        );
+    }
+}
+
+#[cfg(test)]
+mod selected_speech_tests {
+    use super::*;
+
+    #[test]
+    fn selected_speech_status_requires_a_bounded_correlated_operation() {
+        let valid = br#"{"kind":"selected-speech-status","protocol":1,"request_id":"browser-speech/1","operation_id":"selected-speech/1"}"#;
+        assert!(matches!(
+            decode_browser_admission_frame(valid),
+            Ok(BrowserAdmissionIngress::SelectedSpeechStatus { .. })
+        ));
+        for invalid in [
+            br#"{"kind":"selected-speech-status","protocol":1,"request_id":"","operation_id":"selected-speech/1"}"#.as_slice(),
+            br#"{"kind":"selected-speech-stop","protocol":1,"request_id":"browser-speech/2","operation_id":""}"#.as_slice(),
+            br#"{"kind":"selected-speech-status","protocol":2,"request_id":"browser-speech/3","operation_id":"selected-speech/1"}"#.as_slice(),
+        ] {
+            assert!(decode_browser_admission_frame(invalid).is_err());
+        }
+    }
+}
+
 #[cfg(test)]
 #[path = "browser_admission/tests.rs"]
 mod tests;
+
+#[cfg(test)]
+mod component_mask_wire_tests {
+    use super::*;
+
+    #[test]
+    fn component_response_requires_exact_correlation_and_truthful_outcome() {
+        let mut output = [0; 4096];
+        for (accepted, code) in [(true, ""), (false, "stale-face-or-show")] {
+            for request_id in ["browser-component:1", "browser-component:9999999999999999"] {
+                let frame = BrowserAdmissionEgress::FaceComponentMaskResponse {
+                    protocol: BROWSER_ADMISSION_PROTOCOL,
+                    request_id: request_id.into(),
+                    accepted,
+                    code: code.into(),
+                };
+                assert!(encode_browser_admission_frame(&frame, &mut output).is_ok());
+            }
+        }
+        for (protocol, request_id, accepted, code) in [
+            (2, "browser-component:1", true, ""),
+            (1, "browser-component:0", true, ""),
+            (1, "browser-component:01", true, ""),
+            (1, "browser-component:10000000000000000", true, ""),
+            (1, "browser-component:1e2", true, ""),
+            (1, "browser-component:1", true, "refused"),
+            (1, "browser-component:1", false, ""),
+        ] {
+            let frame = BrowserAdmissionEgress::FaceComponentMaskResponse {
+                protocol,
+                request_id: request_id.into(),
+                accepted,
+                code: code.into(),
+            };
+            assert!(encode_browser_admission_frame(&frame, &mut output).is_err());
+        }
+        let oversized = BrowserAdmissionEgress::FaceComponentMaskResponse {
+            protocol: BROWSER_ADMISSION_PROTOCOL,
+            request_id: "browser-component:1".into(),
+            accepted: false,
+            code: "x".repeat(129),
+        };
+        assert!(encode_browser_admission_frame(&oversized, &mut output).is_err());
+    }
+}

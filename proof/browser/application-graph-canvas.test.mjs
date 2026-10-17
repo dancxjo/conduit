@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { decodeGraphCanvas } from '../../targets/browser/host/assets/application-graph-canvas.mjs';
 const encode = fields => fields.map(value => `${Buffer.byteLength(value)}:${value}`).join('');
-const fields = ['conduit.presentation/graph-canvas@1','checked','expanded','plan','body-plan','play','gear','1','gear','Café 🎵','text/upper','2','in','gear','source','input','text/utf8','stream','out','gear','text','output','text/utf8','stream','1','cord','out','in'];
+const fields = ['conduit.face/graph-canvas@1','checked','expanded','plan','body-plan','play','gear','1','gear','Café 🎵','text/upper','2','in','gear','source','input','text/utf8','stream','out','gear','text','output','text/utf8','stream','1','cord','out','in'];
 test('decodes exact native canvas shape and Unicode without inventing graph facts', () => {
   const graph = decodeGraphCanvas(encode(fields));
   assert.equal(graph.nodes[0].label, 'Café 🎵');

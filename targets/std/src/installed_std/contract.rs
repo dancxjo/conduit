@@ -1,12 +1,12 @@
-use conduit_core::{CapabilityOffer, ConfigurationEntry, ConfigurationValue, QuantityUnit};
+use conduit_core::{CapabilityOffer, ConfigurationEntry, ConfigurationValue, Unit};
 
 #[cfg(test)]
 pub(crate) use conduit_semantic_catalog::{
-    TEXT_PRESENTATION_CONTRACT_REVISION, TEXT_PRESENTATION_KIND, TEXT_PRESENTATION_VALUE_KIND,
+    TEXT_FACE_CONTRACT_REVISION, TEXT_FACE_KIND, TEXT_FACE_VALUE_KIND,
 };
-pub(crate) use conduit_std_offers::text_presentation_offer as text_offer;
+pub(crate) use conduit_std_offers::text_face_offer as text_offer;
 #[cfg(test)]
-pub(crate) use conduit_std_offers::TEXT_PRESENTATION_IMPLEMENTATION;
+pub(crate) use conduit_std_offers::TEXT_FACE_IMPLEMENTATION;
 pub(crate) use conduit_text::MAX_TEXT_BYTES;
 
 pub(crate) const TICK_KIND: &str = conduit_time::TICK_KIND;
@@ -35,10 +35,9 @@ pub(super) fn parse_every_configuration(
     let period_ms = entries
         .iter()
         .find_map(|entry| match (entry.key.as_str(), &entry.value) {
-            ("freq", ConfigurationValue::Quantity(value)) => value
-                .convert(QuantityUnit::Millisecond)
-                .ok()
-                .and_then(|value| u64::try_from(value.value()).ok()),
+            ("freq", ConfigurationValue::Quantity(value)) => {
+                value.value().convert_to_u64(Unit::Millisecond).ok()
+            }
             _ => None,
         })
         .ok_or_else(|| "missing or invalid time/every configuration 'freq'".to_string())?;

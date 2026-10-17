@@ -16,6 +16,8 @@ pub(super) fn edit_signature() -> KindSignature {
                     ConfigurationValue::Text(_) => "Text",
                     ConfigurationValue::Structured(ref value) => value.profile().as_str(),
                     ConfigurationValue::Quantity(_) => "Quantity",
+                    ConfigurationValue::Unit(_) => "Unit",
+                    ConfigurationValue::TemperatureDifference(_) => "TemperatureDifference",
                 }
                 .into(),
                 default: None,
@@ -76,6 +78,8 @@ fn edit_configuration() -> Vec<KindConfigurationField> {
                     "scalar".into(),
                     "text".into(),
                     "quantity".into(),
+                    "unit".into(),
+                    "temperature-difference".into(),
                 ],
             },
         },
@@ -175,8 +179,8 @@ pub(super) fn request_source(request: &PatchbayInteractionRequest) -> String {
             INVOKE_KIND,
             vec![
                 request_id.as_str().to_owned(),
-                invocation.presentation_id.clone(),
-                invocation.presentation_revision.to_string(),
+                invocation.face_id.clone(),
+                invocation.face_revision.to_string(),
                 invocation.action_id.clone(),
                 invocation.action.as_str().to_owned(),
                 invocation.target_identity.clone(),
@@ -199,7 +203,17 @@ pub(super) fn request_source(request: &PatchbayInteractionRequest) -> String {
 fn edit_request_source(request_id: &PatchbayInteractionRequestId, edit: &PatchbayEdit) -> String {
     let basis = edit.basis();
     let (primary, secondary, key, value) = match edit {
-        PatchbayEdit::PlaceGear { kind_id, .. } => (kind_id.as_str(), "", "", None),
+        // The operation-specific secondary Text carries the construction name.
+        PatchbayEdit::PlaceGear {
+            kind_id,
+            data_label,
+            ..
+        } => (
+            kind_id.as_str(),
+            data_label.as_deref().unwrap_or(""),
+            "",
+            None,
+        ),
         PatchbayEdit::DuplicateGear {
             subject_identity, ..
         }
@@ -239,12 +253,16 @@ fn edit_request_source(request_id: &PatchbayInteractionRequestId, edit: &Patchba
             0,
             value.profile().as_str().to_string(),
         ),
-        Some(ConfigurationValue::Quantity(value)) => (
-            "quantity",
+        Some(ConfigurationValue::Quantity(value)) => {
+            ("quantity", false, 0, 0, value.source().to_string())
+        }
+        Some(ConfigurationValue::Unit(value)) => ("unit", false, 0, 0, value.source().to_string()),
+        Some(ConfigurationValue::TemperatureDifference(value)) => (
+            "temperature-difference",
             false,
             0,
             0,
-            format!("{}{}", value.value(), value.unit().plot_suffix()),
+            value.source().to_string(),
         ),
     };
     format!(
@@ -294,6 +312,7 @@ pub(super) fn edit_from_configuration(
         "place-gear" => PatchbayEdit::PlaceGear {
             basis,
             kind_id: primary,
+            data_label: (!secondary.is_empty()).then_some(secondary),
         },
         "duplicate-gear" => PatchbayEdit::DuplicateGear {
             basis,
@@ -324,8 +343,18 @@ pub(super) fn edit_from_configuration(
                 "scalar" => value("scalar-value")?.clone(),
                 "text" => value("text-value")?.clone(),
                 "quantity" => ConfigurationValue::Quantity(
-                    conduit_core::Quantity::parse_plot_literal(&text("text-value")?)
+                    conduit_core::QuantityConfigurationValue::parse(&text("text-value")?)
                         .map_err(|_| InteractionError::MalformedValue)?,
+                ),
+                "unit" => ConfigurationValue::Unit(
+                    conduit_core::UnitConfigurationValue::parse(&text("text-value")?)
+                        .map_err(|_| InteractionError::MalformedValue)?,
+                ),
+                "temperature-difference" => ConfigurationValue::TemperatureDifference(
+                    conduit_core::ExactTemperatureDifferenceConfigurationValue::parse(&text(
+                        "text-value",
+                    )?)
+                    .map_err(|_| InteractionError::MalformedValue)?,
                 ),
                 _ => return Err(InteractionError::MalformedValue),
             };

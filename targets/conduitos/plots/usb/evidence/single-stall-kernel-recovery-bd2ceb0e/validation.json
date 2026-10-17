@@ -1,0 +1,26 @@
+{
+  "source_commit": "bd2ceb0ef",
+  "proof_class": "deterministic-native-kernel-mechanism-simulation",
+  "joined_recovery_tests_passed": 8,
+  "existing_storage_owner_tests_passed": 9,
+  "directions": [
+    "IN",
+    "OUT"
+  ],
+  "genuine_selected_owners": true,
+  "original_and_fresh_requests_kernel_admitted": true,
+  "original_kernel_obligation_retired_before_dequeue": true,
+  "failed_reset_preserves_original_lease_and_token": true,
+  "failed_dequeue_preserves_retired_cursor_and_admission_seal": true,
+  "old_td_cannot_complete_fresh_kernel_request": true,
+  "endpoint_configuration_and_controller_events": "simulated",
+  "source_reset_clear_halt_sequence_proven": false,
+  "two_storage_pair_lifecycle_proven": false,
+  "play_allocation_proven": false,
+  "emulator_proven": false,
+  "physical_proven": false,
+  "files": {
+    "recovery.log": "890a2309a063f8242683b2b03b9bbf119330179b8dd73f66807be4fde1b35336",
+    "storage-owner.log": "29dc7fd0648085c805af42e1fca2e02712b011eca739a06d4c26c47713b33de2"
+  }
+}

@@ -135,3 +135,9 @@
 .react-flow__node.causal-trace-exact { box-shadow:0 0 0 3px var(--conduit-structure-primary); }
 .react-flow__node.causal-trace-unrelated, .react-flow__edge.causal-trace-unrelated { opacity:.35; }
 .react-flow__edge.causal-trace-exact path { stroke:var(--conduit-structure-primary); stroke-width:4; }
+.workspace-frame { height: 100%; padding: 12px; border: 2px dashed #708090; border-radius: 10px; background: #70809012; }
+.workspace-frame small { display: block; max-width: 240px; }
+.workspace-note { max-width: 280px; padding: 12px; white-space: pre-wrap; background: #fff4bf; color: #282510; border: 1px solid #a89954; border-radius: 5px; }
+.workspace-collapsed .faceplate-clue, .workspace-collapsed .faceplate-port-name, .workspace-collapsed .faceplate-port code { display: none; }
+.faceplate-port[data-compatibility="compatible"] { outline: 2px solid #3a9c78; }
+.faceplate-port[data-compatibility="incompatible"] { outline: 2px dashed #c56b62; }

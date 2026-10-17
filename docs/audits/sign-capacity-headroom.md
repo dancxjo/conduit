@@ -1,0 +1,234 @@
+# Admit Sign reservations without scanning unused history
+
+The sections below retain the original headroom optimization and its evidence.
+The retained-count follow-up at the end describes the current implementation.
+
+`FixedSignLog` and `HostedSignLog` previously counted non-transient events for
+every `ensure_capacity` call, including the entire allocated event array's
+empty tail. The checked parser proof admits 60,000 local and remote Sign slots
+per graph, so this is a concrete candidate contributor to repeated parser
+ execution cost. It is not yet an attribution of the whole parser test.
+
+Admission now returns immediately when both the actual occupied item count and
+used-byte count leave physical headroom for the reservation. Checked addition
+prevents counter overflow. If either budget is tight, the original retained
+history rule, error precedence and classification apply. No counters, fields,
+allocations, eviction decisions or Sign identities were added or changed.
+
+Classification, capacity admission and gap extension were extracted into the
+private `sign_retention` module. The root shrinks; public paths remain intact.
+The admission helper is inline so concrete fixed/hosted sinks retain their
+optimization context. An initial capture exposed slower pressured walks;
+separating the walk did not remove it. Inlining admission at each sink produced
+the final observations below. Earlier captures remain diagnostic evidence.
+
+## Production reservation observations
+
+The manual integration probe uses ordinary, non-test kernel library code and
+real fixed/hosted sinks. Fixed capacities are 1/8/128/4096; hosted capacities add
+60,000. Each covers empty, sparse, half-transient, full-transient and full-sticky
+history. Preparation and exact history/occupancy/byte/gap checks occur outside
+timing; 256 actual reservations and result stores occur inside each batch.
+
+Each side retains three independent processes, eight trials per case, 1,080 raw
+rows and 45 recomputed summaries. Profile: test optimization 1, assertions and
+overflow checks enabled, no debug info or incremental compilation. Sources and
+executables are pinned in the [receipt](evidence/sign-capacity-native.json).
+All non-timing rows agree exactly. The probe also asserts exact history and gap
+preservation after each batch; this does not measure total heap allocation.
+
+Batch microseconds, mean ± sample SD of the three process means:
+
+| Sink | Slots | State | Before µs | After µs |
+|---|---:|---|---:|---:|
+| hosted | 60,000 | Empty | 5130.923 ± 91.443 | 0.464 ± 0.055 |
+| hosted | 60,000 | Sparse | 5056.343 ± 51.559 | 0.465 ± 0.039 |
+| hosted | 60,000 | FullTransient | 8343.662 ± 88.385 | 6837.507 ± 96.739 |
+| hosted | 60,000 | FullSticky | 8340.091 ± 87.478 | 6772.695 ± 54.513 |
+| fixed | 1 | FullTransient | 1.048 ± 0.015 | 1.518 ± 0.030 |
+
+Large logs with physical headroom avoid the capacity-dependent walk. The
+pressured path still scans retained history; it is not constant time. Results
+are not universally faster: the full one-slot fixed sink adds roughly two
+nanoseconds per reservation in this capture. A one-slot Sign log is distinct
+from a one-Gear workload; no whole-workload ratio is claimed. Inspect every
+capacity/state in the receipt, rather than extrapolating from the largest case.
+Shared-host load, loop/barrier/result-store work and timer noise are included.
+There is no automatic timing threshold.
+
+## Reproduce and verify
+
+Capture the same ignored integration probe at each clean source using
+`proof/performance/sign-capacity-cost.py --output /absolute/capture/path`.
+These are repository-internal measurement tools, not product entrances. Use an
+exclusive Cargo target per worktree/source context. A sequential worktree
+switch in a shared target reused an old executable during one diagnostic
+experiment; that capture was discarded and the final source rebuilt freshly
+in a separate target. The final receipt binds distinct before/after executables.
+
+The [raw archive](evidence/sign-capacity-native-raw.tar.gz) retains build records,
+stdout, resource logs, metadata and artifact hashes. After extraction:
+
+```sh
+python3 proof/performance/verify-sign-capacity-comparison.py \
+  --before /absolute/captures/sign-capacity-before-recheck-capture-01 \
+  --after /absolute/captures/sign-capacity-after-inline-admission-capture-01 \
+  --output /absolute/new-comparison.json
+```
+
+The verifier checks all 26 artifact hashes, raw-row joins, exact case coverage,
+ordinary-library profile, non-timing equality and all summaries. It accepts
+retained archives without requiring historical Cargo executable paths. Archive
+round-trip verification produced the same comparison byte for byte.
+
+## Validation and remaining work
+
+The final source passes 149 kernel tests with four manual observations ignored,
+both with the ordinary ready path and the linear reference feature. Strict
+kernel all-targets Clippy passes. New tests cover zero history visits with
+physical headroom, exact fallback under either pressure budget, differential
+retained-history admission across small capacities and counter overflow.
+
+Workspace Clippy and full workspace tests remain required before publication
+because this change extracts a module. Actual parser-selection before/after
+execution remains necessary to quantify how much of that CI test this removes.
+This does not close #5231: its large/sparse graphs, pending-call stress, fairness,
+timing profiles, FARGAN and full-Host performance obligations remain open.
+
+## Occupied-prefix query follow-up
+
+Event iteration and remote-identity lookup now restrict their input slices to
+`len` and `remote_len` respectively, for both fixed and hosted logs. Storage
+remains admitted in advance. Append writes exactly at the occupied extent and
+transient eviction compacts that prefix, so empty allocated tail slots carry
+no additional history. This also bounds the pressured admission fallback by
+occupied history rather than allocated capacity.
+
+A deterministic integration regression failed on the preceding implementation:
+an empty 128-slot log's iterator upper bound was 128. It is now zero, and grows
+with occupancy. The fixture checks every prefix through saturation and one
+transient eviction, including exact event ordering, retention gap, missing-kind
+queries and retained/missing remote identities, in both storage profiles.
+Current local kernel tests with `alloc` and strict all-target Clippy pass.
+This is a traversal-bound result; no new wall-clock speedup is claimed, and the
+historical timing table above remains tied to its original source artifacts.
+
+
+## Retained-count follow-up
+
+Fixed and hosted logs now maintain one bounded `u16` count of non-transient
+entries. These entries are never evicted. Every successful ordinary or remote
+publication increments the count only for a retained kind; transient eviction
+and refused publication leave it unchanged. Reservation admission uses this
+count directly, with the same item-before-byte refusal precedence. All
+reservation states now use constant work; history queries and transient
+**eviction** retain their separate traversal costs.
+
+The new history oracle checks count and admission after repeated publication,
+eviction and refused records over small capacities, every sticky/transient
+pattern and independent byte budgets. Remote-capacity and sequence-overflow
+refusals are checked on both storage profiles, along with maximum reservations.
+The alloc kernel suite and linear-ready reference suite each pass 159 tests;
+strict kernel all-target Clippy also passes.
+
+A fresh paired [receipt](evidence/sign-capacity-count-native.json) and
+[raw archive](evidence/sign-capacity-count-native-raw.tar.gz) retain three
+independent processes per clean source, eight trials per case and separate
+source-specific Cargo targets. The existing verifier checks all 26 artifact
+hashes, 2,160 raw rows, 90 summaries and exact non-timing equivalence.
+
+Mean microseconds per batch of 256 actual reservations:
+
+| Sink | Slots | State | Before | After |
+|---|---:|---|---:|---:|
+| hosted | 60,000 | Full transient | 6790.615 | 0.458 |
+| hosted | 60,000 | Full sticky | 6464.683 | 0.368 |
+| hosted | 60,000 | Empty | 0.461 | 0.454 |
+| hosted | 8 | Empty | 0.453 | 0.476 |
+| fixed | 1 | Full transient | 1.497 | 0.248 |
+
+The small hosted empty case is slightly slower in this capture; these are
+observations, not universal speedup or timing guarantees. Full variability and
+all states remain in the receipt. The timed probe measures reservation only;
+new count maintenance on publication and whole-Play performance are not
+measured here. It does not establish parser latency, FARGAN throughput, browser
+or physical acceptance.
+
+The archive also retains a native layout probe: `FixedSignLog<1>` remains 88
+bytes and `HostedSignLog` remains 96 bytes under the recorded compiler. The new
+counter occupies existing padding on that target. Other target layouts are
+unmeasured; no dynamic storage or allocation was added.
+
+After extracting the archive, recompute the receipt with the existing verifier
+using `--before /absolute/path/sign-count-before` and
+`--after /absolute/path/sign-count-after`. Historical headroom measurements
+above retain their original source identities.
+
+
+## Refusal-atomic publication
+
+A full log previously evicted a transient event before checking remote sidecar
+capacity or the next event sequence. Gap extension itself could also overflow
+after changing history. A refused publication could therefore remove history
+and advance its retention gap without publishing a replacement.
+
+Fixed and hosted append paths now prepare an eviction index and next gap
+without changing storage, preserving the existing refusal precedence. Byte,
+remote and sequence admission complete before a single infallible eviction
+commit and publication. Successful eviction still uses the same first transient
+entry and exact ordered compaction; no rollback buffer, second scan or dynamic
+storage is introduced.
+
+Four strengthened history assertions failed before repair. Complete storage,
+retention-gap, occupancy, sequence, retained-count and remote-sidecar snapshots
+are now preserved under remote-capacity refusal, ordinary/remote sequence
+overflow and gap overflow. The alloc and linear-ready reference kernel suites
+each pass 163 tests; the fixed-only retention suite and strict all-target
+kernel Clippy also pass. This advances #5231's failure/Sign obligations. The
+reservation measurements above retain their pinned source identities; no new
+publication-cost or whole-workload performance claim follows from this repair.
+
+
+## Reclaim transient history under byte pressure
+
+Publication now prepares transient eviction when either physical item capacity
+or the admitted byte budget is exhausted. Previously, a log with unused item
+slots but a full byte budget could accept a retained-history reservation and
+then refuse the corresponding append, even with reclaimable transient entries.
+Both storage profiles now reclaim the same oldest transient entry under either
+budget. If none is available, item pressure retains item-error precedence;
+byte-only pressure reports `ByteCapacityExceeded`. Sticky history is preserved.
+
+Two new regressions failed on the preceding code. The updated alloc and
+linear-ready reference kernel suites each pass 167 tests; seven fixed-only
+retention tests and strict all-target kernel Clippy pass. Tests cover ordinary
+and remote publication with eight slots but only two event charges, exact
+surviving sequence order, sticky-only refusal and full snapshot preservation
+when remote sidecar admission refuses after byte-pressure eviction is prepared.
+The independent-budget fixture now seeds sticky events to test a genuinely
+non-reclaimable byte budget. This is admission/publication consistency proof,
+not a new timing or release acceptance claim for #5231.
+
+
+## Reserve finite publication sequence space
+
+Fixed and hosted reservation now check event-sequence capacity for the entire
+requested batch after storage admission. A zero-sized reservation remains
+valid at the sequence ceiling. If a retention gap already exists, reservation
+also checks the gap growth implied by the occupied count and effective
+item/byte capacity. This uses constant arithmetic, with no history scan,
+allocation or mutation. Storage refusal precedence is retained.
+
+Four boundary fixtures failed before repair. Batch and single-publication
+checks now distinguish the last usable event from exhausted sequence space,
+and check gap growth under byte pressure without changing complete snapshots.
+A production scheduler fixture also proves that a two-branch remote payload or
+closure refuses before value allocation, queue changes, remote sequence changes
+or branch closure when only one Sign sequence remains.
+
+Alloc and linear-ready reference kernel suites each pass 172 tests; nine
+fixed-only retention tests and strict all-target kernel Clippy pass. This
+advances #5231's admission-before-mutation contract for these production sinks;
+other SignSink implementations retain their own admission obligations.
+Historical reservation timings above remain pinned to their original sources;
+these added boundary checks have no fresh timing or release acceptance claim.

@@ -24,7 +24,7 @@ fn try_intent(
             SpeechUtteranceIntentEvent::segment(
                 LanguageSpeechTokenRef::new(
                     SpeechInventoryId::new("chosen inventory".into()).unwrap(),
-                    SpeechLanguageId::new("en".into()).unwrap(),
+                    LanguageId::new("en".into()).unwrap(),
                     0,
                     SpeechSegmentRevisionId::new("intent revision".into()).unwrap(),
                     SpeechSegmentSequenceId::new("intent sequence".into()).unwrap(),
@@ -58,7 +58,7 @@ fn try_intent(
     SpeechUtteranceIntent::new(
         BoundedSequence::try_from_iter(events).unwrap(),
         SpeechInventoryId::new("chosen inventory".into()).unwrap(),
-        SpeechLanguageId::new("en".into()).unwrap(),
+        LanguageId::new("en".into()).unwrap(),
         provenance(),
         SpeechSegmentRevisionId::new("intent revision".into()).unwrap(),
         SpeechUtteranceId::new("intent".into()).unwrap(),
@@ -67,7 +67,7 @@ fn try_intent(
 fn text(revision: &str) -> LanguageText {
     LanguageText::new(
         LanguageTextId::new("source text".into()).unwrap(),
-        SpeechLanguageId::new("es".into()).unwrap(),
+        LanguageId::new("es".into()).unwrap(),
         LanguageTextRevisionId::new(revision.into()).unwrap(),
         "¡Qué!".into(),
     )
@@ -76,8 +76,8 @@ fn text(revision: &str) -> LanguageText {
 fn text_ref() -> LanguageSegmentRef {
     LanguageSegmentRef::text(
         LanguageTextSegmentKind::Word,
-        SpeechLanguageId::new("es".into()).unwrap(),
-        ListeningTextRange::new(4, 1).unwrap(),
+        LanguageId::new("es".into()).unwrap(),
+        LanguageTextRange::new(4, 1).unwrap(),
         LanguageTextRevisionId::new("source revision".into()).unwrap(),
         LanguageTextId::new("source text".into()).unwrap(),
     )

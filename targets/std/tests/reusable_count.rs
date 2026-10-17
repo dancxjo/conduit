@@ -13,11 +13,13 @@ const EVIDENCE_MARKER: &str = "CONDUIT_PLOT_EVIDENCE=";
 struct RecordingTimer {
     waits: Vec<Duration>,
     stop: Option<RunControl>,
+    now_ms: u64,
 }
 
 impl TimerAdapter for RecordingTimer {
     fn wait(&mut self, duration: Duration) {
         self.waits.push(duration);
+        self.now_ms += u64::try_from(duration.as_millis()).unwrap();
         if self.waits.len() >= 20 {
             if let Some(control) = self.stop.take() {
                 control
@@ -26,14 +28,17 @@ impl TimerAdapter for RecordingTimer {
             }
         }
     }
+
+    fn monotonic_now_ms(&mut self) -> Option<u64> {
+        Some(self.now_ms)
+    }
 }
 
 fn catalogs() -> (StartupCatalog, ProfileCatalog) {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     conduit_time::install_time_every_catalog(&mut startup, &mut profile).unwrap();
-    conduit_semantic_catalog::install_tick_presentation_catalog(&mut startup, &mut profile)
-        .unwrap();
+    conduit_semantic_catalog::install_tick_face_catalog(&mut startup, &mut profile).unwrap();
     conduit_semantic_catalog::install_count_pipeline_catalogs(&mut startup, &mut profile).unwrap();
     (startup, profile)
 }
@@ -50,7 +55,7 @@ fn reusable_count_runs_through_two_nested_levels_in_one_kernel_play() {
         .checked_plot_id
         .clone();
     let proof_source = format!(
-        "{COUNT_SOURCE}\nplot nested-count (\n    bump: Tick...| >> value: $Count\n) {{\n    counter: count(7)\n    bump >> counter.bump\n    counter.value >> value\n}}\n\nplot count-nesting-driver {{\n    clock: time/every(1s)\n    nested: nested-count\n    show: presentation/count\n    clock >> nested >> show\n}}\n"
+        "{COUNT_SOURCE}\nplot nested-count (\n    bump: Tick...| >> value: $Count\n) {{\n    counter: count(7)\n    bump >> counter.bump\n    counter.value >> value\n}}\n\nplot count-nesting-driver {{\n    clock: time/every(1s)\n    nested: nested-count\n    show: face/count(\"Nested count\")\n    clock >> nested >> show\n}}\n"
     );
     let checked = check_syntax_document(&parse_syntax_document(&proof_source), &startup).unwrap();
     assert_eq!(
@@ -83,6 +88,7 @@ fn reusable_count_runs_through_two_nested_levels_in_one_kernel_play() {
     let mut timer = RecordingTimer {
         waits: Vec::with_capacity(20),
         stop: Some(control.clone()),
+        now_ms: 0,
     };
     let report = host
         .run_fragment_controlled_to(plan.fragments[0].clone(), &mut output, &mut timer, &control)
@@ -91,7 +97,7 @@ fn reusable_count_runs_through_two_nested_levels_in_one_kernel_play() {
     let output = String::from_utf8(output).unwrap();
     let counts = output
         .lines()
-        .filter_map(|line| line.strip_prefix("count value="))
+        .filter_map(|line| line.strip_prefix("Nested count: count value="))
         .map(|value| value.parse::<u64>().unwrap())
         .collect::<Vec<_>>();
     assert!(counts.len() > 5, "counts={counts:?}");

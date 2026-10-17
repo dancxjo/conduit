@@ -11,11 +11,11 @@ use std::{
 };
 
 use conduit_core::{kind_id, BaseImplementationId, ObservationKind, TerminalDisposition};
+use conduit_face::{Face, ManifestationLifecycle, MaskShow};
 use conduit_plot::{
     check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
     ProfileCatalog, StartupCatalog,
 };
-use conduit_presentation::{ManifestationLifecycle, MaskShow, Presentation};
 use sha2::{Digest, Sha256};
 
 use crate::{
@@ -30,7 +30,9 @@ use crate::{
 mod playback;
 pub use playback::{
     execute_real_spoken_batch_to_selected_playback, execute_spoken_batch_on_attached_host,
-    SpokenPlaybackExecution, SpokenPlaybackOutcome, SPOKEN_PLAYBACK_PLOT,
+    execute_spoken_batch_on_attached_host_with_capture, spoken_playback_plot,
+    spoken_playback_with_capture_plot, SamePlayCapture, SpokenPlaybackExecution,
+    SpokenPlaybackOutcome,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -51,6 +53,7 @@ pub enum SpokenStreamExecutionRefusal {
         detail: String,
     },
     IncompletePlay,
+    Cancelled,
     IncompleteArtifact,
 }
 
@@ -67,33 +70,20 @@ pub struct SpokenStreamExecution {
 /// The portable Plot uses the same real synthesis, conversion, and artifact
 /// backs as `prove-speech --stream`. The Front is already committed Tongues
 /// text; adding `speech/commit-generated-text` here would commit it twice.
-pub const SPOKEN_SEGMENT_PLOT: &str = "plot spoken_face_stream (\n >> segments: SpeakableText...|\n) {\n voice: speech/synthesize-stream(maximum-output-bytes = 1323000, maximum-audio-millis = 30000, maximum-segments = 32)\n convert: audio/convert-pcm-profile(output-sample-rate-hz = 48000, output-channel-layout = \"stereo-left-right\", maximum-blocks = 32768, maximum-audio-millis = 30000)\n artifact: audio/play(maximum-blocks = 32768, maximum-audio-millis = 30000)\n segments >> voice.text\n voice.audio >> convert.audio\n convert.converted >> artifact.audio\n}.\n";
+pub fn spoken_segment_plot(language: &conduit_language::LanguageRequest) -> String {
+    let language_request = crate::hosted_language::language_request_literal(language);
+    format!("plot spoken_face_stream (\n >> segments: SpeakableText...|\n) {{\n voice: speech/synthesize-stream(language-request = {language_request}, maximum-output-bytes = 1323000, maximum-audio-millis = 30000, maximum-segments = 32)\n convert: audio/convert-pcm-profile(output-sample-rate-hz = 48000, output-channel-layout = \"stereo-left-right\", maximum-blocks = 32768, maximum-audio-millis = 30000)\n artifact: audio/play(maximum-blocks = 32768, maximum-audio-millis = 30000)\n segments >> voice.text\n voice.audio >> convert.audio\n convert.converted >> artifact.audio\n}}.\n")
+}
 
 pub fn execute_real_spoken_batch(
-    face: &Presentation,
+    face: &Face,
     source_show: &MaskShow,
     batch: &SpokenBatch,
     discovery: EspeakDiscovery,
+    language: &conduit_language::LanguageRequest,
     wav_path: &Path,
 ) -> Result<SpokenStreamExecution, SpokenStreamExecutionRefusal> {
     validate_batch_for_installed_fore(face, source_show, batch, wav_path)?;
-    let mut startup = StartupCatalog::new();
-    startup
-        .insert_value_kind_alias(
-            "SpeakableText",
-            kind_id(conduit_tongues::SPEAKABLE_TEXT_VALUE_KIND),
-        )
-        .map_err(SpokenStreamExecutionRefusal::Check)?;
-    let mut profiles = ProfileCatalog::new();
-    conduit_tongues::install_speech_synthesis_catalog(&mut startup, &mut profiles)
-        .map_err(SpokenStreamExecutionRefusal::Check)?;
-    conduit_semantic_catalog::install_sound_catalogs(&mut startup, &mut profiles)
-        .map_err(SpokenStreamExecutionRefusal::Check)?;
-    let checked = check_syntax_document(&parse_syntax_document(SPOKEN_SEGMENT_PLOT), &startup)
-        .map_err(|error| SpokenStreamExecutionRefusal::Check(format!("{error:?}")))?;
-    let authoring = expand_canonical_plot_for_authoring(&checked, "spoken_face_stream", &profiles)
-        .map_err(|error| SpokenStreamExecutionRefusal::Check(format!("{error:?}")))?;
-
     let fresh = StdHost::new();
     let offered = fresh.advertisement();
     let config = StdHostConfig {
@@ -101,7 +91,6 @@ pub fn execute_real_spoken_batch(
         boot_id: offered.boot_id.clone(),
         offer_generation: offered.offer_generation,
     };
-    let provider_sha256 = discovery.provider_sha256.clone();
     let adapter = discovery
         .initialize(
             config.host_id.clone(),
@@ -117,6 +106,61 @@ pub fn execute_real_spoken_batch(
     let mut host = StdHost::new_with_composition(config, StdHostComposition::minimal().with_text());
     host.attach_espeak_speech_and_wav_artifact(adapter, artifact)
         .map_err(SpokenStreamExecutionRefusal::Plan)?;
+    execute_spoken_batch_on_attached_artifact_host(
+        face,
+        source_show,
+        batch,
+        language,
+        &crate::RunControl::default(),
+        &mut host,
+    )
+}
+
+/// Execute one exact bounded batch on the already selected Owner Host.
+/// Artifact acknowledgement does not assert speaker playback.
+pub fn execute_spoken_batch_on_attached_artifact_host(
+    face: &Face,
+    source_show: &MaskShow,
+    batch: &SpokenBatch,
+    language: &conduit_language::LanguageRequest,
+    control: &crate::RunControl,
+    host: &mut StdHost,
+) -> Result<SpokenStreamExecution, SpokenStreamExecutionRefusal> {
+    validate_spoken_source(face, source_show, batch)?;
+    if control.stop_requested() {
+        return Err(SpokenStreamExecutionRefusal::Cancelled);
+    }
+    if !host.spoken_mask_artifact_route_is_current() {
+        return Err(SpokenStreamExecutionRefusal::Plan(
+            "selected speech artifact route is unavailable".into(),
+        ));
+    }
+    let provider_sha256 = host
+        .speech_synthesis
+        .as_ref()
+        .ok_or_else(|| SpokenStreamExecutionRefusal::Plan("no selected speech provider".into()))?
+        .provider_sha256()
+        .to_owned();
+    let mut startup = StartupCatalog::new();
+    startup
+        .insert_value_kind_alias(
+            "SpeakableText",
+            kind_id(conduit_tongues::SPEAKABLE_TEXT_VALUE_KIND),
+        )
+        .map_err(SpokenStreamExecutionRefusal::Check)?;
+    let mut profiles = ProfileCatalog::new();
+    conduit_tongues::install_speech_synthesis_catalog(&mut startup, &mut profiles)
+        .map_err(SpokenStreamExecutionRefusal::Check)?;
+    conduit_semantic_catalog::install_sound_catalogs(&mut startup, &mut profiles)
+        .map_err(SpokenStreamExecutionRefusal::Check)?;
+    let checked = check_syntax_document(
+        &parse_syntax_document(&spoken_segment_plot(language)),
+        &startup,
+    )
+    .map_err(|error| SpokenStreamExecutionRefusal::Check(format!("{error:?}")))?;
+    let authoring = expand_canonical_plot_for_authoring(&checked, "spoken_face_stream", &profiles)
+        .map_err(|error| SpokenStreamExecutionRefusal::Check(format!("{error:?}")))?;
+
     let hosts = [host.advertisement().clone()];
     let placements = conduit_planner::default_expanded_placements(&authoring.expanded, &hosts)
         .map_err(|error| SpokenStreamExecutionRefusal::Plan(format!("{error:?}")))?;
@@ -180,14 +224,23 @@ pub fn execute_real_spoken_batch(
         fn wait(&mut self, _: Duration) {}
     }
     let report = host
-        .run_external_plot_sequence_to(
+        .run_external_plot_sequence_controlled_to(
             fragment.clone(),
             &inputs,
             &mut NoOutput,
             &mut Vec::new(),
             &mut NoTimer,
+            control,
         )
         .map_err(SpokenStreamExecutionRefusal::Play)?;
+    if matches!(
+        report.observations.last().map(|item| &item.kind),
+        Some(ObservationKind::PlanTerminal {
+            disposition: TerminalDisposition::Cancelled { .. }
+        })
+    ) {
+        return Err(SpokenStreamExecutionRefusal::Cancelled);
+    }
     if !matches!(
         report.observations.last().map(|item| &item.kind),
         Some(ObservationKind::PlanTerminal {
@@ -205,7 +258,13 @@ pub fn execute_real_spoken_batch(
     if !wav.completed || wav.pcm_bytes == 0 || wav.blocks == 0 {
         return Err(SpokenStreamExecutionRefusal::IncompleteArtifact);
     }
-    let bytes = fs::read(wav_path).map_err(|_| SpokenStreamExecutionRefusal::IncompleteArtifact)?;
+    let wav_path = PathBuf::from(
+        wav.locator
+            .as_ref()
+            .ok_or(SpokenStreamExecutionRefusal::IncompleteArtifact)?,
+    );
+    let bytes =
+        fs::read(&wav_path).map_err(|_| SpokenStreamExecutionRefusal::IncompleteArtifact)?;
     if bytes.len() != wav.pcm_bytes as usize + 44
         || bytes.get(..4) != Some(b"RIFF")
         || bytes.get(8..12) != Some(b"WAVE")
@@ -237,7 +296,7 @@ pub fn execute_real_spoken_batch(
 /// Pure preflight before provider discovery, planning, or artifact creation.
 /// The batch owns the exact finite committed sequence for one Fore Flow.
 pub fn validate_batch_for_installed_fore(
-    face: &Presentation,
+    face: &Face,
     source_show: &MaskShow,
     batch: &SpokenBatch,
     wav_path: &Path,
@@ -253,7 +312,7 @@ pub fn validate_batch_for_installed_fore(
 }
 
 fn validate_spoken_source(
-    face: &Presentation,
+    face: &Face,
     source_show: &MaskShow,
     batch: &SpokenBatch,
 ) -> Result<(), SpokenStreamExecutionRefusal> {

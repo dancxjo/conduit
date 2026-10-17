@@ -188,6 +188,7 @@ fn run(
             keyboard: None,
             local_model: None,
             vector_search: None,
+            model_work: None,
             calendar: host.calendar.as_deref_mut(),
             body_conversation_context: None,
         },

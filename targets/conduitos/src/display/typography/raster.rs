@@ -2,7 +2,7 @@
 
 use super::GlyphRaster;
 use crate::display::{DisplayError, DisplayReceipt, RetainedPixelTarget};
-use conduit_presentation::LayoutRect;
+use conduit_face::LayoutRect;
 
 /// Lay out and draw one bounded command using the same cursor as measurement.
 pub fn render_text(
@@ -13,7 +13,20 @@ pub fn render_text(
     clip: LayoutRect,
     color: u32,
 ) -> Result<DisplayReceipt, DisplayError> {
-    let layout = super::TextLayout::new(value, role, bounds.width)?;
+    render_text_scaled(target, value, role, bounds, clip, color, 100)
+}
+
+/// Fixed nearest-neighbor coverage resampling, bounded to twice each glyph extent.
+pub fn render_text_scaled(
+    target: &mut impl RetainedPixelTarget,
+    value: &str,
+    role: super::TextRole,
+    bounds: LayoutRect,
+    clip: LayoutRect,
+    color: u32,
+    text_scale_percent: u16,
+) -> Result<DisplayReceipt, DisplayError> {
+    let layout = super::TextLayout::new_scaled(value, role, bounds.width, text_scale_percent)?;
     let format = target.format().validate()?;
     let mut receipt = DisplayReceipt::default();
     let Some(clip) = super::super::clipped(bounds, clip, format) else {
@@ -35,7 +48,7 @@ pub fn render_text(
 }
 
 /// Draw one glyph at a baseline pen, clipped to the retained target and clip.
-/// Work is at most 64 by 64 samples. Transparent samples do not read or write.
+/// Work is at most 128 by 128 samples. Transparent samples do not read or write.
 pub fn render_glyph(
     target: &mut impl RetainedPixelTarget,
     glyph: &GlyphRaster,
@@ -103,8 +116,76 @@ mod tests {
     }
 
     #[test]
+    fn scaled_text_raster_uses_the_measured_cursor_and_preserves_default() {
+        let bounds = LayoutRect {
+            x: 0,
+            y: 0,
+            width: 32,
+            height: 32,
+        };
+        for percent in [100, 125, 200] {
+            let mut rendered = Surface {
+                pixels: [0x204060; 32 * 32],
+            };
+            let mut measured = Surface {
+                pixels: rendered.pixels,
+            };
+            let receipt = render_text_scaled(
+                &mut rendered,
+                "Wi\ni",
+                TextRole::Body,
+                bounds,
+                bounds,
+                0xffffff,
+                percent,
+            )
+            .unwrap();
+            let mut count = 0;
+            for item in
+                super::super::TextLayout::new_scaled("Wi\ni", TextRole::Body, 32, percent).unwrap()
+            {
+                count += render_glyph(&mut measured, &item.glyph, item.pen, bounds, 0xffffff)
+                    .unwrap()
+                    .pixels_written;
+            }
+            assert_eq!(rendered.pixels, measured.pixels);
+            assert_eq!(receipt.pixels_written, count);
+            assert!(count > 0);
+            if percent == 100 {
+                measured.pixels.fill(0x204060);
+                render_text(
+                    &mut measured,
+                    "Wi\ni",
+                    TextRole::Body,
+                    bounds,
+                    bounds,
+                    0xffffff,
+                )
+                .unwrap();
+                assert_eq!(rendered.pixels, measured.pixels);
+            }
+        }
+        let mut surface = Surface {
+            pixels: [0x204060; 32 * 32],
+        };
+        assert!(
+            render_text_scaled(
+                &mut surface,
+                "W",
+                TextRole::Body,
+                bounds,
+                bounds,
+                0xffffff,
+                201
+            )
+            .is_err()
+        );
+        assert!(surface.pixels.iter().all(|pixel| *pixel == 0x204060));
+    }
+
+    #[test]
     fn oversized_text_refuses_before_any_surface_write_even_when_clipped() {
-        let oversized = "x".repeat(conduit_presentation::MAX_GRAPHICS_TEXT_BYTES + 1);
+        let oversized = "x".repeat(conduit_face::MAX_GRAPHICS_TEXT_BYTES + 1);
         let mut surface = Surface {
             pixels: [0x204060; 32 * 32],
         };
@@ -138,7 +219,7 @@ mod tests {
 
     #[test]
     fn maximum_admitted_unicode_remains_bounded_at_one_pixel_width() {
-        let value = "é".repeat(conduit_presentation::MAX_GRAPHICS_TEXT_BYTES / 2);
+        let value = "é".repeat(conduit_face::MAX_GRAPHICS_TEXT_BYTES / 2);
         let count = value.chars().count();
         let layout = super::super::TextLayout::new(&value, TextRole::Body, 1).unwrap();
         assert_eq!(layout.count(), count);

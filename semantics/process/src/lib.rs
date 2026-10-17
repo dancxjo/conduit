@@ -9,6 +9,11 @@ mod generated {
 
 pub use generated::*;
 
+mod print_registry;
+pub use print_registry::*;
+mod printing;
+pub use printing::*;
+
 pub const JOB_ARGUMENT_SLOTS: usize = 8;
 pub const JOB_ENVIRONMENT_SLOTS: usize = 8;
 pub const JOB_MAXIMUM_TEXT_BYTES: usize = 256;

@@ -10,6 +10,9 @@ is not itself evidence that every target implements it.
 
 - [Hosts and execution](hosts.md)
 - [Callable compatibility and semantic realization](functional-compatibility.md)
+- [Claims and deterministic resolution](claims.md)
+- [Bounded revision](revision.md)
+- [Bounded semantic projection fidelity](projection.md)
 - [Identity classes and stability](identity-classes.md)
 - [Plan-to-kernel lowering](plan-kernel-lowering.md)
 - [Portable planner](portable-planner-capability.md)
@@ -22,6 +25,7 @@ is not itself evidence that every target implements it.
 
 ## Bodies, resources, and lifecycle
 
+- [Owner face routes](owner-face-routes.md)
 - [Body lifecycle boundaries](body-lifecycle-waists.md)
 - [Durable continuity](durable-continuity.md)
 - [Optional pre-play hold](pre-play-hold.md)
@@ -57,13 +61,13 @@ is not itself evidence that every target implements it.
 - [Structured diagnostics](structured-diagnostics.md)
 - [Machine-readable proof classes](proof-classes.md)
 
-## Hosts and human presentation
+## Hosts and human face
 
 - [Host composition](../host-architecture.md)
 - [Face, mask, and show](../presenter-hourglass.md)
 - [Portable input semantics](../input-semantics.md)
-- [Universal face grammar](presentation-grammar-conformance.md)
-- [Portable presentation renderer](presentation-renderer.md)
+- [Universal face grammar](face-grammar-conformance.md)
+- [Portable face renderer](face-renderer.md)
 - [Application theme in Patchbay](patchbay-theme.md)
 - [Browser make inventory](browser-make-inventory.md)
 - [Browser identity and membership](browser-host-membership.md)
@@ -86,3 +90,6 @@ The [history index](../history/README.md) retains earlier host/kernel designs,
 Patchbay milestones, physical diagnostics, and CI records. Their APIs, commands,
 and stop lines describe their named checkpoint. Use current references above
 for new work; historical evidence does not change merely because code evolves.
+
+The [Language boundary](language.md) owns shared linguistic identity and the
+separation between portable meaning, language data and realization coverage.

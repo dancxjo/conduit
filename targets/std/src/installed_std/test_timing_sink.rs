@@ -2,7 +2,7 @@ use super::back::{BackBudget, BackFactory, InstalledBack};
 use conduit_core::{
     kind_id, port_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
     ExecutionProfileId, ImplementationId, KindIdentity, PlannedGear, PortDescriptor, PortDirection,
-    PortTemporal, BOOL_INFO_ID, UNIT_INFO_ID,
+    PortTemporal, BOOL_INFO_ID, EMPTY_INFO_ID,
 };
 use conduit_kernel::{
     scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
@@ -215,7 +215,7 @@ pub(super) fn unit_source_offer() -> CapabilityOffer {
         inputs: Vec::new(),
         outputs: vec![PortDescriptor {
             port_id: port_id("out"),
-            value_kind: kind_id(UNIT_INFO_ID),
+            value_kind: kind_id(EMPTY_INFO_ID),
             direction: PortDirection::Output,
             temporal: PortTemporal::Flow { closes: true },
             abnormal_kind: None,

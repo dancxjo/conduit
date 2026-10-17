@@ -1,6 +1,6 @@
 use conduit_core::{
-    InfoBool, KindId, Quantity, QuantityUnit, StructuredInfoType, StructuredInfoValue,
-    BOOL_INFO_ID, QUANTITY_INFO_ID,
+    InfoBool, KindId, Quantity, StructuredInfoType, StructuredInfoValue, Unit, BOOL_INFO_ID,
+    QUANTITY_INFO_ID,
 };
 use conduit_human::{
     BoundKind, HumanInteractionProposal, InteractionApplicationOutcome, InteractionContract,
@@ -15,7 +15,7 @@ fn value(kind: &str, bytes: &[u8]) -> InteractionValue {
     InteractionValue::new(KindId::from(kind), bytes.to_vec()).unwrap()
 }
 
-fn quantity(value: i64, unit: QuantityUnit) -> InteractionValue {
+fn quantity(value: i64, unit: Unit) -> InteractionValue {
     InteractionValue::new(
         KindId::from(QUANTITY_INFO_ID),
         Quantity::new(value, unit).encode().to_vec(),
@@ -75,7 +75,7 @@ fn one_portable_algebra_covers_every_family_without_renderer_or_device_vocabular
         InteractionContract::new(
             "interaction/volume",
             InteractionFamily::scalar_range(
-                QuantityUnit::Millionth,
+                Unit::Millionth,
                 0,
                 BoundKind::Inclusive,
                 1_000_000,
@@ -86,7 +86,7 @@ fn one_portable_algebra_covers_every_family_without_renderer_or_device_vocabular
         .unwrap(),
         InteractionContract::new(
             "interaction/transpose",
-            InteractionFamily::relative_range(QuantityUnit::One, -24, 24, 1),
+            InteractionFamily::relative_range(Unit::One, -24, 24, 1),
         )
         .unwrap(),
         InteractionContract::new(
@@ -135,7 +135,7 @@ fn action_boolean_absolute_and_relative_semantics_remain_distinct() {
     let absolute = InteractionContract::new(
         "interaction/cutoff",
         InteractionFamily::scalar_range(
-            QuantityUnit::Hertz,
+            Unit::Hertz,
             20,
             BoundKind::Inclusive,
             20_000,
@@ -146,25 +146,24 @@ fn action_boolean_absolute_and_relative_semantics_remain_distinct() {
     .unwrap();
     let relative = InteractionContract::new(
         "interaction/cutoff-adjust",
-        InteractionFamily::relative_range(QuantityUnit::Hertz, -100, 100, 5),
+        InteractionFamily::relative_range(Unit::Hertz, -100, 100, 5),
     )
     .unwrap();
     let absolute_state =
-        InteractionCurrentState::new(&absolute, 1, None, vec![quantity(440, QuantityUnit::Hertz)])
-            .unwrap();
+        InteractionCurrentState::new(&absolute, 1, None, vec![quantity(440, Unit::Hertz)]).unwrap();
     let relative_state = InteractionCurrentState::new(&relative, 1, None, vec![]).unwrap();
     assert!(HumanInteractionProposal::new(
         &absolute,
         &absolute_state,
         0,
-        values(vec![quantity(445, QuantityUnit::Hertz)])
+        values(vec![quantity(445, Unit::Hertz)])
     )
     .is_ok());
     assert!(HumanInteractionProposal::new(
         &relative,
         &relative_state,
         0,
-        relative_payload(quantity(5, QuantityUnit::Hertz))
+        relative_payload(quantity(5, Unit::Hertz))
     )
     .is_ok());
     assert_eq!(
@@ -172,7 +171,7 @@ fn action_boolean_absolute_and_relative_semantics_remain_distinct() {
             &relative,
             &relative_state,
             0,
-            values(vec![quantity(5, QuantityUnit::Hertz)])
+            values(vec![quantity(5, Unit::Hertz)])
         ),
         Err(InteractionRefusal::WrongValueKind)
     );
@@ -310,7 +309,7 @@ fn stale_removed_unavailable_wrong_type_range_and_granularity_refuse_distinctly(
     let scalar = InteractionContract::new(
         "interaction/volume",
         InteractionFamily::scalar_range(
-            QuantityUnit::Percent,
+            Unit::Percent,
             0,
             BoundKind::Inclusive,
             100,
@@ -320,14 +319,13 @@ fn stale_removed_unavailable_wrong_type_range_and_granularity_refuse_distinctly(
     )
     .unwrap();
     let scalar_state =
-        InteractionCurrentState::new(&scalar, 0, None, vec![quantity(50, QuantityUnit::Percent)])
-            .unwrap();
+        InteractionCurrentState::new(&scalar, 0, None, vec![quantity(50, Unit::Percent)]).unwrap();
     assert_eq!(
         HumanInteractionProposal::new(
             &scalar,
             &scalar_state,
             0,
-            values(vec![quantity(101, QuantityUnit::Percent)])
+            values(vec![quantity(101, Unit::Percent)])
         ),
         Err(InteractionRefusal::OutOfRange)
     );
@@ -336,7 +334,7 @@ fn stale_removed_unavailable_wrong_type_range_and_granularity_refuse_distinctly(
             &scalar,
             &scalar_state,
             1,
-            values(vec![quantity(52, QuantityUnit::Percent)])
+            values(vec![quantity(52, Unit::Percent)])
         ),
         Err(InteractionRefusal::UnsupportedGranularity)
     );
@@ -453,4 +451,38 @@ fn canonical_contract_state_proposal_and_result_vectors_are_deterministic() {
     }
     assert_ne!(state.state_identity, proposal.proposal_identity);
     assert_ne!(proposal.proposal_identity, result.result_identity);
+}
+
+#[test]
+fn absolute_temperature_controls_accept_points_and_relative_controls_require_differences() {
+    let absolute = InteractionContract::new(
+        "interaction/temperature",
+        InteractionFamily::scalar_range(
+            Unit::Celsius,
+            0,
+            BoundKind::Inclusive,
+            100,
+            BoundKind::Inclusive,
+            1,
+        ),
+    )
+    .unwrap();
+    let state = InteractionCurrentState::new(&absolute, 1, None, vec![quantity(21, Unit::Celsius)])
+        .unwrap();
+    assert!(HumanInteractionProposal::new(
+        &absolute,
+        &state,
+        1,
+        values(vec![quantity(22, Unit::Celsius)])
+    )
+    .is_ok());
+    for unit in [Unit::Celsius, Unit::Fahrenheit, Unit::Kelvin] {
+        assert_eq!(
+            InteractionContract::new(
+                "interaction/temperature-adjust",
+                InteractionFamily::relative_range(unit, -5, 5, 1)
+            ),
+            Err(InteractionRefusal::InvalidContract)
+        );
+    }
 }

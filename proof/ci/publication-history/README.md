@@ -1,0 +1,11 @@
+# Complete browser publication history
+
+The retained original CI log proves 100 browser tests passed before site publication refused a shallow repository. The checkout requested depth zero and its initial fetch had no depth option, but no initial shallow-state snapshot exists. The point where the repository acquired that state remains unproven. Root's fresh full-refs fetch from the same GitHub origin under Git 2.53 remained non-shallow. Neither a Git-version cause nor an identified mutating subprocess is claimed.
+
+Site assembly now admits the explicit expected publication SHA before creating output. It records the pre-acquisition state; an already complete checkout performs no fetch. A shallow checkout uses explicit `git fetch --unshallow --no-tags origin`, bounded to 120 seconds and 64 MiB captured output with prompts disabled. Success additionally requires non-shallow state and the same expected HEAD. Missing/invalid origins, failed fetch and changed HEAD refuse. No shallow file is manually removed and the strict complete-parent ancestry helper is unchanged.
+
+Safe snapshots at browser start, before site assembly and after acquisition retain Git version, HEAD, shallow state, common directory and shallow-file byte size, modification time, inode, count and up to 16 boundary SHAs from a capped 64 KiB read. They never emit environment values, remote URLs or fetch stderr. Future CI snapshots can locate the actual transition; this change does not assert one occurred at a particular subprocess.
+
+Both local Git 2.53 and root-built official Git 2.55 (source e9019fcafe0040228b8631c30f97ae1adb61bcdc) pass all 165 pipeline Node tests and actual full-checkout admission plus the strict retained Todo gate at exact parent 0acf94d2f105c45b95e0e0b60def7c6bbfaa832e. Genuine local file-origin fixtures prove shallow restoration plus exact ancestor admission, missing/invalid origin refusal, no fetch for complete repositories even with an invalid origin, and HEAD mismatch refusal before fetch. Fixture logs retain real shallow boundary diagnostics. No Cargo or browser rerun is claimed.
+
+The receipt hashes the four frozen source files tested and reviewed before the source commit and records the unchanged strict helper hash. This later proof commit changes evidence only.

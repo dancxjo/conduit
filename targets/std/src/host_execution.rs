@@ -18,6 +18,7 @@ struct HostRunInputs<'a> {
     attach_live: bool,
     external_fore: Option<ExternalForeRun<'a>>,
     spoken_mask: Option<crate::spoken_mask_runtime::SpokenMaskPreparation>,
+    direct_spoken_mask: Option<crate::direct_spoken_mask_runtime::DirectSpokenMaskPreparation>,
     durable_state: Option<installed_std::DurableStateRun<'a>>,
 }
 
@@ -87,6 +88,7 @@ impl StdHost {
                 attach_live: false,
                 external_fore: None,
                 spoken_mask: None,
+                direct_spoken_mask: None,
                 durable_state: None,
             },
         )
@@ -113,6 +115,7 @@ impl StdHost {
                 attach_live: false,
                 external_fore: None,
                 spoken_mask: None,
+                direct_spoken_mask: None,
                 durable_state: None,
             },
         )
@@ -142,6 +145,7 @@ impl StdHost {
                 attach_live: false,
                 external_fore: None,
                 spoken_mask: None,
+                direct_spoken_mask: None,
                 durable_state: Some(installed_std::DurableStateRun {
                     body,
                     root: residence_root,
@@ -171,6 +175,7 @@ impl StdHost {
                 attach_live: true,
                 external_fore: None,
                 spoken_mask: None,
+                direct_spoken_mask: None,
                 durable_state: None,
             },
         )
@@ -196,7 +201,8 @@ impl StdHost {
         )
     }
 
-    /// Feed a finite sequence through one exact, Plan-sealed input Flow.
+    /// Feed at most 64 values through exact Plan-sealed closing input Flows.
+    /// Each Flow retains independent sequence custody; close follows drained payloads.
     /// Pressure is handled by the installed kernel loop before the next value
     /// is admitted; this does not create synthetic per-value Fore ports.
     #[allow(clippy::too_many_arguments)]
@@ -265,6 +271,7 @@ impl StdHost {
                     sequential,
                 }),
                 spoken_mask: None,
+                direct_spoken_mask: None,
                 durable_state: None,
             },
         )
@@ -286,6 +293,7 @@ impl StdHost {
             attach_live,
             external_fore,
             spoken_mask,
+            direct_spoken_mask,
             durable_state,
         } = inputs;
         write_operator_report(output, self.advertisement(), &fragment.plan_id, &fragment)?;
@@ -324,6 +332,7 @@ impl StdHost {
                         keyboard,
                         local_model: self.local_model.as_deref_mut(),
                         vector_search: self.vector_search.as_deref_mut(),
+                        model_work: self.model_work.as_deref_mut(),
                         calendar: self.calendar.as_deref_mut(),
                         body_conversation_context: self.body_conversation_context.as_ref(),
                     },
@@ -344,6 +353,7 @@ impl StdHost {
                         vision: self.vision.as_mut(),
                         external_fore,
                         spoken_mask,
+                        direct_spoken_mask,
                         durable_state,
                     },
                 )
@@ -387,3 +397,10 @@ impl StdHost {
         Ok(run)
     }
 }
+
+#[cfg(test)]
+mod scalar_tape_control_tests;
+
+#[cfg(test)]
+#[path = "installed_std/pure_expression_back/scalar_tape_fixture.rs"]
+pub(crate) mod scalar_tape_fixture;

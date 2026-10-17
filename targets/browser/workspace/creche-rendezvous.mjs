@@ -2,7 +2,8 @@ const PROTOCOL = 1;
 // Shared with the native running-Host rendezvous envelope. The exact standard
 // Host advertisement travels in one bounded control frame before and after
 // invitation admission; ordinary joined-Line data remains separately bounded.
-const MAXIMUM_FRAME_BYTES = 256 * 1024;
+const MAXIMUM_FRAME_BYTES = 2 * 1024 * 1024;
+const MAXIMUM_JOINED_FRAME_BYTES = 512 * 1024;
 const MAXIMUM_WAIT_MILLIS = 10_000;
 const WEBSOCKET_CODE_PATTERN = /^C1-WS-([0-9A-F]{4})-([0-9A-F]{64})$/;
 const SERIAL_CODE_PATTERN = /^C1-SERIAL-([0-9A-F]{64})$/;
@@ -364,7 +365,7 @@ function requireMembershipCredential(value, bodyId, advertisement) {
 
 function requireSessionFrame(value) {
   const bytes = bytesOf(value);
-  if (bytes.byteLength < 5 || bytes.byteLength > MAXIMUM_FRAME_BYTES
+  if (bytes.byteLength < 5 || bytes.byteLength > MAXIMUM_JOINED_FRAME_BYTES
     || bytes[0] !== 0x43 || bytes[1] !== 0x4e || bytes[2] !== 0x44 || bytes[3] !== 0x53) {
     refuse("SessionFrame", "joined Host Line frame is malformed or outside its finite bound");
   }
@@ -380,7 +381,7 @@ function requireRemotePrepared(prepared, advertisement) {
     || typeof identity?.active_play_id !== "string" || identity.active_play_id.length === 0
     || !Number.isSafeInteger(identity?.play_sequence) || identity.play_sequence < 0
     || !Array.isArray(frames) || frames.length === 0 || frames.length > 32
-    || frames.some(frame => !Array.isArray(frame) || frame.length < 5 || frame.length > MAXIMUM_FRAME_BYTES
+    || frames.some(frame => !Array.isArray(frame) || frame.length < 5 || frame.length > MAXIMUM_JOINED_FRAME_BYTES
       || frame[0] !== 0x43 || frame[1] !== 0x4e || frame[2] !== 0x44 || frame[3] !== 0x53
       || frame.some(byte => !Number.isInteger(byte) || byte < 0 || byte > 255))) {
     refuse("RemotePreparation", "joined Host returned malformed or stale remote play truth");

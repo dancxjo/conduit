@@ -2,11 +2,14 @@
 
 pub const MAKE_SCHEMA: &str = "conduit.conduitos/make-record@1";
 pub const MAX_ID_BYTES: usize = 160;
+/// Emulator RAM for the canonical normal PC product preparation budget.
+pub const PC_PRODUCT_QEMU_MEMORY: &str = "512M";
+pub const PC_PRODUCT_QEMU_PROFILE: &str = "q35-single-cpu-512m-normal-product";
 pub const IMPL_TIME_TICK: u16 = 1 << 0;
-pub const IMPL_TICK_PRESENTATION: u16 = 1 << 1;
+pub const IMPL_TICK_FACE: u16 = 1 << 1;
 pub const IMPL_TEXT_LITERAL: u16 = 1 << 2;
 pub const IMPL_TEXT_UPPER: u16 = 1 << 3;
-pub const IMPL_TEXT_PRESENTATION: u16 = 1 << 4;
+pub const IMPL_TEXT_FACE: u16 = 1 << 4;
 pub const IMPL_KEYBOARD: u16 = 1 << 5;
 pub const IMPL_PC_SPEAKER: u16 = 1 << 6;
 pub const IMPL_OPL2: u16 = 1 << 7;
@@ -14,10 +17,15 @@ pub const IMPL_NATIVE_PRESENTER: u16 = 1 << 8;
 pub const IMPL_LINEAR_PRESENTER: u16 = 1 << 9;
 pub const IMPL_HTTP_CLIENT: u16 = 1 << 10;
 pub const IMPL_POINTER: u16 = 1 << 11;
-pub const ALL_KNOWN_IMPLEMENTATIONS: u16 = (1 << 12) - 1;
+pub const IMPL_I2C_TRANSACTION: u16 = 1 << 12;
+pub const IMPL_MONOTONIC_DEADLINE: u16 = 1 << 13;
+/// Compiled class-neutral USB control and endpoint-read transport machinery.
+/// This inventory does not establish class, isochronous or physical acceptance.
+pub const IMPL_USB_TRANSPORT: u16 = 1 << 14;
+pub const ALL_KNOWN_IMPLEMENTATIONS: u16 = (1 << 15) - 1;
 pub const FACILITY_NATIVE_COMPOSITOR: u16 = 1;
 pub const FACILITY_HTTP_CLIENT: u16 = 1 << 1;
-pub const RESOURCE_PRESENTATION_SURFACE: u16 = 1;
+pub const RESOURCE_FACE_SURFACE: u16 = 1;
 pub const RESOURCE_HTTP_CLIENT: u16 = 1 << 1;
 pub const BASE_DISPLAY_SCANOUT: u16 = 1;
 pub const BASE_HTTP_NETWORK: u16 = 1 << 2;
@@ -33,7 +41,22 @@ pub const DRIVER_PL011_SERIAL: u16 = 1 << 1;
 pub const PRESENTER_LINEAR_SERIAL: u16 = 1 << 1;
 pub const PROOF_HOTPLUG: u16 = 1 << 0;
 pub const PROOF_SCRIPTED_KEYBOARD: u16 = 1 << 1;
-pub const ALL_KNOWN_PROOF_INSTRUMENTATION: u16 = PROOF_HOTPLUG | PROOF_SCRIPTED_KEYBOARD;
+pub const PROOF_USB_CONFIGURATION: u16 = 1 << 2;
+pub const PROOF_USB_ENDPOINT_READ: u16 = 1 << 3;
+pub const USB_ENDPOINT_QEMU_PROFILE: &str =
+    "q35-single-cpu-64m-headless-xhci-usb-kbd-endpoint-read";
+/// Ordinary product/proof preparation retains the complete authored keymap registry.
+pub const NATIVE_PREPARATION_ARENA_BYTES: u64 = 32 * 1024 * 1024;
+pub const USB_HID_ENDPOINT_ARENA_BYTES: u64 = 128 * 1024 * 1024;
+pub const USB_HID_MOUSE_ARENA_BYTES: u64 = 32 * 1024 * 1024;
+pub const USB_HID_MOUSE_QEMU_PROFILE: &str =
+    "q35-single-cpu-64m-headless-xhci-usb-mouse-hid-endpoint";
+pub const USB_HID_ENDPOINT_QEMU_PROFILE: &str =
+    "q35-single-cpu-256m-headless-xhci-usb-kbd-hid-capture-window";
+pub const ALL_KNOWN_PROOF_INSTRUMENTATION: u16 =
+    PROOF_HOTPLUG | PROOF_SCRIPTED_KEYBOARD | PROOF_USB_CONFIGURATION | PROOF_USB_ENDPOINT_READ;
+pub const USB_CONFIGURATION_ARENA_BYTES: u64 = 256 * 1024 * 1024;
+pub const USB_CONFIGURATION_QEMU_PROFILE: &str = "q35-single-cpu-512m-headless-xhci-usb-kbd-adlib";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct MakeRecord {
@@ -51,8 +74,8 @@ pub struct MakeRecord {
     pub drivers: u16,
     pub presenters: u16,
     pub proof_instrumentation: u16,
-    pub presentation_surface_slots: u32,
-    pub presentation_surface_bytes: u64,
+    pub face_surface_slots: u32,
+    pub face_surface_bytes: u64,
     pub runtime_arena_ceiling: u64,
     pub operation_slot_ceiling: u32,
     pub timer_slot_ceiling: u32,
@@ -97,8 +120,8 @@ impl MakeRecord {
             drivers: 0,
             presenters: 0,
             proof_instrumentation: 0,
-            presentation_surface_slots: 0,
-            presentation_surface_bytes: 0,
+            face_surface_slots: 0,
+            face_surface_bytes: 0,
             runtime_arena_ceiling: 0,
             operation_slot_ceiling: 0,
             timer_slot_ceiling: 0,
@@ -126,8 +149,12 @@ impl MakeRecord {
         }
         if self.implementations == 0
             || self.implementations & !ALL_KNOWN_IMPLEMENTATIONS != 0
+            || (!matches!(
+                self.target,
+                "conduitos/x86_64/pc" | "conduitos/aarch64/virt"
+            ) && self.includes(IMPL_USB_TRANSPORT))
             || self.facilities & !(FACILITY_NATIVE_COMPOSITOR | FACILITY_HTTP_CLIENT) != 0
-            || self.resources & !(RESOURCE_PRESENTATION_SURFACE | RESOURCE_HTTP_CLIENT) != 0
+            || self.resources & !(RESOURCE_FACE_SURFACE | RESOURCE_HTTP_CLIENT) != 0
             || self.bases & !(BASE_DISPLAY_SCANOUT | BASE_SERIAL_TEXT | BASE_HTTP_NETWORK) != 0
             || self.drivers
                 & !(DRIVER_LINEAR_FRAMEBUFFER
@@ -146,12 +173,12 @@ impl MakeRecord {
         let native = self.includes(IMPL_NATIVE_PRESENTER);
         let linear = self.includes(IMPL_LINEAR_PRESENTER);
         if self.includes_facility(FACILITY_NATIVE_COMPOSITOR) != native
-            || (self.resources & RESOURCE_PRESENTATION_SURFACE != 0) != native
+            || (self.resources & RESOURCE_FACE_SURFACE != 0) != native
             || (self.bases & BASE_DISPLAY_SCANOUT != 0) != native
             || (self.drivers & DRIVER_LINEAR_FRAMEBUFFER != 0) != native
             || (self.presenters & PRESENTER_NATIVE_GRAPHICAL != 0) != native
-            || (self.presentation_surface_slots != 0) != native
-            || (self.presentation_surface_bytes != 0) != native
+            || (self.face_surface_slots != 0) != native
+            || (self.face_surface_bytes != 0) != native
         {
             return Err(MakeError::UnknownInventory);
         }
@@ -238,13 +265,13 @@ mod tests {
             target: "conduitos/x86_64/pc",
             implementations: ALL_KNOWN_IMPLEMENTATIONS & !IMPL_LINEAR_PRESENTER & !IMPL_HTTP_CLIENT,
             facilities: FACILITY_NATIVE_COMPOSITOR,
-            resources: RESOURCE_PRESENTATION_SURFACE,
+            resources: RESOURCE_FACE_SURFACE,
             bases: BASE_DISPLAY_SCANOUT,
             drivers: DRIVER_LINEAR_FRAMEBUFFER,
             presenters: PRESENTER_NATIVE_GRAPHICAL,
             proof_instrumentation: 0,
-            presentation_surface_slots: 4,
-            presentation_surface_bytes: 8 * 1024 * 1024,
+            face_surface_slots: 4,
+            face_surface_bytes: 8 * 1024 * 1024,
             runtime_arena_ceiling: 16 * 1024 * 1024,
             operation_slot_ceiling: 64,
             timer_slot_ceiling: 32,
@@ -325,11 +352,11 @@ mod tests {
                 ..record
             },
             MakeRecord {
-                presentation_surface_slots: 0,
+                face_surface_slots: 0,
                 ..record
             },
             MakeRecord {
-                presentation_surface_bytes: 0,
+                face_surface_bytes: 0,
                 ..record
             },
             MakeRecord {
@@ -342,23 +369,61 @@ mod tests {
     }
 
     #[test]
+    fn usb_transport_inventory_rejects_unsupported_targets_and_unknown_bits() {
+        let native = record();
+        assert!(native.includes(IMPL_USB_TRANSPORT));
+        assert_eq!(native.validate(1), Ok(()));
+        for target in [
+            "conduitos/ia32/pc",
+            "conduitos/riscv64/virt",
+            "conduitos/loongarch64/virt",
+            "conduitos/aarch64/orange-pi-5-rk3588s",
+        ] {
+            assert_eq!(
+                MakeRecord { target, ..native }.validate(1),
+                Err(MakeError::UnknownInventory)
+            );
+        }
+        assert_eq!(
+            MakeRecord {
+                implementations: native.implementations | (1 << 15),
+                ..native
+            }
+            .validate(1),
+            Err(MakeError::UnknownInventory)
+        );
+    }
+
+    #[test]
     fn aarch64_requires_only_the_linear_serial_closure() {
         let x86 = record();
         let record = MakeRecord {
             target: "conduitos/aarch64/virt",
             implementations: (x86.implementations
-                & !(IMPL_NATIVE_PRESENTER | IMPL_KEYBOARD | IMPL_PC_SPEAKER | IMPL_OPL2))
+                & !(IMPL_NATIVE_PRESENTER
+                    | IMPL_KEYBOARD
+                    | IMPL_PC_SPEAKER
+                    | IMPL_OPL2
+                    | IMPL_USB_TRANSPORT))
                 | IMPL_LINEAR_PRESENTER,
             facilities: 0,
             resources: 0,
             bases: BASE_SERIAL_TEXT,
             drivers: DRIVER_PL011_SERIAL,
             presenters: PRESENTER_LINEAR_SERIAL,
-            presentation_surface_slots: 0,
-            presentation_surface_bytes: 0,
+            face_surface_slots: 0,
+            face_surface_bytes: 0,
             ..x86
         };
         assert_eq!(record.validate(1), Ok(()));
+        assert_eq!(
+            MakeRecord {
+                implementations: record.implementations | IMPL_USB_TRANSPORT,
+                ..record
+            }
+            .validate(1),
+            Ok(())
+        );
         for malformed in [
             MakeRecord {
                 target: "conduitos/x86_64/pc",

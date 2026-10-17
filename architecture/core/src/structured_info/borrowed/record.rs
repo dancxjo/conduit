@@ -40,6 +40,33 @@ impl<'a> ValidatedCanonicalStructuredValue<'a> {
         Ok(None)
     }
 
+    /// Explicitly inspect a nominal representation while retaining the original
+    /// view at the caller. This is not semantic admission or resource authority.
+    pub fn representation(self) -> Result<Self, StructuredInfoRefusal> {
+        let mut representation = self.type_bytes;
+        for _ in 0..super::MAXIMUM_STRUCTURED_INFO_DEPTH {
+            let mut kind = Cursor::new(representation);
+            if kind.byte()? != 5 {
+                return Ok(Self {
+                    type_bytes: representation,
+                    value_node: self.value_node,
+                });
+            }
+            kind.text()?;
+            representation = kind.remaining;
+        }
+        Err(StructuredInfoRefusal::TooDeep)
+    }
+
+    /// Inspect a primitive representation through finite nominal wrappers.
+    /// Retain/check the original semantic Type before using this representation.
+    pub fn primitive_representation_bytes(
+        self,
+        identity: &str,
+    ) -> Result<&'a [u8], StructuredInfoRefusal> {
+        self.representation()?.primitive_bytes(identity)
+    }
+
     /// Borrow the primitive bytes of a leaf with the exact supplied identity.
     pub fn primitive_bytes(self, identity: &str) -> Result<&'a [u8], StructuredInfoRefusal> {
         let mut kind = Cursor::new(self.type_bytes);

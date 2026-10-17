@@ -12,6 +12,9 @@ use conduit_kernel::{
     CordEndpoint, CordId, FixedRoutes, FixedSignLog, NodeId, RouteRange, RouteTarget,
 };
 
+// Keep the installed Back inline so this scheduler fixture exercises the
+// production storage shape rather than hiding its fixed scratch behind a box.
+#[allow(clippy::large_enum_variant)]
 enum Driver {
     Source {
         values: Vec<ValueRef>,

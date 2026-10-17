@@ -5,8 +5,8 @@ use super::{
 use crate::{StdHost, StdHostConfig};
 use conduit_core::{
     BaseImplementationId, BootId, CapabilityId, GearId, HostId, OfferGeneration,
-    ProtectedResourceAccess, ProtectedResourceCommitPolicy, Quantity, QuantityUnit,
-    ResourceBindingRoleId, ResourceHandleId, StructuredInfoValueShape,
+    ProtectedResourceAccess, ProtectedResourceCommitPolicy, Quantity, ResourceBindingRoleId,
+    ResourceHandleId, StructuredInfoValueShape, Unit,
 };
 use conduit_planner::{default_placements, plan_with_options, PlanningOptions};
 use std::collections::BTreeMap;
@@ -62,7 +62,7 @@ fn planned_copy(
     conduit_semantic_catalog::install_copy_file_catalog(&mut catalog)
         .expect("install copy catalog");
     let plot = conduit_plot::parse(
-        "plot copy-task {\n    task: file/copy\n    show: presentation/structured-info\n    task >> show\n}\n",
+        "plot copy-task {\n    task: file/copy\n    show: face/structured-info(\"Observation\")\n    task >> show\n}\n",
         &catalog,
     )
     .expect("copy Plot checks without resource paths");
@@ -166,7 +166,7 @@ fn create_and_replace_copy_through_bounded_kernel_steps_with_exact_receipt() {
     assert_eq!(receipt.source_binding_id, copy.source_handle);
     assert_eq!(receipt.destination_binding_id, copy.destination_handle);
     assert!(receipt.kernel_events > 0);
-    assert_success_presentation(&receipt, bytes.len() as u64);
+    assert_success_face(&receipt, bytes.len() as u64);
     assert_eq!(std::fs::read(&destination).unwrap(), bytes);
 
     let replacement = vec![0x33; 19];
@@ -191,15 +191,15 @@ fn create_and_replace_copy_through_bounded_kernel_steps_with_exact_receipt() {
         )
         .unwrap();
     assert!(matches!(receipt.result, CopyResult::Success { .. }));
-    assert_success_presentation(&receipt, replacement.len() as u64);
+    assert_success_face(&receipt, replacement.len() as u64);
     assert_eq!(std::fs::read(&destination).unwrap(), replacement);
 }
 
-fn assert_success_presentation(receipt: &super::CopyRunReceipt, expected_bytes: u64) {
+fn assert_success_face(receipt: &super::CopyRunReceipt, expected_bytes: u64) {
     let presented = receipt
         .presented_result
         .as_ref()
-        .expect("successful copy reaches the planned presentation Gear");
+        .expect("successful copy reaches the planned face Gear");
     assert_eq!(
         presented.value_type(),
         &conduit_semantic_catalog::copy_result_type()
@@ -217,8 +217,11 @@ fn assert_success_presentation(receipt: &super::CopyRunReceipt, expected_bytes: 
         panic!("successful copy carries a quantity");
     };
     let quantity = Quantity::decode(encoded).expect("presented byte quantity is canonical");
-    assert_eq!(quantity.value(), i64::try_from(expected_bytes).unwrap());
-    assert_eq!(quantity.unit(), QuantityUnit::Byte);
+    assert_eq!(
+        quantity.to_i64(quantity.unit()).unwrap(),
+        i64::try_from(expected_bytes).unwrap()
+    );
+    assert_eq!(quantity.unit(), Unit::Byte);
 }
 
 #[test]

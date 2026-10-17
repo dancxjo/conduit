@@ -5,7 +5,7 @@ use super::BrowserBack;
 use conduit_audio::{AudioToneTerminal, PcmChannelLayout, PcmFrameHeader, PcmSampleRepresentation};
 use conduit_core::{
     Back, BackOfferBuilder, CapabilityId, ExecutionProfileId, HostCallContractId,
-    HostCallRequirement, ImplementationId, PlannedGear, Quantity, QuantityUnit,
+    HostCallRequirement, ImplementationId, PlannedGear, Quantity, Unit,
 };
 use conduit_kernel::{
     scheduler::{
@@ -38,7 +38,7 @@ fn offer() -> conduit_core::CapabilityOffer {
         Back {
             capability_id: CapabilityId::from("browser-audio-tone"),
             execution_profile_id: ExecutionProfileId::from(
-                "browser/audio-tone-fixed-s16le-mono-48000-f2000@1",
+                "browser/audio-tone-fixed-s16le-mono-48000-f2000-phase32@1",
             ),
             implementation_id: ImplementationId::from(IMPLEMENTATION),
             artifact_id: "conduit-browser-runtime/audio-tone@1".into(),
@@ -229,16 +229,33 @@ impl<const PORTS: usize> StepBack<PORTS> for AudioToneBack {
     }
 }
 
-fn frequency_millihertz(value: Quantity) -> Option<i128> {
-    match value.unit() {
-        QuantityUnit::Millihertz => Some(i128::from(value.value())),
-        QuantityUnit::Hertz => Some(i128::from(value.value()) * 1_000),
-        _ => None,
+// The oscillator projects exact frequency once to its declared 32-bit phase
+// accumulator. Sub-millihertz controls are valid; no millihertz carrier is implied.
+fn phase_increment(value: Quantity) -> Option<u32> {
+    use conduit_core::{ExactNumericWork, ExactRational, RationalQuantity};
+    if value.compare(Quantity::new(20, Unit::Hertz)).ok()?.is_lt()
+        || value
+            .compare(Quantity::new(20_000, Unit::Hertz))
+            .ok()?
+            .is_gt()
+    {
+        return None;
     }
+    let mut work = ExactNumericWork::new(3 * conduit_core::MATHEMATICAL_VALUE_VALIDATION_WORK);
+    let frequency = RationalQuantity::from_quantity(value, &mut work)
+        .ok()?
+        .convert_to_unit(Unit::Hertz, &mut work)
+        .ok()?;
+    let increment = frequency
+        .coordinate()
+        .checked_multiply(ExactRational::from_u128(1u128 << 32), &mut work)
+        .ok()?
+        .checked_divide(ExactRational::from_u128(u128::from(SAMPLE_RATE)), &mut work)
+        .ok()?;
+    let (numerator, denominator) = increment.checked_unsigned_ratio().ok()?;
+    u32::try_from(numerator / denominator).ok()
 }
-fn render(frequency: i128, phase: u32, start_frame: u64) -> Option<([u8; BLOCK_BYTES], u32)> {
-    let increment =
-        ((frequency << 32) / (i128::from(SAMPLE_RATE) * 1_000)).rem_euclid(1_i128 << 32) as u32;
+fn render(increment: u32, phase: u32, start_frame: u64) -> Option<([u8; BLOCK_BYTES], u32)> {
     let header = PcmFrameHeader::new(
         PcmSampleRepresentation::Signed16LittleEndian,
         SAMPLE_RATE,
@@ -269,7 +286,13 @@ fn render(frequency: i128, phase: u32, start_frame: u64) -> Option<([u8; BLOCK_B
 }
 #[cfg(test)]
 pub(crate) fn test_block() -> [u8; BLOCK_BYTES] {
-    render(440_000, 0, 0).unwrap().0
+    render(
+        phase_increment(Quantity::new(440, Unit::Hertz)).unwrap(),
+        0,
+        0,
+    )
+    .unwrap()
+    .0
 }
 const fn fail(detail: u16) -> StepOutcome {
     StepOutcome::Fail(Failure {
@@ -295,7 +318,7 @@ fn prepare(
 }
 
 pub(crate) struct PreparedAudioTone {
-    frequency: Option<i128>,
+    increment: Option<u32>,
     phase: u32,
     start_frame: u64,
 }
@@ -307,28 +330,26 @@ impl PreparedAudioTone {
         }
         validate_placement(placement, &offer())?;
         Ok(Some(Self {
-            frequency: None,
+            increment: None,
             phase: 0,
             start_frame: 0,
         }))
     }
 
     pub(crate) fn update(&mut self, encoded: &[u8]) -> Result<(), Failure> {
-        self.frequency = Quantity::decode(encoded)
-            .ok()
-            .and_then(frequency_millihertz);
-        self.frequency.map(|_| ()).ok_or(Failure {
+        self.increment = Quantity::decode(encoded).ok().and_then(phase_increment);
+        self.increment.map(|_| ()).ok_or(Failure {
             code: FailureCode::InvalidInput,
             detail: 12,
         })
     }
 
     pub(crate) fn render(&mut self) -> Result<[u8; BLOCK_BYTES], Failure> {
-        let frequency = self.frequency.ok_or(Failure {
+        let increment = self.increment.ok_or(Failure {
             code: FailureCode::InvalidInput,
             detail: 13,
         })?;
-        let (block, phase) = render(frequency, self.phase, self.start_frame).ok_or(Failure {
+        let (block, phase) = render(increment, self.phase, self.start_frame).ok_or(Failure {
             code: FailureCode::InvalidInput,
             detail: 14,
         })?;
@@ -339,29 +360,4 @@ impl PreparedAudioTone {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn admitted_renderer_keeps_phase_and_frame_continuity_in_hosted_pcm_storage() {
-        let mut renderer = PreparedAudioTone {
-            frequency: None,
-            phase: 0,
-            start_frame: 0,
-        };
-        renderer
-            .update(&Quantity::new(440, QuantityUnit::Hertz).encode())
-            .unwrap();
-        let first = renderer.render().unwrap();
-        let second = renderer.render().unwrap();
-        let (first_header, first_payload) = PcmFrameHeader::decode_frame(&first).unwrap();
-        let (second_header, second_payload) = PcmFrameHeader::decode_frame(&second).unwrap();
-
-        assert_eq!(first_header.frame_count, FRAMES);
-        assert_eq!(first_header.start_frame, 0);
-        assert_eq!(second_header.start_frame, u64::from(FRAMES));
-        assert_eq!(first_payload.len(), usize::from(FRAMES) * 2);
-        assert_eq!(second_payload.len(), usize::from(FRAMES) * 2);
-        assert_ne!(first_payload, second_payload);
-    }
-}
+mod tests;

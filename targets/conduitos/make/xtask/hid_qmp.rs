@@ -12,6 +12,11 @@ use std::{
 pub(super) use super::qmp::connect;
 use super::{qmp, ConduitosError};
 
+// Source catalog and Mask preparation share one finite cold-start envelope.
+// Candidate arrival missed 20s; its exact kernel arrived locally in 17.8s,
+// while later cold lifecycle preparation required up to 28.4s.
+pub(super) const COLD_PREPARATION_WAIT_TIMEOUT: Duration = Duration::from_secs(60);
+
 #[derive(Clone, Copy)]
 pub(super) enum RescueNearMiss {
     ControlDelete,
@@ -24,12 +29,54 @@ pub(super) fn inject(
     serial_path: &Path,
     child: &mut Child,
 ) -> Result<(), ConduitosError> {
+    inject_with_preparation_budget(socket, serial_path, child, Duration::from_secs(5), None)
+}
+
+/// Arm QEMU's own mixer capture immediately before the final Enter key starts
+/// the guest action. All preceding HID preparation uses the normal backend.
+pub(super) fn inject_with_capture(
+    socket: &Path,
+    serial_path: &Path,
+    child: &mut Child,
+    wav: &Path,
+) -> Result<(), ConduitosError> {
+    inject_with_preparation_budget(
+        socket,
+        serial_path,
+        child,
+        Duration::from_secs(5),
+        Some(wav),
+    )
+}
+
+pub(super) fn inject_configuration(
+    socket: &Path,
+    serial_path: &Path,
+    child: &mut Child,
+) -> Result<(), ConduitosError> {
+    inject_with_preparation_budget(
+        socket,
+        serial_path,
+        child,
+        super::profile::USB_CONFIGURATION_PREPARATION_TIMEOUT,
+        None,
+    )
+}
+
+fn inject_with_preparation_budget(
+    socket: &Path,
+    serial_path: &Path,
+    child: &mut Child,
+    preparation: Duration,
+    wav: Option<&Path>,
+) -> Result<(), ConduitosError> {
     let (mut qmp, mut reader) = connect(socket, child)?;
-    wait_for_stage(
+    wait_for_stage_with_budget(
         serial_path,
         child,
         "CONDUIT_BOOT_STAGE hid-awaiting-qemu-key",
         "hid-ready-timeout",
+        preparation,
     )?;
     send_key(&mut qmp, &mut reader, true)?;
     wait_for_stage(
@@ -45,7 +92,7 @@ pub(super) fn inject(
         "CONDUIT_BOOT_STAGE keyboard-text-play-started",
         "keyboard-text-start-timeout",
     )?;
-    inject_keyboard_text(&mut qmp, &mut reader, serial_path, child)
+    inject_keyboard_text(&mut qmp, &mut reader, serial_path, child, wav)
 }
 
 fn inject_keyboard_text(
@@ -53,8 +100,9 @@ fn inject_keyboard_text(
     reader: &mut super::qmp::Reader,
     serial_path: &Path,
     child: &mut Child,
+    wav: Option<&Path>,
 ) -> Result<(), ConduitosError> {
-    const EVENTS: [(&str, bool); 38] = [
+    const EVENTS: [(&str, bool); 26] = [
         ("h", true),
         ("h", false),
         ("e", true),
@@ -66,33 +114,21 @@ fn inject_keyboard_text(
         ("o", true),
         ("o", false),
         ("alt_r", true),
-        ("a", true),
-        ("a", false),
+        ("z", true),
+        ("z", false),
         ("alt_r", false),
         ("alt_r", true),
-        ("spc", true),
-        ("spc", false),
-        ("alt_r", false),
         ("apostrophe", true),
         ("apostrophe", false),
+        ("alt_r", false),
         ("e", true),
         ("e", false),
         ("alt_r", true),
-        ("shift", true),
-        ("spc", true),
-        ("spc", false),
-        ("shift", false),
+        ("grave_accent", true),
+        ("grave_accent", false),
         ("alt_r", false),
-        ("0", true),
-        ("0", false),
-        ("3", true),
-        ("3", false),
-        ("b", true),
-        ("b", false),
-        ("b", true),
-        ("b", false),
-        ("ret", true),
-        ("ret", false),
+        ("a", true),
+        ("a", false),
     ];
     for (index, (key, down)) in EVENTS.iter().copied().enumerate() {
         wait_for_stage_count(
@@ -102,6 +138,32 @@ fn inject_keyboard_text(
             index + 1,
             "keyboard-text-ready-timeout",
         )?;
+        if index == 36 {
+            if let Some(wav) = wav {
+                let name = wav
+                    .to_str()
+                    .filter(|name| {
+                        name.bytes().all(|byte| {
+                            byte.is_ascii_alphanumeric()
+                                || matches!(byte, b'/' | b'.' | b'_' | b'-')
+                        })
+                    })
+                    .ok_or_else(|| {
+                        ConduitosError::refusal(
+                            "qemu-audio-output-path-invalid",
+                            "HMP WAV path has unsupported characters",
+                        )
+                    })?;
+                let command = serde_json::json!({"execute":"human-monitor-command",
+                    "arguments":{"command-line":format!("wavcapture {name} conduitos-opl2-audio")}});
+                qmp::request(
+                    qmp,
+                    reader,
+                    command.to_string().as_bytes(),
+                    "arm-guest-audio-capture",
+                )?;
+            }
+        }
         send_named_keys(qmp, reader, &[key], down, "keyboard-text-key")?;
         wait_for_stage_count(
             serial_path,
@@ -337,13 +399,54 @@ pub(super) fn wait_for_stage(
     stage: &str,
     reason: &'static str,
 ) -> Result<(), ConduitosError> {
-    let deadline = Instant::now() + Duration::from_secs(5);
+    wait_for_stage_with_budget(serial_path, child, stage, reason, Duration::from_secs(5))
+}
+
+/// Cold product arrival admits source catalogs, plans and the native Mask.
+/// It has a preparation budget distinct from subsequent HID response checks.
+pub(super) fn wait_for_product_arrival(
+    serial_path: &Path,
+    child: &mut Child,
+    stage: &str,
+    reason: &'static str,
+) -> Result<(), ConduitosError> {
+    wait_for_stage_with_budget(
+        serial_path,
+        child,
+        stage,
+        reason,
+        COLD_PREPARATION_WAIT_TIMEOUT,
+    )
+}
+
+pub(super) fn wait_for_stage_with_budget(
+    serial_path: &Path,
+    child: &mut Child,
+    stage: &str,
+    reason: &'static str,
+    budget: Duration,
+) -> Result<(), ConduitosError> {
+    let deadline = Instant::now() + budget;
     loop {
         if fs::read_to_string(serial_path).is_ok_and(|serial| serial.contains(stage)) {
             return Ok(());
         }
+        if let Some(status) = child
+            .try_wait()
+            .map_err(|error| ConduitosError::refusal(reason, error.to_string()))?
+        {
+            return stop(
+                child,
+                reason,
+                format!("guest exited with {status} before {stage}"),
+            );
+        }
         if Instant::now() >= deadline {
-            return stop(child, reason, format!("guest did not emit {stage}"));
+            return stop(
+                child,
+                reason,
+                format!("guest did not emit {stage} within {budget:?}"),
+            );
         }
         thread::sleep(Duration::from_millis(1));
     }

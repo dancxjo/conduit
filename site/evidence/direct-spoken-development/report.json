@@ -1,0 +1,276 @@
+{
+  "schema": "conduit.evidence/direct-spoken-development@1",
+  "disposition": "diagnostic-incomplete",
+  "capture_source_commit": "2f1df6f640a4ad967d90d795bd47fe98b177851e",
+  "proof_class": "live-installed-linux-selected-alsa",
+  "human_listening_observed": false,
+  "operation_id": "owner-spoken-mask/90ad5bf9350398966c60bdb18b07dcb8d6319872d55aed30e41aae7ff3d3832e",
+  "body_id": "5517551de21a17729f1b8ff991c9daeb5ba0412916f6c8a263d347f128f1f843",
+  "host_id": "host/installed/51037a0eb146a18ff91101d28433bef18048f3c0c6c1779846611ac5248a7fa9",
+  "birth_boot_id": "boot/installed/21fc73cbdc7ed4cf23c8e2680c3287046332f710f1c5f22213aadba6c1edcfe1",
+  "boot_id": "boot/installed/61db69cc6a0b0827a8b67e24cf409fc62835939984f1397d34e052ffe8ae1c3f",
+  "face_id": "78dec90d75bc35cd3d519f247dff9e5ec10abe1c940a60e0171f0ee3e9f5fc11",
+  "face_revision": "3176694443217864232",
+  "mask_plot": {
+    "checked_plot_id": "b777aeba4975f95bd813dd85b39fb86922bc8939331d2bb130ecb7a55f31eca5",
+    "expanded_plot_id": "cabe83aed88b21df7c2f636110bb4a710bae24ceee24a0554aafe1b19a0849fd",
+    "source_document_id": "497bc60bf18004c0c79e7d2fca09860277249896fdc420dc42c32548ec11fb7f"
+  },
+  "route_plan_id": "plan/local-owner-mask/b80bfac442f32173354310baa8b3594755a4d0250e22d69491cc76474018c937",
+  "show_id": "show/9e3e841a71cbdce6b8118c243ddea572e637c9adbdea1de743916f5fcbc28e6a",
+  "selected_speaker": {
+    "schema": "conduit.body/selected-speech-terminal@1",
+    "outcome": "completed",
+    "authority_grant_id": "grant/installed-selected-speech/boot/installed/61db69cc6a0b0827a8b67e24cf409fc62835939984f1397d34e052ffe8ae1c3f",
+    "selected_resource_pool_id": "std/audio/alsa/skl_hda_dsp_generic/card-sofhdadsp/device-0",
+    "offer_generation": 1,
+    "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+    "correlation_sha256": "72743ca8bee955313d96cbe7bacf1ba3c4812edfe39d46c610baf3087d40d3bf",
+    "completed_segments": 41,
+    "produced_pcm_bytes": 34131772
+  },
+  "reading_complete": true,
+  "batches": [
+    {
+      "play_id": "010c13880a0315ed8932433f5bc9e6c813a05cf5bf35bc042d7dc23ca18d91ee",
+      "plan_id": "98a9d59b31d8def2c93491a575a052f5c7ae9d11629405ae38ebc665f555cb7e",
+      "stream_identity": "face/78dec90d75bc35cd3d519f247dff9e5ec10abe1c940a60e0171f0ee3e9f5fc11/3176694443217864232/turn/1/batch/0",
+      "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+      "source_segments_sha256": "4f71136c9f30ad29009876185bbbdf8ee77839002378bb8d747527270cdaa6b7",
+      "pcm_sha256": "c86c1f2a61891186a0787a04fe1cb8dafd05b9d6d956f09a2e01e92d515d5b88",
+      "pcm_bytes": 1822260,
+      "speaker_frames_committed": 455565,
+      "speaker_blocks_committed": 8372,
+      "wav_artifact_id": "play-16153e4f7edfc8502f3ae4edfd496cd52ae1e6bae3e9ec1413b951e846acb6d6.wav",
+      "wav_sha256": "41e8d7f57b630dcacee09f0d8e2dc0f73866ed1f3e79ba7f56f4f10e9c7ed8c8",
+      "wav_bytes": 1822304,
+      "outcome": "completed",
+      "spoken_segments": [
+        "Direct speech clock, body.",
+        "Current overview context, region.",
+        "clock-demo, plot.",
+        "Direct speech clock contains Current overview context."
+      ]
+    },
+    {
+      "play_id": "b4b4a8a5a4825337d3bfc857367c7cd4b2c2ac17ad6dc784ea965784bafbc64e",
+      "plan_id": "98a9d59b31d8def2c93491a575a052f5c7ae9d11629405ae38ebc665f555cb7e",
+      "stream_identity": "face/78dec90d75bc35cd3d519f247dff9e5ec10abe1c940a60e0171f0ee3e9f5fc11/3176694443217864232/turn/1/batch/1",
+      "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+      "source_segments_sha256": "3aa9d04079c078593e22d43b03b6602332f37970a8bddbe5c2e29bbed608093f",
+      "pcm_sha256": "f97af66aef4c16a961409a86d4c46142ca2079c7bec05c57d7fc0d45ee1f3705",
+      "pcm_bytes": 5137416,
+      "speaker_frames_committed": 1284354,
+      "speaker_blocks_committed": 23602,
+      "wav_artifact_id": "play-288573b96f578c0417f7a8a1c10136814835c3227c3b454c7b29d32f6c75bf73.wav",
+      "wav_sha256": "3c824f540cdb062480cb939672ea0fb6f6cd448b19a86f67b4a627258db351d1",
+      "wav_bytes": 5137460,
+      "outcome": "completed",
+      "spoken_segments": [
+        "Direct speech clock contains clock-demo.",
+        "Direct speech clock has property body-id: identity ",
+        "5517551de21a17729f1b8ff991c9daeb5ba0412916f6c8a263d347f128f1f843",
+        "."
+      ]
+    },
+    {
+      "play_id": "a285234f1ff6cba7a43ba1131238302404098299dbbedb7f561612f5281f3048",
+      "plan_id": "98a9d59b31d8def2c93491a575a052f5c7ae9d11629405ae38ebc665f555cb7e",
+      "stream_identity": "face/78dec90d75bc35cd3d519f247dff9e5ec10abe1c940a60e0171f0ee3e9f5fc11/3176694443217864232/turn/1/batch/2",
+      "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+      "source_segments_sha256": "05f2608bf6c1c73187694441c79ebca19e6beca1de3d6c5722995b954f0e58b5",
+      "pcm_sha256": "c0fd9d3571ab8796c8900e1d006756bef1f123a4e1b481dea29ffe6fe156fb87",
+      "pcm_bytes": 2671572,
+      "speaker_frames_committed": 667893,
+      "speaker_blocks_committed": 12275,
+      "wav_artifact_id": "play-f683429bbc4a471f233928261215b0fec52dd9b688b398279106c6e85c08459d.wav",
+      "wav_sha256": "5e06941e21ceb518c27f39193d4b64f056a46bf1067dc73ec4ca4b70b455f847",
+      "wav_bytes": 2671616,
+      "outcome": "completed",
+      "spoken_segments": [
+        "Direct speech clock, lifecycle-state: lulled.",
+        "Direct speech clock, workload-revision: 0.",
+        "Current overview context, operator-context: overview.",
+        "Current overview context, operator-focus: body."
+      ]
+    },
+    {
+      "play_id": "cf19359af09bc2f38ee046b032bf88617a9f466aae41697338c303322bfde664",
+      "plan_id": "98a9d59b31d8def2c93491a575a052f5c7ae9d11629405ae38ebc665f555cb7e",
+      "stream_identity": "face/78dec90d75bc35cd3d519f247dff9e5ec10abe1c940a60e0171f0ee3e9f5fc11/3176694443217864232/turn/1/batch/3",
+      "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+      "source_segments_sha256": "64e681a28ef9dc03529c529d303e8b959bed7ca6d66d1a29d85cef545df01ba5",
+      "pcm_sha256": "ae66ae900d4860827394be0c884bf2c67bb44df88fce8f42205d40458c7f1549",
+      "pcm_bytes": 5274900,
+      "speaker_frames_committed": 1318725,
+      "speaker_blocks_committed": 24234,
+      "wav_artifact_id": "play-64bd74e87333f213521e63793c0f5fa8afc40fc8928cb5770c1c6717c2f091af.wav",
+      "wav_sha256": "cb671ddaaa902668326b4d68bbb32703765524d7e335d6528b3507003faece2a",
+      "wav_bytes": 5274944,
+      "outcome": "completed",
+      "spoken_segments": [
+        "clock-demo has property checked-plot-id: identity ",
+        "690a47e663976c9c9537a2c229dea854af0c22c233b87bec6c933e51a150d528",
+        ".",
+        "clock-demo, interval-ms: 1000."
+      ]
+    },
+    {
+      "play_id": "d8252cda4c2b409fb00ee97a7388746e9a0efd99977cf4bf9a160f9d2ae66cab",
+      "plan_id": "98a9d59b31d8def2c93491a575a052f5c7ae9d11629405ae38ebc665f555cb7e",
+      "stream_identity": "face/78dec90d75bc35cd3d519f247dff9e5ec10abe1c940a60e0171f0ee3e9f5fc11/3176694443217864232/turn/1/batch/4",
+      "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+      "source_segments_sha256": "3974b72f905ff2566e33f566399bbdd93897141019c0d548e22613ed770f1525",
+      "pcm_sha256": "959bfa2add957fc65654624fa6ea9095a8668b1cc31de48c8084c83cfbdc7ab4",
+      "pcm_bytes": 4467052,
+      "speaker_frames_committed": 1116763,
+      "speaker_blocks_committed": 20524,
+      "wav_artifact_id": "play-bcbaaf28ea145960b7095f15ba03493daa4255451b0a97e05df4db465275697a.wav",
+      "wav_sha256": "9fefb7d86da20e9d422c2f464e96f9c7da42097fe9d1feffee2389b0c427a91c",
+      "wav_bytes": 4467096,
+      "outcome": "completed",
+      "spoken_segments": [
+        "clock-demo has property source-document-id: identity ",
+        "aa95def24c9d72941a2d8cf3eb32f08174dcd8aa70be2859eba8c9072d320800",
+        ".",
+        "clock-demo, workload-membership: resident."
+      ]
+    },
+    {
+      "play_id": "de7a0fc24a3f5cb459d59a0860bbcc11b278b6fdbb64a68ab11e77f7e7775450",
+      "plan_id": "98a9d59b31d8def2c93491a575a052f5c7ae9d11629405ae38ebc665f555cb7e",
+      "stream_identity": "face/78dec90d75bc35cd3d519f247dff9e5ec10abe1c940a60e0171f0ee3e9f5fc11/3176694443217864232/turn/1/batch/5",
+      "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+      "source_segments_sha256": "4b76b1461c8c5a0a4d3d3969cbf4377b6dc2df61447deca94b0a439031e9689f",
+      "pcm_sha256": "9d987d3491132cb1aa0671a27abc61b9ea4e70977dc855792e30cbfe3e06ca10",
+      "pcm_bytes": 2276660,
+      "speaker_frames_committed": 569165,
+      "speaker_blocks_committed": 10461,
+      "wav_artifact_id": "play-1be7ea7e24b64aa80e2bd56520e7e3f9b33bb567a1ecc596c399c522bc0c6282.wav",
+      "wav_sha256": "6566e927bbc04fe77798fe49484d4b3cf7f2b0f517b7c5ed2524f26eb1b72d21",
+      "wav_bytes": 2276704,
+      "outcome": "completed",
+      "spoken_segments": [
+        "Direct speech clock is lulled with one resident plot.",
+        "The current clock interval is 1000 milliseconds.",
+        "Primary content: Direct speech clock.",
+        "Context: Current overview context."
+      ]
+    },
+    {
+      "play_id": "af55c9aa19620de015deb8085f63f542f0b242912ac4f297af87c4c2b7bc866c",
+      "plan_id": "98a9d59b31d8def2c93491a575a052f5c7ae9d11629405ae38ebc665f555cb7e",
+      "stream_identity": "face/78dec90d75bc35cd3d519f247dff9e5ec10abe1c940a60e0171f0ee3e9f5fc11/3176694443217864232/turn/1/batch/6",
+      "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+      "source_segments_sha256": "2de223324b9224b5eeb4931dc0c2ef526a692019ea8bda6fd08d7b45bfeca635",
+      "pcm_sha256": "67c246c2e2072ee065422364c9f5aedf4591b7169825bdb90692ea87bbfad356",
+      "pcm_bytes": 2881604,
+      "speaker_frames_committed": 720401,
+      "speaker_blocks_committed": 13240,
+      "wav_artifact_id": "play-5ed1ab9fe17f8ecdd40874f002bd85aa8436dd10720e4efb1d7b8295a1f30311.wav",
+      "wav_sha256": "1dafdfa8e00a67112f266752fa24676a7f908fcfb9f05533dcab33e6629f693c",
+      "wav_bytes": 2881648,
+      "outcome": "completed",
+      "spoken_segments": [
+        "Context: clock-demo.",
+        "Open Plots library. For Direct speech clock. Unavailable: This ",
+        "owner return route does not yet accept this semantic action.",
+        "Open Body overview. For Direct speech clock. Unavailable: This "
+      ]
+    },
+    {
+      "play_id": "4c442498028cce36be439aaa468271c46d0495eb23c53edb3904bd18609a2e5a",
+      "plan_id": "98a9d59b31d8def2c93491a575a052f5c7ae9d11629405ae38ebc665f555cb7e",
+      "stream_identity": "face/78dec90d75bc35cd3d519f247dff9e5ec10abe1c940a60e0171f0ee3e9f5fc11/3176694443217864232/turn/1/batch/7",
+      "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+      "source_segments_sha256": "969f696053ac82cae3981379159eda04214ca25870f5fcdabfcd2bcbe54ffe93",
+      "pcm_sha256": "c35b446b769dab0cb10821fe2f6ccecd91cccf7cb28436a1ed35ad52a902503a",
+      "pcm_bytes": 3307304,
+      "speaker_frames_committed": 826826,
+      "speaker_blocks_committed": 15195,
+      "wav_artifact_id": "play-ec6a99edbb06671fbaecdfd39556d7311131d246ea533df18bca4ead58425cd7.wav",
+      "wav_sha256": "a59b0777e9e8d28d91093cb9e00b70f51472b867a0588000ad4c955187b38815",
+      "wav_bytes": 3307348,
+      "outcome": "completed",
+      "spoken_segments": [
+        "owner return route does not yet accept this semantic action.",
+        "Wake. For Direct speech clock. Available.",
+        "Change clock interval. For clock-demo. Available.",
+        "Interval in milliseconds: 250, 500, 1000, or 2000. Choose one "
+      ]
+    },
+    {
+      "play_id": "70f2a32e8410d02daac6dd08bdb52d397061620ccbdbf8888f58749bc70f5d4e",
+      "plan_id": "98a9d59b31d8def2c93491a575a052f5c7ae9d11629405ae38ebc665f555cb7e",
+      "stream_identity": "face/78dec90d75bc35cd3d519f247dff9e5ec10abe1c940a60e0171f0ee3e9f5fc11/3176694443217864232/turn/1/batch/8",
+      "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+      "source_segments_sha256": "54d6d3fdbb10fe572fe8e4d9a7a47567573975ba57c4f4dd137656c775c3e85b",
+      "pcm_sha256": "210ae8abf6544fe75cef399acee219b13a42a5633108028e72d41da875f05fbe",
+      "pcm_bytes": 2991120,
+      "speaker_frames_committed": 747780,
+      "speaker_blocks_committed": 13742,
+      "wav_artifact_id": "play-f8ec86e4126168e37a643a434be6d32117589e250a338d210f361caacaf2b510.wav",
+      "wav_sha256": "c8affa283907f663cfd0b7d76aa8529f280b62a71ee2bf0e21efff64a0aa42b9",
+      "wav_bytes": 2991164,
+      "outcome": "completed",
+      "spoken_segments": [
+        "of: 1000, 2000, 250, 500. Enter it with edit clock/interval-ms, ",
+        "then activate Change clock interval.",
+        "Stop the clock. For clock-demo. Unavailable: Start the clock ",
+        "before stopping it."
+      ]
+    },
+    {
+      "play_id": "7f041ca73bf30f50a2a6adb6389e58ede8b9f2500e876cc3ec3bf4f5a125570e",
+      "plan_id": "98a9d59b31d8def2c93491a575a052f5c7ae9d11629405ae38ebc665f555cb7e",
+      "stream_identity": "face/78dec90d75bc35cd3d519f247dff9e5ec10abe1c940a60e0171f0ee3e9f5fc11/3176694443217864232/turn/1/batch/9",
+      "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+      "source_segments_sha256": "325739ba9a35f3e7aeafe8306cd7a3176a0a59d33c6f644c1f21f82b68d83ff1",
+      "pcm_sha256": "09c33932a7ade408f8227382f870ca6a08aa0c2a00c62c25f80bfb0209795578",
+      "pcm_bytes": 2667184,
+      "speaker_frames_committed": 666796,
+      "speaker_blocks_committed": 12254,
+      "wav_artifact_id": "play-c4397d9ed8ec9836f332f2cf9173f7121370bf07d0cc5df2d3058e5aa909e960.wav",
+      "wav_sha256": "f52ca8c18da51166f9f18dfd305cb640543341a87df13d84e862553cdab25f2a",
+      "wav_bytes": 2667228,
+      "outcome": "completed",
+      "spoken_segments": [
+        "Open inspection. For clock-demo. Unavailable: No admitted ",
+        "inspection contribution is currently playing.",
+        "Open resident Plot. For clock-demo. Unavailable: The resident ",
+        "Plot is not currently presenting."
+      ]
+    },
+    {
+      "play_id": "e932faa4cde43cf5c480d0f7e1a8755d454131df2eeb244b179f434d166f9c7f",
+      "plan_id": "98a9d59b31d8def2c93491a575a052f5c7ae9d11629405ae38ebc665f555cb7e",
+      "stream_identity": "face/78dec90d75bc35cd3d519f247dff9e5ec10abe1c940a60e0171f0ee3e9f5fc11/3176694443217864232/turn/1/batch/10",
+      "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+      "source_segments_sha256": "518ef363e63d4265da8b1cb1a65e5be57e826ba2e4c92ac7e178c890c272276f",
+      "pcm_sha256": "668311aacf6118f38805f3e2b0ae98d348cbe73d7b83e88954ceed27db4eb819",
+      "pcm_bytes": 634700,
+      "speaker_frames_committed": 158675,
+      "speaker_blocks_committed": 2916,
+      "wav_artifact_id": "play-3d4982a4494c18c800a8dd5d529be9c6474d95d619e573e2a1f1fff892ab20fe.wav",
+      "wav_sha256": "0573a83f553c0b0842c19ecde8eca11233ea43c4268a4d6c6c8122870de0e1d1",
+      "wav_bytes": 634744,
+      "outcome": "completed",
+      "spoken_segments": [
+        "Start the clock. For clock-demo. Available."
+      ]
+    }
+  ],
+  "opening": {
+    "plan_id": "3ba36d0c1187a0a36dbedabfb5ddb71f4c45fa273fc48cd87470c880193dd560",
+    "play_id": "54ab540128917201444ee2bd5ee2c75d2b6a0b9f67adda91cb5e89cb1b35b2e0",
+    "show_id": "show/9e3e841a71cbdce6b8118c243ddea572e637c9adbdea1de743916f5fcbc28e6a",
+    "artifact_identity": "artifact/wav/916be971b8cf34153652842c916ffdb50f7687367c0e468f34f9c04ce3dedda3",
+    "completion_sign_id": "9cf2963ae10398aba813bf735e7695b62b7d4498ba68a9be10d1a082e7323a54",
+    "pcm_sha256": "916be971b8cf34153652842c916ffdb50f7687367c0e468f34f9c04ce3dedda3",
+    "pcm_bytes": 1188364,
+    "wav_artifact_id": "play-690d74a70cf8dcc29b9d22f0b41d0fc14cbae0a9fd1b64d8f7cc22b67b14d3e2.wav",
+    "wav_sha256": "4c551f51b4f72fcd26feaf5891adfda087ec830e313bcf8480ec84b593050c11",
+    "wav_bytes": 1188408,
+    "spoken_text": "Current view of Direct speech clock. This opening is brief; the complete reading needs a selected speaker."
+  }
+}

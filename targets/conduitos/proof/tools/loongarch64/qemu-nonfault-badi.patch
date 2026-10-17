@@ -1,0 +1,19 @@
+--- a/target/loongarch/tcg/tcg_cpu.c
++++ b/target/loongarch/tcg/tcg_cpu.c
+@@ -14,0 +15 @@
++#include "accel/tcg/probe.h"
+@@ -143 +144,13 @@
+-        env->CSR_BADI = cpu_ldl_code(env, env->pc);
++        void *host;
++        CPUTLBEntryFull *full;
++        int flags = probe_access_full(env, env->pc, 4, MMU_INST_FETCH,
++                                      cpu_mmu_index(cs, true), true,
++                                      &host, &full, 0);
++
++        /* Recording an exception must not raise it again by fetching an
++         * inaccessible instruction. Leave BADI unchanged without accessible
++         * RAM instruction bytes; preserve the original exception delivery.
++         */
++        if (flags == 0 && host) {
++            env->CSR_BADI = ldl_le_p(host);
++        }

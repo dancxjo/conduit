@@ -51,9 +51,15 @@ pub(super) fn read_request(stream: &mut TcpStream) -> Result<HttpRequest, Server
                 .transpose()
                 .map_err(|_| ServerError::InvalidRequest)?
                 .unwrap_or(0);
+            let request_bound =
+                if head.starts_with("POST /api/body-host-planning-offer HTTP/1.1\r\n") {
+                    super::body_host_planning_offer::MAX_BODY_HOST_PLANNING_OFFER_BYTES + 8 * 1024
+                } else {
+                    MAX_HTTP_REQUEST_BYTES
+                };
             if head_end
                 .checked_add(content_length)
-                .is_none_or(|total| total > MAX_HTTP_REQUEST_BYTES)
+                .is_none_or(|total| total > request_bound)
             {
                 return Err(ServerError::RequestTooLarge);
             }
@@ -71,4 +77,48 @@ pub(super) fn read_request(stream: &mut TcpStream) -> Result<HttpRequest, Server
         }
     }
     Err(ServerError::InvalidRequest)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::net::TcpListener;
+
+    fn receive(path: &str, length: usize, send_body: bool) -> Result<HttpRequest, ServerError> {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let address = listener.local_addr().unwrap();
+        let head = format!("POST {path} HTTP/1.1\r\nContent-Length: {length}\r\n\r\n");
+        let writer = std::thread::spawn(move || {
+            let mut stream = TcpStream::connect(address).unwrap();
+            stream.write_all(head.as_bytes()).unwrap();
+            if send_body {
+                let _ = stream.write_all(&vec![b'x'; length]);
+            }
+        });
+        let (mut stream, _) = listener.accept().unwrap();
+        let result = read_request(&mut stream);
+        writer.join().unwrap();
+        result
+    }
+
+    #[test]
+    fn complete_planning_control_disclosure_crosses_http_without_expanding_workspace_requests() {
+        let length = 427_250;
+        let request = receive("/api/body-host-planning-offer", length, true).unwrap();
+        assert_eq!(request.body.len(), length);
+        assert!(matches!(
+            receive("/api/workspace", length, false),
+            Err(ServerError::RequestTooLarge)
+        ));
+        assert!(matches!(
+            receive(
+                "/api/body-host-planning-offer",
+                super::super::body_host_planning_offer::MAX_BODY_HOST_PLANNING_OFFER_BYTES
+                    + 8 * 1024
+                    + 1,
+                false
+            ),
+            Err(ServerError::RequestTooLarge)
+        ));
+    }
 }

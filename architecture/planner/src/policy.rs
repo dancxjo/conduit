@@ -141,6 +141,10 @@ pub(crate) fn select_realization_matching(
             }
         }
     }
+    let front_candidates =
+        crate::language_coverage::filter_candidates(gear, front_candidates, |candidate| {
+            (candidate.host, candidate.offer)
+        })?;
     if front_candidates.is_empty() {
         return Err(PlannerError::UnknownCapability(
             gear.kind_id.as_str().to_string(),

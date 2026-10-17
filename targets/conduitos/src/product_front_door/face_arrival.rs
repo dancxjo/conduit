@@ -14,8 +14,8 @@ use crate::{
 };
 use conduit_birth_plot::{BirthActionOutcome, BirthFaceBasis};
 use conduit_core::{BootId, HostBaseId, HostId, OfferGeneration};
+use conduit_face::{Face, FaceInteraction, MaskShow, RemoteOwnerMaskRouteSeal};
 use conduit_human::KeyEvent;
-use conduit_presentation::{FaceInteraction, MaskShow, Presentation, RemoteOwnerMaskRouteSeal};
 
 pub(super) struct FaceArrival {
     mask: NativeFaceMask,
@@ -23,7 +23,25 @@ pub(super) struct FaceArrival {
     next_observation: u64,
     next_play: u64,
     next_interaction: u64,
-    owner_face: Option<Presentation>,
+    owner_face: Option<Face>,
+    preparation: NativeMaskPreparation,
+}
+
+struct NativeMaskPreparation {
+    host_id: HostId,
+    boot_id: BootId,
+    generation: OfferGeneration,
+    build_id: alloc::string::String,
+    display_base_id: HostBaseId,
+    provider: NativeSurfaceProvider,
+    minimum_text_scale_percent: u16,
+    forced_colors: bool,
+    owner_host: Option<conduit_face::RemoteMaskHostBasis>,
+    route_plan_id: Option<conduit_core::PlanId>,
+    selected: Option<(
+        conduit_face::ComponentMaskLook,
+        conduit_face::TodoComponentRecipe,
+    )>,
 }
 
 pub(super) enum FaceArrivalInput {
@@ -48,11 +66,11 @@ impl FaceArrival {
         owner_route: Option<&RemoteOwnerMaskRouteSeal>,
     ) -> Result<Self, &'static str> {
         let mask = NativeFaceMask::prepare_with_owner_route(
-            host_id,
-            boot_id,
+            host_id.clone(),
+            boot_id.clone(),
             generation,
             build_id,
-            display_base_id,
+            display_base_id.clone(),
             "conduitos/creche/face",
             provider,
             owner_route,
@@ -66,7 +84,107 @@ impl FaceArrival {
             next_play: 1,
             next_interaction: 1,
             owner_face: None,
+            preparation: NativeMaskPreparation {
+                host_id,
+                boot_id,
+                generation,
+                build_id: build_id.into(),
+                display_base_id,
+                provider: provider.clone(),
+                minimum_text_scale_percent: 100,
+                forced_colors: false,
+                selected: None,
+                owner_host: owner_route.map(|route| route.owner_host.clone()),
+                route_plan_id: owner_route.map(|route| route.route_plan_id.clone()),
+            },
         })
+    }
+
+    /// Mask-local appearance replacement through the current authenticated owner.
+    /// The owner returns the identical Face and a newly sealed planned Mask.
+    pub(super) fn select_owner_component(
+        &mut self,
+        identities: BootIdentities,
+        prior: &crate::native_guest_face::NativeGuestFace,
+        route: &mut NativeOwnerReturnRoute,
+        look: conduit_face::ComponentMaskLook,
+        recipe: conduit_face::TodoComponentRecipe,
+        display: &mut impl PixelTarget,
+    ) -> Result<crate::native_guest_face::NativeGuestFace, &'static str> {
+        let old_show = self.mask.show().cloned().ok_or("owner-face-show-absent")?;
+        let fresh = route.select_component(identities, prior, &old_show, look, recipe)?;
+        self.replace_owner_mask(&fresh, display)?;
+        self.acknowledge_owner_show(route, identities)?;
+        self.preparation.selected = Some((look, recipe));
+        Ok(fresh)
+    }
+
+    fn replace_owner_mask(
+        &mut self,
+        fresh: &crate::native_guest_face::NativeGuestFace,
+        display: &mut impl PixelTarget,
+    ) -> Result<(), &'static str> {
+        let context = &self.preparation;
+        let mut replacement = NativeFaceMask::prepare_with_owner_route(
+            context.host_id.clone(),
+            context.boot_id.clone(),
+            context.generation,
+            &context.build_id,
+            context.display_base_id.clone(),
+            "conduitos/creche/face",
+            &context.provider,
+            fresh.route(),
+        )
+        .map_err(|error| error.as_str())?;
+        replacement
+            .set_visual_user_constraints(
+                context.forced_colors,
+                true,
+                context.minimum_text_scale_percent,
+            )
+            .map_err(|error| error.as_str())?;
+        self.mask.suspend().map_err(|error| error.as_str())?;
+        self.mask = replacement;
+        self.preparation.owner_host = fresh.route().map(|route| route.owner_host.clone());
+        self.preparation.route_plan_id = fresh.route().map(|route| route.route_plan_id.clone());
+        // Keep owner Face identity/revision and independent Mask publication counters.
+        self.present_owner_face(fresh.face().clone(), fresh.interactions_admitted(), display)?;
+        Ok(())
+    }
+
+    pub(super) fn toggle_owner_text_scale(
+        &mut self,
+        prior: &crate::native_guest_face::NativeGuestFace,
+        route: &mut NativeOwnerReturnRoute,
+        identities: BootIdentities,
+        display: &mut impl PixelTarget,
+    ) -> Result<crate::native_guest_face::NativeGuestFace, &'static str> {
+        self.preparation.minimum_text_scale_percent =
+            if self.preparation.minimum_text_scale_percent == 100 {
+                200
+            } else {
+                100
+            };
+        let (look, recipe) = self.preparation.selected.unwrap_or((
+            conduit_face::ComponentMaskLook::Compact,
+            conduit_face::TodoComponentRecipe::Flat,
+        ));
+        self.select_owner_component(identities, prior, route, look, recipe, display)
+    }
+
+    pub(super) fn toggle_owner_forced_colors(
+        &mut self,
+        prior: &crate::native_guest_face::NativeGuestFace,
+        route: &mut NativeOwnerReturnRoute,
+        identities: BootIdentities,
+        display: &mut impl PixelTarget,
+    ) -> Result<crate::native_guest_face::NativeGuestFace, &'static str> {
+        self.preparation.forced_colors = !self.preparation.forced_colors;
+        let (look, recipe) = self.preparation.selected.unwrap_or((
+            conduit_face::ComponentMaskLook::Compact,
+            conduit_face::TodoComponentRecipe::Flat,
+        ));
+        self.select_owner_component(identities, prior, route, look, recipe, display)
     }
 
     pub(super) fn route_keyboard(&self) -> Result<bool, &'static str> {
@@ -103,10 +221,14 @@ impl FaceArrival {
 
     pub(super) fn present_owner_face(
         &mut self,
-        face: Presentation,
+        face: Face,
         interactions_admitted: bool,
         display: &mut impl PixelTarget,
     ) -> Result<CompositionReceipt, &'static str> {
+        // Arrival and the owner Body have independent Face revision sequences.
+        // Retire the local surface once; revisions remain monotonic within the
+        // newly admitted owner surface thereafter.
+        self.retire_arrival_surface()?;
         let face_id: alloc::string::String = face.identity.as_str().into();
         let revision = face.revision;
         let observation = self.next_observation;
@@ -174,6 +296,31 @@ impl FaceArrival {
     ) -> Result<(), &'static str> {
         let show = self.mask.show().ok_or("owner-face-show-absent")?;
         route.acknowledge_show(identities, show)?;
+        if let (Some(face), Some(configuration), Some(expression)) = (
+            &self.owner_face,
+            self.mask.component_configuration(),
+            self.mask.visual_expression(),
+        ) {
+            let evidence = serde_json::to_vec(&serde_json::json!({
+                "schema":"conduit.conduitos/component-realization@1",
+                "face":face,
+                "face_revision_decimal":alloc::format!("{}",face.revision),
+                "owner_host":self.preparation.owner_host,
+                "route_plan_id":self.preparation.route_plan_id,
+                "configuration":configuration,
+                "expression":expression,
+                "fallback":self.mask.component_fallback(),
+                "acknowledged_show":show,
+                "owner_show_acknowledged":true,
+            }))
+            .map_err(|_| "native-component-evidence-encoding")?;
+            if evidence.len() > 65_536 {
+                return Err("native-component-evidence-bound");
+            }
+            arch::early_write(b"CONDUIT_NATIVE_COMPONENT_REALIZATION ");
+            arch::early_write(&evidence);
+            arch::early_write(b"\n");
+        }
         arch::early_write(b"CONDUIT_NATIVE_OWNER_FACE {\"schema\":\"conduit.conduitos/native-owner-face@1\",\"status\":\"acknowledged\",\"show_id\":\"");
         arch::early_write(show.show_id.as_str().as_bytes());
         arch::early_write(b"\"}\n");
@@ -185,7 +332,31 @@ impl FaceArrival {
         display: &mut impl PixelTarget,
     ) -> Result<CompositionReceipt, &'static str> {
         let face = self.owner_face.clone().ok_or("owner-face-absent")?;
+        self.retire_owner_surface()?;
         self.present_owner_face(face, false, display)
+    }
+
+    /// A refreshed owner Face gets a new Show before any return interaction.
+    pub(super) fn activate_refreshed_owner_route(
+        &mut self,
+        face: Face,
+        display: &mut impl PixelTarget,
+    ) -> Result<CompositionReceipt, &'static str> {
+        self.retire_owner_surface()?;
+        self.present_owner_face(face, true, display)
+    }
+
+    pub(super) fn show_owner_standby(
+        &mut self,
+        display: &mut impl PixelTarget,
+    ) -> Result<(), &'static str> {
+        self.mask
+            .show_local_notice(
+                "Choose Native graphics in the owner wardrobe, then press F5",
+                display,
+            )
+            .map_err(|error| error.as_str())?;
+        Ok(())
     }
 
     pub(super) fn show_owner_result(
@@ -238,9 +409,20 @@ impl FaceArrival {
         self.present(face, display)
     }
 
+    fn retire_arrival_surface(&mut self) -> Result<(), &'static str> {
+        if self.owner_face.is_none() {
+            self.mask.suspend().map_err(|error| error.as_str())?;
+        }
+        Ok(())
+    }
+
+    fn retire_owner_surface(&mut self) -> Result<(), &'static str> {
+        self.mask.suspend().map_err(|error| error.as_str())
+    }
+
     fn present(
         &mut self,
-        face: conduit_presentation::Presentation,
+        face: conduit_face::Face,
         display: &mut impl PixelTarget,
     ) -> Result<CompositionReceipt, &'static str> {
         let observation = self.next_observation;
@@ -311,5 +493,215 @@ impl FaceArrival {
                 }
             }
         }
+    }
+}
+
+#[cfg(all(test, feature = "native-compositor"))]
+mod tests {
+    use super::*;
+    use alloc::vec;
+    use conduit_face::{BodyFace, FaceContext, FaceFocus};
+
+    struct Display;
+
+    impl PixelTarget for Display {
+        fn format(&self) -> crate::display::DisplayFormat {
+            crate::display::DisplayFormat {
+                width: 640,
+                height: 480,
+                pitch: 2560,
+                bits_per_pixel: 32,
+                red_shift: 16,
+                green_shift: 8,
+                blue_shift: 0,
+            }
+        }
+
+        fn write_pixel(
+            &mut self,
+            _: u32,
+            _: u32,
+            _: u32,
+        ) -> Result<(), crate::display::DisplayError> {
+            Ok(())
+        }
+    }
+
+    #[test]
+    fn owner_face_retires_arrival_revision_domain_once() {
+        let provider = crate::product_bases::fixture_surface_provider();
+        let mut arrival = FaceArrival::prepare(
+            "host/native".into(),
+            "boot/native".into(),
+            OfferGeneration(1),
+            "build",
+            provider.entry.base_id.clone(),
+            &provider,
+            None,
+        )
+        .unwrap();
+        let body = conduit_body::Body::born(
+            "source/shared-clock".into(),
+            "checked/shared-clock".into(),
+            1,
+            "sign/owner-born".into(),
+        )
+        .unwrap();
+        let face_at = |revision| {
+            BodyFace::project(
+                &body,
+                None,
+                revision,
+                FaceContext::Overview,
+                FaceFocus::Body,
+                vec![],
+            )
+            .unwrap()
+            .face
+        };
+        let local = face_at(9);
+        let owner = face_at(7);
+        assert_ne!(local.identity, owner.identity);
+        assert_eq!(local.revision, 9);
+        assert_eq!(owner.revision, 7);
+        let mut display = Display;
+        arrival.present(local, &mut display).unwrap();
+        let local_show = arrival.mask.show().unwrap().show_id.clone();
+
+        arrival.retire_arrival_surface().unwrap();
+        assert!(arrival.mask.show().is_none());
+        arrival.owner_face = Some(owner.clone());
+        let receipt = arrival
+            .mask
+            .present(
+                owner.clone(),
+                arrival.next_observation,
+                arrival.next_play,
+                &mut display,
+            )
+            .unwrap();
+        assert_eq!(receipt.face_id, owner.identity);
+        assert_ne!(arrival.mask.show().unwrap().show_id, local_show);
+        assert_eq!(arrival.mask.scene().unwrap().face(), &owner);
+
+        arrival.retire_arrival_surface().unwrap();
+        assert_eq!(
+            arrival
+                .mask
+                .present(
+                    owner,
+                    arrival.next_observation + 1,
+                    arrival.next_play + 1,
+                    &mut display
+                )
+                .map_err(|error| error.as_str()),
+            Err("compositor-surface-revision-stale")
+        );
+    }
+
+    #[test]
+    fn route_loss_retires_owner_show_before_read_only_republication() {
+        let provider = crate::product_bases::fixture_surface_provider();
+        let mut arrival = FaceArrival::prepare(
+            "host/native".into(),
+            "boot/native".into(),
+            OfferGeneration(1),
+            "build",
+            provider.entry.base_id.clone(),
+            &provider,
+            None,
+        )
+        .unwrap();
+        let body = conduit_body::Body::born(
+            "source/shared-clock".into(),
+            "checked/shared-clock".into(),
+            1,
+            "sign/owner-born".into(),
+        )
+        .unwrap();
+        let face = BodyFace::project(
+            &body,
+            None,
+            7,
+            FaceContext::Overview,
+            FaceFocus::Body,
+            vec![],
+        )
+        .unwrap()
+        .face;
+        let mut display = Display;
+        arrival
+            .mask
+            .present(face.clone(), 1, 1, &mut display)
+            .unwrap();
+        arrival.owner_face = Some(face.clone());
+        let active_show = arrival.mask.show().unwrap().show_id.clone();
+
+        arrival.retire_owner_surface().unwrap();
+        assert!(arrival.mask.show().is_none());
+        let read_only = arrival
+            .mask
+            .present_read_only(face.clone(), 2, 2, &mut display)
+            .unwrap();
+        assert_eq!(read_only.face_id, face.identity);
+        assert_ne!(arrival.mask.show().unwrap().show_id, active_show);
+        assert_eq!(arrival.mask.scene().unwrap().face(), &face);
+        assert_eq!(
+            arrival
+                .mask
+                .present_read_only(face, 3, 3, &mut display)
+                .map_err(|error| error.as_str()),
+            Err("compositor-surface-revision-stale")
+        );
+    }
+
+    #[test]
+    fn read_only_owner_standby_requires_fresh_show_for_explicit_activation() {
+        let provider = crate::product_bases::fixture_surface_provider();
+        let mut arrival = FaceArrival::prepare(
+            "host/native".into(),
+            "boot/native".into(),
+            OfferGeneration(1),
+            "build",
+            provider.entry.base_id.clone(),
+            &provider,
+            None,
+        )
+        .unwrap();
+        let body = conduit_body::Body::born(
+            "source/shared-clock".into(),
+            "checked/shared-clock".into(),
+            1,
+            "sign/owner-born".into(),
+        )
+        .unwrap();
+        let face = BodyFace::project(
+            &body,
+            None,
+            7,
+            FaceContext::Overview,
+            FaceFocus::Body,
+            vec![],
+        )
+        .unwrap()
+        .face;
+        let mut display = Display;
+        arrival
+            .mask
+            .present_read_only(face.clone(), 1, 1, &mut display)
+            .unwrap();
+        arrival.owner_face = Some(face.clone());
+        let standby_show = arrival.mask.show().unwrap().show_id.clone();
+        assert!(arrival.mask.scene().is_some());
+
+        arrival.retire_owner_surface().unwrap();
+        assert!(arrival.mask.show().is_none());
+        let activated = arrival
+            .mask
+            .present(face.clone(), 2, 2, &mut display)
+            .unwrap();
+        assert_eq!(activated.face_id, face.identity);
+        assert_ne!(arrival.mask.show().unwrap().show_id, standby_show);
+        assert_eq!(arrival.mask.scene().unwrap().face(), &face);
     }
 }

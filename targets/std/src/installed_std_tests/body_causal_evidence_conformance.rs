@@ -166,6 +166,13 @@ fn real_body_recovery_retains_exact_execution_evidence_without_a_semantic_termin
 }
 
 fn run_body(source: &str) -> (BodyPlan, BodyRunReport) {
+    run_body_with_timer(source, &mut RecordingTimer { waits: Vec::new() })
+}
+
+fn run_body_with_timer<T: crate::TimerAdapter>(
+    source: &str,
+    timer: &mut T,
+) -> (BodyPlan, BodyRunReport) {
     let mut std_host = host("body-causal-terminal-host");
     let checked = parse(source, &installed_std::test_catalog()).unwrap();
     let hosts = [std_host.advertisement().clone()];
@@ -217,10 +224,64 @@ fn run_body(source: &str) -> (BodyPlan, BodyRunReport) {
                 keyboard: None,
             },
             &mut Vec::with_capacity(2_048),
-            &mut RecordingTimer { waits: Vec::new() },
+            timer,
         )
         .unwrap();
     (body_plan, report)
+}
+
+#[test]
+fn production_timer_observes_retained_events_on_exact_host_boot_and_basis() {
+    let (plan, report) = run_body_with_timer(UNRECOVERED, &mut crate::ThreadTimer);
+    assert!(!report.clock_observations.is_empty());
+    let basis = report.clock_observations[0].time.local().clock().basis_id();
+    for observed in &report.clock_observations {
+        assert!(report
+            .kernel_events
+            .iter()
+            .any(|event| event.sequence == observed.sequence));
+        let local = observed.time.local();
+        assert_eq!(local.clock().host_id(), &report.terminal_sign.host_id);
+        assert_eq!(local.clock().boot_id(), &report.terminal_sign.boot_id);
+        assert!(basis.starts_with("std/thread-timer/process-epoch/"));
+        assert_eq!(local.clock().basis_id(), basis);
+        assert_eq!(observed.time.body(), None);
+        assert_eq!(
+            observed.time.capture(),
+            crate::body_causal_evidence::EventTimeCapture::AfterEvent
+        );
+    }
+    let evidence = BodyRunCausalRecord::from_run(&plan, &report).unwrap();
+    assert_eq!(
+        report
+            .kernel_events
+            .iter()
+            .map(|event| event.sequence)
+            .collect::<Vec<_>>(),
+        report
+            .clock_observations
+            .iter()
+            .map(|observation| observation.sequence)
+            .collect::<Vec<_>>()
+    );
+    assert!(evidence.retained_evidence().all(|identity| {
+        evidence.time_of(identity).is_some_and(|observation| {
+            observation.capture() == crate::body_causal_evidence::EventTimeCapture::AfterEvent
+        })
+    }));
+    for identity in evidence.retained_evidence() {
+        assert!(facts(&evidence, identity).iter().any(|fact| matches!(
+            fact,
+            EvidenceMetadataFact::ClockObservation {
+                capture: conduit_kernel::causal_evidence::ClockCapture::AfterEvent,
+                body: None,
+                ..
+            }
+        )));
+    }
+
+    let (_, unsupported) = run_body(UNRECOVERED);
+    assert!(unsupported.clock_observations.is_empty());
 }
 
 fn facts(

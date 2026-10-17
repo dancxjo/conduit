@@ -1,4 +1,4 @@
-//! Durable evidence for transient Presentation surface lifecycle.
+//! Durable evidence for transient Face surface lifecycle.
 
 use alloc::format;
 

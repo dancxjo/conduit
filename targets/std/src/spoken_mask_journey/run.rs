@@ -3,17 +3,17 @@ use super::*;
 const LEGACY_SPOKEN_TEMPLATE_REVISION: &str = "template/spoken-mask@1";
 
 fn policy_for_retained(
-    candidate: &conduit_presentation::GeneratedManifestationCandidate,
-) -> Result<conduit_presentation::GenerativePresenterPolicy, String> {
-    use conduit_presentation::{GenerativeNarratorRole, GenerativePresenterPolicy};
+    candidate: &conduit_face::GeneratedManifestationCandidate,
+) -> Result<conduit_face::GenerativePresenterPolicy, String> {
+    use conduit_face::{GenerativeNarratorRole, GenerativePresenterPolicy};
     match candidate.template_contract_revision.as_str() {
-        conduit_presentation::FINITE_FACE_WORDING_TEMPLATE_REVISION => {
+        conduit_face::FINITE_FACE_WORDING_TEMPLATE_REVISION => {
             Ok(crate::hosted_local_model::finite_face_wording_presenter_policy())
         }
         LEGACY_SPOKEN_TEMPLATE_REVISION => Ok(GenerativePresenterPolicy {
             template_contract_revision: LEGACY_SPOKEN_TEMPLATE_REVISION.into(),
             narrator_role: GenerativeNarratorRole::TransientFirstPersonBodyNarrator,
-            instructions: "Speak one truthful sentence from the supplied Presentation.".into(),
+            instructions: "Speak one truthful sentence from the supplied Face.".into(),
         }),
         _ => Err("retained Presenter selected an unsupported spoken Mask template".into()),
     }
@@ -23,25 +23,37 @@ pub(super) struct MaskRun {
     pub report: crate::StdRunReport,
     pub deliveries: Vec<crate::ExternalForeDelivery>,
     pub plan: conduit_core::Plan,
-    pub mask: conduit_presentation::MaskPlot,
+    pub mask: conduit_face::MaskPlot,
     pub destination: std::path::PathBuf,
     pub real_speech: bool,
+}
+pub(super) struct SpeechPreparation<'a> {
+    pub real: Option<(
+        crate::hosted_speech_synthesis::EspeakDiscovery,
+        &'a std::path::Path,
+    )>,
+    pub streaming: bool,
+    pub language: &'a conduit_language::LanguageRequest,
 }
 pub(super) fn run_mask(
     plot_name: &str,
     execution_id: &str,
-    presentation: conduit_presentation::Presentation,
-    retained: conduit_presentation::GeneratedManifestationCandidate,
-    real: Option<(
-        crate::hosted_speech_synthesis::EspeakDiscovery,
-        &std::path::Path,
-    )>,
-    streaming: bool,
+    face: conduit_face::Face,
+    retained: conduit_face::GeneratedManifestationCandidate,
+    speech: SpeechPreparation<'_>,
     control: &crate::RunControl,
 ) -> Result<MaskRun, String> {
+    let SpeechPreparation {
+        real,
+        streaming,
+        language,
+    } = speech;
     use conduit_core::{
         BaseImplementationId, BootId, ConnectionTrack, HostId, OfferGeneration, PortDirection,
         SignId,
+    };
+    use conduit_face::{
+        GenerativePresenterBounds, GenerativePresenterRequest, MaskPlot, PlannedMaskPlot,
     };
     use conduit_planner::{
         default_expanded_placements, plan_expanded_authoring_with_options, ConnectionQueueLimits,
@@ -50,9 +62,6 @@ pub(super) fn run_mask(
     use conduit_plot::{
         check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
         ProfileCatalog, StartupCatalog,
-    };
-    use conduit_presentation::{
-        GenerativePresenterBounds, GenerativePresenterRequest, MaskPlot, PlannedMaskPlot,
     };
     use std::collections::BTreeMap;
 
@@ -128,13 +137,13 @@ pub(super) fn run_mask(
     };
     let mut startup = StartupCatalog::new();
     let mut profiles = ProfileCatalog::new();
-    conduit_presentation::install_mask_plot_value_aliases(&mut startup)?;
-    conduit_presentation::install_spoken_mask_catalog(&mut startup, &mut profiles)?;
+    conduit_face::install_mask_plot_value_aliases(&mut startup)?;
+    conduit_face::install_spoken_mask_catalog(&mut startup, &mut profiles)?;
     conduit_ai::install_llm_semantic_catalog(&mut startup, &mut profiles)?;
     conduit_tongues::install_speech_synthesis_catalog(&mut startup, &mut profiles)?;
     conduit_tongues::install_speech_commit_catalog(&mut startup, &mut profiles)?;
     conduit_semantic_catalog::install_sound_catalogs(&mut startup, &mut profiles)?;
-    let source = graph::source(plot_name, maximum_output_bytes, streaming);
+    let source = graph::source(plot_name, maximum_output_bytes, streaming, language);
     let checked = check_syntax_document(&parse_syntax_document(&source), &startup)
         .map_err(|error| format!("check spoken Mask: {error:?}"))?;
     let authoring = expand_canonical_plot_for_authoring(&checked, plot_name, &profiles)
@@ -199,23 +208,23 @@ pub(super) fn run_mask(
     .map_err(|error| format!("plan spoken Mask: {error:?}"))?;
     let planned = PlannedMaskPlot::admit(&mask, &plan)
         .map_err(|error| format!("seal spoken Mask: {error:?}"))?;
-    let request = GenerativePresenterRequest::from_presentation(
+    let request = GenerativePresenterRequest::from_face(
         format!("request/{execution_id}"),
         policy,
-        presentation.clone(),
+        face.clone(),
         None,
         GenerativePresenterBounds::reviewed_default(),
     )
     .map_err(|error| format!("prepare Presenter request: {error:?}"))?;
-    let front_subject = presentation
+    let front_subject = face
         .subjects
         .iter()
-        .find(|subject| subject.role == conduit_presentation::PresentationRole::Body)
+        .find(|subject| subject.role == conduit_face::FaceRole::Body)
         .map(|subject| subject.identity.clone())
         .ok_or("spoken Mask Face has no Body subject")?;
     let preparation = crate::spoken_mask_runtime::SpokenMaskPreparation {
         request,
-        presentation: presentation.clone(),
+        face: face.clone(),
         planned_mask: planned,
         front_subject,
         target_subject: format!("artifact/{execution_id}"),
@@ -230,7 +239,7 @@ pub(super) fn run_mask(
             &[crate::ExternalForeInput {
                 front_port_id: conduit_core::port_id("face"),
                 track: ConnectionTrack::Payload,
-                bytes: serde_json::to_vec(&presentation).map_err(|error| error.to_string())?,
+                bytes: serde_json::to_vec(&face).map_err(|error| error.to_string())?,
             }],
             &mut collector,
             &mut Vec::new(),

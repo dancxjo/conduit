@@ -1,5 +1,5 @@
 use super::back::{BackBudget, BackFactory, InstalledBack};
-use super::contract::{MAX_TEXT_BYTES, TEXT_PRESENTATION_VALUE_KIND};
+use super::contract::{MAX_TEXT_BYTES, TEXT_FACE_VALUE_KIND};
 use conduit_core::{
     kind_id, port_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
     ConfigurationValue, ExecutionProfileId, ImplementationId, KindIdentity, PlannedGear,
@@ -93,7 +93,7 @@ pub(super) fn install_catalog(catalog: &mut ProfileCatalog) {
 fn outputs() -> Vec<PortDescriptor> {
     vec![PortDescriptor {
         port_id: port_id("text"),
-        value_kind: kind_id(TEXT_PRESENTATION_VALUE_KIND),
+        value_kind: kind_id(TEXT_FACE_VALUE_KIND),
         direction: PortDirection::Output,
         temporal: conduit_core::PortTemporal::Value,
         abnormal_kind: None,
@@ -111,7 +111,9 @@ fn invalid(placement: &PlannedGear) -> Result<bool, String> {
             ConfigurationValue::U64(_) => None,
             ConfigurationValue::Text(_) => None,
             ConfigurationValue::Structured(_) => None,
-            ConfigurationValue::Quantity(_) => None,
+            ConfigurationValue::Quantity(_)
+            | ConfigurationValue::Unit(_)
+            | ConfigurationValue::TemperatureDifference(_) => None,
         })
         .ok_or_else(|| "test text source requires boolean invalid configuration".to_string())
 }

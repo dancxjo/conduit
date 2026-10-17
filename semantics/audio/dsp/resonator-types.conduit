@@ -1,0 +1,69 @@
+# The original acoustic controls and anchored sample grid remain in every cursor.
+type ResonatorProfile =
+    polynomial_q30_to_q14_v1
+type ResonatorRequest = {
+    profile: ResonatorProfile
+    generation: U64
+    control: AudioResonator
+    basis: AudioSampleRateBasis
+    frames: U32
+}
+type ResonatorCursor = {
+    request: ResonatorRequest
+    emitted: U32
+    remaining: U32
+    y1: I128
+    y2: I128
+}
+type ResonatorStepInput = {
+    cursor: ResonatorCursor
+    sample: I128
+    cancelled: Boolean
+}
+# Opaque context is carried unchanged through the finite polynomial stages.
+type ResonatorOperation =
+    preparation
+    | recurrence
+type ResonatorProjectionContext = {
+    operation: ResonatorOperation
+    emitted: U32
+    remaining: U32
+    y1: I128
+    y2: I128
+    sample: I128
+    cancelled: Boolean
+}
+type ResonatorProjectionRequest = {
+    request: ResonatorRequest
+    context: ResonatorProjectionContext
+}
+
+type ResonatorStartOutcome =
+    started ResonatorCursor
+    | invalid_request
+    | unsupported_control
+    | unstable_projection
+type ResonatorAdvanced = {
+    cursor: ResonatorCursor
+    sample: I128
+}
+type ResonatorOutcome =
+    advanced ResonatorAdvanced
+    | cancelled ResonatorCursor
+    | exhausted ResonatorCursor
+    | invalid_cursor
+    | overflow
+type ResonatorCheckedProjection = {
+    projection: ResonatorProjectionCandidate
+    valid: Boolean
+}
+type ResonatorRecurrenceCarry = {
+    projection: ResonatorProjectionCandidate
+    valid: Boolean
+    drive: I128
+    b: I128
+    c: I128
+    y1: I128
+    y2: I128
+}
+type ResonatorRecurrencePair = ResonatorRecurrenceResult<ResonatorRecurrenceCarry,I128>

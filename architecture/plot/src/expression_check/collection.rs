@@ -13,7 +13,13 @@ pub(super) fn check(
     let declared = expected
         .and_then(CheckedExpressionType::value_kind)
         .and_then(|kind| context.structured_types.get(kind));
-    let exact_element = match declared.map(StructuredInfoType::shape) {
+    let representation = declared.map(|mut ty| {
+        while let StructuredInfoTypeShape::Nominal { representation, .. } = ty.shape() {
+            ty = representation;
+        }
+        ty
+    });
+    let exact_element = match representation.map(StructuredInfoType::shape) {
         Some(StructuredInfoTypeShape::Sequence {
             element,
             minimum_items,

@@ -2,7 +2,9 @@ use crate::prelude::*;
 mod host_dispatch;
 #[cfg(test)]
 use host_dispatch::{dispatch_matches, outstanding_host_call_index};
+mod parent_play;
 mod preparation;
+mod sign_storage;
 use crate::child::{
     BoundaryEndpoint, ChildExecutionError, ChildKernel, ChildTerminalError, ChildTransportError,
 };
@@ -18,6 +20,7 @@ use conduit_kernel::{HostCallId, HostCallOutcome, KernelEvent, NodeId, RemoteEnd
 use conduit_plan_lowering::lowering::{LoweredPlanFragment, LoweringError};
 #[cfg(test)]
 use preparation::host_call_obligation_identity;
+pub use sign_storage::KernelCompositeSignStorage;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct KernelCompositePreparation {
@@ -107,6 +110,7 @@ pub struct KernelCompositeHost {
     fronts: BTreeMap<PortId, FaceRoute>,
     links: Vec<InternalLink>,
     active_plays: BTreeMap<HostId, ActivePlayId>,
+    parent_play_binding: Option<(ActivePlayId, u16)>,
     started: bool,
     cancelled: bool,
     host_call_obligations:
@@ -209,7 +213,7 @@ impl KernelCompositeHost {
             .map_err(|reason| execution(route.child_index, reason))
     }
 
-    /// Allocating presentation convenience; sealed Play uses `output_into`.
+    /// Allocating face convenience; sealed Play uses `output_into`.
     pub fn output(
         &mut self,
         port_id: &PortId,
@@ -339,7 +343,7 @@ impl KernelCompositeHost {
         &self.cancellation_failures
     }
 
-    /// Allocating presentation snapshot, outside sealed Play.
+    /// Allocating face snapshot, outside sealed Play.
     pub fn signs(&self) -> BTreeMap<HostId, Vec<KernelEvent>> {
         self.children
             .iter()

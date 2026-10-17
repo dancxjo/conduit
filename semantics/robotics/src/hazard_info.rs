@@ -5,7 +5,7 @@
 //! producing Host/Boot, clock, and Sign provenance remain in the enclosing
 //! observation/Port evidence rather than being invented inside the value.
 
-use conduit_core::{semantic_digest, InfoDecodeError, Quantity, QuantityUnit};
+use conduit_core::{semantic_digest, InfoDecodeError, Quantity, Unit};
 use core::{cmp::Ordering, hash::Hash};
 
 use crate::{
@@ -288,23 +288,23 @@ impl ChargingObservation {
     }
 
     pub const fn voltage(self) -> Quantity {
-        Quantity::new(self.millivolts as i64, QuantityUnit::Millivolt)
+        Quantity::new(self.millivolts as i64, Unit::Millivolt)
     }
 
     pub const fn current(self) -> Quantity {
-        Quantity::new(self.milliamps as i64, QuantityUnit::Milliampere)
+        Quantity::new(self.milliamps as i64, Unit::Milliampere)
     }
 
     pub const fn temperature(self) -> Quantity {
-        Quantity::new(self.temperature_celsius as i64, QuantityUnit::Celsius)
+        Quantity::new(self.temperature_celsius as i64, Unit::Celsius)
     }
 
     pub const fn charge(self) -> Quantity {
-        Quantity::new(self.charge_mah as i64, QuantityUnit::MilliampereHour)
+        Quantity::new(self.charge_mah as i64, Unit::MilliampereHour)
     }
 
     pub const fn capacity(self) -> Quantity {
-        Quantity::new(self.capacity_mah as i64, QuantityUnit::MilliampereHour)
+        Quantity::new(self.capacity_mah as i64, Unit::MilliampereHour)
     }
 
     pub fn decode(encoded: &[u8]) -> Result<Self, InfoDecodeError> {
@@ -442,25 +442,16 @@ mod tests {
             ChargingObservation::decode(&observed.encode()),
             Ok(observed)
         );
-        assert_eq!(
-            observed.voltage(),
-            Quantity::new(14_200, QuantityUnit::Millivolt)
-        );
-        assert_eq!(
-            observed.current(),
-            Quantity::new(240, QuantityUnit::Milliampere)
-        );
-        assert_eq!(
-            observed.temperature(),
-            Quantity::new(31, QuantityUnit::Celsius)
-        );
+        assert_eq!(observed.voltage(), Quantity::new(14_200, Unit::Millivolt));
+        assert_eq!(observed.current(), Quantity::new(240, Unit::Milliampere));
+        assert_eq!(observed.temperature(), Quantity::new(31, Unit::Celsius));
         assert_eq!(
             observed.charge(),
-            Quantity::new(1_200, QuantityUnit::MilliampereHour)
+            Quantity::new(1_200, Unit::MilliampereHour)
         );
         assert_eq!(
             observed.capacity(),
-            Quantity::new(2_400, QuantityUnit::MilliampereHour)
+            Quantity::new(2_400, Unit::MilliampereHour)
         );
         assert!(ChargingObservation {
             charge_mah: 2,

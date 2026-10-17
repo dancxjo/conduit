@@ -11,7 +11,11 @@ use conduit_observatory::{
     ObservatorySnapshot, OfferFreshness, OperationalState, RetentionReport, SNAPSHOT_SCHEMA,
 };
 
+mod authoring_catalog;
 mod build_birth;
+pub use authoring_catalog::{
+    AuthoringAdapter, AuthoringConnection, AuthoringKind, AuthoringStartupParameter,
+};
 mod control;
 mod cross_host_renderer;
 mod front_configuration;
@@ -23,8 +27,8 @@ mod gear_realization;
 mod host_adapter;
 mod interaction;
 mod llm_documentary;
-mod llm_embodiment_presentation;
-mod llm_presentation;
+mod llm_embodiment_face;
+mod llm_face;
 mod mask_control;
 #[cfg(test)]
 mod mask_control_tests;
@@ -32,6 +36,7 @@ mod mask_control_tests;
 mod mask_plans_tests;
 #[cfg(test)]
 mod mask_product_tests;
+mod palette_placement;
 #[cfg(test)]
 mod parts_truth_explanation_tests;
 mod plot_editor;
@@ -55,7 +60,7 @@ mod recursive_plot_projection_tests;
 mod renderer_preparation;
 mod renderer_projection;
 mod route_demo;
-mod route_presentation;
+mod route_face;
 mod text_lab_explanation;
 mod text_lab_explanation_loss;
 mod topology;
@@ -71,13 +76,12 @@ pub use build_birth::{
 };
 pub use conduit_body::WakeLifecycle;
 pub use conduit_patchbay_workbench_conformance::{
-    patchbay_mask_plans, PatchbayMaskPlans, PATCHBAY_PRESENTATION_KIND,
+    patchbay_mask_plans, PatchbayMaskPlans, PATCHBAY_FACE_KIND,
 };
 pub use control::{admit_run, ControlError, PatchbayRequestId, PlanDocument, PlayDocument};
 pub use cross_host_renderer::{
     cross_host_renderer_plan, CrossHostRendererPlan, CROSS_HOST_MAXIMUM_FRAME_BYTES,
-    CROSS_HOST_RENDERER_GEAR, CROSS_HOST_SOURCE_GEAR, PRESENTATION_PROJECT_CAPABILITY,
-    PRESENTATION_PROJECT_KIND,
+    CROSS_HOST_RENDERER_GEAR, CROSS_HOST_SOURCE_GEAR, FACE_PROJECT_CAPABILITY, FACE_PROJECT_KIND,
 };
 pub use front_door_session::{LocalFrontDoor, LocalFrontDoorProjection};
 pub use front_door_topology::MAX_FRONT_DOOR_LINES;
@@ -93,15 +97,14 @@ pub use interaction::{
     MAX_INTERACTION_HISTORY, MAX_INTERACTION_ID_BYTES, MAX_INTERACTION_VALUE_BYTES,
 };
 #[cfg(test)]
-pub use llm_documentary::llm_documentary_presentation;
-pub use llm_documentary::llm_documentary_presentation_with_adapter;
-pub use llm_embodiment_presentation::{
-    llm_embodiment_documentary_presentations, project_llm_embodiment,
-    LlmEmbodimentPresentationError,
+pub use llm_documentary::llm_documentary_face;
+pub use llm_documentary::llm_documentary_face_with_adapter;
+pub use llm_embodiment_face::{
+    llm_embodiment_documentary_faces, project_llm_embodiment, LlmEmbodimentFaceError,
 };
-pub use llm_presentation::{
-    project_llm_patchbay, CandidatePlotInspection, LlmGearActivity, LlmPatchbayTruth,
-    LlmPresentationError, MAXIMUM_LLM_PRESENTATION_STAGES,
+pub use llm_face::{
+    project_llm_patchbay, CandidatePlotInspection, LlmFaceError, LlmGearActivity, LlmPatchbayTruth,
+    MAXIMUM_LLM_FACE_STAGES,
 };
 pub use mask_control::*;
 pub use patchbay_graph::{
@@ -135,15 +138,15 @@ pub use renderer_preparation::{
     RendererAdapterIdentity, RendererAdapterKind, RendererPreparationError,
 };
 pub use renderer_projection::{
-    AttemptedEditPresentation, PatchbayPresentation, RendererIdentityProjection,
-    RendererProjectionError, MAX_RENDERER_DIAGNOSTICS, MAX_RENDERER_GRAPH_ITEMS,
-    MAX_RENDERER_INSPECTION_LINES, MAX_RENDERER_PLAN_ITEMS, MAX_RENDERER_ROUTES,
-    MAX_RENDERER_ROUTE_CANDIDATES, MAX_RENDERER_SIGNS, MAX_RENDERER_TOPOLOGY_ITEMS,
+    AttemptedEditFace, PatchbayFace, RendererIdentityProjection, RendererProjectionError,
+    MAX_RENDERER_DIAGNOSTICS, MAX_RENDERER_GRAPH_ITEMS, MAX_RENDERER_INSPECTION_LINES,
+    MAX_RENDERER_PLAN_ITEMS, MAX_RENDERER_ROUTES, MAX_RENDERER_ROUTE_CANDIDATES,
+    MAX_RENDERER_SIGNS, MAX_RENDERER_TOPOLOGY_ITEMS,
 };
 pub use route_demo::{DistributedRouteDemo, RouteDemoError};
-pub use route_presentation::{
-    DistributedRoutePresentation, NewPlanRecoveryPresentation, RefusedRoutePresentation,
-    RouteCandidatePresentation, RoutePlanPresentation, SamePlanFallbackPresentation,
+pub use route_face::{
+    DistributedRouteFace, NewPlanRecoveryFace, RefusedRouteFace, RouteCandidateFace, RoutePlanFace,
+    SamePlanFallbackFace,
 };
 pub use text_lab_explanation::{
     text_lab_split_explanation, text_lab_split_loss_explanation, TextLabSplitExplanation,
@@ -297,7 +300,7 @@ impl PatchbayModel {
                 sequence
             )),
             active_play_id: None,
-            presentation_id: None,
+            face_id: None,
             host_id: self.projection.host_id().clone(),
             boot_id: self.projection.boot_id().clone(),
             plan_id: None,
@@ -413,3 +416,9 @@ mod tests {
         assert_eq!(model.projection().boot_id().as_str(), "patchbay-test-boot");
     }
 }
+
+mod language_realization;
+pub use language_realization::language_realization_details;
+
+#[cfg(test)]
+mod cross_mask_semantics_tests;

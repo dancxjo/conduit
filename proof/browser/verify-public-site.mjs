@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { chromium } from "@playwright/test";
@@ -55,6 +55,11 @@ try {
   if (existsSync(path.join(siteRoot, "journeys/current/one-body-five-masks/index.html"))) {
     routes.push(["one-body", new URL("journeys/current/one-body-five-masks/", server.url).href]);
   }
+  const thermostatIncluded = existsSync(path.join(siteRoot, "journeys/current/thermostat/index.html"));
+  if (thermostatIncluded) routes.push(["thermostat", new URL("journeys/current/thermostat/", server.url).href]);
+  const oneBodyManifestPath = path.join(siteRoot, "journeys/current/one-body-five-masks/manifest.json");
+  const oneBodyDevelopment = existsSync(oneBodyManifestPath)
+    && JSON.parse(readFileSync(oneBodyManifestPath, "utf8")).result === "diagnostic-incomplete";
   for (const [layout, width] of [["desktop", 1280], ["mobile", 390]]) {
     await page.setViewportSize({ width, height: 900 });
     for (const [id, url] of routes) {
@@ -105,6 +110,28 @@ try {
         await decodeImages(page.locator("#life-frame"));
         assert((await page.locator("#life-frame").getAttribute("src")).endsWith("t032.png"));
       }
+      if (id === "journeys" && thermostatIncluded) {
+        const card = page.locator('.journey-card').filter({ hasText: 'Control one thermostat across Masks' });
+        assert.equal(await card.count(), 1, "Thermostat journey needs one catalogue card");
+        assert((await card.innerText()).includes("spoken"), "Thermostat card must describe its spoken encounter");
+        assert.equal(await card.getByRole('link').getAttribute('href'), 'current/thermostat/');
+      }
+      if (id === "thermostat") {
+        const content = page.locator('main.thermostat-journey');
+        assert.equal(await content.locator('.journey-step').count(), 8, "Thermostat needs every observed chapter");
+        assert.equal(await content.locator('#speech audio').count(), 1, "Thermostat needs its actual recorded output");
+        await decodeImages(content.locator('img'));
+        assert.equal(await content.locator('#inspect img').getAttribute('src'), 'capture/thermostat-after-terminal.png',
+          'Browser return must show the captured terminal result');
+        assert.equal(await content.locator('#inspect img').getAttribute('alt'), 'Browser observes the terminal’s Heat and Eco request');
+        const recording = await content.locator('#speech audio').getAttribute('src');
+        const response = await context.request.head(new URL(recording, page.url()).href);
+        assert(response.ok() && Number(response.headers()['content-length']) > 44, "Thermostat recording is absent");
+        assert.equal(response.headers()['content-type'], 'audio/wav');
+        assert((await content.innerText()).includes('Settings are session-local.'), "Thermostat must disclose session reset");
+        assert((await content.innerText()).includes('No physical sensor, heating or cooling is confirmed.'), "Thermostat must disclose equipment limits");
+        await content.getByText('Source, receipts and limits', { exact: true }).click();
+      }
       if (id === "field-station") {
         const text = (await page.locator("main").innerText()).replace(/\s+/g, " ");
         const images = await page.locator("main img").evaluateAll(async images => {
@@ -120,16 +147,30 @@ try {
         }
       }
       if (id === "one-body") {
-        assert.equal(await page.locator("main.journey article").count(), 8, "One Body journey needs all eight chapters");
-        await decodeImages(page.locator("main.journey img"));
-        assert(await page.locator("main.journey img").count() > 0, "One Body journey needs live screenshots");
-        assert(await page.locator("main.journey pre").count() > 0, "One Body journey needs a terminal capture");
-        const audio = page.locator("main.journey audio");
-        assert(await audio.count() >= 2, "One Body journey needs direct and model speech");
-        for (const mode of ["Direct mechanical reading", "Finite model-assisted wording"]) {
-          const card = page.locator("main.journey .audio-card").filter({ hasText: mode }).first();
-          assert.equal(await card.count(), 1, `One Body journey has no ${mode} card`);
-          const player = card.locator("audio");
+        const content = page.locator(oneBodyDevelopment ? "main.proof" : "main.journey");
+        assert.equal(await content.count(), 1, "One Body page lacks its expected main content");
+        if (oneBodyDevelopment) {
+          assert((await content.innerText()).includes("not the complete eight-chapter public journey"),
+            "Development recording must state its incomplete proof boundary");
+          assert.equal(await content.locator("article").count(), 13,
+            "Development recording needs every captured action chapter");
+        } else {
+          assert.equal(await content.locator("article").count(), 8,
+            "One Body journey needs all eight chapters");
+        }
+        const images = content.locator("img");
+        assert(await images.count() > 0, "One Body page needs live screenshots");
+        await decodeImages(images);
+        assert(await content.locator("pre").count() > 0, "One Body page needs a terminal capture");
+        const audio = content.locator("audio");
+        assert(await audio.count() >= 2, "One Body page needs selected direct and model speech");
+        const players = oneBodyDevelopment
+          ? [content.locator("#owner-selected-speech audio").first(),
+            content.locator("#owner-llm-speech audio").first()]
+          : ["Direct mechanical reading", "Finite model-assisted wording"].map(mode =>
+            content.locator(".audio-card").filter({ hasText: mode }).first().locator("audio"));
+        for (const player of players) {
+          assert.equal(await player.count(), 1, "One Body page lacks a selected listener WAV");
           const src = await player.getAttribute("src");
           assert(src, "One Body audio has no source");
           const response = await context.request.head(new URL(src, page.url()).href);
@@ -171,7 +212,7 @@ try {
         report.checkedLinks.push({ path: link.pathname, status: result.status() });
       }
       let screenshot;
-      if (["home", "journeys", "field-station", "handbook", "workspace", "three-bodies", "little-life"].includes(id)) {
+      if (["home", "journeys", "field-station", "handbook", "workspace", "three-bodies", "little-life", "thermostat"].includes(id)) {
         screenshot = `${layout}-${id}.png`;
         await page.screenshot({ path: path.join(output, screenshot), fullPage: true });
       }

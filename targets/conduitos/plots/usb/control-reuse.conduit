@@ -1,0 +1,53 @@
+# Finite Source-owned reuse of one admitted class-neutral control placement.
+# The external request is wire data; Root selects the attachment and authority.
+with machine/usb/control/request as UsbControlRequest
+with machine/usb/control/result as UsbControlResult
+with flow/zip/feedback/paired as UsbControlReusePair
+
+type UsbControlReuseState = {
+    request: UsbControlRequest
+    count: U64
+    terminal: Boolean
+}
+type UsbControlReuseRoute =
+    running UsbControlReuseState
+    | stopped UsbControlReuseState
+
+# Only an initial count of zero and a nonterminal seed may start effects.
+# Invalid seeds emit a terminal observation without invoking USB.
+plot usb-control-reuse-initialize (
+    seed: UsbControlReuseState...| <= 4096B >> state: UsbControlReuseState...| <= 4096B
+) = ({ request: .request, count: .count, terminal: .terminal || .count != 0 })
+plot usb-control-reuse-route (
+    state: UsbControlReuseState...| <= 4096B >> route: UsbControlReuseRoute...| <= 4096B
+) = (.terminal || .count >= 64 ? stopped(.) : running(.))
+plot usb-control-reuse-request (
+    state: UsbControlReuseState...| <= 4096B >> request: UsbControlRequest...| <= 4096B
+) = (.request)
+
+# Count only actual completed results. The 64th result closes the cell; every
+# other disposition also closes it and remains visible on the typed result port.
+plot usb-control-reuse-update (
+    pair: UsbControlReusePair...| <= 9046B >> state: UsbControlReuseState...| <= 4096B
+) = ({ request: .0.request, count: (.1 is completed && .0.count < 64 ? .0.count + 1 : .0.count), terminal: .0.terminal || .0.count >= 63 || !(.1 is completed) })
+
+# The input Fore bound matches the exact selected initializer Back.
+# The native Root ceiling and selected Back queues also bound frames.
+plot usb-control-reuse (
+    >> seed: UsbControlReuseState...| <= 4096B
+    result: UsbControlResult...| <= 4096B >>
+    ended: UsbControlReuseState...| >>
+) {
+    cell: state/seeded/flow/until
+    route: usb-control-reuse-route()
+    join: flow/zip/feedback
+    transfer: machine/usb/control
+    seed >> usb-control-reuse-initialize() >> cell.seed
+    cell.current >> route
+    route >> select(UsbControlReuseRoute.running, unmatched=drop) >> join.left
+    route >> select(UsbControlReuseRoute.running, unmatched=drop) >> usb-control-reuse-request() >> transfer.request
+    transfer.result >> result
+    transfer.result >> join.right
+    join.paired >> usb-control-reuse-update() >> cell.next
+    route >> select(UsbControlReuseRoute.stopped, unmatched=drop) >> ended
+}

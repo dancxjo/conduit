@@ -5,9 +5,24 @@ use conduit_plot::{ProfileCatalog, StartupCatalog};
 use crate::PlotEditorError;
 
 pub(crate) fn standard_catalogs() -> Result<(StartupCatalog, ProfileCatalog), PlotEditorError> {
-    let mut startup = StartupCatalog::new();
+    // Compiled semantic contracts are immutable. Each editor receives its own
+    // copy so source-local declarations never enter another editor's catalog.
+    static CATALOGS: std::sync::OnceLock<
+        Result<(StartupCatalog, ProfileCatalog), PlotEditorError>,
+    > = std::sync::OnceLock::new();
+    CATALOGS.get_or_init(prepare_standard_catalogs).clone()
+}
+
+fn prepare_standard_catalogs() -> Result<(StartupCatalog, ProfileCatalog), PlotEditorError> {
+    let mut startup = conduit_plot::checked_physical_catalog_for_document(
+        &conduit_plot::parse_syntax_document(""),
+        &StartupCatalog::new(),
+    )
+    .map_err(|error| PlotEditorError::Catalog(format!("{error:?}")))?;
     let mut profile = ProfileCatalog::new();
-    conduit_presentation::install_mask_plot_value_aliases(&mut startup)
+    conduit_todo_plot::install_todo_catalogs(&mut startup, &mut profile, "Groceries")
+        .map_err(PlotEditorError::Catalog)?;
+    conduit_face::install_mask_plot_value_aliases(&mut startup)
         .map_err(PlotEditorError::Catalog)?;
     conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile)
         .map_err(PlotEditorError::Catalog)?;
@@ -25,11 +40,11 @@ pub(crate) fn standard_catalogs() -> Result<(StartupCatalog, ProfileCatalog), Pl
         .map_err(PlotEditorError::Catalog)?;
     conduit_time::install_rhythm_catalog(&mut startup, &mut profile)
         .map_err(PlotEditorError::Catalog)?;
-    conduit_semantic_catalog::install_tick_presentation_catalog(&mut startup, &mut profile)
+    conduit_semantic_catalog::install_tick_face_catalog(&mut startup, &mut profile)
         .map_err(PlotEditorError::Catalog)?;
-    conduit_semantic_catalog::install_pulse_presentation_catalog(&mut startup, &mut profile)
+    conduit_semantic_catalog::install_pulse_face_catalog(&mut startup, &mut profile)
         .map_err(PlotEditorError::Catalog)?;
-    conduit_semantic_catalog::install_rhythm_presentation_catalog(&mut startup, &mut profile)
+    conduit_semantic_catalog::install_rhythm_face_catalog(&mut startup, &mut profile)
         .map_err(PlotEditorError::Catalog)?;
     conduit_semantic_catalog::install_timing_catalogs(&mut startup, &mut profile)
         .map_err(PlotEditorError::Catalog)?;
@@ -37,11 +52,19 @@ pub(crate) fn standard_catalogs() -> Result<(StartupCatalog, ProfileCatalog), Pl
         .map_err(PlotEditorError::Catalog)?;
     conduit_semantic_catalog::install_logic_catalogs(&mut startup, &mut profile)
         .map_err(PlotEditorError::Catalog)?;
+    conduit_semantic_catalog::install_value_primitive_catalogs(&mut startup, &mut profile)
+        .map_err(PlotEditorError::Catalog)?;
     conduit_semantic_catalog::install_math_catalogs(&mut startup, &mut profile)
+        .map_err(PlotEditorError::Catalog)?;
+    conduit_semantic_catalog::install_quantity_mapping_catalog(&mut startup, &mut profile)
+        .map_err(PlotEditorError::Catalog)?;
+    conduit_semantic_catalog::install_quantity_info_catalog(&mut startup, &mut profile)
+        .map_err(PlotEditorError::Catalog)?;
+    conduit_semantic_catalog::install_normalized_quantity_catalog(&mut startup, &mut profile)
         .map_err(PlotEditorError::Catalog)?;
     conduit_semantic_catalog::install_layout_catalogs(&mut startup, &mut profile)
         .map_err(PlotEditorError::Catalog)?;
-    conduit_semantic_catalog::install_presentation_composition_catalogs(&mut startup, &mut profile)
+    conduit_semantic_catalog::install_face_composition_catalogs(&mut startup, &mut profile)
         .map_err(PlotEditorError::Catalog)?;
     conduit_semantic_catalog::install_graphics_catalogs(&mut startup, &mut profile)
         .map_err(PlotEditorError::Catalog)?;
@@ -49,9 +72,11 @@ pub(crate) fn standard_catalogs() -> Result<(StartupCatalog, ProfileCatalog), Pl
         .map_err(PlotEditorError::Catalog)?;
     conduit_semantic_catalog::install_button_indicator_catalogs(&mut startup, &mut profile)
         .map_err(PlotEditorError::Catalog)?;
-    conduit_semantic_catalog::install_indicator_presentation_catalog(&mut startup, &mut profile)
+    conduit_semantic_catalog::install_indicator_face_catalog(&mut startup, &mut profile)
         .map_err(PlotEditorError::Catalog)?;
     conduit_semantic_catalog::install_input_semantic_catalogs(&mut startup, &mut profile)
+        .map_err(PlotEditorError::Catalog)?;
+    conduit_semantic_catalog::install_saved_choice_catalogs(&mut startup, &mut profile)
         .map_err(PlotEditorError::Catalog)?;
     conduit_semantic_catalog::install_sound_catalogs(&mut startup, &mut profile)
         .map_err(PlotEditorError::Catalog)?;
@@ -68,11 +93,40 @@ pub(crate) fn standard_catalogs() -> Result<(StartupCatalog, ProfileCatalog), Pl
         &mut profile,
     )
     .map_err(PlotEditorError::Catalog)?;
+    conduit_speech::authoring::install(&mut startup).map_err(PlotEditorError::Catalog)?;
+    conduit_speech::ipa_constructors::install(&mut startup, &mut profile)
+        .map_err(PlotEditorError::Catalog)?;
+    conduit_speech::ipa_constructors::install_notation(&mut startup, &profile)
+        .map_err(PlotEditorError::Catalog)?;
     Ok((startup, profile))
 }
 
 #[cfg(test)]
 mod tests {
+    use super::standard_catalogs;
+
+    #[test]
+    fn prepared_editor_catalog_keeps_source_local_types_private() {
+        let (mut first, _) = standard_catalogs().unwrap();
+        let (second, _) = standard_catalogs().unwrap();
+        let admitted = conduit_plot::checked_physical_catalog_for_document(
+            &conduit_plot::parse_syntax_document(""),
+            &second,
+        )
+        .unwrap();
+        assert_eq!(second, admitted);
+        let local = conduit_plot::check_syntax_document(
+            &conduit_plot::parse_syntax_document("type EditorLocal = Text <= 8B\n"),
+            &second,
+        )
+        .unwrap();
+        first
+            .insert_checked_native_type("EditorLocal", &local.native_types[0])
+            .unwrap();
+        assert_ne!(first, second);
+        assert_eq!(second, standard_catalogs().unwrap().0);
+    }
+
     #[test]
     fn standard_editor_catalog_checks_the_canonical_morse_network() {
         let source = include_str!("../../../../../plots/morse-network/main.conduit");

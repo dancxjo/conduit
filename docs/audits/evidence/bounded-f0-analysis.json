@@ -1,0 +1,288 @@
+{
+  "issue": 5686,
+  "state": "LOCAL DEVELOPMENT PROOF PASS; candidate CI/merge pending",
+  "source": "28efb0d1e5cc5b8578ee6dc4260758ed318f7d64",
+  "accepted_base": "ddfd0b3795391c7ad7431180efcede3d759cd6c5",
+  "tests": 18,
+  "checks": [
+    {
+      "path": "work/bounded-f0-octave-portable-tests.log",
+      "sha256": "31dd0c5e7ef5edf14a52d61ce2afbad2ae2b0a3459c578b102be56e4c3ed9b8b",
+      "tests": 12,
+      "state": "PASS"
+    },
+    {
+      "path": "work/bounded-f0-octave-catalog-tests.log",
+      "sha256": "1fdf80144880773a66263c5930ac2f3a8aa1c525a9d7da9b6dbd47628c54f45f",
+      "tests": 1,
+      "state": "PASS"
+    },
+    {
+      "path": "work/bounded-f0-octave-pressure-tests.log",
+      "sha256": "4d3c038ffde5b07d2c83bbc207813a59c88d7bd843349c0a72386f334681d4ba",
+      "tests": 2,
+      "state": "PASS"
+    },
+    {
+      "path": "work/bounded-f0-octave-normal-tests.log",
+      "sha256": "fd1460285100d8ae4a95155a02b61501318f48b04f174e77abc5ce74881b9027",
+      "tests": 3,
+      "state": "PASS"
+    },
+    {
+      "path": "work/bounded-f0-octave-clippy.log",
+      "sha256": "f7c4daf5a8005b32581cd6f401dd323632aaeb14a2254e2a70cbbe9999b9991b",
+      "tests": 0,
+      "state": "PASS"
+    },
+    {
+      "path": "work/bounded-f0-octave-format.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "tests": 0,
+      "state": "PASS"
+    }
+  ],
+  "tested_files": [
+    {
+      "path": "plots/audio-pitch-analysis/main.conduit",
+      "sha256": "c7da9409f77ae52a7a8ea6fbc3ec9e5a4986c19e4108c25af6d7095316994cb7",
+      "blob": "3fd3b7e18a00cabb17048caf2e793625e62e4c7c"
+    },
+    {
+      "path": "plots/inventory.toml",
+      "sha256": "950c9e4d1777a50e0430e562333f70f3849401dcda472761ce9a708b91206661",
+      "blob": "c865f3378987a331ba777923f7201937c45006d6"
+    },
+    {
+      "path": "semantics/audio/build.rs",
+      "sha256": "c60fb911470edc2133115412aa956a9cb44948c2a0dc006a8f09bb168c93dd06",
+      "blob": "45527030689499f5d25a12703342562b7e2998f9"
+    },
+    {
+      "path": "semantics/audio/pitch_analysis_types.conduit",
+      "sha256": "f99a5a3264cda4a20a4c3faeefc43c7febb94332c6b91ef937e3c2b1063acdd9",
+      "blob": "8404ff76566388f7edb4a0fa584908b44895f3f3"
+    },
+    {
+      "path": "semantics/audio/src/lib.rs",
+      "sha256": "26ec984c929adca7d04741c1d142106c83e0f2d087945d59edea488de5a318a0",
+      "blob": "c812c20809afeae4ce17cf72baa6aafccf2d8aeb"
+    },
+    {
+      "path": "semantics/audio/src/pitch_analysis.rs",
+      "sha256": "e46d503a71aeeef9e7b5dfc17399e7094bcd58044933a965a7ba4346c692bd9b",
+      "blob": "0a7731017df848db423017a9a57e04248c778fb4"
+    },
+    {
+      "path": "semantics/audio/src/pitch_encoding.rs",
+      "sha256": "cd6d226abaf5738de5dbb3cc5550b5de37191913a44d4ec79b04e404d0b28aee",
+      "blob": "c4937d248ac5ff8429941fed481ec2fefcab0be9"
+    },
+    {
+      "path": "semantics/audio/src/pitch_native.rs",
+      "sha256": "563284de309fa0628f30f338b8c7dae5d0b2e501f55f52af8feb84684238ba2e",
+      "blob": "31d7a8d80a5ad6c1edf783b5334235c12d524257"
+    },
+    {
+      "path": "semantics/audio/src/pitch_profile.rs",
+      "sha256": "4bcf779b8a4d586903821ac5956795e0c3053cc1a0931d798065af2edf0a6e20",
+      "blob": "a503456a273c95032c2222fcfd05d5dadccbb226"
+    },
+    {
+      "path": "semantics/audio/src/pitch_projection_report.rs",
+      "sha256": "e82cad405245d23d893347a6e674235165a62335ae84baf854d09639463c0316",
+      "blob": "560d96e45ffc583825d215479ac4e015627886cc"
+    },
+    {
+      "path": "semantics/audio/src/time_analysis.rs",
+      "sha256": "b2396d3d009cae13e10057651874a3e4ca856245922020aa3b793f1f8a0de5dd",
+      "blob": "6cbe8f14b435757cb534a6a99c517f9cafcb8a25"
+    },
+    {
+      "path": "semantics/audio/tests/common/pitch_signal.rs",
+      "sha256": "3d673006c368e1a17157c7c8e89fca30ab634c1f71aee82d2b14aed5690b8165",
+      "blob": "f7ba4061c1087b4668c64cb527f15162cc4d94d9"
+    },
+    {
+      "path": "semantics/audio/tests/pitch_analysis.rs",
+      "sha256": "9f6bd9aaf4352aeee557ee1f9014fdce89c5a3d799d367912e173cdf2582040f",
+      "blob": "83d09c8ac3d2a12489ede6ce55ca983d0a34e378"
+    },
+    {
+      "path": "semantics/audio/tests/pitch_fidelity.rs",
+      "sha256": "ad52f816bcd06e4efc4f3806fda11b6109d39a1a09cd68fce8802a2507bf6cff",
+      "blob": "3328da25ce82a02bf6a7ac009b50bb5cf978b720"
+    },
+    {
+      "path": "semantics/catalog/src/audio_analysis.rs",
+      "sha256": "1de4b049ea364fb88ca08628c85e8341a8c8fdc83087cb56956fbb9d4fdb304a",
+      "blob": "e2431ee976faf3da7412a4bde01dcaa6b3e5434b"
+    },
+    {
+      "path": "semantics/catalog/src/audio_pitch_analysis.rs",
+      "sha256": "fb15c04a84ccf4625fae0b780c41dd70b5774a3f60998b907987cb7e6b33fe93",
+      "blob": "9bcd4dc4ac2768a6e6d4c6841afc914e75f5fa8d"
+    },
+    {
+      "path": "semantics/catalog/src/sound_catalog.rs",
+      "sha256": "9a8b202fea0b19b330d0e119f9c2b93b64ff2cff42b357c5edbffbec1ea2b939",
+      "blob": "f1b6f43043acad0bfe7ebb41c918d1db655965f8"
+    },
+    {
+      "path": "semantics/catalog/src/sound_inventory.rs",
+      "sha256": "145ce4071815dc4ad9eaaf9f4bc0825e129c02e28b14e918acb9c7ed11cfd210",
+      "blob": "6ea0d6235c1a99b7fe02b84bdfb68361a03d675f"
+    },
+    {
+      "path": "semantics/catalog/src/supported_nucleus.rs",
+      "sha256": "32ce57063bfa21c34c211749041d7ff513cf3051aa0d8acf5a85617f5b53b5d0",
+      "blob": "98927c380d67ac927fd7fed9b41e45a3565ee3ec"
+    },
+    {
+      "path": "semantics/catalog/tests/audio_pitch_analysis.rs",
+      "sha256": "1145a797d408c4f0230c914e82773b8458093ae4194266ffee8f15a00e71490c",
+      "blob": "5eeeef81ab7fb916398785b6f1f43ef13a8ffa2d"
+    },
+    {
+      "path": "targets/std/offers/src/audio_analysis.rs",
+      "sha256": "2b87e4c54b3547916afd04455b3ef3df31e752514ae99f89b2090d236363ad5e",
+      "blob": "3d379d20c4e10ae260aa03c31ba22c02d14f75b8"
+    },
+    {
+      "path": "targets/std/offers/src/audio_pitch_analysis.rs",
+      "sha256": "704395993155911f9260db2b0a1ecc50a611f7b223f2ad6535f55e543e0c41f9",
+      "blob": "ae7b151c29e381b5a6db11cc5efdd10b91ea3df9"
+    },
+    {
+      "path": "targets/std/offers/src/lib.rs",
+      "sha256": "ccc6188ce1eb4278095c55169d1e15b230aeed4ee8383966c819da75931b6647",
+      "blob": "cdfae771afa1168f2df8b4b0310bffdbd5030701"
+    },
+    {
+      "path": "targets/std/src/composition/math.rs",
+      "sha256": "9a84aab506256525392cbd94b3a255e4a1c49779ec6c0c2a0087b304e7db0d9d",
+      "blob": "a183b07d293483e16ea3b00f24839b3eaeafbd27"
+    },
+    {
+      "path": "targets/std/src/installed_std.rs",
+      "sha256": "1466f7a7c14ad20dddf6ce4be87e53f730e2be507f7a9e604db16943fd9e2759",
+      "blob": "935f29d1b087b8eb401132ae100d431354e8e49e"
+    },
+    {
+      "path": "targets/std/src/installed_std/audio_pitch_analysis_back.rs",
+      "sha256": "8ddf9ff531638fdb7fb2966ecc67218632d05d2f30e9c97ea7b3a89997161c87",
+      "blob": "c41f676044c3a9a204e2f78ef25477fb996cf907"
+    },
+    {
+      "path": "targets/std/src/installed_std/audio_pitch_analysis_back_tests.rs",
+      "sha256": "fc0d34984c50877309ec233e07b5c3ab93dcb5471646575cee1de4b739b889d5",
+      "blob": "4857280100a9d924b03d0a0065ae5285beba3520"
+    },
+    {
+      "path": "targets/std/src/installed_std/back_kind.rs",
+      "sha256": "478f36f1966a21de26d03c1bece24f89c36427c8231983515a424472bf540bdc",
+      "blob": "c0da839f6a81c8a7ac821db8cf96dd1305066963"
+    },
+    {
+      "path": "targets/std/src/installed_std/back_step.rs",
+      "sha256": "69609d1d80724956f79d5ebeb87cbb9e1daaf046dabae73fd05f5d4d8cbc583b",
+      "blob": "4a2ce0a39ce4af22a85b2d98e653b7acddbdeebe"
+    },
+    {
+      "path": "targets/std/src/installed_std/catalog.rs",
+      "sha256": "f1cf9c448c2a1edf5425cecee9a54784d1fce1b331ae845da0156d68e072387c",
+      "blob": "5d65dab33e1479f5a67580487b3127b352960741"
+    },
+    {
+      "path": "targets/std/tests/audio_pitch_analysis.rs",
+      "sha256": "c564c91e7e89dd6a80c191f8b04adbe59b7fdac3755c6d2e66a41ada33135d4a",
+      "blob": "e017920d9690d0aea2171b32fa1a709dfb024459"
+    },
+    {
+      "path": "tools/xtask/src/commands/catalog/inventory.rs",
+      "sha256": "c601d765a5882550b8d3d72e432a9c2ff9f3634cc6699eb6929c57f00e1b6aaa",
+      "blob": "d55a717afe4de0fef0ffdca6b0f80a9e8fd23aec"
+    }
+  ],
+  "unchanged_oscillator_regression": {
+    "source": "097e9d659512dccf1fe17a63d5b145b158d880bd",
+    "tests": 8,
+    "receipt": "outputs/bounded-f0-pre-availability-checkpoint.json",
+    "note": "Historical regression; not relabelled as the new availability source."
+  },
+  "scope": "Finite centered normalized-correlation estimator with explicit unknown/uncertain states, exact PCM/window custody, fixed prepared encoder, normal installed Source/Plan/Play, generic4950 score and4952 fidelity binding. Accepted authored oscillator samples use a declared exact dyadic fixture conversion before the same normal measurement Kind.",
+  "limits": [
+    "Integer sample-lag estimate, not certified continuous F0 or linguistic truth",
+    "One explicit window per immutable PCM block; upstream owns cross-block window assembly",
+    "No physical playback, real-time performance or complete streaming synthesis claim"
+  ],
+  "origin_inventory": "outputs/origin-f0-path-inventory.json",
+  "historical_proofs": [
+    "outputs/bounded-f0-pre-octave-development-proof.json",
+    "outputs/bounded-f0-pre-availability-checkpoint.json",
+    "outputs/bounded-f0-portable-development-proof.json",
+    "outputs/bounded-f0-installed-checkpoint-proof.json"
+  ],
+  "ci_integration_followup": {
+    "source": "c26c5887728942fb8cc8a39a7739ec1ac55a7ea6",
+    "failed_candidate": "b09b275c005dba47cf9028bd8cf4ed6562ff6b45",
+    "failed_run": 38807804293,
+    "failed_job": 116678346156,
+    "failure_log": {
+      "sha256": "7fa9c4ec4f851a69dda18d1b251f33b6f554ea6b8ee730fe8e9ef3297b3f6f46",
+      "bytes": 2526257
+    },
+    "cause": [
+      "declared inventory maximum127 was lower than128 reviewed subjects",
+      "reference-host revision assertion omitted the installed pitch observation Kind"
+    ],
+    "fix_files": {
+      "plots/inventory.toml": {
+        "sha256": "f641917044a687931bace778f0126b771156eeb10e3c2e5bf7e345a2cd34ac6c",
+        "bytes": 37645
+      },
+      "targets/std/src/composition/tests.rs": {
+        "sha256": "5712c2234db692d55efd1ee61093b1ccf21b9b527b05a74687d4af61b9424d35",
+        "bytes": 8156
+      }
+    },
+    "tests": 22,
+    "checks": [
+      {
+        "log": "../bounded-f0-advertisement-regression.log",
+        "tests": 1,
+        "content": {
+          "sha256": "5afa678922c97749d1c3dc9a194d8e09529e814d6f36e09363e10e5ad3295570",
+          "bytes": 530
+        }
+      },
+      {
+        "log": "../bounded-f0-inventory-regression.log",
+        "tests": 21,
+        "content": {
+          "sha256": "1806bd861f5a7b014953623575e757e43319d6c6f6e79dcb5512e780c161b8d0",
+          "bytes": 19238
+        }
+      },
+      {
+        "log": "../bounded-f0-integration-clippy.log",
+        "state": "PASS",
+        "content": {
+          "sha256": "cea1caf461d9476e63ccefb7d99dc2abb536aaa430eeead7010fc2c0963013a5",
+          "bytes": 202
+        }
+      },
+      {
+        "log": "../bounded-f0-integration-format.log",
+        "state": "PASS",
+        "content": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      }
+    ],
+    "behavioral_source": "28efb0d1e5cc5b8578ee6dc4260758ed318f7d64",
+    "behavioral_evidence": "outputs/bounded-f0-combined-development-proof.json",
+    "scope": "No estimator, metadata, Back, codec or runtime code changed; earlier numerical proof retains its original source pin."
+  }
+}

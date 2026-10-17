@@ -14,10 +14,12 @@ pub mod acoustic_emergency;
 #[cfg(all(target_os = "linux", feature = "bluetooth-bluez"))]
 pub mod bluetooth_gatt;
 pub mod body_causal_evidence;
+pub mod body_clock_line;
 pub mod body_coordination;
 pub mod body_execution;
 mod boot_identity;
 pub mod browser_admission;
+pub mod civil_deadline_wait;
 mod composition;
 #[cfg(test)]
 mod composition_test_offers;
@@ -29,6 +31,7 @@ mod deadline_reactor;
 pub mod distributed_house_plan;
 pub mod distributed_signal;
 pub mod distributed_toggle;
+mod numerical_host;
 pub mod relay_client;
 pub mod remote_emergency;
 pub mod text_lab_live;
@@ -47,9 +50,12 @@ pub use deadline_reactor::{
     DeadlineClock, DeadlineClockError, DeadlineHostAdapter, DeadlineHostError, DeadlineKey,
     DeadlineReactor, DeadlineReactorError, DeadlineWake, ThreadMonotonicClock,
 };
+mod body_live_fore;
 pub mod external_signal;
 pub mod external_websocket;
 pub mod flow_activation;
+pub mod pure_chain_fusion;
+pub use body_live_fore::{BodyLiveForeAdmission, BodyLiveForeQueue, BodyLiveForeStatus};
 mod host_execution;
 pub mod hosted_audio;
 mod hosted_body_conversation_context;
@@ -65,11 +71,13 @@ pub mod hosted_http;
 pub mod hosted_indicator;
 pub mod hosted_job;
 pub mod hosted_keyboard;
+mod hosted_language;
 mod hosted_process;
 #[cfg(feature = "local-model-proof")]
 mod house_conversation_topology;
 #[cfg(unix)]
 pub mod pico_indicator;
+mod whisper_installation;
 pub use host_execution::HostedRunAdapters;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -93,6 +101,11 @@ pub struct ExternalForeDelivery {
 pub trait ExternalForeOutputAdapter {
     fn deliver(&mut self, output: ExternalForeDelivery) -> Result<(), String>;
 }
+pub mod direct_spoken_mask;
+pub mod direct_spoken_mask_runtime;
+pub mod direct_spoken_template_mask;
+#[cfg(feature = "burn-model")]
+pub mod hosted_burn_work;
 pub mod hosted_linguistics;
 pub mod hosted_local_model;
 pub mod hosted_messaging;
@@ -100,6 +113,8 @@ pub mod hosted_microphone;
 pub mod hosted_midi;
 pub mod hosted_model;
 pub mod hosted_model_compute;
+pub mod hosted_model_infer;
+pub mod hosted_model_work;
 pub mod hosted_network;
 pub mod hosted_reminder;
 pub mod hosted_resource;
@@ -116,14 +131,23 @@ pub mod hosted_wav_artifact;
 #[cfg(test)]
 mod image_binding_tests;
 mod installed_std;
+pub mod llm_spoken_mask;
+mod parsec_scan;
 pub mod spoken_face_mask;
 pub mod spoken_face_stream_execution;
 pub mod spoken_mask_journey;
 pub mod spoken_mask_runtime;
 #[cfg(test)]
 mod spoken_mask_runtime_tests;
+pub mod spoken_template_execution;
+pub mod spoken_template_reading;
 pub mod terminal_face_mask;
 pub mod terminal_mask_execution;
+mod thermostat_scan;
+pub mod todo_checkpoint_call;
+pub mod todo_checkpoint_read_call;
+mod todo_checkpoint_transition;
+pub mod todo_durable_resource;
 mod vision_ocr;
 mod vision_tracker;
 
@@ -133,7 +157,7 @@ pub use vision_ocr::{
     MAXIMUM_OCR_ITEMS,
 };
 mod remote_host_fragment;
-pub use remote_host_fragment::AdmittedRemoteFragment;
+pub use remote_host_fragment::{AdmittedRemoteFragment, RemoteBodyTimeStepRefusal};
 #[cfg(test)]
 mod body_chat_tests;
 #[cfg(test)]
@@ -174,7 +198,10 @@ pub mod pico_spawn;
 pub mod pico_usb_source;
 pub mod pico_wifi_bootstrap;
 pub mod pool_member_sessions;
-pub use local_model_pool_member::AdmittedLocalModelPoolMember;
+pub use local_model_pool_member::{
+    AdmittedLocalModelPoolMember, LocalModelCompletedWork, LocalModelCompletionCalibrationRefusal,
+    LocalModelMeasurementRefusal, LocalModelPreparedCalibration,
+};
 pub mod pool_webchat;
 pub mod r1_control;
 pub mod r1_control_input;
@@ -329,11 +356,12 @@ pub struct StdKernelExecutionReport {
     pub active_play: conduit_core::ActivePlayIdentity,
     pub active_play_id: conduit_core::ActivePlayId,
     pub decisions: u32,
+    pub logical_invocations: u64,
     pub kernel_events: u16,
     pub kernel_sign: Vec<conduit_kernel::KernelEvent>,
     pub value_allocation_capacity_before: (usize, usize),
     pub value_allocation_capacity_after: (usize, usize),
-    pub presentation_ids: Vec<conduit_core::PresentationId>,
+    pub face_ids: Vec<conduit_core::FaceId>,
     pub playback: Vec<hosted_audio::PlaybackReport>,
     pub wav_artifacts: Vec<hosted_wav_artifact::WavArtifactReport>,
     pub midi_input: Vec<hosted_midi::MidiInputReport>,
@@ -351,8 +379,23 @@ pub struct SignalReceipt {
     pub level: bool,
 }
 
+mod kernel_timing;
+pub use kernel_timing::KernelTimingPhase;
 pub trait TimerAdapter {
+    /// Optional phase observation; default adapters introduce no measurement.
+    fn observe_kernel_phase(&mut self, _phase: KernelTimingPhase) {}
+
     fn wait(&mut self, duration: Duration);
+
+    /// An exact sample on an identified provider basis. Adapters that only
+    /// offer a duration or an unlabelled counter leave event time unsupported.
+    fn monotonic_observation(
+        &mut self,
+        _host_id: &conduit_core::HostId,
+        _boot_id: &conduit_core::BootId,
+    ) -> Option<conduit_core::MonotonicInstant> {
+        None
+    }
 
     /// Returns the current host/boot-scoped monotonic millisecond reading when
     /// this adapter offers the admitted deadline contract.
@@ -379,6 +422,7 @@ pub trait TimerAdapter {
 pub struct ThreadTimer;
 
 static THREAD_TIMER_EPOCH: std::sync::OnceLock<Instant> = std::sync::OnceLock::new();
+static THREAD_TIMER_BASIS: std::sync::OnceLock<Option<String>> = std::sync::OnceLock::new();
 
 impl TimerAdapter for ThreadTimer {
     fn wait(&mut self, duration: Duration) {
@@ -403,6 +447,37 @@ impl TimerAdapter for ThreadTimer {
                 .as_micros(),
         )
         .ok()
+    }
+
+    fn monotonic_observation(
+        &mut self,
+        host_id: &conduit_core::HostId,
+        boot_id: &conduit_core::BootId,
+    ) -> Option<conduit_core::MonotonicInstant> {
+        let basis = THREAD_TIMER_BASIS
+            .get_or_init(|| {
+                let mut nonce = [0u8; 16];
+                getrandom::fill(&mut nonce).ok()?;
+                Some(format!(
+                    "std/thread-timer/process-epoch/{:08x}{}",
+                    std::process::id(),
+                    nonce
+                        .iter()
+                        .map(|byte| format!("{byte:02x}"))
+                        .collect::<String>()
+                ))
+            })
+            .as_ref()?;
+        let identity = conduit_core::MonotonicClockIdentity::new(
+            host_id.clone(),
+            boot_id.clone(),
+            basis.clone(),
+            conduit_core::TemporalScale::Microseconds,
+            1,
+            1,
+        )
+        .ok()?;
+        conduit_core::MonotonicInstant::new(self.monotonic_now_micros()?, identity).ok()
     }
 }
 
@@ -461,6 +536,14 @@ pub fn run_kernel_multivalue_path_to<W: Write, T: TimerAdapter>(
     Ok(report)
 }
 
+struct TodoCheckpointResidenceRoot {
+    path: std::path::PathBuf,
+    #[cfg(unix)]
+    device: u64,
+    #[cfg(unix)]
+    inode: u64,
+}
+
 pub struct StdHost {
     advertisement: HostAdvertisement,
     #[cfg(unix)]
@@ -476,10 +559,12 @@ pub struct StdHost {
     microphone: Option<hosted_microphone::AlsaMicrophoneAdapter>,
     base_registry: conduit_core::BaseRegistry,
     vector_search: Option<Box<dyn hosted_vector_search::HostedVectorSearchAdapter>>,
+    model_work: Option<Box<dyn hosted_model_work::HostedModelWorkAdapter>>,
     calendar: Option<Box<dyn hosted_calendar::HostedCalendarAdapter>>,
     body_conversation_context: Option<BodyConversationContextSource>,
     vision: Option<hosted_vision::FiniteHostedVisionBase>,
     kernel_resources: kernel_preparation::KernelResourceLedger,
+    todo_checkpoint_root: Option<TodoCheckpointResidenceRoot>,
     next_kernel_play_sequence: u64,
     next_kernel_sign_sequence: u64,
 }
@@ -526,6 +611,34 @@ fn normalize_capability_offers(
         ));
     }
     capabilities.dedup_by(|left, right| left.capability_id == right.capability_id);
+    Ok(())
+}
+
+fn add_local_model_offers(
+    advertisement: &mut HostAdvertisement,
+    offer: &conduit_ai::LocalModelOffer,
+) -> Result<(), String> {
+    offer
+        .validate()
+        .map_err(|error| format!("local-model offer is not initialized: {error:?}"))?;
+    advertisement
+        .resources
+        .extend(hosted_local_model::resource_offers(&offer.limits));
+    advertisement.capabilities.extend(
+        offer
+            .capability_offers()
+            .map_err(|error| format!("local-model capabilities: {error:?}"))?,
+    );
+    advertisement.capabilities.extend([
+        conduit_std_offers::house_prompt_std_offer(),
+        conduit_std_offers::body_chat_prompt_std_offer(),
+        conduit_std_offers::model_result_to_text_std_offer(),
+        conduit_std_offers::model_result_flow_to_text_std_offer(),
+        conduit_std_offers::generated_chunk_to_text_std_offer(),
+        conduit_std_offers::address_detect_offer(),
+        conduit_std_offers::recognition_to_text_std_offer(),
+        conduit_std_offers::committed_turn_to_text_std_offer(),
+    ]);
     Ok(())
 }
 
@@ -601,6 +714,17 @@ impl StdHost {
             ),
         })
     }
+
+    /// Continue a boot's Play sequence when a fresh hosted adapter is
+    /// reconstructed for the same real Host Boot. The caller owns durable,
+    /// exclusive allocation of the supplied sequence range.
+    pub fn set_initial_kernel_play_sequence(&mut self, first: u64) -> Result<(), String> {
+        if self.next_kernel_play_sequence != 0 || first == 0 {
+            return Err("kernel Play sequence is already in use or invalid".into());
+        }
+        self.next_kernel_play_sequence = first;
+        Ok(())
+    }
     pub fn new() -> Self {
         Self::new_with_config(StdHostConfig {
             host_id: HostId::from("std-host-1"),
@@ -611,6 +735,151 @@ impl StdHost {
 
     pub fn new_with_config(config: StdHostConfig) -> Self {
         Self::new_with_composition(config, StdHostComposition::reference())
+    }
+
+    /// Construct one std Host whose Todo scan Back is bound to the caller's
+    /// canonical initial Form before planning or resource-ledger admission.
+    /// The broad reference inventory remains unchanged.
+    pub fn new_for_todo_scan(
+        config: StdHostConfig,
+        initial: &conduit_todo_plot::TodoState,
+        maximum_items: u16,
+    ) -> Result<Self, String> {
+        let mut advertisement = composition::build_advertisement(
+            config,
+            StdHostComposition::reference(),
+            None,
+            None,
+            None,
+            false,
+        );
+        for offer in [
+            flow_activation::todo_scan_offer(initial, maximum_items)?,
+            flow_activation::todo_combine_offer(),
+        ] {
+            if let Some(existing) = advertisement
+                .capabilities
+                .iter()
+                .find(|existing| existing.capability_id == offer.capability_id)
+            {
+                if existing != &offer {
+                    return Err(
+                        "std Todo scan capability identity conflicts with the selected offer"
+                            .into(),
+                    );
+                }
+                continue;
+            }
+            advertisement.capabilities.push(offer);
+        }
+        advertisement
+            .capabilities
+            .sort_by(|left, right| left.capability_id.cmp(&right.capability_id));
+        Self::from_advertisement(advertisement)
+    }
+
+    /// Advertise one exact Todo checkpoint publication and its selected
+    /// ExternalDurable residence before resource-ledger admission. The root
+    /// remains explicitly selected and must match the later Play call.
+    pub fn new_for_todo_checkpoint_once(
+        config: StdHostConfig,
+        root: &std::path::Path,
+        content: conduit_core::ResourceContentRequirement,
+    ) -> Result<Self, String> {
+        let offer =
+            conduit_std_offers::todo_checkpoint_offer(content.clone()).map_err(str::to_string)?;
+        Self::new_for_selected_todo_checkpoint(config, root, content, offer)
+    }
+
+    /// Compose two explicitly selected, finite offers before this Host is
+    /// advertised or its resource ledger is admitted.
+    pub fn new_for_todo_checkpoint_with_local_model(
+        config: StdHostConfig,
+        root: &std::path::Path,
+        content: conduit_core::ResourceContentRequirement,
+        adapter: Box<dyn hosted_local_model::HostedLocalModelAdapter>,
+    ) -> Result<Self, String> {
+        let mut host = Self::new_for_todo_checkpoint_once(config, root, content)?;
+        let mut advertisement = host.advertisement.clone();
+        add_local_model_offers(&mut advertisement, adapter.offer())?;
+        advertisement.resources.sort();
+        normalize_capability_offers(&mut advertisement.capabilities)?;
+        let ledger = kernel_preparation::KernelResourceLedger::new(&advertisement)?;
+        host.advertisement = advertisement;
+        host.kernel_resources = ledger;
+        host.local_model = Some(adapter);
+        Ok(host)
+    }
+
+    /// Advertise one exact ReadPublished generation and its separate read
+    /// authority before ledger admission on the selected std Host.
+    pub fn new_for_todo_checkpoint_read(
+        config: StdHostConfig,
+        root: &std::path::Path,
+        content: conduit_core::ResourceContentRequirement,
+    ) -> Result<Self, String> {
+        let offer = conduit_std_offers::todo_checkpoint_read_offer(content.clone())
+            .map_err(str::to_string)?;
+        Self::new_for_selected_todo_checkpoint(config, root, content, offer)
+    }
+
+    fn new_for_selected_todo_checkpoint(
+        config: StdHostConfig,
+        root: &std::path::Path,
+        content: conduit_core::ResourceContentRequirement,
+        offer: conduit_core::CapabilityOffer,
+    ) -> Result<Self, String> {
+        let metadata = std::fs::symlink_metadata(root)
+            .map_err(|error| format!("Todo checkpoint root: {error}"))?;
+        if metadata.file_type().is_symlink() || !metadata.is_dir() {
+            return Err("Todo checkpoint root must be an existing directory".into());
+        }
+        let root = root
+            .canonicalize()
+            .map_err(|error| format!("Todo checkpoint root: {error}"))?;
+        let mut advertisement = composition::build_advertisement(
+            config,
+            StdHostComposition::reference(),
+            None,
+            None,
+            None,
+            false,
+        );
+        advertisement.resources.push(conduit_core::ResourceOffer {
+            pool_id: "std/todo-checkpoint".into(),
+            class_id: "resource/todo-checkpoint@1".into(),
+            capacity_units: 1,
+            compute: None,
+            content: Some(conduit_core::ResourceContentOffer {
+                contract: content,
+                owner_host: advertisement.host_id.clone(),
+                owner_boot: advertisement.boot_id.clone(),
+                base_id: "std/explicit-shared-checkpoint".into(),
+                residence_profile: conduit_core::kind_id("std/explicit-shared-checkpoint@1"),
+            }),
+        });
+        advertisement.capabilities.push(offer);
+        advertisement.resources.sort();
+        advertisement
+            .capabilities
+            .sort_by(|a, b| a.capability_id.cmp(&b.capability_id));
+        let mut host = Self::from_advertisement(advertisement)?;
+        #[cfg(unix)]
+        let selected = {
+            use std::os::unix::fs::MetadataExt;
+            let metadata = root
+                .metadata()
+                .map_err(|error| format!("Todo checkpoint root: {error}"))?;
+            TodoCheckpointResidenceRoot {
+                path: root,
+                device: metadata.dev(),
+                inode: metadata.ino(),
+            }
+        };
+        #[cfg(not(unix))]
+        let selected = TodoCheckpointResidenceRoot { path: root };
+        host.todo_checkpoint_root = Some(selected);
+        Ok(host)
     }
 
     pub fn new_with_composition(config: StdHostConfig, composition: StdHostComposition) -> Self {
@@ -631,10 +900,12 @@ impl StdHost {
             microphone: None,
             base_registry: empty_base_registry(),
             vector_search: None,
+            model_work: None,
             calendar: None,
             body_conversation_context: None,
             vision: None,
             kernel_resources,
+            todo_checkpoint_root: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]
@@ -700,10 +971,12 @@ impl StdHost {
             microphone: None,
             base_registry,
             vector_search: None,
+            model_work: None,
             calendar: None,
             body_conversation_context: None,
             vision: Some(vision),
             kernel_resources,
+            todo_checkpoint_root: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]
@@ -725,44 +998,9 @@ impl StdHost {
         adapter: Box<dyn hosted_local_model::HostedLocalModelAdapter>,
         additional_capabilities: Vec<conduit_core::CapabilityOffer>,
     ) -> Result<Self, String> {
-        let offer = adapter.offer();
-        offer
-            .validate()
-            .map_err(|error| format!("local-model offer is not initialized: {error:?}"))?;
         let mut advertisement =
             composition::build_advertisement(config, composition, None, None, None, false);
-        advertisement
-            .resources
-            .extend(hosted_local_model::resource_offers(&offer.limits));
-        advertisement.capabilities.extend(
-            offer
-                .capability_offers()
-                .map_err(|error| format!("local-model capabilities: {error:?}"))?,
-        );
-        advertisement
-            .capabilities
-            .push(conduit_std_offers::house_prompt_std_offer());
-        advertisement
-            .capabilities
-            .push(conduit_std_offers::body_chat_prompt_std_offer());
-        advertisement
-            .capabilities
-            .push(conduit_std_offers::model_result_to_text_std_offer());
-        advertisement
-            .capabilities
-            .push(conduit_std_offers::model_result_flow_to_text_std_offer());
-        advertisement
-            .capabilities
-            .push(conduit_std_offers::generated_chunk_to_text_std_offer());
-        advertisement
-            .capabilities
-            .push(conduit_std_offers::address_detect_offer());
-        advertisement
-            .capabilities
-            .push(conduit_std_offers::recognition_to_text_std_offer());
-        advertisement
-            .capabilities
-            .push(conduit_std_offers::committed_turn_to_text_std_offer());
+        add_local_model_offers(&mut advertisement, adapter.offer())?;
         advertisement.capabilities.extend(additional_capabilities);
         advertisement.resources.sort();
         normalize_capability_offers(&mut advertisement.capabilities)?;
@@ -780,10 +1018,12 @@ impl StdHost {
             microphone: None,
             base_registry: empty_base_registry(),
             vector_search: None,
+            model_work: None,
             calendar: None,
             body_conversation_context: None,
             vision: None,
             kernel_resources,
+            todo_checkpoint_root: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]
@@ -824,10 +1064,58 @@ impl StdHost {
             microphone: None,
             base_registry: empty_base_registry(),
             vector_search: Some(adapter),
+            model_work: None,
             calendar: None,
             body_conversation_context: None,
             vision: None,
             kernel_resources,
+            todo_checkpoint_root: None,
+            next_kernel_play_sequence: 0,
+            next_kernel_sign_sequence: 0,
+            #[cfg(unix)]
+            terminal_attachment: None,
+        })
+    }
+
+    pub fn new_with_model_work(
+        config: StdHostConfig,
+        composition: StdHostComposition,
+        adapter: Box<dyn hosted_model_work::HostedModelWorkAdapter>,
+    ) -> Result<Self, String> {
+        let mut advertisement =
+            composition::build_advertisement(config, composition, None, None, None, false);
+        advertisement
+            .resources
+            .push(adapter.resource_offer().clone());
+        advertisement
+            .capabilities
+            .push(adapter.capability_offer().clone());
+        advertisement.resources.sort();
+        advertisement.capabilities.sort_by(|left, right| {
+            left.capability_id
+                .as_str()
+                .cmp(right.capability_id.as_str())
+        });
+        let kernel_resources = kernel_preparation::KernelResourceLedger::new(&advertisement)?;
+        Ok(Self {
+            advertisement,
+            image_identity: None,
+            playback: None,
+            wav_artifact: None,
+            speech_synthesis: None,
+            midi_input: None,
+            midi_output: None,
+            local_model: None,
+            speech_recognition: None,
+            microphone: None,
+            base_registry: empty_base_registry(),
+            vector_search: None,
+            model_work: Some(adapter),
+            calendar: None,
+            body_conversation_context: None,
+            vision: None,
+            kernel_resources,
+            todo_checkpoint_root: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]
@@ -868,219 +1156,17 @@ impl StdHost {
             microphone: None,
             base_registry: empty_base_registry(),
             vector_search: None,
+            model_work: None,
             calendar: Some(adapter),
             body_conversation_context: None,
             vision: None,
             kernel_resources,
+            todo_checkpoint_root: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]
             terminal_attachment: None,
         })
-    }
-
-    pub fn new_with_whisper_speech_recognition(
-        config: StdHostConfig,
-        composition: StdHostComposition,
-        adapter: hosted_speech_recognition::WhisperSpeechAdapter,
-    ) -> Result<Self, String> {
-        if adapter.limits().maximum_audio_bytes
-            < conduit_tongues::MAXIMUM_RECOGNITION_AUDIO_BYTES as u32
-            || adapter.limits().maximum_text_bytes
-                < conduit_tongues::MAXIMUM_RECOGNIZED_TEXT_BYTES as u16
-        {
-            return Err("initialized Whisper adapter does not satisfy its offered profile".into());
-        }
-        let mut advertisement =
-            composition::build_advertisement(config, composition, None, None, None, false);
-        advertisement.resources.push(conduit_core::resource_offer(
-            "std/whisper-process",
-            conduit_std_offers::WHISPER_PROCESS_RESOURCE_CLASS,
-            1,
-        ));
-        advertisement
-            .capabilities
-            .push(conduit_std_offers::whisper_speech_offer());
-        #[cfg(all(test, feature = "local-model-proof"))]
-        advertisement.capabilities.extend([
-            installed_std::test_local_model_io::house_source_offers()[0].clone(),
-            installed_std::test_local_model_io::house_text_sink_offer(),
-        ]);
-        advertisement.resources.sort();
-        advertisement.capabilities.sort_by(|left, right| {
-            left.capability_id
-                .as_str()
-                .cmp(right.capability_id.as_str())
-        });
-        let kernel_resources = kernel_preparation::KernelResourceLedger::new(&advertisement)?;
-        Ok(Self {
-            advertisement,
-            image_identity: None,
-            playback: None,
-            wav_artifact: None,
-            speech_synthesis: None,
-            midi_input: None,
-            midi_output: None,
-            local_model: None,
-            speech_recognition: Some(adapter),
-            microphone: None,
-            base_registry: empty_base_registry(),
-            vector_search: None,
-            calendar: None,
-            body_conversation_context: None,
-            vision: None,
-            kernel_resources,
-            next_kernel_play_sequence: 0,
-            next_kernel_sign_sequence: 0,
-            #[cfg(unix)]
-            terminal_attachment: None,
-        })
-    }
-
-    pub fn new_with_whisper_clip_speech_recognition(
-        config: StdHostConfig,
-        composition: StdHostComposition,
-        adapter: hosted_speech_recognition::WhisperSpeechAdapter,
-    ) -> Result<Self, String> {
-        if adapter.limits().maximum_audio_bytes < conduit_audio::MAXIMUM_PCM_CLIP_BYTES as u32
-            || adapter.limits().maximum_text_bytes
-                < conduit_tongues::MAXIMUM_RECOGNIZED_TEXT_BYTES as u16
-        {
-            return Err(
-                "initialized Whisper adapter does not satisfy its offered clip profile".into(),
-            );
-        }
-        let mut advertisement =
-            composition::build_advertisement(config, composition, None, None, None, false);
-        advertisement.resources.push(conduit_core::resource_offer(
-            "std/whisper-process",
-            conduit_std_offers::WHISPER_PROCESS_RESOURCE_CLASS,
-            1,
-        ));
-        advertisement
-            .capabilities
-            .push(conduit_std_offers::whisper_clip_speech_offer());
-        #[cfg(all(test, feature = "local-model-proof"))]
-        advertisement.capabilities.extend([
-            installed_std::test_local_model_io::house_source_offers()[1].clone(),
-            installed_std::test_local_model_io::house_text_sink_offer(),
-        ]);
-        advertisement.resources.sort();
-        advertisement.capabilities.sort_by(|left, right| {
-            left.capability_id
-                .as_str()
-                .cmp(right.capability_id.as_str())
-        });
-        let kernel_resources = kernel_preparation::KernelResourceLedger::new(&advertisement)?;
-        Ok(Self {
-            advertisement,
-            image_identity: None,
-            playback: None,
-            wav_artifact: None,
-            speech_synthesis: None,
-            midi_input: None,
-            midi_output: None,
-            local_model: None,
-            speech_recognition: Some(adapter),
-            microphone: None,
-            base_registry: empty_base_registry(),
-            vector_search: None,
-            calendar: None,
-            body_conversation_context: None,
-            vision: None,
-            kernel_resources,
-            next_kernel_play_sequence: 0,
-            next_kernel_sign_sequence: 0,
-            #[cfg(unix)]
-            terminal_attachment: None,
-        })
-    }
-
-    /// Attaches one bounded recorded clip as an explicit proof-only source.
-    #[cfg(feature = "local-model-proof")]
-    pub fn attach_proof_pcm_clip_source(&mut self, clip: Vec<u8>) -> Result<(), String> {
-        self.speech_recognition
-            .as_mut()
-            .ok_or_else(|| "std Host has no initialized Whisper recognizer".to_string())?
-            .set_proof_pcm_clip(clip)
-            .map_err(|error| format!("attach proof PCM clip: {error:?}"))?;
-        for offer in [
-            installed_std::test_local_model_io::house_source_offers()[1].clone(),
-            installed_std::test_local_model_io::house_text_sink_offer(),
-            installed_std::test_local_model_io::house_recognition_sink_offer(),
-        ] {
-            if !self
-                .advertisement
-                .capabilities
-                .iter()
-                .any(|candidate| candidate.capability_id == offer.capability_id)
-            {
-                self.advertisement.capabilities.push(offer);
-            }
-        }
-        self.advertisement.capabilities.sort_by(|left, right| {
-            left.capability_id
-                .as_str()
-                .cmp(right.capability_id.as_str())
-        });
-        self.kernel_resources = kernel_preparation::KernelResourceLedger::new(&self.advertisement)?;
-        Ok(())
-    }
-
-    /// Adds one initialized Whisper clip realization and its admitted proof input.
-    #[cfg(feature = "local-model-proof")]
-    pub fn attach_whisper_clip_proof(
-        &mut self,
-        mut adapter: hosted_speech_recognition::WhisperSpeechAdapter,
-        clip: Vec<u8>,
-    ) -> Result<(), String> {
-        if self.speech_recognition.is_some() {
-            return Err("std Host already has an initialized speech recognizer".into());
-        }
-        if adapter.limits().maximum_audio_bytes < conduit_audio::MAXIMUM_PCM_CLIP_BYTES as u32
-            || adapter.limits().maximum_text_bytes
-                < conduit_tongues::MAXIMUM_RECOGNIZED_TEXT_BYTES as u16
-        {
-            return Err(
-                "initialized Whisper adapter does not satisfy its offered clip profile".into(),
-            );
-        }
-        adapter
-            .set_proof_pcm_clip(clip)
-            .map_err(|error| format!("attach proof PCM clip: {error:?}"))?;
-        let mut advertisement = self.advertisement.clone();
-        advertisement.resources.push(conduit_core::resource_offer(
-            "std/whisper-process",
-            conduit_std_offers::WHISPER_PROCESS_RESOURCE_CLASS,
-            1,
-        ));
-        advertisement
-            .capabilities
-            .push(conduit_std_offers::whisper_clip_speech_offer());
-        for offer in [
-            installed_std::test_local_model_io::house_source_offers()[1].clone(),
-            installed_std::test_local_model_io::house_text_sink_offer(),
-            installed_std::test_local_model_io::house_recognition_sink_offer(),
-        ] {
-            if !advertisement
-                .capabilities
-                .iter()
-                .any(|candidate| candidate.capability_id == offer.capability_id)
-            {
-                advertisement.capabilities.push(offer);
-            }
-        }
-        advertisement.resources.sort();
-        advertisement.capabilities.sort_by(|left, right| {
-            left.capability_id
-                .as_str()
-                .cmp(right.capability_id.as_str())
-        });
-        let kernel_resources = kernel_preparation::KernelResourceLedger::new(&advertisement)?;
-        self.advertisement = advertisement;
-        self.speech_recognition = Some(adapter);
-        self.kernel_resources = kernel_resources;
-        Ok(())
     }
 
     /// Executes against one platform-extended advertisement that was already
@@ -1101,10 +1187,12 @@ impl StdHost {
             microphone: None,
             base_registry: empty_base_registry(),
             vector_search: None,
+            model_work: None,
             calendar: None,
             body_conversation_context: None,
             vision: None,
             kernel_resources,
+            todo_checkpoint_root: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]
@@ -1154,10 +1242,12 @@ impl StdHost {
             microphone: None,
             base_registry: empty_base_registry(),
             vector_search: None,
+            model_work: None,
             calendar: None,
             body_conversation_context: None,
             vision: None,
             kernel_resources,
+            todo_checkpoint_root: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]
@@ -1202,10 +1292,12 @@ impl StdHost {
             microphone: None,
             base_registry: empty_base_registry(),
             vector_search: None,
+            model_work: None,
             calendar: None,
             body_conversation_context: None,
             vision: None,
             kernel_resources,
+            todo_checkpoint_root: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]
@@ -1239,10 +1331,12 @@ impl StdHost {
             microphone: None,
             base_registry: empty_base_registry(),
             vector_search: None,
+            model_work: None,
             calendar: None,
             body_conversation_context: None,
             vision: None,
             kernel_resources,
+            todo_checkpoint_root: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]
@@ -1289,10 +1383,12 @@ impl StdHost {
             microphone: None,
             base_registry: empty_base_registry(),
             vector_search: None,
+            model_work: None,
             calendar: None,
             body_conversation_context: None,
             vision: None,
             kernel_resources,
+            todo_checkpoint_root: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]
@@ -1915,7 +2011,7 @@ mod tests {
             offer_generation: OfferGeneration(1),
         });
         let plot = parse_with_startup(
-            "plot virtual {\n pulse: flow/pulse(count = 3, period-ms = 7, initial = false)\n show: presentation/show\n pulse >> show\n}\n", &conduit_signal::signal_startup_catalog(), &signal_profile_catalog())
+            "plot virtual {\n pulse: flow/pulse(count = 3, period-ms = 7, initial = false)\n show: face/show(\"Signal\")\n pulse >> show\n}\n", &conduit_signal::signal_startup_catalog(), &signal_profile_catalog())
         .expect("virtual-clock plot parses");
         let plan = host.plan_local(&plot, None).expect("local plan resolves");
         let fragment = plan.fragments[0].clone();
@@ -1951,15 +2047,12 @@ mod tests {
         assert!(kernel.decisions > 0);
         assert!(kernel.kernel_events > 0);
         assert_ne!(kernel.active_play_id.as_str(), plan_id.as_str());
-        assert_eq!(kernel.presentation_ids.len(), 3);
+        assert_eq!(kernel.face_ids.len(), 3);
         assert_eq!(kernel.identity.plan_id, plan_id);
         assert_eq!(kernel.identity.active_play_id, kernel.active_play_id);
         assert_eq!(kernel.identity.lengths(), (5, 3, 4));
         assert_eq!(kernel.post_play_start_allocations, 0);
-        assert!(kernel
-            .presentation_ids
-            .windows(2)
-            .all(|pair| pair[0] != pair[1]));
+        assert!(kernel.face_ids.windows(2).all(|pair| pair[0] != pair[1]));
         assert_eq!(
             kernel.value_allocation_capacity_before,
             kernel.value_allocation_capacity_after
@@ -1970,7 +2063,7 @@ mod tests {
                 .iter()
                 .filter(|observation| {
                     observation.active_play_id.as_ref() == Some(&kernel.active_play_id)
-                        && observation.presentation_id.is_some()
+                        && observation.face_id.is_some()
                 })
                 .count()
                 == 3
@@ -1980,34 +2073,31 @@ mod tests {
                 .identity
                 .sign_identity(&observation.sign_id)
                 .expect("host sign reverses to its kernel identity row");
-            assert_eq!(
-                sign.presentation_id.as_ref(),
-                observation.presentation_id.as_ref()
-            );
-            if let Some(presentation_id) = &observation.presentation_id {
-                let presentation = kernel
+            assert_eq!(sign.face_id.as_ref(), observation.face_id.as_ref());
+            if let Some(face_id) = &observation.face_id {
+                let face = kernel
                     .identity
-                    .presentation(presentation_id)
-                    .expect("presentation reverses to one kernel request");
+                    .face(face_id)
+                    .expect("face reverses to one kernel request");
                 let request = kernel
                     .identity
-                    .request(presentation.node, presentation.request)
-                    .expect("presentation request reverses to its Host Call contract");
+                    .request(face.node, face.request)
+                    .expect("face request reverses to its Host Call contract");
                 assert!(kernel
                     .identity
-                    .request_for_contract(presentation.node, &request.contract_id)
+                    .request_for_contract(face.node, &request.contract_id)
                     .any(|candidate| candidate == request));
                 assert_eq!(
                     kernel
                         .identity
-                        .presentation_for_request(presentation.node, presentation.request)
-                        .map(|identity| &identity.presentation_id),
-                    Some(presentation_id)
+                        .face_for_request(face.node, face.request)
+                        .map(|identity| &identity.face_id),
+                    Some(face_id)
                 );
                 assert_eq!(
                     kernel
                         .identity
-                        .sign_for_presentation(presentation_id)
+                        .sign_for_face(face_id)
                         .map(|identity| &identity.sign_id),
                     Some(&observation.sign_id)
                 );
@@ -2065,7 +2155,7 @@ mod tests {
             offer_generation: OfferGeneration(1),
         });
         let plot = parse_with_startup(
-            "plot wider {\n first: flow/pulse(count = 1)\n second: flow/pulse(count = 1)\n left: presentation/show\n right: presentation/show\n first >> left\n second >> right\n}\n", &conduit_signal::signal_startup_catalog(), &signal_profile_catalog())
+            "plot wider {\n first: flow/pulse(count = 1)\n second: flow/pulse(count = 1)\n left: face/show(\"Signal\")\n right: face/show(\"Signal\")\n first >> left\n second >> right\n}\n", &conduit_signal::signal_startup_catalog(), &signal_profile_catalog())
         .expect("unsupported wider plot remains semantically valid");
         let plan = host
             .plan_local(&plot, None)
@@ -2084,3 +2174,7 @@ mod tests {
         assert!(timer.waits.is_empty());
     }
 }
+
+pub mod hosted_integer_categorical;
+
+pub mod todo_spoken_reading;

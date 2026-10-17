@@ -1,0 +1,36 @@
+{
+  "proof_class": "native-qemu-x86_64",
+  "kernel_source": "bfa318cf0128b5fcf223b3588f63ae68af0977b2",
+  "source_package_sha256": "35f2583c5a317aa8902217857a5aa2197a63614bebf539900a21282f5cf6fdfb",
+  "cases": [
+    {
+      "mode": "wrong-rate",
+      "actual_response_ids": [
+        515445056
+      ],
+      "iso_packets": 0,
+      "terminal_phase": 5,
+      "original_pcm_retained": true,
+      "acknowledged_retirement": true,
+      "alloc_attempts": 0,
+      "realloc_attempts": 0,
+      "wire_sha256": "c55bc8fe973b805fe370a21286b712ea66f7a85a2d3e2fb2ea5441eb466b3366",
+      "serial_sha256": "437265f840750ade46a016ff22f5fdc662d58ad16a9a679dcd35089f736c17f2"
+    },
+    {
+      "mode": "stall-rate",
+      "actual_response_ids": [
+        515445008
+      ],
+      "iso_packets": 0,
+      "terminal_phase": 5,
+      "original_pcm_retained": true,
+      "acknowledged_retirement": true,
+      "alloc_attempts": 0,
+      "realloc_attempts": 0,
+      "wire_sha256": "6209b3e787be8750a8af7a8daff5f150853dbf5400fc52f4c556ecd551554586",
+      "serial_sha256": "535a85302cc8d3a3faed93a7b5857af2c531bcbf60b3bbe2054f9d765b84c1fe"
+    }
+  ],
+  "scope": "actual setup response refusal before ISO effects; does not establish pending ISO fault matrix or physical output"
+}

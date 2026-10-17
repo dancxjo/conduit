@@ -1,0 +1,105 @@
+   Compiling syn v3.0.6
+   Compiling libc v0.2.189
+   Compiling once_cell v1.21.4
+   Compiling getrandom v0.4.3
+   Compiling crossbeam-utils v0.8.23
+   Compiling portable-atomic v1.15.0
+   Compiling serde_json v1.0.151
+   Compiling futures-core v0.3.34
+   Compiling miniz_oxide v0.8.9
+   Compiling concurrent-queue v2.5.0
+   Compiling rand v0.10.3
+   Compiling serde_derive v1.0.229
+   Compiling bytemuck_derive v1.12.1
+   Compiling bytemuck v1.25.2
+   Compiling num-complex v0.4.6
+   Compiling object v0.37.3
+   Compiling serde v1.0.229
+   Compiling half v2.7.1
+   Compiling smallvec v1.16.1
+   Compiling parking_lot_core v0.9.12
+   Compiling ciborium-ll v0.2.2
+   Compiling serde_core v1.0.229
+   Compiling pulp v0.22.3
+   Compiling backtrace v0.3.76
+   Compiling dyn-stack v0.13.2
+   Compiling futures-lite v2.6.1
+   Compiling ciborium v0.2.2
+   Compiling parking_lot v0.12.5
+   Compiling spin v0.12.3
+   Compiling async-channel v2.5.0
+   Compiling nom v8.0.0
+   Compiling bytes v1.12.1
+   Compiling log v0.4.34
+   Compiling thiserror v2.0.20
+   Compiling cubecl-environment v0.11.0
+   Compiling tynm v0.2.0
+   Compiling gemm-common v0.19.0
+   Compiling float8 v0.7.0
+   Compiling thiserror-impl v2.0.20
+   Compiling crypto-common v0.1.7
+   Compiling digest v0.10.7
+   Compiling cubecl-common v0.11.0
+   Compiling ahash v0.8.12
+   Compiling cubecl-zspace v0.11.0
+   Compiling rand_distr v0.6.0
+   Compiling data-encoding v2.11.1
+   Compiling conduit-assigned-plan v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-07/take-on-dancxjo-conduit-5205-5207/work/conduit/architecture/assigned-plan)
+   Compiling burn-std v0.22.0
+   Compiling sha2 v0.10.9
+   Compiling conduit-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-07/take-on-dancxjo-conduit-5205-5207/work/conduit/architecture/core)
+   Compiling burn-backend v0.22.0
+   Compiling gemm-f32 v0.19.0
+   Compiling gemm-f16 v0.19.0
+   Compiling gemm-c64 v0.19.0
+   Compiling gemm-c32 v0.19.0
+   Compiling gemm-f64 v0.19.0
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-07/take-on-dancxjo-conduit-5205-5207/work/conduit/architecture/plot)
+   Compiling gemm v0.19.0
+   Compiling burn-ir v0.22.0
+   Compiling burn-flex v0.22.0
+   Compiling conduit-time v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-07/take-on-dancxjo-conduit-5205-5207/work/conduit/semantics/time)
+   Compiling burn-autodiff v0.22.0
+   Compiling burn-backend-extension v0.22.0
+   Compiling aho-corasick v1.1.5
+   Compiling burn-derive v0.22.0
+   Compiling regex-automata v0.4.18
+   Compiling burn-dispatch v0.22.0
+   Compiling burn-tensor v0.22.0
+   Compiling burn-pack v0.22.0
+   Compiling conduit-data v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-07/take-on-dancxjo-conduit-5205-5207/work/conduit/semantics/data)
+   Compiling regex v1.13.1
+   Compiling burn-core v0.22.0
+   Compiling tempfile v3.27.0
+   Compiling conduit-ai v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-07/take-on-dancxjo-conduit-5205-5207/work/conduit/semantics/ai)
+   Compiling safetensors v0.8.0
+   Compiling burn-linalg v0.22.0
+   Compiling memmap2 v0.9.11
+   Compiling burn-store v0.22.0
+   Compiling burn-nn v0.22.0
+   Compiling burn-optim v0.22.0
+   Compiling burn v0.22.0
+   Compiling conduit-burn-model v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-07/take-on-dancxjo-conduit-5205-5207/work/conduit/mechanisms/implementations/burn-model)
+    Finished `test` profile [unoptimized] target(s) in 51.85s
+     Running tests/state_safety.rs (target/debug/deps/state_safety-f799b63c437e52f6)
+
+running 1 test
+test finite_loss_with_nonfinite_gradient_never_commits_candidate ... FAILED
+
+failures:
+
+---- finite_loss_with_nonfinite_gradient_never_commits_candidate stdout ----
+
+thread 'finite_loss_with_nonfinite_gradient_never_commits_candidate' (2157559) panicked at mechanisms/implementations/burn-model/tests/state_safety.rs:246:5:
+assertion failed: matches!(host.train_step(&common::request(1), &common::batch(),
+    &Cancellation::default()).unwrap(), TrainStepOutcome::NotCommitted
+    { failure: conduit_ai::TrainStepFailure::Failed, .. })
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    finite_loss_with_nonfinite_gradient_never_commits_candidate
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.03s
+
+error: test failed, to rerun pass `-p conduit-burn-model --test state_safety`

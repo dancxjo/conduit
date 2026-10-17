@@ -1,0 +1,36 @@
+   Compiling conduitos v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/targets/conduitos)
+warning: unused import: `storage_preparation::AdditionalStoragePairAdmission`
+  --> targets/conduitos/src/protocol_host_calls.rs:53:16
+   |
+53 | pub(crate) use storage_preparation::AdditionalStoragePairAdmission;
+   |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: associated function `prepare_storage_usb_duplex_two_pairs` is never used
+  --> targets/conduitos/src/protocol_host_calls/storage_preparation.rs:29:19
+   |
+19 | impl<P: I2cProvider> PreparedProtocolCalls<P> {
+   | --------------------------------------------- associated function in this implementation
+...
+29 |     pub(crate) fn prepare_storage_usb_duplex_two_pairs(
+   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `conduitos` (lib test) generated 2 warnings (run `cargo fix --lib -p conduitos --tests` to apply 1 suggestion)
+    Finished `test` profile [unoptimized] target(s) in 12.59s
+     Running unittests src/lib.rs (../usb-target/debug/deps/conduitos-6ed99a4ed0c43888)
+
+running 8 tests
+test arch::usb_xhci::native_host::recovery_tests::single_read_stall_exact_reset_and_dequeue_ack_resume_fresh_kernel_request ... ok
+test arch::usb_xhci::native_host::recovery_tests::single_read_stall_failed_dequeue_keeps_retired_cursor_quarantined ... ok
+test arch::usb_xhci::native_host::recovery_tests::single_read_stall_failed_reset_retains_original_lease_and_kernel_token ... ok
+test arch::usb_xhci::native_host::recovery_tests::single_read_stall_old_td_cannot_complete_fresh_kernel_request ... ok
+test arch::usb_xhci::native_host::recovery_tests::single_write_stall_exact_reset_and_dequeue_ack_resume_fresh_kernel_request ... ok
+test arch::usb_xhci::native_host::recovery_tests::single_write_stall_failed_dequeue_keeps_retired_cursor_quarantined ... ok
+test arch::usb_xhci::native_host::recovery_tests::single_write_stall_failed_reset_retains_original_lease_and_kernel_token ... ok
+test arch::usb_xhci::native_host::recovery_tests::single_write_stall_old_td_cannot_complete_fresh_kernel_request ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 938 filtered out; finished in 14.50s
+

@@ -3,6 +3,7 @@ use super::{
     PERIOD_FRAMES, SAMPLE_RATE_HZ, SOURCE_CLOCK_ID,
 };
 use conduit_audio::{PcmChannelLayout, PcmFrameHeader, PcmSampleRepresentation};
+use sha2::{Digest, Sha256};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum FakePlaybackBehavior {
@@ -22,6 +23,7 @@ pub(crate) struct FakePlaybackSession {
     behavior: FakePlaybackBehavior,
     lifecycle: PlaybackLifecycle,
     metrics: PlaybackMetrics,
+    committed_pcm: Sha256,
     expected_start_frame: Option<u64>,
 }
 
@@ -43,12 +45,13 @@ impl FakePlaybackSession {
                 period_frames: super::PERIOD_FRAMES,
                 buffer_frames: super::BUFFER_FRAMES,
             },
+            committed_pcm: Sha256::new(),
             expected_start_frame: None,
         }
     }
 
     pub(crate) fn write_frame(&mut self, encoded: &[u8]) -> Result<(), PlaybackFailure> {
-        let (header, _) =
+        let (header, payload) =
             PcmFrameHeader::decode_frame(encoded).map_err(|_| PlaybackFailure::InvalidPcm)?;
         if header.representation != PcmSampleRepresentation::Signed16LittleEndian
             || header.sample_rate_hz != SAMPLE_RATE_HZ
@@ -93,6 +96,7 @@ impl FakePlaybackSession {
         }
         self.metrics.blocks_committed += 1;
         self.metrics.frames_committed += u64::from(header.frame_count);
+        self.committed_pcm.update(payload);
         self.expected_start_frame = Some(header.start_frame + u64::from(header.frame_count));
         self.lifecycle = if self.metrics.blocks_committed == 1 {
             PlaybackLifecycle::FirstFrameCommitted
@@ -137,6 +141,7 @@ impl FakePlaybackSession {
             alsa_target: self.selection.alsa_target(),
             lifecycle: self.lifecycle,
             metrics: self.metrics,
+            committed_pcm_sha256: format!("{:x}", self.committed_pcm.clone().finalize()),
             timing_class: "deterministic-fixture-not-live-device",
             clock_correlation: "fixture-exact",
             controlled_staging_bytes: 0,

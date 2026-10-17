@@ -23,7 +23,7 @@ fn reveals_the_scarred_graph_instead_of_flattening_it_to_fallback() {
         .filter(|connection| connection.selected_line.is_some())
         .count();
     let evidence = RecursiveRecoveryEvidence {
-        semantic_profile: "presentation/patchbay@full-v1".into(),
+        semantic_profile: "face/patchbay@full-v1".into(),
         expanded_gear_count: gear_count.try_into().unwrap(),
         host_count: 2,
         remote_connection_count: line_count.try_into().unwrap(),

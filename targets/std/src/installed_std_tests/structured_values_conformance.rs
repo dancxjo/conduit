@@ -1,13 +1,13 @@
 use super::{host, installed_std, RecordingTimer};
 use conduit_core::{
-    BaseImplementationId, ObservationKind, Quantity, QuantityUnit, StructuredFieldType,
-    StructuredFieldValue, StructuredInfoType, StructuredInfoValue,
+    BaseImplementationId, ObservationKind, Quantity, StructuredFieldType, StructuredFieldValue,
+    StructuredInfoType, StructuredInfoValue, Unit,
 };
+use conduit_face::{FacePropertyValue, StructuredSignFace};
 use conduit_plot::{
     check_syntax_document, expand_canonical_plot, parse_syntax_document, ProfileCatalog,
     StartupCatalog,
 };
-use conduit_presentation::{PresentationPropertyValue, StructuredSignPresentation};
 use std::collections::BTreeMap;
 
 fn quantity_record() -> (StructuredInfoType, StructuredInfoValue) {
@@ -28,9 +28,7 @@ fn quantity_record() -> (StructuredInfoType, StructuredInfoValue) {
                 "elapsed",
                 StructuredInfoValue::leaf(
                     quantity.clone(),
-                    Quantity::new(17, QuantityUnit::Millisecond)
-                        .encode()
-                        .to_vec(),
+                    Quantity::new(17, Unit::Millisecond).encode().to_vec(),
                 )
                 .unwrap(),
             )
@@ -39,7 +37,7 @@ fn quantity_record() -> (StructuredInfoType, StructuredInfoValue) {
                 "frequency",
                 StructuredInfoValue::leaf(
                     quantity,
-                    Quantity::new(440, QuantityUnit::Hertz).encode().to_vec(),
+                    Quantity::new(440, Unit::Hertz).encode().to_vec(),
                 )
                 .unwrap(),
             )
@@ -71,9 +69,9 @@ fn catalogs() -> (
 }
 
 #[test]
-fn authored_quantities_survive_plan_play_sign_and_typed_presentation() {
+fn authored_quantities_survive_plan_play_sign_and_typed_face() {
     let (startup, profile, value_type, default) = catalogs();
-    let source = "plot quantity-proof {\n    value: structured-info/literal(value = {elapsed: 17ms, frequency: 440Hz})\n    show: presentation/structured-info\n    value >> show\n}\n";
+    let source = "plot quantity-proof {\n    value: structured-info/literal(value = {elapsed: 17ms, frequency: 440Hz})\n    show: face/structured-info(\"Observation\")\n    value >> show\n}\n";
     let syntax = parse_syntax_document(source);
     assert!(syntax.diagnostics.is_empty(), "{:?}", syntax.diagnostics);
     let checked = check_syntax_document(&syntax, &startup).expect("quantity Plot checks");
@@ -82,7 +80,7 @@ fn authored_quantities_survive_plan_play_sign_and_typed_presentation() {
 
     let literal =
         conduit_std_offers::structured_literal_std_offer("TimedTone", &value_type, &default);
-    let presenter = conduit_std_offers::structured_presentation_std_offer("TimedTone", &value_type);
+    let presenter = conduit_std_offers::structured_face_std_offer("TimedTone", &value_type);
     let mut advertisement = host("structured-quantity-host").advertisement().clone();
     advertisement.capabilities.extend([literal, presenter]);
     advertisement
@@ -120,6 +118,7 @@ fn authored_quantities_survive_plan_play_sign_and_typed_presentation() {
             keyboard: None,
             local_model: None,
             vector_search: None,
+            model_work: None,
             calendar: None,
             body_conversation_context: None,
         },
@@ -135,25 +134,27 @@ fn authored_quantities_survive_plan_play_sign_and_typed_presentation() {
         .observations
         .iter()
         .find(|observation| matches!(observation.kind, ObservationKind::ValuePresented { .. }))
-        .expect("runtime emits one correlated value presentation Sign");
+        .expect("runtime emits one correlated value face Sign");
     assert!(presented.active_play_id.is_some());
-    assert!(presented.presentation_id.is_some());
+    assert!(presented.face_id.is_some());
     assert!(presented.plan_id.is_some());
     assert!(presented.placement_id.is_some());
     assert!(presented.connection_id.is_some());
-    let artifact = StructuredSignPresentation::from_sign(1, presented, &value_type)
-        .expect("typed Presentation inspects the runtime Sign");
-    assert!(artifact.presentation.properties.iter().any(|property| {
+    let artifact = StructuredSignFace::from_sign(1, presented, &value_type)
+        .expect("typed Face inspects the runtime Sign");
+    assert!(artifact.face.properties.iter().any(|property| {
         property.name == "quantity-unit"
-            && property.value == PresentationPropertyValue::Identity("time/millisecond".into())
+            && property.value
+                == FacePropertyValue::Identity(conduit_core::Unit::Millisecond.semantic_id())
     }));
-    assert!(artifact.presentation.properties.iter().any(|property| {
+    assert!(artifact.face.properties.iter().any(|property| {
         property.name == "quantity-unit"
-            && property.value == PresentationPropertyValue::Identity("frequency/hertz".into())
+            && property.value
+                == FacePropertyValue::Identity(conduit_core::Unit::Hertz.semantic_id())
     }));
-    assert!(artifact.presentation.text.is_empty());
+    assert!(artifact.face.text.is_empty());
     let kernel = report.kernel.expect("kernel evidence exists");
-    assert_eq!(kernel.presentation_ids.len(), 1);
+    assert_eq!(kernel.face_ids.len(), 1);
     assert_eq!(kernel.identity.lengths(), (1, 1, 2));
     assert_eq!(kernel.post_play_start_allocations, 0);
 }
@@ -166,7 +167,7 @@ fn malformed_or_untyped_quantity_literals_refuse_before_play() {
         "{elapsed: 17, frequency: 440Hz}",
     ] {
         let source = format!(
-            "plot refusal {{\n value: structured-info/literal(value = {authored})\n show: presentation/structured-info\n value >> show\n}}\n"
+            "plot refusal {{\n value: structured-info/literal(value = {authored})\n show: face/structured-info(\"Observation\")\n value >> show\n}}\n"
         );
         let syntax = parse_syntax_document(&source);
         assert!(

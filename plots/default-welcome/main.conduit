@@ -9,8 +9,8 @@ plot greet (
 plot default-welcome {
     hello: greet
     literal: text/literal("Hello")
-    show: presentation/text
+    show: face/text("Welcome message")
 
-    "Travis" >> hello >> presentation/text
+    "Travis" >> hello >> face/text("Welcome message")
     literal.text >> show.text
 }

@@ -1,0 +1,38 @@
+{
+  "scope": "x86_64 product-emulator finite checked nine-repeat PCM playback",
+  "build": {
+    "schema": "conduit.conduitos.build/v2",
+    "artifact_role": "product-host",
+    "base_commit": "5b82398699fc518f9c8f0baf056353a6f3bbfd83",
+    "architecture": "x86_64",
+    "rust_target": "x86_64-unknown-none",
+    "limine_crate": "0.5.0",
+    "elf_sha256": "75b60d8804a745ee9e5a3697d1de82e6c7f97a8ff4aca31f23990374e4f3082a"
+  },
+  "package_receipt": {
+    "artifact_id": "conduitos/protocol-source/sha256/35f2583c5a317aa8902217857a5aa2197a63614bebf539900a21282f5cf6fdfb",
+    "checked_plot_id": "9db21b6f1b420d187759219a6eb5650a15ab7b8f6a646f48fcabef590366820d",
+    "entry": "usb-audio-playback",
+    "expanded_plot_id": "ef7b5ba31dafbdf9e61b539767d760ae1ceab938785fc1bce3f49e4d4ee5dfcd",
+    "gears": 57,
+    "package_bytes": 105899,
+    "package_sha256": "sha256:35f2583c5a317aa8902217857a5aa2197a63614bebf539900a21282f5cf6fdfb",
+    "proof_class": "source-check-and-expansion",
+    "schema": "conduit.conduitos/protocol-source-receipt@1",
+    "source_document_id": "6be4c1ee44713a917e3e0108c67d8b406833007ac7d6ffc25c53bd94384aa1b6"
+  },
+  "root_sha256": "cc4b3a55636c8239f62f03a8a11e19870a5066fd63de3bf56014288c7e97f21b",
+  "packets": 72,
+  "exact_pcm_bytes": 13824,
+  "source_checks_every_completion": true,
+  "terminal_phase": 3,
+  "original_pcm_retained": true,
+  "drain_and_retirement_proven": true,
+  "eight_dma_slots_reused": true,
+  "ring_wrap_exercised": true,
+  "allocation_receipt": "CONDUIT_PROTOCOL_PLAY_ALLOCATIONS body=64bba4a4cb0d23c917325d7e9c3ccaa8a1f54706aee942d22555f130905330b2 plan=body-plan/sha256:8157e58a2939d12695ac1f1150155bf102b7d8ae191c075890b63746d11773e9 play=body-play/sha256:822b8ab318cbd0bb12d37a46836a7a26a3159cc6f212ba2d1b06d7e2af844a91 alloc=0 realloc=0",
+  "stop_receipt": "CONDUIT_PROTOCOL_PLAY_STOPPED body=64bba4a4cb0d23c917325d7e9c3ccaa8a1f54706aee942d22555f130905330b2 plan=body-plan/sha256:8157e58a2939d12695ac1f1150155bf102b7d8ae191c075890b63746d11773e9 play=body-play/sha256:822b8ab318cbd0bb12d37a46836a7a26a3159cc6f212ba2d1b06d7e2af844a91",
+  "physical_or_audible_output_proven": false,
+  "five_architecture_acceptance_proven": false,
+  "final_head_kernel_proven": false
+}

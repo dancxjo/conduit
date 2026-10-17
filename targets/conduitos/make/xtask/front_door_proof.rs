@@ -60,7 +60,7 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
             "-cpu",
             "max",
             "-m",
-            "64M",
+            conduitos::make::PC_PRODUCT_QEMU_MEMORY,
             "-smp",
             "1",
             "-display",
@@ -96,7 +96,7 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
 
     let interaction = (|| {
         let (mut qmp, mut reader) = hid_qmp::connect(&monitor_socket, &mut child)?;
-        hid_qmp::wait_for_stage(
+        hid_qmp::wait_for_product_arrival(
             &serial_path,
             &mut child,
             "CONDUIT_BOOT_STAGE front-door-ready",

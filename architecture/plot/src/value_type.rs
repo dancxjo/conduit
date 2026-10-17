@@ -23,9 +23,12 @@ pub(crate) fn canonical_value_kind(source_type: &str) -> KindId {
         "Boolean" => kind_id("value/bool"),
         "Scalar" => kind_id("value/scalar"),
         "Bytes" => kind_id("value/bytes"),
-        "Unit" => kind_id("value/unit"),
-        "Quantity" => kind_id("value/quantity"),
-        "QuantityUnit" => kind_id(conduit_core::QUANTITY_UNIT_INFO_ID),
+        "Empty" => kind_id("value/empty"),
+        "Quantity" => kind_id(conduit_core::QUANTITY_INFO_ID),
+        "Unit" => kind_id(conduit_core::UNIT_INFO_ID),
+        "Dimension" => kind_id(conduit_core::DIMENSION_INFO_ID),
+        "MathematicalValue" => kind_id(conduit_core::MATHEMATICAL_VALUE_ID),
+        "MathematicalAngle" => kind_id(conduit_core::MATHEMATICAL_ANGLE_ID),
         "U8" => kind_id("value/u8"),
         "U16" => kind_id("value/u16"),
         "U32" => kind_id("value/u32"),
@@ -69,6 +72,11 @@ pub(crate) fn checked_value_kind(
     catalog
         .structured_type(source_type)
         .map(|value_type| {
+            if let conduit_core::StructuredInfoTypeShape::Leaf(kind) = value_type.shape() {
+                if crate::authored_quantity::expected_role(value_type).is_some() {
+                    return Ok(kind.clone());
+                }
+            }
             value_type
                 .profile()
                 .map(|profile| profile.value_kind().clone())
@@ -143,6 +151,7 @@ pub(crate) fn checked_front(
                 parameter.maximum_bytes,
                 &checked.value_type,
                 parameter.value_type.span,
+                catalog,
             )?;
             Ok(FrontValueContract {
                 location: FrontValueLocation::Startup(parameter.name.text.clone()),
@@ -190,6 +199,7 @@ pub(crate) fn checked_front(
                 port.maximum_bytes,
                 &descriptor.value_kind,
                 port.value_type.span,
+                catalog,
             )?;
             value_contracts.push(FrontValueContract {
                 location: match port.direction {
