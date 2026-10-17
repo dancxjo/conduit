@@ -65,38 +65,42 @@ export async function openBrowserHostIdentity({ durable = true } = {}) {
     });
   }
   const database = await openDatabase();
-  let transaction = database.transaction(HOST_STORE, "readonly");
-  const existing = await requestResult(transaction.objectStore(HOST_STORE).get(DURABLE_IDENTITY));
-  await transactionComplete(transaction);
-  if (existing) {
-    const identity = validate(existing);
-    return Object.freeze({ schema: IDENTITY_SCHEMA, profile: "durable", ...identity });
-  }
-
-  const seed = crypto.getRandomValues(new Uint8Array(KEY_BYTES));
-  const record = {
-    schema: IDENTITY_SCHEMA,
-    identity: DURABLE_IDENTITY,
-    hostId: `browser/${crypto.randomUUID()}`,
-    seed: Array.from(seed),
-  };
-  transaction = database.transaction(HOST_STORE, "readwrite");
-  const store = transaction.objectStore(HOST_STORE);
-  const raced = await requestResult(store.get(DURABLE_IDENTITY));
-  if (raced) {
+  try {
+    let transaction = database.transaction(HOST_STORE, "readonly");
+    const existing = await requestResult(transaction.objectStore(HOST_STORE).get(DURABLE_IDENTITY));
     await transactionComplete(transaction);
-    seed.fill(0);
-    const identity = validate(raced);
-    return Object.freeze({ schema: IDENTITY_SCHEMA, profile: "durable", ...identity });
-  }
-  store.add(record);
-  await transactionComplete(transaction);
-  return Object.freeze({ schema: IDENTITY_SCHEMA, profile: "durable", hostId: record.hostId, seed });
+    if (existing) {
+      const identity = validate(existing);
+      return Object.freeze({ schema: IDENTITY_SCHEMA, profile: "durable", ...identity });
+    }
+
+    const seed = crypto.getRandomValues(new Uint8Array(KEY_BYTES));
+    const record = {
+      schema: IDENTITY_SCHEMA,
+      identity: DURABLE_IDENTITY,
+      hostId: `browser/${crypto.randomUUID()}`,
+      seed: Array.from(seed),
+    };
+    transaction = database.transaction(HOST_STORE, "readwrite");
+    const store = transaction.objectStore(HOST_STORE);
+    const raced = await requestResult(store.get(DURABLE_IDENTITY));
+    if (raced) {
+      await transactionComplete(transaction);
+      seed.fill(0);
+      const identity = validate(raced);
+      return Object.freeze({ schema: IDENTITY_SCHEMA, profile: "durable", ...identity });
+    }
+    store.add(record);
+    await transactionComplete(transaction);
+    return Object.freeze({ schema: IDENTITY_SCHEMA, profile: "durable", hostId: record.hostId, seed });
+  } finally { database.close(); }
 }
 
 export async function resetBrowserHostIdentity() {
   const database = await openDatabase();
-  const transaction = database.transaction(HOST_STORE, "readwrite");
-  transaction.objectStore(HOST_STORE).delete(DURABLE_IDENTITY);
-  await transactionComplete(transaction);
+  try {
+    const transaction = database.transaction(HOST_STORE, "readwrite");
+    transaction.objectStore(HOST_STORE).delete(DURABLE_IDENTITY);
+    await transactionComplete(transaction);
+  } finally { database.close(); }
 }

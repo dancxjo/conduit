@@ -626,3 +626,41 @@ test("storage version changes release the connection and fence the old handle", 
   expect(result).toEqual({ blocked: false, stale: 'StaleApplicationGeneration',
     records: [{ key: 'source', value: { source: 'retained' } }] });
 });
+
+for (const path of ['created', 'existing', 'race', 'reset', 'malformed']) {
+  test(`Host identity connections settle before database upgrade (${path})`, async ({ page }) => {
+    const result = await page.evaluate(async path => {
+      const { openBrowserHostIdentity, resetBrowserHostIdentity } = await import('/targets/browser/host/assets/browser-host-identity.mjs');
+      const first = await openBrowserHostIdentity();
+      let stable = true;
+      let refused = false;
+      if (path === 'existing') stable = (await openBrowserHostIdentity()).hostId === first.hostId;
+      if (path === 'race') {
+        await resetBrowserHostIdentity();
+        const identities = await Promise.all([openBrowserHostIdentity(), openBrowserHostIdentity()]);
+        stable = identities[0].hostId === identities[1].hostId;
+      }
+      if (path === 'reset') await resetBrowserHostIdentity();
+      if (path === 'malformed') {
+        const open = indexedDB.open('conduit-browser-host-applications', 2);
+        const database = await new Promise((resolve, reject) => { open.onsuccess = () => resolve(open.result); open.onerror = () => reject(open.error); });
+        const tx = database.transaction('browser-host-identity', 'readwrite');
+        const store = tx.objectStore('browser-host-identity');
+        const get = store.get('durable-browser-host');
+        const record = await new Promise((resolve, reject) => { get.onsuccess = () => resolve(get.result); get.onerror = () => reject(get.error); });
+        store.put({ ...record, seed: Array(32).fill(0) });
+        await new Promise((resolve, reject) => { tx.oncomplete = resolve; tx.onabort = () => reject(tx.error); });
+        database.close();
+        try { await openBrowserHostIdentity(); } catch { refused = true; }
+      }
+      const request = indexedDB.open('conduit-browser-host-applications', 3);
+      const upgrade = await new Promise((resolve, reject) => {
+        request.onblocked = () => resolve('blocked');
+        request.onsuccess = () => { request.result.close(); resolve('upgraded'); };
+        request.onerror = () => reject(request.error);
+      });
+      return { upgrade, stable, refused };
+    }, path);
+    expect(result).toEqual({ upgrade: 'upgraded', stable: true, refused: path === 'malformed' });
+  });
+}
