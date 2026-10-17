@@ -41,12 +41,14 @@ Other architectures retain their previous optimization choice.
 ## Browser package resource admission
 
 The current durable storage module is 18918 bytes, exceeding Workspace's stale
-16384-byte module declaration. Workspace now declares a finite 24576-byte
-package resource envelope. This does not change IndexedDB data quotas or remove
+16384-byte module declaration. Its Face module is 44141 bytes, exceeding its
+40960-byte declaration. Workspace now declares finite 24576-byte and 49152-byte
+package resource envelopes. This does not change IndexedDB data quotas or remove
 the package producer/consumer bound checks. The package digest commits to the
 new declaration and actual asset hash.
 
-The focused regression feeds the actual source module and consumer declaration
+The focused regressions check every shipped Workspace module's byte admission
+and feed the actual storage source module and consumer declaration
 through the real package producer, checks its retained hash/bound, and confirms
 that a one-byte-too-small declaration still refuses. It is part of
 `cargo xtask check browser`. This is package admission proof; complete staging,

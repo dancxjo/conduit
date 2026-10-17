@@ -3,7 +3,7 @@ use crate::{process::Step, proof::ProofClass};
 pub const BROWSER_CHECK_STEPS: &[Step] = &[
     Step::new(
         "check.browser.workspace-resource-bounds",
-        "Check actual durable storage module bytes against their declared package admission",
+        "Check shipped Workspace module extents and strict storage package admission",
         "node",
         &["--test", "proof/browser/workspace-resource-bounds.test.mjs"],
     ),

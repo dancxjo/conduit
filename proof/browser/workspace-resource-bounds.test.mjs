@@ -6,6 +6,25 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 
+test("every shipped Workspace module fits its declared finite package bound", async () => {
+  const template = JSON.parse(await readFile("targets/browser/workspace/workspace.application.template.json", "utf8"));
+  for (const resource of template.resources.filter(value => value.kind === "module")) {
+    const candidates = [
+      resource.path.replace("/browser-deployment/", "/deployment/browser/"),
+      path.join("targets/browser/workspace", resource.path),
+      path.join("targets/browser/host/assets", resource.path),
+    ];
+    let bytes;
+    for (const candidate of candidates) {
+      try { bytes = await readFile(candidate); break; }
+      catch (error) { if (error.code !== "ENOENT") throw error; }
+    }
+    assert.ok(bytes, `${resource.role}: shipped source must be located`);
+    assert.ok(bytes.length > 0 && bytes.length <= resource.maximum_bytes,
+      `${resource.role}: ${bytes.length} module bytes exceed declared ${resource.maximum_bytes}`);
+  }
+});
+
 test("Workspace admits its current storage module and still refuses an undersized declaration", async () => {
   const template = JSON.parse(await readFile("targets/browser/workspace/workspace.application.template.json", "utf8"));
   const resource = template.resources.find(value => value.role === "browser-application-storage");

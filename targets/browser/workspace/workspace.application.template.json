@@ -525,7 +525,7 @@
       "role": "application-face",
       "kind": "module",
       "path": "application-face.mjs",
-      "maximum_bytes": 40960,
+      "maximum_bytes": 49152,
       "dependencies": [
         {
           "role": "application-graph-canvas",
