@@ -1006,3 +1006,36 @@ for (const label of ['Workspace home', 'Accueil café 😀', 'Conduit home']) {
     await expect(page).toHaveURL(/\/conduit$/u);
   });
 }
+
+for (const component of ['text-input', 'textarea']) {
+  test(`readonly controls retain reading focus but refuse DOM edits (${component})`, async ({ page }) => {
+    await page.goto('/proof/browser/signal-dom-host.test.html');
+    await page.evaluate(async component => {
+      const { encodeApplicationView, manifestApplicationView } = await import('/targets/browser/host/assets/application-face.mjs');
+      const root = document.createElement('section'); document.body.prepend(root);
+      globalThis.readonlyCalls = [];
+      globalThis.readonlyManifest = manifestApplicationView(encodeApplicationView({ revision: 1,
+        actions: [{ id: 'edit', event: 'input' }], nodes: [
+          { parent: null, component, key: 'source', text: 'Readable source', value: 'original', valueCapacity: 32, action: 0 },
+        ] }), root, { onEvent: event => globalThis.readonlyCalls.push(new TextDecoder().decode(event.value)) });
+      const control = root.querySelector('input, textarea');
+      control.readOnly = true;
+      control.dispatchEvent(new InputEvent('input', { bubbles: true }));
+    }, component);
+    expect(await page.evaluate(() => ({ calls: globalThis.readonlyCalls, queued: globalThis.readonlyManifest.queuedEvents(),
+      refusal: globalThis.readonlyManifest.lastRefusal() })))
+      .toEqual({ calls: [], queued: 0, refusal: 'unavailable-action' });
+    const control = page.getByRole('textbox', { name: 'Readable source', exact: true });
+    await page.keyboard.press('Tab');
+    await expect(control).toBeFocused();
+    await page.keyboard.press('Control+A');
+    expect(await control.evaluate(element => [element.selectionStart, element.selectionEnd])).toEqual([0, 8]);
+    await page.keyboard.insertText('blocked');
+    await expect(control).toHaveValue('original');
+    expect(await page.evaluate(() => globalThis.readonlyCalls)).toEqual([]);
+    await control.evaluate(element => { element.readOnly = false; });
+    await page.keyboard.press('Control+End');
+    await page.keyboard.insertText('!');
+    expect(await page.evaluate(() => globalThis.readonlyCalls)).toEqual(['original!']);
+  });
+}

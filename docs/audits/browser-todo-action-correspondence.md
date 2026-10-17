@@ -1135,3 +1135,17 @@ names/status and navigation/stepper focus. The affected Patchbay test's syntax
 check passes; its full runtime journey was not rerun. These are source-description/
 renderer accessible-name proofs, not actual Todo/Commons Body/Play or packaged/
 release acceptance; #5630 remains open.
+
+Readonly native text follow-up (#5644): DOM input/change actions from text input
+and textarea components refuse with unavailable-action while the native control
+is readonly. Readonly remains distinct from disabled: the control retains reading
+focus and text selection. The existing explicit Host semantic request path is
+unchanged. Checkbox/radio components are excluded because native readonly does
+not prevent their editing.
+
+Both text-control regressions reproduced queue/callback admission before repair.
+Fourteen focused pinned Chromium fixtures pass with one worker and zero retries,
+including empty queue on forged edit, native Tab/selection, blocked native edit,
+restored native insertion, typed values, initial Unicode and selection restoration.
+These prove renderer DOM-edit admission, not authoritative Body/Play or packaged/
+release acceptance; #5644 remains open. Preserved branch work remains intact.

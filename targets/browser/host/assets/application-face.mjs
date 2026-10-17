@@ -497,6 +497,12 @@ export function manifestApplicationView(input, root, options = {}) {
       return null;
     }
     const action = view.actions[node.action];
+    if (control && (node.component === 15 || node.component === 17)
+      && control.readOnly && (action.event === "input" || action.event === "change")) {
+      lastRefusal = "unavailable-action";
+      options.onRefusal?.(lastRefusal);
+      return null;
+    }
     const valueCapacity = actionValueCapacities[node.action];
     // Every UTF-16 code unit requires at least one UTF-8 byte. Reject an
     // impossible fit before allocating the encoded copy; retain the byte check
