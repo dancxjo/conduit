@@ -1,0 +1,51 @@
+{
+  "schema": "conduit.pure-chain-private-image@1",
+  "refused_source": "60bc6e2178be281c8cf49562404de43c6660b8f3",
+  "refused_dev_proof": "https://github.com/dancxjo/conduit/actions/runs/39040117005/job/117417914022",
+  "target": "x86_64-unknown-none",
+  "compiler": "rustc 1.98.1 (48a229cea 2026-09-01)\nbinary: rustc\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\ncommit-date: 2026-09-01\nhost: x86_64-unknown-linux-gnu\nrelease: 1.98.1\nLLVM version: 22.1.8",
+  "profile": {
+    "opt_level": "s",
+    "lto": "thin",
+    "codegen_units": 1,
+    "panic": "abort",
+    "relocation_model": "static",
+    "code_model": "kernel",
+    "maximum_page_size": 4096,
+    "build_id": "none",
+    "features": []
+  },
+  "before_observation": {
+    "code_bytes": 57919,
+    "constant_bytes": 69864,
+    "constants_address": 4255744,
+    "raw_image_span": 131304,
+    "mapped_span": 135168,
+    "refusal": "InvalidMapping"
+  },
+  "after": {
+    "elf_sha256": "547d0dbaa95777ada40b732e9497ee05f3c6fe3650e33af8503faabe4e29147a",
+    "segments": [
+      {
+        "flags": 5,
+        "address": 4194304,
+        "file_bytes": 56959,
+        "memory_bytes": 56959,
+        "alignment": 4096
+      },
+      {
+        "flags": 4,
+        "address": 4251648,
+        "file_bytes": 69864,
+        "memory_bytes": 69864,
+        "alignment": 4096
+      }
+    ],
+    "mapped_span": 131072,
+    "unchanged_limit": 131072,
+    "actual_domain_image_parser": "accepted"
+  },
+  "kernel_region_source_sha256": "bc9de946de84d9cbe596b662d73ad904905620b7cf98e518a3702172c4fa53e0",
+  "unchanged_validator_sha256": "6a3bbc36abf99071834462fd85f927c688703592a3491203e1f19f8e5212637f",
+  "scope": "No-alloc products have no reviewed physical fusion offer; binding refuses and their original single-Step path remains. The installed std alloc path is unchanged."
+}

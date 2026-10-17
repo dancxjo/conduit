@@ -10,7 +10,8 @@ import { deflateSync } from 'node:zlib';
 const names = [
   'front-door-ready', 'body-born', 'body-woken', 'body-planned', 'body-playing',
   'protected-keyboard-canvas', 'protected-memory-lantern',
-  'home', 'patchbay-workspace', 'patchbay-face', 'patchbay-diagram', 'body-stopped',
+  'home', 'patchbay-workspace', 'patchbay-face', 'patchbay-diagram',
+  'patchbay-gear-details', 'patchbay-diagram-returned', 'body-stopped',
 ];
 const commit = '1'.repeat(40);
 const image = 'a'.repeat(64);
@@ -18,7 +19,7 @@ const boot = 'b'.repeat(64);
 const body = 'c'.repeat(64);
 const digest = bytes => createHash('sha256').update(bytes).digest('hex');
 
-test('Pages composition publishes only the exact twelve-step QMP journey', () => {
+test('Pages composition publishes only the exact fourteen-step QMP journey', () => {
   const fixture = makeFixture();
   try {
     const result = publish(fixture);
@@ -28,8 +29,8 @@ test('Pages composition publishes only the exact twelve-step QMP journey', () =>
     for (const name of names) assert.match(page, new RegExp(`src="${name}\\.png"`));
     assert.match(page, /A Body, its Patchbay, and its Face/);
     assert.match(page, /What changed:/);
-    assert.match(page, /twelve screenshots/);
-    assert.equal((page.match(/class="journey-step"/g) ?? []).length, 12);
+    assert.match(page, /fourteen screenshots/);
+    assert.equal((page.match(/class="journey-step"/g) ?? []).length, 14);
     const retained = readFileSync(path.join(fixture.site, `journeys/commits/${commit}/conduitos/x86_64/index.html`), 'utf8');
     for (const name of names) assert.ok(retained.includes(`src="${name}.png"`));
     assert.match(page, /Main navigation/);
@@ -80,7 +81,8 @@ test('Pages composition refuses a transcript from another Body before writing pa
   }
 });
 
-for (const checkpoint of ['protected-keyboard-canvas', 'protected-memory-lantern']) {
+for (const checkpoint of ['protected-keyboard-canvas', 'protected-memory-lantern',
+  'patchbay-gear-details', 'patchbay-diagram-returned']) {
   test(`Pages composition refuses a journey missing ${checkpoint}`, () => {
     const fixture = makeFixture();
     try {

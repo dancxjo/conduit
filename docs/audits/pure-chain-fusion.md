@@ -151,3 +151,22 @@ passed during implementation. Final candidate admission and full dev integration
 remain the normal merge/publication gates; exact accepted-main evidence is
 required before closing the owning issue. See [PR #5947](https://github.com/dancxjo/conduit/pull/5947)
 for those separately identified integration results.
+
+## Freestanding integration footprint
+
+Exhaustive dev integration exposed an additional target constraint: compiling the
+unused region traversal into the independently linked no-alloc x86_64 domain
+pushed its immutable image 232 bytes beyond the unchanged 128 KiB window. The
+reviewed physical profile is installed std only. No-alloc kernels now explicitly
+refuse binding and compile their ordinary single-Step dispatch path; std keeps
+the existing region path and its allocation-free Play behavior.
+
+Under the exact production private-domain compiler flags, code shrinks from
+57,919 to 56,959 bytes, while constants remain 69,864 bytes. The constants move
+one page earlier, taking the mapped span from 135,168 to 131,072 bytes. The actual
+unchanged `DomainImage::parse` admits the corrected ELF within its original
+131,072-byte limit. No mapping, memory, or executable-image allowance is widened.
+The [footprint receipt](evidence/pure-chain-fusion-private-image.json) records the
+profile and exact kernel/validator hashes. A no-alloc regression checks explicit
+refusal and ordinary per-Gear completion; the five allocated region regressions
+continue to cover pressure, failure, cancellation and zero allocation during Play.
