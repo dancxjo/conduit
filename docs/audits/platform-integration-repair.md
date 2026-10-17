@@ -98,3 +98,22 @@ Unknown metadata and duplicate/contradictory multiplicity retain the generic
 fallback. Missing count evidence also retains that fallback. A regression uses
 the real Thermostat contribution, including adversarial extra properties.
 This changes presentation eligibility, not action authority or thermostat state.
+
+Clean code source `a519da5ff6a809930c2ca463aeca3804d88b042f` seals a
+18,964,181-byte browser runtime inside its unchanged 20 MiB admission limit.
+The supported static application packager stages that exact runtime; the unchanged
+Thermostat test passes with pinned Chromium, one worker and zero retries. The
+existing custody collector accepts its source/runtime, selected logical Back,
+accessibility, pressure, refusal and recovery evidence. An initial successful run
+omitted the source-pin environment; its log is preserved separately and its receipt
+was not relabelled. The subsequent custody capture contains the actual source pin.
+
+A follow-up closed-profile guard retains nested choice contracts in the generic
+view instead of hiding their metadata inside a radio option. Its new regression
+fails before the guard and all 96 renderer fixtures pass after it. This guard
+changes unsupported nested-contract handling; the actual Thermostat capture
+retains its original source identity. Native projection regression, strict browser
+library Clippy and formatting also pass. See the
+[receipt and scope record](evidence/browser-choice-projection-20261017.json) and
+[raw evidence archive](evidence/browser-choice-projection-20261017-raw.tar.gz).
+Full combined Candidate, integration and exact stable publication remain required.
