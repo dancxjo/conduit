@@ -877,3 +877,49 @@ for (const mode of ['mutated-bytes', 'host-option-reentry', 'renderer-option-ree
       .toEqual({ calls: [revision], revision });
   });
 }
+
+for (const [component, value] of [['text-input', 'line\nbreak'], ['text-input', 'line\r\nbreak'],
+  ['text-input', 'line\rbreak'], ['textarea', 'line\r\nbreak'], ['textarea', 'line\rbreak']]) {
+  test(`native initial text normalization refuses atomically (${component}, ${JSON.stringify(value)})`, async ({ page }) => {
+    await page.goto('/proof/browser/signal-dom-host.test.html');
+    const result = await page.evaluate(async ({ component, value }) => {
+      const { encodeApplicationView, manifestApplicationView } = await import('/targets/browser/host/assets/application-face.mjs');
+      const root = document.createElement('section'); document.body.append(root);
+      globalThis.normalizationCalls = [];
+      const options = { onEvent: event => globalThis.normalizationCalls.push(event.revision) };
+      manifestApplicationView(encodeApplicationView({ revision: 1, actions: [{ id: 'safe', event: 'activate' }], nodes: [
+        { parent: null, component: 'button', key: 'safe', text: 'Retained exact action', action: 0 },
+      ] }), root, options);
+      const previous = root.firstChild;
+      let refusal;
+      try { manifestApplicationView(encodeApplicationView({ revision: 2, actions: [{ id: 'edit', event: 'input' }], nodes: [
+        { parent: null, component, key: 'input', text: 'Exact text', value, valueCapacity: 64, action: 0 },
+      ] }), root, options); } catch (error) { refusal = error.code; }
+      return { refusal, unchanged: root.firstChild === previous, revision: root.dataset.applicationRevision, calls: globalThis.normalizationCalls };
+    }, { component, value });
+    expect(result).toEqual({ refusal: 'invalid-control-value', unchanged: true, revision: '1', calls: [] });
+    await page.getByRole('button', { name: 'Retained exact action', exact: true }).click();
+    expect(await page.evaluate(() => globalThis.normalizationCalls)).toEqual([1]);
+  });
+}
+
+for (const [component, value] of [['text-input', 'café😀'], ['textarea', 'line one\ncafé😀']]) {
+  test(`native initial text retains supported Unicode exactly (${component})`, async ({ page }) => {
+    await page.goto('/proof/browser/signal-dom-host.test.html');
+    await page.evaluate(async ({ component, value }) => {
+      const { encodeApplicationView, manifestApplicationView } = await import('/targets/browser/host/assets/application-face.mjs');
+      const root = document.createElement('section'); document.body.append(root);
+      globalThis.exactInitialCalls = [];
+      manifestApplicationView(encodeApplicationView({ revision: 1, actions: [{ id: 'edit', event: 'input' }], nodes: [
+        { parent: null, component, key: 'input', text: 'Exact editable text', value, valueCapacity: 64, action: 0 },
+      ] }), root, { onEvent: event => globalThis.exactInitialCalls.push(new TextDecoder().decode(event.value)) });
+    }, { component, value });
+    const input = page.getByRole('textbox', { name: 'Exact editable text', exact: true });
+    await expect(input).toHaveValue(value);
+    expect(await page.evaluate(() => globalThis.exactInitialCalls)).toEqual([]);
+    await input.focus();
+    await page.keyboard.press('Control+End');
+    await page.keyboard.insertText('!');
+    expect(await page.evaluate(() => globalThis.exactInitialCalls)).toEqual([value + '!']);
+  });
+}

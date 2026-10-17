@@ -1064,3 +1064,21 @@ including surviving current native pointer actions, post-focus reentrancy,
 restoration, forged Look refusal and argument preflight. This is browser
 renderer/Host custody proof, not authoritative Body/Play or packaged/release
 acceptance; #5644 remains open. Unique USB branch work remains preserved.
+
+Exact initial native text follow-up (#5644): after assigning admitted text to a
+native input/textarea, preparation verifies the resulting value is byte-for-byte
+equal as a scalar string. Input line-break stripping and textarea CR/CRLF
+normalization now refuse with invalid-control-value before replacing the current
+DOM or manifestation. Portable value admission remains unchanged; this is an
+explicit browser representation refusal rather than silent reinterpretation.
+
+All five normalization regressions reproduced before repair. Seventeen focused
+Chromium checks pass across focused runs (one worker, zero retries), including
+retained safe action after refusal, supported Unicode/LF initial values, native
+single-character editing, malformed typed values and selection restoration. A
+positive fixture initially assumed multiline fill emitted one input event; it
+was corrected to a native single-character insertion. This is renderer value/
+atomic-refusal proof, not authoritative Body/Play or packaged/release acceptance;
+#5644 remains open. The USB preservation branch's selected-operation helper is
+identical to current code and its control owner has later additions; the branch
+is retained pending the rest of the history review rather than replayed wholesale.

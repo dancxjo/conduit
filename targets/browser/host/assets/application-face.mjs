@@ -611,6 +611,9 @@ export function manifestApplicationView(input, root, options = {}) {
     if (node.component === 15 || node.component === 16 || node.component === 17) {
       element.setAttribute("aria-label", node.text);
       element.value = node.value;
+      // Native text controls sanitize line endings. Refuse before publication
+      // when the admitted value cannot be represented exactly by this control.
+      if (node.component !== 16 && element.value !== node.value) refuse("invalid-control-value");
       if (node.component !== 16) element.maxLength = node.valueCapacity;
     }
     if (node.component === 22) element.value = node.value;
