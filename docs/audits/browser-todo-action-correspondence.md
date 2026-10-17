@@ -566,3 +566,14 @@ once, with selection remaining the acknowledged Face's fact until a fresh Show.
 All 95 pinned Chromium component tests pass, one worker and zero retries.
 This is renderer proof, not a hostile-script confinement boundary or evidence
 of unmodified authoritative Body state. #5644 remains open.
+
+SDK consumer-package follow-up (#5376): the owner Show state helper was copied
+into package staging but omitted by npm's explicit files allowlist. Importing
+the extracted npm archive reproduced ERR_MODULE_NOT_FOUND before the repair.
+The allowlist now includes that helper. The producer fixture creates an actual
+local npm archive with lifecycle scripts disabled, extracts it into a separate
+directory, and imports its SDK entry point rather than importing staging.
+The complete producer/static-package/refusal fixture passes. This proves the
+consumer module graph is present and importable under Node; its tiny runtime
+fixture does not prove browser ABI execution, a published npm package or public
+deployment. #5376 remains open.

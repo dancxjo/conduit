@@ -61,7 +61,7 @@ try {
   assert.equal(metadata.package_id, "@conduit/browser");
   assert.equal(metadata.profile_id, profileId);
   assert.deepEqual(metadata.files, files);
-  const packed = spawnSync("npm", ["pack", "--dry-run", "--json"], { cwd: output, encoding: "utf8" });
+  const packed = spawnSync("npm", ["pack", "--ignore-scripts", "--json"], { cwd: output, encoding: "utf8" });
   assert.equal(packed.status, 0, packed.stderr);
   const listing = JSON.parse(packed.stdout)[0].files.map(({ path: file }) => file);
   assert(listing.includes("browser-sdk.mjs"));
@@ -71,6 +71,7 @@ try {
   assert(listing.includes("browser-sdk-events.mjs"));
   assert(listing.includes("browser-sdk-face.mjs"));
   assert(listing.includes("browser-sdk-face-actions.mjs"));
+  assert(listing.includes("browser-sdk-owner-show-state.mjs"));
   assert(listing.includes("browser-sdk-wardrobe.mjs"));
   assert(listing.includes("host/assets/browser-membership.js"));
   assert(listing.includes("host/assets/browser-host-identity.mjs"));
@@ -79,7 +80,13 @@ try {
   assert(listing.includes("host/assets/browser-saved-choice.mjs"));
   assert(listing.includes("host/assets/browser-monotonic-timer.mjs"));
   assert(listing.includes("bundle/runtime.wasm"));
-  const imported = spawnSync(process.execPath, ["--input-type=module", "-e", "await import('./browser-sdk.mjs')"], { cwd: output, encoding: "utf8" });
+  // Import the actual consumer artifact: staging can contain files npm omits.
+  const installed = path.join(scratch, "installed");
+  await mkdir(installed);
+  const archive = JSON.parse(packed.stdout)[0].filename;
+  const extracted = spawnSync("tar", ["-xzf", path.join(output, archive), "-C", installed], { encoding: "utf8" });
+  assert.equal(extracted.status, 0, extracted.stderr);
+  const imported = spawnSync(process.execPath, ["--input-type=module", "-e", "await import('./browser-sdk.mjs')"], { cwd: path.join(installed, "package"), encoding: "utf8" });
   assert.equal(imported.status, 0, imported.stderr);
 
   // The static application composes this exact bundle, including its SDK graph.
