@@ -941,3 +941,37 @@ for (const scope of ['owner', 'light-ancestor', 'shadow-ancestor', 'outer-shadow
     expect(await page.evaluate(() => globalThis.calls)).toEqual([{ view, action: view.actions[0], arguments: [] }]);
   });
 }
+
+for (const membership of ['partial', 'duplicate', 'duplicate-without-status', 'without-status']) {
+  test(`collection fallback does not invent item totals (${membership})`, async ({ page }) => {
+    await page.goto('/proof/browser/signal-dom-host.test.html');
+    const collection = { ...view.subjects[0], identity: 'fixture/list', name: 'Tasks', role: 'Collection', values: [] };
+    const item = { ...view.subjects[0], identity: 'fixture/item', name: 'Read', role: 'Item', values: [],
+      flags: [{ name: 'complete', value: false }] };
+    const count = membership === 'partial' ? '20 things left · 0 completed' : '1 thing left · 0 completed';
+    const status = { ...view.subjects[0], identity: 'fixture/status', name: 'Progress', role: 'Status', values: [], text: [count] };
+    const relation = { kind: 'Contains', source: collection.identity, target: item.identity };
+    const currentView = { ...view, subjects: [collection, item], relationships: [relation],
+      actions: [{ ...view.actions[0], target: item.identity }] };
+    if (membership.startsWith('duplicate')) currentView.relationships.push({ ...relation });
+    if (!membership.includes('without-status')) {
+      currentView.subjects.push(status);
+      currentView.relationships.push({ kind: 'Contains', source: collection.identity, target: status.identity });
+    }
+    await page.evaluate(async view => {
+      const { projectFaceCollections } = await import('/targets/browser/handbook/owner-participation.mjs');
+      document.body.replaceChildren(); globalThis.calls = [];
+      const element = document.createElement('conduit-owner-face'); document.body.append(element);
+      element.show(view, { projectCollections: projectFaceCollections,
+        invoke: async call => { globalThis.calls.push(call); } });
+    }, currentView);
+    const element = page.locator('conduit-owner-face');
+    await expect(element.getByText(!membership.startsWith('duplicate') ? '1 thing left · 0 completed' : '2 things left · 0 completed', { exact: true })).toHaveCount(0);
+    if (!membership.includes('without-status')) await expect(element.getByText(count, { exact: true })).toBeVisible();
+    const action = element.getByRole('button', { name: /^Complete task/ });
+    await expect(action).toHaveCount(1);
+    await action.focus(); await page.keyboard.press('Enter');
+    expect(await page.evaluate(() => globalThis.calls)).toEqual([{ view: currentView,
+      action: currentView.actions[0], arguments: [] }]);
+  });
+}

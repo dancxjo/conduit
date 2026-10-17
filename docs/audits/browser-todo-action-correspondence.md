@@ -291,3 +291,17 @@ for Chromium. The cases cover collection, item, count Status, choice group and
 choice option flags, alongside their existing content-rich variants; each keeps
 keyboard access to the same current action. This is renderer/projector semantic
 coverage, not full Face grammar or actual Body/packaged/public acceptance.
+
+Count provenance (#5367): the counted collection layout now requires distinct
+item identities and an exact corroborating source Status. A partial Face cannot
+replace an owner's total with the visible subset's size, and repeated Contains
+relations cannot inflate totals or duplicate action controls. Missing/conflicting
+count wording uses generic subjects, preserving the source Status and one action
+per item instead of inventing an application total.
+
+Partial and duplicate-membership cases (with/without Status) reproduced before
+repair. All fifty-six component Chromium tests and four Handbook unit tests pass;
+Chromium uses one worker and zero retries. The new cases include absent count
+provenance, retained owner wording and trusted keyboard invocation through one
+current action. The positive plain Todo count projection still passes. This is
+renderer/projector evidence, not source-Plot/Body or packaged/public acceptance.
