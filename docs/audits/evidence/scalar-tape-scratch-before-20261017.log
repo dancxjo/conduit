@@ -1,0 +1,334 @@
+   Compiling subtle v2.6.1
+   Compiling libc v0.2.189
+   Compiling memchr v2.8.3
+   Compiling signature v2.2.0
+   Compiling curve25519-dalek v4.1.3
+   Compiling syn v3.0.6
+   Compiling smallvec v1.16.1
+   Compiling getrandom v0.3.4
+   Compiling ring v0.17.14
+   Compiling litemap v0.8.3
+   Compiling writeable v0.6.4
+   Compiling icu_properties_data v2.3.0
+   Compiling pin-project-lite v0.2.17
+   Compiling icu_normalizer_data v2.3.0
+   Compiling utf8_iter v1.0.4
+   Compiling memoffset v0.7.1
+   Compiling futures-core v0.3.34
+   Compiling futures-sink v0.3.34
+   Compiling portable-atomic v1.15.0
+   Compiling thiserror v1.0.69
+   Compiling ed25519 v2.2.3
+   Compiling slab v0.4.12
+   Compiling universal-hash v0.5.1
+   Compiling futures-task v0.3.34
+   Compiling futures-io v0.3.34
+   Compiling futures-channel v0.3.34
+   Compiling pin-utils v0.1.0
+   Compiling poly1305 v0.8.0
+   Compiling bitflags v1.3.2
+   Compiling form_urlencoded v1.2.2
+   Compiling leb128fmt v0.1.0
+   Compiling deranged v0.5.8
+   Compiling lazy_static v1.5.0
+   Compiling crc-catalog v2.5.0
+   Compiling ipnet v2.12.2
+   Compiling rustix v1.1.5
+   Compiling time-core v0.1.9
+   Compiling powerfmt v0.2.0
+   Compiling num-conv v0.2.2
+   Compiling md-5 v0.10.6
+   Compiling linux-raw-sys v0.12.1
+   Compiling base64 v0.22.1
+   Compiling crc v3.4.0
+   Compiling wasm-encoder v0.259.0
+   Compiling bumpalo v3.20.3
+   Compiling bitflags v2.13.2
+   Compiling unicode-width v0.2.2
+   Compiling chacha20poly1305 v0.10.1
+   Compiling serde_json v1.0.151
+   Compiling pem v4.0.0
+   Compiling fastrand v2.5.0
+   Compiling noise-rust-crypto v0.6.2
+   Compiling wast v259.0.0
+   Compiling ed25519-dalek v2.2.0
+   Compiling getrandom v0.2.17
+   Compiling dirs-sys v0.5.0
+   Compiling parking_lot_core v0.9.12
+   Compiling getrandom v0.4.3
+   Compiling num_cpus v1.17.0
+   Compiling errno v0.3.14
+   Compiling dirs v6.0.0
+   Compiling rand_core v0.6.4
+   Compiling rand_core v0.9.5
+   Compiling rand v0.10.3
+   Compiling mio v1.2.3
+   Compiling socket2 v0.6.5
+   Compiling parking_lot v0.12.5
+   Compiling signal-hook-registry v1.4.8
+   Compiling nix v0.26.4
+   Compiling time v0.3.55
+   Compiling rand_chacha v0.3.1
+   Compiling x25519-dalek v2.0.1
+   Compiling rand_chacha v0.9.0
+   Compiling conduit-protected-line v0.1.0 (/home/dancxjo/conduit/architecture/protected-line)
+   Compiling rand v0.8.8
+   Compiling rand v0.9.5
+   Compiling yasna v0.6.0
+   Compiling tempfile v3.27.0
+   Compiling instant-distance v0.6.1
+   Compiling synstructure v0.14.0
+   Compiling serde_derive v1.0.229
+   Compiling thiserror-impl v2.0.20
+   Compiling zerovec-derive v0.11.6
+   Compiling displaydoc v0.2.7
+   Compiling tokio-macros v2.7.2
+   Compiling futures-macro v0.3.34
+   Compiling async-trait v0.1.92
+   Compiling zerofrom-derive v0.1.8
+   Compiling yoke-derive v0.8.3
+   Compiling tokio v1.53.1
+   Compiling futures-util v0.3.34
+   Compiling zerofrom v0.1.8
+   Compiling yoke v0.8.3
+   Compiling zerotrie v0.2.5
+   Compiling zerovec v0.11.8
+   Compiling thiserror v2.0.20
+   Compiling cobs v0.3.0
+   Compiling tungstenite v0.30.0
+   Compiling static-automata-macros v1.0.3
+   Compiling static-automata v1.0.3
+   Compiling langtag v1.1.0
+   Compiling tinystr v0.8.4
+   Compiling potential_utf v0.1.6
+   Compiling icu_collections v2.3.0
+   Compiling icu_locale_core v2.3.0
+   Compiling serde v1.0.229
+   Compiling conduit-assigned-plan v0.1.0 (/home/dancxjo/conduit/architecture/assigned-plan)
+   Compiling postcard v1.1.3
+   Compiling serde_spanned v0.6.9
+   Compiling toml_datetime v0.6.11
+   Compiling heapless v0.8.0
+   Compiling speaking v0.1.0 (https://github.com/dancxjo/tongues.git?rev=b5d7535b2ccd3730b4db878fb61b2e4e48ae89c9#b5d7535b)
+   Compiling conduit-core v0.1.0 (/home/dancxjo/conduit/architecture/core)
+   Compiling patchbay-control v0.1.0 (/home/dancxjo/conduit/plots/patchbay)
+   Compiling icu_provider v2.3.1
+   Compiling toml_edit v0.22.27
+   Compiling conduit-kernel v0.1.0 (/home/dancxjo/conduit/architecture/kernel)
+   Compiling icu_properties v2.3.0
+   Compiling icu_normalizer v2.3.0
+   Compiling futures-executor v0.3.34
+   Compiling serde-json-core v0.6.0
+   Compiling futures v0.3.34
+   Compiling idna_adapter v1.2.2
+   Compiling idna v1.1.0
+   Compiling url v2.5.8
+   Compiling rustls v0.23.45
+   Compiling wat v1.259.0
+   Compiling toml v0.8.23
+   Compiling webrtc-util v0.17.2
+   Compiling tokio-util v0.7.19
+   Compiling rustls-webpki v0.103.15
+   Compiling rcgen v0.14.10
+   Compiling stun v0.17.2
+   Compiling turn v0.17.2
+   Compiling ureq v3.4.2
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/conduit/architecture/plot)
+   Compiling conduit-browser-runtime v0.1.0 (/home/dancxjo/conduit/targets/browser/runtime)
+   Compiling conduit-body v0.1.0 (/home/dancxjo/conduit/architecture/body)
+   Compiling conduit-plan-lowering v0.1.0 (/home/dancxjo/conduit/architecture/plan-lowering)
+   Compiling conduit-rp2040-network-realization v0.1.0 (/home/dancxjo/conduit/targets/rp2040/network-realization)
+   Compiling conduit-time v0.1.0 (/home/dancxjo/conduit/semantics/time)
+   Compiling conduit-language v0.1.0 (/home/dancxjo/conduit/semantics/language)
+   Compiling conduit-human v0.1.0 (/home/dancxjo/conduit/semantics/human)
+   Compiling conduit-audio v0.1.0 (/home/dancxjo/conduit/semantics/audio)
+   Compiling conduit-web v0.1.0 (/home/dancxjo/conduit/semantics/web)
+   Compiling conduit-process v0.1.0 (/home/dancxjo/conduit/semantics/process)
+   Compiling conduit-alife v0.1.0 (/home/dancxjo/conduit/semantics/alife)
+   Compiling conduit-text v0.1.0 (/home/dancxjo/conduit/semantics/text)
+   Compiling conduit-net v0.1.0 (/home/dancxjo/conduit/semantics/net)
+   Compiling conduit-robotics v0.1.0 (/home/dancxjo/conduit/semantics/robotics)
+   Compiling conduit-purpose v0.1.0 (/home/dancxjo/conduit/semantics/purpose)
+   Compiling conduit-chat v0.1.0 (/home/dancxjo/conduit/semantics/chat)
+   Compiling conduit-signal v0.1.0 (/home/dancxjo/conduit/semantics/signal)
+   Compiling conduit-tongues v0.1.0 (/home/dancxjo/conduit/semantics/tongues)
+   Compiling conduit-wire v0.1.0 (/home/dancxjo/conduit/architecture/wire)
+   Compiling conduit-tutorial-plot v0.1.0 (/home/dancxjo/conduit/semantics/tutorial)
+   Compiling conduit-body-invitation-plot v0.1.0 (/home/dancxjo/conduit/semantics/body-invitation)
+   Compiling conduit-plot-library v0.1.0 (/home/dancxjo/conduit/semantics/plot-library)
+   Compiling conduit-finance v0.1.0 (/home/dancxjo/conduit/semantics/finance)
+   Compiling conduit-todo-plot v0.1.0 (/home/dancxjo/conduit/plots/todo/model)
+   Compiling conduit-data v0.1.0 (/home/dancxjo/conduit/semantics/data)
+   Compiling conduit-thermostat-plot v0.1.0 (/home/dancxjo/conduit/plots/thermostat/model)
+   Compiling conduit-composite v0.1.0 (/home/dancxjo/conduit/architecture/composite)
+   Compiling conduit-bluetooth v0.1.0 (/home/dancxjo/conduit/mechanisms/protocols/bluetooth)
+   Compiling conduit-ai v0.1.0 (/home/dancxjo/conduit/semantics/ai)
+   Compiling conduit-little-seismograph-fixture v0.1.0 (/home/dancxjo/conduit/plots/little-seismograph/fixture)
+   Compiling conduit-education v0.1.0 (/home/dancxjo/conduit/semantics/education)
+   Compiling conduit-midi v0.1.0 (/home/dancxjo/conduit/mechanisms/protocols/midi)
+   Compiling conduit-synth v0.1.0 (/home/dancxjo/conduit/mechanisms/implementations/synth)
+   Compiling conduit-planner v0.1.0 (/home/dancxjo/conduit/architecture/planner)
+   Compiling conduit-speech v0.1.0 (/home/dancxjo/conduit/semantics/speech)
+   Compiling conduit-observatory v0.1.0 (/home/dancxjo/conduit/architecture/observatory)
+   Compiling conduit-face v0.1.0 (/home/dancxjo/conduit/semantics/face)
+   Compiling conduit-thermostat-face v0.1.0 (/home/dancxjo/conduit/plots/thermostat/face)
+   Compiling conduit-birth-plot v0.1.0 (/home/dancxjo/conduit/plots/birth)
+   Compiling conduit-todo-face v0.1.0 (/home/dancxjo/conduit/plots/todo/face)
+   Compiling conduit-semantic-catalog v0.1.0 (/home/dancxjo/conduit/semantics/catalog)
+   Compiling conduit-alife-distributed-conformance v0.1.0 (/home/dancxjo/conduit/proof/conformance/alife-distributed)
+   Compiling conduit-host-make v0.1.0 (/home/dancxjo/conduit/make/host)
+   Compiling patchbay-graph v0.1.0 (/home/dancxjo/conduit/plots/patchbay/graph)
+   Compiling conduit-tour-model v0.1.0 (/home/dancxjo/conduit/plots/tour)
+   Compiling patchbay-application v0.1.0 (/home/dancxjo/conduit/plots/patchbay/application)
+   Compiling conduit-std-offers v0.1.0 (/home/dancxjo/conduit/targets/std/offers)
+   Compiling conduit-host-browser-make v0.1.0 (/home/dancxjo/conduit/targets/browser/make)
+   Compiling conduit-host-hosted v0.1.0 (/home/dancxjo/conduit/targets/std/make)
+   Compiling conduit-host-avr-make v0.1.0 (/home/dancxjo/conduit/targets/avr/make)
+   Compiling conduit-host-raspberry-pi v0.1.0 (/home/dancxjo/conduit/targets/raspberry-pi/make)
+   Compiling conduit-host-conduitos-make v0.1.0 (/home/dancxjo/conduit/targets/conduitos/make)
+   Compiling conduit-host-orange-pi v0.1.0 (/home/dancxjo/conduit/targets/orange-pi/make)
+   Compiling conduit-host-rp2040 v0.1.0 (/home/dancxjo/conduit/targets/rp2040/make)
+   Compiling conduit-linear-framebuffer-make v0.1.0 (/home/dancxjo/conduit/mechanisms/implementations/linear-framebuffer-make)
+   Compiling conduit-host-esp32-make v0.1.0 (/home/dancxjo/conduit/targets/esp32/make)
+   Compiling conduit-signal-conformance v0.1.0 (/home/dancxjo/conduit/proof/conformance/signal)
+   Compiling conduit-browser-mask-offer v0.1.0 (/home/dancxjo/conduit/targets/browser/mask-offer)
+   Compiling conduit-body-make v0.1.0 (/home/dancxjo/conduit/make/body)
+   Compiling conduit-r1-network-conformance v0.1.0 (/home/dancxjo/conduit/proof/conformance/network-r1)
+   Compiling conduit-workspace-make v0.1.0 (/home/dancxjo/conduit/make/workspace)
+   Compiling conduit-std-host v0.1.0 (/home/dancxjo/conduit/targets/std)
+    Finished `release` profile [optimized] target(s) in 4m 59s
+     Running tests/scalar_tape_performance.rs (target/release/deps/scalar_tape_performance-ceb9eb8721880229)
+
+running 1 test
+SCALAR_MICRO_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=1 tape=false row=0 iterations=100000 authoring_plan_wall_ns=32908614 evaluator_preparation_wall_ns=2196 warm_evaluator_wall_ns=6918462 optimized_rust_wall_ns=40121 limits=None
+SCALAR_PRODUCT_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=1 tape=false row=0 preparation_wall_ns=200253 play_wall_ns=15774 plan=b9cfb235a28a1b186ac00e95fd1bad7cbe1ed4997dade1750b69729a82eaec67 play=e7884b491ac7220a20a1e6523d9a4e6bbf9a8c521b0abfbf0a88e743c6d0efb4 provider=std/kernel-pure-expression@1 artifact=conduit-plot/pure-expression@1
+SCALAR_MICRO_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=1 tape=false row=1 iterations=100000 authoring_plan_wall_ns=23545864 evaluator_preparation_wall_ns=1176 warm_evaluator_wall_ns=6966329 optimized_rust_wall_ns=41822 limits=None
+SCALAR_PRODUCT_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=1 tape=false row=1 preparation_wall_ns=79844 play_wall_ns=9602 plan=42d00b371ecfcc5cc52522b0ae8a74e42c80433dd7be6cecfd58a2ba383f77fe play=5fbad5205155d56dd8a1073d775474007471cd93f8e2fb30d1002ecaff43565a provider=std/kernel-pure-expression@1 artifact=conduit-plot/pure-expression@1
+SCALAR_MICRO_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=1 tape=false row=2 iterations=100000 authoring_plan_wall_ns=23670360 evaluator_preparation_wall_ns=1107 warm_evaluator_wall_ns=6976117 optimized_rust_wall_ns=41811 limits=None
+SCALAR_PRODUCT_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=1 tape=false row=2 preparation_wall_ns=71932 play_wall_ns=8514 plan=8b091715dccaa924f302898123fbe848814c589140efe39f70e7499c19b5ab4f play=5b039653ebf20d672a544c5ee0f619c61655bc0a508a6608e387bfe480062507 provider=std/kernel-pure-expression@1 artifact=conduit-plot/pure-expression@1
+SCALAR_MICRO_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=1 tape=false row=3 iterations=100000 authoring_plan_wall_ns=23637190 evaluator_preparation_wall_ns=1082 warm_evaluator_wall_ns=7034540 optimized_rust_wall_ns=40961 limits=None
+SCALAR_PRODUCT_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=1 tape=false row=3 preparation_wall_ns=74841 play_wall_ns=8967 plan=e18d20244abd720233a9ebf40acb971f3b3737679c153df4d6ad91a7f8961246 play=98edf706e6c240bb1602bec70eb3b457fb32cfd8bbecf09178740d32e265441c provider=std/kernel-pure-expression@1 artifact=conduit-plot/pure-expression@1
+SCALAR_MICRO_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=1 tape=false row=4 iterations=100000 authoring_plan_wall_ns=23620832 evaluator_preparation_wall_ns=1092 warm_evaluator_wall_ns=6980931 optimized_rust_wall_ns=40952 limits=None
+SCALAR_PRODUCT_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=1 tape=false row=4 preparation_wall_ns=79439 play_wall_ns=9201 plan=a3a9c16d48a3b94ec0c14597d7b60661983c4c719a33c7b89ca059a0e75d1a2b play=fb3f5c5fbd311bdbbc2496138183d3934059a422db94d483fe46370b456cff93 provider=std/kernel-pure-expression@1 artifact=conduit-plot/pure-expression@1
+SCALAR_MICRO_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=1 tape=false row=5 iterations=100000 authoring_plan_wall_ns=23542505 evaluator_preparation_wall_ns=1098 warm_evaluator_wall_ns=7041463 optimized_rust_wall_ns=40958 limits=None
+SCALAR_PRODUCT_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=1 tape=false row=5 preparation_wall_ns=72743 play_wall_ns=8268 plan=8c680006e7ba1dc0405f9fa78fa5edb82c6d5dcce28ad6667d0ab3a35ff89625 play=9e0edae71edecaa551192cc68507002ec63a6749d55a7b1392d991c0883de761 provider=std/kernel-pure-expression@1 artifact=conduit-plot/pure-expression@1
+SCALAR_MICRO_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=1 tape=false row=6 iterations=100000 authoring_plan_wall_ns=24259185 evaluator_preparation_wall_ns=2035 warm_evaluator_wall_ns=7009924 optimized_rust_wall_ns=41924 limits=None
+SCALAR_PRODUCT_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=1 tape=false row=6 preparation_wall_ns=89777 play_wall_ns=12116 plan=7b4ed5c6849a4fd315c2be4b7a1f0e67ae64aede4ba0776aa4ad03c18f1c20d8 play=1531be907d937eb13c44bf6b7455fc3c2cad237998ffddf72e564600443448a6 provider=std/kernel-pure-expression@1 artifact=conduit-plot/pure-expression@1
+SCALAR_MICRO_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=1 tape=false row=7 iterations=100000 authoring_plan_wall_ns=24109315 evaluator_preparation_wall_ns=1079 warm_evaluator_wall_ns=7089514 optimized_rust_wall_ns=40986 limits=None
+SCALAR_PRODUCT_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=1 tape=false row=7 preparation_wall_ns=73924 play_wall_ns=9171 plan=f5681f5c0d21111bf86dfb2c1e3ecca9e20fb83c2596224f0af14efe1bdd1d12 play=5016f42f6ac407c12745c553599cfb30b2b3dc0a83476d080d6ba8b7711016d7 provider=std/kernel-pure-expression@1 artifact=conduit-plot/pure-expression@1
+SCALAR_MICRO_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=1 tape=true row=0 iterations=100000 authoring_plan_wall_ns=23618020 evaluator_preparation_wall_ns=3637 warm_evaluator_wall_ns=9007307 optimized_rust_wall_ns=40130 limits=Some((3, 5120))
+SCALAR_PRODUCT_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=1 tape=true row=0 preparation_wall_ns=69864 play_wall_ns=8406 plan=b288e9ad756b28a8e1a3125b1ecac960103f5795ad9fa642cfb60abfc2cc7f61 play=5e0c73e3564e00e96a0eddec295ec2f25b27d2ca8fc735321c9a46acdc875eb1 provider=std/kernel-pure-scalar-tape@1 artifact=conduit-plot/pure-scalar-tape@1
+SCALAR_MICRO_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=1 tape=true row=1 iterations=100000 authoring_plan_wall_ns=23650360 evaluator_preparation_wall_ns=1026 warm_evaluator_wall_ns=9036266 optimized_rust_wall_ns=40113 limits=Some((3, 5120))
+SCALAR_PRODUCT_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=1 tape=true row=1 preparation_wall_ns=69871 play_wall_ns=8810 plan=4e050f443c4eb4661f2ccbc086cab171ddbdc05ba50f76e5beccfa4ceb16c3d0 play=aa569b5506c6774bd3b6a9c1168eb15b829d747dbe8a88c8f82020ccf2784e7b provider=std/kernel-pure-scalar-tape@1 artifact=conduit-plot/pure-scalar-tape@1
+SCALAR_MICRO_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=1 tape=true row=2 iterations=100000 authoring_plan_wall_ns=23498661 evaluator_preparation_wall_ns=3469 warm_evaluator_wall_ns=9020990 optimized_rust_wall_ns=40132 limits=Some((3, 5120))
+SCALAR_PRODUCT_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=1 tape=true row=2 preparation_wall_ns=69102 play_wall_ns=8765 plan=2b029753c7bbcbd40f63b4425ea50ee5b8130c9f0d212a0c3ba7bbbbfc5ca99d play=1dce9942486a6b994c23d849270c921915076cd2f06aea21d4ca9e8fe0f17aa1 provider=std/kernel-pure-scalar-tape@1 artifact=conduit-plot/pure-scalar-tape@1
+SCALAR_MICRO_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=1 tape=true row=3 iterations=100000 authoring_plan_wall_ns=23674490 evaluator_preparation_wall_ns=3438 warm_evaluator_wall_ns=8995034 optimized_rust_wall_ns=40118 limits=Some((3, 5120))
+SCALAR_PRODUCT_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=1 tape=true row=3 preparation_wall_ns=67286 play_wall_ns=8275 plan=e5982ace8f79f66491363819f4cf8dbff0ff687f13e8e17abf7acb4eb934dc00 play=92ca0a8b354e7cb43aa83d0b3c97ab11d1f5e8b5fe7946d821c2908f1d5496a6 provider=std/kernel-pure-scalar-tape@1 artifact=conduit-plot/pure-scalar-tape@1
+SCALAR_MICRO_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=1 tape=true row=4 iterations=100000 authoring_plan_wall_ns=23565426 evaluator_preparation_wall_ns=3320 warm_evaluator_wall_ns=9035759 optimized_rust_wall_ns=40137 limits=Some((3, 5120))
+SCALAR_PRODUCT_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=1 tape=true row=4 preparation_wall_ns=68608 play_wall_ns=8968 plan=02227a03210e8ac840774a1240b8a9360fa7679ddabb9cae126fcd718e6f6cc0 play=67495d15c807f75b57d6f21bbd98cca38dbbc5ab18b2e12f528ee09e20f5eb0a provider=std/kernel-pure-scalar-tape@1 artifact=conduit-plot/pure-scalar-tape@1
+SCALAR_MICRO_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=1 tape=true row=5 iterations=100000 authoring_plan_wall_ns=23502876 evaluator_preparation_wall_ns=3717 warm_evaluator_wall_ns=9000037 optimized_rust_wall_ns=40121 limits=Some((3, 5120))
+SCALAR_PRODUCT_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=1 tape=true row=5 preparation_wall_ns=67319 play_wall_ns=8265 plan=8ee362660799423b92d69aa3add0baa12482acef6b180bb00435255af4a211fe play=a52f8d6af0508ff9608fc297deed62c86b3647356157ad7d2115171dabb02bb9 provider=std/kernel-pure-scalar-tape@1 artifact=conduit-plot/pure-scalar-tape@1
+SCALAR_MICRO_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=1 tape=true row=6 iterations=100000 authoring_plan_wall_ns=23485118 evaluator_preparation_wall_ns=3725 warm_evaluator_wall_ns=9005999 optimized_rust_wall_ns=40122 limits=Some((3, 5120))
+SCALAR_PRODUCT_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=1 tape=true row=6 preparation_wall_ns=67221 play_wall_ns=8769 plan=3bc7b9c94c0563169d7d1e029a02d777e36d1136032ba409b09949cfbf24ce4c play=fa66d9d3b91161fabb6f73f28ddf92554f1d3cdecb147e4a728e9c84ccdef888 provider=std/kernel-pure-scalar-tape@1 artifact=conduit-plot/pure-scalar-tape@1
+SCALAR_MICRO_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=1 tape=true row=7 iterations=100000 authoring_plan_wall_ns=23591953 evaluator_preparation_wall_ns=3691 warm_evaluator_wall_ns=9001399 optimized_rust_wall_ns=40117 limits=Some((3, 5120))
+SCALAR_PRODUCT_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=1 tape=true row=7 preparation_wall_ns=68395 play_wall_ns=8506 plan=0e114db5bfd40da8aa5deb2672f786058181f4150d2cfa93ea9d8f8a2dd7ba0a play=ef2c5e51c8e5fcf643f2d0ba9d13970d9ac48f42636370c57841c284f54a141a provider=std/kernel-pure-scalar-tape@1 artifact=conduit-plot/pure-scalar-tape@1
+SCALAR_MICRO_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=3 tape=false row=0 iterations=100000 authoring_plan_wall_ns=23572913 evaluator_preparation_wall_ns=1322 warm_evaluator_wall_ns=16625802 optimized_rust_wall_ns=41813 limits=None
+SCALAR_PRODUCT_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=3 tape=false row=0 preparation_wall_ns=79880 play_wall_ns=9138 plan=f418d69af82a078dfd9b34a6ac25a6040e41ad4962ca2eb94484fbd98e9c4c17 play=ef398a893e8c0308cc66191714bdadb834a8d8a1e5a8d156858a16f07faf019b provider=std/kernel-pure-expression@1 artifact=conduit-plot/pure-expression@1
+SCALAR_MICRO_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=3 tape=false row=1 iterations=100000 authoring_plan_wall_ns=23876998 evaluator_preparation_wall_ns=1378 warm_evaluator_wall_ns=16663208 optimized_rust_wall_ns=40959 limits=None
+SCALAR_PRODUCT_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=3 tape=false row=1 preparation_wall_ns=77538 play_wall_ns=9536 plan=11498919e7399058e73aca45d2af83b059bc453e827b07874c7f301955238b2c play=c7044d2f930d2ec03f84a0f96f6e21b47dcf4e5f70167d7ae78cdc18388ba5e1 provider=std/kernel-pure-expression@1 artifact=conduit-plot/pure-expression@1
+SCALAR_MICRO_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=3 tape=false row=2 iterations=100000 authoring_plan_wall_ns=23586215 evaluator_preparation_wall_ns=1262 warm_evaluator_wall_ns=16821830 optimized_rust_wall_ns=40979 limits=None
+SCALAR_PRODUCT_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=3 tape=false row=2 preparation_wall_ns=77570 play_wall_ns=9381 plan=87d9c0ecb87ce23de002914dd773cc744f2907d6e92e735351a1d7f9ad95821a play=61a3c5e2bae2af4fbd9808a5ca7a9ed9e255159d6c0df19492840024621e36e9 provider=std/kernel-pure-expression@1 artifact=conduit-plot/pure-expression@1
+SCALAR_MICRO_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=3 tape=false row=3 iterations=100000 authoring_plan_wall_ns=23585600 evaluator_preparation_wall_ns=1316 warm_evaluator_wall_ns=16571295 optimized_rust_wall_ns=40966 limits=None
+SCALAR_PRODUCT_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=3 tape=false row=3 preparation_wall_ns=76022 play_wall_ns=8630 plan=a39c4b99afe29d8370185c324fb4b9ff33dac1ff924b3fa0b6cdeaf0ce42c7e4 play=954f049b6287f05135b2b1c34dbf0959882d6c71a61cd808e06ca6807f4d91ec provider=std/kernel-pure-expression@1 artifact=conduit-plot/pure-expression@1
+SCALAR_MICRO_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=3 tape=false row=4 iterations=100000 authoring_plan_wall_ns=23659021 evaluator_preparation_wall_ns=1383 warm_evaluator_wall_ns=16655130 optimized_rust_wall_ns=40944 limits=None
+SCALAR_PRODUCT_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=3 tape=false row=4 preparation_wall_ns=70223 play_wall_ns=10431 plan=a8467b621a3772229c107c8a3c76a48b3b4a846b67b41d7c3662e1c7051e92cb play=d1492e7e6cc42eacc343f233c5c381212ad8452eb66d6ba33956039c0578a9ee provider=std/kernel-pure-expression@1 artifact=conduit-plot/pure-expression@1
+SCALAR_MICRO_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=3 tape=false row=5 iterations=100000 authoring_plan_wall_ns=23751455 evaluator_preparation_wall_ns=1485 warm_evaluator_wall_ns=16657102 optimized_rust_wall_ns=40964 limits=None
+SCALAR_PRODUCT_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=3 tape=false row=5 preparation_wall_ns=71626 play_wall_ns=9023 plan=cf53d3df7ee32d8773da44b97dd9be6f4c436dd9bd87b2ee6ed9b6c53e7f5091 play=077f00704638f48da414bd392f22905ccd4d5f9237345f876694fd8a67c0d71d provider=std/kernel-pure-expression@1 artifact=conduit-plot/pure-expression@1
+SCALAR_MICRO_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=3 tape=false row=6 iterations=100000 authoring_plan_wall_ns=23559420 evaluator_preparation_wall_ns=1365 warm_evaluator_wall_ns=16656355 optimized_rust_wall_ns=40971 limits=None
+SCALAR_PRODUCT_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=3 tape=false row=6 preparation_wall_ns=76139 play_wall_ns=9070 plan=bfe2f496e5060fc73dc7f6ba5f9404de00dbca47c96a49ba915be064ef7762d6 play=63a7a6c33ea971d4af7dbbb9fb8b756618cec53f51b539a1caa68548e323fda3 provider=std/kernel-pure-expression@1 artifact=conduit-plot/pure-expression@1
+SCALAR_MICRO_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=3 tape=false row=7 iterations=100000 authoring_plan_wall_ns=23634594 evaluator_preparation_wall_ns=1357 warm_evaluator_wall_ns=16677805 optimized_rust_wall_ns=40973 limits=None
+SCALAR_PRODUCT_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=3 tape=false row=7 preparation_wall_ns=77555 play_wall_ns=9318 plan=74d32053be87597776a4208536a44fb82018694290fe2ab213437e4734733294 play=a7170f0119f13668826ba9e09aa61398c3770f1fbe17f7c9163f3cc6817a6408 provider=std/kernel-pure-expression@1 artifact=conduit-plot/pure-expression@1
+SCALAR_MICRO_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=3 tape=true row=0 iterations=100000 authoring_plan_wall_ns=23687750 evaluator_preparation_wall_ns=3881 warm_evaluator_wall_ns=14170082 optimized_rust_wall_ns=40119 limits=Some((7, 5120))
+SCALAR_PRODUCT_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=3 tape=true row=0 preparation_wall_ns=71839 play_wall_ns=8466 plan=ef22da99f01e01cca58d65cb46582298937cdbf29128a605af79658e5204c545 play=7fd8e802533db9998b6fdd1261df918848e9b6d0bff8411f8365105e39e1c82c provider=std/kernel-pure-scalar-tape@1 artifact=conduit-plot/pure-scalar-tape@1
+SCALAR_MICRO_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=3 tape=true row=1 iterations=100000 authoring_plan_wall_ns=23515038 evaluator_preparation_wall_ns=3517 warm_evaluator_wall_ns=14205962 optimized_rust_wall_ns=40118 limits=Some((7, 5120))
+SCALAR_PRODUCT_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=3 tape=true row=1 preparation_wall_ns=71353 play_wall_ns=8250 plan=d99912f4fc3e8a59e0f7376581852c21d1c4e93fc6023c3a7b2d4231b46efcf7 play=3dc0cd41fae0d1d168cd8c2136994e6d41d8ca369967dc11a9f8833a5ba49f62 provider=std/kernel-pure-scalar-tape@1 artifact=conduit-plot/pure-scalar-tape@1
+SCALAR_MICRO_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=3 tape=true row=2 iterations=100000 authoring_plan_wall_ns=23538017 evaluator_preparation_wall_ns=3900 warm_evaluator_wall_ns=14095706 optimized_rust_wall_ns=40121 limits=Some((7, 5120))
+SCALAR_PRODUCT_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=3 tape=true row=2 preparation_wall_ns=74610 play_wall_ns=8698 plan=e554c9b3d0c93f320a8a667bb3390b0e7a63a2d5f747550c1028b8229d00292f play=7e48c5e534e63a2b346ed8298c9cf124489a1e606c6f71d52544e9c1364cf04c provider=std/kernel-pure-scalar-tape@1 artifact=conduit-plot/pure-scalar-tape@1
+SCALAR_MICRO_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=3 tape=true row=3 iterations=100000 authoring_plan_wall_ns=23575823 evaluator_preparation_wall_ns=2761 warm_evaluator_wall_ns=14181815 optimized_rust_wall_ns=40117 limits=Some((7, 5120))
+SCALAR_PRODUCT_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=3 tape=true row=3 preparation_wall_ns=72035 play_wall_ns=8585 plan=7df7f140a928ebce6dfb0d2909a5c3514a60fb360ddd4b7e48dec1c6ca8615c3 play=bb68d5f9c28b1d1303e903e78b5e3476e1c965c114ec4cd697d8e21cb8e32a50 provider=std/kernel-pure-scalar-tape@1 artifact=conduit-plot/pure-scalar-tape@1
+SCALAR_MICRO_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=3 tape=true row=4 iterations=100000 authoring_plan_wall_ns=23596328 evaluator_preparation_wall_ns=3939 warm_evaluator_wall_ns=14113275 optimized_rust_wall_ns=40136 limits=Some((7, 5120))
+SCALAR_PRODUCT_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=3 tape=true row=4 preparation_wall_ns=72366 play_wall_ns=8288 plan=d0294538f9ef048c928c576b01f04dff5dd5ff04ede56219278615ced0599fd9 play=b91a343d9c9b6d6089cffad4eb8799b335bd74dc2960b65500d5a23d52aa3fa5 provider=std/kernel-pure-scalar-tape@1 artifact=conduit-plot/pure-scalar-tape@1
+SCALAR_MICRO_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=3 tape=true row=5 iterations=100000 authoring_plan_wall_ns=23578807 evaluator_preparation_wall_ns=3891 warm_evaluator_wall_ns=14117938 optimized_rust_wall_ns=40139 limits=Some((7, 5120))
+SCALAR_PRODUCT_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=3 tape=true row=5 preparation_wall_ns=73541 play_wall_ns=8790 plan=e60417e23bb519a67e2d9f375917751d5f337b4f1bdb233dbc7fafce2f157542 play=8efe42d6219b3296356c16d43f65576eae4d262efcd5bb6b3a48748b11620a3d provider=std/kernel-pure-scalar-tape@1 artifact=conduit-plot/pure-scalar-tape@1
+SCALAR_MICRO_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=3 tape=true row=6 iterations=100000 authoring_plan_wall_ns=23527250 evaluator_preparation_wall_ns=1244 warm_evaluator_wall_ns=14134423 optimized_rust_wall_ns=40139 limits=Some((7, 5120))
+SCALAR_PRODUCT_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=3 tape=true row=6 preparation_wall_ns=72465 play_wall_ns=8613 plan=2e0756a6462ca475f5ebda0eb936a36a1575ca73b1c8f1ff3df271c53f464a6b play=b0a59a9fa48ebd38c476d491e1723130fb51915fc7879cb5217941c60ff7ab23 provider=std/kernel-pure-scalar-tape@1 artifact=conduit-plot/pure-scalar-tape@1
+SCALAR_MICRO_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=3 tape=true row=7 iterations=100000 authoring_plan_wall_ns=23480307 evaluator_preparation_wall_ns=3880 warm_evaluator_wall_ns=14119548 optimized_rust_wall_ns=40137 limits=Some((7, 5120))
+SCALAR_PRODUCT_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=3 tape=true row=7 preparation_wall_ns=71078 play_wall_ns=8522 plan=ae691192502dd4c5a2c85cceaaaf4382c845a8a0f878fe4fc22f67cae0e9296e play=96911dda9f59cc3f20d95f5b55e778eb37ad038379df922095b16f7c02aaccbd provider=std/kernel-pure-scalar-tape@1 artifact=conduit-plot/pure-scalar-tape@1
+SCALAR_MICRO_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=8 tape=false row=0 iterations=100000 authoring_plan_wall_ns=23493999 evaluator_preparation_wall_ns=1898 warm_evaluator_wall_ns=41334876 optimized_rust_wall_ns=40992 limits=None
+SCALAR_PRODUCT_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=8 tape=false row=0 preparation_wall_ns=84967 play_wall_ns=9704 plan=02d0e9febba988445943634a540a1b7b4d02fa52bb4369df44b2fd1360078627 play=20dd1f4f96b7789cde9438617b26484d5e8aff0e98fd3c301004c559583627fc provider=std/kernel-pure-expression@1 artifact=conduit-plot/pure-expression@1
+SCALAR_MICRO_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=8 tape=false row=1 iterations=100000 authoring_plan_wall_ns=23708198 evaluator_preparation_wall_ns=1862 warm_evaluator_wall_ns=41345424 optimized_rust_wall_ns=40945 limits=None
+SCALAR_PRODUCT_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=8 tape=false row=1 preparation_wall_ns=85431 play_wall_ns=9951 plan=ea59e5251f8928dc18a9a8a3765e7e115b389c045f06a0c065bfccc4f2b0f622 play=a8ab105a318174ca30b1b885d0ceeb1abf387e5dc8fa1f05645f36f01ad0e38a provider=std/kernel-pure-expression@1 artifact=conduit-plot/pure-expression@1
+SCALAR_MICRO_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=8 tape=false row=2 iterations=100000 authoring_plan_wall_ns=23725019 evaluator_preparation_wall_ns=1823 warm_evaluator_wall_ns=41322444 optimized_rust_wall_ns=43204 limits=None
+SCALAR_PRODUCT_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=8 tape=false row=2 preparation_wall_ns=79120 play_wall_ns=8573 plan=dd813a7624a4acef43885fc6818de8ba821c3ece34cba4dddaabdfdc07fdbc98 play=5bd8b9c2550fa4b7c2fb1f2ec22b73c8c3753ffde643c1b025a04a7305455732 provider=std/kernel-pure-expression@1 artifact=conduit-plot/pure-expression@1
+SCALAR_MICRO_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=8 tape=false row=3 iterations=100000 authoring_plan_wall_ns=23580603 evaluator_preparation_wall_ns=1793 warm_evaluator_wall_ns=41541802 optimized_rust_wall_ns=40946 limits=None
+SCALAR_PRODUCT_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=8 tape=false row=3 preparation_wall_ns=79578 play_wall_ns=9050 plan=9c21b2ffda662d775c9c294e7d63fbc9c3f71bf60ad9e4d8545db19f74d3452a play=a79891ab17d16a2d98bcbb9b9c4cb804d55c9f819263bad998a1f82ecd83aafa provider=std/kernel-pure-expression@1 artifact=conduit-plot/pure-expression@1
+SCALAR_MICRO_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=8 tape=false row=4 iterations=100000 authoring_plan_wall_ns=23616158 evaluator_preparation_wall_ns=1951 warm_evaluator_wall_ns=41338599 optimized_rust_wall_ns=40143 limits=None
+SCALAR_PRODUCT_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=8 tape=false row=4 preparation_wall_ns=91265 play_wall_ns=9976 plan=d20ea79641c039b70da10951a8715471fb7f6f03795df0cdd086515bc14192c5 play=2aaf02584550ef18b1d8e4e600cc017d7f58f22c85d0619620ff1bea9242fda8 provider=std/kernel-pure-expression@1 artifact=conduit-plot/pure-expression@1
+SCALAR_MICRO_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=8 tape=false row=5 iterations=100000 authoring_plan_wall_ns=23588349 evaluator_preparation_wall_ns=1870 warm_evaluator_wall_ns=41256492 optimized_rust_wall_ns=40966 limits=None
+SCALAR_PRODUCT_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=8 tape=false row=5 preparation_wall_ns=85509 play_wall_ns=9590 plan=7516a517e68b63e28d2059f931b75e4f38e0a266bc32c178cbfdec6da563fbd8 play=a2b94620ed8a2605af7ace2de621c8a627065672f11a01ec57e48f87073776f4 provider=std/kernel-pure-expression@1 artifact=conduit-plot/pure-expression@1
+SCALAR_MICRO_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=8 tape=false row=6 iterations=100000 authoring_plan_wall_ns=23533595 evaluator_preparation_wall_ns=1837 warm_evaluator_wall_ns=41304515 optimized_rust_wall_ns=40973 limits=None
+SCALAR_PRODUCT_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=8 tape=false row=6 preparation_wall_ns=86820 play_wall_ns=9179 plan=9d24c9800970219f38ba67207f3b92e8e8b71bf4c8303ed0fe82199db01269ad play=506aa4cf56fd2fc1fe8eea248fc8fd7b42b5dd158c5454911d56407f8cf9ecf9 provider=std/kernel-pure-expression@1 artifact=conduit-plot/pure-expression@1
+SCALAR_MICRO_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=8 tape=false row=7 iterations=100000 authoring_plan_wall_ns=23746868 evaluator_preparation_wall_ns=1901 warm_evaluator_wall_ns=41368225 optimized_rust_wall_ns=48607 limits=None
+SCALAR_PRODUCT_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=8 tape=false row=7 preparation_wall_ns=84676 play_wall_ns=9124 plan=aa8468a86e7e30040f1439f81b3bbdb7da9fad51bec4de5f06bf834865cb4795 play=2d432fd94981921e5ba2c9bec8416067b99ff5965d7766855f74536ac2a10648 provider=std/kernel-pure-expression@1 artifact=conduit-plot/pure-expression@1
+SCALAR_MICRO_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=8 tape=true row=0 iterations=100000 authoring_plan_wall_ns=23599562 evaluator_preparation_wall_ns=4943 warm_evaluator_wall_ns=26883211 optimized_rust_wall_ns=40161 limits=Some((17, 5120))
+SCALAR_PRODUCT_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=8 tape=true row=0 preparation_wall_ns=81771 play_wall_ns=8774 plan=2f3dc2448f107eb99422b56510fd0f87f97e284936e805df6736ad3fd3208bb6 play=86d5173dfabb6797e10775188f2c66588aa7dfb732fd5a515d8ac99e8de1b23c provider=std/kernel-pure-scalar-tape@1 artifact=conduit-plot/pure-scalar-tape@1
+SCALAR_MICRO_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=8 tape=true row=1 iterations=100000 authoring_plan_wall_ns=23499386 evaluator_preparation_wall_ns=4416 warm_evaluator_wall_ns=26949029 optimized_rust_wall_ns=40966 limits=Some((17, 5120))
+SCALAR_PRODUCT_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=8 tape=true row=1 preparation_wall_ns=83716 play_wall_ns=8600 plan=4a229b7f9de6c538e9cb4e897a902a1cc0e4ba5d69e617ee8a39de1aa7fcc7d7 play=7e2a437287f6f5ac12b20da7149006fecc6da00c262ea6f476d0bcb8bd3f60e7 provider=std/kernel-pure-scalar-tape@1 artifact=conduit-plot/pure-scalar-tape@1
+SCALAR_MICRO_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=8 tape=true row=2 iterations=100000 authoring_plan_wall_ns=23412673 evaluator_preparation_wall_ns=4780 warm_evaluator_wall_ns=26988589 optimized_rust_wall_ns=41219 limits=Some((17, 5120))
+SCALAR_PRODUCT_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=8 tape=true row=2 preparation_wall_ns=80887 play_wall_ns=8857 plan=f453086bd18b76a236b04d4bb15390f7f6e87b525963fc1265acf4022ab58be1 play=d834c18cfe3aa10c11911ea7bf1b1e1b17d1a38285d9f35784c27db850198493 provider=std/kernel-pure-scalar-tape@1 artifact=conduit-plot/pure-scalar-tape@1
+SCALAR_MICRO_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=8 tape=true row=3 iterations=100000 authoring_plan_wall_ns=23558585 evaluator_preparation_wall_ns=5257 warm_evaluator_wall_ns=27016770 optimized_rust_wall_ns=40936 limits=Some((17, 5120))
+SCALAR_PRODUCT_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=8 tape=true row=3 preparation_wall_ns=83112 play_wall_ns=8755 plan=edf30987059589f60f298b8f28ff3e491d70c26b07cbeb23f8a1fe457037b7f9 play=4bf6edc827237a54290e04108f07ecdde47daffd2fe4ba34f2874f65a22517f6 provider=std/kernel-pure-scalar-tape@1 artifact=conduit-plot/pure-scalar-tape@1
+SCALAR_MICRO_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=8 tape=true row=4 iterations=100000 authoring_plan_wall_ns=23605822 evaluator_preparation_wall_ns=4930 warm_evaluator_wall_ns=27022479 optimized_rust_wall_ns=40131 limits=Some((17, 5120))
+SCALAR_PRODUCT_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=8 tape=true row=4 preparation_wall_ns=81137 play_wall_ns=8471 plan=1502a7f267d65d95c1e3d016790a017b44202ba0d55eb91058a8016d928c4ad0 play=8218fdaba22b781ffa8935722f16961ed65c68ce8f71f62b1975e859e7e55c4b provider=std/kernel-pure-scalar-tape@1 artifact=conduit-plot/pure-scalar-tape@1
+SCALAR_MICRO_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=8 tape=true row=5 iterations=100000 authoring_plan_wall_ns=23595119 evaluator_preparation_wall_ns=4704 warm_evaluator_wall_ns=26990720 optimized_rust_wall_ns=40132 limits=Some((17, 5120))
+SCALAR_PRODUCT_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=8 tape=true row=5 preparation_wall_ns=82318 play_wall_ns=8618 plan=e816d519b660246a29a3f767d7eb11db2dac2ba90bd1831efe3e98fcde432099 play=1d5b421d34ccaa9b278bd40961d67e11a55964465a0ac78a79cacd2546529d4a provider=std/kernel-pure-scalar-tape@1 artifact=conduit-plot/pure-scalar-tape@1
+SCALAR_MICRO_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=8 tape=true row=6 iterations=100000 authoring_plan_wall_ns=23605240 evaluator_preparation_wall_ns=4572 warm_evaluator_wall_ns=26996297 optimized_rust_wall_ns=40105 limits=Some((17, 5120))
+SCALAR_PRODUCT_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=8 tape=true row=6 preparation_wall_ns=82398 play_wall_ns=8326 plan=141c17d45bfbec5168cc2746f39f1017c3fbc883f5c6da3b8b4ff41afd6fdd5f play=96a5f4cb9109782b8e79b7ed938381be6233c60a8311307d61985e75f7220e91 provider=std/kernel-pure-scalar-tape@1 artifact=conduit-plot/pure-scalar-tape@1
+SCALAR_MICRO_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=8 tape=true row=7 iterations=100000 authoring_plan_wall_ns=23696388 evaluator_preparation_wall_ns=5145 warm_evaluator_wall_ns=27025457 optimized_rust_wall_ns=40126 limits=Some((17, 5120))
+SCALAR_PRODUCT_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=8 tape=true row=7 preparation_wall_ns=82857 play_wall_ns=8748 plan=31b186c9eb6924cfe6b349a9af5dee17904c7c4249ffe595475e002e3d4366a2 play=8180d4e014e5986e95666bbe41e4ec84e49f46fdbd9f1b94c027b5c176d59fda provider=std/kernel-pure-scalar-tape@1 artifact=conduit-plot/pure-scalar-tape@1
+SCALAR_MICRO_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=32 tape=false row=0 iterations=100000 authoring_plan_wall_ns=23787983 evaluator_preparation_wall_ns=7335 warm_evaluator_wall_ns=156592418 optimized_rust_wall_ns=40952 limits=None
+SCALAR_PRODUCT_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=32 tape=false row=0 preparation_wall_ns=128393 play_wall_ns=10465 plan=b21d6809f14fd6ab4398546e0b98a98afe4e6f552d22667c7e6c0d12ace866f1 play=861870e101eb8e24c867bfc4644767bf69b6f27eaaf4ff62743cc5e7e4a93920 provider=std/kernel-pure-expression@1 artifact=conduit-plot/pure-expression@1
+SCALAR_MICRO_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=32 tape=false row=1 iterations=100000 authoring_plan_wall_ns=23698177 evaluator_preparation_wall_ns=7334 warm_evaluator_wall_ns=156790320 optimized_rust_wall_ns=40981 limits=None
+SCALAR_PRODUCT_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=32 tape=false row=1 preparation_wall_ns=128064 play_wall_ns=10638 plan=04b858663000caaf72861e0fb0c10373d976fa2391762705eb66c47897119acc play=b4b397219ed68971ee9a71ea2da90c7b90677fd39f7d49f16e6d273ccc27366b provider=std/kernel-pure-expression@1 artifact=conduit-plot/pure-expression@1
+SCALAR_MICRO_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=32 tape=false row=2 iterations=100000 authoring_plan_wall_ns=23604449 evaluator_preparation_wall_ns=7664 warm_evaluator_wall_ns=156937765 optimized_rust_wall_ns=40988 limits=None
+SCALAR_PRODUCT_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=32 tape=false row=2 preparation_wall_ns=127589 play_wall_ns=10219 plan=bcd11b4612c22197f03d5e3a7198fa7efc7758edf8262bb01a436abd0cf188c8 play=602d4e868e9291bcf94a7d8dec92cc013d2ca1d1bba63085d40da046c921ae35 provider=std/kernel-pure-expression@1 artifact=conduit-plot/pure-expression@1
+SCALAR_MICRO_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=32 tape=false row=3 iterations=100000 authoring_plan_wall_ns=23610593 evaluator_preparation_wall_ns=7744 warm_evaluator_wall_ns=157923109 optimized_rust_wall_ns=40954 limits=None
+SCALAR_PRODUCT_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=32 tape=false row=3 preparation_wall_ns=167967 play_wall_ns=15044 plan=fec620d19036459868e7027c1e780996c0962c033f478c589cb8b2aea53f1fe2 play=6b9e974b59377e93f9cf8d5a65b592d26e2bfc917265047ea3f021ae06539054 provider=std/kernel-pure-expression@1 artifact=conduit-plot/pure-expression@1
+SCALAR_MICRO_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=32 tape=false row=4 iterations=100000 authoring_plan_wall_ns=24440911 evaluator_preparation_wall_ns=8019 warm_evaluator_wall_ns=156817260 optimized_rust_wall_ns=45612 limits=None
+SCALAR_PRODUCT_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=32 tape=false row=4 preparation_wall_ns=133845 play_wall_ns=13214 plan=a8927729e8c77d7d3eff4c8e369066ad86962a1ea978034f3ec2f0ba950e0193 play=2c238df066527c2bae48f714f02a146a4ad1eed0409049d56c7c664fafec43f7 provider=std/kernel-pure-expression@1 artifact=conduit-plot/pure-expression@1
+SCALAR_MICRO_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=32 tape=false row=5 iterations=100000 authoring_plan_wall_ns=23780221 evaluator_preparation_wall_ns=7788 warm_evaluator_wall_ns=156871842 optimized_rust_wall_ns=41023 limits=None
+SCALAR_PRODUCT_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=32 tape=false row=5 preparation_wall_ns=136445 play_wall_ns=11830 plan=9b07194978ddb7b118952eb730422f5fd4725d0980bb516168ec6ecd1946f0a9 play=81c625fa2f625913260083895c918c838f0c332e1327cf1b86804104ec4c5e81 provider=std/kernel-pure-expression@1 artifact=conduit-plot/pure-expression@1
+SCALAR_MICRO_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=32 tape=false row=6 iterations=100000 authoring_plan_wall_ns=23773799 evaluator_preparation_wall_ns=7704 warm_evaluator_wall_ns=157229859 optimized_rust_wall_ns=40952 limits=None
+SCALAR_PRODUCT_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=32 tape=false row=6 preparation_wall_ns=126510 play_wall_ns=10553 plan=5f24ffa5e60721e7c553a260c3bd69c26c2d93625ddf681523e8aa5a23b322b0 play=d355c0fc6ff358bb9e075f5e5ae51323da2f901d85d887ed220501075e39a2d7 provider=std/kernel-pure-expression@1 artifact=conduit-plot/pure-expression@1
+SCALAR_MICRO_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=32 tape=false row=7 iterations=100000 authoring_plan_wall_ns=23517929 evaluator_preparation_wall_ns=7695 warm_evaluator_wall_ns=157203897 optimized_rust_wall_ns=40973 limits=None
+SCALAR_PRODUCT_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=32 tape=false row=7 preparation_wall_ns=124504 play_wall_ns=10537 plan=4653d0b931b9cdc0733c1343e026a9b08b1094af9f3e097bf25ac24d7b39b15c play=d2263d0590565bc16bbc6f4925236075d5a781e65a8d82bb5d6c6f6c2629a4ab provider=std/kernel-pure-expression@1 artifact=conduit-plot/pure-expression@1
+SCALAR_MICRO_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=32 tape=true row=0 iterations=100000 authoring_plan_wall_ns=23722581 evaluator_preparation_wall_ns=9500 warm_evaluator_wall_ns=92547607 optimized_rust_wall_ns=40990 limits=Some((65, 5120))
+SCALAR_PRODUCT_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=32 tape=true row=0 preparation_wall_ns=146608 play_wall_ns=10081 plan=2159dc2d702f997e6e5ffed1fc9b424f6c00160f59e6e06b7ae4d37c8a1f5481 play=9524e47529590493253086c9ce9ee998c518a8adfbf1c297dfcbbb9a08b5b303 provider=std/kernel-pure-scalar-tape@1 artifact=conduit-plot/pure-scalar-tape@1
+SCALAR_MICRO_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=32 tape=true row=1 iterations=100000 authoring_plan_wall_ns=23678861 evaluator_preparation_wall_ns=9370 warm_evaluator_wall_ns=92025952 optimized_rust_wall_ns=40104 limits=Some((65, 5120))
+SCALAR_PRODUCT_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=32 tape=true row=1 preparation_wall_ns=146663 play_wall_ns=9749 plan=cd0b8262e06919c19874036b53f358ff41eec1b4447d50dfd10e80ebb6cbe788 play=99f1949b5aab59c261f55d8d27f6685bc3357ae1a7400d02a03f1fd9de5e698e provider=std/kernel-pure-scalar-tape@1 artifact=conduit-plot/pure-scalar-tape@1
+SCALAR_MICRO_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=32 tape=true row=2 iterations=100000 authoring_plan_wall_ns=23469473 evaluator_preparation_wall_ns=9726 warm_evaluator_wall_ns=90582690 optimized_rust_wall_ns=40947 limits=Some((65, 5120))
+SCALAR_PRODUCT_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=32 tape=true row=2 preparation_wall_ns=153006 play_wall_ns=11164 plan=691c493f35871232ffd6af76634742a3ffcca0fec294847a4a893d26084cb36d play=cff2f2aa66efc8c7d43c40f38f0bab355e3da8ccd89981a92f8c839b85411ef7 provider=std/kernel-pure-scalar-tape@1 artifact=conduit-plot/pure-scalar-tape@1
+SCALAR_MICRO_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=32 tape=true row=3 iterations=100000 authoring_plan_wall_ns=23610721 evaluator_preparation_wall_ns=9485 warm_evaluator_wall_ns=90981192 optimized_rust_wall_ns=40932 limits=Some((65, 5120))
+SCALAR_PRODUCT_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=32 tape=true row=3 preparation_wall_ns=154728 play_wall_ns=9699 plan=6a1cd6acc9702aece96fab3f4dddeb5f213e04ff2b148269165d78c7071e4847 play=315988db321fe5584d6a20f728154810038addb67e8774962b1a8c0b17a7333d provider=std/kernel-pure-scalar-tape@1 artifact=conduit-plot/pure-scalar-tape@1
+SCALAR_MICRO_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=32 tape=true row=4 iterations=100000 authoring_plan_wall_ns=23462292 evaluator_preparation_wall_ns=9738 warm_evaluator_wall_ns=90763109 optimized_rust_wall_ns=40946 limits=Some((65, 5120))
+SCALAR_PRODUCT_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=32 tape=true row=4 preparation_wall_ns=146043 play_wall_ns=9705 plan=c614ebf305c272a81dffb82669247a64b39a9e33215e84368df4f3c5fcac613d play=41d4cd7a374adfcb2fe87edf7cfd7c2727211867d6ae84160e62f6f9a11c98de provider=std/kernel-pure-scalar-tape@1 artifact=conduit-plot/pure-scalar-tape@1
+SCALAR_MICRO_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=32 tape=true row=5 iterations=100000 authoring_plan_wall_ns=23500825 evaluator_preparation_wall_ns=9634 warm_evaluator_wall_ns=90718385 optimized_rust_wall_ns=40959 limits=Some((65, 5120))
+SCALAR_PRODUCT_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=32 tape=true row=5 preparation_wall_ns=149458 play_wall_ns=9522 plan=1980b47f455c036af946e91cd253aefd2b04a558699f874844dbf68b14910962 play=3f4d7a7350b9a579447ba3ed1594918f4f026c5f02d2756e560d9cd412352e00 provider=std/kernel-pure-scalar-tape@1 artifact=conduit-plot/pure-scalar-tape@1
+SCALAR_MICRO_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=32 tape=true row=6 iterations=100000 authoring_plan_wall_ns=23706730 evaluator_preparation_wall_ns=9529 warm_evaluator_wall_ns=90656251 optimized_rust_wall_ns=44575 limits=Some((65, 5120))
+SCALAR_PRODUCT_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=32 tape=true row=6 preparation_wall_ns=152655 play_wall_ns=37456 plan=a500ad33405098aca6fad7085587bb2dd2eb2045f44d94196a48d250a6ec7d56 play=c7c8dc15cf9f2f55687d30c2b8652efb1183c8398209f930b634f2210bd2e351 provider=std/kernel-pure-scalar-tape@1 artifact=conduit-plot/pure-scalar-tape@1
+SCALAR_MICRO_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=32 tape=true row=7 iterations=100000 authoring_plan_wall_ns=23652576 evaluator_preparation_wall_ns=9860 warm_evaluator_wall_ns=90788227 optimized_rust_wall_ns=40953 limits=Some((65, 5120))
+SCALAR_PRODUCT_SAMPLE source=d1930a8fab3956e96e61f4ff49e30c73df4ed7bf operations=32 tape=true row=7 preparation_wall_ns=143612 play_wall_ns=9388 plan=cccef693eef83195ff6cee05309c03c543facae5e0b16e10ec66a9f66b612349 play=f0ddd05307be4a4d332c26572043e6c12250e8e92b74ae39d20f711cec3f5f0f provider=std/kernel-pure-scalar-tape@1 artifact=conduit-plot/pure-scalar-tape@1
+test source_pinned_scalar_profiles_measure_preparation_and_actual_kernel_play ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.46s
+
