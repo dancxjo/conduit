@@ -917,3 +917,19 @@ retries, including malformed typed values, pre-encoding refusal, subsequent
 valid multibyte requests and native text input. All 19 Node codec tests pass.
 These are renderer admission/queue proofs, not authoritative Body/Play or fresh
 packaged/released browser acceptance; #5644 remains open.
+
+Generic graph argument follow-up (#5644): explicit Host graph requests now
+require scalar/fatal-UTF-8 text and exact membership in the current canvas's
+node, port or cord identities, matching portable ApplicationEvent admission.
+The bounded subject set is derived from the existing canvas during preparation;
+empty canvas scaffolding retains its existing non-membership-constrained path.
+BOM-bearing identities remain exact, including for byte requests.
+
+The regression reproduced five callback/queue admissions before repair: empty
+selection, display label, BOM-stripped alias, retired subject and malformed UTF-8.
+All now refuse with invalid-control-value and an unchanged empty queue. Fourteen
+focused pinned Chromium fixtures pass (one worker, zero retries), including
+valid byte/text requests and native keyboard node/port/cord selection, pointer
+selection, detached-subject refusal, background decoration and typed controls.
+This proves renderer correspondence and queue admission, not authoritative
+Body/Play or fresh packaged/released browser acceptance; #5644 remains open.

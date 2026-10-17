@@ -535,3 +535,41 @@ for (const [capacity, length, refusal] of [[65_536, 65_537, 'event-too-large'], 
     expect(await page.evaluate(() => globalThis.preflightCalls)).toEqual(['é', 'ok']);
   });
 }
+
+
+test('generic graph requests require exact resident subject identities', async ({ page }) => {
+  await page.goto('/proof/browser/signal-dom-host.test.html');
+  await page.evaluate(async () => {
+    const { encodeApplicationView, manifestApplicationView } = await import('/targets/browser/host/assets/application-face.mjs');
+    const root = document.createElement('section'); document.body.append(root);
+    const fields = ['conduit.face/graph-canvas@1', 'checked', 'expanded', 'plan', 'body-plan', 'play', '',
+      '1', 'gear/source', 'Source label', 'source-kind',
+      '2', 'port/out', 'gear/source', 'Output', 'output', 'text', 'event',
+      '\ufeffport/in', 'gear/source', 'Input', 'input', 'text', 'event',
+      '1', 'cord/link', 'port/out', '\ufeffport/in'];
+    const source = fields.map(value => `${new TextEncoder().encode(value).length}:${value}`).join('');
+    globalThis.graphIdentityCalls = [];
+    globalThis.graphIdentityRefusals = [];
+    const manifest = manifestApplicationView(encodeApplicationView({ revision: 1,
+      actions: [{ id: 'fixture.select', event: 'activate' }], nodes: [
+        { parent: null, component: 'patchbay-canvas', key: 'graph', text: 'Graph', value: source, valueCapacity: 65_536, action: 0 },
+      ] }), root, { onEvent: event => globalThis.graphIdentityCalls.push(new TextDecoder('utf-8', { ignoreBOM: true }).decode(event.value)),
+        onRefusal: reason => globalThis.graphIdentityRefusals.push(reason) });
+    for (const value of ['', 'Source label', 'port/in', 'gear/retired', Uint8Array.of(0xff)]) manifest.requestAction('graph', value);
+    globalThis.graphIdentityNegative = { calls: [...globalThis.graphIdentityCalls], queued: manifest.queuedEvents(),
+      refusals: [...globalThis.graphIdentityRefusals] };
+    manifest.requestAction('graph', new TextEncoder().encode('\ufeffport/in'));
+    manifest.requestAction('graph', 'cord/link');
+    globalThis.graphIdentityManifest = manifest;
+  });
+  expect(await page.evaluate(() => globalThis.graphIdentityNegative))
+    .toEqual({ calls: [], queued: 0, refusals: Array(5).fill('invalid-control-value') });
+  await page.getByRole('button', { name: 'Gear Source label, source-kind', exact: true }).focus();
+  await page.keyboard.press('Enter');
+  await page.getByRole('button', { name: 'output Output, text, event', exact: true }).focus();
+  await page.keyboard.press('Space');
+  await page.getByRole('button', { name: 'Cord from Output to Input', exact: true }).focus();
+  await page.keyboard.press('Enter');
+  expect(await page.evaluate(() => ({ calls: globalThis.graphIdentityCalls, queued: globalThis.graphIdentityManifest.queuedEvents() })))
+    .toEqual({ calls: ['\ufeffport/in', 'cord/link', 'gear/source', 'port/out', 'cord/link'], queued: 5 });
+});

@@ -474,7 +474,7 @@ export function manifestApplicationView(input, root, options = {}) {
       options.onRefusal?.(lastRefusal);
       return null;
     }
-    if ([15, 16, 17, 43, 44].includes(node.component)) {
+    if ([11, 15, 16, 17, 43, 44].includes(node.component)) {
       let text;
       try { text = typeof value === "string" ? (value.isWellFormed() ? value : undefined)
         : new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(encodedValue); }
@@ -503,6 +503,10 @@ export function manifestApplicationView(input, root, options = {}) {
   for (const [nodeIndex, node] of view.nodes.entries()) {
     if (node.component === 16) {
       choiceValues.set(node, new Set(view.nodes.filter(child => child.parent === nodeIndex && child.component === 22).map(child => child.value)));
+    }
+    if (node.component === 11 && node.value) {
+      const graph = decodeGraphCanvas(node.value);
+      choiceValues.set(node, new Set([...graph.nodes, ...graph.ports, ...graph.cords].map(subject => subject.identity)));
     }
     const [tag, kind] = COMPONENTS[node.component];
     const element = document.createElement(tag);
