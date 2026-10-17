@@ -227,13 +227,16 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
         }
         node.append(values);
       }
-      if (subject.properties.length) {
+      const flags = Array.isArray(subject.flags) ? subject.flags.filter(flag =>
+        typeof flag?.name === 'string' && typeof flag.value === 'boolean') : [];
+      if (subject.properties.length || flags.length) {
         const details = document.createElement('details');
         details.append(faceNode('summary', 'Exact facts'));
         const list = document.createElement('ul');
         for (const property of subject.properties) {
           const item = document.createElement('li'); item.textContent = property; list.append(item);
         }
+        for (const flag of flags) list.append(faceNode('li', `${flag.name}: ${flag.value}`));
         details.append(list); node.append(details);
       }
       for (const action of view.actions.filter(action => action.target === subject.identity
@@ -300,7 +303,7 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
     inspection.append(faceNode('summary', 'Inspect other Face subjects'));
     for (const group of view.subjects) {
       if (group.semantic_role !== 'conduit.face/choice-group@1'
-        || group.choice_multiplicity !== 'exclusive') continue;
+        || group.choice_multiplicity !== 'exclusive' || group.values?.length || group.properties?.length) continue;
       const options = view.relationships
         .filter(relation => relation.kind === 'Contains' && relation.source === group.identity)
         .map(relation => view.subjects.find(subject => subject.identity === relation.target));
@@ -310,7 +313,8 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
       const selectedFlags = options.map(option => Array.isArray(option?.flags)
         ? option.flags.filter(flag => flag?.name === 'selected') : []);
       if (!options.length || new Set(options.map(option => option?.identity)).size !== options.length
-        || options.some((option, index) => !option || selectedFlags[index].length !== 1
+        || options.some((option, index) => !option || option.text?.length || option.values?.length
+          || option.properties?.length || selectedFlags[index].length !== 1
           || typeof selectedFlags[index][0].value !== 'boolean' || offered[index].length !== 1
           || !Array.isArray(offered[index][0].arguments) || offered[index][0].arguments.length !== 0)
         || selectedFlags.filter(flags => flags[0].value).length > 1) continue;
