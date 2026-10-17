@@ -201,6 +201,14 @@ fn browser_probes() -> Vec<ProbeSpec> {
     vec![
         probe(
             "browser",
+            "doctor.browser.wasm-opt",
+            "Binaryen browser release optimizer",
+            "wasm-opt",
+            &["--version"],
+            Some("install Binaryen (wasm-opt) for browser release packaging"),
+        ),
+        probe(
+            "browser",
             "doctor.browser.playwright",
             "Playwright CLI",
             "node",
