@@ -2,7 +2,34 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { openReleaseCatalog, createMemoryReleaseCache } from "../../targets/browser/workspace/creche-release-catalog.mjs";
 
+import { acquireHostRelease, acquireExactReleaseBytes } from "../../targets/browser/workspace/creche-release-bundle.mjs";
+
 const encoder = new TextEncoder();
+
+test("release fetch failures retain manifest versus payload work custody", async () => {
+  const profile = {
+    target_id: "std/x86_64/computer", package_id: "hosted-native@1",
+    output: "native-bundle", builder_adapter: "conduit-host-hosted/build-native@1",
+    deployment_adapter: "conduit-host-hosted/launch@1",
+    manifest_path: "https://mirror.example/releases/hosted-linux-x86_64.json",
+  };
+  for (const networkFailure of [false, true]) {
+    const fetcher = async () => {
+      if (networkFailure) throw new Error("offline");
+      return new Response("missing", { status: 404 });
+    };
+    const evidence = (artifactStarted) => (error) => error.code === "ArtifactUnavailable"
+      && error.evidence.operation === "obtain"
+      && error.evidence.authority_requested === false
+      && error.evidence.artifact_work_started === artifactStarted
+      && error.evidence.external_work_started === false;
+    await assert.rejects(acquireHostRelease(profile, undefined, { fetcher }), evidence(false));
+    await assert.rejects(acquireExactReleaseBytes({
+      url: "https://mirror.example/releases/host.bin", maximumBytes: 1024,
+      fetcher, label: "host.bin",
+    }), evidence(true));
+  }
+});
 
 test("selected target alone is fetched, verified, and reused from immutable cache", async () => {
   const payload = encoder.encode("reviewed-host-bundle");
