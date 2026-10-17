@@ -535,7 +535,7 @@ for (const reattach of [false, true]) {
   });
 }
 
-for (const unavailable of ['disconnected', 'hidden']) {
+for (const unavailable of ['disconnected', 'hidden', 'transparent']) {
 test(`a ${unavailable} exclusive-choice listener cannot dispatch or reset current selection`, async ({ page }) => {
   await page.goto('/proof/browser/signal-dom-host.test.html');
   const choices = {
@@ -565,7 +565,8 @@ test(`a ${unavailable} exclusive-choice listener cannot dispatch or reset curren
       element.remove();
       document.body.append(element);
       element.disabled = false;
-    } else obsolete.hidden = true;
+    } else if (unavailable === 'transparent') obsolete.closest('label').style.opacity = '0';
+    else obsolete.hidden = true;
     obsolete.dispatchEvent(new Event('change', { bubbles: true }));
   }, { view: choices, unavailable });
   expect(await page.evaluate(() => globalThis.calls)).toEqual([]);
@@ -583,7 +584,7 @@ test(`a ${unavailable} exclusive-choice listener cannot dispatch or reset curren
 });
 }
 
-for (const hidden of ['attribute', 'visibility', 'disclosure', 'fieldset']) {
+for (const hidden of ['attribute', 'visibility', 'opacity', 'owner-opacity', 'disclosure', 'fieldset']) {
   test(`hidden owner actions refuse dispatch (${hidden})`, async ({ page }) => {
     await page.goto('/proof/browser/signal-dom-host.test.html');
     await page.evaluate(async ({ view, hidden }) => {
@@ -596,6 +597,8 @@ for (const hidden of ['attribute', 'visibility', 'disclosure', 'fieldset']) {
       const form = element.shadowRoot.querySelector('form');
       if (hidden === 'attribute') form.hidden = true;
       if (hidden === 'visibility') form.style.visibility = 'hidden';
+      if (hidden === 'opacity') form.style.opacity = '0';
+      if (hidden === 'owner-opacity') element.style.opacity = '0';
       if (hidden === 'disclosure') {
         const details = document.createElement('details');
         const summary = document.createElement('summary'); summary.textContent = 'Actions';
@@ -612,7 +615,7 @@ for (const hidden of ['attribute', 'visibility', 'disclosure', 'fieldset']) {
     const element = page.locator('conduit-owner-face');
     await element.evaluate(node => {
       const form = node.shadowRoot.querySelector('form');
-      form.hidden = false; form.style.visibility = '';
+      form.hidden = false; form.style.visibility = ''; form.style.opacity = ''; node.style.opacity = '';
       const fieldset = form.closest('fieldset');
       if (fieldset) fieldset.disabled = false;
     });
