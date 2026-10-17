@@ -6,10 +6,10 @@ use super::{
 };
 use alloc::vec::Vec;
 use conduit_core::{
-    ArtifactId, CostExecutionCondition, ExactNumericWork, ExactRational, HostAdvertisement,
+    ArtifactId, CostExecutionCondition, ExactNumericWork, ExactRational, HostAdvertisement, KindId,
     MonotonicInstant, Plan, PlanId, PoolCostCalibrationRevision, PoolCostPreparation,
-    PoolCostPreparationRefusal, PoolOperationId, PreparedPoolCost, QuantityRole, RationalQuantity,
-    SharedPoolId, SignId, Unit,
+    PoolCostPreparationRefusal, PoolOperationId, PortId, PreparedPoolCost, QuantityRole,
+    RationalQuantity, SharedPoolId, SignId, Unit,
 };
 
 pub struct PoolForecastPreparation<'a, 'current> {
@@ -55,10 +55,20 @@ pub struct PoolForecastBinding {
     pub realization: u16,
 }
 
+/// Bounded request identity without retaining prompt or other input contents.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PoolForecastInput {
+    pub port: PortId,
+    pub kind: KindId,
+    pub bytes: usize,
+    pub digest: [u8; 32],
+}
+
 /// Owned explanation retains stages and sources without canonical input bytes.
 #[derive(Debug)]
 pub struct PoolForecastPreparationAccount {
     pub binding: PoolForecastBinding,
+    pub configuration_digest: [u8; 32],
     pub source: CostSourceAttribution,
     pub calibration: Option<CostSourceAttribution>,
     pub execution_assumption: Option<(CostSourceAttribution, CostExecutionCondition)>,
@@ -66,6 +76,7 @@ pub struct PoolForecastPreparationAccount {
     pub stages: CostForecastStages,
     pub lower_seconds: ExactRational,
     pub upper_seconds: ExactRational,
+    pub inputs: Vec<PoolForecastInput>,
     pub input_count: usize,
     pub input_bytes: usize,
     /// Metric identity, revision, admitted maximum, actual owner-derived amount.
@@ -176,6 +187,9 @@ pub fn prepare_pool_cost_forecast<'a>(
                 demand: input.demand_identity,
                 realization: input.realization,
             },
+            configuration_digest: conduit_core::pool_operation_configuration_digest(
+                &input.request.class().gear().configuration,
+            ),
             source: CostSourceAttribution::from_source(source),
             calibration: forecast
                 .calibration()
@@ -198,6 +212,17 @@ pub fn prepare_pool_cost_forecast<'a>(
             stages: forecast.forecast().stages(),
             lower_seconds: forecast.lower_seconds(),
             upper_seconds: forecast.upper_seconds(),
+            inputs: input
+                .request
+                .inputs()
+                .iter()
+                .map(|input| PoolForecastInput {
+                    port: input.port.clone(),
+                    kind: input.value.value_kind.clone(),
+                    bytes: input.value.encoded.len(),
+                    digest: conduit_core::pool_operation_input_digest(&input.value.encoded),
+                })
+                .collect(),
             input_count: input.request.inputs().len(),
             input_bytes: input.request.input_bytes(),
             work: input.request.work_estimate().map(|w| {
