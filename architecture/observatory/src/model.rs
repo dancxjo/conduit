@@ -311,8 +311,30 @@ pub struct FragmentRow {
     pub boot_id: BootId,
 }
 
+/// Original logical identity and Fore contracts, copied from the sealed Plan.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LogicalGearRow {
+    pub gear_id: conduit_core::GearId,
+    pub source_span: Option<conduit_core::SourceSpan>,
+    pub inputs: Vec<PortDescriptor>,
+    pub outputs: Vec<PortDescriptor>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LogicalCordRow {
+    pub source_port_id: conduit_core::PortId,
+    pub sink_port_id: conduit_core::PortId,
+    pub track: conduit_core::ConnectionTrack,
+    pub temporal: conduit_core::PortTemporal,
+    pub pressure_policy: conduit_core::DeliveryPressurePolicy,
+    pub abnormal_kind: Option<KindId>,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PlacementRow {
+    /// Older retained reports have unknown logical provenance, never invented IDs.
+    #[serde(default)]
+    pub logical_gear: Option<LogicalGearRow>,
     pub plan_id: PlanId,
     pub placement_id: PlacementId,
     pub host_id: HostId,
@@ -331,6 +353,8 @@ pub struct PlacementRow {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ConnectionRow {
+    #[serde(default)]
+    pub logical_cord: Option<LogicalCordRow>,
     pub plan_id: PlanId,
     pub connection_id: ConnectionId,
     pub source_placement_id: PlacementId,

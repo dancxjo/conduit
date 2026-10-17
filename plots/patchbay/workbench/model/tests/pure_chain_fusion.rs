@@ -201,6 +201,37 @@ fn all_thirty_two_logical_gears_and_cords_survive_physical_inspection() {
     assert_eq!(report.execution_fusions.len(), 1);
     assert_eq!(report.placements.len(), 32);
     assert_eq!(report.connections.len(), 31);
+    for row in &report.placements {
+        let logical = row
+            .logical_gear
+            .as_ref()
+            .expect("logical Gear identity missing");
+        let original = snapshot.plans[0].fragments[0]
+            .placements
+            .iter()
+            .find(|p| p.placement_id == row.placement_id)
+            .unwrap();
+        assert_eq!(logical.gear_id, original.gear_id);
+        assert_eq!(logical.inputs, original.inputs);
+        assert_eq!(logical.outputs, original.outputs);
+        assert_eq!(logical.source_span, original.source_span);
+    }
+    for row in &report.connections {
+        let logical = row
+            .logical_cord
+            .as_ref()
+            .expect("logical Cord contract missing");
+        let original = snapshot.plans[0].fragments[0]
+            .connections
+            .iter()
+            .find(|c| c.connection_id == row.connection_id)
+            .unwrap();
+        assert_eq!(logical.source_port_id, original.source_port_id);
+        assert_eq!(logical.sink_port_id, original.sink_port_id);
+        assert_eq!(logical.track, original.track);
+        assert_eq!(logical.temporal, original.temporal);
+        assert_eq!(logical.pressure_policy, original.pressure_policy);
+    }
     let text = patchbay.document(None).unwrap().lines().join("\n");
     assert!(text.contains("FUSION"));
     for placement in &snapshot.plans[0].fragments[0].placements {
