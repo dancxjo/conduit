@@ -42,6 +42,18 @@ pub(super) fn ensure_retained_sign_capacity(
     if item_headroom && byte_headroom {
         return Ok(());
     }
+    retained_sign_capacity(events, item_capacity, byte_capacity, additional)
+}
+
+// Keep the retained-history walk independent of the physical-headroom guard.
+// This preserves one compact loop for pressured logs.
+#[inline(never)]
+fn retained_sign_capacity(
+    events: impl Iterator<Item = KernelEvent>,
+    item_capacity: u16,
+    byte_capacity: u32,
+    additional: u16,
+) -> Result<(), SignError> {
     let retained = events.filter(|event| !transient_sign(event.kind)).count();
     if retained
         .checked_add(usize::from(additional))
