@@ -138,3 +138,15 @@ acceptance before repair. Seven focused Node-side builder/verifier tests pass
 through the pinned runner (one worker, zero retries), including exact-boundary
 acceptance and all three refusals. Padded/header payloads establish envelope
 bounds, not executable module, runtime ABI or packaged browser proof.
+
+Package-path follow-up: BUILD, SDK packaging and SDK loading reject URL schemes,
+query/fragment delimiters, ASCII whitespace/control characters and the existing
+absolute/traversal/percent/backslash forms. A declared asset must name the exact
+package resource rather than a URL-normalized alternative.
+
+Nine adversarial paths reproduced BUILD acceptance before repair. Eight focused
+Node-side builder tests pass through the pinned runner (one worker, zero retries),
+as does the producer fixture. Four SDK Node tests pass; a new public-entrance
+fixture checks five URL-changing paths are refused before asset fetch. Its
+manifest/fetch environment is synthetic and proves loader refusal, not actual
+browser execution or public package provenance.

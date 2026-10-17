@@ -183,6 +183,9 @@ function requireDistribution(distribution) {
     refuse("ArtifactBound", "reviewed browser distribution inventory must be finite and unique");
   }
   for (const file of manifest.files) {
+    if (!safeRelativePath(file?.path)) {
+      refuse("ArtifactPathRejected", "reviewed browser asset path is outside its exact static package");
+    }
     const maximum = file?.path === "runtime.wasm" ? 20 * 1024 * 1024 : 256 * 1024;
     if (!Number.isSafeInteger(file?.bytes) || file.bytes < 1 || file.bytes > maximum) {
       refuse("ArtifactBound", "reviewed browser asset exceeds its browser consumer byte bound");
@@ -264,6 +267,12 @@ async function digestFileIdentities(files) {
 
 function encodeCanonical(value) { return encoder.encode(JSON.stringify(value)); }
 function digestIdentity(value) { return typeof value === "string" && /^(?:sha256|(?:build|image):sha256):[0-9a-f]{64}$/.test(value); }
+function safeRelativePath(value) {
+  return typeof value === "string" && value.length > 0 && value.length <= 256
+    && !value.startsWith("/") && !value.includes("\\") && !value.includes("%")
+    && !/[:?#\u0000-\u0020\u007f]/.test(value)
+    && !value.split("/").some(segment => !segment || segment === "." || segment === "..");
+}
 function boundedText(value, maximum) { return typeof value === "string" && value.length > 0 && value.length <= maximum; }
 async function sha256(bytes) {
   const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));

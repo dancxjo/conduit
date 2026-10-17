@@ -185,5 +185,6 @@ async function sha256(bytes) {
 function safePath(value) {
   return typeof value === "string" && value.length > 0 && value.length <= 256
     && !value.startsWith("/") && !value.includes("\\") && !value.includes("%")
+    && !/[:?#\u0000-\u0020\u007f]/.test(value)
     && !value.split("/").some((segment) => !segment || segment === "." || segment === "..");
 }

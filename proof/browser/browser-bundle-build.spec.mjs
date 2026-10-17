@@ -185,6 +185,24 @@ test("BrowserBundle BUILD applies browser per-asset bounds before hashing payloa
   expect(results).toEqual(cases);
 });
 
+test("BrowserBundle BUILD refuses paths that cannot name exact package-local assets", async () => {
+  const paths = ["../host.mjs", "/host.mjs", "https:host.mjs", "host.mjs?other", "host.mjs#other",
+    "host%2emjs", "host\\other.mjs", "host\nother.mjs", "host\tother.mjs"];
+  const results = [];
+  for (const path of paths) {
+    const distribution = await fixture();
+    distribution.manifest.files[1].path = path;
+    distribution.payloads[1].path = path;
+    distribution.manifest.reviewed_distribution.modules[0].path = path;
+    distribution.manifest.bundle_sha256 = await bundleDigest(distribution.manifest.files);
+    try {
+      await buildBrowserBundleImage({ checked: checked(ids, "a"), distribution });
+      results.push("accepted");
+    } catch (error) { results.push(error.code); }
+  }
+  expect(results).toEqual(paths.map(() => "ArtifactPathRejected"));
+});
+
 function checked(implementations, suffix) {
   return Object.freeze({
     schema: "conduit.creche/checked-browser-configuration@1",
