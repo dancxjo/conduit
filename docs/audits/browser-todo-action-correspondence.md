@@ -1195,3 +1195,17 @@ stepper indices. These are renderer keyboard proofs, not authoritative Body/Play
 or packaged/release acceptance; #5631 remains open. Branch inventory found no
 ordinary branch with an identical archive/recovery tip eligible for deduplication;
 uncertain work remains preserved.
+
+Graph keyboard handler ownership (#5631): the SVG button keyboard shim respects
+keydown events already consumed by a prior handler. Space release always clears
+its local pending press, and a consumed release cancels activation. A later keyup
+without a new press cannot revive the canceled action. Pointer routing and the
+existing typed graph subject/availability checks remain unchanged.
+
+Both regressions reproduced semantic activation before repair. Ten focused
+pinned Chromium fixtures pass with one worker and zero retries, including native
+claimed Enter/Space, explicit adversarial extra keyup, fresh native recovery,
+held Space/blur cancellation, pointer/Enter routing and exact node/port/cord
+identities. These are renderer keyboard/queue proofs, not authoritative Body/Play
+or packaged/release acceptance; #5631 remains open. No ordinary locally merged
+branches remain eligible for deletion; archive/dev/live/main refs are preserved.

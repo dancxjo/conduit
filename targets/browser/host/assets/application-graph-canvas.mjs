@@ -70,6 +70,7 @@ export function renderGraphCanvas(element, source, select) {
     node.addEventListener('click', () => select(identity, node));
     let spacePending = false;
     node.addEventListener('keydown', event => {
+      if (event.defaultPrevented) return;
       if (event.key === 'Enter') { event.preventDefault(); select(identity, node); }
       else if (event.key === ' ') {
         event.preventDefault();
@@ -77,9 +78,11 @@ export function renderGraphCanvas(element, source, select) {
       }
     });
     node.addEventListener('keyup', event => {
-      if (event.key !== ' ' || !spacePending) return;
-      event.preventDefault();
+      if (event.key !== ' ') return;
+      const pending = spacePending;
       spacePending = false;
+      if (event.defaultPrevented || !pending) return;
+      event.preventDefault();
       select(identity, node);
     });
     node.addEventListener('blur', () => { spacePending = false; });

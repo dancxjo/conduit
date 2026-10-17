@@ -1155,3 +1155,38 @@ for (const key of ['Control+ArrowRight', 'Alt+ArrowDown', 'Meta+End', 'Shift+Arr
     expect(await page.evaluate(() => globalThis.shortcutCalls)).toEqual(['second']);
   });
 }
+
+for (const mode of ['claimed-enter', 'claimed-space-release']) {
+  test(`graph keyboard activation respects prior handlers (${mode})`, async ({ page }) => {
+    await page.goto('/proof/browser/signal-dom-host.test.html');
+    await page.evaluate(async mode => {
+      const { encodeApplicationView, manifestApplicationView } = await import('/targets/browser/host/assets/application-face.mjs');
+      const root = document.createElement('section'); document.body.append(root);
+      const source = ['conduit.face/graph-canvas@1', 'checked', 'expanded', 'plan', 'body-plan', 'play', '',
+        '1', 'gear', 'Source', 'kind', '0', '0'].map(value => `${new TextEncoder().encode(value).length}:${value}`).join('');
+      globalThis.claimedGraphCalls = [];
+      globalThis.claimedGraphManifest = manifestApplicationView(encodeApplicationView({ revision: 1,
+        actions: [{ id: 'select', event: 'activate' }], nodes: [
+          { parent: null, component: 'patchbay-canvas', key: 'graph', text: 'Graph', value: source, valueCapacity: 65_536, action: 0 },
+        ] }), root, { onEvent: event => globalThis.claimedGraphCalls.push(new TextDecoder().decode(event.value)) });
+      const type = mode === 'claimed-enter' ? 'keydown' : 'keyup';
+      const claim = event => event.preventDefault();
+      root.addEventListener(type, claim, { capture: true });
+      globalThis.releaseGraphClaim = () => root.removeEventListener(type, claim, { capture: true });
+    }, mode);
+    const subject = page.getByRole('button', { name: 'Gear Source, kind', exact: true });
+    await subject.focus();
+    await page.keyboard.press(mode === 'claimed-enter' ? 'Enter' : 'Space');
+    expect(await page.evaluate(() => ({ calls: globalThis.claimedGraphCalls, queued: globalThis.claimedGraphManifest.queuedEvents() })))
+      .toEqual({ calls: [], queued: 0 });
+    await page.evaluate(() => globalThis.releaseGraphClaim());
+    if (mode === 'claimed-space-release') {
+      // Adversarial keyup without another admitted press must not revive it.
+      await subject.evaluate(element => element.dispatchEvent(new KeyboardEvent('keyup', { key: ' ', bubbles: true })));
+      expect(await page.evaluate(() => globalThis.claimedGraphCalls)).toEqual([]);
+    }
+    await page.keyboard.press(mode === 'claimed-enter' ? 'Enter' : 'Space');
+    expect(await page.evaluate(() => ({ calls: globalThis.claimedGraphCalls, queued: globalThis.claimedGraphManifest.queuedEvents() })))
+      .toEqual({ calls: ['gear'], queued: 1 });
+  });
+}
