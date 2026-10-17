@@ -899,3 +899,90 @@ for (const redirected of [true, false]) {
       ? 'Failed to fetch' : 'browser application package schema is unsupported');
   });
 }
+
+for (const kind of ['entry-kind', 'runtime-kind', 'module', 'classic-script', 'shared']) {
+  test(`static application loader preflights dependency graph (${kind})`, async ({ page }) => {
+    await page.goto('/proof/browser/signal-dom-host.test.html');
+    await page.evaluate(async kind => {
+      document.body.innerHTML = '<main id="workspace"></main>';
+      const meta = document.createElement('meta');
+      meta.name = 'conduit-application-package'; meta.content = '/fixture-application.json';
+      document.head.append(meta);
+      const resource = (role, dependencies = []) => ({ role, kind: (kind === 'entry-kind' && role === 'application-module') || (kind === 'runtime-kind' && role === 'runtime') ? 'content' : role === 'runtime' ? 'wasm'
+        : kind === 'classic-script' && role !== 'application-module' ? 'classic-script' : 'module',
+        path: role + '.mjs', maximum_bytes: 1024, sha256: 'sha256:' + 'a'.repeat(64),
+        dependencies: dependencies.map(role => ({ role, specifier: './' + role + '.mjs' })) });
+      const manifest = { schema: 'conduit.browser/application-package@1', application_id: 'fixture/graph',
+        package_digest: 'sha256:' + 'b'.repeat(64), state_compatibility: { identity: 'fixture/graph-state', version: 1 },
+        host_implementations: ['browser/dom@1'], resources: [resource('application-module', kind === 'shared' ? ['second'] : []), resource('runtime'),
+          resource('first', ['second']), resource('second', kind === 'shared' || kind.endsWith('-kind') ? [] : ['first'])] };
+      if (kind !== 'shared') {
+        const lines = ['conduit.browser/application-package-content@1', 'application\0' + manifest.application_id,
+          'state\0' + manifest.state_compatibility.identity + '\0' + manifest.state_compatibility.version,
+          'host-implementation\0browser/dom@1'];
+        for (const resource of manifest.resources) lines.push('resource\0' + [resource.role, resource.kind, resource.path,
+          resource.maximum_bytes, resource.sha256, resource.dependencies.map(dep => dep.role + '=' + dep.specifier).join(',')].join('\0'));
+        const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(lines.join('\n') + '\n'));
+        manifest.package_digest = 'sha256:' + [...new Uint8Array(digest)].map(byte => byte.toString(16).padStart(2, '0')).join('');
+      }
+      globalThis.resourceRequests = 0;
+      globalThis.fetch = async url => {
+        if (!String(url).endsWith('/fixture-application.json')) globalThis.resourceRequests++;
+        return new Response(JSON.stringify(manifest));
+      };
+      await import('/targets/browser/host/assets/browser-application-loader.mjs');
+    }, kind);
+    await expect(page.locator('#workspace.error')).toHaveText(kind === 'shared'
+      ? 'application package identity changed' : kind.endsWith('-kind')
+        ? 'application package entry or runtime kind is invalid' : 'application resource dependency cycle refused');
+    expect(await page.evaluate(() => globalThis.resourceRequests)).toBe(0);
+  });
+}
+
+for (const refused of [true, false]) {
+  test(`static application loader releases prepared module URLs (refused: ${refused})`, async ({ page }) => {
+    await page.goto('/proof/browser/signal-dom-host.test.html');
+    await page.evaluate(async refused => {
+      document.body.innerHTML = '<main id="workspace"></main>';
+      const meta = document.createElement('meta');
+      meta.name = 'conduit-application-package'; meta.content = '/fixture-application.json';
+      document.head.append(meta);
+      const encoder = new TextEncoder();
+      const hash = async bytes => 'sha256:' + [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))]
+        .map(byte => byte.toString(16).padStart(2, '0')).join('');
+      const source = (refused ? '' : 'import "./helper.mjs";\n')
+        + 'export async function startApplication() { document.querySelector("#workspace").textContent = "Started fixture"; }';
+      const definitions = [
+        ['application-module', 'module', 'entry.mjs', source, [{ role: 'helper', specifier: './helper.mjs' }]],
+        ['helper', 'module', 'helper.mjs', 'export const ready = true;', []],
+        ['runtime', 'wasm', 'runtime.wasm', 'fixture envelope', []],
+      ];
+      const resources = [];
+      const bodies = new Map();
+      for (const [role, kind, path, text, dependencies] of definitions) {
+        const bytes = encoder.encode(text); bodies.set(path, bytes);
+        resources.push({ role, kind, path, maximum_bytes: bytes.length, sha256: await hash(bytes), dependencies });
+      }
+      const manifest = { schema: 'conduit.browser/application-package@1', application_id: 'fixture/module-cleanup',
+        state_compatibility: { identity: 'fixture/module-cleanup-state', version: 1 },
+        host_implementations: ['browser/indexeddb@1'], resources };
+      const lines = ['conduit.browser/application-package-content@1', 'application\0' + manifest.application_id,
+        'state\0' + manifest.state_compatibility.identity + '\0' + 1, 'host-implementation\0browser/indexeddb@1'];
+      for (const resource of resources) lines.push('resource\0' + [resource.role, resource.kind, resource.path,
+        resource.maximum_bytes, resource.sha256, resource.dependencies.map(dep => dep.role + '=' + dep.specifier).join(',')].join('\0'));
+      manifest.package_digest = await hash(encoder.encode(lines.join('\n') + '\n'));
+      globalThis.fetch = async url => new Response(String(url).endsWith('/fixture-application.json')
+        ? JSON.stringify(manifest) : bodies.get(new URL(url).pathname.split('/').at(-1)));
+      globalThis.moduleUrls = { created: [], revoked: [] };
+      const create = URL.createObjectURL.bind(URL), revoke = URL.revokeObjectURL.bind(URL);
+      URL.createObjectURL = blob => { const url = create(blob); globalThis.moduleUrls.created.push(url); return url; };
+      URL.revokeObjectURL = url => { globalThis.moduleUrls.revoked.push(url); revoke(url); };
+      await import('/targets/browser/host/assets/browser-application-loader.mjs');
+    }, refused);
+    await expect(page.locator('#workspace')).toHaveText(refused
+      ? 'application module application-module did not use its declared dependency' : 'Started fixture');
+    const urls = await page.evaluate(() => globalThis.moduleUrls);
+    expect(urls.created).toHaveLength(refused ? 1 : 2);
+    expect(urls.revoked).toEqual(urls.created);
+  });
+}

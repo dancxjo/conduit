@@ -211,3 +211,41 @@ worker and zero retries: redirect refusal, direct response reaching schema
 admission, and all three streaming-bound cases. Redirects are intercepted local
 responses and the destination is observed through browser request events; this
 does not establish full packaged runtime or public deployment acceptance.
+
+Application graph-preflight follow-up: module and classic-script dependency
+cycles are now refused during manifest admission, before resource fetch, script
+execution or storage initialization. Active/completed visitation follows the
+same-kind executable edges used by the existing loaders, over their already
+bounded resource/dependency tables. Shared dependencies remain admissible;
+execution-time cycle guards remain in place.
+
+A correctly hashed cyclic module manifest reproduced resource downloading before
+repair. Eight focused pinned Chromium loader fixtures pass with one worker and
+zero retries, including module/classic cycle refusal with zero resource requests
+and a shared-dependency graph reaching package-identity validation. The shared
+fixture intentionally has a false package digest; it proves graph admission, not
+module execution. These synthetic package fixtures do not prove packaged runtime
+or public acceptance.
+
+Application module-URL cleanup follow-up: the entry preparation call now runs
+inside the same finally boundary as module import. If preparation creates a
+dependency Blob URL and then refuses a missing declared import, every created
+module URL is revoked rather than retained until the page closes.
+
+Pinned Chromium reproduced one created and zero revoked URLs before repair.
+Ten focused production-loader fixtures pass with one worker and zero retries.
+The new cases cover preparation refusal (one URL revoked) and successful tiny
+module startup (two URLs revoked). Their package/resource hashes recompute and
+the modules execute in Chromium; their runtime payload is an unexecuted envelope.
+They do not prove Conduit runtime/Body execution or public release acceptance.
+
+Application role-kind follow-up: manifest admission requires the application
+entry role to be a module and the runtime role to be Wasm before resource
+download, script execution or storage initialization. Merely having those
+role names is insufficient. A correctly hashed manifest with a content entry
+reproduced resource downloading before repair.
+
+Twelve focused pinned Chromium loader fixtures pass with one worker and zero
+retries, including entry/runtime kind refusal with zero resource requests and
+the existing tiny-module startup. These are synthetic packages; the role check
+does not establish executable runtime ABI, Body or public release acceptance.
