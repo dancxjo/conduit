@@ -255,7 +255,6 @@ export async function startApplication(application) {
       ?? reviewed.plots.find(plot => plot.name === entry.name);
     source.value = openingDrafts.get(entry.name) ?? selected.source;
     inspectSource('Body inventory', entry.name, selected.source);
-    openingDrafts.delete(entry.name);
     editor.render();
     root.querySelector('[data-lesson]').textContent = entry.lesson;
     checkStatus.textContent = 'Edit the source, then check and try it in your body.';
@@ -280,13 +279,16 @@ export async function startApplication(application) {
     if (!checked.ok) throw new Error(checked.refusal.message);
     const opening = await body.current();
     const birthState = opening.evidence.body.state;
+    const savedChoice = openingChoice ?? await application.storage.readJson('selected-example');
+    // A choice made while storage was pending wins over the saved preference.
+    const retained = openingChoice ?? savedChoice;
     finishOpeningInspection();
     editor = host.attachEditor(source);
     source.addEventListener('input', () => {
+      openingDrafts.set(selector.value, source.value);
       delete checkStatus.dataset.refusalCode;
       checkStatus.textContent = 'Edited source — not checked or applied yet. Try it to check and apply the change.';
     });
-    const retained = openingChoice ?? await application.storage.readJson('selected-example');
     if (specification.plots.some(plot => plot.lesson && plot.name === retained)) selector.value = retained;
     await selectExample();
     const installed = opening.evidence.body.workset.plots;
@@ -341,6 +343,7 @@ export async function startApplication(application) {
       else if (!state.evidence.body.workset.plots.some(plot => plot.checked_plot_id === next.checkedPlotId)) await body.install(next);
       checked = await body.plots();
       selected = checked.plots.find(plot => plot.checkedPlotId === next.checkedPlotId);
+      openingDrafts.delete(next.name);
       inspectSource('Body inventory', selected.name, selected.source);
       await body.select(selected); show(selected.checkedPlotId); await wake();
       surface.focus();
