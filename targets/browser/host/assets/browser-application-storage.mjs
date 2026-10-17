@@ -117,6 +117,10 @@ export async function openBrowserApplicationStorage(applicationIdentity, applica
   const database = await openDatabase(indexedDb);
   const prefix = `${applicationIdentity}@${applicationVersion}\u0000`;
   let current = true;
+  // Cooperate with schema upgrades/deletion in other connections. Closing does
+  // not clear records; it only retires this handle and lets the requester proceed.
+  database.addEventListener("versionchange", close);
+  database.addEventListener("close", () => { current = false; });
 
   function requireCurrent() {
     if (!current) refuse("StaleApplicationGeneration", "application storage belongs to a stale package generation");

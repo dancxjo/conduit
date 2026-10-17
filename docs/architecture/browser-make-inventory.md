@@ -201,6 +201,12 @@ mutable; a malformed flag is corruption, never permission to replace evidence.
 These checks detect malformed metadata, not undetectable edits from one valid
 value to another by hostile code with direct same-origin database access.
 
+A database `versionchange` retires the adapter handle and closes its connection,
+allowing another connection's schema upgrade or deletion request to proceed.
+Subsequent operations refuse with `StaleApplicationGeneration`; the handler does
+not delete or migrate records. Unexpected browser connection closure also marks
+the handle stale. Existing transactions retain IndexedDB's settlement semantics.
+
 The `application-state` and `browser-host-identity` object stores are separate.
 Clearing one application's records cannot reset host identity, mutate body
 membership, or revoke a host. Book and Crèche receive only the bounded host
