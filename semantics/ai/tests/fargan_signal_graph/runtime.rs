@@ -85,6 +85,7 @@ pub fn encode_inputs(
 }
 
 pub struct EncodedResultAndTiming {
+    pub signs: Vec<KernelEvent>,
     pub outputs: BTreeMap<String, StructuredInfoValue>,
     pub work: WorkTiming,
     pub value: StructuredInfoValue,
@@ -359,9 +360,11 @@ pub fn run_entry_plan_observed(
         .get("result")
         .or_else(|| outputs.values().next())?
         .clone();
-    timing.borrow_mut().signs = scheduler.signs().events().count();
+    let signs: Vec<_> = scheduler.signs().events().collect();
+    timing.borrow_mut().signs = signs.len();
     let work = core::mem::take(&mut *timing.borrow_mut());
     Some(EncodedResultAndTiming {
+        signs,
         outputs,
         work,
         value: actual,

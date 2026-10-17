@@ -48,11 +48,14 @@ retained in `development-reference/`; model arrays remain externally supplied. N
 libm profile, rather than a global error theorem. Model redistribution terms
 remain unresolved; parameter files are not checked in.
 
-The worker reports Source checking and Plan preparation separately from owner
-preparation and Play. Each useful output contains 160 PCM samples. Numeric
+The worker reports Source checking, first-use model reading/resource admission,
+and Plan preparation separately from owner preparation and Play. Process-first-use
+measurements do not imply a cold operating-system file cache. Each useful output contains 160 PCM samples. Numeric
 Back timing includes codecs; the Step remainder includes dispatch, transport,
 mandatory Signs, Back commit, and timing-observer work. Expression Host Calls
-are separately timed. Timers are not subtracted. Allocation counters cover
+are separately timed. The hosted proof worker explicitly requests a 32 MiB
+thread stack; inline scheduler bytes and process allocator live/peak bytes
+retain their separate meanings. Timers are not subtracted. Allocation counters cover
 Play after all fixture buffers are prepared, through structural drain and
 consumption of every Host Call completion, before result decoding. Repeated
 Value invocations are not represented as a persistent stream.
@@ -80,3 +83,7 @@ full-frame pinned differential carried its own history and signal state across
 and conditioning-history error 5.866e-5. These are local hosted implementation
 results for the explicit libm profile, not accepted-release or completed issue
 status. Retained performance evidence is a separate obligation.
+`proof/performance/verify-fargan.py` verifies source/model/Plan custody, complete
+phase coverage, zero Play allocations, structural drain, and exact repeated
+output/Sign/work parity. Its comparison mode reports repetition-cluster
+bootstrap intervals for descriptive timing ratios.

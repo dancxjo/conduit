@@ -134,6 +134,15 @@ fn full_frame_is_one_checked_plan_with_all_four_state_transitions() {
         )
         .unwrap();
         assert_eq!(State::from_result(&result.value).gru1, [0.0125; 160]);
+        assert!(result
+            .signs
+            .iter()
+            .enumerate()
+            .all(|(i, event)| event.sequence == i as u32));
+        assert!(!result
+            .signs
+            .iter()
+            .any(|event| matches!(event.kind, conduit_kernel::KernelEventKind::BackFailed)));
         assert!(pcm(&result).iter().all(|v| v.is_finite()));
         assert_eq!(floats(&result.outputs["next_history"]), [0.; 128]);
         for mode in [

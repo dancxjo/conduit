@@ -24,6 +24,7 @@ mod state;
 mod timing;
 #[global_allocator]
 static ALLOCATOR: allocation::Allocator = allocation::Allocator;
+const STACK_BYTES: usize = 32 * 1024 * 1024;
 use serde_json::json;
 use std::{cell::RefCell, path::PathBuf};
 
@@ -46,8 +47,19 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     let (schema, check) = timing::measure(frame::schema);
     raw.row(&json!({"phase":"cold-source-schema","metrics":check}))?;
     std::fs::write(output.join("source.conduit"), plan::source())?;
-    let resources = frame::resources(&fixture, &schema);
+    let (resources, model_preparation) = timing::measure(|| frame::resources(&fixture, &schema));
+    raw.row(&json!({"phase":"cold-model-resource-admission","metrics":model_preparation}))?;
     let oracle = frame::oracle(&fixture);
+    artifact::json(
+        &output.join("model-profile.json"),
+        &json!({
+            "upstream_sha":"503d81b138d76621aae4b12786e90de48aa8db3a",
+            "generated_source_sha256":"68ba6e8731007f7184be862d7d1afe4cef096a7c9bcbfa115962340f725e004c",
+            "f32_bundle_sha256":"d35f0510da476716183a33caafe45cc095e48d496f06de2db7655e780a385e47",
+            "full_frame_oracle_sha256":"9c676f6c76aec71281ea097fe0c477c5a3b77f5022e639a0d82dbb4a5437fcc3",
+            "precision_profile":"number/ieee754-f32-libm-reference@1","parameters_published":false
+        }),
+    )?;
     let cases = &oracle.cases;
     let mut walls = Vec::new();
     for repetition in 0..repetitions {
@@ -108,6 +120,15 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
             for (a, b) in next.flattened().iter().zip(case.next.flattened()) {
                 state_error = state_error.max((a - b).abs());
             }
+            let sign_text = result
+                .signs
+                .iter()
+                .map(|event| format!("{event:?}\n"))
+                .collect::<String>();
+            let sign_sha = artifact::digest(sign_text.as_bytes());
+            if repetition == 0 && index == 0 {
+                std::fs::write(output.join("signs-first-frame.txt"), &sign_text)?;
+            }
             let work = result.work;
             let wall = timing::ns(result.execution);
             walls.push(wall);
@@ -124,7 +145,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
                 "step_remainder_ns":timing::ns(work.kernel_steps.saturating_sub(work.numeric)),
                 "expression_host_wall_ns":timing::ns(work.expressions),"steps":work.steps,
                 "numeric_steps":work.numeric_steps,"expression_calls":work.expression_calls,
-                "signs":work.signs,"structural_drain":true,"pending_host_calls_at_end":0,"scheduler_inline_bytes":work.scheduler_bytes,"allocator":counts,
+                "signs":work.signs,"signs_sha256":sign_sha,"structural_drain":true,"pending_host_calls_at_end":0,"scheduler_inline_bytes":work.scheduler_bytes,"allocator":counts,
                 "output_sha256":artifact::digest(&serde_json::to_vec(&result.outputs.iter().map(|(n,v)|(n,v.canonical_bytes().unwrap())).collect::<Vec<_>>())?),
                 "pcm_max_abs_error":pcm_error,"active_state_max_abs_error":state_error,"conditioning_history_max_abs_error":history_error}))?;
             state = next;
@@ -142,7 +163,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     artifact::json(
         &output.join("summary.json"),
         &json!({
-            "schema":"conduit.fargan-runtime-performance@1","wall_distribution":timing::distribution(&walls),
+            "schema":"conduit.fargan-runtime-performance@1","worker_thread_stack_bytes":STACK_BYTES,"sign_digest_schema":"rust-debug-kernel-events@1","wall_distribution":timing::distribution(&walls),
             "repetitions":repetitions,"frames_per_repetition":24,"pcm_samples_per_frame":160,
             "source_sha256":artifact::digest(plan::source().as_bytes()),
             "scope":"Full float conditioner and four recurrent subframes in one authored frame topology, with private pinned tensors and own accumulated conditioning/history/state. Reprepared Value invocations; no streaming, realtime, or intelligibility claim.",
@@ -153,7 +174,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
 }
 fn main() {
     let result = std::thread::Builder::new()
-        .stack_size(32 * 1024 * 1024)
+        .stack_size(STACK_BYTES)
         .spawn(|| run().map_err(|e| e.to_string()))
         .unwrap()
         .join()
@@ -167,7 +188,7 @@ fn main() {
 #[cfg(test)]
 fn on_large_stack(work: impl FnOnce() + Send + 'static) {
     std::thread::Builder::new()
-        .stack_size(32 * 1024 * 1024)
+        .stack_size(STACK_BYTES)
         .spawn(work)
         .unwrap()
         .join()
