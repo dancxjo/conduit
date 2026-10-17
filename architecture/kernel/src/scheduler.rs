@@ -37,6 +37,7 @@ mod payload_admission;
 mod ready_reference;
 mod ready_set;
 mod remote_fanout;
+mod remote_target_prefix;
 mod retirement;
 mod route_membership;
 mod terminal_admission;

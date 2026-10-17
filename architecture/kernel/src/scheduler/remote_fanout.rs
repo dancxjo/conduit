@@ -53,8 +53,9 @@ where
             .checked_add(1)
             .ok_or(SchedulerError::RemoteSequenceRejected)?;
         let mut pressured = false;
+        let mut seen = super::remote_target_prefix::RemoteTargetPrefix::default();
         for (index, (endpoint, cord)) in targets.iter().copied().enumerate() {
-            if targets[..index].contains(&(endpoint, cord)) {
+            if seen.contains(&targets[..index], (endpoint, cord)) {
                 return Err(SchedulerError::InvalidRemoteCordAccess);
             }
             let cord_index = usize::from(cord.0);
@@ -133,8 +134,9 @@ where
             return Err(SchedulerError::InvalidRemoteCordAccess);
         }
         let mut open = 0;
+        let mut seen = super::remote_target_prefix::RemoteTargetPrefix::default();
         for (index, (endpoint, cord)) in targets.iter().copied().enumerate() {
-            if targets[..index].contains(&(endpoint, cord)) {
+            if seen.contains(&targets[..index], (endpoint, cord)) {
                 return Err(SchedulerError::InvalidRemoteCordAccess);
             }
             let index = usize::from(cord.0);
