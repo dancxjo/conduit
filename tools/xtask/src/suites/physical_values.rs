@@ -1,5 +1,11 @@
 //! First-class physical meaning through authored values and installed execution.
 use crate::process::Step;
+const ENVIRONMENT: &[(&str, &str)] = &[
+    ("CARGO_PROFILE_TEST_OPT_LEVEL", "1"),
+    ("CARGO_PROFILE_TEST_DEBUG", "0"),
+    ("CARGO_PROFILE_TEST_DEBUG_ASSERTIONS", "true"),
+    ("CARGO_PROFILE_TEST_OVERFLOW_CHECKS", "true"),
+];
 pub const STEPS: &[Step] = &[Step::new(
     "physical.values",
     "Prove physical codecs, dimensional products, typed transport and installed Plan/Play",
@@ -49,9 +55,10 @@ pub const STEPS: &[Step] = &[Step::new(
         "angle_trigonometry",
     ],
 )
-.with_environment(&[
-    ("CARGO_PROFILE_TEST_OPT_LEVEL", "1"),
-    ("CARGO_PROFILE_TEST_DEBUG", "0"),
-    ("CARGO_PROFILE_TEST_DEBUG_ASSERTIONS", "true"),
-    ("CARGO_PROFILE_TEST_OVERFLOW_CHECKS", "true"),
-])];
+.with_environment(ENVIRONMENT),
+Step::new(
+    "physical.browser-kernel",
+    "Execute first-class physical values through the installed browser kernel in native conformance",
+    "cargo",
+    &["test", "--locked", "-p", "conduit-browser-runtime", "--lib", "dimension_tests", "--", "--test-threads=1"],
+).with_environment(ENVIRONMENT)];
