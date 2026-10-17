@@ -27,7 +27,7 @@ The added active-prefix test completes three nodes inside an eight-node reservat
 
 The retained verifier checks all artifact hashes, all 96 unique process/shape/trial keys, raw-log/report agreement, independently recomputed timing summaries and exact cross-source Sign/work replay. Four mutations are refused: a wrong artifact hash, duplicate sample, rehashed raw/report mismatch and a consistently rehashed altered Sign trace. Original captures stay unchanged.
 
-The reference candidate enumerator remains the existing round-robin diagnostic; this optimization does not alter either selector. The remaining terminal Cord-emptiness scan runs after all nodes complete, and unresolved abnormal lookup still occurs at Drained. Those are not measured by this zero-active-Cord fixture and are not claimed constant-time here. Whole checked Host/Plan/Play, FARGAN, browser, ConduitOS and stable acceptance remain separate parent requirements.
+The reference candidate enumerator remains the existing round-robin diagnostic; this optimization does not alter either selector. The remaining terminal Cord-emptiness scan runs after all nodes complete, and unresolved abnormal lookup still occurs at Drained. Those are not measured by this zero-active-Cord fixture and are not claimed constant-time here. Whole checked Host/Plan/Play, FARGAN, browser, ConduitOS and combined-development acceptance remain separate parent requirements.
 
 ## Reproduction and retained artifacts
 
@@ -41,7 +41,7 @@ python3 proof/performance/verify-terminal-completion.py --before /tmp/terminal-b
 
 Evidence: `evidence/terminal-completion-20261017.json`, `evidence/terminal-completion-negative-20261017.json`, and `evidence/terminal-completion-20261017-raw.tar.gz`. No physical timing, preemption, SMP, FARGAN, stable-release or full-parent closure claim is made.
 
-Local validation: both alloc and linear-ready-reference release all-target suites pass 243 tests each. Strict alloc release all-target kernel Clippy, portable no-default-features checking, workspace formatting and diff whitespace checks pass. The six capture processes retain 96 exact paired replays; 24 raw artifact hashes verify. These are local checks; Candidate, combined integration and stable publication remain separate.
+Local validation: both alloc and linear-ready-reference release all-target suites pass 243 tests each. Strict alloc release all-target kernel Clippy, portable no-default-features checking, workspace formatting and diff whitespace checks pass. The six capture processes retain 96 exact paired replays; 24 raw artifact hashes verify. These are local checks; Candidate and combined-development integration remain separate.
 
 
 ## Target contracts and parked legal feedback
@@ -50,4 +50,4 @@ The supported `cargo xtask make conduitos timing-profile` proof passes at `d3955
 
 At `45db0a216bc7344d5ad215464d10734915d1daf9`, the existing legal state/seeded feedback test now compares exact kernel Sign snapshots around 128 polls while a fore output remains pressured. No additional Gear-execution evidence appears; the output's generation and bytes stay unchanged. Releasing the output permits all 64 generations to drain in order to a normal semantic terminal. The strengthened test passes. Allocating inspection snapshots occur outside the compared kernel Steps. All recorded kernel/timing runtime source hashes still match the supported timing proof; the intervening change adds only this conformance assertion.
 
-The receipt `evidence/scheduler-target-contracts-20261017.json` and complete raw archive with the same prefix retain command output, source identities and hashes. All six archived artifact hashes verify. This advances local compatibility and the no-spinning legal feedback requirement; browser/std whole-suite Candidate, combined development, stable and FARGAN acceptance remain separate.
+The receipt `evidence/scheduler-target-contracts-20261017.json` and complete raw archive with the same prefix retain command output, source identities and hashes. All six archived artifact hashes verify. This advances local compatibility and the no-spinning legal feedback requirement; browser/std whole-suite Candidate, combined development and FARGAN acceptance remain separate.
