@@ -14,6 +14,12 @@ pub const BROWSER_CHECK_STEPS: &[Step] = &[
         &["--test", "proof/browser/browser-saved-choice.test.mjs"],
     ),
     Step::new(
+        "check.browser.application-syntax-face",
+        "Check bounded lossless browser syntax projection admission",
+        "node",
+        &["--test", "proof/browser/application-syntax-face.test.mjs"],
+    ),
+    Step::new(
         "check.browser.application-face-codec",
         "Check exact Unicode and identity fidelity in the generic application Face codec",
         "node",

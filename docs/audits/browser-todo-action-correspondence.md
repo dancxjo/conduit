@@ -1000,3 +1000,20 @@ Tab into the exact current step, temporary disabled/hidden/inert peers, and padd
 numeric controls. Focus-only movement queues no semantic action; native Enter
 emits the exact focused action. These are renderer keyboard proofs, not
 Body/Play, rebuilt packaged browser or release acceptance; #5631 remains open.
+
+Source editor projection follow-up (#5453): the shared syntax adapter checks
+its 8 KiB source ceiling and scalar Unicode before UTF-8 allocation. Rendering
+encodes only after successful projection admission; oversized edits retain the
+exact plain-text fallback and remain editable. UTF-8 decoding preserves BOM
+characters at every span boundary instead of dropping text from the overlay.
+The adapter still consumes canonical Rust spans and never tokenizes source.
+
+Two Node regressions reproduced leading-BOM refusal and premature allocation;
+one Chromium regression reproduced interior-BOM text loss. All three Node tests
+and one pinned Chromium fixture pass (one worker, zero retries), including exact
+8,192-byte admission, multibyte overflow, malformed scalar refusal, lossless
+oversized fallback and native correction back to highlighted text. Both suites
+are registered in their existing browser check/proof entrances. The fixture
+supplies declared spans only: these prove adapter bounds/text fidelity, not
+actual Rust token classification, Body/Play or fresh packaged/released WASM.
+The owning issue's full acceptance remains open.
