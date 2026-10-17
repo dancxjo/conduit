@@ -136,3 +136,14 @@ fn explicit_f64_cancellation_keeps_intermediate_rounding_in_the_product() {
         "rounded intermediate",
     );
 }
+
+#[test]
+fn pi_over_180_survives_a_structured_product_transport_without_rounding() {
+    // math/radians has independent core denotation tests; this checks that the
+    // selected product path preserves that denotation through record transport.
+    run(
+        include_str!("fixtures/numerical_symbolic_transport.conduit"),
+        "Pi over 180",
+        "exact symbolic transport",
+    );
+}
