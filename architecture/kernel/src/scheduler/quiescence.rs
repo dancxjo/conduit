@@ -81,7 +81,11 @@ where
         }
         let mut count = 0_usize;
         let mut first_source = None;
+        let mut remaining = self.armed_quiescence_count;
         for cord in 0..self.quiescence_cord_end {
+            if remaining == 0 {
+                break;
+            }
             #[cfg(test)]
             {
                 let mut counts = self.scan_counts.get();
@@ -89,9 +93,13 @@ where
                 self.scan_counts.set(counts);
             }
             let spec = self.cord_specs[cord];
-            if spec.track != AssignedConnectionTrack::Quiescence
-                || !self.cords[cord].quiescence_armed
-            {
+            if !self.cords[cord].quiescence_armed {
+                continue;
+            }
+            // Count every armed edge, including blocked queues and completed
+            // sources: eligibility is separate from retained armed ownership.
+            remaining -= 1;
+            if spec.track != AssignedConnectionTrack::Quiescence {
                 continue;
             }
             let Some((source, _)) = spec.source_local() else {
@@ -108,7 +116,11 @@ where
         }
         self.ensure_sign_capacity(count)?;
         let value = store_fanout_value(&mut self.values, &[], count)?;
+        let mut remaining = self.armed_quiescence_count;
         for cord in 0..self.quiescence_cord_end {
+            if remaining == 0 {
+                break;
+            }
             #[cfg(test)]
             {
                 let mut counts = self.scan_counts.get();
@@ -116,9 +128,13 @@ where
                 self.scan_counts.set(counts);
             }
             let spec = self.cord_specs[cord];
-            if spec.track != AssignedConnectionTrack::Quiescence
-                || !self.cords[cord].quiescence_armed
-            {
+            if !self.cords[cord].quiescence_armed {
+                continue;
+            }
+            // Count every armed edge, including blocked queues and completed
+            // sources: eligibility is separate from retained armed ownership.
+            remaining -= 1;
+            if spec.track != AssignedConnectionTrack::Quiescence {
                 continue;
             }
             let Some((source, port)) = spec.source_local() else {
