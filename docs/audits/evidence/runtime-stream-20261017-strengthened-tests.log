@@ -1,0 +1,18 @@
+   Compiling ring v0.17.14
+   Compiling conduit-browser-runtime v0.1.0 (/home/dancxjo/conduit/targets/browser/runtime)
+   Compiling rustls v0.23.45
+   Compiling rustls-webpki v0.103.15
+   Compiling ureq v3.4.2
+   Compiling conduit-std-host v0.1.0 (/home/dancxjo/conduit/targets/std)
+   Compiling conduit-runtime-performance v0.1.0 (/home/dancxjo/conduit/proof/performance/runtime)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 17.48s
+     Running unittests src/main.rs (target/debug/deps/conduit_runtime_performance-9b310dd0af6ab8a6)
+
+running 4 tests
+test pipeline::streaming::tests::stop_under_real_fanout_pressure_keeps_exact_delivered_prefix_and_cancel_receipt ... ok
+test pipeline::streaming::tests::malformed_overflow_cancel_and_unplanned_fore_never_become_successful_outputs ... ok
+test pipeline::streaming::tests::ordinary_overlapping_streams_preserve_order_fanout_pressure_and_payloads ... ok
+test pipeline::streaming::tests::oversized_text_keeps_the_existing_checked_256_byte_refusal ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 18 filtered out; finished in 3.58s
+

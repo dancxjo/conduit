@@ -84,6 +84,7 @@ pub fn metadata() -> Result<serde_json::Value, String> {
         .map(str::to_owned);
     Ok(serde_json::json!({
         "schema":"conduit.runtime-performance@1", "git_sha":sha,
+        "hosted_stream_schema":if cfg!(feature = "hosted-pipeline") { Some("bounded-overlapping-std@1") } else { None },
         "hosted_phase_wall_schema":cfg!(feature = "hosted-pipeline").then_some("installed-boundaries-wall@1"),
         "source_status":"clean", "os":text("uname", &["-srvm"]),
         "compiler":text("rustc", &["-vV"]), "cargo":text("cargo", &["-V"]),

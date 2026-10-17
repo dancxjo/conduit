@@ -1,0 +1,9 @@
+{
+  "worker_affinity": [
+    4
+  ],
+  "background_compilation_observed": true,
+  "background_job_modified_measured_checkout": false,
+  "background_affinity_overlapped_worker_cpu": true,
+  "frequency_and_load_controlled": false
+}
