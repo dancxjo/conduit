@@ -86,6 +86,8 @@ pub fn run(arguments: &[String], dry_run: bool) -> Result<(), Box<dyn std::error
     if config.hosted_pipeline {
         conformance_command.extend(["--features", "hosted-pipeline"]);
     }
+    // Allocation probes count the whole process; conformance tests cannot overlap.
+    conformance_command.extend(["--", "--test-threads=1"]);
     eprintln!("Validating release semantic/refusal/terminal conformance before measurements");
     let conformance = Command::new("cargo")
         .args(&conformance_command)
