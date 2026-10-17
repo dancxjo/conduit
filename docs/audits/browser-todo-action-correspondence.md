@@ -345,3 +345,16 @@ repair. All 62 pinned Chromium component fixtures pass with one worker and zero
 retries, including normal visible refresh, text selection, external-focus
 protection and custom radios. This proves renderer focus behavior without
 callbacks, not arbitrary CSS accessibility or authoritative Body acceptance.
+
+Argument-reachability follow-up (#5644/#5632): form submission now requires
+every argument input/select to pass the same connected, disabled, inert and
+visibility/opacity guard as the submit control. A reachable button alone cannot
+admit values from controls the person cannot edit. Typed-domain and UTF-8 checks
+remain unchanged and execute after this guard.
+
+Disabled, inert, hidden and transparent text inputs all reproduced callback
+dispatch before repair. All 66 pinned Chromium component fixtures pass with one
+worker and zero retries. Each new negative fixture restores the field, enters
+visible text and verifies native Enter submission of that exact argument.
+Synthetic submit events only establish adversarial refusal. These callbacks
+are renderer evidence, not authoritative Body receipts or full issue acceptance.

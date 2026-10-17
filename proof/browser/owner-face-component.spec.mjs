@@ -1063,3 +1063,35 @@ test('owner refresh does not restore keyboard focus into a transparent encounter
   await expect(action).toBeFocused();
   expect(await page.evaluate(() => globalThis.calls)).toEqual([]);
 });
+
+for (const unavailable of ['disabled', 'inert', 'hidden', 'transparent']) {
+  test(`owner forms refuse unavailable argument controls (${unavailable})`, async ({ page }) => {
+    await page.goto('/proof/browser/signal-dom-host.test.html');
+    const inputView = { ...view, actions: [{ ...view.actions[0], arguments: [{ name: 'text', value_name: 'Text',
+      value_kind: 'value/text', maximum_bytes: 32, choices: [] }] }] };
+    await page.evaluate(async ({ view, unavailable }) => {
+      await import('/targets/browser/handbook/owner-face-component.mjs');
+      document.body.replaceChildren(); globalThis.calls = [];
+      const element = document.createElement('conduit-owner-face'); document.body.append(element);
+      element.show(view, { invoke: async call => { globalThis.calls.push(call); } });
+      const input = element.shadowRoot.querySelector('input'); input.value = 'unseen argument';
+      if (unavailable === 'disabled') input.disabled = true;
+      if (unavailable === 'inert') input.inert = true;
+      if (unavailable === 'hidden') input.hidden = true;
+      if (unavailable === 'transparent') input.style.opacity = '0';
+      // Adversarial submission cannot admit an argument the user cannot edit.
+      element.shadowRoot.querySelector('form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    }, { view: inputView, unavailable });
+    expect(await page.evaluate(() => globalThis.calls)).toEqual([]);
+    const element = page.locator('conduit-owner-face');
+    await element.evaluate(node => {
+      const input = node.shadowRoot.querySelector('input');
+      input.disabled = false; input.inert = false; input.hidden = false; input.style.opacity = '';
+    });
+    const input = element.getByRole('textbox', { name: 'Text', exact: true });
+    await input.fill('visible argument');
+    await page.keyboard.press('Enter');
+    expect(await page.evaluate(() => globalThis.calls)).toEqual([{ view: inputView, action: inputView.actions[0],
+      arguments: [{ name: 'text', value: 'visible argument' }] }]);
+  });
+}

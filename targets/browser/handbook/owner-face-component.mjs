@@ -219,6 +219,7 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
         // A submit event can be synthetic, and script can change values without
         // firing input events. Recheck the admitted argument domain here.
         for (const { input, argument } of inputs) {
+          if (!this.#reachable(input)) return;
           if (argument.choices.length) {
             if (!argument.choices.includes(input.value)) return;
           }
