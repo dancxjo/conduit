@@ -151,6 +151,31 @@ The probe itself establishes no total compiler-copy or browser result. New
 capture results must retain their own producing Source and are not attributed
 to the earlier scheduler captures above.
 
+### Retained direct Sign capture
+
+Producing Source `bafa852c973613b779594ab3030dd3a6fa59e91e` yielded
+480 raw observations across three independent optimized native processes.
+All 13 artifact hashes, each raw-row join and all 15 descriptive summaries were
+independently verified. The [receipt](evidence/sign-record-cost.json) retains
+compiler/profile, executable identity, host load, raw rows and process means.
+
+| Records per batch / capacity | Append batch, ns (mean ± process-mean SD) | Full transient-retention batch, ns (mean ± process-mean SD) |
+| --- | ---: | ---: |
+| 1 | 36.3 ± 7.5 | 46.7 ± 11.7 |
+| 8 | 151.6 ± 20.9 | 299.1 ± 54.1 |
+| 32 | 379.1 ± 60.7 | 854.9 ± 207.7 |
+| 128 | 1435.2 ± 211.9 | 5144.4 ± 1404.4 |
+| 1024 | 11267.2 ± 1660.5 | 253704.9 ± 77802.9 |
+
+Each batch records as many events as the stated capacity. Full retention records
+into an already full transient log; it is not spare-capacity append. At capacity
+1,024, each of 1,024 records invokes the production transient eviction and entry
+rotation path. This exposes a capacity-dependent retention cost, not a scheduler
+CPU fraction or measured optimization. The shared host had concurrent proof and
+archive work; process load averages and substantial variation remain visible.
+One-record batches are timer-sensitive. No speedup, confidence interval,
+automatic threshold or whole-Host conclusion follows from these observations.
+
 ## Scoped browser/WASM observation
 
 Three fresh pinned Chromium processes each executed three sequential Plays of
