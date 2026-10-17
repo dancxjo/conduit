@@ -1271,3 +1271,20 @@ mismatch, immutable nested receipt, original handle identity and recovery when a
 matching response returns. README records the exact refusal boundary. These use
 bridge fixtures and prove SDK identity custody, not actual Rust Body/Play,
 cross-Mask continuity or packaged/release acceptance; #5622 remains open.
+
+SDK durable Body identity (#5622 continuity boundary): durable output is privately
+snapshotted and both its evidence/admission Body IDs must match before continuity
+writes or archive acknowledgement. Recovery captures the retained Body ID and
+checks restored evidence before foreground selection; that evidence is privately
+snapshotted across the awaited storage commit. Existing archive atomicity and
+acknowledgement ordering remain unchanged. This does not roll back a completed
+Rust Restore or claim to fence every Workspace effect.
+
+All seven regressions reproduced before repair: birth/recovery foreign evidence
+or admission IDs, changed restored identity, deferred durable producer mutation
+and restored-evidence mutation during persistence. All 38 focused SDK Plot/event
+tests pass, including no storage/acknowledgement on mismatch and preservation of
+existing continuity. Two older durable fixtures now include the mandatory
+AdmissionManager field emitted by Rust DurableSnapshot. README documents the
+identity boundary. These are bridge-fixture SDK custody/ordering proofs, not
+actual Rust Body/Play, cross-Mask or packaged/release acceptance; #5622 remains open.

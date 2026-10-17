@@ -195,6 +195,10 @@ The Body handle owns an immutable private snapshot of its attachment receipt.
 A current snapshot must retain the Body identity from that receipt.
 A foreign Workspace response refuses with `BodyIdentityMismatch` before returning
 it, projecting its event stream, or issuing a workset change based on it.
+Durable output must match both its evidence and admission Body identities before
+storage writes or archive acknowledgement. Recovery checks the restored Body ID
+before selecting foreground state, and keeps private immutable snapshots through
+its asynchronous persistence step; it cannot silently adopt a different Body.
 
 `body.events()` reads that same bounded snapshot and projects only retained
 Body biography records with their exact sequence and Sign identity. It joins a
