@@ -507,7 +507,8 @@ for (const reattach of [false, true]) {
   });
 }
 
-test('a disconnected exclusive-choice listener cannot dispatch or reset current selection', async ({ page }) => {
+for (const unavailable of ['disconnected', 'hidden']) {
+test(`a ${unavailable} exclusive-choice listener cannot dispatch or reset current selection`, async ({ page }) => {
   await page.goto('/proof/browser/signal-dom-host.test.html');
   const choices = {
     ...view,
@@ -522,7 +523,7 @@ test('a disconnected exclusive-choice listener cannot dispatch or reset current 
     actions: [0, 1].map(index => ({ ...view.actions[0], identity: `fixture/select/${index}`,
       target: `fixture/option/${index}`, name: `Select ${index}` })),
   };
-  await page.evaluate(async view => {
+  await page.evaluate(async ({ view, unavailable }) => {
     await import('/targets/browser/handbook/owner-face-component.mjs');
     document.body.replaceChildren();
     const element = document.createElement('conduit-owner-face');
@@ -532,11 +533,13 @@ test('a disconnected exclusive-choice listener cannot dispatch or reset current 
     element.show(view, { invoke });
     const obsolete = element.shadowRoot.querySelector('input[type=radio]');
     if (!obsolete) throw new Error('fixture did not render an exclusive choice');
-    element.remove();
-    document.body.append(element);
-    element.disabled = false;
+    if (unavailable === 'disconnected') {
+      element.remove();
+      document.body.append(element);
+      element.disabled = false;
+    } else obsolete.hidden = true;
     obsolete.dispatchEvent(new Event('change', { bubbles: true }));
-  }, choices);
+  }, { view: choices, unavailable });
   expect(await page.evaluate(() => globalThis.calls)).toEqual([]);
   const element = page.locator('conduit-owner-face');
   await element.evaluate((node, view) => node.show(view, {
@@ -550,3 +553,147 @@ test('a disconnected exclusive-choice listener cannot dispatch or reset current 
   expect(await page.evaluate(() => globalThis.calls)).toEqual([{ view: choices, action: choices.actions[1], arguments: [] }]);
   await expect(current).toBeDisabled();
 });
+}
+
+for (const hidden of ['attribute', 'visibility', 'disclosure', 'fieldset']) {
+  test(`hidden owner actions refuse dispatch (${hidden})`, async ({ page }) => {
+    await page.goto('/proof/browser/signal-dom-host.test.html');
+    await page.evaluate(async ({ view, hidden }) => {
+      await import('/targets/browser/handbook/owner-face-component.mjs');
+      document.body.replaceChildren();
+      const element = document.createElement('conduit-owner-face');
+      document.body.append(element);
+      globalThis.calls = [];
+      element.show(view, { invoke: async call => { globalThis.calls.push(call); } });
+      const form = element.shadowRoot.querySelector('form');
+      if (hidden === 'attribute') form.hidden = true;
+      if (hidden === 'visibility') form.style.visibility = 'hidden';
+      if (hidden === 'disclosure') {
+        const details = document.createElement('details');
+        const summary = document.createElement('summary'); summary.textContent = 'Actions';
+        form.before(details); details.append(summary, form);
+      }
+      if (hidden === 'fieldset') {
+        const fieldset = document.createElement('fieldset'); fieldset.disabled = true;
+        form.before(fieldset); fieldset.append(form);
+      }
+      // Deliberately adversarial: ordinary users cannot activate hidden/disabled controls.
+      form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    }, { view, hidden });
+    expect(await page.evaluate(() => globalThis.calls)).toEqual([]);
+    const element = page.locator('conduit-owner-face');
+    await element.evaluate(node => {
+      const form = node.shadowRoot.querySelector('form');
+      form.hidden = false; form.style.visibility = '';
+      const fieldset = form.closest('fieldset');
+      if (fieldset) fieldset.disabled = false;
+    });
+    if (hidden === 'disclosure') {
+      await element.getByText('Actions', { exact: true }).focus();
+      await page.keyboard.press('Enter');
+    }
+    const button = element.getByRole('button', { name: 'Complete task', exact: true });
+    await expect(button).toBeVisible();
+    await button.focus();
+    await page.keyboard.press('Enter');
+    expect(await page.evaluate(() => globalThis.calls)).toEqual([{ view, action: view.actions[0], arguments: [] }]);
+  });
+}
+
+// Production Handbook orchestration with a fixture SDK, not a real owner Body.
+for (const interruption of [null, 'prepare', 'acknowledge']) {
+test(`Handbook refresh preserves current controls and refuses interrupted ${interruption ?? 'none'} routes`, async ({ page }) => {
+  await page.goto('/proof/browser/signal-dom-host.test.html');
+  await page.evaluate(async ({ view, interruption }) => {
+    const { startOwnerParticipation } = await import('/targets/browser/handbook/owner-participation.mjs');
+    document.body.innerHTML = `<header class="handbook-introduction"><h1></h1><p class="lede"></p></header>
+      <a class="handbook-start"></a><div class="handbook-first-steps"></div>
+      <div class="handbook-next"></div><div class="handbook-local-note"></div><main></main>`;
+    const shown = { ...view, body_id: 'body/fixture', face_revision: '1',
+      mask_plot_id: 'fixture/mask', mask_plan_id: 'fixture/plan', mask_play_id: 'fixture/play',
+      route: { plan_id: 'fixture/route', owner_host_id: 'host/owner', owner_boot_id: 'boot/owner',
+        mask_host_id: 'host/browser', mask_boot_id: 'boot/browser' } };
+    globalThis.calls = [];
+    let revision = 0;
+    let onState;
+    const pause = async stage => {
+      if (revision === 2 && stage === interruption) {
+        await new Promise(resolve => { globalThis.releaseFace = resolve; });
+      }
+    };
+    globalThis.interruptRoute = () => {
+      onState('offline');
+      // Presence may recover before the old async result arrives.
+      onState('admitted');
+      globalThis.releaseFace();
+    };
+    const participation = {
+      hostId: 'host/browser', bootId: 'boot/browser',
+      presenceState: () => 'available', membershipCredential: () => ({ body_id: shown.body_id }),
+      biographyEvidence: () => null,
+      prepareOwnerFaceMask: async () => {
+        revision++;
+        await pause('prepare');
+        return { ...shown, face_revision: String(revision), show_id: `fixture/show/${revision}`,
+          show_state: 'prepared', interactions_admitted: false };
+      },
+      acknowledgeOwnerFaceMask: async prepared => {
+        await pause('acknowledge');
+        return { ...prepared, show_state: 'available', interactions_admitted: true };
+      },
+      inspectOwnerWardrobe: async () => { throw new Error('No wardrobe in this renderer fixture'); },
+      submitOwnerFaceInteraction: async call => { globalThis.calls.push(call); return { accepted: true }; },
+    };
+    await startOwnerParticipation({
+      storage: { readJson: async () => null, writeJson: async () => {} },
+      browser: async () => ({ id: 'host/browser', bootId: 'boot/browser',
+        admissionIdentity: () => ({ hostId: 'host/browser', bootId: 'boot/browser', verifyingKey: [] }),
+        participate: async options => { onState = options.onState; return participation; } }),
+    }, document.querySelector('main'));
+  }, { view, interruption });
+  await page.getByLabel('Body ID', { exact: true }).fill('body/fixture');
+  await page.getByLabel('Owner window URL', { exact: true }).fill('ws://127.0.0.1:41000/conduit');
+  await page.getByRole('button', { name: 'Join this Body', exact: true }).click();
+  const owner = page.locator('conduit-owner-face');
+  await expect(page.locator('main')).toHaveAttribute('data-owner-face-shown', 'true');
+  const button = owner.getByRole('button', { name: 'Complete task', exact: true });
+  await expect(button).toBeEnabled();
+  await owner.evaluate(node => {
+    globalThis.originalOwner = node;
+    globalThis.disconnects = 0;
+    const observer = new MutationObserver(records => {
+      for (const record of records) for (const removed of record.removedNodes) {
+        if (removed === node) globalThis.disconnects++;
+      }
+    });
+    observer.observe(node.parentNode, { childList: true });
+  });
+  await page.getByRole('button', { name: 'Refresh this Face', exact: true }).click();
+  if (interruption) {
+    await expect.poll(() => page.evaluate(() => typeof globalThis.releaseFace)).toBe('function');
+    await page.evaluate(() => globalThis.interruptRoute());
+    await expect(page.locator('[data-owner-face-status]')).toHaveAttribute('data-refused', 'true');
+    await expect(page.locator('[data-owner-face-status]')).toContainText('The owner route changed during Face preparation.');
+    await expect(page.locator('main')).not.toHaveAttribute('data-owner-show-acknowledged');
+    await expect(page.locator('main')).not.toHaveAttribute('data-owner-face-shown', 'true');
+    await expect(button).toBeDisabled();
+    await owner.evaluate(node => node.shadowRoot.querySelector('form')
+      .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })));
+    expect(await page.evaluate(() => globalThis.calls)).toEqual([]);
+    await page.getByRole('button', { name: 'Refresh this Face', exact: true }).click();
+  }
+  const currentRevision = interruption ? '3' : '2';
+  await expect(owner).toHaveAttribute('data-face-revision', currentRevision);
+  await expect(button).toBeEnabled();
+  expect(await owner.evaluate(node => node === globalThis.originalOwner && globalThis.disconnects === 0)).toBe(true);
+  await button.focus();
+  await page.keyboard.press('Enter');
+  await expect.poll(() => page.evaluate(() => globalThis.calls.length)).toBe(1);
+  await expect(owner).toHaveAttribute('data-face-revision', String(Number(currentRevision) + 1));
+  await expect(button).toBeEnabled();
+  expect(await page.evaluate(() => globalThis.calls[0])).toMatchObject({
+    view: { show_id: `fixture/show/${currentRevision}`, face_revision: currentRevision },
+    actionId: view.actions[0].identity, target: view.actions[0].target, arguments: [], sequence: 1,
+  });
+});
+}

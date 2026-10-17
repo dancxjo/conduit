@@ -45,6 +45,12 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
       && view.interactions_admitted === true && action.availability === 'available'
       && this.#supportsAction(action);
   }
+  #reachable(control) {
+    // Native focus/activation requires a visible, enabled control. This is a
+    // renderer guard; the SDK and owner still check interaction authority.
+    return this.isConnected && !control.matches(':disabled')
+      && control.checkVisibility({ visibilityProperty: true });
+  }
   show(view, { invoke, projectCollections = () => ({ collections: [], placed: new Set() }),
     supportsAction = () => true } = {}) {
     const focusedKey = this.shadowRoot.activeElement?.dataset.ownerFocus;
@@ -164,7 +170,7 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
         (supported ? 'This owner action is unavailable.' : 'This input has no supported browser form.')));
       control.addEventListener('submit', async event => {
         event.preventDefault();
-        if (!this.isConnected || !this.#ready(view, action, render) || !this.#invoke
+        if (!this.#reachable(button) || !this.#ready(view, action, render) || !this.#invoke
           || !supported || inputs.length !== action.arguments.length) return;
         // A submit event can be synthetic, and script can change values without
         // firing input events. Recheck the admitted argument domain here.
@@ -308,7 +314,7 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
         label.append(input, faceNode('span', option.name));
         if (action.explanation) label.append(faceNode('small', action.explanation));
         input.addEventListener('change', async () => {
-          if (!this.isConnected || !this.#ready(view, action, render) || !this.#invoke) return;
+          if (!this.#reachable(input) || !this.#ready(view, action, render) || !this.#invoke) return;
           // Selection remains the acknowledged Face's fact until a fresh Show.
           choices.querySelectorAll('input').forEach((control, optionIndex) => {
             control.checked = options[optionIndex].flags.find(flag => flag.name === 'selected').value;

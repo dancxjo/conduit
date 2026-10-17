@@ -161,6 +161,7 @@ export async function startOwnerParticipation(application, root) {
   const speechStop = root.querySelector('[data-owner-speech-stop]');
   const speechResult = root.querySelector('[data-owner-speech-result]');
   let host, participation, expectedBodyId = null, faceView = null, faceBusy = false, actionSequence = 0;
+  let faceRouteEpoch = 0;
   let speechOperationId = null, speechBusy = false;
   let wardrobeReport = null, wardrobeBusy = false;
   const renderWardrobe = current => {
@@ -259,6 +260,9 @@ export async function startOwnerParticipation(application, root) {
   };
   const faceComponent = document.createElement('conduit-owner-face');
   const renderFace = view => {
+    // Attach before Show, and retain the surface across ordinary refreshes.
+    // Replacing an already attached custom element revokes its render bindings.
+    if (faceComponent.parentNode !== faceDocument) faceDocument.replaceChildren(faceComponent);
     faceComponent.show(view, { projectCollections: projectFaceCollections,
       invoke: async ({ view, action, arguments: actionArguments }) => {
         if (faceBusy || !participation || faceView?.show_id !== view.show_id) return;
@@ -281,7 +285,6 @@ export async function startOwnerParticipation(application, root) {
         }
       },
     });
-    faceDocument.replaceChildren(faceComponent);
     faceDocument.dataset.faceId = view.face_id;
     faceDocument.dataset.faceRevision = view.face_revision;
     faceDocument.dataset.showId = view.show_id;
@@ -289,6 +292,12 @@ export async function startOwnerParticipation(application, root) {
   const refreshFace = async (selection = null) => {
     if (!participation || faceBusy || participation.presenceState() !== 'available') return;
     faceBusy = true; faceRefresh.disabled = true;
+    const routeEpoch = faceRouteEpoch;
+    const requireCurrentRoute = () => {
+      if (routeEpoch !== faceRouteEpoch || participation.presenceState() !== 'available') {
+        throw new Error('The owner route changed during Face preparation. Refresh this Face after reconnecting.');
+      }
+    };
     const priorFace = faceView;
     faceView = null;
     delete root.dataset.ownerFaceShown;
@@ -302,8 +311,10 @@ export async function startOwnerParticipation(application, root) {
         : await participation.prepareOwnerFaceMask(priorFace ? {
           lastSeenRevision: priorFace.face_revision, lastSeenIdentity: priorFace.face_id,
         } : undefined);
+      requireCurrentRoute();
       renderFace(prepared);
       const shown = await participation.acknowledgeOwnerFaceMask(prepared);
+      requireCurrentRoute();
       const inspectedRoute = checkedOwnerRouteEvidence(shown, participation.hostId, participation.bootId);
       root.dataset.ownerShowAcknowledged = shown.show_id;
       faceView = shown;
@@ -366,6 +377,11 @@ export async function startOwnerParticipation(application, root) {
     status.textContent = `Browser participation: ${state}.`;
     status.dataset.state = state;
     if (state === 'offline' || state.startsWith('refused:')) {
+      // Presence can recover before a pending response completes. That response
+      // still belongs to the interrupted route and cannot restore current agency.
+      faceRouteEpoch++;
+      delete root.dataset.ownerFaceShown;
+      delete root.dataset.ownerShowAcknowledged;
       wardrobeReport = null;
       wardrobeRefresh.disabled = true;
       for (const button of wardrobeRows.querySelectorAll('button')) button.disabled = true;

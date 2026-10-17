@@ -107,3 +107,54 @@ the concurrent focus-preservation change, all eighteen component tests passed
 with one worker and zero retries. Fresh Shows restore trusted keyboard button/radio activation.
 Synthetic negative events establish renderer refusal only; these checks do not
 prove unchanged Body state, packaged acceptance or completion of #5644.
+
+
+Hidden-control follow-up (#5631 / #5644): form and radio dispatch now requires
+a connected, natively enabled control and the browser's visibility check with
+CSS visibility enabled. The [CSSOM visibility check](https://www.w3.org/TR/cssom-view/#dom-element-checkvisibility)
+also excludes skipped content inside closed details; bounding rectangles alone
+did not establish that condition in Chromium. Revealing a control permits
+ordinary keyboard activation without inventing a new action or return route.
+
+Three hidden-form regressions reproduced before repair. All twenty-three
+component Chromium tests pass with one worker and zero retries, covering hidden
+attributes, CSS visibility, closed disclosure, disabled fieldsets and hidden
+radio controls. After integrating concurrent same-Body draft continuity, all
+twenty-five component tests pass with the same settings. Successful activations use keyboard input; adversarial synthetic
+events are refusal fixtures only. These checks establish renderer behavior, not
+unchanged Body state, arbitrary Look accessibility, overlay hit-testing or
+packaged/public acceptance of either issue.
+
+
+Handbook integration correction (#5631 / #5644): the owner participation
+consumer used `replaceChildren(faceComponent)` after every Show. Re-inserting
+the same custom element disconnects it, so the disconnect fence correctly
+revoked the freshly rendered controls. Attach before rendering and keep an
+already attached component in place across preparation, acknowledgement and
+refresh. Actual removals still invalidate the old bindings.
+
+A Chromium regression through production `startOwnerParticipation` reproduced
+the disabled acknowledged action before repair. All twenty-six component tests
+now pass with one worker and zero retries, plus the three Handbook owner-route
+unit tests. The new fixture uses a fake SDK carrier: it checks the real join UI,
+prepared-to-acknowledged rendering, stable attachment during refresh, trusted
+keyboard submission correlated to the refreshed Show and enabled controls after
+the next refresh. It is orchestration/renderer evidence, not a real owner Body
+receipt or packaged/public acceptance.
+
+
+Interrupted-route follow-up (#5644 / #5631): Handbook Face preparation and
+acknowledgement now retain the local route generation. An offline/refused state
+invalidates pending work and clears current-Show markers. Check that generation
+and current presence after each async response before rendering or enabling an
+acknowledged Show. Presence recovering before the response arrives does not
+revive the interrupted encounter; a fresh refresh remains available. This local
+lifecycle fence does not replace SDK/owner route admission.
+
+Both held-response regressions reproduced before repair (preparation and
+acknowledgement). All twenty-eight component Chromium tests pass with one worker
+and zero retries. The three Handbook cases also pass with strengthened checks
+for the exact route-change refusal, cleared acknowledgement, zero callback on
+an adversarial stale submit and trusted keyboard activation after a fresh Show;
+the three owner-route unit tests pass. These use a fixture SDK carrier through
+production Handbook orchestration, not real Body state or packaged acceptance.
