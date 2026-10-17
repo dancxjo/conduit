@@ -286,7 +286,10 @@ unavailable implementations without widening the selected Profile.
 The package producer takes an exact BrowserBundle directory containing
 `browser-page.json`, `browser-bundle-release.json`,
 `conduit-browser-image.json`, and the declared immutable assets. It verifies
-the image and every content digest before copying those assets into the package.
+the image and every content digest, then writes the verified bytes into a private
+sibling staging directory. The new output directory appears only after the whole
+package is ready. A failed attempt removes its staging files and can be retried
+at the same output path; an existing package is never replaced.
 The consuming application only installs or serves that resulting directory;
 it does not invoke the producer or compile Conduit.
 

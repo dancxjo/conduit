@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { chmod, lstat, mkdtemp, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
@@ -140,6 +140,36 @@ try {
   const unsafe = spawnSync(process.execPath, [staticScript, templatePath, source, path.join(scratch, "unsafe")], { encoding: "utf8" });
   assert.notEqual(unsafe.status, 0);
   assert.match(unsafe.stderr, /Unsafe application path/);
+
+  // Refusal after copying the first asset must not publish a partial package.
+  const retryOutput = path.join(scratch, "retryable");
+  await chmod(path.join(source, "browser-page.json"), 0o600);
+  const beforeFailure = (await readdir(scratch)).sort();
+  const changedBoot = boot.slice(); changedBoot[0] ^= 1;
+  await writeFile(path.join(source, "browser-boot-profile.mjs"), changedBoot);
+  const lateRejected = spawnSync(process.execPath, [path.join(root, "package-browser-bundle.mjs"), source, retryOutput], { encoding: "utf8" });
+  assert.notEqual(lateRejected.status, 0);
+  assert.match(lateRejected.stderr, /failed digest verification/);
+  await assert.rejects(lstat(retryOutput), { code: "ENOENT" });
+  assert.deepEqual((await readdir(scratch)).sort(), beforeFailure);
+  assert.deepEqual(new Uint8Array(await readFile(path.join(source, "runtime.wasm"))), runtime);
+  await writeFile(path.join(source, "browser-boot-profile.mjs"), boot);
+  const retry = spawnSync(process.execPath, [path.join(root, "package-browser-bundle.mjs"), source, retryOutput], { encoding: "utf8" });
+  assert.equal(retry.status, 0, retry.stderr);
+  if (process.platform !== "win32") {
+    assert.equal((await lstat(retryOutput)).mode & 0o777, 0o777 & ~process.umask());
+    assert.equal((await lstat(path.join(retryOutput, "bundle/browser-page.json"))).mode & 0o777, 0o600);
+  }
+  for (const file of files) {
+    const bytes = await readFile(path.join(retryOutput, "bundle", file.path));
+    assert.equal(bytes.length, file.bytes);
+    assert.equal(await sha256(bytes), file.sha256);
+  }
+  const retainedMetadata = await readFile(path.join(retryOutput, "bundle/browser-sdk-package.json"));
+  const occupied = spawnSync(process.execPath, [path.join(root, "package-browser-bundle.mjs"), source, retryOutput], { encoding: "utf8" });
+  assert.notEqual(occupied.status, 0);
+  assert.match(occupied.stderr, /already exists/);
+  assert.deepEqual(await readFile(path.join(retryOutput, "bundle/browser-sdk-package.json")), retainedMetadata);
 
   await writeFile(path.join(source, "runtime.wasm"), new Uint8Array([1, 2, 3]));
   const rejected = spawnSync(process.execPath, [path.join(root, "package-browser-bundle.mjs"), source, path.join(scratch, "rejected")], { encoding: "utf8" });
