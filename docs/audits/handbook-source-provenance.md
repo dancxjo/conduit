@@ -62,3 +62,17 @@ existing provenance and save-order/failure cases plus two held-read cases that
 exercise two lesson drafts and successful/refused storage. These exercise real
 Handbook orchestration with fixture storage/Host, not packaged WASM or public
 release acceptance.
+
+Unsent lesson continuity (#5453): a choice made during the stored-preference
+read takes precedence when startup finishes. Per-lesson drafts now remain local
+across ordinary selector changes; checking refusal does not discard them. An
+installed checked revision clears its corresponding draft only after the source
+inventory transition succeeds. Lesson inspection does not select or wake another
+Body plot.
+
+The stored-preference overwrite reproduced before repair. Seven focused pinned
+Chromium source fixtures pass with one worker and zero retries. The new fixture
+SDK exercises delayed preference loading, two unsent drafts, repeated lesson
+switching and a rejected source check, with exactly the initial Body select/wake
+calls. It proves production editor orchestration against a fixture SDK, not Rust
+syntax or actual Body/packaged runtime acceptance.

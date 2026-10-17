@@ -750,3 +750,58 @@ for (const storageFails of [false, true]) {
     await expect(editor).toBeEnabled();
   });
 }
+
+// Production editor orchestration with a fixture SDK; no runtime proof claim.
+test('Handbook retains unsent lesson drafts across startup preferences and selection', async ({ page }) => {
+  await page.goto('/proof/browser/signal-dom-host.test.html');
+  await page.evaluate(() => {
+    globalThis.pendingHandbook = import('/targets/browser/handbook/application.mjs').then(({ startApplication }) => {
+      document.body.innerHTML = '<main><section data-handbook-application></section></main>';
+      globalThis.bodyTransitions = [];
+      const plots = ['first', 'second'].map(name => ({ name, checkedPlotId: `fixture/${name}`, source: `original ${name}` }));
+      const checked = { ok: true, plots };
+      const body = {
+        id: 'fixture/body', plots: async () => checked,
+        current: async () => ({ evidence: { body: { state: 'Awake',
+          workset: { plots: [{ checked_plot_id: 'fixture/first' }] } } } }),
+        select: async () => { globalThis.bodyTransitions.push('select'); },
+        wake: async () => {
+          globalThis.bodyTransitions.push('wake');
+          return { state: 'playing', dispatch: () => new Promise(() => {}) };
+        },
+      };
+      return startApplication({
+        text: role => role === 'birth-specification' ? JSON.stringify({ name: 'Fixture', initialPlots: ['first'],
+          plots: ['first', 'second'].map(name => ({ name, title: name, role: name, lesson: name })) }) : `original ${role}`,
+        storage: {
+          readJson: async key => {
+            if (key !== 'selected-example') return null;
+            await new Promise(resolve => { globalThis.releasePreferenceRead = resolve; });
+            return 'first';
+          },
+          writeJson: async () => {}, durability: async () => ({ fixture: true }),
+        },
+        browser: async () => ({ recover: async () => body, attachEditor: () => ({ render() {}, destroy() {} }),
+          plot: value => ({ check: async () => value.startsWith('{') ? checked
+            : { ok: false, refusal: { code: 'FixtureSyntaxRefused', message: 'Fixture draft refused' }, diagnostics: [] } }) }),
+      });
+    });
+  });
+  const chooser = page.getByRole('combobox', { name: 'Choose an example' });
+  const editor = page.getByRole('textbox', { name: 'Plot source', exact: true });
+  await expect.poll(() => page.evaluate(() => typeof globalThis.releasePreferenceRead)).toBe('function');
+  await editor.fill('unsent first draft');
+  await chooser.selectOption('second');
+  await editor.fill('unsent second draft');
+  await page.evaluate(async () => { globalThis.releasePreferenceRead(); await globalThis.pendingHandbook; });
+  await expect(chooser).toHaveValue('second');
+  await expect(editor).toHaveValue('unsent second draft');
+  await chooser.selectOption('first');
+  await expect(editor).toHaveValue('unsent first draft');
+  await chooser.selectOption('second');
+  await expect(editor).toHaveValue('unsent second draft');
+  await page.getByRole('button', { name: 'Try in my Handbook', exact: true }).click();
+  await expect(page.locator('[data-check]')).toHaveAttribute('data-refusal-code', 'FixtureSyntaxRefused');
+  await expect(editor).toHaveValue('unsent second draft');
+  expect(await page.evaluate(() => globalThis.bodyTransitions)).toEqual(['select', 'wake']);
+});
