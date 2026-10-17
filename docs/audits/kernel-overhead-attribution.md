@@ -33,8 +33,9 @@ uncontrolled-host speedup, production kernel object size, or threshold is claime
 Observed wall timings include diagnostic counter and harness work.
 
 The native test allocator/scan seams are not installed in the browser/WASM
-product. Browser attribution therefore remains an explicit unsupported proof
-boundary; the browser can run the product but does not expose these measurements.
+product. Browser allocator/scan attribution remains an explicit unsupported proof
+boundary. The browser observation below measures actual wall time and linear-
+memory capacity without pretending those are native allocator/scan counters.
 This does not imply a browser performance result or close parent #5395, whose
 full Host pipeline, continuous-stream, DSP, payload/fan-out and numerical-profile
 acceptance remains separate.
@@ -101,3 +102,44 @@ becoming zero. Heap peaks include retained harness metadata. Host transport and
 compiler-copy attribution, browser/WASM attribution and the larger parent5395
 full-product/streaming/DSP gates remain explicitly unproven. These results do
 not identify a universal native-speed ratio or a causal Sign CPU share.
+
+## Scoped browser/WASM observation
+
+Three fresh pinned Chromium processes each executed three sequential Plays of
+the checked structured-value Window fixture, through actual Source admission,
+Plan/browser-kernel execution, a true Boolean manifestation and exact terminal
+acknowledgement. The [browser receipt](evidence/browser-overhead-attribution.json)
+retains raw wall milliseconds, explicit JS-to-ABI write extent, actual effects,
+terminal receipts and linear-memory capacity. Every fetched module digest and
+byte extent matched its sealed manifest. Runtime and proof-server Source remain
+`513cefa19f81d075587f05ef9a4886ed49e9be1b`; harness Source remains
+`39b4a8312` (the receipt retains its full identity).
+
+| Fresh process | Compile/instantiate, ms | First admission-through-terminal, ms | Later two Plays, ms |
+| --- | ---: | ---: | --- |
+| 1 | 13.900 | 642.900 | 391.800, 390.500 |
+| 2 | 12.600 | 643.800 | 389.800, 388.900 |
+| 3 | 15.000 | 686.500 | 423.900, 432.300 |
+
+Linear-memory capacity grew from 14,745,600 to 114,163,712 bytes during each
+first Play and remained at that capacity for the two later Plays. Capacity is
+not live heap, allocator-call count or a leak diagnosis. The measured Source
+boundary includes checking/preparation and execution; this is not a steady-Step
+measurement. Engine compilation cache and wall-clock precision remain
+uncontrolled. This is a different checked computation and representation from
+the native U64 arithmetic fixture; no native/WASM speed ratio follows.
+
+After preparing a canonical browser release and installing the pinned browser
+proof dependencies, reproduce with:
+
+```sh
+CONDUIT_BROWSER_RUNTIME_WASM=/absolute/release/runtime.wasm \
+  node proof/browser/node_modules/@playwright/test/cli.js test \
+  --config proof/performance/browser-overhead.config.mjs --workers=1 --retries=0
+```
+
+The runtime directory must retain `browser-page.json`. A compatible proof static
+server with the sealed-runtime selector is required (the repair is #5937). The
+local capture used the explicitly named server from Source513 above. Repeat in
+three new output directories for independent browser processes. There are no
+performance thresholds or automatic browser passes from missing evidence.
