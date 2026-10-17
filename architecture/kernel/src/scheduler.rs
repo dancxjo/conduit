@@ -23,6 +23,7 @@ mod boxed_preparation;
 mod debug_control;
 mod derived_value;
 mod host_call_settlement;
+mod quiescence;
 #[cfg(feature = "linear-ready-reference-test")]
 mod ready_reference;
 mod ready_set;
@@ -2285,90 +2286,6 @@ where
         self.terminal_phases[node] = terminal_phase;
         self.terminal_cancellation_pending[node] = cancellation_pending;
         Ok(())
-    }
-
-    fn arm_quiescence_outputs(&mut self, node: usize) -> Result<(), SchedulerError> {
-        let node = NodeId(as_u16(node)?);
-        for cord in 0..self.active_cords {
-            #[cfg(test)]
-            {
-                let mut counts = self.scan_counts.get();
-                counts.cord_scans += 1;
-                self.scan_counts.set(counts);
-            }
-            if self.cord_specs[cord].track == AssignedConnectionTrack::Quiescence
-                && self.cord_specs[cord].source_local().map(|source| source.0) == Some(node)
-            {
-                self.cords[cord].quiescence_armed = true;
-            }
-        }
-        Ok(())
-    }
-
-    /// Emit one wakeable edge for every source that became active and has now
-    /// returned the whole play to quiescence. Empty queues alone do not arm an
-    /// edge, and terminal sources are never reported as quiescent.
-    fn emit_quiescence_transitions(&mut self) -> Result<Option<NodeId>, SchedulerError> {
-        let mut count = 0_usize;
-        let mut first_source = None;
-        for cord in 0..self.active_cords {
-            #[cfg(test)]
-            {
-                let mut counts = self.scan_counts.get();
-                counts.cord_scans += 1;
-                self.scan_counts.set(counts);
-            }
-            let spec = self.cord_specs[cord];
-            if spec.track != AssignedConnectionTrack::Quiescence
-                || !self.cords[cord].quiescence_armed
-            {
-                continue;
-            }
-            let Some((source, _)) = spec.source_local() else {
-                continue;
-            };
-            if self.completed[usize::from(source.0)] || self.cords[cord].len != 0 {
-                continue;
-            }
-            first_source.get_or_insert(source);
-            count = count.checked_add(1).ok_or(SchedulerError::InvalidPlan)?;
-        }
-        if count == 0 {
-            return Ok(None);
-        }
-        self.ensure_sign_capacity(count)?;
-        let value = self.values.store(&[])?;
-        for _ in 1..count {
-            self.values.retain(value)?;
-        }
-        for cord in 0..self.active_cords {
-            #[cfg(test)]
-            {
-                let mut counts = self.scan_counts.get();
-                counts.cord_scans += 1;
-                self.scan_counts.set(counts);
-            }
-            let spec = self.cord_specs[cord];
-            if spec.track != AssignedConnectionTrack::Quiescence
-                || !self.cords[cord].quiescence_armed
-            {
-                continue;
-            }
-            let Some((source, port)) = spec.source_local() else {
-                continue;
-            };
-            if self.completed[usize::from(source.0)] || self.cords[cord].len != 0 {
-                continue;
-            }
-            self.push(cord, value)?;
-            self.cords[cord].quiescence_armed = false;
-            if let Some((sink, _)) = spec.sink_local() {
-                self.ready.set(usize::from(sink.0), true);
-            }
-            self.signs
-                .record(source, Some(port), None, KernelEventKind::ValueRouted)?;
-        }
-        Ok(first_source)
     }
 
     fn projected_recovery_for_step(
