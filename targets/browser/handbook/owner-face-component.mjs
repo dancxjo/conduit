@@ -41,6 +41,7 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
   }
   show(view, { invoke, projectCollections = () => ({ collections: [], placed: new Set() }),
     supportsAction = () => true } = {}) {
+    const focusedKey = this.shadowRoot.activeElement?.dataset.ownerFocus;
     const render = this.#render = {};
     this.#invoke = invoke;
     this.#projectCollections = projectCollections;
@@ -126,6 +127,8 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
         }
         label.setAttribute('part', 'label');
         input.setAttribute('part', 'input');
+        input.dataset.ownerFocus = JSON.stringify([action.identity, action.target, 'argument', argument.name]);
+        input.dataset.unavailable = String(action.availability !== 'available' || !this.#supportsAction(action));
         label.append(input);
         control.append(label);
         inputs.push({ name: argument.name, input, argument });
@@ -133,6 +136,7 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
       const button = faceNode('button', itemName ? `${action.name} ${itemName}` : action.name);
       button.setAttribute('part', 'button');
       button.type = 'submit';
+      button.dataset.ownerFocus = JSON.stringify([action.identity, action.target, 'submit']);
       button.disabled = !actionReady(action) || !supported || inputs.length !== action.arguments.length;
       button.dataset.unavailable = String(action.availability !== 'available' || !this.#supportsAction(action)
         || !supported || inputs.length !== action.arguments.length);
@@ -275,6 +279,7 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
         label.setAttribute('part', 'choice');
         input.setAttribute('part', 'input');
         input.type = 'radio';
+        input.dataset.ownerFocus = JSON.stringify([action.identity, action.target, 'choice']);
         input.name = group.identity;
         input.value = option.identity;
         input.checked = option.flags.find(flag => flag.name === 'selected').value;
@@ -362,6 +367,12 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
     this.dataset.faceRevision = view.face_revision;
     this.dataset.showId = view.show_id;
     this.disabled = this.#disabled;
+    if (focusedKey) {
+      const current = [...this.#surface.querySelectorAll('[data-owner-focus]')]
+        .find(control => control.dataset.ownerFocus === focusedKey);
+      // Focus is local presentation state, never an action or permission.
+      if (current && !current.disabled && current.getClientRects().length) current.focus();
+    }
   }
 }
 if (globalThis.customElements && !customElements.get('conduit-owner-face')) {

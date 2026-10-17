@@ -368,3 +368,59 @@ test('named Face values expose their labels and exact values without styling', a
   await expect(element.getByRole('term')).toHaveText(['Completion', 'Count']);
   await expect(element.getByRole('definition')).toHaveText(['Done', '1']);
 });
+
+for (const control of ['submit', 'argument']) {
+  test(`current Face refresh preserves ${control} focus by semantic identity`, async ({ page }) => {
+    await page.goto('/proof/browser/signal-dom-host.test.html');
+    const withInput = { ...view, actions: [{ ...view.actions[0], arguments: [{
+      name: 'text', value_name: 'Text', value_kind: 'value/text', maximum_bytes: 32, choices: [],
+    }] }] };
+    await page.evaluate(async view => {
+      await import('/targets/browser/handbook/owner-face-component.mjs');
+      document.body.replaceChildren();
+      const element = document.createElement('conduit-owner-face');
+      document.body.append(element);
+      globalThis.calls = [];
+      element.show(view, { invoke: async call => { globalThis.calls.push(call); } });
+    }, withInput);
+    const element = page.locator('conduit-owner-face');
+    const focused = control === 'submit'
+      ? element.getByRole('button', { name: 'Complete task', exact: true })
+      : element.getByRole('textbox', { name: 'Text', exact: true });
+    await focused.focus();
+    const next = { ...withInput, face_revision: 2, show_id: 'fixture/refreshed' };
+    await element.evaluate((node, view) => node.show(view, {
+      invoke: async call => { globalThis.calls.push(call); },
+    }), next);
+    await expect(focused).toBeFocused();
+    expect(await page.evaluate(() => globalThis.calls)).toEqual([]);
+    await element.evaluate((node, view) => node.show({ ...view, actions: [{
+      ...view.actions[0], availability: 'unavailable',
+    }] }, { invoke: async () => {} }), next);
+    await expect(focused).not.toBeFocused();
+    await expect(element.getByRole('button', { name: 'Complete task', exact: true })).toBeDisabled();
+  });
+}
+
+test('Face refresh neither transfers focus to a different target nor steals external focus', async ({ page }) => {
+  await page.goto('/proof/browser/signal-dom-host.test.html');
+  await page.evaluate(async view => {
+    await import('/targets/browser/handbook/owner-face-component.mjs');
+    document.body.replaceChildren();
+    const element = document.createElement('conduit-owner-face');
+    const outside = document.createElement('button'); outside.textContent = 'Outside';
+    document.body.append(element, outside);
+    element.show(view, { invoke: async () => {} });
+  }, view);
+  const element = page.locator('conduit-owner-face');
+  const control = element.getByRole('button', { name: 'Complete task', exact: true });
+  await control.focus();
+  const changed = { ...view, subjects: [{ ...view.subjects[0], identity: 'fixture/other' }],
+    actions: [{ ...view.actions[0], target: 'fixture/other' }] };
+  await element.evaluate((node, view) => node.show(view, { invoke: async () => {} }), changed);
+  await expect(control).not.toBeFocused();
+  const outside = page.getByRole('button', { name: 'Outside', exact: true });
+  await outside.focus();
+  await element.evaluate((node, view) => node.show(view, { invoke: async () => {} }), changed);
+  await expect(outside).toBeFocused();
+});

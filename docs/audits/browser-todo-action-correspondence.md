@@ -59,3 +59,19 @@ already provide correct accessible names before and after selection and a new
 Face render; that control markup was left unchanged. These fixture callbacks
 do not establish real Todo/Commons owner custody, assistive-technology enactment
 or packaged/public acceptance of #5630.
+
+
+The #5631 development follow-up preserves local focus across an ordinary Face
+refresh while an enabled control is focused. Rendered controls carry an exact
+local focus key from action identity, target and control/argument identity.
+After replacement, focus is restored only to a matching enabled control with a
+visible layout box. Argument controls now retain their action's unavailability
+flag for the existing disabled-state setter. No callback is invoked by focus
+restoration, and the key supplies no interaction authority.
+
+Button and argument-focus regressions failed before repair. The full component
+suite passes fifteen Chromium tests with one worker and zero retries; negative
+fixtures cover an unavailable action, a changed target and external focus that
+must not be stolen. This covers renderer-local refresh continuity, not recovery
+of focus already lost while awaiting an action, retention of unsubmitted edits,
+all hidden/removed-control paths or SDK/Body keyboard acceptance for #5631.
