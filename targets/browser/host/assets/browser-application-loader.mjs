@@ -36,7 +36,7 @@ async function sha256(bytes) {
 }
 
 async function boundedFetch(url, maximumBytes, label) {
-  const response = await fetch(url);
+  const response = await fetch(url, { cache: "no-store", credentials: "same-origin", redirect: "error" });
   if (!response.ok) throw new Error(`${label} is unavailable`);
   const declared = Number(response.headers.get("content-length"));
   if (Number.isFinite(declared) && declared > maximumBytes) {

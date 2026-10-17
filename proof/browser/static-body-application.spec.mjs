@@ -875,3 +875,27 @@ for (const oversized of [false, true, "header"]) {
       .toEqual({ pulls: oversized === "header" ? 0 : 3, cancelled: Boolean(oversized), locked: false });
   });
 }
+
+for (const redirected of [true, false]) {
+  test(`static application loader keeps manifest fetch on its declared URL (redirect: ${redirected})`, async ({ page }) => {
+    let destinationRequests = 0;
+    page.on('request', request => {
+      if (request.url().endsWith('/proof/browser/fixture-redirect-target.json')) destinationRequests++;
+    });
+    await page.route('**/proof/browser/fixture-application.json', route => route.fulfill(redirected
+      ? { status: 302, headers: { location: '/proof/browser/fixture-redirect-target.json' } }
+      : { contentType: 'application/json', body: '{}' }));
+    await page.goto('/proof/browser/signal-dom-host.test.html');
+    await page.evaluate(async () => {
+      document.body.innerHTML = '<main id="workspace"></main>';
+      const meta = document.createElement('meta');
+      meta.name = 'conduit-application-package'; meta.content = '/proof/browser/fixture-application.json';
+      document.head.append(meta);
+      await import('/targets/browser/host/assets/browser-application-loader.mjs');
+    });
+    await expect(page.locator('#workspace.error')).toBeVisible();
+    expect(destinationRequests).toBe(0);
+    await expect(page.locator('#workspace.error')).toHaveText(redirected
+      ? 'Failed to fetch' : 'browser application package schema is unsupported');
+  });
+}

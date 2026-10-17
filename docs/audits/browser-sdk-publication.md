@@ -199,3 +199,15 @@ worker and zero retries: exact-48-KiB manifest reaches schema admission, one byt
 over cancels immediately, and an oversized header cancels with zero body pulls.
 Responses are synthetic streams inside Chromium; no full packaged runtime,
 public deployment or source-history acceptance is implied.
+
+Application redirect follow-up: static application manifests and resources now
+use same-origin credentials, no-store fetches and `redirect: error`, matching
+the SDK's exact package fetch policy. A declared package URL cannot redirect
+loading to another resource before content admission.
+
+A pinned Chromium request observer recorded one redirect-destination request
+before repair and zero afterward. Five focused loader fixtures pass with one
+worker and zero retries: redirect refusal, direct response reaching schema
+admission, and all three streaming-bound cases. Redirects are intercepted local
+responses and the destination is observed through browser request events; this
+does not establish full packaged runtime or public deployment acceptance.
