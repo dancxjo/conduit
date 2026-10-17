@@ -9,6 +9,8 @@ fn features(arguments: &[&str]) -> BTreeMap<String, BTreeSet<String>> {
     let output = Command::new("cargo")
         .args([
             "tree",
+            "--color",
+            "never",
             "--locked",
             "--edges",
             "normal,build,dev",
@@ -18,6 +20,9 @@ fn features(arguments: &[&str]) -> BTreeMap<String, BTreeSet<String>> {
             "{p}|{f}",
         ])
         .args(arguments)
+        // Exercise the same forced-colour parent environment as Actions.
+        // The explicit command option keeps the feature inventory plain.
+        .env("CARGO_TERM_COLOR", "always")
         .output()
         .expect("Cargo feature inventory launches");
     assert!(
