@@ -369,6 +369,7 @@ export function manifestApplicationView(input, root, options = {}) {
   const fragment = document.createDocumentFragment();
   const elements = [];
   const actionEvents = new WeakMap();
+  const choiceValues = new Map();
   const nodesByKey = new Map();
   const requestAction = (node, value = "", control = null) => {
     if (activeManifestations.get(root) !== render) {
@@ -411,6 +412,17 @@ export function manifestApplicationView(input, root, options = {}) {
       options.onRefusal?.(lastRefusal);
       return null;
     }
+    const choices = choiceValues.get(node);
+    if (choices) {
+      let selected;
+      try { selected = typeof value === "string" ? value : new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(encodedValue); }
+      catch { selected = undefined; }
+      if (!choices.has(selected)) {
+        lastRefusal = "invalid-control-value";
+        options.onRefusal?.(lastRefusal);
+        return null;
+      }
+    }
     const encodedBytes = EVENT_HEADER_BYTES + new TextEncoder().encode(action.id).length + encodedValue.length;
     if (queue.length === capacity || queuedBytes + encodedBytes > byteCapacity) {
       lastRefusal = "queue-pressure";
@@ -425,6 +437,9 @@ export function manifestApplicationView(input, root, options = {}) {
     return event;
   };
   for (const [nodeIndex, node] of view.nodes.entries()) {
+    if (node.component === 16) {
+      choiceValues.set(node, new Set(view.nodes.filter(child => child.parent === nodeIndex && child.component === 22).map(child => child.value)));
+    }
     const [tag, kind] = COMPONENTS[node.component];
     const element = document.createElement(tag);
     element.dataset.applicationKey = node.key;

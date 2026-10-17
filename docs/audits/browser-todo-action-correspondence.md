@@ -618,3 +618,17 @@ activation and prior nested/stale cases. Temporary DOM unavailability does not
 revoke the underlying manifestation: restoring its surface allows activation.
 This is not arbitrary CSS visibility, permanent lifecycle revocation or
 authoritative Body proof; the prior missing-WASM full-suite limit remains.
+
+Generic select domain follow-up (#5644): manifestation retains each select's
+declared option-value set. DOM and explicit Host action requests must supply
+one exact member before queue/callback. Byte requests decode with fatal UTF-8
+and preserve a leading BOM, preventing extra bytes from aliasing a shorter
+option through decoder normalization. Byte capacity checks remain unchanged.
+
+Forged DOM options, undeclared strings/bytes and malformed UTF-8 reproduced
+queueing before the repair. A fifth fixture reproduced the BOM-stripping alias
+in the initial decoder and passes with BOM preservation. All 14 targeted pinned
+Chromium fixtures pass (one worker, zero retries), each select case followed by
+native keyboard selection of the exact declared accented/emoji value. This is
+renderer admission/queue proof; authoritative Body and missing-WASM full runtime
+acceptance remain open.

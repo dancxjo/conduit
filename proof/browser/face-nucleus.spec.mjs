@@ -320,3 +320,34 @@ for (const unavailable of ['disabled', 'fieldset', 'inert', 'hidden', 'detached'
     expect(await page.evaluate(() => globalThis.availableCalls)).toEqual(['fixture.available']);
   });
 }
+
+for (const forged of ['dom-option', 'string', 'bytes', 'malformed-bytes', 'bom-bytes']) {
+  test(`generic select refuses undeclared values (${forged})`, async ({ page }) => {
+    await page.goto('/proof/browser/signal-dom-host.test.html');
+    await page.evaluate(async forged => {
+      const { encodeApplicationView, manifestApplicationView } = await import('/targets/browser/host/assets/application-face.mjs');
+      const root = document.createElement('section'); document.body.append(root);
+      globalThis.choiceCalls = [];
+      const manifest = manifestApplicationView(encodeApplicationView({ revision: 1,
+        actions: [{ id: 'fixture.choice', event: 'change' }], nodes: [
+          { parent: null, component: 'select', key: 'choice', text: 'Exact choice', value: 'one', valueCapacity: 16, action: 0 },
+          { parent: 0, component: 'option', key: 'one', text: 'One', value: 'one', valueCapacity: 16, action: null },
+          { parent: 0, component: 'option', key: 'two', text: 'Unicode', value: 'é😀', valueCapacity: 16, action: null },
+        ] }), root, { onEvent: event => globalThis.choiceCalls.push(new TextDecoder().decode(event.value)) });
+      if (forged === 'dom-option') {
+        const select = root.querySelector('select');
+        const option = document.createElement('option'); option.value = 'forged'; option.textContent = 'Forged'; select.append(option);
+        select.value = 'forged'; select.dispatchEvent(new Event('change', { bubbles: true }));
+        option.remove(); select.value = 'one';
+      } else manifest.requestAction('choice', forged === 'string' ? 'forged'
+        : forged === 'bytes' ? new TextEncoder().encode('forged')
+        : forged === 'bom-bytes' ? new TextEncoder().encode('\ufeffone') : Uint8Array.of(0xff));
+      globalThis.choiceProof = manifest;
+    }, forged);
+    expect(await page.evaluate(() => ({ calls: globalThis.choiceCalls, queued: globalThis.choiceProof.queuedEvents(),
+      refusal: globalThis.choiceProof.lastRefusal() }))).toEqual({ calls: [], queued: 0, refusal: 'invalid-control-value' });
+    await page.getByRole('combobox', { name: 'Exact choice', exact: true }).focus();
+    await page.keyboard.press('ArrowDown');
+    expect(await page.evaluate(() => globalThis.choiceCalls)).toEqual(['é😀']);
+  });
+}
