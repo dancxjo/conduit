@@ -39,17 +39,22 @@ pub(super) fn run(
                     prepared.host.advertisement(),
                 )?;
                 let mut collector = Collector::new();
+                let mut phases = phase_observation::PhaseObserver::default();
                 let started = Instant::now();
                 let (report, metrics) = timing::measure(|| {
-                    prepared.host.run_external_plot_sequence_to(
+                    phases.begin();
+                    let result = prepared.host.run_external_plot_sequence_to(
                         fragment,
                         &prepared.inputs,
                         &mut collector,
                         &mut std::io::sink(),
-                        &mut NoTimer,
-                    )
+                        &mut phases,
+                    );
+                    phases.end();
+                    result
                 });
                 let report = report?;
+                let kernel_phase_wall = phases.report()?;
                 let digest = validate(&collector.values)?;
                 if let Some(expected) = &oracle {
                     if expected != &digest {
@@ -77,7 +82,7 @@ pub(super) fn run(
                 let row = json!({
                     "case":case,"phase":"finite-ordinary-fusion-pipeline","mode":mode,"repetition":repetition,"gears":gears,"values":ITEMS,
                     "source_sha256":artifact::digest(authored.as_bytes()),"checked_plot_id":prepared.plan.checked_plot_id.as_str(),
-                    "ordered_output_sha256":digest,"full_host_call":metrics,"cold_phases":prepared.phases,"planning_selection":prepared.selection_evidence,
+                    "ordered_output_sha256":digest,"full_host_call":metrics,"kernel_phase_wall":kernel_phase_wall,"cold_phases":prepared.phases,"planning_selection":prepared.selection_evidence,
                     "first_acknowledgement_from_call_start_ns":timing::ns(first.duration_since(started)),
                     "first_to_last_acknowledgement_ns":timing::ns(last.duration_since(first)),
                     "completion_window_useful_outputs_per_second":(ITEMS-1) as f64 / last.duration_since(first).as_secs_f64(),

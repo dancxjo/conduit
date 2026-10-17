@@ -67,6 +67,18 @@ def verify_pipeline_work(root, status, row, fragment):
             assert len(fusion['preserved_connections']) == gears - 1 and set(fusion['preserved_connections']) == ids, 'fusion logical connection preservation'
 
 
+def verify_phase_wall(row):
+    phase = row['kernel_phase_wall']
+    fields = ['call_wall_ns', 'before_preparation_ns', 'back_preparation_ns', 'play_ns', 'after_play_ns']
+    assert all(type(phase[name]) is int and phase[name] >= 0 for name in fields), 'invalid phase duration'
+    offsets = phase['marker_offsets_ns']
+    assert len(offsets) == 3 and all(type(v) is int and v >= 0 for v in offsets)
+    before, start, finish = offsets
+    assert 0 <= before <= start <= finish <= phase['call_wall_ns'], 'phase markers not monotonic'
+    assert [phase[name] for name in fields[1:]] == [before, start - before, finish - start, phase['call_wall_ns'] - finish], 'phase partition differs'
+    assert phase['call_wall_ns'] <= row['full_host_call']['wall_ns'], 'phase call exceeds measured outer call'
+    return phase
+
 def verify(root, output):
     root = root.resolve()
     assert not output.resolve().is_relative_to(root), "receipt must be outside immutable capture"
@@ -112,6 +124,8 @@ def verify(root, output):
             mode = row.get('mode', 'finite-ordinary-hosted-pipeline')
             metrics = {'full_host_call': row['full_host_call']}
             pipelines.append(row)
+            if 'kernel_phase_wall' in row:
+                metrics['kernel_phase_wall'] = verify_phase_wall(row)
         if mode is not None:
             key = (row['case'], mode, row['repetition'])
             assert key not in expected, key
@@ -134,6 +148,9 @@ def verify(root, output):
                 for field in ['wall_ns', 'process_cpu_ns']:
                     if value.get(field) is not None:
                         groups[case, mode, name + '.' + field].append(value[field])
+            elif name == 'kernel_phase_wall':
+                for field in ['call_wall_ns', 'before_preparation_ns', 'back_preparation_ns', 'play_ns', 'after_play_ns']:
+                    groups[case, mode, name + '.' + field].append(value[field])
             elif value is not None:
                 groups[case, mode, name].append(value)
     seen = set()
@@ -201,6 +218,11 @@ def verify(root, output):
                 'output_sha256': expected_digest,
             })
     assert {r['gears'] for r in ordinary} == {1, 8, 32} and len(ordinary) == 3 * repetitions
+    phase_count = sum('kernel_phase_wall' in row for row in pipelines)
+    assert phase_count in [0, len(pipelines)], 'phase observation missing from some pipeline trials'
+    if metadata.get('hosted_phase_wall_schema') is not None:
+        assert metadata['hosted_phase_wall_schema'] == 'installed-boundaries-wall@1'
+        assert phase_count == len(pipelines), 'declared phase observation absent'
     receipt = {
         'source': status['git_sha'],
         'verified_artifact_hashes': len(status['artifact_sha256']),
@@ -212,6 +234,7 @@ def verify(root, output):
                                for case, digests in sorted(checksums.items())},
         'hosted_rows': ordinary,
         'all_pipeline_rows': len(pipelines),
+        'verified_phase_wall_partitions': phase_count,
         'verified_pipeline_execution_identities': identities,
         'ordered_pipeline_output_sha256': expected_digest,
         'repeated_batches': report['repeated_batches'],
