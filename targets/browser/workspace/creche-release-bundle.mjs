@@ -31,7 +31,7 @@ export async function acquireHostRelease(profile, signal, {
   for (const file of manifest.files) {
     const resource = await acquireExactReleaseBytes({
       url: new URL(file.path, manifestResource.url), expected: file,
-      maximumBytes: MAXIMUM_FILE_BYTES, signal, fetcher, cache, label: file.path,
+      maximumBytes: MAXIMUM_FILE_BYTES, signal, fetcher, cache, label: file.path, artifactWorkStarted: true,
     });
     const bytes = resource.bytes;
     totalBytes += bytes.byteLength;
@@ -46,7 +46,7 @@ export async function acquireHostRelease(profile, signal, {
   return Object.freeze({ manifest: Object.freeze(manifest), payloads: Object.freeze(payloads), totalBytes });
 }
 
-export async function acquireExactReleaseBytes({ url, expected, maximumBytes, signal, fetcher, cache, label }) {
+export async function acquireExactReleaseBytes({ url, expected, maximumBytes, signal, fetcher, cache, label, artifactWorkStarted = false }) {
   if (expected && cache) {
     const cached = await cache.get(expected.sha256);
     if (cached) {
@@ -58,12 +58,14 @@ export async function acquireExactReleaseBytes({ url, expected, maximumBytes, si
   }
   let response;
   try { response = await fetcher(url, { signal, cache: "no-store" }); }
-  catch (error) { refuse("ArtifactUnavailable", `reviewed host release ${label} is unavailable`, error, label !== "manifest"); }
-  if (!response?.ok) refuse("ArtifactUnavailable", `reviewed host release ${label} returned HTTP ${response?.status}`, undefined, label !== "manifest");
-  const bytes = new Uint8Array(await response.arrayBuffer());
+  catch (error) { refuse("ArtifactUnavailable", `reviewed host release ${label} is unavailable`, error, artifactWorkStarted); }
+  if (!response?.ok) refuse("ArtifactUnavailable", `reviewed host release ${label} returned HTTP ${response?.status}`, undefined, artifactWorkStarted);
+  let bytes;
+  try { bytes = new Uint8Array(await response.arrayBuffer()); }
+  catch (error) { refuse("ArtifactUnavailable", `reviewed host release ${label} body is unavailable`, error, artifactWorkStarted); }
   if (bytes.byteLength < 1 || bytes.byteLength > maximumBytes
     || expected && (bytes.byteLength !== expected.bytes || await sha256(bytes) !== expected.sha256)) {
-    refuse("StaleArtifact", `reviewed host release ${label} failed its exact identity`, undefined, label !== "manifest");
+    refuse("StaleArtifact", `reviewed host release ${label} failed its exact identity`, undefined, artifactWorkStarted);
   }
   if (expected && cache) await cache.put(expected.sha256, bytes);
   return Object.freeze({ bytes, url: response.url || String(url), cache_hit: false });
