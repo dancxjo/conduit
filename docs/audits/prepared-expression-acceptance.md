@@ -232,3 +232,16 @@ tests and the real WASM parity/refusal/allocation corpus. Its
 [validation record](evidence/scalar-tape-wasm-checked-hints-validation.json)
 retain that source, the runtime hash and the same 128 std semantic identity
 matches. Earlier WASM and CPU receipts remain unchanged.
+
+## Combined platform-repair validation
+
+Clean local source `0601beb149f6e3bf18cb5a545fd4a7bdad4acea5` combines this
+feature with its own platform-repair branch. It passes all 12 Plot scalar tests,
+13 installed std scalar tests, focused strict Clippy and workspace formatting.
+The supported native/WASM suite passes its two native baseline tests and all
+48 WASM cases. The [combined-tree receipt](evidence/scalar-tape-combined-repair-wasm.json)
+and [validation record](evidence/scalar-tape-combined-repair-validation.json)
+retain this source and the original log hashes. Earlier source-specific receipts
+remain unchanged. This is local interaction validation; repair admission, fresh
+feature Candidate, exhaustive dev integration and exact-main publication remain
+separate required gates.

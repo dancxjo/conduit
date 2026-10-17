@@ -1,0 +1,962 @@
+{
+  "profiles": [
+    {
+      "cases": [
+        {
+          "allocations": 0,
+          "input": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "outcome": {
+            "bytes": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "reallocations": 0,
+          "warm_iterations": 16
+        },
+        {
+          "allocations": 0,
+          "input": [
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "outcome": {
+            "bytes": [
+              2,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "reallocations": 0,
+          "warm_iterations": 16
+        },
+        {
+          "allocations": 0,
+          "input": [
+            7,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "outcome": {
+            "bytes": [
+              14,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "reallocations": 0,
+          "warm_iterations": 16
+        },
+        {
+          "allocations": 0,
+          "input": [
+            255,
+            255,
+            255,
+            255,
+            255,
+            255,
+            255,
+            127
+          ],
+          "outcome": {
+            "bytes": [
+              254,
+              255,
+              255,
+              255,
+              255,
+              255,
+              255,
+              255
+            ]
+          },
+          "reallocations": 0,
+          "warm_iterations": 16
+        },
+        {
+          "allocations": 0,
+          "input": [
+            255,
+            255,
+            255,
+            255,
+            255,
+            255,
+            255,
+            255
+          ],
+          "outcome": {
+            "refusal": "Arithmetic"
+          },
+          "reallocations": 0,
+          "warm_iterations": 16
+        },
+        {
+          "allocations": 0,
+          "input": [],
+          "outcome": {
+            "refusal": "InvalidInput"
+          },
+          "reallocations": 0,
+          "warm_iterations": 16
+        },
+        {
+          "allocations": 0,
+          "input": [
+            1
+          ],
+          "outcome": {
+            "refusal": "InvalidInput"
+          },
+          "reallocations": 0,
+          "warm_iterations": 16
+        }
+      ],
+      "domain": "integer",
+      "identity": {
+        "checked_plot_id": "e67b76b86f205c4f7bdf56996ffc38b491813eb7b02e4047af543a3015ca45fd",
+        "expanded_plot_id": "819a87fc9f62d4952d8ce3ce885fc4412b8fa8ab33e4473ea15b00cd3d8de054",
+        "program": "636f6e647569742e707572652d65787072657373696f6e2e70726f6772616d2e76320e00000000000000000900000076616c75652f7536340e00000000000000000900000076616c75652f7536340e00000000000000000900000076616c75652f7536340403000e00000000000000000900000076616c75652f753634000e00000000000000000900000076616c75652f75363400",
+        "source_document_id": "6a9887d8703e48056a98e9bbc73a426ce8ae409e1b920a98d980c74417f278ff"
+      },
+      "maximum_instructions": 3,
+      "operations": 1,
+      "output_capacity_bytes": 8,
+      "scratch_payload_bytes": 112
+    },
+    {
+      "cases": [
+        {
+          "allocations": 0,
+          "input": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "outcome": {
+            "bytes": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "reallocations": 0,
+          "warm_iterations": 16
+        },
+        {
+          "allocations": 0,
+          "input": [
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "outcome": {
+            "bytes": [
+              4,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "reallocations": 0,
+          "warm_iterations": 16
+        },
+        {
+          "allocations": 0,
+          "input": [
+            7,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "outcome": {
+            "bytes": [
+              28,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "reallocations": 0,
+          "warm_iterations": 16
+        },
+        {
+          "allocations": 0,
+          "input": [
+            255,
+            255,
+            255,
+            255,
+            255,
+            255,
+            255,
+            63
+          ],
+          "outcome": {
+            "bytes": [
+              252,
+              255,
+              255,
+              255,
+              255,
+              255,
+              255,
+              255
+            ]
+          },
+          "reallocations": 0,
+          "warm_iterations": 16
+        },
+        {
+          "allocations": 0,
+          "input": [
+            255,
+            255,
+            255,
+            255,
+            255,
+            255,
+            255,
+            255
+          ],
+          "outcome": {
+            "refusal": "Arithmetic"
+          },
+          "reallocations": 0,
+          "warm_iterations": 16
+        },
+        {
+          "allocations": 0,
+          "input": [],
+          "outcome": {
+            "refusal": "InvalidInput"
+          },
+          "reallocations": 0,
+          "warm_iterations": 16
+        },
+        {
+          "allocations": 0,
+          "input": [
+            1
+          ],
+          "outcome": {
+            "refusal": "InvalidInput"
+          },
+          "reallocations": 0,
+          "warm_iterations": 16
+        }
+      ],
+      "domain": "integer",
+      "identity": {
+        "checked_plot_id": "7e88f5bd5d1346494d20b0ee189e3ffa038f1b1f467ffddb9fb1e8fce3d81a79",
+        "expanded_plot_id": "681da06de98be943b01f2be21178348248d6e1559c734c34794c8a80b2cc03d8",
+        "program": "636f6e647569742e707572652d65787072657373696f6e2e70726f6772616d2e76320e00000000000000000900000076616c75652f7536340e00000000000000000900000076616c75652f7536340e00000000000000000900000076616c75652f7536340403000e00000000000000000900000076616c75652f7536340403000e00000000000000000900000076616c75652f753634000e00000000000000000900000076616c75652f753634000e00000000000000000900000076616c75652f7536340403000e00000000000000000900000076616c75652f753634000e00000000000000000900000076616c75652f75363400",
+        "source_document_id": "6a9887d8703e48056a98e9bbc73a426ce8ae409e1b920a98d980c74417f278ff"
+      },
+      "maximum_instructions": 7,
+      "operations": 3,
+      "output_capacity_bytes": 8,
+      "scratch_payload_bytes": 224
+    },
+    {
+      "cases": [
+        {
+          "allocations": 0,
+          "input": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "outcome": {
+            "bytes": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "reallocations": 0,
+          "warm_iterations": 16
+        },
+        {
+          "allocations": 0,
+          "input": [
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "outcome": {
+            "bytes": [
+              9,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "reallocations": 0,
+          "warm_iterations": 16
+        },
+        {
+          "allocations": 0,
+          "input": [
+            7,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "outcome": {
+            "bytes": [
+              63,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "reallocations": 0,
+          "warm_iterations": 16
+        },
+        {
+          "allocations": 0,
+          "input": [
+            113,
+            28,
+            199,
+            113,
+            28,
+            199,
+            113,
+            28
+          ],
+          "outcome": {
+            "bytes": [
+              249,
+              255,
+              255,
+              255,
+              255,
+              255,
+              255,
+              255
+            ]
+          },
+          "reallocations": 0,
+          "warm_iterations": 16
+        },
+        {
+          "allocations": 0,
+          "input": [
+            255,
+            255,
+            255,
+            255,
+            255,
+            255,
+            255,
+            255
+          ],
+          "outcome": {
+            "refusal": "Arithmetic"
+          },
+          "reallocations": 0,
+          "warm_iterations": 16
+        },
+        {
+          "allocations": 0,
+          "input": [],
+          "outcome": {
+            "refusal": "InvalidInput"
+          },
+          "reallocations": 0,
+          "warm_iterations": 16
+        },
+        {
+          "allocations": 0,
+          "input": [
+            1
+          ],
+          "outcome": {
+            "refusal": "InvalidInput"
+          },
+          "reallocations": 0,
+          "warm_iterations": 16
+        }
+      ],
+      "domain": "integer",
+      "identity": {
+        "checked_plot_id": "901a56a935023bd34fca9ecb42a1551b97d2eb757f6341fa5959f4cdc0515fb8",
+        "expanded_plot_id": "76c420ebc2291cbb3390e54906848ca7ffd897fa95a897b477a9a1b2b945db2c",
+        "program": "636f6e647569742e707572652d65787072657373696f6e2e70726f6772616d2e76320e00000000000000000900000076616c75652f7536340e00000000000000000900000076616c75652f7536340e00000000000000000900000076616c75652f7536340403000e00000000000000000900000076616c75652f7536340403000e00000000000000000900000076616c75652f7536340403000e00000000000000000900000076616c75652f753634000e00000000000000000900000076616c75652f753634000e00000000000000000900000076616c75652f7536340403000e00000000000000000900000076616c75652f753634000e00000000000000000900000076616c75652f753634000e00000000000000000900000076616c75652f7536340403000e00000000000000000900000076616c75652f7536340403000e00000000000000000900000076616c75652f753634000e00000000000000000900000076616c75652f753634000e00000000000000000900000076616c75652f7536340403000e00000000000000000900000076616c75652f753634000e00000000000000000900000076616c75652f7536340403000e00000000000000000900000076616c75652f753634000e00000000000000000900000076616c75652f75363400",
+        "source_document_id": "6a9887d8703e48056a98e9bbc73a426ce8ae409e1b920a98d980c74417f278ff"
+      },
+      "maximum_instructions": 17,
+      "operations": 8,
+      "output_capacity_bytes": 8,
+      "scratch_payload_bytes": 896
+    },
+    {
+      "cases": [
+        {
+          "allocations": 0,
+          "input": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "outcome": {
+            "bytes": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "reallocations": 0,
+          "warm_iterations": 16
+        },
+        {
+          "allocations": 0,
+          "input": [
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "outcome": {
+            "bytes": [
+              33,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "reallocations": 0,
+          "warm_iterations": 16
+        },
+        {
+          "allocations": 0,
+          "input": [
+            7,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "outcome": {
+            "bytes": [
+              231,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "reallocations": 0,
+          "warm_iterations": 16
+        },
+        {
+          "allocations": 0,
+          "input": [
+            240,
+            193,
+            7,
+            31,
+            124,
+            240,
+            193,
+            7
+          ],
+          "outcome": {
+            "bytes": [
+              240,
+              255,
+              255,
+              255,
+              255,
+              255,
+              255,
+              255
+            ]
+          },
+          "reallocations": 0,
+          "warm_iterations": 16
+        },
+        {
+          "allocations": 0,
+          "input": [
+            255,
+            255,
+            255,
+            255,
+            255,
+            255,
+            255,
+            255
+          ],
+          "outcome": {
+            "refusal": "Arithmetic"
+          },
+          "reallocations": 0,
+          "warm_iterations": 16
+        },
+        {
+          "allocations": 0,
+          "input": [],
+          "outcome": {
+            "refusal": "InvalidInput"
+          },
+          "reallocations": 0,
+          "warm_iterations": 16
+        },
+        {
+          "allocations": 0,
+          "input": [
+            1
+          ],
+          "outcome": {
+            "refusal": "InvalidInput"
+          },
+          "reallocations": 0,
+          "warm_iterations": 16
+        }
+      ],
+      "domain": "integer",
+      "identity": {
+        "checked_plot_id": "23c5aa2daadfe2d95e1cd7e02594ebd316d344f8818b1686a16eef2a2ccb73b4",
+        "expanded_plot_id": "5def71d6145d7baff0152b30fdb84bfa848de0ad1b2ad7412a192f73e3a3984d",
+        "program": "636f6e647569742e707572652d65787072657373696f6e2e70726f6772616d2e76320e00000000000000000900000076616c75652f7536340e00000000000000000900000076616c75652f7536340e00000000000000000900000076616c75652f7536340403000e00000000000000000900000076616c75652f7536340403000e00000000000000000900000076616c75652f7536340403000e00000000000000000900000076616c75652f7536340403000e00000000000000000900000076616c75652f7536340403000e00000000000000000900000076616c75652f753634000e00000000000000000900000076616c75652f753634000e00000000000000000900000076616c75652f7536340403000e00000000000000000900000076616c75652f753634000e00000000000000000900000076616c75652f753634000e00000000000000000900000076616c75652f7536340403000e00000000000000000900000076616c75652f7536340403000e00000000000000000900000076616c75652f753634000e00000000000000000900000076616c75652f753634000e00000000000000000900000076616c75652f7536340403000e00000000000000000900000076616c75652f753634000e00000000000000000900000076616c75652f753634000e00000000000000000900000076616c75652f7536340403000e00000000000000000900000076616c75652f7536340403000e00000000000000000900000076616c75652f7536340403000e00000000000000000900000076616c75652f753634000e00000000000000000900000076616c75652f753634000e00000000000000000900000076616c75652f7536340403000e00000000000000000900000076616c75652f753634000e00000000000000000900000076616c75652f753634000e00000000000000000900000076616c75652f7536340403000e00000000000000000900000076616c75652f7536340403000e00000000000000000900000076616c75652f753634000e00000000000000000900000076616c75652f753634000e00000000000000000900000076616c75652f7536340403000e00000000000000000900000076616c75652f753634000e00000000000000000900000076616c75652f753634000e00000000000000000900000076616c75652f7536340403000e00000000000000000900000076616c75652f7536340403000e00000000000000000900000076616c75652f7536340403000e00000000000000000900000076616c75652f7536340403000e00000000000000000900000076616c75652f753634000e00000000000000000900000076616c75652f753634000e00000000000000000900000076616c75652f7536340403000e00000000000000000900000076616c75652f753634000e00000000000000000900000076616c75652f753634000e00000000000000000900000076616c75652f7536340403000e00000000000000000900000076616c75652f7536340403000e00000000000000000900000076616c75652f753634000e00000000000000000900000076616c75652f753634000e00000000000000000900000076616c75652f7536340403000e00000000000000000900000076616c75652f753634000e00000000000000000900000076616c75652f753634000e00000000000000000900000076616c75652f7536340403000e00000000000000000900000076616c75652f7536340403000e00000000000000000900000076616c75652f7536340403000e00000000000000000900000076616c75652f753634000e00000000000000000900000076616c75652f753634000e00000000000000000900000076616c75652f7536340403000e00000000000000000900000076616c75652f753634000e00000000000000000900000076616c75652f753634000e00000000000000000900000076616c75652f7536340403000e00000000000000000900000076616c75652f7536340403000e00000000000000000900000076616c75652f753634000e00000000000000000900000076616c75652f753634000e00000000000000000900000076616c75652f7536340403000e00000000000000000900000076616c75652f753634000e00000000000000000900000076616c75652f7536340403000e00000000000000000900000076616c75652f753634000e00000000000000000900000076616c75652f75363400",
+        "source_document_id": "6a9887d8703e48056a98e9bbc73a426ce8ae409e1b920a98d980c74417f278ff"
+      },
+      "maximum_instructions": 65,
+      "operations": 32,
+      "output_capacity_bytes": 8,
+      "scratch_payload_bytes": 3584
+    },
+    {
+      "cases": [
+        {
+          "allocations": 0,
+          "input": [
+            0
+          ],
+          "outcome": {
+            "bytes": [
+              0
+            ]
+          },
+          "reallocations": 0,
+          "warm_iterations": 16
+        },
+        {
+          "allocations": 0,
+          "input": [
+            1
+          ],
+          "outcome": {
+            "bytes": [
+              1
+            ]
+          },
+          "reallocations": 0,
+          "warm_iterations": 16
+        },
+        {
+          "allocations": 0,
+          "input": [
+            2
+          ],
+          "outcome": {
+            "refusal": "InvalidInput"
+          },
+          "reallocations": 0,
+          "warm_iterations": 16
+        },
+        {
+          "allocations": 0,
+          "input": [],
+          "outcome": {
+            "refusal": "InvalidInput"
+          },
+          "reallocations": 0,
+          "warm_iterations": 16
+        },
+        {
+          "allocations": 0,
+          "input": [
+            1,
+            0
+          ],
+          "outcome": {
+            "refusal": "InvalidInput"
+          },
+          "reallocations": 0,
+          "warm_iterations": 16
+        }
+      ],
+      "domain": "boolean",
+      "identity": {
+        "checked_plot_id": "70918eeb7a0ea311271423fc38d75c03f3fdb7832d034b60c6dc432fde77889c",
+        "expanded_plot_id": "f121ed8fbc060e22edcf0f8c185885c0de478abb19e30beb3d03029072d71cf4",
+        "program": "636f6e647569742e707572652d65787072657373696f6e2e70726f6772616d2e76320f00000000000000000a00000076616c75652f626f6f6c0f00000000000000000a00000076616c75652f626f6f6c0f00000000000000000a00000076616c75652f626f6f6c0410000f00000000000000000a00000076616c75652f626f6f6c000f00000000000000000a00000076616c75652f626f6f6c00",
+        "source_document_id": "8accb7c587b3c7c849350ca659d349d0bad898f726e1d7572f17330d0e32b89a"
+      },
+      "maximum_instructions": 3,
+      "operations": 1,
+      "output_capacity_bytes": 1,
+      "scratch_payload_bytes": 112
+    },
+    {
+      "cases": [
+        {
+          "allocations": 0,
+          "input": [
+            0
+          ],
+          "outcome": {
+            "bytes": [
+              0
+            ]
+          },
+          "reallocations": 0,
+          "warm_iterations": 16
+        },
+        {
+          "allocations": 0,
+          "input": [
+            1
+          ],
+          "outcome": {
+            "bytes": [
+              1
+            ]
+          },
+          "reallocations": 0,
+          "warm_iterations": 16
+        },
+        {
+          "allocations": 0,
+          "input": [
+            2
+          ],
+          "outcome": {
+            "refusal": "InvalidInput"
+          },
+          "reallocations": 0,
+          "warm_iterations": 16
+        },
+        {
+          "allocations": 0,
+          "input": [],
+          "outcome": {
+            "refusal": "InvalidInput"
+          },
+          "reallocations": 0,
+          "warm_iterations": 16
+        },
+        {
+          "allocations": 0,
+          "input": [
+            1,
+            0
+          ],
+          "outcome": {
+            "refusal": "InvalidInput"
+          },
+          "reallocations": 0,
+          "warm_iterations": 16
+        }
+      ],
+      "domain": "boolean",
+      "identity": {
+        "checked_plot_id": "2492d624f4eec7fe6fb1169cf6736c781a54190da5441bc2badbde59136d2e58",
+        "expanded_plot_id": "34bb4b0fb183a2b857f740a35a5b8f51c955155c7f12f1af53f109795269ff7a",
+        "program": "636f6e647569742e707572652d65787072657373696f6e2e70726f6772616d2e76320f00000000000000000a00000076616c75652f626f6f6c0f00000000000000000a00000076616c75652f626f6f6c0f00000000000000000a00000076616c75652f626f6f6c0410000f00000000000000000a00000076616c75652f626f6f6c0410000f00000000000000000a00000076616c75652f626f6f6c000f00000000000000000a00000076616c75652f626f6f6c000f00000000000000000a00000076616c75652f626f6f6c0410000f00000000000000000a00000076616c75652f626f6f6c000f00000000000000000a00000076616c75652f626f6f6c00",
+        "source_document_id": "8accb7c587b3c7c849350ca659d349d0bad898f726e1d7572f17330d0e32b89a"
+      },
+      "maximum_instructions": 7,
+      "operations": 3,
+      "output_capacity_bytes": 1,
+      "scratch_payload_bytes": 224
+    },
+    {
+      "cases": [
+        {
+          "allocations": 0,
+          "input": [
+            0
+          ],
+          "outcome": {
+            "bytes": [
+              0
+            ]
+          },
+          "reallocations": 0,
+          "warm_iterations": 16
+        },
+        {
+          "allocations": 0,
+          "input": [
+            1
+          ],
+          "outcome": {
+            "bytes": [
+              1
+            ]
+          },
+          "reallocations": 0,
+          "warm_iterations": 16
+        },
+        {
+          "allocations": 0,
+          "input": [
+            2
+          ],
+          "outcome": {
+            "refusal": "InvalidInput"
+          },
+          "reallocations": 0,
+          "warm_iterations": 16
+        },
+        {
+          "allocations": 0,
+          "input": [],
+          "outcome": {
+            "refusal": "InvalidInput"
+          },
+          "reallocations": 0,
+          "warm_iterations": 16
+        },
+        {
+          "allocations": 0,
+          "input": [
+            1,
+            0
+          ],
+          "outcome": {
+            "refusal": "InvalidInput"
+          },
+          "reallocations": 0,
+          "warm_iterations": 16
+        }
+      ],
+      "domain": "boolean",
+      "identity": {
+        "checked_plot_id": "ab368bebbdcead55deb076dd851325b44704d14597d6a385603d55d5448b611e",
+        "expanded_plot_id": "2934b3299729a2eee20cd98f0a00a7ad69560b440f00ac6884a9d99722db018e",
+        "program": "636f6e647569742e707572652d65787072657373696f6e2e70726f6772616d2e76320f00000000000000000a00000076616c75652f626f6f6c0f00000000000000000a00000076616c75652f626f6f6c0f00000000000000000a00000076616c75652f626f6f6c0410000f00000000000000000a00000076616c75652f626f6f6c0410000f00000000000000000a00000076616c75652f626f6f6c0410000f00000000000000000a00000076616c75652f626f6f6c000f00000000000000000a00000076616c75652f626f6f6c000f00000000000000000a00000076616c75652f626f6f6c0410000f00000000000000000a00000076616c75652f626f6f6c000f00000000000000000a00000076616c75652f626f6f6c000f00000000000000000a00000076616c75652f626f6f6c0410000f00000000000000000a00000076616c75652f626f6f6c0410000f00000000000000000a00000076616c75652f626f6f6c000f00000000000000000a00000076616c75652f626f6f6c000f00000000000000000a00000076616c75652f626f6f6c0410000f00000000000000000a00000076616c75652f626f6f6c000f00000000000000000a00000076616c75652f626f6f6c0410000f00000000000000000a00000076616c75652f626f6f6c000f00000000000000000a00000076616c75652f626f6f6c00",
+        "source_document_id": "8accb7c587b3c7c849350ca659d349d0bad898f726e1d7572f17330d0e32b89a"
+      },
+      "maximum_instructions": 17,
+      "operations": 8,
+      "output_capacity_bytes": 1,
+      "scratch_payload_bytes": 896
+    },
+    {
+      "cases": [
+        {
+          "allocations": 0,
+          "input": [
+            0
+          ],
+          "outcome": {
+            "bytes": [
+              0
+            ]
+          },
+          "reallocations": 0,
+          "warm_iterations": 16
+        },
+        {
+          "allocations": 0,
+          "input": [
+            1
+          ],
+          "outcome": {
+            "bytes": [
+              1
+            ]
+          },
+          "reallocations": 0,
+          "warm_iterations": 16
+        },
+        {
+          "allocations": 0,
+          "input": [
+            2
+          ],
+          "outcome": {
+            "refusal": "InvalidInput"
+          },
+          "reallocations": 0,
+          "warm_iterations": 16
+        },
+        {
+          "allocations": 0,
+          "input": [],
+          "outcome": {
+            "refusal": "InvalidInput"
+          },
+          "reallocations": 0,
+          "warm_iterations": 16
+        },
+        {
+          "allocations": 0,
+          "input": [
+            1,
+            0
+          ],
+          "outcome": {
+            "refusal": "InvalidInput"
+          },
+          "reallocations": 0,
+          "warm_iterations": 16
+        }
+      ],
+      "domain": "boolean",
+      "identity": {
+        "checked_plot_id": "ebcb759c9961f6c9bfc6fa4b8f6c2d86ce751061606678dd51c45a4b37bd3a05",
+        "expanded_plot_id": "6a144735b7d366ab02731dec5ef776abad64941a42cd14311a23006fcd08dd3b",
+        "program": "636f6e647569742e707572652d65787072657373696f6e2e70726f6772616d2e76320f00000000000000000a00000076616c75652f626f6f6c0f00000000000000000a00000076616c75652f626f6f6c0f00000000000000000a00000076616c75652f626f6f6c0410000f00000000000000000a00000076616c75652f626f6f6c0410000f00000000000000000a00000076616c75652f626f6f6c0410000f00000000000000000a00000076616c75652f626f6f6c0410000f00000000000000000a00000076616c75652f626f6f6c0410000f00000000000000000a00000076616c75652f626f6f6c000f00000000000000000a00000076616c75652f626f6f6c000f00000000000000000a00000076616c75652f626f6f6c0410000f00000000000000000a00000076616c75652f626f6f6c000f00000000000000000a00000076616c75652f626f6f6c000f00000000000000000a00000076616c75652f626f6f6c0410000f00000000000000000a00000076616c75652f626f6f6c0410000f00000000000000000a00000076616c75652f626f6f6c000f00000000000000000a00000076616c75652f626f6f6c000f00000000000000000a00000076616c75652f626f6f6c0410000f00000000000000000a00000076616c75652f626f6f6c000f00000000000000000a00000076616c75652f626f6f6c000f00000000000000000a00000076616c75652f626f6f6c0410000f00000000000000000a00000076616c75652f626f6f6c0410000f00000000000000000a00000076616c75652f626f6f6c0410000f00000000000000000a00000076616c75652f626f6f6c000f00000000000000000a00000076616c75652f626f6f6c000f00000000000000000a00000076616c75652f626f6f6c0410000f00000000000000000a00000076616c75652f626f6f6c000f00000000000000000a00000076616c75652f626f6f6c000f00000000000000000a00000076616c75652f626f6f6c0410000f00000000000000000a00000076616c75652f626f6f6c0410000f00000000000000000a00000076616c75652f626f6f6c000f00000000000000000a00000076616c75652f626f6f6c000f00000000000000000a00000076616c75652f626f6f6c0410000f00000000000000000a00000076616c75652f626f6f6c000f00000000000000000a00000076616c75652f626f6f6c000f00000000000000000a00000076616c75652f626f6f6c0410000f00000000000000000a00000076616c75652f626f6f6c0410000f00000000000000000a00000076616c75652f626f6f6c0410000f00000000000000000a00000076616c75652f626f6f6c0410000f00000000000000000a00000076616c75652f626f6f6c000f00000000000000000a00000076616c75652f626f6f6c000f00000000000000000a00000076616c75652f626f6f6c0410000f00000000000000000a00000076616c75652f626f6f6c000f00000000000000000a00000076616c75652f626f6f6c000f00000000000000000a00000076616c75652f626f6f6c0410000f00000000000000000a00000076616c75652f626f6f6c0410000f00000000000000000a00000076616c75652f626f6f6c000f00000000000000000a00000076616c75652f626f6f6c000f00000000000000000a00000076616c75652f626f6f6c0410000f00000000000000000a00000076616c75652f626f6f6c000f00000000000000000a00000076616c75652f626f6f6c000f00000000000000000a00000076616c75652f626f6f6c0410000f00000000000000000a00000076616c75652f626f6f6c0410000f00000000000000000a00000076616c75652f626f6f6c0410000f00000000000000000a00000076616c75652f626f6f6c000f00000000000000000a00000076616c75652f626f6f6c000f00000000000000000a00000076616c75652f626f6f6c0410000f00000000000000000a00000076616c75652f626f6f6c000f00000000000000000a00000076616c75652f626f6f6c000f00000000000000000a00000076616c75652f626f6f6c0410000f00000000000000000a00000076616c75652f626f6f6c0410000f00000000000000000a00000076616c75652f626f6f6c000f00000000000000000a00000076616c75652f626f6f6c000f00000000000000000a00000076616c75652f626f6f6c0410000f00000000000000000a00000076616c75652f626f6f6c000f00000000000000000a00000076616c75652f626f6f6c0410000f00000000000000000a00000076616c75652f626f6f6c000f00000000000000000a00000076616c75652f626f6f6c00",
+        "source_document_id": "8accb7c587b3c7c849350ca659d349d0bad898f726e1d7572f17330d0e32b89a"
+      },
+      "maximum_instructions": 65,
+      "operations": 32,
+      "output_capacity_bytes": 1,
+      "scratch_payload_bytes": 3584
+    }
+  ],
+  "proof_class": "portable-wasm-evaluator",
+  "schema": "conduit.scalar-tape/wasm-parity@1",
+  "provenance": {
+    "source_commit": "0601beb149f6e3bf18cb5a545fd4a7bdad4acea5",
+    "source_clean": true,
+    "wasm_sha256": "506f05bba8f19d458119bc924365cdcb17647ce0366665224474f8fe0b86ef85",
+    "fixtures": {
+      "architecture/plot/tests/fixtures/expression_baseline.conduit": "5676457d628e909171b8828528a34731e8ba532504c699ec69e93430d538f234",
+      "architecture/plot/tests/fixtures/expression_boolean_baseline.conduit": "5507fc7d176649bfc6d1efee2ad066c61473deb5d89ffc0e0c5578b58e7b8e65"
+    },
+    "node": "v23.11.1",
+    "target": "wasm32-unknown-unknown",
+    "profile": "dev",
+    "compiler": "rustc 1.98.1 (48a229cea 2026-09-01)\nbinary: rustc\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\ncommit-date: 2026-09-01\nhost: x86_64-unknown-linux-gnu\nrelease: 1.98.1\nLLVM version: 22.1.8",
+    "native_identity_evidence": {
+      "path": "docs/audits/evidence/scalar-tape-mixed-cpu-samples.json",
+      "sha256": "c62186d73999b81bdc8aec55b840671498ea967e6528587db68ad3c19428e034",
+      "source_commit": "929a2aa9a2c18920c9ca02b52312f0e0aa88ba4f",
+      "matched_plays": 128
+    },
+    "scope": "WASM parity and allocation proof only; no installed browser Back or target speed claim"
+  }
+}
