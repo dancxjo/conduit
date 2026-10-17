@@ -590,3 +590,50 @@ for (const malformed of [false, true]) {
     }
   });
 }
+
+// Source-inspection fixture: no packaged WASM or Body admission is claimed.
+for (const checker of [false, true]) {
+test(`Handbook recovery distinguishes saved corrections from original packaged source (checker: ${checker})`, async ({ page }) => {
+  await page.goto('/proof/browser/signal-dom-host.test.html');
+  const original = 'plot pitch\n# original packaged "1kHz"\n';
+  const corrected = 'plot pitch\n# saved correction 1kHz\n';
+  await page.evaluate(async ({ original, corrected, checker }) => {
+    const { startApplication } = await import('/targets/browser/handbook/application.mjs');
+    document.body.innerHTML = '<main><section data-handbook-application></section></main>';
+    globalThis.storageWrites = [];
+    await startApplication({
+      text: role => role === 'birth-specification' ? JSON.stringify({ name: 'Fixture', initialPlots: ['pitch'],
+        plots: [{ name: 'pitch', title: 'Pitch', role: 'pitch-source', lesson: 'Inspect pitch' }] }) : original,
+      storage: {
+        readJson: async key => key === 'handbook-source-rescue'
+          ? [{ name: 'pitch', original, source: corrected }] : null,
+        writeJson: async (...args) => { globalThis.storageWrites.push(args); },
+      },
+      browser: async () => {
+        if (!checker) throw new Error('Fixture Host unavailable');
+        return { plot: value => ({ check: async () => value.startsWith('{')
+          ? { ok: false, refusal: { code: 'FixtureInventoryRefused', message: 'Fixture inventory refused' }, diagnostics: [] }
+          : { ok: true, plots: [] } }) };
+      },
+    });
+  }, { original, corrected, checker });
+  const chooser = page.getByRole('combobox', { name: 'Choose an example' });
+  const editor = page.getByRole('textbox', { name: 'Plot source', exact: true });
+  await chooser.selectOption({ label: 'Pitch (saved correction)' });
+  await expect(editor).toHaveValue(corrected);
+  await editor.fill(`${corrected}# unsent correction draft\n`);
+  await chooser.selectOption({ label: 'Pitch (packaged)' });
+  await expect(editor).toHaveValue(original);
+  await expect(editor).toBeEnabled();
+  await chooser.selectOption({ label: 'Pitch (saved correction)' });
+  await expect(editor).toHaveValue(`${corrected}# unsent correction draft\n`);
+  expect(await page.evaluate(() => globalThis.storageWrites)).toEqual([]);
+  if (checker) {
+    await page.getByRole('button', { name: 'Try in my Handbook', exact: true }).click();
+    await expect(page.locator('[data-check]')).toContainText('Correction saved');
+    expect(await page.evaluate(() => globalThis.storageWrites)).toEqual([['handbook-source-rescue', [
+      { name: 'pitch', original, source: `${corrected}# unsent correction draft\n` },
+    ]]]);
+  }
+});
+}
