@@ -36,10 +36,11 @@ impl ApplicationEvent {
             return Err(ApplicationViewRefusal::UnknownAction);
         }
         let mut referenced = false;
-        for node in view
+        for (node_index, node) in view
             .nodes
             .iter()
-            .filter(|node| node.action == Some(action_index as u8))
+            .enumerate()
+            .filter(|(_, node)| node.action == Some(action_index as u8))
         {
             referenced = true;
             match node.component {
@@ -47,14 +48,30 @@ impl ApplicationEvent {
                 | super::ApplicationComponent::TextInput
                 | super::ApplicationComponent::Select
                 | super::ApplicationComponent::TextArea
+                | super::ApplicationComponent::IndependentChoice
+                | super::ApplicationComponent::ExclusiveChoice
                     if self.value.len() > node.value_capacity as usize
                         || core::str::from_utf8(&self.value).is_err() =>
                 {
                     return Err(ApplicationViewRefusal::InvalidControlValue);
                 }
+                super::ApplicationComponent::IndependentChoice
+                | super::ApplicationComponent::ExclusiveChoice => {
+                    if !matches!(self.value.as_slice(), b"true" | b"false") {
+                        return Err(ApplicationViewRefusal::InvalidControlValue);
+                    }
+                }
+                super::ApplicationComponent::Select => {
+                    if !view.nodes.iter().any(|option| {
+                        option.parent == Some(node_index as u8)
+                            && option.component == super::ApplicationComponent::Option
+                            && option.value.as_bytes() == self.value
+                    }) {
+                        return Err(ApplicationViewRefusal::InvalidControlValue);
+                    }
+                }
                 super::ApplicationComponent::PatchbayCanvas
                 | super::ApplicationComponent::TextInput
-                | super::ApplicationComponent::Select
                 | super::ApplicationComponent::TextArea => {}
                 _ if !self.value.is_empty() => {
                     return Err(ApplicationViewRefusal::InvalidControlValue);

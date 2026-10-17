@@ -786,3 +786,23 @@ before repair. All 15 Node codec tests and four pinned Chromium graph-route
 fixtures pass (one worker, zero retries). This is browser codec/renderer proof,
 not equal graph truth across native/linear Masks or real resident Body/Play
 acceptance; #5518 remains open.
+
+Portable control-return admission follow-up (#5644): Rust ApplicationEvent
+validation now admits exact true/false bytes for independent/exclusive choices
+within their capacity, instead of refusing every native nonempty boolean value.
+Select events must match an Option directly owned by their bound select; UTF-8
+and capacity checks remain in force. No renderer-owned state or alternate route
+is introduced.
+
+Before repair, two Rust regressions reproduced valid boolean refusal and forged
+select acceptance. Three new control-contract tests and all 15 existing
+application-view tests now pass with conduit-face --no-default-features, including
+encode/decode round-trips and refusal to borrow another select's options. Rust
+formatting passes. This is portable Face admission proof, not actual Body/Play
+or a rebuilt/released browser WASM.
+
+The first repair build exhausted disk. After it terminated, inactive incremental
+caches created by the completed baseline were removed while preserving kernel
+caches/evidence; a package-native Face cleanup also removed 445.6 MiB. The final
+nonincremental focused run passed, leaving 1.9 GiB free. No workspace rebuild,
+workflow dispatch or acceptance-claim upgrade was performed.
