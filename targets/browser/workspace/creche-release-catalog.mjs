@@ -74,6 +74,7 @@ export async function openReleaseCatalog({ source, minimumGeneration = 0, signal
             fetcher,
             cache,
             label: artifact.path,
+            artifactWorkStarted: true,
           })).bytes;
         },
       });
