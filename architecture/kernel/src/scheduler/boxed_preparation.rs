@@ -74,7 +74,7 @@ where
             unresolved_abnormal: [None; NODES],
             projected_recovery_source: [None; NODES],
             recovery_for_cord: [None; CORDS],
-            has_quiescence_cords: quiescence::has_quiescence_cords(&cord_specs[..active_cords]),
+            quiescence_cord_end: quiescence::quiescence_cord_end(&cord_specs[..active_cords]),
             cord_specs,
             active_nodes,
             active_cords,

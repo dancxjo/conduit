@@ -3,10 +3,12 @@ use super::*;
 
 /// Prepared once from the validated active prefix. Cord specifications are
 /// immutable for the scheduler lifetime; padding cannot enable runtime work.
-pub(super) fn has_quiescence_cords(active_cords: &[CordSpec]) -> bool {
+/// Zero means absent; every quiescence cord lies strictly below this bound.
+pub(super) fn quiescence_cord_end(active_cords: &[CordSpec]) -> usize {
     active_cords
         .iter()
-        .any(|cord| cord.track == AssignedConnectionTrack::Quiescence)
+        .rposition(|cord| cord.track == AssignedConnectionTrack::Quiescence)
+        .map_or(0, |last| last + 1)
 }
 
 impl<
@@ -42,7 +44,7 @@ where
 {
     pub(super) fn arm_quiescence_outputs(&mut self, node: usize) -> Result<(), SchedulerError> {
         let node = NodeId(as_u16(node)?);
-        if !self.has_quiescence_cords {
+        if self.quiescence_cord_end == 0 {
             return Ok(());
         }
         // Plan validation proves every local-source cord is in this source's
@@ -71,12 +73,12 @@ where
     /// returned the whole play to quiescence. Empty queues alone do not arm an
     /// edge, and terminal sources are never reported as quiescent.
     pub(super) fn emit_quiescence_transitions(&mut self) -> Result<Option<NodeId>, SchedulerError> {
-        if !self.has_quiescence_cords {
+        if self.quiescence_cord_end == 0 {
             return Ok(None);
         }
         let mut count = 0_usize;
         let mut first_source = None;
-        for cord in 0..self.active_cords {
+        for cord in 0..self.quiescence_cord_end {
             #[cfg(test)]
             {
                 let mut counts = self.scan_counts.get();
@@ -103,7 +105,7 @@ where
         }
         self.ensure_sign_capacity(count)?;
         let value = store_fanout_value(&mut self.values, &[], count)?;
-        for cord in 0..self.active_cords {
+        for cord in 0..self.quiescence_cord_end {
             #[cfg(test)]
             {
                 let mut counts = self.scan_counts.get();

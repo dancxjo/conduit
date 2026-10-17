@@ -68,7 +68,7 @@ fn signs() -> FixedSignLog<16> {
 }
 
 fn assert_prepared(scheduler: &mut Scheduler, quiescence: bool) {
-    assert_eq!(scheduler.has_quiescence_cords, quiescence);
+    assert_eq!(scheduler.quiescence_cord_end, usize::from(quiescence));
     for _ in 0..2 {
         assert!(matches!(
             scheduler.step().unwrap(),
@@ -201,4 +201,39 @@ fn quiescence_arming_visits_only_the_sources_routed_targets() {
     scheduler.arm_quiescence_outputs(1).unwrap();
     assert_eq!(scheduler.scan_counts.get().cord_scans, 0);
     assert!(!scheduler.cords[N - 1].quiescence_armed);
+    assert_eq!(scheduler.quiescence_cord_end, 2);
+    scheduler.scan_counts.set(Default::default());
+    assert_eq!(
+        scheduler.emit_quiescence_transitions().unwrap(),
+        Some(NodeId(0))
+    );
+    assert_eq!(scheduler.scan_counts.get().cord_scans, 4);
+    assert_eq!(scheduler.cords[0].len, 1);
+    assert_eq!(scheduler.cords[1].len, 1);
+    assert_eq!(scheduler.cords[2].len, 0);
+    assert!(scheduler.cords.iter().all(|cord| !cord.quiescence_armed));
+    let entries = scheduler.signs.entries;
+    scheduler.scan_counts.set(Default::default());
+    assert_eq!(scheduler.emit_quiescence_transitions().unwrap(), None);
+    assert_eq!(scheduler.scan_counts.get().cord_scans, 2);
+    assert_eq!(scheduler.signs.entries, entries);
+}
+
+#[test]
+fn prepared_quiescence_bound_includes_last_match_and_ignores_empty_prefix() {
+    assert_eq!(quiescence_cord_end(&[]), 0);
+    for mask in 0u16..256 {
+        let cords: [CordSpec; 8] = core::array::from_fn(|i| {
+            CordSpec::inactive().with_track(if mask & (1 << i) != 0 {
+                AssignedConnectionTrack::Quiescence
+            } else {
+                AssignedConnectionTrack::Payload
+            })
+        });
+        for active in 0..=8 {
+            let expected =
+                (0..active).fold(0, |end, i| if mask & (1 << i) != 0 { i + 1 } else { end });
+            assert_eq!(quiescence_cord_end(&cords[..active]), expected);
+        }
+    }
 }
