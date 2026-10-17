@@ -101,9 +101,7 @@ where
             if let Some(node) = self.emit_quiescence_transitions()? {
                 return Ok(SchedulerStatus::Progress { node });
             }
-            return if self.completed[..self.active_nodes]
-                .iter()
-                .all(|value| *value)
+            return if self.all_nodes_completed()
                 && self.cords[..self.active_cords]
                     .iter()
                     .all(|cord| cord.len == 0)
@@ -149,9 +147,7 @@ where
             node = next;
             self.cursor = (node + 1) % self.active_nodes;
         }
-        if self.completed[..self.active_nodes]
-            .iter()
-            .all(|value| *value)
+        if self.all_nodes_completed()
             && self.cords[..self.active_cords]
                 .iter()
                 .all(|cord| cord.len == 0)
@@ -162,6 +158,18 @@ where
                 node: NodeId(as_u16(node)?),
             })
         }
+    }
+
+    fn all_nodes_completed(&self) -> bool {
+        self.completed[..self.active_nodes].iter().all(|done| {
+            #[cfg(test)]
+            {
+                let mut counts = self.scan_counts.get();
+                counts.terminal_node_probes += 1;
+                self.scan_counts.set(counts);
+            }
+            *done
+        })
     }
 
     fn step_logical(&mut self, node: usize) -> Result<bool, SchedulerError> {

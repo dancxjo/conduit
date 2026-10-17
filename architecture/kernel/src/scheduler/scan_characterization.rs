@@ -2,6 +2,7 @@
 #[derive(Clone, Copy, Debug, Default)]
 pub(super) struct ScanCounts {
     pub next_ready_nodes: u64,
+    pub terminal_node_probes: u64,
     pub ready_bytes: u64,
     pub pending_slots: u64,
     pub context_pending_slots: u64,
@@ -301,3 +302,6 @@ mod host_many;
 
 #[path = "remote_many.rs"]
 mod remote_many;
+
+#[path = "terminal_completion.rs"]
+mod terminal_completion;
