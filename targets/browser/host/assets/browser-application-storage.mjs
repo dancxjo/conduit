@@ -71,6 +71,17 @@ function exactText(value, label, maximumBytes) {
   return value;
 }
 
+function validStoredValue(record) {
+  if (!Number.isSafeInteger(record.valueBytes) || record.valueBytes < 0
+    || record.valueBytes > MAXIMUM_VALUE_BYTES) return false;
+  if (record.encoding === "bytes") {
+    return record.value instanceof ArrayBuffer && record.value.byteLength === record.valueBytes;
+  }
+  return (record.encoding === undefined || record.encoding === "json")
+    && typeof record.value === "string" && record.value.length <= MAXIMUM_VALUE_BYTES
+    && encoder.encode(record.value).length === record.valueBytes;
+}
+
 export async function openBrowserApplicationStorage(applicationIdentity, applicationVersion, packageDigest, {
   implementationRegistry = [],
   indexedDb = globalThis.indexedDB,
@@ -135,9 +146,7 @@ export async function openBrowserApplicationStorage(applicationIdentity, applica
     if (record.encoding !== undefined && record.encoding !== "json") {
       refuse("ValueKindMismatch", "application storage value is not JSON");
     }
-    if (typeof record.value !== "string" || !Number.isSafeInteger(record.valueBytes)
-      || record.valueBytes < 0 || record.valueBytes > MAXIMUM_VALUE_BYTES
-      || record.value.length > MAXIMUM_VALUE_BYTES || encoder.encode(record.value).length !== record.valueBytes) {
+    if (!validStoredValue(record)) {
       refuse("CorruptRecord", "application storage JSON value is malformed");
     }
     try {
@@ -156,6 +165,10 @@ export async function openBrowserApplicationStorage(applicationIdentity, applica
     if (hostRecords.length > MAXIMUM_HOST_RECORDS) {
       transaction.abort();
       refuse("CorruptRecord", "browser Host storage record bound was violated");
+    }
+    if (hostRecords.some(record => !validStoredValue(record))) {
+      transaction.abort();
+      refuse("CorruptRecord", "browser Host storage byte accounting is malformed");
     }
     const records = hostRecords.filter((record) => record.applicationIdentity === applicationIdentity);
     const currentIdentity = prefix + key;
@@ -228,6 +241,10 @@ export async function openBrowserApplicationStorage(applicationIdentity, applica
     const store = transaction.objectStore(STORE_NAME);
     const hostRecords = await requestResult(store.getAll(null, MAXIMUM_HOST_RECORDS + 1));
     if (hostRecords.length > MAXIMUM_HOST_RECORDS) { transaction.abort(); refuse("CorruptRecord", "browser Host storage record bound was violated"); }
+    if (hostRecords.some(record => !validStoredValue(record))) {
+      transaction.abort();
+      refuse("CorruptRecord", "browser Host storage byte accounting is malformed");
+    }
     const records = hostRecords.filter(record => record.applicationIdentity === applicationIdentity);
     const next = new Map(records.map(record => [record.identity, record]));
     for (const entry of prepared) {

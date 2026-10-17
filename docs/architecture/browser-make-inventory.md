@@ -175,6 +175,13 @@ Malformed metadata or oversized retained JSON receives `CorruptRecord`; refusal
 does not repair, reset or delete the record. Valid JSON at the exact byte ceiling
 remains readable.
 
+Before single or batch publication, the storage transaction checks the exact
+byte accounting of every retained Host record used in its capacity totals.
+Nonfinite, negative, fractional, oversized or mismatched counts refuse with
+`CorruptRecord` before writing. Since capacity is Host-wide, malformed accounting
+in another application's record also refuses publication; records remain intact
+and explicit inspection/deletion stays separate from admission.
+
 The `application-state` and `browser-host-identity` object stores are separate.
 Clearing one application's records cannot reset host identity, mutate body
 membership, or revoke a host. Book and Crèche receive only the bounded host

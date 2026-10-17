@@ -481,6 +481,9 @@ test("JSON recovery refuses corrupt byte metadata and retains the original recor
       const retained = await readRaw();
       outcomes.push({ code, unchanged: retained.value === record.value && retained.valueBytes === record.valueBytes });
     }
+    const restore = database.transaction('application-state', 'readwrite');
+    restore.objectStore('application-state').put(original);
+    await new Promise((resolve, reject) => { restore.oncomplete = resolve; restore.onabort = () => reject(restore.error); });
     const maximumText = 'é'.repeat((storage.bounds.maximumValueBytes - 2) / 2);
     await storage.writeJson('source', maximumText);
     const exactBoundary = await storage.readJson('source') === maximumText;
@@ -488,4 +491,43 @@ test("JSON recovery refuses corrupt byte metadata and retains the original recor
     return { outcomes, exactBoundary };
   });
   expect(result).toEqual({ outcomes: Array(5).fill({ code: 'CorruptRecord', unchanged: true }), exactBoundary: true });
+});
+
+test("corrupt host byte accounting refuses every publication without changing records", async ({ page }) => {
+  const result = await page.evaluate(async () => {
+    const { openBrowserApplicationStorage } = await import('/targets/browser/host/assets/browser-application-storage.mjs');
+    const selected = { implementationRegistry: ['browser/indexeddb@1'] };
+    const digest = `sha256:${'e'.repeat(64)}`;
+    const source = await openBrowserApplicationStorage('proof/corrupt-accounting', 1, digest, selected);
+    const target = await openBrowserApplicationStorage('proof/accounting-target', 1, digest, selected);
+    await source.writeJson('retained', { source: 'keep me' });
+    const request = indexedDB.open('conduit-browser-host-applications', 2);
+    const database = await new Promise((resolve, reject) => {
+      request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error);
+    });
+    const identity = 'proof/corrupt-accounting@1\u0000retained';
+    const tx = database.transaction('application-state', 'readwrite');
+    const store = tx.objectStore('application-state');
+    const get = store.get(identity);
+    const original = await new Promise((resolve, reject) => { get.onsuccess = () => resolve(get.result); get.onerror = () => reject(get.error); });
+    store.put({ ...original, valueBytes: NaN });
+    await new Promise((resolve, reject) => { tx.oncomplete = resolve; tx.onabort = () => reject(tx.error); });
+    const operations = [
+      () => target.writeJson('single', { next: true }),
+      () => target.writeJsonBatch([{ key: 'batch', value: { next: true } }]),
+      () => target.writeBytes('bytes', new Uint8Array([1])),
+      () => target.publishBytes('published', new Uint8Array([2])),
+      () => source.writeJson('replacement', { next: true }),
+    ];
+    const codes = [];
+    for (const operation of operations) {
+      try { await operation(); codes.push('accepted'); } catch (error) { codes.push(error.code); }
+    }
+    const read = database.transaction('application-state', 'readonly').objectStore('application-state').getAll();
+    const records = await new Promise((resolve, reject) => { read.onsuccess = () => resolve(read.result); read.onerror = () => reject(read.error); });
+    const unchanged = records.length === 1 && records[0].value === original.value && Number.isNaN(records[0].valueBytes);
+    await source.clearApplication(); await target.clearApplication(); source.close(); target.close(); database.close();
+    return { codes, unchanged };
+  });
+  expect(result).toEqual({ codes: Array(5).fill('CorruptRecord'), unchanged: true });
 });
