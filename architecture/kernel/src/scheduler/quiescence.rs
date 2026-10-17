@@ -1,6 +1,14 @@
 //! Quiescence arming and wakeable-edge emission for the fixed scheduler.
 use super::*;
 
+/// Prepared once from the validated active prefix. Cord specifications are
+/// immutable for the scheduler lifetime; padding cannot enable runtime work.
+pub(super) fn has_quiescence_cords(active_cords: &[CordSpec]) -> bool {
+    active_cords
+        .iter()
+        .any(|cord| cord.track == AssignedConnectionTrack::Quiescence)
+}
+
 impl<
         D,
         S,
@@ -34,6 +42,9 @@ where
 {
     pub(super) fn arm_quiescence_outputs(&mut self, node: usize) -> Result<(), SchedulerError> {
         let node = NodeId(as_u16(node)?);
+        if !self.has_quiescence_cords {
+            return Ok(());
+        }
         for cord in 0..self.active_cords {
             #[cfg(test)]
             {
@@ -54,6 +65,9 @@ where
     /// returned the whole play to quiescence. Empty queues alone do not arm an
     /// edge, and terminal sources are never reported as quiescent.
     pub(super) fn emit_quiescence_transitions(&mut self) -> Result<Option<NodeId>, SchedulerError> {
+        if !self.has_quiescence_cords {
+            return Ok(None);
+        }
         let mut count = 0_usize;
         let mut first_source = None;
         for cord in 0..self.active_cords {
@@ -116,3 +130,6 @@ where
         Ok(first_source)
     }
 }
+
+#[cfg(test)]
+mod tests;
