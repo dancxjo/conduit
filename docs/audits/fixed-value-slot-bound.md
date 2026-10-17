@@ -38,3 +38,25 @@ remain open.
 Follow-up: `value-generation-retirement.md` supersedes the earlier wrapping
 behavior. The bound now excludes occupied **or retired** slots; ordinary dense
 fill and reusable-hole identity/probe observations above remain valid.
+
+## Hosted full-store refusal fast path
+
+HostedValueStore now uses its existing used-item count to refuse an entirely
+occupied store before scanning for a smallest-fitting slot. Size and live-byte
+checks still run first, retaining ValueTooLarge/ByteCapacityExceeded precedence.
+Generation retirement still uses the existing fitting-slot scan whenever the
+store has a non-live slot; this guard cannot hide a free retired identity.
+No production storage or allocation is added.
+
+A 4,096-slot test fills the store with empty values and performs 32 repeated
+full-store attempts (empty and one-byte payloads). It now inspects zero slots
+instead of 131,072. Retain/partial release preserves the full refusal without
+scanning; final release reopens the exact slot, reuses it with a new generation,
+and leaves the old handle stale. Clear reopens slot zero. A separate full-byte
+store case checks exact size/byte/item refusal order and unchanged held value.
+Removing the guard reproduces 131,072 probes versus zero expected.
+
+Both complete local kernel suites, strict all-target kernel Clippy and
+formatting/diff checks pass. The probe counter exists only in tests. This is a
+work-bound improvement, with no elapsed-time or whole-host speedup claim. No CI
+dispatched or awaited.

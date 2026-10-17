@@ -16,6 +16,8 @@ pub struct HostedValueStore {
     byte_capacity: u32,
     used_items: u16,
     used_bytes: u32,
+    #[cfg(test)]
+    slot_probes: u64,
 }
 
 impl HostedValueStore {
@@ -74,6 +76,8 @@ impl HostedValueStore {
             byte_capacity,
             used_items: 0,
             used_bytes: 0,
+            #[cfg(test)]
+            slot_probes: 0,
         })
     }
 
@@ -154,11 +158,22 @@ impl ValueStorage for HostedValueStore {
         {
             return Err(StorageError::ByteCapacityExceeded);
         }
+        if usize::from(self.used_items) == self.slots.len() {
+            return Err(StorageError::ItemCapacityExceeded);
+        }
+        #[cfg(test)]
+        let probes = &mut self.slot_probes;
         let mut retired_fit = false;
         let (slot_index, slot) = self
             .slots
             .iter_mut()
             .enumerate()
+            .inspect(|_| {
+                #[cfg(test)]
+                {
+                    *probes += 1;
+                }
+            })
             .filter(|(_, slot)| {
                 let free_fit = slot.references == 0 && slot.bytes.capacity() >= bytes.len();
                 retired_fit |= free_fit && slot.generation == u16::MAX;
@@ -224,3 +239,6 @@ impl ValueStorage for HostedValueStore {
 }
 
 pub use HostedValueStore as Store;
+
+#[cfg(test)]
+mod tests;
