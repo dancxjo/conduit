@@ -305,3 +305,6 @@ mod remote_many;
 
 #[path = "terminal_completion.rs"]
 mod terminal_completion;
+
+#[path = "blocked_wakes.rs"]
+mod blocked_wakes;
