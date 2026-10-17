@@ -1,7 +1,7 @@
 # Common linguistic utterance carrier audit (#5664)
 
 This is a field audit of accepted declarations, not whole-utterance admission.
-Conduit baseline: `16e60c289` on `dev`. Tongues architectural source:
+Conduit baseline: `16e60c289e9c1a461c5a99bd33fa8ab475db8c9e` on `dev`. Tongues architectural source:
 `b03702798db5a5e7d174278ac2fc1233f171b02e`, under
 [`crates/speaking/src`](https://github.com/dancxjo/tongues/tree/b03702798db5a5e7d174278ac2fc1233f171b02e/crates/speaking/src).
 The earlier adaptation pin is `b5d7535b2ccd3730b4db878fb61b2e4e48ae89c9`.
