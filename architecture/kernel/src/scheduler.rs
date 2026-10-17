@@ -937,6 +937,7 @@ pub struct FixedScheduler<
     host_bindings: Option<FixedHostCallBindings<HOST_BINDING_SLOTS>>,
     pending_host_calls: [Option<PendingHostCall>; PENDING_REQUESTS],
     pending_host_count: usize,
+    undispatched_host_count: u32,
     pending_host_slots: [Option<core::num::NonZeroU32>; NODES],
     drivers: [D; NODES],
     values: S,
@@ -1046,6 +1047,7 @@ where
             host_bindings: None,
             pending_host_calls: [None; PENDING_REQUESTS],
             pending_host_count: 0,
+            undispatched_host_count: 0,
             pending_host_slots: [None; NODES],
             drivers,
             values,
@@ -1733,7 +1735,16 @@ where
         &mut self,
         mut accepts: impl FnMut(&HostCallRequest) -> bool,
     ) -> Option<HostCallRequest> {
+        if self.undispatched_host_count == 0 {
+            return None;
+        }
         for offset in 0..PENDING_REQUESTS {
+            #[cfg(test)]
+            {
+                let mut counts = self.scan_counts.get();
+                counts.dispatch_pending_slots += 1;
+                self.scan_counts.set(counts);
+            }
             let slot = (self.host_request_cursor + offset) % PENDING_REQUESTS;
             let Some(pending) = self.pending_host_calls[slot].as_mut() else {
                 continue;
@@ -1742,6 +1753,7 @@ where
                 continue;
             }
             pending.dispatched = true;
+            self.undispatched_host_count -= 1;
             self.host_request_cursor = (slot + 1) % PENDING_REQUESTS;
             return Some(pending.request);
         }
@@ -2906,6 +2918,7 @@ where
             });
             self.pending_host_slots[node] = Some(indexed_slot);
             self.pending_host_count += 1;
+            self.undispatched_host_count += 1;
             self.last_host_request[node] = Some(request);
             self.signs.record(
                 NodeId(as_u16(node)?),

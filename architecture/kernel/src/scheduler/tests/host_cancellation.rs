@@ -186,6 +186,15 @@ fn assert_pending_count<S: ValueStorage, E: SignSink>(
 ) {
     assert_eq!(scheduler.pending_host_call_count(), expected);
     assert_eq!(
+        scheduler.undispatched_host_count as usize,
+        scheduler
+            .pending_host_calls
+            .iter()
+            .flatten()
+            .filter(|pending| !pending.dispatched)
+            .count()
+    );
+    assert_eq!(
         scheduler.pending_host_calls.iter().flatten().count(),
         expected
     );
@@ -363,8 +372,18 @@ fn unrelated_ready_node_does_not_scan_a_large_live_host_table() {
                 FixedSignLog::<64>::new(64 * core::mem::size_of::<crate::KernelEvent>() as u32)
                     .unwrap(),
             );
+            scheduler.scan_counts.set(Default::default());
+            assert!(scheduler.next_host_request().is_none());
+            assert_eq!(scheduler.scan_counts.get().dispatch_pending_slots, 0);
             scheduler.step().unwrap();
+            let signs = scheduler.signs.entries;
+            assert!(scheduler.next_host_request_matching(|_| false).is_none());
+            assert_eq!(scheduler.signs.entries, signs);
             scheduler.next_host_request().unwrap();
+            scheduler.scan_counts.set(Default::default());
+            assert!(scheduler.next_host_request().is_none());
+            assert_eq!(scheduler.scan_counts.get().dispatch_pending_slots, 0);
+            assert_eq!(scheduler.pending_host_call_count(), 1);
             scheduler.scan_counts.set(Default::default());
             assert_eq!(
                 scheduler.step(),

@@ -82,6 +82,7 @@ where
             host_bindings: Some(host_bindings),
             pending_host_calls: [None; PENDING_REQUESTS],
             pending_host_count: 0,
+            undispatched_host_count: 0,
             pending_host_slots: [None; NODES],
             drivers,
             values,

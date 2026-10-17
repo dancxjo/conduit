@@ -104,3 +104,28 @@ suites each pass 182 tests; 20 fixed-only Host tests and strict all-target
 kernel Clippy pass. Work is proportional to the supplied node set, not an
 unconditional constant; no wall-clock speedup is claimed. Other table queries
 and full #5231 acceptance remain separate.
+
+
+## Skip adapter polls with no undispatched requests
+
+One bounded u32 count now tracks undispatched Host requests. Publication
+increments it, accepting a request for dispatch decrements it, and global
+cancellation clears it. Both preparation paths initialize it. A completion
+cannot consume an undispatched request, so completion consumption leaves this
+count unchanged. Pending/retained occupancy remains independent: dispatched
+requests continue to exist while adapters work or outcomes await consumption.
+
+Adapter polling returns immediately when this count is zero. With undispatched
+work present, the existing cursor, predicate evaluation and dispatch ordering
+remain intact; a rejected predicate does not decrement the count. The count
+fits the one-pending-request-per-u16-node cardinality. It adds one u32 field per
+scheduler, with target-dependent enclosing padding; no allocation was added.
+
+The 4,096-slot regression failed before repair. It now checks zero slot probes
+for empty and fully dispatched tables, predicate refusal followed by successful
+dispatch, and independent retained occupancy. Fixed/hosted lifecycle oracles
+compare the count with actual undispatched table entries through re-arming and
+retirement. Alloc/reference-ready suites each pass 182 tests; 20 fixed-only Host
+tests and strict all-target kernel Clippy pass. Polling with unmatched
+undispatched work and free-slot search remain linear. This is work-bound proof,
+not a fresh timing, layout or full #5231 acceptance claim.
