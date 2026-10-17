@@ -608,3 +608,42 @@ for (const mode of ['membership', 'capacity']) {
       .toEqual({ calls: ['ok'], queued: 1 });
   });
 }
+
+test('a forged Look field refuses before replacing the accessible manifestation', async ({ page }) => {
+  await page.goto('/proof/browser/signal-dom-host.test.html');
+  const result = await page.evaluate(async () => {
+    const { createApplicationFaceHost } = await import('/targets/browser/host/assets/application-face.mjs');
+    const hex = await (await fetch('/proof/conformance/face-look/phosphor-look-v1.hex')).text();
+    const bytes = Uint8Array.from(hex.replace(/\s/gu, '').match(/../gu), pair => parseInt(pair, 16));
+    const root = document.createElement('section'); root.dataset.applicationSlot = 'look-proof'; document.body.append(root);
+    const host = createApplicationFaceHost(document);
+    const view = revision => ({ revision, actions: [{ id: 'fixture.safe', event: 'activate' }], nodes: [
+      { parent: null, component: 'button', key: 'safe', text: 'Retained safe action', action: 0 },
+    ] });
+    globalThis.lookRefusalCalls = [];
+    host.present('look-proof', view(1), { look: bytes,
+      onEvent: event => globalThis.lookRefusalCalls.push({ revision: event.revision, action: event.action }) });
+    const button = root.querySelector('button');
+    const name = new TextEncoder().encode('spoken');
+    let at = -1;
+    for (let i = 0; i <= bytes.length - name.length; i++) {
+      if (name.every((byte, index) => bytes[i + index] === byte)) at = i;
+    }
+    if (at < 4) throw new Error('fixture field missing');
+    const forged = new Uint8Array(bytes.length + 3);
+    forged.set(bytes.subarray(0, at)); forged.set([0xef, 0xbb, 0xbf], at); forged.set(bytes.subarray(at), at + 3);
+    new DataView(forged.buffer).setUint32(at - 4, name.length + 3, true);
+    let refusal;
+    try { host.present('look-proof', view(2), { look: forged }); }
+    catch (error) { refusal = error.code; }
+    globalThis.lookRefusalHost = host;
+    return { refusal, sameControl: root.querySelector('button') === button, revision: root.dataset.applicationRevision,
+      queued: host.queuedEvents('look-proof'), calls: globalThis.lookRefusalCalls };
+  });
+  expect(result).toEqual({ refusal: 'look-field-identity', sameControl: true, revision: '1', queued: 0, calls: [] });
+  await page.getByRole('button', { name: 'Retained safe action', exact: true }).focus();
+  await page.keyboard.press('Enter');
+  expect(await page.evaluate(() => ({ calls: globalThis.lookRefusalCalls,
+    queued: globalThis.lookRefusalHost.queuedEvents('look-proof') })))
+    .toEqual({ calls: [{ revision: 1, action: 'fixture.safe' }], queued: 1 });
+});

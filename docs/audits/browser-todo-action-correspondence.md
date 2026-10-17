@@ -950,3 +950,22 @@ zero retries, including valid native shared-control input, exact graph subjects,
 malformed typed values, pre-encoding bounds and embedding-form isolation.
 This is renderer correspondence/queue evidence, not authoritative Body/Play or
 fresh packaged/released browser acceptance; #5644 remains open.
+
+Look wire admission follow-up (#5644 / #5656): the canonical browser Look
+reader preserves leading BOM characters in field and leaf text. A BOM-prefixed
+field no longer aliases its canonical name, and an altered outer Look identity
+no longer aliases its visual expression identity. Input admission accepts bounded
+Uint8Array/Buffer, ArrayBuffer or dense octet arrays; it checks length before
+conversion and refuses sparse, wrapping, coercing or unrelated input forms.
+The canonical profile, token bounds and source identity remain unchanged.
+
+Three Node regressions reproduced acceptance/late conversion before repair.
+All 26 focused Look/Face codec tests pass; the Look wire suite is now registered
+in the browser check entrance. Rust suite registration formatting passes.
+One pinned Chromium fixture passes with one worker and zero retries: a forged
+Look refuses before replacing the active control or revision, queues no event,
+and the retained accessible control still emits the exact original action on
+native Enter. An initial fixture assertion read the error message instead of
+its typed code and was corrected. This is wire and renderer preservation proof,
+not authoritative Body/Play, arbitrary CSS certification or packaged/released
+browser acceptance; the owning issues remain open.
