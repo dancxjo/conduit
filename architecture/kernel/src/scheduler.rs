@@ -2094,27 +2094,7 @@ where
                 .checked_add(usize::from(io.host_cancellation.is_some()))
                 .and_then(|count| count.checked_add(complete_sign_records))
                 .ok_or(SchedulerError::InvalidPlan)?;
-            let generated = if let Some((port, declared_len)) = io.prepared_output {
-                let bytes = self.drivers[node]
-                    .prepared_output(port)
-                    .ok_or(SchedulerError::InvalidPlan)?;
-                if u32::try_from(bytes.len()).ok() != Some(declared_len) {
-                    return Err(SchedulerError::InvalidPlan);
-                }
-                let value = self.values.store(bytes)?;
-                let output = io
-                    .outputs
-                    .get_mut(usize::from(port.0))
-                    .ok_or(SchedulerError::InvalidPortAccess)?;
-                if output.is_some() {
-                    self.values.release(value)?;
-                    return Err(SchedulerError::InvalidPortAccess);
-                }
-                *output = Some(value);
-                Some(value)
-            } else {
-                derived_value::materialize(&mut self.values, io.canonical_output, &mut io.outputs)?
-            };
+            let generated = self.materialize_step_output(node, &mut io)?;
             let mut sign_records =
                 match self.commit_event_count(node, &io.consumed, &io.consumed_closed, &io.outputs)
                 {

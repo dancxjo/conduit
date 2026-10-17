@@ -14,6 +14,7 @@ use crate::{
 };
 
 mod fanout_storage;
+mod generated_value_envelope;
 mod host_alias;
 mod host_cancellation;
 mod host_cancellation_polling;

@@ -68,4 +68,50 @@ where
             .byte_capacity
             .saturating_sub(state.queued_bytes.saturating_sub(newest.byte_len)))
     }
+    fn ensure_output_value_envelope(
+        &self,
+        node: usize,
+        port: PortId,
+        bytes: u32,
+    ) -> Result<(), SchedulerError> {
+        for target in self.routes.route(NodeId(as_u16(node)?), port)? {
+            let spec = self.cord_specs[usize::from(target.cord.0)];
+            if spec.track == AssignedConnectionTrack::Payload && bytes > spec.maximum_value_bytes {
+                return Err(SchedulerError::SemanticValueBoundExceeded);
+            }
+        }
+        Ok(())
+    }
+
+    pub(super) fn materialize_step_output(
+        &mut self,
+        node: usize,
+        io: &mut StepIo<PORTS>,
+    ) -> Result<Option<ValueRef>, SchedulerError> {
+        if let Some((port, declared_len)) = io.prepared_output {
+            let bytes = self.drivers[node]
+                .prepared_output(port)
+                .ok_or(SchedulerError::InvalidPlan)?;
+            if u32::try_from(bytes.len()).ok() != Some(declared_len) {
+                return Err(SchedulerError::InvalidPlan);
+            }
+            self.ensure_output_value_envelope(node, port, declared_len)?;
+            let value = self.values.store(bytes)?;
+            let output = io
+                .outputs
+                .get_mut(usize::from(port.0))
+                .ok_or(SchedulerError::InvalidPortAccess)?;
+            if output.is_some() {
+                self.values.release(value)?;
+                return Err(SchedulerError::InvalidPortAccess);
+            }
+            *output = Some(value);
+            Ok(Some(value))
+        } else {
+            if let Some((port, value)) = io.canonical_output {
+                self.ensure_output_value_envelope(node, port, value.as_slice().len() as u32)?;
+            }
+            derived_value::materialize(&mut self.values, io.canonical_output, &mut io.outputs)
+        }
+    }
 }
