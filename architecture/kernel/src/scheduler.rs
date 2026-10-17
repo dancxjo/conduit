@@ -35,6 +35,7 @@ mod ready_reference;
 mod ready_set;
 mod remote_fanout;
 mod retirement;
+mod terminal_admission;
 use ready_set::ReadySet;
 #[cfg(test)]
 mod scan_characterization;
@@ -2099,7 +2100,7 @@ where
                 if io.host_request.is_some() || io.host_cancellation.is_some() {
                     return Err(SchedulerError::InvalidHostCallAccess);
                 }
-                self.output_route_count(node)?
+                self.terminal_publication_signs(node, outcome)?
                     .checked_add(1)
                     .and_then(|count| {
                         count.checked_add(usize::from(
@@ -3216,21 +3217,6 @@ where
             .checked_add(consumed_closed)
             .and_then(|value| value.checked_add(routed))
             .ok_or(SchedulerError::InvalidPlan)
-    }
-
-    fn output_route_count(&self, node: usize) -> Result<usize, SchedulerError> {
-        let mut count = 0_usize;
-        for port in 0..PORTS {
-            if let Ok(routes) = self
-                .routes
-                .route(NodeId(as_u16(node)?), PortId(as_u16(port)?))
-            {
-                count = count
-                    .checked_add(routes.count())
-                    .ok_or(SchedulerError::InvalidPlan)?;
-            }
-        }
-        Ok(count)
     }
 
     fn ensure_sign_capacity(&self, additional: usize) -> Result<(), SchedulerError> {

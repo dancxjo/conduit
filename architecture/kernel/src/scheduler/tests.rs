@@ -21,6 +21,7 @@ mod host_index;
 mod host_value_occupancy;
 mod host_value_pending;
 mod queue_ring_bounds;
+mod terminal_sign_admission;
 
 const NODES: usize = 6;
 const CORDS: usize = 5;
