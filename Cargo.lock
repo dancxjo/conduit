@@ -2184,14 +2184,18 @@ dependencies = [
 name = "conduit-observatory"
 version = "0.1.0"
 dependencies = [
+ "conduit-ai",
  "conduit-core",
+ "conduit-host-make",
  "conduit-kernel",
+ "conduit-plan-lowering",
  "conduit-planner",
  "conduit-plot",
  "conduit-process",
  "conduit-semantic-catalog",
  "conduit-signal",
  "conduit-signal-conformance",
+ "conduit-workspace-make",
  "serde",
  "serde_json",
 ]
