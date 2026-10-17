@@ -1,5 +1,6 @@
 import { BROWSER_COLD_PREPARATION_MS } from "./browser-preparation.mjs";
 import { readFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
 import { beginHandbookJourney } from "./handbook-journey.mjs";
 import { expect, test } from "@playwright/test";
 import { openStaticProfile, stageStaticApplications } from "./static-body-application-support.mjs";
@@ -597,11 +598,14 @@ test(`Handbook recovery distinguishes saved corrections from original packaged s
   await page.goto('/proof/browser/signal-dom-host.test.html');
   const original = 'plot pitch\n# original packaged "1kHz"\n';
   const corrected = 'plot pitch\n# saved correction 1kHz\n';
-  await page.evaluate(async ({ original, corrected, checker }) => {
+  const originalDigest = 'sha256:' + createHash('sha256').update(original).digest('hex');
+  await page.evaluate(async ({ original, corrected, checker, originalDigest }) => {
     const { startApplication } = await import('/targets/browser/handbook/application.mjs');
     document.body.innerHTML = '<main><section data-handbook-application></section></main>';
     globalThis.storageWrites = [];
     await startApplication({
+      manifest: checker ? { applicationId: 'fixture/handbook', packageDigest: `sha256:${'b'.repeat(64)}`,
+        resources: [{ role: 'pitch-source', sha256: originalDigest }] } : undefined,
       text: role => role === 'birth-specification' ? JSON.stringify({ name: 'Fixture', initialPlots: ['pitch'],
         plots: [{ name: 'pitch', title: 'Pitch', role: 'pitch-source', lesson: 'Inspect pitch' }] }) : original,
       storage: {
@@ -616,7 +620,7 @@ test(`Handbook recovery distinguishes saved corrections from original packaged s
           : { ok: true, plots: [] } }) };
       },
     });
-  }, { original, corrected, checker });
+  }, { original, corrected, checker, originalDigest });
   const chooser = page.getByRole('combobox', { name: 'Choose an example' });
   const editor = page.getByRole('textbox', { name: 'Plot source', exact: true });
   await chooser.selectOption({ label: 'Pitch (saved correction)' });
@@ -624,13 +628,25 @@ test(`Handbook recovery distinguishes saved corrections from original packaged s
   await editor.fill(`${corrected}# unsent correction draft\n`);
   await chooser.selectOption({ label: 'Pitch (packaged)' });
   await expect(editor).toHaveValue(original);
+  const evidence = page.locator('[data-source-provenance]');
+  await expect.poll(async () => JSON.parse(await evidence.textContent())).toMatchObject({
+    application_id: checker ? 'fixture/handbook' : null,
+    package_digest: checker ? `sha256:${'b'.repeat(64)}` : null,
+    source_origin: 'packaged', packaged_source_sha256: checker ? originalDigest : null,
+    displayed_source_sha256: originalDigest, local_edit: false,
+  });
   await expect(editor).toBeEnabled();
   await chooser.selectOption({ label: 'Pitch (saved correction)' });
   await expect(editor).toHaveValue(`${corrected}# unsent correction draft\n`);
+  await expect.poll(async () => JSON.parse(await evidence.textContent())).toMatchObject({
+    source_origin: 'saved correction', local_edit: true,
+    displayed_source_sha256: 'sha256:' + createHash('sha256').update(`${corrected}# unsent correction draft\n`).digest('hex'),
+  });
   expect(await page.evaluate(() => globalThis.storageWrites)).toEqual([]);
   if (checker) {
     await page.getByRole('button', { name: 'Try in my Handbook', exact: true }).click();
     await expect(page.locator('[data-check]')).toContainText('Correction saved');
+    await expect.poll(async () => JSON.parse(await evidence.textContent()).local_edit).toBe(false);
     expect(await page.evaluate(() => globalThis.storageWrites)).toEqual([['handbook-source-rescue', [
       { name: 'pitch', original, source: `${corrected}# unsent correction draft\n` },
     ]]]);

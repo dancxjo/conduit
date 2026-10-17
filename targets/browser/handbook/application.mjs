@@ -15,6 +15,7 @@ export async function startApplication(application) {
     <div class="handbook-controls"><button data-wake>Wake</button><button data-lull>Lull</button><button data-patchbay>Open in Patchbay</button><button data-example>Return to example</button></div>
     <label>Choose an example <select aria-label="Choose an example"></select></label>
     <p data-lesson></p><label for="handbook-source">Plot source</label><textarea id="handbook-source" spellcheck="false" aria-label="Plot source"></textarea>
+    <details><summary>Inspect source provenance</summary><pre data-source-provenance></pre></details>
     <p data-check role="status"></p><button data-try>Try in my Handbook</button>
     <p>First predict the result, then try it. Open Patchbay to follow the gears, typed ports, and cords of the installed example. Trying another example stops the previous example; saved edits are kept. Unapplied edits stay in the editor.</p>
     <section class="handbook-show" tabindex="0" aria-label="Running example"></section>
@@ -27,6 +28,36 @@ export async function startApplication(application) {
   const selector = root.querySelector('select');
   const surface = root.querySelector('.handbook-show');
   const checkStatus = root.querySelector('[data-check]');
+  const sourceEvidence = root.querySelector('[data-source-provenance]');
+  let inspectedSource, evidenceGeneration = 0;
+  const updateSourceEvidence = () => {
+    if (!inspectedSource) return;
+    const generation = ++evidenceGeneration;
+    const value = source.value;
+    const entry = specification.plots.find(plot => plot.name === inspectedSource.name);
+    const resource = application.manifest?.resources?.find(resource => resource.role === entry?.role);
+    const evidence = {
+      application_id: application.manifest?.applicationId ?? null,
+      package_digest: application.manifest?.packageDigest ?? null,
+      source_origin: inspectedSource.origin, plot: inspectedSource.name,
+      packaged_role: entry?.role ?? null, packaged_source_sha256: resource?.sha256 ?? null,
+      local_edit: value !== inspectedSource.source, displayed_source_sha256: null,
+    };
+    sourceEvidence.textContent = JSON.stringify(evidence, null, 2);
+    // Hashing is observational and never blocks editing, checking or startup.
+    if (!globalThis.crypto?.subtle) return;
+    crypto.subtle.digest('SHA-256', new TextEncoder().encode(value)).then(bytes => {
+      if (generation !== evidenceGeneration) return;
+      evidence.displayed_source_sha256 = 'sha256:' + [...new Uint8Array(bytes)]
+        .map(byte => byte.toString(16).padStart(2, '0')).join('');
+      sourceEvidence.textContent = JSON.stringify(evidence, null, 2);
+    }).catch(() => {});
+  };
+  const inspectSource = (origin, name, original) => {
+    inspectedSource = { origin, name, source: original };
+    updateSourceEvidence();
+  };
+  source.addEventListener('input', updateSourceEvidence);
   const showCheckRefusal = (result, origin, name) => {
     checkStatus.dataset.refusalCode = result.refusal.code;
     const details = result.diagnostics.map(item => {
@@ -62,6 +93,8 @@ export async function startApplication(application) {
     const plot = packagedPlots.find(plot => plot.entry === selector.value);
     if (!plot) return;
     source.value = openingDrafts.get(plot.entry) ?? plot.source;
+    const entry = specification.plots.find(entry => entry.name === plot.entry);
+    inspectSource(plot.source === application.text(entry.role) ? 'packaged' : 'saved correction', plot.entry, plot.source);
     root.querySelector('[data-lesson]').textContent = specification.plots.find(entry => entry.name === plot.entry).lesson;
     checkStatus.textContent = 'Source editing is available. Checking and Body startup are pending.';
   };
@@ -217,6 +250,7 @@ export async function startApplication(application) {
     selected = checked.plots.find(plot => plot.name === entry.name)
       ?? reviewed.plots.find(plot => plot.name === entry.name);
     source.value = openingDrafts.get(entry.name) ?? selected.source;
+    inspectSource('Body inventory', entry.name, selected.source);
     openingDrafts.delete(entry.name);
     editor.render();
     root.querySelector('[data-lesson]').textContent = entry.lesson;
@@ -303,6 +337,7 @@ export async function startApplication(application) {
       else if (!state.evidence.body.workset.plots.some(plot => plot.checked_plot_id === next.checkedPlotId)) await body.install(next);
       checked = await body.plots();
       selected = checked.plots.find(plot => plot.checkedPlotId === next.checkedPlotId);
+      inspectSource('Body inventory', selected.name, selected.source);
       await body.select(selected); show(selected.checkedPlotId); await wake();
       surface.focus();
     }));
@@ -393,6 +428,7 @@ export async function startApplication(application) {
     }
     const showSource = () => {
       source.value = drafts[index];
+      inspectSource(available[index].origin, available[index].name, available[index].source);
       root.querySelector('[data-lesson]').textContent = 'Recovery source only. The current Body has not been changed.';
       checkStatus.textContent = 'Edit this source and press Try to check it without executing anything.';
       try { editor ??= host?.attachEditor(source); editor?.render(); }
@@ -439,6 +475,9 @@ export async function startApplication(application) {
         const updated = validRescueEdits.filter(item => item?.name !== candidate.name);
         updated.push({ name: candidate.name, original, source: value });
         await application.storage.writeJson('handbook-source-rescue', updated);
+        if (available[index] === candidate && source.value === value) {
+          inspectSource('saved correction', candidate.name, value);
+        }
         checkStatus.textContent = 'Source checks. Correction saved for this application; '
           + 'press Try again to reopen the Handbook. No Body has been changed.';
       } catch (refusal) {
