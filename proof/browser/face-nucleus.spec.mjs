@@ -535,3 +535,76 @@ for (const [capacity, length, refusal] of [[65_536, 65_537, 'event-too-large'], 
     expect(await page.evaluate(() => globalThis.preflightCalls)).toEqual(['é', 'ok']);
   });
 }
+
+
+test('generic graph requests require exact resident subject identities', async ({ page }) => {
+  await page.goto('/proof/browser/signal-dom-host.test.html');
+  await page.evaluate(async () => {
+    const { encodeApplicationView, manifestApplicationView } = await import('/targets/browser/host/assets/application-face.mjs');
+    const root = document.createElement('section'); document.body.append(root);
+    const fields = ['conduit.face/graph-canvas@1', 'checked', 'expanded', 'plan', 'body-plan', 'play', '',
+      '1', 'gear/source', 'Source label', 'source-kind',
+      '2', 'port/out', 'gear/source', 'Output', 'output', 'text', 'event',
+      '\ufeffport/in', 'gear/source', 'Input', 'input', 'text', 'event',
+      '1', 'cord/link', 'port/out', '\ufeffport/in'];
+    const source = fields.map(value => `${new TextEncoder().encode(value).length}:${value}`).join('');
+    globalThis.graphIdentityCalls = [];
+    globalThis.graphIdentityRefusals = [];
+    const manifest = manifestApplicationView(encodeApplicationView({ revision: 1,
+      actions: [{ id: 'fixture.select', event: 'activate' }], nodes: [
+        { parent: null, component: 'patchbay-canvas', key: 'graph', text: 'Graph', value: source, valueCapacity: 65_536, action: 0 },
+      ] }), root, { onEvent: event => globalThis.graphIdentityCalls.push(new TextDecoder('utf-8', { ignoreBOM: true }).decode(event.value)),
+        onRefusal: reason => globalThis.graphIdentityRefusals.push(reason) });
+    for (const value of ['', 'Source label', 'port/in', 'gear/retired', Uint8Array.of(0xff)]) manifest.requestAction('graph', value);
+    globalThis.graphIdentityNegative = { calls: [...globalThis.graphIdentityCalls], queued: manifest.queuedEvents(),
+      refusals: [...globalThis.graphIdentityRefusals] };
+    manifest.requestAction('graph', new TextEncoder().encode('\ufeffport/in'));
+    manifest.requestAction('graph', 'cord/link');
+    globalThis.graphIdentityManifest = manifest;
+  });
+  expect(await page.evaluate(() => globalThis.graphIdentityNegative))
+    .toEqual({ calls: [], queued: 0, refusals: Array(5).fill('invalid-control-value') });
+  await page.getByRole('button', { name: 'Gear Source label, source-kind', exact: true }).focus();
+  await page.keyboard.press('Enter');
+  await page.getByRole('button', { name: 'output Output, text, event', exact: true }).focus();
+  await page.keyboard.press('Space');
+  await page.getByRole('button', { name: 'Cord from Output to Input', exact: true }).focus();
+  await page.keyboard.press('Enter');
+  expect(await page.evaluate(() => ({ calls: globalThis.graphIdentityCalls, queued: globalThis.graphIdentityManifest.queuedEvents() })))
+    .toEqual({ calls: ['\ufeffport/in', 'cord/link', 'gear/source', 'port/out', 'cord/link'], queued: 5 });
+});
+
+
+for (const mode of ['membership', 'capacity']) {
+  test(`shared actions satisfy every bound control (${mode})`, async ({ page }) => {
+    await page.goto('/proof/browser/signal-dom-host.test.html');
+    await page.evaluate(async mode => {
+      const { encodeApplicationView, manifestApplicationView } = await import('/targets/browser/host/assets/application-face.mjs');
+      const root = document.createElement('section'); document.body.append(root);
+      const nodes = [{ parent: null, component: 'shell', key: 'root', action: null }];
+      for (const [index, label] of ['First', 'Second'].entries()) {
+        const parent = nodes.length;
+        nodes.push({ parent: 0, component: mode === 'membership' ? 'select' : 'text-input',
+          key: label, text: label, valueCapacity: index === 1 && mode === 'capacity' ? 2 : 16, action: 0 });
+        if (mode === 'membership') for (const value of [index === 0 ? 'first-only' : 'second-only', 'ok']) {
+          nodes.push({ parent, component: 'option', key: `${label}-${value}`, text: value, value, valueCapacity: 16, action: null });
+        }
+      }
+      globalThis.sharedCalls = [];
+      globalThis.sharedRefusals = [];
+      globalThis.sharedManifest = manifestApplicationView(encodeApplicationView({ revision: 1,
+        actions: [{ id: 'fixture.shared', event: mode === 'membership' ? 'change' : 'input' }], nodes }), root,
+        { onEvent: event => globalThis.sharedCalls.push(new TextDecoder().decode(event.value)),
+          onRefusal: reason => globalThis.sharedRefusals.push(reason) });
+      globalThis.sharedManifest.requestAction('First', mode === 'membership' ? 'first-only' : 'abc');
+    }, mode);
+    expect(await page.evaluate(() => ({ calls: globalThis.sharedCalls, refusals: globalThis.sharedRefusals,
+      queued: globalThis.sharedManifest.queuedEvents() })))
+      .toEqual({ calls: [], refusals: ['invalid-control-value'], queued: 0 });
+    const first = page.getByRole(mode === 'membership' ? 'combobox' : 'textbox', { name: 'First', exact: true });
+    if (mode === 'membership') await first.selectOption('ok');
+    else await first.fill('ok');
+    expect(await page.evaluate(() => ({ calls: globalThis.sharedCalls, queued: globalThis.sharedManifest.queuedEvents() })))
+      .toEqual({ calls: ['ok'], queued: 1 });
+  });
+}

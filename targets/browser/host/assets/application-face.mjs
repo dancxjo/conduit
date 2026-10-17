@@ -425,6 +425,12 @@ export function manifestApplicationView(input, root, options = {}) {
   const actionEvents = new WeakMap();
   const choiceValues = new Map();
   const nodesByKey = new Map();
+  const valueComponents = new Set([11, 15, 16, 17, 43, 44]);
+  // Wire events name the action, not an originating node. All of its bindings
+  // must therefore admit the argument, as in portable ApplicationEvent admission.
+  const actionBindings = view.actions.map((_, index) => view.nodes.filter(node => node.action === index));
+  const actionValueCapacities = actionBindings.map(bindings => Math.min(...bindings.map(node =>
+    valueComponents.has(node.component) ? node.valueCapacity : 0)));
   const requestAction = (node, value = "", control = null) => {
     if (activeManifestations.get(root) !== render) {
       lastRefusal = "stale-revision";
@@ -454,10 +460,11 @@ export function manifestApplicationView(input, root, options = {}) {
       return null;
     }
     const action = view.actions[node.action];
+    const valueCapacity = actionValueCapacities[node.action];
     // Every UTF-16 code unit requires at least one UTF-8 byte. Reject an
     // impossible fit before allocating the encoded copy; retain the byte check
     // below for multibyte text and byte inputs.
-    if (typeof value === "string" && (value.length > MAX_EVENT_BYTES || value.length > node.valueCapacity)) {
+    if (typeof value === "string" && (value.length > MAX_EVENT_BYTES || value.length > valueCapacity)) {
       lastRefusal = value.length > MAX_EVENT_BYTES ? "event-too-large" : "invalid-control-value";
       options.onRefusal?.(lastRefusal);
       return null;
@@ -469,19 +476,19 @@ export function manifestApplicationView(input, root, options = {}) {
       options.onRefusal?.(lastRefusal);
       return null;
     }
-    if (encodedValue.length > node.valueCapacity) {
+    if (encodedValue.length > valueCapacity) {
       lastRefusal = "invalid-control-value";
       options.onRefusal?.(lastRefusal);
       return null;
     }
-    if ([15, 16, 17, 43, 44].includes(node.component)) {
-      let text;
-      try { text = typeof value === "string" ? (value.isWellFormed() ? value : undefined)
-        : new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(encodedValue); }
-      catch { text = undefined; }
-      const choices = choiceValues.get(node);
+    let text;
+    try { text = typeof value === "string" ? (value.isWellFormed() ? value : undefined)
+      : new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(encodedValue); }
+    catch { text = undefined; }
+    for (const boundNode of actionBindings[node.action]) {
+      const choices = choiceValues.get(boundNode);
       if (text === undefined || (choices && !choices.has(text))
-        || ([43, 44].includes(node.component) && text !== "true" && text !== "false")) {
+        || ([43, 44].includes(boundNode.component) && text !== "true" && text !== "false")) {
         lastRefusal = "invalid-control-value";
         options.onRefusal?.(lastRefusal);
         return null;
@@ -503,6 +510,10 @@ export function manifestApplicationView(input, root, options = {}) {
   for (const [nodeIndex, node] of view.nodes.entries()) {
     if (node.component === 16) {
       choiceValues.set(node, new Set(view.nodes.filter(child => child.parent === nodeIndex && child.component === 22).map(child => child.value)));
+    }
+    if (node.component === 11 && node.value) {
+      const graph = decodeGraphCanvas(node.value);
+      choiceValues.set(node, new Set([...graph.nodes, ...graph.ports, ...graph.cords].map(subject => subject.identity)));
     }
     const [tag, kind] = COMPONENTS[node.component];
     const element = document.createElement(tag);
