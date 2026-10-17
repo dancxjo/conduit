@@ -36,13 +36,36 @@ async function sha256(bytes) {
 }
 
 async function boundedFetch(url, maximumBytes, label) {
-  const response = await fetch(url);
+  const response = await fetch(url, { cache: "no-store", credentials: "same-origin", redirect: "error" });
   if (!response.ok) throw new Error(`${label} is unavailable`);
   const declared = Number(response.headers.get("content-length"));
-  if (Number.isFinite(declared) && declared > maximumBytes) throw new Error(`${label} exceeds its admitted bound`);
-  const bytes = new Uint8Array(await response.arrayBuffer());
-  if (bytes.length === 0 || bytes.length > maximumBytes) throw new Error(`${label} exceeds its admitted bound`);
-  return bytes;
+  if (Number.isFinite(declared) && declared > maximumBytes) {
+    await response.body?.cancel().catch(() => {});
+    throw new Error(`${label} exceeds its admitted bound`);
+  }
+  if (!response.body) throw new Error(`${label} exceeds its admitted bound`);
+  const reader = response.body.getReader();
+  let bytes = new Uint8Array(Math.min(maximumBytes, 64 * 1024));
+  let total = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (value.byteLength > maximumBytes - total) {
+        await reader.cancel().catch(() => {});
+        throw new Error(`${label} exceeds its admitted bound`);
+      }
+      if (total + value.byteLength > bytes.byteLength) {
+        const grown = new Uint8Array(Math.min(maximumBytes, Math.max(total + value.byteLength, bytes.byteLength * 2)));
+        grown.set(bytes.subarray(0, total));
+        bytes = grown;
+      }
+      bytes.set(value, total);
+      total += value.byteLength;
+    }
+  } finally { reader.releaseLock(); }
+  if (total === 0) throw new Error(`${label} exceeds its admitted bound`);
+  return bytes.subarray(0, total);
 }
 
 function canonicalPackage(manifest) {

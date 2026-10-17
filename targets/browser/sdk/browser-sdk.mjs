@@ -562,7 +562,7 @@ export const Conduit = Object.freeze({
         refuse("DistributionDigestMismatch", "reviewed BrowserBundle assets do not match the exact distribution manifest");
       }
 
-      const payloads = await readBundlePayloads(base, bundle, image);
+      const payloads = await readBundlePayloads(base, bundle, image, imageBytes);
       const runtimeBytes = requiredAsset(payloads, "runtime.wasm", MAXIMUM_RUNTIME_BYTES);
       const bootBytes = requiredAsset(payloads, "browser-boot-profile.mjs", MAXIMUM_MODULE_BYTES);
       const bootDigest = image.boot_module?.sha256;
@@ -669,7 +669,7 @@ function requireRelease(distribution, bundle, pkg, image) {
   }
 }
 
-async function readBundlePayloads(base, bundle, image) {
+async function readBundlePayloads(base, bundle, image, imageBytes) {
   let total = 0;
   const declared = new Map(bundle.files.map((file) => [file.path, file]));
   if (declared.size !== bundle.files.length || !declared.has(IMAGE_PATH)) {
@@ -679,11 +679,18 @@ async function readBundlePayloads(base, bundle, image) {
   if (paths.size !== declared.size || [...declared.keys()].some((path) => !paths.has(path))) {
     refuse("UnexpectedAsset", "BrowserBundle contains files outside its exact IMAGE closure");
   }
+  if (image.files.some(file => {
+    const released = declared.get(file.path);
+    return !released || released.bytes !== file.bytes || released.sha256 !== file.sha256
+      || released.media_type !== file.media_type;
+  })) {
+    refuse("ImageManifestMismatch", "BrowserBundle IMAGE inventory differs from its release declarations");
+  }
   const results = await Promise.all(bundle.files.map(async (file) => {
     if (!safeRelativePath(file.path) || !Number.isSafeInteger(file.bytes) || file.bytes < 1
       || file.bytes > (file.path === "runtime.wasm" ? MAXIMUM_RUNTIME_BYTES : MAXIMUM_MODULE_BYTES)
       || !digest(file.sha256)) refuse("ArtifactBound", `BrowserBundle asset ${file.path} exceeds its declared finite bound`);
-    const bytes = await fetchAsset(base, file.path, file.bytes);
+    const bytes = file.path === IMAGE_PATH ? imageBytes : await fetchAsset(base, file.path, file.bytes);
     if (bytes.byteLength !== file.bytes || await sha256(bytes) !== file.sha256) {
       refuse("ArtifactDigestMismatch", `BrowserBundle asset ${file.path} does not match its admitted identity`);
     }
@@ -777,18 +784,41 @@ async function fetchAsset(base, path, maximum) {
   }
   const response = await fetch(url, { cache: "no-store", credentials: "same-origin", redirect: "error" });
   if (!response.ok) refuse("ArtifactUnavailable", `reviewed BrowserBundle resource ${path} is unavailable`);
-  const bytes = new Uint8Array(await response.arrayBuffer());
-  if (bytes.byteLength < 1 || bytes.byteLength > maximum) refuse("ArtifactBound", `BrowserBundle resource ${path} exceeds its finite bound`);
-  return bytes;
+  return readBoundedResponse(response, maximum, `BrowserBundle resource ${path}`);
 }
 
 async function readJson(url, maximum, label) {
   if (url.origin !== location.origin) refuse("ArtifactOriginRejected", `${label} must be same-origin`);
   const response = await fetch(url, { cache: "no-store", credentials: "same-origin", redirect: "error" });
   if (!response.ok) refuse("ArtifactUnavailable", `${label} is unavailable`);
-  const bytes = new Uint8Array(await response.arrayBuffer());
-  if (bytes.byteLength < 1 || bytes.byteLength > maximum) refuse("ArtifactBound", `${label} exceeds its finite bound`);
+  const bytes = await readBoundedResponse(response, maximum, label);
   return parseJson(bytes, label);
+}
+
+async function readBoundedResponse(response, maximum, label) {
+  if (!response.body) refuse("ArtifactBound", `${label} is empty`);
+  const reader = response.body.getReader();
+  let bytes = new Uint8Array(Math.min(maximum, 64 * 1024));
+  let total = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (value.byteLength > maximum - total) {
+        await reader.cancel().catch(() => {});
+        refuse("ArtifactBound", `${label} exceeds its finite bound`);
+      }
+      if (total + value.byteLength > bytes.byteLength) {
+        const grown = new Uint8Array(Math.min(maximum, Math.max(total + value.byteLength, bytes.byteLength * 2)));
+        grown.set(bytes.subarray(0, total));
+        bytes = grown;
+      }
+      bytes.set(value, total);
+      total += value.byteLength;
+    }
+  } finally { reader.releaseLock(); }
+  if (total < 1) refuse("ArtifactBound", `${label} is empty`);
+  return bytes.subarray(0, total);
 }
 
 function parseJson(bytes, label) {

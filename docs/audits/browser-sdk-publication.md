@@ -150,3 +150,64 @@ as does the producer fixture. Four SDK Node tests pass; a new public-entrance
 fixture checks five URL-changing paths are refused before asset fetch. Its
 manifest/fetch environment is synthetic and proves loader refusal, not actual
 browser execution or public package provenance.
+
+Streaming download-bound follow-up: SDK manifests and assets now use a bounded
+stream reader rather than buffering the complete response before checking size.
+The reader cancels at the first chunk crossing the existing byte ceiling, uses
+a contiguous buffer that grows only within that ceiling and releases its lock
+on success or failure. Empty responses remain distinct bounded refusals.
+
+A public-entrance fixture reproduced full consumption without cancellation before
+repair. Five SDK Node tests now pass, including oversized cancellation after the
+first excess byte, exact-limit manifest admission into metadata validation and
+released stream locks. The producer fixture also passes. Synthetic response
+streams establish loader behavior; actual network/browser execution remains open.
+
+IMAGE byte-custody follow-up: SDK loading now verifies the retained IMAGE response
+against its release declaration instead of requesting that manifest again. The
+bytes parsed for metadata, admitted by digest and passed to Boot are identical.
+Other assets retain their bounded fetch and digest checks.
+
+A changed second IMAGE response reproduced unnecessary startup refusal before
+repair. Six SDK Node tests and the producer fixture pass. The new public-entrance
+fixture verifies one IMAGE request, valid bytes advancing to intentionally absent
+runtime admission and a false digest refusing the original bytes. These synthetic
+manifest/fetch fixtures establish byte custody, not successful Boot or public
+release corroboration.
+
+Loader inventory-agreement follow-up: the SDK now compares IMAGE asset sizes,
+digests and media types with their corresponding release declarations before
+fetching any payload. Packaging already enforced this agreement; path-set
+equality alone was insufficient at the consumer boundary.
+
+A size disagreement reproduced an asset request before repair. The public-
+entrance fixture now checks size, digest and media-type disagreements all refuse
+with `ImageManifestMismatch` without an asset request. Its IMAGE bytes and
+release aggregate are correctly hashed to isolate the inventory comparison.
+All six SDK Node tests and the producer fixture pass. This is synthetic loader
+admission evidence, not successful Boot or public release corroboration.
+
+Static application-loader follow-up: application manifests and resources now
+enforce their existing byte bounds while streaming. Oversized Content-Length
+responses are cancelled before reading; chunked responses cancel at the first
+excess byte. Contiguous buffering grows only within the admitted ceiling, and
+reader locks are released on success and failure.
+
+Pinned Chromium reproduced full oversized-stream consumption and retained
+reader locks before repair. Three production-loader fixtures pass with one
+worker and zero retries: exact-48-KiB manifest reaches schema admission, one byte
+over cancels immediately, and an oversized header cancels with zero body pulls.
+Responses are synthetic streams inside Chromium; no full packaged runtime,
+public deployment or source-history acceptance is implied.
+
+Application redirect follow-up: static application manifests and resources now
+use same-origin credentials, no-store fetches and `redirect: error`, matching
+the SDK's exact package fetch policy. A declared package URL cannot redirect
+loading to another resource before content admission.
+
+A pinned Chromium request observer recorded one redirect-destination request
+before repair and zero afterward. Five focused loader fixtures pass with one
+worker and zero retries: redirect refusal, direct response reaching schema
+admission, and all three streaming-bound cases. Redirects are intercepted local
+responses and the destination is observed through browser request events; this
+does not establish full packaged runtime or public deployment acceptance.

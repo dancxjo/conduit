@@ -102,3 +102,28 @@ save, both pending-write outcomes and both original/correction inspector modes.
 Fixture checkers now return the Plot names they claim to check. These tests
 isolate recovery UI and persistence; Rust syntax, actual Body lifecycle and
 packaged/public acceptance remain separate proof obligations.
+
+## Public source observation — 17 October 2026
+
+[Retained receipt](evidence/handbook-public-source-2026-10-17.json) records
+read-only HTTPS observation of the current public Handbook. The served pitch
+lesson uses bare `1kHz` and `Hz`; its SHA-256 is
+`20c581cac1ba8525577fb95975f38b98f4a5831bc8f43f844864f11e32db630e`,
+matching both the application's resource declaration and the repository source
+at declared runtime revision `572292edf60c6b9054385f351de9159f0ff0fe09`.
+The currently served application package digest is
+`sha256:7eb6ac585cf747e59bbccc03ced92feb87a7eebc588a02f7dcc9fd2a5e02b8c9`;
+independent recomputation matches. Public distribution, release and IMAGE
+manifest bytes match their application resource hashes. Their aggregate
+digests and IMAGE identity recompute, distribution/IMAGE inventories agree,
+and the release links that IMAGE and distribution. The receipt retains exact
+URLs, observed hashes, identities, source text and verification scope.
+
+This adds current public content corroboration to the earlier local fixtures.
+It does not identify the source of the 11 October quoted-value report, inspect
+the reporting browser's cache or retained Body, verify runtime/module payloads,
+execute Chromium, or verify a release-train/accepted-main receipt. The current
+public observation cannot establish what that browser received historically.
+#5510 and its parent remain open. The old issue path `plots/convert-pitch.conduit`
+is absent in this checkout; the current source is under
+`targets/browser/handbook/plots/convert-pitch.conduit`.

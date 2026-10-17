@@ -843,3 +843,59 @@ test('Handbook recovery refuses a correction that renames the selected Plot', as
     { name: 'pitch', original: 'plot pitch', source: 'plot pitch' },
   ]]]);
 });
+
+for (const oversized of [false, true, "header"]) {
+  test(`static application loader bounds streamed manifests (oversized: ${oversized})`, async ({ page }) => {
+    await page.goto('/proof/browser/signal-dom-host.test.html');
+    await page.evaluate(async oversized => {
+      document.body.innerHTML = '<main id="workspace"></main>';
+      const meta = document.createElement('meta');
+      meta.name = 'conduit-application-package'; meta.content = '/fixture-application.json';
+      document.head.append(meta);
+      const maximum = 48 * 1024;
+      const bytes = new TextEncoder().encode('{}' + ' '.repeat(maximum - 2));
+      globalThis.streamEvidence = { pulls: 0, cancelled: false };
+      const stream = new ReadableStream({
+        pull(controller) {
+          const count = ++globalThis.streamEvidence.pulls;
+          if (count <= 2) controller.enqueue(bytes.slice((count - 1) * maximum / 2, count * maximum / 2));
+          else if (oversized && count <= 4) controller.enqueue(new Uint8Array([32]));
+          else controller.close();
+        },
+        cancel() { globalThis.streamEvidence.cancelled = true; },
+      }, { highWaterMark: 0 });
+      globalThis.fixtureStream = stream;
+      globalThis.fetch = async () => new Response(stream, oversized === "header"
+        ? { headers: { "content-length": String(maximum + 1) } } : {});
+      await import('/targets/browser/host/assets/browser-application-loader.mjs');
+    }, oversized);
+    await expect(page.locator('#workspace')).toHaveText(oversized
+      ? 'application package manifest exceeds its admitted bound' : 'browser application package schema is unsupported');
+    expect(await page.evaluate(() => ({ ...globalThis.streamEvidence, locked: globalThis.fixtureStream.locked })))
+      .toEqual({ pulls: oversized === "header" ? 0 : 3, cancelled: Boolean(oversized), locked: false });
+  });
+}
+
+for (const redirected of [true, false]) {
+  test(`static application loader keeps manifest fetch on its declared URL (redirect: ${redirected})`, async ({ page }) => {
+    let destinationRequests = 0;
+    page.on('request', request => {
+      if (request.url().endsWith('/proof/browser/fixture-redirect-target.json')) destinationRequests++;
+    });
+    await page.route('**/proof/browser/fixture-application.json', route => route.fulfill(redirected
+      ? { status: 302, headers: { location: '/proof/browser/fixture-redirect-target.json' } }
+      : { contentType: 'application/json', body: '{}' }));
+    await page.goto('/proof/browser/signal-dom-host.test.html');
+    await page.evaluate(async () => {
+      document.body.innerHTML = '<main id="workspace"></main>';
+      const meta = document.createElement('meta');
+      meta.name = 'conduit-application-package'; meta.content = '/proof/browser/fixture-application.json';
+      document.head.append(meta);
+      await import('/targets/browser/host/assets/browser-application-loader.mjs');
+    });
+    await expect(page.locator('#workspace.error')).toBeVisible();
+    expect(destinationRequests).toBe(0);
+    await expect(page.locator('#workspace.error')).toHaveText(redirected
+      ? 'Failed to fetch' : 'browser application package schema is unsupported');
+  });
+}
