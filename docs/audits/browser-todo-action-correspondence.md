@@ -1239,3 +1239,18 @@ input-form negative cases. This is deterministic wire admission proof, not
 actual source/compiler/kernel Play, browser interaction or packaged/release
 acceptance; the owning issues remain open. No protected or uncertain branch
 work was changed.
+
+SDK subscription cancellation (#5376 browser integration resource boundary):
+Body event iterators check cancellation before reserving/reading and after
+snapshot reads or yielded records. An already-aborted iterator takes no finite
+subscription slot. Cancellation during a poll or replay stops later biography,
+compaction-following and Host-offer notifications; resuming the canceled iterator
+runs the existing release path exactly once. The underlying Body read is not
+canceled and no second mutable Body store or event queue is introduced.
+
+All five regressions reproduced before repair. Twenty-seven focused SDK event/
+Plot tests pass, including deferred poll settlement, cancellation between replay
+records/history gap, cancellation before Host-offer notification and exact
+reservation/release counts. README states the boundary explicitly. These use
+canonical-shaped fixture snapshots and prove SDK iterator lifecycle, not actual
+Rust Body/Play, Custom Element or packaged/release acceptance; #5376 remains open.

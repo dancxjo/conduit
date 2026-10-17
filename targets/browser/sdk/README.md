@@ -203,7 +203,11 @@ boundary; it does not invent missing history.
 Subscriptions poll at a bounded interval (50–5,000 ms), yield one event at a
 time, and hold no unbounded event queue. Re-subscribing starts at current
 evidence by default. Set `replay: true` to read the finite retained biography
-window explicitly. Pass an `AbortSignal` to stop the iterator. An event can
+window explicitly. Pass an `AbortSignal` to stop the iterator. An already-aborted
+iterator takes no subscription reservation and reads no snapshot. Cancellation
+also stops remaining replay records and notifications from a pending poll once
+its snapshot read settles. Resuming a canceled iterator releases its reservation;
+this does not cancel the underlying Body operation. An event can
 only describe a Rust record already present in the snapshot, so a refused
 transition never appears as a success event. Refusals remain attached to the
 operation's typed error; lifecycle evidence remains inspectable through the
