@@ -203,3 +203,11 @@ counts. The runner checks all eight profiles, fixture hashes and semantic
 identities against the installed std raw evidence. It also checks that a second
 invocation refuses without rerunning or changing the one finite receipt.
 This isolated harness is a portable evaluator proof, not a deployable Host Back.
+
+Clean source `1d28dd2d5f2ba78b4f8fa8270f9e7f4535624ca1` passes the complete supported check,
+WASM-example and tooling strict Clippy, and formatting. The
+[WASM receipt](evidence/scalar-tape-wasm-parity.json) retains all 48 cases,
+the actual module hash, compiler/runtime identities and matched std identities.
+The [validation record](evidence/scalar-tape-wasm-validation.json) retains
+the command and log hashes. This is development proof; exact stable publication
+acceptance remains required before parent closure.
