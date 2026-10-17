@@ -95,6 +95,39 @@ test("BrowserBundle BUILD binds the complete ordered distribution inventory", as
   expect(release.manifest.files.slice(0, -1)).toEqual(reordered.manifest.files);
 });
 
+test("BrowserBundle verification refuses rehashed IMAGE claims detached from their inputs", async () => {
+  const distribution = await fixture();
+  const configuration = checked(ids, "a");
+  const original = await buildBrowserBundleImage({ checked: configuration, distribution });
+  const mutations = [
+    image => { image.profile_id = `sha256:${"b".repeat(64)}`; },
+    image => { image.source_configuration_id = `sha256:${"b".repeat(64)}`; },
+    image => { image.build_id = `build:sha256:${"b".repeat(64)}`; },
+    image => { image.reviewed_distribution.source_commit = "commit:forged"; },
+    image => { image.reviewed_distribution.distribution_digest = `sha256:${"b".repeat(64)}`; },
+    image => { image.files[0].bytes++; },
+  ];
+  const results = [];
+  for (const mutate of mutations) {
+    const release = structuredClone(original);
+    const binding = release.payloads.find(item => item.path === "conduit-browser-image.json");
+    const { image_id, ...image } = JSON.parse(new TextDecoder().decode(binding.bytes));
+    mutate(image);
+    const imageId = `image:${await sha256(encoder.encode(JSON.stringify(image)))}`;
+    binding.bytes = encoder.encode(JSON.stringify({ ...image, image_id: imageId }));
+    binding.sha256 = await sha256(binding.bytes);
+    release.manifest.browser_image_id = imageId;
+    release.manifest.browser_build_id = image.build_id;
+    release.manifest.files = release.payloads.map(({ path, bytes, sha256, media_type }) => ({ path, bytes: bytes.byteLength, sha256, media_type }));
+    release.manifest.bundle_sha256 = await bundleDigest(release.manifest.files);
+    try {
+      await verifyBrowserBundleImage({ checked: configuration, release, distribution });
+      results.push("accepted");
+    } catch (error) { results.push(error.code); }
+  }
+  expect(results).toEqual(mutations.map(() => "ImageBindingMismatch"));
+});
+
 function checked(implementations, suffix) {
   return Object.freeze({
     schema: "conduit.creche/checked-browser-configuration@1",

@@ -17,34 +17,7 @@ export async function buildBrowserBundleImage({ checked, distribution }) {
   const reviewed = requireDistribution(distribution);
   const selected = resolveImplementations(checked.selected_implementations, reviewed);
   const files = await verifyDistributionPayloads(distribution, reviewed);
-  const buildBasis = {
-    schema: "conduit.browser/bundle-build-basis@1",
-    target_id: TARGET,
-    profile_id: checked.profile_id,
-    source_configuration_id: checked.configuration_id,
-    distribution_id: reviewed.distribution_id,
-    distribution_digest: distribution.manifest.bundle_sha256,
-    runtime_abi: reviewed.runtime_abi,
-    implementations: selected,
-  };
-  const buildId = `build:${await sha256(encodeCanonical(buildBasis))}`;
-  const imagePayload = {
-    schema: IMAGE_SCHEMA,
-    build_id: buildId,
-    target_id: TARGET,
-    profile_id: checked.profile_id,
-    source_configuration_id: checked.configuration_id,
-    reviewed_distribution: {
-      distribution_id: reviewed.distribution_id,
-      distribution_digest: distribution.manifest.bundle_sha256,
-      runtime_abi: reviewed.runtime_abi,
-      toolchain_identity: reviewed.toolchain_identity,
-      source_commit: reviewed.source_commit,
-    },
-    implementations: selected,
-    boot_module: requireBootModule(files),
-    files: files.map(({ path, bytes, sha256: digest, media_type }) => ({ path, bytes: bytes.byteLength, sha256: digest, media_type })),
-  };
+  const imagePayload = await expectedImagePayload(checked, distribution, reviewed, selected, files);
   const imageId = `image:${await sha256(encodeCanonical(imagePayload))}`;
   const binding = encoder.encode(JSON.stringify({ ...imagePayload, image_id: imageId }, null, 2));
   const bindingDigest = await sha256(binding);
@@ -61,7 +34,7 @@ export async function buildBrowserBundleImage({ checked, distribution }) {
       source_identity: reviewed.source_commit,
       bundle_sha256: bundleDigest,
       browser_image_id: imageId,
-      browser_build_id: buildId,
+      browser_build_id: imagePayload.build_id,
       browser_profile_id: checked.profile_id,
       browser_configuration_id: checked.configuration_id,
       distribution_id: reviewed.distribution_id,
@@ -114,7 +87,43 @@ export async function verifyBrowserBundleImage({ checked, release, distribution 
     || payload.boot_module.path !== BOOT_MODULE_PATH || payload.boot_module.sha256 !== bootModule.sha256) {
     refuse("BootModuleBindingMismatch", "BrowserBundle Boot entry is absent or stale");
   }
+  const files = await verifyDistributionPayloads(distribution, reviewed);
+  const expected = await expectedImagePayload(checked, distribution, reviewed, selected, files);
+  if (JSON.stringify(payload) !== JSON.stringify(expected)) {
+    refuse("ImageBindingMismatch", "BrowserBundle IMAGE claims do not match its checked configuration and reviewed distribution");
+  }
   return Object.freeze({ build_id: payload.build_id, image_id: imageId, profile_id: payload.profile_id, configuration_id: payload.source_configuration_id });
+}
+
+async function expectedImagePayload(checked, distribution, reviewed, selected, files) {
+  const buildBasis = {
+    schema: "conduit.browser/bundle-build-basis@1",
+    target_id: TARGET,
+    profile_id: checked.profile_id,
+    source_configuration_id: checked.configuration_id,
+    distribution_id: reviewed.distribution_id,
+    distribution_digest: distribution.manifest.bundle_sha256,
+    runtime_abi: reviewed.runtime_abi,
+    implementations: selected,
+  };
+  const buildId = `build:${await sha256(encodeCanonical(buildBasis))}`;
+  return {
+    schema: IMAGE_SCHEMA,
+    build_id: buildId,
+    target_id: TARGET,
+    profile_id: checked.profile_id,
+    source_configuration_id: checked.configuration_id,
+    reviewed_distribution: {
+      distribution_id: reviewed.distribution_id,
+      distribution_digest: distribution.manifest.bundle_sha256,
+      runtime_abi: reviewed.runtime_abi,
+      toolchain_identity: reviewed.toolchain_identity,
+      source_commit: reviewed.source_commit,
+    },
+    implementations: selected,
+    boot_module: requireBootModule(files),
+    files: files.map(({ path, bytes, sha256: digest, media_type }) => ({ path, bytes: bytes.byteLength, sha256: digest, media_type })),
+  };
 }
 
 function requireBootModule(files) {

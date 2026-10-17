@@ -100,3 +100,18 @@ the pinned Playwright runner (one worker, zero retries), including reordered
 payload transport with exact manifest/IMAGE/release inventory agreement. These
 are local content-admission fixtures, not public package/source corroboration
 or browser execution proof.
+
+Independent IMAGE-verification follow-up: recomputing a self-consistent IMAGE
+hash is insufficient to bind its claims to the caller's inputs. Verification
+now verifies distribution payloads and reconstructs the expected IMAGE payload
+from the checked configuration, selected implementations and reviewed
+distribution. BUILD and verification share the exact payload construction;
+existing implementation and Boot refusals retain their distinct codes.
+
+Six rehashed forgeries reproduced acceptance before repair: changed PROFILE,
+configuration, BuildId, source commit, distribution digest and file size. Tests
+recompute the IMAGE id, binding hash and release aggregate so stale outer hashes
+cannot account for the refusal. All five focused Node-side builder/verifier
+tests pass through the pinned runner with one worker and zero retries. This
+proves these input-binding checks, not public provenance, browser execution or
+complete hostile-release admission.
