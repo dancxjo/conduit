@@ -61,8 +61,19 @@ fn owned_source_package_checks_all_public_component_bodies_and_exact_fronts() {
 #[test]
 fn shipped_control_imports_retain_the_owners_exact_front_types() {
     let package = prepare_dsp_source_package().unwrap();
-    let mut startup = package.startup.clone();
+    let mut startup = conduit_plot::StartupCatalog::new();
+    // Resolving exported records needs the owner's private tuple aliases, but
+    // those aliases must not become ordinary downstream names.
     package.exports.install_shipped_types(&mut startup).unwrap();
+    let mut owner_exports = package.startup.clone();
+    package
+        .exports
+        .install_shipped_types(&mut owner_exports)
+        .unwrap();
+    for private in ["MixerPair", "MixerQuad"] {
+        let source = format!("plot forbidden (\n >> value: {private}\n) {{\n}}\n");
+        assert!(check_syntax_document(&parse_syntax_document(&source), &startup).is_err());
+    }
     for (ty, owner) in [
         ("GainControl", "dsp/gain"),
         (
@@ -80,6 +91,15 @@ fn shipped_control_imports_retain_the_owners_exact_front_types() {
         ("ResonatorStepInput", "dsp/resonator-step"),
         ("OnePoleFrame", "dsp/one-pole"),
     ] {
+        let path = format!("audio/dsp/{ty}");
+        assert_eq!(
+            startup.native_type_source(&path),
+            owner_exports.native_type_source(&path)
+        );
+        assert!(
+            startup.native_type_source(&path).is_some(),
+            "{ty} keeps Source custody"
+        );
         let source = format!(
             "with audio/dsp/{ty} as Imported\nplot downstream (\n >> value: Imported\n) {{\n}}\n"
         );
