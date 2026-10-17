@@ -1,5 +1,9 @@
 use crate::process::Step;
 
+#[cfg(test)]
+#[path = "workspace_shard_features_tests.rs"]
+mod feature_coverage;
+
 macro_rules! package_test_shard {
     ($packages:ident, $step:ident, $id:literal, $description:literal, [$($package:literal),+ $(,)?], [$($trailing:literal),* $(,)?]) => {
         #[cfg(test)]
@@ -120,7 +124,7 @@ package_test_shard!(
     ["conduit-std-host", "conduit-std-offers",],
     [
         "--features",
-        "conduit-std-host/burn-model",
+        "conduit-std-host/burn-model,conduit-std-host/local-model-proof,conduit-std-host/pete-create",
         "--",
         "--test-threads=1"
     ]

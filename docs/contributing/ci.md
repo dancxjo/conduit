@@ -85,7 +85,10 @@ as Integration, including workspace lint. The stable required `admission` check
 waits for their aggregate success, then runs the remaining feature-specific
 checks and integration smoke. Narrow changes retain affected-package admission.
 A skipped, missing, failed or cancelled workspace aggregate cannot satisfy broad
-admission. This changes scheduling, not the required test corpus.
+admission. Shard tests also compare their enabled package features with the
+workspace-wide feature inventory; the Std Host shard explicitly retains local
+model proof and Pete/Create coverage. This changes scheduling, not the required
+test corpus.
 
 The selection and execution rules live in `tools/ci/pipeline/admission.mjs`.
 The integration matrix remains in `plan.mjs` and `targets.mjs`. Target proof
