@@ -95,3 +95,16 @@ test('view decode admits byte forms and limits before conversion', () => {
   const expected = decodeApplicationView(encoded);
   for (const input of [encoded.buffer, Array.from(encoded)]) assert.deepEqual(decodeApplicationView(input), expected);
 });
+
+test('view decoding respects padded typed-array and Node Buffer offsets', () => {
+  const source = description(); source.revision = 0x01020304;
+  const encoded = encodeApplicationView(source);
+  const expected = decodeApplicationView(encoded);
+  const padded = new Uint8Array(encoded.length + 17).fill(0xa5);
+  padded.set(encoded, 7);
+  const nodeBuffer = Buffer.alloc(encoded.length + 17, 0xa5);
+  nodeBuffer.set(encoded, 7);
+  for (const input of [padded.subarray(7, 7 + encoded.length), nodeBuffer.subarray(7, 7 + encoded.length), Buffer.from(encoded)]) {
+    assert.deepEqual(decodeApplicationView(input), expected);
+  }
+});

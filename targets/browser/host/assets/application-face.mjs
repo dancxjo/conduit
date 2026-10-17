@@ -46,7 +46,10 @@ class Cursor {
   }
   byte() { return this.bytes(1)[0]; }
   u16() { const bytes = this.bytes(2); return bytes[0] | (bytes[1] << 8); }
-  u32() { return new DataView(this.bytes(4).buffer).getUint32(0, true); }
+  u32() {
+    const bytes = this.bytes(4);
+    return new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength).getUint32(0, true);
+  }
   text(length) {
     try { return new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(this.bytes(length)); }
     catch { refuse("malformed-encoding"); }

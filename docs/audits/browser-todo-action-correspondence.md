@@ -711,3 +711,12 @@ focused Node codec tests pass, including equivalent valid views from supported
 byte forms and existing event capacity/identity cases. No browser/runtime build
 was needed for this byte-admission change; real compiler/Play and full runtime
 acceptance remain open with the prior missing local WASM limitation.
+
+Codec offset follow-up (#5653): the 32-bit cursor reads through each field's
+actual buffer offset and length. Node Buffer slices are views, unlike ordinary
+Uint8Array slices, so assuming offset zero misread revision/value lengths and
+rejected otherwise valid serialized views. The regression reproduced that
+refusal before repair. All nine focused Node codec tests pass, including padded
+typed arrays, padded Node buffers and ordinary Node buffers with exact decoded
+identity/fields. No browser/runtime build was needed for this reader correction;
+compiler/Play and full runtime acceptance remain open.
