@@ -1,9 +1,12 @@
 // A Mask over exact resident graph facts. No parsing, planning, or graph edits.
 const encoder = new TextEncoder();
-const decoder = new TextDecoder('utf-8', { fatal: true });
+const decoder = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true });
 const SCHEMA = 'conduit.face/graph-canvas@1';
 const SVG = 'http://www.w3.org/2000/svg';
 export function decodeGraphCanvas(source) {
+  if (typeof source !== 'string' || source.length > 65536 || !source.isWellFormed()) {
+    throw new Error('Graph canvas requires bounded scalar Unicode text');
+  }
   const bytes = encoder.encode(source);
   if (bytes.length > 65536) throw new Error('Graph canvas exceeds its byte bound');
   let offset = 0;
