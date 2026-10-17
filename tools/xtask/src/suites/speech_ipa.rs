@@ -42,6 +42,8 @@ pub const STEPS: &[Step] = &[
             "--features",
             "kernel,semantic-bindings",
             "--test",
+            "specification_custody",
+            "--test",
             "ipa_authoring",
             "--test",
             "ipa_quoted_phone",

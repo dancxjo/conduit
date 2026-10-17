@@ -1,5 +1,8 @@
 # Native speech and language segments
 
+The [pinned common-carrier audit](../../docs/audits/speech-utterance-carrier.md)
+maps Tongues fields to existing Types, checks and explicit omissions (#5664).
+
 The proposed [model-authoring tutorial](../../wiki/Creating-models.md) describes
 ConduitVoice training and exact FARGAN feature composition, including model-level
 and native-plot on-ramps and explicit artifact off-ramps.
