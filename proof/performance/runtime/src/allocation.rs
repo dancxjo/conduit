@@ -80,6 +80,9 @@ pub fn start() {
 }
 pub fn finish() -> Counts {
     ACTIVE.store(false, Relaxed);
+    read_counts()
+}
+fn read_counts() -> Counts {
     Counts {
         allocations: ALLOCS.load(Relaxed),
         reallocations: REALLOCS.load(Relaxed),
@@ -92,3 +95,28 @@ pub fn finish() -> Counts {
 
 #[cfg(test)]
 pub static TEST_MEASUREMENT: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+/// Non-destructive observation; an inactive measurement remains an honest gap.
+#[cfg(feature = "hosted-pipeline")]
+pub fn snapshot() -> Option<Counts> {
+    ACTIVE.load(Relaxed).then(read_counts)
+}
+#[cfg(feature = "hosted-pipeline")]
+#[derive(Debug, serde::Serialize)]
+pub struct Interval {
+    pub allocations: u64,
+    pub reallocations: u64,
+    pub deallocations: u64,
+    pub requested_bytes: u64,
+}
+#[cfg(feature = "hosted-pipeline")]
+impl Counts {
+    pub fn interval_to(&self, end: &Self) -> Option<Interval> {
+        Some(Interval {
+            allocations: end.allocations.checked_sub(self.allocations)?,
+            reallocations: end.reallocations.checked_sub(self.reallocations)?,
+            deallocations: end.deallocations.checked_sub(self.deallocations)?,
+            requested_bytes: end.requested_bytes.checked_sub(self.requested_bytes)?,
+        })
+    }
+}

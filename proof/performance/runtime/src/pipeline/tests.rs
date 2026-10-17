@@ -9,13 +9,20 @@ fn ordinary_checked_pipelines_keep_equal_work_and_exact_boot_custody() -> Result
         let boot = format!("boot/runtime-performance-test/{gears}");
         let mut prepared = prepare(gears, &source(gears), &boot)?;
         let mut collector = Collector::new();
-        let report = prepared.host.run_external_plot_sequence_to(
-            prepared.plan.fragments[0].clone(),
-            &prepared.inputs,
-            &mut collector,
-            &mut std::io::sink(),
-            &mut NoTimer,
-        )?;
+        let (report, full_call) = timing::measure(|| {
+            prepared.host.run_external_plot_sequence_to(
+                prepared.plan.fragments[0].clone(),
+                &prepared.inputs,
+                &mut collector,
+                &mut std::io::sink(),
+                &mut NoTimer,
+            )
+        });
+        let report = report?;
+        let window = collector.allocation_window()?;
+        assert!(window.allocations <= full_call.allocator.allocations);
+        assert!(window.reallocations <= full_call.allocator.reallocations);
+        assert!(window.requested_bytes <= full_call.allocator.requested_bytes);
         assert_eq!(collector.values.len(), 64);
         for (index, value) in collector.values.iter().enumerate() {
             assert_eq!(value.bytes, (index as u64 + 32).to_le_bytes());
@@ -76,4 +83,10 @@ fn ordinary_checked_pipelines_keep_equal_work_and_exact_boot_custody() -> Result
         }
     }
     Ok(())
+}
+
+#[test]
+fn absent_acknowledgements_do_not_fabricate_zero_allocation_measurements() {
+    let collector = Collector::new();
+    assert!(collector.allocation_window().is_err());
 }
