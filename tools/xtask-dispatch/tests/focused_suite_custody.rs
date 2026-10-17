@@ -50,6 +50,16 @@ fn changed_or_missing_suite_refuses_before_launching_cargo() {
             "inverse_angle.rs",
             include_bytes!("../../xtask/src/suites/inverse_angle.rs").as_slice(),
         ),
+        (
+            "parser-scorer",
+            "parser_scorer.rs",
+            include_bytes!("../../xtask/src/suites/parser_scorer.rs").as_slice(),
+        ),
+        (
+            "parser-scorer-reproduce",
+            "parser_scorer.rs",
+            include_bytes!("../../xtask/src/suites/parser_scorer.rs").as_slice(),
+        ),
     ] {
         let path = root.join("tools/xtask/src/suites").join(file);
         for missing in [false, true] {
