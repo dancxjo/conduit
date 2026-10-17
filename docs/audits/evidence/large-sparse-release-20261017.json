@@ -1,0 +1,273 @@
+{
+  "source": "e96bc9bac9bb93bc95fd2bb50d5f23f5c8844b5c",
+  "optimized": true,
+  "runs_per_selector": 3,
+  "cpu_model": "12th Gen Intel(R) Core(TM) i7-12700",
+  "affinity": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19
+  ],
+  "summaries": {
+    "packed": {
+      "prepare_ns": {
+        "raw_process_samples": [
+          4389695,
+          5241005,
+          5023143
+        ],
+        "mean": 4884614.333333333,
+        "sample_sd": 442238.42284601793
+      },
+      "advance_ns": {
+        "raw_process_samples": [
+          4352,
+          5211,
+          5604
+        ],
+        "mean": 5055.666666666667,
+        "sample_sd": 640.2908193417529
+      },
+      "advance_ns_per_useful_output": [
+        2176.0,
+        2605.5,
+        2802.0
+      ]
+    },
+    "linear": {
+      "prepare_ns": {
+        "raw_process_samples": [
+          6790976,
+          6557257,
+          13253063
+        ],
+        "mean": 8867098.666666666,
+        "sample_sd": 3800153.74592849
+      },
+      "advance_ns": {
+        "raw_process_samples": [
+          107592,
+          99230,
+          100417
+        ],
+        "mean": 102413,
+        "sample_sd": 4524.242809575985
+      },
+      "advance_ns_per_useful_output": [
+        53796.0,
+        49615.0,
+        50208.5
+      ]
+    }
+  },
+  "harness_sha256": "9582bb4370c49dd47195ef4ef7649b8ecb64923f4ce884d24725fb8218e01d64",
+  "exact_replay_parity": true,
+  "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)\nbinary: rustc\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\ncommit-date: 2026-09-01\nhost: x86_64-unknown-linux-gnu\nrelease: 1.98.1\nLLVM version: 22.1.8\n",
+  "machine": "x86_64",
+  "system": "Linux-7.0.0-38-generic-x86_64-with-glibc2.43",
+  "results": {
+    "packed": {
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "conduit-kernel",
+        "--lib",
+        "--message-format=json",
+        "--release",
+        "--no-run"
+      ],
+      "executable_sha256": "199f7f341e1c752ef755a5184a92dc94cf3002aba045bc91167883420ed3d673",
+      "profile": {
+        "opt_level": "3",
+        "debuginfo": 0,
+        "debug_assertions": false,
+        "overflow_checks": true,
+        "test": true
+      },
+      "samples": [
+        {
+          "nodes": 10000,
+          "ready": 2,
+          "prepare_ns": 4389695,
+          "advance_ns": 4352,
+          "ready_bytes": 480,
+          "candidate_nodes_scanned": 4,
+          "allocations": 0,
+          "reallocations": 0,
+          "logical_steps": 4,
+          "kernel_bytes": 5623464,
+          "legacy": false
+        },
+        {
+          "nodes": 10000,
+          "ready": 2,
+          "prepare_ns": 5241005,
+          "advance_ns": 5211,
+          "ready_bytes": 480,
+          "candidate_nodes_scanned": 4,
+          "allocations": 0,
+          "reallocations": 0,
+          "logical_steps": 4,
+          "kernel_bytes": 5623464,
+          "legacy": false
+        },
+        {
+          "nodes": 10000,
+          "ready": 2,
+          "prepare_ns": 5023143,
+          "advance_ns": 5604,
+          "ready_bytes": 480,
+          "candidate_nodes_scanned": 4,
+          "allocations": 0,
+          "reallocations": 0,
+          "logical_steps": 4,
+          "kernel_bytes": 5623464,
+          "legacy": false
+        }
+      ],
+      "work": {
+        "nodes": 10000,
+        "ready": 2,
+        "prepare_ns": 4389695,
+        "advance_ns": 4352,
+        "ready_bytes": 480,
+        "candidate_nodes_scanned": 4,
+        "allocations": 0,
+        "reallocations": 0,
+        "logical_steps": 4,
+        "kernel_bytes": 5623464,
+        "legacy": false
+      },
+      "replay": {
+        "events": "[KernelEvent { sequence: 9944, node: NodeId(9944), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9945, node: NodeId(9945), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9946, node: NodeId(9946), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9947, node: NodeId(9947), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9948, node: NodeId(9948), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9949, node: NodeId(9949), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9950, node: NodeId(9950), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9951, node: NodeId(9951), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9952, node: NodeId(9952), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9953, node: NodeId(9953), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9954, node: NodeId(9954), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9955, node: NodeId(9955), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9956, node: NodeId(9956), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9957, node: NodeId(9957), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9958, node: NodeId(9958), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9959, node: NodeId(9959), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9960, node: NodeId(9960), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9961, node: NodeId(9961), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9962, node: NodeId(9962), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9963, node: NodeId(9963), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9964, node: NodeId(9964), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9965, node: NodeId(9965), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9966, node: NodeId(9966), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9967, node: NodeId(9967), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9968, node: NodeId(9968), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9969, node: NodeId(9969), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9970, node: NodeId(9970), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9971, node: NodeId(9971), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9972, node: NodeId(9972), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9973, node: NodeId(9973), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9974, node: NodeId(9974), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9975, node: NodeId(9975), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9976, node: NodeId(9976), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9977, node: NodeId(9977), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9978, node: NodeId(9978), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9979, node: NodeId(9979), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9980, node: NodeId(9980), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9981, node: NodeId(9981), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9982, node: NodeId(9982), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9983, node: NodeId(9983), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9984, node: NodeId(9984), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9985, node: NodeId(9985), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9986, node: NodeId(9986), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9987, node: NodeId(9987), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9988, node: NodeId(9988), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9989, node: NodeId(9989), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9990, node: NodeId(9990), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9991, node: NodeId(9991), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9992, node: NodeId(9992), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9993, node: NodeId(9993), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9994, node: NodeId(9994), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9995, node: NodeId(9995), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9996, node: NodeId(9996), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9997, node: NodeId(9997), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9998, node: NodeId(9998), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9999, node: NodeId(9999), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 10000, node: NodeId(63), port: Some(PortId(0)), request: None, kind: RemoteInputAdmitted }, KernelEvent { sequence: 10001, node: NodeId(9999), port: Some(PortId(0)), request: None, kind: RemoteInputAdmitted }, KernelEvent { sequence: 10002, node: NodeId(63), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 10003, node: NodeId(63), port: Some(PortId(0)), request: None, kind: ValueConsumed }, KernelEvent { sequence: 10004, node: NodeId(9999), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 10005, node: NodeId(9999), port: Some(PortId(0)), request: None, kind: ValueConsumed }, KernelEvent { sequence: 10006, node: NodeId(63), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 10007, node: NodeId(9999), port: None, request: None, kind: StepFuelGranted }]",
+        "remote": "[RemoteLifecycleSign { event_sequence: 10000, identity: RemoteLifecycleIdentity { endpoint: RemoteEndpointId(63), cord: CordId(63), direction: Ingress, sequence: 0 } }, RemoteLifecycleSign { event_sequence: 10001, identity: RemoteLifecycleIdentity { endpoint: RemoteEndpointId(9999), cord: CordId(9999), direction: Ingress, sequence: 0 } }]",
+        "gap": "Some(SignRetentionGap { first_sequence: 0, last_sequence: 9943, entries: 9944 })",
+        "received_nodes": [
+          63,
+          9999
+        ],
+        "value_items": 0,
+        "value_bytes": 0,
+        "terminal": "Idle"
+      }
+    },
+    "linear": {
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "conduit-kernel",
+        "--lib",
+        "--message-format=json",
+        "--release",
+        "--features",
+        "linear-ready-reference-test",
+        "--no-run"
+      ],
+      "executable_sha256": "b138af698a6b7d74f59a3e1a475f5b0343992adc0de758c21db91c376cd50f59",
+      "profile": {
+        "opt_level": "3",
+        "debuginfo": 0,
+        "debug_assertions": false,
+        "overflow_checks": true,
+        "test": true
+      },
+      "samples": [
+        {
+          "nodes": 10000,
+          "ready": 2,
+          "prepare_ns": 6790976,
+          "advance_ns": 107592,
+          "ready_bytes": 0,
+          "candidate_nodes_scanned": 30000,
+          "allocations": 0,
+          "reallocations": 0,
+          "logical_steps": 4,
+          "kernel_bytes": 5623464,
+          "legacy": true
+        },
+        {
+          "nodes": 10000,
+          "ready": 2,
+          "prepare_ns": 6557257,
+          "advance_ns": 99230,
+          "ready_bytes": 0,
+          "candidate_nodes_scanned": 30000,
+          "allocations": 0,
+          "reallocations": 0,
+          "logical_steps": 4,
+          "kernel_bytes": 5623464,
+          "legacy": true
+        },
+        {
+          "nodes": 10000,
+          "ready": 2,
+          "prepare_ns": 13253063,
+          "advance_ns": 100417,
+          "ready_bytes": 0,
+          "candidate_nodes_scanned": 30000,
+          "allocations": 0,
+          "reallocations": 0,
+          "logical_steps": 4,
+          "kernel_bytes": 5623464,
+          "legacy": true
+        }
+      ],
+      "work": {
+        "nodes": 10000,
+        "ready": 2,
+        "prepare_ns": 6790976,
+        "advance_ns": 107592,
+        "ready_bytes": 0,
+        "candidate_nodes_scanned": 30000,
+        "allocations": 0,
+        "reallocations": 0,
+        "logical_steps": 4,
+        "kernel_bytes": 5623464,
+        "legacy": true
+      },
+      "replay": {
+        "events": "[KernelEvent { sequence: 9944, node: NodeId(9944), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9945, node: NodeId(9945), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9946, node: NodeId(9946), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9947, node: NodeId(9947), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9948, node: NodeId(9948), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9949, node: NodeId(9949), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9950, node: NodeId(9950), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9951, node: NodeId(9951), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9952, node: NodeId(9952), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9953, node: NodeId(9953), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9954, node: NodeId(9954), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9955, node: NodeId(9955), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9956, node: NodeId(9956), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9957, node: NodeId(9957), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9958, node: NodeId(9958), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9959, node: NodeId(9959), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9960, node: NodeId(9960), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9961, node: NodeId(9961), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9962, node: NodeId(9962), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9963, node: NodeId(9963), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9964, node: NodeId(9964), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9965, node: NodeId(9965), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9966, node: NodeId(9966), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9967, node: NodeId(9967), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9968, node: NodeId(9968), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9969, node: NodeId(9969), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9970, node: NodeId(9970), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9971, node: NodeId(9971), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9972, node: NodeId(9972), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9973, node: NodeId(9973), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9974, node: NodeId(9974), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9975, node: NodeId(9975), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9976, node: NodeId(9976), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9977, node: NodeId(9977), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9978, node: NodeId(9978), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9979, node: NodeId(9979), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9980, node: NodeId(9980), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9981, node: NodeId(9981), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9982, node: NodeId(9982), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9983, node: NodeId(9983), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9984, node: NodeId(9984), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9985, node: NodeId(9985), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9986, node: NodeId(9986), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9987, node: NodeId(9987), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9988, node: NodeId(9988), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9989, node: NodeId(9989), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9990, node: NodeId(9990), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9991, node: NodeId(9991), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9992, node: NodeId(9992), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9993, node: NodeId(9993), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9994, node: NodeId(9994), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9995, node: NodeId(9995), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9996, node: NodeId(9996), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9997, node: NodeId(9997), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9998, node: NodeId(9998), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 9999, node: NodeId(9999), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 10000, node: NodeId(63), port: Some(PortId(0)), request: None, kind: RemoteInputAdmitted }, KernelEvent { sequence: 10001, node: NodeId(9999), port: Some(PortId(0)), request: None, kind: RemoteInputAdmitted }, KernelEvent { sequence: 10002, node: NodeId(63), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 10003, node: NodeId(63), port: Some(PortId(0)), request: None, kind: ValueConsumed }, KernelEvent { sequence: 10004, node: NodeId(9999), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 10005, node: NodeId(9999), port: Some(PortId(0)), request: None, kind: ValueConsumed }, KernelEvent { sequence: 10006, node: NodeId(63), port: None, request: None, kind: StepFuelGranted }, KernelEvent { sequence: 10007, node: NodeId(9999), port: None, request: None, kind: StepFuelGranted }]",
+        "remote": "[RemoteLifecycleSign { event_sequence: 10000, identity: RemoteLifecycleIdentity { endpoint: RemoteEndpointId(63), cord: CordId(63), direction: Ingress, sequence: 0 } }, RemoteLifecycleSign { event_sequence: 10001, identity: RemoteLifecycleIdentity { endpoint: RemoteEndpointId(9999), cord: CordId(9999), direction: Ingress, sequence: 0 } }]",
+        "gap": "Some(SignRetentionGap { first_sequence: 0, last_sequence: 9943, entries: 9944 })",
+        "received_nodes": [
+          63,
+          9999
+        ],
+        "value_items": 0,
+        "value_bytes": 0,
+        "terminal": "Idle"
+      }
+    }
+  },
+  "limits": [
+    "Instrumented native fixed-kernel fixture; shared-host timings are descriptive, not a regression gate.",
+    "Preparation and four Steps to Idle measured separately; startup, ingress, thread creation and serialization outside advance timing.",
+    "Per-process resource logs cover the whole fixture, not isolated Step CPU/RSS.",
+    "Linear reference shares current membership and lifecycle code; not a historical old-kernel speedup.",
+    "64 MiB diagnostic thread stack; not a constrained-device memory proof.",
+    "Direct admitted kernel topology, not a complete checked Plot/Plan/std Host pipeline.",
+    "Startup transient fuel Signs retire with an explicit gap; mandatory lifecycle Signs remain.",
+    "No CI, browser, physical, or parent-issue completion claim."
+  ]
+}
