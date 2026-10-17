@@ -358,3 +358,15 @@ worker and zero retries. Each new negative fixture restores the field, enters
 visible text and verifies native Enter submission of that exact argument.
 Synthetic submit events only establish adversarial refusal. These callbacks
 are renderer evidence, not authoritative Body receipts or full issue acceptance.
+
+Composition follow-up (#5646/#5644): each form tracks active argument
+composition and refuses submission while any input is composing. The state is
+local to that render's existing finite argument controls; ending composition
+restores normal typed-domain/reachability validation and native submission.
+
+The adversarial fixture reproduced interim-text dispatch before repair. All 67
+pinned Chromium component fixtures pass with one worker and zero retries. The
+new case synthesizes composition/submit events only to establish refusal, then
+uses native text entry and Enter to verify exact Unicode plus sibling arguments.
+It does not prove an operating-system IME, authoritative Body receipt or full
+trusted Mask/Show round-trip acceptance.

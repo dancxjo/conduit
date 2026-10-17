@@ -152,6 +152,7 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
       control.dataset.ownerAction = action.identity;
       if (!itemName) control.append(faceNode('h5', action.name));
       const inputs = [];
+      const composing = new Set();
       const argumentCount = Array.isArray(action.arguments) ? action.arguments.length : 0;
       let supported = Array.isArray(action.arguments) && argumentCount <= 64;
       for (const argument of supported ? action.arguments : []) {
@@ -188,6 +189,8 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
           supported = false;
           continue;
         }
+        input.addEventListener('compositionstart', () => composing.add(input));
+        input.addEventListener('compositionend', () => composing.delete(input));
         label.setAttribute('part', 'label');
         input.setAttribute('part', 'input');
         input.dataset.ownerFocus = JSON.stringify([view.body_id, action.identity, action.target, 'argument', argument.name]);
@@ -215,7 +218,7 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
       control.addEventListener('submit', async event => {
         event.preventDefault();
         if (!this.#reachable(button) || !this.#ready(view, action, render) || !this.#invoke
-          || !supported || inputs.length !== argumentCount) return;
+          || !supported || inputs.length !== argumentCount || composing.size) return;
         // A submit event can be synthetic, and script can change values without
         // firing input events. Recheck the admitted argument domain here.
         for (const { input, argument } of inputs) {

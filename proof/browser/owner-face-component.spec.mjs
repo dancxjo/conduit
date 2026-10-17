@@ -1095,3 +1095,33 @@ for (const unavailable of ['disabled', 'inert', 'hidden', 'transparent']) {
       arguments: [{ name: 'text', value: 'visible argument' }] }]);
   });
 }
+
+test('owner forms do not dispatch an argument while text composition is active', async ({ page }) => {
+  await page.goto('/proof/browser/signal-dom-host.test.html');
+  const inputView = { ...view, actions: [{ ...view.actions[0], arguments: ['first', 'second'].map(name => ({
+    name, value_name: name, value_kind: 'value/text', maximum_bytes: 32, choices: [] })) }] };
+  await page.evaluate(async view => {
+    await import('/targets/browser/handbook/owner-face-component.mjs');
+    document.body.replaceChildren(); globalThis.calls = [];
+    const element = document.createElement('conduit-owner-face'); document.body.append(element);
+    element.show(view, { invoke: async call => { globalThis.calls.push(call); } });
+  }, inputView);
+  const element = page.locator('conduit-owner-face');
+  await element.getByRole('textbox', { name: 'first', exact: true }).fill('interim text');
+  await element.getByRole('textbox', { name: 'second', exact: true }).fill('other argument');
+  await element.evaluate(node => {
+    const input = node.shadowRoot.querySelector('input');
+    input.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true, data: 'interim text' }));
+    // Deliberately adversarial: submitting another control cannot commit an
+    // argument whose input-method composition has not finished.
+    node.shadowRoot.querySelector('form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+  });
+  expect(await page.evaluate(() => globalThis.calls)).toEqual([]);
+  await element.evaluate(node => node.shadowRoot.querySelector('input')
+    .dispatchEvent(new CompositionEvent('compositionend', { bubbles: true, data: '日本語' })));
+  const first = element.getByRole('textbox', { name: 'first', exact: true });
+  await first.fill('日本語');
+  await page.keyboard.press('Enter');
+  expect(await page.evaluate(() => globalThis.calls)).toEqual([{ view: inputView, action: inputView.actions[0],
+    arguments: [{ name: 'first', value: '日本語' }, { name: 'second', value: 'other argument' }] }]);
+});
