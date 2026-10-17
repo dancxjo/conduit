@@ -1,0 +1,27 @@
+{
+  "observed_at_utc": "2026-10-17T18:13:29.538Z",
+  "url": "https://dancxjo.github.io/conduit/handbook/",
+  "browser": "151.0.7922.34",
+  "fresh_context": true,
+  "original_package_digest": "sha256:fdd92ab3401bb299ed8838c735653e24838ef4abbb3917f2b4b2af113dfba449",
+  "fixture_package_digest": "sha256:4a314f4a71f5a712942eadd70cb383673c7242ba755c2297c0a82203ec0beca4",
+  "method": "Public runtime with local rehashed substitutions of the Thermostat SDK method and argument helper; stale API request then native button click.",
+  "sdk_sha256": "sha256:cc21622f9667eb26af9ee8bb5c6ac42b6d1b39333114bc1bf1db1f18679eacb5",
+  "argument_helper_sha256": "sha256:6c630cb530d8dbda2c179d9bcdf064ec6dacf54e9a59b04cf6a0545fe3f95e21",
+  "stale_refusal": {
+    "accepted": false,
+    "message": "Current acknowledged owner Show is required for interaction."
+  },
+  "body_evidence_sha256_before": "sha256:1069cb9a38fad64d8547cc540d5dbbb8e6df4e582592d16add0f443bb1a54521",
+  "body_evidence_sha256_after_refusal": "sha256:1069cb9a38fad64d8547cc540d5dbbb8e6df4e582592d16add0f443bb1a54521",
+  "native_action": {
+    "identity": "thermostat.lower",
+    "text": "Lower target by 0.5°C"
+  },
+  "accepted_status": "Accepted Lower target by 0.5°C. Settings remain in this Play.",
+  "page_errors": [],
+  "limits": [
+    "Local modified-package fixture, not proof of a deployed SDK change.",
+    "No remote-owner transport or full release-gate proof."
+  ]
+}

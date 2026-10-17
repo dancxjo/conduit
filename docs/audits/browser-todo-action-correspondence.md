@@ -479,3 +479,19 @@ choice tables. The new custody test initially failed because prepared custody
 was absent; no real owner-runtime exploit reproduction is claimed. These are
 state/validation helper tests plus reviewed participation wiring, not remote
 Body commits or full trusted-DOM/Mask acceptance.
+
+Local Thermostat Show-binding follow-up (#5646): local SDK submission reads the
+adapter's current runtime-projected Show and validates caller identities and
+arguments against that source contract, using the same checked correspondence
+as remote-owner submission. Caller-supplied actions cannot redefine local input
+declarations. Runtime interaction validation remains independent.
+
+The 23 focused SDK tests and producer fixture pass. A fresh pinned Chromium
+[probe](../../proof/browser/thermostat-current-show.mjs) also passed against the
+real public Thermostat runtime with local, correctly rehashed SDK/helper
+substitutions. Its [receipt](evidence/thermostat-current-show-2026-10-17.json)
+records stale Face refusal by the SDK guard, unchanged complete projected Body
+evidence and a subsequent accepted native button action. Public package identity
+and modified fixture identity are distinct in the receipt. This proves the
+changed local facade path against real runtime execution; it is not evidence
+that this SDK change is deployed, nor remote-owner or release-gate proof.
