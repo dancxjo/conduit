@@ -57,7 +57,7 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
       && view.interactions_admitted === true && action.availability === 'available'
       && this.#supportsAction(action);
   }
-  #reachable(control) {
+  #reachable(control, visibleControl = control) {
     // Native focus/activation requires a visible, enabled control. This is a
     // renderer guard; the SDK and owner still check interaction authority.
     if (!this.isConnected || control.matches(':disabled')) return false;
@@ -66,7 +66,9 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
     for (let node = control; node; node = node.assignedSlot ?? node.parentElement ?? node.getRootNode().host) {
       if (node.inert) return false;
     }
-    return control.checkVisibility({ visibilityProperty: true });
+    // Custom radio inputs are transparent inside their visible native label.
+    return control.checkVisibility({ visibilityProperty: true })
+      && visibleControl.checkVisibility({ visibilityProperty: true, opacityProperty: true });
   }
   show(view, { invoke, projectCollections = () => ({ collections: [], placed: new Set() }),
     supportsAction = () => true } = {}) {
@@ -362,7 +364,7 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
         label.append(input, faceNode('span', option.name));
         if (action.explanation) label.append(faceNode('small', action.explanation));
         input.addEventListener('change', async () => {
-          if (!this.#reachable(input) || !this.#ready(view, action, render) || !this.#invoke) return;
+          if (!this.#reachable(input, label) || !this.#ready(view, action, render) || !this.#invoke) return;
           // Selection remains the acknowledged Face's fact until a fresh Show.
           choices.querySelectorAll('input').forEach((control, optionIndex) => {
             control.checked = selectedFlags[optionIndex][0].value;

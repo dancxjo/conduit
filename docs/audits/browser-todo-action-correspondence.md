@@ -319,3 +319,17 @@ The new cases exercise keyboard opening/closing, summary or completed-action
 focus through preparation, Body changes and disconnect, zero callbacks from local
 operations, and subsequent trusted action activation. Renderer fixtures do not
 establish actual Body state, assistive-technology or packaged/public acceptance.
+
+Zero-opacity follow-up (#5632): owner dispatch now requires the visible control
+surface to pass the browser's opacity-aware visibility check. Transparent forms,
+owner elements and choice labels cannot invoke callbacks. Custom radios retain
+their intentional transparent native input inside a visible label: input
+visibility/disabled/inertness and label opacity are checked separately.
+
+Transparent form and owner cases reproduced callback dispatch before repair.
+All 61 focused pinned Chromium component fixtures pass with one worker and zero
+retries, including transparent-label refusal and restored native keyboard
+activation. Successful custom-radio tests guard the reviewed label/input
+pattern. Synthetic events are limited to adversarial refusal fixtures. This
+proves renderer callback fencing, not arbitrary CSS accessibility, authoritative
+Body state, assistive-technology enactment or full #5632 acceptance.
