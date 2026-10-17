@@ -23,3 +23,7 @@ At `976468ad5a933c72a0f6a7799c6bda1d9f2bf914`, all 44 Patchbay application all-t
 
 
 After merging admitted dev `d1eba3e5eee970913a2627158c0c99ed8b9cd7f6` without rewriting either evidence ancestry, source `f667e4d02961587e463ad6937dcd96b23c80d4f9` again passes the unchanged default-stack routes test and all 44 Patchbay application tests. The replay retains its own source/log identities in `evidence/patchbay-ci-repair-current-dev-20261017.json` and matching raw archive (three artifact hashes verified). Prior full-package and Clippy receipts retain their original sources; these local rechecks do not substitute for the fresh combined Candidate.
+
+## Current development conformance refresh
+
+A subsequent Candidate runtime-performance job refused before measurement: a new streaming cancellation test omitted the shared guard for process-wide allocation counters. Its GitHub-digest-verified artifact is retained. Upstream development independently added the identical guard; merging current dev preserves that fix and all prior evidence ancestry. Release conformance passes22 tests before the refresh and25 after it. Both owned Patchbay repair files remain byte-identical to their earlier passing local proofs. No allocator guard, production refusal or measurement requirement is relaxed. The source-bound receipt and raw logs are `evidence/patchbay-ci-refresh-20261017.json` and its archive. Candidate CI must pass separately.
