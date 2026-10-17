@@ -16,6 +16,7 @@ const MAX_EVENT_QUEUE = 8;
 const MAX_EVENT_QUEUE_BYTES = 131_072;
 const EVENT_HEADER_BYTES = 11;
 const ROOT_IDENTITIES = new WeakMap();
+const activeManifestations = new WeakMap();
 let nextRootIdentity = 1;
 
 export class ApplicationFaceRefusal extends Error {
@@ -361,6 +362,7 @@ export function manifestApplicationView(input, root, options = {}) {
   const byteCapacity = options.eventByteCapacity ?? MAX_EVENT_QUEUE_BYTES;
   if (!Number.isInteger(capacity) || capacity < 1 || capacity > MAX_EVENT_QUEUE) refuse("queue-pressure");
   if (!Number.isInteger(byteCapacity) || byteCapacity < 1 || byteCapacity > MAX_EVENT_QUEUE_BYTES) refuse("queue-pressure");
+  const render = {};
   const queue = [];
   let queuedBytes = 0;
   let lastRefusal = null;
@@ -368,6 +370,11 @@ export function manifestApplicationView(input, root, options = {}) {
   const elements = [];
   const nodesByKey = new Map();
   const requestAction = (node, value = "") => {
+    if (activeManifestations.get(root) !== render) {
+      lastRefusal = "stale-revision";
+      options.onRefusal?.(lastRefusal);
+      return null;
+    }
     if (node.state === "busy") {
       lastRefusal = "action-busy";
       options.onRefusal?.(lastRefusal);
@@ -563,6 +570,7 @@ export function manifestApplicationView(input, root, options = {}) {
     }
   }
   root.replaceChildren(fragment);
+  activeManifestations.set(root, render);
   restoreInteraction(root, interaction);
   root.dataset.applicationRevision = String(view.revision);
   for (const role of appliedLookProperties.get(root) ?? []) {

@@ -234,3 +234,31 @@ test("current publication shell consumes canonical Look CSS hooks", async ({ pag
   await expect(page.locator("body")).toHaveCSS("background-color", "rgb(5, 7, 11)");
   await expect(page.locator("body")).toHaveCSS("font-size", "16px");
 });
+
+for (const sameRevision of [false, true]) {
+  test(`replaced generic manifestation cannot create new events (same revision: ${sameRevision})`, async ({ page }) => {
+    await page.goto('/proof/browser/signal-dom-host.test.html');
+    await page.evaluate(async sameRevision => {
+      const { encodeApplicationView, manifestApplicationView } = await import('/targets/browser/host/assets/application-face.mjs');
+      const root = document.createElement('section'); root.id = 'manifest-custody'; document.body.append(root);
+      const description = { revision: 1, actions: [{ id: 'fixture.activate', event: 'activate' }],
+        nodes: [{ parent: null, component: 'button', key: 'activate', text: 'Current action', action: 0 }] };
+      globalThis.manifestCalls = [];
+      const options = { onEvent: event => globalThis.manifestCalls.push(event.action) };
+      const old = manifestApplicationView(encodeApplicationView(description), root, options);
+      const obsolete = root.querySelector('button');
+      const current = manifestApplicationView(encodeApplicationView({ ...description, revision: sameRevision ? 1 : 2 }), root, options);
+      // Adversarial retained listener and explicit old-handle request.
+      obsolete.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      old.requestAction('activate');
+      globalThis.manifestProof = { old, current };
+    }, sameRevision);
+    expect(await page.evaluate(() => ({ calls: globalThis.manifestCalls,
+      queued: globalThis.manifestProof.old.queuedEvents(), refusal: globalThis.manifestProof.old.lastRefusal() })))
+      .toEqual({ calls: [], queued: 0, refusal: 'stale-revision' });
+    await page.getByRole('button', { name: 'Current action', exact: true }).focus();
+    await page.keyboard.press('Enter');
+    expect(await page.evaluate(() => ({ calls: globalThis.manifestCalls,
+      queued: globalThis.manifestProof.current.queuedEvents() }))).toEqual({ calls: ['fixture.activate'], queued: 1 });
+  });
+}
