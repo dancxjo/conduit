@@ -51,7 +51,9 @@ async function openDatabase(factory) {
   let request;
   try { request = factory.open(DATABASE_NAME, DATABASE_VERSION); }
   catch (error) { throw storageFailure(error); }
+  let abandoned = false;
   request.addEventListener("upgradeneeded", () => {
+    if (abandoned) { request.transaction.abort(); return; }
     const database = request.result;
     if (!database.objectStoreNames.contains(STORE_NAME)) {
       const store = database.createObjectStore(STORE_NAME, { keyPath: "identity" });
@@ -61,7 +63,17 @@ async function openDatabase(factory) {
       database.createObjectStore(HOST_IDENTITY_STORE_NAME, { keyPath: "identity" });
     }
   });
-  return requestResult(request);
+  return new Promise((resolve, reject) => {
+    request.addEventListener("blocked", () => {
+      abandoned = true;
+      reject(new BrowserStorageRefusal("StorageUnavailable", "browser durable storage upgrade is blocked by another connection"));
+    }, { once: true });
+    request.addEventListener("success", () => {
+      if (abandoned) request.result.close();
+      else resolve(request.result);
+    }, { once: true });
+    request.addEventListener("error", () => reject(storageFailure(request.error)), { once: true });
+  });
 }
 
 function exactText(value, label, maximumBytes) {

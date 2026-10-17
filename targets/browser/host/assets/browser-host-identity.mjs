@@ -26,7 +26,9 @@ function transactionComplete(transaction) {
 
 async function openDatabase() {
   const request = indexedDB.open(DATABASE_NAME, DATABASE_VERSION);
+  let abandoned = false;
   request.addEventListener("upgradeneeded", () => {
+    if (abandoned) { request.transaction.abort(); return; }
     const database = request.result;
     if (!database.objectStoreNames.contains(APPLICATION_STORE)) {
       const store = database.createObjectStore(APPLICATION_STORE, { keyPath: "identity" });
@@ -36,7 +38,17 @@ async function openDatabase() {
       database.createObjectStore(HOST_STORE, { keyPath: "identity" });
     }
   });
-  return requestResult(request);
+  return new Promise((resolve, reject) => {
+    request.addEventListener("blocked", () => {
+      abandoned = true;
+      reject(new Error("browser Host identity database upgrade is blocked by another connection"));
+    }, { once: true });
+    request.addEventListener("success", () => {
+      if (abandoned) request.result.close();
+      else resolve(request.result);
+    }, { once: true });
+    request.addEventListener("error", () => reject(request.error ?? new Error("browser Host identity database open failed")), { once: true });
+  });
 }
 
 function validate(record) {
@@ -48,7 +60,7 @@ function validate(record) {
     || encoder.encode(record.hostId).length > MAXIMUM_IDENTITY_BYTES
     || !Array.isArray(seed)
     || seed.length !== KEY_BYTES
-    || seed.some((byte) => !Number.isInteger(byte) || byte < 0 || byte > 255)
+    || Array.from(seed).some((byte) => !Number.isInteger(byte) || byte < 0 || byte > 255)
     || seed.every((byte) => byte === 0)) {
     throw new Error("durable browser Host identity is malformed; explicit Host reset is required");
   }

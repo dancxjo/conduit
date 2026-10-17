@@ -664,3 +664,80 @@ for (const path of ['created', 'existing', 'race', 'reset', 'malformed']) {
     expect(result).toEqual({ upgrade: 'upgraded', stable: true, refused: path === 'malformed' });
   });
 }
+
+test("Host identity refuses sparse signing seeds without filling or replacing them", async ({ page }) => {
+  const result = await page.evaluate(async () => {
+    const { openBrowserHostIdentity } = await import('/targets/browser/host/assets/browser-host-identity.mjs');
+    await openBrowserHostIdentity();
+    const open = indexedDB.open('conduit-browser-host-applications', 2);
+    const database = await new Promise((resolve, reject) => { open.onsuccess = () => resolve(open.result); open.onerror = () => reject(open.error); });
+    const readRaw = async () => {
+      const get = database.transaction('browser-host-identity', 'readonly').objectStore('browser-host-identity').get('durable-browser-host');
+      return new Promise((resolve, reject) => { get.onsuccess = () => resolve(get.result); get.onerror = () => reject(get.error); });
+    };
+    const original = await readRaw();
+    const put = async record => {
+      const tx = database.transaction('browser-host-identity', 'readwrite');
+      tx.objectStore('browser-host-identity').put(record);
+      await new Promise((resolve, reject) => { tx.oncomplete = resolve; tx.onabort = () => reject(tx.error); });
+    };
+    const outcomes = [];
+    for (const index of [0, 15, 31]) {
+      const seed = new Array(32); seed[index] = 1;
+      await put({ ...original, seed });
+      let refused = false;
+      try { await openBrowserHostIdentity(); } catch { refused = true; }
+      const retained = await readRaw();
+      outcomes.push({ refused, unchanged: retained.hostId === original.hostId
+        && retained.seed.length === 32 && Object.keys(retained.seed).length === 1 && retained.seed[index] === 1 });
+    }
+    // Actual zero bytes are valid when all 32 positions exist and the seed is nonzero.
+    const dense = Array(32).fill(0); dense[15] = 1;
+    await put({ ...original, seed: dense });
+    const restored = await openBrowserHostIdentity();
+    const exactDense = restored.hostId === original.hostId && restored.seed.every((byte, index) => byte === dense[index]);
+    database.close(); return { outcomes, exactDense };
+  });
+  expect(result).toEqual({ outcomes: Array(3).fill({ refused: true, unchanged: true }), exactDense: true });
+});
+
+for (const client of ['application', 'identity']) {
+  test(`blocked ${client} startup refuses without a deferred schema upgrade`, async ({ page }) => {
+    const result = await page.evaluate(async client => {
+      const nativeFactory = indexedDB;
+      const descriptor = Object.getOwnPropertyDescriptor(globalThis, 'indexedDB');
+      const first = nativeFactory.open('conduit-browser-host-applications', 1);
+      first.onupgradeneeded = () => first.result.createObjectStore('legacy');
+      const held = await new Promise((resolve, reject) => { first.onsuccess = () => resolve(first.result); first.onerror = () => reject(first.error); });
+      let blocked, terminal;
+      const blockedEvent = new Promise(resolve => { blocked = resolve; });
+      const terminalEvent = new Promise(resolve => { terminal = resolve; });
+      Object.defineProperty(globalThis, 'indexedDB', { configurable: true, value: { open(...args) {
+        const request = nativeFactory.open(...args);
+        request.addEventListener('blocked', blocked, { once: true });
+        request.addEventListener('success', terminal, { once: true });
+        request.addEventListener('error', terminal, { once: true });
+        return request;
+      } } });
+      try {
+        const attempt = client === 'application'
+          ? (await import('/targets/browser/host/assets/browser-application-storage.mjs')).openBrowserApplicationStorage(
+            'proof/blocked', 1, `sha256:${'c'.repeat(64)}`, { implementationRegistry: ['browser/indexeddb@1'] })
+          : (await import('/targets/browser/host/assets/browser-host-identity.mjs')).openBrowserHostIdentity();
+        const outcome = attempt.then(value => { value.close?.(); return 'opened'; }, error =>
+          client === 'application' ? error.code : /blocked/.test(error.message) ? 'blocked' : error.message);
+        await blockedEvent;
+        held.close();
+        const code = await outcome;
+        await terminalEvent;
+        const inspect = nativeFactory.open('conduit-browser-host-applications');
+        const database = await new Promise((resolve, reject) => { inspect.onsuccess = () => resolve(inspect.result); inspect.onerror = () => reject(inspect.error); });
+        const retained = { version: database.version, stores: Array.from(database.objectStoreNames) };
+        database.close();
+        return { code, retained };
+      } finally { held.close(); Object.defineProperty(globalThis, 'indexedDB', descriptor); }
+    }, client);
+    expect(result).toEqual({ code: client === 'application' ? 'StorageUnavailable' : 'blocked',
+      retained: { version: 1, stores: ['legacy'] } });
+  });
+}

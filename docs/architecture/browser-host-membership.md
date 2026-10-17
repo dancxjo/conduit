@@ -11,11 +11,22 @@ body membership      body-owned admitted part and signed membership events
 
 The host keeps exactly one bounded `conduit.browser/host-identity@1` record. It contains the stable `HostId` and continuity signing seed. A missing record is initialized once from the browser cryptographic RNG. A malformed record, quota failure, or database version failure refuses host startup; it is not silently replaced. `resetBrowserHostIdentity()` is the separate, explicit operation that rotates this identity. Clearing Book, Crèche, or Patchbay state never calls it.
 
+Retained signing seeds must contain exactly 32 explicit integer bytes. Sparse
+arrays refuse instead of being converted to zero-filled bytes; valid dense
+seeds may contain zeros but cannot be entirely zero. Refusal leaves the stored
+identity untouched and requires the existing explicit reset path.
+
 Identity lookup/creation and explicit reset use short-lived IndexedDB connections.
 Each operation closes its connection after transaction settlement, including
 existing-record, concurrent-creation and validation-failure paths. A completed
 identity operation therefore cannot keep an application database upgrade blocked.
 Closing the connection does not reset the retained Host identity.
+
+A blocked identity database upgrade refuses startup instead of waiting for an
+unbounded external connection lifetime. If the blocking connection later closes,
+the abandoned request aborts its upgrade rather than changing the schema after
+refusal. Application-storage startup follows the same rule and reports
+`StorageUnavailable`. Neither path retries or resets retained state automatically.
 
 Each runtime initialization creates a fresh `BootId`. Restored application state cannot make an earlier boot current. When the durable host is already an admitted part, the body records the prior boot as `HostDetached` and the fresh boot as `HostAttached`, with exact monotonically revised membership and biography evidence. A different host identity refuses reconciliation without changing the restored membership.
 
