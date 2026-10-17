@@ -429,6 +429,7 @@ fn topology_line_upper_bound(report: &ObservatoryReport) -> usize {
         .saturating_add(report.bases.len())
         .saturating_add(report.plans.len())
         .saturating_add(report.fragments.len())
+        .saturating_add(report.execution_fusions.len())
         .saturating_add(report.placements.len())
         .saturating_add(report.placements.len())
         .saturating_add(report.connections.len())
