@@ -50,3 +50,30 @@ test('an old owner refusal cannot clear a newer pending acknowledgement', async 
   assert.deepEqual(state.lastOwnerShow, { show_id: 'new' });
   assert.equal(state.pendingOwnerShow, null);
 });
+
+for (const invalidate of ['new-show', 'lost-presence']) {
+  test(`component selection cannot refresh after ${invalidate}`, async () => {
+    const { selectOwnerFaceComponent } = await import('./browser-sdk-owner-show-state.mjs');
+    const state = { lastOwnerShow: { show_id: 'old' } }, gate = deferred();
+    let available = true, refreshes = 0;
+    const pending = selectOwnerFaceComponent(state, () => gate.promise, () => { refreshes++; }, () => available);
+    if (invalidate === 'new-show') {
+      clearOwnerFaceShow(state); state.lastOwnerShow = { show_id: 'new' };
+    } else available = false;
+    const refused = assert.rejects(pending, /selection is no longer current/);
+    gate.resolve(); await refused;
+    assert.equal(refreshes, 0);
+    assert.deepEqual(state.lastOwnerShow, invalidate === 'new-show' ? { show_id: 'new' } : null);
+  });
+}
+
+test('current component selection refreshes once and preserves owner refusal', async () => {
+  const { selectOwnerFaceComponent } = await import('./browser-sdk-owner-show-state.mjs');
+  const state = { lastOwnerShow: { show_id: 'old' } };
+  let refreshes = 0;
+  assert.equal(await selectOwnerFaceComponent(state, async () => {}, () => { refreshes++; return 'prepared'; }, () => true), 'prepared');
+  assert.equal(refreshes, 1); assert.equal(state.lastOwnerShow, null);
+  await assert.rejects(selectOwnerFaceComponent(state, async () => { throw new Error('selection refused'); },
+    () => { refreshes++; }, () => true), /selection refused/);
+  assert.equal(refreshes, 1);
+});

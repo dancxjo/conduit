@@ -2,6 +2,7 @@
 export function clearOwnerFaceShow(state) {
   state.pendingOwnerShow = null;
   state.lastOwnerShow = null;
+  return state.ownerShowEpoch = {};
 }
 
 export async function acknowledgeOwnerFaceShow(state, snapshot, acknowledge, stillCurrent) {
@@ -16,4 +17,13 @@ export async function acknowledgeOwnerFaceShow(state, snapshot, acknowledge, sti
   } finally {
     if (state.pendingOwnerShow === pending) state.pendingOwnerShow = null;
   }
+}
+
+export async function selectOwnerFaceComponent(state, select, refresh, stillCurrent) {
+  const epoch = clearOwnerFaceShow(state);
+  await select();
+  if (state.ownerShowEpoch !== epoch || !stillCurrent()) {
+    throw new Error('Owner component selection is no longer current.');
+  }
+  return refresh();
 }

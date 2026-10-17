@@ -1,4 +1,4 @@
-import { acknowledgeOwnerFaceShow, clearOwnerFaceShow } from "./browser-sdk-owner-show-state.mjs";
+import { acknowledgeOwnerFaceShow, clearOwnerFaceShow, selectOwnerFaceComponent } from "./browser-sdk-owner-show-state.mjs";
 import { attachBrowserSyntaxEditor, projectBrowserSyntax } from "./browser-sdk-syntax.mjs";
 import { applicationContinuity, createSdkContinuity } from "./browser-sdk-continuity.mjs";
 import { checkedOwnerFaceArguments, checkedAcknowledgedOwnerFaceArguments } from "./browser-sdk-face-actions.mjs";
@@ -307,15 +307,20 @@ export class BrowserBodyParticipation {
         (!Number.isInteger(minimumTextScalePercent) || minimumTextScalePercent < 100 || minimumTextScalePercent > 200)) {
       throw new Error("minimum text scale must be between 100 and 200 percent");
     }
-    if (this.presenceState() !== "available" || !this.membershipCredential()
-        || !this.#state.lastOwnerShow) {
+    const credential = this.membershipCredential();
+    if (this.presenceState() !== "available" || !credential || !this.#state.lastOwnerShow) {
       throw new Error("current acknowledged owner Show is required for component selection");
     }
     const showBytes = this.#state.host.bridge.ownerFaceShowReceipt();
-    clearOwnerFaceShow(this.#state);
-    await this.#state.membership.selectComponentMask({ showBytes, look, recipe });
-    this.#state.host.bridge.ownerFaceClear();
-    return this.prepareOwnerFaceMask({ minimumTextScalePercent });
+    const hostId = this.hostId, bootId = this.bootId, bodyId = credential.body_id;
+    return selectOwnerFaceComponent(this.#state,
+      () => this.#state.membership.selectComponentMask({ showBytes, look, recipe }),
+      () => {
+        this.#state.host.bridge.ownerFaceClear();
+        return this.prepareOwnerFaceMask({ minimumTextScalePercent });
+      },
+      () => this.presenceState() === "available" && this.hostId === hostId && this.bootId === bootId
+        && this.membershipCredential()?.body_id === bodyId);
   }
   /** Exact retained Face bytes for observation; this does not refresh or acknowledge. */
   ownerCanonicalFaceSnapshot() {
