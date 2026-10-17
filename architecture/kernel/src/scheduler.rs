@@ -945,6 +945,7 @@ pub struct FixedScheduler<
     pending_host_calls: [Option<PendingHostCall>; PENDING_REQUESTS],
     pending_host_count: usize,
     host_slot_search_start: usize,
+    cancellation_search_start: usize,
     undispatched_host_count: u32,
     undispatched_cancellation_count: u32,
     pending_host_slots: [Option<core::num::NonZeroU32>; NODES],
@@ -1057,6 +1058,7 @@ where
             pending_host_calls: [None; PENDING_REQUESTS],
             pending_host_count: 0,
             host_slot_search_start: 0,
+            cancellation_search_start: 0,
             undispatched_host_count: 0,
             undispatched_cancellation_count: 0,
             pending_host_slots: [None; NODES],
@@ -1789,20 +1791,25 @@ where
         if self.undispatched_cancellation_count == 0 {
             return None;
         }
-        let pending_entries = self.pending_host_calls.iter_mut();
+        // No earlier slot remains eligible; a new cancellation rewinds the bound.
+        let pending_entries = self.pending_host_calls[self.cancellation_search_start..].iter_mut();
         #[cfg(test)]
         let pending_entries = pending_entries.inspect(|_| {
             let mut counts = self.scan_counts.get();
             counts.cancellation_pending_slots += 1;
             self.scan_counts.set(counts);
         });
-        let pending = pending_entries.flatten().find(|pending| {
-            pending.cancellation_requested
-                && !pending.cancellation_dispatched
-                && pending.completion.is_none()
-        })?;
+        let (offset, pending) = pending_entries
+            .enumerate()
+            .filter_map(|(offset, entry)| entry.as_mut().map(|pending| (offset, pending)))
+            .find(|(_, pending)| {
+                pending.cancellation_requested
+                    && !pending.cancellation_dispatched
+                    && pending.completion.is_none()
+            })?;
         pending.cancellation_dispatched = true;
         self.undispatched_cancellation_count -= 1;
+        self.cancellation_search_start += offset + 1;
         Some(HostCallCancellation {
             node: pending.request.node,
             request: pending.request.request,
@@ -2732,6 +2739,7 @@ where
                 })
                 .ok_or(SchedulerError::HostCallCancellationRejected)?;
             pending.cancellation_requested = true;
+            self.cancellation_search_start = self.cancellation_search_start.min(slot);
             self.undispatched_cancellation_count += 1;
             self.signs.record(
                 NodeId(as_u16(node)?),

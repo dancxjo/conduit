@@ -295,3 +295,6 @@ fn capture_small_and_large_selector_replay() {
 
 #[path = "sparse_large.rs"]
 mod sparse_large;
+
+#[path = "host_many.rs"]
+mod host_many;

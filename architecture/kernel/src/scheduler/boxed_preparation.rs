@@ -83,6 +83,7 @@ where
             pending_host_calls: [None; PENDING_REQUESTS],
             pending_host_count: 0,
             host_slot_search_start: 0,
+            cancellation_search_start: 0,
             undispatched_host_count: 0,
             undispatched_cancellation_count: 0,
             pending_host_slots: [None; NODES],
