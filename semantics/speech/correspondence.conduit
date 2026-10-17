@@ -1,0 +1,49 @@
+# Contextual realization relates occurrences on two original tapes, never glyphs.
+# Empty sides have an explicit insertion/deletion case and explanation.
+type SpeechRealizationGroup = {
+    phonemes: sequence LanguageSpeechTokenRef in 1..=8
+    phones: sequence LanguageSpeechTokenRef in 1..=8
+}
+type SpeechDeletedPhonemes = {
+    phonemes: sequence LanguageSpeechTokenRef in 1..=8
+    reason: Text <= 256B not in [""]
+}
+type SpeechInsertedPhones = {
+    phones: sequence LanguageSpeechTokenRef in 1..=8
+    reason: Text <= 256B not in [""]
+}
+type SpeechRealizationCorrespondence =
+    aligned SpeechRealizationGroup
+    | deleted SpeechDeletedPhonemes
+    | inserted SpeechInsertedPhones
+
+# This is an intent component; it does not replace SpeechUtteranceIntent.
+# Inventory revision/variety belongs to the retained checked IPA basis, distinct
+# from the utterance sequence revision. Original text revision is independent.
+type SpeechRealizationAlignment = {
+    inventory_basis: SpeechIpaInventoryNotationBasis
+    phoneme_basis: SpeechTokenSequenceBasis
+    phone_basis: SpeechTokenSequenceBasis
+    source: LanguageTextSegmentRef
+    correspondences: sequence SpeechRealizationCorrespondence in 1..=64
+    provenance: SpeechEvidenceProvenance
+    where .inventory_basis.inventory_id == .phone_basis.inventory_id
+    where .inventory_basis.language == .phone_basis.language
+    where .phoneme_basis.utterance_id == .phone_basis.utterance_id
+    where .phoneme_basis.revision_id == .phone_basis.revision_id
+    where .phoneme_basis.inventory_id == .phone_basis.inventory_id
+    where .phoneme_basis.language == .phone_basis.language
+    where .source.language == .phone_basis.language
+    where .source.kind is utterance
+}
+# Each target event retains exactly its original phone occurrence and value.
+type SpeechRealizationIntentPhone = {
+    intent: SpeechUtteranceIntent
+    event_index: U64 in 0..=255
+    occurrence: LanguageSpeechTokenRef
+    phone: PhoneSpecification
+    where .event_index < sequence/length(.intent.events)
+    where .event_index < sequence/length(.intent.events) ? sequence/at(.intent.events,.event_index) is segment : false
+    where .event_index < sequence/length(.intent.events) ? (sequence/at(.intent.events,.event_index) is segment ? sequence/at(.intent.events,.event_index).segment.occurrence == .occurrence : false) : false
+    where .event_index < sequence/length(.intent.events) ? (sequence/at(.intent.events,.event_index) is segment ? sequence/at(.intent.events,.event_index).segment.phone == .phone : false) : false
+}
