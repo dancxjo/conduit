@@ -542,3 +542,16 @@ All 91 pinned Chromium component fixtures pass with one worker and zero retries,
 including restored native activation and the twelve narrow/media cases. This
 proves reviewed renderer/Look behavior, not arbitrary clipping/occlusion CSS,
 physical target-size certification or authoritative Body acceptance.
+
+Significant-whitespace choice follow-up (#5644): native option labels normalize
+whitespace, making a whitespace-only value blank and distinct newline/repeated-space
+values appear identical. When a choice table contains significant whitespace or
+control characters, the renderer displays every value as quoted, escaped text.
+Escaping the whole table keeps literal escape-like values distinct; ordinary
+choice tables retain their labels. Submitted option values remain exact.
+
+All 94 pinned Chromium component fixtures pass with one worker and zero retries.
+Three new cases check normalized native option labels, unique accessible names,
+and native keyboard submission of exact space, newline and repeated-space values.
+These establish renderer callback fidelity, not authoritative Body receipts,
+arbitrary Unicode display certification or public deployment. #5644 remains open.

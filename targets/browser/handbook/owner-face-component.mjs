@@ -4,6 +4,8 @@
 const encoder = new TextEncoder();
 const argumentValidity = (value, maximum) => !value.isWellFormed() ? 'Use valid Unicode text.'
   : encoder.encode(value).length > maximum ? `Use at most ${maximum} UTF-8 bytes.` : '';
+const exactChoiceLabel = value => JSON.stringify(value).replace(/[\s\u007f]/gu,
+  character => `\\u${character.charCodeAt(0).toString(16).padStart(4, '0')}`);
 const faceNode = (tag, text, className) => {
   const node = document.createElement(tag);
   node.textContent = text;
@@ -180,13 +182,14 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
             supported = false;
             continue;
           }
+          const escapeChoices = argument.choices.some(choice => /^\s|\s$|\s{2}|[^\S ]|[\u0000-\u001f\u007f]/u.test(choice));
           input = document.createElement('select');
           const prompt = document.createElement('option');
           prompt.value = ''; prompt.textContent = 'Choose an option';
           input.append(prompt);
           for (const choice of argument.choices) {
             const option = document.createElement('option');
-            option.value = choice; option.textContent = choice;
+            option.value = choice; option.textContent = escapeChoices ? exactChoiceLabel(choice) : choice;
             input.append(option);
           }
           input.required = true;
