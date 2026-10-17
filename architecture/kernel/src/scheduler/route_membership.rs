@@ -1,4 +1,17 @@
-//! Preparation scratch for exact, globally single-source cord membership.
+//! Preparation route traversal and exact, globally single-source membership.
+use crate::{FixedRoutes, NodeId, PortId, ProtocolError, RouteTarget};
+
+pub(super) fn targets<const SLOTS: usize, const TARGETS: usize>(
+    routes: &FixedRoutes<SLOTS, TARGETS>,
+    node: NodeId,
+    port: PortId,
+) -> Result<impl Iterator<Item = RouteTarget> + '_, ProtocolError> {
+    let targets = routes.route(node, port)?;
+    #[cfg(test)]
+    let targets = targets.inspect(|_| TARGET_VISITS.with(|count| count.set(count.get() + 1)));
+    Ok(targets)
+}
+
 pub(super) struct RouteMembership<const CORDS: usize> {
     seen: [bool; CORDS],
 }
@@ -23,6 +36,7 @@ extern crate std;
 #[cfg(test)]
 std::thread_local! {
     static INITIALIZED_BYTES: core::cell::Cell<usize> = const { core::cell::Cell::new(0) };
+    static TARGET_VISITS: core::cell::Cell<usize> = const { core::cell::Cell::new(0) };
 }
 
 #[cfg(test)]
@@ -161,5 +175,70 @@ mod tests {
         )
         .is_ok());
         assert_eq!(INITIALIZED_BYTES.with(|count| count.get()), N);
+    }
+    fn fanout(limit: Option<usize>) -> Result<(), SchedulerError> {
+        let mut routes = FixedRoutes::<1, N>::new(1);
+        let targets = core::array::from_fn::<_, N, _>(|cord| RouteTarget {
+            cord: CordId(cord as u16),
+            sink: CordEndpoint::Remote(RemoteEndpointId(cord as u16)),
+        });
+        if let Some(limit) = limit {
+            routes
+                .install(
+                    NodeId(0),
+                    PortId(0),
+                    RouteRange {
+                        start: 0,
+                        len: limit as u16,
+                    },
+                    &targets[..limit],
+                )
+                .unwrap();
+        }
+        routes.seal().unwrap();
+        let cords = core::array::from_fn(|cord| {
+            CordSpec::remote_egress(
+                CordId(cord as u16),
+                (NodeId(0), PortId(0)),
+                RemoteEndpointId(cord as u16),
+                CordCapacity {
+                    slot_start: cord as u16,
+                    item_capacity: 1,
+                    byte_capacity: 1,
+                    pressure_policy: Default::default(),
+                },
+            )
+        });
+        TARGET_VISITS.with(|count| count.set(0));
+        FixedScheduler::<_, _, _, 1, N, 1, N, 1, N>::new(
+            [NodeSpec {
+                input_cords: [None],
+                maximum_step_fuel: 8,
+            }],
+            cords,
+            routes,
+            [Await],
+            FixedValueStore::<1, 1>::new(1).unwrap(),
+            FixedSignLog::<16>::new(16 * core::mem::size_of::<crate::KernelEvent>() as u32)
+                .unwrap(),
+        )
+        .map(|_| ())
+    }
+
+    #[test]
+    fn source_fanout_targets_are_validated_once_without_reverse_walks() {
+        assert_eq!(fanout(Some(N)), Ok(()));
+        assert_eq!(TARGET_VISITS.with(|count| count.get()), N);
+    }
+
+    #[test]
+    fn missing_empty_and_incomplete_routes_preserve_exact_refusals() {
+        assert_eq!(
+            fanout(None),
+            Err(SchedulerError::Routing(ProtocolError::RouteMissing))
+        );
+        for limit in [0, N - 1] {
+            assert_eq!(fanout(Some(limit)), Err(SchedulerError::InvalidPlan));
+        }
     }
 }

@@ -3609,8 +3609,11 @@ fn validate_plan<
             }
         }
         for port in 0..PORTS {
-            let Ok(targets) = routes.route(NodeId(as_u16(node_index)?), PortId(as_u16(port)?))
-            else {
+            let Ok(targets) = route_membership::targets(
+                routes,
+                NodeId(as_u16(node_index)?),
+                PortId(as_u16(port)?),
+            ) else {
                 continue;
             };
             for target in targets {
@@ -3701,14 +3704,13 @@ fn validate_plan<
             }
         }
         if let Some((source_node, source_port)) = cord.source_local() {
-            let routed = routes.route(source_node, source_port)?.any(|target| {
-                target
-                    == RouteTarget {
-                        cord: cord.cord,
-                        sink: cord.sink,
-                    }
-            });
-            if !routed {
+            if !membership
+                .as_ref()
+                .is_some_and(|seen| seen.contains(cord_index))
+            {
+                // Keep RouteMissing distinct from an installed route that omits
+                // this cord. A present membership already proves exact endpoints.
+                let _ = route_membership::targets(routes, source_node, source_port)?;
                 return Err(SchedulerError::InvalidPlan);
             }
         }
