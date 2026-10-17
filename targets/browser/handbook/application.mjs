@@ -357,8 +357,15 @@ export async function startApplication(application) {
     }
     const available = [
       ...originals,
-      ...packagedPlots.map(plot => ({ origin: 'packaged', name: plot.entry,
-        title: plot.title, source: plot.source })),
+      ...packagedPlots.flatMap(plot => {
+        const entry = specification.plots.find(entry => entry.name === plot.entry);
+        const original = application.text(entry.role);
+        const packaged = { origin: 'packaged', name: plot.entry, title: plot.title, source: original };
+        // A saved correction is local input, never the original package bytes.
+        return plot.source === original ? [packaged] : [
+          { ...packaged, origin: 'saved correction', source: plot.source }, packaged,
+        ];
+      }),
     ];
     let index = 0;
     if (host && !openingChoice) {
@@ -371,9 +378,11 @@ export async function startApplication(application) {
       }
     }
     finishOpeningInspection();
-    const chosen = available.findIndex(plot => plot.origin === 'packaged' && plot.name === openingChoice);
+    const effectiveSource = plot => plot.origin !== 'retained'
+      && plot.source === packagedPlots.find(entry => entry.entry === plot.name)?.source;
+    const chosen = available.findIndex(plot => effectiveSource(plot) && plot.name === openingChoice);
     if (chosen >= 0) index = chosen;
-    const drafts = available.map(plot => plot.origin === 'packaged'
+    const drafts = available.map(plot => effectiveSource(plot)
       ? openingDrafts.get(plot.name) ?? plot.source : plot.source);
     selector.replaceChildren();
     for (let i = 0; i < available.length; i++) {
@@ -425,7 +434,7 @@ export async function startApplication(application) {
             + 'Export its record before explicitly starting a new Body.';
           return;
         }
-        if (candidate.origin !== 'packaged') return;
+        if (!['packaged', 'saved correction'].includes(candidate.origin)) return;
         const original = application.text(specification.plots.find(plot => plot.name === candidate.name).role);
         const updated = validRescueEdits.filter(item => item?.name !== candidate.name);
         updated.push({ name: candidate.name, original, source: value });
