@@ -338,6 +338,15 @@ function restoreInteraction(root, snapshot) {
   }
 }
 
+function controlAvailable(control) {
+  if (control.matches(":disabled")) return false;
+  for (let ancestor = control; ancestor;
+    ancestor = ancestor.assignedSlot ?? ancestor.parentElement ?? ancestor.getRootNode().host) {
+    if (ancestor.inert || ancestor.hidden) return false;
+  }
+  return true;
+}
+
 function installRovingFocus(container, selectedKey, selectedIndex) {
   const controls = Array.from(container.querySelectorAll("button:not(:disabled)"));
   if (controls.length === 0) return;
@@ -345,17 +354,18 @@ function installRovingFocus(container, selectedKey, selectedIndex) {
   if (current < 0 || current >= controls.length) current = 0;
   controls.forEach((control, index) => { control.tabIndex = index === current ? 0 : -1; });
   container.addEventListener("keydown", (event) => {
-    const focused = controls.indexOf(document.activeElement);
+    const available = controls.filter(control => control.isConnected && container.contains(control) && controlAvailable(control));
+    const focused = available.indexOf(document.activeElement);
     if (focused < 0) return;
     let next = focused;
-    if (event.key === "ArrowRight" || event.key === "ArrowDown") next = Math.min(focused + 1, controls.length - 1);
+    if (event.key === "ArrowRight" || event.key === "ArrowDown") next = Math.min(focused + 1, available.length - 1);
     else if (event.key === "ArrowLeft" || event.key === "ArrowUp") next = Math.max(focused - 1, 0);
     else if (event.key === "Home") next = 0;
-    else if (event.key === "End") next = controls.length - 1;
+    else if (event.key === "End") next = available.length - 1;
     else return;
     event.preventDefault();
-    controls.forEach((control, index) => { control.tabIndex = index === next ? 0 : -1; });
-    controls[next].focus();
+    controls.forEach(control => { control.tabIndex = control === available[next] ? 0 : -1; });
+    available[next].focus();
   });
 }
 
@@ -438,12 +448,7 @@ export function manifestApplicationView(input, root, options = {}) {
       return null;
     }
     if (control) {
-      let available = control.isConnected && root.contains(control) && !control.matches(":disabled");
-      for (let ancestor = control; available && ancestor;
-        ancestor = ancestor.assignedSlot ?? ancestor.parentElement ?? ancestor.getRootNode().host) {
-        if (ancestor.inert || ancestor.hidden) available = false;
-      }
-      if (!available) {
+      if (!control.isConnected || !root.contains(control) || !controlAvailable(control)) {
         lastRefusal = "unavailable-action";
         options.onRefusal?.(lastRefusal);
         return null;

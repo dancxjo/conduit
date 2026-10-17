@@ -969,3 +969,20 @@ native Enter. An initial fixture assertion read the error message instead of
 its typed code and was corrected. This is wire and renderer preservation proof,
 not authoritative Body/Play, arbitrary CSS certification or packaged/released
 browser acceptance; the owning issues remain open.
+
+Current roving focus availability (#5631 / #5644): arrow/Home/End navigation
+checks each captured peer's current connectedness, containment and native
+availability before moving focus. Disabled (including fieldset-disabled), hidden
+and inert ancestry use the same predicate as DOM action admission. A temporarily
+unavailable peer is skipped and rejoins navigation when restored; focus movement
+continues to emit no semantic event.
+
+All three new regressions reproduced failed focus movement before repair.
+Fourteen focused face-nucleus Chromium fixtures pass with one worker and zero
+retries, including restored peers, native Enter activation, numeric focus-only
+navigation, graph routing and unavailable DOM action refusal. An initial overly
+broad grep also ran unrelated suites: 18 passed and four failed (two missing
+browser-admission-probe binaries; workspace arrival/membership lacked their
+expected startup controls). Those failures are not counted as product acceptance.
+This is renderer keyboard/action proof, not authoritative Body/Play, fresh
+packaged browser execution or release acceptance; the owning issues remain open.

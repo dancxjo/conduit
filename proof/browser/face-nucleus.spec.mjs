@@ -647,3 +647,33 @@ test('a forged Look field refuses before replacing the accessible manifestation'
     queued: globalThis.lookRefusalHost.queuedEvents('look-proof') })))
     .toEqual({ calls: [{ revision: 1, action: 'fixture.safe' }], queued: 1 });
 });
+
+for (const mode of ['disabled', 'hidden', 'inert']) {
+  test(`roving focus skips a currently ${mode} peer and restores it`, async ({ page }) => {
+    await page.goto('/proof/browser/signal-dom-host.test.html');
+    await page.evaluate(async mode => {
+      const { encodeApplicationView, manifestApplicationView } = await import('/targets/browser/host/assets/application-face.mjs');
+      const root = document.createElement('section'); document.body.append(root);
+      globalThis.rovingCalls = [];
+      manifestApplicationView(encodeApplicationView({ revision: 1,
+        actions: ['First', 'Second', 'Third'].map(id => ({ id, event: 'activate' })), nodes: [
+          { parent: null, component: 'stepper', key: 'steps', text: 'Steps', value: '1/3', valueCapacity: 16, action: null },
+          ...['First', 'Second', 'Third'].map((text, action) => ({ parent: 0, component: 'button', key: text, text, action })),
+        ] }), root, { onEvent: event => globalThis.rovingCalls.push(event.action) });
+      const second = root.querySelector('[data-application-key="Second"]');
+      second[mode] = true;
+      globalThis.restoreRovingPeer = () => { second[mode] = false; };
+    }, mode);
+    await page.getByRole('button', { name: 'First', exact: true }).focus();
+    await page.keyboard.press('ArrowRight');
+    await expect(page.getByRole('button', { name: 'Third', exact: true })).toBeFocused();
+    expect(await page.evaluate(() => globalThis.rovingCalls)).toEqual([]);
+    await page.keyboard.press('Enter');
+    await page.evaluate(() => globalThis.restoreRovingPeer());
+    await page.keyboard.press('ArrowLeft');
+    await expect(page.getByRole('button', { name: 'Second', exact: true })).toBeFocused();
+    expect(await page.evaluate(() => globalThis.rovingCalls)).toEqual(['Third']);
+    await page.keyboard.press('Enter');
+    expect(await page.evaluate(() => globalThis.rovingCalls)).toEqual(['Third', 'Second']);
+  });
+}
