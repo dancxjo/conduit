@@ -81,6 +81,7 @@ where
             routes,
             host_bindings: Some(host_bindings),
             pending_host_calls: [None; PENDING_REQUESTS],
+            pending_host_count: 0,
             drivers,
             values,
             signs,

@@ -179,8 +179,8 @@ fn specimen<const N: usize>(active: usize, sparse: bool, trial: usize, print: bo
             assert!(counts.ready_bytes + counts.next_ready_nodes < 3 * active as u64);
         }
     }
-    assert_eq!(counts.pending_slots, counts.next_ready_nodes);
-    assert_eq!(counts.context_pending_slots, steps as u64);
+    assert_eq!(counts.pending_slots, 0);
+    assert_eq!(counts.context_pending_slots, 0);
     assert_eq!(counts.input_ports, steps as u64);
     assert!(counts.queue_peeks >= steps as u64);
     assert_eq!(

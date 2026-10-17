@@ -172,13 +172,28 @@ fn scheduler<S: ValueStorage, E: SignSink>(mut values: S, signs: E) -> Cancellat
     .unwrap()
 }
 
+fn assert_pending_count<S: ValueStorage, E: SignSink>(
+    scheduler: &CancellationScheduler<S, E>,
+    expected: usize,
+) {
+    assert_eq!(scheduler.pending_host_call_count(), expected);
+    assert_eq!(
+        scheduler.pending_host_calls.iter().flatten().count(),
+        expected
+    );
+}
+
 fn execute<S: ValueStorage, E: SignSink + SignQuery>(values: S, signs: E) -> Normalized {
     let mut scheduler = scheduler(values, signs);
+    assert_pending_count(&scheduler, 0);
     scheduler.step().unwrap();
+    assert_pending_count(&scheduler, 1);
     assert!(scheduler.next_host_cancellation().is_none());
     let first = scheduler.next_host_request().unwrap();
     scheduler.step().unwrap();
+    assert_pending_count(&scheduler, 1);
     scheduler.step().unwrap();
+    assert_pending_count(&scheduler, 1);
     let cancellation = scheduler.next_host_cancellation().unwrap();
     assert!(scheduler.next_host_cancellation().is_none());
     scheduler
@@ -193,6 +208,7 @@ fn execute<S: ValueStorage, E: SignSink + SignQuery>(values: S, signs: E) -> Nor
         )
         .unwrap();
     scheduler.step().unwrap();
+    assert_pending_count(&scheduler, 1);
     let second = scheduler.next_host_request().unwrap();
     scheduler
         .complete_host_call(
@@ -206,6 +222,7 @@ fn execute<S: ValueStorage, E: SignSink + SignQuery>(values: S, signs: E) -> Nor
         )
         .unwrap();
     scheduler.run(16).unwrap();
+    assert_pending_count(&scheduler, 0);
     Normalized {
         first: first.request,
         replacement: second.request,
@@ -299,4 +316,18 @@ fn hosted_and_fixed_vectors_match() {
         HostedSignLog::new(64, charge * 64).unwrap(),
     );
     assert_eq!(fixed, hosted);
+}
+
+#[test]
+fn global_cancellation_clears_pending_occupancy_with_the_request_table() {
+    let mut scheduler = scheduler(
+        FixedValueStore::<4, 8>::new(32).unwrap(),
+        FixedSignLog::<64>::new(64 * core::mem::size_of::<crate::KernelEvent>() as u32).unwrap(),
+    );
+    scheduler.step().unwrap();
+    assert_pending_count(&scheduler, 1);
+    scheduler.cancel().unwrap();
+    assert_pending_count(&scheduler, 0);
+    assert!(!scheduler.has_ready_work());
+    assert!(scheduler.next_host_request().is_none());
 }
