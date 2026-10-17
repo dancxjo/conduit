@@ -22,7 +22,7 @@ impl StepBack<1> for Tail {
 fn specimen<const N: usize>(trial: usize) {
     let mut routes = FixedRoutes::<N, 0>::new(1);
     routes.seal().unwrap();
-    let mut scheduler = FixedScheduler::<_, _, _, N, 0, 1, 0, N, 0, 0, 1>::new(
+    let mut scheduler = FixedScheduler::<_, _, _, N, 0, 1, 1, N, 0, 0, 1>::new(
         [NodeSpec {
             input_cords: [None],
             maximum_step_fuel: 8,
