@@ -225,7 +225,7 @@ pub fn intent() -> SpeechUtteranceIntent {
             .unwrap(),
             provenance(),
             BoundedSequence::try_from_iter([LanguageSegmentRef::text(
-                source().kind().clone(),
+                *source().kind(),
                 source().language().clone(),
                 source().range().clone(),
                 source().revision_id().clone(),
