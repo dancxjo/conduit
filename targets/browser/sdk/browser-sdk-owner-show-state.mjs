@@ -2,6 +2,7 @@
 export function clearOwnerFaceShow(state) {
   state.pendingOwnerShow = null;
   state.lastOwnerShow = null;
+  state.preparedOwnerShow = null;
   return state.ownerShowEpoch = {};
 }
 
@@ -33,5 +34,7 @@ export async function prepareOwnerFaceShow(state, epoch, receive, prepare, still
   if (state.ownerShowEpoch !== epoch || !stillCurrent()) {
     throw new Error('Owner Face preparation is no longer current.');
   }
-  return prepare(frame);
+  const view = prepare(frame);
+  state.preparedOwnerShow = structuredClone(view);
+  return view;
 }

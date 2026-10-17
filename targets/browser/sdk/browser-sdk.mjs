@@ -293,7 +293,8 @@ export class BrowserBodyParticipation {
         view?.body_id !== credential.body_id || !["prepared", "available"].includes(view?.show_state)) {
       throw new Error("owner Face Show no longer has current browser presence");
     }
-    const shown = view.show_state === "available" ? view
+    const shown = view.show_state === "available"
+      ? this.#state.preparedOwnerShow ?? this.#state.lastOwnerShow
       : this.#state.host.bridge.ownerFaceAcknowledge({
         show_id: view.show_id, face_id: view.face_id, face_revision: view.face_revision,
       });
