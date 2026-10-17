@@ -96,6 +96,7 @@ fn full_retries_same_value_and_sequence_then_closes_once() {
         input_flows: vec![0; inputs.len()],
         next: 0,
         closed: false,
+        stream: None,
     };
     let mut ingress = PressuredIngress::default();
     feeder.feed_next(&mut ingress).unwrap();
@@ -195,6 +196,7 @@ fn ready_kernel_work_defers_payload_admission_and_final_close() {
         input_flows: vec![0],
         next: 0,
         closed: false,
+        stream: None,
     };
     let mut ingress = PressuredIngress {
         busy: true,

@@ -84,6 +84,8 @@ pub fn metadata() -> Result<serde_json::Value, String> {
         .map(str::to_owned);
     Ok(serde_json::json!({
         "schema":"conduit.runtime-performance@1", "git_sha":sha,
+        "hosted_extended_matrix_schema":cfg!(feature = "hosted-pipeline").then_some("control-projection-value@1"),
+        "hosted_stream_schema":if cfg!(feature = "hosted-pipeline") { Some("bounded-overlapping-std@1") } else { None },
         "hosted_phase_wall_schema":cfg!(feature = "hosted-pipeline").then_some("installed-boundaries-wall@1"),
         "source_status":"clean", "os":text("uname", &["-srvm"]),
         "compiler":text("rustc", &["-vV"]), "cargo":text("cargo", &["-V"]),
@@ -94,7 +96,7 @@ pub fn metadata() -> Result<serde_json::Value, String> {
         "cpu_time_scope":"Linux process CPU for each bulk phase; per-selection isolation uses wall clocks; unsupported target CPU time is null",
         "allocator_scope":"successful System allocator calls; atomic counters only on allocation/deallocation; heap peak includes retained harness data",
         "measurement_limitations":["no CPU affinity change", "background load is not controlled; independently rerun on an idle host", "no hardware cycles/instructions/branch-miss counters", "internal copy accounting not yet instrumented", "expression-only native uses registers; prepared uses canonical 8-byte inputs and canonical outputs; finite hosted native uses canonical input/output frames", "isolated selection trials do not model steady mixed-workload fairness or full Plot dispatch"],
-        "required_follow_on_gates":["instruction/copy/Sign attribution within observed std Back preparation, Play and post-Play boundaries", "continuous 1/8/32 real Gear scaling beyond optional 64-item finite hosted trials", "streaming/pressure/fan-out/payload/batch/fairness", "DSP representative", "browser/WASM after hosted repeatability", "review independent-run uncertainty and regression thresholds"]
+        "required_follow_on_gates":["instruction/copy/Sign attribution within observed std Back preparation, Play and post-Play boundaries", "independent-process variation for the expanded 1024-item stream/control, numerical and eligible Value/Flow matrix", "consolidated plain-language interpretation with explicit temporal non-equivalences", "browser/WASM after hosted repeatability", "review independent-run uncertainty and regression thresholds"]
     }))
 }
 pub fn resident_high_water() -> Option<String> {

@@ -1,0 +1,5 @@
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.14s
+     Running `target/debug/conduit-xtask-dispatch prove runtime-performance --output /home/dancxjo/Documents/Codex/2026-10-17/goal-each-turn-find-the-next/work/hosted-runtime-domain-20261017-01 --values 1000000 --repetitions 3 --decisions 1000 --samples 1000 --hosted-pipeline true`
+Building release worker and retaining output in /home/dancxjo/Documents/Codex/2026-10-17/goal-each-turn-find-the-next/work/hosted-runtime-domain-20261017-01
+Validating release semantic/refusal/terminal conformance before measurements
+Retained runtime performance results: /home/dancxjo/Documents/Codex/2026-10-17/goal-each-turn-find-the-next/work/hosted-runtime-domain-20261017-01

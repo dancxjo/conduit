@@ -78,7 +78,7 @@ mod house_conversation_topology;
 #[cfg(unix)]
 pub mod pico_indicator;
 mod whisper_installation;
-pub use host_execution::HostedRunAdapters;
+pub use host_execution::{ExternalForeStreamConfig, ExternalForeStreamStats, HostedRunAdapters};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ExternalForeInput {
@@ -353,6 +353,7 @@ pub struct SpeechRecognitionExecutionReceipt {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StdKernelExecutionReport {
+    pub external_fore_stream: Option<ExternalForeStreamStats>,
     pub active_play: conduit_core::ActivePlayIdentity,
     pub active_play_id: conduit_core::ActivePlayId,
     pub decisions: u32,

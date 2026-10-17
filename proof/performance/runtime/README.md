@@ -1,5 +1,14 @@
 # Runtime performance reference worker
 
+> Current #5395 acceptance: [final report](../../../docs/audits/runtime-performance-5395-final.md),
+> [audit](../../../docs/audits/runtime-performance-5395-closure.md), and
+> [immutable evidence/replay](../../../docs/audits/runtime-5395-evidence.md).
+> The source-pinned expanded native cohort now covers the earlier pending
+> stream/control/numerical/eligible optimization matrix and attribution items.
+> Historical method notes below retain their original scope. Browser/WASM is
+> the explicitly scoped subsequent gate; thresholds remain uncalibrated.
+
+
 This hosted measurement slice of #5395 measures the existing prepared evaluator
 and production shared-pool selection function. An optional profile adds ordinary
 checked Plot/Plan/std Back/kernel execution through acknowledged typed Fores.
@@ -213,3 +222,69 @@ Region binding requires the kernel's `alloc` preparation feature, matching the
 reviewed installed std Back. No-alloc products refuse binding and retain one
 logical Step per dispatch. This keeps their fixed private image bounds intact;
 it does not introduce allocation during admitted Play.
+
+## Bounded overlapping stream measurements
+
+The hosted profile additionally measures 1,024 inputs through the ordinary
+checked Plan, std expression Backs and production kernel. Fourteen cases cover
+1/8/32-Gear arithmetic chains with 32 useful additions per result; one/four
+fan-out branches; queue capacities one/four; ingress batch budgets one/eight;
+32/256-byte Text identity payloads; and fast versus synchronous slow output
+acknowledgement. The existing 64-item causal sequence trials remain unchanged.
+
+The std Host's explicit finite stream entrance validates at most 4,096 inputs
+before Play and performs at most 64 atomic ingress attempts per kernel turn.
+It preserves the current typed Cord capacities and pressure/closure rules.
+The stream's order within every Fore is exact; its overlapping input cadence is
+distinct from the existing drain-between-inputs causal sequence. All value,
+identity and Sign storage is admitted before Play. This does not claim the
+whole std Host allocates nothing after Start.
+
+A slow sink sleeps for 20 microseconds in acknowledgement of output0. Actual
+sleep duration is OS-controlled and remains in the measurements; it blocks
+this cooperative Host, rather than inventing an asynchronous scheduling model.
+The native fused-loop and iterator-library controls retain the same canonical
+payloads and sink dwell, but omit typed Plan/Sign transactions. Their trial
+order rotates across repetitions. Per-output Instant observations are included
+in Host timings. No timer overhead is subtracted.
+
+Raw rows retain every output's branch/sequence/size/hash, observed event offsets
+and inter-acknowledgement percentiles; per-branch completed-output gaps; actual
+accepted/full ingress attempts; full-call and installed phase wall times,
+process CPU and allocator counts; first-to-last output allocation snapshots;
+canonical boundary byte counts; Source/Host/Plan/Boot/Play and terminal evidence.
+A boundary byte count is not an internal-copy counter. Fairness describes the
+observed finite cooperative run, not a preemption or priority guarantee.
+
+The capture verifier additionally checks the complete fourteen-case matrix,
+exact authored arithmetic/Text source, every ordered output digest, source/Plan/
+Host/Play custody, retained mandatory output Signs, bounded storage, pressure
+witnesses and timing statistics. Three independent expanded captures are still
+needed for expanded-workload process variation; one capture does not establish
+a calibrated performance gate. DSP/numerical-projection and four-mode coverage
+remain parent #5395 acceptance work.
+
+## Representative control and numerical meaning
+
+The hosted command also measures the canonical Theremin Distance-to-Frequency
+law as an explicit checked Flow expression, retaining the original instrument
+Source and exact parameter substitution. It validates 1,024 controls with
+alternating centimetre/millimetre framing, both clamp boundaries, native
+Quantity-framed results, normal Plan/Play and mandatory output Signs. Scope is
+pitch control updates, with no audio/playback or physical acceptance claim.
+
+A paired exact/certified-binary64 numerical fixture retains one authored 3/10
+meaning, selected installed Back identities, actual structured receipt bytes,
+exact error and refusal proof. Certificate preparation/limb-work/allocation
+observations remain separate from the prepared receipt emission during Play.
+The independent verifier decodes actual numerical and Quantity bytes.
+
+The eligible optimization matrix has two temporal families. Existing Flow
+reference/fused trials keep their identical checked Source and 64 inputs. New
+Value reference/scalar-tape trials use identical checked Source and frames
+within their family: 64 separate ordinary Plays on one Plan/Host with distinct
+Play identities. Each batch includes cold Back preparation for every Play.
+The actual installed profiles refuse Flow tape and combined Value/fusion;
+these refusal cells are recorded instead of changing product eligibility for
+the benchmark. Do not compare different protocols as a four-way speedup.
+See `docs/audits/runtime-domain-and-value-matrix.md` for boundaries and receipts.

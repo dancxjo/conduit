@@ -1,0 +1,30 @@
+{
+  "source": "a52ddeff5fc3e047bdf311591a1c7ef8233d69ee",
+  "selected_cpu": 4,
+  "allowed_before": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19
+  ],
+  "wrapper_affinity": [
+    4
+  ],
+  "scope": "Three fresh supported worker invocations; each observed live via procfs. Initial diagnostic capture 01 is excluded solely because its live process start identity was not retained. Background load, thermal state and governor are uncontrolled."
+}
