@@ -61,6 +61,11 @@ fn changed_or_missing_suite_refuses_before_launching_cargo() {
             include_bytes!("../../xtask/src/suites/parser_scorer.rs").as_slice(),
         ),
         (
+            "parser-selection",
+            "parser_scorer.rs",
+            include_bytes!("../../xtask/src/suites/parser_scorer.rs").as_slice(),
+        ),
+        (
             "parser-scorer-reproduce",
             "parser_scorer.rs",
             include_bytes!("../../xtask/src/suites/parser_scorer.rs").as_slice(),

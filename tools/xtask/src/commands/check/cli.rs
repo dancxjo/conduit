@@ -72,6 +72,8 @@ pub enum CheckSuite {
     ParserScorer,
     /// Download pinned corpus into temporary storage and reproduce the parser artifact.
     ParserScorerReproduce,
+    /// Exercise optional admitted parser scoring through ordinary Plan/Play.
+    ParserSelection,
     /// Prove bounded speech selection and explicit detail from exact Faces.
     TodoSpeech,
     InputSemantics,

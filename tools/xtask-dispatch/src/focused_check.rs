@@ -70,6 +70,11 @@ fn selected(arguments: &[String]) -> Option<Suite> {
             path: "tools/xtask/src/suites/parser_scorer.rs",
             source: include_bytes!("../../xtask/src/suites/parser_scorer.rs"),
         }),
+        [check, suite] if check == "check" && suite == "parser-selection" => Some(Suite {
+            steps: parser_scorer::SELECTION,
+            path: "tools/xtask/src/suites/parser_scorer.rs",
+            source: include_bytes!("../../xtask/src/suites/parser_scorer.rs"),
+        }),
         // Global options and all other commands retain the full CLI parser.
         _ => None,
     }

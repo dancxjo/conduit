@@ -1,0 +1,56 @@
+# Generic numeric inference produces I64 logits; only this source maps classes
+# onto semantic proposals. Class0/1 are shift/reduce, then37 left and37 right.
+type LanguageParserScoredClass = {
+    basis: LanguageParserBasis
+    state: LanguageParserNumericState
+    class: U64 in 0..=75
+    score: I64 in -128525..=128525
+    default_relation: LanguageParserRelation
+    where .default_relation.base is dep
+    where .default_relation.subtype == ""
+}
+type LanguageParserScoredProposal = {
+    request: LanguageParserRequest
+    score: I64 in -128525..=128525
+}
+
+type LanguageParserScoreContext = {
+    scored: LanguageParserScoredClass
+    relations: collection LanguageUniversalDependencyRelation = 37
+}
+plot language-parser-score-context (
+    scored: LanguageParserScoredClass...| >> context: LanguageParserScoreContext...|
+) = { scored: ., relations: [acl(empty), advcl(empty), advmod(empty), amod(empty), appos(empty), aux(empty), case(empty), cc(empty), ccomp(empty), clf(empty), compound(empty), conj(empty), cop(empty), csubj(empty), dep(empty), det(empty), discourse(empty), dislocated(empty), expl(empty), fixed(empty), flat(empty), goeswith(empty), iobj(empty), list(empty), mark(empty), nmod(empty), nsubj(empty), nummod(empty), obj(empty), obl(empty), orphan(empty), parataxis(empty), punct(empty), reparandum(empty), root(empty), vocative(empty), xcomp(empty)] }
+plot language-parser-score-decode (
+    context: LanguageParserScoreContext...| >> proposal: LanguageParserScoredProposal...|
+) = { request: { basis: .scored.basis, state: .scored.state, action: (.scored.class == 0 ? shift(empty) : (.scored.class == 1 ? reduce(empty) : (.scored.class < 39 ? left_arc(empty) : right_arc(empty)))), relation: { base: (.scored.class < 2 ? .scored.default_relation.base : sequence/at(.relations, (.scored.class - 2) % 37)), subtype: .scored.default_relation.subtype } }, score: .scored.score }
+plot language-parser-score-proposal (
+    scored: LanguageParserScoredClass...| >> proposal: LanguageParserScoredProposal...|
+) {
+    scored >> language-parser-score-context() >> language-parser-score-decode() >> proposal
+}
+# This completion predicate remains Language source policy. The model supplies
+# no hidden tree or terminal decision.
+plot language-parser-decode-complete (
+    state: LanguageParserState...| >> complete: Boolean...|
+) = .unread == .token_count && .depth == 1 && .heads.0 < 5 && (.token_count < 2 || .heads.1 < 5) && (.token_count < 3 || .heads.2 < 5) && (.token_count < 4 || .heads.3 < 5)
+
+# Native admission joins a numerical proposal to its exact prior checked state.
+# The packaged finite-Zip entry obtains its Result only from the core transition.
+type LanguageParserScorerSelected = {
+    identity: U64
+    prior: LanguageParserScorerHypothesis
+    scored: LanguageParserScoredClass
+    where .scored.basis == .prior.parser.state.basis
+    where .scored.state.basis == .prior.parser.state.basis
+    where .scored.state.token_count == .prior.parser.state.token_count
+    where .scored.state.unread == .prior.parser.state.unread
+    where .scored.state.depth == .prior.parser.state.depth
+    where .scored.state.stack == .prior.parser.state.stack
+    where .scored.state.heads == .prior.parser.state.heads
+    where .scored.state.relation0 == .prior.parser.state.relation0
+    where .scored.state.relation1 == .prior.parser.state.relation1
+    where .scored.state.relation2 == .prior.parser.state.relation2
+    where .scored.state.relation3 == .prior.parser.state.relation3
+    where .scored.state.committed == .prior.parser.state.committed
+}

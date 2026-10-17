@@ -1,0 +1,27 @@
+# Optional packaged Source: install the existing finite Zip specialized for
+# (LanguageParserScorerSelected, LanguageParserResult), each16384B. The53414B
+# pair envelope is checked against the existing generic typed-pair encoder.
+# Original selection and actual checked transition result travel separate Cords.
+# The public entry accepts a class/score proposal, never an accepted-result flag.
+with flow/zip/finite/paired as LanguageParserScorerSelectedResultPair
+
+plot language-parser-scorer-selected-class (
+    input: LanguageParserScorerSelected...| <= 16384B >> output: LanguageParserScoredClass...|
+) = .scored
+
+plot language-parser-scorer-selected-result (
+    input: LanguageParserScorerSelectedResultPair...| <= 53414B >> output: LanguageParserScorerExpansion...|
+) = { prior: .0.prior, result: .1, score: .0.scored.score, identity: .0.identity }
+
+plot language-parser-scorer-bounded-result (
+    input: LanguageParserResult...| >> output: LanguageParserResult...| <= 16384B
+) = .
+
+plot language-parser-scorer-selected-transition (
+    input: LanguageParserScorerSelected...| <= 16384B >> output: LanguageParserScorerRawHypothesis...|
+) {
+    join: flow/zip/finite
+    input >> join.left
+    input >> language-parser-scorer-selected-class() >> language-parser-score-proposal() >> (.request) >> language-parser-transition() >> language-parser-scorer-bounded-result() >> join.right
+    join.paired >> language-parser-scorer-selected-result() >> language-parser-scorer-expand() >> output
+}
