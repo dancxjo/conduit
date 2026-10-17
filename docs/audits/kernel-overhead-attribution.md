@@ -36,9 +36,9 @@ The native test allocator/scan seams are not installed in the browser/WASM
 product. Browser allocator/scan attribution remains an explicit unsupported proof
 boundary. The browser observation below measures actual wall time and linear-
 memory capacity without pretending those are native allocator/scan counters.
-This does not imply a browser performance result or close parent #5395, whose
-full Host pipeline, continuous-stream, DSP, payload/fan-out and numerical-profile
-acceptance remains separate.
+The scoped browser result does not close parent #5395, whose full Host pipeline,
+continuous-stream, DSP, payload/fan-out and numerical-profile acceptance remains
+separate.
 
 ## Retained native capture
 
@@ -99,9 +99,9 @@ Full calls include reservation, Back preparation, Play, Sign/report translation
 and teardown. The allocation window excludes the earlier preparation and is
 bounded by two actual Fore callbacks; missing snapshots refuse rather than
 becoming zero. Heap peaks include retained harness metadata. Host transport and
-compiler-copy attribution, browser/WASM attribution and the larger parent5395
-full-product/streaming/DSP gates remain explicitly unproven. These results do
-not identify a universal native-speed ratio or a causal Sign CPU share.
+compiler-copy attribution, browser allocator/scan attribution and the larger
+parent #5395 full-product/streaming/DSP gates remain explicitly unproven. These
+results do not identify a universal native-speed ratio or a causal Sign CPU share.
 
 ## Scoped browser/WASM observation
 
