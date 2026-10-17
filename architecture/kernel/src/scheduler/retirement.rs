@@ -65,6 +65,7 @@ where
         self.values.clear();
         self.pending_host_calls.fill(None);
         self.pending_host_count = 0;
+        self.host_slot_search_start = 0;
         self.undispatched_host_count = 0;
         self.undispatched_cancellation_count = 0;
         self.pending_host_slots.fill(None);

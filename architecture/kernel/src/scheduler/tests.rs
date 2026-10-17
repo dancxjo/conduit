@@ -18,6 +18,7 @@ mod host_alias;
 mod host_cancellation;
 mod host_cancellation_polling;
 mod host_index;
+mod host_slot_allocation;
 mod host_value_occupancy;
 mod host_value_pending;
 mod queue_ring_bounds;

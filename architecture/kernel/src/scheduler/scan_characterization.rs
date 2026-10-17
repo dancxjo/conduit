@@ -9,6 +9,7 @@ pub(super) struct ScanCounts {
     pub preflight_completion_slots: u64,
     pub consumed_completion_slots: u64,
     pub retained_pending_slots: u64,
+    pub allocation_pending_slots: u64,
     pub dispatch_pending_slots: u64,
     pub cancellation_pending_slots: u64,
     pub value_owner_pending_slots: u64,

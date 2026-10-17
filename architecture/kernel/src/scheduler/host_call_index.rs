@@ -32,6 +32,24 @@ where
     S: ValueStorage,
     E: SignSink,
 {
+    /// Every earlier slot is occupied. Completion consumption lowers this
+    /// search bound, so the returned slot is still the first free table slot.
+    pub(super) fn find_free_host_slot(&self) -> Result<usize, SchedulerError> {
+        self.pending_host_calls[self.host_slot_search_start..]
+            .iter()
+            .inspect(|_| {
+                #[cfg(test)]
+                {
+                    let mut counts = self.scan_counts.get();
+                    counts.allocation_pending_slots += 1;
+                    self.scan_counts.set(counts);
+                }
+            })
+            .position(Option::is_none)
+            .map(|offset| self.host_slot_search_start + offset)
+            .ok_or(SchedulerError::HostCallCapacityExceeded)
+    }
+
     pub(super) fn indexed_host_slot(&self, node: usize) -> Option<usize> {
         let slot = self.pending_host_slots[node]?;
         usize::try_from(slot.get() - 1).ok()

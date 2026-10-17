@@ -942,6 +942,7 @@ pub struct FixedScheduler<
     host_bindings: Option<FixedHostCallBindings<HOST_BINDING_SLOTS>>,
     pending_host_calls: [Option<PendingHostCall>; PENDING_REQUESTS],
     pending_host_count: usize,
+    host_slot_search_start: usize,
     undispatched_host_count: u32,
     undispatched_cancellation_count: u32,
     pending_host_slots: [Option<core::num::NonZeroU32>; NODES],
@@ -1053,6 +1054,7 @@ where
             host_bindings: None,
             pending_host_calls: [None; PENDING_REQUESTS],
             pending_host_count: 0,
+            host_slot_search_start: 0,
             undispatched_host_count: 0,
             undispatched_cancellation_count: 0,
             pending_host_slots: [None; NODES],
@@ -2805,6 +2807,7 @@ where
                 .take()
                 .ok_or(SchedulerError::InvalidHostCallAccess)?;
             self.pending_host_count -= 1;
+            self.host_slot_search_start = self.host_slot_search_start.min(slot);
             self.pending_host_slots[node] = None;
             let retains_input = self.drivers[node]
                 .retains_host_call_input(pending.request.request, pending.request.input.value);
@@ -2907,11 +2910,7 @@ where
 
         if let (Some((request, call, input)), Some(binding)) = (host_request, admitted_host_request)
         {
-            let slot = self
-                .pending_host_calls
-                .iter()
-                .position(Option::is_none)
-                .ok_or(SchedulerError::HostCallCapacityExceeded)?;
+            let slot = self.find_free_host_slot()?;
             // One pending request per u16 node permits 65,536 distinct slots.
             let indexed_slot = host_call_index::encode_slot(slot)?;
             self.pending_host_calls[slot] = Some(PendingHostCall {
@@ -2934,6 +2933,7 @@ where
                 cancellation_dispatched: false,
                 completion: None,
             });
+            self.host_slot_search_start = slot + 1;
             self.pending_host_slots[node] = Some(indexed_slot);
             self.pending_host_count += 1;
             self.undispatched_host_count += 1;
