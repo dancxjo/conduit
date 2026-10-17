@@ -38,3 +38,33 @@ boundary; the browser can run the product but does not expose these measurements
 This does not imply a browser performance result or close parent #5395, whose
 full Host pipeline, continuous-stream, DSP, payload/fan-out and numerical-profile
 acceptance remains separate.
+
+## Retained native capture
+
+Clean measured Source `cf5b84ed96b63c81027e0a4d9fd2fdecea02fb5f` produced
+144 joined raw cases in three independent optimized processes. All 18 retained
+artifact hashes were independently verified. The [receipt and full raw counter
+rows](evidence/kernel-overhead-attribution.json) retain exact hardware, compiler,
+profile, executable digest, process CPU/RSS records and process means.
+
+| Active nodes | Ready inputs | Mean Step-to-Idle, microseconds | SD across process means, microseconds |
+| --- | --- | ---: | ---: |
+| 1 | 1 | 4.566 | 0.778 |
+| 1 | 1 | 4.124 | 0.751 |
+| 8 | 8 | 31.479 | 5.650 |
+| 8 | 1 | 4.029 | 0.887 |
+| 32 | 32 | 122.231 | 28.904 |
+| 32 | 1 | 4.442 | 1.380 |
+
+Every case observed zero allocation/reallocation calls in both ingress and Step.
+Ingress copied exactly one byte per ready input into the fixed value store;
+Step borrowed those values and performed no additional value-store write. These
+are scoped observations, not whole-Host zero-allocation/zero-copy claims.
+
+The loaded 32-node case performs 64 Steps, 64 queue peeks and 1,056 Cord scans,
+retaining 96 Signs occupying 1,920 bytes. Its sparse counterpart performs two
+Steps and two queue peeks but still scans 64 Cords, retaining three Signs/60
+bytes. Those traversal counts expose a remaining per-Step Cord-search cost;
+they do not isolate its CPU share or justify a timing-based failure threshold.
+The substantial process variation remains in the report. No optimization was
+introduced into the scheduler by this measurement change.
