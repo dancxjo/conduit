@@ -149,5 +149,5 @@ fn run() {
     );
     let gap = std::format!("{:?}", scheduler.signs.retention_gap);
     std::println!("SPARSE_LARGE_REPLAY {{\"events\":{events:?},\"remote\":{remote:?},\"gap\":{gap:?},\"received_nodes\":[63,9999],\"value_items\":0,\"value_bytes\":0,\"terminal\":\"Idle\"}}");
-    std::println!("SPARSE_LARGE_ROW {{\"nodes\":{N},\"ready\":2,\"prepare_ns\":{prepare_ns},\"advance_ns\":{advance_ns},\"ready_bytes\":{},\"selected_nodes\":{},\"allocations\":{},\"kernel_bytes\":{},\"legacy\":{}}}", counts.ready_bytes, counts.next_ready_nodes, allocations.allocations, core::mem::size_of_val(&scheduler), cfg!(feature = "linear-ready-reference-test"));
+    std::println!("SPARSE_LARGE_ROW {{\"nodes\":{N},\"ready\":2,\"prepare_ns\":{prepare_ns},\"advance_ns\":{advance_ns},\"ready_bytes\":{},\"candidate_nodes_scanned\":{},\"allocations\":{},\"reallocations\":{},\"logical_steps\":4,\"kernel_bytes\":{},\"legacy\":{}}}", counts.ready_bytes, counts.next_ready_nodes, allocations.allocations, allocations.reallocations, core::mem::size_of_val(&scheduler), cfg!(feature = "linear-ready-reference-test"));
 }
