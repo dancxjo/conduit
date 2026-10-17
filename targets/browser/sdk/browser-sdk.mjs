@@ -1,7 +1,7 @@
 import { acknowledgeOwnerFaceShow, clearOwnerFaceShow, selectOwnerFaceComponent, prepareOwnerFaceShow } from "./browser-sdk-owner-show-state.mjs";
 import { attachBrowserSyntaxEditor, projectBrowserSyntax } from "./browser-sdk-syntax.mjs";
 import { applicationContinuity, createSdkContinuity } from "./browser-sdk-continuity.mjs";
-import { checkedOwnerFaceArguments, checkedAcknowledgedOwnerFaceArguments } from "./browser-sdk-face-actions.mjs";
+import { checkedAcknowledgedOwnerFaceArguments } from "./browser-sdk-face-actions.mjs";
 import { checkedOwnerWardrobeReport, checkedOwnerWardrobeAction } from "./browser-sdk-wardrobe.mjs";
 const PACKAGE_SCHEMA = "conduit.browser/sdk-package@1";
 const DISTRIBUTION_SCHEMA = "conduit.browser/reviewed-distribution@1";
@@ -518,7 +518,8 @@ export class BrowserPlay {
     if (view?.body_id !== this.#started.play.body_id || view.show_state !== 'available'
         || view.interactions_admitted !== true) throw new Error('Current local Body Show is required for interaction');
     if (!Number.isSafeInteger(sequence) || sequence < 1) throw new RangeError('Face action sequence is invalid');
-    const checked = checkedOwnerFaceArguments(view, actionId, target, actionArguments);
+    const current = this.#adapter.thermostatFace().view;
+    const checked = checkedAcknowledgedOwnerFaceArguments(current, view, actionId, target, actionArguments);
     return this.#adapter.submitThermostatInteraction({
       show_id: view.show_id, face_id: view.face_id,
       face_revision: Number(view.face_revision), action_id: actionId,
