@@ -76,3 +76,38 @@ equivalence. #5395 retains the wider performance program.
 Validation and exact publication acceptance must accompany closure; this
 document alone is not a release receipt. Earlier raw measurements retain
 their original source identities.
+
+## Source-pinned CPU and wall capture
+
+Clean source `fccbecf91351fa37630f6b7b0c8f6a71f8dd5280` passes eight Plot
+evaluator tests, eleven installed std tests, focused strict Clippy and
+workspace formatting. Plot also compiles for `wasm32-unknown-unknown`; no
+browser execution is inferred. The release timing test passes with all
+64 result-checked trials and 256 raw timing records retained in
+[`scalar-tape-cpu-samples.json`](evidence/scalar-tape-cpu-samples.json).
+
+Eight-batch medians on the unpinned Linux i7-12700 host:
+
+| Operations | Reference warm wall / CPU, ns per value | Tape warm wall / CPU, ns per value | Reference Play wall / CPU, µs | Tape Play wall / CPU, µs |
+| ---: | ---: | ---: | ---: | ---: |
+| 1 | 74.43 / 74.43 | 51.77 / 51.77 | 14.35 / 14.30 | 13.43 / 13.33 |
+| 3 | 179.17 / 179.15 | 106.02 / 106.02 | 13.72 / 13.67 | 12.55 / 12.50 |
+| 8 | 427.66 / 427.56 | 243.52 / 243.52 | 14.23 / 14.12 | 14.49 / 14.44 |
+| 32 | 1620.89 / 1620.79 | 935.16 / 934.98 | 15.46 / 15.38 | 14.63 / 14.55 |
+
+Tape evaluator preparation costs 4.16/4.37/5.55/10.28 µs wall time,
+versus reference 2.08/2.39/2.99/9.33 µs. Actual installed preparation costs
+120.87/119.96/151.62/204.36 µs for tape versus
+98.07/103.40/116.06/164.38 µs for reference. The new property is recomputed
+during preparation and contributes to that cost; this capture does not
+isolate its causal cost. CPU observations, raw variance, authoring/Plan
+cost and immutable execution identities are retained separately in the receipt.
+
+The warmed tape evaluator improves in all four shapes in this capture.
+Actual Play is noisier and the eight-operation case is slightly slower.
+Cold preparation remains more expensive. The optimized Rust loop measures
+about 0.42–0.43 ns per value and omits the product's surrounding obligations.
+No compiler jobs overlapped this capture, but ordinary system activity,
+frequency and placement remain uncontrolled. These within-process batches
+are descriptive measurements, not independent confidence intervals or a
+universal selection rule.
