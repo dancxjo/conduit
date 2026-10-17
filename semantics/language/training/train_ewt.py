@@ -70,4 +70,3 @@ def oracle(row):
 
 def semantic(kind, content):
     return hashlib.sha256(b'conduit.info.semantic.v1'+struct.pack('<H',len(kind))+kind.encode()+content).hexdigest()
-
