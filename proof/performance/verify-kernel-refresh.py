@@ -10,22 +10,25 @@ import statistics
 def capture(folder):
     status = json.loads((folder / 'status.json').read_text())
     assert status['success'], 'capture did not finish successfully'
-    assert len(status['artifacts_sha256']) == 18, 'incomplete capture'
     for name, digest in status['artifacts_sha256'].items():
         assert hashlib.sha256((folder / name).read_bytes()).hexdigest() == digest, name
     metadata = json.loads((folder / 'metadata.json').read_text())
     assert metadata['source'] == status['source']
+    runs = metadata.get('runs', 3)
+    nodes = metadata.get('node_counts', [1, 8, 32])
+    assert 3 <= runs <= 9 and nodes in [[1, 8, 32], [1, 8, 32, 256]]
+    assert len(status['artifacts_sha256']) == 6 + 4 * runs, 'incomplete capture'
     raw = json.loads((folder / 'raw.json').read_text())
-    expected = {(p, n, sparse, trial) for p in range(3) for n in [1, 8, 32]
+    expected = {(p, n, sparse, trial) for p in range(runs) for n in nodes
                 for sparse in [False, True] for trial in range(8)}
     indexed = {(r['process'], r['scan']['active_nodes'], r['scan']['sparse'], r['scan']['trial']): r
                for r in raw}
-    assert len(raw) == len(indexed) == 144 and set(indexed) == expected
+    assert len(raw) == len(indexed) == len(expected) and set(indexed) == expected
     replays = {}
-    for process in range(3):
+    for process in range(runs):
         assert 'Exit status: 0' in (folder / f'process-{process}.resource.log').read_text()
         rows = json.loads((folder / f'process-{process}.replays.json').read_text())
-        assert len(rows) == 48
+        assert len(rows) == len(nodes) * 16
         for row in rows:
             key = (process, row['active'], row['sparse'], row['trial'])
             assert key not in replays
@@ -37,7 +40,7 @@ def capture(folder):
 def describe(rows, active, sparse):
     selected = [row['scan'] for key, row in rows.items() if key[1:3] == (active, sparse)]
     means = [statistics.mean(row['scan']['step_ns'] for key, row in rows.items()
-                             if key[:3] == (process, active, sparse)) for process in range(3)]
+                             if key[:3] == (process, active, sparse)) for process in sorted({key[0] for key in rows})]
     outputs = 1 if sparse else active
     return {'process_mean_fixture_advance_ns': means,
             'mean_fixture_advance_ns': statistics.mean(means),
@@ -57,6 +60,9 @@ def main():
     assert old_meta['source'] != new_meta['source']
     for key in ['profile', 'rustc', 'machine', 'build_command']:
         assert old_meta[key] == new_meta[key], key
+    assert old.keys() == new.keys(), 'different fixture coverage'
+    if 'capture_harness_sha256' in old_meta and 'capture_harness_sha256' in new_meta:
+        assert old_meta['capture_harness_sha256'] == new_meta['capture_harness_sha256']
     same_hardware = all(old_meta[k] == new_meta[k] for k in ['cpu_model', 'affinity'])
     work_keys = {'ready_nodes_scanned', 'ready_bytes_scanned', 'pending_slots_scanned',
                  'context_pending_slots', 'input_ports_checked', 'cords_scanned', 'queue_peeks'}
@@ -78,7 +84,7 @@ def main():
         sizes[str(key[1])] = {'before': a['kernel_bytes'], 'after': b['kernel_bytes'],
                               'delta': b['kernel_bytes'] - a['kernel_bytes']}
     summary = []
-    for active in [1, 8, 32]:
+    for active in sorted({key[1] for key in old}):
         for sparse in [False, True]:
             a, b = describe(old, active, sparse), describe(new, active, sparse)
             summary.append({'active': active, 'sparse': sparse, 'before': a, 'after': b,
@@ -86,7 +92,7 @@ def main():
     report = {'before_source': old_meta['source'], 'after_source': new_meta['source'],
               'same_reported_hardware_and_affinity': same_hardware,
               'timing_comparison_permitted': same_hardware,
-              'verified_artifact_hashes': 36, 'cases_per_capture': 144,
+              'verified_artifact_hashes': len(old_status['artifacts_sha256']) + len(new_status['artifacts_sha256']), 'cases_per_capture': len(old),
               'exact_sign_remote_output_readiness_value_terminal_replay_parity': True,
               'allocation_and_copy_counter_parity': True,
               'work_changes': {k: sorted(v) for k, v in work_changes.items()},

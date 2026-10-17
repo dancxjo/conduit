@@ -28,7 +28,9 @@ def custody(source):
         raise RuntimeError("source changed; capture is not accepted")
 
 
-def capture(output, runs, source):
+def capture(output, runs, source, include_large=False):
+    node_counts = [1, 8, 32, 256] if include_large else [1, 8, 32]
+    test = "scheduler::scan_characterization::capture_small_and_large_selector_replay" if include_large else TEST
     env = os.environ.copy()
     env.update(CARGO_BUILD_JOBS="2", CARGO_INCREMENTAL="0",
                CARGO_PROFILE_RELEASE_OPT_LEVEL="3", CARGO_PROFILE_RELEASE_DEBUG="0",
@@ -49,6 +51,8 @@ def capture(output, runs, source):
     cpu = next((line.split(":", 1)[1].strip() for line in Path("/proc/cpuinfo").read_text().splitlines()
                 if line.startswith("model name")), "unavailable")
     metadata = {"source": source, "build_command": command,
+                "node_counts": node_counts, "runs": runs,
+                "capture_harness_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
                 "rustc": subprocess.check_output(["rustc", "-Vv"], env=env, text=True),
                 "executable": str(executable), "executable_sha256": executable_digest,
                 "system": platform.system(), "release": platform.release(), "machine": platform.machine(),
@@ -69,7 +73,7 @@ def capture(output, runs, source):
         if hashlib.sha256(executable.read_bytes()).hexdigest() != executable_digest:
             raise RuntimeError("measurement executable changed")
         arguments = ["/usr/bin/time", "-v", "-o", str(output / f"process-{run}.resource.log"),
-                     str(executable), TEST, "--exact", "--ignored", "--nocapture", "--test-threads=1"]
+                     str(executable), test, "--exact", "--ignored", "--nocapture", "--test-threads=1"]
         started = time.perf_counter_ns()
         with (output / f"process-{run}.stdout.log").open("w") as stdout, (output / f"process-{run}.stderr.log").open("w") as stderr:
             subprocess.run(arguments, cwd=ROOT, env=env, stdout=stdout, stderr=stderr, check=True)
@@ -82,7 +86,7 @@ def capture(output, runs, source):
                 position = line.find(prefix + " ")
                 if position >= 0:
                     rows[prefix].append(json.loads(line[position + len(prefix) + 1:]))
-        if any(len(values) != 48 for values in rows.values()):
+        if any(len(values) != len(node_counts) * 16 for values in rows.values()):
             raise RuntimeError("missing raw fixture observations")
         for scan, overhead in zip(rows["SCHEDULER_SCAN_ROW"], rows["SCHEDULER_OVERHEAD_ROW"]):
             keys = ("active_nodes", "sparse", "trial")
@@ -97,7 +101,7 @@ def capture(output, runs, source):
         write(output / f"process-{run}.replays.json", rows["SCHEDULER_REPLAY_ROW"])
     custody(source)
     summaries = []
-    for active in [1, 8, 32]:
+    for active in node_counts:
         for sparse in [False, True]:
             selected = [row for row in combined if row["scan"]["active_nodes"] == active and row["scan"]["sparse"] == sparse]
             means = [statistics.mean(row["scan"]["step_ns"] for row in selected if row["process"] == run) for run in range(runs)]
@@ -111,10 +115,16 @@ def capture(output, runs, source):
 
 
 def main():
+    global ROOT
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--runs", type=int, default=3)
+    parser.add_argument("--include-large", action="store_true",
+                        help="Include the existing 256-node production selector replay fixture")
+    parser.add_argument("--source-root", type=Path, default=ROOT,
+                        help="Clean source checkout to measure with this harness")
     args = parser.parse_args()
+    ROOT = args.source_root.resolve()
     if not 3 <= args.runs <= 9:
         parser.error("runs must be between 3 and 9")
     source = git("rev-parse", "HEAD")
@@ -127,7 +137,7 @@ def main():
     output.mkdir(parents=True, exist_ok=False)
     status = {"source": source, "success": False}
     try:
-        capture(output, args.runs, source)
+        capture(output, args.runs, source, args.include_large)
         status["success"] = True
     except Exception as error:
         status["failure"] = str(error)
