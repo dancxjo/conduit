@@ -555,3 +555,25 @@ Three new cases check normalized native option labels, unique accessible names,
 and native keyboard submission of exact space, newline and repeated-space values.
 These establish renderer callback fidelity, not authoritative Body receipts,
 arbitrary Unicode display certification or public deployment. #5644 remains open.
+
+Unchecked exclusive-choice follow-up (#5644): a native radio change must
+identify a checked input before it may return its action. An adversarial change
+on a current, visible, enabled but unchecked option previously dispatched that
+option's action; the regression reproduces that callback before the repair.
+The event now leaves the acknowledged selection and callback list unchanged.
+Native focus plus Space on that same option still dispatches its exact action
+once, with selection remaining the acknowledged Face's fact until a fresh Show.
+All 95 pinned Chromium component tests pass, one worker and zero retries.
+This is renderer proof, not a hostile-script confinement boundary or evidence
+of unmodified authoritative Body state. #5644 remains open.
+
+SDK consumer-package follow-up (#5376): the owner Show state helper was copied
+into package staging but omitted by npm's explicit files allowlist. Importing
+the extracted npm archive reproduced ERR_MODULE_NOT_FOUND before the repair.
+The allowlist now includes that helper. The producer fixture creates an actual
+local npm archive with lifecycle scripts disabled, extracts it into a separate
+directory, and imports its SDK entry point rather than importing staging.
+The complete producer/static-package/refusal fixture passes. This proves the
+consumer module graph is present and importable under Node; its tiny runtime
+fixture does not prove browser ABI execution, a published npm package or public
+deployment. #5376 remains open.

@@ -380,7 +380,7 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
         label.append(input, faceNode('span', option.name));
         if (action.explanation) label.append(faceNode('small', action.explanation));
         input.addEventListener('change', async () => {
-          if (!this.#reachable(input, label) || !this.#ready(view, action, render) || !this.#invoke) return;
+          if (!input.checked || !this.#reachable(input, label) || !this.#ready(view, action, render) || !this.#invoke) return;
           // Selection remains the acknowledged Face's fact until a fresh Show.
           choices.querySelectorAll('input').forEach((control, optionIndex) => {
             control.checked = selectedFlags[optionIndex][0].value;

@@ -1248,3 +1248,47 @@ for (const selected of [' ', 'a\nb', 'a  b']) {
       arguments: [{ name: 'value', value: selected }] }]);
   });
 }
+
+test('an unchecked exclusive-choice change cannot dispatch an owner action', async ({ page }) => {
+  await page.goto('/proof/browser/signal-dom-host.test.html');
+  const choices = {
+    ...view,
+    subjects: [
+      { ...view.subjects[0], identity: 'fixture/group', name: 'Mode',
+        values: [], semantic_role: 'conduit.face/choice-group@1', choice_multiplicity: 'exclusive' },
+      ...[true, false].map((selected, index) => ({ ...view.subjects[0],
+        identity: `fixture/option/${index}`, name: `Mode ${index}`,
+        values: [], flags: [{ name: 'selected', value: selected }] })),
+    ],
+    relationships: [0, 1].map(index => ({ kind: 'Contains', source: 'fixture/group', target: `fixture/option/${index}` })),
+    actions: [0, 1].map(index => ({ ...view.actions[0], identity: `fixture/select/${index}`,
+      target: `fixture/option/${index}`, name: `Select ${index}` })),
+  };
+  await page.evaluate(async view => {
+    await import('/targets/browser/handbook/owner-face-component.mjs');
+    document.body.replaceChildren();
+    const element = document.createElement('conduit-owner-face');
+    document.body.append(element);
+    globalThis.calls = [];
+    const invoke = async call => { globalThis.calls.push(call); };
+    element.show(view, { invoke });
+    const look = element.shadowRoot.querySelector('link');
+    if (!look.sheet) await new Promise((resolve, reject) => {
+      look.addEventListener('load', resolve, { once: true });
+      look.addEventListener('error', () => reject(new Error('owner Look did not load')), { once: true });
+    });
+    const obsolete = element.shadowRoot.querySelectorAll('input[type=radio]')[1];
+    if (!obsolete) throw new Error('fixture did not render an exclusive choice');
+    if (obsolete.checked) throw new Error('fixture radio must be unchecked');
+    obsolete.dispatchEvent(new Event('change', { bubbles: true }));
+  }, choices);
+  expect(await page.evaluate(() => globalThis.calls)).toEqual([]);
+  const element = page.locator('conduit-owner-face');
+  await expect(element.getByRole('radio', { name: 'Mode 0', exact: true })).toBeChecked();
+  const current = element.getByRole('radio', { name: 'Mode 1', exact: true });
+  await expect(current).toBeEnabled();
+  await current.focus();
+  await page.keyboard.press('Space');
+  expect(await page.evaluate(() => globalThis.calls)).toEqual([{ view: choices, action: choices.actions[1], arguments: [] }]);
+  await expect(current).toBeDisabled();
+});
