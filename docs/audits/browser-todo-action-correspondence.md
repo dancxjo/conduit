@@ -684,3 +684,18 @@ and early empty/overcapacity refusal. The already registered browser xtask
 codec check covers these cases. No browser/runtime rebuild was needed for this
 codec-only change. Real compiler/admitted Play and full #5653 acceptance remain
 open; the prior missing local WASM limitation is unchanged.
+
+Event codec admission follow-up (#5653): revisions must be exact uint32 values
+and event kinds exact registered integers before encoding. Payloads accept only
+Uint8Array, ArrayBuffer or dense arrays of integer octets. Byte limits precede
+array conversion; numeric lengths, strings, arbitrary array-like objects, holes
+and lossy numeric conversion refuse. Array conversion retains its admitted
+length if a getter grows the source.
+
+The new metadata/overcapacity regressions reproduced failures before repair.
+All seven focused Node codec tests pass, including exact 64 KiB payloads in
+all three supported forms and bounded source-growth conversion. All 26 targeted
+pinned Chromium routing fixtures also pass (one worker, zero retries); the
+subsequent array-length capture was verified by its focused Node regression.
+Compiler/Play and full runtime acceptance remain open, with the prior missing
+local WASM limitation unchanged.

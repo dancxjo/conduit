@@ -48,3 +48,38 @@ test('view codec accepts the exact node and action inventory ceilings', () => {
   assert.equal(decoded.nodes.length, 128);
   assert.equal(decoded.actions.length, 32);
 });
+
+const event = value => ({ revision: 1, action: 'fixture.event', kind: 3, value });
+test('event codec refuses metadata wrapping and implicit byte coercion', () => {
+  for (const revision of [-1, 0x1_0000_0000, 1.5, undefined]) {
+    assert.throws(() => encodeApplicationEvent({ ...event(new Uint8Array()), revision }), { code: 'malformed-encoding' });
+  }
+  for (const kind of ['3', 'toString', 1.5]) {
+    assert.throws(() => encodeApplicationEvent({ ...event(new Uint8Array()), kind }), { code: 'unknown-event' });
+  }
+  for (const value of [1, 'bytes', { length: 1, 0: 42 }, [256], [-1], [1.5], [NaN], Array(1)]) {
+    assert.throws(() => encodeApplicationEvent(event(value)), { code: 'malformed-encoding' });
+  }
+});
+
+test('event codec checks payload ceilings before array iteration and preserves exact supported bytes', () => {
+  const oversized = Array(65_537);
+  oversized[Symbol.iterator] = () => assert.fail('oversized bytes must refuse before iteration');
+  assert.throws(() => encodeApplicationEvent(event(oversized)), { code: 'event-too-large' });
+  const bytes = new Uint8Array(65_536); bytes[0] = 1; bytes[bytes.length - 1] = 255;
+  for (const value of [bytes, bytes.buffer, Array.from(bytes)]) {
+    const encoded = encodeApplicationEvent(event(value));
+    const view = new DataView(encoded.buffer);
+    assert.equal(view.getUint32(7, true), 65_536);
+    assert.equal(encoded.at(-65_536), 1);
+    assert.equal(encoded.at(-1), 255);
+  }
+});
+
+test('event array conversion keeps the admitted length if a byte getter grows its source', () => {
+  const values = [0];
+  Object.defineProperty(values, 0, { get() { values.push(256); return 42; } });
+  const encoded = encodeApplicationEvent(event(values));
+  assert.equal(new DataView(encoded.buffer).getUint32(7, true), 1);
+  assert.equal(encoded.at(-1), 42);
+});

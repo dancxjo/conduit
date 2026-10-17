@@ -337,12 +337,30 @@ function installRovingFocus(container, selectedKey, selectedIndex) {
   });
 }
 
+function checkedEventBytes(value) {
+  if (value instanceof Uint8Array || value instanceof ArrayBuffer) {
+    if (value.byteLength > MAX_EVENT_BYTES) refuse("event-too-large");
+    return value instanceof Uint8Array ? value : new Uint8Array(value);
+  }
+  if (!Array.isArray(value)) refuse("malformed-encoding");
+  const length = value.length;
+  if (length > MAX_EVENT_BYTES) refuse("event-too-large");
+  const bytes = new Uint8Array(length);
+  for (let index = 0; index < length; index++) {
+    const byte = value[index];
+    if (!Object.hasOwn(value, index) || !Number.isInteger(byte) || byte < 0 || byte > 255) refuse("malformed-encoding");
+    bytes[index] = byte;
+  }
+  return bytes;
+}
+
 export function encodeApplicationEvent(event) {
+  if (!event || !Number.isSafeInteger(event.revision) || event.revision < 0 || event.revision > 0xffff_ffff) refuse("malformed-encoding");
+  if (!Number.isInteger(event.kind) || !Object.hasOwn(EVENTS, event.kind)) refuse("unknown-event");
   const action = encodeExactText(event.action);
-  const value = event.value instanceof Uint8Array ? event.value : new Uint8Array(event.value);
+  const value = checkedEventBytes(event.value);
   if (action.length === 0 || action.length > MAX_ACTION_ID_BYTES) refuse("action-id-too-long");
   if (value.length > MAX_EVENT_BYTES) refuse("event-too-large");
-  if (!(event.kind in EVENTS)) refuse("unknown-event");
   const encoded = new Uint8Array(EVENT_HEADER_BYTES + action.length + value.length);
   encoded[0] = VERSION;
   new DataView(encoded.buffer).setUint32(1, event.revision, true);
