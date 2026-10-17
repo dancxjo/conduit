@@ -77,10 +77,8 @@ impl LocalModelCompletedWork<'_> {
             || inputs[0].port != &realization.inputs[0].port_id
             || inputs[0].value.value_kind != realization.inputs[0].value_kind
             || inputs[0].value.encoded.len() != self.input_bytes() as usize
-            || conduit_core::semantic_digest(
-                "conduit.std/local-model-completed-input@1",
-                &inputs[0].value.encoded,
-            ) != self.input_digest()
+            || conduit_core::pool_operation_input_digest(&inputs[0].value.encoded)
+                != self.input_digest()
         {
             return Err(R::RequestChanged);
         }

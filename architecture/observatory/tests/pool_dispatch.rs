@@ -108,3 +108,24 @@ fn foreign_operation_source_forged_stages_and_inspection_limits_refuse() {
         assert_eq!(pool.population(), 1);
     });
 }
+
+#[test]
+fn altered_retained_input_extent_and_duplicate_ports_refuse() {
+    scenario(Case::Healthy, 1, |plan, _, dispatch, forecasts| {
+        let original_bytes = forecasts[0].inputs[0].bytes;
+        forecasts[0].inputs[0].bytes = usize::MAX;
+        assert_eq!(
+            render_pool_dispatch(plan, dispatch, forecasts, &mut work()),
+            Err(CostExplanationRefusal::InconsistentSelection)
+        );
+        forecasts[0].inputs[0].bytes = original_bytes;
+        let duplicate = forecasts[0].inputs[0].clone();
+        forecasts[0].inputs.push(duplicate);
+        forecasts[0].input_count += 1;
+        forecasts[0].input_bytes *= 2;
+        assert_eq!(
+            render_pool_dispatch(plan, dispatch, forecasts, &mut work()),
+            Err(CostExplanationRefusal::InconsistentSelection)
+        );
+    });
+}

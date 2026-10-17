@@ -75,6 +75,24 @@ pub fn render_pool_dispatch(
         {
             return Err(Extent);
         }
+        if forecast.input_count != forecast.inputs.len()
+            || forecast
+                .inputs
+                .iter()
+                .try_fold(0usize, |sum, input| sum.checked_add(input.bytes))
+                != Some(forecast.input_bytes)
+            || forecast.inputs.iter().enumerate().any(|(index, input)| {
+                input.port.as_str().is_empty()
+                    || input.port.as_str().len() > MAXIMUM_COST_ID_BYTES
+                    || input.kind.as_str().is_empty()
+                    || input.kind.as_str().len() > MAXIMUM_COST_ID_BYTES
+                    || forecast.inputs[..index]
+                        .iter()
+                        .any(|prior| prior.port == input.port)
+            })
+        {
+            return Err(InconsistentSelection);
+        }
         let source = account
             .sources
             .iter()
@@ -103,7 +121,7 @@ pub fn render_pool_dispatch(
     }
     let mut out = BoundedText(crate::render_pool_cost_selection(plan, account)?);
     writeln!(out, "sample=before-selection occupied_members={} waiting_operations={} (owner snapshot; not predicted Time)", population.occupied_members, population.waiting_operations).map_err(|_| Extent)?;
-    writeln!(out, "execution_outcome=not-retained measured_latency=not-retained warmup_prediction=not-separately-retained").map_err(|_| Extent)?;
+    writeln!(out, "dispatch_receipt_execution_outcome=not-retained dispatch_receipt_measured_latency=not-retained warmup_prediction=not-separately-retained").map_err(|_| Extent)?;
     for candidate in &account.candidates {
         let Some(f) = forecasts
             .iter()

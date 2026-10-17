@@ -249,6 +249,27 @@ fn exercise_demand(demand_bytes: usize, expected_provider: usize) {
         demand_bytes as u64
     );
     assert_eq!(prepared[0].account.input_bytes, demand_bytes);
+    for item in &prepared {
+        assert_eq!(
+            item.account.configuration_digest,
+            conduit_core::pool_operation_configuration_digest(
+                &request.class().gear().configuration
+            )
+        );
+        assert_eq!(item.account.inputs.len(), request.inputs().len());
+        for (retained, original) in item.account.inputs.iter().zip(request.inputs()) {
+            assert_eq!(retained.port, *original.port);
+            assert_eq!(retained.kind, original.value.value_kind);
+            assert_eq!(retained.bytes, original.value.encoded.len());
+            assert_eq!(
+                retained.digest,
+                conduit_core::semantic_digest(
+                    "conduit.std/local-model-completed-input@1",
+                    &original.value.encoded
+                )
+            );
+        }
+    }
     // A retained forecast must identify the actual operation it prepared, so
     // inspection cannot join another request's stages by Host or total alone.
     for item in &prepared {
