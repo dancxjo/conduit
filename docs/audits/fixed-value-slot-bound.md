@@ -60,3 +60,27 @@ Both complete local kernel suites, strict all-target kernel Clippy and
 formatting/diff checks pass. The probe counter exists only in tests. This is a
 work-bound improvement, with no elapsed-time or whole-host speedup claim. No CI
 dispatched or awaited.
+
+## Equal-capacity hosted slot selection
+
+Preparation now detects whether all actual hosted slot capacities are equal.
+For that profile, smallest-fitting selection is exactly first-free selection,
+so a cached lower search bound can skip the occupied/retired prefix. Final
+reusable release rewinds it, partial release does not, and clear resets it.
+Generation-exhausted slots remain retired. Heterogeneous storage retains its
+original smallest-fitting scan and first-equal-capacity tie order.
+
+The 4,096-slot dense fill now performs 4,096 slot inspections instead of
+16,777,216. Forcing the original best-fit branch reproduces that old count.
+Existing full/refusal/release/clear tests cover the new bound, and a mixed
+[8,1,4,1]-byte profile verifies selection order [1,3,2,0], then chooses a four-byte
+hole for a two-byte value before using the one-byte hole. Public generation tests
+also exhaust a heterogeneous [1,2]-byte profile and prove larger fresh-slot
+fallback and stale-handle refusal through clear.
+
+This adds fixed scalar store state (one usize and two booleans), no per-slot
+index or allocation. Sparse refill can still scan an occupied interval;
+heterogeneous selection remains linear per store. No elapsed-time or unchanged
+object-layout claim is made. Both complete kernel selector suites,
+plan-lowering tests, strict all-target Clippy for both packages and formatting/
+diff checks pass locally. No CI dispatched or awaited.

@@ -56,4 +56,5 @@ fn hosted_generations_retire_on_final_release_or_clear() {
         one_slot(HostedValueStore::new(1, 1, 1).unwrap(), clear);
     }
     two_slots(HostedValueStore::new(2, 1, 2).unwrap());
+    two_slots(HostedValueStore::new_with_slot_capacities(&[1, 2], 3).unwrap());
 }

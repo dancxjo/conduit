@@ -7,6 +7,7 @@ fn full_hosted_store_refuses_without_inspecting_slots_and_reopens_on_release() {
         assert_eq!(usize::from(value.slot), i);
         value
     });
+    assert_eq!(store.slot_probes, 4096);
     store.slot_probes = 0;
     for _ in 0..16 {
         assert_eq!(store.store(&[]), Err(StorageError::ItemCapacityExceeded));
@@ -40,4 +41,21 @@ fn full_hosted_store_preserves_size_and_byte_refusal_precedence() {
     assert_eq!(store.slot_probes, 0);
     assert_eq!(store.get(value), Ok(b"x".as_slice()));
     assert_eq!(store.reference_count(value), Ok(1));
+}
+
+#[test]
+fn mixed_hosted_capacities_keep_smallest_fit_and_first_equal_slot() {
+    let mut store = HostedValueStore::new_with_slot_capacities(&[8, 1, 4, 1], 14).unwrap();
+    assert!(!store.uniform_slots);
+    let values = [
+        store.store(&[]).unwrap(),
+        store.store(&[]).unwrap(),
+        store.store(&[]).unwrap(),
+        store.store(&[]).unwrap(),
+    ];
+    assert_eq!(values.map(|v| v.slot), [1, 3, 2, 0]);
+    store.release(values[0]).unwrap();
+    store.release(values[2]).unwrap();
+    assert_eq!(store.store(b"xx").unwrap().slot, 2);
+    assert_eq!(store.store(b"x").unwrap().slot, 1);
 }
