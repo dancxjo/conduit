@@ -435,3 +435,28 @@ for (const input of ['keyboard', 'pointer']) {
     expect(await page.evaluate(() => globalThis.embeddedProof)).toEqual({ actions: ['fixture.activate'], submissions: 0 });
   });
 }
+
+for (const input of ['keyboard', 'pointer', 'background']) {
+  test(`graph selection has one exact action route (${input})`, async ({ page }) => {
+    await page.goto('/proof/browser/signal-dom-host.test.html');
+    await page.evaluate(async () => {
+      const { encodeApplicationView, manifestApplicationView } = await import('/targets/browser/host/assets/application-face.mjs');
+      const root = document.createElement('section'); root.id = 'graph-route-proof'; document.body.append(root);
+      const fields = ['conduit.face/graph-canvas@1', 'checked', 'expanded', 'plan', 'body-plan', 'play', '',
+        '1', 'gear/source', 'Source', 'source-kind', '0', '0'];
+      const source = fields.map(value => `${new TextEncoder().encode(value).length}:${value}`).join('');
+      globalThis.graphRouteCalls = [];
+      globalThis.graphRouteManifest = manifestApplicationView(encodeApplicationView({ revision: 1,
+        actions: [{ id: 'fixture.graph-select', event: 'activate' }], nodes: [
+          { parent: null, component: 'patchbay-canvas', key: 'graph', text: 'Graph', value: source, valueCapacity: 65_536, action: 0 },
+        ] }), root, { onEvent: event => globalThis.graphRouteCalls.push({ action: event.action, value: new TextDecoder().decode(event.value) }) });
+    });
+    const subject = page.getByRole('button', { name: 'Gear Source, source-kind', exact: true });
+    if (input === 'keyboard') { await subject.focus(); await page.keyboard.press('Enter'); }
+    else if (input === 'pointer') await subject.click();
+    else await page.locator('#graph-route-proof p').click();
+    const expected = input === 'background' ? [] : [{ action: 'fixture.graph-select', value: 'gear/source' }];
+    expect(await page.evaluate(() => ({ calls: globalThis.graphRouteCalls, queued: globalThis.graphRouteManifest.queuedEvents() })))
+      .toEqual({ calls: expected, queued: expected.length });
+  });
+}

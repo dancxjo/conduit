@@ -594,7 +594,9 @@ export function manifestApplicationView(input, root, options = {}) {
       const action = view.actions[node.action];
       element.dataset.applicationAction = action.id;
       actionEvents.set(element, action.event);
-      element.addEventListener(action.event, (browserEvent) => {
+      // Populated graph canvases return exact subject identities through their
+      // selection callback; a second generic listener would add an empty action.
+      if (node.component !== 11 || !node.value) element.addEventListener(action.event, (browserEvent) => {
         // A child binding owns its event; bubbling must not invent a second
         // semantic action on an ancestor. Decorative descendants still route here.
         if (browserEvent.composedPath().find(node => actionEvents.get(node) === browserEvent.type) !== element) return;

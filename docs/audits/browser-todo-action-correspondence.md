@@ -753,3 +753,17 @@ one exact declared action and zero embedding-form submissions for each path.
 No synthetic positive interaction or callback filtering was added. These prove
 renderer/browser default behavior, not authoritative Body or full runtime
 acceptance; the prior missing local WASM limitation remains.
+
+Graph action route follow-up (#5644): a populated graph canvas uses its existing
+exact-subject selection callback, without a second generic DOM action listener.
+It remains registered as the nearest binding so selection events cannot fall
+through into a generic ancestor action. Background clicks do not invent an
+empty graph selection.
+
+Pointer selection reproduced a duplicate empty action and background clicks
+reproduced an empty action before repair; native keyboard selection already
+returned one exact identity. All 31 targeted pinned Chromium fixtures pass with
+one worker and zero retries, including exact-once keyboard/pointer graph
+selection and no background action. This is renderer queue proof, not actual
+resident Body mutation or full runtime acceptance; the missing local WASM
+limitation remains.
