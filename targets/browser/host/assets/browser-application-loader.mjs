@@ -138,6 +138,10 @@ function admitManifest(document, manifestUrl) {
   });
   if (totalMaximumBytes > MAXIMUM_TOTAL_RESOURCE_BYTES) throw new Error("application package total byte bound is exceeded");
   if (!seenRoles.has("application-module") || !seenRoles.has("runtime")) throw new Error("application package has no module or runtime");
+  if (resources.find(resource => resource.role === "application-module").kind !== "module"
+    || resources.find(resource => resource.role === "runtime").kind !== "wasm") {
+    throw new Error("application package entry or runtime kind is invalid");
+  }
   for (const resource of resources) {
     for (const dependency of resource.dependencies) {
       if (!seenRoles.has(dependency.role) || dependency.role === resource.role) throw new Error("application resource dependency is invalid");

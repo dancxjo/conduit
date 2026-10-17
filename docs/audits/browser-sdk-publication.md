@@ -238,3 +238,14 @@ The new cases cover preparation refusal (one URL revoked) and successful tiny
 module startup (two URLs revoked). Their package/resource hashes recompute and
 the modules execute in Chromium; their runtime payload is an unexecuted envelope.
 They do not prove Conduit runtime/Body execution or public release acceptance.
+
+Application role-kind follow-up: manifest admission requires the application
+entry role to be a module and the runtime role to be Wasm before resource
+download, script execution or storage initialization. Merely having those
+role names is insufficient. A correctly hashed manifest with a content entry
+reproduced resource downloading before repair.
+
+Twelve focused pinned Chromium loader fixtures pass with one worker and zero
+retries, including entry/runtime kind refusal with zero resource requests and
+the existing tiny-module startup. These are synthetic packages; the role check
+does not establish executable runtime ABI, Body or public release acceptance.

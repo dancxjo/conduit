@@ -900,7 +900,7 @@ for (const redirected of [true, false]) {
   });
 }
 
-for (const kind of ['module', 'classic-script', 'shared']) {
+for (const kind of ['entry-kind', 'runtime-kind', 'module', 'classic-script', 'shared']) {
   test(`static application loader preflights dependency graph (${kind})`, async ({ page }) => {
     await page.goto('/proof/browser/signal-dom-host.test.html');
     await page.evaluate(async kind => {
@@ -908,14 +908,14 @@ for (const kind of ['module', 'classic-script', 'shared']) {
       const meta = document.createElement('meta');
       meta.name = 'conduit-application-package'; meta.content = '/fixture-application.json';
       document.head.append(meta);
-      const resource = (role, dependencies = []) => ({ role, kind: role === 'runtime' ? 'wasm'
+      const resource = (role, dependencies = []) => ({ role, kind: (kind === 'entry-kind' && role === 'application-module') || (kind === 'runtime-kind' && role === 'runtime') ? 'content' : role === 'runtime' ? 'wasm'
         : kind === 'classic-script' && role !== 'application-module' ? 'classic-script' : 'module',
         path: role + '.mjs', maximum_bytes: 1024, sha256: 'sha256:' + 'a'.repeat(64),
         dependencies: dependencies.map(role => ({ role, specifier: './' + role + '.mjs' })) });
       const manifest = { schema: 'conduit.browser/application-package@1', application_id: 'fixture/graph',
         package_digest: 'sha256:' + 'b'.repeat(64), state_compatibility: { identity: 'fixture/graph-state', version: 1 },
         host_implementations: ['browser/dom@1'], resources: [resource('application-module', kind === 'shared' ? ['second'] : []), resource('runtime'),
-          resource('first', ['second']), resource('second', kind === 'shared' ? [] : ['first'])] };
+          resource('first', ['second']), resource('second', kind === 'shared' || kind.endsWith('-kind') ? [] : ['first'])] };
       if (kind !== 'shared') {
         const lines = ['conduit.browser/application-package-content@1', 'application\0' + manifest.application_id,
           'state\0' + manifest.state_compatibility.identity + '\0' + manifest.state_compatibility.version,
@@ -933,7 +933,8 @@ for (const kind of ['module', 'classic-script', 'shared']) {
       await import('/targets/browser/host/assets/browser-application-loader.mjs');
     }, kind);
     await expect(page.locator('#workspace.error')).toHaveText(kind === 'shared'
-      ? 'application package identity changed' : 'application resource dependency cycle refused');
+      ? 'application package identity changed' : kind.endsWith('-kind')
+        ? 'application package entry or runtime kind is invalid' : 'application resource dependency cycle refused');
     expect(await page.evaluate(() => globalThis.resourceRequests)).toBe(0);
   });
 }
