@@ -14,11 +14,11 @@ export function projectFaceCollections(view) {
   for (const collection of view.subjects ?? []) {
     if (collection.role !== 'Collection' || !['Primary', 'Context'].includes(collection.disclosure)
       || hasExtraFacts(collection)) continue;
-    const items = (view.relationships ?? [])
+    const members = (view.relationships ?? [])
       .filter(relation => relation.kind === 'Contains' && relation.source === collection.identity)
-      .map(relation => subjects.get(relation.target))
-      .filter(item => item?.role === 'Item');
-    if (items.some(item => {
+      .map(relation => subjects.get(relation.target));
+    const items = members.filter(item => item?.role === 'Item');
+    if (new Set(items.map(item => item.identity)).size !== items.length || items.some(item => {
       const complete = Array.isArray(item.flags) ? item.flags.filter(flag => flag?.name === 'complete') : [];
       return hasExtraFacts(item, 'complete') || item.text?.length || complete.length !== 1 || typeof complete[0].value !== 'boolean'
         || item.disclosure !== (complete[0].value ? 'SelectedDetail' : 'Primary');
@@ -26,14 +26,12 @@ export function projectFaceCollections(view) {
     const open = items.filter(item => !item.flags.find(flag => flag.name === 'complete').value);
     const completed = items.filter(item => item.flags.find(flag => flag.name === 'complete').value);
     const count = `${open.length} ${open.length === 1 ? 'thing' : 'things'} left · ${completed.length} completed`;
-    // The collection count is a Mask-local arrangement of the same flags.
-    // Only fold away a Status subject when its exact Face wording agrees.
-    const matchingStatus = (view.relationships ?? [])
-      .filter(relation => relation.kind === 'Contains' && relation.source === collection.identity)
-      .map(relation => subjects.get(relation.target))
-      .find(subject => subject?.role === 'Status' && subject.text?.length === 1
-        && subject.text[0] === count && !hasExtraFacts(subject)
-        && !(view.actions ?? []).some(action => action.target === subject.identity));
+    // A partial Face must not invent a total from its visible item subset.
+    // Require the source Status to corroborate the specialized count wording.
+    const statuses = members.filter(subject => subject?.role === 'Status');
+    if (!statuses.length || statuses.some(subject => subject.text?.length !== 1 || subject.text[0] !== count)) continue;
+    const matchingStatus = statuses.find(subject => !hasExtraFacts(subject)
+      && !(view.actions ?? []).some(action => action.target === subject.identity));
     collections.push({ collection, open, completed, count });
     placed.add(collection.identity);
     for (const item of items) placed.add(item.identity);
