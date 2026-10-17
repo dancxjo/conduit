@@ -226,3 +226,15 @@ and a shared-dependency graph reaching package-identity validation. The shared
 fixture intentionally has a false package digest; it proves graph admission, not
 module execution. These synthetic package fixtures do not prove packaged runtime
 or public acceptance.
+
+Application module-URL cleanup follow-up: the entry preparation call now runs
+inside the same finally boundary as module import. If preparation creates a
+dependency Blob URL and then refuses a missing declared import, every created
+module URL is revoked rather than retained until the page closes.
+
+Pinned Chromium reproduced one created and zero revoked URLs before repair.
+Ten focused production-loader fixtures pass with one worker and zero retries.
+The new cases cover preparation refusal (one URL revoked) and successful tiny
+module startup (two URLs revoked). Their package/resource hashes recompute and
+the modules execute in Chromium; their runtime payload is an unexecuted envelope.
+They do not prove Conduit runtime/Body execution or public release acceptance.

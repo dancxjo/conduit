@@ -306,9 +306,8 @@ export async function loadBrowserApplication(manifestReference) {
     if (resource?.kind !== "content") throw new Error(`application content ${role} was not admitted`);
     return decoder.decode(admittedBytes.get(role));
   };
-  const entryUrl = await materializeModule("application-module");
   let module;
-  try { module = await import(entryUrl); }
+  try { module = await import(await materializeModule("application-module")); }
   finally { for (const url of moduleUrls.values()) URL.revokeObjectURL(url); }
   if (typeof module.startApplication !== "function") throw new Error("application module has no bounded start entrance");
   const face = createApplicationFaceHost();
