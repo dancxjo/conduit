@@ -204,7 +204,7 @@ export function validateOwnerFaceAcknowledgement(view, shown) {
   if (!sameIdentity || shown?.show_state !== "available" || !admissionTransition) {
     throw new Error("browser Mask acknowledged another owner Face Show");
   }
-  return shown;
+  return structuredClone(shown);
 }
 
 export class BrowserBodyParticipation {
@@ -291,9 +291,11 @@ export class BrowserBodyParticipation {
       : this.#state.host.bridge.ownerFaceAcknowledge({
         show_id: view.show_id, face_id: view.face_id, face_revision: view.face_revision,
       });
-    validateOwnerFaceAcknowledgement(view, shown);
+    // Capture before crossing the asynchronous membership boundary: callers
+    // may still own and mutate the available view while acknowledgement waits.
+    const acknowledged = validateOwnerFaceAcknowledgement(view, shown);
     await this.#state.membership.acknowledgeFaceShow(this.#state.host.bridge.ownerFaceShowReceipt());
-    this.#state.lastOwnerShow = structuredClone(shown);
+    this.#state.lastOwnerShow = acknowledged;
     return shown;
   }
   async selectOwnerComponentMask({ look, recipe, minimumTextScalePercent }) {

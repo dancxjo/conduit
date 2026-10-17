@@ -409,3 +409,15 @@ unadmitted acknowledgement and a caller-expanded choice table. This is helper/
 SDK admission evidence; it does not prove an authoritative remote Body receipt
 or complete trusted DOM/Mask round trip. The initial new-helper test failed
 because that helper did not yet exist; no pre-fix runtime reproduction is claimed.
+
+Acknowledgement snapshot timing follow-up (#5646): validation now returns a
+structured snapshot, and participation captures it before awaiting membership
+acknowledgement. The previous post-await clone left a caller-mutation window.
+A caller-owned available view cannot alter the validated identity or nested
+action contract while that acknowledgement is pending.
+
+The snapshot-isolation test reproduced a validated Face identity changing with
+its caller object before repair. Eight focused SDK argument/acknowledgement
+tests and the producer fixture pass, including nested choice-table isolation.
+This proves snapshot detachment and the reviewed pre-await capture placement,
+not asynchronous supersession/presence races or remote Body commit acceptance.

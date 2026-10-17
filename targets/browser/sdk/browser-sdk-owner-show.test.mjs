@@ -7,7 +7,7 @@ test('acknowledgement admits the WASM-owned permission transition on the same Sh
   const view=prepared();
   for(const admitted of [false,true]) {
     const shown={...view,show_state:'available',interactions_admitted:admitted};
-    assert.equal(validateOwnerFaceAcknowledgement(view,shown),shown);
+    assert.deepEqual(validateOwnerFaceAcknowledgement(view,shown),shown);
   }
   assert.equal(view.interactions_admitted,false);
 });
@@ -23,4 +23,15 @@ test('counterfeit preparation admission and invalid lifecycle never grant intera
   assert.throws(()=>validateOwnerFaceAcknowledgement(view,{...shown,interactions_admitted:'true'}));
   const available={...view,show_state:'available'};
   assert.throws(()=>validateOwnerFaceAcknowledgement(available,{...available,interactions_admitted:true}));
+});
+
+test('validated acknowledgement retains identity and nested contracts despite caller mutation', () => {
+  const view = prepared();
+  const shown = { ...view, show_state: 'available', interactions_admitted: true,
+    actions: [{ identity: 'action/one', arguments: [{ name: 'value', choices: ['yes'] }] }] };
+  const snapshot = validateOwnerFaceAcknowledgement(view, shown);
+  shown.face_id = 'face/forged';
+  shown.actions[0].arguments[0].choices.push('forged');
+  assert.equal(snapshot.face_id, view.face_id);
+  assert.deepEqual(snapshot.actions[0].arguments[0].choices, ['yes']);
 });
