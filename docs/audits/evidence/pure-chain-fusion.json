@@ -1,0 +1,1366 @@
+{
+  "schema": "conduit.pure-chain-fusion-proof@1",
+  "captures": [
+    {
+      "capture": "02",
+      "source": "f280ac16754222505e040d77bbc2906ce2f3afc1",
+      "artifact_hashes_verified": 89,
+      "raw_records": 190,
+      "archive": "pure-chain-fusion-02-raw.tar.gz",
+      "archive_sha256": "41b30c4ebb8e16bc682b55cd10b888b583efdd5af3aa945380d3f27000fcf753",
+      "metadata": {
+        "affinity": "Cpus_allowed_list:\t19",
+        "allocator_scope": "successful System allocator calls; atomic counters only on allocation/deallocation; heap peak includes retained harness data",
+        "binary_bytes": 22021888,
+        "cargo": "cargo 1.98.1 (797e8a9bc 2026-08-05)",
+        "compiler": "rustc 1.98.1 (48a229cea 2026-09-01)\nbinary: rustc\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\ncommit-date: 2026-09-01\nhost: x86_64-unknown-linux-gnu\nrelease: 1.98.1\nLLVM version: 22.1.8",
+        "cpu": "processor\t: 0\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 800.000\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 1\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 800.000\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 2\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 800.000\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 3\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 800.000\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 4\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 800.000\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 5\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 800.000\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 6\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 800.000\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 7\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 800.000\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 8\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 800.000\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 9\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 800.000\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 10\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 800.000\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 11\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 800.000\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 12\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 800.000\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 13\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 800.000\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 14\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 800.000\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 15\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 800.000\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 16\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 800.000\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 17\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 800.000\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 18\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 800.000\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 19\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 3599.772\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12",
+        "cpu_time_scope": "Linux process CPU for each bulk phase; per-selection isolation uses wall clocks; unsupported target CPU time is null",
+        "debug_assertions": false,
+        "git_sha": "f280ac16754222505e040d77bbc2906ce2f3afc1",
+        "measurement_limitations": [
+          "no CPU affinity change",
+          "background load is not controlled; independently rerun on an idle host",
+          "no hardware cycles/instructions/branch-miss counters",
+          "internal copy accounting not yet instrumented",
+          "expression-only native uses registers; prepared uses canonical 8-byte inputs and canonical outputs; finite hosted native uses canonical input/output frames",
+          "isolated selection trials do not model steady mixed-workload fairness or full Plot dispatch"
+        ],
+        "os": "Linux 7.0.0-38-generic #38-Ubuntu SMP PREEMPT_DYNAMIC Fri Sep  4 09:10:14 UTC 2026 x86_64",
+        "profile": "release",
+        "release_overrides": {
+          "codegen_units": null,
+          "lto": null,
+          "opt_level": null
+        },
+        "required_follow_on_gates": [
+          "fully separated cold std Back preparation, Play, Sign and teardown timing beyond optional combined finite Host calls",
+          "continuous 1/8/32 real Gear scaling beyond optional 64-item finite hosted trials",
+          "streaming/pressure/fan-out/payload/batch/fairness",
+          "DSP representative",
+          "browser/WASM after hosted repeatability",
+          "review independent-run uncertainty and regression thresholds"
+        ],
+        "rustflags": null,
+        "schema": "conduit.runtime-performance@1",
+        "source_status": "clean"
+      },
+      "comparison": {
+        "verified_pairs": 9,
+        "profiles": {
+          "1": {
+            "local-unfused": {
+              "decisions": [
+                130
+              ],
+              "logical_invocations": [
+                130
+              ],
+              "full_call_wall_ns_median": 812640,
+              "full_call_cpu_ns_median": 814285,
+              "completion_outputs_per_second_median": 163051.07380778607
+            },
+            "fused": {
+              "decisions": [
+                130
+              ],
+              "logical_invocations": [
+                130
+              ],
+              "full_call_wall_ns_median": 834938,
+              "full_call_cpu_ns_median": 836616,
+              "completion_outputs_per_second_median": 158382.18879156903
+            }
+          },
+          "8": {
+            "local-unfused": {
+              "decisions": [
+                1040
+              ],
+              "logical_invocations": [
+                1040
+              ],
+              "full_call_wall_ns_median": 2124818,
+              "full_call_cpu_ns_median": 2126401,
+              "completion_outputs_per_second_median": 43247.42883738555
+            },
+            "fused": {
+              "decisions": [
+                130
+              ],
+              "logical_invocations": [
+                1040
+              ],
+              "full_call_wall_ns_median": 2140985,
+              "full_call_cpu_ns_median": 2142747,
+              "completion_outputs_per_second_median": 46925.10232279257
+            }
+          },
+          "32": {
+            "local-unfused": {
+              "decisions": [
+                4160
+              ],
+              "logical_invocations": [
+                4160
+              ],
+              "full_call_wall_ns_median": 7062912,
+              "full_call_cpu_ns_median": 7064597,
+              "completion_outputs_per_second_median": 11285.377643666887
+            },
+            "fused": {
+              "decisions": [
+                194
+              ],
+              "logical_invocations": [
+                4160
+              ],
+              "full_call_wall_ns_median": 6858316,
+              "full_call_cpu_ns_median": 6860287,
+              "completion_outputs_per_second_median": 12497.882303276388
+            }
+          }
+        }
+      },
+      "additional_costs": {
+        "1": {
+          "local-unfused": {
+            "cold_wall_ns_median": 8123939,
+            "cold_plus_call_wall_ns_median": 8936579,
+            "first_ack_ns_median": 370853,
+            "full_call_allocations": [
+              2492
+            ],
+            "full_call_reallocations": [
+              58
+            ],
+            "post_first_output_allocations": [
+              {
+                "allocations": 378,
+                "deallocations": 0,
+                "reallocations": 0,
+                "requested_bytes": 2898
+              },
+              {
+                "allocations": 378,
+                "deallocations": 0,
+                "reallocations": 0,
+                "requested_bytes": 2898
+              },
+              {
+                "allocations": 378,
+                "deallocations": 0,
+                "reallocations": 0,
+                "requested_bytes": 2898
+              }
+            ],
+            "value_capacity": [
+              3,
+              24
+            ]
+          },
+          "fused": {
+            "cold_wall_ns_median": 8122092,
+            "cold_plus_call_wall_ns_median": 8961256,
+            "first_ack_ns_median": 382855,
+            "full_call_allocations": [
+              2492
+            ],
+            "full_call_reallocations": [
+              58
+            ],
+            "post_first_output_allocations": [
+              {
+                "allocations": 378,
+                "deallocations": 0,
+                "reallocations": 0,
+                "requested_bytes": 2898
+              },
+              {
+                "allocations": 378,
+                "deallocations": 0,
+                "reallocations": 0,
+                "requested_bytes": 2898
+              },
+              {
+                "allocations": 378,
+                "deallocations": 0,
+                "reallocations": 0,
+                "requested_bytes": 2898
+              }
+            ],
+            "value_capacity": [
+              3,
+              24
+            ]
+          }
+        },
+        "8": {
+          "local-unfused": {
+            "cold_wall_ns_median": 8762497,
+            "cold_plus_call_wall_ns_median": 10899738,
+            "first_ack_ns_median": 585243,
+            "full_call_allocations": [
+              4104
+            ],
+            "full_call_reallocations": [
+              155
+            ],
+            "post_first_output_allocations": [
+              {
+                "allocations": 378,
+                "deallocations": 0,
+                "reallocations": 0,
+                "requested_bytes": 2898
+              },
+              {
+                "allocations": 378,
+                "deallocations": 0,
+                "reallocations": 0,
+                "requested_bytes": 2898
+              },
+              {
+                "allocations": 378,
+                "deallocations": 0,
+                "reallocations": 0,
+                "requested_bytes": 2898
+              }
+            ],
+            "value_capacity": [
+              17,
+              136
+            ]
+          },
+          "fused": {
+            "cold_wall_ns_median": 9059645,
+            "cold_plus_call_wall_ns_median": 11233268,
+            "first_ack_ns_median": 714846,
+            "full_call_allocations": [
+              5782
+            ],
+            "full_call_reallocations": [
+              192
+            ],
+            "post_first_output_allocations": [
+              {
+                "allocations": 378,
+                "deallocations": 0,
+                "reallocations": 0,
+                "requested_bytes": 2898
+              },
+              {
+                "allocations": 378,
+                "deallocations": 0,
+                "reallocations": 0,
+                "requested_bytes": 2898
+              },
+              {
+                "allocations": 378,
+                "deallocations": 0,
+                "reallocations": 0,
+                "requested_bytes": 2898
+              }
+            ],
+            "value_capacity": [
+              17,
+              136
+            ]
+          }
+        },
+        "32": {
+          "local-unfused": {
+            "cold_wall_ns_median": 10259882,
+            "cold_plus_call_wall_ns_median": 17335079,
+            "first_ack_ns_median": 1271987,
+            "full_call_allocations": [
+              9646
+            ],
+            "full_call_reallocations": [
+              419
+            ],
+            "post_first_output_allocations": [
+              {
+                "allocations": 378,
+                "deallocations": 0,
+                "reallocations": 0,
+                "requested_bytes": 2898
+              },
+              {
+                "allocations": 378,
+                "deallocations": 0,
+                "reallocations": 0,
+                "requested_bytes": 2898
+              },
+              {
+                "allocations": 378,
+                "deallocations": 0,
+                "reallocations": 0,
+                "requested_bytes": 2898
+              }
+            ],
+            "value_capacity": [
+              65,
+              520
+            ]
+          },
+          "fused": {
+            "cold_wall_ns_median": 11579695,
+            "cold_plus_call_wall_ns_median": 18467804,
+            "first_ack_ns_median": 1624525,
+            "full_call_allocations": [
+              13804
+            ],
+            "full_call_reallocations": [
+              562
+            ],
+            "post_first_output_allocations": [
+              {
+                "allocations": 378,
+                "deallocations": 0,
+                "reallocations": 0,
+                "requested_bytes": 2898
+              },
+              {
+                "allocations": 378,
+                "deallocations": 0,
+                "reallocations": 0,
+                "requested_bytes": 2898
+              },
+              {
+                "allocations": 378,
+                "deallocations": 0,
+                "reallocations": 0,
+                "requested_bytes": 2898
+              }
+            ],
+            "value_capacity": [
+              65,
+              520
+            ]
+          }
+        }
+      }
+    },
+    {
+      "capture": "03",
+      "source": "f280ac16754222505e040d77bbc2906ce2f3afc1",
+      "artifact_hashes_verified": 89,
+      "raw_records": 190,
+      "archive": "pure-chain-fusion-03-raw.tar.gz",
+      "archive_sha256": "e3e006e78679201586adefe5fcfe8b045d91849573d656b6235ae4a4a73e6c8b",
+      "metadata": {
+        "affinity": "Cpus_allowed_list:\t19",
+        "allocator_scope": "successful System allocator calls; atomic counters only on allocation/deallocation; heap peak includes retained harness data",
+        "binary_bytes": 22021888,
+        "cargo": "cargo 1.98.1 (797e8a9bc 2026-08-05)",
+        "compiler": "rustc 1.98.1 (48a229cea 2026-09-01)\nbinary: rustc\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\ncommit-date: 2026-09-01\nhost: x86_64-unknown-linux-gnu\nrelease: 1.98.1\nLLVM version: 22.1.8",
+        "cpu": "processor\t: 0\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 1470.348\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 1\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 800.000\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 2\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 800.000\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 3\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 800.000\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 4\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 800.000\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 5\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 800.000\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 6\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 800.000\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 7\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 800.000\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 8\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 800.000\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 9\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 800.000\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 10\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 800.000\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 11\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 800.000\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 12\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 800.000\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 13\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 800.000\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 14\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 800.000\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 15\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 800.000\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 16\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 800.000\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 17\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 800.000\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 18\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 800.000\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 19\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 3599.824\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12",
+        "cpu_time_scope": "Linux process CPU for each bulk phase; per-selection isolation uses wall clocks; unsupported target CPU time is null",
+        "debug_assertions": false,
+        "git_sha": "f280ac16754222505e040d77bbc2906ce2f3afc1",
+        "measurement_limitations": [
+          "no CPU affinity change",
+          "background load is not controlled; independently rerun on an idle host",
+          "no hardware cycles/instructions/branch-miss counters",
+          "internal copy accounting not yet instrumented",
+          "expression-only native uses registers; prepared uses canonical 8-byte inputs and canonical outputs; finite hosted native uses canonical input/output frames",
+          "isolated selection trials do not model steady mixed-workload fairness or full Plot dispatch"
+        ],
+        "os": "Linux 7.0.0-38-generic #38-Ubuntu SMP PREEMPT_DYNAMIC Fri Sep  4 09:10:14 UTC 2026 x86_64",
+        "profile": "release",
+        "release_overrides": {
+          "codegen_units": null,
+          "lto": null,
+          "opt_level": null
+        },
+        "required_follow_on_gates": [
+          "fully separated cold std Back preparation, Play, Sign and teardown timing beyond optional combined finite Host calls",
+          "continuous 1/8/32 real Gear scaling beyond optional 64-item finite hosted trials",
+          "streaming/pressure/fan-out/payload/batch/fairness",
+          "DSP representative",
+          "browser/WASM after hosted repeatability",
+          "review independent-run uncertainty and regression thresholds"
+        ],
+        "rustflags": null,
+        "schema": "conduit.runtime-performance@1",
+        "source_status": "clean"
+      },
+      "comparison": {
+        "verified_pairs": 9,
+        "profiles": {
+          "1": {
+            "local-unfused": {
+              "decisions": [
+                130
+              ],
+              "logical_invocations": [
+                130
+              ],
+              "full_call_wall_ns_median": 843232,
+              "full_call_cpu_ns_median": 844626,
+              "completion_outputs_per_second_median": 157316.33318101117
+            },
+            "fused": {
+              "decisions": [
+                130
+              ],
+              "logical_invocations": [
+                130
+              ],
+              "full_call_wall_ns_median": 835279,
+              "full_call_cpu_ns_median": 836760,
+              "completion_outputs_per_second_median": 158304.18526112652
+            }
+          },
+          "8": {
+            "local-unfused": {
+              "decisions": [
+                1040
+              ],
+              "logical_invocations": [
+                1040
+              ],
+              "full_call_wall_ns_median": 2237791,
+              "full_call_cpu_ns_median": 2239271,
+              "completion_outputs_per_second_median": 41316.81272925093
+            },
+            "fused": {
+              "decisions": [
+                130
+              ],
+              "logical_invocations": [
+                1040
+              ],
+              "full_call_wall_ns_median": 2129910,
+              "full_call_cpu_ns_median": 2131300,
+              "completion_outputs_per_second_median": 47434.222662264576
+            }
+          },
+          "32": {
+            "local-unfused": {
+              "decisions": [
+                4160
+              ],
+              "logical_invocations": [
+                4160
+              ],
+              "full_call_wall_ns_median": 7042724,
+              "full_call_cpu_ns_median": 7044566,
+              "completion_outputs_per_second_median": 11360.10374840147
+            },
+            "fused": {
+              "decisions": [
+                194
+              ],
+              "logical_invocations": [
+                4160
+              ],
+              "full_call_wall_ns_median": 6857823,
+              "full_call_cpu_ns_median": 6859545,
+              "completion_outputs_per_second_median": 12559.513153398704
+            }
+          }
+        }
+      },
+      "additional_costs": {
+        "1": {
+          "local-unfused": {
+            "cold_wall_ns_median": 8138111,
+            "cold_plus_call_wall_ns_median": 8987199,
+            "first_ack_ns_median": 391285,
+            "full_call_allocations": [
+              2492
+            ],
+            "full_call_reallocations": [
+              58
+            ],
+            "post_first_output_allocations": [
+              {
+                "allocations": 378,
+                "deallocations": 0,
+                "reallocations": 0,
+                "requested_bytes": 2898
+              },
+              {
+                "allocations": 378,
+                "deallocations": 0,
+                "reallocations": 0,
+                "requested_bytes": 2898
+              },
+              {
+                "allocations": 378,
+                "deallocations": 0,
+                "reallocations": 0,
+                "requested_bytes": 2898
+              }
+            ],
+            "value_capacity": [
+              3,
+              24
+            ]
+          },
+          "fused": {
+            "cold_wall_ns_median": 8204118,
+            "cold_plus_call_wall_ns_median": 9039397,
+            "first_ack_ns_median": 381440,
+            "full_call_allocations": [
+              2492
+            ],
+            "full_call_reallocations": [
+              58
+            ],
+            "post_first_output_allocations": [
+              {
+                "allocations": 378,
+                "deallocations": 0,
+                "reallocations": 0,
+                "requested_bytes": 2898
+              },
+              {
+                "allocations": 378,
+                "deallocations": 0,
+                "reallocations": 0,
+                "requested_bytes": 2898
+              },
+              {
+                "allocations": 378,
+                "deallocations": 0,
+                "reallocations": 0,
+                "requested_bytes": 2898
+              }
+            ],
+            "value_capacity": [
+              3,
+              24
+            ]
+          }
+        },
+        "8": {
+          "local-unfused": {
+            "cold_wall_ns_median": 8766245,
+            "cold_plus_call_wall_ns_median": 11004036,
+            "first_ack_ns_median": 629867,
+            "full_call_allocations": [
+              4104
+            ],
+            "full_call_reallocations": [
+              155
+            ],
+            "post_first_output_allocations": [
+              {
+                "allocations": 378,
+                "deallocations": 0,
+                "reallocations": 0,
+                "requested_bytes": 2898
+              },
+              {
+                "allocations": 378,
+                "deallocations": 0,
+                "reallocations": 0,
+                "requested_bytes": 2898
+              },
+              {
+                "allocations": 378,
+                "deallocations": 0,
+                "reallocations": 0,
+                "requested_bytes": 2898
+              }
+            ],
+            "value_capacity": [
+              17,
+              136
+            ]
+          },
+          "fused": {
+            "cold_wall_ns_median": 9060869,
+            "cold_plus_call_wall_ns_median": 11198138,
+            "first_ack_ns_median": 716554,
+            "full_call_allocations": [
+              5782
+            ],
+            "full_call_reallocations": [
+              192
+            ],
+            "post_first_output_allocations": [
+              {
+                "allocations": 378,
+                "deallocations": 0,
+                "reallocations": 0,
+                "requested_bytes": 2898
+              },
+              {
+                "allocations": 378,
+                "deallocations": 0,
+                "reallocations": 0,
+                "requested_bytes": 2898
+              },
+              {
+                "allocations": 378,
+                "deallocations": 0,
+                "reallocations": 0,
+                "requested_bytes": 2898
+              }
+            ],
+            "value_capacity": [
+              17,
+              136
+            ]
+          }
+        },
+        "32": {
+          "local-unfused": {
+            "cold_wall_ns_median": 10264164,
+            "cold_plus_call_wall_ns_median": 17242026,
+            "first_ack_ns_median": 1270352,
+            "full_call_allocations": [
+              9646
+            ],
+            "full_call_reallocations": [
+              419
+            ],
+            "post_first_output_allocations": [
+              {
+                "allocations": 378,
+                "deallocations": 0,
+                "reallocations": 0,
+                "requested_bytes": 2898
+              },
+              {
+                "allocations": 378,
+                "deallocations": 0,
+                "reallocations": 0,
+                "requested_bytes": 2898
+              },
+              {
+                "allocations": 378,
+                "deallocations": 0,
+                "reallocations": 0,
+                "requested_bytes": 2898
+              }
+            ],
+            "value_capacity": [
+              65,
+              520
+            ]
+          },
+          "fused": {
+            "cold_wall_ns_median": 11530071,
+            "cold_plus_call_wall_ns_median": 18387894,
+            "first_ack_ns_median": 1657851,
+            "full_call_allocations": [
+              13804
+            ],
+            "full_call_reallocations": [
+              562
+            ],
+            "post_first_output_allocations": [
+              {
+                "allocations": 378,
+                "deallocations": 0,
+                "reallocations": 0,
+                "requested_bytes": 2898
+              },
+              {
+                "allocations": 378,
+                "deallocations": 0,
+                "reallocations": 0,
+                "requested_bytes": 2898
+              },
+              {
+                "allocations": 378,
+                "deallocations": 0,
+                "reallocations": 0,
+                "requested_bytes": 2898
+              }
+            ],
+            "value_capacity": [
+              65,
+              520
+            ]
+          }
+        }
+      }
+    },
+    {
+      "capture": "04",
+      "source": "f280ac16754222505e040d77bbc2906ce2f3afc1",
+      "artifact_hashes_verified": 89,
+      "raw_records": 190,
+      "archive": "pure-chain-fusion-04-raw.tar.gz",
+      "archive_sha256": "97bdff4595dd21da0d19ec4cb7fa817d88a93bbced40443a3c3995abeec4766e",
+      "metadata": {
+        "affinity": "Cpus_allowed_list:\t19",
+        "allocator_scope": "successful System allocator calls; atomic counters only on allocation/deallocation; heap peak includes retained harness data",
+        "binary_bytes": 22021888,
+        "cargo": "cargo 1.98.1 (797e8a9bc 2026-08-05)",
+        "compiler": "rustc 1.98.1 (48a229cea 2026-09-01)\nbinary: rustc\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\ncommit-date: 2026-09-01\nhost: x86_64-unknown-linux-gnu\nrelease: 1.98.1\nLLVM version: 22.1.8",
+        "cpu": "processor\t: 0\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 800.000\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 1\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 800.000\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 2\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 800.000\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 3\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 800.000\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 4\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 800.000\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 5\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 800.000\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 6\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 800.000\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 7\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 800.000\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 8\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 800.000\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 9\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 800.000\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 10\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 800.000\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 11\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 800.000\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 12\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 800.000\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 13\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 800.000\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 14\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 800.000\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 15\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 800.000\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 16\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 800.000\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 17\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 800.000\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 18\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 800.000\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 19\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 3599.839\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12",
+        "cpu_time_scope": "Linux process CPU for each bulk phase; per-selection isolation uses wall clocks; unsupported target CPU time is null",
+        "debug_assertions": false,
+        "git_sha": "f280ac16754222505e040d77bbc2906ce2f3afc1",
+        "measurement_limitations": [
+          "no CPU affinity change",
+          "background load is not controlled; independently rerun on an idle host",
+          "no hardware cycles/instructions/branch-miss counters",
+          "internal copy accounting not yet instrumented",
+          "expression-only native uses registers; prepared uses canonical 8-byte inputs and canonical outputs; finite hosted native uses canonical input/output frames",
+          "isolated selection trials do not model steady mixed-workload fairness or full Plot dispatch"
+        ],
+        "os": "Linux 7.0.0-38-generic #38-Ubuntu SMP PREEMPT_DYNAMIC Fri Sep  4 09:10:14 UTC 2026 x86_64",
+        "profile": "release",
+        "release_overrides": {
+          "codegen_units": null,
+          "lto": null,
+          "opt_level": null
+        },
+        "required_follow_on_gates": [
+          "fully separated cold std Back preparation, Play, Sign and teardown timing beyond optional combined finite Host calls",
+          "continuous 1/8/32 real Gear scaling beyond optional 64-item finite hosted trials",
+          "streaming/pressure/fan-out/payload/batch/fairness",
+          "DSP representative",
+          "browser/WASM after hosted repeatability",
+          "review independent-run uncertainty and regression thresholds"
+        ],
+        "rustflags": null,
+        "schema": "conduit.runtime-performance@1",
+        "source_status": "clean"
+      },
+      "comparison": {
+        "verified_pairs": 9,
+        "profiles": {
+          "1": {
+            "local-unfused": {
+              "decisions": [
+                130
+              ],
+              "logical_invocations": [
+                130
+              ],
+              "full_call_wall_ns_median": 819085,
+              "full_call_cpu_ns_median": 821029,
+              "completion_outputs_per_second_median": 159062.39032900665
+            },
+            "fused": {
+              "decisions": [
+                130
+              ],
+              "logical_invocations": [
+                130
+              ],
+              "full_call_wall_ns_median": 828574,
+              "full_call_cpu_ns_median": 830343,
+              "completion_outputs_per_second_median": 158510.10564824342
+            }
+          },
+          "8": {
+            "local-unfused": {
+              "decisions": [
+                1040
+              ],
+              "logical_invocations": [
+                1040
+              ],
+              "full_call_wall_ns_median": 2132835,
+              "full_call_cpu_ns_median": 2134627,
+              "completion_outputs_per_second_median": 43472.32055247109
+            },
+            "fused": {
+              "decisions": [
+                130
+              ],
+              "logical_invocations": [
+                1040
+              ],
+              "full_call_wall_ns_median": 2138954,
+              "full_call_cpu_ns_median": 2140535,
+              "completion_outputs_per_second_median": 47147.11321219269
+            }
+          },
+          "32": {
+            "local-unfused": {
+              "decisions": [
+                4160
+              ],
+              "logical_invocations": [
+                4160
+              ],
+              "full_call_wall_ns_median": 7034565,
+              "full_call_cpu_ns_median": 7036201,
+              "completion_outputs_per_second_median": 11241.454487187151
+            },
+            "fused": {
+              "decisions": [
+                194
+              ],
+              "logical_invocations": [
+                4160
+              ],
+              "full_call_wall_ns_median": 6873205,
+              "full_call_cpu_ns_median": 6867137,
+              "completion_outputs_per_second_median": 12601.282810590119
+            }
+          }
+        }
+      },
+      "additional_costs": {
+        "1": {
+          "local-unfused": {
+            "cold_wall_ns_median": 8102089,
+            "cold_plus_call_wall_ns_median": 8921174,
+            "first_ack_ns_median": 382009,
+            "full_call_allocations": [
+              2492
+            ],
+            "full_call_reallocations": [
+              58
+            ],
+            "post_first_output_allocations": [
+              {
+                "allocations": 378,
+                "deallocations": 0,
+                "reallocations": 0,
+                "requested_bytes": 2898
+              },
+              {
+                "allocations": 378,
+                "deallocations": 0,
+                "reallocations": 0,
+                "requested_bytes": 2898
+              },
+              {
+                "allocations": 378,
+                "deallocations": 0,
+                "reallocations": 0,
+                "requested_bytes": 2898
+              }
+            ],
+            "value_capacity": [
+              3,
+              24
+            ]
+          },
+          "fused": {
+            "cold_wall_ns_median": 8202803,
+            "cold_plus_call_wall_ns_median": 9061881,
+            "first_ack_ns_median": 364386,
+            "full_call_allocations": [
+              2492
+            ],
+            "full_call_reallocations": [
+              58
+            ],
+            "post_first_output_allocations": [
+              {
+                "allocations": 378,
+                "deallocations": 0,
+                "reallocations": 0,
+                "requested_bytes": 2898
+              },
+              {
+                "allocations": 378,
+                "deallocations": 0,
+                "reallocations": 0,
+                "requested_bytes": 2898
+              },
+              {
+                "allocations": 378,
+                "deallocations": 0,
+                "reallocations": 0,
+                "requested_bytes": 2898
+              }
+            ],
+            "value_capacity": [
+              3,
+              24
+            ]
+          }
+        },
+        "8": {
+          "local-unfused": {
+            "cold_wall_ns_median": 8712844,
+            "cold_plus_call_wall_ns_median": 10831885,
+            "first_ack_ns_median": 588672,
+            "full_call_allocations": [
+              4104
+            ],
+            "full_call_reallocations": [
+              155
+            ],
+            "post_first_output_allocations": [
+              {
+                "allocations": 378,
+                "deallocations": 0,
+                "reallocations": 0,
+                "requested_bytes": 2898
+              },
+              {
+                "allocations": 378,
+                "deallocations": 0,
+                "reallocations": 0,
+                "requested_bytes": 2898
+              },
+              {
+                "allocations": 378,
+                "deallocations": 0,
+                "reallocations": 0,
+                "requested_bytes": 2898
+              }
+            ],
+            "value_capacity": [
+              17,
+              136
+            ]
+          },
+          "fused": {
+            "cold_wall_ns_median": 9066683,
+            "cold_plus_call_wall_ns_median": 11214788,
+            "first_ack_ns_median": 731426,
+            "full_call_allocations": [
+              5782
+            ],
+            "full_call_reallocations": [
+              192
+            ],
+            "post_first_output_allocations": [
+              {
+                "allocations": 378,
+                "deallocations": 0,
+                "reallocations": 0,
+                "requested_bytes": 2898
+              },
+              {
+                "allocations": 378,
+                "deallocations": 0,
+                "reallocations": 0,
+                "requested_bytes": 2898
+              },
+              {
+                "allocations": 378,
+                "deallocations": 0,
+                "reallocations": 0,
+                "requested_bytes": 2898
+              }
+            ],
+            "value_capacity": [
+              17,
+              136
+            ]
+          }
+        },
+        "32": {
+          "local-unfused": {
+            "cold_wall_ns_median": 10272226,
+            "cold_plus_call_wall_ns_median": 17302930,
+            "first_ack_ns_median": 1233076,
+            "full_call_allocations": [
+              9646
+            ],
+            "full_call_reallocations": [
+              419
+            ],
+            "post_first_output_allocations": [
+              {
+                "allocations": 378,
+                "deallocations": 0,
+                "reallocations": 0,
+                "requested_bytes": 2898
+              },
+              {
+                "allocations": 378,
+                "deallocations": 0,
+                "reallocations": 0,
+                "requested_bytes": 2898
+              },
+              {
+                "allocations": 378,
+                "deallocations": 0,
+                "reallocations": 0,
+                "requested_bytes": 2898
+              }
+            ],
+            "value_capacity": [
+              65,
+              520
+            ]
+          },
+          "fused": {
+            "cold_wall_ns_median": 11542172,
+            "cold_plus_call_wall_ns_median": 18367075,
+            "first_ack_ns_median": 1644740,
+            "full_call_allocations": [
+              13804
+            ],
+            "full_call_reallocations": [
+              562
+            ],
+            "post_first_output_allocations": [
+              {
+                "allocations": 378,
+                "deallocations": 0,
+                "reallocations": 0,
+                "requested_bytes": 2898
+              },
+              {
+                "allocations": 378,
+                "deallocations": 0,
+                "reallocations": 0,
+                "requested_bytes": 2898
+              },
+              {
+                "allocations": 378,
+                "deallocations": 0,
+                "reallocations": 0,
+                "requested_bytes": 2898
+              }
+            ],
+            "value_capacity": [
+              65,
+              520
+            ]
+          }
+        }
+      }
+    },
+    {
+      "capture": "ci",
+      "source": "b506d3571de2ae3de1841a22b360beca68ee12ea",
+      "artifact_hashes_verified": 89,
+      "raw_records": 190,
+      "archive": "pure-chain-fusion-ci-raw.tar.gz",
+      "archive_sha256": "d437b2679cb8c0ee38cca69e9b5b4e9ff14805b575983c51714eb3015cc7a3e7",
+      "metadata": {
+        "affinity": "Cpus_allowed_list:\t0-3",
+        "allocator_scope": "successful System allocator calls; atomic counters only on allocation/deallocation; heap peak includes retained harness data",
+        "binary_bytes": 22015528,
+        "cargo": "cargo 1.98.1 (797e8a9bc 2026-08-05)",
+        "compiler": "rustc 1.98.1 (48a229cea 2026-09-01)\nbinary: rustc\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\ncommit-date: 2026-09-01\nhost: x86_64-unknown-linux-gnu\nrelease: 1.98.1\nLLVM version: 22.1.8",
+        "cpu": "processor\t: 0\nmodel name\t: AMD EPYC 9V45 96-Core Processor\ncpu MHz\t\t: 4314.291\nphysical id\t: 0\nsiblings\t: 4\ncpu cores\t: 2\nprocessor\t: 1\nmodel name\t: AMD EPYC 9V45 96-Core Processor\ncpu MHz\t\t: 4298.972\nphysical id\t: 0\nsiblings\t: 4\ncpu cores\t: 2\nprocessor\t: 2\nmodel name\t: AMD EPYC 9V45 96-Core Processor\ncpu MHz\t\t: 4348.476\nphysical id\t: 0\nsiblings\t: 4\ncpu cores\t: 2\nprocessor\t: 3\nmodel name\t: AMD EPYC 9V45 96-Core Processor\ncpu MHz\t\t: 4282.477\nphysical id\t: 0\nsiblings\t: 4\ncpu cores\t: 2",
+        "cpu_time_scope": "Linux process CPU for each bulk phase; per-selection isolation uses wall clocks; unsupported target CPU time is null",
+        "debug_assertions": false,
+        "git_sha": "b506d3571de2ae3de1841a22b360beca68ee12ea",
+        "measurement_limitations": [
+          "no CPU affinity change",
+          "background load is not controlled; independently rerun on an idle host",
+          "no hardware cycles/instructions/branch-miss counters",
+          "internal copy accounting not yet instrumented",
+          "expression-only native uses registers; prepared uses canonical 8-byte inputs and canonical outputs; finite hosted native uses canonical input/output frames",
+          "isolated selection trials do not model steady mixed-workload fairness or full Plot dispatch"
+        ],
+        "os": "Linux 6.17.0-1022-azure #22-Ubuntu SMP Mon Jul 27 17:24:03 UTC 2026 x86_64",
+        "profile": "release",
+        "release_overrides": {
+          "codegen_units": null,
+          "lto": null,
+          "opt_level": null
+        },
+        "required_follow_on_gates": [
+          "fully separated cold std Back preparation, Play, Sign and teardown timing beyond optional combined finite Host calls",
+          "continuous 1/8/32 real Gear scaling beyond optional 64-item finite hosted trials",
+          "streaming/pressure/fan-out/payload/batch/fairness",
+          "DSP representative",
+          "browser/WASM after hosted repeatability",
+          "review independent-run uncertainty and regression thresholds"
+        ],
+        "rustflags": null,
+        "schema": "conduit.runtime-performance@1",
+        "source_status": "clean"
+      },
+      "comparison": {
+        "verified_pairs": 9,
+        "profiles": {
+          "1": {
+            "local-unfused": {
+              "decisions": [
+                130
+              ],
+              "logical_invocations": [
+                130
+              ],
+              "full_call_wall_ns_median": 714048,
+              "full_call_cpu_ns_median": 715037,
+              "completion_outputs_per_second_median": 210934.4395672831
+            },
+            "fused": {
+              "decisions": [
+                130
+              ],
+              "logical_invocations": [
+                130
+              ],
+              "full_call_wall_ns_median": 670403,
+              "full_call_cpu_ns_median": 671402,
+              "completion_outputs_per_second_median": 228056.77527719756
+            }
+          },
+          "8": {
+            "local-unfused": {
+              "decisions": [
+                1040
+              ],
+              "logical_invocations": [
+                1040
+              ],
+              "full_call_wall_ns_median": 1743184,
+              "full_call_cpu_ns_median": 1745105,
+              "completion_outputs_per_second_median": 56760.48965382409
+            },
+            "fused": {
+              "decisions": [
+                130
+              ],
+              "logical_invocations": [
+                1040
+              ],
+              "full_call_wall_ns_median": 1760811,
+              "full_call_cpu_ns_median": 1762581,
+              "completion_outputs_per_second_median": 62799.29345810789
+            }
+          },
+          "32": {
+            "local-unfused": {
+              "decisions": [
+                4160
+              ],
+              "logical_invocations": [
+                4160
+              ],
+              "full_call_wall_ns_median": 5701446,
+              "full_call_cpu_ns_median": 5705016,
+              "completion_outputs_per_second_median": 14542.849004138017
+            },
+            "fused": {
+              "decisions": [
+                194
+              ],
+              "logical_invocations": [
+                4160
+              ],
+              "full_call_wall_ns_median": 5394061,
+              "full_call_cpu_ns_median": 5397076,
+              "completion_outputs_per_second_median": 16734.18334130642
+            }
+          }
+        }
+      },
+      "additional_costs": {
+        "1": {
+          "local-unfused": {
+            "cold_wall_ns_median": 5421722,
+            "cold_plus_call_wall_ns_median": 6118025,
+            "first_ack_ns_median": 335507,
+            "full_call_allocations": [
+              2492
+            ],
+            "full_call_reallocations": [
+              58
+            ],
+            "post_first_output_allocations": [
+              {
+                "allocations": 378,
+                "deallocations": 0,
+                "reallocations": 0,
+                "requested_bytes": 2898
+              },
+              {
+                "allocations": 378,
+                "deallocations": 0,
+                "reallocations": 0,
+                "requested_bytes": 2898
+              },
+              {
+                "allocations": 378,
+                "deallocations": 0,
+                "reallocations": 0,
+                "requested_bytes": 2898
+              }
+            ],
+            "value_capacity": [
+              3,
+              24
+            ]
+          },
+          "fused": {
+            "cold_wall_ns_median": 5375995,
+            "cold_plus_call_wall_ns_median": 6046398,
+            "first_ack_ns_median": 320975,
+            "full_call_allocations": [
+              2492
+            ],
+            "full_call_reallocations": [
+              58
+            ],
+            "post_first_output_allocations": [
+              {
+                "allocations": 378,
+                "deallocations": 0,
+                "reallocations": 0,
+                "requested_bytes": 2898
+              },
+              {
+                "allocations": 378,
+                "deallocations": 0,
+                "reallocations": 0,
+                "requested_bytes": 2898
+              },
+              {
+                "allocations": 378,
+                "deallocations": 0,
+                "reallocations": 0,
+                "requested_bytes": 2898
+              }
+            ],
+            "value_capacity": [
+              3,
+              24
+            ]
+          }
+        },
+        "8": {
+          "local-unfused": {
+            "cold_wall_ns_median": 5862561,
+            "cold_plus_call_wall_ns_median": 7605745,
+            "first_ack_ns_median": 531012,
+            "full_call_allocations": [
+              4104
+            ],
+            "full_call_reallocations": [
+              155
+            ],
+            "post_first_output_allocations": [
+              {
+                "allocations": 378,
+                "deallocations": 0,
+                "reallocations": 0,
+                "requested_bytes": 2898
+              },
+              {
+                "allocations": 378,
+                "deallocations": 0,
+                "reallocations": 0,
+                "requested_bytes": 2898
+              },
+              {
+                "allocations": 378,
+                "deallocations": 0,
+                "reallocations": 0,
+                "requested_bytes": 2898
+              }
+            ],
+            "value_capacity": [
+              17,
+              136
+            ]
+          },
+          "fused": {
+            "cold_wall_ns_median": 6129241,
+            "cold_plus_call_wall_ns_median": 7854247,
+            "first_ack_ns_median": 660458,
+            "full_call_allocations": [
+              5782
+            ],
+            "full_call_reallocations": [
+              192
+            ],
+            "post_first_output_allocations": [
+              {
+                "allocations": 378,
+                "deallocations": 0,
+                "reallocations": 0,
+                "requested_bytes": 2898
+              },
+              {
+                "allocations": 378,
+                "deallocations": 0,
+                "reallocations": 0,
+                "requested_bytes": 2898
+              },
+              {
+                "allocations": 378,
+                "deallocations": 0,
+                "reallocations": 0,
+                "requested_bytes": 2898
+              }
+            ],
+            "value_capacity": [
+              17,
+              136
+            ]
+          }
+        },
+        "32": {
+          "local-unfused": {
+            "cold_wall_ns_median": 7222513,
+            "cold_plus_call_wall_ns_median": 12871099,
+            "first_ack_ns_median": 1141736,
+            "full_call_allocations": [
+              9646
+            ],
+            "full_call_reallocations": [
+              419
+            ],
+            "post_first_output_allocations": [
+              {
+                "allocations": 378,
+                "deallocations": 0,
+                "reallocations": 0,
+                "requested_bytes": 2898
+              },
+              {
+                "allocations": 378,
+                "deallocations": 0,
+                "reallocations": 0,
+                "requested_bytes": 2898
+              },
+              {
+                "allocations": 378,
+                "deallocations": 0,
+                "reallocations": 0,
+                "requested_bytes": 2898
+              }
+            ],
+            "value_capacity": [
+              65,
+              520
+            ]
+          },
+          "fused": {
+            "cold_wall_ns_median": 8077124,
+            "cold_plus_call_wall_ns_median": 13471185,
+            "first_ack_ns_median": 1401658,
+            "full_call_allocations": [
+              13804
+            ],
+            "full_call_reallocations": [
+              562
+            ],
+            "post_first_output_allocations": [
+              {
+                "allocations": 378,
+                "deallocations": 0,
+                "reallocations": 0,
+                "requested_bytes": 2898
+              },
+              {
+                "allocations": 378,
+                "deallocations": 0,
+                "reallocations": 0,
+                "requested_bytes": 2898
+              },
+              {
+                "allocations": 378,
+                "deallocations": 0,
+                "reallocations": 0,
+                "requested_bytes": 2898
+              }
+            ],
+            "value_capacity": [
+              65,
+              520
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "interrupted_capture": "runtime-fusion-01 was intentionally terminated after a CI refusal-surface regression; its failed status is not performance evidence"
+}
