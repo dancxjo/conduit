@@ -66,3 +66,22 @@ builder retained the unchanged production runtime resource entry: the baseline
 was refused and the optimized bytes were accepted with their exact digest.
 This isolates the reported byte-bound failure; full staged-application lifecycle
 proof remains the Integration lane's responsibility.
+
+## Sealed artifact selection in browser proof
+
+Integration 39001070542 on 24215b7720144ff88c51cf874e734cefe1970549
+successfully built an 18971309-byte optimized release from a 21208693-byte linked
+module, but 34 browser specifications failed because standalone Host and
+Patchbay fixtures selected the preserved raw Cargo module above 20 MiB.
+
+The browser lane now passes its existing sealed `runtime.wasm` through the
+existing `CONDUIT_BROWSER_RUNTIME_WASM` selector to Playwright and its children.
+The proof static server explicitly aliases the legacy Cargo runtime request URI
+to that same selected artifact. Direct-fetch proof receipts therefore identify
+the sealed bytes checked by the existing evidence collectors. The Cargo file
+remains unchanged for diagnostics. A missing or invalid explicit selection
+refuses instead of falling back to raw bytes. Without the selector, standalone
+static proof serving retains its existing raw-Cargo behavior.
+
+The 20 MiB admission bound, assertions, one Chromium worker and zero retries remain
+unchanged. The original 34-failure run remains failure evidence, not acceptance.
