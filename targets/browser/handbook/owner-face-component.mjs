@@ -72,6 +72,22 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
     supportsAction = () => true } = {}) {
     const focusState = this.#focusedState() ?? this.#pendingFocus;
     const focusedKey = focusState?.key;
+    const disclosures = new Map();
+    if (this.#render && typeof view.body_id === 'string' && view.body_id) {
+      for (const node of this.#surface.querySelectorAll('details[data-owner-disclosure]')) {
+        disclosures.set(node.dataset.ownerDisclosure, node.open);
+      }
+    }
+    const localDetails = (subject, kind, label) => {
+      const details = document.createElement('details');
+      const key = JSON.stringify([view.body_id, 'details', subject, kind]);
+      details.dataset.ownerDisclosure = key;
+      details.open = disclosures.get(key) ?? false;
+      const summary = faceNode('summary', label);
+      summary.dataset.ownerFocus = key;
+      details.append(summary);
+      return details;
+    };
     const drafts = new Map();
     // Temporary refresh/preparation disables controls without submitting them.
     // A dispatched or disconnected encounter starts with fresh input.
@@ -235,8 +251,7 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
       const flags = Array.isArray(subject.flags) ? subject.flags.filter(flag =>
         typeof flag?.name === 'string' && typeof flag.value === 'boolean') : [];
       if (subject.properties.length || flags.length) {
-        const details = document.createElement('details');
-        details.append(faceNode('summary', 'Exact facts'));
+        const details = localDetails(subject.identity, 'facts', 'Exact facts');
         const list = document.createElement('ul');
         for (const property of subject.properties) {
           const item = document.createElement('li'); item.textContent = property; list.append(item);
@@ -273,9 +288,9 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
       if (open.length) section.append(openList);
       else section.append(faceNode('p', 'Nothing left to do.', 'owner-face-empty'));
       if (completed.length) {
-        const details = document.createElement('details');
+        const details = localDetails(collection.identity, 'completed',
+          `Show ${completed.length} completed ${completed.length === 1 ? 'item' : 'items'}`);
         details.className = 'owner-face-completed';
-        details.append(faceNode('summary', `Show ${completed.length} completed ${completed.length === 1 ? 'item' : 'items'}`));
         const completedList = document.createElement('ol');
         completedList.className = 'owner-face-items';
         completedList.setAttribute('aria-label', `Completed items in ${collection.name}`);
@@ -299,13 +314,10 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
     }
     const hasApplication = collections.length > 0 || view.subjects.some(subject =>
       !['Body', 'Plot'].includes(subject.role) && subject.disclosure === 'Primary');
-    const bodyMenu = document.createElement('details');
+    const bodyMenu = localDetails(null, 'body-menu', 'Body');
     bodyMenu.dataset.bodyMenu = '';
-    bodyMenu.open = this.#surface.querySelector('[data-body-menu]')?.open ?? false;
-    bodyMenu.append(faceNode('summary', 'Body'));
     const choiceGroups = [];
-    const inspection = document.createElement('details');
-    inspection.append(faceNode('summary', 'Inspect other Face subjects'));
+    const inspection = localDetails(null, 'inspection', 'Inspect other Face subjects');
     for (const group of view.subjects) {
       if (group.semantic_role !== 'conduit.face/choice-group@1'
         || group.choice_multiplicity !== 'exclusive' || group.values?.length || group.properties?.length
@@ -378,8 +390,7 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
     if (bodyMenu.children.length > 1) documentNode.append(bodyMenu);
     if (inspection.children.length > 1) documentNode.append(inspection);
     if (view.relationships.length) {
-      const relations = document.createElement('details');
-      relations.append(faceNode('summary', 'How these parts relate'));
+      const relations = localDetails(null, 'relationships', 'How these parts relate');
       const list = document.createElement('ul');
       for (const relationship of view.relationships) {
         const item = document.createElement('li');
@@ -391,8 +402,7 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
     if (view.actions.length) {
       const actions = document.createElement('section');
       actions.append(faceNode('h4', 'What you can do'));
-      const secondary = document.createElement('details');
-      secondary.append(faceNode('summary', 'More actions and unavailable controls'));
+      const secondary = localDetails(null, 'secondary-actions', 'More actions and unavailable controls');
       for (const action of view.actions) {
         if (renderedActions.has(action.identity)) continue;
         const container = actionReady(action)

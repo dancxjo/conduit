@@ -975,3 +975,59 @@ for (const membership of ['partial', 'duplicate', 'duplicate-without-status', 'w
       action: currentView.actions[0], arguments: [] }]);
   });
 }
+
+for (const kind of ['facts', 'completed']) {
+  test(`local ${kind} disclosure survives refresh within its encounter`, async ({ page }) => {
+    await page.goto('/proof/browser/signal-dom-host.test.html');
+    const currentView = kind === 'facts' ? { ...view, subjects: [{ ...view.subjects[0], properties: ['Authored fact'] }] }
+      : { ...view, subjects: [
+        { ...view.subjects[0], identity: 'fixture/list', name: 'Tasks', role: 'Collection', values: [] },
+        { ...view.subjects[0], role: 'Item', name: 'Archived task', values: [], disclosure: 'SelectedDetail',
+          flags: [{ name: 'complete', value: true }] },
+        { ...view.subjects[0], identity: 'fixture/status', role: 'Status', values: [], text: ['0 things left · 1 completed'] },
+      ], relationships: ['fixture/task', 'fixture/status'].map(target => ({ kind: 'Contains', source: 'fixture/list', target })),
+      actions: [{ ...view.actions[0], name: 'Reopen' }],
+    };
+    await page.evaluate(async view => {
+      const { projectFaceCollections } = await import('/targets/browser/handbook/owner-participation.mjs');
+      document.body.replaceChildren(); globalThis.calls = [];
+      const element = document.createElement('conduit-owner-face'); document.body.append(element);
+      globalThis.refreshDisclosure = next => element.show(next, { projectCollections: projectFaceCollections,
+        invoke: async call => { globalThis.calls.push(call); } });
+      globalThis.refreshDisclosure(view);
+    }, currentView);
+    const element = page.locator('conduit-owner-face');
+    const summary = element.getByText(kind === 'facts' ? 'Exact facts' : 'Show 1 completed item', { exact: true });
+    await summary.focus(); await page.keyboard.press('Enter');
+    await expect.poll(() => summary.evaluate(node => node.parentElement.open)).toBe(true);
+    const keptFocus = kind === 'facts' ? summary : element.getByRole('button', { name: /^Reopen/ });
+    await keptFocus.focus();
+    const next = { ...currentView, face_revision: 2, show_id: 'fixture/disclosure-refresh' };
+    await page.evaluate(next => {
+      globalThis.refreshDisclosure({ ...next, show_state: 'prepared', interactions_admitted: false });
+      globalThis.refreshDisclosure(next);
+    }, next);
+    await expect.poll(() => summary.evaluate(node => node.parentElement.open)).toBe(true);
+    await expect(keptFocus).toBeFocused();
+    await summary.focus();
+    await page.keyboard.press('Enter');
+    await page.evaluate(next => globalThis.refreshDisclosure(next), next);
+    await expect.poll(() => summary.evaluate(node => node.parentElement.open)).toBe(false);
+    await expect(summary).toBeFocused();
+    await page.keyboard.press('Enter');
+    const other = { ...next, body_id: 'fixture/other-body' };
+    await page.evaluate(next => globalThis.refreshDisclosure(next), other);
+    await expect.poll(() => summary.evaluate(node => node.parentElement.open)).toBe(false);
+    await expect(summary).not.toBeFocused();
+    await summary.focus(); await page.keyboard.press('Enter');
+    await element.evaluate((node, next) => {
+      node.remove(); document.body.append(node); globalThis.refreshDisclosure(next);
+    }, other);
+    await expect.poll(() => summary.evaluate(node => node.parentElement.open)).toBe(false);
+    expect(await page.evaluate(() => globalThis.calls)).toEqual([]);
+    if (kind === 'completed') { await summary.focus(); await page.keyboard.press('Enter'); }
+    const action = element.getByRole('button', { name: kind === 'facts' ? 'Complete task' : /^Reopen/ });
+    await action.focus(); await page.keyboard.press('Enter');
+    expect(await page.evaluate(() => globalThis.calls)).toEqual([{ view: other, action: other.actions[0], arguments: [] }]);
+  });
+}

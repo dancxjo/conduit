@@ -305,3 +305,17 @@ Chromium uses one worker and zero retries. The new cases include absent count
 provenance, retained owner wording and trusted keyboard invocation through one
 current action. The positive plain Todo count projection still passes. This is
 renderer/projector evidence, not source-Plot/Body or packaged/public acceptance.
+
+Local disclosure continuity (#5631): native details now carry private keys scoped
+to Body, subject and disclosure kind. Exact facts, completed items and the shared
+inspection/action menus retain open/closed state through ordinary and prepared
+refreshes; summaries participate in local focus restoration. Body changes or a
+disconnect start fresh. This is native reading/navigation state, not a new Face
+action or a change to source disclosure/interaction authority.
+
+Both facts/completed disclosure regressions reproduced before repair. All
+fifty-eight component Chromium tests pass with one worker and zero retries.
+The new cases exercise keyboard opening/closing, summary or completed-action
+focus through preparation, Body changes and disconnect, zero callbacks from local
+operations, and subsequent trusted action activation. Renderer fixtures do not
+establish actual Body state, assistive-technology or packaged/public acceptance.
