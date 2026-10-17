@@ -6,6 +6,8 @@ import { fileURLToPath } from "node:url";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)));
 const RELEASE_SCHEMA = "conduit.release/host-bundle@1";
 const IMAGE_PATH = "conduit-browser-image.json";
+const MAXIMUM_RUNTIME_BYTES = 20 * 1024 * 1024;
+const RUNTIME_HEADER = [0, 97, 115, 109, 1, 0, 0, 0];
 const encoder = new TextEncoder();
 const HOST_ASSETS = path.resolve(ROOT, "../host/assets");
 
@@ -44,12 +46,15 @@ if (!Array.isArray(release.files) || release.files.length < 1 || release.files.l
   throw new Error("BrowserBundle package exceeds its finite file bound or has an incomplete IMAGE closure");
 }
 const imagePaths = new Set([...image.files.map((item) => item.path), IMAGE_PATH]);
-if (imagePaths.size !== release.files.length || release.files.some((item) => !imagePaths.has(item.path))) {
-  throw new Error("BrowserBundle package contains undeclared files outside the exact IMAGE");
+const releasePaths = new Set(release.files.map(item => item.path));
+if (imagePaths.size !== release.files.length || releasePaths.size !== release.files.length
+  || release.files.some((item) => !imagePaths.has(item.path))) {
+  throw new Error("BrowserBundle package contains duplicate or undeclared files outside the exact IMAGE");
 }
 if (await digestFiles(release.files) !== release.bundle_sha256) {
   throw new Error("BrowserBundle release content digest is invalid");
 }
+if (!releasePaths.has("runtime.wasm")) throw new Error("BrowserBundle has no browser runtime");
 
 // The public destination appears only after its complete package is ready.
 await mkdir(path.dirname(outputRoot), { recursive: true });
@@ -63,6 +68,9 @@ try {
       || !/^sha256:[0-9a-f]{64}$/.test(file.sha256 ?? "")) {
       throw new Error(`BrowserBundle file ${file.path} has invalid bounded identity metadata`);
     }
+    if (file.path === "runtime.wasm" && file.bytes > MAXIMUM_RUNTIME_BYTES) {
+      throw new Error("BrowserBundle runtime exceeds the browser consumer 20 MiB ceiling");
+    }
     const source = path.resolve(bundleRoot, file.path);
     if (!source.startsWith(`${bundleRoot}${path.sep}`)) throw new Error("BrowserBundle path escaped its source directory");
     const metadata = await lstat(source);
@@ -71,6 +79,10 @@ try {
     }
     const bytes = file.path === IMAGE_PATH ? manifests[2].bytes : new Uint8Array(await readFile(source));
     if (await sha256(bytes) !== file.sha256) throw new Error(`BrowserBundle asset ${file.path} failed digest verification`);
+    if (file.path === "runtime.wasm" && (bytes.byteLength < RUNTIME_HEADER.length
+      || RUNTIME_HEADER.some((byte, index) => bytes[index] !== byte))) {
+      throw new Error("BrowserBundle runtime has an invalid Wasm version header");
+    }
     totalBytes += bytes.byteLength;
     if (totalBytes > 48 * 1024 * 1024) throw new Error("BrowserBundle exceeds the reviewed 48 MiB package bound");
     const destination = path.join(stageRoot, "bundle", file.path);

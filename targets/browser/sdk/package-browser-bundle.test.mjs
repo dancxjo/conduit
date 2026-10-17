@@ -141,6 +141,56 @@ try {
   assert.notEqual(unsafe.status, 0);
   assert.match(unsafe.stderr, /Unsafe application path/);
 
+  // These are envelope fixtures, not executable runtime/ABI proof.
+  const maximumRuntimeBytes = 20 * 1024 * 1024;
+  const atCeiling = new Uint8Array(maximumRuntimeBytes); atCeiling.set(runtime);
+  const oversized = new Uint8Array(maximumRuntimeBytes + 1); oversized.set(runtime);
+  const wrongMagic = runtime.slice(); wrongMagic[0] = 1;
+  const wrongVersion = runtime.slice(); wrongVersion[4] = 2;
+  const runtimeCases = [
+    { name: "ceiling", bytes: atCeiling, accepted: true },
+    { name: "oversized", bytes: oversized, error: /20 MiB/ },
+    { name: "truncated", bytes: runtime.slice(0, 7), error: /Wasm.*header/ },
+    { name: "magic", bytes: wrongMagic, error: /Wasm.*header/ },
+    { name: "version", bytes: wrongVersion, error: /Wasm.*header/ },
+    { name: "missing", bytes: null, error: /no.*runtime/ },
+    { name: "duplicate", bytes: runtime, duplicate: true, error: /duplicate/ },
+  ];
+  const runtimeResults = [];
+  for (const entry of runtimeCases) {
+    const variantSource = path.join(scratch, `runtime-${entry.name}`);
+    const variantOutput = path.join(scratch, `runtime-${entry.name}-package`);
+    await mkdir(variantSource);
+    const variantRuntime = entry.bytes ? await fileIdentity("runtime.wasm", entry.bytes) : null;
+    const variantDistributionFiles = variantRuntime ? [variantRuntime, bootFile] : [bootFile];
+    const variantDigest = await digestFiles(variantDistributionFiles);
+    const variantImage = { ...image, files: variantDistributionFiles,
+      reviewed_distribution: { ...image.reviewed_distribution, distribution_digest: variantDigest } };
+    const variantImageBytes = new TextEncoder().encode(JSON.stringify(variantImage));
+    const variantFiles = [...(entry.duplicate ? [variantRuntime, variantRuntime] : variantDistributionFiles),
+      await fileIdentity("conduit-browser-image.json", variantImageBytes)];
+    await writeFile(path.join(variantSource, "browser-page.json"), JSON.stringify({ ...distribution,
+      files: variantDistributionFiles, bundle_sha256: variantDigest }));
+    await writeFile(path.join(variantSource, "browser-bundle-release.json"), JSON.stringify({ ...release,
+      distribution_sha256: variantDigest, files: variantFiles, bundle_sha256: await digestFiles(variantFiles) }));
+    await writeFile(path.join(variantSource, "conduit-browser-image.json"), variantImageBytes);
+    await writeFile(path.join(variantSource, "browser-boot-profile.mjs"), boot);
+    if (entry.bytes) await writeFile(path.join(variantSource, "runtime.wasm"), entry.bytes);
+    const before = (await readdir(scratch)).sort();
+    const result = spawnSync(process.execPath, [path.join(root, "package-browser-bundle.mjs"), variantSource, variantOutput], { encoding: "utf8" });
+    runtimeResults.push({ name: entry.name, accepted: result.status === 0 });
+    if (result.status !== 0) {
+      assert.match(result.stderr, entry.error);
+      await assert.rejects(lstat(variantOutput), { code: "ENOENT" });
+      assert.deepEqual((await readdir(scratch)).sort(), before);
+    } else if (entry.accepted) {
+      const bytes = await readFile(path.join(variantOutput, "bundle/runtime.wasm"));
+      assert.equal(bytes.length, maximumRuntimeBytes);
+      assert.equal(await sha256(bytes), variantRuntime.sha256);
+    }
+  }
+  assert.deepEqual(runtimeResults, runtimeCases.map(entry => ({ name: entry.name, accepted: entry.accepted === true })));
+
   // Refusal after copying the first asset must not publish a partial package.
   const retryOutput = path.join(scratch, "retryable");
   await chmod(path.join(source, "browser-page.json"), 0o600);
