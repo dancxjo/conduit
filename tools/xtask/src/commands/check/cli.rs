@@ -58,6 +58,8 @@ pub enum CheckSuite {
     ModelInference,
     /// Prove exact Angle-to-radian reference transport and certified numerical realization.
     AngleReference,
+    /// Prove first-class physical values, derived quantities and installed Plan/Play.
+    PhysicalValues,
     /// Prove exact inverse Angle Source, error bounds and installed kernel execution.
     InverseAngle,
     /// Prove authored finite acoustic state and PCM transport through the production kernel.

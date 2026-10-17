@@ -1,0 +1,55 @@
+# Reviewed first-class Dimension/Unit/Quantity transport and dimensional arithmetic.
+dimension travel
+dimension clock
+dimension velocity = travel / clock
+type Motion = quantity { dimension: velocity }
+unit stepper : Motion = { reference: origin, scale: 1 }
+unit doublestep : Motion = { reference: stepper, scale: 2 }
+
+type PhysicalTriad = {
+    dimension: Dimension
+    coordinate: Unit
+    magnitude: Quantity
+}
+plot emit (
+    dimension: Dimension
+    coordinate: Unit
+    magnitude: Quantity
+    >> tick: Boolean
+    result: PhysicalTriad >>
+) = ({ dimension: dimension, coordinate: coordinate, magnitude: magnitude })
+plot relay (
+    >> value: PhysicalTriad <=8192B
+    result: PhysicalTriad >>
+) = ({ dimension: .dimension, coordinate: .coordinate, magnitude: .magnitude })
+plot demo (
+    >> tick: Boolean
+    result: PhysicalTriad >>
+) {
+    initial: emit(dimension = velocity, coordinate = stepper, magnitude = 3stepper)
+    copy: relay
+    tick >> initial.tick
+    initial.result >> copy.value
+    copy.result >> result
+}
+
+plot demo-other (
+    >> tick: Boolean
+    result: PhysicalTriad >>
+) {
+    initial: emit(dimension = velocity, coordinate = stepper, magnitude = 1.5doublestep)
+    copy: relay
+    tick >> initial.tick
+    initial.result >> copy.value
+    copy.result >> result
+}
+
+# The result derives Length/Time; it does not silently become a named family.
+plot speed (
+    >> distance: Distance
+    result: Quantity >>
+) = (distance / 2s)
+plot area (
+    >> distance: Distance
+    result: Quantity >>
+) = (distance * 2m)

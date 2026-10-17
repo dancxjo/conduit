@@ -10,6 +10,8 @@ mod dsp_shared_compositions;
 mod inverse_angle;
 #[path = "../suites/model_inference.rs"]
 mod model_inference;
+#[path = "../suites/physical_values.rs"]
+mod physical_values;
 #[path = "../suites/print_pool.rs"]
 mod print_pool;
 #[path = "../suites/speech_ipa.rs"]
@@ -107,6 +109,7 @@ pub fn run(args: CheckArgs, opts: &GlobalOpts) -> Result<(), StepError> {
         CheckSuite::PrintPool => run_suite(print_pool::STEPS, &root, opts),
         CheckSuite::DspSharedCompositions => run_suite(dsp_shared_compositions::STEPS, &root, opts),
         CheckSuite::SpeechIpa => run_suite(speech_ipa::STEPS, &root, opts),
+        CheckSuite::PhysicalValues => run_suite(physical_values::STEPS, &root, opts),
         CheckSuite::AngleReference => run_suite(angle_reference::STEPS, &root, opts),
         CheckSuite::InverseAngle => run_suite(inverse_angle::STEPS, &root, opts),
         CheckSuite::TodoSpeech => run_suite(todo_speech::STEPS, &root, opts),

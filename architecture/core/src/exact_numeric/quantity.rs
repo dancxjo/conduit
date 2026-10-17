@@ -9,6 +9,7 @@ use core::cmp::Ordering;
 
 mod arithmetic;
 mod enclosure;
+mod product;
 mod projection;
 mod receipt;
 pub use enclosure::*;
