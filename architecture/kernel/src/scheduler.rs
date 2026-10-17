@@ -938,6 +938,7 @@ pub struct FixedScheduler<
     pending_host_calls: [Option<PendingHostCall>; PENDING_REQUESTS],
     pending_host_count: usize,
     undispatched_host_count: u32,
+    undispatched_cancellation_count: u32,
     pending_host_slots: [Option<core::num::NonZeroU32>; NODES],
     drivers: [D; NODES],
     values: S,
@@ -1048,6 +1049,7 @@ where
             pending_host_calls: [None; PENDING_REQUESTS],
             pending_host_count: 0,
             undispatched_host_count: 0,
+            undispatched_cancellation_count: 0,
             pending_host_slots: [None; NODES],
             drivers,
             values,
@@ -1775,16 +1777,23 @@ where
     }
 
     pub fn next_host_cancellation(&mut self) -> Option<HostCallCancellation> {
-        let pending = self
-            .pending_host_calls
-            .iter_mut()
-            .flatten()
-            .find(|pending| {
-                pending.cancellation_requested
-                    && !pending.cancellation_dispatched
-                    && pending.completion.is_none()
-            })?;
+        if self.undispatched_cancellation_count == 0 {
+            return None;
+        }
+        let pending_entries = self.pending_host_calls.iter_mut();
+        #[cfg(test)]
+        let pending_entries = pending_entries.inspect(|_| {
+            let mut counts = self.scan_counts.get();
+            counts.cancellation_pending_slots += 1;
+            self.scan_counts.set(counts);
+        });
+        let pending = pending_entries.flatten().find(|pending| {
+            pending.cancellation_requested
+                && !pending.cancellation_dispatched
+                && pending.completion.is_none()
+        })?;
         pending.cancellation_dispatched = true;
+        self.undispatched_cancellation_count -= 1;
         Some(HostCallCancellation {
             node: pending.request.node,
             request: pending.request.request,
@@ -1833,6 +1842,9 @@ where
             self.values.get(output.value)?;
         }
         self.ensure_sign_capacity(1)?;
+        if pending.cancellation_requested && !pending.cancellation_dispatched {
+            self.undispatched_cancellation_count -= 1;
+        }
         // Input ownership remains with the pending completion until its node
         // commits the resume step. That transaction may reuse the same exact
         // value for a re-armed bounded Host request.
@@ -2711,6 +2723,7 @@ where
                 })
                 .ok_or(SchedulerError::HostCallCancellationRejected)?;
             pending.cancellation_requested = true;
+            self.undispatched_cancellation_count += 1;
             self.signs.record(
                 NodeId(as_u16(node)?),
                 None,

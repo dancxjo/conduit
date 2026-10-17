@@ -129,3 +129,29 @@ retirement. Alloc/reference-ready suites each pass 182 tests; 20 fixed-only Host
 tests and strict all-target kernel Clippy pass. Polling with unmatched
 undispatched work and free-slot search remain linear. This is work-bound proof,
 not a fresh timing, layout or full #5231 acceptance claim.
+
+
+## Skip cancellation polls without dispatchable obligations
+
+A bounded u32 count tracks requested, undispatched cancellations whose Host
+outcome has not arrived. Cancellation commit increments it; cancellation
+dispatch decrements it. Accepted completion withdraws an undispatched
+cancellation only after output and Sign admission succeed. Failed completion
+therefore preserves it. Global retirement clears the count, and both
+preparation paths initialize it. Underlying pending/retained request occupancy
+remains independent. Existing cancellation selection order is unchanged.
+
+The 4,096-slot regression failed before repair. The focused polling fixture
+checks empty and ordinary pending tables, cancellation dispatch, completion
+before cancellation dispatch, invalid-output refusal followed by cancellation,
+and global retirement. Lifecycle oracles compare the count with actual
+eligible table entries in fixed and hosted profiles. Alloc/reference-ready
+kernel suites each pass 183 tests; 21 fixed-only Host tests and strict
+all-target kernel Clippy pass, after integrating the current dev private-image
+bound fix. No CI or physical acceptance is inferred.
+
+This adds one u32 scheduler field, with enclosing padding unmeasured. Polling
+with no dispatchable cancellation reads no pending slots. Selection with a live
+cancellation remains linear, and no fresh wall-clock speedup is claimed. Test
+fixtures share the existing cancellation builder through test-local visibility;
+no production fixture or alternate runtime was added.

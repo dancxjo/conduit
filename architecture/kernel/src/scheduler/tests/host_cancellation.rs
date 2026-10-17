@@ -2,7 +2,7 @@ extern crate std;
 use super::*;
 
 #[derive(Clone, Copy, Debug)]
-enum CancellationBack {
+pub(super) enum CancellationBack {
     Reset {
         initial: ValueRef,
         replacement: Option<ValueRef>,
@@ -111,13 +111,13 @@ struct Normalized {
     saw_cancellation: bool,
 }
 
-type CancellationScheduler<S, E, const P: usize = 1> =
+pub(super) type CancellationScheduler<S, E, const P: usize = 1> =
     FixedScheduler<CancellationBack, S, E, 2, 1, 2, 1, 4, 1, 2, P>;
 
 fn scheduler<S: ValueStorage, E: SignSink>(values: S, signs: E) -> CancellationScheduler<S, E> {
     scheduler_with_pending::<S, E, 1>(values, signs)
 }
-fn scheduler_with_pending<S: ValueStorage, E: SignSink, const P: usize>(
+pub(super) fn scheduler_with_pending<S: ValueStorage, E: SignSink, const P: usize>(
     mut values: S,
     signs: E,
 ) -> CancellationScheduler<S, E, P> {
@@ -197,6 +197,17 @@ fn assert_pending_count<S: ValueStorage, E: SignSink>(
     assert_eq!(
         scheduler.pending_host_calls.iter().flatten().count(),
         expected
+    );
+    assert_eq!(
+        scheduler.undispatched_cancellation_count as usize,
+        scheduler
+            .pending_host_calls
+            .iter()
+            .flatten()
+            .filter(|pending| pending.cancellation_requested
+                && !pending.cancellation_dispatched
+                && pending.completion.is_none())
+            .count()
     );
     for node in 0..scheduler.active_nodes {
         let actual = scheduler.pending_host_calls.iter().position(|pending| {

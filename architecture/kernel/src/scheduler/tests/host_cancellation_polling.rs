@@ -1,0 +1,74 @@
+//! Cancellation adapter polling and completion races over a large reserved table.
+extern crate std;
+use super::host_cancellation::scheduler_with_pending;
+use super::*;
+
+#[test]
+fn cancellation_polling_skips_absent_settled_and_dispatched_obligations() {
+    std::thread::Builder::new()
+        .stack_size(8 * 1024 * 1024)
+        .spawn(|| {
+            for race in 0..3 {
+                let mut scheduler = scheduler_with_pending::<_, _, 4096>(
+                    FixedValueStore::<4, 8>::new(32).unwrap(),
+                    FixedSignLog::<64>::new(64 * core::mem::size_of::<crate::KernelEvent>() as u32)
+                        .unwrap(),
+                );
+                assert!(scheduler.next_host_cancellation().is_none());
+                assert_eq!(scheduler.scan_counts.get().cancellation_pending_slots, 0);
+                scheduler.step().unwrap();
+                let request = scheduler.next_host_request().unwrap();
+                scheduler.scan_counts.set(Default::default());
+                assert!(scheduler.next_host_cancellation().is_none());
+                assert_eq!(scheduler.scan_counts.get().cancellation_pending_slots, 0);
+                scheduler.step().unwrap();
+                scheduler.step().unwrap();
+                let outcome = HostCallOutcome {
+                    disposition: HostCallDisposition::Cancelled,
+                    output: None,
+                    failure: None,
+                };
+                if race == 1 {
+                    scheduler
+                        .complete_host_call(request.node, request.request, outcome)
+                        .unwrap();
+                    scheduler.scan_counts.set(Default::default());
+                    assert!(scheduler.next_host_cancellation().is_none());
+                    assert_eq!(scheduler.scan_counts.get().cancellation_pending_slots, 0);
+                    assert_eq!(scheduler.pending_host_call_count(), 1);
+                } else {
+                    if race == 2 {
+                        assert_eq!(
+                            scheduler.complete_host_call(
+                                request.node,
+                                request.request,
+                                HostCallOutcome {
+                                    output: Some(request.input),
+                                    ..outcome
+                                }
+                            ),
+                            Err(SchedulerError::HostCallOutputExceeded)
+                        );
+                    }
+                    let cancellation = scheduler.next_host_cancellation().unwrap();
+                    assert_eq!(
+                        (cancellation.node, cancellation.request),
+                        (request.node, request.request)
+                    );
+                    scheduler.scan_counts.set(Default::default());
+                    assert!(scheduler.next_host_cancellation().is_none());
+                    assert_eq!(scheduler.scan_counts.get().cancellation_pending_slots, 0);
+                    scheduler
+                        .complete_host_call(request.node, request.request, outcome)
+                        .unwrap();
+                }
+                scheduler.cancel().unwrap();
+                scheduler.scan_counts.set(Default::default());
+                assert!(scheduler.next_host_cancellation().is_none());
+                assert_eq!(scheduler.scan_counts.get().cancellation_pending_slots, 0);
+            }
+        })
+        .unwrap()
+        .join()
+        .unwrap();
+}
