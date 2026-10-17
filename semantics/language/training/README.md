@@ -88,3 +88,8 @@ speech/prosody behavior, public Session, stable frontier or committed frontier
 is claimed. Numeric microbenchmarks exclude feature extraction, Plan preparation,
 checked transitions and end-to-end latency. The exact source revision, lexical
 choice, model and analysis custody must be proved by #5754 before downstream use.
+
+`numeric_evidence.json` retains the local unoptimized Rust observation: 63 numeric
+invocations, 866,905 ns total, 15,412 ns maximum, 1,368 reported working bytes,
+and 6,364 KiB process RSS/HWM. These are numeric microbenchmarks, not parser
+latency or a whole-process memory bound.
