@@ -333,3 +333,53 @@ activation. Successful custom-radio tests guard the reviewed label/input
 pattern. Synthetic events are limited to adversarial refusal fixtures. This
 proves renderer callback fencing, not arbitrary CSS accessibility, authoritative
 Body state, assistive-technology enactment or full #5632 acceptance.
+
+Focus-reachability follow-up (#5632): refresh restoration now uses the same
+connected/disabled/inert/visibility/opacity guard as dispatch. Custom radio
+restoration checks its visible label while retaining native input checks. An
+invisible enabled encounter discards the pending request; becoming visible
+later cannot cause an unsolicited focus jump.
+
+The transparent-encounter fixture reproduced restored keyboard focus before
+repair. All 62 pinned Chromium component fixtures pass with one worker and zero
+retries, including normal visible refresh, text selection, external-focus
+protection and custom radios. This proves renderer focus behavior without
+callbacks, not arbitrary CSS accessibility or authoritative Body acceptance.
+
+Argument-reachability follow-up (#5644/#5632): form submission now requires
+every argument input/select to pass the same connected, disabled, inert and
+visibility/opacity guard as the submit control. A reachable button alone cannot
+admit values from controls the person cannot edit. Typed-domain and UTF-8 checks
+remain unchanged and execute after this guard.
+
+Disabled, inert, hidden and transparent text inputs all reproduced callback
+dispatch before repair. All 66 pinned Chromium component fixtures pass with one
+worker and zero retries. Each new negative fixture restores the field, enters
+visible text and verifies native Enter submission of that exact argument.
+Synthetic submit events only establish adversarial refusal. These callbacks
+are renderer evidence, not authoritative Body receipts or full issue acceptance.
+
+Composition follow-up (#5646/#5644): each form tracks active argument
+composition and refuses submission while any input is composing. The state is
+local to that render's existing finite argument controls; ending composition
+restores normal typed-domain/reachability validation and native submission.
+
+The adversarial fixture reproduced interim-text dispatch before repair. All 67
+pinned Chromium component fixtures pass with one worker and zero retries. The
+new case synthesizes composition/submit events only to establish refusal, then
+uses native text entry and Enter to verify exact Unicode plus sibling arguments.
+It does not prove an operating-system IME, authoritative Body receipt or full
+trusted Mask/Show round-trip acceptance.
+
+Argument identity/label follow-up (#5644): browser forms require unique nonblank
+argument names and nonblank semantic value labels before constructing controls.
+Absent/ambiguous identities cannot share a focus/draft key or produce duplicate
+callback arguments, and unnamed fields refuse through the existing unsupported
+form explanation. Unrelated current actions remain available.
+
+Missing names, blank names, duplicate names, missing labels and blank labels all
+reproduced enabled actions before repair. All 72 pinned Chromium component
+fixtures pass with one worker and zero retries. Each new case verifies disabled
+refusal without input construction or callback and native keyboard activation
+of an unrelated valid action. This proves renderer contract admission, not
+authoritative Body receipts or complete accessibility acceptance.

@@ -152,8 +152,16 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
       control.dataset.ownerAction = action.identity;
       if (!itemName) control.append(faceNode('h5', action.name));
       const inputs = [];
+      const composing = new Set();
       const argumentCount = Array.isArray(action.arguments) ? action.arguments.length : 0;
-      let supported = Array.isArray(action.arguments) && argumentCount <= 64;
+      const argumentNames = new Set();
+      let supported = Array.isArray(action.arguments) && argumentCount <= 64
+        && action.arguments.every(argument => {
+          if (typeof argument?.name !== 'string' || !argument.name.trim() || argumentNames.has(argument.name)
+            || typeof argument.value_name !== 'string' || !argument.value_name.trim()) return false;
+          argumentNames.add(argument.name);
+          return true;
+        });
       for (const argument of supported ? action.arguments : []) {
         if (!argument || !Number.isSafeInteger(argument.maximum_bytes)
           || argument.maximum_bytes < 0 || argument.maximum_bytes > 4096) {
@@ -188,6 +196,8 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
           supported = false;
           continue;
         }
+        input.addEventListener('compositionstart', () => composing.add(input));
+        input.addEventListener('compositionend', () => composing.delete(input));
         label.setAttribute('part', 'label');
         input.setAttribute('part', 'input');
         input.dataset.ownerFocus = JSON.stringify([view.body_id, action.identity, action.target, 'argument', argument.name]);
@@ -215,10 +225,11 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
       control.addEventListener('submit', async event => {
         event.preventDefault();
         if (!this.#reachable(button) || !this.#ready(view, action, render) || !this.#invoke
-          || !supported || inputs.length !== argumentCount) return;
+          || !supported || inputs.length !== argumentCount || composing.size) return;
         // A submit event can be synthetic, and script can change values without
         // firing input events. Recheck the admitted argument domain here.
         for (const { input, argument } of inputs) {
+          if (!this.#reachable(input)) return;
           if (argument.choices.length) {
             if (!argument.choices.includes(input.value)) return;
           }
@@ -450,7 +461,8 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
       const mayRestore = active === this || active === this.ownerDocument.body;
       this.#pendingFocus = undefined;
       if (mayRestore && current) {
-        if (!current.disabled && current.checkVisibility({ visibilityProperty: true })) {
+        const visibleControl = current.matches('input[type=radio]') ? current.closest('label') : current;
+        if (this.#reachable(current, visibleControl)) {
           current.focus();
           if (current.value === focusState.value && Number.isInteger(focusState.start)
             && Number.isInteger(focusState.end) && typeof current.setSelectionRange === 'function') {

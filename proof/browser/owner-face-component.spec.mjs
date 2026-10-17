@@ -736,12 +736,18 @@ test(`Handbook refresh preserves current controls and refuses interrupted ${inte
 });
 }
 
-for (const malformed of ['missing', 'non-array', 'negative-bound', 'choice-bytes', 'too-many']) {
+for (const malformed of ['missing', 'non-array', 'negative-bound', 'choice-bytes', 'too-many',
+  'missing-name', 'empty-name', 'duplicate-name', 'missing-label', 'empty-label']) {
   test(`malformed owner argument contracts refuse without losing other actions (${malformed})`, async ({ page }) => {
     await page.goto('/proof/browser/signal-dom-host.test.html');
     const broken = { ...view.actions[0], identity: 'fixture/broken', name: 'Broken action', arguments: [{
       name: 'value', value_name: 'Value', value_kind: 'value/text', maximum_bytes: 4, choices: [],
     }] };
+    if (malformed === 'missing-name') delete broken.arguments[0].name;
+    if (malformed === 'empty-name') broken.arguments[0].name = '   ';
+    if (malformed === 'duplicate-name') broken.arguments.push({ ...broken.arguments[0], value_name: 'Other value' });
+    if (malformed === 'missing-label') delete broken.arguments[0].value_name;
+    if (malformed === 'empty-label') broken.arguments[0].value_name = '   ';
     if (malformed === 'missing') delete broken.arguments;
     if (malformed === 'non-array') broken.arguments = {};
     if (malformed === 'too-many') broken.arguments = Array.from({ length: 65 }, (_, index) => ({
@@ -1034,3 +1040,94 @@ for (const kind of ['facts', 'completed']) {
     expect(await page.evaluate(() => globalThis.calls)).toEqual([{ view: other, action: other.actions[0], arguments: [] }]);
   });
 }
+
+test('owner refresh does not restore keyboard focus into a transparent encounter', async ({ page }) => {
+  await page.goto('/proof/browser/signal-dom-host.test.html');
+  await page.evaluate(async view => {
+    await import('/targets/browser/handbook/owner-face-component.mjs');
+    document.body.replaceChildren(); globalThis.calls = [];
+    const element = document.createElement('conduit-owner-face'); document.body.append(element);
+    element.show(view, { invoke: async call => { globalThis.calls.push(call); } });
+  }, view);
+  const element = page.locator('conduit-owner-face');
+  const action = element.getByRole('button', { name: 'Complete task', exact: true });
+  await action.focus();
+  await element.evaluate((node, view) => {
+    node.disabled = true;
+    node.style.opacity = '0';
+    node.show({ ...view, face_revision: 2, show_id: 'fixture/transparent-refresh' }, { invoke: async () => {} });
+  }, view);
+  await expect(action).not.toBeFocused();
+  await element.evaluate((node, view) => {
+    node.style.opacity = '';
+    node.show({ ...view, face_revision: 3, show_id: 'fixture/visible-refresh' }, { invoke: async () => {} });
+  }, view);
+  // Becoming visible does not revive a discarded focus request.
+  await expect(action).not.toBeFocused();
+  await action.focus();
+  await element.evaluate((node, view) => node.show(view, { invoke: async () => {} }), view);
+  await expect(action).toBeFocused();
+  expect(await page.evaluate(() => globalThis.calls)).toEqual([]);
+});
+
+for (const unavailable of ['disabled', 'inert', 'hidden', 'transparent']) {
+  test(`owner forms refuse unavailable argument controls (${unavailable})`, async ({ page }) => {
+    await page.goto('/proof/browser/signal-dom-host.test.html');
+    const inputView = { ...view, actions: [{ ...view.actions[0], arguments: [{ name: 'text', value_name: 'Text',
+      value_kind: 'value/text', maximum_bytes: 32, choices: [] }] }] };
+    await page.evaluate(async ({ view, unavailable }) => {
+      await import('/targets/browser/handbook/owner-face-component.mjs');
+      document.body.replaceChildren(); globalThis.calls = [];
+      const element = document.createElement('conduit-owner-face'); document.body.append(element);
+      element.show(view, { invoke: async call => { globalThis.calls.push(call); } });
+      const input = element.shadowRoot.querySelector('input'); input.value = 'unseen argument';
+      if (unavailable === 'disabled') input.disabled = true;
+      if (unavailable === 'inert') input.inert = true;
+      if (unavailable === 'hidden') input.hidden = true;
+      if (unavailable === 'transparent') input.style.opacity = '0';
+      // Adversarial submission cannot admit an argument the user cannot edit.
+      element.shadowRoot.querySelector('form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    }, { view: inputView, unavailable });
+    expect(await page.evaluate(() => globalThis.calls)).toEqual([]);
+    const element = page.locator('conduit-owner-face');
+    await element.evaluate(node => {
+      const input = node.shadowRoot.querySelector('input');
+      input.disabled = false; input.inert = false; input.hidden = false; input.style.opacity = '';
+    });
+    const input = element.getByRole('textbox', { name: 'Text', exact: true });
+    await input.fill('visible argument');
+    await page.keyboard.press('Enter');
+    expect(await page.evaluate(() => globalThis.calls)).toEqual([{ view: inputView, action: inputView.actions[0],
+      arguments: [{ name: 'text', value: 'visible argument' }] }]);
+  });
+}
+
+test('owner forms do not dispatch an argument while text composition is active', async ({ page }) => {
+  await page.goto('/proof/browser/signal-dom-host.test.html');
+  const inputView = { ...view, actions: [{ ...view.actions[0], arguments: ['first', 'second'].map(name => ({
+    name, value_name: name, value_kind: 'value/text', maximum_bytes: 32, choices: [] })) }] };
+  await page.evaluate(async view => {
+    await import('/targets/browser/handbook/owner-face-component.mjs');
+    document.body.replaceChildren(); globalThis.calls = [];
+    const element = document.createElement('conduit-owner-face'); document.body.append(element);
+    element.show(view, { invoke: async call => { globalThis.calls.push(call); } });
+  }, inputView);
+  const element = page.locator('conduit-owner-face');
+  await element.getByRole('textbox', { name: 'first', exact: true }).fill('interim text');
+  await element.getByRole('textbox', { name: 'second', exact: true }).fill('other argument');
+  await element.evaluate(node => {
+    const input = node.shadowRoot.querySelector('input');
+    input.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true, data: 'interim text' }));
+    // Deliberately adversarial: submitting another control cannot commit an
+    // argument whose input-method composition has not finished.
+    node.shadowRoot.querySelector('form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+  });
+  expect(await page.evaluate(() => globalThis.calls)).toEqual([]);
+  await element.evaluate(node => node.shadowRoot.querySelector('input')
+    .dispatchEvent(new CompositionEvent('compositionend', { bubbles: true, data: '日本語' })));
+  const first = element.getByRole('textbox', { name: 'first', exact: true });
+  await first.fill('日本語');
+  await page.keyboard.press('Enter');
+  expect(await page.evaluate(() => globalThis.calls)).toEqual([{ view: inputView, action: inputView.actions[0],
+    arguments: [{ name: 'first', value: '日本語' }, { name: 'second', value: 'other argument' }] }]);
+});
