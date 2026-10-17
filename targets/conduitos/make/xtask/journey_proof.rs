@@ -429,6 +429,17 @@ fn io_error(error: std::io::Error) -> ConduitosError {
     ConduitosError::refusal("face-journey-io", error.to_string())
 }
 
+/// Read the latest actual guest record; a missing or malformed record refuses.
+fn latest_workspace_view(path: &Path) -> Result<Value, ConduitosError> {
+    let serial = fs::read_to_string(path).map_err(io_error)?;
+    let encoded = serial
+        .lines()
+        .rev()
+        .find_map(|line| line.strip_prefix("CONDUIT_WORKSPACE_VIEW "))
+        .ok_or_else(|| refusal("Gear inspection lacks a workspace-view receipt"))?;
+    serde_json::from_str(encoded).map_err(|error| refusal(error.to_string()))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -448,15 +459,4 @@ mod tests {
         }).collect();
         assert!(validate(&records, "").is_err());
     }
-}
-
-/// Read the latest actual guest record; a missing or malformed record refuses.
-fn latest_workspace_view(path: &Path) -> Result<Value, ConduitosError> {
-    let serial = fs::read_to_string(path).map_err(io_error)?;
-    let encoded = serial
-        .lines()
-        .rev()
-        .find_map(|line| line.strip_prefix("CONDUIT_WORKSPACE_VIEW "))
-        .ok_or_else(|| refusal("Gear inspection lacks a workspace-view receipt"))?;
-    serde_json::from_str(encoded).map_err(|error| refusal(error.to_string()))
 }
