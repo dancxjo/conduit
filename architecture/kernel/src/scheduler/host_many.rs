@@ -160,6 +160,20 @@ fn run(cancel_all: bool) {
     assert!(!scheduler.has_ready_work());
     let mut cancellation_probes = [0; 2];
     for round in 0..2 {
+        if round == 1 {
+            // Request zero was real but has been consumed and rearmed as one.
+            let stale = HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
+                output: None,
+                failure: None,
+            };
+            assert_eq!(
+                scheduler.complete_host_call(NodeId(0), RequestId(0), stale),
+                Err(SchedulerError::HostCallCompletionRejected)
+            );
+            assert!(!scheduler.ready.contains(0));
+            assert_eq!(scheduler.pending_host_call_count(), N);
+        }
         for node in 0..N {
             assert_eq!(
                 scheduler.admit_remote_input(
