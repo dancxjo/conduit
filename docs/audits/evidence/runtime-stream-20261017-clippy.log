@@ -1,0 +1,6 @@
+COMMAND ['cargo', '+stable', 'clippy', '-p', 'conduit-runtime-performance', '--features', 'hosted-pipeline', '--all-targets', '--', '-D', 'warnings']
+    Checking conduit-runtime-performance v0.1.0 (/home/dancxjo/conduit/proof/performance/runtime)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.63s
+COMMAND ['cargo', '+stable', 'clippy', '-p', 'conduit-std-host', '--lib', '--', '-D', 'warnings']
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.14s
+COMMAND ['cargo', '+stable', 'fmt', '--all', '--', '--check']
