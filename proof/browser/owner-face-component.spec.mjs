@@ -801,17 +801,21 @@ for (const malformed of ['ambiguous-flag', 'duplicate-option', 'missing-argument
   });
 }
 
+for (const fact of ['content', 'flag']) {
 for (const enriched of ['collection', 'item', 'status']) {
-  test(`collection layout preserves additional ${enriched} semantics`, async ({ page }) => {
+  test(`collection layout preserves additional ${enriched} semantics (${fact})`, async ({ page }) => {
     await page.goto('/proof/browser/signal-dom-host.test.html');
     const subject = (identity, name, role) => ({ identity, name, role, disclosure: 'Primary', text: [], properties: [], values: [] });
     const collection = subject('fixture/list', 'Tasks', 'Collection');
     const item = { ...subject('fixture/item', 'Read', 'Item'), flags: [{ name: 'complete', value: false }] };
     const status = { ...subject('fixture/status', 'Progress', 'Status'), text: ['1 thing left · 0 completed'] };
     const extra = { collection, item, status }[enriched];
-    extra.properties = ['Important authored fact'];
-    extra.values = [{ name: 'Priority', text: 'Urgent' }];
-    if (enriched !== 'status') extra.text = ['Additional explanation'];
+    if (fact === 'flag') extra.flags = [...(extra.flags ?? []), { name: 'authored-flag', value: true }];
+    else {
+      extra.properties = ['Important authored fact'];
+      extra.values = [{ name: 'Priority', text: 'Urgent' }];
+      if (enriched !== 'status') extra.text = ['Additional explanation'];
+    }
     const currentView = { ...view, subjects: [collection, item, status],
       relationships: [item, status].map(subject => ({ kind: 'Contains', source: collection.identity, target: subject.identity })),
       actions: [{ ...view.actions[0], target: item.identity }],
@@ -824,12 +828,19 @@ for (const enriched of ['collection', 'item', 'status']) {
         invoke: async call => { globalThis.calls.push(call); } });
     }, currentView);
     const element = page.locator('conduit-owner-face');
+    if (fact === 'flag') {
+      const facts = element.locator('[part=subject]').filter({ hasText: 'authored-flag: true' });
+      await expect(facts).toHaveCount(1);
+      await facts.getByText('Exact facts', { exact: true }).click();
+      await expect(facts.getByText('authored-flag: true', { exact: true })).toBeVisible();
+    } else {
     await expect(element.getByRole('term')).toHaveText('Priority');
     await expect(element.getByRole('definition')).toHaveText('Urgent');
     if (enriched !== 'status') await expect(element.getByText('Additional explanation', { exact: true })).toBeVisible();
     await element.locator('[part=subject]').filter({ hasText: 'Important authored fact' })
       .getByText('Exact facts', { exact: true }).click();
     await expect(element.getByText('Important authored fact', { exact: true })).toBeVisible();
+    }
     const action = element.getByRole('button', { name: /^Complete task/ });
     await action.focus(); await page.keyboard.press('Enter');
     expect(await page.evaluate(() => globalThis.calls)).toEqual([{ view: currentView,
@@ -837,8 +848,11 @@ for (const enriched of ['collection', 'item', 'status']) {
   });
 }
 
+}
+
+for (const fact of ['content', 'flag']) {
 for (const enriched of ['group', 'option']) {
-  test(`exclusive-choice layout preserves additional ${enriched} semantics`, async ({ page }) => {
+  test(`exclusive-choice layout preserves additional ${enriched} semantics (${fact})`, async ({ page }) => {
     await page.goto('/proof/browser/signal-dom-host.test.html');
     const choices = { ...view,
       subjects: [
@@ -852,9 +866,12 @@ for (const enriched of ['group', 'option']) {
         target: `fixture/option/${index}`, name: `Select ${index}` })),
     };
     const extra = choices.subjects[enriched === 'group' ? 0 : 2];
-    extra.values = [{ name: 'Authored value', text: 'Exact meaning' }];
-    extra.properties = ['Important authored fact'];
-    extra.text = ['Additional explanation'];
+    if (fact === 'flag') extra.flags = [...(extra.flags ?? []), { name: 'authored-flag', value: true }];
+    else {
+      extra.values = [{ name: 'Authored value', text: 'Exact meaning' }];
+      extra.properties = ['Important authored fact'];
+      extra.text = ['Additional explanation'];
+    }
     await page.evaluate(async view => {
       await import('/targets/browser/handbook/owner-face-component.mjs');
       document.body.replaceChildren(); globalThis.calls = [];
@@ -862,12 +879,19 @@ for (const enriched of ['group', 'option']) {
       element.show(view, { invoke: async call => { globalThis.calls.push(call); } });
     }, choices);
     const element = page.locator('conduit-owner-face');
+    if (fact === 'flag') {
+      const facts = element.locator('[part=subject]').filter({ hasText: 'authored-flag: true' });
+      await expect(facts).toHaveCount(1);
+      await facts.getByText('Exact facts', { exact: true }).click();
+      await expect(facts.getByText('authored-flag: true', { exact: true })).toBeVisible();
+    } else {
     await expect(element.getByRole('term')).toHaveText('Authored value');
     await expect(element.getByRole('definition')).toHaveText('Exact meaning');
     await expect(element.getByText('Additional explanation', { exact: true })).toBeVisible();
     await element.locator('[part=subject]').filter({ hasText: 'Important authored fact' })
       .getByText('Exact facts', { exact: true }).click();
     await expect(element.getByText('Important authored fact', { exact: true })).toBeVisible();
+    }
     const selectedFacts = element.locator('[part=subject]').filter({ hasText: 'selected: true' });
     await selectedFacts.getByText('Exact facts', { exact: true }).click();
     await expect(selectedFacts.getByText('selected: true', { exact: true })).toBeVisible();
@@ -876,6 +900,8 @@ for (const enriched of ['group', 'option']) {
     expect(await page.evaluate(() => globalThis.calls)).toEqual([{ view: choices,
       action: choices.actions[1], arguments: [] }]);
   });
+}
+
 }
 
 for (const scope of ['owner', 'light-ancestor', 'shadow-ancestor', 'outer-shadow-host', 'slotted-ancestor']) {
