@@ -24,3 +24,15 @@ Leaving, removal, and forgetting are distinct:
 An external-reader/controller Patchbay does not invoke the membership client. Its browser host remains outside the viewed body and uses separately admitted Observatory/control boundaries.
 
 The explicitly ephemeral browser profile creates a fresh host and boot and makes no continuity claim. It is not a fallback for corruption of the durable profile.
+
+## Runtime selected by repository development and proof
+
+`cargo xtask make host browser` and `cargo xtask prove browser-host` prepare the canonical
+optimized browser release and select its `runtime.wasm` through
+`CONDUIT_BROWSER_RUNTIME_WASM`. The browser CI lane selects the same file from
+its sealed release directory for native entrances, Patchbay helpers and static
+fixtures. The proof static server resolves its historical Cargo-WASM URL to
+that explicitly selected file, so runtime evidence hashes describe the bytes
+actually exercised. A missing selected file refuses instead of falling back.
+Cargo's linked WASM remains available for diagnostics; the native Host's finite
+20 MiB artifact admission bound is unchanged.
