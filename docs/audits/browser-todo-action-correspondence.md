@@ -124,3 +124,20 @@ twenty-five component tests pass with the same settings. Successful activations 
 events are refusal fixtures only. These checks establish renderer behavior, not
 unchanged Body state, arbitrary Look accessibility, overlay hit-testing or
 packaged/public acceptance of either issue.
+
+
+Handbook integration correction (#5631 / #5644): the owner participation
+consumer used `replaceChildren(faceComponent)` after every Show. Re-inserting
+the same custom element disconnects it, so the disconnect fence correctly
+revoked the freshly rendered controls. Attach before rendering and keep an
+already attached component in place across preparation, acknowledgement and
+refresh. Actual removals still invalidate the old bindings.
+
+A Chromium regression through production `startOwnerParticipation` reproduced
+the disabled acknowledged action before repair. All twenty-six component tests
+now pass with one worker and zero retries, plus the three Handbook owner-route
+unit tests. The new fixture uses a fake SDK carrier: it checks the real join UI,
+prepared-to-acknowledged rendering, stable attachment during refresh, trusted
+keyboard submission correlated to the refreshed Show and enabled controls after
+the next refresh. It is orchestration/renderer evidence, not a real owner Body
+receipt or packaged/public acceptance.

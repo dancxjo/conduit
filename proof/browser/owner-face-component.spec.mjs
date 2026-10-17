@@ -599,3 +599,66 @@ for (const hidden of ['attribute', 'visibility', 'disclosure', 'fieldset']) {
     expect(await page.evaluate(() => globalThis.calls)).toEqual([{ view, action: view.actions[0], arguments: [] }]);
   });
 }
+
+// Production Handbook orchestration with a fixture SDK, not a real owner Body.
+test('Handbook acknowledgement and refresh keep current owner controls attached', async ({ page }) => {
+  await page.goto('/proof/browser/signal-dom-host.test.html');
+  await page.evaluate(async view => {
+    const { startOwnerParticipation } = await import('/targets/browser/handbook/owner-participation.mjs');
+    document.body.innerHTML = `<header class="handbook-introduction"><h1></h1><p class="lede"></p></header>
+      <a class="handbook-start"></a><div class="handbook-first-steps"></div>
+      <div class="handbook-next"></div><div class="handbook-local-note"></div><main></main>`;
+    const shown = { ...view, body_id: 'body/fixture', face_revision: '1',
+      mask_plot_id: 'fixture/mask', mask_plan_id: 'fixture/plan', mask_play_id: 'fixture/play',
+      route: { plan_id: 'fixture/route', owner_host_id: 'host/owner', owner_boot_id: 'boot/owner',
+        mask_host_id: 'host/browser', mask_boot_id: 'boot/browser' } };
+    globalThis.calls = [];
+    let revision = 0;
+    const participation = {
+      hostId: 'host/browser', bootId: 'boot/browser',
+      presenceState: () => 'available', membershipCredential: () => ({ body_id: shown.body_id }),
+      biographyEvidence: () => null,
+      prepareOwnerFaceMask: async () => ({ ...shown, face_revision: String(++revision),
+        show_id: `fixture/show/${revision}`, show_state: 'prepared', interactions_admitted: false }),
+      acknowledgeOwnerFaceMask: async prepared => ({ ...prepared, show_state: 'available', interactions_admitted: true }),
+      inspectOwnerWardrobe: async () => { throw new Error('No wardrobe in this renderer fixture'); },
+      submitOwnerFaceInteraction: async call => { globalThis.calls.push(call); return { accepted: true }; },
+    };
+    await startOwnerParticipation({
+      storage: { readJson: async () => null, writeJson: async () => {} },
+      browser: async () => ({ id: 'host/browser', bootId: 'boot/browser',
+        admissionIdentity: () => ({ hostId: 'host/browser', bootId: 'boot/browser', verifyingKey: [] }),
+        participate: async () => participation }),
+    }, document.querySelector('main'));
+  }, view);
+  await page.getByLabel('Body ID', { exact: true }).fill('body/fixture');
+  await page.getByLabel('Owner window URL', { exact: true }).fill('ws://127.0.0.1:41000/conduit');
+  await page.getByRole('button', { name: 'Join this Body', exact: true }).click();
+  const owner = page.locator('conduit-owner-face');
+  await expect(page.locator('main')).toHaveAttribute('data-owner-face-shown', 'true');
+  const button = owner.getByRole('button', { name: 'Complete task', exact: true });
+  await expect(button).toBeEnabled();
+  await owner.evaluate(node => {
+    globalThis.originalOwner = node;
+    globalThis.disconnects = 0;
+    const observer = new MutationObserver(records => {
+      for (const record of records) for (const removed of record.removedNodes) {
+        if (removed === node) globalThis.disconnects++;
+      }
+    });
+    observer.observe(node.parentNode, { childList: true });
+  });
+  await page.getByRole('button', { name: 'Refresh this Face', exact: true }).click();
+  await expect(owner).toHaveAttribute('data-face-revision', '2');
+  await expect(button).toBeEnabled();
+  expect(await owner.evaluate(node => node === globalThis.originalOwner && globalThis.disconnects === 0)).toBe(true);
+  await button.focus();
+  await page.keyboard.press('Enter');
+  await expect.poll(() => page.evaluate(() => globalThis.calls.length)).toBe(1);
+  await expect(owner).toHaveAttribute('data-face-revision', '3');
+  await expect(button).toBeEnabled();
+  expect(await page.evaluate(() => globalThis.calls[0])).toMatchObject({
+    view: { show_id: 'fixture/show/2', face_revision: '2' },
+    actionId: view.actions[0].identity, target: view.actions[0].target, arguments: [], sequence: 1,
+  });
+});

@@ -259,6 +259,9 @@ export async function startOwnerParticipation(application, root) {
   };
   const faceComponent = document.createElement('conduit-owner-face');
   const renderFace = view => {
+    // Attach before Show, and retain the surface across ordinary refreshes.
+    // Replacing an already attached custom element revokes its render bindings.
+    if (faceComponent.parentNode !== faceDocument) faceDocument.replaceChildren(faceComponent);
     faceComponent.show(view, { projectCollections: projectFaceCollections,
       invoke: async ({ view, action, arguments: actionArguments }) => {
         if (faceBusy || !participation || faceView?.show_id !== view.show_id) return;
@@ -281,7 +284,6 @@ export async function startOwnerParticipation(application, root) {
         }
       },
     });
-    faceDocument.replaceChildren(faceComponent);
     faceDocument.dataset.faceId = view.face_id;
     faceDocument.dataset.faceRevision = view.face_revision;
     faceDocument.dataset.showId = view.show_id;
