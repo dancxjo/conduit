@@ -1,0 +1,52 @@
+{
+  "schema": "conduit/development-validation@1",
+  "source": "92a4ac1c1dae5ed81748e512b7a9b2c5aff309bf",
+  "scope": "Private finite per-port quantity wire contract and selected-placement planner enforcement; not installed Source exact-wire activation.",
+  "results": {
+    "full_planner_library_tests": 77,
+    "core_profile_transport_contract_tests": 9,
+    "new_contract_and_fence_tests": 5,
+    "ordinary_planning_invalid_port_refusal": "passed",
+    "exact_to_decimal_selected_payload_edge_refusal": "passed",
+    "non_payload_tracks": "preserved",
+    "strict_core_and_planner_clippy": "passed with warnings denied",
+    "core_no_default_features": "passed",
+    "workspace_format": "passed"
+  },
+  "limitations": [
+    "No Source offer advertises the optional exact contract yet.",
+    "Candidate selection does not yet filter alternatives using wire compatibility.",
+    "Generic primitive and installed evaluator runtime validation remain decimal-only.",
+    "Two authored wire acceptance gates remain unresolved; no stable-main acceptance."
+  ],
+  "files": [
+    {
+      "path": "quantity-wire-contract-planner-boxed-tests.log",
+      "sha256": "5c32ad41f805c8d93152f6e358d023e61a74ea4af5832d5d1a6c97cb9ac5ef66"
+    },
+    {
+      "path": "quantity-wire-contract-core-final-tests.log",
+      "sha256": "25c6a5f92dc1f2f3c564d8d964da306e3803d8e9b18a793f3b7b87deeb3d0adf"
+    },
+    {
+      "path": "quantity-wire-contract-core-clippy.log",
+      "sha256": "2f56bef1f3098c6320dac6e611292ec771248405ae973c53f58255ff6b200e71"
+    },
+    {
+      "path": "quantity-wire-contract-planner-boxed-clippy.log",
+      "sha256": "689e1b4e730f329cfde084c7d6fb050da8eab6f509af606cba79c553b7aca8fa"
+    },
+    {
+      "path": "quantity-wire-contract-no-default.log",
+      "sha256": "7324d4249ab4edbdf6166e9399fbfb3c865870c1ec2ec36d313e36a0ceb26108"
+    },
+    {
+      "path": "quantity-wire-contract-format.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "archive": {
+    "path": "quantity-wire-contract-development-20261017-raw.tar.gz",
+    "sha256": "26887a9c11db4f517df33a20dc8950b338646783ada11798a31f997646729b25"
+  }
+}
