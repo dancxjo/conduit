@@ -75,7 +75,7 @@ fn specimen<const N: usize>(trial: usize) {
         if N >= 2 * core::mem::size_of::<usize>() {
             0
         } else {
-            17 * N
+            (17 * N) as u64
         }
     );
     assert_eq!(scheduler.completed_count(), N - 1);

@@ -191,7 +191,7 @@ where
     }
 
     #[cfg(test)]
-    fn completed_count(&self) -> usize {
+    pub(super) fn completed_count(&self) -> usize {
         self.ready.completion_count().unwrap_or_else(|| {
             self.completed[..self.active_nodes]
                 .iter()
