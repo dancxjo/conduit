@@ -8,9 +8,12 @@ The native shell retains its existing application surfaces and local navigation.
 | Explicit Face inspection | NativeFaceMask submits a Show-bound interaction | Retained |
 | Crèche birth | FaceArrival admits birth through its own acknowledged Mask Show | Retained |
 | Home launcher, Plots, and Prompt | Scene contains labels and command results absent from the owner Face | Face also carries current destination labels, installed titles, selection, command and result context |
+| Home installed membership | Home used the larger Host catalog for scene, model selection and Face wording | All three use the exact observed Body workset; Home Face retains each installed source/checked identity, and absent Tour/Patchbay selections expose local unavailability |
 | Selected resident Plot | Face uses entrance name and inspection-only wording despite resident IDs | Face names the exact foreground resident and describes its Body-workset provenance |
 | Zero-body entrance | Embedded checked Plot and inspection-only context | Retained |
 
 Home selection, command editing, view changes and inspection remain local reading state. Home's `wake` command still reports unavailable authority. Home Tour, Patchbay and Plot actions select existing residents; the current `RunPlot` branch selects a resident and does not itself admit Plan or Play. These context disclosures introduce no Home lifecycle actions or new authority.
 
 Focused shell audit coverage checks current Home content, unavailable command results, unchanged lifecycle actions, exact resident identity and name, and retained zero-body entrance wording. Lifecycle admission tests separately cover stale owner/Face/Show and refusal paths. Local and emulator evidence do not establish physical-device or human acceptance.
+
+Home's installed list is borrowed from the current validated `WorkspaceProjection`, not the Host's available catalog. Indices resolve only within that observed list. Its Face properties retain the exact installed count, titles, SourceDocumentIds and CheckedPlotIds. The one-resident regression checks agreement between Face, scene and Home model, and excludes every uninstalled catalog resident. Missing named destinations retain the existing Body and lifecycle actions while showing explicit unavailability; they cannot silently open another foreground Plot.
