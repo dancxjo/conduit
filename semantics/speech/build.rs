@@ -4,6 +4,8 @@ mod audio_imports;
 mod authoring_types;
 #[path = "build_support/graph.rs"]
 mod graph;
+#[path = "build_support/linguistic_rate_program.rs"]
+mod linguistic_rate_program;
 #[path = "build_support/lower.rs"]
 mod lower;
 #[path = "build_support/semantic_source.rs"]
@@ -44,6 +46,8 @@ fn main() {
         "acoustic_energy.conduit",
         "acoustic_scoped_energy.conduit",
         "fundamental.conduit",
+        "linguistic_rate.conduit",
+        "build_support/linguistic_rate_program.rs",
         "ipa.conduit",
         "ipa_syntax.conduit",
         "ipa_inventory.conduit",
@@ -186,6 +190,7 @@ fn main() {
         .map(|(name, _)| format!("conduit_language::{name}"))
         .collect::<Vec<_>>();
     // IPA profiles retain the exact Language-owned variety Type.
+    linguistic_rate_program::write(&semantic);
     let mut bindings = identities
         .iter()
         .zip(&paths)
