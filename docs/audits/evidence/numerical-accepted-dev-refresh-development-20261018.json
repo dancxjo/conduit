@@ -1,0 +1,121 @@
+{
+  "source_commit": "c8de6088faf71981afdb658a0bdca2dfa8766529",
+  "accepted_dev_parent": "a2ee4ebea348ec9bcb6725a79e0a23d4a2ca300d",
+  "status": "Private development refresh; not published numeric acceptance or parent completion.",
+  "change": "Merge accepted shared Core/configuration/Planner/Std changes without conflicts, preserving all private numerical followups. No unmerged other-owner work absorbed.",
+  "validation": {
+    "core_lib": 104,
+    "planner_lib": 83,
+    "catalog_lib_kernel_step": 188,
+    "std_near_filter_passed": 11,
+    "std_near_unrelated_owner_matrix_ignored": 1,
+    "std_numerical_filter_passed": 17,
+    "product_expression_tests": 12,
+    "product_quantity_transport_tests": 3,
+    "expression_identity_records": 40,
+    "note": "Suite counts are listed separately; Std filters overlap. The one ignored case is unrelated owner-matrix proof, not a numerical test.",
+    "strict_all_targets_clippy": [
+      "conduit-core",
+      "conduit-plot",
+      "conduit-planner",
+      "conduit-semantic-catalog",
+      "conduit-std-host",
+      "conduit-data",
+      "conduit"
+    ],
+    "clippy_feature": "conduit-semantic-catalog/kernel-step",
+    "core_no_default_features": "PASS",
+    "format": "PASS"
+  },
+  "direct_cli_runs": {
+    "near": {
+      "source_document_id": "80943c66946edd906bd6dcd66064dc8166dfe2c8ebb770322cf5191983e4e1c0",
+      "checked_plot_id": "4ef9c6cdd83546745c66235a0b59077dee7d4c070db2a9d841e7cc9d67e511a6",
+      "expanded_plot_id": "3250b6f06ecb187010ca26e72b248d6d5ecac1f44a339b52e0a78feea73ce445",
+      "plan_id": "8422581f0308813a517c02dc9e678be07552fd7c42d44bb2a240a58101ab411d",
+      "play_id": "d9df6777da860e09c100657688b64c16742258b734194ce00d127cca76deac27",
+      "report_sha256": "163b10781091b89c849288813c53d054e70684cdef1a6afcd07dfae878129d17",
+      "terminal": "Completed",
+      "selected_numerical_profiles": [
+        "std/quantity-near-binary32-single-round@1",
+        "std/pure-expression-quantity-exact-hosted@1"
+      ]
+    },
+    "quantity": {
+      "source_document_id": "a2f7d7a38f4ccf152a5e48d301eb1ab47095ecd2120fe71c9002499cff7b91a4",
+      "checked_plot_id": "d4e3ea07126c5b4aa5bb23f5cd1051091b0ac5d3cb9eb7b0f65626e78cb7a1d5",
+      "expanded_plot_id": "e275adae729349764145205e167f952b380ffd7aa06b97bd0833255ab5de269d",
+      "plan_id": "01bd7100c0dd9186ddababd13ccadac07fff97f38ca1e3cbb9cbbbe87881ddf5",
+      "play_id": "14ea348106e21f422ec7ae62d7dfd2ecfefc7ce8307dcd0af795cc0c7b1a3a69",
+      "report_sha256": "4222524cc224ff41ce2a63770750a60955e88f1cbe4c9cdad88129f3cc136b7d",
+      "terminal": "Completed",
+      "selected_numerical_profiles": [
+        "std/pure-expression-quantity-exact-hosted@1",
+        "std/pure-expression-quantity-exact-hosted@1",
+        "std/pure-expression-quantity-exact-hosted@1"
+      ]
+    }
+  },
+  "cli_executable": {
+    "source_commit": "c8de6088faf71981afdb658a0bdca2dfa8766529",
+    "accepted_dev_parent": "a2ee4ebea348ec9bcb6725a79e0a23d4a2ca300d",
+    "executable_bytes": 704280136,
+    "executable_sha256": "256c7b64b088e5d7014252a6bc6c79578c1d97f7df71b5209b316b56be3bf344",
+    "compressed_bytes": 168429071,
+    "compressed_sha256": "705cba4f35be93c13d5aee1c3395b0b79b1d7be27082201d14e06ab69d3cd4c3",
+    "roundtrip": "Full decompression size/hash verified"
+  },
+  "test_executables": {
+    "source_commit": "c8de6088faf71981afdb658a0bdca2dfa8766529",
+    "artifacts": [
+      {
+        "executable": "conduit_core-4b38f2b091f36655",
+        "artifact": "conduit_core-4b38f2b091f36655.gz",
+        "bytes": 35130072,
+        "sha256": "6319e19f5b89383f2034aa3be93101ccd5f3babf6f28d0fca990080ccdc4f4e9",
+        "compressed_bytes": 8904452,
+        "compressed_sha256": "3de8d4ae4686c9250a94286ca8d1445238f724f4295e7c5cfe53f248d7b711bd",
+        "roundtrip": "full decompression verified"
+      },
+      {
+        "executable": "conduit_planner-3e2531114894d8bd",
+        "artifact": "conduit_planner-3e2531114894d8bd.gz",
+        "bytes": 243961752,
+        "sha256": "a908c547d60294b0708bd94ded3c27687d22d8396c6d446a727223239c920645",
+        "compressed_bytes": 58717890,
+        "compressed_sha256": "ee483b3def7538fc9a09d2cc9bc72375a50c0a4320d87fffb27cc710d5512a89",
+        "roundtrip": "full decompression verified"
+      },
+      {
+        "executable": "conduit_semantic_catalog-554e67879a3d5494",
+        "artifact": "conduit_semantic_catalog-554e67879a3d5494.gz",
+        "bytes": 204878496,
+        "sha256": "43f509223937cce2c6dfbeff27beeb658d45cad2826e28f6c8e580107d39da70",
+        "compressed_bytes": 48837691,
+        "compressed_sha256": "80350368225e5ebc75c9812ad05a07c3fcd6066a65cece80e62e814a8f9dd75d",
+        "roundtrip": "full decompression verified"
+      },
+      {
+        "executable": "conduit_std_host-057d22bb7cfba6e6",
+        "artifact": "conduit_std_host-057d22bb7cfba6e6.gz",
+        "bytes": 743039064,
+        "sha256": "2d80384ba5f0f1435bd1816d0cc3b54805419a7ce56f4719b39b0580a590e090",
+        "compressed_bytes": 171912490,
+        "compressed_sha256": "c38449e7307087bbe0e1a7fbee46b97daf4a709009c3de5cd92025fbbfafd84c",
+        "roundtrip": "full decompression verified"
+      }
+    ]
+  },
+  "archive": {
+    "file": "numerical-accepted-dev-refresh-development-20261018.raw.tar.gz",
+    "sha256": "4c1cac9ca573212d83d040072b43cf2bef02c9fc6a2b1ebcd03ab3b221193cb3",
+    "bytes": 382917,
+    "roundtrip": "All raw log/report bytes verified"
+  },
+  "limits": [
+    "No Fore near qualifier or generic strong/weak qualified Cord proof",
+    "No general approximate-computation or symbolic Quantity completion",
+    "No browser/device or stable-main acceptance for these private followups",
+    "Current numerical PR5967 remains a separate older partial slice; no new implementation PR opened"
+  ]
+}
