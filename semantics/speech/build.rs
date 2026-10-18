@@ -1,3 +1,5 @@
+#[path = "build_support/audio_imports.rs"]
+mod audio_imports;
 #[path = "build_support/authoring_types.rs"]
 mod authoring_types;
 #[path = "build_support/graph.rs"]
@@ -45,6 +47,7 @@ fn main() {
         "../language/identity.conduit",
         "build_support/semantic_source.rs",
         "build_support/authoring_types.rs",
+        "build_support/audio_imports.rs",
     ] {
         println!("cargo:rerun-if-changed={path}");
     }
@@ -203,25 +206,10 @@ fn main() {
         .iter()
         .map(|(_, ty)| ty.clone())
         .collect::<Vec<_>>();
-    let audio_paths = [
-        (
-            "AudioTrajectoryAnchor",
-            "conduit_audio::AudioTrajectoryAnchor",
-        ),
-        (
-            "AudioFrequencyControl",
-            "conduit_audio::AudioFrequencyControl",
-        ),
-        (
-            "AudioTrajectoryQuery",
-            "conduit_audio::AudioTrajectoryQuery",
-        ),
-        (
-            "AudioExactTimeOffset",
-            "conduit_audio::AudioExactTimeOffset",
-        ),
-    ];
-    for (name, path) in audio_paths {
+    for &(name, path, external) in audio_imports::PATHS {
+        if !external {
+            continue;
+        }
         let ty = audio_types
             .iter()
             .find(|ty| ty.name == name)
