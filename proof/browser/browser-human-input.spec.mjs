@@ -293,3 +293,25 @@ test("physical modifiers remain exact across native-control boundaries without l
   await expect(choice).toHaveValue("second");
   await page.evaluate(() => globalThis.documentKeyboard.close());
 });
+
+test("element-scoped physical input leaves its native DOM editor descendant authoritative", async ({ page }) => {
+  await page.goto("/proof/browser/browser-human-input.test.html");
+  await expect(page.locator("#status")).toHaveText("ready");
+  await page.evaluate(() => {
+    const editor=document.createElement("textarea");
+    editor.setAttribute("aria-label","Native editor");
+    document.querySelector("#surface").append(editor);
+    globalThis.elementPlotKeyDelivered=false;
+    globalThis.elementPlotKey=globalThis.__conduitHumanInput.acquireKeyboard().then(value => {
+      globalThis.elementPlotKeyDelivered=true; return [...value.canonical_bytes];
+    });
+  });
+  await page.getByRole("textbox",{name:"Native editor"}).focus();
+  await page.keyboard.type("cafe");
+  await expect(page.getByRole("textbox",{name:"Native editor"})).toHaveValue("cafe");
+  expect(await page.evaluate(() => globalThis.elementPlotKeyDelivered)).toBe(false);
+  await page.locator("#surface").focus();
+  await page.keyboard.press("KeyA");
+  expect(await page.evaluate(() => globalThis.elementPlotKey)).toEqual([4,0,0]);
+  await page.evaluate(() => globalThis.__conduitHumanInput.adapter.close());
+});

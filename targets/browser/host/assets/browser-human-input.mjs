@@ -67,7 +67,7 @@ export function openBrowserHumanInput({
       const bit = 1 << (usage - 0xe0);
       modifierBits = pressed ? modifierBits | bit : modifierBits & ~bit;
     }
-    const nativeControl = target.nodeType === 9 && nativeKeyboardControl(event);
+    const nativeControl = nativeKeyboardControl(event);
     const wasRouted = Boolean(routedKeys[usage]);
     // A standing Plot request does not own a native select, button, link or
     // text editor. Only a release of an earlier Plot press crosses that boundary;

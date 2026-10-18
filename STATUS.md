@@ -78,6 +78,18 @@ present limitation.
 
 ## Recent implementation and unfinished integration
 
+- **Memory Lantern text editing (in development):** committed replacements carry
+  a base revision, Unicode scalar range and bounded UTF-8 insertion. The
+  physical fragment route and revisioned document route share one retained
+  replacement operation. A declared initialized-state law binds the initial
+  document and startup boundary into Plan identity. The default browser Plot
+  selects a native textarea Back; the six-layout physical keyboard laboratory
+  remains explicit. Native ConduitOS projects the planned physical editor as
+  an immutable Face document with a focused native Mask and end caret.
+  [Input semantics](docs/input-semantics.md#ordinary-text-editing) describes
+  refusal, provisional composition and the remaining native navigation limits.
+  Browser, emulator, stable-release, physical and human proof remain distinct.
+
 These source-level capabilities are present in the reviewed development tree.
 Their presence is not an additional physical or release acceptance claim:
 

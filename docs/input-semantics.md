@@ -6,6 +6,47 @@ keys. The mappings and composition exceptions are owned by
 [`keymap-layouts.conduit`](../semantics/human/keymap-layouts.conduit); the portable
 interpreter is [`PreparedKeymap`](../semantics/human/src/keymap_layout.rs).
 
+## Ordinary text editing
+
+[Memory Lantern](../plots/memory-lantern/main.conduit) joins at committed text
+edits. Its `face/editor("Message")` consumes authoritative `text/document@1`
+and returns `text/edit@1` to `text/edit-document`. The browser Back uses a real
+textarea, including browser selection and operating-system text input. It does
+not translate ordinary typing through the authored physical keymap.
+
+Each edit names a base revision, a half-open replacement range in **Unicode
+scalar offsets**, and inserted UTF-8 bytes. Empty ranges insert; empty inserted
+text deletes. Revisions, ranges, UTF-8 and the configured byte capacity are
+checked before any mutation. Text is not normalized implicitly. Grapheme
+navigation remains input policy. An explicit initialized-state law declares the empty revision-zero document
+and the delayed update port. The planner checks that boundary and includes the
+initial bytes and finite contract in Plan identity; an arbitrary retained-state
+kind cannot bypass startup-cycle refusal. The document limit is 256 UTF-8 bytes; canonical
+forms add an eight-byte document revision or a sixteen-byte edit header.
+
+The DOM holds provisional composition only. A committed edit crosses the exact
+planned Host Call, then the DOM returns to the last authoritative snapshot while
+awaiting the next document. An acknowledgment restores the selection if the
+accepted text agrees. Focus loss cancels unfinished composition. Cancellation
+removes listeners and the control. Stale, malformed and over-capacity proposals
+refuse without changing authoritative text; runtime refusal currently terminates
+the Play with an explicit failure rather than silently retrying an edit.
+
+The [physical keyboard laboratory](../plots/memory-lantern/keyboard-laboratory.conduit)
+retains the six-layout selector and explicit keyboard → keymap → text editor
+pipeline. Native ConduitOS uses the
+[keyboard-only route](../plots/memory-lantern/keyboard-only.conduit), whose physical
+fragments commit through the same retained replacement operation. Its native
+Mask presents authoritative Face document text with a focus border and end
+caret. The caret is presentation geometry and never document content. The
+physical route remains an append/backspace editor; it does not claim arbitrary
+native cursor navigation or IME support.
+
+Deterministic contracts and scheduler tests enter through
+`cargo xtask check input-semantics`. Browser, QEMU, physical-device and human
+input remain separate proof classes; scripted composition events alone do not
+prove a native operating-system IME.
+
 ## Author layouts in Conduitese
 
 Local immutable values compose reusable layers. Later layers override earlier
@@ -54,9 +95,9 @@ scalars exclude surrogates and values above U+10FFFF. Preparation validates the
 finite value before interpreting events. Each exception names `combining`,
 `base`, and `result` Unicode scalars; later matching exceptions take precedence.
 
-## Saved language selection in Memory Lantern
+## Saved language selection in the physical keyboard laboratory
 
-[Memory Lantern](../plots/memory-lantern/main.conduit) authors a six-option
+[The keyboard laboratory](../plots/memory-lantern/keyboard-laboratory.conduit) authors a six-option
 `input/saved-choice` with stable identities for US International, US, UK,
 German, French, and Spanish. Its `chosen` current value connects directly to
 `keymap.selection`. The keymap prepares the source-defined `choices` registry
@@ -182,7 +223,7 @@ GUI Compose or hexadecimal Unicode-entry mode. The explicit historical
 
 ## Editor insertion point
 
-Memory Lantern opts into `face/text("Remembered message", insertion-caret = true)`.
+The physical keyboard laboratory opts into `face/text("Message", insertion-caret = true)`. The default Memory Lantern uses `face/editor`, whose browser Back delegates caret and selection to the textarea.
 `face/text` semantic revision `conduit.std/face-text@2` includes this Boolean as a semantic declaration that insertion occurs at the end of the
 current text. The editor emits its initial empty Current before any key input,
 so the insertion point can be presented immediately. The bounded `text/edit` operation appends text and removes the last
@@ -200,10 +241,11 @@ The configuration defaults to false for ordinary text Faces. A presenter that
 cannot realize this requested insertion cue must refuse it explicitly; native
 serial-only text presentation accepts the default and refuses the opt-in.
 
-The native graphical renderer does not yet implement this insertion cue or the
-saved-choice control. The full Memory Lantern form therefore has no native
-graphical parity claim; `keyboard-only.conduit` exercises its portable keyboard
-behavior. Native layout and focus work is tracked in
+The native graphical Mask realizes the active physical editor's immutable Face
+document with its own focus outline and end caret. This does not widen the
+serial-only `face/text` Back's contract. The native route still uses the authored
+default keymap and does not implement the laboratory's saved-choice control.
+Native layout and focus work is tracked in
 [#5357](https://github.com/dancxjo/conduit/issues/5357), and shared visual Look
 migration in [#5627](https://github.com/dancxjo/conduit/issues/5627). Browser CSS
 is a host realization, not a stylesheet to execute in ConduitOS.

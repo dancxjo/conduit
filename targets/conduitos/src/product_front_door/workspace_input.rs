@@ -154,6 +154,14 @@ pub(super) fn refresh_with_face(
 ) -> Result<crate::native_compositor::CompositionReceipt, &'static str> {
     if face_workspace.active() {
         face_workspace.refresh(front_door, journey, presenter, display)
+    } else if journey.foreground_text_editor_active()
+        && !front_door.home_open()
+        && !front_door.exact_details_open()
+    {
+        front_door
+            .observe_product(journey)
+            .map_err(|error| error.as_str())?;
+        face_workspace.enter_editor(front_door, presenter, display)
     } else {
         refresh(front_door, journey, presenter, display)
     }

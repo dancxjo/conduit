@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 
 const cases = [
   ["morse-network", { keys: "a", faceKind: "face/indicator", morseSegments: true }],
-  ["memory-lantern", { keys: "ready", faceKind: "face/text", text: "ready" }],
+  ["memory-lantern", { keys: "", editor: true, text: "ready" }],
   ["desk-telegraph", { keys: "calling\n", faceKind: "face/text", text: "calling" }],
   ["night-radio", { keys: "night report\n", faceKind: "face/text", text: "night report" }],
   ["little-seismograph", {
@@ -71,7 +71,16 @@ for (const [slug, expected] of cases) {
           continue;
         }
         let output = new Uint8Array();
-        if (progress.effect_kind === "key-event") {
+        if (progress.effect_kind === "text-editor") {
+          if (progress.editor.text === expected.text) { effect = progress; break; }
+          const inserted = encoder.encode(expected.text);
+          output = new Uint8Array(16 + inserted.length);
+          const header = new DataView(output.buffer);
+          header.setBigUint64(0, BigInt(progress.editor.revision), true);
+          header.setUint32(8, 0, true);
+          header.setUint32(12, Array.from(progress.editor.text).length, true);
+          output.set(inserted, 16);
+        } else if (progress.effect_kind === "key-event") {
           const key = keys.shift();
           if (key === undefined) {
             if (api.conduit_browser_plot_poll_effect() < 0) throw new Error("effect poll refused while face was pending");
@@ -107,11 +116,12 @@ for (const [slug, expected] of cases) {
       return { effect, receipt: read(), playId };
       }, { source, slug, expected });
 
-      expect(evidence.effect).toMatchObject({
-        effect_kind: "manifestation",
-        face_kind: expected.faceKind,
-      });
-      if (expected.text) expect(evidence.effect.text).toBe(expected.text);
+      if (expected.editor) {
+        expect(evidence.effect).toMatchObject({ effect_kind: "text-editor", editor: {revision:"1",text:expected.text} });
+      } else {
+        expect(evidence.effect).toMatchObject({ effect_kind: "manifestation", face_kind: expected.faceKind });
+        if (expected.text) expect(evidence.effect.text).toBe(expected.text);
+      }
       if (expected.morseSegments) {
         expect(evidence.effect.text).toBeNull();
         expect(evidence.effect.segments.length).toBeGreaterThan(0);

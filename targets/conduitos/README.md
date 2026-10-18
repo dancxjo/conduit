@@ -81,6 +81,13 @@ of editable text within that play. F7 lulls the body by cancelling its actual
 play and retaining both included plots. F8 remains available for Stop alone.
 The screen reports when older canvas output or kernel evidence leaves its
 bounded history.
+An active foreground physical text editor opens through the ordinary native
+Face → Mask → Show path. Its document comes from the current planned `text/edit`
+result; the native Mask draws focus and an end insertion caret without retaining
+another editor document. Tab changes the foreground Plot, and F2 opens the exact
+Face details. A document longer than one admitted graphics payload or viewport
+shows its end with an explicit label; the complete text remains in Face.
+
 Resident Tour and Patchbay plots and durable body restoration across a new
 boot remain open work. The startup sound and reusable first-wake behavior are
 tracked in [#3152](https://github.com/dancxjo/conduit/issues/3152).

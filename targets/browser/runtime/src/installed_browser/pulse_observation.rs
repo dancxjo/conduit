@@ -58,7 +58,7 @@ mod tests {
     fn placement() -> PlannedGear {
         let offer = offer();
         conduit_core::planned_gear_from_parts! {
-            semantic_contract: Default::default(),
+            semantic_contract: offer.semantic_contract,
             placement_id: "browser-pulse-placement".into(),
             gear_id: "pulse".into(),
             kind_id: offer.kind_id,

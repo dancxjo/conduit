@@ -175,6 +175,9 @@ pub struct JourneyProjection {
     pub loss_sign_id: Option<SignId>,
     pub result_sign_id: Option<SignId>,
     pub result: Option<String>,
+    /// An active foreground Plan contains the authoritative bounded text editor.
+    pub text_editor_active: bool,
+    pub text_editor_label: Option<String>,
     pub result_omitted_bytes: u64,
     pub input_count: u32,
     pub kernel_sign_gap: Option<conduit_kernel::SignRetentionGap>,

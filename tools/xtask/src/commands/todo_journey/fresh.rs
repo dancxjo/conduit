@@ -6,7 +6,6 @@ use crate::cli::{GlobalOpts, TodoJourneyArgs};
 use serde_json::{json, Value};
 use std::{
     fs,
-    io::Write,
     os::unix::fs::DirBuilderExt,
     path::{Path, PathBuf},
     process::{Child, Command, Stdio},
@@ -18,7 +17,8 @@ mod completion;
 mod recovery;
 mod refusal;
 
-const MAX_COMMAND_OUTPUT: usize = 512 * 1024;
+mod command_capture;
+use command_capture::{capture, json_output, MAX_COMMAND_OUTPUT};
 const MAX_MEDIA: usize = 16 * 1024 * 1024;
 
 struct Service(Child);
@@ -35,52 +35,6 @@ fn now() -> Result<u128, String> {
         .duration_since(UNIX_EPOCH)
         .map_err(|error| error.to_string())?
         .as_millis())
-}
-
-fn capture(
-    root: &Path,
-    label: &str,
-    command: &mut Command,
-    input: Option<&[u8]>,
-) -> Result<Value, String> {
-    let mut child = command
-        .stdin(if input.is_some() {
-            Stdio::piped()
-        } else {
-            Stdio::null()
-        })
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()
-        .map_err(|error| format!("start {label}: {error}"))?;
-    if let Some(input) = input {
-        child
-            .stdin
-            .take()
-            .ok_or("Todo capture command has no stdin")?
-            .write_all(input)
-            .map_err(|error| format!("write {label} input: {error}"))?;
-    }
-    let output = child
-        .wait_with_output()
-        .map_err(|error| format!("wait for {label}: {error}"))?;
-    if output.stdout.len() > MAX_COMMAND_OUTPUT || output.stderr.len() > MAX_COMMAND_OUTPUT {
-        return Err(format!("{label} command output exceeds capture bound"));
-    }
-    let stdout = retain(root, &format!("{label}.stdout"), &output.stdout)?;
-    let stderr = retain(root, &format!("{label}.stderr"), &output.stderr)?;
-    if !output.status.success() {
-        return Err(format!("{label} refused; raw stdout and stderr retained"));
-    }
-    Ok(json!({"stdout":stdout,"stderr":stderr,"exit_code":output.status.code()}))
-}
-
-fn json_output(root: &Path, label: &str, command: &mut Command) -> Result<Value, String> {
-    capture(root, label, command, None)?;
-    let bytes =
-        fs::read(root.join(format!("{label}.stdout"))).map_err(|error| error.to_string())?;
-    serde_json::from_slice(&bytes)
-        .map_err(|error| format!("{label} returned invalid JSON: {error}"))
 }
 
 fn media(root: &Path, relative: &str) -> Result<Value, String> {

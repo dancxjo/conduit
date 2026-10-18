@@ -78,6 +78,7 @@ try {
   assert(listing.includes("host/assets/body-webrtc-sessions.mjs"));
   assert(listing.includes("host/assets/browser-body-host.mjs"));
   assert(listing.includes("host/assets/browser-saved-choice.mjs"));
+  assert(listing.includes("host/assets/browser-text-editor.mjs"));
   assert(listing.includes("host/assets/browser-monotonic-timer.mjs"));
   assert(listing.includes("bundle/runtime.wasm"));
   // Import the actual consumer artifact: staging can contain files npm omits.

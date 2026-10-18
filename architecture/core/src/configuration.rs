@@ -341,6 +341,8 @@ pub enum KindSemanticLaw {
     FlowFold(FlowFoldSemanticLaw),
     /// Exact bounded retained progression through a reviewed combine Plot.
     FlowScan(FlowScanSemanticLaw),
+    /// Exact initial current value and delayed typed update input.
+    InitializedState(crate::InitializedStateLaw),
 }
 
 pub use crate::flow_semantic_laws::*;

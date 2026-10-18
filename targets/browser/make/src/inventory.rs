@@ -94,6 +94,14 @@ pub const BROWSER_HUMAN_FACE_REALIZATIONS: &[BrowserRealizationDescriptor] = &[
     ),
     realization(
         "browser/dom-face@1",
+        "face/editor",
+        "browser/dom-text-editor@1",
+        "conduit-browser-runtime/text-editor@1",
+        "conduit.host/browser-text-editor@1",
+        limits(1, 1, 4_096),
+    ),
+    realization(
+        "browser/dom-face@1",
         "face/text",
         "browser/face-text@1",
         "conduit-browser-runtime/installed-text@1",

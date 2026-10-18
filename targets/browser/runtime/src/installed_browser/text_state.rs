@@ -10,6 +10,7 @@ use conduit_kernel::{Failure, FailureCode, HostedValueStore, ValueStorage};
 
 pub(crate) const HOST_CALL: &str = "conduit.host/browser-text-state@1";
 const EDIT_IMPLEMENTATION: &str = "browser/kernel-text-edit@1";
+const DOCUMENT_IMPLEMENTATION: &str = "browser/kernel-text-edit-document@1";
 const SUBMIT_IMPLEMENTATION: &str = "browser/kernel-text-submit-lines@1";
 
 pub(super) static EDIT: BrowserInstallation = BrowserInstallation {
@@ -25,6 +26,22 @@ pub(super) static SUBMIT: BrowserInstallation = BrowserInstallation {
     perform: None,
 };
 
+pub(super) static DOCUMENT: BrowserInstallation = BrowserInstallation {
+    implementation_id: DOCUMENT_IMPLEMENTATION,
+    offer: document_offer,
+    prepare,
+    perform: None,
+};
+fn document_offer() -> CapabilityOffer {
+    let mut result = offer(
+        conduit_semantic_catalog::text_edit_document_semantic_contract(),
+        DOCUMENT_IMPLEMENTATION,
+    );
+    result.host_calls[0].maximum_input_bytes = conduit_semantic_catalog::MAXIMUM_TEXT_EDIT_BYTES;
+    result.host_calls[0].maximum_output_bytes =
+        conduit_semantic_catalog::MAXIMUM_TEXT_DOCUMENT_BYTES;
+    result
+}
 fn edit_offer() -> CapabilityOffer {
     offer(
         conduit_semantic_catalog::text_edit_semantic_contract(),
@@ -61,12 +78,21 @@ fn offer(contract: Kind, implementation: &'static str) -> CapabilityOffer {
 
 fn prepare(placement: &PlannedGear, values: &mut HostedValueStore) -> Result<BrowserBack, String> {
     let expected = match placement.implementation_id.as_str() {
+        DOCUMENT_IMPLEMENTATION => document_offer(),
         EDIT_IMPLEMENTATION => edit_offer(),
         SUBMIT_IMPLEMENTATION => submit_offer(),
         _ => return Err("unsupported text state implementation".into()),
     };
     validate_placement(placement, &expected)?;
-    if placement.implementation_id.as_str() == EDIT_IMPLEMENTATION {
+    if placement.implementation_id.as_str() == DOCUMENT_IMPLEMENTATION {
+        let initial = values
+            .store(&[0; 8])
+            .map_err(|e| format!("initial document: {e:?}"))?;
+        Ok(BrowserBack::unary_with_initial(
+            conduit_semantic_catalog::MAXIMUM_TEXT_EDIT_BYTES,
+            initial,
+        ))
+    } else if placement.implementation_id.as_str() == EDIT_IMPLEMENTATION {
         let initial = values
             .store(&[])
             .map_err(|error| format!("store initial empty editor Current: {error:?}"))?;
@@ -82,18 +108,24 @@ fn prepare(placement: &PlannedGear, values: &mut HostedValueStore) -> Result<Bro
     }
 }
 
-pub(crate) struct PreparedTextState(conduit_semantic_catalog::BoundedTextState);
+pub(crate) struct PreparedTextState(conduit_semantic_catalog::BoundedTextState, bool, [u8; 264]);
 
 impl PreparedTextState {
     pub(crate) fn for_placement(placement: &PlannedGear) -> Result<Option<Self>, String> {
         let mode = match placement.implementation_id.as_str() {
-            EDIT_IMPLEMENTATION => conduit_semantic_catalog::TextStateMode::Edit,
+            DOCUMENT_IMPLEMENTATION | EDIT_IMPLEMENTATION => {
+                conduit_semantic_catalog::TextStateMode::Edit
+            }
             SUBMIT_IMPLEMENTATION => conduit_semantic_catalog::TextStateMode::Submit,
             _ => return Ok(None),
         };
-        let expected = match mode {
-            conduit_semantic_catalog::TextStateMode::Edit => edit_offer(),
-            conduit_semantic_catalog::TextStateMode::Submit => submit_offer(),
+        let expected = if placement.implementation_id.as_str() == DOCUMENT_IMPLEMENTATION {
+            document_offer()
+        } else {
+            match mode {
+                conduit_semantic_catalog::TextStateMode::Edit => edit_offer(),
+                conduit_semantic_catalog::TextStateMode::Submit => submit_offer(),
+            }
         };
         validate_placement(placement, &expected)?;
         let maximum = placement
@@ -105,12 +137,36 @@ impl PreparedTextState {
             })
             .ok_or("text state maximum-bytes is absent")?;
         conduit_semantic_catalog::BoundedTextState::new(mode, maximum)
-            .map(Self)
+            .map(|state| {
+                Self(
+                    state,
+                    placement.implementation_id.as_str() == DOCUMENT_IMPLEMENTATION,
+                    [0; 264],
+                )
+            })
             .map(Some)
             .map_err(|_| "text state maximum-bytes is outside the portable bound".into())
     }
 
+    #[cfg(test)]
+    pub(crate) fn snapshot(&self) -> (u64, &[u8]) {
+        (self.0.revision(), self.0.current())
+    }
+
     pub(crate) fn execute(&mut self, fragment: &[u8]) -> Result<Option<&[u8]>, Failure> {
+        if self.1 {
+            let edit =
+                conduit_semantic_catalog::TextEdit::decode(fragment).map_err(edit_failure)?;
+            self.0.replace(edit).map_err(edit_failure)?;
+            let document = conduit_semantic_catalog::TextDocument {
+                revision: self.0.revision(),
+                text: self.0.current(),
+            };
+            let len = document
+                .encode_into(&mut self.2)
+                .map_err(|_| failure(FailureCode::InvalidInput, 4))?;
+            return Ok(Some(&self.2[..len]));
+        }
         self.0.apply(fragment).map_err(|refusal| match refusal {
             conduit_semantic_catalog::TextStateRefusal::CapacityExhausted => {
                 failure(FailureCode::StateCapacityExhausted, 2)
@@ -125,4 +181,17 @@ impl PreparedTextState {
 
 const fn failure(code: FailureCode, detail: u16) -> Failure {
     Failure { code, detail }
+}
+
+fn edit_failure(refusal: conduit_semantic_catalog::TextEditRefusal) -> Failure {
+    use conduit_semantic_catalog::TextEditRefusal::*;
+    match refusal {
+        CapacityExhausted => failure(FailureCode::StateCapacityExhausted, 10),
+        RevisionExhausted => failure(FailureCode::IdentityCapacityExhausted, 11),
+        StaleRevision => failure(FailureCode::InvalidInput, 12),
+        InvalidRange => failure(FailureCode::InvalidInput, 13),
+        InvalidUtf8 => failure(FailureCode::InvalidInput, 14),
+        InvalidEncoding => failure(FailureCode::InvalidInput, 15),
+        InvalidStorage | UnsupportedMode => failure(FailureCode::InvalidInput, 16),
+    }
 }

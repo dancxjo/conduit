@@ -1,3 +1,4 @@
+import { memoryEditor, enterMemoryText } from "./workspace-editor.mjs";
 import { BROWSER_COLD_PREPARATION_MS, waitForWorkspacePreparation } from "./browser-preparation.mjs";
 import { expect, test } from "@playwright/test";
 import { readFileSync } from "node:fs";
@@ -42,21 +43,22 @@ test("Birth hands off to a Lulled Body; Wake starts listening Plots and reload p
   const first = await identity();
   await expect(page.getByRole("navigation", { name: "Your plots" }).locator("[data-checked-plot-id]")).toHaveCount(4);
   await page.getByRole("navigation", { name: "Your plots" }).getByRole("button", { name: "Memory Lantern", exact: true }).click();
-  const output = page.locator("[data-plot-output] output[data-face-kind='face/text']:visible");
-  await page.keyboard.press("h");
-  await expect(output.locator('[data-text-value]')).toHaveText("h");
-  await page.keyboard.press("i");
-  await expect(output.locator('[data-text-value]')).toHaveText("hi");
+  const output = page.locator("[data-plot-output] output:visible");
+  const editor = memoryEditor(page);
+  await enterMemoryText(page, "h");
+  await enterMemoryText(page, "hi");
   await page.getByRole("navigation", { name: "Your plots" }).getByRole("button", { name: "Desk Telegraph", exact: true }).click();
   await page.keyboard.press("o");
   await page.keyboard.press("k");
   await page.keyboard.press("Enter");
   await expect(output).toHaveText("Received message: ok");
   await page.getByRole("navigation", { name: "Your plots" }).getByRole("button", { name: "Memory Lantern", exact: true }).click();
-  await expect(output.locator('[data-text-value]')).toHaveText("hi");
-  await expect(page.locator("[data-flow-label]")).toHaveText("5 Gears · 4 Cords");
-  await page.keyboard.press("Backspace");
-  await expect(output.locator('[data-text-value]')).toHaveText("h");
+  await expect(editor).toHaveValue("hi");
+  await expect(page.locator("[data-flow-label]")).toHaveText("2 Gears · 2 Cords");
+  await editor.focus();
+  await expect(editor).toBeFocused();
+  await editor.press("Backspace");
+  await expect(editor).toHaveValue("h");
   expect((await identity()).active_play_id).toBe(first.active_play_id);
   expect((await identity()).plan_id).toBe(first.plan_id);
   await page.screenshot({ path: testInfo.outputPath("workspace-listening.png"), fullPage: true });
@@ -128,9 +130,7 @@ test("a second window cannot recover a body while its first host is alive", asyn
   await other.goto(entrance.url);
   await expect(other.locator("[data-workspace-notice]")).toContainText("This body is open in another window");
   await expect(other.locator("[data-workspace-surface]")).toBeHidden();
-  await page.locator("#plot-input").focus();
-  await page.keyboard.press("a");
-  await expect(page.locator("[data-plot-output] output[data-face-kind='face/text']:visible [data-text-value]")).toHaveText("a");
+  await enterMemoryText(page, "a");
   await other.close();
 });
 
@@ -142,8 +142,7 @@ test("Birth and the listening surface fit a narrow window", async ({ page }, tes
   await page.getByRole("button", { name: "Birth Body", exact: true }).click();
   await page.getByRole("button", { name: "wake body", exact: true }).click();
   await expect(page.locator("[data-play-state]")).toHaveText("Playing");
-  await page.keyboard.press("h");
-  await expect(page.locator("[data-plot-output] output[data-face-kind='face/text']:visible [data-text-value]")).toHaveText("h");
+  await enterMemoryText(page, "h");
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
   await page.screenshot({ path: testInfo.outputPath("workspace-narrow.png"), fullPage: true });
 });
@@ -335,8 +334,7 @@ test("removing the default cue survives reload and a later first-wake installati
   await expect(card('First wake Chime')).toContainText('In your body');
   await page.getByRole('button', { name: 'back to the surface', exact: true }).click();
   await page.getByRole('navigation', { name: 'Your plots' }).getByRole('button', { name: 'Memory Lantern', exact: true }).click();
-  await page.keyboard.press('a');
-  await expect(page.locator('[data-plot-output] output[data-face-kind="face/text"]:visible [data-text-value]')).toHaveText('a');
+  await enterMemoryText(page, "a");
 });
 
 test("unavailable audio is omitted by default and an explicitly installed cue cannot stop other Plots", async ({ page }, testInfo) => {
@@ -347,8 +345,7 @@ test("unavailable audio is omitted by default and an explicitly installed cue ca
   await page.getByRole('button', { name: 'Birth Body', exact: true }).click();
   await page.getByRole('button', { name: 'wake body', exact: true }).click();
   await expect(page.locator('[data-play-state]')).toHaveText('Playing');
-  await page.keyboard.press('a');
-  await expect(page.locator('[data-plot-output] output[data-face-kind="face/text"]:visible [data-text-value]')).toHaveText('a');
+  await enterMemoryText(page, "a");
   const evidence = await liveEvidence(page);
   expect(evidence.host_completions.records.some(record => record.disposition === 'failed' && record.failure_code === 'host_call_failed' && record.failure_detail === 1)).toBe(true);
   await page.screenshot({ path: testInfo.outputPath('chime-unavailable-body-listening.png'), fullPage: true });
@@ -365,8 +362,7 @@ test("a suspended real audio context reports denial while the body keeps listeni
   await page.getByRole('button', { name: 'Birth Body', exact: true }).click();
   await page.getByRole('button', { name: 'wake body', exact: true }).click();
   await expect(page.locator('[data-play-state]')).toHaveText('Playing');
-  await page.keyboard.press('b');
-  await expect(page.locator('[data-plot-output] output[data-face-kind="face/text"]:visible [data-text-value]')).toHaveText('b');
+  await enterMemoryText(page, "b");
   const evidence = await liveEvidence(page);
   expect(evidence.host_completions.records.some(record => record.disposition === 'denied' && record.failure_code === 'host_call_denied' && record.failure_detail === 2)).toBe(true);
 });

@@ -42,6 +42,7 @@ depends on semantic, application, target, or proof packages.
 | `shared_pool.rs` | universal architecture | Generic finite shared-pool identity, admission, and placement records. |
 | `state_delay.rs` | universal architecture | Explicit typed computational-state identity, continuation, and retained-resource admission. |
 | `source_seeded_state.rs` | universal architecture | Exact declared Source-seeded state boundary validation; initialization remains a dependency and only the declared replacement input is a delay. |
+| `initialized_state.rs` | universal architecture | Exact typed initial Current and retained update boundary, including finite value bounds and declared startup-cut identity; no Host or domain policy. |
 | `stream_sampling.rs` | universal architecture | Deterministic bounded source-item selection with exact selected/unselected ownership and accounting, distinct from pressure loss or coalescing. |
 | `terminal_info.rs` | universal architecture | Canonical bounded abnormal-terminal info, including exact category, causal evidence digest, and optional domain-owned fault identity. |
 | `deadline.rs` | generic mechanism | Exact bounded monotonic-deadline operation/resource contract; no clock implementation or scheduling policy. |

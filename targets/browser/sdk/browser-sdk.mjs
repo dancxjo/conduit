@@ -55,9 +55,9 @@ setBrowserSdkErrors({ PlanRefusalError, ResourceLossError, InvalidLifecycleError
 
 /** Validate the finite installed-executor disclosure without acquiring a Body. */
 export function checkedBrowserExecutionCapabilities(value) {
-  // Includes saved choice and continuous PCM alongside the existing installations;
-  // the 121 executors are distinct from the 137-offer membership advertisement.
-  const maximumExecutionCapabilities = 121;
+  // Includes semantic document editing alongside the existing installations;
+  // the 123 executors are distinct from the 139-offer membership advertisement.
+  const maximumExecutionCapabilities = 123;
   if (value?.schema !== "conduit.browser/body-capabilities@1"
       || !Array.isArray(value.capability_ids)
       || value.capability_ids.length > maximumExecutionCapabilities
@@ -307,6 +307,11 @@ export class BrowserBodyParticipation {
       () => this.presenceState() === "available" && this.hostId === hostId && this.bootId === bootId
         && this.membershipCredential()?.body_id === acknowledged.body_id);
     return shown;
+  }
+  /** Retire this browser Mask and its pending/acknowledged local Show authority. */
+  discardOwnerFaceMask() {
+    this.#state.host.bridge.ownerFaceClear();
+    clearOwnerFaceShow(this.#state);
   }
   async selectOwnerComponentMask({ look, recipe, minimumTextScalePercent }) {
     if (minimumTextScalePercent !== undefined &&

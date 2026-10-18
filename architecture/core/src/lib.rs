@@ -30,6 +30,8 @@ mod front;
 mod ieee_float;
 mod implementation;
 mod info;
+mod initialized_state;
+pub use initialized_state::{initialized_state_boundary, InitializedStateLaw};
 mod interop;
 mod kind_effects;
 mod physical_definition;
