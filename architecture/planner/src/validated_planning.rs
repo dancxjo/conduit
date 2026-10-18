@@ -1,6 +1,7 @@
 //! Assemble one Plan from already validated plot identities and native offers.
 use super::*;
 use crate::planning_input::PlanningInput;
+mod quantity_wire;
 
 pub(crate) fn plan_validated_plot(
     plot: &CheckedPlot,
@@ -230,8 +231,10 @@ pub(crate) fn plan_borrowed_plot_with_connection_limits(
         }
     }
 
+    let quantity_contracts = quantity_wire::contracts(&planned_gears)?;
     let mut planned_connections = Vec::<PlannedConnection>::new();
     for connection in plot.connections {
+        quantity_wire::validate_connection(connection, &quantity_contracts)?;
         let limits = connection_limits
             .get(&connection_endpoints(connection))
             .copied()

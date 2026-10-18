@@ -65,6 +65,7 @@ pub struct PlanningOptions<'a> {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PlannerError {
+    QuantityWireProfileMismatch(alloc::boxed::Box<ConnectionEndpoints>),
     UnsupportedRealizationRequirement {
         gear_id: conduit_core::GearId,
         property_profile: conduit_core::KindId,
@@ -127,6 +128,12 @@ pub enum PlannerError {
 impl core::fmt::Display for PlannerError {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
+            Self::QuantityWireProfileMismatch(endpoints) => {
+                let (source_gear_id, source_port_id, sink_gear_id, sink_port_id) =
+                    endpoints.as_ref();
+                write!(f, "quantity/wire-profile-mismatch@1: exact producer '{}:{}' requires an exact consumer at '{}:{}' or an explicit admitted projection",
+                    source_gear_id.as_str(), source_port_id.as_str(), sink_gear_id.as_str(), sink_port_id.as_str())
+            }
             Self::UnsupportedRealizationRequirement {
                 gear_id,
                 property_profile,

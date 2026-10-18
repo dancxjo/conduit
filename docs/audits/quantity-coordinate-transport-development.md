@@ -102,3 +102,35 @@ and focused strict lint pass.
 The exact policy is not installed in Source or a Back yet. The prepared product
 continues selecting decimal policy until producer/consumer profiles and resource
 bounds are admitted before Play. The two authored wire gates remain unresolved.
+
+## Selected-port wire contract and planner fence
+
+A finite typed realization property records decimal or exact wire profiles for
+specific input/output ports. Its fixed structured schema, sorted unique entries
+and 32-port combined limit provide one canonical domain encoding. Missing ports
+and missing properties retain decimal-only support. The property grants no
+physical conversion, Unit binding, numerical projection or runtime authority.
+
+Ordinary checked and expanded planning decode these facts from selected Backs,
+refuse ports absent from the selected Fore, and check Payload Cords before
+sealing a Plan. An exact producer connected to a decimal-only selected input
+returns `quantity/wire-profile-mismatch@1` with all four endpoints. Non-payload
+terminal/control tracks do not borrow the payload codec contract. Existing
+realization-property fingerprinting retains the facts in the Plan. Refusal
+endpoint storage is boxed on this pre-Play error path to keep common planner
+error values small.
+
+All 77 Planner library tests and nine focused Core tests pass, including ordinary
+planning refusal for a nonexistent declared port, port-local eligibility, native
+defaults, malformed domain codes, canonical round trips and finite bounds. Strict
+Core and Planner lint, workspace formatting and Core no-default-features checks
+pass. These are private development results.
+
+The Std Source offers do not advertise this optional contract yet; the generic
+primitive validator and installed evaluator remain on decimal wire policy.
+The fence validates supplied selected placements. Default candidate selection
+still needs to account for this domain when alternatives differ; it must not
+choose an incompatible consumer while a compatible offered realization exists.
+Runtime profile checks, prepared exact storage/work bounds and installed Back
+recomputation must be integrated before activation. The two authored wire gates
+remain unresolved.
