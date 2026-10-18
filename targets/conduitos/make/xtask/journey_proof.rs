@@ -239,7 +239,7 @@ pub(super) fn execute_supplied(
         let keyboard_cost = keyboard_domain::validate_cost(&serial, &keyboard_identity, 5, 1)?;
         // Initial empty Current manifests the caret before input: one extra
         // Face Host Call and its two protected domain entries.
-        let editor_cost = keyboard_domain::validate_cost(&serial, &editor_identity, 37, 9)?;
+        let editor_cost = keyboard_domain::validate_cost(&serial, &editor_identity, 29, 7)?;
         if keyboard_cost["domain_id"] == editor_cost["domain_id"]
             || keyboard_cost["partition_plan_id"] == editor_cost["partition_plan_id"]
         {

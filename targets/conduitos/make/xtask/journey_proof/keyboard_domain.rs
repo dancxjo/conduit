@@ -41,10 +41,10 @@ pub(super) fn exercise_editor(
         stream,
         reader,
         conduitos::native_workset::NativePlot::MemoryLantern,
+        // Six edits plus the initial empty value stay within the planned
+        // eight-value Face capability, including erasure and actual AltGr input.
         &[
             ("a", "a"),
-            ("b", "ab"),
-            ("backspace", "a"),
             ("backspace", ""),
             ("c", "c"),
             ("a", "ca"),
