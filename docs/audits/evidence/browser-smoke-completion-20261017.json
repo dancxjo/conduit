@@ -1,6 +1,6 @@
 {
   "schema": "conduit.browser/smoke-network-evidence@1",
-  "code_source": "b20d689c94d1fe56529b26bd8478f574c1a9097b",
+  "code_source": "c0e1a2a12b9aa4196a6e8318921c38dbf308d1c5",
   "proof_class": "local-smoke-execution-on-retained-Candidate-product",
   "trigger": {
     "run": 39083962547,
@@ -22,6 +22,27 @@
   "repair": "Await actual application-ready state. Match only a unique GET fetch HTTP200 transfer at actual HTTP send/header times (1ms rounding tolerance), completed response timing and exact positive Content-Length/encoded/decoded sizes. Retain these notifications and all timings in receipt. Missing, partial, ambiguous, reused, non-200 and other failed requests remain fatal.",
   "validation": {
     "pipeline_tests": {
+      "passed": 249,
+      "failed": 0,
+      "new_contract_tests": 5
+    },
+    "clean_source_smoke": {
+      "browser": "pinned Playwright1.62 Chromium",
+      "browser_instances": 1,
+      "retries": 0,
+      "violations": 0,
+      "page_errors": 0,
+      "completed_abort_notifications_retained": 28,
+      "checked_links": 4
+    },
+    "diagnostic_limits": "Baseline and instrumented variants reproduce failure. First classifier prototype also failed because fetchStart includes queueing; final classifier matches HTTP send/header phases. Those failures remain archived; no failed behavior was relabeled as a pass."
+  },
+  "archive": "browser-smoke-completion-20261017-raw.tar.gz",
+  "archive_sha256": "29db29b706b95747aea56fe51b247076b873f9760f37d10a33f84850c33640ac",
+  "limits": "This reuses an unchanged retained Candidate product for smoke collector regression. It is not a fresh application build, exhaustive repaired dev acceptance, stable publication, physical or human proof. Required Candidate and combined Integration remain pending.",
+  "initial_code_source": "b20d689c94d1fe56529b26bd8478f574c1a9097b",
+  "initial_validation": {
+    "pipeline_tests": {
       "passed": 248,
       "failed": 0,
       "new_contract_tests": 4
@@ -37,7 +58,14 @@
     },
     "diagnostic_limits": "Baseline and instrumented variants reproduce failure. First classifier prototype also failed because fetchStart includes queueing; final classifier matches HTTP send/header phases. Those failures remain archived; no failed behavior was relabeled as a pass."
   },
-  "archive": "browser-smoke-completion-20261017-raw.tar.gz",
-  "archive_sha256": "29db29b706b95747aea56fe51b247076b873f9760f37d10a33f84850c33640ac",
-  "limits": "This reuses an unchanged retained Candidate product for smoke collector regression. It is not a fresh application build, exhaustive repaired dev acceptance, stable publication, physical or human proof. Required Candidate and combined Integration remain pending."
+  "archive_code_source": "b20d689c94d1fe56529b26bd8478f574c1a9097b",
+  "followup": {
+    "finding": "Read-only reviewer found Promise.all snapshots pending records and can omit a newly appended failure during await.",
+    "correction": "Live-array drain includes records appended during collection; named listener is removed synchronously at the end of the measured window before final timing snapshot.",
+    "regression": "A connection-reset record appended while an earlier response promise waits is retained and remains fatal.",
+    "review": "Same reviewer rechecked follow-up and found no remaining actionable findings.",
+    "archive": "browser-smoke-drain-20261017-raw.tar.gz",
+    "archive_sha256": "aa40c447c9d8ec9f774342fb9e1c981df0bbef8b92cb5d6efbf253a98c387a56",
+    "code_source": "c0e1a2a12b9aa4196a6e8318921c38dbf308d1c5"
+  }
 }
