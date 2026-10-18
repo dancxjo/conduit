@@ -69,7 +69,9 @@ impl FrontDoor {
                 self.application_view.as_ref(),
                 self.application_viewport,
                 self.patchbay_graph.is_some(),
-                self.refusal.as_ref().map(|refusal| refusal.reason()),
+                self.refusal
+                    .as_ref()
+                    .map(|refusal| (refusal.heading(), refusal.reason())),
                 display,
             );
         }

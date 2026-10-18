@@ -431,9 +431,13 @@ impl FaceArrival {
             .checked_add(1)
             .ok_or("creche-face-observation-bound")?;
         self.next_play = play.checked_add(1).ok_or("creche-face-play-bound")?;
-        self.mask
-            .present(face, observation, play, display)
-            .map_err(|error| error.as_str())
+        let receipt = self
+            .mask
+            .present(face.clone(), observation, play, display)
+            .map_err(|error| error.as_str())?;
+        let show = self.mask.show().ok_or("creche-face-show-absent")?;
+        super::native_action_evidence::face(&face, show, observation, play)?;
+        Ok(receipt)
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -463,6 +467,10 @@ impl FaceArrival {
                 correlation,
                 next_focus,
             } => {
+                let source_face = door
+                    .creche_face(&self.basis)
+                    .map_err(|error| error.as_str())?;
+                let before = journey.projection();
                 match door
                     .apply_creche_face_interaction(&self.basis, &show, &correlation.interaction)
                     .map_err(|error| error.as_str())?
@@ -487,6 +495,22 @@ impl FaceArrival {
                         self.mask.suspend().map_err(|error| error.as_str())?;
                         super::arrival::birth_and_arrive(
                             selection, door, journey, presenter, display, make,
+                        )?;
+                        let after = journey.projection();
+                        let action = source_face
+                            .resolve_action(
+                                source_face.revision,
+                                &correlation.interaction.action_id,
+                            )
+                            .map_err(|_| "creche-birth-source-action-absent")?;
+                        super::native_action_evidence::action(
+                            &source_face,
+                            &show,
+                            Some(&correlation.interaction),
+                            &action.intent,
+                            &before,
+                            &after,
+                            None,
                         )?;
                         Ok(FaceArrivalInput::Born)
                     }

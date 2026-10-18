@@ -6,17 +6,19 @@ use alloc::{format, string::String};
 pub(super) enum WorkspaceRefusal {
     Startup(String),
     Play(String),
+    Action(String),
 }
 impl WorkspaceRefusal {
     pub(super) fn reason(&self) -> &str {
         match self {
-            Self::Startup(reason) | Self::Play(reason) => reason,
+            Self::Startup(reason) | Self::Play(reason) | Self::Action(reason) => reason,
         }
     }
     pub(super) fn key(&self) -> &'static str {
         match self {
             Self::Startup(_) => "startup-refusal",
             Self::Play(_) => "play-refusal",
+            Self::Action(_) => "action-refusal",
         }
     }
     #[allow(dead_code)]
@@ -24,6 +26,7 @@ impl WorkspaceRefusal {
         match self {
             Self::Startup(_) => "Wake could not finish. Details:",
             Self::Play(_) => "Play stopped. Details:",
+            Self::Action(_) => "Action refused. Details:",
         }
     }
 }
@@ -32,6 +35,17 @@ impl FrontDoor {
     pub fn inspect_lifecycle(&mut self) -> Result<(), Error> {
         self.exact_details_open = true;
         self.advance()
+    }
+
+    /// Whether the rendered encounter still observes this exact owner state.
+    /// Checking does not publish a new revision or acknowledge another Show.
+    #[cfg(all(target_arch = "x86_64", feature = "native-compositor"))]
+    pub(crate) fn observes_current_product(
+        &self,
+        journey: &crate::product_journey::ProductJourney,
+    ) -> bool {
+        self.journey.as_ref() == Some(&journey.projection())
+            && self.workspace == journey.workspace_projection()
     }
 
     /// Refresh from the authoritative lifecycle and its exact resident workset.
@@ -71,6 +85,12 @@ impl FrontDoor {
             self.patchbay_graph = None;
             self.observe_journey(journey.projection())
         }
+    }
+
+    #[cfg_attr(not(feature = "native-compositor"), allow(dead_code))]
+    pub(crate) fn action_refused(&mut self, reason: &str) -> Result<(), Error> {
+        self.refusal = Some(WorkspaceRefusal::Action(reason.into()));
+        self.advance()
     }
 
     pub fn play_refused(&mut self, reason: &str) -> Result<(), Error> {
@@ -192,6 +212,14 @@ impl FrontDoor {
             }
         }
         self.revision.checked_add(1).ok_or(Error::Face)?;
+        if self
+            .journey
+            .as_ref()
+            .is_some_and(|prior| prior.revision != journey.revision)
+            && matches!(self.refusal, Some(WorkspaceRefusal::Action(_)))
+        {
+            self.refusal = None;
+        }
         self.source_document_id = journey.source_document_id.clone().ok_or(Error::Face)?;
         self.checked_plot_id = journey.checked_plot_id.clone().ok_or(Error::Face)?;
         self.plot_subject = format!("plot/{}", self.checked_plot_id.as_str());
@@ -200,7 +228,9 @@ impl FrontDoor {
         }
         self.plot_open = false;
         // A newly admitted play supersedes an earlier startup/input refusal.
-        if journey.status == crate::product_journey::JourneyStatus::QuiescentAwaitingInput {
+        if journey.status == crate::product_journey::JourneyStatus::QuiescentAwaitingInput
+            && !matches!(self.refusal, Some(WorkspaceRefusal::Action(_)))
+        {
             self.refusal = None;
         }
         self.journey = Some(journey);
