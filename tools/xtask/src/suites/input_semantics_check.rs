@@ -71,6 +71,22 @@ pub const INPUT_SEMANTICS_STEPS: &[Step] = &[
         ],
     ),
     Step::new(
+        "check.input-semantics.native-navigation",
+        "check native focus, complete overflow reading and exact Face controls",
+        "cargo",
+        &[
+            "test",
+            "-p",
+            "conduitos",
+            "--features",
+            "native-compositor",
+            "native_face",
+            "--lib",
+            "--",
+            "--test-threads=1",
+        ],
+    ),
+    Step::new(
         "check.input-semantics.browser-keymaps",
         "test configured layouts and live saved selection through the browser kernel",
         "cargo",

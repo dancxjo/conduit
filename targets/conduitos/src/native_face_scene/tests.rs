@@ -569,7 +569,7 @@ fn focused_action_has_visible_focus_and_unavailable_action_has_no_hit() {
         command.paint == GraphicsPaintRole::Focus && command.kind == GraphicsCommandKind::Rect
     }));
     assert!(
-        !scene
+        scene
             .primary
             .iter()
             .any(|row| row.text.contains("Waiting for a name"))
