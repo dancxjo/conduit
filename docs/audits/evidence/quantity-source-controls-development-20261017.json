@@ -1,0 +1,44 @@
+{
+  "schema": "conduit/development-validation@1",
+  "source": "c151be813c25bd5ad5ec8bb7ae138dae1b2508ca",
+  "scope": "Private Source quantity literal and native catalog controls; exact-wire acceptance remains failing.",
+  "results": {
+    "plot_tests_passed": 15,
+    "strict_plot_and_product_clippy": "passed",
+    "product_tests": {
+      "passed": 1,
+      "failed": 2,
+      "expected_exit": 101
+    },
+    "remaining_failure": "HostCallFailed detail 45; before-Play wire eligibility not installed"
+  },
+  "excluded_evidence": [
+    "quantity-wire-product-final-red.log: overlapping writers; not used"
+  ],
+  "files": [
+    {
+      "path": "quantity-literal-context-final-tests.log",
+      "sha256": "2e2779064e89dfc095df3772dffe1e628ec96c78a06050ad2300800547069fd8"
+    },
+    {
+      "path": "quantity-literal-context-final-clippy.log",
+      "sha256": "4732851544d2d6f1cb8caeecfee911fe4a7facf42a49320577ef4bf96efc6e1c"
+    },
+    {
+      "path": "quantity-wire-product-current-gates.log",
+      "sha256": "7e5eafc13fe91f289d9fa3e9f2cf8e1ec6a90b9590f2412e9779615efc41668c"
+    },
+    {
+      "path": "quantity-wire-product-current-gates.exit",
+      "sha256": "39b8dc3fc8b44765c8e6f1adee04c5b465e555ab791cc42d0d9e810d5b64297c"
+    },
+    {
+      "path": "quantity-native-product-final-clippy.log",
+      "sha256": "845df0c8e1faddb3211d1a8c8317c36211aca55923456673445b0d3139289f2e"
+    }
+  ],
+  "archive": {
+    "path": "quantity-source-controls-development-20261017-raw.tar.gz",
+    "sha256": "1cbaa9e8cd510bf941121b7206264224a60076e56f16e4e52bdfaa772a7aede8"
+  }
+}
