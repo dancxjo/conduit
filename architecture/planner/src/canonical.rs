@@ -138,7 +138,7 @@ pub fn default_expanded_placements(
 ) -> Result<PlacementChoices, PlannerError> {
     plot.validate_expansion()
         .map_err(|error| PlannerError::InvalidPlotIdentity(error.to_string()))?;
-    default_placements_unvalidated(&plot.gears, hosts)
+    default_placements_unvalidated(&plot.gears, &plot.connections, hosts)
 }
 
 mod default_queues;

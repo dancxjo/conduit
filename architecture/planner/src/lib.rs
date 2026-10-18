@@ -290,7 +290,7 @@ pub fn default_placements(
     plot: &CheckedPlot,
     hosts: &[HostAdvertisement],
 ) -> Result<PlacementChoices, PlannerError> {
-    default_placements_unvalidated(&plot.gears, hosts)
+    default_placements_unvalidated(&plot.gears, &plot.connections, hosts)
 }
 
 /// Plans semantic work under an explicit closed-world set of Cord mechanisms.

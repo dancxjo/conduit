@@ -142,6 +142,7 @@ pub fn seed_planning_from_advice(
         }
         let default = crate::functional_compatibility::default_placements_unvalidated(
             core::slice::from_ref(gear),
+            &[],
             hosts,
         )
         .map_err(|_: PlannerError| PlanningAdviceRefusal::OrdinaryPlanningUnavailable)?;

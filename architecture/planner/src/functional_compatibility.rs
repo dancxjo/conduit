@@ -2,12 +2,17 @@ use crate::prelude::*;
 use crate::{PlacementChoice, PlacementChoices, PlannerError};
 use alloc::collections::BTreeMap;
 use conduit_core::HostAdvertisement;
-use conduit_plot::CheckedGear;
+use conduit_plot::{CheckedConnection, CheckedGear};
+mod quantity_selection;
 
 pub(crate) fn default_placements_unvalidated(
     gears: &[CheckedGear],
+    connections: &[CheckedConnection],
     hosts: &[HostAdvertisement],
 ) -> Result<PlacementChoices, PlannerError> {
+    if quantity_selection::needed(gears, hosts) {
+        return quantity_selection::select(gears, connections, hosts);
+    }
     if hosts.is_empty() {
         return Err(PlannerError::UnknownHost("hosts is empty".to_string()));
     }
