@@ -91,12 +91,29 @@ export async function captureArbitraryTodoRefusals({ page, face, output, sourceR
   await unchangedExecution();
   results.push({case:'focus-scroll',disposition:'MaskLocal',accepted_domain_mutations:0});
   await retain();
+  const observeRenderRefusal = () => page.evaluate(() => {
+    globalThis.__todoRenderRefusal = null;
+    const observer = new MutationObserver(() => {
+      const status = document.querySelector('[data-owner-face-status]');
+      const refresh = [...document.querySelectorAll('button')].find(button=>button.textContent==='Refresh this Face');
+      if (status?.dataset.refused !== 'true' || !status.textContent.includes('No reachable named browser control')
+        || refresh?.disabled || document.querySelector('[data-owner-show-acknowledged]')) return;
+      globalThis.__todoRenderRefusal={message:status.textContent,show_acknowledged:false};
+      observer.disconnect();
+    });
+    observer.observe(document.querySelector('[data-owner-face]'),{subtree:true,childList:true,attributes:true,characterData:true});
+  });
+  const renderRefusal = async () => {
+    await page.waitForFunction(() => globalThis.__todoRenderRefusal !== null);
+    const observed = await page.evaluate(() => globalThis.__todoRenderRefusal);
+    assert.match(observed.message,/No reachable named browser control/);
+    assert.equal(observed.show_acknowledged,false);
+  };
   // Hostile appearance must fail preparation before an acknowledged usable Show.
+  await observeRenderRefusal();
   await page.locator('conduit-owner-face').evaluate(element => {element.hidden=true;});
   await page.getByRole('button',{name:'Refresh this Face',exact:true}).click();
-  await page.waitForFunction(() => document.querySelector('[data-owner-face-status]')?.dataset.refused === 'true');
-  assert.equal(await page.locator('[data-owner-show-acknowledged]').count(),0);
-  assert.match(await page.locator('[data-owner-face-status]').textContent(),/No reachable named browser control/);
+  await renderRefusal();
   assert.deepEqual(face(),beforeAttempt,'inaccessible rendering cannot mutate owner truth');
   await unchangedExecution();
   results.push({case:'hidden-mandatory-action',disposition:'RendererActionInaccessible',
@@ -111,6 +128,7 @@ export async function captureArbitraryTodoRefusals({ page, face, output, sourceR
   results.push({case:'restored-accessible-renderer',accepted_domain_mutations:0});
   await retain();
   // Attack the actual packaged renderer between preparation and admission.
+  await observeRenderRefusal();
   await page.locator('conduit-owner-face').evaluate(element => {
     const show = element.show;
     element.show = function(...arguments_) {
@@ -119,9 +137,7 @@ export async function captureArbitraryTodoRefusals({ page, face, output, sourceR
     };
   });
   await page.getByRole('button',{name:'Refresh this Face',exact:true}).click();
-  await page.waitForFunction(() => document.querySelector('[data-owner-face-status]')?.dataset.refused === 'true');
-  assert.equal(await page.locator('[data-owner-show-acknowledged]').count(),0);
-  assert.match(await page.locator('[data-owner-face-status]').textContent(),/No reachable named browser control/);
+  await renderRefusal();
   assert.deepEqual(face(),beforeAttempt,'misleading action wording cannot mutate owner truth');
   await unchangedExecution();
   results.push({case:'misleading-action-name',disposition:'RendererActionInaccessible',
