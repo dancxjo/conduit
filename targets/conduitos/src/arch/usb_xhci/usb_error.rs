@@ -24,6 +24,7 @@ pub enum UsbError {
     ControlStall,
     ControlError,
     ControlTimeout,
+    CompletionPressure,
     WrongController,
     WrongSlot,
     WrongEndpoint,
@@ -60,6 +61,7 @@ impl UsbError {
             Self::ControlStall => "usb-control-stall",
             Self::ControlError => "usb-control-error",
             Self::ControlTimeout => "usb-control-timeout",
+            Self::CompletionPressure => "usb-completion-pressure",
             Self::WrongController => "usb-completion-wrong-controller",
             Self::WrongSlot => "usb-completion-wrong-slot",
             Self::WrongEndpoint => "usb-completion-wrong-endpoint",
@@ -79,6 +81,7 @@ impl From<XhciError> for UsbError {
     fn from(error: XhciError) -> Self {
         match error {
             XhciError::CommandTimeout => Self::ControlTimeout,
+            XhciError::EventRetentionPressure => Self::CompletionPressure,
             _ => Self::ControlError,
         }
     }

@@ -200,7 +200,18 @@ fn wait_completion(
                 controller.port_status(ring.root_port),
             )?;
         }
-        let event = controller.next_event()?;
+        if controller.port_status(ring.root_port) & 1 == 0 {
+            return Err(UsbError::DeviceVanished);
+        }
+        let event = match controller.next_transfer_event(ring.slot, 1) {
+            Ok(event) => event,
+            Err(error) => {
+                if controller.port_status(ring.root_port) & 1 == 0 {
+                    return Err(UsbError::DeviceVanished);
+                }
+                return Err(error.into());
+            }
+        };
         if continuous {
             super::attachment::validate_attachment_continuity(
                 controller.port_status(ring.root_port),

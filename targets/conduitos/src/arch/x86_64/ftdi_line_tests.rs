@@ -126,6 +126,7 @@ fn every_refusal_is_machine_readable_and_storage_is_fixed() {
         FtdiLineError::TransferTimeout,
         FtdiLineError::TransferStall,
         FtdiLineError::TransferError,
+        FtdiLineError::CompletionPressure,
         FtdiLineError::WrongCompletion,
         FtdiLineError::WrongSlot,
         FtdiLineError::WrongEndpoint,

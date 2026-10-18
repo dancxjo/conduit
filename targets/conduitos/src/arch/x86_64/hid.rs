@@ -55,6 +55,7 @@ pub enum HidError {
     TransferTimeout,
     TransferStall,
     TransferError,
+    CompletionPressure,
     WrongDevice,
     WrongEndpoint,
     WrongCompletion,
@@ -86,6 +87,7 @@ impl HidError {
             Self::TransferTimeout => "hid-transfer-timeout",
             Self::TransferStall => "hid-transfer-stall",
             Self::TransferError => "hid-transfer-error",
+            Self::CompletionPressure => "hid-completion-pressure",
             Self::WrongDevice => "hid-completion-wrong-device",
             Self::WrongEndpoint => "hid-completion-wrong-endpoint",
             Self::WrongCompletion => "hid-completion-wrong-trb",
@@ -266,10 +268,10 @@ pub fn receive_boot_keyboard(
 }
 
 fn map_protocol_error(error: UsbError) -> HidError {
-    if error == UsbError::ControlStall {
-        HidError::SetProtocolStall
-    } else {
-        HidError::SetProtocolError
+    match error {
+        UsbError::ControlStall => HidError::SetProtocolStall,
+        UsbError::CompletionPressure => HidError::CompletionPressure,
+        _ => HidError::SetProtocolError,
     }
 }
 
@@ -407,7 +409,10 @@ fn configure_interrupt_endpoint(
             0,
             (12 << 10) | (u32::from(device.slot) << 24),
         ])
-        .map_err(|_| HidError::ConfigureEndpointFailed)?;
+        .map_err(|error| match error {
+            super::xhci::XhciError::EventRetentionPressure => HidError::CompletionPressure,
+            _ => HidError::ConfigureEndpointFailed,
+        })?;
     if event.completion_code != 1 || event.slot != device.slot {
         return Err(HidError::ConfigureEndpointFailed);
     }

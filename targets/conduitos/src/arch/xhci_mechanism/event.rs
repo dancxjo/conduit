@@ -1,28 +1,130 @@
-//! Consume an xHCI event only after the controller publishes its cycle bit.
-
-use core::sync::atomic::{Ordering, fence};
-
-use super::{DMA, DmaStorage, EVENT_TRBS, Event, XhciReady, write64};
+//! One controller event consumer with bounded exact-endpoint retention.
+use super::{DMA, DmaStorage, EVENT_TRBS, Event, POLL_STEPS, XhciError, XhciReady, write64};
+use core::{
+    hint::spin_loop,
+    sync::atomic::{Ordering, fence},
+};
 
 impl XhciReady {
-    /// Inspect the current event slot once without waiting for controller work.
+    /// Exclusive consumers drain retained events before new hardware observations.
     pub(crate) fn poll_event(&mut self) -> Option<Event> {
-        let event = read_owned_event(self.event_cycle, |word| unsafe {
-            core::ptr::read_volatile(core::ptr::addr_of!(
-                DMA.event_ring[self.event_dequeue][word]
-            ))
-        })?;
-        self.event_dequeue += 1;
-        if self.event_dequeue == EVENT_TRBS {
-            self.event_dequeue = 0;
-            self.event_cycle ^= 1;
-        }
-        let event_phys = self.dma_physical
-            + core::mem::offset_of!(DmaStorage, event_ring) as u64
-            + (self.event_dequeue * 16) as u64;
-        unsafe { write64(self.runtime_interrupter + 0x18, event_phys | 8) };
-        Some(event)
+        self.retained_events.pop().or_else(|| {
+            poll_hardware(
+                &mut self.event_dequeue,
+                &mut self.event_cycle,
+                self.dma_physical,
+                self.runtime_interrupter,
+            )
+        })
     }
+
+    fn poll_matching(
+        &mut self,
+        matches: impl Fn(Event) -> bool,
+    ) -> Result<Option<Event>, XhciError> {
+        let Self {
+            retained_events,
+            event_dequeue,
+            event_cycle,
+            dma_physical,
+            runtime_interrupter,
+            ..
+        } = self;
+        retained_events.poll_with(matches, || {
+            poll_hardware(
+                event_dequeue,
+                event_cycle,
+                *dma_physical,
+                *runtime_interrupter,
+            )
+        })
+    }
+
+    /// Select the endpoint, never a guessed TRB. Its owner validates the exact
+    /// pending TRB and completion disposition before reading its report bytes.
+    pub(crate) fn poll_transfer_event(
+        &mut self,
+        slot: u8,
+        endpoint: u8,
+    ) -> Result<Option<Event>, XhciError> {
+        if slot == 0 || slot > self.admitted_slots || !(1..=31).contains(&endpoint) {
+            return Err(XhciError::InvalidLayout);
+        }
+        let admitted_slots = self.admitted_slots;
+        self.poll_matching(|event| transfer_interest(event, slot, endpoint, admitted_slots))
+    }
+
+    pub(crate) fn next_transfer_event(
+        &mut self,
+        slot: u8,
+        endpoint: u8,
+    ) -> Result<Event, XhciError> {
+        if slot == 0 || slot > self.admitted_slots || !(1..=31).contains(&endpoint) {
+            return Err(XhciError::InvalidLayout);
+        }
+        let admitted_slots = self.admitted_slots;
+        self.next_matching(|event| transfer_interest(event, slot, endpoint, admitted_slots))
+    }
+
+    pub(super) fn next_command_event(&mut self) -> Result<Event, XhciError> {
+        self.next_matching(|event| event.event_type != 32)
+    }
+
+    /// Original retirement contracts require an exclusive complete event view;
+    /// a foreign TD must still refuse rather than being skipped to a later ack.
+    pub(super) fn next_event(&mut self) -> Result<Event, XhciError> {
+        for _ in 0..POLL_STEPS {
+            if let Some(event) = self.poll_event() {
+                return Ok(event);
+            }
+            spin_loop();
+        }
+        Err(XhciError::CommandTimeout)
+    }
+
+    fn next_matching(&mut self, matches: impl Fn(Event) -> bool) -> Result<Event, XhciError> {
+        for _ in 0..POLL_STEPS {
+            if let Some(event) = self.poll_matching(&matches)? {
+                return Ok(event);
+            }
+            spin_loop();
+        }
+        Err(XhciError::CommandTimeout)
+    }
+}
+
+fn transfer_interest(event: Event, slot: u8, endpoint: u8, admitted_slots: u8) -> bool {
+    if event.event_type == 32 {
+        (event.slot == slot && event.endpoint == endpoint)
+            || event.slot == 0
+            || event.slot > admitted_slots
+    } else {
+        // No command is concurrently pending in this endpoint poll. An
+        // unexpected command ack must refuse now, never pre-ack a later command.
+        // Port observations remain separate from this endpoint's transfer.
+        event.event_type != 34
+    }
+}
+
+fn poll_hardware(
+    event_dequeue: &mut usize,
+    event_cycle: &mut u32,
+    dma_physical: u64,
+    runtime_interrupter: usize,
+) -> Option<Event> {
+    let event = read_owned_event(*event_cycle, |word| unsafe {
+        core::ptr::read_volatile(core::ptr::addr_of!(DMA.event_ring[*event_dequeue][word]))
+    })?;
+    *event_dequeue += 1;
+    if *event_dequeue == EVENT_TRBS {
+        *event_dequeue = 0;
+        *event_cycle ^= 1;
+    }
+    let event_phys = dma_physical
+        + core::mem::offset_of!(DmaStorage, event_ring) as u64
+        + (*event_dequeue * 16) as u64;
+    unsafe { write64(runtime_interrupter + 0x18, event_phys | 8) };
+    Some(event)
 }
 
 /// The controller owns the payload until control's cycle matches the consumer.
