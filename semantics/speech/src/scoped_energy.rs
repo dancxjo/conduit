@@ -29,6 +29,52 @@ impl<'a, 'owner, 'inventory> PreparedScopedEnergy<'a, 'owner, 'inventory> {
     pub fn audio(&self) -> &PreparedAudioControlTrajectories {
         &self.audio
     }
+    /// Admits a supplied measured/inferred datum without substituting it for
+    /// the intended trajectory or authenticating its provenance.
+    pub fn observe(
+        &self,
+        index: usize,
+        supplied: &SpeechScopedEnergyObservation,
+    ) -> Result<AdmittedScopedEnergyObservation<'_, 'a, 'owner, 'inventory>, FrequencyGestureRefusal>
+    {
+        let target = self
+            .supplied
+            .targets()
+            .as_slice()
+            .get(index)
+            .ok_or(FrequencyGestureRefusal::Target)?;
+        let supplied = SpeechScopedEnergyObservation::decode(&supplied.clone().encode()?)?;
+        SpeechScopedEnergyObservationMatch::new(supplied.clone(), target.clone())?;
+        validate_scope(
+            self.original,
+            self.structure,
+            supplied.scope(),
+            target.control().trajectory().anchor(),
+        )?;
+        let check = |error| SpeechScopedEnergyErrorMatch::new(error, supplied.clone()).map(|_| ());
+        match supplied.absolute_linear_error() {
+            SpeechEnergyErrorSpecification::Known(error) => {
+                check(AudioReferencedLevelRatio::new(
+                    error.basis().clone(),
+                    error.ratio().clone(),
+                )?)?;
+            }
+            SpeechEnergyErrorSpecification::Variable(errors) => {
+                for error in errors.as_slice() {
+                    check(error.clone())?;
+                }
+            }
+            SpeechEnergyErrorSpecification::Gradient(gradient) => check(gradient.value().clone())?,
+            SpeechEnergyErrorSpecification::Unknown
+            | SpeechEnergyErrorSpecification::Unspecified
+            | SpeechEnergyErrorSpecification::NotApplicable => {}
+        }
+        Ok(AdmittedScopedEnergyObservation {
+            targets: self,
+            index,
+            supplied,
+        })
+    }
     pub fn evaluate(
         &self,
         query: &AudioTrajectoryQuery,
@@ -36,6 +82,24 @@ impl<'a, 'owner, 'inventory> PreparedScopedEnergy<'a, 'owner, 'inventory> {
         self.audio
             .evaluate(&query.clone().encode()?)
             .map_err(FrequencyGestureRefusal::Audio)
+    }
+}
+
+/// The owner receipt keeps intended controls and supplied evidence distinct.
+pub struct AdmittedScopedEnergyObservation<'receipt, 'a, 'owner, 'inventory> {
+    targets: &'receipt PreparedScopedEnergy<'a, 'owner, 'inventory>,
+    index: usize,
+    supplied: SpeechScopedEnergyObservation,
+}
+impl AdmittedScopedEnergyObservation<'_, '_, '_, '_> {
+    pub fn original(&self) -> &PreparedSpeechCorrespondence<'_, '_> {
+        self.targets.original()
+    }
+    pub fn target(&self) -> &SpeechScopedEnergyTarget {
+        &self.targets.supplied().targets().as_slice()[self.index]
+    }
+    pub fn supplied(&self) -> &SpeechScopedEnergyObservation {
+        &self.supplied
     }
 }
 

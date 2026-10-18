@@ -105,10 +105,24 @@ fn observation(
     n: u64,
     uncertainty: SpeechEnergyErrorSpecification,
 ) -> SpeechEnergyObservation {
+    observation_as(
+        scope,
+        n,
+        uncertainty,
+        SpeechEnergyObservationInterpretation::Measured,
+    )
+}
+fn observation_as(
+    scope: SpeechPhoneAcousticScope,
+    n: u64,
+    uncertainty: SpeechEnergyErrorSpecification,
+    interpretation: SpeechEnergyObservationInterpretation,
+) -> SpeechEnergyObservation {
     SpeechEnergyObservation::new(
         uncertainty,
         fixture::confidence(),
         time(1),
+        interpretation,
         fixture::provenance(),
         scope,
         time(0),
@@ -174,6 +188,27 @@ fn original_target_observation_and_conversion_are_separately_retained() {
         prepared_target.observed_power(&request),
         Err(IntentEnergyRefusal::MissingObservation)
     ));
+    for interpretation in [
+        SpeechEnergyObservationInterpretation::Measured,
+        SpeechEnergyObservationInterpretation::Inferred,
+    ] {
+        let supplied = observation_as(
+            scope(0, 1),
+            10,
+            SpeechEnergyErrorSpecification::unknown(),
+            interpretation,
+        );
+        let supplied =
+            SpeechEnergyObservation::decode(&supplied.clone().encode().unwrap()).unwrap();
+        let binding = SpeechEnergyBinding::new(Some(supplied), target(scope(0, 1))).unwrap();
+        let admitted = prepare_intent_energy(&original, 0, &anchor(1), &binding).unwrap();
+        assert_eq!(
+            admitted.observation().unwrap().interpretation(),
+            &interpretation
+        );
+        assert_eq!(admitted.observation().unwrap().value(), &ratio(10));
+        assert_eq!(admitted.target(), binding.target());
+    }
     let before = intent.clone().encode().unwrap();
     let text_before = text.clone().encode().unwrap();
     let states = [
@@ -368,6 +403,7 @@ fn custody_uncertainty_and_unsupported_log_profiles_refuse() {
         unknown.clone(),
         fixture::confidence(),
         time(0),
+        SpeechEnergyObservationInterpretation::Measured,
         fixture::provenance(),
         owner_scope,
         time(1),

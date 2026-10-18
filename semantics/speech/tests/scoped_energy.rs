@@ -94,6 +94,41 @@ fn set(
     )
     .unwrap()
 }
+fn supplied_ratio(power: bool, reference: &str, n: u64) -> AudioReferencedLevelRatio {
+    AudioReferencedLevelRatio::new(
+        basis(reference, power),
+        if power {
+            AudioLevelRatio::power(1, n).unwrap()
+        } else {
+            AudioLevelRatio::amplitude(1, n).unwrap()
+        },
+    )
+    .unwrap()
+}
+fn known_error(error: AudioReferencedLevelRatio) -> SpeechEnergyErrorSpecification {
+    SpeechEnergyErrorSpecification::known(error.basis().clone(), error.ratio().clone()).unwrap()
+}
+
+fn supplied_observation(
+    scope: SpeechAcousticScope,
+    power: bool,
+    interpretation: SpeechEnergyObservationInterpretation,
+    error: SpeechEnergyErrorSpecification,
+    reference: &str,
+) -> SpeechScopedEnergyObservation {
+    SpeechScopedEnergyObservation::new(
+        error,
+        original::confidence(),
+        time(1),
+        interpretation,
+        original::provenance(),
+        scope,
+        time(0),
+        supplied_ratio(power, reference, 1),
+    )
+    .unwrap()
+}
+
 #[test]
 fn actual_broad_scopes_retain_energy_reference_under_generic_overlap_policy() {
     let (inventory, profile, text, intent, phonemes, phones) = (
@@ -140,6 +175,68 @@ fn actual_broad_scopes_retain_energy_reference_under_generic_overlap_policy() {
         assert!(core::ptr::eq(prepared.structure(), &structure));
         assert_eq!(prepared.evaluate(&query).unwrap().selected_indices(), &[4]);
         assert_eq!(prepared.supplied().targets().len(), 5);
+        let error = supplied_ratio(power, "same-reference", 1);
+        let errors = [
+            known_error(error.clone()),
+            SpeechEnergyErrorSpecification::unknown(),
+            SpeechEnergyErrorSpecification::unspecified(),
+            SpeechEnergyErrorSpecification::not_applicable(),
+            SpeechEnergyErrorSpecification::variable(
+                BoundedSequence::try_from_iter([
+                    error.clone(),
+                    supplied_ratio(power, "same-reference", 2),
+                ])
+                .unwrap(),
+            )
+            .unwrap(),
+            SpeechEnergyErrorSpecification::gradient(original::confidence(), error).unwrap(),
+        ];
+        for (index, scope) in all_scopes().into_iter().enumerate() {
+            for interpretation in [
+                SpeechEnergyObservationInterpretation::Measured,
+                SpeechEnergyObservationInterpretation::Inferred,
+            ] {
+                for error in &errors {
+                    let observation = supplied_observation(
+                        scope.clone(),
+                        power,
+                        interpretation,
+                        error.clone(),
+                        "same-reference",
+                    );
+                    let loaded = SpeechScopedEnergyObservation::decode(
+                        &observation.clone().encode().unwrap(),
+                    )
+                    .unwrap();
+                    let admitted = prepared.observe(index, &loaded).unwrap();
+                    assert!(core::ptr::eq(admitted.original(), &original));
+                    assert_eq!(admitted.supplied(), &observation);
+                    assert_eq!(admitted.supplied().interpretation(), &interpretation);
+                    assert_eq!(admitted.supplied().absolute_linear_error(), error);
+                    assert_eq!(
+                        admitted.target(),
+                        &prepared.supplied().targets().as_slice()[index]
+                    );
+                }
+            }
+        }
+        let foreign_reference = supplied_observation(
+            all_scopes()[0].clone(),
+            power,
+            SpeechEnergyObservationInterpretation::Measured,
+            SpeechEnergyErrorSpecification::unknown(),
+            "foreign-reference",
+        );
+        assert!(prepared.observe(0, &foreign_reference).is_err());
+        let foreign_error = supplied_observation(
+            all_scopes()[0].clone(),
+            power,
+            SpeechEnergyObservationInterpretation::Inferred,
+            known_error(supplied_ratio(power, "foreign-error", 1)),
+            "same-reference",
+        );
+        assert!(prepared.observe(0, &foreign_error).is_err());
+        assert_eq!(prepared.supplied(), &supplied);
         let refused = set(targets, AudioControlConflictPolicy::RefuseOverlap);
         assert!(prepare_scoped_energy(&original, &structure, &refused)
             .unwrap()

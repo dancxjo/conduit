@@ -964,3 +964,9 @@ evidence retains span, confidence, provenance and all six error states.
 Scoped energy gestures retain exact amplitude/power references. Generic Audio
 owns finite coverage, priority, gaps and interpolation refusal; these bridges
 do not introduce an independent clock or additive coarticulation engine.
+
+Energy evidence explicitly declares measured versus inferred interpretation.
+Broad scoped observations retain their original anchor/scope, exact span,
+reference, confidence, provenance and six-state linear error specification.
+Admission checks each supplied reference and error basis without substituting
+the observation for an intended amplitude/power trajectory.

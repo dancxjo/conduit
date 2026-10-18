@@ -12,7 +12,13 @@ type SpeechEnergyTarget = {
 # Unknown, unspecified, not_applicable, variable and gradient are retained.
 # This is not a derived dB uncertainty or a probability distribution.
 type SpeechEnergyErrorSpecification = SpeechSpec<AudioReferencedLevelRatio>
+# The caller declares whether supplied evidence is measured or inferred.
+# This distinction does not authenticate a sensor, model or calibration.
+type SpeechEnergyObservationInterpretation =
+    measured
+    | inferred
 type SpeechEnergyObservation = {
+    interpretation: SpeechEnergyObservationInterpretation
     scope: SpeechPhoneAcousticScope
     start: AudioExactTimeOffset
     end: AudioExactTimeOffset
