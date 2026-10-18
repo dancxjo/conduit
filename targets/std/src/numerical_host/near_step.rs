@@ -245,11 +245,14 @@ impl<const PORTS: usize> StepBack<PORTS> for NearQuantityBack {
             return fail(NearRefusal::Lifecycle);
         }
         let Some(value) = io.input(PortId(0)) else {
-            return if io.input_closed(PortId(0)) {
-                fail(NearRefusal::Input)
-            } else {
-                StepOutcome::Await
-            };
+            if !io.input_closed(PortId(0)) {
+                return StepOutcome::Await;
+            }
+            if let Err(why) = io.consume_closed(PortId(0)) {
+                return io_failure(why);
+            }
+            self.complete = true;
+            return StepOutcome::Complete;
         };
         if !io.output_ready(PortId(0)) {
             return StepOutcome::Await;

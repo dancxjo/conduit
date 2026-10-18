@@ -44,3 +44,6 @@ fn runtime_projection_and_certificate_checks_reuse_all_prepared_storage() {
 
 #[path = "certificate_tests.rs"]
 mod certificate_tests;
+
+#[path = "lifecycle_tests.rs"]
+mod lifecycle_tests;
