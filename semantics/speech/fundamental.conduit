@@ -1,0 +1,24 @@
+# Positive F0, dimensions, exact reciprocal conversion and physical quantity
+# refinements remain Audio-owned. These Types bind their meaning to Speech.
+type SpeechFundamentalTarget = {
+    scope: SpeechPhoneAcousticScope
+    control: AudioFrequencyControl
+    where .scope.anchor == .control.anchor
+}
+# Supplied observation evidence does not authenticate measurement or replace a
+# target. Its exact interval and declared provenance survive independently.
+type SpeechFundamentalObservation = {
+    scope: SpeechPhoneAcousticScope
+    control: AudioFrequencyControl
+    at: AudioTrajectoryQuery
+    span: AudioExactTimeOffset
+    evidence: SpeechEvidenceProvenance
+    confidence: SpeechConfidence?
+    where .scope.anchor == .control.anchor
+    where .scope.anchor == .at.anchor
+}
+type SpeechFundamentalBinding = {
+    target: SpeechFundamentalTarget
+    observation: SpeechFundamentalObservation?
+    where .observation is some ? .target.scope == .observation.some.scope : true
+}
