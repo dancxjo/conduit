@@ -28,6 +28,22 @@ pub(crate) fn prepare(
     name: &str,
     tape: bool,
 ) -> (StdHost, conduit_core::Plan, PortableExpressionProgram) {
+    prepare_with_offer(source, name, |program, temporal| {
+        if tape {
+            conduit_std_offers::pure_scalar_tape_std_offer(program, temporal).unwrap()
+        } else {
+            conduit_std_offers::pure_expression_std_offer(program, temporal).unwrap()
+        }
+    })
+}
+pub(crate) fn prepare_with_offer(
+    source: &str,
+    name: &str,
+    make_offer: impl FnOnce(
+        &PortableExpressionProgram,
+        conduit_core::PortTemporal,
+    ) -> conduit_core::CapabilityOffer,
+) -> (StdHost, conduit_core::Plan, PortableExpressionProgram) {
     let checked =
         check_syntax_document(&parse_syntax_document(source), &StartupCatalog::new()).unwrap();
     let authored =
@@ -39,11 +55,7 @@ pub(crate) fn prepare(
     let program = PortableExpressionProgram::from_canonical_hex(encoded).unwrap();
     let mut advertisement = StdHost::new().advertisement().clone();
     let temporal = authored.expanded.gears[0].inputs[0].temporal;
-    let offer = if tape {
-        conduit_std_offers::pure_scalar_tape_std_offer(&program, temporal).unwrap()
-    } else {
-        conduit_std_offers::pure_expression_std_offer(&program, temporal).unwrap()
-    };
+    let offer = make_offer(&program, temporal);
     assert!(authored.expanded.gears[0].accepts_realization(&offer));
     advertisement.capabilities.push(offer);
     advertisement

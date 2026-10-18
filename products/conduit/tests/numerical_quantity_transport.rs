@@ -74,8 +74,42 @@ fn rational_quantity_survives_separate_source_gears_and_the_actual_kernel() {
         plan.source_document_id,
         conduit_plot::parse_syntax_document(source).source_document_id()
     );
+    let exact: Vec<_> = plan
+        .fragments
+        .iter()
+        .flat_map(|f| &f.placements)
+        .filter(|g| {
+            g.execution_profile_id.as_str() == "std/pure-expression-quantity-exact-hosted@1"
+        })
+        .collect();
+    assert_eq!(
+        exact.len(),
+        3,
+        "divide, restore and physical comparison must select the reviewed profile"
+    );
+    for gear in exact {
+        let wire = gear
+            .realization_properties
+            .iter()
+            .find(|p| p.profile() == &conduit_core::QuantityWireContract::property_kind())
+            .unwrap();
+        let wire = conduit_core::QuantityWireContract::from_property(wire).unwrap();
+        assert_eq!(
+            wire.input(&"input".into()),
+            conduit_core::QuantityValueProfile::Exact
+        );
+        assert!(gear.realization_properties.len() >= 2);
+    }
     let observations: Vec<Observation> =
         serde_json::from_value(report["observations"].clone()).unwrap();
+    println!(
+        "QUANTITY_SOURCE_PLAN {}",
+        serde_json::to_string(&plan).unwrap()
+    );
+    println!(
+        "QUANTITY_SOURCE_OBSERVATIONS {}",
+        serde_json::to_string(&observations).unwrap()
+    );
     assert!(matches!(
         observations.last().map(|o| &o.kind),
         Some(ObservationKind::PlanTerminal {

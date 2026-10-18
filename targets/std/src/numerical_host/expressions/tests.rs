@@ -204,3 +204,45 @@ fn unretained_proof_hints_are_not_advertised_as_a_safe_reference_profile() {
             .contains("arithmetic-witness-unavailable")
     );
 }
+
+#[test]
+fn an_eligible_quantity_predicate_does_not_replace_the_filter_kind_with_an_expression() {
+    let quantity = conduit_core::StructuredInfoType::leaf(conduit_core::kind_id(
+        conduit_core::DISTANCE_INFO_ID,
+    ))
+    .unwrap();
+    let boolean =
+        conduit_core::StructuredInfoType::leaf(conduit_core::kind_id(conduit_core::BOOL_INFO_ID))
+            .unwrap();
+    let input = || conduit_plot::PortableExpressionNode {
+        value_type: quantity.clone(),
+        operation: Op::Input,
+    };
+    let program = PortableExpressionProgram {
+        input_type: quantity.clone(),
+        input_maximum_bytes: None,
+        output_type: boolean.clone(),
+        root: conduit_plot::PortableExpressionNode {
+            value_type: boolean,
+            operation: Op::Binary {
+                operator: conduit_plot::BinaryOperator::Equal,
+                proven: false,
+                left: Box::new(input()),
+                right: Box::new(input()),
+            },
+        },
+    };
+    assert!(conduit_std_offers::pure_exact_quantity_std_offer(
+        &program,
+        conduit_core::PortTemporal::Value
+    )
+    .is_ok());
+    let baseline =
+        conduit_std_offers::pure_filter_std_offer(&program, conduit_core::PortTemporal::Value)
+            .unwrap();
+    let selected =
+        prepared_reference(&program, baseline.clone(), "scalar-tape/filter-contract@1").unwrap();
+    assert_eq!(selected.kind_id, baseline.kind_id);
+    assert_eq!(selected.semantic_contract, baseline.semantic_contract);
+    assert_eq!(selected.implementation, baseline.implementation);
+}

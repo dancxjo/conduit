@@ -9,6 +9,7 @@ fn port() -> LoweredForePort {
         endpoint: RemoteEndpointId(0),
         cord: CordId(0),
         value_kind: "test/byte".into(),
+        quantity_profile: conduit_core::QuantityValueProfile::Decimal,
         value_contract: Some(
             conduit_core::CheckedValueContract::new("test/byte".into(), 1, vec![]).unwrap(),
         ),

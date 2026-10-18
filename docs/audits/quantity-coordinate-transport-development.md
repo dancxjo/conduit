@@ -1,11 +1,41 @@
 # Optional exact Quantity coordinate transport (development)
 
-The original #5392 gate remains open: the actual Source chain `1m -> /3 -> *3`
-currently refuses at the first decimal-only expression output. Core already has
-an optional `RationalQuantity` numerical representation with exact coordinate,
-Unit, family, dimension and point/difference role. The new component reuses that
-representation for a proposed optional wire form of the same physical Quantity.
-It does not introduce a unit catalog, literal syntax or Unit-binding authority.
+Current development status (2026-10-18): the installed std Source chain
+`1m -> /3 -> *3` now completes exactly through separate expression gears.
+The same primitive Value profile exports `1/3m` through an external Fore and
+consumes it in a fresh Play to produce `1/9m`. This is private development
+proof, not stable acceptance or completion of #5392.
+
+The selected `std/pure-expression-quantity-exact-hosted@1` offer seals finite
+prepared node/depth, retained payload, numerical work and port capacity bounds.
+Installation recomputes the offer and rejects missing, altered or downgraded
+profile facts. Planner checks Cord codec compatibility and capacity before
+Play. External Fores derive their codec profile from that sealed placement;
+Core's ordinary native validator remains unchanged. Exact outputs reserve
+1800 bytes; an exact input may independently restrict its byte envelope.
+A small v2 rational fitting 788 bytes still requires explicit codec admission.
+The existing 788-byte native Quantity wire encoding is unchanged.
+
+Profile-aware Core validation checks physical family/role and bounded exact
+range comparisons across decimal and rational representations. Native consumers
+refuse optional rational transport distinctly. The installed Back uses the
+existing Host Call boundary and kernel. Two fresh Plays report zero kernel
+allocation events and stable prepared capacities; those observations do not
+claim whole-process or preparation allocation freedom.
+
+The final local validation set passes 292 tests across Core, lowering, Planner,
+installed Back, Source batch, product CLI and refinement targets. Strict Clippy
+passes across seven affected packages, with subsequent focused checks for the
+filter-kind and bounded-input corrections. Core no-default-features and workspace
+formatting pass. Full workspace/platform integration and publication remain due.
+
+Limits remain explicit: this offer covers reviewed primitive Value arithmetic
+and comparison. Identity-only, composite/nominal values, trig helpers and Flow
+have not gained this profile. Alternative candidate selection is not yet
+codec-aware. A true runtime-consuming numerical projection with general #4952
+loss evidence, wider symbolic Quantity integration and the remaining original
+parent acceptance are still open. The following sections retain earlier
+component checkpoints and their historical refusals.
 
 The existing decimal `Quantity` POD, 788-byte v1 encoding, literal elaboration
 and native decoder are unchanged. Optional v2 transport uses the existing

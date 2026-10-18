@@ -9,6 +9,8 @@ use core::cmp::Ordering;
 use serde::{Deserialize, Serialize};
 
 use crate::{validate_primitive_info, KindId, PrimitiveInfoRefusal};
+mod quantity_profile;
+pub use quantity_profile::QuantityProfileContractRefusal;
 
 pub const MAX_VALUE_CONSTRAINTS: usize = 16;
 pub const MAX_MEMBERSHIP_VALUES: usize = 64;
@@ -177,18 +179,7 @@ impl CheckedValueContract {
     }
 
     pub fn validate(&self, canonical: &[u8]) -> Result<(), ValueConstraintRefusal> {
-        if canonical.len() > self.maximum_bytes as usize {
-            return Err(ValueConstraintRefusal::Oversize {
-                actual: u32::try_from(canonical.len()).unwrap_or(u32::MAX),
-                maximum: self.maximum_bytes,
-            });
-        }
-        validate_primitive_info(self.value_kind.as_str(), canonical)
-            .map_err(ValueConstraintRefusal::MalformedPrimitive)?;
-        for constraint in &self.constraints {
-            constraint.validate_value(self.value_kind.as_str(), canonical)?;
-        }
-        Ok(())
+        quantity_profile::validate_contract(self, canonical)
     }
 
     /// Canonical, versioned bytes used wherever this checked contract enters a
@@ -606,23 +597,13 @@ impl ValueConstraint {
                 maximum,
                 minimum_endpoint,
                 maximum_endpoint,
-            } => {
-                let value = crate::Quantity::decode(canonical)
-                    .map_err(|_| ValueConstraintRefusal::QuantityRange)?;
-                let above_minimum = minimum.as_ref().is_none_or(|minimum| {
-                    value
-                        .compare(**minimum)
-                        .is_ok_and(|order| lower_accepts(order, *minimum_endpoint))
-                });
-                let below_maximum = maximum.as_ref().is_none_or(|maximum| {
-                    value
-                        .compare(**maximum)
-                        .is_ok_and(|order| upper_accepts(order, *maximum_endpoint))
-                });
-                (above_minimum && below_maximum)
-                    .then_some(())
-                    .ok_or(ValueConstraintRefusal::QuantityRange)
-            }
+            } => quantity_profile::validate_range(
+                canonical,
+                minimum.as_deref(),
+                maximum.as_deref(),
+                *minimum_endpoint,
+                *maximum_endpoint,
+            ),
             Self::FloatFinite => decode_float(value_kind, canonical)
                 .filter(|value| value.is_finite())
                 .map(|_| ())

@@ -72,6 +72,27 @@ pub(super) fn validate_connection(
     }
 }
 
+pub(super) fn validate_capacity(
+    connection: &CheckedConnection,
+    contracts: &BTreeMap<GearId, QuantityWireContract>,
+    byte_capacity: u32,
+) -> Result<(), PlannerError> {
+    if connection.track == conduit_core::ConnectionTrack::Payload
+        && contracts
+            .get(&connection.source_gear_id)
+            .is_some_and(|c| c.output(&connection.source_port_id) == QuantityValueProfile::Exact)
+        && byte_capacity < conduit_core::QUANTITY_VALUE_MAX_ENCODED_BYTES as u32
+    {
+        return Err(PlannerError::InvalidConnectionBudget(alloc::format!(
+            "quantity/wire-storage-bound@1: '{}:{}' requires {} bytes before Play",
+            connection.source_gear_id.as_str(),
+            connection.source_port_id.as_str(),
+            conduit_core::QUANTITY_VALUE_MAX_ENCODED_BYTES,
+        )));
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -115,6 +136,24 @@ mod tests {
             QuantityWireContract::new(vec![("input".into(), Exact)], vec![]).unwrap(),
         );
         assert!(validate_connection(&connection, &contracts).is_ok());
+        assert!(validate_capacity(
+            &connection,
+            &contracts,
+            conduit_core::QUANTITY_ENCODED_LEN as u32
+        )
+        .is_err());
+        assert!(validate_capacity(
+            &connection,
+            &contracts,
+            conduit_core::QUANTITY_VALUE_MAX_ENCODED_BYTES as u32 - 1
+        )
+        .is_err());
+        assert!(validate_capacity(
+            &connection,
+            &contracts,
+            conduit_core::QUANTITY_VALUE_MAX_ENCODED_BYTES as u32
+        )
+        .is_ok());
         connection.track = ConnectionTrack::NormalClose;
         contracts.remove(&connection.sink_gear_id);
         assert!(validate_connection(&connection, &contracts).is_ok());

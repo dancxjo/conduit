@@ -242,6 +242,7 @@ pub(crate) fn plan_borrowed_plot_with_connection_limits(
                 item_capacity: connection_item_capacity,
                 byte_capacity: connection_byte_capacity,
             });
+        quantity_wire::validate_capacity(connection, &quantity_contracts, limits.byte_capacity)?;
         let source_placement = placement_lookup
             .get(&connection.source_gear_id)
             .ok_or_else(|| {

@@ -15,7 +15,9 @@ pub(super) fn intrinsic_maximum_bytes(value_kind: &str) -> Option<u32> {
         | PrimitiveInfoKind::Temperature
         | PrimitiveInfoKind::Angle
         | PrimitiveInfoKind::Ratio
-        | PrimitiveInfoKind::PixelCount => Some(conduit_core::QUANTITY_ENCODED_LEN as u32),
+        | PrimitiveInfoKind::PixelCount => {
+            Some(conduit_core::QUANTITY_VALUE_MAX_ENCODED_BYTES as u32)
+        }
         PrimitiveInfoKind::Unit => Some(conduit_core::UNIT_ENCODED_LEN as u32),
         PrimitiveInfoKind::MathematicalValue => {
             Some(conduit_core::MATHEMATICAL_VALUE_MAX_ENCODED_BYTES as u32)

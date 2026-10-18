@@ -79,6 +79,12 @@ impl PureExpressionHost {
                 == conduit_std_offers::PURE_SCALAR_TAPE_STD_IMPLEMENTATION
             {
                 conduit_plot::PreparedPortableExpressionEvaluator::new_scalar_tape(&program)
+            } else if placement.execution_profile_id.as_str()
+                == conduit_std_offers::PURE_EXACT_QUANTITY_STD_PROFILE
+            {
+                conduit_plot::PreparedPortableExpressionEvaluator::new_with_exact_quantities(
+                    &program,
+                )
             } else {
                 conduit_plot::PreparedPortableExpressionEvaluator::new(&program)
             }
@@ -149,6 +155,10 @@ fn validate_placement(
         == conduit_std_offers::PURE_SCALAR_TAPE_STD_IMPLEMENTATION
     {
         conduit_std_offers::pure_scalar_tape_std_offer(program, temporal)?
+    } else if placement.execution_profile_id.as_str()
+        == conduit_std_offers::PURE_EXACT_QUANTITY_STD_PROFILE
+    {
+        conduit_std_offers::pure_exact_quantity_std_offer(program, temporal)?
     } else {
         let result =
             if placement.kind_contract_revision.as_str() == conduit_plot::PURE_FILTER_REVISION {
@@ -158,6 +168,25 @@ fn validate_placement(
             };
         result.map_err(|error| format!("pure expression offer refusal: {error:?}"))?
     };
+    let wire_kind = conduit_core::QuantityWireContract::property_kind();
+    if offer.realization_properties.iter().any(|expected| {
+        !placement
+            .realization_properties
+            .iter()
+            .any(|actual| actual == expected)
+    }) || (placement
+        .realization_properties
+        .iter()
+        .any(|p| p.profile() == &wire_kind)
+        && !offer
+            .realization_properties
+            .iter()
+            .any(|p| p.profile() == &wire_kind))
+    {
+        return Err(
+            "planned pure expression has missing or foreign prepared wire/resource facts".into(),
+        );
+    }
     if placement.kind_id != offer.kind_id
         || placement.kind_contract_revision != offer.kind_contract_revision
         || placement.execution_profile_id != offer.implementation.execution_profile_id
@@ -282,3 +311,7 @@ mod scalar_tape_tests;
 #[cfg(test)]
 #[path = "pure_expression_back/scalar_tape_parity_tests.rs"]
 mod scalar_tape_parity_tests;
+
+#[cfg(test)]
+#[path = "pure_expression_back/exact_quantity_tests.rs"]
+mod exact_quantity_tests;

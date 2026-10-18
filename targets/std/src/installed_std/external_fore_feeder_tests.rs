@@ -9,6 +9,7 @@ fn sixty_four_values_fit_the_finite_fore_envelope_and_sixty_five_refuse() {
         endpoint: RemoteEndpointId(0),
         cord: CordId(0),
         value_kind: conduit_core::kind_id("test/command"),
+        quantity_profile: conduit_core::QuantityValueProfile::Decimal,
         value_contract: Some(
             conduit_core::CheckedValueContract::new(
                 conduit_core::kind_id("test/command"),

@@ -127,6 +127,10 @@ fn owns(offer: &CapabilityOffer) -> bool {
                 PURE_EXPRESSION_STD_PROFILE,
                 PURE_EXPRESSION_STD_ARTIFACT
             ) | (
+                PURE_EXPRESSION_STD_IMPLEMENTATION,
+                PURE_EXACT_QUANTITY_STD_PROFILE,
+                PURE_EXACT_QUANTITY_STD_ARTIFACT
+            ) | (
                 PURE_FILTER_STD_IMPLEMENTATION,
                 PURE_FILTER_STD_PROFILE,
                 PURE_FILTER_STD_ARTIFACT
@@ -146,11 +150,25 @@ fn prepared_reference(
     // The reference format also lacks nominal-law and arithmetic proof
     // witnesses. Do not advertise it as a fallback that validates those laws.
     reference_validation::check(program)?;
-    conduit_plot::PreparedPortableExpressionEvaluator::new(program)
-        .map_err(|why| format!("std source expression profile refused: {why:?}"))?;
+    if let Some(exact) = (offer.kind_contract_revision.as_str()
+        != conduit_plot::PURE_FILTER_REVISION)
+        .then(|| {
+            conduit_std_offers::pure_exact_quantity_std_offer(program, offer.inputs[0].temporal)
+                .ok()
+        })
+        .flatten()
+    {
+        offer = exact;
+    } else {
+        conduit_plot::PreparedPortableExpressionEvaluator::new(program)
+            .map_err(|why| format!("std source expression profile refused: {why:?}"))?;
+    }
     offer
         .realization_properties
         .push(selection_evidence::property(tape_refusal)?);
+    offer
+        .realization_properties
+        .sort_by(|a, b| a.profile().cmp(b.profile()));
     Ok(offer)
 }
 
