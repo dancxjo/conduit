@@ -27,7 +27,12 @@ The final local validation set passes 292 tests across Core, lowering, Planner,
 installed Back, Source batch, product CLI and refinement targets. Strict Clippy
 passes across seven affected packages, with subsequent focused checks for the
 filter-kind and bounded-input corrections. Core no-default-features and workspace
-formatting pass. Full workspace/platform integration and publication remain due.
+formatting pass. Full workspace/platform integration and publication remain due. The
+[source-pinned development receipt](evidence/quantity-source-wire-installed-development-20261018.json)
+retains the final three CLI gates, all selected validation logs, executable
+identity and the failed linker attempt preceding local cache maintenance.
+The final CLI run is pinned to `151e4fd29d0c647cb9a940c016ad5fa639ca4a08`;
+those three repeated gates are excluded from the 292 unique test count.
 
 Limits remain explicit: this offer covers reviewed primitive Value arithmetic
 and comparison. Identity-only, composite/nominal values, trig helpers and Flow
