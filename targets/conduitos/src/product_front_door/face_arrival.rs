@@ -467,7 +467,9 @@ impl FaceArrival {
                 correlation,
                 next_focus,
             } => {
-                let source_face = door.face().map_err(|error| error.as_str())?;
+                let source_face = door
+                    .creche_face(&self.basis)
+                    .map_err(|error| error.as_str())?;
                 let before = journey.projection();
                 match door
                     .apply_creche_face_interaction(&self.basis, &show, &correlation.interaction)

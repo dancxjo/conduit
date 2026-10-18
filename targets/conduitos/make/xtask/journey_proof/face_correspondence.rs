@@ -197,6 +197,7 @@ pub(super) fn retain(
 
 fn validate_receipt_order(serial: &str) -> Result<(), ConduitosError> {
     let mut shown = std::collections::BTreeSet::new();
+    let mut current_show: Option<String> = None;
     for line in serial
         .split_inclusive('\n')
         .filter(|line| line.ends_with('\n'))
@@ -204,7 +205,14 @@ fn validate_receipt_order(serial: &str) -> Result<(), ConduitosError> {
         if let Some(encoded) = line.strip_prefix(FACE_PREFIX) {
             let record: Value =
                 serde_json::from_str(encoded).map_err(|error| refusal(error.to_string()))?;
-            shown.insert(record["show"]["show_id"].as_str().unwrap_or("").to_owned());
+            let show_id = record["show"]["show_id"]
+                .as_str()
+                .filter(|id| !id.is_empty())
+                .ok_or_else(|| refusal("native Show receipt lacks identity"))?;
+            if !shown.insert(show_id.to_owned()) {
+                return Err(refusal("native Show identity was published more than once"));
+            }
+            current_show = Some(show_id.to_owned());
         }
         if let Some(encoded) = line
             .strip_prefix(ACTION_PREFIX)
@@ -212,11 +220,15 @@ fn validate_receipt_order(serial: &str) -> Result<(), ConduitosError> {
         {
             let record: Value =
                 serde_json::from_str(encoded).map_err(|error| refusal(error.to_string()))?;
-            if !shown.contains(record["show_id"].as_str().unwrap_or("")) {
+            if current_show.as_deref() != record["show_id"].as_str() || current_show.is_none() {
                 return Err(refusal(
-                    "action precedes its acknowledged native Show receipt",
+                    "action lacks its current unconsumed acknowledged native Show",
                 ));
             }
+            // Accepted submissions consume the Mask session. Unavailable
+            // shortcuts immediately replace their Show with refusal context,
+            // so recovery must also originate from a fresh acknowledged Show.
+            current_show = None;
         }
     }
     Ok(())
@@ -422,3 +434,7 @@ mod tests {
         assert!(validate_receipt_order(serial).is_err());
     }
 }
+
+#[cfg(test)]
+#[path = "receipt_chronology_tests.rs"]
+mod receipt_chronology_tests;
