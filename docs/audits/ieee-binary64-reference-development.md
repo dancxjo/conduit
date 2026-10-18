@@ -62,3 +62,27 @@ explicit-rounding refusal, foreign/extra configuration rejection and the pure
 semantic contract. Existing numerical catalog tests and strict catalog lint
 pass. These are checked contracts and preparation codecs; initialized Backs,
 native availability and actual product execution remain unfinished.
+
+## Native instruction component preparation
+
+A private x86_64 SSE2 component executes fixed compiled scalar instructions
+for the four arithmetic operations. It shares the Core profile's constant-work
+NaN, infinity and zero classification, then executes the selected native
+instruction directly. There is no implicit software-reference fallback.
+Unsupported targets report unavailable before execution.
+
+One assembly block saves MXCSR, installs the requested rounding with traps
+masked and FTZ/DAZ disabled, captures the five IEEE flags, and restores MXCSR
+before Rust resumes. This follows Rust's requirement that nondefault control
+state must not escape into Rust execution. A preservation probe installs its
+synthetic prior state inside that same block and restores the actual ABI state
+before returning; it never establishes nondefault control across Rust code.
+
+The component matches all 6,400 arithmetic rows of the independent retained
+SoftFloat fixture, including result bits and all five flags, with no observed
+allocations or reallocations. The preservation probe checks all four rounding
+modes with preexisting sticky flags and a different rounding/FTZ setting.
+These tests do not establish exhaustive operand conformance or a throughput
+claim. This helper is currently included by the component test only. Production
+factory registration, typed output preparation, sealed resource admission,
+normal kernel execution and actual Source product proof remain unfinished.

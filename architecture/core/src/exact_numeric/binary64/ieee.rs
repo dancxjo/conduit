@@ -66,6 +66,17 @@ fn is_signaling_nan(bits: u64) -> bool {
     is_nan(bits) && bits & QUIET == 0
 }
 
+/// Constant-work, rounding-independent exceptional cases of the IEEE profile.
+/// Initialized native implementations share this NaN/zero/infinity convention.
+/// `None` means the selected implementation must perform the arithmetic itself.
+pub fn ieee_binary64_special_case(
+    operation: IeeeBinary64Operation,
+    left: IeeeF64,
+    right: IeeeF64,
+) -> Option<IeeeBinary64Result> {
+    special::evaluate(operation, left.bits(), right.bits())
+}
+
 /// One binary64 operation, including nonfinite propagation and signed zero.
 /// First-NaN propagation retains sign/payload and quiets signaling NaNs.
 /// Invalid operations without a NaN operand produce 0xfff8000000000000.
@@ -79,7 +90,7 @@ pub fn evaluate_ieee_binary64(
     work: &mut ExactNumericWork,
 ) -> Result<IeeeBinary64Result, ExactNumericRefusal> {
     work.charge(1)?;
-    if let Some(value) = special::evaluate(operation, left.bits(), right.bits()) {
+    if let Some(value) = ieee_binary64_special_case(operation, left, right) {
         return Ok(value);
     }
     let right_bits = right.bits()
