@@ -945,3 +945,11 @@ original correspondence and retains Audio's executed target/observed reciprocal
 receipts; absence of an observation remains explicit. A supplied observation is
 neither a sensor measurement attestation nor playback authority. This phone-scope
 subset does not claim syllable/phrase target admission or oscillator realization.
+
+`acoustic_energy.conduit` binds an explicit amplitude or power trajectory and
+referenced dB basis to the same original phone scope. Observations are optional
+and separately typed, retaining a span, absolute linear error specification,
+confidence and provenance. Preparation re-admits complete source and inventory
+custody before the generic Audio trajectory, amplitude-to-power, or exact-power-
+of-ten logarithmic laws execute. No observation is inferred from a target;
+unsupported logarithms refuse and declared references do not attest calibration.

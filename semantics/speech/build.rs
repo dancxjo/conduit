@@ -38,6 +38,7 @@ fn main() {
         "syllable_structure.conduit",
         "acoustic_scope.conduit",
         "fundamental.conduit",
+        "acoustic_energy.conduit",
         "ipa.conduit",
         "ipa_syntax.conduit",
         "ipa_inventory.conduit",
@@ -220,6 +221,24 @@ fn main() {
             "AudioExactTimeOffset",
             "conduit_audio::AudioExactTimeOffset",
         ),
+        (
+            "AudioScopedControlTrajectory",
+            "conduit_audio::AudioScopedControlTrajectory",
+        ),
+        ("AudioDecibelBasis", "conduit_audio::AudioDecibelBasis"),
+        (
+            "AudioReferencedLevelRatio",
+            "conduit_audio::AudioReferencedLevelRatio",
+        ),
+        (
+            "AudioReferencedAmplitudePowerRequest",
+            "conduit_audio::AudioReferencedAmplitudePowerRequest",
+        ),
+        (
+            "AudioTrajectoryQuantity",
+            "conduit_audio::AudioTrajectoryQuantity",
+        ),
+        ("AudioLevelRatio", "conduit_audio::AudioLevelRatio"),
     ];
     for (name, path) in audio_paths {
         let ty = audio_types
