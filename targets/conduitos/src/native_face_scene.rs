@@ -12,12 +12,16 @@ use conduit_face::{
 
 use crate::display::{SPACE_SM, SPACE_XL, typography::TextLayout};
 
+#[path = "native_face_scene/chrome.rs"]
+mod chrome;
 #[path = "native_face_scene/connected_layout.rs"]
 mod connected_layout;
 #[path = "native_face_scene/diagram.rs"]
 mod diagram;
 #[path = "native_face_scene/document.rs"]
 mod document;
+#[path = "native_face_scene/frame.rs"]
+mod frame;
 #[path = "native_face_scene/input.rs"]
 mod input;
 #[path = "native_face_scene/layout.rs"]
@@ -232,6 +236,8 @@ impl NativeFaceScene {
         {
             return Err(FaceSceneError::InputBound);
         }
+        chrome::Chrome::prepare(self.screen, self.text_scale_percent)?
+            .admit_footer(notice, self.text_scale_percent)?;
         self.local_notice = Some(notice.into());
         Ok(())
     }
@@ -388,172 +394,6 @@ impl NativeFaceScene {
         .map_err(|_| FaceSceneError::Interaction)
     }
 
-    pub fn frame(&self) -> Result<FaceFrame<'_>, FaceSceneError> {
-        let mut scene = GraphicsScene::empty();
-        push(
-            &mut scene,
-            GraphicsCommand::rect(
-                self.screen,
-                self.screen,
-                GraphicsPaintRole::Background,
-                GraphicsShapeStyle::Fill,
-            ),
-        )?;
-        let heading = if !self.interaction_admitted && self.showing_diagram {
-            "OWNER FACE / PATCHBAY"
-        } else if !self.interaction_admitted && self.showing_details {
-            "OWNER FACE / DETAILS"
-        } else if !self.interaction_admitted {
-            "OWNER FACE / SNAPSHOT"
-        } else if self.showing_diagram {
-            "PATCHBAY"
-        } else if self.showing_details {
-            "DETAILS"
-        } else {
-            "CURRENT VIEW"
-        };
-        push(
-            &mut scene,
-            GraphicsCommand::text(
-                LayoutRect {
-                    x: SPACE_XL as i16,
-                    y: 12,
-                    width: self.screen.width - SPACE_XL * 2 - 88,
-                    height: 32,
-                },
-                self.screen,
-                GraphicsPaintRole::Accent,
-                heading,
-            )
-            .and_then(|command| command.with_text_role(GraphicsTextRole::Heading)),
-        )?;
-        let page_marker = alloc::format!("{} / {}", self.page + 1, self.pages());
-        push(
-            &mut scene,
-            GraphicsCommand::text(
-                LayoutRect {
-                    x: (self.screen.width - SPACE_XL - 80) as i16,
-                    y: 16,
-                    width: 80,
-                    height: 24,
-                },
-                self.screen,
-                GraphicsPaintRole::Muted,
-                &page_marker,
-            )
-            .and_then(|command| command.with_text_role(GraphicsTextRole::Label)),
-        )?;
-        push(
-            &mut scene,
-            GraphicsCommand::rect(
-                LayoutRect {
-                    x: SPACE_XL as i16,
-                    y: (layout::HEADER - 8) as i16,
-                    width: self.screen.width - SPACE_XL * 2,
-                    height: 2,
-                },
-                self.screen,
-                GraphicsPaintRole::Accent,
-                GraphicsShapeStyle::Fill,
-            ),
-        )?;
-        let mut hits = Vec::with_capacity(layout::MAX_PAGE_ROWS);
-        if self.showing_diagram {
-            diagram::append(&mut scene, &self.face, self.screen, self.page)?;
-        }
-        let editor_visible = self.interaction_admitted
-            && !self.showing_details
-            && !self.showing_diagram
-            && text_editor::append(&mut scene, &self.face, self.screen, self.text_scale_percent)?;
-        for row in self
-            .rows()
-            .iter()
-            .filter(|row| !editor_visible && !self.showing_diagram && row.page == self.page)
-        {
-            let available = self.interaction_admitted
-                && row.control.is_some_and(|control| {
-                    self.face.actions[control.action]
-                        .availability
-                        .is_available()
-                });
-            let outline = if available && row.control == self.focus {
-                GraphicsPaintRole::Focus
-            } else {
-                row.paint
-            };
-            layout::append_row_chrome(&mut scene, row, self.screen, outline, self.showing_details)?;
-            push(
-                &mut scene,
-                GraphicsCommand::text(row.text_bounds(), self.screen, row.paint, &row.text)
-                    .and_then(|command| command.with_text_role(row.role)),
-            )?;
-            if available {
-                let control = row.control.ok_or(FaceSceneError::UnknownControl)?;
-                let action = &self.face.actions[control.action];
-                hits.push(FaceHit {
-                    bounds: row.bounds,
-                    control,
-                    action,
-                    argument: control.argument.map(|index| &action.arguments[index]),
-                });
-            }
-        }
-        let footer = self
-            .local_notice
-            .clone()
-            .or_else(|| self.input.preview(self.focus))
-            .unwrap_or_else(|| {
-                if editor_visible {
-                    "Type message · Backspace erase · Tab switch plot · F2 details".into()
-                } else if self.showing_diagram {
-                    diagram::link_notice(&self.face, self.screen, self.page)
-                } else if !self.interaction_admitted && self.has_diagram() {
-                    "Read only · PgUp/PgDn pages · F2 facts · F3 Patchbay".into()
-                } else if !self.interaction_admitted {
-                    "Read only · PgUp/PgDn pages · F2 facts".into()
-                } else if self.showing_details {
-                    "PgUp/PgDn pages · Tab next · F2 return".into()
-                } else if self.has_diagram() {
-                    "Tab next · Enter act · F2 inspect · F3 Patchbay".into()
-                } else {
-                    "PgUp/PgDn pages · Tab next · Enter act · F2 inspect".into()
-                }
-            });
-        push(
-            &mut scene,
-            GraphicsCommand::rect(
-                LayoutRect {
-                    x: SPACE_XL as i16,
-                    y: (self.screen.height - layout::FOOTER + 4) as i16,
-                    width: self.screen.width - SPACE_XL * 2,
-                    height: 2,
-                },
-                self.screen,
-                GraphicsPaintRole::Muted,
-                GraphicsShapeStyle::Fill,
-            ),
-        )?;
-        let bounds = LayoutRect {
-            x: SPACE_XL as i16,
-            y: (self.screen.height - layout::FOOTER + 14) as i16,
-            width: self.screen.width - SPACE_XL * 2,
-            height: layout::FOOTER - 16,
-        };
-        push(
-            &mut scene,
-            GraphicsCommand::text(bounds, self.screen, GraphicsPaintRole::Muted, &footer)
-                .and_then(|command| command.with_text_role(GraphicsTextRole::Muted)),
-        )?;
-        Ok(FaceFrame {
-            scene,
-            face_id: &self.face.identity,
-            revision: self.face.revision,
-            page: self.page,
-            pages: self.pages(),
-            hits,
-        })
-    }
-
     fn eligible(&self, row: &layout::Row) -> Option<(FaceControl, usize)> {
         if !self.interaction_admitted {
             return None;
@@ -586,3 +426,11 @@ fn push(
 #[cfg(test)]
 #[path = "native_face_scene/open_domain_tests.rs"]
 mod open_domain_tests;
+
+#[cfg(test)]
+#[path = "native_face_scene/measured_layout_tests.rs"]
+mod measured_layout_tests;
+
+#[cfg(test)]
+#[path = "native_face_scene/raster_layout_tests.rs"]
+pub(crate) mod raster_layout_tests;

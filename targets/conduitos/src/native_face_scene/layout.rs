@@ -2,8 +2,7 @@
 use super::*;
 use alloc::string::String;
 
-pub(super) const HEADER: u16 = 56;
-pub(super) const FOOTER: u16 = 56;
+pub(super) use super::chrome::{FOOTER, HEADER};
 pub(super) const MAX_PAGE_ROWS: usize = 20;
 const MAX_ROWS: usize = 32_768;
 const MAX_DOCUMENT_BYTES: usize = 2 * 1024 * 1024;
@@ -107,6 +106,9 @@ pub(super) fn admit_with_expression(
     if !(1..=2).contains(&columns) || !(SPACE_SM..=SPACE_SM * 2).contains(&padding) {
         return Err(FaceSceneError::InvalidExtent);
     }
+    // A recipe permits columns; the narrow encounter admits one measured
+    // reading column while retaining the original semantic/control order.
+    let columns = if screen.width < 640 { 1 } else { columns };
     let width = screen
         .width
         .checked_sub(gutter.checked_mul(2).ok_or(FaceSceneError::InvalidExtent)?)
@@ -114,19 +116,18 @@ pub(super) fn admit_with_expression(
         .map(|width| width / columns)
         .filter(|width| *width > 0)
         .ok_or(FaceSceneError::InvalidExtent)?;
-    let bottom = screen
-        .height
-        .checked_sub(FOOTER)
-        .ok_or(FaceSceneError::InvalidExtent)?;
+    let chrome = chrome::Chrome::prepare(screen, text_scale_percent)?;
+    let bottom = chrome.bottom;
     let maximum_height = bottom
-        .checked_sub(HEADER)
+        .checked_sub(chrome.top)
         .and_then(|height| height.checked_sub(padding * 2))
         .filter(|height| *height > 0)
         .ok_or(FaceSceneError::InvalidExtent)?;
     let mut column = 0u16;
     let mut rows = Vec::new();
-    let (mut page, mut count, mut y, mut bytes) = (0, 0, HEADER, 0usize);
+    let (mut page, mut count, mut y, mut bytes) = (0, 0, chrome.top, 0usize);
     let mut previous_region = None;
+    let mut commands = chrome::COMMANDS;
     for item in items {
         let mut region_start = item.region.is_some() && item.region != previous_region;
         previous_region = item.region;
@@ -171,14 +172,23 @@ pub(super) fn admit_with_expression(
                 }
             };
             let box_height = height + padding * 2;
-            if y + box_height > bottom || count == MAX_PAGE_ROWS {
+            let cost = 1
+                + usize::from(item.control.is_some())
+                + usize::from(region_start)
+                + usize::from(matches!(
+                    item.role,
+                    GraphicsTextRole::Title | GraphicsTextRole::Heading
+                ));
+            let command_pressure = commands + cost > conduit_face::MAX_GRAPHICS_COMMANDS;
+            if y + box_height > bottom || count == MAX_PAGE_ROWS || command_pressure {
                 column += 1;
-                if column == columns || count == MAX_PAGE_ROWS {
+                if column == columns || count == MAX_PAGE_ROWS || command_pressure {
                     page += 1;
                     count = 0;
                     column = 0;
+                    commands = chrome::COMMANDS;
                 }
-                y = HEADER;
+                y = chrome.top;
             }
             if rows.len() == MAX_ROWS {
                 return Err(FaceSceneError::DocumentBound);
@@ -202,6 +212,7 @@ pub(super) fn admit_with_expression(
             region_start = false;
             y += box_height + SPACE_SM;
             count += 1;
+            commands += cost;
             remaining = &remaining[end..];
         }
     }

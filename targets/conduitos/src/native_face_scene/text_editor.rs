@@ -34,11 +34,12 @@ pub(super) fn append(
         start += 1;
     }
     let text = &text[start..];
+    let chrome = chrome::Chrome::prepare(screen, scale)?;
     let bounds = LayoutRect {
         x: SPACE_XL as i16,
-        y: layout::HEADER as i16,
+        y: chrome.top as i16,
         width: screen.width - SPACE_XL * 2,
-        height: screen.height - layout::HEADER - layout::FOOTER,
+        height: chrome.bottom - chrome.top,
     };
     push(
         scene,
@@ -75,11 +76,13 @@ pub(super) fn append(
             label,
             screen,
             GraphicsPaintRole::Accent,
-            &if start == 0 && scroll == 0 {
-                subject.name.clone()
-            } else {
-                alloc::format!("{} (end)", subject.name)
-            },
+            &caption(
+                &subject.name,
+                start != 0 || scroll != 0,
+                label.width,
+                label.height,
+                scale,
+            )?,
         )
         .and_then(|command| command.with_text_role(GraphicsTextRole::Label)),
     )?;
@@ -116,6 +119,48 @@ pub(super) fn append(
         ),
     )?;
     Ok(true)
+}
+
+/// A one-line renderer caption has explicit continuation; the exact original
+/// name and complete document remain in the retained Face's Details. Work is
+/// bounded by the existing 192-byte command limit, using actual glyph metrics.
+fn caption(
+    name: &str,
+    at_end: bool,
+    width: u16,
+    height: u16,
+    scale: u16,
+) -> Result<String, FaceSceneError> {
+    let suffix = if at_end { " (end)" } else { "" };
+    let mut end = name
+        .len()
+        .min(conduit_face::MAX_GRAPHICS_TEXT_BYTES - suffix.len());
+    while !name.is_char_boundary(end) {
+        end -= 1;
+    }
+    loop {
+        let candidate = alloc::format!(
+            "{}{}{}",
+            &name[..end],
+            if end < name.len() { "…" } else { "" },
+            suffix
+        );
+        if candidate.len() <= conduit_face::MAX_GRAPHICS_TEXT_BYTES
+            && TextLayout::new_scaled(&candidate, GraphicsTextRole::Label.into(), width, scale)
+                .map_err(|_| FaceSceneError::InvalidExtent)?
+                .finish_height()
+                <= u32::from(height)
+        {
+            return Ok(candidate);
+        }
+        if end == 0 {
+            return Err(FaceSceneError::InvalidExtent);
+        }
+        end -= 1;
+        while !name.is_char_boundary(end) {
+            end -= 1;
+        }
+    }
 }
 
 #[cfg(test)]

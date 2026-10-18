@@ -16,6 +16,7 @@ mod application_layout;
 mod arrival;
 mod graph_projection;
 mod home;
+mod home_projection;
 mod joining;
 #[cfg(any(test, feature = "native-compositor"))]
 mod presenter;

@@ -60,12 +60,21 @@ pub(super) fn link_notice(face: &Face, screen: LayoutRect, page: usize) -> Strin
         .filter(|cord| endpoints(face, &gears, cord, height).is_some())
         .count();
     let shown = eligible.min(MAX_VISIBLE_LINKS);
-    alloc::format!(
-        "{} · {shown}/{} cords shown · {} omitted · F2 all facts · F3 return",
-        ordering.label(),
-        cords.len(),
-        cords.len() - shown
-    )
+    if screen.width < 640 {
+        alloc::format!(
+            "{} · {shown}/{} cords shown · {} omitted · F2/F3",
+            ordering.label(),
+            cords.len(),
+            cords.len() - shown
+        )
+    } else {
+        alloc::format!(
+            "{} · {shown}/{} cords shown · {} omitted · F2 all facts · F3 return",
+            ordering.label(),
+            cords.len(),
+            cords.len() - shown
+        )
+    }
 }
 
 fn endpoints(
@@ -474,7 +483,7 @@ mod tests {
                 },
                 0
             )
-            .ends_with("0/15 cords shown · 15 omitted · F2 all facts · F3 return")
+            .ends_with("0/15 cords shown · 15 omitted · F2/F3")
         );
         // Missing semantic endpoint facts never become geometry-invented links.
         face.properties.retain(|p| p.name != "sink-port");

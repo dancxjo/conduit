@@ -19,6 +19,7 @@ use conduit_human::KeyEvent;
 pub(super) struct FaceWorkspace {
     mask: NativeFaceMask,
     active: bool,
+    selected_show: Option<MaskShow>,
     editor_surface: bool,
     next_observation: u64,
     next_play: u64,
@@ -47,6 +48,7 @@ impl FaceWorkspace {
         Ok(Self {
             mask,
             active: false,
+            selected_show: None,
             editor_surface: false,
             next_observation: 1,
             next_play: 1,
@@ -121,6 +123,7 @@ impl FaceWorkspace {
     }
 
     pub(super) fn relinquish(&mut self) -> Result<(), &'static str> {
+        self.selected_show = None;
         if self.active {
             self.mask.suspend().map_err(|error| error.as_str())?;
             self.active = false;
@@ -152,6 +155,9 @@ impl FaceWorkspace {
         door: &FrontDoor,
         display: &mut impl PixelTarget,
     ) -> Result<CompositionReceipt, &'static str> {
+        // Retire authority before attempting a replacement, including failures.
+        self.selected_show = None;
+        self.mask.suspend().map_err(|error| error.as_str())?;
         let face = door.face().map_err(|error| error.as_str())?;
         let observation = self.next_observation;
         let play = self.next_play;
@@ -159,9 +165,22 @@ impl FaceWorkspace {
             .checked_add(1)
             .ok_or("workspace-face-observation-bound")?;
         self.next_play = play.checked_add(1).ok_or("workspace-face-play-bound")?;
-        self.mask
+        let receipt = self
+            .mask
             .present(face, observation, play, display)
-            .map_err(|error| error.as_str())
+            .map_err(|error| error.as_str())?;
+        self.selected_show = self.mask.show().cloned();
+        let shown = self
+            .selected_show
+            .as_ref()
+            .ok_or("workspace-face-show-absent")?;
+        super::native_action_evidence::face(
+            &door.face().map_err(|error| error.as_str())?,
+            shown,
+            observation,
+            play,
+        )?;
+        Ok(receipt)
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -221,6 +240,46 @@ impl FaceWorkspace {
         }
     }
 
+    /// Preserve the specialized Home/application scene while admitting its
+    /// lifecycle binding through a real rendered and acknowledged Mask Show.
+    #[allow(clippy::too_many_arguments)]
+    pub(super) fn invoke_from_presenter(
+        &mut self,
+        action: patchbay_control::PatchbayAction,
+        door: &mut FrontDoor,
+        journey: &mut ProductJourney,
+        presenter: &mut FrontDoorPresenter,
+        display: &mut impl PixelTarget,
+        identities: &BootIdentities,
+        offer: &HostOffer<'_>,
+        make: &MakeRecord,
+    ) -> Result<CompositionReceipt, &'static str> {
+        if self.active || !door.observes_current_product(journey) {
+            return Err("workspace-face-owner-changed");
+        }
+        self.enter(door, presenter, display)?;
+        let owner_revision = journey.revision();
+        let result =
+            self.invoke_product_action(action, door, journey, display, identities, offer, make);
+        // Restore the specialized scene on admission refusal too. A failed
+        // restore is surfaced; neither surface may retain an actionable Show.
+        let restored = self.leave(door, presenter, display);
+        result?;
+        let restored = restored?;
+        // Play may activate the foreground editor. Preserve its automatic
+        // entry after lifecycle admission, while Home and Details keep their
+        // own application surface.
+        if journey.revision() != owner_revision
+            && journey.foreground_text_editor_active()
+            && !door.home_open()
+            && !door.exact_details_open()
+        {
+            self.enter_editor(door, presenter, display)
+        } else {
+            Ok(restored)
+        }
+    }
+
     #[allow(clippy::too_many_arguments)]
     pub(super) fn invoke_product_action(
         &mut self,
@@ -232,19 +291,58 @@ impl FaceWorkspace {
         offer: &HostOffer<'_>,
         make: &MakeRecord,
     ) -> Result<CompositionReceipt, &'static str> {
+        if !self.active || self.selected_show.as_ref() != self.mask.show() {
+            return Err("workspace-face-show-not-selected");
+        }
         let face = door.face().map_err(|error| error.as_str())?;
         let show = self
             .mask
             .show()
             .cloned()
             .ok_or("workspace-face-show-absent")?;
+        show.validate(&face)
+            .map_err(|_| "workspace-face-stale-show")?;
+        if !door.observes_current_product(journey) {
+            return Err("workspace-face-owner-changed");
+        }
         let semantic = face
             .actions
             .iter()
             .find(|candidate| candidate.intent == action.face_intent())
             .ok_or("workspace-face-action-unknown")?;
-        face.resolve_action(face.revision, &semantic.identity)
-            .map_err(|_| "workspace-face-action-unavailable")?;
+        if let Err(refusal) = face.resolve_action(face.revision, &semantic.identity) {
+            let reason = match refusal {
+                conduit_face::FaceActionRefusal::Unavailable { .. } => "UnavailableAction",
+                conduit_face::FaceActionRefusal::Refused { .. } => "RefusedAction",
+                conduit_face::FaceActionRefusal::StaleRevision => "StaleFace",
+                conduit_face::FaceActionRefusal::UnknownAction => "UnknownAction",
+            };
+            let before = journey.projection();
+            let after = journey.projection();
+            super::native_action_evidence::action(
+                &face,
+                &show,
+                None,
+                &semantic.intent,
+                &before,
+                &after,
+                Some(reason),
+            )?;
+            let explanation = match &semantic.availability {
+                conduit_face::FaceActionAvailability::Unavailable { explanation, .. }
+                | conduit_face::FaceActionAvailability::Refused { explanation, .. } => {
+                    explanation.as_str()
+                }
+                conduit_face::FaceActionAvailability::Available => reason,
+            };
+            door.action_refused(explanation)
+                .map_err(|error| error.as_str())?;
+            self.present_current(door, display)?;
+            return self
+                .mask
+                .show_local_notice(explanation, display)
+                .map_err(|error| error.as_str());
+        }
         let sequence = self.next_interaction;
         self.next_interaction = sequence
             .checked_add(1)
@@ -286,14 +384,34 @@ impl FaceWorkspace {
         show: &MaskShow,
         interaction: &FaceInteraction,
     ) -> Result<CompositionReceipt, &'static str> {
+        if !self.active || self.selected_show.as_ref() != Some(show) {
+            return Err("workspace-face-show-not-selected");
+        }
+        // The Mask Fore consumes its session on submission; keep only the
+        // acknowledged Show receipt until final owner admission, then retire it.
+        self.selected_show = None;
+        if !door.observes_current_product(journey) {
+            return Err("workspace-face-owner-changed");
+        }
         let face = door.face().map_err(|error| error.as_str())?;
         let action = resolve_current_action(&face, show, interaction)?;
         let request = journey
             .next_request(action, interaction.target.clone(), face.revision)
             .map_err(|error| error.as_str())?;
+        let before = journey.projection();
         journey
             .apply(request, identities, offer, make.build_id, face.revision)
             .map_err(|error| error.as_str())?;
+        let after = journey.projection();
+        super::native_action_evidence::action(
+            &face,
+            show,
+            Some(interaction),
+            action.face_intent(),
+            &before,
+            &after,
+            None,
+        )?;
         door.observe_product(journey)
             .map_err(|error| error.as_str())?;
         self.present_current(door, display)
@@ -305,14 +423,13 @@ fn resolve_current_action(
     show: &MaskShow,
     interaction: &FaceInteraction,
 ) -> Result<patchbay_control::PatchbayAction, &'static str> {
-    show.validate(face)
-        .map_err(|_| "workspace-face-stale-show")?;
-    if interaction.face_id != face.identity.as_str()
-        || interaction.face_revision != face.revision
-        || interaction.show_id != show.show_id.as_str()
-        || !interaction.arguments.is_empty()
-    {
-        return Err("workspace-face-stale-interaction");
+    interaction
+        .validate_against(face, show)
+        .map_err(interaction_refusal)?;
+    // This lifecycle adapter has no argument Fore. Validation must not turn a
+    // future argument-bearing action into a request that discards its values.
+    if !interaction.arguments.is_empty() {
+        return Err("workspace-face-action-arguments-unsupported");
     }
     let action = face
         .resolve_action(face.revision, &interaction.action_id)
@@ -335,146 +452,30 @@ fn resolve_current_action(
     Ok(semantic)
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::{
-        display::{DisplayError, DisplayFormat},
-        native_compositor::InputRoute,
-        native_workset::{self, NativePlot},
-        product_front_door::workspace_input::tests::listening,
-        product_journey::test_support::fixture,
-    };
-    use conduit_face::GraphicsCommandKind;
-    use conduit_human::{KeyModifiers, KeyTransition};
-
-    #[derive(Default)]
-    struct CountingDisplay(u64);
-
-    impl PixelTarget for CountingDisplay {
-        fn format(&self) -> DisplayFormat {
-            DisplayFormat {
-                width: 640,
-                height: 480,
-                pitch: 2_560,
-                bits_per_pixel: 32,
-                red_shift: 16,
-                green_shift: 8,
-                blue_shift: 0,
-            }
-        }
-
-        fn write_pixel(&mut self, _: u32, _: u32, _: u32) -> Result<(), DisplayError> {
-            self.0 += 1;
-            Ok(())
-        }
-    }
-
-    #[test]
-    fn live_resident_patchbay_face_reaches_mask_show_and_diagram_then_returns_to_application() {
-        let (mut journey, mut door) = listening();
-        let patchbay = native_workset::resident(NativePlot::Patchbay).unwrap();
-        journey.select_plot(&patchbay, journey.revision()).unwrap();
-        door.observe_product(&journey).unwrap();
-        assert!(journey.foreground_patchbay_graph().is_some());
-        let face = door.face().unwrap();
-        let encoded = serde_json::to_vec(&face).unwrap();
-        assert!(
-            encoded.len() <= crate::native_face_snapshot::MAX_SNAPSHOT_BYTES,
-            "selected Patchbay Face needs {} snapshot bytes",
-            encoded.len()
-        );
-        let projection = journey.projection();
-        let provider = crate::product_bases::fixture_surface_provider();
-        let mut workspace = FaceWorkspace::prepare(
-            projection.host_id.clone(),
-            projection.boot_id.clone(),
-            projection.offer_generation,
-            "build",
-            provider.entry.base_id.clone(),
-            &provider,
-        )
-        .unwrap();
-        workspace.continue_after_birth(8, 12);
-        let mut presenter = FrontDoorPresenter::prepare(
-            projection.host_id,
-            projection.boot_id,
-            projection.offer_generation,
-            "profile",
-            "image",
-            provider.entry.base_id.clone(),
-            2,
-        )
-        .unwrap();
-        let mut display = CountingDisplay::default();
-        presenter.present(&door, &mut display).unwrap();
-        let receipt = workspace
-            .enter(&door, &mut presenter, &mut display)
-            .unwrap();
-        assert_eq!(receipt.face_id, face.identity);
-        assert_eq!(
-            workspace.mask.publication().unwrap().observation_sequence,
-            8
-        );
-        assert_eq!(workspace.mask.show().unwrap().show.play_sequence, 12);
-        assert!(workspace.active());
-        assert!(workspace.mask.route_keyboard().unwrap());
-        assert!(workspace.mask.scene().unwrap().has_diagram());
-        let event = KeyEvent::new(60, KeyTransition::Pressed, KeyModifiers::NONE).unwrap();
-        let (ids, offer, _) = fixture();
-        let make = crate::make::MakeRecord {
-            build_id: "build",
-            ..crate::make::MakeRecord::legacy()
-        };
-        assert!(
-            workspace
-                .accept_key(
-                    event,
-                    &mut door,
-                    &mut journey,
-                    &mut display,
-                    &ids,
-                    &offer,
-                    &make,
-                )
-                .unwrap()
-                .is_some()
-        );
-        let scene = workspace.mask.scene().unwrap();
-        assert!(scene.showing_diagram());
-        assert!(
-            scene
-                .frame()
-                .unwrap()
-                .scene
-                .commands()
-                .iter()
-                .any(|command| { command.kind == GraphicsCommandKind::OrthogonalPath })
-        );
-        let prior_show = workspace.mask.show().unwrap().show_id.clone();
-        workspace
-            .invoke_product_action(
-                patchbay_control::PatchbayAction::Stop,
-                &mut door,
-                &mut journey,
-                &mut display,
-                &ids,
-                &offer,
-                &make,
-            )
-            .unwrap();
-        assert_eq!(
-            journey.status(),
-            crate::product_journey::JourneyStatus::Stopped
-        );
-        assert_ne!(workspace.mask.show().unwrap().show_id, prior_show);
-        workspace
-            .leave(&door, &mut presenter, &mut display)
-            .unwrap();
-        assert!(!workspace.active());
-        assert!(matches!(
-            presenter.route_keyboard().unwrap(),
-            InputRoute::Delivered(_)
-        ));
+fn interaction_refusal(reason: conduit_face::FaceInteractionRefusal) -> &'static str {
+    use conduit_face::FaceInteractionRefusal::*;
+    match reason {
+        StaleFace => "workspace-face-stale-face",
+        StaleShow => "workspace-face-stale-show",
+        FailedShow => "workspace-face-failed-show",
+        WrongTarget => "workspace-face-action-target-mismatch",
+        UnknownAction => "workspace-face-action-unknown",
+        UnavailableAction | RefusedAction => "workspace-face-action-unavailable",
+        MissingArgument => "workspace-face-missing-argument",
+        WrongValueKind => "workspace-face-wrong-value-kind",
+        OversizeValue => "workspace-face-oversize-value",
+        _ => "workspace-face-interaction-invalid",
     }
 }
+
+#[cfg(test)]
+#[path = "face_workspace_tests.rs"]
+mod tests;
+
+#[cfg(test)]
+#[path = "face_workspace_continuity_tests.rs"]
+mod continuity_tests;
+
+#[cfg(test)]
+#[path = "face_workspace_editor_admission_tests.rs"]
+mod editor_admission_tests;
