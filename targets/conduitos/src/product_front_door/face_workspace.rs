@@ -407,7 +407,7 @@ impl FaceWorkspace {
             &face,
             show,
             Some(interaction),
-            &action.face_intent(),
+            action.face_intent(),
             &before,
             &after,
             None,
