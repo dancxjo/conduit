@@ -3,6 +3,7 @@
 // creates a second Body or constructs Face state for the browser.
 import assert from 'node:assert/strict';
 import { captureArbitraryTodoRefusals } from './todo-owner-arbitrary-action.mjs';
+import { inspectTodoRealization, activateTodoAdd } from './todo-owner-realization.mjs';
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync } from 'node:fs';
@@ -186,10 +187,7 @@ try {
   const before = await page.evaluate(() => globalThis.__conduitOwnerParticipation.face());
   assert.equal(before.body_id, bodyId);
   assert.equal(before.show_state, 'available');
-  assert.equal(await page.locator('.owner-face-collection').count(), 1);
-  assert.equal(await page.locator('.owner-face-collection-count').count(), 1);
-  assert.equal(await page.locator('[data-owner-face-document] [data-face-role="Status"]').count(), 0,
-    'matching progress wording must not appear twice');
+  const realization = await inspectTodoRealization({page,view:before,face,state});
   if (scenario === 'look-replacement') {
     const observations = [];
     for (const [look, recipe] of [['compact', 'flat'], ['spacious', 'flat'], ['spacious', 'grouped']]) {
@@ -389,8 +387,7 @@ try {
     assert.equal(priorOwner.face.identity, prior.face_id);
     const exactPrior = { ...prior, face_revision_decimal: priorOwner.face_revision_decimal };
     const add = page.locator('[data-owner-action="todo.add"]');
-    await add.getByRole('textbox', { name: 'Item text' }).fill(text);
-    await add.getByRole('button', { name: 'add an item' }).click();
+    const activation = await activateTodoAdd({page,form:add,text,realization,scenario});
     await page.waitForFunction(({ revision, name }) => {
       const current = globalThis.__conduitOwnerParticipation.face();
       return current?.face_revision !== revision && current?.subjects.some(subject => subject.name === name)
@@ -406,7 +403,7 @@ try {
       bodyId, exactPrior, ownerAfterAdd, 'todo.add');
     const screenshot = `browser-add-${adds.length + 1}.png`;
     await page.locator('[data-owner-face]').screenshot({ path: path.join(output, screenshot) });
-    adds.push({ action_id: 'todo.add', text, before: exactPrior, after, owner: ownerAfterAdd,
+    adds.push({ action_id: 'todo.add', text, activation, before: exactPrior, after, owner: ownerAfterAdd,
       mutation, screenshot });
     await writeFile(path.join(output, 'adds.json'), `${JSON.stringify(adds, null, 2)}\n`);
   }
@@ -533,7 +530,7 @@ try {
     schema: 'conduit.proof/todo-owner-browser@1',
     ...sourceRecord,
     body_id: bodyId, browser_host_id: identity.hostId, browser_boot_id: identity.bootId,
-    item_text: itemText, adds, resumed_items: resumedItems, cross_mask: crossMask, inspect_capture: inspectCapture,
+    item_text: itemText, realization, adds, resumed_items: resumedItems, cross_mask: crossMask, inspect_capture: inspectCapture,
     speech_before_completion: speechBeforeCompletion,
     direct_speech: directSpeech, retained_look_selection: retainedLookSelection, retained_dom_completion: domCompletion, before: { face_id: before.face_id, face_revision: before.face_revision,
       show_id: before.show_id }, after: { face_id: after.face_id,
