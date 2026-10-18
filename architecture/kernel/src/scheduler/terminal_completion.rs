@@ -74,7 +74,9 @@ fn specimen<const N: usize>(trial: usize) {
     assert_eq!(scheduler.completed.count(), N - 1);
     assert_eq!(
         scheduler.completed.count(),
-        scheduler.completed.iter().filter(|done| **done).count()
+        (0..N)
+            .filter(|node| scheduler.completed.contains(*node))
+            .count()
     );
     let events = std::format!(
         "{:?}",
