@@ -1,0 +1,32 @@
+{
+  "schema": "conduit/development-validation@1",
+  "source": "6b8934d775cbbd845d7b37b152c38e93404d1198",
+  "scope": "Prepared canonical IEEE output encoder component only; test-included, no installed Back or Source availability asserted.",
+  "results": {
+    "focused_test": "passed",
+    "encodings": 352,
+    "all_flag_combinations": 32,
+    "arithmetic_carrier_specimens": 9,
+    "comparison_values": 2,
+    "canonical_outer_type_and_fields": "passed",
+    "raw_ieee_bits_and_flags": "passed",
+    "wrong_result_form_refusal": "passed",
+    "allocations_and_reallocations": 0,
+    "retained_heap_capacity": "unchanged",
+    "strict_test_clippy": "passed with warnings denied"
+  },
+  "files": [
+    {
+      "path": "ieee-binary64-encoding-tests.log",
+      "sha256": "4a6e461b5edfb38ca5a88df694a9b20002cb742cee0c93d92b9a7ae282b07c90"
+    },
+    {
+      "path": "ieee-binary64-encoding-clippy.log",
+      "sha256": "da026d6755489b927510a43e65e5d29f47ad577792a81b77859c221c94700dc4"
+    }
+  ],
+  "archive": {
+    "path": "ieee-binary64-encoding-development-20261017-raw.tar.gz",
+    "sha256": "548859348d91d85f9e50cbaa1f3ad22b2bbe41790ec49ba6deb7f379bcb34352"
+  }
+}

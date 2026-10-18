@@ -1,0 +1,33 @@
+plot distance (
+    >> trigger: MathematicalValue
+    result: Distance >>
+) = (1m)
+
+plot divide (
+    >> value: Distance
+    result: Distance >>
+) = (. / 3)
+
+plot restore (
+    >> value: Distance
+    result: Distance >>
+) = (. * 3)
+
+plot explain (
+    >> value: Distance
+    result: Text >>
+) = (. == 1m ? "exact" : "wrong")
+
+plot main {
+    seed: math/realize(request={value:0,maximum-error:0})
+    original: distance
+    third: divide
+    restored: restore
+    check: explain
+    show: face/text("Exact quantity chain")
+    seed.result >> (.source) >> original.trigger
+    original.result >> third.value
+    third.result >> restored.value
+    restored.result >> check.value
+    check.result >> show
+}.

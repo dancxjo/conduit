@@ -337,6 +337,7 @@ installed_step_dispatch!(
     PureExpression,
     LocalExpression,
     Numerical,
+    IeeeBinary64,
     StructuredLiteral,
     StructuredFace,
     #[cfg(test)]

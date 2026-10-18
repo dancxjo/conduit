@@ -83,7 +83,15 @@ pub(super) fn binary(
         output.truncate(length);
         output
     } else if leaf_kind(&left.value_type)? == conduit_core::F32_INFO_ID {
-        crate::expression_f32::arithmetic(
+        crate::expression_float::binary32::arithmetic(
+            operator,
+            &primitive_bytes(&left)?,
+            &primitive_bytes(&right)?,
+        )
+        .ok_or(PortableExpressionEvaluationRefusal::Arithmetic)?
+        .to_vec()
+    } else if leaf_kind(&left.value_type)? == conduit_core::F64_INFO_ID {
+        crate::expression_float::binary64::arithmetic(
             operator,
             &primitive_bytes(&left)?,
             &primitive_bytes(&right)?,

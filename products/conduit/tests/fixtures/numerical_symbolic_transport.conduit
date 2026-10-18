@@ -1,0 +1,37 @@
+type Envelope = {
+    value: MathematicalValue
+}
+
+plot radians (
+    >> trigger: MathematicalValue
+    result: MathematicalValue >>
+) = (math/radians(1°))
+
+plot pack (
+    >> input: MathematicalValue
+    output: Envelope >>
+) = ({ value: . })
+
+plot unpack (
+    >> input: Envelope
+    output: MathematicalValue >>
+) = (.value)
+
+plot explain (
+    >> value: MathematicalValue
+    result: Text >>
+) = (. == math/radians(1°) ? "exact symbolic transport" : "wrong")
+
+plot main {
+    seed: math/realize(request={value:0,maximum-error:0})
+    coordinate: radians
+    packed: pack
+    unpacked: unpack
+    check: explain
+    show: face/text("Pi over 180")
+    seed.result >> (.source) >> coordinate.trigger
+    coordinate.result >> packed.input
+    packed.output >> unpacked.input
+    unpacked.output >> check.value
+    check.result >> show
+}.

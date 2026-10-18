@@ -82,6 +82,7 @@ fn offer(prepared: &PreparedNumericalRealization) -> Result<CapabilityOffer, Str
                 "../../../../architecture/core/src/exact_numeric/realization/codec/float.rs"
             ),
             include_str!("../../../../architecture/core/src/exact_numeric/binary64.rs"),
+            include_str!("../../../../architecture/core/src/exact_numeric/binary64/tininess.rs"),
             include_str!("../../../../architecture/core/src/exact_numeric/binary64/algorithm.rs"),
             include_str!("../../../../architecture/core/src/exact_numeric/rational/binary64.rs"),
             include_str!("../../../../architecture/core/src/exact_numeric/enclosure.rs"),

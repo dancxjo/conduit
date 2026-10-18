@@ -1,0 +1,71 @@
+{
+  "schema": "conduit/development-validation@1",
+  "source": "640bd2eaaa0699698fa8d7f99bdc79811ba27b0d",
+  "profile": "numeric/ieee-binary64-reference@1",
+  "scope": "Core reference operations and quiet predicates; Source/Back/Plan integration and native fast paths remain open.",
+  "oracle": {
+    "repository": "https://github.com/ucb-bar/berkeley-softfloat-3",
+    "commit": "a0c6494cdc11865811dec815d5c0049fba9d82a8",
+    "specialization": "8086-SSE",
+    "tininess": "after rounding",
+    "compiler": "gcc (Ubuntu 15.2.0-16ubuntu1) 15.2.0",
+    "library_sha256": "77ab652863a5a080bbbe31e536ffcc4769dde949e373fa841a2e72a52512922c",
+    "oracle_binary_sha256": "2a1905d25954b33373ff6c0212ff6cb0014de16d21739598cc450866636ce2b8",
+    "compile_command": "gcc -O2 -DSOFTFLOAT_FAST_INT64 -I work/softfloat-ieee-reference/source/include work/softfloat-ieee-operations-oracle.c work/softfloat-ieee-reference/build/Linux-x86_64-GCC/softfloat.a -o work/softfloat-ieee-operations-oracle",
+    "expected_fixture_sha256": "8a85b9fc98a21856831486ff7646a10fd704c1f27652eccf8b0a612bbf03a2a5",
+    "arithmetic_cases": 6400,
+    "quiet_predicate_cases": 1600,
+    "operand_specimens": 20,
+    "operation_order": "add/subtract/multiply/divide",
+    "rounding_order": "nearest-even/toward-zero/toward-positive/toward-negative",
+    "quiet_predicate_order": "equal/less/less-equal/unordered"
+  },
+  "results": {
+    "focused_core_tests": 17,
+    "targets": [
+      "ieee_binary64",
+      "binary64_projection",
+      "binary64_algorithm"
+    ],
+    "oracle_comparisons": 8000,
+    "observed_allocations_and_reallocations": 0,
+    "explicit_flag_accumulation_and_order": "passed",
+    "work_exhaustion_including_exceptional_operands": "passed",
+    "strict_core_lib_and_test_clippy": "passed with warnings denied",
+    "core_no_default_features_check": "passed",
+    "format_and_diff_check": "passed"
+  },
+  "validation_timing": "Focused validation ran before commit on identical production source. Oracle expected results were generated independently by pinned SoftFloat, not by Conduit.",
+  "limitations": [
+    "Edge-matrix conformance is not exhaustive over all binary64 pairs.",
+    "No public Source syntax, installed Back or sealed Plan availability is asserted.",
+    "The reference uses bounded exact integer/rational arithmetic, not native floating-point hot-path execution.",
+    "No stable-main acceptance is asserted."
+  ],
+  "files": [
+    {
+      "path": "softfloat-ieee-operations-oracle.c",
+      "sha256": "950c0687d9128375be45775a5184b8edfa14386797c109c49b863a13d3205784"
+    },
+    {
+      "path": "ieee_binary64_softfloat.tsv",
+      "sha256": "8a85b9fc98a21856831486ff7646a10fd704c1f27652eccf8b0a612bbf03a2a5"
+    },
+    {
+      "path": "ieee-binary64-focused-tests.log",
+      "sha256": "dc3a1451fb8778103a336a36c35423d855756ae46cc041dc135eba654ef8215d"
+    },
+    {
+      "path": "ieee-binary64-clippy.log",
+      "sha256": "d166d93192cbc447439753aa9d7948a6e0582de2300a2d494e0de27a50277683"
+    },
+    {
+      "path": "ieee-binary64-no-default.log",
+      "sha256": "1be0d7fa76d5666f8bc7bd737a0f5bbb970737e304142020c2fe56dfbf4e5d5d"
+    }
+  ],
+  "archive": {
+    "path": "ieee-binary64-reference-development-20261017-raw.tar.gz",
+    "sha256": "aac842e7f4d69c1ff949814dc535eb4c7bd4bd2d800d3b442e2b370aa8768170"
+  }
+}

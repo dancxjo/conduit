@@ -1,0 +1,56 @@
+{
+  "schema": "conduit/development-validation@1",
+  "source": "2ef98bc3d00a3e62d7dd5a6879ccfe29d029ba21",
+  "scope": "Checked finite F64 expressions, raw bit equality and contextual literals; not full IEEE propagation/rounding/flags or stable acceptance",
+  "proof_timing": "Validation ran before commit on identical production source; full seven CLI cases preceded the additional F64 Plan selection assertion, which then passed separately.",
+  "results": {
+    "before": "3 failing F64 regression tests",
+    "focused_plot": "23 passed, no filters",
+    "product_corpus": "7 passed, no filters",
+    "additional_f64_plan_selection": "1 passed, 6 filtered",
+    "plot_clippy": "passed with warnings denied",
+    "product_clippy": "passed with warnings denied",
+    "format": "cargo fmt --all and git diff --check passed"
+  },
+  "logs": [
+    {
+      "path": "numeric-f64-expression-before.log",
+      "sha256": "878cba404ff0daeb9b583cd285fcc4edb0b3b56a7d3439858f7e8d7ec513fe7d"
+    },
+    {
+      "path": "numeric-f64-focused-tests.log",
+      "sha256": "599a7bd526e7e665bb18b5567006b2d6d5e2329e2e8295f8272f995f6a09fbd3"
+    },
+    {
+      "path": "numeric-f64-product-tests.log",
+      "sha256": "d60fcd716966846c715aeaa389817f2fb2117a8d577791ac67dbc8112be832ee"
+    },
+    {
+      "path": "numeric-f64-selection-product-tests.log",
+      "sha256": "2265fd9c5c79ae80b9f396b1639ad377304a3c986ffec68dccf5a8bb916ec4a9"
+    },
+    {
+      "path": "numeric-f64-clippy.log",
+      "sha256": "c8d7a3dfad3687488d388c66b425c483351a02a6a2eed6a2c0e68ca2f20a8728"
+    },
+    {
+      "path": "numeric-f64-product-clippy.log",
+      "sha256": "f6cabf5979c1e9dfaf60b8d4f4087361e32597a3a05e35e1de20e0e72e814627"
+    },
+    {
+      "path": "numerical-existing-product-regressions.log",
+      "sha256": "fff91febffd839a0e77981387025c518761c663757b15c0f5e250c4a7081fe90"
+    }
+  ],
+  "archive": {
+    "path": "binary64-expression-development-20261017-raw.tar.gz",
+    "sha256": "cf44524a6bb2cc12f74f7da80414df37d64c4cdf6fdb6482d5d3fba94b27f6f2"
+  },
+  "compatibility": {
+    "source": "d0adc8862364cafb0e08946443f001b357e4f7d2",
+    "command": "CARGO_PROFILE_DEV_DEBUG=0 CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=2 cargo test --locked -p conduit --test numerical_realization --test quantity_conversion",
+    "exit_code": 0,
+    "passed": 9,
+    "scope": "Five existing installed numerical/product tests and four quantity checker/product-face tests. Quantity tests do not prove nonterminating rational runtime transport."
+  }
+}

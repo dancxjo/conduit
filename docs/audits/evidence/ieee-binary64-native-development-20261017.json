@@ -1,0 +1,54 @@
+{
+  "schema": "conduit/development-validation@1",
+  "source": "695f4493475e31287b32019f29746576bd548a7e",
+  "scope": "Private x86_64 SSE2 component only; not production-registered, no Source/Back/Plan availability or stable acceptance asserted.",
+  "oracle": {
+    "commit": "a0c6494cdc11865811dec815d5c0049fba9d82a8",
+    "specialization": "8086-SSE",
+    "tininess": "after rounding",
+    "arithmetic_cases": 6400
+  },
+  "results": {
+    "native_tests": 2,
+    "result_bits_and_five_flags": "matched all 6400 rows",
+    "allocations_and_reallocations": 0,
+    "control_preservation": "all four rounding modes passed; synthetic prior state installed and actual ABI state restored inside one assembly block",
+    "strict_native_test_clippy": "passed with warnings denied",
+    "core_regression_tests": 17
+  },
+  "limitations": [
+    "Edge matrix is not exhaustive over all operand pairs.",
+    "No throughput or native product availability claim.",
+    "Unsupported targets refuse; no software fallback."
+  ],
+  "files": [
+    {
+      "path": "ieee-binary64-native-final-tests.log",
+      "sha256": "86668a13c4e53daf5155d8b1e741b67fdb65b7c455108b70b9f109c50c7d8baa"
+    },
+    {
+      "path": "ieee-binary64-native-clippy.log",
+      "sha256": "3e438c3c9a147a32bef43e8eaf932030f3c63413374c7a76807b813bb88408e4"
+    },
+    {
+      "path": "ieee-binary64-native-core-regressions.log",
+      "sha256": "3936e81a2ca8394a4c6093ee5f8e198eeafcf021cd810cf66953b57b140f5455"
+    },
+    {
+      "path": "ieee_binary64_softfloat.tsv",
+      "sha256": "8a85b9fc98a21856831486ff7646a10fd704c1f27652eccf8b0a612bbf03a2a5"
+    },
+    {
+      "path": "rustc-version.txt",
+      "sha256": "778fbc643a806f0dd123c056e66201d7e8a56a61928ec0a33171be8d6c2d5a37"
+    },
+    {
+      "path": "cpu.txt",
+      "sha256": "dcdd704984d1b21935fe148eb7b2b85d3aa32650560291519fe0ea1f67aa3116"
+    }
+  ],
+  "archive": {
+    "path": "ieee-binary64-native-development-20261017-raw.tar.gz",
+    "sha256": "a85dc99c321c0c4d7f5e9cbf29f31bdd40d7b7df308a7223aa943616933e476e"
+  }
+}

@@ -1,0 +1,12 @@
+plot exact-tenths (
+    >> value: MathematicalValue
+    result: Text >>
+) = ((. + 0.2 == 0.3) ? "exact" : "wrong")
+
+plot main {
+    seed: math/realize(request={value:0.1,maximum-error:0})
+    check: exact-tenths
+    show: face/text("Exact tenths")
+    seed.result >> (.source) >> check.value
+    check.result >> show
+}.

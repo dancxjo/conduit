@@ -182,3 +182,6 @@ pub fn pure_expression_local_flow_offer(
     offer.host_calls.clear();
     Ok(offer)
 }
+
+mod quantity_expression;
+pub use quantity_expression::*;
