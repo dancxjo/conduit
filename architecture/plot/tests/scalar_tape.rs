@@ -47,6 +47,39 @@ fn checked_one_three_eight_thirty_two_operations_preserve_bytes_and_refusals_wit
         }
     }
 }
+
+#[test]
+fn checked_boolean_operation_matrix_preserves_valid_and_malformed_input_without_allocations() {
+    let source = include_str!("fixtures/expression_boolean_baseline.conduit");
+    for operations in [1, 3, 8, 32] {
+        let program = program(source, &format!("boolean-{operations}"));
+        let mut baseline = PreparedPortableExpressionEvaluator::new(&program).unwrap();
+        let mut tape = PreparedPortableExpressionEvaluator::new_scalar_tape(&program).unwrap();
+        for input in [&[0u8][..], &[1u8][..], &[2u8][..], &[][..], &[1, 0][..]] {
+            let expected = program.evaluate(input);
+            if matches!(input, [0] | [1]) {
+                assert_eq!(expected.as_ref().unwrap(), input);
+            } else {
+                assert!(expected.is_err());
+            }
+            let (_, observed) = allocation_probe::observe(|| {
+                for _ in 0..16 {
+                    match &expected {
+                        Ok(bytes) => {
+                            assert_eq!(baseline.evaluate(input).unwrap(), bytes);
+                            assert_eq!(tape.evaluate(input).unwrap(), bytes);
+                        }
+                        Err(error) => {
+                            assert_eq!(baseline.evaluate(input).unwrap_err(), *error);
+                            assert_eq!(tape.evaluate(input).unwrap_err(), *error);
+                        }
+                    }
+                }
+            });
+            assert_eq!((observed.allocations, observed.reallocations), (0, 0));
+        }
+    }
+}
 #[test]
 fn unselected_conditional_branch_preserves_lazy_refusal_semantics() {
     let p = program(

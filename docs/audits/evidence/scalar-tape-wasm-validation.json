@@ -1,0 +1,24 @@
+{
+  "source_commit": "1d28dd2d5f2ba78b4f8fa8270f9e7f4535624ca1",
+  "proof_class": "portable-wasm-evaluator",
+  "command": "cargo xtask check expression-baseline",
+  "outcome": "passed: 2 native baseline tests and 48 WASM parity/refusal/allocation cases, 16 paired warm iterations per case",
+  "log_sha256": "d7b588196a01c6f51b2f7354df4128e5c92b6e79a44c8a712cf9a032e100ac17",
+  "checks": [
+    {
+      "scope": "WASM example strict Clippy",
+      "outcome": "passed",
+      "log_sha256": "49e6c0a56da82abf7031ac2745a4bdc378a5f8bd6d9cf5c2804ea76a5f8c5cd1"
+    },
+    {
+      "scope": "xtask binary strict Clippy",
+      "outcome": "passed",
+      "log_sha256": "c799ca32becc0f32121ad6de83c788fd2d9b83ba96a3857514d18bfd645b5382"
+    },
+    {
+      "scope": "workspace format check",
+      "outcome": "passed",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ]
+}
