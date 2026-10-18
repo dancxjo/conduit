@@ -23,6 +23,7 @@ impl FaceArrival {
         {
             NativeFaceMaskInput::Unchanged => Ok(FaceArrivalInput::Continue),
             NativeFaceMaskInput::Redrawn(_) => {
+                self.record_focus()?;
                 arch::early_write(b"CONDUIT_CRECHE_CHECKPOINT edited\n");
                 Ok(FaceArrivalInput::Continue)
             }
@@ -66,6 +67,7 @@ impl FaceArrival {
                             }
                             Err(error) => return Err(error.as_str()),
                         }
+                        self.record_focus()?;
                         arch::early_write(b"CONDUIT_CRECHE_CHECKPOINT edited\n");
                         let fresh_show = self.mask.show().ok_or("creche-face-show-absent")?;
                         super::super::native_action_evidence::creche_change(

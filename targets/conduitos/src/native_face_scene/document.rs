@@ -262,11 +262,7 @@ pub(super) fn prepare(
                 if checkbox.is_some() {
                     continue;
                 }
-                let hint = if argument.contract.value_kind.as_str() == "value/bool" {
-                    "false or true".into()
-                } else {
-                    argument_hint(argument)
-                };
+                let hint = argument_hint(argument);
                 append(Item {
                     text: format!("{} · {}", argument.value_name, hint),
                     role: GraphicsTextRole::Label,
@@ -287,6 +283,18 @@ pub(super) fn prepare(
 }
 
 fn argument_hint(argument: &conduit_face::FaceActionArgument) -> String {
+    if argument.contract.value_kind.as_str() == "value/bool" {
+        return match (
+            argument.contract.validate(&[0]).is_ok(),
+            argument.contract.validate(&[1]).is_ok(),
+        ) {
+            (true, true) => "false or true",
+            (true, false) => "false",
+            (false, true) => "true",
+            (false, false) => "No admitted Boolean value",
+        }
+        .into();
+    }
     readable_finite_text_choices(&argument.contract).map_or_else(
         || "Enter a value".into(),
         |choices| format!("Choose {}", choices.join(", ")),

@@ -1,8 +1,6 @@
 //! Real keyboard replacement of a source-owned Boolean, then its restoration.
 use super::super::{qemu_artifacts::Artifacts, qmp};
-use super::{
-    face_correspondence, hid_qmp, io_error, journey_input, refusal, stage_count, ConduitosError,
-};
+use super::{face_correspondence, hid_qmp, io_error, journey_input, refusal, ConduitosError};
 use conduit_face::{Face, FaceInteraction, FacePropertyValue};
 use serde_json::{json, Value};
 use std::{fs, os::unix::net::UnixStream, path::Path, process::Child};
@@ -14,12 +12,7 @@ pub(super) fn exercise(
     reader: &mut qmp::Reader,
     artifacts: &mut Artifacts,
 ) -> Result<(), ConduitosError> {
-    // Current authored reading order: name value -> naming action/value ->
-    // search action/value -> first Plot. Receipts below verify the exact target;
-    // a changed source order fails rather than silently selecting another Plot.
-    for _ in 0..5 {
-        navigate(serial, child, stream, reader, false)?;
-    }
+    navigate_to(serial, child, stream, reader, "creche.plot.0", None, false)?;
     for (key, expected, frame) in [
         ("spc", false, "creche-three-selected"),
         ("ret", true, "creche-four-restored"),
@@ -30,36 +23,95 @@ pub(super) fn exercise(
         )?
         .len();
         journey_input::key_pair(stream, reader, key, "creche-reversible-choice")?;
-        journey_input::wait_for_record(serial, child, "creche-choice-timeout", frame, |text| {
-            Ok(face_correspondence::records(text, "CONDUIT_CRECHE_CHANGE ")?.len() > before)
-        })?;
+        journey_input::wait_for_record_retaining_guest(
+            serial,
+            child,
+            "creche-choice-timeout",
+            frame,
+            |text| Ok(face_correspondence::records(text, "CONDUIT_CRECHE_CHANGE ")?.len() > before),
+        )?;
         validate(&fs::read_to_string(serial).map_err(io_error)?, expected)?;
         artifacts.capture(stream, reader, frame, true)?;
     }
-    for _ in 0..5 {
-        navigate(serial, child, stream, reader, true)?;
-    }
+    navigate_to(
+        serial,
+        child,
+        stream,
+        reader,
+        "creche.name",
+        Some("value"),
+        true,
+    )?;
     Ok(())
 }
 
-fn navigate(
+fn navigate_to(
     serial: &Path,
     child: &mut Child,
     stream: &mut UnixStream,
     reader: &mut qmp::Reader,
+    action: &str,
+    argument: Option<&str>,
     reverse: bool,
 ) -> Result<(), ConduitosError> {
-    let before = stage_count(serial, "CONDUIT_CRECHE_CHECKPOINT edited")?;
-    let keys: &[&str] = if reverse { &["shift", "tab"] } else { &["tab"] };
-    hid_qmp::send_named_keys(stream, reader, keys, true, "creche-choice-focus")?;
-    hid_qmp::send_named_keys(stream, reader, keys, false, "creche-choice-focus")?;
-    hid_qmp::wait_for_stage_count(
-        serial,
-        child,
-        "CONDUIT_CRECHE_CHECKPOINT edited",
-        before + 1,
-        "creche-choice-focus-timeout",
-    )
+    let text = fs::read_to_string(serial).map_err(io_error)?;
+    let faces = face_correspondence::records(&text, "CONDUIT_NATIVE_FACE ")?;
+    let current = faces
+        .last()
+        .ok_or_else(|| refusal("missing current Crèche Face"))?;
+    let face: Face =
+        serde_json::from_value(current["face"].clone()).map_err(|e| refusal(e.to_string()))?;
+    face.validate().map_err(|e| refusal(e.to_string()))?;
+    if !face.actions.iter().any(|candidate| {
+        candidate.identity == action
+            && candidate.availability.is_available()
+            && argument.is_none_or(|name| candidate.arguments.iter().any(|arg| arg.name == name))
+    }) {
+        return Err(refusal(
+            "Crèche target is not offered by the current source Face",
+        ));
+    }
+    let bound = face
+        .actions
+        .iter()
+        .map(|action| action.arguments.len() + 1)
+        .sum::<usize>();
+    for step in 0..=bound {
+        let text = fs::read_to_string(serial).map_err(io_error)?;
+        let focus = face_correspondence::records(&text, "CONDUIT_CRECHE_FOCUS ")?;
+        let selected = focus
+            .last()
+            .ok_or_else(|| refusal("missing observed Crèche focus"))?;
+        if selected["schema"] != "conduit.creche-focus/v1"
+            || selected["face_id"] != json!(face.identity)
+            || selected["face_revision"] != face.revision
+            || selected["show_id"] != current["show"]["show_id"]
+        {
+            return Err(refusal(
+                "Crèche focus does not bind the current acknowledged Face/Show",
+            ));
+        }
+        if selected["action_id"] == action && selected["argument_name"] == json!(argument) {
+            return Ok(());
+        }
+        if step == bound {
+            break;
+        }
+        let before = focus.len();
+        let keys: &[&str] = if reverse { &["shift", "tab"] } else { &["tab"] };
+        hid_qmp::send_named_keys(stream, reader, keys, true, "creche-choice-focus")?;
+        hid_qmp::send_named_keys(stream, reader, keys, false, "creche-choice-focus")?;
+        journey_input::wait_for_record_retaining_guest(
+            serial,
+            child,
+            "creche-choice-focus-timeout",
+            "focus",
+            |text| Ok(face_correspondence::records(text, "CONDUIT_CRECHE_FOCUS ")?.len() > before),
+        )?;
+    }
+    Err(refusal(
+        "Crèche target not reached within the admitted control bound",
+    ))
 }
 
 fn validate(serial: &str, expected: bool) -> Result<Value, ConduitosError> {
@@ -106,6 +158,9 @@ fn validate(serial: &str, expected: bool) -> Result<Value, ConduitosError> {
         || interaction.arguments.len() != 1
         || action.arguments.len() != 1
         || interaction.arguments[0].name != action.arguments[0].name
+        || interaction.arguments[0].value_kind != action.arguments[0].contract.value_kind.as_str()
+        || change["before_revision"] != old.revision
+        || change["after_revision"] != fresh.revision
         || interaction.arguments[0].value != [u8::from(expected)]
         || action.arguments[0]
             .contract

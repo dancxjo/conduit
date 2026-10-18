@@ -197,7 +197,8 @@ impl FaceArrival {
         display: &mut impl PixelTarget,
     ) -> Result<CompositionReceipt, &'static str> {
         self.present_current(door, display)?;
-        self.mask
+        let receipt = self
+            .mask
             .focus_named(
                 &FaceFocusRequest {
                     action_id: "creche.name".into(),
@@ -205,7 +206,9 @@ impl FaceArrival {
                 },
                 display,
             )
-            .map_err(|error| error.as_str())
+            .map_err(|error| error.as_str())?;
+        self.record_focus()?;
+        Ok(receipt)
     }
 
     pub(super) fn present_pending_join(
@@ -396,6 +399,32 @@ impl FaceArrival {
             .show_local_notice(&message, display)
             .map_err(|error| error.as_str())?;
         Ok(())
+    }
+
+    fn record_focus(&self) -> Result<(), &'static str> {
+        let scene = self.mask.scene().ok_or("creche-focus-scene-absent")?;
+        let show = self.mask.show().ok_or("creche-focus-show-absent")?;
+        let control = scene
+            .focused()
+            .map(|control| {
+                scene
+                    .resolve(&scene.face().identity, scene.face().revision, control)
+                    .map(|(action, argument)| {
+                        (
+                            action.identity.as_str(),
+                            argument.map(|arg| arg.name.as_str()),
+                        )
+                    })
+                    .map_err(|_| "creche-focus-control-absent")
+            })
+            .transpose()?;
+        super::native_action_evidence::focus(
+            scene.face(),
+            show,
+            control,
+            scene.page(),
+            scene.pages(),
+        )
     }
 
     fn present_current(

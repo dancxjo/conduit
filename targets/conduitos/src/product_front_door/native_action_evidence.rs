@@ -76,6 +76,31 @@ pub(super) fn creche_change(
     )
 }
 
+/// Read-only observation of Mask-local focus under its acknowledged Show.
+/// This creates neither a binding nor a domain input occurrence.
+pub(super) fn focus(
+    face: &Face,
+    show: &MaskShow,
+    control: Option<(&str, Option<&str>)>,
+    page: usize,
+    pages: usize,
+) -> Result<(), &'static str> {
+    if show.face_id != face.identity || show.face_revision != face.revision {
+        return Err("creche-focus-stale-show");
+    }
+    emit(
+        b"CONDUIT_CRECHE_FOCUS ",
+        &json!({
+            "schema": "conduit.creche-focus/v1",
+            "face_id": face.identity, "face_revision": face.revision,
+            "show_id": show.show_id,
+            "action_id": control.map(|value| value.0),
+            "argument_name": control.and_then(|value| value.1),
+            "page": page + 1, "pages": pages,
+        }),
+    )
+}
+
 fn snapshot(p: &JourneyProjection) -> Value {
     json!({
         "status": p.status.as_str(), "revision": p.revision,

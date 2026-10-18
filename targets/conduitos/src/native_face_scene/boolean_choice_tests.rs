@@ -209,6 +209,39 @@ fn generic_or_one_way_boolean_is_not_inferred_as_reversible_choice() {
             negated: false,
         });
     assert_eq!(boolean_choice::selected(&one_way, index), None);
+    let one_way = Face::new_with_semantics(
+        one_way.revision,
+        one_way.basis,
+        one_way.subjects,
+        one_way.relationships,
+        one_way.properties,
+        one_way.text,
+        one_way.actions,
+        one_way.disclosures,
+    )
+    .unwrap();
+    let mut scene = NativeFaceScene::prepare(one_way, 320, 240).unwrap();
+    scene.focus_named(&request(true)).unwrap();
+    let control = scene.focused().unwrap();
+    assert_eq!(control.argument, Some(0));
+    let row = scene
+        .rows()
+        .iter()
+        .find(|row| row.control == Some(control))
+        .unwrap();
+    assert!(row.checkbox.is_none());
+    assert!(
+        row.text.ends_with(" · true"),
+        "only the admitted replacement is offered"
+    );
+    let frame = scene.frame().unwrap();
+    assert!(
+        frame
+            .scene
+            .commands()
+            .iter()
+            .any(|command| command.payload() == row.text)
+    );
     let mut ambiguous = original.clone();
     let property = ambiguous
         .properties
@@ -286,4 +319,31 @@ fn unavailable_and_stale_choices_never_toggle_or_grow_scene_budget() {
     }
     assert!(text.contains("Host unavailable"));
     assert_eq!(scene.face(), &withheld);
+}
+
+#[test]
+fn ordinary_name_entry_reaches_first_choice_with_one_tab() {
+    let (draft, basis) = fixture();
+    let face = draft.face(&basis).unwrap();
+    let show = tests::fixture::show(&face);
+    let mut scene = NativeFaceScene::prepare(face, 1280, 800).unwrap();
+    scene
+        .focus_named(&FaceFocusRequest {
+            action_id: "creche.name".into(),
+            argument_name: Some("value".into()),
+        })
+        .unwrap();
+    scene.key(key(43), &show, 1).unwrap();
+    let control = scene.focused().unwrap();
+    assert_eq!(
+        scene.face().actions[control.action].identity,
+        "creche.plot.0"
+    );
+    assert_eq!(control.argument, None);
+    let FaceSceneInput::Submitted { interaction, .. } = scene.key(key(44), &show, 2).unwrap()
+    else {
+        panic!("real entry must submit a Boolean choice")
+    };
+    assert_eq!(interaction.action_id, "creche.plot.0");
+    assert_eq!(interaction.arguments[0].value, vec![0]);
 }
