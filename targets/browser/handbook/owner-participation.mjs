@@ -1,3 +1,4 @@
+import { assertOwnerFaceReachability } from './owner-face-reachability.mjs';
 import "./owner-face-component.mjs";
 
 // Optional, explicitly authorized participation in a Body owned by a running
@@ -315,6 +316,7 @@ export async function startOwnerParticipation(application, root) {
         } : undefined);
       requireCurrentRoute();
       renderFace(prepared);
+      assertOwnerFaceReachability(faceComponent, prepared);
       const shown = await participation.acknowledgeOwnerFaceMask(prepared);
       requireCurrentRoute();
       const inspectedRoute = checkedOwnerRouteEvidence(shown, participation.hostId, participation.bootId);

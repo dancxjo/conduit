@@ -542,7 +542,7 @@ try {
       : ['browser-before.png', 'browser-after.png'],
   }, null, 2)}\n`);
   if (scenario === 'first-add') await captureArbitraryTodoRefusals({
-    page, face, output, sourceRecord, bodyId, identity,
+    page, face, output, sourceRecord, bodyId, identity, retiredView: before,
   });
 } catch (error) {
   // Preserve the actual failed UI and owner state without retrying its action.
