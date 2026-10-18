@@ -281,3 +281,8 @@ pub mod fargan;
 
 #[cfg(feature = "semantic-bindings")]
 pub mod intent_frequency_trajectory;
+
+#[cfg(feature = "semantic-bindings")]
+pub mod intent_energy;
+#[cfg(feature = "semantic-bindings")]
+pub mod scoped_energy;

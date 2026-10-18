@@ -1,0 +1,59 @@
+# Phone-scope energy intent and supplied observation are distinct meanings tied
+# to the original linguistic intent. References, units, ratios and logarithms remain Audio-owned.
+type SpeechEnergyTarget = {
+    scope: SpeechPhoneAcousticScope
+    control: AudioScopedControlTrajectory
+    basis: AudioDecibelBasis
+    where .control.trajectory.anchor == .scope.anchor
+    where .control.domain is amplitude || .control.domain is power
+    where .control.domain is amplitude ? .basis.reference.role is amplitude_magnitude : .basis.reference.role is power
+}
+# Absolute linear error bound relative to exactly the observation reference.
+# Unknown, unspecified, not_applicable, variable and gradient are retained.
+# This is not a derived dB uncertainty or a probability distribution.
+type SpeechEnergyErrorSpecification = SpeechSpec<AudioReferencedLevelRatio>
+# The caller declares whether supplied evidence is measured or inferred.
+# This distinction does not authenticate a sensor, model or calibration.
+type SpeechEnergyObservationInterpretation =
+    measured
+    | inferred
+type SpeechEnergyObservation = {
+    interpretation: SpeechEnergyObservationInterpretation
+    scope: SpeechPhoneAcousticScope
+    start: AudioExactTimeOffset
+    end: AudioExactTimeOffset
+    value: AudioReferencedLevelRatio
+    absolute_linear_error: SpeechEnergyErrorSpecification
+    confidence: SpeechConfidence
+    provenance: SpeechEvidenceProvenance
+    where .start.numerator_seconds <= 4294967295
+    where .start.denominator <= 4294967295
+    where .end.numerator_seconds <= 4294967295
+    where .end.denominator <= 4294967295
+    where .start.numerator_seconds * .end.denominator <= .end.numerator_seconds * .start.denominator
+}
+type SpeechEnergyBinding = {
+    target: SpeechEnergyTarget
+    observation: SpeechEnergyObservation?
+    where .observation is some ? .target.scope == .observation.some.scope : true
+    where .observation is some ? .target.basis == .observation.some.value.basis : true
+}
+# Admission witnesses used while traversing finite owner collections.
+type SpeechEnergyEndpointMatch = {
+    target: SpeechEnergyTarget
+    endpoint: AudioTrajectoryQuantity
+    where .target.control.domain is amplitude ? .endpoint is amplitude : .endpoint is power
+}
+type SpeechEnergyErrorMatch = {
+    observation: SpeechEnergyObservation
+    error: AudioReferencedLevelRatio
+    where .observation.value.basis == .error.basis
+    where .observation.value.ratio is amplitude ? .error.ratio is amplitude : .error.ratio is power
+}
+type SpeechEnergyPowerRequestMatch = {
+    observation: SpeechEnergyObservation
+    request: AudioReferencedAmplitudePowerRequest
+    where .observation.value.ratio is amplitude
+    where .observation.value.basis.reference == .request.references.amplitude
+    where .observation.value.ratio is amplitude ? .observation.value.ratio.amplitude == .request.amplitude : false
+}
