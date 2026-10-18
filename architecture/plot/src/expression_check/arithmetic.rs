@@ -69,7 +69,12 @@ pub(super) fn binary(
     let scalar = CheckedExpressionType::semantic(conduit_core::SCALAR_INFO_ID);
     // Infer each operand once on the successful path. A surrounding Quantity
     // input/result says nothing about the arithmetic in this subtree.
-    let (left_type, inferred_right) = match infer(left, expected, context, node_types) {
+    let (left_type, inferred_right) = match infer(
+        left,
+        operand_context(left, expected, context),
+        context,
+        node_types,
+    ) {
         Ok(value_type) => (value_type, None),
         Err(left_error) => {
             node_types.truncate(checkpoint);
@@ -83,23 +88,33 @@ pub(super) fn binary(
             if let Some(value_type) = natural_left {
                 (value_type, None)
             } else {
-                let right_type = infer_speculative(right, expected, context, node_types)
-                    .or_else(|| {
-                        if quantity_arithmetic && expected.is_some() {
-                            infer_speculative(right, None, context, node_types)
-                        } else {
-                            None
-                        }
-                    })
-                    .ok_or(left_error.clone())?;
+                let right_type = infer_speculative(
+                    right,
+                    operand_context(right, expected, context),
+                    context,
+                    node_types,
+                )
+                .or_else(|| {
+                    if quantity_arithmetic && expected.is_some() {
+                        infer_speculative(right, None, context, node_types)
+                    } else {
+                        None
+                    }
+                })
+                .ok_or(left_error.clone())?;
                 let left_expected =
                     if operator == BinaryOperator::Multiply && is_quantity(&right_type) {
                         &scalar
                     } else {
                         &right_type
                     };
-                let left_type = infer(left, Some(left_expected), context, node_types)
-                    .map_err(|_| left_error)?;
+                let left_type = infer(
+                    left,
+                    operand_context(left, Some(left_expected), context),
+                    context,
+                    node_types,
+                )
+                .map_err(|_| left_error)?;
                 // Reuse the successful right inference, rather than replaying
                 // an arbitrarily large right subtree after contextual typing.
                 (left_type, Some(right_type))
@@ -117,14 +132,19 @@ pub(super) fn binary(
             };
         // Scaling first gives a constant scalar subtree its required context.
         // A genuine mismatch may instead reveal a typed quantity for a ratio.
-        infer_speculative(right, Some(right_expected), context, node_types)
-            .or_else(|| infer_speculative(right, None, context, node_types))
-            .ok_or_else(|| {
-                diagnostic(
-                    right.span(),
-                    "quantity arithmetic requires a typed quantity or exact Scalar operand",
-                )
-            })?
+        infer_speculative(
+            right,
+            operand_context(right, Some(right_expected), context),
+            context,
+            node_types,
+        )
+        .or_else(|| infer_speculative(right, None, context, node_types))
+        .ok_or_else(|| {
+            diagnostic(
+                right.span(),
+                "quantity arithmetic requires a typed quantity or exact Scalar operand",
+            )
+        })?
     } else {
         let checkpoint = node_types.len();
         match infer(right, Some(&left_type), context, node_types) {
@@ -203,6 +223,30 @@ pub(super) fn binary(
         }
         _ => refuse(span, "operator is not defined for this exact type"),
     }
+}
+
+// Context may construct a generic Quantity literal at a value boundary, but an
+// operator must retain the resolved physical operand Type to choose its law.
+fn operand_context<'a>(
+    syntax: &ExpressionSyntax,
+    expected: Option<&'a CheckedExpressionType>,
+    context: &ExpressionTypeContext<'_>,
+) -> Option<&'a CheckedExpressionType> {
+    if expected.is_some_and(|ty| {
+        ty.value_kind()
+            .is_some_and(|kind| kind.as_str() == conduit_core::QUANTITY_INFO_ID)
+    }) {
+        if let ExpressionSyntax::Atomic(value) = syntax {
+            if context
+                .literal_types
+                .get(&value.text)
+                .is_some_and(is_quantity)
+            {
+                return None;
+            }
+        }
+    }
+    expected
 }
 
 fn quantity_result(

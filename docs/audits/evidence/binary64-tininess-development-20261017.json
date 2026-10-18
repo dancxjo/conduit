@@ -1,0 +1,92 @@
+{
+  "schema": "conduit/development-validation@1",
+  "source": "9cf8775a9cab1096d77f98d4c66f83cd2adf2fa0",
+  "scope": "Finite binary64 projection tininess after precision rounding at the normal boundary; not complete IEEE operation semantics or stable acceptance.",
+  "before": {
+    "production_base": "e0e68fdc97659533ccda8267d1c9a5184188c2e6",
+    "result": "First added boundary regression failed at positive nearest-even tininess; later tests expanded to neighboring thresholds."
+  },
+  "results": {
+    "core_focused": {
+      "passed": 24,
+      "targets": [
+        "binary64_projection",
+        "binary64_algorithm",
+        "numerical_float_realization",
+        "enclosed_numerical_realization",
+        "enclosed_binary64"
+      ]
+    },
+    "std_focused": {
+      "passed": 3,
+      "targets": [
+        "numerical_offers",
+        "numerical_installed_play"
+      ]
+    },
+    "strict_core_clippy": "passed with warnings denied",
+    "strict_std_lib_clippy": "passed with warnings denied",
+    "format_and_diff": "passed"
+  },
+  "validation_timing": "Core and std tests ran on identical production source before commit; std lint completed after commit. No production edits overlapped validation.",
+  "oracle": {
+    "repository": "https://github.com/ucb-bar/berkeley-softfloat-3",
+    "commit": "a0c6494cdc11865811dec815d5c0049fba9d82a8",
+    "tracked_source_clean": true,
+    "specialization": "Linux-x86_64-GCC / 8086-SSE",
+    "tininess": "softfloat_tininess_afterRounding",
+    "cases": 32,
+    "case_classes": "8 binary64 multiplications and 24 exact binary128-to-binary64 conversions, both signs and four rounding directions",
+    "compiler": "gcc (Ubuntu 15.2.0-16ubuntu1) 15.2.0",
+    "build_command": "make -j2 -C work/softfloat-ieee-reference/build/Linux-x86_64-GCC",
+    "oracle_compile_command": "gcc -O2 -DSOFTFLOAT_FAST_INT64 -I work/softfloat-ieee-reference/source/include work/softfloat-tininess-oracle.c work/softfloat-ieee-reference/build/Linux-x86_64-GCC/softfloat.a -o work/softfloat-tininess-oracle",
+    "oracle_binary_sha256": "cd05515737186e934e9bcb798e4db33e0afb2baf7c3d5ad413a652b3fa0de2aa",
+    "library_sha256": "77ab652863a5a080bbbe31e536ffcc4769dde949e373fa841a2e72a52512922c",
+    "flags": {
+      "inexact": 1,
+      "underflow": 2
+    }
+  },
+  "logs": [
+    {
+      "path": "binary64-tininess-before.log",
+      "sha256": "bda2564484cf691a43e5acac413abbe84b06ccfc9162f536b68602e6135a8980"
+    },
+    {
+      "path": "binary64-tininess-focused.log",
+      "sha256": "07eb17b54ca7313e829e11b3be204a457fedcc310ef631a1d82a733cfca39a85"
+    },
+    {
+      "path": "binary64-tininess-clippy.log",
+      "sha256": "650d7a2ae58a3851d90d5989e07396fb7e725b4d01c01c85cab535365a86e770"
+    },
+    {
+      "path": "binary64-tininess-std-tests.log",
+      "sha256": "3bbbd6934e77f16a1039e14e448cfa82fee7ab6129dc251312c809fc017cbe5a"
+    },
+    {
+      "path": "binary64-tininess-std-clippy.log",
+      "sha256": "b7bc045f76f04b25e7f4fa7beeb024b3b32c9c694cc71e48ff0182972d33b319"
+    },
+    {
+      "path": "softfloat-tininess-oracle.c",
+      "sha256": "b834bdf004faa7c9e5a5d8d188ed92411102447c350c6fb96aefa7cad20e93ad"
+    },
+    {
+      "path": "softfloat-tininess-oracle.log",
+      "sha256": "b6a3da389496570afb8431e7b5e41b5ccf7938d8cb7c691ac98d78923be4c5d0"
+    },
+    {
+      "path": "softfloat-ieee-build.log",
+      "sha256": "d870ac5aaeb583b59f11c7c387bcb7d32b61b81832fcf9cacd4e5a0d05be02ea"
+    },
+    {
+      "path": "softfloat-ieee-clone.log",
+      "sha256": "80ebeaac98dc998e9667daa11dfece2e220ca9230b67259f2aa45c7b4a9e04e4"
+    }
+  ],
+  "archive": {
+    "path": "binary64-tininess-development-20261017-raw.tar.gz",
+    "sha256": "481fbf9dad3671b333c6c5121b31f6b368ee223cd0a67ae9708be6245b62aab6"
+  }
+}

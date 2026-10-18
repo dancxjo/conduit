@@ -1,0 +1,60 @@
+{
+  "schema": "conduit/development-validation@1",
+  "source": "05f7b0a90ff0ce9ef17c53e8e478d6eba50cba47",
+  "scope": "Optional same-Quantity exact coordinate transport component; no generic primitive/Source/Back admission or repaired CLI chain claimed. Existing decimal POD, native decoder and literal binding unchanged.",
+  "reuse": "Existing Core RationalQuantity, Unit validation and exact physical family/role/conversion law. No new unit catalog or literal syntax.",
+  "bounds": {
+    "maximum_coordinate_bits": 4096,
+    "maximum_encoded_bytes": 1800,
+    "native_decimal_encoded_bytes": 788,
+    "native_decode_numeric_work": 1
+  },
+  "results": {
+    "targets": [
+      "quantity_value_transport",
+      "rational_quantity",
+      "rational_quantity_arithmetic",
+      "rational_quantity_identity",
+      "quantity_exact",
+      "quantity_structured"
+    ],
+    "passing_tests": 30,
+    "new_transport_tests": 4,
+    "allocation_and_reallocation_observations": 0,
+    "wide_coordinate_decimal_digits": 502,
+    "exact_thirds_and_explicit_decimal_refusal": "passed",
+    "unit_family_dimension_role_and_affine_laws": "passed",
+    "truncation_extent_work_role_and_capacity_refusals": "passed",
+    "strict_core_clippy": "passed with warnings denied",
+    "core_no_default_features": "passed",
+    "format_diff_check": "passed"
+  },
+  "limitations": [
+    "Codec conformance and reuse checks are not a new independent numerical-arithmetic oracle.",
+    "The authored 1m -> divide by3 -> multiply by3 chain remains unfixed until representation eligibility, Source validation, prepared storage and runtime consumers are integrated.",
+    "No new wire form is admitted by the generic primitive validator or installed Source execution yet.",
+    "Full original numerical acceptance and automated exact-main publication remain open."
+  ],
+  "files": [
+    {
+      "path": "quantity-value-transport-final-tests.log",
+      "sha256": "dcc4f8d6a3f77a5306ba866a1f1957d785e3ffdb28b847d69f8ed006ceb3edd2"
+    },
+    {
+      "path": "quantity-value-transport-clippy.log",
+      "sha256": "9d801b48283cdd2a3da815bc53ee462c2f2872fe29d0ea15f12d4e393a1dab58"
+    },
+    {
+      "path": "quantity-value-transport-no-default.log",
+      "sha256": "ecf9e4dd0fc7de49e091da590d2323cf1605bd4d7e2c2cb2ca861ea44865c78d"
+    },
+    {
+      "path": "rustc-version.txt",
+      "sha256": "778fbc643a806f0dd123c056e66201d7e8a56a61928ec0a33171be8d6c2d5a37"
+    }
+  ],
+  "archive": {
+    "path": "quantity-coordinate-transport-development-20261017-raw.tar.gz",
+    "sha256": "2a7fb6684c4fd43a2a94db2d36341ede277c930852bce7cf355c4e9eed2affa3"
+  }
+}

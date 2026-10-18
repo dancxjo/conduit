@@ -31,6 +31,9 @@ pub(super) fn literal_value(
         Some(PrimitiveInfoKind::F32) => crate::ieee_literal::f32_bits(literal)
             .map_err(|_| PortableExpressionEvaluationRefusal::InvalidLiteral)?
             .to_vec(),
+        Some(PrimitiveInfoKind::F64) => crate::ieee_literal::f64_bits(literal)
+            .map_err(|_| PortableExpressionEvaluationRefusal::InvalidLiteral)?
+            .to_vec(),
         Some(PrimitiveInfoKind::Count) => encode_count(
             literal
                 .parse()

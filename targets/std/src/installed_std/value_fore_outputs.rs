@@ -68,6 +68,7 @@ mod tests {
             endpoint: conduit_kernel::RemoteEndpointId(0),
             cord: conduit_kernel::CordId(0),
             value_kind: "value/u64".into(),
+            quantity_profile: conduit_core::QuantityValueProfile::Decimal,
             value_contract: None,
             abnormal_kind: None,
             temporal: PortTemporal::Value,

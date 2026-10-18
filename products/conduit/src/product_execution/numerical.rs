@@ -1,9 +1,10 @@
-//! Numerical realizations are offered before the ordinary local planning step.
+//! Source-specific numerical and expression offers precede ordinary local planning.
 use super::*;
 impl ProductExecutionContext {
     pub(crate) fn local_std_for_plot(plot: &ExpandedCanonicalPlot) -> Result<Self, String> {
         let mut host = StdHost::new();
         host.prepare_numerical_realizations(plot)?;
+        host.prepare_expression_realizations(plot)?;
         let advertisement = host.advertisement().clone();
         Self::new(
             vec![advertisement],

@@ -43,6 +43,7 @@ pub(super) fn evaluate_node<'a>(
             PrimitiveValue::borrowed(expected, &output[..length])?
         }
         PreparedOperation::QuantityBinary {
+            profile,
             operator,
             left,
             right,
@@ -50,17 +51,18 @@ pub(super) fn evaluate_node<'a>(
         } => {
             let left = evaluate_node(left, input, input_kind)?;
             let right = evaluate_node(right, input, input_kind)?;
-            let encoded = crate::expression_quantity::evaluate(
+            let length = crate::expression_quantity::evaluate_into(
                 *operator,
                 kind_name(left.kind),
                 kind_name(right.kind),
                 left.as_slice(),
                 right.as_slice(),
-            )
-            .ok_or(Refusal::InvalidProgram)??;
-            let bytes = encoded.as_slice();
-            output[..bytes.len()].copy_from_slice(bytes);
-            PrimitiveValue::borrowed(expected, &output[..bytes.len()])?
+                crate::expression_quantity::Output {
+                    profile: *profile,
+                    bytes: output,
+                },
+            )?;
+            PrimitiveValue::borrowed(expected, &output[..length])?
         }
         PreparedOperation::RationalBinary {
             operator,
@@ -128,7 +130,7 @@ pub(super) fn evaluate_node<'a>(
         }
     };
     if value.kind == expected {
-        conduit_core::validate_primitive_info(&node.info_kind, value.as_slice())
+        quantity_profile::validate_input(&node.info_kind, value.as_slice(), node.quantity_profile)
             .map_err(|_| Refusal::InvalidProgram)?;
         Ok(value)
     } else {

@@ -1,0 +1,46 @@
+{
+  "schema": "conduit/development-validation@1",
+  "source": "842fceff969a934b362d06b23d76ec9dac3e8ccc",
+  "scope": "Explicit primitive prepared Quantity profile; not installed Std Source/Plan/Play or generic kernel wire activation.",
+  "results": {
+    "passing_tests": 39,
+    "new_exact_profile_tests": 5,
+    "existing_authored_profile_tests": 5,
+    "scalar_tape_tests": 14,
+    "warm_restoration_cycles": 128,
+    "prepared_instances_per_cycle": 3,
+    "warm_allocations_and_reallocations": 0,
+    "buffer_capacity_and_pointers": "stable",
+    "wide_coordinate_input_envelope": "enforced",
+    "native_extreme_decimal_comparison": "passed",
+    "structured_intermediate_and_decimal_only_helper_admission": "refused before execution",
+    "strict_plot_clippy": "passed",
+    "workspace_format": "passed",
+    "existing_quantity_exact_profile_test_file": "restored and unchanged from parent; all five original tests passed"
+  },
+  "limitations": [
+    "Std offers still select decimal policy.",
+    "Primitive/structured kernel validation remains decimal-only.",
+    "Source/Fore transport ceilings, sealed work/resource facts, Back verification and candidate filtering need integration.",
+    "Composite exact-profile evaluation remains unsupported, with before-Play refusal; original parent scope remains unchanged.",
+    "No new actual Source/kernel exact-wire or stable-main acceptance claim."
+  ],
+  "files": [
+    {
+      "path": "quantity-prepared-profile-admitted-tests.log",
+      "sha256": "267b454876394d80fd385ee98621f8a40958217e466ef5798e9bf5e845bed3cb"
+    },
+    {
+      "path": "quantity-prepared-profile-admitted-clippy.log",
+      "sha256": "896b0314b6e6fe47fb718c7858d64a09f2f34744aeba7ad9ead2d29ced928db4"
+    },
+    {
+      "path": "quantity-prepared-profile-admitted-format.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "archive": {
+    "path": "quantity-prepared-profile-development-20261017-raw.tar.gz",
+    "sha256": "7dbe14b239648a6dc7ebd2bd748283058df777b79a88195296fbbe4660808468"
+  }
+}

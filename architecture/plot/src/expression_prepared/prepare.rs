@@ -47,10 +47,11 @@ pub(super) fn prepare_node(
         }) =>
         {
             PreparedOperation::QuantityBinary {
+                profile: prepared_input.quantity_profile(),
                 operator: *operator,
                 left: Box::new(prepare_node(left, input_type, prepared_input)?),
                 right: Box::new(prepare_node(right, input_type, prepared_input)?),
-                output: vec![0; conduit_core::QUANTITY_ENCODED_LEN],
+                output: vec![0; prepared_input.quantity_profile().maximum_encoded_bytes()],
             }
         }
         PortableExpressionOperation::Binary {
@@ -198,6 +199,7 @@ pub(super) fn prepare_node(
         }
     };
     Ok(PreparedNode {
+        quantity_profile: prepared_input.quantity_profile(),
         kind,
         info_kind: leaf_info_kind(&node.value_type)?.into(),
         operation,

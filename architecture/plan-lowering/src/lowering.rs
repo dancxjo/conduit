@@ -17,6 +17,8 @@ use conduit_kernel::{
 };
 
 mod admission;
+mod fore_value;
+pub use fore_value::{ForeValueRefusal, LoweredForePort};
 mod fusion;
 mod ports;
 mod profile;
@@ -269,58 +271,6 @@ pub struct LoweredRemoteEndpoint {
     pub value_kind: KindId,
     pub temporal: conduit_core::PortTemporal,
     pub line: AdmittedLine,
-}
-
-/// Numeric kernel binding for one plan-sealed external Fore port.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct LoweredForePort {
-    pub front_port_id: PlanPortId,
-    pub direction: PortDirection,
-    pub track: conduit_core::ConnectionTrack,
-    pub endpoint: RemoteEndpointId,
-    pub cord: CordId,
-    pub value_kind: KindId,
-    pub value_contract: Option<conduit_core::CheckedValueContract>,
-    pub abnormal_kind: Option<KindId>,
-    pub temporal: conduit_core::PortTemporal,
-    pub item_capacity: u16,
-    pub byte_capacity: u32,
-    /// Selected external carrier identity; execution must recheck its live
-    /// availability before crossing this Fore.
-    pub selected_line: Option<conduit_core::AdmittedLine>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum ForeValueRefusal {
-    NotValueTrack,
-    CordCapacity,
-    Malformed(conduit_core::PrimitiveInfoRefusal),
-    Constraint(conduit_core::ValueConstraintRefusal),
-}
-
-impl LoweredForePort {
-    /// Revalidates one committed external value against the exact sealed Fore
-    /// contract before the kernel observes it.
-    pub fn validate_value(&self, canonical: &[u8]) -> Result<(), ForeValueRefusal> {
-        let value_kind = match self.track {
-            conduit_core::ConnectionTrack::Payload
-            | conduit_core::ConnectionTrack::AbnormalTerminal => &self.value_kind,
-            conduit_core::ConnectionTrack::NormalClose
-            | conduit_core::ConnectionTrack::Quiescence => {
-                return Err(ForeValueRefusal::NotValueTrack);
-            }
-        };
-        if canonical.len() > self.byte_capacity as usize {
-            return Err(ForeValueRefusal::CordCapacity);
-        }
-        if let Some(contract) = &self.value_contract {
-            return contract
-                .validate(canonical)
-                .map_err(ForeValueRefusal::Constraint);
-        }
-        conduit_core::validate_primitive_info(value_kind.as_str(), canonical)
-            .map_err(ForeValueRefusal::Malformed)
-    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -1309,6 +1259,7 @@ fn lower_verified_fragment_for_profile(
             cord,
             value_kind: planned.value_kind.clone(),
             value_contract: planned.value_contract.clone(),
+            quantity_profile: fore_value::selected_profile(fragment, planned)?,
             abnormal_kind: planned.abnormal_kind.clone(),
             temporal: planned.temporal,
             item_capacity: planned.item_capacity,
@@ -1600,6 +1551,7 @@ mod terminal_track_tests {
             endpoint: RemoteEndpointId(0),
             cord: CordId(0),
             value_kind: kind_id(conduit_core::COUNT_INFO_ID),
+            quantity_profile: conduit_core::QuantityValueProfile::Decimal,
             value_contract: Some(
                 conduit_core::CheckedValueContract::new(
                     kind_id(conduit_core::COUNT_INFO_ID),

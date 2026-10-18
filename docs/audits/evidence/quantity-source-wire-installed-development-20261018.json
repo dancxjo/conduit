@@ -1,0 +1,114 @@
+{
+  "issue": 5392,
+  "status": "private-development-only",
+  "source": "151e4fd29d0c647cb9a940c016ad5fa639ca4a08",
+  "validation": {
+    "selected_unique_tests": 292,
+    "source_pinned_cli_tests": 3,
+    "duplicate_cli_tests_excluded_from_unique_total": true,
+    "strict_clippy": "seven affected packages plus focused followups",
+    "core_no_default_features": "pass",
+    "workspace_format": "pass",
+    "full_workspace_platform_integration": "not yet run for this candidate"
+  },
+  "archive": {
+    "file": "quantity-source-wire-installed-development-20261018.raw.tar.gz",
+    "sha256": "6501e59fd23d3a31d220a924a36cf295c62ca6cb1da1a60a4102f64c8150b49a",
+    "bytes": 51359
+  },
+  "custody": {
+    "source": "151e4fd29d0c647cb9a940c016ad5fa639ca4a08",
+    "binary": {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/retained-quantity-source-proof/conduit",
+      "sha256": "127cabd43d06553a908ece09de4f8be8087ca4552a67a7004fb75bf00d3fdfad",
+      "bytes": 789417208
+    },
+    "compiler": "rustc 1.98.1 (48a229cea 2026-09-01)\nbinary: rustc\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\ncommit-date: 2026-09-01\nhost: x86_64-unknown-linux-gnu\nrelease: 1.98.1\nLLVM version: 22.1.8\n",
+    "raw_files": {
+      "quantity-source-wire-core-final-tests.log": {
+        "sha256": "023b388f1ec77f22833adb7f994a202bf8d353680db06fccd024d96a075fd28e",
+        "bytes": 11725,
+        "passed_tests": 111
+      },
+      "quantity-source-wire-lowering-final-tests.log": {
+        "sha256": "0b88a02eb48273d819a7ea2d0b3716769a5e137a15c5883a3a3d684ad4c93e8b",
+        "bytes": 7065,
+        "passed_tests": 52
+      },
+      "quantity-source-wire-planner-tests.log": {
+        "sha256": "50fbeeb5c2c4f4e84e19ce1e2c8f09feed05db1c9ad617243aea261b0a45b609",
+        "bytes": 13909,
+        "passed_tests": 77
+      },
+      "quantity-source-wire-std-regression-tests.log": {
+        "sha256": "5230ede81fbb265d2a00aec12fb7daeb83500fd3ed9ee040e2614b27d0ac1ba4",
+        "bytes": 33024,
+        "passed_tests": 13
+      },
+      "quantity-source-wire-source-batch-final-tests.log": {
+        "sha256": "a1fddabb8d83ee62a88febf481f27a9037cd86062f2f2ffb4316f43d926b0967",
+        "bytes": 10709,
+        "passed_tests": 10
+      },
+      "quantity-source-wire-product-final-tests.log": {
+        "sha256": "072b709ff60e025ac1bfec8a14fc7f76f83266ca67609e129764f38ffa6965e5",
+        "bytes": 303073,
+        "passed_tests": 13
+      },
+      "quantity-source-wire-refinement-tests.log": {
+        "sha256": "1c1361e659432003318aa7b9fbefabc49cc20d73328fffc4434f9c05716a0a47",
+        "bytes": 2569,
+        "passed_tests": 16
+      },
+      "quantity-source-wire-clippy.log": {
+        "sha256": "309f4868a0ecdef4aa96935a737618198272399f4c896e00a3e2b2082b87d5e8",
+        "bytes": 11892,
+        "passed_tests": 0
+      },
+      "quantity-source-wire-std-final-clippy.log": {
+        "sha256": "e44e4f64ca78d1756875ca96e184dcb6e387cffae68c0a25a17949894e6cc17e",
+        "bytes": 9919,
+        "passed_tests": 0
+      },
+      "quantity-source-wire-lowering-final-clippy.log": {
+        "sha256": "b70a3bd10faa1b9182d9598b12b9169c858be90677e1277be04c791b220bd734",
+        "bytes": 680,
+        "passed_tests": 0
+      },
+      "quantity-source-wire-core-no-default.log": {
+        "sha256": "ac2b5e22eafcddb17f51b6e724052ec3b8c2b7f25148b3820aebf669c0cc4afe",
+        "bytes": 205,
+        "passed_tests": 0
+      },
+      "quantity-source-wire-complete-format.log": {
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0,
+        "passed_tests": 0
+      },
+      "quantity-source-wire-source-pinned-tests.log": {
+        "sha256": "7a3f5cd11ad1fbc5564d266e9e6f9311f37aa81447e46ec859932d02616f586a",
+        "bytes": 63027,
+        "passed_tests": 3
+      },
+      "quantity-source-wire-source-pinned-linker-failure.log": {
+        "sha256": "c94b7d602cf2ed0a88c764fd7f8deac8da817e39ab0aee337f387f7b0bd80539",
+        "bytes": 24811,
+        "passed_tests": 0
+      }
+    }
+  },
+  "infrastructure_history": "First source-pinned capture failed during linking with a bus error at 205 MB free. Own inactive incremental cache was removed (205 MB to 4.4 GB free), preserving raw logs and binaries; subsequent capture is separately recorded.",
+  "proved": [
+    "Installed Source 1m -> /3 -> *3 returns exact equality through three selected exact primitive Value expression profiles.",
+    "Exact producer to decimal-only consumer refuses before Play.",
+    "Two separate Plays export 1/3m and consume it to produce 1/9m with stable capacities and zero kernel allocation metrics.",
+    "Installation recomputes sealed profile facts; missing, tampered or downgraded facts refuse.",
+    "Explicit profile-aware physical range validation preserves native API and native 788-byte codec."
+  ],
+  "limits": [
+    "Only reviewed primitive Value arithmetic and comparison; no blanket identity/composite/nominal/trig/Flow activation.",
+    "No runtime-consuming f32/f64 numerical projection or general loss certificate composition proved here.",
+    "Alternative candidate selection remains codec-unaware.",
+    "No whole-process allocation, browser, no_std device, hardware, performance or stable acceptance claim."
+  ]
+}

@@ -1,0 +1,48 @@
+{
+  "schema": "conduit/development-validation@1",
+  "source": "36c0a14b51b5ffcead461f95f4b83ac117e500fa",
+  "scope": "Core quantity physical Type and optional wire profile admission API. Not installed planner, primitive or Source enforcement.",
+  "results": {
+    "passing_tests": 10,
+    "new_profile_tests": 2,
+    "targets": [
+      "quantity_value_profile",
+      "quantity_value_transport",
+      "primitive_info"
+    ],
+    "family_role_dimension_validation": "passed",
+    "producer_consumer_profile_eligibility": "passed",
+    "wrong_kind_and_unsupported_wire_refuse_before_numerical_decode": "passed, zero numerical work observed",
+    "explicit_decimal_projection": "passed",
+    "strict_core_clippy": "passed with warnings denied",
+    "no_default_features_check": "passed",
+    "format_diff_check": "passed"
+  },
+  "limitations": [
+    "Generic Source primitive validation remains decimal-only.",
+    "Prepared storage and installed producer/consumer profile negotiation are unfinished.",
+    "No successful authored rational Quantity chain or stable-main acceptance is claimed."
+  ],
+  "files": [
+    {
+      "path": "quantity-value-profile-tests.log",
+      "sha256": "697f6d8c0b867d5a35784845bcd52717027335d154b7dc2fd161f8fa212376f2"
+    },
+    {
+      "path": "quantity-value-profile-clippy.log",
+      "sha256": "d285c8cc187f406704b1e5fd725fe72b6ce29796cad9b7aafea6f4917b838580"
+    },
+    {
+      "path": "quantity-value-profile-no-default.log",
+      "sha256": "ac2b5e22eafcddb17f51b6e724052ec3b8c2b7f25148b3820aebf669c0cc4afe"
+    },
+    {
+      "path": "rustc-version.txt",
+      "sha256": "b2bdf493bcf6d1dc55181a0efc2774b6d9cf7bf5c8dcc5bed592c994b2ad38c4"
+    }
+  ],
+  "archive": {
+    "path": "quantity-value-profile-development-20261017-raw.tar.gz",
+    "sha256": "aba8f2626ff5b717ce41e700870c02b8d9911e95e429659536acc1b795308172"
+  }
+}

@@ -214,8 +214,17 @@ fn unary(
 fn compare(left: &Value, right: &Value) -> Result<Ordering, PortableExpressionEvaluationRefusal> {
     let kind = leaf_kind(&left.value_type)?;
     if kind == conduit_core::F32_INFO_ID {
-        crate::expression_f32::ordering(&primitive_bytes(left)?, &primitive_bytes(right)?)
-            .ok_or(PortableExpressionEvaluationRefusal::Arithmetic)
+        crate::expression_float::binary32::ordering(
+            &primitive_bytes(left)?,
+            &primitive_bytes(right)?,
+        )
+        .ok_or(PortableExpressionEvaluationRefusal::Arithmetic)
+    } else if kind == conduit_core::F64_INFO_ID {
+        crate::expression_float::binary64::ordering(
+            &primitive_bytes(left)?,
+            &primitive_bytes(right)?,
+        )
+        .ok_or(PortableExpressionEvaluationRefusal::Arithmetic)
     } else if fixed_integer(
         primitive_info_kind(kind)
             .ok_or_else(|| PortableExpressionEvaluationRefusal::UnsupportedType(kind.into()))?,
@@ -244,13 +253,7 @@ fn compare(left: &Value, right: &Value) -> Result<Ordering, PortableExpressionEv
         || conduit_core::primitive_info_kind(kind)
             == Some(conduit_core::PrimitiveInfoKind::Quantity)
     {
-        Quantity::decode(&left.encoded)
-            .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?
-            .compare(
-                Quantity::decode(&right.encoded)
-                    .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?,
-            )
-            .map_err(|_| PortableExpressionEvaluationRefusal::Arithmetic)
+        crate::expression_quantity::compare(&left.encoded, &right.encoded)
     } else {
         Err(PortableExpressionEvaluationRefusal::UnsupportedType(
             kind.into(),

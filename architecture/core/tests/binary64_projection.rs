@@ -6,6 +6,81 @@ use conduit_core::{
 fn work() -> Work {
     Work::new(100_000_000)
 }
+
+#[test]
+fn tininess_after_rounding_checks_unbounded_exponent_precision_at_the_normal_boundary() {
+    // Independently checked with SoftFloat 3e, after-rounding tininess:
+    // min-normal * predecessor(1) rounds to min-normal in nearest-even,
+    // but both underflow and inexact are still raised.
+    let magnitude =
+        Q::from_binary64(IeeeF64::from_bits(0x0010_0000_0000_0000), &mut work()).unwrap();
+    let factor = Q::from_binary64(IeeeF64::from_bits(0x3fef_ffff_ffff_ffff), &mut work()).unwrap();
+    let source = magnitude.checked_multiply(factor, &mut work()).unwrap();
+    for negative in [false, true] {
+        let source = if negative { source.negated() } else { source };
+        for mode in [
+            Mode::NearestTiesEven,
+            Mode::TowardZero,
+            Mode::TowardPositive,
+            Mode::TowardNegative,
+        ] {
+            let p = point(source, mode, magnitude);
+            let rounds_to_normal = mode == Mode::NearestTiesEven
+                || (mode == Mode::TowardPositive && !negative)
+                || (mode == Mode::TowardNegative && negative);
+            let expected = if rounds_to_normal {
+                0x0010_0000_0000_0000
+            } else {
+                0x000f_ffff_ffff_ffff
+            } | if negative { 1 << 63 } else { 0 };
+            assert_eq!(p.target().bits(), expected);
+            assert!(p.status().inexact);
+            assert!(p.status().tiny_inexact, "negative={negative} mode={mode:?}");
+        }
+    }
+}
+
+#[test]
+fn precision_rounding_midpoint_distinguishes_tiny_and_non_tiny_normal_results() {
+    // Binary128 -> binary64 SoftFloat oracle, all signs and supported modes.
+    let normal = dyadic(-1022);
+    for power in [-1075, -1076, -1077] {
+        let positive = normal.checked_subtract(dyadic(power), &mut work()).unwrap();
+        for negative in [false, true] {
+            let source = if negative {
+                positive.negated()
+            } else {
+                positive
+            };
+            for mode in [
+                Mode::NearestTiesEven,
+                Mode::TowardZero,
+                Mode::TowardPositive,
+                Mode::TowardNegative,
+            ] {
+                let p = point(source, mode, normal);
+                let rounds_to_normal = mode == Mode::NearestTiesEven
+                    || (mode == Mode::TowardPositive && !negative)
+                    || (mode == Mode::TowardNegative && negative);
+                let magnitude = if rounds_to_normal {
+                    1 << 52
+                } else {
+                    (1 << 52) - 1
+                };
+                assert_eq!(
+                    p.target().bits(),
+                    magnitude | if negative { 1 << 63 } else { 0 }
+                );
+                assert!(p.status().inexact);
+                assert_eq!(
+                    p.status().tiny_inexact,
+                    power == -1075 || !rounds_to_normal,
+                    "power={power} negative={negative} mode={mode:?}"
+                );
+            }
+        }
+    }
+}
 fn q(s: &str) -> Q {
     Q::parse_decimal(s, &mut work()).unwrap()
 }
@@ -78,7 +153,7 @@ fn ties_even_exact_points_subnormals_and_negative_zero_are_distinct() {
     let p = point(boundary, Mode::NearestTiesEven, half);
     assert_eq!(p.target().bits(), 1 << 52);
     assert!(p.status().inexact);
-    assert!(!p.status().tiny_inexact);
+    assert!(p.status().tiny_inexact);
     for bits in [0, 1 << 63, 1, (1 << 63) | 1, 1 << 52, 0x7fef_ffff_ffff_ffff] {
         let source = Q::from_binary64(IeeeF64::from_bits(bits), &mut work()).unwrap();
         let result = point(source, Mode::NearestTiesEven, Q::ZERO);

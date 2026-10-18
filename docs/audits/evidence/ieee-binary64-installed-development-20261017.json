@@ -1,0 +1,102 @@
+{
+  "schema": "conduit/development-validation@1",
+  "source": "091896bf2841b31a86229a853cc7ec7da383b4b0",
+  "scope": "Initialized local std IEEE Back, Source offer preparation, exact pre-Play admission and actual CLI Plan/Play. Private development; no stable-main or browser/tiny-device acceptance.",
+  "oracle": {
+    "commit": "a0c6494cdc11865811dec815d5c0049fba9d82a8",
+    "specialization": "8086-SSE",
+    "tininess": "after rounding",
+    "fixture_sha256": "8a85b9fc98a21856831486ff7646a10fd704c1f27652eccf8b0a612bbf03a2a5"
+  },
+  "results": {
+    "installed_factory_and_source_batch_tests": 2,
+    "actual_cli_product_tests": 10,
+    "cli_source_plan_play_captures": 39,
+    "arithmetic_cli_oracle_cases": 22,
+    "quiet_cli_oracle_cases": 8,
+    "exact_source_configuration_tests": 2,
+    "component_tests": 6,
+    "native_arithmetic_case_comparisons": 6400,
+    "encoding_combinations": 352,
+    "step_arithmetic_configurations": 16,
+    "warm_component_allocations_and_reallocations": 0,
+    "strict_std_product_catalog_clippy": "passed with warnings denied",
+    "format_and_diff_check": "passed",
+    "compiled_native_instructions": "addsd/subsd/mulsd/divsd and MXCSR save/restore present"
+  },
+  "profiles": [
+    "std/ieee-binary64-quiet-integer@1",
+    "std/ieee-binary64-x86_64-sse2@1"
+  ],
+  "artifacts": [
+    "sha256:dba1d58be598e36be58fd56717c9cc5b2f25145f864cd428fb57945184d6271c"
+  ],
+  "executable": {
+    "executable_sha256": "2ab97dc8fab0c2561443e852617f8ba6bc299700cede2478f02e7506d36d932e",
+    "bytes": 159122808,
+    "built_by": "cargo test --locked -p conduit --test numerical_expression_product",
+    "profile": "dev debug=0 incremental=0",
+    "compiler": "rustc 1.97.1 (8bab26f4f 2026-07-14)\nbinary: rustc\ncommit-hash: 8bab26f4f68e0e26f0bb7960be334d5b520ea452\ncommit-date: 2026-07-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.97.1\nLLVM version: 22.1.6\n",
+    "native_function": "000000000301a0b0 000000000000035a t conduit_std_host::numerical_host::ieee_native::sse2::execute",
+    "disassembly_sha256": "647909fa891783181dcb65bd8b78ba6aed7bf53beea0d989a472f16989ee5d22",
+    "scope": "Actual locally tested CLI executable, retained by hard link; code source commit recorded in separate validation receipt. No native throughput claim.",
+    "source": "091896bf2841b31a86229a853cc7ec7da383b4b0"
+  },
+  "limitations": [
+    "No exhaustive proof over all binary64 operand pairs.",
+    "No throughput or latency guarantee is inferred from these conformance tests.",
+    "Arithmetic availability is compiled x86_64 SSE2; unsupported targets refuse before Play without a software fallback.",
+    "No installed browser/no_std/tiny-device IEEE arithmetic profile is asserted.",
+    "Full original #5392 acceptance, including exact runtime quantity transport and consuming projection, remains open."
+  ],
+  "files": [
+    {
+      "path": "ieee-binary64-installed-tests.log",
+      "sha256": "572772b041f0e8376994c72f950cdec97ab068396ca4d919e15a268f8a2cf2f0"
+    },
+    {
+      "path": "ieee-binary64-product-final-tests.log",
+      "sha256": "704c6cffd565f91a84940b326c4a51363e685d6903e8dce933603c9bd22327c7"
+    },
+    {
+      "path": "ieee-binary64-source-contract-final-tests.log",
+      "sha256": "9d3a94c198d61bca8fdc9a2a90dc4f479a002549918d3fc01a7f524e442ee7b3"
+    },
+    {
+      "path": "ieee-binary64-installed-components-final-tests.log",
+      "sha256": "5fbe10482f9634d78395152c2536caee4216abe0ee4d4f035b8579f1a19f780e"
+    },
+    {
+      "path": "ieee-binary64-installed-final-clippy.log",
+      "sha256": "0e4b70d44b0b0fd0c08c17a033b18abb17a3b14e46083466ff31c147cc675c3e"
+    },
+    {
+      "path": "ieee-binary64-product-final-clippy.log",
+      "sha256": "5f06b6f561aa18d8af180816b95cbf5b8ec9a219f88dbabc302239c5093b7720"
+    },
+    {
+      "path": "ieee-binary64-step-portability-clippy.log",
+      "sha256": "96995583a6c84bf6002f11b1f121593687bd82ca1723b3cdf18268bc5ec02634"
+    },
+    {
+      "path": "ieee-binary64-native-executable-disassembly.log",
+      "sha256": "647909fa891783181dcb65bd8b78ba6aed7bf53beea0d989a472f16989ee5d22"
+    },
+    {
+      "path": "executable-manifest.json",
+      "sha256": "a6abdf79bc269ab03090aeedfccad53ec0623beb0cb9b591b1223a164be4bbb4"
+    },
+    {
+      "path": "cpu.txt",
+      "sha256": "f97314496c68fad8f43f4744a9a7d5bc8a1e045ff790f9dbe44531e6816b3f30"
+    },
+    {
+      "path": "ieee_binary64_softfloat.tsv",
+      "sha256": "8a85b9fc98a21856831486ff7646a10fd704c1f27652eccf8b0a612bbf03a2a5"
+    }
+  ],
+  "archive": {
+    "path": "ieee-binary64-installed-development-20261017-raw.tar.gz",
+    "sha256": "aab35fd996fd05cbc00bc0c5c2774c7fdec48b28d856f6fee24193a97dae525b"
+  }
+}

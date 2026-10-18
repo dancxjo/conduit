@@ -3,8 +3,8 @@ use super::Refusal;
 use crate::{BinaryOperator, UnaryOperator};
 use conduit_core::{
     decode_count, encode_count, primitive_info_kind, FixedInteger, InfoBool, PrimitiveInfoKind,
-    Quantity, Scalar, StructuredInfoTypeShape, BOOL_INFO_ID, COUNT_INFO_ID,
-    MAXIMUM_STRUCTURED_LEAF_BYTES, SCALAR_INFO_ID,
+    Scalar, StructuredInfoTypeShape, BOOL_INFO_ID, COUNT_INFO_ID, MAXIMUM_STRUCTURED_LEAF_BYTES,
+    SCALAR_INFO_ID,
 };
 use core::cmp::Ordering;
 
@@ -126,6 +126,7 @@ pub(super) fn evaluate_binary(
     if matches!(
         left.kind,
         PrimitiveInfoKind::F32
+            | PrimitiveInfoKind::F64
             | PrimitiveInfoKind::Unit
             | PrimitiveInfoKind::Dimension
             | PrimitiveInfoKind::Empty
@@ -173,9 +174,21 @@ pub(super) fn evaluate_binary(
         return PrimitiveValue::new(expected, &InfoBool::new(value).encode());
     }
     if left.kind == PrimitiveInfoKind::F32 {
-        let encoded =
-            crate::expression_f32::arithmetic(operator, left.as_slice(), right.as_slice())
-                .ok_or(Refusal::Arithmetic)?;
+        let encoded = crate::expression_float::binary32::arithmetic(
+            operator,
+            left.as_slice(),
+            right.as_slice(),
+        )
+        .ok_or(Refusal::Arithmetic)?;
+        return PrimitiveValue::new(expected, &encoded);
+    }
+    if left.kind == PrimitiveInfoKind::F64 {
+        let encoded = crate::expression_float::binary64::arithmetic(
+            operator,
+            left.as_slice(),
+            right.as_slice(),
+        )
+        .ok_or(Refusal::Arithmetic)?;
         return PrimitiveValue::new(expected, &encoded);
     }
     if left.kind == PrimitiveInfoKind::Count {
@@ -232,7 +245,11 @@ pub(super) fn evaluate_binary(
 fn compare(left: &PrimitiveValue<'_>, right: &PrimitiveValue<'_>) -> Result<Ordering, Refusal> {
     match left.kind {
         PrimitiveInfoKind::F32 => {
-            crate::expression_f32::ordering(left.as_slice(), right.as_slice())
+            crate::expression_float::binary32::ordering(left.as_slice(), right.as_slice())
+                .ok_or(Refusal::Arithmetic)
+        }
+        PrimitiveInfoKind::F64 => {
+            crate::expression_float::binary64::ordering(left.as_slice(), right.as_slice())
                 .ok_or(Refusal::Arithmetic)
         }
         PrimitiveInfoKind::Bool | PrimitiveInfoKind::Text => {
@@ -244,10 +261,9 @@ fn compare(left: &PrimitiveValue<'_>, right: &PrimitiveValue<'_>) -> Result<Orde
         PrimitiveInfoKind::Scalar => Ok(Scalar::decode(left.as_slice())
             .map_err(|_| Refusal::InvalidProgram)?
             .cmp(&Scalar::decode(right.as_slice()).map_err(|_| Refusal::InvalidProgram)?)),
-        kind if quantity_kind(kind) => Quantity::decode(left.as_slice())
-            .map_err(|_| Refusal::InvalidProgram)?
-            .compare(Quantity::decode(right.as_slice()).map_err(|_| Refusal::InvalidProgram)?)
-            .map_err(|_| Refusal::Arithmetic),
+        kind if quantity_kind(kind) => {
+            crate::expression_quantity::compare(left.as_slice(), right.as_slice())
+        }
         kind if fixed_integer(kind) => decode_integer(left)?
             .compare(decode_integer(right)?)
             .map_err(|_| Refusal::InvalidProgram),
@@ -381,6 +397,7 @@ pub(super) const fn kind_name(kind: PrimitiveInfoKind) -> &'static str {
         PrimitiveInfoKind::Bool => BOOL_INFO_ID,
         PrimitiveInfoKind::Text => conduit_core::TEXT_INFO_ID,
         PrimitiveInfoKind::F32 => conduit_core::F32_INFO_ID,
+        PrimitiveInfoKind::F64 => conduit_core::F64_INFO_ID,
         PrimitiveInfoKind::Count => COUNT_INFO_ID,
         PrimitiveInfoKind::Scalar => SCALAR_INFO_ID,
         PrimitiveInfoKind::U8 => "value/u8",
