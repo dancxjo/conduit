@@ -1,7 +1,14 @@
 //! Finite USB HID boot-pointer realization above structural USB enumeration.
 
+#[path = "hid_pointer_session.rs"]
+mod session;
+#[path = "hid_pointer_transfer.rs"]
+mod transfer;
 use conduit_semantic_catalog::NormalizedPointerSample;
 use core::ptr::{read_volatile, write_volatile};
+pub use session::start_pointer_session;
+#[cfg(test)]
+use transfer::{ensure_present, validate_event};
 
 use super::{
     hid_transfer_ring::{TransferPosition, publish},
@@ -35,6 +42,8 @@ pub enum HidPointerError {
     TransferTimeout,
     TransferStall,
     TransferError,
+    CompletionPressure,
+    StaleAttachment,
     WrongDevice,
     WrongEndpoint,
     WrongCompletion,
@@ -60,6 +69,8 @@ impl HidPointerError {
             Self::TransferTimeout => "hid-pointer-transfer-timeout",
             Self::TransferStall => "hid-pointer-transfer-stall",
             Self::TransferError => "hid-pointer-transfer-error",
+            Self::CompletionPressure => "hid-pointer-completion-pressure",
+            Self::StaleAttachment => "hid-pointer-attachment-stale",
             Self::WrongDevice => "hid-pointer-completion-wrong-device",
             Self::WrongEndpoint => "hid-pointer-completion-wrong-endpoint",
             Self::WrongCompletion => "hid-pointer-completion-wrong-trb",
@@ -79,12 +90,14 @@ pub struct HidPointerReady {
     pub report_buffers: u8,
     pub transfer_trbs: u8,
     dma_physical: u64,
+    attachment: session::PointerAttachment,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct HidPointerSession {
     ready: HidPointerReady,
     next_transfer: usize,
+    pending_transfer: Option<usize>,
     position_x: i64,
     position_y: i64,
     primary_pressed: bool,
@@ -116,7 +129,10 @@ pub fn prepare_boot_pointer(
         interface.number,
         image_virtual_to_physical,
     )
-    .map_err(|_| HidPointerError::SetProtocolFailed)?;
+    .map_err(|error| match error {
+        super::usb::UsbError::CompletionPressure => HidPointerError::CompletionPressure,
+        _ => HidPointerError::SetProtocolFailed,
+    })?;
     let dma_virtual = core::ptr::addr_of_mut!(POINTER_DMA) as u64;
     let dma_physical =
         image_virtual_to_physical(dma_virtual).ok_or(HidPointerError::DmaAddressInvalid)?;
@@ -140,60 +156,8 @@ pub fn prepare_boot_pointer(
         report_buffers: POINTER_REPORT_BUFFERS as u8,
         transfer_trbs: POINTER_TRANSFER_TRBS as u8,
         dma_physical,
+        attachment: session::PointerAttachment::new(device),
     })
-}
-
-pub const fn start_pointer_session(ready: HidPointerReady) -> HidPointerSession {
-    HidPointerSession {
-        ready,
-        next_transfer: 0,
-        position_x: 500_000,
-        position_y: 500_000,
-        primary_pressed: false,
-        sequence: 0,
-    }
-}
-
-impl HidPointerSession {
-    pub const fn position(&self) -> (i64, i64) {
-        (self.position_x, self.position_y)
-    }
-
-    pub const fn primary_pressed(&self) -> bool {
-        self.primary_pressed
-    }
-
-    pub const fn sequence(&self) -> u64 {
-        self.sequence
-    }
-
-    pub const fn physical_transfers(&self) -> usize {
-        self.next_transfer
-    }
-
-    pub const fn ring_wraps(&self) -> usize {
-        self.next_transfer / POINTER_TRANSFER_REPORT_SLOTS
-    }
-
-    pub fn receive(
-        &mut self,
-        controller: &mut XhciReady,
-        device: &UsbDevice,
-    ) -> Result<NormalizedPointerSample, HidPointerError> {
-        let index = self.next_transfer;
-        let next_transfer = index
-            .checked_add(1)
-            .ok_or(HidPointerError::TransferOverflow)?;
-        submit_report(controller, device, self.ready, index)?;
-        let report = unsafe { POINTER_DMA.reports[index % POINTER_REPORT_BUFFERS] };
-        let sample = apply_report(self.position_x, self.position_y, self.sequence, report)?;
-        self.position_x = sample.position_x;
-        self.position_y = sample.position_y;
-        self.primary_pressed = sample.primary_pressed;
-        self.sequence = sample.sequence;
-        self.next_transfer = next_transfer;
-        Ok(sample)
-    }
 }
 
 fn match_pointer(
@@ -328,7 +292,10 @@ fn configure_endpoint(
             0,
             (12 << 10) | (u32::from(device.slot) << 24),
         ])
-        .map_err(|_| HidPointerError::ConfigureEndpointFailed)?;
+        .map_err(|error| match error {
+            XhciError::EventRetentionPressure => HidPointerError::CompletionPressure,
+            _ => HidPointerError::ConfigureEndpointFailed,
+        })?;
     if event.completion_code == 1 && event.slot == device.slot {
         Ok(())
     } else {
@@ -345,102 +312,6 @@ unsafe fn write_input_u32(offset: usize, value: u32) {
                 .cast::<u32>(),
             value,
         )
-    }
-}
-
-fn submit_report(
-    controller: &mut XhciReady,
-    device: &UsbDevice,
-    ready: HidPointerReady,
-    index: usize,
-) -> Result<(), HidPointerError> {
-    let ring = ready.dma_physical + core::mem::offset_of!(PointerDma, transfer_ring) as u64;
-    let position =
-        TransferPosition::at(index, POINTER_TRANSFER_REPORT_SLOTS, POINTER_REPORT_BUFFERS);
-    let reports = ready.dma_physical + core::mem::offset_of!(PointerDma, reports) as u64;
-    if index == 0 || position.slot == POINTER_TRANSFER_REPORT_SLOTS - 1 {
-        publish(position.link(ring), |word, value| unsafe {
-            write_volatile(
-                core::ptr::addr_of_mut!(
-                    POINTER_DMA.transfer_ring[POINTER_TRANSFER_REPORT_SLOTS][word]
-                ),
-                value,
-            );
-        });
-    }
-    publish(
-        position.normal(reports, POINTER_REPORT_BYTES),
-        |word, value| unsafe {
-            write_volatile(
-                core::ptr::addr_of_mut!(POINTER_DMA.transfer_ring[position.slot][word]),
-                value,
-            );
-        },
-    );
-    controller.ring_endpoint(device.slot, ready.endpoint_dci);
-    let mut completed = None;
-    let mut retired_relinquished_completion = false;
-    for _ in 0..POINTER_POLL_WINDOWS {
-        ensure_present(controller.port_status(device.root_port))?;
-        match controller.next_event() {
-            Ok(event) if event.event_type == 34 => return Err(HidPointerError::DeviceRemoved),
-            Ok(event)
-                if index == 0
-                    && event.event_type == 32
-                    && event.slot != device.slot
-                    && !retired_relinquished_completion =>
-            {
-                // The keyboard source deliberately arms its next report before
-                // servicing semantic input. A pointer-mode handoff may therefore
-                // inherit exactly one completion from that relinquished USB slot.
-                // Retire only that first foreign transfer completion; the pointer
-                // endpoint and TRB identity remain exact below.
-                retired_relinquished_completion = true;
-            }
-            Ok(event) => {
-                completed = Some(event);
-                break;
-            }
-            Err(XhciError::CommandTimeout) => {}
-            Err(_) => return Err(HidPointerError::TransferError),
-        }
-    }
-    validate_event(
-        completed.ok_or(HidPointerError::TransferTimeout)?,
-        device.slot,
-        ready.endpoint_dci,
-        ring + (position.slot * 16) as u64,
-    )?;
-    ensure_present(controller.port_status(device.root_port))
-}
-
-fn ensure_present(port_status: u32) -> Result<(), HidPointerError> {
-    if port_status & 1 == 0 {
-        Err(HidPointerError::DeviceRemoved)
-    } else {
-        Ok(())
-    }
-}
-
-fn validate_event(
-    event: Event,
-    slot: u8,
-    endpoint: u8,
-    pointer: u64,
-) -> Result<(), HidPointerError> {
-    if event.event_type != 32 || event.pointer != pointer {
-        return Err(HidPointerError::WrongCompletion);
-    }
-    if event.slot != slot {
-        return Err(HidPointerError::WrongDevice);
-    }
-    if event.endpoint != endpoint {
-        return Err(HidPointerError::WrongEndpoint);
-    }
-    match event.completion_code {
-        1 if event.residual == 0 => Ok(()),
-        6 => Err(HidPointerError::TransferStall),
-        _ => Err(HidPointerError::TransferError),
     }
 }
 
@@ -469,6 +340,10 @@ fn apply_report(
             .ok_or(HidPointerError::SequenceOverflow)?,
     })
 }
+
+#[cfg(test)]
+#[path = "hid_pointer_test_fixture.rs"]
+mod fixture;
 
 #[cfg(test)]
 #[path = "hid_pointer_tests.rs"]
