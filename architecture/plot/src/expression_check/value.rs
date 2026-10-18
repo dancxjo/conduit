@@ -36,6 +36,18 @@ pub(super) fn atomic(
         return Ok(value_type.clone());
     }
     if let Some(value_type) = context.literal_types.get(text) {
+        // Binding already resolved and validated this closed physical literal.
+        // A generic Quantity context keeps its complete Unit/family/role capsule;
+        // it supplies no unit evidence and does not coerce arbitrary values.
+        if expected.is_some_and(|ty| {
+            ty.value_kind()
+                .is_some_and(|kind| kind.as_str() == conduit_core::QUANTITY_INFO_ID)
+        }) && value_type
+            .value_kind()
+            .is_some_and(|kind| crate::expression_quantity::is_quantity(kind.as_str()))
+        {
+            return Ok(expected.expect("checked generic Quantity context").clone());
+        }
         return expected_or_exact(value_type.clone(), expected, span);
     }
     if conduit_core::Unit::resolve(text).is_ok() {

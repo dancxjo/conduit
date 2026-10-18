@@ -64,3 +64,22 @@ refusal before rational validation. These are reusable admission checks, not
 installed planner or wire-policy enforcement. Primitive Source validation stays
 on its existing decimal contract until runtime bounds and consumer fences are
 integrated. The authored failure remains open.
+
+## Public Source controls and remaining wire gates
+
+The public CLI now installs the existing reviewed Quantity wrapper/face catalog.
+A resolved physical literal can construct a generic Quantity value without
+changing its capsule. Arithmetic retains each operand's resolved physical Type
+before selecting its law; generic result context cannot erase dimensions or
+affine roles. A nested ratio, addition and area product checks reference/prepared
+parity. Fifteen focused Plot tests and strict Plot/product lint pass.
+
+The actual CLI native control completes and selects the existing decimal wrapper
+with its 788-byte input bound. Its sealed literal preserves the exact native
+Quantity encoding. The paired product target deliberately records two failing
+acceptance gates: an exact third still refuses late with HostCallFailed detail
+45, and an unsupported exact-to-decimal wire edge has no before-Play profile
+refusal yet. That target has one passing and two failing tests. No rational
+Source transport or planner enforcement is claimed. These private development
+changes are not published while the scalar specialization owns the implementation
+slot.
