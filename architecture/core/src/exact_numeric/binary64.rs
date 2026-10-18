@@ -37,7 +37,9 @@ impl Binary64ErrorClaim {
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct Binary64Status {
     pub inexact: bool,
-    /// Tininess is detected after rounding. An exact subnormal is not tiny-inexact.
+    /// Tininess is detected after precision rounding with unbounded exponent
+    /// range. The final target can be min-normal and still be tiny-inexact.
+    /// An exact subnormal is not tiny-inexact.
     pub tiny_inexact: bool,
 }
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -67,6 +69,7 @@ impl PreparedBinary64Projection {
         let (target, inexact) = source.round_binary64(rounding, work)?;
         let represented = ExactRational::from_binary64(target, work)?;
         let error = error_claim(source, represented, maximum_error, work)?;
+        let tiny_inexact = inexact && tininess::after_rounding(source, target, rounding, work)?;
         Ok(Self {
             source,
             target,
@@ -74,7 +77,7 @@ impl PreparedBinary64Projection {
             rounding,
             status: Binary64Status {
                 inexact,
-                tiny_inexact: inexact && target.bits() & (0x7ff << 52) == 0,
+                tiny_inexact,
             },
             error,
             maximum_error,
@@ -145,5 +148,6 @@ pub(super) fn error_claim(
 }
 mod algorithm;
 mod projection;
+mod tininess;
 pub use algorithm::*;
 pub use projection::*;
