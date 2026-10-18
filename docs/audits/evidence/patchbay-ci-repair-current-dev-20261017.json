@@ -1,0 +1,13 @@
+{
+  "source": "f667e4d02961587e463ad6937dcd96b23c80d4f9",
+  "merged_dev": "d1eba3e5eee970913a2627158c0c99ed8b9cd7f6",
+  "default_stack_routes_test_passed": true,
+  "application_tests_passed": 44,
+  "logs_sha256": {
+    "stack-repair-current-dev-test.log": "addbc7cfa320bca8a488e65b523a0f9c51a8351d11f6640a8bc919e3c297768b",
+    "canvas-control-current-dev-tests.log": "f546451396ea24a20a61bdcbc87b1057e391bf829be4dcd2b53cfc1e7492d54d"
+  },
+  "production_file_sha256": "f8ca314b98ac2ba36ee6d726c259933d486374ca92d1e91353eb0040e2f54fb7",
+  "test_source_sha256": "7a05c6f3e42ade7def55b423ce34c6337f38a4e93aed455ae392833274299dad",
+  "scope": "Focused recheck after merging newer admitted dev streaming changes; prior broader tests and strict Clippy retain their original source identities."
+}
