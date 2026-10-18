@@ -56,6 +56,10 @@ fn installed_plot_titles() -> [&'static str; crate::native_workset::NATIVE_PLOT_
 }
 
 impl FrontDoor {
+    pub(super) fn home_model(&self) -> Option<&HomeModel> {
+        self.home.as_ref().map(|home| &home.model)
+    }
+
     pub(super) fn home_scene(
         &self,
         display: &impl crate::display::PixelTarget,
@@ -257,6 +261,17 @@ impl FrontDoor {
             }
         }
         let status_y = i16::try_from(screen.height.saturating_sub(52)).map_err(|_| Error::Scene)?;
+        if let Some(refusal) = &self.refusal {
+            draw_text(
+                &mut scene,
+                screen,
+                24,
+                status_y - 38,
+                &format!("{} {}", refusal.heading(), refusal.reason()),
+                GraphicsTextRole::Warning,
+                GraphicsPaintRole::Status,
+            )?;
+        }
         scene
             .push(
                 GraphicsCommand::rect(

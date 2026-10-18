@@ -11,6 +11,7 @@ use face_arrival::{FaceArrival, FaceArrivalInput};
 use face_workspace::FaceWorkspace;
 use input_actions::{ProductControl, action_for, product_control, resident_application_action};
 mod journey_sign;
+mod native_action_evidence;
 mod owner_action_evidence;
 pub(crate) mod transient_sign;
 mod workspace_input;
@@ -865,31 +866,19 @@ pub fn run(
             if event.transition() == KeyTransition::Pressed
                 && let Some(action) = action_for(event.usage(), &front_door, &journey)
             {
-                let semantic_action = front_door
-                    .resolve_action(action, front_door.revision())
-                    .map_err(|error| error.as_str())?;
-                let request = journey
-                    .next_request(action, semantic_action.target, front_door.revision())
-                    .map_err(|error| error.as_str())?;
-                journey
-                    .apply(
-                        request,
-                        identities,
-                        offer,
-                        make.build_id,
-                        front_door.revision(),
-                    )
-                    .map_err(|error| error.as_str())?;
-                arch::early_write(
-                    format!("CONDUIT_PRODUCT_ACTION applied {}\n", action.as_str()).as_bytes(),
-                );
-                let receipt = refresh(
+                let receipt = face_workspace.invoke_from_presenter(
+                    action,
                     &mut front_door,
-                    &journey,
+                    &mut journey,
                     &mut presenter,
-                    &mut face_workspace,
                     display,
+                    identities,
+                    offer,
+                    make,
                 )?;
+                arch::early_write(
+                    format!("CONDUIT_PRODUCT_ACTION handled {}\n", action.as_str()).as_bytes(),
+                );
                 emit_journey_sign(&journey.projection(), make, &receipt);
                 return Ok(ProductInputControl::Continue);
             }

@@ -190,3 +190,100 @@ fn audit_body_and_patchbay_workspace_label_the_observed_resident_without_diagram
         );
     }
 }
+
+fn home_key(door: &mut FrontDoor, usage: u8) -> HomeInput {
+    let event = conduit_human::KeyEvent::new(
+        usage,
+        conduit_human::KeyTransition::Pressed,
+        conduit_human::KeyModifiers::from_bits(0),
+    )
+    .unwrap();
+    door.accept_home(event, door.revision()).unwrap()
+}
+
+#[test]
+fn home_reading_content_tracks_launcher_plots_and_prompt_without_new_authority() {
+    let mut door = body(NativePlot::MemoryLantern);
+    let original_actions = door.face().unwrap().actions;
+    door.open_home().unwrap();
+    let face = door.face().unwrap();
+    for destination in conduit_home_model::HomeDestination::ALL {
+        assert!(
+            face.text
+                .iter()
+                .any(|text| text.text == destination.label())
+        );
+    }
+    home_key(&mut door, 79);
+    home_key(&mut door, 79);
+    home_key(&mut door, 40);
+    let face = door.face().unwrap();
+    for plot in native_workset::inventory() {
+        assert!(
+            face.text
+                .iter()
+                .any(|text| text.text == format!("Installed Plot: {}", plot.title()))
+        );
+    }
+    home_key(&mut door, 41);
+    // Typing enters the local Prompt; an unavailable command remains visible.
+    for usage in [26, 4, 14, 8] {
+        home_key(&mut door, usage);
+    }
+    let face = door.face().unwrap();
+    assert!(
+        face.properties
+            .iter()
+            .any(|property| property.name == "command"
+                && property.value == FacePropertyValue::Text("wake".into()))
+    );
+    assert_eq!(home_key(&mut door, 40), HomeInput::Changed);
+    let face = door.face().unwrap();
+    assert!(
+        face.text
+            .iter()
+            .any(|text| text.text.contains("no lifecycle authority"))
+    );
+    assert_eq!(face.actions, original_actions);
+    assert_eq!(face.basis.body_id, door.journey.as_ref().unwrap().body_id);
+}
+
+#[test]
+fn resident_face_names_and_describes_the_exact_foreground_plot() {
+    for plot in [NativePlot::MemoryLantern, NativePlot::Patchbay] {
+        let door = body(plot);
+        let face = door.face().unwrap();
+        let resident = native_workset::resident(plot).unwrap();
+        let subject = face
+            .subjects
+            .iter()
+            .find(|subject| subject.role == FaceRole::Plot)
+            .unwrap();
+        assert_eq!(subject.name, plot.title());
+        assert_eq!(
+            subject.identity,
+            format!("plot/{}", resident.checked_plot_id.as_str())
+        );
+        assert!(
+            face.text.iter().any(|text| text.subject == subject.identity
+                && text.text.contains("Selected resident Plot"))
+        );
+        assert!(
+            !face
+                .text
+                .iter()
+                .any(|text| text.text.contains("OPEN permits inspection only"))
+        );
+    }
+    let face = entrance().face().unwrap();
+    assert!(
+        face.subjects
+            .iter()
+            .any(|subject| subject.name == "ConduitOS entrance Plot")
+    );
+    assert!(
+        face.text
+            .iter()
+            .any(|text| text.text.contains("OPEN permits inspection only"))
+    );
+}

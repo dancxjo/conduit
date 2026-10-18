@@ -20,7 +20,12 @@ impl FrontDoor {
             FaceSubject {
                 identity: plot.clone(),
                 role: FaceRole::Plot,
-                name: "ConduitOS entrance Plot".into(),
+                name: self
+                    .workspace
+                    .as_ref()
+                    .and_then(|workspace| workspace.plots.iter().find(|plot| plot.foreground))
+                    .map_or("ConduitOS entrance Plot", |plot| plot.title)
+                    .into(),
             },
         ];
         let mut relationships = vec![FaceRelationship {
@@ -223,6 +228,8 @@ impl FrontDoor {
                 FacePropertyValue::Count(self.home_selection().unwrap_or(0) as u64),
             ));
         }
+        let (home_properties, home_texts) = self.home_face_content();
+        properties.extend(home_properties);
         let basis = self.journey.as_ref().map_or_else(
             || FaceBasis {
                 body_id: None,
@@ -278,9 +285,14 @@ impl FrontDoor {
             },
             FaceText {
                 subject: plot.clone(),
-                text: "IMAGE-embedded checked plot; OPEN permits inspection only".into(),
+                text: if self.workspace.is_some() {
+                    "Selected resident Plot; source and checked identities are supplied by the current Body workset".into()
+                } else {
+                    "IMAGE-embedded checked plot; OPEN permits inspection only".into()
+                },
             },
         ];
+        texts.extend(home_texts);
         let mut disclosures = vec![
             FaceDisclosure {
                 subject: plot.clone(),
