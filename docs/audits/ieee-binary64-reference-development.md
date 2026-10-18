@@ -42,3 +42,8 @@ The checked finite expression operators retain their existing profile. The
 reference component alone does not complete the parent IEEE escape-hatch or
 performance acceptance. The captured matrix is edge conformance, not an
 exhaustive proof over every binary64 operand pair.
+
+The [validation record](evidence/ieee-binary64-reference-development-20261017.json)
+retains source/compiler/oracle identities, the fixture hash, 17 passing focused
+Core tests, strict lint and a no-default-features check. Its raw archive retains
+the independent oracle program, captured expected vectors and validation logs.
