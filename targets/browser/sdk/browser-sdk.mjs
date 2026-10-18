@@ -308,6 +308,11 @@ export class BrowserBodyParticipation {
         && this.membershipCredential()?.body_id === acknowledged.body_id);
     return shown;
   }
+  /** Retire this browser Mask and its pending/acknowledged local Show authority. */
+  discardOwnerFaceMask() {
+    this.#state.host.bridge.ownerFaceClear();
+    clearOwnerFaceShow(this.#state);
+  }
   async selectOwnerComponentMask({ look, recipe, minimumTextScalePercent }) {
     if (minimumTextScalePercent !== undefined &&
         (!Number.isInteger(minimumTextScalePercent) || minimumTextScalePercent < 100 || minimumTextScalePercent > 200)) {

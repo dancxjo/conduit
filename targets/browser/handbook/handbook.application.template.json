@@ -39,8 +39,18 @@
         {
           "role": "owner-face-component",
           "specifier": "./owner-face-component.mjs"
+        },
+        {
+          "role": "owner-face-reachability",
+          "specifier": "./owner-face-reachability.mjs"
         }
       ]
+    },
+    {
+      "role": "owner-face-reachability",
+      "kind": "module",
+      "path": "owner-face-reachability.mjs",
+      "maximum_bytes": 8192
     },
     {
       "role": "owner-face-component",

@@ -54,6 +54,7 @@ export default defineConfig({
     "scoped-glyphs.spec.mjs",
     "web-accessibility.spec.mjs",
     "owner-face-component.spec.mjs",
+    "owner-face-reachability.spec.mjs",
     "creche-avr.spec.mjs",
     "creche-orange-pi.spec.mjs",
     "creche-raspberry-pi.spec.mjs",

@@ -652,7 +652,7 @@ for (const hidden of ['attribute', 'owner-attribute', 'visibility', 'opacity', '
 }
 
 // Production Handbook orchestration with a fixture SDK, not a real owner Body.
-for (const interruption of [null, 'prepare', 'acknowledge']) {
+for (const interruption of [null, 'prepare', 'acknowledge', 'inaccessible']) {
 test(`Handbook refresh preserves current controls and refuses interrupted ${interruption ?? 'none'} routes`, async ({ page }) => {
   await page.goto('/proof/browser/signal-dom-host.test.html');
   await page.evaluate(async ({ view, interruption }) => {
@@ -668,6 +668,8 @@ test(`Handbook refresh preserves current controls and refuses interrupted ${inte
         mask_host_id: 'host/browser', mask_boot_id: 'boot/browser' } };
     globalThis.calls = [];
     let revision = 0;
+    let pendingPrepared = false;
+    globalThis.discardedMasks = 0;
     let onState;
     const pause = async stage => {
       if (revision === 2 && stage === interruption) {
@@ -684,7 +686,10 @@ test(`Handbook refresh preserves current controls and refuses interrupted ${inte
       hostId: 'host/browser', bootId: 'boot/browser',
       presenceState: () => 'available', membershipCredential: () => ({ body_id: shown.body_id }),
       biographyEvidence: () => null,
+      discardOwnerFaceMask: () => { pendingPrepared = false; globalThis.discardedMasks++; },
       prepareOwnerFaceMask: async () => {
+        if (pendingPrepared) throw new Error('owner Face Mask refused (-8)');
+        pendingPrepared = true;
         revision++;
         await pause('prepare');
         return { ...shown, face_revision: String(revision), show_id: `fixture/show/${revision}`,
@@ -692,6 +697,7 @@ test(`Handbook refresh preserves current controls and refuses interrupted ${inte
       },
       acknowledgeOwnerFaceMask: async prepared => {
         await pause('acknowledge');
+        pendingPrepared = false;
         return { ...prepared, show_state: 'available', interactions_admitted: true };
       },
       inspectOwnerWardrobe: async () => { throw new Error('No wardrobe in this renderer fixture'); },
@@ -723,7 +729,19 @@ test(`Handbook refresh preserves current controls and refuses interrupted ${inte
     });
     observer.observe(node.parentNode, { childList: true });
   });
+  if (interruption === 'inaccessible') await owner.evaluate(node => { node.hidden = true; });
   await page.getByRole('button', { name: 'Refresh this Face', exact: true }).click();
+  if (interruption === 'inaccessible') {
+    await expect(page.locator('[data-owner-face-status]')).toHaveAttribute('data-refused', 'true');
+    await expect(page.locator('main')).not.toHaveAttribute('data-owner-show-acknowledged');
+    expect(await page.evaluate(() => globalThis.discardedMasks)).toBe(1);
+    await owner.evaluate(node => { node.hidden = false; });
+    await page.getByRole('button', { name: 'Refresh this Face', exact: true }).click();
+    await expect(page.locator('main')).toHaveAttribute('data-owner-show-acknowledged', 'fixture/show/3');
+    await expect(button).toBeEnabled();
+    expect(await page.evaluate(() => globalThis.calls)).toEqual([]);
+    return;
+  }
   if (interruption) {
     await expect.poll(() => page.evaluate(() => typeof globalThis.releaseFace)).toBe('function');
     await page.evaluate(() => globalThis.interruptRoute());

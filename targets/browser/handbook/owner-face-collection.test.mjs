@@ -23,7 +23,7 @@ test('one Face collection keeps open items prominent and completed items behind 
   assert.equal(result.collections[0].count, '3 things left · 17 completed');
 });
 
-test('a different Status fact remains visible beside the checklist', () => {
+test('an unrelated Status cannot certify an invented checklist count', () => {
   const view = {
     subjects: [
       { identity: 'todo/list', role: 'Collection', disclosure: 'Primary' },
@@ -32,8 +32,10 @@ test('a different Status fact remains visible beside the checklist', () => {
     relationships: [{ source: 'todo/list', target: 'todo/status', kind: 'Contains' }],
   };
   const result = projectFaceCollections(view);
-  assert.equal(result.collections[0].count, '0 things left · 0 completed');
+  assert.deepEqual(result.collections, []);
+  assert.equal(result.placed.has('todo/list'), false);
   assert.equal(result.placed.has('todo/status'), false);
+  assert.deepEqual(view.subjects[1].text, ['Sync paused']);
 });
 
 test('an action leaves the primary checklist until this Show admits interaction', () => {
@@ -55,4 +57,19 @@ test('an incomplete or contradictory Face falls back to generic subject renderin
   const result = projectFaceCollections(view);
   assert.equal(result.collections.length, 0);
   assert.equal(result.placed.size, 0);
+});
+
+
+test('actual owner revision and count facts retain the generic collection and current action', () => {
+  const properties=['todo-revision: 0','remaining-count: 0','completed-count: 0'];
+  const view={subjects:[{identity:'todo/list',role:'Collection',name:'Groceries',disclosure:'Primary',properties},
+    {identity:'todo/status',role:'Status',disclosure:'Primary',text:['0 things left · 0 completed']}],
+    relationships:[{source:'todo/list',target:'todo/status',kind:'Contains'}],
+    actions:[{identity:'todo.add',target:'todo/list',availability:'available'}]};
+  const result=projectFaceCollections(view);
+  assert.deepEqual(result.collections,[]);
+  assert.deepEqual([...result.placed],[]);
+  assert.deepEqual(view.subjects[0].properties,properties);
+  assert.equal(view.actions[0].identity,'todo.add');
+  assert.equal(view.actions[0].target,'todo/list');
 });
