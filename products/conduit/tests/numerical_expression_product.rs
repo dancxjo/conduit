@@ -147,3 +147,51 @@ fn pi_over_180_survives_a_structured_product_transport_without_rounding() {
         "exact symbolic transport",
     );
 }
+
+#[test]
+fn a_checked_integer_uses_the_sealed_tape_through_the_default_product_host() {
+    let plan = run(
+        include_str!("fixtures/numerical_checked_machine.conduit"),
+        "Checked integer",
+        "checked machine",
+    );
+    let add = plan
+        .fragments
+        .iter()
+        .flat_map(|f| &f.placements)
+        .find(|gear| {
+            gear.configuration.iter().any(|entry| {
+                let conduit_core::ConfigurationValue::Text(encoded) = &entry.value else {
+                    return false;
+                };
+                let Ok(program) =
+                    conduit_plot::PortableExpressionProgram::from_canonical_hex(encoded)
+                else {
+                    return false;
+                };
+                matches!(
+                    program.root.operation,
+                    conduit_plot::PortableExpressionOperation::Binary {
+                        operator: conduit_plot::BinaryOperator::Add,
+                        ..
+                    }
+                ) && matches!(program.output_type.shape(),
+                    conduit_core::StructuredInfoTypeShape::Leaf(kind)
+                        if kind.as_str() == "value/u64")
+            })
+        })
+        .expect("the actual checked addition remains inspectable");
+    assert_eq!(
+        add.implementation_id.as_str(),
+        "std/kernel-pure-scalar-tape@1"
+    );
+    assert!(add.realization_properties.iter().any(|property| {
+        conduit_core::StructuredInfoValue::from_canonical_bytes(property.canonical_value())
+            .ok()
+            .is_some_and(|value| {
+                matches!(value.value_type().shape(),
+                conduit_core::StructuredInfoTypeShape::Record { schema, .. }
+                    if schema.as_str() == "std/pure-scalar-tape-bounds@1")
+            })
+    }));
+}

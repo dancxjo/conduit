@@ -1,0 +1,26 @@
+plot seed-integer (
+    >> trigger: MathematicalValue
+    result: U64 >>
+) = (7)
+
+plot increment (
+    >> value: U64
+    result: U64 >>
+) = (. + 1)
+
+plot explain (
+    >> value: U64
+    result: Text >>
+) = (. == 8 ? "checked machine" : "wrong")
+
+plot main {
+    seed: math/realize(request={value:0,maximum-error:0})
+    integer: seed-integer
+    add: increment
+    check: explain
+    show: face/text("Checked integer")
+    seed.result >> (.source) >> integer.trigger
+    integer.result >> add.value
+    add.result >> check.value
+    check.result >> show
+}.

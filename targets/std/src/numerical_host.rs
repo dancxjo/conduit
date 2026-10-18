@@ -4,6 +4,7 @@ use conduit_core::{
     ConfigurationValue, ExactNumericWork, NumericalRealizationRequest, OfferGeneration,
 };
 use conduit_plot::ExpandedCanonicalPlot;
+mod expressions;
 impl StdHost {
     /// Initialize the finite numerical strategies supported by this std Host.
     /// This changes its advertised generation; plans must use the resulting
