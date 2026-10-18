@@ -16,6 +16,26 @@ Conduit owns meaning, identity, planning, bounds, and evidence. A selected back
 owns numerical realization. Burn supplies tensors, autodiff, optimizer internals,
 and device kernels inside that Rust back.
 
+## Shared speech prerequisite
+
+The speech portions of #5204, #5206, #5207 and #5208 depend on the common
+linguistic contract in #5212. Preserve checked Unicode IPA, separate phoneme
+and phone occurrences, exact Variety/inventory/text revisions, syllables,
+word correspondence, quantity targets and supplied observations. Checkpoint
+vocabulary is a terminal projection of that original carrier; display IPA or
+compact renderer labels cannot reconstruct it.
+
+Run `cargo +stable xtask check speech-ipa` and
+`cargo +stable xtask demo native-speech --output work/carried-speech` for the
+shared-carrier conformance and retained offline PCM specimen. See
+[Shared speech acoustic custody](../docs/design/speech-acoustic-custody.md)
+for evidence boundaries. The versioned training and inference lexical maps
+share one implementation. Their synthetic checkpoint metadata has no trained
+weights, and the acoustic model terminal explicitly refuses with
+`NoAdmittedAcousticBack`. The formant specimen does not establish the proposed
+ConduitVoice/FARGAN journey below. Accepted integration evidence is required
+before the governing speech prerequisite can close.
+
 ## Run the tiny CPU model first
 
 The repository's synthetic regression fixture learns `y = 2x + 1`; it uses
