@@ -204,6 +204,19 @@ mod tests {
     }
 
     #[test]
+    fn completion_census_represents_every_u16_node_identity() {
+        let mut ready = ReadySet::<65_536>::new(65_536);
+        for _ in 0..65_536 {
+            ready.note_completion();
+        }
+        assert_eq!(ready.completion_count(), Some(65_536));
+        assert_eq!(ready.round_robin(0, 65_536).count(), 65_536);
+        ready.clear();
+        assert_eq!(ready.completion_count(), Some(65_536));
+        assert_eq!(ready.round_robin(0, 65_536).next(), None);
+    }
+
+    #[test]
     fn packed_iteration_matches_linear_round_robin_at_every_cursor() {
         for active in 0..=17 {
             let mut set = ReadySet::<17>::new(active);
