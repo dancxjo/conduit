@@ -47,3 +47,6 @@ mod certificate_tests;
 
 #[path = "lifecycle_tests.rs"]
 mod lifecycle_tests;
+
+#[path = "physical_tests.rs"]
+mod physical_tests;
