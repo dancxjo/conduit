@@ -8,9 +8,11 @@ decoding, input validation, output framing, Host Calls and kernel evidence
 remain part of execution.
 
 The reference interpreter remains an independently offered realization.
-Unsupported nominal, text, structured, mathematical, quantity, floating and Flow
-profiles refuse tape preparation; a caller may select the reference before
-Play. There is no runtime fallback or automatic preference based on these
+The tape lowers fixed-integer/Boolean computations. Nominal Type descendants
+require a retained law witness even inside otherwise unused structured inputs.
+Other computational profiles remain unsupported; a constant result may consume
+a validated intrinsic record input without lowering record operations. A caller
+may select an eligible reference realization before Play. There is no runtime fallback or automatic preference based on these
 measurements.
 
 ## Sealed preparation and identity
@@ -245,3 +247,15 @@ retain this source and the original log hashes. Earlier source-specific receipts
 remain unchanged. This is local interaction validation; repair admission, fresh
 feature Candidate, exhaustive dev integration and exact-main publication remain
 separate required gates.
+
+## Native laws inside unused structured inputs
+
+A checked constant expression with a record input containing a nominal field
+reproduced an eligibility gap: the top-level input record passed the earlier
+nominal check even though its field had no retained law witness. Preparation now
+walks record fields, variant payloads and collection/sequence elements before
+admitting the tape. The same named native-law refusal applies throughout.
+The new negative regression fails before this correction; a positive regression
+keeps a valid intrinsic record input supported and verifies its constant result.
+All 14 Plot scalar tests pass after the correction. Earlier receipts retain their
+original source identities and do not constitute proof of this new guard.

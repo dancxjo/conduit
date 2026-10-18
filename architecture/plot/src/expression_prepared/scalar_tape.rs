@@ -262,12 +262,20 @@ impl PreparedPortableExpressionEvaluator {
 // those laws, including assumptions used by proven arithmetic. Such profiles
 // need a retained validation witness before this Back can admit them.
 fn require_intrinsic_type(value_type: &conduit_core::StructuredInfoType) -> Result<(), Refusal> {
-    if matches!(value_type.shape(), StructuredInfoTypeShape::Nominal { .. }) {
-        return Err(Refusal::UnsupportedType(
+    match value_type.shape() {
+        StructuredInfoTypeShape::Leaf(_) => Ok(()),
+        StructuredInfoTypeShape::Nominal { .. } => Err(Refusal::UnsupportedType(
             "scalar-tape/native-law-witness-unavailable@1".into(),
-        ));
+        )),
+        StructuredInfoTypeShape::Record { fields, .. } => fields
+            .iter()
+            .try_for_each(|field| require_intrinsic_type(field.value_type())),
+        StructuredInfoTypeShape::Variant { cases, .. } => cases
+            .iter()
+            .try_for_each(|case| require_intrinsic_type(case.payload_type())),
+        StructuredInfoTypeShape::Collection { element, .. }
+        | StructuredInfoTypeShape::Sequence { element, .. } => require_intrinsic_type(element),
     }
-    Ok(())
 }
 
 fn require_intrinsic_node_types(node: &PortableExpressionNode) -> Result<(), Refusal> {
