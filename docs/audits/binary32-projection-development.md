@@ -38,7 +38,15 @@ physically incompatible policy yields an inspectable `Insufficient` report whose
 consumption refuses. Physical validation remains an independent obligation,
 including for zero numerical loss. Every consuming contract must check its actual
 bound and physical facts; a static policy-class name alone does not identify all
-tolerance parameters. No incoming error is erased by relabeling.
+tolerance parameters. Preservation and composition of incoming error remain
+requirements for the runtime boundary.
+
+The [source-pinned receipt](evidence/binary32-projection-development-20261018.json)
+records 123 passing selected Core tests, strict all-target Clippy, compilation
+without default features, and workspace formatting. Raw oracle C source, the
+4296-case fixture, final logs, the corrected insufficient-report test attempt,
+and compiler/library/executable hashes are retained. The conformance source is
+`33d7b2959b0df9bcf0c0fc9804200468ce07313d`.
 
 This is private development work, not #5392 completion. It does not yet install a
 runtime input-consuming `math/near` Kind, add the proposed Fore qualification,
