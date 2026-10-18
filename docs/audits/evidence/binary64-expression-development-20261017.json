@@ -36,10 +36,21 @@
     {
       "path": "numeric-f64-product-clippy.log",
       "sha256": "f6cabf5979c1e9dfaf60b8d4f4087361e32597a3a05e35e1de20e0e72e814627"
+    },
+    {
+      "path": "numerical-existing-product-regressions.log",
+      "sha256": "fff91febffd839a0e77981387025c518761c663757b15c0f5e250c4a7081fe90"
     }
   ],
   "archive": {
     "path": "binary64-expression-development-20261017-raw.tar.gz",
-    "sha256": "ebe23230a246c5520995d934f00bed1d11394d127fb8e980acf187616e09212e"
+    "sha256": "cf44524a6bb2cc12f74f7da80414df37d64c4cdf6fdb6482d5d3fba94b27f6f2"
+  },
+  "compatibility": {
+    "source": "d0adc8862364cafb0e08946443f001b357e4f7d2",
+    "command": "CARGO_PROFILE_DEV_DEBUG=0 CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=2 cargo test --locked -p conduit --test numerical_realization --test quantity_conversion",
+    "exit_code": 0,
+    "passed": 9,
+    "scope": "Five existing installed numerical/product tests and four quantity checker/product-face tests. Quantity tests do not prove nonterminating rational runtime transport."
   }
 }
