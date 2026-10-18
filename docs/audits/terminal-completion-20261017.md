@@ -1,6 +1,6 @@
-# Constant-time node completion checks
+# Historical scalar node-completion experiment
 
-Development slice of #5231, measured before changing terminal bookkeeping.
+This source-pinned scalar-count candidate was not selected after the real FARGAN measurements exposed a whole-Play regression. Its raw observations below remain historical evidence. The selected fixed-storage count and bounded tiny-capacity fallback are described in [the current audit](scheduler-fargan-completion-20261017.md).
 
 Ready selection can skip sleeping nodes while terminal detection still rescans their completion flags. When the final active node remains live after every earlier node completes, each Step and Idle poll inspected the whole active completion prefix. The new production-kernel fixture first reproduced 17*N flag probes for eight yielding Steps, one Await Step and eight Idle polls at N=1/8/32/256. Cooperative yields exhaust the exact Plan fuel grant; no readiness flags are seeded.
 
