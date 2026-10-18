@@ -166,6 +166,7 @@ mod tests {
     fn ordinary_planning_rejects_contract_ports_absent_from_the_selected_back() {
         let plot = crate::tests::plot();
         let mut host = crate::tests::host();
+        let placements = crate::default_placements(&plot, &[host.clone()]).unwrap();
         let offer = &mut host.capabilities[0];
         let id = offer.capability_id.clone();
         offer.realization_properties =
@@ -176,7 +177,11 @@ mod tests {
                     .unwrap(),
             ];
         let hosts = [host];
-        let placements = crate::default_placements(&plot, &hosts).unwrap();
+        assert_eq!(
+            crate::default_placements(&plot, &hosts).unwrap_err(),
+            PlannerError::InvalidRealizationProperties(id.clone())
+        );
+        // An explicitly retained choice still passes through the final fence.
         let why = crate::plan(
             &plot,
             &hosts,
