@@ -290,8 +290,13 @@ fn large_graphs_keep_every_identity_reachable_and_report_omitted_geometry() {
                 .iter()
                 .filter(|c| c.kind == GraphicsCommandKind::OrthogonalPath)
                 .count();
+            let hint = if width < 640 {
+                "F2/F3"
+            } else {
+                "F2 all facts · F3 return"
+            };
             let notice = format!(
-                "{shown}/{total} cords shown · {} omitted · F2 all facts · F3 return",
+                "{shown}/{total} cords shown · {} omitted · {hint}",
                 total - shown
             );
             assert!(
