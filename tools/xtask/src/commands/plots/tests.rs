@@ -414,10 +414,10 @@ fn selected_plot_cli_refuses_browser_mode() {
 }
 
 #[test]
-fn workspace_catalog_preserves_memory_lantern_saved_choice_requirement() {
+fn workspace_catalog_preserves_memory_lantern_semantic_editor_requirement() {
     let root = crate::workspace::workspace_root().unwrap();
     let output = std::env::temp_dir().join(format!(
-        "conduit-saved-choice-workspace-catalog-{}.json",
+        "conduit-editor-workspace-catalog-{}.json",
         std::process::id()
     ));
     bundle_workspace_catalog(&root, &output).unwrap();
@@ -434,7 +434,7 @@ fn workspace_catalog_preserves_memory_lantern_saved_choice_requirement() {
         .as_array()
         .unwrap()
         .iter()
-        .any(|kind| kind == conduit_semantic_catalog::SAVED_CHOICE_KIND));
+        .any(|kind| kind == conduit_semantic_catalog::FACE_EDITOR_KIND));
     assert_eq!(
         memory["source"],
         fs::read_to_string(root.join("plots/memory-lantern/main.conduit")).unwrap()

@@ -1,6 +1,55 @@
 use super::*;
 
 impl ProductJourney {
+    pub fn foreground_text_editor_active(&self) -> bool {
+        let Some(body) = self.body() else {
+            return false;
+        };
+        let Some(resident) = body.workset.plots().get(self.foreground_index()) else {
+            return false;
+        };
+        self.foreground_input_owner().is_some()
+            && self.current_play().is_some()
+            && self.current_plan().is_some_and(|plan| {
+                plan.plots
+                    .iter()
+                    .find(|plot| &plot.plot == resident)
+                    .is_some_and(|plot| {
+                        [
+                            conduit_semantic_catalog::KEYBOARD_KIND,
+                            conduit_semantic_catalog::KEYMAP_KIND,
+                            conduit_semantic_catalog::TEXT_EDIT_KIND,
+                        ]
+                        .iter()
+                        .all(|kind| {
+                            plot.plan
+                                .fragments
+                                .iter()
+                                .flat_map(|fragment| &fragment.placements)
+                                .any(|placement| placement.kind_id.as_str() == *kind)
+                        })
+                    })
+            })
+    }
+
+    fn foreground_text_editor_label(&self) -> Option<&str> {
+        let resident = self.body()?.workset.plots().get(self.foreground_index())?;
+        let plot = self
+            .current_plan()?
+            .plots
+            .iter()
+            .find(|plot| &plot.plot == resident)?;
+        let placement = plot
+            .plan
+            .fragments
+            .iter()
+            .flat_map(|fragment| &fragment.placements)
+            .find(|placement| {
+                placement.kind_id.as_str() == conduit_semantic_catalog::TEXT_FACE_KIND
+            })?;
+        conduit_core::face_data_label(&placement.configuration).ok()
+    }
+
     pub fn projection(&self) -> JourneyProjection {
         let wake_sign_id = self.current_wake().and_then(|wake| {
             wake.events.iter().find_map(|event| match event {
@@ -154,6 +203,8 @@ impl ProductJourney {
             loss_kind: self.loss_kind,
             loss_sign_id: self.loss_sign_id.clone(),
             result_sign_id: self.results[self.foreground_index()].sign.clone(),
+            text_editor_active: self.foreground_text_editor_active(),
+            text_editor_label: self.foreground_text_editor_label().map(Into::into),
             result: self.foreground_result().map(|text| text.into()),
             result_omitted_bytes: self.results[self.foreground_index()]
                 .omitted_bytes(self.plots[self.foreground_index()]),

@@ -6,6 +6,7 @@
 import { createHash } from 'node:crypto';
 import { cp, mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { validateNativeTextEditReceipt } from './conduitos-text-edit-receipt.mjs';
 
 const STEPS = Object.freeze([
   step('front-door-ready', 'Arrive at Crèche', 'Crèche is open before any Body exists.', 'The user sees a name field and locally available Plots.', 'A fresh Host and Boot have presented the first Face.', 'First boot'),
@@ -14,7 +15,7 @@ const STEPS = Object.freeze([
   step('body-planned', 'Plan its work', 'An exact Plan now names gears, ports, and cords.', 'The user presses F5.', 'The graph comes from the admitted Plan rather than a gallery specimen.', 'F5'),
   step('body-playing', 'Start Play', 'The Body awaits keyboard input in its admitted Play.', 'The user presses F6.', 'The Body identity persists across Wake, Plan, and Play.', 'F6'),
   step('protected-keyboard-canvas', 'Type into Keyboard canvas', 'Keyboard canvas presents an uppercase A.', 'The user selects Keyboard canvas and presses A.', 'The checked keyboard Plot executes within the same admitted Body Plan and Play.', 'Tab · A'),
-  step('protected-memory-lantern', 'Edit retained text', 'Memory Lantern retains the final text c.', 'The user selects Memory Lantern, types a and b, erases both, and types c.', 'The editor retains bounded private state across separate keyboard inputs.', 'Tab · A · B · Backspace · Backspace · C'),
+  step('protected-memory-lantern', 'Edit retained text', 'Memory Lantern retains café with a native focus border and insertion caret.', 'The user selects Memory Lantern, edits text, then types café using the authored Right Alt mapping.', 'The editor retains bounded private state; the captured receipt records the committed Unicode bytes.', 'Tab · A · B · Backspace · Backspace · C · A · F · Right Alt+E'),
   step('home', 'Go Home', 'Home opens while the Body continues to exist.', 'The user presses Escape.', 'Navigation changes the Face, not the Body identity.', 'Escape'),
   step('patchbay-workspace', 'Open Patchbay', 'The resident Patchbay becomes the foreground application.', 'The user selects Patchbay in Home and presses Enter.', 'The same Body and Plan remain current.', 'Tab · Enter'),
   step('patchbay-face', 'Inspect the Face', 'The native Mask presents the current semantic Face.', 'The user presses F2.', 'Content, actions, and structural relationships are projected from the running application.', 'F2'),
@@ -71,6 +72,9 @@ if (serial.length < 64 || serial.length > 2 * 1024 * 1024
   throw new Error('ConduitOS journey serial transcript does not match the captured Body and Boot');
 }
 
+const editReceiptBytes = await readFile(path.join(evidenceRoot, '..', 'memory-lantern-native-edit.json'));
+validateNativeTextEditReceipt(proof, JSON.parse(editReceiptBytes), serial);
+
 const styles = await readFile('targets/browser/host/assets/conduit.css', 'utf8')
   + '\n' + await readFile('site/chrome.css', 'utf8');
 const navigation = await readFile('site/navigation.html', 'utf8');
@@ -91,6 +95,7 @@ for (const root of [current, retained]) {
   await cp(path.join(evidenceRoot, 'manifest.json'), path.join(root, 'manifest.json'), { force: true });
   await cp(path.join(evidenceRoot, '..', 'journey-proof.json'), path.join(root, 'journey-proof.json'), { force: true });
   await writeFile(path.join(root, 'console.txt'), serial);
+  await writeFile(path.join(root, 'memory-lantern-native-edit.json'), editReceiptBytes);
   for (const entry of STEPS) {
     await cp(path.join(evidenceRoot, `${entry.name}.png`), path.join(root, `${entry.name}.png`), { force: true });
   }
@@ -115,7 +120,7 @@ await writeFile(publicationPath, JSON.stringify(publication, null, 2) + '\n');
 
 async function writeJourney(root, home, title) {
   const steps = STEPS.map((entry, index) => `<li class="journey-step" id="${entry.name}"><h2>${escape(entry.title)}</h2><p><strong>You do:</strong> ${escape(entry.action)}. ${escape(entry.happened)}</p><p>${escape(entry.seeing)}</p><figure><a href="${entry.name}.png"><img src="${entry.name}.png" alt="${escape(entry.seeing)}" loading="${index === 0 ? 'eager' : 'lazy'}"></a><figcaption>Captured from the same QMP guest after this action.</figcaption></figure><p><strong>What changed:</strong> ${escape(entry.proves)}</p></li>`).join('');
-  const body = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title} · Conduit</title><style>${styles}</style></head><body data-application-look="conduit.look/phosphor@1">${navigation}<main class="site-content"><p><a href="${home}">All journeys</a> · <a href="/conduit/workspace/">Open Conduit</a> · <a href="/conduit/handbook/">Handbook</a></p><p class="eyebrow">Freestanding x86 QEMU · fourteen screenshots</p><h1>A Body, its Patchbay, and its Face</h1><p class="lede">Arrive at Crèche, birth a Body, start its work, inspect the live planned graph, and stop it. Each screen was captured from one keyboard-driven guest session.</p><p class="recording-note">Emulator evidence from source <code>${commit}</code>. It does not establish physical hardware operation or human enactment.</p><ol class="journey-steps">${steps}</ol><h2>Reproduce and inspect</h2><p><code>cargo xtask make conduitos journey-proof</code></p><p><a href="manifest.json">Screenshot provenance</a> · <a href="journey-proof.json">Journey receipt</a> · <a href="console.txt">Journey serial transcript</a></p></main></body></html>`;
+  const body = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title} · Conduit</title><style>${styles}</style></head><body data-application-look="conduit.look/phosphor@1">${navigation}<main class="site-content"><p><a href="${home}">All journeys</a> · <a href="/conduit/workspace/">Open Conduit</a> · <a href="/conduit/handbook/">Handbook</a></p><p class="eyebrow">Freestanding x86 QEMU · fourteen screenshots</p><h1>A Body, its Patchbay, and its Face</h1><p class="lede">Arrive at Crèche, birth a Body, start its work, inspect the live planned graph, and stop it. Each screen was captured from one keyboard-driven guest session.</p><p class="recording-note">Emulator evidence from source <code>${commit}</code>. It does not establish physical hardware operation or human enactment.</p><ol class="journey-steps">${steps}</ol><h2>Reproduce and inspect</h2><p><code>cargo xtask make conduitos journey-proof</code></p><p><a href="manifest.json">Screenshot provenance</a> · <a href="journey-proof.json">Journey receipt</a> · <a href="console.txt">Journey serial transcript</a> · <a href="memory-lantern-native-edit.json">Committed text receipt</a></p></main></body></html>`;
   await writeFile(path.join(root, 'index.html'), body);
 }
 

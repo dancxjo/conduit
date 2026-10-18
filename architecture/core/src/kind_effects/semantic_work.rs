@@ -23,7 +23,7 @@ pub fn semantic_work_facts(kind: &Kind) -> Result<PureExpressionFacts, PureExpre
             KindSemanticLaw::ValueContracts(_) => {}
             KindSemanticLaw::KeyedJoin(_) => {}
             KindSemanticLaw::BoundedCollect(_) => {}
-            KindSemanticLaw::FlowSelect(_) => {}
+            KindSemanticLaw::FlowSelect(_) | KindSemanticLaw::InitializedState(_) => {}
             KindSemanticLaw::FlowFold(_)
             | KindSemanticLaw::FlowEach(_)
             | KindSemanticLaw::FlowScan(_) => {}

@@ -494,7 +494,27 @@ pub fn run(
                 return Ok(ProductInputControl::Continue);
             }
             if face_workspace.active() {
-                if event.transition() == KeyTransition::Pressed && event.usage() == 41 {
+                if face_workspace.editor_surface() && event.usage() == 43 {
+                    if event.transition() == KeyTransition::Pressed {
+                        face_workspace.leave(&front_door, &mut presenter, display)?;
+                        journey
+                            .select_next_plot(journey.revision())
+                            .map_err(|error| error.as_str())?;
+                        let receipt = refresh(
+                            &mut front_door,
+                            &journey,
+                            &mut presenter,
+                            &mut face_workspace,
+                            display,
+                        )?;
+                        emit_journey_sign(&journey.projection(), make, &receipt);
+                    }
+                    return Ok(ProductInputControl::Continue);
+                }
+                if !face_workspace.editor_surface()
+                    && event.transition() == KeyTransition::Pressed
+                    && event.usage() == 41
+                {
                     let receipt = face_workspace.leave(&front_door, &mut presenter, display)?;
                     emit_journey_sign(&journey.projection(), make, &receipt);
                     arch::early_write(b"CONDUIT_WORKSPACE_FACE returned-to-application\n");
@@ -504,7 +524,8 @@ pub fn run(
                 // explicit return to its surface. F3 belongs to the Face
                 // diagram only while this Mask is active; Tour F3 is unchanged.
                 if event.transition() == KeyTransition::Pressed
-                    && matches!(event.usage(), F1 | F10 | F11)
+                    && (matches!(event.usage(), F1 | F10 | F11)
+                        || (face_workspace.editor_surface() && event.usage() == 41))
                 {
                     face_workspace.leave(&front_door, &mut presenter, display)?;
                 } else if event.transition() == KeyTransition::Pressed
@@ -695,6 +716,9 @@ pub fn run(
                         let (observation, play) = face_arrival.next_publication_sequences();
                         face_workspace.continue_after_birth(observation, play);
                         consumed_birth_key = Some(event.usage());
+                        if journey.foreground_text_editor_active() {
+                            face_workspace.enter_editor(&front_door, &mut presenter, display)?;
+                        }
                     }
                 }
                 return Ok(ProductInputControl::Continue);

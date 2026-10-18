@@ -67,6 +67,27 @@ fn starts_from_admitted_host_input(placement: &PlannedGear) -> bool {
 fn delay_inputs(placements: &[PlannedGear]) -> Result<BTreeMap<PlacementId, PortId>, PlannerError> {
     let mut delayed = BTreeMap::new();
     for placement in placements {
+        if let Some(law) = conduit_core::initialized_state_boundary(
+            &placement.inputs,
+            &placement.outputs,
+            &placement.semantic_contract,
+        )
+        .map_err(|reason| {
+            PlannerError::InvalidStateContract(format!(
+                "{}: {reason}",
+                placement.placement_id.as_str()
+            ))
+        })? {
+            if placement.limits.max_active_instances == 0
+                || placement.limits.max_queue_items == 0
+                || placement.limits.max_queue_bytes < law.current.maximum_bytes
+            {
+                return Err(PlannerError::InvalidStateContract(
+                    placement.placement_id.as_str().into(),
+                ));
+            }
+            delayed.insert(placement.placement_id.clone(), law.update_port_id.clone());
+        }
         let boundary = conduit_core::source_seeded_state_boundary(
             &placement.inputs,
             &placement.outputs,

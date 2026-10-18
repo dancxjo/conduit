@@ -165,3 +165,5 @@ pub(crate) use catalogs::FaceProfile;
 pub(crate) mod pattern_comparison;
 
 pub(crate) mod comparison_face;
+
+pub(crate) mod text_editor;

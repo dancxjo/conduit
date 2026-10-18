@@ -17,6 +17,7 @@ const commit = '1'.repeat(40);
 const image = 'a'.repeat(64);
 const boot = 'b'.repeat(64);
 const body = 'c'.repeat(64);
+const host = 'd'.repeat(64);
 const digest = bytes => createHash('sha256').update(bytes).digest('hex');
 
 test('Pages composition publishes only the exact fourteen-step QMP journey', () => {
@@ -36,6 +37,10 @@ test('Pages composition publishes only the exact fourteen-step QMP journey', () 
     assert.match(page, /Main navigation/);
     assert.match(page, /cargo xtask make conduitos journey-proof/);
     assert.match(page, /Journey serial transcript/);
+    assert.match(page, /Committed text receipt/);
+    assert.match(page, /Memory Lantern retains café/);
+    assert.deepEqual(JSON.parse(readFileSync(path.join(root, 'memory-lantern-native-edit.json'))).utf8_bytes,
+      [99,97,102,195,169]);
     assert.doesNotMatch(page, /Tour chapter/);
     const site = readFileSync(path.join(fixture.site, 'site-publication.json'), 'utf8');
     assert.equal(JSON.parse(site).conduitos.sourceCommit, commit);
@@ -143,10 +148,19 @@ function makeFixture() {
   writeFileSync(path.join(root, 'evidence/journey-proof.json'), JSON.stringify({
     schema: 'conduit.conduitos/face-journey-proof@1', source_commit: commit,
     proof_class: 'freestanding-emulator', image_sha256: image,
-    screenshots: 'journey-frames/manifest.json', boot_id: boot, body_id: body,
+    screenshots: 'journey-frames/manifest.json', boot_id: boot, body_id: body, host_id: host,
+    committed_edit_receipt: 'memory-lantern-native-edit.json',
+  }));
+  const record = { boot_id: boot, body_id: body, host_id: host, plan_id: 'plan/editor',
+    active_play_id: 'play/editor', checked_plot_id: 'checked/editor',
+    result_sign_id: 'sign/editor', result: 'café' };
+  writeFileSync(path.join(root, 'evidence/memory-lantern-native-edit.json'), JSON.stringify({
+    schema: 'conduit.text/native-committed-edit@1', proof_class: 'freestanding-emulator',
+    physical_evidence: false, human_enactment: false,
+    committed_text: 'café', utf8_bytes: [99,97,102,195,169], record,
   }));
   writeFileSync(path.join(root, 'evidence/journey-serial.log'),
-    `CONDUIT_PRODUCT_JOURNEY {"boot_id":"${boot}","body_id":"${body}"}\n`);
+    `CONDUIT_PRODUCT_JOURNEY ${JSON.stringify(record)}\n`);
   return { root, evidence, site };
 }
 

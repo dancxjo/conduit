@@ -160,6 +160,7 @@ pub(super) enum BrowserHostEffect {
     PointerEvent,
     ButtonTransition,
     ApplicationEvent,
+    TextEditor(crate::installed_browser::text_editor::EditorDocument),
     TutorialPresenterRequest,
     Manifestation(BrowserManifestation),
 }
@@ -377,6 +378,13 @@ fn drive_with_boundary<'a>(
                     effect: BrowserHostEffect::PitchTone { hertz },
                 }));
             }
+            if operation.contract_id.as_str() == crate::installed_browser::text_editor::HOST_CALL {
+                let document = crate::installed_browser::text_editor::document(placement, &input)?;
+                return Ok(DriveStatus::Effect(PendingHostEffect {
+                    request,
+                    effect: BrowserHostEffect::TextEditor(document),
+                }));
+            }
             if let Some(effect) = inputs::effect(operation.contract_id.as_str()) {
                 return Ok(DriveStatus::Effect(PendingHostEffect { request, effect }));
             }
@@ -520,3 +528,7 @@ mod concurrent_effect_tests;
 #[cfg(test)]
 #[path = "resource_effect_tests.rs"]
 mod resource_effect_tests;
+
+#[cfg(test)]
+#[path = "engine_editor_observation.rs"]
+mod editor_observation;

@@ -19,6 +19,7 @@ use conduit_human::KeyEvent;
 pub(super) struct FaceWorkspace {
     mask: NativeFaceMask,
     active: bool,
+    editor_surface: bool,
     next_observation: u64,
     next_play: u64,
     next_interaction: u64,
@@ -46,6 +47,7 @@ impl FaceWorkspace {
         Ok(Self {
             mask,
             active: false,
+            editor_surface: false,
             next_observation: 1,
             next_play: 1,
             next_interaction: 1,
@@ -54,6 +56,21 @@ impl FaceWorkspace {
 
     pub(super) const fn active(&self) -> bool {
         self.active
+    }
+
+    pub(super) fn editor_surface(&self) -> bool {
+        self.editor_surface
+    }
+
+    pub(super) fn enter_editor(
+        &mut self,
+        door: &FrontDoor,
+        presenter: &mut FrontDoorPresenter,
+        display: &mut impl PixelTarget,
+    ) -> Result<CompositionReceipt, &'static str> {
+        let receipt = self.enter(door, presenter, display)?;
+        self.editor_surface = true;
+        Ok(receipt)
     }
 
     pub(super) fn continue_after_birth(&mut self, observation: u64, play: u64) {
@@ -107,6 +124,7 @@ impl FaceWorkspace {
         if self.active {
             self.mask.suspend().map_err(|error| error.as_str())?;
             self.active = false;
+            self.editor_surface = false;
         }
         Ok(())
     }
@@ -159,6 +177,18 @@ impl FaceWorkspace {
     ) -> Result<Option<CompositionReceipt>, &'static str> {
         if !self.active {
             return Err("workspace-face-inactive");
+        }
+        // This physical on-ramp remains owned by the existing planned keyboard
+        // and text/edit gears. The Mask retains no draft or editing keymap.
+        if journey.foreground_text_editor_active()
+            && self
+                .mask
+                .scene()
+                .is_some_and(|scene| !scene.showing_details() && !scene.showing_diagram())
+            && !matches!(event.usage(), 58..=69 | 75 | 78)
+        {
+            super::workspace_input::accept(event, journey, door)?;
+            return self.present_current(door, display).map(Some);
         }
         let show = self
             .mask
