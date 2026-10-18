@@ -51,6 +51,56 @@ pub(super) fn face(
     )
 }
 
+/// Observation after the source owner accepts an edit and the new Mask Show
+/// acknowledges its fresh Face. This record grants no action authority.
+pub(super) fn creche_change(
+    before: &Face,
+    prior_show: &MaskShow,
+    interaction: &FaceInteraction,
+    after: &Face,
+    fresh_show: &MaskShow,
+) -> Result<(), &'static str> {
+    emit(
+        b"CONDUIT_CRECHE_CHANGE ",
+        &json!({
+            "schema": "conduit.creche-change/v1",
+            "disposition": "source-accepted-and-shown",
+            "before_face_id": before.identity,
+            "before_revision": before.revision,
+            "before_show_id": prior_show.show_id,
+            "interaction": interaction,
+            "after_face_id": after.identity,
+            "after_revision": after.revision,
+            "after_show_id": fresh_show.show_id,
+        }),
+    )
+}
+
+/// Read-only observation of Mask-local focus under its acknowledged Show.
+/// This creates neither a binding nor a domain input occurrence.
+pub(super) fn focus(
+    face: &Face,
+    show: &MaskShow,
+    control: Option<(&str, Option<&str>)>,
+    page: usize,
+    pages: usize,
+) -> Result<(), &'static str> {
+    if show.face_id != face.identity || show.face_revision != face.revision {
+        return Err("creche-focus-stale-show");
+    }
+    emit(
+        b"CONDUIT_CRECHE_FOCUS ",
+        &json!({
+            "schema": "conduit.creche-focus/v1",
+            "face_id": face.identity, "face_revision": face.revision,
+            "show_id": show.show_id,
+            "action_id": control.map(|value| value.0),
+            "argument_name": control.and_then(|value| value.1),
+            "page": page + 1, "pages": pages,
+        }),
+    )
+}
+
 fn snapshot(p: &JourneyProjection) -> Value {
     json!({
         "status": p.status.as_str(), "revision": p.revision,

@@ -117,6 +117,7 @@ impl NativeFaceScene {
                 focused && !focus_marked,
             )?;
             focus_marked |= focused;
+            super::boolean_choice::append(&mut scene, row, self.screen)?;
             push(
                 &mut scene,
                 GraphicsCommand::text(row.text_bounds(), self.screen, row.paint, &row.text)

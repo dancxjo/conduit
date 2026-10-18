@@ -2,6 +2,7 @@
 //! Every image is captured after an observed guest transition, never fabricated
 //! from a fixture or a retired Tour surface.
 
+mod creche_choices;
 mod face_correspondence;
 mod face_input;
 mod failure_stack;
@@ -131,6 +132,13 @@ pub(super) fn execute_supplied(
         )?;
         artifacts.capture(&mut qmp, &mut reader, "front-door-ready", false)?;
 
+        creche_choices::exercise(
+            &serial_path,
+            &mut child,
+            &mut qmp,
+            &mut reader,
+            &mut artifacts,
+        )?;
         journey_input::birth_from_creche(&mut qmp, &mut reader, &serial_path, &mut child)?;
         artifacts.capture(&mut qmp, &mut reader, "body-born", true)?;
         for (key, status, frame) in [
@@ -286,7 +294,7 @@ pub(super) fn execute_supplied(
             "protected_keyboard_domain": keyboard_cost,
             "protected_retained_text_domain": editor_cost,
             "committed_edit_receipt": "memory-lantern-native-edit.json",
-            "steps":["arrive","birth","wake","unavailable-wake-refused","plan","play","protected-keyboard-canvas","protected-memory-lantern","home","patchbay","face","diagram","gear-details","diagram-return","stop","home-returned","patchbay-reentered"],
+            "steps":["arrive","creche-three-selected","creche-four-restored","birth","wake","unavailable-wake-refused","plan","play","protected-keyboard-canvas","protected-memory-lantern","home","patchbay","face","diagram","gear-details","diagram-return","stop","home-returned","patchbay-reentered"],
             "paired_reconstruction":"native-shell-paired-linear.json",
             "pointer_actions":"unsupported", "browser_comparison":"unsupported",
             "parent_5356_acceptance":"open",

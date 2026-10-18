@@ -23,6 +23,29 @@ fn zero_body_draft_preserves_choice_availability_in_nonvisual_projections() {
     ))
     .unwrap();
     assert_eq!(specimen, face);
+    for (index, choice) in draft.choices().iter().enumerate() {
+        let action = face
+            .actions
+            .iter()
+            .find(|action| action.identity == format!("creche.plot.{index}"))
+            .unwrap();
+        let property = |name: &str| {
+            face.properties
+                .iter()
+                .find(|property| property.subject == action.target && property.name == name)
+                .unwrap()
+                .value
+                .clone()
+        };
+        assert_eq!(
+            property("selected"),
+            conduit_face::FacePropertyValue::Flag(choice.selected)
+        );
+        assert_eq!(
+            property("boolean-change-action"),
+            conduit_face::FacePropertyValue::Identity(action.identity.clone())
+        );
+    }
     assert!(face.basis.body_id.is_none());
     assert!(face.basis.wake_id.is_none());
     assert!(face.basis.plan_id.is_none());

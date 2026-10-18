@@ -1,5 +1,5 @@
 {
-  "identity": "6fbc540fc248105b636a1dd2c24d818ae6440f42ef15ae25d90b06bf673d7769",
+  "identity": "d2ab0fa49880388ffac4a812f2fd26859c0e2be324c20c49a66a57805c20ebaf",
   "revision": 1,
   "basis": {
     "body_id": null,
@@ -159,6 +159,34 @@
   ],
   "composition": [],
   "properties": [
+    {
+      "subject": "birth/encounter/prebirth-conformance/initial-plots/0",
+      "name": "selected",
+      "value": {
+        "Flag": true
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/initial-plots/0",
+      "name": "boolean-change-action",
+      "value": {
+        "Identity": "creche.plot.0"
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/initial-plots/1",
+      "name": "selected",
+      "value": {
+        "Flag": false
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/initial-plots/1",
+      "name": "boolean-change-action",
+      "value": {
+        "Identity": "creche.plot.1"
+      }
+    },
     {
       "subject": "birth/encounter/prebirth-conformance",
       "name": "host-id",

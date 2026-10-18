@@ -159,6 +159,17 @@ pub(super) fn wait_for_record(
     wait_for_record_inner(serial, child, reason, status, true, observed)
 }
 
+/// Leave timeout diagnostics and guest reaping to the owning journey.
+pub(super) fn wait_for_record_retaining_guest(
+    serial: &Path,
+    child: &mut Child,
+    reason: &'static str,
+    status: &str,
+    observed: impl FnMut(&str) -> Result<bool, ConduitosError>,
+) -> Result<(), ConduitosError> {
+    wait_for_record_inner(serial, child, reason, status, false, observed)
+}
+
 fn wait_for_record_inner(
     serial: &Path,
     child: &mut Child,

@@ -68,6 +68,7 @@ pub(super) fn project(
             },
         ],
         text: vec![],
+        properties: vec![],
         actions: vec![],
         events: vec![],
     };
@@ -81,6 +82,18 @@ pub(super) fn project(
         ),
         BirthProjectionBasis::HostOwned(_) => (None, None, None, None),
     };
+    projection.properties.extend([
+        FaceProperty {
+            subject: root.clone(),
+            name: "host-id".into(),
+            value: FacePropertyValue::Identity(basis.host_id().as_str().into()),
+        },
+        FaceProperty {
+            subject: root.clone(),
+            name: "boot-id".into(),
+            value: FacePropertyValue::Identity(basis.boot_id().as_str().into()),
+        },
+    ]);
     let face = Face::new_with_semantics(
         u64::from(draft.revision()),
         conduit_face::FaceBasis {
@@ -95,18 +108,7 @@ pub(super) fn project(
         },
         projection.subjects,
         projection.relationships,
-        vec![
-            FaceProperty {
-                subject: root.clone(),
-                name: "host-id".into(),
-                value: FacePropertyValue::Identity(basis.host_id().as_str().into()),
-            },
-            FaceProperty {
-                subject: root.clone(),
-                name: "boot-id".into(),
-                value: FacePropertyValue::Identity(basis.boot_id().as_str().into()),
-            },
-        ],
+        projection.properties,
         projection.text,
         projection.actions,
         vec![FaceDisclosure {
@@ -125,6 +127,7 @@ struct Projection {
     subjects: Vec<FaceSubject>,
     relationships: Vec<FaceRelationship>,
     text: Vec<FaceText>,
+    properties: Vec<FaceProperty>,
     actions: Vec<FaceAction>,
     events: Events,
 }
@@ -240,7 +243,11 @@ impl Projection {
                 }
                 self.action(&subject, &field.input_action, vec![argument]);
             }
-            FaceMechanism::ChoiceGroup { label, options, .. } => {
+            FaceMechanism::ChoiceGroup {
+                label,
+                options,
+                multiplicity,
+            } => {
                 self.subjects.push(FaceSubject {
                     identity: subject.clone(),
                     role: FaceRole::Collection,
@@ -255,6 +262,23 @@ impl Projection {
                         name: option.label.clone(),
                     });
                     self.relationships.push(contains(&subject, &id));
+                    self.properties.push(FaceProperty {
+                        subject: id.clone(),
+                        name: "selected".into(),
+                        value: FacePropertyValue::Flag(option.selected),
+                    });
+                    // This independent choice really accepts replacement with
+                    // either Boolean. It is semantic action association, not
+                    // an instruction to any Mask to draw a particular control.
+                    if *multiplicity == ChoiceMultiplicity::Independent {
+                        self.properties.push(FaceProperty {
+                            subject: id.clone(),
+                            name: "boolean-change-action".into(),
+                            value: FacePropertyValue::Identity(
+                                option.change_action.identity.clone(),
+                            ),
+                        });
+                    }
                     self.words(
                         &id,
                         if option.selected {
