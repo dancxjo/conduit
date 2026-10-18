@@ -257,10 +257,12 @@ fn foreign_source_and_projection_declaration_refuse_before_pcm() {
 
 #[test]
 fn independently_reload_exported_carrier() {
-    let Some(root) = std::env::var_os("CONDUIT_CARRIED_FORMANT_INSPECT") else {
-        return;
-    };
-    let root = std::path::PathBuf::from(root);
+    let root = std::env::var_os("CONDUIT_CARRIED_FORMANT_INSPECT")
+        .map(std::path::PathBuf::from)
+        .unwrap_or_else(|| {
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("../../site/evidence/shared-speech-carrier")
+        });
     let bytes = std::fs::read(root.join("you-would.native")).unwrap();
     let report: serde_json::Value =
         serde_json::from_slice(&std::fs::read(root.join("you-would.json")).unwrap()).unwrap();
@@ -270,6 +272,72 @@ fn independently_reload_exported_carrier() {
     assert_eq!(hex, expected);
     let reloaded = inspection::inspect(&bytes, &digest).unwrap();
     assert_eq!(reloaded.source().total_frames(), 4000);
+    let hex = |bytes: &[u8]| {
+        bytes
+            .iter()
+            .map(|byte| format!("{byte:02x}"))
+            .collect::<String>()
+    };
+    let identity = *reloaded.source().source_identity();
+    assert_eq!(report["source_identity"], hex(&identity));
+    assert_eq!(
+        report["projection_identity"],
+        hex(reloaded.source().projection_identity())
+    );
+    assert_eq!(report["compiled_dsp_source"], conduit_speech::SOURCE_ID);
+    assert_eq!(
+        report["speech_authoring_source"],
+        conduit_speech::semantic::IPA_CONSTRUCTOR_SOURCE_ID
+    );
+    assert_eq!(report["human_listening"], "not performed");
+    assert_eq!(report["device_playback"], "not performed");
+    assert_eq!(report["model_terminal"]["source_identity"], hex(&identity));
+    assert_eq!(
+        report["model_terminal"]["refusal"],
+        "NoAdmittedAcousticBack"
+    );
+    assert!(report["model_terminal"]["selected_backend"].is_null());
+    assert_eq!(report["model_terminal"]["trained_weights"], false);
+    let wav = std::fs::read(root.join("you-would.wav")).unwrap();
+    assert_eq!(wav.len(), 8044);
+    assert_eq!(&wav[..4], b"RIFF");
+    assert_eq!(&wav[8..16], b"WAVEfmt ");
+    assert_eq!(&wav[36..40], b"data");
+    assert_eq!(u16::from_le_bytes(wav[20..22].try_into().unwrap()), 1);
+    assert_eq!(u16::from_le_bytes(wav[22..24].try_into().unwrap()), 1);
+    assert_eq!(u32::from_le_bytes(wav[24..28].try_into().unwrap()), 8000);
+    assert_eq!(u16::from_le_bytes(wav[34..36].try_into().unwrap()), 16);
+    assert_eq!(
+        report["wav_identity"],
+        hex(&semantic_digest("proof/carried-formant-wav@1", &wav))
+    );
+    let factory = CarriedFormantFactory::new(reloaded, 7).unwrap();
+    let (kernel, plan) = execution::prepare(factory);
+    let replayed = execution::run(kernel, &identity);
+    assert_eq!(replayed.pcm, wav[44..]);
+    assert_eq!(report["plan"], serde_json::to_value(plan).unwrap());
+    assert_eq!(
+        report["plays"],
+        serde_json::to_value(replayed.plays).unwrap()
+    );
+    assert_eq!(
+        report["signs"].as_object().unwrap().len(),
+        replayed.signs.len()
+    );
+    for (host, events) in replayed.signs {
+        let rows = report["signs"][host.as_str()].as_array().unwrap();
+        assert_eq!(rows.len(), events.len());
+        for (row, event) in rows.iter().zip(events) {
+            assert_eq!(row["sequence"], event.sequence);
+            assert_eq!(row["node"], event.node.0);
+            assert_eq!(row["port"], serde_json::json!(event.port.map(|p| p.0)));
+            assert_eq!(
+                row["request"],
+                serde_json::json!(event.request.map(|r| r.0))
+            );
+            assert_eq!(row["kind"], format!("{:?}", event.kind));
+        }
+    }
 }
 
 #[test]

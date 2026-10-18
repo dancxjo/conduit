@@ -1,0 +1,1454 @@
+{
+  "compiled_dsp_source": "4d0897edd093a6e5a989430cf227805655409384bc4aa85a175e4b10177daca7",
+  "device_playback": "not performed",
+  "human_listening": "not performed",
+  "model_terminal": {
+    "inference_phonemes": 5,
+    "inference_phones": 5,
+    "refusal": "NoAdmittedAcousticBack",
+    "requested_backend": "ConduitVoice acoustic realization",
+    "selected_backend": null,
+    "source_identity": "27c61e703c2003df06d50193377039b1f3a758dc918cd1504a8c4863e1c67d24",
+    "terminal_evidence_identity": "8b71fb5551a8b189d12b80d496b60aa59ab952bd613611340f14b0533621d664",
+    "trained_weights": false,
+    "training_phonemes": 5,
+    "training_phones": 5
+  },
+  "native_schema_digests": {
+    "AudioSampleRateBasis": "e7f01ff63c2189a09fb4cd83a462f998876f875bb62e4aefd15c75ab556469ed",
+    "SpeechIpaInventoryNotationBasis": "89d3a9566b3d133cd5f1950b81afc5095a60dc45f14a371d8319aff0eb555def",
+    "SpeechModelCheckpointProjection": "9aa3750871d887bbf8646a92a26cf7fd4b577bfbcc59dd1bd3801b3f4b0fa876",
+    "SpeechModelLinguisticVocabulary": "f9b0f8ac06906d175fe3ae7c716adae0875d323445f4aec54bc5387632e5c368",
+    "SpeechOfflinePcmAdmission": "c07c8c5c9767ca8f7f2053219d7300e2683878bb1f516969261a0b3727d951ec",
+    "SpeechUtteranceIntent": "a07d611735dcce86781cc9a710bf7925bb2c416e006ddfe20c0c2b2c2d2dfc8c"
+  },
+  "original_artifact_identity": "e5f258f7ce7fa8d8b015d3c023d8a3ad00af6efdb22fe9be971dc1ed449e8f77",
+  "pcm_frames": 4000,
+  "plan": {
+    "checked_plot_id": "fcdd2efcb03d9dd655d2e8f3720fc733bdd829c326ffb9a358824b6593deb600",
+    "completion_policy": "SemanticCompletion",
+    "expanded_plot_id": "e3d684e16c73c1d6dfb9f5e7ec5b24b60b58b8cb1019a03b6ebf406920459e4c",
+    "fragments": [
+      {
+        "boot_id": "proof/carried-formant-boot",
+        "cancellation_policy": "CancelAllAndRejectLateCompletion",
+        "checked_plot_id": "fcdd2efcb03d9dd655d2e8f3720fc733bdd829c326ffb9a358824b6593deb600",
+        "completion_policy": "SemanticCompletion",
+        "connections": [],
+        "execution_fusions": [],
+        "execution_regions": [],
+        "expanded_plot_id": "e3d684e16c73c1d6dfb9f5e7ec5b24b60b58b8cb1019a03b6ebf406920459e4c",
+        "expected_sign": [
+          "PlanFragmentReceived",
+          {
+            "PlacementPrepared": "bb2afbf10116b21894bd6498144d0277603918b16404a3a5791c68bcd0d4c8a1"
+          },
+          {
+            "PlacementTerminal": "bb2afbf10116b21894bd6498144d0277603918b16404a3a5791c68bcd0d4c8a1"
+          },
+          "PlanTerminal"
+        ],
+        "expected_terminals": [
+          {
+            "PlacementCompleted": "bb2afbf10116b21894bd6498144d0277603918b16404a3a5791c68bcd0d4c8a1"
+          },
+          "PlanCompleted"
+        ],
+        "fore_ports": [
+          {
+            "byte_capacity": 32,
+            "direction": "Input",
+            "front_port_id": "source",
+            "gear_port_id": "source",
+            "item_capacity": 1,
+            "placement_id": "bb2afbf10116b21894bd6498144d0277603918b16404a3a5791c68bcd0d4c8a1",
+            "pressure_policy": "preserve-order",
+            "temporal": "Value",
+            "track": "payload",
+            "value_contract": {
+              "constraints": [],
+              "maximum_bytes": 32,
+              "value_kind": "conduit.speech/checked-carrier-identity@1"
+            },
+            "value_kind": "conduit.speech/checked-carrier-identity@1"
+          },
+          {
+            "byte_capacity": 285,
+            "direction": "Output",
+            "front_port_id": "audio",
+            "gear_port_id": "audio",
+            "item_capacity": 1,
+            "placement_id": "bb2afbf10116b21894bd6498144d0277603918b16404a3a5791c68bcd0d4c8a1",
+            "pressure_policy": "preserve-order",
+            "temporal": {
+              "Flow": {
+                "closes": true
+              }
+            },
+            "track": "payload",
+            "value_contract": {
+              "constraints": [],
+              "maximum_bytes": 285,
+              "value_kind": "audio/pcm-frames@1"
+            },
+            "value_kind": "audio/pcm-frames@1"
+          }
+        ],
+        "fragment_id": "66d9aa0bfd5783b4ae3b9d29f695a8980bffe9b1f45b430633421fce39eaa767",
+        "host_id": "proof/carried-formant",
+        "offer_generation": 1,
+        "placements": [
+          {
+            "artifact_id": "conduit-native/carried-formant@1/4d3f1bd8dcabb86f6326cf732004d06085d52fbfa92f63ef645385166e2cc7b6/b01e1b2397c00df1baef033d3761835978654dd77157423655260de3a8b6600a",
+            "authority": [],
+            "boot_id": "proof/carried-formant-boot",
+            "capability_id": "native-carried-formant",
+            "configuration": [
+              {
+                "key": "clock",
+                "value": {
+                  "U64": 7
+                }
+              },
+              {
+                "key": "offline-authoring",
+                "value": {
+                  "Text": "b01e1b2397c00df1baef033d3761835978654dd77157423655260de3a8b6600a"
+                }
+              },
+              {
+                "key": "projection",
+                "value": {
+                  "Text": "4d3f1bd8dcabb86f6326cf732004d06085d52fbfa92f63ef645385166e2cc7b6"
+                }
+              },
+              {
+                "key": "source",
+                "value": {
+                  "Text": "27c61e703c2003df06d50193377039b1f3a758dc918cd1504a8c4863e1c67d24"
+                }
+              }
+            ],
+            "execution_profile_id": "conduit-native/carried-s16le-8000-mono@1",
+            "gear_id": "proof/carried-formant/voice",
+            "host_calls": [],
+            "host_id": "proof/carried-formant",
+            "implementation_id": "conduit-native/carried-formant@1",
+            "inputs": [
+              {
+                "direction": "Input",
+                "port_id": "source",
+                "temporal": "Value",
+                "value_kind": "conduit.speech/checked-carrier-identity@1"
+              }
+            ],
+            "kind_contract_revision": "conduit.speech/carried-formant@1",
+            "kind_id": "speech/carried-formant",
+            "limits": {
+              "max_active_instances": 1,
+              "max_queue_bytes": 285,
+              "max_queue_items": 1
+            },
+            "offer_generation": 1,
+            "outputs": [
+              {
+                "direction": "Output",
+                "port_id": "audio",
+                "temporal": {
+                  "Flow": {
+                    "closes": true
+                  }
+                },
+                "value_kind": "audio/pcm-frames@1"
+              }
+            ],
+            "placement_id": "bb2afbf10116b21894bd6498144d0277603918b16404a3a5791c68bcd0d4c8a1",
+            "pool_references": [],
+            "realization_characteristics": [],
+            "resources": [],
+            "semantic_contract": {
+              "configuration": [
+                {
+                  "default_value": {
+                    "U64": 7
+                  },
+                  "key": "clock",
+                  "rule": {
+                    "U64Range": {
+                      "maximum": 7,
+                      "minimum": 7
+                    }
+                  }
+                },
+                {
+                  "default_value": {
+                    "Text": "b01e1b2397c00df1baef033d3761835978654dd77157423655260de3a8b6600a"
+                  },
+                  "key": "offline-authoring",
+                  "rule": {
+                    "TextOneOf": {
+                      "values": [
+                        "b01e1b2397c00df1baef033d3761835978654dd77157423655260de3a8b6600a"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "default_value": {
+                    "Text": "4d3f1bd8dcabb86f6326cf732004d06085d52fbfa92f63ef645385166e2cc7b6"
+                  },
+                  "key": "projection",
+                  "rule": {
+                    "TextOneOf": {
+                      "values": [
+                        "4d3f1bd8dcabb86f6326cf732004d06085d52fbfa92f63ef645385166e2cc7b6"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "default_value": {
+                    "Text": "27c61e703c2003df06d50193377039b1f3a758dc918cd1504a8c4863e1c67d24"
+                  },
+                  "key": "source",
+                  "rule": {
+                    "TextOneOf": {
+                      "values": [
+                        "27c61e703c2003df06d50193377039b1f3a758dc918cd1504a8c4863e1c67d24"
+                      ]
+                    }
+                  }
+                }
+              ],
+              "laws": [
+                {
+                  "ValueContracts": [
+                    {
+                      "contract": {
+                        "constraints": [],
+                        "maximum_bytes": 32,
+                        "value_kind": "conduit.speech/checked-carrier-identity@1"
+                      },
+                      "location": {
+                        "Input": "source"
+                      }
+                    },
+                    {
+                      "contract": {
+                        "constraints": [],
+                        "maximum_bytes": 285,
+                        "value_kind": "audio/pcm-frames@1"
+                      },
+                      "location": {
+                        "Output": "audio"
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            "source_span": {
+              "column": 9,
+              "end": 137,
+              "end_column": 33,
+              "end_line": 5,
+              "line": 5,
+              "start": 113
+            }
+          }
+        ],
+        "plan_fragments": [
+          {
+            "fragment_id": "66d9aa0bfd5783b4ae3b9d29f695a8980bffe9b1f45b430633421fce39eaa767",
+            "host_id": "proof/carried-formant"
+          }
+        ],
+        "plan_id": "3449801797cb5668df1b1bb175f01a9467a51e36a0fa1b7eeb874d3c67e31749",
+        "realization_backs": [],
+        "shared_pools": [],
+        "sign_storage_budget": {
+          "byte_capacity": 132,
+          "item_capacity": 4
+        },
+        "source_document_id": "f928de427d3855713b7e011cd6615a67fc8b2b97addcf5266af16033c56fd5bc",
+        "startup_dependencies": [],
+        "startup_order": [
+          "bb2afbf10116b21894bd6498144d0277603918b16404a3a5791c68bcd0d4c8a1"
+        ],
+        "terminal_policy": "RequireAllPlacementsAndConnections"
+      }
+    ],
+    "plan_id": "3449801797cb5668df1b1bb175f01a9467a51e36a0fa1b7eeb874d3c67e31749",
+    "realization_backs": [],
+    "source_document_id": "f928de427d3855713b7e011cd6615a67fc8b2b97addcf5266af16033c56fd5bc"
+  },
+  "plays": {
+    "proof/carried-formant": "0316279974c75f762c9a030744c0d57c743b336e4773d6176a3511fd108423a2"
+  },
+  "projection_identity": "4d3f1bd8dcabb86f6326cf732004d06085d52fbfa92f63ef645385166e2cc7b6",
+  "proof_class": "installed factory and execution kernel; offline authored PCM computation",
+  "sample_rate_hz": 8000,
+  "signs": {
+    "proof/carried-formant": [
+      {
+        "kind": "RemoteInputAdmitted",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 0
+      },
+      {
+        "kind": "RemoteInputClosed",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 1
+      },
+      {
+        "kind": "StepFuelGranted",
+        "node": 0,
+        "port": null,
+        "request": null,
+        "sequence": 2
+      },
+      {
+        "kind": "ValueRouted",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 3
+      },
+      {
+        "kind": "RemoteValueOffered",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 4
+      },
+      {
+        "kind": "RemoteValueAccepted",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 5
+      },
+      {
+        "kind": "RemoteValueDelivered",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 6
+      },
+      {
+        "kind": "StepFuelGranted",
+        "node": 0,
+        "port": null,
+        "request": null,
+        "sequence": 7
+      },
+      {
+        "kind": "ValueRouted",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 8
+      },
+      {
+        "kind": "RemoteValueOffered",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 9
+      },
+      {
+        "kind": "RemoteValueAccepted",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 10
+      },
+      {
+        "kind": "RemoteValueDelivered",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 11
+      },
+      {
+        "kind": "StepFuelGranted",
+        "node": 0,
+        "port": null,
+        "request": null,
+        "sequence": 12
+      },
+      {
+        "kind": "ValueRouted",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 13
+      },
+      {
+        "kind": "RemoteValueOffered",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 14
+      },
+      {
+        "kind": "RemoteValueAccepted",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 15
+      },
+      {
+        "kind": "RemoteValueDelivered",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 16
+      },
+      {
+        "kind": "StepFuelGranted",
+        "node": 0,
+        "port": null,
+        "request": null,
+        "sequence": 17
+      },
+      {
+        "kind": "ValueRouted",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 18
+      },
+      {
+        "kind": "RemoteValueOffered",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 19
+      },
+      {
+        "kind": "RemoteValueAccepted",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 20
+      },
+      {
+        "kind": "RemoteValueDelivered",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 21
+      },
+      {
+        "kind": "StepFuelGranted",
+        "node": 0,
+        "port": null,
+        "request": null,
+        "sequence": 22
+      },
+      {
+        "kind": "ValueRouted",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 23
+      },
+      {
+        "kind": "RemoteValueOffered",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 24
+      },
+      {
+        "kind": "RemoteValueAccepted",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 25
+      },
+      {
+        "kind": "RemoteValueDelivered",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 26
+      },
+      {
+        "kind": "StepFuelGranted",
+        "node": 0,
+        "port": null,
+        "request": null,
+        "sequence": 27
+      },
+      {
+        "kind": "ValueRouted",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 28
+      },
+      {
+        "kind": "RemoteValueOffered",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 29
+      },
+      {
+        "kind": "RemoteValueAccepted",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 30
+      },
+      {
+        "kind": "RemoteValueDelivered",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 31
+      },
+      {
+        "kind": "StepFuelGranted",
+        "node": 0,
+        "port": null,
+        "request": null,
+        "sequence": 32
+      },
+      {
+        "kind": "ValueRouted",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 33
+      },
+      {
+        "kind": "RemoteValueOffered",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 34
+      },
+      {
+        "kind": "RemoteValueAccepted",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 35
+      },
+      {
+        "kind": "RemoteValueDelivered",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 36
+      },
+      {
+        "kind": "StepFuelGranted",
+        "node": 0,
+        "port": null,
+        "request": null,
+        "sequence": 37
+      },
+      {
+        "kind": "ValueRouted",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 38
+      },
+      {
+        "kind": "RemoteValueOffered",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 39
+      },
+      {
+        "kind": "RemoteValueAccepted",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 40
+      },
+      {
+        "kind": "RemoteValueDelivered",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 41
+      },
+      {
+        "kind": "StepFuelGranted",
+        "node": 0,
+        "port": null,
+        "request": null,
+        "sequence": 42
+      },
+      {
+        "kind": "ValueRouted",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 43
+      },
+      {
+        "kind": "RemoteValueOffered",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 44
+      },
+      {
+        "kind": "RemoteValueAccepted",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 45
+      },
+      {
+        "kind": "RemoteValueDelivered",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 46
+      },
+      {
+        "kind": "StepFuelGranted",
+        "node": 0,
+        "port": null,
+        "request": null,
+        "sequence": 47
+      },
+      {
+        "kind": "ValueRouted",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 48
+      },
+      {
+        "kind": "RemoteValueOffered",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 49
+      },
+      {
+        "kind": "RemoteValueAccepted",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 50
+      },
+      {
+        "kind": "RemoteValueDelivered",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 51
+      },
+      {
+        "kind": "StepFuelGranted",
+        "node": 0,
+        "port": null,
+        "request": null,
+        "sequence": 52
+      },
+      {
+        "kind": "ValueRouted",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 53
+      },
+      {
+        "kind": "RemoteValueOffered",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 54
+      },
+      {
+        "kind": "RemoteValueAccepted",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 55
+      },
+      {
+        "kind": "RemoteValueDelivered",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 56
+      },
+      {
+        "kind": "StepFuelGranted",
+        "node": 0,
+        "port": null,
+        "request": null,
+        "sequence": 57
+      },
+      {
+        "kind": "ValueRouted",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 58
+      },
+      {
+        "kind": "RemoteValueOffered",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 59
+      },
+      {
+        "kind": "RemoteValueAccepted",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 60
+      },
+      {
+        "kind": "RemoteValueDelivered",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 61
+      },
+      {
+        "kind": "StepFuelGranted",
+        "node": 0,
+        "port": null,
+        "request": null,
+        "sequence": 62
+      },
+      {
+        "kind": "ValueRouted",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 63
+      },
+      {
+        "kind": "RemoteValueOffered",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 64
+      },
+      {
+        "kind": "RemoteValueAccepted",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 65
+      },
+      {
+        "kind": "RemoteValueDelivered",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 66
+      },
+      {
+        "kind": "StepFuelGranted",
+        "node": 0,
+        "port": null,
+        "request": null,
+        "sequence": 67
+      },
+      {
+        "kind": "ValueRouted",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 68
+      },
+      {
+        "kind": "RemoteValueOffered",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 69
+      },
+      {
+        "kind": "RemoteValueAccepted",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 70
+      },
+      {
+        "kind": "RemoteValueDelivered",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 71
+      },
+      {
+        "kind": "StepFuelGranted",
+        "node": 0,
+        "port": null,
+        "request": null,
+        "sequence": 72
+      },
+      {
+        "kind": "ValueRouted",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 73
+      },
+      {
+        "kind": "RemoteValueOffered",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 74
+      },
+      {
+        "kind": "RemoteValueAccepted",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 75
+      },
+      {
+        "kind": "RemoteValueDelivered",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 76
+      },
+      {
+        "kind": "StepFuelGranted",
+        "node": 0,
+        "port": null,
+        "request": null,
+        "sequence": 77
+      },
+      {
+        "kind": "ValueRouted",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 78
+      },
+      {
+        "kind": "RemoteValueOffered",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 79
+      },
+      {
+        "kind": "RemoteValueAccepted",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 80
+      },
+      {
+        "kind": "RemoteValueDelivered",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 81
+      },
+      {
+        "kind": "StepFuelGranted",
+        "node": 0,
+        "port": null,
+        "request": null,
+        "sequence": 82
+      },
+      {
+        "kind": "ValueRouted",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 83
+      },
+      {
+        "kind": "RemoteValueOffered",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 84
+      },
+      {
+        "kind": "RemoteValueAccepted",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 85
+      },
+      {
+        "kind": "RemoteValueDelivered",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 86
+      },
+      {
+        "kind": "StepFuelGranted",
+        "node": 0,
+        "port": null,
+        "request": null,
+        "sequence": 87
+      },
+      {
+        "kind": "ValueRouted",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 88
+      },
+      {
+        "kind": "RemoteValueOffered",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 89
+      },
+      {
+        "kind": "RemoteValueAccepted",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 90
+      },
+      {
+        "kind": "RemoteValueDelivered",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 91
+      },
+      {
+        "kind": "StepFuelGranted",
+        "node": 0,
+        "port": null,
+        "request": null,
+        "sequence": 92
+      },
+      {
+        "kind": "ValueRouted",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 93
+      },
+      {
+        "kind": "RemoteValueOffered",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 94
+      },
+      {
+        "kind": "RemoteValueAccepted",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 95
+      },
+      {
+        "kind": "RemoteValueDelivered",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 96
+      },
+      {
+        "kind": "StepFuelGranted",
+        "node": 0,
+        "port": null,
+        "request": null,
+        "sequence": 97
+      },
+      {
+        "kind": "ValueRouted",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 98
+      },
+      {
+        "kind": "RemoteValueOffered",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 99
+      },
+      {
+        "kind": "RemoteValueAccepted",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 100
+      },
+      {
+        "kind": "RemoteValueDelivered",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 101
+      },
+      {
+        "kind": "StepFuelGranted",
+        "node": 0,
+        "port": null,
+        "request": null,
+        "sequence": 102
+      },
+      {
+        "kind": "ValueRouted",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 103
+      },
+      {
+        "kind": "RemoteValueOffered",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 104
+      },
+      {
+        "kind": "RemoteValueAccepted",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 105
+      },
+      {
+        "kind": "RemoteValueDelivered",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 106
+      },
+      {
+        "kind": "StepFuelGranted",
+        "node": 0,
+        "port": null,
+        "request": null,
+        "sequence": 107
+      },
+      {
+        "kind": "ValueRouted",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 108
+      },
+      {
+        "kind": "RemoteValueOffered",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 109
+      },
+      {
+        "kind": "RemoteValueAccepted",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 110
+      },
+      {
+        "kind": "RemoteValueDelivered",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 111
+      },
+      {
+        "kind": "StepFuelGranted",
+        "node": 0,
+        "port": null,
+        "request": null,
+        "sequence": 112
+      },
+      {
+        "kind": "ValueRouted",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 113
+      },
+      {
+        "kind": "RemoteValueOffered",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 114
+      },
+      {
+        "kind": "RemoteValueAccepted",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 115
+      },
+      {
+        "kind": "RemoteValueDelivered",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 116
+      },
+      {
+        "kind": "StepFuelGranted",
+        "node": 0,
+        "port": null,
+        "request": null,
+        "sequence": 117
+      },
+      {
+        "kind": "ValueRouted",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 118
+      },
+      {
+        "kind": "RemoteValueOffered",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 119
+      },
+      {
+        "kind": "RemoteValueAccepted",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 120
+      },
+      {
+        "kind": "RemoteValueDelivered",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 121
+      },
+      {
+        "kind": "StepFuelGranted",
+        "node": 0,
+        "port": null,
+        "request": null,
+        "sequence": 122
+      },
+      {
+        "kind": "ValueRouted",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 123
+      },
+      {
+        "kind": "RemoteValueOffered",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 124
+      },
+      {
+        "kind": "RemoteValueAccepted",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 125
+      },
+      {
+        "kind": "RemoteValueDelivered",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 126
+      },
+      {
+        "kind": "StepFuelGranted",
+        "node": 0,
+        "port": null,
+        "request": null,
+        "sequence": 127
+      },
+      {
+        "kind": "ValueRouted",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 128
+      },
+      {
+        "kind": "RemoteValueOffered",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 129
+      },
+      {
+        "kind": "RemoteValueAccepted",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 130
+      },
+      {
+        "kind": "RemoteValueDelivered",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 131
+      },
+      {
+        "kind": "StepFuelGranted",
+        "node": 0,
+        "port": null,
+        "request": null,
+        "sequence": 132
+      },
+      {
+        "kind": "ValueRouted",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 133
+      },
+      {
+        "kind": "RemoteValueOffered",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 134
+      },
+      {
+        "kind": "RemoteValueAccepted",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 135
+      },
+      {
+        "kind": "RemoteValueDelivered",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 136
+      },
+      {
+        "kind": "StepFuelGranted",
+        "node": 0,
+        "port": null,
+        "request": null,
+        "sequence": 137
+      },
+      {
+        "kind": "ValueRouted",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 138
+      },
+      {
+        "kind": "RemoteValueOffered",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 139
+      },
+      {
+        "kind": "RemoteValueAccepted",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 140
+      },
+      {
+        "kind": "RemoteValueDelivered",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 141
+      },
+      {
+        "kind": "StepFuelGranted",
+        "node": 0,
+        "port": null,
+        "request": null,
+        "sequence": 142
+      },
+      {
+        "kind": "ValueRouted",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 143
+      },
+      {
+        "kind": "RemoteValueOffered",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 144
+      },
+      {
+        "kind": "RemoteValueAccepted",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 145
+      },
+      {
+        "kind": "RemoteValueDelivered",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 146
+      },
+      {
+        "kind": "StepFuelGranted",
+        "node": 0,
+        "port": null,
+        "request": null,
+        "sequence": 147
+      },
+      {
+        "kind": "ValueRouted",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 148
+      },
+      {
+        "kind": "RemoteValueOffered",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 149
+      },
+      {
+        "kind": "RemoteValueAccepted",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 150
+      },
+      {
+        "kind": "RemoteValueDelivered",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 151
+      },
+      {
+        "kind": "StepFuelGranted",
+        "node": 0,
+        "port": null,
+        "request": null,
+        "sequence": 152
+      },
+      {
+        "kind": "ValueRouted",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 153
+      },
+      {
+        "kind": "RemoteValueOffered",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 154
+      },
+      {
+        "kind": "RemoteValueAccepted",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 155
+      },
+      {
+        "kind": "RemoteValueDelivered",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 156
+      },
+      {
+        "kind": "StepFuelGranted",
+        "node": 0,
+        "port": null,
+        "request": null,
+        "sequence": 157
+      },
+      {
+        "kind": "ValueConsumed",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 158
+      },
+      {
+        "kind": "ValueRouted",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 159
+      },
+      {
+        "kind": "RemoteOutputClosed",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 160
+      },
+      {
+        "kind": "BackCompleted",
+        "node": 0,
+        "port": null,
+        "request": null,
+        "sequence": 161
+      },
+      {
+        "kind": "RemoteValueOffered",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 162
+      },
+      {
+        "kind": "RemoteValueAccepted",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 163
+      },
+      {
+        "kind": "RemoteValueDelivered",
+        "node": 0,
+        "port": 0,
+        "request": null,
+        "sequence": 164
+      }
+    ]
+  },
+  "source_identity": "27c61e703c2003df06d50193377039b1f3a758dc918cd1504a8c4863e1c67d24",
+  "speech_authoring_source": "f95adad6234f12c9bcb1b9d6dc7e5e9b8829aa50741e8f53517a5dcaddbeef2f",
+  "text": "you would",
+  "wav_identity": "9b9def016acb1b48f7395425d26232f0175f7e182b1c38dd0e62fdd60137f367"
+}
