@@ -1,0 +1,27 @@
+{
+  "verification_source": "0408a15eff49e0f042d2b7bedc82dad751d03c95",
+  "capture_source": "a52ddeff5fc3e047bdf311591a1c7ef8233d69ee",
+  "accepted_captures": [
+    "hosted-runtime-domain-20261017-02",
+    "hosted-runtime-domain-20261017-03",
+    "hosted-runtime-domain-20261017-04"
+  ],
+  "verified_artifact_hashes": 726,
+  "raw_records": 768,
+  "repeated_distributions": 741,
+  "published_manifest_artifacts_verified": 34,
+  "verifier_sha256": "31ad06c2f76af43040f7587eed3b39149c4c2194f86ed8cdd28a493feaf8539e",
+  "raw_receipt_sha256": {
+    "summary.json": "04bb7e77397274a301e4b594b0ecb3094b4aefded1d658e04d5725368b3d91b1",
+    "verified-02.json": "ed1722746026cb600cfaec84818bc6f507b5408097229a029b6021befbe96b8c",
+    "verified-03.json": "2dc95c3f53dee99e4efeb0d27b62ae9d73a520d362a1d761d68f3751e6eff1be",
+    "verified-04.json": "c18498b05aadaa5bec42b6a2199514239ea155199860a3028b660fdc8d0f8799"
+  },
+  "archive_sha256": "439244bd3e1a071fc7afcf049906ed51fbd59e4c3630fe2462705fd7d0d6dd91",
+  "limits": [
+    "Independent replay of retained #5395 ordinary hosted captures, not a new runtime measurement.",
+    "Three accepted capture processes retain original source identities, outputs, timing and observer limits; diagnostic01 is excluded.",
+    "Not a before/after comparison for completion-count or blocked-wake changes.",
+    "No full FARGAN graph, browser performance equivalence, causal scheduler CPU share, universal speedup or issue-closure claim."
+  ]
+}

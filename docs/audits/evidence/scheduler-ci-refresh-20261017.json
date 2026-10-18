@@ -1,0 +1,25 @@
+{
+  "candidate_pr": 5958,
+  "candidate_head": "7f49289747ad47f16a6d4512c962b3f8b32da3bd",
+  "merge_preview_source": "1d576215278856ff4549ff71a105ee8debe490c8",
+  "merge_parents": [
+    "f43c77c7049bab5d7f8bc207947bda88a847e7ac",
+    "7f49289747ad47f16a6d4512c962b3f8b32da3bd"
+  ],
+  "run": 39075102791,
+  "job": 117520509401,
+  "job_success": true,
+  "artifact": 12117545666,
+  "github_digest_verified": true,
+  "zip_sha256": "bc8b8fa60a285f4826ca1b97df525052be2d4c17c8cc43607d273fa8e7df38f1",
+  "verified_internal_hashes": 242,
+  "raw_records": 256,
+  "repeated_distributions": 247,
+  "stream_trials": 42,
+  "ordinary_phase_partitions": 27,
+  "release_conformance_passed": 25,
+  "verifier_sha256": "31ad06c2f76af43040f7587eed3b39149c4c2194f86ed8cdd28a493feaf8539e",
+  "verification_sha256": "687d9f1d9c6f2540446fc7d0c5a51b869791bb7fbb48cebf81242d906ab225c5",
+  "job_metadata_sha256": "cf531efb0c365bad9ad09b86feb80eddaf62acf55b4dd54a79c7e9ab85db6a3d",
+  "scope": "Successful repaired Candidate performance job; not all Candidate gates, not held normalized-wake/completion before-after, not FARGAN or full issue closure."
+}

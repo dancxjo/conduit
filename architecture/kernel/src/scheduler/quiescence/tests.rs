@@ -337,7 +337,7 @@ fn sparse_armed_quiescence_ignores_unarmed_tail_without_losing_ineligible_edges(
     scheduler.arm_quiescence_outputs(0).unwrap();
     scheduler.arm_quiescence_outputs(63).unwrap();
     scheduler.arm_quiescence_outputs(126).unwrap();
-    scheduler.completed[63] = true;
+    scheduler.mark_completed(63);
     assert_eq!(scheduler.armed_quiescence_count, 3);
     assert_eq!(
         scheduler.emit_quiescence_transitions().unwrap(),
@@ -377,7 +377,7 @@ fn sparse_quiescence_matches_full_scan_eligibility_and_sign_order() {
                 scheduler.push(cord, value).unwrap();
             }
             if state == 3 {
-                scheduler.completed[cord] = true;
+                scheduler.mark_completed(cord);
             }
         }
         let before = scheduler.armed_quiescence_count;
