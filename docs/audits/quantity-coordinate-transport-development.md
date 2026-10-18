@@ -45,3 +45,22 @@ Preserve the existing unit-resolution boundary and static family/role checks.
 Runtime exact transformation followed by an admitted consuming numerical
 projection, generic projection-loss evidence, full dev integration and automated
 exact-main publication remain required under the original parent scope.
+
+## Explicit profile and physical Type admission
+
+A separate Core profile contract distinguishes decimal-only consumers from the
+optional exact coordinate profile. Exact consumers accept decimal producers;
+decimal consumers cannot accept an exact producer without an explicit admitted
+projection. Each profile publishes its finite maximum encoded extent. Unknown
+physical Kinds and unsupported wire versions refuse before numerical decode.
+The exact decoder checks generic Quantity, dimension-specific leaves and the
+existing intrinsic family/role identities against the same checked Unit capsule.
+
+Ten focused tests pass across profile admission, transport and the existing
+primitive registry; strict Core lint and a no-default-features check pass. New
+cases cover the producer/consumer eligibility relation, exact family/role
+checking, unrelated Type refusal with zero numerical work, and decimal-only
+refusal before rational validation. These are reusable admission checks, not
+installed planner or wire-policy enforcement. Primitive Source validation stays
+on its existing decimal contract until runtime bounds and consumer fences are
+integrated. The authored failure remains open.
