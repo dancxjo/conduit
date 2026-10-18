@@ -83,6 +83,6 @@ current ownership.
   laws, and exact port envelopes under a new numerical contract revision.
   Positive and refusal tests cover arithmetic, resource shape, malformed values,
   bounds, pressure, cancellation, and atomic state publication. See
-  [the recovery and proof boundary](../../proof/fargan/README.md). Streaming,
+  [the recovery and proof boundary](../proof/fargan/README.md). Streaming,
   native feature/audio pipelines, training, compact precision, and quality
   claims are excluded; implementation validation does not imply stable acceptance.
