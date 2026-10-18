@@ -120,7 +120,10 @@ fn invalid_dom_edits_refuse_distinctly_without_mutating_authoritative_state() {
 #[test]
 fn oversized_editor_completions_preserve_storage_and_pending_request() {
     use conduit_kernel::ValueStorage;
-    let source = SOURCE.replace("    message:", "    pointer: input/pointer-source\n    message:");
+    let source = SOURCE.replace(
+        "    message:",
+        "    pointer: input/pointer-source\n    message:",
+    );
     let (mut session, _) =
         TourSession::prepare("browser/editor-bound", "boot/editor-bound", &source, 1).unwrap();
     let effect = next(&mut session);
