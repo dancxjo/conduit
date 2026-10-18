@@ -107,7 +107,7 @@ fn actual_owner_source_binds_clock_sign_and_reported_memory_without_inventing_wa
     assert_eq!(sample.sampling_duration().ticks(), 100);
     assert_eq!(
         sample.execution_observation().unwrap().condition(),
-        CostExecutionCondition::Unknown
+        CostExecutionCondition::ResidentObserved
     );
     assert_eq!(
         sample.resident_size().unwrap().coordinate(),
@@ -127,6 +127,27 @@ fn actual_owner_source_binds_clock_sign_and_reported_memory_without_inventing_wa
         .observe_local_model_execution(&mut sampler, &sign, revision, &mut clock(&host, &[300]))
         .is_err());
     assert_eq!(sampler.attempts(), 1);
+}
+#[test]
+fn unknown_provider_residency_remains_unknown() {
+    let host = host(LocalModelRuntimeState::unknown());
+    let mut sampler =
+        ModelCostSampler::admit(host.advertisement(), &capability(&host), policy()).unwrap();
+    let sign = SignId::from("sign/unknown-runtime");
+    let artifact = ArtifactId::from("metric/model-runtime@1");
+    let revision = CostCalibrationRevision::new(&artifact, 1).unwrap();
+    let sample = host
+        .observe_local_model_execution(
+            &mut sampler,
+            &sign,
+            revision,
+            &mut clock(&host, &[100, 200]),
+        )
+        .unwrap();
+    assert_eq!(
+        sample.execution_observation().unwrap().condition(),
+        CostExecutionCondition::Unknown
+    );
 }
 #[test]
 fn acquisition_age_frequency_and_attempts_refuse_without_sleep_or_model_execution() {

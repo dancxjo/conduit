@@ -87,6 +87,7 @@ impl Kind {
 
     pub fn validate(&self) -> Result<(), KindValidationError> {
         crate::realization_properties::validate_kind_requirements(self)?;
+        crate::initialized_state::validate_kind(self)?;
         if self.kind_id.as_str().is_empty() {
             return Err(KindValidationError::EmptyId);
         }
@@ -553,6 +554,7 @@ pub(crate) fn validate_terminal_transduction_ports(
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum KindValidationError {
+    InvalidInitializedState,
     InvalidRealizationRequirement,
     EmptyId,
     EmptyIdentity,

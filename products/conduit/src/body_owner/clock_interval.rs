@@ -30,7 +30,7 @@ pub(crate) enum ClockAction {
     Lull,
 }
 
-fn source_for(interval_ms: u64) -> String {
+pub(super) fn source_for(interval_ms: u64) -> String {
     format!(
         "plot clock-demo {{\n    # Standing clock: bounded instantaneous pressure, alive until Stop.\n    clock: time/every({interval_ms}ms)\n    clock >> face/tick(\"Clock tick\")\n}}\n"
     )
@@ -272,6 +272,17 @@ impl Owner {
         if self.resolve_clock_interaction(show, interaction)? != ClockAction::ChangeInterval {
             return Err("owner action is not a clock interval change".into());
         }
+        self.apply_admitted_clock_interval(root, interaction)
+    }
+
+    /// The ordinary return or Commons adapter must first validate its own
+    /// current Face, typed arguments and actual acknowledged Show. This method
+    /// retains the single checked-source/workset effect path.
+    pub(super) fn apply_admitted_clock_interval(
+        &mut self,
+        root: &Path,
+        interaction: &FaceInteraction,
+    ) -> Result<serde_json::Value, String> {
         let interval_text = std::str::from_utf8(&interaction.arguments[0].value)
             .map_err(|_| "clock interval is not UTF-8".to_string())?;
         let interval_ms = interval_text

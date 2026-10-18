@@ -24,6 +24,8 @@ mod input;
 mod layout;
 #[path = "native_face_scene/ports.rs"]
 mod ports;
+#[path = "native_face_scene/text_editor.rs"]
+mod text_editor;
 pub use input::{FaceFocusRequest, FaceSceneInput};
 #[cfg(test)]
 #[path = "native_face_scene/tests.rs"]
@@ -459,10 +461,14 @@ impl NativeFaceScene {
         if self.showing_diagram {
             diagram::append(&mut scene, &self.face, self.screen, self.page)?;
         }
+        let editor_visible = self.interaction_admitted
+            && !self.showing_details
+            && !self.showing_diagram
+            && text_editor::append(&mut scene, &self.face, self.screen, self.text_scale_percent)?;
         for row in self
             .rows()
             .iter()
-            .filter(|row| !self.showing_diagram && row.page == self.page)
+            .filter(|row| !editor_visible && !self.showing_diagram && row.page == self.page)
         {
             let available = self.interaction_admitted
                 && row.control.is_some_and(|control| {
@@ -497,7 +503,9 @@ impl NativeFaceScene {
             .clone()
             .or_else(|| self.input.preview(self.focus))
             .unwrap_or_else(|| {
-                if self.showing_diagram {
+                if editor_visible {
+                    "Type message · Backspace erase · Tab switch plot · F2 details".into()
+                } else if self.showing_diagram {
                     diagram::link_notice(&self.face, self.screen, self.page)
                 } else if !self.interaction_admitted && self.has_diagram() {
                     "Read only · PgUp/PgDn pages · F2 facts · F3 Patchbay".into()

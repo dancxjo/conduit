@@ -1763,22 +1763,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                         )
                     }
                     Ok(None) => (HostCallDisposition::Completed, None, None),
-                    Err(refusal) => (
-                        HostCallDisposition::Failed,
-                        None,
-                        Some(conduit_kernel::Failure {
-                            code: match refusal {
-                                conduit_semantic_catalog::TextStateRefusal::CapacityExhausted => {
-                                    conduit_kernel::FailureCode::StateCapacityExhausted
-                                }
-                                conduit_semantic_catalog::TextStateRefusal::InvalidCapacity
-                                | conduit_semantic_catalog::TextStateRefusal::InvalidUtf8 => {
-                                    conduit_kernel::FailureCode::InvalidInput
-                                }
-                            },
-                            detail: 1,
-                        }),
-                    ),
+                    Err(refusal) => (HostCallDisposition::Failed, None, Some(refusal)),
                 };
                 host_calls.record(request)?;
                 scheduler

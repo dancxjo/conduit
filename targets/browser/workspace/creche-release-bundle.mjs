@@ -31,22 +31,22 @@ export async function acquireHostRelease(profile, signal, {
   for (const file of manifest.files) {
     const resource = await acquireExactReleaseBytes({
       url: new URL(file.path, manifestResource.url), expected: file,
-      maximumBytes: MAXIMUM_FILE_BYTES, signal, fetcher, cache, label: file.path,
+      maximumBytes: MAXIMUM_FILE_BYTES, signal, fetcher, cache, label: file.path, artifactWorkStarted: true,
     });
     const bytes = resource.bytes;
     totalBytes += bytes.byteLength;
     if (bytes.byteLength !== file.bytes || bytes.byteLength < 1 || bytes.byteLength > MAXIMUM_FILE_BYTES
       || totalBytes > MAXIMUM_BUNDLE_BYTES) {
-      refuse("ArtifactBound", "reviewed host release violated its sealed byte bounds");
+      refuse("ArtifactBound", "reviewed host release violated its sealed byte bounds", undefined, true);
     }
     payloads.push(Object.freeze({ ...file, bytes }));
   }
   const bundleDigest = await digestFileIdentities(payloads);
-  if (bundleDigest !== manifest.bundle_sha256) refuse("StaleArtifact", "reviewed host release bundle identity is stale");
+  if (bundleDigest !== manifest.bundle_sha256) refuse("StaleArtifact", "reviewed host release bundle identity is stale", undefined, true);
   return Object.freeze({ manifest: Object.freeze(manifest), payloads: Object.freeze(payloads), totalBytes });
 }
 
-export async function acquireExactReleaseBytes({ url, expected, maximumBytes, signal, fetcher, cache, label }) {
+export async function acquireExactReleaseBytes({ url, expected, maximumBytes, signal, fetcher, cache, label, artifactWorkStarted = false }) {
   if (expected && cache) {
     const cached = await cache.get(expected.sha256);
     if (cached) {
@@ -58,12 +58,14 @@ export async function acquireExactReleaseBytes({ url, expected, maximumBytes, si
   }
   let response;
   try { response = await fetcher(url, { signal, cache: "no-store" }); }
-  catch (error) { refuse("ArtifactUnavailable", `reviewed host release ${label} is unavailable`, error); }
-  if (!response?.ok) refuse("ArtifactUnavailable", `reviewed host release ${label} returned HTTP ${response?.status}`);
-  const bytes = new Uint8Array(await response.arrayBuffer());
+  catch (error) { refuse("ArtifactUnavailable", `reviewed host release ${label} is unavailable`, error, artifactWorkStarted); }
+  if (!response?.ok) refuse("ArtifactUnavailable", `reviewed host release ${label} returned HTTP ${response?.status}`, undefined, artifactWorkStarted);
+  let bytes;
+  try { bytes = new Uint8Array(await response.arrayBuffer()); }
+  catch (error) { refuse("ArtifactUnavailable", `reviewed host release ${label} body is unavailable`, error, artifactWorkStarted); }
   if (bytes.byteLength < 1 || bytes.byteLength > maximumBytes
     || expected && (bytes.byteLength !== expected.bytes || await sha256(bytes) !== expected.sha256)) {
-    refuse("StaleArtifact", `reviewed host release ${label} failed its exact identity`);
+    refuse("StaleArtifact", `reviewed host release ${label} failed its exact identity`, undefined, artifactWorkStarted);
   }
   if (expected && cache) await cache.put(expected.sha256, bytes);
   return Object.freeze({ bytes, url: response.url || String(url), cache_hit: false });
@@ -120,14 +122,16 @@ async function sha256(bytes) {
   return `sha256:${Array.from(digest, (byte) => byte.toString(16).padStart(2, "0")).join("")}`;
 }
 
-function refuse(code, message, cause) {
+function refuse(code, message, cause, artifactWorkStarted = false) {
   const error = new Error(message, cause ? { cause } : undefined);
   error.code = code;
   error.evidence = Object.freeze({
     schema: "conduit.release/host-bundle-failure@1",
     terminal: code,
     message,
+    operation: "obtain",
     authority_requested: false,
+    artifact_work_started: artifactWorkStarted,
     external_work_started: false,
   });
   throw error;

@@ -1,3 +1,5 @@
+mod model;
+pub(crate) use model::InstalledModelOptions;
 mod spoken_mask;
 pub(crate) use spoken_mask::SpokenMaskCommand;
 mod speech;
@@ -317,21 +319,6 @@ pub(crate) enum HostServiceCommand {
         #[arg(long)]
         state_dir: PathBuf,
     },
-}
-
-/// One reviewed local model offered by every fresh installed Host Boot.
-#[derive(Debug, Default, Args)]
-pub(crate) struct InstalledModelOptions {
-    /// Select an already local Ollama model for this installed Host.
-    #[arg(long, requires_all = ["model_endpoint", "model_memory_mib"])]
-    pub(crate) selected_model: Option<String>,
-    /// Remove the retained model selection on reinstall.
-    #[arg(long, conflicts_with = "selected_model")]
-    pub(crate) without_selected_model: bool,
-    #[arg(long, requires = "selected_model")]
-    pub(crate) model_endpoint: Option<String>,
-    #[arg(long, requires = "selected_model")]
-    pub(crate) model_memory_mib: Option<u32>,
 }
 
 /// One explicitly selected durable Todo checkpoint residence for this Host.

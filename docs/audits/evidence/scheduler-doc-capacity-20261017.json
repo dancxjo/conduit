@@ -1,0 +1,31 @@
+{
+  "schema": "conduit.documentation-capacity-repair@1",
+  "failure_candidate_source": "bcf3b168c1cd038395238dea7d360cdbca19f0c1",
+  "failure_workflow_head": "6d08c9e223bf4bfcfcbfef1b510c395fca86f2ce",
+  "failure_run": 39092431038,
+  "failure_job": 117572145684,
+  "failure_tests": [
+    "evidence::documentation::tests::checked_in_references_are_current_only_and_complete",
+    "evidence::tests::gallery_publishes_current_history_and_provenance"
+  ],
+  "failure_reason": "257 Markdown files exceed the former finite256-file validation cap.",
+  "fixed_source": "5cc32ce7ef46219c706c296746597c33d74a8a2e",
+  "maximum_markdown_files_before": 256,
+  "maximum_markdown_files_after": 512,
+  "maximum_file_bytes_unchanged": 4194304,
+  "symlink_and_path_checks_unchanged": true,
+  "local_evidence_tests_passed": 56,
+  "xtask_strict_clippy_passed": true,
+  "boundary_files_accepted": 512,
+  "boundary_files_refused": 513,
+  "broad_local_run": "Unoptimized unrelated catalog suite stopped; no full543-test local claim. Required full product suite remains CI-owned.",
+  "runtime_change": false,
+  "archive_sha256": "84400cdc254594ff67dc5867bd4c5ec76253d4583be72e9ec0c364e275db14c3",
+  "artifact_sha256": {
+    "5962-products-failure.log": "612ee5f23e11c5f3975d1f66bf9f3f950baa6afd70592da876362237fdf6c137",
+    "5962-documentation-evidence-tests.log": "7c41de9f222c22c3bf38fe7f48333a9710514bef7044428d7292b43a94daf998",
+    "5962-xtask-capacity-clippy.log": "6548cf9dc425139e026895d14723d4690662dabe66b6cded400004768b719d2d",
+    "5962-xtask-broad-unoptimized-stopped.log": "7b3f684261d9fbac78ce58c8fe2123efaf2f5a246155155e8a190cf8016158a8",
+    "5962-documentation-inventory.json": "95ee1628e22bdbd30eef18fc8ab2b3c40accfb599426d748b4d4ec8413fde592"
+  }
+}

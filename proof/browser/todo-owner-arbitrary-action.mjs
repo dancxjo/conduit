@@ -1,16 +1,49 @@
 import assert from 'node:assert/strict';
-import { writeFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
-export async function captureArbitraryTodoRefusals({ page, face, output, sourceRecord, bodyId, identity }) {
+// Every attempt starts from the same actual owner snapshot and current Show.
+// The probe is adversarial DOM, never an alternate owner or action executor.
+export async function captureArbitraryTodoRefusals({ page, face, output, sourceRecord, bodyId, identity, retiredView, state, acceptCurrent }) {
   const beforeAttempt = face();
+  const executionPath = path.join(state,'body/owner-execution.json');
+  const beforeExecution = await readFile(executionPath);
+  const unchangedExecution = async () => assert.deepEqual(await readFile(executionPath),beforeExecution,
+    'refused/local events must not create a new owner Plan/Play or committed execution receipt');
   const originalView = await page.evaluate(() => globalThis.__conduitOwnerParticipation.face());
-  assert.equal(originalView.interactions_admitted, true, 'negative proof requires a currently interactive acknowledged Mask');
+  assert.equal(originalView.interactions_admitted, true);
   const currentAdd = originalView.actions.find(action => action.identity === 'todo.add');
   assert.ok(currentAdd);
+  assert.equal(currentAdd.arguments.length, 1);
+  const declaration = currentAdd.arguments[0];
+  const argument = {name:declaration.name,value:'Must never become a Todo item'};
+  const cases = [
+    {name:'unknown-action',actionId:'invented.body.action',code:'UnknownAction'},
+    {name:'wrong-target',target:'invented/body-port',code:'WrongTarget'},
+    {name:'missing-argument',arguments:[],code:'MissingArgument'},
+    {name:'unknown-argument',arguments:[{...argument,name:'invented/input'}],code:'UnknownArgument'},
+    {name:'duplicate-argument',arguments:[argument,argument],code:'DuplicateArgument'},
+    {name:'wrong-kind',arguments:[{...argument,value:42}],code:'WrongValueKind'},
+    {name:'oversize',arguments:[{...argument,value:'x'.repeat(declaration.maximum_bytes+1)}],code:'OversizeValue'},
+    {name:'malformed-unicode',arguments:[{...argument,value:'\ud800'}],code:'MalformedEncoding'},
+    {name:'retired-show',view:retiredView,code:'StaleShow'},
+  ];
+  assert.ok(retiredView && retiredView.show_id !== originalView.show_id,
+    'stale probe must retain the genuine pre-mutation Show');
   const results = [];
-  for (const [actionId, target] of [['invented.body.action', currentAdd.target], ['todo.add', 'invented/body-port']]) {
-    await page.evaluate(({actionId,target,argument}) => {
+  let currentShowAcceptance = null;
+  const retain = async (complete = false) => writeFile(path.join(output,'adversarial-receipt.json'),JSON.stringify({
+    schema:'conduit.proof/browser-todo-arbitrary-action-refusal@2',...sourceRecord,
+    body_id:bodyId,browser_host_id:identity.hostId,browser_boot_id:identity.bootId,
+    show_id:originalView.show_id,face_id:originalView.face_id,
+    unchanged_owner_execution_receipt:JSON.parse(beforeExecution).last_execution,
+    retired_show_id:retiredView.show_id,complete,results,current_show_acceptance:currentShowAcceptance,unchanged_owner_face:beforeAttempt.face,
+    scope:'Trusted DOM clicks reach production SDK; each typed refusal precedes WASM/owner dispatch and preserves the actual owner snapshot.',
+  },null,2)+'\n');
+  await retain();
+  for (const specimen of cases) {
+    assert.deepEqual(face(),beforeAttempt,'each rejection begins at the same owner state');
+    await page.evaluate(({specimen,currentAdd,originalView,argument}) => {
       globalThis.__todoAdversarialResult = null;
       const button = document.createElement('button');
       button.textContent = 'Attempt undeclared action';
@@ -18,31 +51,114 @@ export async function captureArbitraryTodoRefusals({ page, face, output, sourceR
       button.onclick = async event => {
         try {
           await globalThis.__conduitOwnerParticipation.submitFaceInteraction({
-            view: globalThis.__conduitOwnerParticipation.face(), actionId, target,
-            arguments: [{name:argument,value:'Must never become a Todo item'}],
+            view:specimen.view ?? originalView,
+            actionId:specimen.actionId ?? currentAdd.identity,target:specimen.target ?? currentAdd.target,
+            arguments:specimen.arguments ?? [argument],
           });
           globalThis.__todoAdversarialResult = {trusted:event.isTrusted,refused:false};
         } catch(error) {
-          globalThis.__todoAdversarialResult = {trusted:event.isTrusted,refused:true,message:error.message};
+          globalThis.__todoAdversarialResult = {trusted:event.isTrusted,refused:true,message:error.message,code:error.code ?? null};
         }
       };
       document.querySelector('[data-owner-face]').append(button);
-    }, {actionId,target,argument:currentAdd.arguments[0].name});
+    }, {specimen,currentAdd,originalView,argument});
     await page.getByRole('button',{name:'Attempt undeclared action',exact:true}).click();
     await page.waitForFunction(() => globalThis.__todoAdversarialResult !== null);
     const result = await page.evaluate(() => globalThis.__todoAdversarialResult);
     assert.equal(result.trusted,true);
     assert.equal(result.refused,true);
-    assert.ok(result.message === 'Choose one currently available Face action and its declared inputs.' || /^owner Face interaction refused \(-[0-9]+\)$/.test(result.message), 'refusal must come from the production SDK/Mask action gate');
-    assert.deepEqual(face().face,beforeAttempt.face,'undeclared action must not change the original Body Face');
-    results.push({actionId,target,...result});
+    assert.equal(result.code,specimen.code);
+    const after = face();
+    await unchangedExecution();
+    assert.deepEqual(after,beforeAttempt,'refusal preserves canonical owner Face, revision and Host/Boot');
+    results.push({case:specimen.name,...result,unchanged_owner_face:after.face,
+      accepted_domain_mutations:0,gate:'production-sdk-before-wasm'});
+    await retain();
     await page.locator('#todo-adversarial-probe').evaluate(element => element.remove());
   }
-  await writeFile(path.join(output,'adversarial-receipt.json'),JSON.stringify({
-    schema:'conduit.proof/browser-todo-arbitrary-action-refusal@1',...sourceRecord,
-    body_id:bodyId,browser_host_id:identity.hostId,browser_boot_id:identity.bootId,
-    show_id:originalView.show_id,face_id:originalView.face_id,
-    results,unchanged_owner_face:beforeAttempt.face,
-    scope:'Actual trusted DOM clicks use the production SDK/Mask action gate; invented action/target refuses without Body mutation',
-  },null,2)+'\n');
+  // The installed generic renderer exposes native names/keyboard agency. Local
+  // focus and scrolling do not cross the owner admission boundary.
+  const form = page.locator('[data-owner-action="todo.add"]');
+  const input = form.getByRole('textbox', {name:'Item text'});
+  const add = form.getByRole('button', {name:'add an item',exact:true});
+  assert.equal(await input.isVisible(),true);
+  assert.equal(await add.isEnabled(),true);
+  await input.focus();
+  await page.keyboard.press('Tab');
+  assert.equal(await add.evaluate(node => node.getRootNode().activeElement === node),true);
+  await page.evaluate(() => window.scrollBy(0,1));
+  assert.deepEqual(face(),beforeAttempt,'focus and scroll are renderer-local');
+  await unchangedExecution();
+  results.push({case:'focus-scroll',disposition:'MaskLocal',accepted_domain_mutations:0});
+  await retain();
+  const observeRenderRefusal = () => page.evaluate(() => {
+    globalThis.__todoRenderRefusal = null;
+    const observer = new MutationObserver(() => {
+      const status = document.querySelector('[data-owner-face-status]');
+      const refresh = [...document.querySelectorAll('button')].find(button=>button.textContent==='Refresh this Face');
+      if (status?.dataset.refused !== 'true' || !status.textContent.includes('No reachable named browser control')
+        || refresh?.disabled || document.querySelector('[data-owner-show-acknowledged]')) return;
+      globalThis.__todoRenderRefusal={message:status.textContent,show_acknowledged:false};
+      observer.disconnect();
+    });
+    observer.observe(document.querySelector('[data-owner-face]'),{subtree:true,childList:true,attributes:true,characterData:true});
+  });
+  const renderRefusal = async () => {
+    await page.waitForFunction(() => globalThis.__todoRenderRefusal !== null);
+    const observed = await page.evaluate(() => globalThis.__todoRenderRefusal);
+    assert.match(observed.message,/No reachable named browser control/);
+    assert.equal(observed.show_acknowledged,false);
+  };
+  // Hostile appearance must fail preparation before an acknowledged usable Show.
+  await observeRenderRefusal();
+  await page.locator('conduit-owner-face').evaluate(element => {element.hidden=true;});
+  await page.getByRole('button',{name:'Refresh this Face',exact:true}).click();
+  await renderRefusal();
+  assert.deepEqual(face(),beforeAttempt,'inaccessible rendering cannot mutate owner truth');
+  await unchangedExecution();
+  results.push({case:'hidden-mandatory-action',disposition:'RendererActionInaccessible',
+    show_acknowledged:false,accepted_domain_mutations:0});
+  await retain();
+  await page.locator('conduit-owner-face').evaluate(element => {element.hidden=false;});
+  await page.getByRole('button',{name:'Refresh this Face',exact:true}).click();
+  await page.waitForFunction(() => document.querySelector('[data-owner-show-acknowledged]'));
+  assert.equal(await add.isEnabled(),true);
+  assert.deepEqual(face(),beforeAttempt,'restoring accessible generic renderer does not replay a rejected event');
+  await unchangedExecution();
+  results.push({case:'restored-accessible-renderer',accepted_domain_mutations:0});
+  await retain();
+  // Attack the actual packaged renderer between preparation and admission.
+  await observeRenderRefusal();
+  await page.locator('conduit-owner-face').evaluate(element => {
+    const show = element.show;
+    element.show = function(...arguments_) {
+      show.apply(this,arguments_);
+      this.shadowRoot.querySelector('[data-owner-action="todo.add"] button').textContent='Delete every item';
+    };
+  });
+  await page.getByRole('button',{name:'Refresh this Face',exact:true}).click();
+  await renderRefusal();
+  assert.deepEqual(face(),beforeAttempt,'misleading action wording cannot mutate owner truth');
+  await unchangedExecution();
+  results.push({case:'misleading-action-name',disposition:'RendererActionInaccessible',
+    show_acknowledged:false,accepted_domain_mutations:0});
+  await retain();
+  await page.locator('conduit-owner-face').evaluate(element => {delete element.show;});
+  await page.getByRole('button',{name:'Refresh this Face',exact:true}).click();
+  await page.waitForFunction(() => document.querySelector('[data-owner-show-acknowledged]'));
+  assert.equal(await add.isEnabled(),true);
+  assert.deepEqual(face(),beforeAttempt,'restoring source wording does not replay a refused event');
+  await unchangedExecution();
+  results.push({case:'restored-source-action-name',accepted_domain_mutations:0});
+  await retain();
+  const current = await page.evaluate(() => globalThis.__conduitOwnerParticipation.face());
+  const accepted = await acceptCurrent();
+  assert.equal(accepted.before.show_id,current.show_id);
+  assert.notEqual(accepted.after.show_id,current.show_id);
+  assert.equal(accepted.mutation.action_id,'todo.add');
+  assert.equal(face().face.subjects.filter(subject=>subject.name===accepted.text).length,1);
+  currentShowAcceptance={show_id:current.show_id,accepted_domain_mutations:1,
+    mutation_receipt:'add-2-mutation.json',interaction_id:accepted.mutation.interaction_id,
+    activation:accepted.activation,after_show_id:accepted.after.show_id};
+  await retain(true);
 }

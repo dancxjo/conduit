@@ -1,0 +1,37 @@
+{
+  "source_commit": "2e4b99d4d1ec71896be9be2756b3d824c4494145",
+  "source_clean": true,
+  "proof_class": "machine-only-contract-compile",
+  "commands": [
+    "cargo xtask make avr check",
+    "cargo xtask make avr release --output target/repair-avr-release"
+  ],
+  "outcomes": [
+    "passed",
+    "passed"
+  ],
+  "environment": {
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_BUILD_JOBS": "2"
+  },
+  "firmware_sha256": "a943e79fe6764023e22f3dd91a4bc4dc48b7d7a70a9fd17020ecd04cc86a5c3d",
+  "flash_bytes": 27316,
+  "flash_limit": 27648,
+  "static_sram_bytes": 1387,
+  "static_sram_limit": 1460,
+  "stack_reserve_bytes": 1100,
+  "scope": "Actual pinned AVR compiler, firmware link, resource admission and sealed release; no flashing, hardware execution, measured stack peak or physical performance claim",
+  "files": {
+    "firmware.hex": "a943e79fe6764023e22f3dd91a4bc4dc48b7d7a70a9fd17020ecd04cc86a5c3d",
+    "pinned-core-verification.json": "dbd2d2ba1ddcd50b02f05dd54ea96c917c09761cca78fc91566c66f534e107cc",
+    "release-manifest.json": "7d0d17c7a4b33eba3305055c3a3761a5c303ada27790d9f77e618788d1e7e946",
+    "build-receipt.json": "646cbe32d8d343a15d8c135d301bdf7947af6283b4bc55de4fff7fdfdeebfa4a",
+    "rustc-version.txt": "222d464ac4632d260d7ffd5fc8288357afca4495d6c1289f9252f5450bd8a5a7",
+    "release.log": "d4302b753c706b22736cd708b515f2a9292e54cafe4ad4512fd672f9326778cd",
+    "setup.log": "1859ef21ec9106dbbdb2c925d3403b8d2269490528b2b02d6b6a9127576b4122"
+  },
+  "archive": "avr-platform-repair-20261017-raw.tar.gz",
+  "archive_sha256": "fda86dd4f12bc0365e76d5448d4f13dfb50c3f20e6cfe97edd6e13eca543f381",
+  "archive_bytes": 163233
+}

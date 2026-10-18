@@ -432,6 +432,7 @@
       "path": "browser-body-host.mjs",
       "maximum_bytes": 32768,
       "dependencies": [
+        { "role": "browser-text-editor", "specifier": "./browser-text-editor.mjs" },
         {
           "role": "browser-saved-choice",
           "specifier": "./browser-saved-choice.mjs"
@@ -478,6 +479,7 @@
         }
       ]
     },
+    { "role": "browser-text-editor", "kind": "module", "path": "browser-text-editor.mjs", "maximum_bytes": 8192, "dependencies": [] },
     {
       "role": "browser-saved-choice",
       "kind": "module",

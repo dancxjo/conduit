@@ -6,8 +6,23 @@ use conduit_core::{
 };
 
 pub const TEXT_STATE_HOST_CALL: &str = "conduit.host/text-state@1";
+pub const TEXT_EDIT_DOCUMENT_STD_IMPLEMENTATION: &str = "std/kernel-text-edit-document@1";
 pub const TEXT_EDIT_STD_IMPLEMENTATION: &str = "std/kernel-text-edit@1";
 pub const TEXT_SUBMIT_LINES_STD_IMPLEMENTATION: &str = "std/kernel-text-submit-lines@1";
+
+pub fn text_edit_document_std_offer() -> CapabilityOffer {
+    let mut realization = offer(
+        conduit_semantic_catalog::text_edit_document_semantic_contract(),
+        TEXT_EDIT_DOCUMENT_STD_IMPLEMENTATION,
+    );
+    realization.host_calls[0].target_kind =
+        Some(kind_id(conduit_semantic_catalog::TEXT_DOCUMENT_VALUE_KIND));
+    realization.host_calls[0].maximum_input_bytes =
+        conduit_semantic_catalog::MAXIMUM_TEXT_EDIT_BYTES;
+    realization.host_calls[0].maximum_output_bytes =
+        conduit_semantic_catalog::MAXIMUM_TEXT_DOCUMENT_BYTES;
+    realization
+}
 
 pub fn text_edit_std_offer() -> CapabilityOffer {
     offer(
@@ -48,6 +63,20 @@ fn offer(contract: Kind, implementation: &'static str) -> CapabilityOffer {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn document_offer_admits_canonical_edit_and_snapshot_bounds() {
+        let offer = text_edit_document_std_offer();
+        let contract = conduit_semantic_catalog::text_edit_document_semantic_contract();
+        assert_eq!(offer.inputs, contract.inputs);
+        assert_eq!(offer.outputs, contract.outputs);
+        assert_eq!(offer.host_calls[0].maximum_input_bytes, 272);
+        assert_eq!(offer.host_calls[0].maximum_output_bytes, 264);
+        assert_eq!(
+            offer.host_calls[0].target_kind.as_ref().unwrap().as_str(),
+            conduit_semantic_catalog::TEXT_DOCUMENT_VALUE_KIND
+        );
+    }
 
     #[test]
     fn offers_preserve_the_portable_bounded_fronts() {

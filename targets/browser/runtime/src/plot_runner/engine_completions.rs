@@ -64,6 +64,11 @@ pub(in crate::plot_runner) fn complete_host_effect_with_output(
             conduit_audio::MAXIMUM_PCM_FRAME_BYTES
                 + conduit_audio::PCM_FRAME_HEADER_ENCODED_LEN as u32
         }
+        BrowserHostEffect::TextEditor(_) => {
+            // The authoritative editor validates encoding, revision, range and capacity
+            // and publishes a distinct terminal failure through its ordinary Back.
+            conduit_semantic_catalog::MAXIMUM_TEXT_EDIT_BYTES
+        }
         BrowserHostEffect::ApplicationEvent => {
             if let Some(choice) =
                 scheduler.saved_choices[usize::from(pending.request.node.0)].as_ref()
@@ -90,6 +95,11 @@ pub(in crate::plot_runner) fn complete_host_effect_with_output(
         }
         _ => return Err("browser Host effect does not accept completion output".into()),
     };
+    // Refuse before acquiring a prepared storage slot. A mixed Plot may have
+    // slots larger than this effect's output bound.
+    if output.len() > maximum_output_bytes as usize {
+        return Err("browser input exceeded its planned bound".into());
+    }
     let value = scheduler.store_host_value(output).map_err(debug_error)?;
     let result = scheduler
         .complete_host_call(

@@ -1,0 +1,17 @@
+# Balanced Boolean conjunctions within the existing program-depth budget.
+plot boolean-1 (
+ >> value: Boolean
+ result: Boolean >>
+) = ((. && .))
+plot boolean-3 (
+ >> value: Boolean
+ result: Boolean >>
+) = (((. && .) && (. && .)))
+plot boolean-8 (
+ >> value: Boolean
+ result: Boolean >>
+) = ((((. && .) && (. && .)) && ((. && .) && (. && (. && .)))))
+plot boolean-32 (
+ >> value: Boolean
+ result: Boolean >>
+) = ((((((. && .) && (. && .)) && ((. && .) && (. && .))) && (((. && .) && (. && .)) && ((. && .) && (. && .)))) && ((((. && .) && (. && .)) && ((. && .) && (. && .))) && (((. && .) && (. && .)) && ((. && .) && (. && (. && .)))))))

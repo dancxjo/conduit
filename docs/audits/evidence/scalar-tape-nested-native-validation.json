@@ -1,0 +1,25 @@
+{
+  "source_commit": "b1c31878ec51f5d27ae077701ff81e7f55254256",
+  "command": "cargo xtask check expression-baseline",
+  "outcome": "passed: 2 native baseline tests and 48 actual WASM parity/refusal/allocation cases, 16 paired evaluations each",
+  "log_sha256": "e08389ba96909a1842ce36904edf4a7c5d627b8eb0e80c7ca2d2ed1bd644a50f",
+  "receipt_sha256": "3a9dca4e96eee2651f43a5717f89d99f0cb7733f721f7894e5fe9982fe905bb4",
+  "checks": [
+    {
+      "scope": "14 Plot scalar tests",
+      "outcome": "passed",
+      "log_sha256": "cdc58f388c42c0032e6bc114123b9611fb70da523a7e88a6a6786e6853ce4d86"
+    },
+    {
+      "scope": "Focused strict Plot Clippy",
+      "outcome": "passed",
+      "log_sha256": "8b01aff8c811dc9b8e8c74411f0a4b986ad181ee5e7a0dd026089c87f9956919"
+    },
+    {
+      "scope": "Workspace formatting",
+      "outcome": "passed",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "scope": "Current recursive native-law eligibility guard. Earlier std performance and parity receipts retain their original identities."
+}

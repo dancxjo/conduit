@@ -102,3 +102,69 @@ fn malformed_declared_delay_refuses_as_invalid_state_instead_of_an_ordinary_cycl
         ));
     }
 }
+
+#[test]
+fn initialized_heterogeneous_state_cuts_only_its_declared_update() {
+    let (mut placements, mut connections) = fixture();
+    let state = placements
+        .iter_mut()
+        .find(|placement| placement.inputs.len() == 2)
+        .unwrap();
+    state.inputs = vec![PortDescriptor {
+        port_id: port_id("edit"),
+        value_kind: kind_id("test/edit@1"),
+        direction: PortDirection::Input,
+        temporal: PortTemporal::Flow { closes: false },
+        abnormal_kind: None,
+    }];
+    let current =
+        CheckedValueContract::new(state.outputs[0].value_kind.clone(), 1, vec![]).unwrap();
+    state.semantic_contract.laws = vec![
+        KindSemanticLaw::TemporalState(TemporalStateBehavior::Retained),
+        KindSemanticLaw::InitializedState(InitializedStateLaw {
+            update_port_id: port_id("edit"),
+            current_port_id: state.outputs[0].port_id.clone(),
+            current,
+            initial: vec![0],
+        }),
+    ];
+    connections.last_mut().unwrap().sink_port_id = port_id("edit");
+    assert!(startup_order(&placements, &connections).unwrap().is_some());
+    assert_eq!(
+        startup_dependencies(&placements, &connections)
+            .unwrap()
+            .len(),
+        1
+    );
+    let mut underprovisioned = placements.clone();
+    let initialized = underprovisioned
+        .iter_mut()
+        .find(|placement| {
+            placement
+                .semantic_contract
+                .laws
+                .iter()
+                .any(|law| matches!(law, KindSemanticLaw::InitializedState(_)))
+        })
+        .unwrap();
+    initialized.limits.max_queue_bytes = 0;
+    assert!(matches!(
+        startup_order(&underprovisioned, &connections),
+        Err(crate::PlannerError::InvalidStateContract(_))
+    ));
+    connections.last_mut().unwrap().sink_port_id = port_id("other");
+    assert_eq!(startup_order(&placements, &connections).unwrap(), None);
+    connections.last_mut().unwrap().sink_port_id = port_id("edit");
+    let state = placements
+        .iter_mut()
+        .find(|placement| {
+            placement
+                .semantic_contract
+                .laws
+                .iter()
+                .any(|law| matches!(law, KindSemanticLaw::InitializedState(_)))
+        })
+        .unwrap();
+    state.semantic_contract.laws.pop();
+    assert_eq!(startup_order(&placements, &connections).unwrap(), None);
+}

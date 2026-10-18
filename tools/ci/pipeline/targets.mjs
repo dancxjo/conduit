@@ -1,5 +1,6 @@
 import { cpSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
+import { validateNativeTextEditReceipt } from '../conduitos-text-edit-receipt.mjs';
 import { cargo, cargoArtifact, command, copyFile, digest, xtask } from './targets/common.mjs';
 import { setup } from './targets/setup.mjs';
 import { browser } from './targets/browser.mjs';
@@ -91,8 +92,11 @@ function conduitos(id, directory) {
       || paired.fresh_action_after_refusal !== true) {
       throw new Error('ConduitOS paired Face evidence differs from its verified product journey');
     }
+    validateNativeTextEditReceipt(journey,
+      JSON.parse(readFileSync(path.join(evidence, 'memory-lantern-native-edit.json'), 'utf8')),
+      readFileSync(path.join(evidence, 'journey-serial.log')));
     // These files enter the product directory before the caller seals its receipt.
-    for (const name of ['journey-proof.json', 'native-shell-paired-linear.json', 'journey-serial.log', 'journey-qmp.log']) {
+    for (const name of ['journey-proof.json', 'native-shell-paired-linear.json', 'journey-serial.log', 'journey-qmp.log', 'memory-lantern-native-edit.json']) {
       copyFile(path.join(evidence, name), path.join(directory, 'evidence', name));
     }
     cpSync(path.join(evidence, 'journey-frames'), path.join(directory, 'evidence/journey-frames'),

@@ -293,6 +293,37 @@ impl FrontDoor {
             },
         ];
         texts.extend(home_texts);
+        if let Some(journey) = self
+            .journey
+            .as_ref()
+            .filter(|journey| journey.text_editor_active)
+        {
+            let editor = format!("{plot}/text-editor");
+            subjects.push(FaceSubject {
+                identity: editor.clone(),
+                role: FaceRole::Document,
+                name: journey
+                    .text_editor_label
+                    .clone()
+                    .unwrap_or_else(|| "Text".into()),
+            });
+            relationships.push(FaceRelationship {
+                source: plot.clone(),
+                target: editor.clone(),
+                kind: FaceRelationshipKind::Contains,
+            });
+            properties.push(property(
+                &editor,
+                "text-editing-active",
+                FacePropertyValue::Flag(true),
+            ));
+            if let Some(value) = journey.result.as_ref().filter(|value| !value.is_empty()) {
+                texts.push(FaceText {
+                    subject: editor,
+                    text: value.clone(),
+                });
+            }
+        }
         let mut disclosures = vec![
             FaceDisclosure {
                 subject: plot.clone(),

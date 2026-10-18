@@ -67,6 +67,7 @@ fn snapshot(p: &JourneyProjection) -> Value {
         "gear_ids": p.gear_ids, "port_ids": p.port_ids, "cord_ids": p.cord_ids,
         "input_sign_id": p.input_sign_id, "loss_kind": p.loss_kind.map(|kind| kind.as_str()),
         "loss_sign_id": p.loss_sign_id, "result_sign_id": p.result_sign_id, "result": p.result,
+        "text_editor_active": p.text_editor_active, "text_editor_label": p.text_editor_label,
         "result_omitted_bytes": p.result_omitted_bytes, "input_count": p.input_count,
         "kernel_sign_gap": p.kernel_sign_gap.map(|gap| json!({
             "first_sequence": gap.first_sequence, "last_sequence": gap.last_sequence, "entries": gap.entries,
@@ -103,4 +104,42 @@ pub(super) fn action(
             "before": snapshot(before), "after": snapshot(after),
         }),
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn snapshot_carries_actual_planned_editor_state_and_label() {
+        let (mut journey, _) = crate::product_front_door::workspace_input::tests::listening();
+        let resident =
+            crate::native_workset::resident(crate::native_workset::NativePlot::MemoryLantern)
+                .unwrap();
+        journey.select_plot(&resident, journey.revision()).unwrap();
+        let projection = journey.projection();
+        assert!(projection.text_editor_active);
+        assert_eq!(projection.text_editor_label.as_deref(), Some("Message"));
+        let record = snapshot(&projection);
+        assert_eq!(record["text_editor_active"], projection.text_editor_active);
+        assert_eq!(
+            record["text_editor_label"],
+            json!(projection.text_editor_label)
+        );
+        let (ids, offer, _) = crate::product_journey::test_support::fixture();
+        crate::product_journey::test_support::invoke(
+            &mut journey,
+            patchbay_control::PatchbayAction::Stop,
+            &ids,
+            &offer,
+        )
+        .unwrap();
+        let stopped = journey.projection();
+        assert!(!stopped.text_editor_active);
+        assert_eq!(snapshot(&stopped)["text_editor_active"], false);
+        assert_eq!(
+            snapshot(&stopped)["text_editor_label"],
+            json!(stopped.text_editor_label)
+        );
+    }
 }

@@ -1,3 +1,4 @@
+import { enterMemoryText } from "./workspace-editor.mjs";
 import { BROWSER_COLD_PREPARATION_MS, waitForWorkspacePreparation } from "./browser-preparation.mjs";
 import { expect, test } from "@playwright/test";
 import { mkdtemp, symlink, rm } from "node:fs/promises";
@@ -32,6 +33,5 @@ test("Workspace returns a retained Body to its Plots without a parallel applicat
   expect(returned.host_id).toBe(first.host_id);
   expect(returned.boot_id).not.toBe(first.boot_id);
   expect(returned.active_play_id).not.toBe(first.active_play_id);
-  await returnedWorkspace.keyboard.press("r");
-  await expect(returnedWorkspace.locator("[data-plot-output] output[data-face-kind='face/text']:visible [data-text-value]")).toHaveText("r");
+  await enterMemoryText(returnedWorkspace, "r");
 });

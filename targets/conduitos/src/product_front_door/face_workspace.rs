@@ -20,6 +20,7 @@ pub(super) struct FaceWorkspace {
     mask: NativeFaceMask,
     active: bool,
     selected_show: Option<MaskShow>,
+    editor_surface: bool,
     next_observation: u64,
     next_play: u64,
     next_interaction: u64,
@@ -48,6 +49,7 @@ impl FaceWorkspace {
             mask,
             active: false,
             selected_show: None,
+            editor_surface: false,
             next_observation: 1,
             next_play: 1,
             next_interaction: 1,
@@ -56,6 +58,21 @@ impl FaceWorkspace {
 
     pub(super) const fn active(&self) -> bool {
         self.active
+    }
+
+    pub(super) fn editor_surface(&self) -> bool {
+        self.editor_surface
+    }
+
+    pub(super) fn enter_editor(
+        &mut self,
+        door: &FrontDoor,
+        presenter: &mut FrontDoorPresenter,
+        display: &mut impl PixelTarget,
+    ) -> Result<CompositionReceipt, &'static str> {
+        let receipt = self.enter(door, presenter, display)?;
+        self.editor_surface = true;
+        Ok(receipt)
     }
 
     pub(super) fn continue_after_birth(&mut self, observation: u64, play: u64) {
@@ -110,6 +127,7 @@ impl FaceWorkspace {
         if self.active {
             self.mask.suspend().map_err(|error| error.as_str())?;
             self.active = false;
+            self.editor_surface = false;
         }
         Ok(())
     }
@@ -179,6 +197,18 @@ impl FaceWorkspace {
         if !self.active {
             return Err("workspace-face-inactive");
         }
+        // This physical on-ramp remains owned by the existing planned keyboard
+        // and text/edit gears. The Mask retains no draft or editing keymap.
+        if journey.foreground_text_editor_active()
+            && self
+                .mask
+                .scene()
+                .is_some_and(|scene| !scene.showing_details() && !scene.showing_diagram())
+            && !matches!(event.usage(), 58..=69 | 75 | 78)
+        {
+            super::workspace_input::accept(event, journey, door)?;
+            return self.present_current(door, display).map(Some);
+        }
         let show = self
             .mask
             .show()
@@ -228,13 +258,26 @@ impl FaceWorkspace {
             return Err("workspace-face-owner-changed");
         }
         self.enter(door, presenter, display)?;
+        let owner_revision = journey.revision();
         let result =
             self.invoke_product_action(action, door, journey, display, identities, offer, make);
         // Restore the specialized scene on admission refusal too. A failed
         // restore is surfaced; neither surface may retain an actionable Show.
         let restored = self.leave(door, presenter, display);
         result?;
-        restored
+        let restored = restored?;
+        // Play may activate the foreground editor. Preserve its automatic
+        // entry after lifecycle admission, while Home and Details keep their
+        // own application surface.
+        if journey.revision() != owner_revision
+            && journey.foreground_text_editor_active()
+            && !door.home_open()
+            && !door.exact_details_open()
+        {
+            self.enter_editor(door, presenter, display)
+        } else {
+            Ok(restored)
+        }
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -432,3 +475,7 @@ mod tests;
 #[cfg(test)]
 #[path = "face_workspace_continuity_tests.rs"]
 mod continuity_tests;
+
+#[cfg(test)]
+#[path = "face_workspace_editor_admission_tests.rs"]
+mod editor_admission_tests;

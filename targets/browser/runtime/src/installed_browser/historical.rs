@@ -180,7 +180,7 @@ mod tests {
     fn placement(maximum_entries: u64) -> PlannedGear {
         let offer = offer();
         conduit_core::planned_gear_from_parts! {
-            semantic_contract: Default::default(),
+            semantic_contract: offer.semantic_contract,
             placement_id: "history-placement".into(),
             gear_id: "history".into(),
             kind_id: offer.kind_id,

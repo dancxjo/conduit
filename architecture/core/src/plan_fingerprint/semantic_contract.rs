@@ -66,6 +66,14 @@ pub(super) fn push_semantic_contract(
     push_u32(canonical, contract.laws.len() as u32);
     for law in &contract.laws {
         match law {
+            Law::InitializedState(value) => {
+                canonical.push(20);
+                push_string(canonical, value.update_port_id.as_str());
+                push_string(canonical, value.current_port_id.as_str());
+                push_value_contract(canonical, &value.current);
+                push_u32(canonical, value.initial.len() as u32);
+                canonical.extend_from_slice(&value.initial);
+            }
             Law::ExactRealizationProperty(value) => {
                 canonical.push(19);
                 push_string(canonical, value.property_profile.as_str());
@@ -328,6 +336,29 @@ mod tests {
             },
         );
         bytes
+    }
+
+    #[test]
+    fn initialized_state_fingerprint_binds_ports_initial_bytes_and_bound() {
+        let law = crate::InitializedStateLaw {
+            update_port_id: crate::port_id("edit"),
+            current_port_id: crate::port_id("current"),
+            current: crate::CheckedValueContract::new(kind_id("test/doc"), 8, Vec::new()).unwrap(),
+            initial: alloc::vec![0;8],
+        };
+        let original = encoded(KindSemanticLaw::InitializedState(law.clone()));
+        for mutation in 0..3 {
+            let mut changed = law.clone();
+            match mutation {
+                0 => changed.update_port_id = crate::port_id("other"),
+                1 => changed.initial[0] = 1,
+                _ => changed.current.maximum_bytes = 9,
+            }
+            assert_ne!(
+                original,
+                encoded(KindSemanticLaw::InitializedState(changed))
+            );
+        }
     }
 
     #[test]

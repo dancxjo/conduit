@@ -18,6 +18,7 @@ const commit = '1'.repeat(40);
 const image = 'a'.repeat(64);
 const boot = 'b'.repeat(64);
 const body = 'c'.repeat(64);
+const host = 'd'.repeat(64);
 const digest = bytes => createHash('sha256').update(bytes).digest('hex');
 
 test('Pages composition publishes only the exact refusal and reentry QMP journey', async () => {
@@ -27,6 +28,8 @@ test('Pages composition publishes only the exact refusal and reentry QMP journey
     assert.equal(result.status, 0, result.stderr);
     const receipt = await sealTarget({ directory: path.join(fixture.root, 'evidence'),
       target: 'conduitos-x86_64', sha: commit, proofClass: 'emulator' });
+    const editFile = receipt.files.find(file => file.path === 'memory-lantern-native-edit.json');
+    assert.equal(editFile.sha256, digest(readFileSync(path.join(fixture.evidence, '../memory-lantern-native-edit.json'))));
     const pairedFile = receipt.files.find(file => file.path === 'native-shell-paired-linear.json');
     assert.equal(pairedFile.sha256,
       digest(readFileSync(path.join(fixture.evidence, '../native-shell-paired-linear.json'))));
@@ -48,6 +51,14 @@ test('Pages composition publishes only the exact refusal and reentry QMP journey
       readFileSync(path.join(fixture.evidence, '../native-shell-paired-linear.json')));
     assert.equal(JSON.parse(readFileSync(path.join(fixture.site, 'site-publication.json'))).conduitos.pairedSha256,
       digest(readFileSync(path.join(root, 'native-shell-paired-linear.json'))));
+    assert.match(page, /Committed text receipt/);
+    assert.match(page, /Memory Lantern retains café/);
+    assert.match(page, /Tab · A · Backspace · C · A · F · Right Alt\+E/);
+    assert.doesNotMatch(page, /A · B · Backspace/);
+    assert.equal(JSON.parse(readFileSync(path.join(fixture.site, 'site-publication.json'))).conduitos.committedEditSha256,
+      digest(readFileSync(path.join(root, 'memory-lantern-native-edit.json'))));
+    assert.deepEqual(JSON.parse(readFileSync(path.join(root, 'memory-lantern-native-edit.json'))).utf8_bytes,
+      [99,97,102,195,169]);
     assert.doesNotMatch(page, /Tour chapter/);
     const site = readFileSync(path.join(fixture.site, 'site-publication.json'), 'utf8');
     assert.equal(JSON.parse(site).conduitos.sourceCommit, commit);
@@ -155,13 +166,22 @@ function makeFixture() {
   writeFileSync(path.join(root, 'evidence/journey-proof.json'), JSON.stringify({
     schema: 'conduit.conduitos/face-journey-proof@1', source_commit: commit,
     proof_class: 'freestanding-emulator', image_sha256: image,
-    screenshots: 'journey-frames/manifest.json', boot_id: boot, body_id: body,
+    screenshots: 'journey-frames/manifest.json', boot_id: boot, body_id: body, host_id: host,
     paired_reconstruction: 'native-shell-paired-linear.json',
+    committed_edit_receipt: 'memory-lantern-native-edit.json',
+  }));
+  const record = { boot_id: boot, body_id: body, host_id: host, plan_id: 'plan/editor',
+    active_play_id: 'play/editor', checked_plot_id: 'checked/editor',
+    result_sign_id: 'sign/editor', result: 'café' };
+  writeFileSync(path.join(root, 'evidence/memory-lantern-native-edit.json'), JSON.stringify({
+    schema: 'conduit.text/native-committed-edit@1', proof_class: 'freestanding-emulator',
+    physical_evidence: false, human_enactment: false,
+    committed_text: 'café', utf8_bytes: [99,97,102,195,169], record,
   }));
   const paired = pairedFixture();
   writeFileSync(path.join(root, 'evidence/native-shell-paired-linear.json'), JSON.stringify(paired));
   writeFileSync(path.join(root, 'evidence/journey-serial.log'),
-    `CONDUIT_PRODUCT_JOURNEY {"boot_id":"${boot}","body_id":"${body}"}\n`
+    `CONDUIT_PRODUCT_JOURNEY ${JSON.stringify(record)}\n`
     + paired.paired_faces.map(pair => `CONDUIT_NATIVE_FACE ${JSON.stringify(pair.native)}\n`).join('')
     + `CONDUIT_NATIVE_BIRTH ${JSON.stringify(paired.birth)}\n`
     + paired.actions.map(action => `CONDUIT_NATIVE_ACTION ${JSON.stringify(action)}\n`).join(''));
@@ -276,3 +296,23 @@ test('Pages composition rejects a refusal screenshot claiming mandatory pixel ch
     assert.match(result.stderr, /checkpoint 4 violates/);
   } finally { rmSync(fixture.root, { recursive: true, force: true }); }
 });
+
+for (const [label, mutate] of [
+  ['Unicode bytes', receipt => { receipt.utf8_bytes = [99,97,102,101]; }],
+  ['Host identity', receipt => { receipt.record.host_id = 'other-host'; }],
+  ['Plan/Play guest correlation', receipt => { receipt.record.plan_id = 'other-plan'; }],
+]) {
+  test(`Pages composition rejects ${label} while paired native evidence remains valid`, () => {
+    const fixture = makeFixture();
+    try {
+      const filename = path.join(fixture.evidence, '../memory-lantern-native-edit.json');
+      const receipt = JSON.parse(readFileSync(filename, 'utf8'));
+      mutate(receipt); writeFileSync(filename, JSON.stringify(receipt));
+      const result = publish(fixture);
+      assert.notEqual(result.status, 0);
+      assert.match(result.stderr, /committed text receipt/);
+      assert.equal(readFileSync(path.join(fixture.site, 'journeys/index.html'), 'utf8'),
+        '<!-- conduit-conduitos-journey-card@1 -->');
+    } finally { rmSync(fixture.root, { recursive: true, force: true }); }
+  });
+}

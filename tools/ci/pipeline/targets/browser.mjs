@@ -62,7 +62,7 @@ export function browser(directory) {
     ...readdirSync('targets/browser/sdk').filter(name => name.endsWith('.test.mjs')).map(name => `targets/browser/sdk/${name}`),
     'targets/browser/tools/static-application-csp.test.mjs',
     'proof/browser/application-graph-canvas.test.mjs', ...[
-    'browser-body-input', 'browser-body-host', 'workspace-handoff', 'browser-plot-effects',
+    'browser-body-input', 'browser-body-host', 'browser-text-editor', 'workspace-handoff', 'browser-plot-effects',
     'browser-pitch-tone', 'browser-host-calls', 'creche-rendezvous', 'physical-host-workflow',
     'creche-release-catalog',
   ].map(name => `proof/browser/${name}.test.mjs`)]);

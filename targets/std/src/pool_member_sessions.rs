@@ -142,6 +142,9 @@ impl PoolMemberSessions {
 
 #[cfg(test)]
 pub(crate) mod tests {
+    #[cfg(unix)]
+    mod owned_transport;
+
     use super::*;
     use conduit_core::{
         mandatory_sign_storage_requirement, seal_plan, AdmittedLine, ArtifactId, AuthorityGrantId,

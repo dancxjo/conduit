@@ -245,6 +245,7 @@ impl Session {
                     };
                 let pending = PendingHostEffect { request, effect };
                 let effect = TourKeyEventEffect {
+                    editor: None,
                     schema,
                     effect_kind,
                     source_document_id: self.fragment.source_document_id.as_str().into(),

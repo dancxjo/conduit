@@ -60,6 +60,8 @@ pub(super) fn born_projection(body_id: conduit_body::BodyId) -> JourneyProjectio
         loss_sign_id: None,
         result_sign_id: None,
         result: None,
+        text_editor_active: false,
+        text_editor_label: None,
         result_omitted_bytes: 0,
         input_count: 0,
         kernel_sign_gap: None,
