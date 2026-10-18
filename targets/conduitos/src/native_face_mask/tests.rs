@@ -370,3 +370,6 @@ fn valid_face_beyond_checked_recipe_capacity_keeps_generic_reading_and_controls(
         .is_err()
     );
 }
+
+#[path = "layout_receipt.rs"]
+mod layout_receipt;
