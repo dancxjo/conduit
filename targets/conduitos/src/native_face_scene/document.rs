@@ -215,19 +215,32 @@ pub(super) fn prepare(
             if action.target != subject.identity {
                 continue;
             }
-            if !matches!(action.availability, FaceActionAvailability::Available) {
-                continue;
-            }
-            let paint = if interaction_admitted {
+            let available = action.availability.is_available();
+            let paint = if interaction_admitted && available {
                 GraphicsPaintRole::Accent
             } else {
                 GraphicsPaintRole::Muted
             };
             append(Item {
-                text: if interaction_admitted {
-                    action.name.clone()
-                } else {
-                    format!("{} · View only on this host", action.name)
+                text: match &action.availability {
+                    FaceActionAvailability::Unavailable {
+                        reason_code,
+                        explanation,
+                    } => format!(
+                        "{} · Unavailable: {} ({})",
+                        action.name, explanation, reason_code
+                    ),
+                    FaceActionAvailability::Refused {
+                        reason_code,
+                        explanation,
+                    } => format!(
+                        "{} · Refused: {} ({})",
+                        action.name, explanation, reason_code
+                    ),
+                    FaceActionAvailability::Available if !interaction_admitted => {
+                        format!("{} · View only on this host", action.name)
+                    }
+                    FaceActionAvailability::Available => action.name.clone(),
                 },
                 role: GraphicsTextRole::Action,
                 paint,
@@ -239,6 +252,9 @@ pub(super) fn prepare(
                 subject_index: None,
                 region: None,
             });
+            if !available {
+                continue;
+            }
             for (argument_index, argument) in action.arguments.iter().enumerate() {
                 let hint = if argument.contract.value_kind.as_str() == "value/bool" {
                     "false or true".into()

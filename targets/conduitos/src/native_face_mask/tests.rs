@@ -373,3 +373,57 @@ fn valid_face_beyond_checked_recipe_capacity_keeps_generic_reading_and_controls(
 
 #[path = "layout_receipt.rs"]
 mod layout_receipt;
+
+#[test]
+fn stale_scene_input_redraws_a_notice_and_preserves_the_refusal() {
+    let (mut service, draft) = fixture();
+    let face = draft
+        .face(&service.birth_basis("arrival/stale-input"))
+        .unwrap();
+    let mut display = CountingDisplay {
+        writes: 0,
+        fail: false,
+    };
+    service.present(face.clone(), 1, 1, &mut display).unwrap();
+    let show = service.show().unwrap().clone();
+    service
+        .scene
+        .as_mut()
+        .unwrap()
+        .focus_named(&FaceFocusRequest {
+            action_id: "creche.suggest".into(),
+            argument_name: None,
+        })
+        .unwrap();
+    // A submitted scene must fence another occurrence even before the owner
+    // replaces the render. Exercise the production Mask key/error/scanout path.
+    let enter = KeyEvent::new(40, KeyTransition::Pressed, KeyModifiers::NONE).unwrap();
+    assert!(matches!(
+        service
+            .scene
+            .as_mut()
+            .unwrap()
+            .key(enter, &show, 1)
+            .unwrap(),
+        FaceSceneInput::Submitted { .. }
+    ));
+    let writes = display.writes;
+    let tab = KeyEvent::new(43, KeyTransition::Pressed, KeyModifiers::NONE).unwrap();
+    assert!(matches!(
+        service.key(tab, 2, &mut display),
+        Err(NativeFaceMaskError::Scene(FaceSceneError::StaleFace))
+    ));
+    assert!(display.writes > writes);
+    assert_eq!(service.show().unwrap(), &show);
+    let scene = service.scene().unwrap();
+    assert_eq!(scene.face(), &face);
+    assert!(
+        scene
+            .frame()
+            .unwrap()
+            .scene
+            .commands()
+            .iter()
+            .any(|command| command.payload() == "Stale: refresh")
+    );
+}

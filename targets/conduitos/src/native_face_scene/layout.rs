@@ -39,6 +39,7 @@ pub(super) fn append_row_chrome(
     screen: LayoutRect,
     outline: GraphicsPaintRole,
     showing_details: bool,
+    focused: bool,
 ) -> Result<(), FaceSceneError> {
     if !showing_details && row.region_start {
         push(
@@ -60,6 +61,24 @@ pub(super) fn append_row_chrome(
         push(
             scene,
             GraphicsCommand::rect(row.bounds, screen, outline, GraphicsShapeStyle::Stroke),
+        )?;
+    }
+    // A second inset outline distinguishes focus even with identical paints
+    // (forced colors or monochrome scanout). It adds no semantic state.
+    if focused {
+        push(
+            scene,
+            GraphicsCommand::rect(
+                LayoutRect {
+                    x: row.bounds.x + 3,
+                    y: row.bounds.y + 3,
+                    width: row.bounds.width - 6,
+                    height: row.bounds.height - 6,
+                },
+                screen,
+                outline,
+                GraphicsShapeStyle::Stroke,
+            ),
         )?;
     }
     if !showing_details
@@ -127,7 +146,8 @@ pub(super) fn admit_with_expression(
     let mut rows = Vec::new();
     let (mut page, mut count, mut y, mut bytes) = (0, 0, chrome.top, 0usize);
     let mut previous_region = None;
-    let mut commands = chrome::COMMANDS;
+    // Reserve one non-color focus marker per page, including continuation pages.
+    let mut commands = chrome::COMMANDS + 1;
     for item in items {
         let mut region_start = item.region.is_some() && item.region != previous_region;
         previous_region = item.region;
@@ -186,7 +206,7 @@ pub(super) fn admit_with_expression(
                     page += 1;
                     count = 0;
                     column = 0;
-                    commands = chrome::COMMANDS;
+                    commands = chrome::COMMANDS + 1;
                 }
                 y = chrome.top;
             }
