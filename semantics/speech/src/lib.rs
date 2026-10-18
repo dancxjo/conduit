@@ -39,6 +39,12 @@ pub mod allophone_context;
 pub mod allophone_selection;
 #[cfg(feature = "semantic-bindings")]
 pub mod boundary_admission;
+#[cfg(all(feature = "semantic-bindings", feature = "kernel"))]
+pub mod carried_formant;
+#[cfg(all(feature = "semantic-bindings", feature = "kernel"))]
+pub mod carried_formant_kernel;
+#[cfg(feature = "semantic-bindings")]
+pub mod carrier_identity;
 #[cfg(feature = "semantic-bindings")]
 pub mod chosen_allophone_profile;
 #[cfg(feature = "semantic-bindings")]

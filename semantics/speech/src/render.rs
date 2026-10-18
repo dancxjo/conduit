@@ -1,6 +1,8 @@
 //! Caller-owned finite traversal for the compiled plot Back. All speech
 //! equations and realization choices are generated from the checked source.
 use crate::generated::*;
+#[cfg(all(feature = "semantic-bindings", feature = "kernel"))]
+pub(crate) mod frozen;
 
 pub const SAMPLE_RATE_HZ: u32 = RENDER_PROFILE.sample_rate_hz;
 pub const MAXIMUM_EVENTS: usize = RENDER_PROFILE.maximum_events as usize;

@@ -23,6 +23,7 @@ pub fn run(args: NativeSpeechArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std:
     let invoke = |arguments: &[&str]| -> Result<(), Box<dyn std::error::Error>> {
         let status = Command::new("cargo")
             .args(arguments)
+            .env("CONDUIT_CARRIED_FORMANT_OUTPUT", &output)
             .current_dir(&root)
             .status()?;
         if !status.success() {
