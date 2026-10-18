@@ -7,8 +7,18 @@ mod authoring_types;
 // The runtime imports Language identities; complete Speech source is build-only.
 #[allow(dead_code)]
 mod semantic_source;
-use alloc::string::String;
-use conduit_plot::StartupCatalog;
+use alloc::{string::String, vec::Vec};
+use conduit_plot::{CheckedNativeType, StartupCatalog};
+
+/// Owner-checked Speech Types with their complete refinements and laws.
+/// Selective composition can import one exact Type without installing unrelated
+/// owner names that the caller's own Source declares separately.
+pub fn checked_types() -> Result<Vec<CheckedNativeType>, String> {
+    authoring_types::decode(
+        include_bytes!(concat!(env!("OUT_DIR"), "/authoring_types.bin")),
+        crate::semantic::IPA_CONSTRUCTOR_SOURCE_ID,
+    )
+}
 
 /// Domain preparation only. Imports retain the same declarations, bounds and
 /// invariants used by generated Native bindings; no renderer or speaking grant.
@@ -48,10 +58,7 @@ pub fn install(startup: &mut StartupCatalog) -> Result<(), String> {
             startup.ensure_structured_type(name, ty)?;
         }
     }
-    let types = authoring_types::decode(
-        include_bytes!(concat!(env!("OUT_DIR"), "/authoring_types.bin")),
-        crate::semantic::IPA_CONSTRUCTOR_SOURCE_ID,
-    )?;
+    let types = checked_types()?;
     for ty in &types {
         startup.insert_checked_native_type(ty.name.clone(), ty)?;
     }

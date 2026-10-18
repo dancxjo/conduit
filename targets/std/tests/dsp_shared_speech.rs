@@ -54,7 +54,17 @@ fn admitted_ipa_drives_shared_frication_and_unsupported_phone_refuses() {
             );
             for (phone, coefficient) in [("s", Some(-8192_i32)), ("ʃ", Some(-4096)), ("a", None)] {
                 let mut startup = StartupCatalog::new();
-                conduit_speech::authoring::install(&mut startup).unwrap();
+                // The reference entrance checks the complete Audio owner Source.
+                // Import only its required Speech root, preserving every checked
+                // refinement/law without redeclaring the imported Audio names.
+                let phone_type = conduit_speech::authoring::checked_types()
+                    .unwrap()
+                    .into_iter()
+                    .find(|ty| ty.name == "SpeechPhoneNotation")
+                    .unwrap();
+                startup
+                    .insert_checked_native_type("SpeechPhoneNotation", &phone_type)
+                    .unwrap();
                 let (plan, front, pair) = preparation::prepare_with_catalogues(
                     &fixture,
                     "SharedExcitationStage",
