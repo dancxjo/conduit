@@ -54,3 +54,10 @@ transport/revalidate its certificates between consumers, or prove composed float
 DSP, ML, browser or device behavior. The numerical law here is one explicit
 conversion of an exact input, not a certificate for a larger floating-point
 computation. Full workspace integration and exact-main publication remain due.
+
+The [refreshed component receipt](evidence/binary32-refreshed-development-20261018.json)
+records validation after the selector merged into development: 129 selected Core
+tests across seven targets, including existing binary64 and IEEE regressions,
+strict all-target Core Clippy, no-default-features compilation, and formatting
+passed. This repeats component proof on the refreshed source; full integration
+and stable publication remain separate gates.

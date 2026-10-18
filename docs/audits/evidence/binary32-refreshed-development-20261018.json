@@ -1,0 +1,48 @@
+{
+  "issue": 5392,
+  "source": "ea73c82ea32031b9884085e0d2fd03664ba02922",
+  "base": "dc31041d055c1cdc360ce27e17acf0aaeb043934",
+  "status": "local component validation; not stable acceptance",
+  "tests_passed": 129,
+  "target_counts": [
+    103,
+    4,
+    6,
+    8,
+    3,
+    3,
+    2
+  ],
+  "checks": {
+    "strict_core_all_target_clippy": "passed",
+    "core_no_default_features": "passed",
+    "workspace_format": "passed"
+  },
+  "archive": {
+    "file": "binary32-refreshed-development-20261018.raw.tar.gz",
+    "bytes": 4584,
+    "sha256": "791f0416b4611c9f90fb0042df4d06caf04eff91a18d594577959bf2827e203d"
+  },
+  "logs": {
+    "binary32-refreshed-tests.log": {
+      "bytes": 13687,
+      "sha256": "3efac0cf8aeba9dfb83251d17129cc1afa81c1bd8690b435dce6d7ed79ef80b7"
+    },
+    "binary32-refreshed-clippy.log": {
+      "bytes": 217,
+      "sha256": "4c4d58cbcc9af5cab4b516282fa1c6dd4592f10fcc05a59c326aa4a7b4e69d15"
+    },
+    "binary32-refreshed-no-default.log": {
+      "bytes": 217,
+      "sha256": "65c8b45ca8c2204f1dae617be28acaaea288387366306ba2a536140d2a520242"
+    },
+    "binary32-refreshed-format.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "limits": [
+    "Single explicit conversion of exact input; no runtime near or Fore qualifier in this slice.",
+    "No algorithm-wide error certificate, DSP/ML or parent completion claim."
+  ]
+}
