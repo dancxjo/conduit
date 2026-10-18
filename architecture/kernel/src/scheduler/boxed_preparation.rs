@@ -95,7 +95,6 @@ where
             queue_slots: [None; QUEUE_SLOTS],
             ready: ReadySet::new(active_nodes),
             completed: [false; NODES],
-            completed_count: 0,
             cursor: 0,
             host_request_cursor: 0,
             decisions: 0,

@@ -161,7 +161,22 @@ where
     }
 
     fn all_nodes_completed(&self) -> bool {
-        self.completed_count == self.active_nodes
+        if let Some(count) = self.ready.completion_count() {
+            count == self.active_nodes
+        } else {
+            // A native word fits once capacity is at least twice its width.
+            // Below that threshold the original early-exit scan is bounded by
+            // fifteen nodes on supported targets, preserving tiny-Host work.
+            self.completed[..self.active_nodes].iter().all(|done| {
+                #[cfg(test)]
+                {
+                    let mut counts = self.scan_counts.get();
+                    counts.terminal_node_probes += 1;
+                    self.scan_counts.set(counts);
+                }
+                *done
+            })
+        }
     }
 
     /// Both terminal outcomes monotonically retire the same active membership.
@@ -171,8 +186,18 @@ where
         debug_assert!(node < self.active_nodes);
         if !self.completed[node] {
             self.completed[node] = true;
-            self.completed_count += 1;
+            self.ready.note_completion();
         }
+    }
+
+    #[cfg(test)]
+    fn completed_count(&self) -> usize {
+        self.ready.completion_count().unwrap_or_else(|| {
+            self.completed[..self.active_nodes]
+                .iter()
+                .filter(|done| **done)
+                .count()
+        })
     }
 
     fn step_logical(&mut self, node: usize) -> Result<bool, SchedulerError> {

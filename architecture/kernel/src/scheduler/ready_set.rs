@@ -1,5 +1,7 @@
 //! Fixed packed readiness with cursor-ordered iteration; no Play allocation.
 //! Retains the previous N-byte storage ceiling without generic-const arithmetic.
+//! Its unused tail also holds the scheduler's monotonic completion census when
+//! a native word fits; canonical completion flags remain in the scheduler.
 pub(super) struct ReadySet<const N: usize> {
     bytes: [u8; N],
 }
@@ -33,8 +35,31 @@ impl<const N: usize> ReadySet<N> {
         }
     }
     pub(super) fn clear(&mut self) {
-        self.bytes.fill(0);
+        let packed = N.div_ceil(8);
+        let used = packed + if N >= 64 { packed.div_ceil(8) } else { 0 };
+        self.bytes[..used].fill(0);
     }
+    /// The readiness bits and summary occupy less than half the reservation
+    /// at this threshold, leaving a disjoint native-word tail. Keeping the
+    /// existing field types and reservation avoids a new scheduler field.
+    pub(super) fn completion_count(&self) -> Option<usize> {
+        (N >= 2 * core::mem::size_of::<usize>()).then(|| {
+            usize::from_le_bytes(
+                self.bytes[N - core::mem::size_of::<usize>()..]
+                    .try_into()
+                    .unwrap(),
+            )
+        })
+    }
+
+    /// Called only for the first canonical terminal transition of one node.
+    pub(super) fn note_completion(&mut self) {
+        if let Some(count) = self.completion_count() {
+            self.bytes[N - core::mem::size_of::<usize>()..]
+                .copy_from_slice(&(count + 1).to_le_bytes());
+        }
+    }
+
     pub(super) fn contains(&self, node: usize) -> bool {
         self.bytes[node / 8] & (1 << (node % 8)) != 0
     }
@@ -140,6 +165,44 @@ impl<const N: usize> Iterator for ReadyNodes<'_, N> {
 mod tests {
     extern crate std;
     use super::*;
+    fn completion_tail<const N: usize>() {
+        let mut ready = ReadySet::<N>::new(N);
+        let has_count = N >= 2 * core::mem::size_of::<usize>();
+        assert_eq!(core::mem::size_of_val(&ready), N);
+        assert_eq!(ready.completion_count(), has_count.then_some(0));
+        for count in 1..=N {
+            ready.note_completion();
+            assert_eq!(ready.completion_count(), has_count.then_some(count));
+            assert!((0..N).all(|node| ready.contains(node)));
+        }
+        ready.clear();
+        assert!((0..N).all(|node| !ready.contains(node)));
+        assert_eq!(ready.completion_count(), has_count.then_some(N));
+        for node in 0..N {
+            ready.set(node, true);
+        }
+        assert_eq!(ready.completion_count(), has_count.then_some(N));
+        assert_eq!(ready.round_robin(0, N).count(), N);
+    }
+
+    #[test]
+    fn completion_census_is_disjoint_from_ready_bits_and_survives_clear() {
+        completion_tail::<0>();
+        completion_tail::<1>();
+        completion_tail::<7>();
+        completion_tail::<8>();
+        completion_tail::<15>();
+        completion_tail::<16>();
+        completion_tail::<17>();
+        completion_tail::<63>();
+        completion_tail::<64>();
+        completion_tail::<65>();
+        completion_tail::<127>();
+        completion_tail::<128>();
+        completion_tail::<129>();
+        completion_tail::<1024>();
+    }
+
     #[test]
     fn packed_iteration_matches_linear_round_robin_at_every_cursor() {
         for active in 0..=17 {
