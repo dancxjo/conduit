@@ -1,0 +1,34 @@
+# Terminal-private ConduitVoice lexical vocabulary. Tokens are model features,
+# never public phoneme/phone identities or a second linguistic carrier.
+# Version 1 projects lexical occurrences only; all structure and acoustic intent
+# remain on the original admitted carrier. It makes no learned-backend claim.
+type SpeechModelProjectionVersion = U32 in 1..=1
+type SpeechModelVocabularyId = Text <= 128B not in [""]
+type SpeechModelCheckpointId = Text <= 128B not in [""]
+type SpeechModelPhonemeToken = {
+ phoneme: PhonemeId
+ token: U32
+}
+type SpeechModelPhoneToken = {
+ phone: PhoneId
+ token: U32
+}
+type SpeechModelLinguisticVocabulary = {
+ identity: SpeechModelVocabularyId
+ version: SpeechModelProjectionVersion
+ basis: SpeechIpaInventoryNotationBasis
+ phonemes: sequence SpeechModelPhonemeToken in 1..=64
+ phones: sequence SpeechModelPhoneToken in 1..=64
+}
+# A checkpoint must declare its complete training vocabulary, not just a label.
+# This is supplied compatibility metadata, not checkpoint authenticity/training.
+type SpeechModelCheckpointProjection = {
+ checkpoint: SpeechModelCheckpointId
+ vocabulary: SpeechModelLinguisticVocabulary
+}
+# Executed Native admission checks exact compatibility of every vocabulary field.
+type SpeechModelProjectionCompatibility = {
+ requested: SpeechModelLinguisticVocabulary
+ trained: SpeechModelLinguisticVocabulary
+ where .requested == .trained
+}
