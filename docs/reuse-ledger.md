@@ -75,3 +75,14 @@ current ownership.
 
 | Bounded cost-source and capability inventory validation | `94ddf9a8469d39656b78bfe9ad171a8c8d8dbb30`, `7c2d7d15090e2b4190f8a157538dea5a00baa8ce` from retired `codex/5227-measured-time` / `codex/5228-native-pool-worker`; exact heads preserved under `retired-branches/20261017/` | Reuse an identical immutable borrowed Host snapshot while retaining calibration and clock/window refusal; sort at most 256 borrowed capability IDs with stack scratch and reject duplicates | Old worker/coordinator example framework and historical acceptance claims | Focused current Planner tests cover source mutation, clock/future/expiry/calibration refusal and maximum/reversed/duplicate/overbound inventory admission; included in the 14-test current harvest suite. Formatting and patch checks pass; required Candidate remains separate. |
 | Exact clock custody in typed cost measurements | `f006f82c2fe7ae71b678429667ef6103f9f13dbd` from retired `codex/5227-measured-time` | Private `CostMeasuredDuration` retains exact started/completed clock identities, quality and typed uncertainty enclosure; existing calibration delegates unchanged arithmetic and exposes original measurement custody | Old measurement example and native worker framework; no clock correlation or forecast guarantee; caller still admits producer, source and request | Current Planner tests cover all four scales, zero/short readings, quality/clock/backwards refusals, overflow/numeric budget, and calibration endpoint-to-source custody. All 14 focused harvest tests, formatting and patch checks pass; required Candidate remains separate. |
+
+- #5231 FARGAN workload: recover the fixed numerical operators, Value conditioner,
+  recurrent subframe Source, and finite scalar-oracle fixtures from
+  `f813938ba22cb23e36181f3e1b9ee2e3c3edb61c`, preserving the xiph/opus pin and
+  private-model hashes. Adapt to current parameterized Types, retained native
+  laws, and exact port envelopes under a new numerical contract revision.
+  Positive and refusal tests cover arithmetic, resource shape, malformed values,
+  bounds, pressure, cancellation, and atomic state publication. See
+  [the recovery and proof boundary](../proof/fargan/README.md). Streaming,
+  native feature/audio pipelines, training, compact precision, and quality
+  claims are excluded; implementation validation does not imply stable acceptance.

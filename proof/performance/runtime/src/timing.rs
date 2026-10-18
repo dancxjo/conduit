@@ -10,7 +10,7 @@ pub struct Metrics {
 pub fn ns(elapsed: std::time::Duration) -> u64 {
     u64::try_from(elapsed.as_nanos()).expect("finite measurement shorter than 584 years")
 }
-fn cpu() -> Option<u64> {
+pub(crate) fn cpu() -> Option<u64> {
     #[cfg(target_os = "linux")]
     {
         let mut value = libc::timespec {

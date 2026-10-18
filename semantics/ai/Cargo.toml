@@ -18,12 +18,17 @@ libm = "0.2"
 sha2 = { version = "0.10", default-features = false }
 
 [features]
+# Hosted preparation only: immutable checked built-in catalogues, never model data.
+hosted-catalog-cache = []
 default = []
 kernel-step = ["dep:conduit-kernel"]
 kernel-operation-owners = ["kernel-step", "dep:conduit-composite", "dep:conduit-plan-lowering"]
 plot-catalog = ["dep:conduit-web"]
 
 [dev-dependencies]
+serde_json = { version = "1", features = ["std"] }
+libc = "0.2"
+conduitos = { path = "../../targets/conduitos" }
 conduit-plan-lowering = { path = "../../architecture/plan-lowering" }
 conduit-semantic-catalog = { path = "../catalog", features = ["plot-catalog"] }
 conduit-plot = { path = "../../architecture/plot" }
@@ -37,3 +42,7 @@ postcard = { version = "1", features = ["alloc"] }
 [build-dependencies]
 conduit-data = { path = "../data" }
 conduit-plot = { path = "../../architecture/plot" }
+
+[[example]]
+name = "fargan_performance"
+required-features = ["kernel-operation-owners"]

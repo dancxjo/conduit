@@ -1,0 +1,76 @@
+# Generic exact finite shapes required by the pinned signal graph.
+type NumericF32Vector1 = NumericVector<1>
+type NumericF32Vector4 = NumericVector<4>
+type NumericF32Vector40 = NumericVector<40>
+type NumericF32Vector44 = NumericVector<44>
+type NumericF32Vector80 = NumericVector<80>
+type NumericF32Vector160 = NumericVector<160>
+type NumericF32Vector164 = NumericVector<164>
+type NumericF32Vector208 = NumericVector<208>
+type NumericF32Vector216 = NumericVector<216>
+type NumericF32Vector240 = NumericVector<240>
+type NumericF32Vector256 = NumericVector<256>
+type NumericF32Vector640 = NumericVector<640>
+type NumericF32Vector272 = NumericVector<272>
+type NumericF32Vector328 = NumericVector<328>
+type NumericF32Vector384 = NumericVector<384>
+type NumericF32Vector480 = NumericVector<480>
+type NumericF32Vector608 = NumericVector<608>
+type NumericF32Vector688 = NumericVector<688>
+type NumericF32MatrixRef80x1 = NumericMatrixRef<80, 1>
+type NumericF32MatrixRef328x192 = NumericMatrixRef<328, 192>
+type NumericF32MatrixRef192x192 = NumericMatrixRef<192, 192>
+type NumericF32MatrixRef192x4 = NumericMatrixRef<192, 4>
+type NumericF32MatrixRef272x480 = NumericMatrixRef<272, 480>
+type NumericF32MatrixRef160x480 = NumericMatrixRef<160, 480>
+type NumericF32MatrixRef240x384 = NumericMatrixRef<240, 384>
+type NumericF32MatrixRef128x384 = NumericMatrixRef<128, 384>
+type NumericF32MatrixRef208x384 = NumericMatrixRef<208, 384>
+type NumericF32MatrixRef160x160 = NumericMatrixRef<160, 160>
+type NumericF32MatrixRef128x128 = NumericMatrixRef<128, 128>
+type NumericF32MatrixRef688x128 = NumericMatrixRef<688, 128>
+type NumericF32MatrixRef128x40 = NumericMatrixRef<128, 40>
+type NumericF32BiasRef1 = NumericBiasRef<1>
+type NumericF32BiasRef4 = NumericBiasRef<4>
+type NumericF32BiasRef40 = NumericBiasRef<40>
+type NumericF32BiasRef160 = NumericBiasRef<160>
+type NumericF32BiasRef192 = NumericBiasRef<192>
+type NumericF32Vector124 = NumericVector<124>
+type NumericF32Vector232 = NumericVector<232>
+type NumericF32Vector200 = NumericVector<200>
+type NumericF32Vector168 = NumericVector<168>
+type NumericF32Vector288 = NumericVector<288>
+type NumericF32Vector416 = NumericVector<416>
+type NumericF32Vector648 = NumericVector<648>
+
+type NumericU16Indices44 = collection U16 = 44
+type NumericU16Indices160 = collection U16 = 160
+type NumericOnePole40Result = {
+    value: NumericF32Vector40
+    next_state: NumericF32Vector1
+}
+
+type NumericF32Vector18 = NumericVector<18>
+type NumericF32Vector161 = NumericVector<161>
+type NumericF32Vector322 = NumericVector<322>
+type NumericF32MatrixRef161x18 = NumericMatrixRef<161, 18>
+type NumericF32MatrixRef18x18 = NumericMatrixRef<18, 18>
+type NumericF32BiasRef18 = NumericBiasRef<18>
+
+type NumericF32Vector19 = NumericVector<19>
+type NumericI16Vector160 = collection I16 = 160
+
+# Bare arithmetic collections require explicit finite admission.
+type NumericRawF32Vector1 = collection F32 = 1
+type NumericRawF32Vector18 = collection F32 = 18
+type NumericRawF32Vector20 = collection F32 = 20
+type NumericRawF32Vector160 = collection F32 = 160
+type NumericRawF32Vector320 = collection F32 = 320
+type NumericI16Vector80 = collection I16 = 80
+
+# Explicit result Type uses the same owned nominal vector at both Cord ends.
+# The earlier parameter-expression window Type remains available unchanged.
+type NumericWindowResult2x64 = {
+    window: NumericF32Vector192
+    next_history: NumericHistory2x64
+}
