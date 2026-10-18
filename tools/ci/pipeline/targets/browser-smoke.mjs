@@ -1,7 +1,7 @@
 import { writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { startStaticProduct } from '../../../../proof/browser/static-product-server.mjs';
-import { classifyRequestFailures } from './browser-network-evidence.mjs';
+import { classifyRequestFailures, drainRequestFailures } from './browser-network-evidence.mjs';
 
 const require = createRequire(new URL('../../../../proof/browser/package.json', import.meta.url));
 const { chromium } = require('@playwright/test');
@@ -17,13 +17,14 @@ try {
   const errors = [];
   const failedRequests = [];
   page.on('pageerror', error => errors.push(error.message));
-  page.on('requestfailed', request => failedRequests.push((async () => {
+  const recordRequestFailure = request => failedRequests.push((async () => {
     const response = await request.response();
     return { url: request.url(), errorText: request.failure()?.errorText,
       method: request.method(), resourceType: request.resourceType(),
       ...request.timing(), status: response?.status(),
       contentLength: Number(response?.headers()['content-length']) };
-  })()));
+  })());
+  page.on('requestfailed', recordRequestFailure);
   await page.goto(entrance.url);
   await page.waitForFunction(() => document.documentElement.dataset.conduitLoadState === 'ready');
   await page.getByRole('button', { name: 'Birth Body', exact: true }).waitFor({ state: 'visible' });
@@ -42,9 +43,12 @@ try {
     if (!response.ok()) throw new Error(`Broken product link: ${url.href}: ${response.status()}`);
     checkedLinks++;
   }
+  const requestFailures = await drainRequestFailures(failedRequests);
+  // End the measured startup/audit window before taking its final snapshot;
+  // teardown notifications are not runtime observations of this scenario.
+  page.off('requestfailed', recordRequestFailure);
   const timing = await page.evaluate(() => ({ timeOrigin: performance.timeOrigin,
     resources: performance.getEntriesByType('resource').map(resource => resource.toJSON()) }));
-  const requestFailures = await Promise.all(failedRequests);
   const network = classifyRequestFailures(requestFailures, timing);
   errors.push(...network.errors);
   writeFileSync(output, JSON.stringify({ violations: axe.violations, pageErrors: errors, checkedLinks,

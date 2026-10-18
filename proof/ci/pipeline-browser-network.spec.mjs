@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { classifyRequestFailures } from '../../tools/ci/pipeline/targets/browser-network-evidence.mjs';
+import { classifyRequestFailures, drainRequestFailures } from '../../tools/ci/pipeline/targets/browser-network-evidence.mjs';
 
 // Captured Chromium notification: the bounded reader consumed 30,309 bytes,
 // without cancellation; Resource Timing independently records the full 200 body.
@@ -60,4 +60,18 @@ test('one complete response cannot excuse an ambiguous or repeated failure', () 
   const repeated = classifyRequestFailures([failure, failure], timing([resource]));
   assert.equal(repeated.completedAbortNotifications.length, 1);
   assert.equal(repeated.errors.length, 1);
+});
+
+test('a real failure arriving while earlier response evidence awaits is retained', async () => {
+  let finishEarlier;
+  const pending = [new Promise(resolve => { finishEarlier = resolve; })];
+  const collecting = drainRequestFailures(pending);
+  const laterFailure = { ...failure, url: `${failure.url}?later`,
+    errorText: 'net::ERR_CONNECTION_RESET' };
+  pending.push(Promise.resolve(laterFailure));
+  finishEarlier(failure);
+  const records = await collecting;
+  assert.deepEqual(records, [failure, laterFailure]);
+  const result = classifyRequestFailures(records, timing([resource]));
+  assert.deepEqual(result.errors, [`${laterFailure.url}: net::ERR_CONNECTION_RESET`]);
 });

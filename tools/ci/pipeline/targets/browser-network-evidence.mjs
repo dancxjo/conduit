@@ -1,6 +1,14 @@
 // Chromium can report ERR_ABORTED after a fetch body has been consumed. Keep
 // those notifications as evidence, but require the same complete HTTP transfer
 // in Resource Timing. Partial, ambiguous and unrelated failures remain fatal.
+export async function drainRequestFailures(pending) {
+  const records = [];
+  // Array iteration includes entries appended while an earlier record awaits
+  // its response. Promise.all(pending) would snapshot and omit those failures.
+  for (const record of pending) records.push(await record);
+  return records;
+}
+
 export function classifyRequestFailures(failures, { timeOrigin, resources }) {
   const errors = [];
   const completedAbortNotifications = [];
