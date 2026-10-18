@@ -411,10 +411,7 @@ pub fn prepare_phone_fundamental<'a, 'inventory>(
         .observation()
         .as_ref()
         .map(|observed| {
-            let bytes = observed
-                .control()
-                .value()
-                .clone()
+            let bytes = (*observed.control().value())
                 .encode()
                 .map_err(|reason| IntentFundamentalRefusal::Native { event, reason })?;
             PreparedAcousticReciprocal::new()

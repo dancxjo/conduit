@@ -39,6 +39,16 @@ pub mod allophone_context;
 pub mod allophone_selection;
 #[cfg(feature = "semantic-bindings")]
 pub mod boundary_admission;
+#[cfg(all(feature = "semantic-bindings", feature = "kernel"))]
+pub mod carried_formant;
+#[cfg(all(
+    feature = "semantic-bindings",
+    feature = "kernel",
+    target_has_atomic = "ptr"
+))]
+pub mod carried_formant_kernel;
+#[cfg(feature = "semantic-bindings")]
+pub mod carrier_identity;
 #[cfg(feature = "semantic-bindings")]
 pub mod chosen_allophone_profile;
 #[cfg(feature = "semantic-bindings")]
@@ -72,13 +82,9 @@ pub mod intent_admission;
 #[cfg(feature = "semantic-bindings")]
 pub mod intent_duration_grid;
 #[cfg(feature = "semantic-bindings")]
-pub mod intent_fundamental;
-#[cfg(feature = "semantic-bindings")]
 pub mod intent_energy;
 #[cfg(feature = "semantic-bindings")]
-pub mod carrier_identity;
-#[cfg(feature = "semantic-bindings")]
-pub mod model_linguistic_projection;
+pub mod intent_fundamental;
 #[cfg(feature = "semantic-bindings")]
 pub mod intent_inventory;
 #[cfg(feature = "semantic-bindings")]
@@ -101,6 +107,10 @@ pub mod language_projection;
 pub mod language_revision;
 #[cfg(feature = "semantic-bindings")]
 pub mod linguistic_prosody;
+#[cfg(feature = "semantic-bindings")]
+pub mod linguistic_rate;
+#[cfg(feature = "semantic-bindings")]
+pub mod model_linguistic_projection;
 #[cfg(feature = "semantic-bindings")]
 pub mod neighbor_match;
 #[cfg(feature = "semantic-bindings")]
@@ -284,3 +294,9 @@ pub mod syllable_structure;
 /// Optional full-float FARGAN topology, checked by the ordinary Plot compiler.
 #[cfg(feature = "fargan-source")]
 pub mod fargan;
+
+#[cfg(feature = "semantic-bindings")]
+pub mod intent_frequency_trajectory;
+
+#[cfg(feature = "semantic-bindings")]
+pub mod scoped_energy;

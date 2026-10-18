@@ -1,7 +1,11 @@
+#[path = "build_support/audio_imports.rs"]
+mod audio_imports;
 #[path = "build_support/authoring_types.rs"]
 mod authoring_types;
 #[path = "build_support/graph.rs"]
 mod graph;
+#[path = "build_support/linguistic_rate_program.rs"]
+mod linguistic_rate_program;
 #[path = "build_support/lower.rs"]
 mod lower;
 #[path = "build_support/semantic_source.rs"]
@@ -12,7 +16,6 @@ use conduit_plot::{
     PortableExpressionProgram, ProfileCatalog, StartupCatalog,
 };
 use std::{env, fs, path::PathBuf};
-
 fn main() {
     println!("cargo:rerun-if-changed=types.conduit");
     println!("cargo:rerun-if-changed=rule_status.conduit");
@@ -21,6 +24,8 @@ fn main() {
     println!("cargo:rerun-if-changed=translation.conduit");
     println!("cargo:rerun-if-changed=timing.conduit");
     println!("cargo:rerun-if-changed=intent.conduit");
+    println!("cargo:rerun-if-changed=offline_authoring.conduit");
+    println!("cargo:rerun-if-changed=linguistic_rate.conduit");
     println!("cargo:rerun-if-changed=correspondence.conduit");
     println!("cargo:rerun-if-changed=inventory.conduit");
     println!("cargo:rerun-if-changed=profile_phones.conduit");
@@ -37,6 +42,10 @@ fn main() {
         "syllables.conduit",
         "syllable_structure.conduit",
         "acoustic_scope.conduit",
+        "acoustic_scope_extensions.conduit",
+        "acoustic_frequency_trajectory.conduit",
+        "acoustic_scoped_energy.conduit",
+        "build_support/audio_imports.rs",
         "fundamental.conduit",
         "acoustic_energy.conduit",
         "ipa.conduit",
@@ -46,6 +55,7 @@ fn main() {
         "ipa_constructors.conduit",
         "../language/identity.conduit",
         "build_support/semantic_source.rs",
+        "build_support/linguistic_rate_program.rs",
         "build_support/authoring_types.rs",
     ] {
         println!("cargo:rerun-if-changed={path}");
@@ -89,6 +99,7 @@ fn main() {
     let semantic =
         check_syntax_document(&parse_syntax_document(&semantic_source), &semantic_catalog)
             .expect("Speaking segment and listening contracts check");
+    linguistic_rate_program::write(&semantic);
     // Retain the complete checked contracts used by Native generation. Runtime
     // authoring imports these facts rather than checking the compiled source again.
     let authoring_types: Vec<authoring_types::CompiledType> = semantic
@@ -205,43 +216,7 @@ fn main() {
         .iter()
         .map(|(_, ty)| ty.clone())
         .collect::<Vec<_>>();
-    let audio_paths = [
-        (
-            "AudioTrajectoryAnchor",
-            "conduit_audio::AudioTrajectoryAnchor",
-        ),
-        (
-            "AudioFrequencyControl",
-            "conduit_audio::AudioFrequencyControl",
-        ),
-        (
-            "AudioTrajectoryQuery",
-            "conduit_audio::AudioTrajectoryQuery",
-        ),
-        (
-            "AudioExactTimeOffset",
-            "conduit_audio::AudioExactTimeOffset",
-        ),
-        (
-            "AudioScopedControlTrajectory",
-            "conduit_audio::AudioScopedControlTrajectory",
-        ),
-        ("AudioDecibelBasis", "conduit_audio::AudioDecibelBasis"),
-        (
-            "AudioReferencedLevelRatio",
-            "conduit_audio::AudioReferencedLevelRatio",
-        ),
-        (
-            "AudioReferencedAmplitudePowerRequest",
-            "conduit_audio::AudioReferencedAmplitudePowerRequest",
-        ),
-        (
-            "AudioTrajectoryQuantity",
-            "conduit_audio::AudioTrajectoryQuantity",
-        ),
-        ("AudioLevelRatio", "conduit_audio::AudioLevelRatio"),
-    ];
-    for (name, path) in audio_paths {
+    for &(name, path) in audio_imports::PATHS {
         let ty = audio_types
             .iter()
             .find(|ty| ty.name == name)

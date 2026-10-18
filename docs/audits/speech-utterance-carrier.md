@@ -136,3 +136,13 @@ scope: its constructor work is already accepted; renderer/playback owners do
 not fill a C1 gap. No code is recovered here and the omnibus PR stays closed.
 This audit establishes neither #5262 acoustic integration nor #5263 contrasting
 realizations, model compatibility, audio production, or human listening proof.
+
+
+## Acoustic and terminal extension
+
+The original checkpoint above remains a field-by-field mapping of its pinned
+sources. The subsequent [acoustic projection addendum](speech-acoustic-projection-addendum.md)
+records the quantity/terminal compositions and their remaining omissions.
+See [shared acoustic custody](../design/speech-acoustic-custody.md) for the
+executable conformance and retained original-carrier artifacts. Neither document
+alone substitutes for the exact accepted integration receipt.
