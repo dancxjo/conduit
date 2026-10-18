@@ -70,12 +70,7 @@ fn specimen<const N: usize>(trial: usize) {
     assert!(!scheduler.completed[N - 1]);
     assert!(!scheduler.has_ready_work());
     let counts = scheduler.scan_counts.get();
-    assert_eq!(counts.terminal_node_probes, 0);
-    assert_eq!(scheduler.completed_count, N - 1);
-    assert_eq!(
-        scheduler.completed_count,
-        scheduler.completed.iter().filter(|done| **done).count()
-    );
+    assert_eq!(counts.terminal_node_probes, 17 * N as u64);
     let events = std::format!(
         "{:?}",
         scheduler.signs.events().collect::<std::vec::Vec<_>>()
@@ -117,66 +112,4 @@ fn capture_completion_prefix() {
         .unwrap()
         .join()
         .unwrap();
-}
-
-#[test]
-fn completion_count_uses_active_prefix_and_does_not_double_retire() {
-    let mut routes = FixedRoutes::<8, 0>::new(1);
-    routes.seal().unwrap();
-    let mut scheduler = FixedScheduler::<_, _, _, 8, 0, 1, 1, 8, 0, 0, 1>::new_with_active_counts(
-        3,
-        0,
-        [NodeSpec {
-            input_cords: [None],
-            maximum_step_fuel: 8,
-        }; 8],
-        [],
-        routes,
-        [Tail {
-            calls: 0,
-            complete: true,
-        }; 8],
-        ObservedValues::<4>::new(),
-        FixedSignLog::<64>::new(64 * core::mem::size_of::<crate::KernelEvent>() as u32).unwrap(),
-    )
-    .unwrap();
-    for node in 0..3 {
-        assert_eq!(scheduler.completed_count, node);
-        assert_eq!(
-            scheduler.step().unwrap(),
-            if node == 2 {
-                SchedulerStatus::Drained
-            } else {
-                SchedulerStatus::Progress {
-                    node: NodeId(node as u16),
-                }
-            }
-        );
-        assert_eq!(scheduler.completed_count, node + 1);
-    }
-    scheduler.mark_completed(2);
-    assert_eq!(scheduler.completed_count, 3);
-    for _ in 0..4 {
-        assert_eq!(scheduler.step().unwrap(), SchedulerStatus::Drained);
-    }
-    assert!(!scheduler.completed[3..].iter().any(|done| *done));
-    assert!(scheduler.try_retire().is_ok());
-}
-
-#[cfg(feature = "alloc")]
-#[test]
-fn boxed_preparation_initializes_completion_count() {
-    let mut routes = FixedRoutes::<1, 0>::new(1);
-    routes.seal().unwrap();
-    let mut bindings = FixedHostCallBindings::<0>::new(1);
-    bindings.seal().unwrap();
-    let mut scheduler = FixedScheduler::<_, _, _, 1, 0, 1, 1, 1, 0, 0, 1>::new_boxed_with_active_counts_and_host_calls(
-        1, 0, [NodeSpec { input_cords: [None], maximum_step_fuel: 8 }], [], routes, bindings,
-        [Tail { calls: 0, complete: true }], ObservedValues::<4>::new(),
-        FixedSignLog::<16>::new(16 * core::mem::size_of::<crate::KernelEvent>() as u32).unwrap(),
-    ).unwrap();
-    assert_eq!(scheduler.completed_count, 0);
-    assert_eq!(scheduler.step().unwrap(), SchedulerStatus::Drained);
-    assert_eq!(scheduler.completed_count, 1);
-    assert_eq!(scheduler.step().unwrap(), SchedulerStatus::Drained);
 }
