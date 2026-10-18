@@ -72,6 +72,8 @@ pub mod intent_admission;
 #[cfg(feature = "semantic-bindings")]
 pub mod intent_duration_grid;
 #[cfg(feature = "semantic-bindings")]
+pub mod intent_fundamental;
+#[cfg(feature = "semantic-bindings")]
 pub mod intent_inventory;
 #[cfg(feature = "semantic-bindings")]
 pub mod intent_phoneme_inventory;
