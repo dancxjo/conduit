@@ -37,7 +37,7 @@ where
     /// wake; no separate queue or duplicate ready membership is needed.
     pub(super) fn set_ready(&mut self, node: usize, ready: bool) {
         let eligible = ready
-            && !self.completed[node]
+            && !self.completed.contains(node)
             && (self.pending_host_count == 0
                 || !self
                     .indexed_host_call(node)

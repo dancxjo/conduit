@@ -58,7 +58,7 @@ where
             KernelEventKind::CancellationRequested,
         )?;
         for (node, driver) in self.drivers[..self.active_nodes].iter_mut().enumerate() {
-            if !self.completed[node] {
+            if !self.completed.contains(node) {
                 driver.cancel();
             }
         }
@@ -95,7 +95,7 @@ where
         reason = "Refusal must return fixed-storage ownership without allocating or dropping the active scheduler"
     )]
     pub fn try_retire(self) -> Result<RetiredExecution<D, S, E, NODES>, Self> {
-        if (!self.cancelled && !self.completed[..self.active_nodes].iter().all(|done| *done))
+        if (!self.cancelled && self.completed.count() != self.active_nodes)
             || self.pending_host_calls.iter().any(Option::is_some)
             || self.queue_slots.iter().any(Option::is_some)
             || self.cords[..self.active_cords]

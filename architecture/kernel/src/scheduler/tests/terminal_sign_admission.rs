@@ -120,8 +120,8 @@ fn refusal_and_retry(remote_pressure: bool) {
             }))
         );
         assert_eq!(scheduler.drivers[0].committed, 0);
-        assert!(!scheduler.completed[0]);
-        assert_eq!(scheduler.completed_count, 0);
+        assert!(!scheduler.completed.contains(0));
+        assert_eq!(scheduler.completed.count(), 0);
         assert!(scheduler.ready.contains(0));
         assert_eq!(scheduler.values.used_items(), 0);
         assert_eq!(scheduler.signs.events().count(), 1);
@@ -139,8 +139,8 @@ fn refusal_and_retry(remote_pressure: bool) {
             Ok(SchedulerStatus::Progress { node: NodeId(0) })
         );
         assert_eq!(scheduler.drivers[0].committed, 1);
-        assert!(scheduler.completed[0]);
-        assert_eq!(scheduler.completed_count, 1);
+        assert!(scheduler.completed.contains(0));
+        assert_eq!(scheduler.completed.count(), 1);
         assert_eq!(scheduler.signs.events().count(), 6);
         for cord in &scheduler.cords {
             assert_eq!(cord.len, 1);
@@ -162,7 +162,7 @@ fn oversized_abnormal_terminal_refuses_before_commit_and_allows_smaller_retry() 
     let mut scheduler = scheduler_with_bytes(true, 2, 16, 3);
     assert_eq!(scheduler.step(), Err(SchedulerError::QueueCapacityExceeded));
     assert_eq!(scheduler.drivers[0].committed, 0);
-    assert!(!scheduler.completed[0]);
+    assert!(!scheduler.completed.contains(0));
     assert!(scheduler.ready.contains(0));
     assert_eq!(scheduler.values.used_items(), 0);
     assert_eq!(scheduler.signs.events().count(), 1);
@@ -177,7 +177,7 @@ fn oversized_abnormal_terminal_refuses_before_commit_and_allows_smaller_retry() 
         Ok(SchedulerStatus::Progress { node: NodeId(0) })
     );
     assert_eq!(scheduler.drivers[0].committed, 1);
-    assert!(scheduler.completed[0]);
+    assert!(scheduler.completed.contains(0));
     let value = scheduler.peek(0).unwrap().unwrap();
     assert_eq!(scheduler.values.get(value), Ok(b"ok".as_slice()));
     assert_eq!(scheduler.values.reference_count(value), Ok(2));
@@ -197,8 +197,8 @@ fn abnormal_terminal_obeys_each_branch_semantic_envelope_before_commit() {
             Err(SchedulerError::SemanticValueBoundExceeded)
         );
         assert_eq!(scheduler.drivers[0].committed, 0);
-        assert!(!scheduler.completed[0]);
-        assert_eq!(scheduler.completed_count, 0);
+        assert!(!scheduler.completed.contains(0));
+        assert_eq!(scheduler.completed.count(), 0);
         assert!(scheduler.ready.contains(0));
         assert_eq!(scheduler.values.used_items(), 0);
         assert_eq!(scheduler.signs.events().count(), 1);
@@ -213,8 +213,8 @@ fn abnormal_terminal_obeys_each_branch_semantic_envelope_before_commit() {
             Ok(SchedulerStatus::Progress { node: NodeId(0) })
         );
         assert_eq!(scheduler.drivers[0].committed, 1);
-        assert!(scheduler.completed[0]);
-        assert_eq!(scheduler.completed_count, 1);
+        assert!(scheduler.completed.contains(0));
+        assert_eq!(scheduler.completed.count(), 1);
         assert_eq!(scheduler.signs.events().count(), 7);
         let value = scheduler.peek(0).unwrap().unwrap();
         assert_eq!(scheduler.values.get(value), Ok(b"ok".as_slice()));

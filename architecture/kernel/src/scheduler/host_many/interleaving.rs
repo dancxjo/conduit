@@ -354,7 +354,7 @@ fn packed_adapter_bound_reverts_after_early_slot_consumption_leaves_a_hole() {
     step(&mut scheduler, 0);
     complete(&mut scheduler, 0, 1);
     step(&mut scheduler, 0);
-    assert!(scheduler.completed[0]);
+    assert!(scheduler.completed.contains(0));
     assert_eq!(scheduler.pending_host_count, 1);
     assert_eq!(scheduler.host_slot_search_start, 0);
     assert!(scheduler.pending_host_calls[0].is_none());

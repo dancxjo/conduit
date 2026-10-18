@@ -67,13 +67,13 @@ fn specimen<const N: usize>(trial: usize) {
     let allocations = allocation.finish();
     assert_eq!(allocations.allocations + allocations.reallocations, 0);
     assert_eq!(scheduler.drivers[N - 1].calls, 10);
-    assert!(!scheduler.completed[N - 1]);
+    assert!(!scheduler.completed.contains(N - 1));
     assert!(!scheduler.has_ready_work());
     let counts = scheduler.scan_counts.get();
     assert_eq!(counts.terminal_node_probes, 0);
-    assert_eq!(scheduler.completed_count, N - 1);
+    assert_eq!(scheduler.completed.count(), N - 1);
     assert_eq!(
-        scheduler.completed_count,
+        scheduler.completed.count(),
         scheduler.completed.iter().filter(|done| **done).count()
     );
     let events = std::format!(
@@ -141,7 +141,7 @@ fn completion_count_uses_active_prefix_and_does_not_double_retire() {
     )
     .unwrap();
     for node in 0..3 {
-        assert_eq!(scheduler.completed_count, node);
+        assert_eq!(scheduler.completed.count(), node);
         assert_eq!(
             scheduler.step().unwrap(),
             if node == 2 {
@@ -152,14 +152,14 @@ fn completion_count_uses_active_prefix_and_does_not_double_retire() {
                 }
             }
         );
-        assert_eq!(scheduler.completed_count, node + 1);
+        assert_eq!(scheduler.completed.count(), node + 1);
     }
     scheduler.mark_completed(2);
-    assert_eq!(scheduler.completed_count, 3);
+    assert_eq!(scheduler.completed.count(), 3);
     for _ in 0..4 {
         assert_eq!(scheduler.step().unwrap(), SchedulerStatus::Drained);
     }
-    assert!(!scheduler.completed[3..].iter().any(|done| *done));
+    assert!((3..8).all(|node| !scheduler.completed.contains(node)));
     assert!(scheduler.try_retire().is_ok());
 }
 
@@ -175,8 +175,8 @@ fn boxed_preparation_initializes_completion_count() {
         [Tail { calls: 0, complete: true }], ObservedValues::<4>::new(),
         FixedSignLog::<16>::new(16 * core::mem::size_of::<crate::KernelEvent>() as u32).unwrap(),
     ).unwrap();
-    assert_eq!(scheduler.completed_count, 0);
+    assert_eq!(scheduler.completed.count(), 0);
     assert_eq!(scheduler.step().unwrap(), SchedulerStatus::Drained);
-    assert_eq!(scheduler.completed_count, 1);
+    assert_eq!(scheduler.completed.count(), 1);
     assert_eq!(scheduler.step().unwrap(), SchedulerStatus::Drained);
 }

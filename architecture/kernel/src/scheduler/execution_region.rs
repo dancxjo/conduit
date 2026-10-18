@@ -141,7 +141,7 @@ where
                 break;
             };
             let next = usize::from(next.0);
-            if !may_continue || !self.ready.contains(next) || self.completed[next] {
+            if !may_continue || !self.ready.contains(next) || self.completed.contains(next) {
                 break;
             }
             node = next;
@@ -161,7 +161,7 @@ where
     }
 
     fn all_nodes_completed(&self) -> bool {
-        self.completed_count == self.active_nodes
+        self.completed.count() == self.active_nodes
     }
 
     /// Both terminal outcomes monotonically retire the same active membership.
@@ -169,10 +169,7 @@ where
     /// internal notifications. Cancellation remains a separate terminal state.
     pub(super) fn mark_completed(&mut self, node: usize) {
         debug_assert!(node < self.active_nodes);
-        if !self.completed[node] {
-            self.completed[node] = true;
-            self.completed_count += 1;
-        }
+        self.completed.mark(node);
     }
 
     fn step_logical(&mut self, node: usize) -> Result<bool, SchedulerError> {

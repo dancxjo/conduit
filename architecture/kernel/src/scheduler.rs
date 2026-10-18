@@ -21,6 +21,8 @@ pub use conduit_assigned_plan::{AssignedConnectionTrack, AssignedPressurePolicy}
 mod active_capacity;
 #[cfg(feature = "alloc")]
 mod boxed_preparation;
+mod completion_set;
+use completion_set::CompletionSet;
 mod cord_prefix;
 mod debug_control;
 mod derived_value;
@@ -959,8 +961,7 @@ pub struct FixedScheduler<
     cords: [CordState; CORDS],
     queue_slots: [Option<ValueRef>; QUEUE_SLOTS],
     ready: ReadySet<NODES>,
-    completed: [bool; NODES],
-    completed_count: usize,
+    completed: CompletionSet<NODES>,
     cursor: usize,
     host_request_cursor: usize,
     decisions: u32,
@@ -1074,8 +1075,7 @@ where
             cords: [CordState::EMPTY; CORDS],
             queue_slots: [None; QUEUE_SLOTS],
             ready: ReadySet::new(active_nodes),
-            completed: [false; NODES],
-            completed_count: 0,
+            completed: CompletionSet::new(),
             cursor: 0,
             host_request_cursor: 0,
             decisions: 0,
@@ -1308,7 +1308,8 @@ where
         E: DebugRuntimeControl,
     {
         let node = self.signs.validate_breakpoint(breakpoint)?;
-        if usize::from(node.0) >= self.active_nodes || self.completed[usize::from(node.0)] {
+        if usize::from(node.0) >= self.active_nodes || self.completed.contains(usize::from(node.0))
+        {
             return Err(DebugControlRefusal::UnknownSubject);
         }
         self.debug_control.arm(breakpoint, node)
@@ -1752,7 +1753,7 @@ where
                     .indexed_host_call(node)
                     .is_some_and(|pending| pending.completion.is_none());
                 self.ready.contains(node)
-                    && !self.completed[node]
+                    && !self.completed.contains(node)
                     && (!waiting_for_host_completion
                         || self.drivers[node].accepts_input_while_host_call_pending())
             })
@@ -1882,7 +1883,7 @@ where
             let waiting_for_host_completion =
                 pending.is_some_and(|pending| pending.completion.is_none());
             if self.ready.contains(node)
-                && !self.completed[node]
+                && !self.completed.contains(node)
                 && (!waiting_for_host_completion
                     || self.drivers[node].accepts_input_while_host_call_pending())
             {

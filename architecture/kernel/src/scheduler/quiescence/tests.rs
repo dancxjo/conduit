@@ -385,7 +385,7 @@ fn sparse_quiescence_matches_full_scan_eligibility_and_sign_order() {
             .filter(|&cord| {
                 scheduler.cords[cord].quiescence_armed
                     && scheduler.cords[cord].len == 0
-                    && !scheduler.completed[cord]
+                    && !scheduler.completed.contains(cord)
             })
             .map(|cord| NodeId(cord as u16))
             .collect();

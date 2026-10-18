@@ -105,7 +105,7 @@ where
             let Some((source, _)) = spec.source_local() else {
                 continue;
             };
-            if self.completed[usize::from(source.0)] || self.cords[cord].len != 0 {
+            if self.completed.contains(usize::from(source.0)) || self.cords[cord].len != 0 {
                 continue;
             }
             first_source.get_or_insert(source);
@@ -140,7 +140,7 @@ where
             let Some((source, port)) = spec.source_local() else {
                 continue;
             };
-            if self.completed[usize::from(source.0)] || self.cords[cord].len != 0 {
+            if self.completed.contains(usize::from(source.0)) || self.cords[cord].len != 0 {
                 continue;
             }
             self.push(cord, value)?;
