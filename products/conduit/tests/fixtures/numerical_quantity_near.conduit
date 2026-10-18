@@ -1,0 +1,28 @@
+plot distance (
+    >> trigger: MathematicalValue
+    result: Quantity >>
+) = (1m)
+
+plot divide (
+    >> value: Quantity
+    result: Quantity >>
+) = (. / 3)
+
+plot explain (
+    >> value: NearQuantity
+    result: Text >>
+) = (.source == 1 / 3 && .maximum-error == 1 / 100663296 ? "certified" : "wrong")
+
+plot main {
+    seed: math/realize(request={value:0,maximum-error:0})
+    original: distance
+    third: divide
+    boundary: math/near(limit=0.0001m)
+    check: explain
+    show: face/text("Near quantity")
+    seed.result >> (.source) >> original.trigger
+    original.result >> third.value
+    third.result >> boundary.value
+    boundary.result >> check.value
+    check.result >> show
+}.

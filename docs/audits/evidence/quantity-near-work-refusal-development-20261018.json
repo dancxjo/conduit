@@ -1,0 +1,29 @@
+{
+  "source_commit": "8216882b5",
+  "status": "Development correction only; no stable parent acceptance.",
+  "change": "Retain numeric work/extent refusal during a second bounded rational extraction from an already validated mathematical value, instead of classifying valid data as malformed.",
+  "regression": "A valid rational1/3 packet and a measured budget permitting the initial decode but exhausting extraction previously returned Malformed; now WorkLimit. Sufficient work still returns the exactrational.",
+  "validation": {
+    "core_unit_tests": 101,
+    "failed": 0,
+    "ignored": 0,
+    "strict_core_all_targets_clippy": "PASS",
+    "core_no_default_features": "PASS",
+    "format": "PASS"
+  },
+  "retained_executable": {
+    "source": "8216882b5",
+    "executable_sha256": "cebd56b7dc7be8279f5a20b662176c58aff1eb97054767e5bc6ac3c84a13f569",
+    "bytes": 34936680
+  },
+  "archive": {
+    "file": "quantity-near-work-refusal-development-20261018.raw.tar.gz",
+    "bytes": 4404,
+    "sha256": "cd26dc92d40b6fe60db5487e960947f641613371052a702618e519499f037e53",
+    "roundtrip": "all raw log bytes verified"
+  },
+  "scope_limits": [
+    "This validates the verifier refusal seam. Earlier full CLI and physical runtime receipts remain separately source-pinned.",
+    "No new Fore syntax, generic qualified consumer, symbolic Quantity transport or approximate algorithm acceptance."
+  ]
+}

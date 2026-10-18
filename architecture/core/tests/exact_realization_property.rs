@@ -103,3 +103,38 @@ fn exact_law_must_name_one_declared_matching_structured_configuration() {
         Err(KindValidationError::InvalidRealizationRequirement)
     );
 }
+
+#[test]
+fn native_quantity_equality_binds_coordinate_unit_and_role_without_a_new_request_type() {
+    let q = QuantityConfigurationValue::from_value(Quantity::parse_plot_literal("1m").unwrap())
+        .unwrap();
+    let requirement = ExactRealizationProperty {
+        property_profile: quantity_realization_profile(),
+        configuration_key: "limit".into(),
+    };
+    let property = quantity_realization_property(&q).unwrap();
+    let request = ConfigurationValue::Quantity(q);
+    assert_eq!(
+        requirement.check(Some(&request), std::slice::from_ref(&property)),
+        Ok(())
+    );
+    let other =
+        QuantityConfigurationValue::from_value(Quantity::parse_plot_literal("100cm").unwrap())
+            .unwrap();
+    // Equal physical magnitude does not erase the explicitly bound coordinates.
+    assert_eq!(
+        requirement.check(
+            Some(&ConfigurationValue::Quantity(other)),
+            std::slice::from_ref(&property)
+        ),
+        Err(ExactRealizationRefusal::DifferentValue)
+    );
+    let foreign = ExactRealizationProperty {
+        property_profile: kind_id("foreign"),
+        ..requirement
+    };
+    assert_eq!(
+        foreign.check(Some(&request), &[property]),
+        Err(ExactRealizationRefusal::WrongConfigurationProfile)
+    );
+}
