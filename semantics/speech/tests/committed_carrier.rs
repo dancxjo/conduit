@@ -3,6 +3,8 @@
 mod commitment;
 #[path = "common/committed_carrier/constructors.rs"]
 mod constructors;
+#[path = "common/committed_carrier/duration_grid.rs"]
+mod duration_grid;
 #[path = "common/committed_carrier/inspection.rs"]
 mod inspection;
 #[path = "common/committed_carrier/material.rs"]
