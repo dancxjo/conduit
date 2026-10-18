@@ -1,0 +1,49 @@
+# Energy controls share the same original five linguistic scopes and Audio policy.
+type SpeechScopedEnergyTarget = {
+    scope: SpeechAcousticScope
+    control: AudioScopedControlTrajectory
+    basis: AudioDecibelBasis
+    where .control.domain is amplitude || .control.domain is power
+    where .control.domain is amplitude ? .basis.reference.role is amplitude_magnitude : .basis.reference.role is power
+    where .scope is phone ? .control.trajectory.anchor == .scope.phone.value.anchor : .scope is syllable ? .control.trajectory.anchor == .scope.syllable.value.carrier.anchor : .scope is word ? .control.trajectory.anchor == .scope.word.value.carrier.anchor : .scope is phrase ? .control.trajectory.anchor == .scope.phrase.value.carrier.anchor : .scope is utterance ? .control.trajectory.anchor == .scope.utterance.value.anchor : false
+}
+type SpeechScopedEnergyGestureSet = {
+    targets: sequence SpeechScopedEnergyTarget in 1..=8
+    conflict: AudioControlConflictPolicy
+    gap: AudioControlGapPolicy
+}
+type SpeechScopedEnergyReferenceAgreement = {
+    earlier: SpeechScopedEnergyTarget
+    later: SpeechScopedEnergyTarget
+    where .earlier.control.control_identity == .later.control.control_identity ? .earlier.basis == .later.basis : true
+}
+
+# Broad supplied evidence keeps interpretation, units and original scope apart
+# from the target. No detector or inferred dB uncertainty is introduced.
+type SpeechScopedEnergyObservation = {
+    scope: SpeechAcousticScope
+    interpretation: SpeechEnergyObservationInterpretation
+    start: AudioExactTimeOffset
+    end: AudioExactTimeOffset
+    value: AudioReferencedLevelRatio
+    absolute_linear_error: SpeechEnergyErrorSpecification
+    confidence: SpeechConfidence
+    provenance: SpeechEvidenceProvenance
+    where .start.numerator_seconds <= 4294967295
+    where .start.denominator <= 4294967295
+    where .end.numerator_seconds <= 4294967295
+    where .end.denominator <= 4294967295
+    where .start.numerator_seconds * .end.denominator <= .end.numerator_seconds * .start.denominator
+}
+type SpeechScopedEnergyObservationMatch = {
+    target: SpeechScopedEnergyTarget
+    observation: SpeechScopedEnergyObservation
+    where .target.scope == .observation.scope
+    where .target.basis == .observation.value.basis
+}
+type SpeechScopedEnergyErrorMatch = {
+    observation: SpeechScopedEnergyObservation
+    error: AudioReferencedLevelRatio
+    where .observation.value.basis == .error.basis
+    where .observation.value.ratio is amplitude ? .error.ratio is amplitude : .error.ratio is power
+}

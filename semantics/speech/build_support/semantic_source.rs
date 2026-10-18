@@ -37,6 +37,8 @@ pub fn source() -> String {
         include_str!("../acoustic_scope_extensions.conduit"),
         include_str!("../acoustic_frequency_trajectory.conduit"),
         include_str!("../fundamental.conduit"),
+        include_str!("../acoustic_energy.conduit"),
+        include_str!("../acoustic_scoped_energy.conduit"),
     ]
     .join("\n")
 }
