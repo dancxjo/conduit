@@ -13,10 +13,11 @@ function fixture(normalize = false) {
     remove() {}
   }
   let area;
-  const container = {ownerDocument:{createElement(tag) { assert.equal(tag,"textarea"); return area = new TextArea(); }}, replaceChildren() {}};
+  const window = new EventTarget();
+  const container = {ownerDocument:{defaultView:window,createElement(tag) { assert.equal(tag,"textarea"); return area = new TextArea(); }}, replaceChildren() {}};
   const editor = openBrowserTextEditor(container), controller = new AbortController();
   const event = (type, properties = {}) => area.dispatchEvent(Object.assign(new Event(type), properties));
-  return {editor, area, controller, event};
+  return {editor, area, controller, event, window};
 }
 function decode(bytes) {
   const view = new DataView(bytes.buffer,bytes.byteOffset,bytes.byteLength);
@@ -61,4 +62,16 @@ test("a browser-normalized document refuses instead of inventing a second repres
   const {editor,area,controller}=fixture(true);
   await assert.rejects(editor.next({revision:"0",text:"a\r\nb"},controller.signal),/UnsupportedDocumentRepresentation/);
   assert.equal(area.readOnly,true); assert.equal(area.value,""); editor.close();
+});
+
+test("window focus loss rejects pending editing and prevents a late edit from reviving the Play", async () => {
+  const {editor,area,controller,event,window}=fixture();
+  const next=editor.next({revision:"0",text:"kept"},controller.signal);
+  event("compositionstart"); area.value="provisional";
+  window.dispatchEvent(new Event("blur"));
+  await assert.rejects(next,error => error.code === "FocusLost");
+  assert.equal(area.value,"kept"); assert.equal(area.readOnly,true);
+  event("compositionend"); event("input");
+  await assert.rejects(editor.next({revision:"0",text:"kept"},controller.signal),error => error.code === "FocusLost");
+  editor.close();
 });

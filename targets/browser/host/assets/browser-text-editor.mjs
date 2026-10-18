@@ -6,7 +6,10 @@ export function openBrowserTextEditor(container) {
   textarea.rows = 6;
   textarea.maxLength = 256;
   container.replaceChildren(textarea);
+  const window = container.ownerDocument.defaultView;
   let snapshot = null, pending = null, composing = false, compositionBase = null, closed = false, submitted = null, cancelledComposition = false;
+  let focusLost = false;
+  const focusRefusal = () => Object.assign(new Error("browser editor window lost focus"), { code: "FocusLost" });
   const encoder = new TextEncoder();
   function restore() { textarea.value = snapshot?.text ?? ""; }
   function commit(event) {
@@ -40,14 +43,23 @@ export function openBrowserTextEditor(container) {
   function blur() {
     if (composing) { cancelledComposition = true; composing = false; compositionBase = null; restore(); textarea.dataset.editDisposition = "composition-cancelled"; }
   }
+  function windowBlur() {
+    focusLost = true; composing = false; compositionBase = null; submitted = null;
+    restore(); textarea.readOnly = true;
+    if (pending) {
+      const request = pending; pending = null; request.cleanup(); request.reject(focusRefusal());
+    }
+  }
   const beforeInput = event => { if (!event.isComposing && !/composition/i.test(event.inputType ?? "")) cancelledComposition = false; };
   textarea.addEventListener("beforeinput", beforeInput);
   textarea.addEventListener("input", commit);
   textarea.addEventListener("compositionstart", compositionStart);
   textarea.addEventListener("compositionend", compositionEnd);
   textarea.addEventListener("blur", blur);
+  window.addEventListener("blur", windowBlur);
   return Object.freeze({
     next(document, signal) {
+      if (focusLost) return Promise.reject(focusRefusal());
       if (closed || pending || signal.aborted) return Promise.reject(new Error("editor request cancelled or overlapping"));
       if (typeof document.revision !== "string" || !/^(0|[1-9][0-9]{0,19})$/.test(document.revision) || BigInt(document.revision) > 18446744073709551615n || typeof document.text !== "string" || !document.text.isWellFormed() || document.text.length > 256 || encoder.encode(document.text).length > 256) return Promise.reject(new Error("invalid authoritative document"));
       const selection = [textarea.selectionStart, textarea.selectionEnd, textarea.selectionDirection];
@@ -77,6 +89,7 @@ export function openBrowserTextEditor(container) {
       textarea.removeEventListener("beforeinput", beforeInput);
       textarea.removeEventListener("input", commit); textarea.removeEventListener("compositionstart", compositionStart);
       textarea.removeEventListener("compositionend", compositionEnd); textarea.removeEventListener("blur", blur);
+      window.removeEventListener("blur", windowBlur);
       submitted = null; snapshot = null; compositionBase = null;
       textarea.remove();
     },

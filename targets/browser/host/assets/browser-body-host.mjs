@@ -375,7 +375,7 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
       let editor = textEditors.get(effect.placement_id);
       if (!editor) { editor = openBrowserTextEditor(container); textEditors.set(effect.placement_id, editor); }
       try { return await editor.next(effect.editor, signal); }
-      catch (error) { if (signal.aborted) throw error; throw new BrowserHostEffectRefusal("failed", 222, `text editor refused: ${error.message}`); }
+      catch (error) { if (signal.aborted || error?.code === "FocusLost") throw error; throw new BrowserHostEffectRefusal("failed", 222, `text editor refused: ${error.message}`); }
     }
     if (effect.effect_kind === "saved-choice") {
       if (!demand.has(SAVED_CHOICE) || !effect.choice) throw new Error("saved choice was not admitted");
