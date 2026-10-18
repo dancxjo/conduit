@@ -953,3 +953,14 @@ confidence and provenance. Preparation re-admits complete source and inventory
 custody before the generic Audio trajectory, amplitude-to-power, or exact-power-
 of-ten logarithmic laws execute. No observation is inferred from a target;
 unsupported logarithms refuse and declared references do not attest calibration.
+
+
+Broad acoustic scope admission composes the same opaque correspondence and
+syllable structure: phone, actual syllable, resolved source word, original
+positioned phrase boundary/phone interval, or full utterance. Frequency gestures
+retain fundamental/formant-center/bandwidth roles; only a selected fundamental
+projects through Audio's reciprocal law. Supplied measured/inferred frequency
+evidence retains span, confidence, provenance and all six error states.
+Scoped energy gestures retain exact amplitude/power references. Generic Audio
+owns finite coverage, priority, gaps and interpolation refusal; these bridges
+do not introduce an independent clock or additive coarticulation engine.

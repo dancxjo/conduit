@@ -1,3 +1,5 @@
+#[path = "build_support/audio_imports.rs"]
+mod audio_imports;
 #[path = "build_support/authoring_types.rs"]
 mod authoring_types;
 #[path = "build_support/graph.rs"]
@@ -37,6 +39,10 @@ fn main() {
         "syllables.conduit",
         "syllable_structure.conduit",
         "acoustic_scope.conduit",
+        "acoustic_scope_extensions.conduit",
+        "acoustic_frequency_trajectory.conduit",
+        "acoustic_scoped_energy.conduit",
+        "build_support/audio_imports.rs",
         "fundamental.conduit",
         "acoustic_energy.conduit",
         "ipa.conduit",
@@ -204,43 +210,7 @@ fn main() {
         .iter()
         .map(|(_, ty)| ty.clone())
         .collect::<Vec<_>>();
-    let audio_paths = [
-        (
-            "AudioTrajectoryAnchor",
-            "conduit_audio::AudioTrajectoryAnchor",
-        ),
-        (
-            "AudioFrequencyControl",
-            "conduit_audio::AudioFrequencyControl",
-        ),
-        (
-            "AudioTrajectoryQuery",
-            "conduit_audio::AudioTrajectoryQuery",
-        ),
-        (
-            "AudioExactTimeOffset",
-            "conduit_audio::AudioExactTimeOffset",
-        ),
-        (
-            "AudioScopedControlTrajectory",
-            "conduit_audio::AudioScopedControlTrajectory",
-        ),
-        ("AudioDecibelBasis", "conduit_audio::AudioDecibelBasis"),
-        (
-            "AudioReferencedLevelRatio",
-            "conduit_audio::AudioReferencedLevelRatio",
-        ),
-        (
-            "AudioReferencedAmplitudePowerRequest",
-            "conduit_audio::AudioReferencedAmplitudePowerRequest",
-        ),
-        (
-            "AudioTrajectoryQuantity",
-            "conduit_audio::AudioTrajectoryQuantity",
-        ),
-        ("AudioLevelRatio", "conduit_audio::AudioLevelRatio"),
-    ];
-    for (name, path) in audio_paths {
+    for &(name, path) in audio_imports::PATHS {
         let ty = audio_types
             .iter()
             .find(|ty| ty.name == name)
