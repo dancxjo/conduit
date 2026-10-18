@@ -103,3 +103,20 @@ test('Face text admission rejects unpaired surrogates without changing valid Uni
   assert.deepEqual(submit([{ name: 'body/name', value: 'é 😀' }, { name: 'clock/interval-ms', value: '250' }])[0],
     { name: 'body/name', value: 'é 😀' });
 });
+
+test('adversarial adapter admission retains finite typed refusal dispositions', () => {
+  const valid = [{ name: 'body/name', value: 'Clock' }, { name: 'clock/interval-ms', value: '500' }];
+  const cases = [
+    ['UnknownAction', () => checkedOwnerFaceArguments(view, 'forged', action.target, valid)],
+    ['WrongTarget', () => checkedOwnerFaceArguments(view, action.identity, 'forged', valid)],
+    ['UnavailableAction', () => checkedOwnerFaceArguments({actions:[{...action,availability:'unavailable'}]}, action.identity, action.target, valid)],
+    ['MissingArgument', () => submit([])],
+    ['DuplicateArgument', () => submit([valid[0], valid[0]])],
+    ['UnknownArgument', () => submit([{...valid[0],name:'forged'},valid[1]])],
+    ['WrongValueKind', () => submit([{...valid[0],value:7},valid[1]])],
+    ['OversizeValue', () => submit([{...valid[0],value:'x'.repeat(9)},valid[1]])],
+    ['MalformedEncoding', () => submit([{...valid[0],value:'\ud800'},valid[1]])],
+    ['ViolatedConstraint', () => submit([valid[0],{...valid[1],value:'750'}])],
+  ];
+  for (const [code, attempt] of cases) assert.throws(attempt, error => error.code === code);
+});
