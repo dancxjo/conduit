@@ -1,0 +1,26 @@
+{
+  "verifier_sha256": "924df181883ad5470f592bba1bd8ca490fd9b68257daa318884314237081bac1",
+  "originals_unchanged": true,
+  "results": [
+    {
+      "case": "artifact_hash",
+      "refused": true,
+      "reason": "report.json"
+    },
+    {
+      "case": "duplicate_sample",
+      "refused": true,
+      "reason": "missing/duplicate/foreign sample"
+    },
+    {
+      "case": "raw_report_mismatch",
+      "refused": true,
+      "reason": "raw/report mismatch"
+    },
+    {
+      "case": "rehashed_sign_difference",
+      "refused": true,
+      "reason": "semantic/work replay differs"
+    }
+  ]
+}

@@ -88,9 +88,8 @@ impl<'a> LocalModelExecutionSample<'a> {
     ) -> Result<CostExecutionObservation<'_>, CostEvidenceRefusal> {
         let condition = match self.state.residency {
             ModelResidencyState::NotResident => CostExecutionCondition::Cold,
-            ModelResidencyState::Unknown | ModelResidencyState::ResidentWithoutEpoch => {
-                CostExecutionCondition::Unknown
-            }
+            ModelResidencyState::Unknown => CostExecutionCondition::Unknown,
+            ModelResidencyState::ResidentWithoutEpoch => CostExecutionCondition::ResidentObserved,
         };
         CostExecutionObservation::admit(&self.source, condition)
     }

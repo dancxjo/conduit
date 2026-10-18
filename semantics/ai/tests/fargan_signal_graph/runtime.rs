@@ -239,8 +239,8 @@ pub fn run_entry_plan_observed(
     );
     let mut cord_specs: Vec<_> = lowered.cords.iter().map(|c| c.spec).collect();
     cord_specs.resize(C, conduit_kernel::scheduler::CordSpec::inactive());
-    let mut scheduler=FixedScheduler::<_,_,_,N,C,PORTS,C,C,C,N,256>::new_with_active_counts_and_host_calls(nodes,cords,specs.try_into().unwrap(),cord_specs.try_into().unwrap(),routes,bindings,drivers.try_into().unwrap_or_else(|_|panic!("capacity")),store,HostedSignLog::new(32768,32768*core::mem::size_of::<KernelEvent>()as u32).unwrap()).unwrap();
-    timing.borrow_mut().scheduler_bytes = core::mem::size_of_val(&scheduler);
+    let mut scheduler=FixedScheduler::<_,_,_,N,C,PORTS,C,C,C,N,256>::new_boxed_with_active_counts_and_host_calls(nodes,cords,specs.try_into().unwrap(),cord_specs.try_into().unwrap(),routes,bindings,drivers.try_into().unwrap_or_else(|_|panic!("capacity")),store,HostedSignLog::new(32768,32768*core::mem::size_of::<KernelEvent>()as u32).unwrap()).unwrap();
+    timing.borrow_mut().scheduler_bytes = core::mem::size_of_val(&*scheduler);
     let mut host_output = Vec::with_capacity(16384);
     let mut output_limits = [u32::MAX; N];
     for route in &lowered.routes {

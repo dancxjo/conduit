@@ -1,0 +1,25 @@
+{
+  "repair_source": "7f49289747ad47f16a6d4512c962b3f8b32da3bd",
+  "repair_pr": 5958,
+  "release_conformance_passed": 25,
+  "default_stack_routes_test_passed": true,
+  "application_all_targets_passed": 44,
+  "profiles": {
+    "routes": "unoptimized test,debug=0,incremental=0,RUST_MIN_STACK absent",
+    "application": "test opt1,debug=0,incremental=0,RUST_MIN_STACK absent"
+  },
+  "earlier_environment_failure": "An unnecessary default-debug-symbol replay filled disk and lld exited SIGBUS while linking patchbay-static-assets, before the focused test ran. That attempt is retained and excluded as conformance proof; inactive dev products were cleaned, then historical proof profiles replayed successfully.",
+  "repair_sources_sha256": {
+    "targets/std/src/installed_std/kernel_preparation.rs": "f8ca314b98ac2ba36ee6d726c259933d486374ca92d1e91353eb0040e2f54fb7",
+    "plots/patchbay/application/src/tests.rs": "7a05c6f3e42ade7def55b423ce34c6337f38a4e93aed455ae392833274299dad"
+  },
+  "raw_sha256": {
+    "5958-stack-current-dev-debug0.log": "ef516bc3aed941ca616ceeb1611adf4e97598ac696176934572b33f2901447c3",
+    "5958-canvas-current-dev-debug0.log": "928def7dbfb4c373b2daf5a4fd5ac15751bbb63a842ddcbba2bf5d3d97b924d1",
+    "5958-stack-current-dev.log": "6f801a1cf31ac6dfff37912def7c0aab30b1467e09854aaa3123a3a1374ac28c",
+    "5958-debug-symbol-cleanup.log": "f34e53e2605778f239a09ecb0c862e9379a20168da911f193fae82f0e6e2dc12",
+    "5958-conformance-current-dev.log": "5997889fe510292c807752437aa1febc6276da1c04e6c83c68d18b4f978bf351"
+  },
+  "archive_sha256": "101ba75c3e3a74e822cb6d525101768886d489138558c485b2c628663c346c8c",
+  "scope": "Local prerequisite proof at exact repair head; Candidate and combined-development admission remain separate. Evidence retained on held feature branch to avoid restarting healthy repair CI."
+}
