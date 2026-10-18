@@ -22,7 +22,7 @@ pub(super) fn scene(
     application_view: Option<&ApplicationView>,
     viewport: ApplicationViewport,
     patchbay_graph_available: bool,
-    refusal: Option<&str>,
+    refusal: Option<(&str, &str)>,
     display: &impl PixelTarget,
 ) -> Result<GraphicsScene, Error> {
     let format = display.format().validate().map_err(Error::Display)?;
@@ -107,19 +107,22 @@ pub(super) fn scene(
             GraphicsTextRole::Muted,
         )?;
     }
-    if let Some(refusal) = refusal {
+    if let Some((heading, refusal)) = refusal {
+        let notice_y = result_notice_y
+            .checked_add(TEXT_BOX_HEIGHT as i16)
+            .ok_or(Error::Scene)?;
         text(
             &mut scene,
             screen,
-            288,
-            "Wake could not finish. Details:",
+            notice_y,
+            heading,
             GraphicsPaintRole::Status,
             GraphicsTextRole::Warning,
         )?;
         text(
             &mut scene,
             screen,
-            320,
+            notice_y.checked_add(TEXT_STEP).ok_or(Error::Scene)?,
             refusal,
             GraphicsPaintRole::Status,
             GraphicsTextRole::Code,

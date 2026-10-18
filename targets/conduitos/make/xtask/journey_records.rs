@@ -21,6 +21,37 @@ pub(super) fn decode(serial: &str) -> Result<Vec<Value>, ConduitosError> {
         .collect()
 }
 
+/// Exact native receipts adjacent to a screenshot; complete serial lines only.
+pub(super) fn native_checkpoint(serial: &str) -> Result<Value, ConduitosError> {
+    let mut face = Value::Null;
+    let mut action = Value::Null;
+    for line in serial
+        .split_inclusive('\n')
+        .filter(|line| line.ends_with('\n'))
+    {
+        if let Some(encoded) = line.strip_prefix("CONDUIT_NATIVE_FACE ") {
+            let record: Value = serde_json::from_str(encoded).map_err(|error| {
+                ConduitosError::refusal("native-face-sign-invalid", error.to_string())
+            })?;
+            face = serde_json::json!({"face_id":record["face"]["identity"],
+                "face_revision":record["face"]["revision"],"basis":record["face"]["basis"],
+                "context":record["face"]["interaction_context"],"show":record["show"]});
+        }
+        if let Some(encoded) = line
+            .strip_prefix("CONDUIT_NATIVE_ACTION ")
+            .or_else(|| line.strip_prefix("CONDUIT_NATIVE_BIRTH "))
+        {
+            action = serde_json::from_str(encoded).map_err(|error| {
+                ConduitosError::refusal("native-action-sign-invalid", error.to_string())
+            })?;
+        }
+    }
+    Ok(
+        serde_json::json!({"latest_acknowledged_face":face,"latest_action":action,
+        "meaning":"latest serial receipts; current foreground can be the restored application scene"}),
+    )
+}
+
 #[cfg(test)]
 fn tour(serial: &str) -> Result<Vec<Value>, ConduitosError> {
     decode_prefix(serial, TOUR_PREFIX, "conduitos-tour-sign-invalid")

@@ -1,6 +1,6 @@
 //! Finite ConduitOS Home and command-bar face state.
 
-use alloc::format;
+use alloc::{format, string::String, vec::Vec};
 use conduit_face::{
     GraphicsCommand, GraphicsPaintRole, GraphicsScene, GraphicsShapeStyle, GraphicsTextRole,
     LayoutRect,
@@ -14,6 +14,7 @@ use super::{Error, FrontDoor};
 pub(super) struct Home {
     model: HomeModel,
     keymap: PreparedKeymap,
+    refusal: Option<String>,
 }
 
 impl Home {
@@ -21,15 +22,15 @@ impl Home {
         Self {
             model: HomeModel::new(),
             keymap: PreparedKeymap::default_layout(),
+            refusal: None,
         }
     }
 
-    fn accept(&mut self, event: KeyEvent) -> HomeInput {
+    fn accept(&mut self, event: KeyEvent, plots: &[&str]) -> HomeInput {
         if event.transition() != KeyTransition::Pressed {
             let _ = self.keymap.apply(event);
             return HomeInput::Unchanged;
         }
-        let plots = installed_plot_titles();
         let abstract_event = match event.usage() {
             79 | 81 | 43 => HomeEvent::Next,
             80 | 82 => HomeEvent::Previous,
@@ -40,22 +41,40 @@ impl Home {
                 Ok(Some(fragment)) => {
                     let text = fragment.as_slice();
                     return core::str::from_utf8(text).map_or(HomeInput::Unchanged, |text| {
-                        self.model.accept(HomeEvent::Text(text), &plots)
+                        self.model.accept(HomeEvent::Text(text), plots)
                     });
                 }
                 Err(_) => HomeEvent::CharacterUnavailable,
                 _ => return HomeInput::Unchanged,
             },
         };
-        self.model.accept(abstract_event, &plots)
+        self.model.accept(abstract_event, plots)
     }
 }
 
-fn installed_plot_titles() -> [&'static str; crate::native_workset::NATIVE_PLOT_CAPACITY] {
-    crate::native_workset::inventory().map(crate::native_workset::NativePlot::title)
-}
-
 impl FrontDoor {
+    /// Exact observed Body membership, distinct from the Host's available catalog.
+    pub fn home_installed_plots(&self) -> &[crate::product_journey::WorkspacePlot] {
+        self.workspace
+            .as_ref()
+            .map_or(&[], |workspace| workspace.plots.as_slice())
+    }
+
+    fn home_installed_titles(&self) -> Vec<&'static str> {
+        self.home_installed_plots()
+            .iter()
+            .map(|plot| plot.title)
+            .collect()
+    }
+
+    pub(super) fn home_refusal(&self) -> Option<&str> {
+        self.home.as_ref().and_then(|home| home.refusal.as_deref())
+    }
+
+    pub(super) fn home_model(&self) -> Option<&HomeModel> {
+        self.home.as_ref().map(|home| &home.model)
+    }
+
     pub(super) fn home_scene(
         &self,
         display: &impl crate::display::PixelTarget,
@@ -188,7 +207,7 @@ impl FrontDoor {
                     GraphicsTextRole::Heading,
                     GraphicsPaintRole::Accent,
                 )?;
-                for (index, plot) in crate::native_workset::inventory().iter().enumerate() {
+                for (index, plot) in self.home_installed_plots().iter().enumerate() {
                     draw_text(
                         &mut scene,
                         screen,
@@ -201,7 +220,7 @@ impl FrontDoor {
                             } else {
                                 " "
                             },
-                            plot.title()
+                            plot.title
                         ),
                         GraphicsTextRole::Body,
                         GraphicsPaintRole::Foreground,
@@ -256,7 +275,29 @@ impl FrontDoor {
                 }
             }
         }
+        if let Some(reason) = &home.refusal {
+            draw_text(
+                &mut scene,
+                screen,
+                34,
+                i16::try_from(screen.height.saturating_sub(104)).map_err(|_| Error::Scene)?,
+                reason,
+                GraphicsTextRole::Status,
+                GraphicsPaintRole::Status,
+            )?;
+        }
         let status_y = i16::try_from(screen.height.saturating_sub(52)).map_err(|_| Error::Scene)?;
+        if let Some(refusal) = &self.refusal {
+            draw_text(
+                &mut scene,
+                screen,
+                24,
+                status_y - 38,
+                &format!("{} {}", refusal.heading(), refusal.reason()),
+                GraphicsTextRole::Warning,
+                GraphicsPaintRole::Status,
+            )?;
+        }
         scene
             .push(
                 GraphicsCommand::rect(
@@ -339,7 +380,7 @@ impl FrontDoor {
                 home.model
                     .face(
                         u32::try_from(self.revision).map_err(|_| Error::Face)?,
-                        &installed_plot_titles(),
+                        &self.home_installed_titles(),
                     )
                     .lower()
                     .map_err(|_| Error::Face)
@@ -351,10 +392,35 @@ impl FrontDoor {
         if revision != self.revision {
             return Err(Error::StaleInput);
         }
+        let titles = self.home_installed_titles();
         let Some(home) = self.home.as_mut() else {
             return Ok(HomeInput::Unchanged);
         };
-        let result = home.accept(event);
+        let result = home.accept(event, &titles);
+        let absent = match result {
+            HomeInput::OpenTour
+                if !titles.contains(&crate::native_workset::NativePlot::Tour.title()) =>
+            {
+                Some("Tour")
+            }
+            HomeInput::OpenPatchbay
+                if !titles.contains(&crate::native_workset::NativePlot::Patchbay.title()) =>
+            {
+                Some("Patchbay")
+            }
+            _ => None,
+        };
+        let result = if let Some(title) = absent {
+            home.refusal = Some(format!(
+                "{title} is unavailable: this Body has no installed {title} Plot."
+            ));
+            HomeInput::Changed
+        } else {
+            if result != HomeInput::Unchanged {
+                home.refusal = None;
+            }
+            result
+        };
         if result != HomeInput::Unchanged {
             self.advance()?;
         }
@@ -403,9 +469,9 @@ mod tests {
     fn launcher_is_finite_and_opens_prompt() {
         let mut home = Home::new();
         for _ in 0..5 {
-            assert_eq!(home.accept(key(43)), HomeInput::Changed);
+            assert_eq!(home.accept(key(43), &[]), HomeInput::Changed);
         }
-        assert_eq!(home.accept(key(40)), HomeInput::Changed);
+        assert_eq!(home.accept(key(40), &[]), HomeInput::Changed);
         assert_eq!(home.model.view(), HomeView::Prompt);
     }
 
@@ -413,12 +479,12 @@ mod tests {
     fn command_vocabulary_refuses_unknown_text() {
         let mut model = HomeModel::new();
         assert_eq!(
-            model.submit_text("open nowhere", &installed_plot_titles()),
+            model.submit_text("open nowhere", &["Tour"]),
             HomeInput::Changed
         );
         assert_eq!(model.output(), "Unknown command: open nowhere");
         assert_eq!(
-            model.submit_text("open tour", &installed_plot_titles()),
+            model.submit_text("open tour", &["Tour"]),
             HomeInput::OpenTour
         );
     }

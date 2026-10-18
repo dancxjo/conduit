@@ -3,8 +3,8 @@ use super::{qmp_display, ConduitosError};
 use serde_json::{json, Value};
 use std::{fs, io::Read, os::unix::net::UnixStream, path::PathBuf, time::Instant};
 
-// Ten user steps plus one possible failure capture fit this finite manifest.
-const MAX_CHECKPOINTS: usize = 16;
+// The bounded lifecycle, refusal, navigation, and reentry journey plus failure capture.
+const MAX_CHECKPOINTS: usize = 20;
 
 pub(super) struct Artifacts {
     directory: PathBuf,
@@ -45,7 +45,7 @@ impl Artifacts {
         if self.entries.len() >= MAX_CHECKPOINTS {
             return Err(ConduitosError::refusal(
                 "qemu-display-checkpoint-bound",
-                "at most sixteen captures admitted",
+                "at most twenty captures admitted",
             ));
         }
         let mut serial = Vec::new();
@@ -73,6 +73,7 @@ impl Artifacts {
         }
         let record = super::journey_records::latest_checkpoint(text)?;
         let boot = super::journey_records::boot(text)?;
+        let native = super::journey_records::native_checkpoint(text)?;
         let (frame, health_refusal) =
             qmp_display::capture(stream, reader, &self.directory, checkpoint)?;
         let health_refusal = health_refusal.or_else(|| {
@@ -98,7 +99,7 @@ impl Artifacts {
         self.entries.push(json!({"index":self.entries.len(),"checkpoint":checkpoint,
             "journey_step_ids":journey_step_ids(checkpoint),
             "elapsed_millis":self.started.elapsed().as_millis(),"serial_byte_end":serial.len(),
-            "guest_record":record,"guest_boot_record":boot,"frame":frame,"expected_change":expect_change,"unchanged":unchanged,
+            "guest_record":record,"guest_boot_record":boot,"native_receipts":native,"frame":frame,"expected_change":expect_change,"unchanged":unchanged,
             "health_refusal":health_refusal.as_ref().map(|error|json!({"reason":error.reason,"detail":error.detail}))}));
         self.previous_pixels = Some(pixels);
         self.write("running", None)?;
