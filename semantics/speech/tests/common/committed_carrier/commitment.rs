@@ -3,7 +3,7 @@
 #[path = "../../../../language/tests/common/parser_kernel.rs"]
 mod kernel;
 #[path = "../../../../language/tests/common/parser_fixture.rs"]
-mod parser;
+pub(super) mod parser;
 use conduit_core::ValuePayload;
 use conduit_language::*;
 use conduit_plot::rust_binding::NativeRustBinding;
