@@ -1,6 +1,7 @@
 import { writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { startStaticProduct } from '../../../../proof/browser/static-product-server.mjs';
+import { classifyRequestFailures } from './browser-network-evidence.mjs';
 
 const require = createRequire(new URL('../../../../proof/browser/package.json', import.meta.url));
 const { chromium } = require('@playwright/test');
@@ -14,9 +15,17 @@ try {
   const context = await browser.newContext();
   const page = await context.newPage();
   const errors = [];
+  const failedRequests = [];
   page.on('pageerror', error => errors.push(error.message));
-  page.on('requestfailed', request => errors.push(`${request.url()}: ${request.failure()?.errorText}`));
+  page.on('requestfailed', request => failedRequests.push((async () => {
+    const response = await request.response();
+    return { url: request.url(), errorText: request.failure()?.errorText,
+      method: request.method(), resourceType: request.resourceType(),
+      ...request.timing(), status: response?.status(),
+      contentLength: Number(response?.headers()['content-length']) };
+  })()));
   await page.goto(entrance.url);
+  await page.waitForFunction(() => document.documentElement.dataset.conduitLoadState === 'ready');
   await page.getByRole('button', { name: 'Birth Body', exact: true }).waitFor({ state: 'visible' });
   if (await page.getByRole('main').count() !== 1 || await page.getByRole('heading', { level: 1 }).count() < 1) {
     throw new Error('Workspace lacks its main landmark or heading');
@@ -33,7 +42,14 @@ try {
     if (!response.ok()) throw new Error(`Broken product link: ${url.href}: ${response.status()}`);
     checkedLinks++;
   }
-  writeFileSync(output, JSON.stringify({ violations: axe.violations, pageErrors: errors, checkedLinks }, null, 2));
+  const timing = await page.evaluate(() => ({ timeOrigin: performance.timeOrigin,
+    resources: performance.getEntriesByType('resource').map(resource => resource.toJSON()) }));
+  const requestFailures = await Promise.all(failedRequests);
+  const network = classifyRequestFailures(requestFailures, timing);
+  errors.push(...network.errors);
+  writeFileSync(output, JSON.stringify({ violations: axe.violations, pageErrors: errors, checkedLinks,
+    requestFailures, resourceTimings: timing,
+    completedAbortNotifications: network.completedAbortNotifications }, null, 2));
   if (axe.violations.length || errors.length) throw new Error(`Workspace accessibility/runtime failure: ${JSON.stringify({ violations: axe.violations, errors })}`);
 } finally {
   await browser?.close();
