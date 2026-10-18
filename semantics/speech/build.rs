@@ -216,7 +216,10 @@ fn main() {
         .iter()
         .map(|(_, ty)| ty.clone())
         .collect::<Vec<_>>();
-    for &(name, path) in audio_imports::PATHS {
+    for &(name, path, external) in audio_imports::PATHS {
+        if !external {
+            continue;
+        }
         let ty = audio_types
             .iter()
             .find(|ty| ty.name == name)

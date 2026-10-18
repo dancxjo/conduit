@@ -15,7 +15,7 @@ use conduit_plot::StartupCatalog;
 pub fn install(startup: &mut StartupCatalog) -> Result<(), String> {
     let audio = conduit_audio::authoring::checked_types()
         .map_err(|error| alloc::format!("Audio Type metadata: {error:?}"))?;
-    for &(name, _) in audio_imports::PATHS {
+    for &(name, _, _) in audio_imports::PATHS {
         let ty = audio
             .iter()
             .find(|ty| ty.name == name)
