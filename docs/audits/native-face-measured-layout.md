@@ -1,9 +1,11 @@
 # Measured native Face layout (#5606)
 
-Development proof record on accepted base `a2ee4ebea348ec9bcb6725a79e0a23d4a2ca300d`,
-including #5963's editor and #5968's source-equivalent control validation.
-Final source-pinned native proof, workspace results and candidate admission
-must be recorded before closure.
+Development proof for code `fe48e1f4901afe03992299d458788446c5ff1f58`, based on
+accepted `a2ee4ebea348ec9bcb6725a79e0a23d4a2ca300d`, including #5963's editor and
+#5968's source-equivalent control validation. The retained native CI product is
+from merge preview `004075ae2e3b1b8146a9f0ae16c5990481988f0a`; its complete tree
+is identical to that code commit (`e3e7c3c693517f282792faef71d3085bc2dba63c`).
+This is development/emulator evidence, not stable release or physical acceptance.
 
 ## Ownership and disclosure
 
@@ -15,7 +17,7 @@ fact or universal widget meaning.
 | Encounter/item | Face provenance and priority | Native region/role | Control and overflow |
 |---|---|---|---|
 | Zero-Body Crèche | Canonical birth/draft Face; original subject and clause order | Source title, labels and available actions in primary rows | Exact action/argument indices; continuation and F2 Details |
-| Born Home | Historical Home Face in `proof/native-shell/fixtures.json`, reviewed at `7989c14248d479715b5bd6e5379da11eb617fa87` | Same generic primary/detail policy | Existing missing launcher-action coverage remains #5604; no invented Home actions |
+| Born Home | Historical Home Face in `proof/native-shell/fixtures.json`, reviewed at `7989c14248d479715b5bd6e5379da11eb617fa87` | Same generic primary/detail policy | Historical launcher-action gap belongs to the recorded baseline; accepted #5972 supplies later wiring, without invented Home actions |
 | Lulled/awake Body | Canonical owner-derived Body Face; name followed by its supplied text | Title then Status; source wording is unchanged | No lifecycle inference; all original clauses remain in Details |
 | Generic/unknown domain | Open roles, supplied text and explicit disclosure | Existing title/heading/status/warning/label roles | Available actions only; typed arguments retain their contracts |
 | Exact secondary facts | Complete existing utterance plan, identities, relationships and unavailable-action reasons | Detail rows | UTF-8-safe continuation; original wording reconstructs exactly |
@@ -26,10 +28,12 @@ supplied its current status. It now follows the Body name using the existing
 Status typography role. Technical context/properties still remain in Details
 according to the existing disclosure policy.
 
-The installed native Crèche uses `NativeFaceScene`. Born Body and Home still
-have older shell views; shared-layout fixture coverage does not claim that
-#5604's semantic convergence has happened. Their real QEMU captures and the
-canonical Face fixture checks are separate evidence classes.
+At the recorded `fe48e1f…` code proof, native Crèche uses `NativeFaceScene`
+while Body and Home retain older shell views. The accepted combination
+`5abe26375c6e02cb769e412987e56e1baf386904` also consumes #5972, which changes
+Home and lifecycle Source/Show wiring. Its new product proof is recorded
+separately below. Historical fixture coverage is not relabeled as that later
+installed route, and the upstream F2 audit owns its remaining unsupported cases.
 
 ## Geometry and finite admission
 
@@ -158,10 +162,147 @@ selected 1024×768; that receipt is an extent-mismatch diagnostic, not 320×240
 scanout acceptance. The minimum 320×240 lane has metric/raster coverage and is
 not mislabeled as a guest capture.
 
-Final after-run source identities, output hashes, green workspace checks and
-required candidate gates remain to be recorded. Native reproduction uses the
-supported `cargo xtask make conduitos journey-proof` entrance. Internal proof
-commands use strict workspace Clippy, full workspace tests with the native
-compositor feature, and the focused native layout/producer tests. No physical
-display, complete F2 convergence, published journey, stable release or parent
-#5357 completion is inferred from these development artifacts.
+## Retained current-source results
+
+The fresh accepted-base CPU baseline visits 1,203 primary/detail pages and
+finds 2,713 text commands taller than their allocated bounds, with no preparation
+refusal. The measured policy visits 1,241 pages with zero clipped text and zero
+frame refusals. Those five canonical/historical specimens use at most 35 commands;
+the separate original dense reproducer admits all 56 frames, reaches exactly 48
+commands, and has no frame refusal. The focused current-source suite passes all
+50 tests; the production Mask/compositor custody trace passes separately.
+Workspace all-target Clippy with the native compositor feature and warnings
+denied passes. The full workspace unit, integration and documentation audit at that recorded
+code revision exits zero: 9,468 passed, zero failed and 41 ignored. Ignored
+platform/physical cases are not counted as accepted proof. All 1,116 ConduitOS
+library tests pass with no ignores.
+
+The actual 1280×800 supported QEMU journey comes from Candidate
+[39112423375](https://github.com/dancxjo/conduit/actions/runs/39112423375), x86 job
+117631438379, artifact 12131428296. The repository's `verifyBundle` checks all 26
+product files against their exact inventory, sizes, SHA256 and preview identity.
+The journey manifest is complete with 14 captured checkpoints and no failure,
+including the accepted protected keyboard and retained Unicode editor facets.
+The kernel SHA256 is `0104f1ce81948cd87c791a025246bddb286ec9d1b19935a7f1e46d4d90f4070f`;
+the ISO SHA256 is `1f27e48b9b0a38d45f44f52fb716b32c723200fa1f88154085c60f917ac75148`.
+In this original `004075a…` product, guest MASK_SIGN records keep absent
+Show/Face facts as null; journey projection
+Face IDs are not asserted to equal producer-acknowledged widget Shows. CPU
+producer/compositor receipts prove that custody boundary separately with their
+fixture provider. The source tree equality was checked before consuming that CI product; its
+recorded preview identity is retained rather than relabeled as the branch head.
+
+A separate local normal q35/std-VGA probe boots that same ISO, requests and
+observes actual 640×480, and completes Details, next-page and return-to-primary
+input stages. Each capture follows a guest redraw acknowledgement. Its receipt
+records `captured`, `reading_completed: true`, no failure and process stop zero.
+The inspected 1280/640 captures show text, controls and footer within their
+regions. Full measured all-page assertions remain the geometric proof; a small
+set of screenshots is not substituted for those assertions.
+
+The historical before QEMU product remains pinned to `0c5a2a8…`; it is not
+relabeled as the later `a2ee4eb…` baseline. Fresh before/after CPU measurements
+use that later accepted base. Home/Body captures retain their installed-route provenance at that earlier
+source. They do not establish the later wiring accepted in #5972; the current
+product is verified separately. The 320×240 guest mode mismatch remains
+a diagnostic only.
+
+The source-pinned summary and raw inventory are retained in
+[evidence/native-face-measured-layout-development-20261018.json](evidence/native-face-measured-layout-development-20261018.json)
+and the [raw archive](evidence/native-face-measured-layout-development-20261018.raw.tar.gz). Source hashes, exact command text/bounds,
+Face/control mapping tests, producer Source/checked/expanded/Plan/Play/Show and
+Host/Boot receipts, guest serial/QMP/screenshots and original diagnostics remain
+separately classified. Earlier full-workspace execution failed two screen-free
+Birth tests; both pass in the final refreshed-source suite. Original failures,
+the later cancelled superseded audit and the redundant cancelled local native
+build are retained and are not counted as successful complete runs.
+
+The original native CI product remains bound to its recorded source and
+receipt. Current reproduction uses the normal Host product entrance below.
+Internal verification uses workspace Clippy/full workspace tests with the native
+compositor feature and the focused layout/producer tests. Implementation
+[PR #5971](https://github.com/dancxjo/conduit/pull/5971) and its audit-completion
+follow-up retain the corresponding Candidate and accepted-source CI records. No physical display,
+complete F2 convergence, published journey, stable release or parent #5357
+completion is inferred from these development artifacts.
+
+### Accepted combination and current product
+
+Implementation PR #5971 is accepted as `5abe26375c6e02cb769e412987e56e1baf386904`,
+after numerical PR #5967 and lifecycle PR #5972. A complete diff verifies that
+all layout, native Mask, typography/display and Face files are identical to the
+recorded `fe48e1f…` code proof. The whole-workspace result retains its actual
+source identity; it is not relabeled as the accepted combination. Fresh focused
+validation on that accepted source is recorded separately.
+
+Fresh accepted-source validation passes all 50 focused layout tests and the
+production Mask/compositor custody test. Workspace all-target Clippy with the
+native compositor feature and warnings denied also exits zero (7m56s). The
+three current CPU receipts retain their actual publication and acknowledged
+Show identities.
+The normal Host product build, two independent boot checks, full journey and
+final retained-product verification all exit zero on this accepted source.
+The ISO SHA256 is `24aff22b80befdf3a8e0bf655b87e76ae3f8bd73f8eccae9b99bf957243e1eb5` and the kernel SHA256 is
+`581ef493bc9f1a675333e2f7e2e9e806b89f8c03ae0857711288585ba6effb56`. All 17 current 1280×800 captures are healthy. The
+paired receipt retains 27 available native Shows with 27 distinct identities,
+one Birth, four accepted lifecycle actions, one refused action and fresh
+recovery. The 640×480 probe of this exact ISO again completes acknowledged
+Details, paging and return-to-primary stages, with actual extent 640×480,
+no failure and process stop zero.
+
+The 27 actual current guest Faces are also retained as immutable fixtures in
+`evidence/native-face-runtime-snapshots-20261018.json`. CPU measurement visits
+17,588 frames at all three extents, 100%/200% and both densities, with zero
+refusals, zero text clipping, valid painted hits and unchanged Face/action
+contracts. Frames use at most 36 commands and reach the exact 192-byte text
+boundary. Every original subject name and owner text reconstructs in Details.
+The focused runtime-face regression reuses the existing geometry assertions
+and passes. Formatting and workspace Clippy with the same native/all-target
+flags also pass after adding this regression (37.29s). Reusing captured Faces
+is fixture evidence, not another owner
+action, native reflow or enacted linear Show.
+
+Home's outer shell cards may choose their own geometry; their screenshot is
+not relabeled as the shared row policy. The captured current owner Faces are
+measured directly, and their actions/relationships remain the owner contract.
+The current normal product can be reproduced through:
+
+```sh
+cargo xtask make host build targets/conduitos/profiles/conduitos-native.host.conduit --output target/native-face-product
+cargo xtask make host verify target/native-face-product --boot
+cargo xtask make host verify target/native-face-product --journey
+cargo xtask make host verify target/native-face-product
+```
+
+
+The current Source/Show wiring and its remaining browser, semantic-pointer and
+installed stale-replay limitations are described by the upstream
+[native shell cross-Mask audit](../proof/native-shell-cross-mask.md). Those
+acceptance boundaries remain separate from L1 geometry, #5607, #5608 and parent
+#5357. The historical receipts above remain immutable and separately classified.
+
+### Per-encounter primary continuation
+
+The following rows summarize the source-pinned raw comparison; intervals are
+half-open. Full primary/detail command boxes and identities are in the archive.
+
+| Encounter | Viewport | Scale | Primary pages before → after | Content y before → after | Text boxes exceeding bounds before → after |
+|---|---|---:|---:|---|---:|
+| Crèche | 1280×800 | 100% | 4 → 4 | `[56, 744]` → `[56, 744]` | 0 → 0 |
+| Crèche | 1280×800 | 200% | 6 → 6 | `[56, 744]` → `[64, 744]` | 12 → 0 |
+| Crèche | 640×480 | 100% | 8 → 8 | `[56, 424]` → `[56, 424]` | 0 → 0 |
+| Crèche | 640×480 | 200% | 17 → 17 | `[56, 424]` → `[56, 424]` | 51 → 0 |
+| Crèche | 320×240 | 100% | 39 → 39 | `[56, 184]` → `[56, 184]` | 0 → 0 |
+| Crèche | 320×240 | 200% | 129 → 138 | `[56, 184]` → `[84, 184]` | 387 → 0 |
+| Home (historical fixture) | 1280×800 | 100% | 1 → 1 | `[56, 744]` → `[56, 744]` | 0 → 0 |
+| Home (historical fixture) | 1280×800 | 200% | 1 → 1 | `[56, 744]` → `[64, 744]` | 2 → 0 |
+| Home (historical fixture) | 640×480 | 100% | 1 → 1 | `[56, 424]` → `[56, 424]` | 0 → 0 |
+| Home (historical fixture) | 640×480 | 200% | 2 → 2 | `[56, 424]` → `[56, 424]` | 6 → 0 |
+| Home (historical fixture) | 320×240 | 100% | 3 → 3 | `[56, 184]` → `[56, 184]` | 0 → 0 |
+| Home (historical fixture) | 320×240 | 200% | 9 → 11 | `[56, 184]` → `[84, 184]` | 27 → 0 |
+| Body (lulled) | 1280×800 | 100% | 1 → 1 | `[56, 744]` → `[56, 744]` | 0 → 0 |
+| Body (lulled) | 1280×800 | 200% | 1 → 1 | `[56, 744]` → `[64, 744]` | 2 → 0 |
+| Body (lulled) | 640×480 | 100% | 1 → 1 | `[56, 424]` → `[56, 424]` | 0 → 0 |
+| Body (lulled) | 640×480 | 200% | 1 → 2 | `[56, 424]` → `[56, 424]` | 3 → 0 |
+| Body (lulled) | 320×240 | 100% | 2 → 3 | `[56, 184]` → `[56, 184]` | 0 → 0 |
+| Body (lulled) | 320×240 | 200% | 4 → 9 | `[56, 184]` → `[84, 184]` | 12 → 0 |

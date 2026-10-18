@@ -1,0 +1,792 @@
+{
+  "purpose": "Retained raw geometry/CPU/raster and separately classified guest proof; see audit for limits",
+  "archive": "native-face-measured-layout-development-20261018.raw.tar.gz",
+  "archive_sha256": "54a781bcfcb837cee20c9cc62ce6b58f08ddb58c81684220c9c32df92aba1e8e",
+  "files": [
+    {
+      "path": "5606-a2-after-640-probe.log",
+      "bytes": 120,
+      "sha256": "36fe3144d9e15113415bbbc09816ae0907bc221706ec3262e1249932cf59941e"
+    },
+    {
+      "path": "5606-a2-after-journey.log",
+      "bytes": 89934,
+      "sha256": "fb4c66c3d7f92598771986fdb8c665a6e5e2a0c30227d87e8b99be7db43e6399"
+    },
+    {
+      "path": "5606-a2-after-metrics-build.log",
+      "bytes": 526,
+      "sha256": "3a3c2012ee2bd7642321af8a888cdf732852bebab8855e7d3077d257b0b568ae"
+    },
+    {
+      "path": "5606-a2-after-metrics.json",
+      "bytes": 2184696,
+      "sha256": "551b64e4e7b932caf131da7602a1116a59f198a9c57762e7477caf84cd0c21dd"
+    },
+    {
+      "path": "5606-a2-before-metrics-build.log",
+      "bytes": 10148,
+      "sha256": "f5c16bc2846dcd44033ec3b6f3dc733a662e50bce1e527bd28546d868d1120a7"
+    },
+    {
+      "path": "5606-a2-before-metrics.json",
+      "bytes": 1317880,
+      "sha256": "5ba03814fadd45d1d53efefb1e8bcd068a2e96e12f8f04170fa57a34459b1121"
+    },
+    {
+      "path": "5606-a2-composition-receipts.log",
+      "bytes": 62420,
+      "sha256": "52636bd6500c243190feccde415bb3eb3e4901ad7d488cd89f66df0a30790b39"
+    },
+    {
+      "path": "5606-a2-dense-build.log",
+      "bytes": 428,
+      "sha256": "00590bc27cf0c3e0896b74deb3f98f40f15518e615f8fcecc7159c86e02ff3a8"
+    },
+    {
+      "path": "5606-a2-dense-metrics.json",
+      "bytes": 10370,
+      "sha256": "e7ef6326c0f6bd7b913c16da5c1d60fc107e094d262467a6b1126fbc222768ea"
+    },
+    {
+      "path": "5606-a2-native-clippy.log",
+      "bytes": 17352,
+      "sha256": "79c6db2846d461325ee72de11718876348756f972883ca755d907b12fd10217b"
+    },
+    {
+      "path": "5606-a2-native-layout-tests.log",
+      "bytes": 22871,
+      "sha256": "e4f178c9ee7793dca38a808cbdca2fdd62649a7c859ff4c5527209165e1030c4"
+    },
+    {
+      "path": "5606-a2-product-code.patch",
+      "bytes": 71072,
+      "sha256": "bb5c51554e31b5e798ceeba97fa759931b5c6c663b5fa5dc5382e6414c27447c"
+    },
+    {
+      "path": "5606-a2-region-comparison.json",
+      "bytes": 76510,
+      "sha256": "bb2ca0b1902c660ed25674456f7cd15402a17f0b6ee05213075b98617902929b"
+    },
+    {
+      "path": "5606-accepted-composition-receipts.log",
+      "bytes": 63081,
+      "sha256": "04b91ecf288b646565d4a624b722ddadb288e283afb7ef1273d537ef79d8449e"
+    },
+    {
+      "path": "5606-accepted-native-layout-tests.log",
+      "bytes": 20118,
+      "sha256": "c48a5d7640db3e911377f6a87cf8bac4227b459ea43436a72b2c805f3c212146"
+    },
+    {
+      "path": "5606-accepted-validation.json",
+      "bytes": 116321,
+      "sha256": "65e23787ef63ca1481ec30c2122531cd0e6f2742fe7e0cf49e7713901789e1dd"
+    },
+    {
+      "path": "5606-accepted-workspace-clippy.log",
+      "bytes": 21112,
+      "sha256": "046ce037f01a24d6887063ea53b54562ee67bf0df36f6e18a3cfb88ea3b5b4e3"
+    },
+    {
+      "path": "5606-ci-code-jobs.json",
+      "bytes": 31472,
+      "sha256": "4eabecda1659bab6e214b3c934298ff533274a97cb2df64044c48a67145e060d"
+    },
+    {
+      "path": "5606-ci-code-run.json",
+      "bytes": 12661,
+      "sha256": "df92f58df91c750c4361d82a900377ea54e06ef70f4792ee9750d4cdef2ce18b"
+    },
+    {
+      "path": "5606-ci-tree-equivalence.json",
+      "bytes": 833,
+      "sha256": "1ffb2ad61521d847971e8f401bf2259cccfbb4a61e6d04d080c8910c8c3b867b"
+    },
+    {
+      "path": "5606-context-comparison-table.md",
+      "bytes": 1776,
+      "sha256": "8ba6d22f7b0cd5b01bb4f2350f6ad5cff3e92a8f58cff4daa47403c3455f96bf"
+    },
+    {
+      "path": "5606-current-640-probe.log",
+      "bytes": 120,
+      "sha256": "36fe3144d9e15113415bbbc09816ae0907bc221706ec3262e1249932cf59941e"
+    },
+    {
+      "path": "5606-current-composition-evidence.json",
+      "bytes": 117382,
+      "sha256": "db7a5a94eb9e6e4521babf835b317b05541de329b06296c5cca240f3815f41c3"
+    },
+    {
+      "path": "5606-current-composition-receipts.log",
+      "bytes": 62277,
+      "sha256": "4dc3362b2913a40faf45706211bc77a1d7b33282267c588832905652865fcd95"
+    },
+    {
+      "path": "5606-current-native-boot.log",
+      "bytes": 1470,
+      "sha256": "2f95d78febbd15c0a926dcf28ada611a8e44a7b7ba41d4d7bf3625675b8a9a1e"
+    },
+    {
+      "path": "5606-current-native-journey.log",
+      "bytes": 573,
+      "sha256": "1ad09f889799afeb9c3d725c9c19112952ec3e65c1c3c1b3350504cbf81a5c46"
+    },
+    {
+      "path": "5606-current-native-product-build.log",
+      "bytes": 32417,
+      "sha256": "bbf07a4105a7e2225ecc7db2c6486d61a8b59a211e3d124f75a4f9b839030b25"
+    },
+    {
+      "path": "5606-current-native-scene-tests.log",
+      "bytes": 5330,
+      "sha256": "e2cc8ee0320588a1dc432f4acee1ba7db065802b1d0ae174bfbb0a5250a63074"
+    },
+    {
+      "path": "5606-current-native-verify.log",
+      "bytes": 374,
+      "sha256": "d247f786bc2d9bb256f59a7069112cbc8f30a9409b4263a84da63104af9a1eb3"
+    },
+    {
+      "path": "5606-current-product-result.json",
+      "bytes": 2263,
+      "sha256": "d287caddafdda5e2e6e93e78197313e5b011f2fcc95f672882384030ba955568"
+    },
+    {
+      "path": "5606-current-qemu/build-manifest.json",
+      "bytes": 4269,
+      "sha256": "bf9daa43fec9f22977a92ec71f0f4b9b66e47c0afdc9e13febd7ec233dea31cb"
+    },
+    {
+      "path": "5606-current-qemu/evidence/build.json",
+      "bytes": 319,
+      "sha256": "2d9e1b3461014412299006b90a0d3a37163862efeaa490b366f6dfcf1d4c45ca"
+    },
+    {
+      "path": "5606-current-qemu/evidence/image.json",
+      "bytes": 335,
+      "sha256": "1ae1ac272ad52e705129a313069bba84ddb91edeb6445a909233c70c464163de"
+    },
+    {
+      "path": "5606-current-qemu/evidence/journey-frames/body-born.png",
+      "bytes": 100404,
+      "sha256": "17f46a2ade9927828ce8344046a1c112fb00377a33763cfffc8385a951cb60a0"
+    },
+    {
+      "path": "5606-current-qemu/evidence/journey-frames/body-planned.png",
+      "bytes": 99833,
+      "sha256": "35f0cb99adde17194612b36e3da7831e847bd10bb51918d4e3df9237b14bf6d2"
+    },
+    {
+      "path": "5606-current-qemu/evidence/journey-frames/body-playing.png",
+      "bytes": 105945,
+      "sha256": "f8b8d3e07e9c481999c86213b448ba416fbe5c5e0b4ed4995771d59242475d9a"
+    },
+    {
+      "path": "5606-current-qemu/evidence/journey-frames/body-stopped.png",
+      "bytes": 79601,
+      "sha256": "30e9107ba8d5a706617c4b96f375e5a36938f1b37c4da85bc0dfc220e187da73"
+    },
+    {
+      "path": "5606-current-qemu/evidence/journey-frames/body-woken.png",
+      "bytes": 98623,
+      "sha256": "412a54a96c1e4de2f1839bf5fe26cade8f3a85f48735a67bcd72b3768bed82d1"
+    },
+    {
+      "path": "5606-current-qemu/evidence/journey-frames/front-door-ready.png",
+      "bytes": 115125,
+      "sha256": "ef65432d00e95b142c5163e642fa6c33bf684a3a361e0778bedc68e1edef7c84"
+    },
+    {
+      "path": "5606-current-qemu/evidence/journey-frames/home-returned.png",
+      "bytes": 102918,
+      "sha256": "ea5c5f8cacaa84feaf1f5f584ea303d238a00bfba6072a86f1423c403b6d4216"
+    },
+    {
+      "path": "5606-current-qemu/evidence/journey-frames/home.png",
+      "bytes": 104880,
+      "sha256": "8f4a4c3ac814d7731601d9f41e3815d51a430eac7ff4a08560fb9ad26045d564"
+    },
+    {
+      "path": "5606-current-qemu/evidence/journey-frames/manifest.json",
+      "bytes": 365558,
+      "sha256": "45f3ad4a04a82393a69cdd65fe929837512d0194baf87c506978c363c8ba57d2"
+    },
+    {
+      "path": "5606-current-qemu/evidence/journey-frames/patchbay-diagram-returned.png",
+      "bytes": 140974,
+      "sha256": "fc62e2946cf5add9b8f835c731af6615b6aae12c6e41696bb1a0ff04e9261a0b"
+    },
+    {
+      "path": "5606-current-qemu/evidence/journey-frames/patchbay-diagram.png",
+      "bytes": 140974,
+      "sha256": "fc62e2946cf5add9b8f835c731af6615b6aae12c6e41696bb1a0ff04e9261a0b"
+    },
+    {
+      "path": "5606-current-qemu/evidence/journey-frames/patchbay-face.png",
+      "bytes": 152880,
+      "sha256": "3cdcd353690c687837e0111e63dc31a75814a95d611b46b7db17a6bbba2c0d72"
+    },
+    {
+      "path": "5606-current-qemu/evidence/journey-frames/patchbay-gear-details.png",
+      "bytes": 262653,
+      "sha256": "8e053e94ec5cb4d2d460fea13dd76ddd72e060173f59b763b62b73f1bc5b6d5f"
+    },
+    {
+      "path": "5606-current-qemu/evidence/journey-frames/patchbay-reentered.png",
+      "bytes": 52483,
+      "sha256": "2e2f443bd4ec194e58067bcff3884114b26b3e34541d05188a49a4658eb589cc"
+    },
+    {
+      "path": "5606-current-qemu/evidence/journey-frames/patchbay-workspace.png",
+      "bytes": 105218,
+      "sha256": "a627d6308fe872f41ba67b1289a7f208b98f591ac9e6ade31f5d0910e55bd62b"
+    },
+    {
+      "path": "5606-current-qemu/evidence/journey-frames/protected-keyboard-canvas.png",
+      "bytes": 66202,
+      "sha256": "b7056e4683c8643ae580dd5f29e6d0f1dda82d378b6170e7c4cedd2d79d9af2b"
+    },
+    {
+      "path": "5606-current-qemu/evidence/journey-frames/protected-memory-lantern.png",
+      "bytes": 66387,
+      "sha256": "e9913c706c0a3ea6c84d18da32b24432e21601daad88b0d12bc12e143fb57e28"
+    },
+    {
+      "path": "5606-current-qemu/evidence/journey-frames/wake-refused.png",
+      "bytes": 112769,
+      "sha256": "d9eb4aa55bb8425ab669bdb3801afc457b4b4aa65f2ba12126898c7248ef3c2b"
+    },
+    {
+      "path": "5606-current-qemu/evidence/journey-proof.json",
+      "bytes": 4028,
+      "sha256": "de991dd80a379e25a8e75ba931694fcacf9443be502104733fa2126801ba3583"
+    },
+    {
+      "path": "5606-current-qemu/evidence/journey-qemu-stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "5606-current-qemu/evidence/journey-qmp.log",
+      "bytes": 29204,
+      "sha256": "71962b2fd0c64e095123648df64ed2b062051cf86bd60bebf6acf1a6c34c147d"
+    },
+    {
+      "path": "5606-current-qemu/evidence/journey-serial.log",
+      "bytes": 642580,
+      "sha256": "938c55126f02cecb7288e47e3e911eb5ddd2a820213ae8f4299eb8b92e9f6c92"
+    },
+    {
+      "path": "5606-current-qemu/evidence/make-record.rs",
+      "bytes": 684,
+      "sha256": "ea635641cab25f3db59c9e671fb1383002db70816b9f654aee3a4c13cffc4316"
+    },
+    {
+      "path": "5606-current-qemu/evidence/memory-lantern-native-edit.json",
+      "bytes": 5853,
+      "sha256": "47cdf4373844942743ff2ebf72dea696ac1c8432213e8b00d3362fdfc863b11a"
+    },
+    {
+      "path": "5606-current-qemu/evidence/native-shell-paired-linear.json",
+      "bytes": 1039360,
+      "sha256": "95306ad499773935a9008d06331b058585b7c97af6cee9fbf656c608ceffcaf5"
+    },
+    {
+      "path": "5606-current-qemu/evidence/profile-built-boot.log",
+      "bytes": 22548,
+      "sha256": "c9369c6326e7f5843891a0c334b5fffc8a22d68f17b5bde7462001b86783d9dd"
+    },
+    {
+      "path": "5606-current-qemu/evidence/x86_64-product-journey-proof.json",
+      "bytes": 4028,
+      "sha256": "de991dd80a379e25a8e75ba931694fcacf9443be502104733fa2126801ba3583"
+    },
+    {
+      "path": "5606-current-qemu/evidence/x86_64-product-proof.json",
+      "bytes": 1733,
+      "sha256": "3e6a984dad9f6307e121f09eee320ea4ee0a12eedb24cbab80ffad39c05cee87"
+    },
+    {
+      "path": "5606-current-qemu/preservation.json",
+      "bytes": 5708,
+      "sha256": "889472309ca412d6388593614fb28a8a4130a7b0906c8fa850509c7ff4058815"
+    },
+    {
+      "path": "5606-current-qemu/resolved-image.json",
+      "bytes": 4453,
+      "sha256": "c4ef07f91c4f376540760d85e78ff9bd6a721d1edc765d5c26378d0310ead5e4"
+    },
+    {
+      "path": "5606-current-qemu-640-reading/details-next.png",
+      "bytes": 26319,
+      "sha256": "93e66f99901aac77b5c92e34a5581f34fd4baa15ff2d5f380c4575f05f35216d"
+    },
+    {
+      "path": "5606-current-qemu-640-reading/details.png",
+      "bytes": 32318,
+      "sha256": "9a6b9279637476d010ca9e9cd4945719650d66b3f1fca1d791206c185f2345d8"
+    },
+    {
+      "path": "5606-current-qemu-640-reading/front-door.png",
+      "bytes": 28167,
+      "sha256": "ef06be933ab269565c210c436e538ec2185e54d6f3bf0a399b7bb03eb43c53b1"
+    },
+    {
+      "path": "5606-current-qemu-640-reading/qemu-stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "5606-current-qemu-640-reading/receipt.json",
+      "bytes": 13039,
+      "sha256": "d9cd7bb9feecf411ee0213fe662847ec87c8f9f3ca88441151aa34117fd464f5"
+    },
+    {
+      "path": "5606-current-qemu-640-reading/return-primary.png",
+      "bytes": 26169,
+      "sha256": "7cc02480e02b0dbc2a997fe40683f6b67074e32830764a9eae6ff245c1d43a69"
+    },
+    {
+      "path": "5606-current-qemu-640-reading/serial.log",
+      "bytes": 22657,
+      "sha256": "c6a8cda14e97c9e8419b6bd2bfa4982b02cc6d9a2367f7f4eb328d1712ab28c4"
+    },
+    {
+      "path": "5606-current-qemu-640-reading/source-provenance.json",
+      "bytes": 320,
+      "sha256": "1b864f11ad4479ba5a1c1d86c6634442906dbfb6f5748d23843bc62a20e43b36"
+    },
+    {
+      "path": "5606-current-runtime-metrics-build.log",
+      "bytes": 5856,
+      "sha256": "065f37eddd0fd3c396124e05777bebd00e4549308afd35f3a6deb20abe0f85d4"
+    },
+    {
+      "path": "5606-current-runtime-metrics.json",
+      "bytes": 13312328,
+      "sha256": "2a2427d031ae04e43631e74eee3b096f66a27aa2c5666508a8fd64214ab3b2ab"
+    },
+    {
+      "path": "5606-final-workspace-clippy.log",
+      "bytes": 26976,
+      "sha256": "5b7fb15afbb6d42fa4bf54b2caacc46ccb71fa78ddf1cbb80f27fa4bacaff0df"
+    },
+    {
+      "path": "5606-final-workspace-result.json",
+      "bytes": 959,
+      "sha256": "da70cb4697eb77152f9d0cf5df30fcd789472b063e221029e89ebec83d4d6d1c"
+    },
+    {
+      "path": "5606-final-workspace-tests.log",
+      "bytes": 1221787,
+      "sha256": "c1bf48e1ba7fac72f4e909ab4bccd8bb80887e022af6596f4bced1eb65572150"
+    },
+    {
+      "path": "5606-layout-proof-summary.json",
+      "bytes": 247538,
+      "sha256": "3f4416b28c73b206dba2587fac792daa3375f92a30ea1c16e6502130898a4952"
+    },
+    {
+      "path": "5606-proof-validation.json",
+      "bytes": 1024,
+      "sha256": "da9a37f023af296b2afed4384f626b4bfc04409d2439f8df83b46472a1aafd59"
+    },
+    {
+      "path": "5606-proof-workspace-clippy.log",
+      "bytes": 1960,
+      "sha256": "c1c0b829815124ba88928a6ee80dff7bcfc4b2d9bf01ff3cb8c1fa50e7dd7add"
+    },
+    {
+      "path": "5606-qemu-after/build-manifest.json",
+      "bytes": 4269,
+      "sha256": "fc8c62b7e4cb35f11e3f2da77d86e145d1cd59e9adee25a8f7c25bbd1a418e5f"
+    },
+    {
+      "path": "5606-qemu-after/evidence/journey-frames/body-born.png",
+      "bytes": 105323,
+      "sha256": "110a3e06c2f9a1fc767007c5efbee298ed34af628e89ede9a980a1af1452d071"
+    },
+    {
+      "path": "5606-qemu-after/evidence/journey-frames/body-planned.png",
+      "bytes": 104752,
+      "sha256": "cfeb69d9f8937f67cfaab022c55c83117c4b7d2bf5670f76070e422295152563"
+    },
+    {
+      "path": "5606-qemu-after/evidence/journey-frames/body-playing.png",
+      "bytes": 110864,
+      "sha256": "b138754e3c9458658f24cc47eda6a23be4cdf778ce83d15d03d9df1e10a2e171"
+    },
+    {
+      "path": "5606-qemu-after/evidence/journey-frames/body-stopped.png",
+      "bytes": 80677,
+      "sha256": "9a9bf642df3d7c73749cc36e976198f4dd64748ff2988027b1cef4d3a457a8fe"
+    },
+    {
+      "path": "5606-qemu-after/evidence/journey-frames/body-woken.png",
+      "bytes": 103542,
+      "sha256": "aaa12d5f809281c934d413cfdb9dbcb0782bfbaf05e6ca620feeb1db7966cd32"
+    },
+    {
+      "path": "5606-qemu-after/evidence/journey-frames/front-door-ready.png",
+      "bytes": 117958,
+      "sha256": "7ec406e49c6328c6c183c02be4d44949dc4c1b716fffafd8e2a4c85d5a0aeb4b"
+    },
+    {
+      "path": "5606-qemu-after/evidence/journey-frames/home.png",
+      "bytes": 109255,
+      "sha256": "6832eb60719060d311fa45022fa8eecf0981c438752de1ce64a6c51b71b15921"
+    },
+    {
+      "path": "5606-qemu-after/evidence/journey-frames/manifest.json",
+      "bytes": 64876,
+      "sha256": "dfb4f6049f8c706805874aee32819c2824b7f60ca3701625f635c2c786d5a4fc"
+    },
+    {
+      "path": "5606-qemu-after/evidence/journey-frames/patchbay-diagram-returned.png",
+      "bytes": 140974,
+      "sha256": "fc62e2946cf5add9b8f835c731af6615b6aae12c6e41696bb1a0ff04e9261a0b"
+    },
+    {
+      "path": "5606-qemu-after/evidence/journey-frames/patchbay-diagram.png",
+      "bytes": 140974,
+      "sha256": "fc62e2946cf5add9b8f835c731af6615b6aae12c6e41696bb1a0ff04e9261a0b"
+    },
+    {
+      "path": "5606-qemu-after/evidence/journey-frames/patchbay-face.png",
+      "bytes": 153956,
+      "sha256": "987122db1335a925c55012240d619fe6e80d1a661930e6d4ed39775d1968c92a"
+    },
+    {
+      "path": "5606-qemu-after/evidence/journey-frames/patchbay-gear-details.png",
+      "bytes": 262517,
+      "sha256": "bc404d06df147b4878e8849808b479704ac734e228dd16051a62aafc5c914bf8"
+    },
+    {
+      "path": "5606-qemu-after/evidence/journey-frames/patchbay-workspace.png",
+      "bytes": 110137,
+      "sha256": "3dbf373bfcdb9260d2441b1bbfcf82c3fc71022809f3ab515cb8faf494af197e"
+    },
+    {
+      "path": "5606-qemu-after/evidence/journey-frames/protected-keyboard-canvas.png",
+      "bytes": 71121,
+      "sha256": "482e7cb3311403909223571408a21f59e582e463415647b0d5908f8ee20f62a8"
+    },
+    {
+      "path": "5606-qemu-after/evidence/journey-frames/protected-memory-lantern.png",
+      "bytes": 66387,
+      "sha256": "e9913c706c0a3ea6c84d18da32b24432e21601daad88b0d12bc12e143fb57e28"
+    },
+    {
+      "path": "5606-qemu-after/evidence/journey-proof.json",
+      "bytes": 3776,
+      "sha256": "53594408651eff4cad61541c9dbf5b1707752aded0eac4da6619b36c086b9b44"
+    },
+    {
+      "path": "5606-qemu-after/evidence/journey-qmp.log",
+      "bytes": 23777,
+      "sha256": "4dfec1a039f04c0671a4e3a7133776a840388552443c5e1462aa599ea21640b0"
+    },
+    {
+      "path": "5606-qemu-after/evidence/journey-serial.log",
+      "bytes": 199084,
+      "sha256": "8368138292c4cb4c5ee07aea339d0895ccfb519ac9c4b9af09abe550b969f957"
+    },
+    {
+      "path": "5606-qemu-after/evidence/memory-lantern-native-edit.json",
+      "bytes": 5797,
+      "sha256": "babf74648ad92465ff2407531637ea605c0b0cc5a56deaf5f89172b856d9f2f9"
+    },
+    {
+      "path": "5606-qemu-after/evidence/profile-built-boot.log",
+      "bytes": 5140,
+      "sha256": "b0dfe8f37d8444d8ff6f44d1e9101b556677f8505513d32b63859d9b5ea85638"
+    },
+    {
+      "path": "5606-qemu-after/evidence/x86_64-product-journey-proof.json",
+      "bytes": 3776,
+      "sha256": "53594408651eff4cad61541c9dbf5b1707752aded0eac4da6619b36c086b9b44"
+    },
+    {
+      "path": "5606-qemu-after/evidence/x86_64-product-proof.json",
+      "bytes": 1733,
+      "sha256": "6515f220850060cc2e11d52397792f41db168daf1740aada4881998ddd72bbb7"
+    },
+    {
+      "path": "5606-qemu-after/receipt.json",
+      "bytes": 4645,
+      "sha256": "cfd322f92f0669d439ff4047af703268f1fcb525ad3495758f2d7a109db25616"
+    },
+    {
+      "path": "5606-qemu-after/resolved-image.json",
+      "bytes": 4453,
+      "sha256": "33ffa3c5f349e8022f890e7d4069c9feccc0d87a365ec93e002477f00aae0c0d"
+    },
+    {
+      "path": "5606-qemu-after-640-reading/details-next.png",
+      "bytes": 26319,
+      "sha256": "93e66f99901aac77b5c92e34a5581f34fd4baa15ff2d5f380c4575f05f35216d"
+    },
+    {
+      "path": "5606-qemu-after-640-reading/details.png",
+      "bytes": 32318,
+      "sha256": "9a6b9279637476d010ca9e9cd4945719650d66b3f1fca1d791206c185f2345d8"
+    },
+    {
+      "path": "5606-qemu-after-640-reading/front-door.png",
+      "bytes": 27691,
+      "sha256": "0c093248342cf5bd8aea4bfc016af1ed4e72fcb84ee3dd395f8071cd7646b301"
+    },
+    {
+      "path": "5606-qemu-after-640-reading/qemu-stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "5606-qemu-after-640-reading/receipt.json",
+      "bytes": 12806,
+      "sha256": "b24b9884a3487190a0a2c05460a8a7bb0e62bbc4797589ddc808cf6c2e8ecce4"
+    },
+    {
+      "path": "5606-qemu-after-640-reading/return-primary.png",
+      "bytes": 26169,
+      "sha256": "7cc02480e02b0dbc2a997fe40683f6b67074e32830764a9eae6ff245c1d43a69"
+    },
+    {
+      "path": "5606-qemu-after-640-reading/serial.log",
+      "bytes": 5239,
+      "sha256": "8e432c667f790458a7852cc898645dedf8049ddc2d80966032985c632702acdb"
+    },
+    {
+      "path": "5606-qemu-after-640-reading/source-provenance.json",
+      "bytes": 1136,
+      "sha256": "2c8e932f969a4ec29b9d6e586f1d6918438df96793443612426d6b61bc6e490a"
+    },
+    {
+      "path": "5606-qemu-before/build.json",
+      "bytes": 335,
+      "sha256": "eb61038b1478e8242dea7103166047eb257c304b6da4ce86a18d5de45b7ba2df"
+    },
+    {
+      "path": "5606-qemu-before/image.json",
+      "bytes": 351,
+      "sha256": "9074c99eb4149e9e4b7fb3d2a4245231853a556733573abe5a26d7295ea0296f"
+    },
+    {
+      "path": "5606-qemu-before/journey-frames/body-born.png",
+      "bytes": 103268,
+      "sha256": "640c32fd4508c056cf267be55f3cb8686737ccc3e526c7b58030cc308d63ae51"
+    },
+    {
+      "path": "5606-qemu-before/journey-frames/body-planned.png",
+      "bytes": 102698,
+      "sha256": "38fdd89bd3cc3d98fdb6fc79467f0b3050ba078a623261abfdc35a3eff2da74d"
+    },
+    {
+      "path": "5606-qemu-before/journey-frames/body-playing.png",
+      "bytes": 108809,
+      "sha256": "23ab7abe236a2f1d0ca3c250c5c15f5d9b4e362d2636ff4b56d0d6e29df5c26c"
+    },
+    {
+      "path": "5606-qemu-before/journey-frames/body-stopped.png",
+      "bytes": 78441,
+      "sha256": "605c0421e55123930c3064ff5f01ed73e6be1fb01b569db77dd911552beba117"
+    },
+    {
+      "path": "5606-qemu-before/journey-frames/body-woken.png",
+      "bytes": 101487,
+      "sha256": "5a202bd1736ed4df99e3d755142247e52f2e370045a7f5bc021790cfef59a8d5"
+    },
+    {
+      "path": "5606-qemu-before/journey-frames/front-door-ready.png",
+      "bytes": 117031,
+      "sha256": "a6d09919d2feb432c19da11af291789f1180b7f9024188164773ffaae9dfbba9"
+    },
+    {
+      "path": "5606-qemu-before/journey-frames/home.png",
+      "bytes": 108083,
+      "sha256": "2d0ba90167ba0043e1f69df13f4a08f360acae56ecb46badc83a5fce83d3e4b2"
+    },
+    {
+      "path": "5606-qemu-before/journey-frames/manifest.json",
+      "bytes": 60778,
+      "sha256": "c3080fd724db93596c1e772d70a69084be2baf57adca66c4b7c4395f5c3f71f3"
+    },
+    {
+      "path": "5606-qemu-before/journey-frames/patchbay-diagram-returned.png",
+      "bytes": 140977,
+      "sha256": "b08d56f2eb4d05df1160558882c5a71f5baa4244ded20c235d0e10f743063071"
+    },
+    {
+      "path": "5606-qemu-before/journey-frames/patchbay-diagram.png",
+      "bytes": 140977,
+      "sha256": "b08d56f2eb4d05df1160558882c5a71f5baa4244ded20c235d0e10f743063071"
+    },
+    {
+      "path": "5606-qemu-before/journey-frames/patchbay-face.png",
+      "bytes": 151719,
+      "sha256": "55698e63c468eade5e9ebbc38f1ca41931719d1b0cb54ed328072f1cc143bc58"
+    },
+    {
+      "path": "5606-qemu-before/journey-frames/patchbay-gear-details.png",
+      "bytes": 262652,
+      "sha256": "9df849f666f9454169469305fb5d0355a953b7e31a37db343b55034f468d3d3a"
+    },
+    {
+      "path": "5606-qemu-before/journey-frames/patchbay-workspace.png",
+      "bytes": 108082,
+      "sha256": "65d53e1ed27649b02d31509f075a15ceef12bbedda0881212347d9a08e4d168f"
+    },
+    {
+      "path": "5606-qemu-before/journey-frames/protected-keyboard-canvas.png",
+      "bytes": 69067,
+      "sha256": "1965c682779311f6f603ca95e1a52152e23504cb18109f6cff4758b921f96f30"
+    },
+    {
+      "path": "5606-qemu-before/journey-frames/protected-memory-lantern.png",
+      "bytes": 68498,
+      "sha256": "3f4796054117180cc7a181c2cb336fd1d974ef721d9ffd2e0d706b0ed1f39612"
+    },
+    {
+      "path": "5606-qemu-before/journey-proof.json",
+      "bytes": 3712,
+      "sha256": "b232ac7e1098590a865938ef8178b4919c5fd6e28bd7735f506ab21cc1be31a5"
+    },
+    {
+      "path": "5606-qemu-before/journey-qemu-stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "5606-qemu-before/journey-qmp.log",
+      "bytes": 23766,
+      "sha256": "95e1f3f25d98784aa549d4c43d10a278e1d55d4b29854188cfe9df42e6235b36"
+    },
+    {
+      "path": "5606-qemu-before/journey-serial.log",
+      "bytes": 161714,
+      "sha256": "d9ef79ee5217b59575d47e0a323c9b1911df408e7e82e99a1696f31313c86dfc"
+    },
+    {
+      "path": "5606-qemu-before/make-record.rs",
+      "bytes": 684,
+      "sha256": "fac4493f00c3a19f9242d61f558243b4fcd4c288547cd49237218700c3697bfa"
+    },
+    {
+      "path": "5606-qemu-before/preservation.json",
+      "bytes": 3811,
+      "sha256": "7f3c999fa47b3b3b1127de47d3054243b14f551f304217055d0dbd4ed4af5302"
+    },
+    {
+      "path": "5606-qemu-before-320/front-door.png",
+      "bytes": 41125,
+      "sha256": "250644040d1998e5ca64d5d2454623adf8de751ac3f4fe14160d1c9e9cde28ae"
+    },
+    {
+      "path": "5606-qemu-before-320/qemu-stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "5606-qemu-before-320/receipt.json",
+      "bytes": 2755,
+      "sha256": "94e9c6f66d7892ba2a8d4365e3a1dfc754b61fcc13241e0165a56c9039d38f55"
+    },
+    {
+      "path": "5606-qemu-before-320/serial.log",
+      "bytes": 5140,
+      "sha256": "030f5aa2126300ce3e17d3d8158ccb05138c0c5c721b2e71c4841180d1b4f5ea"
+    },
+    {
+      "path": "5606-qemu-before-640-reading/details-next.png",
+      "bytes": 26322,
+      "sha256": "ea7517091a038e082ec959c779d0d96395d313272a87730a3b3ee4df3db50035"
+    },
+    {
+      "path": "5606-qemu-before-640-reading/details.png",
+      "bytes": 32326,
+      "sha256": "52de4710728891b29327dfa37b918fb91ca66f2b119a454a002742677e567058"
+    },
+    {
+      "path": "5606-qemu-before-640-reading/front-door.png",
+      "bytes": 27484,
+      "sha256": "d7bda35a7d1f4554e129811f17fba081f2bf43c86d93ab3cd10399dbddc24ad4"
+    },
+    {
+      "path": "5606-qemu-before-640-reading/qemu-stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "5606-qemu-before-640-reading/receipt.json",
+      "bytes": 12806,
+      "sha256": "232dd94a3a9f03c7b4535d377fb55a17386928e273c2b25f55268a0c09e6d0c5"
+    },
+    {
+      "path": "5606-qemu-before-640-reading/return-primary.png",
+      "bytes": 26142,
+      "sha256": "fd78525e7d599cf81ff69890c2871d288a70495bd352275f3c7cd01015f91322"
+    },
+    {
+      "path": "5606-qemu-before-640-reading/serial.log",
+      "bytes": 5239,
+      "sha256": "1d27abdc67d631cf93062d1199af37da2d0c2bfd71497735dfa1af0def2c09aa"
+    },
+    {
+      "path": "5606-runtime-regression-test.log",
+      "bytes": 1013,
+      "sha256": "66250efc59657019c78392e17c9c52a9e250f36bd2ff4408c51e250c0c535648"
+    },
+    {
+      "path": "5606-screen-free-birth-diagnostic.log",
+      "bytes": 306,
+      "sha256": "b0e84f554c7e95405ce9c553a1f4dd49a332b1160e40aec8fa153816f1dc3c97"
+    },
+    {
+      "path": "5606-workspace-tests-complete-audit.log",
+      "bytes": 575999,
+      "sha256": "459c34974dc35aac0e26a4cf8b71ec75479f242b09e00d4eeaaff6ee42142812"
+    },
+    {
+      "path": "5606-workspace-tests.log",
+      "bytes": 44113,
+      "sha256": "496f37bdb115951c90a0a212cc308525f488ca59c26ea9ed72ce51b8b00c5d3c"
+    },
+    {
+      "path": "home-audit-face.json",
+      "bytes": 8525,
+      "sha256": "aa74502202b747ec8025468ab896ac8415991d9424f1c5b82899b27fb705c5a2"
+    },
+    {
+      "path": "layout-baseline-current/Cargo.lock",
+      "bytes": 35987,
+      "sha256": "5dfacba93e4ce8f500c08893d6f808956d8c100f93e7b8ae722288fa77da6d4a"
+    },
+    {
+      "path": "layout-baseline-current/Cargo.toml",
+      "bytes": 365,
+      "sha256": "b20dd178629f557974a3cfedf13437bc72e82bab84e9b7978aa08f5ea78adc29"
+    },
+    {
+      "path": "layout-baseline-current/src/bin/dense.rs",
+      "bytes": 2686,
+      "sha256": "66cbcea2017396388a4afbc99f9843eebd275187378f5ee2701bd0bf4d3e9b6d"
+    },
+    {
+      "path": "layout-baseline-current/src/bin/runtime_faces.rs",
+      "bytes": 6455,
+      "sha256": "c5e2186540b43d17f20ec41ab8cdfa93a203d34d5ce86c3e06b8be7447811232"
+    },
+    {
+      "path": "layout-baseline-current/src/main.rs",
+      "bytes": 3303,
+      "sha256": "7c33d17316f50181dded2a96eb14b600b7c03cf7023b26d473803f638a032095"
+    },
+    {
+      "path": "qemu-layout-probe.py",
+      "bytes": 5392,
+      "sha256": "85b306cabc211988f760f4fa6daaaa5607e15b3f10db2c41b8e7881b841564cb"
+    }
+  ]
+}
