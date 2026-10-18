@@ -52,3 +52,35 @@ fn native_type_on_an_intermediate_node_cannot_hide_behind_intrinsic_ports() {
     left.value_type = native;
     refuses_without_native_witness(&intrinsic);
 }
+
+#[test]
+fn unused_structured_inputs_still_require_native_law_witnesses_for_their_fields() {
+    refuses_without_native_witness(&program(
+        "type Small = U64 in 0..=10\ntype Envelope = {\n value: Small\n}\nplot choose (\n >> value: Envelope\n result: U64 >>\n) = (7)\n",
+    ));
+}
+
+#[test]
+fn constant_tapes_keep_valid_intrinsic_record_inputs_supported() {
+    use conduit_core::{StructuredFieldValue, StructuredInfoTypeShape, StructuredInfoValue};
+    let program = program(
+        "type Envelope = {\n value: U64\n}\nplot choose (\n >> value: Envelope\n result: U64 >>\n) = (7)\n",
+    );
+    let StructuredInfoTypeShape::Record { fields, .. } = program.input_type.shape() else {
+        panic!()
+    };
+    let input = StructuredInfoValue::record(
+        program.input_type.clone(),
+        vec![StructuredFieldValue::new(
+            "value",
+            StructuredInfoValue::leaf(fields[0].value_type().clone(), 9u64.to_le_bytes().to_vec())
+                .unwrap(),
+        )
+        .unwrap()],
+    )
+    .unwrap()
+    .canonical_bytes()
+    .unwrap();
+    let mut tape = PreparedPortableExpressionEvaluator::new_scalar_tape(&program).unwrap();
+    assert_eq!(tape.evaluate(&input).unwrap(), 7u64.to_le_bytes());
+}
