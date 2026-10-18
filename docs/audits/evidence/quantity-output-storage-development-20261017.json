@@ -1,0 +1,42 @@
+{
+  "schema": "conduit/development-validation@1",
+  "source": "3a73573faa3fa706bf41caf39aa693f834418da7",
+  "scope": "Private bounded quantity arithmetic output, used by prepared decimal evaluator. Exact policy is component-only; Source and Back activation remain unfinished.",
+  "results": {
+    "passing_tests": 18,
+    "new_component_tests": 3,
+    "existing_plot_tests": 15,
+    "strict_plot_clippy": "passed",
+    "workspace_format": "passed",
+    "exact_thirds_separate_component_buffers": "passed",
+    "wide_coordinate_over_500_digits": "passed",
+    "physical_kind_role_and_capacity_refusals": "passed"
+  },
+  "limitations": [
+    "No new Source or installed Back exact-wire admission.",
+    "Two authored rational-wire acceptance gates remain unresolved.",
+    "No new warm exact-profile allocation observation or stable acceptance is claimed."
+  ],
+  "files": [
+    {
+      "path": "quantity-output-component-tests.log",
+      "sha256": "a1dfc320bc1a58c01d7f80c6b7d78730dbfbd03c403e41439aaf81dbd2cdb6c3"
+    },
+    {
+      "path": "quantity-output-existing-tests.log",
+      "sha256": "2196dadac8c8499d948de49da434752c210e3555f2551cf9f0bffb8db3ca69be"
+    },
+    {
+      "path": "quantity-output-clippy.log",
+      "sha256": "03a58a4484452e26c09320e1988504bf09688a2237cd38ef49daae5bc18924c2"
+    },
+    {
+      "path": "quantity-output-format.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "archive": {
+    "path": "quantity-output-storage-development-20261017-raw.tar.gz",
+    "sha256": "970d578a1650b1814eba3e44831c214ee03e92792f51ea2308df3241a389ae81"
+  }
+}
