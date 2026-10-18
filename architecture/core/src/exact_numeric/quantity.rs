@@ -12,9 +12,11 @@ mod enclosure;
 mod product;
 mod projection;
 mod receipt;
+mod value_view;
 pub use enclosure::*;
 pub use projection::*;
 pub use receipt::*;
+pub use value_view::*;
 
 pub const RATIONAL_QUANTITY_ID: &str = "numeric/rational-quantity@1";
 pub const RATIONAL_QUANTITY_MAX_ENCODED_BYTES: usize =
