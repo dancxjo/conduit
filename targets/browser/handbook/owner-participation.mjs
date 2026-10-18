@@ -1,4 +1,4 @@
-import { assertOwnerFaceReachability } from './owner-face-reachability.mjs';
+import { assertOwnerFaceReachability } from "./owner-face-reachability.mjs";
 import "./owner-face-component.mjs";
 
 // Optional, explicitly authorized participation in a Body owned by a running

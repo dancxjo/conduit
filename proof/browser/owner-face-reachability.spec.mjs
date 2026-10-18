@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises';
 import { expect, test } from '@playwright/test';
 
 // Deterministic renderer conformance; source-backed owner proof is retained by
@@ -68,5 +69,44 @@ for (const attack of ['none','hidden-label','hidden-input','aria-label']) {
     },{base:view,attack});
     expect(result).toEqual(attack==='none'?{admitted:true,opacity:'0'}:{admitted:false,code:'RendererActionInaccessible'});
     if(attack==='none') await expect(page.getByRole('radio',{name:'Mode 1',exact:true})).toBeEnabled();
+  });
+}
+
+for (const corruptDependency of [false,true]) {
+  test(`production package loader admits the actual owner module graph (${corruptDependency?'mismatched':'current'})`, async ({page}) => {
+    const template=JSON.parse(await readFile('targets/browser/handbook/handbook.application.template.json','utf8'));
+    const modules=await Promise.all(['owner-participation','owner-face-component','owner-face-reachability'].map(async role=>{
+      const resource=template.resources.find(resource=>resource.role===role);
+      let source=await readFile(`targets/browser/handbook/${resource.path}`,'utf8');
+      if(corruptDependency && role==='owner-participation') source=source.replace('"./owner-face-reachability.mjs"',"'./owner-face-reachability.mjs'");
+      return {...resource,source};
+    }));
+    await page.goto('/proof/browser/signal-dom-host.test.html');
+    await page.evaluate(async modules=>{
+      document.body.innerHTML='<main id="workspace"></main>';
+      const meta=document.createElement('meta');meta.name='conduit-application-package';meta.content='/fixture-owner-application.json';document.head.append(meta);
+      const encoder=new TextEncoder();
+      const hash=async bytes=>'sha256:'+Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)),byte=>byte.toString(16).padStart(2,'0')).join('');
+      // Only package module admission is exercised; no SDK Host/Body is invented.
+      const entry='import "./owner-participation.mjs"; export async function startApplication(){document.querySelector("#workspace").textContent="Owner modules admitted";}';
+      const definitions=[{role:'application-module',kind:'module',path:'entry.mjs',source:entry,
+        dependencies:[{role:'owner-participation',specifier:'./owner-participation.mjs'}]},...modules,
+        {role:'runtime',kind:'wasm',path:'runtime.wasm',source:'unused fixture envelope'}];
+      const resources=[],bodies=new Map();
+      for(const definition of definitions){const bytes=encoder.encode(definition.source);bodies.set(definition.path,bytes);
+        resources.push({role:definition.role,kind:definition.kind,path:definition.path,maximum_bytes:bytes.length,
+          sha256:await hash(bytes),dependencies:definition.dependencies??[]});}
+      const manifest={schema:'conduit.browser/application-package@1',application_id:'fixture/owner-module-admission',
+        state_compatibility:{identity:'fixture/owner-module-state',version:1},host_implementations:['browser/indexeddb@1'],resources};
+      const lines=['conduit.browser/application-package-content@1','application\0'+manifest.application_id,
+        'state\0'+manifest.state_compatibility.identity+'\0'+1,'host-implementation\0browser/indexeddb@1'];
+      for(const resource of resources) lines.push('resource\0'+[resource.role,resource.kind,resource.path,resource.maximum_bytes,
+        resource.sha256,resource.dependencies.map(dep=>dep.role+'='+dep.specifier).join(',')].join('\0'));
+      manifest.package_digest=await hash(encoder.encode(lines.join('\n')+'\n'));
+      globalThis.fetch=async url=>new Response(String(url).endsWith('/fixture-owner-application.json')?JSON.stringify(manifest):bodies.get(new URL(url).pathname.split('/').at(-1)));
+      await import('/targets/browser/host/assets/browser-application-loader.mjs');
+    },modules);
+    await expect(page.locator('#workspace')).toHaveText(corruptDependency
+      ?'application module owner-participation did not use its declared dependency':'Owner modules admitted');
   });
 }
