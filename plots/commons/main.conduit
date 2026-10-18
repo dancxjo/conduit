@@ -1,14 +1,16 @@
 # Commons owns these semantic identities. No global Room type or geometry.
 type CommonsPlaceId = Text <= 32B in ["commons/hub", "commons/workshop", "commons/creche"]
+type CommonsPlaceRole = Text <= 32B in ["commons/place"]
+type CommonsRelationMeaning = Text <= 32B in ["commons/contains-place", "commons/reaches-place"]
 type CommonsPlace = {
     identity: CommonsPlaceId
     name: Text <= 32B not in [""]
-    role: Text <= 32B in ["commons/place"]
+    role: CommonsPlaceRole
 }
 type CommonsRelation = {
     source: CommonsPlaceId
     target: CommonsPlaceId
-    meaning: Text <= 32B in ["commons/contains-place", "commons/reaches-place"]
+    meaning: CommonsRelationMeaning
     where .source != .target
 }
 type CommonsPlaces = {
@@ -27,6 +29,61 @@ type CommonsPlaces = {
     where .reachability.1.source == .hub.identity && .reachability.1.target == .creche.identity
     where .reachability.0.meaning == "commons/reaches-place" && .reachability.1.meaning == "commons/reaches-place"
 }
+
+# Current owner observations are supplied privately at the owner boundary. These
+# finite values report truth; neither their encoding nor the place graph grants
+# an action, a Host offer, a Birth, or permission to change a Body.
+type CommonsBodyId = Text <= 256B
+type CommonsLife = Text <= 16B in ["none", "lulled", "awake", "fulfilled", "unknown"]
+type CommonsOwnerObservation = {
+    body_id: CommonsBodyId
+    life: CommonsLife
+    revision: U64
+    where (.life == "none" || .life == "unknown") == (.body_id == "")
+}
+type CommonsEncounterRequest = {
+    places: CommonsPlaces
+    owner: CommonsOwnerObservation
+    current: CommonsPlaceId
+    target: CommonsPlaceId
+    back: Boolean
+    where (.current == .target && !.back) || (.back && .current != .places.hub.identity && .target == .places.hub.identity) || (!.back && ((.current == .places.reachability.0.source && .target == .places.reachability.0.target) || (.current == .places.reachability.1.source && .target == .places.reachability.1.target)))
+}
+type CommonsEncounter = {
+    places: CommonsPlaces
+    owner: CommonsOwnerObservation
+    selected: CommonsPlaceId
+    body_actions: Boolean
+}
+
+# The pure evaluator consumes structural frames. Repeat the checked input laws
+# as executable guards with named domain refusals; structural frames alone
+# never establish current owner truth or satisfy native construction contracts.
+# Private owner admission additionally validates all generated native contracts.
+# Back returns from an entered context; it does not author a reverse graph edge.
+# The policy can withhold owner actions but cannot create them.
+plot commons/refuse-invalid-places (
+    >> request: CommonsEncounterRequest <= 8192B
+    refused: Boolean >>
+) = !((.places.hub.identity == "commons/hub") && (.places.workshop.identity == "commons/workshop") && (.places.creche.identity == "commons/creche") && (.places.containment.0.source == .places.hub.identity && .places.containment.0.target == .places.workshop.identity) && (.places.containment.1.source == .places.hub.identity && .places.containment.1.target == .places.creche.identity) && (.places.containment.0.meaning == "commons/contains-place" && .places.containment.1.meaning == "commons/contains-place") && (.places.reachability.0.source == .places.hub.identity && .places.reachability.0.target == .places.workshop.identity) && (.places.reachability.1.source == .places.hub.identity && .places.reachability.1.target == .places.creche.identity) && (.places.reachability.0.meaning == "commons/reaches-place" && .places.reachability.1.meaning == "commons/reaches-place") && .places.hub.role == "commons/place" && .places.workshop.role == "commons/place" && .places.creche.role == "commons/place")
+
+plot commons/refuse-invalid-owner (
+    >> request: CommonsEncounterRequest <= 8192B
+    refused: Boolean >>
+) = !(((.owner.life == "none" || .owner.life == "unknown") == (.owner.body_id == "")) && (.owner.life == "none" || .owner.life == "unknown" || .owner.life == "lulled" || .owner.life == "awake" || .owner.life == "fulfilled"))
+
+plot commons/refuse-invalid-navigation (
+    >> request: CommonsEncounterRequest <= 8192B
+    refused: Boolean >>
+) = !((.current == .places.hub.identity || .current == .places.workshop.identity || .current == .places.creche.identity) && (.target == .places.hub.identity || .target == .places.workshop.identity || .target == .places.creche.identity) && ((.current == .target && !.back) || (.back && .current != .places.hub.identity && .target == .places.hub.identity) || (!.back && ((.current == .places.reachability.0.source && .target == .places.reachability.0.target) || (.current == .places.reachability.1.source && .target == .places.reachability.1.target)))))
+
+# Project only after current private owner admission. The admission result is
+# validation, never a transferable grant or a Body action.
+plot commons/encounter (
+    >> request: CommonsEncounterRequest <= 8192B
+    encounter: CommonsEncounter >>
+) = {places: .places, owner: .owner, selected: .target, body_actions: .target != .places.creche.identity && .owner.life != "none" && .owner.life != "unknown" && .owner.life != "fulfilled"}
+
 # These routes describe this finite authored domain, not authority or live Lines.
 plot commons (
     >> observe: Boolean
