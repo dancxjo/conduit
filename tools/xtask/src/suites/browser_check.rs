@@ -2,6 +2,12 @@ use crate::{process::Step, proof::ProofClass};
 
 pub const BROWSER_CHECK_STEPS: &[Step] = &[
     Step::new(
+        "check.browser.workspace-resource-bounds",
+        "Check shipped Workspace module extents and strict storage package admission",
+        "node",
+        &["--test", "proof/browser/workspace-resource-bounds.test.mjs"],
+    ),
+    Step::new(
         "check.browser.shared-face-style-package",
         "Check shared Face stylesheet bounds across every application package consumer",
         "node",
