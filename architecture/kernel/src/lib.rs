@@ -696,10 +696,10 @@ impl<const EVENTS: usize> SignSink for FixedSignLog<EVENTS> {
         let charge =
             u32::try_from(size_of::<KernelEvent>()).map_err(|_| SignError::InvalidBudget)?;
         let item_pressure = usize::from(self.len) >= EVENTS;
-        let byte_pressure = self
-            .used_bytes
-            .checked_add(charge)
-            .is_none_or(|used| used > self.byte_capacity);
+        let byte_pressure = !matches!(
+            self.used_bytes.checked_add(charge),
+            Some(used) if used <= self.byte_capacity
+        );
         let eviction = if item_pressure || byte_pressure {
             Some(prepare_transient_eviction(
                 &self.entries[..usize::from(self.len)],
@@ -754,10 +754,10 @@ impl<const EVENTS: usize> SignSink for FixedSignLog<EVENTS> {
         let remote_charge = u32::try_from(size_of::<RemoteLifecycleSign>())
             .map_err(|_| SignError::InvalidBudget)?;
         let item_pressure = usize::from(self.len) >= EVENTS;
-        let byte_pressure = self
-            .used_bytes
-            .checked_add(charge)
-            .is_none_or(|used| used > self.byte_capacity);
+        let byte_pressure = !matches!(
+            self.used_bytes.checked_add(charge),
+            Some(used) if used <= self.byte_capacity
+        );
         let eviction = if item_pressure || byte_pressure {
             Some(prepare_transient_eviction(
                 &self.entries[..usize::from(self.len)],
@@ -982,10 +982,10 @@ impl SignSink for HostedSignLog {
         let charge =
             u32::try_from(size_of::<KernelEvent>()).map_err(|_| SignError::InvalidBudget)?;
         let item_pressure = usize::from(self.len) >= self.entries.len();
-        let byte_pressure = self
-            .used_bytes
-            .checked_add(charge)
-            .is_none_or(|used| used > self.byte_capacity);
+        let byte_pressure = !matches!(
+            self.used_bytes.checked_add(charge),
+            Some(used) if used <= self.byte_capacity
+        );
         let eviction = if item_pressure || byte_pressure {
             Some(prepare_transient_eviction(
                 &self.entries[..usize::from(self.len)],
@@ -1040,10 +1040,10 @@ impl SignSink for HostedSignLog {
         let remote_charge = u32::try_from(size_of::<RemoteLifecycleSign>())
             .map_err(|_| SignError::InvalidBudget)?;
         let item_pressure = usize::from(self.len) >= self.entries.len();
-        let byte_pressure = self
-            .used_bytes
-            .checked_add(charge)
-            .is_none_or(|used| used > self.byte_capacity);
+        let byte_pressure = !matches!(
+            self.used_bytes.checked_add(charge),
+            Some(used) if used <= self.byte_capacity
+        );
         let eviction = if item_pressure || byte_pressure {
             Some(prepare_transient_eviction(
                 &self.entries[..usize::from(self.len)],

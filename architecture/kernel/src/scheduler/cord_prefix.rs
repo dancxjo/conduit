@@ -17,10 +17,10 @@ impl CordPrefix {
     ) -> Result<(), SchedulerError> {
         let endpoint = cord.remote_endpoint();
         let queue_disjoint = usize::from(cord.slot_start) >= self.maximum_queue_end;
-        let endpoint_unique = endpoint.is_none_or(|endpoint| {
-            self.maximum_remote
-                .is_none_or(|previous| endpoint.0 > previous.0)
-        });
+        let endpoint_unique = match (endpoint, self.maximum_remote) {
+            (Some(endpoint), Some(previous)) => endpoint.0 > previous.0,
+            _ => true,
+        };
         if !queue_disjoint || !endpoint_unique {
             for other in previous {
                 #[cfg(test)]
