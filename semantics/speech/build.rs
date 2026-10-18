@@ -36,9 +36,13 @@ fn main() {
     for path in [
         "syllables.conduit",
         "syllable_structure.conduit",
+        "acoustic_scope.conduit",
+        "fundamental.conduit",
+        "acoustic_energy.conduit",
         "ipa.conduit",
         "ipa_syntax.conduit",
         "ipa_inventory.conduit",
+        "model_projection.conduit",
         "ipa_constructors.conduit",
         "../language/identity.conduit",
         "build_support/semantic_source.rs",
@@ -62,6 +66,8 @@ fn main() {
             }),
     );
     let mut semantic_catalog = StartupCatalog::new();
+    let audio_types = conduit_audio::authoring::checked_types().expect("Audio owner metadata");
+    conduit_audio::authoring::install(&mut semantic_catalog).expect("Audio exact Types install");
     let language_identities =
         semantic_source::language_identities().expect("Language-owned identity declarations check");
     for (name, ty) in &language_types {
@@ -175,7 +181,7 @@ fn main() {
         .map(|(name, _)| format!("conduit_language::{name}"))
         .collect::<Vec<_>>();
     // IPA profiles retain the exact Language-owned variety Type.
-    let bindings = identities
+    let mut bindings = identities
         .iter()
         .zip(&paths)
         .zip(&language_types)
@@ -195,10 +201,57 @@ fn main() {
             },
         )
         .collect::<Vec<_>>();
-    let external_types = language_types
+    let mut external_types = language_types
         .iter()
         .map(|(_, ty)| ty.clone())
         .collect::<Vec<_>>();
+    let audio_paths = [
+        (
+            "AudioTrajectoryAnchor",
+            "conduit_audio::AudioTrajectoryAnchor",
+        ),
+        (
+            "AudioFrequencyControl",
+            "conduit_audio::AudioFrequencyControl",
+        ),
+        (
+            "AudioTrajectoryQuery",
+            "conduit_audio::AudioTrajectoryQuery",
+        ),
+        (
+            "AudioExactTimeOffset",
+            "conduit_audio::AudioExactTimeOffset",
+        ),
+        (
+            "AudioScopedControlTrajectory",
+            "conduit_audio::AudioScopedControlTrajectory",
+        ),
+        ("AudioDecibelBasis", "conduit_audio::AudioDecibelBasis"),
+        (
+            "AudioReferencedLevelRatio",
+            "conduit_audio::AudioReferencedLevelRatio",
+        ),
+        (
+            "AudioReferencedAmplitudePowerRequest",
+            "conduit_audio::AudioReferencedAmplitudePowerRequest",
+        ),
+        (
+            "AudioTrajectoryQuantity",
+            "conduit_audio::AudioTrajectoryQuantity",
+        ),
+        ("AudioLevelRatio", "conduit_audio::AudioLevelRatio"),
+    ];
+    for (name, path) in audio_paths {
+        let ty = audio_types
+            .iter()
+            .find(|ty| ty.name == name)
+            .expect("Audio owner Type");
+        bindings.push(conduit_plot::rust_binding::ExternalNativeRustBinding {
+            semantic_identity: ty.identity.as_str(),
+            rust_type_path: path,
+        });
+        external_types.push(ty.value_type.clone());
+    }
     let bindings = conduit_plot::rust_binding::generate_rust_bindings_with_external_bindings(
         &semantic.native_types,
         &external_types,

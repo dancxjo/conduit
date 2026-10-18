@@ -9,6 +9,12 @@ use conduit_plot::rust_binding::{NativeBindingRefusal, NativeRustBinding};
 
 #[derive(Debug)]
 pub enum IntentFundamentalRefusal {
+    InventoryBasis {
+        event: usize,
+    },
+    CarrierSource {
+        event: usize,
+    },
     MissingEvent {
         event: usize,
     },
@@ -341,4 +347,85 @@ impl<'a, 'inventory> CorrespondingObservedFundamental<'a, 'inventory> {
     pub fn observation(&self) -> &ObservedIntentFundamental<'a> {
         &self.observation
     }
+}
+
+/// Authored target and optional supplied observation, tied to the complete opaque
+/// original correspondence. Source identifies carrier custody; event word source
+/// references remain inspectable on `original().intent()`.
+pub struct PreparedPhoneFundamental<'a, 'inventory> {
+    original: &'a crate::correspondence::PreparedSpeechCorrespondence<'a, 'inventory>,
+    binding: &'a SpeechFundamentalBinding,
+    target: CorrespondingIntentFundamental<'a, 'inventory>,
+    observed_cycle: Option<AcousticConversion<AudioFrequencyHz, AudioCycleDuration>>,
+}
+impl<'a, 'inventory> PreparedPhoneFundamental<'a, 'inventory> {
+    pub fn original(
+        &self,
+    ) -> &'a crate::correspondence::PreparedSpeechCorrespondence<'a, 'inventory> {
+        self.original
+    }
+    pub fn binding(&self) -> &'a SpeechFundamentalBinding {
+        self.binding
+    }
+    pub fn target(&self) -> &CorrespondingIntentFundamental<'a, 'inventory> {
+        &self.target
+    }
+    pub fn observation(&self) -> Option<&SpeechFundamentalObservation> {
+        self.binding.observation().as_ref()
+    }
+    pub fn observed_cycle(
+        &self,
+    ) -> Option<&AcousticConversion<AudioFrequencyHz, AudioCycleDuration>> {
+        self.observed_cycle.as_ref()
+    }
+}
+
+/// Supported subset: a single original phone event with a known exact intended
+/// cycle. Source laws retain dimensions and anchor relations; generic Audio runs
+/// each reciprocal conversion. No frequency/error arithmetic is reimplemented.
+pub fn prepare_phone_fundamental<'a, 'inventory>(
+    original: &'a crate::correspondence::PreparedSpeechCorrespondence<'a, 'inventory>,
+    event: usize,
+    binding: &'a SpeechFundamentalBinding,
+) -> Result<PreparedPhoneFundamental<'a, 'inventory>, IntentFundamentalRefusal> {
+    SpeechFundamentalBinding::decode(
+        &binding
+            .clone()
+            .encode()
+            .map_err(|reason| IntentFundamentalRefusal::Native { event, reason })?,
+    )
+    .map_err(|reason| IntentFundamentalRefusal::Native { event, reason })?;
+    let scope = binding.target().scope();
+    if scope.inventory_basis() != original.inventory().basis() {
+        return Err(IntentFundamentalRefusal::InventoryBasis { event });
+    }
+    if scope.source() != original.alignment().source() {
+        return Err(IntentFundamentalRefusal::CarrierSource { event });
+    }
+    let target =
+        prepare_corresponding_intent_fundamental(original, event, binding.target().control())?;
+    if scope.occurrence() != target.fundamental().segment().occurrence() {
+        return Err(IntentFundamentalRefusal::ForeignOccurrence { event });
+    }
+    let observed_cycle = binding
+        .observation()
+        .as_ref()
+        .map(|observed| {
+            let bytes = observed
+                .control()
+                .value()
+                .clone()
+                .encode()
+                .map_err(|reason| IntentFundamentalRefusal::Native { event, reason })?;
+            PreparedAcousticReciprocal::new()
+                .and_then(|converter| converter.frequency_to_cycle(&bytes))
+                .map_err(|reason| IntentFundamentalRefusal::Reciprocal { event, reason })
+        })
+        .transpose()?;
+    Ok(PreparedPhoneFundamental {
+        original,
+        binding,
+        target,
+        observed_cycle,
+    })
 }

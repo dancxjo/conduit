@@ -331,6 +331,150 @@ fn authoritative_entry_keeps_original_inventory_variety_revision_and_source() {
         prepared.observe(&measured, &foreign_at, &span, &provenance, None),
         Err(IntentFundamentalRefusal::ForeignAnchor { event: 0 })
     ));
+    let source_scope = SpeechPhoneAcousticScope::new(
+        anchor(1),
+        admitted_inventory.basis().clone(),
+        f::reference("phones", 0),
+        f::source(),
+    )
+    .unwrap();
+    let target = SpeechFundamentalTarget::new(frequency.clone(), source_scope.clone()).unwrap();
+    // Public authored transport retains the exact imported owner contracts.
+    let mut catalog = conduit_plot::StartupCatalog::new();
+    conduit_speech::authoring::install(&mut catalog).unwrap();
+    let source = "plot fundamental/copy (\n >> value: SpeechFundamentalTarget\n result: SpeechFundamentalTarget >>\n) = (.)";
+    let checked =
+        conduit_plot::check_syntax_document(&conduit_plot::parse_syntax_document(source), &catalog)
+            .unwrap();
+    let expanded = conduit_plot::expand_canonical_plot_for_authoring(
+        &checked,
+        "fundamental/copy",
+        &conduit_plot::ProfileCatalog::new(),
+    )
+    .unwrap();
+    let conduit_core::ConfigurationValue::Text(encoded) =
+        &expanded.expanded.gears[0].configuration[0].value
+    else {
+        panic!("authored expression")
+    };
+    let program = conduit_plot::PortableExpressionProgram::from_canonical_hex(encoded).unwrap();
+    assert_eq!(
+        program.evaluate(&target.clone().encode().unwrap()).unwrap(),
+        target.clone().encode().unwrap()
+    );
+    let wrong_dimension = "plot fundamental/wrong (\n >> value: AudioCycleDuration\n result: AudioFrequencyHz >>\n) = (.)";
+    let refused = match conduit_plot::check_syntax_document(
+        &conduit_plot::parse_syntax_document(wrong_dimension),
+        &catalog,
+    ) {
+        Err(_) => true,
+        Ok(checked) => conduit_plot::expand_canonical_plot_for_authoring(
+            &checked,
+            "fundamental/wrong",
+            &conduit_plot::ProfileCatalog::new(),
+        )
+        .is_err(),
+    };
+    assert!(
+        refused,
+        "cycle is not a frequency without the explicit generic Audio conversion"
+    );
+    let target_only = SpeechFundamentalBinding::new(None, target.clone()).unwrap();
+    let prepared_target = prepare_phone_fundamental(&carrier, 0, &target_only).unwrap();
+    assert!(prepared_target.observation().is_none());
+    assert!(prepared_target.observed_cycle().is_none());
+    assert_eq!(
+        prepared_target.original().inventory().basis(),
+        admitted_inventory.basis()
+    );
+    let observed = SpeechFundamentalObservation::new(
+        at.clone(),
+        Some(f::confidence()),
+        measured.clone(),
+        f::provenance(),
+        source_scope.clone(),
+        AudioExactTimeOffset::new(1, 1).unwrap(),
+    )
+    .unwrap();
+    let binding = SpeechFundamentalBinding::new(Some(observed.clone()), target.clone()).unwrap();
+    let original_bytes = intent.clone().encode().unwrap();
+    let text_bytes = text.clone().encode().unwrap();
+    let receipt = prepare_phone_fundamental(&carrier, 0, &binding).unwrap();
+    assert!(core::ptr::eq(receipt.original(), &carrier));
+    assert_eq!(receipt.observation().unwrap(), &observed);
+    assert_eq!(
+        receipt.binding().target().control().value(),
+        frequency.value()
+    );
+    assert_eq!(receipt.observed_cycle().unwrap().input(), measured.value());
+    assert_eq!(
+        receipt.observed_cycle().unwrap().result(),
+        &AudioCycleDuration::new(110, 1).unwrap()
+    );
+    assert!(!receipt
+        .observed_cycle()
+        .unwrap()
+        .source_program_hex()
+        .is_empty());
+    assert_eq!(intent.clone().encode().unwrap(), original_bytes);
+    assert_eq!(text.clone().encode().unwrap(), text_bytes);
+    let foreign_scope = SpeechPhoneAcousticScope::new(
+        anchor(1),
+        admitted_inventory.basis().clone(),
+        f::reference("phones", 1),
+        f::source(),
+    )
+    .unwrap();
+    let foreign_target = SpeechFundamentalTarget::new(frequency.clone(), foreign_scope).unwrap();
+    let foreign_binding = SpeechFundamentalBinding::new(None, foreign_target.clone()).unwrap();
+    assert!(matches!(
+        prepare_phone_fundamental(&carrier, 0, &foreign_binding),
+        Err(IntentFundamentalRefusal::ForeignOccurrence { event: 0 })
+    ));
+    assert!(SpeechFundamentalBinding::new(Some(observed.clone()), foreign_target).is_err());
+    assert!(SpeechFundamentalTarget::new(
+        AudioFrequencyControl::new(
+            anchor(2),
+            frequency.provenance().clone(),
+            *frequency.value()
+        )
+        .unwrap(),
+        source_scope.clone()
+    )
+    .is_err());
+    assert!(SpeechFundamentalObservation::new(
+        foreign_at.clone(),
+        None,
+        measured.clone(),
+        f::provenance(),
+        source_scope.clone(),
+        AudioExactTimeOffset::new(1, 1).unwrap(),
+    )
+    .is_err());
+    let other_source = LanguageTextSegmentRef::new(
+        *f::source().kind(),
+        f::source().language().clone(),
+        f::source().range().clone(),
+        f::source().revision_id().clone(),
+        LanguageTextId::new("foreign-text".into()).unwrap(),
+    )
+    .unwrap();
+    let source_mismatch = SpeechPhoneAcousticScope::new(
+        anchor(1),
+        admitted_inventory.basis().clone(),
+        f::reference("phones", 0),
+        other_source,
+    )
+    .unwrap();
+    let source_binding = SpeechFundamentalBinding::new(
+        None,
+        SpeechFundamentalTarget::new(frequency.clone(), source_mismatch).unwrap(),
+    )
+    .unwrap();
+    assert!(matches!(
+        prepare_phone_fundamental(&carrier, 0, &source_binding),
+        Err(IntentFundamentalRefusal::CarrierSource { event: 0 })
+    ));
     let stale = conduit_language::LanguageText::new(
         text.identity().clone(),
         text.language().clone(),

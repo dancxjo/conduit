@@ -74,6 +74,12 @@ pub mod intent_duration_grid;
 #[cfg(feature = "semantic-bindings")]
 pub mod intent_fundamental;
 #[cfg(feature = "semantic-bindings")]
+pub mod intent_energy;
+#[cfg(feature = "semantic-bindings")]
+pub mod carrier_identity;
+#[cfg(feature = "semantic-bindings")]
+pub mod model_linguistic_projection;
+#[cfg(feature = "semantic-bindings")]
 pub mod intent_inventory;
 #[cfg(feature = "semantic-bindings")]
 pub mod intent_phoneme_inventory;
