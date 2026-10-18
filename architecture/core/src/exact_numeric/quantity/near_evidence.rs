@@ -286,7 +286,10 @@ fn number(value: Value<'_>, work: &mut ExactNumericWork) -> Result<ExactRational
             _ => Refusal::Malformed,
         })?
         .as_rational(work)
-        .map_err(|_| Refusal::Malformed)?
+        .map_err(|why| match why {
+            crate::MathematicalValueRefusal::Numeric(why) => numeric_error(why),
+            _ => Refusal::Malformed,
+        })?
         .ok_or(Refusal::UnsupportedDenotation)
 }
 fn numeric_error(why: ExactNumericRefusal) -> Refusal {
@@ -405,3 +408,6 @@ fn protocol_schema(ty: &StructuredInfoType) -> bool {
     }
     true
 }
+
+#[cfg(test)]
+mod tests;
