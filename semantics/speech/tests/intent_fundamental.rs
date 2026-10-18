@@ -362,6 +362,22 @@ fn authoritative_entry_keeps_original_inventory_variety_revision_and_source() {
         program.evaluate(&target.clone().encode().unwrap()).unwrap(),
         target.clone().encode().unwrap()
     );
+    // Both quantity Types must be available: refusal below cannot pass merely
+    // because a name is absent from the narrowed owner import catalog.
+    for name in ["AudioCycleDuration", "AudioFrequencyHz"] {
+        let identity = quantity_identity_source(name);
+        let checked = conduit_plot::check_syntax_document(
+            &conduit_plot::parse_syntax_document(&identity),
+            &catalog,
+        )
+        .unwrap();
+        conduit_plot::expand_canonical_plot_for_authoring(
+            &checked,
+            "quantity/copy",
+            &conduit_plot::ProfileCatalog::new(),
+        )
+        .unwrap();
+    }
     let wrong_dimension = "plot fundamental/wrong (\n >> value: AudioCycleDuration\n result: AudioFrequencyHz >>\n) = (.)";
     let refused = match conduit_plot::check_syntax_document(
         &conduit_plot::parse_syntax_document(wrong_dimension),
@@ -491,4 +507,8 @@ fn authoritative_entry_keeps_original_inventory_variety_revision_and_source() {
         &admitted_inventory
     )
     .is_err());
+}
+
+fn quantity_identity_source(name: &str) -> String {
+    format!("plot quantity/copy (\n >> value: {name}\n result: {name} >>\n) = (.)")
 }
