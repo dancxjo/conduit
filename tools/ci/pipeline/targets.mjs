@@ -80,7 +80,19 @@ function conduitos(id, directory) {
     throw new Error(`${id} omitted its exact product boot proof`);
   }
   if (arch === 'x86_64') {
-    for (const name of ['journey-proof.json', 'journey-serial.log', 'journey-qmp.log']) {
+    const journey = JSON.parse(readFileSync(path.join(evidence, 'journey-proof.json'), 'utf8'));
+    const paired = JSON.parse(readFileSync(path.join(evidence, 'native-shell-paired-linear.json'), 'utf8'));
+    if (journey.schema !== 'conduit.conduitos/face-journey-proof@1'
+      || journey.paired_reconstruction !== 'native-shell-paired-linear.json'
+      || paired.schema !== 'conduit.native-shell/paired-linear@1'
+      || paired.proof_class !== 'freestanding-emulator' || paired.source_commit !== journey.source_commit
+      || paired.image_sha256 !== journey.image_sha256 || paired.body_id !== journey.body_id
+      || paired.birth_count !== 1 || !(paired.accepted_action_count > 0) || !(paired.refused_action_count > 0)
+      || paired.fresh_action_after_refusal !== true) {
+      throw new Error('ConduitOS paired Face evidence differs from its verified product journey');
+    }
+    // These files enter the product directory before the caller seals its receipt.
+    for (const name of ['journey-proof.json', 'native-shell-paired-linear.json', 'journey-serial.log', 'journey-qmp.log']) {
       copyFile(path.join(evidence, name), path.join(directory, 'evidence', name));
     }
     cpSync(path.join(evidence, 'journey-frames'), path.join(directory, 'evidence/journey-frames'),
