@@ -2,6 +2,8 @@
 //! Every image is captured after an observed guest transition, never fabricated
 //! from a fixture or a retired Tour surface.
 
+mod face_correspondence;
+mod face_input;
 mod failure_stack;
 mod keyboard_domain;
 
@@ -150,6 +152,15 @@ pub(super) fn execute_supplied(
                 journey_input::wait_status_retaining_guest(&serial_path, &mut child, status)?;
             }
             artifacts.capture(&mut qmp, &mut reader, frame, true)?;
+            if key == "f4" {
+                face_input::unavailable_wake(
+                    &serial_path,
+                    &mut child,
+                    &mut qmp,
+                    &mut reader,
+                    &mut artifacts,
+                )?;
+            }
         }
 
         let keyboard_identity =
@@ -233,7 +244,20 @@ pub(super) fn execute_supplied(
         journey_input::key_pair(&mut qmp, &mut reader, "f8", "journey-stop-through-face")?;
         journey_input::wait_status_retaining_guest(&serial_path, &mut child, "stopped")?;
         artifacts.capture(&mut qmp, &mut reader, "body-stopped", true)?;
+        face_input::return_and_reenter(
+            &serial_path,
+            &mut child,
+            &mut qmp,
+            &mut reader,
+            &mut artifacts,
+        )?;
         let serial = fs::read_to_string(&serial_path).map_err(io_error)?;
+        face_correspondence::retain(
+            &serial,
+            &paths.target.join("native-shell-paired-linear.json"),
+            &source,
+            &image_sha256,
+        )?;
         let records = journey_records::decode(&serial)?;
         let identity = validate(&records, &serial)?;
         let keyboard_cost = keyboard_domain::validate_cost(&serial, &keyboard_identity, 5, 1)?;
@@ -261,7 +285,10 @@ pub(super) fn execute_supplied(
             "input":"real-qmp-keyboard", "screenshots":"journey-frames/manifest.json",
             "protected_keyboard_domain": keyboard_cost,
             "protected_retained_text_domain": editor_cost,
-            "steps":["arrive","birth","wake","plan","play","protected-keyboard-canvas","protected-memory-lantern","home","patchbay","face","diagram","gear-details","diagram-return","stop"],
+            "steps":["arrive","birth","wake","unavailable-wake-refused","plan","play","protected-keyboard-canvas","protected-memory-lantern","home","patchbay","face","diagram","gear-details","diagram-return","stop","home-returned","patchbay-reentered"],
+            "paired_reconstruction":"native-shell-paired-linear.json",
+            "pointer_actions":"unsupported", "browser_comparison":"unsupported",
+            "parent_5356_acceptance":"open",
             "physical_evidence":false, "human_enactment":false,
         });
         fs::write(
