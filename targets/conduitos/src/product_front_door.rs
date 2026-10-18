@@ -669,7 +669,7 @@ pub fn run(
                         )?;
                         emit_journey_sign(&journey.projection(), make, &receipt);
                         arch::early_write(
-                            format!("CONDUIT_HOME_CHECKPOINT plot-run {}\n", requested_name)
+                            format!("CONDUIT_HOME_CHECKPOINT plot-selected execution-unchanged {}\n", requested_name)
                                 .as_bytes(),
                         );
                     }
