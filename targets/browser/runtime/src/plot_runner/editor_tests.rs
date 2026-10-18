@@ -116,3 +116,45 @@ fn invalid_dom_edits_refuse_distinctly_without_mutating_authoritative_state() {
         assert_eq!(snapshot(&session), (1, "café".as_bytes().to_vec()));
     }
 }
+
+#[test]
+fn oversized_editor_completions_preserve_storage_and_pending_request() {
+    use conduit_kernel::ValueStorage;
+    let source = SOURCE.replace("    message:", "    pointer: input/pointer-source\n    message:");
+    let (mut session, _) =
+        TourSession::prepare("browser/editor-bound", "boot/editor-bound", &source, 1).unwrap();
+    let effect = next(&mut session);
+    let oversized = vec![b'x'; conduit_semantic_catalog::MAXIMUM_TEXT_EDIT_BYTES as usize + 1];
+    // Establish that the larger mixed-Plot slot really accepts this payload.
+    let probe = session.scheduler.store_host_value(&oversized).unwrap();
+    session.scheduler.discard_host_value(probe).unwrap();
+    let before = (
+        session.scheduler.values().used_items(),
+        session.scheduler.values().used_bytes(),
+    );
+    let pending_count = session.pending.len();
+    for _ in 0..64 {
+        let error = session
+            .complete_effect(
+                &effect.active_play_id,
+                &effect.placement_id,
+                effect.request_sequence,
+                Some(&oversized),
+            )
+            .unwrap_err();
+        assert_eq!(error, "browser input exceeded its planned bound");
+        assert_eq!(
+            (
+                session.scheduler.values().used_items(),
+                session.scheduler.values().used_bytes()
+            ),
+            before
+        );
+        assert_eq!(session.pending.len(), pending_count);
+        assert_eq!(snapshot(&session), (0, Vec::new()));
+    }
+    complete(&mut session, &effect, &edit(0, 0, 0, "café".as_bytes()));
+    let document = next(&mut session);
+    assert_eq!(document.editor.as_ref().unwrap().text, "café");
+    assert_eq!(snapshot(&session), (1, "café".as_bytes().to_vec()));
+}

@@ -95,6 +95,11 @@ pub(in crate::plot_runner) fn complete_host_effect_with_output(
         }
         _ => return Err("browser Host effect does not accept completion output".into()),
     };
+    // Refuse before acquiring a prepared storage slot. A mixed Plot may have
+    // slots larger than this effect's output bound.
+    if output.len() > maximum_output_bytes as usize {
+        return Err("browser input exceeded its planned bound".into());
+    }
     let value = scheduler.store_host_value(output).map_err(debug_error)?;
     let result = scheduler
         .complete_host_call(
