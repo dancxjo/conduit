@@ -1,0 +1,23 @@
+{
+  "schema": "conduit.speech/shared-carrier-evidence@1",
+  "producer_code_commit": "13fc24320c0823769b129efe6a6757fff9c60c42",
+  "command": "cargo +stable xtask prove journey native-speech --output work/carried-speech",
+  "files": {
+    "you-would.native": {
+      "bytes": 961498,
+      "sha256": "65edda608474fe58d0cc2f815a1414a406688f44419a72ba91e6b6124f6300b1"
+    },
+    "you-would.wav": {
+      "bytes": 8044,
+      "sha256": "ef4d192fa9e12133953f5dfcdf057c868a9d37c09c8bef912ca3db5a837b283f"
+    },
+    "you-would.json": {
+      "bytes": 34665,
+      "sha256": "37f80cf7a0f8551c67c7d036aedeb3dcfbc7dba2b7d0cfdd25508243237cb8a8"
+    }
+  },
+  "proof": "native installed factory and execution kernel; authored offline PCM; lexical model projection with explicit acoustic refusal",
+  "human_listening": false,
+  "device_playback": false,
+  "trained_weights": false
+}

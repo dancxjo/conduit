@@ -13,7 +13,16 @@ cargo +stable xtask check speech-ipa
 cargo +stable xtask prove journey native-speech --output work/carried-speech
 ```
 
-The demo retains `shared-carrier/you-would.native`, `you-would.wav` and
+The [retained evidence](../../site/evidence/shared-speech-carrier/manifest.json)
+contains the [WAV](../../site/evidence/shared-speech-carrier/you-would.wav),
+[Native packet](../../site/evidence/shared-speech-carrier/you-would.native) and
+[Plan/Play/Sign report](../../site/evidence/shared-speech-carrier/you-would.json).
+The supported suite independently re-admits that packet, replays the installed
+formant path and compares its exact PCM and execution trace with those files.
+The manifest pins byte lengths and SHA-256 digests; its producer code revision
+is distinct from the later accepted Integration/publication revision.
+
+The demo retains fresh `shared-carrier/you-would.native`, `you-would.wav` and
 `you-would.json`. It then starts another process to decode the retained Native
 components, execute inventory/correspondence/structure admission again, replay
 the Language commitment request, and check the original source and projection
