@@ -86,3 +86,20 @@ These tests do not establish exhaustive operand conformance or a throughput
 claim. This helper is currently included by the component test only. Production
 factory registration, typed output preparation, sealed resource admission,
 normal kernel execution and actual Source product proof remain unfinished.
+
+## Prepared result encoding
+
+The private result encoder prepares exact canonical Types, Boolean values and
+three bounded composition buffers before execution. It composes the arithmetic
+or comparison result with five independent Boolean exception fields. Prepared
+heap capacity includes the composition schema and child buffers; it excludes
+inline object size and allocator bookkeeping. Output buffers reserve the exact
+fixed encoded extent of their reviewed Types.
+
+The component test validates exact outer Type identity, field names, all five
+flags and raw IEEE bits over 352 encodings: all 32 flag combinations across nine
+carrier specimens and both comparison results. Signed zeros, subnormals,
+infinities and NaN payloads survive encoding. Mixing arithmetic/comparison output
+forms refuses. All calls observe zero allocations/reallocations and unchanged
+retained heap capacity. Strict test lint passes. This remains test-included
+preparation work; it does not advertise or install a Back.
