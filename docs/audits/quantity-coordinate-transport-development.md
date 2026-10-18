@@ -26,6 +26,12 @@ it is not an additional 106 unique parent acceptance cases. Raw failed attempts,
 final logs and the actual installed test executable identity are retained.
 
 
+The selector was refreshed onto the merged #5967 development tree. The
+[refreshed development receipt](evidence/quantity-wire-selection-refreshed-development-20261018.json)
+retains 83 passing Planner library tests, three installed exact Quantity tests,
+strict all-target Planner/Std Host Clippy, and formatting. These repeat existing
+proof on the refreshed source; they add no parent acceptance claim.
+
 The selected `std/pure-expression-quantity-exact-hosted@1` offer seals finite
 prepared node/depth, retained payload, numerical work and port capacity bounds.
 Installation recomputes the offer and rejects missing, altered or downgraded

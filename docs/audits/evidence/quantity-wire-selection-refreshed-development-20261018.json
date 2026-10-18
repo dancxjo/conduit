@@ -1,0 +1,33 @@
+{
+  "source": "4ac43c1ac253129ebc0491cce8237e3145c67cf1",
+  "base": "e62a477ae3f0bc36758c7cbb3c21ff8065054ba6",
+  "planner_tests_passed": 83,
+  "installed_exact_quantity_tests_passed": 3,
+  "strict_clippy": "passed Planner and Std Host all targets warnings denied",
+  "format": "passed",
+  "stable_acceptance": false,
+  "logs": {
+    "wire-selection-refreshed-planner-tests.log": {
+      "bytes": 14994,
+      "sha256": "a84caf81e007734eb900c03e84f5e1b9c7e7c7a3460d7a8fe7bd52db85aabf48"
+    },
+    "wire-selection-refreshed-installed-tests.log": {
+      "bytes": 10570,
+      "sha256": "e40beaff23dcb73ee9daf78daab4ed0c3ad7ce9c9a8603d4e85f8c4a4de42120"
+    },
+    "wire-selection-refreshed-clippy.log": {
+      "bytes": 9931,
+      "sha256": "9312202a6c2d46b892bca38204f0724a44df29654e0f889aab2b2ef3529e3c45"
+    },
+    "wire-selection-refreshed-format.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "archive": {
+    "file": "quantity-wire-selection-refreshed-development-20261018.raw.tar.gz",
+    "sha256": "f1d77025615628a698a320cc8257a3c4a93bec379969993675fc1aec6b6d29ea",
+    "bytes": 4649
+  },
+  "scope": "Bounded default optional Quantity wire selection; private development validation, no stable or parent acceptance claim."
+}
