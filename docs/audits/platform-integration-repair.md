@@ -127,3 +127,20 @@ resident-canvas case. The boxed std preparation and allocation-measurement mutex
 corrections are now in accepted dev and are no longer unique changes in this PR.
 The source-specific native and browser receipts above retain their original pins;
 the refreshed Candidate must establish acceptance of the final combined tree.
+
+## Complete pinned AVR firmware link
+
+After provisioning the pinned project-local tools through `cargo xtask make avr
+check`, clean repair source `2e4b99d4d1ec71896be9be2756b3d824c4494145` passes
+`cargo xtask make avr release --output target/repair-avr-release`. This supersedes
+the earlier local linking limitation without changing any firmware resource
+limit. The linked application uses 27,316 of 27,648 flash bytes and 1,387 of
+1,460 static SRAM bytes, retaining the existing 1,100-byte stack reserve.
+The supported release adapter seals the actual Intel HEX and its source/hash.
+
+The [receipt](evidence/avr-platform-repair-20261017.json) and
+[raw archive](evidence/avr-platform-repair-20261017-raw.tar.gz) retain setup and
+build logs, complete pinned-core verification, compiler identity, build receipt,
+release manifest and exact HEX. This is machine-only compile/link/admission
+proof, not flashing, hardware execution or a measured stack peak. Full combined
+CI and stable publication remain separate gates.
