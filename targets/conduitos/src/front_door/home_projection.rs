@@ -67,19 +67,26 @@ impl FrontDoor {
             }
             HomeView::Prompt => {
                 text(format!("conduit> {}", home.command()));
-                text(home.output().into());
-                properties.extend([
-                    FaceProperty {
+                for (name, value) in [
+                    ("command", home.command()),
+                    ("command-result", home.output()),
+                ] {
+                    properties.push(FaceProperty {
                         subject: subject.into(),
-                        name: "command".into(),
-                        value: FacePropertyValue::Text(home.command().into()),
-                    },
-                    FaceProperty {
-                        subject: subject.into(),
-                        name: "command-result".into(),
-                        value: FacePropertyValue::Text(home.output().into()),
-                    },
-                ]);
+                        name: format!("{name}-empty"),
+                        value: FacePropertyValue::Flag(value.is_empty()),
+                    });
+                    if !value.is_empty() {
+                        properties.push(FaceProperty {
+                            subject: subject.into(),
+                            name: name.into(),
+                            value: FacePropertyValue::Text(value.into()),
+                        });
+                    }
+                }
+                if !home.output().is_empty() {
+                    text(home.output().into());
+                }
             }
             HomeView::Body => {
                 text("Body status uses the current Body, Host, Wake, Plan, Play and Line identities on this Face".into());

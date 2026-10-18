@@ -236,6 +236,26 @@ fn home_reading_content_tracks_launcher_plots_and_prompt_without_new_authority()
         );
     }
     home_key(&mut door, 41);
+    // Opening the Prompt with an empty command must still produce a valid Face.
+    for _ in 0..3 {
+        home_key(&mut door, 79);
+    }
+    home_key(&mut door, 40);
+    assert_eq!(door.home_view(), Some(HomeView::Prompt));
+    let blank = door.face().unwrap();
+    assert!(
+        blank
+            .properties
+            .iter()
+            .any(|property| property.name == "command-empty"
+                && property.value == FacePropertyValue::Flag(true))
+    );
+    assert!(
+        !blank
+            .properties
+            .iter()
+            .any(|property| property.name == "command")
+    );
     // Typing enters the local Prompt; an unavailable command remains visible.
     for usage in [26, 4, 14, 8] {
         home_key(&mut door, usage);
@@ -254,6 +274,25 @@ fn home_reading_content_tracks_launcher_plots_and_prompt_without_new_authority()
             .iter()
             .any(|text| text.text.contains("no lifecycle authority"))
     );
+    assert!(
+        face.properties
+            .iter()
+            .any(|property| property.name == "command-empty"
+                && property.value == FacePropertyValue::Flag(true))
+    );
+    assert!(
+        !face
+            .properties
+            .iter()
+            .any(|property| property.name == "command")
+    );
+    assert!(
+        face.properties
+            .iter()
+            .all(|property| !matches!(&property.value,
+        FacePropertyValue::Text(value) if value.is_empty()))
+    );
+    assert!(face.text.iter().all(|text| !text.text.is_empty()));
     assert_eq!(face.actions, original_actions);
     assert_eq!(face.basis.body_id, door.journey.as_ref().unwrap().body_id);
 }
