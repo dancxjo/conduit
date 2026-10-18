@@ -122,6 +122,10 @@ pub(super) fn atomic(
         crate::ieee_literal::f32_bits(text).map_err(|message| diagnostic(span, &message))?;
         return Ok(expected.clone());
     }
+    if represented_kind == conduit_core::F64_INFO_ID {
+        crate::ieee_literal::f64_bits(text).map_err(|message| diagnostic(span, &message))?;
+        return Ok(expected.clone());
+    }
     if crate::integer_literal::canonicalize(text, represented_kind)
         .map_err(|message| diagnostic(span, &message))?
         .is_some()

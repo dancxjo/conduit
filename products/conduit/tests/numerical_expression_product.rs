@@ -130,11 +130,46 @@ fn explicit_f32_cancellation_keeps_intermediate_rounding_in_the_product() {
 
 #[test]
 fn explicit_f64_cancellation_keeps_intermediate_rounding_in_the_product() {
-    run(
+    let plan = run(
         include_str!("fixtures/numerical_f64_cancellation.conduit"),
         "IEEE binary64 cancellation",
         "rounded intermediate",
     );
+    let computation = plan
+        .fragments
+        .iter()
+        .flat_map(|f| &f.placements)
+        .find(|gear| {
+            gear.configuration.iter().any(|entry| {
+                let conduit_core::ConfigurationValue::Text(encoded) = &entry.value else {
+                    return false;
+                };
+                conduit_plot::PortableExpressionProgram::from_canonical_hex(encoded).is_ok_and(
+                    |program| {
+                        matches!(program.output_type.shape(),
+                    conduit_core::StructuredInfoTypeShape::Leaf(kind)
+                        if kind.as_str() == conduit_core::F64_INFO_ID)
+                    },
+                )
+            })
+        })
+        .expect("the actual binary64 computation remains inspectable");
+    assert_eq!(
+        computation.implementation_id.as_str(),
+        "std/kernel-pure-expression@1"
+    );
+    assert!(computation.realization_properties.iter().any(|property| {
+        let Ok(value) = conduit_core::StructuredInfoValue::from_canonical_bytes(property.canonical_value()) else {
+            return false;
+        };
+        matches!(value.value_type().shape(),
+            conduit_core::StructuredInfoTypeShape::Record { schema, .. }
+                if schema.as_str() == "std/source-expression-selection@1")
+            && matches!(value.shape(), conduit_core::StructuredInfoValueShape::Record(fields)
+                if fields.iter().any(|field| field.name() == "tape-profile-refusal"
+                    && matches!(field.value().shape(), conduit_core::StructuredInfoValueShape::Leaf(bytes)
+                        if std::str::from_utf8(bytes).is_ok_and(|why| why.contains("scalar-tape/fixed-integer-bool@1")))))
+    }));
 }
 
 #[test]

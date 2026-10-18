@@ -214,8 +214,17 @@ fn unary(
 fn compare(left: &Value, right: &Value) -> Result<Ordering, PortableExpressionEvaluationRefusal> {
     let kind = leaf_kind(&left.value_type)?;
     if kind == conduit_core::F32_INFO_ID {
-        crate::expression_f32::ordering(&primitive_bytes(left)?, &primitive_bytes(right)?)
-            .ok_or(PortableExpressionEvaluationRefusal::Arithmetic)
+        crate::expression_float::binary32::ordering(
+            &primitive_bytes(left)?,
+            &primitive_bytes(right)?,
+        )
+        .ok_or(PortableExpressionEvaluationRefusal::Arithmetic)
+    } else if kind == conduit_core::F64_INFO_ID {
+        crate::expression_float::binary64::ordering(
+            &primitive_bytes(left)?,
+            &primitive_bytes(right)?,
+        )
+        .ok_or(PortableExpressionEvaluationRefusal::Arithmetic)
     } else if fixed_integer(
         primitive_info_kind(kind)
             .ok_or_else(|| PortableExpressionEvaluationRefusal::UnsupportedType(kind.into()))?,

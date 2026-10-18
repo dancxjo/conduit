@@ -28,7 +28,7 @@ mod expression_angle_reference;
 mod expression_check;
 mod expression_definition;
 mod expression_evaluate;
-mod expression_f32;
+mod expression_float;
 mod expression_inverse_trigonometry;
 pub use expression_inverse_trigonometry::inverse_angle_failure_detail;
 pub use expression_quantity::quantity_arithmetic_failure_detail;
