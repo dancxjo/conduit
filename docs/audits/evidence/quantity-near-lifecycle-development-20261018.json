@@ -1,0 +1,46 @@
+{
+  "status": "Development only; parent5392 remains open. Not stable release acceptance.",
+  "source_commit": "016c031b847f1eb242965f5031afaf9c8e650211",
+  "implementation_commit": "fe6540ad6",
+  "scope": "Fix emptyclosedinput toconsume close andComplete perexistingKindterminal law; test transactionalpressure/fuel/cancellation; requirequalifiedNearrecord rejection at exactQuantityconsumer beforePlay.",
+  "validation": {
+    "std_filter_passed": 10,
+    "std_near_specific_passed": 8,
+    "std_unrelated_extra_passed": 2,
+    "std_unrelated_owner_matrix_ignored": 1,
+    "product_suite_passed": 12,
+    "product_failed": 0,
+    "product_ignored": 0,
+    "source_plan_play_records": 40,
+    "strict_std_all_targets_clippy": "PASS",
+    "format": "PASS"
+  },
+  "current_cli": {
+    "source_document_id": "80943c66946edd906bd6dcd66064dc8166dfe2c8ebb770322cf5191983e4e1c0",
+    "checked_plot_id": "4ef9c6cdd83546745c66235a0b59077dee7d4c070db2a9d841e7cc9d67e511a6",
+    "expanded_plot_id": "3250b6f06ecb187010ca26e72b248d6d5ecac1f44a339b52e0a78feea73ce445",
+    "plan_id": "fd402c674db0573c206cd25cdba9eca1d6053405924194c190e5214220ce5c50",
+    "play_id": "ce3900f76e77ef986008ea9d7dcefbf94f18302fb5f2ba4e62e4ea0504b8ceb6",
+    "selected_profile": "std/quantity-near-binary32-single-round@1",
+    "terminal": "Completed",
+    "report_sha256": "ec2f6ee99e89d6d7457deb3234a57eed2a5fb758397aa68b850117fdd39d7ba7",
+    "executable": {
+      "source_commit": "016c031b847f1eb242965f5031afaf9c8e650211",
+      "binary_sha256": "7d7ba7558a97af36c5cc3b87b3ced79802e3d72248936889d541d074c13d7363",
+      "binary_bytes": 703853944
+    }
+  },
+  "history": "Initial new lifecycle test confirmed InvalidInput instead of Complete for emptyclosedinput. Original failure preserved. Prior runtime evidence at d1a24df24 remains separate and unchanged. Current corpus count is taken from raw log, not inferred from number of test functions.",
+  "archive": {
+    "file": "quantity-near-lifecycle-development-20261018.raw.tar.gz",
+    "sha256": "5382449e7c13043e379777648772dda52b447b2d3345b61cac9c73159bb0cf5f",
+    "bytes": 203188,
+    "roundtrip": "all raw log/report bytes verified"
+  },
+  "remaining": [
+    "Proposed Fore T near epsilon qualification",
+    "Generic strong-to-weak qualified Cord compatibility",
+    "Accumulated error contracts",
+    "Remaining original93-row requirements and complete accepted-main publication"
+  ]
+}
