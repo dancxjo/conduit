@@ -10,6 +10,7 @@ use conduit_core::{PrimitiveInfoKind, StructuredInfoTypeShape};
 mod byte_observation;
 mod equality;
 mod evaluate;
+mod quantity_profile;
 mod scalar_tape;
 use evaluate::evaluate_node;
 mod inspection;
@@ -50,12 +51,21 @@ enum PreparedInput {
         kind: PrimitiveInfoKind,
         info_kind: String,
         nominal_type: Option<SharedBytes>,
+        quantity_profile: conduit_core::QuantityValueProfile,
         maximum_bytes: Option<u32>,
     },
     Structured(SharedBytes, Option<u32>),
 }
 
 impl PreparedInput {
+    fn quantity_profile(&self) -> conduit_core::QuantityValueProfile {
+        match self {
+            Self::Primitive {
+                quantity_profile, ..
+            } => *quantity_profile,
+            Self::Structured(..) => conduit_core::QuantityValueProfile::Decimal,
+        }
+    }
     fn maximum_bytes(&self) -> Option<u32> {
         match self {
             Self::Primitive { maximum_bytes, .. } | Self::Structured(_, maximum_bytes) => {
@@ -86,6 +96,7 @@ enum PreparedRoot {
 }
 
 struct PreparedNode {
+    quantity_profile: conduit_core::QuantityValueProfile,
     kind: PrimitiveInfoKind,
     info_kind: String,
     operation: PreparedOperation,
@@ -108,6 +119,7 @@ enum PreparedOperation {
         output: Vec<u8>,
     },
     QuantityBinary {
+        profile: conduit_core::QuantityValueProfile,
         operator: BinaryOperator,
         left: Box<PreparedNode>,
         right: Box<PreparedNode>,
@@ -180,11 +192,37 @@ impl PortableExpressionProgram {
 
 impl PreparedPortableExpressionEvaluator {
     pub fn new(program: &PortableExpressionProgram) -> Result<Self, Refusal> {
+        Self::new_profile(program, conduit_core::QuantityValueProfile::Decimal)
+    }
+
+    /// Explicit finite exact-coordinate evaluator profile. Currently restricted
+    /// to primitive input/output Types; composite and nominal profiles refuse
+    /// before allocating execution state. This constructor is not a Host offer.
+    pub fn new_with_exact_quantities(program: &PortableExpressionProgram) -> Result<Self, Refusal> {
+        if !matches!(program.input_type.shape(), StructuredInfoTypeShape::Leaf(_))
+            || !matches!(
+                program.output_type.shape(),
+                StructuredInfoTypeShape::Leaf(_)
+            )
+        {
+            return Err(Refusal::UnsupportedType(
+                "exact Quantity profile requires primitive ports".into(),
+            ));
+        }
+        quantity_profile::admit_primitive_nodes(&program.root)?;
+        Self::new_profile(program, conduit_core::QuantityValueProfile::Exact)
+    }
+
+    fn new_profile(
+        program: &PortableExpressionProgram,
+        quantity_profile: conduit_core::QuantityValueProfile,
+    ) -> Result<Self, Refusal> {
         let input = match program.input_type.shape() {
             StructuredInfoTypeShape::Leaf(_) => PreparedInput::Primitive {
                 kind: leaf_kind(&program.input_type)?,
                 info_kind: leaf_info_kind(&program.input_type)?.into(),
                 nominal_type: None,
+                quantity_profile,
                 maximum_bytes: program.input_maximum_bytes,
             },
             StructuredInfoTypeShape::Nominal { representation, .. }
@@ -193,6 +231,7 @@ impl PreparedPortableExpressionEvaluator {
                 PreparedInput::Primitive {
                     kind: leaf_kind(&program.input_type)?,
                     info_kind: leaf_info_kind(&program.input_type)?.into(),
+                    quantity_profile,
                     maximum_bytes: program.input_maximum_bytes,
                     nominal_type: Some(
                         program
@@ -223,10 +262,11 @@ impl PreparedPortableExpressionEvaluator {
                 root: &program.root,
             },
             input,
-            storage_bound::expression(
+            quantity_profile::output_capacity(
                 &program.root,
                 &program.input_type,
                 program.input_maximum_bytes,
+                quantity_profile,
             )?,
         )?;
         prepared.input_maximum_bytes = program.input_maximum_bytes;
@@ -234,10 +274,11 @@ impl PreparedPortableExpressionEvaluator {
     }
 
     fn prepare(program: ProgramView<'_>, input: PreparedInput) -> Result<Self, Refusal> {
-        let capacity = storage_bound::expression(
+        let capacity = quantity_profile::output_capacity(
             program.root,
             program.input_type,
             program.input_maximum_bytes,
+            input.quantity_profile(),
         )?;
         Self::prepare_with_output_capacity(program, input, capacity)
     }
@@ -298,8 +339,11 @@ impl PreparedPortableExpressionEvaluator {
                 if let Some(expected) = nominal_type {
                     primitive_bytes = nominal::input_payload(input, expected)?;
                 }
-                conduit_core::validate_primitive_info(info_kind, primitive_bytes)
-                    .map_err(|_| Refusal::InvalidInput)?;
+                quantity_profile::validate_input(
+                    info_kind,
+                    primitive_bytes,
+                    self.input.quantity_profile(),
+                )?;
                 Some(*kind)
             }
             PreparedInput::Structured(expected, _) => {

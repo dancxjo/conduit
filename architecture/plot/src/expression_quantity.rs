@@ -240,6 +240,24 @@ pub(crate) fn evaluate_into(
     output.quantity(coordinate, value.unit(), &mut work)
 }
 
+/// Physical equality/order can cross coordinate representations. Preserve the
+/// existing native decimal comparison, including its wide scientific exponents.
+#[inline(never)]
+pub(crate) fn compare(left: &[u8], right: &[u8]) -> Result<core::cmp::Ordering, R> {
+    if left.first() == Some(&1) && right.first() == Some(&1) {
+        return Quantity::decode(left)
+            .map_err(|_| R::InvalidProgram)?
+            .compare(Quantity::decode(right).map_err(|_| R::InvalidProgram)?)
+            .map_err(|_| R::Arithmetic);
+    }
+    let mut work = ExactNumericWork::new(3 * conduit_core::MATHEMATICAL_VALUE_VALIDATION_WORK);
+    let left =
+        conduit_core::QuantityValueView::decode(left, &mut work).map_err(|_| R::InvalidProgram)?;
+    let right =
+        conduit_core::QuantityValueView::decode(right, &mut work).map_err(|_| R::InvalidProgram)?;
+    left.compare(right, &mut work).map_err(|_| R::Arithmetic)
+}
+
 /// Stable Host-call details for the finite derived-quantity failure boundary.
 /// Values 40..47 are separate from scalar arithmetic and Angle domains.
 pub fn quantity_arithmetic_failure_detail(refusal: &R) -> u16 {

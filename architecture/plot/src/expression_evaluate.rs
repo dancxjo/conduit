@@ -253,13 +253,7 @@ fn compare(left: &Value, right: &Value) -> Result<Ordering, PortableExpressionEv
         || conduit_core::primitive_info_kind(kind)
             == Some(conduit_core::PrimitiveInfoKind::Quantity)
     {
-        Quantity::decode(&left.encoded)
-            .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?
-            .compare(
-                Quantity::decode(&right.encoded)
-                    .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?,
-            )
-            .map_err(|_| PortableExpressionEvaluationRefusal::Arithmetic)
+        crate::expression_quantity::compare(&left.encoded, &right.encoded)
     } else {
         Err(PortableExpressionEvaluationRefusal::UnsupportedType(
             kind.into(),

@@ -3,8 +3,8 @@ use super::Refusal;
 use crate::{BinaryOperator, UnaryOperator};
 use conduit_core::{
     decode_count, encode_count, primitive_info_kind, FixedInteger, InfoBool, PrimitiveInfoKind,
-    Quantity, Scalar, StructuredInfoTypeShape, BOOL_INFO_ID, COUNT_INFO_ID,
-    MAXIMUM_STRUCTURED_LEAF_BYTES, SCALAR_INFO_ID,
+    Scalar, StructuredInfoTypeShape, BOOL_INFO_ID, COUNT_INFO_ID, MAXIMUM_STRUCTURED_LEAF_BYTES,
+    SCALAR_INFO_ID,
 };
 use core::cmp::Ordering;
 
@@ -261,10 +261,9 @@ fn compare(left: &PrimitiveValue<'_>, right: &PrimitiveValue<'_>) -> Result<Orde
         PrimitiveInfoKind::Scalar => Ok(Scalar::decode(left.as_slice())
             .map_err(|_| Refusal::InvalidProgram)?
             .cmp(&Scalar::decode(right.as_slice()).map_err(|_| Refusal::InvalidProgram)?)),
-        kind if quantity_kind(kind) => Quantity::decode(left.as_slice())
-            .map_err(|_| Refusal::InvalidProgram)?
-            .compare(Quantity::decode(right.as_slice()).map_err(|_| Refusal::InvalidProgram)?)
-            .map_err(|_| Refusal::Arithmetic),
+        kind if quantity_kind(kind) => {
+            crate::expression_quantity::compare(left.as_slice(), right.as_slice())
+        }
         kind if fixed_integer(kind) => decode_integer(left)?
             .compare(decode_integer(right)?)
             .map_err(|_| Refusal::InvalidProgram),

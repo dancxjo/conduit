@@ -134,3 +134,34 @@ choose an incompatible consumer while a compatible offered realization exists.
 Runtime profile checks, prepared exact storage/work bounds and installed Back
 recomputation must be integrated before activation. The two authored wire gates
 remain unresolved.
+
+## Explicit prepared exact-coordinate profile
+
+`PreparedPortableExpressionEvaluator::new_with_exact_quantities` admits a finite
+primitive-port profile explicitly. Existing constructors retain decimal policy.
+The exact profile preallocates 1800-byte Quantity result buffers, propagates its
+policy through input and per-node physical validation, and compares native and
+rational coordinate representations by physical meaning. Native/native decimal
+comparison preserves its existing path. No runtime profile fallback occurs.
+
+The constructor checks the portable decoder's node/depth bounds and rejects
+composite/nominal ports, structured intermediates, and Quantity semantic helpers
+whose codecs are still decimal-only. For example, ordinary native Angle trig
+remains supported by its existing profile, while this new profile refuses it
+during preparation. It does not falsely promise rational input support for that
+helper. Explicit input byte envelopes continue to limit accepted values.
+
+Thirty-nine selected tests pass, including five new exact-profile cases, all five
+existing authored prefix/profile cases, quantity arithmetic/context/transport,
+and fourteen scalar-tape regressions. Independent prepared divide/multiply/
+comparison instances execute 128 exact-third restoration cycles with zero
+allocations/reallocations and stable output pointers/capacities. A coordinate
+over 500 digits executes only with a sufficient declared input envelope. Strict
+Plot lint and workspace formatting pass.
+
+This constructor is not a Std offer or Source/Plan/Play acceptance. Std still
+selects its decimal evaluator. The generic primitive/structured kernel validator
+remains decimal-only, and Source/Fore transport ceilings, truthful selected-port
+properties, resource/work facts, installed Back verification and compatible
+candidate selection still need integration. No existing parent requirement is
+redefined around this primitive subset; the authored wire gates remain open.

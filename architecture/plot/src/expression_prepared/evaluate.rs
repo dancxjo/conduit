@@ -43,6 +43,7 @@ pub(super) fn evaluate_node<'a>(
             PrimitiveValue::borrowed(expected, &output[..length])?
         }
         PreparedOperation::QuantityBinary {
+            profile,
             operator,
             left,
             right,
@@ -57,7 +58,7 @@ pub(super) fn evaluate_node<'a>(
                 left.as_slice(),
                 right.as_slice(),
                 crate::expression_quantity::Output {
-                    profile: conduit_core::QuantityValueProfile::Decimal,
+                    profile: *profile,
                     bytes: output,
                 },
             )?;
@@ -129,7 +130,7 @@ pub(super) fn evaluate_node<'a>(
         }
     };
     if value.kind == expected {
-        conduit_core::validate_primitive_info(&node.info_kind, value.as_slice())
+        quantity_profile::validate_input(&node.info_kind, value.as_slice(), node.quantity_profile)
             .map_err(|_| Refusal::InvalidProgram)?;
         Ok(value)
     } else {
