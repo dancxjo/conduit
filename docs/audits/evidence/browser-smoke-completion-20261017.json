@@ -1,0 +1,43 @@
+{
+  "schema": "conduit.browser/smoke-network-evidence@1",
+  "code_source": "b20d689c94d1fe56529b26bd8478f574c1a9097b",
+  "proof_class": "local-smoke-execution-on-retained-Candidate-product",
+  "trigger": {
+    "run": 39083962547,
+    "browser_job": 117546794253,
+    "result": "256 Chromium tests passed; subsequent accessibility smoke refused completed fetch notifications",
+    "head": "afc60095ee180b2bbb5938804d98dda94cd86078",
+    "merge_preview": "74c1e2e01f99eafaf1ffa320c62a6b6cabacc3ec"
+  },
+  "product": {
+    "run": 39079579476,
+    "artifact_id": 12119461993,
+    "name": "product-browser",
+    "source": "0f6e99a6c12eb0e9becf4cd6fea919a859ba6eff",
+    "workspace_files_verified_against_target_receipt": 104,
+    "runtime_sha256": "89cb290ab54d0eb56765a6fed0ace092b4f58a72bb3ea20811b255d708e3c94e",
+    "runtime_bytes": 19005856
+  },
+  "observation": "Instrumented bounded readers reached EOF with complete bytes and no cancellation despite Network.loadingFailed ERR_ABORTED. HTTP200 Resource Timing encoded/decoded sizes independently agree with Content-Length. Diagnostic blocked-worker variant still reproduced; no service-worker exemption.",
+  "repair": "Await actual application-ready state. Match only a unique GET fetch HTTP200 transfer at actual HTTP send/header times (1ms rounding tolerance), completed response timing and exact positive Content-Length/encoded/decoded sizes. Retain these notifications and all timings in receipt. Missing, partial, ambiguous, reused, non-200 and other failed requests remain fatal.",
+  "validation": {
+    "pipeline_tests": {
+      "passed": 248,
+      "failed": 0,
+      "new_contract_tests": 4
+    },
+    "clean_source_smoke": {
+      "browser": "pinned Playwright1.62 Chromium",
+      "browser_instances": 1,
+      "retries": 0,
+      "violations": 0,
+      "page_errors": 0,
+      "completed_abort_notifications_retained": 23,
+      "checked_links": 4
+    },
+    "diagnostic_limits": "Baseline and instrumented variants reproduce failure. First classifier prototype also failed because fetchStart includes queueing; final classifier matches HTTP send/header phases. Those failures remain archived; no failed behavior was relabeled as a pass."
+  },
+  "archive": "browser-smoke-completion-20261017-raw.tar.gz",
+  "archive_sha256": "29db29b706b95747aea56fe51b247076b873f9760f37d10a33f84850c33640ac",
+  "limits": "This reuses an unchanged retained Candidate product for smoke collector regression. It is not a fresh application build, exhaustive repaired dev acceptance, stable publication, physical or human proof. Required Candidate and combined Integration remain pending."
+}
