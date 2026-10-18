@@ -168,3 +168,5 @@ logs and supported timing receipt. It contains no private model/oracle files.
 These local records do not replace required Candidate and combined-development
 proof. The PR and #5231 acceptance record retain those exact GitHub checks;
 no stable-release or downstream speech-product acceptance is implied.
+
+The first scheduler Candidate exposed the retained documentation corpus crossing its old 256-file evidence-validation cap (257 files). The [bounded capacity repair](evidence/scheduler-doc-capacity-20261017.json) raises that finite cap to 512, preserves the 4 MiB per-file/symlink/path checks, and tests acceptance at 512 and refusal at 513. Both original gallery/reference failures and all 56 evidence tests pass locally, as does strict xtask Clippy. This collector-only repair does not change the measured runtime.
