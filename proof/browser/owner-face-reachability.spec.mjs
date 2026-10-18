@@ -7,7 +7,7 @@ const view = {body_id:'fixture/body',face_id:'fixture/face',face_revision:1,show
   show_state:'prepared',interactions_admitted:false,subjects:[],relationships:[],
   actions:[{identity:'fixture/add',target:'fixture/list',name:'Add item',availability:'available',
     disclosure:'CurrentAction',arguments:[{name:'text',value_name:'Item text',value_kind:'value/text',maximum_bytes:64,choices:[]}]}]};
-for (const attack of ['none','hidden','transparent','inert','clipped','pseudo','unnamed','overflow','aria-hidden','role','tabindex','scale','disabled','aria-disabled','aria-label','aria-labelledby']) {
+for (const attack of ['none','hidden','transparent','inert','clipped','pseudo','unnamed','overflow','aria-hidden','role','tabindex','scale','disabled','aria-disabled','aria-label','aria-labelledby','read-only','read-only-forged-enabled','prepared-forged-enabled']) {
   test(`generic renderer checks named reachable action before Show acknowledgement (${attack})`, async ({page}) => {
     await page.goto('/proof/browser/signal-dom-host.test.html');
     const result = await page.evaluate(async ({view,attack}) => {
@@ -18,6 +18,7 @@ for (const attack of ['none','hidden','transparent','inert','clipped','pseudo','
       if (['disabled','aria-disabled','aria-label','aria-labelledby'].includes(attack)) {
         view={...view,show_state:'available',interactions_admitted:true};
       }
+      if (attack.startsWith('read-only')) view={...view,show_state:'available',interactions_admitted:false};
       element.show(view,{invoke:async()=>{throw new Error('preparation cannot invoke');}});
       if (attack==='hidden') element.hidden=true;
       if (attack==='transparent') element.style.opacity='0';
@@ -32,13 +33,14 @@ for (const attack of ['none','hidden','transparent','inert','clipped','pseudo','
       if (attack==='role') button.setAttribute('role','presentation');
       if (attack==='tabindex') button.tabIndex=-1;
       if (attack==='disabled') button.disabled=true;
+      if (attack.endsWith('forged-enabled')) button.disabled=false;
       if (attack==='aria-disabled') button.setAttribute('aria-disabled','true');
       if (attack==='aria-label') button.setAttribute('aria-label','Start a different action');
       if (attack==='aria-labelledby') button.setAttribute('aria-labelledby','forged-name');
       try {assertOwnerFaceReachability(element,view);return {admitted:true};}
       catch(error) {return {admitted:false,code:error.code};}
     },{view,attack});
-    expect(result).toEqual(attack==='none'?{admitted:true}:{admitted:false,code:'RendererActionInaccessible'});
+    expect(result).toEqual(['none','read-only'].includes(attack)?{admitted:true}:{admitted:false,code:'RendererActionInaccessible'});
   });
 }
 

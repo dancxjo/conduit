@@ -38,9 +38,10 @@ function visiblePath(node, transparentNativeInput = false) {
   return true;
 }
 export function assertOwnerFaceReachability(element, view) {
+  const disabled = view.show_state !== 'available' || view.interactions_admitted !== true;
   const certifiedControl = control => !control.hasAttribute('aria-label')
     && !control.hasAttribute('aria-labelledby') && control.getAttribute('aria-disabled') !== 'true'
-    && (view.show_state === 'prepared' || !control.matches(':disabled'));
+    && control.matches(':disabled') === disabled;
   const visibleControl = control => control.matches('input[type=radio]')
     ? visiblePath(control, true) && [...control.labels].some(label => visiblePath(label))
     : visiblePath(control);
