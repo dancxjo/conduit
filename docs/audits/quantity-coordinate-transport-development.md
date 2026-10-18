@@ -83,3 +83,22 @@ refusal yet. That target has one passing and two failing tests. No rational
 Source transport or planner enforcement is claimed. These private development
 changes are not published while the scalar specialization owns the implementation
 slot.
+
+## Caller-owned arithmetic output
+
+Prepared decimal arithmetic writes into its preallocated result buffer directly.
+The recursive evaluator no longer constructs and copies a 788-byte intermediate
+result; the shared rational arithmetic routine is kept out of that frame. The
+reference conformance entrance retains its existing decimal result contract.
+
+An explicit internal exact output policy writes the existing rational Quantity
+wire form into caller-owned bounded storage. It does not try decimal arithmetic
+and fall back after a refusal. Three component tests cover independent third/
+restoration buffers, a coordinate over 500 decimal digits, physical Type/role
+checks, short output buffers and refusal by the decimal profile even when the
+rational encoding fits its byte ceiling. Fifteen existing Plot quantity tests
+and focused strict lint pass.
+
+The exact policy is not installed in Source or a Back yet. The prepared product
+continues selecting decimal policy until producer/consumer profiles and resource
+bounds are admitted before Play. The two authored wire gates remain unresolved.

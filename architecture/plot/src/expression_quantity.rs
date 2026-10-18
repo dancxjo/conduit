@@ -56,46 +56,72 @@ impl Encoded {
     pub(crate) fn to_vec(&self) -> alloc::vec::Vec<u8> {
         self.as_slice().to_vec()
     }
-    fn scalar(value: Scalar) -> Self {
-        let mut result = Self {
-            bytes: [0; QUANTITY_ENCODED_LEN],
-            length: value.encode().len(),
-        };
-        result.bytes[..result.length].copy_from_slice(&value.encode());
-        result
-    }
-    fn quantity(value: Quantity) -> Self {
-        Self {
-            bytes: value.encode(),
-            length: QUANTITY_ENCODED_LEN,
-        }
-    }
 }
-fn rational(bytes: &[u8], work: &mut ExactNumericWork) -> Result<RationalQuantity, R> {
-    let value = Quantity::decode(bytes).map_err(|_| R::InvalidProgram)?;
+fn rational(
+    kind: &str,
+    bytes: &[u8],
+    profile: conduit_core::QuantityValueProfile,
+    work: &mut ExactNumericWork,
+) -> Result<RationalQuantity, R> {
+    let value = profile
+        .decode(kind, bytes, work)
+        .map_err(|_| R::InvalidProgram)?;
     if value.role() != QuantityRole::Linear {
         return Err(R::QuantityProduct(
             conduit_core::RationalQuantityRefusal::InvalidRole,
         ));
     }
-    RationalQuantity::from_quantity(value, work).map_err(|_| R::Arithmetic)
+    value.rational(work).map_err(|_| R::Arithmetic)
 }
 fn scalar(bytes: &[u8], work: &mut ExactNumericWork) -> Result<ExactRational, R> {
     let value = Scalar::decode(bytes).map_err(|_| R::InvalidProgram)?;
     ExactRational::from_decimal_parts(i128::from(value.raw_microunits()), -6, work)
         .map_err(|_| R::Arithmetic)
 }
-fn encoded_quantity(
-    coordinate: ExactRational,
-    unit: conduit_core::Unit,
-    work: &mut ExactNumericWork,
-) -> Result<Encoded, R> {
-    let (coefficient, exponent) = coordinate
-        .checked_decimal_parts(work)
-        .map_err(R::QuantityProjection)?;
-    Ok(Encoded::quantity(
-        Quantity::from_decimal(coefficient, exponent, unit).map_err(R::QuantityEncoding)?,
-    ))
+/// Storage and coordinate policy are selected before evaluation. No growth or
+/// representation negotiation occurs while writing a result.
+pub(crate) struct Output<'a> {
+    pub(crate) profile: conduit_core::QuantityValueProfile,
+    pub(crate) bytes: &'a mut [u8],
+}
+impl Output<'_> {
+    fn scalar(&mut self, value: Scalar) -> Result<usize, R> {
+        let encoded = value.encode();
+        let target = self
+            .bytes
+            .get_mut(..encoded.len())
+            .ok_or(R::InvalidProgram)?;
+        target.copy_from_slice(&encoded);
+        Ok(encoded.len())
+    }
+    fn quantity(
+        &mut self,
+        coordinate: ExactRational,
+        unit: conduit_core::Unit,
+        work: &mut ExactNumericWork,
+    ) -> Result<usize, R> {
+        if self.profile == conduit_core::QuantityValueProfile::Exact {
+            let value = RationalQuantity::new(coordinate, unit, QuantityRole::Linear)
+                .map_err(R::QuantityProduct)?;
+            return conduit_core::encode_rational_quantity_value(value, self.bytes).map_err(
+                |why| match why {
+                    conduit_core::QuantityValueRefusal::Rational(why) => R::QuantityProduct(why),
+                    _ => R::InvalidProgram,
+                },
+            );
+        }
+        let (coefficient, exponent) = coordinate
+            .checked_decimal_parts(work)
+            .map_err(R::QuantityProjection)?;
+        let value =
+            Quantity::from_decimal(coefficient, exponent, unit).map_err(R::QuantityEncoding)?;
+        let target = self
+            .bytes
+            .get_mut(..QUANTITY_ENCODED_LEN)
+            .ok_or(R::InvalidProgram)?;
+        target.copy_from_slice(&value.encode());
+        Ok(QUANTITY_ENCODED_LEN)
+    }
 }
 pub(crate) fn evaluate(
     op: O,
@@ -112,19 +138,39 @@ pub(crate) fn evaluate(
     {
         return None;
     }
-    Some(arithmetic(op, left_kind, right_kind, left, right))
+    Some((|| {
+        let mut encoded = Encoded {
+            bytes: [0; QUANTITY_ENCODED_LEN],
+            length: 0,
+        };
+        encoded.length = evaluate_into(
+            op,
+            left_kind,
+            right_kind,
+            left,
+            right,
+            Output {
+                profile: conduit_core::QuantityValueProfile::Decimal,
+                bytes: &mut encoded.bytes,
+            },
+        )?;
+        Ok(encoded)
+    })())
 }
-fn arithmetic(
+/// Keep finite rational scratch out of the common recursive evaluator frame.
+#[inline(never)]
+pub(crate) fn evaluate_into(
     op: O,
     left_kind: &str,
     right_kind: &str,
     left: &[u8],
     right: &[u8],
-) -> Result<Encoded, R> {
+    mut output: Output<'_>,
+) -> Result<usize, R> {
     let mut work = ExactNumericWork::new(3 * conduit_core::MATHEMATICAL_VALUE_VALIDATION_WORK);
     if is_quantity(left_kind) && is_quantity(right_kind) {
-        let left = rational(left, &mut work)?;
-        let right = rational(right, &mut work)?;
+        let left = rational(left_kind, left, output.profile, &mut work)?;
+        let right = rational(right_kind, right, output.profile, &mut work)?;
         if op == O::Multiply
             || (op == O::Divide
                 && (left_kind != right_kind || left_kind == conduit_core::QUANTITY_INFO_ID))
@@ -135,7 +181,7 @@ fn arithmetic(
                 left.checked_quotient(right, &mut work)
             }
             .map_err(R::QuantityProduct)?;
-            return encoded_quantity(result.coordinate(), result.unit(), &mut work);
+            return output.quantity(result.coordinate(), result.unit(), &mut work);
         }
         let right = right
             .convert_to_unit(left.unit(), &mut work)
@@ -159,22 +205,26 @@ fn arithmetic(
                     .map_err(|_| R::Arithmetic)?
                     .checked_i128()
                     .map_err(|_| R::Arithmetic)?;
-                return Ok(Encoded::scalar(Scalar::from_raw_microunits(
+                return output.scalar(Scalar::from_raw_microunits(
                     i64::try_from(micros).map_err(|_| R::Arithmetic)?,
-                )));
+                ));
             }
             _ => return Err(R::InvalidProgram),
         };
-        return encoded_quantity(coordinate, left.unit(), &mut work);
+        return output.quantity(coordinate, left.unit(), &mut work);
     }
     let (value, factor, divide) = if is_quantity(left_kind) && right_kind == SCALAR_INFO_ID {
         (
-            rational(left, &mut work)?,
+            rational(left_kind, left, output.profile, &mut work)?,
             scalar(right, &mut work)?,
             op == O::Divide,
         )
     } else if left_kind == SCALAR_INFO_ID && is_quantity(right_kind) && op == O::Multiply {
-        (rational(right, &mut work)?, scalar(left, &mut work)?, false)
+        (
+            rational(right_kind, right, output.profile, &mut work)?,
+            scalar(left, &mut work)?,
+            false,
+        )
     } else {
         return Err(R::InvalidProgram);
     };
@@ -187,7 +237,7 @@ fn arithmetic(
         value.coordinate().checked_multiply(factor, &mut work)
     }
     .map_err(|_| R::Arithmetic)?;
-    encoded_quantity(coordinate, value.unit(), &mut work)
+    output.quantity(coordinate, value.unit(), &mut work)
 }
 
 /// Stable Host-call details for the finite derived-quantity failure boundary.
@@ -206,3 +256,7 @@ pub fn quantity_arithmetic_failure_detail(refusal: &R) -> u16 {
         _ => 0,
     }
 }
+
+#[cfg(test)]
+#[path = "expression_quantity_tests.rs"]
+mod tests;

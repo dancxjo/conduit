@@ -50,17 +50,18 @@ pub(super) fn evaluate_node<'a>(
         } => {
             let left = evaluate_node(left, input, input_kind)?;
             let right = evaluate_node(right, input, input_kind)?;
-            let encoded = crate::expression_quantity::evaluate(
+            let length = crate::expression_quantity::evaluate_into(
                 *operator,
                 kind_name(left.kind),
                 kind_name(right.kind),
                 left.as_slice(),
                 right.as_slice(),
-            )
-            .ok_or(Refusal::InvalidProgram)??;
-            let bytes = encoded.as_slice();
-            output[..bytes.len()].copy_from_slice(bytes);
-            PrimitiveValue::borrowed(expected, &output[..bytes.len()])?
+                crate::expression_quantity::Output {
+                    profile: conduit_core::QuantityValueProfile::Decimal,
+                    bytes: output,
+                },
+            )?;
+            PrimitiveValue::borrowed(expected, &output[..length])?
         }
         PreparedOperation::RationalBinary {
             operator,
