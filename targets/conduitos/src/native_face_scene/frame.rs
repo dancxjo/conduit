@@ -90,6 +90,7 @@ impl NativeFaceScene {
             && !self.showing_details
             && !self.showing_diagram
             && text_editor::append(&mut scene, &self.face, self.screen, self.text_scale_percent)?;
+        let mut focus_marked = false;
         for row in self
             .rows()
             .iter()
@@ -101,12 +102,21 @@ impl NativeFaceScene {
                         .availability
                         .is_available()
                 });
-            let outline = if available && row.control == self.focus {
+            let focused = available && row.control == self.focus;
+            let outline = if focused {
                 GraphicsPaintRole::Focus
             } else {
                 row.paint
             };
-            layout::append_row_chrome(&mut scene, row, self.screen, outline, self.showing_details)?;
+            layout::append_row_chrome(
+                &mut scene,
+                row,
+                self.screen,
+                outline,
+                self.showing_details,
+                focused && !focus_marked,
+            )?;
+            focus_marked |= focused;
             push(
                 &mut scene,
                 GraphicsCommand::text(row.text_bounds(), self.screen, row.paint, &row.text)

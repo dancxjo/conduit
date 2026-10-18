@@ -277,8 +277,16 @@ impl NativeFaceScene {
     pub fn show_details(&mut self, details: bool) {
         self.showing_details = details;
         self.showing_diagram = false;
-        self.page = 0;
-        self.focus = None;
+        // Preserve the exact control across reading views when it is present;
+        // moving to Details must not silently move the user's selection.
+        let retained = self.focus.and_then(|control| {
+            self.rows()
+                .iter()
+                .find(|row| row.control == Some(control))
+                .map(|row| (control, row.page))
+        });
+        self.focus = retained.map(|(control, _)| control);
+        self.page = retained.map_or(0, |(_, page)| page);
     }
 
     /// A diagram is available only when Gear subjects actually occur in this
@@ -434,3 +442,7 @@ mod measured_layout_tests;
 #[cfg(test)]
 #[path = "native_face_scene/raster_layout_tests.rs"]
 pub(crate) mod raster_layout_tests;
+
+#[cfg(test)]
+#[path = "native_face_scene/navigation_tests.rs"]
+mod navigation_tests;
