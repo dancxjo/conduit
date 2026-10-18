@@ -237,6 +237,12 @@ fn actual_native_member_preserves_checked_profile_and_fixed_request_without_play
             semantic_digest("conduit.std/local-model-completed-input@1", b"request")
         );
         let completed = receipt.completed().clone();
+        let started = receipt.started().clone();
+        let expected_selection = receipt.selection().clone();
+        let expected_realization = receipt.realization().clone();
+        let expected_elapsed = receipt.elapsed();
+        let expected_output_bytes = receipt.output_bytes();
+        let owned = receipt.into_owned();
         assert_eq!(*state.lock().unwrap(), (1, 1024));
         assert_eq!(
             host.execute_local_model_pool_member(&mut member, b"changed", &mut output),
@@ -248,6 +254,19 @@ fn actual_native_member_preserves_checked_profile_and_fixed_request_without_play
             &completed
         );
         host.release_local_model_pool_member(member).unwrap();
+        let historical = owned.as_borrowed();
+        assert_eq!(historical.selection(), &expected_selection);
+        assert_eq!(historical.realization(), &expected_realization);
+        assert_eq!(historical.started(), &started);
+        assert_eq!(historical.completed(), &completed);
+        assert_eq!(historical.elapsed(), expected_elapsed);
+        assert_eq!(historical.terminal(), LocalModelAdapterTerminal::Produced);
+        assert_eq!(historical.input_bytes(), 7);
+        assert_eq!(historical.output_bytes(), expected_output_bytes);
+        assert_eq!(
+            historical.input_digest(),
+            semantic_digest("conduit.std/local-model-completed-input@1", b"request")
+        );
         let next = host
             .prepare_local_model_pool_member_with_demand(&plan, next_selection, &consumer, demand)
             .unwrap();
@@ -283,7 +302,12 @@ fn swapped_request_refuses_before_effect_and_keeps_the_operation_consumed() {
         );
         assert_eq!(state.lock().unwrap().0, 0);
         assert!(member.operation_started());
+        let owned = member.prepare_completed_work().unwrap().into_owned();
         host.release_local_model_pool_member(member).unwrap();
+        assert_eq!(
+            owned.as_borrowed().terminal(),
+            LocalModelAdapterTerminal::Refused
+        );
     });
 }
 #[test]

@@ -54,7 +54,7 @@ impl Selection {
         let discovery = OllamaDiscovery::discover_at(&self.endpoint, &self.model_name)?;
         let adapter = discovery.initialize(
             self.admitted_memory_mib,
-            vec![LocalModelKindProfile::PresentSemanticFront],
+            self.reviewed_offer.supported_profiles.clone(),
         )?;
         if adapter.offer() != &self.reviewed_offer {
             return Err(
@@ -66,6 +66,11 @@ impl Selection {
 }
 
 pub(super) fn change(options: InstalledModelOptions) -> Result<Change, String> {
+    if options.model_generation
+        && (options.selected_model.is_none() || options.without_selected_model)
+    {
+        return Err("model generation requires an explicit model selection".into());
+    }
     if options.without_selected_model {
         return Ok(Change::Remove);
     }
@@ -88,10 +93,11 @@ pub(super) fn change(options: InstalledModelOptions) -> Result<Change, String> {
         return Err("selected local-model options violate finite bounds".into());
     }
     let discovery = OllamaDiscovery::discover_at(&endpoint, &model_name)?;
-    let adapter = discovery.initialize(
-        admitted_memory_mib,
-        vec![LocalModelKindProfile::PresentSemanticFront],
-    )?;
+    let mut profiles = vec![LocalModelKindProfile::PresentSemanticFront];
+    if options.model_generation {
+        profiles.push(LocalModelKindProfile::Generate);
+    }
+    let adapter = discovery.initialize(admitted_memory_mib, profiles)?;
     let selection = Selection {
         endpoint,
         model_name: adapter.offer().identity.model_name.clone(),
@@ -147,5 +153,62 @@ pub(super) fn fixture_retained_selection() -> Selection {
             lifecycle: LocalModelLifecycleState::Ready,
             determinism: LlmDeterminismProfile::ProviderNondeterministic,
         },
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn generation_cannot_upgrade_a_preserved_or_removed_selection_implicitly() {
+        assert!(matches!(
+            change(InstalledModelOptions::default()),
+            Ok(Change::Preserve)
+        ));
+        for without_selected_model in [false, true] {
+            let result = change(InstalledModelOptions {
+                model_generation: true,
+                without_selected_model,
+                ..Default::default()
+            });
+            let Err(error) = result else {
+                panic!("generation requires explicit reselection")
+            };
+            assert!(error.contains("explicit model selection"));
+        }
+    }
+
+    #[test]
+    fn retained_generation_profile_keeps_exact_artifact_and_resource_bounds() {
+        let mut selection = fixture_retained_selection();
+        selection.validate().unwrap();
+        let offers = selection.reviewed_offer.capability_offers().unwrap();
+        assert!(!offers
+            .iter()
+            .any(|offer| offer.kind_id.as_str() == LocalModelKindProfile::Generate.kind()));
+        let identity = selection.reviewed_offer.identity.clone();
+        let limits = selection.reviewed_offer.limits;
+        selection.reviewed_offer.supported_profiles.extend([
+            LocalModelKindProfile::Generate,
+            LocalModelKindProfile::GenerateFlow,
+        ]);
+        let bytes = serde_json::to_vec(&selection).unwrap();
+        let restored: Selection = serde_json::from_slice(&bytes).unwrap();
+        restored.validate().unwrap();
+        assert_eq!(restored, selection);
+        assert_eq!(restored.reviewed_offer.identity, identity);
+        assert_eq!(restored.reviewed_offer.limits, limits);
+        let offers = restored.reviewed_offer.capability_offers().unwrap();
+        assert!(offers
+            .iter()
+            .any(|offer| offer.kind_id.as_str() == LocalModelKindProfile::Generate.kind()));
+        assert!(offers
+            .iter()
+            .any(|offer| offer.kind_id.as_str() == LocalModelKindProfile::GenerateFlow.kind()));
+        assert!(offers
+            .iter()
+            .any(|offer| offer.kind_id.as_str()
+                == LocalModelKindProfile::PresentSemanticFront.kind()));
     }
 }

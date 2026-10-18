@@ -147,7 +147,7 @@ where
             self.cords[cord].quiescence_armed = false;
             self.armed_quiescence_count -= 1;
             if let Some((sink, _)) = spec.sink_local() {
-                self.ready.set(usize::from(sink.0), true);
+                self.set_ready(usize::from(sink.0), true);
             }
             self.signs
                 .record(source, Some(port), None, KernelEventKind::ValueRouted)?;

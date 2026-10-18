@@ -59,9 +59,14 @@ fn held_fore_output_keeps_the_same_generation_then_drains_in_order() {
     }
     assert_eq!(run.output_into(&observed, &mut output).unwrap(), Some(0));
     let retained = output.encoded.clone();
+    // Once the fore is pressured, the legal state feedback must park rather
+    // than repeatedly scheduling zero-delay work. Exact retained kernel Signs
+    // expose any additional Gear invocation while the same output is held.
+    let parked_signs = run.kernel().signs();
     for _ in 0..128 {
-        run.step().unwrap();
+        assert_eq!(run.step().unwrap(), KernelCompositeStatus::Active);
     }
+    assert_eq!(run.kernel().signs(), parked_signs);
     assert_eq!(run.output_into(&observed, &mut output).unwrap(), Some(0));
     assert_eq!(output.encoded, retained);
     run.complete_output(&observed, 0).unwrap();
