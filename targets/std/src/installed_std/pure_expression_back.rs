@@ -166,6 +166,9 @@ fn validate_placement(
         || placement.inputs != offer.inputs
         || placement.outputs != offer.outputs
         || placement.host_calls != offer.host_calls
+        || (placement.implementation_id.as_str()
+            == conduit_std_offers::PURE_SCALAR_TAPE_STD_IMPLEMENTATION
+            && placement.realization_properties != offer.realization_properties)
         || placement.inputs[0].temporal != placement.outputs[0].temporal
     {
         return Err("planned pure expression differs from installed realization".into());

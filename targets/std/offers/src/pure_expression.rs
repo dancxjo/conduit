@@ -94,7 +94,63 @@ pub fn pure_scalar_tape_std_offer(
     offer.implementation.execution_profile_id = PURE_SCALAR_TAPE_STD_PROFILE.into();
     offer.implementation.implementation_id = PURE_SCALAR_TAPE_STD_IMPLEMENTATION.into();
     offer.implementation.artifact_id = PURE_SCALAR_TAPE_STD_ARTIFACT.into();
+    offer.realization_properties = vec![scalar_tape_property(&evaluator)?];
     Ok(offer)
+}
+
+/// Inspectable preparation bounds, sealed by ordinary Plan fingerprinting.
+/// These payload bounds are distinct from kernel fuel and total Host memory.
+pub const PURE_SCALAR_TAPE_BOUNDS: &str = "std/pure-scalar-tape-bounds@1";
+fn scalar_tape_property(
+    evaluator: &conduit_plot::PreparedPortableExpressionEvaluator,
+) -> Result<conduit_core::StructuredConfigurationValue, String> {
+    use conduit_core::{
+        kind_id, StructuredFieldType, StructuredFieldValue, StructuredInfoType, StructuredInfoValue,
+    };
+    let (instructions, scratch) = evaluator.scalar_tape_limits().ok_or("missing tape")?;
+    let fields = [
+        ("maximum-instructions", instructions),
+        ("scratch-payload-bytes", scratch),
+        (
+            "retained-tape-payload-bytes",
+            evaluator
+                .scalar_tape_storage_bytes()
+                .ok_or("missing tape storage")?,
+        ),
+        ("output-capacity-bytes", evaluator.output_capacity()),
+    ];
+    let build = || -> Result<_, conduit_core::StructuredInfoRefusal> {
+        let integer = StructuredInfoType::leaf(kind_id("value/u64"))?;
+        let ty = StructuredInfoType::record(
+            kind_id(PURE_SCALAR_TAPE_BOUNDS),
+            fields
+                .iter()
+                .map(|(name, _)| StructuredFieldType::new(*name, integer.clone()))
+                .collect::<Result<_, _>>()?,
+        )?;
+        let value = StructuredInfoValue::record(
+            ty,
+            fields
+                .iter()
+                .map(|(name, value)| {
+                    StructuredFieldValue::new(
+                        *name,
+                        StructuredInfoValue::leaf(
+                            integer.clone(),
+                            (*value as u64).to_le_bytes().to_vec(),
+                        )?,
+                    )
+                })
+                .collect::<Result<_, _>>()?,
+        )?;
+        Ok((
+            value.value_type().profile()?.value_kind().clone(),
+            value.canonical_bytes()?,
+        ))
+    };
+    let (profile, bytes) = build().map_err(|e| format!("scalar tape bounds: {e:?}"))?;
+    conduit_core::StructuredConfigurationValue::new(profile, bytes)
+        .ok_or("invalid tape bounds".into())
 }
 
 /// Explicit computational profile for an existing-kernel child Value Gear.

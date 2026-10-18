@@ -1,0 +1,8 @@
+{
+  "source_commit": "36c978f82363877cd3beb0dad74e7a787d8696af",
+  "command": "cargo xtask check expression-baseline",
+  "outcome": "passed: 2 native baseline tests and 48 WASM cases, 16 paired warm evaluations each, zero allocations/reallocations",
+  "log_sha256": "554febd20553138cefff0fe326a1c6b336fb83c1b3b6f02780ade8dc13fec2ff",
+  "receipt_sha256": "24edcf69fa1bd3684806d72ea06f92616fbe31c5c450309503c6a40aed30d2a2",
+  "scope": "Current checked arithmetic binding; previous source-specific receipts preserved."
+}

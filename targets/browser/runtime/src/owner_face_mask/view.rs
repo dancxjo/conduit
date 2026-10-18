@@ -1,7 +1,7 @@
 //! Human-readable browser projection of the exact checked Face.
 
 use super::*;
-use conduit_face::{FaceActionAvailability, FacePropertyValue};
+use conduit_face::{FaceActionAvailability, FaceProperty, FacePropertyValue, FaceSubject};
 
 impl OwnerBrowserMask {
     pub(super) fn view(&self) -> FaceView {
@@ -127,6 +127,7 @@ fn project_view(
                         format!("{}: {}", property.name, property_value(&property.value))
                     })
                     .collect(),
+                unmodeled_property_count: unmodeled_properties(&face.properties, subject),
                 flags: face
                     .properties
                     .iter()
@@ -229,5 +230,92 @@ fn property_value(value: &FacePropertyValue) -> String {
         }
         FacePropertyValue::ValueContract(value) => format!("{value:?}"),
         FacePropertyValue::Content(value) => format!("{} content bytes", value.len()),
+    }
+}
+
+// Keep every property in the generic facts list. This count describes only
+// facts not also represented by the typed values, flags or choice metadata.
+// A renderer can recognize that exact closed profile without parsing text.
+fn unmodeled_properties(properties: &[FaceProperty], subject: &FaceSubject) -> usize {
+    let choice_group = matches!(&subject.role, conduit_face::FaceRole::Semantic(id)
+        if id.as_str() == "conduit.face/choice-group@1");
+    let choice_properties = properties
+        .iter()
+        .filter(|property| {
+            property.subject == subject.identity && property.name == "choice-multiplicity"
+        })
+        .count();
+    properties
+        .iter()
+        .filter(|property| property.subject == subject.identity)
+        .filter(|property| match &property.value {
+            FacePropertyValue::Flag(_) | FacePropertyValue::TypedValue { .. } => false,
+            FacePropertyValue::Text(_)
+                if choice_group
+                    && choice_properties == 1
+                    && property.name == "choice-multiplicity" =>
+            {
+                false
+            }
+            _ => true,
+        })
+        .count()
+}
+
+#[cfg(test)]
+mod choice_projection_tests {
+    use super::*;
+    #[test]
+    fn real_thermostat_properties_keep_exact_facts_and_recognized_choice_metadata() {
+        let mut fragment = conduit_thermostat_face::fragment(
+            &conduit_thermostat_plot::ThermostatState::default(),
+            conduit_face::FaceContributionBasis {
+                checked_plot_id: "checked/choice-projection".into(),
+                plan_id: "plan/choice-projection".into(),
+                active_play_id: "play/choice-projection".into(),
+                required_interaction_context: None,
+            },
+            true,
+        )
+        .unwrap();
+        for id in [
+            "thermostat/mode",
+            "thermostat.mode.heat",
+            "thermostat.mode.off",
+        ] {
+            let subject = fragment.subjects.iter().find(|s| s.identity == id).unwrap();
+            assert_eq!(unmodeled_properties(&fragment.properties, subject), 0);
+            assert!(fragment.properties.iter().any(|p| p.subject == id));
+        }
+        let heat = fragment
+            .subjects
+            .iter()
+            .find(|s| s.identity == "thermostat.mode.heat")
+            .unwrap();
+        fragment.properties.push(FaceProperty {
+            subject: heat.identity.clone(),
+            name: "authored-fact".into(),
+            value: FacePropertyValue::Text("retain me".into()),
+        });
+        assert_eq!(unmodeled_properties(&fragment.properties, heat), 1);
+        // Choice metadata on an Action is not a recognized group contract.
+        fragment.properties.push(FaceProperty {
+            subject: heat.identity.clone(),
+            name: "choice-multiplicity".into(),
+            value: FacePropertyValue::Text("exclusive".into()),
+        });
+        assert_eq!(unmodeled_properties(&fragment.properties, heat), 2);
+        let group = fragment
+            .subjects
+            .iter()
+            .find(|s| s.identity == "thermostat/mode")
+            .unwrap();
+        // Duplicate or contradictory metadata must retain the generic fallback.
+        fragment.properties.push(FaceProperty {
+            subject: group.identity.clone(),
+            name: "choice-multiplicity".into(),
+            value: FacePropertyValue::Text("multiple".into()),
+        });
+        assert_eq!(unmodeled_properties(&fragment.properties, group), 2);
     }
 }

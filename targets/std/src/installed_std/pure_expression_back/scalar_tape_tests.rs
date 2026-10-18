@@ -28,6 +28,31 @@ fn actual_std_plan_and_kernel_play_select_the_scalar_tape_back() {
             conduit_std_offers::PURE_SCALAR_TAPE_STD_ARTIFACT
         );
         assert!(conduit_core::verify_plan(&plan));
+        let property = &placement.realization_properties[0];
+        let bounds =
+            conduit_core::StructuredInfoValue::from_canonical_bytes(property.canonical_value())
+                .unwrap();
+        let conduit_core::StructuredInfoValueShape::Record(fields) = bounds.shape() else {
+            panic!("typed tape bounds")
+        };
+        let evaluator =
+            conduit_plot::PreparedPortableExpressionEvaluator::new_scalar_tape(&program).unwrap();
+        let (instructions, scratch) = evaluator.scalar_tape_limits().unwrap();
+        for (name, expected) in [
+            ("maximum-instructions", instructions),
+            ("scratch-payload-bytes", scratch),
+            (
+                "retained-tape-payload-bytes",
+                evaluator.scalar_tape_storage_bytes().unwrap(),
+            ),
+            ("output-capacity-bytes", evaluator.output_capacity()),
+        ] {
+            let field = fields.iter().find(|field| field.name() == name).unwrap();
+            let conduit_core::StructuredInfoValueShape::Leaf(bytes) = field.value().shape() else {
+                panic!("integer bound")
+            };
+            assert_eq!(bytes, (expected as u64).to_le_bytes());
+        }
         let input = 7u64.to_le_bytes();
         let expected = program.evaluate(&input).unwrap();
         let mut output = Outputs(Vec::with_capacity(1));
@@ -68,6 +93,88 @@ fn actual_std_plan_and_kernel_play_select_the_scalar_tape_back() {
 }
 
 #[test]
+fn omitted_or_foreign_tape_bounds_refuse_before_output() {
+    let source =
+        include_str!("../../../../../architecture/plot/tests/fixtures/expression_baseline.conduit");
+    let (_, foreign, _) = prepare(source, "baseline-32", true);
+    for omit in [false, true] {
+        let (mut host, mut plan, _) = prepare(source, "baseline-1", true);
+        plan.fragments[0].placements[0].realization_properties = if omit {
+            vec![]
+        } else {
+            foreign.fragments[0].placements[0]
+                .realization_properties
+                .clone()
+        };
+        assert!(!conduit_core::verify_plan(&plan));
+        let mut outputs = Outputs(Vec::new());
+        assert!(host
+            .run_external_plot_to(
+                plan.fragments[0].clone(),
+                &[ExternalForeInput {
+                    front_port_id: "value".into(),
+                    track: ConnectionTrack::Payload,
+                    bytes: 7u64.to_le_bytes().to_vec()
+                }],
+                &mut outputs,
+                &mut Vec::new(),
+                &mut NoTimer,
+            )
+            .is_err());
+        assert!(outputs.0.is_empty());
+    }
+}
+
+#[test]
+fn actual_std_boolean_matrix_preserves_reference_outcomes_without_play_allocations() {
+    let source = include_str!(
+        "../../../../../architecture/plot/tests/fixtures/expression_boolean_baseline.conduit"
+    );
+    for operations in [1, 3, 8, 32] {
+        for value in [0u8, 1] {
+            let mut outcomes = Vec::new();
+            for tape in [false, true] {
+                let (mut host, plan, _) = prepare(source, &format!("boolean-{operations}"), tape);
+                let mut output = Outputs(Vec::with_capacity(1));
+                let report = host
+                    .run_external_plot_to(
+                        plan.fragments[0].clone(),
+                        &[ExternalForeInput {
+                            front_port_id: "value".into(),
+                            track: ConnectionTrack::Payload,
+                            bytes: vec![value],
+                        }],
+                        &mut output,
+                        &mut Vec::new(),
+                        &mut NoTimer,
+                    )
+                    .unwrap();
+                assert_eq!(output.0, [vec![value]]);
+                let kernel = report.kernel.unwrap();
+                assert_eq!(kernel.post_play_start_allocations, 0);
+                assert_eq!(
+                    kernel.value_allocation_capacity_before,
+                    kernel.value_allocation_capacity_after
+                );
+                outcomes.push((
+                    plan.source_document_id,
+                    plan.checked_plot_id,
+                    plan.expanded_plot_id,
+                    output.0,
+                    report.observations.last().unwrap().kind.clone(),
+                    kernel
+                        .kernel_sign
+                        .iter()
+                        .map(|s| s.kind)
+                        .collect::<Vec<_>>(),
+                ));
+            }
+            assert_eq!(outcomes[0], outcomes[1]);
+        }
+    }
+}
+
+#[test]
 fn tape_offer_refuses_unsupported_temporal_and_semantic_profiles() {
     let source =
         include_str!("../../../../../architecture/plot/tests/fixtures/expression_baseline.conduit");
@@ -101,4 +208,22 @@ fn tape_offer_refuses_unsupported_temporal_and_semantic_profiles() {
         conduit_core::PortTemporal::Value
     )
     .is_ok());
+}
+
+#[test]
+fn tape_offer_refuses_native_laws_without_a_retained_validation_witness() {
+    let source = "type Small = U32 where . < 4_294_967_295\nplot choose (\n >> value: Small\n result: U32 >>\n) = (. + 1)\n";
+    let checked =
+        check_syntax_document(&parse_syntax_document(source), &StartupCatalog::new()).unwrap();
+    let expanded =
+        expand_canonical_plot_for_authoring(&checked, "choose", &ProfileCatalog::new()).unwrap();
+    let ConfigurationValue::Text(encoded) = &expanded.expanded.gears[0].configuration[0].value
+    else {
+        panic!("program")
+    };
+    let program = PortableExpressionProgram::from_canonical_hex(encoded).unwrap();
+    let refusal =
+        conduit_std_offers::pure_scalar_tape_std_offer(&program, conduit_core::PortTemporal::Value)
+            .unwrap_err();
+    assert!(refusal.contains("scalar-tape/native-law-witness-unavailable@1"));
 }

@@ -5,7 +5,7 @@ const view = {
   body_id: 'fixture/body', face_id: 'fixture/face', face_revision: 1, show_id: 'fixture/show',
   show_state: 'available', interactions_admitted: true,
   subjects: [{ identity: 'fixture/task', name: 'Read the handbook', role: 'Info',
-    disclosure: 'Primary', text: [], properties: [],
+    disclosure: 'Primary', text: [], properties: [], unmodeled_property_count: 0,
     values: [{ name: 'Completion', text: 'Open' }] }], relationships: [],
   actions: [{ identity: 'fixture/complete', target: 'fixture/task', name: 'Complete task',
     availability: 'available', disclosure: 'CurrentAction', arguments: [] }],
@@ -835,14 +835,14 @@ for (const fact of ['content', 'flag']) {
 for (const enriched of ['collection', 'item', 'status']) {
   test(`collection layout preserves additional ${enriched} semantics (${fact})`, async ({ page }) => {
     await page.goto('/proof/browser/signal-dom-host.test.html');
-    const subject = (identity, name, role) => ({ identity, name, role, disclosure: 'Primary', text: [], properties: [], values: [] });
+    const subject = (identity, name, role) => ({ identity, name, role, disclosure: 'Primary', text: [], properties: [], unmodeled_property_count: 0, values: [] });
     const collection = subject('fixture/list', 'Tasks', 'Collection');
     const item = { ...subject('fixture/item', 'Read', 'Item'), flags: [{ name: 'complete', value: false }] };
     const status = { ...subject('fixture/status', 'Progress', 'Status'), text: ['1 thing left · 0 completed'] };
     const extra = { collection, item, status }[enriched];
     if (fact === 'flag') extra.flags = [...(extra.flags ?? []), { name: 'authored-flag', value: true }];
     else {
-      extra.properties = ['Important authored fact'];
+      extra.properties = ['Important authored fact']; extra.unmodeled_property_count = 1;
       extra.values = [{ name: 'Priority', text: 'Urgent' }];
       if (enriched !== 'status') extra.text = ['Additional explanation'];
     }
@@ -899,7 +899,7 @@ for (const enriched of ['group', 'option']) {
     if (fact === 'flag') extra.flags = [...(extra.flags ?? []), { name: 'authored-flag', value: true }];
     else {
       extra.values = [{ name: 'Authored value', text: 'Exact meaning' }];
-      extra.properties = ['Important authored fact'];
+      extra.properties = ['Important authored fact']; extra.unmodeled_property_count = 1;
       extra.text = ['Additional explanation'];
     }
     await page.evaluate(async view => {
@@ -1291,4 +1291,27 @@ test('an unchecked exclusive-choice change cannot dispatch an owner action', asy
   await page.keyboard.press('Space');
   expect(await page.evaluate(() => globalThis.calls)).toEqual([{ view: choices, action: choices.actions[1], arguments: [] }]);
   await expect(current).toBeDisabled();
+});
+
+test('nested choice metadata retains the generic facts instead of becoming a radio option', async ({ page }) => {
+  await page.goto('/proof/browser/signal-dom-host.test.html');
+  const choices = { ...view, subjects: [
+    { ...view.subjects[0], identity: 'fixture/group', name: 'Mode', values: [],
+      semantic_role: 'conduit.face/choice-group@1', choice_multiplicity: 'exclusive',
+      properties: ['choice-multiplicity: exclusive'] },
+    { ...view.subjects[0], identity: 'fixture/nested', name: 'Nested choices', values: [],
+      semantic_role: 'conduit.face/choice-group@1', choice_multiplicity: 'exclusive',
+      properties: ['choice-multiplicity: exclusive', 'selected: true'],
+      flags: [{name: 'selected', value: true}] },
+  ], relationships: [{kind: 'Contains', source: 'fixture/group', target: 'fixture/nested'}],
+  actions: [{...view.actions[0], identity: 'fixture/select-nested', target: 'fixture/nested'}] };
+  await page.evaluate(async view => {
+    await import('/targets/browser/handbook/owner-face-component.mjs');
+    document.body.replaceChildren();
+    const element = document.createElement('conduit-owner-face'); document.body.append(element);
+    element.show(view, {invoke: async () => {}});
+  }, choices);
+  const element = page.locator('conduit-owner-face');
+  await expect(element.getByRole('radio')).toHaveCount(0);
+  await expect(element.getByText('choice-multiplicity: exclusive', {exact: true})).toHaveCount(2);
 });
