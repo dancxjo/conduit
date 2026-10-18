@@ -18,8 +18,8 @@ relations, unknown roles and oversized names refuse before Play. Malformed
 Boolean runtime input refuses without emitting a graph.
 
 The domain Types live in this Source, with no global Room enum or renderer
-geometry. The finite current-owner encounter is described below; deterministic
-linear/cross-Mask traversal remains #5611. This proves the #5609 Source contract and deterministic std
+geometry. The finite current-owner encounter and deterministic linear/cross-Mask
+proof are described below. This proves the #5609 Source contract and deterministic std
 execution; it does not complete parent #5359's lifecycle, UI or release gates.
 Commons is excluded from Workspace discovery and the initial Body until those
 product integrations are ready.
@@ -101,8 +101,62 @@ trace records original Body identity, acknowledged Show, typed interaction,
 retained workset change, refreshed Face and exactly one accepted effect.
 
 This is checked-source, production-kernel std and software owner/Mask fixture
-proof. Commons remains excluded from initial Body/Workspace discovery. Full
-linear traversal and independent cross-Mask reconstruction remain #5611; native
+proof. Commons remains excluded from initial Body/Workspace discovery. The C3 proof
+below covers deterministic linear traversal and cross-Mask graph truth; native
 shell integration belongs to #5356 and graphical/native walking to #5360.
 These fixtures do not establish QEMU scanout, Chromium, physical input, a
 published journey, parent #5359 completion or stable release acceptance.
+
+
+## Deterministic linear and cross-Mask proof (#5611)
+
+`cargo xtask check workspace-test-products` includes the C3 owner regression.
+The focused internal filter is `commons_encounter::tests::linear_journey` in the
+`conduit` binary tests. This is deterministic software proof, not a new installed
+Commons command or Workspace discovery route.
+
+The test executes the actual `commons` Source through checked expansion, Plan,
+std Host and kernel Play. Its emitted 2,791-byte canonical graph must equal the
+owner encounter's evaluated Source graph. The recorded Source, checked, expanded,
+Plan, Play, Host and Boot identities and kernel Sign evidence stay separate from
+the retained clock owner's Face basis and the Mask's own Plan/Play/Show identities.
+
+The journey reads Hub, follows the authored path to Workshop, returns through
+bounded context history, enters Crèche, and returns to Hub. Open `commons/place`
+subjects remain domain IDs, rather than new global Place variants. The existing
+portable navigation and linear projection expose the supplied directed follows;
+they do not add reverse graph edges or invoke owner actions. The checked encounter
+separately validates each selected context and Back request against its Source
+law. Wrong-direction, unknown-follow, stale-revision/context and exhausted/full
+history cases refuse without changing the original owner's truth.
+
+Each of the five actual context Faces is read through an 80×24 terminal Mask.
+Inspect and paging cross actual renderer writes/flushes and acknowledged planned
+software Shows; each redraw closes its prior pending Play. The test reads the
+renderer to its reported final row, reconstructs its complete wrapped inspection,
+and verifies the exact Commons relations and explicit inspection unavailability.
+A missing owner exposes no fabricated action. Local Inspect is a reading view;
+it does not grant the unavailable owner inspection capability.
+
+The same immutable Faces also enter the production native graphical preparation
+at 1280×800 and 640×480. Different finite page geometries retain identical Face
+identity/revision, relation endpoints/kinds and available action/argument
+contracts; unavailable actions refuse control resolution. Details visibly retain
+the subject/relation and missing-inspection clauses bound to those identities
+by the existing utterance provenance. Commons relations do
+not become a synthetic Gear/Port/Cord diagram. These CPU frames have no native
+Show or scanout claim.
+
+The graph execution queues admit one item and 8 KiB. The real graph Play retains identical
+value-allocation capacities before and after execution. Navigation admits two
+history entries before use; linear/terminal documents and graphical frames keep
+their existing finite limits. Test transcripts additionally refuse above 64
+inspection pages, 512 KiB per terminal transcript or 2 MiB for the complete proof
+record. These fixture-output bounds do not enlarge product limits or hide growth
+inside Play.
+
+The [C3 audit](../../docs/audits/commons-linear-cross-mask.md) retains the actual
+runtime and Mask receipts. This closes C3's Source/linear semantic proof only.
+The software terminal is attached to a recording adapter; no human input,
+Chromium, native QEMU walking (#5360), physical output, parent #5359 release gate
+or stable release acceptance is established here.
