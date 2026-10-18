@@ -41,6 +41,8 @@ fn main() {
         "acoustic_scope.conduit",
         "acoustic_scope_extensions.conduit",
         "acoustic_frequency_trajectory.conduit",
+        "acoustic_energy.conduit",
+        "acoustic_scoped_energy.conduit",
         "fundamental.conduit",
         "ipa.conduit",
         "ipa_syntax.conduit",
