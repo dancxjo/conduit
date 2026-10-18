@@ -1,0 +1,115 @@
+{
+  "issue": 5392,
+  "status": "private-development-only",
+  "source": "b19c29dcc15ee24fb7b5f7fb37b202bc0bcf8d4a",
+  "selected_tests": 106,
+  "validation": {
+    "planner_library": 82,
+    "installed_expression_back": 14,
+    "source_batch": 7,
+    "source_plan_evidence": 3,
+    "strict_clippy": "Planner and Std Host, all targets, warnings denied",
+    "workspace_format": "pass",
+    "full_workspace_platform_and_publication": "not established for this source"
+  },
+  "bounds": {
+    "gears": 256,
+    "connections": 4096,
+    "total_candidate_rows": 4096,
+    "candidate_attempts": 65536
+  },
+  "proved": [
+    "Default placement selects a compatible offered consumer in either gear order.",
+    "Bounded backtracking can replace an earlier producer choice; instance limits are enforced.",
+    "Malformed port declarations refuse during selection and again at final sealing with retained explicit choices.",
+    "Search exhaustion and incompatible wire contracts retain distinct named refusals.",
+    "Actual checked Source and installed kernel select an exact restore alternative and execute 1m /3 *3 to exact1m with Unit/role retained, zero kernel post-Play allocation events and stable value-store capacity."
+  ],
+  "limits": [
+    "Default optional-Quantity wire selection only; no general cost/precision optimizer or new runtime fallback.",
+    "No runtime-consuming numerical projection, general loss-certificate composition, near grammar, composite/symbolic transport or full parent acceptance claim.",
+    "No hardware/browser/performance or whole-process allocation claim."
+  ],
+  "history": [
+    "An initial run accidentally used the root default1.97.1 toolchain and was stopped; it is excluded from validation.",
+    "Pinned compilation caught a type-inference error, then a dependency compile exhausted disk. Both are retained as failed attempts. Own inactive incremental cache was removed after the run stopped; artifacts and evidence were preserved.",
+    "The broader Planner run then exposed an old test expecting refusal only at sealing. The test now verifies both early refusal and the final fence; all82 tests pass."
+  ],
+  "archive": {
+    "file": "quantity-wire-selection-development-20261018.raw.tar.gz",
+    "sha256": "8e9580bea76fc71b37e23ba1ba96b824c0ca95647765bd25cbad85903f0b42d2",
+    "bytes": 25542
+  },
+  "custody": {
+    "source": "b19c29dcc15ee24fb7b5f7fb37b202bc0bcf8d4a",
+    "compiler": "rustc 1.98.1 (48a229cea 2026-09-01)\nbinary: rustc\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\ncommit-date: 2026-09-01\nhost: x86_64-unknown-linux-gnu\nrelease: 1.98.1\nLLVM version: 22.1.8\n",
+    "incremental_compilation": false,
+    "binary": {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/retained-quantity-wire-selection-proof/std-host-tests",
+      "bytes": 739396280,
+      "sha256": "8b4bc48a3d30f0e6fdc34fd19a3f6fd6567106ad09dd6345ff3dd400e7b285f2"
+    },
+    "raw_files": {
+      "quantity-wire-selection-planner-final-tests.log": {
+        "sha256": "572fdf56e72edc21a4ae545f9eaecb778ef840b0e3cc1f1c15e243436d462d65",
+        "bytes": 11465,
+        "selected_passed_tests": 82
+      },
+      "quantity-wire-selection-installed-final-tests.log": {
+        "sha256": "b0ae20932fc59eb6fb233300e755ac53038875cffd7041e5e107ac1eb7037e90",
+        "bytes": 67973,
+        "selected_passed_tests": 14
+      },
+      "quantity-wire-selection-source-batch-final-tests.log": {
+        "sha256": "30a2d0fd4ff3fb6477536feb05f4152ab7a3af584a4bad8806e5d36601409f06",
+        "bytes": 1134,
+        "selected_passed_tests": 7
+      },
+      "quantity-wire-selection-plan-evidence-tests.log": {
+        "sha256": "37099e423322908317bd6777b1a5bb2d55e3f5b27ebff26b4115daaea1c7a303",
+        "bytes": 639,
+        "selected_passed_tests": 3
+      },
+      "quantity-wire-selection-final-clippy.log": {
+        "sha256": "8782c368e886563e13ce1b42a1517c6c0cb03c37fc11b223046d8b79d328c5d5",
+        "bytes": 16833,
+        "selected_passed_tests": null
+      },
+      "quantity-wire-selection-final-format.log": {
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0,
+        "selected_passed_tests": null
+      },
+      "quantity-wire-selection-first-tests.log": {
+        "sha256": "4f500643ff6e581c0202988312b5aa083fef5e4064b2d41bc7936d42cca19ccf",
+        "bytes": 5886,
+        "selected_passed_tests": null
+      },
+      "quantity-wire-selection-pinned-tests.log": {
+        "sha256": "f9c8e0a3cee55efb6c2968ad4cde8dac6d4dc4b3dd727bee4dcfe65617410ea0",
+        "bytes": 5195,
+        "selected_passed_tests": null
+      },
+      "quantity-wire-selection-focused-tests.log": {
+        "sha256": "87a227d46aab88144150187cf49abd1da5b7f1ba018411eb16e685928cc050f4",
+        "bytes": 3684,
+        "selected_passed_tests": null
+      },
+      "quantity-wire-selection-no-incremental-tests.log": {
+        "sha256": "7a4222dd0b52dc9df297f3591ff5bdaf383db7e62dbd00950e94140a7c18ab0a",
+        "bytes": 7648,
+        "selected_passed_tests": null
+      },
+      "quantity-wire-selection-installed-first-tests.log": {
+        "sha256": "cbc3800950d6ee8ef4bd5c988cdcff4293b36f8d740f411ad345f5bae5c31b1d",
+        "bytes": 44263,
+        "selected_passed_tests": null
+      },
+      "quantity-wire-selection-planner-tests.log": {
+        "sha256": "fe8f00e9bbff7bcaaec61028e289689dc17c608cc8552a53baf77d805f122849",
+        "bytes": 8928,
+        "selected_passed_tests": null
+      }
+    }
+  }
+}
