@@ -16,6 +16,7 @@ pub(super) struct Item {
     pub indent: u8,
     pub subject_index: Option<usize>,
     pub region: Option<u8>,
+    pub checkbox: Option<bool>,
 }
 
 fn item(text: String, role: GraphicsTextRole) -> Item {
@@ -27,6 +28,7 @@ fn item(text: String, role: GraphicsTextRole) -> Item {
         indent: 0,
         subject_index: None,
         region: None,
+        checkbox: None,
     }
 }
 
@@ -216,6 +218,12 @@ pub(super) fn prepare(
                 continue;
             }
             let available = action.availability.is_available();
+            let checkbox = super::boolean_choice::selected(face, index);
+            let label = if checkbox.is_some() {
+                &subject.name
+            } else {
+                &action.name
+            };
             let paint = if interaction_admitted && available {
                 GraphicsPaintRole::Accent
             } else {
@@ -226,21 +234,15 @@ pub(super) fn prepare(
                     FaceActionAvailability::Unavailable {
                         reason_code,
                         explanation,
-                    } => format!(
-                        "{} · Unavailable: {} ({})",
-                        action.name, explanation, reason_code
-                    ),
+                    } => format!("{} · Unavailable: {} ({})", label, explanation, reason_code),
                     FaceActionAvailability::Refused {
                         reason_code,
                         explanation,
-                    } => format!(
-                        "{} · Refused: {} ({})",
-                        action.name, explanation, reason_code
-                    ),
+                    } => format!("{} · Refused: {} ({})", label, explanation, reason_code),
                     FaceActionAvailability::Available if !interaction_admitted => {
-                        format!("{} · View only on this host", action.name)
+                        format!("{} · View only on this host", label)
                     }
-                    FaceActionAvailability::Available => action.name.clone(),
+                    FaceActionAvailability::Available => label.clone(),
                 },
                 role: GraphicsTextRole::Action,
                 paint,
@@ -251,11 +253,15 @@ pub(super) fn prepare(
                 indent: 0,
                 subject_index: None,
                 region: None,
+                checkbox,
             });
             if !available {
                 continue;
             }
             for (argument_index, argument) in action.arguments.iter().enumerate() {
+                if checkbox.is_some() {
+                    continue;
+                }
                 let hint = if argument.contract.value_kind.as_str() == "value/bool" {
                     "false or true".into()
                 } else {
@@ -272,6 +278,7 @@ pub(super) fn prepare(
                     indent: 0,
                     subject_index: None,
                     region: None,
+                    checkbox: None,
                 });
             }
         }

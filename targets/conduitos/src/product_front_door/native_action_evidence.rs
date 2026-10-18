@@ -51,6 +51,31 @@ pub(super) fn face(
     )
 }
 
+/// Observation after the source owner accepts an edit and the new Mask Show
+/// acknowledges its fresh Face. This record grants no action authority.
+pub(super) fn creche_change(
+    before: &Face,
+    prior_show: &MaskShow,
+    interaction: &FaceInteraction,
+    after: &Face,
+    fresh_show: &MaskShow,
+) -> Result<(), &'static str> {
+    emit(
+        b"CONDUIT_CRECHE_CHANGE ",
+        &json!({
+            "schema": "conduit.creche-change/v1",
+            "disposition": "source-accepted-and-shown",
+            "before_face_id": before.identity,
+            "before_revision": before.revision,
+            "before_show_id": prior_show.show_id,
+            "interaction": interaction,
+            "after_face_id": after.identity,
+            "after_revision": after.revision,
+            "after_show_id": fresh_show.show_id,
+        }),
+    )
+}
+
 fn snapshot(p: &JourneyProjection) -> Value {
     json!({
         "status": p.status.as_str(), "revision": p.revision,

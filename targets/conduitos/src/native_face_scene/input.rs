@@ -78,11 +78,14 @@ impl NativeFaceScene {
                     .ok_or(FaceSceneError::UnknownControl)
             })
             .transpose()?;
-        let control = FaceControl {
+        let mut control = FaceControl {
             action: action_index,
             argument,
         };
         self.resolve(&self.face.identity, self.face.revision, control)?;
+        if super::boolean_choice::applies(&self.face, control) {
+            control.argument = None;
+        }
         let primary = self.primary.iter().find(|row| row.control == Some(control));
         let page = primary
             .or_else(|| self.details.iter().find(|row| row.control == Some(control)))
@@ -181,6 +184,9 @@ impl NativeFaceScene {
             return self.commit(show, sequence, Some(self.focus_request(control)));
         }
         self.focus = Some(control);
+        if super::boolean_choice::applies(&self.face, control) && self.input.action.is_none() {
+            return self.toggle_boolean(control, show, sequence);
+        }
         if control.argument.is_none() && self.face.actions[control.action].arguments.is_empty() {
             self.commit(show, sequence, None)
         } else {
@@ -266,6 +272,14 @@ impl NativeFaceScene {
                     }
                     return Ok(FaceSceneInput::Changed);
                 }
+                40 | 44
+                    if self.input.action.is_none()
+                        && self.focus.is_some_and(|control| {
+                            super::boolean_choice::applies(&self.face, control)
+                        }) =>
+                {
+                    return self.toggle_boolean(self.focus.unwrap(), show, sequence);
+                }
                 40 => return self.commit(show, sequence, None),
                 _ => {}
             }
@@ -346,6 +360,37 @@ impl NativeFaceScene {
             argument: Some(argument_index),
         });
         Ok(FaceSceneInput::Changed)
+    }
+
+    fn toggle_boolean(
+        &mut self,
+        control: FaceControl,
+        show: &MaskShow,
+        sequence: u64,
+    ) -> Result<FaceSceneInput, FaceSceneError> {
+        let selected = super::boolean_choice::selected(&self.face, control.action)
+            .ok_or(FaceSceneError::UnsupportedInput)?;
+        let action = &self.face.actions[control.action];
+        let interaction = self.interaction(
+            &self.face.identity,
+            self.face.revision,
+            control,
+            show,
+            vec![FaceInteractionArgument {
+                name: action.arguments[0].name.clone(),
+                value_kind: action.arguments[0].contract.value_kind.as_str().into(),
+                value: vec![u8::from(!selected)],
+            }],
+            sequence,
+        )?;
+        self.input.submitted = true;
+        Ok(FaceSceneInput::Submitted {
+            interaction: Box::new(interaction),
+            next_focus: Some(FaceFocusRequest {
+                action_id: action.identity.clone(),
+                argument_name: None,
+            }),
+        })
     }
 
     fn commit(
