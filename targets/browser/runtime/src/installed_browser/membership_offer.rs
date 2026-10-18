@@ -67,6 +67,11 @@ mod tests {
             .windows(2)
             .all(|pair| pair[0].pool_id < pair[1].pool_id));
         let bytes = serde_json::to_vec(&advertised).unwrap();
+        eprintln!(
+            "browser membership advertisement: {} bytes, {} capabilities",
+            bytes.len(),
+            advertised.capabilities.len()
+        );
         assert!(
             advertised.capabilities.len() <= conduit_body::MAX_CANDIDATE_CAPABILITIES,
             "installed membership advertisement has {} capabilities, above the admitted maximum {}",

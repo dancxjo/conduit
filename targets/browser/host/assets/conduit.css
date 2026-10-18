@@ -237,3 +237,15 @@
 }
 /* A native control owns typing while focused; retain the insertion landmark. */
 body:has(:is(select,input,textarea,button,[contenteditable]):focus) [data-text-insertion-caret] { animation:none; opacity:1; }
+
+/* Native DOM editing keeps the browser's caret, selection, and input methods. */
+textarea[data-conduit-text-editor] {
+  box-sizing:border-box;
+  inline-size:100%;
+  min-block-size:9rem;
+  padding:1rem;
+  font:inherit;
+  line-height:1.6;
+  resize:vertical;
+}
+textarea[data-conduit-text-editor]:focus-visible { outline:2px solid var(--conduit-focus, Highlight); outline-offset:3px; }

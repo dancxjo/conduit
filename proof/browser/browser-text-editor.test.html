@@ -1,0 +1,40 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><title>Memory Lantern DOM editor proof</title>
+<link rel="stylesheet" href="/targets/browser/host/assets/conduit.css">
+<main><h1>Memory Lantern</h1><div id="editor"></div><p id="status" hidden>starting</p></main>
+<script type="module">
+import { openBrowserTextEditor } from "../../targets/browser/host/assets/browser-text-editor.mjs";
+import { bindBrowserRuntimeBridge } from "../../targets/browser/host/assets/browser-runtime-bridge.mjs";
+import { drainBrowserEffects } from "../../targets/browser/host/assets/browser-plot-effects.mjs";
+const response = await fetch("/target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm");
+if (!response.ok) throw new Error(`runtime fetch refused ${response.status}`);
+const runtimeBytes = await response.arrayBuffer();
+const runtimeSha256 = [...new Uint8Array(await crypto.subtle.digest("SHA-256",runtimeBytes))].map(byte=>byte.toString(16).padStart(2,"0")).join("");
+const { instance } = await WebAssembly.instantiate(runtimeBytes, {});
+const api = instance.exports, bridge = bindBrowserRuntimeBridge(api, {context:"native DOM editor proof"});
+const controller = new AbortController(), editor = openBrowserTextEditor(document.querySelector("#editor"));
+const encoder = new TextEncoder(), read = () => bridge.browserPlotReadOutputJson();
+let running, failure = null;
+const documents = [], edits = [], identities = [];
+globalThis.__editorProof = {
+ async start(source) {
+  const host = encoder.encode("browser/editor-proof"), boot = encoder.encode("boot/editor-proof"), text = encoder.encode(source);
+  new Uint8Array(api.memory.buffer, api.conduit_browser_plot_input_ptr(), text.length).set(text);
+  if (api.conduit_browser_plot_admit_source_interaction(text.length, 1n)<0) throw new Error(`source interaction refused ${JSON.stringify(read())}`);
+  const bytes = new Uint8Array(api.memory.buffer, api.conduit_browser_plot_input_ptr(), host.length+boot.length+text.length);
+  bytes.set(host); bytes.set(boot,host.length); bytes.set(text,host.length+boot.length);
+  if (api.conduit_browser_plot_start(host.length,boot.length,text.length,1n)<0) throw new Error(JSON.stringify(read()));
+  const initialProgress = read();
+  running = drainBrowserEffects({ api,bridge,initialProgress,readOutput:read,signal:controller.signal,
+   async perform(effect,signal) {
+    if (effect.effect_kind !== "text-editor") throw new Error(`unexpected ${effect.effect_kind}`);
+    identities.push({ active_play_id:effect.active_play_id, checked_plot_id:effect.checked_plot_id, plan_id:effect.plan_id, placement_id:effect.placement_id, source_interaction:effect.source_interaction });
+    documents.push(effect.editor);
+    const bytes = await editor.next(effect.editor,signal); edits.push([...bytes]); return bytes;
+   }, onWaiting() { document.querySelector("#status").textContent="listening"; }
+  }).catch(error => { failure=String(error); document.querySelector("#status").textContent=failure; });
+ },
+ evidence() { return {documents,edits,identities,failure,runtimeSha256, committedUtf8Hex:[...encoder.encode(documents.at(-1)?.text ?? "")].map(byte=>byte.toString(16).padStart(2,"0")).join("")}; },
+ async stop() { controller.abort(); editor.close(); await running; api.conduit_browser_plot_cancel(); return read(); },
+};
+document.querySelector("#status").textContent="ready";
+</script></html>

@@ -36,20 +36,21 @@ test("BrowserHost cannot be made outside the admitted Conduit entrance", async (
   assert.throws(() => new BrowserPlay(), /admitted runtime start/);
 });
 
-test("external Body executor accepts saved choice, continuous PCM and Thermostat within its exact finite envelope", async () => {
+test("external Body executor accepts semantic editing within its exact finite envelope", async () => {
   const { checkedBrowserExecutionCapabilities } = await import("./browser-sdk.mjs");
   const installed = Array.from({ length: 116 }, (_, index) => `capability/installed-${index}`);
   installed.push("browser-thermostat-combine-v1", "browser/thermostat-scan@1",
-    "browser/kernel-saved-choice@1", "browser/webaudio-continuous-pcm@1");
+    "browser/kernel-saved-choice@1", "browser/webaudio-continuous-pcm@1",
+    "browser/kernel-text-edit-document@1", "browser/dom-text-editor@1");
   const disclosure = { schema: "conduit.browser/body-capabilities@1", capability_ids: installed };
   const accepted = checkedBrowserExecutionCapabilities(disclosure);
   assert.deepEqual(accepted, installed);
   assert(Object.isFrozen(accepted));
   assert.notEqual(accepted, installed);
   assert.equal(checkedBrowserExecutionCapabilities({ ...disclosure,
-    capability_ids: [...installed, "capability/final-admitted-slot"] }).length, 121);
+    capability_ids: [...installed, "capability/final-admitted-slot"] }).length, 123);
   for (const invalid of [
-    { ...disclosure, capability_ids: [...installed, "capability/121", "capability/122"] },
+    { ...disclosure, capability_ids: [...installed, "capability/123", "capability/124"] },
     { ...disclosure, schema: "wrong" },
     { ...disclosure, capability_ids: {} },
     ...[null, "", "x".repeat(257)].map(identity => ({ ...disclosure,

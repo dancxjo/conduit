@@ -239,7 +239,7 @@ pub(super) fn execute_supplied(
         let keyboard_cost = keyboard_domain::validate_cost(&serial, &keyboard_identity, 5, 1)?;
         // Initial empty Current manifests the caret before input: one extra
         // Face Host Call and its two protected domain entries.
-        let editor_cost = keyboard_domain::validate_cost(&serial, &editor_identity, 23, 6)?;
+        let editor_cost = keyboard_domain::validate_cost(&serial, &editor_identity, 29, 7)?;
         if keyboard_cost["domain_id"] == editor_cost["domain_id"]
             || keyboard_cost["partition_plan_id"] == editor_cost["partition_plan_id"]
         {
@@ -261,6 +261,7 @@ pub(super) fn execute_supplied(
             "input":"real-qmp-keyboard", "screenshots":"journey-frames/manifest.json",
             "protected_keyboard_domain": keyboard_cost,
             "protected_retained_text_domain": editor_cost,
+            "committed_edit_receipt": "memory-lantern-native-edit.json",
             "steps":["arrive","birth","wake","plan","play","protected-keyboard-canvas","protected-memory-lantern","home","patchbay","face","diagram","gear-details","diagram-return","stop"],
             "physical_evidence":false, "human_enactment":false,
         });

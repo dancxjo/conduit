@@ -137,9 +137,9 @@ pub fn generate() {
         .arg(&target_dir)
         .env_remove("RUSTFLAGS")
         .env("CARGO_ENCODED_RUSTFLAGS", flags.join("\u{1f}"));
-    if matches!(architecture.as_str(), "x86_64" | "loongarch64") {
+    if matches!(architecture.as_str(), "x86_64" | "aarch64" | "loongarch64") {
         // Whole-image optimization keeps code/constants inside the fixed 128 KiB
-        // window; other architectures retain the standalone profile's thin LTO.
+        // window; remaining architectures keep the standalone profile's thin LTO.
         compiler.env("CARGO_PROFILE_RELEASE_LTO", "fat");
     }
     if matches!(

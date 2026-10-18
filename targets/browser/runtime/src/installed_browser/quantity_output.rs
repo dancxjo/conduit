@@ -207,7 +207,7 @@ mod tests {
         let offered = direct_face_offer();
         conduit_core::planned_gear_from_parts! {
             realization_properties: offered.realization_properties,
-            semantic_contract: Default::default(),
+            semantic_contract: offered.semantic_contract,
             placement_id: "quantity-label-placement".into(),
             gear_id: "room-temperature".into(),
             kind_id: offered.kind_id,

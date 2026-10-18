@@ -64,6 +64,8 @@ pub(super) struct TourTimerEffect {
 
 #[derive(Debug, Serialize)]
 pub(super) struct TourKeyEventEffect {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(super) editor: Option<crate::installed_browser::text_editor::EditorDocument>,
     pub(super) schema: &'static str,
     pub(super) effect_kind: &'static str,
     pub(super) source_document_id: String,

@@ -18,7 +18,16 @@ pub const TEXT_EDIT_REVISION: &str = "conduit.text/edit@1";
 pub const TEXT_SUBMIT_LINES_REVISION: &str = "conduit.text/submit-lines@1";
 #[path = "text_state/retained.rs"]
 mod retained;
-pub use retained::{TextStateMode, TextStateRefusal, MAXIMUM_EDITED_TEXT_BYTES};
+pub use retained::{
+    TextEdit, TextEditRefusal, TextStateMode, TextStateRefusal, MAXIMUM_EDITED_TEXT_BYTES,
+};
+
+#[path = "text_state/edit_codec.rs"]
+mod edit_codec;
+pub use edit_codec::*;
+#[path = "text_state/semantic_editor.rs"]
+mod semantic_editor;
+pub use semantic_editor::*;
 
 /// Pre-admitted retained text storage shared by every compatible Host.
 pub struct BoundedTextState {
@@ -33,6 +42,20 @@ impl BoundedTextState {
             state,
             text: vec![0; maximum_bytes],
         })
+    }
+
+    pub fn current(&self) -> &[u8] {
+        self.state
+            .current(&self.text)
+            .expect("admitted editor storage remains valid")
+    }
+
+    pub fn revision(&self) -> u64 {
+        self.state.revision()
+    }
+
+    pub fn replace(&mut self, edit: TextEdit<'_>) -> Result<&[u8], TextEditRefusal> {
+        self.state.replace(&mut self.text, edit)
     }
 
     pub fn apply(&mut self, fragment: &[u8]) -> Result<Option<&[u8]>, TextStateRefusal> {
@@ -134,6 +157,7 @@ pub fn install_text_state_catalogs(
     profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
     use conduit_plot::{KindSignature, StartupParameterSignature};
+    semantic_editor::install(startup, profile)?;
     for contract in [
         text_edit_semantic_contract(),
         text_submit_lines_semantic_contract(),
@@ -196,3 +220,7 @@ mod state_tests {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "text_state/revisioned_tests.rs"]
+mod revisioned_tests;

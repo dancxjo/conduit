@@ -55,6 +55,15 @@ impl<'a> TextLayout<'a> {
         self.line += 1;
     }
 
+    /// End insertion position after the same wrapping used for glyph paint.
+    pub fn finish_caret(mut self) -> (u32, u32, u32) {
+        for _ in self.by_ref() {}
+        let height = self
+            .scale
+            .unsigned(u32::from(metrics(self.role).line_height));
+        (self.x / 64, self.line * height, height)
+    }
+
     /// Height after consuming the whole iterator, including a trailing newline.
     pub fn finish_height(mut self) -> u32 {
         for _ in self.by_ref() {}

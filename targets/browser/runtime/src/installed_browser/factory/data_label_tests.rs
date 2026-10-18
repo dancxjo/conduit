@@ -4,7 +4,7 @@ use conduit_core::{ConfigurationEntry, ConfigurationValue, PlannedGear};
 fn placement(offer: CapabilityOffer) -> PlannedGear {
     conduit_core::planned_gear_from_parts! {
         realization_properties: offer.realization_properties,
-        semantic_contract: Default::default(),
+        semantic_contract: offer.semantic_contract,
         placement_id: "label-placement".into(),
         gear_id: "labelled-data".into(),
         kind_id: offer.kind_id,

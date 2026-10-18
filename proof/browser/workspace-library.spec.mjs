@@ -1,3 +1,4 @@
+import { enterMemoryText } from "./workspace-editor.mjs";
 import { BROWSER_COLD_PREPARATION_MS, waitForWorkspacePreparation } from "./browser-preparation.mjs";
 import { expect, test } from "@playwright/test";
 import { writeFile } from "node:fs/promises";
@@ -100,9 +101,7 @@ test("Use installs into the same body; repeated Use preserves Play and removal s
   await page.getByRole("button", { name: "back to the surface", exact: true }).click();
   await expect(page.locator("#surface-title")).toHaveText("Memory Lantern");
   await expect(page.locator("[data-play-state]")).toHaveText("Playing");
-  await page.locator("#plot-input").focus();
-  await page.keyboard.press("r");
-  await expect(page.locator("[data-plot-output] output[data-face-kind='face/text']:visible [data-text-value]")).toHaveText("r");
+  await enterMemoryText(page, "r");
   await page.evaluate(() => globalThis.__conduitWorkspace.settled());
   await page.reload();
   await waitForWorkspacePreparation(page);
@@ -268,8 +267,7 @@ test("removing the final Plot retains an empty Body that can acquire Plots again
   await card(page, "Memory Lantern").getByRole("button", { name: "Use", exact: true }).click();
   await expect(page.locator("[data-play-state]")).toHaveText("Playing");
   await expect(page.getByRole("button", { name: "lull body", exact: true })).toBeVisible();
-  await page.keyboard.press("a");
-  await expect(page.locator("[data-plot-output] output[data-face-kind='face/text']:visible [data-text-value]")).toHaveText("a");
+  await enterMemoryText(page, "a");
   expect((await current(page)).body_id).toBe(initial.body_id);
 });
 

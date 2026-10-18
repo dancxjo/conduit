@@ -47,7 +47,26 @@ No trailing full stop. The plot remains alive between ticks.
 
 Current tree: [plots/memory-lantern/main.conduit](https://github.com/dancxjo/conduit/blob/dev/plots/memory-lantern/main.conduit)
 
-The saved layout selector currently runs in the browser; native Hosts use the [keyboard-only companion](https://github.com/dancxjo/conduit/blob/dev/plots/memory-lantern/keyboard-only.conduit) with the same authored default layout.
+The default browser encounter uses native text editing through a checked document/edit loop:
+
+```conduit
+plot memory_lantern {
+    message: text/edit-document(maximum-bytes = 256)
+    surface: face/editor("Message")
+
+    message.current >> surface.document
+    surface.edit >> message.edit
+}
+```
+
+The Host realizes the surface; the shared editor owns the committed document.
+Replacements name an exact revision and Unicode scalar range. The browser uses
+its own textarea selection and composition facilities, then reconciles each
+committed proposal with authoritative state.
+
+The explicit physical-key route remains useful when the plot-maker wants to
+control the keymap. Native ConduitOS uses the
+[keyboard-only companion](https://github.com/dancxjo/conduit/blob/dev/plots/memory-lantern/keyboard-only.conduit):
 
 ```conduit
 plot memory_lantern {
