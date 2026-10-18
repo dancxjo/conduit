@@ -68,6 +68,14 @@ selection flags to preserve it. This supplies a real owner Host model offer;
 an owner-selected LLM spoken Mask and its Show require a separately admitted
 route and are not implied by the installation alone.
 
+By default, this selection offers only the bounded semantic presenter. Add
+`--model-generation` with a complete explicit model selection to also offer
+bounded `llm/generate` and its streaming Flow. The initialized offer and its
+profiles are retained and rechecked on every fresh Boot; reinstalling without
+selection flags preserves that exact choice. Removing the choice or adding
+generation requires an explicit selection change. A generation offer alone
+does not create a shared pool, admit a request, or connect another Host.
+
 For a fresh installation, `--no-start` leaves the Host available for foreground
 ownership. Omitting it preserves the normal service activation behavior. It does
 not stop an already running service; use a fresh installation for this sequence.
