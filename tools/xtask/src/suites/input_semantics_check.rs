@@ -3,6 +3,74 @@ use crate::{process::Step, proof::ProofClass};
 /// Deterministic K5/K5b contracts plus K8's two truthful platform seams.
 pub const INPUT_SEMANTICS_STEPS: &[Step] = &[
     Step::new(
+        "check.input-semantics.native-edit-receipt",
+        "check source-session and Unicode-byte correlation in native edit receipts",
+        "node",
+        &["--test", "tools/ci/conduitos-text-edit-receipt.test.mjs"],
+    ),
+    Step::new(
+        "check.input-semantics.initialized-state",
+        "check exact initialized state bounds and fingerprint identity",
+        "cargo",
+        &["test", "-p", "conduit-core", "initialized_state", "--lib"],
+    ),
+    Step::new(
+        "check.input-semantics.editor-startup",
+        "check declared startup cuts and reject unseeded feedback cycles",
+        "cargo",
+        &["test", "-p", "conduit-planner", "startup::tests", "--lib"],
+    ),
+    Step::new(
+        "check.input-semantics.dom-editor-adapter",
+        "check bounded DOM proposals, provisional composition and cancellation",
+        "node",
+        &["--test", "proof/browser/browser-text-editor.test.mjs"],
+    ),
+    Step::new(
+        "check.input-semantics.text-edits",
+        "check revisioned Unicode replacement, bounded forms and editor Fore",
+        "cargo",
+        &[
+            "test",
+            "-p",
+            "conduit-semantic-catalog",
+            "text_state",
+            "--lib",
+        ],
+    ),
+    Step::new(
+        "check.input-semantics.browser-editor",
+        "check DOM document edits through the ordinary browser scheduler",
+        "cargo",
+        &[
+            "test",
+            "-p",
+            "conduit-browser-runtime",
+            "editor_tests",
+            "--lib",
+        ],
+    ),
+    Step::new(
+        "check.input-semantics.std-editor",
+        "check revisioned document edits in the std Host",
+        "cargo",
+        &["test", "-p", "conduit-std-host", "text_state", "--lib"],
+    ),
+    Step::new(
+        "check.input-semantics.native-editor",
+        "check focused native text realization and bounded caret layout",
+        "cargo",
+        &[
+            "test",
+            "-p",
+            "conduitos",
+            "--features",
+            "native-compositor",
+            "text_editor",
+            "--lib",
+        ],
+    ),
+    Step::new(
         "check.input-semantics.browser-keymaps",
         "test configured layouts and live saved selection through the browser kernel",
         "cargo",

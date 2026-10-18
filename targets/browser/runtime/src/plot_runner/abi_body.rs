@@ -98,7 +98,7 @@ mod tests {
     fn complete_keymap_body_start_fits_control_input_and_retains_ordinary_completion_bound() {
         let request = super::super::super::body_start::tests::request_from_sources(&[
             include_str!("../../../../../plots/desk-telegraph/main.conduit"),
-            include_str!("../../../../../plots/memory-lantern/main.conduit"),
+            include_str!("../../../../../plots/memory-lantern/keyboard-laboratory.conduit"),
         ]);
         let bytes = serde_json::to_vec(&request).unwrap();
         eprintln!(

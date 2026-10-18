@@ -150,6 +150,7 @@ fn actual_memory_bound_stops_play_and_keeps_the_body_refusal_inspectable() {
     assert!(refusal.is_some());
     let after = journey.projection();
     assert_eq!(after.status, JourneyStatus::Stopped);
+    assert!(!journey.foreground_text_editor_active());
     assert_eq!(after.body_id, before.body_id);
     assert!(after.active_play_id.is_none());
     let terminal = journey.biography().unwrap().wakes.last().unwrap();
@@ -164,4 +165,95 @@ fn actual_memory_bound_stops_play_and_keeps_the_body_refusal_inspectable() {
             && property.value == FacePropertyValue::Text(refusal.clone().unwrap())
     }));
     assert!(!journey.owns_key_release(key(4, KeyTransition::Released)));
+}
+
+#[test]
+fn physical_memory_lantern_commits_unicode_to_the_immutable_native_face_scene() {
+    let (mut journey, mut door) = listening();
+    journey
+        .select_plot(
+            &native_workset::resident(native_workset::NativePlot::MemoryLantern).unwrap(),
+            journey.revision(),
+        )
+        .unwrap();
+    assert!(journey.foreground_text_editor_active());
+    // US International's authored default commits Right Alt + E as é.
+    for usage in [6, 4, 9] {
+        for transition in [KeyTransition::Pressed, KeyTransition::Released] {
+            update(key(usage, transition), &mut journey, &mut door, |_| {
+                panic!("admitted edit refused")
+            })
+            .unwrap();
+        }
+    }
+    for (usage, transition, modifiers) in [
+        (
+            230,
+            KeyTransition::Pressed,
+            conduit_human::KeyModifiers::RIGHT_ALT,
+        ),
+        (
+            8,
+            KeyTransition::Pressed,
+            conduit_human::KeyModifiers::RIGHT_ALT,
+        ),
+        (
+            8,
+            KeyTransition::Released,
+            conduit_human::KeyModifiers::RIGHT_ALT,
+        ),
+        (
+            230,
+            KeyTransition::Released,
+            conduit_human::KeyModifiers::NONE,
+        ),
+    ] {
+        update(
+            conduit_human::KeyEvent::new(usage, transition, modifiers).unwrap(),
+            &mut journey,
+            &mut door,
+            |_| panic!("admitted Unicode edit refused"),
+        )
+        .unwrap();
+    }
+    assert_eq!(journey.projection().result.as_deref(), Some("café"));
+    let face = door.face().unwrap();
+    let mut scene =
+        crate::native_face_scene::NativeFaceScene::prepare(face.clone(), 640, 480).unwrap();
+    let frame = scene.frame().unwrap();
+    assert!(
+        frame
+            .scene
+            .commands()
+            .iter()
+            .any(|command| command.payload() == "café")
+    );
+    assert!(frame.scene.commands().iter().any(|command| command.kind
+        == conduit_face::GraphicsCommandKind::Rect
+        && command.paint == conduit_face::GraphicsPaintRole::Focus
+        && command.bounds.width == 2));
+    scene.show_details(true);
+    assert_eq!(scene.face(), &face);
+    journey.select_next_plot(journey.revision()).unwrap();
+    assert!(!journey.foreground_text_editor_active());
+    journey
+        .select_plot(
+            &native_workset::resident(native_workset::NativePlot::MemoryLantern).unwrap(),
+            journey.revision(),
+        )
+        .unwrap();
+    assert!(journey.foreground_text_editor_active());
+    journey
+        .input_lost(crate::product_journey::JourneyLossKind::InputDevice)
+        .unwrap();
+    assert!(!journey.foreground_text_editor_active());
+    door.observe_product(&journey).unwrap();
+    assert!(
+        !door
+            .face()
+            .unwrap()
+            .properties
+            .iter()
+            .any(|property| property.name == "text-editing-active")
+    );
 }

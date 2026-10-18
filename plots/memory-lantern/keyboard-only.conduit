@@ -1,4 +1,4 @@
-# A keyboard-only composition using the authored default layout.
+# Physical keyboard on-ramp into the shared authoritative bounded editor.
 plot memory_lantern {
     keyboard: input/keyboard
     keymap: input/keymap

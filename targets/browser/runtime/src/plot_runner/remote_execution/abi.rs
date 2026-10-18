@@ -454,6 +454,13 @@ pub extern "C" fn conduit_browser_remote_drive() -> i32 {
                     BrowserHostEffect::ButtonTransition => {
                         object.insert("effect_kind".into(), "button-transition".into());
                     }
+                    BrowserHostEffect::TextEditor(document) => {
+                        object.insert("effect_kind".into(), "text-editor".into());
+                        object.insert(
+                            "editor".into(),
+                            serde_json::to_value(document).map_err(|e| e.to_string())?,
+                        );
+                    }
                     BrowserHostEffect::ApplicationEvent => {
                         object.insert("effect_kind".into(), "application-event".into());
                     }

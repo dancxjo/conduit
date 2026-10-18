@@ -47,6 +47,9 @@ pub(super) fn exercise_editor(
             ("backspace", "a"),
             ("backspace", ""),
             ("c", "c"),
+            ("a", "ca"),
+            ("f", "caf"),
+            ("altgr-e", "café"),
         ],
     )
 }
@@ -119,7 +122,24 @@ fn exercise_plot(
         let revision = latest(serial)?["revision"]
             .as_u64()
             .ok_or_else(|| refusal("missing revision"))?;
-        journey_input::key_pair(stream, reader, key, "journey-protected-text-input")?;
+        if *key == "altgr-e" {
+            super::super::hid_qmp::send_named_keys(
+                stream,
+                reader,
+                &["alt_r", "e"],
+                true,
+                "journey-unicode-input",
+            )?;
+            super::super::hid_qmp::send_named_keys(
+                stream,
+                reader,
+                &["e", "alt_r"],
+                false,
+                "journey-unicode-input",
+            )?;
+        } else {
+            journey_input::key_pair(stream, reader, key, "journey-protected-text-input")?;
+        }
         journey_input::wait_for_record(
             serial,
             child,
@@ -139,7 +159,25 @@ fn exercise_plot(
             },
         )?;
     }
-    Ok(selected)
+    let committed = latest(serial)?;
+    if plot == conduitos::native_workset::NativePlot::MemoryLantern {
+        if committed["result"].as_str().map(str::as_bytes) != Some("café".as_bytes()) {
+            return Err(refusal("native committed Unicode bytes differ"));
+        }
+        let receipt = serde_json::json!({
+            "schema": "conduit.text/native-committed-edit@1",
+            "proof_class": "freestanding-emulator",
+            "input": "qmp-physical-us-international-altgr-e",
+            "committed_text": "café", "utf8_bytes": [99,97,102,195,169],
+            "record": committed, "physical_evidence": false, "human_enactment": false,
+        });
+        fs::write(
+            serial.with_file_name("memory-lantern-native-edit.json"),
+            serde_json::to_vec_pretty(&receipt).map_err(|error| refusal(error.to_string()))?,
+        )
+        .map_err(|error| refusal(error.to_string()))?;
+    }
+    Ok(committed)
 }
 
 pub(super) fn validate_cost(

@@ -952,9 +952,7 @@ impl<'a> BodyKernel<'a> {
                                 let output = encoded
                                     .map(|encoded| self.scheduler.store_host_value(encoded))
                                     .transpose()
-                                    .map_err(|error| {
-                                        format!("Body text state output: {error:?}")
-                                    })?
+                                    .map_err(|error| format!("Body text state output: {error:?}"))?
                                     .map(|value| {
                                         BoundedValueRef::new(
                                             value,
@@ -967,17 +965,7 @@ impl<'a> BodyKernel<'a> {
                                     })?;
                                 (HostCallDisposition::Completed, output, None)
                             }
-                            Err(refusal) => (
-                                HostCallDisposition::Failed,
-                                None,
-                                Some(conduit_kernel::Failure {
-                                    code: match refusal {
-                                        conduit_semantic_catalog::TextStateRefusal::CapacityExhausted => conduit_kernel::FailureCode::StateCapacityExhausted,
-                                        conduit_semantic_catalog::TextStateRefusal::InvalidCapacity | conduit_semantic_catalog::TextStateRefusal::InvalidUtf8 => conduit_kernel::FailureCode::InvalidInput,
-                                    },
-                                    detail: 1,
-                                }),
-                            ),
+                            Err(refusal) => (HostCallDisposition::Failed, None, Some(refusal)),
                         };
                         self.scheduler
                             .complete_host_call(

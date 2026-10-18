@@ -64,7 +64,7 @@ fn default_authored_layout_dead_keys_reach_retained_browser_text() {
     let (mut session, _) = TourSession::prepare(
         "browser/dead-key-proof",
         "boot/dead-key-proof",
-        include_str!("../../../../../plots/memory-lantern/main.conduit"),
+        include_str!("../../../../../plots/memory-lantern/keyboard-laboratory.conduit"),
         71,
     )
     .unwrap();
@@ -144,7 +144,7 @@ fn saved_language_identity_switches_actual_layout_without_restarting_the_message
     let (mut session, _) = TourSession::prepare(
         "browser/layout-switch-proof",
         "boot/layout-switch-proof",
-        include_str!("../../../../../plots/memory-lantern/main.conduit"),
+        include_str!("../../../../../plots/memory-lantern/keyboard-laboratory.conduit"),
         73,
     )
     .unwrap();

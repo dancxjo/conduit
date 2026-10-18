@@ -1,3 +1,4 @@
+import { openBrowserTextEditor } from "./browser-text-editor.mjs";
 import { acquireBrowserAudioCue, AUDIO_CUE_RESOURCE, AUDIO_CUE_POOL } from "./browser-audio-cue.mjs";
 import { acquireBrowserPcmAudio, PCM_CAPTURE_RESOURCE, PCM_CAPTURE_POOL, PCM_PLAY_RESOURCE, PCM_PLAY_POOL } from "./browser-pcm-audio.mjs";
 import { createBodyInputRouting } from "./browser-body-input.mjs";
@@ -239,6 +240,7 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
   let startOutcome = "not-attempted";
   // One bounded progress receipt from a synchronously admitted local Fore
   // action joins this same dispatcher. Rust owns admission and execution.
+  const textEditors = new Map();
   let inputProgress = null, inputWake = null;
   const admittedInput = {
     take() { const value = inputProgress; inputProgress = null; return value; },
@@ -366,6 +368,14 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
       const bytes = new Uint8Array(8);
       new DataView(bytes.buffer).setBigUint64(0, BigInt(monotonicTimer.nowMicros()), true);
       return bytes;
+    }
+    if (effect.effect_kind === "text-editor") {
+      const container = slots.get(effect.placement_id);
+      if (!container || !effect.editor) throw new Error("editor Face not admitted");
+      let editor = textEditors.get(effect.placement_id);
+      if (!editor) { editor = openBrowserTextEditor(container); textEditors.set(effect.placement_id, editor); }
+      try { return await editor.next(effect.editor, signal); }
+      catch (error) { if (signal.aborted) throw error; throw new BrowserHostEffectRefusal("failed", 222, `text editor refused: ${error.message}`); }
     }
     if (effect.effect_kind === "saved-choice") {
       if (!demand.has(SAVED_CHOICE) || !effect.choice) throw new Error("saved choice was not admitted");
@@ -550,6 +560,7 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
       if (closed) return closeResult;
       closed = true;
       dispatchController.abort();
+      for (const editor of textEditors.values()) editor.close();
       for (const choice of savedChoices.values()) choice.close();
       monotonicTimer?.close();
       audio?.close();

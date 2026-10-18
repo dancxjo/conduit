@@ -402,3 +402,6 @@ mod glyph_literal_tests;
 
 #[cfg(test)]
 mod keymap_tests;
+
+#[cfg(test)]
+mod editor_tests;

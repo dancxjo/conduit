@@ -116,6 +116,7 @@ impl TourSession {
             }
             engine::BrowserHostEffect::PointerEvent => {
                 Ok(TourHostEffect::PointerEvent(Box::new(TourKeyEventEffect {
+                    editor: None,
                     schema: "conduit.browser/pointer-event-effect@1",
                     effect_kind: "pointer-event",
                     source_document_id: fragment.source_document_id.as_str().into(),
@@ -136,6 +137,7 @@ impl TourSession {
             }
             engine::BrowserHostEffect::ClockObservation => Ok(TourHostEffect::ClockObservation(
                 Box::new(TourKeyEventEffect {
+                    editor: None,
                     schema: "conduit.browser/clock-observation-effect@1",
                     effect_kind: "clock-observation",
                     source_document_id: fragment.source_document_id.as_str().into(),
@@ -155,6 +157,7 @@ impl TourSession {
             )),
             engine::BrowserHostEffect::KeyEvent => {
                 Ok(TourHostEffect::KeyEvent(Box::new(TourKeyEventEffect {
+                    editor: None,
                     schema: "conduit.tour/key-event-effect@1",
                     effect_kind: "key-event",
                     source_document_id: fragment.source_document_id.as_str().into(),
@@ -190,8 +193,34 @@ impl TourSession {
                     source_interaction: self.source_interaction.clone(),
                 }),
             )),
+            engine::BrowserHostEffect::TextEditor(document) => Ok(
+                TourHostEffect::ApplicationEvent(Box::new(TourKeyEventEffect {
+                    editor: Some(crate::installed_browser::text_editor::EditorDocument {
+                        revision: document.revision.clone(),
+                        text: document.text.clone(),
+                        label: document.label.clone(),
+                    }),
+                    schema: "conduit.browser/text-editor-effect@1",
+                    effect_kind: "text-editor",
+                    source_document_id: fragment.source_document_id.as_str().into(),
+                    checked_plot_id: fragment.checked_plot_id.as_str().into(),
+                    expanded_plot_id: fragment.expanded_plot_id.as_str().into(),
+                    plan_id: fragment.plan_id.as_str().into(),
+                    fragment_id: fragment.fragment_id.as_str().into(),
+                    active_play_id: self.active_play_id.as_str().into(),
+                    placement_id: placement.placement_id.as_str().into(),
+                    host_id: self.host_id.as_str().into(),
+                    boot_id: self.boot_id.as_str().into(),
+                    request_sequence: pending.request.request.0,
+                    maximum_output_bytes: conduit_semantic_catalog::MAXIMUM_TEXT_EDIT_BYTES,
+                    source_interaction: self.source_interaction.clone(),
+                    choice: self.scheduler.saved_choices[usize::from(pending.request.node.0)]
+                        .clone(),
+                })),
+            ),
             engine::BrowserHostEffect::ApplicationEvent => Ok(TourHostEffect::ApplicationEvent(
                 Box::new(TourKeyEventEffect {
+                    editor: None,
                     schema: "conduit.browser/application-event-effect@1",
                     effect_kind: if self.scheduler.saved_choices
                         [usize::from(pending.request.node.0)]
@@ -226,6 +255,7 @@ impl TourSession {
             )),
             engine::BrowserHostEffect::TutorialPresenterRequest => Ok(
                 TourHostEffect::TutorialPresenterRequest(Box::new(TourKeyEventEffect {
+                    editor: None,
                     schema: "conduit.plot/tutorial-presenter-request-effect@1",
                     effect_kind: "tutorial-presenter-request",
                     source_document_id: fragment.source_document_id.as_str().into(),

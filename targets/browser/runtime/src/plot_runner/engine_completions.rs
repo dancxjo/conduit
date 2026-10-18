@@ -64,6 +64,11 @@ pub(in crate::plot_runner) fn complete_host_effect_with_output(
             conduit_audio::MAXIMUM_PCM_FRAME_BYTES
                 + conduit_audio::PCM_FRAME_HEADER_ENCODED_LEN as u32
         }
+        BrowserHostEffect::TextEditor(_) => {
+            // The authoritative editor validates encoding, revision, range and capacity
+            // and publishes a distinct terminal failure through its ordinary Back.
+            conduit_semantic_catalog::MAXIMUM_TEXT_EDIT_BYTES
+        }
         BrowserHostEffect::ApplicationEvent => {
             if let Some(choice) =
                 scheduler.saved_choices[usize::from(pending.request.node.0)].as_ref()
