@@ -89,7 +89,7 @@ where
                 self.values.release(superseded)?;
             }
             self.cords[cord_index].next_remote_sequence = next_sequence;
-            self.ready.set(usize::from(sink_node.0), true);
+            self.set_ready(usize::from(sink_node.0), true);
             self.signs.record_remote(
                 sink_node,
                 sink_port,

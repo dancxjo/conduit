@@ -101,9 +101,7 @@ where
             if let Some(node) = self.emit_quiescence_transitions()? {
                 return Ok(SchedulerStatus::Progress { node });
             }
-            return if self.completed[..self.active_nodes]
-                .iter()
-                .all(|value| *value)
+            return if self.all_nodes_completed()
                 && self.cords[..self.active_cords]
                     .iter()
                     .all(|cord| cord.len == 0)
@@ -149,9 +147,7 @@ where
             node = next;
             self.cursor = (node + 1) % self.active_nodes;
         }
-        if self.completed[..self.active_nodes]
-            .iter()
-            .all(|value| *value)
+        if self.all_nodes_completed()
             && self.cords[..self.active_cords]
                 .iter()
                 .all(|cord| cord.len == 0)
@@ -162,6 +158,46 @@ where
                 node: NodeId(as_u16(node)?),
             })
         }
+    }
+
+    fn all_nodes_completed(&self) -> bool {
+        if let Some(count) = self.ready.completion_count() {
+            count == self.active_nodes
+        } else {
+            // A native word fits once capacity is at least twice its width.
+            // Below that threshold the original early-exit scan is bounded by
+            // fifteen nodes on supported targets, preserving tiny-Host work.
+            self.completed[..self.active_nodes].iter().all(|done| {
+                #[cfg(test)]
+                {
+                    let mut counts = self.scan_counts.get();
+                    counts.terminal_node_probes += 1;
+                    self.scan_counts.set(counts);
+                }
+                *done
+            })
+        }
+    }
+
+    /// Both terminal outcomes monotonically retire the same active membership.
+    /// Keep the flag and its acceleration count together, including duplicate
+    /// internal notifications. Cancellation remains a separate terminal state.
+    pub(super) fn mark_completed(&mut self, node: usize) {
+        debug_assert!(node < self.active_nodes);
+        if !self.completed[node] {
+            self.completed[node] = true;
+            self.ready.note_completion();
+        }
+    }
+
+    #[cfg(test)]
+    pub(super) fn completed_count(&self) -> usize {
+        self.ready.completion_count().unwrap_or_else(|| {
+            self.completed[..self.active_nodes]
+                .iter()
+                .filter(|done| **done)
+                .count()
+        })
     }
 
     fn step_logical(&mut self, node: usize) -> Result<bool, SchedulerError> {
