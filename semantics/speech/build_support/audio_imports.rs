@@ -1,5 +1,6 @@
 //! Exact owner Native roots used by Speech composition.
 pub const PATHS: &[(&str, &str)] = &[
+    ("AudioCycleDuration", "conduit_audio::AudioCycleDuration"),
     (
         "AudioTrajectoryAnchor",
         "conduit_audio::AudioTrajectoryAnchor",
