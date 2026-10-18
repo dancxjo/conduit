@@ -8,6 +8,8 @@ mod expressions;
 pub(crate) mod ieee_encoding;
 pub(crate) mod ieee_native;
 pub(crate) mod ieee_step;
+pub(crate) mod near_encoding;
+pub(crate) mod near_step;
 impl StdHost {
     /// Initialize the finite numerical strategies supported by this std Host.
     /// This changes its advertised generation; plans must use the resulting
@@ -36,17 +38,22 @@ impl StdHost {
             })
             .take(33)
             .collect::<Vec<_>>();
+        let near_gears = plot
+            .gears
+            .iter()
+            .filter(|gear| gear.kind_id.as_str() == conduit_semantic_catalog::NUMERICAL_NEAR_KIND)
+            .take(33)
+            .collect::<Vec<_>>();
         if gears.is_empty()
             && ieee_gears.is_empty()
-            && !self
-                .advertisement
-                .capabilities
-                .iter()
-                .any(installed_std::owns_ieee_offer)
+            && near_gears.is_empty()
+            && !self.advertisement.capabilities.iter().any(|offer| {
+                installed_std::owns_ieee_offer(offer) || installed_std::owns_near_offer(offer)
+            })
         {
             return Ok(());
         }
-        if gears.len() + ieee_gears.len() > 32 {
+        if gears.len() + ieee_gears.len() + near_gears.len() > 32 {
             return Err("std numerical source preparation exceeds 32 instances".into());
         }
         plot.validate_expansion()
@@ -57,7 +64,9 @@ impl StdHost {
         let mut advertisement = self.advertisement.clone();
         // Replace this Host's previous source batch while preserving other offers.
         advertisement.capabilities.retain(|offer| {
-            !installed_std::owns_numerical_offer(offer) && !installed_std::owns_ieee_offer(offer)
+            !installed_std::owns_numerical_offer(offer)
+                && !installed_std::owns_ieee_offer(offer)
+                && !installed_std::owns_near_offer(offer)
         });
         advertisement
             .capabilities
@@ -90,6 +99,11 @@ impl StdHost {
                 return Err("ieee/source-kind-fore-differs@1".into());
             }
             advertisement.capabilities.push(offer);
+        }
+        for gear in near_gears {
+            advertisement
+                .capabilities
+                .extend(installed_std::near_offers(&gear.configuration)?);
         }
         normalize_capability_offers(&mut advertisement.capabilities)?;
         if advertisement.capabilities == self.advertisement.capabilities {

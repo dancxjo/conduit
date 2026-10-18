@@ -62,3 +62,30 @@ type IeeeBinary64ComparisonResult = {
     value: Boolean
     flags: IeeeBinary64Flags
 }
+
+# Qualified numerical output retains its exact physical source separately from
+# the selected numerical representation. It is not an exact Quantity alias.
+type NearQuantityRole =
+    linear
+    | point
+    | delta
+type NearQuantityErrorClaim =
+    exact_distance
+    | certified_bound
+type NearQuantityRepresentation =
+    exact_rational MathematicalValue
+    | binary32 {
+        target: F32 finite
+        rounding: NumericalRounding
+    }
+type NearQuantity = {
+    source: MathematicalValue
+    source-wire: Bytes <= 1800B
+    requested-limit: Quantity
+    unit: Unit
+    role: NearQuantityRole
+    maximum-error: MathematicalValue
+    limit: MathematicalValue
+    claim: NearQuantityErrorClaim
+    representation: NearQuantityRepresentation
+}

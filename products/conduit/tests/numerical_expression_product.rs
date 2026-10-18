@@ -467,3 +467,23 @@ fn quiet_ieee_predicates_execute_through_the_product_with_separate_invalid_flags
     }
     assert_eq!(count, 8);
 }
+
+#[test]
+fn actual_rational_quantity_reaches_the_explicit_near_boundary_in_one_play() {
+    let plan = run(
+        include_str!("fixtures/numerical_quantity_near.conduit"),
+        "Near quantity",
+        "certified",
+    );
+    let near: Vec<_> = plan
+        .fragments
+        .iter()
+        .flat_map(|f| &f.placements)
+        .filter(|g| g.kind_id.as_str() == "math/near")
+        .collect();
+    assert_eq!(near.len(), 1);
+    assert_eq!(
+        near[0].execution_profile_id.as_str(),
+        "std/quantity-near-binary32-single-round@1"
+    );
+}
