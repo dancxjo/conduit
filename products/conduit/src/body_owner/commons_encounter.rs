@@ -1,6 +1,7 @@
 //! Finite Commons preparation against the installed owner, not a second Body.
 //! This assembly is deliberately not initial Workspace discovery. Its supported
-//! proof entrance is the owner fixture; linear traversal belongs to #5611.
+//! proof entrance is the owner fixture, including the C3 linear/cross-Mask
+//! journey. Installed Commons discovery and native walking remain separate.
 use super::{debug, Owner};
 use conduit_body::BodyState;
 use conduit_core::{kind_id, HostAdvertisement, StructuredInfoValueShape};

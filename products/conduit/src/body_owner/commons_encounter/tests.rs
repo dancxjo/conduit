@@ -478,3 +478,6 @@ fn commons_requires_current_producer_and_native_observation_bounds() {
 
 #[path = "observation_tests.rs"]
 mod current_observation;
+
+#[path = "linear_journey.rs"]
+mod linear_journey;
