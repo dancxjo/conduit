@@ -6,12 +6,13 @@ const fail = action => {
   throw error;
 };
 const composedParent = node => node.assignedSlot ?? node.parentElement ?? node.getRootNode().host;
-function visiblePath(node) {
+function visiblePath(node, transparentNativeInput = false) {
   let closedDisclosure = false;
   for (let ancestor = node; ancestor; ancestor = composedParent(ancestor)) {
     const style = getComputedStyle(ancestor);
     if (ancestor.hidden || ancestor.inert || ancestor.getAttribute('aria-hidden') === 'true'
-      || style.display === 'none' || style.visibility !== 'visible' || Number(style.opacity) === 0
+      || style.display === 'none' || style.visibility !== 'visible'
+      || (Number(style.opacity) === 0 && !(transparentNativeInput && ancestor === node))
       || style.clipPath !== 'none' || style.clip !== 'auto') return false;
     if (ancestor instanceof HTMLDetailsElement && !ancestor.open && ancestor !== node
       && !ancestor.querySelector(':scope > summary')?.contains(node)) {
@@ -40,6 +41,9 @@ export function assertOwnerFaceReachability(element, view) {
   const certifiedControl = control => !control.hasAttribute('aria-label')
     && !control.hasAttribute('aria-labelledby') && control.getAttribute('aria-disabled') !== 'true'
     && (view.show_state === 'prepared' || !control.matches(':disabled'));
+  const visibleControl = control => control.matches('input[type=radio]')
+    ? visiblePath(control, true) && [...control.labels].some(label => visiblePath(label))
+    : visiblePath(control);
   for (const action of view.actions.filter(action => action.availability === 'available')) {
     const regions = [...element.shadowRoot.querySelectorAll('[data-owner-action]')]
       .filter(region => region.dataset.ownerAction === action.identity);
@@ -51,9 +55,9 @@ export function assertOwnerFaceReachability(element, view) {
         : [...activator.labels].some(label => label.textContent.trim());
       const role = activator.getAttribute('role');
       if (role && role !== (activator.matches('button') ? 'button' : 'radio')) return false;
-      if (!named || !visiblePath(activator)) return false;
+      if (!named || !visibleControl(activator)) return false;
       return controls.every(control => certifiedControl(control) && control.dataset.unavailable !== 'true'
-        && control.tabIndex >= 0 && visiblePath(control)
+        && control.tabIndex >= 0 && visibleControl(control)
         && (control.matches('button') || [...control.labels].some(label => label.textContent.trim())));
     });
     if (!reachable) fail(action);

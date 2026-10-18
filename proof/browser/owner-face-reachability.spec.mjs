@@ -40,3 +40,33 @@ for (const attack of ['none','hidden','transparent','inert','clipped','pseudo','
     expect(result).toEqual(attack==='none'?{admitted:true}:{admitted:false,code:'RendererActionInaccessible'});
   });
 }
+
+for (const attack of ['none','hidden-label','hidden-input','aria-label']) {
+  test(`production CSS native radio keeps a certified visible named label (${attack})`, async ({page}) => {
+    await page.goto('/proof/browser/signal-dom-host.test.html');
+    const result=await page.evaluate(async ({base,attack})=>{
+      await import('/targets/browser/handbook/owner-face-component.mjs');
+      const {assertOwnerFaceReachability}=await import('/targets/browser/handbook/owner-face-reachability.mjs');
+      const subject=(identity,name)=>({identity,name,role:'Info',disclosure:'Primary',text:[],properties:[],
+        unmodeled_property_count:0,values:[]});
+      const choices={...base,show_state:'available',interactions_admitted:true,
+        subjects:[{...subject('group','Mode'),semantic_role:'conduit.face/choice-group@1',choice_multiplicity:'exclusive'},
+          ...[0,1].map(index=>({...subject(`option/${index}`,`Mode ${index}`),flags:[{name:'selected',value:index===0}]}))],
+        relationships:[0,1].map(index=>({kind:'Contains',source:'group',target:`option/${index}`})),
+        actions:[0,1].map(index=>({identity:`select/${index}`,target:`option/${index}`,name:`Select ${index}`,
+          availability:'available',disclosure:'CurrentAction',arguments:[]}))};
+      const element=document.createElement('conduit-owner-face');document.body.replaceChildren(element);
+      element.show(choices,{invoke:async()=>{}});
+      const look=element.shadowRoot.querySelector('link');
+      if(!look.sheet) await new Promise((resolve,reject)=>{look.addEventListener('load',resolve,{once:true});look.addEventListener('error',reject,{once:true});});
+      const input=element.shadowRoot.querySelector('input[type=radio]');
+      if(attack==='hidden-label') input.labels[0].style.opacity='0';
+      if(attack==='hidden-input') input.hidden=true;
+      if(attack==='aria-label') input.setAttribute('aria-label','Misleading action');
+      try {assertOwnerFaceReachability(element,choices);return {admitted:true,opacity:getComputedStyle(input).opacity};}
+      catch(error) {return {admitted:false,code:error.code};}
+    },{base:view,attack});
+    expect(result).toEqual(attack==='none'?{admitted:true,opacity:'0'}:{admitted:false,code:'RendererActionInaccessible'});
+    if(attack==='none') await expect(page.getByRole('radio',{name:'Mode 1',exact:true})).toBeEnabled();
+  });
+}
