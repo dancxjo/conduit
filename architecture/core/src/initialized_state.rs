@@ -67,6 +67,15 @@ pub fn initialized_state_boundary<'a>(
 }
 
 pub(crate) fn validate_kind(kind: &crate::Kind) -> Result<(), crate::KindValidationError> {
+    // Ordinary Kinds may carry large structured configuration. Do not clone
+    // their entire semantic contract merely to discover this law is absent.
+    if !kind
+        .semantic_laws
+        .iter()
+        .any(|law| matches!(law, KindSemanticLaw::InitializedState(_)))
+    {
+        return Ok(());
+    }
     // Checker projections carry placeholder realization limits. Check meaning
     // here; the planner separately checks the selected Back's finite storage.
     initialized_state_boundary(&kind.inputs, &kind.outputs, &kind.semantic_contract())
