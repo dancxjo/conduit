@@ -945,3 +945,13 @@ original correspondence and retains Audio's executed target/observed reciprocal
 receipts; absence of an observation remains explicit. A supplied observation is
 neither a sensor measurement attestation nor playback authority. This phone-scope
 subset does not claim syllable/phrase target admission or oscillator realization.
+
+
+Fundamental frequency gestures also admit actual syllable, resolved source word,
+positioned phrase boundary/phone interval and whole-utterance scopes. The same
+opaque original correspondence and syllable structure remain attached to the
+receipt. Generic Audio owns overlapping control coverage, priority and gaps;
+formant center/bandwidth stay Hz and cannot masquerade as fundamental cycles.
+Measured and inferred supplied frequency evidence retain distinct Native cases,
+original scope/anchor, span, confidence, provenance and all six error states.
+These are admitted supplied claims, not authenticated sensor measurements.

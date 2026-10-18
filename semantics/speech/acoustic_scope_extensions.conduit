@@ -1,0 +1,45 @@
+# Supplemental scope custody; this is a component of the original intent.
+type SpeechAcousticCarrierBasis = {
+    inventory_basis: SpeechIpaInventoryNotationBasis
+    source: LanguageTextSegmentRef
+    anchor: AudioTrajectoryAnchor
+    where .source.language == .inventory_basis.language
+    where .source.kind is utterance
+}
+type SpeechAcousticSyllableScope = {
+    carrier: SpeechAcousticCarrierBasis
+    syllable: SpeechSyllableId
+}
+type SpeechAcousticWordScope = {
+    carrier: SpeechAcousticCarrierBasis
+    word: LanguageTextSegmentRef
+    where .word.kind is word
+    where .word.language == .carrier.inventory_basis.language
+    where .word.text_id == .carrier.source.text_id
+    where .word.revision_id == .carrier.source.revision_id
+}
+# A declared phrase interval ends at an original positioned phrase boundary.
+# Its first phone and exclusive final gap retain the actual tape coordinates.
+type SpeechAcousticPhraseScope = {
+    carrier: SpeechAcousticCarrierBasis
+    first: LanguageSpeechTokenRef
+    end_exclusive: U32 in 1..=256
+    boundary: SpeechPositionedBoundary
+    where .boundary.kind is phrase
+    where .boundary.position == .end_exclusive
+    where .first.ordinal < .end_exclusive
+    where .first.inventory_id == .carrier.inventory_basis.inventory_id
+    where .first.language == .carrier.inventory_basis.language
+    where .boundary.source.text_id == .carrier.source.text_id
+    where .boundary.source.revision_id == .carrier.source.revision_id
+}
+# An explicit one-field case wrapper keeps exact owner Native records intact.
+type SpeechAcousticScopeCase<T> = {
+    value: T
+}
+type SpeechAcousticScope =
+    phone SpeechAcousticScopeCase<SpeechPhoneAcousticScope>
+    | syllable SpeechAcousticScopeCase<SpeechAcousticSyllableScope>
+    | word SpeechAcousticScopeCase<SpeechAcousticWordScope>
+    | phrase SpeechAcousticScopeCase<SpeechAcousticPhraseScope>
+    | utterance SpeechAcousticScopeCase<SpeechAcousticCarrierBasis>

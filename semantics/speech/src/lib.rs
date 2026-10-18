@@ -278,3 +278,6 @@ pub mod syllable_structure;
 /// Optional full-float FARGAN topology, checked by the ordinary Plot compiler.
 #[cfg(feature = "fargan-source")]
 pub mod fargan;
+
+#[cfg(feature = "semantic-bindings")]
+pub mod intent_frequency_trajectory;

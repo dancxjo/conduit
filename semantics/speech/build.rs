@@ -39,6 +39,8 @@ fn main() {
         "syllables.conduit",
         "syllable_structure.conduit",
         "acoustic_scope.conduit",
+        "acoustic_scope_extensions.conduit",
+        "acoustic_frequency_trajectory.conduit",
         "fundamental.conduit",
         "ipa.conduit",
         "ipa_syntax.conduit",

@@ -75,6 +75,8 @@ pub const STEPS: &[Step] = &[
             "committed_carrier",
             "--test",
             "intent_fundamental",
+            "--test",
+            "intent_frequency_trajectory",
             "--locked",
             "--",
             "--nocapture",
