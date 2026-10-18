@@ -40,7 +40,7 @@ pub enum CheckSuite {
     KernelTakeover,
     PlanningS2,
     PlotS3,
-    /// Report the fixed prepared-expression semantic and timing baseline.
+    /// Report native expression baselines and execute portable-WASM scalar parity.
     ExpressionBaseline,
     Observatory,
     SemanticCatalog,
