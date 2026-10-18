@@ -108,10 +108,13 @@ pub(super) fn scene(
         )?;
     }
     if let Some((heading, refusal)) = refusal {
+        let notice_y = result_notice_y
+            .checked_add(TEXT_BOX_HEIGHT as i16)
+            .ok_or(Error::Scene)?;
         text(
             &mut scene,
             screen,
-            288,
+            notice_y,
             heading,
             GraphicsPaintRole::Status,
             GraphicsTextRole::Warning,
@@ -119,7 +122,7 @@ pub(super) fn scene(
         text(
             &mut scene,
             screen,
-            320,
+            notice_y.checked_add(TEXT_STEP).ok_or(Error::Scene)?,
             refusal,
             GraphicsPaintRole::Status,
             GraphicsTextRole::Code,
