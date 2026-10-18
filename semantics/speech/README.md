@@ -935,3 +935,23 @@ This explicit grouping is caller-supplied linguistic
 meaning, not pronunciation inference. A supplied relation does not establish
 external authenticity or commitment. Inventory revision and Variety stay on
 the retained full IPA basis, independently of utterance/text revisions.
+
+The checked `fundamental.conduit` contract composes Audio's owner Types with
+`SpeechPhoneAcousticScope`: the exact phone occurrence, complete IPA inventory
+basis (including Variety/revision), original full text reference, and Audio anchor.
+`SpeechFundamentalTarget` and optional `SpeechFundamentalObservation` are distinct
+Native values. `PreparedPhoneFundamental` re-admits the binding against the opaque
+original correspondence and retains Audio's executed target/observed reciprocal
+receipts; absence of an observation remains explicit. A supplied observation is
+neither a sensor measurement attestation nor playback authority. This phone-scope
+subset does not claim syllable/phrase target admission or oscillator realization.
+
+
+Fundamental frequency gestures also admit actual syllable, resolved source word,
+positioned phrase boundary/phone interval and whole-utterance scopes. The same
+opaque original correspondence and syllable structure remain attached to the
+receipt. Generic Audio owns overlapping control coverage, priority and gaps;
+formant center/bandwidth stay Hz and cannot masquerade as fundamental cycles.
+Measured and inferred supplied frequency evidence retain distinct Native cases,
+original scope/anchor, span, confidence, provenance and all six error states.
+These are admitted supplied claims, not authenticated sensor measurements.

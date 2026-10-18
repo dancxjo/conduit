@@ -1,3 +1,5 @@
+#[path = "build_support/audio_imports.rs"]
+mod audio_imports;
 #[path = "build_support/authoring_types.rs"]
 mod authoring_types;
 #[path = "build_support/graph.rs"]
@@ -36,6 +38,10 @@ fn main() {
     for path in [
         "syllables.conduit",
         "syllable_structure.conduit",
+        "acoustic_scope.conduit",
+        "acoustic_scope_extensions.conduit",
+        "acoustic_frequency_trajectory.conduit",
+        "fundamental.conduit",
         "ipa.conduit",
         "ipa_syntax.conduit",
         "ipa_inventory.conduit",
@@ -43,6 +49,7 @@ fn main() {
         "../language/identity.conduit",
         "build_support/semantic_source.rs",
         "build_support/authoring_types.rs",
+        "build_support/audio_imports.rs",
     ] {
         println!("cargo:rerun-if-changed={path}");
     }
@@ -62,6 +69,8 @@ fn main() {
             }),
     );
     let mut semantic_catalog = StartupCatalog::new();
+    let audio_types = conduit_audio::authoring::checked_types().expect("Audio owner metadata");
+    conduit_audio::authoring::install(&mut semantic_catalog).expect("Audio exact Types install");
     let language_identities =
         semantic_source::language_identities().expect("Language-owned identity declarations check");
     for (name, ty) in &language_types {
@@ -175,7 +184,7 @@ fn main() {
         .map(|(name, _)| format!("conduit_language::{name}"))
         .collect::<Vec<_>>();
     // IPA profiles retain the exact Language-owned variety Type.
-    let bindings = identities
+    let mut bindings = identities
         .iter()
         .zip(&paths)
         .zip(&language_types)
@@ -195,10 +204,24 @@ fn main() {
             },
         )
         .collect::<Vec<_>>();
-    let external_types = language_types
+    let mut external_types = language_types
         .iter()
         .map(|(_, ty)| ty.clone())
         .collect::<Vec<_>>();
+    for &(name, path, external) in audio_imports::PATHS {
+        if !external {
+            continue;
+        }
+        let ty = audio_types
+            .iter()
+            .find(|ty| ty.name == name)
+            .expect("Audio owner Type");
+        bindings.push(conduit_plot::rust_binding::ExternalNativeRustBinding {
+            semantic_identity: ty.identity.as_str(),
+            rust_type_path: path,
+        });
+        external_types.push(ty.value_type.clone());
+    }
     let bindings = conduit_plot::rust_binding::generate_rust_bindings_with_external_bindings(
         &semantic.native_types,
         &external_types,

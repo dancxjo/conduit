@@ -1,4 +1,6 @@
 //! Speech Types and their exact refinement laws in ordinary `.conduit` authoring.
+#[path = "../build_support/audio_imports.rs"]
+mod audio_imports;
 #[path = "../build_support/authoring_types.rs"]
 mod authoring_types;
 #[path = "../build_support/semantic_source.rs"]
@@ -11,6 +13,15 @@ use conduit_plot::StartupCatalog;
 /// Domain preparation only. Imports retain the same declarations, bounds and
 /// invariants used by generated Native bindings; no renderer or speaking grant.
 pub fn install(startup: &mut StartupCatalog) -> Result<(), String> {
+    let audio = conduit_audio::authoring::checked_types()
+        .map_err(|error| alloc::format!("Audio Type metadata: {error:?}"))?;
+    for &(name, _, _) in audio_imports::PATHS {
+        let ty = audio
+            .iter()
+            .find(|ty| ty.name == name)
+            .ok_or_else(|| alloc::format!("missing Audio owner Type '{name}'"))?;
+        startup.insert_checked_native_type(name, ty)?;
+    }
     let identities = semantic_source::language_identities()?;
     for (name, ty) in conduit_language::identity_types() {
         if let Some(checked) = identities.native_types.iter().find(|ty| ty.name == name) {

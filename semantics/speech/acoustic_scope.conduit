@@ -1,0 +1,13 @@
+# Reusable phone-scope custody for distinct acoustic targets and observations.
+# Full utterance Text identifies the immutable carrier; event word/segment source
+# references remain separately inspectable through original SpeechUtteranceIntent.
+type SpeechPhoneAcousticScope = {
+    occurrence: LanguageSpeechTokenRef
+    inventory_basis: SpeechIpaInventoryNotationBasis
+    source: LanguageTextSegmentRef
+    anchor: AudioTrajectoryAnchor
+    where .occurrence.inventory_id == .inventory_basis.inventory_id
+    where .occurrence.language == .inventory_basis.language
+    where .source.language == .occurrence.language
+    where .source.kind is utterance
+}
