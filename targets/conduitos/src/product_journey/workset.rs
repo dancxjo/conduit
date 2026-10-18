@@ -165,7 +165,10 @@ impl ProductJourney {
         let previous = self.foreground_index();
         let previous_plot = body.workset.plots()[previous].clone();
         let resident = body.workset.plots()[index].clone();
-        if self.plots[index] == Some(NativePlot::Patchbay) {
+        // Without an active Play there is no pending application input to
+        // complete. Selecting a retained resident only changes inspection;
+        // it must not drive a prepared or retired execution.
+        if self.plots[index] == Some(NativePlot::Patchbay) && self.current_play().is_some() {
             self.kernel
                 .as_mut()
                 .ok_or(JourneyError::Kernel)?

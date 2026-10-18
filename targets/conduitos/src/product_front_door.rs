@@ -553,6 +553,9 @@ pub fn run(
             if front_door.home_open()
                 && product_control(event.usage()) != Some(ProductControl::Lifecycle)
             {
+                if !front_door.observes_current_product(&journey) {
+                    return Err("home-owner-changed");
+                }
                 match front_door
                     .accept_home(event, front_door.revision())
                     .map_err(|error| error.as_str())?
@@ -583,20 +586,20 @@ pub fn run(
                         )?;
                     }
                     crate::front_door::HomeInput::OpenPatchbay => {
-                        for _ in 0..crate::native_workset::NATIVE_PLOT_CAPACITY {
-                            if journey
-                                .workspace_projection()
-                                .and_then(|workspace| {
-                                    workspace.plots.into_iter().find(|plot| plot.foreground)
+                        let requested = front_door
+                            .home_installed_plots()
+                            .iter()
+                            .find(|plot| {
+                                crate::native_workset::resolve(&plot.plot).is_ok_and(|kind| {
+                                    kind == crate::native_workset::NativePlot::Patchbay
                                 })
-                                .is_some_and(|plot| plot.title == "Patchbay")
-                            {
-                                break;
-                            }
-                            journey
-                                .select_next_plot(journey.revision())
-                                .map_err(|error| error.as_str())?;
-                        }
+                            })
+                            .ok_or("home-patchbay-not-in-current-body")?
+                            .plot
+                            .clone();
+                        journey
+                            .select_plot(&requested, journey.revision())
+                            .map_err(|error| error.as_str())?;
                         front_door.close_home().map_err(|error| error.as_str())?;
                         let receipt = refresh(
                             &mut front_door,
@@ -617,23 +620,18 @@ pub fn run(
                             .map_err(|error| error.as_str())?;
                     }
                     crate::front_door::HomeInput::OpenPlot(index) => {
-                        let inventory = crate::native_workset::inventory();
-                        let requested =
-                            inventory.get(index).ok_or("home-plot-selection-invalid")?;
-                        for _ in 0..crate::native_workset::NATIVE_PLOT_CAPACITY {
-                            if journey
-                                .workspace_projection()
-                                .and_then(|workspace| {
-                                    workspace.plots.into_iter().find(|plot| plot.foreground)
-                                })
-                                .is_some_and(|plot| plot.title == requested.title())
-                            {
-                                break;
-                            }
-                            journey
-                                .select_next_plot(journey.revision())
-                                .map_err(|error| error.as_str())?;
-                        }
+                        let requested = front_door
+                            .home_installed_plots()
+                            .get(index)
+                            .ok_or("home-plot-not-in-current-body")?
+                            .plot
+                            .clone();
+                        let requested_name = crate::native_workset::resolve(&requested)
+                            .map_err(|_| "home-resident-identity-invalid")?
+                            .name();
+                        journey
+                            .select_plot(&requested, journey.revision())
+                            .map_err(|error| error.as_str())?;
                         front_door.close_home().map_err(|error| error.as_str())?;
                         let receipt = refresh(
                             &mut front_door,
@@ -644,27 +642,23 @@ pub fn run(
                         )?;
                         emit_journey_sign(&journey.projection(), make, &receipt);
                         arch::early_write(
-                            format!("CONDUIT_HOME_CHECKPOINT plot-opened {}\n", requested.name())
+                            format!("CONDUIT_HOME_CHECKPOINT plot-opened {}\n", requested_name)
                                 .as_bytes(),
                         );
                     }
                     crate::front_door::HomeInput::RunPlot(index) => {
-                        let inventory = crate::native_workset::inventory();
-                        let requested = inventory.get(index).ok_or("home-run-selection-invalid")?;
-                        for _ in 0..crate::native_workset::NATIVE_PLOT_CAPACITY {
-                            if journey
-                                .workspace_projection()
-                                .and_then(|workspace| {
-                                    workspace.plots.into_iter().find(|plot| plot.foreground)
-                                })
-                                .is_some_and(|plot| plot.title == requested.title())
-                            {
-                                break;
-                            }
-                            journey
-                                .select_next_plot(journey.revision())
-                                .map_err(|error| error.as_str())?;
-                        }
+                        let requested = front_door
+                            .home_installed_plots()
+                            .get(index)
+                            .ok_or("home-plot-not-in-current-body")?
+                            .plot
+                            .clone();
+                        let requested_name = crate::native_workset::resolve(&requested)
+                            .map_err(|_| "home-resident-identity-invalid")?
+                            .name();
+                        journey
+                            .select_plot(&requested, journey.revision())
+                            .map_err(|error| error.as_str())?;
                         front_door.close_home().map_err(|error| error.as_str())?;
                         let receipt = refresh(
                             &mut front_door,
@@ -675,7 +669,7 @@ pub fn run(
                         )?;
                         emit_journey_sign(&journey.projection(), make, &receipt);
                         arch::early_write(
-                            format!("CONDUIT_HOME_CHECKPOINT plot-run {}\n", requested.name())
+                            format!("CONDUIT_HOME_CHECKPOINT plot-run {}\n", requested_name)
                                 .as_bytes(),
                         );
                     }

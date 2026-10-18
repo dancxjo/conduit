@@ -120,7 +120,7 @@ fn home_keyboard_binding_crosses_acknowledged_show_and_reentry_keeps_the_body() 
             .iter()
             .any(|property| property.name == "action-refusal")
     );
-    let awake = journey.projection();
+    let retained = journey.projection();
     door.close_home().unwrap();
     let patchbay = native_workset::resident(NativePlot::Patchbay).unwrap();
     journey.select_plot(&patchbay, journey.revision()).unwrap();
@@ -139,6 +139,6 @@ fn home_keyboard_binding_crosses_acknowledged_show_and_reentry_keeps_the_body() 
         .unwrap();
     assert_eq!(journey.projection().body_id, original.body_id);
     assert_eq!(journey.projection().born_sign_id, original.born_sign_id);
-    assert_eq!(journey.projection().active_play_id, awake.active_play_id);
-    assert_eq!(journey.status(), awake.status);
+    assert_eq!(journey.projection().active_play_id, retained.active_play_id);
+    assert_eq!(journey.status(), retained.status);
 }
