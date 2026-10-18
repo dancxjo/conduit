@@ -184,6 +184,45 @@ fn pi_over_180_survives_a_structured_product_transport_without_rounding() {
 }
 
 #[test]
+fn declared_observation_uncertainty_is_retained_separately_from_numeric_error() {
+    // This is authored observation metadata, not physical measurement proof.
+    // Exact encoding of the reading does not reduce its declared uncertainty.
+    let plan = run(
+        include_str!("fixtures/numerical_observation_uncertainty.conduit"),
+        "Observation uncertainty",
+        "uncertainty retained independently",
+    );
+    let projection = plan
+        .fragments
+        .iter()
+        .flat_map(|f| &f.placements)
+        .find(|gear| gear.kind_id.as_str() == "math/realize")
+        .unwrap();
+    let property = projection
+        .realization_properties
+        .iter()
+        .find(|p| *p.profile() == conduit_core::numerical_realization_profile())
+        .unwrap();
+    let mut work = conduit_core::ExactNumericWork::new(100_000_000);
+    let certificate =
+        conduit_core::PreparedNumericalRealization::from_property(property, &mut work).unwrap();
+    assert_eq!(
+        certificate.algorithm(),
+        conduit_core::NumericalAlgorithm::Binary64 {
+            rounding: conduit_core::Binary64Rounding::NearestTiesEven,
+        }
+    );
+    let uncertainty = conduit_core::ExactRational::parse_decimal("0.05", &mut work).unwrap();
+    assert_eq!(
+        certificate
+            .maximum_error()
+            .checked_compare(uncertainty, &mut work)
+            .unwrap(),
+        std::cmp::Ordering::Less
+    );
+}
+
+#[test]
 fn a_checked_integer_uses_the_sealed_tape_through_the_default_product_host() {
     let plan = run(
         include_str!("fixtures/numerical_checked_machine.conduit"),

@@ -1,0 +1,26 @@
+type ObservedProjection = {
+    reading: MathematicalValue
+    uncertainty: MathematicalValue
+    provenance: Text
+    projection: NumericalResult
+}
+
+plot retain (
+    >> receipt: NumericalResult
+    result: ObservedProjection >>
+) = ({reading: 0.3, uncertainty: 0.05, provenance: "declared observation/sample-1", projection: .})
+
+plot explain (
+    >> observation: ObservedProjection
+    result: Text >>
+) = ((.reading == .projection.source && .uncertainty == 0.05 && .provenance == "declared observation/sample-1" && .projection.maximum-error != .uncertainty) ? "uncertainty retained independently" : "wrong")
+
+plot main {
+    projected: math/realize(request={value:0.3,maximum-error:0.000000000000001})
+    retained: retain
+    check: explain
+    show: face/text("Observation uncertainty")
+    projected.result >> retained.receipt
+    retained.result >> check.observation
+    check.result >> show
+}.
