@@ -8,7 +8,7 @@ publish = false
 default = []
 fargan-source = []
 kernel = ["dep:conduit-language", "dep:conduit-core", "dep:conduit-plot", "dep:conduit-audio", "dep:conduit-kernel"]
-semantic-bindings = ["dep:conduit-core", "dep:conduit-plot", "dep:conduit-language", "dep:postcard"]
+semantic-bindings = ["dep:conduit-audio", "dep:conduit-core", "dep:conduit-plot", "dep:conduit-language", "dep:postcard"]
 
 [dependencies]
 postcard = { version = "1", default-features = false, features = ["alloc"], optional = true }

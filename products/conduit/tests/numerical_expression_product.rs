@@ -467,3 +467,54 @@ fn quiet_ieee_predicates_execute_through_the_product_with_separate_invalid_flags
     }
     assert_eq!(count, 8);
 }
+
+#[test]
+fn actual_rational_quantity_reaches_the_explicit_near_boundary_in_one_play() {
+    let plan = run(
+        include_str!("fixtures/numerical_quantity_near.conduit"),
+        "Near quantity",
+        "certified",
+    );
+    let near: Vec<_> = plan
+        .fragments
+        .iter()
+        .flat_map(|f| &f.placements)
+        .filter(|g| g.kind_id.as_str() == "math/near")
+        .collect();
+    assert_eq!(near.len(), 1);
+    assert_eq!(
+        near[0].execution_profile_id.as_str(),
+        "std/quantity-near-binary32-single-round@1"
+    );
+}
+
+#[test]
+fn qualified_numerical_result_cannot_be_relabelled_as_exact_quantity() {
+    let source = include_str!("fixtures/numerical_quantity_near.conduit")
+        .replace(">> value: NearQuantity", ">> value: Quantity")
+        .replace(
+            ".source == 1 / 3 && .maximum-error == 1 / 100663296",
+            ". == 1m",
+        );
+    let files = Files::new(&source);
+    let result = Command::new(env!("CARGO_BIN_EXE_conduit"))
+        .arg("run")
+        .arg(files.0.join("main.conduit"))
+        .arg("--await-terminal")
+        .arg("--report")
+        .arg(files.0.join("report.json"))
+        .output()
+        .unwrap();
+    assert!(!result.status.success());
+    let diagnostic = String::from_utf8(result.stderr).unwrap();
+    assert!(diagnostic.contains("CND-FRM-045"), "{diagnostic}");
+    assert!(
+        diagnostic.contains("incompatible payload contracts"),
+        "{diagnostic}"
+    );
+    assert!(diagnostic.contains("sink value/quantity@1"), "{diagnostic}");
+    assert!(
+        !files.0.join("report.json").exists(),
+        "must refuse before Play"
+    );
+}

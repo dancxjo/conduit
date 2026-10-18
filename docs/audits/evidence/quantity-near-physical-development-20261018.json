@@ -1,0 +1,59 @@
+{
+  "source_commit": "210dd80d202b79c248596ecb5cb4e3b684932706",
+  "runtime_source": "016c031b847f1eb242965f5031afaf9c8e650211",
+  "status": "Development physical boundary proof only; not Source grammar, general qualified Cord compatibility or stable parent acceptance.",
+  "validation": {
+    "matrix_tests_passed": 1,
+    "physical_cases": 3,
+    "algorithms_per_case": 2,
+    "allocation_windows": 6,
+    "allocation_events": 0,
+    "retained_capacity": "unchanged",
+    "strict_std_all_targets_clippy": "PASS"
+  },
+  "cases": [
+    {
+      "source": "9/10 m Linear",
+      "requested": "1 cm Linear",
+      "consumer": "0.001 mm Linear"
+    },
+    {
+      "source": "1/3 \u00b0C Point",
+      "requested": "0.001 K Delta",
+      "consumer": "0.0001 \u00b0C Delta"
+    },
+    {
+      "source": "1/3 \u00b0C Delta",
+      "requested": "0.001 K Delta",
+      "consumer": "0.0001 \u00b0C Delta"
+    }
+  ],
+  "checked": [
+    "Original source wire/digest, coordinate, Unit and role preserved by bothprofiles",
+    "Original requested-limitnativeQuantityretained byte-faithfully",
+    "Actual consumer tolerance converted and verified withboundedwork",
+    "WrongfamilyHzrefused evenatzeroloss",
+    "Point-valuederrorallowance refused foraffinecases evenatzeroloss"
+  ],
+  "retained_test_executable": {
+    "test_source": "210dd80d202b79c248596ecb5cb4e3b684932706",
+    "runtime_source": "016c031b847f1eb242965f5031afaf9c8e650211",
+    "artifact": "std-host-tests.gz",
+    "uncompressed_bytes": 741081656,
+    "executable_sha256": "6444f71689bf30b196d50308b201e1b6edcb2ce3332d7c5aa41e04ec66a97aad",
+    "compressed_bytes": 171517362,
+    "compressed_sha256": "567e3b1fc78410d0d6ee26b1a59c52d227ce9dc22c0dadffeba7ccc397f56069",
+    "roundtrip": "full decompression size and SHA256 verified"
+  },
+  "archive": {
+    "file": "quantity-near-physical-development-20261018.raw.tar.gz",
+    "sha256": "78d917713fc284dff03709fab05424dd72b98e7cb440bf280fe443cd272b4b2c",
+    "bytes": 2231,
+    "roundtrip": "all raw logs andmanifest verified"
+  },
+  "limits": [
+    "Programmatic prepared runtime input; not a new source literal spelling or Fore qualifier",
+    "No change to production implementation since016c031b8",
+    "No symboliccoordinate/Flow/browser/device acceptance claim"
+  ]
+}

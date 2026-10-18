@@ -236,6 +236,7 @@ pub(super) enum InstalledBack {
     PureExpression(PureExpressionBack),
     LocalExpression(crate::flow_activation::PreparedLocalExpressionBack),
     Numerical(conduit_semantic_catalog::NumericalRealizationBack),
+    NearQuantity(crate::numerical_host::near_step::NearQuantityBack),
     IeeeBinary64(crate::numerical_host::ieee_step::IeeeBinary64Back),
     StructuredLiteral(StructuredLiteralBack),
     ConvertedEquals(Box<conduit_semantic_catalog::ConvertedEqualsBack>),

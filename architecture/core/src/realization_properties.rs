@@ -30,8 +30,14 @@ impl ExactRealizationProperty {
         properties: &[StructuredConfigurationValue],
     ) -> Result<(), ExactRealizationRefusal> {
         use ExactRealizationRefusal as R;
-        let Some(ConfigurationValue::Structured(request)) = request else {
-            return Err(R::MissingConfiguration);
+        let native;
+        let request = match request {
+            Some(ConfigurationValue::Structured(request)) => request,
+            Some(ConfigurationValue::Quantity(value)) => {
+                native = quantity_realization_property(value)?;
+                &native
+            }
+            _ => return Err(R::MissingConfiguration),
         };
         if request.profile() != &self.property_profile {
             return Err(R::WrongConfigurationProfile);
@@ -91,7 +97,15 @@ pub(super) fn validate_kind_requirements(
             || !fields.insert(configuration_key.as_str())
             || !kind.configuration.iter().any(|field| {
                 field.key == *configuration_key
-                    && matches!(&field.rule, crate::KindConfigurationRule::Structured { profile } if !exact || profile == property_profile)
+                    && match &field.rule {
+                        crate::KindConfigurationRule::Structured { profile } => {
+                            !exact || profile == property_profile
+                        }
+                        crate::KindConfigurationRule::Quantity if exact => {
+                            property_profile == &quantity_realization_profile()
+                        }
+                        _ => false,
+                    }
             })
         {
             return Err(crate::KindValidationError::InvalidRealizationRequirement);
@@ -101,4 +115,27 @@ pub(super) fn validate_kind_requirements(
         return Err(crate::KindValidationError::InvalidRealizationRequirement);
     }
     Ok(())
+}
+
+/// Canonical typed equality for a native physical startup value. Source spelling
+/// remains in configuration custody; this property binds its complete immutable
+/// coordinate/Unit/role payload, without moving Unit-definition authority.
+pub fn quantity_realization_profile() -> KindId {
+    crate::StructuredInfoType::leaf(crate::kind_id(crate::QUANTITY_INFO_ID))
+        .unwrap()
+        .profile()
+        .unwrap()
+        .value_kind()
+        .clone()
+}
+pub fn quantity_realization_property(
+    value: &crate::QuantityConfigurationValue,
+) -> Result<StructuredConfigurationValue, ExactRealizationRefusal> {
+    let ty = crate::StructuredInfoType::leaf(crate::kind_id(crate::QUANTITY_INFO_ID))
+        .map_err(|_| ExactRealizationRefusal::WrongConfigurationProfile)?;
+    let bytes = crate::StructuredInfoValue::leaf(ty, value.canonical_value().to_vec())
+        .and_then(|v| v.canonical_bytes())
+        .map_err(|_| ExactRealizationRefusal::WrongConfigurationProfile)?;
+    StructuredConfigurationValue::new(quantity_realization_profile(), bytes)
+        .ok_or(ExactRealizationRefusal::WrongConfigurationProfile)
 }

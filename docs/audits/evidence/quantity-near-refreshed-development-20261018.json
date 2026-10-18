@@ -1,0 +1,134 @@
+{
+  "source_commit": "ef69787f42fbc5c98e0a4b3d6f96fcb7d3776112",
+  "base": "4c4cd59a4a66f5d853da7aff97ee92d9b16ceb74",
+  "status": "Local development refresh; held pending binary32 combined integration. Not stable acceptance or parent completion.",
+  "validation": {
+    "core_lib": 104,
+    "planner_lib": 83,
+    "catalog_lib_kernel_step": 188,
+    "std_near_filter": {
+      "passed": 11,
+      "ignored_unrelated_owner_matrix": 1
+    },
+    "std_numerical_filter": 17,
+    "product_expression": 12,
+    "product_quantity_transport": 3,
+    "overlapping_filters": "Counts are separate, not summed.",
+    "strict_all_targets_clippy": [
+      "conduit-core",
+      "conduit-plot",
+      "conduit-planner",
+      "conduit-semantic-catalog",
+      "conduit-std-host",
+      "conduit-data",
+      "conduit"
+    ],
+    "core_no_default_features": "PASS",
+    "format": "PASS"
+  },
+  "logs": [
+    {
+      "file": "near-refreshed-clippy.log",
+      "sha256": "fa6cd46cb838bfb6c0d1893532b9b12bcce6410c5812a412350915fda414e421"
+    },
+    {
+      "file": "near-refreshed-core-planner-catalog-tests.log",
+      "sha256": "ad5008cdb875df7d208430bdfa94a123ea4db57327e60f340a20cee7dc887211"
+    },
+    {
+      "file": "near-refreshed-format.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "near-refreshed-no-default.log",
+      "sha256": "65c8b45ca8c2204f1dae617be28acaaea288387366306ba2a536140d2a520242"
+    },
+    {
+      "file": "near-refreshed-product-tests.log",
+      "sha256": "61f27769788279ab3b8a5f4a0b92a266b5e31f0227f4385b6b3f32d84b680f9c"
+    },
+    {
+      "file": "near-refreshed-std-near-tests.log",
+      "sha256": "dee1bf8149bc0db5d7d7fe8c4e8325299b053b368b3699c5baece9cb26c6a61c"
+    },
+    {
+      "file": "near-refreshed-std-numerical-tests.log",
+      "sha256": "71f20a92307f26c2a838ed5c2889c14ce6dd30bb3872a688f77847a70dad1d66"
+    },
+    {
+      "file": "near-refreshed-transport-tests.log",
+      "sha256": "f3d1000283b67e09fea77e5982c7ec74558c2ec300b02d3d809b704ae541ca93"
+    }
+  ],
+  "archive": {
+    "file": "quantity-near-refreshed-development-20261018.raw.tar.gz",
+    "sha256": "92a58ef3612e4ca464e299bc46d4ec6cde3e6b9f89acae2bd4875602d2fe0864",
+    "roundtrip": "all raw log bytes verified"
+  },
+  "retained_executables": [
+    {
+      "executable": "target/debug/conduit",
+      "bytes": 704280136,
+      "sha256": "256c7b64b088e5d7014252a6bc6c79578c1d97f7df71b5209b316b56be3bf344",
+      "compressed_file": "work/near-refreshed-proof/conduit.gz",
+      "compressed_sha256": "cdf36879e9337f170ba9937ef82b1d3fd6decd6ec529ed197435c70aa23ad807",
+      "roundtrip": "full decompression verified"
+    },
+    {
+      "executable": "target/debug/deps/conduit_core-4b38f2b091f36655",
+      "bytes": 35130072,
+      "sha256": "6319e19f5b89383f2034aa3be93101ccd5f3babf6f28d0fca990080ccdc4f4e9",
+      "compressed_file": "work/near-refreshed-proof/conduit_core-4b38f2b091f36655.gz",
+      "compressed_sha256": "c5b80d3e3be1db3d6c39466d494efabcd03a2222e1c7f142731cbf8098b08171",
+      "roundtrip": "full decompression verified"
+    },
+    {
+      "executable": "target/debug/deps/conduit_planner-3e2531114894d8bd",
+      "bytes": 243961752,
+      "sha256": "a908c547d60294b0708bd94ded3c27687d22d8396c6d446a727223239c920645",
+      "compressed_file": "work/near-refreshed-proof/conduit_planner-3e2531114894d8bd.gz",
+      "compressed_sha256": "61914553c55c10707d058ff181c4981d0fa0c2c1038d72d2c88c34384d98485b",
+      "roundtrip": "full decompression verified"
+    },
+    {
+      "executable": "target/debug/deps/conduit_semantic_catalog-554e67879a3d5494",
+      "bytes": 204878496,
+      "sha256": "43f509223937cce2c6dfbeff27beeb658d45cad2826e28f6c8e580107d39da70",
+      "compressed_file": "work/near-refreshed-proof/conduit_semantic_catalog-554e67879a3d5494.gz",
+      "compressed_sha256": "addd63241b1b51d3e8b17acdccc1cf36ecbe0a986d6e9537c03aa6bc2f68d1e9",
+      "roundtrip": "full decompression verified"
+    },
+    {
+      "executable": "target/debug/deps/conduit_std_host-057d22bb7cfba6e6",
+      "bytes": 743039064,
+      "sha256": "2d80384ba5f0f1435bd1816d0cc3b54805419a7ce56f4719b39b0580a590e090",
+      "compressed_file": "work/near-refreshed-proof/conduit_std_host-057d22bb7cfba6e6.gz",
+      "compressed_sha256": "d7d1bac5a4a1b2c93525c5fcf5d5ceffe0f200670f9e6be91caac6ab2a18d144",
+      "roundtrip": "full decompression verified"
+    },
+    {
+      "executable": "target/debug/deps/numerical_expression_product-94f70fccdcde8fe9",
+      "bytes": 214186720,
+      "sha256": "72d409ac4a7e74f7c5d9b92fa34d5990388ff08bde3d5ffafff17593f288d033",
+      "compressed_file": "work/near-refreshed-proof/numerical_expression_product-94f70fccdcde8fe9.gz",
+      "compressed_sha256": "4fcda9720da549ca59522e9759c3353c184a33ed95fab377d1f1333209411c21",
+      "roundtrip": "full decompression verified"
+    },
+    {
+      "executable": "target/debug/deps/numerical_quantity_transport-f6fb3ee6d5dd96d1",
+      "bytes": 183496920,
+      "sha256": "497c4b426902b761b2ab417b4559843ef5b8dfcaf113ff7117b784eb968bef21",
+      "compressed_file": "work/near-refreshed-proof/numerical_quantity_transport-f6fb3ee6d5dd96d1.gz",
+      "compressed_sha256": "616c4b3f35ea294132c8b2ea195c7bbd08565ca72b0dea392c1422296c72035a",
+      "roundtrip": "full decompression verified"
+    }
+  ],
+  "remaining": [
+    "Fore near qualification",
+    "generic strong-to-weak qualified Cord contract",
+    "accumulated computation error proof",
+    "symbolic Quantity and Flow optional profiles",
+    "original parent DSP/ML and complete acceptance corpus",
+    "candidate CI, full combined integration and stable publication"
+  ]
+}
