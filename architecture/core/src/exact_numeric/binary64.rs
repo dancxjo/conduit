@@ -147,7 +147,9 @@ pub(super) fn error_claim(
     }
 }
 mod algorithm;
+mod ieee;
 mod projection;
 mod tininess;
 pub use algorithm::*;
+pub use ieee::*;
 pub use projection::*;
