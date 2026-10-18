@@ -16,7 +16,9 @@ labeled reachable inputs, or rendering refuses with
 keyboard path. Hidden, inert, transparent, clipped, missing or nameless controls
 cannot silently acknowledge a usable Show. Prepared controls are intentionally
 disabled; the available renderer is checked again before publishing its usable
-Show marker. A post-acknowledgement failure disables the UI, clears its current
+Show marker. Any rendering refusal retires the browser Mask through the existing
+clear/cancel entrance, so a refused prepared Mask cannot block a fresh rendering.
+A post-acknowledgement failure disables the UI, clears its current
 view and retains the actual owner-acknowledged Show identity in refusal evidence.
 Native disabled controls and uncertified ARIA name overrides refuse at that
 applicable stage. This conservative check certifies
@@ -50,8 +52,38 @@ The supported installed entrance remains `cargo xtask prove todo-journey` with
 identify one clean exact Source. Full browser validation enters through
 `cargo xtask check browser`; focused raw runner calls are internal diagnostics.
 
-Validation receipts for this change are pending. This document makes no claim
-of passing packaged Chromium, native graphical, QEMU, speech-provider, physical
-or human proof. Native wiring and installed QEMU journey remain #5604/#5605.
+Local exact-source proof passed at `b3b217ee3d2ea53e7efb17c32af242a94123e0e6`.
+The supported release and Handbook package entrances sealed the installed owner,
+optimized browser runtime and UI at that clean source. The supported fresh Todo
+entrance then exited zero with one keyboard Add, nine distinct typed adversarial
+SDK refusals, Mask-local focus/scroll, pre-acknowledgement hidden-render refusal,
+and successful accessible restoration without replay. Its incremental
+`browser/adversarial-receipt.json` has `complete: true` and twelve results;
+each negative/local case compares the full canonical owner snapshot and actual
+owner execution receipt bytes. The installed Body identity is
+`5be29c76e6d3cbf56aa91d418730b35a66ad38810407373d1277bf106473987a`.
+The Handbook package digest is
+`sha256:e9304701b266023083d32ed93977c834fc30c91e61eedf61e333208f2629f184`;
+optimized runtime is 18,963,298 bytes, SHA256
+`ea9d8cfed694c3ec8525903e37a15ebb4c48ba9ca1b1711d8d2dabf0dfe39f3a`.
+Focused internal Chromium renderer/orchestration tests passed 122/122 with one
+worker and zero retries; SDK Node tests passed 96/96 and collection projector
+Node tests passed 5/5. These internal checks supplement the supported installed
+capture, and do not replace the full protected browser check.
+
+Retained failed attempts exposed the obsolete 512 KiB Birth capture limit,
+a packaged module dependency spelling mismatch, read-only Show admission
+confusion, an obsolete collection-specialization proof assumption, and a
+prepared Mask left unretired after rendering refusal. The bounded fixes preserve
+those failure states. The original over-bound capture discarded its stdout;
+only a separately retained fresh diagnostic recovered a representative full
+Birth response. No raw bytes are claimed recovered from that original attempt.
+
+The successful first-add capture intentionally emits `partial-run.json`:
+publication still lacks direct speech, remaining items, fresh owner Boot and
+browser reencounter, checkpoint refusal and repair. This is local installed
+pinned Chromium proof, not protected CI, deployed Pages, native graphical,
+QEMU, speech-provider, physical or human proof. Native wiring and installed
+QEMU journey remain #5604/#5605.
 Detailed Look/accessibility conformance belongs to #5367/#5630–#5632 and
 #5379/#5656; this check preserves meaningful agency or refuses this rendering.
