@@ -935,3 +935,12 @@ This explicit grouping is caller-supplied linguistic
 meaning, not pronunciation inference. A supplied relation does not establish
 external authenticity or commitment. Inventory revision and Variety stay on
 the retained full IPA basis, independently of utterance/text revisions.
+
+`model_linguistic_projection` has one versioned lexical map shared by training-
+input and inference-input preparation. Independent model-private phoneme/phone
+token streams retain the same opaque original correspondence and full checked
+inventory basis. Checkpoint compatibility compares the complete vocabulary;
+changed content, foreign bases and swapped checkpoint identities refuse.
+Version 1 retains structure and acoustic intent only on the original carrier;
+it does not establish acoustic conditioning, training or model inference. Its
+explicit terminal refusal is `NoAdmittedAcousticBack`.

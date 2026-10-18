@@ -39,6 +39,7 @@ fn main() {
         "ipa.conduit",
         "ipa_syntax.conduit",
         "ipa_inventory.conduit",
+        "model_projection.conduit",
         "ipa_constructors.conduit",
         "../language/identity.conduit",
         "build_support/semantic_source.rs",

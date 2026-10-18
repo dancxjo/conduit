@@ -70,6 +70,8 @@ pub const STEPS: &[Step] = &[
             "--test",
             "correspondence",
             "--test",
+            "model_linguistic_projection",
+            "--test",
             "profile_phones",
             "--test",
             "committed_carrier",
