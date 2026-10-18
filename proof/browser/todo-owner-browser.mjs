@@ -381,7 +381,7 @@ try {
   const adds = [];
   let after = retainedDom
     ? await page.evaluate(() => globalThis.__conduitOwnerParticipation.face()) : before;
-  for (const text of texts) {
+  const performAdd = async text => {
     const prior = await page.evaluate(() => globalThis.__conduitOwnerParticipation.face());
     const priorOwner = face();
     assert.equal(priorOwner.face.identity, prior.face_id);
@@ -406,7 +406,9 @@ try {
     adds.push({ action_id: 'todo.add', text, activation, before: exactPrior, after, owner: ownerAfterAdd,
       mutation, screenshot });
     await writeFile(path.join(output, 'adds.json'), `${JSON.stringify(adds, null, 2)}\n`);
-  }
+    return adds.at(-1);
+  };
+  for (const text of texts) await performAdd(text);
   let crossMask = null;
   const speechBeforeCompletion = captureSpeech
     ? await captureDirectTodoSpeech({ owner, state, output: path.join(output, 'spoken-before-complete'),
@@ -514,6 +516,10 @@ try {
       owner_after: ownerAfter, browser_after: after, terminal_input: 'terminal-complete.input',
       terminal_stdout: 'terminal-complete.stdout', terminal_stderr: 'terminal-complete.stderr' };
   }
+  if (scenario === 'first-add') await captureArbitraryTodoRefusals({
+    page, face, output, sourceRecord, bodyId, identity, retiredView: before, state,
+    acceptCurrent: () => performAdd('Verify recovered current Show'),
+  });
   await page.locator('[data-owner-face]').screenshot({ path: path.join(output, 'browser-after.png') });
   const afterOwner = face();
   assert.equal(afterOwner.face.identity, after.face_id);
@@ -538,9 +544,6 @@ try {
     screenshots: scenario.startsWith('cross-mask') ? ['browser-before.png', 'browser-stale.png', 'browser-after.png']
       : ['browser-before.png', 'browser-after.png'],
   }, null, 2)}\n`);
-  if (scenario === 'first-add') await captureArbitraryTodoRefusals({
-    page, face, output, sourceRecord, bodyId, identity, retiredView: before, state,
-  });
 } catch (error) {
   // Preserve the actual failed UI and owner state without retrying its action.
   const diagnostics = [writeFile(path.join(output, 'failure.json'), `${JSON.stringify({

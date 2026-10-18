@@ -4,7 +4,7 @@ import path from 'node:path';
 
 // Every attempt starts from the same actual owner snapshot and current Show.
 // The probe is adversarial DOM, never an alternate owner or action executor.
-export async function captureArbitraryTodoRefusals({ page, face, output, sourceRecord, bodyId, identity, retiredView, state }) {
+export async function captureArbitraryTodoRefusals({ page, face, output, sourceRecord, bodyId, identity, retiredView, state, acceptCurrent }) {
   const beforeAttempt = face();
   const executionPath = path.join(state,'body/owner-execution.json');
   const beforeExecution = await readFile(executionPath);
@@ -31,12 +31,13 @@ export async function captureArbitraryTodoRefusals({ page, face, output, sourceR
   assert.ok(retiredView && retiredView.show_id !== originalView.show_id,
     'stale probe must retain the genuine pre-mutation Show');
   const results = [];
+  let currentShowAcceptance = null;
   const retain = async (complete = false) => writeFile(path.join(output,'adversarial-receipt.json'),JSON.stringify({
     schema:'conduit.proof/browser-todo-arbitrary-action-refusal@2',...sourceRecord,
     body_id:bodyId,browser_host_id:identity.hostId,browser_boot_id:identity.bootId,
     show_id:originalView.show_id,face_id:originalView.face_id,
     unchanged_owner_execution_receipt:JSON.parse(beforeExecution).last_execution,
-    retired_show_id:retiredView.show_id,complete,results,unchanged_owner_face:beforeAttempt.face,
+    retired_show_id:retiredView.show_id,complete,results,current_show_acceptance:currentShowAcceptance,unchanged_owner_face:beforeAttempt.face,
     scope:'Trusted DOM clicks reach production SDK; each typed refusal precedes WASM/owner dispatch and preserves the actual owner snapshot.',
   },null,2)+'\n');
   await retain();
@@ -108,5 +109,15 @@ export async function captureArbitraryTodoRefusals({ page, face, output, sourceR
   assert.deepEqual(face(),beforeAttempt,'restoring accessible generic renderer does not replay a rejected event');
   await unchangedExecution();
   results.push({case:'restored-accessible-renderer',accepted_domain_mutations:0});
+  await retain();
+  const current = await page.evaluate(() => globalThis.__conduitOwnerParticipation.face());
+  const accepted = await acceptCurrent();
+  assert.equal(accepted.before.show_id,current.show_id);
+  assert.notEqual(accepted.after.show_id,current.show_id);
+  assert.equal(accepted.mutation.action_id,'todo.add');
+  assert.equal(face().face.subjects.filter(subject=>subject.name===accepted.text).length,1);
+  currentShowAcceptance={show_id:current.show_id,accepted_domain_mutations:1,
+    mutation_receipt:'add-2-mutation.json',interaction_id:accepted.mutation.interaction_id,
+    activation:accepted.activation,after_show_id:accepted.after.show_id};
   await retain(true);
 }
