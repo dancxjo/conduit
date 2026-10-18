@@ -969,3 +969,22 @@ utterance scope, anchor, exact span, reference, confidence, provenance and all
 six uncertainty states. Admission validates every supplied reference and error
 basis without substituting the datum for the intended control. Generic Audio
 owns overlapping control coverage, priority, gaps and interpolation refusal.
+
+
+`linguistic_rate::prepare_linguistic_rate` executes the checked Source law for
+a declared constant full-utterance syllable rate. It retains the original
+correspondence and its exact syllable structure, full IPA inventory/Variety
+basis, complete source reference, Audio anchor, unreduced duration and supplied
+provenance. The finite profile admits one positive origin-zero span and checks
+the declared syllable count against that structure. Source projects count and
+exact seconds into a distinct syllables-per-second value; it cannot decode as
+Audio Hz. This is a supplied target, with no inferred segmentation, clock
+mapping, physical measurement or playback authority.
+
+The `acoustic_carrier_reload` conformance test serializes an explicitly revised
+multiword specimen and re-admits its inventory and correspondence before
+executing duration/F0 projections at 8/16/48 kHz. A separate case executes
+actual Language commitment and rejects a stale commitment basis. Canonical correspondence evidence binds the exact original intent,
+phoneme/phone tapes, full text, alignment and executed inventory. Syllables and
+positioned boundaries remain separate retained components; the correspondence
+digest alone does not attest their contents or grant commitment.
