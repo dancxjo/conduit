@@ -1,0 +1,107 @@
+{
+  "before_source": "b45c2c214b0cc31753902ab2cb39957249339efa",
+  "after_source": "2122bd70b04df16ec4ae9bd16a16cae1b9f3caa2",
+  "exact_sign_replay_pairs": 96,
+  "artifact_hashes_verified": 24,
+  "summaries": [
+    {
+      "nodes": 1,
+      "before": {
+        "process_mean_ns": [
+          955.375,
+          569.625,
+          960
+        ],
+        "mean_ns": 828.3333333333334,
+        "process_sd_ns": 224.0599226955444,
+        "kernel_bytes": 91152
+      },
+      "after": {
+        "process_mean_ns": [
+          565.25,
+          868.875,
+          893
+        ],
+        "mean_ns": 775.7083333333334,
+        "process_sd_ns": 182.66098778429216,
+        "kernel_bytes": 91160
+      }
+    },
+    {
+      "nodes": 8,
+      "before": {
+        "process_mean_ns": [
+          1044.5,
+          621,
+          1042.375
+        ],
+        "mean_ns": 902.625,
+        "process_sd_ns": 243.89671866386394,
+        "kernel_bytes": 93768
+      },
+      "after": {
+        "process_mean_ns": [
+          637,
+          953.125,
+          942.875
+        ],
+        "mean_ns": 844.3333333333334,
+        "process_sd_ns": 179.6290593371054,
+        "kernel_bytes": 93776
+      }
+    },
+    {
+      "nodes": 32,
+      "before": {
+        "process_mean_ns": [
+          1518.125,
+          861.5,
+          1413.625
+        ],
+        "mean_ns": 1264.4166666666667,
+        "process_sd_ns": 352.82636339754055,
+        "kernel_bytes": 102744
+      },
+      "after": {
+        "process_mean_ns": [
+          629.375,
+          999.25,
+          1025.375
+        ],
+        "mean_ns": 884.6666666666666,
+        "process_sd_ns": 221.4746152685073,
+        "kernel_bytes": 102752
+      }
+    },
+    {
+      "nodes": 256,
+      "before": {
+        "process_mean_ns": [
+          4658.5,
+          2726.375,
+          5011.75
+        ],
+        "mean_ns": 4132.208333333333,
+        "process_sd_ns": 1230.2324623656837,
+        "kernel_bytes": 186520
+      },
+      "after": {
+        "process_mean_ns": [
+          733.375,
+          1125.125,
+          1147.75
+        ],
+        "mean_ns": 1002.0833333333334,
+        "process_sd_ns": 232.98304435802476,
+        "kernel_bytes": 186528
+      }
+    }
+  ],
+  "limits": [
+    "Instrumented production-kernel completion fixture, not whole Plot/Plan/Host or FARGAN.",
+    "Eight yielding Steps, one Await Step and eight Idle checks; final cancellation/retirement verified outside timing.",
+    "Shared-host sequential observations; no causal speedup or calibrated regression gate.",
+    "Whole-process CPU/RSS includes preparation, startup, assertions and serialization; not isolated Step CPU.",
+    "Native 8 MiB diagnostic thread stack, not physical device proof."
+  ]
+}

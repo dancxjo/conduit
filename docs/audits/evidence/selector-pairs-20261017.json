@@ -1,0 +1,464 @@
+{
+  "capture_source": "af28cf2b2bf2a022028b61d555fd7003cb6d661e",
+  "pairs": 9,
+  "raw_samples": 1152,
+  "verified_artifact_hashes": 67,
+  "exact_semantic_allocation_copy_size_nonselection_work_parity": true,
+  "summaries": [
+    {
+      "nodes": 1,
+      "sparse": false,
+      "process_mean_fixture_advance_ns": {
+        "packed": [
+          532.25,
+          521.5,
+          533.75,
+          567.75,
+          527.375,
+          504.5,
+          546,
+          552.125,
+          630.125
+        ],
+        "linear": [
+          525.375,
+          2088.625,
+          568.875,
+          443.125,
+          708.75,
+          534.875,
+          463.125,
+          550.125,
+          522.875
+        ]
+      },
+      "mean_ns": {
+        "packed": 546.1527777777778,
+        "linear": 711.75
+      },
+      "sample_sd_ns": {
+        "packed": 36.39350784404334,
+        "linear": 521.7755294424989
+      },
+      "paired_packed_over_linear_ratios": [
+        1.0130858910302165,
+        0.24968579807289484,
+        0.938255328499231,
+        1.2812411847672778,
+        0.7440917107583774,
+        0.9432110306146296,
+        1.1789473684210525,
+        1.0036355373778687,
+        1.2051159454936649
+      ],
+      "paired_ratio_mean": 0.9508077550039126,
+      "paired_ratio_range": [
+        0.24968579807289484,
+        1.2812411847672778
+      ]
+    },
+    {
+      "nodes": 1,
+      "sparse": true,
+      "process_mean_fixture_advance_ns": {
+        "packed": [
+          309.125,
+          334.25,
+          325.5,
+          389.375,
+          355.25,
+          285.5,
+          299.875,
+          349.875,
+          328.75
+        ],
+        "linear": [
+          316.5,
+          306.375,
+          303.75,
+          324.375,
+          338.125,
+          340.125,
+          312.25,
+          330.875,
+          315.125
+        ]
+      },
+      "mean_ns": {
+        "packed": 330.8333333333333,
+        "linear": 320.8333333333333
+      },
+      "sample_sd_ns": {
+        "packed": 31.45458035008574,
+        "linear": 13.27812463226641
+      },
+      "paired_packed_over_linear_ratios": [
+        0.9766982622432859,
+        1.0909832721338228,
+        1.0716049382716049,
+        1.2003853564547207,
+        1.0506469500924214,
+        0.8393972804116133,
+        0.9603682946357086,
+        1.0574234982999622,
+        1.0432368107893693
+      ],
+      "paired_ratio_mean": 1.032304962592501,
+      "paired_ratio_range": [
+        0.8393972804116133,
+        1.2003853564547207
+      ]
+    },
+    {
+      "nodes": 8,
+      "sparse": false,
+      "process_mean_fixture_advance_ns": {
+        "packed": [
+          1149.125,
+          1212.625,
+          1266.625,
+          1197.75,
+          1250.875,
+          1308.875,
+          1246.375,
+          1271.375,
+          1274.125
+        ],
+        "linear": [
+          1355,
+          1126.5,
+          1305.625,
+          1162.75,
+          1272.75,
+          1527.75,
+          1281.125,
+          1278.625,
+          1294.25
+        ]
+      },
+      "mean_ns": {
+        "packed": 1241.9722222222222,
+        "linear": 1289.375
+      },
+      "sample_sd_ns": {
+        "packed": 48.11208340369854,
+        "linear": 114.25808573685278
+      },
+      "paired_packed_over_linear_ratios": [
+        0.8480627306273063,
+        1.0764536173990236,
+        0.9701292484442317,
+        1.0301010535368738,
+        0.9828128069141623,
+        0.8567337587956144,
+        0.9728754024782905,
+        0.9943298465148108,
+        0.984450453930848
+      ],
+      "paired_ratio_mean": 0.9684387687379068,
+      "paired_ratio_range": [
+        0.8480627306273063,
+        1.0764536173990236
+      ]
+    },
+    {
+      "nodes": 8,
+      "sparse": true,
+      "process_mean_fixture_advance_ns": {
+        "packed": [
+          314.875,
+          289.125,
+          281.75,
+          330.625,
+          294.625,
+          259.75,
+          302.625,
+          291.75,
+          289.875
+        ],
+        "linear": [
+          297,
+          303.5,
+          309.625,
+          352,
+          306,
+          480.375,
+          279.875,
+          289.375,
+          354.25
+        ]
+      },
+      "mean_ns": {
+        "packed": 295.0,
+        "linear": 330.22222222222223
+      },
+      "sample_sd_ns": {
+        "packed": 20.03717248640636,
+        "linear": 61.876444988739
+      },
+      "paired_packed_over_linear_ratios": [
+        1.0601851851851851,
+        0.9526359143327842,
+        0.9099717400080742,
+        0.9392755681818182,
+        0.9628267973856209,
+        0.5407233931824096,
+        1.0812862885216614,
+        1.008207343412527,
+        0.8182780522230063
+      ],
+      "paired_ratio_mean": 0.9192655869370097,
+      "paired_ratio_range": [
+        0.5407233931824096,
+        1.0812862885216614
+      ]
+    },
+    {
+      "nodes": 32,
+      "sparse": false,
+      "process_mean_fixture_advance_ns": {
+        "packed": [
+          3113.625,
+          4960.125,
+          3163.75,
+          3294.5,
+          3200,
+          3206,
+          3458.75,
+          3276.375,
+          3179.25
+        ],
+        "linear": [
+          3444.375,
+          3186.5,
+          3211.375,
+          3253,
+          3287.125,
+          3295,
+          3244.875,
+          3230.25,
+          3241.5
+        ]
+      },
+      "mean_ns": {
+        "packed": 3428.0416666666665,
+        "linear": 3266.0
+      },
+      "sample_sd_ns": {
+        "packed": 583.1990675093282,
+        "linear": 74.91881022146575
+      },
+      "paired_packed_over_linear_ratios": [
+        0.9039738704409364,
+        1.5566059940373451,
+        0.985169903857382,
+        1.0127574546572395,
+        0.9734950754838955,
+        0.97298937784522,
+        1.0659116298778843,
+        1.0142790805665196,
+        0.9807959278111985
+      ],
+      "paired_ratio_mean": 1.0517753682864024,
+      "paired_ratio_range": [
+        0.9039738704409364,
+        1.5566059940373451
+      ]
+    },
+    {
+      "nodes": 32,
+      "sparse": true,
+      "process_mean_fixture_advance_ns": {
+        "packed": [
+          309.375,
+          304.5,
+          353.375,
+          352.75,
+          296.25,
+          281.5,
+          316.125,
+          332.25,
+          337.375
+        ],
+        "linear": [
+          408.25,
+          400.5,
+          416.25,
+          456.75,
+          432.625,
+          461,
+          420.75,
+          474.75,
+          430.375
+        ]
+      },
+      "mean_ns": {
+        "packed": 320.3888888888889,
+        "linear": 433.47222222222223
+      },
+      "sample_sd_ns": {
+        "packed": 25.128454709971944,
+        "linear": 25.48427653857265
+      },
+      "paired_packed_over_linear_ratios": [
+        0.7578077158603796,
+        0.7602996254681648,
+        0.8489489489489489,
+        0.7723043240284619,
+        0.6847731869401907,
+        0.6106290672451193,
+        0.7513368983957219,
+        0.6998420221169036,
+        0.7839093813534708
+      ],
+      "paired_ratio_mean": 0.7410945744841513,
+      "paired_ratio_range": [
+        0.6106290672451193,
+        0.8489489489489489
+      ]
+    },
+    {
+      "nodes": 256,
+      "sparse": false,
+      "process_mean_fixture_advance_ns": {
+        "packed": [
+          23416.125,
+          23337.625,
+          23606.5,
+          24373.25,
+          29722.375,
+          23421.125,
+          23214.875,
+          23296.625,
+          23246.875
+        ],
+        "linear": [
+          23362.75,
+          23349.875,
+          23813.875,
+          24626,
+          23878,
+          23354.125,
+          24269.125,
+          23490.625,
+          23283.875
+        ]
+      },
+      "mean_ns": {
+        "packed": 24181.708333333332,
+        "linear": 23714.25
+      },
+      "sample_sd_ns": {
+        "packed": 2107.5956096714212,
+        "linear": 473.966733899912
+      },
+      "paired_packed_over_linear_ratios": [
+        1.0022846197472473,
+        0.9994753719238326,
+        0.9912918414159813,
+        0.9897364574027451,
+        1.244759820755507,
+        1.0028688722013777,
+        0.9565600325516475,
+        0.9917413861912997,
+        0.9984109174267599
+      ],
+      "paired_ratio_mean": 1.019681035512933,
+      "paired_ratio_range": [
+        0.9565600325516475,
+        1.244759820755507
+      ]
+    },
+    {
+      "nodes": 256,
+      "sparse": true,
+      "process_mean_fixture_advance_ns": {
+        "packed": [
+          336.625,
+          304.875,
+          383,
+          651.875,
+          326.25,
+          349.25,
+          343,
+          365.875,
+          385.375
+        ],
+        "linear": [
+          1259.125,
+          1257.875,
+          1306.375,
+          1306.875,
+          1264,
+          1279.5,
+          1311.75,
+          1329.25,
+          1300.125
+        ]
+      },
+      "mean_ns": {
+        "packed": 382.90277777777777,
+        "linear": 1290.5416666666667
+      },
+      "sample_sd_ns": {
+        "packed": 104.16715416552593,
+        "linear": 26.071865823143536
+      },
+      "paired_packed_over_linear_ratios": [
+        0.2673483569939442,
+        0.24237304978634602,
+        0.2931776863458042,
+        0.49880439980870395,
+        0.2581091772151899,
+        0.2729581867917155,
+        0.2614827520487898,
+        0.27524920067707354,
+        0.2964138063647726
+      ],
+      "paired_ratio_mean": 0.29621295733692665,
+      "paired_ratio_range": [
+        0.24237304978634602,
+        0.49880439980870395
+      ]
+    }
+  ],
+  "negative_cases": [
+    {
+      "case": "wrong-artifact-hash",
+      "refused": true,
+      "reason": "raw.json"
+    },
+    {
+      "case": "duplicate-raw-sample",
+      "refused": true,
+      "reason": ""
+    },
+    {
+      "case": "rehashed-timing-disagrees-with-stdout",
+      "refused": true,
+      "reason": ""
+    },
+    {
+      "case": "rehashed-altered-sign-replay",
+      "refused": true,
+      "reason": "('semantic replay', 0, 'linear', (1, False, 0))"
+    }
+  ],
+  "verifier_sha256": "709f725a2cd203d87af7077113393e43ba35dd95a89315fd72deb4b545a8178d",
+  "capture_status_sha256": "b06ca9af339180eb309177a4123b3cd1c085ef4bee5317a2100318a504c14fa3",
+  "extra_sha256": {
+    "capture-selector-alternating.py": "9ead37fcae7ef8101a9290eaa71217be218a2b921ee8d677cfd8f2761afa948d",
+    "5231-selector-cpu.json": "7f19b9ecf39b5c0a298d63db516ebc4d856daf88a45b086b4373e42f1bfde30a",
+    "check-selector-pairs-refusals.py": "10f0e8b694263b9628ad618a463fab7abf77b1b83e94c24d7509a588e3b2c88a",
+    "5231-selector-alternating-final-verified.json": "cb63c38c9cb5f513819be5b3ef76ca674ed5a3d9c7fc93edb256ece9a6ce47ad",
+    "5231-selector-alternating-negative.json": "b6adf986041f05503b9256a0c22a1f6631663e89080e1c411d03fad24240218c"
+  },
+  "archive_sha256": "55aa6f025a31913c6164eea1a917540d0923069af718fa7bca40a418f37a16a5",
+  "limits": [
+    "Same-source diagnostic legacy enumeration versus production packed selection, not original Boolean storage.",
+    "Existing instrumented native fixed-kernel byte fixture; not whole checked Host or FARGAN.",
+    "Single allowed CPU affinity is not exclusive; no governor/thermal/load control or calibrated timing-regression threshold.",
+    "Alternating process order reduces simple order drift but does not prove independent causal speedup or universal tiny-Host timing equivalence.",
+    "Preparation, startup, ingress and serialized evidence are outside fixture advance; resource logs cover entire process."
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "source": "25aea4a9351e28e9e7250ac83e6d87441dbd4478",
+  "passed_tests": {
+    "blocked-wakes-kernel-alloc.log": 244,
+    "blocked-wakes-kernel-linear.log": 244
+  },
+  "strict_release_alloc_all_target_clippy": true,
+  "no_default_features_check": true,
+  "raw_sha256": {
+    "blocked-wakes-kernel-alloc.log": "208f64befc7466f67ad18ff322051f1c00666dae35ae98331452e844ee034ba1",
+    "blocked-wakes-kernel-linear.log": "41b19da07f351c84520e570eaa38ef9108ab73b1754d24cb5b409c2aa5ac76a2",
+    "blocked-wakes-clippy.log": "65d2f4b487d1cefabdad5575604e1cd81ddb617e65f3af22e85736cfde536907",
+    "blocked-wakes-no-default.log": "90459d41662aa0c28d00c096eb77ea6e07b46d2810b151e0bcfba59c30fa0bcf"
+  },
+  "archive_sha256": "03fb1c225e0c5bf06dd0458215a03b4018c4c9d7a646ec2908e83007c9541409"
+}

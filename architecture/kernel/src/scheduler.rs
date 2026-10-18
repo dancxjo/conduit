@@ -960,6 +960,7 @@ pub struct FixedScheduler<
     queue_slots: [Option<ValueRef>; QUEUE_SLOTS],
     ready: ReadySet<NODES>,
     completed: [bool; NODES],
+    completed_count: usize,
     cursor: usize,
     host_request_cursor: usize,
     decisions: u32,
@@ -1074,6 +1075,7 @@ where
             queue_slots: [None; QUEUE_SLOTS],
             ready: ReadySet::new(active_nodes),
             completed: [false; NODES],
+            completed_count: 0,
             cursor: 0,
             host_request_cursor: 0,
             decisions: 0,
@@ -1491,7 +1493,7 @@ where
         state.next_remote_sequence = next_sequence;
         state.offered_remote_sequence = None;
         state.remote_accepted = false;
-        self.ready.set(usize::from(source_node.0), true);
+        self.set_ready(usize::from(source_node.0), true);
         self.signs.record_remote(
             source_node,
             source_port,
@@ -1562,7 +1564,7 @@ where
             }
         }
         self.cords[cord_index].next_remote_sequence = next_sequence;
-        self.ready.set(usize::from(sink_node.0), true);
+        self.set_ready(usize::from(sink_node.0), true);
         self.signs.record_remote(
             sink_node,
             sink_port,
@@ -1650,7 +1652,7 @@ where
         self.cords[cord_index].producer_closed = true;
         self.cords[cord_index].producer_abnormal = abnormal_terminal.is_some();
         self.cords[cord_index].abnormal_terminal = abnormal_terminal;
-        self.ready.set(usize::from(sink_node.0), true);
+        self.set_ready(usize::from(sink_node.0), true);
         self.signs.record_remote(
             sink_node,
             sink_port,
@@ -1837,7 +1839,7 @@ where
             .as_mut()
             .ok_or(SchedulerError::HostCallCompletionRejected)?
             .completion = Some(outcome);
-        self.ready.set(usize::from(pending.request.node.0), true);
+        self.set_ready(usize::from(pending.request.node.0), true);
         self.signs.record(
             pending.request.node,
             None,
@@ -2136,7 +2138,7 @@ where
             }
         }
         match outcome {
-            StepOutcome::Progress => self.ready.set(
+            StepOutcome::Progress => self.set_ready(
                 node,
                 io.host_request.is_none() && io.host_cancellation.is_none(),
             ),
@@ -2147,12 +2149,12 @@ where
                     None,
                     KernelEventKind::StepYielded,
                 )?;
-                self.ready.set(node, true);
+                self.set_ready(node, true);
             }
-            StepOutcome::Await => self.ready.set(node, false),
+            StepOutcome::Await => self.set_ready(node, false),
             StepOutcome::Complete => {
-                self.completed[node] = true;
-                self.ready.set(node, false);
+                self.mark_completed(node);
+                self.set_ready(node, false);
                 self.close_outputs(node)?;
                 if let Some(source) = self.projected_recovery_source[node].take() {
                     self.unresolved_abnormal[usize::from(source.0)] = None;
@@ -2186,8 +2188,8 @@ where
                 });
             }
             StepOutcome::Abnormal { port, terminal } => {
-                self.completed[node] = true;
-                self.ready.set(node, false);
+                self.mark_completed(node);
+                self.set_ready(node, false);
                 let routed = self.abnormally_terminate_outputs(node, port, terminal)?;
                 self.signs.record(
                     NodeId(as_u16(node)?),
@@ -2728,7 +2730,7 @@ where
             consumed_values[port] = Some(value);
             let spec = self.cord_specs[usize::from(cord.0)];
             if let Some((source_node, _)) = spec.source_local() {
-                self.ready.set(usize::from(source_node.0), true);
+                self.set_ready(usize::from(source_node.0), true);
             }
             self.signs.record(
                 NodeId(as_u16(node)?),
@@ -2927,7 +2929,7 @@ where
                     self.values.release(superseded)?;
                 }
                 if let CordEndpoint::Local { node, .. } = target.sink {
-                    self.ready.set(usize::from(node.0), true);
+                    self.set_ready(usize::from(node.0), true);
                 }
                 self.signs.record(
                     NodeId(as_u16(node)?),
@@ -3298,7 +3300,7 @@ where
                 }
                 self.cords[cord].producer_closed = true;
                 if let CordEndpoint::Local { node, .. } = target.sink {
-                    self.ready.set(usize::from(node.0), true);
+                    self.set_ready(usize::from(node.0), true);
                 } else {
                     let CordEndpoint::Remote(endpoint) = target.sink else {
                         unreachable!("remote output closure has remote sink")
@@ -3394,7 +3396,7 @@ where
             self.cords[cord].abnormal_terminal =
                 (spec.track != AssignedConnectionTrack::AbnormalTerminal).then_some(terminal);
             if let CordEndpoint::Local { node, .. } = target.sink {
-                self.ready.set(usize::from(node.0), true);
+                self.set_ready(usize::from(node.0), true);
             } else {
                 let CordEndpoint::Remote(endpoint) = target.sink else {
                     unreachable!("remote output closure has remote sink")

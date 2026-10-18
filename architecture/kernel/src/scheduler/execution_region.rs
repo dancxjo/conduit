@@ -101,9 +101,7 @@ where
             if let Some(node) = self.emit_quiescence_transitions()? {
                 return Ok(SchedulerStatus::Progress { node });
             }
-            return if self.completed[..self.active_nodes]
-                .iter()
-                .all(|value| *value)
+            return if self.all_nodes_completed()
                 && self.cords[..self.active_cords]
                     .iter()
                     .all(|cord| cord.len == 0)
@@ -149,9 +147,7 @@ where
             node = next;
             self.cursor = (node + 1) % self.active_nodes;
         }
-        if self.completed[..self.active_nodes]
-            .iter()
-            .all(|value| *value)
+        if self.all_nodes_completed()
             && self.cords[..self.active_cords]
                 .iter()
                 .all(|cord| cord.len == 0)
@@ -161,6 +157,21 @@ where
             Ok(SchedulerStatus::Progress {
                 node: NodeId(as_u16(node)?),
             })
+        }
+    }
+
+    fn all_nodes_completed(&self) -> bool {
+        self.completed_count == self.active_nodes
+    }
+
+    /// Both terminal outcomes monotonically retire the same active membership.
+    /// Keep the flag and its acceleration count together, including duplicate
+    /// internal notifications. Cancellation remains a separate terminal state.
+    pub(super) fn mark_completed(&mut self, node: usize) {
+        debug_assert!(node < self.active_nodes);
+        if !self.completed[node] {
+            self.completed[node] = true;
+            self.completed_count += 1;
         }
     }
 
