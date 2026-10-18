@@ -32,3 +32,9 @@ allocations or reallocations. The actual CLI product corpus separately exercises
 the binary64 cancellation through ordinary Source, planning, Play and report
 verification. These are development proof surfaces, not stable-main acceptance
 or a certificate for arbitrary floating-point algorithms.
+
+The [validation record](evidence/binary64-expression-development-20261017.json)
+maps the before/after logs, all 23 focused Plot tests, seven CLI cases, the
+additional F64 Plan-selection assertion and strict lint checks to the private
+development source. Its raw archive retains the successful and failing logs;
+the record states the test sequence and remaining acceptance limits.
