@@ -421,10 +421,10 @@ fn ordinary_graphics_lead_with_primary_content_and_keep_context_inspectable() {
             .any(|row| row.text == "Three things remain.")
     );
     assert!(
-        !scene
+        scene
             .primary
             .iter()
-            .any(|row| row.text.contains("resident plot"))
+            .any(|row| row.role == GraphicsTextRole::Status && row.text.contains("resident plot"))
     );
     assert!(
         !scene

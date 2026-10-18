@@ -179,16 +179,22 @@ pub(super) fn prepare(
             _ => GraphicsPaintRole::Foreground,
         };
         append(heading);
-        // The Body name anchors the encounter. Its generic lifecycle and
-        // resident-count sentence is inspection context; application subjects
-        // supply the ordinary view's useful content.
-        if subject.role != FaceRole::Body {
+        // The source-supplied Body status follows its name. This presents the
+        // owner's exact wording; the Mask derives no lifecycle fact.
+        {
             for text in face
                 .text
                 .iter()
                 .filter(|text| text.subject == subject.identity)
             {
-                append(item(text.text.clone(), GraphicsTextRole::Body));
+                append(item(
+                    text.text.clone(),
+                    if subject.role == FaceRole::Body {
+                        GraphicsTextRole::Status
+                    } else {
+                        GraphicsTextRole::Body
+                    },
+                ));
             }
         }
         // Contains already determines indentation. Readable primary wording
