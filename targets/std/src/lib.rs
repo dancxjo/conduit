@@ -19,6 +19,7 @@ pub mod body_coordination;
 pub mod body_execution;
 mod boot_identity;
 pub mod browser_admission;
+pub mod carried_formant;
 pub mod civil_deadline_wait;
 mod composition;
 #[cfg(test)]
