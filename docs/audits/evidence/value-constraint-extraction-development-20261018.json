@@ -1,0 +1,84 @@
+{
+  "schema": "conduit.development-proof/v1",
+  "source": "c32a017719410d5bb75bbdefa4c7080e601f0d7b",
+  "base": "aa84880c53d07ed06acf78088815200f28a9f6c4",
+  "scope": "Extraction-only prerequisite for #5392 Fore near qualification. No Fore near implementation or parent completion claim.",
+  "responsibilities": {
+    "value_constraint.rs": "Public contract data, contract orchestration, runtime byte validation and shared scalar comparison",
+    "definition.rs": "Constraint definition admission and open interval law",
+    "identity.rs": "Unchanged version-3 identity encoding",
+    "text_pattern.rs": "Checked automaton definition and bounded matching",
+    "tests.rs": "All original finite constraint tests unchanged"
+  },
+  "validation": {
+    "core_tests": "104 passed",
+    "workspace_all_target_clippy": "passed with -D warnings",
+    "no_default_core": "passed",
+    "format": "passed",
+    "movement": "Original responsibility blocks and existing tests retained; whitespace and two parent-visible private methods only",
+    "workspace_tests": "Incomplete: debug and debug=0 full workspace attempts interrupted with SIGINT/130 during compilation to prevent disk exhaustion at 2.4-3.4 GB free. No test failure or pass claimed. Raw attempt logs retained. Inactive caches recovered and inactive executables byte-preserved before compression; further local full build requires additional disk headroom."
+  },
+  "raw_archive": {
+    "path": "value-constraint-extraction-development-20261018.raw.tar.gz",
+    "sha256": "458ed7ff788adc463a386cb14ab17ce5035276b1b9f802ec6151ee23a29af337",
+    "logs": [
+      {
+        "name": "value-constraint-extraction-core-tests.log",
+        "bytes": 10353,
+        "sha256": "ed4ece3c0d4be9c2674bb7b88881179d7ad1370472e4d7787a69d86cd1f15537"
+      },
+      {
+        "name": "value-constraint-extraction-format.log",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "value-constraint-extraction-no-default.log",
+        "bytes": 903,
+        "sha256": "22176ef73c006a26238ef23c5228ae56a0dabc1804db46526196864501c3ba48"
+      },
+      {
+        "name": "value-constraint-extraction-workspace-clippy.log",
+        "bytes": 23232,
+        "sha256": "2495a60fca20dfc133b057e36fecdf5fd3e5ff593fd012a57b9aa32ce9f23396"
+      },
+      {
+        "name": "value-constraint-extraction-workspace-tests-debug0-interrupted-disk.log",
+        "bytes": 26424,
+        "sha256": "a6d1628bdf72dfb8432972085404e505ec8526c40a562f1bccb83d3a0a17fc8e"
+      },
+      {
+        "name": "value-constraint-extraction-workspace-tests-debug0-pre-compression.log",
+        "bytes": 5060,
+        "sha256": "da0e58376452595a1890ab394de9115a578a8801541e66e7cd51c816bd638a59"
+      },
+      {
+        "name": "value-constraint-extraction-workspace-tests-debug0-pre-worktree-cache.log",
+        "bytes": 2172,
+        "sha256": "cf3cdafd926990656dac8bf1ec8e4fbe93628d292151c33d25752f59e450df6d"
+      },
+      {
+        "name": "value-constraint-extraction-workspace-tests-interrupted-disk.log",
+        "bytes": 20975,
+        "sha256": "5c07db0923af97db6fe4983a36b9725d0df1f35ebfae1fd6b787edd9c4b31f7a"
+      },
+      {
+        "name": "value-constraint-extraction-workspace-tests.log",
+        "bytes": 459,
+        "sha256": "298ca218c64d749c323a3f359f18400c03174eb3823a120646ff4fdbe313d607"
+      },
+      {
+        "name": "value-constraint-extraction-movement-check.json",
+        "bytes": 386,
+        "sha256": "2cd258ab683dba9a8d2fb873b1e89cdf1b4791c0c1d71f1f59f86ae4f0102632"
+      }
+    ]
+  },
+  "core_test_executable": {
+    "path": "work/numerics/target/debug/deps/conduit_core-6e9a95520dbdd5ba",
+    "bytes": 35140408,
+    "sha256": "03999af1c225e485f907660dddda0f4958ad3350f0faae49a2246eb1bab0db02",
+    "gzip_path": "work/value-constraint-extraction-proof/conduit_core-6e9a95520dbdd5ba.gz",
+    "gzip_sha256": "f2fd0ada1e5e6db6ca0cbc58d2d9bd1a42b2017696e4180b68f25535e03d23fc"
+  }
+}
