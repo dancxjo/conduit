@@ -33,6 +33,8 @@ pub fn source() -> String {
         include_str!("../ipa_inventory.conduit"),
         include_str!("../ipa_constructors.conduit"),
         include_str!("../syllable_structure.conduit"),
+        include_str!("../acoustic_scope.conduit"),
+        include_str!("../fundamental.conduit"),
     ]
     .join("\n")
 }
