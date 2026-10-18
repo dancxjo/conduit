@@ -53,3 +53,29 @@ The fixture consumes accepted Language Source and its existing kernel harness.
 No code is recovered from archived #5273. The upstream alignment carrier from #5925 is admitted at
 `6a2910056f980cb329eb52aa969fc89f9b59dd6a`. This proof consumes that exact
 source. Local tests do not establish accepted combined `dev` evidence.
+
+## Explicit duration grid preparation
+
+`intent_duration_grid::prepare_intent_duration_grid` composes the same native
+`SpeechUtteranceIntent` with Audio's `PreparedAudioSampleProjection` append laws.
+It borrows the original intent and complete text, checks source occurrences,
+and accepts an explicit abstract elapsed-second anchor and optional sample-rate
+basis. This subset accepts text-sourced intents against one complete immutable
+text material; other source-material kinds refuse. The anchor must match; absent rate, stale text, unresolved duration,
+foreign denominator and unsupported numeric bounds refuse without changing the
+carrier. This preparation does not grant commitment or playback authority.
+
+The committed carrier test includes a separately authored timed specimen: all
+seven target segments explicitly last 1/3 second. It re-admits that new original
+artifact before independently projecting it at 8, 16 and 48 kHz. Each cumulative
+floor endpoint and remainder comes from executed Audio Source; three appends
+reach exactly one second instead of accumulating independently rounded frames.
+The original six-state specimen is retained and refuses at its unknown duration.
+
+This bounded bridge requires one unchanged denominator across the tape, the
+Audio projector's 32-bit source fraction bound and at most 192 kHz. Mixed
+fractions require an explicit future common-grid admission rather than silent
+normalization. The API uses the existing Speech duration carrier and retains
+its exact numerator/denominator when constructing the generic Audio request;
+it adds no independent quantity or sample-clock arithmetic. It does not add
+F0, amplitude/power/dB, overlapping trajectories or neural realization.
