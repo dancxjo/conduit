@@ -269,3 +269,201 @@ fn a_checked_integer_uses_the_sealed_tape_through_the_default_product_host() {
             })
     }));
 }
+
+#[cfg(all(target_arch = "x86_64", target_feature = "sse2"))]
+#[test]
+fn explicit_ieee_back_executes_source_rounding_and_flags_through_the_product() {
+    use conduit_core::{Binary64Rounding as Rounding, IeeeBinary64Operation as Operation};
+    let operations = [
+        ("add", Operation::Add),
+        ("subtract", Operation::Subtract),
+        ("multiply", Operation::Multiply),
+        ("divide", Operation::Divide),
+    ];
+    let roundings = [
+        ("nearest_ties_even", Rounding::NearestTiesEven),
+        ("toward_zero", Rounding::TowardZero),
+        ("toward_positive", Rounding::TowardPositive),
+        ("toward_negative", Rounding::TowardNegative),
+    ];
+    let fixture =
+        include_str!("../../../architecture/core/tests/fixtures/ieee_binary64_softfloat.tsv");
+    let mut count = 0;
+    for line in fixture.lines().filter(|line| line.starts_with("a ")) {
+        let fields: Vec<_> = line.split_ascii_whitespace().collect();
+        let op: usize = fields[1].parse().unwrap();
+        let mode: usize = fields[2].parse().unwrap();
+        let (left, right, result) = (fields[3], fields[4], fields[5]);
+        let special = mode == 0
+            && matches!(
+                (op, left, right),
+                (3, "3ff0000000000000", "0000000000000000")
+                    | (2, "7fefffffffffffff", "4008000000000000")
+                    | (2, "0000000000000001", "0000000000000001")
+                    | (0, "fff0000000000069", "3ff0000000000000")
+                    | (0, "7ff8000000000042", "3ff0000000000000")
+                    | (2, "8000000000000000", "3ff0000000000000")
+            );
+        if !(left == "3ff0000000000000" && right == "4008000000000000") && !special {
+            continue;
+        }
+        let flags: u8 = fields[6].parse().unwrap();
+        let flags = [
+            ("inexact", 1),
+            ("underflow", 2),
+            ("overflow", 4),
+            ("divide-by-zero", 8),
+            ("invalid", 16),
+        ]
+        .map(|(name, bit)| format!("{}.flags.{name}", if flags & bit != 0 { "" } else { "!" }))
+        .join(" && ");
+        let (operation, expected_operation) = operations[op];
+        let (rounding, expected_rounding) = roundings[mode];
+        let source = ieee_product_source(
+            "math/ieee-binary64",
+            &format!("operation={operation}(empty),rounding={rounding}(empty)"),
+            "IeeeBinary64Result",
+            left,
+            right,
+            &format!(".value == 0x{result} && {flags}"),
+        );
+        let plan = run(&source, "Explicit IEEE", "explicit rounding and flags");
+        let selected = plan
+            .fragments
+            .iter()
+            .flat_map(|f| &f.placements)
+            .find(|gear| gear.kind_id.as_str() == conduit_semantic_catalog::IEEE_BINARY64_KIND)
+            .unwrap();
+        assert_eq!(
+            selected.implementation_id.as_str(),
+            "conduit.std/ieee-binary64@1"
+        );
+        assert_eq!(
+            selected.execution_profile_id.as_str(),
+            "std/ieee-binary64-x86_64-sse2@1"
+        );
+        assert_eq!(selected.realization_properties.len(), 1);
+        assert_eq!(
+            conduit_semantic_catalog::ieee_binary64_configuration(
+                &selected.kind_id,
+                &selected.configuration
+            )
+            .unwrap(),
+            conduit_semantic_catalog::IeeeBinary64Configuration::Arithmetic {
+                operation: expected_operation,
+                rounding: expected_rounding
+            }
+        );
+        println!(
+            "oracle-case={line} selected-ieee={}",
+            serde_json::to_string(selected).unwrap()
+        );
+        count += 1;
+    }
+    assert_eq!(count, 22);
+}
+
+fn ieee_product_source(
+    kind: &str,
+    configuration: &str,
+    result_type: &str,
+    left: &str,
+    right: &str,
+    condition: &str,
+) -> String {
+    format!(
+        r#"plot left (
+ >> trigger: MathematicalValue
+ result: F64 >>
+) = (0x{left})
+
+plot right (
+ >> trigger: MathematicalValue
+ result: F64 >>
+) = (0x{right})
+
+plot explain (
+ >> receipt: {result_type}
+ result: Text >>
+) = (({condition}) ? "explicit rounding and flags" : "wrong")
+
+plot main {{
+ seed: math/realize(request={{value:0,maximum-error:0}})
+ left: left
+ right: right
+ operation: {kind}({configuration})
+ check: explain
+ show: face/text("Explicit IEEE")
+ seed.result >> (.source) >> left.trigger
+ seed.result >> (.source) >> right.trigger
+ left.result >> operation.left
+ right.result >> operation.right
+ operation.result >> check.receipt
+ check.result >> show
+}}.
+"#
+    )
+}
+
+#[test]
+fn quiet_ieee_predicates_execute_through_the_product_with_separate_invalid_flags() {
+    use conduit_core::IeeeBinary64QuietPredicate as Predicate;
+    let predicates = [
+        ("equal", Predicate::Equal),
+        ("less", Predicate::Less),
+        ("less_equal", Predicate::LessEqual),
+        ("unordered", Predicate::Unordered),
+    ];
+    let fixture =
+        include_str!("../../../architecture/core/tests/fixtures/ieee_binary64_softfloat.tsv");
+    let mut count = 0;
+    for line in fixture.lines().filter(|line| line.starts_with("c ")) {
+        let fields: Vec<_> = line.split_ascii_whitespace().collect();
+        let (left, right) = (fields[3], fields[4]);
+        if !matches!(
+            (left, right),
+            ("8000000000000000", "0000000000000000") | ("fff0000000000069", "3ff0000000000000")
+        ) {
+            continue;
+        }
+        let index: usize = fields[1].parse().unwrap();
+        let (predicate, expected) = predicates[index];
+        let value = if fields[5] == "0000000000000001" {
+            ""
+        } else {
+            "!"
+        };
+        let invalid = if fields[6] == "16" { "" } else { "!" };
+        let source=ieee_product_source("math/ieee-binary64-compare-quiet",&format!("predicate={predicate}(empty)"),
+            "IeeeBinary64ComparisonResult",left,right,&format!("{value}.value && {invalid}.flags.invalid && !.flags.inexact && !.flags.divide-by-zero && !.flags.overflow && !.flags.underflow"));
+        let plan = run(&source, "Explicit IEEE", "explicit rounding and flags");
+        let selected = plan
+            .fragments
+            .iter()
+            .flat_map(|f| &f.placements)
+            .find(|gear| {
+                gear.kind_id.as_str() == conduit_semantic_catalog::IEEE_BINARY64_QUIET_KIND
+            })
+            .unwrap();
+        assert_eq!(
+            selected.execution_profile_id.as_str(),
+            "std/ieee-binary64-quiet-integer@1"
+        );
+        assert_eq!(
+            conduit_semantic_catalog::ieee_binary64_configuration(
+                &selected.kind_id,
+                &selected.configuration
+            )
+            .unwrap(),
+            conduit_semantic_catalog::IeeeBinary64Configuration::Quiet {
+                predicate: expected
+            }
+        );
+        println!(
+            "oracle-case={line} selected-ieee={}",
+            serde_json::to_string(selected).unwrap()
+        );
+        count += 1;
+    }
+    assert_eq!(count, 8);
+}

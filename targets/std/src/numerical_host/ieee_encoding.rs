@@ -66,13 +66,25 @@ impl PreparedIeeeEncoding {
                 StructuredFieldValue::new("value", value.clone())?,
             ],
         )?;
-        Ok(Self {
+        let mut prepared = Self {
             quiet,
             booleans,
             value: PreparedStructuredComposer::new(&value_type, value.canonical_bytes()?.len())?,
             flags: PreparedStructuredComposer::new(&flags_type, flags.canonical_bytes()?.len())?,
             result: PreparedStructuredComposer::new(&result_type, result.canonical_bytes()?.len())?,
-        })
+        };
+        if quiet {
+            prepared.comparison(false, IeeeBinary64ExceptionFlags::default())?;
+        } else {
+            prepared.arithmetic(IeeeBinary64Result {
+                value: IeeeF64::from_bits(0),
+                flags: IeeeBinary64ExceptionFlags::default(),
+            })?;
+        }
+        Ok(prepared)
+    }
+    pub fn result_bytes(&self) -> &[u8] {
+        self.result.encoded()
     }
     pub fn prepared_heap_bytes(&self) -> usize {
         self.booleans.iter().map(Vec::capacity).sum::<usize>()

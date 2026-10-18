@@ -35,9 +35,10 @@ all flag bits. The test observes zero allocations/reallocations across all
 8,000 calls. Separate tests distinguish operation order, explicit sticky flags
 and resource refusal, including exceptional operands with exhausted work.
 
-This is a bounded correctness-reference component. Public Source syntax,
-installed Backs, sealed Plan resource/operation identities, native fast
-realizations and their product proof remain integration work under #5392.
+This is a bounded correctness-reference component. It alone does not establish
+Public Source syntax, installed Backs, sealed Plan resource/operation identities,
+native fast realizations or product execution; subsequent integration is
+described separately below.
 The checked finite expression operators retain their existing profile. The
 reference component alone does not complete the parent IEEE escape-hatch or
 performance acceptance. The captured matrix is edge conformance, not an
@@ -60,8 +61,8 @@ The declarations reuse existing native variant constructors, for example
 Tests check all sixteen arithmetic configuration forms and four predicates,
 explicit-rounding refusal, foreign/extra configuration rejection and the pure
 semantic contract. Existing numerical catalog tests and strict catalog lint
-pass. These are checked contracts and preparation codecs; initialized Backs,
-native availability and actual product execution remain unfinished.
+pass. These initial contract captures cover checking and preparation codecs; they do
+not establish initialized Backs, native availability or actual product execution.
 
 ## Native instruction component preparation
 
@@ -83,9 +84,9 @@ SoftFloat fixture, including result bits and all five flags, with no observed
 allocations or reallocations. The preservation probe checks all four rounding
 modes with preexisting sticky flags and a different rounding/FTZ setting.
 These tests do not establish exhaustive operand conformance or a throughput
-claim. This helper is currently included by the component test only. Production
-factory registration, typed output preparation, sealed resource admission,
-normal kernel execution and actual Source product proof remain unfinished.
+claim. That capture includes the helper through its component test only and does not
+establish production availability. Later initialized Back integration requires
+separate admission and actual Source product proof.
 
 ## Prepared result encoding
 
@@ -101,5 +102,56 @@ flags and raw IEEE bits over 352 encodings: all 32 flag combinations across nine
 carrier specimens and both comparison results. Signed zeros, subnormals,
 infinities and NaN payloads survive encoding. Mixing arithmetic/comparison output
 forms refuses. All calls observe zero allocations/reallocations and unchanged
-retained heap capacity. Strict test lint passes. This remains test-included
-preparation work; it does not advertise or install a Back.
+retained heap capacity. Strict test lint passes. That capture covers test-included
+preparation work; it does not establish an advertised or installed Back.
+
+## Initialized Back development
+
+Private development now wires the two Source Kinds through the ordinary std
+factory and existing kernel Step dispatch. Source-specific initialization offers
+the arithmetic Kind only for the compiled x86_64 SSE2 profile and offers quiet
+comparison through constant-work integer classification. Unsupported native
+arithmetic refuses before Play; no software-reference fallback is installed.
+The arithmetic execution profile identifies its CPU instruction contract.
+Operation, rounding and predicate remain authored semantic configuration sealed
+in the ordinary Plan.
+
+An inspectable `std/ieee-binary64-bounds@1` property records one operation,
+16 input payload bytes, the exact output extent and retained encoder heap
+capacity. These are component bounds, excluding allocator bookkeeping, inline
+objects and whole-Host memory. Installation reconstructs the expected offer and
+bounds and checks the selected Kind, Fore, implementation, artifact, profile,
+limits, effect/authority absence and exact typed configuration before Play.
+
+One kernel Step checks both inputs and output readiness before consuming them.
+It charges one computation fuel unit for its fixed instruction/classification
+and fixed-shape encoding; ordinary input consumption and output staging each
+charge their existing unit, giving four total units. This is a bounded atomic
+operation, not an instruction-count or wall-time claim. It performs no
+source-sized iteration or exact-rational arithmetic. Normal commit completes
+the one-value operation; cancellation clears staged output. Typed result bytes
+remain owned by prepared storage until the normal scheduler commits them.
+
+The isolated Step conformance passes all sixteen arithmetic configurations,
+checks all result bits and flags against the Core reference, and observes no
+warm allocation. Additional cases distinguish pressure, cancellation, malformed
+input, fuel exhaustion, insufficient output capacity, signed-zero numerical
+equality and signaling-NaN invalid. Two installed-factory/Source-batch tests also pass: selected identity and bounds
+are recomputed, tampering refuses, preparation is idempotent, invalid Source
+leaves the advertisement intact, and a replacement Source clears owned IEEE
+offers. This section is not stable acceptance.
+
+The complete actual CLI numerical-expression corpus passes all ten tests. The
+IEEE tests execute 22 arithmetic cases and eight quiet-comparison cases from
+the independent SoftFloat fixture through authored Source, ordinary planning,
+selected initialized Backs and the shared kernel. All sixteen arithmetic
+operation/rounding combinations are covered, plus divide-by-zero, overflow,
+underflow, signaling/quiet NaNs and signed zero. All four quiet predicates are
+covered over signed zeros and signaling NaNs. Source conditions check result
+bits and each flag. The test verifies sealed Plan identity, exact selected
+configuration/profile/bounds, terminal Completed and Plan/Play correlation. Raw
+logs retain the oracle rows and full selected IEEE binding alongside semantic,
+Plan and Play identities. Existing exact/symbolic/uncertainty/finite-float/tape
+product cases remain passing. These are development and local std CPU proofs;
+they do not establish stable-main acceptance, a throughput guarantee or
+installed browser/tiny-device arithmetic profiles.

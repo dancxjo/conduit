@@ -50,6 +50,8 @@ fn inspect(bytes: &[u8], expected_type: &[u8], bits: u8, quiet: Option<bool>, va
 fn every_flag_combination_and_ieee_carrier_class_encodes_without_growth() {
     let mut arithmetic = encoding::PreparedIeeeEncoding::new(false).unwrap();
     let mut comparison = encoding::PreparedIeeeEncoding::new(true).unwrap();
+    assert!(!arithmetic.result_bytes().is_empty());
+    assert!(!comparison.result_bytes().is_empty());
     let capacity = [
         arithmetic.prepared_heap_bytes(),
         comparison.prepared_heap_bytes(),

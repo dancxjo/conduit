@@ -16,12 +16,17 @@ fn source(kind: &str, configuration: &str, result: &str) -> String {
 }
 #[test]
 fn all_arithmetic_modes_and_quiet_predicates_have_exact_checked_source_contracts() {
-    for operation in ["add", "subtract", "multiply", "divide"] {
-        for rounding in [
-            "nearest_ties_even",
-            "toward_zero",
-            "toward_positive",
-            "toward_negative",
+    for (operation, expected_operation) in [
+        ("add", IeeeBinary64Operation::Add),
+        ("subtract", IeeeBinary64Operation::Subtract),
+        ("multiply", IeeeBinary64Operation::Multiply),
+        ("divide", IeeeBinary64Operation::Divide),
+    ] {
+        for (rounding, expected_rounding) in [
+            ("nearest_ties_even", Binary64Rounding::NearestTiesEven),
+            ("toward_zero", Binary64Rounding::TowardZero),
+            ("toward_positive", Binary64Rounding::TowardPositive),
+            ("toward_negative", Binary64Rounding::TowardNegative),
         ] {
             let authored = expand(&source(
                 IEEE_BINARY64_KIND,
@@ -35,13 +40,21 @@ fn all_arithmetic_modes_and_quiet_predicates_have_exact_checked_source_contracts
                 .inputs
                 .iter()
                 .all(|p| p.value_kind.as_str() == F64_INFO_ID));
-            assert!(matches!(
+            assert_eq!(
                 ieee_binary64_configuration(&gear.kind_id, &gear.configuration).unwrap(),
-                IeeeBinary64Configuration::Arithmetic { .. }
-            ));
+                IeeeBinary64Configuration::Arithmetic {
+                    operation: expected_operation,
+                    rounding: expected_rounding
+                }
+            );
         }
     }
-    for predicate in ["equal", "less", "less_equal", "unordered"] {
+    for (predicate, expected) in [
+        ("equal", IeeeBinary64QuietPredicate::Equal),
+        ("less", IeeeBinary64QuietPredicate::Less),
+        ("less_equal", IeeeBinary64QuietPredicate::LessEqual),
+        ("unordered", IeeeBinary64QuietPredicate::Unordered),
+    ] {
         let authored = expand(&source(
             IEEE_BINARY64_QUIET_KIND,
             &format!("predicate={predicate}(empty)"),
@@ -49,10 +62,12 @@ fn all_arithmetic_modes_and_quiet_predicates_have_exact_checked_source_contracts
         ))
         .unwrap();
         let gear = &authored.expanded.gears[0];
-        assert!(matches!(
+        assert_eq!(
             ieee_binary64_configuration(&gear.kind_id, &gear.configuration).unwrap(),
-            IeeeBinary64Configuration::Quiet { .. }
-        ));
+            IeeeBinary64Configuration::Quiet {
+                predicate: expected
+            }
+        );
     }
     for kind in [
         ieee_binary64_semantic_contract(),

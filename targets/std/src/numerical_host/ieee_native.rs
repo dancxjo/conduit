@@ -100,6 +100,7 @@ mod sse2 {
     }
 
     #[cfg(test)]
+    #[allow(dead_code)] // Called by the separate native component integration test.
     pub(super) fn probe(
         rounding: Binary64Rounding,
         injected: u32,
@@ -141,6 +142,7 @@ pub fn execute(
 }
 
 #[cfg(all(test, target_arch = "x86_64", target_feature = "sse2"))]
+#[allow(dead_code)] // Called by the separate native component integration test.
 pub fn preservation_probe(
     rounding: Binary64Rounding,
     injected: u32,
