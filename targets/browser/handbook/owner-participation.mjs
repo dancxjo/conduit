@@ -332,6 +332,7 @@ export async function startOwnerParticipation(application, root) {
       faceEvidence.textContent = JSON.stringify(inspectedRoute, null, 2);
       root.dataset.ownerFaceShown = 'true';
     } catch (error) {
+      participation.discardOwnerFaceMask();
       faceView = null;
       faceComponent.disabled = true;
       faceStatus.textContent = `Owner Face refused: ${error.message}`;

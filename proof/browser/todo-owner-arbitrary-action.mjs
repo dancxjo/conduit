@@ -31,6 +31,15 @@ export async function captureArbitraryTodoRefusals({ page, face, output, sourceR
   assert.ok(retiredView && retiredView.show_id !== originalView.show_id,
     'stale probe must retain the genuine pre-mutation Show');
   const results = [];
+  const retain = async (complete = false) => writeFile(path.join(output,'adversarial-receipt.json'),JSON.stringify({
+    schema:'conduit.proof/browser-todo-arbitrary-action-refusal@2',...sourceRecord,
+    body_id:bodyId,browser_host_id:identity.hostId,browser_boot_id:identity.bootId,
+    show_id:originalView.show_id,face_id:originalView.face_id,
+    unchanged_owner_execution_receipt:JSON.parse(beforeExecution).last_execution,
+    retired_show_id:retiredView.show_id,complete,results,unchanged_owner_face:beforeAttempt.face,
+    scope:'Trusted DOM clicks reach production SDK; each typed refusal precedes WASM/owner dispatch and preserves the actual owner snapshot.',
+  },null,2)+'\n');
+  await retain();
   for (const specimen of cases) {
     assert.deepEqual(face(),beforeAttempt,'each rejection begins at the same owner state');
     await page.evaluate(({specimen,currentAdd,originalView,argument}) => {
@@ -63,6 +72,7 @@ export async function captureArbitraryTodoRefusals({ page, face, output, sourceR
     assert.deepEqual(after,beforeAttempt,'refusal preserves canonical owner Face, revision and Host/Boot');
     results.push({case:specimen.name,...result,unchanged_owner_face:after.face,
       accepted_domain_mutations:0,gate:'production-sdk-before-wasm'});
+    await retain();
     await page.locator('#todo-adversarial-probe').evaluate(element => element.remove());
   }
   // The installed generic renderer exposes native names/keyboard agency. Local
@@ -79,6 +89,7 @@ export async function captureArbitraryTodoRefusals({ page, face, output, sourceR
   assert.deepEqual(face(),beforeAttempt,'focus and scroll are renderer-local');
   await unchangedExecution();
   results.push({case:'focus-scroll',disposition:'MaskLocal',accepted_domain_mutations:0});
+  await retain();
   // Hostile appearance must fail preparation before an acknowledged usable Show.
   await page.locator('conduit-owner-face').evaluate(element => {element.hidden=true;});
   await page.getByRole('button',{name:'Refresh this Face',exact:true}).click();
@@ -89,18 +100,13 @@ export async function captureArbitraryTodoRefusals({ page, face, output, sourceR
   await unchangedExecution();
   results.push({case:'hidden-mandatory-action',disposition:'RendererActionInaccessible',
     show_acknowledged:false,accepted_domain_mutations:0});
+  await retain();
   await page.locator('conduit-owner-face').evaluate(element => {element.hidden=false;});
   await page.getByRole('button',{name:'Refresh this Face',exact:true}).click();
   await page.waitForFunction(() => document.querySelector('[data-owner-show-acknowledged]'));
   assert.equal(await add.isEnabled(),true);
   assert.deepEqual(face(),beforeAttempt,'restoring accessible generic renderer does not replay a rejected event');
   await unchangedExecution();
-  await writeFile(path.join(output,'adversarial-receipt.json'),JSON.stringify({
-    schema:'conduit.proof/browser-todo-arbitrary-action-refusal@2',...sourceRecord,
-    body_id:bodyId,browser_host_id:identity.hostId,browser_boot_id:identity.bootId,
-    show_id:originalView.show_id,face_id:originalView.face_id,
-    unchanged_owner_execution_receipt:JSON.parse(beforeExecution).last_execution,
-    retired_show_id:retiredView.show_id,results,unchanged_owner_face:beforeAttempt.face,
-    scope:'Trusted DOM clicks reach production SDK; each typed refusal precedes WASM/owner dispatch and preserves the actual owner snapshot.',
-  },null,2)+'\n');
+  results.push({case:'restored-accessible-renderer',accepted_domain_mutations:0});
+  await retain(true);
 }
