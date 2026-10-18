@@ -8,6 +8,7 @@ use crate::{
 use core::cmp::Ordering;
 
 mod arithmetic;
+mod binary32;
 mod enclosure;
 mod product;
 mod projection;
@@ -15,6 +16,7 @@ mod receipt;
 mod value_profile;
 mod value_view;
 mod wire_contract;
+pub use binary32::*;
 pub use enclosure::*;
 pub use projection::*;
 pub use receipt::*;
