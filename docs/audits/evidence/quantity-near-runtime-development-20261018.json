@@ -1,0 +1,58 @@
+{
+  "source_commit": "d1a24df244b6fb85828bdf2266806524f7aa62c6",
+  "status": "development only; not parent completion or stable acceptance",
+  "source": {
+    "source_document_id": "80943c66946edd906bd6dcd66064dc8166dfe2c8ebb770322cf5191983e4e1c0",
+    "checked_plot_id": "4ef9c6cdd83546745c66235a0b59077dee7d4c070db2a9d841e7cc9d67e511a6",
+    "expanded_plot_id": "3250b6f06ecb187010ca26e72b248d6d5ecac1f44a339b52e0a78feea73ce445",
+    "plan_id": "021e73893ac43c2ceafd8f5ce6634c08e586b4cd2f8ec541ee5794d913a0d50f"
+  },
+  "play": "2362062aa76811c9fbef8b9bd139b64e30c4c1bdd8efb926ffe960d690e0a4a0",
+  "selected_profile": "std/quantity-near-binary32-single-round@1",
+  "expected": {
+    "source": "1/3m",
+    "target_bits": "0x3eaaaaab",
+    "error": "1/100663296m"
+  },
+  "report_sha256": "baccaff5b1d8890d7de7f5130d66db3894d851aad145104bc34d2d4f49a5a484",
+  "binary": {
+    "source_commit": "d1a24df24",
+    "binary": "../near-runtime-proof/conduit",
+    "bytes": 703949112,
+    "sha256": "8638d9332b6c64e31353a04ec70c2d1fcbcff10dc9e8a5ced2d24469eecfc2a9",
+    "scope": "Native actual CLI; no browser/device or stable release acceptance"
+  },
+  "tests": {
+    "std_near_specific": 6,
+    "std_near_filter_extra_passes": 2,
+    "unrelated_owner_count_matrix_ignored": 1,
+    "public_cli": 1,
+    "forged_packets": [
+      "target bits",
+      "zero error",
+      "source coordinate",
+      "Unit"
+    ],
+    "allocation_calls": 64,
+    "allocation_events": 0,
+    "scope": "Evaluate+encode+verify guard, separately kernel report; not universal process allocation guarantee"
+  },
+  "pending": [
+    "Fore near grammar",
+    "Strong-to-weak generic Cord compatibility",
+    "Accumulated error handling",
+    "Remaining original93-row audit and stable release"
+  ],
+  "failure_history": "Initial CLI fixture used unsupported ordered MathematicalValue operator; changed to exact independent error comparison; original log retained.",
+  "validation": {
+    "strict_core_catalog_std_all_targets_clippy": "PASS",
+    "core_no_default_features": "PASS",
+    "format": "PASS"
+  },
+  "archive": {
+    "path": "quantity-near-runtime-development-20261018.raw.tar.gz",
+    "sha256": "e157542602b050f599d5692b7059d92b05b5542325f4b44a104167da6d84332d",
+    "bytes": 191841,
+    "roundtrip": "all retained log/report bytes verified"
+  }
+}
