@@ -13,6 +13,8 @@ pub const STEPS: &[Step] = &[
             "--test",
             "acoustic_quantities",
             "--test",
+            "authoring_types",
+            "--test",
             "amplitude_power",
             "--test",
             "decibel_projection",

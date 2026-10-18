@@ -24,7 +24,7 @@ Outputs under `target/conduitos/x86_64/`:
 - `journey-serial.log` and `journey-qmp.log`: complete retained guest and input observations.
 - `journey-frames/manifest.json`: source/image-bound real screenshots, serial offsets and adjacent native receipt identities. A restored application screenshot is explicitly distinct from the transient acknowledged Mask Show used to admit a lifecycle shortcut.
 
-The normal product keyboard route currently does not offer semantic pointer actions. A source-equivalent installed browser route for this shell is also unavailable. Both are recorded as unsupported; parent #5356 acceptance remains open. Stale Show replay and wrong-target/argument cases are currently covered only by focused deterministic admission tests, while unavailable Wake is enacted in the installed guest. This does not complete #5605: its numbered real-journey step 5 separately requires an installed retired-Show/revision replay. The local-Birth product has no supported retained-interaction replay ingress; repeated keys construct fresh interactions. Retain that requirement as unresolved unless actual installed replay evidence is added or the issue scope is explicitly revised. No special replay callback, alternate owner or proof-only domain ingress is used. QEMU and deterministic reconstruction establish neither physical-device operation nor human enactment.
+The normal product keyboard route currently does not offer semantic pointer actions. A source-equivalent installed browser route for this shell is also unavailable. Both are recorded as unsupported; parent #5356 acceptance remains open. Stale Show replay and wrong-target/argument cases are currently covered only by focused deterministic admission tests, while unavailable Wake is enacted in the installed guest. The #5605 scope clarification of 2026-10-18 follows its negative-test matrix: stale Show/revision and wrong-target/argument rejection are deterministic admission evidence; the installed QEMU negative is unavailable Wake followed by fresh recovery. Installed retired-Show replay is not claimed or required for this slice. The local-Birth product has no supported retained-interaction replay ingress; repeated keys construct fresh interactions. No special replay callback, alternate owner or proof-only domain ingress is used. QEMU and deterministic reconstruction establish neither physical-device operation nor human enactment.
 
 The current CI product route can also be reproduced with a fresh output directory:
 
@@ -36,3 +36,21 @@ cargo +stable xtask make host verify target/native-face-product
 ```
 
 This verifies the retained normal Host product and its source/image manifest. It does not use the architecture-only journey appliance. The journey itself uses one fresh guest boot; the separate boot check is not another chapter of that Body's journey.
+
+## Accepted product evidence
+
+The retained normal-product bundle in [release-4c4cd59a4a66f5d853da7aff97ee92d9b16ceb74](https://github.com/dancxjo/conduit/releases/tag/release-4c4cd59a4a66f5d853da7aff97ee92d9b16ceb74)
+was tested by [Integration 39149303771](https://github.com/dancxjo/conduit/actions/runs/39149303771).
+Its publisher manifest separates tested source `4c4cd59a4a66f5d853da7aff97ee92d9b16ceb74`
+from accepted main `8729ac31cf42966d9e99d879b1afee9cf258e383`; both trees are
+`ede40074b4cfd3857c142351cb8c3335440f8844`.
+
+A fresh retained-artifact audit verified all 30 x86 target file hashes and 17
+screenshot hashes, 27 paired native/linear Faces with equal semantic actions,
+basis and encounter context, one Birth, four accepted lifecycle actions, one
+zero-effect unavailable refusal with unchanged complete owner projection, and
+fresh accepted recovery. The committed Unicode receipt passes its captured-session
+validator. This audits existing CI QEMU evidence; it is not another guest run.
+The ISO SHA-256 is `3c4afd6e658eebbad5d32f22ff56df4b43bd12e5368efdd1671baecf86ed5465`.
+The bundle explicitly retains the unsupported pointer/browser portions and absent
+physical/human evidence described above; parent #5356 remains open.
