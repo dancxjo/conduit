@@ -66,6 +66,7 @@ impl FaceArrival {
                             }
                             Err(error) => return Err(error.as_str()),
                         }
+                        arch::early_write(b"CONDUIT_CRECHE_CHECKPOINT edited\n");
                         let fresh_show = self.mask.show().ok_or("creche-face-show-absent")?;
                         super::super::native_action_evidence::creche_change(
                             &source_face,
@@ -74,7 +75,6 @@ impl FaceArrival {
                             &fresh_face,
                             fresh_show,
                         )?;
-                        arch::early_write(b"CONDUIT_CRECHE_CHECKPOINT edited\n");
                         Ok(FaceArrivalInput::Continue)
                     }
                     BirthActionOutcome::Birth(selection) => {

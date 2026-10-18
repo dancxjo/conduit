@@ -11,6 +11,8 @@ import { validateNativeTextEditReceipt } from './conduitos-text-edit-receipt.mjs
 
 const STEPS = Object.freeze([
   step('front-door-ready', 'Arrive at Crèche', 'Crèche is open before any Body exists.', 'The user sees a name field and locally available Plots.', 'A fresh Host and Boot have presented the first Face.', 'First boot'),
+  step('creche-three-selected', 'Change a checked Plot', 'Three starting Plots are selected.', 'The user focuses the first Plot and presses Space.', 'The current typed Boolean action is accepted by Birth and a fresh Show displays its new value.', 'Tab to Plot · Space'),
+  step('creche-four-restored', 'Restore the Plot', 'All four starting Plots are selected again.', 'The user presses Enter on the same checked source action.', 'A new current Show supplies the restored selection before Birth.', 'Enter'),
   step('body-born', 'Birth a Body', 'The selected Body is born and resting.', 'The user activates Birth after reviewing the Crèche Face.', 'Birth retains the Body without silently starting a Play.', 'Birth'),
   step('body-woken', 'Wake it', 'The same Body has accepted Wake.', 'The user presses F4.', 'Wake is a distinct lifecycle transition.', 'F4'),
   step('wake-refused', 'Refuse an unavailable Wake', 'The current refusal remains inspectable after the application surface returns.', 'The user presses F4 again while the Body is already Awake.', 'The owner refuses the unavailable action without changing the Body or its lifecycle state.', 'F4', false),

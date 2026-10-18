@@ -9,7 +9,7 @@ import { deflateSync } from 'node:zlib';
 import { sealTarget } from '../../tools/ci/pipeline/receipts.mjs';
 
 const names = [
-  'front-door-ready', 'body-born', 'body-woken', 'wake-refused', 'body-planned', 'body-playing',
+  'front-door-ready', 'creche-three-selected', 'creche-four-restored', 'body-born', 'body-woken', 'wake-refused', 'body-planned', 'body-playing',
   'protected-keyboard-canvas', 'protected-memory-lantern',
   'home', 'patchbay-workspace', 'patchbay-face', 'patchbay-diagram',
   'patchbay-gear-details', 'patchbay-diagram-returned', 'body-stopped', 'home-returned', 'patchbay-reentered',
@@ -104,7 +104,7 @@ test('Pages composition refuses a transcript from another Body before writing pa
   }
 });
 
-for (const checkpoint of ['wake-refused', 'home-returned', 'patchbay-reentered', 'protected-keyboard-canvas', 'protected-memory-lantern',
+for (const checkpoint of ['creche-three-selected', 'creche-four-restored', 'wake-refused', 'home-returned', 'patchbay-reentered', 'protected-keyboard-canvas', 'protected-memory-lantern',
   'patchbay-gear-details', 'patchbay-diagram-returned']) {
   test(`Pages composition refuses a journey missing ${checkpoint}`, () => {
     const fixture = makeFixture();
@@ -293,7 +293,7 @@ test('Pages composition rejects a refusal screenshot claiming mandatory pixel ch
     writeFileSync(filename, JSON.stringify(manifest));
     const result = publish(fixture);
     assert.notEqual(result.status, 0);
-    assert.match(result.stderr, /checkpoint 4 violates/);
+    assert.match(result.stderr, new RegExp(`checkpoint ${names.indexOf('wake-refused') + 1} violates`));
   } finally { rmSync(fixture.root, { recursive: true, force: true }); }
 });
 
