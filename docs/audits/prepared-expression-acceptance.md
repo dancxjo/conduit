@@ -259,3 +259,11 @@ The new negative regression fails before this correction; a positive regression
 keeps a valid intrinsic record input supported and verifies its constant result.
 All 14 Plot scalar tests pass after the correction. Earlier receipts retain their
 original source identities and do not constitute proof of this new guard.
+
+The supported native/WASM suite passes from clean source
+`b1c31878ec51f5d27ae077701ff81e7f55254256` with this recursive guard. Its
+[receipt](evidence/scalar-tape-nested-native-wasm.json) and
+[validation record](evidence/scalar-tape-nested-native-validation.json) retain
+the runtime hash, 48 actual WASM cases, semantic identity matches and log hashes.
+Focused strict Clippy and formatting also pass. This does not relabel the earlier
+source-specific std measurements or establish stable-main acceptance.
