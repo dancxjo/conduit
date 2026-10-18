@@ -70,6 +70,10 @@ mod thermostat_face;
 #[path = "thermostat_worker.rs"]
 mod thermostat_worker;
 pub(crate) use thermostat_worker::ThermostatWorker;
+// Bounded source/owner assembly; excluded from initial discovery (#5610).
+#[allow(dead_code)]
+#[path = "commons_encounter.rs"]
+mod commons_encounter;
 #[path = "todo_face.rs"]
 mod todo_face;
 #[path = "todo_next.rs"]
