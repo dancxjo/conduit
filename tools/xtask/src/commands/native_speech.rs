@@ -23,6 +23,7 @@ pub fn run(args: NativeSpeechArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std:
     let invoke = |arguments: &[&str]| -> Result<(), Box<dyn std::error::Error>> {
         let status = Command::new("cargo")
             .args(arguments)
+            .env("CONDUIT_CARRIED_FORMANT_OUTPUT", &output)
             .current_dir(&root)
             .status()?;
         if !status.success() {
@@ -47,6 +48,31 @@ pub fn run(args: NativeSpeechArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std:
         "semantic-bindings,kernel",
         "--tests",
     ])?;
+    // Re-admit retained bytes in a fresh process, without producer structs.
+    let inspection = Command::new("cargo")
+        .args([
+            "test",
+            "--locked",
+            "-p",
+            "conduit-speech",
+            "--features",
+            "semantic-bindings,kernel",
+            "--test",
+            "carried_formant",
+            "independently_reload_exported_carrier",
+            "--",
+            "--exact",
+            "--nocapture",
+        ])
+        .env(
+            "CONDUIT_CARRIED_FORMANT_INSPECT",
+            output.join("shared-carrier"),
+        )
+        .current_dir(&root)
+        .status()?;
+    if !inspection.success() {
+        return Err(format!("retained speech carrier inspection failed: {inspection}").into());
+    }
     invoke(&[
         "test",
         "--locked",
