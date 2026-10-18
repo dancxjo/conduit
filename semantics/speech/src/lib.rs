@@ -286,3 +286,9 @@ pub mod intent_frequency_trajectory;
 pub mod intent_energy;
 #[cfg(feature = "semantic-bindings")]
 pub mod scoped_energy;
+
+#[cfg(feature = "semantic-bindings")]
+pub mod linguistic_rate;
+
+#[cfg(feature = "semantic-bindings")]
+pub mod carrier_identity;
