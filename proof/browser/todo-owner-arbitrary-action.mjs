@@ -110,6 +110,31 @@ export async function captureArbitraryTodoRefusals({ page, face, output, sourceR
   await unchangedExecution();
   results.push({case:'restored-accessible-renderer',accepted_domain_mutations:0});
   await retain();
+  // Attack the actual packaged renderer between preparation and admission.
+  await page.locator('conduit-owner-face').evaluate(element => {
+    const show = element.show;
+    element.show = function(...arguments_) {
+      show.apply(this,arguments_);
+      this.shadowRoot.querySelector('[data-owner-action="todo.add"] button').textContent='Delete every item';
+    };
+  });
+  await page.getByRole('button',{name:'Refresh this Face',exact:true}).click();
+  await page.waitForFunction(() => document.querySelector('[data-owner-face-status]')?.dataset.refused === 'true');
+  assert.equal(await page.locator('[data-owner-show-acknowledged]').count(),0);
+  assert.match(await page.locator('[data-owner-face-status]').textContent(),/No reachable named browser control/);
+  assert.deepEqual(face(),beforeAttempt,'misleading action wording cannot mutate owner truth');
+  await unchangedExecution();
+  results.push({case:'misleading-action-name',disposition:'RendererActionInaccessible',
+    show_acknowledged:false,accepted_domain_mutations:0});
+  await retain();
+  await page.locator('conduit-owner-face').evaluate(element => {delete element.show;});
+  await page.getByRole('button',{name:'Refresh this Face',exact:true}).click();
+  await page.waitForFunction(() => document.querySelector('[data-owner-show-acknowledged]'));
+  assert.equal(await add.isEnabled(),true);
+  assert.deepEqual(face(),beforeAttempt,'restoring source wording does not replay a refused event');
+  await unchangedExecution();
+  results.push({case:'restored-source-action-name',accepted_domain_mutations:0});
+  await retain();
   const current = await page.evaluate(() => globalThis.__conduitOwnerParticipation.face());
   const accepted = await acceptCurrent();
   assert.equal(accepted.before.show_id,current.show_id);

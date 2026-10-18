@@ -7,7 +7,7 @@ const view = {body_id:'fixture/body',face_id:'fixture/face',face_revision:1,show
   show_state:'prepared',interactions_admitted:false,subjects:[],relationships:[],
   actions:[{identity:'fixture/add',target:'fixture/list',name:'Add item',availability:'available',
     disclosure:'CurrentAction',arguments:[{name:'text',value_name:'Item text',value_kind:'value/text',maximum_bytes:64,choices:[]}]}]};
-for (const attack of ['none','hidden','transparent','inert','clipped','pseudo','unnamed','overflow','aria-hidden','role','tabindex','scale','disabled','aria-disabled','aria-label','aria-labelledby','read-only','read-only-forged-enabled','prepared-forged-enabled']) {
+for (const attack of ['none','misleading-button','misleading-input','hidden','transparent','inert','clipped','pseudo','unnamed','overflow','aria-hidden','role','tabindex','scale','disabled','aria-disabled','aria-label','aria-labelledby','read-only','read-only-forged-enabled','prepared-forged-enabled']) {
   test(`generic renderer checks named reachable action before Show acknowledgement (${attack})`, async ({page}) => {
     await page.goto('/proof/browser/signal-dom-host.test.html');
     const result = await page.evaluate(async ({view,attack}) => {
@@ -30,6 +30,8 @@ for (const attack of ['none','hidden','transparent','inert','clipped','pseudo','
       const button=element.shadowRoot.querySelector('button');
       if (attack==='pseudo') {const pseudo=document.createElement('div');pseudo.textContent=button.textContent;pseudo.tabIndex=0;button.replaceWith(pseudo);}
       if (attack==='unnamed') button.textContent='';
+      if (attack==='misleading-button') button.textContent='Delete every item';
+      if (attack==='misleading-input') element.shadowRoot.querySelector('label').firstChild.textContent='Secret password';
       if (attack==='role') button.setAttribute('role','presentation');
       if (attack==='tabindex') button.tabIndex=-1;
       if (attack==='disabled') button.disabled=true;
@@ -44,7 +46,7 @@ for (const attack of ['none','hidden','transparent','inert','clipped','pseudo','
   });
 }
 
-for (const attack of ['none','hidden-label','hidden-input','aria-label']) {
+for (const attack of ['none','source-explanation','misleading-radio','hidden-label','hidden-input','aria-label']) {
   test(`production CSS native radio keeps a certified visible named label (${attack})`, async ({page}) => {
     await page.goto('/proof/browser/signal-dom-host.test.html');
     const result=await page.evaluate(async ({base,attack})=>{
@@ -58,18 +60,20 @@ for (const attack of ['none','hidden-label','hidden-input','aria-label']) {
         relationships:[0,1].map(index=>({kind:'Contains',source:'group',target:`option/${index}`})),
         actions:[0,1].map(index=>({identity:`select/${index}`,target:`option/${index}`,name:`Select ${index}`,
           availability:'available',disclosure:'CurrentAction',arguments:[]}))};
+      if(attack==='source-explanation') choices.actions.forEach(action=>{action.explanation='Use this mode';});
       const element=document.createElement('conduit-owner-face');document.body.replaceChildren(element);
       element.show(choices,{invoke:async()=>{}});
       const look=element.shadowRoot.querySelector('link');
       if(!look.sheet) await new Promise((resolve,reject)=>{look.addEventListener('load',resolve,{once:true});look.addEventListener('error',reject,{once:true});});
       const input=element.shadowRoot.querySelector('input[type=radio]');
+      if(attack==='misleading-radio') input.labels[0].querySelector('span').textContent='Destroy everything';
       if(attack==='hidden-label') input.labels[0].style.opacity='0';
       if(attack==='hidden-input') input.hidden=true;
       if(attack==='aria-label') input.setAttribute('aria-label','Misleading action');
       try {assertOwnerFaceReachability(element,choices);return {admitted:true,opacity:getComputedStyle(input).opacity};}
       catch(error) {return {admitted:false,code:error.code};}
     },{base:view,attack});
-    expect(result).toEqual(attack==='none'?{admitted:true,opacity:'0'}:{admitted:false,code:'RendererActionInaccessible'});
+    expect(result).toEqual(['none','source-explanation'].includes(attack)?{admitted:true,opacity:'0'}:{admitted:false,code:'RendererActionInaccessible'});
     if(attack==='none') await expect(page.getByRole('radio',{name:'Mode 1',exact:true})).toBeEnabled();
   });
 }

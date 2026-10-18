@@ -5,6 +5,12 @@ const fail = action => {
   error.code = 'RendererActionInaccessible';
   throw error;
 };
+const normalizedName = value => typeof value === 'string' ? value.replace(/\s+/gu, ' ').trim() : '';
+const nativeLabelName = control => [...control.labels].map(label => {
+  const text = label.cloneNode(true);
+  for (const input of text.querySelectorAll('input,select,textarea')) input.remove();
+  return text.textContent;
+}).join(' ');
 const composedParent = node => node.assignedSlot ?? node.parentElement ?? node.getRootNode().host;
 function visiblePath(node, transparentNativeInput = false) {
   let closedDisclosure = false;
@@ -52,14 +58,22 @@ export function assertOwnerFaceReachability(element, view) {
       const controls = [...region.querySelectorAll('button,input,select')];
       const activator = controls.find(control => control.matches('button,input[type=radio]'));
       if (!activator || !certifiedControl(activator) || activator.dataset.unavailable === 'true' || activator.tabIndex < 0) return false;
-      const named = activator.matches('button') ? activator.textContent.trim()
-        : [...activator.labels].some(label => label.textContent.trim());
+      const subject = view.subjects.find(subject => subject.identity === action.target);
+      const expectedName = activator.matches('button')
+        ? (region.closest('.owner-face-items') && subject ? `${action.name} ${subject.name}` : action.name)
+        : subject ? `${subject.name}${action.explanation ?? ''}` : undefined;
+      const actualName = activator.matches('button') ? activator.textContent : nativeLabelName(activator);
+      const named = normalizedName(expectedName) && normalizedName(actualName) === normalizedName(expectedName);
       const role = activator.getAttribute('role');
       if (role && role !== (activator.matches('button') ? 'button' : 'radio')) return false;
       if (!named || !visibleControl(activator)) return false;
+      const inputs = controls.filter(control => control !== activator);
+      if (inputs.length !== action.arguments.length) return false;
       return controls.every(control => certifiedControl(control) && control.dataset.unavailable !== 'true'
         && control.tabIndex >= 0 && visibleControl(control)
-        && (control.matches('button') || [...control.labels].some(label => label.textContent.trim())));
+        && (control === activator || (control.labels.length > 0
+          && [...control.labels].every(label => visiblePath(label))
+          && normalizedName(nativeLabelName(control)) === normalizedName(action.arguments[inputs.indexOf(control)]?.value_name))));
     });
     if (!reachable) fail(action);
   }
