@@ -198,7 +198,7 @@ pub(crate) fn show(face: &Face) -> MaskShow {
         )
         .unwrap()
 }
-pub(in crate::native_face_scene) fn producer_plan() -> Plan {
+pub(crate) fn producer_plan() -> Plan {
     let kind = mask_kind(
         "test/birth-face",
         vec![],
