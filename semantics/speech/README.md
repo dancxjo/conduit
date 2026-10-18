@@ -988,3 +988,12 @@ actual Language commitment and rejects a stale commitment basis. Canonical corre
 phoneme/phone tapes, full text, alignment and executed inventory. Syllables and
 positioned boundaries remain separate retained components; the correspondence
 digest alone does not attest their contents or grant commitment.
+
+`model_linguistic_projection` has one versioned lexical map shared by training-
+input and inference-input preparation. Independent model-private phoneme/phone
+token streams retain the same opaque original correspondence and full checked
+inventory basis. Checkpoint compatibility compares the complete vocabulary;
+changed content, foreign bases and swapped checkpoint identities refuse.
+Version 1 retains structure and acoustic intent only on the original carrier;
+it does not establish acoustic conditioning, training or model inference. Its
+explicit terminal refusal is `NoAdmittedAcousticBack`.
