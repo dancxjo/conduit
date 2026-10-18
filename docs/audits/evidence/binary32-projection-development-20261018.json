@@ -1,0 +1,103 @@
+{
+  "issue": 5392,
+  "status": "private-component-development-only",
+  "source": "33d7b2959b0df9bcf0c0fc9804200468ce07313d",
+  "validation": {
+    "tests": 123,
+    "target_counts": [
+      100,
+      4,
+      6,
+      8,
+      3,
+      2
+    ],
+    "independent_binary128_to_binary32_oracle_cases": 4296,
+    "strict_core_all_target_clippy": "pass",
+    "core_without_default_features": "pass",
+    "workspace_format": "pass"
+  },
+  "proved": [
+    "Integer-only single rounding matches independent SoftFloat cases, including signs, four modes, subnormal/normal and overflow boundaries.",
+    "Direct rational projection avoids a demonstrated binary64 double-rounding error.",
+    "Tracked projection/refusal window has zero allocations/reallocations.",
+    "Physical projection preserves Unit/family/dimension/role and rejects incompatible error distances.",
+    "Existing generic loss report denies exact consumption and insufficient policies; compatible weaker policies can consume stronger error certificates.",
+    "A separate exact90cm->9/10m coordinate conversion retains source evidence before numerical projection."
+  ],
+  "limits": [
+    "No installed input-consuming math/near Kind or Fore qualification yet.",
+    "No encoded certificate transfer, forged/stale-certificate handling, composed numeric-error, DSP/ML, browser or device proof.",
+    "The law proves a single conversion of exact input, not an arbitrary floating-point computation.",
+    "Physical validation and every consuming numeric bound must be checked separately; policy class name alone is not a parameterized contract.",
+    "No full-workspace integration, exact-main publication or parent completion claim."
+  ],
+  "validation_history": "Initial physical test expected constructor error for a valid but insufficient generic report. It was corrected to verify Insufficient disposition and denied consumption; final123 tests pass.",
+  "archive": {
+    "file": "binary32-projection-development-20261018.raw.tar.gz",
+    "bytes": 35389,
+    "sha256": "0c838ae2ad8ce3fade62c98b495d721c590a2fdb991d353cbe5da89cff528aed"
+  },
+  "custody": {
+    "source": "33d7b2959b0df9bcf0c0fc9804200468ce07313d",
+    "compiler": "rustc 1.98.1 (48a229cea 2026-09-01)\nbinary: rustc\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\ncommit-date: 2026-09-01\nhost: x86_64-unknown-linux-gnu\nrelease: 1.98.1\nLLVM version: 22.1.8\n",
+    "c_compiler": "cc (Ubuntu 15.2.0-16ubuntu1) 15.2.0",
+    "oracle_source": {
+      "repo": "https://github.com/ucb-bar/berkeley-softfloat-3",
+      "commit": "a0c6494cdc11865811dec815d5c0049fba9d82a8",
+      "library_sha256": "77ab652863a5a080bbbe31e536ffcc4769dde949e373fa841a2e72a52512922c",
+      "command": "cc -O2 -DSOFTFLOAT_FAST_INT64 -I work/softfloat-ieee-reference/source/include work/softfloat-binary32-projection-oracle.c work/softfloat-ieee-reference/build/Linux-x86_64-GCC/softfloat.a -o work/softfloat-binary32-projection-oracle"
+    },
+    "binaries": [
+      {
+        "path": "/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/retained-binary32-projection-proof/softfloat-binary32-projection-oracle",
+        "bytes": 16840,
+        "sha256": "446fc259f1839cd1263ee50fa381befa9f2bad92c0690fb74da06637dc2f3f38"
+      },
+      {
+        "path": "/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/retained-binary32-projection-proof/binary32_projection-8118c7a2317dd5db",
+        "bytes": 23543064,
+        "sha256": "e6b2c02c54b3b3e6978e42f7f9fae71bbf179ed5b53df941dafbbec9ccace2a4"
+      },
+      {
+        "path": "/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/retained-binary32-projection-proof/quantity_binary32_projection-b5569896cb46d68a",
+        "bytes": 23817288,
+        "sha256": "a129f6505bce9f5aa058ab8bf3fd81f960dbb9c2f199c527e5a13777e46b39e4"
+      }
+    ],
+    "raw_files": {
+      "softfloat-binary32-projection-oracle.c": {
+        "bytes": 1965,
+        "sha256": "c4191c219bd8cffe304c0bb6ee222a39b66329aaa66918b4899bbcd5cd21b9a4"
+      },
+      "binary32-projection-final-tests.log": {
+        "bytes": 12959,
+        "sha256": "5d48dfad36170153669b3970f71c99c78c4e62e36063d67c1f8567aed2ddbad2"
+      },
+      "binary32-projection-final-clippy.log": {
+        "bytes": 72,
+        "sha256": "fecede7c2157efe2f16c8c8b9dce94b0fb4dd384dca8207046c8bf7636eb0ffe"
+      },
+      "binary32-projection-final-no-default.log": {
+        "bytes": 72,
+        "sha256": "a41051563a4cb5fc1b1bcdd9aa0ba28ca80f7736d629d90cc138218756e8e3a9"
+      },
+      "binary32-projection-final-format.log": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "binary32-physical-projection-first-tests.log": {
+        "bytes": 1848,
+        "sha256": "2f9076dd04f97842f1304c5a8eec69f60d0e39364a86b8075b91575f8d66e367"
+      },
+      "binary32-physical-projection-corrected-tests.log": {
+        "bytes": 620,
+        "sha256": "1df80b8409595f1891e7e7cf1eb0d1fc1b07c3baa1d51c0dca885b33207be524"
+      },
+      "binary32_projection_softfloat.tsv": {
+        "bytes": 202002,
+        "sha256": "a06adafa14fd92b0bcb706c5eaca1e18af2f0f725e0d815ad6da20767826444d"
+      }
+    }
+  }
+}

@@ -5,8 +5,10 @@ use super::{
 };
 use core::cmp::Ordering;
 
+mod binary32;
 mod binary64;
 mod decimal;
+mod ieee;
 mod periodic;
 
 pub const EXACT_RATIONAL_ID: &str = "numeric/exact-rational@1";
