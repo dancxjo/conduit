@@ -5,8 +5,7 @@
 mod commitment_kernel;
 #[path = "committed_carrier/constructors.rs"]
 mod constructors;
-#[path = "../../../language/tests/common/parser_fixture.rs"]
-mod parser;
+use commitment_kernel::parser;
 #[path = "carried_formant_fixture/phonology.rs"]
 mod phonology;
 use conduit_core::IeeeF32;

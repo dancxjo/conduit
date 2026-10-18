@@ -144,7 +144,7 @@ fn literal_frequency(source: &str) -> Result<AudioFrequencyHz, ExactAudioControl
     )?;
     assert_eq!(prepared.receipt().original(), value.source());
     assert_eq!(prepared.receipt().source(), value.value());
-    Ok(prepared.value().clone())
+    Ok(*prepared.value())
 }
 fn segment(start: AudioExactTimeOffset, end: AudioExactTimeOffset) -> AudioTrajectorySegment {
     AudioTrajectorySegment::new(

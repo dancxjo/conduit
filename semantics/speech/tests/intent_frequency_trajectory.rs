@@ -49,8 +49,7 @@ fn all_original_scopes_overlap_without_phone_boxes_and_observations_remain_disti
                 "scope/a",
                 1,
                 120,
-                0,
-                3,
+                (0, 3),
             )],
             AudioControlConflictPolicy::RefuseOverlap,
         );
@@ -147,8 +146,7 @@ fn generic_overlap_priority_gap_and_wrong_role_refusals_survive_linguistic_bindi
             "phone",
             1,
             120,
-            0,
-            3,
+            (0, 3),
         ),
         target(
             scopes[2].clone(),
@@ -157,8 +155,7 @@ fn generic_overlap_priority_gap_and_wrong_role_refusals_survive_linguistic_bindi
             "word",
             2,
             140,
-            0,
-            3,
+            (0, 3),
         ),
         target(
             scopes[3].clone(),
@@ -167,8 +164,7 @@ fn generic_overlap_priority_gap_and_wrong_role_refusals_survive_linguistic_bindi
             "phrase",
             0,
             500,
-            0,
-            3,
+            (0, 3),
         ),
         target(
             scopes[4].clone(),
@@ -177,8 +173,7 @@ fn generic_overlap_priority_gap_and_wrong_role_refusals_survive_linguistic_bindi
             "utterance",
             0,
             50,
-            0,
-            3,
+            (0, 3),
         ),
     ];
     let priority = prepare_frequency_gestures(
@@ -254,8 +249,7 @@ fn generic_overlap_priority_gap_and_wrong_role_refusals_survive_linguistic_bindi
                 "one",
                 1,
                 120,
-                0,
-                3,
+                (0, 3),
             ),
             target(
                 scopes[1].clone(),
@@ -264,8 +258,7 @@ fn generic_overlap_priority_gap_and_wrong_role_refusals_survive_linguistic_bindi
                 "two",
                 2,
                 50,
-                0,
-                3,
+                (0, 3),
             ),
         ],
         AudioControlConflictPolicy::HighestPriorityRefuseTie,
@@ -298,8 +291,7 @@ fn generic_overlap_priority_gap_and_wrong_role_refusals_survive_linguistic_bindi
                     "absent",
                     0,
                     120,
-                    0,
-                    3
+                    (0, 3)
                 )],
                 AudioControlConflictPolicy::RefuseOverlap
             )
@@ -345,8 +337,7 @@ fn exact_original_data_foreign_scopes_and_unsupported_interpolation_profiles_ref
             "phone",
             0,
             120,
-            0,
-            3,
+            (0, 3),
         )],
         AudioControlConflictPolicy::RefuseOverlap,
     );
@@ -414,8 +405,7 @@ fn exact_original_data_foreign_scopes_and_unsupported_interpolation_profiles_ref
                 "foreign",
                 0,
                 120,
-                0,
-                3,
+                (0, 3),
             )],
             AudioControlConflictPolicy::RefuseOverlap,
         );
@@ -458,8 +448,7 @@ fn exact_original_data_foreign_scopes_and_unsupported_interpolation_profiles_ref
                     "stale-basis",
                     0,
                     120,
-                    0,
-                    3
+                    (0, 3)
                 )],
                 AudioControlConflictPolicy::RefuseOverlap
             )
@@ -473,8 +462,7 @@ fn exact_original_data_foreign_scopes_and_unsupported_interpolation_profiles_ref
         "linear",
         0,
         120,
-        0,
-        3,
+        (0, 3),
     );
     let trajectory = AudioQuantityTrajectory::new(
         anchor(),

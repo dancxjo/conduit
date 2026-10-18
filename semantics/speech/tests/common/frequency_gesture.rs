@@ -128,9 +128,9 @@ pub fn target(
     source_scope: &str,
     priority: u16,
     hz: u64,
-    start: u64,
-    end: u64,
+    span: (u64, u64),
 ) -> SpeechFrequencyGestureTarget {
+    let (start, end) = span;
     let provenance = AudioTrajectoryProvenance::new(
         AudioTrajectoryProvenanceKind::Authored,
         "explicit target".into(),
@@ -204,8 +204,7 @@ pub fn gapped_target(scope: SpeechAcousticScope) -> SpeechFrequencyGestureTarget
         "gapped",
         0,
         120,
-        0,
-        3,
+        (0, 3),
     );
     let t = base.control().trajectory();
     let endpoint = t.segments()[0].left();
