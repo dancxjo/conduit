@@ -12,7 +12,7 @@ export class BrowserSavedChoiceRefusal extends Error {
 }
 const refusal = (code, message, cause) => new BrowserSavedChoiceRefusal(code, message, cause);
 function exactText(value, maximum) {
-  return typeof value === "string" && value.length > 0 && !value.includes("\0") && encoder.encode(value).length <= maximum;
+  return typeof value === "string" && value.isWellFormed() && value.length > 0 && !value.includes("\0") && encoder.encode(value).length <= maximum;
 }
 function validate(configuration) {
   if (!configuration || !exactText(configuration.label, 128) || !exactText(configuration.key, 128) ||
@@ -65,6 +65,13 @@ function manifest(configuration, container, onChoose) {
  */
 export function openBrowserSavedChoice({ configuration, storage, container, render = manifest }) {
   const identities = validate(configuration);
+  // Restore/save may await storage; caller mutation cannot change the admitted
+  // initial value, option labels, or the semantic view during that encounter.
+  configuration = {
+    label: configuration.label, key: configuration.key, initial: configuration.initial,
+    options: configuration.options.map(({ identity, label }) => ({ identity, label })),
+    view: structuredClone(configuration.view),
+  };
   if (typeof storage?.readJson !== "function" || typeof storage?.writeJson !== "function") {
     throw refusal("ChoiceStorageUnavailable", "Saved choice requires admitted durable browser storage");
   }

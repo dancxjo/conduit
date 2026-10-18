@@ -22,6 +22,26 @@ pub fn summarize(runs: &[Value]) -> Vec<Value> {
                 "full_host_call.process_cpu_ns",
                 run["full_host_call"]["process_cpu_ns"].as_u64(),
             ),
+            (
+                "kernel_phase_wall.call_wall_ns",
+                run["kernel_phase_wall"]["call_wall_ns"].as_u64(),
+            ),
+            (
+                "kernel_phase_wall.before_preparation_ns",
+                run["kernel_phase_wall"]["before_preparation_ns"].as_u64(),
+            ),
+            (
+                "kernel_phase_wall.back_preparation_ns",
+                run["kernel_phase_wall"]["back_preparation_ns"].as_u64(),
+            ),
+            (
+                "kernel_phase_wall.play_ns",
+                run["kernel_phase_wall"]["play_ns"].as_u64(),
+            ),
+            (
+                "kernel_phase_wall.after_play_ns",
+                run["kernel_phase_wall"]["after_play_ns"].as_u64(),
+            ),
         ] {
             if let Some(value) = value {
                 groups

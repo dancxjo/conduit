@@ -1,0 +1,77 @@
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/conduit/architecture/plot)
+   Compiling conduit-thermostat-plot v0.1.0 (/home/dancxjo/conduit/plots/thermostat/model)
+   Compiling conduit-composite v0.1.0 (/home/dancxjo/conduit/architecture/composite)
+   Compiling conduit-time v0.1.0 (/home/dancxjo/conduit/semantics/time)
+   Compiling conduit-language v0.1.0 (/home/dancxjo/conduit/semantics/language)
+   Compiling conduit-human v0.1.0 (/home/dancxjo/conduit/semantics/human)
+   Compiling conduit-audio v0.1.0 (/home/dancxjo/conduit/semantics/audio)
+   Compiling conduit-web v0.1.0 (/home/dancxjo/conduit/semantics/web)
+   Compiling conduit-text v0.1.0 (/home/dancxjo/conduit/semantics/text)
+   Compiling conduit-process v0.1.0 (/home/dancxjo/conduit/semantics/process)
+   Compiling conduit-alife v0.1.0 (/home/dancxjo/conduit/semantics/alife)
+   Compiling conduit-net v0.1.0 (/home/dancxjo/conduit/semantics/net)
+   Compiling conduit-robotics v0.1.0 (/home/dancxjo/conduit/semantics/robotics)
+   Compiling conduit-purpose v0.1.0 (/home/dancxjo/conduit/semantics/purpose)
+   Compiling conduit-tongues v0.1.0 (/home/dancxjo/conduit/semantics/tongues)
+   Compiling conduit-signal v0.1.0 (/home/dancxjo/conduit/semantics/signal)
+   Compiling conduit-chat v0.1.0 (/home/dancxjo/conduit/semantics/chat)
+   Compiling conduit-wire v0.1.0 (/home/dancxjo/conduit/architecture/wire)
+   Compiling conduit-tutorial-plot v0.1.0 (/home/dancxjo/conduit/semantics/tutorial)
+   Compiling conduit-body-invitation-plot v0.1.0 (/home/dancxjo/conduit/semantics/body-invitation)
+   Compiling conduit-plot-library v0.1.0 (/home/dancxjo/conduit/semantics/plot-library)
+   Compiling conduit-finance v0.1.0 (/home/dancxjo/conduit/semantics/finance)
+   Compiling conduit-bluetooth v0.1.0 (/home/dancxjo/conduit/mechanisms/protocols/bluetooth)
+   Compiling conduit-todo-plot v0.1.0 (/home/dancxjo/conduit/plots/todo/model)
+   Compiling conduit-data v0.1.0 (/home/dancxjo/conduit/semantics/data)
+   Compiling conduit-little-seismograph-fixture v0.1.0 (/home/dancxjo/conduit/plots/little-seismograph/fixture)
+   Compiling conduit-ai v0.1.0 (/home/dancxjo/conduit/semantics/ai)
+   Compiling conduit-education v0.1.0 (/home/dancxjo/conduit/semantics/education)
+   Compiling conduit-midi v0.1.0 (/home/dancxjo/conduit/mechanisms/protocols/midi)
+   Compiling conduit-synth v0.1.0 (/home/dancxjo/conduit/mechanisms/implementations/synth)
+   Compiling conduit-speech v0.1.0 (/home/dancxjo/conduit/semantics/speech)
+   Compiling conduit-planner v0.1.0 (/home/dancxjo/conduit/architecture/planner)
+   Compiling conduit-observatory v0.1.0 (/home/dancxjo/conduit/architecture/observatory)
+   Compiling conduit-face v0.1.0 (/home/dancxjo/conduit/semantics/face)
+   Compiling conduit-birth-plot v0.1.0 (/home/dancxjo/conduit/plots/birth)
+   Compiling conduit-thermostat-face v0.1.0 (/home/dancxjo/conduit/plots/thermostat/face)
+   Compiling conduit-todo-face v0.1.0 (/home/dancxjo/conduit/plots/todo/face)
+   Compiling conduit-semantic-catalog v0.1.0 (/home/dancxjo/conduit/semantics/catalog)
+   Compiling conduit-alife-distributed-conformance v0.1.0 (/home/dancxjo/conduit/proof/conformance/alife-distributed)
+   Compiling conduit-host-make v0.1.0 (/home/dancxjo/conduit/make/host)
+   Compiling patchbay-graph v0.1.0 (/home/dancxjo/conduit/plots/patchbay/graph)
+   Compiling conduit-tour-model v0.1.0 (/home/dancxjo/conduit/plots/tour)
+   Compiling patchbay-application v0.1.0 (/home/dancxjo/conduit/plots/patchbay/application)
+   Compiling conduit-std-offers v0.1.0 (/home/dancxjo/conduit/targets/std/offers)
+   Compiling conduit-host-browser-make v0.1.0 (/home/dancxjo/conduit/targets/browser/make)
+   Compiling conduit-host-raspberry-pi v0.1.0 (/home/dancxjo/conduit/targets/raspberry-pi/make)
+   Compiling conduit-host-avr-make v0.1.0 (/home/dancxjo/conduit/targets/avr/make)
+   Compiling conduit-host-conduitos-make v0.1.0 (/home/dancxjo/conduit/targets/conduitos/make)
+   Compiling conduit-host-rp2040 v0.1.0 (/home/dancxjo/conduit/targets/rp2040/make)
+   Compiling conduit-host-esp32-make v0.1.0 (/home/dancxjo/conduit/targets/esp32/make)
+   Compiling conduit-host-orange-pi v0.1.0 (/home/dancxjo/conduit/targets/orange-pi/make)
+   Compiling conduit-linear-framebuffer-make v0.1.0 (/home/dancxjo/conduit/mechanisms/implementations/linear-framebuffer-make)
+   Compiling conduit-body-make v0.1.0 (/home/dancxjo/conduit/make/body)
+   Compiling conduit-browser-mask-offer v0.1.0 (/home/dancxjo/conduit/targets/browser/mask-offer)
+   Compiling conduit-signal-conformance v0.1.0 (/home/dancxjo/conduit/proof/conformance/signal)
+   Compiling conduit-host-hosted v0.1.0 (/home/dancxjo/conduit/targets/std/make)
+   Compiling conduit-r1-network-conformance v0.1.0 (/home/dancxjo/conduit/proof/conformance/network-r1)
+   Compiling conduit-workspace-make v0.1.0 (/home/dancxjo/conduit/make/workspace)
+   Compiling conduit-browser-runtime v0.1.0 (/home/dancxjo/conduit/targets/browser/runtime)
+   Compiling conduit-std-host v0.1.0 (/home/dancxjo/conduit/targets/std)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1m 32s
+     Running unittests src/lib.rs (target/debug/deps/conduit_std_host-d3bb2bbb32be20a0)
+
+running 10 tests
+test installed_std::pure_expression_back::scalar_tape_parity_tests::invalid_input_and_program_refusals_preserve_logical_attribution ... ok
+test installed_std::pure_expression_back::scalar_tape_parity_tests::checked_signed_values_and_overflow_have_identical_evaluator_outcomes ... ok
+test installed_std::pure_expression_back::scalar_tape_parity_tests::installed_back_refuses_foreign_provenance_and_malformed_configuration_before_play ... ok
+test installed_std::pure_expression_back::scalar_tape_parity_tests::source_identity_and_actual_kernel_outputs_match_for_negative_input ... ok
+test installed_std::pure_expression_back::scalar_tape_parity_tests::actual_kernel_arithmetic_refusal_matches_baseline_sign_and_terminal ... ok
+test installed_std::pure_expression_back::scalar_tape_tests::tape_offer_refuses_unsupported_temporal_and_semantic_profiles ... ok
+test host_execution::scalar_tape_control_tests::output_adapter_refusal_is_preserved_without_hidden_retry_or_completion ... ok
+test host_execution::scalar_tape_control_tests::baseline_and_tape_cancel_before_input_with_identical_terminal_and_sign_kinds ... ok
+test installed_std::pure_expression_back::scalar_tape_tests::actual_std_plan_and_kernel_play_select_the_scalar_tape_back ... ok
+test installed_std::pure_expression_back::scalar_tape_parity_tests::sealed_value_input_storage_and_one_value_scope_refuse_before_delivery ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 806 filtered out; finished in 3.78s
+

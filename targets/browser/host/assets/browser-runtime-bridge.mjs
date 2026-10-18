@@ -26,6 +26,16 @@ function nonnegativeInteger(value, label) {
   return value;
 }
 
+function requireU64(value, label) {
+  if (typeof value !== "bigint") throw new TypeError(`${label} must be a u64 bigint`);
+  if (value < 0n || value > 0xffff_ffff_ffff_ffffn) throw new RangeError(`${label} exceeds its u64 bound`);
+}
+
+function requireU32(value, label) {
+  if (typeof value !== "number") throw new TypeError(`${label} must be a u32 integer`);
+  if (!Number.isSafeInteger(value) || value < 0 || value > 0xffff_ffff) throw new RangeError(`${label} exceeds its u32 bound`);
+}
+
 function boundedLength(length, { minimum = 0, maximum, label }) {
   if (!Number.isSafeInteger(length) || length < minimum || length > maximum) {
     throw new Error(`${label} exceeds its bound`);
@@ -49,6 +59,27 @@ function readCapacity(api, capacityExport, label) {
   return nonnegativeInteger(Number(exported(api, capacityExport, label).call(api)), label);
 }
 
+function encodeTextInput(api, values, capacityExport, label, reservedBytes = 0) {
+  const capacity = readCapacity(api, capacityExport, label);
+  boundedLength(reservedBytes, { maximum: capacity, label });
+  const textCapacity = capacity - reservedBytes;
+  let total = 0;
+  const parts = values.map(value => {
+    if (typeof value !== "string") throw new TypeError(`${label} requires scalar Unicode text`);
+    boundedLength(value.length, { maximum: textCapacity - total, label });
+    if (!value.isWellFormed()) throw new TypeError(`${label} requires scalar Unicode text`);
+    const bytes = encoder.encode(value);
+    boundedLength(bytes.length, { maximum: textCapacity - total, label });
+    total += bytes.length;
+    return bytes;
+  });
+  if (parts.length === 1 && reservedBytes === 0) return { input: parts[0], parts };
+  const input = new Uint8Array(total + reservedBytes);
+  let offset = 0;
+  for (const part of parts) { input.set(part, offset); offset += part.length; }
+  return { input, parts };
+}
+
 function readPointer(api, pointerExport, label) {
   return nonnegativeInteger(Number(exported(api, pointerExport, label).call(api)), label);
 }
@@ -64,17 +95,18 @@ function readBytes(api, { pointerExport, lengthExport, capacityExport = null, mi
 
 function withInput(api, bytes, { pointerExport, capacityExport, minimum = 0, label }, invoke, { retireInput = false } = {}) {
   if (!(bytes instanceof Uint8Array)) throw new TypeError(`${label} must be encoded bytes`);
+  const length = bytes.length;
   const capacity = readCapacity(api, capacityExport, label);
-  boundedLength(bytes.length, { minimum, maximum: capacity, label });
+  boundedLength(length, { minimum, maximum: capacity, label });
   const pointer = readPointer(api, pointerExport, label);
-  const start = boundedPointer(api.memory.buffer, pointer, bytes.length, label);
-  new Uint8Array(api.memory.buffer, start, bytes.length).set(bytes);
+  const start = boundedPointer(api.memory.buffer, pointer, length, label);
+  new Uint8Array(api.memory.buffer, start, length).set(bytes);
   try {
-    return invoke(bytes.length);
+    return invoke(length);
   } finally {
     if (retireInput) {
-      const activeStart = boundedPointer(api.memory.buffer, pointer, bytes.length, label);
-      new Uint8Array(api.memory.buffer, activeStart, bytes.length).fill(0);
+      const activeStart = boundedPointer(api.memory.buffer, pointer, length, label);
+      new Uint8Array(api.memory.buffer, activeStart, length).fill(0);
     }
   }
 }
@@ -291,7 +323,7 @@ export function bindBrowserRuntimeBridge(api, { context }) {
       }) };
     },
     crecheReviewedInventory(source) {
-      const input = encoder.encode(source);
+      const { input } = encodeTextInput(api, [source], "conduit_creche_input_capacity", "Plot source");
       return withInput(api, input, {
         pointerExport: "conduit_creche_input_ptr",
         capacityExport: "conduit_creche_input_capacity",
@@ -308,7 +340,8 @@ export function bindBrowserRuntimeBridge(api, { context }) {
       }, { retireInput: true });
     },
     projectPatchbay(source, sequence) {
-      const input = encoder.encode(source);
+      requireU64(sequence, "Patchbay projection sequence");
+      const { input } = encodeTextInput(api, [source], "conduit_browser_projection_input_capacity", "Patchbay Plot source");
       return withInput(api, input, {
         pointerExport: "conduit_browser_projection_input_ptr",
         capacityExport: "conduit_browser_projection_input_capacity",
@@ -327,10 +360,8 @@ export function bindBrowserRuntimeBridge(api, { context }) {
       }, { retireInput: true });
     },
     crecheReviewInitialWorkload({ host, boot, initialPlots, source }) {
-      const parts = [host, boot, JSON.stringify(initialPlots), source].map((value) => encoder.encode(value));
-      const input = new Uint8Array(parts.reduce((total, part) => total + part.length, 0));
-      let offset = 0;
-      for (const part of parts) { input.set(part, offset); offset += part.length; }
+      const { input, parts } = encodeTextInput(api, [host, boot, JSON.stringify(initialPlots), source],
+        "conduit_creche_input_capacity", "Plot realization review input");
       return withInput(api, input, {
         pointerExport: "conduit_creche_input_ptr",
         capacityExport: "conduit_creche_input_capacity",
@@ -348,7 +379,8 @@ export function bindBrowserRuntimeBridge(api, { context }) {
       }, { retireInput: true });
     },
     crecheAdmitSourceInteraction(source, sequence) {
-      const input = encoder.encode(source);
+      requireU64(sequence, "source interaction sequence");
+      const { input } = encodeTextInput(api, [source], "conduit_creche_input_capacity", "Plot source interaction");
       return withInput(api, input, {
         pointerExport: "conduit_creche_input_ptr",
         capacityExport: "conduit_creche_input_capacity",
@@ -365,10 +397,9 @@ export function bindBrowserRuntimeBridge(api, { context }) {
       }, { retireInput: true });
     },
     crecheBirth({ host, boot, friendlyName, initialPlots, source, sequence }) {
-      const parts = [host, boot, friendlyName, JSON.stringify(initialPlots), source].map((value) => encoder.encode(value));
-      const input = new Uint8Array(parts.reduce((total, part) => total + part.length, 0));
-      let offset = 0;
-      for (const part of parts) { input.set(part, offset); offset += part.length; }
+      requireU64(sequence, "Body birth sequence");
+      const { input, parts } = encodeTextInput(api, [host, boot, friendlyName, JSON.stringify(initialPlots), source],
+        "conduit_creche_input_capacity", "Body birth input");
       return withInput(api, input, {
         pointerExport: "conduit_creche_input_ptr",
         capacityExport: "conduit_creche_input_capacity",
@@ -396,6 +427,7 @@ export function bindBrowserRuntimeBridge(api, { context }) {
       }) };
     },
     crecheAttachHere(hostBytes, bootBytes, sequence) {
+      requireU64(sequence, "Body attachment sequence");
       const input = new Uint8Array(hostBytes.length + bootBytes.length);
       input.set(hostBytes);
       input.set(bootBytes, hostBytes.length);
@@ -462,6 +494,7 @@ export function bindBrowserRuntimeBridge(api, { context }) {
       }, { retireInput: true });
     },
     browserPlotAcknowledgeCancellation(activePlayId, placementId, sequence) {
+      requireU32(sequence, "cancellation request sequence");
       const play = encoder.encode(activePlayId);
       const placement = encoder.encode(placementId);
       const bytes = new Uint8Array(play.length + placement.length);
@@ -477,22 +510,27 @@ export function bindBrowserRuntimeBridge(api, { context }) {
       }, { retireInput: true });
     },
     browserPlotCompleteEffect(activePlayId, placementId, sequence, effectOutputBytes) {
-      const play = encoder.encode(activePlayId);
-      const placement = encoder.encode(placementId);
-      const bytes = new Uint8Array(play.length + placement.length + effectOutputBytes.length);
-      bytes.set(play);
-      bytes.set(placement, play.length);
-      bytes.set(effectOutputBytes, play.length + placement.length);
+      requireU32(sequence, "effect completion request sequence");
+      if (!(effectOutputBytes instanceof Uint8Array)) throw new TypeError("effect output must be encoded bytes");
+      const outputLength = effectOutputBytes.length;
+      const outputBuffer = effectOutputBytes.buffer;
+      const outputOffset = effectOutputBytes.byteOffset;
+      const { input: bytes, parts: [play, placement] } = encodeTextInput(api, [activePlayId, placementId],
+        "conduit_browser_plot_input_capacity", "effect completion input", outputLength);
+      bytes.set(new Uint8Array(outputBuffer, outputOffset, outputLength), play.length + placement.length);
       return withInput(api, bytes, {
         pointerExport: "conduit_browser_plot_input_ptr",
         capacityExport: "conduit_browser_plot_input_capacity",
         label: "effect completion input",
       }, () => {
-        const status = call("conduit_browser_plot_complete_effect", play.length, placement.length, sequence, effectOutputBytes.length);
+        const status = call("conduit_browser_plot_complete_effect", play.length, placement.length, sequence, outputLength);
         return { status, outputJson: maybeReadPlotOutputJson(api, status >= 0 ? 1 : 0) };
       }, { retireInput: true });
     },
     browserPlotRefuseEffect(activePlayId, placementId, sequence, disposition, detail) {
+      requireU32(sequence, "effect refusal request sequence");
+      requireU32(disposition, "effect refusal disposition");
+      requireU32(detail, "effect refusal detail");
       const play = encoder.encode(activePlayId);
       const placement = encoder.encode(placementId);
       const bytes = new Uint8Array(play.length + placement.length);

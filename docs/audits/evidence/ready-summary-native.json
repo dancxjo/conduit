@@ -1,0 +1,486 @@
+{
+  "before_source": "aa0e94966b38e0a34291d7a2e6a44eb6f2fd8f5f",
+  "after_source": "de38706add56eca5e13f549f3bd5a5aa55fdf2a4",
+  "same_reported_hardware_and_affinity": true,
+  "timing_comparison_permitted": true,
+  "verified_artifact_hashes": 40,
+  "cases_per_capture": 192,
+  "exact_sign_remote_output_readiness_value_terminal_replay_parity": true,
+  "allocation_and_copy_counter_parity": true,
+  "work_changes": {
+    "ready_bytes_scanned": [
+      [
+        256,
+        false,
+        544,
+        517
+      ],
+      [
+        256,
+        true,
+        96,
+        17
+      ]
+    ]
+  },
+  "instrumented_scheduler_bytes": {
+    "1": {
+      "before": 181360,
+      "after": 181360,
+      "delta": 0
+    },
+    "8": {
+      "before": 185384,
+      "after": 185384,
+      "delta": 0
+    },
+    "32": {
+      "before": 199160,
+      "after": 199160,
+      "delta": 0
+    },
+    "256": {
+      "before": 327736,
+      "after": 327736,
+      "delta": 0
+    }
+  },
+  "timing_summary": [
+    {
+      "active": 1,
+      "sparse": false,
+      "before": {
+        "process_mean_fixture_advance_ns": [
+          430,
+          886.375,
+          1087.625
+        ],
+        "mean_fixture_advance_ns": 801.3333333333334,
+        "sample_sd_process_mean_ns": 336.9595286652884,
+        "mean_ns_per_useful_received_value": 801.3333333333334,
+        "useful_received_values_per_fixture": 1,
+        "samples": 24
+      },
+      "after": {
+        "process_mean_fixture_advance_ns": [
+          782.75,
+          603.125,
+          835.375
+        ],
+        "mean_fixture_advance_ns": 740.4166666666666,
+        "sample_sd_process_mean_ns": 121.77478785993976,
+        "mean_ns_per_useful_received_value": 740.4166666666666,
+        "useful_received_values_per_fixture": 1,
+        "samples": 24
+      },
+      "descriptive_after_before_ratio": 0.9239808652246255
+    },
+    {
+      "active": 1,
+      "sparse": true,
+      "before": {
+        "process_mean_fixture_advance_ns": [
+          399,
+          896.625,
+          996.25
+        ],
+        "mean_fixture_advance_ns": 763.9583333333334,
+        "sample_sd_process_mean_ns": 319.9644104558089,
+        "mean_ns_per_useful_received_value": 763.9583333333334,
+        "useful_received_values_per_fixture": 1,
+        "samples": 24
+      },
+      "after": {
+        "process_mean_fixture_advance_ns": [
+          688,
+          737.125,
+          1000.625
+        ],
+        "mean_fixture_advance_ns": 808.5833333333334,
+        "sample_sd_process_mean_ns": 168.11697626454423,
+        "mean_ns_per_useful_received_value": 808.5833333333334,
+        "useful_received_values_per_fixture": 1,
+        "samples": 24
+      },
+      "descriptive_after_before_ratio": 1.0584128715571313
+    },
+    {
+      "active": 8,
+      "sparse": false,
+      "before": {
+        "process_mean_fixture_advance_ns": [
+          1544.75,
+          2091,
+          2352.375
+        ],
+        "mean_fixture_advance_ns": 1996.0416666666667,
+        "sample_sd_process_mean_ns": 412.10113923445215,
+        "mean_ns_per_useful_received_value": 249.50520833333334,
+        "useful_received_values_per_fixture": 8,
+        "samples": 24
+      },
+      "after": {
+        "process_mean_fixture_advance_ns": [
+          1843.75,
+          1791.75,
+          1740
+        ],
+        "mean_fixture_advance_ns": 1791.8333333333333,
+        "sample_sd_process_mean_ns": 51.87505020077892,
+        "mean_ns_per_useful_received_value": 223.97916666666666,
+        "useful_received_values_per_fixture": 8,
+        "samples": 24
+      },
+      "descriptive_after_before_ratio": 0.8976933514246946
+    },
+    {
+      "active": 8,
+      "sparse": true,
+      "before": {
+        "process_mean_fixture_advance_ns": [
+          341.375,
+          892.875,
+          992.5
+        ],
+        "mean_fixture_advance_ns": 742.25,
+        "sample_sd_process_mean_ns": 350.7233373686445,
+        "mean_ns_per_useful_received_value": 742.25,
+        "useful_received_values_per_fixture": 1,
+        "samples": 24
+      },
+      "after": {
+        "process_mean_fixture_advance_ns": [
+          678.5,
+          674.25,
+          623
+        ],
+        "mean_fixture_advance_ns": 658.5833333333334,
+        "sample_sd_process_mean_ns": 30.889251096997047,
+        "mean_ns_per_useful_received_value": 658.5833333333334,
+        "useful_received_values_per_fixture": 1,
+        "samples": 24
+      },
+      "descriptive_after_before_ratio": 0.887279667677108
+    },
+    {
+      "active": 32,
+      "sparse": false,
+      "before": {
+        "process_mean_fixture_advance_ns": [
+          3730.75,
+          5008.125,
+          5571
+        ],
+        "mean_fixture_advance_ns": 4769.958333333333,
+        "sample_sd_process_mean_ns": 942.9594564234103,
+        "mean_ns_per_useful_received_value": 149.06119791666666,
+        "useful_received_values_per_fixture": 32,
+        "samples": 24
+      },
+      "after": {
+        "process_mean_fixture_advance_ns": [
+          4640.5,
+          4526,
+          4478.25
+        ],
+        "mean_fixture_advance_ns": 4548.25,
+        "sample_sd_process_mean_ns": 83.38202743997054,
+        "mean_ns_per_useful_received_value": 142.1328125,
+        "useful_received_values_per_fixture": 32,
+        "samples": 24
+      },
+      "descriptive_after_before_ratio": 0.9535198595375571
+    },
+    {
+      "active": 32,
+      "sparse": true,
+      "before": {
+        "process_mean_fixture_advance_ns": [
+          309.5,
+          964,
+          859.375
+        ],
+        "mean_fixture_advance_ns": 710.9583333333334,
+        "sample_sd_process_mean_ns": 351.5866787981782,
+        "mean_ns_per_useful_received_value": 710.9583333333334,
+        "useful_received_values_per_fixture": 1,
+        "samples": 24
+      },
+      "after": {
+        "process_mean_fixture_advance_ns": [
+          618.75,
+          592.5,
+          626.375
+        ],
+        "mean_fixture_advance_ns": 612.5416666666666,
+        "sample_sd_process_mean_ns": 17.770381490934103,
+        "mean_ns_per_useful_received_value": 612.5416666666666,
+        "useful_received_values_per_fixture": 1,
+        "samples": 24
+      },
+      "descriptive_after_before_ratio": 0.861571822071148
+    },
+    {
+      "active": 256,
+      "sparse": false,
+      "before": {
+        "process_mean_fixture_advance_ns": [
+          29263.5,
+          92484.75,
+          39102.5
+        ],
+        "mean_fixture_advance_ns": 53616.916666666664,
+        "sample_sd_process_mean_ns": 34018.12504049618,
+        "mean_ns_per_useful_received_value": 209.44108072916666,
+        "useful_received_values_per_fixture": 256,
+        "samples": 24
+      },
+      "after": {
+        "process_mean_fixture_advance_ns": [
+          38133.125,
+          34603.5,
+          33736.25
+        ],
+        "mean_fixture_advance_ns": 35490.958333333336,
+        "sample_sd_process_mean_ns": 2328.908362615054,
+        "mean_ns_per_useful_received_value": 138.63655598958334,
+        "useful_received_values_per_fixture": 256,
+        "samples": 24
+      },
+      "descriptive_after_before_ratio": 0.6619358318192486
+    },
+    {
+      "active": 256,
+      "sparse": true,
+      "before": {
+        "process_mean_fixture_advance_ns": [
+          521.125,
+          968.125,
+          814.75
+        ],
+        "mean_fixture_advance_ns": 768.0,
+        "sample_sd_process_mean_ns": 227.13745150238876,
+        "mean_ns_per_useful_received_value": 768.0,
+        "useful_received_values_per_fixture": 1,
+        "samples": 24
+      },
+      "after": {
+        "process_mean_fixture_advance_ns": [
+          867.375,
+          748.75,
+          744.125
+        ],
+        "mean_fixture_advance_ns": 786.75,
+        "sample_sd_process_mean_ns": 69.86158189591758,
+        "mean_ns_per_useful_received_value": 786.75,
+        "useful_received_values_per_fixture": 1,
+        "samples": 24
+      },
+      "descriptive_after_before_ratio": 1.0244140625
+    }
+  ],
+  "before_metadata": {
+    "source": "aa0e94966b38e0a34291d7a2e6a44eb6f2fd8f5f",
+    "build_command": [
+      "cargo",
+      "test",
+      "--locked",
+      "--release",
+      "-p",
+      "conduit-kernel",
+      "--features",
+      "alloc,step-test-support",
+      "--lib",
+      "--no-run",
+      "--message-format=json"
+    ],
+    "node_counts": [
+      1,
+      8,
+      32,
+      256
+    ],
+    "runs": 3,
+    "clean_command": [
+      "cargo",
+      "clean",
+      "--release",
+      "-p",
+      "conduit-kernel"
+    ],
+    "capture_harness_sha256": "155e857429517ab3eb6aeff3550a93136e3b83df395a632b7cc253c4f9718815",
+    "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)\nbinary: rustc\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\ncommit-date: 2026-09-01\nhost: x86_64-unknown-linux-gnu\nrelease: 1.98.1\nLLVM version: 22.1.8\n",
+    "executable": "/home/dancxjo/conduit/target/release/deps/conduit_kernel-a0d81f604a53611a",
+    "executable_sha256": "b1127ffd4c4f9016128aeae69835a5fccd30b8368ef9898cce960677b599bdc2",
+    "system": "Linux",
+    "release": "7.0.0-38-generic",
+    "machine": "x86_64",
+    "cpu_model": "12th Gen Intel(R) Core(TM) i9-12900H",
+    "affinity": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19
+    ],
+    "profile": {
+      "CARGO_PROFILE_RELEASE_OPT_LEVEL": "3",
+      "CARGO_PROFILE_RELEASE_DEBUG": "0",
+      "CARGO_PROFILE_RELEASE_OVERFLOW_CHECKS": "true",
+      "CARGO_PROFILE_RELEASE_DEBUG_ASSERTIONS": "false"
+    },
+    "scope": "test-only observations of production FixedScheduler/FixedValueStore; native Linux",
+    "limits": [
+      "instrumented Step wall time includes observation/harness work",
+      "copy bytes count successful fixed-value-store writes only",
+      "compiler moves, Sign copies and Host transport copies are unmeasured",
+      "test-only allocator/scan observations are absent from product builds",
+      "no browser/WASM attribution: native test allocator and observation seams are not installed in that product",
+      "no timing threshold, causal speedup, independent confidence interval or parent5395 completion"
+    ]
+  },
+  "after_metadata": {
+    "source": "de38706add56eca5e13f549f3bd5a5aa55fdf2a4",
+    "build_command": [
+      "cargo",
+      "test",
+      "--locked",
+      "--release",
+      "-p",
+      "conduit-kernel",
+      "--features",
+      "alloc,step-test-support",
+      "--lib",
+      "--no-run",
+      "--message-format=json"
+    ],
+    "node_counts": [
+      1,
+      8,
+      32,
+      256
+    ],
+    "runs": 3,
+    "clean_command": [
+      "cargo",
+      "clean",
+      "--release",
+      "-p",
+      "conduit-kernel"
+    ],
+    "capture_harness_sha256": "155e857429517ab3eb6aeff3550a93136e3b83df395a632b7cc253c4f9718815",
+    "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)\nbinary: rustc\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\ncommit-date: 2026-09-01\nhost: x86_64-unknown-linux-gnu\nrelease: 1.98.1\nLLVM version: 22.1.8\n",
+    "executable": "/home/dancxjo/conduit/target/release/deps/conduit_kernel-a0d81f604a53611a",
+    "executable_sha256": "921c8e69b39d09c3708c0f02193fd1774bbe1302fade92befb68afaf077162f4",
+    "system": "Linux",
+    "release": "7.0.0-38-generic",
+    "machine": "x86_64",
+    "cpu_model": "12th Gen Intel(R) Core(TM) i9-12900H",
+    "affinity": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19
+    ],
+    "profile": {
+      "CARGO_PROFILE_RELEASE_OPT_LEVEL": "3",
+      "CARGO_PROFILE_RELEASE_DEBUG": "0",
+      "CARGO_PROFILE_RELEASE_OVERFLOW_CHECKS": "true",
+      "CARGO_PROFILE_RELEASE_DEBUG_ASSERTIONS": "false"
+    },
+    "scope": "test-only observations of production FixedScheduler/FixedValueStore; native Linux",
+    "limits": [
+      "instrumented Step wall time includes observation/harness work",
+      "copy bytes count successful fixed-value-store writes only",
+      "compiler moves, Sign copies and Host transport copies are unmeasured",
+      "test-only allocator/scan observations are absent from product builds",
+      "no browser/WASM attribution: native test allocator and observation seams are not installed in that product",
+      "no timing threshold, causal speedup, independent confidence interval or parent5395 completion"
+    ]
+  },
+  "capture_artifact_hashes": {
+    "before": {
+      "build.jsonl": "56b52f66059ee059c88f097cdf1afbb95f4bc836dbdb6dfa3a1f7bbb4ccab053",
+      "build.stderr.log": "f7267c61cbfb820e2a71558d113f62017ecfb8c67424486634b9277723f108c8",
+      "clean.stderr.log": "8919f8ff03658f19054a977a9ac5c5f40a34a023c6a681c1117eef78dce4b9ec",
+      "clean.stdout.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "metadata.json": "601522c652f02b2a4ec255ef06e479e93fe02cc276b395f76aa3860f26c12e69",
+      "process-0.replays.json": "ed079c5473dc4cf26c2cb73ead02b4aad3f97f44d1b14375fe7ced267d1f0b63",
+      "process-0.resource.log": "5a39ac6dee5b7971bedf80380c8b82b853b4fabd1cce1d63b8df081e3ce996f9",
+      "process-0.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "process-0.stdout.log": "d067c93c6591d6919945b8bb6a9cb5a879f94fd5e5bc4fc3ddf74b989ceea5f6",
+      "process-1.replays.json": "ed079c5473dc4cf26c2cb73ead02b4aad3f97f44d1b14375fe7ced267d1f0b63",
+      "process-1.resource.log": "086db103a189f3283f3d55fdba29c31147915a08eaa18e7fd865773ec932724e",
+      "process-1.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "process-1.stdout.log": "db49667cb8098548813e84be1e43bbed1670ec983140d1e55ff1832adde0cdbf",
+      "process-2.replays.json": "ed079c5473dc4cf26c2cb73ead02b4aad3f97f44d1b14375fe7ced267d1f0b63",
+      "process-2.resource.log": "4dda82ad336d9894673c2ccc670af6b45551d5433bb76050588724e41c90e5bf",
+      "process-2.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "process-2.stdout.log": "a311bc151db3d2ea5e95388765f952b06050e4a0092168a63ee6dad3364996e9",
+      "processes.json": "1d8450d4b52a4b28e0f0c5f8ec64021861d19885edd954689160981fa71df49c",
+      "raw.json": "f13d1e0a16b04a2bdc75a4beb4febbd02a465d9ef69d4699428dd470f4b8a4f5",
+      "summary.json": "3535cbe12f9522315a512478403b06dd715894f5f4da80142e23e88ea404bcb4"
+    },
+    "after": {
+      "build.jsonl": "43f09c07c12bc8258cff2e9a1336808bc65059aa76e32c7eb817a6ad1a6f05f9",
+      "build.stderr.log": "24a70b5cf80ffd0b60adf29d88ff730df3041a1bb445386a82165f082b9d8307",
+      "clean.stderr.log": "97934bbfb99502cec90bc8d710947ed11cabbd19981e1f2530fe51d4ba53454b",
+      "clean.stdout.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "metadata.json": "aa86777a746d28965b1bf0e7f097d02bcfd9576478e59d2faa4516ba70b7f4d6",
+      "process-0.replays.json": "ed079c5473dc4cf26c2cb73ead02b4aad3f97f44d1b14375fe7ced267d1f0b63",
+      "process-0.resource.log": "6674530d651d059637b354ce8e8a97513748a0c943ca6b6f71ecb33bd771c15d",
+      "process-0.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "process-0.stdout.log": "38de53d68392ab02b0bad779d67fae46309ab4b0f5434edfe4a7681d29b901d4",
+      "process-1.replays.json": "ed079c5473dc4cf26c2cb73ead02b4aad3f97f44d1b14375fe7ced267d1f0b63",
+      "process-1.resource.log": "33f86bd317302e43ddb5f7f85b8561652513392af476c4c7093ce41313aaee9f",
+      "process-1.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "process-1.stdout.log": "20c2f132d53e09761104e50f988cf6aab2791adab63e7f2a7d2b3d8e8ba66811",
+      "process-2.replays.json": "ed079c5473dc4cf26c2cb73ead02b4aad3f97f44d1b14375fe7ced267d1f0b63",
+      "process-2.resource.log": "0fb115b4cae733c6084954168a8f9b2f1428b96dd321b33f205acbdd32039a82",
+      "process-2.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "process-2.stdout.log": "e7435104352a605e2e840d8234323fdd41d8c486a68deba6711d8dfe2fdbf37f",
+      "processes.json": "bbf8693875caf219974e2fcb0e55b6ca0106b17d8b40a80e1ad2f9f6bbc5eb3c",
+      "raw.json": "9a260480d279ae5debef7df6f37a50d592db4a94ec8a52b10a0271fdc7c08b63",
+      "summary.json": "f3f9b63d0b7338776491072083058fadaeb776a9c1d6e07b00f140da4976d307"
+    }
+  },
+  "limits": [
+    "Uncontrolled captures at different times; different reported CPUs prohibit timing ratios. Even matching CPUs do not prove causal speedup.",
+    "Instrumented native fixed-kernel one-byte sinks; not checked hosted Plan/Play or FARGAN.",
+    "Step time spans the fixture advance, with harness counters, not one logical invocation.",
+    "No Host Calls or quiescence tracks in these fixtures; no measurement of those optimizations.",
+    "Object sizes include test counters; not production footprint evidence.",
+    "No physical, browser, stable-release or parent-issue completion claim."
+  ]
+}

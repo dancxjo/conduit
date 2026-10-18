@@ -4,6 +4,35 @@ const MAXIMUM_INSTRUCTIONS: usize = 128;
 pub(super) struct ScalarTape {
     instructions: Vec<Instruction>,
     result: usize,
+    scratch: ScratchProfile,
+}
+
+// Bound before Play. Four monomorphized loops limit both scratch initialization
+// and code growth; the largest profile retains the original 128-slot ceiling.
+#[derive(Clone, Copy)]
+enum ScratchProfile {
+    Tiny,
+    Small,
+    Medium,
+    Maximum,
+}
+impl ScratchProfile {
+    fn prepare(instructions: usize) -> Self {
+        match instructions {
+            0..=4 => Self::Tiny,
+            5..=8 => Self::Small,
+            9..=32 => Self::Medium,
+            _ => Self::Maximum,
+        }
+    }
+    fn slots(self) -> usize {
+        match self {
+            Self::Tiny => 4,
+            Self::Small => 8,
+            Self::Medium => 32,
+            Self::Maximum => MAXIMUM_INSTRUCTIONS,
+        }
+    }
 }
 struct Instruction {
     kind: PrimitiveInfoKind,
@@ -40,8 +69,10 @@ impl ScalarTape {
         let mut tape = Self {
             instructions: Vec::with_capacity(MAXIMUM_INSTRUCTIONS),
             result: 0,
+            scratch: ScratchProfile::Maximum,
         };
         tape.result = tape.lower(root)?;
+        tape.scratch = ScratchProfile::prepare(tape.instructions.len());
         Ok(tape)
     }
     fn push(&mut self, kind: PrimitiveInfoKind, operation: Operation) -> Result<usize, Refusal> {
@@ -105,15 +136,31 @@ impl ScalarTape {
         self.instructions.len()
     }
     pub(super) fn scratch_bytes(&self) -> usize {
-        core::mem::size_of::<Option<PrimitiveValue<'static>>>() * MAXIMUM_INSTRUCTIONS
+        core::mem::size_of::<Option<PrimitiveValue<'static>>>() * self.scratch.slots()
     }
     pub(super) fn evaluate<'a>(
         &'a self,
         input: &'a [u8],
         input_kind: Option<PrimitiveInfoKind>,
     ) -> Result<PrimitiveValue<'a>, Refusal> {
-        let mut slots: [Option<PrimitiveValue<'a>>; MAXIMUM_INSTRUCTIONS] =
-            core::array::from_fn(|_| None);
+        match self.scratch {
+            ScratchProfile::Tiny => self.evaluate_slots::<4>(input, input_kind),
+            ScratchProfile::Small => self.evaluate_slots::<8>(input, input_kind),
+            ScratchProfile::Medium => self.evaluate_slots::<32>(input, input_kind),
+            ScratchProfile::Maximum => {
+                self.evaluate_slots::<MAXIMUM_INSTRUCTIONS>(input, input_kind)
+            }
+        }
+    }
+    // Keep each fixed array in its own stack frame. Inlining a maximum-size
+    // arm into the caller would defeat the small-profile stack reservation.
+    #[inline(never)]
+    fn evaluate_slots<'a, const SLOTS: usize>(
+        &'a self,
+        input: &'a [u8],
+        input_kind: Option<PrimitiveInfoKind>,
+    ) -> Result<PrimitiveValue<'a>, Refusal> {
+        let mut slots: [Option<PrimitiveValue<'a>>; SLOTS] = core::array::from_fn(|_| None);
         let mut pc = 0;
         while pc < self.instructions.len() {
             let instruction = &self.instructions[pc];

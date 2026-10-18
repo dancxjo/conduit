@@ -261,11 +261,37 @@ fn resident_canvas_preserves_exact_graph_and_authoritative_subject_selection() {
         "stale graph interaction must refuse"
     );
     let current = ApplicationView::decode(&port.apply(&[]).unwrap().view).unwrap();
-    let invalid = ApplicationEvent {
+    let current_event = ApplicationEvent {
         revision: current.revision,
-        value: b"not-a-resident-subject".to_vec(),
         ..event
     };
-    assert!(port.apply(&invalid.encode(&current).unwrap()).is_err());
+    let invalid = ApplicationEvent {
+        value: b"not-a-resident-subject".to_vec(),
+        ..current_event.clone()
+    };
+    assert_eq!(
+        invalid.encode(&current),
+        Err(ApplicationViewRefusal::InvalidControlValue)
+    );
+    // Keep valid framing, action and revision, but replace the trailing value
+    // with an unlisted subject to exercise untrusted wire admission as well.
+    let forged_subject = vec![b'x'; subject.len()];
+    assert!(!port
+        .graph()
+        .subject_identities()
+        .any(|identity| identity.as_bytes() == forged_subject.as_slice()));
+    let mut forged = current_event.encode(&current).unwrap();
+    let value_start = forged.len() - forged_subject.len();
+    forged[value_start..].copy_from_slice(&forged_subject);
+    assert!(matches!(
+        port.apply(&forged),
+        Err(PatchbayApplicationRefusal::Event(
+            ApplicationViewRefusal::InvalidControlValue
+        ))
+    ));
     assert_eq!(port.inspection().unwrap().subject_identity, subject);
+    assert_eq!(
+        ApplicationView::decode(&port.apply(&[]).unwrap().view).unwrap(),
+        current
+    );
 }

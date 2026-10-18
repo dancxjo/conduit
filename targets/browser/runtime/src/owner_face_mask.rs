@@ -89,6 +89,7 @@ struct SubjectView {
     disclosure: String,
     text: Vec<String>,
     properties: Vec<String>,
+    unmodeled_property_count: usize,
     flags: Vec<FlagView>,
 }
 

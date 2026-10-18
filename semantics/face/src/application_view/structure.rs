@@ -38,6 +38,14 @@ pub(super) fn validate(nodes: &[ApplicationViewNode]) -> Result<(), ApplicationV
             {
                 return Err(ApplicationViewRefusal::InvalidControlValue);
             }
+            ApplicationComponent::Select
+                if !node.value.is_empty()
+                    && !children.clone().any(|child| {
+                        child.component == ApplicationComponent::Option && child.value == node.value
+                    }) =>
+            {
+                return Err(ApplicationViewRefusal::InvalidControlValue);
+            }
             ApplicationComponent::Option
                 if node.parent.is_none_or(|parent| {
                     nodes[usize::from(parent)].component != ApplicationComponent::Select
@@ -92,6 +100,15 @@ pub(super) fn validate(nodes: &[ApplicationViewNode]) -> Result<(), ApplicationV
                     != 1
                     || option_parents.is_empty()
                     || (has_independent && has_exclusive)
+                    || nodes
+                        .iter()
+                        .filter(|child| {
+                            child.component == ApplicationComponent::ExclusiveChoice
+                                && child.value == "true"
+                                && option_parents.contains(&child.parent)
+                        })
+                        .count()
+                        > 1
                 {
                     return Err(ApplicationViewRefusal::InvalidControlValue);
                 }
@@ -136,6 +153,11 @@ pub(super) fn validate(nodes: &[ApplicationViewNode]) -> Result<(), ApplicationV
 
 pub(super) fn valid_progress(value: &str) -> bool {
     value.split_once('/').is_some_and(|(current, total)| {
+        if [current, total].iter().any(|part| {
+            part.is_empty() || part.len() > 5 || !part.bytes().all(|byte| byte.is_ascii_digit())
+        }) {
+            return false;
+        }
         current
             .parse::<u16>()
             .ok()

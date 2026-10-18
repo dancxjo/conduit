@@ -1,6 +1,7 @@
+import { acknowledgeOwnerFaceShow, clearOwnerFaceShow, selectOwnerFaceComponent, prepareOwnerFaceShow } from "./browser-sdk-owner-show-state.mjs";
 import { attachBrowserSyntaxEditor, projectBrowserSyntax } from "./browser-sdk-syntax.mjs";
 import { applicationContinuity, createSdkContinuity } from "./browser-sdk-continuity.mjs";
-import { checkedOwnerFaceArguments } from "./browser-sdk-face-actions.mjs";
+import { checkedAcknowledgedOwnerFaceArguments } from "./browser-sdk-face-actions.mjs";
 import { checkedOwnerWardrobeReport, checkedOwnerWardrobeAction } from "./browser-sdk-wardrobe.mjs";
 const PACKAGE_SCHEMA = "conduit.browser/sdk-package@1";
 const DISTRIBUTION_SCHEMA = "conduit.browser/reviewed-distribution@1";
@@ -204,7 +205,7 @@ export function validateOwnerFaceAcknowledgement(view, shown) {
   if (!sameIdentity || shown?.show_state !== "available" || !admissionTransition) {
     throw new Error("browser Mask acknowledged another owner Face Show");
   }
-  return shown;
+  return structuredClone(shown);
 }
 
 export class BrowserBodyParticipation {
@@ -241,7 +242,7 @@ export class BrowserBodyParticipation {
     const credential = this.membershipCredential();
     if (this.presenceState() !== "available" || !credential) throw new Error("current browser presence is required for owner wardrobe");
     const action = checkedOwnerWardrobeAction(report, credential.body_id, routeId, verb);
-    this.#state.lastOwnerShow = null;
+    clearOwnerFaceShow(this.#state);
     const checked = checkedOwnerWardrobeReport(report, credential.body_id);
     return checkedOwnerWardrobeReport(await this.#state.membership.ownerWardrobe({
       action, ownerPlanId: checked.ownerPlanId, basisRevision: checked.revision,
@@ -249,7 +250,7 @@ export class BrowserBodyParticipation {
   }
   /** Run the exact owner Face through this Host's checked browser Mask Plot. */
   async prepareOwnerFaceMask(options) {
-    this.#state.lastOwnerShow = null;
+    const epoch = clearOwnerFaceShow(this.#state);
     const credential = this.membershipCredential();
     if (this.presenceState() !== "available" || !credential) {
       throw new Error("current browser presence is required for the owner Face Mask");
@@ -260,26 +261,31 @@ export class BrowserBodyParticipation {
       throw new Error("minimum text scale must be between 100 and 200 percent");
     }
     this.#state.minimumOwnerTextScalePercent = minimumTextScale;
-    const frame = await this.ownerFaceSnapshot(options);
-    if (this.presenceState() !== "available") throw new Error("owner Face became stale before Mask preparation");
-    const mediaMatches = query => globalThis.matchMedia?.(query)?.matches === true;
-    const view = this.#state.host.bridge.ownerFacePrepare({
-      body_id: credential.body_id, host_id: this.hostId, boot_id: this.bootId,
-      visual_constraints: {
-        forced_colors: mediaMatches('(forced-colors: active)'),
-        reduced_motion: mediaMatches('(prefers-reduced-motion: reduce)'),
-        minimum_text_scale_percent: minimumTextScale,
+    const hostId = this.hostId, bootId = this.bootId, bodyId = credential.body_id;
+    return prepareOwnerFaceShow(this.#state, epoch,
+      () => this.ownerFaceSnapshot(options),
+      frame => {
+        const mediaMatches = query => globalThis.matchMedia?.(query)?.matches === true;
+        const view = this.#state.host.bridge.ownerFacePrepare({
+          body_id: bodyId, host_id: hostId, boot_id: bootId,
+          visual_constraints: {
+            forced_colors: mediaMatches('(forced-colors: active)'),
+            reduced_motion: mediaMatches('(prefers-reduced-motion: reduce)'),
+            minimum_text_scale_percent: minimumTextScale,
+          },
+        }, frame);
+        if (view?.schema === "conduit.browser/owner-face-refusal@1") {
+          throw new Error(`owner Face refused: ${view.code}`);
+        }
+        if (view?.schema !== "conduit.browser/owner-face-mask@1" ||
+            view.body_id !== bodyId || !["prepared", "available"].includes(view.show_state) ||
+            typeof view.interactions_admitted !== "boolean") {
+          throw new Error("owner Face Mask did not prepare one exact Show");
+        }
+        return view;
       },
-    }, frame);
-    if (view?.schema === "conduit.browser/owner-face-refusal@1") {
-      throw new Error(`owner Face refused: ${view.code}`);
-    }
-    if (view?.schema !== "conduit.browser/owner-face-mask@1" ||
-        view.body_id !== credential.body_id || !["prepared", "available"].includes(view.show_state) ||
-        typeof view.interactions_admitted !== "boolean") {
-      throw new Error("owner Face Mask did not prepare one exact Show");
-    }
-    return view;
+      () => this.presenceState() === "available" && this.hostId === hostId && this.bootId === bootId
+        && this.membershipCredential()?.body_id === bodyId);
   }
   async acknowledgeOwnerFaceMask(view) {
     const credential = this.membershipCredential();
@@ -287,13 +293,19 @@ export class BrowserBodyParticipation {
         view?.body_id !== credential.body_id || !["prepared", "available"].includes(view?.show_state)) {
       throw new Error("owner Face Show no longer has current browser presence");
     }
-    const shown = view.show_state === "available" ? view
+    const shown = view.show_state === "available"
+      ? this.#state.preparedOwnerShow ?? this.#state.lastOwnerShow
       : this.#state.host.bridge.ownerFaceAcknowledge({
         show_id: view.show_id, face_id: view.face_id, face_revision: view.face_revision,
       });
-    validateOwnerFaceAcknowledgement(view, shown);
-    await this.#state.membership.acknowledgeFaceShow(this.#state.host.bridge.ownerFaceShowReceipt());
-    this.#state.lastOwnerShow = shown;
+    // Capture before crossing the asynchronous membership boundary: callers
+    // may still own and mutate the available view while acknowledgement waits.
+    const acknowledged = validateOwnerFaceAcknowledgement(view, shown);
+    const hostId = this.hostId, bootId = this.bootId;
+    await acknowledgeOwnerFaceShow(this.#state, acknowledged,
+      () => this.#state.membership.acknowledgeFaceShow(this.#state.host.bridge.ownerFaceShowReceipt()),
+      () => this.presenceState() === "available" && this.hostId === hostId && this.bootId === bootId
+        && this.membershipCredential()?.body_id === acknowledged.body_id);
     return shown;
   }
   async selectOwnerComponentMask({ look, recipe, minimumTextScalePercent }) {
@@ -301,16 +313,20 @@ export class BrowserBodyParticipation {
         (!Number.isInteger(minimumTextScalePercent) || minimumTextScalePercent < 100 || minimumTextScalePercent > 200)) {
       throw new Error("minimum text scale must be between 100 and 200 percent");
     }
-    if (this.presenceState() !== "available" || !this.membershipCredential()
-        || !this.#state.lastOwnerShow) {
+    const credential = this.membershipCredential();
+    if (this.presenceState() !== "available" || !credential || !this.#state.lastOwnerShow) {
       throw new Error("current acknowledged owner Show is required for component selection");
     }
-    await this.#state.membership.selectComponentMask({
-      showBytes: this.#state.host.bridge.ownerFaceShowReceipt(), look, recipe,
-    });
-    this.#state.lastOwnerShow = null;
-    this.#state.host.bridge.ownerFaceClear();
-    return this.prepareOwnerFaceMask({ minimumTextScalePercent });
+    const showBytes = this.#state.host.bridge.ownerFaceShowReceipt();
+    const hostId = this.hostId, bootId = this.bootId, bodyId = credential.body_id;
+    return selectOwnerFaceComponent(this.#state,
+      () => this.#state.membership.selectComponentMask({ showBytes, look, recipe }),
+      () => {
+        this.#state.host.bridge.ownerFaceClear();
+        return this.prepareOwnerFaceMask({ minimumTextScalePercent });
+      },
+      () => this.presenceState() === "available" && this.hostId === hostId && this.bootId === bootId
+        && this.membershipCredential()?.body_id === bodyId);
   }
   /** Exact retained Face bytes for observation; this does not refresh or acknowledge. */
   ownerCanonicalFaceSnapshot() {
@@ -349,12 +365,13 @@ export class BrowserBodyParticipation {
     if (!Number.isSafeInteger(sequence) || sequence < 1) {
       throw new Error("choose one valid Face action sequence");
     }
-    const checked = checkedOwnerFaceArguments(view, actionId, target, actionArguments);
+    const checked = checkedAcknowledgedOwnerFaceArguments(this.#state.lastOwnerShow, view,
+      actionId, target, actionArguments);
     const submission = this.#state.host.bridge.ownerFaceInteract({
       show_id: view.show_id, face_id: view.face_id, face_revision: view.face_revision,
       action_id: actionId, target, arguments: checked, sequence,
     });
-    this.#state.lastOwnerShow = null;
+    clearOwnerFaceShow(this.#state);
     return this.#state.membership.submitFaceInteraction(submission);
   }
   signalWebRtc(options) { return this.#state.membership.signalWebRtc(options); }
@@ -370,7 +387,7 @@ export class BrowserBodyParticipation {
   publishMediaResource(evidence) { return this.#state.membership.publishMediaResource(evidence); }
   close() {
     this.#state.host.bridge.ownerFaceClear?.();
-    this.#state.lastOwnerShow = null;
+    clearOwnerFaceShow(this.#state);
     return this.#state.membership.close();
   }
 
@@ -501,7 +518,8 @@ export class BrowserPlay {
     if (view?.body_id !== this.#started.play.body_id || view.show_state !== 'available'
         || view.interactions_admitted !== true) throw new Error('Current local Body Show is required for interaction');
     if (!Number.isSafeInteger(sequence) || sequence < 1) throw new RangeError('Face action sequence is invalid');
-    const checked = checkedOwnerFaceArguments(view, actionId, target, actionArguments);
+    const current = this.#adapter.thermostatFace().view;
+    const checked = checkedAcknowledgedOwnerFaceArguments(current, view, actionId, target, actionArguments);
     return this.#adapter.submitThermostatInteraction({
       show_id: view.show_id, face_id: view.face_id,
       face_revision: Number(view.face_revision), action_id: actionId,
@@ -562,7 +580,7 @@ export const Conduit = Object.freeze({
         refuse("DistributionDigestMismatch", "reviewed BrowserBundle assets do not match the exact distribution manifest");
       }
 
-      const payloads = await readBundlePayloads(base, bundle, image);
+      const payloads = await readBundlePayloads(base, bundle, image, imageBytes);
       const runtimeBytes = requiredAsset(payloads, "runtime.wasm", MAXIMUM_RUNTIME_BYTES);
       const bootBytes = requiredAsset(payloads, "browser-boot-profile.mjs", MAXIMUM_MODULE_BYTES);
       const bootDigest = image.boot_module?.sha256;
@@ -669,7 +687,7 @@ function requireRelease(distribution, bundle, pkg, image) {
   }
 }
 
-async function readBundlePayloads(base, bundle, image) {
+async function readBundlePayloads(base, bundle, image, imageBytes) {
   let total = 0;
   const declared = new Map(bundle.files.map((file) => [file.path, file]));
   if (declared.size !== bundle.files.length || !declared.has(IMAGE_PATH)) {
@@ -679,11 +697,18 @@ async function readBundlePayloads(base, bundle, image) {
   if (paths.size !== declared.size || [...declared.keys()].some((path) => !paths.has(path))) {
     refuse("UnexpectedAsset", "BrowserBundle contains files outside its exact IMAGE closure");
   }
+  if (image.files.some(file => {
+    const released = declared.get(file.path);
+    return !released || released.bytes !== file.bytes || released.sha256 !== file.sha256
+      || released.media_type !== file.media_type;
+  })) {
+    refuse("ImageManifestMismatch", "BrowserBundle IMAGE inventory differs from its release declarations");
+  }
   const results = await Promise.all(bundle.files.map(async (file) => {
     if (!safeRelativePath(file.path) || !Number.isSafeInteger(file.bytes) || file.bytes < 1
       || file.bytes > (file.path === "runtime.wasm" ? MAXIMUM_RUNTIME_BYTES : MAXIMUM_MODULE_BYTES)
       || !digest(file.sha256)) refuse("ArtifactBound", `BrowserBundle asset ${file.path} exceeds its declared finite bound`);
-    const bytes = await fetchAsset(base, file.path, file.bytes);
+    const bytes = file.path === IMAGE_PATH ? imageBytes : await fetchAsset(base, file.path, file.bytes);
     if (bytes.byteLength !== file.bytes || await sha256(bytes) !== file.sha256) {
       refuse("ArtifactDigestMismatch", `BrowserBundle asset ${file.path} does not match its admitted identity`);
     }
@@ -777,18 +802,41 @@ async function fetchAsset(base, path, maximum) {
   }
   const response = await fetch(url, { cache: "no-store", credentials: "same-origin", redirect: "error" });
   if (!response.ok) refuse("ArtifactUnavailable", `reviewed BrowserBundle resource ${path} is unavailable`);
-  const bytes = new Uint8Array(await response.arrayBuffer());
-  if (bytes.byteLength < 1 || bytes.byteLength > maximum) refuse("ArtifactBound", `BrowserBundle resource ${path} exceeds its finite bound`);
-  return bytes;
+  return readBoundedResponse(response, maximum, `BrowserBundle resource ${path}`);
 }
 
 async function readJson(url, maximum, label) {
   if (url.origin !== location.origin) refuse("ArtifactOriginRejected", `${label} must be same-origin`);
   const response = await fetch(url, { cache: "no-store", credentials: "same-origin", redirect: "error" });
   if (!response.ok) refuse("ArtifactUnavailable", `${label} is unavailable`);
-  const bytes = new Uint8Array(await response.arrayBuffer());
-  if (bytes.byteLength < 1 || bytes.byteLength > maximum) refuse("ArtifactBound", `${label} exceeds its finite bound`);
+  const bytes = await readBoundedResponse(response, maximum, label);
   return parseJson(bytes, label);
+}
+
+async function readBoundedResponse(response, maximum, label) {
+  if (!response.body) refuse("ArtifactBound", `${label} is empty`);
+  const reader = response.body.getReader();
+  let bytes = new Uint8Array(Math.min(maximum, 64 * 1024));
+  let total = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (value.byteLength > maximum - total) {
+        await reader.cancel().catch(() => {});
+        refuse("ArtifactBound", `${label} exceeds its finite bound`);
+      }
+      if (total + value.byteLength > bytes.byteLength) {
+        const grown = new Uint8Array(Math.min(maximum, Math.max(total + value.byteLength, bytes.byteLength * 2)));
+        grown.set(bytes.subarray(0, total));
+        bytes = grown;
+      }
+      bytes.set(value, total);
+      total += value.byteLength;
+    }
+  } finally { reader.releaseLock(); }
+  if (total < 1) refuse("ArtifactBound", `${label} is empty`);
+  return bytes.subarray(0, total);
 }
 
 function parseJson(bytes, label) {
@@ -826,6 +874,7 @@ function identity(value) { return typeof value === "string" && /^(?:sha256|image
 function safeRelativePath(value) {
   return typeof value === "string" && value.length > 0 && value.length <= 256
     && !value.startsWith("/") && !value.includes("\\") && !value.includes("%")
+    && !/[:?#\u0000-\u0020\u007f]/.test(value)
     && !value.split("/").some((segment) => !segment || segment === "." || segment === "..");
 }
 function refuse(code, message, cause) {

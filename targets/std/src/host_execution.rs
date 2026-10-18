@@ -3,6 +3,8 @@ use super::*;
 pub(crate) mod continuity;
 mod reporting;
 mod spoken_mask;
+mod stream;
+pub use stream::{ExternalForeStreamConfig, ExternalForeStreamStats};
 
 /// Explicit acquired adapter inputs for one ordinary host execution.
 #[derive(Default)]
@@ -26,6 +28,7 @@ pub struct ExternalForeRun<'a> {
     pub inputs: &'a [ExternalForeInput],
     pub output: &'a mut dyn ExternalForeOutputAdapter,
     pub sequential: bool,
+    pub stream: Option<ExternalForeStreamConfig>,
 }
 
 impl StdHost {
@@ -269,6 +272,7 @@ impl StdHost {
                     inputs,
                     output: output_adapter,
                     sequential,
+                    stream: None,
                 }),
                 spoken_mask: None,
                 direct_spoken_mask: None,

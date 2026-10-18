@@ -86,3 +86,57 @@ test("duplicate authored identities and an unlisted initial option fail admissio
     assert.throws(() => openBrowserSavedChoice({ configuration: invalid, storage: {}, render }), { code: "InvalidChoiceConfiguration" });
   }
 });
+
+test("saved choice admission refuses text that UTF-8 would replace before rendering", () => {
+  const render = () => assert.fail("malformed text must refuse before rendering");
+  for (const invalid of ['\ud800', '\udfff', 'prefix\ud800suffix']) {
+    for (const candidate of [
+      { ...configuration, label: invalid },
+      { ...configuration, key: invalid },
+      { ...configuration, initial: invalid, options: [{ identity: invalid, label: 'Choice' }] },
+      { ...configuration, options: [{ identity: 'one', label: invalid }] },
+    ]) {
+      assert.throws(() => openBrowserSavedChoice({ configuration: candidate, storage: {}, render }),
+        { code: 'InvalidChoiceConfiguration' });
+    }
+  }
+});
+
+test("malformed retained Unicode refuses without saving a replacement", async () => {
+  const host = fixture({ schema: 'input/saved-choice@1', identity: '\ud800' });
+  await assert.rejects(host.adapter.next(), { code: 'CorruptSavedChoice' });
+  assert.equal(host.writes.length, 0);
+  host.adapter.close();
+});
+
+test("saved choices retain and emit exact scalar Unicode identities", async () => {
+  const identity = 'é😀';
+  const writes = [];
+  const adapter = openBrowserSavedChoice({ configuration: { ...configuration, initial: identity,
+    options: [{ identity, label: '多言語 😀' }] }, storage: {
+    async readJson() { return null; }, async writeJson(_key, record) { writes.push(record); },
+  }, render() { return { state() {}, close() {} }; } });
+  assert.equal(text(await adapter.next()), identity);
+  assert.deepEqual(writes, [{ schema: 'input/saved-choice@1', identity }]);
+  adapter.close();
+});
+
+test("pending restore keeps the admitted initial choice and renderer configuration", async () => {
+  const supplied = structuredClone(configuration);
+  let finishRead;
+  const read = new Promise(resolve => { finishRead = resolve; });
+  const writes = [];
+  let rendered;
+  const adapter = openBrowserSavedChoice({ configuration: supplied, storage: {
+    readJson() { return read; }, async writeJson(key, record) { writes.push({ key, record }); },
+  }, render(configuration) { rendered = configuration; return { state() {}, close() {} }; } });
+  const pending = adapter.next();
+  supplied.initial = 'two'; supplied.key = 'different';
+  supplied.options[0].label = 'Changed'; supplied.options.push({ identity: 'forged', label: 'Forged' });
+  supplied.view.push({ forged: true });
+  finishRead(null);
+  assert.equal(text(await pending), 'one');
+  assert.deepEqual(writes, [{ key: 'saved-choice/naming-tradition', record: { schema: 'input/saved-choice@1', identity: 'one' } }]);
+  assert.deepEqual(rendered, configuration);
+  adapter.close();
+});

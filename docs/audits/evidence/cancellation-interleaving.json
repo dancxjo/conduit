@@ -1,0 +1,86 @@
+{
+  "proof_class": "local native unit conformance and deliberate mutation sensitivity; not a clean-source release capture",
+  "normalized_cases": [
+    {
+      "settled": -1,
+      "cancel_all": false,
+      "polls": [
+        0,
+        1,
+        10,
+        11
+      ]
+    },
+    {
+      "settled": 0,
+      "cancel_all": false,
+      "polls": [
+        0,
+        10,
+        11,
+        4294967295
+      ]
+    },
+    {
+      "settled": 1,
+      "cancel_all": false,
+      "polls": [
+        0,
+        1,
+        11,
+        4294967295
+      ]
+    },
+    {
+      "settled": -1,
+      "cancel_all": true,
+      "polls": [
+        0,
+        4294967295,
+        4294967295,
+        4294967295
+      ]
+    }
+  ],
+  "selector_rows_identical": true,
+  "production_source_restored": true,
+  "mutations": {
+    "deliberate_mutations": [
+      {
+        "mutation": "rewind",
+        "exit_code": 101,
+        "expected": "test refusal"
+      },
+      {
+        "mutation": "completion-first",
+        "exit_code": 101,
+        "expected": "test refusal"
+      }
+    ],
+    "production_source_restored": true
+  },
+  "raw_artifact_hashes": {
+    "cancel-interleaving-fixed.log": "b51fa8aeaf58adbf3a26b4a055549780c01ffb047cd1f49da78ed2cacea17067",
+    "cancel-interleaving-linear.log": "bf9440f100e9ad5974dec2a66f4d8fb732e6b7e24d324b2f49f57388c5ce7f14",
+    "cancel-interleaving-mutant-rewind.log": "61a127b979cd23cd44944fed715d596f27831b425dfe92acf67fa2c755ff0ea7",
+    "cancel-interleaving-mutant-completion-first.log": "5f035abdddd300a1002b203430749ad2ca85629cd8cd1a1683519b60f238d9f4",
+    "cancel-interleaving-mutations.json": "891825c95f4b14fc2ba72b7e3650390c4c25735ecdc3bb9e66bd516ef334eb25",
+    "cancel-interleaving-tests.log": "46c3082e20f1589c4c83d2993f8519d60a46f5aea42b01a8648645f279629d1d",
+    "cancel-interleaving-reference.log": "b64030698e7806fb6949002cf16c6a6ea4e709aaeaebd636eda7cfbbbe021a04",
+    "cancel-interleaving-clippy.log": "59d63bc111ec01786bf7d304aa8fee0a1b091a3d0adb65977f1da0da87569f56"
+  },
+  "source_file_sha256": {
+    "architecture/kernel/src/scheduler.rs": "bf9873c5326401ecf90d0103d466396d2afa1b4f8de8e8353bf0e6545e1326cf",
+    "architecture/kernel/src/scheduler/host_many.rs": "d464be4e4264983ad7a52b34ed2192efcdfa4e3228b2bd1e416d7890d60383e7",
+    "architecture/kernel/src/scheduler/host_many/interleaving.rs": "bf058ce5032e2a40c4e49faaf9d3f6283ea8b7e5376ee86d07ae2895995da115"
+  },
+  "kernel_suite_passes": {
+    "alloc": 212,
+    "linear_reference": 212
+  },
+  "limits": [
+    "Two-node fixed-kernel API interleaving vectors; not a wall-clock or physical result.",
+    "Mutants were deliberate temporary omissions and were never published.",
+    "Full Sign-stream parity is not claimed by the normalized row comparison."
+  ]
+}

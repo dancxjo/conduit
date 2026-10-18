@@ -172,3 +172,57 @@ fn binding_refuses_unadvertised_ambiguous_and_unattributed_evidence() {
         Err(CostEvidenceRefusal::InvalidIdentity)
     );
 }
+
+#[test]
+fn borrowing_the_original_snapshot_does_not_admit_future_or_foreign_clock_samples() {
+    let host = common::competing_hosts().into_iter().next().unwrap();
+    let profile = ArtifactId::from("profile/cost@1");
+    let revision = CostCalibrationRevision::new(&profile, 1).unwrap();
+    let sign = SignId::from("sign/cost/sample");
+    let source = CostEvidenceSource::bind(
+        &host,
+        &host.capabilities[0],
+        None,
+        &sign,
+        revision,
+        window(&host),
+    )
+    .unwrap();
+    let before = MonotonicInstant::new(99, source.window().observed().clock().clone()).unwrap();
+    assert_eq!(
+        source.validate_at(&host, revision, &before),
+        Err(CostEvidenceRefusal::FutureObservation)
+    );
+    let foreign = MonotonicClockIdentity::new(
+        host.host_id.clone(),
+        host.boot_id.clone(),
+        "different-basis".into(),
+        TemporalScale::Milliseconds,
+        1,
+        0,
+    )
+    .unwrap();
+    assert!(source
+        .validate_at(
+            &host,
+            revision,
+            &MonotonicInstant::new(105, foreign).unwrap()
+        )
+        .is_err());
+    let copied = host.clone();
+    let now = MonotonicInstant::new(105, source.window().observed().clock().clone()).unwrap();
+    assert_eq!(source.validate_at(&host, revision, &now), Ok(()));
+    assert_eq!(source.validate_at(&copied, revision, &now), Ok(()));
+    let changed_revision = CostCalibrationRevision::new(&profile, 2).unwrap();
+    for current in [&host, &copied] {
+        assert_eq!(
+            source.validate_at(current, changed_revision, &now),
+            Err(CostEvidenceRefusal::Scope(CostScopeChange::Calibration))
+        );
+        assert_eq!(
+            source.validate_at(current, revision, source.window().expires()),
+            Err(CostEvidenceRefusal::Stale)
+        );
+    }
+    assert_eq!(host, copied);
+}

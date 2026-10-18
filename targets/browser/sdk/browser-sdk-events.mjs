@@ -91,14 +91,18 @@ export function createBodyEventStream({ readSnapshot, signal, replay = false, po
   }
   return {
     async *[Symbol.asyncIterator]() {
+      if (signal?.aborted) return;
       reserve?.();
       try {
+        if (signal?.aborted) return;
         let snapshot = await readSnapshot();
+        if (signal?.aborted) return;
         let afterSequence = replay ? 0 : latestSequence(snapshot);
         let previous = snapshot;
         let first = true;
         while (!signal?.aborted) {
           const next = first ? snapshot : await readSnapshot();
+          if (signal?.aborted) return;
           first = false;
           const compaction = next.evidence.compaction;
           if (compaction && compaction.through_sequence > afterSequence) {
@@ -111,11 +115,14 @@ export function createBodyEventStream({ readSnapshot, signal, replay = false, po
             });
             afterSequence = compaction.through_sequence;
           }
+          if (signal?.aborted) return;
           const events = projectBodyEvidenceEvents(next, { afterSequence });
           for (const event of events) {
+            if (signal?.aborted) return;
             afterSequence = Math.max(afterSequence, event.identity.recordSequence);
             yield event;
           }
+          if (signal?.aborted) return;
           const offersChanged = projectHostOffersChange(previous, next);
           if (offersChanged) yield offersChanged;
           previous = next;

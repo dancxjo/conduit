@@ -16,6 +16,7 @@ const MAX_EVENT_QUEUE = 8;
 const MAX_EVENT_QUEUE_BYTES = 131_072;
 const EVENT_HEADER_BYTES = 11;
 const ROOT_IDENTITIES = new WeakMap();
+const activeManifestations = new WeakMap();
 let nextRootIdentity = 1;
 
 export class ApplicationFaceRefusal extends Error {
@@ -28,6 +29,16 @@ export class ApplicationFaceRefusal extends Error {
 
 const refuse = (code) => { throw new ApplicationFaceRefusal(code); };
 
+function encodeExactText(value, maximum, boundCode) {
+  if (typeof value !== "string") refuse("malformed-encoding");
+  if (value.length > maximum) refuse(boundCode);
+  if (!value.isWellFormed()) refuse("malformed-encoding");
+  const bytes = new TextEncoder().encode(value);
+  if (bytes.length > maximum) refuse(boundCode);
+  return bytes;
+}
+
+
 class Cursor {
   constructor(encoded) { this.encoded = encoded; this.offset = 0; }
   bytes(length) {
@@ -39,9 +50,12 @@ class Cursor {
   }
   byte() { return this.bytes(1)[0]; }
   u16() { const bytes = this.bytes(2); return bytes[0] | (bytes[1] << 8); }
-  u32() { return new DataView(this.bytes(4).buffer).getUint32(0, true); }
+  u32() {
+    const bytes = this.bytes(4);
+    return new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength).getUint32(0, true);
+  }
   text(length) {
-    try { return new TextDecoder("utf-8", { fatal: true }).decode(this.bytes(length)); }
+    try { return new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(this.bytes(length)); }
     catch { refuse("malformed-encoding"); }
   }
 }
@@ -104,8 +118,7 @@ export function decodeApplicationLook(input) {
 }
 
 export function decodeApplicationView(input) {
-  const encoded = input instanceof Uint8Array ? input : new Uint8Array(input);
-  if (encoded.length > MAX_BYTES) refuse("oversized-encoding");
+  const encoded = checkedBytes(input, MAX_BYTES, "oversized-encoding");
   const cursor = new Cursor(encoded);
   if (cursor.byte() !== VERSION) refuse("unsupported-version");
   const revision = cursor.u32();
@@ -169,6 +182,7 @@ export function decodeApplicationView(input) {
   for (const [index, node] of nodes.entries()) {
     if (node.component === 12 && node.value && !nodes.some((child, childIndex) => childIndex > index && child.parent === index && (child.component === 8 || child.component === 45) && child.key === node.value)) refuse("invalid-control-value");
     const children = nodes.filter((child) => child.parent === index);
+    if (node.component === 16 && node.value && !children.some(child => child.component === 22 && child.value === node.value)) refuse("invalid-control-value");
     if (node.component === 34) {
       const count = (component) => children.filter((child) => child.component === component).length;
       if (count(35) !== 1 || count(36) !== 1 || count(37) > 1 || count(15) + count(16) + count(17) !== 1) refuse("invalid-control-value");
@@ -179,11 +193,13 @@ export function decodeApplicationView(input) {
     if (node.component === 38 && children.filter((child) => child.component === 8).length !== Number(node.value.split("/")[1])) refuse("invalid-control-value");
     if (node.component === 40) {
       const labels = children.filter((child) => child.component === 42);
-      const kinds = new Set(labels.flatMap((label) => {
+      const choices = labels.flatMap((label) => {
         const labelIndex = nodes.indexOf(label);
-        return nodes.filter((child) => child.parent === labelIndex && (child.component === 43 || child.component === 44)).map((child) => child.component);
-      }));
-      if (children.filter((child) => child.component === 41).length !== 1 || labels.length === 0 || kinds.size !== 1) refuse("invalid-control-value");
+        return nodes.filter((child) => child.parent === labelIndex && (child.component === 43 || child.component === 44));
+      });
+      const kinds = new Set(choices.map(child => child.component));
+      if (children.filter((child) => child.component === 41).length !== 1 || labels.length === 0 || kinds.size !== 1
+        || choices.filter(child => child.component === 44 && child.value === "true").length > 1) refuse("invalid-control-value");
     }
     if (node.component === 41 && (node.parent === null || nodes[node.parent].component !== 40)) refuse("invalid-control-value");
     if (node.component === 42 && (node.parent === null || nodes[node.parent].component !== 40 || children.filter((child) => child.component === 43 || child.component === 44).length !== 1)) refuse("invalid-control-value");
@@ -197,25 +213,43 @@ export function decodeApplicationView(input) {
 }
 
 export function encodeApplicationView(view) {
-  if (!view || !Number.isSafeInteger(view.revision) || view.revision < 0 || view.revision > 0xffff_ffff) refuse("malformed-encoding");
-  if (!Array.isArray(view.nodes) || !Array.isArray(view.actions)) refuse("malformed-encoding");
+  const revision = view?.revision;
+  const nodes = view?.nodes;
+  const actions = view?.actions;
+  if (!Number.isSafeInteger(revision) || revision < 0 || revision > 0xffff_ffff) refuse("malformed-encoding");
+  if (!Array.isArray(nodes) || !Array.isArray(actions)) refuse("malformed-encoding");
+  const nodeCount = nodes.length;
+  const actionCount = actions.length;
+  if (nodeCount === 0) refuse("empty");
+  if (nodeCount > MAX_NODES) refuse("too-many-nodes");
+  if (actionCount > MAX_ACTIONS) refuse("too-many-actions");
   const chunks = [];
-  const push = (...bytes) => chunks.push(Uint8Array.of(...bytes));
+  let length = 0;
+  const append = (...values) => {
+    for (const chunk of values) {
+      if (chunk.length > MAX_BYTES - length) refuse("oversized-encoding");
+      chunks.push(chunk);
+      length += chunk.length;
+    }
+  };
+  const push = (...bytes) => append(Uint8Array.of(...bytes));
   const header = new Uint8Array(7);
   header[0] = VERSION;
-  new DataView(header.buffer).setUint32(1, view.revision, true);
-  header[5] = view.nodes.length;
-  header[6] = view.actions.length;
-  chunks.push(header);
-  for (const action of view.actions) {
+  new DataView(header.buffer).setUint32(1, revision, true);
+  header[5] = nodeCount;
+  header[6] = actionCount;
+  append(header);
+  for (let index = 0; index < actionCount; index++) {
+    const action = actions[index];
     const kind = EVENT_IDENTITIES[action?.event];
     if (!kind) refuse("unknown-event");
-    const encoded = new TextEncoder().encode(action.id ?? "");
+    const encoded = encodeExactText(action.id ?? "", MAX_ACTION_ID_BYTES, "action-id-too-long");
     if (encoded.length === 0 || encoded.length > MAX_ACTION_ID_BYTES) refuse("action-id-too-long");
     push(kind, encoded.length);
-    chunks.push(encoded);
+    append(encoded);
   }
-  for (const node of view.nodes) {
+  for (let index = 0; index < nodeCount; index++) {
+    const node = nodes[index];
     const component = COMPONENT_IDENTITIES[node?.component];
     if (!component) refuse("unknown-component");
     const state = NODE_STATE_IDENTITIES[node?.state ?? "ready"];
@@ -223,9 +257,9 @@ export function encodeApplicationView(view) {
     const parent = node.parent === null ? 255 : node.parent;
     const action = node.action === null ? 255 : node.action;
     if (!Number.isInteger(parent) || parent < 0 || parent > 255 || !Number.isInteger(action) || action < 0 || action > 255) refuse("malformed-encoding");
-    const key = new TextEncoder().encode(node.key ?? "");
-    const content = new TextEncoder().encode(node.text ?? "");
-    const value = new TextEncoder().encode(node.value ?? "");
+    const key = encodeExactText(node.key ?? "", MAX_KEY_BYTES, "text-too-long");
+    const content = encodeExactText(node.text ?? "", MAX_TEXT_BYTES, "text-too-long");
+    const value = encodeExactText(node.value ?? "", MAX_CONTROL_VALUE_BYTES, "invalid-control-value");
     const valueCapacity = node.valueCapacity ?? 0;
     if (key.length === 0 || key.length > MAX_KEY_BYTES || content.length > MAX_TEXT_BYTES) refuse("text-too-long");
     const hasValue = (component === 11 && value.length > 0) || component === 15 || component === 16 || component === 17 || component === 22 || component === 31 || component === 32 || component === 38 || component === 39 || component === 43 || component === 44 || component === 45 || component === 46;
@@ -234,7 +268,7 @@ export function encodeApplicationView(view) {
       || (!hasValue && component !== 12 && (valueCapacity !== 0 || value.length !== 0))) refuse("invalid-control-value");
     if (component === 12 && ((value.length > 0 && (valueCapacity === 0 || valueCapacity > MAX_CONTROL_VALUE_BYTES || value.length > valueCapacity)) || (value.length === 0 && valueCapacity !== 0))) refuse("invalid-control-value");
     if ((component === 38 || component === 39) && !validProgress(new TextDecoder().decode(value))) refuse("invalid-control-value");
-    if (component === 38 && new TextDecoder().decode(value).startsWith("0/")) refuse("invalid-control-value");
+    if (component === 38 && Number(new TextDecoder().decode(value).split("/")[0]) === 0) refuse("invalid-control-value");
     const stateful = component === 8 || component === 15 || component === 16 || component === 17 || component === 43 || component === 44;
     if (state !== NODE_STATE_IDENTITIES.ready && (!stateful || action !== 255)) refuse("invalid-node-state");
     const nodeHeader = new Uint8Array(15);
@@ -242,10 +276,8 @@ export function encodeApplicationView(view) {
     const headerView = new DataView(nodeHeader.buffer);
     headerView.setUint32(7, value.length, true);
     headerView.setUint32(11, valueCapacity, true);
-    chunks.push(nodeHeader, key, content, value);
+    append(nodeHeader, key, content, value);
   }
-  const length = chunks.reduce((total, chunk) => total + chunk.length, 0);
-  if (length > MAX_BYTES) refuse("oversized-encoding");
   const encoded = new Uint8Array(length);
   let offset = 0;
   for (const chunk of chunks) { encoded.set(chunk, offset); offset += chunk.length; }
@@ -286,57 +318,119 @@ function rootIdentity(root) {
   return identity;
 }
 
-function restoreInteraction(root, snapshot) {
+function restoreInteraction(root, snapshot, render) {
   if (!snapshot) return;
-  let target = Array.from(root.querySelectorAll("[data-application-key]"))
-    .find((element) => element.dataset.applicationKey === snapshot.key && !element.disabled);
-  if (target && snapshot.subject) target = Array.from(target.querySelectorAll("[data-subject-identity]")).find(element => element.dataset.subjectIdentity === snapshot.subject) ?? target;
-  if (!target) target = root.querySelector('[tabindex="0"]')
-    ?? root.querySelector('button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled)');
-  if (!(target instanceof HTMLElement) && !(target instanceof SVGElement)) {
+  let preferred = Array.from(root.querySelectorAll("[data-application-key]"))
+    .find(element => element.dataset.applicationKey === snapshot.key);
+  if (preferred && snapshot.subject) preferred = Array.from(preferred.querySelectorAll("[data-subject-identity]"))
+    .find(element => element.dataset.subjectIdentity === snapshot.subject);
+  const candidates = new Set([preferred,
+    ...root.querySelectorAll('[tabindex="0"]'),
+    ...root.querySelectorAll('button, input, select, textarea, a[href], summary')]);
+  let target;
+  for (const candidate of candidates) {
+    if (!(candidate instanceof HTMLElement) && !(candidate instanceof SVGElement)) continue;
+    if (!candidate.isConnected || !root.contains(candidate) || !controlAvailable(candidate)) continue;
+    candidate.focus();
+    // Focus handlers can synchronously present a newer view. Leave its focus
+    // alone and let the superseded caller refuse before publishing its handle.
+    if (activeManifestations.get(root) !== render) return;
+    // A retained key may now name plain text or a non-focusable container.
+    if (candidate.ownerDocument.activeElement === candidate) { target = candidate; break; }
+  }
+  if (!target) {
     root.tabIndex = -1;
+    root.focus();
     target = root;
   }
-  target.focus();
   const textSelection = target instanceof HTMLTextAreaElement
     || (target instanceof HTMLInputElement && ["text", "search", "tel", "url", "password"].includes(target.type));
-  if (textSelection && snapshot.selection) {
+  if (target === preferred && textSelection && snapshot.selection) {
     const end = target.value.length;
     target.setSelectionRange(Math.min(snapshot.selection.start, end), Math.min(snapshot.selection.end, end), snapshot.selection.direction);
   }
 }
 
+function controlAvailable(control) {
+  if (control.matches(":disabled")) return false;
+  for (let ancestor = control; ancestor;
+    ancestor = ancestor.assignedSlot ?? ancestor.parentElement ?? ancestor.getRootNode().host) {
+    if (ancestor.inert || ancestor.hidden) return false;
+    if (control.isConnected) {
+      const style = getComputedStyle(ancestor);
+      if (style.display === "none" || Number(style.opacity) === 0) return false;
+    }
+    // A closed disclosure exposes its first summary, while its body controls
+    // remain unavailable. The disclosure itself may still emit its toggle.
+    if (ancestor !== control && ancestor.matches("details:not([open])")
+      && !ancestor.querySelector(":scope > summary")?.contains(control)) return false;
+  }
+  if (control.isConnected) {
+    if (getComputedStyle(control).visibility !== "visible") return false;
+    const bounds = control.getBoundingClientRect();
+    // SVG strokes may have a zero-width or zero-height geometric box.
+    if (control instanceof SVGElement ? bounds.width === 0 && bounds.height === 0
+      : bounds.width <= 0 || bounds.height <= 0) return false;
+  }
+  return true;
+}
+
 function installRovingFocus(container, selectedKey, selectedIndex) {
-  const controls = Array.from(container.querySelectorAll("button:not(:disabled)"));
-  if (controls.length === 0) return;
-  let current = selectedKey ? controls.findIndex((control) => control.dataset.applicationKey === selectedKey) : selectedIndex;
-  if (current < 0 || current >= controls.length) current = 0;
-  controls.forEach((control, index) => { control.tabIndex = index === current ? 0 : -1; });
+  // Navigation selections and step indices name direct children in the view.
+  // Descendant groups own their controls and must retain their own tab entry.
+  const controls = Array.from(container.children).filter(control => control.matches("button"));
+  const available = controls.filter(controlAvailable);
+  if (available.length === 0) return;
+  const selected = selectedKey ? controls.find(control => control.dataset.applicationKey === selectedKey) : controls[selectedIndex];
+  const current = available.includes(selected) ? selected : available[0];
+  controls.forEach(control => { control.tabIndex = control === current ? 0 : -1; });
   container.addEventListener("keydown", (event) => {
-    const focused = controls.indexOf(document.activeElement);
+    if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+    const available = controls.filter(control => control.isConnected && container.contains(control) && controlAvailable(control));
+    const focused = available.indexOf(document.activeElement);
     if (focused < 0) return;
     let next = focused;
-    if (event.key === "ArrowRight" || event.key === "ArrowDown") next = Math.min(focused + 1, controls.length - 1);
+    if (event.key === "ArrowRight" || event.key === "ArrowDown") next = Math.min(focused + 1, available.length - 1);
     else if (event.key === "ArrowLeft" || event.key === "ArrowUp") next = Math.max(focused - 1, 0);
     else if (event.key === "Home") next = 0;
-    else if (event.key === "End") next = controls.length - 1;
+    else if (event.key === "End") next = available.length - 1;
     else return;
     event.preventDefault();
-    controls.forEach((control, index) => { control.tabIndex = index === next ? 0 : -1; });
-    controls[next].focus();
+    controls.forEach(control => { control.tabIndex = control === available[next] ? 0 : -1; });
+    available[next].focus();
   });
 }
 
+function checkedBytes(value, maximum, boundCode) {
+  if (value instanceof Uint8Array || value instanceof ArrayBuffer) {
+    if (value.byteLength > maximum) refuse(boundCode);
+    return value instanceof Uint8Array ? value : new Uint8Array(value);
+  }
+  if (!Array.isArray(value)) refuse("malformed-encoding");
+  const length = value.length;
+  if (length > maximum) refuse(boundCode);
+  const bytes = new Uint8Array(length);
+  for (let index = 0; index < length; index++) {
+    const byte = value[index];
+    if (!Object.hasOwn(value, index) || !Number.isInteger(byte) || byte < 0 || byte > 255) refuse("malformed-encoding");
+    bytes[index] = byte;
+  }
+  return bytes;
+}
+
 export function encodeApplicationEvent(event) {
-  const action = new TextEncoder().encode(event.action);
-  const value = event.value instanceof Uint8Array ? event.value : new Uint8Array(event.value);
+  const revision = event?.revision;
+  if (!Number.isSafeInteger(revision) || revision < 0 || revision > 0xffff_ffff) refuse("malformed-encoding");
+  const kind = event.kind;
+  if (!Number.isInteger(kind) || !Object.hasOwn(EVENTS, kind)) refuse("unknown-event");
+  const action = encodeExactText(event.action, MAX_ACTION_ID_BYTES, "action-id-too-long");
+  const value = checkedBytes(event.value, MAX_EVENT_BYTES, "event-too-large");
   if (action.length === 0 || action.length > MAX_ACTION_ID_BYTES) refuse("action-id-too-long");
   if (value.length > MAX_EVENT_BYTES) refuse("event-too-large");
-  if (!(event.kind in EVENTS)) refuse("unknown-event");
   const encoded = new Uint8Array(EVENT_HEADER_BYTES + action.length + value.length);
   encoded[0] = VERSION;
-  new DataView(encoded.buffer).setUint32(1, event.revision, true);
-  encoded[5] = event.kind;
+  new DataView(encoded.buffer).setUint32(1, revision, true);
+  encoded[5] = kind;
   encoded[6] = action.length;
   new DataView(encoded.buffer).setUint32(7, value.length, true);
   encoded.set(action, EVENT_HEADER_BYTES);
@@ -344,8 +438,14 @@ export function encodeApplicationEvent(event) {
   return encoded;
 }
 
+function copyApplicationEvent(event) {
+  return Object.freeze({ ...event,
+    value: new Uint8Array(event.value), encoded: new Uint8Array(event.encoded) });
+}
+
 export function manifestApplicationView(input, root, options = {}) {
   if (!(root instanceof Element)) throw new TypeError("application face requires an Element");
+  const previousManifestation = activeManifestations.get(root);
   const view = decodeApplicationView(input);
   const active = root.contains(document.activeElement) ? document.activeElement : null;
   const activeNode = active?.closest?.("[data-application-key]");
@@ -361,13 +461,34 @@ export function manifestApplicationView(input, root, options = {}) {
   const byteCapacity = options.eventByteCapacity ?? MAX_EVENT_QUEUE_BYTES;
   if (!Number.isInteger(capacity) || capacity < 1 || capacity > MAX_EVENT_QUEUE) refuse("queue-pressure");
   if (!Number.isInteger(byteCapacity) || byteCapacity < 1 || byteCapacity > MAX_EVENT_QUEUE_BYTES) refuse("queue-pressure");
+  const render = {};
   const queue = [];
   let queuedBytes = 0;
   let lastRefusal = null;
   const fragment = document.createDocumentFragment();
   const elements = [];
+  const actionEvents = new WeakMap();
+  const choiceValues = new Map();
   const nodesByKey = new Map();
-  const requestAction = (node, value = "") => {
+  const valueComponents = new Set([11, 15, 16, 17, 43, 44]);
+  // Wire events name the action, not an originating node. All of its bindings
+  // must therefore admit the argument, as in portable ApplicationEvent admission.
+  const actionBindings = view.actions.map((_, index) => view.nodes.filter(node => node.action === index));
+  const actionValueCapacities = actionBindings.map(bindings => Math.min(...bindings.map(node =>
+    valueComponents.has(node.component) ? node.valueCapacity : 0)));
+  const requestAction = (node, value = "", control = null) => {
+    if (activeManifestations.get(root) !== render) {
+      lastRefusal = "stale-revision";
+      options.onRefusal?.(lastRefusal);
+      return null;
+    }
+    if (control) {
+      if (!control.isConnected || !root.contains(control) || !controlAvailable(control)) {
+        lastRefusal = "unavailable-action";
+        options.onRefusal?.(lastRefusal);
+        return null;
+      }
+    }
     if (node.state === "busy") {
       lastRefusal = "action-busy";
       options.onRefusal?.(lastRefusal);
@@ -379,17 +500,50 @@ export function manifestApplicationView(input, root, options = {}) {
       return null;
     }
     const action = view.actions[node.action];
-    const encodedValue = typeof value === "string" ? new TextEncoder().encode(value) : value;
+    if (control && (node.component === 15 || node.component === 17)
+      && control.readOnly && (action.event === "input" || action.event === "change")) {
+      lastRefusal = "unavailable-action";
+      options.onRefusal?.(lastRefusal);
+      return null;
+    }
+    const valueCapacity = actionValueCapacities[node.action];
+    // Every UTF-16 code unit requires at least one UTF-8 byte. Reject an
+    // impossible fit before allocating the encoded copy; retain the byte check
+    // below for multibyte text and byte inputs.
+    if (typeof value === "string" && (value.length > MAX_EVENT_BYTES || value.length > valueCapacity)) {
+      lastRefusal = value.length > MAX_EVENT_BYTES ? "event-too-large" : "invalid-control-value";
+      options.onRefusal?.(lastRefusal);
+      return null;
+    }
+    let encodedValue = typeof value === "string" ? new TextEncoder().encode(value) : value;
     if (!(encodedValue instanceof Uint8Array)) refuse("malformed-encoding");
-    if (encodedValue.length > MAX_EVENT_BYTES) {
+    const valueLength = encodedValue.length;
+    if (valueLength > MAX_EVENT_BYTES) {
       lastRefusal = "event-too-large";
       options.onRefusal?.(lastRefusal);
       return null;
     }
-    if (encodedValue.length > node.valueCapacity) {
+    if (valueLength > valueCapacity) {
       lastRefusal = "invalid-control-value";
       options.onRefusal?.(lastRefusal);
       return null;
+    }
+    // Validate the same private bytes that will be queued. Caller storage can
+    // otherwise change (or be transferred) between decoding and queue insertion.
+    // Fix the admitted span before copying even if caller storage can grow.
+    encodedValue = new Uint8Array(new Uint8Array(encodedValue.buffer, encodedValue.byteOffset, valueLength));
+    let text;
+    try { text = typeof value === "string" ? (value.isWellFormed() ? value : undefined)
+      : new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(encodedValue); }
+    catch { text = undefined; }
+    for (const boundNode of actionBindings[node.action]) {
+      const choices = choiceValues.get(boundNode);
+      if (text === undefined || (choices && !choices.has(text))
+        || ([43, 44].includes(boundNode.component) && text !== "true" && text !== "false")) {
+        lastRefusal = "invalid-control-value";
+        options.onRefusal?.(lastRefusal);
+        return null;
+      }
     }
     const encodedBytes = EVENT_HEADER_BYTES + new TextEncoder().encode(action.id).length + encodedValue.length;
     if (queue.length === capacity || queuedBytes + encodedBytes > byteCapacity) {
@@ -401,12 +555,20 @@ export function manifestApplicationView(input, root, options = {}) {
     const event = Object.freeze({ ...pending, encoded: encodeApplicationEvent(pending) });
     queue.push(event);
     queuedBytes += event.encoded.length;
-    options.onEvent?.(event);
-    return event;
+    options.onEvent?.(copyApplicationEvent(event));
+    return copyApplicationEvent(event);
   };
   for (const [nodeIndex, node] of view.nodes.entries()) {
+    if (node.component === 16) {
+      choiceValues.set(node, new Set(view.nodes.filter(child => child.parent === nodeIndex && child.component === 22).map(child => child.value)));
+    }
+    if (node.component === 11 && node.value) {
+      const graph = decodeGraphCanvas(node.value);
+      choiceValues.set(node, new Set([...graph.nodes, ...graph.ports, ...graph.cords].map(subject => subject.identity)));
+    }
     const [tag, kind] = COMPONENTS[node.component];
     const element = document.createElement(tag);
+    if (node.component === 8) element.type = "button";
     element.dataset.applicationKey = node.key;
     element.dataset.applicationComponent = kind;
     if (node.component === 10) {
@@ -458,7 +620,6 @@ export function manifestApplicationView(input, root, options = {}) {
     } else if (node.component === 45) {
       element.href = browserDestinationHref(node.value);
       element.textContent = node.text;
-      if (node.value === "home") element.setAttribute("aria-label", "Conduit home");
     } else if (node.component === 46) {
       element.href = new URL(node.value, document.baseURI).href;
       element.textContent = node.text;
@@ -478,6 +639,9 @@ export function manifestApplicationView(input, root, options = {}) {
     if (node.component === 15 || node.component === 16 || node.component === 17) {
       element.setAttribute("aria-label", node.text);
       element.value = node.value;
+      // Native text controls sanitize line endings. Refuse before publication
+      // when the admitted value cannot be represented exactly by this control.
+      if (node.component !== 16 && element.value !== node.value) refuse("invalid-control-value");
       if (node.component !== 16) element.maxLength = node.valueCapacity;
     }
     if (node.component === 22) element.value = node.value;
@@ -499,13 +663,30 @@ export function manifestApplicationView(input, root, options = {}) {
     }
     if (node.component === 11) {
       element.dataset.renderer = "patchbay";
-      if (node.value) renderGraphCanvas(element, node.value, identity => requestAction(node, identity));
+      if (node.value) renderGraphCanvas(element, node.value, (identity, control) => requestAction(node, identity, control));
     }
     if (node.action !== null) {
       const action = view.actions[node.action];
       element.dataset.applicationAction = action.id;
-      element.addEventListener(action.event, (browserEvent) => {
-        requestAction(node, eventValue(browserEvent));
+      actionEvents.set(element, action.event);
+      // Populated graph canvases return exact subject identities through their
+      // selection callback; a second generic listener would add an empty action.
+      if (node.component !== 11 || !node.value) element.addEventListener(action.event, (browserEvent) => {
+        // Native controls own their interaction even when their semantic binding
+        // uses a different event kind. Focus or a missing child binding must not
+        // borrow an ancestor's action. Decorative descendants still route here.
+        const owner = browserEvent.composedPath().find(candidate => actionEvents.get(candidate) === browserEvent.type
+          || (candidate instanceof Element && candidate.matches("button, input, select, textarea, a[href], summary"))
+          || (candidate instanceof HTMLLabelElement && candidate.control));
+        if (owner !== element) {
+          const control = owner instanceof HTMLLabelElement ? owner.control : owner;
+          if (control && !actionEvents.has(control) && !owner.matches("a[href], summary")) {
+            lastRefusal = "unavailable-action";
+            options.onRefusal?.(lastRefusal);
+          }
+          return;
+        }
+        requestAction(node, eventValue(browserEvent), element);
       });
     }
     if (node.state === "busy") element.setAttribute("aria-busy", "true");
@@ -562,8 +743,9 @@ export function manifestApplicationView(input, root, options = {}) {
       if (elements[index].value !== node.value) refuse("invalid-control-value");
     }
   }
+  if (activeManifestations.get(root) !== previousManifestation) refuse("stale-revision");
   root.replaceChildren(fragment);
-  restoreInteraction(root, interaction);
+  activeManifestations.set(root, render);
   root.dataset.applicationRevision = String(view.revision);
   for (const role of appliedLookProperties.get(root) ?? []) {
     root.style.removeProperty(`--conduit-${role}`);
@@ -578,12 +760,14 @@ export function manifestApplicationView(input, root, options = {}) {
     appliedLookProperties.delete(root);
     delete root.dataset.applicationLook;
   }
+  restoreInteraction(root, interaction, render);
+  if (activeManifestations.get(root) !== render) refuse("stale-revision");
   return Object.freeze({
     view,
     nextEvent() {
       const event = queue.shift() ?? null;
       if (event) queuedBytes -= event.encoded.length;
-      return event;
+      return event ? copyApplicationEvent(event) : null;
     },
     queuedEvents() { return queue.length; },
     queuedEventBytes() { return queuedBytes; },
@@ -610,24 +794,29 @@ export function createApplicationFaceHost(scope = document) {
   };
   return Object.freeze({
     present(slot, description, options = {}) {
-      const encoded = description instanceof Uint8Array ? description : encodeApplicationView(description);
+      const encoded = description instanceof Uint8Array
+        ? new Uint8Array(checkedBytes(description, MAX_BYTES, "oversized-encoding"))
+        : encodeApplicationView(description);
       const view = decodeApplicationView(encoded);
+      // Read caller-controlled options before the final revision check. Their
+      // getters may synchronously commit another presentation of this slot.
+      const { eventCapacity, eventByteCapacity, look, onEvent, onRefusal } = options;
       const previous = revisions.get(slot) ?? 0;
       if (view.revision <= previous) refuse("stale-revision");
       const manifestation = manifestApplicationView(encoded, rootFor(slot), {
-        eventCapacity: options.eventCapacity,
-        eventByteCapacity: options.eventByteCapacity,
+        eventCapacity,
+        eventByteCapacity,
         choiceScope,
-        look: options.look,
+        look,
         onEvent(event) {
           if (revisions.get(slot) !== event.revision) {
             refusals.set(slot, "stale-revision");
-            options.onRefusal?.("stale-revision");
+            onRefusal?.("stale-revision");
             return;
           }
-          options.onEvent?.(event);
+          onEvent?.(event);
         },
-        onRefusal(code) { refusals.set(slot, code); options.onRefusal?.(code); },
+        onRefusal(code) { refusals.set(slot, code); onRefusal?.(code); },
       });
       revisions.set(slot, view.revision);
       refusals.delete(slot);

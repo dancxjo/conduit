@@ -1,6 +1,8 @@
 #![no_std]
 
 extern crate alloc;
+#[cfg(feature = "hosted-catalog-cache")]
+extern crate std;
 
 // Native bounded-sequence payloads intentionally retain their admitted inline
 // capacity rather than hiding a play-time allocation behind enum indirection.
@@ -219,3 +221,44 @@ pub mod model_resource;
 pub use model_resource::{AdmittedModelResource, ModelResourceRefusal, MODEL_READ_AUTHORITY};
 #[cfg(feature = "kernel-step")]
 pub mod integer_categorical_step;
+
+mod fixed_numeric_signal_catalog;
+
+#[cfg(feature = "kernel-step")]
+pub mod fixed_numeric_operations_back;
+
+#[cfg(feature = "kernel-step")]
+pub mod fixed_numeric_linear_back;
+
+#[cfg(feature = "kernel-step")]
+pub mod fixed_numeric_signal_back;
+
+#[cfg(feature = "kernel-step")]
+pub mod fixed_numeric_index_back;
+
+#[cfg(feature = "kernel-step")]
+pub mod fixed_numeric_index_codec;
+
+#[cfg(feature = "kernel-step")]
+pub mod fixed_numeric_scan_back;
+
+#[cfg(feature = "kernel-step")]
+pub mod fixed_numeric_pair_back;
+
+#[cfg(feature = "kernel-step")]
+pub mod fixed_numeric_pair_catalog;
+
+#[cfg(feature = "kernel-step")]
+pub mod fixed_numeric_window_back;
+
+#[cfg(feature = "kernel-step")]
+pub mod fixed_numeric_finite_envelope;
+
+#[cfg(feature = "kernel-step")]
+pub mod fixed_numeric_temporal;
+
+#[cfg(feature = "kernel-step")]
+pub mod fixed_numeric_value_capacity;
+
+#[cfg(feature = "kernel-operation-owners")]
+pub mod operation_owners;

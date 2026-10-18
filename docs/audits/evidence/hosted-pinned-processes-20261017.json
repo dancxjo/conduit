@@ -1,0 +1,28 @@
+{
+  "workers": [
+    {
+      "run": 1,
+      "pid": 4036848,
+      "start_time_ticks": "44301926",
+      "affinity": "4",
+      "executable": "/home/dancxjo/conduit/target/release/conduit-runtime-performance",
+      "capture": "/home/dancxjo/Documents/Codex/2026-10-17/goal-each-turn-find-the-next/work/hosted-runtime-pinned-1-20261017"
+    },
+    {
+      "run": 2,
+      "pid": 4038438,
+      "start_time_ticks": "44311789",
+      "affinity": "4",
+      "executable": "/home/dancxjo/conduit/target/release/conduit-runtime-performance",
+      "capture": "/home/dancxjo/Documents/Codex/2026-10-17/goal-each-turn-find-the-next/work/hosted-runtime-pinned-2-20261017"
+    },
+    {
+      "run": 3,
+      "pid": 4039347,
+      "start_time_ticks": "44319582",
+      "affinity": "4",
+      "executable": "/home/dancxjo/conduit/target/release/conduit-runtime-performance",
+      "capture": "/home/dancxjo/Documents/Codex/2026-10-17/goal-each-turn-find-the-next/work/hosted-runtime-pinned-3-20261017"
+    }
+  ]
+}

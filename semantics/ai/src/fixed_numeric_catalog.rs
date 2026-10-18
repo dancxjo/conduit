@@ -1,7 +1,7 @@
 //! Owned generic fixed numeric port contracts. No network ordering or speech policy.
-use alloc::{format, string::String, vec, vec::Vec};
+use alloc::{collections::BTreeMap, format, string::String, vec, vec::Vec};
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, CheckedFront, CheckedValueContract, FrontValueContract,
+    kind_id, port_id, CapabilityLimits, CheckedValueContract, FrontValueContract,
     FrontValueLocation, Kind, KindIdentity, KindSemanticLaw, PortDescriptor, PortDirection,
     PortTemporal, StructuredInfoType,
 };
@@ -11,17 +11,33 @@ use conduit_plot::{
 };
 
 pub const FIXED_NUMERIC_SOURCE: &str = include_str!("../fixed_numeric.conduit");
-pub const FIXED_NUMERIC_REVISION: &str = "conduit.numeric/fixed-f32-libm@2";
+pub const FIXED_NUMERIC_SIGNAL_SOURCE: &str = include_str!("../fixed_numeric_signal.conduit");
+pub const FIXED_NUMERIC_REVISION: &str = "conduit.numeric/fixed-f32-libm@3";
 
 pub fn fixed_numeric_types() -> Result<Vec<CheckedNativeType>, String> {
+    #[cfg(feature = "hosted-catalog-cache")]
+    {
+        static CATALOG: std::sync::OnceLock<Result<Vec<CheckedNativeType>, String>> =
+            std::sync::OnceLock::new();
+        CATALOG.get_or_init(fixed_numeric_types_uncached).clone()
+    }
+    #[cfg(not(feature = "hosted-catalog-cache"))]
+    fixed_numeric_types_uncached()
+}
+fn fixed_numeric_types_uncached() -> Result<Vec<CheckedNativeType>, String> {
     let mut catalog = StartupCatalog::new();
     catalog.insert_value_kind_alias(
         "ResourceRef",
         kind_id(conduit_core::RESOURCE_REFERENCE_INFO_ID),
     )?;
-    check_syntax_document(&parse_syntax_document(FIXED_NUMERIC_SOURCE), &catalog)
-        .map(|document| document.native_types)
-        .map_err(|error| format!("{}: {}", error.code, error.message))
+    check_syntax_document(
+        &parse_syntax_document(&format!(
+            "{FIXED_NUMERIC_SOURCE}\n{FIXED_NUMERIC_SIGNAL_SOURCE}"
+        )),
+        &catalog,
+    )
+    .map(|document| document.native_types)
+    .map_err(|error| format!("{}: {}", error.code, error.message))
 }
 
 pub fn fixed_numeric_type(name: &str) -> Result<StructuredInfoType, String> {
@@ -33,7 +49,34 @@ pub fn fixed_numeric_type(name: &str) -> Result<StructuredInfoType, String> {
 }
 
 pub fn fixed_numeric_contracts() -> Result<Vec<Kind>, String> {
+    #[cfg(feature = "hosted-catalog-cache")]
+    {
+        static CATALOG: std::sync::OnceLock<Result<Vec<Kind>, String>> = std::sync::OnceLock::new();
+        CATALOG
+            .get_or_init(fixed_numeric_contracts_uncached)
+            .clone()
+    }
+    #[cfg(not(feature = "hosted-catalog-cache"))]
+    fixed_numeric_contracts_uncached()
+}
+fn fixed_numeric_contracts_uncached() -> Result<Vec<Kind>, String> {
     let types = fixed_numeric_types()?;
+    let mut bounds: BTreeMap<_, u32> = types
+        .iter()
+        .map(|ty| {
+            Ok((
+                ty.value_type
+                    .profile()
+                    .map_err(|e| format!("{e:?}"))?
+                    .value_kind()
+                    .clone(),
+                conduit_plot::maximum_prepared_canonical_value_bytes(&ty.value_type)
+                    .map_err(|e| format!("{e:?}"))?,
+            ))
+        })
+        .collect::<Result<_, String>>()?;
+    bounds.insert(kind_id("value/u16"), 2);
+    bounds.insert(kind_id("value/u64"), 8);
     let port = |name: &str, ty: &str, direction| -> Result<PortDescriptor, String> {
         let value_kind = if ty == "U16" {
             kind_id("value/u16")
@@ -127,19 +170,40 @@ pub fn fixed_numeric_contracts() -> Result<Vec<Kind>, String> {
                 ("value", "NumericF32Vector64"),
                 ("history", "NumericHistory2x64"),
             ],
-            vec![("result", "NumericWindow2x64")],
+            vec![("result", "NumericWindowResult2x64")],
         ),
     ];
+    let mut specs: Vec<crate::fixed_numeric_signal_catalog::Spec> = specs
+        .into_iter()
+        .map(|(n, inputs, outputs)| {
+            (
+                n.into(),
+                inputs
+                    .into_iter()
+                    .map(|(n, t)| (n.into(), t.into()))
+                    .collect(),
+                outputs
+                    .into_iter()
+                    .map(|(n, t)| (n.into(), t.into()))
+                    .collect(),
+            )
+        })
+        .collect();
+    for spec in crate::fixed_numeric_signal_catalog::fixed_signal_specs() {
+        if !specs.iter().any(|old| old.0 == spec.0) {
+            specs.push(spec);
+        }
+    }
     specs
         .into_iter()
         .map(|(name, inputs, outputs)| {
             let inputs: Vec<_> = inputs
                 .into_iter()
-                .map(|(n, t)| port(n, t, PortDirection::Input))
+                .map(|(n, t)| port(&n, &t, PortDirection::Input))
                 .collect::<Result<_, _>>()?;
             let outputs: Vec<_> = outputs
                 .into_iter()
-                .map(|(n, t)| port(n, t, PortDirection::Output))
+                .map(|(n, t)| port(&n, &t, PortDirection::Output))
                 .collect::<Result<_, _>>()?;
             // Each queue and value has a finite envelope. Resource bytes remain
             // separately admitted and borrowed; they are not copied into queues.
@@ -151,12 +215,16 @@ pub fn fixed_numeric_contracts() -> Result<Vec<Kind>, String> {
                         PortDirection::Input => FrontValueLocation::Input(p.port_id.clone()),
                         PortDirection::Output => FrontValueLocation::Output(p.port_id.clone()),
                     },
-                    contract: CheckedValueContract::new(p.value_kind.clone(), 16_384, vec![])
-                        .expect("finite numeric port envelope"),
+                    contract: CheckedValueContract::new(
+                        p.value_kind.clone(),
+                        bounds[&p.value_kind],
+                        vec![],
+                    )
+                    .expect("finite numeric port envelope"),
                 })
                 .collect();
             Ok(Kind {
-                kind_id: kind_id(name),
+                kind_id: kind_id(&name),
                 kind_contract_revision: KindIdentity::from(format!(
                     "{FIXED_NUMERIC_REVISION}/{name}"
                 )),
@@ -180,22 +248,45 @@ pub fn install_fixed_numeric_catalogs(
     startup: &mut StartupCatalog,
     profile: &mut ProfileCatalog,
 ) -> Result<(), String> {
+    install_catalogs_with(startup, profile, Ok)
+}
+/// Explicit larger instance profile for stateless Value operators.
+#[cfg(feature = "kernel-step")]
+pub fn install_fixed_numeric_catalogs_capacity64(
+    startup: &mut StartupCatalog,
+    profile: &mut ProfileCatalog,
+) -> Result<(), String> {
+    install_catalogs_with(startup, profile, |kind| {
+        if crate::fixed_numeric_value_capacity::value_capacity64_implementation(
+            kind.kind_id.as_str(),
+        )
+        .is_some()
+        {
+            crate::fixed_numeric_value_capacity::value_capacity64_contract(kind)
+        } else {
+            Ok(kind)
+        }
+    })
+}
+fn install_catalogs_with(
+    startup: &mut StartupCatalog,
+    profile: &mut ProfileCatalog,
+    transform: impl Fn(Kind) -> Result<Kind, String>,
+) -> Result<(), String> {
     startup.insert_value_kind_alias(
         "ResourceRef",
         kind_id(conduit_core::RESOURCE_REFERENCE_INFO_ID),
     )?;
     for ty in fixed_numeric_types()? {
-        startup.insert_structured_type(ty.name, ty.value_type)?;
+        startup.insert_checked_native_type(ty.name.clone(), &ty)?;
     }
     for kind in fixed_numeric_contracts()? {
+        let kind = transform(kind)?;
         startup.insert(KindSignature {
             kind: kind.kind_id.as_str().into(),
             startup_parameters: vec![],
         })?;
-        startup.insert_fore(
-            kind.kind_id.as_str(),
-            CheckedFront::new(vec![], kind.inputs.clone(), kind.outputs.clone(), None),
-        )?;
+        startup.insert_fore(kind.kind_id.as_str(), kind.checked_front())?;
         profile
             .insert_kind(kind)
             .map_err(|error| format!("{error:?}"))?;

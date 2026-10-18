@@ -12,11 +12,24 @@ impl<const N: usize> ReadySet<N> {
         ready
     }
     pub(super) fn set(&mut self, node: usize, value: bool) {
+        let byte = node / 8;
+        let previous = self.bytes[byte];
         let mask = 1 << (node % 8);
         if value {
-            self.bytes[node / 8] |= mask;
+            self.bytes[byte] |= mask;
         } else {
-            self.bytes[node / 8] &= !mask;
+            self.bytes[byte] &= !mask;
+        }
+        if N >= 64 && (previous == 0) != (self.bytes[byte] == 0) {
+            // The existing N-byte reservation has room after the packed bits.
+            // One summary bit marks each nonempty readiness byte.
+            let summary = N.div_ceil(8) + byte / 8;
+            let mask = 1 << (byte % 8);
+            if self.bytes[byte] != 0 {
+                self.bytes[summary] |= mask;
+            } else {
+                self.bytes[summary] &= !mask;
+            }
         }
     }
     pub(super) fn clear(&mut self) {
@@ -37,6 +50,18 @@ impl<const N: usize> ReadySet<N> {
                 return ((node < end).then_some(node), probes);
             }
             start = (byte + 1) * 8;
+            if N >= 64 {
+                while start < end {
+                    let byte = start / 8;
+                    probes += 1;
+                    let summary = self.bytes[N.div_ceil(8) + byte / 8] & (u8::MAX << (byte % 8));
+                    if summary != 0 {
+                        start = (byte / 8 * 8 + summary.trailing_zeros() as usize) * 8;
+                        break;
+                    }
+                    start = (byte / 8 + 1) * 64;
+                }
+            }
         }
         (None, probes)
     }
@@ -141,6 +166,59 @@ mod tests {
         }
         assert_eq!(core::mem::size_of::<ReadySet<17>>(), 17);
     }
+    #[test]
+    fn summary_iteration_matches_linear_for_partial_active_prefixes() {
+        for active in [0, 1, 7, 8, 63, 64, 65, 127, 128, 129] {
+            for mask in 0u32..64 {
+                let mut set = ReadySet::<129>::new(active);
+                for node in 0..active {
+                    set.set(node, mask & (1 << (node % 6)) != 0);
+                }
+                for cursor in 0..active.max(1) {
+                    let expected = (0..active)
+                        .map(|offset| (cursor + offset) % active)
+                        .filter(|node| mask & (1 << (node % 6)) != 0)
+                        .collect::<std::vec::Vec<_>>();
+                    assert_eq!(
+                        set.round_robin(cursor, active)
+                            .collect::<std::vec::Vec<_>>(),
+                        expected
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn sparse_large_selection_skips_empty_groups_without_growing_storage() {
+        let mut set = ReadySet::<10_000>::new(0);
+        set.set(9_999, true);
+        let (node, probes) = set.next_between(0, 10_000);
+        assert_eq!(node, Some(9_999));
+        assert!(probes <= 160, "observed {probes} readiness byte probes");
+        assert_eq!(core::mem::size_of_val(&set), 10_000);
+        set.set(9_999, false);
+        assert_eq!(set.round_robin(9_999, 10_000).next(), None);
+        for node in [0, 7, 8, 63, 64, 511, 512, 9_998, 9_999] {
+            set.set(node, true);
+            set.set(node, true);
+        }
+        set.set(512, false);
+        for cursor in [0, 1, 63, 64, 511, 512, 9_998, 9_999] {
+            let expected = (0..10_000)
+                .map(|offset| (cursor + offset) % 10_000)
+                .filter(|node| set.contains(*node))
+                .collect::<std::vec::Vec<_>>();
+            assert_eq!(
+                set.round_robin(cursor, 10_000)
+                    .collect::<std::vec::Vec<_>>(),
+                expected
+            );
+        }
+        set.clear();
+        assert_eq!(set.round_robin(0, 10_000).next(), None);
+    }
+
     #[test]
     fn isolated_wake_clear_and_large_boundaries_preserve_independent_membership() {
         let mut set = ReadySet::<256>::new(256);

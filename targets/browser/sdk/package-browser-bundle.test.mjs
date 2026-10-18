@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { chmod, lstat, mkdtemp, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
@@ -23,6 +23,7 @@ try {
     image_id: imageId,
     profile_id: profileId,
     files: [runtimeFile, bootFile],
+    boot_module: { role: "profile-gated-boot", path: bootFile.path, sha256: bootFile.sha256 },
     reviewed_distribution: { distribution_digest: distributionDigest, runtime_abi: "conduit.browser/runtime-abi@1" },
   };
   const imageBytes = new TextEncoder().encode(JSON.stringify(image));
@@ -60,7 +61,7 @@ try {
   assert.equal(metadata.package_id, "@conduit/browser");
   assert.equal(metadata.profile_id, profileId);
   assert.deepEqual(metadata.files, files);
-  const packed = spawnSync("npm", ["pack", "--dry-run", "--json"], { cwd: output, encoding: "utf8" });
+  const packed = spawnSync("npm", ["pack", "--ignore-scripts", "--json"], { cwd: output, encoding: "utf8" });
   assert.equal(packed.status, 0, packed.stderr);
   const listing = JSON.parse(packed.stdout)[0].files.map(({ path: file }) => file);
   assert(listing.includes("browser-sdk.mjs"));
@@ -70,6 +71,7 @@ try {
   assert(listing.includes("browser-sdk-events.mjs"));
   assert(listing.includes("browser-sdk-face.mjs"));
   assert(listing.includes("browser-sdk-face-actions.mjs"));
+  assert(listing.includes("browser-sdk-owner-show-state.mjs"));
   assert(listing.includes("browser-sdk-wardrobe.mjs"));
   assert(listing.includes("host/assets/browser-membership.js"));
   assert(listing.includes("host/assets/browser-host-identity.mjs"));
@@ -78,7 +80,13 @@ try {
   assert(listing.includes("host/assets/browser-saved-choice.mjs"));
   assert(listing.includes("host/assets/browser-monotonic-timer.mjs"));
   assert(listing.includes("bundle/runtime.wasm"));
-  const imported = spawnSync(process.execPath, ["--input-type=module", "-e", "await import('./browser-sdk.mjs')"], { cwd: output, encoding: "utf8" });
+  // Import the actual consumer artifact: staging can contain files npm omits.
+  const installed = path.join(scratch, "installed");
+  await mkdir(installed);
+  const archive = JSON.parse(packed.stdout)[0].filename;
+  const extracted = spawnSync("tar", ["-xzf", path.join(output, archive), "-C", installed], { encoding: "utf8" });
+  assert.equal(extracted.status, 0, extracted.stderr);
+  const imported = spawnSync(process.execPath, ["--input-type=module", "-e", "await import('./browser-sdk.mjs')"], { cwd: path.join(installed, "package"), encoding: "utf8" });
   assert.equal(imported.status, 0, imported.stderr);
 
   // The static application composes this exact bundle, including its SDK graph.
@@ -140,6 +148,197 @@ try {
   const unsafe = spawnSync(process.execPath, [staticScript, templatePath, source, path.join(scratch, "unsafe")], { encoding: "utf8" });
   assert.notEqual(unsafe.status, 0);
   assert.match(unsafe.stderr, /Unsafe application path/);
+
+  // These are envelope fixtures, not executable runtime/ABI proof.
+  const maximumRuntimeBytes = 20 * 1024 * 1024;
+  const atCeiling = new Uint8Array(maximumRuntimeBytes); atCeiling.set(runtime);
+  const oversized = new Uint8Array(maximumRuntimeBytes + 1); oversized.set(runtime);
+  const wrongMagic = runtime.slice(); wrongMagic[0] = 1;
+  const wrongVersion = runtime.slice(); wrongVersion[4] = 2;
+  const runtimeCases = [
+    { name: "ceiling", bytes: atCeiling, accepted: true },
+    { name: "oversized", bytes: oversized, error: /20 MiB/ },
+    { name: "truncated", bytes: runtime.slice(0, 7), error: /Wasm.*header/ },
+    { name: "magic", bytes: wrongMagic, error: /Wasm.*header/ },
+    { name: "version", bytes: wrongVersion, error: /Wasm.*header/ },
+    { name: "missing", bytes: null, error: /no.*runtime/ },
+    { name: "duplicate", bytes: runtime, duplicate: true, error: /duplicate/ },
+  ];
+  const runtimeResults = [];
+  for (const entry of runtimeCases) {
+    const variantSource = path.join(scratch, `runtime-${entry.name}`);
+    const variantOutput = path.join(scratch, `runtime-${entry.name}-package`);
+    await mkdir(variantSource);
+    const variantRuntime = entry.bytes ? await fileIdentity("runtime.wasm", entry.bytes) : null;
+    const variantDistributionFiles = variantRuntime ? [variantRuntime, bootFile] : [bootFile];
+    const variantDigest = await digestFiles(variantDistributionFiles);
+    const variantImage = { ...image, files: variantDistributionFiles,
+      reviewed_distribution: { ...image.reviewed_distribution, distribution_digest: variantDigest } };
+    const variantImageBytes = new TextEncoder().encode(JSON.stringify(variantImage));
+    const variantFiles = [...(entry.duplicate ? [variantRuntime, variantRuntime] : variantDistributionFiles),
+      await fileIdentity("conduit-browser-image.json", variantImageBytes)];
+    await writeFile(path.join(variantSource, "browser-page.json"), JSON.stringify({ ...distribution,
+      files: variantDistributionFiles, bundle_sha256: variantDigest }));
+    await writeFile(path.join(variantSource, "browser-bundle-release.json"), JSON.stringify({ ...release,
+      distribution_sha256: variantDigest, files: variantFiles, bundle_sha256: await digestFiles(variantFiles) }));
+    await writeFile(path.join(variantSource, "conduit-browser-image.json"), variantImageBytes);
+    await writeFile(path.join(variantSource, "browser-boot-profile.mjs"), boot);
+    if (entry.bytes) await writeFile(path.join(variantSource, "runtime.wasm"), entry.bytes);
+    const before = (await readdir(scratch)).sort();
+    const result = spawnSync(process.execPath, [path.join(root, "package-browser-bundle.mjs"), variantSource, variantOutput], { encoding: "utf8" });
+    runtimeResults.push({ name: entry.name, accepted: result.status === 0 });
+    if (result.status !== 0) {
+      assert.match(result.stderr, entry.error);
+      await assert.rejects(lstat(variantOutput), { code: "ENOENT" });
+      assert.deepEqual((await readdir(scratch)).sort(), before);
+    } else if (entry.accepted) {
+      const bytes = await readFile(path.join(variantOutput, "bundle/runtime.wasm"));
+      assert.equal(bytes.length, maximumRuntimeBytes);
+      assert.equal(await sha256(bytes), variantRuntime.sha256);
+    }
+  }
+  assert.deepEqual(runtimeResults, runtimeCases.map(entry => ({ name: entry.name, accepted: entry.accepted === true })));
+
+  const moduleResults = [];
+  for (const size of [256 * 1024, 256 * 1024 + 1]) {
+    const variantSource = path.join(scratch, `module-${size}`);
+    const variantOutput = path.join(scratch, `module-${size}-package`);
+    await mkdir(variantSource);
+    const bytes = new Uint8Array(size).fill(32);
+    const variantBoot = await fileIdentity("browser-boot-profile.mjs", bytes);
+    const inventory = [runtimeFile, variantBoot];
+    const inventoryDigest = await digestFiles(inventory);
+    const variantImage = { ...image, files: inventory, boot_module: { ...image.boot_module, sha256: variantBoot.sha256 },
+      reviewed_distribution: { ...image.reviewed_distribution, distribution_digest: inventoryDigest } };
+    const imageBytes = new TextEncoder().encode(JSON.stringify(variantImage));
+    const releaseFiles = [...inventory, await fileIdentity("conduit-browser-image.json", imageBytes)];
+    await writeFile(path.join(variantSource, "browser-page.json"), JSON.stringify({ ...distribution,
+      files: inventory, bundle_sha256: inventoryDigest }));
+    await writeFile(path.join(variantSource, "browser-bundle-release.json"), JSON.stringify({ ...release,
+      distribution_sha256: inventoryDigest, files: releaseFiles, bundle_sha256: await digestFiles(releaseFiles) }));
+    await writeFile(path.join(variantSource, "conduit-browser-image.json"), imageBytes);
+    await writeFile(path.join(variantSource, "runtime.wasm"), runtime);
+    await writeFile(path.join(variantSource, "browser-boot-profile.mjs"), bytes);
+    const before = (await readdir(scratch)).sort();
+    const result = spawnSync(process.execPath, [path.join(root, "package-browser-bundle.mjs"), variantSource, variantOutput], { encoding: "utf8" });
+    moduleResults.push({ size, accepted: result.status === 0 });
+    if (result.status !== 0) {
+      assert.match(result.stderr, /256 KiB/);
+      await assert.rejects(lstat(variantOutput), { code: "ENOENT" });
+      assert.deepEqual((await readdir(scratch)).sort(), before);
+    } else {
+      assert.equal(await sha256(await readFile(path.join(variantOutput, "bundle/browser-boot-profile.mjs"))), variantBoot.sha256);
+    }
+  }
+  assert.deepEqual(moduleResults, [{ size: 256 * 1024, accepted: true }, { size: 256 * 1024 + 1, accepted: false }]);
+
+  const metadataCases = ["distribution-schema", "image-abi", "release-package", "release-output",
+    "boot-missing", "boot-role", "boot-path", "boot-digest"];
+  const metadataResults = [];
+  for (const name of metadataCases) {
+    const variantSource = path.join(scratch, name);
+    const variantOutput = path.join(scratch, `${name}-package`);
+    await mkdir(variantSource);
+    const variantDistribution = structuredClone(distribution);
+    const variantImage = structuredClone(image);
+    const variantRelease = structuredClone(release);
+    if (name === "distribution-schema") variantDistribution.reviewed_distribution.schema = "unknown@1";
+    if (name === "image-abi") variantImage.reviewed_distribution.runtime_abi = "unknown@1";
+    if (name === "release-package") variantRelease.make_package_id = "native@1";
+    if (name === "release-output") variantRelease.output = "native-bundle";
+    if (name === "boot-missing") delete variantImage.boot_module;
+    if (name === "boot-role") variantImage.boot_module.role = "ordinary-module";
+    if (name === "boot-path") variantImage.boot_module.path = "runtime.wasm";
+    if (name === "boot-digest") variantImage.boot_module.sha256 = `sha256:${"f".repeat(64)}`;
+    const bytes = new TextEncoder().encode(JSON.stringify(variantImage));
+    variantRelease.files = [runtimeFile, bootFile, await fileIdentity("conduit-browser-image.json", bytes)];
+    variantRelease.bundle_sha256 = await digestFiles(variantRelease.files);
+    await writeFile(path.join(variantSource, "browser-page.json"), JSON.stringify(variantDistribution));
+    await writeFile(path.join(variantSource, "browser-bundle-release.json"), JSON.stringify(variantRelease));
+    await writeFile(path.join(variantSource, "conduit-browser-image.json"), bytes);
+    await writeFile(path.join(variantSource, "runtime.wasm"), runtime);
+    await writeFile(path.join(variantSource, "browser-boot-profile.mjs"), boot);
+    const before = (await readdir(scratch)).sort();
+    const result = spawnSync(process.execPath, [path.join(root, "package-browser-bundle.mjs"), variantSource, variantOutput], { encoding: "utf8" });
+    metadataResults.push({ name, accepted: result.status === 0 });
+    if (result.status !== 0) {
+      assert.match(result.stderr, /exact reviewed BrowserBundle|boot.*declaration/i);
+      await assert.rejects(lstat(variantOutput), { code: "ENOENT" });
+      assert.deepEqual((await readdir(scratch)).sort(), before);
+    }
+  }
+  assert.deepEqual(metadataResults, metadataCases.map(name => ({ name, accepted: false })));
+
+  const inventoryCases = ["distribution-missing", "distribution-duplicate", "distribution-size", "distribution-order",
+    "distribution-digest", "image-size", "image-digest", "image-media-type"];
+  const inventoryResults = [];
+  for (const name of inventoryCases) {
+    const variantSource = path.join(scratch, name);
+    const variantOutput = path.join(scratch, `${name}-package`);
+    await mkdir(variantSource);
+    const variantDistribution = structuredClone(distribution);
+    const variantImage = structuredClone(image);
+    if (name === "distribution-missing") delete variantDistribution.files;
+    if (name === "distribution-duplicate") variantDistribution.files = [runtimeFile, runtimeFile];
+    if (name === "distribution-size") variantDistribution.files[0].bytes++;
+    if (name === "distribution-order") variantDistribution.files.reverse();
+    if (name === "image-size") variantImage.files[0].bytes++;
+    if (name === "image-digest") variantImage.files[0].sha256 = `sha256:${"f".repeat(64)}`;
+    if (name === "image-media-type") variantImage.files[0].media_type = "text/plain";
+    if (name.startsWith("image-")) {
+      variantDistribution.files = structuredClone(variantImage.files);
+      variantDistribution.bundle_sha256 = await digestFiles(variantDistribution.files);
+    }
+    if (name === "distribution-digest") variantDistribution.bundle_sha256 = `sha256:${"f".repeat(64)}`;
+    variantImage.reviewed_distribution.distribution_digest = variantDistribution.bundle_sha256;
+    const variantImageBytes = new TextEncoder().encode(JSON.stringify(variantImage));
+    const variantFiles = [runtimeFile, bootFile, await fileIdentity("conduit-browser-image.json", variantImageBytes)];
+    await writeFile(path.join(variantSource, "browser-page.json"), JSON.stringify(variantDistribution));
+    await writeFile(path.join(variantSource, "browser-bundle-release.json"), JSON.stringify({ ...release,
+      distribution_sha256: variantDistribution.bundle_sha256, files: variantFiles, bundle_sha256: await digestFiles(variantFiles) }));
+    await writeFile(path.join(variantSource, "conduit-browser-image.json"), variantImageBytes);
+    await writeFile(path.join(variantSource, "runtime.wasm"), runtime);
+    await writeFile(path.join(variantSource, "browser-boot-profile.mjs"), boot);
+    const before = (await readdir(scratch)).sort();
+    const result = spawnSync(process.execPath, [path.join(root, "package-browser-bundle.mjs"), variantSource, variantOutput], { encoding: "utf8" });
+    inventoryResults.push({ name, accepted: result.status === 0 });
+    if (result.status !== 0) {
+      assert.match(result.stderr, /inventory|distribution.*digest/i);
+      await assert.rejects(lstat(variantOutput), { code: "ENOENT" });
+      assert.deepEqual((await readdir(scratch)).sort(), before);
+    }
+  }
+  assert.deepEqual(inventoryResults, inventoryCases.map(name => ({ name, accepted: false })));
+
+  // Refusal after copying the first asset must not publish a partial package.
+  const retryOutput = path.join(scratch, "retryable");
+  await chmod(path.join(source, "browser-page.json"), 0o600);
+  const beforeFailure = (await readdir(scratch)).sort();
+  const changedBoot = boot.slice(); changedBoot[0] ^= 1;
+  await writeFile(path.join(source, "browser-boot-profile.mjs"), changedBoot);
+  const lateRejected = spawnSync(process.execPath, [path.join(root, "package-browser-bundle.mjs"), source, retryOutput], { encoding: "utf8" });
+  assert.notEqual(lateRejected.status, 0);
+  assert.match(lateRejected.stderr, /failed digest verification/);
+  await assert.rejects(lstat(retryOutput), { code: "ENOENT" });
+  assert.deepEqual((await readdir(scratch)).sort(), beforeFailure);
+  assert.deepEqual(new Uint8Array(await readFile(path.join(source, "runtime.wasm"))), runtime);
+  await writeFile(path.join(source, "browser-boot-profile.mjs"), boot);
+  const retry = spawnSync(process.execPath, [path.join(root, "package-browser-bundle.mjs"), source, retryOutput], { encoding: "utf8" });
+  assert.equal(retry.status, 0, retry.stderr);
+  if (process.platform !== "win32") {
+    assert.equal((await lstat(retryOutput)).mode & 0o777, 0o777 & ~process.umask());
+    assert.equal((await lstat(path.join(retryOutput, "bundle/browser-page.json"))).mode & 0o777, 0o600);
+  }
+  for (const file of files) {
+    const bytes = await readFile(path.join(retryOutput, "bundle", file.path));
+    assert.equal(bytes.length, file.bytes);
+    assert.equal(await sha256(bytes), file.sha256);
+  }
+  const retainedMetadata = await readFile(path.join(retryOutput, "bundle/browser-sdk-package.json"));
+  const occupied = spawnSync(process.execPath, [path.join(root, "package-browser-bundle.mjs"), source, retryOutput], { encoding: "utf8" });
+  assert.notEqual(occupied.status, 0);
+  assert.match(occupied.stderr, /already exists/);
+  assert.deepEqual(await readFile(path.join(retryOutput, "bundle/browser-sdk-package.json")), retainedMetadata);
 
   await writeFile(path.join(source, "runtime.wasm"), new Uint8Array([1, 2, 3]));
   const rejected = spawnSync(process.execPath, [path.join(root, "package-browser-bundle.mjs"), source, path.join(scratch, "rejected")], { encoding: "utf8" });

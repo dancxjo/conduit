@@ -172,6 +172,11 @@ const body = await host.recover()
 const play = await body.wake();
 ```
 
+Application continuity captures the application identity, compatibility identity,
+version and package digest before asynchronous identity hashing. Later caller
+mutation cannot replace the checked version or package digest used by storage.
+The package digest must be a string containing its exact SHA-256 identity.
+
 Host and Body continuity do not imply Boot, Plan, Wake, or Play continuity. A
 reload admits a fresh Boot; recovery exposes no live realization and never
 resurrects an in-memory Play. A subsequent `wake()` must produce newly admitted
@@ -186,6 +191,23 @@ Body biography records, membership records, workload revision, realization,
 and current Host offers remain Rust evidence; the SDK returns a recursively
 frozen projection and keeps no second mutable Body store.
 
+Plot source must be scalar Unicode text: unpaired surrogates refuse rather than
+being replaced during UTF-8 encoding. Native source ingress checks the arena's
+remaining capacity before encoding impossible fits, then enforces the exact UTF-8
+byte total. This includes multipart review and birth requests.
+
+The Body handle owns an immutable private snapshot of its attachment receipt.
+A current snapshot must retain the Body identity from that receipt.
+A foreign Workspace response refuses with `BodyIdentityMismatch` before returning
+it, projecting its event stream, or issuing a workset change based on it.
+Durable output must match both its evidence and admission Body identities before
+storage writes or archive acknowledgement. Recovery checks the restored Body ID
+before selecting foreground state, and keeps private immutable snapshots through
+its asynchronous persistence step; it cannot silently adopt a different Body.
+Retained continuity is also privately snapshotted before asynchronous source
+checking. A present retained admission must match its evidence Body ID before
+Restore is requested.
+
 `body.events()` reads that same bounded snapshot and projects only retained
 Body biography records with their exact sequence and Sign identity. It joins a
 wake record to its indexed Rust wake event and returns the raw structured
@@ -198,7 +220,11 @@ boundary; it does not invent missing history.
 Subscriptions poll at a bounded interval (50–5,000 ms), yield one event at a
 time, and hold no unbounded event queue. Re-subscribing starts at current
 evidence by default. Set `replay: true` to read the finite retained biography
-window explicitly. Pass an `AbortSignal` to stop the iterator. An event can
+window explicitly. Pass an `AbortSignal` to stop the iterator. An already-aborted
+iterator takes no subscription reservation and reads no snapshot. Cancellation
+also stops remaining replay records and notifications from a pending poll once
+its snapshot read settles. Resuming a canceled iterator releases its reservation;
+this does not cancel the underlying Body operation. An event can
 only describe a Rust record already present in the snapshot, so a refused
 transition never appears as a success event. Refusals remain attached to the
 operation's typed error; lifecycle evidence remains inspectable through the
@@ -286,7 +312,19 @@ unavailable implementations without widening the selected Profile.
 The package producer takes an exact BrowserBundle directory containing
 `browser-page.json`, `browser-bundle-release.json`,
 `conduit-browser-image.json`, and the declared immutable assets. It verifies
-the image and every content digest before copying those assets into the package.
+the image and every content digest, then writes the verified bytes into a private
+sibling staging directory. The new output directory appears only after the whole
+package is ready. A failed attempt removes its staging files and can be retried
+at the same output path; an existing package is never replaced.
+Non-runtime assets must fit the SDK consumer’s 256 KiB per-asset ceiling.
+The runtime must be present, fit the browser consumer's 20 MiB ceiling, and have
+the supported Wasm version header. Duplicate release paths are refused. Distribution and IMAGE inventories must agree
+exactly, their distribution digest is recomputed, and each IMAGE asset must match
+the release size, digest and media type. These
+package checks also require the supported reviewed-distribution schema, IMAGE
+runtime ABI, and release package/output fields. They do not replace runtime ABI
+admission in the browser. The IMAGE must declare the canonical profile-gated
+boot module with the same digest as its verified asset.
 The consuming application only installs or serves that resulting directory;
 it does not invoke the producer or compile Conduit.
 
@@ -313,3 +351,13 @@ presentation profile. `body.patchbay()` projects the selected resident source
 and checks its exact source/Plot identities; it refuses ambiguity or a runtime
 projection with a different identity. The resident Patchbay Plot remains the
 workbench for inspecting a complete Body plan.
+
+### HTTP Face responses
+
+`BrowserFaceClient` reads snapshot and interaction responses incrementally up to
+`maximumResponseBytes` (128 KiB by default), independently of Content-Length.
+It cancels an oversized response before retaining the excess chunk and reports
+`FaceResponseBound`; empty responses receive the same code. Interrupted reads
+report `FaceUnavailable` with the operation and original cause. Accepted bytes
+must decode as UTF-8 JSON. This bounds SDK response accumulation, not browser
+transport buffers or the size of the parsed JavaScript object.

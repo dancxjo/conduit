@@ -85,3 +85,73 @@ test("compaction is reported from its retained boundary before later biography r
   assert.equal(record.value.identity.recordSequence, 9);
   await iterator.return();
 });
+
+test('an already-aborted event iterator does not reserve or read a snapshot', async () => {
+  const abort = new AbortController(); abort.abort();
+  let reserved = 0, reads = 0, released = 0;
+  const iterator = createBodyEventStream({ signal: abort.signal,
+    readSnapshot: async () => { reads++; return snapshot(); },
+    reserve: () => { reserved++; }, release: () => { released++; },
+  })[Symbol.asyncIterator]();
+  assert.deepEqual(await iterator.next(), { done: true, value: undefined });
+  assert.deepEqual({ reserved, reads, released }, { reserved: 0, reads: 0, released: 0 });
+});
+
+for (const compacted of [false, true]) {
+  test(`abort between replayed events stops the remaining batch (compacted=${compacted})`, async () => {
+    const abort = new AbortController();
+    const current = snapshot([
+      { sequence: 9, sign_id: 'sign/9', kind: { Born: {} } },
+      { sequence: 10, sign_id: 'sign/10', kind: { PlotAdmitted: {} } },
+    ]);
+    if (compacted) current.evidence.compaction = { through_sequence: 8, through_sign_id: 'sign/8' };
+    let released = 0;
+    const iterator = createBodyEventStream({ signal: abort.signal, replay: true,
+      readSnapshot: async () => current, release: () => { released++; },
+    })[Symbol.asyncIterator]();
+    const first = await iterator.next();
+    assert.equal(first.value.type, compacted ? 'history-gap' : 'body-born');
+    abort.abort();
+    const next = await iterator.next();
+    await iterator.return();
+    assert.deepEqual(next, { done: true, value: undefined });
+    assert.equal(released, 1);
+  });
+}
+
+test('abort during a pending poll discards its later snapshot and releases once', async () => {
+  const abort = new AbortController();
+  let startPoll, finishPoll, reads = 0, reserved = 0, released = 0;
+  const started = new Promise(resolve => { startPoll = resolve; });
+  const polled = new Promise(resolve => { finishPoll = resolve; });
+  const iterator = createBodyEventStream({ signal: abort.signal, pollIntervalMillis: 50,
+    readSnapshot: async () => { if (++reads === 1) return snapshot(); startPoll(); return polled; },
+    reserve: () => { reserved++; }, release: () => { released++; },
+  })[Symbol.asyncIterator]();
+  const pending = iterator.next();
+  await started;
+  abort.abort();
+  finishPoll(snapshot([{ sequence: 1, sign_id: 'sign/1', kind: { Born: {} } }]));
+  const result = await pending;
+  await iterator.return();
+  assert.deepEqual(result, { done: true, value: undefined });
+  assert.deepEqual({ reads, reserved, released }, { reads: 2, reserved: 1, released: 1 });
+});
+
+test('abort after the last biography record suppresses its host-offer notification', async () => {
+  const abort = new AbortController();
+  let reads = 0, released = 0;
+  const changed = snapshot([{ sequence: 1, sign_id: 'sign/1', kind: { Born: {} } }], {
+    current_host_offers: [{ host_id: 'host/1', boot_id: 'boot/1', offer_generation: 1 }],
+  });
+  const iterator = createBodyEventStream({ signal: abort.signal, pollIntervalMillis: 50,
+    readSnapshot: async () => ++reads === 1 ? snapshot() : changed,
+    release: () => { released++; },
+  })[Symbol.asyncIterator]();
+  assert.equal((await iterator.next()).value.type, 'body-born');
+  abort.abort();
+  const next = await iterator.next();
+  await iterator.return();
+  assert.deepEqual(next, { done: true, value: undefined });
+  assert.equal(released, 1);
+});

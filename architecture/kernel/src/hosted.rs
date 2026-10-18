@@ -16,6 +16,13 @@ pub struct HostedValueStore {
     byte_capacity: u32,
     used_items: u16,
     used_bytes: u32,
+    // Capacities never change after preparation. Equal best fits are first-free.
+    uniform_slots: bool,
+    // Earlier uniform slots are occupied or permanently retired.
+    free_search_start: usize,
+    has_retired_slots: bool,
+    #[cfg(test)]
+    slot_probes: u64,
 }
 
 impl HostedValueStore {
@@ -68,12 +75,20 @@ impl HostedValueStore {
                 bytes: Vec::with_capacity(capacity as usize),
             });
         }
+        let uniform_slots = slots
+            .windows(2)
+            .all(|pair| pair[0].bytes.capacity() == pair[1].bytes.capacity());
         Ok(Self {
             slots,
+            uniform_slots,
+            free_search_start: 0,
+            has_retired_slots: false,
             maximum_value_bytes: maximum_value_bytes as usize,
             byte_capacity,
             used_items: 0,
             used_bytes: 0,
+            #[cfg(test)]
+            slot_probes: 0,
         })
     }
 
@@ -154,17 +169,56 @@ impl ValueStorage for HostedValueStore {
         {
             return Err(StorageError::ByteCapacityExceeded);
         }
-        let (slot_index, slot) = self
-            .slots
-            .iter_mut()
-            .enumerate()
-            .filter(|(_, slot)| slot.references == 0 && slot.bytes.capacity() >= bytes.len())
-            .min_by_key(|(_, slot)| slot.bytes.capacity())
-            .ok_or(StorageError::ItemCapacityExceeded)?;
-        slot.generation = slot.generation.wrapping_add(1);
-        if slot.generation == 0 {
-            slot.generation = 1;
+        if usize::from(self.used_items) == self.slots.len() {
+            return Err(StorageError::ItemCapacityExceeded);
         }
+        #[cfg(test)]
+        let probes = &mut self.slot_probes;
+        let (slot_index, slot) = if self.uniform_slots {
+            let start = self.free_search_start;
+            self.slots[start..]
+                .iter_mut()
+                .enumerate()
+                .inspect(|_| {
+                    #[cfg(test)]
+                    {
+                        *probes += 1;
+                    }
+                })
+                .find(|(_, slot)| slot.references == 0 && slot.generation != u16::MAX)
+                .map(|(offset, slot)| (start + offset, slot))
+                .ok_or(if self.has_retired_slots {
+                    StorageError::GenerationExhausted
+                } else {
+                    StorageError::ItemCapacityExceeded
+                })?
+        } else {
+            let mut retired_fit = false;
+            self.slots
+                .iter_mut()
+                .enumerate()
+                .inspect(|_| {
+                    #[cfg(test)]
+                    {
+                        *probes += 1;
+                    }
+                })
+                .filter(|(_, slot)| {
+                    let free_fit = slot.references == 0 && slot.bytes.capacity() >= bytes.len();
+                    retired_fit |= free_fit && slot.generation == u16::MAX;
+                    free_fit && slot.generation != u16::MAX
+                })
+                .min_by_key(|(_, slot)| slot.bytes.capacity())
+                .ok_or(if retired_fit {
+                    StorageError::GenerationExhausted
+                } else {
+                    StorageError::ItemCapacityExceeded
+                })?
+        };
+        if self.uniform_slots {
+            self.free_search_start = slot_index + 1;
+        }
+        slot.generation += 1;
         slot.references = 1;
         slot.bytes.clear();
         slot.bytes.extend_from_slice(bytes);
@@ -203,18 +257,28 @@ impl ValueStorage for HostedValueStore {
             slot.bytes.clear();
             self.used_items -= 1;
             self.used_bytes -= len;
+            if self.slots[usize::from(value.slot)].generation == u16::MAX {
+                self.has_retired_slots = true;
+            } else if self.uniform_slots {
+                self.free_search_start = self.free_search_start.min(usize::from(value.slot));
+            }
         }
         Ok(())
     }
 
     fn clear(&mut self) {
         for slot in &mut self.slots {
+            self.has_retired_slots |= slot.generation == u16::MAX;
             slot.references = 0;
             slot.bytes.clear();
         }
         self.used_items = 0;
         self.used_bytes = 0;
+        self.free_search_start = 0;
     }
 }
 
 pub use HostedValueStore as Store;
+
+#[cfg(test)]
+mod tests;

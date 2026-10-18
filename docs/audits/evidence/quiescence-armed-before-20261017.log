@@ -1,0 +1,160 @@
+   Compiling conduit-kernel v0.1.0 (/home/dancxjo/conduit/architecture/kernel)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.95s
+     Running unittests src/lib.rs (target/debug/deps/conduit_kernel-a80658a85ebf8522)
+
+running 1 test
+SPARSE_QUIESCENCE_PROBES 254
+test scheduler::quiescence::tests::sparse_armed_quiescence_ignores_unarmed_tail_without_losing_ineligible_edges ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 144 filtered out; finished in 0.00s
+
+     Running tests/active_prefix.rs (target/debug/deps/active_prefix-fd6e00d9227cfaf9)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s
+
+     Running tests/back_failure.rs (target/debug/deps/back_failure-4bb7a948ce4e18f2)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/body_evidence_and_faults.rs (target/debug/deps/body_evidence_and_faults-cd22586efd2c70cb)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 8 filtered out; finished in 0.00s
+
+     Running tests/debug_observation.rs (target/debug/deps/debug_observation-8bf49b2250a1778e)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 7 filtered out; finished in 0.00s
+
+     Running tests/execution_region.rs (target/debug/deps/execution_region-d05a175f12cc34ea)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/execution_region_unavailable.rs (target/debug/deps/execution_region_unavailable-61242f2ab6ee390a)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/heterogeneous_value_store.rs (target/debug/deps/heterogeneous_value_store-f6d35854a1450d61)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/keyboard_source.rs (target/debug/deps/keyboard_source-328a2f205a94ec20)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s
+
+     Running tests/ready_selection_allocation.rs (target/debug/deps/ready_selection_allocation-c6c35f45635ade3d)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/scheduler_footprint.rs (target/debug/deps/scheduler_footprint-e698a8296f591a96)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/shared_flow.rs (target/debug/deps/shared_flow-08d6865bd7422f3f)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.00s
+
+     Running tests/shared_pool.rs (target/debug/deps/shared_pool-0520dc4cf3a2715a)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.00s
+
+     Running tests/shared_pool_cost_selection.rs (target/debug/deps/shared_pool_cost_selection-a00b733a8afb993a)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s
+
+     Running tests/shared_pool_selection.rs (target/debug/deps/shared_pool_selection-b8829c63f53be061)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.00s
+
+     Running tests/sign_capacity_cost.rs (target/debug/deps/sign_capacity_cost-12f0d9a6b1232461)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/sign_query_extent.rs (target/debug/deps/sign_query_extent-2dd4712c23003014)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/sign_record_cost.rs (target/debug/deps/sign_record_cost-930bbe5a44017126)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s
+
+     Running tests/state_continuation.rs (target/debug/deps/state_continuation-e084b3052a4fdd7e)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 6 filtered out; finished in 0.00s
+
+     Running tests/state_prepared_output.rs (target/debug/deps/state_prepared_output-9999dde58a2cdcb4)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s
+
+     Running tests/static_merge.rs (target/debug/deps/static_merge-d616d9a01ab833e2)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s
+
+     Running tests/step_atomic_discard.rs (target/debug/deps/step_atomic_discard-6efbcb796ba4d16f)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.00s
+
+     Running tests/step_fuel.rs (target/debug/deps/step_fuel-9bccc4bbc369f6bf)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s
+
+     Running tests/step_input_bytes.rs (target/debug/deps/step_input_bytes-b68472762dc89733)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s
+
+     Running tests/value_generation.rs (target/debug/deps/value_generation-1c9b5836c896ab71)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/value_store_model.rs (target/debug/deps/value_store_model-6823620f57ee393a)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+

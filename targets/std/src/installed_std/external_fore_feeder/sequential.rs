@@ -13,15 +13,41 @@ pub(in crate::installed_std) struct SequentialForeFeeder<'a> {
     input_flows: Vec<usize>,
     next: usize,
     closed: bool,
+    pub(super) stream: Option<crate::ExternalForeStreamStats>,
 }
 impl<'a> SequentialForeFeeder<'a> {
     pub(in crate::installed_std) fn prepare(
         planned: &[&LoweredForePort],
         inputs: &'a [ExternalForeInput],
     ) -> Result<Self, String> {
-        if planned.is_empty() || inputs.is_empty() || inputs.len() > usize::from(MAX_SEQUENCE_ITEMS)
-        {
-            return Err("external Fore sequence requires one to 64 admitted input values".into());
+        Self::prepare_bounded(planned, inputs, MAX_SEQUENCE_ITEMS, None)
+    }
+    pub(in crate::installed_std) fn prepare_stream(
+        planned: &[&LoweredForePort],
+        inputs: &'a [ExternalForeInput],
+        config: crate::ExternalForeStreamConfig,
+    ) -> Result<Self, String> {
+        config.validate()?;
+        Self::prepare_bounded(
+            planned,
+            inputs,
+            crate::ExternalForeStreamConfig::MAX_INPUTS,
+            Some(crate::ExternalForeStreamStats {
+                admission_batch: config.admission_batch,
+                ..Default::default()
+            }),
+        )
+    }
+    fn prepare_bounded(
+        planned: &[&LoweredForePort],
+        inputs: &'a [ExternalForeInput],
+        maximum: u16,
+        stream: Option<crate::ExternalForeStreamStats>,
+    ) -> Result<Self, String> {
+        if planned.is_empty() || inputs.is_empty() || inputs.len() > usize::from(maximum) {
+            return Err(format!(
+                "external Fore sequence requires one to {maximum} admitted input values"
+            ));
         }
         if planned.iter().any(|port| {
             port.direction != PortDirection::Input
@@ -71,6 +97,7 @@ impl<'a> SequentialForeFeeder<'a> {
             input_flows,
             next: 0,
             closed: false,
+            stream,
         })
     }
     pub(in crate::installed_std) fn input_items(&self) -> u16 {
@@ -84,12 +111,15 @@ impl<'a> SequentialForeFeeder<'a> {
         &mut self,
         ingress: &mut impl ForeIngress,
     ) -> Result<(), String> {
-        if self.closed || ingress.has_ready_work() {
+        if self.closed || (self.stream.is_none() && ingress.has_ready_work()) {
             return Ok(());
         }
-        // The caller invokes this only after draining current Kernel work.
-        // Last payload admission is not closure: let every stage consume it.
+        // Closure follows drained payloads in both modes. Overlapping ingress
+        // changes admission cadence, never the kernel's value-before-close law.
         if self.next == self.inputs.len() {
+            if ingress.has_ready_work() {
+                return Ok(());
+            }
             for flow in &self.flows {
                 for &(endpoint, cord) in &flow.targets {
                     ingress.close(endpoint, cord)?;
@@ -98,24 +128,49 @@ impl<'a> SequentialForeFeeder<'a> {
             self.closed = true;
             return Ok(());
         }
-        let input = &self.inputs[self.next];
-        let flow = &mut self.flows[self.input_flows[self.next]];
-        match ingress.admit(&flow.targets, flow.sequence, &input.bytes)? {
-            RemoteIngressOutcome::Accepted { sequence } if sequence == flow.sequence => {
-                flow.sequence += 1; // At most 64 admitted values in this prepared run.
-                self.next += 1;
+        let batch = if let Some(stats) = &mut self.stream {
+            stats.batches += 1;
+            stats.admission_batch
+        } else {
+            1
+        };
+        for _ in 0..batch {
+            if self.next == self.inputs.len() {
+                break;
             }
-            RemoteIngressOutcome::Full { sequence } if sequence == flow.sequence => {}
-            other => {
-                return Err(format!(
-                    "external Fore sequence was not admitted: {other:?}"
-                ))
+            let input = &self.inputs[self.next];
+            let flow = &mut self.flows[self.input_flows[self.next]];
+            if let Some(stats) = &mut self.stream {
+                stats.attempts += 1;
+            }
+            match ingress.admit(&flow.targets, flow.sequence, &input.bytes)? {
+                RemoteIngressOutcome::Accepted { sequence } if sequence == flow.sequence => {
+                    flow.sequence += 1; // Bounded by the admitted finite input lifetime.
+                    self.next += 1;
+                    if let Some(stats) = &mut self.stream {
+                        stats.accepted += 1;
+                    }
+                }
+                RemoteIngressOutcome::Full { sequence } if sequence == flow.sequence => {
+                    if let Some(stats) = &mut self.stream {
+                        stats.full += 1;
+                    }
+                    break;
+                }
+                other => {
+                    return Err(format!(
+                        "external Fore sequence was not admitted: {other:?}"
+                    ))
+                }
             }
         }
         Ok(())
     }
 }
 
+#[cfg(test)]
+#[path = "stream_tests.rs"]
+mod stream_tests;
 #[cfg(test)]
 #[path = "../external_fore_feeder_tests.rs"]
 mod tests;

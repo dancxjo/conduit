@@ -1,0 +1,142 @@
+{
+  "source": "a52ddeff5fc3e047bdf311591a1c7ef8233d69ee",
+  "artifacts": {
+    "docs/audits/evidence/runtime-5395-20261017-archive-roundtrip.json": {
+      "sha256": "f67be13a9af232ed9a0abcf1dbc9d184da428b05ce1e27b18cdb4c2db49da472",
+      "bytes": 150
+    },
+    "docs/audits/evidence/runtime-5395-20261017-attribution-verification.json": {
+      "sha256": "d71e47ae1a20964a1d0c7fa33f9723f2d8ebae52fbfd774eb8e855ee77a9ff4b",
+      "bytes": 10430
+    },
+    "docs/audits/evidence/runtime-5395-20261017-hosted-runtime-domain-20261017-01.tar.gz": {
+      "sha256": "5405028b23926bce6a20863cb36031eeb95163dfdf61872099a73fe87fbdae46",
+      "bytes": 11819406
+    },
+    "docs/audits/evidence/runtime-5395-20261017-hosted-runtime-domain-20261017-02.tar.gz": {
+      "sha256": "8a031dbab93fad1a903e744a730de4e316ccc2f9fb21c1bcd9432f057727e246",
+      "bytes": 11825624
+    },
+    "docs/audits/evidence/runtime-5395-20261017-hosted-runtime-domain-20261017-03.tar.gz": {
+      "sha256": "a479cbb759f29fbe1a0fa65116a9bfb589dda376615781d9e11865e45c86ccfe",
+      "bytes": 11819819
+    },
+    "docs/audits/evidence/runtime-5395-20261017-hosted-runtime-domain-20261017-04.tar.gz": {
+      "sha256": "ffe377bc3c9ada992d67f66f5cc77baf90a415beb82b049128dfbf9ecbde568e",
+      "bytes": 11819275
+    },
+    "docs/audits/evidence/runtime-5395-20261017-kernel-domain-current-20261017.tar.gz": {
+      "sha256": "a4764d1fa17c4b384e4feb4a98846abb3ddaeb717d596837012f99f21b498803",
+      "bytes": 674908
+    },
+    "docs/audits/evidence/runtime-5395-20261017-kernel-domain-current-command.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "docs/audits/evidence/runtime-5395-20261017-kernel-domain-current-verification.json": {
+      "sha256": "348c5a7c10632f54e69b8f3fdb8dbfa125f37ed0d7b8b38d5c64d7626d8d41d3",
+      "bytes": 6312810
+    },
+    "docs/audits/evidence/runtime-5395-20261017-runtime-domain-cohort-comparison.json": {
+      "sha256": "bc5e0ae7032d55aed0401969b31b13decd0a7a2056b8a0eb4c7dea3fa55b3fbb",
+      "bytes": 1254118
+    },
+    "docs/audits/evidence/runtime-5395-20261017-runtime-domain-cohort-control.json": {
+      "sha256": "c43c56199ed749f03d71681547abae7e861d60b203c0526d0ead333a68feabf1",
+      "bytes": 547
+    },
+    "docs/audits/evidence/runtime-5395-20261017-runtime-domain-cohort-workers.json": {
+      "sha256": "97f5c546e83b9726b44d828b9c136f9a2c752b6f8a25c6ba80ce14c44b0ea10e",
+      "bytes": 1234
+    },
+    "docs/audits/evidence/runtime-5395-20261017-runtime-domain-command-01.log": {
+      "sha256": "3fe525f48f2b10a17740e54f116f4de1cb59e8c6c076565e8405dc4a9a5afb8a",
+      "bytes": 736
+    },
+    "docs/audits/evidence/runtime-5395-20261017-runtime-domain-command-02.log": {
+      "sha256": "36868430d8f55a0c5aa1513e7a58a3bb0d75e2a8cd255f6af67e43808100b902",
+      "bytes": 736
+    },
+    "docs/audits/evidence/runtime-5395-20261017-runtime-domain-command-03.log": {
+      "sha256": "b0dce6cbbcd03eef8d7dcda3d5643a0eec4343791838f0dc25bca3c2e196da3c",
+      "bytes": 736
+    },
+    "docs/audits/evidence/runtime-5395-20261017-runtime-domain-command-04.log": {
+      "sha256": "14ca4acd1a1316861adf01fd3ffccae4f5bfdea98bb897781738acc09c7c1243",
+      "bytes": 736
+    },
+    "docs/audits/evidence/runtime-5395-20261017-runtime-domain-expanded-cohort.json": {
+      "sha256": "5e92c5ece814f202bd438728bcadf93c8c3c47145a260070cdde90124425fe14",
+      "bytes": 85354
+    },
+    "docs/audits/evidence/runtime-5395-20261017-runtime-domain-local-checks.log": {
+      "sha256": "b18257190df5bece0eb334ef1143b8eb2726f687b355353f348d307eb99a6fbc",
+      "bytes": 6300
+    },
+    "docs/audits/evidence/runtime-5395-20261017-runtime-domain-negative-01.json": {
+      "sha256": "3689be0892e651aa2c26be774b76fedb9495b88e74d9dd1a46720930a28608a6",
+      "bytes": 1834
+    },
+    "docs/audits/evidence/runtime-5395-20261017-runtime-domain-test-first-failure.log": {
+      "sha256": "f5c6aa8e12bafc39e5782a9875a842d77c8baa62796151f203685ba0c62fe0a4",
+      "bytes": 3852
+    },
+    "docs/audits/evidence/runtime-5395-20261017-runtime-domain-verification-01.json": {
+      "sha256": "c5e7c4997dc2cbc0759fd79748e5848e20ca2bc8c462df479c8d40a119151511",
+      "bytes": 317436
+    },
+    "docs/audits/evidence/runtime-5395-20261017-sign-domain-current-20261017.tar.gz": {
+      "sha256": "300b7d59406c461e0d5d852459e88afa43680a46923aa6218f43e85ff1aedb9f",
+      "bytes": 21880
+    },
+    "docs/audits/evidence/runtime-5395-20261017-sign-domain-current-command.log": {
+      "sha256": "193eadbd57f9fa8a1fb5015d0565e450898f4339909648ca8c4730d049fbb1b2",
+      "bytes": 104
+    },
+    "docs/audits/evidence/runtime-5395-20261017-sign-domain-current-verification.json": {
+      "sha256": "838b319b63547d608ebf48d85ff1fb91c9aafa1688b9ca691d07311f744fba4e",
+      "bytes": 190234
+    },
+    "proof/performance/analyze-runtime-domain-cohort.py": {
+      "sha256": "251a2dd664904fe7d06fd004b5329792e73405c6caddab695e6e5553da2c79ad",
+      "bytes": 6279
+    },
+    "proof/performance/check-runtime-domain-custody.py": {
+      "sha256": "bc7e701d8c884ef5e7e93145baf82abc49523bff002cb94f0b5d70019ba9f074",
+      "bytes": 5904
+    },
+    "proof/performance/compare-runtime-processes.py": {
+      "sha256": "be7147f3b3d2a2953b2b777d1d1cff6f7b02d91c5a40a797fcddfaa850dabb30",
+      "bytes": 6518
+    },
+    "proof/performance/kernel-overhead.py": {
+      "sha256": "155e857429517ab3eb6aeff3550a93136e3b83df395a632b7cc253c4f9718815",
+      "bytes": 9585
+    },
+    "proof/performance/sign-record-cost.py": {
+      "sha256": "7bd138132de7b3c2f29378927f83617d2e99709dc1bcb1292c239a2c4492baa6",
+      "bytes": 6046
+    },
+    "proof/performance/verify-kernel-refresh.py": {
+      "sha256": "410388538b3b1edda025cda43a0e8208ebfbdfa88c4df4ccca49962bf4a29c0b",
+      "bytes": 7176
+    },
+    "proof/performance/verify-runtime-attribution.py": {
+      "sha256": "5f914806d377d9d45a990b55299111495b6960566bdbbbfa4f3392afa679eb35",
+      "bytes": 4542
+    },
+    "proof/performance/verify-runtime-capture.py": {
+      "sha256": "31ad06c2f76af43040f7587eed3b39149c4c2194f86ed8cdd28a493feaf8539e",
+      "bytes": 15972
+    },
+    "proof/performance/verify_runtime_domain.py": {
+      "sha256": "295fe4102fc6e16f3acfb5ae5850d96718a3e5c836b939f89891f040f237ac64",
+      "bytes": 15719
+    },
+    "proof/performance/verify_runtime_stream.py": {
+      "sha256": "784d4fdf20af9fbfeb3b174add6bd0c6ca663edc3d2c4bb609e43188482577eb",
+      "bytes": 10128
+    }
+  },
+  "scope": "Retained native raw captures, receipts, logs, independent verifier and proof/analysis source digests. Measured Source is immutable; report-only policy; no CI or matched-browser claim."
+}

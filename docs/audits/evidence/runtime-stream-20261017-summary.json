@@ -1,0 +1,1371 @@
+{
+  "source": "162f2576bab33a2bfd599f3c1e63fcc4d4d65b50",
+  "groups": [
+    {
+      "case": "stream-1-branches-chain0-q1-batch1-bytes8-slow20",
+      "configuration": {
+        "batch": 1,
+        "branches": 1,
+        "chain_gears": 0,
+        "payload_bytes": 8,
+        "queue": 1,
+        "slow_sink_us": 20,
+        "text": false
+      },
+      "play_ns": [
+        83583358,
+        82824220,
+        83250068
+      ],
+      "full_call_ns": [
+        84008749,
+        83166420,
+        83592356
+      ],
+      "process_cpu_ns": [
+        14227576,
+        13657593,
+        13932439
+      ],
+      "native_wall_ns": {
+        "native-fused-loop": [
+          73167267,
+          73165029,
+          73149184
+        ],
+        "native-library-pipeline": [
+          73157053,
+          73101392,
+          73115787
+        ]
+      },
+      "full_attempts": [
+        1022,
+        1022,
+        1022
+      ],
+      "useful_outputs": 1024,
+      "completion_window_outputs_per_second": [
+        12254.686746847377,
+        12366.974930340566,
+        12303.682892790926
+      ],
+      "inter_ack_distributions": [
+        {
+          "count": 1023,
+          "max_ns": 103511,
+          "mean_ns": 81601.43304007807,
+          "min_ns": 25491,
+          "p50_ns": 86316,
+          "p95_ns": 93760,
+          "p99_ns": 95094,
+          "sample_standard_deviation_ns": 11869.575582965474
+        },
+        {
+          "count": 1023,
+          "max_ns": 120649,
+          "mean_ns": 80860.51808406653,
+          "min_ns": 25920,
+          "p50_ns": 85756,
+          "p95_ns": 93357,
+          "p99_ns": 94744,
+          "sample_standard_deviation_ns": 12338.634667551727
+        },
+        {
+          "count": 1023,
+          "max_ns": 114996,
+          "mean_ns": 81276.47702834787,
+          "min_ns": 24769,
+          "p50_ns": 85831,
+          "p95_ns": 93203,
+          "p99_ns": 94966,
+          "sample_standard_deviation_ns": 12307.76402268
+        }
+      ],
+      "max_other_acknowledgements": [
+        [
+          0
+        ],
+        [
+          0
+        ],
+        [
+          0
+        ]
+      ]
+    },
+    {
+      "case": "stream-1-branches-chain0-q1-batch8-bytes8-slow20",
+      "configuration": {
+        "batch": 8,
+        "branches": 1,
+        "chain_gears": 0,
+        "payload_bytes": 8,
+        "queue": 1,
+        "slow_sink_us": 20,
+        "text": false
+      },
+      "play_ns": [
+        83406903,
+        83045923,
+        83465581
+      ],
+      "full_call_ns": [
+        83754254,
+        83390670,
+        83809843
+      ],
+      "process_cpu_ns": [
+        13839283,
+        13675783,
+        13903775
+      ],
+      "native_wall_ns": {
+        "native-fused-loop": [
+          73132975,
+          73130959,
+          73147281
+        ],
+        "native-library-pipeline": [
+          73107379,
+          73098455,
+          73117235
+        ]
+      },
+      "full_attempts": [
+        2045,
+        2045,
+        2045
+      ],
+      "useful_outputs": 1024,
+      "completion_window_outputs_per_second": [
+        12280.61928125893,
+        12333.831907087833,
+        12271.904963488923
+      ],
+      "inter_ack_distributions": [
+        {
+          "count": 1023,
+          "max_ns": 119718,
+          "mean_ns": 81429.11827956988,
+          "min_ns": 26316,
+          "p50_ns": 86653,
+          "p95_ns": 93205,
+          "p99_ns": 94238,
+          "sample_standard_deviation_ns": 11822.478794734443
+        },
+        {
+          "count": 1023,
+          "max_ns": 102524,
+          "mean_ns": 81077.80351906153,
+          "min_ns": 28612,
+          "p50_ns": 85774,
+          "p95_ns": 92883,
+          "p99_ns": 94978,
+          "sample_standard_deviation_ns": 11760.78149983231
+        },
+        {
+          "count": 1023,
+          "max_ns": 114319,
+          "mean_ns": 81486.9413489736,
+          "min_ns": 25997,
+          "p50_ns": 86063,
+          "p95_ns": 93455,
+          "p99_ns": 95366,
+          "sample_standard_deviation_ns": 11568.21485113231
+        }
+      ],
+      "max_other_acknowledgements": [
+        [
+          0
+        ],
+        [
+          0
+        ],
+        [
+          0
+        ]
+      ]
+    },
+    {
+      "case": "stream-1-branches-chain0-q4-batch1-bytes8-slow20",
+      "configuration": {
+        "batch": 1,
+        "branches": 1,
+        "chain_gears": 0,
+        "payload_bytes": 8,
+        "queue": 4,
+        "slow_sink_us": 20,
+        "text": false
+      },
+      "play_ns": [
+        83519810,
+        84503057,
+        84186500
+      ],
+      "full_call_ns": [
+        83863897,
+        84864137,
+        84546118
+      ],
+      "process_cpu_ns": [
+        13879907,
+        13946066,
+        13877476
+      ],
+      "native_wall_ns": {
+        "native-fused-loop": [
+          73168517,
+          74151295,
+          76174891
+        ],
+        "native-library-pipeline": [
+          73731255,
+          73669403,
+          73339671
+        ]
+      },
+      "full_attempts": [
+        1016,
+        1016,
+        1016
+      ],
+      "useful_outputs": 1024,
+      "completion_window_outputs_per_second": [
+        12263.985709039996,
+        12121.49778914189,
+        12164.991677326296
+      ],
+      "inter_ack_distributions": [
+        {
+          "count": 1023,
+          "max_ns": 116916,
+          "mean_ns": 81539.56011730211,
+          "min_ns": 25978,
+          "p50_ns": 86047,
+          "p95_ns": 93126,
+          "p99_ns": 94308,
+          "sample_standard_deviation_ns": 11973.133253828975
+        },
+        {
+          "count": 1023,
+          "max_ns": 1018651,
+          "mean_ns": 82498.055718475,
+          "min_ns": 26212,
+          "p50_ns": 85986,
+          "p95_ns": 93392,
+          "p99_ns": 96267,
+          "sample_standard_deviation_ns": 31651.28222411152
+        },
+        {
+          "count": 1023,
+          "max_ns": 956359,
+          "mean_ns": 82203.09775171065,
+          "min_ns": 25274,
+          "p50_ns": 85792,
+          "p95_ns": 93503,
+          "p99_ns": 96300,
+          "sample_standard_deviation_ns": 29927.671028989174
+        }
+      ],
+      "max_other_acknowledgements": [
+        [
+          0
+        ],
+        [
+          0
+        ],
+        [
+          0
+        ]
+      ]
+    },
+    {
+      "case": "stream-1-branches-chain0-q4-batch8-bytes8-slow20",
+      "configuration": {
+        "batch": 8,
+        "branches": 1,
+        "chain_gears": 0,
+        "payload_bytes": 8,
+        "queue": 4,
+        "slow_sink_us": 20,
+        "text": false
+      },
+      "play_ns": [
+        83334344,
+        83330088,
+        83362469
+      ],
+      "full_call_ns": [
+        83685302,
+        83689495,
+        83703915
+      ],
+      "process_cpu_ns": [
+        13857824,
+        14059925,
+        13693891
+      ],
+      "native_wall_ns": {
+        "native-fused-loop": [
+          73136435,
+          73098004,
+          73312135
+        ],
+        "native-library-pipeline": [
+          73677326,
+          73113558,
+          73156065
+        ]
+      },
+      "full_attempts": [
+        2039,
+        2039,
+        2039
+      ],
+      "useful_outputs": 1024,
+      "completion_window_outputs_per_second": [
+        12291.273628261422,
+        12292.130520365177,
+        12287.190632591777
+      ],
+      "inter_ack_distributions": [
+        {
+          "count": 1023,
+          "max_ns": 110972,
+          "mean_ns": 81358.53372434014,
+          "min_ns": 27264,
+          "p50_ns": 86178,
+          "p95_ns": 93124,
+          "p99_ns": 94479,
+          "sample_standard_deviation_ns": 11905.153744230434
+        },
+        {
+          "count": 1023,
+          "max_ns": 117051,
+          "mean_ns": 81352.86217008799,
+          "min_ns": 25518,
+          "p50_ns": 85899,
+          "p95_ns": 93638,
+          "p99_ns": 94698,
+          "sample_standard_deviation_ns": 12410.162852477657
+        },
+        {
+          "count": 1023,
+          "max_ns": 427354,
+          "mean_ns": 81385.5689149559,
+          "min_ns": 26476,
+          "p50_ns": 84862,
+          "p95_ns": 93202,
+          "p99_ns": 94895,
+          "sample_standard_deviation_ns": 16349.567089695156
+        }
+      ],
+      "max_other_acknowledgements": [
+        [
+          0
+        ],
+        [
+          0
+        ],
+        [
+          0
+        ]
+      ]
+    },
+    {
+      "case": "stream-4-branches-chain0-q1-batch1-bytes8-slow20",
+      "configuration": {
+        "batch": 1,
+        "branches": 4,
+        "chain_gears": 0,
+        "payload_bytes": 8,
+        "queue": 1,
+        "slow_sink_us": 20,
+        "text": false
+      },
+      "play_ns": [
+        225298754,
+        227335570,
+        225870136
+      ],
+      "full_call_ns": [
+        226415293,
+        228192675,
+        226681315
+      ],
+      "process_cpu_ns": [
+        155838447,
+        154696019,
+        155714199
+      ],
+      "native_wall_ns": {
+        "native-fused-loop": [
+          73430407,
+          73458777,
+          73104706
+        ],
+        "native-library-pipeline": [
+          73149138,
+          74844131,
+          73122715
+        ]
+      },
+      "full_attempts": [
+        7157,
+        7157,
+        7157
+      ],
+      "useful_outputs": 4096,
+      "completion_window_outputs_per_second": [
+        18200.55378218308,
+        18036.775598000044,
+        18156.192818661326
+      ],
+      "inter_ack_distributions": [
+        {
+          "count": 4095,
+          "max_ns": 287288,
+          "mean_ns": 54943.383150183116,
+          "min_ns": 760,
+          "p50_ns": 28554,
+          "p95_ns": 234248,
+          "p99_ns": 261581,
+          "sample_standard_deviation_ns": 74459.47728733225
+        },
+        {
+          "count": 4095,
+          "max_ns": 2996291,
+          "mean_ns": 55442.28205128203,
+          "min_ns": 751,
+          "p50_ns": 28591,
+          "p95_ns": 234257,
+          "p99_ns": 260762,
+          "sample_standard_deviation_ns": 87113.37586189338
+        },
+        {
+          "count": 4095,
+          "max_ns": 287465,
+          "mean_ns": 55077.62612942613,
+          "min_ns": 746,
+          "p50_ns": 28459,
+          "p95_ns": 236764,
+          "p99_ns": 262977,
+          "sample_standard_deviation_ns": 74700.9564506608
+        }
+      ],
+      "max_other_acknowledgements": [
+        [
+          3,
+          3,
+          3,
+          3
+        ],
+        [
+          3,
+          3,
+          3,
+          3
+        ],
+        [
+          3,
+          3,
+          3,
+          3
+        ]
+      ]
+    },
+    {
+      "case": "stream-4-branches-chain0-q1-batch8-bytes8-slow20",
+      "configuration": {
+        "batch": 8,
+        "branches": 4,
+        "chain_gears": 0,
+        "payload_bytes": 8,
+        "queue": 1,
+        "slow_sink_us": 20,
+        "text": false
+      },
+      "play_ns": [
+        226521036,
+        358025160,
+        305150409
+      ],
+      "full_call_ns": [
+        227355367,
+        358964917,
+        306324926
+      ],
+      "process_cpu_ns": [
+        157502609,
+        263978649,
+        235778570
+      ],
+      "native_wall_ns": {
+        "native-fused-loop": [
+          73137246,
+          73377784,
+          75523741
+        ],
+        "native-library-pipeline": [
+          74792749,
+          75687587,
+          73162972
+        ]
+      },
+      "full_attempts": [
+        8180,
+        8180,
+        8180
+      ],
+      "useful_outputs": 4096,
+      "completion_window_outputs_per_second": [
+        18102.14503345769,
+        11453.243404983314,
+        13435.09252861414
+      ],
+      "inter_ack_distributions": [
+        {
+          "count": 4095,
+          "max_ns": 283588,
+          "mean_ns": 55242.07203907206,
+          "min_ns": 812,
+          "p50_ns": 28259,
+          "p95_ns": 234305,
+          "p99_ns": 264023,
+          "sample_standard_deviation_ns": 74591.3305086604
+        },
+        {
+          "count": 4095,
+          "max_ns": 3176783,
+          "mean_ns": 87311.51208791186,
+          "min_ns": 841,
+          "p50_ns": 52560,
+          "p95_ns": 415270,
+          "p99_ns": 468874,
+          "sample_standard_deviation_ns": 169039.10024859084
+        },
+        {
+          "count": 4095,
+          "max_ns": 559309,
+          "mean_ns": 74431.93992673994,
+          "min_ns": 1212,
+          "p50_ns": 41107,
+          "p95_ns": 320733,
+          "p99_ns": 383525,
+          "sample_standard_deviation_ns": 100926.81386681438
+        }
+      ],
+      "max_other_acknowledgements": [
+        [
+          3,
+          3,
+          3,
+          3
+        ],
+        [
+          3,
+          3,
+          3,
+          3
+        ],
+        [
+          3,
+          3,
+          3,
+          3
+        ]
+      ]
+    },
+    {
+      "case": "stream-4-branches-chain0-q4-batch1-bytes8-slow20",
+      "configuration": {
+        "batch": 1,
+        "branches": 4,
+        "chain_gears": 0,
+        "payload_bytes": 8,
+        "queue": 4,
+        "slow_sink_us": 20,
+        "text": false
+      },
+      "play_ns": [
+        348656214,
+        339499556,
+        338241022
+      ],
+      "full_call_ns": [
+        349599626,
+        340720307,
+        339413507
+      ],
+      "process_cpu_ns": [
+        272647614,
+        270045858,
+        268746652
+      ],
+      "native_wall_ns": {
+        "native-fused-loop": [
+          73140550,
+          80478801,
+          73248026
+        ],
+        "native-library-pipeline": [
+          74848148,
+          73211631,
+          73181531
+        ]
+      },
+      "full_attempts": [
+        7133,
+        7133,
+        7133
+      ],
+      "useful_outputs": 4096,
+      "completion_window_outputs_per_second": [
+        11860.074201605727,
+        12079.661945748938,
+        12119.469378555044
+      ],
+      "inter_ack_distributions": [
+        {
+          "count": 4095,
+          "max_ns": 3218948,
+          "mean_ns": 84316.50451770441,
+          "min_ns": 901,
+          "p50_ns": 44570,
+          "p95_ns": 357631,
+          "p99_ns": 500882,
+          "sample_standard_deviation_ns": 126769.78690201245
+        },
+        {
+          "count": 4095,
+          "max_ns": 502293,
+          "mean_ns": 82783.77362637362,
+          "min_ns": 872,
+          "p50_ns": 47951,
+          "p95_ns": 373735,
+          "p99_ns": 445263,
+          "sample_standard_deviation_ns": 112881.89324919652
+        },
+        {
+          "count": 4095,
+          "max_ns": 513116,
+          "mean_ns": 82511.86324786348,
+          "min_ns": 851,
+          "p50_ns": 47949,
+          "p95_ns": 365091,
+          "p99_ns": 443184,
+          "sample_standard_deviation_ns": 112637.19299019159
+        }
+      ],
+      "max_other_acknowledgements": [
+        [
+          3,
+          3,
+          3,
+          3
+        ],
+        [
+          3,
+          3,
+          3,
+          3
+        ],
+        [
+          3,
+          3,
+          3,
+          3
+        ]
+      ]
+    },
+    {
+      "case": "stream-4-branches-chain0-q4-batch8-bytes8-slow20",
+      "configuration": {
+        "batch": 8,
+        "branches": 4,
+        "chain_gears": 0,
+        "payload_bytes": 8,
+        "queue": 4,
+        "slow_sink_us": 20,
+        "text": false
+      },
+      "play_ns": [
+        328340183,
+        285864148,
+        235670635
+      ],
+      "full_call_ns": [
+        329554594,
+        286947199,
+        236531668
+      ],
+      "process_cpu_ns": [
+        258828376,
+        215867895,
+        165795929
+      ],
+      "native_wall_ns": {
+        "native-fused-loop": [
+          73140348,
+          73209945,
+          73157224
+        ],
+        "native-library-pipeline": [
+          73195785,
+          73138981,
+          73130282
+        ]
+      },
+      "full_attempts": [
+        8156,
+        8156,
+        8156
+      ],
+      "useful_outputs": 4096,
+      "completion_window_outputs_per_second": [
+        12491.313503984748,
+        14340.402874130508,
+        17399.026755802708
+      ],
+      "inter_ack_distributions": [
+        {
+          "count": 4095,
+          "max_ns": 501814,
+          "mean_ns": 80055.63223443207,
+          "min_ns": 779,
+          "p50_ns": 45876,
+          "p95_ns": 365015,
+          "p99_ns": 442137,
+          "sample_standard_deviation_ns": 110178.0763270909
+        },
+        {
+          "count": 4095,
+          "max_ns": 604015,
+          "mean_ns": 69733.04786324786,
+          "min_ns": 967,
+          "p50_ns": 36233,
+          "p95_ns": 291671,
+          "p99_ns": 383404,
+          "sample_standard_deviation_ns": 95619.04149937425
+        },
+        {
+          "count": 4095,
+          "max_ns": 298497,
+          "mean_ns": 57474.479120879194,
+          "min_ns": 850,
+          "p50_ns": 30112,
+          "p95_ns": 242700,
+          "p99_ns": 275909,
+          "sample_standard_deviation_ns": 77832.82546957872
+        }
+      ],
+      "max_other_acknowledgements": [
+        [
+          3,
+          3,
+          3,
+          3
+        ],
+        [
+          3,
+          3,
+          3,
+          3
+        ],
+        [
+          3,
+          3,
+          3,
+          3
+        ]
+      ]
+    },
+    {
+      "case": "stream-1-branches-chain0-q1-batch8-bytes8-slow0",
+      "configuration": {
+        "batch": 8,
+        "branches": 1,
+        "chain_gears": 0,
+        "payload_bytes": 8,
+        "queue": 1,
+        "slow_sink_us": 0,
+        "text": false
+      },
+      "play_ns": [
+        11650307,
+        11789526,
+        12013245
+      ],
+      "full_call_ns": [
+        12024727,
+        12118569,
+        12357295
+      ],
+      "process_cpu_ns": [
+        12026425,
+        12119151,
+        12357817
+      ],
+      "native_wall_ns": {
+        "native-fused-loop": [
+          63139,
+          80341,
+          59146
+        ],
+        "native-library-pipeline": [
+          40932,
+          46461,
+          79426
+        ]
+      },
+      "full_attempts": [
+        2045,
+        2045,
+        2045
+      ],
+      "useful_outputs": 1024,
+      "completion_window_outputs_per_second": [
+        88044.7456651518,
+        86992.58471126157,
+        85375.75849225909
+      ],
+      "inter_ack_distributions": [
+        {
+          "count": 1023,
+          "max_ns": 21699,
+          "mean_ns": 11357.861192570866,
+          "min_ns": 3021,
+          "p50_ns": 14753,
+          "p95_ns": 20361,
+          "p99_ns": 20824,
+          "sample_standard_deviation_ns": 6967.1756823365295
+        },
+        {
+          "count": 1023,
+          "max_ns": 36597,
+          "mean_ns": 11495.232649071355,
+          "min_ns": 2879,
+          "p50_ns": 14286,
+          "p95_ns": 21201,
+          "p99_ns": 22652,
+          "sample_standard_deviation_ns": 7288.654647604357
+        },
+        {
+          "count": 1023,
+          "max_ns": 35410,
+          "mean_ns": 11712.926686217006,
+          "min_ns": 2898,
+          "p50_ns": 14651,
+          "p95_ns": 22095,
+          "p99_ns": 24740,
+          "sample_standard_deviation_ns": 7575.967772136024
+        }
+      ],
+      "max_other_acknowledgements": [
+        [
+          0
+        ],
+        [
+          0
+        ],
+        [
+          0
+        ]
+      ]
+    },
+    {
+      "case": "stream-4-branches-chain0-q1-batch8-bytes8-slow0",
+      "configuration": {
+        "batch": 8,
+        "branches": 4,
+        "chain_gears": 0,
+        "payload_bytes": 8,
+        "queue": 1,
+        "slow_sink_us": 0,
+        "text": false
+      },
+      "play_ns": [
+        151535742,
+        155809954,
+        155219934
+      ],
+      "full_call_ns": [
+        152404093,
+        156581625,
+        156035761
+      ],
+      "process_cpu_ns": [
+        152399746,
+        156569893,
+        155976534
+      ],
+      "native_wall_ns": {
+        "native-fused-loop": [
+          139928,
+          153611,
+          144922
+        ],
+        "native-library-pipeline": [
+          144719,
+          161494,
+          195276
+        ]
+      },
+      "full_attempts": [
+        8180,
+        8180,
+        8180
+      ],
+      "useful_outputs": 4096,
+      "completion_window_outputs_per_second": [
+        27062.58624547193,
+        26322.549163852815,
+        26421.902421494768
+      ],
+      "inter_ack_distributions": [
+        {
+          "count": 4095,
+          "max_ns": 201667,
+          "mean_ns": 36951.38339438339,
+          "min_ns": 754,
+          "p50_ns": 24672,
+          "p95_ns": 165277,
+          "p99_ns": 187737,
+          "sample_standard_deviation_ns": 50263.08961803563
+        },
+        {
+          "count": 4095,
+          "max_ns": 220381,
+          "mean_ns": 37990.241514041605,
+          "min_ns": 782,
+          "p50_ns": 25111,
+          "p95_ns": 175173,
+          "p99_ns": 192514,
+          "sample_standard_deviation_ns": 51955.534194189124
+        },
+        {
+          "count": 4095,
+          "max_ns": 212044,
+          "mean_ns": 37847.38827838836,
+          "min_ns": 773,
+          "p50_ns": 24960,
+          "p95_ns": 167434,
+          "p99_ns": 195462,
+          "sample_standard_deviation_ns": 51739.14774729738
+        }
+      ],
+      "max_other_acknowledgements": [
+        [
+          3,
+          3,
+          3,
+          3
+        ],
+        [
+          3,
+          3,
+          3,
+          3
+        ],
+        [
+          3,
+          3,
+          3,
+          3
+        ]
+      ]
+    },
+    {
+      "case": "stream-4-branches-chain0-q1-batch8-bytes32-slow20",
+      "configuration": {
+        "batch": 8,
+        "branches": 4,
+        "chain_gears": 0,
+        "payload_bytes": 32,
+        "queue": 1,
+        "slow_sink_us": 20,
+        "text": true
+      },
+      "play_ns": [
+        220506004,
+        220835079,
+        219859646
+      ],
+      "full_call_ns": [
+        220957753,
+        221347789,
+        220378042
+      ],
+      "process_cpu_ns": [
+        150080409,
+        150411029,
+        149568773
+      ],
+      "native_wall_ns": {
+        "native-fused-loop": [
+          73150130,
+          73151459,
+          73142594
+        ],
+        "native-library-pipeline": [
+          73132161,
+          73110070,
+          73100378
+        ]
+      },
+      "full_attempts": [
+        8180,
+        8180,
+        8180
+      ],
+      "useful_outputs": 4096,
+      "completion_window_outputs_per_second": [
+        18595.56679780303,
+        18571.151225392357,
+        18650.6530777811
+      ],
+      "inter_ack_distributions": [
+        {
+          "count": 4095,
+          "max_ns": 275033,
+          "mean_ns": 53776.25811965809,
+          "min_ns": 808,
+          "p50_ns": 29122,
+          "p95_ns": 231621,
+          "p99_ns": 251800,
+          "sample_standard_deviation_ns": 72454.35090440094
+        },
+        {
+          "count": 4095,
+          "max_ns": 269959,
+          "mean_ns": 53846.95799755799,
+          "min_ns": 782,
+          "p50_ns": 29135,
+          "p95_ns": 233901,
+          "p99_ns": 256015,
+          "sample_standard_deviation_ns": 72796.02351367632
+        },
+        {
+          "count": 4095,
+          "max_ns": 272323,
+          "mean_ns": 53617.425396825405,
+          "min_ns": 783,
+          "p50_ns": 29275,
+          "p95_ns": 231284,
+          "p99_ns": 255224,
+          "sample_standard_deviation_ns": 72357.60579577355
+        }
+      ],
+      "max_other_acknowledgements": [
+        [
+          3,
+          3,
+          3,
+          3
+        ],
+        [
+          3,
+          3,
+          3,
+          3
+        ],
+        [
+          3,
+          3,
+          3,
+          3
+        ]
+      ]
+    },
+    {
+      "case": "stream-4-branches-chain0-q1-batch8-bytes256-slow20",
+      "configuration": {
+        "batch": 8,
+        "branches": 4,
+        "chain_gears": 0,
+        "payload_bytes": 256,
+        "queue": 1,
+        "slow_sink_us": 20,
+        "text": true
+      },
+      "play_ns": [
+        344788769,
+        220344210,
+        223260698
+      ],
+      "full_call_ns": [
+        345297809,
+        220896200,
+        223764085
+      ],
+      "process_cpu_ns": [
+        270641079,
+        150363754,
+        152880674
+      ],
+      "native_wall_ns": {
+        "native-fused-loop": [
+          73136248,
+          73117324,
+          75096786
+        ],
+        "native-library-pipeline": [
+          73130132,
+          73104982,
+          73138660
+        ]
+      },
+      "full_attempts": [
+        8180,
+        8180,
+        8180
+      ],
+      "useful_outputs": 4096,
+      "completion_window_outputs_per_second": [
+        11896.029469361294,
+        18610.986666707387,
+        18366.805696732776
+      ],
+      "inter_ack_distributions": [
+        {
+          "count": 4095,
+          "max_ns": 3248636,
+          "mean_ns": 84061.66129426112,
+          "min_ns": 775,
+          "p50_ns": 50907,
+          "p95_ns": 390106,
+          "p99_ns": 480503,
+          "sample_standard_deviation_ns": 127046.88790580952
+        },
+        {
+          "count": 4095,
+          "max_ns": 282701,
+          "mean_ns": 53731.7025641025,
+          "min_ns": 784,
+          "p50_ns": 28926,
+          "p95_ns": 232863,
+          "p99_ns": 259636,
+          "sample_standard_deviation_ns": 72620.46967137832
+        },
+        {
+          "count": 4095,
+          "max_ns": 274220,
+          "mean_ns": 54446.0488400488,
+          "min_ns": 797,
+          "p50_ns": 28584,
+          "p95_ns": 235796,
+          "p99_ns": 264157,
+          "sample_standard_deviation_ns": 73583.5078660566
+        }
+      ],
+      "max_other_acknowledgements": [
+        [
+          3,
+          3,
+          3,
+          3
+        ],
+        [
+          3,
+          3,
+          3,
+          3
+        ],
+        [
+          3,
+          3,
+          3,
+          3
+        ]
+      ]
+    },
+    {
+      "case": "stream-1-branches-chain8-q1-batch8-bytes8-slow0",
+      "configuration": {
+        "batch": 8,
+        "branches": 1,
+        "chain_gears": 8,
+        "payload_bytes": 8,
+        "queue": 1,
+        "slow_sink_us": 0,
+        "text": false
+      },
+      "play_ns": [
+        85352359,
+        83355028,
+        83319633
+      ],
+      "full_call_ns": [
+        85962932,
+        83869131,
+        83825563
+      ],
+      "process_cpu_ns": [
+        85812493,
+        83869446,
+        83822385
+      ],
+      "native_wall_ns": {
+        "native-fused-loop": [
+          70562,
+          79673,
+          66088
+        ],
+        "native-library-pipeline": [
+          40735,
+          47552,
+          72806
+        ]
+      },
+      "full_attempts": [
+        16332,
+        16332,
+        16332
+      ],
+      "useful_outputs": 1024,
+      "completion_window_outputs_per_second": [
+        12001.387233663349,
+        12289.753315458289,
+        12295.263579622848
+      ],
+      "inter_ack_distributions": [
+        {
+          "count": 1023,
+          "max_ns": 131348,
+          "mean_ns": 83323.70087976537,
+          "min_ns": 10651,
+          "p50_ns": 87102,
+          "p95_ns": 110435,
+          "p99_ns": 115340,
+          "sample_standard_deviation_ns": 24253.661294742065
+        },
+        {
+          "count": 1023,
+          "max_ns": 133752,
+          "mean_ns": 81368.59824046919,
+          "min_ns": 10721,
+          "p50_ns": 82740,
+          "p95_ns": 109762,
+          "p99_ns": 114267,
+          "sample_standard_deviation_ns": 24140.856027684476
+        },
+        {
+          "count": 1023,
+          "max_ns": 120494,
+          "mean_ns": 81332.13196480948,
+          "min_ns": 10769,
+          "p50_ns": 82931,
+          "p95_ns": 109100,
+          "p99_ns": 112559,
+          "sample_standard_deviation_ns": 23953.75177166484
+        }
+      ],
+      "max_other_acknowledgements": [
+        [
+          0
+        ],
+        [
+          0
+        ],
+        [
+          0
+        ]
+      ]
+    },
+    {
+      "case": "stream-1-branches-chain32-q1-batch8-bytes8-slow0",
+      "configuration": {
+        "batch": 8,
+        "branches": 1,
+        "chain_gears": 32,
+        "payload_bytes": 8,
+        "queue": 1,
+        "slow_sink_us": 0,
+        "text": false
+      },
+      "play_ns": [
+        357806214,
+        360347501,
+        358274691
+      ],
+      "full_call_ns": [
+        359091608,
+        361563780,
+        359477342
+      ],
+      "process_cpu_ns": [
+        359085535,
+        361548756,
+        359457866
+      ],
+      "native_wall_ns": {
+        "native-fused-loop": [
+          71986,
+          67894,
+          76799
+        ],
+        "native-library-pipeline": [
+          40684,
+          43681,
+          96410
+        ]
+      },
+      "full_attempts": [
+        64922,
+        64922,
+        64922
+      ],
+      "useful_outputs": 1024,
+      "completion_window_outputs_per_second": [
+        2864.069177097492,
+        2843.5103513866666,
+        2860.0420795223376
+      ],
+      "inter_ack_distributions": [
+        {
+          "count": 1023,
+          "max_ns": 461722,
+          "mean_ns": 349153.57771261013,
+          "min_ns": 29912,
+          "p50_ns": 344770,
+          "p95_ns": 426975,
+          "p99_ns": 444538,
+          "sample_standard_deviation_ns": 61050.88202977958
+        },
+        {
+          "count": 1023,
+          "max_ns": 468199,
+          "mean_ns": 351677.98826979444,
+          "min_ns": 29841,
+          "p50_ns": 346030,
+          "p95_ns": 434280,
+          "p99_ns": 451811,
+          "sample_standard_deviation_ns": 62715.08875041542
+        },
+        {
+          "count": 1023,
+          "max_ns": 460009,
+          "mean_ns": 349645.2052785923,
+          "min_ns": 32854,
+          "p50_ns": 346979,
+          "p95_ns": 432033,
+          "p99_ns": 446474,
+          "sample_standard_deviation_ns": 62393.957384154375
+        }
+      ],
+      "max_other_acknowledgements": [
+        [
+          0
+        ],
+        [
+          0
+        ],
+        [
+          0
+        ]
+      ]
+    }
+  ],
+  "scope": "Three batches in one CPU-4-pinned process; source-bound raw capture verified, uncontrolled background load, descriptive only."
+}

@@ -1,7 +1,8 @@
+extern crate std;
 use super::*;
 
 #[derive(Clone, Copy, Debug)]
-enum CancellationBack {
+pub(super) enum CancellationBack {
     Reset {
         initial: ValueRef,
         replacement: Option<ValueRef>,
@@ -110,9 +111,16 @@ struct Normalized {
     saw_cancellation: bool,
 }
 
-type CancellationScheduler<S, E> = FixedScheduler<CancellationBack, S, E, 2, 1, 2, 1, 4, 1, 2, 1>;
+pub(super) type CancellationScheduler<S, E, const P: usize = 1> =
+    FixedScheduler<CancellationBack, S, E, 2, 1, 2, 1, 4, 1, 2, P>;
 
-fn scheduler<S: ValueStorage, E: SignSink>(mut values: S, signs: E) -> CancellationScheduler<S, E> {
+fn scheduler<S: ValueStorage, E: SignSink>(values: S, signs: E) -> CancellationScheduler<S, E> {
+    scheduler_with_pending::<S, E, 1>(values, signs)
+}
+pub(super) fn scheduler_with_pending<S: ValueStorage, E: SignSink, const P: usize>(
+    mut values: S,
+    signs: E,
+) -> CancellationScheduler<S, E, P> {
     let initial = values.store(&10_u64.to_le_bytes()).unwrap();
     let replacement = values.store(&[2]).unwrap();
     let mut routes = FixedRoutes::<4, 1>::new(2);
@@ -140,7 +148,7 @@ fn scheduler<S: ValueStorage, E: SignSink>(mut values: S, signs: E) -> Cancellat
         )
         .unwrap();
     bindings.seal().unwrap();
-    FixedScheduler::<_, _, _, 2, 1, 2, 1, 4, 1, 2, 1>::new_with_host_calls(
+    FixedScheduler::<_, _, _, 2, 1, 2, 1, 4, 1, 2, P>::new_with_host_calls(
         [node([Some(CordId(0)), None]), node([None, None])],
         [CordSpec::local(
             CordId(0),
@@ -172,13 +180,61 @@ fn scheduler<S: ValueStorage, E: SignSink>(mut values: S, signs: E) -> Cancellat
     .unwrap()
 }
 
+fn assert_pending_count<S: ValueStorage, E: SignSink>(
+    scheduler: &CancellationScheduler<S, E>,
+    expected: usize,
+) {
+    assert_eq!(scheduler.pending_host_call_count(), expected);
+    assert_eq!(
+        scheduler.undispatched_host_count as usize,
+        scheduler
+            .pending_host_calls
+            .iter()
+            .flatten()
+            .filter(|pending| !pending.dispatched)
+            .count()
+    );
+    assert_eq!(
+        scheduler.pending_host_calls.iter().flatten().count(),
+        expected
+    );
+    assert_eq!(
+        scheduler.undispatched_cancellation_count as usize,
+        scheduler
+            .pending_host_calls
+            .iter()
+            .flatten()
+            .filter(|pending| pending.cancellation_requested
+                && !pending.cancellation_dispatched
+                && pending.completion.is_none())
+            .count()
+    );
+    for node in 0..scheduler.active_nodes {
+        let actual = scheduler.pending_host_calls.iter().position(|pending| {
+            pending.is_some_and(|pending| usize::from(pending.request.node.0) == node)
+        });
+        assert_eq!(
+            scheduler.pending_host_slots[node].map(|slot| usize::try_from(slot.get() - 1).unwrap()),
+            actual
+        );
+        assert_eq!(
+            scheduler.has_retained_host_call_for_nodes(&[NodeId(node as u16)]),
+            actual.is_some()
+        );
+    }
+}
+
 fn execute<S: ValueStorage, E: SignSink + SignQuery>(values: S, signs: E) -> Normalized {
     let mut scheduler = scheduler(values, signs);
+    assert_pending_count(&scheduler, 0);
     scheduler.step().unwrap();
+    assert_pending_count(&scheduler, 1);
     assert!(scheduler.next_host_cancellation().is_none());
     let first = scheduler.next_host_request().unwrap();
     scheduler.step().unwrap();
+    assert_pending_count(&scheduler, 1);
     scheduler.step().unwrap();
+    assert_pending_count(&scheduler, 1);
     let cancellation = scheduler.next_host_cancellation().unwrap();
     assert!(scheduler.next_host_cancellation().is_none());
     scheduler
@@ -193,6 +249,7 @@ fn execute<S: ValueStorage, E: SignSink + SignQuery>(values: S, signs: E) -> Nor
         )
         .unwrap();
     scheduler.step().unwrap();
+    assert_pending_count(&scheduler, 1);
     let second = scheduler.next_host_request().unwrap();
     scheduler
         .complete_host_call(
@@ -206,6 +263,7 @@ fn execute<S: ValueStorage, E: SignSink + SignQuery>(values: S, signs: E) -> Nor
         )
         .unwrap();
     scheduler.run(16).unwrap();
+    assert_pending_count(&scheduler, 0);
     Normalized {
         first: first.request,
         replacement: second.request,
@@ -299,4 +357,139 @@ fn hosted_and_fixed_vectors_match() {
         HostedSignLog::new(64, charge * 64).unwrap(),
     );
     assert_eq!(fixed, hosted);
+}
+
+#[test]
+fn global_cancellation_clears_pending_occupancy_with_the_request_table() {
+    let mut scheduler = scheduler(
+        FixedValueStore::<4, 8>::new(32).unwrap(),
+        FixedSignLog::<64>::new(64 * core::mem::size_of::<crate::KernelEvent>() as u32).unwrap(),
+    );
+    scheduler.step().unwrap();
+    assert_pending_count(&scheduler, 1);
+    scheduler.cancel().unwrap();
+    assert_pending_count(&scheduler, 0);
+    assert!(!scheduler.has_ready_work());
+    assert!(scheduler.next_host_request().is_none());
+}
+
+#[test]
+fn unrelated_ready_node_does_not_scan_a_large_live_host_table() {
+    std::thread::Builder::new()
+        .stack_size(8 * 1024 * 1024)
+        .spawn(|| {
+            let mut scheduler = scheduler_with_pending::<_, _, 4096>(
+                FixedValueStore::<4, 8>::new(32).unwrap(),
+                FixedSignLog::<64>::new(64 * core::mem::size_of::<crate::KernelEvent>() as u32)
+                    .unwrap(),
+            );
+            scheduler.scan_counts.set(Default::default());
+            assert!(scheduler.next_host_request().is_none());
+            assert_eq!(scheduler.scan_counts.get().dispatch_pending_slots, 0);
+            scheduler.step().unwrap();
+            let signs = scheduler.signs.entries;
+            assert!(scheduler.next_host_request_matching(|_| false).is_none());
+            assert_eq!(scheduler.signs.entries, signs);
+            scheduler.next_host_request().unwrap();
+            scheduler.scan_counts.set(Default::default());
+            assert!(scheduler.next_host_request().is_none());
+            assert_eq!(scheduler.scan_counts.get().dispatch_pending_slots, 0);
+            assert_eq!(scheduler.pending_host_call_count(), 1);
+            scheduler.scan_counts.set(Default::default());
+            assert_eq!(
+                scheduler.step(),
+                Ok(SchedulerStatus::Progress { node: NodeId(1) })
+            );
+            let counts = scheduler.scan_counts.get();
+            assert_eq!(counts.pending_slots, 0);
+            assert_eq!(counts.context_pending_slots, 0);
+            assert_eq!(counts.preflight_completion_slots, 0);
+            assert_eq!(scheduler.pending_host_call_count(), 1);
+            scheduler.scan_counts.set(Default::default());
+            scheduler.step().unwrap();
+            let counts = scheduler.scan_counts.get();
+            assert_eq!(counts.pending_slots, 1);
+            assert_eq!(counts.context_pending_slots, 1);
+            assert_eq!(counts.preflight_completion_slots, 1);
+        })
+        .unwrap()
+        .join()
+        .unwrap();
+}
+
+#[test]
+fn indexed_completion_admission_preserves_exact_refusals_with_a_large_table() {
+    std::thread::Builder::new()
+        .stack_size(8 * 1024 * 1024)
+        .spawn(|| {
+            let mut scheduler = scheduler_with_pending::<_, _, 4096>(
+                FixedValueStore::<4, 8>::new(32).unwrap(),
+                FixedSignLog::<64>::new(64 * core::mem::size_of::<crate::KernelEvent>() as u32)
+                    .unwrap(),
+            );
+            scheduler.step().unwrap();
+            scheduler.scan_counts.set(Default::default());
+            assert!(!scheduler.has_retained_host_call_for_nodes(&[NodeId(1)]));
+            assert_eq!(scheduler.scan_counts.get().retained_pending_slots, 0);
+            assert!(scheduler.has_retained_host_call_for_nodes(&[NodeId(0)]));
+            assert_eq!(scheduler.scan_counts.get().retained_pending_slots, 1);
+            assert!(!scheduler.has_retained_host_call_for_nodes(&[NodeId(u16::MAX)]));
+            assert!(!scheduler.has_retained_host_call_for_nodes(&[]));
+            let outcome = HostCallOutcome {
+                disposition: HostCallDisposition::Cancelled,
+                output: None,
+                failure: None,
+            };
+            let signs = scheduler.signs.entries;
+            scheduler.scan_counts.set(Default::default());
+            assert_eq!(
+                scheduler.complete_host_call(NodeId(0), RequestId(99), outcome),
+                Err(SchedulerError::HostCallCompletionRejected)
+            );
+            assert_eq!(scheduler.scan_counts.get().completion_pending_slots, 1);
+            assert_eq!(scheduler.signs.entries, signs);
+            assert!(scheduler.pending_host_calls[0]
+                .unwrap()
+                .completion
+                .is_none());
+            scheduler.scan_counts.set(Default::default());
+            assert_eq!(
+                scheduler.complete_host_call(NodeId(0), RequestId(21), outcome),
+                Err(SchedulerError::HostCallCompletionRejected)
+            );
+            assert_eq!(scheduler.scan_counts.get().completion_pending_slots, 1);
+            assert_eq!(scheduler.signs.entries, signs);
+            let request = scheduler.next_host_request().unwrap();
+            scheduler.scan_counts.set(Default::default());
+            assert_eq!(
+                scheduler.complete_host_call(NodeId(1), request.request, outcome),
+                Err(SchedulerError::HostCallCompletionRejected)
+            );
+            assert_eq!(scheduler.scan_counts.get().completion_pending_slots, 0);
+            scheduler.scan_counts.set(Default::default());
+            scheduler
+                .complete_host_call(request.node, request.request, outcome)
+                .unwrap();
+            assert_eq!(scheduler.scan_counts.get().completion_pending_slots, 1);
+            assert!(scheduler.has_retained_host_call_for_nodes(&[request.node]));
+            let signs = scheduler.signs.entries;
+            scheduler.scan_counts.set(Default::default());
+            assert_eq!(
+                scheduler.complete_host_call(request.node, request.request, outcome),
+                Err(SchedulerError::HostCallCompletionRejected)
+            );
+            assert_eq!(scheduler.scan_counts.get().completion_pending_slots, 1);
+            assert_eq!(scheduler.signs.entries, signs);
+            scheduler.cancel().unwrap();
+            assert!(!scheduler.has_retained_host_call_for_nodes(&[request.node]));
+            scheduler.scan_counts.set(Default::default());
+            assert_eq!(
+                scheduler.complete_host_call(request.node, request.request, outcome),
+                Err(SchedulerError::HostCallCompletionRejected)
+            );
+            assert_eq!(scheduler.scan_counts.get().completion_pending_slots, 0);
+        })
+        .unwrap()
+        .join()
+        .unwrap();
 }

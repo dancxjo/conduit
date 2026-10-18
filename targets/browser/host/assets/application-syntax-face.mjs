@@ -1,5 +1,5 @@
 const encoder = new TextEncoder();
-const decoder = new TextDecoder("utf-8", { fatal: true });
+const decoder = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true });
 const PROTOCOL = "conduit.syntax-highlight-projection@1";
 
 export function attachConduitSyntaxEditor(textarea, runtime) {
@@ -62,13 +62,13 @@ function renderSyntax(source, target, owner, runtime) {
     return;
   }
   const document = owner.ownerDocument;
-  const bytes = encoder.encode(source);
   let projection;
   try { projection = projectConduitSyntax(source, runtime); }
   catch {
     renderPlain(source, target, owner, "refused");
     return;
   }
+  const bytes = encoder.encode(source);
   const fragment = document.createDocumentFragment();
   for (const [start, end, kindIndex] of projection.spans) {
     const span = document.createElement("span");
@@ -84,8 +84,9 @@ function renderSyntax(source, target, owner, runtime) {
 // checks its finite, lossless UTF-8 projection; it never tokenizes source.
 export function projectConduitSyntax(source, runtime) {
   if (typeof source !== "string") throw new TypeError("Conduit syntax requires text");
+  if (source.length > 8192) throw new RangeError("Conduit syntax source exceeds its byte bound");
+  if (!source.isWellFormed()) throw new TypeError("Conduit syntax source is not valid Unicode");
   const bytes = encoder.encode(source);
-  if (decoder.decode(bytes) !== source) throw new TypeError("Conduit syntax source is not valid Unicode");
   if (bytes.length > 8192 || bytes.length > runtime.conduit_syntax_input_capacity()) {
     throw new RangeError("Conduit syntax source exceeds its byte bound");
   }

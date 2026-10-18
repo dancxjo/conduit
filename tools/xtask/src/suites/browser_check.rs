@@ -2,6 +2,12 @@ use crate::{process::Step, proof::ProofClass};
 
 pub const BROWSER_CHECK_STEPS: &[Step] = &[
     Step::new(
+        "check.browser.workspace-resource-bounds",
+        "Check shipped Workspace module extents and strict storage package admission",
+        "node",
+        &["--test", "proof/browser/workspace-resource-bounds.test.mjs"],
+    ),
+    Step::new(
         "check.browser.shared-face-style-package",
         "Check shared Face stylesheet bounds across every application package consumer",
         "node",
@@ -12,6 +18,27 @@ pub const BROWSER_CHECK_STEPS: &[Step] = &[
         "Check finite saved-choice restore, committed emission, and distinct storage refusals",
         "node",
         &["--test", "proof/browser/browser-saved-choice.test.mjs"],
+    ),
+    Step::new(
+        "check.browser.application-syntax-face",
+        "Check bounded lossless browser syntax projection admission",
+        "node",
+        &["--test", "proof/browser/application-syntax-face.test.mjs"],
+    ),
+    Step::new(
+        "check.browser.application-face-codec",
+        "Check exact Unicode and identity fidelity in the generic application Face codec",
+        "node",
+        &["--test", "proof/browser/application-face-codec.test.mjs"],
+    ),
+    Step::new(
+        "check.browser.runtime-bridge",
+        "Check finite exact-text ingress and byte custody at the browser runtime ABI",
+        "node",
+        &[
+            "--test",
+            "targets/browser/host/assets/browser-runtime-bridge.test.mjs",
+        ],
     ),
     Step::new(
         "check.browser.browser-runtime",
@@ -36,6 +63,12 @@ pub const BROWSER_CHECK_STEPS: &[Step] = &[
         "Prove deterministic physical Host catalog and workflow contracts",
         "node",
         &["--test", "proof/browser/physical-host-workflow.test.mjs"],
+    ),
+    Step::new(
+        "check.browser.look-wire",
+        "Check canonical Look wire identities, tokens, and finite byte admission",
+        "node",
+        &["--test", "proof/browser/look-wire.test.mjs"],
     ),
     Step::new(
         "check.browser.look-replacement-evidence",

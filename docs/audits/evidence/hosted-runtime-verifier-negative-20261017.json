@@ -1,0 +1,30 @@
+{
+  "verifier_sha256": "a829944dfa22587fa5dce9c7653d33a73d452937b913a813e2771cfbf5be7980",
+  "checks": [
+    {
+      "case": "artifact-hash",
+      "exit_code": 1,
+      "refusal": "AssertionError: raw.jsonl"
+    },
+    {
+      "case": "rehashed-mean",
+      "exit_code": 1,
+      "refusal": "AssertionError: repeated batch mean differs from raw samples"
+    },
+    {
+      "case": "rehashed-delivery-sign",
+      "exit_code": 1,
+      "refusal": "AssertionError: mandatory output Sign count"
+    },
+    {
+      "case": "disabled-assertions",
+      "exit_code": 1,
+      "refusal": "verification requires Python assertions; do not use -O"
+    },
+    {
+      "case": "immutable-capture",
+      "exit_code": 1,
+      "refusal": "AssertionError: receipt must be outside immutable capture"
+    }
+  ]
+}

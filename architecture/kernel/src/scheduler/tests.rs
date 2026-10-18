@@ -13,8 +13,18 @@ use crate::{
     ValueStorage,
 };
 
+mod fanout_storage;
+mod generated_value_envelope;
 mod host_alias;
 mod host_cancellation;
+mod host_cancellation_polling;
+mod host_index;
+mod host_slot_allocation;
+mod host_value_occupancy;
+mod host_value_pending;
+mod local_coalescing;
+mod queue_ring_bounds;
+mod terminal_sign_admission;
 
 const NODES: usize = 6;
 const CORDS: usize = 5;

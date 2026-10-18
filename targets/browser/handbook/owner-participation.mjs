@@ -9,27 +9,29 @@ export function projectFaceCollections(view) {
   const subjects = new Map((view.subjects ?? []).map(subject => [subject.identity, subject]));
   const collections = [];
   const placed = new Set();
+  const hasExtraFacts = (subject, representedFlag) => Boolean(subject.properties?.length || subject.values?.length
+    || (Array.isArray(subject.flags) && subject.flags.some(flag => flag?.name !== representedFlag)));
   for (const collection of view.subjects ?? []) {
-    if (collection.role !== 'Collection' || !['Primary', 'Context'].includes(collection.disclosure)) continue;
-    const items = (view.relationships ?? [])
+    if (collection.role !== 'Collection' || !['Primary', 'Context'].includes(collection.disclosure)
+      || hasExtraFacts(collection)) continue;
+    const members = (view.relationships ?? [])
       .filter(relation => relation.kind === 'Contains' && relation.source === collection.identity)
-      .map(relation => subjects.get(relation.target))
-      .filter(item => item?.role === 'Item');
-    if (items.some(item => {
-      const complete = item.flags?.filter(flag => flag.name === 'complete');
-      return complete?.length !== 1 || typeof complete[0].value !== 'boolean'
+      .map(relation => subjects.get(relation.target));
+    const items = members.filter(item => item?.role === 'Item');
+    if (new Set(items.map(item => item.identity)).size !== items.length || items.some(item => {
+      const complete = Array.isArray(item.flags) ? item.flags.filter(flag => flag?.name === 'complete') : [];
+      return hasExtraFacts(item, 'complete') || item.text?.length || complete.length !== 1 || typeof complete[0].value !== 'boolean'
         || item.disclosure !== (complete[0].value ? 'SelectedDetail' : 'Primary');
     })) continue;
     const open = items.filter(item => !item.flags.find(flag => flag.name === 'complete').value);
     const completed = items.filter(item => item.flags.find(flag => flag.name === 'complete').value);
     const count = `${open.length} ${open.length === 1 ? 'thing' : 'things'} left · ${completed.length} completed`;
-    // The collection count is a Mask-local arrangement of the same flags.
-    // Only fold away a Status subject when its exact Face wording agrees.
-    const matchingStatus = (view.relationships ?? [])
-      .filter(relation => relation.kind === 'Contains' && relation.source === collection.identity)
-      .map(relation => subjects.get(relation.target))
-      .find(subject => subject?.role === 'Status' && subject.text?.length === 1
-        && subject.text[0] === count);
+    // A partial Face must not invent a total from its visible item subset.
+    // Require the source Status to corroborate the specialized count wording.
+    const statuses = members.filter(subject => subject?.role === 'Status');
+    if (!statuses.length || statuses.some(subject => subject.text?.length !== 1 || subject.text[0] !== count)) continue;
+    const matchingStatus = statuses.find(subject => !hasExtraFacts(subject)
+      && !(view.actions ?? []).some(action => action.target === subject.identity));
     collections.push({ collection, open, completed, count });
     placed.add(collection.identity);
     for (const item of items) placed.add(item.identity);
@@ -161,6 +163,7 @@ export async function startOwnerParticipation(application, root) {
   const speechStop = root.querySelector('[data-owner-speech-stop]');
   const speechResult = root.querySelector('[data-owner-speech-result]');
   let host, participation, expectedBodyId = null, faceView = null, faceBusy = false, actionSequence = 0;
+  let faceRouteEpoch = 0;
   let speechOperationId = null, speechBusy = false;
   let wardrobeReport = null, wardrobeBusy = false;
   const renderWardrobe = current => {
@@ -259,6 +262,9 @@ export async function startOwnerParticipation(application, root) {
   };
   const faceComponent = document.createElement('conduit-owner-face');
   const renderFace = view => {
+    // Attach before Show, and retain the surface across ordinary refreshes.
+    // Replacing an already attached custom element revokes its render bindings.
+    if (faceComponent.parentNode !== faceDocument) faceDocument.replaceChildren(faceComponent);
     faceComponent.show(view, { projectCollections: projectFaceCollections,
       invoke: async ({ view, action, arguments: actionArguments }) => {
         if (faceBusy || !participation || faceView?.show_id !== view.show_id) return;
@@ -281,7 +287,6 @@ export async function startOwnerParticipation(application, root) {
         }
       },
     });
-    faceDocument.replaceChildren(faceComponent);
     faceDocument.dataset.faceId = view.face_id;
     faceDocument.dataset.faceRevision = view.face_revision;
     faceDocument.dataset.showId = view.show_id;
@@ -289,6 +294,12 @@ export async function startOwnerParticipation(application, root) {
   const refreshFace = async (selection = null) => {
     if (!participation || faceBusy || participation.presenceState() !== 'available') return;
     faceBusy = true; faceRefresh.disabled = true;
+    const routeEpoch = faceRouteEpoch;
+    const requireCurrentRoute = () => {
+      if (routeEpoch !== faceRouteEpoch || participation.presenceState() !== 'available') {
+        throw new Error('The owner route changed during Face preparation. Refresh this Face after reconnecting.');
+      }
+    };
     const priorFace = faceView;
     faceView = null;
     delete root.dataset.ownerFaceShown;
@@ -302,8 +313,10 @@ export async function startOwnerParticipation(application, root) {
         : await participation.prepareOwnerFaceMask(priorFace ? {
           lastSeenRevision: priorFace.face_revision, lastSeenIdentity: priorFace.face_id,
         } : undefined);
+      requireCurrentRoute();
       renderFace(prepared);
       const shown = await participation.acknowledgeOwnerFaceMask(prepared);
+      requireCurrentRoute();
       const inspectedRoute = checkedOwnerRouteEvidence(shown, participation.hostId, participation.bootId);
       root.dataset.ownerShowAcknowledged = shown.show_id;
       faceView = shown;
@@ -366,6 +379,11 @@ export async function startOwnerParticipation(application, root) {
     status.textContent = `Browser participation: ${state}.`;
     status.dataset.state = state;
     if (state === 'offline' || state.startsWith('refused:')) {
+      // Presence can recover before a pending response completes. That response
+      // still belongs to the interrupted route and cannot restore current agency.
+      faceRouteEpoch++;
+      delete root.dataset.ownerFaceShown;
+      delete root.dataset.ownerShowAcknowledged;
       wardrobeReport = null;
       wardrobeRefresh.disabled = true;
       for (const button of wardrobeRows.querySelectorAll('button')) button.disabled = true;

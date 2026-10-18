@@ -17,6 +17,7 @@ export class BrowserPlot {
   #projectionSequence = 0;
   constructor(source, bridge) {
     if (typeof source !== "string" || source.length === 0) throw new TypeError("Plot source must be non-empty Conduitese text");
+    if (!source.isWellFormed()) throw new TypeError("Plot source must be scalar Unicode text");
     this.#source = source;
     this.#bridge = bridge;
     Object.freeze(this);
@@ -107,7 +108,7 @@ export class BrowserBody {
     this.#createPlay = createPlay;
     this.#acquireBodyHost = acquireBodyHost;
     this.#advertisement = advertisement; this.#source = source;
-    this.#receipt = receipt; this.#sequence = sequence;
+    this.#receipt = freezeJsonValue(structuredClone(receipt)); this.#sequence = sequence;
     this.#storage = storage;
     this.#opened = opened;
   }
@@ -121,7 +122,12 @@ export class BrowserBody {
     await this.#openWorkspace();
     const { status, outputJson } = this.#bridge.workspaceRequest({ action: "Current" });
     if (status < 0) throw sdkRefusal("Body.current", outputJson, this.#identities());
-    return projectBodySnapshot(outputJson);
+    const snapshot = projectBodySnapshot(outputJson);
+    if (snapshot.evidence.body_id !== this.id) throw sdkRefusal("Body.current", {
+      code: "BodyIdentityMismatch",
+      message: "Workspace snapshot does not belong to this Body handle",
+    }, this.#identities());
+    return snapshot;
   }
 
   snapshot() { return this.current(); }
@@ -327,7 +333,8 @@ export class BrowserBody {
     if (this.#persistenceFailure) throw this.#persistenceFailure;
     const { status, outputJson } = this.#bridge.workspaceRequest({ action: "Durable" });
     if (status < 0) throw sdkRefusal("Body.retain", outputJson, this.#identities());
-    const record = Object.freeze({ schema: CONTINUITY_SCHEMA, source: this.#source, durable: outputJson });
+    const durable = durableForBody(outputJson, this.id, "Body.retain", this.#identities());
+    const record = Object.freeze({ schema: CONTINUITY_SCHEMA, source: this.#source, durable });
     this.#persistence = this.#persistence.then(() => retainContinuity(this.#bridge, this.#storage, record));
     try { await this.#persistence; }
     catch (error) {
@@ -455,6 +462,17 @@ function freezeJsonValue(value) {
   return value;
 }
 
+function durableForBody(value, bodyId, operation, identities) {
+  const durable = freezeJsonValue(structuredClone(value));
+  if (durable?.evidence?.body_id !== bodyId || durable?.admission?.body_id !== bodyId) {
+    throw sdkRefusal(operation, {
+      code: "BodyIdentityMismatch",
+      message: "Durable Workspace snapshot does not belong to this Body",
+    }, identities);
+  }
+  return durable;
+}
+
 // Rust seals history segments. Commit them together with the newer continuity
 // record before acknowledging the archive barrier, as the Workspace does.
 async function retainContinuity(bridge, storage, record, recoveredArchives = []) {
@@ -515,6 +533,15 @@ export async function recoverBrowserBody({ bridge, host, boot, api, root, create
       message: "retained Body continuity is malformed or incompatible",
     }, { hostId: host, bootId: boot });
   }
+  const bodyId = retained.durable.evidence?.body_id;
+  if (typeof bodyId !== "string" || bodyId.length === 0) throw sdkRefusal("Host.recover", {
+    code: "CorruptDurableBody", message: "retained continuity lacks its Body identity",
+  }, { hostId: host, bootId: boot });
+  if (retained.durable.admission != null && retained.durable.admission.body_id !== bodyId) {
+    throw sdkRefusal("Host.recover", {
+      code: "BodyIdentityMismatch", message: "retained admission does not belong to the retained Body",
+    }, { bodyId, hostId: host, bootId: boot });
+  }
   const checked = await new BrowserPlot(retained.source, bridge).check();
   if (!checked.ok) throw sdkRefusal("Host.recover.check", checked.refusal, { hostId: host, bootId: boot });
   const resident = retained.durable.evidence?.body?.workset?.plots;
@@ -534,19 +561,23 @@ export async function recoverBrowserBody({ bridge, host, boot, api, root, create
     advertisement: membership.advertisement(),
   });
   if (restored.status < 0) throw sdkRefusal("Host.recover", restored.outputJson, { hostId: host, bootId: boot });
-  if (retained.durable.foreground) {
-    const selected = bridge.workspaceRequest({ action: "SelectPlot", plot: retained.durable.foreground });
-    if (selected.status < 0) throw sdkRefusal("Host.recover.foreground", selected.outputJson, { hostId: host, bootId: boot });
-  }
-  const evidence = restored.outputJson?.evidence;
+  const evidence = freezeJsonValue(structuredClone(restored.outputJson?.evidence));
   if (!evidence?.body_id) throw sdkRefusal("Host.recover", {
     code: "RecoveryEvidenceMissing",
     message: "runtime recovery omitted the retained Body identity",
   }, { hostId: host, bootId: boot });
+  if (evidence.body_id !== bodyId) throw sdkRefusal("Host.recover", {
+    code: "BodyIdentityMismatch", message: "runtime recovery changed the retained Body identity",
+  }, { bodyId, hostId: host, bootId: boot });
+  if (retained.durable.foreground) {
+    const selected = bridge.workspaceRequest({ action: "SelectPlot", plot: retained.durable.foreground });
+    if (selected.status < 0) throw sdkRefusal("Host.recover.foreground", selected.outputJson, { hostId: host, bootId: boot });
+  }
   const currentDurable = bridge.workspaceRequest({ action: "Durable" });
   if (currentDurable.status < 0) throw sdkRefusal("Host.recover.retain", currentDurable.outputJson, { bodyId: evidence.body_id, hostId: host, bootId: boot });
+  const durable = durableForBody(currentDurable.outputJson, bodyId, "Host.recover.retain", { bodyId, hostId: host, bootId: boot });
   try {
-    await retainContinuity(bridge, storage, { schema: CONTINUITY_SCHEMA, source: retained.source, durable: currentDurable.outputJson }, retained.durable.pending_archives);
+    await retainContinuity(bridge, storage, { schema: CONTINUITY_SCHEMA, source: retained.source, durable }, retained.durable.pending_archives);
   } catch (error) {
     throw sdkRefusal("Host.recover.retain", {
       code: error?.code ?? "StorageUnavailable",
@@ -568,7 +599,10 @@ export async function recoverBrowserBody({ bridge, host, boot, api, root, create
 }
 
 async function readContinuity(storage, host, boot) {
-  try { return await storage.readJson(CONTINUITY_KEY); }
+  try {
+    const retained = await storage.readJson(CONTINUITY_KEY);
+    return freezeJsonValue(structuredClone(retained));
+  }
   catch (error) {
     throw sdkRefusal("Host.recover.read", {
       code: error?.code ?? "StorageUnavailable",

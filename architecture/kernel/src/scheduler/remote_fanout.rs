@@ -44,7 +44,7 @@ where
         if self.cancelled {
             return Err(SchedulerError::Cancelled);
         }
-        if targets.is_empty() || targets.len() > usize::from(u16::MAX) {
+        if targets.is_empty() || targets.len() > self.active_cords {
             return Err(SchedulerError::InvalidRemoteCordAccess);
         }
         let byte_len =
@@ -52,8 +52,10 @@ where
         let next_sequence = sequence
             .checked_add(1)
             .ok_or(SchedulerError::RemoteSequenceRejected)?;
+        let mut pressured = false;
+        let mut seen = super::remote_target_prefix::RemoteTargetPrefix::default();
         for (index, (endpoint, cord)) in targets.iter().copied().enumerate() {
-            if targets[..index].contains(&(endpoint, cord)) {
+            if seen.contains(&targets[..index], (endpoint, cord)) {
                 return Err(SchedulerError::InvalidRemoteCordAccess);
             }
             let cord_index = usize::from(cord.0);
@@ -70,21 +72,15 @@ where
             if state.producer_closed || state.next_remote_sequence != sequence {
                 return Err(SchedulerError::RemoteSequenceRejected);
             }
-            if byte_len > self.admission_maximum(spec, state)? {
-                return Ok(RemoteIngressOutcome::Full { sequence });
-            }
+            pressured |= !self.payload_admissible(spec, state, byte_len)?;
+        }
+        // Pressure is retryable only after every target has a valid current basis.
+        if pressured {
+            return Ok(RemoteIngressOutcome::Full { sequence });
         }
         self.ensure_sign_capacity(targets.len())?;
         self.ensure_remote_sign_capacity(targets.len())?;
-        let value = self.values.store(bytes)?;
-        for references in 1..targets.len() {
-            if let Err(error) = self.values.retain(value) {
-                for _ in 0..references {
-                    self.values.release(value)?;
-                }
-                return Err(error.into());
-            }
-        }
+        let value = store_fanout_value(&mut self.values, bytes, targets.len())?;
         for (endpoint, cord) in targets.iter().copied() {
             let cord_index = usize::from(cord.0);
             let spec = self.cord_specs[cord_index];
@@ -138,8 +134,9 @@ where
             return Err(SchedulerError::InvalidRemoteCordAccess);
         }
         let mut open = 0;
+        let mut seen = super::remote_target_prefix::RemoteTargetPrefix::default();
         for (index, (endpoint, cord)) in targets.iter().copied().enumerate() {
-            if targets[..index].contains(&(endpoint, cord)) {
+            if seen.contains(&targets[..index], (endpoint, cord)) {
                 return Err(SchedulerError::InvalidRemoteCordAccess);
             }
             let index = usize::from(cord.0);

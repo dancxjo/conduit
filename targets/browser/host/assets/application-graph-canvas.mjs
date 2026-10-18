@@ -1,9 +1,12 @@
 // A Mask over exact resident graph facts. No parsing, planning, or graph edits.
 const encoder = new TextEncoder();
-const decoder = new TextDecoder('utf-8', { fatal: true });
+const decoder = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true });
 const SCHEMA = 'conduit.face/graph-canvas@1';
 const SVG = 'http://www.w3.org/2000/svg';
 export function decodeGraphCanvas(source) {
+  if (typeof source !== 'string' || source.length > 65536 || !source.isWellFormed()) {
+    throw new Error('Graph canvas requires bounded scalar Unicode text');
+  }
   const bytes = encoder.encode(source);
   if (bytes.length > 65536) throw new Error('Graph canvas exceeds its byte bound');
   let offset = 0;
@@ -64,8 +67,25 @@ export function renderGraphCanvas(element, source, select) {
     node.setAttribute('tabindex', '0'); node.setAttribute('role', 'button');
     node.setAttribute('aria-label', label); node.setAttribute('aria-pressed', String(identity === graph.selected));
     node.style.cursor = 'pointer';
-    node.addEventListener('click', () => select(identity));
-    node.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); select(identity); } });
+    node.addEventListener('click', () => select(identity, node));
+    let spacePending = false;
+    node.addEventListener('keydown', event => {
+      if (event.defaultPrevented) return;
+      if (event.key === 'Enter') { event.preventDefault(); select(identity, node); }
+      else if (event.key === ' ') {
+        event.preventDefault();
+        if (!event.repeat) spacePending = true;
+      }
+    });
+    node.addEventListener('keyup', event => {
+      if (event.key !== ' ') return;
+      const pending = spacePending;
+      spacePending = false;
+      if (event.defaultPrevented || !pending) return;
+      event.preventDefault();
+      select(identity, node);
+    });
+    node.addEventListener('blur', () => { spacePending = false; });
   };
   const models = graph.nodes.map(node => ({ ...node, ports: graph.ports.filter(port => port.owner === node.identity) }));
   const boundaryPorts = graph.ports.filter(port => !port.owner);
@@ -93,7 +113,9 @@ export function renderGraphCanvas(element, source, select) {
     const group = create('g', {});
     create('rect', { x, y, width: 320, height, rx: 10, fill: 'var(--conduit-surface, #17241e)', stroke: node.identity === graph.selected ? 'var(--conduit-emphasis, #76ddb0)' : 'var(--conduit-structure-secondary, #456055)', 'stroke-width': 2 }, group);
     const heading = create('text', { x: x + 16, y: y + 28, fill: 'var(--conduit-text-primary, #ecf7ee)', 'font-size': 17 }, group);
-    heading.textContent = node.label.length > 28 ? `${node.label.slice(0, 25)}…` : node.label;
+    // Preserve the existing UTF-16 display budget without splitting a scalar.
+    const shortened = node.label.slice(0, 25).replace(/[\ud800-\udbff]$/u, '');
+    heading.textContent = node.label.length > 28 ? `${shortened}…` : node.label;
     create('title', {}, heading).textContent = node.label;
     const kind = create('text', { x: x + 16, y: y + 50, fill: 'var(--conduit-text-secondary, #91aaa0)', 'font-size': 12 }, group); kind.textContent = node.kind;
     if (node.identity) selectable(heading, node.identity, `Gear ${node.label}, ${node.kind}`);

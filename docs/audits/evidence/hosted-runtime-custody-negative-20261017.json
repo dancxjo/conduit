@@ -1,0 +1,24 @@
+{
+  "verifier_sha256": "36e64d6df4f8ce4f363a7a50d695d3ac124231713e1b8fd7237c3b75301b1227",
+  "previous_verifier_git_source": "19ca94a61fe2ceb0d1c3006fd9899d7aa9591dba",
+  "checks": [
+    {
+      "case": "foreign-fused-boot",
+      "previous_exit_code": 0,
+      "current_exit_code": 1,
+      "refusal": "AssertionError: pipeline Host/Boot custody"
+    },
+    {
+      "case": "foreign-host-advertisement",
+      "previous_exit_code": 0,
+      "current_exit_code": 1,
+      "refusal": "AssertionError: pipeline Host/Boot custody"
+    },
+    {
+      "case": "foreign-fused-plan",
+      "previous_exit_code": 0,
+      "current_exit_code": 1,
+      "refusal": "AssertionError: pipeline Plan custody"
+    }
+  ]
+}

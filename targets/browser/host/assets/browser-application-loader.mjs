@@ -36,13 +36,36 @@ async function sha256(bytes) {
 }
 
 async function boundedFetch(url, maximumBytes, label) {
-  const response = await fetch(url);
+  const response = await fetch(url, { cache: "no-store", credentials: "same-origin", redirect: "error" });
   if (!response.ok) throw new Error(`${label} is unavailable`);
   const declared = Number(response.headers.get("content-length"));
-  if (Number.isFinite(declared) && declared > maximumBytes) throw new Error(`${label} exceeds its admitted bound`);
-  const bytes = new Uint8Array(await response.arrayBuffer());
-  if (bytes.length === 0 || bytes.length > maximumBytes) throw new Error(`${label} exceeds its admitted bound`);
-  return bytes;
+  if (Number.isFinite(declared) && declared > maximumBytes) {
+    await response.body?.cancel().catch(() => {});
+    throw new Error(`${label} exceeds its admitted bound`);
+  }
+  if (!response.body) throw new Error(`${label} exceeds its admitted bound`);
+  const reader = response.body.getReader();
+  let bytes = new Uint8Array(Math.min(maximumBytes, 64 * 1024));
+  let total = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (value.byteLength > maximumBytes - total) {
+        await reader.cancel().catch(() => {});
+        throw new Error(`${label} exceeds its admitted bound`);
+      }
+      if (total + value.byteLength > bytes.byteLength) {
+        const grown = new Uint8Array(Math.min(maximumBytes, Math.max(total + value.byteLength, bytes.byteLength * 2)));
+        grown.set(bytes.subarray(0, total));
+        bytes = grown;
+      }
+      bytes.set(value, total);
+      total += value.byteLength;
+    }
+  } finally { reader.releaseLock(); }
+  if (total === 0) throw new Error(`${label} exceeds its admitted bound`);
+  return bytes.subarray(0, total);
 }
 
 function canonicalPackage(manifest) {
@@ -115,10 +138,31 @@ function admitManifest(document, manifestUrl) {
   });
   if (totalMaximumBytes > MAXIMUM_TOTAL_RESOURCE_BYTES) throw new Error("application package total byte bound is exceeded");
   if (!seenRoles.has("application-module") || !seenRoles.has("runtime")) throw new Error("application package has no module or runtime");
+  if (resources.find(resource => resource.role === "application-module").kind !== "module"
+    || resources.find(resource => resource.role === "runtime").kind !== "wasm") {
+    throw new Error("application package entry or runtime kind is invalid");
+  }
   for (const resource of resources) {
     for (const dependency of resource.dependencies) {
       if (!seenRoles.has(dependency.role) || dependency.role === resource.role) throw new Error("application resource dependency is invalid");
     }
+  }
+  const byRole = new Map(resources.map(resource => [resource.role, resource]));
+  const active = new Set();
+  const complete = new Set();
+  const visit = resource => {
+    if (active.has(resource.role)) throw new Error("application resource dependency cycle refused");
+    if (complete.has(resource.role)) return;
+    active.add(resource.role);
+    for (const dependency of resource.dependencies) {
+      const target = byRole.get(dependency.role);
+      if (target.kind === resource.kind) visit(target);
+    }
+    active.delete(resource.role);
+    complete.add(resource.role);
+  };
+  for (const resource of resources) {
+    if (resource.kind === "module" || resource.kind === "classic-script") visit(resource);
   }
   return Object.freeze({ schema: PACKAGE_SCHEMA, applicationId, packageDigest: document.package_digest, stateCompatibility, hostImplementations, resources: Object.freeze(resources) });
 }
@@ -266,9 +310,8 @@ export async function loadBrowserApplication(manifestReference) {
     if (resource?.kind !== "content") throw new Error(`application content ${role} was not admitted`);
     return decoder.decode(admittedBytes.get(role));
   };
-  const entryUrl = await materializeModule("application-module");
   let module;
-  try { module = await import(entryUrl); }
+  try { module = await import(await materializeModule("application-module")); }
   finally { for (const url of moduleUrls.values()) URL.revokeObjectURL(url); }
   if (typeof module.startApplication !== "function") throw new Error("application module has no bounded start entrance");
   const face = createApplicationFaceHost();

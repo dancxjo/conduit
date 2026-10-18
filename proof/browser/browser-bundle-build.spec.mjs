@@ -50,6 +50,159 @@ test("BrowserBundle BUILD keeps distribution, revisions, dependencies, targets, 
   await expect(verifyBrowserBundleImage({ checked: checked(ids, "3"), release: widened, distribution })).rejects.toMatchObject({ code: "UnexpectedAsset" });
 });
 
+test("BrowserBundle BUILD refuses cyclic, ambiguous and unbounded module graphs", async () => {
+  const cases = [
+    ["self cycle", modules => { modules[0].dependencies = [modules[0].path]; }, "ModuleDependencyCycle"],
+    ["two-node cycle", modules => { modules[1].dependencies = [modules[0].path]; }, "ModuleDependencyCycle"],
+    ["duplicate declaration", modules => { modules.push({ ...modules[0] }); }, "ModuleDeclarationInvalid"],
+    ["undeclared dependency", modules => { modules[0].dependencies = ["runtime.wasm"]; }, "ModuleDependencyMissing"],
+    ["oversized dependencies", modules => { modules[0].dependencies = Array(17).fill(modules[1].path); }, "ModuleDeclarationInvalid"],
+  ];
+  const results = [];
+  for (const [name, mutate, code] of cases) {
+    const distribution = await fixture(value => mutate(value.manifest.reviewed_distribution.modules));
+    try {
+      await buildBrowserBundleImage({ checked: checked(ids, "a"), distribution });
+      results.push({ name, code: "accepted" });
+    } catch (error) { results.push({ name, code: error.code }); }
+  }
+  expect(results).toEqual(cases.map(([name, , code]) => ({ name, code })));
+
+  // A shared dependency is a DAG, not a cycle.
+  const shared = await fixture(value => {
+    value.manifest.reviewed_distribution.modules[2].dependencies = ["browser-host-bootstrap.mjs"];
+  });
+  await expect(buildBrowserBundleImage({ checked: checked(ids, "b"), distribution: shared })).resolves.toBeDefined();
+});
+
+test("BrowserBundle BUILD binds the complete ordered distribution inventory", async () => {
+  const stale = await fixture(value => { value.manifest.bundle_sha256 = `sha256:${"f".repeat(64)}`; });
+  const duplicate = await fixture(value => { value.manifest.files.push({ ...value.manifest.files[0] }); });
+  const results = [];
+  for (const distribution of [stale, duplicate]) {
+    try {
+      await buildBrowserBundleImage({ checked: checked(ids, "a"), distribution });
+      results.push("accepted");
+    } catch (error) { results.push(error.code); }
+  }
+  expect(results).toEqual(["DigestMismatch", "ArtifactBound"]);
+
+  // Payload transport order supplies no new content identity.
+  const reordered = await fixture(value => value.payloads.reverse());
+  const release = await buildBrowserBundleImage({ checked: checked(ids, "b"), distribution: reordered });
+  const image = JSON.parse(new TextDecoder().decode(release.payloads.find(item => item.path === "conduit-browser-image.json").bytes));
+  expect(image.files).toEqual(reordered.manifest.files);
+  expect(release.manifest.files.slice(0, -1)).toEqual(reordered.manifest.files);
+});
+
+test("BrowserBundle verification refuses rehashed IMAGE claims detached from their inputs", async () => {
+  const distribution = await fixture();
+  const configuration = checked(ids, "a");
+  const original = await buildBrowserBundleImage({ checked: configuration, distribution });
+  const mutations = [
+    image => { image.profile_id = `sha256:${"b".repeat(64)}`; },
+    image => { image.source_configuration_id = `sha256:${"b".repeat(64)}`; },
+    image => { image.build_id = `build:sha256:${"b".repeat(64)}`; },
+    image => { image.reviewed_distribution.source_commit = "commit:forged"; },
+    image => { image.reviewed_distribution.distribution_digest = `sha256:${"b".repeat(64)}`; },
+    image => { image.files[0].bytes++; },
+  ];
+  const results = [];
+  for (const mutate of mutations) {
+    const release = structuredClone(original);
+    const binding = release.payloads.find(item => item.path === "conduit-browser-image.json");
+    const { image_id, ...image } = JSON.parse(new TextDecoder().decode(binding.bytes));
+    mutate(image);
+    const imageId = `image:${await sha256(encoder.encode(JSON.stringify(image)))}`;
+    binding.bytes = encoder.encode(JSON.stringify({ ...image, image_id: imageId }));
+    binding.sha256 = await sha256(binding.bytes);
+    release.manifest.browser_image_id = imageId;
+    release.manifest.browser_build_id = image.build_id;
+    release.manifest.files = release.payloads.map(({ path, bytes, sha256, media_type }) => ({ path, bytes: bytes.byteLength, sha256, media_type }));
+    release.manifest.bundle_sha256 = await bundleDigest(release.manifest.files);
+    try {
+      await verifyBrowserBundleImage({ checked: configuration, release, distribution });
+      results.push("accepted");
+    } catch (error) { results.push(error.code); }
+  }
+  expect(results).toEqual(mutations.map(() => "ImageBindingMismatch"));
+});
+
+test("BrowserBundle verification binds release declarations and bytes to the reviewed inventory", async () => {
+  const distribution = await fixture();
+  const configuration = checked(ids, "a");
+  const original = await buildBrowserBundleImage({ checked: configuration, distribution });
+  const results = [];
+  for (const mode of ["runtime", "payload-media", "declared-size", "declared-digest", "missing-inventory"]) {
+    const release = structuredClone(original);
+    if (mode === "runtime") {
+      release.payloads[0].bytes[0] ^= 1;
+      release.payloads[0].sha256 = await sha256(release.payloads[0].bytes);
+    }
+    if (mode === "payload-media") release.payloads[0].media_type = "text/plain";
+    release.manifest.files = release.payloads.map(({ path, bytes, sha256, media_type }) => ({ path, bytes: bytes.byteLength, sha256, media_type }));
+    release.manifest.bundle_sha256 = await bundleDigest(release.manifest.files);
+    if (mode === "declared-size") release.manifest.files[0].bytes++;
+    if (mode === "declared-digest") release.manifest.files[0].sha256 = `sha256:${"f".repeat(64)}`;
+    if (mode === "missing-inventory") delete release.manifest.files;
+    try {
+      await verifyBrowserBundleImage({ checked: configuration, release, distribution });
+      results.push({ mode, code: "accepted" });
+    } catch (error) { results.push({ mode, code: error.code }); }
+  }
+  expect(results).toEqual(["runtime", "payload-media", "declared-size", "declared-digest", "missing-inventory"]
+    .map(mode => ({ mode, code: "ArtifactBindingMismatch" })));
+});
+
+test("BrowserBundle BUILD applies browser per-asset bounds before hashing payloads", async () => {
+  const cases = [
+    { path: "runtime.wasm", size: 0, accepted: false },
+    { path: "runtime.wasm", size: 20 * 1024 * 1024, accepted: true },
+    { path: "runtime.wasm", size: 20 * 1024 * 1024 + 1, accepted: false },
+    { path: "host.mjs", size: 256 * 1024, accepted: true },
+    { path: "host.mjs", size: 256 * 1024 + 1, accepted: false },
+  ];
+  const results = [];
+  for (const entry of cases) {
+    const distribution = await fixture();
+    const bytes = new Uint8Array(entry.size);
+    if (entry.path === "runtime.wasm" && entry.size >= 8) bytes.set([0, 97, 115, 109, 1, 0, 0, 0]);
+    const digest = await sha256(bytes);
+    const declared = distribution.manifest.files.find(file => file.path === entry.path);
+    declared.bytes = entry.size; declared.sha256 = digest;
+    const payload = distribution.payloads.find(file => file.path === entry.path);
+    payload.bytes = bytes; payload.sha256 = digest;
+    distribution.manifest.reviewed_distribution.maximum_bundle_bytes = 48 * 1024 * 1024;
+    distribution.manifest.bundle_sha256 = await bundleDigest(distribution.manifest.files);
+    try {
+      await buildBrowserBundleImage({ checked: checked(ids, "a"), distribution });
+      results.push({ ...entry, accepted: true });
+    } catch (error) {
+      expect(error.code).toBe("ArtifactBound");
+      results.push({ ...entry, accepted: false });
+    }
+  }
+  expect(results).toEqual(cases);
+});
+
+test("BrowserBundle BUILD refuses paths that cannot name exact package-local assets", async () => {
+  const paths = ["../host.mjs", "/host.mjs", "https:host.mjs", "host.mjs?other", "host.mjs#other",
+    "host%2emjs", "host\\other.mjs", "host\nother.mjs", "host\tother.mjs"];
+  const results = [];
+  for (const path of paths) {
+    const distribution = await fixture();
+    distribution.manifest.files[1].path = path;
+    distribution.payloads[1].path = path;
+    distribution.manifest.reviewed_distribution.modules[0].path = path;
+    distribution.manifest.bundle_sha256 = await bundleDigest(distribution.manifest.files);
+    try {
+      await buildBrowserBundleImage({ checked: checked(ids, "a"), distribution });
+      results.push("accepted");
+    } catch (error) { results.push(error.code); }
+  }
+  expect(results).toEqual(paths.map(() => "ArtifactPathRejected"));
+});
+
 function checked(implementations, suffix) {
   return Object.freeze({
     schema: "conduit.creche/checked-browser-configuration@1",

@@ -1,0 +1,160 @@
+{
+  "base": "c0f7ba326b611d67c4052869e55a26af22a911a6",
+  "source_before_sha256": "2dc943231a3aca4251c62ac3ebd670dca48388da77c5e1eac161b8c32e6cd333",
+  "source_after_sha256": "d01323fa840f05bda9dafa116ae59db12ec324e33418a89a94dbf31f33b025e2",
+  "fixture_sha256": "c3b624a222db5af668a10bae91af7ba4107517ae4c4ec4847b296089a7b8ba41",
+  "compiler": "rustc 1.98.1 (48a229cea 2026-09-01)\nbinary: rustc\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\ncommit-date: 2026-09-01\nhost: x86_64-unknown-linux-gnu\nrelease: 1.98.1\nLLVM version: 22.1.8\n",
+  "os": "Linux-7.0.0-38-generic-x86_64-with-glibc2.43",
+  "cpu_model": "model name\t: 12th Gen Intel(R) Core(TM) i9-12900H",
+  "command": "cargo +stable test -p conduit-kernel --release sparse_reserved_host_adapter_polling_observation -- --nocapture",
+  "measurements": {
+    "before": {
+      "rows": [
+        {
+          "batch": 0,
+          "polls": 4096,
+          "callbacks": 4096,
+          "slot_probes": 16777216,
+          "wall_ns": 8297526
+        },
+        {
+          "batch": 1,
+          "polls": 4096,
+          "callbacks": 4096,
+          "slot_probes": 16777216,
+          "wall_ns": 6376971
+        },
+        {
+          "batch": 2,
+          "polls": 4096,
+          "callbacks": 4096,
+          "slot_probes": 16777216,
+          "wall_ns": 6404258
+        },
+        {
+          "batch": 3,
+          "polls": 4096,
+          "callbacks": 4096,
+          "slot_probes": 16777216,
+          "wall_ns": 6318093
+        },
+        {
+          "batch": 4,
+          "polls": 4096,
+          "callbacks": 4096,
+          "slot_probes": 16777216,
+          "wall_ns": 6303881
+        },
+        {
+          "batch": 5,
+          "polls": 4096,
+          "callbacks": 4096,
+          "slot_probes": 16777216,
+          "wall_ns": 6333358
+        },
+        {
+          "batch": 6,
+          "polls": 4096,
+          "callbacks": 4096,
+          "slot_probes": 16777216,
+          "wall_ns": 6631178
+        },
+        {
+          "batch": 7,
+          "polls": 4096,
+          "callbacks": 4096,
+          "slot_probes": 16777216,
+          "wall_ns": 6378791
+        }
+      ],
+      "mean_batch_wall_ns": 6630507,
+      "sample_sd_batch_wall_ns": 681423.6603326472,
+      "log_sha256": "3b2907b4a1b556bb0be1bc40925ef3d1482aa232879ffbe7daec8f13eabcfc7c"
+    },
+    "after": {
+      "rows": [
+        {
+          "batch": 0,
+          "polls": 4096,
+          "callbacks": 4096,
+          "slot_probes": 8192,
+          "wall_ns": 20656
+        },
+        {
+          "batch": 1,
+          "polls": 4096,
+          "callbacks": 4096,
+          "slot_probes": 8192,
+          "wall_ns": 20493
+        },
+        {
+          "batch": 2,
+          "polls": 4096,
+          "callbacks": 4096,
+          "slot_probes": 8192,
+          "wall_ns": 20467
+        },
+        {
+          "batch": 3,
+          "polls": 4096,
+          "callbacks": 4096,
+          "slot_probes": 8192,
+          "wall_ns": 20513
+        },
+        {
+          "batch": 4,
+          "polls": 4096,
+          "callbacks": 4096,
+          "slot_probes": 8192,
+          "wall_ns": 20513
+        },
+        {
+          "batch": 5,
+          "polls": 4096,
+          "callbacks": 4096,
+          "slot_probes": 8192,
+          "wall_ns": 20496
+        },
+        {
+          "batch": 6,
+          "polls": 4096,
+          "callbacks": 4096,
+          "slot_probes": 8192,
+          "wall_ns": 20502
+        },
+        {
+          "batch": 7,
+          "polls": 4096,
+          "callbacks": 4096,
+          "slot_probes": 8192,
+          "wall_ns": 20446
+        }
+      ],
+      "mean_batch_wall_ns": 20510.75,
+      "sample_sd_batch_wall_ns": 63.045901645433815,
+      "log_sha256": "5b39b87c9a1f7e30dda62c9ee47b64b587c2ed1c10844dce86f6034cfafd190a"
+    }
+  },
+  "limits": [
+    "One test process per variant, eight repeated batches; descriptive only, no independent-run confidence interval.",
+    "Instrumented production scheduler adapter fixture; not full Plan/Play or useful output throughput.",
+    "No affinity or frequency controls; wall time includes assertions, black_box and test-only scan counters.",
+    "No extra runtime fields or storage, no scheduler policy or Sign changes."
+  ],
+  "local_checks": {
+    "kernel-tests": {
+      "passed": 236,
+      "log_sha256": "c7904c32066dfe3a8f0762a51def708508462613f5dc8c8d64e895892e7106a9"
+    },
+    "linear-tests": {
+      "passed": 236,
+      "log_sha256": "a1ef77ebfeb0142afd08178cfed6cc81109066731c093f235cf6fd8b1634c522"
+    },
+    "clippy": {
+      "log_sha256": "40123c41e5570e9adcd229d867c654887f24b0a511d61f25be694cc87510ae2d"
+    },
+    "fmt": {
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  }
+}

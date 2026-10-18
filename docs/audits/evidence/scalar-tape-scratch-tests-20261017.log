@@ -1,0 +1,16 @@
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/conduit/architecture/plot)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 5.08s
+     Running tests/scalar_tape.rs (target/debug/deps/scalar_tape-5c9942f534203067)
+
+running 8 tests
+test scratch_profiles_keep_failed_and_unselected_branch_values_isolated_without_allocating ... ok
+test structured_and_text_profiles_refuse_explicitly ... ok
+test unselected_conditional_branch_preserves_lazy_refusal_semantics ... ok
+test checked_record_profile_stays_with_declared_reference_evaluator ... ok
+test prepared_instruction_bound_refuses_valid_program_without_runtime_fallback ... ok
+test checked_fixed_multiplication_and_boolean_negation_match_reference ... ok
+test checked_one_three_eight_thirty_two_operations_preserve_bytes_and_refusals_without_allocations ... ok
+test tape_scratch_profile_is_bounded_by_the_admitted_instruction_count ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.64s
+

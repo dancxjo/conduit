@@ -15,6 +15,8 @@ export async function startApplication(application) {
     <div class="handbook-controls"><button data-wake>Wake</button><button data-lull>Lull</button><button data-patchbay>Open in Patchbay</button><button data-example>Return to example</button></div>
     <label>Choose an example <select aria-label="Choose an example"></select></label>
     <p data-lesson></p><label for="handbook-source">Plot source</label><textarea id="handbook-source" spellcheck="false" aria-label="Plot source"></textarea>
+    <button type="button" data-export-source>Download displayed source</button>
+    <details><summary>Inspect source provenance</summary><pre data-source-provenance></pre></details>
     <p data-check role="status"></p><button data-try>Try in my Handbook</button>
     <p>First predict the result, then try it. Open Patchbay to follow the gears, typed ports, and cords of the installed example. Trying another example stops the previous example; saved edits are kept. Unapplied edits stay in the editor.</p>
     <section class="handbook-show" tabindex="0" aria-label="Running example"></section>
@@ -27,6 +29,48 @@ export async function startApplication(application) {
   const selector = root.querySelector('select');
   const surface = root.querySelector('.handbook-show');
   const checkStatus = root.querySelector('[data-check]');
+  const sourceEvidence = root.querySelector('[data-source-provenance]');
+  let inspectedSource, evidenceGeneration = 0;
+  const updateSourceEvidence = () => {
+    if (!inspectedSource) return;
+    const generation = ++evidenceGeneration;
+    const value = source.value;
+    const entry = specification.plots.find(plot => plot.name === inspectedSource.name);
+    const resource = application.manifest?.resources?.find(resource => resource.role === entry?.role);
+    const evidence = {
+      application_id: application.manifest?.applicationId ?? null,
+      package_digest: application.manifest?.packageDigest ?? null,
+      source_origin: inspectedSource.origin, plot: inspectedSource.name,
+      packaged_role: entry?.role ?? null, packaged_source_sha256: resource?.sha256 ?? null,
+      local_edit: value !== inspectedSource.source, displayed_source_sha256: null,
+    };
+    sourceEvidence.textContent = JSON.stringify(evidence, null, 2);
+    // Hashing is observational and never blocks editing, checking or startup.
+    if (!globalThis.crypto?.subtle) return;
+    crypto.subtle.digest('SHA-256', new TextEncoder().encode(value)).then(bytes => {
+      if (generation !== evidenceGeneration) return;
+      evidence.displayed_source_sha256 = 'sha256:' + [...new Uint8Array(bytes)]
+        .map(byte => byte.toString(16).padStart(2, '0')).join('');
+      sourceEvidence.textContent = JSON.stringify(evidence, null, 2);
+    }).catch(() => {});
+  };
+  const inspectSource = (origin, name, original) => {
+    inspectedSource = { origin, name, source: original };
+    updateSourceEvidence();
+  };
+  source.addEventListener('input', updateSourceEvidence);
+  root.querySelector('[data-export-source]').addEventListener('click', () => {
+    // Export the editor's exact text even when Host/checking/storage is refused.
+    // This is a local file download, not a Body or continuity mutation.
+    const blob = new Blob([source.value], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    const name = (inspectedSource?.name ?? 'handbook-source').replace(/[^a-zA-Z0-9_.-]/g, '-').slice(0, 64);
+    link.download = `${name}.conduit`;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 0);
+  });
   const showCheckRefusal = (result, origin, name) => {
     checkStatus.dataset.refusalCode = result.refusal.code;
     const details = result.diagnostics.map(item => {
@@ -37,20 +81,14 @@ export async function startApplication(application) {
     }).join('\n') || `${result.refusal.code}: ${result.refusal.message}`;
     checkStatus.textContent = `${origin} source ${name} — checking refused. ${details}`;
   };
-  const controls = [...root.querySelectorAll('button,select,textarea')];
+  const controls = [...root.querySelectorAll('button:not([data-export-source]),select,textarea')];
   controls.forEach(control => control.disabled = true);
   const specification = JSON.parse(application.text('birth-specification'));
   // A corrected packaged lesson may be retried without changing the signed package
   // or the original source. Overrides are exact-source scoped and independently
   // checked by the Rust checker on the next Boot.
-  const rescueEdits = await application.storage.readJson('handbook-source-rescue').catch(() => null);
-  const validRescueEdits = Array.isArray(rescueEdits) ? rescueEdits.slice(0, specification.plots.length) : [];
-  const packagedPlots = specification.plots.map(plot => {
-    const original = application.text(plot.role);
-    const rescue = validRescueEdits.find(item => item?.name === plot.name && item.original === original
-      && typeof item.source === 'string' && new TextEncoder().encode(item.source).length <= 16_384);
-    return { slug: plot.name, entry: plot.name, title: plot.title, source: rescue?.source ?? original };
-  });
+  const packagedPlots = specification.plots.map(plot => ({ slug: plot.name, entry: plot.name,
+    title: plot.title, source: application.text(plot.role) }));
   // Source inspection is available before any checker, Host or Body starts.
   // Drafts remain unapplied UI input; the original reviewed bundle stays exact.
   const openingDrafts = new Map();
@@ -62,6 +100,8 @@ export async function startApplication(application) {
     const plot = packagedPlots.find(plot => plot.entry === selector.value);
     if (!plot) return;
     source.value = openingDrafts.get(plot.entry) ?? plot.source;
+    const entry = specification.plots.find(entry => entry.name === plot.entry);
+    inspectSource(plot.source === application.text(entry.role) ? 'packaged' : 'saved correction', plot.entry, plot.source);
     root.querySelector('[data-lesson]').textContent = specification.plots.find(entry => entry.name === plot.entry).lesson;
     checkStatus.textContent = 'Source editing is available. Checking and Body startup are pending.';
   };
@@ -79,6 +119,16 @@ export async function startApplication(application) {
   source.disabled = false; selector.disabled = false;
   selector.addEventListener('change', chooseOpeningSource);
   source.addEventListener('input', editOpeningSource);
+  // Storage can be slow or unavailable. Keep original sources inspectable
+  // while loading saved corrections, preserving any drafts made in that time.
+  const rescueEdits = await application.storage.readJson('handbook-source-rescue').catch(() => null);
+  const validRescueEdits = Array.isArray(rescueEdits) ? rescueEdits.slice(0, specification.plots.length) : [];
+  for (const plot of packagedPlots) {
+    const rescue = validRescueEdits.find(item => item?.name === plot.entry && item.original === plot.source
+      && typeof item.source === 'string' && new TextEncoder().encode(item.source).length <= 16_384);
+    if (rescue) plot.source = rescue.source;
+  }
+  inspectOpeningSource();
   const bundle = JSON.stringify({ schema: 'conduit.creche/reviewed-plot-bundle@2', plots: packagedPlots });
   let host, body, play, checked, reviewed, editor, selected, snapshot;
   let busy = false;
@@ -217,7 +267,7 @@ export async function startApplication(application) {
     selected = checked.plots.find(plot => plot.name === entry.name)
       ?? reviewed.plots.find(plot => plot.name === entry.name);
     source.value = openingDrafts.get(entry.name) ?? selected.source;
-    openingDrafts.delete(entry.name);
+    inspectSource('Body inventory', entry.name, selected.source);
     editor.render();
     root.querySelector('[data-lesson]').textContent = entry.lesson;
     checkStatus.textContent = 'Edit the source, then check and try it in your body.';
@@ -242,13 +292,16 @@ export async function startApplication(application) {
     if (!checked.ok) throw new Error(checked.refusal.message);
     const opening = await body.current();
     const birthState = opening.evidence.body.state;
+    const savedChoice = openingChoice ?? await application.storage.readJson('selected-example');
+    // A choice made while storage was pending wins over the saved preference.
+    const retained = openingChoice ?? savedChoice;
     finishOpeningInspection();
     editor = host.attachEditor(source);
     source.addEventListener('input', () => {
+      openingDrafts.set(selector.value, source.value);
       delete checkStatus.dataset.refusalCode;
       checkStatus.textContent = 'Edited source — not checked or applied yet. Try it to check and apply the change.';
     });
-    const retained = openingChoice ?? await application.storage.readJson('selected-example');
     if (specification.plots.some(plot => plot.lesson && plot.name === retained)) selector.value = retained;
     await selectExample();
     const installed = opening.evidence.body.workset.plots;
@@ -303,6 +356,8 @@ export async function startApplication(application) {
       else if (!state.evidence.body.workset.plots.some(plot => plot.checked_plot_id === next.checkedPlotId)) await body.install(next);
       checked = await body.plots();
       selected = checked.plots.find(plot => plot.checkedPlotId === next.checkedPlotId);
+      openingDrafts.delete(next.name);
+      inspectSource('Body inventory', selected.name, selected.source);
       await body.select(selected); show(selected.checkedPlotId); await wake();
       surface.focus();
     }));
@@ -357,8 +412,15 @@ export async function startApplication(application) {
     }
     const available = [
       ...originals,
-      ...packagedPlots.map(plot => ({ origin: 'packaged', name: plot.entry,
-        title: plot.title, source: plot.source })),
+      ...packagedPlots.flatMap(plot => {
+        const entry = specification.plots.find(entry => entry.name === plot.entry);
+        const original = application.text(entry.role);
+        const packaged = { origin: 'packaged', name: plot.entry, title: plot.title, source: original };
+        // A saved correction is local input, never the original package bytes.
+        return plot.source === original ? [packaged] : [
+          { ...packaged, origin: 'saved correction', source: plot.source }, packaged,
+        ];
+      }),
     ];
     let index = 0;
     if (host && !openingChoice) {
@@ -371,9 +433,11 @@ export async function startApplication(application) {
       }
     }
     finishOpeningInspection();
-    const chosen = available.findIndex(plot => plot.origin === 'packaged' && plot.name === openingChoice);
+    const effectiveSource = plot => plot.origin !== 'retained'
+      && plot.source === packagedPlots.find(entry => entry.entry === plot.name)?.source;
+    const chosen = available.findIndex(plot => effectiveSource(plot) && plot.name === openingChoice);
     if (chosen >= 0) index = chosen;
-    const drafts = available.map(plot => plot.origin === 'packaged'
+    const drafts = available.map(plot => effectiveSource(plot)
       ? openingDrafts.get(plot.name) ?? plot.source : plot.source);
     selector.replaceChildren();
     for (let i = 0; i < available.length; i++) {
@@ -384,6 +448,7 @@ export async function startApplication(application) {
     }
     const showSource = () => {
       source.value = drafts[index];
+      inspectSource(available[index].origin, available[index].name, available[index].source);
       root.querySelector('[data-lesson]').textContent = 'Recovery source only. The current Body has not been changed.';
       checkStatus.textContent = 'Edit this source and press Try to check it without executing anything.';
       try { editor ??= host?.attachEditor(source); editor?.render(); }
@@ -404,6 +469,8 @@ export async function startApplication(application) {
       checkStatus.textContent = 'Edited source, not yet checked or applied.';
       delete checkStatus.dataset.refusalCode;
     });
+    let savedCorrections = validRescueEdits;
+    let pendingCorrections = Promise.resolve();
     root.querySelector('[data-try]').addEventListener('click', async () => {
       const candidate = available[index];
       const value = source.value;
@@ -425,14 +492,29 @@ export async function startApplication(application) {
             + 'Export its record before explicitly starting a new Body.';
           return;
         }
-        if (candidate.origin !== 'packaged') return;
+        if (!['packaged', 'saved correction'].includes(candidate.origin)) return;
+        if (!result.plots?.some(plot => plot.name === candidate.name)) {
+          checkStatus.dataset.refusalCode = 'LessonPlotNameChanged';
+          checkStatus.textContent = `Keep the plot name ${candidate.name} for this lesson so your saved edits stay with the example.`;
+          return;
+        }
         const original = application.text(specification.plots.find(plot => plot.name === candidate.name).role);
-        const updated = validRescueEdits.filter(item => item?.name !== candidate.name);
-        updated.push({ name: candidate.name, original, source: value });
-        await application.storage.writeJson('handbook-source-rescue', updated);
+        // Compute against the last successful save inside the queue. A sibling
+        // lesson may be checked while another correction is still persisting.
+        const saving = pendingCorrections.then(async () => {
+          const updated = savedCorrections.filter(item => item?.name !== candidate.name);
+          updated.push({ name: candidate.name, original, source: value });
+          await application.storage.writeJson('handbook-source-rescue', updated);
+          savedCorrections = updated;
+        });
+        pendingCorrections = saving.catch(() => {});
+        await saving;
+        if (available[index] !== candidate || source.value !== value) return;
+        inspectSource('saved correction', candidate.name, value);
         checkStatus.textContent = 'Source checks. Correction saved for this application; '
           + 'press Try again to reopen the Handbook. No Body has been changed.';
       } catch (refusal) {
+        if (available[index] !== candidate || source.value !== value) return;
         checkStatus.textContent = (refusal.code ?? 'CheckRefused') + ': ' + refusal.message;
       }
     });

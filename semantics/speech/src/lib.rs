@@ -270,3 +270,7 @@ pub mod syllable_intent;
 
 #[cfg(feature = "semantic-bindings")]
 pub mod syllable_structure;
+
+/// Optional full-float FARGAN topology, checked by the ordinary Plot compiler.
+#[cfg(feature = "fargan-source")]
+pub mod fargan;
