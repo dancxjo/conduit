@@ -428,3 +428,6 @@ fn minimum_viewport_reflows_a_permitted_two_column_recipe_to_one_column() {
 
 #[path = "editor_geometry_tests.rs"]
 mod editor_geometry_tests;
+
+#[path = "runtime_face_tests.rs"]
+mod runtime_face_tests;
