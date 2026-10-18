@@ -2,7 +2,59 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { openReleaseCatalog, createMemoryReleaseCache } from "../../targets/browser/workspace/creche-release-catalog.mjs";
 
+import { acquireHostRelease, acquireExactReleaseBytes } from "../../targets/browser/workspace/creche-release-bundle.mjs";
+
 const encoder = new TextEncoder();
+
+test("release fetch failures retain phase even when a payload is named manifest", async () => {
+  const profile = {
+    target_id: "std/x86_64/computer", package_id: "hosted-native@1",
+    output: "native-bundle", builder_adapter: "conduit-host-hosted/build-native@1",
+    deployment_adapter: "conduit-host-hosted/launch@1",
+    manifest_path: "https://mirror.example/releases/release.json",
+  };
+  const manifest = {
+    schema: "conduit.release/host-bundle@1", target_id: profile.target_id,
+    make_package_id: profile.package_id, output: profile.output,
+    builder_adapter: profile.builder_adapter, deployment_adapter: profile.deployment_adapter,
+    source_identity: "git:reviewed", bundle_sha256: `sha256:${"0".repeat(64)}`,
+    files: [{ path: "manifest", bytes: 1, sha256: `sha256:${"0".repeat(64)}`, media_type: "application/octet-stream" }],
+  };
+  for (const failure of ["http", "fetch", "body"]) {
+    const unavailable = () => {
+      if (failure === "fetch") throw new Error("offline");
+      if (failure === "body") return new Response(new ReadableStream({
+        start(controller) { controller.error(new Error("interrupted body")); },
+      }));
+      return new Response("missing", { status: 404 });
+    };
+    const evidence = (artifactStarted) => (error) => error.code === "ArtifactUnavailable"
+      && error.evidence.operation === "obtain"
+      && error.evidence.authority_requested === false
+      && error.evidence.artifact_work_started === artifactStarted
+      && error.evidence.external_work_started === false;
+    await assert.rejects(acquireHostRelease(profile, undefined, { fetcher: async () => unavailable() }), evidence(false));
+    const requests = [];
+    await assert.rejects(acquireHostRelease(profile, undefined, { fetcher: async (input) => {
+      requests.push(String(input));
+      return String(input) === profile.manifest_path ? new Response(JSON.stringify(manifest)) : unavailable();
+    } }), evidence(true));
+    assert.deepEqual(requests, [profile.manifest_path, "https://mirror.example/releases/manifest"]);
+  }
+});
+
+test("stale bytes retain explicit acquisition phase rather than a display label", async () => {
+  for (const artifactWorkStarted of [false, true]) {
+    await assert.rejects(acquireExactReleaseBytes({
+      url: "https://mirror.example/releases/manifest", maximumBytes: 1,
+      fetcher: async () => new Response("too large"), label: "manifest", artifactWorkStarted,
+    }), (error) => error.code === "StaleArtifact"
+      && error.evidence.operation === "obtain"
+      && error.evidence.artifact_work_started === artifactWorkStarted
+      && error.evidence.authority_requested === false
+      && error.evidence.external_work_started === false);
+  }
+});
 
 test("selected target alone is fetched, verified, and reused from immutable cache", async () => {
   const payload = encoder.encode("reviewed-host-bundle");
@@ -146,6 +198,14 @@ test("target-owned image validators can resolve one exact catalog artifact", asy
     "https://mirror.example/conduitos/manifest.json",
     "https://mirror.example/conduitos/host.iso",
   ]);
+  await assert.rejects(resolved.acquire({
+    ...manifest.artifact, path: "manifest", sha256: `sha256:${"0".repeat(64)}`,
+  }, 80 * 1024 * 1024), (error) => error.code === "ArtifactUnavailable"
+    && error.evidence.operation === "obtain"
+    && error.evidence.artifact_work_started === true
+    && error.evidence.authority_requested === false
+    && error.evidence.external_work_started === false);
+  assert.equal(requests.at(-1), "https://mirror.example/conduitos/manifest");
 });
 
 async function sha256(bytes) {

@@ -8,7 +8,9 @@ use serde::Deserialize;
 use super::sha256_file;
 
 const CURRENT_PATCHBAY: &str = "https://dancxjo.github.io/conduit/current/patchbay/";
-const MAX_MARKDOWN_FILES: usize = 256;
+// The retained audit inventory has passed the previous 256-file ceiling.
+// Keep traversal validation finite while admitting the current corpus.
+const MAX_MARKDOWN_FILES: usize = 512;
 const MAX_MARKDOWN_BYTES: u64 = 4 * 1024 * 1024;
 
 const REFERENCES: &[Reference] = &[
@@ -221,6 +223,27 @@ fn verify_built_gallery(site_root: &Path, commit: &str) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn expanded_document_inventory_still_refuses_over_capacity() {
+        let root = std::env::temp_dir().join(format!(
+            "conduit-documentation-capacity-{}",
+            std::process::id()
+        ));
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(root.join("docs")).unwrap();
+        fs::write(root.join("README.md"), "bounded root").unwrap();
+        for index in 0..MAX_MARKDOWN_FILES - 1 {
+            fs::write(root.join(format!("docs/{index}.md")), "bounded audit").unwrap();
+        }
+        assert_eq!(read_markdown_tree(&root).unwrap().len(), MAX_MARKDOWN_FILES);
+        fs::write(root.join("docs/overflow.md"), "one too many").unwrap();
+        assert_eq!(
+            read_markdown_tree(&root).unwrap_err(),
+            "documentation Markdown file count exceeds its validation bound"
+        );
+        fs::remove_dir_all(root).unwrap();
+    }
 
     #[test]
     fn checked_in_references_are_current_only_and_complete() {

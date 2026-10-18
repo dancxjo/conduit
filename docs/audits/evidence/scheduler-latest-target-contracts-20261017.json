@@ -1,0 +1,47 @@
+{
+  "source": "383aaa1ffef125191643deb261f6ff6cc8534c32",
+  "supported_command": "cargo xtask make conduitos timing-profile",
+  "proof": {
+    "schema": "conduit.timing/deterministic-proof@1",
+    "proof_class": "deterministic-emulator",
+    "profile": "conduit.timing/local-deadline@1",
+    "deadline_us": 1000,
+    "proven_worst_case_us": 730,
+    "met_elapsed_us": 480,
+    "refused_required_us": 730,
+    "refusal": "unschedulable-at-plan-time",
+    "distinct_outcomes": [
+      "deadline-met",
+      "deadline-miss",
+      "timer-base-loss",
+      "cancelled",
+      "stale-timing-basis"
+    ],
+    "inspection": "excluded-from-strict-path",
+    "physical_claim": false
+  },
+  "pure_protocol_tests_passed": 7,
+  "timing_profile_tests_passed": 5,
+  "test_command": "cargo test --locked -p conduitos --test timing_profile --test pure_protocol_play",
+  "environment": {
+    "RUST_MIN_STACK": "absent",
+    "CARGO_BUILD_JOBS": "2",
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0"
+  },
+  "source_files_sha256": {
+    "architecture/kernel/src/scheduler.rs": "27b8ef132a97807766e71cc67560d0015e9707871e204a684524c46fa6f54d1f",
+    "architecture/kernel/src/scheduler/host_call_index.rs": "4bcfd42f1aeabca0ee38043ff032dbf62d87d8ae84b90bf9b6f0aca9da684ec8",
+    "architecture/kernel/src/scheduler/ready_set.rs": "852e01d608e7b965a97e6d6507dffbaebb080911bc42f9ec406d274a9d6cc1ee",
+    "architecture/kernel/src/scheduler/execution_region.rs": "8bd4c32e0121a88bf9d7a8c09275064e33a0f4622daff978e3300f3a1f7fdb2e",
+    "targets/conduitos/tests/pure_protocol_play/flow.rs": "18dd46ca3d547ac3c38f3ad6f4cd1e1b3ec86c1504603fc24431fa637d3cc12b",
+    "targets/conduitos/tests/timing_profile.rs": "a2b63e6012f064c005f039ac63700c1630f36638b9a2aee02afd9d31aaa3438e"
+  },
+  "logs_sha256": {
+    "5231-latest-timing-profile.log": "632ec5e68ee912f852a9e016c81ff401235c0f10a9de1fa7303393c3b11ddd1a",
+    "5231-latest-conduitos-contracts.log": "1ee3fc5b5aefed6c392ca8083365d81ca9d9894e065c01b46911fb3674797aef"
+  },
+  "archive_sha256": "799a76aa504c108e5e9d52d0da1cafda53ce6b6c4c74f2261ade67b898cc0db0",
+  "scope": "Latest held completion-count and normalized-wake kernel after admitted dev merge; deterministic emulator contract, no physical timing/preemption/parallelism claim; Candidate, combined-development and real FARGAN acceptance remain separate."
+}

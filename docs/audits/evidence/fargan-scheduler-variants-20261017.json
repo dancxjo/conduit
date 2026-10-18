@@ -1,0 +1,900 @@
+{
+  "schema": "conduit.fargan-scheduler-variants-archive@1",
+  "archive_sha256": "842d938925373cfb9473969d06367172f5c1a811262e999fefe665c3852c4234",
+  "captures_verified_after_roundtrip": [
+    {
+      "capture": "fargan-boxed-before-01",
+      "source": "f88f627368829059955ead12be5e0f14da7ae883",
+      "frames": 48,
+      "artifacts": 12
+    },
+    {
+      "capture": "fargan-boxed-after-01",
+      "source": "837ef9bdebad841d3ac2604a658876f887fb55d1",
+      "frames": 48,
+      "artifacts": 12
+    },
+    {
+      "capture": "fargan-counter-only-01",
+      "source": "17909e9258d54638a1c4dfebab09c33cd8b7c30d",
+      "frames": 48,
+      "artifacts": 12
+    },
+    {
+      "capture": "fargan-wakes-only-01",
+      "source": "40cc971599a7800a474d1f14bea41e38ae9856d4",
+      "frames": 48,
+      "artifacts": 12
+    },
+    {
+      "capture": "fargan-packed-completion-01",
+      "source": "1f2b25c5cabf510cef6e6db2f0044a4526030dca",
+      "frames": 48,
+      "artifacts": 12
+    },
+    {
+      "capture": "fargan-reserved-completion-01",
+      "source": "f461b976b9bcf848327d9cf6821830faee761e1a",
+      "frames": 48,
+      "artifacts": 12
+    }
+  ],
+  "comparisons": {
+    "fargan-boxed-comparison.json": {
+      "schema": "conduit.fargan-runtime-comparison@1",
+      "before_source": "f88f627368829059955ead12be5e0f14da7ae883",
+      "after_source": "837ef9bdebad841d3ac2604a658876f887fb55d1",
+      "semantic_sign_work_pairs_verified": 48,
+      "ratios": {
+        "wall_ns": {
+          "after_over_before": 1.0654083870802993,
+          "repetition_cluster_bootstrap_95": [
+            1.0640043233325558,
+            1.066822247351514
+          ]
+        },
+        "process_cpu_ns": {
+          "after_over_before": 1.0654737242961128,
+          "repetition_cluster_bootstrap_95": [
+            1.0640205165131327,
+            1.0669371835516335
+          ]
+        },
+        "owner_preparation_ns": {
+          "after_over_before": 1.0416377490731472,
+          "repetition_cluster_bootstrap_95": [
+            1.0406362582981719,
+            1.0426476640471598
+          ]
+        },
+        "step_remainder_ns": {
+          "after_over_before": 0.8185386298925785,
+          "repetition_cluster_bootstrap_95": [
+            0.8180696557400962,
+            0.8190108470285081
+          ]
+        },
+        "numeric_back_wall_ns": {
+          "after_over_before": 1.0965222856223167,
+          "repetition_cluster_bootstrap_95": [
+            1.0855908020473408,
+            1.107591627087102
+          ]
+        },
+        "expression_host_wall_ns": {
+          "after_over_before": 1.1552759431794957,
+          "repetition_cluster_bootstrap_95": [
+            1.1537777678129764,
+            1.1567665205092437
+          ]
+        }
+      },
+      "before_phases": {
+        "wall_ns": {
+          "count": 48,
+          "mean": 22424205.041666668,
+          "sample_stddev": 399864.12286920124,
+          "min": 22061633,
+          "p50": 22228404,
+          "p95": 23287679,
+          "max": 23631933
+        },
+        "process_cpu_ns": {
+          "count": 48,
+          "mean": 22422527.6875,
+          "sample_stddev": 400220.6801393428,
+          "min": 22062547,
+          "p50": 22224653,
+          "p95": 23288768,
+          "max": 23633348
+        },
+        "owner_preparation_ns": {
+          "count": 48,
+          "mean": 2836796651.4791665,
+          "sample_stddev": 59440197.98412561,
+          "min": 2782603916,
+          "p50": 2816044739,
+          "p95": 2956377173,
+          "max": 3004680474
+        },
+        "step_remainder_ns": {
+          "count": 48,
+          "mean": 5200062.458333333,
+          "sample_stddev": 102731.30585295577,
+          "min": 5107366,
+          "p50": 5157619,
+          "p95": 5337450,
+          "max": 5644378
+        },
+        "numeric_back_wall_ns": {
+          "count": 48,
+          "mean": 4335824.25,
+          "sample_stddev": 115972.67456539521,
+          "min": 4217945,
+          "p50": 4283732,
+          "p95": 4596577,
+          "max": 4707374
+        },
+        "expression_host_wall_ns": {
+          "count": 48,
+          "mean": 12814605.25,
+          "sample_stddev": 202488.9583178786,
+          "min": 12626028,
+          "p50": 12710709,
+          "p95": 13284414,
+          "max": 13526992
+        }
+      },
+      "after_phases": {
+        "wall_ns": {
+          "count": 48,
+          "mean": 23890936.125,
+          "sample_stddev": 1266991.6707364905,
+          "min": 23096228,
+          "p50": 23608207,
+          "p95": 25255359,
+          "max": 31618707
+        },
+        "process_cpu_ns": {
+          "count": 48,
+          "mean": 23890614.083333332,
+          "sample_stddev": 1267065.442026035,
+          "min": 23081911,
+          "p50": 23598213,
+          "p95": 25256599,
+          "max": 31620197
+        },
+        "owner_preparation_ns": {
+          "count": 48,
+          "mean": 2954914478.625,
+          "sample_stddev": 107850003.8628822,
+          "min": 2776409325,
+          "p50": 2924726273,
+          "p95": 3102391064,
+          "max": 3455208492
+        },
+        "step_remainder_ns": {
+          "count": 48,
+          "mean": 4256452,
+          "sample_stddev": 246444.57168296486,
+          "min": 4093798,
+          "p50": 4203731,
+          "p95": 4484998,
+          "max": 5759882
+        },
+        "numeric_back_wall_ns": {
+          "count": 48,
+          "mean": 4754327.916666667,
+          "sample_stddev": 272169.53323968465,
+          "min": 4483635,
+          "p50": 4706995,
+          "p95": 5027827,
+          "max": 6346964
+        },
+        "expression_host_wall_ns": {
+          "count": 48,
+          "mean": 14804405.166666666,
+          "sample_stddev": 756575.9446295241,
+          "min": 14367583,
+          "p50": 14634194,
+          "p95": 15580587,
+          "max": 19411189
+        }
+      },
+      "scheduler_inline_bytes": {
+        "before": [
+          2642384
+        ],
+        "after": [
+          2642392
+        ]
+      },
+      "scope": "Source/model/Plan/output/Sign/work parity; descriptive shared-host timings, no realtime or universal regression threshold."
+    },
+    "fargan-counter-only-comparison.json": {
+      "schema": "conduit.fargan-runtime-comparison@1",
+      "before_source": "f88f627368829059955ead12be5e0f14da7ae883",
+      "after_source": "17909e9258d54638a1c4dfebab09c33cd8b7c30d",
+      "semantic_sign_work_pairs_verified": 48,
+      "ratios": {
+        "wall_ns": {
+          "after_over_before": 1.0465888394062932,
+          "repetition_cluster_bootstrap_95": [
+            1.0449996364322418,
+            1.0481670309214666
+          ]
+        },
+        "process_cpu_ns": {
+          "after_over_before": 1.0465970064226582,
+          "repetition_cluster_bootstrap_95": [
+            1.0450323551337315,
+            1.0481506973929677
+          ]
+        },
+        "owner_preparation_ns": {
+          "after_over_before": 0.9946698055708545,
+          "repetition_cluster_bootstrap_95": [
+            0.9855383513037157,
+            1.0038780705188008
+          ]
+        },
+        "step_remainder_ns": {
+          "after_over_before": 0.8332049521296215,
+          "repetition_cluster_bootstrap_95": [
+            0.8316015067795164,
+            0.834797385709222
+          ]
+        },
+        "numeric_back_wall_ns": {
+          "after_over_before": 1.0459946908210898,
+          "repetition_cluster_bootstrap_95": [
+            1.045208571669996,
+            1.0467907237891476
+          ]
+        },
+        "expression_host_wall_ns": {
+          "after_over_before": 1.1336433041899594,
+          "repetition_cluster_bootstrap_95": [
+            1.1311762516763935,
+            1.1360978449801757
+          ]
+        }
+      },
+      "before_phases": {
+        "wall_ns": {
+          "count": 48,
+          "mean": 22424205.041666668,
+          "sample_stddev": 399864.12286920124,
+          "min": 22061633,
+          "p50": 22228404,
+          "p95": 23287679,
+          "max": 23631933
+        },
+        "process_cpu_ns": {
+          "count": 48,
+          "mean": 22422527.6875,
+          "sample_stddev": 400220.6801393428,
+          "min": 22062547,
+          "p50": 22224653,
+          "p95": 23288768,
+          "max": 23633348
+        },
+        "owner_preparation_ns": {
+          "count": 48,
+          "mean": 2836796651.4791665,
+          "sample_stddev": 59440197.98412561,
+          "min": 2782603916,
+          "p50": 2816044739,
+          "p95": 2956377173,
+          "max": 3004680474
+        },
+        "step_remainder_ns": {
+          "count": 48,
+          "mean": 5200062.458333333,
+          "sample_stddev": 102731.30585295577,
+          "min": 5107366,
+          "p50": 5157619,
+          "p95": 5337450,
+          "max": 5644378
+        },
+        "numeric_back_wall_ns": {
+          "count": 48,
+          "mean": 4335824.25,
+          "sample_stddev": 115972.67456539521,
+          "min": 4217945,
+          "p50": 4283732,
+          "p95": 4596577,
+          "max": 4707374
+        },
+        "expression_host_wall_ns": {
+          "count": 48,
+          "mean": 12814605.25,
+          "sample_stddev": 202488.9583178786,
+          "min": 12626028,
+          "p50": 12710709,
+          "p95": 13284414,
+          "max": 13526992
+        }
+      },
+      "after_phases": {
+        "wall_ns": {
+          "count": 48,
+          "mean": 23468922.729166668,
+          "sample_stddev": 300385.03316284623,
+          "min": 23208425,
+          "p50": 23344977,
+          "p95": 24335114,
+          "max": 24441348
+        },
+        "process_cpu_ns": {
+          "count": 48,
+          "mean": 23467350.354166668,
+          "sample_stddev": 300886.5926696656,
+          "min": 23209190,
+          "p50": 23344244,
+          "p95": 24330091,
+          "max": 24442728
+        },
+        "owner_preparation_ns": {
+          "count": 48,
+          "mean": 2821675973.7708335,
+          "sample_stddev": 47839661.97185642,
+          "min": 2768685909,
+          "p50": 2796282751,
+          "p95": 2921720609,
+          "max": 2959531060
+        },
+        "step_remainder_ns": {
+          "count": 48,
+          "mean": 4332717.791666667,
+          "sample_stddev": 73214.65957787832,
+          "min": 4273539,
+          "p50": 4306694,
+          "p95": 4483253,
+          "max": 4669477
+        },
+        "numeric_back_wall_ns": {
+          "count": 48,
+          "mean": 4535249.145833333,
+          "sample_stddev": 72487.18928930399,
+          "min": 4455965,
+          "p50": 4507726,
+          "p95": 4705380,
+          "max": 4746284
+        },
+        "expression_host_wall_ns": {
+          "count": 48,
+          "mean": 14527191.4375,
+          "sample_stddev": 170654.2713903852,
+          "min": 14358132,
+          "p50": 14463663,
+          "p95": 14956844,
+          "max": 15127716
+        }
+      },
+      "scheduler_inline_bytes": {
+        "before": [
+          2642384
+        ],
+        "after": [
+          2642392
+        ]
+      },
+      "scope": "Source/model/Plan/output/Sign/work parity; descriptive shared-host timings, no realtime or universal regression threshold."
+    },
+    "fargan-wakes-only-comparison.json": {
+      "schema": "conduit.fargan-runtime-comparison@1",
+      "before_source": "f88f627368829059955ead12be5e0f14da7ae883",
+      "after_source": "40cc971599a7800a474d1f14bea41e38ae9856d4",
+      "semantic_sign_work_pairs_verified": 48,
+      "ratios": {
+        "wall_ns": {
+          "after_over_before": 0.976212258739659,
+          "repetition_cluster_bootstrap_95": [
+            0.9726813168250462,
+            0.9797678369682554
+          ]
+        },
+        "process_cpu_ns": {
+          "after_over_before": 0.9762804479533994,
+          "repetition_cluster_bootstrap_95": [
+            0.9726986737211014,
+            0.979887489364017
+          ]
+        },
+        "owner_preparation_ns": {
+          "after_over_before": 0.9771432974306807,
+          "repetition_cluster_bootstrap_95": [
+            0.9745616206652166,
+            0.9797466903811228
+          ]
+        },
+        "step_remainder_ns": {
+          "after_over_before": 0.8088183059403797,
+          "repetition_cluster_bootstrap_95": [
+            0.8051769827239257,
+            0.812484809117936
+          ]
+        },
+        "numeric_back_wall_ns": {
+          "after_over_before": 1.0099366054793388,
+          "repetition_cluster_bootstrap_95": [
+            1.0043544557107515,
+            1.0155891522240017
+          ]
+        },
+        "expression_host_wall_ns": {
+          "after_over_before": 1.0326001279542603,
+          "repetition_cluster_bootstrap_95": [
+            1.0298530108339188,
+            1.0353612481702337
+          ]
+        }
+      },
+      "before_phases": {
+        "wall_ns": {
+          "count": 48,
+          "mean": 22424205.041666668,
+          "sample_stddev": 399864.12286920124,
+          "min": 22061633,
+          "p50": 22228404,
+          "p95": 23287679,
+          "max": 23631933
+        },
+        "process_cpu_ns": {
+          "count": 48,
+          "mean": 22422527.6875,
+          "sample_stddev": 400220.6801393428,
+          "min": 22062547,
+          "p50": 22224653,
+          "p95": 23288768,
+          "max": 23633348
+        },
+        "owner_preparation_ns": {
+          "count": 48,
+          "mean": 2836796651.4791665,
+          "sample_stddev": 59440197.98412561,
+          "min": 2782603916,
+          "p50": 2816044739,
+          "p95": 2956377173,
+          "max": 3004680474
+        },
+        "step_remainder_ns": {
+          "count": 48,
+          "mean": 5200062.458333333,
+          "sample_stddev": 102731.30585295577,
+          "min": 5107366,
+          "p50": 5157619,
+          "p95": 5337450,
+          "max": 5644378
+        },
+        "numeric_back_wall_ns": {
+          "count": 48,
+          "mean": 4335824.25,
+          "sample_stddev": 115972.67456539521,
+          "min": 4217945,
+          "p50": 4283732,
+          "p95": 4596577,
+          "max": 4707374
+        },
+        "expression_host_wall_ns": {
+          "count": 48,
+          "mean": 12814605.25,
+          "sample_stddev": 202488.9583178786,
+          "min": 12626028,
+          "p50": 12710709,
+          "p95": 13284414,
+          "max": 13526992
+        }
+      },
+      "after_phases": {
+        "wall_ns": {
+          "count": 48,
+          "mean": 21890783.854166668,
+          "sample_stddev": 301022.15340148576,
+          "min": 21645208,
+          "p50": 21811350,
+          "p95": 22329383,
+          "max": 23596253
+        },
+        "process_cpu_ns": {
+          "count": 48,
+          "mean": 21890675.375,
+          "sample_stddev": 301204.21609094844,
+          "min": 21645696,
+          "p50": 21808566,
+          "p95": 22324647,
+          "max": 23597533
+        },
+        "owner_preparation_ns": {
+          "count": 48,
+          "mean": 2771956834.1666665,
+          "sample_stddev": 23481422.973576974,
+          "min": 2742872384,
+          "p50": 2764662098,
+          "p95": 2829418702,
+          "max": 2858970622
+        },
+        "step_remainder_ns": {
+          "count": 48,
+          "mean": 4205905.708333333,
+          "sample_stddev": 68595.78548680246,
+          "min": 4148384,
+          "p50": 4183778,
+          "p95": 4290617,
+          "max": 4594733
+        },
+        "numeric_back_wall_ns": {
+          "count": 48,
+          "mean": 4378907.625,
+          "sample_stddev": 106969.03556212156,
+          "min": 4282830,
+          "p50": 4356423,
+          "p95": 4493583,
+          "max": 4921509
+        },
+        "expression_host_wall_ns": {
+          "count": 48,
+          "mean": 13232363.020833334,
+          "sample_stddev": 139080.60909330787,
+          "min": 13106066,
+          "p50": 13203669,
+          "p95": 13407008,
+          "max": 13999277
+        }
+      },
+      "scheduler_inline_bytes": {
+        "before": [
+          2642384
+        ],
+        "after": [
+          2642384
+        ]
+      },
+      "scope": "Source/model/Plan/output/Sign/work parity; descriptive shared-host timings, no realtime or universal regression threshold."
+    },
+    "fargan-packed-completion-comparison.json": {
+      "schema": "conduit.fargan-runtime-comparison@1",
+      "before_source": "f88f627368829059955ead12be5e0f14da7ae883",
+      "after_source": "1f2b25c5cabf510cef6e6db2f0044a4526030dca",
+      "semantic_sign_work_pairs_verified": 48,
+      "ratios": {
+        "wall_ns": {
+          "after_over_before": 1.0475788522053535,
+          "repetition_cluster_bootstrap_95": [
+            1.044797024111802,
+            1.0503414052370288
+          ]
+        },
+        "process_cpu_ns": {
+          "after_over_before": 1.0477479638597356,
+          "repetition_cluster_bootstrap_95": [
+            1.0449639839378189,
+            1.0505124421155723
+          ]
+        },
+        "owner_preparation_ns": {
+          "after_over_before": 1.014799375688047,
+          "repetition_cluster_bootstrap_95": [
+            0.9944076026000909,
+            1.0353626774206135
+          ]
+        },
+        "step_remainder_ns": {
+          "after_over_before": 0.7995848150830304,
+          "repetition_cluster_bootstrap_95": [
+            0.7967276436951009,
+            0.8024223646512243
+          ]
+        },
+        "numeric_back_wall_ns": {
+          "after_over_before": 1.0673164297038407,
+          "repetition_cluster_bootstrap_95": [
+            1.0631332528880333,
+            1.071447509117977
+          ]
+        },
+        "expression_host_wall_ns": {
+          "after_over_before": 1.1417825554296077,
+          "repetition_cluster_bootstrap_95": [
+            1.1394354458650255,
+            1.1441177615647404
+          ]
+        }
+      },
+      "before_phases": {
+        "wall_ns": {
+          "count": 48,
+          "mean": 22424205.041666668,
+          "sample_stddev": 399864.12286920124,
+          "min": 22061633,
+          "p50": 22228404,
+          "p95": 23287679,
+          "max": 23631933
+        },
+        "process_cpu_ns": {
+          "count": 48,
+          "mean": 22422527.6875,
+          "sample_stddev": 400220.6801393428,
+          "min": 22062547,
+          "p50": 22224653,
+          "p95": 23288768,
+          "max": 23633348
+        },
+        "owner_preparation_ns": {
+          "count": 48,
+          "mean": 2836796651.4791665,
+          "sample_stddev": 59440197.98412561,
+          "min": 2782603916,
+          "p50": 2816044739,
+          "p95": 2956377173,
+          "max": 3004680474
+        },
+        "step_remainder_ns": {
+          "count": 48,
+          "mean": 5200062.458333333,
+          "sample_stddev": 102731.30585295577,
+          "min": 5107366,
+          "p50": 5157619,
+          "p95": 5337450,
+          "max": 5644378
+        },
+        "numeric_back_wall_ns": {
+          "count": 48,
+          "mean": 4335824.25,
+          "sample_stddev": 115972.67456539521,
+          "min": 4217945,
+          "p50": 4283732,
+          "p95": 4596577,
+          "max": 4707374
+        },
+        "expression_host_wall_ns": {
+          "count": 48,
+          "mean": 12814605.25,
+          "sample_stddev": 202488.9583178786,
+          "min": 12626028,
+          "p50": 12710709,
+          "p95": 13284414,
+          "max": 13526992
+        }
+      },
+      "after_phases": {
+        "wall_ns": {
+          "count": 48,
+          "mean": 23491122.979166668,
+          "sample_stddev": 450105.17980907194,
+          "min": 23007696,
+          "p50": 23272923,
+          "p95": 24265532,
+          "max": 25033789
+        },
+        "process_cpu_ns": {
+          "count": 48,
+          "mean": 23493157.729166668,
+          "sample_stddev": 450930.5182622782,
+          "min": 23010097,
+          "p50": 23275574,
+          "p95": 24268990,
+          "max": 25037395
+        },
+        "owner_preparation_ns": {
+          "count": 48,
+          "mean": 2878779470.875,
+          "sample_stddev": 86119319.352141,
+          "min": 2775746081,
+          "p50": 2843221776,
+          "p95": 3014870765,
+          "max": 3031094771
+        },
+        "step_remainder_ns": {
+          "count": 48,
+          "mean": 4157890.9791666665,
+          "sample_stddev": 92239.78987250004,
+          "min": 4057970,
+          "p50": 4127886,
+          "p95": 4299349,
+          "max": 4518812
+        },
+        "numeric_back_wall_ns": {
+          "count": 48,
+          "mean": 4627696.458333333,
+          "sample_stddev": 136732.44443896096,
+          "min": 4439137,
+          "p50": 4576722,
+          "p95": 4845618,
+          "max": 5071540
+        },
+        "expression_host_wall_ns": {
+          "count": 48,
+          "mean": 14631492.729166666,
+          "sample_stddev": 231604.68236095927,
+          "min": 14383861,
+          "p50": 14504527,
+          "p95": 15066163,
+          "max": 15361459
+        }
+      },
+      "scheduler_inline_bytes": {
+        "before": [
+          2642384
+        ],
+        "after": [
+          2642384
+        ]
+      },
+      "scope": "Source/model/Plan/output/Sign/work parity; descriptive shared-host timings, no realtime or universal regression threshold."
+    },
+    "fargan-reserved-completion-comparison.json": {
+      "schema": "conduit.fargan-runtime-comparison@1",
+      "before_source": "f88f627368829059955ead12be5e0f14da7ae883",
+      "after_source": "f461b976b9bcf848327d9cf6821830faee761e1a",
+      "semantic_sign_work_pairs_verified": 48,
+      "ratios": {
+        "wall_ns": {
+          "after_over_before": 0.9766751012342186,
+          "repetition_cluster_bootstrap_95": [
+            0.9733397683443796,
+            0.9800337056222302
+          ]
+        },
+        "process_cpu_ns": {
+          "after_over_before": 0.9767158424802517,
+          "repetition_cluster_bootstrap_95": [
+            0.9733491461459673,
+            0.9801062887527259
+          ]
+        },
+        "owner_preparation_ns": {
+          "after_over_before": 0.974094914254188,
+          "repetition_cluster_bootstrap_95": [
+            0.9707750810642886,
+            0.9774426727493045
+          ]
+        },
+        "step_remainder_ns": {
+          "after_over_before": 0.8253395578205355,
+          "repetition_cluster_bootstrap_95": [
+            0.8239397036131089,
+            0.8267490921009456
+          ]
+        },
+        "numeric_back_wall_ns": {
+          "after_over_before": 1.002137900884705,
+          "repetition_cluster_bootstrap_95": [
+            0.9971250524678091,
+            1.0072139667688318
+          ]
+        },
+        "expression_host_wall_ns": {
+          "after_over_before": 1.0293792165388786,
+          "repetition_cluster_bootstrap_95": [
+            1.0258310006126377,
+            1.032945519064548
+          ]
+        }
+      },
+      "before_phases": {
+        "wall_ns": {
+          "count": 48,
+          "mean": 22424205.041666668,
+          "sample_stddev": 399864.12286920124,
+          "min": 22061633,
+          "p50": 22228404,
+          "p95": 23287679,
+          "max": 23631933
+        },
+        "process_cpu_ns": {
+          "count": 48,
+          "mean": 22422527.6875,
+          "sample_stddev": 400220.6801393428,
+          "min": 22062547,
+          "p50": 22224653,
+          "p95": 23288768,
+          "max": 23633348
+        },
+        "owner_preparation_ns": {
+          "count": 48,
+          "mean": 2836796651.4791665,
+          "sample_stddev": 59440197.98412561,
+          "min": 2782603916,
+          "p50": 2816044739,
+          "p95": 2956377173,
+          "max": 3004680474
+        },
+        "step_remainder_ns": {
+          "count": 48,
+          "mean": 5200062.458333333,
+          "sample_stddev": 102731.30585295577,
+          "min": 5107366,
+          "p50": 5157619,
+          "p95": 5337450,
+          "max": 5644378
+        },
+        "numeric_back_wall_ns": {
+          "count": 48,
+          "mean": 4335824.25,
+          "sample_stddev": 115972.67456539521,
+          "min": 4217945,
+          "p50": 4283732,
+          "p95": 4596577,
+          "max": 4707374
+        },
+        "expression_host_wall_ns": {
+          "count": 48,
+          "mean": 12814605.25,
+          "sample_stddev": 202488.9583178786,
+          "min": 12626028,
+          "p50": 12710709,
+          "p95": 13284414,
+          "max": 13526992
+        }
+      },
+      "after_phases": {
+        "wall_ns": {
+          "count": 48,
+          "mean": 21901162.729166668,
+          "sample_stddev": 213138.503059729,
+          "min": 21731932,
+          "p50": 21841368,
+          "p95": 22431499,
+          "max": 22947030
+        },
+        "process_cpu_ns": {
+          "count": 48,
+          "mean": 21900438.020833332,
+          "sample_stddev": 211643.9201806305,
+          "min": 21733276,
+          "p50": 21842852,
+          "p95": 22433709,
+          "max": 22931908
+        },
+        "owner_preparation_ns": {
+          "count": 48,
+          "mean": 2763309190.9791665,
+          "sample_stddev": 20084178.423833072,
+          "min": 2732992099,
+          "p50": 2758382019,
+          "p95": 2814645300,
+          "max": 2833533033
+        },
+        "step_remainder_ns": {
+          "count": 48,
+          "mean": 4291817.25,
+          "sample_stddev": 64283.13395606009,
+          "min": 4237418,
+          "p50": 4277559,
+          "p95": 4345636,
+          "max": 4674903
+        },
+        "numeric_back_wall_ns": {
+          "count": 48,
+          "mean": 4345093.8125,
+          "sample_stddev": 73588.61420825748,
+          "min": 4253295,
+          "p50": 4330122,
+          "p95": 4567368,
+          "max": 4630923
+        },
+        "expression_host_wall_ns": {
+          "count": 48,
+          "mean": 13191088.3125,
+          "sample_stddev": 91925.63649208382,
+          "min": 13078512,
+          "p50": 13173890,
+          "p95": 13440706,
+          "max": 13563722
+        }
+      },
+      "scheduler_inline_bytes": {
+        "before": [
+          2642384
+        ],
+        "after": [
+          2642384
+        ]
+      },
+      "scope": "Source/model/Plan/output/Sign/work parity; descriptive shared-host timings, no realtime or universal regression threshold."
+    }
+  },
+  "scope": "Same-path boxed comparison and isolated counter/wake diagnostic results. Scalar count regresses whole Play; wake-only does not in this capture. Packed-completion and pre-refresh reserved-storage candidates also retained. Single process per variant; no universal timing bound or causal hardware explanation."
+}

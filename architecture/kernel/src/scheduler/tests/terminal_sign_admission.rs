@@ -121,6 +121,7 @@ fn refusal_and_retry(remote_pressure: bool) {
         );
         assert_eq!(scheduler.drivers[0].committed, 0);
         assert!(!scheduler.completed[0]);
+        assert_eq!(scheduler.completed_count(), 0);
         assert!(scheduler.ready.contains(0));
         assert_eq!(scheduler.values.used_items(), 0);
         assert_eq!(scheduler.signs.events().count(), 1);
@@ -139,6 +140,7 @@ fn refusal_and_retry(remote_pressure: bool) {
         );
         assert_eq!(scheduler.drivers[0].committed, 1);
         assert!(scheduler.completed[0]);
+        assert_eq!(scheduler.completed_count(), 1);
         assert_eq!(scheduler.signs.events().count(), 6);
         for cord in &scheduler.cords {
             assert_eq!(cord.len, 1);
@@ -196,6 +198,7 @@ fn abnormal_terminal_obeys_each_branch_semantic_envelope_before_commit() {
         );
         assert_eq!(scheduler.drivers[0].committed, 0);
         assert!(!scheduler.completed[0]);
+        assert_eq!(scheduler.completed_count(), 0);
         assert!(scheduler.ready.contains(0));
         assert_eq!(scheduler.values.used_items(), 0);
         assert_eq!(scheduler.signs.events().count(), 1);
@@ -211,6 +214,7 @@ fn abnormal_terminal_obeys_each_branch_semantic_envelope_before_commit() {
         );
         assert_eq!(scheduler.drivers[0].committed, 1);
         assert!(scheduler.completed[0]);
+        assert_eq!(scheduler.completed_count(), 1);
         assert_eq!(scheduler.signs.events().count(), 7);
         let value = scheduler.peek(0).unwrap().unwrap();
         assert_eq!(scheduler.values.get(value), Ok(b"ok".as_slice()));

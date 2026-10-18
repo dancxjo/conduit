@@ -40,11 +40,27 @@ pub trait HostedVisualModelAdapter: Send {
 struct GenerateResponse {
     response: String,
     #[serde(default)]
+    done: bool,
+    #[serde(default)]
     done_reason: String,
     #[serde(default)]
-    prompt_eval_count: u64,
+    prompt_eval_count: Option<u64>,
     #[serde(default)]
-    eval_count: u64,
+    eval_count: Option<u64>,
+}
+
+impl GenerateResponse {
+    /// Reported work is evidence, not a certified CPU deadline. Missing
+    /// counters and overflow cannot become a fabricated zero or saturated sum.
+    fn completed_work_units(&self) -> Result<u64, String> {
+        if !self.done {
+            return Err("local Ollama Vision response is not complete".into());
+        }
+        self.prompt_eval_count
+            .zip(self.eval_count)
+            .and_then(|(prompt, generated)| prompt.checked_add(generated))
+            .ok_or_else(|| "local Ollama Vision work counters are missing or overflow".into())
+    }
 }
 
 impl OllamaDiscovery {
@@ -91,6 +107,7 @@ impl HostedVisualModelAdapter for OllamaVisualModelAdapter {
         if generated.response.is_empty() || generated.response.len() > MAXIMUM_VISUAL_OUTPUT_BYTES {
             return Err("local Ollama Vision output is empty or exceeds its bound".into());
         }
+        let work_units = generated.completed_work_units()?;
         Ok(VisualModelOutput {
             text: generated.response,
             model_id: self.model_name.clone(),
@@ -98,9 +115,7 @@ impl HostedVisualModelAdapter for OllamaVisualModelAdapter {
             artifact_id: format!("ollama/model/{}", self.model_content_identity),
             prompt_contract_revision: VISUAL_PROMPT_REVISION,
             truncated: generated.done_reason == "length",
-            work_units: generated
-                .prompt_eval_count
-                .saturating_add(generated.eval_count),
+            work_units,
         })
     }
 }
@@ -163,6 +178,30 @@ fn encode_base64(input: &[u8], output: &mut String) -> Result<(), String> {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn completion_requires_known_checked_work_counters() {
+        let decode = |json: &str| serde_json::from_str::<super::GenerateResponse>(json).unwrap();
+        for json in [
+            r#"{"response":"scene","done":true}"#,
+            r#"{"response":"scene","done":true,"prompt_eval_count":null,"eval_count":1}"#,
+            r#"{"response":"scene","done":true,"prompt_eval_count":1}"#,
+            r#"{"response":"scene","prompt_eval_count":1,"eval_count":1}"#,
+            r#"{"response":"scene","done":false,"prompt_eval_count":1,"eval_count":1}"#,
+            r#"{"response":"scene","done":true,"prompt_eval_count":18446744073709551615,"eval_count":1}"#,
+        ] {
+            assert!(decode(json).completed_work_units().is_err());
+        }
+        assert_eq!(
+            decode(r#"{"response":"scene","done":true,"prompt_eval_count":0,"eval_count":0}"#)
+                .completed_work_units(),
+            Ok(0)
+        );
+        assert_eq!(
+            decode(r#"{"response":"scene","done":true,"prompt_eval_count":3,"eval_count":5}"#)
+                .completed_work_units(),
+            Ok(8)
+        );
+    }
     use super::*;
 
     #[test]

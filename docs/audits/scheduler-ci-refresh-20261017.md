@@ -1,0 +1,7 @@
+# Refreshed Candidate Plan/Play performance evidence
+
+Repair PR #5958's Candidate run 39075102791 succeeds in runtime-performance job 117520509401. The original GitHub artifact 12117545666 has a verified server digest, and its capture source 1d576215278856ff4549ff71a105ee8debe490c8 is the actual merge preview with repair head 7f49289747ad47f16a6d4512c962b3f8b32da3bd as a parent. This keeps candidate source custody distinct from the held scheduler feature.
+
+The existing root verifier accepts 242 internal artifact hashes, 256 raw records, 247 repeated distributions, 42 production stream trials and 27 ordinary pipeline phase-wall partitions. The original capture includes all 25 passing release conformance tests. CPU, allocator, timing/phase, output/custody and observer limits remain in the full verified receipt and raw artifact. Whole hosted preparation/execution allocations are not zero-Play-allocation kernel claims. Other Candidate jobs and combined-development admission remain separate.
+
+The receipt `evidence/scheduler-ci-refresh-20261017.json`, full root-verifier output with the same prefix, and original raw zip retain the evidence after GitHub artifact expiry. Re-extract the zip and run `proof/performance/verify-runtime-capture.py`. This is successful CI report evidence for the prerequisite source, not a held-feature before/after comparison, browser performance equivalence, real FARGAN result or #5231 closure proof.
