@@ -1,0 +1,186 @@
+{
+  "issue": 5611,
+  "proof_class": "actual Commons checked Source/std Plan/Play; deterministic linear navigation; actual software terminal Mask effects; CPU graphical preparation",
+  "local_execution_source": "working-tree snapshot on accepted development base; hashes bind the executed Rust/Plot files",
+  "base_commit": "dc31041d055c1cdc360ce27e17acf0aaeb043934",
+  "source_files_sha256": {
+    "plots/commons/main.conduit": "44a7f54122ccc386881490178f71b7618ac4066f07f61a4854d231cac6d84b76",
+    "products/conduit/src/body_owner/commons_encounter.rs": "12f0a2af61228f159fdff3728d5f222a1bef32f2f00952bcbd37fa6938a6278b",
+    "products/conduit/src/body_owner/commons_encounter/source.rs": "d2dc48979e6325389bd47cea2c256fd8440c4cc7cb9b5ae4f431e364a5d2e819",
+    "products/conduit/src/body_owner/commons_encounter/tests.rs": "badeb95ecee8df8b720ee5014eb7d7bc930707e818d5d78cb8983012d88f8cf8",
+    "products/conduit/src/body_owner/commons_encounter/observation_tests.rs": "4a50fb6af9477f701b2fabe05bcc93be51f9dfc70a09894d3e19d72ee8e78497",
+    "products/conduit/src/body_owner/commons_encounter/linear_journey.rs": "52f52af8faa3e7a6a477a2e5f14e27f5f9592cf6dd90581cc7db675822626c31",
+    "products/conduit/src/body_owner/commons_encounter/linear_journey/contract.rs": "faf6593114ea6d7871c67cb7f3c27697c5b6d65210632bd114d54c1b9fd839c4",
+    "products/conduit/src/body_owner/commons_encounter/linear_journey/runtime.rs": "1db7fa6645cca74221a7608e503eecaf0b8cb5d7dba0d5a5b223c26539489ecb"
+  },
+  "tests": {
+    "passed": 10,
+    "failed": 0,
+    "ignored": 0,
+    "seconds": 17.7,
+    "command": "cargo test --locked -p conduit --bin conduit commons_encounter -- --test-threads=1 --show-output"
+  },
+  "workspace_all_target_native_clippy": {
+    "exit_code": 0,
+    "warnings_denied": true,
+    "duration": "38.95s",
+    "command": "cargo clippy --locked --workspace --all-targets --features conduitos/native-compositor -- -D warnings"
+  },
+  "formatting": {
+    "exit_code": 0,
+    "command": "cargo fmt --all -- --check"
+  },
+  "public_source_oracle": {
+    "exit_code": 0,
+    "command": "cargo xtask check plots run --deterministic --plot commons"
+  },
+  "internal_build_environment": {
+    "debug": 0,
+    "incremental": false,
+    "jobs": 2,
+    "shared_target_directory": true
+  },
+  "runtime": {
+    "allocation_capacity_after": [
+      9,
+      2359296
+    ],
+    "allocation_capacity_before": [
+      9,
+      2359296
+    ],
+    "boot": "boot-18dfa7dbb16f0150-3",
+    "checked": "da0c359872d884a09694a70b6aeb98ad6278173916fc5e9f25a4862cb06681fd",
+    "expanded": "6afdfb491b9fd78fe98aff5ea158836e3bb657af8e84b1337ff7a2501a8a5594",
+    "host": "std-host-1",
+    "kernel_sign": [
+      {
+        "kind": "RemoteInputAdmitted",
+        "node": "NodeId(0)",
+        "sequence": 0
+      },
+      {
+        "kind": "RemoteInputClosed",
+        "node": "NodeId(0)",
+        "sequence": 1
+      },
+      {
+        "kind": "StepFuelGranted",
+        "node": "NodeId(0)",
+        "sequence": 2
+      },
+      {
+        "kind": "ValueConsumed",
+        "node": "NodeId(0)",
+        "sequence": 3
+      },
+      {
+        "kind": "HostCallRequested",
+        "node": "NodeId(0)",
+        "sequence": 4
+      },
+      {
+        "kind": "HostCallCompleted",
+        "node": "NodeId(0)",
+        "sequence": 5
+      },
+      {
+        "kind": "StepFuelGranted",
+        "node": "NodeId(0)",
+        "sequence": 6
+      },
+      {
+        "kind": "ValueRouted",
+        "node": "NodeId(0)",
+        "sequence": 7
+      },
+      {
+        "kind": "RemoteValueOffered",
+        "node": "NodeId(0)",
+        "sequence": 8
+      },
+      {
+        "kind": "RemoteValueAccepted",
+        "node": "NodeId(0)",
+        "sequence": 9
+      },
+      {
+        "kind": "RemoteValueDelivered",
+        "node": "NodeId(0)",
+        "sequence": 10
+      },
+      {
+        "kind": "StepFuelGranted",
+        "node": "NodeId(0)",
+        "sequence": 11
+      },
+      {
+        "kind": "InputClosed",
+        "node": "NodeId(0)",
+        "sequence": 12
+      },
+      {
+        "kind": "RemoteOutputClosed",
+        "node": "NodeId(0)",
+        "sequence": 13
+      },
+      {
+        "kind": "BackCompleted",
+        "node": "NodeId(0)",
+        "sequence": 14
+      }
+    ],
+    "output_bytes": 2791,
+    "plan": "8cf757d1cbfda6592cc272bc2d25401498f66dc8221abe5ab213dc415be2f35d",
+    "play": "5a9f9dd1ecda5bdc2ca6a40c01b4dfa41e982035f2b9061aed8e25c5191d76e7",
+    "queue_bytes": 8192,
+    "queue_items": 1,
+    "source": "d5232b9b11303805e407384462a62e83c560267d21ff01758dc03ad7bfa10ddd",
+    "graph_sha256": "da0d636fe4b9f92bc4233e5b6659027b565faf2699ffd9291e66ffea9e8d736a"
+  },
+  "metrics": {
+    "contexts": [
+      "commons/hub",
+      "commons/workshop",
+      "commons/hub",
+      "commons/creche",
+      "commons/hub"
+    ],
+    "distinct_faces": 5,
+    "portable_follow_back_traces": 2,
+    "terminal_inspection_pages": 37,
+    "terminal_inspected_rows": 668,
+    "actual_available_software_shows": 42,
+    "graphical_frames": 74,
+    "maximum_graphical_commands": 25,
+    "maximum_linear_bytes": 8547,
+    "fixture_record_bytes": 504681
+  },
+  "limits": {
+    "graph_queue_items": 1,
+    "graph_queue_bytes": 8192,
+    "navigation_history": 2,
+    "terminal_inspection_pages": 64,
+    "terminal_transcript_bytes": 524288,
+    "fixture_record_bytes": 2097152,
+    "graphical_scene_commands": 48
+  },
+  "boundaries": {
+    "recording_terminal_adapter": true,
+    "native_graphical_cpu_preparation_only": true,
+    "owner_truth_unchanged": true,
+    "owner_action_enactment": false,
+    "native_qemu_walkability": false,
+    "human_or_physical": false,
+    "stable_release_acceptance": false,
+    "parent_5359_completion": false
+  },
+  "retained_raw": {
+    "archive": "commons-linear-cross-mask-development-20261018.raw.tar.gz",
+    "bytes": 156515,
+    "sha256": "1f5c4cc5f303fb05ae13b1c46ed21b05c7479ba5664587a435f544ee68c378f6",
+    "manifest": "commons-linear-cross-mask-development-20261018.raw.manifest.json",
+    "manifest_sha256": "237017609d7672e6cf1eb90f75280ca1837d64eb67a86ff56af863324d5b5f8d",
+    "verified_entries": 16
+  }
+}
