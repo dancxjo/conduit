@@ -307,6 +307,7 @@ export async function startOwnerParticipation(application, root) {
     delete root.dataset.ownerShowAcknowledged;
     faceEvidence.textContent = 'Checking the current owner route and Show…';
     faceComponent.disabled = true;
+    let acknowledgedShow = null;
     try {
       faceStatus.textContent = 'Asking the owner for its current Face…';
       const prepared = selection?.look && selection?.recipe
@@ -318,20 +319,28 @@ export async function startOwnerParticipation(application, root) {
       renderFace(prepared);
       assertOwnerFaceReachability(faceComponent, prepared);
       const shown = await participation.acknowledgeOwnerFaceMask(prepared);
+      acknowledgedShow = shown;
       requireCurrentRoute();
       const inspectedRoute = checkedOwnerRouteEvidence(shown, participation.hostId, participation.bootId);
+      renderFace(shown);
+      assertOwnerFaceReachability(faceComponent, shown);
       root.dataset.ownerShowAcknowledged = shown.show_id;
       faceView = shown;
-      renderFace(shown);
       speechControls();
       faceStatus.textContent = 'The browser is showing the owner’s current Face.';
       delete faceStatus.dataset.refused;
       faceEvidence.textContent = JSON.stringify(inspectedRoute, null, 2);
       root.dataset.ownerFaceShown = 'true';
     } catch (error) {
+      faceView = null;
+      faceComponent.disabled = true;
       faceStatus.textContent = `Owner Face refused: ${error.message}`;
       faceStatus.dataset.refused = 'true';
-      faceEvidence.textContent = 'No current sealed browser Show. Previous route evidence is historical.';
+      faceEvidence.textContent = acknowledgedShow ? JSON.stringify({
+        schema: 'conduit.browser/owner-render-refusal@1', code: error.code ?? 'RendererRouteChanged',
+        owner_acknowledged_show_id: acknowledgedShow.show_id, ui_interactions_admitted: false,
+        explanation: 'Owner acknowledgement is retained; this browser surface refused and disabled its controls.',
+      }, null, 2) : 'No current sealed browser Show. Previous route evidence is historical.';
     } finally {
       faceBusy = false;
       faceRefresh.disabled = participation?.presenceState() !== 'available';
@@ -396,7 +405,11 @@ export async function startOwnerParticipation(application, root) {
       faceView = null;
       faceRefresh.disabled = true;
       applyFace.disabled = true;
-      faceEvidence.textContent = 'No current sealed browser Show. Previous route evidence is historical.';
+      faceEvidence.textContent = acknowledgedShow ? JSON.stringify({
+        schema: 'conduit.browser/owner-render-refusal@1', code: error.code ?? 'RendererRouteChanged',
+        owner_acknowledged_show_id: acknowledgedShow.show_id, ui_interactions_admitted: false,
+        explanation: 'Owner acknowledgement is retained; this browser surface refused and disabled its controls.',
+      }, null, 2) : 'No current sealed browser Show. Previous route evidence is historical.';
       faceComponent.disabled = true;
       actionResult.textContent = 'The owner window is closed; this browser has no current action return.';
       actionResult.dataset.refused = 'true';

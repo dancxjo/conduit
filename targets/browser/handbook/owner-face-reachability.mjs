@@ -37,19 +37,22 @@ function visiblePath(node) {
   return true;
 }
 export function assertOwnerFaceReachability(element, view) {
+  const certifiedControl = control => !control.hasAttribute('aria-label')
+    && !control.hasAttribute('aria-labelledby') && control.getAttribute('aria-disabled') !== 'true'
+    && (view.show_state === 'prepared' || !control.matches(':disabled'));
   for (const action of view.actions.filter(action => action.availability === 'available')) {
     const regions = [...element.shadowRoot.querySelectorAll('[data-owner-action]')]
       .filter(region => region.dataset.ownerAction === action.identity);
     const reachable = regions.some(region => {
       const controls = [...region.querySelectorAll('button,input,select')];
       const activator = controls.find(control => control.matches('button,input[type=radio]'));
-      if (!activator || activator.dataset.unavailable === 'true' || activator.tabIndex < 0) return false;
+      if (!activator || !certifiedControl(activator) || activator.dataset.unavailable === 'true' || activator.tabIndex < 0) return false;
       const named = activator.matches('button') ? activator.textContent.trim()
         : [...activator.labels].some(label => label.textContent.trim());
       const role = activator.getAttribute('role');
       if (role && role !== (activator.matches('button') ? 'button' : 'radio')) return false;
       if (!named || !visiblePath(activator)) return false;
-      return controls.every(control => control.dataset.unavailable !== 'true'
+      return controls.every(control => certifiedControl(control) && control.dataset.unavailable !== 'true'
         && control.tabIndex >= 0 && visiblePath(control)
         && (control.matches('button') || [...control.labels].some(label => label.textContent.trim())));
     });

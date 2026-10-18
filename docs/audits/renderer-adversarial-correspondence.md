@@ -14,7 +14,12 @@ Show. Each available action must have a native named keyboard control and
 labeled reachable inputs, or rendering refuses with
 `RendererActionInaccessible`. A closed native disclosure supplies its named
 keyboard path. Hidden, inert, transparent, clipped, missing or nameless controls
-cannot silently acknowledge a usable Show. This conservative check certifies
+cannot silently acknowledge a usable Show. Prepared controls are intentionally
+disabled; the available renderer is checked again before publishing its usable
+Show marker. A post-acknowledgement failure disables the UI, clears its current
+view and retains the actual owner-acknowledged Show identity in refusal evidence.
+Native disabled controls and uncertified ARIA name overrides refuse at that
+applicable stage. This conservative check certifies
 this renderer's native control structure, not arbitrary CSS or a general
 accessibility engine. It introduces no semantic action registry or Body state.
 
