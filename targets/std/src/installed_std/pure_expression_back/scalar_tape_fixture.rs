@@ -44,20 +44,40 @@ pub(crate) fn prepare_with_offer(
         conduit_core::PortTemporal,
     ) -> conduit_core::CapabilityOffer,
 ) -> (StdHost, conduit_core::Plan, PortableExpressionProgram) {
+    let mut make_offer = Some(make_offer);
+    let (host, plan, mut programs) = prepare_with_offers(source, name, |program, temporal| {
+        vec![make_offer.take().expect("one primitive expression")(
+            program, temporal,
+        )]
+    });
+    assert_eq!(programs.len(), 1);
+    (host, plan, programs.remove(0))
+}
+pub(crate) fn prepare_with_offers(
+    source: &str,
+    name: &str,
+    mut make_offers: impl FnMut(
+        &PortableExpressionProgram,
+        conduit_core::PortTemporal,
+    ) -> Vec<conduit_core::CapabilityOffer>,
+) -> (StdHost, conduit_core::Plan, Vec<PortableExpressionProgram>) {
     let checked =
         check_syntax_document(&parse_syntax_document(source), &StartupCatalog::new()).unwrap();
     let authored =
         expand_canonical_plot_for_authoring(&checked, name, &ProfileCatalog::new()).unwrap();
-    let ConfigurationValue::Text(encoded) = &authored.expanded.gears[0].configuration[0].value
-    else {
-        panic!("program")
-    };
-    let program = PortableExpressionProgram::from_canonical_hex(encoded).unwrap();
     let mut advertisement = StdHost::new().advertisement().clone();
-    let temporal = authored.expanded.gears[0].inputs[0].temporal;
-    let offer = make_offer(&program, temporal);
-    assert!(authored.expanded.gears[0].accepts_realization(&offer));
-    advertisement.capabilities.push(offer);
+    let mut programs = Vec::new();
+    for gear in &authored.expanded.gears {
+        let ConfigurationValue::Text(encoded) = &gear.configuration[0].value else {
+            panic!("program")
+        };
+        let program = PortableExpressionProgram::from_canonical_hex(encoded).unwrap();
+        let offers = make_offers(&program, gear.inputs[0].temporal);
+        assert!(!offers.is_empty());
+        assert!(offers.iter().all(|offer| gear.accepts_realization(offer)));
+        advertisement.capabilities.extend(offers);
+        programs.push(program);
+    }
     advertisement
         .capabilities
         .sort_by(|a, b| a.capability_id.cmp(&b.capability_id));
@@ -101,5 +121,5 @@ pub(crate) fn prepare_with_offer(
         &boundaries,
     )
     .unwrap();
-    (host, plan, program)
+    (host, plan, programs)
 }

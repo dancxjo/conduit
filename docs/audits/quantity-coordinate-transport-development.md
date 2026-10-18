@@ -6,6 +6,32 @@ The same primitive Value profile exports `1/3m` through an external Fore and
 consumes it in a fresh Play to produce `1/9m`. This is private development
 proof, not stable acceptance or completion of #5392.
 
+Default placement now searches the connected offered wire profiles before Plan
+sealing. It retains deterministic preference order and skips incompatible tuples,
+including when the consumer precedes its producer in gear order. Preparation is
+bounded by 256 gears, 4096 connections, 4096 candidate rows in total and 65536
+candidate attempts. Exhaustion has a named refusal; no runtime fallback is added.
+Advertisements without a relevant optional Quantity profile retain the ordinary
+greedy selector. Explicit placement choices still pass the final sealing fence.
+A genuine installed Source/Plan/Play check offers a preferred native-only restore
+Back alongside its exact alternative and verifies that the compatible exact Back
+executes the chain. This does not introduce a general cost or precision optimizer.
+
+The [selection development receipt](evidence/quantity-wire-selection-development-20261018.json)
+is pinned to `b19c29dcc15ee24fb7b5f7fb37b202bc0bcf8d4a`. Its 106 selected
+tests comprise 82 Planner library, 14 installed expression Back, seven Source
+batch and three Source/Plan evidence tests. Strict all-target Clippy for Planner
+and Std Host and workspace formatting pass. This overlaps earlier validation;
+it is not an additional 106 unique parent acceptance cases. Raw failed attempts,
+final logs and the actual installed test executable identity are retained.
+
+
+The selector was refreshed onto the merged #5967 development tree. The
+[refreshed development receipt](evidence/quantity-wire-selection-refreshed-development-20261018.json)
+retains 83 passing Planner library tests, three installed exact Quantity tests,
+strict all-target Planner/Std Host Clippy, and formatting. These repeat existing
+proof on the refreshed source; they add no parent acceptance claim.
+
 The selected `std/pure-expression-quantity-exact-hosted@1` offer seals finite
 prepared node/depth, retained payload, numerical work and port capacity bounds.
 Installation recomputes the offer and rejects missing, altered or downgraded
@@ -23,11 +49,12 @@ existing Host Call boundary and kernel. Two fresh Plays report zero kernel
 allocation events and stable prepared capacities; those observations do not
 claim whole-process or preparation allocation freedom.
 
-The final local validation set passes 292 tests across Core, lowering, Planner,
+The installed wire activation checkpoint passed 292 tests across Core, lowering, Planner,
 installed Back, Source batch, product CLI and refinement targets. Strict Clippy
 passes across seven affected packages, with subsequent focused checks for the
 filter-kind and bounded-input corrections. Core no-default-features and workspace
-formatting pass. Full workspace/platform integration and publication remain due. The
+formatting pass. Full workspace/platform integration and publication remain due.
+The
 [source-pinned development receipt](evidence/quantity-source-wire-installed-development-20261018.json)
 retains the final three CLI gates, all selected validation logs, executable
 identity and the failed linker attempt preceding local cache maintenance.
@@ -36,8 +63,9 @@ those three repeated gates are excluded from the 292 unique test count.
 
 Limits remain explicit: this offer covers reviewed primitive Value arithmetic
 and comparison. Identity-only, composite/nominal values, trig helpers and Flow
-have not gained this profile. Alternative candidate selection is not yet
-codec-aware. A true runtime-consuming numerical projection with general #4952
+have not gained this profile. Default connected selection is codec-aware within
+its declared preparation bounds; broader numerical-requirement and fidelity
+composition remain open. A true runtime-consuming numerical projection with general #4952
 loss evidence, wider symbolic Quantity integration and the remaining original
 parent acceptance are still open. The following sections retain earlier
 component checkpoints and their historical refusals.

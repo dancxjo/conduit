@@ -123,3 +123,74 @@ fn missing_foreign_or_downgraded_wire_facts_refuse_at_installation() {
     downgraded.artifact_id = conduit_std_offers::PURE_EXPRESSION_STD_ARTIFACT.into();
     assert!(PureExpressionHost::from_placement(&downgraded).is_err());
 }
+
+#[test]
+fn compatible_alternative_is_selected_and_executes_the_exact_source_chain() {
+    const CHAIN: &str = "plot divide (\n >> value: Distance\n result: Distance >>\n) = (. / 3)\nplot restore (\n >> value: Distance\n result: Distance >>\n) = (. * 3)\nplot main (\n >> value: Distance\n result: Distance >>\n) {\n third: divide\n restored: restore\n value >> third.value\n third.result >> restored.value\n restored.result >> result\n}\n";
+    let mut index = 0;
+    let (mut host, plan, _) = crate::host_execution::scalar_tape_fixture::prepare_with_offers(
+        CHAIN,
+        "main",
+        |program, temporal| {
+            index += 1;
+            let mut exact =
+                conduit_std_offers::pure_exact_quantity_std_offer(program, temporal).unwrap();
+            exact.capability_id = format!("z-exact/{index}").into();
+            // Only the downstream expression has a preferred legacy alternative.
+            // Both are genuine initialized Back implementations, not dummy offers.
+            if matches!(
+                program.root.operation,
+                conduit_plot::PortableExpressionOperation::Binary {
+                    operator: conduit_plot::BinaryOperator::Multiply,
+                    ..
+                }
+            ) {
+                let mut legacy =
+                    conduit_std_offers::pure_expression_std_offer(program, temporal).unwrap();
+                legacy.capability_id = "a-legacy/restore".into();
+                vec![legacy, exact]
+            } else {
+                vec![exact]
+            }
+        },
+    );
+    assert_eq!(index, 2);
+    assert!(conduit_core::verify_plan(&plan));
+    assert!(plan
+        .fragments
+        .iter()
+        .flat_map(|f| &f.placements)
+        .all(|p| p.execution_profile_id.as_str()
+            == conduit_std_offers::PURE_EXACT_QUANTITY_STD_PROFILE));
+    let input = Quantity::parse_plot_literal("1m").unwrap();
+    let mut output = Outputs(Vec::with_capacity(1));
+    let report = host
+        .run_external_plot_to(
+            plan.fragments[0].clone(),
+            &[ExternalForeInput {
+                front_port_id: "value".into(),
+                track: ConnectionTrack::Payload,
+                bytes: input.encode().to_vec(),
+            }],
+            &mut output,
+            &mut Vec::new(),
+            &mut NoTimer,
+        )
+        .unwrap();
+    assert_eq!(output.0.len(), 1);
+    let mut work = ExactNumericWork::new(conduit_core::MATHEMATICAL_VALUE_VALIDATION_WORK);
+    let result = QuantityValueView::decode(&output.0[0], &mut work).unwrap();
+    assert_eq!(result.unit(), input.unit());
+    assert_eq!(result.role(), input.role());
+    assert_eq!(
+        result.rational(&mut work).unwrap().coordinate(),
+        ExactRational::ONE
+    );
+    let kernel = report.kernel.as_ref().unwrap();
+    assert_eq!(kernel.post_play_start_allocations, 0);
+    assert_eq!(
+        kernel.value_allocation_capacity_before,
+        kernel.value_allocation_capacity_after
+    );
+    println!("QUANTITY_COMPATIBLE_SELECTION plan={plan:?} report={report:?}");
+}
