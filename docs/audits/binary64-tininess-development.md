@@ -34,3 +34,10 @@ published certificates already used the corrected status.
 This repairs a status fact in the finite projection profile. It does not supply
 general IEEE nonfinite operations, exception traps or a runtime consuming
 projection Back. The original #5392 acceptance gates remain open.
+
+The [validation record](evidence/binary64-tininess-development-20261017.json)
+retains the failing regression, 24 passing focused Core tests, three passing
+std numerical integration tests, strict Core/std lint and the independent
+oracle's source/build identities. Its raw archive includes the oracle program,
+all 32 oracle results and validation logs. It states the before/after source
+scope without treating this development check as publication acceptance.
