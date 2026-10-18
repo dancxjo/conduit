@@ -34,3 +34,31 @@ type NumericalResult = {
     maximum-error: MathematicalValue
     representation: NumericalRepresentation
 }
+
+# Explicit IEEE operations return exceptions as values, independently of
+# mathematical projection error or observation uncertainty.
+type IeeeBinary64Operation =
+    add
+    | subtract
+    | multiply
+    | divide
+type IeeeBinary64QuietPredicate =
+    equal
+    | less
+    | less_equal
+    | unordered
+type IeeeBinary64Flags = {
+    invalid: Boolean
+    divide-by-zero: Boolean
+    overflow: Boolean
+    underflow: Boolean
+    inexact: Boolean
+}
+type IeeeBinary64Result = {
+    value: F64
+    flags: IeeeBinary64Flags
+}
+type IeeeBinary64ComparisonResult = {
+    value: Boolean
+    flags: IeeeBinary64Flags
+}

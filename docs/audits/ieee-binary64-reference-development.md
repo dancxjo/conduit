@@ -47,3 +47,18 @@ The [validation record](evidence/ieee-binary64-reference-development-20261017.js
 retains source/compiler/oracle identities, the fixture hash, 17 passing focused
 Core tests, strict lint and a no-default-features check. Its raw archive retains
 the independent oracle program, captured expected vectors and validation logs.
+
+## Source contract preparation
+
+Private development now checks `math/ieee-binary64` with required typed
+`operation` and `rounding` startup values, and
+`math/ieee-binary64-compare-quiet` with a required typed predicate. Both consume
+two raw F64 Value Fores and return a typed value plus separate Boolean flags.
+The declarations reuse existing native variant constructors, for example
+`operation=add(empty),rounding=nearest_ties_even(empty)`.
+
+Tests check all sixteen arithmetic configuration forms and four predicates,
+explicit-rounding refusal, foreign/extra configuration rejection and the pure
+semantic contract. Existing numerical catalog tests and strict catalog lint
+pass. These are checked contracts and preparation codecs; initialized Backs,
+native availability and actual product execution remain unfinished.
