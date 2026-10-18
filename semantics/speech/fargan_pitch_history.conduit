@@ -1,0 +1,88 @@
+# Source-owned pitch wrap/clamp/gain/deemphasis policy from pinned dnn/fargan.c.
+# FarganPeriod is imported from the conditioning source, preserving one pitch profile.
+# F32 bit constants:1e-5=0x3727c5ac,-1=0xbf800000,+1=0x3f800000,.85=0x3f59999a.
+# Contracts only: generic primitive runtime availability is separately proved.
+plot speech/fargan-pitch-indices (
+    >> value: FarganPeriod
+    result: NumericU16Indices44 >>
+) = ([     254 < (. - 32 + 32) ? 0 : (254 >= 256 + (. - 32 + 32) ? 254 - 2 * (. - 32 + 32) : 254 - (. - 32 + 32)),     255 < (. - 32 + 32) ? 0 : (255 >= 256 + (. - 32 + 32) ? 255 - 2 * (. - 32 + 32) : 255 - (. - 32 + 32)),     256 < (. - 32 + 32) ? 0 : (256 >= 256 + (. - 32 + 32) ? 256 - 2 * (. - 32 + 32) : 256 - (. - 32 + 32)),     257 < (. - 32 + 32) ? 0 : (257 >= 256 + (. - 32 + 32) ? 257 - 2 * (. - 32 + 32) : 257 - (. - 32 + 32)),     258 < (. - 32 + 32) ? 0 : (258 >= 256 + (. - 32 + 32) ? 258 - 2 * (. - 32 + 32) : 258 - (. - 32 + 32)),     259 < (. - 32 + 32) ? 0 : (259 >= 256 + (. - 32 + 32) ? 259 - 2 * (. - 32 + 32) : 259 - (. - 32 + 32)),     260 < (. - 32 + 32) ? 0 : (260 >= 256 + (. - 32 + 32) ? 260 - 2 * (. - 32 + 32) : 260 - (. - 32 + 32)),     261 < (. - 32 + 32) ? 0 : (261 >= 256 + (. - 32 + 32) ? 261 - 2 * (. - 32 + 32) : 261 - (. - 32 + 32)),     262 < (. - 32 + 32) ? 0 : (262 >= 256 + (. - 32 + 32) ? 262 - 2 * (. - 32 + 32) : 262 - (. - 32 + 32)),     263 < (. - 32 + 32) ? 0 : (263 >= 256 + (. - 32 + 32) ? 263 - 2 * (. - 32 + 32) : 263 - (. - 32 + 32)),     264 < (. - 32 + 32) ? 0 : (264 >= 256 + (. - 32 + 32) ? 264 - 2 * (. - 32 + 32) : 264 - (. - 32 + 32)),     265 < (. - 32 + 32) ? 0 : (265 >= 256 + (. - 32 + 32) ? 265 - 2 * (. - 32 + 32) : 265 - (. - 32 + 32)),     266 < (. - 32 + 32) ? 0 : (266 >= 256 + (. - 32 + 32) ? 266 - 2 * (. - 32 + 32) : 266 - (. - 32 + 32)),     267 < (. - 32 + 32) ? 0 : (267 >= 256 + (. - 32 + 32) ? 267 - 2 * (. - 32 + 32) : 267 - (. - 32 + 32)),     268 < (. - 32 + 32) ? 0 : (268 >= 256 + (. - 32 + 32) ? 268 - 2 * (. - 32 + 32) : 268 - (. - 32 + 32)),     269 < (. - 32 + 32) ? 0 : (269 >= 256 + (. - 32 + 32) ? 269 - 2 * (. - 32 + 32) : 269 - (. - 32 + 32)),     270 < (. - 32 + 32) ? 0 : (270 >= 256 + (. - 32 + 32) ? 270 - 2 * (. - 32 + 32) : 270 - (. - 32 + 32)),     271 < (. - 32 + 32) ? 0 : (271 >= 256 + (. - 32 + 32) ? 271 - 2 * (. - 32 + 32) : 271 - (. - 32 + 32)),     272 < (. - 32 + 32) ? 0 : (272 >= 256 + (. - 32 + 32) ? 272 - 2 * (. - 32 + 32) : 272 - (. - 32 + 32)),     273 < (. - 32 + 32) ? 0 : (273 >= 256 + (. - 32 + 32) ? 273 - 2 * (. - 32 + 32) : 273 - (. - 32 + 32)),     274 < (. - 32 + 32) ? 0 : (274 >= 256 + (. - 32 + 32) ? 274 - 2 * (. - 32 + 32) : 274 - (. - 32 + 32)),     275 < (. - 32 + 32) ? 0 : (275 >= 256 + (. - 32 + 32) ? 275 - 2 * (. - 32 + 32) : 275 - (. - 32 + 32)),     276 < (. - 32 + 32) ? 0 : (276 >= 256 + (. - 32 + 32) ? 276 - 2 * (. - 32 + 32) : 276 - (. - 32 + 32)),     277 < (. - 32 + 32) ? 0 : (277 >= 256 + (. - 32 + 32) ? 277 - 2 * (. - 32 + 32) : 277 - (. - 32 + 32)),     278 < (. - 32 + 32) ? 0 : (278 >= 256 + (. - 32 + 32) ? 278 - 2 * (. - 32 + 32) : 278 - (. - 32 + 32)),     279 < (. - 32 + 32) ? 0 : (279 >= 256 + (. - 32 + 32) ? 279 - 2 * (. - 32 + 32) : 279 - (. - 32 + 32)),     280 < (. - 32 + 32) ? 0 : (280 >= 256 + (. - 32 + 32) ? 280 - 2 * (. - 32 + 32) : 280 - (. - 32 + 32)),     281 < (. - 32 + 32) ? 0 : (281 >= 256 + (. - 32 + 32) ? 281 - 2 * (. - 32 + 32) : 281 - (. - 32 + 32)),     282 < (. - 32 + 32) ? 0 : (282 >= 256 + (. - 32 + 32) ? 282 - 2 * (. - 32 + 32) : 282 - (. - 32 + 32)),     283 < (. - 32 + 32) ? 0 : (283 >= 256 + (. - 32 + 32) ? 283 - 2 * (. - 32 + 32) : 283 - (. - 32 + 32)),     284 < (. - 32 + 32) ? 0 : (284 >= 256 + (. - 32 + 32) ? 284 - 2 * (. - 32 + 32) : 284 - (. - 32 + 32)),     285 < (. - 32 + 32) ? 0 : (285 >= 256 + (. - 32 + 32) ? 285 - 2 * (. - 32 + 32) : 285 - (. - 32 + 32)),     286 < (. - 32 + 32) ? 0 : (286 >= 256 + (. - 32 + 32) ? 286 - 2 * (. - 32 + 32) : 286 - (. - 32 + 32)),     287 < (. - 32 + 32) ? 0 : (287 >= 256 + (. - 32 + 32) ? 287 - 2 * (. - 32 + 32) : 287 - (. - 32 + 32)),     288 < (. - 32 + 32) ? 0 : (288 >= 256 + (. - 32 + 32) ? 288 - 2 * (. - 32 + 32) : 288 - (. - 32 + 32)),     289 < (. - 32 + 32) ? 0 : (289 >= 256 + (. - 32 + 32) ? 289 - 2 * (. - 32 + 32) : 289 - (. - 32 + 32)),     290 < (. - 32 + 32) ? 0 : (290 >= 256 + (. - 32 + 32) ? 290 - 2 * (. - 32 + 32) : 290 - (. - 32 + 32)),     291 < (. - 32 + 32) ? 0 : (291 >= 256 + (. - 32 + 32) ? 291 - 2 * (. - 32 + 32) : 291 - (. - 32 + 32)),     292 < (. - 32 + 32) ? 0 : (292 >= 256 + (. - 32 + 32) ? 292 - 2 * (. - 32 + 32) : 292 - (. - 32 + 32)),     293 < (. - 32 + 32) ? 0 : (293 >= 256 + (. - 32 + 32) ? 293 - 2 * (. - 32 + 32) : 293 - (. - 32 + 32)),     294 < (. - 32 + 32) ? 0 : (294 >= 256 + (. - 32 + 32) ? 294 - 2 * (. - 32 + 32) : 294 - (. - 32 + 32)),     295 < (. - 32 + 32) ? 0 : (295 >= 256 + (. - 32 + 32) ? 295 - 2 * (. - 32 + 32) : 295 - (. - 32 + 32)),     296 < (. - 32 + 32) ? 0 : (296 >= 256 + (. - 32 + 32) ? 296 - 2 * (. - 32 + 32) : 296 - (. - 32 + 32)),     297 < (. - 32 + 32) ? 0 : (297 >= 256 + (. - 32 + 32) ? 297 - 2 * (. - 32 + 32) : 297 - (. - 32 + 32)) ])
+
+plot speech/fargan-pitch-conditioning (
+    >> condition: NumericF32Vector80
+    >> period: FarganPeriod
+    >> pitch_history: NumericF32Vector256
+    >> gain_weights: NumericF32MatrixRef80x1
+    >> gain_bias: NumericF32BiasRef1
+    prediction: NumericF32Vector44 >>
+    previous: NumericF32Vector40 >>
+    gain: NumericF32Vector1 >>
+) {
+    gain_affine: numeric/dense80x1
+    gain_exp: numeric/exp1
+    normalize: numeric/reciprocal-offset1
+    indices: speech/fargan-pitch-indices
+    prediction_gather: numeric/gather256x44
+    previous_slice: numeric/slice256x40
+    prediction_scale: numeric/scale44
+    previous_scale: numeric/scale40
+    prediction_clamp: numeric/clamp44
+    previous_clamp: numeric/clamp40
+    condition >> gain_affine.value
+    gain_weights >> gain_affine.weights
+    gain_bias >> gain_affine.bias
+    gain_affine.result >> gain_exp.value
+    gain_exp.result >> gain
+    gain_exp.result >> normalize.value
+    condition >> ([0x3727c5ac]) >> normalize.offset
+    period >> indices.value
+    pitch_history >> prediction_gather.value
+    indices.result >> prediction_gather.indices
+    pitch_history >> previous_slice.value
+    period >> (216) >> previous_slice.start
+    prediction_gather.result >> prediction_scale.value
+    normalize.result >> prediction_scale.scale
+    previous_slice.result >> previous_scale.value
+    normalize.result >> previous_scale.scale
+    prediction_scale.result >> prediction_clamp.value
+    previous_scale.result >> previous_clamp.value
+    condition >> ([0xbf800000]) >> prediction_clamp.minimum
+    condition >> ([0x3f800000]) >> prediction_clamp.maximum
+    condition >> ([0xbf800000]) >> previous_clamp.minimum
+    condition >> ([0x3f800000]) >> previous_clamp.maximum
+    prediction_clamp.result >> prediction
+    previous_clamp.result >> previous
+}
+plot speech/fargan-history-deemphasis (
+    >> raw_pcm: NumericF32Vector40
+    >> pitch_history: NumericF32Vector256
+    >> deemphasis_state: NumericF32Vector1
+    result: NumericOnePole40Result >>
+    next_pitch_history: NumericF32Vector256 >>
+) {
+    history_tail: numeric/slice256x216
+    history_append: numeric/concatenate216x40
+    deemphasis: numeric/one-pole40
+    pitch_history >> history_tail.value
+    raw_pcm >> (40) >> history_tail.start
+    history_tail.result >> history_append.left
+    raw_pcm >> history_append.right
+    history_append.result >> next_pitch_history
+    raw_pcm >> deemphasis.value
+    deemphasis_state >> deemphasis.prior
+    raw_pcm >> ([0x3f59999a]) >> deemphasis.coefficient
+    deemphasis.result >> result
+}
+
+# 100Hz condition frame -> four sequential 40-sample subframes at16kHz.
+# The bounded outer progression owner supplies index0..3 and retains basis.
+type FarganSubframeIndex = U16 in 0..=3
+plot speech/fargan-condition-subframe (
+    >> condition: NumericF32Vector320
+    >> index: FarganSubframeIndex
+    result: NumericF32Vector80 >>
+) {
+    slice: numeric/slice320x80
+    condition >> slice.value
+    index >> ((. + 0) * 80) >> slice.start
+    slice.result >> result
+}

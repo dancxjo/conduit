@@ -1,0 +1,199 @@
+# A complete 160-sample FARGAN frame, with explicit caller-owned recurrence.
+# Caller accepts all six outputs before committing history, period, or signal state.
+plot speech/fargan-frame (
+    >> features: NumericF32Vector20
+    >> period: FarganPeriod
+    >> previous_period: FarganPeriod
+    >> history: NumericHistory2x64
+    >> state: FarganSubframeState
+    >> cond_embedding_weights: NumericEmbedding224x12
+    >> cond_dense1_weights: NumericF32MatrixRef32x64
+    >> cond_dense1_bias: NumericF32BiasRef64
+    >> cond_conv_weights: NumericF32MatrixRef192x128
+    >> cond_conv_bias: NumericF32BiasRef128
+    >> cond_dense2_weights: NumericF32MatrixRef128x320
+    >> cond_dense2_bias: NumericF32BiasRef320
+    >> signal_gain_weights: NumericF32MatrixRef80x1
+    >> signal_gain_bias: NumericF32BiasRef1
+    >> signal_conv_weights: NumericF32MatrixRef328x192
+    >> signal_conv_bias: NumericF32BiasRef192
+    >> signal_conv_glu_weights: NumericF32MatrixRef192x192
+    >> signal_conv_glu_bias: NumericF32BiasRef192
+    >> signal_pitch_gate_weights: NumericF32MatrixRef192x4
+    >> signal_pitch_gate_bias: NumericF32BiasRef4
+    >> signal_gru1_input_weights: NumericF32MatrixRef272x480
+    >> signal_gru1_recurrent_weights: NumericF32MatrixRef160x480
+    >> signal_gru2_input_weights: NumericF32MatrixRef240x384
+    >> signal_gru2_recurrent_weights: NumericF32MatrixRef128x384
+    >> signal_gru3_input_weights: NumericF32MatrixRef208x384
+    >> signal_gru3_recurrent_weights: NumericF32MatrixRef128x384
+    >> signal_gru1_glu_weights: NumericF32MatrixRef160x160
+    >> signal_gru1_glu_bias: NumericF32BiasRef160
+    >> signal_gru2_glu_weights: NumericF32MatrixRef128x128
+    >> signal_gru2_glu_bias: NumericF32BiasRef128
+    >> signal_gru3_glu_weights: NumericF32MatrixRef128x128
+    >> signal_gru3_glu_bias: NumericF32BiasRef128
+    >> signal_skip_weights: NumericF32MatrixRef688x128
+    >> signal_skip_bias: NumericF32BiasRef128
+    >> signal_skip_glu_weights: NumericF32MatrixRef128x128
+    >> signal_skip_glu_bias: NumericF32BiasRef128
+    >> signal_output_weights: NumericF32MatrixRef128x40
+    >> signal_output_bias: NumericF32BiasRef40
+    pcm0: NumericF32Vector40 >>
+    pcm1: NumericF32Vector40 >>
+    pcm2: NumericF32Vector40 >>
+    result: FarganSubframeResult >>
+    next_history: NumericHistory2x64 >>
+    next_period: FarganPeriod >>
+) {
+    conditioner: speech/fargan-conditioning
+    split0: numeric/slice320x80
+    subframe0: speech/fargan-subframe
+    split1: numeric/slice320x80
+    subframe1: speech/fargan-subframe
+    split2: numeric/slice320x80
+    subframe2: speech/fargan-subframe
+    split3: numeric/slice320x80
+    subframe3: speech/fargan-subframe
+    features >> conditioner.features
+    period >> conditioner.period
+    previous_period >> conditioner.previous_period
+    history >> conditioner.history
+    cond_embedding_weights >> conditioner.embedding_weights
+    cond_dense1_weights >> conditioner.dense1_weights
+    cond_dense1_bias >> conditioner.dense1_bias
+    cond_conv_weights >> conditioner.conv_weights
+    cond_conv_bias >> conditioner.conv_bias
+    cond_dense2_weights >> conditioner.dense2_weights
+    cond_dense2_bias >> conditioner.dense2_bias
+    conditioner.condition >> split0.value
+    period >> (0) >> split0.start
+    split0.result >> subframe0.condition
+    conditioner.conditioned_period >> subframe0.period
+    state >> subframe0.state
+    signal_gain_weights >> subframe0.gain_weights
+    signal_gain_bias >> subframe0.gain_bias
+    signal_conv_weights >> subframe0.conv_weights
+    signal_conv_bias >> subframe0.conv_bias
+    signal_conv_glu_weights >> subframe0.conv_glu_weights
+    signal_conv_glu_bias >> subframe0.conv_glu_bias
+    signal_pitch_gate_weights >> subframe0.pitch_gate_weights
+    signal_pitch_gate_bias >> subframe0.pitch_gate_bias
+    signal_gru1_input_weights >> subframe0.gru1_input_weights
+    signal_gru1_recurrent_weights >> subframe0.gru1_recurrent_weights
+    signal_gru2_input_weights >> subframe0.gru2_input_weights
+    signal_gru2_recurrent_weights >> subframe0.gru2_recurrent_weights
+    signal_gru3_input_weights >> subframe0.gru3_input_weights
+    signal_gru3_recurrent_weights >> subframe0.gru3_recurrent_weights
+    signal_gru1_glu_weights >> subframe0.gru1_glu_weights
+    signal_gru1_glu_bias >> subframe0.gru1_glu_bias
+    signal_gru2_glu_weights >> subframe0.gru2_glu_weights
+    signal_gru2_glu_bias >> subframe0.gru2_glu_bias
+    signal_gru3_glu_weights >> subframe0.gru3_glu_weights
+    signal_gru3_glu_bias >> subframe0.gru3_glu_bias
+    signal_skip_weights >> subframe0.skip_weights
+    signal_skip_bias >> subframe0.skip_bias
+    signal_skip_glu_weights >> subframe0.skip_glu_weights
+    signal_skip_glu_bias >> subframe0.skip_glu_bias
+    signal_output_weights >> subframe0.output_weights
+    signal_output_bias >> subframe0.output_bias
+    subframe0.result >> (.pcm_f32) >> pcm0
+    conditioner.condition >> split1.value
+    period >> (80) >> split1.start
+    split1.result >> subframe1.condition
+    conditioner.conditioned_period >> subframe1.period
+    subframe0.result >> (.next_state) >> subframe1.state
+    signal_gain_weights >> subframe1.gain_weights
+    signal_gain_bias >> subframe1.gain_bias
+    signal_conv_weights >> subframe1.conv_weights
+    signal_conv_bias >> subframe1.conv_bias
+    signal_conv_glu_weights >> subframe1.conv_glu_weights
+    signal_conv_glu_bias >> subframe1.conv_glu_bias
+    signal_pitch_gate_weights >> subframe1.pitch_gate_weights
+    signal_pitch_gate_bias >> subframe1.pitch_gate_bias
+    signal_gru1_input_weights >> subframe1.gru1_input_weights
+    signal_gru1_recurrent_weights >> subframe1.gru1_recurrent_weights
+    signal_gru2_input_weights >> subframe1.gru2_input_weights
+    signal_gru2_recurrent_weights >> subframe1.gru2_recurrent_weights
+    signal_gru3_input_weights >> subframe1.gru3_input_weights
+    signal_gru3_recurrent_weights >> subframe1.gru3_recurrent_weights
+    signal_gru1_glu_weights >> subframe1.gru1_glu_weights
+    signal_gru1_glu_bias >> subframe1.gru1_glu_bias
+    signal_gru2_glu_weights >> subframe1.gru2_glu_weights
+    signal_gru2_glu_bias >> subframe1.gru2_glu_bias
+    signal_gru3_glu_weights >> subframe1.gru3_glu_weights
+    signal_gru3_glu_bias >> subframe1.gru3_glu_bias
+    signal_skip_weights >> subframe1.skip_weights
+    signal_skip_bias >> subframe1.skip_bias
+    signal_skip_glu_weights >> subframe1.skip_glu_weights
+    signal_skip_glu_bias >> subframe1.skip_glu_bias
+    signal_output_weights >> subframe1.output_weights
+    signal_output_bias >> subframe1.output_bias
+    subframe1.result >> (.pcm_f32) >> pcm1
+    conditioner.condition >> split2.value
+    period >> (160) >> split2.start
+    split2.result >> subframe2.condition
+    conditioner.conditioned_period >> subframe2.period
+    subframe1.result >> (.next_state) >> subframe2.state
+    signal_gain_weights >> subframe2.gain_weights
+    signal_gain_bias >> subframe2.gain_bias
+    signal_conv_weights >> subframe2.conv_weights
+    signal_conv_bias >> subframe2.conv_bias
+    signal_conv_glu_weights >> subframe2.conv_glu_weights
+    signal_conv_glu_bias >> subframe2.conv_glu_bias
+    signal_pitch_gate_weights >> subframe2.pitch_gate_weights
+    signal_pitch_gate_bias >> subframe2.pitch_gate_bias
+    signal_gru1_input_weights >> subframe2.gru1_input_weights
+    signal_gru1_recurrent_weights >> subframe2.gru1_recurrent_weights
+    signal_gru2_input_weights >> subframe2.gru2_input_weights
+    signal_gru2_recurrent_weights >> subframe2.gru2_recurrent_weights
+    signal_gru3_input_weights >> subframe2.gru3_input_weights
+    signal_gru3_recurrent_weights >> subframe2.gru3_recurrent_weights
+    signal_gru1_glu_weights >> subframe2.gru1_glu_weights
+    signal_gru1_glu_bias >> subframe2.gru1_glu_bias
+    signal_gru2_glu_weights >> subframe2.gru2_glu_weights
+    signal_gru2_glu_bias >> subframe2.gru2_glu_bias
+    signal_gru3_glu_weights >> subframe2.gru3_glu_weights
+    signal_gru3_glu_bias >> subframe2.gru3_glu_bias
+    signal_skip_weights >> subframe2.skip_weights
+    signal_skip_bias >> subframe2.skip_bias
+    signal_skip_glu_weights >> subframe2.skip_glu_weights
+    signal_skip_glu_bias >> subframe2.skip_glu_bias
+    signal_output_weights >> subframe2.output_weights
+    signal_output_bias >> subframe2.output_bias
+    subframe2.result >> (.pcm_f32) >> pcm2
+    conditioner.condition >> split3.value
+    period >> (240) >> split3.start
+    split3.result >> subframe3.condition
+    conditioner.conditioned_period >> subframe3.period
+    subframe2.result >> (.next_state) >> subframe3.state
+    signal_gain_weights >> subframe3.gain_weights
+    signal_gain_bias >> subframe3.gain_bias
+    signal_conv_weights >> subframe3.conv_weights
+    signal_conv_bias >> subframe3.conv_bias
+    signal_conv_glu_weights >> subframe3.conv_glu_weights
+    signal_conv_glu_bias >> subframe3.conv_glu_bias
+    signal_pitch_gate_weights >> subframe3.pitch_gate_weights
+    signal_pitch_gate_bias >> subframe3.pitch_gate_bias
+    signal_gru1_input_weights >> subframe3.gru1_input_weights
+    signal_gru1_recurrent_weights >> subframe3.gru1_recurrent_weights
+    signal_gru2_input_weights >> subframe3.gru2_input_weights
+    signal_gru2_recurrent_weights >> subframe3.gru2_recurrent_weights
+    signal_gru3_input_weights >> subframe3.gru3_input_weights
+    signal_gru3_recurrent_weights >> subframe3.gru3_recurrent_weights
+    signal_gru1_glu_weights >> subframe3.gru1_glu_weights
+    signal_gru1_glu_bias >> subframe3.gru1_glu_bias
+    signal_gru2_glu_weights >> subframe3.gru2_glu_weights
+    signal_gru2_glu_bias >> subframe3.gru2_glu_bias
+    signal_gru3_glu_weights >> subframe3.gru3_glu_weights
+    signal_gru3_glu_bias >> subframe3.gru3_glu_bias
+    signal_skip_weights >> subframe3.skip_weights
+    signal_skip_bias >> subframe3.skip_bias
+    signal_skip_glu_weights >> subframe3.skip_glu_weights
+    signal_skip_glu_bias >> subframe3.skip_glu_bias
+    signal_output_weights >> subframe3.output_weights
+    signal_output_bias >> subframe3.output_bias
+    subframe3.result >> result
+    conditioner.next_history >> next_history
+    conditioner.next_period >> next_period
+}
