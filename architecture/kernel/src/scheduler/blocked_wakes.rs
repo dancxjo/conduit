@@ -157,7 +157,7 @@ fn run() {
         (0..N)
             .filter(|node| scheduler.ready.contains(*node))
             .count(),
-        0
+        N
     );
     scheduler.scan_counts.set(Default::default());
     let idle = Instant::now();
@@ -166,13 +166,8 @@ fn run() {
     }
     let idle_ns = idle.elapsed().as_nanos();
     let counts = scheduler.scan_counts.get();
-    let expected = if cfg!(feature = "linear-ready-reference-test") {
-        8 * N as u64
-    } else {
-        0
-    };
-    assert_eq!(counts.next_ready_nodes, expected);
-    assert_eq!(counts.pending_slots, expected);
+    assert_eq!(counts.next_ready_nodes, 8 * N as u64);
+    assert_eq!(counts.pending_slots, 8 * N as u64);
     assert!(scheduler
         .drivers
         .iter()

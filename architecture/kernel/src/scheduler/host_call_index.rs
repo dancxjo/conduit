@@ -32,20 +32,6 @@ where
     S: ValueStorage,
     E: SignSink,
 {
-    /// Keep queued input/space/terminal notifications in their canonical Cord
-    /// state while a Host call blocks execution. Completion publishes a fresh
-    /// wake; no separate queue or duplicate ready membership is needed.
-    pub(super) fn set_ready(&mut self, node: usize, ready: bool) {
-        let eligible = ready
-            && !self.completed[node]
-            && (self.pending_host_count == 0
-                || !self
-                    .indexed_host_call(node)
-                    .is_some_and(|pending| pending.completion.is_none())
-                || self.drivers[node].accepts_input_while_host_call_pending());
-        self.ready.set(node, eligible);
-    }
-
     /// Every earlier slot is occupied. Completion consumption lowers this
     /// search bound, so the returned slot is still the first free table slot.
     pub(super) fn find_free_host_slot(&self) -> Result<usize, SchedulerError> {
