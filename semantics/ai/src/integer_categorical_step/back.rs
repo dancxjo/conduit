@@ -107,16 +107,19 @@ impl<const PORTS: usize> StepBack<PORTS> for CategoricalStepBack {
         let Some(bytes) = inputs.input(PortId(0)) else {
             return fail(3103);
         };
+        // Keep the unpublished slot local: every refusal drops it immediately.
         #[cfg(all(target_has_atomic = "ptr", target_has_atomic = "8"))]
-        if let Some(writer) = &self.writer {
+        let mut reservation = if let Some(writer) = &self.writer {
             let Some(reservation) = writer.reserve() else {
                 return StepOutcome::Fail(Failure {
                     code: FailureCode::StorageExhausted,
                     detail: 3106,
                 });
             };
-            self.reservation = Some(reservation);
-        }
+            Some(reservation)
+        } else {
+            None
+        };
         if self.input.decode(bytes, &mut self.indices).is_err()
             || self
                 .profile
@@ -135,13 +138,17 @@ impl<const PORTS: usize> StepBack<PORTS> for CategoricalStepBack {
             work_units: self.profile.model.work_units(),
         };
         #[cfg(all(target_has_atomic = "ptr", target_has_atomic = "8"))]
-        if let Some(reservation) = &mut self.reservation {
+        if let Some(reservation) = &mut reservation {
             reservation.stage(bytes, output, receipt.invocation);
         }
         if io.consume(PortId(0)).is_err()
             || io.send_prepared(PortId(0), output.len() as u32).is_err()
         {
             return fail(3105);
+        }
+        #[cfg(all(target_has_atomic = "ptr", target_has_atomic = "8"))]
+        {
+            self.reservation = reservation;
         }
         self.staged = Some(receipt);
         StepOutcome::Progress

@@ -3,7 +3,11 @@
 use super::*;
 use conduit_ai::integer_categorical_step::invocation::*;
 
-fn frame(bytes: &[u8]) -> (StepIo<PORTS>, StepInputBytes<'_, PORTS>) {
+pub(super) fn frame(bytes: &[u8]) -> (StepIo<PORTS>, StepInputBytes<'_, PORTS>) {
+    frame_with_fuel(bytes, 2)
+}
+
+fn frame_with_fuel(bytes: &[u8], fuel: u16) -> (StepIo<PORTS>, StepInputBytes<'_, PORTS>) {
     let reference = ValueRef {
         slot: 0,
         generation: 1,
@@ -15,7 +19,7 @@ fn frame(bytes: &[u8]) -> (StepIo<PORTS>, StepInputBytes<'_, PORTS>) {
             [false; PORTS],
             core::array::from_fn(|i| (i == 0).then_some(4096)),
             None,
-            2,
+            fuel,
         ),
         StepInputBytes::test_frame(core::array::from_fn(|i| (i == 0).then_some(bytes)), None),
     )
@@ -119,15 +123,30 @@ fn cancellation_and_bad_input_never_publish_and_capacity_is_admitted_before_use(
     assert!(factory.prepare(&wrong, &mut values).is_err());
     // Failed descriptor admission did not consume exclusive writer custody.
     let mut back = factory.prepare(gear(&plan), &mut values).unwrap();
+    assert_eq!(readers[0].available_slots(), 1);
     let malformed = indices(&profile, &[0, 3]);
     let (mut io, input) = frame(&malformed);
     assert!(matches!(back.step(&mut io, &input), StepOutcome::Fail(_)));
+    // Observe immediately: no subsequent step/cancel/drop can conceal retention.
+    assert_eq!(readers[0].available_slots(), 1);
     back.step_committed();
     assert!(readers[0].try_take().is_none());
     let bytes = indices(&profile, &[0, 2]);
+    // Consume stages with one fuel unit; send cannot stage. The slot must free
+    // even though this diagnostic fixture does not claim a kernel commit.
+    let (mut refused, input) = frame_with_fuel(&bytes, 1);
+    assert!(matches!(
+        back.step(&mut refused, &input),
+        StepOutcome::Fail(_)
+    ));
+    assert_eq!(readers[0].available_slots(), 1);
+    assert!(back.prepared_output(KPort(0)).is_none());
+    assert!(readers[0].try_take().is_none());
     let (mut io, input) = frame(&bytes);
     assert_eq!(back.step(&mut io, &input), StepOutcome::Progress);
+    assert_eq!(readers[0].available_slots(), 0);
     back.cancel();
+    assert_eq!(readers[0].available_slots(), 1);
     back.step_committed();
     assert!(readers[0].try_take().is_none());
 }

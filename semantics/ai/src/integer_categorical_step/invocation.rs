@@ -71,6 +71,16 @@ impl CategoricalInvocationOutlet {
     pub fn capacity(&self) -> usize {
         self.0.slots.len()
     }
+    /// Observed free-slot count from one bounded atomic scan. Concurrent claims
+    /// and releases may change it immediately; this never grants or reserves
+    /// capacity. Only the writer's reservation CAS can acquire a slot.
+    pub fn available_slots(&self) -> usize {
+        self.0
+            .slots
+            .iter()
+            .filter(|slot| slot.state.load(Ordering::Acquire) == FREE)
+            .count()
+    }
     /// Payload bytes, excluding fixed atomic states, immutable binding and allocator overhead.
     pub fn retained_payload_bytes(&self) -> usize {
         self.0.bytes_per_slot * self.capacity()
