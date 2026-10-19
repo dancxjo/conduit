@@ -1,5 +1,7 @@
 //! Correlate bounded host observations with the existing native journey receipts.
 //! These are host-observed upper bounds, not guest clocks or display scanout time.
+#[path = "journey_latency/typing.rs"]
+mod typing;
 use super::{observation_clock, ConduitosError};
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
@@ -49,6 +51,12 @@ pub(super) fn retain(
     let trace = read(&parent.join("journey-qmp.log"), 1024 * 1024)?;
     let commands = pointer_commands(&trace, start)?;
     let pointer = pointer_metrics(&records, &commands, &proof["pointer_actions"])?;
+    let typing = typing::metrics(
+        &records,
+        &trace,
+        start,
+        &proof["protected_retained_text_domain"],
+    )?;
     let stages: Vec<_> = records.iter().filter_map(|record| record.line.strip_prefix("CONDUIT_BOOT_STAGE ").map(|stage|
         json!({"stage":stage.trim_end_matches(['\r', '\n']),"observed_ns":record.observed_ns,"serial_byte_start":record.offset}))).collect();
     let ready: Vec<_> = stages
@@ -78,7 +86,9 @@ pub(super) fn retain(
         "host_observer_start_ns":start,"boot_stage_observations":stages,
         "host_observer_to_front_door_ready_ns":number(ready[0],"observed_ns")?-start,
         "first_framebuffer_capture_completed_ns":first_capture_end,"first_framebuffer":first[0]["frame"],
-        "pointer_actions":pointer,"missing_metrics":["guest boot-entry clock","steady typing latency","separate build/check/seal/prepare/Play costs"],
+        "pointer_actions":pointer,"typing_actions":typing,
+        "typing_scope":"Six serialized ordinary editor edits; each observation follows refresh and manifestation. Not sustained typing throughput or physical scanout.",
+        "missing_metrics":["guest boot-entry clock","sustained typing throughput","separate build/check/seal/prepare/Play costs"],
         "physical_evidence":false});
     fs::write(
         directory.join("latency.json"),
