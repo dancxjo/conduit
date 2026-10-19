@@ -231,6 +231,8 @@ pub mod fixed_numeric_operations_back;
 pub mod fixed_numeric_linear_back;
 
 #[cfg(feature = "kernel-step")]
+pub mod fixed_numeric_compact;
+#[cfg(feature = "kernel-step")]
 pub mod fixed_numeric_signal_back;
 
 #[cfg(feature = "kernel-step")]

@@ -34,6 +34,7 @@ macro_rules! run {
         })()
     }};
 }
+mod compact;
 mod dispatch_tensors;
 mod dispatch_values;
 mod dispatch_vectors;

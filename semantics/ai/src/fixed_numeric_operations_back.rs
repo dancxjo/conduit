@@ -219,23 +219,64 @@ impl<const WIDTH: usize> FixedTanhBack<WIDTH> {
         })
     }
 }
-impl<const WIDTH: usize, const PORTS: usize> StepBack<PORTS> for FixedTanhBack<WIDTH> {
-    fn step(&mut self, io: &mut StepIo<PORTS>, inputs: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+impl<const WIDTH: usize> FixedTanhBack<WIDTH> {
+    pub(crate) fn step_transport<const PORTS: usize>(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        inputs: &StepInputBytes<'_, PORTS>,
+        mut compact: Option<&mut crate::fixed_numeric_compact::CompactVectorBuffer<WIDTH>>,
+    ) -> StepOutcome {
         if let Some(outcome) = self.state.preflight(io, 1) {
             return outcome;
         }
-        let Some(bytes) = inputs.input(PortId(0)) else {
+        if inputs.input(PortId(0)).is_none()
+            && (compact.is_none() || inputs.compact_f32(PortId(0)).is_none())
+        {
             return fail(1204);
-        };
+        }
         let mut input = [0.0; WIDTH];
         let mut output = [0.0; WIDTH];
-        if self.input.decode(bytes, &mut input).is_err()
+        if crate::fixed_numeric_compact::decode(
+            &self.input,
+            inputs,
+            PortId(0),
+            &mut input,
+            compact.is_some(),
+        )
+        .is_err()
             || fixed_tanh(&input, &mut output).is_err()
-            || self.output.encode(&output).is_err()
+            || crate::fixed_numeric_compact::encode(
+                &mut self.output,
+                &output,
+                io,
+                compact.as_deref_mut(),
+            )
+            .is_err()
         {
             return fail(1205);
         }
-        publish(io, 1, self.output.maximum_bytes(), &mut self.state)
+        if let Some(buffer) = compact {
+            if io.consume(PortId(0)).is_err() {
+                return fail(1202);
+            }
+            if crate::fixed_numeric_compact::send(io, self.output.maximum_bytes(), Some(buffer))
+                .is_err()
+            {
+                return fail(1203);
+            }
+            self.state.staged = true;
+            StepOutcome::Progress
+        } else {
+            publish(io, 1, self.output.maximum_bytes(), &mut self.state)
+        }
+    }
+    pub(crate) fn compact_shape(&self) -> Option<(usize, usize)> {
+        (!self.state.flow).then_some((1, self.output.maximum_bytes()))
+    }
+}
+impl<const WIDTH: usize, const PORTS: usize> StepBack<PORTS> for FixedTanhBack<WIDTH> {
+    fn step(&mut self, io: &mut StepIo<PORTS>, inputs: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        self.step_transport(io, inputs, None)
     }
     fn prepared_output(&self, port: PortId) -> Option<&[u8]> {
         (port == PortId(0) && (!self.state.flow || self.state.staged))
