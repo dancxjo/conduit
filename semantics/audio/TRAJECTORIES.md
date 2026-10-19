@@ -111,8 +111,11 @@ controls, 0.1-second 200-Hz and 1/3-second source fractions, gaps, foreign ancho
 internal overlaps, coincident/reversed spans, profile bounds and forged typed
 zero-denominator refusal. Trajectory evaluation itself makes no sample-rate projection claim. The
 separate [rate prerequisite](RATE_PROJECTION.md) executes declared sample-grid
-and cumulative projections with explicit basis. Actual clock mapping,
-log-frequency, additional numeric profiles, general logarithmic dB conversion,
-renderer/clock implementations and remaining #5216 acceptance remain open.
+and cumulative projections with explicit basis. Existing periodic/resonator
+numeric profiles and catalog execution are separately implemented; see the
+complete offered-field map in [CONTROL_CONTRACT.md](CONTROL_CONTRACT.md). The
+positive declared clock/control-cadence completion requires separate proof.
+Log-frequency interpolation, arbitrary numeric profiles, physical calibration,
+general logarithmic dB conversion and whole-parent acceptance do not follow.
 The separately implemented bounded exact-power-of-ten capability is documented
 in [DECIBELS.md](DECIBELS.md).

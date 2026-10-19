@@ -1,0 +1,12 @@
+# Unreduced fractions preserve the selected cadence and authored start exactly.
+# Schedule admission bounds every product/add well below U64 overflow.
+plot audio/control-query-time (
+    >> value: AudioControlProjectionPoint
+    result: AudioTrajectoryQuery >>
+) = ({anchor: .schedule.anchor, time: {numerator_seconds: .schedule.start.numerator_seconds * .schedule.cadence.updates_per_second + .index * .schedule.start.denominator, denominator: .schedule.start.denominator * .schedule.cadence.updates_per_second}})
+
+# Inclusive final evaluation point, not an asserted reconstruction horizon.
+plot audio/control-final-time (
+    >> value: AudioControlProjectionSchedule
+    result: AudioTrajectoryQuery >>
+) = ({anchor: .anchor, time: {numerator_seconds: .start.numerator_seconds * .cadence.updates_per_second + (.update_count - 1) * .start.denominator, denominator: .start.denominator * .cadence.updates_per_second}})

@@ -17,6 +17,11 @@ pub fn checked_types() -> Result<Vec<CheckedNativeType>, NativeBindingRefusal> {
 
 /// Installs the owner names and their complete checked contracts for authoring.
 pub fn install(startup: &mut StartupCatalog) -> Result<(), String> {
+    for ty in conduit_data::clock_authoring::checked_types()
+        .map_err(|error| alloc::format!("Data clock Type metadata: {error:?}"))?
+    {
+        startup.insert_checked_native_type(ty.name.clone(), &ty)?;
+    }
     for ty in checked_types().map_err(|error| alloc::format!("Audio Type metadata: {error:?}"))? {
         startup.insert_checked_native_type(ty.name.clone(), &ty)?;
     }

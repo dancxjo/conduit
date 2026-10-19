@@ -3,6 +3,7 @@
 extern crate alloc;
 
 pub mod bytes_literal;
+pub mod clock_authoring;
 
 #[allow(dead_code, clippy::too_many_arguments)]
 mod generated {

@@ -1,0 +1,48 @@
+# An exact declared affine relationship, not measured clock calibration.
+# ClockRelation is imported from its Data owner, including its native laws.
+# The selected source tick is one second; Audio origin binds to source anchor.
+type AudioClockSourceUnit =
+    seconds
+type AudioClockBinding = {
+    anchor: AudioTrajectoryAnchor
+    relation: ClockRelation
+    source_unit: AudioClockSourceUnit
+    source_origin_tick: U64
+    source_clock: Text <= 128B not in [""]
+    target_clock: Text <= 128B not in [""]
+}
+type AudioClockProjectionRequest = {
+    binding: AudioClockBinding
+    query: AudioTrajectoryQuery
+}
+# Finite arithmetic eligibility is separate from the original semantic domain.
+type AudioClockProjectionEligible = {
+    request: AudioClockProjectionRequest
+    where .request.binding.relation.quality is exact
+    where .request.binding.relation.source-anchor == .request.binding.source_origin_tick
+    where .request.binding.source_unit is seconds
+    where .request.binding.relation.source-clock == .request.binding.source_clock
+    where .request.binding.relation.target-clock == .request.binding.target_clock
+    where .request.binding.source_clock != .request.binding.target_clock
+    where .request.binding.anchor == .request.query.anchor
+    where .request.query.time.numerator_seconds <= 4294967295
+    where .request.query.time.denominator > 0 && .request.query.time.denominator <= 4294967295
+    where .request.binding.relation.source-ticks > 0 && .request.binding.relation.source-ticks <= 4294967295
+    where .request.binding.relation.target-ticks > 0 && .request.binding.relation.target-ticks <= 4294967295
+}
+# Wide products are at most U32_MAX squared. Target anchor plus quotient fits
+# I128, then the final semantic law requires the selected U64 tick profile.
+type AudioClockProjectionRaw = {
+    whole_ticks: I128
+    remainder_numerator: I128
+    remainder_denominator: I128
+}
+type AudioClockProjectionResult = {
+    eligible: AudioClockProjectionEligible
+    raw: AudioClockProjectionRaw
+    where .raw.whole_ticks >= 0 && .raw.whole_ticks <= 18446744073709551615
+    where .raw.remainder_denominator == value/i128(.eligible.request.query.time.denominator) * value/i128(.eligible.request.binding.relation.source-ticks)
+    where .raw.remainder_numerator >= 0 && .raw.remainder_numerator < .raw.remainder_denominator
+    where .raw.whole_ticks == value/i128(.eligible.request.binding.relation.target-anchor) + value/i128(.eligible.request.query.time.numerator_seconds) * value/i128(.eligible.request.binding.relation.target-ticks) / .raw.remainder_denominator
+    where .raw.remainder_numerator == (value/i128(.eligible.request.query.time.numerator_seconds) * value/i128(.eligible.request.binding.relation.target-ticks)) % .raw.remainder_denominator
+}
