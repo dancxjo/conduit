@@ -116,7 +116,26 @@ pub fn run_entry_plan_observed(
     before_play: impl FnOnce(),
     after_play: impl FnOnce(),
 ) -> Option<EncodedResultAndTiming> {
-    let mut prepared = prepared::prepare(plan, resources, input_values, mode, false, 0);
+    run_entry_plan_observed_at_sequence(
+        plan,
+        resources,
+        input_values,
+        mode,
+        0,
+        before_play,
+        after_play,
+    )
+}
+pub fn run_entry_plan_observed_at_sequence(
+    plan: Plan,
+    resources: &Resources,
+    input_values: BTreeMap<String, Vec<u8>>,
+    mode: ExecutionMode,
+    sequence: u64,
+    before_play: impl FnOnce(),
+    after_play: impl FnOnce(),
+) -> Option<EncodedResultAndTiming> {
+    let mut prepared = prepared::prepare(plan, resources, input_values, mode, false, sequence);
     execute_prepared(&mut prepared, mode, before_play, after_play)
 }
 pub fn run_entry_plan_at_sequence(
