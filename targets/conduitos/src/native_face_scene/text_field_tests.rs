@@ -1,6 +1,8 @@
 use super::*;
 use alloc::vec;
+use conduit_core::{CheckedValueContract, ValueConstraint, kind_id};
 use conduit_face::{FaceActionAvailability, FaceProperty, FacePropertyValue, FaceRole};
+use conduit_human::{KeyEvent, KeyModifiers, KeyTransition};
 
 fn seal(face: Face) -> Face {
     Face::new_with_semantics(
@@ -37,6 +39,154 @@ fn field() -> Face {
     seal(face)
 }
 
+fn finite_field() -> Face {
+    let mut face = field();
+    let contract = CheckedValueContract::new(
+        kind_id(conduit_face::UTF8_TEXT_VALUE_KIND),
+        64,
+        vec![ValueConstraint::CanonicalMembership {
+            members: vec![b"auto".to_vec(), b"roman".to_vec()],
+            negated: false,
+        }],
+    )
+    .unwrap();
+    face.actions[0].arguments[0].contract = contract.clone();
+    face.properties
+        .iter_mut()
+        .find(|property| property.name == "current-value")
+        .unwrap()
+        .value = FacePropertyValue::TypedValue {
+        contract,
+        bytes: b"auto".to_vec(),
+    };
+    seal(face)
+}
+
+fn press(usage: u8) -> KeyEvent {
+    KeyEvent::new(usage, KeyTransition::Pressed, KeyModifiers::NONE).unwrap()
+}
+
+#[test]
+fn finite_choices_wrap_only_inside_the_bound_source_contract() {
+    let face = finite_field();
+    assert_eq!(text_field::adjacent(&face, 0, None, true), Some("roman"));
+    assert_eq!(
+        text_field::adjacent(&face, 0, Some(b"roman"), true),
+        Some("auto")
+    );
+    assert_eq!(text_field::adjacent(&face, 0, None, false), Some("roman"));
+    assert_eq!(
+        text_field::adjacent(&face, 0, Some(b"unfinished"), true),
+        Some("auto")
+    );
+    assert_eq!(text_field::adjacent(&field(), 0, None, true), None);
+    assert_eq!(text_field::adjacent(&tests::face(7), 0, None, true), None);
+}
+
+#[test]
+fn a_finite_choice_cannot_bypass_other_constraints_or_expand_its_admitted_view() {
+    let mut face = finite_field();
+    let contract = CheckedValueContract::new(
+        kind_id(conduit_face::UTF8_TEXT_VALUE_KIND),
+        64,
+        vec![
+            ValueConstraint::ByteLength {
+                minimum: 4,
+                maximum: 4,
+            },
+            ValueConstraint::CanonicalMembership {
+                members: vec![b"auto".to_vec(), b"roman".to_vec()],
+                negated: false,
+            },
+        ],
+    )
+    .unwrap();
+    face.actions[0].arguments[0].contract = contract.clone();
+    face.properties
+        .iter_mut()
+        .find(|property| property.name == "current-value")
+        .unwrap()
+        .value = FacePropertyValue::TypedValue {
+        contract,
+        bytes: b"auto".to_vec(),
+    };
+    let face = seal(face);
+    assert_eq!(text_field::choices(&face, 0).unwrap().as_slice(), &["auto"]);
+    assert_eq!(text_field::adjacent(&face, 0, None, true), Some("auto"));
+    let mut large = finite_field();
+    let members = (0..33)
+        .map(|index| alloc::format!("value-{index:02}").into_bytes())
+        .collect();
+    let contract = CheckedValueContract::new(
+        kind_id(conduit_face::UTF8_TEXT_VALUE_KIND),
+        64,
+        vec![ValueConstraint::CanonicalMembership {
+            members,
+            negated: false,
+        }],
+    )
+    .unwrap();
+    large.actions[0].arguments[0].contract = contract.clone();
+    large
+        .properties
+        .iter_mut()
+        .find(|property| property.name == "current-value")
+        .unwrap()
+        .value = FacePropertyValue::TypedValue {
+        contract,
+        bytes: b"value-00".to_vec(),
+    };
+    let large = seal(large);
+    assert!(text_field::choices(&large, 0).is_none());
+    assert_eq!(text_field::current(&large, 0), Some("value-00"));
+}
+
+#[test]
+fn arrow_choice_is_a_cancellable_draft_until_the_checked_enter_submission() {
+    let face = finite_field();
+    let show = tests::fixture::show(&face);
+    let mut scene = NativeFaceScene::prepare(face.clone(), 640, 480).unwrap();
+    scene
+        .focus_named(&FaceFocusRequest {
+            action_id: "edit".into(),
+            argument_name: Some("value".into()),
+        })
+        .unwrap();
+    assert!(matches!(
+        scene.key(press(79), &show, 1).unwrap(),
+        FaceSceneInput::Changed
+    ));
+    assert!(
+        scene
+            .input
+            .preview(scene.focused())
+            .unwrap()
+            .contains("Draft: roman")
+    );
+    assert_eq!(scene.face(), &face);
+    assert!(matches!(
+        scene.key(press(41), &show, 2).unwrap(),
+        FaceSceneInput::Changed
+    ));
+    assert_eq!(scene.input.preview(scene.focused()), None);
+    assert_eq!(scene.face(), &face);
+    assert!(matches!(
+        scene.key(press(79), &show, 3).unwrap(),
+        FaceSceneInput::Changed
+    ));
+    let FaceSceneInput::Submitted { interaction, .. } = scene.key(press(40), &show, 4).unwrap()
+    else {
+        panic!("Enter must submit the checked replacement")
+    };
+    assert_eq!(interaction.arguments.len(), 1);
+    assert_eq!(interaction.arguments[0].value, b"roman");
+    assert_eq!(scene.face(), &face);
+    assert!(matches!(
+        scene.key(press(80), &show, 5),
+        Err(FaceSceneError::StaleFace)
+    ));
+}
+
 #[test]
 fn verified_current_text_is_read_only_and_unavailable_state_does_not_erase_it() {
     let face = field();
@@ -48,9 +198,18 @@ fn verified_current_text_is_read_only_and_unavailable_state_does_not_erase_it() 
         reason_code: "source/temporarily-unavailable".into(),
         explanation: "Source unavailable".into(),
     };
-    assert_eq!(
-        text_field::current(&seal(unavailable), 0),
-        Some("Éléonore 雪")
+    let unavailable = seal(unavailable);
+    assert_eq!(text_field::current(&unavailable, 0), Some("Éléonore 雪"));
+    let (primary, _) = document::prepare(&unavailable, true).unwrap();
+    assert!(
+        primary
+            .iter()
+            .any(|row| row.text == "Friendly name: Éléonore 雪" && row.control.is_none())
+    );
+    assert!(
+        primary
+            .iter()
+            .any(|row| row.text.contains("Source unavailable"))
     );
     assert_eq!(text_field::current(&tests::face(7), 0), None);
     assert_eq!(text_field::current(&face, 1), None);
@@ -130,7 +289,7 @@ fn current_field_row_targets_the_existing_argument_and_details_retain_the_contra
         .iter()
         .find(|row| row.control.unwrap().argument == Some(0))
         .unwrap();
-    assert_eq!(field.text, "Friendly name: Éléonore 雪");
+    assert_eq!(field.text, "Friendly name: Éléonore 雪 · Type to replace");
     assert_eq!(field.control.unwrap().argument, Some(0));
     assert!(details.iter().any(|row| row.control
         == Some(FaceControl {

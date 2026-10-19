@@ -1,5 +1,5 @@
 {
-  "identity": "e93344120eb960304ccbcbf1b738079ab2b66a69b517655abd6f6745a0a01560",
+  "identity": "0a81e59e2a90be33430281508752f818f1328adffdf0d2b7c55aef0cf684bb42",
   "revision": 1,
   "basis": {
     "body_id": null,
@@ -48,14 +48,29 @@
       "name": "Friendly Body name"
     },
     {
+      "identity": "birth/encounter/prebirth-conformance/body-name/input-details",
+      "role": "Info",
+      "name": "Friendly Body name input details"
+    },
+    {
       "identity": "birth/encounter/prebirth-conformance/name-system",
       "role": "TextEntry",
       "name": "Naming tradition"
     },
     {
+      "identity": "birth/encounter/prebirth-conformance/name-system/input-details",
+      "role": "Info",
+      "name": "Naming tradition input details"
+    },
+    {
       "identity": "birth/encounter/prebirth-conformance/plot-search",
       "role": "TextEntry",
       "name": "Search Plots"
+    },
+    {
+      "identity": "birth/encounter/prebirth-conformance/plot-search/input-details",
+      "role": "Info",
+      "name": "Search Plots input details"
     },
     {
       "identity": "birth/encounter/prebirth-conformance/initial-plots",
@@ -117,13 +132,28 @@
       "kind": "Contains"
     },
     {
+      "source": "birth/encounter/prebirth-conformance/body-name",
+      "target": "birth/encounter/prebirth-conformance/body-name/input-details",
+      "kind": "Contains"
+    },
+    {
       "source": "birth/encounter/prebirth-conformance/article",
       "target": "birth/encounter/prebirth-conformance/name-system",
       "kind": "Contains"
     },
     {
+      "source": "birth/encounter/prebirth-conformance/name-system",
+      "target": "birth/encounter/prebirth-conformance/name-system/input-details",
+      "kind": "Contains"
+    },
+    {
       "source": "birth/encounter/prebirth-conformance/article",
       "target": "birth/encounter/prebirth-conformance/plot-search",
+      "kind": "Contains"
+    },
+    {
+      "source": "birth/encounter/prebirth-conformance/plot-search",
+      "target": "birth/encounter/prebirth-conformance/plot-search/input-details",
       "kind": "Contains"
     },
     {
@@ -578,7 +608,7 @@
       "text": "Give it a name, or use a suggestion."
     },
     {
-      "subject": "birth/encounter/prebirth-conformance/body-name",
+      "subject": "birth/encounter/prebirth-conformance/body-name/input-details",
       "text": "Current value: Gonçalo Pacheco Guerreiro."
     },
     {
@@ -586,103 +616,103 @@
       "text": "Choose a tradition for the next name suggestion."
     },
     {
-      "subject": "birth/encounter/prebirth-conformance/name-system",
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details",
       "text": "Current value: surprise."
     },
     {
-      "subject": "birth/encounter/prebirth-conformance/name-system",
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details",
       "text": "Choice: Surprise me. Value: surprise. Selected."
     },
     {
-      "subject": "birth/encounter/prebirth-conformance/name-system",
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details",
       "text": "Choice: Roman tria nomina. Value: roman. Not selected."
     },
     {
-      "subject": "birth/encounter/prebirth-conformance/name-system",
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details",
       "text": "Choice: Chinese (romanized, family name first). Value: chinese. Not selected."
     },
     {
-      "subject": "birth/encounter/prebirth-conformance/name-system",
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details",
       "text": "Choice: Contemporary American. Value: american. Not selected."
     },
     {
-      "subject": "birth/encounter/prebirth-conformance/name-system",
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details",
       "text": "Choice: Mexican (two surnames). Value: mexican. Not selected."
     },
     {
-      "subject": "birth/encounter/prebirth-conformance/name-system",
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details",
       "text": "Choice: Icelandic patronymic or matronymic. Value: icelandic. Not selected."
     },
     {
-      "subject": "birth/encounter/prebirth-conformance/name-system",
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details",
       "text": "Choice: Japanese (romanized, family name first). Value: japanese. Not selected."
     },
     {
-      "subject": "birth/encounter/prebirth-conformance/name-system",
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details",
       "text": "Choice: Arabic lineage plot. Value: arabic. Not selected."
     },
     {
-      "subject": "birth/encounter/prebirth-conformance/name-system",
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details",
       "text": "Choice: Contemporary French. Value: french. Not selected."
     },
     {
-      "subject": "birth/encounter/prebirth-conformance/name-system",
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details",
       "text": "Choice: Contemporary British. Value: british. Not selected."
     },
     {
-      "subject": "birth/encounter/prebirth-conformance/name-system",
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details",
       "text": "Choice: Classic Anglophone. Value: classic-anglophone. Not selected."
     },
     {
-      "subject": "birth/encounter/prebirth-conformance/name-system",
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details",
       "text": "Choice: Korean (romanized, family name first). Value: korean. Not selected."
     },
     {
-      "subject": "birth/encounter/prebirth-conformance/name-system",
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details",
       "text": "Choice: Vietnamese (family–middle–given). Value: vietnamese. Not selected."
     },
     {
-      "subject": "birth/encounter/prebirth-conformance/name-system",
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details",
       "text": "Choice: Yorùbá personal and family names. Value: yoruba. Not selected."
     },
     {
-      "subject": "birth/encounter/prebirth-conformance/name-system",
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details",
       "text": "Choice: Ukrainian (official romanization). Value: ukrainian. Not selected."
     },
     {
-      "subject": "birth/encounter/prebirth-conformance/name-system",
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details",
       "text": "Choice: Biblical Hebrew-inspired patronymic (romanized). Value: ancient-hebrew. Not selected."
     },
     {
-      "subject": "birth/encounter/prebirth-conformance/name-system",
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details",
       "text": "Choice: Amharic-style patronymic (romanized). Value: amharic. Not selected."
     },
     {
-      "subject": "birth/encounter/prebirth-conformance/name-system",
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details",
       "text": "Choice: Portuguese multi-surname. Value: portuguese. Not selected."
     },
     {
-      "subject": "birth/encounter/prebirth-conformance/name-system",
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details",
       "text": "Choice: Tamil patronymic plots (romanized). Value: tamil. Not selected."
     },
     {
-      "subject": "birth/encounter/prebirth-conformance/name-system",
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details",
       "text": "Choice: Indonesian complete personal-name plots (romanized). Value: indonesian. Not selected."
     },
     {
-      "subject": "birth/encounter/prebirth-conformance/name-system",
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details",
       "text": "Choice: Welsh modern and patronymic plots. Value: welsh. Not selected."
     },
     {
-      "subject": "birth/encounter/prebirth-conformance/name-system",
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details",
       "text": "Choice: Kurdish Kurmanji (Latin script). Value: kurmanji. Not selected."
     },
     {
-      "subject": "birth/encounter/prebirth-conformance/name-system",
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details",
       "text": "Choice: The TARGUS family. Value: targus. Not selected."
     },
     {
-      "subject": "birth/encounter/prebirth-conformance/name-system",
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details",
       "text": "Choice: Original Elvish-inspired. Value: elvish. Not selected."
     },
     {
@@ -690,7 +720,7 @@
       "text": "Find a plot by name or what it uses."
     },
     {
-      "subject": "birth/encounter/prebirth-conformance/plot-search",
+      "subject": "birth/encounter/prebirth-conformance/plot-search/input-details",
       "text": "Current value: (empty)."
     },
     {
@@ -1093,7 +1123,7 @@
       "target": "birth/encounter/prebirth-conformance/navigation",
       "name": "Birth Body",
       "arguments": [],
-      "disclosure": "CurrentAction",
+      "disclosure": "Primary",
       "availability": "Available"
     }
   ],
@@ -1105,6 +1135,22 @@
     {
       "subject": "birth/encounter/prebirth-conformance/main",
       "level": "Context"
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/body-name/input-details",
+      "level": "SelectedDetail"
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details",
+      "level": "SelectedDetail"
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/plot-search/input-details",
+      "level": "SelectedDetail"
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/birth-review-plot-0",
+      "level": "SelectedDetail"
     }
   ],
   "temporal_references": [],
