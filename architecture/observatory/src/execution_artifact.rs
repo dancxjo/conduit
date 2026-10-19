@@ -387,7 +387,7 @@ mod tests {
             },
         };
         validate_sign_artifact(&sign).unwrap();
-        for mutation in 0..5 {
+        for mutation in 0..7 {
             let mut wrong = sign.clone();
             match mutation {
                 0 => wrong.sign.placement_id = None,
@@ -397,8 +397,12 @@ mod tests {
                     if let ObservationKind::RoutedContent { evidence } = &mut wrong.sign.kind {
                         if mutation == 3 {
                             evidence.digest_domain.clear();
-                        } else {
+                        } else if mutation == 4 {
                             evidence.output_port = conduit_core::PortId::from("unplanned");
+                        } else if mutation == 5 {
+                            evidence.byte_length = connection.byte_capacity.checked_add(1).unwrap();
+                        } else {
+                            evidence.digest_scheme = "x".repeat(193);
                         }
                     }
                 }
