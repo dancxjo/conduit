@@ -1,7 +1,8 @@
 # Absolute physical fore qualifications (development)
 
 A fore such as `Frequency near 0.01Hz` now retains a checked physical source
-kind and an absolute numerical tolerance. It carries the existing `NearQuantity`
+kind and an absolute numerical tolerance. The qualifier accepts ordinary spaces
+and tabs without changing its predicates or default byte bounds. It carries the existing `NearQuantity`
 evidence record rather than silently treating a rounded target as exact
 `Frequency`. This is development work for #5392; N5 #5534 and the parent remain
 open until their full acceptance and exact-main gates are proved.
