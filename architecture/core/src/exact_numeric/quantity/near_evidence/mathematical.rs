@@ -4,6 +4,10 @@ use crate::{
     BorrowedMathematicalQuantityBinary32, MathematicalEnclosureRequirements,
     MathematicalQuantityView, PreparedMathematicalQuantityBinary32,
 };
+/// Exact replay budget of the prepared enclosed-midpoint Near profile.
+/// Shared with its producer; generic report work metadata cannot be reconstructed
+/// from the reader's remaining envelope-validation budget.
+pub const MATHEMATICAL_NEAR_PROJECTION_WORK: u64 = 200_000_000;
 pub const MATHEMATICAL_NEAR_VALIDATION_WORK: u64 = 32 * crate::MATHEMATICAL_VALUE_VALIDATION_WORK;
 pub struct PreparedMathematicalNearQuantityVerifier {
     schema: Vec<u8>,
@@ -14,21 +18,24 @@ pub struct PreparedMathematicalNearQuantityVerifier {
 }
 /// Verified value/error data. This does not attest the supplier's execution.
 pub struct VerifiedMathematicalNearQuantity<'a> {
-    source: MathematicalQuantityView<'a>,
-    target: IeeeF32,
-    rounding: Binary32Rounding,
+    projection: BorrowedMathematicalQuantityBinary32<'a>,
     maximum_error: ExactRational,
     source_wire_digest: [u8; 32],
 }
 impl<'a> VerifiedMathematicalNearQuantity<'a> {
     pub const fn source(&self) -> &MathematicalQuantityView<'a> {
-        &self.source
+        self.projection.source()
     }
     pub const fn target(&self) -> IeeeF32 {
-        self.target
+        self.projection.target().coordinate()
     }
     pub const fn rounding(&self) -> Binary32Rounding {
-        self.rounding
+        self.projection.midpoint().numeric().rounding()
+    }
+    /// Complete independently replayed receipt under the original producer
+    /// allowance and pinned projection work budget. Not execution attestation.
+    pub const fn projection_receipt(&self) -> &BorrowedMathematicalQuantityBinary32<'a> {
+        &self.projection
     }
     pub const fn maximum_error(&self) -> ExactRational {
         self.maximum_error
@@ -59,7 +66,7 @@ impl PreparedMathematicalNearQuantityVerifier {
             requirements,
             rounding,
             consumer_limit,
-            maximum_work,
+            MATHEMATICAL_NEAR_PROJECTION_WORK,
         )
         .map_err(|_| Refusal::InvalidLimit)?;
         Ok(Self {
@@ -160,13 +167,25 @@ impl PreparedMathematicalNearQuantityVerifier {
         expected: Option<[u8; 32]>,
         work: &mut ExactNumericWork,
     ) -> Result<VerifiedMathematicalNearQuantity<'a>, Refusal> {
-        crate::QuantityValueProfile::Mathematical
+        let frame = crate::QuantityValueProfile::Mathematical
             .decode(quantity_kind, wire, work)
             .map_err(wire_refusal)?;
+        let requested = crate::Quantity::decode(leaf(field(value, "requested-limit")?)?)
+            .map_err(|_| Refusal::InvalidLimit)?;
+        let requested = RationalQuantity::from_quantity(requested, work).map_err(rational_error)?;
+        let physical = RationalQuantity::new(ExactRational::ZERO, frame.unit(), frame.role())
+            .map_err(rational_error)?;
+        let limit = effective_limit(requested, physical, work)?;
+        if work.remaining() < MATHEMATICAL_NEAR_PROJECTION_WORK {
+            return Err(Refusal::WorkLimit);
+        }
+        let mut replay = ExactNumericWork::new(MATHEMATICAL_NEAR_PROJECTION_WORK);
         let receipt = self
             .projection
-            .execute(wire, work)
-            .map_err(projection_refusal)?;
+            .replay_with_allowance(wire, limit, &mut replay);
+        // Failed replay is charged too; no alternate budget or algorithm retries.
+        work.charge(replay.spent()).map_err(numeric_error)?;
+        let receipt = receipt.map_err(projection_refusal)?;
         let source = *receipt.source();
         let digest = source.representation_digest();
         if expected.is_some_and(|pin| pin != digest) {
@@ -187,12 +206,6 @@ impl PreparedMathematicalNearQuantityVerifier {
         {
             return Err(Refusal::SourceMismatch);
         }
-        let requested = crate::Quantity::decode(leaf(field(value, "requested-limit")?)?)
-            .map_err(|_| Refusal::InvalidLimit)?;
-        let requested = RationalQuantity::from_quantity(requested, work).map_err(rational_error)?;
-        let physical = RationalQuantity::new(ExactRational::ZERO, source.unit(), source.role())
-            .map_err(rational_error)?;
-        let limit = effective_limit(requested, physical, work)?;
         if number(field(value, "limit")?, work)? != limit.coordinate() {
             return Err(Refusal::InvalidLimit);
         }
@@ -243,9 +256,7 @@ impl PreparedMathematicalNearQuantityVerifier {
             work,
         )?;
         Ok(VerifiedMathematicalNearQuantity {
-            source,
-            target,
-            rounding: self.rounding,
+            projection: receipt,
             maximum_error: claimed,
             source_wire_digest: digest,
         })

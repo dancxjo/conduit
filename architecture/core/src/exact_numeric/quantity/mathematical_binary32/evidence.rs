@@ -7,6 +7,30 @@ use crate::projection::*;
 type E = ProjectionEvidenceRefusal;
 type Writer<'a> = ProjectionEvidenceWriter<'a>;
 
+// Each rational and Unit is length-prefixed; the full physical source frame
+// already has its independent bounded encoding. Source contains thirteen
+// rationals, four additional physical frames, four u32 profile limits, two u64
+// enclosure counters, one u32 term count, two target bit patterns, rounding and
+// inexact tags, two error tags, and two u64 midpoint counters.
+const RATIONAL_FIELD: usize = 4 + EXACT_RATIONAL_MAX_ENCODED_BYTES;
+const PHYSICAL_FIELD: usize = 4 + UNIT_ENCODED_LEN + 1;
+pub const MATHEMATICAL_BINARY32_EVIDENCE_SOURCE_MAX_BYTES: usize = 4
+    + MATHEMATICAL_QUANTITY_MAX_ENCODED_BYTES
+    + 13 * RATIONAL_FIELD
+    + 4 * PHYSICAL_FIELD
+    + 4 * 4
+    + 2 * 8
+    + 4
+    + 2 * 4
+    + 1
+    + 1
+    + 2
+    + 2 * 8;
+pub const MATHEMATICAL_BINARY32_EVIDENCE_TARGET_MAX_BYTES: usize = 4 + PHYSICAL_FIELD;
+pub const MATHEMATICAL_BINARY32_EVIDENCE_DETAIL_MAX_BYTES: usize = 1 + RATIONAL_FIELD;
+pub const MATHEMATICAL_BINARY32_EVIDENCE_POLICY_MAX_BYTES: usize =
+    RATIONAL_FIELD + PHYSICAL_FIELD + 1;
+
 /// The exact policy is copied before transport; no mutable ambient configuration.
 #[derive(Debug, Clone, Copy)]
 pub struct MathematicalQuantityBinary32EvidenceCodec {

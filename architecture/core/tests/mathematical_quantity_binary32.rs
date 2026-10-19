@@ -338,3 +338,6 @@ fn policy_configuration_identity_retains_tolerance_unit_role_and_rounding_withou
 
 #[path = "mathematical_quantity_binary32/evidence.rs"]
 mod evidence;
+
+#[path = "mathematical_quantity_binary32/near_record.rs"]
+mod near_record;
