@@ -262,3 +262,13 @@ pub mod fixed_numeric_value_capacity;
 
 #[cfg(feature = "kernel-operation-owners")]
 pub mod operation_owners;
+
+// Finite generic DSP; spectral and waveform policy remain authored by callers.
+pub mod fixed_numeric_dsp;
+pub mod fixed_numeric_dsp_catalog;
+#[cfg(feature = "kernel-step")]
+pub mod fixed_numeric_dsp_back;
+#[cfg(feature = "kernel-step")]
+pub mod fixed_numeric_integer_conversion;
+#[cfg(feature = "kernel-step")]
+pub mod fixed_numeric_i16_codec;

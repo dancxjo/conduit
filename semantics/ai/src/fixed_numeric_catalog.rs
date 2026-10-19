@@ -228,6 +228,7 @@ fn fixed_numeric_contracts_uncached() -> Result<Vec<Kind>, String> {
             specs.push(spec);
         }
     }
+    specs.extend(crate::fixed_numeric_dsp_catalog::dsp_specs());
     specs
         .into_iter()
         .map(|(name, inputs, outputs)| {
