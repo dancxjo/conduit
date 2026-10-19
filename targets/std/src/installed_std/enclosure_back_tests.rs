@@ -346,11 +346,11 @@ fn composed_symbolic_packet_is_independently_verified_after_actual_kernel_delive
     let mut verifier = PreparedMathematicalEnclosureVerifier::new(
         &mathematical_enclosure_type(),
         requirements,
-        1_000_000_000,
+        800_000_000,
         131072,
     )
     .unwrap();
-    let mut reader_work = ExactNumericWork::new(1_000_000_000);
+    let mut reader_work = ExactNumericWork::new(800_000_000);
     let guard = crate::allocation_probe::begin();
     let checked = verifier
         .verify(
@@ -367,7 +367,7 @@ fn composed_symbolic_packet_is_independently_verified_after_actual_kernel_delive
             &output.0[0],
             ExactRational::ZERO,
             Some(&input),
-            &mut ExactNumericWork::new(1_000_000_000)
+            &mut ExactNumericWork::new(800_000_000)
         ),
         Err(MathematicalEnclosureEvidenceRefusal::InsufficientTolerance)
     ));

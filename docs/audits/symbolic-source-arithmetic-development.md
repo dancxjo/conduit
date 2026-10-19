@@ -78,3 +78,19 @@ validation allowances); the smaller-grant refusal remains tested. The first
 symbolic-denominator CLI assertion also expected `InvalidInput` incorrectly:
 the installed pure expression crosses a Host Call and retains `HostCallFailed`
 detail 38. Both diagnostic logs are preserved.
+
+## Independently checked delivered packet
+
+The expanded Std enclosure suite passes six tests (the retained cost harness
+is intentionally ignored). Its new composed specimen crosses checked exact
+transport, a sealed Plan, the actual installed interval Back and kernel delivery.
+An independently prepared receiver pins the delivered source bytes, recomputes
+the interval under the original producer requirements, and admits the requested
+width. An exact zero-width consumer refuses the same nonzero interval.
+
+The producer reports zero post-Play-start allocations and unchanged Value
+capacity. Receiver success and exact-consumer refusal also allocate nothing.
+A focused replay succeeds under the existing 800-million receiver ceiling;
+charged work is 750622272 units, including the conservative 640-million generic
+validation allowance. This is metered admission accounting, not a CPU-time or
+WCET measurement, producer execution attestation, or physical/source authority.
