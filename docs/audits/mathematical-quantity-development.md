@@ -499,3 +499,36 @@ This is prepared Core contract evidence, not qualified Source/Plan/kernel
 consumer admission. Explicit evaluator/Host resources and artifact binding,
 native/rational dispatch, general projection/Sign custody and stable acceptance
 remain required; no original parent requirement is closed by this checkpoint.
+
+### Private checked Source consumer replay across admitted forms
+
+The prepared consuming contract now dispatches by the validated source wire
+version. Native and rational records retain the existing exact verifier;
+mathematical records use prepared symbolic replay. Both paths share one clamped
+meter and one canonical frame/schema validation. A failed proof does not select
+a fallback verifier. The ordinary unprepared validator remains unchanged.
+
+The explicit checked-expression constructor
+`new_with_mathematical_near_contracts` prepares qualifying input and output
+contracts before execution. Its bounds include additional replay containers and
+buffers and the sum of predicate replay meters. These are component bounds,
+excluding contract-owned heap payload, allocator overhead and general evaluator
+record validation; Host admission must account for those separately.
+
+All eleven focused Near tests pass on the final source. A checked Source
+`Angle near 0.000001rad` consumer accepts independently produced native,
+rational and symbolic records, rejects a forged Unit, and preserves exact output
+bytes. A stricter output tolerance rejects Pi/2, then accepts an exact native
+record on the next evaluation. Four guarded cycles have zero allocations,
+fixed output capacity and unchanged reported bounds. The existing Core evidence
+regression also confirms rational extraction exhaustion remains WorkLimit.
+Strict Core/Plot library Clippy and no-default-features checks pass. Source
+bundles and both executed test binaries are retained with verified hash/archive
+roundtrips.
+
+This supersedes the missing native/rational dispatch and checked-evaluator
+integration noted above. An installed qualified Host offer still needs exact
+resource/property and artifact binding, including general structured validation
+work, factory recomputation, Source/Plan/kernel/CLI proof and stable acceptance.
+General projection/Sign custody and all remaining original requirements stay
+open; this checkpoint does not establish full parent completion.
