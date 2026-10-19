@@ -1,0 +1,156 @@
+{
+  "scope": "Development evidence only for #5392 / #5534 physical near Fore predicate retention. Not parent completion or stable acceptance.",
+  "source_commit": "54a7f64a4d51f1f9b42140c85be8374b50db4ef5",
+  "source_tree": "69461d1ed237b08efb39154398c7ebae6ca4ca56",
+  "at": "2026-10-19T00:29:55.686496+00:00",
+  "raw_archive": {
+    "path": "fore-near-development-20261019-raw.tar.gz",
+    "sha256": "72b895d5eab27fd0c584f97c35952e78c372dff5a8c825cd838e60b19b374a01",
+    "bytes": 85663
+  },
+  "files": [
+    {
+      "path": "fore-near-core-plot-catalog-tests.log",
+      "sha256": "e33abac4d33da0dcd0f0e9edd3563b22a115a35d0dc2b87a44475953ab212c21",
+      "bytes": 79464
+    },
+    {
+      "path": "fore-near-focused-clippy.log",
+      "sha256": "1f682b25b066d46ff9905926b49d8b1774de4eb7e638e5d5f2e30b0a4879575d",
+      "bytes": 17385
+    },
+    {
+      "path": "fore-near-catalog-runtime-integration-tests.log",
+      "sha256": "b8640aaa791d0709ccbff1fa70e03594437061b2908156bb2f1a556ea7090e8e",
+      "bytes": 1452
+    },
+    {
+      "path": "fore-near-product-expression-tests.log",
+      "sha256": "b6011af4083a2e5ce40ed55920956dc07e2889242d9ee932776ef4905ccac030",
+      "bytes": 245468
+    },
+    {
+      "path": "fore-near-cost-and-factory-tests.log",
+      "sha256": "60464e96b1641f5d397f29365f6e67a893b31840219d2d1cf2d664c69ecce359",
+      "bytes": 43996
+    },
+    {
+      "path": "fore-near-browser-profile-refusal-tests.log",
+      "sha256": "9b25e6b80ee1b30847267e51c799b23812e22ed54c7164217b2fb7cfa80c0620",
+      "bytes": 10567
+    },
+    {
+      "path": "fore-near-legacy-byte-tests.log",
+      "sha256": "2800fe87981a3b0de55f5c8d90965c4da6fa1a00f0427bbfa53129ff8d26309e",
+      "bytes": 1130
+    },
+    {
+      "path": "fore-near-workspace-clippy-after-depth-walker.log",
+      "sha256": "f8e038d1d6151188b3c2fa5db6f0fa8bdc97333a2735e1176117190b58cf41f5",
+      "bytes": 1007
+    },
+    {
+      "path": "fore-near-full-std-tests.log",
+      "sha256": "0a587fdee721a188d02e7045c3af1a451203864fb796c50ec7d8e556edc8d706",
+      "bytes": 98874
+    },
+    {
+      "path": "fore-near-full-browser-native-tests.log",
+      "sha256": "3d67d5bbdf1133cf26a02bc590eedabcb1948345baf8b1f532ff2a2ca5ab0a14",
+      "bytes": 49066
+    },
+    {
+      "path": "fore-near-no-default.log",
+      "sha256": "2b34696728dc82b03cbf6311d7e3a6a41658bbde097834c3010a78bc82842c1a",
+      "bytes": 72
+    },
+    {
+      "path": "fore-near-final-format.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "fore-near-release-cost.csv",
+      "sha256": "572a45c8deb2409b2986a6c38d46a4ea7e069ab3b0922e53c3ac6226b72d93d0",
+      "bytes": 3852
+    },
+    {
+      "path": "fore-near-release-cost.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "fore-near-optimized-cost.json",
+      "sha256": "6d7719b1064add2a2f752afcaadca0ae5fb4518f43c7f44ee5c4eba6b87d131d",
+      "bytes": 2664
+    },
+    {
+      "path": "fore-near-test-profile-cost.json",
+      "sha256": "2d0bd42f521022dc48099058ea1d9fe55f50aa03690059c7bfd9f6657a44f932",
+      "bytes": 4147
+    },
+    {
+      "path": "fore-near-checked-node-movement.json",
+      "sha256": "ddde80550a074d798449e2cb8808e1316cbc279825c221d1641eb6afde51d0f5",
+      "bytes": 296
+    },
+    {
+      "path": "fore-near-instance-movement.json",
+      "sha256": "675f41f5851cd5394f46e7535ead2144251cccbd34ebc00ce40b623177e8b428",
+      "bytes": 307
+    },
+    {
+      "path": "fore-near-release-capture-build.log",
+      "sha256": "2890bd296fe1c3bb7a8fb6bb4fec3d93514d56569d084f2c27b9f7ccd3004848",
+      "bytes": 1187
+    },
+    {
+      "path": "fore-near-cost-fixtures/qualified.hex",
+      "sha256": "1d4b8d73fbdb92e4268b4fb3d52cf5ea9869b13ee03db2e2e5700862d8efc9bb",
+      "bytes": 19397
+    },
+    {
+      "path": "fore-near-cost-fixtures/packet.hex",
+      "sha256": "7cd4e3cdacde6dc93ec5343b88ada29d7a97230524677fb74f65e33ae579386e",
+      "bytes": 7789
+    },
+    {
+      "path": "fore-near-cost-fixtures/plain.hex",
+      "sha256": "9140f33513af3380d434c5d48367af1486e59aa6249cd49706e53e9e157a8165",
+      "bytes": 7705
+    },
+    {
+      "path": "fore-near-bench/Cargo.toml",
+      "sha256": "7fd9e302c39f36c39972c9d8b8459ee29119adfee34fc2fa117e10973f14611e",
+      "bytes": 223
+    },
+    {
+      "path": "fore-near-bench/Cargo.lock",
+      "sha256": "21bd78b326daa3ac3248f4d7147c5af70412a492efb27a747fedc18f5a5fcf8d",
+      "bytes": 4564
+    },
+    {
+      "path": "fore-near-bench/src/main.rs",
+      "sha256": "ba2a5e8a4cf881dac6657f1aa99247065cb2784e8f06a599383f399c21b6e01d",
+      "bytes": 3374
+    }
+  ],
+  "results": {
+    "std_lib": "847 passed, 17 ignored",
+    "browser_native_lib": "445 passed, 2 ignored; native refusal is not browser numerical execution",
+    "core_plot_catalog": "106 / 466 plus one ignored / 189 passed; subsequent added ABI test passed separately",
+    "cli": "13 passed",
+    "installed_fore_latest": "7 passed",
+    "catalog_kernel_integration": "7 passed",
+    "workspace_clippy": "all targets, -D warnings, passed",
+    "core_no_default_features": "passed",
+    "format": "passed"
+  },
+  "limitations": [
+    "Full local workspace test compilation previously exceeded disk headroom; no full local workspace test pass claimed. Current free space 13GiB; previous unexecuted test artifacts alone 17GiB plus libraries/link temporaries.",
+    "Browser numerical execution and installed no_std/device profiles not proved; browser qualified offer explicitly refuses.",
+    "General composite approximate arithmetic and two-operation cancellation-sensitive error propagation remain unfinished.",
+    "Optimized timings are native prepared-evaluator components, not equivalent guarantees for structural/certified copies, whole-kernel throughput, cold startup or WCET.",
+    "Candidate, combined integration and publisher acceptance pending."
+  ]
+}
