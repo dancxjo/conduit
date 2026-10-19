@@ -50,8 +50,8 @@ export function attachPortableSuggestions(input, container, { options, policy, c
     if (!event.isTrusted) return;
     selected = null; onDraft(); if (!composing) open();
   });
-  input.addEventListener('compositionstart', () => { composing = true; close(); });
-  input.addEventListener('compositionend', () => { composing = false; selected = null; });
+  input.addEventListener('compositionstart', event => { if (!event.isTrusted) return; composing = true; close(); });
+  input.addEventListener('compositionend', event => { if (!event.isTrusted) return; composing = false; selected = null; });
   input.addEventListener('blur', close);
   input.addEventListener('keydown', event => {
     if (!event.isTrusted || event.isComposing || composing || event.ctrlKey || event.metaKey || event.altKey) return;

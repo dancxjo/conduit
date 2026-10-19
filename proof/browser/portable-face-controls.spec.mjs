@@ -130,6 +130,17 @@ test('required controls reflow under narrow, 200 percent CSS zoom and forced col
   await expect(page.getByLabel('Friendly Body name', { exact: true })).toBeEnabled();
 });
 
+test('forged composition cannot block a later explicit trusted commit', async ({ page }) => {
+  await open(page);
+  const input = page.getByLabel('Friendly Body name', { exact: true });
+  const before = await revision(page);
+  await input.fill('Composition 雪');
+  await input.evaluate(element => element.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true, composed: true })));
+  expect(await revision(page)).toBe(before);
+  await page.getByRole('button', { name: 'Edit Body name', exact: true }).click();
+  await expect(page.locator('[data-source-status$="/birth-review"]')).toContainText('Name: Composition 雪.');
+});
+
 test('Chromium IME preedit is provisional and composition blocks submit', async ({ page, context }) => {
   await open(page); const before = await revision(page);
   const input = page.getByLabel('Friendly Body name', { exact: true });
@@ -137,6 +148,7 @@ test('Chromium IME preedit is provisional and composition blocks submit', async 
   const protocol = await context.newCDPSession(page);
   await protocol.send('Input.imeSetComposition', { text: '雪', selectionStart: 1, selectionEnd: 1 });
   expect(await revision(page)).toBe(before);
+  await input.evaluate(element => element.dispatchEvent(new CompositionEvent('compositionend', { bubbles: true, composed: true })));
   await input.press('Enter');
   expect(await revision(page)).toBe(before);
   await protocol.send('Input.insertText', { text: '雪' });
