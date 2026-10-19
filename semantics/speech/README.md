@@ -955,3 +955,17 @@ formant center/bandwidth stay Hz and cannot masquerade as fundamental cycles.
 Measured and inferred supplied frequency evidence retain distinct Native cases,
 original scope/anchor, span, confidence, provenance and all six error states.
 These are admitted supplied claims, not authenticated sensor measurements.
+
+
+Energy bindings retain an intended amplitude/power trajectory and optional
+supplied observation with an explicit referenced dB basis. Measured and inferred
+interpretations remain distinct. Generic Audio executes amplitude/power and the
+finite exact-power-of-ten dB conversions; unsupported logarithms refuse.
+A declared reference is not calibration evidence, and linear error specifications
+are not inferred dB uncertainties.
+
+Broad scoped energy observations retain the original phone/syllable/word/phrase/
+utterance scope, anchor, exact span, reference, confidence, provenance and all
+six uncertainty states. Admission validates every supplied reference and error
+basis without substituting the datum for the intended control. Generic Audio
+owns overlapping control coverage, priority, gaps and interpolation refusal.
