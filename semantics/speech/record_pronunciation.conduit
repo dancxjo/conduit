@@ -3,6 +3,7 @@
 # Source: https://dictionary.cambridge.org/pronunciation/english/record
 # Prefix weak forms: /a/ article -> [ə], /we/ -> [wi].
 # Durations are authored synthesis settings, not observed dictionary timings.
+# Both use denominator10 for the admitted cumulative grid; 2/10s equals1/5s.
 type SpeechRecordSelectionInput = {
     candidate: LanguageLexicalCandidate
     token: LanguageLexicalToken
@@ -22,4 +23,4 @@ type SpeechRecordPronunciationRaw = {
 plot speech/record-pronunciation (
     >> value: SpeechRecordSelectionInput
     result: SpeechRecordPronunciationRaw >>
-) = (.candidate.lemma == "record" && .token.surface == "record" && .variety.identity == "speech/uk-nonrhotic-record@1" && .variety.language == "language/en" && (.candidate.pos is noun || .candidate.pos is verb) ? {accepted: true, dictionary_ipa: .candidate.pos is noun ? "ˈrek.ɔːd" : "rɪˈkɔːd", phonetic_ipa: .candidate.pos is noun ? "ˈɹɛk.ɔːd" : "ɹɪˈkɔːd", first_vowel_ipa: .candidate.pos is noun ? "ɛ" : "ɪ", stressed_syllable: .candidate.pos is noun ? 0 : 1, short_numerator_seconds: 1, short_denominator: 10, long_numerator_seconds: 1, long_denominator: 5} : {accepted: false, dictionary_ipa: "", phonetic_ipa: "", first_vowel_ipa: "", stressed_syllable: 0, short_numerator_seconds: 0, short_denominator: 1, long_numerator_seconds: 0, long_denominator: 1})
+) = (.candidate.lemma == "record" && .token.surface == "record" && .variety.identity == "speech/uk-nonrhotic-record@1" && .variety.language == "language/en" && (.candidate.pos is noun || .candidate.pos is verb) ? {accepted: true, dictionary_ipa: .candidate.pos is noun ? "ˈrek.ɔːd" : "rɪˈkɔːd", phonetic_ipa: .candidate.pos is noun ? "ˈɹɛk.ɔːd" : "ɹɪˈkɔːd", first_vowel_ipa: .candidate.pos is noun ? "ɛ" : "ɪ", stressed_syllable: .candidate.pos is noun ? 0 : 1, short_numerator_seconds: 1, short_denominator: 10, long_numerator_seconds: 2, long_denominator: 10} : {accepted: false, dictionary_ipa: "", phonetic_ipa: "", first_vowel_ipa: "", stressed_syllable: 0, short_numerator_seconds: 0, short_denominator: 1, long_numerator_seconds: 0, long_denominator: 1})

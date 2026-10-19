@@ -9,6 +9,7 @@ use conduit_speech::{
     semantic::*,
 };
 use conduit_std_host::carried_formant::CarriedFormantFactory;
+#[allow(dead_code)]
 #[path = "../carried_formant_execution.rs"]
 mod execution;
 
@@ -41,6 +42,7 @@ pub fn execute(
     let frozen =
         FrozenCarriedFormant::prepare(complete, formant, boundaries, &anchor, &basis).unwrap();
     let identity = *frozen.source_identity();
+    let expected_frames = frozen.total_frames();
     let digest = |bytes: &[u8; 32]| {
         SpeechCarrierDigest::new(BoundedSequence::try_from_iter(bytes.iter().copied()).unwrap())
             .unwrap()
@@ -54,9 +56,11 @@ pub fn execute(
     let offline = PreparedOfflinePcm::prepare(frozen, declaration).unwrap();
     let factory = CarriedFormantFactory::new(offline, 7).unwrap();
     let (host, _plan) = execution::prepare(factory);
-    let result = execution::run(host, &identity);
+    let result = execution::run_with_frame_count(host, &identity, expected_frames);
     assert!(!result.plays.is_empty());
     assert!(!result.pcm.is_empty());
+    assert!(!result.signs.is_empty());
+    assert!(result.signs.values().all(|events| !events.is_empty()));
     // Keep the exact borrowed authority in use after Play, rather than dropping
     // it during preparation and pretending frozen bytes confer currentness.
     assert_eq!(

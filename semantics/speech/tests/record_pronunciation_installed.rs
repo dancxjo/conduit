@@ -3,6 +3,7 @@
 //! not claim learned parsing of these sentences or general pronunciation.
 #[path = "common/record_pronunciation/carrier.rs"]
 mod carrier;
+#[allow(dead_code)]
 #[path = "common/committed_carrier/commitment.rs"]
 mod commitment;
 #[path = "common/record_pronunciation/installed.rs"]

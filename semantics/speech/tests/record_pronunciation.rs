@@ -58,8 +58,8 @@ fn supplied_syntax_selects_different_canonical_record_phones_without_claiming_co
         assert_eq!(receipt.phonetic().transcription().original(), phone);
         assert_eq!(receipt.first_vowel_ipa(), vowel);
         assert_eq!(receipt.stressed_syllable(), stress);
-        assert_eq!(*receipt.long_duration().numerator_seconds(), 1);
-        assert_eq!(*receipt.long_duration().denominator(), 5);
+        assert_eq!(*receipt.long_duration().numerator_seconds(), 2);
+        assert_eq!(*receipt.long_duration().denominator(), 10);
         assert_eq!(
             conduit_plot::PortableExpressionProgram::from_canonical_hex(profile.program_hex())
                 .unwrap()
