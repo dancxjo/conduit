@@ -1,0 +1,44 @@
+{
+  "measured_source": "08c0cd8a81c8857904b4dd5f2ca8489cd40968c1",
+  "rebased_product_source": "7da6f0de18bc63891fed2f7704fd14e65aade109",
+  "base": "99dfe6eceeb9f8e318e388a06beb98382746c647",
+  "scope": "Only the listed owned product and proof source files are byte-identical to the measured source. Final candidate integration, final helper replay and QEMU proof remain required.",
+  "unchanged_owned_source_files": [
+    {
+      "path": "targets/conduitos/src/boot/limine.rs",
+      "sha256": "ad5f0c0696be1f82165eeacee36e8db9a7ba04b58662fdc1e46435f576cc4960"
+    },
+    {
+      "path": "targets/conduitos/src/display.rs",
+      "sha256": "184b7da49b5d0f6f48adcb63768a78ff39f4b8b140dbb04171c910a7491d8a29"
+    },
+    {
+      "path": "targets/conduitos/src/display/raw.rs",
+      "sha256": "b77c099081e5c25fe0746f737b46748da52d3093e99ec8a6ee06ce6575f0c246"
+    },
+    {
+      "path": "targets/conduitos/src/display/raw/tests.rs",
+      "sha256": "2530e76d8872de26a14e013d0e554a734ac99ed50a7e0428e069c45ca29b1dbe"
+    },
+    {
+      "path": "targets/conduitos/src/native_compositor.rs",
+      "sha256": "5b8f68445ed9deee7bed866b2cb8d3304855d25c572c0f1d1af384092e34d46e"
+    },
+    {
+      "path": "targets/conduitos/src/native_compositor/frame_composition.rs",
+      "sha256": "f28376b1dbef89e3db0ea22486172f6632bb075ef33d4ac006266cf5b5242543"
+    },
+    {
+      "path": "targets/conduitos/src/native_compositor/frame_composition_reference.rs",
+      "sha256": "1f6e05a34cbdb1ca55cadf10ad668d22c58ee03f84abadc3eef167869e5f5b46"
+    },
+    {
+      "path": "targets/conduitos/src/native_compositor/frame_composition_tests.rs",
+      "sha256": "ab638b845175bf7be399e5b3e1e2eab56b5a0b35c0ed22cbf314f47ed6d7cb7d"
+    },
+    {
+      "path": "targets/conduitos/src/native_compositor/scanline.rs",
+      "sha256": "8e40963c981a5039db6dca83164748eff6b2d8936c9f864c44e95e1c2d8a7bea"
+    }
+  ]
+}

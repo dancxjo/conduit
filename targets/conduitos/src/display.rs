@@ -3,9 +3,11 @@
 mod font;
 #[cfg(feature = "native-compositor")]
 mod icons;
+mod raw;
 mod rounded;
 mod text_layout;
 mod tokens;
+pub use raw::RawDisplay;
 pub use tokens::*;
 #[cfg(any(test, feature = "native-compositor"))]
 pub mod profile;
@@ -19,7 +21,6 @@ use conduit_face::{
     GraphicsCommand, GraphicsCommandKind, GraphicsPaintRole, GraphicsScene, GraphicsShapeStyle,
     LayoutRect,
 };
-use core::ptr::NonNull;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct DisplayFormat {
@@ -95,6 +96,21 @@ impl DisplayFormat {
 pub trait PixelTarget {
     fn format(&self) -> DisplayFormat;
     fn write_pixel(&mut self, x: u32, y: u32, pixel: u32) -> Result<(), DisplayError>;
+
+    /// Write consecutive pixels in row order. Empty spans have no effect.
+    /// The default preserves each pixel's error boundary; a scanout Base may
+    /// validate an entire admitted row once before writing it.
+    fn write_span(&mut self, x: u32, y: u32, pixels: &[u32]) -> Result<(), DisplayError> {
+        for (offset, pixel) in pixels.iter().enumerate() {
+            let offset = u32::try_from(offset).map_err(|_| DisplayError::InvalidExtent)?;
+            self.write_pixel(
+                x.checked_add(offset).ok_or(DisplayError::InvalidExtent)?,
+                y,
+                *pixel,
+            )?;
+        }
+        Ok(())
+    }
 }
 
 /// Retained readable pixels support coverage blending without assuming a
@@ -117,68 +133,8 @@ impl<T: PixelTarget + ?Sized> PixelTarget for &mut T {
     fn write_pixel(&mut self, x: u32, y: u32, pixel: u32) -> Result<(), DisplayError> {
         (**self).write_pixel(x, y, pixel)
     }
-}
-
-pub struct RawDisplay {
-    address: NonNull<u8>,
-    byte_len: usize,
-    format: DisplayFormat,
-    available: bool,
-}
-
-impl RawDisplay {
-    /// # Safety
-    ///
-    /// `address..address + byte_len` must remain uniquely writable display
-    /// memory for this value's lifetime. The caller owns synchronization.
-    pub unsafe fn new(
-        address: NonNull<u8>,
-        byte_len: usize,
-        format: DisplayFormat,
-    ) -> Result<Self, DisplayError> {
-        let format = format.validate()?;
-        if byte_len < format.byte_len()? {
-            return Err(DisplayError::BufferTooSmall);
-        }
-        Ok(Self {
-            address,
-            byte_len,
-            format,
-            available: true,
-        })
-    }
-
-    pub fn lose(&mut self) {
-        self.available = false;
-    }
-}
-
-impl PixelTarget for RawDisplay {
-    fn format(&self) -> DisplayFormat {
-        self.format
-    }
-
-    fn write_pixel(&mut self, x: u32, y: u32, pixel: u32) -> Result<(), DisplayError> {
-        if !self.available {
-            return Err(DisplayError::Lost);
-        }
-        let offset = usize::try_from(
-            u64::from(y)
-                .checked_mul(u64::from(self.format.pitch))
-                .and_then(|row| row.checked_add(u64::from(x) * 4))
-                .ok_or(DisplayError::InvalidExtent)?,
-        )
-        .map_err(|_| DisplayError::InvalidExtent)?;
-        if offset.checked_add(4).is_none_or(|end| end > self.byte_len) {
-            return Err(DisplayError::BufferTooSmall);
-        }
-        unsafe {
-            let output = pixel.to_le_bytes();
-            for (index, byte) in output.into_iter().enumerate() {
-                core::ptr::write_volatile(self.address.as_ptr().add(offset + index), byte);
-            }
-        }
-        Ok(())
+    fn write_span(&mut self, x: u32, y: u32, pixels: &[u32]) -> Result<(), DisplayError> {
+        (**self).write_span(x, y, pixels)
     }
 }
 

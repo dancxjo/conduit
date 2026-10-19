@@ -66,6 +66,35 @@ pub(super) fn compose_damage(
     cursor: Option<(u32, u32)>,
     cursor_hover: bool,
 ) -> Result<(u32, u8, [u32; super::MAX_COMPOSITOR_SURFACES]), NativeCompositorError> {
+    let focused = focused_surface.and_then(|id| {
+        surfaces.iter().find(|surface| {
+            surface.surface_id == id && surface.visible && surface.is_raster_ready()
+        })
+    });
+    if let [rect] = damage
+        && rect.width == 1
+        && rect.height == 1
+    {
+        if rect.x >= format.width || rect.y >= format.height {
+            return Err(NativeCompositorError::InvalidBounds);
+        }
+        if surfaces.len() > super::MAX_COMPOSITOR_SURFACES {
+            return Err(NativeCompositorError::TooManySurfaces);
+        }
+        let selected = super::scanline::select_at(surfaces, rect.x, rect.y);
+        let value = selected
+            .map(|(_, surface)| surface_span(surface, rect.x, rect.x + 1, rect.y))
+            .transpose()?
+            .map_or(0, |pixels| pixels[0]);
+        let (pixel, visible) = overlay(value, focused, cursor, cursor_hover, rect.x, rect.y);
+        target.write_pixel(rect.x, rect.y, pixel)?;
+        let mut composed = [0; super::MAX_COMPOSITOR_SURFACES];
+        if visible && let Some((index, _)) = selected {
+            composed[index] = 1;
+        }
+        return Ok((1, u8::from(selected.is_some()), composed));
+    }
+    let prepared = super::scanline::PreparedSurfaces::new(surfaces)?;
     let mut count = 0_u32;
     let mut selected_surfaces = [false; super::MAX_COMPOSITOR_SURFACES];
     let mut composed = [0_u32; super::MAX_COMPOSITOR_SURFACES];
@@ -82,41 +111,52 @@ pub(super) fn compose_damage(
             return Err(NativeCompositorError::InvalidBounds);
         }
         for y in rect.y..bottom {
-            for x in rect.x..right {
-                let selected = surfaces
-                    .iter()
-                    .enumerate()
-                    .filter(|(_, surface)| surface.visible && surface.is_raster_ready())
-                    .filter(|(_, surface)| contains(surface, x, y))
-                    .max_by_key(|(index, surface)| (surface.z, *index));
-                let mut pixel = if let Some((index, surface)) = selected {
+            let overlay_edges = overlay_edges(focused, cursor, y);
+            for (left, end, selected) in prepared.row(rect.x, right, y, &overlay_edges) {
+                let pixels = selected
+                    .map(|(_, surface)| surface_span(surface, left, end, y))
+                    .transpose()?;
+                if let Some((index, _)) = selected {
                     selected_surfaces[index] = true;
-                    surface_pixel(surface, x, y)?
-                } else {
-                    0
-                };
-                let focus = focused_surface.is_some_and(|id| focus_pixel(surfaces, id, x, y));
-                let cursor_pixel =
-                    cursor.and_then(|position| cursor_color(position, x, y, cursor_hover));
-                if focus {
-                    pixel = crate::display::profile::FOCUS;
                 }
-                if let Some(cursor_pixel) = cursor_pixel {
-                    pixel = cursor_pixel;
-                }
-                target.write_pixel(x, y, pixel)?;
-                // Overlay-only pixels do not demonstrate the surface itself.
-                if !focus
-                    && cursor_pixel.is_none()
-                    && let Some((index, _)) = selected
+                let length = end - left;
+                let coverage =
+                    selected.map_or(Some(0), |(index, _)| composed[index].checked_add(length));
+                if !overlay_intersects(focused, cursor, left, end, y)
+                    && let (Some(next_count), Some(next_coverage)) =
+                        (count.checked_add(length), coverage)
                 {
-                    composed[index] = composed[index]
+                    if let Some(pixels) = pixels {
+                        target.write_span(left, y, pixels)?;
+                    } else {
+                        write_black_span(target, left, end, y)?;
+                    }
+                    if let Some((index, _)) = selected {
+                        composed[index] = next_coverage;
+                    }
+                    count = next_count;
+                    continue;
+                }
+                for x in left..end {
+                    let (pixel, visible) = overlay(
+                        pixels.map_or(0, |pixels| pixels[(x - left) as usize]),
+                        focused,
+                        cursor,
+                        cursor_hover,
+                        x,
+                        y,
+                    );
+                    target.write_pixel(x, y, pixel)?;
+                    // Overlay-only pixels do not demonstrate the surface itself.
+                    if visible && let Some((index, _)) = selected {
+                        composed[index] = composed[index]
+                            .checked_add(1)
+                            .ok_or(NativeCompositorError::Display(DisplayError::InvalidExtent))?;
+                    }
+                    count = count
                         .checked_add(1)
                         .ok_or(NativeCompositorError::Display(DisplayError::InvalidExtent))?;
                 }
-                count = count
-                    .checked_add(1)
-                    .ok_or(NativeCompositorError::Display(DisplayError::InvalidExtent))?;
             }
         }
     }
@@ -130,23 +170,112 @@ pub(super) fn compose_damage(
     ))
 }
 
-fn focus_pixel(surfaces: &[CompositorSurface], id: &str, x: u32, y: u32) -> bool {
-    surfaces
-        .iter()
-        .find(|surface| surface.surface_id == id && surface.visible && surface.is_raster_ready())
-        .is_some_and(|surface| {
-            let left = i64::from(surface.bounds.x);
-            let top = i64::from(surface.bounds.y);
-            let right = left + i64::from(surface.bounds.width) - 1;
-            let bottom = top + i64::from(surface.bounds.height) - 1;
-            let x = i64::from(x);
-            let y = i64::from(y);
-            (x == left || x == right || y == top || y == bottom)
-                && x >= left
-                && x <= right
-                && y >= top
-                && y <= bottom
+fn write_black_span(
+    target: &mut impl PixelTarget,
+    mut left: u32,
+    right: u32,
+    y: u32,
+) -> Result<(), DisplayError> {
+    const BLACK: [u32; 64] = [0; 64];
+    while left < right {
+        let length = (right - left).min(BLACK.len() as u32);
+        target.write_span(left, y, &BLACK[..length as usize])?;
+        left += length;
+    }
+    Ok(())
+}
+
+fn overlay_edges(
+    focused: Option<&CompositorSurface>,
+    cursor: Option<(u32, u32)>,
+    y: u32,
+) -> [Option<u32>; super::scanline::MAX_OVERLAY_EDGES] {
+    let mut edges = [None; super::scanline::MAX_OVERLAY_EDGES];
+    if let Some(surface) = focused {
+        let bounds = surface.bounds;
+        if i64::from(y) >= i64::from(bounds.y)
+            && i64::from(y) < i64::from(bounds.y) + i64::from(bounds.height)
+        {
+            let left = i64::from(bounds.x);
+            let right = left + i64::from(bounds.width);
+            for (slot, edge) in edges.iter_mut().zip([left, left + 1, right - 1, right]) {
+                *slot = u32::try_from(edge).ok();
+            }
+        }
+    }
+    if let Some((x, cy)) = cursor
+        && y >= cy
+        && u64::from(y) < u64::from(cy) + 16
+    {
+        edges[4] = Some(x);
+        edges[5] = u32::try_from(u64::from(x) + 16).ok();
+    }
+    edges
+}
+
+fn overlay_intersects(
+    focused: Option<&CompositorSurface>,
+    cursor: Option<(u32, u32)>,
+    left: u32,
+    right: u32,
+    y: u32,
+) -> bool {
+    let focus = focused.is_some_and(|surface| {
+        let bounds = surface.bounds;
+        let x0 = i64::from(bounds.x);
+        let x1 = x0 + i64::from(bounds.width) - 1;
+        let y0 = i64::from(bounds.y);
+        let y1 = y0 + i64::from(bounds.height) - 1;
+        let left = i64::from(left);
+        let right = i64::from(right);
+        let y = i64::from(y);
+        y >= y0
+            && y <= y1
+            && (((y == y0 || y == y1) && left <= x1 && right > x0)
+                || (left <= x0 && x0 < right)
+                || (left <= x1 && x1 < right))
+    });
+    focus
+        || cursor.is_some_and(|(x, cy)| {
+            y >= cy
+                && u64::from(y) < u64::from(cy) + 16
+                && u64::from(left) < u64::from(x) + 16
+                && right > x
         })
+}
+
+fn overlay(
+    pixel: u32,
+    focused: Option<&CompositorSurface>,
+    cursor: Option<(u32, u32)>,
+    hovered: bool,
+    x: u32,
+    y: u32,
+) -> (u32, bool) {
+    let focus = focused.is_some_and(|surface| focus_pixel(surface, x, y));
+    let cursor_pixel = cursor.and_then(|position| cursor_color(position, x, y, hovered));
+    (
+        cursor_pixel.unwrap_or(if focus {
+            crate::display::profile::FOCUS
+        } else {
+            pixel
+        }),
+        !focus && cursor_pixel.is_none(),
+    )
+}
+
+fn focus_pixel(surface: &CompositorSurface, x: u32, y: u32) -> bool {
+    let left = i64::from(surface.bounds.x);
+    let top = i64::from(surface.bounds.y);
+    let right = left + i64::from(surface.bounds.width) - 1;
+    let bottom = top + i64::from(surface.bounds.height) - 1;
+    let x = i64::from(x);
+    let y = i64::from(y);
+    (x == left || x == right || y == top || y == bottom)
+        && x >= left
+        && x <= right
+        && y >= top
+        && y <= bottom
 }
 
 const CURSOR_OUTLINE: [u16; 16] = [
@@ -177,22 +306,13 @@ fn cursor_color((cx, cy): (u32, u32), x: u32, y: u32, hovered: bool) -> Option<u
         .then_some(0x00000000)
 }
 
-fn contains(surface: &CompositorSurface, x: u32, y: u32) -> bool {
-    let left = i64::from(surface.bounds.x);
-    let top = i64::from(surface.bounds.y);
-    let right = left + i64::from(surface.bounds.width);
-    let bottom = top + i64::from(surface.bounds.height);
-    let x = i64::from(x);
-    let y = i64::from(y);
-    x >= left && x < right && y >= top && y < bottom
-}
-
-fn surface_pixel(
+fn surface_span(
     surface: &CompositorSurface,
-    x: u32,
+    left: u32,
+    right: u32,
     y: u32,
-) -> Result<u32, NativeCompositorError> {
-    let local_x = i64::from(x) - i64::from(surface.bounds.x);
+) -> Result<&[u32], NativeCompositorError> {
+    let local_x = i64::from(left) - i64::from(surface.bounds.x);
     let local_y = i64::from(y) - i64::from(surface.bounds.y);
     let index = usize::try_from(
         local_y
@@ -201,11 +321,13 @@ fn surface_pixel(
             .ok_or(NativeCompositorError::InvalidBounds)?,
     )
     .map_err(|_| NativeCompositorError::InvalidBounds)?;
+    let end = index
+        .checked_add((right - left) as usize)
+        .ok_or(NativeCompositorError::InvalidBounds)?;
     surface
         .buffer
         .pixels
-        .get(index)
-        .copied()
+        .get(index..end)
         .ok_or(NativeCompositorError::InvalidBounds)
 }
 
@@ -223,3 +345,10 @@ mod tests {
         assert_eq!(cursor_color(origin, 35, 46, false), None);
     }
 }
+
+#[cfg(test)]
+#[path = "frame_composition_tests.rs"]
+mod differential;
+#[cfg(test)]
+#[path = "frame_composition_reference.rs"]
+mod reference;
