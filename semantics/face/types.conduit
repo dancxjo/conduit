@@ -675,8 +675,41 @@ type VisualExpressionInfo = {
 
 # Structural selectors refer to existing Face classifications; they are not
 # widgets, paint roles, or replacement semantic subjects/actions.
+# Required semantic slots in a component recipe bind original Face truth.
+# These references grant no interaction authority; the acknowledged Show still
+# validates every returned action and argument against the current Face.
+type ComponentArgumentBinding = {
+    name: Text <= 64B not in [""]
+    value_kind: Text <= 128B not in [""]
+    contract_digest: Text <= 64B not in [""]
+}
+
+type ComponentActionBinding = {
+    identity: Text <= 256B not in [""]
+    intent: Text <= 256B not in [""]
+    arguments: sequence ComponentArgumentBinding <= 4
+}
+
+type ComponentPropertyBinding = {
+    name: Text <= 64B not in [""]
+    kind: Text <= 8B in ["flag", "count", "signed", "text", "identity", "typed"]
+    value_kind: Text <= 128B
+}
+
+type ComponentBindingRole =
+    role Text <= 256B not in [""]
+    | semantic Text <= 256B not in [""]
+
+type ComponentSubjectBinding = {
+    subject: Text <= 256B not in [""]
+    role: ComponentBindingRole
+    properties: sequence ComponentPropertyBinding <= 8
+    actions: sequence ComponentActionBinding <= 2
+}
+
 type ComponentSubjectSelector =
     subject Text <= 256B not in [""]
+    | bound ComponentSubjectBinding
     | role Text in ["Document", "Body", "Part", "Candidate", "Plot", "Gear", "Port", "Cord", "Plan", "Play", "Host", "Capability", "Line", "Manifestation", "Route", "Diagnostic", "Sign", "Info", "Region", "Collection", "Item", "TextEntry", "Status", "Action"]
 
 type ComponentRegionInfo = {
