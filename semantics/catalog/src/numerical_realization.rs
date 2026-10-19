@@ -2,8 +2,10 @@
 use alloc::{format, string::String, vec, vec::Vec};
 use conduit_core::*;
 use conduit_plot::{ProfileCatalog, StartupCatalog};
+mod enclosure;
 mod ieee;
 mod near;
+pub use enclosure::*;
 pub use ieee::*;
 pub use near::*;
 pub const NUMERICAL_FACE_KIND: &str = "face/numerical-result";
@@ -190,6 +192,7 @@ pub fn install_numerical_catalogs(
         .insert_kind(kind)
         .map_err(|why| format!("numeric Kind: {why:?}"))?;
     near::install(startup, profile)?;
+    enclosure::install(startup, profile)?;
     ieee::install(startup, profile)
 }
 pub fn numerical_result_value(

@@ -4,6 +4,19 @@ type NumericalRequest = {
     maximum-error: MathematicalValue
 }
 
+# A bounded interval consumer receives exact data during Play. Width is a
+# numerical enclosure requirement, independent of measurement uncertainty.
+type MathematicalEnclosureRequest = {
+    maximum-width: MathematicalValue
+}
+type MathematicalEnclosure = {
+    source: MathematicalValue
+    lower: MathematicalValue
+    upper: MathematicalValue
+    width: MathematicalValue
+    maximum-width: MathematicalValue
+}
+
 # The selected operation order uses these explicit rounding directions.
 type NumericalRounding =
     nearest_ties_even

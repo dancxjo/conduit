@@ -4,6 +4,8 @@ use conduit_core::{
     ConfigurationValue, ExactNumericWork, NumericalRealizationRequest, OfferGeneration,
 };
 use conduit_plot::ExpandedCanonicalPlot;
+mod enclosure_encoding;
+pub(crate) mod enclosure_step;
 mod expressions;
 pub(crate) mod ieee_encoding;
 pub(crate) mod ieee_native;
@@ -44,16 +46,27 @@ impl StdHost {
             .filter(|gear| gear.kind_id.as_str() == conduit_semantic_catalog::NUMERICAL_NEAR_KIND)
             .take(33)
             .collect::<Vec<_>>();
+        let enclosure_gears = plot
+            .gears
+            .iter()
+            .filter(|gear| {
+                gear.kind_id.as_str() == conduit_semantic_catalog::MATHEMATICAL_ENCLOSE_KIND
+            })
+            .take(33)
+            .collect::<Vec<_>>();
         if gears.is_empty()
             && ieee_gears.is_empty()
             && near_gears.is_empty()
+            && enclosure_gears.is_empty()
             && !self.advertisement.capabilities.iter().any(|offer| {
-                installed_std::owns_ieee_offer(offer) || installed_std::owns_near_offer(offer)
+                installed_std::owns_ieee_offer(offer)
+                    || installed_std::owns_near_offer(offer)
+                    || installed_std::owns_enclosure_offer(offer)
             })
         {
             return Ok(());
         }
-        if gears.len() + ieee_gears.len() + near_gears.len() > 32 {
+        if gears.len() + ieee_gears.len() + near_gears.len() + enclosure_gears.len() > 32 {
             return Err("std numerical source preparation exceeds 32 instances".into());
         }
         plot.validate_expansion()
@@ -67,6 +80,7 @@ impl StdHost {
             !installed_std::owns_numerical_offer(offer)
                 && !installed_std::owns_ieee_offer(offer)
                 && !installed_std::owns_near_offer(offer)
+                && !installed_std::owns_enclosure_offer(offer)
         });
         advertisement
             .capabilities
@@ -104,6 +118,13 @@ impl StdHost {
             advertisement
                 .capabilities
                 .extend(installed_std::near_offers(&gear.configuration)?);
+        }
+        for gear in enclosure_gears {
+            let offer = installed_std::enclosure_offer(&gear.configuration)?;
+            if !gear.accepts_realization(&offer) {
+                return Err("numeric/enclose-source-kind-fore-differs@1".into());
+            }
+            advertisement.capabilities.push(offer);
         }
         normalize_capability_offers(&mut advertisement.capabilities)?;
         if advertisement.capabilities == self.advertisement.capabilities {

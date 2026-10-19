@@ -338,6 +338,7 @@ installed_step_dispatch!(
     LocalExpression,
     Numerical,
     NearQuantity,
+    MathematicalEnclosure,
     IeeeBinary64,
     StructuredLiteral,
     StructuredFace,
