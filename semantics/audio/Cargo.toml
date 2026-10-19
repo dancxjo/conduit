@@ -11,5 +11,6 @@ libm = "0.2"
 serde = { version = "1", default-features = false, features = ["alloc", "derive"] }
 
 [build-dependencies]
+conduit-data = { path = "../data" }
 conduit-core = { path = "../../architecture/core" }
 conduit-plot = { path = "../../architecture/plot" }

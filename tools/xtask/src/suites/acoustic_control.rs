@@ -2,6 +2,34 @@
 use crate::process::Step;
 pub const STEPS: &[Step] = &[
     Step::new(
+        "acoustic-control.clock-owner",
+        "Retain the Data owner's exact clock contracts in Audio",
+        "cargo",
+        &[
+            "test",
+            "--locked",
+            "-p",
+            "conduit-data",
+            "--test",
+            "clock_authoring",
+        ],
+    ),
+    Step::new(
+        "acoustic-control.catalog",
+        "Check exact public clock and control Source Fores and Backs",
+        "cargo",
+        &[
+            "test",
+            "--locked",
+            "-p",
+            "conduit-semantic-catalog",
+            "--features",
+            "plot-catalog",
+            "--test",
+            "acoustic_control_catalog",
+        ],
+    ),
+    Step::new(
         "acoustic-control.references",
         "Check independent exact acoustic conversion and trajectory references",
         "cargo",
@@ -12,6 +40,12 @@ pub const STEPS: &[Step] = &[
             "conduit-audio",
             "--test",
             "acoustic_quantities",
+            "--test",
+            "clock_projection",
+            "--test",
+            "control_projection",
+            "--test",
+            "control_projection_report",
             "--test",
             "authoring_types",
             "--test",

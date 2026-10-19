@@ -107,9 +107,12 @@ rate/anchor/denominator, malformed frames, forged carry, incorrect fidelity,
 finite sequence bounds and adversarial generic projection reports. Foreign
 quantization variants refuse Native admission rather than fall back.
 
-This establishes exact declared rate/cumulative semantics only. Actual clock
-relationships, control-rate/Q-format projections, additional numeric profiles,
-renderer/PCM eligibility, stable acceptance and all remaining #5216
-requirements remain open. The separate explicit-reference exact-power-of-ten
+This establishes exact declared rate/cumulative semantics only. The existing
+periodic Q8/Q15 and resonator Q30→Q14 profiles and public catalog are separately
+implemented; their exact domains and precision are mapped in
+[CONTROL_CONTRACT.md](CONTROL_CONTRACT.md). The declared clock/control-cadence
+completion has its own positive implementation/proof obligation. Physical clock
+calibration, arbitrary numeric profiles and whole-parent stable acceptance do
+not follow from this sample-grid seam. The separate explicit-reference exact-power-of-ten
 dB capability is documented in [DECIBELS.md](DECIBELS.md); general logarithmic
 conversion remains open.

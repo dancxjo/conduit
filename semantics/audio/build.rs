@@ -1,7 +1,11 @@
+#[path = "build_support/clock_imports.rs"]
+mod clock_imports;
 #[path = "build_support/periodic.rs"]
 mod periodic;
-use conduit_plot::rust_binding::{generate_rust_bindings_with_forms, RustBindingOptions};
-use conduit_plot::{check_syntax_document, parse_syntax_document, StartupCatalog};
+use conduit_plot::rust_binding::{
+    generate_rust_bindings_with_forms_and_external_bindings, RustBindingOptions,
+};
+use conduit_plot::{check_syntax_document, parse_syntax_document};
 use std::{env, fs, path::PathBuf};
 
 fn main() {
@@ -19,8 +23,17 @@ fn main() {
     println!("cargo:rerun-if-changed=decibel_projection.conduit");
     println!("cargo:rerun-if-changed=rate_projection.conduit");
     println!("cargo:rerun-if-changed=trajectory.conduit");
-    let type_source = format!(
-        "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
+    for path in [
+        "clock_projection_types.conduit",
+        "clock_projection.conduit",
+        "control_projection_types.conduit",
+        "control_projection.conduit",
+        "build_support/clock_imports.rs",
+    ] {
+        println!("cargo:rerun-if-changed={path}");
+    }
+    let imports = clock_imports::OwnerImports::new();
+    let type_source = [
         include_str!("types.conduit"),
         include_str!("trajectory_types.conduit"),
         include_str!("rate_types.conduit"),
@@ -30,32 +43,39 @@ fn main() {
         include_str!("dsp/periodic-types.conduit"),
         include_str!("spectral_analysis_types.conduit"),
         include_str!("pitch_analysis_types.conduit"),
-        include_str!("pcm_packing_types.conduit")
-    );
+        include_str!("pcm_packing_types.conduit"),
+        include_str!("clock_projection_types.conduit"),
+        include_str!("control_projection_types.conduit"),
+    ]
+    .join("\n");
     fs::write(
         PathBuf::from(env::var_os("OUT_DIR").unwrap()).join("periodic-validators.conduit"),
         periodic::validation_source(&type_source),
     )
     .expect("periodic Source validators");
-    let checked =
-        check_syntax_document(&parse_syntax_document(&type_source), &StartupCatalog::new())
-            .expect("audio semantic Types must check");
+    let checked = check_syntax_document(&parse_syntax_document(&type_source), &imports.catalog)
+        .expect("audio semantic Types must check");
     println!("cargo:rerun-if-changed=acoustic_quantities.conduit");
-    let acoustic_source = format!(
-        "{}\n{}\n{}\n{}\n{}",
-        type_source,
+    let acoustic_source = [
+        type_source.as_str(),
         include_str!("acoustic_quantities.conduit"),
         include_str!("trajectory.conduit"),
         include_str!("rate_projection.conduit"),
-        include_str!("decibel_projection.conduit")
-    );
-    let acoustic = check_syntax_document(
-        &parse_syntax_document(&acoustic_source),
-        &StartupCatalog::new(),
-    )
-    .expect("acoustic Source checks");
+        include_str!("decibel_projection.conduit"),
+        include_str!("clock_projection.conduit"),
+        include_str!("control_projection.conduit"),
+    ]
+    .join("\n");
+    let acoustic =
+        check_syntax_document(&parse_syntax_document(&acoustic_source), &imports.catalog)
+            .expect("acoustic Source checks");
     let mut programs = String::new();
     for (name, constant) in [
+        ("audio/clock-binding-valid", "CLOCK_BINDING_VALID"),
+        ("audio/clock-query-eligible", "CLOCK_QUERY_ELIGIBLE"),
+        ("audio/clock-project", "CLOCK_PROJECT"),
+        ("audio/control-query-time", "CONTROL_QUERY_TIME"),
+        ("audio/control-final-time", "CONTROL_FINAL_TIME"),
         ("audio/frequency-to-cycle", "FREQUENCY_TO_CYCLE"),
         ("audio/cycle-to-frequency", "CYCLE_TO_FREQUENCY"),
         ("audio/amplitude-to-power", "AMPLITUDE_TO_POWER"),
@@ -104,9 +124,11 @@ fn main() {
         programs,
     )
     .expect("write acoustic programs");
-    let mut generated = generate_rust_bindings_with_forms(
+    let mut generated = generate_rust_bindings_with_forms_and_external_bindings(
         &checked.native_types,
         &checked.type_forms,
+        &imports.types,
+        &imports.bindings(),
         &RustBindingOptions {
             derive_serde_for_variants: true,
             // Finite cursor outcomes keep payloads inline across recurrence steps.

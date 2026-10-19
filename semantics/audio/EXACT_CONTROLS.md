@@ -27,3 +27,10 @@ Focused proof: `cargo test -p conduit-audio --test exact_controls` and
 uses actual authored typed control programs, placement, planning and Kernel
 execution; it checks exact transported values, source identity and allocation
 capacity. These controls do not establish device playback or renderer fidelity.
+
+The generic periodic profile separately realizes an explicit finite phase cursor
+from this retained reference; selected phase normalization and its remainder do
+not erase original whole turns. Offered gain, noise, independent excitation,
+numeric profiles and catalog paths are mapped in
+[CONTROL_CONTRACT.md](CONTROL_CONTRACT.md). Clock/control-cadence completion
+requires its separate positive binding/evaluation proof.

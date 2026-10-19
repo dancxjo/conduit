@@ -1,0 +1,23 @@
+# Control cadence counts semantic evaluations per elapsed second, never PCM frames.
+type AudioControlCadence = {
+    updates_per_second: U64 in 1..=192000
+}
+# This profile exports exact point samples only. No between-point reconstruction
+# or fidelity to a continuously varying original is asserted.
+type AudioControlReconstruction =
+    point_samples_only
+type AudioControlProjectionSchedule = {
+    anchor: AudioTrajectoryAnchor
+    start: AudioExactTimeOffset
+    cadence: AudioControlCadence
+    update_count: U16 in 1..=16
+    reconstruction: AudioControlReconstruction
+    where .start.numerator_seconds <= 4294967295
+    where .start.denominator <= 4294967295
+    where .start.denominator * .cadence.updates_per_second <= 4294967295
+}
+type AudioControlProjectionPoint = {
+    schedule: AudioControlProjectionSchedule
+    index: U16
+    where .index < .schedule.update_count
+}

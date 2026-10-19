@@ -35,7 +35,7 @@ fn main() {
         } => schema.as_str().to_owned(),
         _ => panic!("temporal instant has one named record identity"),
     };
-    let generated = generate_rust_bindings_with_forms_and_external_bindings(
+    let mut generated = generate_rust_bindings_with_forms_and_external_bindings(
         &checked.native_types,
         &checked.type_forms,
         &[temporal_instant],
@@ -121,6 +121,24 @@ fn main() {
         },
     )
     .expect("data semantic Types and Forms must generate exact Rust bindings");
+    // Export only the clock-owner roots. Nested refinements and laws are the
+    // exact metadata already used by the owner's Native constructors.
+    generated.source.push_str(
+        "pub(crate) fn checked_clock_authoring_types() -> Result<Vec<conduit_plot::CheckedNativeType>, NativeBindingRefusal> { Ok(vec![\n",
+    );
+    for name in ["ClockRelationQuality", "ClockRelation"] {
+        let ty = checked
+            .native_types
+            .iter()
+            .find(|ty| ty.name == name)
+            .expect("clock authoring root belongs to checked Data Source");
+        assert!(generated.source.contains(&format!("impl {name} {{")));
+        generated.source.push_str(&format!(
+            "conduit_plot::CheckedNativeType {{ name: {name:?}.into(), identity: conduit_plot::rust_binding::semantic_core::kind_id({identity:?}), value_type: {name}::semantic_type()?, value_contracts: {name}::value_contracts(), invariants: {name}::invariants()? }},\n",
+            identity = ty.identity.as_str(),
+        ));
+    }
+    generated.source.push_str("] ) }\n");
     let output_directory = PathBuf::from(env::var_os("OUT_DIR").expect("Cargo supplies OUT_DIR"));
     let output = output_directory.join("semantic_types.rs");
     fs::write(output, generated.source).expect("write generated data bindings");
