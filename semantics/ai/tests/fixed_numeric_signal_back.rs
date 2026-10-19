@@ -407,3 +407,7 @@ fn elementwise_overflow_and_pressure_publish_no_result() {
         true,
     );
 }
+
+#[cfg(feature = "kernel-operation-owners")]
+#[path = "fixed_numeric_signal_back/compact.rs"]
+mod compact;
