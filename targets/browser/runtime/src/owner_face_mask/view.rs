@@ -6,7 +6,7 @@ use conduit_face::{FaceActionAvailability, FaceProperty, FacePropertyValue, Face
 impl OwnerBrowserMask {
     pub(super) fn view(&self) -> FaceView {
         let mut view = project_view(
-            &self.body_id,
+            self.body_id.as_ref(),
             &self.face,
             &self.planned,
             &self.play,
@@ -32,7 +32,7 @@ pub(crate) fn local_view(
     play: &conduit_core::ActivePlayIdentity,
 ) -> FaceView {
     project_view(
-        body_id,
+        Some(body_id),
         face,
         &show.planned_mask,
         play,
@@ -43,7 +43,7 @@ pub(crate) fn local_view(
 }
 
 fn project_view(
-    body_id: &BodyId,
+    body_id: Option<&BodyId>,
     face: &Face,
     planned: &conduit_face::PlannedMaskPlot,
     play: &conduit_core::ActivePlayIdentity,
@@ -54,7 +54,7 @@ fn project_view(
     FaceView {
         schema: "conduit.browser/owner-face-mask@1",
         component: None,
-        body_id: body_id.as_str().into(),
+        body_id: body_id.map(|id| id.as_str().into()),
         face_id: face.identity.as_str().into(),
         face_revision: face.revision.to_string(),
         mask_plot_id: planned.mask.plot_identity.checked_plot_id.as_str().into(),

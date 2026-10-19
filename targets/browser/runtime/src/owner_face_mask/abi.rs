@@ -136,7 +136,7 @@ pub extern "C" fn conduit_browser_owner_face_prepare(basis_len: usize, frame_len
             let Some(mask) = current.as_ref() else {
                 return -6;
             };
-            if mask.body_id != basis.body_id
+            if mask.body_id.as_ref() != Some(&basis.body_id)
                 || mask.play.host_id != basis.host_id
                 || mask.play.boot_id != basis.boot_id
                 || mask.face.revision != revision

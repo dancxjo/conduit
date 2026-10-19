@@ -14,6 +14,7 @@ use super::abi;
 
 const ERROR_DRAFT: i32 = -461;
 
+mod local_face;
 #[cfg(test)]
 mod tests;
 
@@ -21,6 +22,8 @@ mod tests;
 struct CurrentDraft {
     generation: u32,
     draft: Option<BirthDraft>,
+    local_face: Option<local_face::Encounter>,
+    mask_sequence: u64,
 }
 thread_local! {
     static CURRENT: RefCell<CurrentDraft> = RefCell::new(CurrentDraft::default());
@@ -137,8 +140,11 @@ impl CurrentDraft {
         let candidate = Self {
             generation,
             draft: Some(draft),
+            local_face: None,
+            mask_sequence: self.mask_sequence,
         };
         candidate.snapshot(false)?;
+        self.close_local_face()?;
         *self = candidate;
         Ok(())
     }
@@ -159,6 +165,7 @@ impl CurrentDraft {
             .ok_or("Crèche draft is absent")?
             .apply_event(request.revision, &request.action, event, &request.value)
             .map_err(|error| format!("Crèche action refused: {error:?}"))?;
+        self.close_local_face()?;
         self.snapshot(matches!(outcome, BirthActionOutcome::Birth(_)))
     }
 }
