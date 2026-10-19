@@ -35,6 +35,9 @@ impl FixedNumericOperationFactory {
         {
             return super::compact_linear::prepare(gear, fuel, bindings);
         }
+        if crate::fixed_numeric_catalog::is_pure_slice(gear.kind_id.as_str()) {
+            return super::compact_slice::prepare(gear, fuel);
+        }
         let kind = gear.kind_id.as_str();
         macro_rules! widths {
             ($($width:literal),+) => { $(

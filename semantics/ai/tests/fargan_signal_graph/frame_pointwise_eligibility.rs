@@ -32,9 +32,18 @@ fn full_frame_pointwise_and_readonly_eligibility_is_derived_from_versioned_seman
                     .ends_with("/read-immutable-input@1")
             })
             .collect();
+        let slices: Vec<_> = pure
+            .iter()
+            .filter(|p| {
+                p.kind_contract_revision
+                    .as_str()
+                    .ends_with("/pure-explicit-slice@1")
+            })
+            .collect();
+        assert_eq!(slices.len(), 72);
         assert_eq!(pointwise.len(), 191);
         assert_eq!(readonly.len(), 24);
-        assert_eq!(pure.len(), pointwise.len() + readonly.len());
+        assert_eq!(pure.len(), pointwise.len() + readonly.len() + slices.len());
         assert_eq!(
             pointwise
                 .iter()
@@ -59,6 +68,10 @@ fn full_frame_pointwise_and_readonly_eligibility_is_derived_from_versioned_seman
                 .kind_contract_revision
                 .as_str()
                 .ends_with("/pure-value@1")
+                || placement
+                    .kind_contract_revision
+                    .as_str()
+                    .ends_with("/pure-explicit-slice@1")
             {
                 conduit_ai::operation_owners::fixed_numeric::fixed_numeric_offer_capacity64(name)
                     .unwrap()
