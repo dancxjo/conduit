@@ -48,38 +48,7 @@ pub(super) fn retain(
     }
     let trace = read(&parent.join("journey-qmp.log"), 1024 * 1024)?;
     let commands = pointer_commands(&trace, start)?;
-    let presses = proof["pointer_actions"]["presses"]
-        .as_array()
-        .ok_or_else(|| refusal("missing pointer presses"))?;
-    let changes = proof["pointer_actions"]["source_changes"]
-        .as_array()
-        .ok_or_else(|| refusal("missing pointer changes"))?;
-    if commands.len() != 2 || presses.len() != 2 || changes.len() != 4 {
-        return Err(refusal("finite pointer action coverage differs"));
-    }
-    let mut pointer = Vec::new();
-    for (index, (command, press)) in commands.iter().zip(presses).enumerate() {
-        let change = &changes[index + 2];
-        let physical = exact_payload(&records, "CONDUIT_NATIVE_POINTER ", press)?;
-        let presented = exact_payload(&records, "CONDUIT_CRECHE_CHANGE ", change)?;
-        if press["press_edge"] != true
-            || press["primary_pressed"] != true
-            || press["face_id"] != change["before_face_id"]
-            || press["show_id"] != change["before_show_id"]
-            || press["face_revision"] != change["before_revision"]
-            || physical.offset >= presented.offset
-            || command.1 > physical.observed_ns
-        {
-            return Err(refusal(
-                "pointer command, current Show and rendered change do not correlate",
-            ));
-        }
-        pointer.push(json!({"qmp_id":command.0,"command_ns":command.1,"qmp_accepted_ns":command.2,
-            "physical_sequence":press["sequence"],"before_show_id":change["before_show_id"],"after_show_id":change["after_show_id"],
-            "command_to_pointer_render_observed_ns":physical.observed_ns-command.1,
-            "command_to_checkbox_present_observed_ns":presented.observed_ns-command.1,
-            "pointer_serial_byte_start":physical.offset,"change_serial_byte_start":presented.offset}));
-    }
+    let pointer = pointer_metrics(&records, &commands, &proof["pointer_actions"])?;
     let stages: Vec<_> = records.iter().filter_map(|record| record.line.strip_prefix("CONDUIT_BOOT_STAGE ").map(|stage|
         json!({"stage":stage.trim_end_matches(['\r', '\n']),"observed_ns":record.observed_ns,"serial_byte_start":record.offset}))).collect();
     let ready: Vec<_> = stages
@@ -116,6 +85,64 @@ pub(super) fn retain(
         serde_json::to_vec_pretty(&result).map_err(json_error)?,
     )
     .map_err(io_error)
+}
+fn pointer_metrics(
+    records: &[Record<'_>],
+    commands: &[(String, u64, u64)],
+    actions: &Value,
+) -> Result<Vec<Value>, ConduitosError> {
+    let presses = actions["presses"]
+        .as_array()
+        .ok_or_else(|| refusal("missing pointer presses"))?;
+    let changes = actions["source_changes"]
+        .as_array()
+        .ok_or_else(|| refusal("missing pointer changes"))?;
+    if commands.len() != 2 || presses.len() != 2 || changes.len() != 4 {
+        return Err(refusal("finite pointer action coverage differs"));
+    }
+    let mut pointer = Vec::new();
+    let mut previous = None;
+    for (index, (command, press)) in commands.iter().zip(presses).enumerate() {
+        let change = &changes[index + 2];
+        let physical = exact_payload(records, "CONDUIT_NATIVE_POINTER ", press)?;
+        let presented = exact_payload(records, "CONDUIT_CRECHE_CHANGE ", change)?;
+        let sequence = number(press, "sequence")?;
+        if [
+            "before_face_id",
+            "after_face_id",
+            "before_show_id",
+            "after_show_id",
+        ]
+        .iter()
+        .any(|field| change[*field].as_str().is_none_or(str::is_empty))
+            || change["before_show_id"] == change["after_show_id"]
+            || sequence == 0
+            || previous.is_some_and(|(prior_sequence, prior_offset)| {
+                sequence <= prior_sequence || physical.offset <= prior_offset
+            })
+        {
+            return Err(refusal("pointer evidence reuses an old gesture or Show"));
+        }
+        if press["press_edge"] != true
+            || press["primary_pressed"] != true
+            || press["face_id"] != change["before_face_id"]
+            || press["show_id"] != change["before_show_id"]
+            || press["face_revision"] != change["before_revision"]
+            || physical.offset >= presented.offset
+            || command.1 > physical.observed_ns
+        {
+            return Err(refusal(
+                "pointer command, current Show and rendered change do not correlate",
+            ));
+        }
+        previous = Some((sequence, presented.offset));
+        pointer.push(json!({"qmp_id":command.0,"command_ns":command.1,"qmp_accepted_ns":command.2,
+            "physical_sequence":press["sequence"],"before_show_id":change["before_show_id"],"after_show_id":change["after_show_id"],
+            "command_to_pointer_render_observed_ns":physical.observed_ns-command.1,
+            "command_to_checkbox_present_observed_ns":presented.observed_ns-command.1,
+            "pointer_serial_byte_start":physical.offset,"change_serial_byte_start":presented.offset}));
+    }
+    Ok(pointer)
 }
 fn decode<'a>(
     raw: &'a [u8],
@@ -379,5 +406,52 @@ mod tests {
         let mut reversed = rows;
         reversed[1]["observer_timestamp_ns"] = json!(0);
         assert!(pointer_commands(&encode(&reversed), 0).is_err());
+    }
+    #[test]
+    fn pointer_metrics_refuse_stale_gestures_and_obsolete_shows() {
+        let press = |face: &str, show: &str, revision: u64, sequence: u64| json!({"face_id":face,"show_id":show,"face_revision":revision,"sequence":sequence,"primary_pressed":true,"press_edge":true});
+        let change = |before: &str,
+                      after: &str,
+                      before_show: &str,
+                      after_show: &str,
+                      revision: u64| json!({"before_face_id":before,"after_face_id":after,"before_show_id":before_show,"after_show_id":after_show,"before_revision":revision});
+        let p1 = press("f1", "s1", 1, 3);
+        let p2 = press("f2", "s2", 2, 8);
+        let c1 = change("f1", "f2", "s1", "s2", 1);
+        let c2 = change("f2", "f3", "s2", "s3", 2);
+        let lines = [
+            format!("CONDUIT_NATIVE_POINTER {p1}\n"),
+            format!("CONDUIT_CRECHE_CHANGE {c1}\n"),
+            format!("CONDUIT_NATIVE_POINTER {p2}\n"),
+            format!("CONDUIT_CRECHE_CHANGE {c2}\n"),
+        ];
+        let records: Vec<_> = lines
+            .iter()
+            .enumerate()
+            .map(|(i, line)| Record {
+                line,
+                offset: i * 100,
+                observed_ns: (i as u64 + 1) * 10,
+            })
+            .collect();
+        let commands = vec![("a".into(), 1, 2), ("b".into(), 21, 22)];
+        let actions = json!({"presses":[p1,p2],"source_changes":[null,null,c1,c2]});
+        let metrics = pointer_metrics(&records, &commands, &actions).unwrap();
+        assert_eq!(metrics.len(), 2);
+        assert_eq!(metrics[0]["command_to_checkbox_present_observed_ns"], 19);
+        let mut stale = actions.clone();
+        stale["presses"][1] = stale["presses"][0].clone();
+        assert!(pointer_metrics(&records, &commands, &stale).is_err());
+        let mut delayed = commands;
+        delayed[1].1 = 31;
+        assert!(pointer_metrics(&records, &delayed, &actions).is_err());
+        let mut stale_show = actions;
+        stale_show["source_changes"][3]["before_show_id"] = json!("s1");
+        assert!(pointer_metrics(
+            &records,
+            &[("a".into(), 1, 2), ("b".into(), 21, 22)],
+            &stale_show
+        )
+        .is_err());
     }
 }
