@@ -310,12 +310,14 @@ fn same_point_one_second_200hz_intent_survives_independent_pcm_and_control_grids
     let AudioTrajectoryQuantity::Frequency(frequency) = original_segment.left() else {
         panic!("authored frequency domain")
     };
-    let frequency_canonical = frequency.clone().encode().unwrap();
+    let frequency =
+        AudioFrequencyHz::new(*frequency.denominator(), *frequency.numerator_hz()).unwrap();
+    let frequency_canonical = frequency.encode().unwrap();
     let reciprocal = PreparedAcousticReciprocal::new()
         .unwrap()
         .frequency_to_cycle(&frequency_canonical)
         .unwrap();
-    assert_eq!(reciprocal.input(), frequency);
+    assert_eq!(reciprocal.input(), &frequency);
     assert_eq!(reciprocal.original_canonical(), frequency_canonical);
     assert_eq!(*reciprocal.result().numerator_seconds(), 1);
     assert_eq!(*reciprocal.result().denominator(), 200);
@@ -328,7 +330,11 @@ fn same_point_one_second_200hz_intent_survives_independent_pcm_and_control_grids
         .unwrap(),
         reciprocal.result_canonical()
     );
-    let cycle = AudioSampleProjectionQuantity::Cycle(reciprocal.result().clone());
+    let cycle = AudioSampleProjectionQuantity::cycle(
+        *reciprocal.result().denominator(),
+        *reciprocal.result().numerator_seconds(),
+    )
+    .unwrap();
     // Explicit caller-declared relation: numeric rates never select a clock.
     let declared_clock = clock();
     for cadence in [100, 200] {
