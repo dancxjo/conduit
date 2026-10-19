@@ -58,6 +58,31 @@ grant cannot loosen. Numeric limb-work accounting is not a CPU-time or WCET
 claim; Unit decoding is an independently fixed-size operation. Refusals charge
 the work already spent and return no substituted value.
 
+## Prepared exact Unit conversion
+
+`PreparedMathematicalQuantityConversion` now changes the Unit frame of supported
+symbolic coordinates without numerical realization. It derives affine scale and
+offset by converting zero and one through the existing role-aware
+`RationalQuantity` law, then imports the coordinate into the existing bounded
+mathematical builder and forms `scale * coordinate + offset`. The returned
+computational receipt retains the complete source frame, target Unit, exact
+scale/offset and output length. It does not attest Source spelling, Unit binding,
+Plan authority or a generic projection report.
+
+Point and difference roles remain unchanged; the existing physical law supplies
+an offset only for points. Distinct incompatible origins still refuse, including
+a general turn-to-radian conversion: that bridge continues to require its
+separate exact Pi law. Numerical precision is not a conversion argument.
+Prepared builder and coordinate buffer payload are bounded before execution;
+caller work is clamped to the prepared ceiling and failures charge spent work.
+Output is mutated only after all transformation, encoding and copy preflights
+succeed. Private scratch resets for the next transaction.
+
+Tests independently build the expected Pi expressions, verify Fahrenheit scale
+and offset, then enclose converted Pi-centimetres and check physical endpoints
+against independent Pi brackets. Guarded repeated conversion, enclosure,
+refusal and recovery paths observe zero allocations and stable prepared payload.
+
 ## Physical projection evidence
 
 The coordinate enclosure now adapts to the existing generic `ProjectionReport`
