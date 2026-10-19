@@ -52,9 +52,12 @@ test("Workspace Birth suggestions expose diverse structures while remaining edit
   const selectTradition = async value => {
     await tradition.fill("");
     await expect(birth.getByRole("listbox", { name: "Naming tradition suggestions", exact: true }).getByRole("option")).toHaveCount(24);
-    await birth.locator(`[role="option"][data-source-value="${value}"]`).click();
+    const option = birth.locator(`[role="option"][data-source-value="${value}"]`);
+    const sourceLabel = await option.textContent();
+    await option.click();
     await birth.getByRole("button", { name: "Use naming tradition", exact: true }).click();
     await expect(tradition).toBeEnabled();
+    await expect(tradition).toHaveValue(sourceLabel);
   };
 
   await selectTradition("chinese");
@@ -77,26 +80,26 @@ test("Workspace Birth suggestions expose diverse structures while remaining edit
   await expect(name).toHaveValue(/ (?:ben|bat) /);
 
   await selectTradition("amharic");
-  await expect(tradition).toHaveValue("Amharic-style patronymic");
+  await expect(tradition).toHaveValue(/Amharic-style patronymic/u);
   expect((await name.inputValue()).split(" ").length).toBeGreaterThanOrEqual(2);
   expect((await name.inputValue()).split(" ").length).toBeLessThanOrEqual(3);
 
   await selectTradition("portuguese");
-  await expect(tradition).toHaveValue("Portuguese multi-surname");
+  await expect(tradition).toHaveValue(/Portuguese multi-surname/u);
   expect((await name.inputValue()).split(" ").length).toBeGreaterThanOrEqual(3);
   expect((await name.inputValue()).split(" ").length).toBeLessThanOrEqual(4);
 
   await selectTradition("tamil");
-  await expect(tradition).toHaveValue("Tamil patronymic plots");
+  await expect(tradition).toHaveValue(/Tamil patronymic plots/u);
   await expect(name).toHaveValue(/^(?:[A-Z]\. |[\p{Script=Latin}\p{Mark}]+ )[\p{Script=Latin}\p{Mark}]+$/u);
 
   await selectTradition("indonesian");
-  await expect(tradition).toHaveValue("Indonesian complete personal-name plots");
+  await expect(tradition).toHaveValue(/Indonesian complete personal-name plots/u);
   expect((await name.inputValue()).split(" ").length).toBeGreaterThanOrEqual(1);
   expect((await name.inputValue()).split(" ").length).toBeLessThanOrEqual(2);
 
   await selectTradition("welsh");
-  await expect(tradition).toHaveValue("Welsh modern and patronymic plots");
+  await expect(tradition).toHaveValue(/Welsh modern and patronymic plots/u);
   expect((await name.inputValue()).split(" ").length).toBeGreaterThanOrEqual(2);
   expect((await name.inputValue()).split(" ").length).toBeLessThanOrEqual(3);
 
