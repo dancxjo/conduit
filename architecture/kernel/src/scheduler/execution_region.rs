@@ -222,13 +222,25 @@ where
 
         let mut io = self.context(node)?;
         let mut current_input_bytes = [None; PORTS];
+        #[cfg(feature = "alloc")]
+        let mut native_inputs = self.native_input_ports[node].map(|_| [None; PORTS]);
         for (port, value) in io.inputs.iter().copied().enumerate() {
             if let Some(value) = value {
+                #[cfg(feature = "alloc")]
+                if self.native_input_ports[node] == Some(PortId(as_u16(port)?)) {
+                    let inputs = native_inputs.as_mut().expect("bound native input");
+                    inputs[port] = self.values.native_u64(value)?;
+                    if inputs[port].is_some() {
+                        continue;
+                    }
+                }
                 current_input_bytes[port] = Some(self.values.get(value)?);
             }
         }
         let input_bytes = StepInputBytes {
             inputs: current_input_bytes,
+            #[cfg(feature = "alloc")]
+            native_u64: native_inputs.as_ref(),
             host_output: io
                 .host_completion
                 .and_then(|(_, outcome)| outcome.output)

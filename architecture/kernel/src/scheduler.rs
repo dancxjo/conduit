@@ -25,7 +25,11 @@ mod cord_prefix;
 mod debug_control;
 mod derived_value;
 mod execution_region;
+mod generated_value;
+use generated_value::PreparedStepValue;
 mod fanout_value;
+#[cfg(feature = "alloc")]
+mod native_region;
 use fanout_value::store_fanout_value;
 mod host_call_index;
 mod host_call_settlement;
@@ -357,6 +361,12 @@ pub trait StepBack<const PORTS: usize> {
     /// belongs to this already-prepared Back and must remain unchanged until
     /// `step_committed`; the scheduler copies it into admitted value storage
     /// only after the Step has passed transactional validation.
+    /// Exact physical native scalar ports offered by this prepared Back.
+    /// Host preparation still proves the semantic/type/purity eligibility.
+    #[cfg(feature = "alloc")]
+    fn native_u64_ports(&self) -> Option<(PortId, PortId)> {
+        None
+    }
     fn prepared_output(&self, _port: PortId) -> Option<&[u8]> {
         None
     }
@@ -369,12 +379,14 @@ pub trait StepBack<const PORTS: usize> {
     fn cancel(&mut self) {}
 }
 
-/// Read-only canonical bytes for the exact inputs presented in one step.
+/// Read-only canonical bytes or explicitly admitted native inputs for one Step.
 ///
 /// This view cannot resolve arbitrary [`ValueRef`]s and does not escape the
 /// scheduler-owned value store.
 pub struct StepInputBytes<'a, const PORTS: usize> {
     inputs: [Option<&'a [u8]>; PORTS],
+    #[cfg(feature = "alloc")]
+    native_u64: Option<&'a [Option<u64>; PORTS]>,
     host_output: Option<&'a [u8]>,
 }
 
@@ -397,6 +409,8 @@ impl<'a, const PORTS: usize> StepInputBytes<'a, PORTS> {
     ) -> Self {
         Self {
             inputs,
+            #[cfg(feature = "alloc")]
+            native_u64: None,
             host_output,
         }
     }
@@ -406,6 +420,8 @@ impl StepInputBytes<'static, 1> {
     pub(crate) const fn single_source() -> Self {
         Self {
             inputs: [None],
+            #[cfg(feature = "alloc")]
+            native_u64: None,
             host_output: None,
         }
     }
@@ -421,7 +437,9 @@ pub struct StepIo<const PORTS: usize> {
     consumed_closed: [bool; PORTS],
     outputs: [Option<ValueRef>; PORTS],
     canonical_output: Option<(PortId, CanonicalValue)>,
-    prepared_output: Option<(PortId, u32)>,
+    prepared_output: Option<(PortId, PreparedStepValue)>,
+    #[cfg(feature = "alloc")]
+    native_output_port: Option<PortId>,
     discards: [Option<ValueRef>; PORTS],
     host_completion: Option<(RequestId, HostCallOutcome)>,
     consumed_host_completion: bool,
@@ -624,7 +642,7 @@ impl<const PORTS: usize> StepIo<PORTS> {
         {
             return self.fail(SchedulerError::OutputBlocked);
         }
-        self.prepared_output = Some((port, byte_len));
+        self.prepared_output = Some((port, PreparedStepValue::Bytes(byte_len)));
         Ok(())
     }
 
@@ -766,6 +784,8 @@ impl StepIo<1> {
             outputs: [None],
             canonical_output: None,
             prepared_output: None,
+            #[cfg(feature = "alloc")]
+            native_output_port: None,
             discards: [None],
             host_completion,
             consumed_host_completion: false,
@@ -967,6 +987,10 @@ pub struct FixedScheduler<
     decisions: u32,
     logical_invocations: u64,
     region_successors: [Option<NodeId>; NODES],
+    #[cfg(feature = "alloc")]
+    native_input_ports: [Option<PortId>; NODES],
+    #[cfg(feature = "alloc")]
+    native_output_ports: [Option<PortId>; NODES],
     last_host_request: [Option<RequestId>; NODES],
     cancelled: bool,
     debug_control: DebugControlState,
@@ -1081,6 +1105,10 @@ where
             decisions: 0,
             logical_invocations: 0,
             region_successors: [None; NODES],
+            #[cfg(feature = "alloc")]
+            native_input_ports: [None; NODES],
+            #[cfg(feature = "alloc")]
+            native_output_ports: [None; NODES],
             last_host_request: [None; NODES],
             cancelled: false,
             debug_control: DebugControlState::new(),
@@ -1288,6 +1316,10 @@ where
     where
         E: DebugObserverControl,
     {
+        #[cfg(feature = "alloc")]
+        if self.native_output_ports.iter().any(Option::is_some) {
+            return Err(DebugObservationRefusal::UnsupportedPhysicalProfile);
+        }
         self.signs.attach_debug_observer(history)
     }
 
@@ -1310,6 +1342,10 @@ where
         let node = self.signs.validate_breakpoint(breakpoint)?;
         if usize::from(node.0) >= self.active_nodes || self.completed[usize::from(node.0)] {
             return Err(DebugControlRefusal::UnknownSubject);
+        }
+        #[cfg(feature = "alloc")]
+        if self.native_output_ports.iter().any(Option::is_some) {
+            return Err(DebugControlRefusal::UnsupportedPhysicalProfile);
         }
         self.debug_control.arm(breakpoint, node)
     }
@@ -1992,6 +2028,8 @@ where
             outputs: [None; PORTS],
             canonical_output: None,
             prepared_output: None,
+            #[cfg(feature = "alloc")]
+            native_output_port: self.native_output_ports[node],
             discards: [None; PORTS],
             host_completion,
             consumed_host_completion: false,
@@ -2645,7 +2683,7 @@ where
         if let Some((_, byte_len)) = io.prepared_output {
             items = items.checked_add(1).ok_or(SchedulerError::InvalidPlan)?;
             bytes = bytes
-                .checked_add(byte_len)
+                .checked_add(byte_len.logical_bytes())
                 .ok_or(SchedulerError::InvalidPlan)?;
         }
         if items > bound.maximum_items || bytes > bound.maximum_bytes {
@@ -2738,13 +2776,21 @@ where
                 None,
                 KernelEventKind::ValueConsumed,
             )?;
+            #[cfg(feature = "alloc")]
+            let observed = native_region::observed_bytes(
+                &self.values,
+                value,
+                self.native_input_ports[node] == Some(PortId(as_u16(port)?)),
+            )?;
+            #[cfg(not(feature = "alloc"))]
+            let observed = Some(self.values.get(value)?);
             self.signs.observe_debug(DebugRuntimeEvent {
                 node: NodeId(as_u16(node)?),
                 port: Some(PortId(as_u16(port)?)),
                 cord: Some(cord),
                 kind: DebugEventKind::ValueReceived,
                 type_identity: None,
-                value: Some(self.values.get(value)?),
+                value: observed,
                 fault_code: None,
             });
         }
@@ -2937,13 +2983,21 @@ where
                     None,
                     KernelEventKind::ValueRouted,
                 )?;
+                #[cfg(feature = "alloc")]
+                let observed = native_region::observed_bytes(
+                    &self.values,
+                    value,
+                    self.native_output_ports[node] == Some(PortId(as_u16(port)?)),
+                )?;
+                #[cfg(not(feature = "alloc"))]
+                let observed = Some(self.values.get(value)?);
                 self.signs.observe_debug(DebugRuntimeEvent {
                     node: NodeId(as_u16(node)?),
                     port: Some(PortId(as_u16(port)?)),
                     cord: Some(target.cord),
                     kind: DebugEventKind::ValueSent,
                     type_identity: None,
-                    value: Some(self.values.get(value)?),
+                    value: observed,
                     fault_code: None,
                 });
             }
@@ -3052,7 +3106,14 @@ where
             if discards.iter().flatten().any(|discard| *discard == value) {
                 return Err(SchedulerError::InvalidPortAccess);
             }
-            self.values.get(value)?;
+            #[cfg(feature = "alloc")]
+            let native = self.native_output_ports[node] == Some(PortId(as_u16(port)?))
+                && self.values.native_u64(value)?.is_some();
+            #[cfg(not(feature = "alloc"))]
+            let native = false;
+            if !native {
+                self.values.get(value)?;
+            }
             for target in self
                 .routes
                 .route(NodeId(as_u16(node)?), PortId(as_u16(port)?))?

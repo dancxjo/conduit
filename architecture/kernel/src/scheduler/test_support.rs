@@ -21,6 +21,8 @@ impl<const PORTS: usize> StepIo<PORTS> {
             outputs: [None; PORTS],
             canonical_output: None,
             prepared_output: None,
+            #[cfg(feature = "alloc")]
+            native_output_port: None,
             discards: [None; PORTS],
             host_completion,
             consumed_host_completion: false,

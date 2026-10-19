@@ -426,6 +426,10 @@ pub trait ValueStorage {
     fn retain(&mut self, value: ValueRef) -> Result<(), StorageError>;
     fn release(&mut self, value: ValueRef) -> Result<(), StorageError>;
     fn clear(&mut self);
+    /// Independently admitted native item and logical-byte reservations.
+    fn native_u64_capacity(&self) -> (u16, u32) {
+        (0, 0)
+    }
     /// Native transport is opt-in; canonical-only profiles refuse publication.
     fn store_native_u64(&mut self, _value: u64) -> Result<ValueRef, StorageError> {
         Err(StorageError::RepresentationMismatch)
@@ -567,6 +571,11 @@ pub trait SignSink {
     /// execution error. The default detached observer deliberately does
     /// nothing.
     fn observe_debug(&mut self, _event: debug_observation::DebugRuntimeEvent<'_>) {}
+    /// Unknown observers conservatively require canonical payload visibility.
+    /// A native region may bind only when no such observation is required.
+    fn requires_canonical_debug_values(&self) -> bool {
+        true
+    }
 }
 
 pub trait SignQuery {
@@ -669,6 +678,9 @@ impl<const EVENTS: usize> FixedSignLog<EVENTS> {
 }
 
 impl<const EVENTS: usize> SignSink for FixedSignLog<EVENTS> {
+    fn requires_canonical_debug_values(&self) -> bool {
+        false
+    }
     fn item_capacity(&self) -> u16 {
         u16::try_from(EVENTS).unwrap_or(u16::MAX)
     }
@@ -955,6 +967,9 @@ impl HostedSignLog {
 
 #[cfg(feature = "alloc")]
 impl SignSink for HostedSignLog {
+    fn requires_canonical_debug_values(&self) -> bool {
+        false
+    }
     fn item_capacity(&self) -> u16 {
         u16::try_from(self.entries.len()).unwrap_or(u16::MAX)
     }
