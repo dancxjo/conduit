@@ -1,7 +1,7 @@
 //! One-time exact Plan, owner, resource and storage preparation for the fixture.
 use super::*;
 pub(super) type Kernel =
-    FixedScheduler<Driver, HostedValueStore, HostedSignLog, N, C, PORTS, C, C, C, N, 256>;
+    FixedScheduler<Driver, ObservedValues, HostedSignLog, N, C, PORTS, C, C, C, N, 256>;
 type SinkCapture = Rc<std::cell::RefCell<Option<Vec<u8>>>>;
 pub(super) struct PreparedExecution {
     pub(super) plan: Plan,
@@ -34,6 +34,20 @@ pub(super) fn prepare(
     )
     .unwrap();
     assert!(lowered.node_specs.len() <= N && lowered.cords.len() <= C);
+    let dags = if fragment.execution_fusions.is_empty() {
+        Vec::new()
+    } else {
+        conduit_plan_lowering::lowering::lower_pure_value_fusion_dags(&plan, &fragment.fragment_id)
+            .unwrap()
+    };
+    let compact_nodes: std::collections::BTreeSet<_> = dags
+        .iter()
+        .filter(|dag| {
+            dag.execution_profile_id.as_str()
+                == conduit_ai::fixed_numeric_compact::COMPACT_DAG_PROFILE
+        })
+        .flat_map(|dag| dag.nodes.iter().copied())
+        .collect();
     let active = bind_active_play(
         &fragment.plan_id,
         &fragment.host_id,
@@ -44,12 +58,15 @@ pub(super) fn prepare(
         ExecutionMode::StoragePressure => resources.len() + input_values.len(),
         _ => 1024,
     };
-    let mut store = HostedValueStore::new(
+    let mut store = ObservedValues::new(
         slots.try_into().unwrap(),
         16384,
         (slots * 16384).try_into().unwrap(),
     )
     .unwrap();
+    if !compact_nodes.is_empty() {
+        store.prepare_compact_f32();
+    }
     let mut fixtures: BTreeMap<_, _> = input_values
         .iter()
         .map(|(name, encoded)| (name.clone(), store.store(encoded).unwrap()))
@@ -91,6 +108,13 @@ pub(super) fn prepare(
                 .find(|f| f.implementation_id() == &gear.implementation_id)
                 .unwrap();
             factory.budget(gear).unwrap();
+            if compact_nodes.contains(&conduit_kernel::NodeId(index as u16)) {
+                drivers.push(Driver::ReusableOperation(Box::new(TimedNumeric {
+                    back: factory.prepare_compact_reusable(gear).unwrap(),
+                    timing: timing.clone(),
+                })));
+                continue;
+            }
             drivers.push(if reuse {
                 Driver::ReusableOperation(Box::new(TimedNumeric {
                     back: factory.prepare_reusable(gear).unwrap(),
@@ -175,7 +199,19 @@ pub(super) fn prepare(
     );
     let mut cord_specs: Vec<_> = lowered.cords.iter().map(|c| c.spec).collect();
     cord_specs.resize(C, conduit_kernel::scheduler::CordSpec::inactive());
-    let scheduler=FixedScheduler::<_,_,_,N,C,PORTS,C,C,C,N,256>::new_boxed_with_active_counts_and_host_calls(nodes,cords,specs.try_into().unwrap(),cord_specs.try_into().unwrap(),routes,bindings,drivers.try_into().unwrap_or_else(|_|panic!("capacity")),store,HostedSignLog::new(32768,32768*core::mem::size_of::<KernelEvent>()as u32).unwrap()).unwrap();
+    let mut scheduler=FixedScheduler::<_,_,_,N,C,PORTS,C,C,C,N,256>::new_boxed_with_active_counts_and_host_calls(nodes,cords,specs.try_into().unwrap(),cord_specs.try_into().unwrap(),routes,bindings,drivers.try_into().unwrap_or_else(|_|panic!("capacity")),store,HostedSignLog::new(32768,32768*core::mem::size_of::<KernelEvent>()as u32).unwrap()).unwrap();
+    for dag in &dags {
+        use conduit_ai::fixed_numeric_compact::*;
+        assert_eq!(dag.artifact_id.as_str(), DAG_ARTIFACT);
+        if dag.execution_profile_id.as_str() == COMPACT_DAG_PROFILE {
+            assert_eq!(dag.implementation_id.as_str(), COMPACT_DAG_IMPLEMENTATION);
+            scheduler.bind_compact_f32_dag(&dag.nodes).unwrap();
+        } else {
+            assert_eq!(dag.execution_profile_id.as_str(), CANONICAL_DAG_PROFILE);
+            assert_eq!(dag.implementation_id.as_str(), CANONICAL_DAG_IMPLEMENTATION);
+            scheduler.bind_execution_dag(&dag.nodes).unwrap();
+        }
+    }
     timing.borrow_mut().scheduler_bytes = core::mem::size_of_val(&*scheduler);
     let host_output = Vec::with_capacity(16384);
     let mut output_limits = [u32::MAX; N];
