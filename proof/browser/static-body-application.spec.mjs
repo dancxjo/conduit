@@ -276,6 +276,9 @@ test("Handbook lessons run text, arithmetic, logic and exact quantities in the l
       await selector.selectOption(name);
       await page.getByRole("button", { name: "Try in my Handbook", exact: true }).click();
       await expect(page.locator("[data-check]")).toHaveText(`Checked ${name}.`);
+      // Checked Source is reported before the replacement Body has prepared.
+      await expect(page.getByRole("button", { name: "Try in my Handbook", exact: true }))
+        .toBeEnabled({ timeout: BROWSER_COLD_PREPARATION_MS });
       await expect(surface.locator('[data-resident-plot]:visible')).toContainText(result);
       const state = await current(page);
       expect(state.bodyId).toBe(first.bodyId);

@@ -273,6 +273,7 @@ test("a sound-only Body renders the original cue through real browser audio and 
 });
 
 test("first-wake audio stays silent after reload of the same body with a fresh Boot", async ({ page }) => {
+  test.setTimeout(20_000 + BROWSER_COLD_PREPARATION_MS);
   await observeRealAudio(page);
   await page.goto(entrance.url);
   await page.getByRole('checkbox', { name: 'Memory Lantern', exact: true }).uncheck();
@@ -286,6 +287,7 @@ test("first-wake audio stays silent after reload of the same body with a fresh B
   const first = await page.evaluate(() => globalThis.__conduitWorkspace.current());
   await page.evaluate(() => globalThis.__conduitWorkspace.settled());
   await page.reload();
+  await waitForWorkspacePreparation(page, { expectedState: 'Idle' });
   await expect(page.locator('[data-play-state]')).toHaveText('Idle');
   const returned = await page.evaluate(() => globalThis.__conduitWorkspace.current());
   expect(returned.body_id).toBe(first.body_id);
