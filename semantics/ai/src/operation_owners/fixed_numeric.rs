@@ -9,17 +9,24 @@ use conduit_core::*;
 use conduit_kernel::{scheduler::StepBack, HostedValueStore};
 use conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 type NumericBack = Box<dyn StepBack<FIXED_KERNEL_STORAGE_PORTS_PER_NODE> + Send>;
+/// Prepared pure Value owners retain their exact immutable tensor bindings.
+pub type ReusableNumericBack = Box<
+    dyn conduit_kernel::scheduler::prepared_session::ReusableStepBack<
+            FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
+            Next = (),
+        > + Send,
+>;
 type TensorBindings = BTreeMap<String, Arc<AdmittedFixedTensorResource>>;
 struct Selection {
     offer: CapabilityOffer,
-    back: Option<NumericBack>,
+    back: Option<ReusableNumericBack>,
 }
 macro_rules! run {
     ($selected:expr,$gear:ident,$fuel:ident,$offer:expr,$back:expr) => {{
         (|| -> Result<Selection, String> {
             let offer = $offer.map_err(|error| format!("{error:?}"))?;
             let back = if let Some(($gear, $fuel)) = $selected {
-                Some(Box::new($back.map_err(|error| format!("{error:?}"))?) as NumericBack)
+                Some(Box::new($back.map_err(|error| format!("{error:?}"))?) as ReusableNumericBack)
             } else {
                 None
             };
@@ -171,6 +178,27 @@ impl FixedNumericOperationFactory {
         }
         Ok(owners.into_values().collect())
     }
+    /// Prepare the same selected operation with explicit Value-invocation reuse.
+    /// No temporal widening, resource rebinding or new numerical law is admitted.
+    pub fn prepare_reusable(&self, gear: &PlannedGear) -> Result<ReusableNumericBack, String> {
+        if gear
+            .inputs
+            .iter()
+            .chain(&gear.outputs)
+            .any(|port| port.temporal != PortTemporal::Value)
+        {
+            return Err("reusable numeric owner requires exact Value ports".into());
+        }
+        self.prepare_selected(gear)
+    }
+    fn prepare_selected(&self, gear: &PlannedGear) -> Result<ReusableNumericBack, String> {
+        let bindings = self.selected(gear)?;
+        let fuel = u16::try_from(gear.inputs.len() + 1)
+            .map_err(|_| "numeric step fuel exceeds finite port budget")?;
+        select(gear.kind_id.as_str(), Some((gear, fuel)), bindings)?
+            .back
+            .ok_or_else(|| "numeric owner did not prepare its selected operation".into())
+    }
     fn selected(&self, gear: &PlannedGear) -> Result<&TensorBindings, String> {
         let offer = self
             .offers
@@ -201,11 +229,6 @@ impl KernelOperationFactory for FixedNumericOperationFactory {
         gear: &PlannedGear,
         _values: &mut HostedValueStore,
     ) -> Result<NumericBack, String> {
-        let bindings = self.selected(gear)?;
-        let fuel = u16::try_from(gear.inputs.len() + 1)
-            .map_err(|_| "numeric step fuel exceeds finite port budget")?;
-        select(gear.kind_id.as_str(), Some((gear, fuel)), bindings)?
-            .back
-            .ok_or_else(|| "numeric owner did not prepare its selected operation".into())
+        self.prepare_selected(gear).map(|back| back as NumericBack)
     }
 }
