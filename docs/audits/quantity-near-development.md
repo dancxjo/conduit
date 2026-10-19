@@ -48,3 +48,13 @@ Native/exact output still uses the existing record without a general report
 payload. Actual transport, independent reconstruction of producer work, and
 semantic inspection for every declared representation remain required. These
 codec and policy changes do not complete that boundary or any parent issue.
+
+
+Final validation of that preparation checkpoint passed strict workspace
+all-target Clippy. The CLI run passed both dimensioned tests and 12 of 13
+numerical-expression tests; the qualified-frequency fixture alone still
+expected the old generic expression-bounds profile. Its assertion now checks
+the selected Near profile, exact replay work and retained storage bounds.
+That actual product fixture passes after correction, as does strict focused
+Clippy. These are separate runs, not a new full numerical-expression pass.
+Both failed and corrected executables remain hash-verified in custody.
