@@ -1,0 +1,94 @@
+{
+  "at": "2026-10-19T01:06:34.251916+00:00",
+  "source_commit": "984d9077a3775d87b669f033bf49a6bc1916d05d",
+  "scope": "Same-slice lexical whitespace correction for physical near fores; development only, no stable or parent acceptance claim.",
+  "results": {
+    "catalog_near_lib": "7passed; includes4 equivalent whitespace variants with retained predicates/defaultbounds and expansion, identifier boundaries and duplicated tab-qualified refusal",
+    "plot_catalog_all_target_clippy": "passed -D warnings",
+    "format": "passed"
+  },
+  "raw_archive": {
+    "path": "fore-near-whitespace-development-20261019-raw.tar.gz",
+    "sha256": "173cc009686104bbfc5848f2781d4ca5379a33fd7717e9414a0a8bde81c5fb4b",
+    "bytes": 3023
+  },
+  "raw_members": [
+    {
+      "path": "fore-near-whitespace-tests.log",
+      "sha256": "ffae42a6d5eebae792c01c9478af497848ec6c893eebc0abdadc340f8d5d1575",
+      "bytes": 4920
+    },
+    {
+      "path": "fore-near-whitespace-clippy.log",
+      "sha256": "498775f22446d9366d13e37492825ac566aea9872000118eb4a02092174a5faa",
+      "bytes": 3384
+    },
+    {
+      "path": "fore-near-whitespace-format.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "n5-fore-whitespace-probe/mixed.conduit",
+      "sha256": "55b3c04c31557bfb777636c877886d1981038031ff278d82429a61f8c5b96a04",
+      "bytes": 706
+    },
+    {
+      "path": "n5-fore-whitespace-probe/tabs.conduit",
+      "sha256": "a3ab7a0c1e45b1cae159a8fe740f63dbb1cb6a4586f11613077ee4b8cc5e80af",
+      "bytes": 702
+    },
+    {
+      "path": "n5-fore-whitespace-probe/manifest.json",
+      "sha256": "e454122e88c1da8e77e8781ffe705d097524d9365048b5934ad3b65b18289c04",
+      "bytes": 1503
+    },
+    {
+      "path": "n5-fore-whitespace-probe/mixed.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "n5-fore-whitespace-probe/spaces.stdout",
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+      "bytes": 3
+    },
+    {
+      "path": "n5-fore-whitespace-probe/tabs.stdout",
+      "sha256": "23a84e2aec6595c4739ca5c703c9f11cbf131d234e1c6107dc857932827388bb",
+      "bytes": 589
+    },
+    {
+      "path": "n5-fore-whitespace-probe/spaces.conduit",
+      "sha256": "fae721996720dbf68cc960681c2ba76ad28543d2da4a0497247b5790107ac27b",
+      "bytes": 704
+    },
+    {
+      "path": "n5-fore-whitespace-probe/mixed.stdout",
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+      "bytes": 3
+    },
+    {
+      "path": "n5-fore-whitespace-probe/tabs.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "n5-fore-whitespace-probe/spaces.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    }
+  ],
+  "executable_custody": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/fore-near-whitespace-proof/conduit_semantic_catalog-046e21afbb53a2c2.gz",
+    "uncompressed_sha256": "1efcaca8752cf8fa072e1ec9c8a48e90d7251902b3d4dea8473bcef04c4f8678",
+    "bytes": 206328472,
+    "gzip_sha256": "0142681b30d2654877efea92a1181128a85aa407972dba6ae6befd1f67a3bcfb",
+    "roundtrip_verified": true
+  },
+  "limitations": [
+    "Original debug CLI reproduced the tab failure before the change; it is not relabelled as an updated CLI proof.",
+    "Catalog tests exercise actual Source checking and expansion after the change; prior full Std/browser/CLI suites precede this lexical fix. Combined exact-preview candidate still required.",
+    "Old candidate siblings remain live; this change not yet pushed. PR6003 must repair dev before numerical feature admission."
+  ]
+}
