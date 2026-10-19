@@ -142,3 +142,36 @@ binary are retained with verified archive roundtrips. The code is private
 development, not accepted main or parent completion. The explicit remaining
 Fore-context, track-kind, binary64, computation/composition, coordinate-report,
 all-target and publication obligations above remain open.
+
+
+The later [output-Fore context receipt](evidence/output-fore-content-development-20261019.json)
+records a private correction of the Fore-context and carried-kind gaps above.
+Retained output-Fore rows now name their exact sealed boundary, producing Gear,
+output port and semantic track through an appended observation variant; no Core
+Cord is manufactured. Existing observation tags and evidence payload layouts
+remain unchanged. Value artifacts derive their kind from the carried track.
+Normal close and quiescence carry Empty and reject nonempty bytes even when the
+content digest agrees. Quiescence Fore verification checks the Empty track without incorrectly
+requiring the producer's payload contract.
+
+All 581 Core tests, 874 Std tests (18 ignored), 61 Observatory tests, four wire
+tests included in Core, three product-inspection tests and the three-run actual
+product export matrix pass. Strict workspace all-target Clippy, Core without
+default features and formatting pass. The four-track routing proof uses real
+Source authoring, Plan lowering and the production scheduler with a labelled
+fixture producer. Separate actual installed Std Near executions cover native
+and rational inputs under the enclosed profile, plus a native-input run with
+a genuine relay, an internal Cord and an output Fore. Their 17 JSON artifacts
+retain three Fore values and one Cord value; production inspection replays each
+numerical certificate under its original Plan request. Independent Python
+checks verify byte hashes, inventory and exact context. Removing a Fore Sign
+while retaining its actual raw value makes ordinary export refuse.
+
+The source, executed binaries, original inputs, exported artifacts and inspector
+outputs are preserved with verified archive roundtrips. The prior disk-exhausted
+builds and the regression that exposed nonempty control-track acceptance remain
+retained separately. These results establish private development behavior, not
+execution authentication, accepted main, a full-workspace test pass, or parent
+completion. Binary64, general ordered computation and error composition, the
+coordinate-conversion report corpus, the original target/resource/replanning and
+DSP/ML corpus, and public integration/publication acceptance remain open.
