@@ -24,6 +24,7 @@ pub struct ProjectionReport<'a, D: ProjectionDomain> {
     target_contract: ProjectionText<'a>,
     policy: ProjectionText<'a>,
     policy_configuration_digest: Option<[u8; 32]>,
+    policy_permitted: bool,
     summary: ProjectionSummary,
 }
 impl<'a, D: ProjectionDomain> ProjectionReport<'a, D> {
@@ -208,13 +209,19 @@ impl<'a, D: ProjectionDomain> ProjectionReport<'a, D> {
                 ProjectionFact::Lost { class, .. } => summary.losses[*class as usize] += 1,
             }
         }
+        // Fidelity remains a fact-inventory property. Policy-bound consumption
+        // additionally requires the actual selected parameters, even at zero loss.
+        let policy_permitted = input.mechanism == ProjectionMechanism::Completed
+            && input
+                .target
+                .is_some_and(|target| policy.permits(input.source, target, input.facts));
         summary.disposition = match input.mechanism {
             ProjectionMechanism::Completed => match input.target {
                 None => ProjectionDisposition::Insufficient,
                 Some(_) if summary.losses.iter().all(|n| *n == 0) => {
                     ProjectionDisposition::Completed(ProjectionFidelity::Exact)
                 }
-                Some(target) if policy.permits(input.source, target, input.facts) => {
+                Some(_) if policy_permitted => {
                     ProjectionDisposition::Completed(ProjectionFidelity::PermittedLossy)
                 }
                 Some(_) => ProjectionDisposition::Insufficient,
@@ -228,6 +235,7 @@ impl<'a, D: ProjectionDomain> ProjectionReport<'a, D> {
             target_contract: domain.target_contract(),
             policy: policy.identity(),
             policy_configuration_digest: policy.configuration_digest(),
+            policy_permitted,
             input,
             summary,
         })
@@ -284,6 +292,9 @@ impl<'a, D: ProjectionDomain> ProjectionReport<'a, D> {
             ProjectionDisposition::Completed(_)
         ) {
             return Err(ProjectionRefusal::ConsumerRequiresExact);
+        }
+        if !self.policy_permitted {
+            return Err(ProjectionRefusal::PolicyMismatch);
         }
         self.input
             .target

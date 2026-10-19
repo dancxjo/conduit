@@ -7,6 +7,8 @@ mod allocation_probe;
 #[path = "evidence/support.rs"]
 mod support;
 use support::*;
+#[path = "evidence/policy_permission.rs"]
+mod policy_permission;
 #[path = "evidence/reader.rs"]
 mod reader;
 

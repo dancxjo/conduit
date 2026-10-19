@@ -10,6 +10,10 @@ depends on semantic, application, target, or proof packages.
 | Module | Classification | Core responsibility |
 |---|---|---|
 | `lib.rs` | universal architecture | Exact identity types and the generic plot/host/boot/plan/play/line/sign records shared by the architecture. It is the crate facade, not a domain attic. |
+| `observation.rs` | universal architecture | Execution observations bind Sign, Host/Boot, Plan/Play, placement and Cord context; routed content correlation and native event gaps remain distinct from Sign gaps and execution authentication. |
+| `claims.rs` | generic mechanism | Bounded borrowed interpretations, candidates, native scores and evidence relationships; domains own meaning and these records grant no authority. |
+| `revision.rs` and children | generic mechanism | Opt-in bounded semantic revision events and journals without scheduling, implicit flow wrapping, Sign emission or effect authority. |
+| `projection.rs` and children | generic mechanism | Domain-validated fidelity inventories, frozen policy-specific consumption, bounded general evidence transport and borrowed inspection; source/target semantics remain with their domain validators. |
 | `base_registry.rs` | universal architecture | Bounded thin-host truth for exact base provider identity, generation, lifecycle, enforcement class, and ordinary capability/resource offer aggregation; no planning, authority issuance, or effects. |
 | `base_capability.rs` | universal architecture | Opaque issuer-private base capability possession, exact per-play scope narrowing, finite operation leases, revocation, and non-secret lifecycle inspection. |
 | `capability_offer.rs` | universal architecture | Generic bounded host capability offers, realization limits, and exact implementation, operation, resource, and authority requirements. |

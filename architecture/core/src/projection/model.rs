@@ -113,6 +113,9 @@ pub trait ProjectionPolicy<D: ProjectionDomain> {
     ) -> bool {
         false
     }
+    /// Called once at admission for every completed target, including zero-loss
+    /// inventories. Its frozen decision gates policy-specific consumption;
+    /// exact fidelity remains independently derived from the domain facts.
     fn permits(
         &self,
         source: &D::Source,

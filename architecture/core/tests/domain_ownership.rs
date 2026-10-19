@@ -56,6 +56,7 @@ fn checked_responsibility_map_names_every_retained_module() {
     let source = include_str!("../src/lib.rs");
     let map = include_str!("../README.md");
     for line in source.lines() {
+        let line = line.strip_prefix("pub ").unwrap_or(line);
         let Some(module) = line
             .strip_prefix("mod ")
             .and_then(|line| line.strip_suffix(';'))

@@ -182,3 +182,109 @@ fn coordinate_and_numeric_projections_remain_independent_and_affine_roles_refuse
         );
     }
 }
+
+#[test]
+fn zero_loss_physical_binary32_still_refuses_wrong_policy_rounding_units_and_roles() {
+    let source = quantity(2, 1, "m", QuantityRole::Linear);
+    let limit = quantity(0, 1, "m", QuantityRole::Linear);
+    let receipt = PreparedQuantityBinary32Projection::prepare(
+        source,
+        Binary32Rounding::NearestTiesEven,
+        limit,
+        &mut work(),
+    )
+    .unwrap();
+    assert_eq!(
+        receipt.error(),
+        Binary32ErrorClaim::ExactDistance(ExactRational::ZERO)
+    );
+    let target = receipt.target();
+    let facts = receipt.facts();
+    let permitted = QuantityBinary32ProjectionPolicy {
+        maximum_error: limit,
+        rounding: Binary32Rounding::NearestTiesEven,
+    };
+    let report = ProjectionReport::new(
+        &QuantityBinary32ProjectionDomain,
+        &permitted,
+        input(&receipt, &target, &facts),
+    )
+    .unwrap();
+    assert_eq!(report.require_exact(), Ok(&target));
+    for denied in [
+        QuantityBinary32ProjectionPolicy {
+            rounding: Binary32Rounding::TowardZero,
+            ..permitted
+        },
+        QuantityBinary32ProjectionPolicy {
+            maximum_error: quantity(0, 1, "s", QuantityRole::Linear),
+            ..permitted
+        },
+        QuantityBinary32ProjectionPolicy {
+            maximum_error: quantity(-1, 1, "m", QuantityRole::Linear),
+            ..permitted
+        },
+        QuantityBinary32ProjectionPolicy {
+            maximum_error: quantity(0, 1, "°C", QuantityRole::Delta),
+            ..permitted
+        },
+    ] {
+        assert!(!denied.permits(&receipt, &target, &facts));
+        let report = ProjectionReport::new(
+            &QuantityBinary32ProjectionDomain,
+            &denied,
+            input(&receipt, &target, &facts),
+        )
+        .unwrap();
+        assert_eq!(
+            report.summary().disposition,
+            ProjectionDisposition::Completed(ProjectionFidelity::Exact)
+        );
+        assert!(report.require_policy(denied.identity()).is_err());
+        assert_eq!(report.require_exact(), Ok(&target));
+        assert_eq!(report.inspect_target(), Some(&target));
+    }
+}
+
+#[test]
+fn zero_loss_affine_point_keeps_exact_fidelity_but_denies_a_point_error_allowance() {
+    let source = quantity(2, 1, "°C", QuantityRole::Point);
+    let delta = quantity(0, 1, "°C", QuantityRole::Delta);
+    let receipt = PreparedQuantityBinary32Projection::prepare(
+        source,
+        Binary32Rounding::NearestTiesEven,
+        delta,
+        &mut work(),
+    )
+    .unwrap();
+    let target = receipt.target();
+    let facts = receipt.facts();
+    let admitted = QuantityBinary32ProjectionPolicy {
+        maximum_error: delta,
+        rounding: Binary32Rounding::NearestTiesEven,
+    };
+    let report = ProjectionReport::new(
+        &QuantityBinary32ProjectionDomain,
+        &admitted,
+        input(&receipt, &target, &facts),
+    )
+    .unwrap();
+    assert_eq!(report.require_policy(admitted.identity()), Ok(&target));
+    let denied = QuantityBinary32ProjectionPolicy {
+        maximum_error: quantity(0, 1, "°C", QuantityRole::Point),
+        ..admitted
+    };
+    assert!(!denied.permits(&receipt, &target, &facts));
+    let report = ProjectionReport::new(
+        &QuantityBinary32ProjectionDomain,
+        &denied,
+        input(&receipt, &target, &facts),
+    )
+    .unwrap();
+    assert_eq!(report.require_exact(), Ok(&target));
+    assert_eq!(
+        report.require_policy(denied.identity()),
+        Err(ProjectionRefusal::PolicyMismatch)
+    );
+    assert_eq!(report.inspect_target(), Some(&target));
+}

@@ -1017,3 +1017,36 @@ it does not authenticate producer execution or independently attest its actual
 input history. Other report-producing profiles, external Fore artifact context,
 complete resource/target proof, public admission and stable acceptance remain
 open. The original parent audit still has 93 requirements and is not closed.
+
+### Zero-loss fidelity does not waive policy-specific parameters
+
+The shared report now freezes the policy's permission once for every completed
+target, including zero-loss targets. `require_policy` and `require_bound_policy`
+refuse when those actual parameters did not admit the source/target. Exact
+fidelity and `require_exact` retain their existing independent meaning; a valid
+exact value can remain inspectable without satisfying a particular policy.
+This avoids mislabelling an exact value as lossy or using its fidelity label to
+bypass rounding, Unit, error-role or other selected parameters.
+
+Regression cases reproduce the missing policy invocation and cover incorrect
+binary32 rounding, incompatible Units, a negative allowance, an affine point
+used as an error distance, and policy mutation after admission. General evidence
+still faithfully transports the original policy configuration and exact fact
+inventory; transport does not authorize policy-specific consumption. The checked
+Core ownership map now includes the earlier observation extraction and public
+claims/revision/projection owners, with the guard covering public modules too.
+
+The full Core suite passes 577 tests across 106 executed binaries; all those
+binaries and exact source have verified archive roundtrips. The full Std suite
+passes 871 tests with 18 existing ignores, both CLI tests pass across three actual
+run invocations, Core checks without default features, and formatting passes.
+Strict workspace lint remains pending at this checkpoint. No full workspace test
+or stable target-wide acceptance is claimed.
+
+Native/exact report production and transport remain unfinished. In particular,
+the mathematical Near profile's supported native/rational fallback currently
+emits the legacy binary32 representation without general evidence; ordinary
+report inspection currently assumes its symbolic-source enclosed representation.
+Covering that declared fallback is part of the remaining work, rather than
+synthesizing producer evidence or silently omitting it. The original parent
+requirements and acceptance gates remain open.

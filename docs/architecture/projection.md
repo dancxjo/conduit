@@ -42,8 +42,17 @@ category and causal digest, distinct from semantic insufficiency. A failed or
 unattempted mechanism cannot report a successfully preserved target.
 
 `require_exact` refuses partial and permitted-lossy targets. `require_policy`
-requires the exact admitting policy identity and a completed result. Inspection
-may separately borrow a partial target without implying semantic acceptance.
+requires the exact admitting policy identity, a completed result and the policy's
+frozen permission decision. Admission checks that decision once for every completed
+target, including zero-loss targets: exact fidelity does not waive a requested
+rounding, physical-role or other policy parameter. A policy-denied exact result
+remains available to `require_exact`; it cannot satisfy policy-specific consumption.
+Inspection may separately borrow a partial target without implying semantic acceptance.
+`require_bound_policy` also matches the configuration digest frozen at admission;
+a policy class label cannot stand in for concrete precision or other parameters.
+Neither consuming gate reruns a mutable policy. The permission decision is frozen from the actual policy, source, target and
+fact inventory at admission; generic wire framing and its fidelity label alone
+do not establish that decision.
 The immutable report preserves its source, target, projector, requested route,
 source/target contracts, policy and optional exact expanded-form boundary.
 Caller-supplied identities correlate artifacts; they are not cryptographic

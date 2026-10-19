@@ -63,3 +63,69 @@ fn configuration_bound_consumption_refuses_missing_evidence() {
         Err(ProjectionRefusal::PolicyConfigurationUnavailable)
     );
 }
+
+struct ExplicitPermission {
+    allowed: Cell<bool>,
+    calls: Cell<usize>,
+}
+impl ProjectionPolicy<Bits> for ExplicitPermission {
+    fn identity(&self) -> ProjectionText<'_> {
+        text("explicit-permission@1")
+    }
+    fn configuration_digest(&self) -> Option<[u8; 32]> {
+        Some(conduit_core::semantic_digest(
+            "test/explicit-permission@1",
+            &[u8::from(self.allowed.get())],
+        ))
+    }
+    fn permits(&self, _: &u64, _: &u64, _: &[ProjectionFact<'_, Bits>]) -> bool {
+        self.calls.set(self.calls.get() + 1);
+        self.allowed.get()
+    }
+}
+#[test]
+fn zero_loss_still_requires_selected_policy_permission_and_freezes_that_decision() {
+    let source = 1;
+    let facts = [ProjectionFact::Preserved {
+        obligation: text("0"),
+    }];
+    for allowed in [false, true] {
+        let policy = ExplicitPermission {
+            allowed: Cell::new(allowed),
+            calls: Cell::new(0),
+        };
+        let digest = policy.configuration_digest().unwrap();
+        let report =
+            ProjectionReport::new(&Bits, &policy, input(&source, Some(&source), &facts)).unwrap();
+        assert_eq!(
+            policy.calls.get(),
+            1,
+            "exact facts cannot bypass the selected policy"
+        );
+        assert_eq!(report.inspect_target(), Some(&source));
+        assert_eq!(report.summary().preserved, 1);
+        assert_eq!(
+            report
+                .require_bound_policy(policy.identity(), digest)
+                .is_ok(),
+            allowed
+        );
+        assert_eq!(
+            report.require_exact(),
+            Ok(&source),
+            "fidelity stays exact even if this policy denies its use"
+        );
+        policy.allowed.set(!allowed);
+        assert_eq!(
+            report
+                .require_bound_policy(policy.identity(), digest)
+                .is_ok(),
+            allowed
+        );
+        assert_eq!(
+            policy.calls.get(),
+            1,
+            "consumption uses the frozen admission decision"
+        );
+    }
+}
