@@ -4,7 +4,7 @@ use crate::fixed_tensor_resource::AdmittedFixedTensorResource;
 use crate::{
     fixed_neural::{fixed_tanh, FixedNumericRefusal},
     fixed_numeric_binding::{FixedBindingRefusal, FixedTensorPortBinding},
-    fixed_numeric_catalog::{fixed_numeric_contracts, fixed_numeric_type},
+    fixed_numeric_catalog::{fixed_numeric_contract, fixed_numeric_type},
     fixed_numeric_codec::{FixedCodecRefusal, FixedF32VectorCodec},
     fixed_numeric_preparation::{
         admit_tensor_access, verify_fixed_placement, FixedPlannedRefusal, AFFINE_PROFILE,
@@ -33,9 +33,7 @@ pub enum FixedOperationPreparationRefusal {
 }
 
 fn offer(kind: &str, implementation: &str) -> Result<CapabilityOffer, String> {
-    let selected = fixed_numeric_contracts()?
-        .into_iter()
-        .find(|item| item.kind_id.as_str() == kind)
+    let selected = fixed_numeric_contract(kind)?
         .ok_or_else(|| format!("unsupported numeric operation {kind}"))?;
     Ok(BackOfferBuilder::new(
         selected,

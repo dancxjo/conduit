@@ -1,7 +1,7 @@
 //! One-invocation finite elementwise operators. No model gate ordering is here.
 pub use crate::fixed_numeric_value_capacity::ELEMENTWISE_IMPLEMENTATION;
 use crate::{
-    fixed_numeric_catalog::{fixed_numeric_contracts, fixed_numeric_type},
+    fixed_numeric_catalog::{fixed_numeric_contract, fixed_numeric_type},
     fixed_numeric_codec::{FixedCodecRefusal, FixedF32VectorCodec},
     fixed_numeric_preparation::{verify_fixed_placement, FixedPlannedRefusal, AFFINE_PROFILE},
 };
@@ -58,9 +58,7 @@ pub fn fixed_elementwise_offer<const WIDTH: usize>(
     operation: FixedElementwiseOperation,
 ) -> Result<CapabilityOffer, String> {
     let name = format!("numeric/{}{WIDTH}", operation.name());
-    let kind = fixed_numeric_contracts()?
-        .into_iter()
-        .find(|k| k.kind_id.as_str() == name)
+    let kind = fixed_numeric_contract(&name)?
         .ok_or_else(|| String::from("unsupported exact elementwise contract"))?;
     Ok(BackOfferBuilder::new(
         kind,

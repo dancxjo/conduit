@@ -1,0 +1,86 @@
+{
+  "schema": "conduit.immutable-preparation-comparison@1",
+  "before_source": "63ce47e6adbc13ee9306929a364176382650cd15",
+  "after_source": "58449e1873fe24bbed2c419c71ab662366911f83",
+  "pairs": [
+    {
+      "pair": 1,
+      "frames_each": 48,
+      "before": {
+        "mean_preparation_ms": 2884.9991336875,
+        "mean_play_ms": 23.554054270833333
+      },
+      "after": {
+        "mean_preparation_ms": 262.76206575,
+        "mean_play_ms": 21.94052754166667
+      },
+      "preparation_ratio": 0.09107873298185264
+    },
+    {
+      "pair": 2,
+      "frames_each": 48,
+      "before": {
+        "mean_preparation_ms": 2792.9037545833335,
+        "mean_play_ms": 23.09437433333333
+      },
+      "after": {
+        "mean_preparation_ms": 258.0717457916667,
+        "mean_play_ms": 21.408767541666666
+      },
+      "preparation_ratio": 0.09240266348890629
+    },
+    {
+      "pair": 3,
+      "frames_each": 48,
+      "before": {
+        "mean_preparation_ms": 2830.3394372083335,
+        "mean_play_ms": 23.113526458333332
+      },
+      "after": {
+        "mean_preparation_ms": 268.0558180625,
+        "mean_play_ms": 22.242639145833333
+      },
+      "preparation_ratio": 0.09470801082674847
+    }
+  ],
+  "frames_per_side": 144,
+  "matched_fields": [
+    "plan_sha256",
+    "output_sha256",
+    "signs_sha256",
+    "nodes",
+    "cords",
+    "steps",
+    "numeric_steps",
+    "expression_calls",
+    "signs",
+    "structural_drain",
+    "pending_host_calls_at_end",
+    "scheduler_inline_bytes",
+    "pcm_max_abs_error",
+    "active_state_max_abs_error",
+    "conditioning_history_max_abs_error"
+  ],
+  "mean_preparation_ratio": 0.09272980243250246,
+  "scope": "Shared exact expression fragment validation and selected-only clones from existing immutable numeric catalogues. Every frame still prepares fresh owners; no persistent-session or numerical-region claim.",
+  "limitations": [
+    "Descriptive observations from one shared host; no universal threshold or confidence interval.",
+    "Public first pair inherited affinity; later pairs used CPU 4 and alternating source order.",
+    "Play logic is unchanged; timing variation is not credited as a runtime optimization."
+  ],
+  "reference_worker": {
+    "git_sha": "63ce47e6adbc13ee9306929a364176382650cd15",
+    "sha256": "0152368ad5b6f606578f700e88fa9de41dc7dad664b197e3629d935540ec3e68",
+    "bytes": 9801216,
+    "compiled_source_root": "/home/dancxjo/Documents/Codex/2026-10-18/goal-optimize-performance-referenced-pasted-text/work/conduit-preparation",
+    "scope": "Retained existing reference worker; source custody baseline status must pass before comparison."
+  },
+  "after_worker": {
+    "source": "58449e1873fe24bbed2c419c71ab662366911f83",
+    "sha256": "fa24929ff3ec219a12806f658c78aefd62dd54d18ced99ea85c13f1e1b995ee2",
+    "bytes": 9780752
+  },
+  "archive_sha256": "a9c735dd7847b4e815b8cfa2fe28c8190944bc583b8549045359996732cef7ed",
+  "archive_bytes": 7448698,
+  "verification": "verify.py checks all six capture manifests, source custody, all frame identities/evidence/work/allocation and twelve comparison mutation refusals"
+}

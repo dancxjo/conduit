@@ -14,12 +14,16 @@ pub const FIXED_NUMERIC_SOURCE: &str = include_str!("../fixed_numeric.conduit");
 pub const FIXED_NUMERIC_SIGNAL_SOURCE: &str = include_str!("../fixed_numeric_signal.conduit");
 pub const FIXED_NUMERIC_REVISION: &str = "conduit.numeric/fixed-f32-libm@3";
 
+#[cfg(feature = "hosted-catalog-cache")]
+fn cached_fixed_numeric_types() -> &'static Result<Vec<CheckedNativeType>, String> {
+    static CATALOG: std::sync::OnceLock<Result<Vec<CheckedNativeType>, String>> =
+        std::sync::OnceLock::new();
+    CATALOG.get_or_init(fixed_numeric_types_uncached)
+}
 pub fn fixed_numeric_types() -> Result<Vec<CheckedNativeType>, String> {
     #[cfg(feature = "hosted-catalog-cache")]
     {
-        static CATALOG: std::sync::OnceLock<Result<Vec<CheckedNativeType>, String>> =
-            std::sync::OnceLock::new();
-        CATALOG.get_or_init(fixed_numeric_types_uncached).clone()
+        cached_fixed_numeric_types().clone()
     }
     #[cfg(not(feature = "hosted-catalog-cache"))]
     fixed_numeric_types_uncached()
@@ -41,6 +45,17 @@ fn fixed_numeric_types_uncached() -> Result<Vec<CheckedNativeType>, String> {
 }
 
 pub fn fixed_numeric_type(name: &str) -> Result<StructuredInfoType, String> {
+    #[cfg(feature = "hosted-catalog-cache")]
+    {
+        cached_fixed_numeric_types()
+            .as_ref()
+            .map_err(Clone::clone)?
+            .iter()
+            .find(|ty| ty.name == name)
+            .map(|ty| ty.value_type.clone())
+            .ok_or_else(|| format!("unknown fixed numeric Type {name}"))
+    }
+    #[cfg(not(feature = "hosted-catalog-cache"))]
     fixed_numeric_types()?
         .into_iter()
         .find(|ty| ty.name == name)
@@ -48,16 +63,35 @@ pub fn fixed_numeric_type(name: &str) -> Result<StructuredInfoType, String> {
         .ok_or_else(|| format!("unknown fixed numeric Type {name}"))
 }
 
+#[cfg(feature = "hosted-catalog-cache")]
+fn cached_fixed_numeric_contracts() -> &'static Result<Vec<Kind>, String> {
+    static CATALOG: std::sync::OnceLock<Result<Vec<Kind>, String>> = std::sync::OnceLock::new();
+    CATALOG.get_or_init(fixed_numeric_contracts_uncached)
+}
 pub fn fixed_numeric_contracts() -> Result<Vec<Kind>, String> {
     #[cfg(feature = "hosted-catalog-cache")]
     {
-        static CATALOG: std::sync::OnceLock<Result<Vec<Kind>, String>> = std::sync::OnceLock::new();
-        CATALOG
-            .get_or_init(fixed_numeric_contracts_uncached)
-            .clone()
+        cached_fixed_numeric_contracts().clone()
     }
     #[cfg(not(feature = "hosted-catalog-cache"))]
     fixed_numeric_contracts_uncached()
+}
+/// Select one owned contract without cloning the rest of the immutable catalogue.
+/// Both lookup paths retain the same checked compiled Source and error result.
+pub(crate) fn fixed_numeric_contract(identity: &str) -> Result<Option<Kind>, String> {
+    #[cfg(feature = "hosted-catalog-cache")]
+    {
+        Ok(cached_fixed_numeric_contracts()
+            .as_ref()
+            .map_err(Clone::clone)?
+            .iter()
+            .find(|kind| kind.kind_id.as_str() == identity)
+            .cloned())
+    }
+    #[cfg(not(feature = "hosted-catalog-cache"))]
+    Ok(fixed_numeric_contracts_uncached()?
+        .into_iter()
+        .find(|kind| kind.kind_id.as_str() == identity))
 }
 fn fixed_numeric_contracts_uncached() -> Result<Vec<Kind>, String> {
     let types = fixed_numeric_types()?;
@@ -292,4 +326,41 @@ fn install_catalogs_with(
             .map_err(|error| format!("{error:?}"))?;
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod lookup_tests {
+    use super::*;
+    #[test]
+    fn selected_contracts_and_types_preserve_the_checked_catalogue() {
+        for kind in fixed_numeric_contracts().unwrap() {
+            assert_eq!(
+                fixed_numeric_contract(kind.kind_id.as_str()).unwrap(),
+                Some(kind)
+            );
+        }
+        for ty in fixed_numeric_types().unwrap() {
+            assert_eq!(fixed_numeric_type(&ty.name).unwrap(), ty.value_type);
+        }
+        assert!(fixed_numeric_contract("numeric/not-owned")
+            .unwrap()
+            .is_none());
+        assert_eq!(
+            fixed_numeric_type("NotOwned"),
+            Err("unknown fixed numeric Type NotOwned".into())
+        );
+    }
+    #[test]
+    fn narrowing_a_returned_contract_cannot_mutate_the_cached_base() {
+        let original = fixed_numeric_contracts().unwrap().remove(0);
+        let mut narrowed = fixed_numeric_contract(original.kind_id.as_str())
+            .unwrap()
+            .unwrap();
+        narrowed.limits.max_active_instances = 0;
+        assert_ne!(narrowed, original);
+        assert_eq!(
+            fixed_numeric_contract(original.kind_id.as_str()).unwrap(),
+            Some(original)
+        );
+    }
 }

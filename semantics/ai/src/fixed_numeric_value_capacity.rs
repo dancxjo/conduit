@@ -1,6 +1,6 @@
 //! Explicit larger instance budget for stateless Value numerical owners.
 //! Mathematical contracts and per-instance storage remain exact and unchanged.
-use crate::fixed_numeric_catalog::fixed_numeric_contracts;
+use crate::fixed_numeric_catalog::fixed_numeric_contract;
 pub const INDEX_IMPLEMENTATION: &str = "conduit.numeric/scalar-explicit-index@1";
 pub const ELEMENTWISE_IMPLEMENTATION: &str = "conduit.numeric/scalar-finite-elementwise@1";
 use alloc::{format, string::String, vec};
@@ -52,10 +52,8 @@ pub fn value_capacity64_contract(mut kind: Kind) -> Result<Kind, String> {
     let implementation =
         value_capacity64_implementation(kind.kind_id.as_str()).ok_or("unsupported Value64 Kind")?;
     // This input is the exact owned contract, not an arbitrary named Kind.
-    let original = fixed_numeric_contracts()?
-        .into_iter()
-        .find(|k| k.kind_id == kind.kind_id)
-        .ok_or("unknown owned Value Kind")?;
+    let original =
+        fixed_numeric_contract(kind.kind_id.as_str())?.ok_or("unknown owned Value Kind")?;
     if kind != original {
         return Err("Value64 requires the exact owned base contract".into());
     }
@@ -69,10 +67,7 @@ pub fn value_offer_capacity64(base: CapabilityOffer) -> Result<CapabilityOffer, 
     if value_capacity64_implementation(base.kind_id.as_str()) != Some(implementation) {
         return Err("wrong Value64 implementation".into());
     }
-    let kind = fixed_numeric_contracts()?
-        .into_iter()
-        .find(|k| k.kind_id == base.kind_id)
-        .ok_or("unknown owned Value Kind")?;
+    let kind = fixed_numeric_contract(base.kind_id.as_str())?.ok_or("unknown owned Value Kind")?;
     let kind = value_capacity64_contract(kind)?;
     let identity = String::from(kind.kind_id.as_str());
     Ok(BackOfferBuilder::new(

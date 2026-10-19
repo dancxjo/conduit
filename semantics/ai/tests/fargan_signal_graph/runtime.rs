@@ -157,6 +157,9 @@ pub fn run_entry_plan_observed(
     let mut owners: Vec<Option<conduitos::expression_host_call::ExpressionHostCall>> =
         (0..N).map(|_| None).collect();
     let mut drivers = Vec::new();
+    let expressions =
+        conduitos::expression_host_call::ExpressionPreparation::new(fragment, &lowered, &active)
+            .unwrap();
     for (index, gear) in fragment.placements.iter().enumerate() {
         if gear.kind_id.as_str().starts_with("numeric/") {
             let factory = factories
@@ -170,13 +173,7 @@ pub fn run_entry_plan_observed(
             })));
         } else if gear.implementation_id.as_str() == conduitos::expression_host_call::IMPLEMENTATION
         {
-            let owner = conduitos::expression_host_call::ExpressionHostCall::prepare(
-                fragment,
-                &lowered,
-                &active,
-                &gear.placement_id,
-            )
-            .unwrap();
+            let owner = expressions.prepare(&gear.placement_id).unwrap();
             owners[index] = Some(owner);
             drivers.push(Driver::Operation(Box::new(
                 conduit_kernel::scheduler::HostCallBack::new(

@@ -2,7 +2,7 @@
 pub use crate::fixed_numeric_value_capacity::INDEX_IMPLEMENTATION;
 use crate::{
     fixed_neural::{fixed_gather, fixed_slice},
-    fixed_numeric_catalog::{fixed_numeric_contracts, fixed_numeric_type},
+    fixed_numeric_catalog::{fixed_numeric_contract, fixed_numeric_type},
     fixed_numeric_codec::{FixedCodecRefusal, FixedF32VectorCodec},
     fixed_numeric_index_codec::FixedU16IndexCodec,
     fixed_numeric_preparation::{verify_fixed_placement, FixedPlannedRefusal, AFFINE_PROFILE},
@@ -31,9 +31,7 @@ pub fn fixed_index_offer<const INPUT: usize, const OUTPUT: usize>(
     operation: FixedIndexOperation,
 ) -> Result<CapabilityOffer, String> {
     let name = format!("numeric/{}{INPUT}x{OUTPUT}", operation.name());
-    let kind = fixed_numeric_contracts()?
-        .into_iter()
-        .find(|k| k.kind_id.as_str() == name)
+    let kind = fixed_numeric_contract(&name)?
         .ok_or_else(|| String::from("unsupported exact index operation"))?;
     Ok(BackOfferBuilder::new(
         kind,
