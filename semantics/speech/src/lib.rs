@@ -40,9 +40,13 @@ pub mod allophone_selection;
 #[cfg(feature = "semantic-bindings")]
 pub mod boundary_admission;
 #[cfg(feature = "semantic-bindings")]
+pub mod carrier_identity;
+#[cfg(feature = "semantic-bindings")]
 pub mod chosen_allophone_profile;
 #[cfg(feature = "semantic-bindings")]
 pub mod chosen_global_rule_profile;
+#[cfg(feature = "semantic-bindings")]
+pub mod complete_carrier;
 #[cfg(feature = "semantic-bindings")]
 pub mod context_match;
 #[cfg(feature = "semantic-bindings")]
@@ -95,6 +99,8 @@ pub mod language_projection;
 pub mod language_revision;
 #[cfg(feature = "semantic-bindings")]
 pub mod linguistic_prosody;
+#[cfg(feature = "semantic-bindings")]
+pub mod model_linguistic_projection;
 #[cfg(feature = "semantic-bindings")]
 pub mod neighbor_match;
 #[cfg(feature = "semantic-bindings")]
@@ -289,6 +295,3 @@ pub mod scoped_energy;
 
 #[cfg(feature = "semantic-bindings")]
 pub mod linguistic_rate;
-
-#[cfg(feature = "semantic-bindings")]
-pub mod carrier_identity;
