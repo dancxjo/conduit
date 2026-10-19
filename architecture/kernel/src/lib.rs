@@ -19,6 +19,7 @@ extern crate alloc;
 use core::mem::size_of;
 
 pub mod causal_evidence;
+pub mod content_sign;
 pub mod debug_observation;
 mod execution_disposition;
 mod failure;
@@ -535,6 +536,19 @@ pub trait SignSink {
         request: Option<RequestId>,
         kind: KernelEventKind,
     ) -> Result<KernelEvent, SignError>;
+
+    /// Publish a payload routing Sign with bytes available at commit. Legacy
+    /// sinks retain their ordinary Sign only; an explicitly admitted content
+    /// profile binds these exact bytes beside that same event.
+    fn record_value(
+        &mut self,
+        node: NodeId,
+        port: PortId,
+        _cord: CordId,
+        _bytes: &[u8],
+    ) -> Result<KernelEvent, SignError> {
+        self.record(node, Some(port), None, KernelEventKind::ValueRouted)
+    }
 
     fn record_remote(
         &mut self,

@@ -2929,11 +2929,12 @@ where
                 if let CordEndpoint::Local { node, .. } = target.sink {
                     self.set_ready(usize::from(node.0), true);
                 }
-                self.signs.record(
+                let committed_bytes = self.values.get(value)?;
+                self.signs.record_value(
                     NodeId(as_u16(node)?),
-                    Some(PortId(as_u16(port)?)),
-                    None,
-                    KernelEventKind::ValueRouted,
+                    PortId(as_u16(port)?),
+                    target.cord,
+                    committed_bytes,
                 )?;
                 self.signs.observe_debug(DebugRuntimeEvent {
                     node: NodeId(as_u16(node)?),
@@ -2941,7 +2942,7 @@ where
                     cord: Some(target.cord),
                     kind: DebugEventKind::ValueSent,
                     type_identity: None,
-                    value: Some(self.values.get(value)?),
+                    value: Some(committed_bytes),
                     fault_code: None,
                 });
             }
@@ -3280,11 +3281,12 @@ where
                     if self.push(cord, value)?.is_some() {
                         return Err(SchedulerError::InvalidPlan);
                     }
-                    self.signs.record(
+                    let committed_bytes = self.values.get(value)?;
+                    self.signs.record_value(
                         NodeId(as_u16(node)?),
-                        Some(PortId(as_u16(port)?)),
-                        None,
-                        KernelEventKind::ValueRouted,
+                        PortId(as_u16(port)?),
+                        target.cord,
+                        committed_bytes,
                     )?;
                     self.signs.observe_debug(DebugRuntimeEvent {
                         node: NodeId(as_u16(node)?),
@@ -3292,7 +3294,7 @@ where
                         cord: Some(target.cord),
                         kind: DebugEventKind::ValueSent,
                         type_identity: None,
-                        value: Some(&[]),
+                        value: Some(committed_bytes),
                         fault_code: None,
                     });
                 }
@@ -3372,11 +3374,12 @@ where
                 if self.push(cord, value)?.is_some() {
                     return Err(SchedulerError::InvalidPlan);
                 }
-                self.signs.record(
+                let committed_bytes = self.values.get(value)?;
+                self.signs.record_value(
                     NodeId(as_u16(node)?),
-                    Some(output),
-                    None,
-                    KernelEventKind::ValueRouted,
+                    output,
+                    target.cord,
+                    committed_bytes,
                 )?;
                 self.signs.observe_debug(DebugRuntimeEvent {
                     node: NodeId(as_u16(node)?),
@@ -3384,7 +3387,7 @@ where
                     cord: Some(target.cord),
                     kind: DebugEventKind::ValueSent,
                     type_identity: None,
-                    value: Some(bytes),
+                    value: Some(committed_bytes),
                     fault_code: None,
                 });
             }

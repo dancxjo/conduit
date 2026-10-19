@@ -267,6 +267,20 @@ where
         self.inner.record(node, port, request, kind)
     }
 
+    fn ensure_capacity(&self, additional: u16) -> Result<(), SignError> {
+        self.inner.ensure_capacity(additional)
+    }
+
+    fn record_value(
+        &mut self,
+        node: NodeId,
+        port: PortId,
+        cord: crate::CordId,
+        bytes: &[u8],
+    ) -> Result<KernelEvent, SignError> {
+        self.inner.record_value(node, port, cord, bytes)
+    }
+
     fn record_remote(
         &mut self,
         node: NodeId,

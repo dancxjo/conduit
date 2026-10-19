@@ -149,8 +149,12 @@ where
             if let Some((sink, _)) = spec.sink_local() {
                 self.set_ready(usize::from(sink.0), true);
             }
-            self.signs
-                .record(source, Some(port), None, KernelEventKind::ValueRouted)?;
+            self.signs.record_value(
+                source,
+                port,
+                CordId(as_u16(cord)?),
+                self.values.get(value)?,
+            )?;
         }
         Ok(first_source)
     }
