@@ -101,6 +101,7 @@ pub(super) use retained_run::run_fragment;
 pub(crate) use retained_run::DurableStateRun;
 pub(super) use retained_run::{InstalledRunHost, RunLifecycle};
 mod combine_latest_back;
+pub(crate) mod content_signs;
 mod current_sample_back;
 mod data_text_back;
 mod data_text_host;
@@ -227,10 +228,9 @@ use conduit_core::{
     bind_active_play, bind_sign, kind_id, wait_host_call_requirement, CancellationReason,
     Observation, ObservationKind, PlanFragment, TerminalDisposition,
 };
-use conduit_kernel::scheduler::{FixedScheduler, SchedulerStatus};
+use conduit_kernel::scheduler::SchedulerStatus;
 use conduit_kernel::{
-    BoundedValueRef, HostCallDisposition, HostCallOutcome, HostedSignLog, HostedValueStore,
-    SignSink, ValueStorage,
+    BoundedValueRef, HostCallDisposition, HostCallOutcome, HostedValueStore, SignSink, ValueStorage,
 };
 use conduit_plan_lowering::lowering::KernelExecutionIdentityMap;
 use std::io::Write;
@@ -244,19 +244,7 @@ use storage_profile::{
 };
 const PROOF_PCM_CLIP_SOURCE_OPERATION: &str = "conduit.host/proof-recorded-pcm-clip@1";
 
-pub(in crate::installed_std) type InstalledScheduler = FixedScheduler<
-    InstalledBack,
-    HostedValueStore,
-    HostedSignLog,
-    MAX_NODES,
-    MAX_CORDS,
-    PORTS,
-    MAX_QUEUE_SLOTS,
-    ROUTE_SLOTS,
-    ROUTE_TARGETS,
-    HOST_BINDING_SLOTS,
-    PENDING_REQUESTS,
->;
+pub(in crate::installed_std) use kernel_preparation::InstalledScheduler;
 
 pub(super) use contract::every_offer;
 pub(super) use contract::tick_offer;
@@ -454,7 +442,12 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     sign_items = sign_items
         .checked_add(remote_sign_items)
         .ok_or_else(|| "external Fore Sign capacity overflow".to_string())?;
-    let sign = fore_sign_storage::prepare(sign_items, !lowered.fore_ports.is_empty())?;
+    let sign = fore_sign_storage::prepare(
+        sign_items,
+        !lowered.fore_ports.is_empty(),
+        &[fragment],
+        maximum_value_bytes,
+    )?;
     let mut external_listener = external_websocket_host::prepare(fragment)?;
     let mut http_host = http_host::InstalledHttpHost::prepare(fragment)?;
     let mut calendar_host = calendar_provider_host::CalendarProviderHost::prepare(fragment)?;
@@ -3722,6 +3715,8 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
             logical_invocations: scheduler.logical_invocations(),
             kernel_events: scheduler.signs().len(),
             kernel_sign: scheduler.signs().events().collect(),
+            content_sign_admission: scheduler.signs().admission().copied(),
+            content_sign_bindings: scheduler.signs().bindings().collect(),
             value_allocation_capacity_before: value_allocation_before,
             value_allocation_capacity_after: value_allocation_after,
             face_ids,

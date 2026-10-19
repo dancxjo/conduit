@@ -1,7 +1,14 @@
 //! Pre-Play storage for retained external Fore correlation history.
+use super::content_signs::StdSignLog;
+use conduit_core::PlanFragment;
 use conduit_kernel::{HostedSignLog, KernelEvent};
 
-pub(super) fn prepare(event_items: u16, has_fore: bool) -> Result<HostedSignLog, String> {
+pub(super) fn prepare(
+    event_items: u16,
+    has_fore: bool,
+    fragments: &[&PlanFragment],
+    maximum_value_bytes: u32,
+) -> Result<StdSignLog, String> {
     let event_bytes = u32::from(event_items)
         .checked_mul(
             u32::try_from(core::mem::size_of::<KernelEvent>())
@@ -15,6 +22,12 @@ pub(super) fn prepare(event_items: u16, has_fore: bool) -> Result<HostedSignLog,
     let remote_items = if has_fore { event_items } else { 0 };
     let remote_bytes = conduit_kernel::remote_sign_storage_bytes(remote_items)
         .ok_or("external Fore remote Sign byte budget overflow")?;
-    HostedSignLog::new_with_remote_storage(event_items, event_bytes, remote_items, remote_bytes)
-        .map_err(|error| format!("installed Sign store: {error:?}"))
+    let base = HostedSignLog::new_with_remote_storage(
+        event_items,
+        event_bytes,
+        remote_items,
+        remote_bytes,
+    )
+    .map_err(|error| format!("installed Sign store: {error:?}"))?;
+    StdSignLog::prepare(base, fragments, maximum_value_bytes)
 }

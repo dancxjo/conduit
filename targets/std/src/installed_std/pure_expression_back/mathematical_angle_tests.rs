@@ -114,6 +114,66 @@ fn play(mut host: crate::StdHost, plan: &Plan, input: Vec<u8>) -> Vec<u8> {
         kernel.value_allocation_capacity_after
     );
     assert_eq!(outputs.0.len(), 1);
+    let requirement = conduit_std_offers::routed_content_sign_requirement().unwrap();
+    let requested = plan.fragments[0]
+        .placements
+        .iter()
+        .any(|p| p.realization_properties.contains(&requirement));
+    assert_eq!(kernel.content_sign_admission.is_some(), requested);
+    if let Some(admission) = kernel.content_sign_admission {
+        assert_eq!(
+            admission.digest_domain,
+            conduit_std_offers::ROUTED_CONTENT_DIGEST_DOMAIN
+        );
+        assert_eq!(
+            admission.binding_storage_bytes,
+            conduit_kernel::content_sign::content_sign_storage_bytes(admission.event_items)
+                .unwrap()
+        );
+        assert!(!kernel.content_sign_bindings.is_empty());
+        for binding in &kernel.content_sign_bindings {
+            assert!(binding.byte_length <= admission.maximum_digest_input_bytes);
+            assert!(kernel
+                .kernel_sign
+                .iter()
+                .any(|e| e.sequence == binding.event_sequence
+                    && e.kind == conduit_kernel::KernelEventKind::ValueRouted));
+        }
+        if let Some(producer) = plan.fragments[0].placements.iter().find(|p| {
+            p.execution_profile_id.as_str() == "std/quantity-near-enclosed-midpoint-binary32@1"
+        }) {
+            let (lowered, _) = conduit_plan_lowering::lowering::lower_plan_fragment_from_plan(
+                plan,
+                &plan.fragments[0].fragment_id,
+            )
+            .unwrap();
+            let node = lowered
+                .identity
+                .node_for_placement(&producer.placement_id)
+                .unwrap();
+            let digest = semantic_digest(admission.digest_domain, &outputs.0[0]);
+            let binding = kernel
+                .content_sign_bindings
+                .iter()
+                .find(|b| {
+                    b.digest == digest
+                        && kernel
+                            .kernel_sign
+                            .iter()
+                            .any(|e| e.sequence == b.event_sequence && e.node == node)
+                })
+                .expect("actual projection producer committed the delivered certificate bytes");
+            let connection_id = lowered
+                .identity
+                .connection_for_cord(binding.cord)
+                .expect("projection output is an exact internal Cord");
+            assert!(plan.fragments[0]
+                .connections
+                .iter()
+                .any(|c| &c.connection_id == connection_id));
+            assert_eq!(binding.byte_length as usize, outputs.0[0].len());
+        }
+    }
     println!(
         "MATHEMATICAL_ANGLE_KERNEL plan={} source={} post_start_allocations={}",
         plan.plan_id.as_str(),

@@ -70,6 +70,9 @@ pub fn prepare_near_contract_expression(
 pub fn near_contract_std_artifact() -> ArtifactId {
     let digest = semantic_digest("std/near-contract-modules@1",concat!(
         include_str!("near_contract.rs"),
+        include_str!("../routed_content_signs.rs"),
+        include_str!("../../../src/installed_std/content_signs.rs"),
+        include_str!("../../../../../architecture/kernel/src/content_sign.rs"),
         include_str!("../../../src/installed_std/pure_expression_back.rs"),
         include_str!("../../../src/numerical_host/expressions.rs"),
         include_str!("../../../../../architecture/plot/src/expression_prepared.rs"),
@@ -138,6 +141,10 @@ pub fn pure_near_contract_std_offer(
     let property =
         super::quantity_expression::bounds_property(NEAR_CONTRACT_BOUNDS_SCHEMA, &fields)?;
     offer.realization_properties.push(property);
+    offer.realization_properties.push(
+        crate::routed_content_sign_requirement()
+            .map_err(|why| format!("content Sign requirement: {why:?}"))?,
+    );
     offer
         .realization_properties
         .sort_by(|a, b| a.profile().cmp(b.profile()));

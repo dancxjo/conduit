@@ -743,6 +743,8 @@ fn run_signal_profile<
         microphone: Vec::new(),
         external_fore_deliveries: Vec::new(),
         kernel: Some(StdKernelExecutionReport {
+            content_sign_admission: None,
+            content_sign_bindings: Vec::new(),
             external_fore_stream: None,
             active_play_id: active_play.active_play_id.clone(),
             active_play,

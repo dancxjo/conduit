@@ -2,13 +2,29 @@
 //! Partitions retain their own provenance; this module creates no Plan or Play.
 //! Hosted tables and the installed kernel are heap-owned during preparation,
 //! avoiding wide table values retained in runner call frames throughout Play.
+use super::content_signs::StdSignLog;
 use super::{
-    InstalledBack, InstalledScheduler, HOST_BINDING_SLOTS, HOST_CALLS_PER_NODE, MAX_CORDS,
-    MAX_NODES, PORTS, ROUTE_SLOTS, ROUTE_TARGETS,
+    InstalledBack, HOST_BINDING_SLOTS, HOST_CALLS_PER_NODE, MAX_CORDS, MAX_NODES, PORTS,
+    ROUTE_SLOTS, ROUTE_TARGETS,
 };
+use super::{MAX_QUEUE_SLOTS, PENDING_REQUESTS};
+use conduit_kernel::scheduler::FixedScheduler;
 use conduit_kernel::scheduler::{AssignedTerminalTransduction, CordSpec, NodeSpec};
-use conduit_kernel::{FixedHostCallBindings, FixedRoutes, HostedSignLog, HostedValueStore};
+use conduit_kernel::{FixedHostCallBindings, FixedRoutes, HostedValueStore};
 use conduit_plan_lowering::lowering::LoweredPlanFragment;
+pub(super) type InstalledScheduler = FixedScheduler<
+    InstalledBack,
+    HostedValueStore,
+    StdSignLog,
+    MAX_NODES,
+    MAX_CORDS,
+    PORTS,
+    MAX_QUEUE_SLOTS,
+    ROUTE_SLOTS,
+    ROUTE_TARGETS,
+    HOST_BINDING_SLOTS,
+    PENDING_REQUESTS,
+>;
 
 pub(super) struct KernelTables {
     chains: Vec<Vec<conduit_kernel::NodeId>>,
@@ -118,7 +134,7 @@ impl KernelTables {
         self: Box<Self>,
         drivers: [InstalledBack; MAX_NODES],
         values: HostedValueStore,
-        sign: HostedSignLog,
+        sign: StdSignLog,
     ) -> Result<Box<InstalledScheduler>, String> {
         if self.chains.len() != self.expected_fusions {
             return Err("selected fusion requires exact installed Back preparation".into());

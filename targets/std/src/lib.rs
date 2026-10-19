@@ -351,8 +351,12 @@ pub struct SpeechRecognitionExecutionReceipt {
     pub diagnostic_bytes: u16,
 }
 
+pub use installed_std::content_signs::ContentSignAdmission;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StdKernelExecutionReport {
+    pub content_sign_admission: Option<ContentSignAdmission>,
+    pub content_sign_bindings: Vec<conduit_kernel::content_sign::ContentSignBinding>,
     pub external_fore_stream: Option<ExternalForeStreamStats>,
     pub active_play: conduit_core::ActivePlayIdentity,
     pub active_play_id: conduit_core::ActivePlayId,

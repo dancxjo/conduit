@@ -435,3 +435,29 @@ fn content_retention_preserves_remote_identity_inside_transient_gap_ranges() {
     });
     assert_eq!((alloc.allocations, alloc.reallocations), (0, 0));
 }
+
+#[cfg(feature = "alloc")]
+#[test]
+fn hosted_binding_storage_is_prepared_once_and_matches_fixed_rows() {
+    let inner = HostedSignLog::new(4, (4 * size_of::<KernelEvent>()) as u32).unwrap();
+    let mut hosted = HostedContentSignLog::new(
+        inner,
+        FixtureDigest::default(),
+        content_sign_storage_bytes(4).unwrap(),
+    )
+    .unwrap();
+    let capacity = hosted.content_allocation_capacity();
+    let mut fixed = log::<4>();
+    let (_, alloc) = allocation_probe::observe(|| {
+        for i in 0..128u32 {
+            let bytes = i.to_le_bytes();
+            assert_eq!(
+                hosted.record_value(NodeId(0), PortId(0), CordId(0), &bytes),
+                fixed.record_value(NodeId(0), PortId(0), CordId(0), &bytes)
+            );
+            assert!(hosted.bindings().eq(fixed.bindings()));
+        }
+    });
+    assert_eq!((alloc.allocations, alloc.reallocations), (0, 0));
+    assert_eq!(hosted.content_allocation_capacity(), capacity);
+}

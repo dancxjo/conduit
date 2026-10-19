@@ -36,10 +36,16 @@ pub fn content_sign_storage_bytes(items: u16) -> Option<u32> {
 /// Explicit optional profile. Its fixed binding array can hold every retained
 /// event in the underlying log, so content pressure cannot cause a late commit
 /// refusal. Bindings expire with their actual routing Sign, never independently.
-pub struct ContentSignLog<S, D, const BINDINGS: usize> {
+pub type ContentSignLog<S, D, const N: usize> =
+    BoundedContentSignLog<S, D, [Option<ContentSignBinding>; N]>;
+#[cfg(feature = "alloc")]
+pub type HostedContentSignLog<S, D> =
+    BoundedContentSignLog<S, D, alloc::vec::Vec<Option<ContentSignBinding>>>;
+
+pub struct BoundedContentSignLog<S, D, B> {
     inner: S,
     provider: D,
-    entries: [Option<ContentSignBinding>; BINDINGS],
+    entries: B,
     len: u16,
     pruned_through: Option<u32>,
 }
@@ -60,6 +66,37 @@ impl<S: OrderedTransientRetention, D: ContentDigestProvider, const N: usize>
             pruned_through: None,
         })
     }
+}
+#[cfg(feature = "alloc")]
+impl<S: OrderedTransientRetention, D: ContentDigestProvider> HostedContentSignLog<S, D> {
+    /// One exact, pre-Play heap allocation for the admitted retained-event
+    /// ceiling. Execution never reserves, resizes or grows this storage.
+    pub fn new(inner: S, provider: D, content_byte_budget: u32) -> Result<Self, SignError> {
+        let items = inner.item_capacity();
+        let bytes = content_sign_storage_bytes(items).ok_or(SignError::InvalidBudget)?;
+        if items == 0 || content_byte_budget != bytes {
+            return Err(SignError::InvalidBudget);
+        }
+        let entries = alloc::vec![None;usize::from(items)];
+        if entries.capacity() != usize::from(items) {
+            return Err(SignError::InvalidBudget);
+        }
+        Ok(Self {
+            inner,
+            provider,
+            entries,
+            len: 0,
+            pruned_through: None,
+        })
+    }
+    pub fn content_allocation_capacity(&self) -> usize {
+        self.entries.capacity()
+    }
+}
+impl<S: OrderedTransientRetention, D: ContentDigestProvider, B> BoundedContentSignLog<S, D, B>
+where
+    B: AsRef<[Option<ContentSignBinding>]> + AsMut<[Option<ContentSignBinding>]>,
+{
     pub const fn inner(&self) -> &S {
         &self.inner
     }
@@ -72,10 +109,11 @@ impl<S: OrderedTransientRetention, D: ContentDigestProvider, const N: usize>
         core::mem::size_of::<Self>()
     }
     pub fn content_capacity_bytes(&self) -> u32 {
-        content_sign_storage_bytes(N as u16).expect("constructor checked fixed capacity")
+        content_sign_storage_bytes(self.entries.as_ref().len() as u16)
+            .expect("constructor checked fixed capacity")
     }
     pub fn bindings(&self) -> impl Iterator<Item = ContentSignBinding> + '_ {
-        self.entries[..usize::from(self.len)]
+        self.entries.as_ref()[..usize::from(self.len)]
             .iter()
             .copied()
             .flatten()
@@ -91,18 +129,20 @@ impl<S: OrderedTransientRetention, D: ContentDigestProvider, const N: usize>
             return;
         }
         let len = usize::from(self.len);
-        let expired = self.entries[..len]
+        let expired = self.entries.as_ref()[..len]
             .iter()
             .take_while(|row| row.is_some_and(|b| b.event_sequence <= last))
             .count();
-        self.entries[..len].rotate_left(expired);
-        self.entries[len - expired..len].fill(None);
+        self.entries.as_mut()[..len].rotate_left(expired);
+        self.entries.as_mut()[len - expired..len].fill(None);
         self.len -= expired as u16;
         self.pruned_through = Some(last);
     }
 }
-impl<S: OrderedTransientRetention, D: ContentDigestProvider, const N: usize> SignSink
-    for ContentSignLog<S, D, N>
+impl<S: OrderedTransientRetention, D: ContentDigestProvider, B> SignSink
+    for BoundedContentSignLog<S, D, B>
+where
+    B: AsRef<[Option<ContentSignBinding>]> + AsMut<[Option<ContentSignBinding>]>,
 {
     fn item_capacity(&self) -> u16 {
         self.inner.item_capacity()
@@ -146,7 +186,7 @@ impl<S: OrderedTransientRetention, D: ContentDigestProvider, const N: usize> Sig
         self.prune();
         // Every retained binding owns a distinct retained event. Constructor
         // admission makes N >= all retained events; this slot must be free.
-        self.entries[usize::from(self.len)] = Some(ContentSignBinding {
+        self.entries.as_mut()[usize::from(self.len)] = Some(ContentSignBinding {
             event_sequence: event.sequence,
             cord,
             byte_length,
@@ -173,8 +213,10 @@ impl<S: OrderedTransientRetention, D: ContentDigestProvider, const N: usize> Sig
         self.inner.observe_debug(event)
     }
 }
-impl<S: OrderedTransientRetention, D: ContentDigestProvider, const N: usize> SignQuery
-    for ContentSignLog<S, D, N>
+impl<S: OrderedTransientRetention, D: ContentDigestProvider, B> SignQuery
+    for BoundedContentSignLog<S, D, B>
+where
+    B: AsRef<[Option<ContentSignBinding>]> + AsMut<[Option<ContentSignBinding>]>,
 {
     fn contains_kind(&self, kind: KernelEventKind) -> bool {
         self.inner.contains_kind(kind)

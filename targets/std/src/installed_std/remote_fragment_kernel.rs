@@ -158,6 +158,8 @@ impl InstalledRemoteFragment {
             remote_sign_bytes,
         )
         .map_err(|error| format!("remote fragment Sign store: {error:?}"))?;
+        let signs =
+            super::content_signs::StdSignLog::prepare(signs, &[fragment], maximum_value_bytes)?;
         let scheduler = tables.install(drivers, values, signs)?;
         let recognized_turn_commit_hosts =
             super::recognized_turn_commit_back::prepare_hosts(fragment);

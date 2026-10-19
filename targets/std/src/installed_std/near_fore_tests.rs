@@ -224,6 +224,12 @@ fn predicate_bounds_are_sealed_and_missing_or_modified_facts_refuse_installation
         }
         assert!(crate::installed_std::pure_expression_back::prepare_hosts(&changed).is_err());
     }
+    let content = conduit_std_offers::routed_content_sign_requirement().unwrap();
+    let mut missing_content = fragment.clone();
+    missing_content.placements[0]
+        .realization_properties
+        .retain(|p| p.profile() != content.profile());
+    assert!(crate::installed_std::pure_expression_back::prepare_hosts(&missing_content).is_err());
     let mut dropped_law = fragment.clone();
     dropped_law.placements[0]
         .semantic_contract
