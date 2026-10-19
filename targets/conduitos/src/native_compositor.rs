@@ -4,6 +4,7 @@ mod damage;
 mod frame_composition;
 mod input_routing;
 mod interaction_affordance;
+mod scanline;
 mod scanout_acknowledgement;
 mod surface_buffer;
 mod surface_lifecycle;

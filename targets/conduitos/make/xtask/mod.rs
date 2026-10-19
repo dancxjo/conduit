@@ -18,6 +18,7 @@ mod armv6_rpi_flash;
 mod armv6_rpi_physical;
 mod build;
 mod command;
+mod compositor_performance;
 mod demo;
 mod emergency_halt_proof;
 mod emitted_line;
@@ -565,6 +566,7 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
         ConduitosCommand::ProveMany(args) => prove_many::execute(args, opts),
         ConduitosCommand::StdGap => std_gap::execute(opts),
         ConduitosCommand::TimingProfile => timing_profile::execute(opts),
+        ConduitosCommand::CompositorPerformance => compositor_performance::execute(opts),
         ConduitosCommand::XhciProof(args) => xhci_proof::execute(args.prepared_image, opts),
         ConduitosCommand::UsbProof(args) => usb_proof::execute(args, opts),
         ConduitosCommand::UsbConfigurationProof => usb_proof::execute_configuration(opts),
