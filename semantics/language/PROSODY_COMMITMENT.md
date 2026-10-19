@@ -57,6 +57,12 @@ carrier/public-artifact custody once the contract is stable; preserve previous
 producer/history and compare Source identities separately from program/PCM
 identity. This document is implementation scope, not an acceptance receipt.
 
+For that bounded refresh, `cargo xtask prove journey native-speech
+--shared-carrier-only --output <directory>` runs the installed complete-carrier
+producer and independently reloads its retained bytes in a fresh process.
+This does not replace broader conformance or required exact-head CI. Reuse
+unchanged authoring, playback and footprint proof at their recorded revisions.
+
 ## Actual Source execution and shared analysis authority
 
 The public optional `dependency_commitment_execution.conduit` operation

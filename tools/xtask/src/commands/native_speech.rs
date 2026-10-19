@@ -14,6 +14,13 @@ pub fn run(args: NativeSpeechArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std:
         root.join(args.output)
     };
     if opts.dry_run {
+        if args.shared_carrier_only {
+            println!(
+                "would regenerate and independently reload shared carrier evidence in {}",
+                output.display()
+            );
+            return Ok(());
+        }
         println!(
             "would check native speech contracts, compare compiled plots, and retain WAVs in {}",
             output.display()
@@ -31,26 +38,28 @@ pub fn run(args: NativeSpeechArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std:
         }
         Ok(())
     };
-    invoke(&[
-        "test",
-        "--locked",
-        "-p",
-        "conduit-plot",
-        "--test",
-        "native_expression_construction",
-    ])?;
-    // The journey exercises its actual authoring, terminals and replay. Broad
-    // domain conformance remains `xtask check speech-ipa` and exact-head CI.
-    invoke(&[
-        "test",
-        "--locked",
-        "-p",
-        "conduit-speech",
-        "--features",
-        "semantic-bindings,kernel",
-        "--test",
-        "ipa_authoring",
-    ])?;
+    if !args.shared_carrier_only {
+        invoke(&[
+            "test",
+            "--locked",
+            "-p",
+            "conduit-plot",
+            "--test",
+            "native_expression_construction",
+        ])?;
+        // The journey exercises its actual authoring, terminals and replay. Broad
+        // domain conformance remains `xtask check speech-ipa` and exact-head CI.
+        invoke(&[
+            "test",
+            "--locked",
+            "-p",
+            "conduit-speech",
+            "--features",
+            "semantic-bindings,kernel",
+            "--test",
+            "ipa_authoring",
+        ])?;
+    }
     // This positive proof executes both model entrances and the installed
     // formant path from one complete original, and exports its exact evidence.
     // Negative/lifecycle cases already belong to the domain conformance suite.
@@ -91,6 +100,10 @@ pub fn run(args: NativeSpeechArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std:
         .status()?;
     if !inspection.success() {
         return Err(format!("retained speech carrier inspection failed: {inspection}").into());
+    }
+    if args.shared_carrier_only {
+        println!("Retained and independently reloaded shared carrier evidence: {}. Offline PCM; no device playback or human listening claim.", output.join("shared-carrier").display());
+        return Ok(());
     }
     invoke(&[
         "test",
