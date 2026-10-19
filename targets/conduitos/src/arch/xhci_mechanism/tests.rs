@@ -63,6 +63,7 @@ fn all_refusals_remain_machine_readable() {
         XhciError::ResetTimeout,
         XhciError::StartTimeout,
         XhciError::CommandRingFull,
+        XhciError::EventRetentionPressure,
         XhciError::UnexpectedCompletion,
         XhciError::CommandTimeout,
         XhciError::DmaAddressInvalid,

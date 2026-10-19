@@ -272,6 +272,7 @@ fn every_failure_has_a_distinct_machine_reason() {
         HidError::TransferTimeout,
         HidError::TransferStall,
         HidError::TransferError,
+        HidError::CompletionPressure,
         HidError::WrongDevice,
         HidError::WrongEndpoint,
         HidError::WrongCompletion,

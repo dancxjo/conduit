@@ -180,6 +180,10 @@ fn short_packet_and_stall_are_explicit_control_outcomes() {
         UsbError::from(XhciError::UnexpectedCompletion),
         UsbError::ControlError
     );
+    assert_eq!(
+        UsbError::from(XhciError::EventRetentionPressure),
+        UsbError::CompletionPressure
+    );
 }
 
 #[test]
