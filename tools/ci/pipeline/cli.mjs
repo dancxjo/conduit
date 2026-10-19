@@ -72,7 +72,10 @@ try {
         broadAdmission = admissionPlan(paths, metadata, process.cwd()).broad;
         // Broad admission previously tested every workspace package in one job.
         // Preserve that corpus even when target scanning selected fewer shards.
-        if (broadAdmission) plan.unitShards = [...UNIT_SHARDS];
+        if (broadAdmission) {
+          plan.unitShards = [...UNIT_SHARDS];
+          plan.conduitosProof = true;
+        }
       }
       output('broad-admission', String(broadAdmission));
       output('has-targets', String(plan.families.length > 0));

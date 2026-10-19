@@ -24,3 +24,18 @@ test('ordinary output assertions retain their five-second deadline after prepara
   await waitForWorkspacePreparation(page);
   await expect(expect(page.locator('#result')).toHaveText('ready')).rejects.toThrow(/Timeout:\s+5000ms/);
 });
+
+// Idle is an explicit success only for a restored sound-only Body.
+test('sound-only restoration waits for Idle and still rejects terminal failure', async ({ page }) => {
+  await page.setContent('<p data-play-state>Preparing</p>');
+  await page.evaluate(() => setTimeout(() => {
+    document.querySelector('[data-play-state]').textContent = 'Idle';
+  }, 5_200));
+  await waitForWorkspacePreparation(page, { expectedState: 'Idle' });
+  await expect(page.locator('[data-play-state]')).toHaveText('Idle');
+  await page.setContent('<p data-play-state>Refused</p>');
+  await expect(waitForWorkspacePreparation(page, { expectedState: 'Idle' }))
+    .rejects.toThrow('Workspace preparation ended in Refused');
+  await expect(waitForWorkspacePreparation(page, { expectedState: 'Refused' }))
+    .rejects.toThrow('Unsupported preparation success state');
+});

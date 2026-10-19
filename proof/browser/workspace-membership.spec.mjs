@@ -3,6 +3,7 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { randomUUID } from "node:crypto";
 import { expect, test } from "@playwright/test";
+import { BROWSER_COLD_PREPARATION_MS } from "./browser-preparation.mjs";
 import { startStaticProduct } from "./static-product-server.mjs";
 import { writeBrowserBodyJourneyTrack } from "./body-journey-track.mjs";
 
@@ -374,6 +375,10 @@ test("a second distinct browser Host explicitly joins through one canonical Body
     document.body.append(form);
     form.submit();
   }, portableCode);
+  // POST delivery redirects to a fresh document with its own Host initialization.
+  await sharedPage.waitForFunction(() => location.hash.startsWith("#body-invitation=")
+    && Boolean(globalThis.__conduitWorkspace), undefined,
+    { timeout: BROWSER_COLD_PREPARATION_MS });
   await expect(sharedPage.getByText("Body invitation", { exact: true })).toBeVisible();
   await expect(sharedPage.getByText("It grants no Plot or effect authority.")).toBeVisible();
   expect(await sharedPage.evaluate(() => ({ current: globalThis.__conduitWorkspace.current(), search: location.search }))).toEqual({ current: null, search: "" });
