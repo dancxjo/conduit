@@ -38,11 +38,13 @@ unchanged output capacity. Wrong dimensional/IEEE input Types and wrong arity
 refuse. Dynamic negative and unsupported symbolic inputs refuse without guarded
 allocation, followed by successful valid-input recovery.
 
-The actual CLI corpus is extended with a Source-authored root fixture feeding
-`math/enclose`, inspecting retained source/request identity, and showing the
-result through `face/text`. It also requires zero-width symbolic refusal without
-success output. Until that extended CLI test has executed, these are authored
-proof cases, not execution evidence.
+The actual CLI corpus passes for both Source-authored Pi/180 and sqrt(2):
+parse/check/expand, sealed verified Plan, selected installed `math/enclose` Back,
+retained source/request inspection and `face/text` output. The same two sources
+with zero-width requests fail with `InvalidInput` detail 4 and no success output.
+These are four actual CLI invocations in two passing tests. The root Source
+identity and Plan, stdout/stderr, executables and source bundle are retained
+with the local capture; no browser execution is inferred from adapter compilation.
 
 This is private implementation and component proof, not public Candidate,
 combined Integration or stable acceptance. Installed browser execution, firmware,
