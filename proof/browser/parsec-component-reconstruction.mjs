@@ -15,13 +15,14 @@ assert.equal(capture.schema, 'conduit.proof/parsec-component-reconstruction@1');
 assert.equal(capture.records.length, 4);
 const module = await readFile(new URL('../../targets/browser/handbook/instruction-component.mjs', import.meta.url), 'utf8');
 const owner = await readFile(new URL('../../targets/browser/handbook/owner-face-component.mjs', import.meta.url), 'utf8');
+const presentation = await readFile(new URL('../../targets/browser/handbook/owner-face-presentation.mjs', import.meta.url), 'utf8');
 const browser = await chromium.launch({ headless: true });
 try {
   const page = await browser.newPage();
   await page.route('http://component.test/**', async route => {
     const name = new URL(route.request().url()).pathname;
     await route.fulfill({ contentType: name.endsWith('.mjs') ? 'text/javascript' : 'text/html',
-      body: name === '/instruction.mjs' ? module : name === '/owner.mjs' ? owner : '<!doctype html><html lang="en"><title>Captured component</title><body></body></html>' });
+      body: name === '/instruction.mjs' ? module : name === '/owner.mjs' ? owner : name === '/owner-face-presentation.mjs' ? presentation : '<!doctype html><html lang="en"><title>Captured component</title><body></body></html>' });
   });
   await page.goto('http://component.test/');
   await page.evaluate(async () => {
