@@ -96,6 +96,23 @@ fn run(output: &Path, iterations: u32, repetitions: u32) -> Result<(), Box<dyn s
     let mut raw = artifact::Raw::new(&output.join("raw.jsonl"))?;
     raw.row(&json!({"phase":"timer-control","samples_ns":timing::timer_control(2000),"subtracted":false}))?;
     for order in [FixedMatrixOrder::InputMajor, FixedMatrixOrder::OutputMajor] {
+        case::<3, 2>(&mut raw, iterations, repetitions, order)?;
+        case::<18, 18>(&mut raw, iterations, repetitions, order)?;
+        case::<80, 1>(&mut raw, iterations, repetitions, order)?;
+        case::<161, 18>(&mut raw, iterations, repetitions, order)?;
+        case::<192, 4>(&mut raw, iterations, repetitions, order)?;
+        case::<128, 40>(&mut raw, iterations, repetitions, order)?;
+        case::<328, 192>(&mut raw, iterations, repetitions, order)?;
+        case::<192, 192>(&mut raw, iterations, repetitions, order)?;
+        case::<272, 480>(&mut raw, iterations, repetitions, order)?;
+        case::<160, 480>(&mut raw, iterations, repetitions, order)?;
+        case::<240, 384>(&mut raw, iterations, repetitions, order)?;
+        case::<128, 384>(&mut raw, iterations, repetitions, order)?;
+        case::<208, 384>(&mut raw, iterations, repetitions, order)?;
+        case::<160, 160>(&mut raw, iterations, repetitions, order)?;
+        case::<128, 128>(&mut raw, iterations, repetitions, order)?;
+        case::<688, 128>(&mut raw, iterations, repetitions, order)?;
+
         case::<20, 40>(&mut raw, iterations, repetitions, order)?;
         case::<40, 128>(&mut raw, iterations, repetitions, order)?;
         case::<128, 160>(&mut raw, iterations, repetitions, order)?;
@@ -106,7 +123,7 @@ fn run(output: &Path, iterations: u32, repetitions: u32) -> Result<(), Box<dyn s
     raw.finish()?;
     artifact::json(
         &output.join("summary.json"),
-        &json!({"schema":"conduit.matrix-projection-performance@1","iterations":iterations,"repetitions":repetitions,"shapes":6,"orders":2,"scope":"Isolated ordered-f32 matrix arithmetic on validated immutable synthetic bytes. No full Back, Plan, FARGAN, realtime, hardware traffic or total RAM claim. No quiet timing acceptance without independent process controls.","accounting":"Fixture generation and tensor preparation measured separately; warm bulk includes function calls, finite checks, prepared/reference scratch and result guards. Both paths retain column accumulation order. Reference omits one view-field lookup. Output inspection/hashing and evidence writes occur outside warm timing; timer controls not subtracted."}),
+        &json!({"schema":"conduit.matrix-projection-performance@1","iterations":iterations,"repetitions":repetitions,"shapes":22,"orders":2,"shape_list":["3x2","18x18","80x1","161x18","192x4","128x40","328x192","192x192","272x480","160x480","240x384","128x384","208x384","160x160","128x128","688x128","20x40","40x128","128x160","160x128","192x160","320x160"],"scope":"Isolated ordered-f32 matrix arithmetic on validated immutable synthetic bytes. No full Back, Plan, FARGAN, realtime, hardware traffic or total RAM claim. No quiet timing acceptance without independent process controls.","accounting":"Fixture generation and tensor preparation measured separately; warm bulk includes function calls, finite checks, prepared/reference scratch and result guards. Both paths retain column accumulation order. Reference omits one view-field lookup. Output inspection/hashing and evidence writes occur outside warm timing; timer controls not subtracted."}),
     )?;
     Ok(())
 }
