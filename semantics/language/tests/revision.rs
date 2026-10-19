@@ -219,8 +219,10 @@ fn dependency_observes_governor_without_marking_it_as_changed() {
     let backward = arc_between("analysis/a", LanguageUniversalDependencyRelation::Dep, 2, 0);
     assert_eq!(
         domain.region(&forward),
-        (TokenFrontier(0), TokenFrontier(2))
+        (TokenFrontier(0), TokenFrontier(1))
     );
+    assert_eq!(domain.observation_end(&forward), TokenFrontier(2));
+    assert_eq!(domain.observation_end(&backward), TokenFrontier(3));
     assert_eq!(
         domain.region(&backward),
         (TokenFrontier(2), TokenFrontier(3))
