@@ -6,6 +6,7 @@ struct Back {
     finished: bool,
     fail_once: bool,
     begins: usize,
+    resident: Option<ValueRef>,
 }
 impl StepBack<1> for Back {
     fn step(&mut self, _: &mut StepIo<1>, _: &StepInputBytes<'_, 1>) -> StepOutcome {
@@ -24,8 +25,8 @@ impl StepBack<1> for Back {
 }
 impl ReusableStepBack<1> for Back {
     type Next = bool;
-    fn preflight_next(&self, next: &bool, _: &dyn ValueStorage) -> bool {
-        self.finished && *next
+    fn preflight_next(&self, next: &bool, values: &dyn ValueStorage) -> bool {
+        self.finished && *next && self.resident.is_none_or(|value| values.get(value).is_ok())
     }
     fn begin_next(&mut self, _: bool) {
         self.finished = false;
@@ -41,7 +42,7 @@ fn specimen(fail_once: bool) -> Session {
     let mut routes = FixedRoutes::<2, 0>::new(1);
     routes.seal().unwrap();
     let mut store = FixedValueStore::<4, 16>::new(64).unwrap();
-    store.store(&[1, 2, 3]).unwrap(); // resident owner, no implicit store clearing
+    let resident = store.store(&[1, 2, 3]).unwrap(); // retained live owner
     let kernel = FixedScheduler::new_with_active_counts(
         2,
         0,
@@ -56,11 +57,13 @@ fn specimen(fail_once: bool) -> Session {
                 finished: false,
                 fail_once,
                 begins: 0,
+                resident: Some(resident),
             },
             Back {
                 finished: false,
                 fail_once: false,
                 begins: 0,
+                resident: None,
             },
         ],
         store,
@@ -166,4 +169,21 @@ fn active_cancelled_and_nonempty_evidence_reservations_refuse() {
             .reason,
         SessionRefusal::NotNormallyDrained
     );
+}
+
+#[test]
+fn lost_resident_pin_refuses_before_reset_and_preserves_old_evidence() {
+    let mut session = specimen(false);
+    drain(&mut session);
+    let resident = session.kernel().drivers()[0].resident.unwrap();
+    assert_eq!(session.kernel().values().get(resident).unwrap(), &[1, 2, 3]);
+    session.release_between_invocations(resident).unwrap();
+    let count = session.kernel().signs().len();
+    let refused = session.begin_next([true, true], log()).err().unwrap();
+    assert_eq!(
+        refused.reason,
+        SessionRefusal::BackNotReady { node: NodeId(0) }
+    );
+    assert_eq!(session.kernel().drivers()[0].begins, 0);
+    assert_eq!(session.kernel().signs().len(), count);
 }
