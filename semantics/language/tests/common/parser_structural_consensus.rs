@@ -42,7 +42,7 @@ impl Structural {
             merge: graph("language-parser-scorer-merge"),
             agreement: graph("language-parser-admitted-agreement"),
             advance: graph("language-parser-advance-stable"),
-            commit: graph("language-parser-commit"),
+            commit: graph("language-parser-commit-frontier"),
         }
     }
     /// Construct a complete chain by accepted Source actions, with one declared
