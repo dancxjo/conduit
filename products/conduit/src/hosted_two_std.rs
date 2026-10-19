@@ -1,6 +1,8 @@
 //! Exact two-std-Host realization of one authored text Plot over an admitted Line.
 
+mod evidence;
 mod transport;
+pub use evidence::{RemoteKernelEvidence, TwoHostKernelEvidence};
 
 use std::{collections::BTreeMap, io::Write};
 
@@ -44,6 +46,24 @@ pub fn execute_hosted_two_std_plot(
     source: &str,
     output: &mut impl Write,
 ) -> Result<HostedTwoHostExecution, String> {
+    execute::<false>(source, output).map(|(execution, _)| execution)
+}
+
+/// Execute the same admitted Source/Plan/Line path and retain both kernels'
+/// evidence after terminal drain. This includes owned reconstruction costs;
+/// it is not a second scheduler or an alternative acknowledgement path.
+pub fn execute_hosted_two_std_plot_with_evidence(
+    source: &str,
+    output: &mut impl Write,
+) -> Result<(HostedTwoHostExecution, TwoHostKernelEvidence), String> {
+    let (execution, evidence) = execute::<true>(source, output)?;
+    Ok((execution, evidence.ok_or("two-Host evidence missing")?))
+}
+
+fn execute<const OBSERVE: bool>(
+    source: &str,
+    output: &mut impl Write,
+) -> Result<(HostedTwoHostExecution, Option<TwoHostKernelEvidence>), String> {
     let plot = plot_source::parse(source)?.expand_entry()?;
     let source_host = host(SOURCE_HOST, SOURCE_BOOT);
     let sink_host = host(SINK_HOST, SINK_BOOT);
@@ -98,15 +118,19 @@ pub fn execute_hosted_two_std_plot(
         &sink_runtime,
         conduit_plan_lowering::lowering::RemoteCordDirection::Ingress,
     )?;
-    let (transfer, sink_output) =
-        transport::execute_line(source_runtime, source_endpoint, sink_runtime, sink_endpoint)?;
+    let (transfer, sink_output, evidence) = transport::execute_line::<OBSERVE>(
+        source_runtime,
+        source_endpoint,
+        sink_runtime,
+        sink_endpoint,
+    )?;
     output
         .write_all(&sink_output)
         .map_err(|error| error.to_string())?;
     let result = core::str::from_utf8(&transfer.bytes)
         .map_err(|_| "two-Host text is not UTF-8")?
         .to_string();
-    Ok(HostedTwoHostExecution {
+    let execution = HostedTwoHostExecution {
         source_document_id: plot.source_document_id,
         checked_plot_id: plot.checked_plot_id,
         expanded_plot_id: plot.expanded_plot_id,
@@ -130,7 +154,8 @@ pub fn execute_hosted_two_std_plot(
         line_id,
         transferred_values: 1,
         result,
-    })
+    };
+    Ok((execution, evidence))
 }
 
 fn line_offer(source: &StdHost, sink: &StdHost) -> LineOffer {
