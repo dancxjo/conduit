@@ -4,6 +4,8 @@ use conduit_semantic_catalog::{
     near_quantity_type, NearQuantityAlgorithm, NUMERICAL_NEAR_MAX_BYTES,
 };
 
+mod mathematical;
+
 pub struct PreparedNearEncoding {
     source: PreparedStructuredComposer,
     wire: PreparedStructuredComposer,
@@ -58,16 +60,43 @@ fn leaf(
 }
 impl PreparedNearEncoding {
     pub fn new() -> Result<Self, StructuredInfoRefusal> {
+        Self::new_with_mode(false)
+    }
+    pub fn new_mathematical() -> Result<Self, StructuredInfoRefusal> {
+        Self::new_with_mode(true)
+    }
+    fn new_with_mode(mathematical: bool) -> Result<Self, StructuredInfoRefusal> {
         let ty = near_quantity_type();
         let representation = field(&ty, "representation");
-        let floating = case(&representation, "binary32");
+        let floating = case(
+            &representation,
+            if mathematical {
+                "enclosed_binary32"
+            } else {
+                "binary32"
+            },
+        );
         let math = field(&ty, "source");
         let role = field(&ty, "role");
         let claim = field(&ty, "claim");
         Ok(Self {
-            source: leaf(&math, 2 + EXACT_RATIONAL_MAX_ENCODED_BYTES)?,
+            source: leaf(
+                &math,
+                if mathematical {
+                    MATHEMATICAL_VALUE_MAX_ENCODED_BYTES
+                } else {
+                    2 + EXACT_RATIONAL_MAX_ENCODED_BYTES
+                },
+            )?,
             requested_limit: leaf(&field(&ty, "requested-limit"), QUANTITY_ENCODED_LEN)?,
-            wire: leaf(&field(&ty, "source-wire"), QUANTITY_VALUE_MAX_ENCODED_BYTES)?,
+            wire: leaf(
+                &field(&ty, "source-wire"),
+                if mathematical {
+                    MATHEMATICAL_QUANTITY_MAX_ENCODED_BYTES
+                } else {
+                    QUANTITY_VALUE_MAX_ENCODED_BYTES
+                },
+            )?,
             unit: leaf(&field(&ty, "unit"), UNIT_ENCODED_LEN)?,
             error: leaf(
                 &field(&ty, "maximum-error"),
@@ -163,6 +192,9 @@ impl PreparedNearEncoding {
                     "exact_rational",
                     validate_canonical_structured_value(exact)?,
                 )?
+            }
+            NearQuantityAlgorithm::EnclosedBinary32 => {
+                return Err(StructuredInfoRefusal::WrongType)
             }
             NearQuantityAlgorithm::Binary32 => {
                 let p = projection.ok_or(StructuredInfoRefusal::WrongType)?;

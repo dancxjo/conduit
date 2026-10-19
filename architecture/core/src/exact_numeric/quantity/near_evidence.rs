@@ -28,7 +28,9 @@ pub enum NearQuantityEvidenceRefusal {
     ExactnessRequired,
 }
 type Refusal = NearQuantityEvidenceRefusal;
-pub const NEAR_QUANTITY_EVIDENCE_MAX_BYTES: usize = 16_384;
+pub const NEAR_QUANTITY_EVIDENCE_MAX_BYTES: usize = 131_072;
+mod mathematical;
+pub use mathematical::*;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum VerifiedNearRepresentation {
     ExactRational,
@@ -395,13 +397,13 @@ fn protocol_schema(ty: &StructuredInfoType) -> bool {
     let Shape::Variant { cases, .. } = rep.shape() else {
         return false;
     };
-    if cases.len() != 2 {
+    if !(2..=3).contains(&cases.len()) {
         return false;
     }
     for c in cases {
         match c.tag() {
             "exact_rational" if leaf_type(c.payload_type(), crate::MATHEMATICAL_VALUE_ID) => (),
-            "binary32" => {
+            "binary32" | "enclosed_binary32" => {
                 let Shape::Record { fields, .. } = c.payload_type().shape() else {
                     return false;
                 };

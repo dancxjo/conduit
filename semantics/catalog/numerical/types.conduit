@@ -91,9 +91,13 @@ type NearQuantityRepresentation =
         target: F32 finite
         rounding: NumericalRounding
     }
+    | enclosed_binary32 {
+        target: F32 finite
+        rounding: NumericalRounding
+    }
 type NearQuantity = {
     source: MathematicalValue
-    source-wire: Bytes <= 1800B
+    source-wire: Bytes <= 33829B
     requested-limit: Quantity
     unit: Unit
     role: NearQuantityRole

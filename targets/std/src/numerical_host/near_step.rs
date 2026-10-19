@@ -116,6 +116,7 @@ struct NearState {
     limit: RationalQuantity,
     algorithm: NearQuantityAlgorithm,
     encoding: PreparedNearEncoding,
+    mathematical: Option<PreparedMathematicalQuantityBinary32>,
 }
 impl NearQuantityBack {
     pub fn new(
@@ -135,22 +136,54 @@ impl NearQuantityBack {
                 requested_limit,
                 limit,
                 algorithm,
-                encoding: PreparedNearEncoding::new()
-                    .map_err(|why| format!("numeric/near-output-preparation@1: {why:?}"))?,
+                mathematical: if algorithm == NearQuantityAlgorithm::EnclosedBinary32 {
+                    Some(
+                        PreparedMathematicalQuantityBinary32::new(
+                            mathematical::requirements(),
+                            Binary32Rounding::NearestTiesEven,
+                            limit,
+                            NEAR_NUMERICAL_WORK,
+                        )
+                        .map_err(|why| format!("mathematical near preparation: {why:?}"))?,
+                    )
+                } else {
+                    None
+                },
+                encoding: if algorithm == NearQuantityAlgorithm::EnclosedBinary32 {
+                    PreparedNearEncoding::new_mathematical()
+                } else {
+                    PreparedNearEncoding::new()
+                }
+                .map_err(|why| format!("numeric/near-output-preparation@1: {why:?}"))?,
             }),
             staged: false,
             complete: false,
         })
     }
     pub fn retained_capacity_bytes(&self) -> usize {
-        core::mem::size_of::<NearState>() + self.state.encoding.prepared_heap_bytes()
+        core::mem::size_of::<NearState>()
+            + self.state.encoding.prepared_heap_bytes()
+            + self.state.mathematical.as_ref().map_or(0, |p| {
+                p.retained_payload_bytes()
+                    - core::mem::size_of::<PreparedMathematicalQuantityBinary32>()
+            })
     }
     pub const fn output_bound() -> u32 {
         NUMERICAL_NEAR_MAX_BYTES
     }
+    pub fn input_bound(&self) -> usize {
+        if self.state.mathematical.is_some() {
+            MATHEMATICAL_QUANTITY_MAX_ENCODED_BYTES
+        } else {
+            QUANTITY_VALUE_MAX_ENCODED_BYTES
+        }
+    }
     // This computes from the actual input, not a startup-frozen receipt.
     #[inline(never)]
     fn evaluate(&mut self, bytes: &[u8]) -> Result<(), NearRefusal> {
+        if self.state.mathematical.is_some() {
+            return self.evaluate_mathematical(bytes);
+        }
         let mut work = ExactNumericWork::new(NEAR_NUMERICAL_WORK);
         let view = QuantityValueProfile::Exact
             .decode(QUANTITY_INFO_ID, bytes, &mut work)
@@ -179,6 +212,7 @@ impl NearQuantityBack {
             return Err(NearRefusal::Physical);
         }
         let projected = match self.state.algorithm {
+            NearQuantityAlgorithm::EnclosedBinary32 => return Err(NearRefusal::Lifecycle),
             NearQuantityAlgorithm::ExactRational => None,
             NearQuantityAlgorithm::Binary32 => Some(
                 PreparedQuantityBinary32Projection::prepare(
@@ -257,7 +291,7 @@ impl<const PORTS: usize> StepBack<PORTS> for NearQuantityBack {
         if !io.output_ready(PortId(0)) {
             return StepOutcome::Await;
         }
-        if value.byte_len as usize > QUANTITY_VALUE_MAX_ENCODED_BYTES {
+        if value.byte_len as usize > self.input_bound() {
             return fail(NearRefusal::Input);
         }
         let Some(input) = bytes.input(PortId(0)) else {
@@ -451,3 +485,5 @@ impl ProjectionPolicy<ExactNearDomain> for ExactNearDomain {
 
 #[cfg(test)]
 mod tests;
+
+mod mathematical;

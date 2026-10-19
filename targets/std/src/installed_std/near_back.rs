@@ -10,6 +10,7 @@ use conduit_semantic_catalog::{
 use std::fmt::Write;
 const IMPLEMENTATION: &str = "conduit.std/quantity-near@1";
 const EXACT: &str = "std/quantity-near-exact-rational@1";
+const MATHEMATICAL: &str = "std/quantity-near-enclosed-midpoint-binary32@1";
 const FLOAT: &str = "std/quantity-near-binary32-single-round@1";
 pub(super) static FACTORY: BackFactory = BackFactory {
     implementation_id: IMPLEMENTATION,
@@ -31,16 +32,15 @@ fn bounds(
     let fields = [
         (
             "algorithm",
-            if algorithm == NearQuantityAlgorithm::Binary32 {
+            if algorithm == NearQuantityAlgorithm::EnclosedBinary32 {
+                33
+            } else if algorithm == NearQuantityAlgorithm::Binary32 {
                 32
             } else {
                 0
             },
         ),
-        (
-            "maximum-input-bytes",
-            QUANTITY_VALUE_MAX_ENCODED_BYTES as u64,
-        ),
+        ("maximum-input-bytes", back.input_bound() as u64),
         (
             "maximum-output-bytes",
             u64::from(NearQuantityBack::output_bound()),
@@ -97,6 +97,12 @@ fn offer(limit: Quantity, algorithm: NearQuantityAlgorithm) -> Result<Capability
             include_str!("near_back.rs"),
             include_str!("../numerical_host/near_step.rs"),
             include_str!("../numerical_host/near_encoding.rs"),
+            include_str!("../numerical_host/near_encoding/mathematical.rs"),
+            include_str!("../numerical_host/near_step/mathematical.rs"),
+            include_str!("../../../../architecture/core/src/exact_numeric/quantity/mathematical_binary32.rs"),
+            include_str!("../../../../architecture/core/src/exact_numeric/quantity/mathematical_binary32/projection.rs"),
+            include_str!("../../../../architecture/core/src/exact_numeric/quantity/mathematical_enclosure.rs"),
+            include_str!("../../../../architecture/core/src/exact_numeric/quantity/near_evidence/mathematical.rs"),
             include_str!("../../../../semantics/catalog/src/numerical_realization/near.rs"),
             include_str!("../../../../semantics/catalog/numerical/types.conduit"),
             include_str!("../../../../architecture/core/src/exact_numeric/binary32.rs"),
@@ -118,14 +124,18 @@ fn offer(limit: Quantity, algorithm: NearQuantityAlgorithm) -> Result<Capability
         Back {
             capability_id: format!(
                 "std/source-near/{}/{identity}",
-                if algorithm == NearQuantityAlgorithm::Binary32 {
+                if algorithm == NearQuantityAlgorithm::EnclosedBinary32 {
+                    "15-enclosed-binary32"
+                } else if algorithm == NearQuantityAlgorithm::Binary32 {
                     "10-binary32"
                 } else {
                     "20-exact"
                 }
             )
             .into(),
-            execution_profile_id: if algorithm == NearQuantityAlgorithm::Binary32 {
+            execution_profile_id: if algorithm == NearQuantityAlgorithm::EnclosedBinary32 {
+                MATHEMATICAL
+            } else if algorithm == NearQuantityAlgorithm::Binary32 {
                 FLOAT
             } else {
                 EXACT
@@ -139,11 +149,20 @@ fn offer(limit: Quantity, algorithm: NearQuantityAlgorithm) -> Result<Capability
         },
     )
     .build();
-    let wire =
-        QuantityWireContract::new(vec![("value".into(), QuantityValueProfile::Exact)], vec![])
-            .map_err(|why| format!("near wire: {why:?}"))?
-            .to_property()
-            .map_err(|why| format!("near wire: {why:?}"))?;
+    let wire = QuantityWireContract::new(
+        vec![(
+            "value".into(),
+            if algorithm == NearQuantityAlgorithm::EnclosedBinary32 {
+                QuantityValueProfile::Mathematical
+            } else {
+                QuantityValueProfile::Exact
+            },
+        )],
+        vec![],
+    )
+    .map_err(|why| format!("near wire: {why:?}"))?
+    .to_property()
+    .map_err(|why| format!("near wire: {why:?}"))?;
     offer.realization_properties = vec![binding, wire, bounds(&back, algorithm)?];
     offer
         .realization_properties
@@ -155,6 +174,7 @@ pub(crate) fn offers(configuration: &[ConfigurationEntry]) -> Result<Vec<Capabil
     let mut result = vec![offer(limit, NearQuantityAlgorithm::ExactRational)?];
     if limit.coefficient() != 0 {
         result.push(offer(limit, NearQuantityAlgorithm::Binary32)?);
+        result.push(offer(limit, NearQuantityAlgorithm::EnclosedBinary32)?);
     }
     Ok(result)
 }
@@ -163,7 +183,7 @@ pub(crate) fn owns_offer(offer: &CapabilityOffer) -> bool {
         && offer.implementation.implementation_id.as_str() == IMPLEMENTATION
         && matches!(
             offer.implementation.execution_profile_id.as_str(),
-            EXACT | FLOAT
+            EXACT | FLOAT | MATHEMATICAL
         )
 }
 fn admitted(gear: &PlannedGear) -> Result<NearQuantityBack, String> {
@@ -174,6 +194,7 @@ fn admitted(gear: &PlannedGear) -> Result<NearQuantityBack, String> {
     let algorithm = match gear.execution_profile_id.as_str() {
         EXACT => NearQuantityAlgorithm::ExactRational,
         FLOAT => NearQuantityAlgorithm::Binary32,
+        MATHEMATICAL => NearQuantityAlgorithm::EnclosedBinary32,
         _ => return Err("numeric/near-unavailable-profile@1".into()),
     };
     if algorithm == NearQuantityAlgorithm::Binary32 && limit.coefficient() == 0 {
@@ -203,11 +224,11 @@ fn admitted(gear: &PlannedGear) -> Result<NearQuantityBack, String> {
     NearQuantityBack::new(limit, algorithm)
 }
 fn budget(gear: &PlannedGear) -> Result<BackBudget, String> {
-    let _ = admitted(gear)?;
+    let back = admitted(gear)?;
     let maximum = NearQuantityBack::output_bound();
     Ok(BackBudget {
         value_items: 2,
-        value_bytes: QUANTITY_VALUE_MAX_ENCODED_BYTES as u32 + maximum,
+        value_bytes: back.input_bound() as u32 + maximum,
         host_requests: 0,
         sign_items: 8,
         maximum_value_bytes: maximum,

@@ -7,6 +7,7 @@ pub const NUMERICAL_NEAR_MAX_BYTES: u32 = NEAR_QUANTITY_EVIDENCE_MAX_BYTES as u3
 pub enum NearQuantityAlgorithm {
     ExactRational,
     Binary32,
+    EnclosedBinary32,
 }
 pub fn near_quantity_type() -> StructuredInfoType {
     super::named("NearQuantity")
@@ -55,7 +56,7 @@ pub fn near_quantity_semantic_contract() -> Kind {
                     location: FrontValueLocation::Input(port_id("value")),
                     contract: CheckedValueContract::new(
                         kind_id(QUANTITY_INFO_ID),
-                        QUANTITY_VALUE_MAX_ENCODED_BYTES as u32,
+                        MATHEMATICAL_QUANTITY_MAX_ENCODED_BYTES as u32,
                         vec![],
                     )
                     .unwrap(),
