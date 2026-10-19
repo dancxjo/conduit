@@ -33,6 +33,8 @@ mod coordinate_conversion_evidence;
 pub use coordinate_conversion_evidence::*;
 mod coordinate_conversion_replay;
 pub use coordinate_conversion_replay::*;
+mod coordinate_content_ids;
+pub use coordinate_content_ids::*;
 mod mathematical_enclosure;
 mod mathematical_trigonometry;
 pub use mathematical_conversion::*;

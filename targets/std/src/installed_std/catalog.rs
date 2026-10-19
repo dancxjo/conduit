@@ -209,6 +209,7 @@ const FACTORIES: &[&BackFactory] = &[
     &super::ieee_back::FACTORY,
     &super::near_back::FACTORY,
     &super::enclosure_back::FACTORY,
+    &super::coordinate_back::FACTORY,
     &super::numerical_back::EXACT_FACTORY,
     &super::numerical_back::INTEGER_FACTORY,
     &super::numerical_back::FLOAT_FACTORY,

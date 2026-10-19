@@ -100,7 +100,7 @@ fn authored_coordinate_consumer_preserves_ports_and_requires_exact_selected_unit
     kind.validate().unwrap();
     assert_eq!(kind.inputs.len(), 1);
     assert_eq!(kind.outputs.len(), 2);
-    assert_eq!(kind.inputs[0].value_kind, kind.outputs[0].value_kind);
+    assert_eq!(kind.inputs[0].value_kind, kind.outputs[1].value_kind);
     assert_ne!(kind.outputs[0].value_kind, kind.outputs[1].value_kind);
     assert!(quantity_coordinate_target(&[]).is_err());
     let mut duplicate = gear.configuration.clone();

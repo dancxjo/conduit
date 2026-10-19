@@ -4,6 +4,8 @@ use conduit_core::{
     ConfigurationValue, ExactNumericWork, NumericalRealizationRequest, OfferGeneration,
 };
 use conduit_plot::ExpandedCanonicalPlot;
+mod coordinate_encoding;
+pub(crate) mod coordinate_step;
 mod enclosure_encoding;
 pub(crate) mod enclosure_step;
 mod expressions;
@@ -54,7 +56,16 @@ impl StdHost {
             })
             .take(33)
             .collect::<Vec<_>>();
-        if gears.is_empty()
+        let coordinate_gears = plot
+            .gears
+            .iter()
+            .filter(|gear| {
+                gear.kind_id.as_str() == conduit_semantic_catalog::QUANTITY_COORDINATES_KIND
+            })
+            .take(33)
+            .collect::<Vec<_>>();
+        if coordinate_gears.is_empty()
+            && gears.is_empty()
             && ieee_gears.is_empty()
             && near_gears.is_empty()
             && enclosure_gears.is_empty()
@@ -62,11 +73,18 @@ impl StdHost {
                 installed_std::owns_ieee_offer(offer)
                     || installed_std::owns_near_offer(offer)
                     || installed_std::owns_enclosure_offer(offer)
+                    || installed_std::owns_coordinate_offer(offer)
             })
         {
             return Ok(());
         }
-        if gears.len() + ieee_gears.len() + near_gears.len() + enclosure_gears.len() > 32 {
+        if gears.len()
+            + ieee_gears.len()
+            + near_gears.len()
+            + enclosure_gears.len()
+            + coordinate_gears.len()
+            > 32
+        {
             return Err("std numerical source preparation exceeds 32 instances".into());
         }
         plot.validate_expansion()
@@ -81,6 +99,7 @@ impl StdHost {
                 && !installed_std::owns_ieee_offer(offer)
                 && !installed_std::owns_near_offer(offer)
                 && !installed_std::owns_enclosure_offer(offer)
+                && !installed_std::owns_coordinate_offer(offer)
         });
         advertisement
             .capabilities
@@ -123,6 +142,13 @@ impl StdHost {
             let offer = installed_std::enclosure_offer(&gear.configuration)?;
             if !gear.accepts_realization(&offer) {
                 return Err("numeric/enclose-source-kind-fore-differs@1".into());
+            }
+            advertisement.capabilities.push(offer);
+        }
+        for gear in coordinate_gears {
+            let offer = installed_std::coordinate_offer(&gear.configuration)?;
+            if !gear.accepts_realization(&offer) {
+                return Err("coordinates/source-kind-fore-differs@1".into());
             }
             advertisement.capabilities.push(offer);
         }

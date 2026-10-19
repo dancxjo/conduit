@@ -9,6 +9,7 @@ impl InstalledBack {
             Self::Numerical(back) => back.retained_capacity_bytes(),
             Self::NearQuantity(back) => back.retained_capacity_bytes(),
             Self::MathematicalEnclosure(back) => back.retained_capacity_bytes(),
+            Self::QuantityCoordinate(back) => back.retained_capacity_bytes(),
             Self::IeeeBinary64(back) => back.retained_capacity_bytes(),
             Self::DistanceFrequency(_) => 0,
             Self::KeyboardInput(_) => 0,

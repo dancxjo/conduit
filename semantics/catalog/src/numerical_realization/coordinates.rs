@@ -50,7 +50,7 @@ pub fn quantity_coordinates_semantic_contract() -> Kind {
         value_kind: kind,
         direction,
         temporal: PortTemporal::Value,
-        abnormal_kind: None,
+        abnormal_kind: (name == "evidence").then(|| kind_id(TERMINAL_INFO_ID)),
     };
     let contract = |location, kind, bound| FrontValueContract {
         location,
@@ -71,8 +71,8 @@ pub fn quantity_coordinates_semantic_contract() -> Kind {
             PortDirection::Input,
         )],
         outputs: vec![
-            port("result", kind_id(QUANTITY_INFO_ID), PortDirection::Output),
             port("evidence", evidence.clone(), PortDirection::Output),
+            port("result", kind_id(QUANTITY_INFO_ID), PortDirection::Output),
         ],
         configuration: vec![KindConfigurationField {
             key: "request".into(),
@@ -109,6 +109,11 @@ pub fn quantity_coordinates_semantic_contract() -> Kind {
                     FrontValueLocation::Output(port_id("evidence")),
                     evidence,
                     QUANTITY_COORDINATES_EVIDENCE_MAX_BYTES,
+                ),
+                contract(
+                    FrontValueLocation::OutputAbnormal(port_id("evidence")),
+                    kind_id(TERMINAL_INFO_ID),
+                    TERMINAL_INFO_ENCODED_LEN as u32,
                 ),
             ]),
         ],

@@ -339,6 +339,7 @@ installed_step_dispatch!(
     Numerical,
     NearQuantity,
     MathematicalEnclosure,
+    QuantityCoordinate,
     IeeeBinary64,
     StructuredLiteral,
     StructuredFace,
