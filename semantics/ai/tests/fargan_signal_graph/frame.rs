@@ -218,3 +218,6 @@ fn pinned_full_frame_conditioning_and_recurrent_differential() {
 #[cfg(test)]
 #[path = "frame_session.rs"]
 mod session_tests;
+
+#[path = "frame_pointwise_eligibility.rs"]
+mod pointwise_eligibility_tests;

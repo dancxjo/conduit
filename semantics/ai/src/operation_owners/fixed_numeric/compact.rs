@@ -15,6 +15,9 @@ impl FixedNumericOperationFactory {
         gear: &PlannedGear,
     ) -> Result<ReusableNumericBack, String> {
         self.selected(gear)?;
+        derive_planned_transformation_eligibility(gear)
+            .and_then(|eligibility| eligibility.require(WorkTransformation::Fusion))
+            .map_err(|error| format!("compact pointwise semantic eligibility: {error:?}"))?;
         if gear
             .inputs
             .iter()
