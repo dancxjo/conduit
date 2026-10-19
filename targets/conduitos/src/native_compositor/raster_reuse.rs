@@ -119,3 +119,6 @@ pub(super) fn raster(
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(all(test, feature = "native-compositor"))]
+mod performance;
