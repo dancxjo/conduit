@@ -110,7 +110,7 @@ pub(super) fn execute_supplied(
         .stdout(Stdio::null())
         .stderr(fs::File::create(paths.target.join("journey-qemu-stderr.log")).map_err(io_error)?);
     let source = git_head(&paths.root)?;
-    let mut artifacts = super::qemu_artifacts::Artifacts::new(
+    let mut artifacts = super::qemu_artifacts::Artifacts::new_observed(
         paths.target.join("journey-frames"),
         serial_path.clone(),
         json!({"source_commit":source,"image_sha256":image_sha256,
