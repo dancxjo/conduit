@@ -298,3 +298,18 @@ fn fail(code: u16) -> StepOutcome {
         detail: code,
     })
 }
+
+// Reuse retains exact code, codecs and admitted tensor custody. Only a
+// successfully drained Value invocation may reset its publication marker.
+impl<const INPUT: usize, const OUTPUT: usize, const PORTS: usize>
+    conduit_kernel::scheduler::prepared_session::ReusableStepBack<PORTS>
+    for FixedAffineBack<'_, INPUT, OUTPUT>
+{
+    type Next = ();
+    fn preflight_next(&self, _: &(), _: &dyn conduit_kernel::ValueStorage) -> bool {
+        self.finished && !self.staged && !self.cancelled
+    }
+    fn begin_next(&mut self, _: ()) {
+        self.finished = false;
+    }
+}
