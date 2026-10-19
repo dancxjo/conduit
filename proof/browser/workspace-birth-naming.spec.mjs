@@ -12,8 +12,8 @@ test("Workspace Birth suggestions expose diverse structures while remaining edit
   await page.goto(entrance.url);
 
   const birth = page.locator(".body-birth-runner");
-  const name = birth.getByLabel("Friendly Body name");
-  const tradition = birth.getByLabel("Naming tradition");
+  const name = birth.getByLabel("Friendly Body name", { exact: true });
+  const tradition = birth.getByLabel("Naming tradition", { exact: true });
   await expect(birth.locator("conduit-portable-face")).toHaveCount(1);
   await expect(birth.locator(".portable-face-field")).toHaveCount(3);
   for (const checkbox of await birth.getByRole("checkbox").all()) {
