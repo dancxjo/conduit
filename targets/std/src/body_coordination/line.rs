@@ -5,12 +5,13 @@ use conduit_plan_lowering::lowering::RemoteCordDirection;
 use conduit_semantic_catalog::BODY_COORDINATION_MAXIMUM_FRAME_BYTES;
 use conduit_text::MAX_TEXT_BYTES;
 use conduit_wire::{
-    decode_session_frame, encode_session_frame_into, SessionMessage, SessionTerminalDisposition,
-    WireError,
+    decode_session_frame, encode_session_frame_into, SessionFrame, SessionMessage,
+    SessionTerminalDisposition, WireError,
 };
 use std::net::SocketAddr;
 use std::time::Duration;
 
+const FRAME_BYTES: usize = BODY_COORDINATION_MAXIMUM_FRAME_BYTES as usize;
 const PEER_ADMISSION_TIMEOUT: Duration = Duration::from_secs(5);
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -106,15 +107,9 @@ fn source_handshake(
     line: &mut NativeWebSocketLine,
 ) -> Result<(), CoordinationLineError> {
     let direction = RemoteCordDirection::Egress;
-    let binding = endpoint.binding(direction).clone();
-    send(endpoint, direction, line, binding.hello_frame().message)?;
+    send_hello(endpoint, direction, line)?;
     if !matches!(
-        receive(
-            endpoint,
-            direction,
-            line,
-            &mut [0; BODY_COORDINATION_MAXIMUM_FRAME_BYTES as usize]
-        )?,
+        receive(endpoint, direction, line, &mut [0; FRAME_BYTES])?,
         ReceivedMessage::Hello
     ) {
         return Err(CoordinationLineError::Classified(
@@ -123,12 +118,7 @@ fn source_handshake(
     }
     send(endpoint, direction, line, SessionMessage::Ready)?;
     if !matches!(
-        receive(
-            endpoint,
-            direction,
-            line,
-            &mut [0; BODY_COORDINATION_MAXIMUM_FRAME_BYTES as usize]
-        )?,
+        receive(endpoint, direction, line, &mut [0; FRAME_BYTES])?,
         ReceivedMessage::Ready
     ) || !endpoint.session_mut(direction).is_active()
     {
@@ -144,28 +134,17 @@ fn sink_handshake(
     line: &mut NativeWebSocketLine,
 ) -> Result<(), CoordinationLineError> {
     let direction = RemoteCordDirection::Ingress;
-    let binding = endpoint.binding(direction).clone();
     if !matches!(
-        receive(
-            endpoint,
-            direction,
-            line,
-            &mut [0; BODY_COORDINATION_MAXIMUM_FRAME_BYTES as usize]
-        )?,
+        receive(endpoint, direction, line, &mut [0; FRAME_BYTES])?,
         ReceivedMessage::Hello
     ) {
         return Err(CoordinationLineError::Classified(
             CoordinationFailure::WrongBoot,
         ));
     }
-    send(endpoint, direction, line, binding.hello_frame().message)?;
+    send_hello(endpoint, direction, line)?;
     if !matches!(
-        receive(
-            endpoint,
-            direction,
-            line,
-            &mut [0; BODY_COORDINATION_MAXIMUM_FRAME_BYTES as usize]
-        )?,
+        receive(endpoint, direction, line, &mut [0; FRAME_BYTES])?,
         ReceivedMessage::Ready
     ) {
         return Err(CoordinationLineError::Contract(
@@ -201,7 +180,7 @@ fn send_offer(
         endpoint,
         RemoteCordDirection::Egress,
         line,
-        &mut [0; BODY_COORDINATION_MAXIMUM_FRAME_BYTES as usize],
+        &mut [0; FRAME_BYTES],
     )? {
         ReceivedMessage::Accepted { sequence } if sequence == offer.sequence => {
             endpoint
@@ -223,7 +202,7 @@ fn send_offer(
         endpoint,
         RemoteCordDirection::Egress,
         line,
-        &mut [0; BODY_COORDINATION_MAXIMUM_FRAME_BYTES as usize],
+        &mut [0; FRAME_BYTES],
     )? {
         ReceivedMessage::Delivered { sequence } if sequence == offer.sequence => endpoint
             .deliver_offer(sequence)
@@ -239,7 +218,7 @@ fn receive_offer(
     line: &mut NativeWebSocketLine,
 ) -> Result<(), CoordinationLineError> {
     let direction = RemoteCordDirection::Ingress;
-    let mut input = [0; BODY_COORDINATION_MAXIMUM_FRAME_BYTES as usize];
+    let mut input = [0; FRAME_BYTES];
     let ReceivedMessage::Offered { sequence, payload } =
         receive(endpoint, direction, line, &mut input)?
     else {
@@ -288,12 +267,7 @@ fn close_source(
             final_sequence: 1,
         },
     )?;
-    match receive(
-        endpoint,
-        direction,
-        line,
-        &mut [0; BODY_COORDINATION_MAXIMUM_FRAME_BYTES as usize],
-    )? {
+    match receive(endpoint, direction, line, &mut [0; FRAME_BYTES])? {
         ReceivedMessage::Terminal {
             disposition: SessionTerminalDisposition::Completed,
             final_sequence: 1,
@@ -310,12 +284,7 @@ fn close_sink(
 ) -> Result<(), CoordinationLineError> {
     let direction = RemoteCordDirection::Ingress;
     if !matches!(
-        receive(
-            endpoint,
-            direction,
-            line,
-            &mut [0; BODY_COORDINATION_MAXIMUM_FRAME_BYTES as usize]
-        )?,
+        receive(endpoint, direction, line, &mut [0; FRAME_BYTES])?,
         ReceivedMessage::InputClosed { final_sequence: 1 }
     ) {
         return Err(CoordinationLineError::Classified(
@@ -326,12 +295,7 @@ fn close_sink(
         .close_input()
         .map_err(CoordinationLineError::Contract)?;
     if !matches!(
-        receive(
-            endpoint,
-            direction,
-            line,
-            &mut [0; BODY_COORDINATION_MAXIMUM_FRAME_BYTES as usize]
-        )?,
+        receive(endpoint, direction, line, &mut [0; FRAME_BYTES])?,
         ReceivedMessage::Terminal {
             disposition: SessionTerminalDisposition::Completed,
             final_sequence: 1,
@@ -365,13 +329,28 @@ fn send(
     line: &mut NativeWebSocketLine,
     message: SessionMessage<'_>,
 ) -> Result<(), CoordinationLineError> {
-    let binding = endpoint.binding(direction).clone();
+    let (binding, machine) = endpoint.outbound_session(direction);
     let frame = binding.frame(message);
-    endpoint
-        .session_mut(direction)
-        .admit_outbound(frame)
-        .map_err(classify_wire_error)?;
-    let mut output = [0_u8; BODY_COORDINATION_MAXIMUM_FRAME_BYTES as usize];
+    machine.admit_outbound(frame).map_err(classify_wire_error)?;
+    send_frame(line, frame)
+}
+
+fn send_hello(
+    endpoint: &mut CoordinationEndpoint,
+    direction: RemoteCordDirection,
+    line: &mut NativeWebSocketLine,
+) -> Result<(), CoordinationLineError> {
+    let (binding, machine) = endpoint.outbound_session(direction);
+    let frame = binding.hello_frame();
+    machine.admit_outbound(frame).map_err(classify_wire_error)?;
+    send_frame(line, frame)
+}
+
+fn send_frame(
+    line: &mut NativeWebSocketLine,
+    frame: SessionFrame<'_>,
+) -> Result<(), CoordinationLineError> {
+    let mut output = [0_u8; FRAME_BYTES];
     let length = encode_session_frame_into(
         frame,
         &mut output,
@@ -388,7 +367,7 @@ fn receive<'a>(
     endpoint: &mut CoordinationEndpoint,
     direction: RemoteCordDirection,
     line: &mut NativeWebSocketLine,
-    input: &'a mut [u8; BODY_COORDINATION_MAXIMUM_FRAME_BYTES as usize],
+    input: &'a mut [u8; FRAME_BYTES],
 ) -> Result<ReceivedMessage<'a>, CoordinationLineError> {
     let length = line.receive_binary(input).map_err(transport)?;
     let decoded = decode_session_frame(

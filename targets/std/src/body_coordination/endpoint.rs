@@ -294,6 +294,16 @@ impl CoordinationEndpoint {
         self.session(direction).cord
     }
 
+    // Borrow immutable binding and mutable protocol state independently. This
+    // does not change the selected connection or admit an outbound transition.
+    pub(super) fn outbound_session(
+        &mut self,
+        direction: RemoteCordDirection,
+    ) -> (&SessionBinding, &mut SessionMachine) {
+        let session = self.endpoint_session_mut(direction);
+        (&session.binding, &mut session.machine)
+    }
+
     pub fn session_mut(&mut self, direction: RemoteCordDirection) -> &mut SessionMachine {
         &mut self.endpoint_session_mut(direction).machine
     }
