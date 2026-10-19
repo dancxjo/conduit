@@ -50,6 +50,11 @@ pub trait RevisionDomain {
     fn validate_delta(&self, role: RevisionDeltaRole, delta: &Self::Delta) -> bool;
     fn validate_cursor(&self, cursor: Self::Cursor) -> bool;
     fn region(&self, delta: &Self::Delta) -> (Self::Cursor, Self::Cursor);
+    /// Furthest context needed to admit a revisable delta. Reading referenced
+    /// context does not make that context part of the changed/corrected region.
+    fn observation_end(&self, delta: &Self::Delta) -> Self::Cursor {
+        self.region(delta).1
+    }
     fn distance(&self, start: Self::Cursor, end: Self::Cursor) -> Option<u64>;
 }
 
@@ -185,7 +190,13 @@ pub(super) fn validate_change<D: RevisionDomain>(
         return Err(RevisionRefusal::Domain);
     }
     let (start, end) = domain.region(delta);
-    if !domain.validate_cursor(start) || !domain.validate_cursor(end) || start >= end {
+    let observed = domain.observation_end(delta);
+    if !domain.validate_cursor(start)
+        || !domain.validate_cursor(end)
+        || !domain.validate_cursor(observed)
+        || start >= end
+        || observed < end
+    {
         return Err(RevisionRefusal::Domain);
     }
     Ok(())

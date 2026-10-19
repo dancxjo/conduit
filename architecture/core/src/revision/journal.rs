@@ -199,11 +199,11 @@ impl<'a, D: RevisionDomain> RevisionJournal<'a, D> {
         delta: &D::Delta,
         next: &mut RevisionFrontiers<D::Cursor>,
     ) -> Result<(), RevisionRefusal> {
-        let (start, end) = self.domain.region(delta);
+        let (start, _) = self.domain.region(delta);
         if start < next.committed {
             return Err(RevisionRefusal::CommittedHistoryRequiresCorrection);
         }
-        let observed = core::cmp::max(next.observed_through, end);
+        let observed = core::cmp::max(next.observed_through, self.domain.observation_end(delta));
         let units = self
             .domain
             .distance(next.committed, observed)
