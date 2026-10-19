@@ -11,3 +11,25 @@ plot todo-required-item (
  renderer.show >> show
  renderer.interaction >> interaction
 }
+
+plot todo-mask-required-item-compact (
+ >> face: Face
+ show: Show >>
+ interaction: FaceInteraction...| >>
+) {
+ component: todo-required-item(expression = {density: compact(empty), identity: "conduit.face/compact@1", motion: none(empty), palette: phosphor(empty), text_scale_percent: 100, version: 1})
+ face >> component.face
+ component.show >> show
+ component.interaction >> interaction
+}
+
+plot todo-mask-required-item-spacious (
+ >> face: Face
+ show: Show >>
+ interaction: FaceInteraction...| >>
+) {
+ component: todo-required-item(expression = {density: spacious(empty), identity: "conduit.face/spacious@1", motion: none(empty), palette: editorial(empty), text_scale_percent: 125, version: 1})
+ face >> component.face
+ component.show >> show
+ component.interaction >> interaction
+}
