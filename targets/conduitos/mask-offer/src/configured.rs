@@ -66,6 +66,25 @@ pub fn prepare_component_stage_from_offer(
     look: ComponentMaskLook,
     recipe: TodoComponentRecipe,
 ) -> Result<(MaskStage, ConfiguredMaskConfiguration), MaskOfferError> {
+    prepare_component_document(
+        host,
+        TODO_COMPONENT_MASK_SOURCE,
+        todo_component_mask_root(look, recipe),
+    )
+}
+
+pub fn prepare_creche_stage_from_offer(
+    host: &HostAdvertisement,
+    recipe: CrecheComponentRecipe,
+) -> Result<(MaskStage, ConfiguredMaskConfiguration), MaskOfferError> {
+    prepare_component_document(host, CRECHE_COMPONENT_MASK_SOURCE, recipe.root())
+}
+
+fn prepare_component_document(
+    host: &HostAdvertisement,
+    source: &str,
+    root: &str,
+) -> Result<(MaskStage, ConfiguredMaskConfiguration), MaskOfferError> {
     if host.protocol_version != PROTOCOL_VERSION
         || host.profile.as_str() != "conduitos/mask-host@1"
         || host.offer_generation.0 == 0
@@ -116,16 +135,11 @@ pub fn prepare_component_stage_from_offer(
             "native-component-back",
         )
         .map_err(|_| MaskOfferError::InvalidPlan)?;
-    let document =
-        check_syntax_document(&parse_syntax_document(TODO_COMPONENT_MASK_SOURCE), &startup)
+    let document = check_syntax_document(&parse_syntax_document(source), &startup)
+        .map_err(|_| MaskOfferError::InvalidPlan)?;
+    let authoring =
+        expand_canonical_plot_for_authoring_with_backs(&document, root, &catalog, &backs)
             .map_err(|_| MaskOfferError::InvalidPlan)?;
-    let authoring = expand_canonical_plot_for_authoring_with_backs(
-        &document,
-        todo_component_mask_root(look, recipe),
-        &catalog,
-        &backs,
-    )
-    .map_err(|_| MaskOfferError::InvalidPlan)?;
     let mask = MaskPlot::admit(&authoring).map_err(|_| MaskOfferError::InvalidPlan)?;
     let placements = default_expanded_placements(&authoring.expanded, core::slice::from_ref(host))
         .map_err(|_| MaskOfferError::InvalidPlan)?;
@@ -210,8 +224,7 @@ pub fn prepare_component_stage_from_offer(
 #[cfg(test)]
 mod tests {
     use super::*;
-    #[test]
-    fn native_checked_component_two_looks_and_recipes() {
+    fn host() -> HostAdvertisement {
         let provider = BaseProviderEntry {
             base_id: "native/component/framebuffer".into(),
             provider_instance_id: "native/component/provider".into(),
@@ -227,13 +240,18 @@ mod tests {
                 1,
             )],
         };
-        let host = renderer_host(
+        renderer_host(
             Adapter::Native,
             &HostId::from("native/component"),
             &BootId::from("native/boot"),
             1,
             Some(&provider),
-        );
+        )
+    }
+
+    #[test]
+    fn native_checked_component_two_looks_and_recipes() {
+        let host = host();
         for recipe in [TodoComponentRecipe::Flat, TodoComponentRecipe::Grouped] {
             let (compact, a) =
                 prepare_component_stage_from_offer(&host, ComponentMaskLook::Compact, recipe)
@@ -264,6 +282,30 @@ mod tests {
                 TodoComponentRecipe::Flat
             )
             .is_err()
+        );
+    }
+
+    #[test]
+    fn creche_checked_roots_select_structure_independently_of_look() {
+        let host = host();
+        let mut configurations = Vec::new();
+        for recipe in [
+            CrecheComponentRecipe::SingleColumn,
+            CrecheComponentRecipe::ResponsiveColumns,
+        ] {
+            let (stage, configuration) = prepare_creche_stage_from_offer(&host, recipe).unwrap();
+            assert_eq!(stage.planned_mask.mask.plot_name, recipe.root());
+            configurations.push(configuration);
+        }
+        assert_eq!(configurations[0].expression, configurations[1].expression);
+        assert_ne!(configurations[0].recipe, configurations[1].recipe);
+        let mut foreign = host;
+        foreign
+            .capabilities
+            .retain(|offer| offer.capability_id.as_str() != "renderer-conduitos-component");
+        assert!(
+            prepare_creche_stage_from_offer(&foreign, CrecheComponentRecipe::ResponsiveColumns)
+                .is_err()
         );
     }
 }
