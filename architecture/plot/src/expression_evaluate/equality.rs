@@ -10,6 +10,9 @@ pub(super) fn equal(
         return Err(PortableExpressionEvaluationRefusal::InvalidProgram);
     }
     if let Ok(kind) = leaf_kind(&left.value_type) {
+        if kind == conduit_core::RESOURCE_REFERENCE_INFO_ID {
+            return resource_equal(&primitive_bytes(&left)?, &primitive_bytes(&right)?);
+        }
         if kind == conduit_core::MATHEMATICAL_ANGLE_ID {
             return crate::mathematical_value::angle_equal(&left.encoded, &right.encoded);
         }
@@ -50,6 +53,9 @@ fn equal_structured(
     match (left.shape(), right.shape()) {
         (StructuredInfoValueShape::Leaf(a), StructuredInfoValueShape::Leaf(b)) => {
             let kind = leaf_kind(left.value_type())?;
+            if kind == conduit_core::RESOURCE_REFERENCE_INFO_ID {
+                return resource_equal(a, b);
+            }
             if kind == conduit_core::MATHEMATICAL_ANGLE_ID {
                 return crate::mathematical_value::angle_equal(a, b);
             }
@@ -114,4 +120,15 @@ fn equal_structured(
         ) => Ok(a == b && equal_structured(left, right)?),
         _ => Ok(false),
     }
+}
+
+// Core's versioned encoding has fixed field order, explicit option tags and
+// exact UTF-8 identities; validation rejects alternate tags/trailing bytes.
+// Compare the entire reference representation, never just its content digest.
+fn resource_equal(left: &[u8], right: &[u8]) -> Result<bool, PortableExpressionEvaluationRefusal> {
+    conduit_core::BoundedResourceRef::validate_encoded(left)
+        .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?;
+    conduit_core::BoundedResourceRef::validate_encoded(right)
+        .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?;
+    Ok(left == right)
 }
