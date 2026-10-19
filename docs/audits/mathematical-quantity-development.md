@@ -780,3 +780,21 @@ report or reconstruct it in its independent reader. Exact request/certificate
 binding, product artifacts and inspection, profile work/storage admission,
 broader regression execution and stable acceptance remain open. No original
 parent audit requirement changes status from this component proof.
+
+
+The prepared mathematical projection now also supports replay under an original
+producer allowance while separately enforcing the prepared consumer allowance.
+It retains the producer allowance in both the full receipt and midpoint receipt;
+a reader cannot silently substitute its own tolerance into the transported
+policy. A tighter or looser consuming limit reproduces identical general report
+bytes when the actual certified error is acceptable to both. A zero-error reader
+still refuses a lossy receipt. Negative, physically incompatible and insufficient
+producer allowances refuse, and prepared scratch remains reusable afterward.
+The ordinary producer path keeps its existing single tolerance comparison.
+
+Six focused Core tests, strict Core all-target Clippy and Core no-default checks
+pass for this prerequisite. The new replay, refusal and recovery checks perform
+zero allocations. This API is not yet wired into the Near record reader; the
+wire integration must pin its original projection work budget as well as the
+producer allowance before comparing complete receipt bytes. Parent audit
+statuses and public admission remain unchanged.
