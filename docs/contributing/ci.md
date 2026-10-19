@@ -218,6 +218,16 @@ changes execution cost, not the required proof set.
 These limits include compilation and preparation. They do not permit test
 retries or reduce the required proof set.
 
+The browser target has a finite 90-minute whole-job limit, including cold Host
+and WASM builds, the one-worker/zero-retry Chromium suite, site proof and artifact
+retention. In [the 19 October cold candidate](https://github.com/dancxjo/conduit/actions/runs/39212641215/job/117930615050),
+preparation took about 28 minutes and the suite reached test 258 of 260 before
+the former 60-minute job limit cancelled it. No assertion failure was logged
+before cancellation; that partial run is not acceptance. Other target job limits
+remain 60 minutes. Per-test preparation/response limits and all required proof
+remain unchanged.
+
+
 A lane writes a receipt only after its build and proof succeed. The receipt
 records its source commit, target, proof class, and complete product file hashes.
 Products leave the runner in tar archives so executable permissions survive
