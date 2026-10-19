@@ -16,6 +16,7 @@ pub(super) struct Artifacts {
     capture_limit: usize,
     context: Value,
     previous_pixels: Option<String>,
+    serial_observation: Option<super::serial_observation::SerialObservation>,
 }
 impl Artifacts {
     pub(super) fn new(
@@ -38,7 +39,25 @@ impl Artifacts {
             capture_limit: DEFAULT_MAX_CHECKPOINTS,
             context,
             previous_pixels: None,
+            serial_observation: None,
         };
+        result.write("running", None)?;
+        Ok(result)
+    }
+
+    pub(super) fn new_observed(
+        directory: PathBuf,
+        serial: PathBuf,
+        context: Value,
+    ) -> Result<Self, ConduitosError> {
+        let mut result = Self::new(directory, serial, context)?;
+        result.serial_observation = Some(super::serial_observation::SerialObservation::start(
+            result.serial.clone(),
+            result.directory.join("serial-observations.jsonl"),
+        )?);
+        result.context["serial_observation"] = json!({"file":"serial-observations.jsonl",
+            "clock":super::observation_clock::ID,"scope":"host reads of completed raw serial records",
+            "maximum_serial_bytes":16777216,"maximum_records":32768,"poll_millis":1});
         result.write("running", None)?;
         Ok(result)
     }
@@ -158,6 +177,9 @@ impl Artifacts {
     }
 
     pub(super) fn finish(&self, failure: Option<&ConduitosError>) -> Result<(), ConduitosError> {
+        if let Some(observer) = &self.serial_observation {
+            observer.finish()?;
+        }
         self.write(
             if failure.is_some() {
                 "failed"
@@ -169,10 +191,18 @@ impl Artifacts {
     }
 
     fn write(&self, status: &str, failure: Option<&ConduitosError>) -> Result<(), ConduitosError> {
+        let serial_observation = if status != "running" && self.serial_observation.is_some() {
+            Some(
+                json!({"file":"serial-observations.jsonl", "sha256":super::report::sha256_file(
+                &self.directory.join("serial-observations.jsonl"))?}),
+            )
+        } else {
+            None
+        };
         let manifest = json!({"schema":"conduit.conduitos/visual-journey@1","proof_class":"freestanding-emulator",
             "status":status,"context":self.context,"checkpoints":self.entries,
             "failure":failure.map(|error|json!({"reason":error.reason,"detail":error.detail})),
-            "serial_path":self.serial});
+            "serial_path":self.serial,"serial_observation":serial_observation});
         fs::write(
             self.directory.join("manifest.json"),
             serde_json::to_vec_pretty(&manifest).expect("serializable manifest"),
