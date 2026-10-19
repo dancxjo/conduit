@@ -1,0 +1,15 @@
+{
+  "source": "6f108852608c3fb4dfa960da629709efb7a0bd5a",
+  "command": "cargo test -p conduit-kernel -p conduit-ai --features conduit-ai/kernel-operation-owners",
+  "exit_code": 0,
+  "executables_and_doctest_results": 120,
+  "totals": {
+    "passed": 595,
+    "failed": 0,
+    "ignored": 10,
+    "measured": 0,
+    "filtered": 0
+  },
+  "log_sha256": "aed2738a82ba84a956a032e56dd91d98dba0f268e35b29eb21e8d3000740cd50",
+  "scope": "Full selected kernel+AI suite with operation owners and uncached catalogue compatibility. Privatefixture tests remain ignoredhere; separatecached24frameoracle evidence scoped independently. Not performance timings."
+}

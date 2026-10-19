@@ -81,3 +81,35 @@ combined integration remain separate gates from the measured reference.
 
 Ordinary Body adoption, native FARGAN regions and stable release acceptance remain
 open. This session profile alone does not complete the performance audit.
+
+## Combined development validation
+
+The review was refreshed onto development source
+`c10e6a265d5e1022d3d470639e2b99d3a3ac0f18`, which includes the native U64
+region and browser clock-proof repair. The validated combined implementation is
+`ddaf3e23fe2ab71c3f8d2d2bd47c40d4f2aac246`. Forty-one of the 43 original
+review files are byte-identical. The other two are exactly the new base's
+scheduler plus the prepared-session module declaration, and the new base's
+command help plus the prepared-owner flag. The byte checks and retained results
+are in [the validation manifest](evidence/prepared-fargan-session-20261019/current-validation-manifest.json).
+
+On that combined source, the full alloc-enabled kernel package passed 268 tests
+with six optional tests ignored. The full cached AI package passed 342 tests
+with four private-fixture tests ignored. The explicit private 24-frame reusable
+trajectory separately passed against fresh owners and the pinned scalar oracle.
+Kernel all-target Clippy and the actual AI/xtask all-target Clippy passed with
+warnings denied. These are package scopes, not a full-workspace acceptance claim.
+
+A new composition regression runs eight accepted invocations through the native
+U64 chain and canonical reference. It compares outputs and every retained Sign,
+checks both stores drain, retains the scheduler addresses, and refuses old
+ValueRef generations after slot reuse. This exercises the merged mechanisms
+together; it is not native FARGAN numerical-region evidence.
+
+The preceding review source `6f108852608c3fb4dfa960da629709efb7a0bd5a` also
+completed its entire uncached kernel/AI compatibility suite: 595 passed, zero
+failed, ten optional tests ignored. That result belongs to the preceding source;
+it is retained separately from the current cached-profile results. Logs are
+lossless `.xz` containers with decoded byte digests in the manifest. Concurrent
+validation/build activity excludes these test durations from performance claims.
+Ordinary Body adoption and stable release acceptance remain open.
