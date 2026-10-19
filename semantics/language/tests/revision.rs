@@ -5,6 +5,14 @@ fn text(value: &str) -> RevisionText<'_> {
     RevisionText::new(value).unwrap()
 }
 fn arc(revision: &str, relation: LanguageUniversalDependencyRelation) -> DependencyDelta {
+    arc_between(revision, relation, 1, 2)
+}
+fn arc_between(
+    revision: &str,
+    relation: LanguageUniversalDependencyRelation,
+    dependent: u64,
+    governor: u64,
+) -> DependencyDelta {
     let token = |ordinal| {
         LanguageAnalysisTokenRef::new(
             LanguageAnalysisRevisionId::new(revision.into()).unwrap(),
@@ -17,10 +25,10 @@ fn arc(revision: &str, relation: LanguageUniversalDependencyRelation) -> Depende
         )
         .unwrap()
     };
-    let head = token(2); // “man” in “The old man the boats”.
+    let head = token(governor);
     DependencyDelta::Assert(
         LanguageDependencyArc::new(
-            token(1),
+            token(dependent),
             LanguageDependencyHead::token(head.revision().clone(), head.token().clone()).unwrap(),
             LanguageDependencyRelation::new(relation, None).unwrap(),
         )
@@ -192,4 +200,117 @@ fn garden_path_revises_stabilizes_commits_and_corrects_without_erasure() {
         .unwrap(),
     );
     assert!(!domain.validate_delta(RevisionDeltaRole::Withdrawal, &wrong));
+}
+
+#[test]
+fn dependency_observes_governor_without_marking_it_as_changed() {
+    let source = LanguageText::new(
+        LanguageTextId::new("utterance/3".into()).unwrap(),
+        LanguageId::new("language/english".into()).unwrap(),
+        LanguageTextRevisionId::new("source/3".into()).unwrap(),
+        "a record today".into(),
+    )
+    .unwrap();
+    let domain = DependencyRevisions {
+        source_text: &source,
+        tokens: 3,
+    };
+    let forward = arc_between("analysis/a", LanguageUniversalDependencyRelation::Det, 0, 1);
+    let backward = arc_between("analysis/a", LanguageUniversalDependencyRelation::Dep, 2, 0);
+    assert_eq!(
+        domain.region(&forward),
+        (TokenFrontier(0), TokenFrontier(2))
+    );
+    assert_eq!(
+        domain.region(&backward),
+        (TokenFrontier(2), TokenFrontier(3))
+    );
+    let context = RevisionContext {
+        stream: text("analysis"),
+        subject: text("dependency"),
+        epoch: text("source/3"),
+        producer: text("supplied-graph"),
+        policy: text("bounded-dependency@1"),
+    };
+    let evidence = [RevisionEvidence {
+        source: text("fixture"),
+        generation: text("1"),
+    }];
+    let reference = |sequence, event| RevisionReference {
+        context,
+        sequence,
+        event: text(event),
+    };
+    let proposed = RevisionEvent::new(
+        &domain,
+        reference(1, "forward"),
+        &evidence,
+        RevisionChange::Proposed { delta: &forward },
+    )
+    .unwrap();
+    let stable = RevisionEvent::new(
+        &domain,
+        reference(2, "stable"),
+        &evidence,
+        RevisionChange::Stable {
+            revision: proposed.reference(),
+            through: TokenFrontier(2),
+        },
+    )
+    .unwrap();
+    let mut journal = RevisionJournal::new(
+        &domain,
+        context,
+        TokenFrontier(0),
+        RevisionLimits {
+            history_events: 4,
+            revisable_units: 2,
+        },
+    )
+    .unwrap();
+    journal.append(&proposed).unwrap();
+    assert_eq!(journal.frontiers().observed_through, TokenFrontier(2));
+    assert_eq!(journal.frontiers().committed, TokenFrontier(0));
+    journal.append(&stable).unwrap();
+    assert_eq!(journal.frontiers().committed, TokenFrontier(0));
+    let mut tight = RevisionJournal::new(
+        &domain,
+        context,
+        TokenFrontier(0),
+        RevisionLimits {
+            history_events: 4,
+            revisable_units: 1,
+        },
+    )
+    .unwrap();
+    assert_eq!(
+        tight.append(&proposed),
+        Err(RevisionRefusal::RevisableRegionBound)
+    );
+    assert_eq!(tight.history().count(), 0);
+    assert_eq!(tight.frontiers().observed_through, TokenFrontier(0));
+    let next = RevisionEvent::new(
+        &domain,
+        reference(1, "backward"),
+        &evidence,
+        RevisionChange::Proposed { delta: &backward },
+    )
+    .unwrap();
+    let mut protected = RevisionJournal::new(
+        &domain,
+        context,
+        TokenFrontier(2),
+        RevisionLimits {
+            history_events: 4,
+            revisable_units: 1,
+        },
+    )
+    .unwrap();
+    assert_eq!(
+        protected.append(&proposed),
+        Err(RevisionRefusal::CommittedHistoryRequiresCorrection)
+    );
+    protected.append(&next).unwrap();
+    assert_eq!(protected.frontiers().observed_through, TokenFrontier(3));
+    assert_eq!(protected.frontiers().committed, TokenFrontier(2));
 }
