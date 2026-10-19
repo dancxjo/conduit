@@ -1,8 +1,10 @@
 //! Exact local Source execution without physical owners or invented possession.
 use crate::{
     current_sample::CurrentSampleOperationFactory,
-    expression_host_call::ExpressionOperationFactory, protocol_host_calls::ProtocolCallRefusal,
-    protocol_operations::ProtocolOperations, pure_protocol_owner::PureProtocolOwner,
+    expression_host_call::ExpressionOperationFactory,
+    protocol_host_calls::ProtocolCallRefusal,
+    protocol_operations::ProtocolOperations,
+    pure_protocol_owner::{PureProtocolOwner, PureProtocolPreparation},
     structured_selector_host_call::SelectorOperationFactory,
 };
 use alloc::vec::Vec;
@@ -85,9 +87,10 @@ impl PreparedPureProtocolPlay {
             boot_id: fragment.boot_id.clone(),
             offer_generation: fragment.offer_generation,
         };
+        let preparation = PureProtocolPreparation::new(fragment, &lowered, &active)?;
         let mut owners = Vec::with_capacity(fragment.placements.len());
         for gear in &fragment.placements {
-            if let Some(owner) = PureProtocolOwner::prepare(fragment, &lowered, &active, gear)? {
+            if let Some(owner) = preparation.prepare(gear)? {
                 let node = lowered
                     .identity
                     .node_for_placement(&gear.placement_id)

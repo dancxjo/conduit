@@ -1,8 +1,9 @@
 //! Shared HID Source execution through the existing production kernel.
 //! Pure call owners are retained; physical endpoint calls require native admission.
 use crate::{
-    protocol_host_calls::ProtocolCallRefusal, protocol_source::PreparedProtocolArtifact,
-    pure_protocol_owner::PureProtocolOwner,
+    protocol_host_calls::ProtocolCallRefusal,
+    protocol_source::PreparedProtocolArtifact,
+    pure_protocol_owner::{PureProtocolOwner, PureProtocolPreparation},
 };
 use alloc::vec::Vec;
 use conduit_composite::{KernelCompositeHost, KernelCompositeSignStorage, KernelOperationRegistry};
@@ -62,9 +63,10 @@ impl PreparedHidSourceKernel {
             boot_id: fragment.boot_id.clone(),
             offer_generation: fragment.offer_generation,
         };
+        let preparation = PureProtocolPreparation::new(fragment, &lowered, &active)?;
         let mut pure = Vec::with_capacity(fragment.placements.len());
         for gear in &fragment.placements {
-            if let Some(owner) = PureProtocolOwner::prepare(fragment, &lowered, &active, gear)? {
+            if let Some(owner) = preparation.prepare(gear)? {
                 let node = lowered
                     .identity
                     .node_for_placement(&gear.placement_id)
