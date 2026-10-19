@@ -15,6 +15,9 @@ pub(super) fn check(
         Option<&CheckedExpressionType>,
     ) -> Result<CheckedExpressionType, ExpressionTypeDiagnostic>,
 ) -> Result<CheckedExpressionType, ExpressionTypeDiagnostic> {
+    if name.text == crate::expression_quantity_value::CALL {
+        return crate::expression_quantity_value::check(arguments, span, check_argument);
+    }
     if name.text == crate::expression_square_root::CALL {
         return crate::expression_square_root::check(arguments, span, check_argument);
     }
@@ -477,21 +480,4 @@ fn diagnostic(span: Span, message: &str) -> ExpressionTypeDiagnostic {
     }
 }
 
-pub(crate) fn is_intrinsic(name: &str) -> bool {
-    crate::expression_inverse_trigonometry::function(name).is_some()
-        || crate::expression_trigonometry::function(name).is_some()
-        || name == crate::expression_square_root::CALL
-        || crate::expression_angle_reference::is_call(name)
-        || integer_widening_target(name).is_some()
-        || matches!(
-            name,
-            "text/material"
-                | "variant/tag"
-                | "variant/is"
-                | "sequence/length"
-                | "sequence/at"
-                | "bytes/length"
-                | "bytes/at"
-                | "bytes/window"
-        )
-}
+pub(crate) use crate::expression_intrinsic::is_intrinsic;

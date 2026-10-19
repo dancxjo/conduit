@@ -6,7 +6,7 @@ pub(super) fn offer(
     program: &PortableExpressionProgram,
     temporal: PortTemporal,
 ) -> Result<Option<CapabilityOffer>, String> {
-    let angle = |ty: &StructuredInfoType| matches!(ty.shape(), StructuredInfoTypeShape::Leaf(kind) if kind.as_str() == conduit_core::ANGLE_INFO_ID);
+    let angle = |ty: &StructuredInfoType| matches!(ty.shape(), StructuredInfoTypeShape::Leaf(kind) if (kind.as_str() == conduit_core::QUANTITY_INFO_ID || conduit_core::quantity_info_dimension(kind.as_str()).is_some() || conduit_core::parse_quantity_role_info_id(kind.as_str()).is_some()));
     if !angle(&program.input_type) && !angle(&program.output_type) {
         return Ok(None);
     }

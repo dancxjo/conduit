@@ -23,6 +23,8 @@ pub fn mathematical_angle_std_artifact() -> ArtifactId {
         include_str!("../../../../../architecture/plot/src/expression_angle_reference.rs"),
         include_str!("../../../../../architecture/plot/src/expression_trigonometry.rs"),
         include_str!("../../../../../architecture/plot/src/expression_semantic_call.rs"),
+        include_str!("../../../../../architecture/plot/src/expression_quantity_value.rs"),
+        include_str!("../../../../../architecture/plot/src/expression_intrinsic.rs"),
         include_str!("../../../../../architecture/core/src/exact_numeric/angle_reference.rs"),
         include_str!("../../../../../architecture/core/src/exact_numeric/quantity.rs"),
         include_str!("../../../../../architecture/core/src/exact_numeric/quantity/mathematical.rs"),
@@ -110,5 +112,5 @@ pub fn pure_mathematical_angle_std_offer(
     Ok(offer)
 }
 fn angle(ty: &StructuredInfoType) -> bool {
-    matches!(ty.shape(),StructuredInfoTypeShape::Leaf(kind) if kind.as_str()==conduit_core::ANGLE_INFO_ID)
+    matches!(ty.shape(),StructuredInfoTypeShape::Leaf(kind) if (kind.as_str() == conduit_core::QUANTITY_INFO_ID || conduit_core::quantity_info_dimension(kind.as_str()).is_some() || conduit_core::parse_quantity_role_info_id(kind.as_str()).is_some()))
 }

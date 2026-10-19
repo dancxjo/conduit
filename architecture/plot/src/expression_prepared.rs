@@ -119,6 +119,7 @@ enum PreparedOperation {
         right: Option<Box<PreparedNode>>,
         output: Vec<u8>,
     },
+    QuantityValue(Box<PreparedNode>),
     AngleReference {
         coordinate: Option<Vec<u8>>,
         argument: Box<PreparedNode>,
@@ -232,13 +233,11 @@ impl PreparedPortableExpressionEvaluator {
     ) -> Result<Self, Refusal> {
         for ty in [&program.input_type, &program.output_type] {
             if !matches!(ty.shape(), StructuredInfoTypeShape::Leaf(_))
-                || !matches!(
-                    leaf_info_kind(ty)?,
-                    conduit_core::ANGLE_INFO_ID | conduit_core::MATHEMATICAL_VALUE_ID
-                )
+                || !(leaf_info_kind(ty)? == conduit_core::MATHEMATICAL_VALUE_ID
+                    || crate::expression_quantity::is_quantity(leaf_info_kind(ty)?))
             {
                 return Err(Refusal::UnsupportedType(
-                    "mathematical Angle profile requires Angle/math primitive ports".into(),
+                    "mathematical physical profile requires Quantity/math primitive ports".into(),
                 ));
             }
         }

@@ -25,6 +25,8 @@ mod checked_syntax;
 mod diagnostic;
 mod ecmascript_binding;
 pub use mathematical_value::mathematical_arithmetic_failure_detail;
+mod expression_intrinsic;
+mod expression_quantity_value;
 mod expression_square_root;
 pub use expression_square_root::square_root_failure_detail;
 mod expression_angle_reference;

@@ -159,9 +159,10 @@ impl super::PreparedPortableExpressionEvaluator {
             let extra = match &node.operation {
                 Op::Input => 0,
                 Op::Literal(value) => value.capacity(),
-                Op::Unary { operand, .. } | Op::Widen(operand) | Op::TextMaterial(operand) => {
-                    child(operand)?
-                }
+                Op::Unary { operand, .. }
+                | Op::Widen(operand)
+                | Op::TextMaterial(operand)
+                | Op::QuantityValue(operand) => child(operand)?,
                 Op::Binary { left, right, .. } => child(left)?.checked_add(child(right)?)?,
                 Op::QuantityBinary {
                     left,
@@ -262,7 +263,8 @@ pub(super) fn admit_mathematical_angles(root: &PortableExpressionNode) -> Result
                 child(when_false)
             }
             O::SemanticCall { kind, arguments }
-                if kind == crate::expression_angle_reference::ANGLE_CALL
+                if kind == crate::expression_quantity_value::CALL
+                    || kind == crate::expression_angle_reference::ANGLE_CALL
                     || crate::expression_trigonometry::function(kind).is_some() =>
             {
                 for arg in arguments {

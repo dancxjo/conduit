@@ -9,6 +9,10 @@ pub(super) fn evaluate_node<'a>(
     let expected = node.kind;
     let quantity_profile = node.quantity_profile;
     let value = match &mut node.operation {
+        PreparedOperation::QuantityValue(argument) => {
+            let value = evaluate_node(argument, input, input_kind)?;
+            PrimitiveValue::borrowed(expected, value.into_borrowed()?)?
+        }
         PreparedOperation::SquareRoot {
             argument,
             writer,

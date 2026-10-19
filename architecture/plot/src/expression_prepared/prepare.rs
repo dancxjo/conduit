@@ -100,6 +100,26 @@ pub(super) fn prepare_node(
             when_false: Box::new(prepare_node(when_false, input_type, prepared_input)?),
         },
         PortableExpressionOperation::SemanticCall { kind, arguments }
+            if kind == crate::expression_quantity_value::CALL =>
+        {
+            let [argument] = arguments.as_slice() else {
+                return Err(Refusal::InvalidProgram);
+            };
+            if prepared_input.quantity_profile() != conduit_core::QuantityValueProfile::Mathematical
+                || leaf_info_kind(&node.value_type)? != conduit_core::QUANTITY_INFO_ID
+                || !crate::expression_quantity::is_quantity(leaf_info_kind(&argument.value_type)?)
+            {
+                return Err(Refusal::UnsupportedType(
+                    "explicit physical Quantity carrier requires mathematical profile".into(),
+                ));
+            }
+            PreparedOperation::QuantityValue(Box::new(prepare_node(
+                argument,
+                input_type,
+                prepared_input,
+            )?))
+        }
+        PortableExpressionOperation::SemanticCall { kind, arguments }
             if kind == crate::expression_square_root::CALL =>
         {
             square_root::prepare(node, arguments, input_type, prepared_input)?
