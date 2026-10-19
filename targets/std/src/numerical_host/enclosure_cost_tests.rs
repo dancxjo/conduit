@@ -87,6 +87,8 @@ fn capture_preparation_and_repeated_interval_back_costs() {
     println!("ENCLOSURE_BACK_COST_PROFILE debug_assertions={} trials=16 calls_per_trial={CALLS} scope=back_preparation_and_evaluate_only", cfg!(debug_assertions));
     for (which, name) in [(0, "third"), (1, "pi_over_180"), (2, "sqrt_two")] {
         let input = specimen(which);
+        let source_digest = hex(semantic_digest(MATHEMATICAL_VALUE_ID, &input));
+        let source_digest = core::str::from_utf8(&source_digest).unwrap();
         for trial in 0..16 {
             let start = Instant::now();
             let cpu = cpu_ns();
@@ -120,7 +122,9 @@ fn capture_preparation_and_repeated_interval_back_costs() {
                 ),
                 expected
             );
-            println!("ENCLOSURE_BACK_COST case={name} trial={trial} prepare_cpu_ns={prepare_cpu_ns} prepare_wall_ns={prepare_wall_ns} prepare_allocations={prepare_allocations} warm_cpu_ns={warm_cpu_ns} warm_wall_ns={warm_wall_ns} warm_allocations={warm_allocations} calls={CALLS} retained_payload_bytes={retained}");
+            let result_digest = hex(expected);
+            let result_digest = core::str::from_utf8(&result_digest).unwrap();
+            println!("ENCLOSURE_BACK_COST case={name} trial={trial} prepare_cpu_ns={prepare_cpu_ns} prepare_wall_ns={prepare_wall_ns} prepare_allocations={prepare_allocations} warm_cpu_ns={warm_cpu_ns} warm_wall_ns={warm_wall_ns} warm_allocations={warm_allocations} calls={CALLS} retained_payload_bytes={retained} source_digest={source_digest} result_digest={result_digest}");
         }
     }
 }
