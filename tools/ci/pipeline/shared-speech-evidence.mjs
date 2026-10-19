@@ -41,7 +41,8 @@ export function verifySharedSpeechEvidence(sourceTree = '.') {
   const model = report.model_terminal;
   check(model?.source_identity === report.source_identity && hex.test(model.terminal_evidence_identity) && model.refusal === 'NoAdmittedAcousticBack' && model.selected_backend === null && model.trained_weights === false, 'model/source consistency');
   check(JSON.stringify(model.retained_without_conditioning) === JSON.stringify(['TextAndAlignment', 'SyllableAndWordStructure', 'ProsodyAndAcoustics', 'LanguageCommitment']), 'model conditioning boundary');
-  check(JSON.stringify(report.formant_retained_without_realization) === JSON.stringify(['SeparateSyllableStructure', 'ScopedFrequencyEnergyAndRate', 'LanguageCommitment']), 'formant realization boundary');
+  check(JSON.stringify(report.formant_realizes) === JSON.stringify(["AdmittedTargetPhones", "SegmentStress", "InlineBoundaryEvents", "DeclaredDurationCyclesAndAmplitude"]), 'formant rendered profile');
+  check(JSON.stringify(report.formant_retained_without_realization) === JSON.stringify(["IntendedPhonemesAndRealizationAlignment", "TextAndWordRelations", "WordPositions", "SeparateSyllableStructure", "PositionedBoundaries", "ScopedFrequencyEnergyAndRate", "LanguageCommitment"]), 'formant realization boundary');
   check(report.device_playback === 'not performed' && report.human_listening === 'not performed' && report.text === 'you would', 'report proof boundary');
   check(Number.isSafeInteger(report.pcm_frames) && report.pcm_frames > 0 && report.sample_rate_hz === 8000, 'PCM report geometry');
   let bound = 0;

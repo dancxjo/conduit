@@ -128,7 +128,11 @@ source identity binds the consumed input. A different valid structure therefore
 cannot reuse an older model terminal or offline PCM declaration.
 
 `FrozenCarriedFormant` freezes only explicitly admitted original phone choices,
-timing and controls. It retains original canonical bytes and conversion
+timing and controls. Its report lists the target phones, segment stress,
+inline boundaries and declared duration/cycle/amplitude controls it realizes.
+Intended phonemes/alignment, text/word relations and positions, separate syllable
+structure and positioned boundaries, scoped controls and Language commitment
+remain on the complete original without being presented as acoustic realization. It retains original canonical bytes and conversion
 receipts. Its 8 kHz integer endpoints must agree with generic Audio cumulative
 sample-projection receipts on the declared clock. The private evidence envelope
 retains each exact Source program once and references it from every execution,

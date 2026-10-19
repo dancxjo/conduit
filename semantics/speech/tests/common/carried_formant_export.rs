@@ -126,7 +126,8 @@ pub fn retain(evidence: Export<'_>) -> Vec<u8> {
     let report = serde_json::json!({
         "text":"you would", "proof_class":"installed factory and execution kernel; offline authored PCM computation",
         "source_identity":hex(identity), "projection_identity":hex(projection),
-        "formant_retained_without_realization":["SeparateSyllableStructure", "ScopedFrequencyEnergyAndRate", "LanguageCommitment"],
+        "formant_realizes":["AdmittedTargetPhones", "SegmentStress", "InlineBoundaryEvents", "DeclaredDurationCyclesAndAmplitude"],
+        "formant_retained_without_realization":["IntendedPhonemesAndRealizationAlignment", "TextAndWordRelations", "WordPositions", "SeparateSyllableStructure", "PositionedBoundaries", "ScopedFrequencyEnergyAndRate", "LanguageCommitment"],
         "correspondence_subset_identity":hex(&model.correspondence_identity),
         "original_artifact_identity":hex(&semantic_digest("proof/carried-formant-artifact@1", &packet)),
         "wav_identity":hex(&semantic_digest("proof/carried-formant-wav@1", &wav)),
