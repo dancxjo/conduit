@@ -616,3 +616,42 @@ Source/Plan/Play/Sign identities. Input/request/output custody for whole numeric
 algorithms, target proof, total cost and stable acceptance also remain open.
 The earlier terminal-only CLI report remains the current product evidence;
 this checkpoint does not retroactively strengthen it or close a parent item.
+
+### Private Std admission of routed-content evidence
+
+The explicit qualified Std consumer now declares the shared
+`std/routed-content-signs@1` requirement. Installation checks its exact digest,
+storage and work policy before Play; missing required or changed policy refuses.
+Undeclared profiles retain their ordinary Sign behavior. The selected provider
+uses Core semantic SHA-256 with domain `conduit/routed-value-content@1` and scheme
+`core/semantic-sha256@1`. Three independent Python SHA-256 reference vectors
+verify the declared domain and exact framing, including empty and binary input.
+
+Hosted binding storage is allocated once before Play at the underlying retained
+event ceiling. Its exact backing bytes and maximum digest input extent are
+retained in the Std kernel report alongside native content bindings. Digest work
+is one bounded-input hash per committed route; this is not a total lifetime work
+limit or a CPU/WCET claim. Standalone, Body and remote installation use the same
+wrapper. Product and Body artifact export remain separate unfinished work.
+
+Six installed Angle tests join the selected numerical producer's actual output
+bytes, their independently recomputed digest, retained native ValueRouted event,
+and lowered Cord/Connection identity. They retain the existing zero-allocation
+Play guard and independent numerical certificate reader. Two admission-policy
+and eight qualified Fore tests pass. The full Std library suite passes 867 tests
+with 18 existing ignored tests; the full kernel suite passes 255 with six existing
+ignored tests. Kernel no-default and strict Clippy checks pass. Workspace
+all-target Clippy with warnings denied passes; full workspace tests remain in
+progress at this checkpoint. Twenty-eight executed Host/kernel binaries and the
+independent digest test binary have verified archive/hash roundtrips.
+
+This advances native execution evidence beyond the earlier foundation. It does
+not yet establish a Core SignId for each retained route or general projection
+report/input/request/output custody. Current product export still retains Core
+observations rather than these native bindings, and its earlier CLI proof remains
+terminal-only. The execution identity map currently reserves only presenter and
+terminal Sign capacity and associates node-specific Signs with Host requests;
+ordinary routing evidence needs an explicit, bounded shared identity contract.
+Do not relabel a constructed digest witness as a Gear-produced ValuePayload.
+Broader original requirements and exact-source stable acceptance remain open;
+this checkpoint closes no parent audit item.
