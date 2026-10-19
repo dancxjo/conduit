@@ -5,14 +5,20 @@ use super::*;
 pub(super) fn encode(value: &MathematicalValue, output: &mut [u8]) -> Result<usize, R> {
     let nodes: &[MathematicalNode] = match &value.representation {
         Representation::Rational(q) => {
-            if output.len() < 2 {
-                return Err(ExactNumericRefusal::EncodingBufferTooSmall.into());
-            }
-            output[..2].copy_from_slice(&[1, 0]);
-            return Ok(2 + q.encode(&mut output[2..])?);
+            return encode_rational(q, output);
         }
         Representation::Expression(nodes) => nodes,
     };
+    encode_nodes(nodes, output)
+}
+pub(super) fn encode_rational(q: &ExactRational, output: &mut [u8]) -> Result<usize, R> {
+    if output.len() < 2 {
+        return Err(ExactNumericRefusal::EncodingBufferTooSmall.into());
+    }
+    output[..2].copy_from_slice(&[1, 0]);
+    Ok(2 + q.encode(&mut output[2..])?)
+}
+pub(super) fn encode_nodes(nodes: &[MathematicalNode], output: &mut [u8]) -> Result<usize, R> {
     if output.len() < 3 {
         return Err(ExactNumericRefusal::EncodingBufferTooSmall.into());
     }

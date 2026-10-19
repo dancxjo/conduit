@@ -4,6 +4,8 @@ use super::{ExactNumericRefusal, ExactNumericWork, ExactRational};
 use alloc::vec::Vec;
 
 mod codec;
+mod prepared_builder;
+pub use prepared_builder::PreparedMathematicalValueBuilder;
 mod enclosure;
 mod inverse_trigonometry;
 mod trigonometry;
@@ -55,7 +57,7 @@ pub struct MathematicalNodeId {
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 // A decoded node uses fixed scratch; boxing its rational would allocate during
-// borrowed Port validation. Graph storage is preparation-only and bounded.
+// borrowed Port validation. Graph storage is allocated during preparation and bounded.
 #[allow(clippy::large_enum_variant)]
 pub enum MathematicalNode {
     Rational(ExactRational),
@@ -139,8 +141,9 @@ impl MathematicalNode {
     }
 }
 
-/// Construction happens before Play. The node/edge/depth profile is finite;
-/// interning shares structural subexpressions without a general theorem prover.
+/// Ordinary construction may allocate; the prepared wrapper reserves all storage
+/// before Play. The finite node/edge/depth profile and structural interning do
+/// not require a general theorem prover.
 #[derive(Debug, Default)]
 pub struct MathematicalValueBuilder {
     nodes: Vec<MathematicalNode>,
