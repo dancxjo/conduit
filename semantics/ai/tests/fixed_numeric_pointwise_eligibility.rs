@@ -23,7 +23,7 @@ fn fusion(kind: &Kind, back: &Back) -> bool {
         .is_ok()
 }
 #[test]
-fn only_explicit_pointwise_kinds_gain_pure_semantics() {
+fn only_reviewed_pointwise_and_readonly_kinds_gain_semantics() {
     let contracts = fixed_numeric_contracts().unwrap();
     let mut eligible = 0;
     for kind in contracts {
@@ -46,6 +46,13 @@ fn only_explicit_pointwise_kinds_gain_pure_semantics() {
             assert_eq!(kind.semantic_laws, larger.semantic_laws);
             assert_eq!(kind.inputs, larger.inputs);
             assert_eq!(kind.outputs, larger.outputs);
+        } else if kind
+            .kind_contract_revision
+            .as_str()
+            .ends_with("/read-immutable-input@1")
+        {
+            assert!(fusion(&kind, &back(&offer.unwrap())));
+            assert!(value_capacity64_contract(kind).is_err());
         } else if let Ok(offer) = offer {
             assert!(!fusion(&kind, &back(&offer)), "{}", kind.kind_id.as_str());
         }
