@@ -80,6 +80,8 @@ pub enum CheckSuite {
     ParserPunctuationEvaluation,
     /// Check committed dependency/prosody correlation and bounded revision safety.
     ProsodyCommitment,
+    /// Check committed noun/verb pronunciation and installed compact PCM.
+    RecordPronunciation,
     /// Prove bounded speech selection and explicit detail from exact Faces.
     TodoSpeech,
     InputSemantics,
