@@ -74,6 +74,7 @@ function foreignPlanProjection(data) {
 for (const [label, name, mutate, rehash] of [
   ['raw byte corruption', 'you-would.native', data => Buffer.concat([data, Buffer.from([1])]), false],
   ['WAV geometry despite valid digest', 'you-would.wav', data => { data.writeUInt32LE(16000, 24); return data; }, true],
+  ['false formant realization despite valid digest', 'you-would.json', data => { const r = JSON.parse(data); r.formant_realizes.push('ScopedFrequencyEnergyAndRate'); return JSON.stringify(r); }, true],
   ['false model conditioning despite valid digest', 'you-would.json', data => { const r = JSON.parse(data); r.model_terminal.retained_without_conditioning = []; return JSON.stringify(r); }, true],
   ['foreign model source despite valid digest', 'you-would.json', data => { const r = JSON.parse(data); r.model_terminal.source_identity = 'f'.repeat(64); return JSON.stringify(r); }, true],
   ['foreign plan projection despite valid digest', 'you-would.json', foreignPlanProjection, true],
