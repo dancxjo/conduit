@@ -412,3 +412,31 @@ Strict all-target Clippy for Core, Plot, Std offers, semantic catalog and Std Ho
 passes, as do Core/Plot no-default-features and formatting checks. Actual CLI
 proof remains pending. Existing public gates and all original parent requirements
 remain authoritative.
+
+## Actual CLI dimensioned binary32 continuation
+
+The CLI now executes the same native Angle, exact radian conversion, typed carry,
+explicit Quantity carrier and input-consuming binary32 projection. Both 90-degree
+and quarter-turn runs select three mathematical expression stages and the
+`std/quantity-near-enclosed-midpoint-binary32@1` consumer under the version-2 Near
+contract. Authored inspection checks the exact Pi/2 coordinate, radian Unit,
+reported error and requested allowance before emitting its success text.
+
+The error inspection uses an exact rational golden for this selected enclosure
+profile and input. It was captured from the Core certificate, with target bits
+checked as `0x3fc90fdb` and the positive error checked below the requested
+one-millionth-radian allowance; offline canonical-rational decoding records its
+Source literal. This is transport/selection conformance, not an independent new
+mathematical oracle. Core enclosure and endpoint-distance tests retain their
+separate numerical proof. The first fixture tried ordinary ordering operators
+on MathematicalValue; the actual Source API deliberately refuses that operator,
+so the fixture uses exact equality without inventing implicit symbolic order.
+
+Two CLI tests pass: two successful equivalent-angle runs and one zero-allowance
+run that returns InvalidInput/detail 3 without success output. Successful reports
+retain one verified Source-bound Plan, the expected selected profiles and spans,
+a completed terminal, and observations bound to that actual reported Play and
+Plan. Focused CLI strict Clippy passes. This does not prove general projection
+report-to-Sign custody, arbitrary symbolic Quantity arithmetic, qualified whole
+floating-point computation, or public acceptance; all original parent checks
+remain open where previously unaccepted.

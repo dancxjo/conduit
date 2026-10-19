@@ -1,0 +1,42 @@
+plot native-angle (
+    >> trigger: MathematicalValue
+    result: Angle >>
+) = (90°)
+
+plot radians (
+    >> value: Angle
+    result: Angle >>
+) = (math/angle-radians(.))
+
+plot carry (
+    >> value: Angle
+    result: Angle >>
+) = (.)
+
+plot expose (
+    >> value: Angle
+    result: Quantity >>
+) = (quantity/value(.))
+
+plot explain (
+    >> value: NearQuantity <= 131072B
+    result: Text >>
+) = (.source == math/radians(90°) ? (.unit == rad ? (.maximum-error == 4989059748945264178730333232019111938743553307553489755494474841856933287739664248916564964485953 / 114136378384044305483399922558931182958853259523662765806564420563333741593366937500000000000000000000000 ? (.limit == 0.000001 ? "certified physical projection" : "wrong limit") : "wrong certified bound") : "wrong unit") : "wrong source")
+
+plot main {
+    seed: math/realize(request={value:0,maximum-error:0})
+    native: native-angle
+    converted: radians
+    carried: carry
+    exposed: expose
+    projected: math/near(limit=0.000001rad)
+    inspect: explain
+    show: face/text("Dimensioned binary32")
+    seed.result >> (.source) >> native.trigger
+    native.result >> converted.value
+    converted.result >> carried.value
+    carried.result >> exposed.value
+    exposed.result >> projected.value
+    projected.result >> inspect.value
+    inspect.result >> show
+}.
