@@ -76,6 +76,37 @@ admission, source and claim forgery, changed policy, stronger/weak consumer limi
 zero-width exact results, allocation-free refusals and recovery. The original
 input-profile checkpoint remains separate from this later verification API.
 
+## Component cost capture
+
+The [raw cost records](evidence/input-mathematical-enclosure-cost-20261019.json)
+retain 16 trials per specimen in both unoptimized and optimized Cargo test
+profiles on Linux x86_64, Intel Core i7-12700, Rust 1.98.1. Each trial prepares a
+fresh Back in a warmed process, performs one untimed warmup, then measures four
+calls with thread CPU and monotonic wall clocks. Allocation-probe and timing
+overhead are retained. The optimized profile uses optimization level 3, 16
+codegen units, LTO off, debug assertions off and overflow checks on.
+
+| Exact input | Optimized median CPU per repeated call |
+| --- | ---: |
+| 1/3 | 0.01545 ms |
+| π/180 | 28.974 ms |
+| principal sqrt(2) | 6.469 ms |
+
+All 192 timed calls per profile observe zero allocation/reallocation calls and
+unchanged prepared capacity. The source and complete result digests match across
+both compiler profiles for all three specimens. Fresh preparation remains
+allocation-heavy: median thread CPU across 48 fresh preparations is 7.628 ms,
+and every observed trial records 27,844 allocation calls. The
+captured Back-owned state/buffer payload is 172,568 bytes; the installed property
+also counts the outer driver container. Allocator overhead, stack, caller data
+and kernel arenas are excluded.
+
+This measures `Back::new` and its numeric/encoder/report evaluation, excluding
+Host advertisement, Source checking, Plan construction, kernel queue/Sign costs
+and output delivery. It is not whole-Play throughput, a product-release profile,
+cross-target performance, native-equivalence evidence or WCET. The earlier
+unoptimized records are retained alongside the optimized capture.
+
 There is no installed browser/no_std/device profile, machine-float computation,
 symbolic Quantity wire, separate Unit-coordinate projection, approximate-input
 composition, physical fusion, DSP/ML acceptance, or throughput claim here. The
