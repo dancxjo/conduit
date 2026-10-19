@@ -107,6 +107,15 @@ cargo xtask prove todo-journey \
   --first-item-text 'Buy milk' --cross-mask-actions --direct-speech
 ```
 
+For the separate selected-component conformance slice, use the same fresh
+installation and capture arguments with `--required-component` instead of
+`--cross-mask-actions --direct-speech`. This captures the ordinary generic Mask,
+then compact and spacious required-item component roots against the same
+canonical Face. A real offered Complete action changes the owner state; the
+missing required action then exercises the component's declared generic-reading
+fallback. This bounded browser/owner proof does not produce the complete spoken
+journey publication packet.
+
 The producer births Groceries, acknowledges its terminal Show, adds the three
 items through ordinary browser controls, and observes the initial list through
 direct speech. It joins in the terminal, completes Buy milk through the exact

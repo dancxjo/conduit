@@ -67,6 +67,9 @@ pub struct TodoJourneyArgs {
     /// Capture actual owner Todo Faces at 0, 1, 3 and 20 remaining items.
     #[arg(long, conflicts_with_all = ["cross_mask_actions", "direct_speech"])]
     pub count_matrix: bool,
+    /// Prove the admitted required-slot Todo Web Component against the installed owner.
+    #[arg(long, conflicts_with_all = ["cross_mask_actions", "count_matrix", "direct_speech"])]
+    pub required_component: bool,
     /// Capture acknowledged direct opening and remaining-item WAVs through the selected artifact route.
     #[arg(long, requires = "cross_mask_actions")]
     pub direct_speech: bool,
