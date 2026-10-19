@@ -30,7 +30,7 @@ property uses code 3 for the new grant and keeps omitted ports Decimal. Ordinary
 `QuantityValueView::decode` still rejects v3; selected profile decoding alone
 returns a borrowed mathematical-coordinate view. Unresolved coordinates refuse
 rational or decimal materialization. An explicit private Std offer and installed Back now admit the bounded Angle
-subset described below; automatic Source advertisement remains unfinished. An unfamiliar form remains a named refusal.
+subset described below, including ordinary Source offer preparation. An unfamiliar form remains a named refusal.
 
 ## Unit coordinates and numerical realization remain separate
 
@@ -132,8 +132,8 @@ is retained with the local capture.
 
 This is private Core conversion/computation proof. Required follow-up remains:
 reviewing the form and its explicit wire-profile negotiation, checked Source/Plan and
-installed Host consumption, refinement/terminal/control proof, exact symbolic
-Angle consumption by trig, Source/Plan/Sign custody for the general projection report, fresh candidate
+broader installed Quantity expressions and refinements, Source/Plan/Sign custody
+for the general projection report, fresh candidate
 and combined integration/publication. Qualified whole-float algorithms and all
 original parent requirements remain authoritative. No checkbox is closed here.
 
@@ -193,8 +193,8 @@ and obtain exact sine 1, cosine 0 and the truthful tangent-pole refusal. Scaled
 radian and direct Pi/2-division forms work; non-cardinal rational turns reuse the
 existing symbolic trig result. Unsupported symbolic/rational radian shapes and
 exhausted work refuse, followed by successful recovery, with zero guarded
-allocations. Source integration is still required: released `math/radians`
-continues returning its existing mathematical coordinate Type.
+allocations. The private Source continuation below retains typed Angle data;
+released `math/radians` continues returning its existing mathematical coordinate Type.
 
 ## Checked Source Angle continuation
 
@@ -216,9 +216,9 @@ and stable output capacities. Legacy native/rational and proposed mathematical
 forms consume through the explicitly selected profile; old profiles refuse v3.
 The optional Angle guard rejects scalar-family Units even at SI dimension one.
 The initial test used an unavailable Type accessor; its diagnostic is retained,
-and direct checked Type equality is used instead. Installed offer recomputation,
-resource/projection custody, actual authored Plan/kernel/CLI and public gates
-still remain. The spelling and form remain private proposals under #5392.
+and direct checked Type equality is used instead. Later sections cover installed
+offer recomputation and actual authored Plan/kernel/CLI proof. General projection
+custody and public gates remain. The spelling and form remain private proposals under #5392.
 
 The prepared Angle profile now exposes node/depth, retained payload ceiling and
 conservative aggregate limb-work bounds. Accounting includes coordinate scratch,
@@ -239,8 +239,8 @@ The offer retains node/depth, prepared payload, numerical work, input extent and
 output capacity bounds; factory preparation independently recomputes those
 properties, the implementation source identity, ports, limits and Host Calls.
 That source identity is a selected-module digest, not a complete executable or
-live execution receipt. Automatic Source advertisement and CLI selection remain
-unfinished.
+live execution receipt. This initial explicit-offer checkpoint does not by itself
+prove automatic Source advertisement or CLI selection; see the continuation below.
 
 Three installed tests pass: separate checked Source conversion and sine Plans
 inspect the actual transported Pi/2-radian frame; one checked Source Plan runs
@@ -269,5 +269,12 @@ counts against the existing 32-offer preparation bound, uses a distinct identity
 and is removed when replacing that Source batch. Reference annotation validation
 still precedes admission. An installed checked-Source conversion/carry/sine test
 passes without manually inserting offers, including idempotent preparation and
-zero reported allocations after Play starts. CLI proof is being prepared;
-publication and general projection custody remain unverified.
+zero reported allocations after Play starts. Eleven Source preparation regression
+tests pass, including native alternative retention, idempotence, replacement,
+active-reservation fencing and finite offer-limit refusal without partial mutation.
+The actual CLI test selects three mathematical stages, emits exact sine one,
+checks sealed Source/Plan identity and Plan/Play-bound observations, and reaches
+terminal completion. Both 90-degree and equivalent quarter-turn CLI runs pass, each selecting the
+conversion and carry as Angle-to-Angle stages and sine as Angle-to-mathematical
+consumption. Strict all-target Clippy for Std Host, Std offers and CLI passes.
+Publication and general projection custody remain unverified.

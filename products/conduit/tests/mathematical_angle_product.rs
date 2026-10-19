@@ -4,11 +4,15 @@ use std::process::Command;
 const SOURCE: &str = include_str!("fixtures/mathematical_angle_chain.conduit");
 #[test]
 fn actual_cli_selects_the_symbolic_angle_chain_and_completes_with_exact_sine() {
+    assert_chain(SOURCE);
+    assert_chain(&SOURCE.replace("90°", "0.25turn"));
+}
+fn assert_chain(source: &str) {
     let path =
         std::env::temp_dir().join(format!("conduit-mathematical-angle-{}", std::process::id()));
     std::fs::create_dir(&path).unwrap();
     let result = || {
-        std::fs::write(path.join("main.conduit"), SOURCE).unwrap();
+        std::fs::write(path.join("main.conduit"), source).unwrap();
         let output = Command::new(env!("CARGO_BIN_EXE_conduit"))
             .arg("run")
             .arg(path.join("main.conduit"))
@@ -33,7 +37,7 @@ fn actual_cli_selects_the_symbolic_angle_chain_and_completes_with_exact_sine() {
         assert!(conduit_core::verify_plan(&plan));
         assert_eq!(
             plan.source_document_id,
-            conduit_plot::parse_syntax_document(SOURCE).source_document_id()
+            conduit_plot::parse_syntax_document(source).source_document_id()
         );
         let mathematical: Vec<_> = plan
             .fragments
@@ -43,7 +47,27 @@ fn actual_cli_selects_the_symbolic_angle_chain_and_completes_with_exact_sine() {
                 p.execution_profile_id.as_str() == "std/pure-expression-mathematical-angle-hosted@1"
             })
             .collect();
-        assert!(mathematical.len() >= 3);
+        assert_eq!(mathematical.len(), 3);
+        assert_eq!(
+            mathematical
+                .iter()
+                .filter(
+                    |p| p.inputs[0].value_kind.as_str() == conduit_core::ANGLE_INFO_ID
+                        && p.outputs[0].value_kind.as_str() == conduit_core::ANGLE_INFO_ID
+                )
+                .count(),
+            2
+        );
+        assert_eq!(
+            mathematical
+                .iter()
+                .filter(
+                    |p| p.inputs[0].value_kind.as_str() == conduit_core::ANGLE_INFO_ID
+                        && p.outputs[0].value_kind.as_str() == conduit_core::MATHEMATICAL_VALUE_ID
+                )
+                .count(),
+            1
+        );
         for placement in &mathematical {
             assert!(placement.source_span.is_some());
         }
