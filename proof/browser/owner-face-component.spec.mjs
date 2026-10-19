@@ -652,15 +652,19 @@ for (const hidden of ['attribute', 'owner-attribute', 'visibility', 'opacity', '
 }
 
 // Production Handbook orchestration with a fixture SDK, not a real owner Body.
-for (const interruption of [null, 'prepare', 'acknowledge', 'inaccessible']) {
+for (const interruption of [null, 'prepare', 'acknowledge', 'inaccessible', 'detach-reattach']) {
 test(`Handbook refresh preserves current controls and refuses interrupted ${interruption ?? 'none'} routes`, async ({ page }) => {
   await page.goto('/proof/browser/signal-dom-host.test.html');
   await page.evaluate(async ({ view, interruption }) => {
     const { startOwnerParticipation } = await import('/targets/browser/handbook/owner-participation.mjs');
+    const lookResponse = await fetch('/targets/browser/handbook/owner-face-look.css');
+    if (!lookResponse.ok) throw new Error('Fixture source Look is unavailable');
+    const lookBytes = new Uint8Array(await lookResponse.arrayBuffer());
     document.body.innerHTML = `<header class="handbook-introduction"><h1></h1><p class="lede"></p></header>
       <a class="handbook-start"></a><div class="handbook-first-steps"></div>
       <div class="handbook-next"></div><div class="handbook-local-note"></div><main></main>`;
     const shown = { ...view, body_id: 'body/fixture', face_revision: '1',
+      mask_renderer_artifact_id: 'artifact/browser-runtime',
       actions: [{ ...view.actions[0], arguments: [{ name: 'draft', value_name: 'Draft',
         value_kind: 'value/text', maximum_bytes: 16, choices: [] }] }],
       mask_plot_id: 'fixture/mask', mask_plan_id: 'fixture/plan', mask_play_id: 'fixture/play',
@@ -704,16 +708,21 @@ test(`Handbook refresh preserves current controls and refuses interrupted ${inte
       submitOwnerFaceInteraction: async call => { globalThis.calls.push(call); return { accepted: true }; },
     };
     await startOwnerParticipation({
+      bytes: role => {
+        if (role !== 'owner-face-look') throw new Error('Unknown fixture resource');
+        return lookBytes;
+      },
       storage: { readJson: async () => null, writeJson: async () => {} },
       browser: async () => ({ id: 'host/browser', bootId: 'boot/browser',
         admissionIdentity: () => ({ hostId: 'host/browser', bootId: 'boot/browser', verifyingKey: [] }),
+        admitOwnerFaceComponent: async () => ({ selected: false, reason: 'Generic renderer fixture' }),
         participate: async options => { onState = options.onState; return participation; } }),
     }, document.querySelector('main'));
   }, { view, interruption });
   await page.getByLabel('Body ID', { exact: true }).fill('body/fixture');
   await page.getByLabel('Owner window URL', { exact: true }).fill('ws://127.0.0.1:41000/conduit');
   await page.getByRole('button', { name: 'Join this Body', exact: true }).click();
-  const owner = page.locator('conduit-owner-face');
+  const owner = page.locator('[data-owner-face-surface]');
   await expect(page.locator('main')).toHaveAttribute('data-owner-face-shown', 'true');
   const button = owner.getByRole('button', { name: 'Complete task', exact: true });
   await expect(button).toBeEnabled();
@@ -729,6 +738,26 @@ test(`Handbook refresh preserves current controls and refuses interrupted ${inte
     });
     observer.observe(node.parentNode, { childList: true });
   });
+  if (interruption === 'detach-reattach') {
+    for (const cycle of [1, 2]) {
+      await owner.evaluate(node => {
+        const parent = node.parentNode;
+        node.remove(); parent.append(node);
+      });
+      await expect(button).toBeDisabled();
+      await expect(draft).toBeDisabled();
+      // Negative stale-binding fixture: this is not trusted user enactment.
+      await owner.evaluate(node => node.shadowRoot.querySelector('form')
+        .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })));
+      expect(await page.evaluate(() => globalThis.calls)).toEqual([]);
+      await page.getByRole('button', { name: 'Refresh this Face', exact: true }).click();
+      await expect(page.locator('main')).toHaveAttribute('data-owner-show-acknowledged', `fixture/show/${cycle + 1}`);
+      await expect(button).toBeEnabled();
+      expect(await owner.evaluate(node => node === globalThis.originalOwner)).toBe(true);
+      expect(await page.evaluate(() => globalThis.calls)).toEqual([]);
+    }
+    return;
+  }
   if (interruption === 'inaccessible') await owner.evaluate(node => { node.hidden = true; });
   await page.getByRole('button', { name: 'Refresh this Face', exact: true }).click();
   if (interruption === 'inaccessible') {
@@ -870,6 +899,7 @@ for (const enriched of ['collection', 'item', 'status']) {
     };
     await page.evaluate(async view => {
       const { projectFaceCollections } = await import('/targets/browser/handbook/owner-participation.mjs');
+      await import('/targets/browser/handbook/owner-face-component.mjs');
       document.body.replaceChildren(); globalThis.calls = [];
       const element = document.createElement('conduit-owner-face'); document.body.append(element);
       element.show(view, { projectCollections: projectFaceCollections,
@@ -1008,6 +1038,7 @@ for (const membership of ['partial', 'duplicate', 'duplicate-without-status', 'w
     }
     await page.evaluate(async view => {
       const { projectFaceCollections } = await import('/targets/browser/handbook/owner-participation.mjs');
+      await import('/targets/browser/handbook/owner-face-component.mjs');
       document.body.replaceChildren(); globalThis.calls = [];
       const element = document.createElement('conduit-owner-face'); document.body.append(element);
       element.show(view, { projectCollections: projectFaceCollections,
@@ -1038,6 +1069,7 @@ for (const kind of ['facts', 'completed']) {
     };
     await page.evaluate(async view => {
       const { projectFaceCollections } = await import('/targets/browser/handbook/owner-participation.mjs');
+      await import('/targets/browser/handbook/owner-face-component.mjs');
       document.body.replaceChildren(); globalThis.calls = [];
       const element = document.createElement('conduit-owner-face'); document.body.append(element);
       globalThis.refreshDisclosure = next => element.show(next, { projectCollections: projectFaceCollections,
