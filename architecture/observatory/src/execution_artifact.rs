@@ -13,6 +13,9 @@ use crate::validation::{
 };
 use crate::PlayReport;
 
+#[path = "execution_artifact/event_gap.rs"]
+mod event_gap;
+
 pub const PLAN_ARTIFACT_SCHEMA: &str = "conduit.plan/artifact@1";
 pub const PLAY_ARTIFACT_SCHEMA: &str = "conduit.play/artifact@1";
 pub const SIGN_ARTIFACT_SCHEMA: &str = "conduit.sign/artifact@1";
@@ -187,6 +190,7 @@ pub fn validate_sign_artifact(artifact: &SignArtifact) -> Result<(), String> {
             return Err("Sign artifact names an unreported connection".into());
         }
     }
+    event_gap::validate(&artifact.sign)?;
     if let ObservationKind::RoutedContent { evidence } = &artifact.sign.kind {
         let plan = contextual_plan.ok_or("routed content Sign lacks Plan context")?;
         let placement = artifact
@@ -304,7 +308,7 @@ mod tests {
     use super::*;
     use crate::PlanLifecycle;
 
-    fn exact_artifacts() -> (PlanArtifact, PlayArtifact, SignArtifact) {
+    pub(super) fn exact_artifacts() -> (PlanArtifact, PlayArtifact, SignArtifact) {
         let plan = exact_std_pico_usb_plan().unwrap().plan;
         let fragment = plan.fragments.first().unwrap();
         let identity = bind_active_play(&plan.plan_id, &fragment.host_id, &fragment.boot_id, 7);

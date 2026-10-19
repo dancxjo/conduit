@@ -16,7 +16,10 @@ fn preexisting_observation_tags_keep_their_postcard_encoding() {
         (ObservationKind::SignGap { dropped: 7 }, vec![17, 7]),
     ] {
         assert_eq!(postcard::to_allocvec(&kind).unwrap(), wire);
-        assert_eq!(postcard::from_bytes::<ObservationKind>(&wire).unwrap(), kind);
+        assert_eq!(
+            postcard::from_bytes::<ObservationKind>(&wire).unwrap(),
+            kind
+        );
     }
 }
 
@@ -34,9 +37,33 @@ fn shared_routing_evidence_roundtrips_without_becoming_a_value_payload() {
     };
     let wire = postcard::to_allocvec(&kind).unwrap();
     assert_eq!(wire[0], 18);
-    assert_eq!(postcard::from_bytes::<ObservationKind>(&wire).unwrap(), kind);
+    assert_eq!(
+        postcard::from_bytes::<ObservationKind>(&wire).unwrap(),
+        kind
+    );
     let json = serde_json::to_value(&kind).unwrap();
     assert!(json.get("RoutedContent").is_some());
     assert!(json.get("ValueProduced").is_none());
-    assert_eq!(serde_json::from_value::<ObservationKind>(json).unwrap(), kind);
+    assert_eq!(
+        serde_json::from_value::<ObservationKind>(json).unwrap(),
+        kind
+    );
+}
+
+#[test]
+fn native_event_gap_has_a_distinct_appended_wire_tag() {
+    let kind = ObservationKind::ExecutionEventGap {
+        first_sequence: 2,
+        last_sequence: 7,
+        entries: 3,
+    };
+    let wire = postcard::to_allocvec(&kind).unwrap();
+    assert_eq!(wire, [19, 2, 7, 3]);
+    assert_eq!(
+        postcard::from_bytes::<ObservationKind>(&wire).unwrap(),
+        kind
+    );
+    let json = serde_json::to_value(&kind).unwrap();
+    assert!(json.get("ExecutionEventGap").is_some());
+    assert!(json.get("SignGap").is_none());
 }

@@ -500,6 +500,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 == conduit_std_offers::STRUCTURED_FACE_STD_IMPLEMENTATION
         })
         .count();
+    let routing_sign_capacity = routed_content_observations::identity_capacity(scheduler.signs())?;
     let mut execution_identity = KernelExecutionIdentityMap::new(
         &lowered.identity,
         &active_play,
@@ -507,14 +508,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         face_capacity,
         face_capacity
             .checked_add(2)
-            .and_then(|n| {
-                n.checked_add(
-                    scheduler
-                        .signs()
-                        .admission()
-                        .map_or(0, |a| usize::from(a.event_items)),
-                )
-            })
+            .and_then(|n| n.checked_add(routing_sign_capacity))
             .ok_or("installed observation Sign capacity overflow")?,
     )
     .map_err(|error| format!("prepare std execution identity: {error:?}"))?;

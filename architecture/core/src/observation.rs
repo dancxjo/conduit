@@ -67,6 +67,13 @@ pub enum ObservationKind {
     RoutedContent {
         evidence: RoutedContentEvidence,
     },
+    /// Transient execution-kernel events evicted from this Play's native
+    /// history. These are not missing Core Sign identities or snapshot slots.
+    ExecutionEventGap {
+        first_sequence: u32,
+        last_sequence: u32,
+        entries: u32,
+    },
 }
 
 /// Shared bounded routing evidence. It describes retained bytes, not a new
