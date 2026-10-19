@@ -8,8 +8,6 @@ mod allocation;
 mod artifact;
 #[path = "matrix_projection_performance/fixture.rs"]
 mod fixture;
-#[path = "matrix_projection_performance/reference.rs"]
-mod reference;
 #[path = "../../../proof/performance/runtime/src/timing.rs"]
 mod timing;
 use conduit_ai::{
@@ -28,6 +26,15 @@ fn prepared<const I: usize, const O: usize>(
 ) -> Result<(), FixedNumericRefusal> {
     linear.apply(input, output)
 }
+#[inline(never)]
+fn scalar_reference<const I: usize, const O: usize>(
+    linear: &FixedTensorLinear<'_, I, O>,
+    input: &[f32; I],
+    output: &mut [f32; O],
+) -> Result<(), FixedNumericRefusal> {
+    linear.apply_scalar_reference(input, output)
+}
+
 fn case<const I: usize, const O: usize>(
     raw: &mut artifact::Raw,
     iterations: u32,
@@ -39,16 +46,9 @@ fn case<const I: usize, const O: usize>(
         timing::measure(|| FixedTensorLinear::<I, O>::prepare(&tensor, &bytes, order).unwrap());
     let mut actual = [0.; O];
     let mut expected = [0.; O];
-    let scalar = reference::Reference::new(&tensor, &bytes, order);
-    assert_eq!(
-        core::mem::size_of_val(&scalar),
-        core::mem::size_of_val(&linear)
-    );
-    assert_eq!(
-        core::mem::align_of_val(&scalar),
-        core::mem::align_of_val(&linear)
-    );
-    scalar.apply(&input, &mut expected).unwrap();
+    linear
+        .apply_scalar_reference(&input, &mut expected)
+        .unwrap();
     prepared(&linear, &input, &mut actual).unwrap();
     assert_eq!(actual.map(f32::to_bits), expected.map(f32::to_bits));
     let shape = format!("{I}x{O}");
@@ -56,14 +56,14 @@ fn case<const I: usize, const O: usize>(
     raw.row(&json!({"phase":"matrix-preparation","shape":shape,"order":order_name,"fixture":fixture,"preparation":preparation,"packed_weights_bytes":bytes.len(),"weight_sha256":artifact::digest(&bytes),"scope":"Synthetic validated tensor content; no Plan, Host resource authority, Back dispatch or canonical port codec measured."}))?;
     for repetition in 0..repetitions {
         let profiles = if repetition.is_multiple_of(2) {
-            ["scalar-reference", "contiguous"]
+            ["scalar-reference", "shape-selected"]
         } else {
-            ["contiguous", "scalar-reference"]
+            ["shape-selected", "scalar-reference"]
         };
         for profile in profiles {
             let ((), metrics) = timing::measure(|| {
                 for _ in 0..iterations {
-                    if profile == "contiguous" {
+                    if profile == "shape-selected" {
                         prepared(
                             black_box(&linear),
                             black_box(&input),
@@ -71,9 +71,12 @@ fn case<const I: usize, const O: usize>(
                         )
                         .unwrap();
                     } else {
-                        black_box(&scalar)
-                            .apply(black_box(&input), black_box(&mut actual))
-                            .unwrap();
+                        scalar_reference(
+                            black_box(&linear),
+                            black_box(&input),
+                            black_box(&mut actual),
+                        )
+                        .unwrap();
                     }
                     black_box(&actual);
                 }
@@ -97,6 +100,7 @@ fn run(output: &Path, iterations: u32, repetitions: u32) -> Result<(), Box<dyn s
     let worker = std::env::current_exe()?;
     metadata["worker_sha256"] = json!(artifact::digest(&std::fs::read(&worker)?));
     metadata["worker_path"] = json!(worker);
+    metadata["matrix_reference_feature"] = json!(cfg!(feature = "matrix-projection-reference"));
     artifact::json(&output.join("metadata.json"), &metadata)?;
     let mut raw = artifact::Raw::new(&output.join("raw.jsonl"))?;
     raw.row(&json!({"phase":"timer-control","samples_ns":timing::timer_control(2000),"subtracted":false}))?;
@@ -128,7 +132,7 @@ fn run(output: &Path, iterations: u32, repetitions: u32) -> Result<(), Box<dyn s
     raw.finish()?;
     artifact::json(
         &output.join("summary.json"),
-        &json!({"schema":"conduit.matrix-projection-performance@1","iterations":iterations,"repetitions":repetitions,"reference_profile":"prior-scalar-borrowed-owned-view@1","shapes":22,"orders":2,"shape_list":["3x2","18x18","80x1","161x18","192x4","128x40","328x192","192x192","272x480","160x480","240x384","128x384","208x384","160x160","128x128","688x128","20x40","40x128","128x160","160x128","192x160","320x160"],"scope":"Isolated ordered-f32 matrix arithmetic on validated immutable synthetic bytes. No full Back, Plan, FARGAN, realtime, hardware traffic or total RAM claim. No quiet timing acceptance without independent process controls.","accounting":"Fixture generation and tensor preparation measured separately; warm bulk includes function calls, finite checks, prepared/reference scratch and result guards. Both paths retain column accumulation order. Reference retains the prior scalar traversal with borrowed/owned view and order lookup; both views share validated content. Output inspection/hashing and evidence writes occur outside warm timing; timer controls not subtracted."}),
+        &json!({"schema":"conduit.matrix-projection-performance@1","iterations":iterations,"repetitions":repetitions,"reference_profile":"prior-scalar-library-view@1","candidate_profile":"shape-selected","shapes":22,"orders":2,"shape_list":["3x2","18x18","80x1","161x18","192x4","128x40","328x192","192x192","272x480","160x480","240x384","128x384","208x384","160x160","128x128","688x128","20x40","40x128","128x160","160x128","192x160","320x160"],"scope":"Isolated ordered-f32 matrix arithmetic on validated immutable synthetic bytes. No full Back, Plan, FARGAN, realtime, hardware traffic or total RAM claim. No quiet timing acceptance without independent process controls.","accounting":"Fixture generation and tensor preparation measured separately; warm bulk includes function calls, finite checks, prepared/reference scratch and result guards. Both paths retain column accumulation order. Reference uses the opt-in library method over the identical prepared view and prior scalar helper. Output inspection/hashing and evidence writes occur outside warm timing; timer controls not subtracted."}),
     )?;
     Ok(())
 }

@@ -102,3 +102,44 @@ fn ordered_cancellation_subnormals_signed_zero_and_atomic_refusal_are_preserved(
         compare::<2, 2>(&[1., 2., 3., 4.], &[1., f32::INFINITY], order);
     }
 }
+
+#[test]
+fn contiguous_path_retains_rounding_subnormals_and_atomic_failure() {
+    const I: usize = 40;
+    const O: usize = 128;
+    for order in [FixedMatrixOrder::InputMajor, FixedMatrixOrder::OutputMajor] {
+        let index = |column: usize, row: usize| match order {
+            FixedMatrixOrder::InputMajor => column * O + row,
+            FixedMatrixOrder::OutputMajor => row * I + column,
+        };
+        let mut weights = vec![0.; I * O];
+        let mut input = [0.; I];
+        input[0] = 1.;
+        input[1] = f32::from_bits(0x3f7ffffe);
+        for row in 0..O {
+            weights[index(0, row)] = -1.;
+            weights[index(1, row)] = f32::from_bits(0x3f800001);
+        }
+        assert!(reference::<I, O>(&weights, &input, order)
+            .unwrap()
+            .iter()
+            .all(|value| value.to_bits() == 0));
+        compare::<I, O>(&weights, &input, order);
+        weights.fill(0.);
+        input.fill(0.);
+        input[0] = 1.;
+        for row in 0..O {
+            weights[index(0, row)] = if row % 2 == 0 {
+                f32::from_bits(1)
+            } else {
+                -f32::from_bits(1)
+            };
+        }
+        compare::<I, O>(&weights, &input, order);
+        weights[index(0, O - 1)] = f32::MAX;
+        input[0] = 2.;
+        compare::<I, O>(&weights, &input, order);
+        input[I - 1] = f32::NAN;
+        compare::<I, O>(&weights, &input, order);
+    }
+}
