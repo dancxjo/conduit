@@ -54,6 +54,49 @@ fn main() {
     .join("\n");
     let checked = check_syntax_document(&parse_syntax_document(&source), &StartupCatalog::new())
         .expect("language semantic Types must check");
+    let commitment = conduit_plot::expand_canonical_plot_for_authoring(
+        &checked,
+        "language-parser-beam-commit",
+        &conduit_plot::ProfileCatalog::new(),
+    )
+    .expect("commitment expands");
+    assert_eq!(commitment.expanded.gears.len(), 8);
+    assert_eq!(commitment.expanded.connections.len(), 7);
+    assert_eq!(commitment.input_bindings.len(), 1);
+    assert_eq!(commitment.output_bindings.len(), 1);
+    let mut id = commitment.input_bindings[0].gear_id.clone();
+    let mut ordered = Vec::new();
+    let mut seen = Vec::new();
+    loop {
+        assert!(!seen.contains(&id), "commitment preparation is acyclic");
+        seen.push(id.clone());
+        let gear = commitment
+            .expanded
+            .gears
+            .iter()
+            .find(|g| g.gear_id == id)
+            .unwrap();
+        assert!(gear.resource_ports.is_empty());
+        assert_eq!(gear.configuration.len(), 1);
+        let conduit_core::ConfigurationValue::Text(hex) = &gear.configuration[0].value else {
+            panic!("commitment expression")
+        };
+        ordered.push(hex.clone());
+        let outgoing: Vec<_> = commitment
+            .expanded
+            .connections
+            .iter()
+            .filter(|e| e.source_gear_id == id)
+            .collect();
+        if outgoing.is_empty() {
+            assert_eq!(id, commitment.output_bindings[0].gear_id);
+            break;
+        }
+        assert_eq!(outgoing.len(), 1);
+        id = outgoing[0].sink_gear_id.clone();
+    }
+    assert_eq!(ordered.len(), 8);
+    fs::write(PathBuf::from(env::var_os("OUT_DIR").unwrap()).join("commitment_programs.rs"), format!("pub const COMMITMENT_SOURCE_ID: &str = {:?};\npub(crate) const COMMITMENT_PROGRAMS: [&str; 8] = {:?};\n", checked.source_document_id.as_str(), ordered)).unwrap();
     for (plot, file) in [
         (
             "language-parser-availability",

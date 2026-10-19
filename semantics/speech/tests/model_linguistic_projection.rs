@@ -1,30 +1,34 @@
 #![cfg(feature = "semantic-bindings")]
-#[path = "common/correspondence.rs"]
+#[path = "common/carried_formant_fixture.rs"]
 mod fixture;
 use conduit_plot::rust_binding::{BoundedSequence, NativeRustBinding};
 use conduit_speech::{
-    correspondence::PreparedSpeechCorrespondence, ipa_inventory::PreparedIpaInventory,
-    model_linguistic_projection::*, semantic::*,
+    complete_carrier::{CompleteCarrierAcoustics, PreparedCompleteSpeechCarrier},
+    model_linguistic_projection::*,
+    semantic::*,
 };
 
-fn vocabulary(
+fn make_vocabulary(
+    f: &fixture::Fixture,
     basis: &SpeechIpaInventoryNotationBasis,
     token: u32,
 ) -> SpeechModelLinguisticVocabulary {
     SpeechModelLinguisticVocabulary::new(
         basis.clone(),
         SpeechModelVocabularyId::new("test/lexical-v1".into()).unwrap(),
-        BoundedSequence::try_from_iter([SpeechModelPhonemeToken::new(
-            PhonemeId::new("phoneme/t".into()).unwrap(),
-            42,
-        )
-        .unwrap()])
+        BoundedSequence::try_from_iter(f.definitions.phonemes().as_slice().iter().enumerate().map(
+            |(index, definition)| {
+                SpeechModelPhonemeToken::new(definition.identity().clone(), 100 + index as u32)
+                    .unwrap()
+            },
+        ))
         .unwrap(),
-        BoundedSequence::try_from_iter([SpeechModelPhoneToken::new(
-            PhoneId::new("phone/tap".into()).unwrap(),
-            token,
-        )
-        .unwrap()])
+        BoundedSequence::try_from_iter(f.definitions.phones().as_slice().iter().enumerate().map(
+            |(index, definition)| {
+                SpeechModelPhoneToken::new(definition.identity().clone(), token + index as u32)
+                    .unwrap()
+            },
+        ))
         .unwrap(),
         SpeechModelProjectionVersion::new(1).unwrap(),
     )
@@ -33,31 +37,23 @@ fn vocabulary(
 
 #[test]
 fn shared_lexical_map_preserves_distinct_streams_and_original_through_backend_refusal() {
-    let (definitions, profile, text, intent, phonemes, phones, alignment) = (
-        fixture::inventory(),
-        fixture::profile(),
-        fixture::text(),
-        fixture::intent(),
-        fixture::phonemes(),
-        fixture::phones(),
-        fixture::alignment(fixture::groups()),
-    );
-    let (phone_binding, phoneme_binding) = fixture::bindings();
-    let inventory = PreparedIpaInventory::prepare(
-        &definitions,
-        &profile,
-        profile.variety(),
-        profile.revision(),
-        &[phone_binding],
-        &[phoneme_binding],
+    let f = fixture::Fixture::new();
+    let inventory = f.inventory().unwrap();
+    let correspondence = f.correspondence(&inventory).unwrap();
+    let structure = f.structure();
+    let evidence = f.complete_evidence();
+    let original = PreparedCompleteSpeechCarrier::prepare(
+        &correspondence,
+        &structure,
+        &evidence.lexical,
+        &f.word_phonemes,
+        &evidence.request,
+        &evidence.result,
+        CompleteCarrierAcoustics::not_supplied(),
     )
     .unwrap();
-    let original = PreparedSpeechCorrespondence::prepare(
-        &intent, &phonemes, &phones, &text, &alignment, &inventory,
-    )
-    .unwrap();
-    let original_bytes = intent.clone().encode().unwrap();
-    let vocabulary = vocabulary(inventory.basis(), 17);
+    let original_bytes = original.canonical_bytes().to_vec();
+    let vocabulary = make_vocabulary(&f, inventory.basis(), 17);
     let checkpoint = SpeechModelCheckpointProjection::new(
         SpeechModelCheckpointId::new("synthetic/compatibility-only".into()).unwrap(),
         vocabulary.clone(),
@@ -79,28 +75,55 @@ fn shared_lexical_map_preserves_distinct_streams_and_original_through_backend_re
         training.phoneme_tokens(),
         inference.projection().phoneme_tokens()
     );
-    assert_eq!(training.phone_tokens().len(), phones.tokens().len());
-    assert_eq!(training.phoneme_tokens().len(), phonemes.tokens().len());
-    assert!(training
-        .phone_tokens()
-        .iter()
-        .all(|token| token.backend_value() == 17));
-    assert!(training
-        .phoneme_tokens()
-        .iter()
-        .all(|token| token.backend_value() == 42));
-    // Non-bijective aligned/deleted/inserted relations remain solely on original.
-    assert!(core::ptr::eq(training.original().alignment(), &alignment));
-    assert!(core::ptr::eq(training.original().inventory(), &inventory));
+    assert_eq!(training.phone_tokens().len(), f.phones.tokens().len());
+    assert_eq!(training.phoneme_tokens().len(), f.phonemes.tokens().len());
+    assert_eq!(
+        training
+            .phone_tokens()
+            .iter()
+            .map(|token| token.backend_value())
+            .collect::<Vec<_>>(),
+        (17..22).collect::<Vec<_>>()
+    );
+    assert_eq!(
+        training
+            .phoneme_tokens()
+            .iter()
+            .map(|token| token.backend_value())
+            .collect::<Vec<_>>(),
+        (100..105).collect::<Vec<_>>()
+    );
+    assert!(core::ptr::eq(
+        training.original().correspondence().alignment(),
+        &f.alignment
+    ));
+    assert!(core::ptr::eq(
+        training.original().correspondence().inventory(),
+        &inventory
+    ));
+    assert!(core::ptr::eq(training.original().structure(), &structure));
+    assert_eq!(training.carrier_identity(), original.identity());
+    assert_eq!(
+        inference.projection().carrier_identity(),
+        original.identity()
+    );
     let refusal = inference.refuse_unsupported_backend();
     assert_eq!(refusal.reason, ModelBackendRefusal::NoAdmittedAcousticBack);
     assert!(core::ptr::eq(
-        refusal.input.projection().original().intent(),
-        &intent
+        refusal
+            .input
+            .projection()
+            .original()
+            .correspondence()
+            .intent(),
+        &f.intent
     ));
-    assert_eq!(intent.clone().encode().unwrap(), original_bytes);
+    assert_eq!(
+        refusal.input.projection().original().canonical_bytes(),
+        original_bytes
+    );
     // Same label, changed content must not pass checkpoint compatibility.
-    let stale = vocabulary_for_token(inventory.basis(), 18);
+    let stale = make_vocabulary(&f, inventory.basis(), 18);
     assert!(
         prepare_model_inference_input(&original, &stale, &decoded, decoded.checkpoint()).is_err()
     );
@@ -122,16 +145,10 @@ fn shared_lexical_map_preserves_distinct_streams_and_original_through_backend_re
     assert!(stale_basis.is_err());
 }
 
-fn vocabulary_for_token(
-    basis: &SpeechIpaInventoryNotationBasis,
-    token: u32,
-) -> SpeechModelLinguisticVocabulary {
-    vocabulary(basis, token)
-}
-
 #[test]
 fn executed_compatibility_checks_complete_content_and_reloaded_values() {
-    let profile = fixture::profile();
+    let f = fixture::Fixture::new();
+    let profile = &f.notation_profile;
     let basis = SpeechIpaInventoryNotationBasis::new(
         profile.inventory_id().clone(),
         profile.variety().language().clone(),
@@ -140,38 +157,33 @@ fn executed_compatibility_checks_complete_content_and_reloaded_values() {
         profile.variety().clone(),
     )
     .unwrap();
-    let first = vocabulary(&basis, 1);
+    let first = make_vocabulary(&f, &basis, 1);
     let same = SpeechModelLinguisticVocabulary::decode(&first.clone().encode().unwrap()).unwrap();
     SpeechModelProjectionCompatibility::new(first.clone(), same).unwrap();
-    assert!(SpeechModelProjectionCompatibility::new(first, vocabulary(&basis, 2)).is_err());
+    assert!(
+        SpeechModelProjectionCompatibility::new(first, make_vocabulary(&f, &basis, 2)).is_err()
+    );
 }
 
 #[test]
 fn duplicate_and_foreign_vocabulary_entries_refuse_before_terminal_input() {
-    let (definitions, profile, text, intent, phonemes, phones, alignment) = (
-        fixture::inventory(),
-        fixture::profile(),
-        fixture::text(),
-        fixture::intent(),
-        fixture::phonemes(),
-        fixture::phones(),
-        fixture::alignment(fixture::groups()),
-    );
-    let (phone_binding, phoneme_binding) = fixture::bindings();
-    let inventory = PreparedIpaInventory::prepare(
-        &definitions,
-        &profile,
-        profile.variety(),
-        profile.revision(),
-        &[phone_binding],
-        &[phoneme_binding],
+    let f = fixture::Fixture::new();
+    let profile = &f.notation_profile;
+    let inventory = f.inventory().unwrap();
+    let correspondence = f.correspondence(&inventory).unwrap();
+    let structure = f.structure();
+    let evidence = f.complete_evidence();
+    let original = PreparedCompleteSpeechCarrier::prepare(
+        &correspondence,
+        &structure,
+        &evidence.lexical,
+        &f.word_phonemes,
+        &evidence.request,
+        &evidence.result,
+        CompleteCarrierAcoustics::not_supplied(),
     )
     .unwrap();
-    let original = PreparedSpeechCorrespondence::prepare(
-        &intent, &phonemes, &phones, &text, &alignment, &inventory,
-    )
-    .unwrap();
-    let valid = vocabulary(inventory.basis(), 17);
+    let valid = make_vocabulary(&f, inventory.basis(), 17);
     let duplicate = SpeechModelLinguisticVocabulary::new(
         valid.basis().clone(),
         valid.identity().clone(),
@@ -222,7 +234,7 @@ fn duplicate_and_foreign_vocabulary_entries_refuse_before_terminal_input() {
         alternate_profile.variety().clone(),
     )
     .unwrap();
-    let swapped = vocabulary(&alternate_basis, 17);
+    let swapped = make_vocabulary(&f, &alternate_basis, 17);
     assert!(matches!(
         prepare_model_training_input(&original, &swapped),
         Err(ModelProjectionRefusal::InventoryBasis)

@@ -440,3 +440,37 @@ pub fn execute_commitment(
 pub fn commitment_source() -> String {
     commitment_kernel::source()
 }
+
+/// Independently owned owner receipts used to compose the complete input.
+pub struct CompleteEvidence {
+    pub lexical: conduit_language::lexical::PreparedLexicalTape,
+    pub request: LanguageParserBeamCommitRequest,
+    pub result: LanguageParserBeamCommitResult,
+}
+impl Fixture {
+    pub fn complete_evidence(&self) -> CompleteEvidence {
+        let lexical = conduit_language::lexical::prepare_lexical_tape(
+            &self.source,
+            &self.lexical_profile,
+            None,
+        )
+        .unwrap();
+        let request = commit_request();
+        let result = execute_commitment(&request);
+        CompleteEvidence {
+            lexical,
+            request,
+            result,
+        }
+    }
+    pub fn structure(&self) -> conduit_speech::syllable_structure::PreparedSyllableStructure<'_> {
+        conduit_speech::syllable_structure::PreparedSyllableStructure::prepare(
+            &self.intent,
+            &self.phones,
+            self.source.material(),
+            &self.syllables,
+            &self.positioned_boundaries,
+        )
+        .unwrap()
+    }
+}
