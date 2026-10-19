@@ -10,8 +10,10 @@ use conduit_plot::{
     StartupCatalog,
 };
 
+mod explicit_slice;
 mod pointwise;
 mod readonly_linear;
+pub(crate) use explicit_slice::is_pure_slice;
 #[cfg(feature = "kernel-step")]
 pub(crate) use pointwise::is_pure_pointwise;
 
@@ -265,7 +267,9 @@ fn fixed_numeric_contracts_uncached() -> Result<Vec<Kind>, String> {
             Ok(Kind {
                 kind_id: kind_id(&name),
                 kind_contract_revision: KindIdentity::from(
-                    readonly_linear::revision(&name).unwrap_or_else(|| pointwise::revision(&name)),
+                    readonly_linear::revision(&name)
+                        .or_else(|| explicit_slice::revision(&name))
+                        .unwrap_or_else(|| pointwise::revision(&name)),
                 ),
                 startup_parameters: vec![],
                 shorthand: None,
@@ -276,6 +280,7 @@ fn fixed_numeric_contracts_uncached() -> Result<Vec<Kind>, String> {
                     let mut laws = vec![KindSemanticLaw::ValueContracts(contracts)];
                     laws.extend(pointwise::laws(&name));
                     laws.extend(readonly_linear::laws(&name));
+                    laws.extend(explicit_slice::laws(&name));
                     laws
                 },
                 limits: CapabilityLimits {

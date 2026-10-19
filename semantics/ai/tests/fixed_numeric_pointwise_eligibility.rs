@@ -23,9 +23,10 @@ fn fusion(kind: &Kind, back: &Back) -> bool {
         .is_ok()
 }
 #[test]
-fn only_reviewed_pointwise_and_readonly_kinds_gain_semantics() {
+fn only_reviewed_pointwise_readonly_and_explicit_slice_kinds_gain_semantics() {
     let contracts = fixed_numeric_contracts().unwrap();
     let mut eligible = 0;
+    let mut slices = 0;
     for kind in contracts {
         let offer = fixed_numeric_offer(kind.kind_id.as_str());
         let declared = kind
@@ -49,6 +50,21 @@ fn only_reviewed_pointwise_and_readonly_kinds_gain_semantics() {
         } else if kind
             .kind_contract_revision
             .as_str()
+            .ends_with("/pure-explicit-slice@1")
+        {
+            slices += 1;
+            assert!(matches!(
+                kind.kind_id.as_str(),
+                "numeric/slice480x160" | "numeric/slice384x128"
+            ));
+            assert!(fusion(&kind, &back(&offer.unwrap())));
+            let larger = value_capacity64_contract(kind.clone()).unwrap();
+            let offer = fixed_numeric_offer_capacity64(kind.kind_id.as_str()).unwrap();
+            assert!(fusion(&larger, &back(&offer)));
+            assert_eq!(kind.semantic_laws, larger.semantic_laws);
+        } else if kind
+            .kind_contract_revision
+            .as_str()
             .ends_with("/read-immutable-input@1")
         {
             assert!(fusion(&kind, &back(&offer.unwrap())));
@@ -60,6 +76,7 @@ fn only_reviewed_pointwise_and_readonly_kinds_gain_semantics() {
     // Four elementwise operations at 40/128/160/192, sigmoid4, multiply320,
     // and tanh at 4/40/64/128/160/192/320.
     assert_eq!(eligible, 25);
+    assert_eq!(slices, 2);
 }
 #[test]
 fn missing_duplicate_effect_and_realization_facts_refuse_fusion() {

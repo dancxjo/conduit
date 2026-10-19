@@ -10,6 +10,8 @@ use std::collections::{BTreeMap, BTreeSet};
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum NumericProfile {
     Unfused,
+    CanonicalMatrixDag,
+    CompactMatrixDag,
     CanonicalDag,
     CompactDag,
     LocalExpressions,
@@ -25,7 +27,11 @@ impl NumericProfile {
     pub fn dags(self) -> bool {
         matches!(
             self,
-            Self::CanonicalDag | Self::CompactDag | Self::CompactDagLocalExpressions
+            Self::CanonicalDag
+                | Self::CompactDag
+                | Self::CompactDagLocalExpressions
+                | Self::CanonicalMatrixDag
+                | Self::CompactMatrixDag
         )
     }
     fn compact(self) -> bool {
@@ -38,6 +44,60 @@ pub fn offers(
     placements: &PlacementChoices,
     profile: NumericProfile,
 ) -> (Vec<FusionRealizationOffer>, Vec<Kind>) {
+    if matches!(
+        profile,
+        NumericProfile::CanonicalMatrixDag | NumericProfile::CompactMatrixDag
+    ) {
+        use conduit_ai::operation_owners::fixed_numeric::*;
+        let selected = placements
+            .by_gear
+            .iter()
+            .map(|(gear, choice)| {
+                (
+                    gear.clone(),
+                    NumericDagPlacement {
+                        host_id: choice.host_id.clone(),
+                        capability_id: choice.capability_id.clone(),
+                    },
+                )
+            })
+            .collect();
+        let (offers, kinds) = numeric_dag_offers(
+            authoring,
+            host,
+            &selected,
+            if profile == NumericProfile::CompactMatrixDag {
+                NumericDagTransport::Compact
+            } else {
+                NumericDagTransport::Canonical
+            },
+        )
+        .unwrap();
+        return (
+            offers
+                .into_iter()
+                .map(|o| FusionRealizationOffer {
+                    fusion_id: o.fusion_id,
+                    host_id: o.host_id,
+                    boot_id: o.boot_id,
+                    offer_generation: o.offer_generation,
+                    execution_profile_id: o.execution_profile_id,
+                    implementation_id: o.implementation_id,
+                    artifact_id: o.artifact_id,
+                    gear_ids: o.gear_ids,
+                    internal_cords: o.internal_cords,
+                    host_calls: vec![],
+                    resource_requirements: vec![],
+                    authority_requirements: vec![],
+                    preserves_typed_ports: true,
+                    preserves_atomic_pressure: true,
+                    preserves_cancellation: true,
+                    preserves_required_evidence: true,
+                })
+                .collect(),
+            kinds,
+        );
+    }
     let plot = &authoring.expanded;
     let mut members = BTreeMap::new();
     let mut kinds = BTreeMap::new();

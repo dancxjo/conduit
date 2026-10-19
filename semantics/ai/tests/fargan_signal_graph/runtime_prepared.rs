@@ -45,6 +45,8 @@ pub(super) fn prepare(
         .filter(|dag| {
             dag.execution_profile_id.as_str()
                 == conduit_ai::fixed_numeric_compact::COMPACT_DAG_PROFILE
+                || dag.execution_profile_id.as_str()
+                    == conduit_ai::operation_owners::fixed_numeric::COMPACT_MATRIX_DAG_PROFILE
         })
         .flat_map(|dag| dag.nodes.iter().copied())
         .collect();
@@ -214,6 +216,55 @@ pub(super) fn prepare(
     let mut scheduler=FixedScheduler::<_,_,_,N,C,PORTS,C,C,C,N,256>::new_boxed_with_active_counts_and_host_calls(nodes,cords,specs.try_into().unwrap(),cord_specs.try_into().unwrap(),routes,bindings,drivers.try_into().unwrap_or_else(|_|panic!("capacity")),store,HostedSignLog::new(32768,32768*core::mem::size_of::<KernelEvent>()as u32).unwrap()).unwrap();
     for dag in &dags {
         use conduit_ai::fixed_numeric_compact::*;
+        use conduit_ai::operation_owners::fixed_numeric::*;
+        if matches!(
+            dag.execution_profile_id.as_str(),
+            COMPACT_MATRIX_DAG_PROFILE | CANONICAL_MATRIX_DAG_PROFILE
+        ) {
+            assert_eq!(dag.artifact_id.as_str(), MATRIX_DAG_ARTIFACT);
+            if dag.execution_profile_id.as_str() == COMPACT_MATRIX_DAG_PROFILE {
+                assert_eq!(
+                    dag.implementation_id.as_str(),
+                    COMPACT_MATRIX_DAG_IMPLEMENTATION
+                );
+                let canonical: Vec<_> = dag
+                    .nodes
+                    .iter()
+                    .flat_map(|node| {
+                        let gear = &fragment.placements[usize::from(node.0)];
+                        let offer = fixed_numeric_offer_capacity64(gear.kind_id.as_str()).unwrap();
+                        compact_linear_offer_layout(&offer)
+                            .or_else(|_| {
+                                compact_slice_offer_layout(&offer).map(|s| {
+                                    CompactLinearOfferLayout {
+                                        numeric_input: s.numeric_input,
+                                        output: s.output,
+                                        canonical_inputs: s.canonical_inputs,
+                                    }
+                                })
+                            })
+                            .map(|layout| {
+                                layout
+                                    .canonical_inputs
+                                    .into_iter()
+                                    .map(|p| (*node, p))
+                                    .collect::<Vec<_>>()
+                            })
+                            .unwrap_or_default()
+                    })
+                    .collect();
+                scheduler
+                    .bind_compact_f32_dag_with_canonical_inputs(&dag.nodes, &canonical)
+                    .unwrap();
+            } else {
+                assert_eq!(
+                    dag.implementation_id.as_str(),
+                    CANONICAL_MATRIX_DAG_IMPLEMENTATION
+                );
+                scheduler.bind_execution_dag(&dag.nodes).unwrap();
+            }
+            continue;
+        }
         assert_eq!(dag.artifact_id.as_str(), DAG_ARTIFACT);
         if dag.execution_profile_id.as_str() == COMPACT_DAG_PROFILE {
             assert_eq!(dag.implementation_id.as_str(), COMPACT_DAG_IMPLEMENTATION);
