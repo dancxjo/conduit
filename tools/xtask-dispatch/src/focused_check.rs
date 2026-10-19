@@ -19,6 +19,8 @@ mod print_pool;
 
 #[path = "../../xtask/src/suites/prosody_commitment.rs"]
 mod prosody_commitment;
+#[path = "../../xtask/src/suites/record_pronunciation.rs"]
+mod record_pronunciation;
 
 struct Suite {
     steps: &'static [Step],
@@ -83,6 +85,11 @@ fn selected(arguments: &[String]) -> Option<Suite> {
             path: "tools/xtask/src/suites/prosody_commitment.rs",
             source: include_bytes!("../../xtask/src/suites/prosody_commitment.rs"),
         }),
+        [check, suite] if check == "check" && suite == "record-pronunciation" => Some(Suite {
+            steps: record_pronunciation::STEPS,
+            path: "tools/xtask/src/suites/record_pronunciation.rs",
+            source: include_bytes!("../../xtask/src/suites/record_pronunciation.rs"),
+        }),
         // Global options and all other commands retain the full CLI parser.
         _ => None,
     }
@@ -142,6 +149,7 @@ mod tests {
             ("inverse-angle", inverse_angle::STEPS),
             ("print-pool", print_pool::STEPS),
             ("prosody-commitment", prosody_commitment::STEPS),
+            ("record-pronunciation", record_pronunciation::STEPS),
         ] {
             let steps = selected(&arguments(&["check", name])).unwrap().steps;
             assert_eq!(format!("{steps:?}"), format!("{expected:?}"), "{name}");
@@ -166,6 +174,7 @@ mod tests {
             vec!["--json", "check", "angle-reference"],
             vec!["check", "angle-reference", "--quiet"],
             vec!["ci", "pipeline", "unit", "foundation"],
+            vec!["--dry-run", "check", "record-pronunciation"],
             vec!["check", "prosody-commitment", "--quiet"],
             vec!["check"],
         ] {
