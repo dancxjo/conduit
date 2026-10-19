@@ -260,7 +260,9 @@ pub(super) fn run(
             .arg(output.join("browser"))
             .arg(&playwright)
             .arg(item_text)
-            .arg(if args.count_matrix {
+            .arg(if args.required_component {
+                "required-component"
+            } else if args.count_matrix {
                 "count-matrix"
             } else if args.direct_speech {
                 "cross-mask-speech"
@@ -314,7 +316,7 @@ pub(super) fn run(
             .arg(&state);
         // Completed items stay subordinate in the default checklist. Request
         // the existing precise inspection when this chapter completes one.
-        let terminal_keys: &[u8] = if args.cross_mask_actions {
+        let terminal_keys: &[u8] = if args.cross_mask_actions || args.required_component {
             b"inspect\npage down\npage down\npage down\nquit\n"
         } else {
             b"quit\n"
