@@ -26,6 +26,7 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         "--nocapture",
         "native_compositor::frame_composition",
         "display::raw",
+        "native_compositor::raster_reuse",
     ];
     println!("cargo {}", arguments.join(" "));
     if !opts.dry_run {
@@ -43,7 +44,11 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
                 output.status.to_string(),
             ));
         }
-        for marker in ["span-compositor case=", "volatile-scanout mode="] {
+        for marker in [
+            "span-compositor case=",
+            "volatile-scanout mode=",
+            "retained-raster case=",
+        ] {
             if !String::from_utf8_lossy(&output.stdout).contains(marker) {
                 return Err(ConduitosError::refusal(
                     "compositor-performance-missing",
