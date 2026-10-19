@@ -116,6 +116,9 @@ fn main() {
             ]
             .into(),
             serde_record_types: [
+                "ComponentArgumentBinding".into(),
+                "ComponentActionBinding".into(),
+                "ComponentPropertyBinding".into(),
                 "GeneratedActionAffordance".into(),
                 "ActionInputBindingProposalInfo".into(),
             ]

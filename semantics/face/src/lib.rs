@@ -82,7 +82,9 @@ pub use generated::{
     ActionInputBindingProposalInfo, AdmittedNavigationDestination, ApplicationAction,
     ApplicationComponent, ApplicationComponentForm, ApplicationEventKind, ApplicationEventKindForm,
     ApplicationNodeState, ApplicationNodeStateForm, ApplicationViewRefusal, ChoiceMultiplicity,
-    ComponentRecipeInfo, ComponentRegionInfo, ComponentSubjectSelector, CompositionItemKind,
+    ComponentActionBinding, ComponentArgumentBinding, ComponentBindingRole,
+    ComponentPropertyBinding, ComponentRecipeInfo, ComponentRegionInfo, ComponentSubjectBinding,
+    ComponentSubjectSelector, ComponentSubjectSelectorBound, CompositionItemKind,
     CompositionItemKindForm, CompositionRole, CompositionRoleForm, EvidenceDisposition, Extent2,
     FaceAspect, FaceAspectForm, FaceCompositionKind, FaceCompositionKindSemantic,
     FaceCompositionRelation, FaceContributionRole, FaceContributionRoleForm, FaceDepth,
@@ -257,6 +259,7 @@ pub use configured_mask::*;
 mod visual_expression_info;
 pub use visual_expression_info::*;
 mod component_recipe;
+mod component_slots;
 pub use component_recipe::*;
 
 mod checked_source_plan;
