@@ -22,6 +22,7 @@ use conduit_plan_lowering::lowering::{
 use conduit_wire::SessionMessage;
 
 mod body_time_step;
+mod evidence;
 mod vision;
 mod voice;
 
