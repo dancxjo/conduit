@@ -2,6 +2,11 @@
 use super::*;
 
 impl NativeFaceScene {
+    /// Actual admitted display bounds, for read-only cursor/hit observation.
+    pub fn bounds(&self) -> LayoutRect {
+        self.screen
+    }
+
     pub fn frame(&self) -> Result<FaceFrame<'_>, FaceSceneError> {
         let chrome = chrome::Chrome::prepare(self.screen, self.text_scale_percent)?;
         if self.showing_diagram

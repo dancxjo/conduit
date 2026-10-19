@@ -84,6 +84,8 @@ pub(super) fn focus(
     control: Option<(&str, Option<&str>)>,
     page: usize,
     pages: usize,
+    hit_bounds: Option<conduit_face::LayoutRect>,
+    display_bounds: conduit_face::LayoutRect,
 ) -> Result<(), &'static str> {
     if show.face_id != face.identity || show.face_revision != face.revision {
         return Err("creche-focus-stale-show");
@@ -97,6 +99,33 @@ pub(super) fn focus(
             "action_id": control.map(|value| value.0),
             "argument_name": control.and_then(|value| value.1),
             "page": page + 1, "pages": pages,
+            "hit_bounds": hit_bounds.map(rectangle), "display_bounds": rectangle(display_bounds),
+        }),
+    )
+}
+
+fn rectangle(bounds: conduit_face::LayoutRect) -> Value {
+    json!({"x": bounds.x, "y": bounds.y, "width": bounds.width, "height": bounds.height})
+}
+
+/// Physical observation only: action acceptance remains the owner's receipt.
+pub(super) fn pointer(
+    show: &MaskShow,
+    sample: conduit_semantic_catalog::NormalizedPointerSample,
+    x: u32,
+    y: u32,
+    press_edge: bool,
+) -> Result<(), &'static str> {
+    emit(
+        b"CONDUIT_NATIVE_POINTER ",
+        &json!({
+            "schema": "conduit.native-pointer/v1",
+            "face_id": show.face_id, "face_revision": show.face_revision,
+            "show_id": show.show_id, "manifestation_id": show.show.manifestation_id,
+            "sequence": sample.sequence, "position_x": sample.position_x,
+            "position_y": sample.position_y, "display_x": x, "display_y": y,
+            "primary_pressed": sample.primary_pressed, "press_edge": press_edge,
+            "coalesced": sample.coalesced, "dropped": sample.dropped,
         }),
     )
 }

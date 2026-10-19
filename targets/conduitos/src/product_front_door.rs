@@ -6,6 +6,7 @@ mod face_workspace;
 mod guest_join;
 mod home_input;
 mod input_actions;
+mod pointer_input;
 mod tutorial;
 mod workspace_view_sign;
 use face_arrival::{FaceArrival, FaceArrivalInput};
@@ -58,7 +59,7 @@ pub fn run(
     controller_id: [u8; 32],
     usb: &UsbDevice,
     pointer_session: Option<&mut HidPointerSession>,
-    _pointer_usb: Option<&UsbDevice>,
+    pointer_usb: Option<&UsbDevice>,
     usb_line_device: Option<&UsbDevice>,
     mut ps2_input: Option<&mut crate::arch::Ps2Input>,
     rescue_matcher: &mut LocalRescueMatcher,
@@ -88,7 +89,7 @@ pub fn run(
             .require(EffectFamily::Keyboard)
             .map_err(|_| "product-keyboard-base-unavailable")?;
     }
-    if pointer_session.is_some() {
+    if pointer_session.is_some() || ps2_input.is_some() {
         effect_bases
             .require(EffectFamily::Pointer)
             .map_err(|_| "product-pointer-base-unavailable")?;
@@ -187,6 +188,12 @@ pub fn run(
     if let Some(reason) = owner_return_refusal {
         face_arrival.show_owner_result(false, false, reason, display)?;
     }
+    let mut pointer_state = pointer_input::PointerState::new();
+    let pointer_admitted = pointer_session.is_some() || ps2_input.is_some();
+    if pointer_admitted {
+        let (x, y) = pointer_state.position(display)?;
+        face_arrival.pointer_motion(x, y, display)?;
+    }
     crate::display::profile::emit_boot_receipt();
     emit_journey_sign(&journey.projection(), make, &receipt);
     arch::early_write(b"CONDUIT_BOOT_STAGE front-door-ready\n");
@@ -197,6 +204,7 @@ pub fn run(
     } else {
         arch::early_write(b"CONDUIT_CRECHE_CHECKPOINT ready\n");
     }
+    let mut pointer_device = pointer_session.zip(pointer_usb);
     let mut consumed_birth_key = None;
     let mut clock = arch::Clock::new();
     let mut serial = arch::Serial::new();
@@ -206,6 +214,37 @@ pub fn run(
         let mut line_requested = false;
         let mut workspace_updates = workspace_input::PendingInput::default();
         let mut interact = |input| {
+            if matches!(input, ProductInputEvent::Service) && pointer_admitted {
+                pointer_input::render(
+                    &pointer_state,
+                    provisioned_guest,
+                    &mut face_arrival,
+                    &front_door,
+                    &mut presenter,
+                    &mut face_workspace,
+                    display,
+                )?;
+            }
+            if let ProductInputEvent::PointerLost(reason) = input {
+                pointer_state.retire();
+                arch::early_write(format!("CONDUIT_POINTER_LOST {reason}\n").as_bytes());
+                return Ok(ProductInputControl::Continue);
+            }
+            if let ProductInputEvent::Pointer(sample) = input {
+                pointer_input::dispatch(
+                    &mut pointer_state,
+                    sample,
+                    provisioned_guest,
+                    &mut face_arrival,
+                    &mut front_door,
+                    &mut journey,
+                    &mut presenter,
+                    &mut face_workspace,
+                    display,
+                    make,
+                )?;
+                return Ok(ProductInputControl::Continue);
+            }
             if provisioned_guest {
                 match input {
                     ProductInputEvent::Service
@@ -429,6 +468,9 @@ pub fn run(
                 ProductInputEvent::LocalRescue(local) => {
                     rescue_guest::observe(identities, rescue_matcher, local, true);
                     return Ok(ProductInputControl::Continue);
+                }
+                ProductInputEvent::Pointer(_) | ProductInputEvent::PointerLost(_) => {
+                    unreachable!("physical pointer handled before keyboard dispatch")
                 }
                 ProductInputEvent::Key(event) => event,
                 ProductInputEvent::Lost(_) => {
@@ -815,7 +857,13 @@ pub fn run(
             let session = hid_session
                 .as_deref_mut()
                 .ok_or("front-door-keyboard-realization-missing")?;
-            keyboard_input::run_product(session, controller, usb, &mut interact)?;
+            keyboard_input::run_product_with_pointer(
+                session,
+                controller,
+                usb,
+                &mut pointer_device,
+                &mut interact,
+            )?;
         }
         if !line_requested {
             return Err("product-input-ended-without-control-request");
