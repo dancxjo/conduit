@@ -278,3 +278,45 @@ terminal completion. Both 90-degree and equivalent quarter-turn CLI runs pass, e
 conversion and carry as Angle-to-Angle stages and sine as Angle-to-mathematical
 consumption. Strict all-target Clippy for Std Host, Std offers and CLI passes.
 Publication and general projection custody remain unverified.
+
+## Dynamic mathematical Quantity to certified binary32 (private Core)
+
+`PreparedMathematicalQuantityBinary32` prepares the existing bounded borrowed
+Quantity enclosure evaluator, then accepts the actual symbolic Quantity frame
+at execution. The selected strategy is explicitly
+`numeric/enclosed-midpoint-binary32@1`: enclose the original coordinate, round
+its rational midpoint under the selected binary32 rounding mode, and compute
+the larger exact distance from that represented number to either endpoint.
+The resulting bound must satisfy the caller's physical error-distance limit.
+This certifies absolute error; it does not claim correctly rounded transcendental
+results or represent a whole floating-point expression algorithm.
+
+The receipt retains the complete original symbolic frame, its enclosure, the
+separate midpoint rounding receipt, target Unit/role, and a certified error bound.
+Unit conversion remains a separate operation. Point coordinates require a Delta
+error distance in the same Unit; Unit changes are refused rather than performed
+by the numerical projector. Source and target frames retain their family and
+dimension through their checked Units. Exact point intervals use exact-distance
+claims, while nonzero enclosure widths retain certified-bound claims.
+
+The existing general projection report records numerical precision loss,
+representation transformation by the named strategy, and physical-coordinate
+preservation. It rejects false exactness, missing physical obligations, changed
+policy/rounding, a changed numeric target, and a changed Unit even with identical
+float bits. No new numerical-only report mechanism is introduced.
+
+Three new tests pass, covering radian, Fahrenheit point and Fahrenheit Delta
+coordinates; twelve repeated guarded dynamic executions allocate zero times and
+retain prepared payload capacity. Tests independently check both endpoint
+distances, strict zero-tolerance refusal, zero caller work, impossible zero-work
+preparation, retained-storage refusal and successful recovery. Fourteen existing
+binary32, physical enclosure, coordinate report and frame regressions pass.
+Core all-target strict Clippy and no-default-features checks pass. An initial
+regression command named a nonexistent test target; the corrected suite ran.
+A test initially assumed zero-work preparation succeeded; it now checks its
+existing truthful preparation refusal.
+
+This is Core computation/projection evidence. The installed input-consuming
+Back, selected offer/Plan bounds, independent serialized-result verification,
+actual CLI and Source/Plan/Sign custody still need integration. The original
+parent scope and public acceptance gates remain open.
