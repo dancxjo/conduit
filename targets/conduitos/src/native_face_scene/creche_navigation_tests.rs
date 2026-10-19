@@ -83,6 +83,15 @@ fn source_disclosure_presents_one_title_and_preserves_every_exact_clause() {
             .iter()
             .any(|row| row.text.starts_with("Current value: ") || row.text.starts_with("Choice: "))
     );
+    for plot in draft().choices() {
+        let named: Vec<_> = primary
+            .iter()
+            .filter(|row| row.text == plot.title)
+            .collect();
+        assert_eq!(named.len(), 1, "one primary name per verified choice");
+        assert!(named[0].checkbox.is_some());
+    }
+    assert!(!primary.iter().any(|row| row.text == "Included."));
     let mut filtered = draft();
     filtered
         .search_plots(filtered.revision(), "no-match")

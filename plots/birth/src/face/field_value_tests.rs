@@ -103,6 +103,94 @@ fn current_value(face: &Face, action_id: &str) -> alloc::vec::Vec<u8> {
 }
 
 #[test]
+fn choice_fallback_is_source_disclosed_detail_with_exact_selection_and_action_binding() {
+    let draft = draft();
+    let face = draft.host_owned_face(&host_owned_basis()).unwrap();
+    let utterances = plan_face_utterances(&face).unwrap();
+    for (index, choice) in draft.choices().iter().enumerate() {
+        let action_id = format!("creche.plot.{index}");
+        let action = face
+            .actions
+            .iter()
+            .find(|action| action.identity == action_id)
+            .unwrap();
+        let subject = face
+            .subjects
+            .iter()
+            .find(|subject| subject.identity == action.target)
+            .unwrap();
+        assert_eq!(subject.role, FaceRole::Plot);
+        assert_eq!(subject.name, choice.title);
+        let details_id = format!("{}/selection-details", subject.identity);
+        let details = face
+            .subjects
+            .iter()
+            .find(|subject| subject.identity == details_id)
+            .unwrap();
+        assert_eq!(details.role, FaceRole::Info);
+        assert!(
+            face.relationships
+                .iter()
+                .any(|relation| relation.source == subject.identity
+                    && relation.target == details_id
+                    && relation.kind == FaceRelationshipKind::Contains)
+        );
+        assert!(
+            face.disclosures
+                .iter()
+                .any(|disclosure| disclosure.subject == details_id
+                    && disclosure.level == FaceDisclosureLevel::SelectedDetail)
+        );
+        let wording = if choice.selected {
+            "Included."
+        } else {
+            "Not included."
+        };
+        assert!(
+            face.text
+                .iter()
+                .any(|text| text.subject == details_id && text.text == wording)
+        );
+        assert!(
+            !face
+                .text
+                .iter()
+                .any(|text| text.subject == subject.identity && text.text == wording)
+        );
+        assert!(
+            utterances
+                .clauses
+                .iter()
+                .any(|clause| clause.text.contains(wording))
+        );
+        for (name, expected) in [
+            ("selected", FacePropertyValue::Flag(choice.selected)),
+            (
+                "boolean-change-action",
+                FacePropertyValue::Identity(action_id),
+            ),
+        ] {
+            let properties: alloc::vec::Vec<_> = face
+                .properties
+                .iter()
+                .filter(|property| property.subject == subject.identity && property.name == name)
+                .collect();
+            assert_eq!(properties.len(), 1);
+            assert_eq!(properties[0].value, expected);
+        }
+        assert_eq!(action.arguments.len(), 1);
+        assert_eq!(action.arguments[0].name, "value");
+        assert_eq!(
+            action.arguments[0].contract.value_kind.as_str(),
+            "value/bool"
+        );
+        action.arguments[0].contract.validate(&[0]).unwrap();
+        action.arguments[0].contract.validate(&[1]).unwrap();
+        assert_eq!(action.availability.is_available(), choice.refusal.is_none());
+    }
+}
+
+#[test]
 fn typed_field_values_follow_source_commits_without_changing_old_faces() {
     let mut draft = draft();
     let before = draft.face(&basis()).unwrap();

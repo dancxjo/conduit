@@ -1,5 +1,5 @@
 {
-  "identity": "0a81e59e2a90be33430281508752f818f1328adffdf0d2b7c55aef0cf684bb42",
+  "identity": "f3498156b480a0be1700c6c8d3fed7934f58624d63f4938cfe407712cbe48c1e",
   "revision": 1,
   "basis": {
     "body_id": null,
@@ -83,9 +83,19 @@
       "name": "Scratch"
     },
     {
+      "identity": "birth/encounter/prebirth-conformance/initial-plots/0/selection-details",
+      "role": "Info",
+      "name": "Scratch selection details"
+    },
+    {
       "identity": "birth/encounter/prebirth-conformance/initial-plots/1",
       "role": "Plot",
       "name": "Chime"
+    },
+    {
+      "identity": "birth/encounter/prebirth-conformance/initial-plots/1/selection-details",
+      "role": "Info",
+      "name": "Chime selection details"
     },
     {
       "identity": "birth/encounter/prebirth-conformance/selected-plots",
@@ -167,8 +177,18 @@
       "kind": "Contains"
     },
     {
+      "source": "birth/encounter/prebirth-conformance/initial-plots/0",
+      "target": "birth/encounter/prebirth-conformance/initial-plots/0/selection-details",
+      "kind": "Contains"
+    },
+    {
       "source": "birth/encounter/prebirth-conformance/initial-plots",
       "target": "birth/encounter/prebirth-conformance/initial-plots/1",
+      "kind": "Contains"
+    },
+    {
+      "source": "birth/encounter/prebirth-conformance/initial-plots/1",
+      "target": "birth/encounter/prebirth-conformance/initial-plots/1/selection-details",
       "kind": "Contains"
     },
     {
@@ -724,11 +744,11 @@
       "text": "Current value: (empty)."
     },
     {
-      "subject": "birth/encounter/prebirth-conformance/initial-plots/0",
+      "subject": "birth/encounter/prebirth-conformance/initial-plots/0/selection-details",
       "text": "Included."
     },
     {
-      "subject": "birth/encounter/prebirth-conformance/initial-plots/1",
+      "subject": "birth/encounter/prebirth-conformance/initial-plots/1/selection-details",
       "text": "Not included."
     },
     {
@@ -1146,6 +1166,14 @@
     },
     {
       "subject": "birth/encounter/prebirth-conformance/plot-search/input-details",
+      "level": "SelectedDetail"
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/initial-plots/0/selection-details",
+      "level": "SelectedDetail"
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/initial-plots/1/selection-details",
       "level": "SelectedDetail"
     },
     {
