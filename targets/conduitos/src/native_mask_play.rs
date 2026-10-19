@@ -32,8 +32,8 @@ use serde::Serialize;
 #[cfg(any(test, feature = "native-compositor"))]
 use sha2::{Digest, Sha256};
 
-// The current complete resident Patchbay Face is about 21 KiB encoded. This
-// finite native profile admits it whole; larger Faces require a new admission.
+// The finite native profile admits a complete portable collection Face.
+// Larger Faces require a separately admitted profile.
 #[cfg(any(test, feature = "native-compositor"))]
 pub const MAX_MASK_VALUE_BYTES: usize = conduit_conduitos_mask_offer::MASK_BYTES;
 #[cfg(any(test, feature = "native-compositor"))]
@@ -55,7 +55,9 @@ const INTERACTION_VALUE_BYTES: usize = conduit_face::MAX_FACE_INTERACTION_BYTES;
 const STORAGE_VALUE_BYTES: usize = MAX_MASK_VALUE_BYTES;
 // Five Face/Show queues, one interaction queue, and the two Host Call results.
 #[cfg(any(test, feature = "native-compositor"))]
-const VALUE_BYTES: usize = 6 * MAX_MASK_VALUE_BYTES + 2 * INTERACTION_VALUE_BYTES;
+const VALUE_BYTES: usize = 5 * MAX_MASK_VALUE_BYTES
+    + conduit_conduitos_mask_offer::PRESENT_RESULT_BYTES as usize
+    + 2 * INTERACTION_VALUE_BYTES;
 #[cfg(any(test, feature = "native-compositor"))]
 const SIGNS: usize = 96;
 
@@ -243,7 +245,7 @@ fn scheduler(
 
 /// The preallocated store reserves 10 finite value slots at preparation; its live
 /// byte budget follows the admitted Cord queues plus the two bounded Host Call
-/// results. Native rendering narrows its larger semantic offer to 16 KiB;
+/// results. Native rendering admits a 256 KiB Face and a 48 KiB Show result;
 /// interaction retains its declared 8192-byte bound. No budget grows during Play.
 #[cfg(any(test, feature = "native-compositor"))]
 fn admitted_value_bytes(lowered: &LoweredPlanFragment) -> Result<u32, NativeMaskPlayError> {
@@ -256,7 +258,7 @@ fn admitted_value_bytes(lowered: &LoweredPlanFragment) -> Result<u32, NativeMask
             return Err(NativeMaskPlayError::Shape);
         }
         let bound = match call.contract_id.as_str() {
-            "conduit.host/present@1" => MAX_MASK_VALUE_BYTES,
+            "conduit.host/present@1" => conduit_conduitos_mask_offer::PRESENT_RESULT_BYTES as usize,
             "conduit.host/face-interaction@1" => INTERACTION_VALUE_BYTES,
             _ => return Err(NativeMaskPlayError::Shape),
         } as u32;

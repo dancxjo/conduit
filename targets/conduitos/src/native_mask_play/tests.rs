@@ -414,7 +414,7 @@ fn complete_large_faces_cross_the_fore_and_oversized_faces_are_refused() {
     let pending = prepare(&face).unwrap();
     assert_eq!(pending.renderer_request().face(), &face);
     pending.cancel().unwrap();
-    let oversized = make_face(55);
+    let oversized = make_face(270);
     assert!(serde_json::to_vec(&oversized).unwrap().len() > MAX_MASK_VALUE_BYTES);
     assert!(matches!(
         prepare(&oversized),

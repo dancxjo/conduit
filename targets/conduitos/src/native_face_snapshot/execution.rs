@@ -3,7 +3,7 @@ use super::*;
 use alloc::{boxed::Box, vec::Vec};
 use conduit_core::{PortDirection, bind_active_play};
 use conduit_kernel::{
-    Failure, FailureCode, FixedRoutes, FixedSignLog, FixedValueStore, PortId, SignSink,
+    Failure, FailureCode, FixedRoutes, FixedSignLog, HostedValueStore, PortId, SignSink,
     scheduler::{
         FixedScheduler, RemoteIngressOutcome, RemoteTerminalDisposition, SchedulerStatus, StepBack,
         StepInputBytes, StepIo, StepOutcome,
@@ -20,7 +20,7 @@ const REMOTE_SIGNS: u16 = 16;
 const WORK_STEPS: usize = 32;
 type Scheduler = FixedScheduler<
     SnapshotForward,
-    FixedValueStore<2, MAX_SNAPSHOT_BYTES>,
+    HostedValueStore,
     FixedSignLog<SIGNS>,
     1,
     2,
@@ -123,8 +123,12 @@ impl NativeFaceSnapshotProducer {
                 .map_err(|_| FaceSnapshotRefusal::Shape)?;
         }
         routes.seal().map_err(|_| FaceSnapshotRefusal::Shape)?;
-        let values = FixedValueStore::<2, MAX_SNAPSHOT_BYTES>::new((2 * MAX_SNAPSHOT_BYTES) as u32)
-            .map_err(|_| FaceSnapshotRefusal::Capacity)?;
+        let values = HostedValueStore::new(
+            2,
+            MAX_SNAPSHOT_BYTES as u32,
+            (2 * MAX_SNAPSHOT_BYTES) as u32,
+        )
+        .map_err(|_| FaceSnapshotRefusal::Capacity)?;
         let signs = FixedSignLog::<SIGNS>::new_with_remote_storage(
             (SIGNS * core::mem::size_of::<conduit_kernel::KernelEvent>()) as u32,
             REMOTE_SIGNS,
@@ -158,6 +162,11 @@ impl NativeFaceSnapshotProducer {
 }
 
 impl PreparedFaceSnapshot<'_> {
+    #[cfg(test)]
+    pub(super) fn allocation_capacities(&self) -> (usize, usize) {
+        self.scheduler.values().allocation_capacities()
+    }
+
     pub fn run(mut self) -> Result<PublishedFaceSnapshot, FaceSnapshotRefusal> {
         if self
             .scheduler

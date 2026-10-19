@@ -149,7 +149,7 @@ fn whole_valid_face_above_profile_capacity_is_refused_before_execution() {
         }],
         vec![],
         vec![],
-        (0..64)
+        (0..280)
             .map(|_| FaceText {
                 subject: "host/snapshot".into(),
                 text: "x".repeat(conduit_face::MAX_FACE_TEXT_BYTES),
@@ -224,4 +224,23 @@ fn stale_plan_seal_is_refused_before_kernel_preparation() {
         producer.prepare_snapshot(face, 1, 1),
         Err(FaceSnapshotRefusal::Plan)
     ));
+}
+
+#[test]
+fn snapshot_payload_is_preallocated_within_the_native_preparation_stack() {
+    std::thread::Builder::new()
+        .stack_size(1024 * 1024)
+        .spawn(|| {
+            let mut producer = producer();
+            let face = arrival(&producer);
+            let prepared = producer.prepare_snapshot(face.clone(), 1, 1).unwrap();
+            assert_eq!(
+                prepared.allocation_capacities(),
+                (2, 2 * MAX_SNAPSHOT_BYTES)
+            );
+            assert_eq!(prepared.run().unwrap().face, face);
+        })
+        .unwrap()
+        .join()
+        .unwrap();
 }

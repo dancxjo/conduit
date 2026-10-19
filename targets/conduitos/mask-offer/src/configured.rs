@@ -32,7 +32,7 @@ pub fn configured_resource_renderer_offer() -> CapabilityOffer {
                 target_kind: Some(kind_id("face/base/conduitos-surface@1")),
                 maximum_in_flight: 1,
                 maximum_input_bytes: MASK_BYTES as u32,
-                maximum_output_bytes: MASK_BYTES as u32,
+                maximum_output_bytes: PRESENT_RESULT_BYTES,
             }],
             resource_requirements: vec![],
             authority_requirements: vec![present_authority_requirement(kind_id(
@@ -247,6 +247,21 @@ mod tests {
             1,
             Some(&provider),
         )
+    }
+
+    #[test]
+    fn smaller_interaction_receiver_cannot_admit_the_collection_envelope() {
+        let mut host = host();
+        let receiver = host
+            .capabilities
+            .iter_mut()
+            .find(|offer| offer.capability_id.as_str() == "renderer-conduitos-input")
+            .unwrap();
+        assert!(receiver.limits.max_queue_bytes >= MASK_BYTES as u32);
+        receiver.limits.max_queue_bytes = 8 * MAX_FACE_INTERACTION_BYTES as u32;
+        assert!(
+            prepare_creche_stage_from_offer(&host, CrecheComponentRecipe::SingleColumn).is_err()
+        );
     }
 
     #[test]

@@ -375,7 +375,7 @@ fn interaction_contract() -> Kind {
         FACE_INTERACTION_CONTRACT_REVISION,
         interaction_inputs(),
         interaction_outputs(),
-        crate::MAX_FACE_INTERACTION_BYTES as u32 * u32::from(MAX_FACE_QUEUE_ITEMS),
+        MAX_RENDERER_VALUE_BYTES * u32::from(MAX_FACE_QUEUE_ITEMS),
     )
 }
 

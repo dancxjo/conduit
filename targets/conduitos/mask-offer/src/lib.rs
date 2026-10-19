@@ -30,7 +30,12 @@ use conduit_plot::{
 mod configured;
 pub use configured::*;
 
-pub const MASK_BYTES: usize = 48 * 1024;
+// The portable collection specimen includes source option labels, typed values
+// and full-inventory review. Admission reserves this finite input envelope;
+// GraphicsScene still has its independent 48-command and text-byte bounds.
+pub const MASK_BYTES: usize = 256 * 1024;
+// Present receives the semantic Face and returns a bounded Show value.
+pub const PRESENT_RESULT_BYTES: u32 = 48 * 1024;
 
 #[derive(Clone)]
 pub struct MaskStage {
@@ -233,7 +238,7 @@ fn renderer_host(
                     target_kind: Some(kind_id(target_kind)),
                     maximum_in_flight: 1,
                     maximum_input_bytes: MASK_BYTES as u32,
-                    maximum_output_bytes: MASK_BYTES as u32,
+                    maximum_output_bytes: PRESENT_RESULT_BYTES,
                 },
                 authority_requirement: present_authority_requirement(kind_id(target_kind)),
                 limits: CapabilityLimits {
@@ -285,7 +290,10 @@ fn renderer_host(
         limits: CapabilityLimits {
             max_active_instances: 1,
             max_queue_items: 8,
-            max_queue_bytes: conduit_face::MAX_FACE_INTERACTION_BYTES as u32 * 8,
+            // The same Back receives the semantic Face and Show before emitting
+            // bounded interactions. Reserve the larger input envelope as well.
+            max_queue_bytes: (conduit_face::MAX_FACE_INTERACTION_BYTES as u32 * 8)
+                .max(MASK_BYTES as u32),
         },
     }));
     let (surface_resource, bases) = if matches!(adapter, Adapter::Native) {
