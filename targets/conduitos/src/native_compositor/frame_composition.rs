@@ -111,12 +111,31 @@ pub(super) fn compose_damage(
             return Err(NativeCompositorError::InvalidBounds);
         }
         for y in rect.y..bottom {
-            for (left, end, selected) in prepared.row(rect.x, right, y) {
+            let overlay_edges = overlay_edges(focused, cursor, y);
+            for (left, end, selected) in prepared.row(rect.x, right, y, &overlay_edges) {
                 let pixels = selected
                     .map(|(_, surface)| surface_span(surface, left, end, y))
                     .transpose()?;
                 if let Some((index, _)) = selected {
                     selected_surfaces[index] = true;
+                }
+                let length = end - left;
+                let coverage =
+                    selected.map_or(Some(0), |(index, _)| composed[index].checked_add(length));
+                if !overlay_intersects(focused, cursor, left, end, y)
+                    && let (Some(next_count), Some(next_coverage)) =
+                        (count.checked_add(length), coverage)
+                {
+                    if let Some(pixels) = pixels {
+                        target.write_span(left, y, pixels)?;
+                    } else {
+                        write_black_span(target, left, end, y)?;
+                    }
+                    if let Some((index, _)) = selected {
+                        composed[index] = next_coverage;
+                    }
+                    count = next_count;
+                    continue;
                 }
                 for x in left..end {
                     let (pixel, visible) = overlay(
@@ -149,6 +168,80 @@ pub(super) fn compose_damage(
             .count() as u8,
         composed,
     ))
+}
+
+fn write_black_span(
+    target: &mut impl PixelTarget,
+    mut left: u32,
+    right: u32,
+    y: u32,
+) -> Result<(), DisplayError> {
+    const BLACK: [u32; 64] = [0; 64];
+    while left < right {
+        let length = (right - left).min(BLACK.len() as u32);
+        target.write_span(left, y, &BLACK[..length as usize])?;
+        left += length;
+    }
+    Ok(())
+}
+
+fn overlay_edges(
+    focused: Option<&CompositorSurface>,
+    cursor: Option<(u32, u32)>,
+    y: u32,
+) -> [Option<u32>; super::scanline::MAX_OVERLAY_EDGES] {
+    let mut edges = [None; super::scanline::MAX_OVERLAY_EDGES];
+    if let Some(surface) = focused {
+        let bounds = surface.bounds;
+        if i64::from(y) >= i64::from(bounds.y)
+            && i64::from(y) < i64::from(bounds.y) + i64::from(bounds.height)
+        {
+            let left = i64::from(bounds.x);
+            let right = left + i64::from(bounds.width);
+            for (slot, edge) in edges.iter_mut().zip([left, left + 1, right - 1, right]) {
+                *slot = u32::try_from(edge).ok();
+            }
+        }
+    }
+    if let Some((x, cy)) = cursor
+        && y >= cy
+        && u64::from(y) < u64::from(cy) + 16
+    {
+        edges[4] = Some(x);
+        edges[5] = u32::try_from(u64::from(x) + 16).ok();
+    }
+    edges
+}
+
+fn overlay_intersects(
+    focused: Option<&CompositorSurface>,
+    cursor: Option<(u32, u32)>,
+    left: u32,
+    right: u32,
+    y: u32,
+) -> bool {
+    let focus = focused.is_some_and(|surface| {
+        let bounds = surface.bounds;
+        let x0 = i64::from(bounds.x);
+        let x1 = x0 + i64::from(bounds.width) - 1;
+        let y0 = i64::from(bounds.y);
+        let y1 = y0 + i64::from(bounds.height) - 1;
+        let left = i64::from(left);
+        let right = i64::from(right);
+        let y = i64::from(y);
+        y >= y0
+            && y <= y1
+            && (((y == y0 || y == y1) && left <= x1 && right > x0)
+                || (left <= x0 && x0 < right)
+                || (left <= x1 && x1 < right))
+    });
+    focus
+        || cursor.is_some_and(|(x, cy)| {
+            y >= cy
+                && u64::from(y) < u64::from(cy) + 16
+                && u64::from(left) < u64::from(x) + 16
+                && right > x
+        })
 }
 
 fn overlay(

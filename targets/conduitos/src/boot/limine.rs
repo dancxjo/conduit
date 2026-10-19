@@ -114,11 +114,13 @@ pub fn framebuffer_display() -> Result<RawDisplay, DisplayError> {
         green_shift: framebuffer.green_mask_shift(),
         blue_shift: framebuffer.blue_mask_shift(),
     };
+    let format = format.validate()?;
     let address = core::ptr::NonNull::new(framebuffer.addr()).ok_or(DisplayError::Absent)?;
     let byte_len = format.byte_len()?;
     // SAFETY: Limine owns the selected framebuffer response and promises its
-    // address and current-mode extent as writable framebuffer memory.
-    unsafe { RawDisplay::new(address, byte_len, format) }
+    // address and current-mode extent as writable linear framebuffer memory.
+    // The selected 32-bit RGB mode permits aligned native pixel-word stores.
+    unsafe { RawDisplay::new_word_writable(address, byte_len, format) }
 }
 
 /// Return the one fixed, bootloader-owned ConduitOS spore region.

@@ -1,6 +1,8 @@
 //! Bounded visible-surface ordering and exact horizontal coverage intervals.
 use super::{CompositorSurface, MAX_COMPOSITOR_SURFACES, NativeCompositorError};
 
+pub(super) const MAX_OVERLAY_EDGES: usize = 6;
+
 pub(super) struct PreparedSurfaces<'a> {
     surfaces: &'a [CompositorSurface],
     order: [usize; MAX_COMPOSITOR_SURFACES],
@@ -25,8 +27,14 @@ impl<'a> PreparedSurfaces<'a> {
         prepared.order[..prepared.count].sort_unstable_by_key(|&index| (surfaces[index].z, index));
         Ok(prepared)
     }
-    pub(super) fn row(&self, left: u32, right: u32, y: u32) -> RowSpans<'_, 'a> {
-        let mut edges = [0; 2 * MAX_COMPOSITOR_SURFACES + 2];
+    pub(super) fn row(
+        &self,
+        left: u32,
+        right: u32,
+        y: u32,
+        overlay_edges: &[Option<u32>; MAX_OVERLAY_EDGES],
+    ) -> RowSpans<'_, 'a> {
+        let mut edges = [0; 2 * MAX_COMPOSITOR_SURFACES + 2 + MAX_OVERLAY_EDGES];
         edges[0] = left;
         edges[1] = right;
         let mut count = 2;
@@ -44,6 +52,12 @@ impl<'a> PreparedSurfaces<'a> {
                 count += 2;
             }
         }
+        for &edge in overlay_edges.iter().flatten() {
+            if edge > left && edge < right {
+                edges[count] = edge;
+                count += 1;
+            }
+        }
         edges[..count].sort_unstable();
         RowSpans {
             prepared: self,
@@ -56,7 +70,7 @@ impl<'a> PreparedSurfaces<'a> {
 }
 pub(super) struct RowSpans<'p, 'a> {
     prepared: &'p PreparedSurfaces<'a>,
-    edges: [u32; 2 * MAX_COMPOSITOR_SURFACES + 2],
+    edges: [u32; 2 * MAX_COMPOSITOR_SURFACES + 2 + MAX_OVERLAY_EDGES],
     count: usize,
     next: usize,
     y: u32,
