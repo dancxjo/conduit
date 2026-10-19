@@ -66,6 +66,7 @@ export default defineConfig({
     "workspace-arrival.spec.mjs",
     "workspace-shared-journey.spec.mjs",
     "workspace-birth-naming.spec.mjs",
+    "portable-face-controls.spec.mjs",
     "workspace-mixed-membership.spec.mjs",
     "workspace-membership.spec.mjs",
     "workspace-library.spec.mjs",
