@@ -2109,16 +2109,10 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
             recipe,
             ..
         } if protocol == PROTOCOL => {
-            use conduit_std_host::browser_admission::{
-                BrowserComponentLook as L, BrowserComponentRecipe as R,
-            };
+            use conduit_std_host::browser_admission::BrowserComponentLook as L;
             let look = match look {
                 L::Compact => conduit_face::ComponentMaskLook::Compact,
                 L::Spacious => conduit_face::ComponentMaskLook::Spacious,
-            };
-            let recipe = match recipe {
-                R::Flat => conduit_face::TodoComponentRecipe::Flat,
-                R::Grouped => conduit_face::TodoComponentRecipe::Grouped,
             };
             runtime
                 .select_browser_component_mask(&window_id, &binding, &request, &show, look, recipe)
@@ -2271,6 +2265,9 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
                 }
                 conduit_std_host::browser_admission::BrowserComponentRecipe::Grouped => {
                     conduit_face::TodoComponentRecipe::Grouped
+                }
+                conduit_std_host::browser_admission::BrowserComponentRecipe::RequiredItem => {
+                    return refused("native-component-recipe-unsupported");
                 }
             };
             runtime

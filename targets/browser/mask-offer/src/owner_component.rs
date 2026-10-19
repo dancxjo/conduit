@@ -134,4 +134,6 @@ pub fn owner_component_offer() -> Result<CapabilityOffer, String> {
 }
 
 #[cfg(test)]
+mod required_item_tests;
+#[cfg(test)]
 mod tests;

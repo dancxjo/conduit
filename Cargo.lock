@@ -1794,6 +1794,8 @@ dependencies = [
  "conduit-host-browser-make",
  "conduit-planner",
  "conduit-plot",
+ "conduit-todo-face",
+ "conduit-todo-plot",
  "serde",
  "sha2 0.10.9",
 ]

@@ -271,6 +271,15 @@ pub const COMPONENT_MASK_KIND: &str = "face/component-mask";
 
 /// One checked document owns both expression roots and both independent recipes.
 pub const TODO_COMPONENT_MASK_SOURCE: &str = include_str!("../components/todo-mask.conduit");
+/// Reviewed required-slot specimen; unmatched subjects retain generic reading.
+pub const TODO_REQUIRED_ITEM_COMPONENT_SOURCE: &str =
+    include_str!("../components/todo-required-item.conduit");
+pub fn todo_required_item_mask_root(look: ComponentMaskLook) -> &'static str {
+    match look {
+        ComponentMaskLook::Compact => "todo-mask-required-item-compact",
+        ComponentMaskLook::Spacious => "todo-mask-required-item-spacious",
+    }
+}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ComponentMaskLook {
