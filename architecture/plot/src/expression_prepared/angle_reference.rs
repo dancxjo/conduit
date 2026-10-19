@@ -32,15 +32,25 @@ pub(super) fn prepare(
     }
     let argument = Box::new(prepare_node(argument, input_type, prepared_input)?);
     if physical {
-        let mut coordinate =
-            alloc::vec![0;crate::expression_angle_reference::MAXIMUM_ENCODED_BYTES];
+        let mut coordinate = Box::new(
+            conduit_core::PreparedAngleRadianQuantityConversion::new(
+                262144,
+                6 * conduit_core::MATHEMATICAL_VALUE_VALIDATION_WORK,
+            )
+            .map_err(crate::expression_angle_reference::physical_refusal)?,
+        );
         let mut output = alloc::vec![0;conduit_core::MATHEMATICAL_QUANTITY_MAX_ENCODED_BYTES];
         if let PreparedOperation::Literal(encoded) = &argument.operation {
-            let n = crate::expression_angle_reference::encode_angle(
-                encoded,
-                &mut coordinate,
-                &mut output,
-            )?;
+            let n = coordinate
+                .execute(
+                    encoded,
+                    &mut output,
+                    &mut conduit_core::ExactNumericWork::new(
+                        6 * conduit_core::MATHEMATICAL_VALUE_VALIDATION_WORK,
+                    ),
+                )
+                .map_err(crate::expression_angle_reference::physical_refusal)?
+                .encoded_bytes();
             output.truncate(n);
             return Ok(PreparedOperation::Literal(output));
         }

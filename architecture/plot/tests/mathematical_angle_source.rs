@@ -221,3 +221,51 @@ fn selected_profile_rejects_scalar_family_and_recovers_after_unsupported_radian_
     });
     assert_eq!((storage.allocations, storage.reallocations), (0, 0));
 }
+
+#[test]
+fn rational_angle_stage_and_repeated_symbolic_conversion_use_the_declared_profile() {
+    let mut exact = PreparedPortableExpressionEvaluator::new_with_exact_quantities(&program(
+        "Angle", "Angle", ". / 2",
+    ))
+    .unwrap();
+    let mut bridge = PreparedPortableExpressionEvaluator::new_with_mathematical_angles(&program(
+        "Angle",
+        "Angle",
+        "math/angle-radians(math/angle-radians(.))",
+    ))
+    .unwrap();
+    let mut sine = PreparedPortableExpressionEvaluator::new_with_mathematical_angles(&program(
+        "Angle",
+        "MathematicalValue",
+        "math/sin(.)",
+    ))
+    .unwrap();
+    let input = Quantity::parse_plot_literal("180°").unwrap().encode();
+    let bounds = bridge.mathematical_angle_profile_bounds().unwrap();
+    let (_, storage) = allocation_probe::observe(|| {
+        for _ in 0..8 {
+            let rational = exact.evaluate(&input).unwrap();
+            assert_eq!(rational[0], 2);
+            let converted = bridge.evaluate(rational).unwrap();
+            let angle = MathematicalQuantityView::decode(converted, &mut work()).unwrap();
+            assert_eq!(angle.unit(), Unit::Radian);
+            assert_eq!(
+                angle
+                    .coordinate()
+                    .rational_pi_coefficient(&mut work())
+                    .unwrap(),
+                Some(ExactRational::ratio(1, 2, &mut work()).unwrap())
+            );
+            let result = sine.evaluate(converted).unwrap();
+            assert_eq!(
+                MathematicalValueView::decode(result, &mut work())
+                    .unwrap()
+                    .as_rational(&mut work())
+                    .unwrap(),
+                Some(ExactRational::ONE)
+            );
+        }
+    });
+    assert_eq!((storage.allocations, storage.reallocations), (0, 0));
+    assert_eq!(bridge.mathematical_angle_profile_bounds().unwrap(), bounds);
+}

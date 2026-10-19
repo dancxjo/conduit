@@ -440,3 +440,22 @@ Plan. Focused CLI strict Clippy passes. This does not prove general projection
 report-to-Sign custody, arbitrary symbolic Quantity arithmetic, qualified whole
 floating-point computation, or public acceptance; all original parent checks
 remain open where previously unaccepted.
+
+### Private all-form Angle conversion continuation
+
+The prepared `math/angle-radians` path now accepts each representation admitted
+by its mathematical Angle port: native decimal, exact rational, and bounded
+mathematical coordinates. Rational inputs retain the existing canonical
+radian denotation. Same-origin radian scales remain exact; turn-origin inputs
+use the explicit `TURN_RADIAN_REFERENCE_LAW` and retain Pi symbolically.
+An already-radian mathematical frame is preserved byte for byte. Preparation
+owns builder and coordinate storage, and execution clamps its work meter.
+
+Focused Core tests cover all three forms, same-origin symbolic milliradians,
+identity conversion, output atomicity on refusal and recovery. A checked Plot
+chain divides a native Angle through the exact profile, converts its rational
+output twice through the mathematical profile, then obtains exact sine one.
+The guarded executions report zero allocations and unchanged retained bounds.
+This is private component and checked-expression evidence. Installed Host/CLI
+chains for this extension, qualified consumer custody, and stable publication
+remain unproven; the original parent issue stays open.

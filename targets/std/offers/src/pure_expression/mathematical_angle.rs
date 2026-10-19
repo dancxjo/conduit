@@ -26,6 +26,7 @@ pub fn mathematical_angle_std_artifact() -> ArtifactId {
         include_str!("../../../../../architecture/plot/src/expression_quantity_value.rs"),
         include_str!("../../../../../architecture/plot/src/expression_intrinsic.rs"),
         include_str!("../../../../../architecture/core/src/exact_numeric/angle_reference.rs"),
+        include_str!("../../../../../architecture/core/src/exact_numeric/quantity/angle_radians.rs"),
         include_str!("../../../../../architecture/core/src/exact_numeric/quantity.rs"),
         include_str!("../../../../../architecture/core/src/exact_numeric/quantity/mathematical.rs"),
         include_str!("../../../../../architecture/core/src/exact_numeric/quantity/mathematical_trigonometry.rs"),

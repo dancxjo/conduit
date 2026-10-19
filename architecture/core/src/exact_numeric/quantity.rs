@@ -7,7 +7,9 @@ use crate::{
 };
 use core::cmp::Ordering;
 
+mod angle_radians;
 mod arithmetic;
+pub use angle_radians::*;
 mod binary32;
 mod enclosure;
 mod mathematical;

@@ -48,11 +48,16 @@ pub(super) fn evaluate_node<'a>(
         } => {
             let value = evaluate_node(argument, input, input_kind)?;
             let length = if let Some(coordinate) = coordinate {
-                crate::expression_angle_reference::encode_angle(
-                    value.as_slice(),
-                    coordinate,
-                    output,
-                )?
+                coordinate
+                    .execute(
+                        value.as_slice(),
+                        output,
+                        &mut conduit_core::ExactNumericWork::new(
+                            6 * conduit_core::MATHEMATICAL_VALUE_VALIDATION_WORK,
+                        ),
+                    )
+                    .map_err(crate::expression_angle_reference::physical_refusal)?
+                    .encoded_bytes()
             } else {
                 crate::expression_angle_reference::encode(value.as_slice(), output)?
             };

@@ -6,23 +6,15 @@ pub(crate) const ANGLE_CALL: &str = "math/angle-radians";
 pub(crate) fn is_call(name: &str) -> bool {
     name == CALL || name == ANGLE_CALL
 }
-pub(crate) fn encode_angle(
-    input: &[u8],
-    coordinate: &mut [u8],
-    output: &mut [u8],
-) -> Result<usize, R> {
-    let n = encode(input, coordinate)?;
-    let mut work = ExactNumericWork::new(3 * conduit_core::MATHEMATICAL_VALUE_VALIDATION_WORK);
-    let view = conduit_core::MathematicalValueView::decode(&coordinate[..n], &mut work)
-        .map_err(|_| R::InvalidProgram)?;
-    conduit_core::encode_mathematical_quantity_value(
-        &view,
-        Unit::Radian,
-        conduit_core::QuantityRole::Linear,
-        output,
-        &mut work,
-    )
-    .map_err(|_| R::InvalidProgram)
+pub(crate) fn physical_refusal(why: conduit_core::AngleRadianQuantityRefusal) -> R {
+    use conduit_core::{AngleRadianQuantityRefusal as A, AngleReferenceRefusal as E};
+    match why {
+        A::Input(_) => R::InvalidInput,
+        A::Physical(why) => R::AngleReference(E::Coordinate(why)),
+        A::Mathematical(why) => R::AngleReference(E::Denotation(why)),
+        A::Numeric(why) => R::AngleReference(E::Denotation(why.into())),
+        A::RetainedStorageLimit => R::UnsupportedType("Angle conversion prepared storage".into()),
+    }
 }
 pub(crate) const MAXIMUM_ENCODED_BYTES: usize = 10 + conduit_core::EXACT_RATIONAL_MAX_ENCODED_BYTES;
 pub(crate) fn encode(input: &[u8], output: &mut [u8]) -> Result<usize, R> {

@@ -190,7 +190,11 @@ impl super::PreparedPortableExpressionEvaluator {
                     output,
                 } => output
                     .capacity()
-                    .checked_add(coordinate.as_ref().map_or(0, |v| v.capacity()))?
+                    .checked_add(
+                        coordinate
+                            .as_ref()
+                            .map_or(0, |v| v.retained_payload_bytes()),
+                    )?
                     .checked_add(child(argument)?)?,
                 Op::Trigonometry {
                     argument, output, ..

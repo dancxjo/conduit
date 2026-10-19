@@ -121,7 +121,7 @@ enum PreparedOperation {
     },
     QuantityValue(Box<PreparedNode>),
     AngleReference {
-        coordinate: Option<Vec<u8>>,
+        coordinate: Option<Box<conduit_core::PreparedAngleRadianQuantityConversion>>,
         argument: Box<PreparedNode>,
         output: Vec<u8>,
     },
