@@ -80,12 +80,7 @@ pub(super) fn prepare_queue_mode(
             let offer = if matches!(back, BackProfile::ScalarTape) {
                 conduit_std_offers::pure_scalar_tape_std_offer(&program, gear.inputs[0].temporal)?
             } else {
-                let local = match back {
-                    BackProfile::Local => true,
-                    #[cfg(test)]
-                    BackProfile::NativeLocal => true,
-                    _ => false,
-                };
+                let local = matches!(back, BackProfile::Local | BackProfile::NativeLocal);
                 let offer = if local {
                     conduit_std_offers::pure_expression_local_flow_offer(&program)
                 } else {
@@ -142,7 +137,6 @@ pub(super) fn prepare_queue_mode(
         .collect();
     let (selection, m) = timing::measure(|| -> Result<_, Box<dyn Error>> {
         if fused && gears > 1 {
-            #[cfg(test)]
             if matches!(back, BackProfile::NativeLocal) {
                 return Ok(Some(fusion::select_profile(
                     &authoring,

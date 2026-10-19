@@ -87,6 +87,7 @@ pub fn metadata() -> Result<serde_json::Value, String> {
         "hosted_extended_matrix_schema":cfg!(feature = "hosted-pipeline").then_some("control-projection-value@1"),
         "hosted_stream_schema":if cfg!(feature = "hosted-pipeline") { Some("bounded-overlapping-std@1") } else { None },
         "hosted_phase_wall_schema":cfg!(feature = "hosted-pipeline").then_some("installed-boundaries-wall@1"),
+        "hosted_native_chain_schema":cfg!(feature = "hosted-pipeline").then_some("native-u64-with-canonical-fused-reference@1"),
         "source_status":"clean", "os":text("uname", &["-srvm"]),
         "compiler":text("rustc", &["-vV"]), "cargo":text("cargo", &["-V"]),
         "cpu":cpu, "affinity":affinity, "profile":"release", "debug_assertions":cfg!(debug_assertions),

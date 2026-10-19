@@ -33,7 +33,6 @@ enum BackProfile {
     Hosted,
     Local,
     ScalarTape,
-    #[cfg(test)]
     NativeLocal,
 }
 const ITEMS: usize = 64;
