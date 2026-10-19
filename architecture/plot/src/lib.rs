@@ -20,6 +20,13 @@ use conduit_core::{
 use sha2::{Digest, Sha256};
 
 mod back_catalog;
+#[cfg(target_has_atomic = "ptr")]
+mod preparation_cache;
+#[cfg(target_has_atomic = "ptr")]
+pub use preparation_cache::{
+    PreparationCacheLimitError, PreparationCacheLimits, PreparationCacheStats, PreparedSource,
+    SourcePreparationCache,
+};
 mod canonical_expansion;
 mod checked_syntax;
 mod diagnostic;
