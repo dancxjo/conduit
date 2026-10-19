@@ -198,12 +198,15 @@ impl<'a> AnalysisEpochOwner<'a> {
         let mut updated = Vec::new();
         for (prior, output) in slots.into_iter().zip(outputs) {
             updated.push(
-                LanguageParserScorerHypothesis::new(
-                    *prior.choices(),
-                    output.clone(),
-                    *prior.selected(),
+                crate::analysis_epoch_initialization::admit(
+                    &LanguageParserScorerRawHypothesis::new(
+                        *prior.choices(),
+                        output.clone(),
+                        *prior.selected(),
+                    )
+                    .map_err(Native)?,
                 )
-                .map_err(Native)?,
+                .map_err(Initialization)?,
             );
         }
         let mut it = updated.into_iter();

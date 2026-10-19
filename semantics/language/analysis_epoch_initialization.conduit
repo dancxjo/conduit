@@ -8,12 +8,7 @@ type LanguageAnalysisInitialRawBeam = {
 }
 plot language/analysis-initial-envelope (
     input: LanguageParserNumericState...| >> output: LanguageAnalysisInitialRawBeam...|
-) = ({
-    candidate0: { parser: { state: ., identity: 1, score: 0, active: true }, choices: [0,0,0,0], selected: 0 },
-    candidate1: { parser: { state: ., identity: 2, score: 0, active: false }, choices: [0,0,0,0], selected: 0 },
-    candidate2: { parser: { state: ., identity: 3, score: 0, active: false }, choices: [0,0,0,0], selected: 0 },
-    candidate3: { parser: { state: ., identity: 4, score: 0, active: false }, choices: [0,0,0,0], selected: 0 }
-})
+) = ({ candidate0: { parser: { state: ., identity: 1, score: 0, active: true }, choices: [0,0,0,0], selected: 0 }, candidate1: { parser: { state: ., identity: 2, score: 0, active: false }, choices: [0,0,0,0], selected: 0 }, candidate2: { parser: { state: ., identity: 3, score: 0, active: false }, choices: [0,0,0,0], selected: 0 }, candidate3: { parser: { state: ., identity: 4, score: 0, active: false }, choices: [0,0,0,0], selected: 0 } })
 # Named fresh-revision envelope: keep slot identities/active membership and
 # committed lexical choices; reset only uncommitted choices and all scores.
 type LanguageAnalysisRebasedEnvelopeInput = {
@@ -22,5 +17,4 @@ type LanguageAnalysisRebasedEnvelopeInput = {
 }
 plot language/analysis-rebased-envelope (
     input: LanguageAnalysisRebasedEnvelopeInput...| >> output: LanguageParserScorerRawHypothesis...|
-) = ({ parser: {state: .state, identity: .prior.parser.identity, score: 0, active: .prior.parser.active},
-    choices: [(.state.committed > 0 ? .prior.choices.0 : 0),(.state.committed > 1 ? .prior.choices.1 : 0),(.state.committed > 2 ? .prior.choices.2 : 0),(.state.committed > 3 ? .prior.choices.3 : 0)], selected: .state.unread })
+) = ({ parser: {state: .state, identity: .prior.parser.identity, score: 0, active: .prior.parser.active}, choices: [(.state.committed > 0 ? .prior.choices.0 : 0),(.state.committed > 1 ? .prior.choices.1 : 0),(.state.committed > 2 ? .prior.choices.2 : 0),(.state.committed > 3 ? .prior.choices.3 : 0)], selected: .state.unread })
