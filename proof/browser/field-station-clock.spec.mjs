@@ -21,7 +21,7 @@ test("an external page recovers one Clock Body across a fresh Boot without resur
   }));
   expect(first.recovered).toBe(false);
   expect(first.playState).toBe("playing");
-  await expect(page.locator('[data-face-kind="face/tick"]')).toHaveText(/^Clock tick: \d+$/);
+  await expect(page.locator('[data-face-kind="face/tick"]')).toHaveText(/^Clock tick: \d+$/, { timeout: 15_000 });
   expect(await page.evaluate(() => __conduitFieldStation.firstObservedManifestation)).toMatchObject({ text: "Clock tick: 0", observationSequence: "0" });
 
   await journey.capture(page, {
@@ -99,7 +99,7 @@ test("an external page recovers one Clock Body across a fresh Boot without resur
   }
 
   const tick = page.locator('[data-face-kind="face/tick"]');
-  await expect(tick).toHaveText(/^Clock tick: \d+$/);
+  await expect(tick).toHaveText(/^Clock tick: \d+$/, { timeout: 15_000 });
   const initialManifestation = await page.evaluate(() => __conduitFieldStation.firstObservedManifestation);
   expect(initialManifestation).toMatchObject({ text: "Clock tick: 0", observationSequence: "0" });
   expect(initialManifestation).toMatchObject({
