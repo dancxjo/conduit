@@ -1,4 +1,4 @@
-//! Exact owned pointwise realizations for a separately selected compact DAG.
+//! Exact owned finite numeric realizations for a separately selected compact DAG.
 use super::*;
 use crate::{
     fixed_numeric_compact::CompactNumericBack,
@@ -14,10 +14,10 @@ impl FixedNumericOperationFactory {
         &self,
         gear: &PlannedGear,
     ) -> Result<ReusableNumericBack, String> {
-        self.selected(gear)?;
+        let bindings = self.selected(gear)?;
         derive_planned_transformation_eligibility(gear)
             .and_then(|eligibility| eligibility.require(WorkTransformation::Fusion))
-            .map_err(|error| format!("compact pointwise semantic eligibility: {error:?}"))?;
+            .map_err(|error| format!("compact numeric semantic eligibility: {error:?}"))?;
         if gear
             .inputs
             .iter()
@@ -26,10 +26,15 @@ impl FixedNumericOperationFactory {
             || !gear.host_calls.is_empty()
             || !gear.resources.is_empty()
         {
-            return Err("compact pointwise owner requires effect-free Value ports".into());
+            return Err("compact numeric owner requires effect-free Value ports".into());
         }
         let fuel =
             u16::try_from(gear.inputs.len() + 1).map_err(|_| "compact step fuel overflow")?;
+        if gear.implementation_id.as_str()
+            == crate::fixed_numeric_linear_back::LINEAR_IMPLEMENTATION
+        {
+            return super::compact_linear::prepare(gear, fuel, bindings);
+        }
         let kind = gear.kind_id.as_str();
         macro_rules! widths {
             ($($width:literal),+) => { $(

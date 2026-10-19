@@ -35,7 +35,9 @@ macro_rules! run {
     }};
 }
 mod compact;
+mod compact_linear;
 pub use compact::compact_pointwise_offer_layout;
+pub use compact_linear::{compact_linear_offer_layout, CompactLinearOfferLayout};
 mod dispatch_tensors;
 mod dispatch_values;
 mod dispatch_vectors;
