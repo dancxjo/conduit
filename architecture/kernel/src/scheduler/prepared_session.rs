@@ -126,6 +126,19 @@ where
     }
     pub fn step(&mut self) -> Result<SchedulerStatus, SchedulerError> {
         let result = self.kernel.step();
+        self.observe_step(result)
+    }
+    pub fn step_with_checkpoint(
+        &mut self,
+        proceed: impl FnMut(NodeId) -> bool,
+    ) -> Result<SchedulerStatus, SchedulerError> {
+        let result = self.kernel.step_with_checkpoint(proceed);
+        self.observe_step(result)
+    }
+    fn observe_step(
+        &mut self,
+        result: Result<SchedulerStatus, SchedulerError>,
+    ) -> Result<SchedulerStatus, SchedulerError> {
         if self.phase != Phase::Faulted {
             self.phase = match &result {
                 Ok(SchedulerStatus::Drained) => Phase::Drained,
