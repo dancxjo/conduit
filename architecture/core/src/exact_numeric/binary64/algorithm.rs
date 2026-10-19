@@ -1,6 +1,8 @@
 //! Execute and certify a fixed operation order, including every intermediate rounding.
 use super::*;
 use alloc::{boxed::Box, vec::Vec};
+mod runner;
+pub use runner::PreparedBinary64AlgorithmRunner;
 pub const BINARY64_ALGORITHM_MAX_STEPS: usize = 32;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Binary64Operation {
@@ -195,6 +197,22 @@ fn evaluate(
     steps: &[Binary64Step],
     work: &mut ExactNumericWork,
 ) -> Result<Binary64Step, Binary64AlgorithmRefusal> {
+    let (semantic_value, projection) =
+        evaluate_value(operation, rounding, local_allowance, steps, work)?;
+    Ok(Binary64Step {
+        operation: operation.clone(),
+        semantic_value,
+        projection,
+    })
+}
+
+fn evaluate_value(
+    operation: &Binary64Operation,
+    rounding: Binary64Rounding,
+    local_allowance: ExactRational,
+    steps: &[Binary64Step],
+    work: &mut ExactNumericWork,
+) -> Result<(ExactRational, PreparedBinary64Projection), Binary64AlgorithmRefusal> {
     use Binary64Operation as O;
     let get = |index: u8| {
         steps
@@ -262,9 +280,5 @@ fn evaluate(
             projection.target = IeeeF64::from_bits(if negative { 1 << 63 } else { 0 });
         }
     }
-    Ok(Binary64Step {
-        operation: operation.clone(),
-        semantic_value,
-        projection,
-    })
+    Ok((semantic_value, projection))
 }
