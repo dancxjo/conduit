@@ -24,7 +24,7 @@ fn git(root: &Path, arguments: &[&str]) -> Result<String, Box<dyn std::error::Er
 
 pub fn run(arguments: &[String], dry_run: bool) -> Result<(), Box<dyn std::error::Error>> {
     if arguments == ["--help"] {
-        println!("cargo xtask prove runtime-performance [--output PATH] [--values N] [--repetitions N] [--decisions N] [--samples N] [--hosted-pipeline true|false]\nRetains release measurements from committed, clean source. Output must be new and outside tracked source (default target/runtime-performance). FARGAN: --fargan-fixture PATH [--output PATH] [--repetitions 2..20] uses a private pinned model and oracle; no automatic download.\nFinite defaults: 1000000 values, 5 repetitions, 10000 decisions, 2000 samples.");
+        println!("cargo xtask prove runtime-performance [--output PATH] [--values N] [--repetitions N] [--decisions N] [--samples N] [--hosted-pipeline true|false]\nRetains release measurements from committed, clean source. Output must be new and outside tracked source (default target/runtime-performance). FARGAN: --fargan-fixture PATH [--output PATH] [--repetitions 2..20] uses a private pinned model and oracle; no automatic download.\nHosted pipeline includes matched unfused, canonical-fused and native-U64 chain trials with bounded retained Sign history. Finite defaults: 1000000 values, 5 repetitions, 10000 decisions, 2000 samples.");
         return Ok(());
     }
     if arguments.iter().any(|a| a == "--fargan-fixture") {

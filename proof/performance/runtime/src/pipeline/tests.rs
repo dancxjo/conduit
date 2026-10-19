@@ -398,7 +398,7 @@ fn reviewed_physical_profile_refuses_other_numeric_representations() -> Result<(
 }
 
 #[test]
-fn planner_selected_native_u64_chain_preserves_all_logical_signs() -> Result<(), Box<dyn Error>> {
+fn planner_selected_native_u64_chain_preserves_retained_signs() -> Result<(), Box<dyn Error>> {
     let _measurement = crate::allocation::TEST_MEASUREMENT.lock().unwrap();
     for gears in [2, 8, 32] {
         let authored = source(gears);
