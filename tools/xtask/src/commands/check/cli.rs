@@ -74,6 +74,8 @@ pub enum CheckSuite {
     ParserScorerReproduce,
     /// Exercise optional admitted parser scoring through ordinary Plan/Play.
     ParserSelection,
+    /// Check committed dependency/prosody correlation and bounded revision safety.
+    ProsodyCommitment,
     /// Prove bounded speech selection and explicit detail from exact Faces.
     TodoSpeech,
     InputSemantics,

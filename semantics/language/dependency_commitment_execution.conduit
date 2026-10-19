@@ -1,0 +1,28 @@
+# Public operation: the right branch executes the existing checked commitment.
+# Zip pairs each original query with that operation's actual result, not an
+# accepted-result flag supplied at the public boundary.
+with flow/zip/finite/paired as LanguageCommittedDependencyPair
+plot language/dependency-commit-request (
+    input: LanguageCommittedDependencyQuery...| <= DEPENDENCY_QUERY_BYTESB >> output: LanguageParserBeamCommitRequest...| <= DEPENDENCY_QUERY_BYTESB
+) = .commitment
+plot language/dependency-result-bound (
+    input: LanguageParserBeamCommitResult...| >> output: LanguageParserBeamCommitResult...| <= DEPENDENCY_RESULT_BYTESB
+) = .
+plot language/dependency-context-bound (
+    input: LanguageDependencyExecutionContext...| >> output: LanguageDependencyExecutionContext...| <= DEPENDENCY_CONTEXT_BYTESB
+) = .
+plot language/dependency-commit-correlate (
+    input: LanguageCommittedDependencyPair...| <= DEPENDENCY_PAIR_BYTESB >> output: LanguageDependencyExecutionResult...|
+) = { context: .0, actual: .1 }
+plot language/commit-dependency (
+    input: LanguageCommittedDependencyQuery...| <= DEPENDENCY_QUERY_BYTESB >> output: LanguageDependencyExecutionResult...|
+) {
+    join: flow/zip/finite
+    commit: language-parser-beam-commit
+    context: language/dependency-execution-context
+    input >> context.input
+    context.output >> language/dependency-context-bound() >> join.left
+    input >> language/dependency-commit-request() >> commit.input
+    commit.output >> language/dependency-result-bound() >> join.right
+    join.paired >> language/dependency-commit-correlate() >> output
+}

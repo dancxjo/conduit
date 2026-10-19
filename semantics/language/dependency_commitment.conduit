@@ -1,0 +1,133 @@
+# Generic checked dependency join. Opaque preparation must replay commitment first.
+type LanguageCommittedDependencyQuery = {
+    source: LanguageTextRevision
+    arc: LanguageDependencyArc
+    token: LanguageLexicalToken
+    commitment: LanguageParserBeamCommitRequest
+    head: U64 in 0..=4
+    where .arc.dependent.revision == .commitment.beam.basis.analysis_revision
+    where .arc.dependent.token == .token.identity
+    where .token.identity.text_identity == .source.material.identity
+    where .token.identity.text_revision == .source.material.revision
+    where .token.completeness is complete
+    where !(.arc.relation.subtype is some)
+    where .source.material.identity == .commitment.beam.basis.text
+    where .source.material.revision == .commitment.beam.basis.source_revision
+    where .arc.governor is token ? .arc.governor.token.revision == .commitment.beam.basis.analysis_revision : true
+    where .arc.governor is token ? .arc.governor.token.token.text_identity == .source.material.identity : true
+    where .arc.governor is token ? .arc.governor.token.token.text_revision == .source.material.revision : true
+    where .arc.governor is token ? .head == .arc.governor.token.token.ordinal : .head == 4
+    where .token.identity.ordinal < .commitment.through
+    where .arc.governor is token ? .head < .commitment.through : true
+    where !.commitment.cancelled
+    where !.commitment.pressure
+    where .commitment.frontier.basis == .commitment.beam.basis
+    where .commitment.through >= .commitment.frontier.committed
+    where .commitment.through <= .commitment.frontier.stable
+    where .commitment.beam.candidate0.active
+    where (!.commitment.beam.candidate0.active || ((.token.identity.ordinal == 0 ? .commitment.beam.candidate0.state.heads.0 : (.token.identity.ordinal == 1 ? .commitment.beam.candidate0.state.heads.1 : (.token.identity.ordinal == 2 ? .commitment.beam.candidate0.state.heads.2 : .commitment.beam.candidate0.state.heads.3))) == .head && ((.token.identity.ordinal == 0 ? .commitment.beam.candidate0.state.relation0.base : (.token.identity.ordinal == 1 ? .commitment.beam.candidate0.state.relation1.base : (.token.identity.ordinal == 2 ? .commitment.beam.candidate0.state.relation2.base : .commitment.beam.candidate0.state.relation3.base))) == .arc.relation.base && (.token.identity.ordinal == 0 ? .commitment.beam.candidate0.state.relation0.subtype : (.token.identity.ordinal == 1 ? .commitment.beam.candidate0.state.relation1.subtype : (.token.identity.ordinal == 2 ? .commitment.beam.candidate0.state.relation2.subtype : .commitment.beam.candidate0.state.relation3.subtype))) == "")))
+    where (!.commitment.beam.candidate1.active || ((.token.identity.ordinal == 0 ? .commitment.beam.candidate1.state.heads.0 : (.token.identity.ordinal == 1 ? .commitment.beam.candidate1.state.heads.1 : (.token.identity.ordinal == 2 ? .commitment.beam.candidate1.state.heads.2 : .commitment.beam.candidate1.state.heads.3))) == .head && ((.token.identity.ordinal == 0 ? .commitment.beam.candidate1.state.relation0.base : (.token.identity.ordinal == 1 ? .commitment.beam.candidate1.state.relation1.base : (.token.identity.ordinal == 2 ? .commitment.beam.candidate1.state.relation2.base : .commitment.beam.candidate1.state.relation3.base))) == .arc.relation.base && (.token.identity.ordinal == 0 ? .commitment.beam.candidate1.state.relation0.subtype : (.token.identity.ordinal == 1 ? .commitment.beam.candidate1.state.relation1.subtype : (.token.identity.ordinal == 2 ? .commitment.beam.candidate1.state.relation2.subtype : .commitment.beam.candidate1.state.relation3.subtype))) == "")))
+    where (!.commitment.beam.candidate2.active || ((.token.identity.ordinal == 0 ? .commitment.beam.candidate2.state.heads.0 : (.token.identity.ordinal == 1 ? .commitment.beam.candidate2.state.heads.1 : (.token.identity.ordinal == 2 ? .commitment.beam.candidate2.state.heads.2 : .commitment.beam.candidate2.state.heads.3))) == .head && ((.token.identity.ordinal == 0 ? .commitment.beam.candidate2.state.relation0.base : (.token.identity.ordinal == 1 ? .commitment.beam.candidate2.state.relation1.base : (.token.identity.ordinal == 2 ? .commitment.beam.candidate2.state.relation2.base : .commitment.beam.candidate2.state.relation3.base))) == .arc.relation.base && (.token.identity.ordinal == 0 ? .commitment.beam.candidate2.state.relation0.subtype : (.token.identity.ordinal == 1 ? .commitment.beam.candidate2.state.relation1.subtype : (.token.identity.ordinal == 2 ? .commitment.beam.candidate2.state.relation2.subtype : .commitment.beam.candidate2.state.relation3.subtype))) == "")))
+    where (!.commitment.beam.candidate3.active || ((.token.identity.ordinal == 0 ? .commitment.beam.candidate3.state.heads.0 : (.token.identity.ordinal == 1 ? .commitment.beam.candidate3.state.heads.1 : (.token.identity.ordinal == 2 ? .commitment.beam.candidate3.state.heads.2 : .commitment.beam.candidate3.state.heads.3))) == .head && ((.token.identity.ordinal == 0 ? .commitment.beam.candidate3.state.relation0.base : (.token.identity.ordinal == 1 ? .commitment.beam.candidate3.state.relation1.base : (.token.identity.ordinal == 2 ? .commitment.beam.candidate3.state.relation2.base : .commitment.beam.candidate3.state.relation3.base))) == .arc.relation.base && (.token.identity.ordinal == 0 ? .commitment.beam.candidate3.state.relation0.subtype : (.token.identity.ordinal == 1 ? .commitment.beam.candidate3.state.relation1.subtype : (.token.identity.ordinal == 2 ? .commitment.beam.candidate3.state.relation2.subtype : .commitment.beam.candidate3.state.relation3.subtype))) == "")))
+}
+# Correlation law for an actual output. The packaged public Source operation
+# below runs commitment; accepting this data alone is not execution attestation.
+type LanguageCommittedDependencyAdmission = {
+    query: LanguageCommittedDependencyQuery
+    result: LanguageParserBeamCommitResult
+    where .result.accepted
+    where .result.frontier.basis == .query.commitment.frontier.basis
+    where .result.frontier.stable == .query.commitment.frontier.stable
+    where .result.frontier.committed == .query.commitment.through
+    where .result.candidate0.identity == .query.commitment.beam.candidate0.identity
+    where .result.candidate0.score == .query.commitment.beam.candidate0.score
+    where .result.candidate0.active == .query.commitment.beam.candidate0.active
+    where .result.candidate0.state.basis == .query.commitment.beam.candidate0.state.basis
+    where .result.candidate0.state.token_count == .query.commitment.beam.candidate0.state.token_count
+    where .result.candidate0.state.unread == .query.commitment.beam.candidate0.state.unread
+    where .result.candidate0.state.depth == .query.commitment.beam.candidate0.state.depth
+    where .result.candidate0.state.stack == .query.commitment.beam.candidate0.state.stack
+    where .result.candidate0.state.heads == .query.commitment.beam.candidate0.state.heads
+    where .result.candidate0.state.relation0 == .query.commitment.beam.candidate0.state.relation0
+    where .result.candidate0.state.relation1 == .query.commitment.beam.candidate0.state.relation1
+    where .result.candidate0.state.relation2 == .query.commitment.beam.candidate0.state.relation2
+    where .result.candidate0.state.relation3 == .query.commitment.beam.candidate0.state.relation3
+    where .result.candidate0.state.committed == (.query.commitment.beam.candidate0.active ? .query.commitment.through : .query.commitment.beam.candidate0.state.committed)
+    where .result.candidate1.identity == .query.commitment.beam.candidate1.identity
+    where .result.candidate1.score == .query.commitment.beam.candidate1.score
+    where .result.candidate1.active == .query.commitment.beam.candidate1.active
+    where .result.candidate1.state.basis == .query.commitment.beam.candidate1.state.basis
+    where .result.candidate1.state.token_count == .query.commitment.beam.candidate1.state.token_count
+    where .result.candidate1.state.unread == .query.commitment.beam.candidate1.state.unread
+    where .result.candidate1.state.depth == .query.commitment.beam.candidate1.state.depth
+    where .result.candidate1.state.stack == .query.commitment.beam.candidate1.state.stack
+    where .result.candidate1.state.heads == .query.commitment.beam.candidate1.state.heads
+    where .result.candidate1.state.relation0 == .query.commitment.beam.candidate1.state.relation0
+    where .result.candidate1.state.relation1 == .query.commitment.beam.candidate1.state.relation1
+    where .result.candidate1.state.relation2 == .query.commitment.beam.candidate1.state.relation2
+    where .result.candidate1.state.relation3 == .query.commitment.beam.candidate1.state.relation3
+    where .result.candidate1.state.committed == (.query.commitment.beam.candidate1.active ? .query.commitment.through : .query.commitment.beam.candidate1.state.committed)
+    where .result.candidate2.identity == .query.commitment.beam.candidate2.identity
+    where .result.candidate2.score == .query.commitment.beam.candidate2.score
+    where .result.candidate2.active == .query.commitment.beam.candidate2.active
+    where .result.candidate2.state.basis == .query.commitment.beam.candidate2.state.basis
+    where .result.candidate2.state.token_count == .query.commitment.beam.candidate2.state.token_count
+    where .result.candidate2.state.unread == .query.commitment.beam.candidate2.state.unread
+    where .result.candidate2.state.depth == .query.commitment.beam.candidate2.state.depth
+    where .result.candidate2.state.stack == .query.commitment.beam.candidate2.state.stack
+    where .result.candidate2.state.heads == .query.commitment.beam.candidate2.state.heads
+    where .result.candidate2.state.relation0 == .query.commitment.beam.candidate2.state.relation0
+    where .result.candidate2.state.relation1 == .query.commitment.beam.candidate2.state.relation1
+    where .result.candidate2.state.relation2 == .query.commitment.beam.candidate2.state.relation2
+    where .result.candidate2.state.relation3 == .query.commitment.beam.candidate2.state.relation3
+    where .result.candidate2.state.committed == (.query.commitment.beam.candidate2.active ? .query.commitment.through : .query.commitment.beam.candidate2.state.committed)
+    where .result.candidate3.identity == .query.commitment.beam.candidate3.identity
+    where .result.candidate3.score == .query.commitment.beam.candidate3.score
+    where .result.candidate3.active == .query.commitment.beam.candidate3.active
+    where .result.candidate3.state.basis == .query.commitment.beam.candidate3.state.basis
+    where .result.candidate3.state.token_count == .query.commitment.beam.candidate3.state.token_count
+    where .result.candidate3.state.unread == .query.commitment.beam.candidate3.state.unread
+    where .result.candidate3.state.depth == .query.commitment.beam.candidate3.state.depth
+    where .result.candidate3.state.stack == .query.commitment.beam.candidate3.state.stack
+    where .result.candidate3.state.heads == .query.commitment.beam.candidate3.state.heads
+    where .result.candidate3.state.relation0 == .query.commitment.beam.candidate3.state.relation0
+    where .result.candidate3.state.relation1 == .query.commitment.beam.candidate3.state.relation1
+    where .result.candidate3.state.relation2 == .query.commitment.beam.candidate3.state.relation2
+    where .result.candidate3.state.relation3 == .query.commitment.beam.candidate3.state.relation3
+    where .result.candidate3.state.committed == (.query.commitment.beam.candidate3.active ? .query.commitment.through : .query.commitment.beam.candidate3.state.committed)
+}
+plot language/committed-dependency-evidence (
+    >> value: LanguageCommittedDependencyAdmission
+    result: LanguageDependencyArc >>
+) = (.query.arc)
+# Bounded context for actual Source execution: no duplicated original beam.
+type LanguageDependencyExecutionContext = {
+    arc: LanguageDependencyArc
+    basis: LanguageParserBasis
+    head: U64 in 0..=4
+    through: U64 in 0..=4
+    identities: collection U64 = 4
+}
+type LanguageDependencyExecutionResult = {
+    context: LanguageDependencyExecutionContext
+    actual: LanguageParserBeamCommitResult
+    where .actual.accepted
+    where .actual.frontier.basis == .context.basis
+    where .actual.frontier.committed == .context.through
+    where .context.arc.dependent.token.ordinal < .context.through
+    where .actual.candidate0.identity == .context.identities.0
+    where !.actual.candidate0.active || (.actual.candidate0.state.basis == .context.basis && .actual.candidate0.state.committed == .context.through)
+    where !.actual.candidate0.active || ((.context.arc.dependent.token.ordinal == 0 ? .actual.candidate0.state.heads.0 : (.context.arc.dependent.token.ordinal == 1 ? .actual.candidate0.state.heads.1 : (.context.arc.dependent.token.ordinal == 2 ? .actual.candidate0.state.heads.2 : .actual.candidate0.state.heads.3))) == .context.head && (.context.arc.dependent.token.ordinal == 0 ? .actual.candidate0.state.relation0.base : (.context.arc.dependent.token.ordinal == 1 ? .actual.candidate0.state.relation1.base : (.context.arc.dependent.token.ordinal == 2 ? .actual.candidate0.state.relation2.base : .actual.candidate0.state.relation3.base))) == .context.arc.relation.base)
+    where .actual.candidate1.identity == .context.identities.1
+    where !.actual.candidate1.active || (.actual.candidate1.state.basis == .context.basis && .actual.candidate1.state.committed == .context.through)
+    where !.actual.candidate1.active || ((.context.arc.dependent.token.ordinal == 0 ? .actual.candidate1.state.heads.0 : (.context.arc.dependent.token.ordinal == 1 ? .actual.candidate1.state.heads.1 : (.context.arc.dependent.token.ordinal == 2 ? .actual.candidate1.state.heads.2 : .actual.candidate1.state.heads.3))) == .context.head && (.context.arc.dependent.token.ordinal == 0 ? .actual.candidate1.state.relation0.base : (.context.arc.dependent.token.ordinal == 1 ? .actual.candidate1.state.relation1.base : (.context.arc.dependent.token.ordinal == 2 ? .actual.candidate1.state.relation2.base : .actual.candidate1.state.relation3.base))) == .context.arc.relation.base)
+    where .actual.candidate2.identity == .context.identities.2
+    where !.actual.candidate2.active || (.actual.candidate2.state.basis == .context.basis && .actual.candidate2.state.committed == .context.through)
+    where !.actual.candidate2.active || ((.context.arc.dependent.token.ordinal == 0 ? .actual.candidate2.state.heads.0 : (.context.arc.dependent.token.ordinal == 1 ? .actual.candidate2.state.heads.1 : (.context.arc.dependent.token.ordinal == 2 ? .actual.candidate2.state.heads.2 : .actual.candidate2.state.heads.3))) == .context.head && (.context.arc.dependent.token.ordinal == 0 ? .actual.candidate2.state.relation0.base : (.context.arc.dependent.token.ordinal == 1 ? .actual.candidate2.state.relation1.base : (.context.arc.dependent.token.ordinal == 2 ? .actual.candidate2.state.relation2.base : .actual.candidate2.state.relation3.base))) == .context.arc.relation.base)
+    where .actual.candidate3.identity == .context.identities.3
+    where !.actual.candidate3.active || (.actual.candidate3.state.basis == .context.basis && .actual.candidate3.state.committed == .context.through)
+    where !.actual.candidate3.active || ((.context.arc.dependent.token.ordinal == 0 ? .actual.candidate3.state.heads.0 : (.context.arc.dependent.token.ordinal == 1 ? .actual.candidate3.state.heads.1 : (.context.arc.dependent.token.ordinal == 2 ? .actual.candidate3.state.heads.2 : .actual.candidate3.state.heads.3))) == .context.head && (.context.arc.dependent.token.ordinal == 0 ? .actual.candidate3.state.relation0.base : (.context.arc.dependent.token.ordinal == 1 ? .actual.candidate3.state.relation1.base : (.context.arc.dependent.token.ordinal == 2 ? .actual.candidate3.state.relation2.base : .actual.candidate3.state.relation3.base))) == .context.arc.relation.base)
+}
+plot language/dependency-execution-context (
+    input: LanguageCommittedDependencyQuery...| >> output: LanguageDependencyExecutionContext...|
+) = ({ arc: .arc, basis: .commitment.beam.basis, head: .head, through: .commitment.through, identities: [.commitment.beam.candidate0.identity,.commitment.beam.candidate1.identity,.commitment.beam.candidate2.identity,.commitment.beam.candidate3.identity] })

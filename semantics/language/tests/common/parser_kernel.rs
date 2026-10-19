@@ -155,32 +155,54 @@ impl Execution {
         registry
             .install(SelectorOperationFactory::default())
             .unwrap();
-        if source.capabilities.iter().any(|offer| {
-            offer.implementation.implementation_id.as_str() == conduitos::flow_zip::IMPLEMENTATION
-        }) {
+        if fragment
+            .placements
+            .iter()
+            .any(|gear| gear.implementation_id.as_str() == conduitos::flow_zip::IMPLEMENTATION)
+        {
             let mut joins = conduitos::flow_zip::FlowZipOperationFactory::default();
-            let value = |name| {
-                let schema = source
-                    .checked
-                    .native_types
-                    .iter()
-                    .find(|ty| ty.name == name)
-                    .unwrap()
-                    .value_type
-                    .clone();
-                let contract = CheckedValueContract::new(
-                    schema.profile().unwrap().value_kind().clone(),
+            // Exact test package specializations; native Zip remains generic.
+            // The immutable Source can contain either public compound. Rebuild
+            // its bounded owner registry for each fresh Plan/kernel, without
+            // assuming every package is the original scorer-transition proof.
+            for (left_name, left_bound, right_name, right_bound) in [
+                (
+                    "LanguageParserScorerSelected",
                     16384,
-                    vec![],
-                )
-                .unwrap();
-                (schema, contract)
-            };
-            let (left, left_contract) = value("LanguageParserScorerSelected");
-            let (right, right_contract) = value("LanguageParserResult");
-            joins
-                .install(&left_contract, &left, &right_contract, &right)
-                .unwrap();
+                    "LanguageParserResult",
+                    16384,
+                ),
+                (
+                    "LanguageDependencyExecutionContext",
+                    conduit_language::dependency_commitment::DEPENDENCY_CONTEXT_MAXIMUM_BYTES,
+                    "LanguageParserBeamCommitResult",
+                    conduit_language::dependency_commitment::DEPENDENCY_RESULT_MAXIMUM_BYTES,
+                ),
+            ] {
+                let value = |name, bound| {
+                    let schema = source
+                        .checked
+                        .native_types
+                        .iter()
+                        .find(|ty| ty.name == name)?
+                        .value_type
+                        .clone();
+                    let contract = CheckedValueContract::new(
+                        schema.profile().ok()?.value_kind().clone(),
+                        bound,
+                        vec![],
+                    )
+                    .ok()?;
+                    Some((schema, contract))
+                };
+                if let (Some((left, left_contract)), Some((right, right_contract))) =
+                    (value(left_name, left_bound), value(right_name, right_bound))
+                {
+                    joins
+                        .install(&left_contract, &left, &right_contract, &right)
+                        .unwrap();
+                }
+            }
             registry.install(joins).unwrap();
         }
         let kernel = KernelCompositeHost::prepare_with_sign_storage(
