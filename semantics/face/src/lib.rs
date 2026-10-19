@@ -258,6 +258,8 @@ mod configured_mask;
 pub use configured_mask::*;
 mod visual_expression_info;
 pub use visual_expression_info::*;
+mod text_entry;
+pub use text_entry::*;
 mod boolean_replacement;
 mod component_recipe;
 pub use boolean_replacement::reversible_boolean_value;

@@ -8,6 +8,7 @@ use sha2::{Digest, Sha256};
 
 mod collections;
 mod fields;
+mod suggestions;
 
 type Events = Vec<(String, ApplicationEventKind)>;
 pub(super) fn project(
@@ -90,6 +91,7 @@ pub(super) fn project(
     };
     projection.node(&view.root)?;
     projection.collections(draft);
+    projection.suggestions(draft);
     let (source_document_id, checked_plot_id, expanded_plot_id, plan_id) = match &basis {
         BirthProjectionBasis::Planned(b) => (
             Some(b.producer_plot.source_document_id.clone()),

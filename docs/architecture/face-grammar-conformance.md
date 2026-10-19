@@ -1030,3 +1030,32 @@ Host Call receives the same bounded Face and returns at most 48 KiB. Graphics co
 conformance evidence, not QEMU, browser, latency, physical or stable acceptance.
 `cargo xtask check input-semantics` includes collection conformance and native
 Mask storage checks alongside the existing text/editor and navigation contracts.
+
+### Atomic text and editable suggestions in development (#6040)
+
+`prepare_face_text_entry` borrows a TextEntry's typed current-value and its exact
+value-change-action. `ComponentSubjectSelector::text_entry` checks this binding
+and a finite suggestion capacity before preparing the Crèche component recipe.
+It does not interpret help prose or maintain a second committed buffer. Native
+current-value projection now uses the same portable association check.
+
+Optional suggestion-source and suggestion-policy facts compose the field with
+an existing collection. Fixed policy requires an exclusive collection bound to
+the same field/action; submitted values must be declared source option bytes.
+Free policy consumes informational candidates and validates replacement bytes
+against the original text action. Candidate identity, display name and typed
+replacement remain distinct. Reading a candidate returns bytes for a local
+draft; only explicit submission constructs an ordinary checked FaceInteraction.
+The owner still validates current Show/revision, availability and domain rules.
+
+The actual Crèche naming field supplies fixed membership. Its Body-name field
+supplies the current source-owned NameSuggestion as one bounded informational
+candidate, while the existing checked action permits custom text. Projection
+never calls suggest(), advances variation or changes the name. The source
+specimen envelope now measures 178,592 JSON bytes at the declared maximum;
+this remains within the separately admitted native input profile.
+
+This is atomic replacement, not revisioned document range editing. Memory
+Lantern continues to use the existing face/editor text/document and text/edit
+contracts. Browser caret/IME behavior, editable popup accessibility, native
+capability limits and full cross-Mask acceptance require their platform proof.

@@ -13,6 +13,8 @@ mod collections;
 mod field_values;
 #[path = "fixtures.rs"]
 mod fixtures;
+#[path = "text_entry_tests.rs"]
+mod text_entries;
 use fixtures::{basis, draft, host_owned_basis};
 fn input(
     draft: &BirthDraft,

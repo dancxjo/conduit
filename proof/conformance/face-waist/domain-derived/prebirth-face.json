@@ -1,5 +1,5 @@
 {
-  "identity": "d49354e19bdd3ddb8b9017925d0db517d744b53188a481ddf7635477e564fd69",
+  "identity": "6356312447af636881cba8682561774856ba71c37650c2eac499346d55036a86",
   "revision": 1,
   "basis": {
     "body_id": null,
@@ -241,6 +241,16 @@
       "identity": "birth/encounter/prebirth-conformance/reviewed-plots/6da1e4365edd4e421790e05c3785e4b36e38032927e2cb9e4f78bb9302976d21",
       "role": "Item",
       "name": "Scratch"
+    },
+    {
+      "identity": "birth/encounter/prebirth-conformance/name-suggestions",
+      "role": "Collection",
+      "name": "Suggested Body names"
+    },
+    {
+      "identity": "birth/encounter/prebirth-conformance/name-suggestions/50fc5b4297255172647aaba56baea29bc2f9b3232460d442cf55d32e7d32d5be",
+      "role": "Item",
+      "name": "Gon\u00e7alo Pacheco Guerreiro"
     }
   ],
   "relationships": [
@@ -464,6 +474,16 @@
     {
       "source": "birth/encounter/prebirth-conformance/reviewed-plots",
       "target": "birth/encounter/prebirth-conformance/reviewed-plots/6da1e4365edd4e421790e05c3785e4b36e38032927e2cb9e4f78bb9302976d21",
+      "kind": "Contains"
+    },
+    {
+      "source": "birth/encounter/prebirth-conformance/body-name",
+      "target": "birth/encounter/prebirth-conformance/name-suggestions",
+      "kind": "Contains"
+    },
+    {
+      "source": "birth/encounter/prebirth-conformance/name-suggestions",
+      "target": "birth/encounter/prebirth-conformance/name-suggestions/50fc5b4297255172647aaba56baea29bc2f9b3232460d442cf55d32e7d32d5be",
       "kind": "Contains"
     }
   ],
@@ -1877,6 +1897,89 @@
       }
     },
     {
+      "subject": "birth/encounter/prebirth-conformance/name-system",
+      "name": "suggestion-source",
+      "value": {
+        "Identity": "birth/encounter/prebirth-conformance/name-system/input-details"
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system",
+      "name": "suggestion-policy",
+      "value": {
+        "Text": "fixed"
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/body-name",
+      "name": "suggestion-source",
+      "value": {
+        "Identity": "birth/encounter/prebirth-conformance/name-suggestions"
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/body-name",
+      "name": "suggestion-policy",
+      "value": {
+        "Text": "free"
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-suggestions",
+      "name": "item-count",
+      "value": {
+        "Count": 1
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-suggestions/50fc5b4297255172647aaba56baea29bc2f9b3232460d442cf55d32e7d32d5be",
+      "name": "order",
+      "value": {
+        "Count": 0
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-suggestions/50fc5b4297255172647aaba56baea29bc2f9b3232460d442cf55d32e7d32d5be",
+      "name": "choice-value",
+      "value": {
+        "TypedValue": {
+          "contract": {
+            "value_kind": "value/text",
+            "maximum_bytes": 64,
+            "constraints": []
+          },
+          "bytes": [
+            71,
+            111,
+            110,
+            195,
+            167,
+            97,
+            108,
+            111,
+            32,
+            80,
+            97,
+            99,
+            104,
+            101,
+            99,
+            111,
+            32,
+            71,
+            117,
+            101,
+            114,
+            114,
+            101,
+            105,
+            114,
+            111
+          ]
+        }
+      }
+    },
+    {
       "subject": "birth/encounter/prebirth-conformance",
       "name": "host-id",
       "value": {
@@ -2555,6 +2658,14 @@
     },
     {
       "subject": "birth/encounter/prebirth-conformance/reviewed-plots/6da1e4365edd4e421790e05c3785e4b36e38032927e2cb9e4f78bb9302976d21",
+      "level": "SelectedDetail"
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-suggestions",
+      "level": "SelectedDetail"
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-suggestions/50fc5b4297255172647aaba56baea29bc2f9b3232460d442cf55d32e7d32d5be",
       "level": "SelectedDetail"
     }
   ],

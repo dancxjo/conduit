@@ -37,7 +37,7 @@ pub(crate) fn property<'a>(
 ) -> Result<&'a FacePropertyValue, Refusal> {
     optional_property(face, subject, name)?.ok_or(Refusal::MissingFact)
 }
-fn optional_property<'a>(
+pub(crate) fn optional_property<'a>(
     face: &'a Face,
     subject: &str,
     name: &str,
@@ -58,7 +58,7 @@ fn count(face: &Face, subject: &str, name: &str) -> Result<u64, Refusal> {
         _ => Err(Refusal::Type),
     }
 }
-fn identity<'a>(face: &'a Face, subject: &str, name: &str) -> Result<&'a str, Refusal> {
+pub(crate) fn identity<'a>(face: &'a Face, subject: &str, name: &str) -> Result<&'a str, Refusal> {
     match property(face, subject, name)? {
         FacePropertyValue::Identity(id) => Ok(id),
         _ => Err(Refusal::Type),
@@ -70,7 +70,7 @@ fn selected(face: &Face, subject: &str) -> Result<bool, Refusal> {
         _ => Err(Refusal::Type),
     }
 }
-fn value<'a>(
+pub(crate) fn value<'a>(
     face: &'a Face,
     subject: &str,
     name: &str,

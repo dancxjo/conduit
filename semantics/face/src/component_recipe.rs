@@ -25,6 +25,7 @@ pub enum ComponentRecipeRefusal {
     SlotAction,
     DuplicateBinding,
     Collection(crate::FaceCollectionRefusal),
+    TextEntry(crate::FaceTextEntryRefusal),
 }
 
 /// Finite references into the supplied immutable Face, not another semantic tree.
@@ -63,6 +64,19 @@ pub fn prepare_component_recipe(
                 ComponentSubjectSelector::Bound(binding) => {
                     if binding.subject() == &subject.identity {
                         crate::component_slots::validate_binding(face, subject, binding)?;
+                        true
+                    } else {
+                        false
+                    }
+                }
+                ComponentSubjectSelector::TextEntry(maximum) => {
+                    if subject.role == FaceRole::TextEntry {
+                        crate::text_entry::prepare_validated_text_entry(
+                            face,
+                            &subject.identity,
+                            usize::from(*maximum),
+                        )
+                        .map_err(ComponentRecipeRefusal::TextEntry)?;
                         true
                     } else {
                         false

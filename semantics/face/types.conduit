@@ -710,6 +710,7 @@ type ComponentSubjectBinding = {
 type ComponentSubjectSelector =
     subject Text <= 256B not in [""]
     | bound ComponentSubjectBinding
+    | text_entry U16 in 0..=64
     | collection {
         mode: Text <= 16B in ["information", "exclusive", "independent"]
         maximum_items: U16 in 1..=64
