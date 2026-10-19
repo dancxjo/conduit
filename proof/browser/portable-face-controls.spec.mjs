@@ -148,7 +148,10 @@ test('Chromium IME preedit is provisional and composition blocks submit', async 
   const protocol = await context.newCDPSession(page);
   await protocol.send('Input.imeSetComposition', { text: '雪', selectionStart: 1, selectionEnd: 1 });
   expect(await revision(page)).toBe(before);
-  await input.evaluate(element => element.dispatchEvent(new CompositionEvent('compositionend', { bubbles: true, composed: true })));
+  await input.evaluate(element => {
+    element.dispatchEvent(new CompositionEvent('compositionend', { bubbles: true, composed: true }));
+    element.dispatchEvent(new InputEvent('input', { bubbles: true, composed: true, isComposing: false }));
+  });
   await input.press('Enter');
   expect(await revision(page)).toBe(before);
   await protocol.send('Input.insertText', { text: '雪' });

@@ -48,6 +48,8 @@ export function attachPortableSuggestions(input, container, { options, policy, c
   input.value = policy === 'fixed' && initial ? initial.name : input.value;
   input.addEventListener('input', event => {
     if (!event.isTrusted) return;
+    // Trusted input also supplies composition truth after native editing.
+    if (typeof event.isComposing === 'boolean') composing = event.isComposing;
     selected = null; onDraft(); if (!composing) open();
   });
   input.addEventListener('compositionstart', event => { if (!event.isTrusted) return; composing = true; close(); });
