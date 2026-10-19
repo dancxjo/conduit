@@ -100,7 +100,7 @@ fn inactive_beam_slots_do_not_acquire_active_token_coverage_requirements() {
         state.relation2().clone(),
         state.relation3().clone(),
         [0; 5],
-        0,
+        1,
         0,
     )
     .unwrap();
