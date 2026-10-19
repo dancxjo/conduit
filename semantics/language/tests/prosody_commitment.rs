@@ -119,7 +119,7 @@ fn supplied_graph_commitments_join_three_placements_and_execute_source_plan_play
             actual.candidate2().clone(),
             actual.candidate3().clone(),
             actual.frontier().clone(),
-            actual.refusal().clone(),
+            *actual.refusal(),
         )
         .unwrap();
         let mismatched = LanguageDependencyExecutionObservation::new(
