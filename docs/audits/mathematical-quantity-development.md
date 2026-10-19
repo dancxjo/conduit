@@ -949,8 +949,8 @@ bytes, ordinary value inspection and refusal of changed bytes. A separate retain
 CLI run exports ten routed values. Independent Python SHA-256 and exact context
 checks verify all ten, including the 11,436-byte mathematical projection record.
 The source and executed binaries are preserved in the local proof custody.
-Workspace formatting passes; full Observatory and strict workspace lint remain
-pending at this checkpoint.
+Workspace formatting and strict workspace all-target Clippy pass. The full
+Observatory suite passes all 56 tests; the final-source CLI suite passes again.
 
 This establishes inspectable byte correlation for the supported routing context.
 Generic report metadata/domain inspection, native/exact general report transport,

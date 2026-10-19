@@ -185,6 +185,17 @@ fn inspect_body(bytes: &[u8]) -> Result<String, String> {
     ))
 }
 
+fn inspect_value(bytes: &[u8]) -> Result<String, String> {
+    let artifact: conduit_observatory::RoutedValueArtifact = serde_json::from_slice(bytes)
+        .map_err(|error| format!("decode routed value artifact: {error}"))?;
+    conduit_observatory::validate_routed_value_artifact(&artifact)?;
+    Ok(format!("Routed value\nSign {}\nPlay {}\nPlan {}\nkind {}\nbytes {}\nbyte correlation verified\nsemantic validation not performed\n",
+        artifact.sign.identity.sign_id.as_str(),
+        artifact.sign.identity.active_play_id.as_ref().unwrap().as_str(),
+        artifact.sign.sign.plan_id.as_ref().unwrap().as_str(),
+        artifact.value_kind.as_str(), artifact.bytes.len()))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -205,15 +216,4 @@ mod tests {
         .unwrap_err();
         assert!(error.starts_with("decode Body biography:"));
     }
-}
-
-fn inspect_value(bytes: &[u8]) -> Result<String, String> {
-    let artifact: conduit_observatory::RoutedValueArtifact = serde_json::from_slice(bytes)
-        .map_err(|error| format!("decode routed value artifact: {error}"))?;
-    conduit_observatory::validate_routed_value_artifact(&artifact)?;
-    Ok(format!("Routed value\nSign {}\nPlay {}\nPlan {}\nkind {}\nbytes {}\nbyte correlation verified\nsemantic validation not performed\n",
-        artifact.sign.identity.sign_id.as_str(),
-        artifact.sign.identity.active_play_id.as_ref().unwrap().as_str(),
-        artifact.sign.sign.plan_id.as_ref().unwrap().as_str(),
-        artifact.value_kind.as_str(), artifact.bytes.len()))
 }
