@@ -60,10 +60,18 @@ impl PreparedTrajectory {
         (&*self.prepared.scheduler as *const prepared::Kernel) as usize
     }
     pub fn run(&mut self, mode: ExecutionMode) -> Option<EncodedResultAndTiming> {
+        self.run_observed(mode, || {}, || {})
+    }
+    pub fn run_observed(
+        &mut self,
+        mode: ExecutionMode,
+        before_play: impl FnOnce(),
+        after_play: impl FnOnce(),
+    ) -> Option<EncodedResultAndTiming> {
         if self.phase != Phase::Prepared {
             return None;
         }
-        let result = execute_prepared(&mut self.prepared, mode, || {}, || {});
+        let result = execute_prepared(&mut self.prepared, mode, before_play, after_play);
         self.phase = if result.is_some() {
             Phase::Produced
         } else {

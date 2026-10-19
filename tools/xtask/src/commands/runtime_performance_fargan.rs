@@ -9,6 +9,7 @@ pub fn run(arguments: &[String], dry_run: bool) -> Result<(), Box<dyn std::error
     let mut fixture = None;
     let mut output = PathBuf::from("target/fargan-runtime-performance");
     let mut repetitions = 3u32;
+    let mut owners = "fresh".to_owned();
     for pair in arguments.chunks(2) {
         let [key, value] = pair else {
             return Err("expected option/value pairs".into());
@@ -17,11 +18,15 @@ pub fn run(arguments: &[String], dry_run: bool) -> Result<(), Box<dyn std::error
             "--fargan-fixture" => fixture = Some(PathBuf::from(value)),
             "--output" => output = value.into(),
             "--repetitions" => repetitions = value.parse()?,
+            "--fargan-owners" => owners = value.clone(),
             _ => return Err(format!("unsupported FARGAN option {key}").into()),
         }
     }
     if !(2..=20).contains(&repetitions) {
         return Err("FARGAN repetitions must be 2..=20".into());
+    }
+    if !matches!(owners.as_str(), "fresh" | "prepared") {
+        return Err("FARGAN owners must be fresh or prepared".into());
     }
     let root = crate::workspace::workspace_root()?;
     let fixture = fixture
@@ -34,7 +39,7 @@ pub fn run(arguments: &[String], dry_run: bool) -> Result<(), Box<dyn std::error
     };
     if dry_run {
         println!(
-            "release FARGAN worker: fixture={}, output={}, repetitions={repetitions}",
+            "release FARGAN worker: fixture={}, output={}, repetitions={repetitions}, owners={owners}",
             fixture.display(),
             output.display()
         );
@@ -83,6 +88,7 @@ pub fn run(arguments: &[String], dry_run: bool) -> Result<(), Box<dyn std::error
         .arg(&fixture)
         .arg(&output)
         .arg(repetitions.to_string())
+        .arg(&owners)
         .current_dir(&root)
         .env("CARGO_BUILD_JOBS", "2")
         .env("CARGO_INCREMENTAL", "0")
@@ -96,7 +102,7 @@ pub fn run(arguments: &[String], dry_run: bool) -> Result<(), Box<dyn std::error
         serde_json::to_vec_pretty(&serde_json::json!({
             "schema":"conduit.fargan-runtime-performance-command@1","git_sha":sha,"final_git_sha":final_sha,
             "source_custody_verified":custody,"conformance_success":true,"worker_success":status.success(),
-            "worker_exit_code":status.code(),"repetitions":repetitions,"artifact_sha256":super::manifest(&output)?
+            "worker_exit_code":status.code(),"repetitions":repetitions,"owners":owners,"artifact_sha256":super::manifest(&output)?
         }))?,
     )?;
     if !custody || !status.success() {
