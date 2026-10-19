@@ -20,7 +20,9 @@ mod value_pair;
 pub use value_pair::PreparedValuePairFactory;
 
 mod local_expression;
+mod native_u64_expression;
 pub use local_expression::{LocalExpressionFactory, PreparedLocalExpressionBack};
+pub use native_u64_expression::PreparedNativeU64ExpressionBack;
 
 mod parsec_combine;
 mod parsec_combine_back;

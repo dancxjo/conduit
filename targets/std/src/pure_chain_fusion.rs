@@ -161,3 +161,32 @@ pub(crate) fn validate_program_profile(
         .map_err(|e| format!("pure-chain refusal: {e:?}"))?;
     Ok(kind)
 }
+
+/// Native word transport for the same checked, local, pure chain. Selection
+/// remains a Planner decision; canonical boundaries and logical Steps survive.
+pub fn native_u64_chain_fusion_offer(
+    authoring: &ExpandedAuthoringPlot,
+    host: &HostAdvertisement,
+) -> Result<(FusionRealizationOffer, Vec<Kind>), String> {
+    let (mut offer, kinds) = pure_chain_fusion_offer(authoring, host)?;
+    for gear in &authoring.expanded.gears {
+        let ConfigurationValue::Text(encoded) = &gear.configuration[0].value else {
+            return Err("native chain program absent".into());
+        };
+        let program = PortableExpressionProgram::from_canonical_hex(encoded)
+            .map_err(|e| format!("native chain program: {e:?}"))?;
+        conduit_plot::PreparedNativeU64Expression::new(&program)
+            .map_err(|e| format!("native chain program: {e:?}"))?;
+    }
+    offer.fusion_id = format!(
+        "std/native-u64-chain/{}",
+        authoring.expanded.expanded_plot_id.as_str()
+    );
+    offer.execution_profile_id = NATIVE_U64_CHAIN_PROFILE.into();
+    offer.implementation_id = NATIVE_U64_CHAIN_IMPLEMENTATION.into();
+    offer.artifact_id = NATIVE_U64_CHAIN_ARTIFACT.into();
+    Ok((offer, kinds))
+}
+pub const NATIVE_U64_CHAIN_PROFILE: &str = "std/native-u64-chain@1";
+pub const NATIVE_U64_CHAIN_IMPLEMENTATION: &str = "std/kernel-native-u64-chain@1";
+pub const NATIVE_U64_CHAIN_ARTIFACT: &str = "conduit-kernel/native-u64-step-chain@1";

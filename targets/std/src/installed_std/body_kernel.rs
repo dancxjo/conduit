@@ -398,7 +398,10 @@ impl<'a> BodyKernel<'a> {
         if scans.iter().any(|scan| scan.back.is_some()) {
             return Err("installed scan has no lowered owner node".into());
         }
-        let tables = KernelTables::prepare(&lowered.partitions.iter().collect::<Vec<_>>())?;
+        let mut tables = KernelTables::prepare(&lowered.partitions.iter().collect::<Vec<_>>())?;
+        for (fragment, partition) in fragments.iter().zip(&lowered.partitions) {
+            tables.bind_fusions(fragment, partition)?;
+        }
         let signs = fore_sign_storage::prepare(sign_items, fore.has_ports())?;
         let typed_record_hosts = fragments
             .iter()

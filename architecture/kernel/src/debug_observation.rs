@@ -147,6 +147,7 @@ pub struct DebugObservationGap {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum DebugObservationRefusal {
+    UnsupportedPhysicalProfile,
     InvalidBounds,
     ObserverAlreadyAttached,
     ObserverDetached,

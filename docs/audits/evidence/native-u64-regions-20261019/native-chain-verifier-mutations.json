@@ -1,0 +1,96 @@
+{
+  "source": "5feaf16031ed29368f9f348b5cbf13c41b5651d2",
+  "semantic_mutations_refused": 15,
+  "results": [
+    {
+      "mutation": "metadata-debug-mode",
+      "refused": true,
+      "reason": "worker metadata",
+      "artifact_hashes_refreshed": true
+    },
+    {
+      "mutation": "source-custody",
+      "refused": true,
+      "reason": "command source custody",
+      "artifact_hashes_refreshed": true
+    },
+    {
+      "mutation": "conformance-refused",
+      "refused": true,
+      "reason": "release conformance",
+      "artifact_hashes_refreshed": true
+    },
+    {
+      "mutation": "source-digest",
+      "refused": true,
+      "reason": "authored Source identity",
+      "artifact_hashes_refreshed": true
+    },
+    {
+      "mutation": "selected-profile",
+      "refused": true,
+      "reason": "selected physical profile",
+      "artifact_hashes_refreshed": true
+    },
+    {
+      "mutation": "typed-meaning",
+      "refused": true,
+      "reason": "paired typed logical meaning",
+      "artifact_hashes_refreshed": true
+    },
+    {
+      "mutation": "canonical-output",
+      "refused": true,
+      "reason": "full ordered canonical outputs",
+      "artifact_hashes_refreshed": true
+    },
+    {
+      "mutation": "transient-retained-sign",
+      "refused": true,
+      "reason": "exact native/canonical fused retained Sign equality",
+      "artifact_hashes_refreshed": true
+    },
+    {
+      "mutation": "missing-required-sign",
+      "refused": true,
+      "reason": "mandatory output evidence",
+      "artifact_hashes_refreshed": true
+    },
+    {
+      "mutation": "storage-growth",
+      "refused": true,
+      "reason": "fixed Play storage",
+      "artifact_hashes_refreshed": true
+    },
+    {
+      "mutation": "hidden-extra-sidecar",
+      "refused": true,
+      "reason": "explicit x86_64 native sidecar charge",
+      "artifact_hashes_refreshed": true
+    },
+    {
+      "mutation": "phase-allocation",
+      "refused": true,
+      "reason": "phase allocation partition allocations",
+      "artifact_hashes_refreshed": true
+    },
+    {
+      "mutation": "missing-cold-phase",
+      "refused": true,
+      "reason": "complete separate cold preparation phases",
+      "artifact_hashes_refreshed": true
+    },
+    {
+      "mutation": "logical-work",
+      "refused": true,
+      "reason": "paired output/work",
+      "artifact_hashes_refreshed": true
+    },
+    {
+      "mutation": "duplicate-profile-row",
+      "refused": true,
+      "reason": "complete unique physical-profile matrix",
+      "artifact_hashes_refreshed": true
+    }
+  ]
+}
