@@ -46,31 +46,30 @@ impl PreparedPortableExpressionEvaluator {
     ) -> Result<Self, Refusal> {
         let mut evaluator = Self::new(program)?;
         let mut count = 0;
-        for boundary in [
+        for contract in [
             &mut evaluator.input_value_contract,
             &mut evaluator.output_value_contract,
-        ] {
-            if let Some(contract) = boundary {
-                if contract
-                    .contract()
-                    .constraints
-                    .iter()
-                    .any(|c| matches!(c, ValueConstraint::NearQuantity { .. }))
-                {
-                    let prepared = PreparedMathematicalNearValueContract::new(
-                        contract.contract(),
-                        requirements,
-                        rounding,
-                        maximum_work,
-                    )
-                    .map_err(|why| {
-                        Refusal::UnsupportedType(alloc::format!(
-                            "mathematical Near contract: {why:?}"
-                        ))
-                    })?;
-                    *contract = PreparedValueContract::Mathematical(Box::new(prepared));
-                    count += 1;
-                }
+        ]
+        .into_iter()
+        .flatten()
+        {
+            if contract
+                .contract()
+                .constraints
+                .iter()
+                .any(|c| matches!(c, ValueConstraint::NearQuantity { .. }))
+            {
+                let prepared = PreparedMathematicalNearValueContract::new(
+                    contract.contract(),
+                    requirements,
+                    rounding,
+                    maximum_work,
+                )
+                .map_err(|why| {
+                    Refusal::UnsupportedType(alloc::format!("mathematical Near contract: {why:?}"))
+                })?;
+                *contract = PreparedValueContract::Mathematical(Box::new(prepared));
+                count += 1;
             }
         }
         if count == 0 {

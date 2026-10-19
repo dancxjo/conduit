@@ -4,7 +4,7 @@ use super::*;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ExpressionValueContractBounds {
     pub maximum_constraints: u64,
-    /// Prepared replay containers and buffers, excluding retained contracts.
+    /// Replay containers and buffers; contract-owned heap payload is separate.
     pub prepared_near_replay_bytes: u64,
     pub maximum_numerical_work: u64,
     pub retained_near_schema_bytes: u64,
