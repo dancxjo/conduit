@@ -101,7 +101,7 @@ impl<L> PreparedCategoricalChannel<L> {
             plot,
             &cap.capability_id,
             definition.internal_plan.clone(),
-            definition.failure_translation.clone(),
+            definition.failure_translation,
         )
         .map_err(|_| Definition)?;
         if rebuilt != definition {
@@ -131,7 +131,7 @@ impl<L> PreparedCategoricalChannel<L> {
             entry,
             catalog,
             definition.internal_plan.clone(),
-            definition.failure_translation.clone(),
+            definition.failure_translation,
         )
         .map_err(|_| Definition)?;
         if rebuilt != definition {
@@ -177,7 +177,7 @@ impl<L> PreparedCategoricalChannel<L> {
         };
         let (factory, mut outlets) = CategoricalOperationFactory::for_plan_with_invocation_outlets(
             &definition.internal_plan,
-            &[profile.clone()],
+            core::slice::from_ref(&profile),
             capacity,
         )
         .map_err(|_| Preparation)?;
@@ -241,12 +241,11 @@ impl<L> PreparedCategoricalChannel<L> {
             Some(Busy)
         } else if self.next == u64::MAX {
             Some(Sequence)
-        } else if exact_input.len() != self.input.encoded.len() {
-            Some(Input)
-        } else if self
-            .input_codec
-            .decode(exact_input, &mut self.input_indices)
-            .is_err()
+        } else if exact_input.len() != self.input.encoded.len()
+            || self
+                .input_codec
+                .decode(exact_input, &mut self.input_indices)
+                .is_err()
         {
             Some(Input)
         } else if !self.outlet.has_capacity() {
@@ -366,6 +365,10 @@ impl<L> PreparedCategoricalChannel<L> {
         }
     }
     /// Recover exact pending custody only by consuming the terminal channel.
+    #[allow(
+        clippy::result_large_err,
+        reason = "Refusal returns ownership of admitted channel storage without allocating"
+    )]
     pub fn into_pending(
         mut self,
     ) -> Result<Option<(L, Option<CommittedCategoricalInvocation>)>, Self> {
