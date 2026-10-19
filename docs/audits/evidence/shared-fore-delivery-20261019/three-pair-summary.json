@@ -1,0 +1,94 @@
+{
+  "schema": "conduit.shared-fore-three-pair-summary@1",
+  "pairs": [
+    "pair-1-comparison.json",
+    "pair-2-comparison.json",
+    "pair-3-comparison.json"
+  ],
+  "fresh_processes": 6,
+  "order": [
+    [
+      "before",
+      "after"
+    ],
+    [
+      "after",
+      "before"
+    ],
+    [
+      "before",
+      "after"
+    ]
+  ],
+  "cpu_affinity": "4",
+  "source_custody": "verified in all6captures; exactfrozenexecutable hashes verified eachrun",
+  "scope": "3process pairs x3repetitions x3Gearcounts. All27comparison rows preserveexact Source/output/orderedkernelSigns/work/capacities. Allocations378->63;requestedbytes2898->1512 per63additionaloutputs. Descriptive timing observations retain allsamples andshow substantial dispersion; no universal throughput percentage asserted.",
+  "timing": {
+    "1": {
+      "full_host_call_ratio": {
+        "per_process_pair_medians": [
+          0.8570974267968057,
+          0.22690542865818686,
+          1.0159989408892174
+        ],
+        "median": 0.8570974267968057,
+        "minimum": 0.22690542865818686,
+        "maximum": 1.0159989408892174
+      },
+      "completion_window_ratio": {
+        "per_process_pair_medians": [
+          0.831242566833859,
+          0.2308684560497174,
+          1.0165348486011927
+        ],
+        "median": 0.831242566833859,
+        "minimum": 0.2308684560497174,
+        "maximum": 1.0165348486011927
+      }
+    },
+    "8": {
+      "full_host_call_ratio": {
+        "per_process_pair_medians": [
+          1.0205530806783603,
+          0.34452221547166517,
+          1.0596054888507718
+        ],
+        "median": 1.0205530806783603,
+        "minimum": 0.34452221547166517,
+        "maximum": 1.0596054888507718
+      },
+      "completion_window_ratio": {
+        "per_process_pair_medians": [
+          1.0035316642093297,
+          0.372107937761865,
+          0.9880614456731012
+        ],
+        "median": 0.9880614456731012,
+        "minimum": 0.372107937761865,
+        "maximum": 1.0035316642093297
+      }
+    },
+    "32": {
+      "full_host_call_ratio": {
+        "per_process_pair_medians": [
+          0.9530745856540932,
+          1.0046620112893847,
+          0.9883453064732688
+        ],
+        "median": 0.9883453064732688,
+        "minimum": 0.9530745856540932,
+        "maximum": 1.0046620112893847
+      },
+      "completion_window_ratio": {
+        "per_process_pair_medians": [
+          0.9472024888682883,
+          0.9861685233946154,
+          0.985895178037036
+        ],
+        "median": 0.985895178037036,
+        "minimum": 0.9472024888682883,
+        "maximum": 0.9861685233946154
+      }
+    }
+  }
+}

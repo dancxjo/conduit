@@ -81,6 +81,13 @@ fn borrowed_flow_acknowledgement_avoids_owned_clone_with_same_kernel_evidence(
             report.kernel.as_ref().unwrap().kernel_sign,
             reference.kernel.as_ref().unwrap().kernel_sign,
         );
+        for (adapter, retained) in owned.values.iter().zip(&reference.external_fore_deliveries) {
+            assert!(std::ptr::eq(&**adapter, &**retained));
+            assert_eq!(adapter.bytes.as_ptr(), retained.bytes.as_ptr());
+        }
+        for pair in reference.external_fore_deliveries.windows(2) {
+            assert!(std::ptr::eq(&*pair[0], &*pair[1]));
+        }
         let owned_window = owned.allocation_window()?;
         let borrowed_window = sink
             .first
@@ -88,13 +95,12 @@ fn borrowed_flow_acknowledgement_avoids_owned_clone_with_same_kernel_evidence(
             .unwrap()
             .interval_to(sink.last.as_ref().unwrap())
             .unwrap();
+        assert_eq!(owned_window.allocations, ITEMS as u64 - 1);
+        assert_eq!(owned_window.reallocations, 0);
+        assert_eq!(owned_window.allocations, borrowed_window.allocations);
         assert_eq!(
-            owned_window.allocations - borrowed_window.allocations,
-            3 * (ITEMS as u64 - 1)
-        );
-        assert_eq!(
-            owned_window.requested_bytes - borrowed_window.requested_bytes,
-            23 * (ITEMS as u64 - 1)
+            owned_window.requested_bytes,
+            borrowed_window.requested_bytes
         );
         println!("Flow allocation window gears={gears}: owned={owned_window:?}, borrowed={borrowed_window:?}");
         sink.refuse = true;

@@ -1,0 +1,21 @@
+{
+  "source": "f2bb3b0b9640c8a9f2ccd2626af817538706c7e5",
+  "compiler": "rustc1.98.1 (48a229cea 2026-09-01)",
+  "profile": "test/debug, debug0, incremental0; allocation proof only, no optimized throughput claim",
+  "workers": [
+    {
+      "scope": "std-tests",
+      "source_executable": "/home/dancxjo/src/conduit/target/debug/deps/conduit_std_host-7beab61390a47458",
+      "retained": "/home/dancxjo/Documents/Codex/2026-10-18/goal-optimize-performance-referenced-pasted-text/work/shared-fore-std-tests",
+      "sha256": "d6fbb29ddc2f59ec4e3feef5c1faa4757e62ac6f17869a2cd7220542cb602d69",
+      "bytes": 174881808
+    },
+    {
+      "scope": "runtime-tests",
+      "source_executable": "/home/dancxjo/src/conduit/target/debug/deps/conduit_runtime_performance-4b9c489ab8613b7b",
+      "retained": "/home/dancxjo/Documents/Codex/2026-10-18/goal-optimize-performance-referenced-pasted-text/work/shared-fore-runtime-tests",
+      "sha256": "d0e49e11e6214ab0bbdd27ba4886f4c031a40811d198ef8001e75b6f45e9e4b1",
+      "bytes": 74043864
+    }
+  ]
+}

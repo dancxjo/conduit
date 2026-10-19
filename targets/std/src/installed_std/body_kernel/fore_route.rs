@@ -126,14 +126,16 @@ impl<'a> BodyForeRoute<'a> {
                 .filter(|bytes| *bytes <= 16 * 1024 * 1024)
                 .ok_or("Body Fore delivery byte capacity exceeded")?;
             let mut available = Vec::with_capacity(count);
+            let identity = std::sync::Arc::new(crate::ExternalForeIdentity {
+                front_port_id: port.front_port_id.clone(),
+                track: port.track,
+                value_kind: port.value_kind.clone(),
+            });
             for _ in 0..count {
-                available.push(ExternalForeDelivery {
-                    front_port_id: port.front_port_id.clone(),
-                    track: port.track,
-                    value_kind: port.value_kind.clone(),
-                    sequence: 0,
-                    bytes: Vec::with_capacity(port.byte_capacity as usize),
-                });
+                available.push(ExternalForeDelivery::prepared(
+                    identity.clone(),
+                    port.byte_capacity as usize,
+                ));
             }
             output_slots.push(OutputSlots {
                 port: port.clone(),
@@ -255,9 +257,7 @@ impl<'a> BodyForeRoute<'a> {
                     .available
                     .pop()
                     .ok_or("Body Fore delivery slots exhausted")?;
-                delivery.sequence = offer.sequence;
-                delivery.bytes.clear();
-                delivery.bytes.extend_from_slice(bytes);
+                delivery.fill_prepared(offer.sequence, bytes)?;
                 output
                     .as_deref_mut()
                     .ok_or("Body Fore output adapter lost")?

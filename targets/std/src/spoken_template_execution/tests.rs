@@ -1,13 +1,13 @@
 use super::*;
 
 fn delivery(port: &str, sequence: u64) -> ExternalForeDelivery {
-    ExternalForeDelivery {
-        front_port_id: port_id(port),
-        track: ConnectionTrack::Payload,
-        value_kind: conduit_face::SHOW_VALUE_KIND.into(),
+    ExternalForeDelivery::new(
+        port_id(port),
+        ConnectionTrack::Payload,
+        conduit_face::SHOW_VALUE_KIND.into(),
         sequence,
-        bytes: vec![],
-    }
+        vec![],
+    )
 }
 
 #[test]
@@ -17,8 +17,13 @@ fn opening_collector_refuses_wrong_fore_and_duplicate_without_replacing_actual_d
     assert!(capture.0.is_none());
     assert!(capture.deliver(delivery("show", 1)).is_err());
     assert!(capture.0.is_none());
-    let mut wrong_kind = delivery("show", 0);
-    wrong_kind.value_kind = "value/text".into();
+    let wrong_kind = ExternalForeDelivery::new(
+        port_id("show"),
+        ConnectionTrack::Payload,
+        "value/text".into(),
+        0,
+        vec![],
+    );
     assert!(capture.deliver(wrong_kind).is_err());
     assert!(capture.0.is_none());
     capture.deliver(delivery("show", 0)).unwrap();

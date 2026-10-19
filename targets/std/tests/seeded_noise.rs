@@ -19,7 +19,7 @@ impl TimerAdapter for NoTimer {
     }
 }
 #[derive(Default)]
-struct Outputs(Vec<Vec<u8>>);
+struct Outputs(Vec<conduit_std_host::ExternalForeBytes>);
 impl ExternalForeOutputAdapter for Outputs {
     fn deliver(&mut self, value: ExternalForeDelivery) -> Result<(), String> {
         if value.track == ConnectionTrack::Payload {
@@ -196,7 +196,7 @@ fn run(host: &mut StdHost, plan: &conduit_core::Plan, inputs: Vec<Vec<u8>>) -> V
         .kernel_sign
         .iter()
         .any(|event| event.kind == conduit_kernel::KernelEventKind::HostCallCompleted));
-    output.0
+    output.0.into_iter().map(|bytes| bytes.to_vec()).collect()
 }
 
 fn reference(word: i32) -> i32 {

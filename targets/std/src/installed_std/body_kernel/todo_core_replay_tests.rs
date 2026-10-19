@@ -16,7 +16,7 @@ impl TimerAdapter for NoTimer {
 }
 
 #[derive(Default)]
-struct States(Vec<Vec<u8>>);
+struct States(Vec<crate::ExternalForeBytes>);
 impl BodyForeOutputAdapter for States {
     fn deliver(&mut self, output: &ExternalForeDelivery) -> Result<(), String> {
         assert_eq!(output.front_port_id, port_id("states"));
@@ -28,7 +28,7 @@ impl BodyForeOutputAdapter for States {
 }
 
 struct Replay {
-    states: Vec<Vec<u8>>,
+    states: Vec<crate::ExternalForeBytes>,
     terminal: TerminalDisposition,
     receipt: Value,
 }

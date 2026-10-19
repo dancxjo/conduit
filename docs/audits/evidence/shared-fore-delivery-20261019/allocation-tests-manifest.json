@@ -1,0 +1,34 @@
+{
+  "archive": "allocation-tests.tar.xz",
+  "sha256": "9a70b2aeb4b2beb6a2ce43dca3bee36a678c510f3d42e5287a6341cc20ca73cb",
+  "members": {
+    "flow-shared-allocation-run-3.log": {
+      "sha256": "cbecd85b3e9308f689eb32c5c21bc02e122399b901348fdfec2ba49be52ca823",
+      "bytes": 904
+    },
+    "workers.json": {
+      "sha256": "d17c1b1c2cd230b8b21f52d477a9c211445e516842a0bea0d8052b51d77f748f",
+      "bytes": 1043
+    },
+    "runtime-tests.log": {
+      "sha256": "eea0dbeab664307e62675d51a6fa75a1fc23febcaa4ca39697bd66b8dfb4d232",
+      "bytes": 16490
+    },
+    "workspace-clippy.log": {
+      "sha256": "4b330ea4208daa1ccedb6c09119a1016b313e437795508d23775d87ec15d240f",
+      "bytes": 14009
+    },
+    "flow-shared-allocation-run-1.log": {
+      "sha256": "cbecd85b3e9308f689eb32c5c21bc02e122399b901348fdfec2ba49be52ca823",
+      "bytes": 904
+    },
+    "flow-shared-fore-tests.log": {
+      "sha256": "4b2257d29c1a8d510141e98c8626abd7e150e30eba791dae23b99ba1a45b5294",
+      "bytes": 75217
+    },
+    "flow-shared-allocation-run-2.log": {
+      "sha256": "4806bad9313aa002d63624d113c07f7d247bca8eff8c75fb3e8f8c7a198deb25",
+      "bytes": 904
+    }
+  }
+}

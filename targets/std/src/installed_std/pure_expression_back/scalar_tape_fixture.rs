@@ -14,7 +14,7 @@ impl TimerAdapter for NoTimer {
     }
 }
 #[derive(Default)]
-pub(crate) struct Outputs(pub(crate) Vec<Vec<u8>>);
+pub(crate) struct Outputs(pub(crate) Vec<crate::ExternalForeBytes>);
 impl ExternalForeOutputAdapter for Outputs {
     fn deliver(&mut self, value: ExternalForeDelivery) -> Result<(), String> {
         if value.track == ConnectionTrack::Payload {

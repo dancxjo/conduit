@@ -54,7 +54,7 @@ mod near_back;
 mod numerical_back;
 pub(crate) use ieee_back::{offer as ieee_offer, owns_offer as owns_ieee_offer};
 pub(crate) use near_back::{offers as near_offers, owns_offer as owns_near_offer};
-mod value_fore_outputs;
+mod fore_outputs;
 pub(crate) use numerical_back::{offers as numerical_offers, owns_offer as owns_numerical_offer};
 pub(crate) mod parsec_instruction_source_admission;
 pub(crate) mod parsec_instruction_source_back;
@@ -483,8 +483,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
             .count()
             .saturating_mul(usize::from(external_input_items)),
     );
-    let mut prepared_value_fore_outputs =
-        value_fore_outputs::PreparedValueForeOutputs::prepare(&lowered.fore_ports);
+    let mut prepared_fore_outputs = fore_outputs::PreparedForeOutputs::prepare(&lowered.fore_ports);
     fore_inputs.start(&mut scheduler)?;
     if lowered
         .fore_ports
@@ -831,16 +830,11 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 let (delivery, adapter_delivery) =
                     if planned.temporal == conduit_core::PortTemporal::Value {
                         let (report, adapter) =
-                            prepared_value_fore_outputs.take(planned, offer.sequence, borrowed)?;
+                            prepared_fore_outputs.take(planned, offer.sequence, borrowed)?;
                         (report, Some(adapter))
                     } else {
-                        let delivery = crate::ExternalForeDelivery {
-                            front_port_id: planned.front_port_id.clone(),
-                            track: planned.track,
-                            value_kind: planned.value_kind.clone(),
-                            sequence: offer.sequence,
-                            bytes: borrowed.to_vec(),
-                        };
+                        let delivery =
+                            prepared_fore_outputs.stream(planned, offer.sequence, borrowed)?;
                         (delivery, None)
                     };
                 let adapter = &mut external_fore

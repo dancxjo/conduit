@@ -74,8 +74,24 @@ fn ordinary_checked_pipelines_keep_equal_work_and_exact_boot_custody() -> Result
         for alteration in 0..4 {
             let mut changed = collector.values.clone();
             match alteration {
-                0 => changed[0].value_kind = conduit_core::kind_id("value/i64"),
-                1 => changed[0].front_port_id = "foreign-output".into(),
+                0 | 1 => {
+                    let original = &changed[0];
+                    changed[0] = ExternalForeDelivery::new(
+                        if alteration == 1 {
+                            "foreign-output".into()
+                        } else {
+                            original.front_port_id.clone()
+                        },
+                        original.track,
+                        if alteration == 0 {
+                            conduit_core::kind_id("value/i64")
+                        } else {
+                            original.value_kind.clone()
+                        },
+                        original.sequence,
+                        original.bytes.clone(),
+                    );
+                }
                 2 => changed[0].sequence = 1,
                 _ => changed.swap(0, 1),
             }
