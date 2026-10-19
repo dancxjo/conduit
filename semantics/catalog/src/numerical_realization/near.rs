@@ -225,6 +225,39 @@ mod tests {
         }
     }
     #[test]
+    fn qualified_identity_cannot_retag_a_known_physical_source() {
+        let mut startup = StartupCatalog::new();
+        let mut profile = ProfileCatalog::new();
+        install_numerical_catalogs(&mut startup, &mut profile).unwrap();
+        for output in ["Distance near 0.01m", "Duration near 0.01s"] {
+            let source = format!(
+                "plot refuse (\n >> value: Frequency near 0.01Hz\n result: {output} >>\n) = .\n"
+            );
+            let checked = conduit_plot::check_syntax_document(
+                &conduit_plot::parse_syntax_document(&source),
+                &startup,
+            )
+            .unwrap();
+            let refusal =
+                conduit_plot::expand_canonical_plot_for_authoring(&checked, "refuse", &profile)
+                    .unwrap_err();
+            assert_eq!(refusal.code, "CND-FRM-046");
+            assert!(refusal.message.contains("qualified physical source Kind"));
+        }
+        let source = "plot frequency (\n >> value: Frequency near 0.01Hz\n result: Frequency near 0.01Hz >>\n) = .\nplot distance (\n >> value: Distance near 0.01m\n result: Distance near 0.01m >>\n) = .\nplot main (\n >> value: Frequency near 0.01Hz\n result: Distance near 0.01m >>\n) {\n first: frequency\n second: distance\n value >> first.value\n first.result >> second.value\n second.result >> result\n}\n";
+        let checked = conduit_plot::check_syntax_document(
+            &conduit_plot::parse_syntax_document(source),
+            &startup,
+        )
+        .unwrap();
+        let refusal = conduit_plot::expand_canonical_plot_for_authoring(&checked, "main", &profile)
+            .unwrap_err();
+        assert_eq!(refusal.code, "CND-FRM-045");
+        assert!(refusal
+            .message
+            .contains("incompatible physical source Kinds"));
+    }
+    #[test]
     fn qualified_fore_never_implicitly_becomes_exact_or_accepts_invalid_tolerance() {
         let mut startup = StartupCatalog::new();
         let mut profile = ProfileCatalog::new();

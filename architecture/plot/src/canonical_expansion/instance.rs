@@ -276,6 +276,7 @@ pub(super) fn expand_instance_inner(
     }
     validate_front_bindings(plot, &inputs, &outputs)?;
     qualified_front::validate(plot, &inputs, &outputs, &gears)?;
+    qualified_front::validate_connections(&gears, &connections)?;
     if let Some((input, output)) = &plot.shorthand {
         if !inputs.contains_key(input) || !outputs.contains_key(output) {
             return Err(CanonicalExpansionDiagnostic::new(
