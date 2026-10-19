@@ -123,6 +123,8 @@ fn main() {
     let authoring_bytes =
         postcard::to_allocvec(&(semantic.source_document_id.as_str(), authoring_types))
             .expect("compiled Types encode");
+    assert!(authoring_bytes.len() <= authoring_types::MAXIMUM_AUTHORING_BYTES);
+    let authoring_bytes = miniz_oxide::deflate::compress_to_vec_zlib(&authoring_bytes, 9);
     assert_eq!(
         authoring_types::decode(&authoring_bytes, semantic.source_document_id.as_str())
             .expect("compiled Types decode"),
