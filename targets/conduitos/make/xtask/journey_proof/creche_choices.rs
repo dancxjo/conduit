@@ -30,9 +30,14 @@ pub(super) fn exercise(
             frame,
             |text| Ok(face_correspondence::records(text, "CONDUIT_CRECHE_CHANGE ")?.len() > before),
         )?;
-        validate(&fs::read_to_string(serial).map_err(io_error)?, expected)?;
+        validate(
+            &fs::read_to_string(serial).map_err(io_error)?,
+            "creche.plot.0",
+            expected,
+        )?;
         artifacts.capture(stream, reader, frame, true)?;
     }
+    super::creche_pointer::exercise(serial, child, stream, reader, artifacts)?;
     navigate_to(
         serial,
         child,
@@ -45,7 +50,7 @@ pub(super) fn exercise(
     Ok(())
 }
 
-fn navigate_to(
+pub(super) fn navigate_to(
     serial: &Path,
     child: &mut Child,
     stream: &mut UnixStream,
@@ -114,11 +119,24 @@ fn navigate_to(
     ))
 }
 
-fn validate(serial: &str, expected: bool) -> Result<Value, ConduitosError> {
+pub(super) fn validate(
+    serial: &str,
+    action_id: &str,
+    expected: bool,
+) -> Result<Value, ConduitosError> {
     let changes = face_correspondence::records(serial, "CONDUIT_CRECHE_CHANGE ")?;
     let change = changes
         .last()
         .ok_or_else(|| refusal("missing accepted Crèche edit"))?;
+    validate_change(serial, change, action_id, expected)
+}
+
+pub(super) fn validate_change(
+    serial: &str,
+    change: &Value,
+    action_id: &str,
+    expected: bool,
+) -> Result<Value, ConduitosError> {
     let faces = face_correspondence::records(serial, "CONDUIT_NATIVE_FACE ")?;
     let find = |side: &str| -> Result<&Value, ConduitosError> {
         faces
@@ -143,7 +161,7 @@ fn validate(serial: &str, expected: bool) -> Result<Value, ConduitosError> {
         .actions
         .iter()
         .find(|a| {
-            a.identity == "creche.plot.0"
+            a.identity == action_id
                 && a.identity == interaction.action_id
                 && a.target == interaction.target
                 && a.availability.is_available()

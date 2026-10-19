@@ -4,7 +4,9 @@ use conduit_human::KeyEvent;
 use conduit_semantic_catalog::KEYBOARD_MAX_QUEUE_ITEMS;
 
 mod product;
-pub use product::{ProductInputControl, ProductInputEvent, run_product, run_ps2_product};
+pub use product::{
+    ProductInputControl, ProductInputEvent, run_product, run_product_with_pointer, run_ps2_product,
+};
 
 use crate::{
     arch::{HidKeyTransition, HidKeyboardSession, UsbDevice, XhciReady},

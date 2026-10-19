@@ -25,6 +25,38 @@ impl NativeFaceMask {
         self.accept_scene_input(result, display)
     }
 
+    /// Move the admitted cursor over this acknowledged Show without making a
+    /// semantic input occurrence or changing action focus.
+    pub fn pointer_motion(
+        &mut self,
+        x: u32,
+        y: u32,
+        display: &mut impl PixelTarget,
+    ) -> Result<(), NativeFaceMaskError> {
+        let show = self
+            .session
+            .as_ref()
+            .ok_or(NativeFaceMaskError::Face)?
+            .show();
+        let route = self
+            .compositor
+            .route_pointer(x, y, false)
+            .map_err(NativeFaceMaskError::Compositor)?;
+        if let InputRoute::Delivered(route) = route {
+            self.compositor
+                .validate_pointer_route(&route)
+                .map_err(NativeFaceMaskError::Compositor)?;
+            if route.manifestation_id != show.show.manifestation_id {
+                return Err(NativeFaceMaskError::Face);
+            }
+        }
+        if let Err(error) = self.compositor.compose_frame(display) {
+            self.session.take();
+            return Err(NativeFaceMaskError::Compositor(error));
+        }
+        Ok(())
+    }
+
     pub fn pointer(
         &mut self,
         x: u32,

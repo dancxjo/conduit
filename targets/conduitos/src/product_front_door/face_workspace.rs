@@ -479,3 +479,5 @@ mod continuity_tests;
 #[cfg(test)]
 #[path = "face_workspace_editor_admission_tests.rs"]
 mod editor_admission_tests;
+
+mod pointer;

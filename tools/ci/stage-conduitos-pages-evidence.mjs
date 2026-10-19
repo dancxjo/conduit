@@ -8,11 +8,15 @@ import { isDeepStrictEqual } from 'node:util';
 import { cp, mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { validateNativeTextEditReceipt } from './conduitos-text-edit-receipt.mjs';
+import { validateNativePointerReceipt } from './conduitos-pointer-receipt.mjs';
 
 const STEPS = Object.freeze([
   step('front-door-ready', 'Arrive at Crèche', 'Crèche is open before any Body exists.', 'The user sees a name field and locally available Plots.', 'A fresh Host and Boot have presented the first Face.', 'First boot'),
   step('creche-three-selected', 'Change a checked Plot', 'Three starting Plots are selected.', 'The user focuses the first Plot and presses Space.', 'The current typed Boolean action is accepted by Birth and a fresh Show displays its new value.', 'Tab to Plot · Space'),
   step('creche-four-restored', 'Restore the Plot', 'All four starting Plots are selected again.', 'The user presses Enter on the same checked source action.', 'A new current Show supplies the restored selection before Birth.', 'Enter'),
+  step('creche-fourth-checked', 'Reach the fourth checked Plot', 'The fourth named checkbox is checked on its disclosed page.', 'The user follows keyboard focus to the fourth Plot.', 'The same checked Source inventory remains reachable across pages.', 'Tab to the fourth Plot'),
+  step('creche-pointer-three-selected', 'Click a checked Plot', 'Three Plots remain selected after a real mouse press.', 'The user moves the mouse to the observed checkbox and presses its primary button.', 'A typed Boolean false reaches the Source owner; held motion across the fresh Show causes no duplicate edit.', 'Move mouse · press'),
+  step('creche-pointer-four-restored', 'Restore with a fresh click', 'Four Plots are selected again.', 'The user releases, then presses the same control again.', 'A new typed Boolean true is accepted through the current Show.', 'Release · press · release'),
   step('body-born', 'Birth a Body', 'The selected Body is born and resting.', 'The user activates Birth after reviewing the Crèche Face.', 'Birth retains the Body without silently starting a Play.', 'Birth'),
   step('body-woken', 'Wake it', 'The same Body has accepted Wake.', 'The user presses F4.', 'Wake is a distinct lifecycle transition.', 'F4'),
   step('wake-refused', 'Refuse an unavailable Wake', 'The current refusal remains inspectable after the application surface returns.', 'The user presses F4 again while the Body is already Awake.', 'The owner refuses the unavailable action without changing the Body or its lifecycle state.', 'F4', false),
@@ -118,7 +122,7 @@ const cardPath = path.join(siteRoot, 'journeys/index.html');
 const marker = '<!-- conduit-conduitos-journey-card@1 -->';
 const html = await readFile(cardPath, 'utf8');
 if (html.split(marker).length !== 2) throw new Error('Journeys index needs one ConduitOS card slot');
-const card = `<article class="journey-card"><p class="eyebrow">ConduitOS · QEMU · ${STEPS.length} captured steps</p><h2>Birth, Play, and inspect a Body</h2><p>Follow actual keyboard actions from Crèche into Patchbay and its live diagram.</p><p><a href="current/conduitos/x86_64/">Follow the ConduitOS journey</a></p></article>`;
+const card = `<article class="journey-card"><p class="eyebrow">ConduitOS · QEMU · ${STEPS.length} captured steps</p><h2>Birth, Play, and inspect a Body</h2><p>Follow actual keyboard and mouse actions from Crèche into Patchbay and its live diagram.</p><p><a href="current/conduitos/x86_64/">Follow the ConduitOS journey</a></p></article>`;
 await writeFile(cardPath, html.replace(marker, card));
 const publicationPath = path.join(siteRoot, 'site-publication.json');
 const publication = JSON.parse(await readFile(publicationPath, 'utf8'));
@@ -134,7 +138,7 @@ await writeFile(publicationPath, JSON.stringify(publication, null, 2) + '\n');
 
 async function writeJourney(root, home, title) {
   const steps = STEPS.map((entry, index) => `<li class="journey-step" id="${entry.name}"><h2>${escape(entry.title)}</h2><p><strong>You do:</strong> ${escape(entry.action)}. ${escape(entry.happened)}</p><p>${escape(entry.seeing)}</p><figure><a href="${entry.name}.png"><img src="${entry.name}.png" alt="${escape(entry.seeing)}" loading="${index === 0 ? 'eager' : 'lazy'}"></a><figcaption>Captured from the same QMP guest after this action.</figcaption></figure><p><strong>What changed:</strong> ${escape(entry.proves)}</p></li>`).join('');
-  const body = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title} · Conduit</title><style>${styles}</style></head><body data-application-look="conduit.look/phosphor@1">${navigation}<main class="site-content"><p><a href="${home}">All journeys</a> · <a href="/conduit/workspace/">Open Conduit</a> · <a href="/conduit/handbook/">Handbook</a></p><p class="eyebrow">Freestanding x86 QEMU · ${STEPS.length} screenshots</p><h1>A Body, its Patchbay, and its Face</h1><p class="lede">Arrive at Crèche, birth a Body, start its work, inspect the live planned graph, and stop it. Each screen was captured from one keyboard-driven guest session.</p><p class="recording-note">Emulator evidence from source <code>${commit}</code>. It does not establish physical hardware operation or human enactment. Semantic pointer input and a source-equivalent installed browser route remain unsupported; parent #5356 acceptance remains open.</p><ol class="journey-steps">${steps}</ol><h2>Reproduce and inspect</h2><p><code>cargo +stable xtask make conduitos graphical-profile-proof</code></p><p><a href="manifest.json">Screenshot provenance</a> · <a href="journey-proof.json">Journey receipt</a> · <a href="console.txt">Journey serial transcript</a> · <a href="journey-qmp.log">Real QMP keyboard input</a> · <a href="native-shell-paired-linear.json">Source Face, native action receipts and paired linear reconstruction</a> · <a href="memory-lantern-native-edit.json">Committed text receipt</a></p></main></body></html>`;
+  const body = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title} · Conduit</title><style>${styles}</style></head><body data-application-look="conduit.look/phosphor@1">${navigation}<main class="site-content"><p><a href="${home}">All journeys</a> · <a href="/conduit/workspace/">Open Conduit</a> · <a href="/conduit/handbook/">Handbook</a></p><p class="eyebrow">Freestanding x86 QEMU · ${STEPS.length} screenshots</p><h1>A Body, its Patchbay, and its Face</h1><p class="lede">Arrive at Crèche, birth a Body, start its work, inspect the live planned graph, and stop it. Each screen was captured from one guest session using the keyboard and mouse.</p><p class="recording-note">Emulator evidence from source <code>${commit}</code>. It does not establish physical hardware operation or human enactment. Crèche checkbox pointer actions are enacted; other pointer entrances and a source-equivalent installed browser route remain unsupported; parent #5356 acceptance remains open.</p><ol class="journey-steps">${steps}</ol><h2>Reproduce and inspect</h2><p><code>cargo +stable xtask make conduitos graphical-profile-proof</code></p><p><a href="manifest.json">Screenshot provenance</a> · <a href="journey-proof.json">Journey receipt</a> · <a href="console.txt">Journey serial transcript</a> · <a href="journey-qmp.log">Real QMP keyboard and mouse input</a> · <a href="native-shell-paired-linear.json">Source Face, native action receipts and paired linear reconstruction</a> · <a href="memory-lantern-native-edit.json">Committed text receipt</a></p></main></body></html>`;
   await writeFile(path.join(root, 'index.html'), body);
 }
 
@@ -155,8 +159,10 @@ function validatePaired(paired, proof, serial) {
     || paired.image_sha256 !== proof.image_sha256 || paired.body_id !== proof.body_id
     || paired.screenshots !== 'journey-frames/manifest.json'
     || paired.birth_count !== 1 || !Array.isArray(paired.actions) || !Array.isArray(paired.paired_faces)
-    || paired.pointer?.status !== 'unsupported' || paired.browser?.status !== 'unsupported'
+    || paired.pointer?.status !== 'passed' || paired.browser?.status !== 'unsupported'
     || paired.parent_5356_acceptance !== 'open' || paired.physical_evidence !== false || paired.human_enactment !== false) fail();
+  if (!isDeepStrictEqual(paired.pointer, proof.pointer_actions)) fail();
+  validateNativePointerReceipt(paired.pointer, serial);
   const records = prefix => serial.split('\n').filter(line => line.startsWith(prefix))
     .map(line => JSON.parse(line.slice(prefix.length)));
   const faces = records('CONDUIT_NATIVE_FACE ');

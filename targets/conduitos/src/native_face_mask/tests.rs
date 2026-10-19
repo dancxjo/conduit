@@ -427,3 +427,6 @@ fn stale_scene_input_redraws_a_notice_and_preserves_the_refusal() {
             .any(|command| command.payload() == "Stale: refresh")
     );
 }
+
+#[path = "pointer_motion_tests.rs"]
+mod pointer_motion;
