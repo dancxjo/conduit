@@ -132,6 +132,10 @@
         {
           "role": "creche-plot-selection",
           "specifier": "./reviewed-plot-selection.mjs"
+        },
+        {
+          "role": "portable-creche-face",
+          "specifier": "./portable-creche-face.mjs"
         }
       ]
     },
@@ -635,6 +639,10 @@
       "path": "workspace-surface.mjs",
       "maximum_bytes": 4096,
       "dependencies": []
-    }
+    },
+    {"role":"portable-creche-face","kind":"module","path":"portable-creche-face.mjs","maximum_bytes":16384,"dependencies":[{"role":"portable-face-controls","specifier":"../../../targets/browser/host/assets/portable-face-controls.mjs"}]},
+    {"role":"portable-face-controls","kind":"module","path":"portable-face-controls.mjs","maximum_bytes":16384,"dependencies":[{"role":"portable-face-model","specifier":"./portable-face-model.mjs"},{"role":"portable-face-combobox","specifier":"./portable-face-combobox.mjs"}],"source":"../host/assets/portable-face-controls.mjs"},
+    {"role":"portable-face-model","kind":"module","path":"portable-face-model.mjs","maximum_bytes":16384,"dependencies":[],"source":"../host/assets/portable-face-model.mjs"},
+    {"role":"portable-face-combobox","kind":"module","path":"portable-face-combobox.mjs","maximum_bytes":16384,"dependencies":[],"source":"../host/assets/portable-face-combobox.mjs"}
   ]
 }

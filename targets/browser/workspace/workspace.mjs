@@ -44,6 +44,7 @@ export async function startApplication(application) {
     const host = Object.freeze({
       ...initializedHost,
       admitProfileGatedBrowserBoot: application.admitProfileGatedBrowserBoot,
+      admitPortableFaceComponent: application.admitPortableFaceComponent,
       releaseCatalogSource,
       releaseArtifactCache,
       async resolveReviewedRelease(profile, signal) {

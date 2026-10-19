@@ -10,6 +10,7 @@ export async function birthWorkspaceEvidence(page, temporary, friendlyName, titl
     await page.goto(workspace.url);
     const birth = page.locator(".body-birth-runner");
     await birth.getByLabel("Friendly Body name", { exact: true }).fill(friendlyName);
+    await page.getByRole("button", { name: "Edit Body name", exact: true }).click();
     for (const checkbox of await birth.getByRole("checkbox").all()) {
       if (await checkbox.isChecked()) await checkbox.uncheck();
     }

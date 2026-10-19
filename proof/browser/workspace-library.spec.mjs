@@ -21,6 +21,7 @@ async function birth(page) {
   const chime = page.getByRole("checkbox", { name: "Startup Chime", exact: true });
   await chime.uncheck();
   await page.getByLabel("Friendly Body name", { exact: true }).fill("Roseau");
+  await page.getByRole("button", { name: "Edit Body name", exact: true }).click();
   await page.getByRole("button", { name: "Birth Body", exact: true }).click();
   await page.getByRole("button", { name: "wake body", exact: true }).click();
   await expect(page.locator("[data-play-state]")).toHaveText("Playing");

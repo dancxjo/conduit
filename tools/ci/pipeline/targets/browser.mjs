@@ -13,7 +13,7 @@ import { retainThermostatEvidence } from './thermostat-evidence.mjs';
 // Cross-target deployment tests require another lane's artifacts and are not
 // represented as successful by this lane.
 const SPECS = [
-  'workspace-arrival', 'workspace-birth-naming', 'sdk-external-body-execution',
+  'workspace-arrival', 'workspace-birth-naming', 'portable-face-controls', 'sdk-external-body-execution',
   'workspace-membership', 'workspace-library', 'workspace-resident-applications',
   'workspace-continuity', 'workspace-shared-journey',
   'field-station-clock',
@@ -61,7 +61,7 @@ export function browser(directory) {
     'tools/ci/thermostat-journey.spec.mjs', 'tools/ci/exact-capture-json.spec.mjs',
     ...readdirSync('targets/browser/sdk').filter(name => name.endsWith('.test.mjs')).map(name => `targets/browser/sdk/${name}`),
     'targets/browser/tools/static-application-csp.test.mjs',
-    'proof/browser/application-graph-canvas.test.mjs', ...[
+    'proof/browser/application-graph-canvas.test.mjs', 'proof/browser/portable-face-model.test.mjs', 'proof/browser/portable-component-admission.test.mjs', ...[
     'browser-body-input', 'browser-body-host', 'browser-text-editor', 'workspace-handoff', 'browser-plot-effects',
     'browser-pitch-tone', 'browser-host-calls', 'creche-rendezvous', 'physical-host-workflow',
     'creche-release-catalog',

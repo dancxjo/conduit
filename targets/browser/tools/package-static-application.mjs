@@ -154,7 +154,7 @@ try {
     if (resource.dependencies?.length > 16 || !Number.isSafeInteger(resource.maximum_bytes) || resource.maximum_bytes < 1
       || resource.maximum_bytes > (resource.role === 'runtime' ? 20 : 16) * 1024 * 1024) throw new Error('Application resource exceeds existing bounds');
   }
-  for (const name of ['browser-application-loader.mjs', 'browser-application-sdk.mjs', 'browser-application-storage.mjs', 'application-face.mjs', 'application-graph-canvas.mjs', 'application-look.mjs']) {
+  for (const name of ['portable-component-admission.mjs', 'browser-application-loader.mjs', 'browser-application-sdk.mjs', 'browser-application-storage.mjs', 'application-face.mjs', 'application-graph-canvas.mjs', 'application-look.mjs']) {
     await mkdir(path.join(staging, 'host/assets'), { recursive: true });
     await copyFile(path.join(repository, 'targets/browser/host/assets', name), path.join(staging, 'host/assets', name));
   }

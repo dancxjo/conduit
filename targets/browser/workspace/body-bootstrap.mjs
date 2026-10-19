@@ -1,3 +1,4 @@
+import { createPortableCrecheFace } from "./portable-creche-face.mjs";
 import { attachConduitSyntaxEditor } from "../../../targets/browser/host/assets/application-syntax-face.mjs";
 import {
   encodedPlotSelection,
@@ -45,7 +46,7 @@ export function createBodyBirthRunner({ source, sourceKey, listingId, host, face
     selectionNotice,
   };
   const current = readCurrent(host.runtime);
-  const controls = { face, runtime: host.runtime, listingId, inventory, onContinue, onSelection: onSelection ?? (() => {}), onReview() {
+  const controls = { face, host, runtime: host.runtime, listingId, inventory, onContinue, onSelection: onSelection ?? (() => {}), onReview() {
     review(runner, host, state, controls);
   }, onBirth() {
     review(runner, host, state, controls);
@@ -118,37 +119,33 @@ function applyDraftSnapshot(state, controls, snapshot) {
 function presentBirthControls(runner, state, controls) {
   const { face, runtime, listingId, onSelection, onReview, onBirth } = controls;
   runner.querySelector(".birth-face").hidden = state.terminal;
-  if (state.terminal) return;
-  if (state.draft && state.renderedDraftRevision !== state.draft.revision) {
-    const code = runtime.conduit_creche_birth_draft_view(state.draft.generation);
-    if (code < 0) throw new Error(readOutput(runtime).message ?? `Crèche view refused (${code})`);
-    const view = new Uint8Array(runtime.memory.buffer, runtime.conduit_creche_output_ptr(), runtime.conduit_creche_output_len()).slice();
-    face.present("birth-fields", view, {
-      onEvent(event) {
-        face.nextEvent("birth-fields");
-        try {
-          const snapshot = draftCall(runtime, "conduit_creche_birth_draft_event", {
-            generation: state.draft.generation, revision: event.revision,
-            action: event.action, event: ({ 1: "activate", 2: "change", 3: "input" })[event.kind],
-            value: decoder.decode(event.value),
-          });
-          applyDraftSnapshot(state, controls, snapshot);
-          if (event.action.startsWith("creche.plot.")) {
-            state.review = null;
-            onSelection(state.initialPlots);
-          }
-          if (snapshot.birth_requested) { onBirth(); return; }
-          state.status = "Give it a name. Choose what it wakes with.";
-          state.outcome = "status";
-          presentBirthControls(runner, state, controls);
-        } catch (error) {
-          state.status = error instanceof Error ? error.message : String(error);
-          state.outcome = "failure-status";
-          presentBirthControls(runner, state, controls);
+  if (state.terminal) { controls.portableFace?.retire(); return; }
+  if (!controls.portableFace) {
+    controls.portableFace = createPortableCrecheFace({
+      root: runner.querySelector('[data-application-slot="birth-fields"]'), host: controls.host,
+      onRefusal(error) {
+        state.status = error instanceof Error ? error.message : String(error);
+        state.outcome = "failure-status";
+        presentBirthControls(runner, state, controls);
+      },
+      onSnapshot(snapshot) {
+        state.renderedDraftRevision = undefined;
+        const previousSelection = state.initialPlots.map(plot => plot.checked_plot_id).join("\n");
+        applyDraftSnapshot(state, controls, snapshot);
+        if (previousSelection !== state.initialPlots.map(plot => plot.checked_plot_id).join("\n")) {
+          state.review = null;
+          onSelection(state.initialPlots);
         }
+        if (snapshot.birth_requested) { onBirth(); return; }
+        state.status = "Give it a name. Choose what it wakes with.";
+        state.outcome = "status";
+        presentBirthControls(runner, state, controls);
       },
     });
+  }
+  if (state.draft && state.renderedDraftRevision !== state.draft.revision) {
     state.renderedDraftRevision = state.draft.revision;
+    void controls.portableFace.present(state.draft);
   }
   face.present("birth-feedback", {
     revision: ++state.revision, actions: [],

@@ -56,7 +56,13 @@
       "role": "owner-face-component",
       "kind": "module",
       "path": "owner-face-component.mjs",
-      "maximum_bytes": 65536
+      "maximum_bytes": 65536,
+      "dependencies": [
+        {
+          "role": "portable-face-model",
+          "specifier": "../../../targets/browser/host/assets/portable-face-model.mjs"
+        }
+      ]
     },
     {
       "role": "owner-face-look",
@@ -179,6 +185,14 @@
       "path": "plots/thermostat.conduit",
       "maximum_bytes": 8192,
       "source": "../../../plots/thermostat/main.conduit"
+    },
+    {
+      "role": "portable-face-model",
+      "kind": "module",
+      "path": "portable-face-model.mjs",
+      "source": "../host/assets/portable-face-model.mjs",
+      "maximum_bytes": 8192,
+      "dependencies": []
     }
   ]
 }

@@ -14,15 +14,15 @@ test("Workspace Birth suggestions expose diverse structures while remaining edit
   const birth = page.locator(".body-birth-runner");
   const name = birth.getByLabel("Friendly Body name");
   const tradition = birth.getByLabel("Naming tradition");
-  await expect(birth.locator('[data-application-component="form-field"]')).toHaveCount(4);
-  await expect(birth.locator('[data-application-key="initial-plots"]')).toHaveAttribute("data-application-component", "choice-group");
+  await expect(birth.locator("conduit-portable-face")).toHaveCount(1);
+  await expect(birth.locator(".portable-face-field")).toHaveCount(3);
   for (const checkbox of await birth.getByRole("checkbox").all()) {
     if (await checkbox.isChecked()) await checkbox.uncheck();
   }
   await expect(birth.getByRole("checkbox", { name: "Morse Network" })).not.toBeChecked();
   await birth.getByRole("checkbox", { name: "Memory Lantern" }).check();
   await expect(birth.getByRole("checkbox", { name: "Memory Lantern" })).toBeChecked();
-  await expect(birth.locator('[data-application-key="selected-plots"]')).toHaveText("Selected: 1");
+  await expect(birth.locator('[data-source-status$="/birth-review"]')).toContainText("Starting Plots selected: 1");
   await expect(name).toHaveAttribute("aria-describedby", /\S+/);
   await expect(birth.getByLabel("Conduit Plot source")).toHaveAttribute("aria-describedby", /\S+/);
   await birth.getByText("Details and source", { exact: true }).click();
@@ -49,78 +49,85 @@ test("Workspace Birth suggestions expose diverse structures while remaining edit
   });
   expect(selectedStyle.color).not.toBe("rgba(0, 0, 0, 0)");
   expect(selectedStyle.fill).not.toBe("rgba(0, 0, 0, 0)");
-  await expect(tradition.locator("option")).toHaveCount(24);
+  const selectTradition = async value => {
+    await tradition.fill("");
+    await expect(birth.getByRole("option")).toHaveCount(24);
+    await birth.locator(`[role="option"][data-source-value="${value}"]`).click();
+    await birth.getByRole("button", { name: "Use naming tradition", exact: true }).click();
+    await expect(tradition).toBeEnabled();
+  };
 
-  await tradition.selectOption("chinese");
+  await selectTradition("chinese");
   await expect(name).toHaveValue(/^[\p{Script=Latin}\p{Mark}]+ [\p{Script=Latin}\p{Mark} ]+$/u);
-  await expect(tradition.locator("option:checked")).toContainText("Chinese (romanized, family name first)");
+  await expect(tradition).toHaveValue("Chinese (romanized, family name first)");
 
-  await tradition.selectOption("mexican");
+  await selectTradition("mexican");
   const mexicanParts = (await name.inputValue()).split(" ").length;
   expect(mexicanParts).toBeGreaterThanOrEqual(3);
   expect(mexicanParts).toBeLessThanOrEqual(4);
 
-  await tradition.selectOption("icelandic");
+  await selectTradition("icelandic");
   await expect(name).toHaveValue(/(?:son|dóttir|bur)$/);
 
-  await tradition.selectOption("ukrainian");
+  await selectTradition("ukrainian");
   await expect(name).toHaveValue(/^[\p{Script=Latin}\p{Mark}'-]+ [\p{Script=Latin}\p{Mark}'-]+$/u);
-  await expect(tradition.locator("option:checked")).toContainText("Ukrainian (official romanization)");
+  await expect(tradition).toHaveValue("Ukrainian (official romanization)");
 
-  await tradition.selectOption("ancient-hebrew");
+  await selectTradition("ancient-hebrew");
   await expect(name).toHaveValue(/ (?:ben|bat) /);
 
-  await tradition.selectOption("amharic");
-  await expect(tradition.locator("option:checked")).toContainText("Amharic-style patronymic");
+  await selectTradition("amharic");
+  await expect(tradition).toHaveValue("Amharic-style patronymic");
   expect((await name.inputValue()).split(" ").length).toBeGreaterThanOrEqual(2);
   expect((await name.inputValue()).split(" ").length).toBeLessThanOrEqual(3);
 
-  await tradition.selectOption("portuguese");
-  await expect(tradition.locator("option:checked")).toContainText("Portuguese multi-surname");
+  await selectTradition("portuguese");
+  await expect(tradition).toHaveValue("Portuguese multi-surname");
   expect((await name.inputValue()).split(" ").length).toBeGreaterThanOrEqual(3);
   expect((await name.inputValue()).split(" ").length).toBeLessThanOrEqual(4);
 
-  await tradition.selectOption("tamil");
-  await expect(tradition.locator("option:checked")).toContainText("Tamil patronymic plots");
+  await selectTradition("tamil");
+  await expect(tradition).toHaveValue("Tamil patronymic plots");
   await expect(name).toHaveValue(/^(?:[A-Z]\. |[\p{Script=Latin}\p{Mark}]+ )[\p{Script=Latin}\p{Mark}]+$/u);
 
-  await tradition.selectOption("indonesian");
-  await expect(tradition.locator("option:checked")).toContainText("Indonesian complete personal-name plots");
+  await selectTradition("indonesian");
+  await expect(tradition).toHaveValue("Indonesian complete personal-name plots");
   expect((await name.inputValue()).split(" ").length).toBeGreaterThanOrEqual(1);
   expect((await name.inputValue()).split(" ").length).toBeLessThanOrEqual(2);
 
-  await tradition.selectOption("welsh");
-  await expect(tradition.locator("option:checked")).toContainText("Welsh modern and patronymic plots");
+  await selectTradition("welsh");
+  await expect(tradition).toHaveValue("Welsh modern and patronymic plots");
   expect((await name.inputValue()).split(" ").length).toBeGreaterThanOrEqual(2);
   expect((await name.inputValue()).split(" ").length).toBeLessThanOrEqual(3);
 
-  await tradition.selectOption("kurmanji");
-  await expect(tradition.locator("option:checked")).toContainText("Kurdish Kurmanji (Latin script)");
+  await selectTradition("kurmanji");
+  await expect(tradition).toHaveValue("Kurdish Kurmanji (Latin script)");
   await expect(name).toHaveValue(/^[\p{Script=Latin}\p{Mark}]+ [\p{Script=Latin}\p{Mark}]+$/u);
 
-  await tradition.selectOption("targus");
-  await expect(tradition.locator("option:checked")).toContainText("The TARGUS family");
+  await selectTradition("targus");
+  await expect(tradition).toHaveValue("The TARGUS family");
   await expect(name).toHaveValue("TARGUS TARGUS");
   await birth.getByRole("button", { name: "Suggest another name" }).click();
   await expect(name).toHaveValue("TARGUS TARGUS");
 
   const slot = birth.locator('[data-application-slot="birth-fields"]');
-  const traditionRevision = Number(await slot.getAttribute("data-application-revision"));
-  await tradition.selectOption("kurmanji");
-  await expect(tradition).toHaveValue("kurmanji");
-  expect(Number(await slot.getAttribute("data-application-revision"))).toBeGreaterThan(traditionRevision);
-  const revision = Number(await slot.getAttribute("data-application-revision"));
+  const traditionRevision = Number(await slot.getAttribute("data-portable-face-revision"));
+  await selectTradition("kurmanji");
+  await expect(tradition).toHaveValue("Kurdish Kurmanji (Latin script)");
+  expect(Number(await slot.getAttribute("data-portable-face-revision"))).toBeGreaterThan(traditionRevision);
+  const revision = Number(await slot.getAttribute("data-portable-face-revision"));
   await birth.getByRole("button", { name: "Suggest another name" }).click();
-  expect(Number(await slot.getAttribute("data-application-revision"))).toBeGreaterThan(revision);
+  expect(Number(await slot.getAttribute("data-portable-face-revision"))).toBeGreaterThan(revision);
 
   const birthAction = birth.getByRole("button", { name: "Birth Body", exact: true });
-  const review = birth.locator('[data-application-key="birth-review"]');
+  const review = birth.locator('[data-source-status$="/birth-review"]');
   await expect(name).toHaveAccessibleName("Friendly Body name");
   await expect(tradition).toHaveAccessibleName("Naming tradition");
-  const emptyRevision = Number(await slot.getAttribute("data-application-revision"));
+  const emptyRevision = Number(await slot.getAttribute("data-portable-face-revision"));
   await name.fill("");
+  await birth.getByRole("button", { name: "Edit Body name", exact: true }).click();
   await expect(name).toHaveValue("");
-  expect(Number(await slot.getAttribute("data-application-revision"))).toBeGreaterThan(emptyRevision);
+  expect(Number(await slot.getAttribute("data-portable-face-revision"))).toBeGreaterThan(emptyRevision);
   // BirthDraft::selection refuses an empty name with InvalidName; the
   // Source view formats that exact readiness result and withholds Birth.
   await expect(review).toContainText("Name: (empty).");
@@ -128,10 +135,11 @@ test("Workspace Birth suggestions expose diverse structures while remaining edit
   await expect(birthAction).toBeDisabled();
 
   const unicodeName = "Éléonore 雪";
-  const namedRevision = Number(await slot.getAttribute("data-application-revision"));
+  const namedRevision = Number(await slot.getAttribute("data-portable-face-revision"));
   await name.fill(unicodeName);
+  await birth.getByRole("button", { name: "Edit Body name", exact: true }).click();
   await expect(name).toHaveValue(unicodeName);
-  expect(Number(await slot.getAttribute("data-application-revision"))).toBeGreaterThan(namedRevision);
+  expect(Number(await slot.getAttribute("data-portable-face-revision"))).toBeGreaterThan(namedRevision);
   await expect(review).toContainText(`Name: ${unicodeName}.`);
   await expect(review).toContainText("Birth: available.");
   await expect(birthAction).toBeEnabled();

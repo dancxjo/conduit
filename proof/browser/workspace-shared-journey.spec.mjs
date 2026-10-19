@@ -26,6 +26,7 @@ test('the shared Workspace journey from zero Body through explicit rest and fini
         case 'configure-birth': {
           const birth = page.locator('.body-birth-runner');
           await birth.getByLabel('Friendly Body name', { exact: true }).fill(journey.name);
+  await page.getByRole("button", { name: "Edit Body name", exact: true }).click();
           await birth.getByRole('checkbox', { name: 'Startup Chime', exact: true }).uncheck();
           for (const title of journey.plots) await birth.getByRole('checkbox', { name: title, exact: true }).check();
           await expect(birth.getByRole('checkbox', { checked: true })).toHaveCount(journey.plots.length);

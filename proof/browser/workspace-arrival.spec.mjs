@@ -29,6 +29,7 @@ test("Birth hands off to a Lulled Body; Wake starts listening Plots and reload p
   await expect(birth.getByRole("heading", { name: "A body of your own" })).toBeVisible();
   await expect(birth.getByRole("checkbox", { name: "Memory Lantern", exact: true })).toBeChecked();
   await birth.getByLabel("Friendly Body name", { exact: true }).fill("Roseau");
+  await page.getByRole("button", { name: "Edit Body name", exact: true }).click();
   await birth.getByRole("checkbox", { name: "Desk Telegraph", exact: true }).check();
   await page.screenshot({ path: testInfo.outputPath("workspace-birth.png"), fullPage: true });
   await birth.getByRole("button", { name: "Birth Body", exact: true }).click();
@@ -249,6 +250,7 @@ test("a sound-only Body renders the original cue through real browser audio and 
   await observeRealAudio(page);
   await page.goto(entrance.url);
   await page.getByLabel('Friendly Body name', { exact: true }).fill('Chime');
+  await page.getByRole("button", { name: "Edit Body name", exact: true }).click();
   await page.getByRole('checkbox', { name: 'Memory Lantern', exact: true }).uncheck();
   await page.getByRole('checkbox', { name: 'Tutorial', exact: true }).uncheck();
   await expect(page.getByRole('checkbox', { name: 'Startup Chime', exact: true })).toBeChecked();
@@ -376,10 +378,12 @@ test("Workspace Birth binds naming, search, exact selection, review, and receipt
 
   const name = birth.getByLabel('Friendly Body name', { exact: true });
   const tradition = birth.getByLabel('Naming tradition', { exact: true });
-  await expect(tradition.locator('option')).toHaveCount(24);
-  await tradition.selectOption('roman');
-  await expect(tradition.locator('option:checked')).toContainText('Roman');
+  await tradition.fill('');
+  await birth.locator('[role="option"][data-source-value="roman"]').click();
+  await birth.getByRole('button', { name: 'Use naming tradition', exact: true }).click();
+  await expect(tradition).toHaveValue(/Roman/);
   await name.fill('Juniper Signalhouse');
+  await birth.getByRole('button', { name: 'Edit Body name', exact: true }).click();
   await expect(name).toHaveValue('Juniper Signalhouse');
 
   const memory = birth.getByRole('checkbox', { name: 'Memory Lantern', exact: true });
@@ -387,22 +391,24 @@ test("Workspace Birth binds naming, search, exact selection, review, and receipt
   await memory.check();
   await birth.getByRole('checkbox', { name: 'Startup Chime', exact: true }).uncheck();
   await birth.getByRole('checkbox', { name: 'Tutorial', exact: true }).uncheck();
-  const selected = birth.locator('[data-application-key="selected-plots"]');
-  const initialCount = Number((await selected.textContent()).match(/\d+/u)?.[0]);
+  const selected = birth.locator('[data-source-status$="/birth-review"]');
+  const initialCount = Number((await selected.textContent()).match(/Starting Plots selected: (\d+)/u)?.[1]);
   expect(initialCount).toBeGreaterThan(0);
 
   const search = birth.getByLabel('Search Plots', { exact: true });
   await search.fill('no-such-plot');
-  await expect(birth.locator('[data-application-key="initial-plots"]')).toHaveText(
-    'No Plots match your search. — Your selected plots are still included.',
+  await birth.getByRole('button', { name: 'Search Plots', exact: true }).click();
+  await expect(birth.locator('[data-source-collection$="/initial-plots"]')).toHaveText(
+    'Starting PlotsNo items.',
   );
-  await expect(selected).toHaveText(`Selected: ${initialCount}`);
+  await expect(selected).toContainText(`Starting Plots selected: ${initialCount}`);
   await search.fill('');
+  await birth.getByRole('button', { name: 'Search Plots', exact: true }).click();
   await expect(memory).toBeChecked();
   await desk.check();
-  await expect(selected).toHaveText(`Selected: ${initialCount + 1}`);
+  await expect(selected).toContainText(`Starting Plots selected: ${initialCount + 1}`);
   await desk.uncheck();
-  await expect(selected).toHaveText(`Selected: ${initialCount}`);
+  await expect(selected).toContainText(`Starting Plots selected: ${initialCount}`);
   await desk.check();
 
   await page.evaluate(() => globalThis.__conduitWorkspace.settled());
@@ -461,7 +467,7 @@ test('Workspace Birth controls remain bounded and usable at a narrow width', asy
   const birth = page.locator('.body-birth-runner');
   await expect(birth.getByRole('heading', { name: 'A body of your own', exact: true })).toBeVisible();
   const [plots, name, sourceDetails, editor] = await Promise.all([
-    birth.locator('[data-application-slot="birth-fields"] [data-application-key="initial-plots"]').boundingBox(),
+    birth.locator('[data-application-slot="birth-fields"] [data-source-collection$="/initial-plots"]').boundingBox(),
     birth.getByLabel('Friendly Body name', { exact: true }).boundingBox(),
     birth.locator('.birth-face .birth-details').boundingBox(),
     birth.locator('.birth-face').boundingBox(),
