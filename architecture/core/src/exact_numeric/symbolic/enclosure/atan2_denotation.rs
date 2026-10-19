@@ -23,7 +23,9 @@ impl<'a> QuantityAtan2Denotation<'a> {
         {
             return Err(R::MismatchedDimensions);
         }
-        if inputs.y.role() != QuantityRole::Linear || inputs.x.role() != QuantityRole::Linear {
+        if inputs.y.role() != inputs.x.role()
+            || !matches!(inputs.y.role(), QuantityRole::Linear | QuantityRole::Delta)
+        {
             return Err(R::UnsupportedRole);
         }
         let convert = |value, original, work: &mut Work| {
