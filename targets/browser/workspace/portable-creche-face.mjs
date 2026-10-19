@@ -109,7 +109,10 @@ export function createPortableCrecheFace({ root, host, onSnapshot, onRefusal }) 
     refresh.hidden = true;
     if (response.source_snapshot.revision !== snapshot.revision) onSnapshot(response.source_snapshot);
   }
-  const report = error => { refresh.hidden = false; onRefusal(error); };
+  const report = (error, terminal = false) => {
+    if (terminal && current) close(current.view.show_id);
+    refresh.hidden = false; onRefusal(error);
+  };
   const carrier = {
     async present(snapshot) {
       if (retired || presenting) return;

@@ -29,14 +29,14 @@ export function renderPortableFace(root, encounter, { enhanced = false, submit, 
   const invoke = async (event, action, arguments_) => {
     if (!event.isTrusted || !active || retired || pending || !model.available(action)) return;
     if (!article.isConnected || !event.target?.isConnected) return;
-    try { inspect(); } catch (error) { active = false; refreshDisabled(); report(error); return; }
+    try { inspect(); } catch (error) { active = false; refreshDisabled(); report(error, true); return; }
     pending = true; refreshDisabled();
     try { await submit({ action, arguments: arguments_, view: model.view }); }
-    catch (error) { status.textContent = error.message ?? String(error); onRefusal(error); }
+    catch (error) { status.textContent = error.message ?? String(error); onRefusal(error, true); }
     // A submitted encounter cannot authorize another action, even after refusal.
     finally { active = false; pending = false; refreshDisabled(); }
   };
-  const report = error => { status.textContent = error.message ?? String(error); onRefusal(error); };
+  const report = (error, terminal = false) => { status.textContent = error.message ?? String(error); onRefusal(error, terminal); };
   const heading = node('h2', model.face.subjects[0]?.name ?? 'Conduit Face'); article.append(heading);
 
   for (const [index, field] of model.fields.entries()) {

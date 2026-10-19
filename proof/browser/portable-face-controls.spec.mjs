@@ -132,10 +132,26 @@ test('Chromium IME preedit is provisional and composition blocks submit', async 
   await protocol.detach();
 });
 
-test('hiding a required source action retires the Show before another action', async ({ page }) => {
-  await open(page); const before = await revision(page);
-  await page.getByRole('button', { name: 'Edit Body name', exact: true }).evaluate(button => { button.style.display = 'none'; });
-  await page.getByRole('button', { name: 'Suggest another name', exact: true }).click();
-  expect(await revision(page)).toBe(before);
-  await expect(page.getByRole('button', { name: 'Suggest another name', exact: true })).toBeDisabled();
-});
+for (const violation of ['hidden action', 'hidden input', 'Shadow node capacity']) {
+  test(`${violation} closes the Show before another source action`, async ({ page }) => {
+    await open(page); const before = await revision(page);
+    if (violation === 'hidden action') {
+      await page.getByRole('button', { name: 'Edit Body name', exact: true }).evaluate(button => { button.style.display = 'none'; });
+    } else if (violation === 'hidden input') {
+      await page.getByLabel('Friendly Body name', { exact: true }).evaluate(input => { input.style.display = 'none'; });
+    } else {
+      await page.locator('conduit-portable-face').evaluate(element => {
+        const extra = document.createDocumentFragment();
+        for (let index = 0; index < 2049; index += 1) extra.append(document.createElement('span'));
+        element.shadowRoot.append(extra);
+      });
+    }
+    await page.getByRole('button', { name: 'Suggest another name', exact: true }).click();
+    expect(await revision(page)).toBe(before);
+    await expect(page.getByRole('button', { name: 'Suggest another name', exact: true })).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'Refresh controls', exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Refresh controls', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Suggest another name', exact: true })).toBeEnabled();
+    expect(await revision(page)).toBe(before);
+  });
+}
