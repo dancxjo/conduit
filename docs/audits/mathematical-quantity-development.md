@@ -147,3 +147,20 @@ projection is silently selected to satisfy it. Tests compare v3 outcomes against
 the existing v2 physical comparison and cover refusal followed by recovery.
 The extended view retains borrowed bytes rather than an owning symbolic DAG;
 its fixed size stays within the existing Unit plus 64-byte envelope.
+
+## Planner and lowered Fore fences
+
+The optional producer profile now determines the Cord's required storage extent;
+a mathematical producer cannot use the smaller rational ceiling. Existing
+consumer-profile compatibility remains conservative. Lowering dispatches Quantity
+values through their selected profile, including explicit v3 refusals on legacy
+ports. Optional output storage covers the full producer extent; an input may
+retain a smaller sealed checked-contract byte domain independently of its codec.
+
+A sealed lowering fixture retains the mathematical profile and physical Kind,
+rejects undersized output, and checks rational range admission, unsupported
+symbolic order, old-profile rejection, byte limits and recovery. Its constraint
+is bound in both the placement semantic law and the Fore. The initial fixture
+omitted that law and correctly failed verification; the corrected fixture and
+original diagnostic are retained. These are Plan/lowering boundary tests, not
+Source-authored mathematical Quantity or installed kernel execution proof.

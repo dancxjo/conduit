@@ -52,8 +52,8 @@ impl LoweredForePort {
             || conduit_core::quantity_info_dimension(value_kind.as_str()).is_some()
             || conduit_core::parse_quantity_role_info_id(value_kind.as_str()).is_some();
         let explicit = quantity
-            && (self.quantity_profile == QuantityValueProfile::Exact
-                || canonical.first() == Some(&2));
+            && (self.quantity_profile != QuantityValueProfile::Decimal
+                || matches!(canonical.first(), Some(2 | 3)));
         if let Some(contract) = &self.value_contract {
             if explicit {
                 return contract
@@ -121,8 +121,9 @@ pub(super) fn selected_profile(
         PortDirection::Input => contract.input(&fore.gear_port_id),
         PortDirection::Output => contract.output(&fore.gear_port_id),
     };
-    if profile == QuantityValueProfile::Exact
-        && fore.byte_capacity < required_capacity(fore.direction, fore.value_contract.as_ref())
+    if profile != QuantityValueProfile::Decimal
+        && fore.byte_capacity
+            < required_capacity(profile, fore.direction, fore.value_contract.as_ref())
     {
         return Err(invalid());
     }
@@ -132,10 +133,11 @@ pub(super) fn selected_profile(
 // An input contract can restrict the accepted byte domain independently of its
 // codec. Output storage still covers the selected producer's full wire ceiling.
 fn required_capacity(
+    profile: QuantityValueProfile,
     direction: PortDirection,
     contract: Option<&conduit_core::CheckedValueContract>,
 ) -> u32 {
-    let maximum = conduit_core::QUANTITY_VALUE_MAX_ENCODED_BYTES as u32;
+    let maximum = profile.maximum_encoded_bytes() as u32;
     match direction {
         PortDirection::Input => contract.map_or(maximum, |c| c.maximum_bytes.min(maximum)),
         PortDirection::Output => maximum,
@@ -181,7 +183,11 @@ mod tests {
         };
         assert!(port.validate_value(&bytes).is_ok());
         assert_eq!(
-            required_capacity(port.direction, port.value_contract.as_ref()),
+            required_capacity(
+                port.quantity_profile,
+                port.direction,
+                port.value_contract.as_ref()
+            ),
             port.byte_capacity
         );
         port.quantity_profile = QuantityValueProfile::Decimal;
@@ -194,7 +200,11 @@ mod tests {
             ))
         ));
         assert_eq!(
-            required_capacity(PortDirection::Output, port.value_contract.as_ref()),
+            required_capacity(
+                QuantityValueProfile::Exact,
+                PortDirection::Output,
+                port.value_contract.as_ref()
+            ),
             conduit_core::QUANTITY_VALUE_MAX_ENCODED_BYTES as u32
         );
     }

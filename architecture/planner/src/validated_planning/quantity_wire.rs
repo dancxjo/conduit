@@ -77,17 +77,20 @@ pub(super) fn validate_capacity(
     contracts: &BTreeMap<GearId, QuantityWireContract>,
     byte_capacity: u32,
 ) -> Result<(), PlannerError> {
+    let profile = contracts
+        .get(&connection.source_gear_id)
+        .map_or(QuantityValueProfile::Decimal, |c| {
+            c.output(&connection.source_port_id)
+        });
     if connection.track == conduit_core::ConnectionTrack::Payload
-        && contracts
-            .get(&connection.source_gear_id)
-            .is_some_and(|c| c.output(&connection.source_port_id) == QuantityValueProfile::Exact)
-        && byte_capacity < conduit_core::QUANTITY_VALUE_MAX_ENCODED_BYTES as u32
+        && profile != QuantityValueProfile::Decimal
+        && byte_capacity < profile.maximum_encoded_bytes() as u32
     {
         return Err(PlannerError::InvalidConnectionBudget(alloc::format!(
             "quantity/wire-storage-bound@1: '{}:{}' requires {} bytes before Play",
             connection.source_gear_id.as_str(),
             connection.source_port_id.as_str(),
-            conduit_core::QUANTITY_VALUE_MAX_ENCODED_BYTES,
+            profile.maximum_encoded_bytes(),
         )));
     }
     Ok(())
@@ -192,5 +195,55 @@ mod tests {
         )
         .unwrap_err();
         assert_eq!(why, PlannerError::InvalidRealizationProperties(id));
+    }
+    #[test]
+    fn mathematical_edges_require_explicit_consumer_support_and_full_producer_storage() {
+        use conduit_core::QuantityValueProfile::Mathematical;
+        let mut edge = CheckedConnection {
+            source_gear_id: "source".into(),
+            source_port_id: "result".into(),
+            sink_gear_id: "sink".into(),
+            sink_port_id: "input".into(),
+            value_kind: kind_id(conduit_core::DISTANCE_INFO_ID),
+            track: ConnectionTrack::Payload,
+            temporal: PortTemporal::Value,
+        };
+        let mut contracts = BTreeMap::new();
+        contracts.insert(
+            "source".into(),
+            QuantityWireContract::new(vec![], vec![("result".into(), Mathematical)]).unwrap(),
+        );
+        for profile in [Decimal, Exact] {
+            contracts.insert(
+                "sink".into(),
+                QuantityWireContract::new(vec![("input".into(), profile)], vec![]).unwrap(),
+            );
+            assert!(matches!(
+                validate_connection(&edge, &contracts),
+                Err(PlannerError::QuantityWireProfileMismatch(_))
+            ));
+        }
+        contracts.insert(
+            "sink".into(),
+            QuantityWireContract::new(vec![("input".into(), Mathematical)], vec![]).unwrap(),
+        );
+        assert!(validate_connection(&edge, &contracts).is_ok());
+        for insufficient in [
+            conduit_core::QUANTITY_VALUE_MAX_ENCODED_BYTES as u32,
+            Mathematical.maximum_encoded_bytes() as u32 - 1,
+        ] {
+            assert!(matches!(
+                validate_capacity(&edge, &contracts, insufficient),
+                Err(PlannerError::InvalidConnectionBudget(_))
+            ));
+        }
+        assert!(validate_capacity(
+            &edge,
+            &contracts,
+            Mathematical.maximum_encoded_bytes() as u32
+        )
+        .is_ok());
+        edge.track = ConnectionTrack::NormalClose;
+        assert!(validate_capacity(&edge, &contracts, 0).is_ok());
     }
 }
