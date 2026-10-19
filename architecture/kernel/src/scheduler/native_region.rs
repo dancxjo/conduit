@@ -37,7 +37,7 @@ pub(super) fn observed_bytes<S: ValueStorage>(
     value: ValueRef,
     native: bool,
 ) -> Result<Option<&[u8]>, SchedulerError> {
-    if native && store.native_u64(value)?.is_some() {
+    if native && (store.native_u64(value)?.is_some() || store.compact_f32(value)?.is_some()) {
         return Ok(None);
     }
     Ok(Some(store.get(value)?))
@@ -94,6 +94,7 @@ where
             if n >= self.active_nodes
                 || self.native_input_ports[n].is_some()
                 || self.native_output_ports[n].is_some()
+                || self.has_compact_f32_node(n)
                 || self.terminal_transductions[n].iter().any(Option::is_some)
             {
                 return Err(SchedulerError::InvalidPlan);

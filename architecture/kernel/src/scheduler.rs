@@ -21,11 +21,19 @@ pub use conduit_assigned_plan::{AssignedConnectionTrack, AssignedPressurePolicy}
 mod active_capacity;
 #[cfg(feature = "alloc")]
 mod boxed_preparation;
+#[cfg(feature = "alloc")]
+mod compact_f32;
 mod cord_prefix;
 mod debug_control;
 mod derived_value;
+#[cfg(feature = "alloc")]
+mod execution_dag;
 mod execution_region;
 mod generated_value;
+#[cfg(feature = "alloc")]
+use compact_f32::CompactF32Bindings;
+#[cfg(feature = "alloc")]
+pub use compact_f32::CompactF32Layout;
 use generated_value::PreparedStepValue;
 mod fanout_value;
 #[cfg(feature = "alloc")]
@@ -357,16 +365,27 @@ pub trait StepBack<const PORTS: usize> {
         io: &mut StepIo<PORTS>,
         input_bytes: &StepInputBytes<'_, PORTS>,
     ) -> StepOutcome;
-    /// Bytes for one output staged by [`StepIo::send_prepared`]. The storage
-    /// belongs to this already-prepared Back and must remain unchanged until
-    /// `step_committed`; the scheduler copies it into admitted value storage
-    /// only after the Step has passed transactional validation.
     /// Exact physical native scalar ports offered by this prepared Back.
     /// Host preparation still proves the semantic/type/purity eligibility.
     #[cfg(feature = "alloc")]
     fn native_u64_ports(&self) -> Option<(PortId, PortId)> {
         None
     }
+    /// Exact compact layouts implemented by this prepared Back. These are
+    /// physical declarations, not proofs of semantic purity or authority.
+    #[cfg(feature = "alloc")]
+    fn compact_f32_input(&self, _port: PortId) -> Option<CompactF32Layout> {
+        None
+    }
+    #[cfg(feature = "alloc")]
+    fn compact_f32_output(&self) -> Option<(PortId, CompactF32Layout)> {
+        None
+    }
+    /// Physical bytes staged by prepared or admitted compact publication. The storage
+    /// belongs to this already-prepared Back and must remain unchanged until
+    /// `step_committed`; the scheduler copies it into admitted value storage
+    /// only after the Step has passed transactional validation. A compact
+    /// payload keeps its separately admitted logical quota.
     fn prepared_output(&self, _port: PortId) -> Option<&[u8]> {
         None
     }
@@ -387,6 +406,8 @@ pub struct StepInputBytes<'a, const PORTS: usize> {
     inputs: [Option<&'a [u8]>; PORTS],
     #[cfg(feature = "alloc")]
     native_u64: Option<&'a [Option<u64>; PORTS]>,
+    #[cfg(feature = "alloc")]
+    compact_f32: Option<&'a [Option<&'a [u8]>; PORTS]>,
     host_output: Option<&'a [u8]>,
 }
 
@@ -411,6 +432,8 @@ impl<'a, const PORTS: usize> StepInputBytes<'a, PORTS> {
             inputs,
             #[cfg(feature = "alloc")]
             native_u64: None,
+            #[cfg(feature = "alloc")]
+            compact_f32: None,
             host_output,
         }
     }
@@ -422,6 +445,8 @@ impl StepInputBytes<'static, 1> {
             inputs: [None],
             #[cfg(feature = "alloc")]
             native_u64: None,
+            #[cfg(feature = "alloc")]
+            compact_f32: None,
             host_output: None,
         }
     }
@@ -440,6 +465,8 @@ pub struct StepIo<const PORTS: usize> {
     prepared_output: Option<(PortId, PreparedStepValue)>,
     #[cfg(feature = "alloc")]
     native_output_port: Option<PortId>,
+    #[cfg(feature = "alloc")]
+    compact_f32_output: Option<(PortId, CompactF32Layout)>,
     discards: [Option<ValueRef>; PORTS],
     host_completion: Option<(RequestId, HostCallOutcome)>,
     consumed_host_completion: bool,
@@ -786,6 +813,8 @@ impl StepIo<1> {
             prepared_output: None,
             #[cfg(feature = "alloc")]
             native_output_port: None,
+            #[cfg(feature = "alloc")]
+            compact_f32_output: None,
             discards: [None],
             host_completion,
             consumed_host_completion: false,
@@ -991,6 +1020,8 @@ pub struct FixedScheduler<
     native_input_ports: [Option<PortId>; NODES],
     #[cfg(feature = "alloc")]
     native_output_ports: [Option<PortId>; NODES],
+    #[cfg(feature = "alloc")]
+    compact_f32_bindings: Option<alloc::boxed::Box<CompactF32Bindings<NODES, PORTS>>>,
     last_host_request: [Option<RequestId>; NODES],
     cancelled: bool,
     debug_control: DebugControlState,
@@ -1109,6 +1140,8 @@ where
             native_input_ports: [None; NODES],
             #[cfg(feature = "alloc")]
             native_output_ports: [None; NODES],
+            #[cfg(feature = "alloc")]
+            compact_f32_bindings: None,
             last_host_request: [None; NODES],
             cancelled: false,
             debug_control: DebugControlState::new(),
@@ -1198,7 +1231,9 @@ where
     ) -> Result<(), SchedulerError> {
         for (node, contract) in contracts.iter().copied().enumerate() {
             #[cfg(feature = "alloc")]
-            if (self.native_input_ports[node].is_some() || self.native_output_ports[node].is_some())
+            if (self.native_input_ports[node].is_some()
+                || self.native_output_ports[node].is_some()
+                || self.has_compact_f32_node(node))
                 && contract.iter().any(Option::is_some)
             {
                 return Err(SchedulerError::InvalidPlan);
@@ -1324,7 +1359,7 @@ where
         E: DebugObserverControl,
     {
         #[cfg(feature = "alloc")]
-        if self.native_output_ports.iter().any(Option::is_some) {
+        if self.native_output_ports.iter().any(Option::is_some) || self.has_compact_f32_outputs() {
             return Err(DebugObservationRefusal::UnsupportedPhysicalProfile);
         }
         self.signs.attach_debug_observer(history)
@@ -1351,7 +1386,7 @@ where
             return Err(DebugControlRefusal::UnknownSubject);
         }
         #[cfg(feature = "alloc")]
-        if self.native_output_ports.iter().any(Option::is_some) {
+        if self.native_output_ports.iter().any(Option::is_some) || self.has_compact_f32_outputs() {
             return Err(DebugControlRefusal::UnsupportedPhysicalProfile);
         }
         self.debug_control.arm(breakpoint, node)
@@ -2037,6 +2072,8 @@ where
             prepared_output: None,
             #[cfg(feature = "alloc")]
             native_output_port: self.native_output_ports[node],
+            #[cfg(feature = "alloc")]
+            compact_f32_output: self.compact_f32_output_binding(node),
             discards: [None; PORTS],
             host_completion,
             consumed_host_completion: false,
@@ -2787,7 +2824,8 @@ where
             let observed = native_region::observed_bytes(
                 &self.values,
                 value,
-                self.native_input_ports[node] == Some(PortId(as_u16(port)?)),
+                self.native_input_ports[node] == Some(PortId(as_u16(port)?))
+                    || self.has_compact_f32_input(node, port),
             )?;
             #[cfg(not(feature = "alloc"))]
             let observed = Some(self.values.get(value)?);
@@ -2994,7 +3032,10 @@ where
                 let observed = native_region::observed_bytes(
                     &self.values,
                     value,
-                    self.native_output_ports[node] == Some(PortId(as_u16(port)?)),
+                    self.native_output_ports[node] == Some(PortId(as_u16(port)?))
+                        || self
+                            .compact_f32_output_binding(node)
+                            .is_some_and(|(p, _)| usize::from(p.0) == port),
                 )?;
                 #[cfg(not(feature = "alloc"))]
                 let observed = Some(self.values.get(value)?);
@@ -3114,8 +3155,12 @@ where
                 return Err(SchedulerError::InvalidPortAccess);
             }
             #[cfg(feature = "alloc")]
-            let native = self.native_output_ports[node] == Some(PortId(as_u16(port)?))
-                && self.values.native_u64(value)?.is_some();
+            let native = (self.native_output_ports[node] == Some(PortId(as_u16(port)?))
+                && self.values.native_u64(value)?.is_some())
+                || (self
+                    .compact_f32_output_binding(node)
+                    .is_some_and(|(p, _)| usize::from(p.0) == port)
+                    && self.values.compact_f32(value)?.is_some());
             #[cfg(not(feature = "alloc"))]
             let native = false;
             if !native {
