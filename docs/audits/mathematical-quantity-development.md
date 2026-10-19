@@ -575,3 +575,44 @@ unproven and must use the shared projection/Sign system. Total cost/latency,
 full resource accounting, broader dimensioned and whole-floating-algorithm
 requirements and exact-source stable acceptance also remain open. No original
 parent checkbox is closed by this private checkpoint.
+
+### Private kernel content binding foundation
+
+The existing Sign sink now has a routing-content entrance. Its default retains
+exactly the ordinary routing event; it adds no content claim to legacy profiles.
+An optional `ContentSignLog` binds the actual stored bytes and exact Cord to the
+same retained event sequence. The kernel takes no dependency on Core or a crypto
+library. The admitted owning profile must identify and bound its allocation-free
+digest provider; the current conformance provider is explicitly noncryptographic.
+
+Preparation reserves a fixed binding array large enough for every retained Sign
+in the underlying fixed or hosted log. Each routing binding expires with its
+actual transient event under the shared oldest-transient eviction/gap rule.
+Pinned terminal/remote evidence remains intact. The separate binding byte budget
+covers its exact backing array; complete inline container size is available, while
+provider/inner heap payload, stack and allocator costs remain separately owned.
+This invariant prevents content storage from introducing a new late capacity
+refusal after an otherwise admitted routing commit.
+
+Payload, normal-close, abnormal and quiescence routes pass their actual stored
+bytes at the existing commit boundary. The debugger wrapper forwards this
+mandatory entrance and the underlying capacity admission; debugger pressure or
+detachment does not own or erase the content evidence. No scheduler, emission
+policy, value ontology or KernelEvent layout is duplicated.
+
+All 254 kernel tests pass with allocation support (six pre-existing manual tests
+remain ignored), including eight new content tests. The actual scheduler retains
+content after value storage is released; queue pressure and cancellation do not
+bind an uncommitted second output. Fixed/hosted histories agree, transient gaps
+expire the correct bindings, pinned remote identities survive, and guarded tests
+report zero allocations/reallocations. Strict all-target kernel Clippy and the
+no-default-features library check pass. Twenty-seven executed test binaries and
+the source bundle are retained with verified archive/hash roundtrips.
+
+This is kernel foundation evidence. Std does not yet select this content profile,
+install a declared digest provider, admit its full storage/hash costs, retain its
+bindings in product artifacts, or join a general projection report to actual
+Source/Plan/Play/Sign identities. Input/request/output custody for whole numeric
+algorithms, target proof, total cost and stable acceptance also remain open.
+The earlier terminal-only CLI report remains the current product evidence;
+this checkpoint does not retroactively strengthen it or close a parent item.
