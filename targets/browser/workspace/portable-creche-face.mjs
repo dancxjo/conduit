@@ -58,6 +58,12 @@ export function createPortableCrecheFace({ root, host, onSnapshot, onRefusal }) 
         ? { identity: admission.identity, version: 1, tag: "conduit-portable-face", bundle_sha256: admission.bundle_sha256 } : null });
     const encounter = response.encounter;
     controller?.retire(); current = encounter;
+    if (selected && (!encounter.view.component || encounter.view.component.fallback)) {
+      close(encounter.view.show_id);
+      admission = { selected: false, reason: `Component required slots refused: ${encounter.view.component?.fallback ?? 'configuration absent'}` };
+      toolbar.querySelector('label')?.remove();
+      return prepare(snapshot);
+    }
     const callbacks = {
       onRefusal: report,
       disconnected: close,
@@ -90,6 +96,7 @@ export function createPortableCrecheFace({ root, host, onSnapshot, onRefusal }) 
       if (!selected) throw error;
       close(encounter.view.show_id);
       admission = { selected: false, reason: `Component surface refused: ${error.message}` };
+      toolbar.querySelector("label")?.remove();
       return prepare(snapshot);
     }
     mount.dataset.portableMaskPlan = encounter.view.mask_plan_id;
