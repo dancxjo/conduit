@@ -14,12 +14,15 @@ const SINE: &str =
     "plot sine (\n >> value: Angle\n result: MathematicalValue >>\n) = (math/sin(.))\n";
 const CHAIN:&str="plot bridge (\n >> value: Angle\n result: Angle >>\n) = (math/angle-radians(.))\nplot carry (\n >> value: Angle\n result: Angle >>\n) = (.)\nplot sine (\n >> value: Angle\n result: MathematicalValue >>\n) = (math/sin(.))\nplot main (\n >> value: Angle\n result: MathematicalValue >>\n) {\n converted: bridge\n carried: carry\n consumed: sine\n value >> converted.value\n converted.result >> carried.value\n carried.result >> consumed.value\n consumed.result >> result\n}\n";
 fn fixture(source: &str, name: &str) -> (crate::StdHost, Plan) {
+    fixture_with_selection(source, name, false)
+}
+fn fixture_with_selection(source: &str, name: &str, automatic: bool) -> (crate::StdHost, Plan) {
     let checked =
         check_syntax_document(&parse_syntax_document(source), &StartupCatalog::new()).unwrap();
     let authored =
         expand_canonical_plot_for_authoring(&checked, name, &ProfileCatalog::new()).unwrap();
     let mut advertisement = crate::StdHost::new().advertisement().clone();
-    for gear in &authored.expanded.gears {
+    for gear in authored.expanded.gears.iter().filter(|_| !automatic) {
         let ConfigurationValue::Text(encoded) = &gear.configuration[0].value else {
             panic!("program");
         };
@@ -35,7 +38,15 @@ fn fixture(source: &str, name: &str) -> (crate::StdHost, Plan) {
     advertisement
         .capabilities
         .sort_by(|a, b| a.capability_id.cmp(&b.capability_id));
-    let host = crate::StdHost::from_advertisement(advertisement).unwrap();
+    let mut host = crate::StdHost::from_advertisement(advertisement).unwrap();
+    if automatic {
+        host.prepare_expression_realizations(&authored.expanded)
+            .unwrap();
+        let first = host.advertisement().clone();
+        host.prepare_expression_realizations(&authored.expanded)
+            .unwrap();
+        assert_eq!(host.advertisement(), &first);
+    }
     let hosts = [host.advertisement().clone()];
     let placements =
         conduit_planner::default_expanded_placements(&authored.expanded, &hosts).unwrap();
@@ -245,4 +256,31 @@ fn installed_factory_recomputes_wire_work_storage_artifact_and_host_call_bounds(
     profile.execution_profile_id = conduit_std_offers::PURE_EXPRESSION_STD_PROFILE.into();
     profile.artifact_id = conduit_std_offers::PURE_EXPRESSION_STD_ARTIFACT.into();
     assert!(PureExpressionHost::from_placement(&profile).is_err());
+}
+
+#[test]
+fn ordinary_source_preparation_selects_compatible_angle_profiles_across_the_chain() {
+    let (host, plan) = fixture_with_selection(CHAIN, "main", true);
+    assert_eq!(plan.fragments[0].placements.len(), 3);
+    assert!(plan.fragments[0]
+        .placements
+        .iter()
+        .all(|p| p.execution_profile_id.as_str()
+            == conduit_std_offers::PURE_MATHEMATICAL_ANGLE_STD_PROFILE));
+    let result = play(
+        host,
+        &plan,
+        Quantity::parse_plot_literal("90°")
+            .unwrap()
+            .encode()
+            .to_vec(),
+    );
+    let mut work = ExactNumericWork::new(200_000_000);
+    assert_eq!(
+        MathematicalValueView::decode(&result, &mut work)
+            .unwrap()
+            .as_rational(&mut work)
+            .unwrap(),
+        Some(ExactRational::ONE)
+    );
 }

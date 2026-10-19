@@ -258,3 +258,16 @@ original refusal and a subsequent test compilation diagnostic are retained.
 General projection Source/Plan/Sign custody, broader Quantity expressions,
 refinements, public Candidate and exact-source integration/publication remain
 separate gates. No parent acceptance checkbox changes from this private proof.
+
+
+## Automatic Source Angle alternatives (private development)
+
+Ordinary `prepare_expression_realizations` now offers the supported mathematical
+Angle profile alongside existing native/exact alternatives. The finite planner
+selects compatible wire profiles across the graph. Every generated alternative
+counts against the existing 32-offer preparation bound, uses a distinct identity,
+and is removed when replacing that Source batch. Reference annotation validation
+still precedes admission. An installed checked-Source conversion/carry/sine test
+passes without manually inserting offers, including idempotent preparation and
+zero reported allocations after Play starts. CLI proof is being prepared;
+publication and general projection custody remain unverified.

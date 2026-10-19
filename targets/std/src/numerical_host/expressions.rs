@@ -59,27 +59,36 @@ impl StdHost {
             if !gear.accepts_realization(&baseline) {
                 return Err("expression program differs from its checked Kind/Fore".into());
             }
-            if advertisement
+            let mathematical = if !filter {
+                mathematical_angle::offer(&program, temporal)?
+            } else {
+                None
+            };
+            if !advertisement
                 .capabilities
                 .iter()
                 .any(|offer| gear.accepts_realization(offer))
             {
-                continue;
-            }
-            if additional == MAXIMUM_OFFERS {
-                return Err("std expression source preparation exceeds 32 offers".into());
-            }
-            let mut offer = if !filter {
-                match conduit_std_offers::pure_scalar_tape_std_offer(&program, temporal) {
-                    Ok(tape) => tape,
-                    Err(why) => prepared_reference(&program, baseline, &why)?,
+                let reference = if !filter {
+                    match conduit_std_offers::pure_scalar_tape_std_offer(&program, temporal) {
+                        Ok(tape) => Ok(tape),
+                        Err(why) => prepared_reference(&program, baseline, &why),
+                    }
+                } else {
+                    prepared_reference(&program, baseline, "scalar-tape/filter-contract@1")
+                };
+                match reference {
+                    Ok(mut offer) => {
+                        offer.capability_id = format!("{OWNED}{}", offer.kind_id.as_str()).into();
+                        add_offer(&mut advertisement.capabilities, offer, &mut additional)?;
+                    }
+                    Err(_) if mathematical.is_some() => {}
+                    Err(why) => return Err(why),
                 }
-            } else {
-                prepared_reference(&program, baseline, "scalar-tape/filter-contract@1")?
-            };
-            offer.capability_id = format!("{OWNED}{}", offer.kind_id.as_str()).into();
-            advertisement.capabilities.push(offer);
-            additional += 1;
+            }
+            if let Some(offer) = mathematical {
+                add_offer(&mut advertisement.capabilities, offer, &mut additional)?;
+            }
         }
         if advertisement.capabilities == self.advertisement.capabilities {
             return Ok(());
@@ -116,30 +125,50 @@ fn expression_filter(gear: &conduit_plot::CheckedGear) -> Option<bool> {
 fn owns(offer: &CapabilityOffer) -> bool {
     use conduit_std_offers::*;
     offer.capability_id.as_str().starts_with(OWNED)
-        && matches!(
-            (
-                offer.implementation.implementation_id.as_str(),
-                offer.implementation.execution_profile_id.as_str(),
-                offer.implementation.artifact_id.as_str()
-            ),
-            (
-                PURE_EXPRESSION_STD_IMPLEMENTATION,
-                PURE_EXPRESSION_STD_PROFILE,
-                PURE_EXPRESSION_STD_ARTIFACT
-            ) | (
-                PURE_EXPRESSION_STD_IMPLEMENTATION,
-                PURE_EXACT_QUANTITY_STD_PROFILE,
-                PURE_EXACT_QUANTITY_STD_ARTIFACT
-            ) | (
-                PURE_FILTER_STD_IMPLEMENTATION,
-                PURE_FILTER_STD_PROFILE,
-                PURE_FILTER_STD_ARTIFACT
-            ) | (
-                PURE_SCALAR_TAPE_STD_IMPLEMENTATION,
-                PURE_SCALAR_TAPE_STD_PROFILE,
-                PURE_SCALAR_TAPE_STD_ARTIFACT
-            )
-        )
+        && (mathematical_angle::owns(offer)
+            || matches!(
+                (
+                    offer.implementation.implementation_id.as_str(),
+                    offer.implementation.execution_profile_id.as_str(),
+                    offer.implementation.artifact_id.as_str()
+                ),
+                (
+                    PURE_EXPRESSION_STD_IMPLEMENTATION,
+                    PURE_EXPRESSION_STD_PROFILE,
+                    PURE_EXPRESSION_STD_ARTIFACT
+                ) | (
+                    PURE_EXPRESSION_STD_IMPLEMENTATION,
+                    PURE_EXACT_QUANTITY_STD_PROFILE,
+                    PURE_EXACT_QUANTITY_STD_ARTIFACT
+                ) | (
+                    PURE_FILTER_STD_IMPLEMENTATION,
+                    PURE_FILTER_STD_PROFILE,
+                    PURE_FILTER_STD_ARTIFACT
+                ) | (
+                    PURE_SCALAR_TAPE_STD_IMPLEMENTATION,
+                    PURE_SCALAR_TAPE_STD_PROFILE,
+                    PURE_SCALAR_TAPE_STD_ARTIFACT
+                )
+            ))
+}
+
+fn add_offer(
+    offers: &mut Vec<CapabilityOffer>,
+    offer: CapabilityOffer,
+    additional: &mut usize,
+) -> Result<(), String> {
+    if offers
+        .iter()
+        .any(|old| old.capability_id == offer.capability_id)
+    {
+        return Ok(());
+    }
+    if *additional == MAXIMUM_OFFERS {
+        return Err("std expression source preparation exceeds 32 offers".into());
+    }
+    offers.push(offer);
+    *additional += 1;
+    Ok(())
 }
 
 fn prepared_reference(
@@ -178,3 +207,5 @@ mod reference_validation;
 mod selection_evidence;
 #[cfg(test)]
 mod tests;
+
+mod mathematical_angle;

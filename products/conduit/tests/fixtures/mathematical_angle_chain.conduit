@@ -1,0 +1,40 @@
+plot native-angle (
+    >> trigger: MathematicalValue
+    result: Angle >>
+) = (90°)
+
+plot radians (
+    >> value: Angle
+    result: Angle >>
+) = (math/angle-radians(.))
+
+plot carry (
+    >> value: Angle
+    result: Angle >>
+) = (.)
+
+plot sine (
+    >> value: Angle
+    result: MathematicalValue >>
+) = (math/sin(.))
+
+plot explain (
+    >> value: MathematicalValue
+    result: Text >>
+) = (. == 1 ? "exact sine one" : "wrong sine")
+
+plot main {
+    seed: math/realize(request={value:0,maximum-error:0})
+    native: native-angle
+    converted: radians
+    carried: carry
+    consumed: sine
+    inspect: explain
+    show: face/text("Typed mathematical Angle")
+    seed.result >> (.source) >> native.trigger
+    native.result >> converted.value
+    converted.result >> carried.value
+    carried.result >> consumed.value
+    consumed.result >> inspect.value
+    inspect.result >> show
+}.
