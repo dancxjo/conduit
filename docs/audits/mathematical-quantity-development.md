@@ -747,8 +747,9 @@ bytes are explicit fixtures; this is not a new live-device or qualified Flow
 execution claim. The exact executed binaries have verified archive roundtrips.
 
 The same installed test executable passes the full Host library suite: 868
-passed and 18 existing ignored tests. Actual CLI artifact regressions and strict
-workspace checks for this version remain active or queued. Full workspace test
+passed and 18 existing ignored tests. Actual CLI artifact/inspection regressions pass both tests across three
+invocations, and workspace all-target Clippy passes with warnings denied. The
+Core no-default-features check for this checkpoint is still running. Full workspace test
 proof remains missing after the retained baseline disk failures. Broader external
 Fore/Body/remote export, complete general projection-report transport, exact
 policy/request configuration custody, whole-algorithm input/output custody and
