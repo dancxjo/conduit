@@ -1,8 +1,9 @@
 //! One finite lexical projector shared by ConduitVoice preparation entrances.
-//! It borrows the opaque admitted carrier; model features never replace it.
+//! It borrows the complete admitted carrier, including checked structure,
+//! commitment and acoustic custody; model features never replace it.
 //! Version 1 omits acoustic/structural conditioning, retaining that information
 //! solely on the original. A trained acoustic backend is not implemented here.
-use crate::{correspondence::PreparedSpeechCorrespondence, semantic::*};
+use crate::{complete_carrier::PreparedCompleteSpeechCarrier, semantic::*};
 use alloc::vec::Vec;
 use conduit_plot::rust_binding::{NativeBindingRefusal, NativeRustBinding};
 
@@ -33,17 +34,38 @@ impl ModelToken {
     }
 }
 
+/// The versioned map supplies lexical tokens only. These retained components
+/// are available on original(), but never claimed as learned conditioning.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ModelRetainedOnly {
+    TextAndAlignment,
+    SyllableAndWordStructure,
+    ProsodyAndAcoustics,
+    LanguageCommitment,
+}
+const RETAINED_ONLY: &[ModelRetainedOnly] = &[
+    ModelRetainedOnly::TextAndAlignment,
+    ModelRetainedOnly::SyllableAndWordStructure,
+    ModelRetainedOnly::ProsodyAndAcoustics,
+    ModelRetainedOnly::LanguageCommitment,
+];
+
 /// Prepared lexical input, not a normalized replacement IR or playback grant.
-pub struct PreparedModelLinguisticProjection<'a, 'carrier, 'inventory> {
-    original: &'a PreparedSpeechCorrespondence<'carrier, 'inventory>,
+pub struct PreparedModelLinguisticProjection<'a, 'context, 'carrier, 'inventory> {
+    original: &'a PreparedCompleteSpeechCarrier<'context, 'carrier, 'inventory>,
     vocabulary: &'a SpeechModelLinguisticVocabulary,
     identity: [u8; 32],
     phonemes: Vec<ModelToken>,
     phones: Vec<ModelToken>,
 }
-impl<'a, 'carrier, 'inventory> PreparedModelLinguisticProjection<'a, 'carrier, 'inventory> {
-    pub fn original(&self) -> &'a PreparedSpeechCorrespondence<'carrier, 'inventory> {
+impl<'a, 'context, 'carrier, 'inventory>
+    PreparedModelLinguisticProjection<'a, 'context, 'carrier, 'inventory>
+{
+    pub fn original(&self) -> &'a PreparedCompleteSpeechCarrier<'context, 'carrier, 'inventory> {
         self.original
+    }
+    pub fn retained_without_conditioning(&self) -> &'static [ModelRetainedOnly] {
+        RETAINED_ONLY
     }
     pub fn carrier_identity(&self) -> [u8; 32] {
         self.identity
@@ -61,19 +83,22 @@ impl<'a, 'carrier, 'inventory> PreparedModelLinguisticProjection<'a, 'carrier, '
 
 /// The actual reusable projector. Both entrances below call this function.
 /// No text lookup, normalization, acoustic conversion, inference or training.
-fn project<'a, 'carrier, 'inventory>(
-    original: &'a PreparedSpeechCorrespondence<'carrier, 'inventory>,
+fn project<'a, 'context, 'carrier, 'inventory>(
+    original: &'a PreparedCompleteSpeechCarrier<'context, 'carrier, 'inventory>,
     vocabulary: &'a SpeechModelLinguisticVocabulary,
-) -> Result<PreparedModelLinguisticProjection<'a, 'carrier, 'inventory>, ModelProjectionRefusal> {
+) -> Result<
+    PreparedModelLinguisticProjection<'a, 'context, 'carrier, 'inventory>,
+    ModelProjectionRefusal,
+> {
     use ModelProjectionRefusal::*;
     // Re-admission executes the authored Type contracts; decoding alone is not
     // accepted as a compatibility or inventory receipt.
     SpeechModelLinguisticVocabulary::decode(&vocabulary.clone().encode().map_err(Native)?)
         .map_err(Native)?;
-    if vocabulary.basis() != original.inventory().basis() {
+    if vocabulary.basis() != original.correspondence().inventory().basis() {
         return Err(InventoryBasis);
     }
-    let inventory = original.inventory().inventory();
+    let inventory = original.correspondence().inventory().inventory();
     for (index, value) in vocabulary.phonemes().as_slice().iter().enumerate() {
         if vocabulary.phonemes().as_slice()[..index]
             .iter()
@@ -119,6 +144,7 @@ fn project<'a, 'carrier, 'inventory>(
         }
     }
     let phonemes = original
+        .correspondence()
         .phonemes()
         .tokens()
         .as_slice()
@@ -137,6 +163,7 @@ fn project<'a, 'carrier, 'inventory>(
         })
         .collect::<Result<Vec<_>, _>>()?;
     let phones = original
+        .correspondence()
         .phones()
         .tokens()
         .as_slice()
@@ -157,26 +184,33 @@ fn project<'a, 'carrier, 'inventory>(
     Ok(PreparedModelLinguisticProjection {
         original,
         vocabulary,
-        identity: crate::carrier_identity::checked_carrier_identity(original).map_err(Native)?,
+        identity: original.identity(),
         phonemes,
         phones,
     })
 }
 
 /// Training-data preparation only; no checkpoint or learned parameters created.
-pub fn prepare_model_training_input<'a, 'carrier, 'inventory>(
-    original: &'a PreparedSpeechCorrespondence<'carrier, 'inventory>,
+pub fn prepare_model_training_input<'a, 'context, 'carrier, 'inventory>(
+    original: &'a PreparedCompleteSpeechCarrier<'context, 'carrier, 'inventory>,
     vocabulary: &'a SpeechModelLinguisticVocabulary,
-) -> Result<PreparedModelLinguisticProjection<'a, 'carrier, 'inventory>, ModelProjectionRefusal> {
+) -> Result<
+    PreparedModelLinguisticProjection<'a, 'context, 'carrier, 'inventory>,
+    ModelProjectionRefusal,
+> {
     project(original, vocabulary)
 }
 
-pub struct PreparedModelInferenceInput<'a, 'carrier, 'inventory> {
-    projection: PreparedModelLinguisticProjection<'a, 'carrier, 'inventory>,
+pub struct PreparedModelInferenceInput<'a, 'context, 'carrier, 'inventory> {
+    projection: PreparedModelLinguisticProjection<'a, 'context, 'carrier, 'inventory>,
     checkpoint: &'a SpeechModelCheckpointProjection,
 }
-impl<'a, 'carrier, 'inventory> PreparedModelInferenceInput<'a, 'carrier, 'inventory> {
-    pub fn projection(&self) -> &PreparedModelLinguisticProjection<'a, 'carrier, 'inventory> {
+impl<'a, 'context, 'carrier, 'inventory>
+    PreparedModelInferenceInput<'a, 'context, 'carrier, 'inventory>
+{
+    pub fn projection(
+        &self,
+    ) -> &PreparedModelLinguisticProjection<'a, 'context, 'carrier, 'inventory> {
         &self.projection
     }
     pub fn checkpoint(&self) -> &'a SpeechModelCheckpointProjection {
@@ -184,7 +218,9 @@ impl<'a, 'carrier, 'inventory> PreparedModelInferenceInput<'a, 'carrier, 'invent
     }
     /// No admitted neural acoustic Back consumes this lexical profile yet.
     /// Refusal retains the full prepared input for machine-readable custody.
-    pub fn refuse_unsupported_backend(self) -> UnsupportedModelBackend<'a, 'carrier, 'inventory> {
+    pub fn refuse_unsupported_backend(
+        self,
+    ) -> UnsupportedModelBackend<'a, 'context, 'carrier, 'inventory> {
         UnsupportedModelBackend {
             input: self,
             reason: ModelBackendRefusal::NoAdmittedAcousticBack,
@@ -192,12 +228,13 @@ impl<'a, 'carrier, 'inventory> PreparedModelInferenceInput<'a, 'carrier, 'invent
     }
 }
 
-pub fn prepare_model_inference_input<'a, 'carrier, 'inventory>(
-    original: &'a PreparedSpeechCorrespondence<'carrier, 'inventory>,
+pub fn prepare_model_inference_input<'a, 'context, 'carrier, 'inventory>(
+    original: &'a PreparedCompleteSpeechCarrier<'context, 'carrier, 'inventory>,
     vocabulary: &'a SpeechModelLinguisticVocabulary,
     checkpoint: &'a SpeechModelCheckpointProjection,
     selected_checkpoint: &SpeechModelCheckpointId,
-) -> Result<PreparedModelInferenceInput<'a, 'carrier, 'inventory>, ModelProjectionRefusal> {
+) -> Result<PreparedModelInferenceInput<'a, 'context, 'carrier, 'inventory>, ModelProjectionRefusal>
+{
     if checkpoint.checkpoint() != selected_checkpoint {
         return Err(ModelProjectionRefusal::Checkpoint);
     }
@@ -213,7 +250,7 @@ pub fn prepare_model_inference_input<'a, 'carrier, 'inventory>(
 pub enum ModelBackendRefusal {
     NoAdmittedAcousticBack,
 }
-pub struct UnsupportedModelBackend<'a, 'carrier, 'inventory> {
-    pub input: PreparedModelInferenceInput<'a, 'carrier, 'inventory>,
+pub struct UnsupportedModelBackend<'a, 'context, 'carrier, 'inventory> {
+    pub input: PreparedModelInferenceInput<'a, 'context, 'carrier, 'inventory>,
     pub reason: ModelBackendRefusal,
 }

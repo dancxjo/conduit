@@ -50,6 +50,8 @@ pub mod context_match;
 #[cfg(feature = "semantic-bindings")]
 pub mod control;
 #[cfg(feature = "semantic-bindings")]
+pub mod complete_carrier;
+#[cfg(feature = "semantic-bindings")]
 pub mod correspondence;
 #[cfg(feature = "semantic-bindings")]
 pub mod declared_context;
