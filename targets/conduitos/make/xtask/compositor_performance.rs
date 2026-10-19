@@ -4,37 +4,31 @@ use crate::cli::GlobalOpts;
 use std::process::Command;
 
 pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
-    for (filter, marker) in [
-        (
-            "native_compositor::frame_composition",
-            "span-compositor case=",
-        ),
-        ("display::raw", "volatile-scanout mode="),
-    ] {
-        let arguments = [
-            "test",
-            "--locked",
-            "--config",
-            "profile.dev.package.conduitos.opt-level=3",
-            "--config",
-            "profile.dev.debug=0",
-            "--config",
-            "profile.dev.incremental=false",
-            "-p",
-            "conduitos",
-            "--features",
-            "native-compositor",
-            "--lib",
-            filter,
-            "--",
-            "--include-ignored",
-            "--test-threads=1",
-            "--nocapture",
-        ];
-        println!("cargo {}", arguments.join(" "));
-        if opts.dry_run {
-            continue;
-        }
+    // One Cargo invocation keeps both proof scopes on the same built test image.
+    // Libtest accepts multiple filters as a union after Cargo's argument boundary.
+    let arguments = [
+        "test",
+        "--locked",
+        "--config",
+        "profile.dev.package.conduitos.opt-level=3",
+        "--config",
+        "profile.dev.debug=0",
+        "--config",
+        "profile.dev.incremental=false",
+        "-p",
+        "conduitos",
+        "--features",
+        "native-compositor",
+        "--lib",
+        "--",
+        "--include-ignored",
+        "--test-threads=1",
+        "--nocapture",
+        "native_compositor::frame_composition",
+        "display::raw",
+    ];
+    println!("cargo {}", arguments.join(" "));
+    if !opts.dry_run {
         let output = Command::new("cargo")
             .args(arguments)
             .output()
@@ -49,11 +43,13 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
                 output.status.to_string(),
             ));
         }
-        if !String::from_utf8_lossy(&output.stdout).contains(marker) {
-            return Err(ConduitosError::refusal(
-                "compositor-performance-missing",
-                "successful test process did not emit the required measurement rows",
-            ));
+        for marker in ["span-compositor case=", "volatile-scanout mode="] {
+            if !String::from_utf8_lossy(&output.stdout).contains(marker) {
+                return Err(ConduitosError::refusal(
+                    "compositor-performance-missing",
+                    "successful test process did not emit the required measurement rows",
+                ));
+            }
         }
     }
     println!("Compositor and reference use opt-level 3 with debug assertions. Raw wall batches include memory target checks; no QEMU, physical display, input-latency or universal speedup claim.");
