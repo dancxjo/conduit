@@ -38,7 +38,7 @@ pub const STEPS: &[Step] = &[Step::new(
         "--test",
         "rate_projection",
         "--test",
-        "rate_projection_report",
+        "exact_quantity_projection",
         "--test",
         "clock_projection",
         "--test",
