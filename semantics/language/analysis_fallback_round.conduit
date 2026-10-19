@@ -1,0 +1,5 @@
+# Round seed affects only inactive envelope membership; graph/choice fields are
+# exact caller-prepared copies of the actual private four-slot prior snapshot.
+plot language/analysis-round-empty (
+    input: LanguageAnalysisInitialRawBeam...| >> output: LanguageAnalysisInitialRawBeam...|
+) = ({ candidate0: {parser:{state:.candidate0.parser.state,identity:.candidate0.parser.identity,score:0,active:false},choices:.candidate0.choices,selected:.candidate0.selected}, candidate1: {parser:{state:.candidate1.parser.state,identity:.candidate1.parser.identity,score:0,active:false},choices:.candidate1.choices,selected:.candidate1.selected}, candidate2: {parser:{state:.candidate2.parser.state,identity:.candidate2.parser.identity,score:0,active:false},choices:.candidate2.choices,selected:.candidate2.selected}, candidate3: {parser:{state:.candidate3.parser.state,identity:.candidate3.parser.identity,score:0,active:false},choices:.candidate3.choices,selected:.candidate3.selected} })

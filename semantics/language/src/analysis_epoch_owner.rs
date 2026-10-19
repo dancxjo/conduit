@@ -45,6 +45,10 @@ pub struct AnalysisEpochOwner<'a> {
     generation: u64,
     commitments: Vec<&'a crate::dependency_commitment::PreparedCommittedDependency>,
     commitment_limit: usize,
+    identity_cursor: u64,
+    rounds: Vec<fallback_round::PreparedFallbackRound>,
+    round_limit: usize,
+    frontier_receipts: Vec<fallback_round::frontier::PreparedFallbackFrontier>,
 }
 pub struct ArchivedAnalysisEpoch<'a> {
     owner: AnalysisEpochOwner<'a>,
@@ -69,6 +73,16 @@ impl<'a> AnalysisEpochOwner<'a> {
         let session = AnalysisSession::new(domain, context, limits)
             .map_err(AnalysisEpochRefusal::Revision)?;
         let beam = initial.beam.clone();
+        let identity_cursor = [
+            beam.candidate0(),
+            beam.candidate1(),
+            beam.candidate2(),
+            beam.candidate3(),
+        ]
+        .iter()
+        .map(|s| *s.parser().identity())
+        .max()
+        .ok_or(AnalysisEpochRefusal::Generation)?;
         Ok(Self {
             session,
             material: Material::Initial(initial),
@@ -76,6 +90,10 @@ impl<'a> AnalysisEpochOwner<'a> {
             generation: 0,
             commitments: Vec::with_capacity(limits.history_events),
             commitment_limit: limits.history_events,
+            identity_cursor,
+            rounds: Vec::with_capacity(limits.history_events),
+            round_limit: limits.history_events,
+            frontier_receipts: Vec::with_capacity(limits.history_events),
         })
     }
     pub fn beam(&self) -> &LanguageParserScorerBeam {
@@ -258,6 +276,10 @@ impl<'a> AnalysisEpochOwner<'a> {
             generation,
             commitments: Vec::with_capacity(limits.history_events),
             commitment_limit: limits.history_events,
+            identity_cursor: self.identity_cursor,
+            rounds: Vec::with_capacity(limits.history_events),
+            round_limit: limits.history_events,
+            frontier_receipts: Vec::with_capacity(limits.history_events),
         };
         Ok((next, ArchivedAnalysisEpoch { owner: self }))
     }
@@ -422,3 +444,6 @@ mod capacity_tests {
         assert!(require_commitment_capacity(1, 2, 8).is_ok());
     }
 }
+
+#[path = "analysis_fallback_round.rs"]
+pub mod fallback_round;
