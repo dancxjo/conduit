@@ -303,6 +303,9 @@ impl<'a> AnalysisEpochOwner<'a> {
         if self.session.is_closed() {
             return Err(Closed);
         }
+        if self.session.publication_dispute().is_some() {
+            return Err(Session(AnalysisSessionRefusal::Corrected));
+        }
         let generation = self.generation.checked_add(1).ok_or(Generation)?;
         let previous_context = self.session.context();
         if context.epoch == previous_context.epoch

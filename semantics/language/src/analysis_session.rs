@@ -9,12 +9,14 @@ pub enum AnalysisSessionRefusal {
     Pressure,
     Stale,
     Commitment,
+    Corrected,
 }
 pub struct AnalysisSession<'a> {
     journal: RevisionJournal<'a, DependencyRevisions<'a>>,
     source: &'a LanguageText,
     committed: Option<LanguageCommittedDependencyAdmission>,
     lexical: Option<LanguageLexicalTape>,
+    publication_dispute: Option<RevisionReference<'a>>,
 }
 /// Borrowing the owning session prevents advancing it while using this authority.
 /// This is analysis commitment, not delivery or playback authority.
@@ -45,6 +47,7 @@ impl<'a> AnalysisSession<'a> {
             source: domain.source_text,
             committed: None,
             lexical: None,
+            publication_dispute: None,
         })
     }
     pub(crate) fn from_retained_prefix(
@@ -58,6 +61,7 @@ impl<'a> AnalysisSession<'a> {
             source: domain.source_text,
             committed: None,
             lexical: None,
+            publication_dispute: None,
         })
     }
     pub(crate) fn context(&self) -> RevisionContext<'a> {
@@ -101,6 +105,9 @@ impl<'a> AnalysisSession<'a> {
             return Err(Pressure);
         }
         if let RevisionChange::Committed { revision, through } = event.change() {
+            if self.publication_dispute.is_some() {
+                return Err(Corrected);
+            }
             let receipt = receipt.ok_or(Commitment)?;
             let arc = self.current_arc(*revision)?;
             let query = receipt.admission().query();
@@ -119,6 +126,11 @@ impl<'a> AnalysisSession<'a> {
             }
         }
         self.journal.append(event).map_err(Revision)?;
+        if matches!(event.change(), RevisionChange::Corrected { .. }) {
+            // Keep the committed history and receipts, but do not grant new
+            // publication from disputed analysis without checked reconciliation.
+            self.publication_dispute = Some(event.reference());
+        }
         if matches!(event.change(), RevisionChange::Committed { .. }) {
             let receipt = receipt.ok_or(Commitment)?;
             self.committed = Some(receipt.admission().clone());
@@ -131,6 +143,9 @@ impl<'a> AnalysisSession<'a> {
         reference: RevisionReference<'a>,
         receipt: &'s PreparedCommittedDependency,
     ) -> Result<CurrentCommittedDependency<'s, 'a>, AnalysisSessionRefusal> {
+        if self.publication_dispute.is_some() {
+            return Err(AnalysisSessionRefusal::Corrected);
+        }
         if self.lexical.as_ref() != Some(receipt.lexical())
             || self.committed.as_ref() != Some(receipt.admission())
             || receipt.admission().query().source().material() != self.source
@@ -152,6 +167,9 @@ impl<'a> AnalysisSession<'a> {
     }
     pub(crate) fn is_closed(&self) -> bool {
         self.journal.is_closed()
+    }
+    pub fn publication_dispute(&self) -> Option<RevisionReference<'a>> {
+        self.publication_dispute
     }
     pub fn history(
         &self,

@@ -31,6 +31,10 @@ fn snapshot(
 #[test]
 fn actual_fallback_rounds_commit_then_handoff_without_reopening_protected_prefix() {
     let mut runtime = runtime::Runtime::new();
+    run_scenario(&mut runtime, false);
+    run_scenario(&mut runtime, true);
+}
+fn run_scenario(runtime: &mut runtime::Runtime, dispute: bool) {
     let old = fixture::revision("answer ", None, 7);
     let next = fixture::revision("answer record ", Some(&old), 7);
     let old_domain = DependencyRevisions {
@@ -69,6 +73,10 @@ fn actual_fallback_rounds_commit_then_handoff_without_reopening_protected_prefix
     let protected_proposal;
     let correction;
     let closed;
+    let corrected_delta;
+    let recommit;
+    let mut direct;
+    let same_epoch_correction;
     let lexical = prepare_lexical_tape(&old, &fixture::profile(), None).unwrap();
     let basis = LanguageParserBasis::new(
         LanguageAnalysisRevisionId::new("analysis/1".into()).unwrap(),
@@ -100,7 +108,7 @@ fn actual_fallback_rounds_commit_then_handoff_without_reopening_protected_prefix
     let programs = PreparedFallbackRoundPrograms::prepare().unwrap();
     let mut old_stale_round = None;
     for round in 0..8 {
-        let prepared = match owner.prepare_fallback_round_with(&programs, &mut runtime) {
+        let prepared = match owner.prepare_fallback_round_with(&programs, runtime) {
             Ok(p) => p,
             Err(f) => panic!("fallback round {round}: {:?}", f.refusal),
         };
@@ -156,8 +164,7 @@ fn actual_fallback_rounds_commit_then_handoff_without_reopening_protected_prefix
     )
     .unwrap();
     owner.append_event(&proposed, false, false).unwrap();
-    let prepared = match owner.prepare_fallback_frontier_with(&programs, &mut runtime, true, false)
-    {
+    let prepared = match owner.prepare_fallback_frontier_with(&programs, runtime, true, false) {
         Ok(p) => p,
         Err(f) => panic!("refusal frontier replay: {:?}", f.refusal),
     };
@@ -183,8 +190,7 @@ fn actual_fallback_rounds_commit_then_handoff_without_reopening_protected_prefix
         })
     ));
     assert_eq!(snapshot(&owner), before);
-    let prepared = match owner.prepare_fallback_frontier_with(&programs, &mut runtime, false, true)
-    {
+    let prepared = match owner.prepare_fallback_frontier_with(&programs, runtime, false, true) {
         Ok(p) => p,
         Err(f) => panic!("refusal frontier replay: {:?}", f.refusal),
     };
@@ -210,8 +216,7 @@ fn actual_fallback_rounds_commit_then_handoff_without_reopening_protected_prefix
         })
     ));
     assert_eq!(snapshot(&owner), before);
-    let prepared = match owner.prepare_fallback_frontier_with(&programs, &mut runtime, false, false)
-    {
+    let prepared = match owner.prepare_fallback_frontier_with(&programs, runtime, false, false) {
         Ok(p) => p,
         Err(f) => panic!("actual all-survivor frontier: {:?}", f.refusal),
     };
@@ -323,6 +328,103 @@ fn actual_fallback_rounds_commit_then_handoff_without_reopening_protected_prefix
         epoch: text("2"),
         ..context
     };
+    if dispute {
+        use conduit_language::analysis_session::{AnalysisSession, AnalysisSessionRefusal};
+        // Supplied conflicting evidence is retained, not promoted to a checked
+        // replacement parse or allowed to rewrite the old committed receipt.
+        corrected_delta = DependencyDelta::Assert(
+            LanguageDependencyArc::new(
+                arc.dependent().clone(),
+                arc.governor().clone(),
+                LanguageDependencyRelation::new(
+                    LanguageUniversalDependencyRelation::Root,
+                    Some(LanguageDependencySubtype::new("contested".into()).unwrap()),
+                )
+                .unwrap(),
+            )
+            .unwrap(),
+        );
+        same_epoch_correction = RevisionEvent::new(
+            &old_domain,
+            reference(4, "correction"),
+            &evidence,
+            RevisionChange::Corrected {
+                commit: commit.reference(),
+                delta: &corrected_delta,
+                reason: text("later-analysis"),
+            },
+        )
+        .unwrap();
+        let before = snapshot(&owner);
+        for (cancelled, pressure) in [(true, false), (false, true)] {
+            assert!(owner
+                .append_event(&same_epoch_correction, cancelled, pressure)
+                .is_err());
+            assert_eq!(snapshot(&owner), before);
+            owner.current(proposed.reference(), &receipt).unwrap();
+        }
+        owner
+            .append_event(&same_epoch_correction, false, false)
+            .unwrap();
+        assert!(matches!(
+            owner.current(proposed.reference(), &receipt),
+            Err(AnalysisSessionRefusal::Corrected)
+        ));
+        assert_eq!(owner.frontiers().committed, TokenFrontier(1));
+        assert_eq!(owner.frontiers().stable_through, None);
+        assert_eq!(owner.beam(), &previous);
+        assert_eq!(owner.history().count(), 4);
+        assert_eq!(owner.commitment_receipts().len(), 1);
+
+        // A new commitment cannot refill a disputed session's publication
+        // cache, even when the old exact Source receipt remains inspectable.
+        direct = AnalysisSession::new(&old_domain, context, limits).unwrap();
+        direct.append(&proposed, None, false, false).unwrap();
+        direct.append(&stable, None, false, false).unwrap();
+        direct
+            .append(&commit, Some(&receipt), false, false)
+            .unwrap();
+        direct
+            .append(&same_epoch_correction, None, false, false)
+            .unwrap();
+        recommit = RevisionEvent::new(
+            &old_domain,
+            reference(5, "recommit"),
+            &evidence,
+            RevisionChange::Committed {
+                revision: proposed.reference(),
+                through: TokenFrontier(1),
+            },
+        )
+        .unwrap();
+        assert!(matches!(
+            direct.append(&recommit, Some(&receipt), false, false),
+            Err(AnalysisSessionRefusal::Corrected)
+        ));
+        assert_eq!(direct.history().count(), 4);
+        assert_eq!(
+            direct.publication_dispute(),
+            Some(same_epoch_correction.reference())
+        );
+        let before = snapshot(&owner);
+        let failure = match owner.handoff(
+            replays.try_into().ok().unwrap(),
+            &next_domain,
+            next_context,
+            limits,
+        ) {
+            Err(f) => f,
+            Ok(_) => panic!("disputed analysis handed off"),
+        };
+        assert!(matches!(
+            failure.refusal,
+            AnalysisEpochRefusal::Session(AnalysisSessionRefusal::Corrected)
+        ));
+        assert_eq!(snapshot(&failure.owner), before);
+        assert_eq!(failure.replays.len(), 4);
+        runtime.assert_signs();
+        return;
+    }
     let (mut next_owner, archive) = match owner.handoff(
         replays.try_into().ok().unwrap(),
         &next_domain,
@@ -412,7 +514,7 @@ fn actual_fallback_rounds_commit_then_handoff_without_reopening_protected_prefix
     let before = snapshot(&next_owner);
     let operation_count = runtime.operations;
     assert!(matches!(
-        next_owner.prepare_fallback_round_with(&programs, &mut runtime),
+        next_owner.prepare_fallback_round_with(&programs, runtime),
         Err(FallbackRoundPreparationFailure {
             refusal: FallbackRoundRefusal::Closed,
             ..
