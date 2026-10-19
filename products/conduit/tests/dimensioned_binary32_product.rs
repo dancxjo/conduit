@@ -141,6 +141,34 @@ fn assert_chain(source: &str) {
             .iter()
             .all(|s| s.plan_id.as_ref() == Some(&plan.plan_id)
                 && s.active_play_id.as_ref() == Some(&active_play)));
+        let routed = signs
+            .iter()
+            .filter_map(|sign| {
+                let ObservationKind::RoutedContent { evidence } = &sign.kind else {
+                    return None;
+                };
+                (sign.placement_id.as_ref() == Some(&boundary.placement_id)
+                    && evidence.byte_length > 0)
+                    .then_some((sign, evidence))
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(
+            routed.len(),
+            1,
+            "actual projection output must reach the product Sign report"
+        );
+        let (sign, evidence) = routed[0];
+        let connection = plan
+            .fragments
+            .iter()
+            .flat_map(|fragment| &fragment.connections)
+            .find(|connection| Some(&connection.connection_id) == sign.connection_id.as_ref())
+            .expect("routed projection Sign names its exact planned connection");
+        assert_eq!(connection.source_placement_id, boundary.placement_id);
+        assert_eq!(connection.source_port_id, evidence.output_port);
+        assert!(evidence.byte_length <= connection.byte_capacity);
+        assert_eq!(evidence.digest_domain, "conduit/routed-value-content@1");
+        assert_eq!(evidence.digest_scheme, "core/semantic-sha256@1");
         println!(
             "DIMENSIONED_BINARY32_PRODUCT source={} plan={} selected_mathematical={}",
             plan.source_document_id.as_str(),
