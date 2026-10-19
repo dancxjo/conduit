@@ -111,7 +111,7 @@ export async function captureArbitraryTodoRefusals({ page, face, output, sourceR
   };
   // Hostile appearance must fail preparation before an acknowledged usable Show.
   await observeRenderRefusal();
-  await page.locator('conduit-owner-face').evaluate(element => {element.hidden=true;});
+  await page.locator('[data-owner-face-surface]').evaluate(element => {element.hidden=true;});
   await page.getByRole('button',{name:'Refresh this Face',exact:true}).click();
   await renderRefusal();
   assert.deepEqual(face(),beforeAttempt,'inaccessible rendering cannot mutate owner truth');
@@ -119,7 +119,7 @@ export async function captureArbitraryTodoRefusals({ page, face, output, sourceR
   results.push({case:'hidden-mandatory-action',disposition:'RendererActionInaccessible',
     show_acknowledged:false,accepted_domain_mutations:0});
   await retain();
-  await page.locator('conduit-owner-face').evaluate(element => {element.hidden=false;});
+  await page.locator('[data-owner-face-surface]').evaluate(element => {element.hidden=false;});
   await page.getByRole('button',{name:'Refresh this Face',exact:true}).click();
   await page.waitForFunction(() => document.querySelector('[data-owner-show-acknowledged]'));
   assert.equal(await add.isEnabled(),true);
@@ -129,7 +129,7 @@ export async function captureArbitraryTodoRefusals({ page, face, output, sourceR
   await retain();
   // Attack the actual packaged renderer between preparation and admission.
   await observeRenderRefusal();
-  await page.locator('conduit-owner-face').evaluate(element => {
+  await page.locator('[data-owner-face-surface]').evaluate(element => {
     const show = element.show;
     element.show = function(...arguments_) {
       show.apply(this,arguments_);
@@ -143,7 +143,7 @@ export async function captureArbitraryTodoRefusals({ page, face, output, sourceR
   results.push({case:'misleading-action-name',disposition:'RendererActionInaccessible',
     show_acknowledged:false,accepted_domain_mutations:0});
   await retain();
-  await page.locator('conduit-owner-face').evaluate(element => {delete element.show;});
+  await page.locator('[data-owner-face-surface]').evaluate(element => {delete element.show;});
   await page.getByRole('button',{name:'Refresh this Face',exact:true}).click();
   await page.waitForFunction(() => document.querySelector('[data-owner-show-acknowledged]'));
   assert.equal(await add.isEnabled(),true);

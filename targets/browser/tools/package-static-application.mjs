@@ -67,6 +67,10 @@ try {
   }
   const roles = new Set();
   const paths = new Set();
+  const ownerPresentation = template.application_id === 'conduit.application/handbook'
+    && template.resources.find(resource => resource.role === 'owner-face-presentation');
+  const ownerPresentationSource = ownerPresentation
+    && path.resolve(sourceRoot, ownerPresentation.source ?? ownerPresentation.path);
   for (const resource of template.resources) {
     if (!safe(resource.path)) throw new Error(`Unsafe application path: ${resource.path}`);
     if (roles.has(resource.role) || paths.has(resource.path) || resource.role === 'runtime'
@@ -79,6 +83,21 @@ try {
     const file = path.join(staging, resource.path);
     await mkdir(path.dirname(file), { recursive: true });
     await copyFile(source, file);
+  }
+  // The reviewed Handbook's custom element is an optional Host Back sidecar.
+  // Its absence must leave the mandatory generic DOM application loadable;
+  // the runtime descriptor, rather than this manifest, admits its exact bytes.
+  if (ownerPresentation) {
+    for (const [name, sidecar, maximum] of [
+      ['owner-face-component.mjs', 'owner-face-component.mjs', 8192],
+      ['owner-face-look.css', 'owner-face-component-look.css', 16384],
+    ]) {
+      if (paths.has(sidecar)) throw new Error('Optional owner Back collides with a mandatory resource');
+      const sourcePath = path.join(path.dirname(ownerPresentationSource), name);
+      const source = await regular(path.parse(sourcePath).root, path.relative(path.parse(sourcePath).root, sourcePath));
+      if ((await lstat(source)).size > maximum) throw new Error('Optional owner Back exceeds its resource bound');
+      await copyFile(source, path.join(staging, sidecar));
+    }
   }
   if (!paths.has('index.html')) throw new Error('Application template must include its index.html shell');
   // The Handbook shell must have the same navigation before its runtime starts.

@@ -61,6 +61,7 @@ fn project_view(
         mask_expanded_plot_id: planned.mask.plot_identity.expanded_plot_id.as_str().into(),
         mask_plan_id: planned.plan.plan_id.as_str().into(),
         mask_play_id: play.active_play_id.as_str().into(),
+        mask_renderer_artifact_id: planned.show_placement().artifact_id.as_str().into(),
         route,
         show_id: show.show_id.as_str().into(),
         show_state: match show.show.lifecycle {

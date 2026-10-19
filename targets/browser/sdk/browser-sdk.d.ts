@@ -84,6 +84,11 @@ export class BrowserHost {
   plot(source: string): BrowserPlot;
   /** Rust expands selected Plots against this exact Host without acquiring resources or making a Plan. */
   review(plots: readonly (BrowserPlot | CheckedPlot | CheckedSource)[]): Promise<PlotWorkloadReview>;
+  /** Admit the built-in optional owner component before external Body presence. */
+  admitOwnerFaceComponent(application: unknown): Promise<Readonly<{
+    selected: boolean; reason?: string; constructor?: CustomElementConstructor;
+    identity?: string; artifactId?: string; bundleSha256?: string;
+  }>>;
   /** Participate in one externally owned Body without creating a second Host or Boot. */
   participate(options: {
     invitation: string;
