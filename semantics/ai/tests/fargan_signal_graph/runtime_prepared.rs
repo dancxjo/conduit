@@ -5,7 +5,8 @@ pub(super) type Kernel =
 type SinkCapture = Rc<std::cell::RefCell<Option<Vec<u8>>>>;
 pub(super) struct PreparedExecution {
     pub(super) plan: Plan,
-    pub(super) scheduler: Box<Kernel>,
+    pub(super) scheduler: super::execution_kernel::ExecutionKernel,
+    pub(super) sources: Vec<(usize, String, Option<conduit_kernel::ValueRef>)>,
     pub(super) timing: Rc<std::cell::RefCell<WorkTiming>>,
     pub(super) owners: Vec<Option<conduitos::expression_host_call::ExpressionHostCall>>,
     pub(super) received: BTreeMap<String, SinkCapture>,
@@ -20,6 +21,8 @@ pub(super) fn prepare(
     resources: &Resources,
     input_values: BTreeMap<String, Vec<u8>>,
     mode: ExecutionMode,
+    reuse: bool,
+    sequence: u64,
 ) -> PreparedExecution {
     let start = Instant::now();
     let timing = Rc::new(std::cell::RefCell::new(WorkTiming::default()));
@@ -31,7 +34,12 @@ pub(super) fn prepare(
     )
     .unwrap();
     assert!(lowered.node_specs.len() <= N && lowered.cords.len() <= C);
-    let active = bind_active_play(&fragment.plan_id, &fragment.host_id, &fragment.boot_id, 0);
+    let active = bind_active_play(
+        &fragment.plan_id,
+        &fragment.host_id,
+        &fragment.boot_id,
+        sequence,
+    );
     let slots = match mode {
         ExecutionMode::StoragePressure => resources.len() + input_values.len(),
         _ => 1024,
@@ -49,7 +57,11 @@ pub(super) fn prepare(
     for (name, resource) in resources {
         let binding =
             FixedTensorPortBinding::prepare(&resource.value_type, &resource.tensor).unwrap();
-        fixtures.insert(name.clone(), store.store(binding.encoded()).unwrap());
+        let reference = store.store(binding.encoded()).unwrap();
+        if reuse {
+            store.retain(reference).unwrap();
+        }
+        fixtures.insert(name.clone(), reference);
     }
     let mut adopted = BTreeMap::new();
     for gear in &fragment.placements {
@@ -68,6 +80,7 @@ pub(super) fn prepare(
     let mut owners: Vec<Option<conduitos::expression_host_call::ExpressionHostCall>> =
         (0..N).map(|_| None).collect();
     let mut drivers = Vec::new();
+    let mut sources = Vec::new();
     let expressions =
         conduitos::expression_host_call::ExpressionPreparation::new(fragment, &lowered, &active)
             .unwrap();
@@ -78,19 +91,29 @@ pub(super) fn prepare(
                 .find(|f| f.implementation_id() == &gear.implementation_id)
                 .unwrap();
             factory.budget(gear).unwrap();
-            drivers.push(Driver::Operation(Box::new(TimedNumeric {
-                back: factory.prepare(gear, &mut store).unwrap(),
-                timing: timing.clone(),
-            })));
+            drivers.push(if reuse {
+                Driver::ReusableOperation(Box::new(TimedNumeric {
+                    back: factory.prepare_reusable(gear).unwrap(),
+                    timing: timing.clone(),
+                }))
+            } else {
+                Driver::Operation(Box::new(TimedNumeric {
+                    back: factory.prepare(gear, &mut store).unwrap(),
+                    timing: timing.clone(),
+                }))
+            });
         } else if gear.implementation_id.as_str() == conduitos::expression_host_call::IMPLEMENTATION
         {
             let owner = expressions.prepare(&gear.placement_id).unwrap();
             owners[index] = Some(owner);
-            drivers.push(Driver::Operation(Box::new(
-                conduit_kernel::scheduler::HostCallBack::new(
-                    gear.host_calls[0].maximum_input_bytes,
-                ),
-            )));
+            let back = conduit_kernel::scheduler::HostCallBack::new(
+                gear.host_calls[0].maximum_input_bytes,
+            );
+            drivers.push(if reuse {
+                Driver::ReusableOperation(Box::new(back))
+            } else {
+                Driver::Operation(Box::new(back))
+            });
         } else {
             let name = gear
                 .kind_id
@@ -98,6 +121,11 @@ pub(super) fn prepare(
                 .strip_prefix("subframe-fixture/")
                 .unwrap();
             if let Some(reference) = fixtures.get(name) {
+                sources.push((
+                    index,
+                    name.to_owned(),
+                    resources.contains_key(name).then_some(*reference),
+                ));
                 drivers.push(Driver::Source {
                     reference: *reference,
                     staged: false,
@@ -161,10 +189,19 @@ pub(super) fn prepare(
                 );
         }
     }
+    let scheduler = if reuse {
+        super::execution_kernel::ExecutionKernel::Reusable(Box::new(
+            conduit_kernel::scheduler::prepared_session::PreparedKernelSession::new(scheduler)
+                .unwrap_or_else(|_| panic!("fresh local kernel")),
+        ))
+    } else {
+        super::execution_kernel::ExecutionKernel::Fresh(scheduler)
+    };
     let preparation = start.elapsed();
     PreparedExecution {
         plan,
         scheduler,
+        sources,
         timing,
         owners,
         received,

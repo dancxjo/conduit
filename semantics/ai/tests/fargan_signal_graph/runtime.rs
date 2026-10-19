@@ -18,8 +18,12 @@ const C: usize = 2048;
 mod backs;
 pub use backs::WorkTiming;
 use backs::{Driver, TimedNumeric};
+#[path = "runtime_execution_kernel.rs"]
+mod execution_kernel;
 #[path = "runtime_prepared.rs"]
 mod prepared;
+#[path = "runtime_session.rs"]
+pub mod session;
 
 pub struct ResultAndTiming {
     pub work: WorkTiming,
@@ -112,18 +116,44 @@ pub fn run_entry_plan_observed(
     before_play: impl FnOnce(),
     after_play: impl FnOnce(),
 ) -> Option<EncodedResultAndTiming> {
+    let mut prepared = prepared::prepare(plan, resources, input_values, mode, false, 0);
+    execute_prepared(&mut prepared, mode, before_play, after_play)
+}
+pub fn run_entry_plan_at_sequence(
+    plan: Plan,
+    resources: &Resources,
+    input_values: BTreeMap<String, Vec<u8>>,
+    sequence: u64,
+) -> Option<EncodedResultAndTiming> {
+    let mut prepared = prepared::prepare(
+        plan,
+        resources,
+        input_values,
+        ExecutionMode::Normal,
+        false,
+        sequence,
+    );
+    execute_prepared(&mut prepared, ExecutionMode::Normal, || {}, || {})
+}
+fn execute_prepared(
+    prepared: &mut prepared::PreparedExecution,
+    mode: ExecutionMode,
+    before_play: impl FnOnce(),
+    after_play: impl FnOnce(),
+) -> Option<EncodedResultAndTiming> {
     let prepared::PreparedExecution {
         plan,
-        mut scheduler,
+        scheduler,
         timing,
-        mut owners,
+        owners,
         received,
-        mut host_output,
+        host_output,
         output_limits,
         preparation,
         nodes,
         cords,
-    } = prepared::prepare(plan, resources, input_values, mode);
+        ..
+    } = prepared;
     let fragment = &plan.fragments[0];
     before_play();
     let execute = Instant::now();
@@ -159,7 +189,7 @@ pub fn run_entry_plan_observed(
                     )
                     .unwrap();
                 // Deliver the ordinary host cancellation to its selected Back.
-                for _ in 0..nodes {
+                for _ in 0..*nodes {
                     let _ = scheduler.step();
                 }
                 break;
@@ -188,7 +218,7 @@ pub fn run_entry_plan_observed(
             assert!(output.len() <= host_output.capacity());
             host_output.clear();
             host_output.extend_from_slice(output);
-            let output = &host_output;
+            let output = &*host_output;
             let Ok(value) = scheduler.store_host_value(output) else {
                 break;
             };
@@ -218,12 +248,13 @@ pub fn run_entry_plan_observed(
         return None;
     }
     let outputs: BTreeMap<_, _> = received
-        .into_iter()
+        .iter()
         .map(|(name, value)| {
-            let bytes = value.borrow_mut().take()?;
+            let guard = value.borrow();
+            let bytes = guard.as_ref()?;
             Some((
-                name,
-                StructuredInfoValue::from_canonical_bytes(&bytes).unwrap(),
+                name.clone(),
+                StructuredInfoValue::from_canonical_bytes(bytes).unwrap(),
             ))
         })
         .collect::<Option<_>>()?;
@@ -239,10 +270,10 @@ pub fn run_entry_plan_observed(
         outputs,
         work,
         value: actual,
-        preparation,
+        preparation: *preparation,
         execution,
-        nodes,
-        cords,
+        nodes: *nodes,
+        cords: *cords,
     })
 }
 pub fn run_graph(
