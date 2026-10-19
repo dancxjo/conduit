@@ -56,6 +56,18 @@
       "role": "owner-face-component",
       "kind": "module",
       "path": "owner-face-component.mjs",
+      "maximum_bytes": 65536,
+      "dependencies": [
+        {
+          "role": "owner-face-presentation",
+          "specifier": "./owner-face-presentation.mjs"
+        }
+      ]
+    },
+    {
+      "role": "owner-face-presentation",
+      "kind": "module",
+      "path": "owner-face-presentation.mjs",
       "maximum_bytes": 65536
     },
     {
