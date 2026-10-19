@@ -2,7 +2,8 @@
 
 mod evidence;
 mod transport;
-pub use evidence::{RemoteKernelEvidence, TwoHostKernelEvidence};
+use evidence::PhaseClock;
+pub use evidence::{RemoteKernelEvidence, TwoHostKernelEvidence, TwoHostPhaseTiming};
 
 use std::{collections::BTreeMap, io::Write};
 
@@ -64,7 +65,9 @@ fn execute<const OBSERVE: bool>(
     source: &str,
     output: &mut impl Write,
 ) -> Result<(HostedTwoHostExecution, Option<TwoHostKernelEvidence>), String> {
+    let mut clock = OBSERVE.then(PhaseClock::new);
     let plot = plot_source::parse(source)?.expand_entry()?;
+    PhaseClock::mark(&mut clock, "source_parse_expand")?;
     let source_host = host(SOURCE_HOST, SOURCE_BOOT);
     let sink_host = host(SINK_HOST, SINK_BOOT);
     let line_offer = line_offer(&source_host, &sink_host);
@@ -85,7 +88,9 @@ fn execute<const OBSERVE: bool>(
         vec![line_offer],
         Vec::new(),
     )?;
+    PhaseClock::mark(&mut clock, "host_advertisements_context")?;
     let plan = context.plan_with_placements(&plot, &placements(&plot)?)?;
+    PhaseClock::mark(&mut clock, "plan_select")?;
     let source_fragment = plan
         .fragments
         .iter()
@@ -118,12 +123,14 @@ fn execute<const OBSERVE: bool>(
         &sink_runtime,
         conduit_plan_lowering::lowering::RemoteCordDirection::Ingress,
     )?;
-    let (transfer, sink_output, evidence) = transport::execute_line::<OBSERVE>(
+    PhaseClock::mark(&mut clock, "fragments_prepare")?;
+    let (transfer, sink_output, mut evidence) = transport::execute_line::<OBSERVE>(
         source_runtime,
         source_endpoint,
         sink_runtime,
         sink_endpoint,
     )?;
+    PhaseClock::mark(&mut clock, "line_and_evidence_retention")?;
     output
         .write_all(&sink_output)
         .map_err(|error| error.to_string())?;
@@ -155,6 +162,10 @@ fn execute<const OBSERVE: bool>(
         transferred_values: 1,
         result,
     };
+    PhaseClock::mark(&mut clock, "output_and_execution_receipt")?;
+    if let Some(clock) = clock {
+        evidence.as_mut().ok_or("two-Host evidence missing")?.phases = clock.finish()?;
+    }
     Ok((execution, evidence))
 }
 

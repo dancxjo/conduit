@@ -202,6 +202,7 @@ pub(super) fn execute_line<const OBSERVE: bool>(
         .map_err(|_| "sink Tour Host panicked".to_string())??;
     let evidence = if OBSERVE {
         Some(super::TwoHostKernelEvidence {
+            phases: Vec::new(),
             source: super::evidence::retain(&source),
             sink: sink_evidence.ok_or("sink evidence missing")?,
         })
