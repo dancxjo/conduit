@@ -23,6 +23,7 @@ pub struct ProjectionReport<'a, D: ProjectionDomain> {
     source_contract: ProjectionText<'a>,
     target_contract: ProjectionText<'a>,
     policy: ProjectionText<'a>,
+    policy_configuration_digest: Option<[u8; 32]>,
     summary: ProjectionSummary,
 }
 impl<'a, D: ProjectionDomain> ProjectionReport<'a, D> {
@@ -226,6 +227,7 @@ impl<'a, D: ProjectionDomain> ProjectionReport<'a, D> {
             source_contract: domain.source_contract(),
             target_contract: domain.target_contract(),
             policy: policy.identity(),
+            policy_configuration_digest: policy.configuration_digest(),
             input,
             summary,
         })
@@ -241,6 +243,10 @@ impl<'a, D: ProjectionDomain> ProjectionReport<'a, D> {
     }
     pub fn policy(&self) -> ProjectionText<'a> {
         self.policy
+    }
+    /// Frozen when the report is admitted, independently of later policy state.
+    pub fn policy_configuration_digest(&self) -> Option<[u8; 32]> {
+        self.policy_configuration_digest
     }
     pub fn summary(&self) -> ProjectionSummary {
         self.summary
@@ -282,6 +288,21 @@ impl<'a, D: ProjectionDomain> ProjectionReport<'a, D> {
         self.input
             .target
             .ok_or(ProjectionRefusal::ConsumerRequiresExact)
+    }
+    /// Require both the policy contract and its original exact configuration.
+    pub fn require_bound_policy(
+        &self,
+        policy: ProjectionText<'_>,
+        configuration_digest: [u8; 32],
+    ) -> Result<&'a D::Target, ProjectionRefusal> {
+        let target = self.require_policy(policy)?;
+        let admitted = self
+            .policy_configuration_digest
+            .ok_or(ProjectionRefusal::PolicyConfigurationUnavailable)?;
+        if admitted != configuration_digest {
+            return Err(ProjectionRefusal::PolicyMismatch);
+        }
+        Ok(target)
     }
     pub fn facts(&self) -> &'a [ProjectionFact<'a, D>] {
         self.input.facts

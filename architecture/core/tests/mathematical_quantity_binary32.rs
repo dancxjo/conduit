@@ -242,14 +242,13 @@ fn exact_zero_tight_tolerance_work_and_physical_refusals_do_not_poison_recovery(
         };
         let target = result.target();
         let facts = result.facts();
-        assert!(ProjectionReport::new(
-            &MathematicalQuantityBinary32Domain::new(),
-            &policy,
-            input(&result, &target, &facts)
-        )
-        .unwrap()
-        .require_exact()
-        .is_ok());
+        let domain = MathematicalQuantityBinary32Domain::new();
+        let report =
+            ProjectionReport::new(&domain, &policy, input(&result, &target, &facts)).unwrap();
+        assert!(report.require_exact().is_ok());
+        assert!(report
+            .require_bound_policy(policy.identity(), policy.configuration_digest().unwrap())
+            .is_ok());
     });
     assert_eq!(allocations, 0);
     assert!(PreparedMathematicalQuantityBinary32::new(
@@ -276,4 +275,53 @@ fn exact_zero_tight_tolerance_work_and_physical_refusals_do_not_poison_recovery(
         200_000_000
     )
     .is_err());
+}
+
+#[test]
+fn policy_configuration_identity_retains_tolerance_unit_role_and_rounding_without_allocation() {
+    let policy = MathematicalQuantityBinary32Policy {
+        maximum_error: limit(Unit::Radian, QuantityRole::Linear),
+        rounding: Binary32Rounding::NearestTiesEven,
+    };
+    let variants = [
+        MathematicalQuantityBinary32Policy {
+            maximum_error: RationalQuantity::new(
+                q(2, 1_000_000),
+                Unit::Radian,
+                QuantityRole::Linear,
+            )
+            .unwrap(),
+            ..policy
+        },
+        MathematicalQuantityBinary32Policy {
+            maximum_error: limit(Unit::Degree, QuantityRole::Linear),
+            ..policy
+        },
+        MathematicalQuantityBinary32Policy {
+            maximum_error: limit(Unit::Radian, QuantityRole::Delta),
+            ..policy
+        },
+        MathematicalQuantityBinary32Policy {
+            rounding: Binary32Rounding::TowardZero,
+            ..policy
+        },
+        MathematicalQuantityBinary32Policy {
+            rounding: Binary32Rounding::TowardPositive,
+            ..policy
+        },
+        MathematicalQuantityBinary32Policy {
+            rounding: Binary32Rounding::TowardNegative,
+            ..policy
+        },
+    ];
+    let (_, allocations) = observe(|| {
+        let digest = policy.configuration_digest().unwrap();
+        for _ in 0..32 {
+            assert_eq!(policy.configuration_digest(), Some(digest));
+            for changed in variants {
+                assert_ne!(changed.configuration_digest(), Some(digest));
+            }
+        }
+    });
+    assert_eq!(allocations, 0);
 }
