@@ -53,7 +53,7 @@ export function attachPortableSuggestions(input, container, { options, policy, c
   input.addEventListener('blur', close);
   input.addEventListener('keydown', event => {
     if (!event.isTrusted || event.isComposing || composing || event.ctrlKey || event.metaKey || event.altKey) return;
-    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+    if (!event.shiftKey && (event.key === 'ArrowDown' || event.key === 'ArrowUp')) {
       event.preventDefault(); if (list.hidden) open(false);
       if (visible.length) highlight(Math.max(0, Math.min(visible.length - 1, active < 0 ? (event.key === 'ArrowDown' ? 0 : visible.length - 1) : active + (event.key === 'ArrowDown' ? 1 : -1))));
     } else if (event.key === 'Escape' && !list.hidden) { event.preventDefault(); close(); }
