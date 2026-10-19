@@ -256,6 +256,25 @@ pub const COMPONENT_MASK_KIND: &str = "face/component-mask";
 /// One checked document owns both expression roots and both independent recipes.
 pub const TODO_COMPONENT_MASK_SOURCE: &str = include_str!("../components/todo-mask.conduit");
 
+/// Crèche structure admits its three actual fields and full bounded inventory.
+/// Both roots share one visual expression; selecting structure is not a Look.
+pub const CRECHE_COMPONENT_MASK_SOURCE: &str = include_str!("../components/creche-mask.conduit");
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum CrecheComponentRecipe {
+    SingleColumn,
+    ResponsiveColumns,
+}
+
+impl CrecheComponentRecipe {
+    pub const fn root(self) -> &'static str {
+        match self {
+            Self::SingleColumn => "creche-mask-single",
+            Self::ResponsiveColumns => "creche-mask-columns",
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ComponentMaskLook {
     Compact,
