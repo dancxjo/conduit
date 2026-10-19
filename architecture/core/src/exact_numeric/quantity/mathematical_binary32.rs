@@ -74,15 +74,34 @@ impl PreparedMathematicalQuantityBinary32 {
         work: &mut ExactNumericWork,
     ) -> Result<BorrowedMathematicalQuantityBinary32<'a>, R> {
         let mut local = ExactNumericWork::new(work.remaining().min(self.maximum_work));
-        let result = self.project(encoded, &mut local);
+        let result = self.project(encoded, self.maximum_error, &mut local);
+        work.charge(local.spent()).map_err(R::Numeric)?;
+        result
+    }
+    /// Reconstruct an original producer receipt under its exact allowance,
+    /// while independently enforcing this prepared reader's consuming allowance.
+    /// The producer allowance is data, not permission to weaken the consumer.
+    /// Profile, rounding, work and storage remain fixed by preparation.
+    pub fn replay_with_allowance<'a>(
+        &mut self,
+        encoded: &'a [u8],
+        producer_allowance: RationalQuantity,
+        work: &mut ExactNumericWork,
+    ) -> Result<BorrowedMathematicalQuantityBinary32<'a>, R> {
+        let mut local = ExactNumericWork::new(work.remaining().min(self.maximum_work));
+        let result = self.project(encoded, producer_allowance, &mut local);
         work.charge(local.spent()).map_err(R::Numeric)?;
         result
     }
     fn project<'a>(
         &mut self,
         encoded: &'a [u8],
+        producer_allowance: RationalQuantity,
         work: &mut ExactNumericWork,
     ) -> Result<BorrowedMathematicalQuantityBinary32<'a>, R> {
+        if producer_allowance.coordinate().is_negative() {
+            return Err(R::NegativeTolerance);
+        }
         let enclosure = self
             .enclosure
             .execute(encoded, work)
@@ -93,7 +112,11 @@ impl PreparedMathematicalQuantityBinary32 {
         } else {
             source.role()
         };
-        if self.maximum_error.unit() != source.unit() || self.maximum_error.role() != error_role {
+        if self.maximum_error.unit() != source.unit()
+            || self.maximum_error.role() != error_role
+            || producer_allowance.unit() != source.unit()
+            || producer_allowance.role() != error_role
+        {
             return Err(R::PhysicalToleranceMismatch);
         }
         let interval = enclosure.numerical().target();
@@ -106,7 +129,7 @@ impl PreparedMathematicalQuantityBinary32 {
             RationalQuantity::new(coordinate, source.unit(), source.role())
                 .expect("checked physical role"),
             self.rounding,
-            self.maximum_error,
+            producer_allowance,
             work,
         )
         .map_err(R::Rounding)?;
@@ -124,9 +147,14 @@ impl PreparedMathematicalQuantityBinary32 {
             upper
         };
         if bound
-            .checked_compare(self.maximum_error.coordinate(), work)
+            .checked_compare(producer_allowance.coordinate(), work)
             .map_err(R::Numeric)?
             == Ordering::Greater
+            || (producer_allowance != self.maximum_error
+                && bound
+                    .checked_compare(self.maximum_error.coordinate(), work)
+                    .map_err(R::Numeric)?
+                    == Ordering::Greater)
         {
             return Err(R::ToleranceExceeded);
         }
@@ -139,7 +167,7 @@ impl PreparedMathematicalQuantityBinary32 {
             enclosure,
             midpoint,
             error,
-            maximum_error: self.maximum_error,
+            maximum_error: producer_allowance,
         })
     }
 }
