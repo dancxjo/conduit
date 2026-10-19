@@ -19,6 +19,11 @@ pub enum ComponentRecipeRefusal {
     InvalidFace,
     ReadingCapacity(FaceUtterancePlanError),
     Geometry,
+    MissingSlot,
+    SlotRole,
+    SlotProperty,
+    SlotAction,
+    DuplicateBinding,
 }
 
 /// Finite references into the supplied immutable Face, not another semantic tree.
@@ -54,6 +59,14 @@ pub fn prepare_component_recipe(
         for (subject_index, subject) in face.subjects.iter().enumerate() {
             let selected = match region.selector() {
                 ComponentSubjectSelector::Subject(identity) => identity == &subject.identity,
+                ComponentSubjectSelector::Bound(binding) => {
+                    if binding.subject() == &subject.identity {
+                        crate::component_slots::validate_binding(face, subject, binding)?;
+                        true
+                    } else {
+                        false
+                    }
+                }
                 ComponentSubjectSelector::Role(role) => {
                     existing_role_name(&subject.role) == Some(role.as_str())
                 }
@@ -69,6 +82,9 @@ pub fn prepare_component_recipe(
                 subject_regions[subject_index] = Some(region_index);
             }
         }
+        if count == 0 && matches!(region.selector(), ComponentSubjectSelector::Bound(_)) {
+            return Err(ComponentRecipeRefusal::MissingSlot);
+        }
     }
     Ok(PreparedComponentRecipe {
         recipe,
@@ -79,7 +95,7 @@ pub fn prepare_component_recipe(
 
 /// The broad Face role vocabulary already owned by Face. Open semantic
 /// roles deliberately remain unmatched and retain complete generic reading.
-fn existing_role_name(role: &FaceRole) -> Option<&'static str> {
+pub(crate) fn existing_role_name(role: &FaceRole) -> Option<&'static str> {
     Some(match role {
         FaceRole::Document => "Document",
         FaceRole::Body => "Body",

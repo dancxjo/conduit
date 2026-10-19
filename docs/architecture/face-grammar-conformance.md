@@ -966,3 +966,35 @@ unavailable specimen derives a fresh canonical Face identity and checks the
 specific availability reason. This is bounded kernel/Fore fixture evidence with
 simulated browser Show acknowledgement, not an installed browser carrier,
 current device binding or independently committed browser mutation.
+
+### Required component slots in development (#5624)
+
+A role/identity selector alone cannot reconstruct a reusable component's
+required semantic contract: it can find an Item while silently omitting its
+completion fact, or find an action that targets a different Item. This is a
+component-preparation gap; existing Face subjects, properties and typed actions
+already carry the missing evidence. No Face grammar primitive is needed.
+
+`ComponentSubjectSelector.bound` now requires one original subject, its broad
+or open semantic role, named fact types and exact action signatures. The
+Conduitese Types own the finite configuration; ordinary `face/component-mask`
+preparation resolves it against the original immutable Face. Missing, ambiguous,
+wrongly typed or forged bindings refuse before renderer preparation. Argument
+signatures include SHA-256 of the canonical checked value contract, so equal
+value Kind and capacity cannot conceal different accepted membership/ranges.
+This is validation evidence, not a capability or dispatch authority.
+
+The current profile admits at most eight regions, eight required facts and two
+actions per bound subject, with four arguments per action. Source availability,
+current values and labels remain in Face. An unavailable action remains readable
+and unavailable. Every returned interaction still crosses the existing current
+Show/revision/target/argument validation. Unmatched valid domain subjects retain
+the generic reading rather than disappearing behind the component.
+
+`semantics/face/components/todo-required-item.conduit` is an ordinary checked
+Plot over the existing Face/Show/FaceInteraction Fore. Source-derived Todo tests
+check its actual recipe literal and required complete action, missing/wrong slots,
+forged targets, duplicate facts, exact arguments, unavailable action and generic
+fallback. These are deterministic preparation/Fore proofs. Selected browser DOM,
+QEMU delivery, repeated partial-Show assembly (#5651/#5652), Candidate and stable
+acceptance remain separate work; this section claims none of them.
