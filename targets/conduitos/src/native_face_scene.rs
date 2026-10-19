@@ -35,6 +35,11 @@ mod layout;
 mod ports;
 #[path = "native_face_scene/text_editor.rs"]
 mod text_editor;
+#[path = "native_face_scene/text_field.rs"]
+mod text_field;
+#[cfg(test)]
+#[path = "native_face_scene/text_field_tests.rs"]
+mod text_field_tests;
 pub use input::{FaceFocusRequest, FaceSceneInput};
 #[cfg(test)]
 #[path = "native_face_scene/tests.rs"]

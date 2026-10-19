@@ -1,5 +1,5 @@
 {
-  "identity": "d2ab0fa49880388ffac4a812f2fd26859c0e2be324c20c49a66a57805c20ebaf",
+  "identity": "e93344120eb960304ccbcbf1b738079ab2b66a69b517655abd6f6745a0a01560",
   "revision": 1,
   "basis": {
     "body_id": null,
@@ -160,6 +160,372 @@
   "composition": [],
   "properties": [
     {
+      "subject": "birth/encounter/prebirth-conformance/body-name",
+      "name": "current-value",
+      "value": {
+        "TypedValue": {
+          "contract": {
+            "value_kind": "value/text",
+            "maximum_bytes": 64,
+            "constraints": [
+              {
+                "ByteLength": {
+                  "minimum": 0,
+                  "maximum": 64
+                }
+              }
+            ]
+          },
+          "bytes": [
+            71,
+            111,
+            110,
+            195,
+            167,
+            97,
+            108,
+            111,
+            32,
+            80,
+            97,
+            99,
+            104,
+            101,
+            99,
+            111,
+            32,
+            71,
+            117,
+            101,
+            114,
+            114,
+            101,
+            105,
+            114,
+            111
+          ]
+        }
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/body-name",
+      "name": "value-change-action",
+      "value": {
+        "Identity": "creche.name"
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system",
+      "name": "current-value",
+      "value": {
+        "TypedValue": {
+          "contract": {
+            "value_kind": "value/text",
+            "maximum_bytes": 64,
+            "constraints": [
+              {
+                "ByteLength": {
+                  "minimum": 0,
+                  "maximum": 64
+                }
+              },
+              {
+                "CanonicalMembership": {
+                  "members": [
+                    [
+                      97,
+                      109,
+                      101,
+                      114,
+                      105,
+                      99,
+                      97,
+                      110
+                    ],
+                    [
+                      97,
+                      109,
+                      104,
+                      97,
+                      114,
+                      105,
+                      99
+                    ],
+                    [
+                      97,
+                      110,
+                      99,
+                      105,
+                      101,
+                      110,
+                      116,
+                      45,
+                      104,
+                      101,
+                      98,
+                      114,
+                      101,
+                      119
+                    ],
+                    [
+                      97,
+                      114,
+                      97,
+                      98,
+                      105,
+                      99
+                    ],
+                    [
+                      98,
+                      114,
+                      105,
+                      116,
+                      105,
+                      115,
+                      104
+                    ],
+                    [
+                      99,
+                      104,
+                      105,
+                      110,
+                      101,
+                      115,
+                      101
+                    ],
+                    [
+                      99,
+                      108,
+                      97,
+                      115,
+                      115,
+                      105,
+                      99,
+                      45,
+                      97,
+                      110,
+                      103,
+                      108,
+                      111,
+                      112,
+                      104,
+                      111,
+                      110,
+                      101
+                    ],
+                    [
+                      101,
+                      108,
+                      118,
+                      105,
+                      115,
+                      104
+                    ],
+                    [
+                      102,
+                      114,
+                      101,
+                      110,
+                      99,
+                      104
+                    ],
+                    [
+                      105,
+                      99,
+                      101,
+                      108,
+                      97,
+                      110,
+                      100,
+                      105,
+                      99
+                    ],
+                    [
+                      105,
+                      110,
+                      100,
+                      111,
+                      110,
+                      101,
+                      115,
+                      105,
+                      97,
+                      110
+                    ],
+                    [
+                      106,
+                      97,
+                      112,
+                      97,
+                      110,
+                      101,
+                      115,
+                      101
+                    ],
+                    [
+                      107,
+                      111,
+                      114,
+                      101,
+                      97,
+                      110
+                    ],
+                    [
+                      107,
+                      117,
+                      114,
+                      109,
+                      97,
+                      110,
+                      106,
+                      105
+                    ],
+                    [
+                      109,
+                      101,
+                      120,
+                      105,
+                      99,
+                      97,
+                      110
+                    ],
+                    [
+                      112,
+                      111,
+                      114,
+                      116,
+                      117,
+                      103,
+                      117,
+                      101,
+                      115,
+                      101
+                    ],
+                    [
+                      114,
+                      111,
+                      109,
+                      97,
+                      110
+                    ],
+                    [
+                      115,
+                      117,
+                      114,
+                      112,
+                      114,
+                      105,
+                      115,
+                      101
+                    ],
+                    [
+                      116,
+                      97,
+                      109,
+                      105,
+                      108
+                    ],
+                    [
+                      116,
+                      97,
+                      114,
+                      103,
+                      117,
+                      115
+                    ],
+                    [
+                      117,
+                      107,
+                      114,
+                      97,
+                      105,
+                      110,
+                      105,
+                      97,
+                      110
+                    ],
+                    [
+                      118,
+                      105,
+                      101,
+                      116,
+                      110,
+                      97,
+                      109,
+                      101,
+                      115,
+                      101
+                    ],
+                    [
+                      119,
+                      101,
+                      108,
+                      115,
+                      104
+                    ],
+                    [
+                      121,
+                      111,
+                      114,
+                      117,
+                      98,
+                      97
+                    ]
+                  ],
+                  "negated": false
+                }
+              }
+            ]
+          },
+          "bytes": [
+            115,
+            117,
+            114,
+            112,
+            114,
+            105,
+            115,
+            101
+          ]
+        }
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system",
+      "name": "value-change-action",
+      "value": {
+        "Identity": "creche.naming"
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/plot-search",
+      "name": "current-value",
+      "value": {
+        "TypedValue": {
+          "contract": {
+            "value_kind": "value/text",
+            "maximum_bytes": 128,
+            "constraints": [
+              {
+                "ByteLength": {
+                  "minimum": 0,
+                  "maximum": 128
+                }
+              }
+            ]
+          },
+          "bytes": []
+        }
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/plot-search",
+      "name": "value-change-action",
+      "value": {
+        "Identity": "creche.search"
+      }
+    },
+    {
       "subject": "birth/encounter/prebirth-conformance/initial-plots/0",
       "name": "selected",
       "value": {
@@ -213,7 +579,7 @@
     },
     {
       "subject": "birth/encounter/prebirth-conformance/body-name",
-      "text": "Current value: Gon\u00e7alo Pacheco Guerreiro."
+      "text": "Current value: Gonçalo Pacheco Guerreiro."
     },
     {
       "subject": "birth/encounter/prebirth-conformance/name-system",
@@ -273,11 +639,11 @@
     },
     {
       "subject": "birth/encounter/prebirth-conformance/name-system",
-      "text": "Choice: Vietnamese (family\u2013middle\u2013given). Value: vietnamese. Not selected."
+      "text": "Choice: Vietnamese (family–middle–given). Value: vietnamese. Not selected."
     },
     {
       "subject": "birth/encounter/prebirth-conformance/name-system",
-      "text": "Choice: Yor\u00f9b\u00e1 personal and family names. Value: yoruba. Not selected."
+      "text": "Choice: Yorùbá personal and family names. Value: yoruba. Not selected."
     },
     {
       "subject": "birth/encounter/prebirth-conformance/name-system",
@@ -337,7 +703,7 @@
     },
     {
       "subject": "birth/encounter/prebirth-conformance/birth-review",
-      "text": "Name: Gon\u00e7alo Pacheco Guerreiro. Starting Plots selected: 1 of 2. Birth: available. Selected Plot names follow; clear search to review all options and availability."
+      "text": "Name: Gonçalo Pacheco Guerreiro. Starting Plots selected: 1 of 2. Birth: available."
     },
     {
       "subject": "birth/encounter/prebirth-conformance/birth-review-plot-0",
@@ -735,6 +1101,10 @@
     {
       "subject": "birth/encounter/prebirth-conformance",
       "level": "Primary"
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/main",
+      "level": "Context"
     }
   ],
   "temporal_references": [],
