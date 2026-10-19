@@ -754,3 +754,29 @@ proof remains missing after the retained baseline disk failures. Broader externa
 Fore/Body/remote export, complete general projection-report transport, exact
 policy/request configuration custody, whole-algorithm input/output custody and
 public stable acceptance remain open. No parent requirement is closed here.
+
+
+### Private complete mathematical receipt transport checkpoint
+
+The mathematical binary32 domain now implements the shared general projection
+codec. It preserves the complete physical symbolic frame, enclosure endpoints
+and width, all enclosure requirements and work metadata, the midpoint's full
+physical and numerical rounding receipt, exact error claim, and complete
+allowance/rounding configuration. It does not substitute a summary or source
+hash for these values. The codec identity fixes its field order and tags.
+Independent comparison requires replay with the same admitted profile and work
+budget; matching target bits and error alone are insufficient.
+
+The isolated Core five-test suite passes, including sixteen source/rounding
+combinations across exact zero, symbolic radians, affine points and deltas.
+Replay, encoding, verification, every-byte mutation rejection and configuration
+mismatch checks execute with zero allocations. Strict Core all-target Clippy and
+Core no-default-features checks pass. The earlier complete workspace Clippy run
+passes for the generic encoder before this domain-codec addition. Source and the
+executed test ELF are retained with verified hash/archive roundtrips.
+
+This remains private preparation. Near does not yet transport this general
+report or reconstruct it in its independent reader. Exact request/certificate
+binding, product artifacts and inspection, profile work/storage admission,
+broader regression execution and stable acceptance remain open. No original
+parent audit requirement changes status from this component proof.
