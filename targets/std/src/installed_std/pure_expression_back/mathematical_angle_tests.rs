@@ -172,6 +172,35 @@ fn play(mut host: crate::StdHost, plan: &Plan, input: Vec<u8>) -> Vec<u8> {
                 .iter()
                 .any(|c| &c.connection_id == connection_id));
             assert_eq!(binding.byte_length as usize, outputs.0[0].len());
+            let sign = report
+                .observations
+                .iter()
+                .find(|sign| {
+                    matches!(
+                        &sign.kind, ObservationKind::RoutedContent { evidence }
+                            if evidence.native_event_sequence == binding.event_sequence
+                                && evidence.digest == binding.digest
+                    )
+                })
+                .expect("actual producer content reaches a shared Core Sign");
+            assert_eq!(sign.plan_id.as_ref(), Some(&plan.plan_id));
+            assert_eq!(
+                sign.active_play_id.as_ref(),
+                Some(&kernel.active_play.active_play_id)
+            );
+            assert_eq!(sign.placement_id.as_ref(), Some(&producer.placement_id));
+            assert_eq!(sign.connection_id.as_ref(), Some(connection_id));
+            let retained = kernel.identity.sign_identity(&sign.sign_id).unwrap();
+            assert_eq!(
+                bind_sign(
+                    &sign.host_id,
+                    &sign.boot_id,
+                    sign.active_play_id.as_ref(),
+                    retained.sequence
+                )
+                .sign_id,
+                sign.sign_id
+            );
         }
     }
     println!(

@@ -1,9 +1,10 @@
 //! Shared execution observations, distinct from Source, Plan and Play identities.
+use crate::{
+    ActivePlayId, BootId, ConnectionId, ConnectionTerminalDisposition, ExecutionRegionId, FaceId,
+    FailureReason, HostId, PlacementId, PlanId, PortId, SignId, TerminalDisposition, ValuePayload,
+};
 use alloc::string::String;
 use serde::{Deserialize, Serialize};
-use crate::{ActivePlayId, BootId, ConnectionId, ConnectionTerminalDisposition,
-    ExecutionRegionId, FaceId, FailureReason, HostId, PlacementId, PlanId,
-    SignId, TerminalDisposition, ValuePayload};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Observation {
@@ -61,5 +62,22 @@ pub enum ObservationKind {
     SignGap {
         dropped: u64,
     },
+    /// Bytes committed to an exact planned Cord, retained after execution.
+    /// The native event sequence is distinct from the enclosing Sign sequence.
+    RoutedContent {
+        evidence: RoutedContentEvidence,
+    },
 }
 
+/// Shared bounded routing evidence. It describes retained bytes, not a new
+/// Gear-produced value or a mathematical projection certificate. Plan/Play,
+/// producer and Cord identity belong to the enclosing Observation.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RoutedContentEvidence {
+    pub native_event_sequence: u32,
+    pub output_port: PortId,
+    pub byte_length: u32,
+    pub digest_domain: String,
+    pub digest_scheme: String,
+    pub digest: [u8; 32],
+}
