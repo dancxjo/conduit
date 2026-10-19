@@ -1,5 +1,6 @@
 import { openBrowserApplicationStorage } from "./browser-application-storage.mjs";
 import { createApplicationFaceHost } from "./application-face.mjs";
+import { createPortableComponentAdmission } from "./portable-component-admission.mjs";
 
 const PACKAGE_SCHEMA = "conduit.browser/application-package@1";
 const MAXIMUM_PACKAGE_BYTES = 48 * 1024;
@@ -318,7 +319,11 @@ export async function loadBrowserApplication(manifestReference) {
   const faceFor = (scope) => createApplicationFaceHost(scope);
   const context = Object.freeze({
     schema: "conduit.browser/application-context@1", manifest, storage, face, faceFor, bytes, text,
-    admitProfileGatedBrowserBoot, ...(sdk ? { browser: sdk.browser } : {}),
+    admitProfileGatedBrowserBoot,
+    admitPortableFaceComponent: createPortableComponentAdmission({
+      packageRoot: new URL(".", manifestUrl), byRole, admittedBytes, boundedFetch, packageUrl, sha256,
+    }),
+    ...(sdk ? { browser: sdk.browser } : {}),
   });
   await module.startApplication(context);
   settleApplicationSuspense("ready");
