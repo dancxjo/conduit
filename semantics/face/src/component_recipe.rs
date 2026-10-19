@@ -24,6 +24,7 @@ pub enum ComponentRecipeRefusal {
     SlotProperty,
     SlotAction,
     DuplicateBinding,
+    Collection(crate::FaceCollectionRefusal),
 }
 
 /// Finite references into the supplied immutable Face, not another semantic tree.
@@ -65,6 +66,30 @@ pub fn prepare_component_recipe(
                         true
                     } else {
                         false
+                    }
+                }
+                ComponentSubjectSelector::Collection(binding) => {
+                    if subject.role != FaceRole::Collection {
+                        false
+                    } else {
+                        let mode = crate::collections::multiplicity(face, &subject.identity)
+                            .map_err(ComponentRecipeRefusal::Collection)?;
+                        let name = match mode {
+                            None => "information",
+                            Some(crate::ChoiceMultiplicity::Exclusive) => "exclusive",
+                            Some(crate::ChoiceMultiplicity::Independent) => "independent",
+                        };
+                        if name == binding.mode() {
+                            crate::collections::prepare_validated_collection(
+                                face,
+                                &subject.identity,
+                                usize::from(*binding.maximum_items()),
+                            )
+                            .map_err(ComponentRecipeRefusal::Collection)?;
+                            true
+                        } else {
+                            false
+                        }
                     }
                 }
                 ComponentSubjectSelector::Role(role) => {

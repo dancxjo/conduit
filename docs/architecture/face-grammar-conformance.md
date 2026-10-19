@@ -998,3 +998,35 @@ forged targets, duplicate facts, exact arguments, unavailable action and generic
 fallback. These are deterministic preparation/Fore proofs. Selected browser DOM,
 QEMU delivery, repeated partial-Show assembly (#5651/#5652), Candidate and stable
 acceptance remain separate work; this section claims none of them.
+
+### Portable collection preparation in development (#6039)
+
+`prepare_face_collection` borrows the original immutable Face and admits at most
+64 source items. Direct Contains relationships, exact item-count, distinct source
+identities and distinct order facts define membership and navigation. Pages are
+bounded views; opening, paging or focusing cannot submit an action. The Crèche
+recipe selects information, exclusive and independent profiles through the
+checked `ComponentSubjectSelector::collection` configuration.
+
+An informational collection has no selection meaning. The exclusive profile
+requires exactly one selected typed value and one exact source value-change
+action with its complete checked argument membership. Item labels are display
+text, never submitted values. The independent profile requires reversible Bool
+replacement actions and refuses declared cardinality limits it cannot enforce.
+Inventory-count and selected-count describe the full source inventory; visible
+item-count may be smaller after a source query. Preparation checks that visible
+selection and unexposed inventory can account for the declared total.
+
+The source-derived Crèche specimen supplies an informational selected-Plot
+review, exclusive naming options and independent starting-Plot choices. Stable
+checked Plot identities survive query filtering and duplicate display names.
+Interaction construction retains Face identity/revision and current Show;
+normal source-owner validation still decides whether a proposal commits.
+
+A finite serialization regression covers 16 fixture Plots, maximum encounter
+identity and bounded Unicode labels. Its largest measured Face is 174,810 JSON
+bytes. The native relay and Mask input profile reserve 256 KiB; the present
+Host Call receives the same bounded Face and returns at most 48 KiB. Graphics command limits remain separate. This is source-model and local
+conformance evidence, not QEMU, browser, latency, physical or stable acceptance.
+`cargo xtask check input-semantics` includes collection conformance and native
+Mask storage checks alongside the existing text/editor and navigation contracts.
