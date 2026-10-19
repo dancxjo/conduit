@@ -716,8 +716,10 @@ record extent is 4,431 bytes. Raw report, compressed verified copy, artifacts,
 inspection output, executable hashes and source bundles are retained privately.
 
 This supersedes the terminal-only product-export limitation of the earlier
-checkpoint. The strengthened automated CLI artifact/inspection gate and strict
-workspace Clippy are still queued or running. Routing digests do not themselves
+checkpoint. The strengthened automated CLI artifact/inspection gate passes both tests
+across three invocations, including ordinary inspection of the exact projection
+Sign artifact. Workspace all-target Clippy with warnings denied and the Core
+no-default-features library check also pass. Routing digests do not themselves
 retain the complete numerical record and canonical general projection report;
 independent numerical replay is established by the installed test, not by
 pretending the digest is a certificate. Native gaps, external Fore/Body/remote
