@@ -12,4 +12,6 @@ pub enum BrowserComponentLook {
 pub enum BrowserComponentRecipe {
     Flat,
     Grouped,
+    #[serde(rename = "required-item")]
+    RequiredItem,
 }

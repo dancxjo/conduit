@@ -2,6 +2,7 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import test from 'node:test';
+import { checkedComponentMaskRequestFrame } from '../host/assets/browser-membership.js';
 import { admitOwnerFaceComponentBack } from './browser-sdk-owner-show-state.mjs';
 
 const encoder = new TextEncoder();
@@ -114,4 +115,17 @@ test('an already advertised Host refuses a late component installation', async t
   assert.match(result.reason, /already frozen/);
   assert.equal(value.calls.admissions.length, 1);
   assert.equal(value.state.ownerComponentBack, undefined);
+});
+
+// A reviewed root is a closed choice; the receipt remains exact WASM bytes.
+test('required-item selection preserves the canonical Show integers and rejects invented roots', () => {
+  const show = '{"revision":18446744073709551615}';
+  const options = { requestId: 'browser-component:1', request: {}, showBytes: encoder.encode(show),
+    look: 'compact', recipe: 'required-item' };
+  const frame = new TextDecoder().decode(checkedComponentMaskRequestFrame(options));
+  assert.match(frame, /"recipe":"required-item"/);
+  assert.ok(frame.endsWith('"show":' + show + '}'));
+  for (const recipe of ['requireditem', 'required-item/forged', '__proto__']) {
+    assert.throws(() => checkedComponentMaskRequestFrame({ ...options, recipe }), /finite fields/);
+  }
 });

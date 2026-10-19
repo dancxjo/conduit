@@ -135,7 +135,8 @@ fn planned_mask_configuration(
     ),
     String,
 > {
-    let configured = source == conduit_face::TODO_COMPONENT_MASK_SOURCE;
+    let configured = source == conduit_face::TODO_COMPONENT_MASK_SOURCE
+        || source == conduit_face::TODO_REQUIRED_ITEM_COMPONENT_SOURCE;
     let definition = if configured {
         conduit_face::component_mask_kind(MASK_BYTES)
     } else {
@@ -337,13 +338,19 @@ pub fn configured_mask_configuration(
         return Ok(None);
     }
     let root = planned.mask.plot_name.as_str();
-    if ![
-        "todo-mask-flat-compact",
-        "todo-mask-flat-spacious",
-        "todo-mask-grouped-compact",
-        "todo-mask-grouped-spacious",
+    let required_item = [
+        "todo-mask-required-item-compact",
+        "todo-mask-required-item-spacious",
     ]
-    .contains(&root)
+    .contains(&root);
+    if !required_item
+        && ![
+            "todo-mask-flat-compact",
+            "todo-mask-flat-spacious",
+            "todo-mask-grouped-compact",
+            "todo-mask-grouped-spacious",
+        ]
+        .contains(&root)
     {
         return Err("unknown configured component source root".into());
     }
@@ -362,7 +369,11 @@ pub fn configured_mask_configuration(
     };
     let (expected, configuration) = planned_mask_configuration(
         host,
-        conduit_face::TODO_COMPONENT_MASK_SOURCE,
+        if required_item {
+            conduit_face::TODO_REQUIRED_ITEM_COMPONENT_SOURCE
+        } else {
+            conduit_face::TODO_COMPONENT_MASK_SOURCE
+        },
         root,
         Some(OwnerCarrierForeLimits {
             face_bytes: budget(PortDirection::Input, &planned.mask.face_input.front_port_id)?,

@@ -41,6 +41,9 @@ pub(super) fn serve(
     let recipe = match selection.recipe {
         BrowserComponentRecipe::Flat => conduit_face::TodoComponentRecipe::Flat,
         BrowserComponentRecipe::Grouped => conduit_face::TodoComponentRecipe::Grouped,
+        BrowserComponentRecipe::RequiredItem => {
+            return Err("native-component-recipe-unsupported".into())
+        }
     };
     // The serialized owner validates the acknowledged old Show before replacing
     // its route. Refresh then issues the fresh bounded bearer and exact Face;

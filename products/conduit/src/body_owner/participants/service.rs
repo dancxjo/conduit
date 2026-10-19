@@ -127,7 +127,7 @@ pub(crate) struct BrowserWindow {
     // Source-root selection belongs to this participating Mask, not Body state.
     component_mask_selection: Option<(
         conduit_face::ComponentMaskLook,
-        conduit_face::TodoComponentRecipe,
+        conduit_std_host::browser_admission::BrowserComponentRecipe,
     )>,
 }
 

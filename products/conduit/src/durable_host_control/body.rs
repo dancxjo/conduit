@@ -238,7 +238,7 @@ impl DurableHostRuntime {
         request: &OwnerFaceSnapshotRequest,
         show: &MaskShow,
         look: conduit_face::ComponentMaskLook,
-        recipe: conduit_face::TodoComponentRecipe,
+        recipe: conduit_std_host::browser_admission::BrowserComponentRecipe,
     ) -> Result<RemoteOwnerMaskRouteSeal, String> {
         match &mut self.host {
             HostSource::Body { owner, .. } => {
