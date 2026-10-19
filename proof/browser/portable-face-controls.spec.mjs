@@ -24,7 +24,8 @@ test('one source Face selects registered and generic Backs with distinct Show Pl
   const firstPlan = await slot(page).getAttribute('data-portable-mask-plan');
   const name = await page.getByLabel('Friendly Body name', { exact: true }).inputValue();
   const enhanced = await ownerReceipt(page);
-  await page.getByLabel('Controls on this Host').selectOption('basic');
+  await page.getByLabel('Controls on this Host').focus();
+  await page.getByLabel('Controls on this Host').press('ArrowDown');
   await expect(page.locator('[data-portable-face-back="generic"]')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Edit Body name', exact: true })).toBeEnabled();
   expect(await slot(page).getAttribute('data-portable-face-id')).toBe(identity);
@@ -37,7 +38,8 @@ test('one source Face selects registered and generic Backs with distinct Show Pl
   }));
   await expect(page.getByLabel('Friendly Body name', { exact: true })).toHaveValue(name);
   await expect(page.getByLabel('Naming tradition', { exact: true })).toHaveRole('combobox');
-  await page.getByLabel('Controls on this Host').selectOption('enhanced');
+  await page.getByLabel('Controls on this Host').focus();
+  await page.getByLabel('Controls on this Host').press('ArrowUp');
   await expect(page.locator('conduit-portable-face')).toHaveCount(1);
   await expect(page.getByRole('button', { name: 'Edit Body name', exact: true })).toBeEnabled();
   expect(await slot(page).getAttribute('data-portable-face-id')).toBe(identity);
@@ -155,3 +157,25 @@ for (const violation of ['hidden action', 'hidden input', 'Shadow node capacity'
     expect(await revision(page)).toBe(before);
   });
 }
+
+test('basic native select keeps browsing provisional and submits the exact source choice', async ({ page }) => {
+  await open(page);
+  await page.getByLabel('Controls on this Host').focus();
+  await page.getByLabel('Controls on this Host').press('ArrowDown');
+  await expect(page.locator('[data-portable-face-back="generic"]')).toBeVisible();
+  const input = page.getByLabel('Naming tradition', { exact: true });
+  await expect(input).toBeEnabled();
+  const before = await revision(page), initial = await input.inputValue();
+  await input.focus(); await input.press('ArrowDown');
+  expect(await input.inputValue()).not.toBe(initial);
+  expect(await revision(page)).toBe(before);
+  const label = await input.locator('option:checked').textContent();
+  await page.getByRole('button', { name: 'Use naming tradition', exact: true }).click();
+  await expect(input).toBeEnabled();
+  await expect(slot(page)).not.toHaveAttribute('data-portable-face-revision', before);
+  await expect(input.locator('option:checked')).toHaveText(label);
+  const receipt = await ownerReceipt(page);
+  const field = receipt.encounter.face.subjects.find(subject => subject.role === 'TextEntry' && subject.name === 'Naming tradition');
+  const value = receipt.encounter.face.properties.find(property => property.subject === field.identity && property.name === 'current-value').value.TypedValue.bytes;
+  expect(new TextDecoder().decode(Uint8Array.from(value))).toBe(receipt.source_snapshot.naming_system);
+});
