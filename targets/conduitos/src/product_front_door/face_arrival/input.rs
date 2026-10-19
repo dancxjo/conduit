@@ -1,4 +1,4 @@
-//! Crèche keyboard submission through its acknowledged Mask and owner.
+//! Crèche submission through its acknowledged Mask and owner.
 use super::*;
 use conduit_birth_plot::BirthActionOutcome;
 
@@ -16,11 +16,25 @@ impl FaceArrival {
         let show = self.mask.show().cloned().ok_or("creche-face-show-absent")?;
         let sequence = self.next_interaction;
         self.next_interaction = sequence.checked_add(1).ok_or("creche-face-input-bound")?;
-        match self
+        let input = self
             .mask
             .key(event, sequence, display)
-            .map_err(|error| error.as_str())?
-        {
+            .map_err(|error| error.as_str())?;
+        self.accept_input(input, show, door, journey, presenter, display, make)
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn accept_input(
+        &mut self,
+        input: NativeFaceMaskInput,
+        show: MaskShow,
+        door: &mut FrontDoor,
+        journey: &mut ProductJourney,
+        presenter: &mut FrontDoorPresenter,
+        display: &mut impl PixelTarget,
+        make: &MakeRecord,
+    ) -> Result<FaceArrivalInput, &'static str> {
+        match input {
             NativeFaceMaskInput::Unchanged => Ok(FaceArrivalInput::Continue),
             NativeFaceMaskInput::Redrawn(_) => {
                 self.record_focus()?;
