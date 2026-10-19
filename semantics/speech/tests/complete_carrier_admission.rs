@@ -112,7 +112,7 @@ fn malformed_word_relations_foreign_revision_and_forged_commitment_cannot_enter_
         r.candidate2().clone(),
         r.candidate3().clone(),
         r.frontier().clone(),
-        r.refusal().clone(),
+        *r.refusal(),
     )
     .unwrap();
     assert!(prepare(&f.word_phonemes, &evidence.lexical, &forged));
