@@ -53,6 +53,23 @@ grant cannot loosen. Numeric limb-work accounting is not a CPU-time or WCET
 claim; Unit decoding is an independently fixed-size operation. Refusals charge
 the work already spent and return no substituted value.
 
+## Physical projection evidence
+
+The coordinate enclosure now adapts to the existing generic `ProjectionReport`
+through the same physical-obligation pattern as Quantity integer enclosures.
+It delegates numerical obligations and width loss to the existing borrowed
+interval domain, adding preservation of the complete Unit and role. The target
+contains coordinate bounds in that retained frame. A different Unit, point vs
+difference role, or bound fails validation; numerical tolerance cannot authorize
+those substitutions. Omitted physical obligations and false exactness also
+refuse. Exact rational point intervals may be exact, while nonzero symbolic
+width remains reported as precision loss under the selected policy.
+
+The numerical policy fixes coordinate-width requirements in that Unit. It is
+not a physical point tolerance, general Unit conversion, Source provenance
+attestation or installed projection custody. Source bytes remain available on
+the checked enclosure; binding them to Source/Plan/Sign remains separate work.
+
 ## Evidence and remaining gates
 
 Guarded tests cover the two angle conversions followed by coordinate enclosure,
@@ -75,6 +92,6 @@ is retained with the local capture.
 This is private Core conversion/computation proof. Required follow-up remains:
 reviewing the form, explicit wire-profile negotiation, checked Source/Plan and
 installed Host consumption, refinement/terminal/control proof, exact symbolic
-Angle consumption by trig, separate general projection evidence, fresh candidate
+Angle consumption by trig, Source/Plan/Sign custody for the general projection report, fresh candidate
 and combined integration/publication. Qualified whole-float algorithms and all
 original parent requirements remain authoritative. No checkbox is closed here.
