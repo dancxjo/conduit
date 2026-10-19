@@ -40,6 +40,7 @@ mod ia32_vga_receipt;
 mod image;
 mod isolation_proof;
 mod journey_input;
+mod journey_latency;
 mod journey_proof;
 mod journey_records;
 mod journey_standing;
