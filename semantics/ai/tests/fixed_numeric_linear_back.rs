@@ -282,6 +282,22 @@ fn ordinary_linear_plan_reads_exact_resource_without_bias() {
                     &access(&tensor)
                 )
                 .is_err());
+                // Previously prepared semantic identities cannot inherit new laws.
+                let mut stale = gear.clone();
+                stale.kind_contract_revision =
+                    format!("{FIXED_NUMERIC_REVISION}/numeric/linear80x1").into();
+                assert!(matches!(
+                    FixedLinearBack::<80, 1>::prepare_planned::<PORTS>(
+                        &stale,
+                        4,
+                        &tensor,
+                        &packed,
+                        &access(&tensor)
+                    ),
+                    Err(FixedLinearPreparationRefusal::Planned(
+                        conduit_ai::fixed_numeric_preparation::FixedPlannedRefusal::Identity
+                    ))
+                ));
                 let mut unavailable = access(&tensor);
                 unavailable.availability = ResourceReferenceAvailability::Lost;
                 assert!(FixedLinearBack::<80, 1>::prepare_planned::<PORTS>(
