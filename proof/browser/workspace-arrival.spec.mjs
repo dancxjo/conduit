@@ -168,6 +168,8 @@ test("an intentionally empty Body remains lulled without inventing a play", asyn
 });
 
 test("contextual tutorial follows the real Body instead of retaining lesson progress", async ({ page }) => {
+  // Reload prepares retained state before the ordinary semantic checks resume.
+  test.setTimeout(20_000 + BROWSER_COLD_PREPARATION_MS);
   await page.goto(entrance.url);
   const tutorial = page.locator('[data-body-tutorial]');
   await expect(tutorial).toBeHidden();
@@ -183,10 +185,12 @@ test("contextual tutorial follows the real Body instead of retaining lesson prog
   await expect(tutorial).toContainText('Retained rest is not completion');
   await page.evaluate(() => globalThis.__conduitWorkspace.settled());
   await page.reload();
-  await expect(tutorial).toContainText('Retained rest is not completion');
+  await expect(tutorial).toContainText('Retained rest is not completion', { timeout: BROWSER_COLD_PREPARATION_MS });
 });
 
 test("explicit Finish retires work, records provenance, and restores as read-only Fulfilled history", async ({ page }) => {
+  // Reload prepares retained state before the ordinary semantic checks resume.
+  test.setTimeout(20_000 + BROWSER_COLD_PREPARATION_MS);
   await page.goto(entrance.url);
   await page.getByRole("button", { name: "Birth Body", exact: true }).click();
   await page.getByRole("button", { name: "wake body", exact: true }).click();
@@ -207,7 +211,7 @@ test("explicit Finish retires work, records provenance, and restores as read-onl
 
   await page.evaluate(() => globalThis.__conduitWorkspace.settled());
   await page.reload();
-  await expect(page.locator("[data-play-state]")).toHaveText("Fulfilled");
+  await expect(page.locator("[data-play-state]")).toHaveText("Fulfilled", { timeout: BROWSER_COLD_PREPARATION_MS });
   await expect(page.getByRole("button", { name: "+ Plots", exact: true })).toHaveCount(0);
   await page.locator('[data-inspect="lifecycle"]').click();
   await expect(page.getByText("Exact lifecycle evidence", { exact: true })).toBeVisible();

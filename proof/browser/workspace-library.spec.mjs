@@ -26,6 +26,8 @@ async function birth(page) {
   await expect(page.locator("[data-play-state]")).toHaveText("Playing");
 }
 test("five ordinary plots start together beyond the old aggregate placement ceiling", async ({ page }) => {
+  // Include cold Body preparation without reducing the interaction assertions.
+  test.setTimeout(20_000 + BROWSER_COLD_PREPARATION_MS);
   await page.goto(entrance.url);
   for (const title of ["Button Across the Room", "Firefly Choir"]) {
     await page.getByRole("checkbox", { name: title, exact: true }).check();
