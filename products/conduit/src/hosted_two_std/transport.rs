@@ -11,9 +11,7 @@ use conduit_std_host::{
     websocket::{NativeWebSocketLine, NativeWebSocketListener},
     InstalledRemoteFragment, RemoteValueTransfer,
 };
-use conduit_wire::{
-    decode_session_frame, encode_session_frame_into, SessionMessage, SessionTerminalDisposition,
-};
+use conduit_wire::{decode_session_frame, SessionMessage, SessionTerminalDisposition};
 
 const MAXIMUM_FRAME_BYTES: u32 = 2_048;
 pub(super) fn exact_endpoint(
@@ -291,13 +289,7 @@ fn activate_source(
     ) {
         return Err("Tour sink omitted Hello".into());
     }
-    let binding = runtime
-        .sessions()
-        .get(endpoint)
-        .ok_or("source Line binding missing")?
-        .binding()
-        .clone();
-    send_message(runtime, endpoint, line, binding.hello_frame().message)?;
+    send_hello(runtime, endpoint, line)?;
     if !matches!(
         receive_message(runtime, endpoint, line)?,
         ReceivedMessage::Ready
@@ -312,13 +304,7 @@ fn activate_sink(
     endpoint: RemoteEndpointId,
     line: &mut NativeWebSocketLine,
 ) -> Result<(), String> {
-    let binding = runtime
-        .sessions()
-        .get(endpoint)
-        .ok_or("sink Line binding missing")?
-        .binding()
-        .clone();
-    send_message(runtime, endpoint, line, binding.hello_frame().message)?;
+    send_hello(runtime, endpoint, line)?;
     if !matches!(
         receive_message(runtime, endpoint, line)?,
         ReceivedMessage::Hello
@@ -335,34 +321,35 @@ fn activate_sink(
     Ok(())
 }
 
+fn send_hello(
+    runtime: &mut InstalledRemoteFragment,
+    endpoint: RemoteEndpointId,
+    line: &mut NativeWebSocketLine,
+) -> Result<(), String> {
+    let mut bytes = [0; MAXIMUM_FRAME_BYTES as usize];
+    let length = runtime
+        .sessions_mut()
+        .get_mut(endpoint)
+        .ok_or("Tour Line session missing")?
+        .encode_outbound_hello(&mut bytes)
+        .map_err(|error| format!("admit and encode outbound Tour Line Hello: {error:?}"))?;
+    line.send_binary(&bytes[..length])
+        .map_err(|error| format!("send Tour Line Hello: {error:?}"))
+}
+
 fn send_message(
     runtime: &mut InstalledRemoteFragment,
     endpoint: RemoteEndpointId,
     line: &mut NativeWebSocketLine,
     message: SessionMessage<'_>,
 ) -> Result<(), String> {
-    let binding = runtime
-        .sessions()
-        .get(endpoint)
-        .ok_or("Tour Line binding missing")?
-        .binding()
-        .clone();
-    let frame = binding.frame(message);
-    runtime
+    let mut bytes = [0; MAXIMUM_FRAME_BYTES as usize];
+    let length = runtime
         .sessions_mut()
         .get_mut(endpoint)
-        .unwrap()
-        .machine_mut()
-        .admit_outbound(frame)
-        .map_err(|error| format!("admit outbound Tour Line frame: {error:?}"))?;
-    let mut bytes = [0; MAXIMUM_FRAME_BYTES as usize];
-    let length = encode_session_frame_into(
-        frame,
-        &mut bytes,
-        conduit_text::MAX_TEXT_BYTES,
-        MAXIMUM_FRAME_BYTES,
-    )
-    .map_err(|error| format!("encode Tour Line frame: {error:?}"))?;
+        .ok_or("Tour Line session missing")?
+        .encode_outbound(message, &mut bytes)
+        .map_err(|error| format!("admit and encode outbound Tour Line frame: {error:?}"))?;
     line.send_binary(&bytes[..length])
         .map_err(|error| format!("send Tour Line frame: {error:?}"))
 }
