@@ -421,7 +421,7 @@ pub struct StepIo<const PORTS: usize> {
     consumed_closed: [bool; PORTS],
     outputs: [Option<ValueRef>; PORTS],
     canonical_output: Option<(PortId, CanonicalValue)>,
-    prepared_output: Option<(PortId, u32)>,
+    prepared_outputs: [Option<u32>; PORTS],
     discards: [Option<ValueRef>; PORTS],
     host_completion: Option<(RequestId, HostCallOutcome)>,
     consumed_host_completion: bool,
@@ -570,7 +570,12 @@ impl<const PORTS: usize> StepIo<PORTS> {
         if value.byte_len > maximum || self.outputs.get(index).is_none() {
             return self.fail(SchedulerError::OutputBlocked);
         }
-        if self.outputs[index].is_some() {
+        if self.outputs[index].is_some()
+            || self.prepared_outputs[index].is_some()
+            || self
+                .canonical_output
+                .is_some_and(|(port, _)| usize::from(port.0) == index)
+        {
             return self.fail(SchedulerError::InvalidPortAccess);
         }
         self.outputs[index] = Some(value);
@@ -594,7 +599,7 @@ impl<const PORTS: usize> StepIo<PORTS> {
             || self.outputs.get(index).is_none()
             || self.outputs[index].is_some()
             || self.canonical_output.is_some()
-            || self.prepared_output.is_some()
+            || self.prepared_outputs.iter().any(Option::is_some)
         {
             return self.fail(SchedulerError::OutputBlocked);
         }
@@ -602,7 +607,8 @@ impl<const PORTS: usize> StepIo<PORTS> {
         Ok(())
     }
 
-    /// Stage one value held in allocation-prepared Back storage.
+    /// Stage one port-specific value held in allocation-prepared Back storage.
+    /// Distinct ports may be staged together in this same atomic transaction.
     ///
     /// The Back exposes the exact bytes through [`StepBack::prepared_output`].
     /// This records no pointer and grants no storage authority; it only binds
@@ -620,11 +626,11 @@ impl<const PORTS: usize> StepIo<PORTS> {
             || self.outputs.get(index).is_none()
             || self.outputs[index].is_some()
             || self.canonical_output.is_some()
-            || self.prepared_output.is_some()
+            || self.prepared_outputs[index].is_some()
         {
             return self.fail(SchedulerError::OutputBlocked);
         }
-        self.prepared_output = Some((port, byte_len));
+        self.prepared_outputs[index] = Some(byte_len);
         Ok(())
     }
 
@@ -724,7 +730,7 @@ impl<const PORTS: usize> StepIo<PORTS> {
         self.consumed.iter().any(|value| *value)
             || self.outputs.iter().any(Option::is_some)
             || self.canonical_output.is_some()
-            || self.prepared_output.is_some()
+            || self.prepared_outputs.iter().any(Option::is_some)
             || self.discards.iter().any(Option::is_some)
             || self.consumed_host_completion
             || self.host_request.is_some()
@@ -746,7 +752,7 @@ impl<const PORTS: usize> StepIo<PORTS> {
     }
 }
 
-#[cfg(feature = "step-test-support")]
+#[cfg(any(test, feature = "step-test-support"))]
 mod test_support;
 
 impl StepIo<1> {
@@ -765,7 +771,7 @@ impl StepIo<1> {
             consumed_closed: [false],
             outputs: [None],
             canonical_output: None,
-            prepared_output: None,
+            prepared_outputs: [None; 1],
             discards: [None],
             host_completion,
             consumed_host_completion: false,
@@ -785,7 +791,7 @@ impl StepIo<1> {
             && !self.consumed_host_completion
             && self.outputs[0].is_none()
             && self.canonical_output.is_none()
-            && self.prepared_output.is_none()
+            && self.prepared_outputs.iter().all(Option::is_none)
             && self.discards[0].is_none()
             && self.host_cancellation.is_none()
         {
@@ -800,7 +806,7 @@ impl StepIo<1> {
             && self.consumed_host_completion
             && self.host_request.is_none()
             && self.canonical_output.is_none()
-            && self.prepared_output.is_none()
+            && self.prepared_outputs.iter().all(Option::is_none)
             && self.discards[0].is_none()
             && self.host_cancellation.is_none()
         {
@@ -1992,7 +1998,7 @@ where
             consumed_closed: [false; PORTS],
             outputs: [None; PORTS],
             canonical_output: None,
-            prepared_output: None,
+            prepared_outputs: [None; PORTS],
             discards: [None; PORTS],
             host_completion,
             consumed_host_completion: false,
@@ -2043,7 +2049,7 @@ where
                     || io.host_cancellation.is_some()
                     || ((io.outputs.iter().any(Option::is_some)
                         || io.canonical_output.is_some()
-                        || io.prepared_output.is_some())
+                        || io.prepared_outputs.iter().any(Option::is_some))
                         && !matches!(
                             (
                                 self.terminal_phases[node],
@@ -2106,7 +2112,7 @@ where
                 {
                     Ok(count) => count,
                     Err(error) => {
-                        if let Some(value) = generated {
+                        for value in generated.into_iter().flatten() {
                             let _ = self.values.release(value);
                         }
                         return Err(error);
@@ -2115,20 +2121,20 @@ where
             sign_records = match sign_records.checked_add(host_sign_records) {
                 Some(count) => count,
                 None => {
-                    if let Some(value) = generated {
+                    for value in generated.into_iter().flatten() {
                         let _ = self.values.release(value);
                     }
                     return Err(SchedulerError::InvalidPlan);
                 }
             };
             if let Err(error) = self.ensure_sign_capacity(sign_records) {
-                if let Some(value) = generated {
+                for value in generated.into_iter().flatten() {
                     let _ = self.values.release(value);
                 }
                 return Err(error);
             }
             if let Err(error) = self.commit(node, io.staged_step()) {
-                if let Some(value) = generated {
+                for value in generated.into_iter().flatten() {
                     let _ = self.values.release(value);
                 }
                 return Err(error);
@@ -2643,7 +2649,7 @@ where
                 )
                 .ok_or(SchedulerError::InvalidPlan)?;
         }
-        if let Some((_, byte_len)) = io.prepared_output {
+        for byte_len in io.prepared_outputs.into_iter().flatten() {
             items = items.checked_add(1).ok_or(SchedulerError::InvalidPlan)?;
             bytes = bytes
                 .checked_add(byte_len)

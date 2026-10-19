@@ -20,7 +20,7 @@ impl<const PORTS: usize> StepIo<PORTS> {
             consumed_closed: [false; PORTS],
             outputs: [None; PORTS],
             canonical_output: None,
-            prepared_output: None,
+            prepared_outputs: [None; PORTS],
             discards: [None; PORTS],
             host_completion,
             consumed_host_completion: false,
@@ -71,7 +71,14 @@ impl<const PORTS: usize> StepIo<PORTS> {
     }
 
     pub const fn test_prepared_output(&self) -> Option<(PortId, u32)> {
-        self.prepared_output
+        let mut index = 0;
+        while index < PORTS {
+            if let Some(length) = self.prepared_outputs[index] {
+                return Some((PortId(index as u16), length));
+            }
+            index += 1;
+        }
+        None
     }
 
     pub fn test_discards(&self) -> &[Option<ValueRef>; PORTS] {

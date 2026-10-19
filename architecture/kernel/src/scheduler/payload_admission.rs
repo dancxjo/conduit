@@ -107,31 +107,55 @@ where
         &mut self,
         node: usize,
         io: &mut StepIo<PORTS>,
-    ) -> Result<Option<ValueRef>, SchedulerError> {
-        if let Some((port, declared_len)) = io.prepared_output {
+    ) -> Result<[Option<ValueRef>; PORTS], SchedulerError> {
+        let mut generated = [None; PORTS];
+        let mut prepared = [None; PORTS];
+        // Validate every prepared value before storing any: a later semantic
+        // violation must not be obscured by earlier value-store pressure.
+        for (index, length) in io.prepared_outputs.iter().enumerate() {
+            let Some(length) = length else {
+                continue;
+            };
+            let port = PortId(as_u16(index)?);
             let bytes = self.drivers[node]
                 .prepared_output(port)
                 .ok_or(SchedulerError::InvalidPlan)?;
-            if u32::try_from(bytes.len()).ok() != Some(declared_len) {
+            if u32::try_from(bytes.len()).ok() != Some(*length) {
                 return Err(SchedulerError::InvalidPlan);
             }
-            self.ensure_output_value_envelope(node, port, declared_len)?;
-            let value = self.values.store(bytes)?;
-            let output = io
-                .outputs
-                .get_mut(usize::from(port.0))
-                .ok_or(SchedulerError::InvalidPortAccess)?;
-            if output.is_some() {
-                self.values.release(value)?;
+            if io.outputs[index].is_some() {
                 return Err(SchedulerError::InvalidPortAccess);
             }
-            *output = Some(value);
-            Ok(Some(value))
-        } else {
-            if let Some((port, value)) = io.canonical_output {
-                self.ensure_output_value_envelope(node, port, value.as_slice().len() as u32)?;
-            }
-            derived_value::materialize(&mut self.values, io.canonical_output, &mut io.outputs)
+            self.ensure_output_value_envelope(node, port, *length)?;
+            prepared[index] = Some(bytes);
         }
+        if let Some((port, value)) = io.canonical_output {
+            self.ensure_output_value_envelope(node, port, value.as_slice().len() as u32)?;
+            let value =
+                derived_value::materialize(&mut self.values, io.canonical_output, &mut io.outputs)?;
+            generated[usize::from(port.0)] = value;
+            return Ok(generated);
+        }
+        for (index, bytes) in prepared.into_iter().enumerate() {
+            let Some(bytes) = bytes else {
+                continue;
+            };
+            match self.values.store(bytes) {
+                Ok(value) => {
+                    generated[index] = Some(value);
+                    io.outputs[index] = Some(value);
+                }
+                Err(error) => {
+                    for (index, value) in generated.into_iter().enumerate() {
+                        if let Some(value) = value {
+                            self.values.release(value)?;
+                            io.outputs[index] = None;
+                        }
+                    }
+                    return Err(error.into());
+                }
+            }
+        }
+        Ok(generated)
     }
 }
