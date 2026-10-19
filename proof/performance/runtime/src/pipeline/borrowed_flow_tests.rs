@@ -81,6 +81,13 @@ fn borrowed_flow_acknowledgement_avoids_owned_clone_with_same_kernel_evidence(
             report.kernel.as_ref().unwrap().kernel_sign,
             reference.kernel.as_ref().unwrap().kernel_sign,
         );
+        for (adapter, retained) in owned.values.iter().zip(&reference.external_fore_deliveries) {
+            assert!(std::ptr::eq(&**adapter, &**retained));
+            assert_eq!(adapter.bytes.as_ptr(), retained.bytes.as_ptr());
+        }
+        for pair in reference.external_fore_deliveries.windows(2) {
+            assert!(std::ptr::eq(&*pair[0], &*pair[1]));
+        }
         let owned_window = owned.allocation_window()?;
         let borrowed_window = sink
             .first
