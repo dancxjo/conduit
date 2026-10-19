@@ -75,7 +75,9 @@ pub(super) fn admit_primitive_nodes(root: &PortableExpressionNode) -> Result<(),
         let mut child = |node: &PortableExpressionNode| visit(node, depth + 1, remaining);
         match &node.operation {
             Op::Input | Op::Literal(_) | Op::CanonicalLiteral(_) | Op::Constant(_) => Ok(()),
-            Op::Unary { operand, .. } | Op::Projection { value: operand, .. } => child(operand),
+            Op::ValueContract { value: operand, .. }
+            | Op::Unary { operand, .. }
+            | Op::Projection { value: operand, .. } => child(operand),
             Op::Binary { left, right, .. } => {
                 child(left)?;
                 child(right)

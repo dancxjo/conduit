@@ -105,6 +105,7 @@ pub(super) fn expression(
         }
     };
     let bound = match &value.operation {
+        Op::ValueContract { value, .. } => recurse(value)?,
         Op::Input => (maximum as usize).min(output(input)?),
         Op::Projection { value: source, .. } => recurse(source)?.min(output(&value.value_type)?),
         Op::Conditional {

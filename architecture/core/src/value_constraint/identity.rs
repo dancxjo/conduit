@@ -20,6 +20,16 @@ impl CheckedValueContract {
 impl ValueConstraint {
     fn push_identity(&self, canonical: &mut Vec<u8>) {
         match self {
+            Self::NearQuantity {
+                source_kind,
+                limit,
+                schema,
+            } => {
+                canonical.push(9);
+                push_bytes(canonical, source_kind.as_str().as_bytes());
+                push_bytes(canonical, &limit.encode());
+                push_bytes(canonical, schema);
+            }
             Self::ByteLength { minimum, maximum } => {
                 canonical.push(0);
                 push_u32(canonical, *minimum);

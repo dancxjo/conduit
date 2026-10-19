@@ -69,7 +69,7 @@ pub fn pure_exact_quantity_std_offer(
         ("maximum-input-bytes", u64::from(input)),
         ("output-capacity-bytes", evaluator.output_capacity() as u64),
     ])?;
-    offer.realization_properties = vec![wire, bounds];
+    offer.realization_properties.extend([wire, bounds]);
     offer
         .realization_properties
         .sort_by(|a, b| a.profile().cmp(b.profile()));
@@ -96,7 +96,7 @@ fn has_quantity_operation(
                 || child(left)?
                 || child(right)?
         }
-        Op::Unary { operand, .. } => child(operand)?,
+        Op::ValueContract { value: operand, .. } | Op::Unary { operand, .. } => child(operand)?,
         Op::Conditional {
             condition,
             when_true,

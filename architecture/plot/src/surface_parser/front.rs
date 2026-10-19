@@ -68,6 +68,9 @@ pub(super) fn split_type_bound(value_type: &str) -> Option<(&str, Option<u64>)> 
 }
 
 pub(crate) fn canonical_default_bound(value_type: &str) -> Option<u64> {
+    if value_type.contains(" near ") {
+        return Some(conduit_core::NEAR_QUANTITY_EVIDENCE_MAX_BYTES as u64);
+    }
     match value_type {
         "Text" | "value/text" => Some(256),
         "Bytes" | "value/bytes" => Some(65_536),

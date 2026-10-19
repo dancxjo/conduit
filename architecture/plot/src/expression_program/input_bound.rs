@@ -65,7 +65,8 @@ impl PortableExpressionProgram {
     }
 
     pub(crate) fn validate_input_bound(&self) -> Result<(), PortableExpressionProgramRefusal> {
-        validate_bound(self.input_maximum_bytes)
+        validate_bound(self.input_maximum_bytes)?;
+        super::value_contract::validate(self)
     }
 
     pub fn semantic_laws(
@@ -73,12 +74,15 @@ impl PortableExpressionProgram {
     ) -> Result<Vec<KindSemanticLaw>, conduit_core::StructuredInfoRefusal> {
         self.validate_input_bound()
             .map_err(|_| conduit_core::StructuredInfoRefusal::MalformedCanonicalEncoding)?;
-        semantic_laws_for_identity(
+        let (input, output, body) = super::value_contract::boundary(&self.root);
+        let mut laws = semantic_laws_for_identity(
             crate::expression_definition::expression_port_kind(&self.input_type)?,
             self.input_maximum_bytes,
             self.input_type == self.output_type
-                && matches!(self.root.operation, PortableExpressionOperation::Input),
-        )
+                && matches!(body.operation, PortableExpressionOperation::Input),
+        )?;
+        super::value_contract::retain_laws(&mut laws, input, output);
+        Ok(laws)
     }
 }
 

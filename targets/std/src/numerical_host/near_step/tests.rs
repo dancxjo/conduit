@@ -50,3 +50,6 @@ mod lifecycle_tests;
 
 #[path = "physical_tests.rs"]
 mod physical_tests;
+
+#[path = "value_contract_tests.rs"]
+mod value_contract_tests;

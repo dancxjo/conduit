@@ -96,11 +96,31 @@ impl PreparedNearQuantityVerifier {
         expected_source_wire_digest: Option<[u8; 32]>,
         work: &mut ExactNumericWork,
     ) -> Result<VerifiedNearQuantity, Refusal> {
+        Self::verify_with_schema(
+            &self.schema,
+            encoded,
+            quantity_kind,
+            consumer_limit,
+            expected_source_wire_digest,
+            work,
+        )
+    }
+
+    /// A checked value contract retains these schema bytes during preparation.
+    /// This borrowed entrance performs no schema construction during Play.
+    pub(crate) fn verify_with_schema(
+        schema: &[u8],
+        encoded: &[u8],
+        quantity_kind: &str,
+        consumer_limit: RationalQuantity,
+        expected_source_wire_digest: Option<[u8; 32]>,
+        work: &mut ExactNumericWork,
+    ) -> Result<VerifiedNearQuantity, Refusal> {
         if encoded.len() > NEAR_QUANTITY_EVIDENCE_MAX_BYTES {
             return Err(Refusal::Extent);
         }
         let value = validate_canonical_structured_value(encoded).map_err(|_| Refusal::Malformed)?;
-        if value.type_bytes() != self.schema {
+        if value.type_bytes() != schema {
             return Err(Refusal::Schema);
         }
         let wire = leaf(field(value, "source-wire")?)?;

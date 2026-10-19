@@ -21,7 +21,7 @@ pub fn pure_expression_std_offer(
 ) -> Result<CapabilityOffer, conduit_core::StructuredInfoRefusal> {
     let contract = conduit_semantic_catalog::pure_expression_contract(program, temporal)?;
     let target_kind = contract.kind_id.clone();
-    Ok(BackOfferBuilder::new(
+    let mut offer = BackOfferBuilder::new(
         contract,
         Back {
             capability_id: CapabilityId::from(format!("std/{}", target_kind.as_str())),
@@ -39,7 +39,11 @@ pub fn pure_expression_std_offer(
             authority_requirements: Vec::new(),
         },
     )
-    .build())
+    .build();
+    if let Some(bounds) = value_contract_bounds::property(program)? {
+        offer.realization_properties.push(bounds);
+    }
+    Ok(offer)
 }
 
 pub fn pure_filter_std_offer(
@@ -185,3 +189,6 @@ pub fn pure_expression_local_flow_offer(
 
 mod quantity_expression;
 pub use quantity_expression::*;
+
+mod value_contract_bounds;
+pub use value_contract_bounds::pure_expression_value_contract_bounds_profile;

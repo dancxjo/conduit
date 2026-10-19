@@ -129,9 +129,9 @@ fn validate_node(
         }
     }
     match &node.operation {
-        Op::Projection { value, .. } | Op::Unary { operand: value, .. } => {
-            validate_node(value, input_type, types, facts)?
-        }
+        Op::ValueContract { value, .. }
+        | Op::Projection { value, .. }
+        | Op::Unary { operand: value, .. } => validate_node(value, input_type, types, facts)?,
         Op::Binary { left, right, .. } => {
             validate_node(left, input_type, types, facts)?;
             validate_node(right, input_type, types, facts)?;

@@ -111,6 +111,12 @@ pub(crate) fn offer(
     program: &conduit_plot::PortableExpressionProgram,
     temporal: PortTemporal,
 ) -> Result<CapabilityOffer, String> {
+    if matches!(
+        program.root.operation,
+        conduit_plot::PortableExpressionOperation::ValueContract { .. }
+    ) {
+        return Err("browser/value-contract-expression-profile-unavailable@1".into());
+    }
     let contract = conduit_semantic_catalog::pure_expression_contract(program, temporal)
         .map_err(|error| format!("pure expression contract: {error:?}"))?;
     let target = contract.kind_id.clone();
@@ -259,6 +265,10 @@ fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserB
 
 fn failure(refusal: conduit_plot::PortableExpressionEvaluationRefusal) -> Failure {
     let detail = match refusal {
+        conduit_plot::PortableExpressionEvaluationRefusal::InputValueConstraint(_)
+        | conduit_plot::PortableExpressionEvaluationRefusal::OutputValueConstraint(_) => {
+            conduit_plot::value_contract_failure_detail(&refusal)
+        }
         conduit_plot::PortableExpressionEvaluationRefusal::InvalidInput => 1,
         conduit_plot::PortableExpressionEvaluationRefusal::InvalidProgram => 2,
         conduit_plot::PortableExpressionEvaluationRefusal::InvalidLiteral => 3,
@@ -308,3 +318,7 @@ fn unreachable_offer() -> CapabilityOffer {
 fn unreachable_perform(_: &PlannedGear, _: &[u8]) -> Result<BrowserHostResult, String> {
     Err("pure expression execution requires prepared exact program state".into())
 }
+
+#[cfg(test)]
+#[path = "pure_expression/tests.rs"]
+mod tests;
