@@ -111,10 +111,19 @@ pub(super) fn project(
         projection.properties,
         projection.text,
         projection.actions,
-        vec![FaceDisclosure {
-            subject: root,
-            level: FaceDisclosureLevel::Primary,
-        }],
+        vec![
+            FaceDisclosure {
+                subject: root,
+                level: FaceDisclosureLevel::Primary,
+            },
+            // This named structural container repeats the encounter's heading.
+            // Keep its full name and text in every exact reader; the current
+            // human-facing title belongs to the Host encounter above.
+            FaceDisclosure {
+                subject: main,
+                level: FaceDisclosureLevel::Context,
+            },
+        ],
     )
     .map_err(BirthFaceRefusal::Face)?;
     Ok((face, projection.events))
@@ -241,6 +250,27 @@ impl Projection {
                     }
                     _ => return Err(BirthFaceRefusal::UnsupportedMechanism),
                 }
+                argument
+                    .contract
+                    .validate(field.value.as_bytes())
+                    .map_err(|_| BirthFaceRefusal::InvalidProjection)?;
+                // The same Source value supplies readable fallback and exact
+                // input state. A Mask need not interpret the fallback prose.
+                self.properties.extend([
+                    FaceProperty {
+                        subject: subject.clone(),
+                        name: "current-value".into(),
+                        value: FacePropertyValue::TypedValue {
+                            contract: argument.contract.clone(),
+                            bytes: field.value.as_bytes().to_vec(),
+                        },
+                    },
+                    FaceProperty {
+                        subject: subject.clone(),
+                        name: "value-change-action".into(),
+                        value: FacePropertyValue::Identity(field.input_action.identity.clone()),
+                    },
+                ]);
                 self.action(&subject, &field.input_action, vec![argument]);
             }
             FaceMechanism::ChoiceGroup {
