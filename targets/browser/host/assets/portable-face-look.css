@@ -5,7 +5,7 @@
 .portable-face input[type=text], .portable-face select { box-sizing:border-box; width:100%; min-width:0; padding:.65em; font:inherit; color:var(--portable-ink,CanvasText); background:var(--portable-field,Field); border:1px solid var(--portable-line,ButtonBorder); border-radius:.25em; }
 .portable-face button { padding:.55em .8em; font:inherit; color:var(--portable-ink,ButtonText); background:var(--portable-field,ButtonFace); border:1px solid var(--portable-line,ButtonBorder); border-radius:.25em; }
 .portable-face button:focus-visible, .portable-face input:focus-visible, .portable-face select:focus-visible { outline:3px solid Highlight; outline-offset:3px; }
-.portable-face [role=listbox] { list-style:none; margin:0; padding:.25em; max-height:14rem; overflow:auto; border:1px solid var(--portable-line,ButtonBorder); background:var(--portable-paper,Canvas); }
+.portable-face [role=listbox] { position:absolute; inset-inline:0; z-index:1; box-sizing:border-box; list-style:none; margin:0; padding:.25em; max-height:14rem; overflow:auto; border:1px solid var(--portable-line,ButtonBorder); background:var(--portable-paper,Canvas); }
 .portable-face [role=listbox][hidden] { display:none; }
 .portable-face [role=option] { padding:.65em; cursor:pointer; }
 .portable-face [role=option][aria-selected=true] { color:HighlightText; background:Highlight; outline:2px solid Highlight; }

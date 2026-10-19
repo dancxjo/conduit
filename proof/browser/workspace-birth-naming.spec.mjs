@@ -117,10 +117,10 @@ test("Workspace Birth suggestions expose diverse structures while remaining edit
   const traditionRevision = Number(await slot.getAttribute("data-portable-face-revision"));
   await selectTradition("kurmanji");
   await expect(tradition).toHaveValue("Kurdish Kurmanji (Latin script)");
-  expect(Number(await slot.getAttribute("data-portable-face-revision"))).toBeGreaterThan(traditionRevision);
+  await expect.poll(async () => Number(await slot.getAttribute("data-portable-face-revision"))).toBeGreaterThan(traditionRevision);
   const revision = Number(await slot.getAttribute("data-portable-face-revision"));
   await birth.getByRole("button", { name: "Suggest another name" }).click();
-  expect(Number(await slot.getAttribute("data-portable-face-revision"))).toBeGreaterThan(revision);
+  await expect.poll(async () => Number(await slot.getAttribute("data-portable-face-revision"))).toBeGreaterThan(revision);
 
   const birthAction = birth.getByRole("button", { name: "Birth Body", exact: true });
   const review = birth.locator('[data-source-status$="/birth-review"]');
@@ -130,7 +130,7 @@ test("Workspace Birth suggestions expose diverse structures while remaining edit
   await name.fill("");
   await birth.getByRole("button", { name: "Edit Body name", exact: true }).click();
   await expect(name).toHaveValue("");
-  expect(Number(await slot.getAttribute("data-portable-face-revision"))).toBeGreaterThan(emptyRevision);
+  await expect.poll(async () => Number(await slot.getAttribute("data-portable-face-revision"))).toBeGreaterThan(emptyRevision);
   // BirthDraft::selection refuses an empty name with InvalidName; the
   // Source view formats that exact readiness result and withholds Birth.
   await expect(review).toContainText("Name: (empty).");
@@ -142,7 +142,7 @@ test("Workspace Birth suggestions expose diverse structures while remaining edit
   await name.fill(unicodeName);
   await birth.getByRole("button", { name: "Edit Body name", exact: true }).click();
   await expect(name).toHaveValue(unicodeName);
-  expect(Number(await slot.getAttribute("data-portable-face-revision"))).toBeGreaterThan(namedRevision);
+  await expect.poll(async () => Number(await slot.getAttribute("data-portable-face-revision"))).toBeGreaterThan(namedRevision);
   await expect(review).toContainText(`Name: ${unicodeName}.`);
   await expect(review).toContainText("Birth: available.");
   await expect(birthAction).toBeEnabled();

@@ -40,6 +40,8 @@ export function attachPortableSuggestions(input, container, { options, policy, c
       item.addEventListener('click', event => { if (event.isTrusted && !input.disabled && !composing) choose(option); });
       list.append(item);
     }
+    // Keep popup dismissal from moving a control between pointerdown and click.
+    list.style.top = `${input.offsetTop + input.offsetHeight}px`;
     list.hidden = !visible.length; input.setAttribute('aria-expanded', String(visible.length > 0));
     input.removeAttribute('aria-activedescendant');
   };

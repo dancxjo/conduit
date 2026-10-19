@@ -62,6 +62,18 @@ test('native Unicode draft, caret and cancel remain provisional until explicit s
   await expect(page.locator('[data-source-status$="/birth-review"]')).toContainText('Name: Éléonore 雪.');
 });
 
+test('empty free-text popup dismisses without losing the explicit commit click', async ({ page }) => {
+  await open(page);
+  const name = page.getByLabel('Friendly Body name', { exact: true });
+  const before = await revision(page);
+  await name.fill('');
+  await expect(name).toHaveAttribute('aria-expanded', 'true');
+  await page.getByRole('button', { name: 'Edit Body name', exact: true }).click();
+  await expect(slot(page)).not.toHaveAttribute('data-portable-face-revision', before);
+  await expect(page.locator('[data-source-status$="/birth-review"]')).toContainText('Name: (empty).');
+  expect((await ownerReceipt(page)).source_snapshot.friendly_name).toBe('');
+});
+
 test('editable fixed popup highlights and chooses a draft before source commit', async ({ page }) => {
   await open(page);
   const input = page.getByLabel('Naming tradition', { exact: true });
