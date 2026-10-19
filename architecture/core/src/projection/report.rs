@@ -245,6 +245,12 @@ impl<'a, D: ProjectionDomain> ProjectionReport<'a, D> {
     pub fn summary(&self) -> ProjectionSummary {
         self.summary
     }
+    /// Complete frozen admission input for inspection and faithful transport,
+    /// including admitted realizations, mechanism and exact selected index.
+    /// Source/target and domain validation obligations remain unchanged.
+    pub fn input(&self) -> &ProjectionInput<'a, D> {
+        &self.input
+    }
     pub fn source(&self) -> &'a D::Source {
         self.input.source
     }

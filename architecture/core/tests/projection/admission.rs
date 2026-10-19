@@ -97,6 +97,10 @@ fn fallback_records_only_admitted_realizations_and_exact_terminal_chain() {
     let report = ProjectionReport::new(&domain, &policy, draft).unwrap();
     assert_eq!(report.selected_attempt().unwrap().realization, second);
     assert_eq!(report.attempts()[0].outcome, failure);
+    assert_eq!(report.input().admitted, &admitted);
+    assert_eq!(report.input().selected_attempt, Some(1));
+    assert_eq!(report.input().mechanism, ProjectionMechanism::Completed);
+
     let mut draft = input(&source, Some(&source), &facts);
     draft.admitted = &admitted[..1];
     draft.attempts = &attempts;
