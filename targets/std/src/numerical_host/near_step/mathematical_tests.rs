@@ -284,3 +284,70 @@ fn prepared_symbolic_value_contract_enforces_tolerance_other_predicates_and_reco
     assert_eq!(valid.prepared_verifier_heap_bytes(), capacity);
     assert_eq!(valid.contract(), &authored);
 }
+
+#[test]
+fn checked_source_consumer_prepares_all_form_contracts_at_both_boundaries() {
+    use conduit_plot::*;
+    let source = "plot accept (\n >> value: Angle near 0.000001rad\n result: Angle near 0.000001rad >>\n) = .\n";
+    let mut startup = StartupCatalog::new();
+    let mut profiles = ProfileCatalog::new();
+    conduit_semantic_catalog::install_numerical_catalogs(&mut startup, &mut profiles).unwrap();
+    let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
+    let expanded = expand_canonical_plot_for_authoring(&checked, "accept", &profiles).unwrap();
+    let ConfigurationValue::Text(hex) = &expanded.expanded.gears[0].configuration[0].value else {
+        panic!("program")
+    };
+    let program = PortableExpressionProgram::from_canonical_hex(hex).unwrap();
+    let mut evaluator = PreparedPortableExpressionEvaluator::new_with_mathematical_near_contracts(
+        &program,
+        mathematical::requirements(),
+        Binary32Rounding::NearestTiesEven,
+        900_000_000,
+    )
+    .unwrap();
+    let bounds = evaluator.value_contract_bounds().unwrap();
+    assert_eq!(bounds.maximum_constraints, 2);
+    assert_eq!(bounds.maximum_numerical_work, 1_800_000_000);
+    assert!(bounds.prepared_near_replay_bytes > 0);
+    let capacity = evaluator.output_capacity();
+    let native = Quantity::parse_plot_literal("1rad")
+        .unwrap()
+        .encode()
+        .to_vec();
+    let mut rational = vec![0; QUANTITY_VALUE_MAX_ENCODED_BYTES];
+    let n = encode_rational_quantity_value(
+        RationalQuantity::new(
+            ExactRational::ratio(1, 3, &mut ExactNumericWork::new(NEAR_NUMERICAL_WORK)).unwrap(),
+            Unit::Radian,
+            QuantityRole::Linear,
+        )
+        .unwrap(),
+        &mut rational,
+    )
+    .unwrap();
+    rational.truncate(n);
+    let mut records = Vec::new();
+    for bytes in [frame(), native, rational] {
+        let mut producer = NearQuantityBack::new(
+            Quantity::parse_plot_literal("0.000001rad").unwrap(),
+            NearQuantityAlgorithm::EnclosedBinary32,
+        )
+        .unwrap();
+        producer.evaluate(&bytes).unwrap();
+        records.push(producer.state.encoding.encoded().to_vec());
+    }
+    let original = StructuredInfoValue::from_canonical_bytes(&records[0]).unwrap();
+    let forged = replace(&original, &["unit"], &Unit::Degree.encode())
+        .canonical_bytes()
+        .unwrap();
+    let guard = crate::allocation_probe::begin();
+    for _ in 0..4 {
+        assert!(evaluator.evaluate(&forged).is_err());
+        for record in &records {
+            assert_eq!(evaluator.evaluate(record).unwrap(), record);
+        }
+    }
+    assert_eq!(guard.finish(), 0);
+    assert_eq!(evaluator.output_capacity(), capacity);
+    assert_eq!(evaluator.value_contract_bounds().unwrap(), bounds);
+}

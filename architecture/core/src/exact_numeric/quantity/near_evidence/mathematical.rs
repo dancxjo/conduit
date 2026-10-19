@@ -91,13 +91,43 @@ impl PreparedMathematicalNearQuantityVerifier {
         work.charge(local.spent()).map_err(numeric_error)?;
         result
     }
-    fn check<'a>(
+    /// Validate the source representation once, then dispatch to the exact
+    /// native/rational or prepared symbolic numerical verifier. No failed-proof
+    /// fallback selects a different algorithm. The entire call shares one meter.
+    pub fn verify_admitted(
         &mut self,
-        encoded: &'a [u8],
+        encoded: &[u8],
         quantity_kind: &str,
         expected: Option<[u8; 32]>,
         work: &mut ExactNumericWork,
-    ) -> Result<VerifiedMathematicalNearQuantity<'a>, Refusal> {
+    ) -> Result<(), Refusal> {
+        let mut local = ExactNumericWork::new(work.remaining().min(self.maximum_work));
+        let result = (|| {
+            let value = self.decode_frame(encoded, &mut local)?;
+            let wire = leaf(field(value, "source-wire")?)?;
+            match wire.first() {
+                Some(3) => self
+                    .check_mathematical(value, wire, quantity_kind, expected, &mut local)
+                    .map(|_| ()),
+                Some(1 | 2) => PreparedNearQuantityVerifier::verify_validated(
+                    value,
+                    quantity_kind,
+                    self.consumer_limit,
+                    expected,
+                    &mut local,
+                )
+                .map(|_| ()),
+                _ => Err(Refusal::UnsupportedRepresentation),
+            }
+        })();
+        work.charge(local.spent()).map_err(numeric_error)?;
+        result
+    }
+    fn decode_frame<'a>(
+        &self,
+        encoded: &'a [u8],
+        work: &mut ExactNumericWork,
+    ) -> Result<Value<'a>, Refusal> {
         if encoded.len() > NEAR_QUANTITY_EVIDENCE_MAX_BYTES {
             return Err(Refusal::Extent);
         }
@@ -109,7 +139,27 @@ impl PreparedMathematicalNearQuantityVerifier {
         if value.type_bytes() != self.schema {
             return Err(Refusal::Schema);
         }
+        Ok(value)
+    }
+    fn check<'a>(
+        &mut self,
+        encoded: &'a [u8],
+        quantity_kind: &str,
+        expected: Option<[u8; 32]>,
+        work: &mut ExactNumericWork,
+    ) -> Result<VerifiedMathematicalNearQuantity<'a>, Refusal> {
+        let value = self.decode_frame(encoded, work)?;
         let wire = leaf(field(value, "source-wire")?)?;
+        self.check_mathematical(value, wire, quantity_kind, expected, work)
+    }
+    fn check_mathematical<'a>(
+        &mut self,
+        value: Value<'a>,
+        wire: &'a [u8],
+        quantity_kind: &str,
+        expected: Option<[u8; 32]>,
+        work: &mut ExactNumericWork,
+    ) -> Result<VerifiedMathematicalNearQuantity<'a>, Refusal> {
         crate::QuantityValueProfile::Mathematical
             .decode(quantity_kind, wire, work)
             .map_err(wire_refusal)?;

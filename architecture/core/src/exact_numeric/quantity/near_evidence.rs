@@ -125,6 +125,23 @@ impl PreparedNearQuantityVerifier {
         if value.type_bytes() != schema {
             return Err(Refusal::Schema);
         }
+        Self::verify_validated(
+            value,
+            quantity_kind,
+            consumer_limit,
+            expected_source_wire_digest,
+            work,
+        )
+    }
+    // The caller must first validate the complete canonical frame and pin its
+    // schema. Shared by the explicit prepared all-form consumer dispatch.
+    fn verify_validated(
+        value: Value<'_>,
+        quantity_kind: &str,
+        consumer_limit: RationalQuantity,
+        expected_source_wire_digest: Option<[u8; 32]>,
+        work: &mut ExactNumericWork,
+    ) -> Result<VerifiedNearQuantity, Refusal> {
         let wire = leaf(field(value, "source-wire")?)?;
         let view = crate::QuantityValueProfile::Exact
             .decode(quantity_kind, wire, work)

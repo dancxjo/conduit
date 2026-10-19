@@ -7,7 +7,8 @@ use crate::{
 
 /// This optional consumer profile leaves the ordinary contract validator intact.
 /// It pins the numerical replay strategy before Play, independently of the
-/// supplier's execution identity. It currently accepts mathematical source frames.
+/// supplier's execution identity. Native and rational frames retain their exact
+/// verifier; mathematical frames use the prepared symbolic replay strategy.
 pub struct PreparedMathematicalNearValueContract {
     contract: CheckedValueContract,
     verifier: PreparedMathematicalNearQuantityVerifier,
@@ -80,7 +81,7 @@ impl PreparedMathematicalNearValueContract {
                 // The verifier checks the complete pinned canonical schema and
                 // physical family before replay; no unvalidated primitive bypass.
                 self.verifier
-                    .verify(canonical, source_kind.as_str(), None, work)
+                    .verify_admitted(canonical, source_kind.as_str(), None, work)
                     .map_err(ValueConstraintRefusal::NearQuantity)?;
             } else {
                 constraint.validate_value(self.contract.value_kind.as_str(), canonical)?;

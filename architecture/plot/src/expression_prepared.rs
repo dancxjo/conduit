@@ -21,6 +21,8 @@ mod nominal;
 mod sequence_selection;
 use member_selection::PreparedMemberSelection;
 mod predicate_bounds;
+mod value_contract;
+use value_contract::PreparedValueContract;
 mod prepare;
 mod primitive;
 pub use predicate_bounds::ExpressionValueContractBounds;
@@ -45,8 +47,8 @@ pub struct PreparedPortableExpressionEvaluator {
     root: PreparedRoot,
     input: PreparedInput,
     input_maximum_bytes: Option<u32>,
-    input_value_contract: Option<conduit_core::CheckedValueContract>,
-    output_value_contract: Option<conduit_core::CheckedValueContract>,
+    input_value_contract: Option<PreparedValueContract>,
+    output_value_contract: Option<PreparedValueContract>,
     output: Vec<u8>,
 }
 
@@ -322,8 +324,10 @@ impl PreparedPortableExpressionEvaluator {
     ) -> Result<Self, Refusal> {
         let (input_contract, output_contract, body) =
             crate::expression_program::value_contract::boundary(program.root);
-        let input_value_contract = input_contract.cloned();
-        let output_value_contract = output_contract.cloned();
+        let input_value_contract = input_contract.cloned().map(PreparedValueContract::Ordinary);
+        let output_value_contract = output_contract
+            .cloned()
+            .map(PreparedValueContract::Ordinary);
         let program = ProgramView {
             root: body,
             ..program
@@ -364,7 +368,7 @@ impl PreparedPortableExpressionEvaluator {
     }
 
     pub fn evaluate(&mut self, input: &[u8]) -> Result<&[u8], Refusal> {
-        if let Some(contract) = &self.input_value_contract {
+        if let Some(contract) = &mut self.input_value_contract {
             contract
                 .validate(input)
                 .map_err(Refusal::InputValueConstraint)?;
@@ -428,7 +432,7 @@ impl PreparedPortableExpressionEvaluator {
             }
             PreparedRoot::Structured(root) => root.evaluate(input, &mut self.output)?,
         }
-        if let Some(contract) = &self.output_value_contract {
+        if let Some(contract) = &mut self.output_value_contract {
             contract
                 .validate(&self.output)
                 .map_err(Refusal::OutputValueConstraint)?;
