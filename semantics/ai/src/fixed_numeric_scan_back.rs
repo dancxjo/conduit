@@ -1,7 +1,7 @@
 //! Explicit one-pole scan with one atomic value and next-state proposal.
 use crate::{
     fixed_neural::fixed_one_pole,
-    fixed_numeric_catalog::{fixed_numeric_contracts, fixed_numeric_type},
+    fixed_numeric_catalog::{fixed_numeric_contract, fixed_numeric_type},
     fixed_numeric_codec::{FixedCodecRefusal, FixedF32VectorCodec},
     fixed_numeric_preparation::{verify_fixed_placement, FixedPlannedRefusal, AFFINE_PROFILE},
 };
@@ -13,9 +13,7 @@ use conduit_kernel::{
 };
 pub const SCAN_IMPLEMENTATION: &str = "conduit.numeric/scalar-explicit-one-pole@1";
 pub fn fixed_one_pole_offer() -> Result<CapabilityOffer, String> {
-    let kind = fixed_numeric_contracts()?
-        .into_iter()
-        .find(|k| k.kind_id.as_str() == "numeric/one-pole40")
+    let kind = fixed_numeric_contract("numeric/one-pole40")?
         .ok_or_else(|| String::from("absent exact one-pole40 contract"))?;
     Ok(BackOfferBuilder::new(
         kind,

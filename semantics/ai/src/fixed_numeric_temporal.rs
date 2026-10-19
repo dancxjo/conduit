@@ -1,5 +1,5 @@
 //! Explicit lockstep closing-Flow contracts for reusable stateless numerics.
-use crate::fixed_numeric_catalog::fixed_numeric_contracts;
+use crate::fixed_numeric_catalog::{fixed_numeric_contract, fixed_numeric_contracts};
 use alloc::{format, string::String, vec};
 use conduit_core::*;
 pub fn closing_numeric_contract(
@@ -9,10 +9,8 @@ pub fn closing_numeric_contract(
     let suffix = value_identity
         .strip_prefix("numeric/")
         .ok_or("numeric identity required")?;
-    let mut kind = fixed_numeric_contracts()?
-        .into_iter()
-        .find(|kind| kind.kind_id.as_str() == value_identity)
-        .ok_or("unsupported exact numeric shape")?;
+    let mut kind =
+        fixed_numeric_contract(value_identity)?.ok_or("unsupported exact numeric shape")?;
     kind.kind_id = kind_id(&format!("numeric/flow-{suffix}"));
     kind.kind_contract_revision = KindIdentity::from(implementation);
     for port in kind.inputs.iter_mut().chain(&mut kind.outputs) {

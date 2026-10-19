@@ -1,5 +1,5 @@
 //! Exact selected affine Back identity and preparation-time resource access.
-use crate::fixed_numeric_catalog::fixed_numeric_contracts;
+use crate::fixed_numeric_catalog::fixed_numeric_contract;
 use alloc::{format, string::String, vec};
 use conduit_core::*;
 use conduit_data::{TensorBacking, TensorValue};
@@ -18,9 +18,7 @@ pub enum FixedPlannedRefusal {
 pub fn fixed_affine_offer<const INPUT: usize, const OUTPUT: usize>(
 ) -> Result<CapabilityOffer, String> {
     let id = format!("numeric/dense{INPUT}x{OUTPUT}");
-    let kind = fixed_numeric_contracts()?
-        .into_iter()
-        .find(|kind| kind.kind_id.as_str() == id)
+    let kind = fixed_numeric_contract(&id)?
         .ok_or_else(|| format!("unsupported fixed affine shape {INPUT}x{OUTPUT}"))?;
     Ok(BackOfferBuilder::new(
         kind,
@@ -95,9 +93,7 @@ pub fn verify_fixed_placement(
 
 pub const WINDOW_IMPLEMENTATION: &str = "conduit.numeric/scalar-window2x64@1";
 pub fn fixed_window_offer() -> Result<CapabilityOffer, String> {
-    let kind = fixed_numeric_contracts()?
-        .into_iter()
-        .find(|kind| kind.kind_id.as_str() == "numeric/history2x64")
+    let kind = fixed_numeric_contract("numeric/history2x64")?
         .ok_or_else(|| String::from("absent fixed window contract"))?;
     Ok(BackOfferBuilder::new(
         kind,
