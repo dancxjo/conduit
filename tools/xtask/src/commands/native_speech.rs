@@ -23,6 +23,7 @@ pub fn run(args: NativeSpeechArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std:
     let invoke = |arguments: &[&str]| -> Result<(), Box<dyn std::error::Error>> {
         let status = Command::new("cargo")
             .args(arguments)
+            .env("CONDUIT_CARRIED_FORMANT_OUTPUT", &output)
             .current_dir(&root)
             .status()?;
         if !status.success() {
@@ -38,6 +39,8 @@ pub fn run(args: NativeSpeechArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std:
         "--test",
         "native_expression_construction",
     ])?;
+    // The journey exercises its actual authoring, terminals and replay. Broad
+    // domain conformance remains `xtask check speech-ipa` and exact-head CI.
     invoke(&[
         "test",
         "--locked",
@@ -45,8 +48,50 @@ pub fn run(args: NativeSpeechArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std:
         "conduit-speech",
         "--features",
         "semantic-bindings,kernel",
-        "--tests",
+        "--test",
+        "ipa_authoring",
     ])?;
+    // This positive proof executes both model entrances and the installed
+    // formant path from one complete original, and exports its exact evidence.
+    // Negative/lifecycle cases already belong to the domain conformance suite.
+    invoke(&[
+        "test",
+        "--locked",
+        "-p",
+        "conduit-speech",
+        "--features",
+        "semantic-bindings,kernel",
+        "--test",
+        "carried_formant",
+        "original_multiword_intent_executes_through_installed_factory_plan_and_play",
+        "--",
+        "--exact",
+    ])?;
+    // Re-admit retained bytes in a fresh process, without producer structs.
+    let inspection = Command::new("cargo")
+        .args([
+            "test",
+            "--locked",
+            "-p",
+            "conduit-speech",
+            "--features",
+            "semantic-bindings,kernel",
+            "--test",
+            "carried_formant",
+            "independently_reload_exported_carrier",
+            "--",
+            "--exact",
+            "--nocapture",
+        ])
+        .env(
+            "CONDUIT_CARRIED_FORMANT_INSPECT",
+            output.join("shared-carrier"),
+        )
+        .current_dir(&root)
+        .status()?;
+    if !inspection.success() {
+        return Err(format!("retained speech carrier inspection failed: {inspection}").into());
+    }
     invoke(&[
         "test",
         "--locked",

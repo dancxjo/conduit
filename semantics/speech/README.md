@@ -896,7 +896,7 @@ units to the complete supplied inventory and language variety, refusing foreign
 references and unsupported or ambiguous notation. A plain record is a definition;
 notation/inventory admission remains an explicit additional check.
 
-The candidate provides ordinary quoted constructors `speech/phone-from-ipa`,
+The public authoring catalog provides ordinary quoted constructors `speech/phone-from-ipa`,
 `speech/phonetic-from-ipa`, `speech/phoneme-from-ipa` and
 `speech/phonemic-from-ipa`. See the
 [universal transcription](examples/ipa/quoted-transcriptions.conduit) and
@@ -906,10 +906,9 @@ the complete supplied inventory, Language/Variety basis, revision and bindings.
 Human and JSON checking diagnostics retain original quoted-source spans.
 Native generation and public authoring import the same checked Language owner
 contracts; older shape-only schema IDs are not silently coerced.
-The baseline supported suite passes 454 tests and a Thumb no_std contract
-compile. Reconciliation with the competing constructor contract is required by
-#5329 before #5260 can close; these candidate APIs are not stable acceptance.
-Reusable checked basis references follow that decision under #5330.
+The supported suite checks those public constructors through installed Backs,
+product diagnostics, WASM and Thumb no_std compilation. Reusable checked basis
+references retain the supplied inventory and full Language/Variety basis.
 
 Run focused conformance with `cargo xtask check speech-ipa`. Typed delimiter
 glyphs such as `p[tʰ]` and `p/t/` are proposed syntax under #5317, not an
@@ -943,8 +942,9 @@ basis (including Variety/revision), original full text reference, and Audio anch
 Native values. `PreparedPhoneFundamental` re-admits the binding against the opaque
 original correspondence and retains Audio's executed target/observed reciprocal
 receipts; absence of an observation remains explicit. A supplied observation is
-neither a sensor measurement attestation nor playback authority. This phone-scope
-subset does not claim syllable/phrase target admission or oscillator realization.
+neither a sensor measurement attestation nor playback authority. This entrance
+is scoped to one phone; the broader gesture entrance below supplies the other
+linguistic scopes. Oscillator realization remains a terminal concern.
 
 
 Fundamental frequency gestures also admit actual syllable, resolved source word,
@@ -998,13 +998,9 @@ Version 1 retains structure and acoustic intent only on the original carrier;
 it does not establish acoustic conditioning, training or model inference. Its
 explicit terminal refusal is `NoAdmittedAcousticBack`.
 
-Both model preparation entrances require `PreparedCompleteSpeechCarrier`, an
-opaque composition of the existing correspondence, syllable/word structure,
-lexical source, replayed Language commitment and explicitly supplied acoustic
-receipts. They retain that complete original and its identity, including when
-refusing an unsupported acoustic Back. Lexical v1 exposes the retained
-components it does not use as conditioning; no training or neural rendering is
-claimed. Composition admits one to four complete word tokens under the existing
-finite Language commitment profile, word-only lexical tapes, aligned word and
-realization relations, and exactly one syllable per phone. Other shapes refuse;
-the broader correspondence contracts remain available independently.
+
+The carried formant path and versioned model lexical entrance consume the same
+original admitted carrier. See [shared acoustic custody](../../docs/design/speech-acoustic-custody.md)
+for executable conformance commands, retained multiword Native/PCM artifacts,
+installed factory and kernel execution, exact evidence boundaries and the
+explicit `NoAdmittedAcousticBack` model refusal.
