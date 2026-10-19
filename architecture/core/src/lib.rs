@@ -35,7 +35,7 @@ pub use initialized_state::{initialized_state_boundary, InitializedStateLaw};
 mod interop;
 mod kind_effects;
 mod observation;
-pub use observation::{Observation, ObservationKind};
+pub use observation::{Observation, ObservationKind, RoutedContentEvidence};
 mod physical_definition;
 mod plan_realization;
 mod planned_activation;

@@ -27,8 +27,8 @@ mod count_backs;
 mod deadline_host;
 mod distance_frequency_back;
 mod enclosure_back;
-mod external_fore_feeder;
 mod execution_observations;
+mod external_fore_feeder;
 mod external_websocket;
 mod external_websocket_host;
 mod facade;
@@ -53,6 +53,7 @@ mod input_semantic_backs;
 mod instrument_map_back;
 mod ipa_constructor_back;
 mod near_back;
+mod routed_content_observations;
 pub(crate) use enclosure_back::{offer as enclosure_offer, owns_offer as owns_enclosure_offer};
 mod numerical_back;
 pub(crate) use ieee_back::{offer as ieee_offer, owns_offer as owns_ieee_offer};
@@ -227,7 +228,7 @@ use super::{
 use conduit_core::present_host_call_requirement;
 use conduit_core::{
     bind_active_play, bind_sign, kind_id, wait_host_call_requirement, CancellationReason,
-    Observation, ObservationKind, PlanFragment, TerminalDisposition,
+    PlanFragment, TerminalDisposition,
 };
 use conduit_kernel::scheduler::SchedulerStatus;
 use conduit_kernel::{
@@ -504,7 +505,17 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         &active_play,
         request_capacity,
         face_capacity,
-        face_capacity.saturating_add(2),
+        face_capacity
+            .checked_add(2)
+            .and_then(|n| {
+                n.checked_add(
+                    scheduler
+                        .signs()
+                        .admission()
+                        .map_or(0, |a| usize::from(a.event_items)),
+                )
+            })
+            .ok_or("installed observation Sign capacity overflow")?,
     )
     .map_err(|error| format!("prepare std execution identity: {error:?}"))?;
     let mut host_calls =
@@ -3618,11 +3629,17 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     }
     let (observations, face_ids) = execution_observations::project(
         execution_observations::ObservationContext {
-            advertisement, fragment, active_play: &active_play,
-            lowered: &lowered.identity, execution_identity: &mut execution_identity,
+            advertisement,
+            fragment,
+            active_play: &active_play,
+            lowered: &lowered.identity,
+            execution_identity: &mut execution_identity,
             next_sign_sequence,
         },
-        structured_face_host, &math_host, terminal_disposition,
+        structured_face_host,
+        &math_host,
+        terminal_disposition,
+        scheduler.signs(),
     )?;
     let control_receipts = accepted_stop
         .map(|request_id| RunControlReceipt {

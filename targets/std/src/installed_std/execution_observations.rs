@@ -1,8 +1,10 @@
 //! Projects retained installed execution outcomes into shared Core observations.
-use conduit_core::{bind_sign, ActivePlayIdentity, FaceId, HostAdvertisement,
-    Observation, ObservationKind, PlanFragment, TerminalDisposition};
-use conduit_plan_lowering::lowering::{KernelExecutionIdentityMap, KernelIdentityMap};
 use super::{math_host::MathHost, structured_face_host::StructuredFaceHost};
+use conduit_core::{
+    bind_sign, ActivePlayIdentity, FaceId, HostAdvertisement, Observation, ObservationKind,
+    PlanFragment, TerminalDisposition,
+};
+use conduit_plan_lowering::lowering::{KernelExecutionIdentityMap, KernelIdentityMap};
 
 pub(super) struct ObservationContext<'a> {
     pub advertisement: &'a HostAdvertisement,
@@ -14,14 +16,22 @@ pub(super) struct ObservationContext<'a> {
 }
 
 pub(super) fn project(
-    context: ObservationContext<'_>,
+    mut context: ObservationContext<'_>,
     structured_face_host: StructuredFaceHost,
     math_host: &MathHost,
     terminal_disposition: TerminalDisposition,
+    signs: &super::content_signs::StdSignLog,
 ) -> Result<(Vec<Observation>, Vec<FaceId>), String> {
-    let ObservationContext { advertisement, fragment, active_play, lowered,
-        execution_identity, next_sign_sequence } = context;
-    let (mut observations, face_ids) = structured_face_host.project(
+    let mut observations = super::routed_content_observations::project(signs, &mut context)?;
+    let ObservationContext {
+        advertisement,
+        fragment,
+        active_play,
+        lowered,
+        execution_identity,
+        next_sign_sequence,
+    } = context;
+    let (face_observations, face_ids) = structured_face_host.project(
         advertisement,
         fragment,
         active_play,
@@ -29,6 +39,7 @@ pub(super) fn project(
         execution_identity,
         next_sign_sequence,
     )?;
+    observations.extend(face_observations);
     if let Some(failure) = math_host.failure_observation(
         advertisement,
         fragment,

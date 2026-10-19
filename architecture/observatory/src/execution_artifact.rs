@@ -187,6 +187,50 @@ pub fn validate_sign_artifact(artifact: &SignArtifact) -> Result<(), String> {
             return Err("Sign artifact names an unreported connection".into());
         }
     }
+    if let ObservationKind::RoutedContent { evidence } = &artifact.sign.kind {
+        let plan = contextual_plan.ok_or("routed content Sign lacks Plan context")?;
+        let placement = artifact
+            .sign
+            .placement_id
+            .as_ref()
+            .ok_or("routed content Sign lacks producer placement")?;
+        let cord = artifact
+            .sign
+            .connection_id
+            .as_ref()
+            .ok_or("routed content Sign lacks exact connection")?;
+        if artifact.sign.active_play_id.is_none() || artifact.sign.face_id.is_some() {
+            return Err("routed content Sign has invalid execution context".into());
+        }
+        let connection = plan
+            .fragments
+            .iter()
+            .flat_map(|fragment| &fragment.connections)
+            .find(|connection| &connection.connection_id == cord)
+            .ok_or("routed content Sign names an unplanned connection")?;
+        if !plan.fragments.iter().any(|fragment| {
+            fragment.host_id == artifact.sign.host_id
+                && fragment.boot_id == artifact.sign.boot_id
+                && fragment
+                    .placements
+                    .iter()
+                    .any(|producer| &producer.placement_id == placement)
+        }) {
+            return Err("routed content Sign producer belongs to a different Host or boot".into());
+        }
+        if &connection.source_placement_id != placement
+            || connection.source_port_id != evidence.output_port
+            || evidence.byte_length > connection.byte_capacity
+        {
+            return Err("routed content Sign differs from the exact Cord source or extent".into());
+        }
+        if [&evidence.digest_domain, &evidence.digest_scheme]
+            .iter()
+            .any(|name| name.is_empty() || name.len() > 192)
+        {
+            return Err("routed content Sign digest identity exceeds its finite bound".into());
+        }
+    }
     validate_sign_payload(&artifact.sign.kind)
 }
 
@@ -311,6 +355,59 @@ mod tests {
             play,
             sign,
         )
+    }
+
+    #[test]
+    fn routed_content_envelope_checks_exact_producer_and_bounded_digest_identity() {
+        let (plan, _, mut sign) = exact_artifacts();
+        let connection = plan
+            .plan
+            .fragments
+            .iter()
+            .flat_map(|f| &f.connections)
+            .find(|connection| {
+                plan.plan.fragments.iter().any(|f| {
+                    f.host_id == sign.sign.host_id
+                        && f.placements
+                            .iter()
+                            .any(|p| p.placement_id == connection.source_placement_id)
+                })
+            })
+            .unwrap();
+        sign.sign.placement_id = Some(connection.source_placement_id.clone());
+        sign.sign.connection_id = Some(connection.connection_id.clone());
+        sign.sign.kind = ObservationKind::RoutedContent {
+            evidence: conduit_core::RoutedContentEvidence {
+                native_event_sequence: 42,
+                output_port: connection.source_port_id.clone(),
+                byte_length: connection.byte_capacity,
+                digest_domain: "conduit/routed-value-content@1".into(),
+                digest_scheme: "core/semantic-sha256@1".into(),
+                digest: [7; 32],
+            },
+        };
+        validate_sign_artifact(&sign).unwrap();
+        for mutation in 0..5 {
+            let mut wrong = sign.clone();
+            match mutation {
+                0 => wrong.sign.placement_id = None,
+                1 => wrong.sign.connection_id = None,
+                2 => wrong.sign.face_id = Some(conduit_core::FaceId::from("invented")),
+                _ => {
+                    if let ObservationKind::RoutedContent { evidence } = &mut wrong.sign.kind {
+                        if mutation == 3 {
+                            evidence.digest_domain.clear();
+                        } else {
+                            evidence.output_port = conduit_core::PortId::from("unplanned");
+                        }
+                    }
+                }
+            }
+            assert!(
+                validate_sign_artifact(&wrong).is_err(),
+                "mutation {mutation}"
+            );
+        }
     }
 
     #[test]
