@@ -190,7 +190,10 @@ pub fn validate_sign_artifact(artifact: &SignArtifact) -> Result<(), String> {
             return Err("Sign artifact names an unreported connection".into());
         }
     }
-    event_gap::validate(&artifact.sign)?;
+    event_gap::validate(
+        &artifact.sign,
+        artifact.play.as_ref().map(|play| &play.identity),
+    )?;
     if let ObservationKind::RoutedContent { evidence } = &artifact.sign.kind {
         let plan = contextual_plan.ok_or("routed content Sign lacks Plan context")?;
         let placement = artifact
