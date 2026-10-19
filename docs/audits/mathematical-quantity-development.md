@@ -830,3 +830,49 @@ The Near wire record still does not retain the generic report bytes, and the
 outer certificate/request binding, ordinary inspection, product artifacts,
 complete finite admission and stable acceptance remain unfinished. The original
 93-requirement audit text was rechecked unchanged; no status is closed here.
+
+
+### Private completed mathematical Near report wire transport
+
+Completed `enclosed_binary32` Near records now carry the full shared general
+projection evidence bytes. Kind revision `numeric/quantity-near@3` and the
+explicit Std mathematical back profile at revision 2 identify the changed wire
+contract. Native/rational representation variants retain their existing value
+behavior; this checkpoint does not yet transport their general reports.
+
+A shared Core content-identity helper binds the exact source wire, target and
+original requested allowance. The producer encodes the existing admitted
+computational report into a fixed 54,650-byte staging buffer. The prepared leaf,
+floating record and representation composers account for their added storage;
+the full maximum mathematical record is checked against the unchanged
+131,072-byte output envelope before Play. The bound includes all maximum domain
+payloads and actual canonical schema bytes, rather than observed small fixtures.
+Selected-offer bounds include the maximum evidence extent and three field
+encoding passes. Producer/consumer module-source artifacts now include the new
+helper, codec and shared general evidence implementation. These identities remain
+source correlations, not executable or execution attestations.
+
+The independent reader replays the original producer policy with the pinned
+projection budget, checks every certificate field against that exact receipt,
+then reconstructs and compares every report byte. A larger sufficient error
+claim is refused because it changes the original certificate. Changed requests,
+report summaries, unsupported versions, truncation and trailing report bytes
+refuse without allocating; a valid record remains verifiable afterward. The
+report is computational evidence, with execution custody supplied separately by
+the actual kernel's emitted-value Signs.
+
+Seven Core tests, strict Core all-target Clippy, Core no-default checks and
+workspace formatting pass. Five focused Std tests and the full Std library suite
+pass: 869 passed with 18 existing ignored. The real CLI dimensioned-chain suite
+passes two tests covering three invocations, including ordinary artifact/Sign
+correlation and a zero-allowance refusal. Exact executed Core, Std, CLI-test and
+CLI binaries have verified SHA-256/archive roundtrips; code source bundles and
+file hashes are retained. The first compile exposed the new refusal's exhaustive
+Plot mapping, which now has its own machine-readable code. Workspace Clippy is
+running; this checkpoint does not claim its terminal result. Full workspace test
+execution still lacks the previously documented multi-gigabyte linker headroom.
+
+Raw report persistence in product artifacts, ordinary generic report inspection,
+remaining profile accounting, native/rational report transport, broader original
+requirements and exact-source stable acceptance remain open. No parent audit
+status changes from this private component proof.
