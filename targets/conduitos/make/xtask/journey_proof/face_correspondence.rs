@@ -180,11 +180,11 @@ pub(super) fn retain(
         "body_id":body,"birth":birth,"birth_count":1,"paired_faces":paired,"actions":actions,
         "accepted_action_count":accepted,"refused_action_count":refused,"fresh_action_after_refusal":recovered,
         "screenshots":"journey-frames/manifest.json",
-        "input_evidence":{"class":"real-qmp-keyboard","transcript":"journey-qmp.log",
+        "input_evidence":{"class":"real-qmp-keyboard-and-pointer","transcript":"journey-qmp.log",
             "unavailable_attempt":{"qmp_key":"f4","hid_usage":61,"binding":"wake",
                 "requested_intent":"conduit.intent/wake@1","label":"journey-unavailable-wake",
                 "precondition":"awake","completion":"CONDUIT_PRODUCT_ACTION handled wake"}},
-        "pointer":{"status":"unsupported","reason":"normal product loop does not route pointer actions"},
+        "pointer":super::creche_pointer::receipt(serial)?,
         "browser":{"status":"unsupported","reason":"no installed source-equivalent native shell browser route"},
         "stale_show_replay":{"coverage":"separate deterministic admission suite; not asserted by this harness","installed_enactment":false},
         "parent_5356_acceptance":"open","physical_evidence":false,"human_enactment":false});
