@@ -423,3 +423,26 @@ fn a_second_domain_retains_typed_detail_even_when_source_target_and_summary_matc
         Err(ProjectionEvidenceRefusal::InvalidLimits)
     );
 }
+
+#[test]
+fn wire_v1_matches_independent_python_framing_and_sha256_reference() {
+    let domain = Bits;
+    let policy = Policy(0);
+    let codec = Codec(0);
+    let source = 1;
+    let facts = [ProjectionFact::Preserved {
+        obligation: text("0"),
+    }];
+    let report =
+        ProjectionReport::new(&domain, &policy, input(&source, Some(&source), &facts)).unwrap();
+    let mut bytes = [0; 4096];
+    let length = encode_projection_evidence(&report, &codec, limits(), &mut bytes).unwrap();
+    let hex = include_str!("../fixtures/projection_evidence_exact_v1.hex").trim();
+    let chunks = hex.as_bytes().chunks_exact(2);
+    assert!(chunks.remainder().is_empty());
+    let expected = chunks
+        .map(|part| u8::from_str_radix(std::str::from_utf8(part).unwrap(), 16).unwrap())
+        .collect::<Vec<_>>();
+    assert_eq!(&bytes[..length], expected);
+    verify_projection_evidence(&report, &codec, limits(), &expected).unwrap();
+}

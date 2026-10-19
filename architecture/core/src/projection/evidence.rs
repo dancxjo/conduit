@@ -113,6 +113,8 @@ pub fn encode_projection_evidence<D: ProjectionDomain, C: ProjectionEvidenceCode
 /// Compare every canonical byte against an independently reconstructed admitted
 /// report, including complete inventory, original scores, attempts and policy.
 /// Rejects unknown versions, omissions, altered fields and trailing bytes.
+/// Faithfully transporting an insufficient/refused report does not authorize
+/// consuming its target; require_exact/require_bound_policy remain separate.
 pub fn verify_projection_evidence<D: ProjectionDomain, C: ProjectionEvidenceCodec<D>>(
     report: &ProjectionReport<'_, D>,
     codec: &C,
