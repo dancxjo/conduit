@@ -4,6 +4,7 @@
 #![cfg(feature = "semantic-bindings")]
 #[path = "common/asr_common_language.rs"]
 mod fixture;
+#[allow(dead_code)]
 #[path = "../../language/tests/common/parser_kernel.rs"]
 mod kernel;
 use conduit_core::revision::{RevisionDeltaRole, RevisionDomain};
