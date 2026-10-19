@@ -174,6 +174,10 @@ export function renderPortableFace(root, encounter, { enhanced = false, submit, 
     for (const text of model.face.text.filter(text => text.subject === subject.identity)) section.append(node('p', text.text));
     details.append(section);
   }
+  const canonical = JSON.stringify(model.face);
+  if (canonical.length > 512 * 1024) throw new Error('Source fact text capacity');
+  const facts = node('pre', canonical); facts.setAttribute('aria-label', 'Canonical Face facts');
+  facts.style.whiteSpace = 'pre-wrap'; facts.style.overflowWrap = 'anywhere'; details.append(facts);
   article.append(details, status); root.replaceChildren(article); refreshDisabled();
   function inspect() {
       if (!article.isConnected || required.some(control => {
