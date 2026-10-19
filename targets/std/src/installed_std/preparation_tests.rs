@@ -96,11 +96,13 @@ fn two_real_clock_partitions_remain_live_then_stop_through_the_shared_kernel_ins
         .install(
             drivers,
             values,
-            HostedSignLog::new(
-                1024,
-                1024 * core::mem::size_of::<conduit_kernel::KernelEvent>() as u32,
-            )
-            .unwrap(),
+            crate::installed_std::content_signs::StdSignLog::Plain(
+                HostedSignLog::new(
+                    1024,
+                    1024 * core::mem::size_of::<conduit_kernel::KernelEvent>() as u32,
+                )
+                .unwrap(),
+            ),
         )
         .unwrap();
     let mut ticks = [Vec::with_capacity(6), Vec::with_capacity(6)];

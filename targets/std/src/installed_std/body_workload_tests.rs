@@ -576,11 +576,13 @@ fn canonical_button_clock_and_telegraph_share_admission_and_one_installed_kernel
         .install(
             drivers,
             values,
-            HostedSignLog::new(
-                2048,
-                2048 * core::mem::size_of::<conduit_kernel::KernelEvent>() as u32,
-            )
-            .unwrap(),
+            crate::installed_std::content_signs::StdSignLog::Plain(
+                HostedSignLog::new(
+                    2048,
+                    2048 * core::mem::size_of::<conduit_kernel::KernelEvent>() as u32,
+                )
+                .unwrap(),
+            ),
         )
         .unwrap();
     let playing = wake

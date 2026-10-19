@@ -166,3 +166,59 @@ impl SignQuery for StdSignLog {
         self.base().retention_gap()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    fn base() -> HostedSignLog {
+        HostedSignLog::new(4, (4 * core::mem::size_of::<KernelEvent>()) as u32).unwrap()
+    }
+    #[test]
+    fn declared_policy_prepares_sha256_storage_and_undeclared_profiles_stay_plain() {
+        let exact = conduit_signal_conformance::exact_distributed_signal_plan().unwrap();
+        let mut fragment = exact.plan.fragments[0].clone();
+        let plain = StdSignLog::prepare(base(), &[&fragment], 32).unwrap();
+        assert!(plain.admission().is_none());
+        assert_eq!(plain.bindings().count(), 0);
+        fragment.placements[0]
+            .realization_properties
+            .push(conduit_std_offers::routed_content_sign_requirement().unwrap());
+        let mut log = StdSignLog::prepare(base(), &[&fragment], 32).unwrap();
+        let admission = *log.admission().unwrap();
+        assert_eq!(
+            admission.binding_storage_bytes,
+            content_sign_storage_bytes(4).unwrap()
+        );
+        assert_eq!(admission.maximum_digest_input_bytes, 32);
+        let guard = crate::allocation_probe::begin();
+        for i in 0..16u32 {
+            let bytes = i.to_le_bytes();
+            let event = log
+                .record_value(NodeId(0), PortId(0), CordId(0), &bytes)
+                .unwrap();
+            let binding = log
+                .bindings()
+                .find(|b| b.event_sequence == event.sequence)
+                .unwrap();
+            assert_eq!(
+                binding.digest,
+                conduit_core::semantic_digest(admission.digest_domain, &bytes)
+            );
+            assert_eq!(binding.byte_length, 4);
+        }
+        assert_eq!(guard.finish(), 0);
+    }
+    #[test]
+    fn changed_digest_or_storage_policy_refuses_during_preparation() {
+        let exact = conduit_signal_conformance::exact_distributed_signal_plan().unwrap();
+        let mut fragment = exact.plan.fragments[0].clone();
+        let requirement = conduit_std_offers::routed_content_sign_requirement().unwrap();
+        let mut bytes = requirement.canonical_value().to_vec();
+        *bytes.last_mut().unwrap() ^= 1;
+        let changed =
+            conduit_core::StructuredConfigurationValue::new(requirement.profile().clone(), bytes)
+                .unwrap();
+        fragment.placements[0].realization_properties.push(changed);
+        assert!(StdSignLog::prepare(base(), &[&fragment], 32).is_err());
+    }
+}
