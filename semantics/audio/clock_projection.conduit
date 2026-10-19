@@ -1,0 +1,15 @@
+# Reusable domain gates precede all projection arithmetic.
+plot audio/clock-binding-valid (
+    >> binding: AudioClockBinding
+    valid: Boolean >>
+) = (.relation.quality is exact && .relation.source-anchor == .source_origin_tick && .source_unit is seconds && .relation.source-clock == .source_clock && .relation.target-clock == .target_clock && .source_clock != .target_clock && .relation.source-ticks > 0 && .relation.source-ticks <= 4294967295 && .relation.target-ticks > 0 && .relation.target-ticks <= 4294967295)
+
+plot audio/clock-query-eligible (
+    >> request: AudioClockProjectionRequest
+    eligible: Boolean >>
+) = (.binding.anchor == .query.anchor && .query.time.numerator_seconds <= 4294967295 && .query.time.denominator > 0 && .query.time.denominator <= 4294967295)
+
+plot audio/clock-project (
+    >> value: AudioClockProjectionEligible
+    projected: AudioClockProjectionRaw >>
+) = ({whole_ticks: value/i128(.request.binding.relation.target-anchor) + value/i128(.request.query.time.numerator_seconds) * value/i128(.request.binding.relation.target-ticks) / (value/i128(.request.query.time.denominator) * value/i128(.request.binding.relation.source-ticks)), remainder_numerator: (value/i128(.request.query.time.numerator_seconds) * value/i128(.request.binding.relation.target-ticks)) % (value/i128(.request.query.time.denominator) * value/i128(.request.binding.relation.source-ticks)), remainder_denominator: value/i128(.request.query.time.denominator) * value/i128(.request.binding.relation.source-ticks)})

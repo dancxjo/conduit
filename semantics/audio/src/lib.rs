@@ -188,3 +188,25 @@ pub const RESONATOR_RECURRENCE_SOURCE: &str = include_str!("../dsp/resonator-rec
 mod pcm_packing;
 pub use generated::{AudioPcm16PackingFrame, AudioPcm16PackingInput};
 pub use pcm_packing::*;
+
+mod clock_projection;
+pub use clock_projection::*;
+mod control_projection;
+pub use control_projection::*;
+pub use generated::{
+    AudioClockBinding, AudioClockProjectionEligible, AudioClockProjectionRaw,
+    AudioClockProjectionRequest, AudioClockProjectionResult, AudioClockSourceUnit,
+    AudioControlCadence, AudioControlProjectionPoint, AudioControlProjectionSchedule,
+    AudioControlReconstruction,
+};
+pub use generated::{
+    AudioControlFinalTimeAdmission, AudioControlQueryTimeAdmission, AudioControlQueryTimeRaw,
+};
+pub const CLOCK_PROJECTION_SOURCE: &str = include_str!("../clock_projection.conduit");
+pub const CONTROL_PROJECTION_SOURCE: &str = include_str!("../control_projection.conduit");
+
+mod control_projection_report;
+pub use control_projection_report::*;
+
+mod periodic_projection_report;
+pub use periodic_projection_report::*;

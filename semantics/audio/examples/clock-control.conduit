@@ -1,0 +1,38 @@
+# Reusable callers of the public, checked Audio control catalog.
+# These plots compute declared clock/control projections. They do not acquire
+# hardware clocks, timers, playback authority or calibration evidence.
+plot clock-project (
+    >> input: AudioClockProjectionEligible
+    result: AudioClockProjectionRaw >>
+) {
+    component: audio/clock-project()
+    input >> component.value
+    component.projected >> result
+}
+
+plot control-query-time (
+    >> input: AudioControlProjectionPoint
+    result: AudioControlQueryTimeRaw >>
+) {
+    component: audio/control-query-time()
+    input >> component.value
+    component.result >> result
+}
+
+plot clock-binding-valid (
+    >> input: AudioClockBinding
+    result: Boolean >>
+) {
+    component: audio/clock-binding-valid()
+    input >> component.binding
+    component.valid >> result
+}
+
+plot clock-query-eligible (
+    >> input: AudioClockProjectionRequest
+    result: Boolean >>
+) {
+    component: audio/clock-query-eligible()
+    input >> component.request
+    component.eligible >> result
+}

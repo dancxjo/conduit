@@ -48,10 +48,14 @@ phase references are documented in [EXACT_CONTROLS.md](EXACT_CONTROLS.md).
 The bounded trajectory prerequisite is documented in [TRAJECTORIES.md](TRAJECTORIES.md).
 Exact declared rate/cumulative projection and its generic fidelity reports are
 documented in [RATE_PROJECTION.md](RATE_PROJECTION.md). Reference-bearing dB and its explicitly bounded exact-power-of-ten conversion
-are documented in [DECIBELS.md](DECIBELS.md). Physical clock mapping,
-control-rate/Q-format projection, catalog realization and remaining #5216
-acceptance are deferred. This local semantic proof does not establish playback,
-platform execution, model conditioning or stable release acceptance.
+are documented in [DECIBELS.md](DECIBELS.md). Existing generic periodic Q8/Q15,
+resonator Q30→Q14 and public catalog profiles are mapped in
+[CONTROL_CONTRACT.md](CONTROL_CONTRACT.md), including their finite bounds and
+precision. Declared exact clock binding and bounded control-cadence evaluation
+are now implemented as separate checked seams with public Source callers. Final
+aggregate validation and whole-#5216 accepted-revision proof remain pending;
+physical calibration is not inferred. This quantity proof does not establish
+playback, model conditioning or stable release acceptance.
 
 The portable expression evaluator is a computation seam, not Type-refinement
 admission: generated native constructors/decoders enforce the positive domain
