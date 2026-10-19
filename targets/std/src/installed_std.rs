@@ -830,7 +830,9 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     .map_err(|error| format!("read external Fore output: {error:?}"))?;
                 let (delivery, adapter_delivery) =
                     if planned.temporal == conduit_core::PortTemporal::Value {
-                        prepared_value_fore_outputs.take(planned, offer.sequence, borrowed)?
+                        let (report, adapter) =
+                            prepared_value_fore_outputs.take(planned, offer.sequence, borrowed)?;
+                        (report, Some(adapter))
                     } else {
                         let delivery = crate::ExternalForeDelivery {
                             front_port_id: planned.front_port_id.clone(),
@@ -839,14 +841,17 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                             sequence: offer.sequence,
                             bytes: borrowed.to_vec(),
                         };
-                        let adapter = delivery.clone();
-                        (delivery, adapter)
+                        (delivery, None)
                     };
-                external_fore
+                let adapter = &mut external_fore
                     .as_mut()
                     .expect("output adapter checked above")
-                    .output
-                    .deliver(adapter_delivery)?;
+                    .output;
+                if let Some(adapter_delivery) = adapter_delivery {
+                    adapter.deliver(adapter_delivery)?;
+                } else {
+                    adapter.deliver_flow(&delivery)?;
+                }
                 scheduler
                     .remote_egress_accept(planned.endpoint, planned.cord, offer.sequence)
                     .map_err(|error| format!("accept external Fore output: {error:?}"))?;
