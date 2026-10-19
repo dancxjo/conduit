@@ -18,6 +18,11 @@ impl DebugControlState {
         }
     }
 
+    #[cfg(feature = "alloc")]
+    pub(super) const fn is_clear(&self) -> bool {
+        self.breakpoint.is_none() && self.suspension.is_none()
+    }
+
     pub(super) const fn suspension(&self) -> Option<DebugSuspension> {
         self.suspension
     }

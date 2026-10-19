@@ -10,7 +10,7 @@ use conduit_std_host::{
 use std::{collections::BTreeMap, time::Duration};
 
 #[derive(Default)]
-struct Outputs(Vec<Vec<u8>>);
+struct Outputs(Vec<conduit_std_host::ExternalForeBytes>);
 impl ExternalForeOutputAdapter for Outputs {
     fn deliver(&mut self, value: ExternalForeDelivery) -> Result<(), String> {
         if value.track == ConnectionTrack::Payload {

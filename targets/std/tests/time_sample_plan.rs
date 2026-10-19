@@ -161,7 +161,7 @@ fn installed_sampler_preserves_physical_capsules_in_actual_plan_play() {
     };
     use std::collections::BTreeMap;
     #[derive(Default)]
-    struct Collector(Vec<Vec<u8>>);
+    struct Collector(Vec<conduit_std_host::ExternalForeBytes>);
     impl ExternalForeOutputAdapter for Collector {
         fn deliver(&mut self, delivery: ExternalForeDelivery) -> Result<(), String> {
             if delivery.track == ConnectionTrack::Payload {

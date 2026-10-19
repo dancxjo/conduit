@@ -424,6 +424,14 @@ impl FaceArrival {
             control,
             scene.page(),
             scene.pages(),
+            scene
+                .frame()
+                .map_err(|_| "creche-focus-frame-unavailable")?
+                .hits
+                .iter()
+                .find(|hit| Some(hit.control) == scene.focused())
+                .map(|hit| hit.bounds),
+            scene.bounds(),
         )
     }
 

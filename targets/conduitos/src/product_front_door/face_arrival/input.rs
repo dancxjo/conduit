@@ -1,4 +1,4 @@
-//! Crèche keyboard submission through its acknowledged Mask and owner.
+//! Crèche submission through its acknowledged Mask and owner.
 use super::*;
 use conduit_birth_plot::BirthActionOutcome;
 
@@ -16,11 +16,68 @@ impl FaceArrival {
         let show = self.mask.show().cloned().ok_or("creche-face-show-absent")?;
         let sequence = self.next_interaction;
         self.next_interaction = sequence.checked_add(1).ok_or("creche-face-input-bound")?;
-        match self
+        let input = self
             .mask
             .key(event, sequence, display)
-            .map_err(|error| error.as_str())?
-        {
+            .map_err(|error| error.as_str())?;
+        self.accept_input(input, show, door, journey, presenter, display, make)
+    }
+
+    pub(in crate::product_front_door) fn pointer_motion(
+        &mut self,
+        x: u32,
+        y: u32,
+        display: &mut impl PixelTarget,
+    ) -> Result<(), &'static str> {
+        self.mask
+            .pointer_motion(x, y, display)
+            .map_err(|error| error.as_str())
+    }
+
+    pub(in crate::product_front_door) fn observe_pointer(
+        &self,
+        sample: conduit_semantic_catalog::NormalizedPointerSample,
+        x: u32,
+        y: u32,
+        press_edge: bool,
+    ) -> Result<(), &'static str> {
+        let show = self.mask.show().ok_or("creche-face-show-absent")?;
+        super::super::native_action_evidence::pointer(show, sample, x, y, press_edge)
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub(in crate::product_front_door) fn accept_pointer(
+        &mut self,
+        x: u32,
+        y: u32,
+        door: &mut FrontDoor,
+        journey: &mut ProductJourney,
+        presenter: &mut FrontDoorPresenter,
+        display: &mut impl PixelTarget,
+        make: &MakeRecord,
+    ) -> Result<FaceArrivalInput, &'static str> {
+        let show = self.mask.show().cloned().ok_or("creche-face-show-absent")?;
+        let sequence = self.next_interaction;
+        self.next_interaction = sequence.checked_add(1).ok_or("creche-face-input-bound")?;
+        let input = self
+            .mask
+            .pointer(x, y, sequence, display)
+            .map_err(|error| error.as_str())?;
+        self.accept_input(input, show, door, journey, presenter, display, make)
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn accept_input(
+        &mut self,
+        input: NativeFaceMaskInput,
+        show: MaskShow,
+        door: &mut FrontDoor,
+        journey: &mut ProductJourney,
+        presenter: &mut FrontDoorPresenter,
+        display: &mut impl PixelTarget,
+        make: &MakeRecord,
+    ) -> Result<FaceArrivalInput, &'static str> {
+        match input {
             NativeFaceMaskInput::Unchanged => Ok(FaceArrivalInput::Continue),
             NativeFaceMaskInput::Redrawn(_) => {
                 self.record_focus()?;

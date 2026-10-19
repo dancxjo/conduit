@@ -28,7 +28,7 @@ impl TimerAdapter for NoTimer {
 }
 #[derive(Default)]
 struct Collector {
-    values: Vec<Vec<u8>>,
+    values: Vec<conduit_std_host::ExternalForeBytes>,
 }
 impl ExternalForeOutputAdapter for Collector {
     fn deliver(&mut self, value: ExternalForeDelivery) -> Result<(), String> {

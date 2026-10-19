@@ -11,7 +11,7 @@ use conduit_kernel::{FixedHostCallBindings, FixedRoutes, HostedSignLog, HostedVa
 use conduit_plan_lowering::lowering::LoweredPlanFragment;
 
 pub(super) struct KernelTables {
-    chains: Vec<Vec<conduit_kernel::NodeId>>,
+    chains: Vec<super::fusion::PreparedChain>,
     expected_fusions: usize,
     active_nodes: usize,
     active_cords: usize,
@@ -135,14 +135,18 @@ impl KernelTables {
             sign,
         )
         .map_err(|error| format!("install std scheduler: {error:?}"))?;
-        for chain in &self.chains {
-            scheduler
-                .bind_execution_chain(chain)
-                .map_err(|error| format!("bind std fusion: {error:?}"))?;
-        }
+
         scheduler
             .bind_terminal_transductions(self.terminal_transductions)
             .map_err(|error| format!("bind std terminal transductions: {error:?}"))?;
+        for chain in &self.chains {
+            let result = if chain.native {
+                scheduler.bind_native_u64_chain(&chain.nodes)
+            } else {
+                scheduler.bind_execution_chain(&chain.nodes)
+            };
+            result.map_err(|error| format!("bind std fusion: {error:?}"))?;
+        }
         Ok(scheduler)
     }
 }

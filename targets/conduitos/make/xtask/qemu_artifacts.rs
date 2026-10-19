@@ -4,13 +4,16 @@ use serde_json::{json, Value};
 use std::{fs, io::Read, os::unix::net::UnixStream, path::PathBuf, time::Instant};
 
 // The bounded lifecycle, refusal, navigation, and reentry journey plus failure capture.
-const MAX_CHECKPOINTS: usize = 20;
+const DEFAULT_MAX_CHECKPOINTS: usize = 20;
+// Twenty-two normal-product frames plus one retained failure capture.
+const MAX_ADMITTED_CHECKPOINTS: usize = 23;
 
 pub(super) struct Artifacts {
     directory: PathBuf,
     serial: PathBuf,
     started: Instant,
     entries: Vec<Value>,
+    capture_limit: usize,
     context: Value,
     previous_pixels: Option<String>,
 }
@@ -23,16 +26,36 @@ impl Artifacts {
         fs::create_dir_all(&directory).map_err(io_error)?;
         context["visual_contract"] = json!({"mode":"invariant", "width":1280, "height":800,
             "minimum_non_background_pixels":64,"dynamic_identity_pixels":"allowed", "display":"std-vga"});
+        context["capture_contract"] = json!({"maximum_checkpoints": DEFAULT_MAX_CHECKPOINTS});
         let result = Self {
             directory,
             serial,
             started: Instant::now(),
-            entries: Vec::new(),
+            entries: Vec::with_capacity(DEFAULT_MAX_CHECKPOINTS),
+            capture_limit: DEFAULT_MAX_CHECKPOINTS,
             context,
             previous_pixels: None,
         };
         result.write("running", None)?;
         Ok(result)
+    }
+
+    /// Prepare a finite capture plan before the journey starts. Once any
+    /// capture exists, the admitted bound cannot be changed to erase pressure.
+    pub(super) fn with_capture_limit(mut self, maximum: usize) -> Result<Self, ConduitosError> {
+        if !(1..=MAX_ADMITTED_CHECKPOINTS).contains(&maximum) || !self.entries.is_empty() {
+            return Err(ConduitosError::refusal(
+                "qemu-display-capture-admission",
+                "capture limit is invalid or the journey already started",
+            ));
+        }
+        if maximum > self.entries.capacity() {
+            self.entries.reserve_exact(maximum - self.entries.len());
+        }
+        self.capture_limit = maximum;
+        self.context["capture_contract"] = json!({"maximum_checkpoints": maximum});
+        self.write("running", None)?;
+        Ok(self)
     }
 
     pub(super) fn capture(
@@ -42,10 +65,10 @@ impl Artifacts {
         checkpoint: &str,
         expect_change: bool,
     ) -> Result<(), ConduitosError> {
-        if self.entries.len() >= MAX_CHECKPOINTS {
+        if self.entries.len() >= self.capture_limit {
             return Err(ConduitosError::refusal(
                 "qemu-display-checkpoint-bound",
-                "at most twenty captures admitted",
+                format!("at most {} captures admitted", self.capture_limit),
             ));
         }
         let mut serial = Vec::new();
@@ -240,6 +263,37 @@ mod tests {
         );
         assert_eq!(manifest["proof_class"], "freestanding-emulator");
         assert_eq!(manifest["checkpoints"], json!([]));
+        fs::remove_file(directory.join("manifest.json")).unwrap();
+        fs::remove_dir(directory).unwrap();
+    }
+    #[test]
+    fn capture_plan_is_finite_and_cannot_expand_after_capture() {
+        let directory =
+            std::env::temp_dir().join(format!("conduit-qemu-admission-{}", std::process::id()));
+        let new =
+            || Artifacts::new(directory.clone(), directory.join("serial.log"), json!({})).unwrap();
+        assert!(new().with_capture_limit(0).is_err());
+        assert!(new().with_capture_limit(24).is_err());
+        let mut admitted = new().with_capture_limit(23).unwrap();
+        assert_eq!(
+            admitted.context["capture_contract"]["maximum_checkpoints"],
+            23
+        );
+        assert!(admitted.entries.capacity() >= 23);
+        for _ in 0..23 {
+            admitted.entries.push(json!({"fixture": true}));
+        }
+        let (mut client, _server) = UnixStream::pair().unwrap();
+        let mut reader = super::super::qmp::Reader::new(client.try_clone().unwrap());
+        // Refuse before reading serial or sending another QMP request.
+        assert_eq!(
+            admitted
+                .capture(&mut client, &mut reader, "overflow", false)
+                .unwrap_err()
+                .reason,
+            "qemu-display-checkpoint-bound"
+        );
+        assert!(admitted.with_capture_limit(23).is_err());
         fs::remove_file(directory.join("manifest.json")).unwrap();
         fs::remove_dir(directory).unwrap();
     }

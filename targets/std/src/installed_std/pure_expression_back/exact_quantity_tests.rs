@@ -97,7 +97,7 @@ fn exact_quantity_installed_back_emits_a_typed_third_without_kernel_growth_or_al
             "EXACT_QUANTITY_KERNEL plan={} report={report:?}",
             plan.plan_id.as_str()
         );
-        input = outputs.0.remove(0);
+        input = outputs.0.remove(0).to_vec();
     }
 }
 #[test]

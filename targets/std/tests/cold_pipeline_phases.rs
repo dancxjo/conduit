@@ -61,7 +61,7 @@ impl TimerAdapter for Phases {
     }
 }
 #[derive(Default)]
-struct Output(Vec<Vec<u8>>);
+struct Output(Vec<conduit_std_host::ExternalForeBytes>);
 impl ExternalForeOutputAdapter for Output {
     fn deliver(&mut self, value: ExternalForeDelivery) -> Result<(), String> {
         self.0.push(value.bytes);

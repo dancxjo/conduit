@@ -3,6 +3,7 @@
 //! from a fixture or a retired Tour surface.
 
 mod creche_choices;
+mod creche_pointer;
 mod face_correspondence;
 mod face_input;
 mod failure_stack;
@@ -114,7 +115,8 @@ pub(super) fn execute_supplied(
         serial_path.clone(),
         json!({"source_commit":source,"image_sha256":image_sha256,
             "qemu_argv":command.get_args().map(|arg|arg.to_string_lossy().into_owned()).collect::<Vec<_>>()}),
-    )?;
+    )?
+    .with_capture_limit(23)?;
     let mut child = command
         .spawn()
         .map_err(|error| ConduitosError::refusal("missing-qemu", error.to_string()))?;
@@ -290,13 +292,13 @@ pub(super) fn execute_supplied(
             "image_id":records.iter().find(|r|r["status"]=="born-lulled").unwrap()["image_id"],
             "host_id":identity.host_id, "boot_id":identity.boot_id,
             "body_id":records.iter().find(|r|r["status"]=="born-lulled").unwrap()["body_id"],
-            "input":"real-qmp-keyboard", "screenshots":"journey-frames/manifest.json",
+            "input":"real-qmp-keyboard-and-pointer", "screenshots":"journey-frames/manifest.json",
             "protected_keyboard_domain": keyboard_cost,
             "protected_retained_text_domain": editor_cost,
             "committed_edit_receipt": "memory-lantern-native-edit.json",
-            "steps":["arrive","creche-three-selected","creche-four-restored","birth","wake","unavailable-wake-refused","plan","play","protected-keyboard-canvas","protected-memory-lantern","home","patchbay","face","diagram","gear-details","diagram-return","stop","home-returned","patchbay-reentered"],
+            "steps":["arrive","creche-three-selected","creche-four-restored","creche-fourth-checked","creche-pointer-three-selected","creche-pointer-four-restored","birth","wake","unavailable-wake-refused","plan","play","protected-keyboard-canvas","protected-memory-lantern","home","patchbay","face","diagram","gear-details","diagram-return","stop","home-returned","patchbay-reentered"],
             "paired_reconstruction":"native-shell-paired-linear.json",
-            "pointer_actions":"unsupported", "browser_comparison":"unsupported",
+            "pointer_actions":creche_pointer::receipt(&serial)?, "browser_comparison":"unsupported",
             "parent_5356_acceptance":"open",
             "physical_evidence":false, "human_enactment":false,
         });

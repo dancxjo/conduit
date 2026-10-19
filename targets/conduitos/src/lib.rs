@@ -257,6 +257,8 @@ mod native_surface_possession;
     feature = "aarch64-orange-pi-5"
 ))]
 mod native_surface_provider;
+#[cfg(all(target_arch = "x86_64", feature = "native-compositor"))]
+mod pointer_coordinates;
 #[cfg(any(test, target_arch = "x86_64"))]
 pub mod product_bases;
 #[cfg(any(

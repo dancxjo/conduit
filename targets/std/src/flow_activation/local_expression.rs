@@ -41,7 +41,7 @@ impl KernelOperationFactory for LocalExpressionFactory {
         )?))
     }
 }
-fn validate(placement: &PlannedGear) -> Result<PortableExpressionProgram, String> {
+pub(super) fn validate(placement: &PlannedGear) -> Result<PortableExpressionProgram, String> {
     let [entry] = placement.configuration.as_slice() else {
         return Err("local expression requires one exact program".into());
     };

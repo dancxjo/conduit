@@ -125,6 +125,8 @@ pub(super) enum ConduitosCommand {
     StdGap,
     /// Prove one exact deterministic deadline-bounded local plan and refusal.
     TimingProfile,
+    /// Compare bounded compositor spans with the per-pixel reference on memory scanout.
+    CompositorPerformance,
     /// Prove one real bounded xHCI Base and fail-closed controller absence.
     XhciProof(PreparedProofArgs),
     /// Prove one real bounded root-attached USB device without semantic input.

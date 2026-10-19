@@ -56,6 +56,10 @@ impl<'a> PreparedIntentDurationGrid<'a> {
     pub fn steps(&self) -> &[AudioCumulativeProjectionReceipt] {
         &self.steps
     }
+    /// Move exact owned Audio receipts into a frozen terminal preparation.
+    pub fn into_steps(self) -> Vec<AudioCumulativeProjectionReceipt> {
+        self.steps
+    }
 }
 
 /// Explicit elapsed-second origin, cumulative floor endpoints, no independent

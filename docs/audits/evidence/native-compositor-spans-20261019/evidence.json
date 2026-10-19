@@ -1,0 +1,105 @@
+{
+  "source": "08c0cd8a81c8857904b4dd5f2ca8489cd40968c1",
+  "worker": {
+    "source": "08c0cd8a81c8857904b4dd5f2ca8489cd40968c1",
+    "executable_sha256": "70a3051494ca18f37c754fb8cb6574fb4962264942c214568fb41212b1c1e051",
+    "bytes": 80089120,
+    "profile": "conduitos opt-level3, debug assertions, debug0 incrementalfalse",
+    "custody": "copied after public xtask command finished successfully; source clean"
+  },
+  "timing_processes": [
+    {
+      "process": 2,
+      "span_median_batch_ratios": {
+        "full": 0.04401240726078438,
+        "tiny": 0.7129658633358784,
+        "scroll": 0.05169321178408332,
+        "hover": 0.2883989787381844,
+        "typing": 0.06934164151121458
+      },
+      "raw_median_16_frame_batch_ns": {
+        "0": 10637247,
+        "1": 8133926,
+        "2": 2920962
+      },
+      "raw_word_pixel_vs_byte_pixel_ratio": 0.7646645790964524,
+      "raw_word_row_vs_byte_pixel_ratio": 0.2745975532955096
+    },
+    {
+      "process": 3,
+      "span_median_batch_ratios": {
+        "full": 0.03462133777612497,
+        "tiny": 0.8765713040924412,
+        "scroll": 0.04284197757130878,
+        "hover": 0.2188295577932799,
+        "typing": 0.057736513748507474
+      },
+      "raw_median_16_frame_batch_ns": {
+        "0": 4999327,
+        "1": 4030966,
+        "2": 1761252
+      },
+      "raw_word_pixel_vs_byte_pixel_ratio": 0.8063017282126174,
+      "raw_word_row_vs_byte_pixel_ratio": 0.35229781928647597
+    },
+    {
+      "process": 4,
+      "span_median_batch_ratios": {
+        "full": 0.03511393159571761,
+        "tiny": 0.8743681198670582,
+        "scroll": 0.04181379025025099,
+        "hover": 0.22005550166047066,
+        "typing": 0.05680116731725982
+      },
+      "raw_median_16_frame_batch_ns": {
+        "0": 4962160,
+        "1": 3894888,
+        "2": 1725756
+      },
+      "raw_word_pixel_vs_byte_pixel_ratio": 0.784917858352008,
+      "raw_word_row_vs_byte_pixel_ratio": 0.34778322343495577
+    }
+  ],
+  "span_median_of_process_ratios": {
+    "full": 0.03511393159571761,
+    "tiny": 0.8743681198670582,
+    "scroll": 0.04284197757130878,
+    "hover": 0.22005550166047066,
+    "typing": 0.057736513748507474
+  },
+  "public_entrance": "cargo xtask make conduitos compositor-performance completed successfully: 5 frame and4 raw tests; log separately retained",
+  "manual_replay": "Three fresh processes from the retained exact executable, both libtest filters, CPU4, nine tests passed each; source clean before and after capture.",
+  "limitations": [
+    "Shared host with concurrent compilation; descriptive observations only, no confidence interval or universal threshold.",
+    "Memory scanout only. No QEMU, physical display, boot or input responsiveness claim.",
+    "Public first-process timings excluded from this pinned-worker aggregate."
+  ],
+  "files": {
+    "worker.json": "5a1517e478e6f781a1dbdde9430a9e689cfa73cbdf8d4c78b4d9968d6e4a76f7",
+    "raw-logs.tar.gz": "a134d29ce6aa5642474a84388cd8a33a16b075366345700aa0cb6e3a68d31117"
+  },
+  "raw_log_archive": {
+    "path": "raw-logs.tar.gz",
+    "sha256": "a134d29ce6aa5642474a84388cd8a33a16b075366345700aa0cb6e3a68d31117",
+    "bytes": 7207,
+    "members": {
+      "public-proof.log": {
+        "sha256": "c24a78990fae00ad780bade23046dd08d12fe915b092ff495cefad4dab1f4c6c",
+        "bytes": 43765
+      },
+      "scanout-optimized-run-2.log": {
+        "sha256": "010e374dab12ba2ced881d4442bec0fe71b24b1143cd817173f9e487f8147761",
+        "bytes": 4094
+      },
+      "scanout-optimized-run-3.log": {
+        "sha256": "cc0ff48c97ab06e3cd2a129b16764a9512d0dc93d987740babd66f8a14a5b34e",
+        "bytes": 4087
+      },
+      "scanout-optimized-run-4.log": {
+        "sha256": "7a9f236bc85c1f2ce6fd0004812477a1c0bdd05660d1658b21e315b0aca8d0a5",
+        "bytes": 4085
+      }
+    },
+    "encoding": "Exact original stdout/stderr bytes, including final blank lines, retained inside gzip-compressed tar so patch hygiene does not require modifying measurement output."
+  }
+}

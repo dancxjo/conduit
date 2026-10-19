@@ -13,7 +13,7 @@ impl TimerAdapter for NoTimer {
     }
 }
 #[derive(Default)]
-struct Outputs(Vec<Vec<u8>>);
+struct Outputs(Vec<conduit_std_host::ExternalForeBytes>);
 impl ExternalForeOutputAdapter for Outputs {
     fn deliver(&mut self, value: ExternalForeDelivery) -> Result<(), String> {
         if value.track == ConnectionTrack::Payload {
@@ -193,7 +193,7 @@ fn physical_triad_arguments_fields_connections_and_old_play_keep_original_defini
         .windows(encoded_dimension.len())
         .position(|bytes| bytes == encoded_dimension)
         .unwrap();
-    let mut forged = prior.0[0].clone();
+    let mut forged = prior.0[0].to_vec();
     forged[offset + 2] ^= 1;
     for (name, bytes) in [
         ("forged dimension metadata", forged),
@@ -219,7 +219,7 @@ fn physical_triad_arguments_fields_connections_and_old_play_keep_original_defini
     // Re-admit the old record through a separately planned runtime input Fore.
     let (mut relay, relay_plan) = prepare(&changed, "relay", "value", 8192);
     assert_eq!(
-        execute(&mut relay, &relay_plan, "value", prior.0[0].clone())
+        execute(&mut relay, &relay_plan, "value", prior.0[0].to_vec())
             .unwrap()
             .0,
         prior.0

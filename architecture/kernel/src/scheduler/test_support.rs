@@ -21,6 +21,8 @@ impl<const PORTS: usize> StepIo<PORTS> {
             outputs: [None; PORTS],
             canonical_output: None,
             prepared_output: None,
+            #[cfg(feature = "alloc")]
+            native_output_port: None,
             discards: [None; PORTS],
             host_completion,
             consumed_host_completion: false,
@@ -71,7 +73,14 @@ impl<const PORTS: usize> StepIo<PORTS> {
     }
 
     pub const fn test_prepared_output(&self) -> Option<(PortId, u32)> {
-        self.prepared_output
+        match self.prepared_output {
+            Some((port, super::generated_value::PreparedStepValue::Bytes(length))) => {
+                Some((port, length))
+            }
+            #[cfg(feature = "alloc")]
+            Some((_, super::generated_value::PreparedStepValue::NativeU64(_))) => None,
+            None => None,
+        }
     }
 
     pub fn test_discards(&self) -> &[Option<ValueRef>; PORTS] {

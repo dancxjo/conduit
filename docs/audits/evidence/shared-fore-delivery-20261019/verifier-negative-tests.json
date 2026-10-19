@@ -1,0 +1,20 @@
+{
+  "verifier_sha256": "0d675d35de23f3746c897d2293b8ce138bcae7e911b87451b08c738944e25835",
+  "semantic_mutation_refusals": [
+    "source_sha256",
+    "ordered_output_sha256",
+    "gears",
+    "values",
+    "adds_per_value",
+    "completion_window_items",
+    "kernel_decisions",
+    "kernel_logical_invocations",
+    "retained_kernel_events",
+    "signs",
+    "value_capacity_before",
+    "value_capacity_after"
+  ],
+  "count": 12,
+  "raw_checksum_mismatch_refused": true,
+  "scope": "Semantic mutation comparison deliberately bypasses envelope validation so each field must refuse independently; separate wrong-digest test verifies the raw artifact check. No capture files were modified."
+}

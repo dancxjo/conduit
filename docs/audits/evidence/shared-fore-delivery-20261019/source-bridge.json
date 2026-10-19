@@ -1,0 +1,215 @@
+{
+  "schema": "conduit.shared-fore-source-bridge@1",
+  "measured_parent": "99dfe6eceeb9f8e318e388a06beb98382746c647",
+  "measured_source": "f2bb3b0b9640c8a9f2ccd2626af817538706c7e5",
+  "refreshed_parent": "94f8f6c0365eac469746397233b98e5d2d749a81",
+  "refreshed_source": "b5904cabcc83805d04b86d345155b7247f85838c",
+  "owned_files": [
+    {
+      "path": "products/conduit/src/body_owner/commons_encounter/linear_journey/runtime.rs",
+      "sha256": "939d87c73d868b6ec393c5e523e964cf86d0e3f27d9225c553e87d3b6f6127cc",
+      "deleted": false
+    },
+    {
+      "path": "proof/performance/runtime/src/pipeline/borrowed_flow_tests.rs",
+      "sha256": "e8190af745567da9fca6655d935fbaa5f41e3e9108446c1643a34217d0623457",
+      "deleted": false
+    },
+    {
+      "path": "proof/performance/runtime/src/pipeline/domain/control.rs",
+      "sha256": "f9b078c23f78983588e683030532461fdf1d711debd3312eabb87cd9b40f9c6e",
+      "deleted": false
+    },
+    {
+      "path": "proof/performance/runtime/src/pipeline/domain/numerics.rs",
+      "sha256": "908ab306359f893ef01ac2c194c05799a0b42ab32971d7e8490000ace392d1bb",
+      "deleted": false
+    },
+    {
+      "path": "proof/performance/runtime/src/pipeline/tests.rs",
+      "sha256": "6efc351e865f4a280d137570f70feefad7b2be11138d7a9a88c75c2a0ec9a9f1",
+      "deleted": false
+    },
+    {
+      "path": "targets/std/src/fore_delivery.rs",
+      "sha256": "1a92e0ae7263100d802e11e17d05836012d1399082104bbc82177d1119072534",
+      "deleted": false
+    },
+    {
+      "path": "targets/std/src/installed_std.rs",
+      "sha256": "32f621f93e5b5a576704f40526cc9319782b39f168a872739fcae3c5ff80c472",
+      "deleted": false
+    },
+    {
+      "path": "targets/std/src/installed_std/body_kernel/fore_route.rs",
+      "sha256": "d1a65e708c683e0249f2f887358e19ea50144449d786fea7f90e57bf00891b14",
+      "deleted": false
+    },
+    {
+      "path": "targets/std/src/installed_std/body_kernel/todo_core_replay_tests.rs",
+      "sha256": "228066d9f2382c9aea2758340ee2faaebb55c68a5cad6346e2b9b332d2f0c42d",
+      "deleted": false
+    },
+    {
+      "path": "targets/std/src/installed_std/fore_outputs.rs",
+      "sha256": "55dbb206c51e8c5f54382ddbdc108976e85cb8fc8b496409b5f406e0be68436f",
+      "deleted": false
+    },
+    {
+      "path": "targets/std/src/installed_std/pure_expression_back/exact_quantity_tests.rs",
+      "sha256": "9cd9b2f0ca48068883be4b420f4ea05576dfdcd32c211454f54082ab7d3fb60f",
+      "deleted": false
+    },
+    {
+      "path": "targets/std/src/installed_std/pure_expression_back/scalar_tape_fixture.rs",
+      "sha256": "3764ccdbd706304dae58c6488085702678ba6fe4a9a0ab33a09efc0c7dbf2c40",
+      "deleted": false
+    },
+    {
+      "path": "targets/std/src/installed_std/value_fore_outputs.rs",
+      "sha256": null,
+      "deleted": true
+    },
+    {
+      "path": "targets/std/src/lib.rs",
+      "sha256": "60a5f836a5fa9e8ab57add5e786f124397649d30dbc2153569af6eef77d1457d",
+      "deleted": false
+    },
+    {
+      "path": "targets/std/src/spoken_template_execution/tests.rs",
+      "sha256": "7518ecddd654685c2afd5f36d4c565b62880bdad0df29bfa3d118837309e4b16",
+      "deleted": false
+    },
+    {
+      "path": "targets/std/tests/acoustic_clock_control.rs",
+      "sha256": "ae939df070511a60d6f0e62b564998b61bcc2cba1b60bd70718fa0b0159a254e",
+      "deleted": false
+    },
+    {
+      "path": "targets/std/tests/acoustic_control_installed.rs",
+      "sha256": "a698f6681746d763f461a5baeee40d4a1ac8c77532dd4e89e75448410355defb",
+      "deleted": false
+    },
+    {
+      "path": "targets/std/tests/affine_temperature_play.rs",
+      "sha256": "966406f51df70b8dcb49ce4d2053125bb95d1b8e0e6063922ab89d66c4ce4276",
+      "deleted": false
+    },
+    {
+      "path": "targets/std/tests/angle_radian_projection.rs",
+      "sha256": "0b2c1037c8444019672678806ab21180260f74dfdf8bbc4c3fa3811ba1f7d629",
+      "deleted": false
+    },
+    {
+      "path": "targets/std/tests/audio_pitch_analysis.rs",
+      "sha256": "e2c9750f058419a9102a5dd7d3a7f5807acf810bdf3ed08b594c902162c850d5",
+      "deleted": false
+    },
+    {
+      "path": "targets/std/tests/audio_spectral_analysis.rs",
+      "sha256": "6c79cf0b806633b85f130907958ef93a8c8e83cebf8c6b0e5fb7e3e4dca182b2",
+      "deleted": false
+    },
+    {
+      "path": "targets/std/tests/audio_time_analysis.rs",
+      "sha256": "6d8e1c1ea83ad133448fe3439c3930d871259466c2724b82f5ac21f3dc01ac5b",
+      "deleted": false
+    },
+    {
+      "path": "targets/std/tests/bounded_mixer/fixture.rs",
+      "sha256": "3c946509db51c7bdc6379e272350e2052542ccb4525af5628912a97e2acb7165",
+      "deleted": false
+    },
+    {
+      "path": "targets/std/tests/cold_pipeline_phases.rs",
+      "sha256": "724b320da8419738a9839a6de80280b5ef1e3921a6b8ab5579197fc8e3901c76",
+      "deleted": false
+    },
+    {
+      "path": "targets/std/tests/common/angle_host.rs",
+      "sha256": "bc4c4d33dfd9896af972f591ebf272620b7caaf691ef7c4e31e857061e62dba1",
+      "deleted": false
+    },
+    {
+      "path": "targets/std/tests/commons_places.rs",
+      "sha256": "98b083038fd95d9833af93ecf14e88163b892a2f349f2352bc284abdade6ad21",
+      "deleted": false
+    },
+    {
+      "path": "targets/std/tests/cumulative_audio_projection.rs",
+      "sha256": "2a4213fb6edd06b87db52501ffb1436f04b4b5b4b823414fb60af55a7974161f",
+      "deleted": false
+    },
+    {
+      "path": "targets/std/tests/dimension_values.rs",
+      "sha256": "dc51094eaced130e62ad614ccfeae53758601450a747d8a959c4310a506f5531",
+      "deleted": false
+    },
+    {
+      "path": "targets/std/tests/envelope_gain.rs",
+      "sha256": "8191ac3af7a6901a7d30f8e8c6d7659ef0e01355a00d257e852baebda8f001fc",
+      "deleted": false
+    },
+    {
+      "path": "targets/std/tests/exact_audio_controls.rs",
+      "sha256": "1af50778980a0c83e6d96eb5a2d1c2356bcffb501f414ff67e604ac4791c4726",
+      "deleted": false
+    },
+    {
+      "path": "targets/std/tests/ipa_constructors.rs",
+      "sha256": "8fbdac88619361b32d5eebe2e420eeb097406d3fc9dc7784a21fb0ee6fcb4412",
+      "deleted": false
+    },
+    {
+      "path": "targets/std/tests/numerical_installed_play.rs",
+      "sha256": "78dcea577be7461b86ba9508cb180e80aac411a5de09835600b5ee76a5f742c9",
+      "deleted": false
+    },
+    {
+      "path": "targets/std/tests/periodic_oscillator.rs",
+      "sha256": "435f42e49d1be31d14d24bbd906cfa3a1c00a38a36d0821017aadc8d8007eaa9",
+      "deleted": false
+    },
+    {
+      "path": "targets/std/tests/physical_triad_transport.rs",
+      "sha256": "1192c32632ae6195d210376c1f27acd37eab842293e1d205afe7988880cda22f",
+      "deleted": false
+    },
+    {
+      "path": "targets/std/tests/physical_values_product.rs",
+      "sha256": "ff8f9dd807a39ce66d066b453dc3f24023211ff1f02e2db203be3b89fca67f26",
+      "deleted": false
+    },
+    {
+      "path": "targets/std/tests/quantity_conversion.rs",
+      "sha256": "9bb62b58c632661815efa549845fb02bd94e27c6eb4987657a976df49895127e",
+      "deleted": false
+    },
+    {
+      "path": "targets/std/tests/resonator.rs",
+      "sha256": "6db9f898acb5a22773cd7e4f1f54ef56d423354eeb769463eac602d5eda430dc",
+      "deleted": false
+    },
+    {
+      "path": "targets/std/tests/scalar_tape_performance.rs",
+      "sha256": "4bf3a2418eb3e351c681d11325d48b27a35cc81ea8ab2480747da66e6f2001dc",
+      "deleted": false
+    },
+    {
+      "path": "targets/std/tests/seeded_noise.rs",
+      "sha256": "e6ac5cb02257430e1303f9a4940d5d8349706d79eadac406c5f452ffc63bcc6f",
+      "deleted": false
+    },
+    {
+      "path": "targets/std/tests/time_sample_plan.rs",
+      "sha256": "d8df6be961fdfcda42379e350649fa84ec8b847c33566bd9ad0db18a5611eddb",
+      "deleted": false
+    },
+    {
+      "path": "targets/std/tests/todo_checkpoint_read_body_play.rs",
+      "sha256": "29b7451877839adf78101cd5d3726098de800f5b6a5cf62583207826d199b08d",
+      "deleted": false
+    }
+  ],
+  "scope": "Every file changed by the measured shared Fore implementation is byte-identical after replay onto current dev. This does not equate full trees, dependencies, or replace exact refreshed candidate validation."
+}

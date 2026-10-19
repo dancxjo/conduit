@@ -7,9 +7,10 @@ import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 import { deflateSync } from 'node:zlib';
 import { sealTarget } from '../../tools/ci/pipeline/receipts.mjs';
+import { pointerFixture } from './conduitos-pointer-fixture.mjs';
 
 const names = [
-  'front-door-ready', 'creche-three-selected', 'creche-four-restored', 'body-born', 'body-woken', 'wake-refused', 'body-planned', 'body-playing',
+  'front-door-ready', 'creche-three-selected', 'creche-four-restored', 'creche-fourth-checked', 'creche-pointer-three-selected', 'creche-pointer-four-restored', 'body-born', 'body-woken', 'wake-refused', 'body-planned', 'body-playing',
   'protected-keyboard-canvas', 'protected-memory-lantern',
   'home', 'patchbay-workspace', 'patchbay-face', 'patchbay-diagram',
   'patchbay-gear-details', 'patchbay-diagram-returned', 'body-stopped', 'home-returned', 'patchbay-reentered',
@@ -163,12 +164,13 @@ function makeFixture() {
     status: 'complete', failure: null, context: { source_commit: commit, image_sha256: image },
     checkpoints,
   }));
+  const paired = pairedFixture();
   writeFileSync(path.join(root, 'evidence/journey-proof.json'), JSON.stringify({
     schema: 'conduit.conduitos/face-journey-proof@1', source_commit: commit,
     proof_class: 'freestanding-emulator', image_sha256: image,
     screenshots: 'journey-frames/manifest.json', boot_id: boot, body_id: body, host_id: host,
     paired_reconstruction: 'native-shell-paired-linear.json',
-    committed_edit_receipt: 'memory-lantern-native-edit.json',
+    committed_edit_receipt: 'memory-lantern-native-edit.json', pointer_actions: paired.pointer,
   }));
   const record = { boot_id: boot, body_id: body, host_id: host, plan_id: 'plan/editor',
     active_play_id: 'play/editor', checked_plot_id: 'checked/editor',
@@ -178,13 +180,13 @@ function makeFixture() {
     physical_evidence: false, human_enactment: false,
     committed_text: 'café', utf8_bytes: [99,97,102,195,169], record,
   }));
-  const paired = pairedFixture();
   writeFileSync(path.join(root, 'evidence/native-shell-paired-linear.json'), JSON.stringify(paired));
   writeFileSync(path.join(root, 'evidence/journey-serial.log'),
     `CONDUIT_PRODUCT_JOURNEY ${JSON.stringify(record)}\n`
     + paired.paired_faces.map(pair => `CONDUIT_NATIVE_FACE ${JSON.stringify(pair.native)}\n`).join('')
     + `CONDUIT_NATIVE_BIRTH ${JSON.stringify(paired.birth)}\n`
-    + paired.actions.map(action => `CONDUIT_NATIVE_ACTION ${JSON.stringify(action)}\n`).join(''));
+    + paired.actions.map(action => `CONDUIT_NATIVE_ACTION ${JSON.stringify(action)}\n`).join('')
+    + pointerFixture().serial);
   writeFileSync(path.join(root, 'evidence/journey-qmp.log'), 'fixture QMP transcript; no emulator claim\n');
   return { root, evidence, site };
 }
@@ -255,7 +257,7 @@ function pairedFixture() {
     birth: receipt(0, { body_id: null, born_sign_id: null }, owner(1)), paired_faces,
     actions: [receipt(1, owner(1), owner(2)), receipt(2, owner(2), owner(2), true), receipt(3, owner(2), owner(3))],
     accepted_action_count: 2, refused_action_count: 1, fresh_action_after_refusal: true,
-    screenshots: 'journey-frames/manifest.json', pointer: { status: 'unsupported' }, browser: { status: 'unsupported' },
+    screenshots: 'journey-frames/manifest.json', pointer: pointerFixture().receipt, browser: { status: 'unsupported' },
     parent_5356_acceptance: 'open', physical_evidence: false, human_enactment: false };
 }
 

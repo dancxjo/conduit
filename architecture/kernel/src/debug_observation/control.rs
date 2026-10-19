@@ -29,6 +29,7 @@ pub struct DebugSuspension {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum DebugControlRefusal {
+    UnsupportedPhysicalProfile,
     UnsupportedSchemaVersion,
     StaleExecution,
     UnsupportedBreakpoint,
