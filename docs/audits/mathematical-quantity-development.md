@@ -468,3 +468,13 @@ turn, including the unchanged exact certified-bound check and zero-allowance
 refusal. This supersedes the missing CLI proof noted above for this extension.
 The extended installed kernel allocation and independent reader tests are
 pending; general custody and stable acceptance remain separate requirements.
+
+The extended installed tests now pass (six tests). The transformed dimensioned
+chain selects six stages, delivers its certified binary32 record, and replays
+that record with the independent mathematical verifier. Both native spellings
+retain Pi/2 radians; kernel post-Play allocation counts and independent reader
+allocation counts are zero, with unchanged kernel value-storage capacity. A
+separate five-stage exact transform/conversion/carry/sine chain returns exact
+one. This supersedes the pending installed-test note above. The retained proof
+remains private; qualified consumer integration, general projection/Sign custody,
+and exact-source stable acceptance remain open.
