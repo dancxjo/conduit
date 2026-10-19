@@ -18,6 +18,8 @@ mod parser_scorer;
 mod physical_values;
 #[path = "../suites/print_pool.rs"]
 mod print_pool;
+#[path = "../suites/record_pronunciation.rs"]
+mod record_pronunciation;
 #[path = "../suites/prosody_commitment.rs"]
 mod prosody_commitment;
 #[path = "../suites/speech_ipa.rs"]
@@ -95,6 +97,7 @@ pub fn run(args: CheckArgs, opts: &GlobalOpts) -> Result<(), StepError> {
         CheckSuite::ModelInference => run_suite(model_inference::STEPS, &root, opts),
         CheckSuite::AcousticFlow => run_suite(acoustic_flow::STEPS, &root, opts),
         CheckSuite::ParserSelection => run_suite(parser_scorer::SELECTION, &root, opts),
+        CheckSuite::RecordPronunciation => run_suite(record_pronunciation::STEPS, &root, opts),
         CheckSuite::ProsodyCommitment => run_suite(prosody_commitment::STEPS, &root, opts),
         CheckSuite::ParserScorer => run_suite(parser_scorer::STEPS, &root, opts),
         CheckSuite::ParserScorerReproduce => run_suite(parser_scorer::REPRODUCE, &root, opts),
