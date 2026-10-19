@@ -22,6 +22,13 @@ formant path and compares its exact PCM and execution trace with those files.
 The manifest pins byte lengths and SHA-256 digests; its producer code revision
 is distinct from the later accepted Integration/publication revision.
 
+The website stages these same bytes on the [public evidence page](https://dancxjo.github.io/conduit/evidence/shared-speech-carrier/).
+Staging checks the manifest hashes, sizes, report bindings and WAV geometry. Its
+`publication.json` records the staged source separately from the retained
+producer; it is not an acceptance receipt. Native semantic re-admission and
+PCM/Plan/Sign replay remain the Rust conformance test's responsibility, and the
+normal publisher receipt establishes the accepted publication.
+
 The demo retains fresh `shared-carrier/you-would.native`, `you-would.wav` and
 `you-would.json`. It then starts another process to decode the retained Native
 components, execute inventory/correspondence/structure admission again, replay

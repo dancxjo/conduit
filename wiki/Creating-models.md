@@ -28,8 +28,10 @@ compact renderer labels cannot reconstruct it.
 Run `cargo +stable xtask check speech-ipa` and
 `cargo +stable xtask prove journey native-speech --output work/carried-speech` for the
 shared-carrier conformance and retained offline PCM specimen. See
-[Shared speech acoustic custody](../docs/design/speech-acoustic-custody.md)
-for evidence boundaries. The versioned training and inference lexical maps
+[Shared speech acoustic custody](https://github.com/dancxjo/conduit/blob/main/docs/design/speech-acoustic-custody.md)
+for evidence boundaries. The [retained multiword artifact](https://dancxjo.github.io/conduit/evidence/shared-speech-carrier/)
+includes the original packet, WAV and execution receipts. The versioned training
+and inference lexical maps
 share one implementation. Their synthetic checkpoint metadata has no trained
 weights, and the acoustic model terminal explicitly refuses with
 `NoAdmittedAcousticBack`. The formant specimen does not establish the proposed
