@@ -41,7 +41,11 @@ pub fn revision(value: &str) -> LanguageTextRevisionId {
     LanguageTextRevisionId::new(value.into()).unwrap()
 }
 pub fn envelope(sequence: u64, event: AsrRecognitionEvent) -> AsrRecognitionEnvelope {
-    let time = ListeningEventTime::new(sequence, ListeningClockOrigin::StreamStart).unwrap();
+    let time = ListeningEventTime::new(
+        i64::try_from(sequence).unwrap(),
+        ListeningClockOrigin::StreamStart,
+    )
+    .unwrap();
     AsrRecognitionEnvelope::new(
         event,
         ListeningEventId::new(format!("synthetic/event/{sequence}")).unwrap(),

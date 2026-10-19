@@ -5,7 +5,7 @@
 #[path = "common/asr_common_language.rs"]
 mod fixture;
 use conduit_core::revision::{RevisionDeltaRole, RevisionDomain};
-use conduit_language::{lexical::*, parser_revision::PreparedParserRevisionRebase, revision::*, *};
+use conduit_language::{lexical::*, revision::*, *};
 use conduit_plot::rust_binding::NativeRustBinding;
 use conduit_speech::{language_revision::*, semantic::*};
 use fixture::*;
