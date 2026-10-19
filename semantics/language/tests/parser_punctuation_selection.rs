@@ -153,7 +153,7 @@ fn motivating_causal_text_revision_lineage_is_valid() {
             Some(declared_stable_prefix(text, count, true, true)),
             LanguageTextFinality::Partial,
         );
-        conduit_language::text_revision::validate_text_revision(
+        conduit_language::validate_text_revision(
             previous.as_ref(),
             &source,
             0,
