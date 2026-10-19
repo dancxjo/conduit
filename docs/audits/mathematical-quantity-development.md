@@ -62,7 +62,10 @@ storage/work limits, and recovery. Point and difference roles remain distinct,
 including under later affine conversion. Tests compare against independent
 radian brackets and retain zero observed execution allocations and stable
 prepared capacity. Existing v1/v2 role, rational transport and wire-contract
-cases remain in the selected regression suite.
+cases remain in the selected regression suite. The checked-contract entrance is
+also exercised with an authored physical range: v1 retains its in/out-of-range
+outcomes, while both in-range rational v3 and symbolic v3 refuse under every
+existing profile. Codec validity alone cannot bypass a range or grant a profile.
 
 The first compile exposed a variable-shadowing mistake during extraction of the
 shared role guard. It was corrected before the regression suite, which explicitly

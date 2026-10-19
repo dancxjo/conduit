@@ -290,3 +290,57 @@ fn numeric_projection_keeps_affine_points_and_differences_distinct_without_shift
     });
     assert_eq!(allocations, 0);
 }
+
+#[test]
+fn proposed_coordinates_do_not_bypass_checked_physical_range_admission() {
+    let contract = CheckedValueContract::new(
+        kind_id(DISTANCE_INFO_ID),
+        MATHEMATICAL_QUANTITY_MAX_ENCODED_BYTES as u32,
+        vec![ValueConstraint::QuantityRange {
+            minimum: Some(Box::new(Quantity::parse_plot_literal("25cm").unwrap())),
+            maximum: Some(Box::new(Quantity::parse_plot_literal("50cm").unwrap())),
+            minimum_endpoint: IntervalEndpoint::Inclusive,
+            maximum_endpoint: IntervalEndpoint::Exclusive,
+        }],
+    )
+    .unwrap();
+    // Both an in-range rational and a symbolic/out-of-range coordinate are
+    // mathematical data, not a grant to use an unselected representation.
+    let rational = bytes(&MathematicalValue::rational(q(1, 3)));
+    let symbolic = bytes(&MathematicalValue::parse_literal("pi", &mut work()).unwrap());
+    let frames = [
+        frame(&rational, Unit::Meter, QuantityRole::Linear),
+        frame(&symbolic, Unit::Meter, QuantityRole::Linear),
+    ];
+    let legacy = Quantity::parse_plot_literal("30cm").unwrap().encode();
+    let outside = Quantity::parse_plot_literal("60cm").unwrap().encode();
+    let (_, allocations) = observe(|| {
+        for profile in [QuantityValueProfile::Decimal, QuantityValueProfile::Exact] {
+            assert!(contract
+                .validate_with_quantity_profile(&legacy, profile)
+                .is_ok());
+            assert_eq!(
+                contract.validate_with_quantity_profile(&outside, profile),
+                Err(QuantityProfileContractRefusal::Contract(
+                    ValueConstraintRefusal::QuantityRange
+                ))
+            );
+            for encoded in &frames {
+                assert_eq!(
+                    contract.validate_with_quantity_profile(encoded, profile),
+                    Err(QuantityProfileContractRefusal::Quantity(
+                        QuantityValueContractRefusal::UnsupportedRepresentation {
+                            profile,
+                            version: 3
+                        }
+                    ))
+                );
+                assert!(matches!(
+                    contract.validate(encoded),
+                    Err(ValueConstraintRefusal::MalformedPrimitive(_))
+                ));
+            }
+        }
+    });
+    assert_eq!(allocations, 0);
+}
