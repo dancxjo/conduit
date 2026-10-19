@@ -28,6 +28,7 @@ mod deadline_host;
 mod distance_frequency_back;
 mod enclosure_back;
 mod external_fore_feeder;
+mod execution_observations;
 mod external_websocket;
 mod external_websocket_host;
 mod facade;
@@ -3615,48 +3616,14 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     if !matches!(terminal_disposition, TerminalDisposition::Completed) {
         structured_face_host.retain_realized_effects();
     }
-    let (mut observations, face_ids) = structured_face_host.project(
-        advertisement,
-        fragment,
-        &active_play,
-        &lowered.identity,
-        &mut execution_identity,
-        next_sign_sequence,
-    )?;
-    if let Some(failure) = math_host.failure_observation(
-        advertisement,
-        fragment,
-        &active_play,
-        &mut execution_identity,
-        next_sign_sequence,
-    )? {
-        observations.push(failure);
-    }
-    let terminal_sign = bind_sign(
-        &advertisement.host_id,
-        &advertisement.boot_id,
-        Some(&active_play.active_play_id),
-        *next_sign_sequence,
-    );
-    *next_sign_sequence = next_sign_sequence
-        .checked_add(1)
-        .ok_or_else(|| "std sign sequence exhausted".to_string())?;
-    execution_identity
-        .bind_sign(&terminal_sign, None, None, None)
-        .map_err(|error| format!("bind std terminal sign: {error:?}"))?;
-    observations.push(Observation {
-        sign_id: terminal_sign.sign_id,
-        active_play_id: Some(active_play.active_play_id.clone()),
-        face_id: None,
-        host_id: advertisement.host_id.clone(),
-        boot_id: advertisement.boot_id.clone(),
-        plan_id: Some(fragment.plan_id.clone()),
-        placement_id: None,
-        connection_id: None,
-        kind: ObservationKind::PlanTerminal {
-            disposition: terminal_disposition,
+    let (observations, face_ids) = execution_observations::project(
+        execution_observations::ObservationContext {
+            advertisement, fragment, active_play: &active_play,
+            lowered: &lowered.identity, execution_identity: &mut execution_identity,
+            next_sign_sequence,
         },
-    });
+        structured_face_host, &math_host, terminal_disposition,
+    )?;
     let control_receipts = accepted_stop
         .map(|request_id| RunControlReceipt {
             request_id,
