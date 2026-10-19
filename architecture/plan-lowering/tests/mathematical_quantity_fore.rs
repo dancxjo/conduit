@@ -139,3 +139,193 @@ fn bounded_fore_uses_selected_profile_and_preserves_physical_range_refusals() {
     }
     assert!(port.validate_value(&wire(false)).is_ok());
 }
+
+#[path = "../../core/tests/common/numerical_allocation.rs"]
+mod allocation_probe;
+#[derive(Clone, Copy, Default)]
+struct Carry {
+    cancelled: bool,
+}
+const PORTS: usize = conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
+impl conduit_kernel::scheduler::StepBack<PORTS> for Carry {
+    fn step(
+        &mut self,
+        io: &mut conduit_kernel::scheduler::StepIo<PORTS>,
+        _: &conduit_kernel::scheduler::StepInputBytes<'_, PORTS>,
+    ) -> conduit_kernel::scheduler::StepOutcome {
+        use conduit_kernel::{scheduler::StepOutcome, PortId};
+        let Some(value) = io.input(PortId(0)) else {
+            return StepOutcome::Await;
+        };
+        if !io.output_ready(PortId(0)) {
+            return StepOutcome::Await;
+        }
+        io.consume(PortId(0)).unwrap();
+        io.send(PortId(0), value).unwrap();
+        StepOutcome::Progress
+    }
+    fn cancel(&mut self) {
+        self.cancelled = true;
+    }
+}
+#[test]
+fn negotiated_frame_crosses_production_kernel_pressure_delivery_and_cancellation_without_growth() {
+    use conduit_kernel::{
+        scheduler::{FixedScheduler, RemoteIngressOutcome, SchedulerError},
+        FixedRoutes, FixedSignLog, FixedValueStore, ValueStorage,
+    };
+    let plan = common::seal(fragment(QuantityValueProfile::Mathematical));
+    let lowered = lower_plan_fragment(&plan.fragments[0]).unwrap();
+    let input = lowered.fore_ports[0].clone();
+    let output = lowered.fore_ports[1].clone();
+    let mut routes = FixedRoutes::<1, 1>::new(PORTS as u16);
+    for route in &lowered.routes {
+        routes
+            .install(
+                route.source_node,
+                route.source_port,
+                route.range,
+                &route.targets,
+            )
+            .unwrap();
+    }
+    routes.seal().unwrap();
+    let mut scheduler = FixedScheduler::<_, _, _, 1, 2, PORTS, 2, 1, 1>::new(
+        lowered.node_specs.try_into().unwrap(),
+        [lowered.cords[0].spec, lowered.cords[1].spec],
+        routes,
+        [Carry::default()],
+        FixedValueStore::<3, MATHEMATICAL_QUANTITY_MAX_ENCODED_BYTES>::new(
+            (3 * MATHEMATICAL_QUANTITY_MAX_ENCODED_BYTES) as u32,
+        )
+        .unwrap(),
+        FixedSignLog::<128>::new_with_remote_storage(
+            (128 * core::mem::size_of::<conduit_kernel::KernelEvent>()) as u32,
+            128,
+            conduit_kernel::remote_sign_storage_bytes(128).unwrap(),
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    let source = wire(true);
+    let mut payload = vec![0; MATHEMATICAL_QUANTITY_MAX_ENCODED_BYTES];
+    let mut converter = PreparedMathematicalQuantityConversion::new(200000, 200_000_000).unwrap();
+    let receipt = converter
+        .execute(
+            &source,
+            Unit::Centimeter,
+            &mut payload,
+            &mut ExactNumericWork::new(200_000_000),
+        )
+        .unwrap();
+    payload.truncate(receipt.encoded_bytes());
+    let mut evaluator = PreparedMathematicalQuantityEnclosure::new(
+        MathematicalEnclosureRequirements {
+            maximum_width: ExactRational::ratio(
+                1,
+                100_000_000_000_000,
+                &mut ExactNumericWork::new(200_000_000),
+            )
+            .unwrap(),
+            maximum_leaf_width: ExactRational::ratio(
+                1,
+                100_000_000_000_000_000,
+                &mut ExactNumericWork::new(200_000_000),
+            )
+            .unwrap(),
+            maximum_constant_terms: 32,
+            maximum_root_refinements: 64,
+            maximum_scratch_payload_bytes: 131072,
+            maximum_retained_payload_bytes: 131072,
+        },
+        200_000_000,
+    )
+    .unwrap();
+    let retained = evaluator.retained_payload_bytes();
+    let (_, allocations) = allocation_probe::observe(|| {
+        input.validate_value(&payload).unwrap();
+        assert_eq!(
+            scheduler
+                .admit_remote_input(input.endpoint, input.cord, 0, &payload)
+                .unwrap(),
+            RemoteIngressOutcome::Accepted { sequence: 0 }
+        );
+        scheduler.step().unwrap();
+        let first = scheduler
+            .remote_egress_offer(output.endpoint, output.cord)
+            .unwrap()
+            .unwrap();
+        assert_eq!(
+            scheduler
+                .remote_egress_offer(output.endpoint, output.cord)
+                .unwrap()
+                .unwrap(),
+            first
+        );
+        assert_eq!(
+            scheduler
+                .admit_remote_input(input.endpoint, input.cord, 1, &payload)
+                .unwrap(),
+            RemoteIngressOutcome::Accepted { sequence: 1 }
+        );
+        scheduler.step().unwrap();
+        assert_eq!(
+            scheduler.cord_usage(input.cord).unwrap(),
+            (1, payload.len() as u32)
+        );
+        assert_eq!(
+            scheduler
+                .admit_remote_input(input.endpoint, input.cord, 2, &payload)
+                .unwrap(),
+            RemoteIngressOutcome::Full { sequence: 2 }
+        );
+        assert_eq!(scheduler.values().used_items(), 2);
+        for sequence in 0..2 {
+            let offer = scheduler
+                .remote_egress_offer(output.endpoint, output.cord)
+                .unwrap()
+                .unwrap();
+            assert_eq!(offer.sequence, sequence);
+            let bytes = scheduler.values().get(offer.value).unwrap();
+            output.validate_value(bytes).unwrap();
+            assert_eq!(bytes, payload);
+            let physical =
+                MathematicalQuantityView::decode(bytes, &mut ExactNumericWork::new(200_000_000))
+                    .unwrap();
+            assert_eq!(physical.unit(), Unit::Centimeter);
+            assert_eq!(physical.family(), Unit::Meter.family());
+            assert_eq!(physical.role(), QuantityRole::Linear);
+            let numerical = evaluator
+                .execute(bytes, &mut ExactNumericWork::new(200_000_000))
+                .unwrap();
+            assert_eq!(numerical.source().encoded(), payload);
+            assert_eq!(numerical.lower().unit(), Unit::Centimeter);
+            assert_ne!(numerical.width_coordinate(), ExactRational::ZERO);
+            scheduler
+                .remote_egress_accept(output.endpoint, output.cord, offer.sequence)
+                .unwrap();
+            scheduler
+                .remote_egress_delivered(output.endpoint, output.cord, offer.sequence)
+                .unwrap();
+            if sequence == 0 {
+                scheduler.step().unwrap();
+            }
+        }
+        assert_eq!(scheduler.values().used_items(), 0);
+        assert_eq!(
+            scheduler
+                .admit_remote_input(input.endpoint, input.cord, 2, &payload)
+                .unwrap(),
+            RemoteIngressOutcome::Accepted { sequence: 2 }
+        );
+        scheduler.cancel().unwrap();
+        assert!(scheduler.drivers()[0].cancelled);
+        assert_eq!(scheduler.values().used_items(), 0);
+        assert_eq!(
+            scheduler.admit_remote_input(input.endpoint, input.cord, 3, &payload),
+            Err(SchedulerError::Cancelled)
+        );
+        assert_eq!(evaluator.retained_payload_bytes(), retained);
+    });
+    assert_eq!(allocations, 0);
+}

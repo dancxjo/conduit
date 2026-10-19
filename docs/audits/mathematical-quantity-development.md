@@ -164,3 +164,14 @@ is bound in both the placement semantic law and the Fore. The initial fixture
 omitted that law and correctly failed verification; the corrected fixture and
 original diagnostic are retained. These are Plan/lowering boundary tests, not
 Source-authored mathematical Quantity or installed kernel execution proof.
+
+The sealed fixture also executes its Carry through the production fixed kernel.
+An exact converted Pi-centimetre frame crosses ingress and egress unchanged;
+post-delivery enclosure keeps its Unit/family/role. Output pressure leaves the
+next input queued, repeated offers retain identity, full ingress refuses growth,
+delivery frees values, and cancellation frees pending input and rejects late
+admission. Prepared conversion and enclosure precede warm execution; the guarded
+kernel/validation/enclosure path observes zero allocations. The first scheduler
+fixture declared only one slot for two cords and correctly refused `InvalidPlan`;
+its corrected two-slot declaration passes. This is real kernel transport with a
+named test Carry, not an installed Std mathematical Back or authored Source proof.
