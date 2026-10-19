@@ -91,6 +91,14 @@ impl<'a, 'owner, 'inventory> PreparedCompleteSpeechCarrier<'a, 'owner, 'inventor
         if lexical.tape().source().material() != correspondence.text() {
             return Err(ForeignLexical);
         }
+        if lexical.tape().tokens().as_slice().iter().any(|token| {
+            !matches!(
+                token.category(),
+                conduit_language::LinguisticTokenCategory::Word
+            )
+        }) {
+            return Err(UnsupportedWordRelation);
+        }
         let basis = commitment_request.beam().basis();
         if basis.text() != correspondence.text().identity()
             || basis.source_revision() != correspondence.text().revision()
