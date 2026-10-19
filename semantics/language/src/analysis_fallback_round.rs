@@ -84,7 +84,7 @@ impl<'a> AnalysisEpochOwner<'a> {
                 lexical: self.lexical().tape().clone(),
                 result,
                 next_identity,
-                observations,
+                observations: io::compact_observations(observations),
             }),
             Err(refusal) => Err(FallbackRoundPreparationFailure {
                 refusal,
@@ -113,7 +113,7 @@ impl<'a> AnalysisEpochOwner<'a> {
                 lexical: self.lexical().tape().clone(),
                 result,
                 next_identity,
-                observations,
+                observations: io::compact_observations(observations),
             }),
             Err(refusal) => Err(FallbackRoundPreparationFailure {
                 refusal,

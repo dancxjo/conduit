@@ -14,6 +14,26 @@ pub struct FallbackOperationObservation {
     pub input: Vec<u8>,
     pub output: Vec<u8>,
 }
+/// Remove caller/provider spare capacity only after successful admission. The
+/// retained buffers then have canonical payload lengths plus bounded operation
+/// names and observation metadata; this is not allocator/RSS accounting.
+/// Refused evidence is deliberately returned without normalization.
+pub(super) fn compact_observations(
+    mut observations: Vec<FallbackOperationObservation>,
+) -> Vec<FallbackOperationObservation> {
+    for frame in &mut observations {
+        frame.operation = core::mem::take(&mut frame.operation)
+            .into_boxed_str()
+            .into_string();
+        frame.input = core::mem::take(&mut frame.input)
+            .into_boxed_slice()
+            .into_vec();
+        frame.output = core::mem::take(&mut frame.output)
+            .into_boxed_slice()
+            .into_vec();
+    }
+    observations.into_boxed_slice().into_vec()
+}
 /// Supplies only actual output of the exact requested pure Source operation.
 /// Implementing this trait is not an installed-execution attestation.
 pub trait FallbackObservationProvider {
@@ -223,6 +243,56 @@ mod tests {
             foreign.finish(),
             Err(FallbackRoundRefusal::ExtraObservation)
         ));
+    }
+    #[test]
+    fn accepted_observations_drop_unbounded_spare_capacity_without_changing_bytes() {
+        let mut operation = String::with_capacity(8192);
+        operation.push_str("expected");
+        let mut input = Vec::with_capacity(65537);
+        input.extend_from_slice(&[1, 2]);
+        let mut output = Vec::with_capacity(131072);
+        output.extend_from_slice(&[3, 4, 5]);
+        let mut frames = Vec::with_capacity(MAXIMUM_ROUND_OBSERVATIONS + 1);
+        frames.push(FallbackOperationObservation {
+            operation,
+            input,
+            output,
+        });
+        let programs = empty_programs();
+        // Packet limits describe the same payload before/after compaction.
+        assert!(Replay::new(&programs, &frames).is_ok());
+        assert!(frames.capacity() > MAXIMUM_ROUND_OBSERVATIONS);
+        assert!(frames[0].input.capacity() > 65536);
+        let compact = compact_observations(frames);
+        assert_eq!(compact.capacity(), compact.len());
+        let frame = &compact[0];
+        assert_eq!(frame.operation, "expected");
+        assert_eq!(frame.input, [1, 2]);
+        assert_eq!(frame.output, [3, 4, 5]);
+        assert_eq!(frame.operation.capacity(), frame.operation.len());
+        assert_eq!(frame.input.capacity(), frame.input.len());
+        assert_eq!(frame.output.capacity(), frame.output.len());
+        assert!(Replay::new(&programs, &compact).is_ok());
+        let empty = compact_observations(Vec::with_capacity(1025));
+        assert_eq!(empty.capacity(), 0);
+    }
+    #[test]
+    fn refused_observation_evidence_keeps_original_payload_and_capacity() {
+        let mut output = Vec::with_capacity(131072);
+        output.extend_from_slice(&[7, 8]);
+        let frames = [FallbackOperationObservation {
+            operation: "expected".into(),
+            input: alloc::vec![0; 65537],
+            output,
+        }];
+        let capacity = frames[0].output.capacity();
+        assert!(matches!(
+            Replay::new(&empty_programs(), &frames),
+            Err(FallbackRoundRefusal::Bound)
+        ));
+        assert_eq!(frames[0].output, [7, 8]);
+        assert_eq!(frames[0].output.capacity(), capacity);
+        assert_eq!(frames[0].input.len(), 65537);
     }
     #[test]
     fn oversized_frame_refuses_before_program_lookup_or_replay() {
