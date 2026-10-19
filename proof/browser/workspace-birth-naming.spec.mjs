@@ -104,19 +104,43 @@ test("Workspace Birth suggestions expose diverse structures while remaining edit
   await birth.getByRole("button", { name: "Suggest another name" }).click();
   await expect(name).toHaveValue("TARGUS TARGUS");
 
-  await tradition.selectOption("kurmanji");
   const slot = birth.locator('[data-application-slot="birth-fields"]');
+  const traditionRevision = Number(await slot.getAttribute("data-application-revision"));
+  await tradition.selectOption("kurmanji");
+  await expect(tradition).toHaveValue("kurmanji");
+  expect(Number(await slot.getAttribute("data-application-revision"))).toBeGreaterThan(traditionRevision);
   const revision = Number(await slot.getAttribute("data-application-revision"));
   await birth.getByRole("button", { name: "Suggest another name" }).click();
   expect(Number(await slot.getAttribute("data-application-revision"))).toBeGreaterThan(revision);
 
-  await name.fill("Juniper Signalhouse");
+  const birthAction = birth.getByRole("button", { name: "Birth Body", exact: true });
+  const review = birth.locator('[data-application-key="birth-review"]');
+  await expect(name).toHaveAccessibleName("Friendly Body name");
+  await expect(tradition).toHaveAccessibleName("Naming tradition");
+  const emptyRevision = Number(await slot.getAttribute("data-application-revision"));
+  await name.fill("");
+  await expect(name).toHaveValue("");
+  expect(Number(await slot.getAttribute("data-application-revision"))).toBeGreaterThan(emptyRevision);
+  // BirthDraft::selection refuses an empty name with InvalidName; the
+  // Source view formats that exact readiness result and withholds Birth.
+  await expect(review).toContainText("Name: (empty).");
+  await expect(review).toContainText("Birth: unavailable (InvalidName).");
+  await expect(birthAction).toBeDisabled();
+
+  const unicodeName = "Éléonore 雪";
+  const namedRevision = Number(await slot.getAttribute("data-application-revision"));
+  await name.fill(unicodeName);
+  await expect(name).toHaveValue(unicodeName);
+  expect(Number(await slot.getAttribute("data-application-revision"))).toBeGreaterThan(namedRevision);
+  await expect(review).toContainText(`Name: ${unicodeName}.`);
+  await expect(review).toContainText("Birth: available.");
+  await expect(birthAction).toBeEnabled();
   await birth.getByRole("button", { name: "Review workload", exact: true }).click();
-  await birth.getByRole("button", { name: "Birth Body", exact: true }).click();
-  await expect(page.locator("[data-body-name]")).toHaveText("Juniper Signalhouse");
+  await birthAction.click();
+  await expect(page.locator("[data-body-name]")).toHaveText(unicodeName);
   await expect(page.locator("[data-play-state]")).toHaveText("Lulled");
   const current = await page.evaluate(() => globalThis.__conduitWorkspace.current());
-  expect(current.friendly_name).toBe("Juniper Signalhouse");
+  expect(current.friendly_name).toBe(unicodeName);
   expect(current.body_id).toMatch(/^[0-9a-f]{64}$/u);
-  expect(current.body_id).not.toBe("Juniper Signalhouse");
+  expect(current.body_id).not.toBe(unicodeName);
 });
