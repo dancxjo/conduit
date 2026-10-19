@@ -287,3 +287,97 @@ fn initialized_consumer_recomputes_request_bounds_and_exact_selected_identity() 
         assert!(budget(&changed).is_err());
     }
 }
+
+#[test]
+fn composed_symbolic_packet_is_independently_verified_after_actual_kernel_delivery() {
+    let mut builder = MathematicalValueBuilder::new();
+    let mut w = work();
+    let two = builder
+        .insert(MathematicalNode::Rational(q(2, 1)), &mut w)
+        .unwrap();
+    let root = builder
+        .insert(MathematicalNode::PrincipalSquareRoot(two), &mut w)
+        .unwrap();
+    let factor = builder
+        .insert(MathematicalNode::Rational(q(1, 180)), &mut w)
+        .unwrap();
+    let pi = builder.insert(MathematicalNode::Pi, &mut w).unwrap();
+    let coordinate = builder
+        .insert(MathematicalNode::Multiply(factor, pi), &mut w)
+        .unwrap();
+    let sum = builder
+        .insert(MathematicalNode::Add(root, coordinate), &mut w)
+        .unwrap();
+    let three = builder
+        .insert(MathematicalNode::Rational(q(3, 1)), &mut w)
+        .unwrap();
+    let product = builder
+        .insert(MathematicalNode::Multiply(sum, three), &mut w)
+        .unwrap();
+    let root = builder
+        .insert(MathematicalNode::Divide(product, two), &mut w)
+        .unwrap();
+    let value = builder.finish(root, &mut w).unwrap();
+    let mut input = vec![0; MATHEMATICAL_VALUE_MAX_ENCODED_BYTES];
+    let n = value.encode(&mut input).unwrap();
+    input.truncate(n);
+    let (mut host, plan) = prepared("0.00000000000000001");
+    let mut output = Outputs(Vec::with_capacity(1));
+    let report = host
+        .run_external_plot_to(
+            plan.fragments[0].clone(),
+            &[ExternalForeInput {
+                front_port_id: "value".into(),
+                track: ConnectionTrack::Payload,
+                bytes: input.clone(),
+            }],
+            &mut output,
+            &mut Vec::new(),
+            &mut NoTimer,
+        )
+        .unwrap();
+    assert_eq!(output.0.len(), 1);
+    let placement = plan.fragments[0]
+        .placements
+        .iter()
+        .find(|p| p.kind_id.as_str() == MATHEMATICAL_ENCLOSE_KIND)
+        .unwrap();
+    let requirements = mathematical_enclose_requirements(&placement.configuration).unwrap();
+    let mut verifier = PreparedMathematicalEnclosureVerifier::new(
+        &mathematical_enclosure_type(),
+        requirements,
+        1_000_000_000,
+        131072,
+    )
+    .unwrap();
+    let mut reader_work = ExactNumericWork::new(1_000_000_000);
+    let guard = crate::allocation_probe::begin();
+    let checked = verifier
+        .verify(
+            &output.0[0],
+            requirements.maximum_width,
+            Some(&input),
+            &mut reader_work,
+        )
+        .unwrap();
+    assert_eq!(checked.source().encoded(), input);
+    assert_ne!(checked.width(), ExactRational::ZERO);
+    assert!(matches!(
+        verifier.verify(
+            &output.0[0],
+            ExactRational::ZERO,
+            Some(&input),
+            &mut ExactNumericWork::new(1_000_000_000)
+        ),
+        Err(MathematicalEnclosureEvidenceRefusal::InsufficientTolerance)
+    ));
+    assert_eq!(guard.finish(), 0);
+    let kernel = report.kernel.as_ref().unwrap();
+    assert_eq!(kernel.post_play_start_allocations, 0);
+    assert_eq!(
+        kernel.value_allocation_capacity_before,
+        kernel.value_allocation_capacity_after
+    );
+    println!("COMPOSED_SYMBOLIC_DELIVERY plan={} receiver_work={} post_start_allocations={} same_value_capacity=true",
+        plan.plan_id.as_str(), reader_work.spent(), kernel.post_play_start_allocations);
+}

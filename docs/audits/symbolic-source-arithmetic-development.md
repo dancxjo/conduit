@@ -23,7 +23,7 @@ profile include the builder when such a node is present; unrelated unsupported
 shapes still cannot acquire that profile. This does not establish a complete new
 Host memory, timing or precision-planning law.
 
-Symbolic failures retain separate pure-expression details: division by zero 37,
+New graph-construction failures retain separate pure-expression details: division by zero 37,
 unsupported domain proof 38, work limit 39, node/depth/extent/output limit 40,
 and other mathematical encoding/construction failure 41. Existing causes,
 including rational arithmetic detail 4 and root cases 33–36, remain unchanged.
@@ -55,9 +55,14 @@ An authored CLI fixture carries sqrt(2) through a separate exact shift Plot
 adding `math/radians(1°)` and a separate scaling Plot multiplying by 3 and
 dividing by 2, then feeds the selected `math/enclose` Back. Inspection compares
 the complete retained exact source and requested width before `face/text`.
-Zero-width and unsupported-denominator variants require failure without success
-output. These authored cases become execution evidence only once their actual
-CLI tests pass; see the local source-pinned capture for current status.
+The actual CLI replay passes three tests and seven invocations: three successful
+symbolic sources, their three zero-width refusals, and an unsupported-denominator
+refusal. The composed Plan contains exactly three mathematical-input/output
+expression stages, each selecting the ordinary installed Std expression Back
+with its original authored Source span. Zero-width refusal is `InvalidInput`
+detail 4; the expression Host Call refusal is `HostCallFailed` detail 38. Neither
+emits the success output. The local capture retains exact Source/Plan identities,
+logs and hash/roundtrip-verified executables.
 
 This is private, unadmitted implementation. It does not establish symbolic
 Quantity transport, physical Unit/family/role custody, two independent physical
