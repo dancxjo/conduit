@@ -33,7 +33,11 @@ impl NativeFaceMask {
         y: u32,
         display: &mut impl PixelTarget,
     ) -> Result<(), NativeFaceMaskError> {
-        let show = self.show().ok_or(NativeFaceMaskError::Face)?.clone();
+        let show = self
+            .session
+            .as_ref()
+            .ok_or(NativeFaceMaskError::Face)?
+            .show();
         let route = self
             .compositor
             .route_pointer(x, y, false)
