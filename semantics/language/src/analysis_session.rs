@@ -150,6 +150,9 @@ impl<'a> AnalysisSession<'a> {
     pub fn frontiers(&self) -> RevisionFrontiers<TokenFrontier> {
         self.journal.frontiers()
     }
+    pub(crate) fn is_closed(&self) -> bool {
+        self.journal.is_closed()
+    }
     pub fn history(
         &self,
     ) -> impl DoubleEndedIterator<Item = &'a RevisionEvent<'a, DependencyRevisions<'a>>> + '_ {

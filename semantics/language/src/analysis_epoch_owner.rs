@@ -17,6 +17,7 @@ use conduit_plot::{
 };
 #[derive(Debug)]
 pub enum AnalysisEpochRefusal {
+    Closed,
     Revision(RevisionRefusal),
     Session(AnalysisSessionRefusal),
     Initialization(AnalysisInitializationRefusal),
@@ -277,6 +278,9 @@ impl<'a> AnalysisEpochOwner<'a> {
         AnalysisEpochRefusal,
     > {
         use AnalysisEpochRefusal::*;
+        if self.session.is_closed() {
+            return Err(Closed);
+        }
         let generation = self.generation.checked_add(1).ok_or(Generation)?;
         let previous_context = self.session.context();
         if context.epoch == previous_context.epoch

@@ -186,6 +186,13 @@ fn foreign_observation_refuses_without_publishing_owner() {
 }
 #[test]
 fn consuming_zero_prefix_epoch_handoff_retains_every_slot_and_archives_history_only() {
+    check_handoff(false);
+}
+#[test]
+fn closed_stream_cannot_reopen_through_epoch_handoff() {
+    check_handoff(true);
+}
+fn check_handoff(close: bool) {
     use conduit_language::parser_rebase_replay::*;
     let lexical = lexical();
     let request = request(&lexical);
@@ -277,8 +284,38 @@ fn consuming_zero_prefix_epoch_handoff_retains_every_slot_and_archives_history_o
     assert_eq!(failure.owner.beam(), &previous);
     assert_eq!(failure.owner.generation(), 0);
     assert_eq!(failure.owner.history().count(), 0);
-    let owner = failure.owner;
+    let mut owner = failure.owner;
     let receipts = failure.replays;
+    let closure_evidence = [RevisionEvidence {
+        source: text("fixture"),
+        generation: text("1"),
+    }];
+    let closed = RevisionEvent::new(
+        &old_domain,
+        RevisionReference {
+            context,
+            sequence: 1,
+            event: text("closed"),
+        },
+        &closure_evidence,
+        RevisionChange::Closed,
+    )
+    .unwrap();
+    if close {
+        owner.append_event(&closed, false, false).unwrap();
+        let before = owner.frontiers();
+        let failure = match owner.handoff(receipts, &next_domain, next_context, limits) {
+            Err(failure) => failure,
+            Ok(_) => panic!("closed stream reopened"),
+        };
+        assert!(matches!(failure.refusal, AnalysisEpochRefusal::Closed));
+        assert_eq!(failure.owner.beam(), &previous);
+        assert_eq!(failure.owner.frontiers(), before);
+        assert_eq!(failure.owner.generation(), 1);
+        assert_eq!(failure.owner.history().count(), 1);
+        assert_eq!(failure.replays.len(), 4);
+        return;
+    }
     let (next, archive) = match owner.handoff(receipts, &next_domain, next_context, limits) {
         Ok(value) => value,
         Err(_) => panic!("exact handoff refused"),
