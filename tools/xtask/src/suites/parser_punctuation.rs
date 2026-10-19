@@ -42,3 +42,24 @@ pub const RETAINED: &[Step] = &[Step::new(
         "--test-threads=1",
     ],
 )];
+
+pub const CAUSAL: &[Step] = &[Step::new(
+    "parser-punctuation.causal",
+    "Check only the previously unexecuted causal greeting track",
+    "cargo",
+    &[
+        "test",
+        "--locked",
+        "-p",
+        "conduit-language",
+        "--features",
+        "parser-model",
+        "--test",
+        "parser_punctuation_selection",
+        "punctuation_v3_motivating_greeting_actual_source_causal_only",
+        "--",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1",
+    ],
+)];

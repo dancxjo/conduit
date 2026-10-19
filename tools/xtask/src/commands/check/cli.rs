@@ -76,6 +76,8 @@ pub enum CheckSuite {
     ParserSelection,
     /// Evaluate pre-final greeting commitment with the opt-in punctuation candidate.
     ParserPunctuationGreeting,
+    /// Evaluate only the causal punctuation greeting track.
+    ParserPunctuationCausal,
     /// Evaluate retained DEV/TEST and remaining reserved punctuation cases.
     ParserPunctuationEvaluation,
     /// Check committed dependency/prosody correlation and bounded revision safety.

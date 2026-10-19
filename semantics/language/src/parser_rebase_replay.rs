@@ -1,5 +1,5 @@
 //! Replay of one existing checked rebase expression, not installed currentness.
-use crate::{parser_revision::*, *};
+use crate::*;
 use alloc::vec::Vec;
 use conduit_plot::{
     rust_binding::{NativeBindingRefusal, NativeRustBinding},

@@ -193,7 +193,7 @@ impl PreparedRecordPronunciationProfile {
         }
         let dictionary = text(field(&value, "dictionary_ipa")?)?;
         let provenance = SpeechEvidenceProvenance::new(
-            "Cambridge UK dictionary record; explicit broad-to-phone realization@1".into(),
+            "Cambridge UK record; broad-to-phone realization@1".into(),
             SpeechEvidenceSource::Manual,
             Some("1".into()),
         )

@@ -129,6 +129,41 @@ fn relations(state: &LanguageParserState) -> [String; 4] {
     ]
     .map(|r| format!("{:?}", r.base()).to_ascii_lowercase())
 }
+fn declared_stable_prefix(text: &str, count: usize, exact: bool, causal: bool) -> u32 {
+    if exact && causal {
+        [5, 6, 13, 14][count - 1]
+    } else {
+        text.chars().count() as u32
+    }
+}
+#[test]
+fn motivating_causal_text_revision_lineage_is_valid() {
+    let mut previous = None;
+    for (i, text) in ["Hello ", "Hello, ", "Hello, Travis ", "Hello, Travis."]
+        .iter()
+        .enumerate()
+    {
+        let count = i + 1;
+        let source = revision_with_text(
+            text,
+            "causal-lineage",
+            &format!("lineage/{count}"),
+            i as u64,
+            previous.as_ref(),
+            Some(declared_stable_prefix(text, count, true, true)),
+            LanguageTextFinality::Partial,
+        );
+        conduit_language::text_revision::validate_text_revision(
+            previous.as_ref(),
+            &source,
+            0,
+            4096,
+        )
+        .unwrap();
+        assert_eq!(*source.stable_prefix(), Some([5, 6, 13, 14][i]));
+        previous = Some(source);
+    }
+}
 fn evaluate(
     decoder: &mut parser_selection_driver::Decoder,
     row: &Value,
@@ -179,7 +214,12 @@ fn evaluate(
             &format!("{text_id}/source/{count}"),
             if causal { count as u64 - 1 } else { 0 },
             previous.as_ref().map(|p| &p.0),
-            Some(text.chars().count() as u32),
+            Some(declared_stable_prefix(
+                &text,
+                count,
+                exact_motivator,
+                causal,
+            )),
             LanguageTextFinality::Partial,
         );
         let analysis = format!("{text_id}/analysis/{count}");
@@ -317,14 +357,18 @@ fn evaluate_retaining_failure(
 }
 #[test]
 fn punctuation_v3_motivating_greeting_actual_source_two_tracks() {
-    run_candidate(true);
+    run_candidate(true, false);
 }
 #[test]
 fn punctuation_v3_retained_dev_test_and_other_reserved_actual_source() {
-    run_candidate(false);
+    run_candidate(false, false);
+}
+#[test]
+fn punctuation_v3_motivating_greeting_actual_source_causal_only() {
+    run_candidate(true, true);
 }
 // Explicit named entrances partition cases; no environment case selection.
-fn run_candidate(focused: bool) {
+fn run_candidate(focused: bool, causal_only: bool) {
     let (artifact, signature) = punctuation_parser_scorer_descriptor();
     let model = parser_model_kernel::ModelDriver::with_descriptor(
         artifact,
@@ -371,7 +415,8 @@ fn run_candidate(focused: bool) {
         if exact_motivator != focused {
             continue;
         }
-        for causal in [false, true] {
+        let tracks: &[bool] = if causal_only { &[true] } else { &[false, true] };
+        for &causal in tracks {
             rows.push(evaluate_retaining_failure(
                 &mut decoder,
                 row,
@@ -424,11 +469,13 @@ fn run_candidate(focused: bool) {
         count[7] += u64::from(!row["error"].is_null());
     }
     let numerical=decoder.model.receipts().iter().map(|r|json!({"invocation":r.invocation,"model_content":r.model_content,"input_digest":r.input,"output_digest":r.output,"work_units":r.work_units})).collect::<Vec<_>>();
-    let report = json!({"scope":if focused {"motivating greeting only; two tracks; four exact revisions including pre-final space and later period"} else {"all retained DEV/TEST and other reserved cases; motivating period case covered separately"},"profile":"explicit unaccepted punctuation candidate; fresh-per-text-revision scoring + exact coalescing; no default replacement","inference_profile":{"score_reset":"zero for every retained seed at each new text revision; only current continuations scored","rebase":"every active state; exact committed lexical choices retained; only exact state+choice duplicates coalesced after existing Source rank","commit":"causal track waits until actual contiguous stable prefix covers named pending consumer; no early root/comma locking","quality_track":"independent prefixes without commitment; no committed-state conditioning"},"manifest":manifest,"prepare_ns":prepare_ns,"rows":rows,"partition_totals_columns":["sentences","tokens","uas_correct","las_correct","vocative_tp","vocative_fp","vocative_fn","errors"],"partition_totals":totals,"numerical_receipts":numerical,"model_invocations":decoder.model.invocations(),"committed_model_receipts":decoder.model.receipts().len(),"motivator_partial_commit_success":partial_success,"limitations":["four-token finite profile","DEV/TEST and motivator previously observed; no newly blind accuracy claim","reserved outputs must not be used to retune this candidate","same Source legal-action/ranking/four-survivor consensus policy, no pruning changes","test-only current-beam orchestration, not an installed live editor or acoustic playback","negative conditioned TEST regression retained in training manifest"]});
+    let report = json!({"scope":if causal_only {"motivating greeting causal track only; independent negative evidence retained separately, not rerun"} else if focused {"motivating greeting only; two tracks; four exact revisions including pre-final space and later period"} else {"all retained DEV/TEST and other reserved cases; motivating period case covered separately"},"profile":"explicit unaccepted punctuation candidate; fresh-per-text-revision scoring + exact coalescing; no default replacement","inference_profile":{"score_reset":"zero for every retained seed at each new text revision; only current continuations scored","rebase":"every active state; exact committed lexical choices retained; only exact state+choice duplicates coalesced after existing Source rank","commit":"causal track waits until actual contiguous stable prefix covers named pending consumer; no early root/comma locking","quality_track":"independent prefixes without commitment; no committed-state conditioning"},"manifest":manifest,"prepare_ns":prepare_ns,"rows":rows,"partition_totals_columns":["sentences","tokens","uas_correct","las_correct","vocative_tp","vocative_fp","vocative_fn","errors"],"partition_totals":totals,"numerical_receipts":numerical,"model_invocations":decoder.model.invocations(),"committed_model_receipts":decoder.model.receipts().len(),"motivator_partial_commit_success":partial_success,"limitations":["four-token finite profile","DEV/TEST and motivator previously observed; no newly blind accuracy claim","reserved outputs must not be used to retune this candidate","same Source legal-action/ranking/four-survivor consensus policy, no pruning changes","test-only current-beam orchestration, not an installed live editor or acoustic playback","negative conditioned TEST regression retained in training manifest"]});
     let path = std::env::var_os("CONDUIT_PARSER_PUNCTUATION_V3_REPORT")
         .map(std::path::PathBuf::from)
         .unwrap_or_else(|| {
-            std::env::temp_dir().join(if focused {
+            std::env::temp_dir().join(if causal_only {
+                "conduit-parser-punctuation-v3-causal-report.json"
+            } else if focused {
                 "conduit-parser-punctuation-v3-greeting-report.json"
             } else {
                 "conduit-parser-punctuation-v3-retained-report.json"
