@@ -281,6 +281,11 @@ impl Ps2Input {
         self.keyboard.accept(byte)
     }
 
+    /// Take already decoded input without reading or waiting on the controller.
+    pub fn take_pending_pointer(&mut self) -> Option<NormalizedPointerSample> {
+        self.pending_pointer.take()
+    }
+
     pub fn receive_pointer(&mut self) -> Result<NormalizedPointerSample, Ps2Error> {
         if let Some(sample) = self.pending_pointer.take() {
             return Ok(sample);
