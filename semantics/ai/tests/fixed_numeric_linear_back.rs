@@ -12,6 +12,8 @@ use conduit_kernel::{
 };
 use conduit_plot::rust_binding::BoundedSequence;
 use std::{cell::Cell, rc::Rc};
+#[path = "fixed_numeric_reuse/linear.rs"]
+mod reuse;
 const PORTS: usize = conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 fn fixture(name: &str, ty: &StructuredInfoType, source: bool) -> CapabilityOffer {
     let port = PortDescriptor {
@@ -237,10 +239,12 @@ fn ordinary_linear_plan_reads_exact_resource_without_bias() {
     )
     .unwrap();
     let mut values = HostedValueStore::new(8, 16384, 8 * 16384).unwrap();
-    let mut input =
+    let mut input_codec =
         FixedF32VectorCodec::<80>::prepare(&fixed_numeric_type("NumericF32Vector80").unwrap())
             .unwrap();
-    let input = values.store(input.encode(&[2.; 80]).unwrap()).unwrap();
+    let input = values
+        .store(input_codec.encode(&[2.; 80]).unwrap())
+        .unwrap();
     let weights = values
         .store(
             FixedTensorPortBinding::prepare(
@@ -251,6 +255,7 @@ fn ordinary_linear_plan_reads_exact_resource_without_bias() {
             .encoded(),
         )
         .unwrap();
+    values.retain(weights).unwrap(); // one resident pin survives the first value
     let expected =
         FixedF32VectorCodec::<1>::prepare(&fixed_numeric_type("NumericF32Vector1").unwrap())
             .unwrap()
@@ -312,7 +317,7 @@ fn ordinary_linear_plan_reads_exact_resource_without_bias() {
             .unwrap();
     }
     routes.seal().unwrap();
-    let mut scheduler = FixedScheduler::<_, _, _, 4, 3, PORTS, 3, 4, 3>::new(
+    let scheduler = FixedScheduler::<_, _, _, 4, 3, PORTS, 3, 4, 3>::new(
         lowered.node_specs.try_into().unwrap(),
         lowered
             .cords
@@ -329,11 +334,90 @@ fn ordinary_linear_plan_reads_exact_resource_without_bias() {
         HostedSignLog::new(1024, 1024 * core::mem::size_of::<KernelEvent>() as u32).unwrap(),
     )
     .unwrap();
+    use conduit_kernel::scheduler::{prepared_session::PreparedKernelSession, SchedulerStatus};
+    let mut session = PreparedKernelSession::new(Box::new(scheduler))
+        .unwrap_or_else(|_| panic!("fresh numeric session"));
+    let original_owner = session
+        .kernel()
+        .drivers()
+        .iter()
+        .find_map(|driver| {
+            if let Driver::Linear(back) = driver {
+                Some(&**back as *const _ as usize)
+            } else {
+                None
+            }
+        })
+        .unwrap();
     for _ in 0..64 {
-        scheduler.step().unwrap();
-        if seen.get() {
+        if session.step().unwrap() == SchedulerStatus::Drained {
             break;
         }
     }
     assert!(seen.get());
+    assert_eq!(
+        session.kernel().values().get(weights).unwrap(),
+        FixedTensorPortBinding::prepare(
+            &fixed_numeric_type("NumericF32MatrixRef80x1").unwrap(),
+            &tensor
+        )
+        .unwrap()
+        .encoded()
+    );
+    let next_input = session
+        .store_host_value(input_codec.encode(&[3.; 80]).unwrap())
+        .unwrap();
+    session.retain_between_invocations(weights).unwrap();
+    let expected =
+        FixedF32VectorCodec::<1>::prepare(&fixed_numeric_type("NumericF32Vector1").unwrap())
+            .unwrap()
+            .encode(&[120.])
+            .unwrap()
+            .to_vec();
+    let mut expected = Some(expected);
+    let next: Vec<_> = fragment
+        .placements
+        .iter()
+        .map(|gear| match gear.kind_id.as_str() {
+            "numeric-test/input" => reuse::Next::Source(next_input),
+            "numeric-test/weights" => reuse::Next::Source(weights),
+            "numeric-test/sink" => reuse::Next::Sink(expected.take().unwrap()),
+            _ => reuse::Next::Linear,
+        })
+        .collect();
+    let old = session
+        .begin_next(
+            next.try_into().unwrap_or_else(|_| panic!("capacity")),
+            HostedSignLog::new(1024, 1024 * core::mem::size_of::<KernelEvent>() as u32).unwrap(),
+        )
+        .unwrap_or_else(|_| panic!("successful numeric value rearm"));
+    assert!(!seen.get());
+    for _ in 0..64 {
+        if session.step().unwrap() == SchedulerStatus::Drained {
+            break;
+        }
+    }
+    assert!(
+        seen.get(),
+        "the retained owner must compute the changed input's 120.0 result"
+    );
+    assert_eq!(
+        old.signs.events().collect::<Vec<_>>(),
+        session.kernel().signs().events().collect::<Vec<_>>()
+    );
+    assert_eq!(
+        session
+            .kernel()
+            .drivers()
+            .iter()
+            .find_map(|driver| {
+                if let Driver::Linear(back) = driver {
+                    Some(&**back as *const _ as usize)
+                } else {
+                    None
+                }
+            })
+            .unwrap(),
+        original_owner
+    );
 }
