@@ -1,6 +1,8 @@
 //! Paired full-frame preparation lifetime observations; one production kernel.
 use super::{allocation, artifact, frame, plan, runtime, shared, state, timing, RefCell};
 use serde_json::json;
+#[path = "prepared_conformance.rs"]
+mod conformance;
 use std::{path::Path, time::Instant};
 fn observe(
     run: impl FnOnce(&mut dyn FnMut(), &mut dyn FnMut()) -> Option<runtime::EncodedResultAndTiming>,
@@ -82,7 +84,16 @@ fn retain_frame(
         "expression_calls":result.work.expression_calls,"signs":result.signs.len(),"signs_file":signs_file,"signs_sha256":artifact::digest(signs.as_bytes()),
         "outputs_file":values_file,"outputs_sha256":artifact::digest(&std::fs::read(output.join(&values_file))?),
         "owner_preparation_ns":timing::ns(result.preparation),"kernel_play_ns":timing::ns(result.execution),
-        "canonical_intermediates_avoided":0,"scheduler_inline_bytes":result.work.scheduler_bytes}))?;
+        "canonical_intermediates_avoided":result.work.compact_values,
+        "canonical_bytes_avoided":result.work.compact_logical_bytes,
+        "canonical_values":result.work.canonical_values,"canonical_bytes":result.work.canonical_bytes,
+        "native_values":result.work.compact_values,"native_bytes":result.work.compact_bytes,
+        "logical_invocations":result.work.logical_invocations,"physical_decisions":result.work.physical_decisions,
+        "local_expression_calls":result.work.local_expression_calls,
+        "kernel_step_ns":timing::ns(result.work.kernel_steps),
+        "local_expression_ns_included_in_kernel":timing::ns(result.work.local_expressions),
+        "hosted_expression_ns_outside_kernel":timing::ns(result.work.expressions),
+        "compact_binding_bytes":result.work.compact_binding_bytes,"scheduler_inline_bytes":result.work.scheduler_bytes}))?;
     Ok(())
 }
 pub(super) fn run(
@@ -92,9 +103,11 @@ pub(super) fn run(
     resources: &shared::Resources,
     oracle: &frame::Oracle,
     raw: &mut artifact::Raw,
+    compact_local: bool,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let mut fresh_walls = Vec::new();
     let mut retained_walls = Vec::new();
+    let mut previous_sign_count = 0;
     for repetition in 0..repetitions {
         let (plan, cold) =
             timing::measure(|| plan::prepare_entry_plan(schema, &plan::source(), frame::ENTRY));
@@ -104,6 +117,26 @@ pub(super) fn run(
             &plan,
         )?;
         let plan_sha = artifact::digest(&serde_json::to_vec(&plan)?);
+        let candidate = if compact_local {
+            let (candidate, cold) = timing::measure(|| {
+                plan::prepare_entry_plan_profile(
+                    schema,
+                    &plan::source(),
+                    frame::ENTRY,
+                    plan::NumericProfile::CompactDagLocalExpressions,
+                )
+            });
+            raw.row(&json!({"phase":"candidate-check-expand-plan","repetition":repetition,"metrics":cold}))?;
+            conformance::same_source(&plan, &candidate);
+            candidate
+        } else {
+            plan.clone()
+        };
+        artifact::json(
+            &output.join(format!("candidate-plan-repetition-{repetition}.json")),
+            &candidate,
+        )?;
+        let candidate_sha = artifact::digest(&serde_json::to_vec(&candidate)?);
         let mut state = oracle.state.clone();
         let mut history = oracle.history;
         let mut previous = oracle.period;
@@ -121,7 +154,7 @@ pub(super) fn run(
         raw.row(&json!({"phase":"initial-input-encoding","repetition":repetition,"metrics":initial_input}))?;
         let (mut retained, preparation) = timing::measure(|| {
             runtime::session::PreparedTrajectory::new(
-                plan.clone(),
+                candidate,
                 resources,
                 initial,
                 oracle.cases.len(),
@@ -152,8 +185,8 @@ pub(super) fn run(
                 );
                 let (old, rearm) =
                     timing::measure(|| retained.begin_next(next, input.clone()).unwrap());
-                assert_eq!(old.signs.events().count(), 6976);
-                raw.row(&json!({"phase":"prepared-rearm","repetition":repetition,"frame":index,"metrics":rearm,"previous_signs_transferred":6976}))?;
+                assert_eq!(old.signs.events().count(), previous_sign_count);
+                raw.row(&json!({"phase":"prepared-rearm","repetition":repetition,"frame":index,"metrics":rearm,"previous_signs_transferred":previous_sign_count}))?;
                 // Old evidence remains owned by this returned log until this
                 // explicit boundary drops it; full raw events are already retained.
                 let ((), release) = timing::measure(|| drop(old));
@@ -184,41 +217,45 @@ pub(super) fn run(
                 (f, r)
             };
             assert_eq!(actual.outputs, fresh.outputs, "paired frame {index}");
-            assert_eq!(actual.signs.len(), fresh.signs.len());
-            for (a, b) in actual.signs.iter().zip(&fresh.signs) {
-                let mut expected = *b;
-                expected.request = expected
-                    .request
-                    .map(|r| conduit_kernel::RequestId(r.0 + index as u32));
-                assert_eq!(*a, expected);
-            }
+            conformance::compare(&fresh, &actual, index, compact_local);
+            previous_sign_count = actual.signs.len();
             assert_eq!(retained.kernel_address(), address);
             fresh_walls.push(fresh_metrics["whole_call_wall_ns"].as_u64().unwrap());
             retained_walls.push(retained_metrics["whole_call_wall_ns"].as_u64().unwrap());
-            retain_frame(
-                output,
-                raw,
-                FrameKey {
-                    repetition,
-                    index,
-                    profile: "fresh",
-                    plan_sha: &plan_sha,
-                },
-                &fresh,
-                fresh_metrics,
-            )?;
-            retain_frame(
-                output,
-                raw,
-                FrameKey {
-                    repetition,
-                    index,
-                    profile: "prepared",
-                    plan_sha: &plan_sha,
-                },
-                &actual,
-                retained_metrics,
-            )?;
+            let (inspection, inspection_metrics) =
+                timing::measure(|| -> Result<(), Box<dyn std::error::Error>> {
+                    retain_frame(
+                        output,
+                        raw,
+                        FrameKey {
+                            repetition,
+                            index,
+                            profile: "fresh",
+                            plan_sha: &plan_sha,
+                        },
+                        &fresh,
+                        fresh_metrics,
+                    )?;
+                    retain_frame(
+                        output,
+                        raw,
+                        FrameKey {
+                            repetition,
+                            index,
+                            profile: if compact_local {
+                                "prepared-compact-local"
+                            } else {
+                                "prepared"
+                            },
+                            plan_sha: &candidate_sha,
+                        },
+                        &actual,
+                        retained_metrics,
+                    )?;
+                    Ok(())
+                });
+            inspection?;
+            raw.row(&json!({"phase":"paired-evidence-reconstruction-and-write","repetition":repetition,"frame":index,"metrics":inspection_metrics}))?;
             for (a, b) in frame::pcm(&actual).iter().zip(case.pcm) {
                 pcm_error = pcm_error.max((a - b).abs());
             }
@@ -245,8 +282,10 @@ pub(super) fn run(
             for (a, b) in history.iter().zip(case.history) {
                 history_error = history_error.max((a - b).abs());
             }
-            raw.row(&json!({"phase":"paired-frame-conformance","repetition":repetition,"frame":index,"active":active,"outputs_equal":true,"all_signs_equal_with_request_generation_offset":index,
+            raw.row(&json!({"phase":"paired-frame-conformance","repetition":repetition,"frame":index,"active":active,"outputs_equal":true,"all_signs_equal_with_request_generation_offset":(!compact_local).then_some(index),"evidence_comparison":if compact_local { "per-node-ordered-value-transactions" } else { "full-events-request-generation-offset" },"request_generation_offset":index,
                 "pcm_max_abs_error":pcm_error,"active_state_max_abs_error":state_error,"conditioning_history_max_abs_error":history_error}))?;
+            let ((), disposal) = timing::measure(|| drop((fresh, actual)));
+            raw.row(&json!({"phase":"paired-frame-result-release","repetition":repetition,"frame":index,"metrics":disposal}))?;
         }
         assert!(pcm_error < 0.002 && state_error < 0.05 && history_error < 0.001);
         let ((), disposal) = timing::measure(|| drop(retained));
@@ -254,10 +293,10 @@ pub(super) fn run(
     }
     artifact::json(
         &output.join("summary.json"),
-        &json!({"schema":"conduit.fargan-prepared-performance@1","repetitions":repetitions,"frames_per_repetition":24,"prepared_final_disposal_measured":true,
+        &json!({"schema":if compact_local { "conduit.fargan-compact-local-performance@1" } else { "conduit.fargan-prepared-performance@1" },"repetitions":repetitions,"frames_per_repetition":24,"prepared_final_disposal_measured":true,"compact_local":compact_local,
         "fresh_whole_call":timing::distribution(&fresh_walls),"prepared_whole_call":timing::distribution(&retained_walls),"source_sha256":artifact::digest(plan::source().as_bytes()),
-        "scope":"Paired full authored frame; production prepared kernel and owners, fixture acceptance controller; not ordinary Body integration, numerical regions, realtime or intelligibility proof.",
-        "accounting":"Cold schema/model/Plan common; cold trajectory includes all evidence reservations; rearm includes staging clone; old evidence release and complete output acceptance/state advance separately measured; whole frame includes output decoding; fresh binding clones and final prepared-owner/session destruction separately disclosed. No hardware memory-traffic claim; canonical intermediates unchanged."}),
+        "scope":"Paired full authored frame; production prepared kernel and owners, fixture acceptance controller; explicit compact pointwise DAG/local expression candidate when selected; not ordinary Body integration, realtime or intelligibility proof.",
+        "accounting":"Cold schema/model common; baseline and selected candidate Plan preparation disclosed separately; cold trajectory includes all evidence reservations; rearm includes staging clone; old evidence release and complete output acceptance/state advance separately measured; whole frame includes output decoding; fresh binding clones and final prepared-owner/session destruction separately disclosed. No hardware memory-traffic claim; canonical and native successful store counters reported per profile. Separate Plan IDs and raw full event logs retained; different physical schedules compare ordered per-node value transactions."}),
     )?;
     Ok(())
 }
