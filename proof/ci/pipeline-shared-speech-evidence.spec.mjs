@@ -55,11 +55,28 @@ test('absent optional evidence is allowed; partial evidence is rejected', t => {
   rmSync(path.join(retained, SHARED_SPEECH_EVIDENCE_ROOT, 'manifest.json'));
   assert.throws(() => verifySharedSpeechEvidence(retained));
 });
+function foreignPlanProjection(data) {
+  const report = JSON.parse(data);
+  let changed = false;
+  function visit(value) {
+    if (!value || typeof value !== 'object') return;
+    if (Array.isArray(value.configuration)) for (const entry of value.configuration) {
+      if (entry.key === 'projection' && entry.value?.Text) {
+        entry.value.Text = 'f'.repeat(64); changed = true;
+      }
+    }
+    for (const child of Object.values(value)) visit(child);
+  }
+  visit(report.plan);
+  assert.ok(changed, 'fixture contains an actual bound plan projection');
+  return JSON.stringify(report);
+}
 for (const [label, name, mutate, rehash] of [
   ['raw byte corruption', 'you-would.native', data => Buffer.concat([data, Buffer.from([1])]), false],
   ['WAV geometry despite valid digest', 'you-would.wav', data => { data.writeUInt32LE(16000, 24); return data; }, true],
+  ['false model conditioning despite valid digest', 'you-would.json', data => { const r = JSON.parse(data); r.model_terminal.retained_without_conditioning = []; return JSON.stringify(r); }, true],
   ['foreign model source despite valid digest', 'you-would.json', data => { const r = JSON.parse(data); r.model_terminal.source_identity = 'f'.repeat(64); return JSON.stringify(r); }, true],
-  ['foreign plan projection despite valid digest', 'you-would.json', data => data.toString().replace('"Text": "4d3f1bd8', '"Text": "5d3f1bd8'), true],
+  ['foreign plan projection despite valid digest', 'you-would.json', foreignPlanProjection, true],
   ['manifest path inventory', 'manifest.json', data => { const r = JSON.parse(data); r.files['../escape'] = r.files['you-would.wav']; return JSON.stringify(r); }, false],
   ['false listening claim', 'manifest.json', data => { const r = JSON.parse(data); r.human_listening = true; return JSON.stringify(r); }, false],
 ]) test(`rejects ${label}`, t => { const root = fixture(t); change(root, name, mutate, rehash); assert.throws(() => verifySharedSpeechEvidence(root)); });

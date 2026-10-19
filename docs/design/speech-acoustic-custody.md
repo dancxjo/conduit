@@ -29,6 +29,11 @@ producer; it is not an acceptance receipt. Native semantic re-admission and
 PCM/Plan/Sign replay remain the Rust conformance test's responsibility, and the
 normal publisher receipt establishes the accepted publication.
 
+The journey selects IPA authoring, shared terminal and installed execution
+checks rather than rerunning every Speech unit test. The separate
+`xtask check speech-ipa` entrance and final exact-head CI retain broad domain
+conformance.
+
 The demo retains fresh `shared-carrier/you-would.native`, `you-would.wav` and
 `you-would.json`. It then starts another process to decode the retained Native
 components, execute inventory/correspondence/structure admission again, replay
@@ -101,7 +106,9 @@ actual Language commitment request/result, and explicitly supplied acoustic
 receipts. Admission checks their shared owners and executes the existing
 Language commitment Source; decoded booleans do not establish commitment.
 Its canonical identity binds every supplied component and explicit absent
-acoustic slot. Both model entrances and formant preparation require this same
+acoustic slot. Commitment evidence includes the owner Source identity, exact
+program digests and input/output frames; the opaque Language receipt retains
+the full programs without repeating their schema-rich bytes in each packet. Both model entrances and formant preparation require this same
 opaque receipt. The correspondence digest remains a separately named subset
 identity used when recovering original inventory bindings.
 

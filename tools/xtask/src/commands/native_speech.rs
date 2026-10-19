@@ -39,6 +39,8 @@ pub fn run(args: NativeSpeechArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std:
         "--test",
         "native_expression_construction",
     ])?;
+    // The journey exercises its actual authoring, terminals and replay. Broad
+    // domain conformance remains `xtask check speech-ipa` and exact-head CI.
     invoke(&[
         "test",
         "--locked",
@@ -46,7 +48,12 @@ pub fn run(args: NativeSpeechArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std:
         "conduit-speech",
         "--features",
         "semantic-bindings,kernel",
-        "--tests",
+        "--test",
+        "ipa_authoring",
+        "--test",
+        "carried_formant",
+        "--test",
+        "shared_carrier_projections",
     ])?;
     // Re-admit retained bytes in a fresh process, without producer structs.
     let inspection = Command::new("cargo")
