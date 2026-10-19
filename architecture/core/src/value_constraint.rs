@@ -12,7 +12,9 @@ use crate::{validate_primitive_info, KindId, PrimitiveInfoRefusal};
 mod decode;
 mod definition;
 mod identity;
+mod mathematical_near;
 mod near_quantity;
+pub use mathematical_near::PreparedMathematicalNearValueContract;
 mod quantity_profile;
 mod text_pattern;
 
