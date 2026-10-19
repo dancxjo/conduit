@@ -2,6 +2,7 @@
 use conduit_core::{Observation, ObservationKind, Plan, TerminalDisposition};
 use std::{path::PathBuf, process::Command};
 const SOURCE: &str = include_str!("fixtures/numerical_symbolic_enclosure.conduit");
+const ROOT_SOURCE: &str = include_str!("fixtures/numerical_root_enclosure.conduit");
 struct Files(PathBuf);
 impl Files {
     fn new(name: &str, source: &str) -> Self {
@@ -21,7 +22,11 @@ impl Drop for Files {
 }
 #[test]
 fn checked_symbolic_coordinate_reaches_the_selected_input_consumer_in_the_actual_cli() {
-    let files = Files::new("admitted", SOURCE);
+    assert_admitted("pi", SOURCE, "Certified Pi over 180");
+    assert_admitted("root", ROOT_SOURCE, "Certified square root of two");
+}
+fn assert_admitted(name: &str, source: &str, label: &str) {
+    let files = Files::new(name, source);
     let result = Command::new(env!("CARGO_BIN_EXE_conduit"))
         .arg("run")
         .arg(files.0.join("main.conduit"))
@@ -37,7 +42,7 @@ fn checked_symbolic_coordinate_reaches_the_selected_input_consumer_in_the_actual
         String::from_utf8_lossy(&result.stderr)
     );
     assert!(String::from_utf8_lossy(&result.stdout)
-        .contains("Certified Pi over 180: certified dynamic enclosure"));
+        .contains(&format!("{label}: certified dynamic enclosure")));
     let report: serde_json::Value =
         serde_json::from_slice(&std::fs::read(files.0.join("report.json")).unwrap()).unwrap();
     assert_eq!(report["plans"].as_array().unwrap().len(), 1);
@@ -46,7 +51,7 @@ fn checked_symbolic_coordinate_reaches_the_selected_input_consumer_in_the_actual
     assert!(conduit_core::verify_plan(&plan));
     assert_eq!(
         plan.source_document_id,
-        conduit_plot::parse_syntax_document(SOURCE).source_document_id()
+        conduit_plot::parse_syntax_document(source).source_document_id()
     );
     assert!(plan
         .fragments
@@ -73,8 +78,12 @@ fn checked_symbolic_coordinate_reaches_the_selected_input_consumer_in_the_actual
 }
 #[test]
 fn actual_cli_refuses_zero_width_symbolic_projection_without_success_output() {
-    let source = SOURCE.replace("maximum-width:0.00000000000000001", "maximum-width:0");
-    let files = Files::new("refused", &source);
+    assert_refused("pi-refused", SOURCE);
+    assert_refused("root-refused", ROOT_SOURCE);
+}
+fn assert_refused(name: &str, source: &str) {
+    let source = source.replace("maximum-width:0.00000000000000001", "maximum-width:0");
+    let files = Files::new(name, &source);
     let result = Command::new(env!("CARGO_BIN_EXE_conduit"))
         .arg("run")
         .arg(files.0.join("main.conduit"))

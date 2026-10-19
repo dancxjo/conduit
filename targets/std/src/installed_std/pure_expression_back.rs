@@ -256,6 +256,9 @@ pub(super) fn refusal_detail(refusal: &conduit_plot::PortableExpressionEvaluatio
         conduit_plot::PortableExpressionEvaluationRefusal::UnsupportedSemanticCall(_) => 5,
         conduit_plot::PortableExpressionEvaluationRefusal::UnsupportedType(_) => 6,
         conduit_plot::PortableExpressionEvaluationRefusal::UnprovedMathematicalComparison => 7,
+        conduit_plot::PortableExpressionEvaluationRefusal::SquareRoot(reason) => {
+            conduit_plot::square_root_failure_detail(reason)
+        }
         conduit_plot::PortableExpressionEvaluationRefusal::InverseAngle(reason) => {
             conduit_plot::inverse_angle_failure_detail(reason)
         }

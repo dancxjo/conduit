@@ -8,6 +8,15 @@ pub(super) fn evaluate_node<'a>(
 ) -> Result<PrimitiveValue<'a>, Refusal> {
     let expected = node.kind;
     let value = match &mut node.operation {
+        PreparedOperation::SquareRoot {
+            argument,
+            writer,
+            output,
+        } => {
+            let value = evaluate_node(argument, input, input_kind)?;
+            let n = writer.encode(value.as_slice(), output)?;
+            PrimitiveValue::borrowed(expected, &output[..n])?
+        }
         PreparedOperation::InverseTrigonometry {
             function,
             left,

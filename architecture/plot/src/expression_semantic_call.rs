@@ -15,6 +15,9 @@ pub(super) fn check(
         Option<&CheckedExpressionType>,
     ) -> Result<CheckedExpressionType, ExpressionTypeDiagnostic>,
 ) -> Result<CheckedExpressionType, ExpressionTypeDiagnostic> {
+    if name.text == crate::expression_square_root::CALL {
+        return crate::expression_square_root::check(arguments, span, check_argument);
+    }
     if let Some(function) = crate::expression_inverse_trigonometry::function(&name.text) {
         use crate::expression_inverse_trigonometry::Function;
         let expected = CheckedExpressionType::semantic(conduit_core::MATHEMATICAL_VALUE_ID);
@@ -473,6 +476,7 @@ fn diagnostic(span: Span, message: &str) -> ExpressionTypeDiagnostic {
 pub(crate) fn is_intrinsic(name: &str) -> bool {
     crate::expression_inverse_trigonometry::function(name).is_some()
         || crate::expression_trigonometry::function(name).is_some()
+        || name == crate::expression_square_root::CALL
         || name == crate::expression_angle_reference::CALL
         || integer_widening_target(name).is_some()
         || matches!(

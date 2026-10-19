@@ -27,6 +27,7 @@ pub use predicate_bounds::ExpressionValueContractBounds;
 use prepare::prepare_node;
 mod angle_reference;
 mod inverse_trigonometry;
+mod square_root;
 mod storage_bound;
 mod structured;
 mod structured_contract;
@@ -107,6 +108,11 @@ struct PreparedNode {
 }
 
 enum PreparedOperation {
+    SquareRoot {
+        argument: Box<PreparedNode>,
+        writer: Box<crate::expression_square_root::Writer>,
+        output: Vec<u8>,
+    },
     InverseTrigonometry {
         function: crate::expression_inverse_trigonometry::Function,
         left: Box<PreparedNode>,

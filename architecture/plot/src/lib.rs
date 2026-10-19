@@ -24,6 +24,8 @@ mod canonical_expansion;
 mod checked_syntax;
 mod diagnostic;
 mod ecmascript_binding;
+mod expression_square_root;
+pub use expression_square_root::square_root_failure_detail;
 mod expression_angle_reference;
 mod expression_check;
 mod expression_definition;

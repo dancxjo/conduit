@@ -6,6 +6,9 @@ pub(super) fn intrinsic_call(
     mut arguments: Vec<Value>,
     expected: &StructuredInfoType,
 ) -> Result<Value, PortableExpressionEvaluationRefusal> {
+    if kind == crate::expression_square_root::CALL {
+        return crate::expression_square_root::evaluate(&arguments, expected);
+    }
     if let Some(function) = crate::expression_inverse_trigonometry::function(kind) {
         return crate::expression_inverse_trigonometry::evaluate(function, &arguments, expected);
     }

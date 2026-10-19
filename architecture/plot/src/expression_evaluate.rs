@@ -39,6 +39,7 @@ pub enum PortableExpressionEvaluationRefusal {
     AngleTrigonometry(conduit_core::AngleTrigonometryRefusal),
     InverseAngle(conduit_core::InverseAngleEncodingRefusal),
     AngleReference(conduit_core::AngleReferenceRefusal),
+    SquareRoot(conduit_core::MathematicalValueRefusal),
     UnsupportedSemanticCall(String),
     UnsupportedType(String),
 }

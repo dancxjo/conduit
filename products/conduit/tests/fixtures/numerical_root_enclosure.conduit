@@ -1,0 +1,21 @@
+plot root (
+    >> trigger: MathematicalValue
+    result: MathematicalValue >>
+) = (math/sqrt(2))
+
+plot explain (
+    >> value: MathematicalEnclosure <= 65536B
+    result: Text >>
+) = (.source == math/sqrt(2) ? (.maximum-width == 0.00000000000000001 ? "certified dynamic enclosure" : "wrong limit") : "wrong source")
+
+plot main {
+    seed: math/realize(request={value:0,maximum-error:0})
+    coordinate: root
+    interval: math/enclose(request={maximum-width:0.00000000000000001})
+    inspect: explain
+    show: face/text("Certified square root of two")
+    seed.result >> (.source) >> coordinate.trigger
+    coordinate.result >> interval.value
+    interval.result >> inspect.value
+    inspect.result >> show
+}.

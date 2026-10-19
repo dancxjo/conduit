@@ -99,6 +99,11 @@ pub(super) fn prepare_node(
             when_false: Box::new(prepare_node(when_false, input_type, prepared_input)?),
         },
         PortableExpressionOperation::SemanticCall { kind, arguments }
+            if kind == crate::expression_square_root::CALL =>
+        {
+            square_root::prepare(node, arguments, input_type, prepared_input)?
+        }
+        PortableExpressionOperation::SemanticCall { kind, arguments }
             if crate::expression_inverse_trigonometry::function(kind).is_some() =>
         {
             inverse_trigonometry::prepare(node, kind, arguments, input_type, prepared_input)?
