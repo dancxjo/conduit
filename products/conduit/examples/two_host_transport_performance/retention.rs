@@ -6,12 +6,6 @@ pub fn retain(host: &RemoteKernelEvidence) -> Result<Value, String> {
         return Err("kernel evidence has a retention gap".into());
     }
     let identity = &host.identity;
-    if !identity.fore_endpoints.is_empty()
-        || !identity.resources.is_empty()
-        || !identity.resource_connections.is_empty()
-    {
-        return Err("bounded text fixture unexpectedly acquired resources or Fores".into());
-    }
     if !host
         .events
         .windows(2)
@@ -28,6 +22,9 @@ pub fn retain(host: &RemoteKernelEvidence) -> Result<Value, String> {
         "host_calls":identity.host_calls.iter().map(|(node, call, contract)|json!({"node":node.0,"call":call.0,"contract":contract.as_str()})).collect::<Vec<_>>(),
         "events":host.events.iter().map(|e|json!({"sequence":e.sequence,"node":e.node.0,"port":e.port.map(|p|p.0),"request":e.request.map(|r|r.0),"kind":format!("{:?}",e.kind)})).collect::<Vec<_>>(),
         "remote_identities":host.remote_identities.iter().map(|(sequence, r)|json!({"event_sequence":sequence,"endpoint":r.endpoint.0,"cord":r.cord.0,"direction":format!("{:?}",r.direction),"value_sequence":r.sequence})).collect::<Vec<_>>(),
-        "retention_gap":null,"fore_endpoints":[],"resources":[],"resource_connections":[]
+        "retention_gap":null,
+        "fore_endpoints":identity.fore_endpoints.iter().map(|p|json!({"endpoint":p.endpoint.0,"cord":p.cord.0,"front_port_id":p.front_port_id.as_str(),"direction":format!("{:?}",p.direction),"track":format!("{:?}",p.track),"value_kind":p.value_kind.as_str()})).collect::<Vec<_>>(),
+        "resources":identity.resources.iter().map(|(node,resource,binding)|json!({"node":node.0,"resource":resource.0,"binding":binding})).collect::<Vec<_>>(),
+        "resource_connections":identity.resource_connections.iter().map(|(node,resource,connection)|json!({"node":node.0,"resource":resource.0,"connection":connection.as_str()})).collect::<Vec<_>>()
     }))
 }
