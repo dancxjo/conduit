@@ -23,6 +23,21 @@ export function registerPortableFaceComponent({ render, styleText }) {
       this.#root = document.createElement('div'); shadow.append(style, this.#root);
     }
     present(encounter, callbacks) {
+      const component = encounter.view.component, expression = component?.expression?.expression;
+      // This built-in Back realizes the checked single-column profile. Refuse
+      // another recipe instead of silently ignoring planned configuration.
+      if (!component || component.fallback || component.maximum_columns !== 1
+        || component.groups.some(group => group !== 0)
+        || !Number.isInteger(component.gutter) || component.gutter < 0 || component.gutter > 64
+        || !expression || !['compact', 'spacious'].includes(expression.density)
+        || !['phosphor', 'editorial'].includes(expression.palette) || expression.motion !== 'none'
+        || !Number.isInteger(expression.text_scale_percent) || expression.text_scale_percent < 100 || expression.text_scale_percent > 200) {
+        throw new Error('Component visual profile unsupported');
+      }
+      this.dataset.componentExpression = expression.identity;
+      this.dataset.componentDensity = expression.density; this.dataset.componentPalette = expression.palette;
+      this.style.setProperty('--portable-text-scale', String(expression.text_scale_percent / 100));
+      this.style.setProperty('--portable-gutter', `${component.gutter}px`);
       this.#controller?.retire();
       this.#encounter = encounter;
       this.#disconnected = callbacks.disconnected;
