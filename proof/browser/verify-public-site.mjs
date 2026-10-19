@@ -232,6 +232,7 @@ try {
 } catch (error) {
   report.status = "failed";
   report.error = error.stack ?? String(error);
+  console.error(report.error);
   process.exitCode = 1;
 } finally {
   await browser?.close();
