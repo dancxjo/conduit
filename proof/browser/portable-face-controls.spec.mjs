@@ -1,6 +1,13 @@
+import { writeFile } from "node:fs/promises";
 import { expect, test } from '@playwright/test';
 import { startStaticProduct } from './static-product-server.mjs';
+test.use({ trace: 'on' });
 let entrance;
+const ownerReceipt = page => page.evaluate(() => {
+  const runtime = globalThis.__conduitWorkspace.host.runtime;
+  return JSON.parse(new TextDecoder().decode(new Uint8Array(runtime.memory.buffer,
+    runtime.conduit_creche_local_face_output_ptr(), runtime.conduit_creche_local_face_output_len())));
+});
 test.beforeEach(async () => { entrance = await startStaticProduct('target/workspace-product', '/conduit/workspace/'); });
 test.afterEach(() => entrance?.child.kill());
 const slot = page => page.locator('[data-application-slot="birth-fields"]');
@@ -10,17 +17,24 @@ const open = async page => {
   await expect(page.getByRole('button', { name: 'Edit Body name', exact: true })).toBeEnabled();
 };
 
-test('one source Face selects registered and generic Backs with distinct Show Plans', async ({ page }) => {
+test('one source Face selects registered and generic Backs with distinct Show Plans', async ({ page }, testInfo) => {
   await open(page);
   await expect(page.locator('conduit-portable-face')).toHaveCount(1);
   const identity = await slot(page).getAttribute('data-portable-face-id');
   const firstPlan = await slot(page).getAttribute('data-portable-mask-plan');
   const name = await page.getByLabel('Friendly Body name', { exact: true }).inputValue();
+  const enhanced = await ownerReceipt(page);
   await page.getByLabel('Controls on this Host').selectOption('basic');
   await expect(page.locator('[data-portable-face-back="generic"]')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Edit Body name', exact: true })).toBeEnabled();
   expect(await slot(page).getAttribute('data-portable-face-id')).toBe(identity);
   expect(await slot(page).getAttribute('data-portable-mask-plan')).not.toBe(firstPlan);
+  const basic = await ownerReceipt(page);
+  expect(basic.encounter.face).toEqual(enhanced.encounter.face);
+  expect(basic.encounter.mask_show.show_id).not.toBe(enhanced.encounter.mask_show.show_id);
+  await writeFile(testInfo.outputPath('portable-mask-correspondence.json'), JSON.stringify({
+    schema: 'conduit.browser/portable-mask-correspondence@1', enhanced, basic,
+  }, null, 2));
   await expect(page.getByLabel('Friendly Body name', { exact: true })).toHaveValue(name);
   await expect(page.getByLabel('Naming tradition', { exact: true })).toHaveRole('combobox');
   await page.getByLabel('Controls on this Host').selectOption('enhanced');
