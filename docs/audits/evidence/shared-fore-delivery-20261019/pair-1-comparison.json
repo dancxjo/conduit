@@ -1,0 +1,248 @@
+{
+  "before": "/home/dancxjo/Documents/Codex/2026-10-18/goal-optimize-performance-referenced-pasted-text/work/shared-fore-pair-1-before",
+  "after": "/home/dancxjo/Documents/Codex/2026-10-18/goal-optimize-performance-referenced-pasted-text/work/shared-fore-pair-1-after",
+  "before_receipt_sha256": "ecd69fbdb5ca6ad35693ef3fc6ad45a94eadf881515f4c3689744a43902a3970",
+  "after_receipt_sha256": "2551e473b54e3606ef139c562ee1007365ca68f339fe8b12f98f6dce920b7dd3",
+  "scope": "9 ordinary owned-adapter cases; exact Source/output/ordered kernel events/work/capacities; fresh Boot/Plan/active identities checked within capture, not claimed identical across Boots. Descriptive timings; public capture may overlap compilation. Full matrix retained but other cases not compared by this verifier.",
+  "rows": [
+    {
+      "case": "hosted-pipeline-1-gears-32-adds",
+      "repetition": 0,
+      "gears": 1,
+      "output_sha256": "aa04cb31d45b286386166775fb83148c12bfedcf20115f8ebb3a723869cc433e",
+      "ordered_kernel_signs_sha256": "68084c9cfceab3321517e977ca37c9502f9cad27d363efd58fdcdeb5bb51cc92",
+      "before_allocation": {
+        "allocations": 378,
+        "deallocations": 0,
+        "reallocations": 0,
+        "requested_bytes": 2898
+      },
+      "after_allocation": {
+        "allocations": 63,
+        "deallocations": 0,
+        "reallocations": 0,
+        "requested_bytes": 1512
+      },
+      "full_host_call_ratio": 0.7839035412209314,
+      "completion_window_ratio": 0.7952824747055175,
+      "before_full_host_call_ns": 750165,
+      "after_full_host_call_ns": 588057,
+      "before_completion_ns": 275653,
+      "after_completion_ns": 219222
+    },
+    {
+      "case": "hosted-pipeline-1-gears-32-adds",
+      "repetition": 1,
+      "gears": 1,
+      "output_sha256": "aa04cb31d45b286386166775fb83148c12bfedcf20115f8ebb3a723869cc433e",
+      "ordered_kernel_signs_sha256": "68084c9cfceab3321517e977ca37c9502f9cad27d363efd58fdcdeb5bb51cc92",
+      "before_allocation": {
+        "allocations": 378,
+        "deallocations": 0,
+        "reallocations": 0,
+        "requested_bytes": 2898
+      },
+      "after_allocation": {
+        "allocations": 63,
+        "deallocations": 0,
+        "reallocations": 0,
+        "requested_bytes": 1512
+      },
+      "full_host_call_ratio": 0.8946670052876233,
+      "completion_window_ratio": 0.831242566833859,
+      "before_full_host_call_ns": 700882,
+      "after_full_host_call_ns": 627056,
+      "before_completion_ns": 290085,
+      "after_completion_ns": 241131
+    },
+    {
+      "case": "hosted-pipeline-1-gears-32-adds",
+      "repetition": 2,
+      "gears": 1,
+      "output_sha256": "aa04cb31d45b286386166775fb83148c12bfedcf20115f8ebb3a723869cc433e",
+      "ordered_kernel_signs_sha256": "68084c9cfceab3321517e977ca37c9502f9cad27d363efd58fdcdeb5bb51cc92",
+      "before_allocation": {
+        "allocations": 378,
+        "deallocations": 0,
+        "reallocations": 0,
+        "requested_bytes": 2898
+      },
+      "after_allocation": {
+        "allocations": 63,
+        "deallocations": 0,
+        "reallocations": 0,
+        "requested_bytes": 1512
+      },
+      "full_host_call_ratio": 0.8570974267968057,
+      "completion_window_ratio": 0.8874172185430463,
+      "before_full_host_call_ns": 704375,
+      "after_full_host_call_ns": 603718,
+      "before_completion_ns": 247036,
+      "after_completion_ns": 219224
+    },
+    {
+      "case": "hosted-pipeline-32-gears-32-adds",
+      "repetition": 0,
+      "gears": 32,
+      "output_sha256": "aa04cb31d45b286386166775fb83148c12bfedcf20115f8ebb3a723869cc433e",
+      "ordered_kernel_signs_sha256": "cb31c9d0c8ef332656323ac672e2d4e9bcee0cd2a145f0b8d34d3fee6541f934",
+      "before_allocation": {
+        "allocations": 378,
+        "deallocations": 0,
+        "reallocations": 0,
+        "requested_bytes": 2898
+      },
+      "after_allocation": {
+        "allocations": 63,
+        "deallocations": 0,
+        "reallocations": 0,
+        "requested_bytes": 1512
+      },
+      "full_host_call_ratio": 0.9877404052239019,
+      "completion_window_ratio": 0.9882861484990694,
+      "before_full_host_call_ns": 6788642,
+      "after_full_host_call_ns": 6705416,
+      "before_completion_ns": 5117958,
+      "after_completion_ns": 5058007
+    },
+    {
+      "case": "hosted-pipeline-32-gears-32-adds",
+      "repetition": 1,
+      "gears": 32,
+      "output_sha256": "aa04cb31d45b286386166775fb83148c12bfedcf20115f8ebb3a723869cc433e",
+      "ordered_kernel_signs_sha256": "cb31c9d0c8ef332656323ac672e2d4e9bcee0cd2a145f0b8d34d3fee6541f934",
+      "before_allocation": {
+        "allocations": 378,
+        "deallocations": 0,
+        "reallocations": 0,
+        "requested_bytes": 2898
+      },
+      "after_allocation": {
+        "allocations": 63,
+        "deallocations": 0,
+        "reallocations": 0,
+        "requested_bytes": 1512
+      },
+      "full_host_call_ratio": 0.9492321124463176,
+      "completion_window_ratio": 0.9472024888682883,
+      "before_full_host_call_ns": 6971789,
+      "after_full_host_call_ns": 6617846,
+      "before_completion_ns": 5333187,
+      "after_completion_ns": 5051608
+    },
+    {
+      "case": "hosted-pipeline-32-gears-32-adds",
+      "repetition": 2,
+      "gears": 32,
+      "output_sha256": "aa04cb31d45b286386166775fb83148c12bfedcf20115f8ebb3a723869cc433e",
+      "ordered_kernel_signs_sha256": "cb31c9d0c8ef332656323ac672e2d4e9bcee0cd2a145f0b8d34d3fee6541f934",
+      "before_allocation": {
+        "allocations": 378,
+        "deallocations": 0,
+        "reallocations": 0,
+        "requested_bytes": 2898
+      },
+      "after_allocation": {
+        "allocations": 63,
+        "deallocations": 0,
+        "reallocations": 0,
+        "requested_bytes": 1512
+      },
+      "full_host_call_ratio": 0.9530745856540932,
+      "completion_window_ratio": 0.9448491398599644,
+      "before_full_host_call_ns": 6930381,
+      "after_full_host_call_ns": 6605170,
+      "before_completion_ns": 5340642,
+      "after_completion_ns": 5046101
+    },
+    {
+      "case": "hosted-pipeline-8-gears-32-adds",
+      "repetition": 0,
+      "gears": 8,
+      "output_sha256": "aa04cb31d45b286386166775fb83148c12bfedcf20115f8ebb3a723869cc433e",
+      "ordered_kernel_signs_sha256": "53badf1f7b861e5e683cfc086e6c877a55d7b712852603439c05c0dc787ebc72",
+      "before_allocation": {
+        "allocations": 378,
+        "deallocations": 0,
+        "reallocations": 0,
+        "requested_bytes": 2898
+      },
+      "after_allocation": {
+        "allocations": 63,
+        "deallocations": 0,
+        "reallocations": 0,
+        "requested_bytes": 1512
+      },
+      "full_host_call_ratio": 0.9143091709409481,
+      "completion_window_ratio": 1.0035316642093297,
+      "before_full_host_call_ns": 1869710,
+      "after_full_host_call_ns": 1709493,
+      "before_completion_ns": 1072299,
+      "after_completion_ns": 1076086
+    },
+    {
+      "case": "hosted-pipeline-8-gears-32-adds",
+      "repetition": 1,
+      "gears": 8,
+      "output_sha256": "aa04cb31d45b286386166775fb83148c12bfedcf20115f8ebb3a723869cc433e",
+      "ordered_kernel_signs_sha256": "53badf1f7b861e5e683cfc086e6c877a55d7b712852603439c05c0dc787ebc72",
+      "before_allocation": {
+        "allocations": 378,
+        "deallocations": 0,
+        "reallocations": 0,
+        "requested_bytes": 2898
+      },
+      "after_allocation": {
+        "allocations": 63,
+        "deallocations": 0,
+        "reallocations": 0,
+        "requested_bytes": 1512
+      },
+      "full_host_call_ratio": 1.0205530806783603,
+      "completion_window_ratio": 1.0083825686759305,
+      "before_full_host_call_ns": 1685830,
+      "after_full_host_call_ns": 1720479,
+      "before_completion_ns": 1068169,
+      "after_completion_ns": 1077123
+    },
+    {
+      "case": "hosted-pipeline-8-gears-32-adds",
+      "repetition": 2,
+      "gears": 8,
+      "output_sha256": "aa04cb31d45b286386166775fb83148c12bfedcf20115f8ebb3a723869cc433e",
+      "ordered_kernel_signs_sha256": "53badf1f7b861e5e683cfc086e6c877a55d7b712852603439c05c0dc787ebc72",
+      "before_allocation": {
+        "allocations": 378,
+        "deallocations": 0,
+        "reallocations": 0,
+        "requested_bytes": 2898
+      },
+      "after_allocation": {
+        "allocations": 63,
+        "deallocations": 0,
+        "reallocations": 0,
+        "requested_bytes": 1512
+      },
+      "full_host_call_ratio": 1.0385365817561119,
+      "completion_window_ratio": 0.9629925994322978,
+      "before_full_host_call_ns": 1621628,
+      "after_full_host_call_ns": 1684120,
+      "before_completion_ns": 1095997,
+      "after_completion_ns": 1055437
+    }
+  ],
+  "median_ratios_by_gears": {
+    "1": {
+      "full_host_call_ratio": 0.8570974267968057,
+      "completion_window_ratio": 0.831242566833859
+    },
+    "8": {
+      "full_host_call_ratio": 1.0205530806783603,
+      "completion_window_ratio": 1.0035316642093297
+    },
+    "32": {
+      "full_host_call_ratio": 0.9530745856540932,
+      "completion_window_ratio": 0.9472024888682883
+    }
+  }
+}

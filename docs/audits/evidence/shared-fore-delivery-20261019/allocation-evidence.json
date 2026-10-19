@@ -1,0 +1,94 @@
+{
+  "source": "f2bb3b0b9640c8a9f2ccd2626af817538706c7e5",
+  "workers": [
+    {
+      "scope": "std-tests",
+      "source_executable": "/home/dancxjo/src/conduit/target/debug/deps/conduit_std_host-7beab61390a47458",
+      "retained": "/home/dancxjo/Documents/Codex/2026-10-18/goal-optimize-performance-referenced-pasted-text/work/shared-fore-std-tests",
+      "sha256": "d6fbb29ddc2f59ec4e3feef5c1faa4757e62ac6f17869a2cd7220542cb602d69",
+      "bytes": 174881808
+    },
+    {
+      "scope": "runtime-tests",
+      "source_executable": "/home/dancxjo/src/conduit/target/debug/deps/conduit_runtime_performance-4b9c489ab8613b7b",
+      "retained": "/home/dancxjo/Documents/Codex/2026-10-18/goal-optimize-performance-referenced-pasted-text/work/shared-fore-runtime-tests",
+      "sha256": "d0e49e11e6214ab0bbdd27ba4886f4c031a40811d198ef8001e75b6f45e9e4b1",
+      "bytes": 74043864
+    }
+  ],
+  "scope": "Three fresh test/debug processes onCPU4, actual checked1/8/32Gear pipeline,64outputs each; window covers63additionaloutputs. No optimized throughput claim.",
+  "samples": [
+    {
+      "process": 1,
+      "gears": [
+        1,
+        8,
+        32
+      ],
+      "owned_and_borrowed_allocations": 63,
+      "requested_bytes": 1512,
+      "reallocations": 0
+    },
+    {
+      "process": 2,
+      "gears": [
+        1,
+        8,
+        32
+      ],
+      "owned_and_borrowed_allocations": 63,
+      "requested_bytes": 1512,
+      "reallocations": 0
+    },
+    {
+      "process": 3,
+      "gears": [
+        1,
+        8,
+        32
+      ],
+      "owned_and_borrowed_allocations": 63,
+      "requested_bytes": 1512,
+      "reallocations": 0
+    }
+  ],
+  "historical_owned_reference": {
+    "source": "4918ffb12638c73b8466576879175fe566d416dc",
+    "allocations": 378,
+    "requested_bytes": 2898,
+    "scope": "Previously retained debug fixture; current controlled release comparison remains pending."
+  },
+  "historical_borrowed_reference": {
+    "allocations": 189,
+    "requested_bytes": 1449,
+    "scope": "Arc header increases requested bytes by63in the same63output window versus that optional borrowed path, while reducing allocation count."
+  },
+  "logical_delivery_payload_materialization_bytes_per_window": {
+    "historical_owned": 1008,
+    "shared": 504,
+    "basis": "Source-path accounting for63eight-byte outputs: original borrowed-to-Vec plus owned clone versus one Arc payload shared by actual adapter/report pointer-equality assertions. This is not measured memory-bus traffic."
+  },
+  "validated": [
+    "exact report values and ordered kernel events for owned and borrowed callbacks",
+    "report and owned adapter share exact payload and port identity",
+    "all outputs on one port reuse its prepared identity",
+    "adapter refusal and cancellation after first accepted output",
+    "Value/Flow/Current preparation and independent retained payloads",
+    "exact Quantity zero-Play-allocation guards",
+    "Body Todo replay and external Fore conformance"
+  ],
+  "test_results": {
+    "std_selected": 15,
+    "runtime_package": 26,
+    "workspace_clippy": "passed alltargets with hosted-pipeline, warnings denied"
+  },
+  "files": {
+    "flow-shared-allocation-run-3.log": "cbecd85b3e9308f689eb32c5c21bc02e122399b901348fdfec2ba49be52ca823",
+    "workers.json": "d17c1b1c2cd230b8b21f52d477a9c211445e516842a0bea0d8052b51d77f748f",
+    "runtime-tests.log": "eea0dbeab664307e62675d51a6fa75a1fc23febcaa4ca39697bd66b8dfb4d232",
+    "workspace-clippy.log": "4b330ea4208daa1ccedb6c09119a1016b313e437795508d23775d87ec15d240f",
+    "flow-shared-allocation-run-1.log": "cbecd85b3e9308f689eb32c5c21bc02e122399b901348fdfec2ba49be52ca823",
+    "flow-shared-fore-tests.log": "4b2257d29c1a8d510141e98c8626abd7e150e30eba791dae23b99ba1a45b5294",
+    "flow-shared-allocation-run-2.log": "4806bad9313aa002d63624d113c07f7d247bca8eff8c75fb3e8f8c7a198deb25"
+  }
+}
