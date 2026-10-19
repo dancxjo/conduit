@@ -35,6 +35,25 @@ fn scalar_reference<const I: usize, const O: usize>(
     linear.apply_scalar_reference(input, output)
 }
 
+type Projection<const I: usize, const O: usize> =
+    fn(&FixedTensorLinear<'_, I, O>, &[f32; I], &mut [f32; O]) -> Result<(), FixedNumericRefusal>;
+
+// Keep profile selection outside one shared timed loop. In particular, tiny
+// fallback projections must not pay different string-dispatch branches.
+#[inline(never)]
+fn repeat<const I: usize, const O: usize>(
+    projection: Projection<I, O>,
+    linear: &FixedTensorLinear<'_, I, O>,
+    input: &[f32; I],
+    output: &mut [f32; O],
+    iterations: u32,
+) {
+    for _ in 0..iterations {
+        projection(black_box(linear), black_box(input), black_box(&mut *output)).unwrap();
+        black_box(&*output);
+    }
+}
+
 fn case<const I: usize, const O: usize>(
     raw: &mut artifact::Raw,
     iterations: u32,
@@ -61,25 +80,14 @@ fn case<const I: usize, const O: usize>(
             ["shape-selected", "scalar-reference"]
         };
         for profile in profiles {
+            let projection: Projection<I, O> = if profile == "shape-selected" {
+                prepared::<I, O>
+            } else {
+                scalar_reference::<I, O>
+            };
+            let projection = black_box(projection);
             let ((), metrics) = timing::measure(|| {
-                for _ in 0..iterations {
-                    if profile == "shape-selected" {
-                        prepared(
-                            black_box(&linear),
-                            black_box(&input),
-                            black_box(&mut actual),
-                        )
-                        .unwrap();
-                    } else {
-                        scalar_reference(
-                            black_box(&linear),
-                            black_box(&input),
-                            black_box(&mut actual),
-                        )
-                        .unwrap();
-                    }
-                    black_box(&actual);
-                }
+                repeat(projection, &linear, &input, &mut actual, iterations);
             });
             assert_eq!(
                 metrics.allocator.allocations + metrics.allocator.reallocations,
