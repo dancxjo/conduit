@@ -63,6 +63,47 @@ fn malformed_word_relations_foreign_revision_and_forged_commitment_cannot_enter_
         &foreign_lexical,
         &evidence.result
     ));
+    // A caller cannot relabel the Language owner's punctuation token as a
+    // word by supplying a Word segment reference with the same scalar range.
+    let mut punctuation = fixture::Fixture::new();
+    let source = &punctuation.source;
+    let text = source.material();
+    punctuation.source = LanguageTextRevision::new(
+        *source.finality(),
+        LanguageText::new(
+            text.identity().clone(),
+            text.language().clone(),
+            text.revision().clone(),
+            "you,would".into(),
+        )
+        .unwrap(),
+        source.prior().clone(),
+        source.provenance().clone(),
+        *source.sequence(),
+        *source.stable_prefix(),
+    )
+    .unwrap();
+    let punctuation_inventory = punctuation.inventory().unwrap();
+    let punctuation_original = punctuation.correspondence(&punctuation_inventory).unwrap();
+    let punctuation_structure = punctuation.structure();
+    let punctuation_lexical =
+        prepare_lexical_tape(&punctuation.source, &punctuation.lexical_profile, None).unwrap();
+    assert!(matches!(
+        punctuation_lexical.tape().tokens()[1].category(),
+        conduit_language::LinguisticTokenCategory::Punctuation
+    ));
+    assert!(matches!(
+        PreparedCompleteSpeechCarrier::prepare(
+            &punctuation_original,
+            &punctuation_structure,
+            &punctuation_lexical,
+            &punctuation.word_phonemes,
+            &evidence.request,
+            &evidence.result,
+            CompleteCarrierAcoustics::not_supplied(),
+        ),
+        Err(CompleteCarrierRefusal::UnsupportedWordRelation)
+    ));
     let r = &evidence.result;
     let forged = LanguageParserBeamCommitResult::new(
         false,
