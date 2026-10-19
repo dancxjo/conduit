@@ -95,8 +95,8 @@ pub fn pure_near_contract_std_offer(
     program: &PortableExpressionProgram,
     temporal: PortTemporal,
 ) -> Result<CapabilityOffer, String> {
-    if temporal != PortTemporal::Value || !has_near_contract(program) {
-        return Err("Near contract profile requires qualified Value boundaries".into());
+    if !has_near_contract(program) {
+        return Err("Near contract profile requires qualified boundaries".into());
     }
     let evaluator = prepare_near_contract_expression(program)?;
     let bounds = evaluator

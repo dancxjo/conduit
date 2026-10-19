@@ -362,3 +362,26 @@ fn canonical_forged_or_wrong_physical_packets_refuse_before_qualified_fore_ingre
 
 #[path = "near_fore_cost_tests.rs"]
 mod cost;
+
+#[test]
+fn prepared_near_offer_retains_existing_value_flow_and_current_contracts() {
+    let (_,plan) = prepared_fore("plot accept (\n >> value: Frequency near 0.01Hz\n result: Frequency near 0.1Hz >>\n) = .\n",None).unwrap();
+    let program = crate::installed_std::pure_expression_back::program_from_placement(
+        &plan.fragments[0].placements[0],
+    )
+    .unwrap();
+    for temporal in [
+        PortTemporal::Value,
+        PortTemporal::Flow { closes: false },
+        PortTemporal::Flow { closes: true },
+        PortTemporal::Current,
+    ] {
+        let offer = conduit_std_offers::pure_near_contract_std_offer(&program, temporal).unwrap();
+        assert_eq!(offer.inputs[0].temporal, temporal);
+        assert_eq!(offer.outputs[0].temporal, temporal);
+        assert_eq!(
+            offer.implementation.execution_profile_id.as_str(),
+            conduit_std_offers::PURE_NEAR_CONTRACT_STD_PROFILE
+        );
+    }
+}
