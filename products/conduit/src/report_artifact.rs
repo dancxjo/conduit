@@ -1,3 +1,5 @@
+#[cfg(test)]
+mod fore_artifact_tests;
 mod values;
 use conduit_core::{
     ConnectionTerminalDisposition, ExpectedTerminal, HostAdvertisement, LineOffer, Observation,

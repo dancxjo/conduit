@@ -1347,8 +1347,12 @@ fn verify_fragment_fore_ports(fragment: &PlanFragment) -> bool {
                                 .checked_port_front()
                                 .value_contract(&location)
                                 .cloned();
-                            boundary.track == ConnectionTrack::NormalClose
-                                || internal_contract == boundary.value_contract
+                            // Both terminal-close and quiescence routes carry Empty;
+                            // neither carries the producer's payload contract.
+                            matches!(
+                                boundary.track,
+                                ConnectionTrack::NormalClose | ConnectionTrack::Quiescence
+                            ) || internal_contract == boundary.value_contract
                         })
                 })
         })

@@ -1,4 +1,4 @@
-//! Actual retained values require one exact Core routing Sign before export.
+//! Actual retained values require one exact Cord or output-Fore Sign before export.
 use conduit_observatory::{RoutedValueArtifact, SignArtifact};
 pub(super) fn build(
     signs: &[SignArtifact],
@@ -9,11 +9,14 @@ pub(super) fn build(
         let mut matching = signs.iter().filter(|sign| {
             sign.sign.active_play_id.as_ref() == Some(&value.active_play_id)
                 && matches!(&sign.sign.kind, conduit_core::ObservationKind::RoutedContent { evidence }
+                    | conduit_core::ObservationKind::ForeOutputContent { evidence, .. }
                     if evidence.native_event_sequence == value.value.binding.event_sequence
                         && evidence.digest == value.value.binding.digest
                         && evidence.byte_length == value.value.binding.byte_length)
         });
-        let sign = matching.next().ok_or("captured value lacks a retained Core routing Sign; artifact export does not support this routing context")?;
+        let sign = matching
+            .next()
+            .ok_or("captured value lacks a retained exact Cord or output-Fore content Sign")?;
         if matching.next().is_some() {
             return Err("captured value has ambiguous routing Sign context".into());
         }

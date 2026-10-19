@@ -74,11 +74,18 @@ pub enum ObservationKind {
         last_sequence: u32,
         entries: u32,
     },
+    /// Bytes committed toward a sealed output Fore, without inventing a Cord.
+    /// The producing placement/port and actual native event remain explicit.
+    ForeOutputContent {
+        front_port_id: PortId,
+        track: crate::ConnectionTrack,
+        evidence: RoutedContentEvidence,
+    },
 }
 
 /// Shared bounded routing evidence. It describes retained bytes, not a new
 /// Gear-produced value or a mathematical projection certificate. Plan/Play,
-/// producer and Cord identity belong to the enclosing Observation.
+/// producer and exact Cord/Fore context belong to the enclosing Observation.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RoutedContentEvidence {
     pub native_event_sequence: u32,

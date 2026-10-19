@@ -67,3 +67,32 @@ fn native_event_gap_has_a_distinct_appended_wire_tag() {
     assert!(json.get("ExecutionEventGap").is_some());
     assert!(json.get("SignGap").is_none());
 }
+
+#[test]
+fn output_fore_content_appends_a_tag_without_retagging_existing_observations() {
+    let kind = ObservationKind::ForeOutputContent {
+        front_port_id: PortId::from("result"),
+        track: conduit_core::ConnectionTrack::NormalClose,
+        evidence: RoutedContentEvidence {
+            native_event_sequence: 5,
+            output_port: PortId::from("output"),
+            byte_length: 0,
+            digest_domain: "conduit/routed-value-content@1".into(),
+            digest_scheme: "core/semantic-sha256@1".into(),
+            digest: [7; 32],
+        },
+    };
+    let wire = postcard::to_allocvec(&kind).unwrap();
+    assert_eq!(wire[0], 20);
+    assert_eq!(
+        postcard::from_bytes::<ObservationKind>(&wire).unwrap(),
+        kind
+    );
+    let json = serde_json::to_value(&kind).unwrap();
+    assert!(json.get("ForeOutputContent").is_some());
+    assert!(json.get("RoutedContent").is_none());
+    assert_eq!(
+        serde_json::from_value::<ObservationKind>(json).unwrap(),
+        kind
+    );
+}

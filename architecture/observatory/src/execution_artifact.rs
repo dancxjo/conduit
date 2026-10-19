@@ -17,6 +17,8 @@ use crate::PlayReport;
 mod event_gap;
 #[path = "execution_artifact/routed_value.rs"]
 mod routed_value;
+#[path = "execution_artifact/routing.rs"]
+mod routing;
 pub use routed_value::*;
 
 pub const PLAN_ARTIFACT_SCHEMA: &str = "conduit.plan/artifact@1";
@@ -197,49 +199,8 @@ pub fn validate_sign_artifact(artifact: &SignArtifact) -> Result<(), String> {
         &artifact.sign,
         artifact.play.as_ref().map(|play| &play.identity),
     )?;
-    if let ObservationKind::RoutedContent { evidence } = &artifact.sign.kind {
-        let plan = contextual_plan.ok_or("routed content Sign lacks Plan context")?;
-        let placement = artifact
-            .sign
-            .placement_id
-            .as_ref()
-            .ok_or("routed content Sign lacks producer placement")?;
-        let cord = artifact
-            .sign
-            .connection_id
-            .as_ref()
-            .ok_or("routed content Sign lacks exact connection")?;
-        if artifact.sign.active_play_id.is_none() || artifact.sign.face_id.is_some() {
-            return Err("routed content Sign has invalid execution context".into());
-        }
-        let connection = plan
-            .fragments
-            .iter()
-            .flat_map(|fragment| &fragment.connections)
-            .find(|connection| &connection.connection_id == cord)
-            .ok_or("routed content Sign names an unplanned connection")?;
-        if !plan.fragments.iter().any(|fragment| {
-            fragment.host_id == artifact.sign.host_id
-                && fragment.boot_id == artifact.sign.boot_id
-                && fragment
-                    .placements
-                    .iter()
-                    .any(|producer| &producer.placement_id == placement)
-        }) {
-            return Err("routed content Sign producer belongs to a different Host or boot".into());
-        }
-        if &connection.source_placement_id != placement
-            || connection.source_port_id != evidence.output_port
-            || evidence.byte_length > connection.byte_capacity
-        {
-            return Err("routed content Sign differs from the exact Cord source or extent".into());
-        }
-        if [&evidence.digest_domain, &evidence.digest_scheme]
-            .iter()
-            .any(|name| name.is_empty() || name.len() > 192)
-        {
-            return Err("routed content Sign digest identity exceeds its finite bound".into());
-        }
+    if routing::evidence(&artifact.sign.kind).is_some() {
+        routing::declared_kind(artifact)?;
     }
     validate_sign_payload(&artifact.sign.kind)
 }

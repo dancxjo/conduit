@@ -346,6 +346,38 @@ fn selected_enclosed_back_retains_native_and_rational_fallback_reports_in_real_k
                 .unwrap();
         assert_eq!(claims.codec, "numeric/quantity-binary32-evidence@1");
         let kernel = report.kernel.as_ref().unwrap();
+        let fore_signs = report
+            .observations
+            .iter()
+            .filter_map(|sign| {
+                let ObservationKind::ForeOutputContent {
+                    front_port_id,
+                    track,
+                    evidence,
+                } = &sign.kind
+                else {
+                    return None;
+                };
+                assert_eq!(front_port_id.as_str(), "result");
+                assert_eq!(*track, ConnectionTrack::Payload);
+                assert!(sign.connection_id.is_none());
+                assert_eq!(
+                    sign.placement_id.as_ref(),
+                    Some(&plan.fragments[0].placements[0].placement_id)
+                );
+                assert_eq!(evidence.output_port.as_str(), "result");
+                Some(evidence)
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(fore_signs.len(), 1);
+        assert_eq!(kernel.content_evidence.retained_values.len(), 1);
+        let retained = &kernel.content_evidence.retained_values[0];
+        assert_eq!(
+            fore_signs[0].native_event_sequence,
+            retained.binding.event_sequence
+        );
+        assert_eq!(fore_signs[0].digest, retained.binding.digest);
+        assert_eq!(fore_signs[0].byte_length, retained.binding.byte_length);
         assert_eq!(kernel.post_play_start_allocations, 0);
         assert_eq!(
             kernel.value_allocation_capacity_before,

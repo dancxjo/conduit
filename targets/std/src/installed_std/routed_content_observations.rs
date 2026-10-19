@@ -1,6 +1,6 @@
 //! Post-Play projection of retained native routing evidence into shared Signs.
-//! External Fore boundary routes remain native evidence: they are not assigned
-//! a fictitious producing Gear or an internal planned Cord.
+//! Output Fore routes retain their sealed Fore context and actual producer.
+//! They are never assigned a fictitious internal planned Cord.
 use super::{content_signs::StdSignLog, execution_observations::ObservationContext};
 use conduit_core::{
     bind_sign, ConnectionId, Observation, ObservationKind, PlacementId, PortDirection,
@@ -46,18 +46,6 @@ pub(super) fn project(
         {
             return Err("routed content differs from its admitted native event".into());
         }
-        if context
-            .lowered
-            .fore_endpoints
-            .iter()
-            .any(|endpoint| endpoint.cord == binding.cord)
-        {
-            continue;
-        }
-        let connection_id = context
-            .lowered
-            .connection_for_cord(binding.cord)
-            .ok_or("routed content Cord lacks exact planned identity")?;
         let placement_id = context
             .lowered
             .placement_for_node(event.node)
@@ -67,30 +55,73 @@ pub(super) fn project(
             .lowered
             .port_identity(event.node, PortDirection::Output, port)
             .ok_or("routed content output lacks exact port identity")?;
-        let connection = context
-            .fragment
-            .connections
-            .iter()
-            .find(|connection| &connection.connection_id == connection_id)
-            .ok_or("routed content connection is outside its fragment")?;
-        if &connection.source_placement_id != placement_id
-            || connection.source_port_id != output.port_id
-        {
-            return Err("routed content producer differs from the planned Cord source".into());
-        }
         let producer = placement_id.clone();
-        let cord = connection_id.clone();
-        let kind = ObservationKind::RoutedContent {
-            evidence: RoutedContentEvidence {
-                native_event_sequence: event.sequence,
-                output_port: output.port_id.clone(),
-                byte_length: binding.byte_length,
-                digest_domain: admission.digest_domain.into(),
-                digest_scheme: admission.digest_scheme.into(),
-                digest: binding.digest,
-            },
+        let mut endpoints = context
+            .lowered
+            .fore_endpoints
+            .iter()
+            .filter(|endpoint| endpoint.cord == binding.cord);
+        let endpoint = endpoints.next();
+        if endpoints.next().is_some() {
+            return Err("routing endpoint is ambiguous".into());
+        }
+        let (cord, fore) = if let Some(endpoint) = endpoint {
+            if endpoint.direction != PortDirection::Output {
+                return Err("captured route has no producing output Fore context".into());
+            }
+            let mut matching = context.fragment.fore_ports.iter().filter(|p| {
+                p.direction == PortDirection::Output
+                    && p.front_port_id == endpoint.front_port_id
+                    && p.track == endpoint.track
+                    && p.value_kind == endpoint.value_kind
+                    && &p.placement_id == placement_id
+                    && p.gear_port_id == output.port_id
+            });
+            let port = matching
+                .next()
+                .ok_or("captured output Fore is not sealed")?;
+            if matching.next().is_some() || binding.byte_length > port.byte_capacity {
+                return Err("captured output Fore context or extent is invalid".into());
+            }
+            (None, Some((port.front_port_id.clone(), port.track)))
+        } else {
+            let connection_id = context
+                .lowered
+                .connection_for_cord(binding.cord)
+                .ok_or("routed content Cord lacks exact planned identity")?;
+            let connection = context
+                .fragment
+                .connections
+                .iter()
+                .find(|c| &c.connection_id == connection_id)
+                .ok_or("routed content connection is outside its fragment")?;
+            if &connection.source_placement_id != placement_id
+                || connection.source_port_id != output.port_id
+                || binding.byte_length > connection.byte_capacity
+            {
+                return Err(
+                    "routed content producer differs from planned Cord source or extent".into(),
+                );
+            }
+            (Some(connection_id.clone()), None)
         };
-        observations.push(bind(context, Some(producer), Some(cord), kind)?);
+        let evidence = RoutedContentEvidence {
+            native_event_sequence: event.sequence,
+            output_port: output.port_id.clone(),
+            byte_length: binding.byte_length,
+            digest_domain: admission.digest_domain.into(),
+            digest_scheme: admission.digest_scheme.into(),
+            digest: binding.digest,
+        };
+        let kind = match fore {
+            Some((front_port_id, track)) => ObservationKind::ForeOutputContent {
+                front_port_id,
+                track,
+                evidence,
+            },
+            None => ObservationKind::RoutedContent { evidence },
+        };
+        observations.push(bind(context, Some(producer), cord, kind)?);
     }
     Ok(observations)
 }

@@ -205,6 +205,23 @@ fn inspect_value(bytes: &[u8]) -> Result<String, String> {
         artifact.value_kind.as_str(),
         artifact.bytes.len()
     );
+    match &artifact.sign.sign.kind {
+        conduit_core::ObservationKind::ForeOutputContent {
+            front_port_id,
+            track,
+            ..
+        } => {
+            output.push_str(&format!(
+                "Fore output {} track {}\n",
+                front_port_id.as_str(),
+                track.as_str()
+            ));
+        }
+        conduit_core::ObservationKind::RoutedContent { .. } => {
+            output.push_str("planned Cord output\n");
+        }
+        _ => unreachable!("validated content Sign"),
+    }
     if let Some(projection) = projection::render(&artifact)? {
         output.push_str(&projection);
     } else {

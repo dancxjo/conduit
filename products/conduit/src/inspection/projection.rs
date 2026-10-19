@@ -12,6 +12,21 @@ pub(super) fn render(artifact: &RoutedValueArtifact) -> Result<Option<String>, S
         .map(|p| &p.plan)
         .or(artifact.sign.plan.as_ref())
         .ok_or("routed value lacks Plan")?;
+    let track = match &sign.kind {
+        conduit_core::ObservationKind::ForeOutputContent { track, .. } => *track,
+        conduit_core::ObservationKind::RoutedContent { .. } => {
+            plan.fragments
+                .iter()
+                .flat_map(|f| &f.connections)
+                .find(|c| Some(&c.connection_id) == sign.connection_id.as_ref())
+                .ok_or("routed value lacks exact Cord track")?
+                .track
+        }
+        _ => return Err("projection value lacks routed content context".into()),
+    };
+    if track != conduit_core::ConnectionTrack::Payload {
+        return Ok(None);
+    }
     let producer = plan
         .fragments
         .iter()

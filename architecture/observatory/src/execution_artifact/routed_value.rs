@@ -27,27 +27,7 @@ impl RoutedValueArtifact {
     }
 }
 fn declared_kind(artifact: &SignArtifact) -> Result<&KindId, String> {
-    let ObservationKind::RoutedContent { evidence } = &artifact.sign.kind else {
-        return Err("value artifact requires a RoutedContent Sign".into());
-    };
-    let plan = artifact
-        .play
-        .as_ref()
-        .map(|p| &p.plan)
-        .or(artifact.plan.as_ref())
-        .ok_or("value artifact lacks exact Plan context")?;
-    let placement = artifact
-        .sign
-        .placement_id
-        .as_ref()
-        .ok_or("value artifact lacks producer")?;
-    plan.fragments
-        .iter()
-        .flat_map(|f| &f.placements)
-        .find(|p| &p.placement_id == placement)
-        .and_then(|p| p.outputs.iter().find(|p| p.port_id == evidence.output_port))
-        .map(|p| &p.value_kind)
-        .ok_or_else(|| "value artifact lacks its producing Port kind".into())
+    super::routing::declared_kind(artifact)
 }
 pub fn validate_routed_value_artifact(artifact: &RoutedValueArtifact) -> Result<(), String> {
     if artifact.schema != ROUTED_VALUE_ARTIFACT_SCHEMA {
@@ -60,9 +40,8 @@ pub fn validate_routed_value_artifact(artifact: &RoutedValueArtifact) -> Result<
     if declared_kind(&artifact.sign)? != &artifact.value_kind {
         return Err("routed value kind differs from its producing Port".into());
     }
-    let ObservationKind::RoutedContent { evidence } = &artifact.sign.sign.kind else {
-        unreachable!("checked routing kind");
-    };
+    let evidence =
+        super::routing::evidence(&artifact.sign.sign.kind).expect("checked routing kind");
     if evidence.digest_domain != "conduit/routed-value-content@1"
         || evidence.digest_scheme != "core/semantic-sha256@1"
     {
@@ -122,3 +101,7 @@ mod tests {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "routed_value/tracks.rs"]
+mod track_tests;
