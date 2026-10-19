@@ -39,7 +39,16 @@ fn case<const I: usize, const O: usize>(
         timing::measure(|| FixedTensorLinear::<I, O>::prepare(&tensor, &bytes, order).unwrap());
     let mut actual = [0.; O];
     let mut expected = [0.; O];
-    reference::apply(&bytes, &input, &mut expected, order).unwrap();
+    let scalar = reference::Reference::new(&tensor, &bytes, order);
+    assert_eq!(
+        core::mem::size_of_val(&scalar),
+        core::mem::size_of_val(&linear)
+    );
+    assert_eq!(
+        core::mem::align_of_val(&scalar),
+        core::mem::align_of_val(&linear)
+    );
+    scalar.apply(&input, &mut expected).unwrap();
     prepared(&linear, &input, &mut actual).unwrap();
     assert_eq!(actual.map(f32::to_bits), expected.map(f32::to_bits));
     let shape = format!("{I}x{O}");
@@ -62,13 +71,9 @@ fn case<const I: usize, const O: usize>(
                         )
                         .unwrap();
                     } else {
-                        reference::apply(
-                            black_box(&bytes),
-                            black_box(&input),
-                            black_box(&mut actual),
-                            black_box(order),
-                        )
-                        .unwrap();
+                        black_box(&scalar)
+                            .apply(black_box(&input), black_box(&mut actual))
+                            .unwrap();
                     }
                     black_box(&actual);
                 }
@@ -123,7 +128,7 @@ fn run(output: &Path, iterations: u32, repetitions: u32) -> Result<(), Box<dyn s
     raw.finish()?;
     artifact::json(
         &output.join("summary.json"),
-        &json!({"schema":"conduit.matrix-projection-performance@1","iterations":iterations,"repetitions":repetitions,"shapes":22,"orders":2,"shape_list":["3x2","18x18","80x1","161x18","192x4","128x40","328x192","192x192","272x480","160x480","240x384","128x384","208x384","160x160","128x128","688x128","20x40","40x128","128x160","160x128","192x160","320x160"],"scope":"Isolated ordered-f32 matrix arithmetic on validated immutable synthetic bytes. No full Back, Plan, FARGAN, realtime, hardware traffic or total RAM claim. No quiet timing acceptance without independent process controls.","accounting":"Fixture generation and tensor preparation measured separately; warm bulk includes function calls, finite checks, prepared/reference scratch and result guards. Both paths retain column accumulation order. Reference omits one view-field lookup. Output inspection/hashing and evidence writes occur outside warm timing; timer controls not subtracted."}),
+        &json!({"schema":"conduit.matrix-projection-performance@1","iterations":iterations,"repetitions":repetitions,"reference_profile":"prior-scalar-borrowed-owned-view@1","shapes":22,"orders":2,"shape_list":["3x2","18x18","80x1","161x18","192x4","128x40","328x192","192x192","272x480","160x480","240x384","128x384","208x384","160x160","128x128","688x128","20x40","40x128","128x160","160x128","192x160","320x160"],"scope":"Isolated ordered-f32 matrix arithmetic on validated immutable synthetic bytes. No full Back, Plan, FARGAN, realtime, hardware traffic or total RAM claim. No quiet timing acceptance without independent process controls.","accounting":"Fixture generation and tensor preparation measured separately; warm bulk includes function calls, finite checks, prepared/reference scratch and result guards. Both paths retain column accumulation order. Reference retains the prior scalar traversal with borrowed/owned view and order lookup; both views share validated content. Output inspection/hashing and evidence writes occur outside warm timing; timer controls not subtracted."}),
     )?;
     Ok(())
 }
