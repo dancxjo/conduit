@@ -15,6 +15,10 @@ mod allocation_probe;
 #[global_allocator]
 static ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;
 
+#[cfg(feature = "kernel-operation-owners")]
+#[path = "factory.rs"]
+mod factory;
+
 struct Values {
     inner: HostedValueStore,
     canonical: u64,
@@ -279,6 +283,11 @@ fn run(plan: &Plan, mode: u8, fault: Fault) -> ResultWitness {
             ),
             "numeric/linear192x4" => {
                 linear_node = Some(NodeId(n as u16));
+                #[cfg(feature = "kernel-operation-owners")]
+                if mode == 4 {
+                    return Back::Operation(factory::prepare(plan, &tensor, &packed, g));
+                }
+
                 let b = FixedLinearBack::prepare_planned::<PORTS>(
                     g,
                     lowered.node_specs[n].maximum_step_fuel,
@@ -365,7 +374,7 @@ fn run(plan: &Plan, mode: u8, fault: Fault) -> ResultWitness {
             ])
             .unwrap();
     }
-    if mode == 2 {
+    if mode == 2 || mode == 4 {
         kernel
             .bind_compact_f32_dag_with_canonical_inputs(
                 &[
@@ -411,7 +420,7 @@ fn run(plan: &Plan, mode: u8, fault: Fault) -> ResultWitness {
     eprintln!(
         "COMPACT_LINEAR_CONTROL {}",
         serde_json::json!({
-            "schema":"conduit.compact-linear-control@1", "mode":mode, "fault":format!("{fault:?}"),
+            "schema":"conduit.compact-linear-control@2", "mode":mode, "fault":format!("{fault:?}"),
             "source_document_id":plan.source_document_id.as_str(), "plan_id":fragment.plan_id.as_str(),
             "roles":fragment.placements.iter().enumerate().map(|(n,g)| (g.kind_id.as_str(),n)).collect::<Vec<_>>(),
             "output_bits":result.output, "failure":format!("{:?}",result.failure),
@@ -434,10 +443,15 @@ fn compact_linear_activation_keeps_exact_outputs_signs_and_canonical_resource_in
     assert!(reference.output.is_some());
     let grouped_reference = run(&plan, 3, Fault::None);
     assert_eq!(grouped_reference.output, reference.output);
-    for mode in [1, 2] {
+    let modes: &[u8] = if cfg!(feature = "kernel-operation-owners") {
+        &[1, 2, 4]
+    } else {
+        &[1, 2]
+    };
+    for &mode in modes {
         let candidate = run(&plan, mode, Fault::None);
         assert_eq!(candidate.output, reference.output);
-        let same_schedule = if mode == 2 {
+        let same_schedule = if mode == 2 || mode == 4 {
             &grouped_reference
         } else {
             &reference
@@ -459,11 +473,15 @@ fn compact_linear_activation_keeps_exact_outputs_signs_and_canonical_resource_in
         assert!(candidate.failure.is_none());
         assert_eq!(
             (candidate.compact, candidate.raw_bytes),
-            if mode == 2 { (2, 784) } else { (0, 0) }
+            if mode == 2 || mode == 4 {
+                (2, 784)
+            } else {
+                (0, 0)
+            }
         );
         assert_eq!(
             reference.canonical - candidate.canonical,
-            if mode == 2 { 2 } else { 0 }
+            if mode == 2 || mode == 4 { 2 } else { 0 }
         );
     }
 }
@@ -477,17 +495,28 @@ fn resource_or_arithmetic_failure_preserves_the_frontier_without_matrix_publicat
             Some(SchedulerError::BackFailed(Failure { detail: 1403, .. }))
         ));
         assert!(reference.output.is_none());
-        for mode in [1, 2] {
+        let modes: &[u8] = if cfg!(feature = "kernel-operation-owners") {
+            &[1, 2, 4]
+        } else {
+            &[1, 2]
+        };
+        for &mode in modes {
             let candidate = run(&plan, mode, fault);
             assert_eq!(candidate.failure, reference.failure);
             assert_eq!(candidate.events, reference.events);
             assert!(candidate.output.is_none());
             // The input activation precedes the failed matrix in both paths.
-            assert_eq!(candidate.compact, if mode == 2 { 1 } else { 0 });
-            assert_eq!(candidate.raw_bytes, if mode == 2 { 768 } else { 0 });
+            assert_eq!(
+                candidate.compact,
+                if mode == 2 || mode == 4 { 1 } else { 0 }
+            );
+            assert_eq!(
+                candidate.raw_bytes,
+                if mode == 2 || mode == 4 { 768 } else { 0 }
+            );
             assert_eq!(
                 reference.canonical - candidate.canonical,
-                if mode == 2 { 1 } else { 0 }
+                if mode == 2 || mode == 4 { 1 } else { 0 }
             );
         }
     }
