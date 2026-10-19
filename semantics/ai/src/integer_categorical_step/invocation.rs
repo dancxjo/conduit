@@ -68,6 +68,10 @@ impl CategoricalInvocationOutlet {
             bytes_per_slot,
         })))
     }
+    /// Exact outlet membership only; this does not establish current request or Play custody.
+    pub fn contains(&self, invocation: &CommittedCategoricalInvocation) -> bool {
+        Arc::ptr_eq(&self.0, &invocation.inner)
+    }
     pub fn capacity(&self) -> usize {
         self.0.slots.len()
     }

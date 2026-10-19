@@ -58,6 +58,17 @@ fn opaque_outlet_publishes_only_after_ack_and_holds_exact_bytes_under_pressure()
     assert_eq!(allocations.allocations, 0);
     let receipt = outlet.try_take().unwrap();
     assert!(outlet.try_take().is_none());
+    assert!(outlet.contains(&receipt));
+    assert!(outlet.clone().contains(&receipt));
+    let (_, foreign_readers) =
+        owner::CategoricalOperationFactory::for_plan_with_invocation_outlets(
+            &plan,
+            &[profile.clone()],
+            1,
+        )
+        .unwrap();
+    // Identical Plan/profile/invocation origin does not confer outlet membership.
+    assert!(!foreign_readers[0].contains(&receipt));
     assert_eq!(receipt.invocation(), 1);
     assert_eq!(receipt.placement(), gear(&plan));
     assert_eq!(receipt.plan(), &plan);
