@@ -1195,6 +1195,13 @@ where
         contracts: [[Option<AssignedTerminalTransduction>; PORTS]; NODES],
     ) -> Result<(), SchedulerError> {
         for (node, contract) in contracts.iter().copied().enumerate() {
+            #[cfg(feature = "alloc")]
+            if (self.native_input_ports[node].is_some() || self.native_output_ports[node].is_some())
+                && contract.iter().any(Option::is_some)
+            {
+                return Err(SchedulerError::InvalidPlan);
+            }
+
             if node < self.active_nodes {
                 if self.drivers[node].terminal_transductions() != contract {
                     return Err(SchedulerError::InvalidPlan);

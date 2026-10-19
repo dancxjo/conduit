@@ -426,8 +426,8 @@ pub trait ValueStorage {
     fn retain(&mut self, value: ValueRef) -> Result<(), StorageError>;
     fn release(&mut self, value: ValueRef) -> Result<(), StorageError>;
     fn clear(&mut self);
-    /// Independently admitted native item and logical-byte reservations.
-    fn native_u64_capacity(&self) -> (u16, u32) {
+    /// Currently available native item and logical-byte reservations.
+    fn native_u64_available(&self) -> (u16, u32) {
         (0, 0)
     }
     /// Native transport is opt-in; canonical-only profiles refuse publication.

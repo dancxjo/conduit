@@ -4,8 +4,10 @@ use crate::FixedValueStore;
 fn native_result_never_enters_canonical_storage_and_cannot_be_read_as_bytes() {
     let mut store =
         NativeU64ValueStore::<_, 2>::new(FixedValueStore::<2, 8>::new(16).unwrap(), 16).unwrap();
+    assert_eq!(store.native_u64_available(), (2, 16));
     let canonical = store.store(b"boundary").unwrap();
     let native = store.store_native_u64(u64::MAX).unwrap();
+    assert_eq!(store.native_u64_available(), (1, 8));
     assert_eq!(store.canonical().used_items(), 1);
     assert_eq!(store.canonical().used_bytes(), 8);
     assert_eq!(store.native_u64(native), Ok(Some(u64::MAX)));
@@ -39,6 +41,11 @@ fn pressure_and_generation_exhaustion_refuse_without_publishing_values() {
         .native
         .iter_mut()
         .for_each(|s| s.generation = u16::MAX);
+    assert_eq!(
+        store.native_u64_available().0,
+        0,
+        "retired slots cannot be admitted again"
+    );
     assert_eq!(
         store.store_native_u64(2),
         Err(StorageError::GenerationExhausted)

@@ -242,3 +242,21 @@ fn native_regions_keep_every_logical_cancellation_checkpoint() {
         assert_eq!(play.values().used_items(), 0);
     }
 }
+
+#[test]
+fn disjoint_regions_cannot_over_admit_the_same_native_reservation() {
+    let mut play = prepare_unbound(1, 0, None, 16 * 8, evidence());
+    let first: Vec<_> = (1..=16).map(NodeId).collect();
+    let second: Vec<_> = (17..=32).map(NodeId).collect();
+    play.bind_native_u64_chain(&first).unwrap();
+    assert_eq!(
+        play.bind_native_u64_chain(&second),
+        Err(SchedulerError::InvalidPlan)
+    );
+    // The failed admission leaves the other region eligible for its exact
+    // canonical realization, and preserves the previously admitted native one.
+    play.bind_execution_chain(&second).unwrap();
+    finish(&mut play);
+    assert_eq!(play.drivers()[N - 1].result().0[0], 32);
+    assert_eq!(play.values().canonical().stores, 18);
+}
