@@ -1,0 +1,90 @@
+//! Actual product CLI crosses symbolic coordinate construction and a dynamic consumer.
+use conduit_core::{Observation, ObservationKind, Plan, TerminalDisposition};
+use std::{path::PathBuf, process::Command};
+const SOURCE: &str = include_str!("fixtures/numerical_symbolic_enclosure.conduit");
+struct Files(PathBuf);
+impl Files {
+    fn new(name: &str, source: &str) -> Self {
+        let path = std::env::temp_dir().join(format!(
+            "conduit-symbolic-enclosure-{}-{name}",
+            std::process::id()
+        ));
+        std::fs::create_dir(&path).unwrap();
+        std::fs::write(path.join("main.conduit"), source).unwrap();
+        Self(path)
+    }
+}
+impl Drop for Files {
+    fn drop(&mut self) {
+        std::fs::remove_dir_all(&self.0).unwrap();
+    }
+}
+#[test]
+fn checked_symbolic_coordinate_reaches_the_selected_input_consumer_in_the_actual_cli() {
+    let files = Files::new("admitted", SOURCE);
+    let result = Command::new(env!("CARGO_BIN_EXE_conduit"))
+        .arg("run")
+        .arg(files.0.join("main.conduit"))
+        .arg("--await-terminal")
+        .arg("--report")
+        .arg(files.0.join("report.json"))
+        .output()
+        .unwrap();
+    assert!(
+        result.status.success(),
+        "stdout={} stderr={}",
+        String::from_utf8_lossy(&result.stdout),
+        String::from_utf8_lossy(&result.stderr)
+    );
+    assert!(String::from_utf8_lossy(&result.stdout)
+        .contains("Certified Pi over 180: certified dynamic enclosure"));
+    let report: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(files.0.join("report.json")).unwrap()).unwrap();
+    assert_eq!(report["plans"].as_array().unwrap().len(), 1);
+    assert_eq!(report["plays"].as_array().unwrap().len(), 1);
+    let plan: Plan = serde_json::from_value(report["plans"][0].clone()).unwrap();
+    assert!(conduit_core::verify_plan(&plan));
+    assert_eq!(
+        plan.source_document_id,
+        conduit_plot::parse_syntax_document(SOURCE).source_document_id()
+    );
+    assert!(plan
+        .fragments
+        .iter()
+        .flat_map(|f| &f.placements)
+        .any(|p| p.kind_id.as_str() == "math/enclose"
+            && p.implementation_id.as_str() == "conduit.std/mathematical-enclosure@1"
+            && p.execution_profile_id.as_str() == "std/borrowed-exact-interval@1"));
+    let signs: Vec<Observation> = serde_json::from_value(report["observations"].clone()).unwrap();
+    assert!(matches!(
+        signs.last().map(|s| &s.kind),
+        Some(ObservationKind::PlanTerminal {
+            disposition: TerminalDisposition::Completed
+        })
+    ));
+    assert!(signs
+        .iter()
+        .all(|s| s.plan_id.as_ref() == Some(&plan.plan_id) && s.active_play_id.is_some()));
+    println!(
+        "SYMBOLIC_ENCLOSURE_PRODUCT source={} plan={}",
+        plan.source_document_id.as_str(),
+        plan.plan_id.as_str()
+    );
+}
+#[test]
+fn actual_cli_refuses_zero_width_symbolic_projection_without_success_output() {
+    let source = SOURCE.replace("maximum-width:0.00000000000000001", "maximum-width:0");
+    let files = Files::new("refused", &source);
+    let result = Command::new(env!("CARGO_BIN_EXE_conduit"))
+        .arg("run")
+        .arg(files.0.join("main.conduit"))
+        .arg("--await-terminal")
+        .output()
+        .unwrap();
+    assert!(!result.status.success());
+    assert!(!String::from_utf8_lossy(&result.stdout).contains("certified dynamic enclosure"));
+    println!(
+        "SYMBOLIC_ENCLOSURE_REFUSAL stderr={}",
+        String::from_utf8_lossy(&result.stderr)
+    );
+}

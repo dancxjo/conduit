@@ -1,0 +1,21 @@
+plot radians (
+    >> trigger: MathematicalValue
+    result: MathematicalValue >>
+) = (math/radians(1°))
+
+plot explain (
+    >> value: MathematicalEnclosure <= 65536B
+    result: Text >>
+) = (.source == math/radians(1°) ? (.width <= .maximum-width ? "certified dynamic enclosure" : "wide") : "wrong source")
+
+plot main {
+    seed: math/realize(request={value:0,maximum-error:0})
+    coordinate: radians
+    interval: math/enclose(request={maximum-width:0.00000000000000001})
+    inspect: explain
+    show: face/text("Certified Pi over 180")
+    seed.result >> (.source) >> coordinate.trigger
+    coordinate.result >> interval.value
+    interval.result >> inspect.value
+    inspect.result >> show
+}.
