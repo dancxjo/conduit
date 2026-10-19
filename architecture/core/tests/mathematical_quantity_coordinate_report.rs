@@ -208,3 +208,161 @@ fn coordinate_report_rejects_other_outputs_roles_units_facts_and_policy() {
     });
     assert_eq!(allocations, 0);
 }
+
+#[test]
+fn complete_coordinate_evidence_preserves_frames_affine_roles_and_actual_work_without_growth() {
+    for (symbolic, unit, role, target_unit) in [
+        (false, Unit::Meter, QuantityRole::Linear, Unit::Centimeter),
+        (true, Unit::Meter, QuantityRole::Linear, Unit::Centimeter),
+        (true, Unit::Fahrenheit, QuantityRole::Point, Unit::Kelvin),
+        (false, Unit::Fahrenheit, QuantityRole::Delta, Unit::Kelvin),
+    ] {
+        let source = if symbolic {
+            frame(true, unit, role)
+        } else {
+            frame_value(&MathematicalValue::rational(q(1, 3)), unit, role)
+        };
+        let mut converter =
+            PreparedMathematicalQuantityConversion::new(200000, 200_000_000).unwrap();
+        let retained = converter.retained_payload_bytes();
+        let mut output = vec![0; MATHEMATICAL_QUANTITY_MAX_ENCODED_BYTES];
+        let limits = MATHEMATICAL_QUANTITY_CONVERSION_EVIDENCE_LIMITS;
+        let mut evidence = vec![0; limits.total_bytes];
+        let domain = MathematicalQuantityConversionDomain::new();
+        let policy = MathematicalQuantityConversionPolicy { target_unit };
+        let codec = MathematicalQuantityConversionEvidenceCodec::new(policy);
+        let (_, allocations) = observe(|| {
+            for _ in 0..3 {
+                let mut meter = work();
+                let conversion = converter
+                    .execute(&source, target_unit, &mut output, &mut meter)
+                    .unwrap();
+                assert_eq!(conversion.spent_work(), meter.spent());
+                assert_eq!(conversion.admitted_work(), 200_000_000);
+                assert!(conversion.spent_work() > 0);
+                let target = MathematicalQuantityView::decode(
+                    &output[..conversion.encoded_bytes()],
+                    &mut work(),
+                )
+                .unwrap();
+                assert_eq!(target.role(), role);
+                let facts = domain.facts();
+                let report = ProjectionReport::new(
+                    &domain,
+                    &policy,
+                    input(&conversion, &target, &facts, "quantity/unit-route@1"),
+                )
+                .unwrap();
+                report
+                    .require_bound_policy(policy.identity(), policy.configuration_digest().unwrap())
+                    .unwrap();
+                let n = encode_projection_evidence(&report, &codec, limits, &mut evidence).unwrap();
+                let view = inspect_projection_evidence(&evidence[..n]).unwrap();
+                assert_eq!(view.codec, "physical/exact-unit-coordinate-evidence@1");
+                assert_eq!(&view.policy_bytes[4..], &target_unit.encode());
+                let end = view.source_bytes.len();
+                assert_eq!(
+                    u64::from_le_bytes(view.source_bytes[end - 16..end - 8].try_into().unwrap()),
+                    meter.spent()
+                );
+                assert_eq!(
+                    u64::from_le_bytes(view.source_bytes[end - 8..].try_into().unwrap()),
+                    200_000_000
+                );
+                verify_projection_evidence(&report, &codec, limits, &evidence[..n]).unwrap();
+                evidence[n - 1] ^= 1;
+                assert!(
+                    verify_projection_evidence(&report, &codec, limits, &evidence[..n]).is_err()
+                );
+                assert_eq!(converter.retained_payload_bytes(), retained);
+            }
+        });
+        assert_eq!(allocations, 0);
+    }
+}
+
+#[test]
+fn coordinate_evidence_binds_unit_policy_original_allowance_and_preflights_output() {
+    let source = frame(true, Unit::Meter, QuantityRole::Linear);
+    let mut converter = PreparedMathematicalQuantityConversion::new(200000, 200_000_000).unwrap();
+    let mut output = vec![0; MATHEMATICAL_QUANTITY_MAX_ENCODED_BYTES];
+    let conversion = converter
+        .execute(&source, Unit::Centimeter, &mut output, &mut work())
+        .unwrap();
+    let target =
+        MathematicalQuantityView::decode(&output[..conversion.encoded_bytes()], &mut work())
+            .unwrap();
+    let domain = MathematicalQuantityConversionDomain::new();
+    let policy = MathematicalQuantityConversionPolicy {
+        target_unit: Unit::Centimeter,
+    };
+    let codec = MathematicalQuantityConversionEvidenceCodec::new(policy);
+    let facts = domain.facts();
+    let report = ProjectionReport::new(
+        &domain,
+        &policy,
+        input(&conversion, &target, &facts, "quantity/unit-route@1"),
+    )
+    .unwrap();
+    let limits = MATHEMATICAL_QUANTITY_CONVERSION_EVIDENCE_LIMITS;
+    let mut evidence = vec![0; limits.total_bytes];
+    let n = encode_projection_evidence(&report, &codec, limits, &mut evidence).unwrap();
+    let mut short = [0xa5; 32];
+    assert_eq!(
+        encode_projection_evidence(&report, &codec, limits, &mut short),
+        Err(ProjectionEvidenceRefusal::BufferTooSmall)
+    );
+    assert_eq!(short, [0xa5; 32]);
+    let wrong =
+        MathematicalQuantityConversionEvidenceCodec::new(MathematicalQuantityConversionPolicy {
+            target_unit: Unit::Meter,
+        });
+    assert_eq!(
+        verify_projection_evidence(&report, &wrong, limits, &evidence[..n]),
+        Err(ProjectionEvidenceRefusal::PolicyConfigurationMismatch)
+    );
+    let mut replay_output = vec![0; MATHEMATICAL_QUANTITY_MAX_ENCODED_BYTES];
+    let replay = converter
+        .execute(
+            &source,
+            Unit::Centimeter,
+            &mut replay_output,
+            &mut ExactNumericWork::new(199_999_999),
+        )
+        .unwrap();
+    let replay_target =
+        MathematicalQuantityView::decode(&replay_output[..replay.encoded_bytes()], &mut work())
+            .unwrap();
+    let replay_report = ProjectionReport::new(
+        &domain,
+        &policy,
+        input(&replay, &replay_target, &facts, "quantity/unit-route@1"),
+    )
+    .unwrap();
+    assert_eq!(
+        verify_projection_evidence(&replay_report, &codec, limits, &evidence[..n]),
+        Err(ProjectionEvidenceRefusal::EvidenceMismatch)
+    );
+    let mut larger_caller = ExactNumericWork::new(300_000_000);
+    let mut clamped_output = vec![0; MATHEMATICAL_QUANTITY_MAX_ENCODED_BYTES];
+    let clamped = converter
+        .execute(
+            &source,
+            Unit::Centimeter,
+            &mut clamped_output,
+            &mut larger_caller,
+        )
+        .unwrap();
+    assert_eq!(clamped.admitted_work(), 200_000_000);
+    assert_eq!(clamped.spent_work(), larger_caller.spent());
+    let clamped_target =
+        MathematicalQuantityView::decode(&clamped_output[..clamped.encoded_bytes()], &mut work())
+            .unwrap();
+    let clamped_report = ProjectionReport::new(
+        &domain,
+        &policy,
+        input(&clamped, &clamped_target, &facts, "quantity/unit-route@1"),
+    )
+    .unwrap();
+    verify_projection_evidence(&clamped_report, &codec, limits, &evidence[..n]).unwrap();
+}

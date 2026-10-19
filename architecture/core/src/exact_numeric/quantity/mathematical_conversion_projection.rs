@@ -88,6 +88,12 @@ impl<'source, 'target> ProjectionPolicy<MathematicalQuantityConversionDomain<'so
     fn identity(&self) -> ProjectionText<'_> {
         text("physical/exact-unit-coordinate-policy@1")
     }
+    fn configuration_digest(&self) -> Option<[u8; 32]> {
+        Some(crate::semantic_digest(
+            "physical/exact-unit-coordinate-configuration@1",
+            &self.target_unit.encode(),
+        ))
+    }
     fn permits(
         &self,
         source: &MathematicalQuantityCoordinateConversion<'source>,

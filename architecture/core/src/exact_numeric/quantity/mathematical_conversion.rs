@@ -29,6 +29,8 @@ pub struct MathematicalQuantityCoordinateConversion<'source> {
     offset: ExactRational,
     encoded_bytes: usize,
     target_representation_digest: [u8; 32],
+    spent_work: u64,
+    admitted_work: u64,
 }
 impl MathematicalQuantityCoordinateConversion<'_> {
     pub const fn source(&self) -> &MathematicalQuantityView<'_> {
@@ -49,6 +51,13 @@ impl MathematicalQuantityCoordinateConversion<'_> {
     }
     pub const fn encoded_bytes(&self) -> usize {
         self.encoded_bytes
+    }
+    /// Actual charge to this execution's local ExactNumericWork meter.
+    pub const fn spent_work(&self) -> u64 {
+        self.spent_work
+    }
+    pub const fn admitted_work(&self) -> u64 {
+        self.admitted_work
     }
 }
 impl PreparedMathematicalQuantityConversion {
@@ -107,6 +116,8 @@ impl PreparedMathematicalQuantityConversion {
         output: &mut [u8],
         work: &mut ExactNumericWork,
     ) -> Result<MathematicalQuantityCoordinateConversion<'source>, R> {
+        let before = work.spent();
+        let admitted_work = work.remaining();
         let source = MathematicalQuantityView::decode(encoded, work).map_err(R::Quantity)?;
         // Derive affine coefficients through the existing role-aware physical
         // conversion. This checks family/origin compatibility and applies an
@@ -170,6 +181,8 @@ impl PreparedMathematicalQuantityConversion {
             scale,
             offset,
             encoded_bytes,
+            spent_work: work.spent() - before,
+            admitted_work,
         })
     }
 }
