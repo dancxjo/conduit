@@ -68,6 +68,10 @@ impl AudioControlEvaluation {
     }
 }
 impl PreparedAudioControlTrajectories {
+    /// Exact checked Source executions retained during trajectory admission.
+    pub fn admission_executions(&self) -> &[AudioSourceExecution] {
+        &self.admission
+    }
     pub fn original(&self) -> &AudioControlTrajectorySet {
         &self.original
     }
