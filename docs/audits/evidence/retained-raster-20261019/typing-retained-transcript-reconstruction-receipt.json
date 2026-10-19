@@ -1,0 +1,8 @@
+{
+  "reconstruction_source": "0f5aa42ed743ddcf3d317497db4a603bd43458b4",
+  "original_capture_source": "48f22c2a9d58242a7538403561bcbabf6af74260",
+  "original_archive_sha256": "5da68e99c8148f43d8f115db8ace53c66419d3d16178b6b28d644cdb9b6b5cdb",
+  "artifact_sha256": "6852d8a3314d3624b283f7e8cc452d3dbed8f07e91c3163be7652ffc281a6593",
+  "scope": "Derived replay from unmodified raw QEMU transcript; six ordinary sequential edits. Conformance only, excluded from accepted timing due concurrent workload. Original archive unchanged.",
+  "tests": "5 focused xtask tests passed; actual xtask all-target Clippy warnings denied passed"
+}

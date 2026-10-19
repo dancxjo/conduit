@@ -1,0 +1,39 @@
+
+running 9 tests
+test native_compositor::raster_reuse::performance::retained_raster_performance ... retained-raster case=full repeat=0 frames=64 reference_ns=8873837 retained_ns=8792487 reference_pixels=20170752 retained_pixels=20170752 reference_commands=320 retained_commands=320
+retained-raster case=full repeat=1 frames=64 reference_ns=8360466 retained_ns=8808384 reference_pixels=20170752 retained_pixels=20170752 reference_commands=320 retained_commands=320
+retained-raster case=full repeat=2 frames=64 reference_ns=8319548 retained_ns=8648253 reference_pixels=20170752 retained_pixels=20170752 reference_commands=320 retained_commands=320
+retained-raster case=full repeat=3 frames=64 reference_ns=8158220 retained_ns=8655504 reference_pixels=20170752 retained_pixels=20170752 reference_commands=320 retained_commands=320
+retained-raster case=full repeat=4 frames=64 reference_ns=8160702 retained_ns=8420965 reference_pixels=20170752 retained_pixels=20170752 reference_commands=320 retained_commands=320
+retained-raster case=tiny repeat=0 frames=64 reference_ns=8179880 retained_ns=198428 reference_pixels=20170752 retained_pixels=512 reference_commands=320 retained_commands=128
+retained-raster case=tiny repeat=1 frames=64 reference_ns=8135912 retained_ns=191729 reference_pixels=20170752 retained_pixels=512 reference_commands=320 retained_commands=128
+retained-raster case=tiny repeat=2 frames=64 reference_ns=8147863 retained_ns=216235 reference_pixels=20170752 retained_pixels=512 reference_commands=320 retained_commands=128
+retained-raster case=tiny repeat=3 frames=64 reference_ns=8173351 retained_ns=191121 reference_pixels=20170752 retained_pixels=512 reference_commands=320 retained_commands=128
+retained-raster case=tiny repeat=4 frames=64 reference_ns=8162642 retained_ns=220082 reference_pixels=20170752 retained_pixels=512 reference_commands=320 retained_commands=128
+retained-raster case=scroll repeat=0 frames=64 reference_ns=8125161 retained_ns=6423291 reference_pixels=20170752 retained_pixels=6726656 reference_commands=320 retained_commands=128
+retained-raster case=scroll repeat=1 frames=64 reference_ns=8166872 retained_ns=6465363 reference_pixels=20170752 retained_pixels=6726656 reference_commands=320 retained_commands=128
+retained-raster case=scroll repeat=2 frames=64 reference_ns=8147647 retained_ns=6464268 reference_pixels=20170752 retained_pixels=6726656 reference_commands=320 retained_commands=128
+retained-raster case=scroll repeat=3 frames=64 reference_ns=8174458 retained_ns=6489033 reference_pixels=20170752 retained_pixels=6726656 reference_commands=320 retained_commands=128
+retained-raster case=scroll repeat=4 frames=64 reference_ns=8234637 retained_ns=6483408 reference_pixels=20170752 retained_pixels=6726656 reference_commands=320 retained_commands=128
+retained-raster case=hover repeat=0 frames=64 reference_ns=8152378 retained_ns=332907 reference_pixels=20170752 retained_pixels=97536 reference_commands=320 retained_commands=128
+retained-raster case=hover repeat=1 frames=64 reference_ns=8164407 retained_ns=327087 reference_pixels=20170752 retained_pixels=97536 reference_commands=320 retained_commands=128
+retained-raster case=hover repeat=2 frames=64 reference_ns=8157051 retained_ns=336020 reference_pixels=20170752 retained_pixels=97536 reference_commands=320 retained_commands=128
+retained-raster case=hover repeat=3 frames=64 reference_ns=8150077 retained_ns=326346 reference_pixels=20170752 retained_pixels=97536 reference_commands=320 retained_commands=128
+retained-raster case=hover repeat=4 frames=64 reference_ns=8284710 retained_ns=355612 reference_pixels=20170752 retained_pixels=97536 reference_commands=320 retained_commands=128
+retained-raster case=typing repeat=0 frames=64 reference_ns=8410689 retained_ns=317995 reference_pixels=20174368 retained_pixels=103456 reference_commands=320 retained_commands=128
+retained-raster case=typing repeat=1 frames=64 reference_ns=8362740 retained_ns=285402 reference_pixels=20174368 retained_pixels=103456 reference_commands=320 retained_commands=128
+retained-raster case=typing repeat=2 frames=64 reference_ns=8257378 retained_ns=305824 reference_pixels=20174368 retained_pixels=103456 reference_commands=320 retained_commands=128
+retained-raster case=typing repeat=3 frames=64 reference_ns=8183067 retained_ns=279713 reference_pixels=20174368 retained_pixels=103456 reference_commands=320 retained_commands=128
+retained-raster case=typing repeat=4 frames=64 reference_ns=8190280 retained_ns=285527 reference_pixels=20174368 retained_pixels=103456 reference_commands=320 retained_commands=128
+ok
+test native_compositor::raster_reuse::tests::edited_public_fields_that_break_canonical_scene_refuse_reuse ... ok
+test native_compositor::raster_reuse::tests::failed_render_does_not_produce_success_receipt ... ok
+test native_compositor::raster_reuse::tests::failed_scene_invalidates_old_pixels_and_cannot_advance_revision ... ok
+test native_compositor::raster_reuse::tests::incremental_pixels_match_fresh_raster_across_edits_order_clips_and_blending ... ok
+test native_compositor::raster_reuse::tests::palette_and_scale_change_force_full_raster_under_new_exact_receipt ... ok
+test native_compositor::raster_reuse::tests::raster_reuse_and_scene_eligibility_allocate_no_storage ... ok
+test native_compositor::raster_reuse::tests::reuse_keeps_revision_identity_and_resize_fences ... ok
+test native_compositor::raster_reuse::tests::unchanged_scene_does_no_raster_work_and_local_edit_keeps_distant_pixels ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 1149 filtered out; finished in 1.15s
+

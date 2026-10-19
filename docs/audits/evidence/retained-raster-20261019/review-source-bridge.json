@@ -1,0 +1,50 @@
+{
+  "measured_source": "65d06e007fe53560fc0c60be448c4d726ab8a773",
+  "review_source": "48f22c2a9d58242a7538403561bcbabf6af74260",
+  "base": "7f9748092732ecf2fc04e8992a2a914247b73173",
+  "raster_files": [
+    {
+      "file": "targets/conduitos/make/xtask/compositor_performance.rs",
+      "identical": true,
+      "measured_sha256": "108d038f9fd16a336d2e30fee52028b17544a5b51cb37b2aca616c28fa4d20bc",
+      "review_sha256": "108d038f9fd16a336d2e30fee52028b17544a5b51cb37b2aca616c28fa4d20bc"
+    },
+    {
+      "file": "targets/conduitos/src/native_compositor.rs",
+      "identical": true,
+      "measured_sha256": "5bf8d148bdc750aa2f911e6d9093adbfb4b37a9d3aadd2d2a32496859e82d640",
+      "review_sha256": "5bf8d148bdc750aa2f911e6d9093adbfb4b37a9d3aadd2d2a32496859e82d640"
+    },
+    {
+      "file": "targets/conduitos/src/native_compositor/frame_composition_tests.rs",
+      "identical": true,
+      "measured_sha256": "340bf9d1b2efb262d35e528089e5d7c6eb05bb00619cad2c137af84be08be4ac",
+      "review_sha256": "340bf9d1b2efb262d35e528089e5d7c6eb05bb00619cad2c137af84be08be4ac"
+    },
+    {
+      "file": "targets/conduitos/src/native_compositor/raster_reuse.rs",
+      "identical": true,
+      "measured_sha256": "dc211f20224f595ee7996bf0ad88560e00c6b1423cb5b64eae271ae7f6eaf0db",
+      "review_sha256": "dc211f20224f595ee7996bf0ad88560e00c6b1423cb5b64eae271ae7f6eaf0db"
+    },
+    {
+      "file": "targets/conduitos/src/native_compositor/raster_reuse/performance.rs",
+      "identical": true,
+      "measured_sha256": "8e24a97f2d1a325864030c01b2f2fb72741f5c4b3b2c5e9eb45a5dd2a3a9a4f2",
+      "review_sha256": "8e24a97f2d1a325864030c01b2f2fb72741f5c4b3b2c5e9eb45a5dd2a3a9a4f2"
+    },
+    {
+      "file": "targets/conduitos/src/native_compositor/raster_reuse/tests.rs",
+      "identical": true,
+      "measured_sha256": "61f096c3ff6ad7aed7dded26266bb22eb0a09b8010e8050c07665cabc7426a5f",
+      "review_sha256": "61f096c3ff6ad7aed7dded26266bb22eb0a09b8010e8050c07665cabc7426a5f"
+    },
+    {
+      "file": "targets/conduitos/src/native_compositor/surface_update.rs",
+      "identical": true,
+      "measured_sha256": "e716ecbab06bf8aa99d5ee4e3a379a5a4643d4886e319d1dd91a65a9354a9b85",
+      "review_sha256": "e716ecbab06bf8aa99d5ee4e3a379a5a4643d4886e319d1dd91a65a9354a9b85"
+    }
+  ],
+  "additional_work": "Host monotonic QMP/frame timestamps, bounded raw serial observer and source/image-bound startup/pointer-feedback reconstruction; seven isolated module tests pass. Full xtask build/live QEMU and actual latency measurements pending."
+}

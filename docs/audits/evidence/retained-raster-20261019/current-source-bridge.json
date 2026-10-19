@@ -1,0 +1,69 @@
+{
+  "old_source": "0f5aa42ed743ddcf3d317497db4a603bd43458b4",
+  "source": "78725ed7b4fd29cff6ac455d79505dc52f335230",
+  "base": "c10e6a265d5e1022d3d470639e2b99d3a3ac0f18",
+  "files_identical": 15,
+  "files": [
+    {
+      "path": "targets/conduitos/make/xtask/compositor_performance.rs",
+      "sha256": "108d038f9fd16a336d2e30fee52028b17544a5b51cb37b2aca616c28fa4d20bc"
+    },
+    {
+      "path": "targets/conduitos/make/xtask/journey_latency.rs",
+      "sha256": "640d9bb23040b145257ecb108a02e5ff9047328441c185defcfd09103aaed322"
+    },
+    {
+      "path": "targets/conduitos/make/xtask/journey_latency/typing.rs",
+      "sha256": "8efc2dbc43bac92faeac22910be50180422ce583cfdbcbce48a2dc1dc951309d"
+    },
+    {
+      "path": "targets/conduitos/make/xtask/journey_proof.rs",
+      "sha256": "3c893203aa8d113b1195b9cc1ff97ea41709bb3789b58971d96c4e7a6e0d6d81"
+    },
+    {
+      "path": "targets/conduitos/make/xtask/mod.rs",
+      "sha256": "e8cab5ec0b2da9e19245cb2a31486f0ab53b1599eee640f74c81a268deff9efc"
+    },
+    {
+      "path": "targets/conduitos/make/xtask/observation_clock.rs",
+      "sha256": "cf35a8dcbefece0fed0c5e3092268d0d72e8d6e108ed78e1320293d0ab9c3c7f"
+    },
+    {
+      "path": "targets/conduitos/make/xtask/qemu_artifacts.rs",
+      "sha256": "27b90e56632ec36bf26a4fd1d08a006b5eb5df1a1be4ec8978a0eeec66d66aff"
+    },
+    {
+      "path": "targets/conduitos/make/xtask/qmp.rs",
+      "sha256": "22c75338af269e80d6dc1201305c560b37604d134664a877fca70d5f801d8b94"
+    },
+    {
+      "path": "targets/conduitos/make/xtask/serial_observation.rs",
+      "sha256": "6ddbca80bc57bd946895485779a49e697ab6721166e627bdbd5519fdedad16ab"
+    },
+    {
+      "path": "targets/conduitos/src/native_compositor.rs",
+      "sha256": "5bf8d148bdc750aa2f911e6d9093adbfb4b37a9d3aadd2d2a32496859e82d640"
+    },
+    {
+      "path": "targets/conduitos/src/native_compositor/frame_composition_tests.rs",
+      "sha256": "340bf9d1b2efb262d35e528089e5d7c6eb05bb00619cad2c137af84be08be4ac"
+    },
+    {
+      "path": "targets/conduitos/src/native_compositor/raster_reuse.rs",
+      "sha256": "dc211f20224f595ee7996bf0ad88560e00c6b1423cb5b64eae271ae7f6eaf0db"
+    },
+    {
+      "path": "targets/conduitos/src/native_compositor/raster_reuse/performance.rs",
+      "sha256": "8e24a97f2d1a325864030c01b2f2fb72741f5c4b3b2c5e9eb45a5dd2a3a9a4f2"
+    },
+    {
+      "path": "targets/conduitos/src/native_compositor/raster_reuse/tests.rs",
+      "sha256": "61f096c3ff6ad7aed7dded26266bb22eb0a09b8010e8050c07665cabc7426a5f"
+    },
+    {
+      "path": "targets/conduitos/src/native_compositor/surface_update.rs",
+      "sha256": "e716ecbab06bf8aa99d5ee4e3a379a5a4643d4886e319d1dd91a65a9354a9b85"
+    }
+  ],
+  "scope": "Every file in the 11-commit graphics delta byte-identical after rebase; unchanged file identity does not replace combined-base validation or fresh performance captures."
+}

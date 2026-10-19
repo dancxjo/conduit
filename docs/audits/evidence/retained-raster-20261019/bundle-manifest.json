@@ -1,0 +1,150 @@
+{
+  "files": [
+    {
+      "file": "current-base-focused-tests.log",
+      "sha256": "d1c02dd3122ec1eb7ea9b1ea2068b1b12772e8d28c362b075e18476acf7b67de",
+      "bytes": 1574
+    },
+    {
+      "file": "current-base-full-xtask-clippy.log",
+      "sha256": "84e2bb83c6253f2f181df73be3ec25fef82dedf93aabe89b6df4946c0006b418",
+      "bytes": 12310
+    },
+    {
+      "file": "current-base-validation.json",
+      "sha256": "7cffb85afb68d808ffa99317633783e1770d6d3e67953f35c1d1f39b0026af30",
+      "bytes": 609
+    },
+    {
+      "file": "current-source-bridge.json",
+      "sha256": "832d377af43222e732be01428a2bb63ee0f0fb56ef63aafcb258ac2f04a50397",
+      "bytes": 2871
+    },
+    {
+      "file": "evidence.json",
+      "sha256": "7e6f2378fa9efed4a5134001185372383e7860243af6e0517f77f04596475ebc",
+      "bytes": 1031
+    },
+    {
+      "file": "fallback-all-target-clippy.log",
+      "sha256": "ecfa8a819b5ab0882cc8e4a251712e31f59191ad45b3b7022c6b25f8096a2848",
+      "bytes": 17695
+    },
+    {
+      "file": "fallback-isolated-1.log",
+      "sha256": "e1e7c04e9860e9eab119ca12570dfaabc01acbcbd8bddba3eac5797ba1ee634d",
+      "bytes": 5613
+    },
+    {
+      "file": "fallback-isolated-2.log",
+      "sha256": "b14f78200d20f6a790725b89b6f5c19b3896ea842a52d01fd9b1d37d8de4f744",
+      "bytes": 5621
+    },
+    {
+      "file": "fallback-isolated-3.log",
+      "sha256": "ab95f9ace74a276b0dc1822b39a9c7e2e0e99d9e0f3dd11c4b2aba4da6dbc0ea",
+      "bytes": 5613
+    },
+    {
+      "file": "fallback-isolated.json",
+      "sha256": "136d8faeba37e67133abb44bfe9283cc3e9701a0e200281d7aae9328308d4679",
+      "bytes": 22025
+    },
+    {
+      "file": "fallback-supported-command.log",
+      "sha256": "62f775b5989c4c2c9b2f3ff6a96291de997cc595f274209db71d470f108ae13e",
+      "bytes": 12259
+    },
+    {
+      "file": "full-graphical-profile-proof.json",
+      "sha256": "fa31c5249db89c784014f54bac567e76cb529018b20685e6c5a16908bd27f1c5",
+      "bytes": 1230
+    },
+    {
+      "file": "full-graphical-profile-proof.log",
+      "sha256": "5b370d6726a47b3f41f4ddd894b09e1cb77ac8d1a5077191ea3b0d1a4c297627",
+      "bytes": 253449
+    },
+    {
+      "file": "full-xtask-clippy.log",
+      "sha256": "b3feecb3eebb80626ccae4aee01d2145e9a298e6b63ebb5bb5dfc4c60986f611",
+      "bytes": 21465
+    },
+    {
+      "file": "live-conformance-1-archive-manifest.json",
+      "sha256": "92c225e18111e9abf21e32bea11c27ecfa2d49442d0b9d4db354b252460e2634",
+      "bytes": 7041
+    },
+    {
+      "file": "live-conformance-1-mutations.json",
+      "sha256": "3ad482ed520d97d4860c9ba5ebdcada3cbb0deeff071547de71954e96c80b560",
+      "bytes": 1169
+    },
+    {
+      "file": "live-conformance-1-rgba-verification.json",
+      "sha256": "a423556cbff7d9616ebe8d333a288aeffed47bc5b8753c6b874759361cbe25d2",
+      "bytes": 637
+    },
+    {
+      "file": "live-conformance-1.tar.xz",
+      "sha256": "5da68e99c8148f43d8f115db8ace53c66419d3d16178b6b28d644cdb9b6b5cdb",
+      "bytes": 6037056
+    },
+    {
+      "file": "review-source-bridge.json",
+      "sha256": "05c61eb1065f43667d798752c2aecac61868aa94991673a2735d0b1b0b4c3572",
+      "bytes": 2539
+    },
+    {
+      "file": "test-live-conformance-verifier.py",
+      "sha256": "3a757e97cc671b8c3d4b5784e390e17da059bbc5c48ded500720f6116ec93963",
+      "bytes": 4600
+    },
+    {
+      "file": "test-typing-reconstruction.py",
+      "sha256": "8b97a95f066f1f9c9f7565c900ae29a18dc4e9466d7ca9ae7debc999e59c1a99",
+      "bytes": 3697
+    },
+    {
+      "file": "typing-independent-mutations.json",
+      "sha256": "249549b0690d39bdb8238869d0c658f314acdbcf450e1b2a0d755b330f5826fe",
+      "bytes": 635
+    },
+    {
+      "file": "typing-independent-reconstruction-verification.json",
+      "sha256": "7dbca547f03f30b2cdf324a7e31ec8b7e4c5b301999c5233c3d5ea73dacd0bb1",
+      "bytes": 760
+    },
+    {
+      "file": "typing-latency-clippy.log",
+      "sha256": "4b13c9377000ee76a2d69c807122bd577637c1e788b37b8eae841c8925fbdd56",
+      "bytes": 490
+    },
+    {
+      "file": "typing-latency-tests.log",
+      "sha256": "2e8a530fdf283c3c94fc57966ff3d696e8c7d36c95e272ef4eec8dc2d9ba9ba4",
+      "bytes": 4293
+    },
+    {
+      "file": "typing-retained-transcript-reconstruction-receipt.json",
+      "sha256": "d1710421cee2f26f8400e7e7a30cbdfa45def2048319e34eb67a8b06f464b4d3",
+      "bytes": 629
+    },
+    {
+      "file": "typing-retained-transcript-reconstruction.json",
+      "sha256": "6852d8a3314d3624b283f7e8cc452d3dbed8f07e91c3163be7652ffc281a6593",
+      "bytes": 8934
+    },
+    {
+      "file": "verify-live-conformance.py",
+      "sha256": "603c07455c35382d76be7d5397dd6c785dbfffca1907c3f71409248bc272b51d",
+      "bytes": 7395
+    },
+    {
+      "file": "verify-typing-reconstruction.py",
+      "sha256": "99e96310e451f3d8cd37e84dac8ecfd36c74228af0a9b5b36fd1760ecc332244",
+      "bytes": 5682
+    }
+  ],
+  "scope": "Source-bound raster and QEMU conformance, current-base focused tests and xtask lint. No accepted idle comparison or stable acceptance."
+}

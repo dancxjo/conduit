@@ -1,0 +1,39 @@
+{
+  "archive_sha256": "5da68e99c8148f43d8f115db8ace53c66419d3d16178b6b28d644cdb9b6b5cdb",
+  "cases": [
+    {
+      "mutation": "wrong source with refreshed latency hash",
+      "refused": true
+    },
+    {
+      "mutation": "changed feedback duration with refreshed latency hash",
+      "refused": true
+    },
+    {
+      "mutation": "serial coverage gap with refreshed observation hash",
+      "refused": true
+    },
+    {
+      "mutation": "missing final drain with refreshed observation hash",
+      "refused": true
+    },
+    {
+      "mutation": "QMP clock precedes observer epoch",
+      "refused": true
+    },
+    {
+      "mutation": "reused prior pointer gesture",
+      "refused": true
+    },
+    {
+      "mutation": "forged pixel digest despite genuine PNG file hash",
+      "refused": true
+    },
+    {
+      "mutation": "duplicate acknowledgement within one QMP request lifetime",
+      "refused": true
+    }
+  ],
+  "all_refused": true,
+  "scope": "Semantic verifier tests on relocated capture, with internal latency/observation hashes refreshed. Archive-container custody is verified separately. Original capture restored and reverified after mutations."
+}

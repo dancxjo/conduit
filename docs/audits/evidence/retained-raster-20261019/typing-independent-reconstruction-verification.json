@@ -1,0 +1,12 @@
+{
+  "source": "48f22c2a9d58242a7538403561bcbabf6af74260",
+  "image_sha256": "7ff8f131097fe0f799a6e00bc4a95aef1dbfe93c8ac83e194310891a839333f0",
+  "checkpoints_verified": 22,
+  "png_hashes_and_dimensions_verified": 22,
+  "independent_rgba_pixel_digests_verified": 22,
+  "serial_records_verified": 199,
+  "incomplete_serial_tail_bytes": 0,
+  "pointer_rows_reconstructed": 2,
+  "scope": "Relocated raw evidence and exact host-observation reconstruction. PNG integrity, dimensions and all 22 RGBA pixel digests independently decoded with Pillow. Conformance-only run; no accepted performance comparison or physical display latency claim. Six serialized editor transitions verified; no sustained-throughput claim.",
+  "typing_rows_independently_reconstructed": 6
+}

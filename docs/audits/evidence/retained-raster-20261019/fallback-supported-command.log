@@ -1,0 +1,111 @@
+    Finished `dev` profile [unoptimized] target(s) in 0.12s
+     Running `/home/dancxjo/Documents/Codex/2026-10-18/goal-optimize-performance-referenced-pasted-text/work/compositor-proof-target/debug/conduit-xtask-dispatch make conduitos compositor-performance`
+   Compiling ring v0.17.14
+   Compiling conduit-browser-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-18/goal-optimize-performance-referenced-pasted-text/work/conduit-raster/targets/browser/runtime)
+   Compiling rustls-webpki v0.103.15
+   Compiling rustls v0.23.45
+   Compiling ureq v3.4.2
+   Compiling conduit-patchbay-workbench v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-18/goal-optimize-performance-referenced-pasted-text/work/conduit-raster/plots/patchbay/workbench/model)
+   Compiling conduit-std-host v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-18/goal-optimize-performance-referenced-pasted-text/work/conduit-raster/targets/std)
+   Compiling xtask v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-18/goal-optimize-performance-referenced-pasted-text/work/conduit-raster/tools/xtask)
+    Finished `dev` profile [unoptimized] target(s) in 32.82s
+     Running `/home/dancxjo/Documents/Codex/2026-10-18/goal-optimize-performance-referenced-pasted-text/work/compositor-proof-target/debug/xtask make conduitos compositor-performance`
+cargo test --locked --config profile.dev.package.conduitos.opt-level=3 --config profile.dev.debug=0 --config profile.dev.incremental=false -p conduitos --features native-compositor --lib -- --include-ignored --test-threads=1 --nocapture native_compositor::frame_composition display::raw native_compositor::raster_reuse
+
+running 18 tests
+test display::raw::tests::default_span_stops_at_the_exact_pixel_error_and_mutable_targets_forward_overrides ... ok
+test display::raw::tests::invalid_spans_and_lost_scanout_preserve_the_entire_buffer ... ok
+test display::raw::tests::volatile_scanout_performance ... volatile-scanout mode=0 repeat=0 frames=16 wall_ns=5166179
+volatile-scanout mode=1 repeat=0 frames=16 wall_ns=4377371
+volatile-scanout mode=2 repeat=0 frames=16 wall_ns=667750
+volatile-scanout mode=2 repeat=1 frames=16 wall_ns=672747
+volatile-scanout mode=1 repeat=1 frames=16 wall_ns=3346259
+volatile-scanout mode=0 repeat=1 frames=16 wall_ns=4343436
+volatile-scanout mode=0 repeat=2 frames=16 wall_ns=4294696
+volatile-scanout mode=1 repeat=2 frames=16 wall_ns=3287189
+volatile-scanout mode=2 repeat=2 frames=16 wall_ns=696058
+volatile-scanout mode=2 repeat=3 frames=16 wall_ns=660151
+volatile-scanout mode=1 repeat=3 frames=16 wall_ns=3277244
+volatile-scanout mode=0 repeat=3 frames=16 wall_ns=4292454
+volatile-scanout mode=0 repeat=4 frames=16 wall_ns=4292801
+volatile-scanout mode=1 repeat=4 frames=16 wall_ns=3314853
+volatile-scanout mode=2 repeat=4 frames=16 wall_ns=680208
+ok
+test display::raw::tests::word_and_span_scanout_match_bytes_for_all_alignments_and_pitch_padding ... ok
+test native_compositor::frame_composition::differential::focus_and_cursor_edges_keep_surface_interiors_on_the_span_path ... ok
+test native_compositor::frame_composition::differential::invalid_damage_refuses_without_scanout ... ok
+test native_compositor::frame_composition::differential::span_compositor_performance ... span-compositor case=full repeat=0 frames=16 reference_ns=103319266 spans_ns=3434973
+span-compositor case=full repeat=1 frames=16 reference_ns=103361183 spans_ns=3712230
+span-compositor case=full repeat=2 frames=16 reference_ns=103028591 spans_ns=3569535
+span-compositor case=full repeat=3 frames=16 reference_ns=103969629 spans_ns=3493875
+span-compositor case=full repeat=4 frames=16 reference_ns=106412939 spans_ns=3637572
+span-compositor case=tiny repeat=0 frames=65536 reference_ns=1542118 spans_ns=1416801
+span-compositor case=tiny repeat=1 frames=65536 reference_ns=1521369 spans_ns=1413412
+span-compositor case=tiny repeat=2 frames=65536 reference_ns=1515049 spans_ns=1429985
+span-compositor case=tiny repeat=3 frames=65536 reference_ns=1566033 spans_ns=1449713
+span-compositor case=tiny repeat=4 frames=65536 reference_ns=1562883 spans_ns=1438258
+span-compositor case=scroll repeat=0 frames=16 reference_ns=22890461 spans_ns=983554
+span-compositor case=scroll repeat=1 frames=16 reference_ns=22858217 spans_ns=972286
+span-compositor case=scroll repeat=2 frames=16 reference_ns=23547987 spans_ns=1145958
+span-compositor case=scroll repeat=3 frames=16 reference_ns=23214236 spans_ns=1000224
+span-compositor case=scroll repeat=4 frames=16 reference_ns=22914033 spans_ns=914466
+span-compositor case=hover repeat=0 frames=4096 reference_ns=18769956 spans_ns=4391029
+span-compositor case=hover repeat=1 frames=4096 reference_ns=18408056 spans_ns=4315889
+span-compositor case=hover repeat=2 frames=4096 reference_ns=18565923 spans_ns=4331956
+span-compositor case=hover repeat=3 frames=4096 reference_ns=18432693 spans_ns=4244597
+span-compositor case=hover repeat=4 frames=4096 reference_ns=18434518 spans_ns=4342159
+span-compositor case=typing repeat=0 frames=1024 reference_ns=55685921 spans_ns=3233667
+span-compositor case=typing repeat=1 frames=1024 reference_ns=55180696 spans_ns=3365962
+span-compositor case=typing repeat=2 frames=1024 reference_ns=55534971 spans_ns=3342560
+span-compositor case=typing repeat=3 frames=1024 reference_ns=53973813 spans_ns=3348308
+span-compositor case=typing repeat=4 frames=1024 reference_ns=57415975 spans_ns=3147210
+ok
+test native_compositor::frame_composition::differential::spans_match_reference_pixels_coverage_and_partial_failure ... ok
+test native_compositor::frame_composition::tests::cursor_bitmap_has_outline_fill_stem_and_exact_hotspot ... ok
+test native_compositor::raster_reuse::performance::retained_raster_performance ... retained-raster case=full repeat=0 frames=64 reference_ns=15721351 retained_ns=9044582 reference_pixels=20170752 retained_pixels=20170752 reference_commands=320 retained_commands=320
+retained-raster case=full repeat=1 frames=64 reference_ns=8943585 retained_ns=9162723 reference_pixels=20170752 retained_pixels=20170752 reference_commands=320 retained_commands=320
+retained-raster case=full repeat=2 frames=64 reference_ns=8937031 retained_ns=9173338 reference_pixels=20170752 retained_pixels=20170752 reference_commands=320 retained_commands=320
+retained-raster case=full repeat=3 frames=64 reference_ns=9042607 retained_ns=9102982 reference_pixels=20170752 retained_pixels=20170752 reference_commands=320 retained_commands=320
+retained-raster case=full repeat=4 frames=64 reference_ns=8960343 retained_ns=9169445 reference_pixels=20170752 retained_pixels=20170752 reference_commands=320 retained_commands=320
+retained-raster case=tiny repeat=0 frames=64 reference_ns=8930794 retained_ns=218489 reference_pixels=20170752 retained_pixels=512 reference_commands=320 retained_commands=128
+retained-raster case=tiny repeat=1 frames=64 reference_ns=8904980 retained_ns=209625 reference_pixels=20170752 retained_pixels=512 reference_commands=320 retained_commands=128
+retained-raster case=tiny repeat=2 frames=64 reference_ns=8959944 retained_ns=234063 reference_pixels=20170752 retained_pixels=512 reference_commands=320 retained_commands=128
+retained-raster case=tiny repeat=3 frames=64 reference_ns=8994667 retained_ns=210100 reference_pixels=20170752 retained_pixels=512 reference_commands=320 retained_commands=128
+retained-raster case=tiny repeat=4 frames=64 reference_ns=8902757 retained_ns=236567 reference_pixels=20170752 retained_pixels=512 reference_commands=320 retained_commands=128
+retained-raster case=scroll repeat=0 frames=64 reference_ns=9002180 retained_ns=7087581 reference_pixels=20170752 retained_pixels=6726656 reference_commands=320 retained_commands=128
+retained-raster case=scroll repeat=1 frames=64 reference_ns=8925883 retained_ns=7015783 reference_pixels=20170752 retained_pixels=6726656 reference_commands=320 retained_commands=128
+retained-raster case=scroll repeat=2 frames=64 reference_ns=8945936 retained_ns=7074176 reference_pixels=20170752 retained_pixels=6726656 reference_commands=320 retained_commands=128
+retained-raster case=scroll repeat=3 frames=64 reference_ns=8921364 retained_ns=7018948 reference_pixels=20170752 retained_pixels=6726656 reference_commands=320 retained_commands=128
+retained-raster case=scroll repeat=4 frames=64 reference_ns=8904645 retained_ns=7016327 reference_pixels=20170752 retained_pixels=6726656 reference_commands=320 retained_commands=128
+retained-raster case=hover repeat=0 frames=64 reference_ns=8927112 retained_ns=384134 reference_pixels=20170752 retained_pixels=97536 reference_commands=320 retained_commands=128
+retained-raster case=hover repeat=1 frames=64 reference_ns=8917899 retained_ns=355261 reference_pixels=20170752 retained_pixels=97536 reference_commands=320 retained_commands=128
+retained-raster case=hover repeat=2 frames=64 reference_ns=8947332 retained_ns=374109 reference_pixels=20170752 retained_pixels=97536 reference_commands=320 retained_commands=128
+retained-raster case=hover repeat=3 frames=64 reference_ns=8969610 retained_ns=355560 reference_pixels=20170752 retained_pixels=97536 reference_commands=320 retained_commands=128
+retained-raster case=hover repeat=4 frames=64 reference_ns=9076176 retained_ns=394470 reference_pixels=20170752 retained_pixels=97536 reference_commands=320 retained_commands=128
+retained-raster case=typing repeat=0 frames=64 reference_ns=8988468 retained_ns=335846 reference_pixels=20174368 retained_pixels=103456 reference_commands=320 retained_commands=128
+retained-raster case=typing repeat=1 frames=64 reference_ns=9131560 retained_ns=297539 reference_pixels=20174368 retained_pixels=103456 reference_commands=320 retained_commands=128
+retained-raster case=typing repeat=2 frames=64 reference_ns=9166999 retained_ns=339061 reference_pixels=20174368 retained_pixels=103456 reference_commands=320 retained_commands=128
+retained-raster case=typing repeat=3 frames=64 reference_ns=9084347 retained_ns=307167 reference_pixels=20174368 retained_pixels=103456 reference_commands=320 retained_commands=128
+retained-raster case=typing repeat=4 frames=64 reference_ns=9078343 retained_ns=326722 reference_pixels=20174368 retained_pixels=103456 reference_commands=320 retained_commands=128
+ok
+test native_compositor::raster_reuse::tests::edited_public_fields_that_break_canonical_scene_refuse_reuse ... ok
+test native_compositor::raster_reuse::tests::failed_render_does_not_produce_success_receipt ... ok
+test native_compositor::raster_reuse::tests::failed_scene_invalidates_old_pixels_and_cannot_advance_revision ... ok
+test native_compositor::raster_reuse::tests::incremental_pixels_match_fresh_raster_across_edits_order_clips_and_blending ... ok
+test native_compositor::raster_reuse::tests::palette_and_scale_change_force_full_raster_under_new_exact_receipt ... ok
+test native_compositor::raster_reuse::tests::raster_reuse_and_scene_eligibility_allocate_no_storage ... ok
+test native_compositor::raster_reuse::tests::reuse_keeps_revision_identity_and_resize_fences ... ok
+test native_compositor::raster_reuse::tests::unchanged_scene_does_no_raster_work_and_local_edit_keeps_distant_pixels ... ok
+
+test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 1140 filtered out; finished in 10.84s
+
+   Compiling ring v0.17.14
+   Compiling conduit-browser-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-18/goal-optimize-performance-referenced-pasted-text/work/conduit-raster/targets/browser/runtime)
+   Compiling rustls-webpki v0.103.15
+   Compiling rustls v0.23.45
+   Compiling ureq v3.4.2
+   Compiling conduit-std-host v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-18/goal-optimize-performance-referenced-pasted-text/work/conduit-raster/targets/std)
+   Compiling conduitos v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-18/goal-optimize-performance-referenced-pasted-text/work/conduit-raster/targets/conduitos)
+    Finished `test` profile [unoptimized] target(s) in 2m 00s
+     Running unittests src/lib.rs (/home/dancxjo/Documents/Codex/2026-10-18/goal-optimize-performance-referenced-pasted-text/work/compositor-proof-target/debug/deps/conduitos-6af93890a0b0c406)
+Compositor and reference use opt-level 3 with debug assertions. Raw wall batches include memory target checks; no QEMU, physical display, input-latency or universal speedup claim.

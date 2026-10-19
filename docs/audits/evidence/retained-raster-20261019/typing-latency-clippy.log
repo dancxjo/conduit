@@ -1,0 +1,7 @@
+    Checking ring v0.17.14
+    Checking rustls-webpki v0.103.15
+    Checking rustls v0.23.45
+    Checking ureq v3.4.2
+    Checking conduit-std-host v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-18/goal-optimize-performance-referenced-pasted-text/work/conduit-raster/targets/std)
+    Checking xtask v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-18/goal-optimize-performance-referenced-pasted-text/work/conduit-raster/tools/xtask)
+    Finished `dev` profile [unoptimized] target(s) in 17.06s

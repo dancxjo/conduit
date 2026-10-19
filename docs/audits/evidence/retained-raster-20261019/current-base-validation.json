@@ -1,0 +1,13 @@
+{
+  "product_source": "78725ed7b4fd29cff6ac455d79505dc52f335230",
+  "base": "c10e6a265d5e1022d3d470639e2b99d3a3ac0f18",
+  "clippy": "Actual xtask all targets warnings denied passed",
+  "raster_tests": {
+    "passed": 8,
+    "failed": 0,
+    "ignored": 1,
+    "scope": "Optional timing fixture skipped;8 normal differential/refusal tests passed. First compile refused sparse-omitted tracked native-face snapshot fixture; restored exact tracked file then reran successfully."
+  },
+  "format": "xtask+conduitos passed",
+  "remaining": "Fresh idle QEMU timing, full combined integration and release acceptance"
+}

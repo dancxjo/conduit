@@ -1,0 +1,182 @@
+{
+  "source": "48f22c2a9d58242a7538403561bcbabf6af74260",
+  "image_sha256": "7ff8f131097fe0f799a6e00bc4a95aef1dbfe93c8ac83e194310891a839333f0",
+  "proof_class": "freestanding-emulator",
+  "scope": "Completed 22-checkpoint real QEMU journey, two correlated pointer actions, timed raw serial/QMP evidence. First run predeclared conformance-only under active builds/tests; not accepted timing. Full graphical-profile headless-asset gate still running.",
+  "archive": "live-conformance-1.tar.xz",
+  "bytes": 6037056,
+  "sha256": "5da68e99c8148f43d8f115db8ace53c66419d3d16178b6b28d644cdb9b6b5cdb",
+  "all_members_length_and_sha256_verified": true,
+  "members": [
+    {
+      "path": "live-conformance-1/first-run-role.json",
+      "bytes": 483,
+      "sha256": "a2972c50ef56927ac008d2f827c2844487d7b99894bb98acad6dbe858326e63e"
+    },
+    {
+      "path": "live-conformance-1/guest/build-manifest.json",
+      "bytes": 4269,
+      "sha256": "7d2d7bccb06581f38118aa2ab582521dfee224e75eda0fbc7f11b0ab2592e2aa"
+    },
+    {
+      "path": "live-conformance-1/guest/conduitos.iso",
+      "bytes": 20865024,
+      "sha256": "7ff8f131097fe0f799a6e00bc4a95aef1dbfe93c8ac83e194310891a839333f0"
+    },
+    {
+      "path": "live-conformance-1/journey-frames/body-born.png",
+      "bytes": 103268,
+      "sha256": "640c32fd4508c056cf267be55f3cb8686737ccc3e526c7b58030cc308d63ae51"
+    },
+    {
+      "path": "live-conformance-1/journey-frames/body-planned.png",
+      "bytes": 102931,
+      "sha256": "f20fb75fcb2d66fbc4bf22ab67fcef5c9a498a368d93d675dae7c61bf068f1c0"
+    },
+    {
+      "path": "live-conformance-1/journey-frames/body-playing.png",
+      "bytes": 109043,
+      "sha256": "05d9cc7c8a24cbab43f975f341ba614cc07dbff25ecfa51df9a86443f6a17161"
+    },
+    {
+      "path": "live-conformance-1/journey-frames/body-stopped.png",
+      "bytes": 199887,
+      "sha256": "29ac3721f0cad453768e4815ab5eebc8509a3dece14bddbb0baedfb9738e2834"
+    },
+    {
+      "path": "live-conformance-1/journey-frames/body-woken.png",
+      "bytes": 101721,
+      "sha256": "2e282852cd8894cbe691ada3b59bfa44858e248a02b3bcf986fa8d520da2be83"
+    },
+    {
+      "path": "live-conformance-1/journey-frames/creche-four-restored.png",
+      "bytes": 114865,
+      "sha256": "69869a4bc92db695975bf113184963260d4f8631438391a9a82e067aac6c71db"
+    },
+    {
+      "path": "live-conformance-1/journey-frames/creche-fourth-checked.png",
+      "bytes": 228597,
+      "sha256": "1cb62f8c2964a62fcca6074299e3e7c2c1a534d95fe0dd4cef7c3614ac11cde3"
+    },
+    {
+      "path": "live-conformance-1/journey-frames/creche-pointer-four-restored.png",
+      "bytes": 228795,
+      "sha256": "746c792d50ea1fc827fb379abb2cafe2e8362cd0203c9dcba38d71f23a20f3a4"
+    },
+    {
+      "path": "live-conformance-1/journey-frames/creche-pointer-three-selected.png",
+      "bytes": 259251,
+      "sha256": "66fce2092414f2e0ec41e36d28af0dc8982f42beb1bae9495f9dadbcc9741606"
+    },
+    {
+      "path": "live-conformance-1/journey-frames/creche-three-selected.png",
+      "bytes": 113534,
+      "sha256": "09b587b47127ef5da99660b24a702d79dcfaf3163ebeb4fe1a7f15067103e928"
+    },
+    {
+      "path": "live-conformance-1/journey-frames/front-door-ready.png",
+      "bytes": 114863,
+      "sha256": "9d3d3ee79c6b6c0469e7d5bc552941b18cf746b4b6224953f5a8ab358c7cae97"
+    },
+    {
+      "path": "live-conformance-1/journey-frames/home-returned.png",
+      "bytes": 105720,
+      "sha256": "3401a58c794bd45938d5fadc85ca3847806960af4c1fcc73906b8f29e9c65cc6"
+    },
+    {
+      "path": "live-conformance-1/journey-frames/home.png",
+      "bytes": 107677,
+      "sha256": "53dbf7db82388d68ecbfb1221b1460eac646b9c1e32e1945d849c1394d13a9ba"
+    },
+    {
+      "path": "live-conformance-1/journey-frames/latency.json",
+      "bytes": 4143,
+      "sha256": "22fe63971434fa62f43721dc22cc0c6c705e2bd0829a1e6f830b5f9b6ed0f7af"
+    },
+    {
+      "path": "live-conformance-1/journey-frames/manifest.json",
+      "bytes": 413774,
+      "sha256": "c87cc35bc939186739f7c5ea4037ff580fcba33b9b208e72f4725dcaadaeabe1"
+    },
+    {
+      "path": "live-conformance-1/journey-frames/patchbay-diagram-returned.png",
+      "bytes": 141216,
+      "sha256": "51a3dfec52b2664b11145140b2671e06d873c771b06ab6a69157a85ac8183206"
+    },
+    {
+      "path": "live-conformance-1/journey-frames/patchbay-diagram.png",
+      "bytes": 141216,
+      "sha256": "51a3dfec52b2664b11145140b2671e06d873c771b06ab6a69157a85ac8183206"
+    },
+    {
+      "path": "live-conformance-1/journey-frames/patchbay-face.png",
+      "bytes": 242047,
+      "sha256": "0d2ff7f9c28f9c675228282f8259f1c89ae4e747a23815cf6cdd2f9851343ee9"
+    },
+    {
+      "path": "live-conformance-1/journey-frames/patchbay-gear-details.png",
+      "bytes": 262887,
+      "sha256": "839bd571acc6422da2fa78965742f5280f836741af00cb207ba8adf6027fd292"
+    },
+    {
+      "path": "live-conformance-1/journey-frames/patchbay-reentered.png",
+      "bytes": 55581,
+      "sha256": "dedf01f992837d2dd69cd81e10d00148b3f0b939250c36d8095579409ef5dacf"
+    },
+    {
+      "path": "live-conformance-1/journey-frames/patchbay-workspace.png",
+      "bytes": 108316,
+      "sha256": "f0400b697be7cdd503f610c82d549f474b94f439293825111d087362babf19a2"
+    },
+    {
+      "path": "live-conformance-1/journey-frames/protected-keyboard-canvas.png",
+      "bytes": 69300,
+      "sha256": "36af62c6b8faaafdc42ec9f88ec20446036b6a42e33bc5ed4da88c35f323691e"
+    },
+    {
+      "path": "live-conformance-1/journey-frames/protected-memory-lantern.png",
+      "bytes": 66626,
+      "sha256": "1f0fb4484d7a92134705a81fedfa00a5a8781d63fbc3dcbf54057bde84ac7726"
+    },
+    {
+      "path": "live-conformance-1/journey-frames/serial-observations.jsonl",
+      "bytes": 61988,
+      "sha256": "093d91119663ade5548a688667497e4b1bee5b7e990c6c806b39981c76b78437"
+    },
+    {
+      "path": "live-conformance-1/journey-frames/wake-refused.png",
+      "bytes": 115867,
+      "sha256": "a26c312d373683a4c8ab0840e24b94c5f6a6a76a97a0db9c565c6d4f343e2d27"
+    },
+    {
+      "path": "live-conformance-1/journey-proof.json",
+      "bytes": 12917,
+      "sha256": "b9cd8401c662bb627e9565eda6a9f3c7d22b7ef776e798821b7760e2170cb00a"
+    },
+    {
+      "path": "live-conformance-1/journey-qemu-stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "live-conformance-1/journey-qmp.log",
+      "bytes": 63386,
+      "sha256": "363b5621ef9435ad8a190e9badd56502470730c08a27f3db79459c1355ba48fd"
+    },
+    {
+      "path": "live-conformance-1/journey-serial.log",
+      "bytes": 731495,
+      "sha256": "3c501a1a592bcaef49600bba209629ea79eb30db052c45b71b7c3f2bdb556bcf"
+    },
+    {
+      "path": "live-conformance-1/memory-lantern-native-edit.json",
+      "bytes": 5856,
+      "sha256": "435b1f9852febfb74e0ef0f1f425738dfbf8130bedfa445b0c6d4820d689f8a4"
+    },
+    {
+      "path": "live-conformance-1/native-shell-paired-linear.json",
+      "bytes": 1320477,
+      "sha256": "7e6436fa5c2ba3a045141f592bb2be9cc3938bf56bf11fa12276a5a093e8a2e2"
+    }
+  ]
+}

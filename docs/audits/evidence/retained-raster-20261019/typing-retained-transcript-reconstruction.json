@@ -1,0 +1,232 @@
+{
+  "boot_stage_observations": [
+    {
+      "observed_ns": 816356314,
+      "serial_byte_start": 116,
+      "stage": "xhci-start"
+    },
+    {
+      "observed_ns": 817517963,
+      "serial_byte_start": 146,
+      "stage": "xhci-ready"
+    },
+    {
+      "observed_ns": 817517963,
+      "serial_byte_start": 176,
+      "stage": "usb-enumeration-start"
+    },
+    {
+      "observed_ns": 819747945,
+      "serial_byte_start": 217,
+      "stage": "usb-configured"
+    },
+    {
+      "observed_ns": 819747945,
+      "serial_byte_start": 251,
+      "stage": "machine-gdt"
+    },
+    {
+      "observed_ns": 819747945,
+      "serial_byte_start": 282,
+      "stage": "machine-idt"
+    },
+    {
+      "observed_ns": 819747945,
+      "serial_byte_start": 313,
+      "stage": "machine-pic"
+    },
+    {
+      "observed_ns": 819903873,
+      "serial_byte_start": 344,
+      "stage": "machine-acpi"
+    },
+    {
+      "observed_ns": 822051110,
+      "serial_byte_start": 410,
+      "stage": "machine-controller"
+    },
+    {
+      "observed_ns": 822051110,
+      "serial_byte_start": 448,
+      "stage": "machine-ready"
+    },
+    {
+      "observed_ns": 829171417,
+      "serial_byte_start": 2567,
+      "stage": "hid-start"
+    },
+    {
+      "observed_ns": 831353676,
+      "serial_byte_start": 2596,
+      "stage": "local-rescue-ready"
+    },
+    {
+      "observed_ns": 835151026,
+      "serial_byte_start": 3380,
+      "stage": "identities"
+    },
+    {
+      "observed_ns": 20686211448,
+      "serial_byte_start": 23771,
+      "stage": "front-door-ready"
+    },
+    {
+      "observed_ns": 20686211448,
+      "serial_byte_start": 23839,
+      "stage": "hid-awaiting-qemu-key"
+    }
+  ],
+  "first_framebuffer": {
+    "checkpoint": "front-door-ready",
+    "height": 800,
+    "non_background_pixels": 1014992,
+    "pixel_format": "RGBA8",
+    "pixel_sha256": "387b326bc4012b6c6f93f803e85827d244379d31f7962b2078d38f75a8beb62c",
+    "png": "front-door-ready.png",
+    "png_bytes": 114863,
+    "png_sha256": "9d3d3ee79c6b6c0469e7d5bc552941b18cf746b4b6224953f5a8ab358c7cae97",
+    "width": 1280
+  },
+  "first_framebuffer_capture_completed_ns": 20870604654,
+  "host_observer_start_ns": 244,
+  "host_observer_to_front_door_ready_ns": 20686211204,
+  "image_sha256": "7ff8f131097fe0f799a6e00bc4a95aef1dbfe93c8ac83e194310891a839333f0",
+  "missing_metrics": [
+    "guest boot-entry clock",
+    "sustained typing throughput",
+    "separate build/check/seal/prepare/Play costs"
+  ],
+  "observer_clock": "host/process-monotonic-nanoseconds@1",
+  "physical_evidence": false,
+  "pointer_actions": [
+    {
+      "after_show_id": "show/73c31de579d6814445a6f32b1e83a76150cb68d641be8084830a77b2319f46dd",
+      "before_show_id": "show/f898c9759485b45d972e1f417961862e4456d4946659de5a3613dd72202f3788",
+      "change_serial_byte_start": 85063,
+      "command_ns": 21650779995,
+      "command_to_checkbox_present_observed_ns": 81198601,
+      "command_to_pointer_render_observed_ns": 6170884,
+      "physical_sequence": 4,
+      "pointer_serial_byte_start": 66160,
+      "qmp_accepted_ns": 21651273390,
+      "qmp_id": "20:creche-pointer-press"
+    },
+    {
+      "after_show_id": "show/11be0371384ef87ad7652b211dfdaf06f7ecbfa748ce6c5fd7cddad962059e20",
+      "before_show_id": "show/73c31de579d6814445a6f32b1e83a76150cb68d641be8084830a77b2319f46dd",
+      "change_serial_byte_start": 106723,
+      "command_ns": 21934894208,
+      "command_to_checkbox_present_observed_ns": 75031069,
+      "command_to_pointer_render_observed_ns": 2358268,
+      "physical_sequence": 8,
+      "pointer_serial_byte_start": 87504,
+      "qmp_accepted_ns": 21935333334,
+      "qmp_id": "25:creche-pointer-press"
+    }
+  ],
+  "proof_class": "freestanding-emulator",
+  "schema": "conduit.conduitos/host-observed-latency@1",
+  "scope": "Host-observed upper bounds include guest work, serial output, host scheduling and observer delay. QMP acceptance is distinct from guest consumption. No physical scanout or exact first-paint time is established.",
+  "source_commit": "48f22c2a9d58242a7538403561bcbabf6af74260",
+  "source_scope": "host proof producer; image_sha256 identifies the supplied guest image",
+  "typing_actions": [
+    {
+      "command_ns": 108754697860,
+      "command_to_rendered_journey_observed_ns": 60259837,
+      "face_id": "86e1a06ad19d53d1885239b2f831fe900334e59c44067702bd5e98ec166f7293",
+      "input_sign_id": "conduitos/product/input/body-play/sha256:0527de93688a44f460365951b5d2a0c0406286b1f37370859b5728e296be5609/2",
+      "keys": [
+        "a"
+      ],
+      "manifestation_id": "4071868eae94ee0ea53f7a6b6de58c8db6ac8326877c749060c79675b49a2258",
+      "qmp_accepted_ns": 108755218225,
+      "qmp_id": "70:journey-protected-text-input",
+      "result": "a",
+      "result_sign_id": "conduitos/product/result/body-play/sha256:0527de93688a44f460365951b5d2a0c0406286b1f37370859b5728e296be5609/2/2",
+      "revision": 14,
+      "serial_byte_start": 354790
+    },
+    {
+      "command_ns": 108818261778,
+      "command_to_rendered_journey_observed_ns": 83614131,
+      "face_id": "c5ce6bff826b112adf2c92628a43bf6ed78f3a4f9ed1a15e39af2c405108afed",
+      "input_sign_id": "conduitos/product/input/body-play/sha256:0527de93688a44f460365951b5d2a0c0406286b1f37370859b5728e296be5609/4",
+      "keys": [
+        "backspace"
+      ],
+      "manifestation_id": "d94dadf4b8997389951beaf4ecf35f86ab004b3ab8335085239f0b7d88af7473",
+      "qmp_accepted_ns": 108818825784,
+      "qmp_id": "72:journey-protected-text-input",
+      "result": "",
+      "result_sign_id": "conduitos/product/result/body-play/sha256:0527de93688a44f460365951b5d2a0c0406286b1f37370859b5728e296be5609/2/4",
+      "revision": 16,
+      "serial_byte_start": 394703
+    },
+    {
+      "command_ns": 108904670036,
+      "command_to_rendered_journey_observed_ns": 76254700,
+      "face_id": "c7d5a14dd0347c095ce3c4c23098e4e0bf445694ee926b918453508475aa87da",
+      "input_sign_id": "conduitos/product/input/body-play/sha256:0527de93688a44f460365951b5d2a0c0406286b1f37370859b5728e296be5609/6",
+      "keys": [
+        "c"
+      ],
+      "manifestation_id": "101979b2bb6070981382a3684ac84fa4087092b1424b9c386dea3f8571e65c13",
+      "qmp_accepted_ns": 108905374397,
+      "qmp_id": "74:journey-protected-text-input",
+      "result": "c",
+      "result_sign_id": "conduitos/product/result/body-play/sha256:0527de93688a44f460365951b5d2a0c0406286b1f37370859b5728e296be5609/2/6",
+      "revision": 18,
+      "serial_byte_start": 434615
+    },
+    {
+      "command_ns": 108982873506,
+      "command_to_rendered_journey_observed_ns": 74415491,
+      "face_id": "b30ad2d5c5c1cb537fd41d9a35f6b4c125f241ed5e0656ec13c8417adfce1c0e",
+      "input_sign_id": "conduitos/product/input/body-play/sha256:0527de93688a44f460365951b5d2a0c0406286b1f37370859b5728e296be5609/8",
+      "keys": [
+        "a"
+      ],
+      "manifestation_id": "db65973415ce287502edbbbaeb18ffe719d6797788232b7115939f490a5e5e39",
+      "qmp_accepted_ns": 108983542154,
+      "qmp_id": "76:journey-protected-text-input",
+      "result": "ca",
+      "result_sign_id": "conduitos/product/result/body-play/sha256:0527de93688a44f460365951b5d2a0c0406286b1f37370859b5728e296be5609/2/8",
+      "revision": 20,
+      "serial_byte_start": 474835
+    },
+    {
+      "command_ns": 109059915012,
+      "command_to_rendered_journey_observed_ns": 73579155,
+      "face_id": "27cd426e3cfcae26173c25e434a4bbe014aea8dfcddf4673c7c8b7575b133ba1",
+      "input_sign_id": "conduitos/product/input/body-play/sha256:0527de93688a44f460365951b5d2a0c0406286b1f37370859b5728e296be5609/10",
+      "keys": [
+        "f"
+      ],
+      "manifestation_id": "47ea2383dea31fd9eb3106f6d1b3324b5e4584a0127f4f3ed0aa46f1d03b8a39",
+      "qmp_accepted_ns": 109060490352,
+      "qmp_id": "78:journey-protected-text-input",
+      "result": "caf",
+      "result_sign_id": "conduitos/product/result/body-play/sha256:0527de93688a44f460365951b5d2a0c0406286b1f37370859b5728e296be5609/2/10",
+      "revision": 22,
+      "serial_byte_start": 515067
+    },
+    {
+      "command_ns": 109137097619,
+      "command_to_rendered_journey_observed_ns": 114404360,
+      "face_id": "1a94f97e4eed63ebdf8add7d93f850fbe334c2679d5a36beeaf4089c4bd839d6",
+      "input_sign_id": "conduitos/product/input/body-play/sha256:0527de93688a44f460365951b5d2a0c0406286b1f37370859b5728e296be5609/13",
+      "keys": [
+        "alt_r",
+        "e"
+      ],
+      "manifestation_id": "1c491e69eed40df5b40fadbfcf82b62a5c96c7d7d5124bfc2785d3762451e634",
+      "qmp_accepted_ns": 109137736490,
+      "qmp_id": "80:journey-unicode-input",
+      "result": "café",
+      "result_sign_id": "conduitos/product/result/body-play/sha256:0527de93688a44f460365951b5d2a0c0406286b1f37370859b5728e296be5609/2/13",
+      "revision": 25,
+      "serial_byte_start": 575424
+    }
+  ],
+  "typing_scope": "Six serialized ordinary editor edits; each observation follows refresh and manifestation. Not sustained typing throughput or physical scanout."
+}

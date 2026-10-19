@@ -1,0 +1,15 @@
+{
+  "source": "daa97ce37",
+  "branch": "perf/retained-raster",
+  "tests": 8,
+  "differential_pairs": 576,
+  "zero_allocation_test": "passed; canonical eligibility plus incremental raster, prepared target",
+  "scope": "Native typography feature enabled. Focused tests prove pixels and listed failure/identity fences, not QEMU or timing. Incremental pixels are genuinely retained and replay excludes disjoint commands. Full scanout damage remains unchanged.",
+  "log_sha256": "996ccde23316ff3d1df21881d67422cf72c9a02e0cdc34b5fb3a30d3e382365e",
+  "native_compositor_integration": "5passed",
+  "alltarget_package_clippy": "passed warnings denied, features native-compositor; source faca1d256116298fca5566a79029a4bdcb57215d",
+  "clippy_log_sha256": "d062dd9abccc9e818f1dda19dade5dfd198095520959e55283b621e12bddc491",
+  "final_focused_source": "faca1d256116298fca5566a79029a4bdcb57215d",
+  "final_focused_tests": "8passed,0failed,0ignored",
+  "final_test_log_sha256": "37ee6f3f4e354ea3422a6474f6dccb64f6db8828672747583865be316509dc76"
+}

@@ -1,0 +1,26 @@
+{
+  "cases": [
+    {
+      "mutation": "forged typing duration",
+      "refused": true
+    },
+    {
+      "mutation": "forged rendered manifestation",
+      "refused": true
+    },
+    {
+      "mutation": "foreign retained-domain Play",
+      "refused": true
+    },
+    {
+      "mutation": "wrong physical text key",
+      "refused": true
+    },
+    {
+      "mutation": "failed text QMP acknowledgement",
+      "refused": true
+    }
+  ],
+  "all_refused": true,
+  "scope": "Relocated full-capture verification including 22 RGBA digests before and after five typing corruptions. Original raw archive unchanged; scratch bytes restored."
+}
