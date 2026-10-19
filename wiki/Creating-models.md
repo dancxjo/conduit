@@ -18,9 +18,12 @@ and device kernels inside that Rust back.
 
 ## Shared speech prerequisite
 
-The speech portions of #5204, #5206, #5207 and #5208 depend on the common
-linguistic contract in #5212. Preserve checked Unicode IPA, separate phoneme
-and phone occurrences, exact Variety/inventory/text revisions, syllables,
+ConduitVoice (#5206) and its tutorial capstone (#5207) consume the common
+linguistic contract owned by #5212. Closed #5204 is historical rvTTS design
+reference. Merged #5208 delivered portable model, numerical, Audio and revision
+foundations; its acceptance covers that foundation scope. Preserve checked
+Unicode IPA, separate phoneme and phone occurrences, exact
+Variety/inventory/text revisions, syllables,
 word correspondence, quantity targets and supplied observations. Checkpoint
 vocabulary is a terminal projection of that original carrier; display IPA or
 compact renderer labels cannot reconstruct it.
