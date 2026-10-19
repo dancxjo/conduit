@@ -7,6 +7,7 @@ use crate::{
 pub(super) struct WordAdmissions<'a> {
     pub text: Vec<ResolvedText<'a>>,
     pub phonemes: Vec<ResolvedPhoneme<'a>>,
+    pub omitted: Vec<ResolvedText<'a>>,
 }
 pub(super) fn prepare<'a>(
     original: &'a PreparedSpeechCorrespondence<'_, '_>,
@@ -22,7 +23,38 @@ pub(super) fn prepare<'a>(
     let mut lexical_coverage = alloc::vec![false; lexical.tape().tokens().len()];
     let mut text = Vec::new();
     let mut phonemes = Vec::new();
+    let mut omitted = Vec::new();
     for relation in relations {
+        if let TranslationCorrespondence::Omitted(group) = relation {
+            // Punctuation remains in the exact lexical/parser basis. An
+            // explicit source-only relation records why it has no phonemes;
+            // it neither invents a pause nor removes a parser token.
+            for source in group.sources().as_slice() {
+                let resolved = resolve_text(source, original.text()).map_err(|_| WordRelation)?;
+                let LanguageSegmentRef::Text(span) = source else {
+                    return Err(WordRelation);
+                };
+                let index = lexical
+                    .tape()
+                    .tokens()
+                    .iter()
+                    .position(|token| {
+                        matches!(
+                            token.category(),
+                            conduit_language::LinguisticTokenCategory::Punctuation
+                        ) && *token.span().start() == u64::from(*span.range().start())
+                            && *token.span().end() == u64::from(*span.range().end())
+                    })
+                    .ok_or(WordRelation)?;
+                if !matches!(span.kind(), LanguageTextSegmentKind::Grapheme)
+                    || core::mem::replace(&mut lexical_coverage[index], true)
+                {
+                    return Err(WordRelation);
+                }
+                omitted.push(resolved);
+            }
+            continue;
+        }
         let TranslationCorrespondence::Aligned(group) = relation else {
             return Err(UnsupportedWordRelation);
         };
@@ -36,7 +68,10 @@ pub(super) fn prepare<'a>(
         };
         if !matches!(span.kind(), LanguageTextSegmentKind::Word)
             || !lexical.tape().tokens().as_slice().iter().any(|token| {
-                *token.span().start() == u64::from(*span.range().start())
+                matches!(
+                    token.category(),
+                    conduit_language::LinguisticTokenCategory::Word
+                ) && *token.span().start() == u64::from(*span.range().start())
                     && *token.span().end() == u64::from(*span.range().end())
             })
         {
@@ -128,5 +163,9 @@ pub(super) fn prepare<'a>(
     if phone_coverage.iter().any(|covered| !covered) {
         return Err(WordRelation);
     }
-    Ok(WordAdmissions { text, phonemes })
+    Ok(WordAdmissions {
+        text,
+        phonemes,
+        omitted,
+    })
 }

@@ -91,14 +91,6 @@ impl<'a, 'owner, 'inventory> PreparedCompleteSpeechCarrier<'a, 'owner, 'inventor
         if lexical.tape().source().material() != correspondence.text() {
             return Err(ForeignLexical);
         }
-        if lexical.tape().tokens().as_slice().iter().any(|token| {
-            !matches!(
-                token.category(),
-                conduit_language::LinguisticTokenCategory::Word
-            )
-        }) {
-            return Err(UnsupportedWordRelation);
-        }
         let basis = commitment_request.beam().basis();
         if basis.text() != correspondence.text().identity()
             || basis.source_revision() != correspondence.text().revision()
@@ -234,6 +226,11 @@ impl<'a, 'owner, 'inventory> PreparedCompleteSpeechCarrier<'a, 'owner, 'inventor
     }
     pub fn word_text_admissions(&self) -> &[crate::text_admission::ResolvedText<'a>] {
         &self.words.text
+    }
+    /// Exact punctuation occurrences explicitly omitted from phonemic realization.
+    /// They remain in the lexical tape and its fully covered parser commitment.
+    pub fn omitted_text_admissions(&self) -> &[crate::text_admission::ResolvedText<'a>] {
+        &self.words.omitted
     }
     pub fn word_phoneme_admissions(&self) -> &[crate::reference_admission::ResolvedPhoneme<'a>] {
         &self.words.phonemes

@@ -92,18 +92,16 @@ fn malformed_word_relations_foreign_revision_and_forged_commitment_cannot_enter_
         punctuation_lexical.tape().tokens()[1].category(),
         conduit_language::LinguisticTokenCategory::Punctuation
     ));
-    assert!(matches!(
-        PreparedCompleteSpeechCarrier::prepare(
-            &punctuation_original,
-            &punctuation_structure,
-            &punctuation_lexical,
-            &punctuation.word_phonemes,
-            &evidence.request,
-            &evidence.result,
-            CompleteCarrierAcoustics::not_supplied(),
-        ),
-        Err(CompleteCarrierRefusal::UnsupportedWordRelation)
-    ));
+    assert!(PreparedCompleteSpeechCarrier::prepare(
+        &punctuation_original,
+        &punctuation_structure,
+        &punctuation_lexical,
+        &punctuation.word_phonemes,
+        &evidence.request,
+        &evidence.result,
+        CompleteCarrierAcoustics::not_supplied(),
+    )
+    .is_err());
     let r = &evidence.result;
     let forged = LanguageParserBeamCommitResult::new(
         false,
