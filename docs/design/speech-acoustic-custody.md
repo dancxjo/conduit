@@ -29,8 +29,9 @@ producer; it is not an acceptance receipt. Native semantic re-admission and
 PCM/Plan/Sign replay remain the Rust conformance test's responsibility, and the
 normal publisher receipt establishes the accepted publication.
 
-The journey selects IPA authoring, shared terminal and installed execution
-checks rather than rerunning every Speech unit test. The separate
+The journey selects IPA authoring, the positive shared-terminal installed
+execution and a fresh-process reload. It does not repeat the negative and
+lifecycle cases already covered by domain conformance. The separate
 `xtask check speech-ipa` entrance and final exact-head CI retain broad domain
 conformance.
 

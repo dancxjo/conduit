@@ -50,10 +50,22 @@ pub fn run(args: NativeSpeechArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std:
         "semantic-bindings,kernel",
         "--test",
         "ipa_authoring",
+    ])?;
+    // This positive proof executes both model entrances and the installed
+    // formant path from one complete original, and exports its exact evidence.
+    // Negative/lifecycle cases already belong to the domain conformance suite.
+    invoke(&[
+        "test",
+        "--locked",
+        "-p",
+        "conduit-speech",
+        "--features",
+        "semantic-bindings,kernel",
         "--test",
         "carried_formant",
-        "--test",
-        "shared_carrier_projections",
+        "original_multiword_intent_executes_through_installed_factory_plan_and_play",
+        "--",
+        "--exact",
     ])?;
     // Re-admit retained bytes in a fresh process, without producer structs.
     let inspection = Command::new("cargo")
