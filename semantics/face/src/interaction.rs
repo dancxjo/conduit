@@ -283,6 +283,7 @@ fn map_value_refusal(refusal: ValueConstraintRefusal) -> FaceInteractionRefusal 
         | ValueConstraintRefusal::FloatFinite
         | ValueConstraintRefusal::FloatRange
         | ValueConstraintRefusal::Membership
+        | ValueConstraintRefusal::NearQuantity(_)
         | ValueConstraintRefusal::TextPattern => FaceInteractionRefusal::ViolatedConstraint,
     }
 }

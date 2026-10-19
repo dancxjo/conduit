@@ -285,3 +285,6 @@ fn initialized_factory_rejects_stale_limit_and_missing_bounds_before_play() {
         assert!(admitted(&missing).is_err());
     }
 }
+
+#[path = "near_fore_tests.rs"]
+mod near_fore_tests;

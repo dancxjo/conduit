@@ -116,6 +116,21 @@ impl<'a> Cursor<'a> {
         StructuredInfoType::from_canonical_bytes(encoded).map_err(Into::into)
     }
 
+    fn contract(
+        &mut self,
+    ) -> Result<Option<conduit_core::CheckedValueContract>, PortableExpressionProgramRefusal> {
+        match self.byte()? {
+            0 => Ok(None),
+            1 => {
+                let length = self.length()?;
+                conduit_core::CheckedValueContract::from_identity_bytes(self.take(length)?)
+                    .map(Some)
+                    .map_err(|_| PortableExpressionProgramRefusal::MalformedEncoding)
+            }
+            _ => Err(PortableExpressionProgramRefusal::MalformedEncoding),
+        }
+    }
+
     fn node(
         &mut self,
         depth: usize,
@@ -129,6 +144,19 @@ impl<'a> Cursor<'a> {
             .ok_or(PortableExpressionProgramRefusal::MalformedEncoding)?;
         let value_type = self.value_type()?;
         let operation = match self.byte()? {
+            13 => {
+                let input = self.contract()?;
+                let output = self.contract()?;
+                let value = Box::new(self.node(depth + 1, remaining_nodes)?);
+                if value.value_type != value_type || (input.is_none() && output.is_none()) {
+                    return Err(PortableExpressionProgramRefusal::MalformedEncoding);
+                }
+                PortableExpressionOperation::ValueContract {
+                    input,
+                    output,
+                    value,
+                }
+            }
             11 => {
                 let length = self.length()?;
                 if length > conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES {

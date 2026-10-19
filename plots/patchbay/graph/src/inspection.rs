@@ -266,6 +266,10 @@ fn constraint_fact(constraint: &ValueConstraint) -> String {
             minimum_endpoint,
             maximum_endpoint,
         } => open_range_fact("quantity-range", minimum, maximum, *minimum_endpoint, *maximum_endpoint),
+        ValueConstraint::NearQuantity { source_kind, limit, .. } => format!(
+            "constraint near-quantity source-kind={} maximum-numerical-error={limit:?}",
+            source_kind.as_str()
+        ),
         ValueConstraint::FloatFinite => "constraint ieee-float finite=true".into(),
         ValueConstraint::FloatRange {
             minimum,

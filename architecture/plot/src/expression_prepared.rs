@@ -20,8 +20,10 @@ mod member_selection;
 mod nominal;
 mod sequence_selection;
 use member_selection::PreparedMemberSelection;
+mod predicate_bounds;
 mod prepare;
 mod primitive;
+pub use predicate_bounds::ExpressionValueContractBounds;
 use prepare::prepare_node;
 mod angle_reference;
 mod inverse_trigonometry;
@@ -42,6 +44,8 @@ pub struct PreparedPortableExpressionEvaluator {
     root: PreparedRoot,
     input: PreparedInput,
     input_maximum_bytes: Option<u32>,
+    input_value_contract: Option<conduit_core::CheckedValueContract>,
+    output_value_contract: Option<conduit_core::CheckedValueContract>,
     output: Vec<u8>,
 }
 
@@ -288,6 +292,14 @@ impl PreparedPortableExpressionEvaluator {
         input: PreparedInput,
         capacity: usize,
     ) -> Result<Self, Refusal> {
+        let (input_contract, output_contract, body) =
+            crate::expression_program::value_contract::boundary(program.root);
+        let input_value_contract = input_contract.cloned();
+        let output_value_contract = output_contract.cloned();
+        let program = ProgramView {
+            root: body,
+            ..program
+        };
         let root = match program.output_type.shape() {
             StructuredInfoTypeShape::Leaf(_) | StructuredInfoTypeShape::Nominal { .. }
                 if leaf_kind(program.output_type).is_ok() =>
@@ -317,11 +329,18 @@ impl PreparedPortableExpressionEvaluator {
             root,
             input,
             input_maximum_bytes: program.input_maximum_bytes,
+            input_value_contract,
+            output_value_contract,
             output: Vec::with_capacity(capacity),
         })
     }
 
     pub fn evaluate(&mut self, input: &[u8]) -> Result<&[u8], Refusal> {
+        if let Some(contract) = &self.input_value_contract {
+            contract
+                .validate(input)
+                .map_err(Refusal::InputValueConstraint)?;
+        }
         if self
             .input_maximum_bytes
             .is_some_and(|maximum| input.len() > maximum as usize)
@@ -380,6 +399,11 @@ impl PreparedPortableExpressionEvaluator {
                 }
             }
             PreparedRoot::Structured(root) => root.evaluate(input, &mut self.output)?,
+        }
+        if let Some(contract) = &self.output_value_contract {
+            contract
+                .validate(&self.output)
+                .map_err(Refusal::OutputValueConstraint)?;
         }
         Ok(&self.output)
     }

@@ -148,9 +148,9 @@ fn exact_accept_predicate_and_each_phase_branch_expand_without_refined_construct
 fn expression_depth(node: &conduit_plot::PortableExpressionNode) -> usize {
     use conduit_plot::PortableExpressionOperation as Op;
     let child_depth = match &node.operation {
-        Op::Projection { value, .. } | Op::Unary { operand: value, .. } => {
-            Some(expression_depth(value))
-        }
+        Op::ValueContract { value, .. }
+        | Op::Projection { value, .. }
+        | Op::Unary { operand: value, .. } => Some(expression_depth(value)),
         Op::Binary { left, right, .. } => Some(expression_depth(left).max(expression_depth(right))),
         Op::Conditional {
             condition,

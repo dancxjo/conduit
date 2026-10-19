@@ -24,7 +24,8 @@ fn node(value: &PortableExpressionNode) -> Result<(), String> {
     ty(&value.value_type)?;
     match &value.operation {
         Op::Input | Op::Literal(_) | Op::CanonicalLiteral(_) | Op::Constant(_) => Ok(()),
-        Op::Projection { value, .. }
+        Op::ValueContract { value, .. }
+        | Op::Projection { value, .. }
         | Op::Unary { operand: value, .. }
         | Op::Variant { payload: value, .. } => node(value),
         Op::Binary {
