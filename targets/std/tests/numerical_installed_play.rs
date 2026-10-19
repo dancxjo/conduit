@@ -17,7 +17,10 @@ impl ExternalForeOutputAdapter for Outputs {
         if value.track == ConnectionTrack::Payload {
             assert!(self
                 .0
-                .insert(value.front_port_id.as_str().to_owned(), value.bytes.to_vec())
+                .insert(
+                    value.front_port_id.as_str().to_owned(),
+                    value.bytes.to_vec()
+                )
                 .is_none());
         }
         Ok(())

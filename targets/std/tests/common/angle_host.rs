@@ -15,11 +15,11 @@ impl TimerAdapter for NoTimer {
     }
 }
 #[derive(Default)]
-struct Outputs(Vec<Vec<u8>>);
+struct Outputs(Vec<conduit_std_host::ExternalForeBytes>);
 impl ExternalForeOutputAdapter for Outputs {
     fn deliver(&mut self, value: ExternalForeDelivery) -> Result<(), String> {
         if value.track == ConnectionTrack::Payload {
-            self.0.push(value.bytes.to_vec());
+            self.0.push(value.bytes);
         }
         Ok(())
     }
@@ -153,5 +153,5 @@ pub(crate) fn run_observed(
             .any(|event| event.kind == conduit_kernel::KernelEventKind::HostCallCompleted));
     }
     assert_eq!(output.0.len(), count);
-    output.0
+    output.0.into_iter().map(|bytes| bytes.to_vec()).collect()
 }

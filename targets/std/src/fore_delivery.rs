@@ -75,6 +75,11 @@ impl<T: AsRef<[u8]> + ?Sized> PartialEq<T> for ExternalForeBytes {
     }
 }
 impl Eq for ExternalForeBytes {}
+impl PartialEq<ExternalForeBytes> for Vec<u8> {
+    fn eq(&self, other: &ExternalForeBytes) -> bool {
+        self.as_slice() == other.as_slice()
+    }
+}
 impl serde::Serialize for ExternalForeBytes {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         serde::Serialize::serialize(self.deref(), serializer)

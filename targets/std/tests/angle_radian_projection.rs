@@ -11,11 +11,11 @@ impl TimerAdapter for NoTimer {
     }
 }
 #[derive(Default)]
-struct Outputs(Vec<Vec<u8>>);
+struct Outputs(Vec<conduit_std_host::ExternalForeBytes>);
 impl ExternalForeOutputAdapter for Outputs {
     fn deliver(&mut self, value: ExternalForeDelivery) -> Result<(), String> {
         if value.track == ConnectionTrack::Payload {
-            self.0.push(value.bytes.to_vec());
+            self.0.push(value.bytes);
         }
         Ok(())
     }

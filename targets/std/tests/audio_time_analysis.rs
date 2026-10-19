@@ -10,10 +10,10 @@ use conduit_std_host::{
 };
 use std::{collections::BTreeMap, time::Duration};
 #[derive(Default)]
-struct Output(Vec<Vec<u8>>);
+struct Output(Vec<conduit_std_host::ExternalForeBytes>);
 impl ExternalForeOutputAdapter for Output {
     fn deliver(&mut self, value: ExternalForeDelivery) -> Result<(), String> {
-        self.0.push(value.bytes.to_vec());
+        self.0.push(value.bytes);
         Ok(())
     }
 }

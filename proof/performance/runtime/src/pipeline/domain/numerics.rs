@@ -366,7 +366,9 @@ mod tests {
             )
             .is_err());
         assert!(refused.values.is_empty());
-        out.values[0].bytes[0] ^= 1;
+        let mut corrupted = out.values[0].bytes.to_vec();
+        corrupted[0] ^= 1;
+        out.values[0].bytes = corrupted.into();
         assert!(validate(&out, &prepared.projections).is_err());
         Ok(())
     }

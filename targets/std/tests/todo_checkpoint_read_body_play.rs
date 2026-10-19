@@ -415,7 +415,7 @@ fn idle_offer_transition_preserves_host_play_sequence_and_refuses_stale_plans() 
                 .unwrap();
             assert_eq!(report.terminal, TerminalDisposition::Completed);
             assert_eq!(fore.0.len(), 1);
-            (report, fore.0.remove(0).bytes)
+            (report, fore.0.remove(0).bytes.to_vec())
         };
         let stale_write = first_plan.clone();
         let (first, committed) = write(&mut host, first_plan, first_state, "Buy milk");
@@ -516,7 +516,7 @@ fn idle_offer_transition_preserves_host_play_sequence_and_refuses_stale_plans() 
         let (second, _) = write(
             &mut host,
             second_plan,
-            restored.0.remove(0).bytes,
+            restored.0.remove(0).bytes.to_vec(),
             "Buy bread",
         );
         assert_ne!(first.play.active_play_id, read.play.active_play_id);

@@ -827,16 +827,16 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 let borrowed = scheduler
                     .host_value(offer.value)
                     .map_err(|error| format!("read external Fore output: {error:?}"))?;
-                let (delivery, adapter_delivery) = if planned.temporal
-                    == conduit_core::PortTemporal::Value
-                {
-                    let (report, adapter) =
-                        prepared_fore_outputs.take(planned, offer.sequence, borrowed)?;
-                    (report, Some(adapter))
-                } else {
-                    let delivery = prepared_fore_outputs.stream(planned, offer.sequence, borrowed)?;
-                    (delivery, None)
-                };
+                let (delivery, adapter_delivery) =
+                    if planned.temporal == conduit_core::PortTemporal::Value {
+                        let (report, adapter) =
+                            prepared_fore_outputs.take(planned, offer.sequence, borrowed)?;
+                        (report, Some(adapter))
+                    } else {
+                        let delivery =
+                            prepared_fore_outputs.stream(planned, offer.sequence, borrowed)?;
+                        (delivery, None)
+                    };
                 let adapter = &mut external_fore
                     .as_mut()
                     .expect("output adapter checked above")

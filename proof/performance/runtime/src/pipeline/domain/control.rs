@@ -230,7 +230,7 @@ mod tests {
                 .collect::<Vec<_>>()
         );
         let original = out.values[0].clone();
-        out.values[0].bytes = Quantity::new(0, Unit::Hertz).encode().to_vec();
+        out.values[0].bytes = Quantity::new(0, Unit::Hertz).encode().to_vec().into();
         assert!(validate(&out, 128).is_err());
         out.values[0] = original;
         for value in [vec![0, 1], Quantity::new(4, Unit::Hertz).encode().to_vec()] {

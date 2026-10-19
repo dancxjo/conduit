@@ -18,12 +18,12 @@ impl TimerAdapter for NoTimer {
 }
 #[derive(Default)]
 struct Collector {
-    values: Vec<Vec<u8>>,
+    values: Vec<conduit_std_host::ExternalForeBytes>,
 }
 impl ExternalForeOutputAdapter for Collector {
     fn deliver(&mut self, delivery: ExternalForeDelivery) -> Result<(), String> {
         match delivery.track {
-            ConnectionTrack::Payload => self.values.push(delivery.bytes.to_vec()),
+            ConnectionTrack::Payload => self.values.push(delivery.bytes),
             ConnectionTrack::NormalClose => {}
             _ => panic!("no abnormal conversion effect"),
         }
