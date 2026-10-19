@@ -140,6 +140,7 @@ pub(super) fn execute_line<const OBSERVE: bool>(
         .accept()
         .map_err(|error| format!("accept Tour Line: {error:?}"))?;
     activate_source(&mut source, source_endpoint, &mut line)?;
+    let mut receive_bytes = [0; MAXIMUM_FRAME_BYTES as usize];
     let transfer = next_transfer(&mut source)?;
     send_message(
         &mut source,
@@ -150,13 +151,13 @@ pub(super) fn execute_line<const OBSERVE: bool>(
             payload: &transfer.bytes,
         },
     )?;
-    match receive_message(&mut source, source_endpoint, &mut line)? {
+    match receive_message(&mut source, source_endpoint, &mut line, &mut receive_bytes)? {
         ReceivedMessage::Accepted { sequence } if sequence == transfer.sequence => {
             source.accept_egress(&transfer)?;
         }
         message => return Err(format!("unexpected Tour Line acceptance {message:?}")),
     }
-    match receive_message(&mut source, source_endpoint, &mut line)? {
+    match receive_message(&mut source, source_endpoint, &mut line, &mut receive_bytes)? {
         ReceivedMessage::Delivered { sequence } if sequence == transfer.sequence => {
             source.deliver_egress(&transfer)?;
         }
@@ -179,7 +180,7 @@ pub(super) fn execute_line<const OBSERVE: bool>(
         },
     )?;
     if !matches!(
-        receive_message(&mut source, source_endpoint, &mut line)?,
+        receive_message(&mut source, source_endpoint, &mut line, &mut receive_bytes)?,
         ReceivedMessage::Terminal {
             disposition: SessionTerminalDisposition::Completed,
             final_sequence: 1
@@ -220,9 +221,10 @@ fn run_sink<const OBSERVE: bool>(
         .map_err(|error| format!("connect Tour Line: {error:?}"))?;
     activate_sink(&mut sink, sink_endpoint, &mut line)?;
     let mut output = Vec::with_capacity(conduit_text::MAX_TEXT_BYTES as usize + 1);
-    let sequence = match receive_message(&mut sink, sink_endpoint, &mut line)? {
+    let mut receive_bytes = [0; MAXIMUM_FRAME_BYTES as usize];
+    let sequence = match receive_message(&mut sink, sink_endpoint, &mut line, &mut receive_bytes)? {
         ReceivedMessage::Offered { sequence, payload } => {
-            match sink.admit_ingress(sink_endpoint, sequence, &payload)? {
+            match sink.admit_ingress(sink_endpoint, sequence, payload)? {
                 RemoteIngressOutcome::Accepted { .. } => sequence,
                 RemoteIngressOutcome::Full { .. } => return Err("Tour sink Line pressure".into()),
             }
@@ -242,12 +244,12 @@ fn run_sink<const OBSERVE: bool>(
         &mut line,
         SessionMessage::Delivered { sequence },
     )?;
-    match receive_message(&mut sink, sink_endpoint, &mut line)? {
+    match receive_message(&mut sink, sink_endpoint, &mut line, &mut receive_bytes)? {
         ReceivedMessage::InputClosed { final_sequence: 1 } => sink.close_ingress(sink_endpoint)?,
         message => return Err(format!("unexpected Tour Line close {message:?}")),
     }
     if !matches!(
-        receive_message(&mut sink, sink_endpoint, &mut line)?,
+        receive_message(&mut sink, sink_endpoint, &mut line, &mut receive_bytes)?,
         ReceivedMessage::Terminal {
             disposition: SessionTerminalDisposition::Completed,
             final_sequence: 1
@@ -283,15 +285,16 @@ fn activate_source(
     endpoint: RemoteEndpointId,
     line: &mut NativeWebSocketLine,
 ) -> Result<(), String> {
+    let mut receive_bytes = [0; MAXIMUM_FRAME_BYTES as usize];
     if !matches!(
-        receive_message(runtime, endpoint, line)?,
+        receive_message(runtime, endpoint, line, &mut receive_bytes)?,
         ReceivedMessage::Hello
     ) {
         return Err("Tour sink omitted Hello".into());
     }
     send_hello(runtime, endpoint, line)?;
     if !matches!(
-        receive_message(runtime, endpoint, line)?,
+        receive_message(runtime, endpoint, line, &mut receive_bytes)?,
         ReceivedMessage::Ready
     ) {
         return Err("Tour sink omitted Ready".into());
@@ -304,16 +307,17 @@ fn activate_sink(
     endpoint: RemoteEndpointId,
     line: &mut NativeWebSocketLine,
 ) -> Result<(), String> {
+    let mut receive_bytes = [0; MAXIMUM_FRAME_BYTES as usize];
     send_hello(runtime, endpoint, line)?;
     if !matches!(
-        receive_message(runtime, endpoint, line)?,
+        receive_message(runtime, endpoint, line, &mut receive_bytes)?,
         ReceivedMessage::Hello
     ) {
         return Err("Tour source omitted Hello".into());
     }
     send_message(runtime, endpoint, line, SessionMessage::Ready)?;
     if !matches!(
-        receive_message(runtime, endpoint, line)?,
+        receive_message(runtime, endpoint, line, &mut receive_bytes)?,
         ReceivedMessage::Ready
     ) {
         return Err("Tour source omitted Ready".into());
@@ -355,12 +359,12 @@ fn send_message(
 }
 
 #[derive(Debug)]
-enum ReceivedMessage {
+enum ReceivedMessage<'a> {
     Hello,
     Ready,
     Offered {
         sequence: u64,
-        payload: Vec<u8>,
+        payload: &'a [u8],
     },
     Accepted {
         sequence: u64,
@@ -377,14 +381,16 @@ enum ReceivedMessage {
     },
 }
 
-fn receive_message(
+// The offered payload stays in caller-owned bounded storage until ingress
+// copies it into the kernel. Session admission still precedes that handoff.
+fn receive_message<'a>(
     runtime: &mut InstalledRemoteFragment,
     endpoint: RemoteEndpointId,
     line: &mut NativeWebSocketLine,
-) -> Result<ReceivedMessage, String> {
-    let mut bytes = [0; MAXIMUM_FRAME_BYTES as usize];
+    bytes: &'a mut [u8; MAXIMUM_FRAME_BYTES as usize],
+) -> Result<ReceivedMessage<'a>, String> {
     let length = line
-        .receive_binary(&mut bytes)
+        .receive_binary(bytes)
         .map_err(|error| format!("receive Tour Line frame: {error:?}"))?;
     let frame = decode_session_frame(
         &bytes[..length],
@@ -402,10 +408,9 @@ fn receive_message(
     match frame.message {
         SessionMessage::Hello(_) => Ok(ReceivedMessage::Hello),
         SessionMessage::Ready => Ok(ReceivedMessage::Ready),
-        SessionMessage::Offered { sequence, payload } => Ok(ReceivedMessage::Offered {
-            sequence,
-            payload: payload.to_vec(),
-        }),
+        SessionMessage::Offered { sequence, payload } => {
+            Ok(ReceivedMessage::Offered { sequence, payload })
+        }
         SessionMessage::Accepted { sequence } => Ok(ReceivedMessage::Accepted { sequence }),
         SessionMessage::Delivered { sequence } => Ok(ReceivedMessage::Delivered { sequence }),
         SessionMessage::InputClosed { final_sequence } => {
