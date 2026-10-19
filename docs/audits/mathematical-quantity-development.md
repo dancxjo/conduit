@@ -219,3 +219,12 @@ The initial test used an unavailable Type accessor; its diagnostic is retained,
 and direct checked Type equality is used instead. Installed offer recomputation,
 resource/projection custody, actual authored Plan/kernel/CLI and public gates
 still remain. The spelling and form remain private proposals under #5392.
+
+The prepared Angle profile now exposes node/depth, retained payload ceiling and
+conservative aggregate limb-work bounds. Accounting includes coordinate scratch,
+physical-frame output, trig output, evaluator output and prepared tree storage.
+Tests require coverage of every independently prepared intermediate buffer and
+stable bounds across the conversion/carry/trig chain. The work ceiling reserves
+the bridge's two metered phases plus node/input validation; it is not CPU time or
+WCET. Stack, allocator bookkeeping and kernel/caller storage remain separate.
+The existing exact-profile bounds entrance retains its profile distinction.

@@ -122,8 +122,19 @@ impl super::PreparedPortableExpressionEvaluator {
     /// excluded), plus node/depth/work bounds. None means this concrete tree's
     /// storage has not been reviewed for the installed exact profile.
     pub fn exact_quantity_profile_bounds(&self) -> Option<(usize, usize, usize, u64)> {
+        self.primitive_quantity_bounds(QuantityValueProfile::Exact)
+    }
+    /// Conservative prepared Angle payload/node/depth/limb-work ceiling. No
+    /// allocator bookkeeping, stack, kernel storage or native-speed claim.
+    pub fn mathematical_angle_profile_bounds(&self) -> Option<(usize, usize, usize, u64)> {
+        self.primitive_quantity_bounds(QuantityValueProfile::Mathematical)
+    }
+    fn primitive_quantity_bounds(
+        &self,
+        profile: QuantityValueProfile,
+    ) -> Option<(usize, usize, usize, u64)> {
         use super::{PreparedInput, PreparedOperation as Op, PreparedRoot};
-        if self.input.quantity_profile() != QuantityValueProfile::Exact {
+        if self.input.quantity_profile() != profile {
             return None;
         }
         let PreparedRoot::Primitive {
@@ -172,6 +183,17 @@ impl super::PreparedPortableExpressionEvaluator {
                     .checked_add(writer.retained_payload_bytes())?
                     .checked_add(child(left)?)?
                     .checked_add(child(right)?)?,
+                Op::AngleReference {
+                    coordinate,
+                    argument,
+                    output,
+                } => output
+                    .capacity()
+                    .checked_add(coordinate.as_ref().map_or(0, |v| v.capacity()))?
+                    .checked_add(child(argument)?)?,
+                Op::Trigonometry {
+                    argument, output, ..
+                } => output.capacity().checked_add(child(argument)?)?,
                 Op::Conditional {
                     condition,
                     when_true,
@@ -199,8 +221,9 @@ impl super::PreparedPortableExpressionEvaluator {
             .checked_add(info_kind.capacity())?
             .checked_add(self.output.capacity())?
             .checked_add(core::mem::size_of::<Self>())?;
-        // Every Quantity operation/comparison has its own 3x validation-work
-        // meter. Count all nodes conservatively, including input/output checks.
+        // Ordinary operations use 3x validation work; the Angle bridge uses
+        // two such meters plus node validation. Reserve 8x per node and one
+        // input check. This is limb-work accounting, not a CPU/WCET bound.
         let work = (nodes as u64)
             .checked_mul(8 * conduit_core::MATHEMATICAL_VALUE_VALIDATION_WORK)?
             .checked_add(conduit_core::MATHEMATICAL_VALUE_VALIDATION_WORK)?;

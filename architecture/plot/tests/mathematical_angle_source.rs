@@ -51,6 +51,33 @@ fn authored_angle_survives_a_checked_conversion_plot_carry_plot_and_exact_sine_c
         sine.output_capacity(),
         combined.output_capacity(),
     ];
+    let bounds = [
+        conversion.mathematical_angle_profile_bounds().unwrap(),
+        carry.mathematical_angle_profile_bounds().unwrap(),
+        sine.mathematical_angle_profile_bounds().unwrap(),
+        combined.mathematical_angle_profile_bounds().unwrap(),
+    ];
+    assert_eq!(bounds.map(|b| (b.0, b.1)), [(2, 2), (1, 1), (2, 2), (3, 3)]);
+    // All independently prepared buffers must be covered, including the
+    // intermediate physical frame and its numerical coordinate scratch.
+    assert!(
+        bounds[0].2
+            >= capacities[0]
+                + MATHEMATICAL_QUANTITY_MAX_ENCODED_BYTES
+                + 10
+                + EXACT_RATIONAL_MAX_ENCODED_BYTES
+    );
+    assert!(
+        bounds[3].2
+            >= capacities[3]
+                + MATHEMATICAL_QUANTITY_MAX_ENCODED_BYTES
+                + 18
+                + 2 * EXACT_RATIONAL_MAX_ENCODED_BYTES
+    );
+    assert!(conversion.exact_quantity_profile_bounds().is_none());
+    for b in bounds {
+        assert!(b.3 > 0);
+    }
     for (spelling, expected) in [
         ("0.25turn", ExactRational::ONE),
         ("90°", ExactRational::ONE),
@@ -93,6 +120,15 @@ fn authored_angle_survives_a_checked_conversion_plot_carry_plot_and_exact_sine_c
             }
         });
         assert_eq!((storage.allocations, storage.reallocations), (0, 0));
+        assert_eq!(
+            bounds,
+            [
+                conversion.mathematical_angle_profile_bounds().unwrap(),
+                carry.mathematical_angle_profile_bounds().unwrap(),
+                sine.mathematical_angle_profile_bounds().unwrap(),
+                combined.mathematical_angle_profile_bounds().unwrap()
+            ]
+        );
         assert_eq!(
             capacities,
             [
