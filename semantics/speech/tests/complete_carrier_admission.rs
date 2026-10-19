@@ -90,16 +90,19 @@ fn inactive_beam_slots_do_not_acquire_active_token_coverage_requirements() {
     let evidence = f.complete_evidence();
     let beam = evidence.request.beam();
     let state = beam.candidate1().state();
+    // A valid initial one-token state: root sentinel on the stack and every
+    // ordinary head still unassigned. Inactive slots may differ from the
+    // two-token active analysis without inventing an invalid parser state.
     let empty = LanguageParserState::new(
         state.basis().clone(),
         0,
-        0,
-        *state.heads(),
-        state.relation0().clone(),
+        1,
+        [5, 5, 5, 5, 4],
         state.relation1().clone(),
-        state.relation2().clone(),
-        state.relation3().clone(),
-        [0; 5],
+        state.relation1().clone(),
+        state.relation1().clone(),
+        state.relation1().clone(),
+        [4, 0, 0, 0, 0],
         1,
         0,
     )
