@@ -115,7 +115,8 @@ pub(super) fn execute_supplied(
         serial_path.clone(),
         json!({"source_commit":source,"image_sha256":image_sha256,
             "qemu_argv":command.get_args().map(|arg|arg.to_string_lossy().into_owned()).collect::<Vec<_>>()}),
-    )?;
+    )?
+    .with_capture_limit(23)?;
     let mut child = command
         .spawn()
         .map_err(|error| ConduitosError::refusal("missing-qemu", error.to_string()))?;
