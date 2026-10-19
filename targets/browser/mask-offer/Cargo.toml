@@ -9,3 +9,5 @@ conduit-face = { path = "../../../semantics/face", default-features = false, fea
 conduit-plot = { path = "../../../architecture/plot" }
 conduit-planner = { path = "../../../architecture/planner" }
 conduit-host-browser-make = { path = "../make" }
+serde = { version = "1", features = ["derive"] }
+sha2 = "0.10"
