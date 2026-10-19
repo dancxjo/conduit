@@ -167,7 +167,7 @@ fn predicate_bounds_are_sealed_and_missing_or_modified_facts_refuse_installation
     let source = "plot accept (\n >> value: Frequency near 0.01Hz\n result: Frequency near 0.1Hz >>\n) = .\n";
     let (_, plan) = prepared_fore(source, None).unwrap();
     let fragment = &plan.fragments[0];
-    let profile = conduit_std_offers::pure_expression_value_contract_bounds_profile();
+    let profile = conduit_std_offers::near_contract_bounds_profile();
     let placement = &fragment.placements[0];
     let property = placement
         .realization_properties
@@ -187,9 +187,11 @@ fn predicate_bounds_are_sealed_and_missing_or_modified_facts_refuse_installation
     };
     assert_eq!(read("maximum-constraints"), 2);
     assert_eq!(
-        read("maximum-numerical-validation-work"),
-        2 * NEAR_VALUE_CONSTRAINT_WORK
+        read("maximum-predicate-replay-work"),
+        2 * conduit_std_offers::NEAR_CONTRACT_REPLAY_WORK
     );
+    assert!(read("maximum-per-record-validation-work") > 0);
+    assert!(read("prepared-replay-container-and-buffer-bytes") > 0);
     assert!(read("retained-near-schema-bytes") > 0);
     assert!(read("canonical-contract-bytes") > read("retained-near-schema-bytes"));
     assert_eq!(
@@ -212,6 +214,16 @@ fn predicate_bounds_are_sealed_and_missing_or_modified_facts_refuse_installation
     *bytes.last_mut().unwrap() ^= 1;
     *field = StructuredConfigurationValue::new(profile, bytes).unwrap();
     assert!(crate::installed_std::pure_expression_back::prepare_hosts(&modified).is_err());
+    for mutation in 0..3 {
+        let mut changed = fragment.clone();
+        let p = &mut changed.placements[0];
+        match mutation {
+            0 => p.artifact_id = "foreign/near-contract".into(),
+            1 => p.host_calls[0].maximum_input_bytes += 1,
+            _ => p.limits.max_queue_bytes += 1,
+        }
+        assert!(crate::installed_std::pure_expression_back::prepare_hosts(&changed).is_err());
+    }
     let mut dropped_law = fragment.clone();
     dropped_law.placements[0]
         .semantic_contract

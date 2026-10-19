@@ -59,6 +59,21 @@ impl StdHost {
             if !gear.accepts_realization(&baseline) {
                 return Err("expression program differs from its checked Kind/Fore".into());
             }
+            if !filter && conduit_std_offers::has_near_contract(&program) {
+                reference_validation::check(&program)?;
+                if !advertisement
+                    .capabilities
+                    .iter()
+                    .any(|offer| gear.accepts_realization(offer))
+                {
+                    let mut offer =
+                        conduit_std_offers::pure_near_contract_std_offer(&program, temporal)?;
+                    offer.capability_id =
+                        format!("{OWNED}near-contract/{}", offer.kind_id.as_str()).into();
+                    add_offer(&mut advertisement.capabilities, offer, &mut additional)?;
+                }
+                continue;
+            }
             let mathematical = if !filter {
                 mathematical_angle::offer(&program, temporal)?
             } else {
@@ -126,6 +141,11 @@ fn owns(offer: &CapabilityOffer) -> bool {
     use conduit_std_offers::*;
     offer.capability_id.as_str().starts_with(OWNED)
         && (mathematical_angle::owns(offer)
+            || (offer.implementation.implementation_id.as_str()
+                == PURE_EXPRESSION_STD_IMPLEMENTATION
+                && offer.implementation.execution_profile_id.as_str()
+                    == PURE_NEAR_CONTRACT_STD_PROFILE
+                && offer.implementation.artifact_id == near_contract_std_artifact())
             || matches!(
                 (
                     offer.implementation.implementation_id.as_str(),

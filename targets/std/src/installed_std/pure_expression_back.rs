@@ -91,6 +91,11 @@ impl PureExpressionHost {
                 conduit_plot::PreparedPortableExpressionEvaluator::new_with_mathematical_angles(
                     &program,
                 )
+            } else if placement.execution_profile_id.as_str()
+                == conduit_std_offers::PURE_NEAR_CONTRACT_STD_PROFILE
+            {
+                conduit_std_offers::prepare_near_contract_expression(&program)
+                    .map_err(conduit_plot::PortableExpressionEvaluationRefusal::UnsupportedType)
             } else {
                 conduit_plot::PreparedPortableExpressionEvaluator::new(&program)
             }
@@ -169,6 +174,10 @@ fn validate_placement(
         == conduit_std_offers::PURE_MATHEMATICAL_ANGLE_STD_PROFILE
     {
         conduit_std_offers::pure_mathematical_angle_std_offer(program, temporal)?
+    } else if placement.execution_profile_id.as_str()
+        == conduit_std_offers::PURE_NEAR_CONTRACT_STD_PROFILE
+    {
+        conduit_std_offers::pure_near_contract_std_offer(program, temporal)?
     } else {
         let result =
             if placement.kind_contract_revision.as_str() == conduit_plot::PURE_FILTER_REVISION {
@@ -211,6 +220,10 @@ fn validate_placement(
         || (placement.execution_profile_id.as_str()
             == conduit_std_offers::PURE_MATHEMATICAL_ANGLE_STD_PROFILE
             && placement.limits != offer.limits)
+        || (placement.execution_profile_id.as_str()
+            == conduit_std_offers::PURE_NEAR_CONTRACT_STD_PROFILE
+            && (placement.limits != offer.limits
+                || placement.realization_properties != offer.realization_properties))
         || (placement.implementation_id.as_str()
             == conduit_std_offers::PURE_SCALAR_TAPE_STD_IMPLEMENTATION
             && placement.realization_properties != offer.realization_properties)
@@ -247,6 +260,8 @@ fn prepare(
     } else {
         let maximum_input_bytes = if placement.execution_profile_id.as_str()
             == conduit_std_offers::PURE_MATHEMATICAL_ANGLE_STD_PROFILE
+            || placement.execution_profile_id.as_str()
+                == conduit_std_offers::PURE_NEAR_CONTRACT_STD_PROFILE
         {
             placement
                 .host_calls

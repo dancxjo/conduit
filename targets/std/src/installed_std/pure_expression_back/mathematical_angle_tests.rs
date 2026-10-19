@@ -294,15 +294,27 @@ fn authored_dimensioned_chain_reaches_selected_binary32_consumer_and_independent
     let source = format!("plot halve (\n >> value: Angle\n result: Angle >>\n) = (. / 2)\nplot double (\n >> value: Angle\n result: Angle >>\n) = (. * 2)\n{}", source
         .replace(" converted: bridge", " halved: halve\n doubled: double\n converted: bridge")
         .replace(" value >> converted.value", " value >> halved.value\n halved.result >> doubled.value\n doubled.result >> converted.value"));
+    let source = format!("plot accept (\n >> value: Angle near 0.000001rad\n result: Angle near 0.000001rad >>\n) = .\n{}", source
+        .replace(" boundary: math/near(limit=0.000001rad)", " boundary: math/near(limit=0.000001rad)\n accepted: accept()")
+        .replace(" boundary.result >> result", " boundary.result >> accepted.value\n accepted.result >> result"));
     for spelling in ["90°", "0.25turn"] {
         let (host, plan) = fixture_with_selection(&source, "project", true);
-        assert_eq!(plan.fragments[0].placements.len(), 6);
+        assert_eq!(plan.fragments[0].placements.len(), 7);
         assert_eq!(
             plan.fragments[0]
                 .placements
                 .iter()
                 .filter(|p| p.execution_profile_id.as_str()
                     == "std/quantity-near-enclosed-midpoint-binary32@1")
+                .count(),
+            1
+        );
+        assert_eq!(
+            plan.fragments[0]
+                .placements
+                .iter()
+                .filter(|p| p.execution_profile_id.as_str()
+                    == conduit_std_offers::PURE_NEAR_CONTRACT_STD_PROFILE)
                 .count(),
             1
         );
