@@ -18,12 +18,11 @@ test("an external page recovers one Clock Body across a fresh Boot without resur
     identities: __conduitFieldStation.identities,
     playState: __conduitFieldStation.play.state,
     recovered: __conduitFieldStation.recovered,
-    firstManifestation: __conduitFieldStation.firstObservedManifestation,
   }));
   expect(first.recovered).toBe(false);
   expect(first.playState).toBe("playing");
   await expect(page.locator('[data-face-kind="face/tick"]')).toHaveText(/^Clock tick: \d+$/);
-  expect(first.firstManifestation).toMatchObject({ text: "Clock tick: 0", observationSequence: "0" });
+  expect(await page.evaluate(() => __conduitFieldStation.firstObservedManifestation)).toMatchObject({ text: "Clock tick: 0", observationSequence: "0" });
 
   await journey.capture(page, {
     id: "open", title: "Open the clock",
@@ -37,7 +36,6 @@ test("an external page recovers one Clock Body across a fresh Boot without resur
     identities: __conduitFieldStation.identities,
     playState: __conduitFieldStation.play.state,
     recovered: __conduitFieldStation.recovered,
-    firstManifestation: __conduitFieldStation.firstObservedManifestation,
     recoverySnapshot: __conduitFieldStation.recoverySnapshot,
     patchbay: __conduitFieldStation.patchbay,
     constraintConformance: __conduitFieldStation.constraintConformance,
@@ -102,7 +100,7 @@ test("an external page recovers one Clock Body across a fresh Boot without resur
 
   const tick = page.locator('[data-face-kind="face/tick"]');
   await expect(tick).toHaveText(/^Clock tick: \d+$/);
-  const initialManifestation = running.firstManifestation;
+  const initialManifestation = await page.evaluate(() => __conduitFieldStation.firstObservedManifestation);
   expect(initialManifestation).toMatchObject({ text: "Clock tick: 0", observationSequence: "0" });
   expect(initialManifestation).toMatchObject({
     hostId: running.identities.hostId, bootId: running.identities.bootId,
