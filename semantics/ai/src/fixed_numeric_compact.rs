@@ -15,6 +15,13 @@ use conduit_kernel::{
     PortId, ValueStorage,
 };
 
+/// Selected physical profiles; both retain every logical node and Cord.
+pub const COMPACT_DAG_PROFILE: &str = "conduit.numeric/finite-f32-dag@1";
+pub const CANONICAL_DAG_PROFILE: &str = "conduit.numeric/canonical-f32-dag@1";
+pub const COMPACT_DAG_IMPLEMENTATION: &str = "conduit.numeric/compact-pointwise-dag@1";
+pub const CANONICAL_DAG_IMPLEMENTATION: &str = "conduit.numeric/canonical-pointwise-dag@1";
+pub const DAG_ARTIFACT: &str = "conduit-kernel/logical-step-f32-dag@1";
+
 pub(crate) struct CompactVectorBuffer<const W: usize> {
     bytes: Vec<u8>,
     published: bool,

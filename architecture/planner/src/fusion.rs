@@ -5,10 +5,14 @@ use conduit_core::{GearId, HostAdvertisement};
 use conduit_plot::CheckedPlot;
 mod model;
 mod planning;
+mod requested;
 pub use model::*;
 pub use planning::{
     plan_expanded_selected_optimization, plan_selected_optimization,
     select_expanded_fusion_candidate,
+};
+pub use requested::{
+    plan_expanded_with_requested_fusions, plan_with_requested_fusions, RequestedFusionInputs,
 };
 
 pub fn select_fusion_candidate(

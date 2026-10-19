@@ -22,7 +22,7 @@ pub fn plan_selected_optimization(
         bases,
         options,
     )?;
-    attach_selected_fusions(plan, selection)
+    attach_fusion_groups(plan, &selection.selected_fusion_groups)
 }
 
 /// Preserve expanded-source spans and external Fores while selecting the same
@@ -52,14 +52,14 @@ pub fn plan_expanded_selected_optimization(
         options,
         boundary_limits,
     )?;
-    attach_selected_fusions(plan, selection)
+    attach_fusion_groups(plan, &selection.selected_fusion_groups)
 }
 
-fn attach_selected_fusions(
+pub(super) fn attach_fusion_groups(
     mut plan: conduit_core::Plan,
-    selection: &FusionSelection,
+    groups: &[FusionDecisionGroup],
 ) -> Result<OptimizedPlan, PlannerError> {
-    for group in &selection.selected_fusion_groups {
+    for group in groups {
         let fragment = plan
             .fragments
             .iter_mut()
@@ -140,7 +140,7 @@ fn attach_selected_fusions(
     );
     let optimized = OptimizedPlan {
         plan,
-        fusion_groups: selection.selected_fusion_groups.clone(),
+        fusion_groups: groups.to_vec(),
     };
     if !optimized.verify() {
         return Err(PlannerError::InvalidPlanningObservation(

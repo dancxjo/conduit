@@ -1,5 +1,7 @@
 #[path = "compact_store.rs"]
 mod counted;
+#[path = "compact_plan.rs"]
+mod selected_plan;
 use super::*;
 use conduit_ai::fixed_numeric_operations_back::*;
 use conduit_composite::KernelOperationFactory;
@@ -154,15 +156,7 @@ fn run<const W: usize>(mode: u8, overflow: bool) -> ResultRow {
         capabilities: offers,
     }];
     let placements = conduit_planner::default_placements(&plot, &hosts).unwrap();
-    let plan = conduit_planner::plan_with_connection_limits(
-        &plot,
-        &hosts,
-        &placements,
-        &[BaseImplementationId::from("conduit.base/local@1")],
-        1,
-        16384,
-    )
-    .unwrap();
+    let plan = selected_plan::prepare(&plot, &hosts, &placements, mode);
     let factories =
         conduit_ai::operation_owners::fixed_numeric::FixedNumericOperationFactory::for_plan(
             &plan,
@@ -199,7 +193,6 @@ fn run<const W: usize>(mode: u8, overflow: bool) -> ResultRow {
         )
         .unwrap();
     let output = Rc::new(RefCell::new(None));
-    let mut nodes = Vec::new();
     let mut drivers = Vec::new();
     for (index, gear) in fragment.placements.iter().enumerate() {
         let kind = gear.kind_id.as_str();
@@ -232,22 +225,19 @@ fn run<const W: usize>(mode: u8, overflow: bool) -> ResultRow {
                             .unwrap(),
                     )
                 };
-                nodes.push((kind.to_string(), index));
                 Back::Numeric(owner)
             }
         };
         drivers.push(driver);
     }
-    let order: Vec<_> = ["add", "sigmoid", "complement", "multiply", "tanh"]
-        .into_iter()
-        .map(|name| {
-            nodes
-                .iter()
-                .find(|(kind, _)| kind == &format!("numeric/{name}{W}"))
-                .unwrap()
-                .1
-        })
-        .collect();
+    let dags =
+        conduit_plan_lowering::lowering::lower_pure_value_fusion_dags(&plan, &fragment.fragment_id)
+            .unwrap();
+    assert_eq!(dags.len(), usize::from(mode != 0));
+    let order = dags
+        .first()
+        .map(|dag| dag.nodes.clone())
+        .unwrap_or_default();
     let mut routes = FixedRoutes::<N, C>::new(1);
     for route in &lowered.routes {
         routes
@@ -276,24 +266,10 @@ fn run<const W: usize>(mode: u8, overflow: bool) -> ResultRow {
     )
     .unwrap();
     if mode == 1 {
-        scheduler
-            .bind_execution_dag(
-                &order
-                    .iter()
-                    .map(|n| conduit_kernel::NodeId(*n as u16))
-                    .collect::<Vec<_>>(),
-            )
-            .unwrap();
+        scheduler.bind_execution_dag(&order).unwrap();
     }
     if mode == 2 {
-        scheduler
-            .bind_compact_f32_dag(
-                &order
-                    .iter()
-                    .map(|n| conduit_kernel::NodeId(*n as u16))
-                    .collect::<Vec<_>>(),
-            )
-            .unwrap();
+        scheduler.bind_compact_f32_dag(&order).unwrap();
     }
     let mut physical = 0;
     for _ in 0..128 {

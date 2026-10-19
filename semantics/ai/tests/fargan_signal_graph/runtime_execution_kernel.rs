@@ -7,7 +7,7 @@ use conduit_kernel::{
     HostCallOutcome, NodeId, RequestId, ValueRef,
 };
 pub(super) type Session =
-    PreparedKernelSession<Driver, HostedValueStore, HostedSignLog, N, C, PORTS, C, C, C, N, 256>;
+    PreparedKernelSession<Driver, ObservedValues, HostedSignLog, N, C, PORTS, C, C, C, N, 256>;
 pub(super) enum ExecutionKernel {
     Fresh(Box<Kernel>),
     Reusable(Box<Session>),

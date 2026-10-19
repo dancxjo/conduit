@@ -97,3 +97,27 @@ fn missing_duplicate_effect_and_realization_facts_refuse_fusion() {
     });
     assert!(!fusion(&kind, &realized));
 }
+
+#[test]
+fn compact_offer_layout_requires_exact_owned_type_envelope_and_artifact() {
+    use conduit_ai::operation_owners::fixed_numeric::compact_pointwise_offer_layout;
+    let offer = fixed_numeric_offer_capacity64("numeric/add128").unwrap();
+    let layout = compact_pointwise_offer_layout(&offer).unwrap();
+    assert_eq!((layout.lanes, layout.logical_bytes), (128, 1372));
+    let mut artifact = offer.clone();
+    artifact.implementation.artifact_id = "unselected/artifact".into();
+    assert!(compact_pointwise_offer_layout(&artifact).is_err());
+    let mut port = offer.clone();
+    port.outputs[0].value_kind = kind_id("forged/f32-looking-profile");
+    assert!(compact_pointwise_offer_layout(&port).is_err());
+    let mut laws = offer;
+    laws.semantic_contract
+        .laws
+        .retain(|law| !matches!(law, KindSemanticLaw::Replay(_)));
+    assert!(compact_pointwise_offer_layout(&laws).is_err());
+    let linear = fixed_numeric_offer("numeric/linear128x128").unwrap();
+    assert!(
+        compact_pointwise_offer_layout(&linear).is_err(),
+        "immutable tensor custody needs its own explicit realization proof"
+    );
+}

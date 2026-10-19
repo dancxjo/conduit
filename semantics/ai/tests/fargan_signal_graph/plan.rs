@@ -2,6 +2,10 @@ use super::shared::*;
 use conduit_ai::{fixed_numeric_catalog::*, fixed_numeric_pair_catalog::*};
 use conduit_core::*;
 use std::collections::BTreeMap;
+#[path = "plan_numeric_fusions.rs"]
+mod numeric_fusions;
+pub use numeric_fusions::NumericProfile;
+
 pub fn source() -> String {
     [
         include_str!("../../../speech/fargan_conditioning.conduit"),
@@ -97,6 +101,14 @@ pub fn prepare_plan(schema: &SourceSchema) -> Plan {
     prepare_entry_plan(schema, &source(), "speech/fargan-subframe")
 }
 pub fn prepare_entry_plan(schema: &SourceSchema, source: &str, entry: &str) -> Plan {
+    prepare_entry_plan_profile(schema, source, entry, NumericProfile::Unfused)
+}
+pub fn prepare_entry_plan_profile(
+    schema: &SourceSchema,
+    source: &str,
+    entry: &str,
+    numeric: NumericProfile,
+) -> Plan {
     let mut startup = conduit_plot::StartupCatalog::new();
     let mut profiles = conduit_plot::ProfileCatalog::new();
     install_fixed_numeric_catalogs_capacity64(&mut startup, &mut profiles).unwrap();
@@ -201,6 +213,35 @@ pub fn prepare_entry_plan(schema: &SourceSchema, source: &str, entry: &str) -> P
                     .min(sink.limits.max_queue_bytes),
             },
         );
+    }
+    if numeric != NumericProfile::Unfused {
+        let (offers, kinds) = numeric_fusions::offers(&authoring, &hosts[0], &placements, numeric);
+        assert!(!offers.is_empty());
+        let options = conduit_planner::PlanningOptions {
+            connection_bases: &BTreeMap::new(),
+            line_candidates: &BTreeMap::new(),
+            connection_item_capacity: 1,
+            connection_byte_capacity: 16384,
+            authority_grants: &[],
+            protected_resource_grants: &[],
+            line_offers: &[],
+        };
+        return conduit_planner::plan_expanded_with_requested_fusions(
+            &authoring,
+            &hosts,
+            &placements,
+            &["conduit.base/local@1".into()],
+            options,
+            &limits,
+            &BTreeMap::new(),
+            conduit_planner::RequestedFusionInputs {
+                offers: &offers,
+                semantic_kinds: &kinds,
+                boundaries: &[],
+            },
+        )
+        .unwrap()
+        .plan;
     }
     conduit_planner::plan_expanded_canonical_with_connection_limits(
         plot,

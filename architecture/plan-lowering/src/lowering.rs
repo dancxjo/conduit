@@ -20,6 +20,8 @@ mod admission;
 mod fore_value;
 pub use fore_value::{ForeValueRefusal, LoweredForePort};
 mod fusion;
+mod fusion_dag;
+pub use fusion_dag::lower_pure_value_fusion_dags;
 mod ports;
 mod profile;
 mod state;
