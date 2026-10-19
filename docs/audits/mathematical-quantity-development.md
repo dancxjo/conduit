@@ -1040,8 +1040,8 @@ The full Core suite passes 577 tests across 106 executed binaries; all those
 binaries and exact source have verified archive roundtrips. The full Std suite
 passes 871 tests with 18 existing ignores, both CLI tests pass across three actual
 run invocations, Core checks without default features, and formatting passes.
-Strict workspace lint remains pending at this checkpoint. No full workspace test
-or stable target-wide acceptance is claimed.
+Strict workspace all-target Clippy passes. No full workspace test or stable
+target-wide acceptance is claimed.
 
 Native/exact report production and transport remain unfinished. In particular,
 the mathematical Near profile's supported native/rational fallback currently
