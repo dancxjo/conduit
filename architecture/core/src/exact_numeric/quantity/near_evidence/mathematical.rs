@@ -8,6 +8,17 @@ use crate::{
 /// Shared with its producer; generic report work metadata cannot be reconstructed
 /// from the reader's remaining envelope-validation budget.
 pub const MATHEMATICAL_NEAR_PROJECTION_WORK: u64 = 200_000_000;
+/// Upper bound for the fixed Near report inventory, including complete domain
+/// fields, three facts, exact content identities and the twelve loss counters.
+pub const MATHEMATICAL_NEAR_PROJECTION_EVIDENCE_MAX_BYTES: usize = 54_650;
+pub const MATHEMATICAL_NEAR_PROJECTION_EVIDENCE_LIMITS:
+    crate::projection::ProjectionEvidenceLimits = crate::projection::ProjectionEvidenceLimits {
+    source_bytes: crate::MATHEMATICAL_BINARY32_EVIDENCE_SOURCE_MAX_BYTES,
+    target_bytes: crate::MATHEMATICAL_BINARY32_EVIDENCE_TARGET_MAX_BYTES,
+    detail_bytes: crate::MATHEMATICAL_BINARY32_EVIDENCE_DETAIL_MAX_BYTES,
+    policy_bytes: crate::MATHEMATICAL_BINARY32_EVIDENCE_POLICY_MAX_BYTES,
+    total_bytes: MATHEMATICAL_NEAR_PROJECTION_EVIDENCE_MAX_BYTES,
+};
 pub const MATHEMATICAL_NEAR_VALIDATION_WORK: u64 = 32 * crate::MATHEMATICAL_VALUE_VALIDATION_WORK;
 pub struct PreparedMathematicalNearQuantityVerifier {
     schema: Vec<u8>,
@@ -170,9 +181,10 @@ impl PreparedMathematicalNearQuantityVerifier {
         let frame = crate::QuantityValueProfile::Mathematical
             .decode(quantity_kind, wire, work)
             .map_err(wire_refusal)?;
-        let requested = crate::Quantity::decode(leaf(field(value, "requested-limit")?)?)
+        let requested_wire = crate::Quantity::decode(leaf(field(value, "requested-limit")?)?)
             .map_err(|_| Refusal::InvalidLimit)?;
-        let requested = RationalQuantity::from_quantity(requested, work).map_err(rational_error)?;
+        let requested =
+            RationalQuantity::from_quantity(requested_wire, work).map_err(rational_error)?;
         let physical = RationalQuantity::new(ExactRational::ZERO, frame.unit(), frame.role())
             .map_err(rational_error)?;
         let limit = effective_limit(requested, physical, work)?;
@@ -255,6 +267,32 @@ impl PreparedMathematicalNearQuantityVerifier {
             claimed,
             work,
         )?;
+        let ids =
+            NearProjectionContentIds::new(wire, physical, requested_wire, Some(receipt.midpoint()));
+        let domain = crate::MathematicalQuantityBinary32Domain::new();
+        let policy = crate::MathematicalQuantityBinary32Policy {
+            maximum_error: limit,
+            rounding: self.rounding,
+        };
+        let facts = receipt.facts();
+        let target = receipt.target();
+        let report = crate::projection::ProjectionReport::new(
+            &domain,
+            &policy,
+            ids.input(&domain, &receipt, &target, &facts),
+        )
+        .map_err(|_| Refusal::InvalidClaim)?;
+        use crate::projection::ProjectionPolicy;
+        report
+            .require_bound_policy(policy.identity(), policy.configuration_digest().unwrap())
+            .map_err(|_| Refusal::InsufficientTolerance)?;
+        crate::projection::verify_projection_evidence(
+            &report,
+            &crate::MathematicalQuantityBinary32EvidenceCodec::new(policy),
+            MATHEMATICAL_NEAR_PROJECTION_EVIDENCE_LIMITS,
+            leaf(field(payload, "projection-evidence")?)?,
+        )
+        .map_err(Refusal::ProjectionEvidence)?;
         Ok(VerifiedMathematicalNearQuantity {
             projection: receipt,
             maximum_error: claimed,
@@ -266,22 +304,17 @@ fn check_claim(
     receipt: &BorrowedMathematicalQuantityBinary32<'_>,
     tag: &str,
     claimed: ExactRational,
-    work: &mut ExactNumericWork,
+    _work: &mut ExactNumericWork,
 ) -> Result<(), Refusal> {
-    if tag == "exact_distance" {
-        if receipt.error() != Binary32ErrorClaim::ExactDistance(claimed) {
-            return Err(Refusal::InvalidClaim);
-        }
-    } else if tag != "certified_bound"
-        || receipt
-            .error()
-            .maximum()
-            .checked_compare(claimed, work)
-            .map_err(numeric_error)?
-            == Ordering::Greater
-    {
+    let expected = match tag {
+        "exact_distance" => Binary32ErrorClaim::ExactDistance(claimed),
+        "certified_bound" => Binary32ErrorClaim::CertifiedBound(claimed),
+        _ => return Err(Refusal::InvalidClaim),
+    };
+    if receipt.error() != expected {
         return Err(Refusal::InvalidClaim);
     }
+
     Ok(())
 }
 fn projection_refusal(why: crate::MathematicalQuantityBinary32Refusal) -> Refusal {

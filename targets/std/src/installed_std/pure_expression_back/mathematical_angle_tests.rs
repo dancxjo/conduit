@@ -140,7 +140,7 @@ fn play(mut host: crate::StdHost, plan: &Plan, input: Vec<u8>) -> Vec<u8> {
                     && e.kind == conduit_kernel::KernelEventKind::ValueRouted));
         }
         if let Some(producer) = plan.fragments[0].placements.iter().find(|p| {
-            p.execution_profile_id.as_str() == "std/quantity-near-enclosed-midpoint-binary32@1"
+            p.execution_profile_id.as_str() == "std/quantity-near-enclosed-midpoint-binary32@2"
         }) {
             let (lowered, _) = conduit_plan_lowering::lowering::lower_plan_fragment_from_plan(
                 plan,
@@ -394,7 +394,7 @@ fn authored_dimensioned_chain_reaches_selected_binary32_consumer_and_independent
                 .placements
                 .iter()
                 .filter(|p| p.execution_profile_id.as_str()
-                    == "std/quantity-near-enclosed-midpoint-binary32@1")
+                    == "std/quantity-near-enclosed-midpoint-binary32@2")
                 .count(),
             1
         );

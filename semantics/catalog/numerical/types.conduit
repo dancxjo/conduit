@@ -92,6 +92,7 @@ type NearQuantityRepresentation =
         rounding: NumericalRounding
     }
     | enclosed_binary32 {
+        projection-evidence: Bytes <= 54650B
         target: F32 finite
         rounding: NumericalRounding
     }

@@ -433,6 +433,7 @@ pub fn value_contract_failure_detail(refusal: &PortableExpressionEvaluationRefus
             N::WorkLimit => 13,
             N::InsufficientTolerance => 14,
             N::ExactnessRequired => 15,
+            N::ProjectionEvidence(_) => 17,
         },
         C::Oversize { .. } => 16,
         _ => 31,

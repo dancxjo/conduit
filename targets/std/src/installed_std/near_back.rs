@@ -10,7 +10,7 @@ use conduit_semantic_catalog::{
 use std::fmt::Write;
 const IMPLEMENTATION: &str = "conduit.std/quantity-near@1";
 const EXACT: &str = "std/quantity-near-exact-rational@1";
-const MATHEMATICAL: &str = "std/quantity-near-enclosed-midpoint-binary32@1";
+const MATHEMATICAL: &str = "std/quantity-near-enclosed-midpoint-binary32@2";
 const FLOAT: &str = "std/quantity-near-binary32-single-round@1";
 pub(super) static FACTORY: BackFactory = BackFactory {
     implementation_id: IMPLEMENTATION,
@@ -48,13 +48,29 @@ fn bounds(
         ("maximum-numerical-limb-work", NEAR_TOTAL_NUMERICAL_WORK),
         ("maximum-numeric-bits", EXACT_NUMERIC_MAX_BITS as u64),
         (
+            "maximum-projection-evidence-bytes",
+            if algorithm == NearQuantityAlgorithm::EnclosedBinary32 {
+                MATHEMATICAL_NEAR_PROJECTION_EVIDENCE_MAX_BYTES as u64
+            } else {
+                0
+            },
+        ),
+        (
+            "maximum-projection-evidence-field-passes",
+            if algorithm == NearQuantityAlgorithm::EnclosedBinary32 {
+                3
+            } else {
+                0
+            },
+        ),
+        (
             "retained-prepared-payload-bytes",
             (back.retained_capacity_bytes() + core::mem::size_of::<NearQuantityBack>()) as u64,
         ),
     ];
     let build = || -> Result<_, StructuredInfoRefusal> {
         let ty = StructuredInfoType::record(
-            kind_id("std/quantity-near-bounds@1"),
+            kind_id("std/quantity-near-bounds@2"),
             fields
                 .iter()
                 .map(|(n, _)| StructuredFieldType::new(*n, integer.clone()))
@@ -100,6 +116,15 @@ fn offer(limit: Quantity, algorithm: NearQuantityAlgorithm) -> Result<Capability
             include_str!("../numerical_host/near_encoding.rs"),
             include_str!("../numerical_host/near_encoding/mathematical.rs"),
             include_str!("../numerical_host/near_step/mathematical.rs"),
+            include_str!("../../../../architecture/core/src/exact_numeric/quantity/near_evidence.rs"),
+            include_str!("../../../../architecture/core/src/exact_numeric/quantity/near_evidence/identities.rs"),
+            include_str!("../../../../architecture/core/src/exact_numeric/quantity/mathematical_binary32/evidence.rs"),
+            include_str!("../../../../architecture/core/src/projection.rs"),
+            include_str!("../../../../architecture/core/src/projection/model.rs"),
+            include_str!("../../../../architecture/core/src/projection/report.rs"),
+            include_str!("../../../../architecture/core/src/projection/evidence.rs"),
+            include_str!("../../../../architecture/core/src/projection/evidence/writer.rs"),
+            include_str!("../../../../architecture/core/src/projection/evidence/encode.rs"),
             include_str!("../../../../architecture/core/src/exact_numeric/quantity/mathematical_binary32.rs"),
             include_str!("../../../../architecture/core/src/exact_numeric/quantity/mathematical_binary32/projection.rs"),
             include_str!("../../../../architecture/core/src/exact_numeric/quantity/mathematical_enclosure.rs"),

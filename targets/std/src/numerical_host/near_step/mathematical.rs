@@ -40,17 +40,11 @@ impl NearQuantityBack {
             maximum_error: limit,
             rounding: Binary32Rounding::NearestTiesEven,
         };
-        checked_report(
-            &MathematicalQuantityBinary32Domain::new(),
-            &policy,
-            &p,
-            &target,
-            &facts,
-            &ids,
-        )?;
+        let domain = MathematicalQuantityBinary32Domain::new();
+        let report = checked_report(&domain, &policy, &p, &target, &facts, &ids)?;
         self.state
             .encoding
-            .encode_mathematical(&p, self.state.requested_limit, limit)
+            .encode_mathematical(&p, self.state.requested_limit, limit, &report)
             .map_err(|_| NearRefusal::Encoding)?;
         Ok(())
     }

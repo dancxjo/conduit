@@ -376,3 +376,113 @@ fn checked_source_consumer_prepares_all_form_contracts_at_both_boundaries() {
     assert_eq!(evaluator.output_capacity(), capacity);
     assert_eq!(evaluator.value_contract_bounds().unwrap(), bounds);
 }
+
+#[test]
+fn full_report_bytes_and_original_certificate_are_verified_without_growth() {
+    let wire = frame();
+    let requested = Quantity::parse_plot_literal("0.000001rad").unwrap();
+    let mut back =
+        NearQuantityBack::new(requested, NearQuantityAlgorithm::EnclosedBinary32).unwrap();
+    back.evaluate(&wire).unwrap();
+    let encoded = back.state.encoding.encoded();
+    let original = StructuredInfoValue::from_canonical_bytes(encoded).unwrap();
+    let value = validate_canonical_structured_value(encoded)
+        .unwrap()
+        .record_field("representation")
+        .unwrap()
+        .unwrap()
+        .variant_payload("enclosed_binary32")
+        .unwrap()
+        .unwrap()
+        .record_field("projection-evidence")
+        .unwrap()
+        .unwrap();
+    let report = &value.value_node()[5..];
+    assert_eq!(&report[..4], b"CPE\x01");
+    assert!(report.len() <= MATHEMATICAL_NEAR_PROJECTION_EVIDENCE_MAX_BYTES);
+    let mut changed_summary = report.to_vec();
+    *changed_summary.last_mut().unwrap() ^= 1;
+    let mut unknown_version = report.to_vec();
+    unknown_version[3] ^= 1;
+    let mut trailing = report.to_vec();
+    trailing.push(0);
+    let mut verifier = receiver(requested);
+    for changed in [
+        changed_summary,
+        unknown_version,
+        trailing,
+        report[..report.len() - 1].to_vec(),
+    ] {
+        let forged = replace(
+            &original,
+            &["representation", "enclosed_binary32", "projection-evidence"],
+            &changed,
+        )
+        .canonical_bytes()
+        .unwrap();
+        let guard = crate::allocation_probe::begin();
+        assert!(matches!(
+            verifier.verify(
+                &forged,
+                ANGLE_INFO_ID,
+                None,
+                &mut ExactNumericWork::new(900_000_000)
+            ),
+            Err(NearQuantityEvidenceRefusal::ProjectionEvidence(_))
+        ));
+        assert_eq!(guard.finish(), 0);
+    }
+    let mut number = [0; 2 + EXACT_RATIONAL_MAX_ENCODED_BYTES];
+    let requested_rational =
+        RationalQuantity::from_quantity(requested, &mut ExactNumericWork::new(NEAR_NUMERICAL_WORK))
+            .unwrap();
+    let n = MathematicalValue::rational(requested_rational.coordinate())
+        .encode(&mut number)
+        .unwrap();
+    // This is a numerically sufficient larger certified bound. The original
+    // certificate must still match the exact receipt carried by the report.
+    let inflated = replace(&original, &["maximum-error"], &number[..n])
+        .canonical_bytes()
+        .unwrap();
+    let changed_request = Quantity::parse_plot_literal("0.000002rad").unwrap();
+    let changed_limit = RationalQuantity::from_quantity(
+        changed_request,
+        &mut ExactNumericWork::new(NEAR_NUMERICAL_WORK),
+    )
+    .unwrap();
+    let n = MathematicalValue::rational(changed_limit.coordinate())
+        .encode(&mut number)
+        .unwrap();
+    let changed = replace(&original, &["requested-limit"], &changed_request.encode());
+    let changed = replace(&changed, &["limit"], &number[..n])
+        .canonical_bytes()
+        .unwrap();
+    let guard = crate::allocation_probe::begin();
+    assert!(matches!(
+        verifier.verify(
+            &inflated,
+            ANGLE_INFO_ID,
+            None,
+            &mut ExactNumericWork::new(900_000_000)
+        ),
+        Err(NearQuantityEvidenceRefusal::InvalidClaim)
+    ));
+    assert!(matches!(
+        verifier.verify(
+            &changed,
+            ANGLE_INFO_ID,
+            None,
+            &mut ExactNumericWork::new(900_000_000)
+        ),
+        Err(NearQuantityEvidenceRefusal::ProjectionEvidence(_))
+    ));
+    verifier
+        .verify(
+            encoded,
+            ANGLE_INFO_ID,
+            None,
+            &mut ExactNumericWork::new(900_000_000),
+        )
+        .unwrap();
+    assert_eq!(guard.finish(), 0);
+}

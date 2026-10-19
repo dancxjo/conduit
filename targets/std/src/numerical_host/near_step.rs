@@ -339,41 +339,17 @@ fn checked_report<'a, D: ProjectionDomain, P: ProjectionPolicy<D>>(
     target: &'a D::Target,
     facts: &'a [ProjectionFact<'a, D>],
     ids: &'a ProjectionIds,
-) -> Result<(), NearRefusal> {
+) -> Result<ProjectionReport<'a, D>, NearRefusal> {
     // Zero-loss reports also require the actual consuming parameters to pass.
     if !policy.permits(source, target, facts) {
         return Err(NearRefusal::Tolerance);
     }
-    let id = |s: &'a [u8]| text(core::str::from_utf8(s).unwrap());
-    let report = ProjectionReport::new(
-        domain,
-        policy,
-        ProjectionInput {
-            basis: ProjectionBasis {
-                report: id(&ids.report),
-                source: id(&ids.source),
-                target: Some(id(&ids.target)),
-                projector: domain.target_contract(),
-                requested_route: text("math/near"),
-                boundary: None,
-            },
-            source,
-            target: Some(target),
-            facts,
-            native: &[],
-            scores: &[],
-            admitted: &[],
-            attempts: &[],
-            selected_attempt: None,
-            mechanism: ProjectionMechanism::Completed,
-            diagnostics: &[],
-        },
-    )
-    .map_err(|_| NearRefusal::Encoding)?;
+    let report = ProjectionReport::new(domain, policy, ids.input(domain, source, target, facts))
+        .map_err(|_| NearRefusal::Encoding)?;
     report
         .require_policy(policy.identity())
         .map_err(|_| NearRefusal::Tolerance)?;
-    Ok(())
+    Ok(report)
 }
 struct ExactNearDomain;
 impl ExactNearDomain {

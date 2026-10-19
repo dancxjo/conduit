@@ -64,9 +64,44 @@ fn near(
             "toward_negative",
         ],
     );
+    let physical = RationalQuantity::new(
+        ExactRational::ZERO,
+        receipt.source().unit(),
+        receipt.source().role(),
+    )
+    .unwrap();
+    let ids = NearProjectionContentIds::new(
+        receipt.source().encoded(),
+        physical,
+        requested,
+        Some(receipt.midpoint()),
+    );
+    let domain = MathematicalQuantityBinary32Domain::new();
+    let policy = MathematicalQuantityBinary32Policy {
+        maximum_error: receipt.maximum_error(),
+        rounding: receipt.midpoint().numeric().rounding(),
+    };
+    let target = receipt.target();
+    let facts = receipt.facts();
+    let report = ProjectionReport::new(
+        &domain,
+        &policy,
+        ids.input(&domain, receipt, &target, &facts),
+    )
+    .unwrap();
+    let mut evidence = vec![0; MATHEMATICAL_NEAR_PROJECTION_EVIDENCE_MAX_BYTES];
+    let n = encode_projection_evidence(
+        &report,
+        &MathematicalQuantityBinary32EvidenceCodec::new(policy),
+        MATHEMATICAL_NEAR_PROJECTION_EVIDENCE_LIMITS,
+        &mut evidence,
+    )
+    .unwrap();
+    evidence.truncate(n);
     let float = record(
         "test/binary32",
         vec![
+            ("projection-evidence", leaf(BYTES_INFO_ID, &evidence)),
             (
                 "target",
                 leaf(
@@ -156,7 +191,12 @@ fn near_reader_retains_original_policy_and_projection_work_in_full_report() {
     let domain = MathematicalQuantityBinary32Domain::new();
     let target = sent.target();
     let facts = sent.facts();
-    let report = ProjectionReport::new(&domain, &policy, input(&sent, &target, &facts)).unwrap();
+    let physical =
+        RationalQuantity::new(ExactRational::ZERO, Unit::Radian, QuantityRole::Linear).unwrap();
+    let ids = NearProjectionContentIds::new(&wire, physical, requested, Some(sent.midpoint()));
+    let report =
+        ProjectionReport::new(&domain, &policy, ids.input(&domain, &sent, &target, &facts))
+            .unwrap();
     let n = encode_projection_evidence(&report, &codec, super::evidence::LIMITS, &mut evidence)
         .unwrap();
     for consumer in [q(1, 2_000_000), q(1, 100_000), ExactRational::ZERO] {
@@ -187,9 +227,12 @@ fn near_reader_retains_original_policy_and_projection_work_in_full_report() {
                 assert_eq!(replay.maximum_error(), original);
                 let target = replay.target();
                 let facts = replay.facts();
-                let report =
-                    ProjectionReport::new(&domain, &policy, input(replay, &target, &facts))
-                        .unwrap();
+                let report = ProjectionReport::new(
+                    &domain,
+                    &policy,
+                    ids.input(&domain, replay, &target, &facts),
+                )
+                .unwrap();
                 verify_projection_evidence(
                     &report,
                     &codec,

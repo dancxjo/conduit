@@ -8,6 +8,8 @@ mod mathematical;
 
 pub struct PreparedNearEncoding {
     source: PreparedStructuredComposer,
+    projection_evidence: Option<PreparedStructuredComposer>,
+    projection_bytes: Vec<u8>,
     wire: PreparedStructuredComposer,
     requested_limit: PreparedStructuredComposer,
     unit: PreparedStructuredComposer,
@@ -80,7 +82,25 @@ impl PreparedNearEncoding {
         let math = field(&ty, "source");
         let role = field(&ty, "role");
         let claim = field(&ty, "claim");
+        if mathematical
+            && mathematical::maximum_record_bytes(&ty)? > NUMERICAL_NEAR_MAX_BYTES as usize
+        {
+            return Err(StructuredInfoRefusal::CanonicalEncodingTooLarge);
+        }
         Ok(Self {
+            projection_evidence: if mathematical {
+                Some(leaf(
+                    &field(&floating, "projection-evidence"),
+                    MATHEMATICAL_NEAR_PROJECTION_EVIDENCE_MAX_BYTES,
+                )?)
+            } else {
+                None
+            },
+            projection_bytes: if mathematical {
+                vec![0; MATHEMATICAL_NEAR_PROJECTION_EVIDENCE_MAX_BYTES]
+            } else {
+                Vec::new()
+            },
             source: leaf(
                 &math,
                 if mathematical {
@@ -110,7 +130,10 @@ impl PreparedNearEncoding {
             )?,
             target: leaf(&field(&floating, "target"), 4)?,
             rounding: tag(&field(&floating, "rounding"), "nearest_ties_even")?,
-            floating: PreparedStructuredComposer::new(&floating, 4096)?,
+            floating: PreparedStructuredComposer::new(
+                &floating,
+                if mathematical { 65536 } else { 4096 },
+            )?,
             legacy_floating: if mathematical {
                 Some(PreparedStructuredComposer::new(
                     &case(&representation, "binary32"),
@@ -119,7 +142,10 @@ impl PreparedNearEncoding {
             } else {
                 None
             },
-            representation: PreparedStructuredComposer::new(&representation, 8192)?,
+            representation: PreparedStructuredComposer::new(
+                &representation,
+                if mathematical { 65536 } else { 8192 },
+            )?,
             result: PreparedStructuredComposer::new(&ty, NUMERICAL_NEAR_MAX_BYTES as usize)?,
             roles: [
                 tag(&role, "linear")?,
@@ -155,6 +181,11 @@ impl PreparedNearEncoding {
                 .chain(&self.claims)
                 .map(Vec::capacity)
                 .sum::<usize>()
+            + self.projection_bytes.capacity()
+            + self
+                .projection_evidence
+                .as_ref()
+                .map_or(0, |c| c.prepared_heap_bytes())
             + self.rounding.capacity()
             + self
                 .legacy_floating

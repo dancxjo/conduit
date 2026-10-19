@@ -26,9 +26,12 @@ pub enum NearQuantityEvidenceRefusal {
     WorkLimit,
     InsufficientTolerance,
     ExactnessRequired,
+    ProjectionEvidence(crate::projection::ProjectionEvidenceRefusal),
 }
 type Refusal = NearQuantityEvidenceRefusal;
 pub const NEAR_QUANTITY_EVIDENCE_MAX_BYTES: usize = 131_072;
+mod identities;
+pub use identities::*;
 mod mathematical;
 pub use mathematical::*;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -424,7 +427,11 @@ fn protocol_schema(ty: &StructuredInfoType) -> bool {
                 let Shape::Record { fields, .. } = c.payload_type().shape() else {
                     return false;
                 };
-                if fields.len() != 2
+                let mathematical = c.tag() == "enclosed_binary32";
+                if fields.len() != if mathematical { 3 } else { 2 }
+                    || (mathematical
+                        && !type_field(c.payload_type(), "projection-evidence")
+                            .is_some_and(|t| leaf_type(t, crate::BYTES_INFO_ID)))
                     || !type_field(c.payload_type(), "target")
                         .is_some_and(|t| leaf_type(t, crate::F32_INFO_ID))
                     || !type_field(c.payload_type(), "rounding").is_some_and(|t| {

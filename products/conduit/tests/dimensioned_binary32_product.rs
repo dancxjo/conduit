@@ -117,13 +117,13 @@ fn assert_chain(source: &str) {
             .iter()
             .flat_map(|f| &f.placements)
             .find(|p| {
-                p.execution_profile_id.as_str() == "std/quantity-near-enclosed-midpoint-binary32@1"
+                p.execution_profile_id.as_str() == "std/quantity-near-enclosed-midpoint-binary32@2"
             })
             .expect("selected input-consuming projection");
         assert!(boundary.source_span.is_some());
         assert_eq!(
             boundary.kind_contract_revision.as_str(),
-            "numeric/quantity-near@2"
+            "numeric/quantity-near@3"
         );
         let active_play: conduit_core::ActivePlayId =
             serde_json::from_value(report["plays"][0]["active_play_id"].clone()).unwrap();
