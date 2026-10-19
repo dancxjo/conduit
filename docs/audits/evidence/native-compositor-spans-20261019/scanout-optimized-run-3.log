@@ -1,0 +1,54 @@
+
+running 9 tests
+test display::raw::tests::default_span_stops_at_the_exact_pixel_error_and_mutable_targets_forward_overrides ... ok
+test display::raw::tests::invalid_spans_and_lost_scanout_preserve_the_entire_buffer ... ok
+test display::raw::tests::volatile_scanout_performance ... volatile-scanout mode=0 repeat=0 frames=16 wall_ns=5922785
+volatile-scanout mode=1 repeat=0 frames=16 wall_ns=4250676
+volatile-scanout mode=2 repeat=0 frames=16 wall_ns=1785563
+volatile-scanout mode=2 repeat=1 frames=16 wall_ns=1748571
+volatile-scanout mode=1 repeat=1 frames=16 wall_ns=3998935
+volatile-scanout mode=0 repeat=1 frames=16 wall_ns=4990214
+volatile-scanout mode=0 repeat=2 frames=16 wall_ns=5045337
+volatile-scanout mode=1 repeat=2 frames=16 wall_ns=4030966
+volatile-scanout mode=2 repeat=2 frames=16 wall_ns=1761252
+volatile-scanout mode=2 repeat=3 frames=16 wall_ns=1738566
+volatile-scanout mode=1 repeat=3 frames=16 wall_ns=3964188
+volatile-scanout mode=0 repeat=3 frames=16 wall_ns=4897216
+volatile-scanout mode=0 repeat=4 frames=16 wall_ns=4999327
+volatile-scanout mode=1 repeat=4 frames=16 wall_ns=4037971
+volatile-scanout mode=2 repeat=4 frames=16 wall_ns=1763252
+ok
+test display::raw::tests::word_and_span_scanout_match_bytes_for_all_alignments_and_pitch_padding ... ok
+test native_compositor::frame_composition::differential::focus_and_cursor_edges_keep_surface_interiors_on_the_span_path ... ok
+test native_compositor::frame_composition::differential::invalid_damage_refuses_without_scanout ... ok
+test native_compositor::frame_composition::differential::span_compositor_performance ... span-compositor case=full repeat=0 frames=16 reference_ns=106187289 spans_ns=3676346
+span-compositor case=full repeat=1 frames=16 reference_ns=106543477 spans_ns=3667002
+span-compositor case=full repeat=2 frames=16 reference_ns=106581906 spans_ns=3650356
+span-compositor case=full repeat=3 frames=16 reference_ns=106021865 spans_ns=3687410
+span-compositor case=full repeat=4 frames=16 reference_ns=106184246 spans_ns=3679112
+span-compositor case=tiny repeat=0 frames=65536 reference_ns=1542429 spans_ns=1352049
+span-compositor case=tiny repeat=1 frames=65536 reference_ns=1543025 spans_ns=1346598
+span-compositor case=tiny repeat=2 frames=65536 reference_ns=1542952 spans_ns=1363752
+span-compositor case=tiny repeat=3 frames=65536 reference_ns=1544838 spans_ns=1350978
+span-compositor case=tiny repeat=4 frames=65536 reference_ns=1545150 spans_ns=1360248
+span-compositor case=scroll repeat=0 frames=16 reference_ns=23720688 spans_ns=1030242
+span-compositor case=scroll repeat=1 frames=16 reference_ns=23759493 spans_ns=982759
+span-compositor case=scroll repeat=2 frames=16 reference_ns=23721113 spans_ns=1016194
+span-compositor case=scroll repeat=3 frames=16 reference_ns=23761975 spans_ns=1018010
+span-compositor case=scroll repeat=4 frames=16 reference_ns=23688768 spans_ns=1024463
+span-compositor case=hover repeat=0 frames=4096 reference_ns=20276648 spans_ns=4408005
+span-compositor case=hover repeat=1 frames=4096 reference_ns=20129742 spans_ns=4481502
+span-compositor case=hover repeat=2 frames=4096 reference_ns=20169300 spans_ns=4413639
+span-compositor case=hover repeat=3 frames=4096 reference_ns=20439422 spans_ns=4494715
+span-compositor case=hover repeat=4 frames=4096 reference_ns=20619331 spans_ns=4435915
+span-compositor case=typing repeat=0 frames=1024 reference_ns=59347439 spans_ns=3384729
+span-compositor case=typing repeat=1 frames=1024 reference_ns=59274658 spans_ns=3385019
+span-compositor case=typing repeat=2 frames=1024 reference_ns=57762466 spans_ns=3489480
+span-compositor case=typing repeat=3 frames=1024 reference_ns=59008187 spans_ns=3406927
+span-compositor case=typing repeat=4 frames=1024 reference_ns=59318465 spans_ns=3436826
+ok
+test native_compositor::frame_composition::differential::spans_match_reference_pixels_coverage_and_partial_failure ... ok
+test native_compositor::frame_composition::tests::cursor_bitmap_has_outline_fill_stem_and_exact_hotspot ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 1140 filtered out; finished in 9.21s
+

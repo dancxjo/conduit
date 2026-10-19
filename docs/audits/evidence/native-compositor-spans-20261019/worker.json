@@ -1,0 +1,7 @@
+{
+  "source": "08c0cd8a81c8857904b4dd5f2ca8489cd40968c1",
+  "executable_sha256": "70a3051494ca18f37c754fb8cb6574fb4962264942c214568fb41212b1c1e051",
+  "bytes": 80089120,
+  "profile": "conduitos opt-level3, debug assertions, debug0 incrementalfalse",
+  "custody": "copied after public xtask command finished successfully; source clean"
+}
