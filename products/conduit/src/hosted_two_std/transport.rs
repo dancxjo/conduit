@@ -115,12 +115,19 @@ fn drain_sink(
     Err("sink did not drain within its admitted steps".into())
 }
 
-pub(super) fn execute_line(
+pub(super) fn execute_line<const OBSERVE: bool>(
     mut source: InstalledRemoteFragment,
     source_endpoint: RemoteEndpointId,
     sink: InstalledRemoteFragment,
     sink_endpoint: RemoteEndpointId,
-) -> Result<(RemoteValueTransfer, Vec<u8>), String> {
+) -> Result<
+    (
+        RemoteValueTransfer,
+        Vec<u8>,
+        Option<super::TwoHostKernelEvidence>,
+    ),
+    String,
+> {
     let listener = NativeWebSocketListener::bind_loopback(MAXIMUM_FRAME_BYTES)
         .map_err(|error| format!("bind Tour Line: {error:?}"))?;
     let address = listener
@@ -129,7 +136,8 @@ pub(super) fn execute_line(
     let url = listener
         .url()
         .map_err(|error| format!("name Tour Line: {error:?}"))?;
-    let sink_handle = thread::spawn(move || run_sink(sink, sink_endpoint, address, &url));
+    let sink_handle =
+        thread::spawn(move || run_sink::<OBSERVE>(sink, sink_endpoint, address, &url));
     let mut line = listener
         .accept()
         .map_err(|error| format!("accept Tour Line: {error:?}"))?;
@@ -189,18 +197,26 @@ pub(super) fn execute_line(
     }
     line.close()
         .map_err(|error| format!("close Tour Line: {error:?}"))?;
-    let sink_output = sink_handle
+    let (sink_output, sink_evidence) = sink_handle
         .join()
         .map_err(|_| "sink Tour Host panicked".to_string())??;
-    Ok((transfer, sink_output))
+    let evidence = if OBSERVE {
+        Some(super::TwoHostKernelEvidence {
+            source: super::evidence::retain(&source),
+            sink: sink_evidence.ok_or("sink evidence missing")?,
+        })
+    } else {
+        None
+    };
+    Ok((transfer, sink_output, evidence))
 }
 
-fn run_sink(
+fn run_sink<const OBSERVE: bool>(
     mut sink: InstalledRemoteFragment,
     sink_endpoint: RemoteEndpointId,
     address: std::net::SocketAddr,
     url: &str,
-) -> Result<Vec<u8>, String> {
+) -> Result<(Vec<u8>, Option<super::RemoteKernelEvidence>), String> {
     let mut line = NativeWebSocketLine::connect(address, url, MAXIMUM_FRAME_BYTES)
         .map_err(|error| format!("connect Tour Line: {error:?}"))?;
     activate_sink(&mut sink, sink_endpoint, &mut line)?;
@@ -259,7 +275,8 @@ fn run_sink(
     {
         return Err("sink Tour Line did not terminate exactly".into());
     }
-    Ok(output)
+    let evidence = OBSERVE.then(|| super::evidence::retain(&sink));
+    Ok((output, evidence))
 }
 
 fn activate_source(
