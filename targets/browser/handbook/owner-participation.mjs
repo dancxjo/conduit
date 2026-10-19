@@ -276,7 +276,7 @@ export async function startOwnerParticipation(application, root) {
       element.show = (view, options) => presentation.show(view, options);
       const removal = new MutationObserver(records => {
         if (records.some(record => [...record.removedNodes].some(node => node === element || node.contains?.(element)))) {
-          element.retireOwnerFace();
+          presentation.retire();
         }
       });
       removal.observe(document.documentElement, { childList: true, subtree: true });
