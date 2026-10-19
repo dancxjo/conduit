@@ -239,7 +239,7 @@ impl NearQuantityBack {
                 maximum_error: limit,
                 rounding: Binary32Rounding::NearestTiesEven,
             };
-            checked_report(
+            let report = checked_report(
                 &QuantityBinary32ProjectionDomain,
                 &policy,
                 p,
@@ -247,18 +247,27 @@ impl NearQuantityBack {
                 &facts,
                 &ids,
             )?;
+            self.state
+                .encoding
+                .encode_report(&report, &QuantityBinary32EvidenceCodec::new(policy))
+                .map_err(|_| NearRefusal::Encoding)?;
         } else {
             let facts = ExactNearProjectionDomain.facts();
-            checked_report(
+            let policy = ExactNearProjectionPolicy {
+                maximum_error: limit,
+            };
+            let report = checked_report(
                 &ExactNearProjectionDomain,
-                &ExactNearProjectionPolicy {
-                    maximum_error: limit,
-                },
+                &policy,
                 &source,
                 &source,
                 &facts,
                 &ids,
             )?;
+            self.state
+                .encoding
+                .encode_report(&report, &ExactNearEvidenceCodec::new(policy))
+                .map_err(|_| NearRefusal::Encoding)?;
         }
         self.state
             .encoding
@@ -364,3 +373,6 @@ use projection_ids::ProjectionIds;
 
 #[cfg(test)]
 pub(crate) use mathematical::requirements as mathematical_near_requirements;
+
+#[cfg(test)]
+mod report_tests;

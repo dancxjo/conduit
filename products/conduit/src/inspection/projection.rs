@@ -18,21 +18,47 @@ pub(super) fn render(artifact: &RoutedValueArtifact) -> Result<Option<String>, S
         .flat_map(|f| &f.placements)
         .find(|p| Some(&p.placement_id) == sign.placement_id.as_ref())
         .ok_or("routed value lacks producer")?;
-    if producer.execution_profile_id.as_str() != "std/quantity-near-enclosed-midpoint-binary32@2" {
+    if !matches!(
+        producer.execution_profile_id.as_str(),
+        "std/quantity-near-exact-rational@1"
+            | "std/quantity-near-exact-rational@2"
+            | "std/quantity-near-binary32-single-round@1"
+            | "std/quantity-near-binary32-single-round@2"
+            | "std/quantity-near-enclosed-midpoint-binary32@1"
+            | "std/quantity-near-enclosed-midpoint-binary32@2"
+            | "std/quantity-near-enclosed-midpoint-binary32@3"
+    ) {
         return Ok(None);
     }
     let frame = conduit_core::validate_canonical_structured_value(&artifact.bytes)
         .map_err(|e| format!("projection value framing: {e:?}"))?;
-    let field = frame
-        .record_field("representation")
-        .map_err(|e| format!("projection representation: {e:?}"))?
-        .ok_or("projection representation missing")?
-        .variant_payload("enclosed_binary32")
-        .map_err(|e| format!("projection representation: {e:?}"))?
-        .ok_or("projection binary32 representation missing")?
+    let root = frame
         .record_field("projection-evidence")
-        .map_err(|e| format!("projection evidence: {e:?}"))?
-        .ok_or("projection evidence missing")?;
+        .map_err(|e| format!("projection evidence: {e:?}"))?;
+    let field = match root {
+        Some(field) => Some(field),
+        None => {
+            let representation = frame
+                .record_field("representation")
+                .map_err(|e| format!("projection representation: {e:?}"))?
+                .ok_or("projection representation missing")?;
+            match representation
+                .variant_payload("enclosed_binary32")
+                .map_err(|e| format!("projection representation: {e:?}"))?
+            {
+                Some(payload) => payload
+                    .record_field("projection-evidence")
+                    .map_err(|e| format!("projection evidence: {e:?}"))?,
+                None => None,
+            }
+        }
+    };
+    let Some(field) = field else {
+        let verified = semantic::verify(artifact, producer, frame)?;
+        return Ok(Some(format!(
+            "Legacy Near record: general projection report was not retained\n{verified}"
+        )));
+    };
     let node = field.value_node();
     if node.first() != Some(&0) || node.len() < 5 {
         return Err("projection evidence is not a byte leaf".into());
@@ -48,10 +74,26 @@ pub(super) fn render(artifact: &RoutedValueArtifact) -> Result<Option<String>, S
     Ok(Some(output))
 }
 fn report(v: ProjectionEvidenceView<'_>) -> String {
-    let mut out=format!("Projection report claims\ncodec {}\nreport {}\nsource contract {}\ntarget contract {}\npolicy {}\nconfiguration {:?}\nsource identity {}\ntarget identity {:?}\nprojector {}\nrequested route {}\nboundary {:?}\nopaque policy bytes {}\nopaque source bytes {}\nopaque target bytes {:?}\nclaimed summary {:?}\nmechanism {:?}\nselected attempt {:?}\n",
-        v.codec,v.report,v.source_contract,v.target_contract,v.policy,v.configuration_digest,
-        v.source_identity,v.target_identity,v.projector,v.requested_route,v.boundary,
-        v.policy_bytes.len(),v.source_bytes.len(),v.target_bytes.map(<[u8]>::len),v.claimed_summary,v.mechanism,v.selected_attempt);
+    let mut out = format!(
+        "Projection report claims\ncodec {}\nreport {}\nsource contract {}\ntarget contract {}\npolicy {}\nconfiguration {:?}\nsource identity {}\ntarget identity {:?}\nprojector {}\nrequested route {}\nboundary {:?}\nopaque policy bytes {}\nopaque source bytes {}\nopaque target bytes {:?}\nclaimed summary {:?}\nmechanism {:?}\nselected attempt {:?}\n",
+        v.codec,
+        v.report,
+        v.source_contract,
+        v.target_contract,
+        v.policy,
+        v.configuration_digest,
+        v.source_identity,
+        v.target_identity,
+        v.projector,
+        v.requested_route,
+        v.boundary,
+        v.policy_bytes.len(),
+        v.source_bytes.len(),
+        v.target_bytes.map(<[u8]>::len),
+        v.claimed_summary,
+        v.mechanism,
+        v.selected_attempt
+    );
     for fact in v.facts() {
         writeln!(out, "fact {fact:?}").unwrap();
     }

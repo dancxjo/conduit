@@ -13,7 +13,7 @@ fn absolute_frequency_fore_keeps_certified_source_and_error_in_one_product_play(
         .flat_map(|f| &f.placements)
         .collect::<Vec<_>>();
     assert!(gears.iter().any(|g| g.kind_id.as_str() == "math/near"
-        && g.execution_profile_id.as_str() == "std/quantity-near-binary32-single-round@1"));
+        && g.execution_profile_id.as_str() == "std/quantity-near-binary32-single-round@2"));
     let qualified = gears
         .iter()
         .find(|g| {

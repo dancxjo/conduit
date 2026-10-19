@@ -55,6 +55,13 @@ fn near(
     receipt: &BorrowedMathematicalQuantityBinary32<'_>,
     requested: Quantity,
 ) -> StructuredInfoValue {
+    near_form(receipt, requested, true)
+}
+fn near_form(
+    receipt: &BorrowedMathematicalQuantityBinary32<'_>,
+    requested: Quantity,
+    retain_report: bool,
+) -> StructuredInfoValue {
     let rounding = cases(
         "test/rounding",
         &[
@@ -98,20 +105,20 @@ fn near(
     )
     .unwrap();
     evidence.truncate(n);
-    let float = record(
-        "test/binary32",
-        vec![
-            ("projection-evidence", leaf(BYTES_INFO_ID, &evidence)),
-            (
-                "target",
-                leaf(
-                    F32_INFO_ID,
-                    &receipt.target().coordinate().bits().to_le_bytes(),
-                ),
+    let mut float_fields = vec![
+        (
+            "target",
+            leaf(
+                F32_INFO_ID,
+                &receipt.target().coordinate().bits().to_le_bytes(),
             ),
-            ("rounding", tag(&rounding, "nearest_ties_even")),
-        ],
-    );
+        ),
+        ("rounding", tag(&rounding, "nearest_ties_even")),
+    ];
+    if retain_report {
+        float_fields.push(("projection-evidence", leaf(BYTES_INFO_ID, &evidence)));
+    }
+    let float = record("test/binary32", float_fields);
     let rep = StructuredInfoType::variant(
         kind_id("test/representation"),
         vec![
@@ -272,4 +279,73 @@ fn near_reader_retains_original_policy_and_projection_work_in_full_report() {
         });
         assert_eq!(allocations, 0);
     }
+}
+
+#[test]
+fn historical_bare_enclosed_schema_replays_but_current_empty_report_never_downgrades() {
+    let requested = Quantity::parse_plot_literal("0.000001rad").unwrap();
+    let allowance = RationalQuantity::from_quantity(requested, &mut work()).unwrap();
+    let wire = frame(true, Unit::Radian, QuantityRole::Linear);
+    let mut producer = PreparedMathematicalQuantityBinary32::new(
+        requirements(),
+        Binary32Rounding::NearestTiesEven,
+        allowance,
+        MATHEMATICAL_NEAR_PROJECTION_WORK,
+    )
+    .unwrap();
+    let sent = producer
+        .execute(
+            &wire,
+            &mut ExactNumericWork::new(MATHEMATICAL_NEAR_PROJECTION_WORK),
+        )
+        .unwrap();
+    let expected = sent.target();
+    let historical = near_form(&sent, requested, false);
+    let encoded = historical.canonical_bytes().unwrap();
+    let mut verifier = PreparedMathematicalNearQuantityVerifier::new(
+        historical.value_type(),
+        requirements(),
+        Binary32Rounding::NearestTiesEven,
+        allowance,
+        900_000_000,
+    )
+    .unwrap();
+    let (_, allocations) = observe(|| {
+        let checked = verifier
+            .verify(
+                &encoded,
+                ANGLE_INFO_ID,
+                None,
+                &mut ExactNumericWork::new(900_000_000),
+            )
+            .unwrap();
+        assert_eq!(checked.target(), expected.coordinate());
+    });
+    assert_eq!(allocations, 0);
+    let StructuredInfoValueShape::Record(fields) = historical.shape() else {
+        panic!("record");
+    };
+    let mut current_fields = fields
+        .iter()
+        .map(|f| (f.name(), f.value().clone()))
+        .collect::<Vec<_>>();
+    current_fields.push(("projection-evidence", leaf(BYTES_INFO_ID, &[])));
+    let current = record("test/current-near", current_fields);
+    let mut verifier = PreparedMathematicalNearQuantityVerifier::new(
+        current.value_type(),
+        requirements(),
+        Binary32Rounding::NearestTiesEven,
+        allowance,
+        900_000_000,
+    )
+    .unwrap();
+    assert!(matches!(
+        verifier.verify(
+            &current.canonical_bytes().unwrap(),
+            ANGLE_INFO_ID,
+            None,
+            &mut ExactNumericWork::new(900_000_000)
+        ),
+        Err(NearQuantityEvidenceRefusal::ProjectionEvidence(_))
+    ));
 }

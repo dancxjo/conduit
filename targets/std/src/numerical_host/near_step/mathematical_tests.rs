@@ -388,12 +388,6 @@ fn full_report_bytes_and_original_certificate_are_verified_without_growth() {
     let original = StructuredInfoValue::from_canonical_bytes(encoded).unwrap();
     let value = validate_canonical_structured_value(encoded)
         .unwrap()
-        .record_field("representation")
-        .unwrap()
-        .unwrap()
-        .variant_payload("enclosed_binary32")
-        .unwrap()
-        .unwrap()
         .record_field("projection-evidence")
         .unwrap()
         .unwrap();
@@ -413,13 +407,9 @@ fn full_report_bytes_and_original_certificate_are_verified_without_growth() {
         trailing,
         report[..report.len() - 1].to_vec(),
     ] {
-        let forged = replace(
-            &original,
-            &["representation", "enclosed_binary32", "projection-evidence"],
-            &changed,
-        )
-        .canonical_bytes()
-        .unwrap();
+        let forged = replace(&original, &["projection-evidence"], &changed)
+            .canonical_bytes()
+            .unwrap();
         let guard = crate::allocation_probe::begin();
         assert!(matches!(
             verifier.verify(

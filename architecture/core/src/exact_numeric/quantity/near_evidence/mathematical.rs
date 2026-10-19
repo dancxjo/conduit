@@ -286,13 +286,24 @@ impl PreparedMathematicalNearQuantityVerifier {
         report
             .require_bound_policy(policy.identity(), policy.configuration_digest().unwrap())
             .map_err(|_| Refusal::InsufficientTolerance)?;
-        crate::projection::verify_projection_evidence(
-            &report,
-            &crate::MathematicalQuantityBinary32EvidenceCodec::new(policy),
-            MATHEMATICAL_NEAR_PROJECTION_EVIDENCE_LIMITS,
-            leaf(field(payload, "projection-evidence")?)?,
-        )
-        .map_err(Refusal::ProjectionEvidence)?;
+        let evidence = value
+            .record_field("projection-evidence")
+            .map_err(|_| Refusal::Malformed)?
+            .or(payload
+                .record_field("projection-evidence")
+                .map_err(|_| Refusal::Malformed)?);
+        // Only the historical nine-field/two-field schema can omit this.
+        // Current schemas require their root field; embedded-report schemas
+        // require that field in their payload. No absent report is invented.
+        if let Some(evidence) = evidence {
+            crate::projection::verify_projection_evidence(
+                &report,
+                &crate::MathematicalQuantityBinary32EvidenceCodec::new(policy),
+                MATHEMATICAL_NEAR_PROJECTION_EVIDENCE_LIMITS,
+                leaf(evidence)?,
+            )
+            .map_err(Refusal::ProjectionEvidence)?;
+        }
         Ok(VerifiedMathematicalNearQuantity {
             projection: receipt,
             maximum_error: claimed,

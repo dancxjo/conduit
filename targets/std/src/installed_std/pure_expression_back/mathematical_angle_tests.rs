@@ -12,7 +12,7 @@ const BRIDGE: &str =
     "plot bridge (\n >> value: Angle\n result: Angle >>\n) = (math/angle-radians(.))\n";
 const SINE: &str =
     "plot sine (\n >> value: Angle\n result: MathematicalValue >>\n) = (math/sin(.))\n";
-const CHAIN:&str="plot bridge (\n >> value: Angle\n result: Angle >>\n) = (math/angle-radians(.))\nplot carry (\n >> value: Angle\n result: Angle >>\n) = (.)\nplot sine (\n >> value: Angle\n result: MathematicalValue >>\n) = (math/sin(.))\nplot main (\n >> value: Angle\n result: MathematicalValue >>\n) {\n converted: bridge\n carried: carry\n consumed: sine\n value >> converted.value\n converted.result >> carried.value\n carried.result >> consumed.value\n consumed.result >> result\n}\n";
+const CHAIN: &str = "plot bridge (\n >> value: Angle\n result: Angle >>\n) = (math/angle-radians(.))\nplot carry (\n >> value: Angle\n result: Angle >>\n) = (.)\nplot sine (\n >> value: Angle\n result: MathematicalValue >>\n) = (math/sin(.))\nplot main (\n >> value: Angle\n result: MathematicalValue >>\n) {\n converted: bridge\n carried: carry\n consumed: sine\n value >> converted.value\n converted.result >> carried.value\n carried.result >> consumed.value\n consumed.result >> result\n}\n";
 fn fixture(source: &str, name: &str) -> (crate::StdHost, Plan) {
     fixture_with_selection(source, name, false)
 }
@@ -140,7 +140,7 @@ fn play(mut host: crate::StdHost, plan: &Plan, input: Vec<u8>) -> Vec<u8> {
                     && e.kind == conduit_kernel::KernelEventKind::ValueRouted));
         }
         if let Some(producer) = plan.fragments[0].placements.iter().find(|p| {
-            p.execution_profile_id.as_str() == "std/quantity-near-enclosed-midpoint-binary32@2"
+            p.execution_profile_id.as_str() == "std/quantity-near-enclosed-midpoint-binary32@3"
         }) {
             let (lowered, _) = conduit_plan_lowering::lowering::lower_plan_fragment_from_plan(
                 plan,
@@ -397,9 +397,18 @@ fn authored_dimensioned_chain_reaches_selected_binary32_consumer_and_independent
     let source = format!("plot halve (\n >> value: Angle\n result: Angle >>\n) = (. / 2)\nplot double (\n >> value: Angle\n result: Angle >>\n) = (. * 2)\n{}", source
         .replace(" converted: bridge", " halved: halve\n doubled: double\n converted: bridge")
         .replace(" value >> converted.value", " value >> halved.value\n halved.result >> doubled.value\n doubled.result >> converted.value"));
-    let source = format!("plot accept (\n >> value: Angle near 0.000001rad\n result: Angle near 0.000001rad >>\n) = .\n{}", source
-        .replace(" boundary: math/near(limit=0.000001rad)", " boundary: math/near(limit=0.000001rad)\n accepted: accept()")
-        .replace(" boundary.result >> result", " boundary.result >> accepted.value\n accepted.result >> result"));
+    let source = format!(
+        "plot accept (\n >> value: Angle near 0.000001rad\n result: Angle near 0.000001rad >>\n) = .\n{}",
+        source
+            .replace(
+                " boundary: math/near(limit=0.000001rad)",
+                " boundary: math/near(limit=0.000001rad)\n accepted: accept()"
+            )
+            .replace(
+                " boundary.result >> result",
+                " boundary.result >> accepted.value\n accepted.result >> result"
+            )
+    );
     for spelling in ["90°", "0.25turn"] {
         let (host, plan) = fixture_with_selection(&source, "project", true);
         assert_eq!(plan.fragments[0].placements.len(), 7);
@@ -408,7 +417,7 @@ fn authored_dimensioned_chain_reaches_selected_binary32_consumer_and_independent
                 .placements
                 .iter()
                 .filter(|p| p.execution_profile_id.as_str()
-                    == "std/quantity-near-enclosed-midpoint-binary32@2")
+                    == "std/quantity-near-enclosed-midpoint-binary32@3")
                 .count(),
             1
         );

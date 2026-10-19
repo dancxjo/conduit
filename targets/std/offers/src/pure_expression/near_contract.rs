@@ -92,6 +92,7 @@ pub fn near_contract_std_artifact() -> ArtifactId {
         include_str!("../../../../../architecture/core/src/exact_numeric/quantity/near_evidence.rs"),
         include_str!("../../../../../architecture/core/src/exact_numeric/quantity/near_evidence/mathematical.rs"),
         include_str!("../../../../../architecture/core/src/exact_numeric/quantity/near_evidence/identities.rs"),
+        include_str!("../../../../../architecture/core/src/exact_numeric/quantity/near_evidence/rational_report.rs"),
         include_str!("../../../../../architecture/core/src/exact_numeric/quantity/mathematical_binary32/evidence.rs"),
         include_str!("../../../../../architecture/core/src/exact_numeric/quantity/evidence_fields.rs"),
         include_str!("../../../../../architecture/core/src/exact_numeric/quantity/near_exact.rs"),

@@ -34,7 +34,7 @@ fn runtime_projection_and_certificate_checks_reuse_all_prepared_storage() {
                     QUANTITY_INFO_ID,
                     tolerance,
                     None,
-                    &mut ExactNumericWork::new(NEAR_NUMERICAL_WORK),
+                    &mut ExactNumericWork::new(NEAR_TOTAL_NUMERICAL_WORK),
                 )
                 .unwrap();
         }

@@ -31,6 +31,7 @@ pub enum NearQuantityEvidenceRefusal {
 type Refusal = NearQuantityEvidenceRefusal;
 pub const NEAR_QUANTITY_EVIDENCE_MAX_BYTES: usize = 131_072;
 mod identities;
+mod rational_report;
 pub use identities::*;
 mod mathematical;
 pub use mathematical::*;
@@ -185,6 +186,7 @@ impl PreparedNearQuantityVerifier {
         }
         let requested = crate::Quantity::decode(leaf(field(value, "requested-limit")?)?)
             .map_err(|_| Refusal::InvalidLimit)?;
+        let requested_wire = requested;
         let requested = RationalQuantity::from_quantity(requested, work).map_err(rational_error)?;
         let limit = effective_limit(requested, source, work)?;
         if number(field(value, "limit")?, work)? != limit.coordinate() {
@@ -242,25 +244,49 @@ impl PreparedNearQuantityVerifier {
                     "toward_negative" => Binary32Rounding::TowardNegative,
                     _ => return Err(Refusal::UnsupportedRepresentation),
                 };
-                let allowance = RationalQuantity::new(maximum_error, source.unit(), limit.role())
-                    .map_err(rational_error)?;
-                let checked =
-                    PreparedQuantityBinary32Projection::prepare(source, rounding, allowance, work)
-                        .map_err(projection_error)?;
-                if checked.target().coordinate() != target {
-                    return Err(Refusal::InvalidClaim);
-                }
-                if claim == "exact_distance" {
-                    if checked.error() != Binary32ErrorClaim::ExactDistance(maximum_error) {
+                // New records are checked once by original-policy report replay
+                // below. Historical records have no retained report to replay.
+                if value
+                    .record_field("projection-evidence")
+                    .map_err(|_| Refusal::Malformed)?
+                    .is_none()
+                {
+                    let allowance =
+                        RationalQuantity::new(maximum_error, source.unit(), limit.role())
+                            .map_err(rational_error)?;
+                    let checked = PreparedQuantityBinary32Projection::prepare(
+                        source, rounding, allowance, work,
+                    )
+                    .map_err(projection_error)?;
+                    if checked.target().coordinate() != target {
                         return Err(Refusal::InvalidClaim);
                     }
-                } else if claim != "certified_bound" {
-                    return Err(Refusal::InvalidClaim);
+                    if claim == "exact_distance" {
+                        if checked.error() != Binary32ErrorClaim::ExactDistance(maximum_error) {
+                            return Err(Refusal::InvalidClaim);
+                        }
+                    } else if claim != "certified_bound" {
+                        return Err(Refusal::InvalidClaim);
+                    }
                 }
                 VerifiedNearRepresentation::Binary32 { target, rounding }
             }
             _ => return Err(Refusal::UnsupportedRepresentation),
         };
+        if value
+            .record_field("projection-evidence")
+            .map_err(|_| Refusal::Malformed)?
+            .is_some()
+        {
+            rational_report::verify(
+                value,
+                source,
+                requested_wire,
+                requested,
+                representation,
+                work,
+            )?;
+        }
         // Physical compatibility is mandatory even when the target is exact.
         let consumer = effective_limit(consumer_limit, source, work)?;
         if maximum_error
@@ -390,9 +416,16 @@ fn protocol_schema(ty: &StructuredInfoType) -> bool {
     let Shape::Record { fields, .. } = ty.shape() else {
         return false;
     };
-    if fields.len() != 9 {
+    if !(9..=10).contains(&fields.len()) {
         return false;
     }
+    let report = type_field(ty, "projection-evidence");
+    if (fields.len() == 10) != report.is_some()
+        || report.is_some_and(|t| !leaf_type(t, crate::BYTES_INFO_ID))
+    {
+        return false;
+    }
+    let root_report = report.is_some();
     for (name, id) in [
         ("source", crate::MATHEMATICAL_VALUE_ID),
         ("source-wire", crate::BYTES_INFO_ID),
@@ -427,7 +460,10 @@ fn protocol_schema(ty: &StructuredInfoType) -> bool {
                 let Shape::Record { fields, .. } = c.payload_type().shape() else {
                     return false;
                 };
-                let mathematical = c.tag() == "enclosed_binary32";
+                // Historical enclosed payloads had two fields before full
+                // report transport, then three with an embedded report.
+                let mathematical =
+                    c.tag() == "enclosed_binary32" && !root_report && fields.len() == 3;
                 if fields.len() != if mathematical { 3 } else { 2 }
                     || (mathematical
                         && !type_field(c.payload_type(), "projection-evidence")

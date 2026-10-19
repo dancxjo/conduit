@@ -63,7 +63,7 @@ fn converted_allowances_preserve_original_units_and_affine_roles_without_play_al
                     QUANTITY_INFO_ID,
                     consumer,
                     Some(digest),
-                    &mut ExactNumericWork::new(NEAR_NUMERICAL_WORK),
+                    &mut ExactNumericWork::new(NEAR_TOTAL_NUMERICAL_WORK),
                 )
                 .unwrap();
             assert_eq!(guard.finish(), 0);
@@ -84,14 +84,26 @@ fn converted_allowances_preserve_original_units_and_affine_roles_without_play_al
             )
             .unwrap();
             assert_eq!(
-                verifier.verify(encoded, QUANTITY_INFO_ID, wrong, None, &mut work),
+                verifier.verify(
+                    encoded,
+                    QUANTITY_INFO_ID,
+                    wrong,
+                    None,
+                    &mut ExactNumericWork::new(NEAR_TOTAL_NUMERICAL_WORK)
+                ),
                 Err(NearQuantityEvidenceRefusal::Physical)
             );
             if source.role() != QuantityRole::Linear {
                 let point =
                     RationalQuantity::new(ExactRational::ONE, kelvin, QuantityRole::Point).unwrap();
                 assert_eq!(
-                    verifier.verify(encoded, QUANTITY_INFO_ID, point, None, &mut work),
+                    verifier.verify(
+                        encoded,
+                        QUANTITY_INFO_ID,
+                        point,
+                        None,
+                        &mut ExactNumericWork::new(NEAR_TOTAL_NUMERICAL_WORK)
+                    ),
                     Err(NearQuantityEvidenceRefusal::InvalidLimit)
                 );
             }

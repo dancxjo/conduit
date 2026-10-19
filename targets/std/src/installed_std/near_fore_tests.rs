@@ -155,7 +155,13 @@ fn unchanged_source_projects_then_executes_a_qualified_consumer_in_the_real_kern
         )
         .unwrap();
         let verified = verifier
-            .verify(&output.0[0], FREQUENCY_INFO_ID, limit, None, &mut work)
+            .verify(
+                &output.0[0],
+                FREQUENCY_INFO_ID,
+                limit,
+                None,
+                &mut ExactNumericWork::new(conduit_std_offers::NEAR_CONTRACT_REPLAY_WORK),
+            )
             .unwrap();
         assert_eq!(verified.source(), q);
         assert_eq!(verified.require_exact_target().is_ok(), exact);
@@ -319,15 +325,23 @@ fn canonical_forged_or_wrong_physical_packets_refuse_before_qualified_fore_ingre
     let source = "plot accept (\n >> value: Frequency near 0.01Hz\n result: Frequency near 0.1Hz >>\n) = .\n";
     let valid = projected_packet("Hz");
     let mut forged = valid.clone();
-    let target = 0x3eaa_aaabu32.to_le_bytes();
-    let offsets = forged
-        .windows(4)
-        .enumerate()
-        .filter(|(_, bytes)| *bytes == target)
-        .map(|(offset, _)| offset)
-        .collect::<Vec<_>>();
-    assert_eq!(offsets.len(), 1);
-    forged[offsets[0]..offsets[0] + 4].copy_from_slice(&0x3eaa_aaaau32.to_le_bytes());
+    // Report payloads also retain target bits. Mutate the actual outer target
+    // through its typed field rather than searching every byte occurrence.
+    let frame = validate_canonical_structured_value(&forged).unwrap();
+    let target = frame
+        .record_field("representation")
+        .unwrap()
+        .unwrap()
+        .variant_payload("binary32")
+        .unwrap()
+        .unwrap()
+        .record_field("target")
+        .unwrap()
+        .unwrap();
+    let bits = &target.value_node()[5..];
+    assert_eq!(bits, 0x3eaa_aaabu32.to_le_bytes());
+    let offset = bits.as_ptr() as usize - forged.as_ptr() as usize;
+    forged[offset..offset + 4].copy_from_slice(&0x3eaa_aaaau32.to_le_bytes());
     // This is still canonical with the exact evidence schema. Only numerical
     // validation can detect the false target claim.
     assert!(StructuredInfoValue::from_canonical_bytes(&forged).is_ok());

@@ -66,11 +66,12 @@ fn run(source: &str, label: &str, expected: &str) -> Plan {
     assert!(observations
         .iter()
         .all(|o| o.plan_id.as_ref() == Some(&plan.plan_id) && o.active_play_id.is_some()));
-    assert!(plan.fragments.iter().flat_map(|f| &f.placements).any(|g| g
-        .kind_id
-        .as_str()
-        .starts_with("conduitese/pure-expression/")
-        && g.implementation_id.as_str() == "std/kernel-pure-expression@1"));
+    assert!(plan.fragments.iter().flat_map(|f| &f.placements).any(|g| {
+        g.kind_id
+            .as_str()
+            .starts_with("conduitese/pure-expression/")
+            && g.implementation_id.as_str() == "std/kernel-pure-expression@1"
+    }));
     println!(
         "source={} checked={} expanded={} plan={} play={}",
         plan.source_document_id.as_str(),
@@ -105,7 +106,9 @@ fn ordinary_thirds_sum_exactly_through_the_default_product_host() {
 fn a_large_exact_expression_never_wraps_or_silently_rounds_to_a_machine_integer() {
     let original = format!("1{}", "0".repeat(1000));
     let successor = format!("1{}1", "0".repeat(999));
-    let source = format!("plot increment (\n >> value: MathematicalValue\n result: Text >>\n) = ((. + 1 == {successor}) ? \"exact\" : \"wrong\")\n\nplot main {{\n seed: math/realize(request={{value:{original},maximum-error:0}})\n check: increment\n shown: face/text(\"Large exact expression\")\n seed.result >> (.source) >> check.value\n check.result >> shown\n}}.\n");
+    let source = format!(
+        "plot increment (\n >> value: MathematicalValue\n result: Text >>\n) = ((. + 1 == {successor}) ? \"exact\" : \"wrong\")\n\nplot main {{\n seed: math/realize(request={{value:{original},maximum-error:0}})\n check: increment\n shown: face/text(\"Large exact expression\")\n seed.result >> (.source) >> check.value\n check.result >> shown\n}}.\n"
+    );
     let plan = run(&source, "Large exact expression", "exact");
     let source = plan
         .fragments
@@ -434,8 +437,16 @@ fn quiet_ieee_predicates_execute_through_the_product_with_separate_invalid_flags
             "!"
         };
         let invalid = if fields[6] == "16" { "" } else { "!" };
-        let source=ieee_product_source("math/ieee-binary64-compare-quiet",&format!("predicate={predicate}(empty)"),
-            "IeeeBinary64ComparisonResult",left,right,&format!("{value}.value && {invalid}.flags.invalid && !.flags.inexact && !.flags.divide-by-zero && !.flags.overflow && !.flags.underflow"));
+        let source = ieee_product_source(
+            "math/ieee-binary64-compare-quiet",
+            &format!("predicate={predicate}(empty)"),
+            "IeeeBinary64ComparisonResult",
+            left,
+            right,
+            &format!(
+                "{value}.value && {invalid}.flags.invalid && !.flags.inexact && !.flags.divide-by-zero && !.flags.overflow && !.flags.underflow"
+            ),
+        );
         let plan = run(&source, "Explicit IEEE", "explicit rounding and flags");
         let selected = plan
             .fragments
@@ -484,7 +495,7 @@ fn actual_rational_quantity_reaches_the_explicit_near_boundary_in_one_play() {
     assert_eq!(near.len(), 1);
     assert_eq!(
         near[0].execution_profile_id.as_str(),
-        "std/quantity-near-binary32-single-round@1"
+        "std/quantity-near-binary32-single-round@2"
     );
 }
 

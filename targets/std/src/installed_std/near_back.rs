@@ -9,9 +9,9 @@ use conduit_semantic_catalog::{
 };
 use std::fmt::Write;
 const IMPLEMENTATION: &str = "conduit.std/quantity-near@1";
-const EXACT: &str = "std/quantity-near-exact-rational@1";
-const MATHEMATICAL: &str = "std/quantity-near-enclosed-midpoint-binary32@2";
-const FLOAT: &str = "std/quantity-near-binary32-single-round@1";
+const EXACT: &str = "std/quantity-near-exact-rational@2";
+const MATHEMATICAL: &str = "std/quantity-near-enclosed-midpoint-binary32@3";
+const FLOAT: &str = "std/quantity-near-binary32-single-round@2";
 pub(super) static FACTORY: BackFactory = BackFactory {
     implementation_id: IMPLEMENTATION,
     budget,
@@ -52,17 +52,10 @@ fn bounds(
             if algorithm == NearQuantityAlgorithm::EnclosedBinary32 {
                 MATHEMATICAL_NEAR_PROJECTION_EVIDENCE_MAX_BYTES as u64
             } else {
-                0
+                RATIONAL_NEAR_PROJECTION_EVIDENCE_MAX_BYTES as u64
             },
         ),
-        (
-            "maximum-projection-evidence-field-passes",
-            if algorithm == NearQuantityAlgorithm::EnclosedBinary32 {
-                3
-            } else {
-                0
-            },
-        ),
+        ("maximum-projection-evidence-field-passes", 3),
         (
             "retained-prepared-payload-bytes",
             (back.retained_capacity_bytes() + core::mem::size_of::<NearQuantityBack>()) as u64,
@@ -119,6 +112,7 @@ fn offer(limit: Quantity, algorithm: NearQuantityAlgorithm) -> Result<Capability
             include_str!("../numerical_host/near_step/mathematical.rs"),
             include_str!("../../../../architecture/core/src/exact_numeric/quantity/near_evidence.rs"),
             include_str!("../../../../architecture/core/src/exact_numeric/quantity/near_evidence/identities.rs"),
+        include_str!("../../../../architecture/core/src/exact_numeric/quantity/near_evidence/rational_report.rs"),
             include_str!("../../../../architecture/core/src/exact_numeric/quantity/mathematical_binary32/evidence.rs"),
             include_str!("../../../../architecture/core/src/exact_numeric/quantity/evidence_fields.rs"),
             include_str!("../../../../architecture/core/src/exact_numeric/quantity/near_exact.rs"),
@@ -194,7 +188,7 @@ fn offer(limit: Quantity, algorithm: NearQuantityAlgorithm) -> Result<Capability
     .to_property()
     .map_err(|why| format!("near wire: {why:?}"))?;
     offer.realization_properties = vec![binding, wire, bounds(&back, algorithm)?];
-    if algorithm == NearQuantityAlgorithm::EnclosedBinary32 {
+    {
         offer.realization_properties.push(
             conduit_std_offers::routed_content_sign_requirement()
                 .map_err(|why| format!("Near Sign policy: {why:?}"))?,

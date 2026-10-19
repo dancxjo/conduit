@@ -1,7 +1,7 @@
 //! One absolute physical numerical allowance, separate from exact Quantity.
 use super::*;
 pub const NUMERICAL_NEAR_KIND: &str = "math/near";
-pub const NUMERICAL_NEAR_REVISION: &str = "numeric/quantity-near@3";
+pub const NUMERICAL_NEAR_REVISION: &str = "numeric/quantity-near@4";
 pub const NUMERICAL_NEAR_MAX_BYTES: u32 = NEAR_QUANTITY_EVIDENCE_MAX_BYTES as u32;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NearQuantityAlgorithm {
@@ -136,7 +136,7 @@ mod tests {
             near_quantity_type().profile().unwrap().value_kind(),
             &kind_id(QUANTITY_INFO_ID)
         );
-        let source="plot project (\n >> value: Quantity <= 33829B\n result: NearQuantity <= 131072B >>\n) {\n boundary: math/near(limit=0.0001m)\n value >> boundary.value\n boundary.result >> result\n}\n";
+        let source = "plot project (\n >> value: Quantity <= 33829B\n result: NearQuantity <= 131072B >>\n) {\n boundary: math/near(limit=0.0001m)\n value >> boundary.value\n boundary.result >> result\n}\n";
         let checked = conduit_plot::check_syntax_document(
             &conduit_plot::parse_syntax_document(source),
             &startup,
@@ -274,7 +274,9 @@ mod tests {
             ("Frequency near0.01Hz", "NearQuantity"),
             ("Count near 0Hz", "NearQuantity"),
         ] {
-            let source = format!("plot refuse (\n >> value: {input}\n result: {output} >>\n) {{\n value >> result\n}}\n");
+            let source = format!(
+                "plot refuse (\n >> value: {input}\n result: {output} >>\n) {{\n value >> result\n}}\n"
+            );
             assert!(
                 conduit_plot::check_syntax_document(
                     &conduit_plot::parse_syntax_document(&source),

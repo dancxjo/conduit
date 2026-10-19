@@ -106,7 +106,7 @@ fn canonical_types_do_not_authorize_forged_target_error_source_or_physical_ident
                 QUANTITY_INFO_ID,
                 tolerance,
                 None,
-                &mut ExactNumericWork::new(NEAR_NUMERICAL_WORK)
+                &mut ExactNumericWork::new(NEAR_TOTAL_NUMERICAL_WORK)
             ),
             Err(expected),
             "{path:?}"

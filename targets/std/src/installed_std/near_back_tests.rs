@@ -12,6 +12,13 @@ fn prepared(limit: &str, exact: bool) -> (StdHost, Plan) {
     prepared_with_extra(limit, exact, None)
 }
 fn prepared_with_extra(limit: &str, exact: bool, extra: Option<&str>) -> (StdHost, Plan) {
+    prepared_with_profile(limit, if exact { Some(EXACT) } else { None }, extra)
+}
+fn prepared_with_profile(
+    limit: &str,
+    selected: Option<&str>,
+    extra: Option<&str>,
+) -> (StdHost, Plan) {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     conduit_semantic_catalog::install_numerical_catalogs(&mut startup, &mut profile).unwrap();
@@ -39,14 +46,14 @@ fn prepared_with_extra(limit: &str, exact: bool, extra: Option<&str>) -> (StdHos
     let hosts = [host.advertisement().clone()];
     let mut placements =
         conduit_planner::default_expanded_placements(&authored.expanded, &hosts).unwrap();
-    if exact {
+    if let Some(selected) = selected {
         let choice = placements.by_gear.values_mut().next().unwrap();
         choice.capability_id = hosts[0]
             .capabilities
             .iter()
             .find(|o| {
                 o.kind_id.as_str() == NUMERICAL_NEAR_KIND
-                    && o.implementation.execution_profile_id.as_str() == EXACT
+                    && o.implementation.execution_profile_id.as_str() == selected
             })
             .unwrap()
             .capability_id
@@ -197,7 +204,7 @@ fn actual_third_projects_at_the_selected_back_and_exact_alternative_keeps_the_sa
                 QUANTITY_INFO_ID,
                 tolerance,
                 Some(digest),
-                &mut work,
+                &mut ExactNumericWork::new(NEAR_TOTAL_NUMERICAL_WORK),
             )
             .unwrap();
         assert_eq!(verified.maximum_error(), error);
@@ -218,7 +225,13 @@ fn actual_third_projects_at_the_selected_back_and_exact_alternative_keeps_the_sa
         )
         .unwrap();
         assert_eq!(
-            verifier.verify(&outputs.0[0], QUANTITY_INFO_ID, wrong, None, &mut work),
+            verifier.verify(
+                &outputs.0[0],
+                QUANTITY_INFO_ID,
+                wrong,
+                None,
+                &mut ExactNumericWork::new(NEAR_TOTAL_NUMERICAL_WORK)
+            ),
             Err(NearQuantityEvidenceRefusal::Physical)
         );
         if !exact {
@@ -228,7 +241,13 @@ fn actual_third_projects_at_the_selected_back_and_exact_alternative_keeps_the_sa
             )
             .unwrap();
             assert_eq!(
-                verifier.verify(&outputs.0[0], QUANTITY_INFO_ID, tighter, None, &mut work),
+                verifier.verify(
+                    &outputs.0[0],
+                    QUANTITY_INFO_ID,
+                    tighter,
+                    None,
+                    &mut ExactNumericWork::new(NEAR_TOTAL_NUMERICAL_WORK)
+                ),
                 Err(NearQuantityEvidenceRefusal::InsufficientTolerance)
             );
         }
@@ -288,3 +307,77 @@ fn initialized_factory_rejects_stale_limit_and_missing_bounds_before_play() {
 
 #[path = "near_fore_tests.rs"]
 mod near_fore_tests;
+
+#[test]
+fn selected_enclosed_back_retains_native_and_rational_fallback_reports_in_real_kernel() {
+    for input in [
+        Quantity::parse_plot_literal("1m")
+            .unwrap()
+            .encode()
+            .to_vec(),
+        third(),
+    ] {
+        let (mut host, plan) = prepared_with_profile("0.0001m", Some(MATHEMATICAL), None);
+        assert_eq!(
+            plan.fragments[0].placements[0]
+                .execution_profile_id
+                .as_str(),
+            MATHEMATICAL
+        );
+        let mut output = Outputs(Vec::with_capacity(1));
+        let report = host
+            .run_external_plot_to(
+                plan.fragments[0].clone(),
+                &[ExternalForeInput {
+                    front_port_id: "value".into(),
+                    track: ConnectionTrack::Payload,
+                    bytes: input.clone(),
+                }],
+                &mut output,
+                &mut Vec::new(),
+                &mut NoTimer,
+            )
+            .unwrap();
+        assert_eq!(output.0.len(), 1);
+        let result = validate_canonical_structured_value(&output.0[0]).unwrap();
+        let evidence = result.record_field("projection-evidence").unwrap().unwrap();
+        let claims =
+            conduit_core::projection::inspect_projection_evidence(&evidence.value_node()[5..])
+                .unwrap();
+        assert_eq!(claims.codec, "numeric/quantity-binary32-evidence@1");
+        let kernel = report.kernel.as_ref().unwrap();
+        assert_eq!(kernel.post_play_start_allocations, 0);
+        assert_eq!(
+            kernel.value_allocation_capacity_before,
+            kernel.value_allocation_capacity_after
+        );
+        assert!(kernel
+            .content_evidence
+            .retained_values
+            .iter()
+            .any(|value| value.bytes.as_slice() == &output.0[0][..]));
+        let limit = RationalQuantity::from_quantity(
+            Quantity::parse_plot_literal("0.0001m").unwrap(),
+            &mut ExactNumericWork::new(NEAR_TOTAL_NUMERICAL_WORK),
+        )
+        .unwrap();
+        let verified =
+            PreparedNearQuantityVerifier::new(&conduit_semantic_catalog::near_quantity_type())
+                .unwrap()
+                .verify(
+                    &output.0[0],
+                    QUANTITY_INFO_ID,
+                    limit,
+                    None,
+                    &mut ExactNumericWork::new(NEAR_TOTAL_NUMERICAL_WORK),
+                )
+                .unwrap();
+        assert!(matches!(
+            verified.representation(),
+            VerifiedNearRepresentation::Binary32 {
+                rounding: Binary32Rounding::NearestTiesEven,
+                ..
+            }
+        ));
+    }
+}

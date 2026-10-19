@@ -10,6 +10,7 @@ pub struct PreparedNearEncoding {
     source: PreparedStructuredComposer,
     projection_evidence: Option<PreparedStructuredComposer>,
     projection_bytes: Vec<u8>,
+    projection_length: usize,
     wire: PreparedStructuredComposer,
     requested_limit: PreparedStructuredComposer,
     unit: PreparedStructuredComposer,
@@ -82,25 +83,27 @@ impl PreparedNearEncoding {
         let math = field(&ty, "source");
         let role = field(&ty, "role");
         let claim = field(&ty, "claim");
-        if mathematical
-            && mathematical::maximum_record_bytes(&ty)? > NUMERICAL_NEAR_MAX_BYTES as usize
-        {
+        if mathematical::maximum_record_bytes(&ty)? > NUMERICAL_NEAR_MAX_BYTES as usize {
             return Err(StructuredInfoRefusal::CanonicalEncodingTooLarge);
         }
         Ok(Self {
-            projection_evidence: if mathematical {
-                Some(leaf(
-                    &field(&floating, "projection-evidence"),
-                    MATHEMATICAL_NEAR_PROJECTION_EVIDENCE_MAX_BYTES,
-                )?)
-            } else {
-                None
-            },
-            projection_bytes: if mathematical {
-                vec![0; MATHEMATICAL_NEAR_PROJECTION_EVIDENCE_MAX_BYTES]
-            } else {
-                Vec::new()
-            },
+            projection_evidence: Some(leaf(
+                &field(&ty, "projection-evidence"),
+                if mathematical {
+                    MATHEMATICAL_NEAR_PROJECTION_EVIDENCE_MAX_BYTES
+                } else {
+                    RATIONAL_NEAR_PROJECTION_EVIDENCE_MAX_BYTES
+                },
+            )?),
+            projection_bytes: vec![
+                0;
+                if mathematical {
+                    MATHEMATICAL_NEAR_PROJECTION_EVIDENCE_MAX_BYTES
+                } else {
+                    RATIONAL_NEAR_PROJECTION_EVIDENCE_MAX_BYTES
+                }
+            ],
+            projection_length: 0,
             source: leaf(
                 &math,
                 if mathematical {
@@ -195,6 +198,26 @@ impl PreparedNearEncoding {
     pub fn encoded(&self) -> &[u8] {
         self.result.encoded()
     }
+    pub fn encode_report<D, C>(
+        &mut self,
+        report: &conduit_core::projection::ProjectionReport<'_, D>,
+        codec: &C,
+    ) -> Result<(), StructuredInfoRefusal>
+    where
+        D: conduit_core::projection::ProjectionDomain,
+        C: conduit_core::projection::ProjectionEvidenceCodec<D>,
+    {
+        self.projection_length = 0;
+        let length = conduit_core::projection::encode_projection_evidence(
+            report,
+            codec,
+            RATIONAL_NEAR_PROJECTION_EVIDENCE_LIMITS,
+            &mut self.projection_bytes,
+        )
+        .map_err(|_| StructuredInfoRefusal::WrongType)?;
+        self.projection_length = length;
+        Ok(())
+    }
     pub fn encode(
         &mut self,
         source: RationalQuantity,
@@ -220,6 +243,14 @@ impl PreparedNearEncoding {
         let source_len = write(source.coordinate(), &mut source_bytes)?;
         let error_len = write(error, &mut error_bytes)?;
         let limit_len = write(limit.coordinate(), &mut limit_bytes)?;
+        if self.projection_length == 0 {
+            return Err(StructuredInfoRefusal::WrongType);
+        }
+        let evidence_value = self
+            .projection_evidence
+            .as_mut()
+            .ok_or(StructuredInfoRefusal::WrongType)?
+            .leaf(&self.projection_bytes[..self.projection_length])?;
         let source_value = self.source.leaf(&source_bytes[..source_len])?;
         let wire_value = self.wire.leaf(wire)?;
         let requested_limit_value = self.requested_limit.leaf(&requested_limit.encode())?;
@@ -238,7 +269,7 @@ impl PreparedNearEncoding {
                 )?
             }
             NearQuantityAlgorithm::EnclosedBinary32 => {
-                return Err(StructuredInfoRefusal::WrongType)
+                return Err(StructuredInfoRefusal::WrongType);
             }
             NearQuantityAlgorithm::Binary32 => {
                 let p = projection.ok_or(StructuredInfoRefusal::WrongType)?;
@@ -266,6 +297,7 @@ impl PreparedNearEncoding {
             validate_canonical_structured_value(&self.claims[claim])?,
             validate_canonical_structured_value(limit_value)?,
             validate_canonical_structured_value(error_value)?,
+            validate_canonical_structured_value(evidence_value)?,
             validate_canonical_structured_value(representation)?,
             validate_canonical_structured_value(requested_limit_value)?,
             validate_canonical_structured_value(&self.roles[role])?,

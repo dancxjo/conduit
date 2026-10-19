@@ -117,13 +117,13 @@ fn assert_chain(source: &str) {
             .iter()
             .flat_map(|f| &f.placements)
             .find(|p| {
-                p.execution_profile_id.as_str() == "std/quantity-near-enclosed-midpoint-binary32@2"
+                p.execution_profile_id.as_str() == "std/quantity-near-enclosed-midpoint-binary32@3"
             })
             .expect("selected input-consuming projection");
         assert!(boundary.source_span.is_some());
         assert_eq!(
             boundary.kind_contract_revision.as_str(),
-            "numeric/quantity-near@3"
+            "numeric/quantity-near@4"
         );
         let active_play: conduit_core::ActivePlayId =
             serde_json::from_value(report["plays"][0]["active_play_id"].clone()).unwrap();
@@ -207,16 +207,7 @@ fn assert_chain(source: &str) {
         assert_eq!(value.sign.sign, *sign);
         assert_eq!(value.bytes.len(), evidence.byte_length as usize);
         let frame = conduit_core::validate_canonical_structured_value(&value.bytes).unwrap();
-        let report = frame
-            .record_field("representation")
-            .unwrap()
-            .unwrap()
-            .variant_payload("enclosed_binary32")
-            .unwrap()
-            .unwrap()
-            .record_field("projection-evidence")
-            .unwrap()
-            .unwrap();
+        let report = frame.record_field("projection-evidence").unwrap().unwrap();
         assert_eq!(&report.value_node()[5..9], b"CPE\x01");
         let inspected = Command::new(env!("CARGO_BIN_EXE_conduit"))
             .arg("inspect")

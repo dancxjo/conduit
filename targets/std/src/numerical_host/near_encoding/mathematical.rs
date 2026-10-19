@@ -54,7 +54,6 @@ impl PreparedNearEncoding {
             .target
             .leaf(&receipt.target().coordinate().bits().to_le_bytes())?;
         let floating = self.floating.record(&[
-            validate_canonical_structured_value(evidence)?,
             validate_canonical_structured_value(&self.rounding)?,
             validate_canonical_structured_value(target)?,
         ])?;
@@ -71,6 +70,7 @@ impl PreparedNearEncoding {
             validate_canonical_structured_value(&self.claims[claim])?,
             validate_canonical_structured_value(limit)?,
             validate_canonical_structured_value(error)?,
+            validate_canonical_structured_value(evidence)?,
             validate_canonical_structured_value(representation)?,
             validate_canonical_structured_value(requested)?,
             validate_canonical_structured_value(&self.roles[role])?,
@@ -99,10 +99,6 @@ pub(super) fn maximum_record_bytes(
             .sum::<usize>()
     }
     let floating = record(&[
-        (
-            "projection-evidence",
-            leaf(MATHEMATICAL_NEAR_PROJECTION_EVIDENCE_MAX_BYTES),
-        ),
         ("rounding", tag("nearest_ties_even", leaf(0))),
         ("target", leaf(4)),
     ]);
@@ -110,7 +106,17 @@ pub(super) fn maximum_record_bytes(
         ("claim", tag("certified_bound", leaf(0))),
         ("limit", leaf(2 + EXACT_RATIONAL_MAX_ENCODED_BYTES)),
         ("maximum-error", leaf(2 + EXACT_RATIONAL_MAX_ENCODED_BYTES)),
-        ("representation", tag("enclosed_binary32", floating)),
+        (
+            "projection-evidence",
+            leaf(MATHEMATICAL_NEAR_PROJECTION_EVIDENCE_MAX_BYTES),
+        ),
+        (
+            "representation",
+            tag("enclosed_binary32", floating).max(tag(
+                "exact_rational",
+                leaf(2 + EXACT_RATIONAL_MAX_ENCODED_BYTES),
+            )),
+        ),
         ("requested-limit", leaf(QUANTITY_ENCODED_LEN)),
         ("role", tag("linear", leaf(0))),
         ("source", leaf(MATHEMATICAL_VALUE_MAX_ENCODED_BYTES)),

@@ -92,11 +92,11 @@ type NearQuantityRepresentation =
         rounding: NumericalRounding
     }
     | enclosed_binary32 {
-        projection-evidence: Bytes <= 54650B
         target: F32 finite
         rounding: NumericalRounding
     }
 type NearQuantity = {
+    projection-evidence: Bytes <= 54650B
     source: MathematicalValue
     source-wire: Bytes <= 33829B
     requested-limit: Quantity
