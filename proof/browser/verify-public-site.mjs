@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
@@ -57,6 +58,11 @@ try {
   }
   const thermostatIncluded = existsSync(path.join(siteRoot, "journeys/current/thermostat/index.html"));
   if (thermostatIncluded) routes.push(["thermostat", new URL("journeys/current/thermostat/", server.url).href]);
+  const sharedSpeechIncluded = existsSync(path.join(siteRoot, "evidence/shared-speech-carrier/index.html"));
+  if (existsSync("site/evidence/shared-speech-carrier/manifest.json")) {
+    assert(sharedSpeechIncluded, "Retained shared speech evidence must be staged into the public site");
+  }
+  if (sharedSpeechIncluded) routes.push(["shared-speech", new URL("evidence/shared-speech-carrier/", server.url).href]);
   const oneBodyManifestPath = path.join(siteRoot, "journeys/current/one-body-five-masks/manifest.json");
   const oneBodyDevelopment = existsSync(oneBodyManifestPath)
     && JSON.parse(readFileSync(oneBodyManifestPath, "utf8")).result === "diagnostic-incomplete";
@@ -97,6 +103,7 @@ try {
         assert.equal(await link.getAttribute("href"), href, `${id}: wrong ${label} destination`);
       }
       if (id === "current-product") await page.locator('#product-truth[aria-busy="false"]').waitFor();
+      if (id === "shared-speech") report.sharedSpeech = await verifySharedSpeechPage(page, context);
       if (id === "three-bodies") await verifyThreeBodies(page);
       if (id === "little-life") {
         assert.equal(await page.getByRole("heading", { name: "Little Life", exact: true }).count(), 1);
@@ -198,7 +205,8 @@ try {
           || link.pathname.startsWith(fieldUrl.pathname)
           || link.pathname.startsWith("/conduit/journeys/current/three-bodies/")
           || link.pathname.startsWith("/conduit/journeys/current/little-life/")
-          || link.pathname.startsWith("/conduit/journeys/current/one-body-five-masks/");
+          || link.pathname.startsWith("/conduit/journeys/current/one-body-five-masks/")
+          || link.pathname.startsWith("/conduit/evidence/shared-speech-carrier/");
         if (!known) {
           if (!excluded.has(link.pathname)) report.excludedLinks.push({ path: link.pathname,
             reason: "Outside the documentary page routes; runtime distributions and historical evidence are validated separately." });
@@ -212,7 +220,7 @@ try {
         report.checkedLinks.push({ path: link.pathname, status: result.status() });
       }
       let screenshot;
-      if (["home", "journeys", "field-station", "handbook", "workspace", "three-bodies", "little-life", "thermostat"].includes(id)) {
+      if (["home", "journeys", "field-station", "handbook", "workspace", "three-bodies", "little-life", "thermostat", "shared-speech"].includes(id)) {
         screenshot = `${layout}-${id}.png`;
         await page.screenshot({ path: path.join(output, screenshot), fullPage: true });
       }
@@ -271,4 +279,50 @@ async function verifyThreeBodies(page) {
     const visible = await page.locator(".body-panel:visible").evaluateAll(panels => panels.map(panel => panel.dataset.body));
     assert(visible.length > 0 && visible.every(value => value === track), `Wrong visible ${label} track`);
   }
+}
+
+async function verifySharedSpeechPage(page, context) {
+  const main = page.locator("main.speech-proof");
+  assert.equal(await main.getByRole("heading", { level: 1 }).innerText(), "Shared speech carrier: “you would”");
+  const text = await main.innerText();
+  assert(text.includes("NoAdmittedAcousticBack"));
+  assert(text.includes("No physical-device playback, human listening validation or trained voice is claimed."));
+  const audio = main.locator("audio");
+  assert.equal(await audio.count(), 1);
+  assert.notEqual(await audio.getAttribute("controls"), null);
+  assert.equal(await audio.getAttribute("preload"), "none");
+  assert.equal(await audio.getAttribute("autoplay"), null);
+  assert.equal(await audio.getAttribute("src"), "you-would.wav");
+  assert.equal(await audio.getAttribute("aria-label"), "Offline formant specimen: you would");
+  async function json(name) {
+    const response = await context.request.get(new URL(name, page.url()).href);
+    assert(response.ok(), `Missing shared speech ${name}`);
+    return response.json();
+  }
+  const manifest = await json("manifest.json");
+  const publication = await json("publication.json");
+  assert.equal(manifest.schema, "conduit.speech/shared-carrier-evidence@1");
+  assert.equal(publication.schema, "conduit.speech/shared-carrier-publication@1");
+  assert.match(publication.staged_source_commit, /^[a-f0-9]{40}$/);
+  assert.match(manifest.producer_code_commit, /^[a-f0-9]{40}$/);
+  assert.equal(publication.producer_code_commit, manifest.producer_code_commit);
+  assert.deepEqual(publication.files, manifest.files);
+  if (process.env.CONDUIT_CHECKOUT_SHA) assert.equal(publication.staged_source_commit, process.env.CONDUIT_CHECKOUT_SHA);
+  for (const flag of ["human_listening", "device_playback", "trained_weights"]) assert.equal(manifest[flag], false);
+  assert.deepEqual(Object.keys(manifest.files).sort(), ["you-would.json", "you-would.native", "you-would.wav"]);
+  for (const name of ["manifest.json", "publication.json", ...Object.keys(manifest.files)]) {
+    const link = main.locator(`a[href="${name}"]`);
+    assert.equal(await link.count(), 1);
+    assert(await link.isVisible(), `Shared speech download hidden: ${name}`);
+  }
+  for (const [name, expected] of Object.entries(manifest.files)) {
+    const response = await context.request.get(new URL(name, page.url()).href);
+    assert(response.ok(), `Missing shared speech file ${name}`);
+    const bytes = await response.body();
+    assert.equal(bytes.length, expected.bytes, `${name}: served size`);
+    assert.equal(createHash("sha256").update(bytes).digest("hex"), expected.sha256, `${name}: served hash`);
+    if (name.endsWith(".wav")) assert.equal(response.headers()["content-type"], "audio/wav");
+  }
+  return { stagedSource: publication.staged_source_commit, producer: manifest.producer_code_commit,
+    files: manifest.files, scope: "Browser controls, layout and served bytes; no playback or human listening validation" };
 }
