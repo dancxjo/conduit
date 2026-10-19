@@ -282,7 +282,7 @@ fn failure(refusal: conduit_plot::PortableExpressionEvaluationRefusal) -> Failur
         conduit_plot::PortableExpressionEvaluationRefusal::UnsupportedType(_) => 6,
         conduit_plot::PortableExpressionEvaluationRefusal::UnprovedMathematicalComparison => 7,
         conduit_plot::PortableExpressionEvaluationRefusal::SquareRoot(reason) => {
-            conduit_plot::square_root_failure_detail(reason)
+            conduit_plot::square_root_failure_detail(&reason)
         }
         conduit_plot::PortableExpressionEvaluationRefusal::InverseAngle(reason) => {
             conduit_plot::inverse_angle_failure_detail(&reason)
