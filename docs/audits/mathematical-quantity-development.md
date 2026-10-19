@@ -641,8 +641,11 @@ Play guard and independent numerical certificate reader. Two admission-policy
 and eight qualified Fore tests pass. The full Std library suite passes 867 tests
 with 18 existing ignored tests; the full kernel suite passes 255 with six existing
 ignored tests. Kernel no-default and strict Clippy checks pass. Workspace
-all-target Clippy with warnings denied passes; full workspace tests remain in
-progress at this checkpoint. Twenty-eight executed Host/kernel binaries and the
+all-target Clippy with warnings denied passes. The first full workspace test
+invocation stopped during linking with an explicit disk-full IO error and a
+linker bus error; it provides no workspace test pass. Its diagnostic log is
+retained while inactive owned build outputs are recovered for a continuation.
+Twenty-eight executed Host/kernel binaries and the
 independent digest test binary have verified archive/hash roundtrips.
 
 This advances native execution evidence beyond the earlier foundation. It does
