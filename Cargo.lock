@@ -2508,6 +2508,7 @@ dependencies = [
  "conduit-planner",
  "conduit-plot",
  "conduitos",
+ "miniz_oxide 0.8.9",
  "postcard",
  "serde_json",
 ]

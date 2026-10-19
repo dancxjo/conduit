@@ -243,9 +243,8 @@ test("window focus loss retires the pending Play and lets the same body wake aga
 
 test("removing the final Plot retains an empty Body that can acquire Plots again", async ({ page }, testInfo) => {
   // This full lifecycle includes two library removals, a durable reload, and
-  // a fresh Play. CI traces show all assertions can pass after the shared
-  // 20-second suite deadline; give this multi-stage journey its own bound.
-  test.setTimeout(30_000);
+  // a fresh Play; keep cold preparation separate from ordinary interactions.
+  test.setTimeout(30_000 + BROWSER_COLD_PREPARATION_MS);
   await page.setViewportSize({ width: 390, height: 844 });
   await birth(page);
   const initial = await current(page);
@@ -265,6 +264,7 @@ test("removing the final Plot retains an empty Body that can acquire Plots again
   expect((await current(page)).body_id).toBe(initial.body_id);
   await openLibrary(page);
   await card(page, "Memory Lantern").getByRole("button", { name: "Use", exact: true }).click();
+  await waitForWorkspacePreparation(page);
   await expect(page.locator("[data-play-state]")).toHaveText("Playing");
   await expect(page.getByRole("button", { name: "lull body", exact: true })).toBeVisible();
   await enterMemoryText(page, "a");

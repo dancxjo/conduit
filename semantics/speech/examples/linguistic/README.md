@@ -79,3 +79,24 @@ normalization. The API uses the existing Speech duration carrier and retains
 its exact numerator/denominator when constructing the generic Audio request;
 it adds no independent quantity or sample-clock arithmetic. It does not add
 F0, amplitude/power/dB, overlapping trajectories or neural realization.
+
+## Positive fundamental targets and supplied observations
+
+`intent_fundamental::prepare_corresponding_intent_fundamental` takes the original
+opaque `PreparedSpeechCorrespondence`. It retains the executed inventory
+admission, Variety, inventory revision, exact text, phone occurrence and original
+intent while binding an explicit `AudioFrequencyControl` to that segment's known
+fundamental cycle. Audio's checked reciprocal programs execute in both directions;
+its sample projector retains independent 8/16/48 kHz quantization and remainder
+receipts on the declared abstract anchor. Equivalent but differently represented
+ratios require an explicit map; this bridge does not silently reduce them.
+
+The receipt's `observe` method keeps a separately supplied positive frequency,
+time/span, provenance and optional confidence alongside the unchanged target and
+same full linguistic carrier. A supplied 110 Hz observation never replaces the
+120 Hz target. Foreign anchors, stale text, foreign/missing occurrences, unresolved
+cycles, mismatched cycles, invalid frequencies and unsupported sample profiles
+refuse. Numeric-only preparation is also available; it does not establish
+inventory or Variety membership. The supported scope is one explicit phone event,
+not syllable/phrase inference, measurement authentication, commitment authority,
+rendering or playback.

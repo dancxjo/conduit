@@ -72,6 +72,8 @@ pub mod intent_admission;
 #[cfg(feature = "semantic-bindings")]
 pub mod intent_duration_grid;
 #[cfg(feature = "semantic-bindings")]
+pub mod intent_fundamental;
+#[cfg(feature = "semantic-bindings")]
 pub mod intent_inventory;
 #[cfg(feature = "semantic-bindings")]
 pub mod intent_phoneme_inventory;
@@ -276,3 +278,11 @@ pub mod syllable_structure;
 /// Optional full-float FARGAN topology, checked by the ordinary Plot compiler.
 #[cfg(feature = "fargan-source")]
 pub mod fargan;
+
+#[cfg(feature = "semantic-bindings")]
+pub mod intent_frequency_trajectory;
+
+#[cfg(feature = "semantic-bindings")]
+pub mod intent_energy;
+#[cfg(feature = "semantic-bindings")]
+pub mod scoped_energy;

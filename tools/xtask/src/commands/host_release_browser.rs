@@ -50,7 +50,7 @@ fn publish_runtime(staged: &Path, destination: &Path) -> Result<u64, Box<dyn std
     const MAXIMUM_RUNTIME_BYTES: u64 = 20 * 1024 * 1024;
     let bytes = fs::metadata(staged)?.len();
     if !(8..=MAXIMUM_RUNTIME_BYTES).contains(&bytes) {
-        return Err("optimized browser runtime violates its finite file bound".into());
+        return Err(format!("optimized browser runtime has {bytes} bytes; its finite file bound is 8..={MAXIMUM_RUNTIME_BYTES}").into());
     }
     let mut header = [0; 8];
     fs::File::open(staged)?.read_exact(&mut header)?;

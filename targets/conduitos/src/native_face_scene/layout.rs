@@ -18,14 +18,20 @@ pub(super) struct Row {
     pub bounds: LayoutRect,
     pub region_start: bool,
     pub padding: u16,
+    pub checkbox: Option<bool>,
 }
 
 impl Row {
     pub fn text_bounds(&self) -> LayoutRect {
+        let inset = if self.checkbox.is_some() {
+            super::boolean_choice::INSET
+        } else {
+            0
+        };
         LayoutRect {
-            x: self.bounds.x + self.padding as i16,
+            x: self.bounds.x + self.padding as i16 + inset as i16,
             y: self.bounds.y + self.padding as i16,
-            width: self.bounds.width - self.padding * 2,
+            width: self.bounds.width - self.padding * 2 - inset,
             height: self.bounds.height - self.padding * 2,
         }
     }
@@ -157,6 +163,13 @@ pub(super) fn admit_with_expression(
             .ok_or(FaceSceneError::InvalidExtent)?;
         let text_width = item_width
             .checked_sub(padding * 2)
+            .and_then(|width| {
+                width.checked_sub(if item.checkbox.is_some() {
+                    super::boolean_choice::INSET
+                } else {
+                    0
+                })
+            })
             .filter(|width| *width > 0)
             .ok_or(FaceSceneError::InvalidExtent)?;
         bytes = bytes
@@ -193,6 +206,7 @@ pub(super) fn admit_with_expression(
             };
             let box_height = height + padding * 2;
             let cost = 1
+                + 2 * usize::from(item.checkbox.is_some())
                 + usize::from(item.control.is_some())
                 + usize::from(region_start)
                 + usize::from(matches!(
@@ -222,6 +236,7 @@ pub(super) fn admit_with_expression(
                 page,
                 region_start,
                 padding,
+                checkbox: item.checkbox,
                 bounds: LayoutRect {
                     x: (gutter + column * (width + gutter) + inset) as i16,
                     y: y as i16,

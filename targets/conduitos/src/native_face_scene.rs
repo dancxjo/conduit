@@ -12,6 +12,11 @@ use conduit_face::{
 
 use crate::display::{SPACE_SM, SPACE_XL, typography::TextLayout};
 
+#[path = "native_face_scene/boolean_choice.rs"]
+mod boolean_choice;
+#[cfg(test)]
+#[path = "native_face_scene/boolean_choice_tests.rs"]
+mod boolean_choice_tests;
 #[path = "native_face_scene/chrome.rs"]
 mod chrome;
 #[path = "native_face_scene/connected_layout.rs"]
@@ -446,3 +451,7 @@ pub(crate) mod raster_layout_tests;
 #[cfg(test)]
 #[path = "native_face_scene/navigation_tests.rs"]
 mod navigation_tests;
+
+#[cfg(test)]
+#[path = "native_face_scene/creche_navigation_tests.rs"]
+mod creche_navigation_tests;

@@ -14,6 +14,7 @@ for (const [changed, broad, docsOnly] of [
   ['Cargo.toml', true, false],
   ['unknown/input.rs', true, false],
   ['site/index.html', true, false],
+  ['proof/browser/browser-preparation.mjs', true, false],
   ['products/conduit/src/main.rs', false, false],
   ['README.md', false, true],
 ]) {
@@ -46,7 +47,10 @@ for (const [changed, broad, docsOnly] of [
     }));
     assert.equal(output['broad-admission'],String(broad));
     assert.equal(output['docs-only'],String(docsOnly));
-    if(broad) assert.deepEqual(JSON.parse(output['unit-matrix']),{shard:[...UNIT_SHARDS]});
+    const shards = JSON.parse(output['unit-matrix']).shard;
+    if(broad) assert.deepEqual(shards,[...UNIT_SHARDS]);
+    assert.equal(output['conduitos-proof'], String(shards.includes('hosts-conduitos')),
+      'Every selected ConduitOS shard must retain its required portable protocol proof');
     assert.equal(existsSync(calls),!docsOnly);
   });
 }
