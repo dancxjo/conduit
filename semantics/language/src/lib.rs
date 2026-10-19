@@ -135,9 +135,10 @@ pub mod prosody_revision;
 pub use generated::{
     LanguageCommittedDependencyAdmission, LanguageCommittedDependencyQuery,
     LanguageCommittedProsodyAdmission, LanguageDependencyExecutionContext,
-    LanguageDependencyExecutionResult, LanguageProsodyDurationIntent, LanguageProsodyFocusIntent,
-    LanguageProsodyFrontierRequest, LanguageProsodyFrontierResult, LanguageProsodyRateIntent,
-    LanguageProsodySymbolicIntent, LanguageProsodySymbolicProfile,
+    LanguageDependencyExecutionObservation, LanguageDependencyExecutionResult,
+    LanguageProsodyDurationIntent, LanguageProsodyFocusIntent, LanguageProsodyFrontierRequest,
+    LanguageProsodyFrontierResult, LanguageProsodyRateIntent, LanguageProsodySymbolicIntent,
+    LanguageProsodySymbolicProfile,
 };
 
 pub mod analysis_session;

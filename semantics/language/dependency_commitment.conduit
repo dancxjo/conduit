@@ -108,6 +108,11 @@ type LanguageDependencyExecutionContext = {
     through: U64 in 0..=4
     identities: collection U64 = 4
 }
+# Raw output of execution topology; correlation is admitted separately.
+type LanguageDependencyExecutionObservation = {
+    context: LanguageDependencyExecutionContext
+    actual: LanguageParserBeamCommitResult
+}
 type LanguageDependencyExecutionResult = {
     context: LanguageDependencyExecutionContext
     actual: LanguageParserBeamCommitResult
@@ -129,5 +134,11 @@ type LanguageDependencyExecutionResult = {
     where !.actual.candidate3.active || ((.context.arc.dependent.token.ordinal == 0 ? .actual.candidate3.state.heads.0 : (.context.arc.dependent.token.ordinal == 1 ? .actual.candidate3.state.heads.1 : (.context.arc.dependent.token.ordinal == 2 ? .actual.candidate3.state.heads.2 : .actual.candidate3.state.heads.3))) == .context.head && (.context.arc.dependent.token.ordinal == 0 ? .actual.candidate3.state.relation0.base : (.context.arc.dependent.token.ordinal == 1 ? .actual.candidate3.state.relation1.base : (.context.arc.dependent.token.ordinal == 2 ? .actual.candidate3.state.relation2.base : .actual.candidate3.state.relation3.base))) == .context.arc.relation.base)
 }
 plot language/dependency-execution-context (
-    input: LanguageCommittedDependencyQuery...| >> output: LanguageDependencyExecutionContext...|
+    input: LanguageCommittedDependencyQuery...| <= 65536B >> output: LanguageDependencyExecutionContext...|
 ) = ({ arc: .arc, basis: .commitment.beam.basis, head: .head, through: .commitment.through, identities: [.commitment.beam.candidate0.identity,.commitment.beam.candidate1.identity,.commitment.beam.candidate2.identity,.commitment.beam.candidate3.identity] })
+
+# Input must already pass the generated Native validator for all owner laws.
+plot language/dependency-execution-evidence (
+    >> value: LanguageDependencyExecutionResult
+    result: LanguageDependencyArc >>
+) = (.context.arc)

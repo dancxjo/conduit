@@ -348,7 +348,13 @@ fn current_prosody_uses_shared_ledger_and_retains_corrections_after_commit() {
         .unwrap();
     let rich_frontier = rich_session.frontiers();
     rich_session.append(&rich_correction, false, false).unwrap();
-    assert_eq!(rich_session.frontiers(), rich_frontier);
+    assert_eq!(rich_session.frontiers().committed, rich_frontier.committed);
+    assert_eq!(
+        rich_session.frontiers().observed_through,
+        rich_frontier.observed_through
+    );
+    // A correction preserves committed output, but invalidates prior stability.
+    assert_eq!(rich_session.frontiers().stable_through, None);
     rich_session.require_current(proposed.reference()).unwrap();
     assert!(session.append(&proposed, false, true).is_err());
     assert!(session.append(&proposed, true, false).is_err());
@@ -366,7 +372,12 @@ fn current_prosody_uses_shared_ledger_and_retains_corrections_after_commit() {
     assert!(session.append(&rewrite, false, false).is_err());
     let frontier = session.frontiers();
     session.append(&correction, false, false).unwrap();
-    assert_eq!(session.frontiers(), frontier);
+    assert_eq!(session.frontiers().committed, frontier.committed);
+    assert_eq!(
+        session.frontiers().observed_through,
+        frontier.observed_through
+    );
+    assert_eq!(session.frontiers().stable_through, None);
     assert_eq!(session.history().count(), 5);
     // Correction evidence cannot replace the retained current committed plan.
     session.require_current(revised.reference()).unwrap();

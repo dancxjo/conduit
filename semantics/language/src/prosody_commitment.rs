@@ -76,6 +76,11 @@ pub fn committed_prosody_types() -> alloc::vec::Vec<(&'static str, conduit_core:
             LanguageDependencyExecutionContext::semantic_type().expect("checked execution context")
         ),
         (
+            "LanguageDependencyExecutionObservation",
+            LanguageDependencyExecutionObservation::semantic_type()
+                .expect("raw execution observation")
+        ),
+        (
             "LanguageDependencyExecutionResult",
             LanguageDependencyExecutionResult::semantic_type().expect("checked execution result")
         ),
