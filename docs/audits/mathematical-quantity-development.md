@@ -725,3 +725,31 @@ independent numerical replay is established by the installed test, not by
 pretending the digest is a certificate. Native gaps, external Fore/Body/remote
 export, whole-algorithm input/request/output custody, full workspace test proof,
 public stable acceptance and the broader original parent scope remain open.
+
+### Private native execution-history gaps
+
+The optional shared routing-evidence profile now exports an
+`ExecutionEventGap` observation when transient kernel events were evicted. Its
+first/last native sequences and exact evicted-entry count remain distinct from
+Core Sign sequences and snapshot retention drops. The count may exclude pinned
+native events inside that span. A gap names its exact owning Plan/Play/Host/boot,
+without inventing a producer placement or Cord. Standalone artifact validation
+refuses malformed ranges/counts and a foreign owning Host/boot.
+
+Preparation reserves one additional Core Sign identity slot beyond the native
+retained-event ceiling. Export retains the gap even after every routed-content
+row has expired. Existing observation wire tags remain unchanged; the new gap
+has its own appended tag. Three wire tests and all 55 Observatory tests pass.
+The bounded log/export contract test retains a gap and a real retained routing
+row with canonical Core Sign identities, then evicts that last row and still
+exports the gap. Its guarded log operations allocate zero times. Its native
+bytes are explicit fixtures; this is not a new live-device or qualified Flow
+execution claim. The exact executed binaries have verified archive roundtrips.
+
+The same installed test executable passes the full Host library suite: 868
+passed and 18 existing ignored tests. Actual CLI artifact regressions and strict
+workspace checks for this version remain active or queued. Full workspace test
+proof remains missing after the retained baseline disk failures. Broader external
+Fore/Body/remote export, complete general projection-report transport, exact
+policy/request configuration custody, whole-algorithm input/output custody and
+public stable acceptance remain open. No parent requirement is closed here.
