@@ -170,6 +170,7 @@ fn entries(
                             alloc::vec![match profile {
                                 QuantityValueProfile::Decimal => 1,
                                 QuantityValueProfile::Exact => 2,
+                                QuantityValueProfile::Mathematical => 3,
                             }]
                         )?
                     )?,
@@ -204,6 +205,7 @@ fn decode_entries(
             let profile = match profile {
                 [1] => QuantityValueProfile::Decimal,
                 [2] => QuantityValueProfile::Exact,
+                [3] => QuantityValueProfile::Mathematical,
                 _ => return Err(Invalid),
             };
             Ok((

@@ -12,6 +12,7 @@ const HEADER: usize = 2 + UNIT_ENCODED_LEN;
 pub enum QuantityCoordinateRepresentation {
     Decimal,
     Rational,
+    Mathematical,
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum QuantityValueRefusal {
@@ -20,6 +21,7 @@ pub enum QuantityValueRefusal {
     UnsupportedVersion(u8),
     Decimal(QuantityRefusal),
     Rational(RationalQuantityRefusal),
+    Mathematical(super::MathematicalQuantityRefusal),
 }
 impl From<RationalQuantityRefusal> for QuantityValueRefusal {
     fn from(value: RationalQuantityRefusal) -> Self {
@@ -35,6 +37,7 @@ impl From<ExactNumericRefusal> for QuantityValueRefusal {
 enum Coordinate<'a> {
     Decimal { coefficient: i128, exponent: i16 },
     Rational(&'a [u8]),
+    Mathematical(&'a [u8]),
 }
 /// Borrowed transport inspection does not retain an owning bignum in native
 /// Quantity state. Numerical materialization is an explicit, metered operation.
@@ -82,6 +85,20 @@ impl<'a> QuantityValueView<'a> {
             other => Err(QuantityValueRefusal::UnsupportedVersion(*other)),
         }
     }
+    // Entered only after an explicitly selected mathematical wire profile.
+    pub(super) fn decode_mathematical(
+        encoded: &'a [u8],
+        work: &mut ExactNumericWork,
+    ) -> Result<Self, QuantityValueRefusal> {
+        let value = super::MathematicalQuantityView::decode(encoded, work)
+            .map_err(QuantityValueRefusal::Mathematical)?;
+        Ok(Self {
+            encoded,
+            unit: value.unit(),
+            role: value.role(),
+            coordinate: Coordinate::Mathematical(value.coordinate().encoded()),
+        })
+    }
     pub const fn unit(self) -> Unit {
         self.unit
     }
@@ -101,6 +118,7 @@ impl<'a> QuantityValueView<'a> {
         match self.coordinate {
             Coordinate::Decimal { .. } => QuantityCoordinateRepresentation::Decimal,
             Coordinate::Rational(_) => QuantityCoordinateRepresentation::Rational,
+            Coordinate::Mathematical(_) => QuantityCoordinateRepresentation::Mathematical,
         }
     }
     /// Inspect the native representation only; this performs no numerical projection.
@@ -113,7 +131,7 @@ impl<'a> QuantityValueView<'a> {
                 Quantity::from_decimal_role(coefficient, exponent, self.unit, self.role)
                     .expect("validated decimal coordinate"),
             ),
-            Coordinate::Rational(_) => None,
+            Coordinate::Rational(_) | Coordinate::Mathematical(_) => None,
         }
     }
     pub fn rational(
@@ -126,6 +144,21 @@ impl<'a> QuantityValueView<'a> {
                 exponent,
             } => ExactRational::from_decimal_parts(coefficient, exponent, work)?,
             Coordinate::Rational(bytes) => ExactRational::decode(bytes, work)?,
+            Coordinate::Mathematical(bytes) => crate::MathematicalValueView::decode(bytes, work)
+                .map_err(|e| {
+                    QuantityValueRefusal::Mathematical(
+                        super::MathematicalQuantityRefusal::Coordinate(e),
+                    )
+                })?
+                .as_rational(work)
+                .map_err(|e| {
+                    QuantityValueRefusal::Mathematical(
+                        super::MathematicalQuantityRefusal::Coordinate(e),
+                    )
+                })?
+                .ok_or(QuantityValueRefusal::Mathematical(
+                    super::MathematicalQuantityRefusal::NonRationalCoordinate,
+                ))?,
         };
         Ok(RationalQuantity::new(coordinate, self.unit, self.role)?)
     }

@@ -6,12 +6,15 @@ use crate::ExactNumericWork;
 pub enum QuantityValueProfile {
     Decimal,
     Exact,
+    /// Explicit optional symbolic-coordinate grant; not a default Host profile.
+    Mathematical,
 }
 impl QuantityValueProfile {
     pub const fn maximum_encoded_bytes(self) -> usize {
         match self {
             Self::Decimal => crate::QUANTITY_ENCODED_LEN,
             Self::Exact => super::QUANTITY_VALUE_MAX_ENCODED_BYTES,
+            Self::Mathematical => super::MATHEMATICAL_QUANTITY_MAX_ENCODED_BYTES,
         }
     }
     /// Conservative producer-to-consumer eligibility, before inspecting values.
@@ -19,11 +22,17 @@ impl QuantityValueProfile {
     pub const fn accepts(self, producer: Self) -> bool {
         matches!(
             (self, producer),
-            (Self::Exact, _) | (Self::Decimal, Self::Decimal)
+            (
+                Self::Mathematical,
+                Self::Decimal | Self::Exact | Self::Mathematical
+            ) | (Self::Exact, Self::Decimal | Self::Exact)
+                | (Self::Decimal, Self::Decimal)
         )
     }
     pub const fn admits_version(self, version: u8) -> bool {
-        version == 1 || (matches!(self, Self::Exact) && version == 2)
+        version == 1
+            || (matches!(self, Self::Exact | Self::Mathematical) && version == 2)
+            || (matches!(self, Self::Mathematical) && version == 3)
     }
     pub fn decode<'a>(
         self,
@@ -49,8 +58,12 @@ impl QuantityValueProfile {
         if encoded.len() > self.maximum_encoded_bytes() {
             return Err(QuantityValueContractRefusal::ExtentExceeded);
         }
-        let value = QuantityValueView::decode(encoded, work)
-            .map_err(QuantityValueContractRefusal::Encoding)?;
+        let value = if encoded.first() == Some(&3) {
+            QuantityValueView::decode_mathematical(encoded, work)
+        } else {
+            QuantityValueView::decode(encoded, work)
+        }
+        .map_err(QuantityValueContractRefusal::Encoding)?;
         value.validate_kind(identity)?;
         Ok(value)
     }

@@ -24,8 +24,13 @@ output capacity and metered copy work before mutating output. Source spelling,
 conversion receipts and definition/binding authority remain independent custody;
 this form alone does not attest any of them. Neither the legacy
 `QuantityValueView`, default primitive validator, nor decimal/exact port profile
-accepts v3. No wire negotiation, Source/Plan admission or installed Back has been
-added by this prototype. An unfamiliar form remains a named refusal.
+accepts v3. An explicit optional `Mathematical` port profile now negotiates v1/v2/v3;
+Decimal and Exact retain v1 and v1/v2 respectively. The existing canonical wire
+property uses code 3 for the new grant and keeps omitted ports Decimal. Ordinary
+`QuantityValueView::decode` still rejects v3; selected profile decoding alone
+returns a borrowed mathematical-coordinate view. Unresolved coordinates refuse
+rational or decimal materialization. No Source/Plan offer or installed Back
+advertises this profile yet. An unfamiliar form remains a named refusal.
 
 ## Unit coordinates and numerical realization remain separate
 
@@ -90,8 +95,16 @@ checks wrong-role rejection in both legacy and proposed forms. That diagnostic
 is retained with the local capture.
 
 This is private Core conversion/computation proof. Required follow-up remains:
-reviewing the form, explicit wire-profile negotiation, checked Source/Plan and
+reviewing the form and its explicit wire-profile negotiation, checked Source/Plan and
 installed Host consumption, refinement/terminal/control proof, exact symbolic
 Angle consumption by trig, Source/Plan/Sign custody for the general projection report, fresh candidate
 and combined integration/publication. Qualified whole-float algorithms and all
 original parent requirements remain authoritative. No checkbox is closed here.
+
+The selected mathematical profile validates the same physical Kind before
+applying authored checked-contract predicates. A representation grant does not
+implement symbolic ordered comparison: current physical range predicates still
+refuse v3, including rational-shaped v3, until that comparison path is reviewed.
+This limitation is tested separately from successful unconstrained admission.
+The extended view retains borrowed bytes rather than an owning symbolic DAG;
+its fixed size stays within the existing Unit plus 64-byte envelope.
