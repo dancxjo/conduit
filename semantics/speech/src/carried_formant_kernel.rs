@@ -14,7 +14,7 @@ use conduit_kernel::{
     Failure, FailureCode, PortId, ValueRef,
 };
 
-/// The input is the exact 32-byte source identity. It is held until the final
+/// The input is the exact 32-byte complete-carrier source identity. It is held until the final
 /// PCM transaction; a different carrier cannot replace the prepared source.
 pub struct CarriedFormantBack {
     source: Arc<PreparedOfflinePcm>,

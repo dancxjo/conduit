@@ -1,7 +1,9 @@
-//! Frozen formant projection from the original checked linguistic carrier.
+//! Frozen formant projection retaining the complete checked speech carrier.
+//! The selected renderer realizes its supported intent subset; other admitted
+//! structural/acoustic context remains in original bytes, not inferred controls.
 //! This prepares PCM computation, not playback authority or parser commitment.
 use crate::{
-    correspondence::PreparedSpeechCorrespondence,
+    complete_carrier::PreparedCompleteSpeechCarrier,
     intent_realization::{prepare_intent_realization, IntentRealizationRefusal},
     render::frozen::FrozenRender,
     semantic::{
@@ -44,12 +46,13 @@ pub struct FrozenCarriedFormant {
 }
 impl FrozenCarriedFormant {
     pub fn prepare(
-        carrier: &PreparedSpeechCorrespondence<'_, '_>,
+        original_context: &PreparedCompleteSpeechCarrier<'_, '_, '_>,
         profile: &SpeechFormantVoiceProfile,
         boundaries: &SpeechFormantBoundaryProfile,
         anchor: &AudioTrajectoryAnchor,
         basis: &AudioSampleRateBasis,
     ) -> Result<Self, CarriedFormantRefusal> {
+        let carrier = original_context.correspondence();
         for (phone, token) in carrier.phones().tokens().as_slice().iter().enumerate() {
             if !token.features().get().as_slice().is_empty() {
                 return Err(CarriedFormantRefusal::UnsupportedPhoneFeatures { phone });
@@ -89,10 +92,8 @@ impl FrozenCarriedFormant {
             CarriedFormantRefusal::Realization(IntentRealizationRefusal::Renderer(error))
         })?)
         .map_err(CarriedFormantRefusal::Render)?;
-        let original = crate::carrier_identity::canonical_carrier_bytes(carrier)
-            .map_err(CarriedFormantRefusal::Native)?;
-        let source_identity =
-            conduit_core::semantic_digest("conduit.speech/checked-carrier@1", &original);
+        let original = original_context.canonical_bytes().to_vec();
+        let source_identity = original_context.identity();
         // Evidence envelope of existing exact values, not another linguistic IR.
         let mut projection = Vec::new();
         for component in [profile.clone().encode(), boundaries.clone().encode()] {

@@ -5,6 +5,7 @@
 use conduit_plot::rust_binding::{BoundedSequence, NativeRustBinding};
 use conduit_speech::{
     carrier_identity::{canonical_carrier_bytes, checked_carrier_identity},
+    complete_carrier::PreparedCompleteSpeechCarrier,
     correspondence::PreparedSpeechCorrespondence,
     model_linguistic_projection::*,
     semantic::*,
@@ -47,7 +48,10 @@ pub fn checkpoint(vocabulary: &SpeechModelLinguisticVocabulary) -> SpeechModelCh
 /// no model artifact, neural PCM, selected implementation or training occurred.
 pub struct ModelTerminalEvidence {
     pub original_bytes: Vec<u8>,
+    pub retained_without_conditioning: Vec<String>,
     pub source_identity: [u8; 32],
+    pub correspondence_bytes: Vec<u8>,
+    pub correspondence_identity: [u8; 32],
     pub vocabulary_bytes: Vec<u8>,
     pub checkpoint_bytes: Vec<u8>,
     pub training_phoneme_count: usize,
@@ -60,16 +64,17 @@ pub struct ModelTerminalEvidence {
     pub terminal_evidence_identity: [u8; 32],
 }
 pub fn terminal_evidence(
-    original: &PreparedSpeechCorrespondence<'_, '_>,
+    complete: &PreparedCompleteSpeechCarrier<'_, '_, '_>,
 ) -> Result<ModelTerminalEvidence, ModelProjectionRefusal> {
     use ModelProjectionRefusal::Native;
+    let original = complete.correspondence();
     let vocabulary = vocabulary(original);
     let checkpoint = checkpoint(&vocabulary);
-    let training = prepare_model_training_input(original, &vocabulary)?;
+    let training = prepare_model_training_input(complete, &vocabulary)?;
     let inference =
-        prepare_model_inference_input(original, &vocabulary, &checkpoint, checkpoint.checkpoint())?;
-    assert!(core::ptr::eq(training.original(), original));
-    assert!(core::ptr::eq(inference.projection().original(), original));
+        prepare_model_inference_input(complete, &vocabulary, &checkpoint, checkpoint.checkpoint())?;
+    assert!(core::ptr::eq(training.original(), complete));
+    assert!(core::ptr::eq(inference.projection().original(), complete));
     assert_eq!(
         training.phone_tokens(),
         inference.projection().phone_tokens()
@@ -78,7 +83,9 @@ pub fn terminal_evidence(
         training.phoneme_tokens(),
         inference.projection().phoneme_tokens()
     );
-    let source_identity = checked_carrier_identity(original).map_err(Native)?;
+    let source_identity = complete.identity();
+    let correspondence_identity = checked_carrier_identity(original).map_err(Native)?;
+    let correspondence_bytes = canonical_carrier_bytes(original).map_err(Native)?;
     assert_eq!(training.carrier_identity(), source_identity);
     assert_eq!(inference.projection().carrier_identity(), source_identity);
     let counts = (
@@ -87,9 +94,17 @@ pub fn terminal_evidence(
         inference.projection().phoneme_tokens().len(),
         inference.projection().phone_tokens().len(),
     );
+    assert_eq!(
+        training.retained_without_conditioning(),
+        inference.projection().retained_without_conditioning()
+    );
+    let retained_without_conditioning = training
+        .retained_without_conditioning()
+        .iter()
+        .map(|feature| format!("{feature:?}"))
+        .collect();
     let refused = inference.refuse_unsupported_backend();
-    let original_bytes =
-        canonical_carrier_bytes(refused.input.projection().original()).map_err(Native)?;
+    let original_bytes = complete.canonical_bytes().to_vec();
     let vocabulary_bytes = vocabulary.clone().encode().map_err(Native)?;
     let checkpoint_bytes = checkpoint.clone().encode().map_err(Native)?;
     let requested_backend = "ConduitVoice acoustic realization";
@@ -105,7 +120,10 @@ pub fn terminal_evidence(
         conduit_core::semantic_digest("proof/shared-model-terminal@1", &terminal);
     Ok(ModelTerminalEvidence {
         original_bytes,
+        retained_without_conditioning,
         source_identity,
+        correspondence_bytes,
+        correspondence_identity,
         vocabulary_bytes,
         checkpoint_bytes,
         training_phoneme_count: counts.0,

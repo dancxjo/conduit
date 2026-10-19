@@ -27,13 +27,15 @@ frames. Existing generic cue observations preserve supplied evidence but do not
 supply missing unit-specific laws. Speaker/style references retain the limits
 recorded in the original audit.
 
-Canonical correspondence identity binds original intent, independent phoneme
-and phone sequences, full text, realization alignment, complete checked
-inventory/notation basis and executed notation matches. The retained enclosing
-artifact separately binds supplied syllables, positioned boundaries, word
-correspondence, lexical source, actual Language commitment request/result,
-selected formant profile, sample basis and projection receipts. Neither a text
-label nor the correspondence digest alone establishes all those outer fields.
+The correspondence identity binds original intent, independent phoneme and phone
+sequences, full text, realization alignment, complete checked inventory/notation
+basis and executed notation matches. The production complete-carrier receipt
+adds admitted syllables, positioned boundaries, lexical source and word
+correspondence, actual executed Language commitment request/result, and supplied
+acoustic receipts with explicit absence states. Both terminals consume this
+complete receipt and bind its identity. The enclosing artifact additionally
+binds selected formant profile, sample basis and projection receipts; its file
+digest does not substitute for production source admission.
 
 The positive multiword specimen uses the same immutable original carrier for
 formant preparation and both model lexical entrances. Its formant terminal is

@@ -95,11 +95,29 @@ overlapping rate spans.
 
 ## Contrasting terminal projections
 
-The common canonical evidence identity includes original intent, phonemes,
-phones, complete text, realization alignment, full inventory/notation basis and
-executed notation matches. Separately supplied syllables, positioned boundaries
-and word correspondence are bound by the enclosing retained artifact; the
-correspondence identity alone does not claim to include them.
+`PreparedCompleteSpeechCarrier` composes the admitted correspondence, exact
+syllable structure and positioned boundaries, lexical source and word relations,
+actual Language commitment request/result, and explicitly supplied acoustic
+receipts. Admission checks their shared owners and executes the existing
+Language commitment Source; decoded booleans do not establish commitment.
+Its canonical identity binds every supplied component and explicit absent
+acoustic slot. Both model entrances and formant preparation require this same
+opaque receipt. The correspondence digest remains a separately named subset
+identity used when recovering original inventory bindings.
+
+Version 1 admits fully covered, word-only lexical tapes, one source word per
+word-to-phoneme relation, aligned phoneme-to-phone groups, and exactly one
+syllable membership per phone. Other correspondence shapes or punctuation-token
+carriers refuse explicitly at this entrance; the broader correspondence owner
+continues to preserve inserted, deleted and many-to-many relations. Receipt
+composition requires the same admitted owners, including pointer identity for
+structure and acoustic receipts; equal separately admitted copies cannot be
+mixed into an existing context.
+
+The retained artifact reconstructs the complete receipt before either terminal
+projection. Its outer file digest protects transport integrity; the complete
+source identity binds the consumed input. A different valid structure therefore
+cannot reuse an older model terminal or offline PCM declaration.
 
 `FrozenCarriedFormant` freezes only explicitly admitted original phone choices,
 timing and controls. It retains original canonical bytes and conversion

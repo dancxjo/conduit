@@ -69,7 +69,7 @@ pub fn retain(evidence: Export<'_>) -> Vec<u8> {
         request.clone().encode().unwrap(),
         result.clone().encode().unwrap(),
         admission.to_vec(),
-        original.to_vec(),
+        model.correspondence_bytes.clone(),
         projection_bytes.to_vec(),
         f.lexical_profile.clone().encode().unwrap(),
         conduit_language::lexical::prepare_lexical_tape(&f.source, &f.lexical_profile, None)
@@ -83,6 +83,8 @@ pub fn retain(evidence: Export<'_>) -> Vec<u8> {
         model.vocabulary_bytes.clone(),
         model.checkpoint_bytes.clone(),
         model.terminal_evidence_identity.to_vec(),
+        original.to_vec(),
+        identity.to_vec(),
     ]);
     let Some(root) = std::env::var_os("CONDUIT_CARRIED_FORMANT_OUTPUT") else {
         return packet;
@@ -124,6 +126,8 @@ pub fn retain(evidence: Export<'_>) -> Vec<u8> {
     let report = serde_json::json!({
         "text":"you would", "proof_class":"installed factory and execution kernel; offline authored PCM computation",
         "source_identity":hex(identity), "projection_identity":hex(projection),
+        "formant_retained_without_realization":["SeparateSyllableStructure", "ScopedFrequencyEnergyAndRate", "LanguageCommitment"],
+        "correspondence_subset_identity":hex(&model.correspondence_identity),
         "original_artifact_identity":hex(&semantic_digest("proof/carried-formant-artifact@1", &packet)),
         "wav_identity":hex(&semantic_digest("proof/carried-formant-wav@1", &wav)),
         "compiled_dsp_source":conduit_speech::SOURCE_ID,
@@ -150,6 +154,8 @@ pub fn retain(evidence: Export<'_>) -> Vec<u8> {
             "inference_phonemes":model.inference_phoneme_count,
             "inference_phones":model.inference_phone_count,
             "trained_weights":false,
+            "retained_without_conditioning":model.retained_without_conditioning,
+
         },
     });
     std::fs::write(

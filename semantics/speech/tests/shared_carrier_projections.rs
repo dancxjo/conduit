@@ -9,8 +9,12 @@ use conduit_audio::*;
 use conduit_language::{LanguageText, LanguageTextRevisionId, LanguageVariety};
 use conduit_plot::rust_binding::NativeRustBinding;
 use conduit_speech::{
-    carried_formant::FrozenCarriedFormant, carrier_identity::canonical_carrier_bytes,
-    correspondence::PreparedSpeechCorrespondence, model_linguistic_projection::*, semantic::*,
+    carried_formant::FrozenCarriedFormant,
+    carrier_identity::canonical_carrier_bytes,
+    complete_carrier::{CompleteCarrierAcoustics, PreparedCompleteSpeechCarrier},
+    correspondence::PreparedSpeechCorrespondence,
+    model_linguistic_projection::*,
+    semantic::*,
 };
 fn anchor() -> AudioTrajectoryAnchor {
     AudioTrajectoryAnchor::new(
@@ -28,15 +32,27 @@ fn identical_original_multiword_bytes_survive_formant_and_unsupported_model_term
     let f = fixture::Fixture::new();
     let inventory = f.inventory().unwrap();
     let original = f.correspondence(&inventory).unwrap();
+    let evidence = f.complete_evidence();
+    let structure = f.structure();
+    let complete = PreparedCompleteSpeechCarrier::prepare(
+        &original,
+        &structure,
+        &evidence.lexical,
+        &f.word_phonemes,
+        &evidence.request,
+        &evidence.result,
+        CompleteCarrierAcoustics::not_supplied(),
+    )
+    .unwrap();
     let before = canonical_carrier_bytes(&original).unwrap();
     assert_eq!(original.text().text(), "you would");
     assert_eq!(original.phones().tokens().len(), 5);
     let formant =
-        FrozenCarriedFormant::prepare(&original, &f.formant, &f.boundaries, &anchor(), &rate())
+        FrozenCarriedFormant::prepare(&complete, &f.formant, &f.boundaries, &anchor(), &rate())
             .unwrap();
-    let model = model::terminal_evidence(&original).unwrap();
-    assert_eq!(formant.original_bytes(), before);
-    assert_eq!(model.original_bytes, before);
+    let model = model::terminal_evidence(&complete).unwrap();
+    assert_eq!(formant.original_bytes(), complete.canonical_bytes());
+    assert_eq!(model.original_bytes, complete.canonical_bytes());
     assert_eq!(formant.source_identity(), &model.source_identity);
     assert_ne!(
         formant.projection_identity(),
@@ -58,7 +74,7 @@ fn identical_original_multiword_bytes_survive_formant_and_unsupported_model_term
     let vocabulary = SpeechModelLinguisticVocabulary::decode(&model.vocabulary_bytes).unwrap();
     let checkpoint = SpeechModelCheckpointProjection::decode(&model.checkpoint_bytes).unwrap();
     let reread =
-        prepare_model_inference_input(&original, &vocabulary, &checkpoint, checkpoint.checkpoint())
+        prepare_model_inference_input(&complete, &vocabulary, &checkpoint, checkpoint.checkpoint())
             .unwrap();
     assert_eq!(
         reread.projection().carrier_identity(),
@@ -111,12 +127,24 @@ fn stale_source_variety_revision_vocabulary_checkpoint_and_formant_profile_refus
     let f = fixture::Fixture::new();
     let inventory = f.inventory().unwrap();
     let original = f.correspondence(&inventory).unwrap();
+    let evidence = f.complete_evidence();
+    let structure = f.structure();
+    let complete = PreparedCompleteSpeechCarrier::prepare(
+        &original,
+        &structure,
+        &evidence.lexical,
+        &f.word_phonemes,
+        &evidence.request,
+        &evidence.result,
+        CompleteCarrierAcoustics::not_supplied(),
+    )
+    .unwrap();
     let before = canonical_carrier_bytes(&original).unwrap();
     let vocabulary = model::vocabulary(&original);
     let checkpoint = model::checkpoint(&vocabulary);
     let foreign_checkpoint = SpeechModelCheckpointId::new("foreign/checkpoint".into()).unwrap();
     assert!(matches!(
-        prepare_model_inference_input(&original, &vocabulary, &checkpoint, &foreign_checkpoint),
+        prepare_model_inference_input(&complete, &vocabulary, &checkpoint, &foreign_checkpoint),
         Err(ModelProjectionRefusal::Checkpoint)
     ));
     let varieties = [
@@ -145,11 +173,11 @@ fn stale_source_variety_revision_vocabulary_checkpoint_and_formant_profile_refus
         )
         .unwrap();
         assert!(matches!(
-            prepare_model_training_input(&original, &swapped),
+            prepare_model_training_input(&complete, &swapped),
             Err(ModelProjectionRefusal::InventoryBasis)
         ));
         assert!(prepare_model_inference_input(
-            &original,
+            &complete,
             &swapped,
             &checkpoint,
             checkpoint.checkpoint()
@@ -167,7 +195,7 @@ fn stale_source_variety_revision_vocabulary_checkpoint_and_formant_profile_refus
     )
     .unwrap();
     assert!(prepare_model_inference_input(
-        &original,
+        &complete,
         &swapped,
         &checkpoint,
         checkpoint.checkpoint()
@@ -182,7 +210,7 @@ fn stale_source_variety_revision_vocabulary_checkpoint_and_formant_profile_refus
     )
     .unwrap();
     assert!(matches!(
-        prepare_model_training_input(&original, &missing),
+        prepare_model_training_input(&complete, &missing),
         Err(ModelProjectionRefusal::MissingPhone)
     ));
     let text = original.text();
@@ -210,8 +238,99 @@ fn stale_source_variety_revision_vocabulary_checkpoint_and_formant_profile_refus
     )
     .unwrap();
     assert!(
-        FrozenCarriedFormant::prepare(&original, &foreign, &f.boundaries, &anchor(), &rate())
+        FrozenCarriedFormant::prepare(&complete, &foreign, &f.boundaries, &anchor(), &rate())
             .is_err()
     );
     assert_eq!(canonical_carrier_bytes(&original).unwrap(), before);
+}
+
+#[path = "common/carried_formant_inspection.rs"]
+mod inspection;
+
+#[test]
+fn alternate_admitted_structure_cannot_reuse_retained_model_or_formant_evidence() {
+    let f = fixture::Fixture::new();
+    let inventory = f.inventory().unwrap();
+    let original = f.correspondence(&inventory).unwrap();
+    let evidence = f.complete_evidence();
+    let structure = f.structure();
+    let complete = PreparedCompleteSpeechCarrier::prepare(
+        &original,
+        &structure,
+        &evidence.lexical,
+        &f.word_phonemes,
+        &evidence.request,
+        &evidence.result,
+        CompleteCarrierAcoustics::not_supplied(),
+    )
+    .unwrap();
+    let mut changed = f.positioned_boundaries.clone();
+    let last = changed.last().unwrap();
+    let boundary = SpeechPositionedBoundary::new(
+        last.basis().clone(),
+        SpeechBoundaryKind::BreathGroup,
+        *last.position(),
+        last.source().clone(),
+    )
+    .unwrap();
+    *changed.last_mut().unwrap() = boundary;
+    let changed_structure = conduit_speech::syllable_structure::PreparedSyllableStructure::prepare(
+        &f.intent,
+        &f.phones,
+        f.source.material(),
+        &f.syllables,
+        &changed,
+    )
+    .unwrap();
+    let alternate = PreparedCompleteSpeechCarrier::prepare(
+        &original,
+        &changed_structure,
+        &evidence.lexical,
+        &f.word_phonemes,
+        &evidence.request,
+        &evidence.result,
+        CompleteCarrierAcoustics::not_supplied(),
+    )
+    .unwrap();
+    assert_eq!(
+        canonical_carrier_bytes(complete.correspondence()).unwrap(),
+        canonical_carrier_bytes(alternate.correspondence()).unwrap()
+    );
+    assert_ne!(complete.identity(), alternate.identity());
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../site/evidence/shared-speech-carrier");
+    let bytes = std::fs::read(root.join("you-would.native")).unwrap();
+    let mut packet: Vec<Vec<u8>> = postcard::from_bytes(&bytes).unwrap();
+    assert_eq!(packet.len(), 26);
+    assert_eq!(packet[24], complete.canonical_bytes());
+    packet[8] = postcard::to_allocvec(
+        &changed
+            .iter()
+            .map(|b| b.clone().encode().unwrap())
+            .collect::<Vec<_>>(),
+    )
+    .unwrap();
+    let inspect = |packet: &[Vec<u8>]| {
+        let bytes = postcard::to_allocvec(packet).unwrap();
+        let digest = conduit_core::semantic_digest("proof/carried-formant-artifact@1", &bytes);
+        inspection::inspect(&bytes, &digest)
+    };
+    // Outer integrity is valid for every attempted mix. The semantic context
+    // and each terminal independently refuse stale evidence.
+    assert!(inspect(&packet)
+        .err()
+        .unwrap()
+        .contains("complete carrier changed"));
+    packet[24] = alternate.canonical_bytes().to_vec();
+    packet[25] = alternate.identity().to_vec();
+    assert!(inspect(&packet)
+        .err()
+        .unwrap()
+        .contains("model terminal evidence changed"));
+    let terminal = model::terminal_evidence(&alternate).unwrap();
+    packet[23] = terminal.terminal_evidence_identity.to_vec();
+    assert!(inspect(&packet)
+        .err()
+        .unwrap()
+        .contains("projection receipts differ"));
 }

@@ -18,6 +18,7 @@ use conduit_plot::rust_binding::NativeRustBinding;
 use conduit_speech::{
     carried_formant::{FrozenCarriedFormant, PreparedOfflinePcm},
     carried_formant_kernel::CarriedFormantBack,
+    complete_carrier::{CompleteCarrierAcoustics, PreparedCompleteSpeechCarrier},
     semantic::*,
 };
 use conduit_std_host::carried_formant::CarriedFormantFactory;
@@ -25,7 +26,19 @@ use std::sync::Arc;
 
 fn frozen(f: &fixture::Fixture) -> FrozenCarriedFormant {
     let inventory = f.inventory().unwrap();
-    let original = f.correspondence(&inventory).unwrap();
+    let correspondence = f.correspondence(&inventory).unwrap();
+    let structure = f.structure();
+    let evidence = f.complete_evidence();
+    let original = PreparedCompleteSpeechCarrier::prepare(
+        &correspondence,
+        &structure,
+        &evidence.lexical,
+        &f.word_phonemes,
+        &evidence.request,
+        &evidence.result,
+        CompleteCarrierAcoustics::not_supplied(),
+    )
+    .unwrap();
     let anchor = conduit_audio::AudioTrajectoryAnchor::new(
         conduit_audio::AudioOriginIdentity::new(1).unwrap(),
         conduit_audio::AudioTimelineIdentity::new(1).unwrap(),
@@ -97,7 +110,17 @@ fn original_multiword_intent_executes_through_installed_factory_plan_and_play() 
     }
     let inventory = f.inventory().unwrap();
     let carrier = f.correspondence(&inventory).unwrap();
-    let model = model::terminal_evidence(&carrier).unwrap();
+    let complete = PreparedCompleteSpeechCarrier::prepare(
+        &carrier,
+        &structure,
+        &lexical,
+        &f.word_phonemes,
+        &request,
+        &commitment,
+        CompleteCarrierAcoustics::not_supplied(),
+    )
+    .unwrap();
+    let model = model::terminal_evidence(&complete).unwrap();
     let anchor = conduit_audio::AudioTrajectoryAnchor::new(
         conduit_audio::AudioOriginIdentity::new(1).unwrap(),
         conduit_audio::AudioTimelineIdentity::new(1).unwrap(),
@@ -110,7 +133,7 @@ fn original_multiword_intent_executes_through_installed_factory_plan_and_play() 
     )
     .unwrap();
     let source =
-        FrozenCarriedFormant::prepare(&carrier, &f.formant, &f.boundaries, &anchor, &basis)
+        FrozenCarriedFormant::prepare(&complete, &f.formant, &f.boundaries, &anchor, &basis)
             .unwrap();
     assert_eq!(source.original_bytes(), model.original_bytes);
     assert_eq!(source.source_identity(), &model.source_identity);

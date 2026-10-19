@@ -3,6 +3,7 @@ use conduit_plot::rust_binding::NativeRustBinding;
 use conduit_speech::{
     carried_formant::{FrozenCarriedFormant, PreparedOfflinePcm},
     carrier_identity::canonical_carrier_bytes,
+    complete_carrier::{CompleteCarrierAcoustics, PreparedCompleteSpeechCarrier},
     correspondence::PreparedSpeechCorrespondence,
     ipa_inventory::PreparedIpaInventory,
     semantic::*,
@@ -41,7 +42,7 @@ pub fn inspect(bytes: &[u8], expected: &[u8; 32]) -> Result<PreparedOfflinePcm, 
         "artifact identity changed",
     )?;
     let p: Vec<Vec<u8>> = postcard::from_bytes(bytes).map_err(|e| format!("packet: {e:?}"))?;
-    require(p.len() == 24, "component count")?;
+    require(p.len() == 26, "component count")?;
     let source: conduit_language::LanguageTextRevision = native(&p[0])?;
     let intent: SpeechUtteranceIntent = native(&p[1])?;
     let phonemes: SpeechPhonemeSequence = native(&p[2])?;
@@ -143,41 +144,6 @@ pub fn inspect(bytes: &[u8], expected: &[u8; 32]) -> Result<PreparedOfflinePcm, 
         canonical_carrier_bytes(&carrier).map_err(|e| format!("canonical: {e:?}"))? == p[15],
         "original carrier changed",
     )?;
-    let vocabulary: SpeechModelLinguisticVocabulary = native(&p[21])?;
-    let checkpoint: SpeechModelCheckpointProjection = native(&p[22])?;
-    use conduit_speech::model_linguistic_projection::*;
-    let training = prepare_model_training_input(&carrier, &vocabulary)
-        .map_err(|e| format!("model training projection: {e:?}"))?;
-    let inference =
-        prepare_model_inference_input(&carrier, &vocabulary, &checkpoint, checkpoint.checkpoint())
-            .map_err(|e| format!("model inference projection: {e:?}"))?;
-    require(
-        training.carrier_identity() == inference.projection().carrier_identity(),
-        "model source differs",
-    )?;
-    require(
-        training.phone_tokens() == inference.projection().phone_tokens()
-            && training.phoneme_tokens() == inference.projection().phoneme_tokens(),
-        "model entrances differ",
-    )?;
-    let terminal = inference.refuse_unsupported_backend();
-    require(
-        terminal.reason == ModelBackendRefusal::NoAdmittedAcousticBack,
-        "unexpected acoustic terminal",
-    )?;
-    let mut evidence = Vec::new();
-    evidence.extend_from_slice(&training.carrier_identity());
-    for bytes in [&p[21], &p[22]] {
-        evidence.extend_from_slice(&(bytes.len() as u64).to_le_bytes());
-        evidence.extend_from_slice(bytes);
-    }
-    evidence.extend_from_slice(b"ConduitVoice acoustic realization");
-    evidence.extend_from_slice(b"NoAdmittedAcousticBack");
-    require(
-        conduit_core::semantic_digest("proof/shared-model-terminal@1", &evidence).as_slice()
-            == p[23],
-        "model terminal evidence changed",
-    )?;
     let mut source_words: Vec<Option<LanguageSegmentRef>> = vec![None; phonemes.tokens().len()];
     for relation in &words {
         let TranslationCorrespondence::Aligned(group) = relation else {
@@ -259,9 +225,62 @@ pub fn inspect(bytes: &[u8], expected: &[u8; 32]) -> Result<PreparedOfflinePcm, 
         structure.syllables().len() == syllables.len() && words.len() == lexical.tokens().len(),
         "structural component count",
     )?;
+    let complete = PreparedCompleteSpeechCarrier::prepare(
+        &carrier,
+        &structure,
+        &rebuilt,
+        &words,
+        &request,
+        &result,
+        CompleteCarrierAcoustics::not_supplied(),
+    )
+    .map_err(|e| format!("complete carrier: {e:?}"))?;
+    require(
+        complete.canonical_bytes() == p[24],
+        "complete carrier changed",
+    )?;
+    require(
+        complete.identity().as_slice() == p[25],
+        "complete carrier identity changed",
+    )?;
+    let vocabulary: SpeechModelLinguisticVocabulary = native(&p[21])?;
+    let checkpoint: SpeechModelCheckpointProjection = native(&p[22])?;
+    use conduit_speech::model_linguistic_projection::*;
+    let training = prepare_model_training_input(&complete, &vocabulary)
+        .map_err(|e| format!("model training projection: {e:?}"))?;
+    let inference =
+        prepare_model_inference_input(&complete, &vocabulary, &checkpoint, checkpoint.checkpoint())
+            .map_err(|e| format!("model inference projection: {e:?}"))?;
+    require(
+        training.carrier_identity() == inference.projection().carrier_identity(),
+        "model source differs",
+    )?;
+    require(
+        training.phone_tokens() == inference.projection().phone_tokens()
+            && training.phoneme_tokens() == inference.projection().phoneme_tokens(),
+        "model entrances differ",
+    )?;
+    let terminal = inference.refuse_unsupported_backend();
+    require(
+        terminal.reason == ModelBackendRefusal::NoAdmittedAcousticBack,
+        "unexpected acoustic terminal",
+    )?;
+    let mut evidence = Vec::new();
+    evidence.extend_from_slice(&training.carrier_identity());
+    for bytes in [&p[21], &p[22]] {
+        evidence.extend_from_slice(&(bytes.len() as u64).to_le_bytes());
+        evidence.extend_from_slice(bytes);
+    }
+    evidence.extend_from_slice(b"ConduitVoice acoustic realization");
+    evidence.extend_from_slice(b"NoAdmittedAcousticBack");
+    require(
+        conduit_core::semantic_digest("proof/shared-model-terminal@1", &evidence).as_slice()
+            == p[23],
+        "model terminal evidence changed",
+    )?;
     let basis: conduit_audio::AudioSampleRateBasis = native(&p[20])?;
     let frozen = FrozenCarriedFormant::prepare(
-        &carrier,
+        &complete,
         &formant,
         &boundary_profile,
         basis.anchor(),
