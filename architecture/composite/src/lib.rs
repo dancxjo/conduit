@@ -21,6 +21,7 @@ mod child;
 pub use child::{ChildExecutionError, ChildTerminalError, ChildTransportError};
 mod current_sample;
 mod definition;
+mod canonical_export;
 mod flow_singleton;
 pub use flow_singleton::FlowSingletonBack;
 mod flow_concat_finite;

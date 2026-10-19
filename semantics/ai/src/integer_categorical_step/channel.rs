@@ -4,10 +4,11 @@
 use super::{invocation::*, owner::CategoricalOperationFactory, *};
 use alloc::collections::BTreeMap;
 use conduit_composite::{
-    KernelCompositeDefinition, KernelCompositeHost, KernelCompositeStatus, KernelOperationRegistry,
+    KernelCompositeDefinition, KernelCompositeError, KernelCompositeHost, KernelCompositeStatus,
+    KernelOperationRegistry,
 };
 use conduit_kernel::scheduler::RemoteIngressOutcome;
-use conduit_plot::CheckedPlot;
+use conduit_plot::{CheckedPlot, CheckedSyntaxDocument, ProfileCatalog};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CategoricalChannelRefusal {
@@ -52,6 +53,7 @@ pub struct PreparedCategoricalChannel<L> {
     pending: Option<Pending<L>>,
     next: u64,
     closed: bool,
+    last_kernel_error: Option<KernelCompositeError>,
 }
 /// Private construction ties the exact moved lease to this channel's invocation.
 pub struct CompletedCategoricalRequest<L> {
@@ -102,8 +104,48 @@ impl<L> PreparedCategoricalChannel<L> {
             definition.failure_translation.clone(),
         )
         .map_err(|_| Definition)?;
-        if rebuilt != definition
-            || definition.internal_plan.fragments.len() != 1
+        if rebuilt != definition {
+            return Err(Definition);
+        }
+        Self::prepare_verified(definition, profile, capacity)
+    }
+    /// Canonical Source and exact sealed Fore, preserving all three identities.
+    pub fn prepare_canonical(
+        document: &CheckedSyntaxDocument,
+        entry: &str,
+        catalog: &ProfileCatalog,
+        definition: KernelCompositeDefinition,
+        profile: Arc<PreparedCategoricalStep>,
+        capacity: usize,
+    ) -> Result<Self, CategoricalChannelRefusal> {
+        use CategoricalChannelRefusal::Definition;
+        let cap = &definition.external_capability;
+        let rebuilt = KernelCompositeDefinition::from_canonical_export(
+            definition.host_id.clone(),
+            definition.boot_id.clone(),
+            definition.offer_generation,
+            definition.profile.clone(),
+            cap.implementation.implementation_id.clone(),
+            cap.implementation.artifact_id.clone(),
+            document,
+            entry,
+            catalog,
+            definition.internal_plan.clone(),
+            definition.failure_translation.clone(),
+        )
+        .map_err(|_| Definition)?;
+        if rebuilt != definition {
+            return Err(Definition);
+        }
+        Self::prepare_verified(definition, profile, capacity)
+    }
+    fn prepare_verified(
+        definition: KernelCompositeDefinition,
+        profile: Arc<PreparedCategoricalStep>,
+        capacity: usize,
+    ) -> Result<Self, CategoricalChannelRefusal> {
+        use CategoricalChannelRefusal::*;
+        if definition.internal_plan.fragments.len() != 1
             || definition.internal_plan.fragments[0].placements.len() != 1
             || definition.boundary.input_fronts.len() != 1
             || definition.boundary.output_fronts.len() != 1
@@ -166,6 +208,7 @@ impl<L> PreparedCategoricalChannel<L> {
             pending: None,
             next: 1,
             closed: false,
+            last_kernel_error: None,
         })
     }
     pub fn active_plays(&self) -> &BTreeMap<HostId, ActivePlayId> {
@@ -177,6 +220,11 @@ impl<L> PreparedCategoricalChannel<L> {
     }
     pub fn pending(&self) -> Option<&L> {
         self.pending.as_ref().map(|pending| &pending.lease)
+    }
+    /// Most recent actual underlying error, retained without formatting/allocation.
+    /// A later failed cancellation can replace the earlier error.
+    pub fn last_kernel_error(&self) -> Option<&KernelCompositeError> {
+        self.last_kernel_error.as_ref()
     }
     pub fn is_closed(&self) -> bool {
         self.closed
@@ -226,6 +274,11 @@ impl<L> PreparedCategoricalChannel<L> {
                     lease: pending.lease,
                 })
             }
+            Err(error) => {
+                self.last_kernel_error = Some(error);
+                self.closed = true;
+                Ok(CategoricalChannelSubmission::TerminalRetained(Kernel))
+            }
             _ => {
                 // An unexpected admission outcome might have accepted an effect.
                 // Keep its lease privately rather than returning it for reuse.
@@ -247,6 +300,11 @@ impl<L> PreparedCategoricalChannel<L> {
         }
         match self.kernel.step() {
             Ok(KernelCompositeStatus::Active) => (),
+            Err(error) => {
+                self.last_kernel_error = Some(error);
+                self.closed = true;
+                return Err(Kernel);
+            }
             _ => {
                 self.closed = true;
                 return Err(Kernel);
@@ -271,7 +329,8 @@ impl<L> PreparedCategoricalChannel<L> {
         let sequence = match self.kernel.output_into(&self.output_port, &mut self.output) {
             Ok(Some(sequence)) => sequence,
             Ok(None) => return Ok(None),
-            Err(_) => {
+            Err(error) => {
+                self.last_kernel_error = Some(error);
                 self.closed = true;
                 return Err(Kernel);
             }
@@ -280,11 +339,8 @@ impl<L> PreparedCategoricalChannel<L> {
             self.closed = true;
             return Err(Evidence);
         }
-        if self
-            .kernel
-            .complete_output(&self.output_port, sequence)
-            .is_err()
-        {
+        if let Err(error) = self.kernel.complete_output(&self.output_port, sequence) {
+            self.last_kernel_error = Some(error);
             self.closed = true;
             return Err(Kernel);
         }
@@ -301,9 +357,13 @@ impl<L> PreparedCategoricalChannel<L> {
     /// Terminal even when cancellation reports a kernel error. Pending evidence stays owned.
     pub fn cancel(&mut self) -> Result<(), CategoricalChannelRefusal> {
         self.closed = true;
-        self.kernel
-            .cancel()
-            .map_err(|_| CategoricalChannelRefusal::Kernel)
+        match self.kernel.cancel() {
+            Ok(()) => Ok(()),
+            Err(error) => {
+                self.last_kernel_error = Some(error);
+                Err(CategoricalChannelRefusal::Kernel)
+            }
+        }
     }
     /// Recover exact pending custody only by consuming the terminal channel.
     pub fn into_pending(
