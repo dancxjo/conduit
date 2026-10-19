@@ -27,6 +27,9 @@ impl Artifacts {
         context["visual_contract"] = json!({"mode":"invariant", "width":1280, "height":800,
             "minimum_non_background_pixels":64,"dynamic_identity_pixels":"allowed", "display":"std-vga"});
         context["capture_contract"] = json!({"maximum_checkpoints": DEFAULT_MAX_CHECKPOINTS});
+        context["observer_clock"] = json!({"id":super::observation_clock::ID,
+            "start_ns":super::observation_clock::nanos(),
+            "scope":"host observation; QMP acceptance is not guest consumption or first visible paint"});
         let result = Self {
             directory,
             serial,
@@ -71,6 +74,7 @@ impl Artifacts {
                 format!("at most {} captures admitted", self.capture_limit),
             ));
         }
+        let capture_started_ns = super::observation_clock::nanos();
         let mut serial = Vec::new();
         fs::File::open(&self.serial)
             .map_err(io_error)?
@@ -99,6 +103,7 @@ impl Artifacts {
         let native = super::journey_records::native_checkpoint(text)?;
         let (frame, health_refusal) =
             qmp_display::capture(stream, reader, &self.directory, checkpoint)?;
+        let capture_completed_ns = super::observation_clock::nanos();
         let health_refusal = health_refusal.or_else(|| {
             if frame["width"] != 1280 || frame["height"] != 800 {
                 Some(ConduitosError::refusal(
@@ -122,6 +127,7 @@ impl Artifacts {
         self.entries.push(json!({"index":self.entries.len(),"checkpoint":checkpoint,
             "journey_step_ids":journey_step_ids(checkpoint),
             "elapsed_millis":self.started.elapsed().as_millis(),"serial_byte_end":serial.len(),
+            "capture_started_ns":capture_started_ns,"capture_completed_ns":capture_completed_ns,
             "guest_record":record,"guest_boot_record":boot,"native_receipts":native,"frame":frame,"expected_change":expect_change,"unchanged":unchanged,
             "health_refusal":health_refusal.as_ref().map(|error|json!({"reason":error.reason,"detail":error.detail}))}));
         self.previous_pixels = Some(pixels);

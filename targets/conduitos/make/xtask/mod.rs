@@ -87,6 +87,7 @@ mod protocol_source;
 mod prove;
 mod prove_many;
 mod ps2_input_proof;
+mod observation_clock;
 mod qemu_artifacts;
 mod qemu_source;
 mod qmp;
