@@ -68,6 +68,7 @@ try {
     recoverySnapshot,
     identities: exact,
     lullSnapshot: null,
+    get firstObservedManifestation() { return manifestations.first; },
     get lastObservedManifestation() { return manifestations.current; },
     async lull() {
       if (this.lullSnapshot) return this.lullSnapshot;
