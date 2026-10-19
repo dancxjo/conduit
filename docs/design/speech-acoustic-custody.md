@@ -112,7 +112,8 @@ the full programs without repeating their schema-rich bytes in each packet. Both
 opaque receipt. The correspondence digest remains a separately named subset
 identity used when recovering original inventory bindings.
 
-Version 1 admits fully covered, word-only lexical tapes, one source word per
+Version 1 admits one to four complete word tokens, matching the existing finite
+Language commitment profile, with fully covered word-only lexical tapes and one source word per
 word-to-phoneme relation, aligned phoneme-to-phone groups, and exactly one
 syllable membership per phone. Other correspondence shapes or punctuation-token
 carriers refuse explicitly at this entrance; the broader correspondence owner
