@@ -66,9 +66,9 @@ struct Snapshot<'a> {
 }
 
 impl CurrentDraft {
-    fn snapshot(&self, birth_requested: bool) -> Result<(), String> {
+    fn source_snapshot(&self, birth_requested: bool) -> Result<Snapshot<'_>, String> {
         let draft = self.draft.as_ref().ok_or("Crèche draft is absent")?;
-        abi::write_output(&Snapshot {
+        Ok(Snapshot {
             generation: self.generation,
             revision: draft.revision(),
             friendly_name: draft.friendly_name(),
@@ -81,7 +81,11 @@ impl CurrentDraft {
                 .collect(),
             birth_requested,
         })
-        .map_err(|_| "Crèche draft snapshot exceeds its output bound".into())
+    }
+
+    fn snapshot(&self, birth_requested: bool) -> Result<(), String> {
+        abi::write_output(&self.source_snapshot(birth_requested)?)
+            .map_err(|_| "Crèche draft snapshot exceeds its output bound".into())
     }
 
     fn open(&mut self, request: OpenRequest) -> Result<(), String> {

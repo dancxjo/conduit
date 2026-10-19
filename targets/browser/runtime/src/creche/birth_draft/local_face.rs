@@ -17,12 +17,14 @@ pub(super) struct Encounter {
     mask: LocalBrowserMask,
     delivered: Option<conduit_face::FaceInteraction>,
     bindings: control_bindings::ControlBindings,
+    replaced_show: Option<serde_json::Value>,
 }
 
 impl Encounter {
     fn snapshot(&self) -> serde_json::Value {
         let mut snapshot = self.mask.snapshot();
         snapshot["control_bindings"] = serde_json::json!(self.bindings);
+        snapshot["replaced_show"] = serde_json::json!(self.replaced_show);
         snapshot
     }
 }
@@ -34,6 +36,8 @@ struct Prepare {
     host_id: HostId,
     boot_id: BootId,
     component: bool,
+    #[serde(default)]
+    component_admission: Option<crate::owner_face_mask::local_component::ComponentAdmission>,
 }
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -66,6 +70,10 @@ impl CurrentDraft {
     }
     fn prepare_local_face(&mut self, request: Prepare) -> Result<(), String> {
         self.require_generation(request.generation)?;
+        let renderer_profile = crate::owner_face_mask::local_component::RendererProfile::admit(
+            request.component,
+            request.component_admission.as_ref(),
+        )?;
         let sequence = self
             .mask_sequence
             .checked_add(1)
@@ -100,29 +108,30 @@ impl CurrentDraft {
             source,
             root,
             sequence,
+            renderer_profile,
         )?;
-        let candidate = Encounter {
+        let mut candidate = Encounter {
             basis,
             mask,
             delivered: None,
             bindings,
+            replaced_show: None,
         };
         let value = serde_json::json!({"schema":"conduit.browser/creche-local-face@1",
-            "generation":self.generation, "owner_revision":self.draft.as_ref().ok_or("Crèche absent")?.revision(), "birth_requested":false, "encounter":candidate.snapshot()});
+            "generation":self.generation, "owner_revision":self.draft.as_ref().ok_or("Crèche absent")?.revision(), "birth_requested":false, "source_snapshot":self.source_snapshot(false)?, "encounter":candidate.snapshot()});
         transport::admit(&value)?;
-        transport::write(&value)?;
         if let Some(previous) = self.local_face.as_mut() {
-            previous.mask.replace()?;
+            candidate.replaced_show = Some(previous.mask.replace()?);
         }
         self.local_face = Some(candidate);
         self.mask_sequence = sequence;
-        Ok(())
+        self.local_snapshot(false)
     }
     fn local_snapshot(&self, birth_requested: bool) -> Result<(), String> {
         let encounter = self.local_face.as_ref().ok_or("Crèche local Mask absent")?;
         transport::write(
             &serde_json::json!({"schema":"conduit.browser/creche-local-face@1",
-            "generation":self.generation, "owner_revision":self.draft.as_ref().ok_or("Crèche absent")?.revision(), "birth_requested":birth_requested,
+            "generation":self.generation, "owner_revision":self.draft.as_ref().ok_or("Crèche absent")?.revision(), "birth_requested":birth_requested, "source_snapshot":self.source_snapshot(birth_requested)?,
             "encounter":encounter.snapshot(),"delivered_interaction":encounter.delivered}),
         )
     }

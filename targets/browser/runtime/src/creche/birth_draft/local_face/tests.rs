@@ -26,6 +26,8 @@ fn prepare(current: &mut CurrentDraft, component: bool) -> serde_json::Value {
             host_id: "host/local-creche".into(),
             boot_id: "boot/local-creche".into(),
             component,
+            component_admission: component
+                .then(crate::owner_face_mask::local_component::expected_admission),
         })
         .unwrap();
     current.local_face.as_ref().unwrap().snapshot()
@@ -329,4 +331,68 @@ fn unsupported_valid_text_facts_keep_generic_face_without_control_authority() {
         .actions
         .iter()
         .any(|action| action.identity == "creche.name"));
+}
+
+#[test]
+fn optional_back_changes_only_realization_of_identical_current_source_face() {
+    let mut current = current();
+    let generic = prepare(&mut current, false);
+    acknowledge(&mut current, &generic);
+    let before = serde_json::to_vec(&generic["face"]).unwrap();
+    let selected = prepare(&mut current, true);
+    assert_eq!(serde_json::to_vec(&selected["face"]).unwrap(), before);
+    assert_eq!(selected["face"]["identity"], generic["face"]["identity"]);
+    assert_ne!(
+        selected["view"]["mask_plan_id"],
+        generic["view"]["mask_plan_id"]
+    );
+    assert_ne!(selected["view"]["show_id"], generic["view"]["show_id"]);
+    assert_eq!(
+        selected["replaced_show"]["show_id"],
+        generic["view"]["show_id"]
+    );
+    assert_eq!(selected["replaced_show"]["lifecycle"], "Replaced");
+    let placement = &selected["planned_mask"]["plan"]["fragments"][0]["placements"][0];
+    let pin = serde_json::to_value(crate::owner_face_mask::local_component::descriptor()).unwrap();
+    assert_eq!(placement["artifact_id"], pin["artifact_id"]);
+    acknowledge(&mut current, &selected);
+    assert!(current
+        .submit_local_face(Submit {
+            generation: current.generation,
+            interaction: proposal(&generic, "stale")
+        })
+        .is_err());
+    assert_eq!(current.draft.as_ref().unwrap().revision(), 1);
+}
+
+#[test]
+fn unpinned_component_prepare_preserves_previous_show_and_source() {
+    let mut current = current();
+    let generic = prepare(&mut current, false);
+    acknowledge(&mut current, &generic);
+    let mut admission = crate::owner_face_mask::local_component::expected_admission();
+    admission.bundle_sha256 = "0".repeat(64);
+    assert!(current
+        .prepare_local_face(Prepare {
+            generation: current.generation,
+            host_id: "host/local-creche".into(),
+            boot_id: "boot/local-creche".into(),
+            component: true,
+            component_admission: Some(admission)
+        })
+        .is_err());
+    assert_eq!(
+        current.local_face.as_ref().unwrap().snapshot()["view"]["show_id"],
+        generic["view"]["show_id"]
+    );
+    current
+        .submit_local_face(Submit {
+            generation: current.generation,
+            interaction: proposal(&generic, "still current"),
+        })
+        .unwrap();
+    assert_eq!(
+        current.draft.as_ref().unwrap().friendly_name(),
+        "still current"
+    );
 }

@@ -26,6 +26,14 @@ fn output() -> Value {
 
 #[test]
 fn canonical_abi_prepares_acknowledges_delivers_and_closes_the_actual_current_draft() {
+    assert_eq!(
+        transport::conduit_creche_local_face_component_descriptor(),
+        0
+    );
+    assert_eq!(
+        output()["bundle_sha256"],
+        crate::owner_face_mask::local_component::expected_admission().bundle_sha256
+    );
     CURRENT.with(|state| {
         let mut state = state.borrow_mut();
         state.close_local_face().unwrap();
@@ -46,7 +54,7 @@ fn canonical_abi_prepares_acknowledges_delivers_and_closes_the_actual_current_dr
     });
     let generation = CURRENT.with(|state| state.borrow().generation);
     let length = input(
-        &json!({"generation":generation,"host_id":"host/local-abi","boot_id":"boot/local-abi","component":true}),
+        &json!({"generation":generation,"host_id":"host/local-abi","boot_id":"boot/local-abi","component":true,"component_admission":crate::owner_face_mask::local_component::expected_admission()}),
     );
     assert_eq!(transport::conduit_creche_local_face_prepare(length), 0);
     let prepared = output();
@@ -74,6 +82,8 @@ fn canonical_abi_prepares_acknowledges_delivers_and_closes_the_actual_current_dr
         json!("Café 東京".as_bytes())
     );
     assert_eq!(committed["owner_revision"], 2);
+    assert_eq!(committed["source_snapshot"]["friendly_name"], "Café 東京");
+    assert_eq!(committed["source_snapshot"]["revision"], 2);
     CURRENT.with(|state| {
         assert_eq!(
             state.borrow().draft.as_ref().unwrap().friendly_name(),

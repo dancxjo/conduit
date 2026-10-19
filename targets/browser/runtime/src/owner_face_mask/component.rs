@@ -32,10 +32,9 @@ pub(super) fn prepare(
     planned: &conduit_face::PlannedMaskPlot,
     face: &Face,
 ) -> Result<Option<ComponentView>, String> {
-    let host = crate::installed_browser::membership_advertisement(
-        basis.host_id.clone(),
-        basis.boot_id.clone(),
-    );
+    let host = basis
+        .renderer_profile
+        .host(basis.host_id.clone(), basis.boot_id.clone());
     let Some(configuration) =
         crate::installed_browser::dom_mask::configured_mask_configuration(&host, planned)?
     else {
