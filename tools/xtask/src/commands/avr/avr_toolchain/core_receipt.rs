@@ -1,6 +1,6 @@
-//! Reuse only a complete pinned package tree recorded after successful installation.
+//! Reuse only a complete tree installed from reviewed, SHA256-pinned archives.
 use super::{
-    avr_gcc_bin, config_path, require_success, sha256_file, ARDUINO_AVR_VERSION,
+    avr_gcc_bin, core_archives, require_success, sha256_file, ARDUINO_AVR_VERSION,
     SPARKFUN_AVR_VERSION,
 };
 use serde::{Deserialize, Serialize};
@@ -14,6 +14,7 @@ const MAX_BYTES: u64 = 2 * 1024 * 1024 * 1024;
 #[serde(deny_unknown_fields)]
 struct Receipt {
     schema: String,
+    archives: BTreeMap<String, String>,
     arduino: String,
     sparkfun: String,
     files: BTreeMap<String, Entry>,
@@ -43,37 +44,12 @@ pub(super) fn verify(root: &Path) -> Result<bool> {
     check_gcc(root)?;
     Ok(true)
 }
-pub(super) fn seal(cli: &Path, root: &Path) -> Result<()> {
-    let output = Command::new(cli)
-        .args(["core", "list", "--format", "json", "--config-file"])
-        .arg(config_path(root))
-        .output()?;
-    require_success(&output, "verify installed pinned AVR cores")?;
-    verify_versions(&serde_json::from_slice(&output.stdout)?)?;
+pub(super) fn seal(_cli: &Path, root: &Path) -> Result<()> {
     check_gcc(root)?;
     let receipt = snapshot(root)?;
     let temporary = root.join(format!("{RECEIPT}.tmp"));
     fs::write(&temporary, serde_json::to_vec_pretty(&receipt)?)?;
     fs::rename(temporary, root.join(RECEIPT))?;
-    Ok(())
-}
-fn verify_versions(list: &serde_json::Value) -> Result<()> {
-    let platforms = list
-        .get("platforms")
-        .and_then(serde_json::Value::as_array)
-        .ok_or("Arduino CLI omitted installed platform list")?;
-    for (id, version) in [
-        ("arduino:avr", ARDUINO_AVR_VERSION),
-        ("SparkFun:avr", SPARKFUN_AVR_VERSION),
-    ] {
-        let matches = platforms
-            .iter()
-            .filter(|platform| platform["id"] == id)
-            .collect::<Vec<_>>();
-        if matches.len() != 1 || matches[0]["installed_version"] != version {
-            return Err(format!("installed {id} is not pinned version {version}").into());
-        }
-    }
     Ok(())
 }
 fn check_gcc(root: &Path) -> Result<()> {
@@ -111,7 +87,8 @@ fn snapshot(root: &Path) -> Result<Receipt> {
         return Err("empty AVR core/tool installation".into());
     }
     Ok(Receipt {
-        schema: "conduit.avr-core-installation/v1".into(),
+        schema: "conduit.avr-core-installation/v2".into(),
+        archives: core_archives::identities()?,
         arduino: ARDUINO_AVR_VERSION.into(),
         sparkfun: SPARKFUN_AVR_VERSION.into(),
         files,
