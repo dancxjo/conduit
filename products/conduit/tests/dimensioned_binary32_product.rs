@@ -231,7 +231,10 @@ fn assert_chain(source: &str) {
         assert!(String::from_utf8_lossy(&inspected.stdout).contains("byte correlation verified"));
         assert!(String::from_utf8_lossy(&inspected.stdout).contains("Projection report claims"));
         assert!(String::from_utf8_lossy(&inspected.stdout)
-            .contains("policy and domain claims not validated"));
+            .contains("Numerical certificate independently replayed"));
+        assert!(String::from_utf8_lossy(&inspected.stdout)
+            .contains("requested allowance 1/1000000 rad"));
+        assert!(String::from_utf8_lossy(&inspected.stdout).contains("maximum absolute error 4989059748945264178730333232019111938743553307553489755494474841856933287739664248916564964485953/114136378384044305483399922558931182958853259523662765806564420563333741593366937500000000000000000000000 rad"));
         // Correlation is separate from report framing: a consistently rehashed
         // unknown report version still refuses ordinary inspection.
         let report_start =
@@ -259,6 +262,36 @@ fn assert_chain(source: &str) {
             .unwrap();
         assert!(!refused.status.success());
         assert!(String::from_utf8_lossy(&refused.stderr).contains("projection evidence framing"));
+        // A changed opaque domain field preserves all generic framing and can
+        // match its outer hash. Independent numerical replay must still refuse.
+        let inventory =
+            conduit_core::projection::inspect_projection_evidence(&report.value_node()[5..])
+                .unwrap();
+        let domain_byte = inventory.source_bytes.as_ptr() as usize - value.bytes.as_ptr() as usize
+            + inventory.source_bytes.len()
+            - 1;
+        let mut forged_domain = value.clone();
+        forged_domain.bytes[domain_byte] ^= 1;
+        conduit_core::projection::inspect_projection_evidence(
+            &forged_domain.bytes[report_start..report_start + report.value_node().len() - 5],
+        )
+        .unwrap();
+        let digest =
+            conduit_core::semantic_digest("conduit/routed-value-content@1", &forged_domain.bytes);
+        if let ObservationKind::RoutedContent { evidence } = &mut forged_domain.sign.sign.kind {
+            evidence.digest = digest;
+        }
+        conduit_observatory::validate_routed_value_artifact(&forged_domain).unwrap();
+        let domain_path = path.join("forged-domain.json");
+        std::fs::write(&domain_path, serde_json::to_vec(&forged_domain).unwrap()).unwrap();
+        let refused = Command::new(env!("CARGO_BIN_EXE_conduit"))
+            .arg("inspect")
+            .arg(&domain_path)
+            .output()
+            .unwrap();
+        assert!(!refused.status.success());
+        assert!(String::from_utf8_lossy(&refused.stderr)
+            .contains("independent projection replay refused"));
         let mut forged = value.clone();
         forged.bytes[0] ^= 1;
         let forged_path = path.join("forged-value.json");

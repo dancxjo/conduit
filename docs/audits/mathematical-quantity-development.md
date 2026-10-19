@@ -984,3 +984,36 @@ inventory as report claims and states that policy and domain claims are not
 validated. Domain payloads remain opaque here; numerical semantic inspection and
 other report-producing profiles remain open. This preparation does not change
 runtime numerical verification or the original parent acceptance audit.
+
+### Ordinary inspection independently replays mathematical Near evidence
+
+For `std/quantity-near-enclosed-midpoint-binary32@2`, ordinary routed-value
+inspection now reuses the existing Core verifier. It checks the exact Near
+schema and producer contract, matches the original encoded request to the Plan
+configuration, and independently replays the source, enclosure, rounding, target,
+error claim, policy and every canonical general-report byte. The consuming
+validation profile retains its existing finite 900-million-work envelope.
+This introduces no second numerical engine or target-consumption gate.
+
+Successful inspection displays the source Unit/role and wire digest, binary32
+bits, rounding, enclosure endpoints, maximum absolute error and requested
+allowance as exact fractions. The post-Play formatter covers the full 4096-bit
+extent without narrowing to i128 or a float. A boundary test independently checks
+the decimal rendering of the largest admitted numerator and its reciprocal.
+Byte correlation, general framing and numerical replay remain distinct. A
+changed report version and a changed opaque domain field both refuse even after
+the outer content digest is consistently recomputed.
+
+Both CLI tests pass across three actual run invocations; the product formatter
+test, workspace formatting and strict workspace all-target Clippy pass. A fresh
+retained run completes and exports 23 artifacts: one Plan, one Play, eleven Signs
+and ten routed values. Independent Python SHA-256/context checks verify the
+actual bytes and Sign identities; every artifact passes ordinary inspection.
+The 11,436-byte projection output includes the 6,938-byte general report and
+passes ordinary numerical replay. Source and executed-binary custody are retained.
+
+Replay establishes a numerical certificate conditional on its retained source;
+it does not authenticate producer execution or independently attest its actual
+input history. Other report-producing profiles, external Fore artifact context,
+complete resource/target proof, public admission and stable acceptance remain
+open. The original parent audit still has 93 requirements and is not closed.

@@ -2,7 +2,8 @@
 use conduit_core::projection::{inspect_projection_evidence, ProjectionEvidenceView};
 use conduit_observatory::RoutedValueArtifact;
 use std::fmt::Write;
-pub(super) fn render(artifact: &RoutedValueArtifact) -> Result<String, String> {
+mod semantic;
+pub(super) fn render(artifact: &RoutedValueArtifact) -> Result<Option<String>, String> {
     let sign = &artifact.sign.sign;
     let plan = artifact
         .sign
@@ -18,7 +19,7 @@ pub(super) fn render(artifact: &RoutedValueArtifact) -> Result<String, String> {
         .find(|p| Some(&p.placement_id) == sign.placement_id.as_ref())
         .ok_or("routed value lacks producer")?;
     if producer.execution_profile_id.as_str() != "std/quantity-near-enclosed-midpoint-binary32@2" {
-        return Ok(String::new());
+        return Ok(None);
     }
     let frame = conduit_core::validate_canonical_structured_value(&artifact.bytes)
         .map_err(|e| format!("projection value framing: {e:?}"))?;
@@ -41,7 +42,10 @@ pub(super) fn render(artifact: &RoutedValueArtifact) -> Result<String, String> {
     }
     let view = inspect_projection_evidence(&node[5..])
         .map_err(|e| format!("projection evidence framing: {e:?}"))?;
-    Ok(report(view))
+    let verified = semantic::verify(artifact, producer, frame)?;
+    let mut output = report(view);
+    output.push_str(&verified);
+    Ok(Some(output))
 }
 fn report(v: ProjectionEvidenceView<'_>) -> String {
     let mut out=format!("Projection report claims\ncodec {}\nreport {}\nsource contract {}\ntarget contract {}\npolicy {}\nconfiguration {:?}\nsource identity {}\ntarget identity {:?}\nprojector {}\nrequested route {}\nboundary {:?}\nopaque policy bytes {}\nopaque source bytes {}\nopaque target bytes {:?}\nclaimed summary {:?}\nmechanism {:?}\nselected attempt {:?}\n",
@@ -66,6 +70,6 @@ fn report(v: ProjectionEvidenceView<'_>) -> String {
     for diagnostic in v.diagnostics() {
         writeln!(out, "diagnostic {diagnostic}").unwrap();
     }
-    out.push_str("report framing checked; policy and domain claims not validated\n");
+    out.push_str("report framing checked\n");
     out
 }
