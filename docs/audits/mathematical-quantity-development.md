@@ -251,7 +251,7 @@ production fixed kernel and observe zero reported post-Play-start allocations
 and unchanged value capacity. The test advertisement explicitly adds the genuine
 offer; this does not prove automatic discovery or product CLI admission.
 
-The first execution correctly refused a Back requesting the old generic 64 KiB
+The first execution correctly refused a Back requesting the old generic structured-value
 input allowance against the offer's smaller sealed Host Call bound. Preparation
 now uses the selected bound for this profile. The corrected tests pass; the
 original refusal and a subsequent test compilation diagnostic are retained.
@@ -320,3 +320,57 @@ This is Core computation/projection evidence. The installed input-consuming
 Back, selected offer/Plan bounds, independent serialized-result verification,
 actual CLI and Source/Plan/Sign custody still need integration. The original
 parent scope and public acceptance gates remain open.
+
+
+## Symbolic Near result integration (private, verification in progress)
+
+The existing Near result schema now retains the full mathematical Quantity frame
+in `source-wire` (33,829 bytes) and explicitly names the new midpoint strategy as
+`enclosed_binary32`. Its result envelope is 131,072 bytes, within the existing
+262,144-byte structured-value ceiling. The widened Kind contract is explicitly
+`numeric/quantity-near@2`; direct Fore aliases must declare its current byte
+bounds. The planner continues to require equal Fore/Back contracts. Eight old
+fixture declarations initially failed those strict checks (one bound assertion
+also retained 16,384); current development fixtures are being migrated. Old
+schema bytes and historical proof receipts are not rewritten.
+
+The new installed profile reuses the Near lifecycle and independently recomputes
+its offer bounds and artifact identity. Its prepared producer retains the exact
+symbolic coordinate, complete physical source wire, Unit/role, request, effective
+allowance, actual error bound, rounding and selected strategy. The ordinary
+rational/native profiles still use their exact wire grant and old algorithms.
+The existing reader continues to refuse mathematical representation grants.
+
+`PreparedMathematicalNearQuantityVerifier` pins its schema, enclosure parameters,
+rounding, consuming physical limit and finite work ceiling before execution.
+It reserves generic structured-validation work, replays the projection from the
+original physical frame, and checks the emitted target, claimed error, duplicated
+source fields and optional original-wire digest. It does not attest supplier
+execution. Two producer/reader tests pass, including canonical target/error/
+source/Unit forgery, digest mismatch, exhausted work, stricter consuming tolerance,
+recovery, repeated zero-allocation execution and unchanged prepared capacities.
+Installed authored-Plan/kernel proof, current-contract regression, final lint and
+CLI/public acceptance are still pending at this checkpoint.
+
+
+The current Near regression now passes 22 tests (including the two new
+producer/reader tests), with one pre-existing ignored test. A third-party native
+codec input explicitly selecting the mathematical profile follows the original
+rational algorithm and retains its original wire; both representation payload
+composers are prepared in advance. Default native selection keeps the existing
+binary32/exact alternatives ahead of the mathematical alternative. Zero-limit
+mathematical inputs remain eligible for exact point outcomes and refuse actual
+nonzero approximation loss.
+
+The first authored Angle bridge/carry/Near chain correctly fails canonical
+expansion with `CND-FRM-045`: a typed Angle cord is not a generic Quantity cord.
+No connection check was weakened and no successful installed dimensioned-chain
+claim follows from the component proof. A reviewed explicit family-to-generic
+physical value bridge is still needed; it must retain original wire, family,
+dimension and role and have bounded prepared execution. The candidate end-to-end
+test remains pending in this private checkout. Final lint/public gates remain
+pending. The small content-identity helper was extracted from Near lifecycle
+code to keep production responsibilities under 500 lines; historical identity
+construction is unchanged and current Near regressions pass. Full workspace
+checks remain unrun locally under current disk pressure; later combined public
+integration remains required.

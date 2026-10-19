@@ -101,7 +101,7 @@ fn qualified_identity_is_eligible_for_an_ordinary_sealed_plan() {
 
 #[test]
 fn unchanged_source_projects_then_executes_a_qualified_consumer_in_the_real_kernel() {
-    let source = "plot accept (\n >> value: Frequency near 0.01Hz\n result: Frequency near 0.1Hz >>\n) = .\n\nplot project (\n >> value: Quantity <= 1800B\n result: Frequency near 0.1Hz >>\n) {\n boundary: math/near(limit=0.01Hz)\n consumer: accept()\n value >> boundary.value\n boundary.result >> consumer.value\n consumer.result >> result\n}\n";
+    let source = "plot accept (\n >> value: Frequency near 0.01Hz\n result: Frequency near 0.1Hz >>\n) = .\n\nplot project (\n >> value: Quantity <= 33829B\n result: Frequency near 0.1Hz >>\n) {\n boundary: math/near(limit=0.01Hz)\n consumer: accept()\n value >> boundary.value\n boundary.result >> consumer.value\n consumer.result >> result\n}\n";
     let mut work = ExactNumericWork::new(100_000_000);
     let q = RationalQuantity::new(
         ExactRational::ratio(1, 3, &mut work).unwrap(),
@@ -192,7 +192,10 @@ fn predicate_bounds_are_sealed_and_missing_or_modified_facts_refuse_installation
     );
     assert!(read("retained-near-schema-bytes") > 0);
     assert!(read("canonical-contract-bytes") > read("retained-near-schema-bytes"));
-    assert_eq!(read("maximum-validated-input-bytes"), 16384);
+    assert_eq!(
+        read("maximum-validated-input-bytes"),
+        u64::from(NUMERICAL_NEAR_MAX_BYTES)
+    );
     assert!(crate::installed_std::pure_expression_back::prepare_hosts(fragment).is_ok());
     let mut missing = fragment.clone();
     missing.placements[0]
@@ -224,7 +227,7 @@ fn predicate_bounds_are_sealed_and_missing_or_modified_facts_refuse_installation
 
 #[test]
 fn weak_certificate_cannot_be_relabelled_as_a_tighter_qualified_result() {
-    let source = "plot accept (\n >> value: Frequency near 0.01Hz\n result: Frequency near 0.000000001Hz >>\n) = .\n\nplot project (\n >> value: Quantity <= 1800B\n result: Frequency near 0.000000001Hz >>\n) {\n boundary: math/near(limit=0.01Hz)\n consumer: accept()\n value >> boundary.value\n boundary.result >> consumer.value\n consumer.result >> result\n}\n";
+    let source = "plot accept (\n >> value: Frequency near 0.01Hz\n result: Frequency near 0.000000001Hz >>\n) = .\n\nplot project (\n >> value: Quantity <= 33829B\n result: Frequency near 0.000000001Hz >>\n) {\n boundary: math/near(limit=0.01Hz)\n consumer: accept()\n value >> boundary.value\n boundary.result >> consumer.value\n consumer.result >> result\n}\n";
     let mut work = ExactNumericWork::new(100_000_000);
     let q = RationalQuantity::new(
         ExactRational::ratio(1, 3, &mut work).unwrap(),

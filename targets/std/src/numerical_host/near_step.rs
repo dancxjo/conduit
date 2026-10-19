@@ -181,7 +181,7 @@ impl NearQuantityBack {
     // This computes from the actual input, not a startup-frozen receipt.
     #[inline(never)]
     fn evaluate(&mut self, bytes: &[u8]) -> Result<(), NearRefusal> {
-        if self.state.mathematical.is_some() {
+        if self.state.mathematical.is_some() && bytes.first() == Some(&3) {
             return self.evaluate_mathematical(bytes);
         }
         let mut work = ExactNumericWork::new(NEAR_NUMERICAL_WORK);
@@ -211,8 +211,13 @@ impl NearQuantityBack {
         if limit.role() != error_role || limit.coordinate().is_negative() {
             return Err(NearRefusal::Physical);
         }
-        let projected = match self.state.algorithm {
-            NearQuantityAlgorithm::EnclosedBinary32 => return Err(NearRefusal::Lifecycle),
+        let algorithm = if self.state.algorithm == NearQuantityAlgorithm::EnclosedBinary32 {
+            NearQuantityAlgorithm::Binary32
+        } else {
+            self.state.algorithm
+        };
+        let projected = match algorithm {
+            NearQuantityAlgorithm::EnclosedBinary32 => unreachable!("normalized rational strategy"),
             NearQuantityAlgorithm::ExactRational => None,
             NearQuantityAlgorithm::Binary32 => Some(
                 PreparedQuantityBinary32Projection::prepare(
@@ -263,7 +268,7 @@ impl NearQuantityBack {
                 bytes,
                 self.state.requested_limit,
                 limit,
-                self.state.algorithm,
+                algorithm,
                 projected.as_ref(),
             )
             .map_err(|_| NearRefusal::Encoding)?;
@@ -327,56 +332,6 @@ impl<const PORTS: usize> StepBack<PORTS> for NearQuantityBack {
     }
 }
 
-// Pure mathematical reports identify their actual content. Plan/Play execution
-// custody is supplied separately by the kernel's mandatory emitted-value Signs.
-struct ProjectionIds {
-    source: [u8; 64],
-    target: [u8; 64],
-    report: [u8; 64],
-}
-fn hex(digest: [u8; 32]) -> [u8; 64] {
-    let mut out = [0; 64];
-    let alphabet = b"0123456789abcdef";
-    for (i, b) in digest.iter().enumerate() {
-        out[2 * i] = alphabet[(b >> 4) as usize];
-        out[2 * i + 1] = alphabet[(b & 15) as usize];
-    }
-    out
-}
-impl ProjectionIds {
-    fn new(
-        wire: &[u8],
-        source: RationalQuantity,
-        limit: Quantity,
-        projected: Option<&PreparedQuantityBinary32Projection>,
-    ) -> Self {
-        let source_id = semantic_digest(QUANTITY_INFO_ID, wire);
-        let mut target = [0; UNIT_ENCODED_LEN + 34];
-        target[..UNIT_ENCODED_LEN].copy_from_slice(&source.unit().encode());
-        target[UNIT_ENCODED_LEN] = match source.role() {
-            QuantityRole::Linear => 0,
-            QuantityRole::Point => 1,
-            QuantityRole::Delta => 2,
-        };
-        if let Some(p) = projected {
-            target[UNIT_ENCODED_LEN + 1] = 32;
-            target[UNIT_ENCODED_LEN + 2..UNIT_ENCODED_LEN + 6]
-                .copy_from_slice(&p.target().coordinate().bits().to_le_bytes());
-        } else {
-            target[UNIT_ENCODED_LEN + 2..].copy_from_slice(&source.coordinate().semantic_digest());
-        }
-        let target_id = semantic_digest("numeric/near-target@1", &target);
-        let mut report = [0; 64 + QUANTITY_ENCODED_LEN];
-        report[..32].copy_from_slice(&source_id);
-        report[32..64].copy_from_slice(&target_id);
-        report[64..].copy_from_slice(&limit.encode());
-        Self {
-            source: hex(source_id),
-            target: hex(target_id),
-            report: hex(semantic_digest("numeric/near-report@1", &report)),
-        }
-    }
-}
 fn checked_report<'a, D: ProjectionDomain, P: ProjectionPolicy<D>>(
     domain: &'a D,
     policy: &'a P,
@@ -487,3 +442,11 @@ impl ProjectionPolicy<ExactNearDomain> for ExactNearDomain {
 mod tests;
 
 mod mathematical;
+
+#[cfg(test)]
+mod mathematical_tests;
+
+mod projection_ids;
+use projection_ids::ProjectionIds;
+
+pub(crate) use mathematical::requirements as mathematical_near_requirements;

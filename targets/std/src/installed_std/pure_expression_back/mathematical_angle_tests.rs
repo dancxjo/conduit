@@ -17,10 +17,11 @@ fn fixture(source: &str, name: &str) -> (crate::StdHost, Plan) {
     fixture_with_selection(source, name, false)
 }
 fn fixture_with_selection(source: &str, name: &str, automatic: bool) -> (crate::StdHost, Plan) {
-    let checked =
-        check_syntax_document(&parse_syntax_document(source), &StartupCatalog::new()).unwrap();
-    let authored =
-        expand_canonical_plot_for_authoring(&checked, name, &ProfileCatalog::new()).unwrap();
+    let mut startup = StartupCatalog::new();
+    let mut profiles = ProfileCatalog::new();
+    conduit_semantic_catalog::install_numerical_catalogs(&mut startup, &mut profiles).unwrap();
+    let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
+    let authored = expand_canonical_plot_for_authoring(&checked, name, &profiles).unwrap();
     let mut advertisement = crate::StdHost::new().advertisement().clone();
     for gear in authored.expanded.gears.iter().filter(|_| !automatic) {
         let ConfigurationValue::Text(encoded) = &gear.configuration[0].value else {
@@ -40,6 +41,8 @@ fn fixture_with_selection(source: &str, name: &str, automatic: bool) -> (crate::
         .sort_by(|a, b| a.capability_id.cmp(&b.capability_id));
     let mut host = crate::StdHost::from_advertisement(advertisement).unwrap();
     if automatic {
+        host.prepare_numerical_realizations(&authored.expanded)
+            .unwrap();
         host.prepare_expression_realizations(&authored.expanded)
             .unwrap();
         let first = host.advertisement().clone();
@@ -64,7 +67,7 @@ fn fixture_with_selection(source: &str, name: &str, automatic: bool) -> (crate::
             },
             conduit_planner::ConnectionQueueLimits {
                 item_capacity: 1,
-                byte_capacity: MATHEMATICAL_QUANTITY_MAX_ENCODED_BYTES as u32,
+                byte_capacity: conduit_semantic_catalog::NUMERICAL_NEAR_MAX_BYTES,
             },
         )
     })
@@ -78,7 +81,7 @@ fn fixture_with_selection(source: &str, name: &str, automatic: bool) -> (crate::
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),
             connection_item_capacity: 1,
-            connection_byte_capacity: MATHEMATICAL_QUANTITY_MAX_ENCODED_BYTES as u32,
+            connection_byte_capacity: conduit_semantic_catalog::NUMERICAL_NEAR_MAX_BYTES,
             authority_grants: &[],
             protected_resource_grants: &[],
             line_offers: &[],
@@ -283,4 +286,56 @@ fn ordinary_source_preparation_selects_compatible_angle_profiles_across_the_chai
             .unwrap(),
         Some(ExactRational::ONE)
     );
+}
+
+#[test]
+fn authored_dimensioned_chain_reaches_selected_binary32_consumer_and_independent_reader() {
+    let source = "plot bridge (\n >> value: Angle\n result: Angle >>\n) = (math/angle-radians(.))\nplot carry (\n >> value: Angle\n result: Angle >>\n) = (.)\nplot project (\n >> value: Angle\n result: NearQuantity <= 131072B >>\n) {\n converted: bridge\n carried: carry\n boundary: math/near(limit=0.000001rad)\n value >> converted.value\n converted.result >> carried.value\n carried.result >> boundary.value\n boundary.result >> result\n}\n";
+    for spelling in ["90°", "0.25turn"] {
+        let (host, plan) = fixture_with_selection(source, "project", true);
+        assert_eq!(plan.fragments[0].placements.len(), 3);
+        assert_eq!(
+            plan.fragments[0]
+                .placements
+                .iter()
+                .filter(|p| p.execution_profile_id.as_str()
+                    == "std/quantity-near-enclosed-midpoint-binary32@1")
+                .count(),
+            1
+        );
+        let result = play(
+            host,
+            &plan,
+            Quantity::parse_plot_literal(spelling)
+                .unwrap()
+                .encode()
+                .to_vec(),
+        );
+        let requested = Quantity::parse_plot_literal("0.000001rad").unwrap();
+        let mut work = ExactNumericWork::new(900_000_000);
+        let mut verifier = PreparedMathematicalNearQuantityVerifier::new(
+            &conduit_semantic_catalog::near_quantity_type(),
+            crate::numerical_host::near_step::mathematical_near_requirements(),
+            Binary32Rounding::NearestTiesEven,
+            RationalQuantity::from_quantity(requested, &mut work).unwrap(),
+            900_000_000,
+        )
+        .unwrap();
+        let guard = crate::allocation_probe::begin();
+        let value = verifier
+            .verify(&result, ANGLE_INFO_ID, None, &mut work)
+            .unwrap();
+        assert_eq!(value.source().unit(), Unit::Radian);
+        assert_eq!(value.source().role(), QuantityRole::Linear);
+        assert_eq!(
+            value
+                .source()
+                .coordinate()
+                .rational_pi_coefficient(&mut work)
+                .unwrap(),
+            Some(ExactRational::ratio(1, 2, &mut work).unwrap())
+        );
+        assert_ne!(value.maximum_error(), ExactRational::ZERO);
+        assert_eq!(guard.finish(), 0);
+    }
 }

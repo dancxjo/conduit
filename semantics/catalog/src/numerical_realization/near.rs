@@ -1,7 +1,7 @@
 //! One absolute physical numerical allowance, separate from exact Quantity.
 use super::*;
 pub const NUMERICAL_NEAR_KIND: &str = "math/near";
-pub const NUMERICAL_NEAR_REVISION: &str = "numeric/quantity-near@1";
+pub const NUMERICAL_NEAR_REVISION: &str = "numeric/quantity-near@2";
 pub const NUMERICAL_NEAR_MAX_BYTES: u32 = NEAR_QUANTITY_EVIDENCE_MAX_BYTES as u32;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NearQuantityAlgorithm {
@@ -136,7 +136,7 @@ mod tests {
             near_quantity_type().profile().unwrap().value_kind(),
             &kind_id(QUANTITY_INFO_ID)
         );
-        let source="plot project (\n >> value: Quantity <= 1800B\n result: NearQuantity <= 16384B >>\n) {\n boundary: math/near(limit=0.0001m)\n value >> boundary.value\n boundary.result >> result\n}\n";
+        let source="plot project (\n >> value: Quantity <= 33829B\n result: NearQuantity <= 131072B >>\n) {\n boundary: math/near(limit=0.0001m)\n value >> boundary.value\n boundary.result >> result\n}\n";
         let checked = conduit_plot::check_syntax_document(
             &conduit_plot::parse_syntax_document(source),
             &startup,
@@ -325,7 +325,7 @@ mod tests {
         let mut startup = StartupCatalog::new();
         let mut profile = ProfileCatalog::new();
         install_numerical_catalogs(&mut startup, &mut profile).unwrap();
-        let source = "plot again (\n >> value: Frequency near 0.01Hz\n result: NearQuantity <= 16384B >>\n) {\n second: math/near(limit=0.000000001Hz)\n value >> second.value\n second.result >> result\n}\n";
+        let source = "plot again (\n >> value: Frequency near 0.01Hz\n result: NearQuantity <= 131072B >>\n) {\n second: math/near(limit=0.000000001Hz)\n value >> second.value\n second.result >> result\n}\n";
         let syntax = conduit_plot::parse_syntax_document(source);
         match conduit_plot::check_syntax_document(&syntax, &startup) {
             Err(error) => assert!(error.message.contains("Type") || error.message.contains("type")),

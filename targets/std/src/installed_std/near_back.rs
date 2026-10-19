@@ -96,6 +96,7 @@ fn offer(limit: Quantity, algorithm: NearQuantityAlgorithm) -> Result<Capability
         concat!(
             include_str!("near_back.rs"),
             include_str!("../numerical_host/near_step.rs"),
+            include_str!("../numerical_host/near_step/projection_ids.rs"),
             include_str!("../numerical_host/near_encoding.rs"),
             include_str!("../numerical_host/near_encoding/mathematical.rs"),
             include_str!("../numerical_host/near_step/mathematical.rs"),
@@ -125,7 +126,7 @@ fn offer(limit: Quantity, algorithm: NearQuantityAlgorithm) -> Result<Capability
             capability_id: format!(
                 "std/source-near/{}/{identity}",
                 if algorithm == NearQuantityAlgorithm::EnclosedBinary32 {
-                    "15-enclosed-binary32"
+                    "30-enclosed-binary32"
                 } else if algorithm == NearQuantityAlgorithm::Binary32 {
                     "10-binary32"
                 } else {
@@ -174,8 +175,8 @@ pub(crate) fn offers(configuration: &[ConfigurationEntry]) -> Result<Vec<Capabil
     let mut result = vec![offer(limit, NearQuantityAlgorithm::ExactRational)?];
     if limit.coefficient() != 0 {
         result.push(offer(limit, NearQuantityAlgorithm::Binary32)?);
-        result.push(offer(limit, NearQuantityAlgorithm::EnclosedBinary32)?);
     }
+    result.push(offer(limit, NearQuantityAlgorithm::EnclosedBinary32)?);
     Ok(result)
 }
 pub(crate) fn owns_offer(offer: &CapabilityOffer) -> bool {

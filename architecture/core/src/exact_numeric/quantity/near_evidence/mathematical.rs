@@ -112,7 +112,7 @@ impl PreparedMathematicalNearQuantityVerifier {
         let wire = leaf(field(value, "source-wire")?)?;
         crate::QuantityValueProfile::Mathematical
             .decode(quantity_kind, wire, work)
-            .map_err(|_| Refusal::InvalidSource)?;
+            .map_err(wire_refusal)?;
         let receipt = self
             .projection
             .execute(wire, work)
@@ -227,11 +227,37 @@ fn projection_refusal(why: crate::MathematicalQuantityBinary32Refusal) -> Refusa
     use crate::MathematicalQuantityBinary32Refusal as R;
     match why {
         R::Numeric(why) => numeric_error(why),
+        R::Rounding(QuantityBinary32ProjectionRefusal::Numeric(
+            Binary32Refusal::ToleranceExceeded,
+        )) => Refusal::InsufficientTolerance,
         R::Rounding(why) => projection_error(why),
         R::PhysicalToleranceMismatch => Refusal::Physical,
         R::NegativeTolerance => Refusal::InvalidLimit,
         R::ToleranceExceeded => Refusal::InsufficientTolerance,
         R::RetainedStorageLimit => Refusal::Extent,
+        R::Enclosure(crate::MathematicalQuantityEnclosureRefusal::Numeric(why)) => {
+            numeric_error(why)
+        }
+        R::Enclosure(crate::MathematicalQuantityEnclosureRefusal::Enclosure(
+            crate::MathematicalEnclosureRefusal::Numeric(why),
+        )) => numeric_error(why),
+        R::Enclosure(crate::MathematicalQuantityEnclosureRefusal::Quantity(
+            crate::MathematicalQuantityRefusal::Numeric(why),
+        )) => numeric_error(why),
         R::Enclosure(_) => Refusal::InvalidClaim,
+    }
+}
+
+fn wire_refusal(why: crate::QuantityValueContractRefusal) -> Refusal {
+    use crate::{
+        MathematicalQuantityRefusal as M, MathematicalValueRefusal as S,
+        QuantityValueContractRefusal as C, QuantityValueRefusal as V,
+    };
+    match why {
+        C::Encoding(V::Mathematical(M::Numeric(n)))
+        | C::Encoding(V::Mathematical(M::Coordinate(S::Numeric(n)))) => numeric_error(n),
+        C::WrongFamily | C::WrongRole | C::WrongDimension { .. } => Refusal::Physical,
+        C::UnsupportedRepresentation { .. } => Refusal::UnsupportedRepresentation,
+        _ => Refusal::InvalidSource,
     }
 }

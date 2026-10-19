@@ -18,6 +18,7 @@ fn runtime_projection_and_certificate_checks_reuse_all_prepared_storage() {
     for algorithm in [
         NearQuantityAlgorithm::ExactRational,
         NearQuantityAlgorithm::Binary32,
+        NearQuantityAlgorithm::EnclosedBinary32,
     ] {
         let mut back = NearQuantityBack::new(requested, algorithm).unwrap();
         let verifier =

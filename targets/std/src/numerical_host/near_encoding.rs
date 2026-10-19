@@ -16,6 +16,7 @@ pub struct PreparedNearEncoding {
     exact: PreparedStructuredComposer,
     target: PreparedStructuredComposer,
     floating: PreparedStructuredComposer,
+    legacy_floating: Option<PreparedStructuredComposer>,
     representation: PreparedStructuredComposer,
     result: PreparedStructuredComposer,
     roles: [Vec<u8>; 3],
@@ -110,6 +111,14 @@ impl PreparedNearEncoding {
             target: leaf(&field(&floating, "target"), 4)?,
             rounding: tag(&field(&floating, "rounding"), "nearest_ties_even")?,
             floating: PreparedStructuredComposer::new(&floating, 4096)?,
+            legacy_floating: if mathematical {
+                Some(PreparedStructuredComposer::new(
+                    &case(&representation, "binary32"),
+                    4096,
+                )?)
+            } else {
+                None
+            },
             representation: PreparedStructuredComposer::new(&representation, 8192)?,
             result: PreparedStructuredComposer::new(&ty, NUMERICAL_NEAR_MAX_BYTES as usize)?,
             roles: [
@@ -147,6 +156,10 @@ impl PreparedNearEncoding {
                 .map(Vec::capacity)
                 .sum::<usize>()
             + self.rounding.capacity()
+            + self
+                .legacy_floating
+                .as_ref()
+                .map_or(0, |c| c.prepared_heap_bytes())
     }
     pub fn encoded(&self) -> &[u8] {
         self.result.encoded()
@@ -201,7 +214,11 @@ impl PreparedNearEncoding {
                 let target = self
                     .target
                     .leaf(&p.target().coordinate().bits().to_le_bytes())?;
-                let floating = self.floating.record(&[
+                let composer = match self.legacy_floating.as_mut() {
+                    Some(c) => c,
+                    None => &mut self.floating,
+                };
+                let floating = composer.record(&[
                     validate_canonical_structured_value(&self.rounding)?,
                     validate_canonical_structured_value(target)?,
                 ])?;

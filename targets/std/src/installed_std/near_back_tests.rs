@@ -15,7 +15,7 @@ fn prepared_with_extra(limit: &str, exact: bool, extra: Option<&str>) -> (StdHos
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     conduit_semantic_catalog::install_numerical_catalogs(&mut startup, &mut profile).unwrap();
-    let source=format!("plot project (\n >> value: Quantity <= 1800B\n result: NearQuantity <= 16384B >>\n) {{\n boundary: math/near(limit={limit})\n value >> boundary.value\n boundary.result >> result\n}}\n");
+    let source=format!("plot project (\n >> value: Quantity <= 33829B\n result: NearQuantity <= 131072B >>\n) {{\n boundary: math/near(limit={limit})\n value >> boundary.value\n boundary.result >> result\n}}\n");
     let checked = check_syntax_document(&parse_syntax_document(&source), &startup).unwrap();
     let authored = expand_canonical_plot_for_authoring(&checked, "project", &profile).unwrap();
     let mut host = StdHost::new();

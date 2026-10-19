@@ -1,6 +1,6 @@
 //! The ordinary Near lifecycle with an explicitly selected mathematical profile.
 use super::*;
-pub(super) fn requirements() -> MathematicalEnclosureRequirements {
+pub(crate) fn requirements() -> MathematicalEnclosureRequirements {
     let mut work = ExactNumericWork::new(NEAR_NUMERICAL_WORK);
     MathematicalEnclosureRequirements {
         maximum_width: ExactRational::ratio(1, 100_000_000_000_000_000, &mut work).unwrap(),
