@@ -152,3 +152,7 @@ pub mod parser_rebase_replay;
 
 pub mod analysis_epoch_initialization;
 pub mod analysis_epoch_owner;
+
+/// Pinned immutable resource admission; requires pointer atomics for shared custody.
+#[cfg(target_has_atomic = "ptr")]
+pub mod train_lexicon;
