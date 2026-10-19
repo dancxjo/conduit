@@ -1,15 +1,37 @@
 {
   "compiled_dsp_source": "4d0897edd093a6e5a989430cf227805655409384bc4aa85a175e4b10177daca7",
+  "correspondence_subset_identity": "27c61e703c2003df06d50193377039b1f3a758dc918cd1504a8c4863e1c67d24",
   "device_playback": "not performed",
+  "formant_realizes": [
+    "AdmittedTargetPhones",
+    "SegmentStress",
+    "InlineBoundaryEvents",
+    "DeclaredDurationCyclesAndAmplitude"
+  ],
+  "formant_retained_without_realization": [
+    "IntendedPhonemesAndRealizationAlignment",
+    "TextAndWordRelations",
+    "WordPositions",
+    "SeparateSyllableStructure",
+    "PositionedBoundaries",
+    "ScopedFrequencyEnergyAndRate",
+    "LanguageCommitment"
+  ],
   "human_listening": "not performed",
   "model_terminal": {
     "inference_phonemes": 5,
     "inference_phones": 5,
     "refusal": "NoAdmittedAcousticBack",
     "requested_backend": "ConduitVoice acoustic realization",
+    "retained_without_conditioning": [
+      "TextAndAlignment",
+      "SyllableAndWordStructure",
+      "ProsodyAndAcoustics",
+      "LanguageCommitment"
+    ],
     "selected_backend": null,
-    "source_identity": "27c61e703c2003df06d50193377039b1f3a758dc918cd1504a8c4863e1c67d24",
-    "terminal_evidence_identity": "8b71fb5551a8b189d12b80d496b60aa59ab952bd613611340f14b0533621d664",
+    "source_identity": "37ca050eb32485a496dc630cb1f8b59a3182636c16c9399be2c7fbf122a7dace",
+    "terminal_evidence_identity": "26073fce4f6e5e26c7c4b4c3a822a101ec4bda732f4000bd4cf55e322ca8b98a",
     "trained_weights": false,
     "training_phonemes": 5,
     "training_phones": 5
@@ -22,35 +44,35 @@
     "SpeechOfflinePcmAdmission": "c07c8c5c9767ca8f7f2053219d7300e2683878bb1f516969261a0b3727d951ec",
     "SpeechUtteranceIntent": "a07d611735dcce86781cc9a710bf7925bb2c416e006ddfe20c0c2b2c2d2dfc8c"
   },
-  "original_artifact_identity": "e5f258f7ce7fa8d8b015d3c023d8a3ad00af6efdb22fe9be971dc1ed449e8f77",
+  "original_artifact_identity": "c837f25608e663ec9c153e1c544d1b82d8a2335bc2a601b2ce7b5f86f08787fc",
   "pcm_frames": 4000,
   "plan": {
-    "checked_plot_id": "fcdd2efcb03d9dd655d2e8f3720fc733bdd829c326ffb9a358824b6593deb600",
+    "checked_plot_id": "84cccbc3d47916fb1f176d1d7eacdb953c57183258cd9f74ef0358f71a9c9efb",
     "completion_policy": "SemanticCompletion",
-    "expanded_plot_id": "e3d684e16c73c1d6dfb9f5e7ec5b24b60b58b8cb1019a03b6ebf406920459e4c",
+    "expanded_plot_id": "3de8303bc94abace71d550adb371fe4388ff495c5a143672a1df082bf9ddca7e",
     "fragments": [
       {
         "boot_id": "proof/carried-formant-boot",
         "cancellation_policy": "CancelAllAndRejectLateCompletion",
-        "checked_plot_id": "fcdd2efcb03d9dd655d2e8f3720fc733bdd829c326ffb9a358824b6593deb600",
+        "checked_plot_id": "84cccbc3d47916fb1f176d1d7eacdb953c57183258cd9f74ef0358f71a9c9efb",
         "completion_policy": "SemanticCompletion",
         "connections": [],
         "execution_fusions": [],
         "execution_regions": [],
-        "expanded_plot_id": "e3d684e16c73c1d6dfb9f5e7ec5b24b60b58b8cb1019a03b6ebf406920459e4c",
+        "expanded_plot_id": "3de8303bc94abace71d550adb371fe4388ff495c5a143672a1df082bf9ddca7e",
         "expected_sign": [
           "PlanFragmentReceived",
           {
-            "PlacementPrepared": "bb2afbf10116b21894bd6498144d0277603918b16404a3a5791c68bcd0d4c8a1"
+            "PlacementPrepared": "cd331c34bac26ea7733621fd5914a2aea1f97e1ab0ccf08616edb4dcb263ab2a"
           },
           {
-            "PlacementTerminal": "bb2afbf10116b21894bd6498144d0277603918b16404a3a5791c68bcd0d4c8a1"
+            "PlacementTerminal": "cd331c34bac26ea7733621fd5914a2aea1f97e1ab0ccf08616edb4dcb263ab2a"
           },
           "PlanTerminal"
         ],
         "expected_terminals": [
           {
-            "PlacementCompleted": "bb2afbf10116b21894bd6498144d0277603918b16404a3a5791c68bcd0d4c8a1"
+            "PlacementCompleted": "cd331c34bac26ea7733621fd5914a2aea1f97e1ab0ccf08616edb4dcb263ab2a"
           },
           "PlanCompleted"
         ],
@@ -61,7 +83,7 @@
             "front_port_id": "source",
             "gear_port_id": "source",
             "item_capacity": 1,
-            "placement_id": "bb2afbf10116b21894bd6498144d0277603918b16404a3a5791c68bcd0d4c8a1",
+            "placement_id": "cd331c34bac26ea7733621fd5914a2aea1f97e1ab0ccf08616edb4dcb263ab2a",
             "pressure_policy": "preserve-order",
             "temporal": "Value",
             "track": "payload",
@@ -78,7 +100,7 @@
             "front_port_id": "audio",
             "gear_port_id": "audio",
             "item_capacity": 1,
-            "placement_id": "bb2afbf10116b21894bd6498144d0277603918b16404a3a5791c68bcd0d4c8a1",
+            "placement_id": "cd331c34bac26ea7733621fd5914a2aea1f97e1ab0ccf08616edb4dcb263ab2a",
             "pressure_policy": "preserve-order",
             "temporal": {
               "Flow": {
@@ -94,12 +116,12 @@
             "value_kind": "audio/pcm-frames@1"
           }
         ],
-        "fragment_id": "66d9aa0bfd5783b4ae3b9d29f695a8980bffe9b1f45b430633421fce39eaa767",
+        "fragment_id": "6b361e696373a3503308dfb22db68a3712f5f3ff06f1ba5958f21b77ebdd7e33",
         "host_id": "proof/carried-formant",
         "offer_generation": 1,
         "placements": [
           {
-            "artifact_id": "conduit-native/carried-formant@1/4d3f1bd8dcabb86f6326cf732004d06085d52fbfa92f63ef645385166e2cc7b6/b01e1b2397c00df1baef033d3761835978654dd77157423655260de3a8b6600a",
+            "artifact_id": "conduit-native/carried-formant@1/561424ba58689df7a65de25d7cc3ba53284f1df783f87a7df639952e967a664a/de5c94043265573cadbcad51e7a76d2daf7f3759909cd38f42a78895be0e172e",
             "authority": [],
             "boot_id": "proof/carried-formant-boot",
             "capability_id": "native-carried-formant",
@@ -113,19 +135,19 @@
               {
                 "key": "offline-authoring",
                 "value": {
-                  "Text": "b01e1b2397c00df1baef033d3761835978654dd77157423655260de3a8b6600a"
+                  "Text": "de5c94043265573cadbcad51e7a76d2daf7f3759909cd38f42a78895be0e172e"
                 }
               },
               {
                 "key": "projection",
                 "value": {
-                  "Text": "4d3f1bd8dcabb86f6326cf732004d06085d52fbfa92f63ef645385166e2cc7b6"
+                  "Text": "561424ba58689df7a65de25d7cc3ba53284f1df783f87a7df639952e967a664a"
                 }
               },
               {
                 "key": "source",
                 "value": {
-                  "Text": "27c61e703c2003df06d50193377039b1f3a758dc918cd1504a8c4863e1c67d24"
+                  "Text": "37ca050eb32485a496dc630cb1f8b59a3182636c16c9399be2c7fbf122a7dace"
                 }
               }
             ],
@@ -162,7 +184,7 @@
                 "value_kind": "audio/pcm-frames@1"
               }
             ],
-            "placement_id": "bb2afbf10116b21894bd6498144d0277603918b16404a3a5791c68bcd0d4c8a1",
+            "placement_id": "cd331c34bac26ea7733621fd5914a2aea1f97e1ab0ccf08616edb4dcb263ab2a",
             "pool_references": [],
             "realization_characteristics": [],
             "resources": [],
@@ -182,39 +204,39 @@
                 },
                 {
                   "default_value": {
-                    "Text": "b01e1b2397c00df1baef033d3761835978654dd77157423655260de3a8b6600a"
+                    "Text": "de5c94043265573cadbcad51e7a76d2daf7f3759909cd38f42a78895be0e172e"
                   },
                   "key": "offline-authoring",
                   "rule": {
                     "TextOneOf": {
                       "values": [
-                        "b01e1b2397c00df1baef033d3761835978654dd77157423655260de3a8b6600a"
+                        "de5c94043265573cadbcad51e7a76d2daf7f3759909cd38f42a78895be0e172e"
                       ]
                     }
                   }
                 },
                 {
                   "default_value": {
-                    "Text": "4d3f1bd8dcabb86f6326cf732004d06085d52fbfa92f63ef645385166e2cc7b6"
+                    "Text": "561424ba58689df7a65de25d7cc3ba53284f1df783f87a7df639952e967a664a"
                   },
                   "key": "projection",
                   "rule": {
                     "TextOneOf": {
                       "values": [
-                        "4d3f1bd8dcabb86f6326cf732004d06085d52fbfa92f63ef645385166e2cc7b6"
+                        "561424ba58689df7a65de25d7cc3ba53284f1df783f87a7df639952e967a664a"
                       ]
                     }
                   }
                 },
                 {
                   "default_value": {
-                    "Text": "27c61e703c2003df06d50193377039b1f3a758dc918cd1504a8c4863e1c67d24"
+                    "Text": "37ca050eb32485a496dc630cb1f8b59a3182636c16c9399be2c7fbf122a7dace"
                   },
                   "key": "source",
                   "rule": {
                     "TextOneOf": {
                       "values": [
-                        "27c61e703c2003df06d50193377039b1f3a758dc918cd1504a8c4863e1c67d24"
+                        "37ca050eb32485a496dc630cb1f8b59a3182636c16c9399be2c7fbf122a7dace"
                       ]
                     }
                   }
@@ -259,11 +281,11 @@
         ],
         "plan_fragments": [
           {
-            "fragment_id": "66d9aa0bfd5783b4ae3b9d29f695a8980bffe9b1f45b430633421fce39eaa767",
+            "fragment_id": "6b361e696373a3503308dfb22db68a3712f5f3ff06f1ba5958f21b77ebdd7e33",
             "host_id": "proof/carried-formant"
           }
         ],
-        "plan_id": "3449801797cb5668df1b1bb175f01a9467a51e36a0fa1b7eeb874d3c67e31749",
+        "plan_id": "85273d850542797d5ea502b1150dcec3eff4d56eb16e5e4642f47761ade53fd4",
         "realization_backs": [],
         "shared_pools": [],
         "sign_storage_budget": {
@@ -273,19 +295,19 @@
         "source_document_id": "f928de427d3855713b7e011cd6615a67fc8b2b97addcf5266af16033c56fd5bc",
         "startup_dependencies": [],
         "startup_order": [
-          "bb2afbf10116b21894bd6498144d0277603918b16404a3a5791c68bcd0d4c8a1"
+          "cd331c34bac26ea7733621fd5914a2aea1f97e1ab0ccf08616edb4dcb263ab2a"
         ],
         "terminal_policy": "RequireAllPlacementsAndConnections"
       }
     ],
-    "plan_id": "3449801797cb5668df1b1bb175f01a9467a51e36a0fa1b7eeb874d3c67e31749",
+    "plan_id": "85273d850542797d5ea502b1150dcec3eff4d56eb16e5e4642f47761ade53fd4",
     "realization_backs": [],
     "source_document_id": "f928de427d3855713b7e011cd6615a67fc8b2b97addcf5266af16033c56fd5bc"
   },
   "plays": {
-    "proof/carried-formant": "0316279974c75f762c9a030744c0d57c743b336e4773d6176a3511fd108423a2"
+    "proof/carried-formant": "78957d195f627b88835c955642b8291d1da590dda3ea5e4325989c104209d93c"
   },
-  "projection_identity": "4d3f1bd8dcabb86f6326cf732004d06085d52fbfa92f63ef645385166e2cc7b6",
+  "projection_identity": "561424ba58689df7a65de25d7cc3ba53284f1df783f87a7df639952e967a664a",
   "proof_class": "installed factory and execution kernel; offline authored PCM computation",
   "sample_rate_hz": 8000,
   "signs": {
@@ -1447,7 +1469,7 @@
       }
     ]
   },
-  "source_identity": "27c61e703c2003df06d50193377039b1f3a758dc918cd1504a8c4863e1c67d24",
+  "source_identity": "37ca050eb32485a496dc630cb1f8b59a3182636c16c9399be2c7fbf122a7dace",
   "speech_authoring_source": "f95adad6234f12c9bcb1b9d6dc7e5e9b8829aa50741e8f53517a5dcaddbeef2f",
   "text": "you would",
   "wav_identity": "9b9def016acb1b48f7395425d26232f0175f7e182b1c38dd0e62fdd60137f367"
