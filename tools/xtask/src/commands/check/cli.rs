@@ -74,6 +74,10 @@ pub enum CheckSuite {
     ParserScorerReproduce,
     /// Exercise optional admitted parser scoring through ordinary Plan/Play.
     ParserSelection,
+    /// Evaluate pre-final greeting commitment with the opt-in punctuation candidate.
+    ParserPunctuationGreeting,
+    /// Evaluate retained DEV/TEST and remaining reserved punctuation cases.
+    ParserPunctuationEvaluation,
     /// Check committed dependency/prosody correlation and bounded revision safety.
     ProsodyCommitment,
     /// Prove bounded speech selection and explicit detail from exact Faces.

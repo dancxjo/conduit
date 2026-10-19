@@ -14,6 +14,8 @@ mod inverse_angle;
 mod model_inference;
 #[path = "../suites/parser_scorer.rs"]
 mod parser_scorer;
+#[path = "../suites/parser_punctuation.rs"]
+mod parser_punctuation;
 #[path = "../suites/physical_values.rs"]
 mod physical_values;
 #[path = "../suites/print_pool.rs"]
@@ -94,6 +96,8 @@ pub fn run(args: CheckArgs, opts: &GlobalOpts) -> Result<(), StepError> {
         CheckSuite::TodoDurability => run_suite(todo::TODO_DURABILITY_STEPS, &root, opts),
         CheckSuite::ModelInference => run_suite(model_inference::STEPS, &root, opts),
         CheckSuite::AcousticFlow => run_suite(acoustic_flow::STEPS, &root, opts),
+        CheckSuite::ParserPunctuationGreeting => run_suite(parser_punctuation::GREETING, &root, opts),
+        CheckSuite::ParserPunctuationEvaluation => run_suite(parser_punctuation::RETAINED, &root, opts),
         CheckSuite::ParserSelection => run_suite(parser_scorer::SELECTION, &root, opts),
         CheckSuite::ProsodyCommitment => run_suite(prosody_commitment::STEPS, &root, opts),
         CheckSuite::ParserScorer => run_suite(parser_scorer::STEPS, &root, opts),

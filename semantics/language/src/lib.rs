@@ -142,3 +142,7 @@ pub use generated::{
 };
 
 pub mod analysis_session;
+
+/// Explicit unaccepted candidate, never the default accepted model selection.
+#[cfg(all(feature = "parser-model", target_has_atomic = "ptr"))]
+pub mod parser_punctuation_model;
