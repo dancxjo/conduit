@@ -211,6 +211,9 @@ test("Pocket Theremin plays continuous two-axis PCM on the browser host", async 
 });
 
 test("the reviewed shelf reveals conversation Plots without pretending this browser can run them", async ({ page }) => {
+  // The retained Candidate trace spent the default aggregate deadline in cold
+  // Birth/Wake and opening the shelf, before the search action could run.
+  test.setTimeout(20_000 + BROWSER_COLD_PREPARATION_MS);
   await birth(page);
   await openLibrary(page);
   await page.getByRole("textbox", { name: "Find a plot", exact: true }).fill("conversation");
