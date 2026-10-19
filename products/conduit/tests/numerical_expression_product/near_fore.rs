@@ -25,7 +25,30 @@ fn absolute_frequency_fore_keeps_certified_source_and_error_in_one_product_play(
             })
         })
         .expect("selected qualified consumer");
-    assert!(qualified.realization_properties.iter().any(
-        |p| p.profile() == &conduit_std_offers::pure_expression_value_contract_bounds_profile()
-    ));
+    assert_eq!(
+        qualified.execution_profile_id.as_str(),
+        conduit_std_offers::PURE_NEAR_CONTRACT_STD_PROFILE
+    );
+    let bounds = qualified
+        .realization_properties
+        .iter()
+        .find(|p| p.profile() == &conduit_std_offers::near_contract_bounds_profile())
+        .expect("selected Near consumer admits replay work and storage");
+    let value =
+        conduit_core::validate_canonical_structured_value(bounds.canonical_value()).unwrap();
+    let read = |name| {
+        let field = value.record_field(name).unwrap().unwrap();
+        let node = field.value_node();
+        assert_eq!(node[0], 0);
+        assert_eq!(node.len(), 13);
+        u64::from_le_bytes(node[5..].try_into().unwrap())
+    };
+    assert_eq!(read("maximum-constraints"), 1);
+    assert_eq!(
+        read("maximum-predicate-replay-work"),
+        conduit_std_offers::NEAR_CONTRACT_REPLAY_WORK
+    );
+    assert!(read("prepared-replay-container-and-buffer-bytes") > 0);
+    assert!(read("retained-near-schema-bytes") > 0);
+    assert_eq!(read("maximum-validated-input-bytes"), 131_072);
 }
