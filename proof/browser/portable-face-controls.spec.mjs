@@ -34,7 +34,7 @@ test('one source Face selects registered and generic Backs with distinct Show Pl
   expect(basic.encounter.mask_show.show_id).not.toBe(enhanced.encounter.mask_show.show_id);
   await writeFile(testInfo.outputPath('portable-mask-correspondence.json'), JSON.stringify({
     schema: 'conduit.browser/portable-mask-correspondence@1', enhanced, basic,
-  }, null, 2));
+  }));
   await expect(page.getByLabel('Friendly Body name', { exact: true })).toHaveValue(name);
   await expect(page.getByLabel('Naming tradition', { exact: true })).toHaveRole('combobox');
   await page.getByLabel('Controls on this Host').selectOption('enhanced');
