@@ -1,10 +1,10 @@
 //! Independently reconstructed domain receipts retain full numerical metadata.
 use super::*;
-const LIMITS: ProjectionEvidenceLimits = ProjectionEvidenceLimits {
-    source_bytes: 131072,
-    target_bytes: 4096,
-    detail_bytes: 2048,
-    policy_bytes: 4096,
+pub(super) const LIMITS: ProjectionEvidenceLimits = ProjectionEvidenceLimits {
+    source_bytes: MATHEMATICAL_BINARY32_EVIDENCE_SOURCE_MAX_BYTES,
+    target_bytes: MATHEMATICAL_BINARY32_EVIDENCE_TARGET_MAX_BYTES,
+    detail_bytes: MATHEMATICAL_BINARY32_EVIDENCE_DETAIL_MAX_BYTES,
+    policy_bytes: MATHEMATICAL_BINARY32_EVIDENCE_POLICY_MAX_BYTES,
     total_bytes: 262144,
 };
 #[test]

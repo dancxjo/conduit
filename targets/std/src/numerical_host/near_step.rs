@@ -6,7 +6,7 @@ use conduit_kernel::{
     Failure, FailureCode, PortId,
 };
 use conduit_semantic_catalog::{NearQuantityAlgorithm, NUMERICAL_NEAR_MAX_BYTES};
-pub const NEAR_NUMERICAL_WORK: u64 = 200_000_000;
+pub const NEAR_NUMERICAL_WORK: u64 = MATHEMATICAL_NEAR_PROJECTION_WORK;
 // Decoder/composer/report validation have separate existing finite work meters.
 pub const NEAR_TOTAL_NUMERICAL_WORK: u64 =
     NEAR_NUMERICAL_WORK + 32 * MATHEMATICAL_VALUE_VALIDATION_WORK;
