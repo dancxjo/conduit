@@ -26,7 +26,7 @@ vocabulary is a terminal projection of that original carrier; display IPA or
 compact renderer labels cannot reconstruct it.
 
 Run `cargo +stable xtask check speech-ipa` and
-`cargo +stable xtask demo native-speech --output work/carried-speech` for the
+`cargo +stable xtask prove journey native-speech --output work/carried-speech` for the
 shared-carrier conformance and retained offline PCM specimen. See
 [Shared speech acoustic custody](../docs/design/speech-acoustic-custody.md)
 for evidence boundaries. The versioned training and inference lexical maps
