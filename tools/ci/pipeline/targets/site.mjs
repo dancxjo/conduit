@@ -11,6 +11,7 @@ import { retainedThreeHostDevelopmentEvidence, THREE_HOST_DEVELOPMENT_PROOF,
 import { retainedDirectSpokenDevelopmentEvidence, DIRECT_SPOKEN_DEVELOPMENT_PROOF,
   DIRECT_SPOKEN_DEVELOPMENT_SUITE } from '../direct-spoken-development-evidence.mjs';
 import { retainedTodoBrowserDevelopmentEvidence } from '../todo-browser-development-evidence.mjs';
+import { stageSharedSpeechEvidence } from '../shared-speech-evidence.mjs';
 
 // Retain the last documentary publication as history, never as new execution.
 const HISTORY = 'd9b79319bd78c72e4a6b48ef524e269300a82bdf';
@@ -25,6 +26,7 @@ export function assembleSite(directory, sourceCommit, workspace = 'target/worksp
   completePublicationHistory(sourceCommit);
   if (existsSync(directory)) throw new Error(`Website output already exists: ${directory}`);
   xtask('make', 'pages-root', directory);
+  stageSharedSpeechEvidence({ output: directory, sourceCommit });
   rmSync(path.join(directory, 'handbook'), { recursive: true });
   cpSync('target/handbook-static', path.join(directory, 'handbook'), { recursive: true, errorOnExist: true });
   cpSync('target/handbook-static-second', path.join(directory, 'examples/clock-lab'), { recursive: true, errorOnExist: true });

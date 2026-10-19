@@ -1,0 +1,19 @@
+# A caller-declared offline computation, distinct from Language commitment and
+# physical playback authority. Provenance is a declaration, not authentication.
+type SpeechCarrierDigest = sequence U8 in 32..=32
+
+type SpeechOfflinePcmDeclaration = {
+    source_identity: SpeechCarrierDigest
+    projection_identity: SpeechCarrierDigest
+    authoring_provenance: SpeechEvidenceProvenance
+}
+
+# The opaque preparation owner supplies actual identities from the admitted
+# original carrier and exact selected projection; the caller supplies neither.
+type SpeechOfflinePcmAdmission = {
+    declared: SpeechOfflinePcmDeclaration
+    actual_source_identity: SpeechCarrierDigest
+    actual_projection_identity: SpeechCarrierDigest
+    where .declared.source_identity == .actual_source_identity
+    where .declared.projection_identity == .actual_projection_identity
+}

@@ -16,6 +16,31 @@ Conduit owns meaning, identity, planning, bounds, and evidence. A selected back
 owns numerical realization. Burn supplies tensors, autodiff, optimizer internals,
 and device kernels inside that Rust back.
 
+## Shared speech prerequisite
+
+ConduitVoice (#5206) and its tutorial capstone (#5207) consume the common
+linguistic contract owned by #5212. Closed #5204 is historical rvTTS design
+reference. Merged #5208 delivered portable model, numerical, Audio and revision
+foundations; its acceptance covers that foundation scope. Preserve checked
+Unicode IPA, separate phoneme and phone occurrences, exact
+Variety/inventory/text revisions, syllables,
+word correspondence, quantity targets and supplied observations. Checkpoint
+vocabulary is a terminal projection of that original carrier; display IPA or
+compact renderer labels cannot reconstruct it.
+
+Run `cargo +stable xtask check speech-ipa` and
+`cargo +stable xtask prove journey native-speech --output work/carried-speech` for the
+shared-carrier conformance and retained offline PCM specimen. See
+[Shared speech acoustic custody](https://github.com/dancxjo/conduit/blob/main/docs/design/speech-acoustic-custody.md)
+for evidence boundaries. The [retained multiword artifact](https://dancxjo.github.io/conduit/evidence/shared-speech-carrier/)
+includes the original packet, WAV and execution receipts. The versioned training
+and inference lexical maps
+share one implementation. Their synthetic checkpoint metadata has no trained
+weights, and the acoustic model terminal explicitly refuses with
+`NoAdmittedAcousticBack`. The formant specimen does not establish the proposed
+ConduitVoice/FARGAN journey below. Accepted integration evidence is required
+before the governing speech prerequisite can close.
+
 ## Run the tiny CPU model first
 
 The repository's synthetic regression fixture learns `y = 2x + 1`; it uses
