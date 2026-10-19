@@ -249,13 +249,15 @@ pub(super) fn run(
                 "pcm_max_abs_error":pcm_error,"active_state_max_abs_error":state_error,"conditioning_history_max_abs_error":history_error}))?;
         }
         assert!(pcm_error < 0.002 && state_error < 0.05 && history_error < 0.001);
+        let ((), disposal) = timing::measure(|| drop(retained));
+        raw.row(&json!({"phase":"prepared-trajectory-release","repetition":repetition,"metrics":disposal}))?;
     }
     artifact::json(
         &output.join("summary.json"),
-        &json!({"schema":"conduit.fargan-prepared-performance@1","repetitions":repetitions,"frames_per_repetition":24,
+        &json!({"schema":"conduit.fargan-prepared-performance@1","repetitions":repetitions,"frames_per_repetition":24,"prepared_final_disposal_measured":true,
         "fresh_whole_call":timing::distribution(&fresh_walls),"prepared_whole_call":timing::distribution(&retained_walls),"source_sha256":artifact::digest(plan::source().as_bytes()),
         "scope":"Paired full authored frame; production prepared kernel and owners, fixture acceptance controller; not ordinary Body integration, numerical regions, realtime or intelligibility proof.",
-        "accounting":"Cold schema/model/Plan common; cold trajectory includes all evidence reservations; rearm includes staging clone; old evidence release and complete output acceptance/state advance separately measured; whole frame includes output decoding; fresh binding clones separately disclosed. No hardware memory-traffic claim; canonical intermediates unchanged."}),
+        "accounting":"Cold schema/model/Plan common; cold trajectory includes all evidence reservations; rearm includes staging clone; old evidence release and complete output acceptance/state advance separately measured; whole frame includes output decoding; fresh binding clones and final prepared-owner/session destruction separately disclosed. No hardware memory-traffic claim; canonical intermediates unchanged."}),
     )?;
     Ok(())
 }
