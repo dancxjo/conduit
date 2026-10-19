@@ -18,6 +18,7 @@ pub enum CommittedDependencyRefusal {
     LexicalBasis,
     Program,
     Bound,
+    ObservationMismatch,
 }
 pub struct PreparedCommittedDependency {
     commitment: PreparedParserCommitment,
@@ -138,6 +139,34 @@ impl PreparedCommittedDependency {
             return Err(Bound);
         }
         LanguageDependencyExecutionContext::decode(&encoded).map_err(Native)
+    }
+    /// Admit Source-owned cross-field laws, then bind the raw observation to
+    /// this exact replay. Serialized data alone proves neither execution nor
+    /// installed currentness; the public Plan/Play path supplies execution.
+    pub fn admit_execution_observation(
+        &self,
+        observation: &LanguageDependencyExecutionObservation,
+    ) -> Result<LanguageDependencyArc, CommittedDependencyRefusal> {
+        use CommittedDependencyRefusal::*;
+        let admitted = LanguageDependencyExecutionResult::new(
+            observation.actual().clone(),
+            observation.context().clone(),
+        )
+        .map_err(Native)?;
+        if admitted.context() != &self.execution_context()?
+            || admitted.actual() != self.commitment.result()
+        {
+            return Err(ObservationMismatch);
+        }
+        let program = PortableExpressionProgram::from_canonical_hex(include_str!(concat!(
+            env!("OUT_DIR"),
+            "/dependency_execution_evidence.hex"
+        )))
+        .map_err(|_| Program)?;
+        let encoded = program
+            .evaluate(&admitted.encode().map_err(Native)?)
+            .map_err(|_| Program)?;
+        LanguageDependencyArc::decode(&encoded).map_err(Native)
     }
     pub fn arc(&self) -> &LanguageDependencyArc {
         &self.arc

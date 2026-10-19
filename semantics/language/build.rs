@@ -127,6 +127,10 @@ fn main() {
             "committed_dependency_program.hex",
         ),
         (
+            "language/dependency-execution-evidence",
+            "dependency_execution_evidence.hex",
+        ),
+        (
             "language/dependency-execution-context",
             "dependency_execution_context.hex",
         ),

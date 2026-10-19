@@ -19,7 +19,28 @@ fn supplied_graph_commitments_join_three_placements_and_execute_source_plan_play
     ] {
         let f = fixture::prosody::fixture(text, dep, head);
         let request = fixture::request(&f, 3, false, false);
-        let result = fixture::result(&execution, &request);
+        let query = LanguageCommittedDependencyQuery::new(
+            f.discourse.fact().basis().clone(),
+            request.clone(),
+            head,
+            f.lexical.tape().source().clone(),
+            f.lexical
+                .tape()
+                .tokens()
+                .iter()
+                .nth(dep as usize)
+                .unwrap()
+                .clone(),
+        )
+        .unwrap();
+        let encoded_query = query.clone().encode().unwrap();
+        assert!(encoded_query.len() <= DEPENDENCY_QUERY_MAXIMUM_BYTES as usize);
+        let installed = LanguageDependencyExecutionObservation::decode(
+            &execution.play("language/commit-dependency", encoded_query),
+        )
+        .unwrap();
+        // Independent opaque replay checks the actual public operation's result.
+        let result = installed.actual();
         let profile = fixture::symbolic(&f.profile);
         let prepared = PreparedCommittedProsody::prepare(
             &f.lexical,
@@ -27,9 +48,10 @@ fn supplied_graph_commitments_join_three_placements_and_execute_source_plan_play
             f.discourse.fact(),
             &profile,
             &request,
-            &result,
+            result,
         )
         .unwrap();
+        assert_eq!(prepared.dependency().admission().query(), &query);
         assert!(
             prepared
                 .dependency()
@@ -51,19 +73,69 @@ fn supplied_graph_commitments_join_three_placements_and_execute_source_plan_play
                 .len()
                 <= DEPENDENCY_RESULT_MAXIMUM_BYTES as usize
         );
-        let installed = LanguageDependencyExecutionResult::decode(
-            &execution.play(
-                "language/commit-dependency",
-                prepared
-                    .dependency()
-                    .admission()
-                    .query()
-                    .clone()
-                    .encode()
-                    .unwrap(),
-            ),
+        let published_arc = prepared
+            .dependency()
+            .admit_execution_observation(&installed)
+            .unwrap();
+        assert_eq!(&published_arc, prepared.dependency().arc());
+        // Native correlation rejects forged context without another Source
+        // preparation or execution. Raw observations confer no admission.
+        let context = installed.context();
+        let wrong_context = LanguageDependencyExecutionContext::new(
+            context.arc().clone(),
+            context.basis().clone(),
+            *context.head(),
+            *context.identities(),
+            0,
         )
         .unwrap();
+        let forged =
+            LanguageDependencyExecutionObservation::new(installed.actual().clone(), wrong_context)
+                .unwrap();
+        assert!(LanguageDependencyExecutionResult::new(
+            forged.actual().clone(),
+            forged.context().clone(),
+        )
+        .is_err());
+        assert!(prepared
+            .dependency()
+            .admit_execution_observation(&forged)
+            .is_err());
+        // A valid correlation from another numerical execution is still not
+        // this opaque receipt's exact actual result.
+        let actual = installed.actual();
+        let candidate = actual.candidate0();
+        let changed_candidate = LanguageParserRawHypothesis::new(
+            *candidate.active(),
+            *candidate.identity(),
+            *candidate.score() + 1,
+            candidate.state().clone(),
+        )
+        .unwrap();
+        let changed_actual = LanguageParserBeamCommitResult::new(
+            *actual.accepted(),
+            changed_candidate,
+            actual.candidate1().clone(),
+            actual.candidate2().clone(),
+            actual.candidate3().clone(),
+            actual.frontier().clone(),
+            actual.refusal().clone(),
+        )
+        .unwrap();
+        let mismatched = LanguageDependencyExecutionObservation::new(
+            changed_actual,
+            installed.context().clone(),
+        )
+        .unwrap();
+        assert!(LanguageDependencyExecutionResult::new(
+            mismatched.actual().clone(),
+            mismatched.context().clone(),
+        )
+        .is_ok());
+        assert!(prepared
+            .dependency()
+            .admit_execution_observation(&mismatched)
+            .is_err());
         assert_eq!(installed.actual(), prepared.commitment().result());
         assert_eq!(installed.context().arc(), prepared.dependency().arc());
         assert_eq!(

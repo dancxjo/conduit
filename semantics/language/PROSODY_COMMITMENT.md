@@ -31,7 +31,8 @@ replacement, stability, commitment and correction events. Stale proposal
 references refuse. Pressure/cancellation preserve all history and frontiers.
 Commitment requires stability. Replacement behind commitment refuses; explicit
 corrections append evidence and do not change the retained committed plan or
-frontier. Historical events retain rich versus heuristic classification.
+commitment cursor. They invalidate prior stability evidence under the shared
+revision law. Historical events retain rich versus heuristic classification.
 
 Authority limit: this session owns **current prosody within its epoch**. The
 preparation receipt is not an installed upstream parser-currentness attestation.
@@ -62,8 +63,9 @@ The public optional `dependency_commitment_execution.conduit` operation
 `language/commit-dependency` projects a small original context (arc, basis,
 head, through cursor and four hypothesis IDs) to existing finite Zip and runs
 `language-parser-beam-commit` on the other branch. It joins the actual output
-into `LanguageDependencyExecutionResult`, checking acceptance, exact basis,
-frontier, hypothesis IDs and the selected edge across active hypotheses.
+into a raw `LanguageDependencyExecutionObservation`. Canonical Native admission
+then applies the `LanguageDependencyExecutionResult` Source laws for acceptance,
+exact basis, frontier, hypothesis IDs and the selected edge across active hypotheses.
 Original full Query/Admission, replay programs and complete lexical snapshot
 remain on the opaque Rust receipt used by current-analysis authority; the
 public join does not redundantly transport a second full Native beam.
@@ -114,3 +116,27 @@ Measured Native query/type floors require the 65536B public Query boundary
 pair envelope remains below the unchanged 65536B generic limit. Bounds are
 checked against canonical Native packets including their Type schemas, not
 just leaf payload. This does not change Source legality or commitment policy.
+
+The hosted test fixture admits each selected Back's advertised finite queues;
+it does not establish the ConduitOS convenience protocol's 4096B Fore capacity.
+The complete rich admission retains both query and result, and its bare Native
+Type schema alone is 76853B. It uses the existing generic pure-expression
+profile separately and never enters the narrower Zip pair. No generic capacity
+was increased to admit it.
+
+
+The public `language/commit-dependency` topology emits a raw
+`LanguageDependencyExecutionObservation`: its context comes from the original
+query, and its actual result comes from checked eight-stage commitment through
+Zip. The observation itself claims no admission. Dynamic pure construction of
+cross-field-refined Native Types is deliberately refused by the general checker.
+The generated `LanguageDependencyExecutionResult::new` executes all retained
+Source-owned correlation laws at the canonical Native boundary. The opaque
+receipt's `admit_execution_observation` additionally requires the entire context
+and actual result to equal its own exact replay, then runs the checked Source
+`language/dependency-execution-evidence` projection to expose the admitted arc.
+A serialized observation or refined result alone authenticates neither installed
+execution nor currentness. The actual public Plan/Play path supplies execution
+proof; the shared owning analysis session supplies current authority. Tests
+exercise that complete boundary and separately refuse forged correlation and a
+validly correlated observation with a different numerical result.
