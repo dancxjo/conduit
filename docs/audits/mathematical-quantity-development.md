@@ -175,3 +175,23 @@ kernel/validation/enclosure path observes zero allocations. The first scheduler
 fixture declared only one slot for two cords and correctly refused `InvalidPlan`;
 its corrected two-slot declaration passes. This is real kernel transport with a
 named test Carry, not an installed Std mathematical Back or authored Source proof.
+
+## Exact typed trig consumption
+
+The mathematical Quantity writer now reuses the existing turn-based exact trig
+writer for rational turn coordinates and supported rational multiples of Pi in
+radian-origin Units. A bounded structural recognizer follows only rational
+multiplication/division around Pi (or exact zero); unknown shapes remain unknown.
+The existing Unit conversion supplies the radian scale before the explicit 2-Pi
+origin law recovers turns. This is finite exact recognition, not a universal CAS,
+interval estimate, machine approximation or IEEE operation witness.
+
+The operation checks the Angle family explicitly. SI dimension one does not
+turn a dimensionless Scalar into an Angle. Tests retain original checked source
+receipts for 0.25turn and 90 degrees, transport their identical Pi/2-radian Angle,
+and obtain exact sine 1, cosine 0 and the truthful tangent-pole refusal. Scaled
+radian and direct Pi/2-division forms work; non-cardinal rational turns reuse the
+existing symbolic trig result. Unsupported symbolic/rational radian shapes and
+exhausted work refuse, followed by successful recovery, with zero guarded
+allocations. Source integration is still required: released `math/radians`
+continues returning its existing mathematical coordinate Type.

@@ -8,6 +8,7 @@ mod prepared_builder;
 pub use prepared_builder::PreparedMathematicalValueBuilder;
 mod enclosure;
 mod inverse_trigonometry;
+mod pi_coefficient;
 mod trigonometry;
 pub use codec::MathematicalValueView;
 pub use enclosure::*;
