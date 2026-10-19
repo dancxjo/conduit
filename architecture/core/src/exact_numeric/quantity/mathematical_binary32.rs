@@ -2,7 +2,9 @@
 //! This certifies absolute error, not correct rounding of the exact symbolic value.
 use crate::*;
 use core::cmp::Ordering;
+mod evidence;
 mod projection;
+pub use evidence::*;
 pub use projection::*;
 
 pub const MATHEMATICAL_QUANTITY_BINARY32_LAW: &str = "numeric/enclosed-midpoint-binary32@1";

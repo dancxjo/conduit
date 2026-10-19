@@ -335,3 +335,6 @@ fn policy_configuration_identity_retains_tolerance_unit_role_and_rounding_withou
     });
     assert_eq!(allocations, 0);
 }
+
+#[path = "mathematical_quantity_binary32/evidence.rs"]
+mod evidence;
