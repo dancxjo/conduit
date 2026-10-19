@@ -1,4 +1,14 @@
 # Exact source meaning and admitted absolute numerical error.
+type QuantityCoordinateRequest = {
+    unit: Unit
+}
+# One shared CPE frame split at 65536 bytes: head then tail. The tail is
+# empty for a shorter frame; these fields are not independent reports.
+type QuantityCoordinateEvidence = {
+    projection-evidence-head: Bytes <= 65536B
+    projection-evidence-tail: Bytes <= 65536B
+}
+
 type NumericalRequest = {
     value: MathematicalValue
     maximum-error: MathematicalValue

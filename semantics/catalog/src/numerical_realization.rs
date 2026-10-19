@@ -2,7 +2,9 @@
 use alloc::{format, string::String, vec, vec::Vec};
 use conduit_core::*;
 use conduit_plot::{ProfileCatalog, StartupCatalog};
+mod coordinates;
 mod enclosure;
+pub use coordinates::*;
 mod ieee;
 mod near;
 pub use enclosure::*;
@@ -193,6 +195,7 @@ pub fn install_numerical_catalogs(
         .map_err(|why| format!("numeric Kind: {why:?}"))?;
     near::install(startup, profile)?;
     enclosure::install(startup, profile)?;
+    coordinates::install(startup, profile)?;
     ieee::install(startup, profile)
 }
 pub fn numerical_result_value(
