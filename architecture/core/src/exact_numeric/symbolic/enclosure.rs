@@ -8,7 +8,14 @@ use crate::{
 };
 use alloc::vec::Vec;
 use core::{cmp::Ordering, mem::size_of};
+mod borrowed;
+mod borrowed_projection;
+pub use borrowed_projection::{
+    BorrowedMathematicalEnclosureDomain, BorrowedMathematicalEnclosurePolicy,
+};
+mod evaluate;
 mod interval;
+pub use borrowed::{BorrowedMathematicalEnclosure, PreparedMathematicalEnclosureEvaluator};
 mod inverse_trigonometry;
 pub use inverse_trigonometry::*;
 mod inverse_circular;
@@ -33,6 +40,8 @@ pub enum MathematicalEnclosureRefusal {
     InvalidExpression,
     UnsupportedTrigonometricEnclosure,
     InverseRootResolution,
+    SourceMismatch,
+    InvalidClaim,
 }
 impl From<ExactNumericRefusal> for MathematicalEnclosureRefusal {
     fn from(value: ExactNumericRefusal) -> Self {
@@ -99,62 +108,13 @@ impl PreparedMathematicalEnclosure {
         } else {
             let mut values = Vec::<MathematicalInterval>::with_capacity(nodes.len());
             for node in nodes {
-                work.charge(1)?;
-                let get = |id: super::MathematicalNodeId| {
-                    values
-                        .get(id.index as usize)
-                        .copied()
-                        .ok_or(R::InvalidExpression)
-                };
-                let value = match *node {
-                    Node::Rational(q) => MathematicalInterval::point(q),
-                    Node::Pi => {
-                        let (interval, terms) = pi::enclose(
-                            requirements.maximum_leaf_width,
-                            requirements.maximum_constant_terms,
-                            work,
-                        )?;
-                        maximum_used_constant_terms = maximum_used_constant_terms.max(terms);
-                        interval
-                    }
-                    Node::SineTurns(_) | Node::CosineTurns(_) | Node::TangentTurns(_) => {
-                        return Err(R::UnsupportedTrigonometricEnclosure)
-                    }
-                    Node::ArctangentTurns(a) | Node::ArcsineTurns(a) | Node::ArccosineTurns(a) => {
-                        let (interval, terms) =
-                            inverse_node::enclose(*node, get(a)?, requirements, work)?;
-                        maximum_used_constant_terms = maximum_used_constant_terms.max(terms);
-                        interval
-                    }
-                    Node::Tau => return Err(R::InvalidExpression), // Canonical construction expands 2π.
-                    Node::Negate(a) => get(a)?.negated(),
-                    Node::Add(a, b) => get(a)?.add(get(b)?, work)?,
-                    Node::Subtract(a, b) => get(a)?.subtract(get(b)?, work)?,
-                    Node::Multiply(a, b) => get(a)?.multiply(get(b)?, work)?,
-                    Node::Divide(a, b) => {
-                        let divisor = get(b)?;
-                        if divisor.lower() != divisor.upper() {
-                            return Err(R::InvalidExpression);
-                        }
-                        get(a)?.scale(
-                            ExactRational::ONE.checked_divide(divisor.lower(), work)?,
-                            work,
-                        )?
-                    }
-                    Node::PrincipalSquareRoot(a) => {
-                        let radicand = get(a)?;
-                        if radicand.lower() != radicand.upper() {
-                            return Err(R::InvalidExpression);
-                        }
-                        let root = PreparedSquareRoot::prepare(
-                            radicand.lower(),
-                            requirements.maximum_leaf_width,
-                            requirements.maximum_root_refinements,
-                            work,
-                        )?;
-                        MathematicalInterval::bounds(root.target().lower(), root.target().upper())
-                    }
-                };
+                let value = evaluate::node(
+                    *node,
+                    &values,
+                    requirements,
+                    &mut maximum_used_constant_terms,
+                    work,
+                )?;
                 values.push(value);
             }
             *values.last().ok_or(R::InvalidExpression)?
@@ -253,24 +213,7 @@ impl PreparedMathematicalEnclosure {
         Ok(C::Unknown)
     }
     pub fn facts(&self) -> [ProjectionFact<'_, MathematicalEnclosureDomain>; 2] {
-        [
-            if self.width == ExactRational::ZERO {
-                ProjectionFact::Preserved {
-                    obligation: text(VALUE),
-                }
-            } else {
-                ProjectionFact::Lost {
-                    obligation: text(VALUE),
-                    class: ProjectionLoss::Precision,
-                    detail: &self.width,
-                    native_fact: None,
-                }
-            },
-            ProjectionFact::Transformed {
-                obligation: text(REPRESENTATION),
-                law: text(LAW),
-            },
-        ]
+        interval_facts(&self.width)
     }
 }
 const VALUE: &str = "exact-denotation";
@@ -300,37 +243,15 @@ impl ProjectionDomain for MathematicalEnclosureDomain {
         scores: &[ProjectionScore<'_>],
         mechanism: ProjectionMechanism,
     ) -> bool {
-        if mechanism != ProjectionMechanism::Completed
-            || !native.is_empty()
-            || !scores.is_empty()
-            || target != Some(&source.target)
-            || facts.len() != 2
-        {
-            return false;
-        }
-        let value = facts.iter().any(|fact| match fact {
-            ProjectionFact::Preserved { obligation } => {
-                obligation.as_str() == VALUE && source.width == ExactRational::ZERO
-            }
-            ProjectionFact::Lost {
-                obligation,
-                class,
-                detail,
-                native_fact,
-            } => {
-                obligation.as_str() == VALUE
-                    && *class == ProjectionLoss::Precision
-                    && **detail == source.width
-                    && native_fact.is_none()
-                    && source.width != ExactRational::ZERO
-            }
-            _ => false,
-        });
-        value
-            && facts.iter().any(|fact| {
-                matches!(fact, ProjectionFact::Transformed { obligation,law }
-            if obligation.as_str() == REPRESENTATION && law.as_str() == LAW)
-            })
+        validate_interval_facts(
+            &source.width,
+            &source.target,
+            target,
+            facts,
+            native,
+            scores,
+            mechanism,
+        )
     }
 }
 #[derive(Debug, Clone, Copy)]
@@ -357,4 +278,70 @@ impl ProjectionPolicy<MathematicalEnclosureDomain> for MathematicalEnclosurePoli
                 ProjectionMechanism::Completed,
             )
     }
+}
+
+fn interval_facts<D: ProjectionDomain<Detail = ExactRational>>(
+    width: &ExactRational,
+) -> [ProjectionFact<'_, D>; 2] {
+    [
+        if *width == ExactRational::ZERO {
+            ProjectionFact::Preserved {
+                obligation: text(VALUE),
+            }
+        } else {
+            ProjectionFact::Lost {
+                obligation: text(VALUE),
+                class: ProjectionLoss::Precision,
+                detail: width,
+                native_fact: None,
+            }
+        },
+        ProjectionFact::Transformed {
+            obligation: text(REPRESENTATION),
+            law: text(LAW),
+        },
+    ]
+}
+fn validate_interval_facts<
+    D: ProjectionDomain<Target = MathematicalInterval, Detail = ExactRational>,
+>(
+    width: &ExactRational,
+    expected_target: &MathematicalInterval,
+    target: Option<&MathematicalInterval>,
+    facts: &[ProjectionFact<'_, D>],
+    native: &[ProjectionNativeFact<'_>],
+    scores: &[ProjectionScore<'_>],
+    mechanism: ProjectionMechanism,
+) -> bool {
+    if mechanism != ProjectionMechanism::Completed
+        || !native.is_empty()
+        || !scores.is_empty()
+        || target != Some(expected_target)
+        || facts.len() != 2
+    {
+        return false;
+    }
+    let value = facts.iter().any(|fact| match fact {
+        ProjectionFact::Preserved { obligation } => {
+            obligation.as_str() == VALUE && *width == ExactRational::ZERO
+        }
+        ProjectionFact::Lost {
+            obligation,
+            class,
+            detail,
+            native_fact,
+        } => {
+            obligation.as_str() == VALUE
+                && *class == ProjectionLoss::Precision
+                && **detail == *width
+                && native_fact.is_none()
+                && *width != ExactRational::ZERO
+        }
+        _ => false,
+    });
+    value
+        && facts.iter().any(|fact| {
+            matches!(fact, ProjectionFact::Transformed { obligation,law }
+            if obligation.as_str() == REPRESENTATION && law.as_str() == LAW)
+        })
 }

@@ -43,8 +43,9 @@ The builder normalizes `(2^53+1)-2^53` to exact one; the existing binary64
 algorithm witness separately records an actual result of zero and error one.
 This data graph cannot replace that operation-order witness.
 
-The remaining runtime work includes an allocation-bounded numeric consumer of
-borrowed symbolic data, checked Source/Plan/Play and certificate integration,
+The companion [borrowed enclosure preparation](borrowed-mathematical-enclosure-development.md)
+adds an allocation-bounded Core consumer of borrowed symbolic data. Remaining
+runtime work includes checked Source/Plan/Play and certificate integration,
 and the explicitly owned numerical projection boundary. Quantity wire profiles
 currently admit decimal/rational coordinates, not a symbolic Quantity carrier.
 No new public PR is opened during the Fore admission hold. All original parent
