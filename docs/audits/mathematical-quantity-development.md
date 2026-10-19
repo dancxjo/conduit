@@ -888,3 +888,36 @@ The raw run report, inspected artifacts and Source are retained, including a
 verified compressed-report roundtrip. The Sign records the digest and extent;
 it does not itself preserve the original report-containing value bytes. That
 remaining product custody gap is not replaced by this correlation proof.
+
+
+### Private bounded routed-value custody prerequisite
+
+The shared kernel content sidecar can now opt into caller-provided fixed value
+storage before Play. It reserves exactly one maximum-sized byte slot per binding
+row, with checked address-space/u32 multiplication and no allocation or growth
+on routing. Only the concrete contiguous native-event logs implement the stronger
+retention contract needed for collision-free slots. Retained value bytes remain
+available after value-store consumption; expired bindings expose no stale bytes.
+The existing digest-only profile retains its behavior and captures no raw data.
+
+Preparation validates every admitted Cord value extent against the capture
+ceiling in both scheduler constructors. Oversized custody configurations refuse
+before scheduling, including through the debugger wrapper; direct oversized
+recording refuses before hashing or event mutation. The Sign interface and exact
+plan-admission responsibility were extracted into focused modules while keeping
+public paths. Std forwarding and module-source identity inputs include the new
+admission/storage collaborators.
+
+Sixteen focused tests, thirteen fixed/no-default tests and the complete Kernel
+suite pass: 262 passed with six existing ignored tests. Strict Kernel all-target
+Clippy, Kernel no-default library checking, workspace formatting and workspace
+all-target Clippy pass. Actual scheduler pressure, consumption and cancellation
+checks observe zero allocations and no uncommitted captured output. All 28
+executed Kernel binaries have verified archive/SHA-256 roundtrips, and source
+bundles are retained. This is bounded native byte custody, not semantic validation
+of arbitrary values, authenticated execution or device proof.
+
+Std still selects digest-only capture. An explicit value-custody profile, its
+full storage/work admission, product value artifacts and ordinary generic report
+inspection remain unfinished. This prerequisite closes no original parent audit
+requirement and has no stable-acceptance claim.
