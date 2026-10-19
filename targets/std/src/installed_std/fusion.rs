@@ -1,20 +1,30 @@
 //! Pre-Play validation of the installed physical chain Back.
 use crate::pure_chain_fusion::{
+    NATIVE_U64_CHAIN_ARTIFACT, NATIVE_U64_CHAIN_IMPLEMENTATION, NATIVE_U64_CHAIN_PROFILE,
     PURE_CHAIN_FUSION_ARTIFACT, PURE_CHAIN_FUSION_IMPLEMENTATION, PURE_CHAIN_FUSION_PROFILE,
 };
 use conduit_core::PlanFragment;
 use conduit_kernel::{CordEndpoint, NodeId};
 use conduit_plan_lowering::lowering::LoweredPlanFragment;
 
+pub(super) struct PreparedChain {
+    pub nodes: Vec<NodeId>,
+    pub native: bool,
+}
+
 pub(super) fn prepare_chains(
     fragment: &PlanFragment,
     lowered: &LoweredPlanFragment,
-) -> Result<Vec<Vec<NodeId>>, String> {
+) -> Result<Vec<PreparedChain>, String> {
     let mut chains = Vec::with_capacity(lowered.fusions.len());
     for fusion in &lowered.fusions {
-        if fusion.implementation_id.as_str() != PURE_CHAIN_FUSION_IMPLEMENTATION
-            || fusion.execution_profile_id.as_str() != PURE_CHAIN_FUSION_PROFILE
-            || fusion.artifact_id.as_str() != PURE_CHAIN_FUSION_ARTIFACT
+        let native = fusion.implementation_id.as_str() == NATIVE_U64_CHAIN_IMPLEMENTATION
+            && fusion.execution_profile_id.as_str() == NATIVE_U64_CHAIN_PROFILE
+            && fusion.artifact_id.as_str() == NATIVE_U64_CHAIN_ARTIFACT;
+        let canonical = fusion.implementation_id.as_str() == PURE_CHAIN_FUSION_IMPLEMENTATION
+            && fusion.execution_profile_id.as_str() == PURE_CHAIN_FUSION_PROFILE
+            && fusion.artifact_id.as_str() == PURE_CHAIN_FUSION_ARTIFACT;
+        if !(native || canonical)
             || !(2..=32).contains(&fusion.nodes.len())
             || fusion.cords.len() + 1 != fusion.nodes.len()
         {
@@ -32,6 +42,12 @@ pub(super) fn prepare_chains(
                 .find(|p| p.placement_id == identity.placement_id)
                 .ok_or("fusion placement absent")?;
             super::pure_expression_back::local_budget(placement)?;
+            if native {
+                conduit_plot::PreparedNativeU64Expression::new(
+                    &super::pure_expression_back::program_from_placement(placement)?,
+                )
+                .map_err(|e| format!("native fusion program: {e:?}"))?;
+            }
             crate::pure_chain_fusion::validate_program_profile(
                 &super::pure_expression_back::program_from_placement(placement)?,
                 placement.inputs[0].temporal,
@@ -104,7 +120,10 @@ pub(super) fn prepare_chains(
         if ordered.len() != fusion.nodes.len() {
             return Err("fusion is disconnected".into());
         }
-        chains.push(ordered);
+        chains.push(PreparedChain {
+            nodes: ordered,
+            native,
+        });
     }
     Ok(chains)
 }

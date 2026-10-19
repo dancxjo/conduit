@@ -248,6 +248,25 @@ fn ordinary_planner_can_keep_unfused_cost_or_required_observation() -> Result<()
     assert_eq!(observed.selected_candidate_id, "unfused");
     assert!(observed.considered.iter().any(|candidate|matches!(&candidate.disposition,
         conduit_planner::CandidatePlacementDisposition::Rejected(reason) if reason.contains("observation or authority"))));
+    let expensive_native =
+        fusion::select_profile(&authoring, &hosts, &placements, 1000, &[], true)?;
+    assert_eq!(expensive_native.selected_candidate_id, "unfused");
+    for authority in [false, true] {
+        let native = fusion::select_profile(
+            &authoring,
+            &hosts,
+            &placements,
+            1,
+            &[conduit_planner::FusionBoundary {
+                source_gear_id: cord.source_gear_id.clone(),
+                sink_gear_id: cord.sink_gear_id.clone(),
+                requires_observation: !authority,
+                requires_authority: authority,
+            }],
+            true,
+        )?;
+        assert_eq!(native.selected_candidate_id, "unfused");
+    }
     let mut independent_fore = authoring.clone();
     independent_fore.output_bindings[0].gear_id =
         independent_fore.input_bindings[0].gear_id.clone();
@@ -271,8 +290,21 @@ fn checked_fused_refusals_name_every_original_gear_and_preserve_unfused_errors(
 ) -> Result<(), Box<dyn Error>> {
     let _measurement = crate::allocation::TEST_MEASUREMENT.lock().unwrap();
     let authored = source(32);
-    for fused in [false, true] {
-        let mut prepared = prepare_mode(32, &authored, "boot/exact-failure", true, fused)?;
+    for profile in 0..3 {
+        let fused = profile != 0;
+        let mut prepared = if profile == 2 {
+            prepare_queue_mode(
+                32,
+                &authored,
+                "boot/exact-failure",
+                BackProfile::NativeLocal,
+                true,
+                1,
+                8,
+            )?
+        } else {
+            prepare_mode(32, &authored, "boot/exact-failure", true, fused)?
+        };
         let fragment = &prepared.plan.fragments[0];
         let mut order = Vec::new();
         let mut current = fragment
@@ -346,5 +378,66 @@ fn reviewed_physical_profile_refuses_other_numeric_representations() -> Result<(
         refusal.contains("supports exact U64 input/output only"),
         "{refusal}"
     );
+    Ok(())
+}
+
+#[test]
+fn planner_selected_native_u64_chain_preserves_all_logical_signs() -> Result<(), Box<dyn Error>> {
+    let _measurement = crate::allocation::TEST_MEASUREMENT.lock().unwrap();
+    for gears in [2, 8, 32] {
+        let authored = source(gears);
+        let mut reference = prepare_mode(gears, &authored, "boot/native-chain", true, true)?;
+        let mut native = prepare_queue_mode(
+            gears,
+            &authored,
+            "boot/native-chain",
+            BackProfile::NativeLocal,
+            true,
+            1,
+            8,
+        )?;
+        assert_eq!(reference.plan.checked_plot_id, native.plan.checked_plot_id);
+        assert_eq!(native.plan.fragments[0].execution_fusions.len(), 1);
+        assert_eq!(
+            native.plan.fragments[0].execution_fusions[0]
+                .execution_profile_id
+                .as_str(),
+            conduit_std_host::pure_chain_fusion::NATIVE_U64_CHAIN_PROFILE
+        );
+        let mut a = Collector::new();
+        let mut b = Collector::new();
+        let ar = reference.host.run_external_plot_sequence_to(
+            reference.plan.fragments[0].clone(),
+            &reference.inputs,
+            &mut a,
+            &mut std::io::sink(),
+            &mut NoTimer,
+        )?;
+        let br = native.host.run_external_plot_sequence_to(
+            native.plan.fragments[0].clone(),
+            &native.inputs,
+            &mut b,
+            &mut std::io::sink(),
+            &mut NoTimer,
+        )?;
+        assert_eq!(a.values, b.values);
+        let ak = ar.kernel.ok_or("reference kernel receipt missing")?;
+        let bk = br.kernel.ok_or("native kernel receipt missing")?;
+        assert_eq!(ak.kernel_sign, bk.kernel_sign);
+        assert_eq!(ak.logical_invocations, bk.logical_invocations);
+        assert_eq!(
+            ak.value_allocation_capacity_before.0,
+            bk.value_allocation_capacity_before.0
+        );
+        // Native words avoid codecs, but retain an explicitly charged sidecar.
+        assert_eq!(
+            bk.value_allocation_capacity_before.1 - ak.value_allocation_capacity_before.1,
+            bk.value_allocation_capacity_before.0 * std::mem::size_of::<Option<u64>>()
+        );
+        assert_eq!(
+            bk.value_allocation_capacity_before,
+            bk.value_allocation_capacity_after
+        );
+    }
     Ok(())
 }
