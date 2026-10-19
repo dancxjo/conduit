@@ -3,7 +3,7 @@
 use crate::fixed_tensor_resource::AdmittedFixedTensorResource;
 use crate::{
     fixed_numeric_binding::{FixedBindingRefusal, FixedTensorPortBinding},
-    fixed_numeric_catalog::{fixed_numeric_contracts, fixed_numeric_type},
+    fixed_numeric_catalog::{fixed_numeric_contract, fixed_numeric_type},
     fixed_numeric_codec::{FixedCodecRefusal, FixedF32VectorCodec},
     fixed_numeric_preparation::{
         admit_tensor_access, verify_fixed_placement, FixedPlannedRefusal, AFFINE_PROFILE,
@@ -24,9 +24,7 @@ pub const LINEAR_IMPLEMENTATION: &str = "conduit.numeric/scalar-resource-linear@
 pub fn fixed_linear_offer<const INPUT: usize, const OUTPUT: usize>(
 ) -> Result<CapabilityOffer, String> {
     let identity = format!("numeric/linear{INPUT}x{OUTPUT}");
-    let kind = fixed_numeric_contracts()?
-        .into_iter()
-        .find(|k| k.kind_id.as_str() == identity)
+    let kind = fixed_numeric_contract(&identity)?
         .ok_or_else(|| String::from("unsupported exact linear shape"))?;
     Ok(BackOfferBuilder::new(
         kind,

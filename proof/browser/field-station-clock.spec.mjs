@@ -99,14 +99,30 @@ test("an external page recovers one Clock Body across a fresh Boot without resur
 
   const tick = page.locator('[data-face-kind="face/tick"]');
   await expect(tick).toHaveText("Clock tick: 0", { timeout: 15_000 });
-  const manifestation = await tick.evaluate(element => ({ ...element.dataset }));
+  const initialManifestation = await tick.evaluate(element => ({ ...element.dataset }));
+  expect(initialManifestation).toMatchObject({
+    hostId: running.identities.hostId, bootId: running.identities.bootId,
+    bodyPlanId: running.identities.planId, activePlayId: running.identities.playId,
+    faceKind: "face/tick",
+  });
   await journey.capture(page, {
     id: "reload", title: "Reload the same Body",
     action: "Reload the page using the browser.",
     observation: "The clock is awake again. The Body and Host identities stay the same; the Boot, Wake, Plan, and Play identities are new. The page recovers the Body and starts a fresh Play.",
   });
+  // Exercise a genuine later manifestation without selecting a screenshot delay.
+  await expect(tick).not.toHaveAttribute("data-face-id", initialManifestation.faceId, { timeout: 15_000 });
   await page.getByRole("button", { name: "Lull Clock Body", exact: true }).click();
   await expect(page.locator("#status")).toHaveText("Clock Body lulled");
+  const lulled = await page.evaluate(() => ({
+    snapshot: __conduitFieldStation.lullSnapshot,
+    playState: __conduitFieldStation.play.state,
+    receipts: __conduitFieldStation.play.receipts,
+    manifestation: __conduitFieldStation.lastObservedManifestation,
+  }));
+  // The real clock may advance during capture or before the ordinary click.
+  // Correlate cancellation with the last observed output, not a stale picture.
+  const manifestation = lulled.manifestation;
   expect(manifestation).toMatchObject({
     hostId: running.identities.hostId,
     bootId: running.identities.bootId,
@@ -119,12 +135,7 @@ test("an external page recovers one Clock Body across a fresh Boot without resur
   }
   const observationSequence = Number(manifestation.observationSequence);
   expect(Number.isSafeInteger(observationSequence)).toBe(true);
-
-  const lulled = await page.evaluate(() => ({
-    snapshot: __conduitFieldStation.lullSnapshot,
-    playState: __conduitFieldStation.play.state,
-    receipts: __conduitFieldStation.play.receipts,
-  }));
+  expect(observationSequence).toBeGreaterThan(Number(initialManifestation.observationSequence));
   expect(lulled.playState).toBe("terminal");
   expect(lulled.receipts).toHaveLength(1);
   expect(lulled.receipts[0].active_play_id).toBe(running.identities.playId);

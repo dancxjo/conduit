@@ -8,7 +8,7 @@ use crate::{
         installation::{I2C_IMPLEMENTATION, ReadyI2cBase},
         owner::{I2cCallSelection, I2cHostCall},
     },
-    pure_protocol_owner::PureProtocolOwner,
+    pure_protocol_owner::{PureProtocolOwner, PureProtocolPreparation},
     structured_selector_host_call,
 };
 use alloc::{boxed::Box, vec::Vec};
@@ -329,11 +329,10 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
                     .map_err(|error| invalid_plan("pure/preparation", error))?;
             }
         }
+        let preparation = PureProtocolPreparation::new(fragment, &lowered, &active)?;
         let mut bindings = Vec::with_capacity(fragment.placements.len());
-        for gear in &fragment.placements {
-            let Some(owner) = PureProtocolOwner::prepare(fragment, &lowered, &active, gear)? else {
-                continue;
-            };
+        for entry in preparation.owners() {
+            let (gear, owner) = entry?;
             bindings.push(Binding {
                 node: lowered
                     .identity

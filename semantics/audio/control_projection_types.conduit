@@ -1,0 +1,50 @@
+# Control cadence counts semantic evaluations per elapsed second, never PCM frames.
+type AudioControlCadence = {
+    updates_per_second: U64 in 1..=192000
+}
+# This profile exports exact point samples only. No between-point reconstruction
+# or fidelity to a continuously varying original is asserted.
+type AudioControlReconstruction =
+    point_samples_only
+type AudioControlProjectionSchedule = {
+    anchor: AudioTrajectoryAnchor
+    start: AudioExactTimeOffset
+    cadence: AudioControlCadence
+    update_count: U16 in 1..=16
+    reconstruction: AudioControlReconstruction
+    where .start.numerator_seconds <= 4294967295
+    where .start.denominator <= 4294967295
+    where .start.denominator * .cadence.updates_per_second <= 4294967295
+}
+type AudioControlProjectionPoint = {
+    schedule: AudioControlProjectionSchedule
+    index: U16
+    where .index < .schedule.update_count
+}
+
+# Working Source output carries numbers only; owner constructors admit the
+# exact query, then these laws bind both carriers to the executed request.
+type AudioControlQueryTimeRaw = {
+    numerator_seconds: U64
+    denominator: U64
+}
+type AudioControlQueryTimeAdmission = {
+    point: AudioControlProjectionPoint
+    raw: AudioControlQueryTimeRaw
+    query: AudioTrajectoryQuery
+    where .raw.numerator_seconds == .point.schedule.start.numerator_seconds * .point.schedule.cadence.updates_per_second + value/u64(.point.index) * .point.schedule.start.denominator
+    where .raw.denominator == .point.schedule.start.denominator * .point.schedule.cadence.updates_per_second
+    where .query.anchor == .point.schedule.anchor
+    where .query.time.numerator_seconds == .raw.numerator_seconds
+    where .query.time.denominator == .raw.denominator
+}
+type AudioControlFinalTimeAdmission = {
+    schedule: AudioControlProjectionSchedule
+    raw: AudioControlQueryTimeRaw
+    query: AudioTrajectoryQuery
+    where .raw.numerator_seconds == .schedule.start.numerator_seconds * .schedule.cadence.updates_per_second + value/u64(.schedule.update_count - 1) * .schedule.start.denominator
+    where .raw.denominator == .schedule.start.denominator * .schedule.cadence.updates_per_second
+    where .query.anchor == .schedule.anchor
+    where .query.time.numerator_seconds == .raw.numerator_seconds
+    where .query.time.denominator == .raw.denominator
+}

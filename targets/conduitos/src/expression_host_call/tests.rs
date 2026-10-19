@@ -284,3 +284,62 @@ fn bounded_projection_output_matches_native_offer_and_kernel_budget() {
         wire
     );
 }
+
+#[test]
+fn shared_expression_preparation_preserves_independent_request_and_cancel_state() {
+    let (fragment, lowered, active, placement) = selected();
+    let preparation = ExpressionPreparation::new(&fragment, &lowered, &active).unwrap();
+    let mut first = preparation.prepare(&placement).unwrap();
+    let mut second = preparation.prepare(&placement).unwrap();
+    let mut reference =
+        ExpressionHostCall::prepare(&fragment, &lowered, &active, &placement).unwrap();
+    for request in 0..32 {
+        let request = RequestId(request);
+        assert_eq!(
+            first.invoke(first.node, HostCallId(0), request, &[41]),
+            reference.invoke(reference.node, HostCallId(0), request, &[41])
+        );
+    }
+    first.cancel(first.node, HostCallId(0)).unwrap();
+    assert_eq!(
+        first.invoke(first.node, HostCallId(0), RequestId(32), &[41]),
+        Err(ExpressionCallRefusal::Cancelled)
+    );
+    assert_eq!(
+        second
+            .invoke(second.node, HostCallId(0), RequestId(0), &[41])
+            .unwrap(),
+        &[42]
+    );
+    assert_eq!(
+        second.invoke(second.node, HostCallId(0), RequestId(0), &[41]),
+        Err(ExpressionCallRefusal::StaleRequest)
+    );
+    assert!(matches!(
+        preparation.prepare(&PlacementId::from("foreign-placement")),
+        Err(ExpressionCallRefusal::WrongBinding)
+    ));
+}
+
+#[test]
+fn shared_expression_preparation_refuses_changed_plan_routing_and_active_basis() {
+    let (fragment, lowered, active, _) = selected();
+    let mut wrong_active = active.clone();
+    wrong_active.play_sequence += 1;
+    assert!(matches!(
+        ExpressionPreparation::new(&fragment, &lowered, &wrong_active),
+        Err(ExpressionCallRefusal::WrongBinding)
+    ));
+    let mut wrong_lowered = lowered.clone();
+    wrong_lowered.identity.placements[0].0 = NodeId(7);
+    assert!(matches!(
+        ExpressionPreparation::new(&fragment, &wrong_lowered, &active),
+        Err(ExpressionCallRefusal::WrongBinding)
+    ));
+    let mut wrong_fragment = fragment.clone();
+    wrong_fragment.placements[0].configuration.clear();
+    assert!(matches!(
+        ExpressionPreparation::new(&wrong_fragment, &lowered, &active),
+        Err(ExpressionCallRefusal::WrongBinding)
+    ));
+}

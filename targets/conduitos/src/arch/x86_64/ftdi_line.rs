@@ -1,6 +1,9 @@
 //! Exact bounded FTDI FT232BM byte carrier for QEMU's `usb-serial` device.
 
+#[path = "ftdi_line_transfer.rs"]
+mod transfer;
 use core::ptr::{read_volatile, write_volatile};
+use transfer::submit;
 
 use super::{
     hid_transfer_ring::{TransferPosition, publish},
@@ -33,6 +36,7 @@ pub enum FtdiLineError {
     TransferTimeout,
     TransferStall,
     TransferError,
+    CompletionPressure,
     WrongCompletion,
     WrongSlot,
     WrongEndpoint,
@@ -57,6 +61,7 @@ impl FtdiLineError {
             Self::TransferTimeout => "ftdi-line-transfer-timeout",
             Self::TransferStall => "ftdi-line-transfer-stall",
             Self::TransferError => "ftdi-line-transfer-error",
+            Self::CompletionPressure => "ftdi-line-completion-pressure",
             Self::WrongCompletion => "ftdi-line-completion-wrong-trb",
             Self::WrongSlot => "ftdi-line-completion-wrong-slot",
             Self::WrongEndpoint => "ftdi-line-completion-wrong-endpoint",
@@ -358,7 +363,10 @@ fn configure_endpoints(
             0,
             (12 << 10) | (u32::from(device.slot) << 24),
         ])
-        .map_err(|_| FtdiLineError::ConfigureEndpointsFailed)?;
+        .map_err(|error| match error {
+            XhciError::EventRetentionPressure => FtdiLineError::CompletionPressure,
+            _ => FtdiLineError::ConfigureEndpointsFailed,
+        })?;
     if event.completion_code == 1 && event.slot == device.slot {
         Ok(())
     } else {
@@ -376,73 +384,6 @@ unsafe fn write_input_u32(offset: usize, value: u32) {
             value,
         )
     }
-}
-
-fn submit(
-    controller: &mut XhciReady,
-    device: &UsbDevice,
-    ready: FtdiLineReady,
-    sequence: usize,
-    length: usize,
-    direction: TransferDirection,
-) -> Result<usize, FtdiLineError> {
-    let (dci, ring_offset, buffer_offset) = match direction {
-        TransferDirection::Input => (
-            ready.input_dci,
-            core::mem::offset_of!(FtdiDma, input_ring),
-            core::mem::offset_of!(FtdiDma, input_packet),
-        ),
-        TransferDirection::Output => (
-            ready.output_dci,
-            core::mem::offset_of!(FtdiDma, output_ring),
-            core::mem::offset_of!(FtdiDma, output_packet),
-        ),
-    };
-    let ring = ready.dma_physical + ring_offset as u64;
-    let buffer = ready.dma_physical + buffer_offset as u64;
-    let position = TransferPosition::at(sequence, FTDI_TRANSFER_SLOTS, 1);
-    let trb = ring + (position.slot * 16) as u64;
-    if sequence == 0 || position.slot == FTDI_TRANSFER_SLOTS - 1 {
-        publish(position.link(ring), |word, value| unsafe {
-            let destination = match direction {
-                TransferDirection::Input => {
-                    core::ptr::addr_of_mut!(FTDI_DMA.input_ring[FTDI_TRANSFER_SLOTS][word])
-                }
-                TransferDirection::Output => {
-                    core::ptr::addr_of_mut!(FTDI_DMA.output_ring[FTDI_TRANSFER_SLOTS][word])
-                }
-            };
-            write_volatile(destination, value);
-        });
-    }
-    publish(position.normal_at(buffer, length), |word, value| unsafe {
-        let destination = match direction {
-            TransferDirection::Input => {
-                core::ptr::addr_of_mut!(FTDI_DMA.input_ring[position.slot][word])
-            }
-            TransferDirection::Output => {
-                core::ptr::addr_of_mut!(FTDI_DMA.output_ring[position.slot][word])
-            }
-        };
-        write_volatile(destination, value);
-    });
-    controller.ring_endpoint(device.slot, dci);
-    let mut completed = None;
-    for _ in 0..FTDI_POLL_WINDOWS {
-        ensure_present(controller.port_status(device.root_port))?;
-        match controller.next_event() {
-            Ok(event) if event.event_type == 34 => return Err(FtdiLineError::DeviceRemoved),
-            Ok(event) => {
-                completed = Some(event);
-                break;
-            }
-            Err(XhciError::CommandTimeout) => {}
-            Err(_) => return Err(FtdiLineError::TransferError),
-        }
-    }
-    let event = completed.ok_or(FtdiLineError::TransferTimeout)?;
-    ensure_present(controller.port_status(device.root_port))?;
-    validate_event(event, device.slot, dci, trb, length)
 }
 
 #[derive(Clone, Copy)]

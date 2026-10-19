@@ -205,7 +205,9 @@ jobs:
       matrix: ${{ fromJSON(needs.preflight.outputs.matrix) }}
     name: target / ${{ matrix.id }}
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 60
+    # Browser proof includes cold host/WASM builds, the serial suite and site QA.
+    # The measured cold lane reached 258/260 tests at the former 60-minute bound.
+    timeout-minutes: ${{ matrix.id == 'browser' && 90 || 60 }}
     defaults:
       run:
         shell: bash

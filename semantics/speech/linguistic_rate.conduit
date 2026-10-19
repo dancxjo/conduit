@@ -1,0 +1,46 @@
+# Linguistic event density, not oscillation frequency or a second Audio clock.
+# This admitted subset supplies one complete constant utterance span starting at
+# its declared Audio origin. No schedule, overlap, gap or inferred segmentation.
+# Profile 1 is exactly the constant full-utterance U32 span subset.
+type SpeechLinguisticRateProfile = U32 in 1..=1
+
+type SpeechLinguisticRateScope = {
+ basis: SpeechTokenSequenceBasis
+ inventory_basis: SpeechIpaInventoryNotationBasis
+ source: LanguageTextSegmentRef
+ anchor: AudioTrajectoryAnchor
+ where .source.kind is utterance
+ where .source.language == .basis.language
+ where .inventory_basis.language == .basis.language
+ where .inventory_basis.inventory_id == .basis.inventory_id
+}
+type SpeechLinguisticRateTarget = {
+ scope: SpeechLinguisticRateScope
+ profile: SpeechLinguisticRateProfile
+ syllable_count: U64 in 1..=64
+ span: AudioExactTimeOffset
+ provenance: SpeechEvidenceProvenance
+ where .span.numerator_seconds > 0
+ where .span.numerator_seconds <= 4294967295
+ where .span.denominator <= 4294967295
+}
+# A symbolic exact density. Original count and unreduced Audio span are retained
+# in its admission; these fields are not public acoustic Hz or normalized F0.
+type SpeechSyllablesPerSecond = {
+ numerator_syllables: U64 in 1..=274877906880
+ denominator_seconds: U64 in 1..=4294967295
+}
+type SpeechLinguisticRateAdmission = {
+ target: SpeechLinguisticRateTarget
+ actual_syllable_count: U64 in 1..=64
+ where .actual_syllable_count == .target.syllable_count
+}
+# Private raw expression result; public admission below remains owner checked.
+type SpeechLinguisticRateRawProjection = {
+ numerator_syllables: U64
+ denominator_seconds: U64
+}
+plot speech/linguistic-rate (
+ >> request: SpeechLinguisticRateAdmission
+ result: SpeechLinguisticRateRawProjection >>
+) = ({numerator_syllables: .target.syllable_count * .target.span.denominator, denominator_seconds: .target.span.numerator_seconds})
