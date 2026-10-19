@@ -4,6 +4,7 @@ use crate::{BirthDraft, BirthWidgetFace};
 use alloc::{format, string::String, vec, vec::Vec};
 use conduit_core::{CheckedValueContract, ValueConstraint, kind_id};
 use conduit_face::*;
+use sha2::{Digest, Sha256};
 
 type Events = Vec<(String, ApplicationEventKind)>;
 pub(super) fn project(
@@ -254,14 +255,23 @@ impl Projection {
                     name: label.clone(),
                 });
                 self.relationships.push(contains(&self.article, &subject));
-                for (index, option) in options.iter().enumerate() {
-                    let id = format!("{subject}/{index}");
+                for option in options {
+                    // Item identity survives filtering, label collisions and
+                    // inventory reorder. The fixed digest keeps even the longest
+                    // admitted encounter within Face's identifier byte bound.
+                    let digest = Sha256::digest(option.identity.as_bytes());
+                    let id = format!("{subject}/{digest:x}");
                     self.subjects.push(FaceSubject {
                         identity: id.clone(),
                         role: FaceRole::Plot,
                         name: option.label.clone(),
                     });
                     self.relationships.push(contains(&subject, &id));
+                    self.properties.push(FaceProperty {
+                        subject: id.clone(),
+                        name: "checked-plot-id".into(),
+                        value: FacePropertyValue::Identity(option.identity.clone()),
+                    });
                     self.properties.push(FaceProperty {
                         subject: id.clone(),
                         name: "selected".into(),

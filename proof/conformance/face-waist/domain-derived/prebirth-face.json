@@ -1,5 +1,5 @@
 {
-  "identity": "d2ab0fa49880388ffac4a812f2fd26859c0e2be324c20c49a66a57805c20ebaf",
+  "identity": "ecdc66d851bc6c3fd39d665ee471ff20663e9ab02443004181a6f1a1d760fc0e",
   "revision": 1,
   "basis": {
     "body_id": null,
@@ -63,12 +63,12 @@
       "name": "Plots to include"
     },
     {
-      "identity": "birth/encounter/prebirth-conformance/initial-plots/0",
+      "identity": "birth/encounter/prebirth-conformance/initial-plots/6da1e4365edd4e421790e05c3785e4b36e38032927e2cb9e4f78bb9302976d21",
       "role": "Plot",
       "name": "Scratch"
     },
     {
-      "identity": "birth/encounter/prebirth-conformance/initial-plots/1",
+      "identity": "birth/encounter/prebirth-conformance/initial-plots/3ab3b864858792bacf897d79251fc8ea120db0c84485b9bd254a1f6bb41bdaf3",
       "role": "Plot",
       "name": "Chime"
     },
@@ -133,12 +133,12 @@
     },
     {
       "source": "birth/encounter/prebirth-conformance/initial-plots",
-      "target": "birth/encounter/prebirth-conformance/initial-plots/0",
+      "target": "birth/encounter/prebirth-conformance/initial-plots/6da1e4365edd4e421790e05c3785e4b36e38032927e2cb9e4f78bb9302976d21",
       "kind": "Contains"
     },
     {
       "source": "birth/encounter/prebirth-conformance/initial-plots",
-      "target": "birth/encounter/prebirth-conformance/initial-plots/1",
+      "target": "birth/encounter/prebirth-conformance/initial-plots/3ab3b864858792bacf897d79251fc8ea120db0c84485b9bd254a1f6bb41bdaf3",
       "kind": "Contains"
     },
     {
@@ -160,28 +160,42 @@
   "composition": [],
   "properties": [
     {
-      "subject": "birth/encounter/prebirth-conformance/initial-plots/0",
+      "subject": "birth/encounter/prebirth-conformance/initial-plots/6da1e4365edd4e421790e05c3785e4b36e38032927e2cb9e4f78bb9302976d21",
+      "name": "checked-plot-id",
+      "value": {
+        "Identity": "checked/scratch"
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/initial-plots/6da1e4365edd4e421790e05c3785e4b36e38032927e2cb9e4f78bb9302976d21",
       "name": "selected",
       "value": {
         "Flag": true
       }
     },
     {
-      "subject": "birth/encounter/prebirth-conformance/initial-plots/0",
+      "subject": "birth/encounter/prebirth-conformance/initial-plots/6da1e4365edd4e421790e05c3785e4b36e38032927e2cb9e4f78bb9302976d21",
       "name": "boolean-change-action",
       "value": {
         "Identity": "creche.plot.0"
       }
     },
     {
-      "subject": "birth/encounter/prebirth-conformance/initial-plots/1",
+      "subject": "birth/encounter/prebirth-conformance/initial-plots/3ab3b864858792bacf897d79251fc8ea120db0c84485b9bd254a1f6bb41bdaf3",
+      "name": "checked-plot-id",
+      "value": {
+        "Identity": "checked/chime"
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/initial-plots/3ab3b864858792bacf897d79251fc8ea120db0c84485b9bd254a1f6bb41bdaf3",
       "name": "selected",
       "value": {
         "Flag": false
       }
     },
     {
-      "subject": "birth/encounter/prebirth-conformance/initial-plots/1",
+      "subject": "birth/encounter/prebirth-conformance/initial-plots/3ab3b864858792bacf897d79251fc8ea120db0c84485b9bd254a1f6bb41bdaf3",
       "name": "boolean-change-action",
       "value": {
         "Identity": "creche.plot.1"
@@ -328,11 +342,11 @@
       "text": "Current value: (empty)."
     },
     {
-      "subject": "birth/encounter/prebirth-conformance/initial-plots/0",
+      "subject": "birth/encounter/prebirth-conformance/initial-plots/6da1e4365edd4e421790e05c3785e4b36e38032927e2cb9e4f78bb9302976d21",
       "text": "Included."
     },
     {
-      "subject": "birth/encounter/prebirth-conformance/initial-plots/1",
+      "subject": "birth/encounter/prebirth-conformance/initial-plots/3ab3b864858792bacf897d79251fc8ea120db0c84485b9bd254a1f6bb41bdaf3",
       "text": "Not included."
     },
     {
@@ -681,7 +695,7 @@
     {
       "identity": "creche.plot.0",
       "intent": "conduit.intent/creche.plot.0@1",
-      "target": "birth/encounter/prebirth-conformance/initial-plots/0",
+      "target": "birth/encounter/prebirth-conformance/initial-plots/6da1e4365edd4e421790e05c3785e4b36e38032927e2cb9e4f78bb9302976d21",
       "name": "Include Plot",
       "arguments": [
         {
@@ -700,7 +714,7 @@
     {
       "identity": "creche.plot.1",
       "intent": "conduit.intent/creche.plot.1@1",
-      "target": "birth/encounter/prebirth-conformance/initial-plots/1",
+      "target": "birth/encounter/prebirth-conformance/initial-plots/3ab3b864858792bacf897d79251fc8ea120db0c84485b9bd254a1f6bb41bdaf3",
       "name": "Include Plot",
       "arguments": [
         {
