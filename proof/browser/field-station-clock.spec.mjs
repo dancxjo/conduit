@@ -18,15 +18,17 @@ test("an external page recovers one Clock Body across a fresh Boot without resur
     identities: __conduitFieldStation.identities,
     playState: __conduitFieldStation.play.state,
     recovered: __conduitFieldStation.recovered,
+    firstManifestation: __conduitFieldStation.firstObservedManifestation,
   }));
   expect(first.recovered).toBe(false);
   expect(first.playState).toBe("playing");
-  await expect(page.locator('[data-face-kind="face/tick"]')).toHaveText("Clock tick: 0", { timeout: 15_000 });
+  await expect(page.locator('[data-face-kind="face/tick"]')).toHaveText(/^Clock tick: \d+$/);
+  expect(first.firstManifestation).toMatchObject({ text: "Clock tick: 0", observationSequence: "0" });
 
   await journey.capture(page, {
     id: "open", title: "Open the clock",
     action: "Open the Field Station page.",
-    observation: "The page automatically creates and wakes a Clock Body. Its first tick is visible, alongside the Clock Patchbay and exact runtime identities.",
+    observation: "The page automatically creates and wakes a Clock Body. Its tick is visible and the first zero tick is retained by the read-only DOM observer, alongside the Clock Patchbay and exact runtime identities.",
   });
 
   await page.reload();
@@ -35,6 +37,7 @@ test("an external page recovers one Clock Body across a fresh Boot without resur
     identities: __conduitFieldStation.identities,
     playState: __conduitFieldStation.play.state,
     recovered: __conduitFieldStation.recovered,
+    firstManifestation: __conduitFieldStation.firstObservedManifestation,
     recoverySnapshot: __conduitFieldStation.recoverySnapshot,
     patchbay: __conduitFieldStation.patchbay,
     constraintConformance: __conduitFieldStation.constraintConformance,
@@ -98,8 +101,9 @@ test("an external page recovers one Clock Body across a fresh Boot without resur
   }
 
   const tick = page.locator('[data-face-kind="face/tick"]');
-  await expect(tick).toHaveText("Clock tick: 0", { timeout: 15_000 });
-  const initialManifestation = await tick.evaluate(element => ({ ...element.dataset }));
+  await expect(tick).toHaveText(/^Clock tick: \d+$/);
+  const initialManifestation = running.firstManifestation;
+  expect(initialManifestation).toMatchObject({ text: "Clock tick: 0", observationSequence: "0" });
   expect(initialManifestation).toMatchObject({
     hostId: running.identities.hostId, bootId: running.identities.bootId,
     bodyPlanId: running.identities.planId, activePlayId: running.identities.playId,

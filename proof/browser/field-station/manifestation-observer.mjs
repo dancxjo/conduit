@@ -1,11 +1,15 @@
-// Proof-only DOM observation: retain one manifestation, not execution authority.
+// Proof-only DOM observation: retain first and latest manifestations, not execution authority.
 export function observeClockManifestation(root) {
   const selector = '[data-face-kind="face/tick"]';
+  let first = null;
   let latest = null;
   const capture = (node) => {
     if (!(node instanceof Element)) return;
     const outputs = node.matches(selector) ? [node] : node.querySelectorAll(selector);
-    for (const output of outputs) latest = Object.freeze({ ...output.dataset });
+    for (const output of outputs) {
+      latest = Object.freeze({ ...output.dataset, text: output.textContent });
+      first ??= latest;
+    }
   };
   const record = (mutations) => {
     for (const mutation of mutations) {
@@ -21,6 +25,7 @@ export function observeClockManifestation(root) {
   const observer = new MutationObserver(record);
   observer.observe(root, { childList: true, subtree: true, attributes: true });
   return Object.freeze({
+    get first() { record(observer.takeRecords()); return first; },
     get current() { record(observer.takeRecords()); return latest; },
     finish() { record(observer.takeRecords()); observer.disconnect(); return latest; },
   });
