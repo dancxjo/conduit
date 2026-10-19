@@ -74,8 +74,9 @@ fn ready() -> PreparedMathematicalValueBuilder {
 
 #[test]
 fn repeated_runtime_construction_matches_existing_canonical_bytes_without_growth() {
-    let mut b = ready();
+    let (mut b, preparation_allocations) = observe(ready);
     let retained = b.retained_payload_bytes();
+    println!("PREPARED_MATH_DATA preparation_allocations={preparation_allocations} retained_payload_bytes={retained} maximum_encoded_bytes={MATHEMATICAL_VALUE_MAX_ENCODED_BYTES}");
     let mut out = vec![0xA5; MATHEMATICAL_VALUE_MAX_ENCODED_BYTES];
     for which in 0..6 {
         let expected = reference(which);

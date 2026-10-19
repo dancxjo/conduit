@@ -27,6 +27,10 @@ canonical bytes to the ordinary builder for π/180, principal sqrt(2), their
 mixed expression, tau, cardinal sine and exact rational cancellation. Refusal
 and recovery cases also observe no allocation and preserve caller sentinels.
 The retained-payload limit is checked at its exact admission boundary.
+The local Linux x86_64 capture pays five preparation allocations and retains
+100,259 bytes of accounted payload for the full 33,059-byte encoding profile.
+This fixed worst-case reservation is substantially larger than the specimen
+values; it is optional preparation cost, not a whole-process memory measurement.
 
 Regression validation passes 106 Core library tests, the mathematical value,
 enclosure, forward/inverse trigonometry and inverse writer tests, and the legacy
