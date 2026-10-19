@@ -40,14 +40,18 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         [fixture, output, repetitions, owners] => (fixture, output, repetitions, owners.as_str()),
         _ => return Err("internal worker expects fixture/output/repetitions/[owners]".into()),
     };
-    if !matches!(owners, "fresh" | "prepared") {
+    if !matches!(owners, "fresh" | "prepared" | "prepared-compact-local") {
         return Err("unknown owner profile".into());
     }
     let repetitions: u32 = repetitions.parse()?;
     assert!((2..=20).contains(&repetitions));
     let output = PathBuf::from(output);
     let fixture = PathBuf::from(fixture);
-    let metadata = artifact::metadata()?;
+    let mut metadata = artifact::metadata()?;
+    let worker = std::env::current_exe()?;
+    metadata["worker_sha256"] = json!(artifact::digest(&std::fs::read(&worker)?));
+    metadata["worker_path"] = json!(worker);
+    metadata["owners"] = json!(owners);
     artifact::json(&output.join("metadata.json"), &metadata)?;
     let mut raw = artifact::Raw::new(&output.join("raw.jsonl"))?;
     raw.row(&json!({"phase":"timer-control", "samples_ns":timing::timer_control(2000),"subtracted":false}))?;
@@ -67,8 +71,16 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
             "precision_profile":"number/ieee754-f32-libm-reference@1","parameters_published":false
         }),
     )?;
-    if owners == "prepared" {
-        prepared_performance::run(&output, repetitions, &schema, &resources, &oracle, &mut raw)?;
+    if owners != "fresh" {
+        prepared_performance::run(
+            &output,
+            repetitions,
+            &schema,
+            &resources,
+            &oracle,
+            &mut raw,
+            owners == "prepared-compact-local",
+        )?;
         raw.finish()?;
         return Ok(());
     }
