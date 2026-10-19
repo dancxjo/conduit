@@ -20,12 +20,29 @@ impl Structural {
                 source.as_bytes()
             )
         );
+        // Check immutable Source once, then retain independent Plan/Play for
+        // each entry. Repeated Source checking adds no runtime evidence.
+        let package =
+            conduitos::protocol_source::ProtocolSourcePackage::compile(source, &[]).unwrap();
+        let artifact = conduit_core::ArtifactId::from(format!(
+            "language/structural-consensus/package/{}",
+            conduit_core::semantic_digest(
+                "proof/parser-structural-consensus/package@1",
+                &serde_json::to_vec(&package).unwrap(),
+            )
+            .iter()
+            .map(|byte| format!("{byte:02x}"))
+            .collect::<String>()
+        ));
+        let prepared =
+            conduitos::protocol_source::PreparedProtocolSource::prepare(package).unwrap();
+        let graph = |entry| SourceGraph::from_source(&prepared, entry, &artifact);
         Self {
             parser: fixture::Fixture::new(),
-            merge: SourceGraph::language("language-parser-scorer-merge"),
-            agreement: SourceGraph::language("language-parser-admitted-agreement"),
-            advance: SourceGraph::language("language-parser-advance-stable"),
-            commit: SourceGraph::language("language-parser-commit"),
+            merge: graph("language-parser-scorer-merge"),
+            agreement: graph("language-parser-admitted-agreement"),
+            advance: graph("language-parser-advance-stable"),
+            commit: graph("language-parser-commit"),
         }
     }
     /// Construct a complete chain by accepted Source actions, with one declared
