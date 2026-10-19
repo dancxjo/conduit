@@ -1,11 +1,13 @@
 import { Conduit } from "/target/field-station-sdk/browser-sdk.mjs";
 import { renderBrowserBodyPatchbay } from "/plots/patchbay/workbench/browser/browser-sdk.js";
+import { observeClockManifestation } from "./manifestation-observer.mjs";
 
 const root = document.querySelector("#conduit");
 const status = document.querySelector("#status");
 const identities = document.querySelector("#identities");
 const lull = document.querySelector("#lull");
 const patchbayRoot = document.querySelector("#patchbay");
+const manifestations = observeClockManifestation(root);
 
 try {
   const sourceResponse = await fetch("/plots/clock/main.conduit");
@@ -66,9 +68,11 @@ try {
     recoverySnapshot,
     identities: exact,
     lullSnapshot: null,
+    get lastObservedManifestation() { return manifestations.current; },
     async lull() {
       if (this.lullSnapshot) return this.lullSnapshot;
       this.lullSnapshot = await body.lull();
+      manifestations.finish();
       lull.disabled = true;
       status.textContent = "Clock Body lulled";
       return this.lullSnapshot;

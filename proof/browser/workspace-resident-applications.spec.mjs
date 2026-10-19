@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { startStaticProduct } from "./static-product-server.mjs";
+import { BROWSER_COLD_PREPARATION_MS } from "./browser-preparation.mjs";
 
 let entrance;
 const current = page => page.evaluate(() => globalThis.__conduitWorkspace.current());
@@ -12,6 +13,9 @@ test.beforeEach(async ({ page }) => {
 test.afterEach(() => entrance?.child.kill());
 
 test("the first body runs and can remove its resident Tutorial Plot without losing its face", async ({ page }) => {
+  // Cold Birth/Wake and shelf preparation consume their existing finite budget;
+  // retain the ordinary controls and all removal/identity assertions.
+  test.setTimeout(20_000 + BROWSER_COLD_PREPARATION_MS);
   await page.goto(entrance.url);
   await expect(page.getByRole("checkbox", { name: "Tutorial", exact: true })).toBeChecked();
   await page.getByRole("checkbox", { name: "Startup Chime", exact: true }).uncheck();
