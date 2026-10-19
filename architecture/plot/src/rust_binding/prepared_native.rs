@@ -31,15 +31,20 @@ pub enum PreparedNativeRefusal {
     State,
     Cancelled,
 }
-#[derive(Clone)]
-enum Part {
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum NativePathStep {
     Representation,
     Field(String),
-    Index(u16),
+    Each,
     Variant(String),
 }
+type Part = NativePathStep;
 struct Scope<'d> {
     path: Vec<Part>,
+    indices: Vec<u16>,
+    latest: Vec<u16>,
+    latest_generation: u64,
+    checked_invariants: usize,
     native: &'d CheckedNativeType,
     evaluators: Vec<PreparedPortableExpressionEvaluator>,
 }
@@ -69,6 +74,16 @@ impl AdmittedNativeCanonical<'_> {
         self.bytes
     }
 }
+pub const MAXIMUM_PREPARED_NATIVE_OCCURRENCES: usize = 4096;
+/// These are latest-occurrence observations, not historical outputs for every item.
+pub struct NativeOccurrence<'a> {
+    pub scope: usize,
+    pub path: &'a [NativePathStep],
+    pub indices: &'a [u16],
+    pub checked_invariants: usize,
+}
+#[path = "prepared_native/traversal.rs"]
+mod traversal;
 pub struct PreparedNativeAdmission<'d> {
     document: &'d CheckedSyntaxDocument,
     native: &'d CheckedNativeType,
@@ -78,6 +93,10 @@ pub struct PreparedNativeAdmission<'d> {
     scratch: Vec<u8>,
     maximum: usize,
     next: usize,
+    generation: u64,
+    latest_scope: Option<usize>,
+    occurrences: usize,
+    occurrence_limit: usize,
     active: bool,
     failure: Option<PreparedNativeRefusal>,
 }
@@ -87,16 +106,32 @@ impl<'d> PreparedNativeAdmission<'d> {
         identity: &KindId,
         bounds: PreparedNativeBounds,
     ) -> Result<Self, PreparedNativeRefusal> {
+        Self::new_with_occurrence_limit(
+            document,
+            identity,
+            bounds,
+            MAXIMUM_PREPARED_NATIVE_OCCURRENCES,
+        )
+    }
+    pub fn new_with_occurrence_limit(
+        document: &'d CheckedSyntaxDocument,
+        identity: &KindId,
+        bounds: PreparedNativeBounds,
+        occurrence_limit: usize,
+    ) -> Result<Self, PreparedNativeRefusal> {
+        if occurrence_limit == 0 || occurrence_limit > MAXIMUM_PREPARED_NATIVE_OCCURRENCES {
+            return Err(PreparedNativeRefusal::Bounds);
+        }
         if bounds.scopes == 0 || bounds.scopes > 4096 || bounds.invariants > 4096 {
             return Err(PreparedNativeRefusal::Bounds);
         }
-        let native = lookup(document, identity)?;
+        let native = traversal::lookup(document, identity)?;
         let shape =
             PreparedStructuredValueValidator::new(&native.value_type, bounds.canonical_bytes)
                 .map_err(|_| PreparedNativeRefusal::Bounds)?;
         let mut scopes = Vec::new();
         let mut count = (0, 0);
-        prepare(
+        traversal::prepare(
             document,
             &native.value_type,
             &mut Vec::new(),
@@ -113,6 +148,10 @@ impl<'d> PreparedNativeAdmission<'d> {
             scratch: Vec::with_capacity(bounds.canonical_bytes),
             maximum: bounds.canonical_bytes,
             next: 0,
+            generation: 0,
+            latest_scope: None,
+            occurrences: 0,
+            occurrence_limit,
             active: false,
             failure: None,
         })
@@ -129,12 +168,33 @@ impl<'d> PreparedNativeAdmission<'d> {
     pub fn scope_native_type(&self, scope: usize) -> Option<&CheckedNativeType> {
         self.scopes.get(scope).map(|v| v.native)
     }
+    /// Output is only from this template's latest actual occurrence in the
+    /// current admission; earlier occurrence outputs are deliberately not claimed.
     pub fn invariant_output(&self, scope: usize, invariant: usize) -> Option<&[u8]> {
-        self.scopes
-            .get(scope)?
-            .evaluators
-            .get(invariant)
-            .map(|v| v.output_bytes())
+        if !self.active {
+            return None;
+        }
+        let scope = self.scopes.get(scope)?;
+        if scope.latest_generation != self.generation || invariant >= scope.checked_invariants {
+            return None;
+        }
+        scope.evaluators.get(invariant).map(|v| v.output_bytes())
+    }
+    pub fn latest_occurrence(&self) -> Option<NativeOccurrence<'_>> {
+        let index = self.latest_scope?;
+        let scope = &self.scopes[index];
+        Some(NativeOccurrence {
+            scope: index,
+            path: &scope.path,
+            indices: &scope.latest,
+            checked_invariants: scope.checked_invariants,
+        })
+    }
+    pub fn actual_occurrences(&self) -> usize {
+        self.occurrences
+    }
+    pub fn actual_occurrence_limit(&self) -> usize {
+        self.occurrence_limit
     }
     pub fn retained_bytes(&self) -> &[u8] {
         &self.input
@@ -150,8 +210,18 @@ impl<'d> PreparedNativeAdmission<'d> {
         if bytes.len() > self.maximum {
             return Err(PreparedNativeRefusal::Bounds);
         }
+        let generation = self
+            .generation
+            .checked_add(1)
+            .ok_or(PreparedNativeRefusal::Bounds)?;
         self.input.clear();
         self.input.extend_from_slice(bytes);
+        self.generation = generation;
+        self.latest_scope = None;
+        self.occurrences = 0;
+        if let Some(scope) = self.scopes.first_mut() {
+            scope.indices.fill(0);
+        }
         self.next = 0;
         self.active = true;
         if self.shape.validate(&self.input).is_err() {
@@ -166,7 +236,7 @@ impl<'d> PreparedNativeAdmission<'d> {
     pub fn cancel(&mut self) {
         self.failure = Some(PreparedNativeRefusal::Cancelled);
     }
-    /// One finite schema scope per call; all Source programs were prepared before begin.
+    /// One actual Native occurrence or bounded path backtrack per call; all Source programs were prepared before begin.
     pub fn step(&mut self) -> Result<PreparedNativeProgress, PreparedNativeRefusal> {
         if let Some(reason) = &self.failure {
             return Err(reason.clone());
@@ -177,23 +247,14 @@ impl<'d> PreparedNativeAdmission<'d> {
         if self.next == self.scopes.len() {
             return Ok(PreparedNativeProgress::Admitted);
         }
-        let index = self.next;
-        let outcome = validate_scope(
-            &mut self.scopes[index],
-            &self.input,
-            &mut self.scratch,
-            self.maximum,
-            index,
-        );
-        if let Err(reason) = outcome {
-            return self.fail(reason);
+        match traversal::step(self) {
+            Ok(()) => Ok(if self.next == self.scopes.len() {
+                PreparedNativeProgress::Admitted
+            } else {
+                PreparedNativeProgress::Pending
+            }),
+            Err(reason) => self.fail(reason),
         }
-        self.next += 1;
-        Ok(if self.next == self.scopes.len() {
-            PreparedNativeProgress::Admitted
-        } else {
-            PreparedNativeProgress::Pending
-        })
     }
     /// Explicitly retire a successful admission before reusing its prepared storage.
     /// Failure/cancellation evidence cannot be silently reset by this entrance.
@@ -205,6 +266,7 @@ impl<'d> PreparedNativeAdmission<'d> {
         self.scratch.clear();
         self.next = 0;
         self.active = false;
+        self.latest_scope = None;
         Ok(())
     }
     pub fn admitted(&self) -> Result<AdmittedNativeCanonical<'_>, PreparedNativeRefusal> {
@@ -220,177 +282,13 @@ impl<'d> PreparedNativeAdmission<'d> {
         })
     }
 }
-fn lookup<'d>(
-    document: &'d CheckedSyntaxDocument,
-    identity: &KindId,
-) -> Result<&'d CheckedNativeType, PreparedNativeRefusal> {
-    let mut result: Option<&CheckedNativeType> = None;
-    for native in document
-        .native_types
-        .iter()
-        .chain(document.retained_native_types.iter())
-        .filter(|v| &v.identity == identity)
-    {
-        if let Some(prior) = result {
-            if prior.value_type != native.value_type
-                || prior.value_contracts != native.value_contracts
-                || prior.invariants != native.invariants
-            {
-                return Err(PreparedNativeRefusal::ConflictingNativeMetadata);
-            }
-        } else {
-            result = Some(native);
-        }
-    }
-    result.ok_or(PreparedNativeRefusal::MissingNativeMetadata)
-}
-fn prepare<'d>(
-    document: &'d CheckedSyntaxDocument,
-    ty: &StructuredInfoType,
-    path: &mut Vec<Part>,
-    scopes: &mut Vec<Scope<'d>>,
-    bounds: PreparedNativeBounds,
-    count: &mut (usize, usize),
-) -> Result<(), PreparedNativeRefusal> {
-    count.1 += 1;
-    if path.len() > 64 || count.1 > 4096 {
-        return Err(PreparedNativeRefusal::Bounds);
-    }
-    let identity = match ty.shape() {
-        Shape::Nominal { schema, .. }
-        | Shape::Record { schema, .. }
-        | Shape::Variant { schema, .. } => Some(schema),
-        _ => None,
-    };
-    if let Some(identity) = identity {
-        if scopes.len() >= bounds.scopes {
-            return Err(PreparedNativeRefusal::Bounds);
-        }
-        let native = lookup(document, identity)?;
-        if &native.value_type != ty {
-            return Err(PreparedNativeRefusal::ConflictingNativeMetadata);
-        }
-        let mut evaluators = Vec::new();
-        for program in &native.invariants {
-            count.0 += 1;
-            if count.0 > bounds.invariants
-                || &program.input_type != ty
-                || program.output_type
-                    != StructuredInfoType::leaf(KindId::new("value/bool"))
-                        .map_err(|_| PreparedNativeRefusal::InvalidProgram)?
-            {
-                return Err(PreparedNativeRefusal::InvalidProgram);
-            }
-            evaluators.push(
-                PreparedPortableExpressionEvaluator::new(program)
-                    .map_err(|_| PreparedNativeRefusal::InvalidProgram)?,
-            );
-        }
-        scopes.push(Scope {
-            path: path.clone(),
-            native,
-            evaluators,
-        });
-    }
-    match ty.shape() {
-        Shape::Leaf(_) => (),
-        Shape::Nominal { representation, .. } => {
-            if matches!(representation.shape(), Shape::Nominal { .. }) {
-                return Err(PreparedNativeRefusal::MissingNativeMetadata);
-            }
-            path.push(Part::Representation);
-            prepare(document, representation, path, scopes, bounds, count)?;
-            path.pop();
-        }
-        Shape::Record { fields, .. } => {
-            for field in fields {
-                path.push(Part::Field(field.name().into()));
-                prepare(document, field.value_type(), path, scopes, bounds, count)?;
-                path.pop();
-            }
-        }
-        Shape::Variant { cases, .. } => {
-            for case in cases {
-                path.push(Part::Variant(case.tag().into()));
-                prepare(document, case.payload_type(), path, scopes, bounds, count)?;
-                path.pop();
-            }
-        }
-        Shape::Collection { element, length } => {
-            prepare_elements(document, element, length, path, scopes, bounds, count)?
-        }
-        Shape::Sequence {
-            element,
-            maximum_items,
-            ..
-        } => prepare_elements(
-            document,
-            element,
-            maximum_items,
-            path,
-            scopes,
-            bounds,
-            count,
-        )?,
-    }
-    Ok(())
-}
-fn prepare_elements<'d>(
-    document: &'d CheckedSyntaxDocument,
-    element: &StructuredInfoType,
-    length: u16,
-    path: &mut Vec<Part>,
-    scopes: &mut Vec<Scope<'d>>,
-    bounds: PreparedNativeBounds,
-    count: &mut (usize, usize),
-) -> Result<(), PreparedNativeRefusal> {
-    for index in 0..length {
-        path.push(Part::Index(index));
-        prepare(document, element, path, scopes, bounds, count)?;
-        path.pop();
-    }
-    Ok(())
-}
-fn select<'a>(
-    mut value: ValidatedCanonicalStructuredValue<'a>,
-    path: &[Part],
-) -> Result<Option<ValidatedCanonicalStructuredValue<'a>>, PreparedNativeRefusal> {
-    for part in path {
-        let next = match part {
-            Part::Representation => Some(
-                value
-                    .representation()
-                    .map_err(|_| PreparedNativeRefusal::Shape)?,
-            ),
-            Part::Field(name) => value
-                .record_field(name)
-                .map_err(|_| PreparedNativeRefusal::Shape)?,
-            Part::Index(index) => value
-                .collection_index(*index)
-                .map_err(|_| PreparedNativeRefusal::Shape)?,
-            Part::Variant(tag) => value
-                .variant_payload(tag)
-                .map_err(|_| PreparedNativeRefusal::Shape)?,
-        };
-        let Some(next) = next else {
-            return Ok(None);
-        };
-        value = next;
-    }
-    Ok(Some(value))
-}
 fn validate_scope(
     scope: &mut Scope<'_>,
-    input: &[u8],
+    value: ValidatedCanonicalStructuredValue<'_>,
     scratch: &mut Vec<u8>,
     maximum: usize,
     index: usize,
 ) -> Result<(), PreparedNativeRefusal> {
-    let value =
-        validate_canonical_structured_value(input).map_err(|_| PreparedNativeRefusal::Shape)?;
-    let Some(value) = select(value, &scope.path)? else {
-        return Ok(());
-    };
     if let Err(reason) = validate_native_contracts_borrowed(value, &scope.native.value_contracts) {
         let contract = scope
             .native
@@ -424,6 +322,7 @@ fn validate_scope(
                     scope: index,
                     invariant,
                 })?;
+        scope.checked_invariants = invariant + 1;
         if !InfoBool::decode(result)
             .map_err(|_| PreparedNativeRefusal::Evaluation {
                 scope: index,
