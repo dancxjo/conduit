@@ -38,6 +38,12 @@ pub(super) fn encode(
                 bytes.push(1);
                 bytes.extend_from_slice(&bits.encode());
             }
+            O::ProjectedConstant(input) => {
+                bytes.push(7);
+                rational(bytes, input.source())?;
+                bytes.extend_from_slice(&input.target().encode());
+                rational(bytes, input.maximum_error())?;
+            }
             O::Add { left, right }
             | O::Subtract { left, right }
             | O::Multiply { left, right }
@@ -94,6 +100,17 @@ pub(super) fn program(
             6 => O::Negate {
                 input: cursor.take(1)?[0],
             },
+            7 => {
+                let source = cursor.rational(work)?;
+                let target = IeeeF64::from_bits(cursor.u64()?);
+                let maximum_error = cursor.rational(work)?;
+                O::ProjectedConstant(Box::new(crate::Binary64ProjectedInput::new(
+                    source,
+                    target,
+                    maximum_error,
+                    work,
+                )?))
+            }
             _ => return Err(NumericalRealizationRefusal::InvalidCertificate),
         });
     }

@@ -1,14 +1,19 @@
 //! Execute and certify a fixed operation order, including every intermediate rounding.
 use super::*;
 use alloc::{boxed::Box, vec::Vec};
+mod projected_input;
 mod runner;
-pub use runner::PreparedBinary64AlgorithmRunner;
+pub use projected_input::Binary64ProjectedInput;
+pub use runner::{Binary64AlgorithmInput, PreparedBinary64AlgorithmRunner};
 pub const BINARY64_ALGORITHM_MAX_STEPS: usize = 32;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Binary64Operation {
     Constant(Box<ExactRational>),
     /// Explicit finite IEEE input, preserving its signed-zero representation.
     IeeeConstant(IeeeF64),
+    /// A mathematical source and separately represented incoming value.
+    /// Boxing preserves the layout of all preexisting operation variants.
+    ProjectedConstant(Box<Binary64ProjectedInput>),
     Add {
         left: u8,
         right: u8,
@@ -104,13 +109,24 @@ impl PreparedBinary64Algorithm {
         {
             return Err(R::StepLimit);
         }
-        let retained_payload_bytes = core::mem::size_of::<Self>()
-            + program.len() * core::mem::size_of::<Binary64Step>()
-            + program
-                .iter()
-                .filter(|op| matches!(op, Binary64Operation::Constant(_)))
-                .count()
-                * core::mem::size_of::<ExactRational>();
+        let retained_heap_bytes = program
+            .iter()
+            .try_fold(0usize, |total, op| {
+                total.checked_add(match op {
+                    Binary64Operation::Constant(_) => core::mem::size_of::<ExactRational>(),
+                    Binary64Operation::ProjectedConstant(_) => {
+                        core::mem::size_of::<Binary64ProjectedInput>()
+                    }
+                    _ => 0,
+                })
+            })
+            .ok_or(R::StorageLimit)?;
+        let retained_payload_bytes = program
+            .len()
+            .checked_mul(core::mem::size_of::<Binary64Step>())
+            .and_then(|n| n.checked_add(core::mem::size_of::<Self>()))
+            .and_then(|n| n.checked_add(retained_heap_bytes))
+            .ok_or(R::StorageLimit)?;
         if retained_payload_bytes > limits.maximum_retained_bytes as usize {
             return Err(R::StorageLimit);
         }
@@ -224,6 +240,10 @@ fn evaluate_value(
         O::IeeeConstant(bits) => {
             let value = ExactRational::from_binary64(*bits, work)?;
             (value, value, None, Some(*bits))
+        }
+        O::ProjectedConstant(input) => {
+            let actual = input.validate(work)?;
+            (input.source(), actual, None, Some(input.target()))
         }
         O::Negate { input } => {
             let input = get(*input)?;

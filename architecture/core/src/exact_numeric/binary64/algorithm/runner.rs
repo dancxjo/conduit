@@ -1,7 +1,31 @@
 //! Reuse the existing arithmetic evaluator with preallocated transactional state.
 use super::*;
 
-/// Every input binds one declared Constant step; all other operations, rounding,
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Binary64AlgorithmInput<'a> {
+    Exact(&'a ExactRational),
+    Projected(&'a Binary64ProjectedInput),
+}
+enum InputValues<'a> {
+    Exact(&'a [ExactRational]),
+    Mixed(&'a [Binary64AlgorithmInput<'a>]),
+}
+impl InputValues<'_> {
+    fn len(&self) -> usize {
+        match self {
+            Self::Exact(v) => v.len(),
+            Self::Mixed(v) => v.len(),
+        }
+    }
+    fn at(&self, index: usize) -> Option<Binary64AlgorithmInput<'_>> {
+        match self {
+            Self::Exact(v) => v.get(index).map(Binary64AlgorithmInput::Exact),
+            Self::Mixed(v) => v.get(index).copied(),
+        }
+    }
+}
+
+/// Every input binds one declared Constant or ProjectedConstant step; other operations, rounding,
 /// tolerance and bounds remain those of the prepared template. This runner does
 /// not establish a Source/Type binding for its input slots; that is the caller's
 /// admission obligation. It does not reinterpret explicit IEEE constants.
@@ -40,7 +64,7 @@ impl PreparedBinary64AlgorithmRunner {
             let index = usize::from(step);
             if !matches!(
                 template.steps.get(index).map(|s| &s.operation),
-                Some(Binary64Operation::Constant(_))
+                Some(Binary64Operation::Constant(_) | Binary64Operation::ProjectedConstant(_))
             ) || input_for_step[index].is_some()
             {
                 return Err(R::InvalidProgram);
@@ -72,6 +96,23 @@ impl PreparedBinary64AlgorithmRunner {
         inputs: &[ExactRational],
         work: &mut ExactNumericWork,
     ) -> Result<&PreparedBinary64Algorithm, Binary64AlgorithmRefusal> {
+        self.execute_values(InputValues::Exact(inputs), work)
+    }
+    /// Preserve incoming mathematical source and represented value separately.
+    /// Exact and projected slots are distinct; neither can be silently substituted
+    /// for the other. Each projected slot retains its template error ceiling.
+    pub fn execute_inputs<'a>(
+        &mut self,
+        inputs: &'a [Binary64AlgorithmInput<'a>],
+        work: &mut ExactNumericWork,
+    ) -> Result<&PreparedBinary64Algorithm, Binary64AlgorithmRefusal> {
+        self.execute_values(InputValues::Mixed(inputs), work)
+    }
+    fn execute_values(
+        &mut self,
+        inputs: InputValues<'_>,
+        work: &mut ExactNumericWork,
+    ) -> Result<&PreparedBinary64Algorithm, Binary64AlgorithmRefusal> {
         if inputs.len() != self.input_count {
             return Err(Binary64AlgorithmRefusal::InvalidProgram);
         }
@@ -84,7 +125,7 @@ impl PreparedBinary64AlgorithmRunner {
     }
     fn evaluate(
         &mut self,
-        inputs: &[ExactRational],
+        inputs: InputValues<'_>,
         work: &mut ExactNumericWork,
     ) -> Result<(), Binary64AlgorithmRefusal> {
         let admitted = work.remaining();
@@ -96,10 +137,17 @@ impl PreparedBinary64AlgorithmRunner {
             let (prior, tail) = scratch.steps.split_at_mut(index);
             let step = &mut tail[0];
             if let Some(input) = self.input_for_step[index] {
-                let Binary64Operation::Constant(value) = &mut step.operation else {
-                    return Err(Binary64AlgorithmRefusal::InvalidProgram);
-                };
-                **value = inputs[usize::from(input)];
+                match (&mut step.operation, inputs.at(usize::from(input))) {
+                    (
+                        Binary64Operation::Constant(value),
+                        Some(Binary64AlgorithmInput::Exact(input)),
+                    ) => **value = *input,
+                    (
+                        Binary64Operation::ProjectedConstant(value),
+                        Some(Binary64AlgorithmInput::Projected(input)),
+                    ) => value.stage(input),
+                    _ => return Err(Binary64AlgorithmRefusal::InvalidProgram),
+                }
             }
             let (semantic, projection) = evaluate_value(
                 &step.operation,
