@@ -38,7 +38,9 @@ impl Reader {
             return Ok(());
         };
         let entry =
-            serde_json::json!({"direction":direction,"message":String::from_utf8_lossy(bytes)})
+            serde_json::json!({"direction":direction,"message":String::from_utf8_lossy(bytes),
+                "observer_clock":super::observation_clock::ID,
+                "observer_timestamp_ns":super::observation_clock::nanos()})
                 .to_string();
         if self.trace_bytes + entry.len() + 1 > 1024 * 1024 {
             return Err(ConduitosError::refusal(
