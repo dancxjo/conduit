@@ -45,6 +45,11 @@ planner equality remains intact. source inlining refuses a qualified fore whose
 predicate disappears at an executable boundary. Other lowerings cannot silently
 remove it.
 
+Known physical source kinds must also agree across an identity expression or a
+payload cord. A `Frequency near ...` packet cannot become `Distance near ...`
+through their shared evidence carrier. These static mismatches refuse during
+expansion; generic `Quantity` keeps its consuming runtime physical check.
+
 Preparation validates definitions and owns the schema/storage allocations. play
 uses borrowed numerical verification with finite work meters. Verification checks
 canonical schema, source wire and mathematical coordinate, physical identity and
