@@ -208,3 +208,62 @@ fn node_and_depth_limits_refuse_without_growth_and_reset_recovers() {
     assert!(correct);
     assert_eq!(allocations, 0);
 }
+
+#[test]
+fn canonical_operands_import_with_remapped_references_and_shared_nodes_without_growth() {
+    let left = reference(0);
+    let right = reference(1);
+    let expected = reference(2);
+    let left = MathematicalValueView::decode(&left, &mut work()).unwrap();
+    let right = MathematicalValueView::decode(&right, &mut work()).unwrap();
+    let mut builder = ready();
+    let retained = builder.retained_payload_bytes();
+    let mut output = vec![0; MATHEMATICAL_VALUE_MAX_ENCODED_BYTES];
+    let (_, allocations) = observe(|| {
+        for _ in 0..32 {
+            builder.reset();
+            let mut w = work();
+            let a = builder.append_value(&left, &mut w).unwrap();
+            let b = builder.append_value(&right, &mut w).unwrap();
+            // Reimporting a canonical graph shares actual nodes, even though
+            // the two source operands both originally use local index zero.
+            assert_eq!(builder.append_value(&left, &mut w).unwrap(), a);
+            let sum = builder.insert(Node::Add(a, b), &mut w).unwrap();
+            let n = builder.encode(sum, &mut output, &mut w).unwrap();
+            assert_eq!(output[..n], expected);
+            assert_eq!(builder.retained_payload_bytes(), retained);
+        }
+    });
+    assert_eq!(allocations, 0);
+}
+#[test]
+fn imported_operand_refusals_obey_the_existing_work_node_bounds_and_reset_contract() {
+    let encoded = reference(1);
+    let view = MathematicalValueView::decode(&encoded, &mut work()).unwrap();
+    let mut builder = ready();
+    let retained = builder.retained_payload_bytes();
+    let mut output = vec![0; MATHEMATICAL_VALUE_MAX_ENCODED_BYTES];
+    let (_, allocations) = observe(|| {
+        let mut w = work();
+        for n in 0..MATHEMATICAL_VALUE_MAX_NODES {
+            builder
+                .insert(Node::Rational(ExactRational::from_i128(n as i128)), &mut w)
+                .unwrap();
+        }
+        assert!(matches!(
+            builder.append_value(&view, &mut w),
+            Err(R::NodeBound)
+        ));
+        builder.reset();
+        assert!(matches!(
+            builder.append_value(&view, &mut ExactNumericWork::new(0)),
+            Err(R::Numeric(ExactNumericRefusal::WorkLimit))
+        ));
+        builder.reset();
+        let root = builder.append_value(&view, &mut work()).unwrap();
+        let n = builder.encode(root, &mut output, &mut work()).unwrap();
+        assert_eq!(output[..n], encoded);
+        assert_eq!(builder.retained_payload_bytes(), retained);
+    });
+    assert_eq!(allocations, 0);
+}

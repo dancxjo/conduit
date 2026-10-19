@@ -50,3 +50,24 @@ and the explicitly owned numerical projection boundary. Quantity wire profiles
 currently admit decimal/rational coordinates, not a symbolic Quantity carrier.
 No new public PR is opened during the Fore admission hold. All original parent
 requirements and exact-source integration/publication gates remain in force.
+
+## Borrowed operand import (private continuation)
+
+The prepared builder can append an already validated `MathematicalValueView`.
+It remaps the operand's local references through a fixed 32-entry mapping and
+uses the existing checked insertion, structural interning, node/depth ceilings,
+and limb-work meter. An index from one operand cannot identify an unrelated node
+in another. Importing a shared graph twice retains the same destination nodes.
+No floating-point execution witness or physical/source authority is inferred.
+
+The input remains borrowed; import allocates no buffers. A refused import may
+retain a partial construction, so the caller resets before starting another
+transaction. Result encoding retains its separate no-partial-output law. The
+selected builder suite has seven passing tests, including 32 guarded joins of
+separately encoded Pi/180 and sqrt(2) operands with zero observed allocations,
+unchanged retained capacity and byte equality with ordinary Core construction.
+Node/work refusals followed by reset and recovery are also guarded.
+
+This prepares reuse for exact symbolic Source arithmetic. The current Source
+arithmetic evaluator still accepts rational operands only; this method does not
+by itself establish that integration, numerical projection, or parent acceptance.

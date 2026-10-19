@@ -93,6 +93,30 @@ impl PreparedMathematicalValueBuilder {
     ) -> Result<MathematicalNodeId, MathematicalValueRefusal> {
         self.builder.insert(node, work)
     }
+    /// Import already validated canonical mathematical data, remapping every
+    /// reference into this construction. Input-local indexes grant no identity
+    /// in the destination. Existing structural interning and bounds still apply.
+    /// A refusal can retain an imported prefix; reset before a new transaction.
+    /// This neither allocates nor encodes a floating-point computation witness.
+    pub fn append_value(
+        &mut self,
+        value: &MathematicalValueView<'_>,
+        work: &mut ExactNumericWork,
+    ) -> Result<MathematicalNodeId, MathematicalValueRefusal> {
+        let root = value
+            .node_count()
+            .checked_sub(1)
+            .ok_or(MathematicalValueRefusal::InvalidReference)?;
+        let mut ids = [MathematicalNodeId {
+            index: 0,
+            digest: [0; 32],
+        }; MATHEMATICAL_VALUE_MAX_NODES];
+        for index in 0..value.node_count() {
+            let node = value.node(index, work)?.remap(&ids);
+            ids[index] = self.insert(node, work)?;
+        }
+        Ok(ids[root])
+    }
     /// Produce exactly the ordinary builder's canonical bytes. Errors leave
     /// caller output untouched. Encoding never grows a prepared vector.
     pub fn encode(
