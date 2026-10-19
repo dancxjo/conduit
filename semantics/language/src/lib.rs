@@ -126,3 +126,5 @@ pub mod parser_model;
 
 mod parser_scorer;
 pub use parser_scorer::*;
+
+pub mod parser_commitment;
