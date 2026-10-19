@@ -46,6 +46,10 @@ impl OwnerImports {
         self.identities
             .iter()
             .zip(&self.paths)
+            // Quality is nested inside this external owner root, not a
+            // separately generated Audio field. Keep its checked metadata in
+            // the catalog without requesting an unused Rust binding.
+            .filter(|(_, path)| **path == "conduit_data::ClockRelation")
             .map(|(identity, path)| ExternalNativeRustBinding {
                 semantic_identity: identity,
                 rust_type_path: path,

@@ -199,8 +199,14 @@ pub use generated::{
     AudioControlCadence, AudioControlProjectionPoint, AudioControlProjectionSchedule,
     AudioControlReconstruction,
 };
+pub use generated::{
+    AudioControlFinalTimeAdmission, AudioControlQueryTimeAdmission, AudioControlQueryTimeRaw,
+};
 pub const CLOCK_PROJECTION_SOURCE: &str = include_str!("../clock_projection.conduit");
 pub const CONTROL_PROJECTION_SOURCE: &str = include_str!("../control_projection.conduit");
 
 mod control_projection_report;
 pub use control_projection_report::*;
+
+mod periodic_projection_report;
+pub use periodic_projection_report::*;

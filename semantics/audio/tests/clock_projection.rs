@@ -46,7 +46,7 @@ fn query(origin: u64, numerator: u64, denominator: u64) -> Vec<u8> {
 #[test]
 fn nonzero_original_anchors_and_unreduced_fraction_survive_exact_clock_projection() {
     let original = binding(relation(1, 100, 900));
-    let canonical = original.encode().unwrap();
+    let canonical = original.clone().encode().unwrap();
     let prepared = PreparedAudioClockBinding::new(&canonical).unwrap();
     let q = query(2, 2, 6);
     let receipt = prepared.project(&q).unwrap();
@@ -92,7 +92,7 @@ fn independent_clock_ratios_match_wide_reference_and_preserve_origins() {
         ),
     ] {
         let original = binding(relation(source_ticks, target_ticks, 7));
-        let prepared = PreparedAudioClockBinding::new(&original.encode().unwrap()).unwrap();
+        let prepared = PreparedAudioClockBinding::new(&original.clone().encode().unwrap()).unwrap();
         let receipt = prepared.project(&query(2, numerator, denominator)).unwrap();
         let n = i128::from(numerator) * i128::from(target_ticks);
         let d = i128::from(denominator) * i128::from(source_ticks);
@@ -179,7 +179,7 @@ fn mismatched_origin_and_forged_projection_cannot_reenter_the_checked_result() {
         PreparedAudioClockBinding::new(&foreign_origin.encode().unwrap()),
         Err(AudioClockProjectionRefusal::UnsupportedBinding)
     ));
-    let prepared = PreparedAudioClockBinding::new(&original.encode().unwrap()).unwrap();
+    let prepared = PreparedAudioClockBinding::new(&original.clone().encode().unwrap()).unwrap();
     let receipt = prepared.project(&query(2, 1, 3)).unwrap();
     let forged = AudioClockProjectionRaw::new(3, 1, 934).unwrap();
     assert!(AudioClockProjectionResult::new(receipt.result().eligible().clone(), forged).is_err());

@@ -26,11 +26,18 @@ impl From<AudioSourceExecutionRefusal> for AudioControlProjectionRefusal {
 }
 pub struct AudioControlProjectionPointReceipt {
     query: AudioTrajectoryQuery,
+    admission: AudioControlQueryTimeAdmission,
     query_canonical: Vec<u8>,
     control: AudioControlEvaluation,
     clock: AudioClockProjectionReceipt,
 }
 impl AudioControlProjectionPointReceipt {
+    pub fn admission(&self) -> &AudioControlQueryTimeAdmission {
+        &self.admission
+    }
+    pub fn raw(&self) -> &AudioControlQueryTimeRaw {
+        self.admission.raw()
+    }
     pub fn query(&self) -> &AudioTrajectoryQuery {
         &self.query
     }
@@ -52,8 +59,15 @@ pub struct AudioControlProjectionReceipt {
     executions: Vec<AudioSourceExecution>,
     points: Vec<AudioControlProjectionPointReceipt>,
     final_query: AudioTrajectoryQuery,
+    final_admission: AudioControlFinalTimeAdmission,
 }
 impl AudioControlProjectionReceipt {
+    pub fn final_admission(&self) -> &AudioControlFinalTimeAdmission {
+        &self.final_admission
+    }
+    pub fn final_raw(&self) -> &AudioControlQueryTimeRaw {
+        self.final_admission.raw()
+    }
     pub fn schedule(&self) -> &AudioControlProjectionSchedule {
         &self.schedule
     }
@@ -97,13 +111,19 @@ impl PreparedAudioControlProjection {
     ) -> Result<AudioControlProjectionReceipt, AudioControlProjectionRefusal> {
         let schedule = AudioControlProjectionSchedule::decode(canonical)?;
         let mut executions = Vec::new();
-        let final_query: AudioTrajectoryQuery =
+        let final_raw: AudioControlQueryTimeRaw =
             self.final_time.native(schedule.clone(), &mut executions)?;
+        let final_query = admit_query(schedule.anchor(), &final_raw)?;
+        let final_admission =
+            AudioControlFinalTimeAdmission::new(final_query.clone(), final_raw, schedule.clone())?;
         let mut points = Vec::with_capacity(16);
         // Only finite collection traversal is native. Source owns time arithmetic.
         for index in 0..*schedule.update_count() {
             let input = AudioControlProjectionPoint::new(index, schedule.clone())?;
-            let query: AudioTrajectoryQuery = self.query_time.native(input, &mut executions)?;
+            let raw: AudioControlQueryTimeRaw =
+                self.query_time.native(input.clone(), &mut executions)?;
+            let query = admit_query(schedule.anchor(), &raw)?;
+            let admission = AudioControlQueryTimeAdmission::new(input, query.clone(), raw)?;
             let query_canonical = query.clone().encode()?;
             let clock = clock
                 .project(&query_canonical)
@@ -114,6 +134,7 @@ impl PreparedAudioControlProjection {
                 .map_err(AudioControlProjectionRefusal::Control)?;
             points.push(AudioControlProjectionPointReceipt {
                 query,
+                admission,
                 query_canonical,
                 control,
                 clock,
@@ -127,6 +148,18 @@ impl PreparedAudioControlProjection {
             executions,
             points,
             final_query,
+            final_admission,
         })
     }
+}
+
+// Field copying only: checked Source above owns every numerical operation.
+fn admit_query(
+    anchor: &AudioTrajectoryAnchor,
+    raw: &AudioControlQueryTimeRaw,
+) -> Result<AudioTrajectoryQuery, NativeBindingRefusal> {
+    AudioTrajectoryQuery::new(
+        anchor.clone(),
+        AudioExactTimeOffset::new(*raw.denominator(), *raw.numerator_seconds())?,
+    )
 }

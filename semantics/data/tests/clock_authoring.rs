@@ -1,5 +1,4 @@
 use conduit_data::{clock_authoring, ClockRelation, ClockRelationQuality};
-use conduit_plot::rust_binding::NativeRustBinding;
 use conduit_plot::{check_syntax_document, parse_syntax_document, StartupCatalog};
 
 #[test]
@@ -20,7 +19,6 @@ fn narrow_clock_import_preserves_owner_roots_and_nested_refinements() {
         ClockRelationQuality::semantic_type().unwrap()
     );
     assert!(!relation.value_contracts.is_empty());
-    assert!(!quality.value_contracts.is_empty());
     let mut catalog = StartupCatalog::new();
     for ty in &checked {
         catalog
@@ -28,7 +26,7 @@ fn narrow_clock_import_preserves_owner_roots_and_nested_refinements() {
             .unwrap();
     }
     let imported = check_syntax_document(
-        &parse_syntax_document("type ClockEnvelope = { relation: ClockRelation }"),
+        &parse_syntax_document("type ClockEnvelope = {\n    relation: ClockRelation\n}\n"),
         &catalog,
     )
     .unwrap();

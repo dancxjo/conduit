@@ -107,7 +107,7 @@ impl PreparedAudioClockBinding {
         let raw: AudioClockProjectionRaw =
             self.projection.native(eligible.clone(), &mut executions)?;
         let result = AudioClockProjectionResult::new(eligible, raw)?;
-        let admitted_canonical = result.encode()?;
+        let admitted_canonical = result.clone().encode()?;
         Ok(AudioClockProjectionReceipt {
             binding_canonical: self.binding_canonical.clone(),
             query_canonical: query_canonical.to_vec(),

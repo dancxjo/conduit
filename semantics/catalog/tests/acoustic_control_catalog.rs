@@ -40,14 +40,14 @@ fn public_clock_and_control_callers_expand_exact_resource_free_owner_source() {
         (
             "audio/control-query-time",
             "AudioControlProjectionPoint",
-            "AudioTrajectoryQuery",
+            "AudioControlQueryTimeRaw",
             "value",
             "result",
         ),
         (
             "audio/control-final-time",
             "AudioControlProjectionSchedule",
-            "AudioTrajectoryQuery",
+            "AudioControlQueryTimeRaw",
             "value",
             "result",
         ),
@@ -112,5 +112,11 @@ fn wrong_owner_input_type_refuses_public_caller_admission() {
     let mut profiles = ProfileCatalog::new();
     install_acoustic_control_catalogs(&mut startup, &mut profiles).unwrap();
     let source = "plot wrong (\n >> input: AudioTrajectoryQuery\n valid: Boolean >>\n) {\n component: audio/clock-binding-valid()\n input >> component.binding\n component.valid >> valid\n}\n";
-    assert!(check_syntax_document(&parse_syntax_document(source), &startup).is_err());
+    let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
+    let mut backs = CanonicalBackCatalog::new();
+    install_acoustic_control_backs(&profiles, &mut backs).unwrap();
+    assert!(
+        expand_canonical_plot_for_authoring_with_backs(&checked, "wrong", &profiles, &backs,)
+            .is_err()
+    );
 }

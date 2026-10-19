@@ -116,3 +116,9 @@ calibration, arbitrary numeric profiles and whole-parent stable acceptance do
 not follow from this sample-grid seam. The separate explicit-reference exact-power-of-ten
 dB capability is documented in [DECIBELS.md](DECIBELS.md); general logarithmic
 conversion remains open.
+
+The separate declared clock and control-cadence seam now has focused local native,
+catalog and installed-host positive proof, including nonzero clock anchors and
+independent control cadence. See [CONTROL_CONTRACT.md](CONTROL_CONTRACT.md) and
+the reusable [public callers](examples/clock-control.conduit). These results
+do not claim final aggregate or whole-parent acceptance.

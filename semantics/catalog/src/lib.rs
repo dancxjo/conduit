@@ -539,3 +539,12 @@ pub use pcm_packing::*;
 mod acoustic_control_catalog;
 #[cfg(feature = "plot-catalog")]
 pub use acoustic_control_catalog::*;
+
+#[cfg(feature = "plot-catalog")]
+mod resonator_projection_preparation;
+#[cfg(feature = "plot-catalog")]
+pub use resonator_projection_preparation::*;
+#[cfg(feature = "plot-catalog")]
+mod resonator_projection_report;
+#[cfg(feature = "plot-catalog")]
+pub use resonator_projection_report::*;

@@ -70,7 +70,7 @@ estimated quality/error. Time owns monotonic clock identity, boot/basis, scale,
 resolution and uncertainty. Audio sampled-signal mapping retains declared clock,
 start and cadence; none of these carriers alone executes an Audio-time conversion.
 
-The in-progress completion Source is `clock_projection_types.conduit` and
+The declared clock completion Source is `clock_projection_types.conduit` and
 `clock_projection.conduit`, with `src/clock_projection.rs` exposing
 `PreparedAudioClockBinding::new(...).project(...)`. `AudioClockBinding` retains
 an Audio anchor, complete Data relation, explicit source/target clock names,
@@ -82,30 +82,64 @@ Source computes target-anchor plus the quotient of elapsed seconds × target tic
 / source ticks, preserving the complete remainder and denominator. This is a
 caller-declared affine relationship, with no calibration claim.
 
-The in-progress cadence Source is `control_projection_types.conduit` and
+The bounded cadence Source is `control_projection_types.conduit` and
 `control_projection.conduit`, with `src/control_projection.rs` exposing
 `PreparedAudioControlProjection::new(original).project(schedule, clock)`.
 `AudioControlProjectionSchedule` retains anchor/start, distinct
 `AudioControlCadence.updates_per_second` (1..192000), update_count (1..16) and
 `point_samples_only` reconstruction. Original start operands and start denominator
-× cadence are bounded U32 MAX. Source produces exact query fractions; receipts
-retain the original trajectory set/schedule, each evaluated control, clock receipt,
+× cadence are bounded U32 MAX. Source computes exact query fractions into
+`AudioControlQueryTimeRaw` (numerator and denominator). The Rust adapter copies
+those fields with the original anchor into the existing checked
+`AudioExactTimeOffset`/`AudioTrajectoryQuery` owner constructors; it performs no
+cadence arithmetic. Raw output alone does not establish the positive-denominator
+refinement. Receipts retain the original trajectory set/schedule, raw result,
+finally admitted query, each evaluated control and clock receipt,
 program/input/output and separate final boundary query. Point samples establish
 no between-point reconstruction or sample-and-hold guarantee. The selected
 trajectory step/linear profile still controls numerical eligibility.
 
-These names describe implementation under preparation, not passing acceptance.
-The completion aggregate must positively test 100/200-Hz control schedules and
-independent 8/16/48-kHz sample projections while preserving the same original
-intent, cumulative thirds and final endpoint behavior. It must exercise foreign
-anchor/name/origin, estimated/reversed unsupported relation, gaps, out-of-profile
-operands, finite count and overflow refusals. The preparation catalog implementation is
+Local clock/control validation now passes four clock tests, four cadence tests,
+two cadence-report tests, three public catalog tests and four installed-host
+Source/Plan/Play tests. These exercise positive clock conversion with nonzero
+anchors and three declared rates, 100/200-Hz control queries, retained originals,
+finite cadence and refusal paths. The installed tests consume the four reusable
+public callers in [examples/clock-control.conduit](examples/clock-control.conduit).
+Run the supported aggregate with `cargo +stable xtask check acoustic-control`.
+The focused local results do not assert that the final aggregate, exact-head
+Integration, publication or whole-parent acceptance has passed.
+
+The preparation catalog implementation is
 `semantics/catalog/src/acoustic_control_catalog.rs`, with all five exact
 `audio/clock-*` and `audio/control-*-time` Source Fores/Backs and owner Types;
 `semantics/catalog/tests/acoustic_control_catalog.rs` checks caller lookup,
-expansion, exact Source/plot identity and atomic refusal. Those tests and #4952
-precision/coverage reports still require successful execution evidence. An unsupported or refused
-path cannot substitute for the required positive implementation.
+expansion, exact Source/plot identity and atomic refusal. Neither the public
+example nor these semantic preparation Fores acquires hardware-clock authority.
+
+The new numeric adapters preserve the existing owner algorithms and use Core's
+`ProjectionReport`/`ProjectionFidelity`/`ProjectionLoss` contracts:
+
+* Audio's `AudioPeriodicNumericProjection::new(&cursor)` and
+  `AudioPeriodicNumericPolicy` expose initial period Q8, amplitude Q15 and phase
+  Q8 with exact original request and per-field retained remainders. Advanced
+  cursors refuse this initial-projection report. A nonzero remainder is a known
+  precision loss; retaining original fractions does not make the numeric target
+  exact.
+* Catalog's `PreparedResonatorNumericProjection::new().project(input_canonical)`
+  executes the existing owner Source's 24-stage resonator preparation chain,
+  retains exact source/checked/expanded identities and all execution receipts,
+  and requires the actual started outcome. `ResonatorNumericProjection` and
+  `ResonatorPolynomialPolicy` describe its original Hz request and Q14 target.
+  Polynomial mapping reports `Approximation`, with the existing corpus-only
+  center/bandwidth/response tolerances. It supplies no certified per-request
+  bound or universal numerical enclosure.
+
+These numeric adapters/tests are under validation; their passing execution is
+not established by the earlier clock/control results. Their policies must reject
+fabricated preservation, missing obligations and changed target/source evidence;
+exact consumers must reject a lossy numeric target. The final aggregate must
+retain that evidence alongside positive independent control/sample-rate cases
+and all required domain, coverage, count and clock-relationship refusals.
 
 ## Public surface, proof and accepted component receipts
 

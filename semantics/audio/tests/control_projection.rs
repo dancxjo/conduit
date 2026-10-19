@@ -93,6 +93,22 @@ fn control_cadences_are_independent_of_pcm_and_retain_exact_originals() {
         for (index, point) in receipt.points().iter().enumerate() {
             assert_eq!(*point.query().time().numerator_seconds(), index as u64);
             assert_eq!(*point.query().time().denominator(), rate);
+            assert_eq!(
+                point.raw().numerator_seconds(),
+                point.query().time().numerator_seconds()
+            );
+            assert_eq!(
+                point.raw().denominator(),
+                point.query().time().denominator()
+            );
+            assert_eq!(point.admission().query(), point.query());
+            assert_eq!(
+                AudioControlQueryTimeRaw::decode(
+                    receipt.executions()[index + 1].output_canonical()
+                )
+                .unwrap(),
+                *point.raw()
+            );
             let (n, d) = ratio(point.control().evaluations()[0].result());
             assert_eq!(
                 n * rate as u128,
@@ -130,6 +146,11 @@ fn control_cadences_are_independent_of_pcm_and_retain_exact_originals() {
             receipt.final_query(),
             receipt.points().last().unwrap().query()
         );
+        assert_eq!(
+            AudioControlQueryTimeRaw::decode(receipt.executions()[0].output_canonical()).unwrap(),
+            *receipt.final_raw()
+        );
+        assert_eq!(receipt.final_admission().query(), receipt.final_query());
     }
 }
 #[test]
@@ -250,4 +271,77 @@ fn gaps_overlaps_and_numeric_profile_refusals_survive_schedule_composition() {
     assert!(p
         .project(&schedule(1000, time(0, 1), 1).encode().unwrap(), &clock())
         .is_err());
+}
+
+#[test]
+fn same_point_one_second_200hz_intent_survives_independent_pcm_and_control_grids() {
+    let authored = AudioControlTrajectorySet::new(
+        AudioControlConflictPolicy::RefuseOverlap,
+        BoundedSequence::try_from_iter(vec![AudioScopedControlTrajectory::new(
+            "frequency".into(),
+            AudioTrajectoryDomain::Frequency,
+            0,
+            "source/point-one-second-200hz".into(),
+            trajectory(vec![segment(
+                time(0, 1),
+                time(1, 10),
+                hz(200, 1),
+                hz(200, 1),
+                AudioTrajectoryInterpolation::Step,
+            )]),
+        )
+        .unwrap()])
+        .unwrap(),
+        AudioControlGapPolicy::RefuseAnyGap,
+    )
+    .unwrap();
+    let original = authored.clone().encode().unwrap();
+    let prepared = PreparedAudioControlProjection::new(&original).unwrap();
+    // Explicit caller-declared relation: numeric rates never select a clock.
+    let declared_clock = clock();
+    for cadence in [100, 200] {
+        // A bounded finite view inside the unchanged 1/10-second trajectory.
+        let requested = schedule(cadence, time(0, 1), 11);
+        let receipt = prepared
+            .project(&requested.clone().encode().unwrap(), &declared_clock)
+            .unwrap();
+        assert_eq!(receipt.original(), &authored);
+        assert_eq!(receipt.original_canonical(), original);
+        assert_eq!(receipt.schedule(), &requested);
+        let original_segment = &receipt.original().controls().as_slice()[0]
+            .trajectory()
+            .segments()
+            .as_slice()[0];
+        assert_eq!(original_segment.end(), &time(1, 10));
+        assert_eq!(original_segment.left(), &hz(200, 1));
+        assert_eq!(original_segment.right(), &hz(200, 1));
+        for (index, point) in receipt.points().iter().enumerate() {
+            assert_eq!(point.query().time(), &time(index as u64, cadence));
+            assert_eq!(point.control().original_canonical(), original);
+            assert_eq!(point.control().evaluations()[0].result(), &hz(200, 1));
+            assert_eq!(
+                point.clock().binding_canonical(),
+                declared_clock.binding_canonical()
+            );
+        }
+        for pcm_rate in [8000, 16000, 48000] {
+            let sample_request = AudioSampleProjectionRequest::new(
+                AudioSampleRateBasis::new(anchor(1, 1), AudioFrameQuantization::Floor, pcm_rate)
+                    .unwrap(),
+                AudioSampleProjectionQuantity::duration(10, 1).unwrap(),
+            )
+            .unwrap();
+            let sample = PreparedAudioSampleProjection::new()
+                .unwrap()
+                .project(&sample_request.clone().encode().unwrap())
+                .unwrap();
+            assert_eq!(sample.original(), &sample_request);
+            assert_eq!(*sample.result().fraction().numerator_seconds(), 1);
+            assert_eq!(*sample.result().fraction().denominator(), 10);
+            assert_eq!(*sample.result().raw().whole_frames(), pcm_rate / 10);
+            assert_eq!(*sample.result().raw().remainder_numerator(), 0);
+            assert_eq!(receipt.original_canonical(), original);
+            assert_ne!(*receipt.schedule().cadence().updates_per_second(), pcm_rate);
+        }
+    }
 }
