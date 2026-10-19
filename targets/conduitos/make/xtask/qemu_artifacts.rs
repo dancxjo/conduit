@@ -178,7 +178,21 @@ impl Artifacts {
 
     pub(super) fn finish(&self, failure: Option<&ConduitosError>) -> Result<(), ConduitosError> {
         if let Some(observer) = &self.serial_observation {
-            observer.finish()?;
+            if let Err(error) = observer.finish() {
+                self.write("failed", Some(&error))?;
+                return Err(error);
+            }
+            if failure.is_none() {
+                if let Err(error) = super::journey_latency::retain(
+                    &self.directory,
+                    &self.serial,
+                    &self.context,
+                    &self.entries,
+                ) {
+                    self.write("failed", Some(&error))?;
+                    return Err(error);
+                }
+            }
         }
         self.write(
             if failure.is_some() {
@@ -199,10 +213,18 @@ impl Artifacts {
         } else {
             None
         };
+        let latency = if status == "complete" && self.serial_observation.is_some() {
+            Some(
+                json!({"file":"latency.json", "sha256":super::report::sha256_file(
+                &self.directory.join("latency.json"))?}),
+            )
+        } else {
+            None
+        };
         let manifest = json!({"schema":"conduit.conduitos/visual-journey@1","proof_class":"freestanding-emulator",
             "status":status,"context":self.context,"checkpoints":self.entries,
             "failure":failure.map(|error|json!({"reason":error.reason,"detail":error.detail})),
-            "serial_path":self.serial,"serial_observation":serial_observation});
+            "serial_path":self.serial,"serial_observation":serial_observation,"latency":latency});
         fs::write(
             self.directory.join("manifest.json"),
             serde_json::to_vec_pretty(&manifest).expect("serializable manifest"),
