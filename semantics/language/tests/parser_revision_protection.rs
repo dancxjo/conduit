@@ -100,6 +100,13 @@ fn checked_rebase_plays_and_preserves_only_the_committed_graph() {
     assert_eq!(received, 0);
     let value = StructuredInfoValue::from_canonical_bytes(&output.encoded).unwrap();
     let rebased = LanguageParserNumericState::from_structured(value).unwrap();
+    // Actual public Source output is correlated to the independent one-program
+    // replay. This is execution evidence, not installed epoch/current authority.
+    let program =
+        conduit_language::parser_rebase_replay::PreparedParserRebaseProgram::prepare().unwrap();
+    let replay = program.replay(admitted, &rebased).unwrap();
+    assert_eq!(replay.output_canonical(), output.encoded);
+    let admitted = replay.preparation();
     assert_eq!(rebased.basis(), admitted.request().basis());
     assert_eq!(*rebased.committed(), 1);
     assert_eq!(*rebased.unread(), 1);

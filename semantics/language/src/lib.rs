@@ -146,3 +146,6 @@ pub mod analysis_session;
 /// Explicit unaccepted candidate, never the default accepted model selection.
 #[cfg(all(feature = "parser-model", target_has_atomic = "ptr"))]
 pub mod parser_punctuation_model;
+
+/// Opaque replay of the existing single-survivor checked revision rebase.
+pub mod parser_rebase_replay;
