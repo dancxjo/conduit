@@ -135,3 +135,84 @@ fn general_evidence_replays_full_physical_receipts_without_allocation() {
         }
     }
 }
+
+#[test]
+fn replay_retains_original_allowance_and_enforces_independent_consumer_without_growth() {
+    let unit = Unit::Radian;
+    let role = QuantityRole::Linear;
+    let allowance = |n, d| RationalQuantity::new(q(n, d), unit, role).unwrap();
+    let original = allowance(1, 1_000_000);
+    let tighter = allowance(1, 2_000_000);
+    let looser = allowance(1, 100_000);
+    let zero = allowance(0, 1);
+    let negative = allowance(-1, 1);
+    let wrong_unit = limit(Unit::Degree, role);
+    let policy = MathematicalQuantityBinary32Policy {
+        maximum_error: original,
+        rounding: Binary32Rounding::NearestTiesEven,
+    };
+    let codec = MathematicalQuantityBinary32EvidenceCodec::new(policy);
+    let prepared = |consumer| {
+        PreparedMathematicalQuantityBinary32::new(
+            requirements(),
+            Binary32Rounding::NearestTiesEven,
+            consumer,
+            200_000_000,
+        )
+        .unwrap()
+    };
+    let mut producer = prepared(original);
+    let mut tight_reader = prepared(tighter);
+    let mut loose_reader = prepared(looser);
+    let mut exact_reader = prepared(zero);
+    let wire = frame(true, unit, role);
+    let mut evidence = vec![0; LIMITS.total_bytes];
+    let (_, allocations) = observe(|| {
+        let sent = producer.execute(&wire, &mut work()).unwrap();
+        let target = sent.target();
+        let facts = sent.facts();
+        let domain = MathematicalQuantityBinary32Domain::new();
+        let report =
+            ProjectionReport::new(&domain, &policy, input(&sent, &target, &facts)).unwrap();
+        let n = encode_projection_evidence(&report, &codec, LIMITS, &mut evidence).unwrap();
+        for reader in [&mut tight_reader, &mut loose_reader] {
+            let replay = reader
+                .replay_with_allowance(&wire, original, &mut work())
+                .unwrap();
+            assert_eq!(replay.maximum_error(), original);
+            assert_eq!(replay.midpoint().maximum_error(), original);
+            let target = replay.target();
+            let facts = replay.facts();
+            let report =
+                ProjectionReport::new(&domain, &policy, input(&replay, &target, &facts)).unwrap();
+            verify_projection_evidence(&report, &codec, LIMITS, &evidence[..n]).unwrap();
+        }
+        assert!(matches!(
+            exact_reader.replay_with_allowance(&wire, original, &mut work()),
+            Err(MathematicalQuantityBinary32Refusal::ToleranceExceeded)
+        ));
+        assert!(matches!(
+            tight_reader.replay_with_allowance(&wire, negative, &mut work()),
+            Err(MathematicalQuantityBinary32Refusal::NegativeTolerance)
+        ));
+        assert!(matches!(
+            tight_reader.replay_with_allowance(&wire, wrong_unit, &mut work()),
+            Err(MathematicalQuantityBinary32Refusal::PhysicalToleranceMismatch)
+        ));
+        assert!(tight_reader
+            .replay_with_allowance(&wire, zero, &mut work())
+            .is_err());
+        // A refused replay leaves prepared scratch reusable and never changes
+        // the consumer's independent allowance or original producer policy.
+        let replay = tight_reader
+            .replay_with_allowance(&wire, original, &mut work())
+            .unwrap();
+        assert_eq!(replay.maximum_error(), original);
+        assert_eq!(replay.target(), target);
+        assert!(matches!(
+            exact_reader.replay_with_allowance(&wire, original, &mut work()),
+            Err(MathematicalQuantityBinary32Refusal::ToleranceExceeded)
+        ));
+    });
+    assert_eq!(allocations, 0);
+}
