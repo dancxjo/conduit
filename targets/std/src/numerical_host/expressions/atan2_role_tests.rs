@@ -21,12 +21,14 @@ impl ExternalForeOutputAdapter for Outputs {
         Ok(())
     }
 }
-fn prepared() -> (StdHost, Plan, PortableExpressionProgram) {
-    let syntax = parse_syntax_document(SOURCE);
+fn prepared(source: &str) -> (StdHost, Plan, PortableExpressionProgram) {
+    let syntax = parse_syntax_document(source);
     assert!(syntax.diagnostics.is_empty(), "{:?}", syntax.diagnostics);
-    let checked = check_syntax_document(&syntax, &StartupCatalog::new()).unwrap();
-    let authored =
-        expand_canonical_plot_for_authoring(&checked, "bearing", &ProfileCatalog::new()).unwrap();
+    let mut startup = StartupCatalog::new();
+    let mut profiles = ProfileCatalog::new();
+    quantity_conversion::install(&mut startup, &mut profiles).unwrap();
+    let checked = check_syntax_document(&syntax, &startup).unwrap();
+    let authored = expand_canonical_plot_for_authoring(&checked, "bearing", &profiles).unwrap();
     let ConfigurationValue::Text(encoded) = &authored.expanded.gears[0].configuration[0].value
     else {
         panic!("canonical program")
@@ -110,7 +112,14 @@ fn packet(program: &PortableExpressionProgram, y: &str, x: &str) -> Vec<u8> {
 }
 #[test]
 fn installed_difference_roles_keep_exact_turn_axes_and_quadrants_without_kernel_allocation() {
-    let (mut host, plan, program) = prepared();
+    check_difference_roles(SOURCE);
+}
+#[test]
+fn installed_authored_temperature_delta_type_keeps_exact_turns_without_kernel_allocation() {
+    check_difference_roles(&SOURCE.replace("Quantity", "TemperatureDelta"));
+}
+fn check_difference_roles(source: &str) {
+    let (mut host, plan, program) = prepared(source);
     for (y, x, n, d) in [(9, 5, 1, 8), (-9, 5, -1, 8), (9, 0, 1, 4), (0, -5, 1, 2)] {
         let y = format!("TemperatureDelta({y}, °F)");
         let x = format!("TemperatureDelta({x}, K)");
@@ -156,7 +165,7 @@ fn installed_difference_roles_keep_exact_turn_axes_and_quadrants_without_kernel_
 }
 #[test]
 fn installed_point_mixed_and_zero_inputs_refuse_without_output_then_valid_input_recovers() {
-    let (mut host, plan, program) = prepared();
+    let (mut host, plan, program) = prepared(SOURCE);
     for (y, x, detail) in [
         ("21°C", "22°C", 21),
         ("TemperatureDelta(1, K)", "21°C", 21),

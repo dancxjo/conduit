@@ -1,0 +1,19 @@
+plot bearing (
+ >> pair: ExactTemperatureDifferenceComparisonReceipt
+ result: MathematicalAngle >>
+) = (math/atan2(.left.coordinate, .right.coordinate))
+
+plot explain (
+ >> angle: MathematicalAngle
+ result: Text >>
+) = (. == math/atan(1) ? "exact difference bearing" : "wrong")
+
+plot main {
+ samples: units/compare-temperature-differences(left=TemperatureDelta(9, °F), right=TemperatureDelta(5, K))
+ angle: bearing
+ check: explain
+ show: face/text("Difference bearing")
+ samples.receipt >> angle.pair
+ angle.result >> check.angle
+ check.result >> show
+}.
