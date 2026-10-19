@@ -298,7 +298,7 @@ fn policy_configuration_identity_retains_tolerance_unit_role_and_rounding_withou
             ..policy
         },
         MathematicalQuantityBinary32Policy {
-            maximum_error: limit(Unit::Radian, QuantityRole::Delta),
+            maximum_error: limit(Unit::Celsius, QuantityRole::Delta),
             ..policy
         },
         MathematicalQuantityBinary32Policy {
@@ -314,7 +314,17 @@ fn policy_configuration_identity_retains_tolerance_unit_role_and_rounding_withou
             ..policy
         },
     ];
+    // Hashing identifies configuration; it does not admit a point allowance.
+    let point = MathematicalQuantityBinary32Policy {
+        maximum_error: limit(Unit::Celsius, QuantityRole::Point),
+        ..policy
+    };
+    let delta = MathematicalQuantityBinary32Policy {
+        maximum_error: limit(Unit::Celsius, QuantityRole::Delta),
+        ..policy
+    };
     let (_, allocations) = observe(|| {
+        assert_ne!(point.configuration_digest(), delta.configuration_digest());
         let digest = policy.configuration_digest().unwrap();
         for _ in 0..32 {
             assert_eq!(policy.configuration_digest(), Some(digest));
