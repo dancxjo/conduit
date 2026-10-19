@@ -1,8 +1,8 @@
-//! One complete deterministic fallback round, never learned model evidence.
+//! One shared complete-round traversal with explicit scoring provenance.
 //! Existing authored Source owns legality, lexical branching, rank and merge.
 use super::AnalysisEpochOwner;
 use crate::{analysis_epoch_initialization::admit, generated::LanguageAnalysisInitialRawBeam, *};
-use alloc::vec::Vec;
+use alloc::{string::String, vec::Vec};
 use conduit_plot::rust_binding::NativeBindingRefusal;
 #[path = "analysis_fallback_io.rs"]
 pub(super) mod io;
@@ -11,6 +11,21 @@ pub use io::{
     FallbackObservationProvider, FallbackOperationObservation, PreparedFallbackRoundPrograms,
     MAXIMUM_ROUND_BYTES, MAXIMUM_ROUND_OBSERVATIONS,
 };
+#[path = "analysis_round_scoring.rs"]
+mod scoring;
+use scoring::{FallbackScores, RankRequest, RoundScores};
+#[cfg(all(
+    feature = "parser-model",
+    target_has_atomic = "ptr",
+    target_has_atomic = "8"
+))]
+#[path = "analysis_learned_round.rs"]
+pub mod learned;
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AnalysisRoundMode {
+    ZeroScoreFallback,
+    AuthenticatedCategorical,
+}
 #[derive(Debug)]
 pub enum FallbackRoundRefusal {
     Native(NativeBindingRefusal),
@@ -28,8 +43,25 @@ pub enum FallbackRoundRefusal {
     Stale,
     Capacity,
     Closed,
+    Model,
+    Numerical,
+    #[cfg(all(
+        feature = "parser-model",
+        target_has_atomic = "ptr",
+        target_has_atomic = "8"
+    ))]
+    NumericalChannel(conduit_ai::integer_categorical_step::channel::CategoricalChannelRefusal),
+    PendingNumerical,
 }
 pub struct PreparedFallbackRound {
+    mode: AnalysisRoundMode,
+    context: [String; 5],
+    #[cfg(all(
+        feature = "parser-model",
+        target_has_atomic = "ptr",
+        target_has_atomic = "8"
+    ))]
+    learned: Vec<learned::LearnedBranchEvidence>,
     generation: u64,
     prior: LanguageParserScorerBeam,
     lexical: LanguageLexicalTape,
@@ -47,7 +79,25 @@ pub struct FallbackRoundApplyFailure {
 }
 impl PreparedFallbackRound {
     pub fn profile(&self) -> &'static str {
-        "language/complete-round/beam4/zero-score-fallback@1"
+        match self.mode {
+            AnalysisRoundMode::ZeroScoreFallback => {
+                "language/complete-round/beam4/zero-score-fallback@1"
+            }
+            AnalysisRoundMode::AuthenticatedCategorical => {
+                "language/complete-round/beam4/authenticated-categorical@1"
+            }
+        }
+    }
+    pub fn mode(&self) -> AnalysisRoundMode {
+        self.mode
+    }
+    #[cfg(all(
+        feature = "parser-model",
+        target_has_atomic = "ptr",
+        target_has_atomic = "8"
+    ))]
+    pub fn learned_evidence(&self) -> &[learned::LearnedBranchEvidence] {
+        &self.learned
     }
     pub fn prior(&self) -> &LanguageParserScorerBeam {
         &self.prior
@@ -73,12 +123,20 @@ impl<'a> AnalysisEpochOwner<'a> {
                 return Err(FallbackRoundRefusal::Closed);
             }
             let mut replay = Replay::new(programs, &observations)?;
-            let result = self.run_fallback_round(&mut replay)?;
+            let result = self.run_round(&mut replay, &mut FallbackScores)?;
             replay.finish()?;
             Ok(result)
         })();
         match result {
             Ok((result, next_identity)) => Ok(PreparedFallbackRound {
+                mode: AnalysisRoundMode::ZeroScoreFallback,
+                context: round_context(self),
+                #[cfg(all(
+                    feature = "parser-model",
+                    target_has_atomic = "ptr",
+                    target_has_atomic = "8"
+                ))]
+                learned: Vec::new(),
                 generation: self.generation,
                 prior: self.beam.clone(),
                 lexical: self.lexical().tape().clone(),
@@ -104,10 +162,18 @@ impl<'a> AnalysisEpochOwner<'a> {
             });
         }
         let mut replay = Replay::with_provider(programs, provider);
-        let result = self.run_fallback_round(&mut replay);
+        let result = self.run_round(&mut replay, &mut FallbackScores);
         let observations = replay.into_captured();
         match result {
             Ok((result, next_identity)) => Ok(PreparedFallbackRound {
+                mode: AnalysisRoundMode::ZeroScoreFallback,
+                context: round_context(self),
+                #[cfg(all(
+                    feature = "parser-model",
+                    target_has_atomic = "ptr",
+                    target_has_atomic = "8"
+                ))]
+                learned: Vec::new(),
                 generation: self.generation,
                 prior: self.beam.clone(),
                 lexical: self.lexical().tape().clone(),
@@ -121,9 +187,10 @@ impl<'a> AnalysisEpochOwner<'a> {
             }),
         }
     }
-    fn run_fallback_round(
+    fn run_round(
         &self,
         replay: &mut Replay<'_>,
+        scores: &mut dyn RoundScores,
     ) -> Result<(LanguageParserScorerBeam, u64), FallbackRoundRefusal> {
         use FallbackRoundRefusal::*;
         let lexical = LanguageParserAvailableLexical::new(
@@ -136,7 +203,7 @@ impl<'a> AnalysisEpochOwner<'a> {
             replay.run("language/analysis-round-empty", &raw)?;
         let mut next = admit_beam(&seed)?;
         let mut identity = self.identity_cursor;
-        for prior in slots(&self.beam) {
+        for (slot, prior) in slots(&self.beam).into_iter().enumerate() {
             if !*prior.parser().active() {
                 continue;
             }
@@ -187,10 +254,16 @@ impl<'a> AnalysisEpochOwner<'a> {
                 } else {
                     prior.clone()
                 };
-                // Fallback Source overwrites every score; no numerical/model
-                // result can enter this deliberately reduced proof profile.
-                let mut rank: LanguageParserScorerRanking =
-                    replay.run("language-parser-scorer-fallback", &mask)?;
+                let mut rank = scores.rank(
+                    replay,
+                    RankRequest {
+                        slot,
+                        choice,
+                        branch: &branch,
+                        lexical: &lexical,
+                        mask: &mask,
+                    },
+                )?;
                 for _ in 0..4 {
                     rank = replay.run("language-parser-scorer-rank", &rank)?;
                     if !*rank.found() {
@@ -232,6 +305,7 @@ impl<'a> AnalysisEpochOwner<'a> {
             .frontiers()
             .stable_through
             .is_some_and(|stable| stable > self.frontiers().committed)
+            || prepared.context != round_context(self)
             || prepared.generation != self.generation
             || prepared.prior != self.beam
             || &prepared.lexical != self.lexical().tape()
@@ -352,3 +426,15 @@ fn merge(
 
 #[path = "analysis_fallback_frontier.rs"]
 pub mod frontier;
+
+fn round_context(owner: &AnalysisEpochOwner<'_>) -> [String; 5] {
+    let context = owner.session.context();
+    [
+        context.stream,
+        context.subject,
+        context.epoch,
+        context.producer,
+        context.policy,
+    ]
+    .map(|part| String::from(part.as_str()))
+}
