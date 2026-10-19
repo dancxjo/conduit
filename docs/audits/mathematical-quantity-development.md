@@ -459,3 +459,12 @@ The guarded executions report zero allocations and unchanged retained bounds.
 This is private component and checked-expression evidence. Installed Host/CLI
 chains for this extension, qualified consumer custody, and stable publication
 remain unproven; the original parent issue stays open.
+
+The CLI fixture now includes two separate Angle stages, halving then doubling,
+before symbolic conversion. Both stages must select the exact Quantity profile;
+the original three mathematical stages and enclosed binary32 boundary remain
+selected with Source spans. The two CLI tests pass for 90 degrees and a quarter
+turn, including the unchanged exact certified-bound check and zero-allowance
+refusal. This supersedes the missing CLI proof noted above for this extension.
+The extended installed kernel allocation and independent reader tests are
+pending; general custody and stable acceptance remain separate requirements.
