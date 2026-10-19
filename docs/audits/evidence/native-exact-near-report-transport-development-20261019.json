@@ -1,0 +1,70 @@
+{
+  "status": "validated-private-development",
+  "source_commit": "b55872d7c3f8cda3ebb7449ea3ded0e4db3861a6",
+  "scope": "all declared Near representations carry root CPE; independently replay original policy and work; known historical contracts preserve honest report absence",
+  "validation": {
+    "core_tests": 14,
+    "std_passed": 874,
+    "std_ignored": 18,
+    "cli_tests": 16,
+    "workspace_all_target_clippy_warnings_denied": "passed",
+    "core_no_default_features": "passed",
+    "format": "passed",
+    "full_workspace_tests": "not passed; retained linker/disk-headroom infrastructure blocker"
+  },
+  "logs": [
+    {
+      "file": "near-historical-contract-core-tests.log",
+      "sha256": "5fd1c5c31cab0efdcc48be803ba18709bbf7394c61ccc7dd27e223dcb22d49f1"
+    },
+    {
+      "file": "near-historical-contract-std.log",
+      "sha256": "2d14edd6b74eeb71a1a60947f94f99977a29d32eab7692a93d5215ce84039e62"
+    },
+    {
+      "file": "near-historical-contract-product.log",
+      "sha256": "ab6bdf112b6cf38d120aeeb85d9182d8b17acd8b0066259a95caaf9ee4386cb3"
+    },
+    {
+      "file": "near-historical-contract-clippy.log",
+      "sha256": "d00b3e4b7c71d8f5e73aa7003aa0905cee0fd3dab119a1871a46b31a85cf903e"
+    },
+    {
+      "file": "near-historical-contract-no-default.log",
+      "sha256": "7bee7e4e112cc0c1f91ed8894017a56fdc6ab443609f683a05f471b45fcecfe7"
+    },
+    {
+      "file": "near-historical-contract-format.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "actual_retained_evidence": {
+    "fresh_runs": 4,
+    "fresh_artifacts": 68,
+    "historical_runs": 3,
+    "historical_artifacts": 45,
+    "total_values": 46,
+    "source_wire_versions": [
+      1,
+      2,
+      2,
+      3
+    ],
+    "verified_by": "independent Python content/context/inventory checks plus ordinary numerical product inspection",
+    "receipt": "work/native-exact-transport-proof/historical-compatible-final-inspection.json"
+  },
+  "executed_binary_custody": [
+    "historical-core-executables.json",
+    "historical-std-executables.json",
+    "historical-cli-executables.json"
+  ],
+  "storage_correction": "Only validation TMPDIR moved into task-owned work directory after shared /tmp user quota failure; original failure retained. Numerical source, work and assertions unchanged.",
+  "remaining": [
+    "native external-Fore complete artifact routing context and non-payload carried-kind defect",
+    "binary64 and general ordered approximate computation/composition",
+    "separate coordinate-conversion report corpus",
+    "all original target/resource/replanning and DSP/ML requirements",
+    "public Candidate, combined Integration and exact-main acceptance"
+  ],
+  "parent_issue": "5392 remains open; original93 scope/statuses not completed by this component"
+}

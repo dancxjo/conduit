@@ -58,3 +58,87 @@ the selected Near profile, exact replay work and retained storage bounds.
 That actual product fixture passes after correction, as does strict focused
 Clippy. These are separate runs, not a new full numerical-expression pass.
 Both failed and corrected executables remain hash-verified in custody.
+
+The next private transport implementation is under validation. The Near kind
+revision is `numeric/quantity-near@4`; producer profiles are exact-rational@2,
+binary32-single-round@2 and enclosed-midpoint-binary32@3. Every representation
+now carries one root `projection-evidence` byte field. Native and rational
+fallbacks under the enclosed profile retain their actual rational projection
+report rather than claiming an enclosure they did not compute. The original
+source wire and requested physical allowance remain separate record fields.
+
+The native/exact reader reconstructs the producer's actual decode, rational
+extraction, coordinate conversion and projection sequence under its original
+200-million-work meter. It compares the complete report, including original
+allowance and spent/admitted counters. New reports receive one numerical
+replay; historical records retain their existing claim verification. The
+selected physical policy must admit consumption even for zero loss. Prepared
+report buffers admit 16,384 bytes for rational/exact receipts and 54,650 bytes
+for symbolic receipts; the complete record bound also covers the larger exact
+representation payload and remains within 131,072 bytes.
+
+Ordinary artifact inspection dispatches on the actual source representation,
+checks its schema against the planned output kind and checks the selected
+producer profile. Actual pre-change exact, native and rational artifacts have
+been replayed by the new inspector. Their absent general report is explicitly
+labelled; historical evidence is not retroactively invented. All three new
+native/exact CLI cases pass before the final replay refinement, including
+matching-hash report tampering refusal. Final refined-source Core projection
+tests and formatting pass. Full Std/CLI regression and strict lint remain in
+progress; no complete transport validation or stable acceptance is claimed yet.
+
+The first full Std regression passed 870 tests, ignored 18 and failed three
+fixture assumptions. Two semantic refusal checks used the old producer-only
+consumer work allowance; another located target bits by global byte search,
+although the full report deliberately retains more than one copy. Those
+fixtures now use declared validation work and the typed outer target field.
+The corrected full run also checks the selected enclosed back's native and
+rational fallbacks through an actual sealed Plan and kernel. Prepared-runtime
+all-form tests and actual kernel proof remain separately scoped.
+
+Native external-Fore routing contexts still require their own complete
+artifact support: raw rows are retained, and unsupported export refuses rather
+than manufacturing Core Cord Signs or silently omitting values. This transport
+work does not complete binary64, ordered approximate computations, independent
+coordinate-conversion reports, all target profiles, or the original parent
+acceptance corpus. Full local workspace testing retains the recorded disk
+headroom blocker; current focused and hosted proof cannot establish that gate.
+
+Before the historical-contract review, the refined transport source passed
+874 Std tests (18 ignored), all 16 selected CLI tests, 13 focused Core tests,
+workspace all-target Clippy, Core without default features and formatting.
+A product artifact write first failed the shared `/tmp` tmpfs user quota;
+the successful full product rerun used a task-owned temporary directory,
+without changing numerical work, source, clocks or acceptance assertions.
+Four actual retained new runs verified 68 artifacts and 28 routed values;
+three actual retained historical runs verified 45 artifacts and 18 values.
+Independent Python checks cover content hashes, lengths, complete artifact
+inventory and Plan/Play/Sign/producer/port correlation. Product inspection
+provides numerical replay; these checks do not authenticate execution.
+
+Final review then found that the public numerical branch uses Near revision 1,
+while those retained historical samples used revision 3. Inspection now also
+recognizes the known revision-1 native profiles and revision-2 native and
+pre-report enclosed profiles. The original enclosed requirements were checked
+against source history. Historical two-field enclosed payloads can be checked
+by independent numerical replay with explicit report absence. Current root
+report fields and historical embedded-report fields remain mandatory for the
+schemas that declare them; an empty current report cannot downgrade to the
+historical path. A new allocation-guarded Core test covers both cases. All 14
+focused Core tests pass; hosted regression and strict checks are running again
+for this final contract extension. Those new results must be reconciled before
+claiming the complete source checkpoint validated.
+
+
+The [final transport receipt](evidence/native-exact-near-report-transport-development-20261019.json)
+records the completed private validation after that contract extension: all 14
+focused Core tests, 874 Std tests (18 ignored), 16 CLI tests, strict workspace
+all-target Clippy, Core without default features and formatting pass. Fresh
+current-producer runs plus historical revision-3 runs verify all 113 retained
+artifacts with separate execution/inspection executable hashes. Revision-1/2
+support has reviewed historical-source and Core-schema proof; no old execution
+artifacts were fabricated. Source and every executed relevant Core/Std/CLI
+binary are retained with verified archive roundtrips. The code is private
+development, not accepted main or parent completion. The explicit remaining
+Fore-context, track-kind, binary64, computation/composition, coordinate-report,
+all-target and publication obligations above remain open.
