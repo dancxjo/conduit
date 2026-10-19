@@ -106,6 +106,9 @@ Host advertisement, Source checking, Plan construction, kernel queue/Sign costs
 and output delivery. It is not whole-Play throughput, a product-release profile,
 cross-target performance, native-equivalence evidence or WCET. The earlier
 unoptimized records are retained alongside the optimized capture.
+The installed value-port Back emits once per Play. Repeated private evaluation
+calls are a component measurement; this capture does not amortize preparation
+over several admitted values in one Play.
 
 There is no installed browser/no_std/device profile, machine-float computation,
 symbolic Quantity wire, separate Unit-coordinate projection, approximate-input
