@@ -52,6 +52,15 @@ impl OwnerBrowserMask {
             proposed.sequence,
         )
         .map_err(|error| format!("owner browser interaction refused: {error:?}"))?;
+        self.emit_interaction(interaction)
+    }
+
+    /// Both local typed and authenticated textual transports deliver the same
+    /// checked interaction through this one ordinary Mask Fore.
+    pub(super) fn emit_interaction(
+        &mut self,
+        interaction: FaceInteraction,
+    ) -> Result<InteractionEmission<'_>, String> {
         let bytes = interaction.encode();
         if bytes.len() > self.interaction_boundary.byte_capacity as usize {
             return Err("owner browser interaction exceeds its sealed Fore bound".into());

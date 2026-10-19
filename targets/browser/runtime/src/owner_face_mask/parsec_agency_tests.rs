@@ -56,7 +56,7 @@ fn checked_browser_mask_returns_exact_captured_parsec_actions() {
         )
         .unwrap();
         let view = mask.view();
-        assert_eq!(view.body_id, body.as_str());
+        assert_eq!(view.body_id.as_deref(), Some(body.as_str()));
         assert_eq!(view.face_id, face.identity.as_str());
         assert_eq!(view.face_revision, face.revision.to_string());
         assert_ne!(view.show_id, record["provenance"]["source_show"]);

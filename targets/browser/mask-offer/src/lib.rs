@@ -113,6 +113,23 @@ pub fn planned_mask(
     planned_mask_with_fore_limits(host, source, name, None)
 }
 
+/// One-value local Host encounter, without a remote owner carrier or Body.
+pub fn planned_local_mask(
+    host: &HostAdvertisement,
+    source: &str,
+    name: &str,
+) -> Result<PlannedMaskPlot, String> {
+    planned_mask_with_fore_limits(
+        host,
+        source,
+        name,
+        Some(OwnerCarrierForeLimits {
+            face_bytes: MASK_BYTES,
+            show_bytes: MASK_BYTES,
+        }),
+    )
+}
+
 fn planned_mask_with_fore_limits(
     host: &HostAdvertisement,
     source: &str,
@@ -134,7 +151,8 @@ fn planned_mask_configuration(
     ),
     String,
 > {
-    let configured = source == conduit_face::TODO_COMPONENT_MASK_SOURCE;
+    let configured = source == conduit_face::TODO_COMPONENT_MASK_SOURCE
+        || source == conduit_face::CRECHE_COMPONENT_MASK_SOURCE;
     let definition = if configured {
         conduit_face::component_mask_kind(MASK_BYTES)
     } else {
@@ -336,7 +354,9 @@ pub fn configured_mask_configuration(
         return Ok(None);
     }
     let root = planned.mask.plot_name.as_str();
-    if ![
+    let source = if ["creche-mask-single", "creche-mask-columns"].contains(&root) {
+        conduit_face::CRECHE_COMPONENT_MASK_SOURCE
+    } else if [
         "todo-mask-flat-compact",
         "todo-mask-flat-spacious",
         "todo-mask-grouped-compact",
@@ -344,8 +364,10 @@ pub fn configured_mask_configuration(
     ]
     .contains(&root)
     {
+        conduit_face::TODO_COMPONENT_MASK_SOURCE
+    } else {
         return Err("unknown configured component source root".into());
-    }
+    };
     let budget = |direction, id: &conduit_core::PortId| -> Result<u32, String> {
         let mut ports = planned
             .plan
@@ -361,7 +383,7 @@ pub fn configured_mask_configuration(
     };
     let (expected, configuration) = planned_mask_configuration(
         host,
-        conduit_face::TODO_COMPONENT_MASK_SOURCE,
+        source,
         root,
         Some(OwnerCarrierForeLimits {
             face_bytes: budget(PortDirection::Input, &planned.mask.face_input.front_port_id)?,

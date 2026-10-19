@@ -28,7 +28,7 @@ pub(super) struct ComponentView {
 }
 
 pub(super) fn prepare(
-    basis: &HostBasis,
+    basis: &preparation::MaskHostBasis,
     planned: &conduit_face::PlannedMaskPlot,
     face: &Face,
 ) -> Result<Option<ComponentView>, String> {
