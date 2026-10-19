@@ -1,0 +1,187 @@
+{
+  "measured_source": "e4fbac12b38ff0f787fe626f4c587cbd175ab5b8",
+  "review_source": "84345d701805f2b42b05d7c5b12e5cf19a256196",
+  "review_base": "7f9748092732ecf2fc04e8992a2a914247b73173",
+  "files": [
+    {
+      "file": "architecture/kernel/src/scheduler.rs",
+      "identical": true,
+      "measured_sha256": "bc850e824b9cecefde96d7077033651ccd9dca3c1339d82abece43e7db61f2fc",
+      "review_sha256": "bc850e824b9cecefde96d7077033651ccd9dca3c1339d82abece43e7db61f2fc"
+    },
+    {
+      "file": "architecture/kernel/src/scheduler/debug_control.rs",
+      "identical": true,
+      "measured_sha256": "13ef399158f03651bc0d910664b85ad3a214a245a19c835323a07e6dd47b41af",
+      "review_sha256": "13ef399158f03651bc0d910664b85ad3a214a245a19c835323a07e6dd47b41af"
+    },
+    {
+      "file": "architecture/kernel/src/scheduler/host_call_back.rs",
+      "identical": true,
+      "measured_sha256": "2d5a6b92f37c3368788639ce1358d24f3f753fb0a9584ac9249fd5d252268e89",
+      "review_sha256": "2d5a6b92f37c3368788639ce1358d24f3f753fb0a9584ac9249fd5d252268e89"
+    },
+    {
+      "file": "architecture/kernel/src/scheduler/prepared_session.rs",
+      "identical": true,
+      "measured_sha256": "b7d995bd39a83d8697e4101fbab8011f80411fdd2f5a49c25da011cf536cae7e",
+      "review_sha256": "b7d995bd39a83d8697e4101fbab8011f80411fdd2f5a49c25da011cf536cae7e"
+    },
+    {
+      "file": "architecture/kernel/src/scheduler/prepared_session/tests.rs",
+      "identical": true,
+      "measured_sha256": "270a11dc46bb921cc0edeb2dc633b3ba0e4482235a0aab853c78256de5391e09",
+      "review_sha256": "270a11dc46bb921cc0edeb2dc633b3ba0e4482235a0aab853c78256de5391e09"
+    },
+    {
+      "file": "architecture/kernel/tests/prepared_session_allocation.rs",
+      "identical": true,
+      "measured_sha256": "95f7c82672879285b6254831665b3c1baf10a6c4bf6722ab3ad3b1ad2caa0bf7",
+      "review_sha256": "95f7c82672879285b6254831665b3c1baf10a6c4bf6722ab3ad3b1ad2caa0bf7"
+    },
+    {
+      "file": "semantics/ai/examples/fargan_performance.rs",
+      "identical": true,
+      "measured_sha256": "9f3d47c357c957cd16d6a39c4b6838d6ce275948c8d7df4c2afc0ef063a8d5d6",
+      "review_sha256": "9f3d47c357c957cd16d6a39c4b6838d6ce275948c8d7df4c2afc0ef063a8d5d6"
+    },
+    {
+      "file": "semantics/ai/examples/fargan_performance/prepared.rs",
+      "identical": true,
+      "measured_sha256": "f1d14c1bdbe2bd758d174ce90f30d22e58f07e3494c7ca8e21b37d24905689e5",
+      "review_sha256": "f1d14c1bdbe2bd758d174ce90f30d22e58f07e3494c7ca8e21b37d24905689e5"
+    },
+    {
+      "file": "semantics/ai/src/fixed_numeric_back.rs",
+      "identical": true,
+      "measured_sha256": "6bcc4d9846540da8fbd79a66ce373fbe7ea3024779151af8caed05a2ac09c48a",
+      "review_sha256": "6bcc4d9846540da8fbd79a66ce373fbe7ea3024779151af8caed05a2ac09c48a"
+    },
+    {
+      "file": "semantics/ai/src/fixed_numeric_index_back.rs",
+      "identical": true,
+      "measured_sha256": "c1d4092994f9dc7c3a390cc83d2badf960c7bd0cfe5207986597c51278cc7439",
+      "review_sha256": "c1d4092994f9dc7c3a390cc83d2badf960c7bd0cfe5207986597c51278cc7439"
+    },
+    {
+      "file": "semantics/ai/src/fixed_numeric_linear_back.rs",
+      "identical": true,
+      "measured_sha256": "fa3ad96011154922b2e37d5fe6c91b0810194eb5048caf3920a6a790581c9d35",
+      "review_sha256": "fa3ad96011154922b2e37d5fe6c91b0810194eb5048caf3920a6a790581c9d35"
+    },
+    {
+      "file": "semantics/ai/src/fixed_numeric_operations_back.rs",
+      "identical": true,
+      "measured_sha256": "94f745da1dd841b0f3fe1b324db71f6c30509a1282d1f8ac16a32abfc1742a9e",
+      "review_sha256": "94f745da1dd841b0f3fe1b324db71f6c30509a1282d1f8ac16a32abfc1742a9e"
+    },
+    {
+      "file": "semantics/ai/src/fixed_numeric_pair_back.rs",
+      "identical": true,
+      "measured_sha256": "af00bf17969f996799a1b00ca097f9a407c39e8e66f193e41411b65f3564e5b5",
+      "review_sha256": "af00bf17969f996799a1b00ca097f9a407c39e8e66f193e41411b65f3564e5b5"
+    },
+    {
+      "file": "semantics/ai/src/fixed_numeric_reuse/operations.rs",
+      "identical": true,
+      "measured_sha256": "7d1b175fabb2def69a7a63b1cbc97612e1ccf0eccbc92a0eb60706ad819a0a60",
+      "review_sha256": "7d1b175fabb2def69a7a63b1cbc97612e1ccf0eccbc92a0eb60706ad819a0a60"
+    },
+    {
+      "file": "semantics/ai/src/fixed_numeric_scan_back.rs",
+      "identical": true,
+      "measured_sha256": "b0c6abea3825d62a5724f1fa1c6037a780dc0acdeffb3704e9ae3d68ba446304",
+      "review_sha256": "b0c6abea3825d62a5724f1fa1c6037a780dc0acdeffb3704e9ae3d68ba446304"
+    },
+    {
+      "file": "semantics/ai/src/fixed_numeric_signal_back.rs",
+      "identical": true,
+      "measured_sha256": "94570487cf46333cc7492a95a3c64a49b1ca17bacf0e47281ef37634da9dcd4a",
+      "review_sha256": "94570487cf46333cc7492a95a3c64a49b1ca17bacf0e47281ef37634da9dcd4a"
+    },
+    {
+      "file": "semantics/ai/src/fixed_numeric_window_back.rs",
+      "identical": true,
+      "measured_sha256": "210af5ea4c24d843299d7e4587bc144289b2261d5df2e815c709436b79a3dcec",
+      "review_sha256": "210af5ea4c24d843299d7e4587bc144289b2261d5df2e815c709436b79a3dcec"
+    },
+    {
+      "file": "semantics/ai/src/operation_owners/fixed_numeric.rs",
+      "identical": true,
+      "measured_sha256": "1b50412eaeef7acbcc695db4e8f119baf9b17f84947f6cb719a36fdcb0ddba12",
+      "review_sha256": "1b50412eaeef7acbcc695db4e8f119baf9b17f84947f6cb719a36fdcb0ddba12"
+    },
+    {
+      "file": "semantics/ai/tests/fargan_signal_graph/frame.rs",
+      "identical": true,
+      "measured_sha256": "1e879f8e53b3e601c704ef2146a7b4ffddf6c552c6ccc10951e35c9566d09b79",
+      "review_sha256": "1e879f8e53b3e601c704ef2146a7b4ffddf6c552c6ccc10951e35c9566d09b79"
+    },
+    {
+      "file": "semantics/ai/tests/fargan_signal_graph/frame_session.rs",
+      "identical": true,
+      "measured_sha256": "1bd8a58d356fb2b08a8285cfb5576c0e84ba4642636c6a07fe531d64484ae1ae",
+      "review_sha256": "1bd8a58d356fb2b08a8285cfb5576c0e84ba4642636c6a07fe531d64484ae1ae"
+    },
+    {
+      "file": "semantics/ai/tests/fargan_signal_graph/runtime.rs",
+      "identical": true,
+      "measured_sha256": "f8af1331d597f8184e4a9b065ab1a370fbd328a23cc823dad171624f5a3ed026",
+      "review_sha256": "f8af1331d597f8184e4a9b065ab1a370fbd328a23cc823dad171624f5a3ed026"
+    },
+    {
+      "file": "semantics/ai/tests/fargan_signal_graph/runtime_backs.rs",
+      "identical": true,
+      "measured_sha256": "9837a0a209db4534f3776d755080c724be2d6e0376516d6db3dd7113bf217ba1",
+      "review_sha256": "9837a0a209db4534f3776d755080c724be2d6e0376516d6db3dd7113bf217ba1"
+    },
+    {
+      "file": "semantics/ai/tests/fargan_signal_graph/runtime_execution_kernel.rs",
+      "identical": true,
+      "measured_sha256": "7b2ef2f6bcc51b5197b239c2484af1c1b24d16fc7cd593835bd1cbe943262eb0",
+      "review_sha256": "7b2ef2f6bcc51b5197b239c2484af1c1b24d16fc7cd593835bd1cbe943262eb0"
+    },
+    {
+      "file": "semantics/ai/tests/fargan_signal_graph/runtime_prepared.rs",
+      "identical": true,
+      "measured_sha256": "f9c4f5e23d147019627ba61c8aef810994ecbccd83fb6f4223c7a68e51fbae49",
+      "review_sha256": "f9c4f5e23d147019627ba61c8aef810994ecbccd83fb6f4223c7a68e51fbae49"
+    },
+    {
+      "file": "semantics/ai/tests/fargan_signal_graph/runtime_rearm.rs",
+      "identical": true,
+      "measured_sha256": "10416c27b23f446d896110a6295392db7c556dbe655467244f92e405541b47a7",
+      "review_sha256": "10416c27b23f446d896110a6295392db7c556dbe655467244f92e405541b47a7"
+    },
+    {
+      "file": "semantics/ai/tests/fargan_signal_graph/runtime_session.rs",
+      "identical": true,
+      "measured_sha256": "75fe6764f587c0ca1c4fa1d93c0c04535cc0642bd49d02b6fd5bdc88a12246b0",
+      "review_sha256": "75fe6764f587c0ca1c4fa1d93c0c04535cc0642bd49d02b6fd5bdc88a12246b0"
+    },
+    {
+      "file": "semantics/ai/tests/fixed_numeric_linear_back.rs",
+      "identical": true,
+      "measured_sha256": "ddb9d2ffa5712eef88002b9aeff159fbc8b9b3bab465242725a36295455bf957",
+      "review_sha256": "ddb9d2ffa5712eef88002b9aeff159fbc8b9b3bab465242725a36295455bf957"
+    },
+    {
+      "file": "semantics/ai/tests/fixed_numeric_reuse/linear.rs",
+      "identical": true,
+      "measured_sha256": "c41d6b124d6f121ad650b686feb11e403c1ac30ce2be65e88b88bf98ee5b3955",
+      "review_sha256": "c41d6b124d6f121ad650b686feb11e403c1ac30ce2be65e88b88bf98ee5b3955"
+    },
+    {
+      "file": "tools/xtask/src/commands/runtime_performance.rs",
+      "identical": true,
+      "measured_sha256": "d9c1390d605df7da9047e69c394be1e66bec888907725c8235c2a0f2a50f8d7e",
+      "review_sha256": "d9c1390d605df7da9047e69c394be1e66bec888907725c8235c2a0f2a50f8d7e"
+    },
+    {
+      "file": "tools/xtask/src/commands/runtime_performance_fargan.rs",
+      "identical": true,
+      "measured_sha256": "93791463e77e372f2b40e490a8abedf8e007f032433e781acaeefe258f46beef",
+      "review_sha256": "93791463e77e372f2b40e490a8abedf8e007f032433e781acaeefe258f46beef"
+    }
+  ]
+}
