@@ -318,7 +318,7 @@ test("Handbook lessons run text, arithmetic, logic and exact quantities in the l
 });
 
 test("an existing two-lesson Handbook gains new choices without resetting its Body or saved edits", async ({}, testInfo) => {
-  testInfo.setTimeout(60_000);
+  testInfo.setTimeout(60_000 + 2 * BROWSER_COLD_PREPARATION_MS);
   const site = await stageStaticApplications({ legacyLessonInventory: true });
   const session = await openStaticProfile(testInfo.outputPath("upgraded-profile"), new URL(site.url).origin);
   try {
@@ -342,12 +342,17 @@ test("an existing two-lesson Handbook gains new choices without resetting its Bo
     await expect(editor).toHaveValue(edited);
     await selector.selectOption("compare-distance-demo");
     await page.getByRole("button", { name: "Try in my Handbook", exact: true }).click();
+    // Installing a newly offered lesson prepares a replacement Body before output.
+    await expect(page.getByRole("button", { name: "Try in my Handbook", exact: true }))
+      .toBeEnabled({ timeout: BROWSER_COLD_PREPARATION_MS });
     await expect(page.locator('.handbook-show [data-resident-plot]:visible')).toContainText("The distances are equal");
     const upgraded = await current(page);
     expect(upgraded.bodyId).toBe(first.bodyId);
     expect(upgraded.installedPlots).toHaveLength(3);
     await selector.selectOption("thermostat/main");
     await page.getByRole("button", { name: "Try in my Handbook", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Try in my Handbook", exact: true }))
+      .toBeEnabled({ timeout: BROWSER_COLD_PREPARATION_MS });
     await expect(page.locator('.handbook-show conduit-owner-face')
       .getByText("Sensor unavailable", { exact: true })).toBeVisible();
     expect((await current(page)).bodyId).toBe(first.bodyId);
