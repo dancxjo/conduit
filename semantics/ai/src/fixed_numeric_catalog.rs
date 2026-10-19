@@ -11,6 +11,7 @@ use conduit_plot::{
 };
 
 mod pointwise;
+#[cfg(feature = "kernel-step")]
 pub(crate) use pointwise::is_pure_pointwise;
 
 pub const FIXED_NUMERIC_SOURCE: &str = include_str!("../fixed_numeric.conduit");
