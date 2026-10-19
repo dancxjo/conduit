@@ -291,7 +291,7 @@ fn projected_packet(unit: &str) -> Vec<u8> {
         &mut NoTimer,
     )
     .unwrap();
-    output.0.remove(0)
+    output.0.remove(0).to_vec()
 }
 #[test]
 fn canonical_forged_or_wrong_physical_packets_refuse_before_qualified_fore_ingress() {
