@@ -1,5 +1,5 @@
 import { assertOwnerFaceReachability } from "./owner-face-reachability.mjs";
-import "./owner-face-component.mjs";
+import { OwnerFacePresentation } from "./owner-face-presentation.mjs";
 
 // Optional, explicitly authorized participation in a Body owned by a running
 // Linux Host. All admission and biography facts come from the production SDK.
@@ -261,10 +261,41 @@ export async function startOwnerParticipation(application, root) {
       faceRefresh.disabled = false;
     }
   };
-  const faceComponent = document.createElement('conduit-owner-face');
+  let componentBack = { selected: false }, faceArtifact = 'artifact/browser-runtime';
+  const createFaceSurface = selected => {
+    const element = selected ? new componentBack.constructor() : document.createElement('div');
+    element.dataset.ownerFaceSurface = '';
+    if (!selected) {
+      const shadow = element.attachShadow({ mode: 'open' });
+      const look = document.createElement('style');
+      look.textContent = new TextDecoder('utf-8', { fatal: true }).decode(application.bytes('owner-face-look'));
+      const surface = document.createElement('div');
+      shadow.append(look, surface);
+      const presentation = new OwnerFacePresentation(element, surface);
+      Object.defineProperty(element, 'disabled', { set: value => { presentation.disabled = value; } });
+      element.show = (view, options) => presentation.show(view, options);
+      const removal = new MutationObserver(records => {
+        if (records.some(record => [...record.removedNodes].some(node => node === element || node.contains?.(element)))) {
+          element.retireOwnerFace();
+        }
+      });
+      removal.observe(document.documentElement, { childList: true, subtree: true });
+      element.retireOwnerFace = () => { removal.disconnect(); presentation.retire(); };
+    }
+    return element;
+  };
+  let faceComponent = createFaceSurface(false);
   const renderFace = view => {
-    // Attach before Show, and retain the surface across ordinary refreshes.
-    // Replacing an already attached custom element revokes its render bindings.
+    const artifact = view.mask_renderer_artifact_id;
+    const selected = componentBack.selected && artifact === componentBack.artifactId;
+    if (!selected && artifact !== 'artifact/browser-runtime') throw new Error('Selected owner renderer is unavailable');
+    if (artifact !== faceArtifact) {
+      faceComponent.retireOwnerFace?.();
+      faceComponent.remove();
+      faceComponent = createFaceSurface(selected);
+      faceArtifact = artifact;
+    }
+    // Attach before Show and retain only this exact selected realization.
     if (faceComponent.parentNode !== faceDocument) faceDocument.replaceChildren(faceComponent);
     faceComponent.show(view, { projectCollections: projectFaceCollections,
       invoke: async ({ view, action, arguments: actionArguments }) => {
@@ -433,6 +464,7 @@ export async function startOwnerParticipation(application, root) {
   };
   try {
     host = await application.browser({ root });
+    componentBack = await host.admitOwnerFaceComponent(application);
     const identity = host.admissionIdentity();
     root.querySelector('[data-owner-host]').textContent = identity.hostId;
     root.querySelector('[data-owner-boot]').textContent = identity.bootId;
@@ -542,6 +574,8 @@ export async function startOwnerParticipation(application, root) {
   });
   globalThis.__conduitOwnerParticipation = Object.freeze({
     host: () => host.current(),
+    componentBack: () => ({ selected: componentBack.selected, identity: componentBack.identity,
+      artifact_id: componentBack.artifactId, bundle_sha256: componentBack.bundleSha256, reason: componentBack.reason }),
     admissionIdentity: () => host.admissionIdentity(),
     state: () => participation?.state() ?? 'not-joined',
     presence: () => participation?.presenceState() ?? 'unavailable',

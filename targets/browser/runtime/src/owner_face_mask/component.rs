@@ -31,13 +31,10 @@ pub(super) fn prepare(
     basis: &HostBasis,
     planned: &conduit_face::PlannedMaskPlot,
     face: &Face,
+    host: &conduit_core::HostAdvertisement,
 ) -> Result<Option<ComponentView>, String> {
-    let host = crate::installed_browser::membership_advertisement(
-        basis.host_id.clone(),
-        basis.boot_id.clone(),
-    );
     let Some(configuration) =
-        crate::installed_browser::dom_mask::configured_mask_configuration(&host, planned)?
+        crate::installed_browser::dom_mask::configured_mask_configuration(host, planned)?
     else {
         return Ok(None);
     };

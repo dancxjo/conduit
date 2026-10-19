@@ -241,7 +241,7 @@ impl Owner {
                 Some((look, recipe)) => (
                     conduit_face::TODO_COMPONENT_MASK_SOURCE,
                     conduit_face::todo_component_mask_root(look, recipe),
-                    conduit_browser_mask_offer::configured_offer(),
+                    conduit_browser_mask_offer::owner_component::owner_component_offer()?,
                 ),
                 None => (
                     conduit_browser_mask_offer::MASK_SOURCE,

@@ -194,7 +194,7 @@ try {
       await page.evaluate(({ look, recipe }) =>
         globalThis.__conduitOwnerParticipation.selectFace(look, recipe), { look, recipe });
       await page.waitForFunction(() => {
-        const element = document.querySelector('conduit-owner-face');
+        const element = document.querySelector('[data-owner-face-surface]');
         const view = globalThis.__conduitOwnerParticipation.face();
         return view?.component && element?.dataset.componentColumns ===
           String(view.component.maximum_columns);
@@ -203,7 +203,7 @@ try {
         view: globalThis.__conduitOwnerParticipation.face(),
         canonical_json: globalThis.__conduitOwnerParticipation.canonicalFaceJSON(),
         geometry: (() => {
-          const element = document.querySelector('conduit-owner-face');
+          const element = document.querySelector('[data-owner-face-surface]');
           const grid = element.shadowRoot.querySelector('.owner-face-document');
           return { width: element.getBoundingClientRect().width,
             admitted_columns: Number(element.dataset.componentColumns),
@@ -315,7 +315,7 @@ try {
         document.querySelector('[data-owner-show-acknowledged]')?.dataset.ownerShowAcknowledged === view.show_id;
     }, null, { timeout: 12_000 });
     const largeText = await page.evaluate(() => {
-      const element = document.querySelector('conduit-owner-face');
+      const element = document.querySelector('[data-owner-face-surface]');
       const button = element.shadowRoot.querySelector('.owner-face-document button');
       return { view: globalThis.__conduitOwnerParticipation.face(),
         canonical_json: globalThis.__conduitOwnerParticipation.canonicalFaceJSON(),

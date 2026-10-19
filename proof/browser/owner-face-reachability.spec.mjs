@@ -81,7 +81,7 @@ for (const attack of ['none','source-explanation','misleading-radio','hidden-lab
 for (const corruptDependency of [false,true]) {
   test(`production package loader admits the actual owner module graph (${corruptDependency?'mismatched':'current'})`, async ({page}) => {
     const template=JSON.parse(await readFile('targets/browser/handbook/handbook.application.template.json','utf8'));
-    const modules=await Promise.all(['owner-participation','owner-face-component','owner-face-reachability'].map(async role=>{
+    const modules=await Promise.all(['owner-participation','owner-face-presentation','owner-face-reachability'].map(async role=>{
       const resource=template.resources.find(resource=>resource.role===role);
       let source=await readFile(`targets/browser/handbook/${resource.path}`,'utf8');
       if(corruptDependency && role==='owner-participation') source=source.replace('"./owner-face-reachability.mjs"',"'./owner-face-reachability.mjs'");

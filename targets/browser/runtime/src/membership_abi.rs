@@ -9,6 +9,8 @@ use conduit_core::{BootId, HostId, OfferGeneration};
 use serde::Deserialize;
 use std::cell::RefCell;
 
+pub(crate) mod owner_component;
+
 const INPUT_CAPACITY: usize = 4_096;
 const OUTPUT_CAPACITY: usize = conduit_body::MAX_CANDIDATE_ADVERTISEMENT_BYTES as usize;
 const KEY_BYTES: usize = 32;
@@ -224,21 +226,26 @@ pub extern "C" fn conduit_browser_membership_advertisement() -> i32 {
         let Some(identity) = slot.as_ref() else {
             return ERROR_NOT_INITIALIZED;
         };
-        let advertisement = crate::installed_browser::membership_advertisement(
+        let advertisement = match owner_component::current_advertisement(
             identity.host_id().clone(),
             identity.boot_id().clone(),
-        );
+        ) {
+            Ok(value) => value,
+            Err(_) => return ERROR_ADVERTISEMENT,
+        };
         let encoded = match serde_json::to_vec(&advertisement) {
             Ok(encoded) if encoded.len() <= OUTPUT_CAPACITY => encoded,
             _ => return ERROR_ADVERTISEMENT,
         };
         OUTPUT.with(|output| output.borrow_mut()[..encoded.len()].copy_from_slice(&encoded));
         OUTPUT_LEN.with(|length| *length.borrow_mut() = encoded.len());
+        owner_component::freeze();
         STATUS_READY
     })
 }
 
 fn clear_identity_and_output() {
+    owner_component::reset();
     IDENTITY.with(|slot| slot.borrow_mut().take());
     clear_output();
 }

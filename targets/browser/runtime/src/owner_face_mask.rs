@@ -149,6 +149,7 @@ pub(crate) struct FaceView {
     mask_expanded_plot_id: String,
     mask_plan_id: String,
     mask_play_id: String,
+    mask_renderer_artifact_id: String,
     route: Option<RouteView>,
     show_id: String,
     show_state: &'static str,
