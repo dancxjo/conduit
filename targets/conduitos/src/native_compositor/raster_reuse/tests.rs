@@ -74,6 +74,21 @@ fn scene(variant: usize) -> GraphicsScene {
         )
         .unwrap(),
     ];
+    scene
+        .push(
+            GraphicsCommand::path(
+                conduit_face::GraphicsPath::new(&[
+                    conduit_face::GraphicsPoint::new(40, 40).unwrap(),
+                    conduit_face::GraphicsPoint::new(70, 40).unwrap(),
+                    conduit_face::GraphicsPoint::new(70, 60).unwrap(),
+                ])
+                .unwrap(),
+                rect(42, 41, 28, 20),
+                Paint::Muted,
+            )
+            .unwrap(),
+        )
+        .unwrap();
     for offset in 0..commands.len() {
         let index = (offset + variant / 4) % commands.len();
         if variant % 7 != index {
