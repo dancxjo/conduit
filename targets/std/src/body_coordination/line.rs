@@ -19,12 +19,12 @@ pub enum CoordinationLineError {
     Contract(String),
 }
 
-enum ReceivedMessage {
+enum ReceivedMessage<'a> {
     Hello,
     Ready,
     Offered {
         sequence: u64,
-        payload: Vec<u8>,
+        payload: &'a [u8],
     },
     Accepted {
         sequence: u64,
@@ -108,14 +108,29 @@ fn source_handshake(
     let direction = RemoteCordDirection::Egress;
     let binding = endpoint.binding(direction).clone();
     send(endpoint, direction, line, binding.hello_frame().message)?;
-    if !matches!(receive(endpoint, direction, line)?, ReceivedMessage::Hello) {
+    if !matches!(
+        receive(
+            endpoint,
+            direction,
+            line,
+            &mut [0; BODY_COORDINATION_MAXIMUM_FRAME_BYTES as usize]
+        )?,
+        ReceivedMessage::Hello
+    ) {
         return Err(CoordinationLineError::Classified(
             CoordinationFailure::WrongBoot,
         ));
     }
     send(endpoint, direction, line, SessionMessage::Ready)?;
-    if !matches!(receive(endpoint, direction, line)?, ReceivedMessage::Ready)
-        || !endpoint.session_mut(direction).is_active()
+    if !matches!(
+        receive(
+            endpoint,
+            direction,
+            line,
+            &mut [0; BODY_COORDINATION_MAXIMUM_FRAME_BYTES as usize]
+        )?,
+        ReceivedMessage::Ready
+    ) || !endpoint.session_mut(direction).is_active()
     {
         return Err(CoordinationLineError::Contract(
             "source session did not reach Ready".into(),
@@ -130,13 +145,29 @@ fn sink_handshake(
 ) -> Result<(), CoordinationLineError> {
     let direction = RemoteCordDirection::Ingress;
     let binding = endpoint.binding(direction).clone();
-    if !matches!(receive(endpoint, direction, line)?, ReceivedMessage::Hello) {
+    if !matches!(
+        receive(
+            endpoint,
+            direction,
+            line,
+            &mut [0; BODY_COORDINATION_MAXIMUM_FRAME_BYTES as usize]
+        )?,
+        ReceivedMessage::Hello
+    ) {
         return Err(CoordinationLineError::Classified(
             CoordinationFailure::WrongBoot,
         ));
     }
     send(endpoint, direction, line, binding.hello_frame().message)?;
-    if !matches!(receive(endpoint, direction, line)?, ReceivedMessage::Ready) {
+    if !matches!(
+        receive(
+            endpoint,
+            direction,
+            line,
+            &mut [0; BODY_COORDINATION_MAXIMUM_FRAME_BYTES as usize]
+        )?,
+        ReceivedMessage::Ready
+    ) {
         return Err(CoordinationLineError::Contract(
             "sink expected Ready".into(),
         ));
@@ -166,7 +197,12 @@ fn send_offer(
             payload: &offer.bytes,
         },
     )?;
-    match receive(endpoint, RemoteCordDirection::Egress, line)? {
+    match receive(
+        endpoint,
+        RemoteCordDirection::Egress,
+        line,
+        &mut [0; BODY_COORDINATION_MAXIMUM_FRAME_BYTES as usize],
+    )? {
         ReceivedMessage::Accepted { sequence } if sequence == offer.sequence => {
             endpoint
                 .accept_offer(sequence)
@@ -183,7 +219,12 @@ fn send_offer(
             ));
         }
     }
-    match receive(endpoint, RemoteCordDirection::Egress, line)? {
+    match receive(
+        endpoint,
+        RemoteCordDirection::Egress,
+        line,
+        &mut [0; BODY_COORDINATION_MAXIMUM_FRAME_BYTES as usize],
+    )? {
         ReceivedMessage::Delivered { sequence } if sequence == offer.sequence => endpoint
             .deliver_offer(sequence)
             .map_err(CoordinationLineError::Contract),
@@ -198,12 +239,15 @@ fn receive_offer(
     line: &mut NativeWebSocketLine,
 ) -> Result<(), CoordinationLineError> {
     let direction = RemoteCordDirection::Ingress;
-    let ReceivedMessage::Offered { sequence, payload } = receive(endpoint, direction, line)? else {
+    let mut input = [0; BODY_COORDINATION_MAXIMUM_FRAME_BYTES as usize];
+    let ReceivedMessage::Offered { sequence, payload } =
+        receive(endpoint, direction, line, &mut input)?
+    else {
         return Err(CoordinationLineError::Classified(
             CoordinationFailure::Malformed,
         ));
     };
-    endpoint.admit_input(sequence, &payload).map_err(|detail| {
+    endpoint.admit_input(sequence, payload).map_err(|detail| {
         if detail.to_ascii_lowercase().contains("duplicate") {
             CoordinationLineError::Classified(CoordinationFailure::Duplicate)
         } else {
@@ -244,7 +288,12 @@ fn close_source(
             final_sequence: 1,
         },
     )?;
-    match receive(endpoint, direction, line)? {
+    match receive(
+        endpoint,
+        direction,
+        line,
+        &mut [0; BODY_COORDINATION_MAXIMUM_FRAME_BYTES as usize],
+    )? {
         ReceivedMessage::Terminal {
             disposition: SessionTerminalDisposition::Completed,
             final_sequence: 1,
@@ -261,7 +310,12 @@ fn close_sink(
 ) -> Result<(), CoordinationLineError> {
     let direction = RemoteCordDirection::Ingress;
     if !matches!(
-        receive(endpoint, direction, line)?,
+        receive(
+            endpoint,
+            direction,
+            line,
+            &mut [0; BODY_COORDINATION_MAXIMUM_FRAME_BYTES as usize]
+        )?,
         ReceivedMessage::InputClosed { final_sequence: 1 }
     ) {
         return Err(CoordinationLineError::Classified(
@@ -272,7 +326,12 @@ fn close_sink(
         .close_input()
         .map_err(CoordinationLineError::Contract)?;
     if !matches!(
-        receive(endpoint, direction, line)?,
+        receive(
+            endpoint,
+            direction,
+            line,
+            &mut [0; BODY_COORDINATION_MAXIMUM_FRAME_BYTES as usize]
+        )?,
         ReceivedMessage::Terminal {
             disposition: SessionTerminalDisposition::Completed,
             final_sequence: 1,
@@ -323,13 +382,15 @@ fn send(
     line.send_binary(&output[..length]).map_err(transport)
 }
 
-fn receive(
+// The caller keeps this bounded frame alive through kernel admission. Payload
+// ownership and the separate Accepted/Delivered transitions are unchanged.
+fn receive<'a>(
     endpoint: &mut CoordinationEndpoint,
     direction: RemoteCordDirection,
     line: &mut NativeWebSocketLine,
-) -> Result<ReceivedMessage, CoordinationLineError> {
-    let mut input = [0_u8; BODY_COORDINATION_MAXIMUM_FRAME_BYTES as usize];
-    let length = line.receive_binary(&mut input).map_err(transport)?;
+    input: &'a mut [u8; BODY_COORDINATION_MAXIMUM_FRAME_BYTES as usize],
+) -> Result<ReceivedMessage<'a>, CoordinationLineError> {
+    let length = line.receive_binary(input).map_err(transport)?;
     let decoded = decode_session_frame(
         &input[..length],
         MAX_TEXT_BYTES,
@@ -343,10 +404,9 @@ fn receive(
     Ok(match decoded.message {
         SessionMessage::Hello(_) => ReceivedMessage::Hello,
         SessionMessage::Ready => ReceivedMessage::Ready,
-        SessionMessage::Offered { sequence, payload } => ReceivedMessage::Offered {
-            sequence,
-            payload: payload.to_vec(),
-        },
+        SessionMessage::Offered { sequence, payload } => {
+            ReceivedMessage::Offered { sequence, payload }
+        }
         SessionMessage::Accepted { sequence } => ReceivedMessage::Accepted { sequence },
         SessionMessage::Delivered { sequence } => ReceivedMessage::Delivered { sequence },
         SessionMessage::Pressure { .. } => ReceivedMessage::Pressure,
