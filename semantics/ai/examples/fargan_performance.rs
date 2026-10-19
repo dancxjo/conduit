@@ -42,7 +42,11 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     };
     if !matches!(
         owners,
-        "fresh" | "prepared" | "prepared-compact-local" | "prepared-matrix-local"
+        "fresh"
+            | "prepared"
+            | "prepared-compact-local"
+            | "prepared-matrix-local"
+            | "prepared-matrix-source-cache"
     ) {
         return Err("unknown owner profile".into());
     }

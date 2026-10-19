@@ -108,6 +108,18 @@ pub(super) fn run(
     raw: &mut artifact::Raw,
     profile: Profile,
 ) -> Result<(), Box<dyn std::error::Error>> {
+    let mut source_cache = if profile.source_cache() {
+        let (cache, metrics) = timing::measure(|| {
+            conduit_plot::SourcePreparationCache::new(
+                conduit_plot::PreparationCacheLimits::default(),
+            )
+            .unwrap()
+        });
+        raw.row(&json!({"phase":"source-cache-owner-creation","metrics":metrics}))?;
+        Some(cache)
+    } else {
+        None
+    };
     let compact_local = profile.local();
     let mut fresh_walls = Vec::new();
     let mut retained_walls = Vec::new();
@@ -122,11 +134,45 @@ pub(super) fn run(
         )?;
         let plan_sha = artifact::digest(&serde_json::to_vec(&plan)?);
         let candidate = if let Some(numeric) = profile.numeric() {
+            let cold_oracle = if source_cache.is_some() {
+                let (oracle, metrics) = timing::measure(|| {
+                    plan::prepare_entry_plan_profile(schema, &plan::source(), frame::ENTRY, numeric)
+                });
+                raw.row(&json!({"phase":"candidate-cold-check-expand-plan","repetition":repetition,"metrics":metrics}))?;
+                Some(oracle)
+            } else {
+                None
+            };
             let (candidate, cold) = timing::measure(|| {
+                if let Some(cache) = &mut source_cache {
+                    return plan::prepare_entry_plan_profile_cached(
+                        schema,
+                        &plan::source(),
+                        frame::ENTRY,
+                        numeric,
+                        cache,
+                    );
+                }
                 plan::prepare_entry_plan_profile(schema, &plan::source(), frame::ENTRY, numeric)
             });
             raw.row(&json!({"phase":"candidate-check-expand-plan","repetition":repetition,"metrics":cold}))?;
             conformance::same_source(&plan, &candidate);
+            if let Some(oracle) = cold_oracle {
+                assert_eq!(candidate, oracle, "cached and cold complete Plan");
+                artifact::json(
+                    &output.join(format!("candidate-cold-plan-repetition-{repetition}.json")),
+                    &oracle,
+                )?;
+            }
+            if let Some(cache) = &source_cache {
+                let stats = cache.stats();
+                assert_eq!((stats.checks, stats.expansions), (1, 1));
+                assert_eq!(
+                    (stats.check_hits, stats.expansion_hits),
+                    (u64::from(repetition), u64::from(repetition))
+                );
+                raw.row(&json!({"phase":"source-cache-preparation","repetition":repetition,"checks":stats.checks,"check_hits":stats.check_hits,"expansions":stats.expansions,"expansion_hits":stats.expansion_hits,"retained_sources":cache.retained_sources(),"retained_expansions":cache.retained_expansions(),"complete_cold_plan_equal":true}))?;
+            }
             candidate
         } else {
             plan.clone()
@@ -286,12 +332,16 @@ pub(super) fn run(
         let ((), disposal) = timing::measure(|| drop(retained));
         raw.row(&json!({"phase":"prepared-trajectory-release","repetition":repetition,"metrics":disposal}))?;
     }
+    if let Some(cache) = source_cache {
+        let ((), metrics) = timing::measure(|| drop(cache));
+        raw.row(&json!({"phase":"source-cache-owner-release","metrics":metrics}))?;
+    }
     artifact::json(
         &output.join("summary.json"),
-        &json!({"schema":profile.schema(),"repetitions":repetitions,"frames_per_repetition":24,"prepared_final_disposal_measured":true,"compact_local":compact_local,"owners":profile.name(),
+        &json!({"schema":profile.schema(),"repetitions":repetitions,"frames_per_repetition":24,"prepared_final_disposal_measured":true,"compact_local":compact_local,"owners":profile.name(),"source_cache":profile.source_cache(),
         "fresh_whole_call":timing::distribution(&fresh_walls),"prepared_whole_call":timing::distribution(&retained_walls),"source_sha256":artifact::digest(plan::source().as_bytes()),
         "scope":"Paired full authored frame; production prepared kernel and owners, fixture acceptance controller; explicit compact pointwise or matrix/slice DAG/local expression candidate when selected; not ordinary Body integration, realtime or intelligibility proof.",
-        "accounting":"Cold schema/model common; baseline and selected candidate Plan preparation disclosed separately; cold trajectory includes all evidence reservations; rearm includes staging clone; old evidence release and complete output acceptance/state advance separately measured; whole frame includes output decoding; fresh binding clones and final prepared-owner/session destruction separately disclosed. No hardware memory-traffic claim; canonical and native successful store counters reported per profile. Separate Plan IDs and raw full event logs retained; different physical schedules compare ordered per-node value transactions."}),
+        "accounting":"Optional exact Source cache construction/release and matched cold candidate Plan oracle are separately retained; cache stores no Plan. Cold schema/model common; baseline and selected candidate Plan preparation disclosed separately; cold trajectory includes all evidence reservations; rearm includes staging clone; old evidence release and complete output acceptance/state advance separately measured; whole frame includes output decoding; fresh binding clones and final prepared-owner/session destruction separately disclosed. No hardware memory-traffic claim; canonical and native successful store counters reported per profile. Separate Plan IDs and raw full event logs retained; different physical schedules compare ordered per-node value transactions."}),
     )?;
     Ok(())
 }
