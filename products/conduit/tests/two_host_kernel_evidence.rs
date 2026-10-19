@@ -19,6 +19,21 @@ fn observed_two_host_execution_preserves_result_and_distinct_lifecycle_evidence(
     assert_eq!(observed.plan_id, ordinary.plan_id);
     assert_eq!(observed.line_id, ordinary.line_id);
     assert_eq!(observed.transferred_values, 1);
+    assert_eq!(
+        evidence
+            .phases
+            .iter()
+            .map(|phase| phase.phase)
+            .collect::<Vec<_>>(),
+        [
+            "source_parse_expand",
+            "host_advertisements_context",
+            "plan_select",
+            "fragments_prepare",
+            "line_and_evidence_retention",
+            "output_and_execution_receipt",
+        ]
+    );
     assert_eq!(evidence.source.identity.plan_id, observed.plan_id);
     assert_eq!(evidence.sink.identity.plan_id, observed.plan_id);
     assert_eq!(
@@ -93,4 +108,28 @@ fn observed_two_host_execution_preserves_result_and_distinct_lifecycle_evidence(
         .events
         .iter()
         .any(|event| event.kind == KernelEventKind::RemoteInputClosed));
+}
+
+#[test]
+fn measured_payload_cases_fit_the_admitted_real_line() {
+    for length in [8, 64, 65, 256] {
+        let payload = "x".repeat(length);
+        let source = format!("plot payload_case {{\n message: text/literal(\"{payload}\")\n show: face/text(\"Message\")\n message >> show\n}}\n");
+        let mut output = Vec::new();
+        let (execution, evidence) =
+            execute_hosted_two_std_plot_with_evidence(&source, &mut output).unwrap();
+        assert_eq!(execution.result, payload);
+        assert_eq!(output, format!("{payload}\n").as_bytes());
+        assert!(evidence.source.retention_gap.is_none() && evidence.sink.retention_gap.is_none());
+        assert_eq!(evidence.phases.len(), 6);
+    }
+}
+
+#[test]
+fn payload_above_the_text_contract_is_refused_before_transport() {
+    let payload = "x".repeat(257);
+    let source = format!("plot oversized {{\n message: text/literal(\"{payload}\")\n show: face/text(\"Message\")\n message >> show\n}}\n");
+    let mut output = Vec::new();
+    assert!(execute_hosted_two_std_plot_with_evidence(&source, &mut output).is_err());
+    assert!(output.is_empty());
 }
