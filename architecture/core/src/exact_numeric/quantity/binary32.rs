@@ -196,6 +196,20 @@ impl ProjectionPolicy<QuantityBinary32ProjectionDomain> for QuantityBinary32Proj
     fn identity(&self) -> ProjectionText<'_> {
         text("numeric/quantity-binary32-policy@1")
     }
+    fn configuration_digest(&self) -> Option<[u8; 32]> {
+        let mut bytes = [0; 33];
+        bytes[..32].copy_from_slice(&self.maximum_error.semantic_digest());
+        bytes[32] = match self.rounding {
+            Binary32Rounding::NearestTiesEven => 0,
+            Binary32Rounding::TowardZero => 1,
+            Binary32Rounding::TowardPositive => 2,
+            Binary32Rounding::TowardNegative => 3,
+        };
+        Some(crate::semantic_digest(
+            "numeric/quantity-binary32-policy-config@1",
+            &bytes,
+        ))
+    }
     fn permits(
         &self,
         source: &PreparedQuantityBinary32Projection,

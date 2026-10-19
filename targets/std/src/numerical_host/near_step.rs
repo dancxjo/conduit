@@ -101,9 +101,6 @@ fn io_failure(why: SchedulerError) -> StepOutcome {
         fail(NearRefusal::Io)
     }
 }
-fn text(s: &str) -> ProjectionText<'_> {
-    ProjectionText::new(s).unwrap()
-}
 // Keep the installed driver envelope small. All state storage is allocated
 // and measured during preparation, before the kernel starts Play.
 pub struct NearQuantityBack {
@@ -251,10 +248,12 @@ impl NearQuantityBack {
                 &ids,
             )?;
         } else {
-            let facts = ExactNearDomain.facts();
+            let facts = ExactNearProjectionDomain.facts();
             checked_report(
-                &ExactNearDomain,
-                &ExactNearDomain,
+                &ExactNearProjectionDomain,
+                &ExactNearProjectionPolicy {
+                    maximum_error: limit,
+                },
                 &source,
                 &source,
                 &facts,
@@ -340,78 +339,16 @@ fn checked_report<'a, D: ProjectionDomain, P: ProjectionPolicy<D>>(
     facts: &'a [ProjectionFact<'a, D>],
     ids: &'a ProjectionIds,
 ) -> Result<ProjectionReport<'a, D>, NearRefusal> {
-    // Zero-loss reports also require the actual consuming parameters to pass.
-    if !policy.permits(source, target, facts) {
-        return Err(NearRefusal::Tolerance);
-    }
+    // Core freezes the actual permission once, including zero-loss cases.
     let report = ProjectionReport::new(domain, policy, ids.input(domain, source, target, facts))
         .map_err(|_| NearRefusal::Encoding)?;
     report
-        .require_policy(policy.identity())
+        .require_bound_policy(
+            policy.identity(),
+            policy.configuration_digest().ok_or(NearRefusal::Encoding)?,
+        )
         .map_err(|_| NearRefusal::Tolerance)?;
     Ok(report)
-}
-struct ExactNearDomain;
-impl ExactNearDomain {
-    fn facts(self) -> [ProjectionFact<'static, Self>; 3] {
-        [
-            ProjectionFact::Preserved {
-                obligation: text("mathematical-denotation"),
-            },
-            ProjectionFact::Transformed {
-                obligation: text("numeric-representation"),
-                law: text("exact-rational-qualified-coordinate@1"),
-            },
-            ProjectionFact::Preserved {
-                obligation: text("physical-coordinate-contract"),
-            },
-        ]
-    }
-}
-impl ProjectionDomain for ExactNearDomain {
-    type Source = RationalQuantity;
-    type Target = RationalQuantity;
-    type Detail = ();
-    fn source_contract(&self) -> ProjectionText<'_> {
-        text(RATIONAL_QUANTITY_ID)
-    }
-    fn target_contract(&self) -> ProjectionText<'_> {
-        text("numeric/near-exact-rational@1")
-    }
-    fn validate(
-        &self,
-        source: &Self::Source,
-        target: Option<&Self::Target>,
-        facts: &[ProjectionFact<'_, Self>],
-        native: &[ProjectionNativeFact<'_>],
-        scores: &[ProjectionScore<'_>],
-        mechanism: ProjectionMechanism,
-    ) -> bool {
-        target==Some(source)&&facts.len()==3&&native.is_empty()&&scores.is_empty()&&mechanism==ProjectionMechanism::Completed
-            &&facts.iter().any(|f|matches!(f,ProjectionFact::Preserved {obligation} if obligation.as_str()=="mathematical-denotation"))
-            &&facts.iter().any(|f|matches!(f,ProjectionFact::Preserved {obligation} if obligation.as_str()=="physical-coordinate-contract"))
-            &&facts.iter().any(|f|matches!(f,ProjectionFact::Transformed {obligation,law} if obligation.as_str()=="numeric-representation"&&law.as_str()=="exact-rational-qualified-coordinate@1"))
-    }
-}
-impl ProjectionPolicy<ExactNearDomain> for ExactNearDomain {
-    fn identity(&self) -> ProjectionText<'_> {
-        text("numeric/near-exact-rational-policy@1")
-    }
-    fn permits(
-        &self,
-        source: &RationalQuantity,
-        target: &RationalQuantity,
-        facts: &[ProjectionFact<'_, Self>],
-    ) -> bool {
-        self.validate(
-            source,
-            Some(target),
-            facts,
-            &[],
-            &[],
-            ProjectionMechanism::Completed,
-        )
-    }
 }
 
 #[cfg(test)]
