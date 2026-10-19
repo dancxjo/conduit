@@ -1,3 +1,4 @@
+import { BROWSER_COLD_PREPARATION_MS } from "./browser-preparation.mjs";
 import { expect, test } from "@playwright/test";
 import { startStaticProduct } from "./static-product-server.mjs";
 
@@ -12,6 +13,10 @@ test.beforeEach(async ({ page }) => {
 test.afterEach(() => entrance?.child.kill());
 
 test("the first body runs and can remove its resident Tutorial Plot without losing its face", async ({ page }) => {
+  // The retained trace reached the real Tutorial, then exhausted the total
+  // deadline opening its library before Remove could execute. Keep cold
+  // preparation separate without changing ordinary action deadlines.
+  test.setTimeout(20_000 + BROWSER_COLD_PREPARATION_MS);
   await page.goto(entrance.url);
   await expect(page.getByRole("checkbox", { name: "Tutorial", exact: true })).toBeChecked();
   await page.getByRole("checkbox", { name: "Startup Chime", exact: true }).uncheck();
