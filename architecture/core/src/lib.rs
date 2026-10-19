@@ -34,6 +34,8 @@ mod initialized_state;
 pub use initialized_state::{initialized_state_boundary, InitializedStateLaw};
 mod interop;
 mod kind_effects;
+mod observation;
+pub use observation::{Observation, ObservationKind};
 mod physical_definition;
 mod plan_realization;
 mod planned_activation;
@@ -1494,64 +1496,6 @@ pub struct ConnectionTerminalDisposition {
     pub last_accepted_sequence: Option<u64>,
     pub last_manifested_sequence: Option<u64>,
     pub undeliverable_items: u16,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct Observation {
-    pub sign_id: SignId,
-    pub active_play_id: Option<ActivePlayId>,
-    pub face_id: Option<FaceId>,
-    pub host_id: HostId,
-    pub boot_id: BootId,
-    pub plan_id: Option<PlanId>,
-    pub placement_id: Option<PlacementId>,
-    pub connection_id: Option<ConnectionId>,
-    pub kind: ObservationKind,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum ObservationKind {
-    HostStarted,
-    AdvertisementPublished,
-    PlanFragmentReceived,
-    PlacementPrepared,
-    PlanPlayStarted,
-    ExecutionRegionOverlap {
-        waiting_region_id: ExecutionRegionId,
-        progressing_region_id: ExecutionRegionId,
-        physical_parallelism: bool,
-    },
-    ValueProduced {
-        value: ValuePayload,
-    },
-    ValueAccepted {
-        value: ValuePayload,
-    },
-    ValuePresented {
-        /// Meaningful data name declared by the authored Face Gear.
-        label: String,
-        value: ValuePayload,
-    },
-    PlacementCompleted,
-    PlanCompleted,
-    PlacementTerminal {
-        disposition: TerminalDisposition,
-    },
-    ConnectionTerminal {
-        disposition: ConnectionTerminalDisposition,
-    },
-    PlanTerminal {
-        disposition: TerminalDisposition,
-    },
-    Failure {
-        reason: FailureReason,
-        message: Option<String>,
-    },
-    Cancelled,
-    Released,
-    SignGap {
-        dropped: u64,
-    },
 }
 
 // The allocator-free host boundary keeps the sealed preparation fragment inline. Boxing the
