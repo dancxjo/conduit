@@ -120,8 +120,48 @@ Workspace run passed 50 Node contracts and 52 Chromium cases but failed three
 test assertions: an Escape-dismissed popup was not reopened, an empty-list label
 was guessed incorrectly, and a global option count included Host appearance
 options. The original failed run, trace archives, sealed artifacts and exact
-source receipt are preserved. A fresh full run is required after those fixes;
-these results do not establish CI or stable acceptance.
+source receipt are preserved. The subsequent run exposed a shortened-label
+assertion and then a real popup defect: dismissing a normal-flow suggestion list
+on blur moved Save between pointer-down and pointer-up, losing the click.
+Anchoring the popup fixes that path; an empty-name regression verifies the
+Source commits the empty value and withholds Birth. The supported full Workspace
+run then passed 50 Node contracts and all 56 Chromium cases, one worker and zero
+retries. That entrance stages the raw Cargo release WASM; the separately sealed
+optimized artifact has a distinct byte identity.
+
+Composition review also found that forged composition events could change the
+local pending flag. Both handlers now require trusted events, and trusted native
+input supplies its `isComposing` state. The retained diagnostic records Chromium
+CDP insertion emitting an untrusted composition-end event even without forgery;
+a later trusted noncomposing input provides the recovery signal. The failed
+intermediate run remains beside that diagnosis. Final optimized, sealed bytes
+pass all 17 focused Chromium cases: 15 portable-control cases, naming and the
+shared Workspace journey. This includes real protocol-driven preedit, forged
+composition/input events, explicit commit, cancellation and no Source mutation
+during preedit. It does not establish physical IME or human acceptance.
+
+The same final sealed runtime passes the targeted Axe audit with zero violations
+and zero page errors. Three trusted Host switches preserve the exact Source Face
+and snapshot across actual selected/generic Plans and Shows. A bounded local
+observation records 3.12 seconds for initial selected readiness and 102–163 ms for
+those switches. These wall timings include automation and shared-page cache
+effects; no cold-start or real-time guarantee follows. Exact source, five-asset
+bundle and runtime hashes, resource timings, raw receipts and traces are retained
+outside the checkout. These local results do not establish Candidate, Integration
+or stable acceptance.
+
+Standalone exclusive collections without a prepared text-entry association stay
+readable with explicit unsupported typed-input wording. The Crèche's committing
+exclusive naming choice uses its fixed-membership text-entry association. This
+is a finite specimen realization, not a universal widget implementation.
+
+A separate readonly browser-reconstruction preparation has six passing Node
+adapter-envelope tests. It checks exact captured Face bytes, identities,
+revisions, ordered memberships and typed values, requires each portable control
+to be prepared or explicitly refused, and never activates browser controls or
+claims a browser Show. It has not consumed an actual guest capture. Native
+adapter wiring and its real Chromium/QEMU correspondence proof remain for the
+owning native handoff.
 
 The native audit remains a separate handoff. Current native focus/page changes
 and blank/focus-changing clicks can commit pending drafts; N4 requires those
