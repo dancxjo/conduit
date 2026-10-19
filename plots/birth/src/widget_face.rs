@@ -28,7 +28,7 @@ impl BirthWidgetFace for BirthDraft {
             .filter(|choice| choice.selected)
             .count();
         let review = format!(
-            "Name: {}. Starting Plots selected: {} of {}. Birth: {}. Selected Plot names follow; clear search to review all options and availability.",
+            "Name: {}. Starting Plots selected: {} of {}. Birth: {}.",
             if self.friendly_name().is_empty() {
                 "(empty)"
             } else {
