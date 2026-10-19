@@ -67,7 +67,14 @@ It requires the explicit pinned development model/oracle accepted by the command
 The [evidence folder](evidence/prepared-fargan-session-20261019) contains full
 captures, member hashes, phase accounting, the independent verifier and 17
 rejected semantic mutations. All four archives passed verification after
-relocation. The refreshed review source applies the same 30 changed files
+relocation. Extract the public archive beside each replay archive, then run:
+
+```sh
+python3 verify-prepared-fargan.py EXTRACTED_CAPTURE \
+  --source e4fbac12b38ff0f787fe626f4c587cbd175ab5b8
+```
+
+The refreshed review source applies the same 30 changed files
 byte-for-byte onto dev base `7f9748092732ecf2fc04e8992a2a914247b73173`;
 its source bridge records both identities. Refreshed-source validation and
 combined integration remain separate gates from the measured reference.
