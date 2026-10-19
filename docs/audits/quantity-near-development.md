@@ -23,3 +23,28 @@ A [work-refusal regression receipt](evidence/quantity-near-work-refusal-developm
 The [accepted-dev refresh receipt](evidence/numerical-accepted-dev-refresh-development-20261018.json) validates the private numerical work after merging the accepted shared configuration and Std changes at `a2ee4ebea348ec9bcb6725a79e0a23d4a2ca300d`. It retains separate Core, Planner, catalog, runtime and actual CLI results plus two full direct execution reports. All 15 CLI tests pass; affected-package strict lint, Core without default features and formatting pass. Counts from overlapping runtime filters are not summed. These remain development results, independently source-pinned from the earlier receipts.
 
 The [runtime boundary refresh receipt](evidence/quantity-near-refreshed-development-20261018.json) validates this slice after the binary32 component merged into development. The refreshed source passes 104 Core, 83 Planner and 188 catalog tests; separate installed runtime filters pass 11 near and 17 numerical tests (overlapping filters are not summed, and one unrelated owner-matrix test remains ignored). All 12 numerical CLI and three Quantity transport regressions pass. Strict all-target lint across seven affected packages, Core without default features and formatting also pass. Eight raw logs and seven native executables retain source-bound hashes; the archive bytes and full executable decompression were verified. These local results do not establish candidate admission, merged-source integration, stable publication, Fore qualification or accumulated-error acceptance.
+
+
+The private native/exact report preparation checkpoint adds Core codecs for
+complete rational-to-binary32 computational receipts and exact qualified
+coordinates. Both freeze a concrete physical policy configuration digest.
+The Std producer now consumes these reports through `require_bound_policy`,
+including exact results, rather than checking policy separately in the host.
+The binary32 payload retains the original projection allowance and work
+counters separately from the selected policy. Existing mathematical encoding
+primitive bodies are unchanged after extraction into the shared field writer.
+
+This checkpoint passes 579 Core tests, 12 focused installed Std Near tests,
+Core without default features, and workspace formatting. The independent
+codec tests read every field, vary rounding and admitted work, cover a
+4096-bit ratio, reject changed packets and policies, and observe zero encoder
+allocations. Changed source and 108 executed Core/Std binaries are retained
+with verified hashes in the local preparation receipt. CLI and strict
+workspace Clippy validation are still running at this checkpoint; no pass is
+claimed for either. Full workspace tests retain the previously documented
+disk-headroom blocker.
+
+Native/exact output still uses the existing record without a general report
+payload. Actual transport, independent reconstruction of producer work, and
+semantic inspection for every declared representation remain required. These
+codec and policy changes do not complete that boundary or any parent issue.
