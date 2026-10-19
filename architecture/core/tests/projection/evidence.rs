@@ -438,9 +438,10 @@ fn wire_v1_matches_independent_python_framing_and_sha256_reference() {
     let mut bytes = [0; 4096];
     let length = encode_projection_evidence(&report, &codec, limits(), &mut bytes).unwrap();
     let hex = include_str!("../fixtures/projection_evidence_exact_v1.hex").trim();
-    let chunks = hex.as_bytes().chunks_exact(2);
-    assert!(chunks.remainder().is_empty());
+    let (chunks, remainder) = hex.as_bytes().as_chunks::<2>();
+    assert!(remainder.is_empty());
     let expected = chunks
+        .iter()
         .map(|part| u8::from_str_radix(std::str::from_utf8(part).unwrap(), 16).unwrap())
         .collect::<Vec<_>>();
     assert_eq!(&bytes[..length], expected);
