@@ -6,12 +6,15 @@ pub(super) fn qualification(
     source: &str,
     catalog: &StartupCatalog,
 ) -> Result<Option<(StructuredInfoType, ValueConstraint)>, StructuredInfoRefusal> {
-    let Some((base, tolerance)) = source.split_once(" near ") else {
+    let Some((base, tolerance)) = crate::surface_lex::split_near_qualification(source) else {
         return Ok(None);
     };
     // Exactly one absolute qualification. Optional and Flow qualification need
     // their own admitted carrying contract and are not silently unwrapped.
-    if base.trim().is_empty() || tolerance.contains(" near ") || tolerance.trim().is_empty() {
+    if base.trim().is_empty()
+        || crate::surface_lex::split_near_qualification(tolerance).is_some()
+        || tolerance.trim().is_empty()
+    {
         return Err(StructuredInfoRefusal::WrongType);
     }
     let source_kind = checked_value_kind(base.trim(), catalog)?;
