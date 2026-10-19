@@ -374,3 +374,41 @@ code to keep production responsibilities under 500 lines; historical identity
 construction is unchanged and current Near regressions pass. Full workspace
 checks remain unrun locally under current disk pressure; later combined public
 integration remains required.
+
+
+## Explicit physical carrier and installed dimensioned chain
+
+The private `quantity/value` operation explicitly exposes an already checked
+physical value through the generic Quantity carrier. It forwards the complete
+wire unchanged: it creates no Unit, converts no coordinates and changes no role.
+Bare scalars, mathematical data and Unit values refuse during canonical checking.
+Old prepared profiles refuse the operation; the finite mathematical physical
+profile prepares its child and result storage before execution. Its existing
+Angle transport/trig subset now admits this carrier operation and generic
+physical primitive ports, while arithmetic/refinements remain separate work.
+
+Two conformance tests pass. Native, rational and symbolic Angle frames survive
+25 guarded successful executions byte for byte, with one wrong-family refusal
+followed by recovery, zero allocation/reallocation and stable prepared capacities.
+An initial borrowing diagnostic was corrected by consuming the existing borrowed
+value view. The first negative test stopped at syntax-document checking; the
+corrected test reaches canonical expression checking. The constructor's initial
+Angle/math-only port restriction was explicitly extended for physical carriers.
+
+The authored installed test now passes for both 90 degrees and quarter-turn:
+Angle-to-radian conversion, typed Angle carry, explicit carrier exposure, then
+the selected mathematical Near binary32 consumer. The independent reader checks
+the resulting original Pi/2-radian frame, Unit/role and certified nonzero numeric
+error. Both actual kernel runs report zero post-Play-start allocations and
+unchanged value capacity; the separate guarded reader also allocates zero times.
+All five installed Angle tests pass. This does not yet establish full generic
+projection Source/Plan/Sign custody or complete original-scope acceptance.
+
+The first installed rebuild terminated with ENOSPC before tests. Protected source
+and existing evidence were retained; inactive owned old check metadata and older
+Conduit library-cache variants were removed, then the same test passed after a
+fresh build. Full workspace checks remain unrun locally under disk pressure.
+Strict all-target Clippy for Core, Plot, Std offers, semantic catalog and Std Host
+passes, as do Core/Plot no-default-features and formatting checks. Actual CLI
+proof remains pending. Existing public gates and all original parent requirements
+remain authoritative.

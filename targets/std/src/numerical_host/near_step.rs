@@ -449,4 +449,5 @@ mod mathematical_tests;
 mod projection_ids;
 use projection_ids::ProjectionIds;
 
+#[cfg(test)]
 pub(crate) use mathematical::requirements as mathematical_near_requirements;
