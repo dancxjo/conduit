@@ -268,3 +268,75 @@ fn span_compositor_performance() {
         }
     }
 }
+
+#[test]
+fn focus_and_cursor_edges_keep_surface_interiors_on_the_span_path() {
+    struct Spans {
+        inner: display::MemoryDisplay,
+        bulk_pixels: usize,
+    }
+    impl PixelTarget for Spans {
+        fn format(&self) -> DisplayFormat {
+            self.inner.format()
+        }
+        fn write_pixel(&mut self, x: u32, y: u32, pixel: u32) -> Result<(), DisplayError> {
+            self.inner.write_pixel(x, y, pixel)
+        }
+        fn write_span(&mut self, x: u32, y: u32, pixels: &[u32]) -> Result<(), DisplayError> {
+            self.bulk_pixels += pixels.len();
+            self.inner.write_span(x, y, pixels)
+        }
+    }
+    let (face, plan, main, _, mut compositor) = fixture::fixture(1);
+    compositor
+        .place_surface(
+            fixture::MAIN,
+            LayoutRect {
+                x: 0,
+                y: 0,
+                width: 32,
+                height: 16,
+            },
+            0,
+        )
+        .unwrap();
+    fixture::update(&mut compositor, &face, &plan, &main, fixture::MAIN);
+    let mut target = Spans {
+        inner: display::MemoryDisplay::new(),
+        bulk_pixels: 0,
+    };
+    let mut expected = target.inner.clone();
+    let format = target.format();
+    let damage = [DamageRect {
+        x: 0,
+        y: 0,
+        width: 32,
+        height: 16,
+    }];
+    let result = compose_damage(
+        &mut target,
+        format,
+        &compositor.surfaces,
+        &damage,
+        Some(fixture::MAIN),
+        Some((15, 7)),
+        false,
+    )
+    .unwrap();
+    let reference = reference::compose_damage(
+        &mut expected,
+        format,
+        &compositor.surfaces,
+        &damage,
+        Some(fixture::MAIN),
+        Some((15, 7)),
+        false,
+    )
+    .unwrap();
+    assert_eq!(result, reference);
+    assert_eq!(target.inner.pixels, expected.pixels);
+    assert!(
+        target.bulk_pixels > 32 * 16 / 2,
+        "overlay edges must not make a full focused surface fall back to per-pixel writes"
+    );
+}
