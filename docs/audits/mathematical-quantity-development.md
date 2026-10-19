@@ -478,3 +478,24 @@ separate five-stage exact transform/conversion/carry/sine chain returns exact
 one. This supersedes the pending installed-test note above. The retained proof
 remains private; qualified consumer integration, general projection/Sign custody,
 and exact-source stable acceptance remain open.
+
+### Private prepared symbolic consuming contract
+
+Core now exposes an explicit `PreparedMathematicalNearValueContract`. Preparation
+validates and retains the entire authored checked contract, then pins enclosure,
+rounding, consumer tolerance, replay storage and a finite numerical work ceiling.
+Execution checks its input extent and every authored predicate, including the
+symbolic certificate replay. The ordinary checked-contract validator is unchanged.
+This new entrance currently consumes mathematical source frames; native/rational
+compatibility dispatch is required before integrating a general hosted consumer.
+
+One real-producer test passes across four guarded cycles: valid replay, forged
+Unit rejection, tighter-tolerance rejection, independent byte-length rejection,
+zero-work refusal, prepared work-ceiling enforcement and refusal recovery. The
+contract remains identical and verifier buffers remain fixed, with zero guarded
+allocations. Core strict Clippy and no-default-features checks pass. The executed
+Std test binary and source bundle are retained with verified archive roundtrips.
+This is prepared Core contract evidence, not qualified Source/Plan/kernel
+consumer admission. Explicit evaluator/Host resources and artifact binding,
+native/rational dispatch, general projection/Sign custody and stable acceptance
+remain required; no original parent requirement is closed by this checkpoint.
