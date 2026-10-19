@@ -18,7 +18,7 @@ pub(crate) struct Outputs(pub(crate) Vec<Vec<u8>>);
 impl ExternalForeOutputAdapter for Outputs {
     fn deliver(&mut self, value: ExternalForeDelivery) -> Result<(), String> {
         if value.track == ConnectionTrack::Payload {
-            self.0.push(value.bytes);
+            self.0.push(value.bytes.to_vec());
         }
         Ok(())
     }

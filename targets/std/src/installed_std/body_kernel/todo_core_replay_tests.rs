@@ -21,7 +21,7 @@ impl BodyForeOutputAdapter for States {
     fn deliver(&mut self, output: &ExternalForeDelivery) -> Result<(), String> {
         assert_eq!(output.front_port_id, port_id("states"));
         if output.track == ConnectionTrack::Payload {
-            self.0.push(output.bytes.clone());
+            self.0.push(output.bytes.to_vec());
         }
         Ok(())
     }

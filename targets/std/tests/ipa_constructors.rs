@@ -33,7 +33,7 @@ struct Collector {
 impl ExternalForeOutputAdapter for Collector {
     fn deliver(&mut self, value: ExternalForeDelivery) -> Result<(), String> {
         match value.track {
-            ConnectionTrack::Payload => self.values.push(value.bytes),
+            ConnectionTrack::Payload => self.values.push(value.bytes.to_vec()),
             ConnectionTrack::NormalClose => {}
             _ => panic!("no abnormal/quiescent effect"),
         }

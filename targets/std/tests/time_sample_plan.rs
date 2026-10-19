@@ -165,7 +165,7 @@ fn installed_sampler_preserves_physical_capsules_in_actual_plan_play() {
     impl ExternalForeOutputAdapter for Collector {
         fn deliver(&mut self, delivery: ExternalForeDelivery) -> Result<(), String> {
             if delivery.track == ConnectionTrack::Payload {
-                self.0.push(delivery.bytes);
+                self.0.push(delivery.bytes.to_vec());
             }
             Ok(())
         }

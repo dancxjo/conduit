@@ -88,13 +88,12 @@ fn borrowed_flow_acknowledgement_avoids_owned_clone_with_same_kernel_evidence(
             .unwrap()
             .interval_to(sink.last.as_ref().unwrap())
             .unwrap();
+        assert_eq!(owned_window.allocations, ITEMS as u64 - 1);
+        assert_eq!(owned_window.reallocations, 0);
+        assert_eq!(owned_window.allocations, borrowed_window.allocations);
         assert_eq!(
-            owned_window.allocations - borrowed_window.allocations,
-            3 * (ITEMS as u64 - 1)
-        );
-        assert_eq!(
-            owned_window.requested_bytes - borrowed_window.requested_bytes,
-            23 * (ITEMS as u64 - 1)
+            owned_window.requested_bytes,
+            borrowed_window.requested_bytes
         );
         println!("Flow allocation window gears={gears}: owned={owned_window:?}, borrowed={borrowed_window:?}");
         sink.refuse = true;

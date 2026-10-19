@@ -87,28 +87,10 @@ pub struct ExternalForeInput {
     pub bytes: Vec<u8>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ExternalForeDelivery {
-    pub front_port_id: conduit_core::PortId,
-    pub track: conduit_core::ConnectionTrack,
-    pub value_kind: conduit_core::KindId,
-    pub sequence: u64,
-    pub bytes: Vec<u8>,
-}
-
-/// A host acknowledges external Fore output only after its exact effect has
-/// been accepted. Returning an error leaves the kernel value undelivered.
-pub trait ExternalForeOutputAdapter {
-    fn deliver(&mut self, output: ExternalForeDelivery) -> Result<(), String>;
-
-    /// Synchronously accept a Flow output without retaining its owned buffers.
-    /// Success acknowledges the effect exactly as `deliver` does. The borrow
-    /// ends before kernel acceptance; retaining adapters can keep using `deliver`.
-    /// The default preserves the existing owned-adapter contract.
-    fn deliver_flow(&mut self, output: &ExternalForeDelivery) -> Result<(), String> {
-        self.deliver(output.clone())
-    }
-}
+mod fore_delivery;
+pub use fore_delivery::{
+    ExternalForeBytes, ExternalForeDelivery, ExternalForeIdentity, ExternalForeOutputAdapter,
+};
 pub mod direct_spoken_mask;
 pub mod direct_spoken_mask_runtime;
 pub mod direct_spoken_template_mask;
