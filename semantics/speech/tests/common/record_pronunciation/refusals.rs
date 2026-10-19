@@ -22,6 +22,53 @@ pub fn check(
     tape: &PreparedLexicalTape,
     authority: &CurrentCommittedDependency<'_, '_>,
 ) {
+    // An admitted supported-Variety inventory can still lack a required
+    // lexical contrast. Preserve every remaining definition/binding exactly.
+    let owned = super::inventory::reviewed();
+    let missing = conduit_speech::semantic::SpeechInventory::new(
+        owned.inventory.identity().clone(),
+        owned.inventory.language().clone(),
+        BoundedSequence::try_from_iter(
+            owned
+                .inventory
+                .phonemes()
+                .iter()
+                .filter(|p| p.identity().get() != "uk-record/ao-long")
+                .cloned(),
+        )
+        .unwrap(),
+        owned.inventory.phones().clone(),
+    )
+    .unwrap();
+    let bindings: Vec<_> = owned
+        .phonemes
+        .iter()
+        .filter(|b| b.phoneme().get() != "uk-record/ao-long")
+        .cloned()
+        .collect();
+    let incomplete = PreparedIpaInventory::prepare(
+        &missing,
+        &owned.profile,
+        owned.profile.variety(),
+        owned.profile.revision(),
+        &owned.phones,
+        &bindings,
+    )
+    .unwrap();
+    let current_selection = prepare_pronunciation_selection(
+        tape,
+        1,
+        authority.receipt().arc().dependent().revision(),
+        authority.receipt().arc(),
+        &lexical::profile(),
+    )
+    .unwrap();
+    assert!(matches!(
+        CommittedRecordPronunciation::prepare(profile, &current_selection, &incomplete, authority),
+        Err(Refusal::Profile(
+            conduit_speech::record_pronunciation::RecordPronunciationRefusal::Phonemic
+        ))
+    ));
     let original = tape.tape();
     let arc = authority.receipt().arc();
     let analysis = arc.dependent().revision();

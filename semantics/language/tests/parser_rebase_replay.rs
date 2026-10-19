@@ -1,9 +1,7 @@
 //! Native preparation replay only; no installed runtime/currentness assertion.
 #[path = "common/parser_revision_fixture.rs"]
 mod fixture;
-use conduit_language::{
-    lexical::prepare_lexical_tape, parser_rebase_replay::*, parser_revision::*, *,
-};
+use conduit_language::{lexical::prepare_lexical_tape, parser_rebase_replay::*, *};
 use conduit_plot::rust_binding::NativeRustBinding;
 fn preparation() -> PreparedParserRevisionRebase {
     let old = fixture::revision("answer record ", None, 7);

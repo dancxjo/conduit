@@ -17,7 +17,8 @@ use conduit_language::{
 };
 use conduit_plot::{
     check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
-    rust_binding::NativeRustBinding, PortableExpressionProgram, ProfileCatalog, StartupCatalog,
+    rust_binding::NativeRustBinding, CheckedSyntaxDocument, PortableExpressionProgram,
+    ProfileCatalog, StartupCatalog,
 };
 pub const RECORD_PROFILE_SOURCE: &str = include_str!("../record_pronunciation.conduit");
 pub const RECORD_VARIETY_ID: &str = "speech/uk-nonrhotic-record@1";
@@ -33,6 +34,7 @@ pub enum RecordPronunciationRefusal {
 }
 /// Immutable checked expression reused across preparations; no per-call checking.
 pub struct PreparedRecordPronunciationProfile {
+    checked: CheckedSyntaxDocument,
     program: PortableExpressionProgram,
     program_hex: String,
     source_id: String,
@@ -131,7 +133,11 @@ impl PreparedRecordPronunciationProfile {
             program: PortableExpressionProgram::from_canonical_hex(hex).map_err(|_| Output)?,
             program_hex: hex.clone(),
             source_id: checked.source_document_id.as_str().into(),
+            checked,
         })
+    }
+    pub fn checked_source(&self) -> &CheckedSyntaxDocument {
+        &self.checked
     }
     pub fn program_hex(&self) -> &str {
         &self.program_hex

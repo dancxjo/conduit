@@ -20,4 +20,11 @@ pub const STEPS: &[Step] = &[Step::new(
         "--nocapture",
         "--test-threads=1",
     ],
+), Step::new(
+    "record-pronunciation.std-source-plan-play",
+    "Execute exact pronunciation Source through installed StdHost and compare complete receipts",
+    "cargo", &[
+        "test", "--locked", "-p", "conduit-std-host", "--test", "record_pronunciation",
+        "--", "--nocapture", "--test-threads=1",
+    ],
 )];

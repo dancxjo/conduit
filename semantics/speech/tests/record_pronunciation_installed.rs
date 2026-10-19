@@ -142,22 +142,34 @@ fn supplied_committed_record_pair_executes_installed_compact_formant_and_changes
             RevisionChange::Proposed { delta: &delta },
         )
         .unwrap();
+        // Reference-only supersession preserves the exact Native analysis/arc.
+        // Commitment belongs to this later journal proposal, not the old ref.
+        let revised = RevisionEvent::new(
+            &domain,
+            reference(2, "revised"),
+            &evidence,
+            RevisionChange::Revised {
+                replaces: proposed.reference(),
+                delta: &delta,
+            },
+        )
+        .unwrap();
         let stable = RevisionEvent::new(
             &domain,
-            reference(2, "stable"),
+            reference(3, "stable"),
             &evidence,
             RevisionChange::Stable {
-                revision: proposed.reference(),
+                revision: revised.reference(),
                 through: TokenFrontier(2),
             },
         )
         .unwrap();
         let commit = RevisionEvent::new(
             &domain,
-            reference(3, "commit"),
+            reference(4, "commit"),
             &evidence,
             RevisionChange::Committed {
-                revision: proposed.reference(),
+                revision: revised.reference(),
                 through: TokenFrontier(2),
             },
         )
@@ -172,11 +184,16 @@ fn supplied_committed_record_pair_executes_installed_compact_formant_and_changes
         )
         .unwrap();
         session.append(&proposed, None, false, false).unwrap();
+        session.append(&revised, None, false, false).unwrap();
         session.append(&stable, None, false, false).unwrap();
         session
             .append(&commit, Some(&dependency), false, false)
             .unwrap();
-        let current = session.current(proposed.reference(), &dependency).unwrap();
+        assert!(matches!(
+            session.current(proposed.reference(), &dependency),
+            Err(conduit_language::analysis_session::AnalysisSessionRefusal::Stale)
+        ));
+        let current = session.current(revised.reference(), &dependency).unwrap();
         refusals::check(&profile, &admitted, &lexical, &current);
         let pronunciation =
             CommittedRecordPronunciation::prepare(&profile, &selected, &admitted, &current)
