@@ -123,7 +123,14 @@ pub struct Run {
     pub signs: BTreeMap<HostId, Vec<conduit_kernel::KernelEvent>>,
     pub pcm: Vec<u8>,
 }
-pub fn run(mut kernel: KernelCompositeHost, identity: &[u8; 32]) -> Run {
+pub fn run(kernel: KernelCompositeHost, identity: &[u8; 32]) -> Run {
+    run_with_frame_count(kernel, identity, 4000)
+}
+pub fn run_with_frame_count(
+    mut kernel: KernelCompositeHost,
+    identity: &[u8; 32],
+    expected_frames: u64,
+) -> Run {
     let plays = kernel.start().unwrap().clone();
     let input = ValuePayload {
         value_kind: kind_id(SOURCE_VALUE_KIND),
@@ -156,7 +163,7 @@ pub fn run(mut kernel: KernelCompositeHost, identity: &[u8; 32]) -> Run {
         }
     }
     assert!(complete);
-    assert_eq!(next_frame, 4000);
+    assert_eq!(next_frame, expected_frames);
     Run {
         plays,
         signs: kernel.signs(),
