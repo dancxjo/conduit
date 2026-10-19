@@ -19,11 +19,11 @@ pub struct WorkTiming {
     pub signs: usize,
     pub scheduler_bytes: usize,
 }
-pub(super) struct TimedNumeric {
-    pub(super) back: Box<dyn StepBack<PORTS>>,
+pub(super) struct TimedNumeric<B: StepBack<PORTS> + ?Sized> {
+    pub(super) back: Box<B>,
     pub(super) timing: Rc<std::cell::RefCell<WorkTiming>>,
 }
-impl StepBack<PORTS> for TimedNumeric {
+impl<B: StepBack<PORTS> + ?Sized> StepBack<PORTS> for TimedNumeric<B> {
     fn step(&mut self, io: &mut StepIo<PORTS>, bytes: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         let start = Instant::now();
         let result = self.back.step(io, bytes);
@@ -50,6 +50,9 @@ pub(super) enum Driver {
         sent: bool,
     },
     Operation(Box<dyn StepBack<PORTS>>),
+    ReusableOperation(
+        Box<dyn conduit_kernel::scheduler::prepared_session::ReusableStepBack<PORTS, Next = ()>>,
+    ),
     Sink {
         received: Rc<std::cell::RefCell<Option<Vec<u8>>>>,
         staged: Option<Vec<u8>>,
@@ -75,6 +78,7 @@ impl StepBack<PORTS> for Driver {
                 StepOutcome::Progress
             }
             Self::Operation(back) => back.step(io, bytes),
+            Self::ReusableOperation(back) => back.step(io, bytes),
             Self::Sink { staged, .. } => {
                 let Some(input) = bytes.input(KPort(0)) else {
                     return StepOutcome::Await;
@@ -92,12 +96,14 @@ impl StepBack<PORTS> for Driver {
     fn prepared_output(&self, p: KPort) -> Option<&[u8]> {
         match self {
             Self::Operation(back) => back.prepared_output(p),
+            Self::ReusableOperation(back) => back.prepared_output(p),
             _ => None,
         }
     }
     fn step_committed(&mut self) {
         match self {
             Self::Operation(back) => back.step_committed(),
+            Self::ReusableOperation(back) => back.step_committed(),
             Self::Sink {
                 received, staged, ..
             } => {
@@ -111,8 +117,14 @@ impl StepBack<PORTS> for Driver {
         }
     }
     fn cancel(&mut self) {
-        if let Self::Operation(back) = self {
-            back.cancel();
+        match self {
+            Self::Operation(back) => back.cancel(),
+            Self::ReusableOperation(back) => back.cancel(),
+            _ => {}
         }
     }
 }
+
+#[path = "runtime_rearm.rs"]
+mod rearm;
+pub(super) use rearm::Next;
