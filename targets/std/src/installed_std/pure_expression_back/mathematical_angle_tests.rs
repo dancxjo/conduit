@@ -291,9 +291,12 @@ fn ordinary_source_preparation_selects_compatible_angle_profiles_across_the_chai
 #[test]
 fn authored_dimensioned_chain_reaches_selected_binary32_consumer_and_independent_reader() {
     let source = "plot bridge (\n >> value: Angle\n result: Angle >>\n) = (math/angle-radians(.))\nplot carry (\n >> value: Angle\n result: Angle >>\n) = (.)\nplot expose (\n >> value: Angle\n result: Quantity >>\n) = (quantity/value(.))\nplot project (\n >> value: Angle\n result: NearQuantity <= 131072B >>\n) {\n converted: bridge\n carried: carry\n exposed: expose\n boundary: math/near(limit=0.000001rad)\n value >> converted.value\n converted.result >> carried.value\n carried.result >> exposed.value\n exposed.result >> boundary.value\n boundary.result >> result\n}\n";
+    let source = format!("plot halve (\n >> value: Angle\n result: Angle >>\n) = (. / 2)\nplot double (\n >> value: Angle\n result: Angle >>\n) = (. * 2)\n{}", source
+        .replace(" converted: bridge", " halved: halve\n doubled: double\n converted: bridge")
+        .replace(" value >> converted.value", " value >> halved.value\n halved.result >> doubled.value\n doubled.result >> converted.value"));
     for spelling in ["90°", "0.25turn"] {
-        let (host, plan) = fixture_with_selection(source, "project", true);
-        assert_eq!(plan.fragments[0].placements.len(), 4);
+        let (host, plan) = fixture_with_selection(&source, "project", true);
+        assert_eq!(plan.fragments[0].placements.len(), 6);
         assert_eq!(
             plan.fragments[0]
                 .placements
@@ -338,4 +341,38 @@ fn authored_dimensioned_chain_reaches_selected_binary32_consumer_and_independent
         assert_ne!(value.maximum_error(), ExactRational::ZERO);
         assert_eq!(guard.finish(), 0);
     }
+}
+
+#[test]
+fn installed_exact_angle_arithmetic_feeds_the_symbolic_conversion_without_growth() {
+    let transforms = "plot halve (\n >> value: Angle\n result: Angle >>\n) = (. / 2)\nplot double (\n >> value: Angle\n result: Angle >>\n) = (. * 2)\n";
+    let source = format!("{transforms}{}", CHAIN
+        .replace(" converted: bridge", " halved: halve\n doubled: double\n converted: bridge")
+        .replace(" value >> converted.value", " value >> halved.value\n halved.result >> doubled.value\n doubled.result >> converted.value"));
+    let (host, plan) = fixture_with_selection(&source, "main", true);
+    assert_eq!(plan.fragments[0].placements.len(), 5);
+    assert_eq!(
+        plan.fragments[0]
+            .placements
+            .iter()
+            .filter(|p| p.execution_profile_id.as_str()
+                == conduit_std_offers::PURE_EXACT_QUANTITY_STD_PROFILE)
+            .count(),
+        2
+    );
+    let result = play(
+        host,
+        &plan,
+        Quantity::parse_plot_literal("90°")
+            .unwrap()
+            .encode()
+            .to_vec(),
+    );
+    assert_eq!(
+        MathematicalValueView::decode(&result, &mut ExactNumericWork::new(200_000_000))
+            .unwrap()
+            .as_rational(&mut ExactNumericWork::new(200_000_000))
+            .unwrap(),
+        Some(ExactRational::ONE)
+    );
 }

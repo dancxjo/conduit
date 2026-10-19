@@ -3,6 +3,16 @@ plot native-angle (
     result: Angle >>
 ) = (90°)
 
+plot halve (
+    >> value: Angle
+    result: Angle >>
+) = (. / 2)
+
+plot double (
+    >> value: Angle
+    result: Angle >>
+) = (. * 2)
+
 plot radians (
     >> value: Angle
     result: Angle >>
@@ -26,6 +36,8 @@ plot explain (
 plot main {
     seed: math/realize(request={value:0,maximum-error:0})
     native: native-angle
+    halved: halve
+    doubled: double
     converted: radians
     carried: carry
     exposed: expose
@@ -33,7 +45,9 @@ plot main {
     inspect: explain
     show: face/text("Dimensioned binary32")
     seed.result >> (.source) >> native.trigger
-    native.result >> converted.value
+    native.result >> halved.value
+    halved.result >> doubled.value
+    doubled.result >> converted.value
     converted.result >> carried.value
     carried.result >> exposed.value
     exposed.result >> projected.value

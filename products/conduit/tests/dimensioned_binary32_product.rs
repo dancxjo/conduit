@@ -41,6 +41,24 @@ fn assert_chain(source: &str) {
             plan.source_document_id,
             conduit_plot::parse_syntax_document(source).source_document_id()
         );
+        let exact: Vec<_> = plan
+            .fragments
+            .iter()
+            .flat_map(|f| &f.placements)
+            .filter(|p| {
+                p.execution_profile_id.as_str() == "std/pure-expression-quantity-exact-hosted@1"
+            })
+            .filter(|p| {
+                p.inputs[0].value_kind.as_str() == conduit_core::ANGLE_INFO_ID
+                    && p.outputs[0].value_kind.as_str() == conduit_core::ANGLE_INFO_ID
+            })
+            .collect();
+        assert_eq!(
+            exact.len(),
+            2,
+            "both Angle transforms must select exact arithmetic"
+        );
+        assert!(exact.iter().all(|p| p.source_span.is_some()));
         let mathematical: Vec<_> = plan
             .fragments
             .iter()
