@@ -154,3 +154,11 @@ counts against the admitted revisable window and can support a stable frontier,
 but grants no commitment. Correction containment and committed-prefix protection
 still use only the changed dependent region. Exact Source commitment and live
 analysis authority remain separate requirements.
+
+An accepted Language correction preserves the committed cursor and immutable
+receipts, but marks publication disputed with the exact correction reference.
+New `current()` grants and fresh commitments refuse until checked correction
+reconciliation exists. This does not rewrite a retained prosody plan or played
+audio history. Rejected, cancelled and pressure-blocked corrections preserve
+the prior authority. Reconciliation and streaming epoch integration remain
+parent work, not an implicit reset of committed analysis.
