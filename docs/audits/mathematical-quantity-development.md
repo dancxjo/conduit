@@ -694,3 +694,32 @@ and whole-algorithm source/input/request/output custody remain unfinished.
 The earlier actual CLI report remains terminal-only evidence until the new real
 CLI gate passes. Public stable acceptance and the broader original parent scope
 remain open; no parent requirement is closed here.
+
+### Private actual product routing artifacts
+
+The real dimensioned CLI gate passes both degree and quarter-turn input runs,
+requiring the selected binary32 producer's routed-content Sign in the ordinary
+report. The third invocation retains the zero-allowance refusal. Two independent
+observation-wire tests pass, preserving previous postcard tags and roundtripping
+the appended shared variant. The full Observatory library passes all 54 tests,
+including the additional byte-ceiling and digest-label refusal cases.
+
+A separate retained CLI execution exports ten routing Signs and one completed
+terminal Sign, with zero report retention drops. Another actual execution writes
+standalone Plan, Play and all eleven Sign artifacts through the existing product
+writer. Ordinary `conduit inspect` validates every artifact and the authored
+Source. Independent SHA-256 reconstruction reproduces every canonical Sign
+identity; each routing observation names its exact planned producer/output/Cord.
+The selected projection's Core Sign sequence is 8, while its native routing event
+sequence is 76; these identities are deliberately distinct. Its transported
+record extent is 4,431 bytes. Raw report, compressed verified copy, artifacts,
+inspection output, executable hashes and source bundles are retained privately.
+
+This supersedes the terminal-only product-export limitation of the earlier
+checkpoint. The strengthened automated CLI artifact/inspection gate and strict
+workspace Clippy are still queued or running. Routing digests do not themselves
+retain the complete numerical record and canonical general projection report;
+independent numerical replay is established by the installed test, not by
+pretending the digest is a certificate. Native gaps, external Fore/Body/remote
+export, whole-algorithm input/request/output custody, full workspace test proof,
+public stable acceptance and the broader original parent scope remain open.
