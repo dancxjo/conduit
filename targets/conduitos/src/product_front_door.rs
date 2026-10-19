@@ -4,6 +4,7 @@ mod arrival;
 mod face_arrival;
 mod face_workspace;
 mod guest_join;
+mod home_input;
 mod input_actions;
 mod tutorial;
 mod workspace_view_sign;
@@ -574,130 +575,15 @@ pub fn run(
             if front_door.home_open()
                 && product_control(event.usage()) != Some(ProductControl::Lifecycle)
             {
-                if !front_door.observes_current_product(&journey) {
-                    return Err("home-owner-changed");
-                }
-                match front_door
-                    .accept_home(event, front_door.revision())
-                    .map_err(|error| error.as_str())?
-                {
-                    crate::front_door::HomeInput::Unchanged => {}
-                    crate::front_door::HomeInput::Changed => {
-                        presenter
-                            .present(&front_door, display)
-                            .map_err(|error| error.as_str())?;
-                        arch::early_write(
-                            format!(
-                                "CONDUIT_HOME_STATE {} {}\n",
-                                front_door
-                                    .home_view()
-                                    .map_or("closed", crate::front_door::HomeView::as_str),
-                                front_door.home_selection().unwrap_or(0)
-                            )
-                            .as_bytes(),
-                        );
-                    }
-                    crate::front_door::HomeInput::OpenTour => {
-                        tutorial::select(
-                            &mut journey,
-                            &mut front_door,
-                            &mut presenter,
-                            display,
-                            make,
-                        )?;
-                    }
-                    crate::front_door::HomeInput::OpenPatchbay => {
-                        let requested = front_door
-                            .home_installed_plots()
-                            .iter()
-                            .find(|plot| {
-                                crate::native_workset::resolve(&plot.plot).is_ok_and(|kind| {
-                                    kind == crate::native_workset::NativePlot::Patchbay
-                                })
-                            })
-                            .ok_or("home-patchbay-not-in-current-body")?
-                            .plot
-                            .clone();
-                        journey
-                            .select_plot(&requested, journey.revision())
-                            .map_err(|error| error.as_str())?;
-                        front_door.close_home().map_err(|error| error.as_str())?;
-                        let receipt = refresh(
-                            &mut front_door,
-                            &journey,
-                            &mut presenter,
-                            &mut face_workspace,
-                            display,
-                        )?;
-                        emit_journey_sign(&journey.projection(), make, &receipt);
-                        arch::early_write(b"CONDUIT_HOME_CHECKPOINT patchbay-opened\n");
-                    }
-                    crate::front_door::HomeInput::OpenCreche => {
-                        arch::early_write(
-                            b"CONDUIT_HOME_CHECKPOINT creche-unavailable-after-birth\n",
-                        );
-                        presenter
-                            .present(&front_door, display)
-                            .map_err(|error| error.as_str())?;
-                    }
-                    crate::front_door::HomeInput::OpenPlot(index) => {
-                        let requested = front_door
-                            .home_installed_plots()
-                            .get(index)
-                            .ok_or("home-plot-not-in-current-body")?
-                            .plot
-                            .clone();
-                        let requested_name = crate::native_workset::resolve(&requested)
-                            .map_err(|_| "home-resident-identity-invalid")?
-                            .name();
-                        journey
-                            .select_plot(&requested, journey.revision())
-                            .map_err(|error| error.as_str())?;
-                        front_door.close_home().map_err(|error| error.as_str())?;
-                        let receipt = refresh(
-                            &mut front_door,
-                            &journey,
-                            &mut presenter,
-                            &mut face_workspace,
-                            display,
-                        )?;
-                        emit_journey_sign(&journey.projection(), make, &receipt);
-                        arch::early_write(
-                            format!("CONDUIT_HOME_CHECKPOINT plot-opened {}\n", requested_name)
-                                .as_bytes(),
-                        );
-                    }
-                    crate::front_door::HomeInput::RunPlot(index) => {
-                        let requested = front_door
-                            .home_installed_plots()
-                            .get(index)
-                            .ok_or("home-plot-not-in-current-body")?
-                            .plot
-                            .clone();
-                        let requested_name = crate::native_workset::resolve(&requested)
-                            .map_err(|_| "home-resident-identity-invalid")?
-                            .name();
-                        journey
-                            .select_plot(&requested, journey.revision())
-                            .map_err(|error| error.as_str())?;
-                        front_door.close_home().map_err(|error| error.as_str())?;
-                        let receipt = refresh(
-                            &mut front_door,
-                            &journey,
-                            &mut presenter,
-                            &mut face_workspace,
-                            display,
-                        )?;
-                        emit_journey_sign(&journey.projection(), make, &receipt);
-                        arch::early_write(
-                            format!(
-                                "CONDUIT_HOME_CHECKPOINT plot-selected execution-unchanged {}\n",
-                                requested_name
-                            )
-                            .as_bytes(),
-                        );
-                    }
-                }
+                home_input::accept(
+                    event,
+                    &mut front_door,
+                    &mut journey,
+                    &mut presenter,
+                    &mut face_workspace,
+                    display,
+                    make,
+                )?;
                 return Ok(ProductInputControl::Continue);
             }
             if front_door.creche_open() {
