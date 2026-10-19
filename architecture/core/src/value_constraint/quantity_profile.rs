@@ -120,7 +120,11 @@ fn exact_range(
     maximum_endpoint: IntervalEndpoint,
 ) -> Result<(), ValueConstraintRefusal> {
     let mut work = ExactNumericWork::new(3 * crate::MATHEMATICAL_VALUE_VALIDATION_WORK);
-    let value = QuantityValueView::decode(canonical, &mut work)
+    // Outer checked-contract admission still selects the wire profile first.
+    // This semantic predicate can compare a rational coordinate in any admitted
+    // form; unresolved symbolic ordering remains a named range refusal.
+    let value = QuantityValueProfile::Mathematical
+        .decode(crate::QUANTITY_INFO_ID, canonical, &mut work)
         .map_err(|_| ValueConstraintRefusal::QuantityRange)?;
     for (bound, endpoint, lower) in [
         (minimum, minimum_endpoint, true),

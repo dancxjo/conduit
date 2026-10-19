@@ -118,14 +118,20 @@ fn selected_mathematical_form_retains_typing_and_refuses_unsupported_rational_ma
             assert!(contract
                 .validate_with_quantity_profile(bytes, QuantityValueProfile::Mathematical)
                 .is_ok());
-            // Range comparison support is separate from form negotiation; it
-            // remains a truthful refusal until symbolic bounds are reviewed.
-            assert_eq!(
-                bounded.validate_with_quantity_profile(bytes, QuantityValueProfile::Mathematical),
-                Err(QuantityProfileContractRefusal::Contract(
-                    ValueConstraintRefusal::QuantityRange
-                ))
-            );
+            // Exact rational comparison is reused; unresolved symbolic bounds
+            // remain a truthful refusal rather than a numeric projection.
+            let admission =
+                bounded.validate_with_quantity_profile(bytes, QuantityValueProfile::Mathematical);
+            if is_symbolic {
+                assert_eq!(
+                    admission,
+                    Err(QuantityProfileContractRefusal::Contract(
+                        ValueConstraintRefusal::QuantityRange
+                    ))
+                );
+            } else {
+                assert!(admission.is_ok());
+            }
             assert!(contract.validate(bytes).is_err());
             assert!(QuantityValueView::decode(bytes, &mut work()).is_err());
             assert_eq!(
@@ -186,6 +192,73 @@ fn mathematical_profile_accepts_legacy_forms_and_refuses_unknown_or_unfunded_dat
         assert!(QuantityValueProfile::Mathematical
             .decode(DISTANCE_INFO_ID, &unfunded, &mut zero)
             .is_err());
+    });
+    assert_eq!(allocations, 0);
+}
+
+fn rational_wire(coordinate: ExactRational, unit: Unit, role: QuantityRole) -> Vec<u8> {
+    let value = MathematicalValue::rational(coordinate);
+    let mut numeric = vec![0; MATHEMATICAL_VALUE_MAX_ENCODED_BYTES];
+    let n = value.encode(&mut numeric).unwrap();
+    let view = MathematicalValueView::decode(&numeric[..n], &mut work()).unwrap();
+    let mut encoded = vec![0; MATHEMATICAL_QUANTITY_MAX_ENCODED_BYTES];
+    let n =
+        encode_mathematical_quantity_value(&view, unit, role, &mut encoded, &mut work()).unwrap();
+    encoded.truncate(n);
+    encoded
+}
+#[test]
+fn rational_mathematical_ranges_match_existing_physical_comparisons_and_endpoints() {
+    let contract = CheckedValueContract::new(
+        kind_id(DISTANCE_INFO_ID),
+        MATHEMATICAL_QUANTITY_MAX_ENCODED_BYTES as u32,
+        vec![ValueConstraint::QuantityRange {
+            minimum: Some(Box::new(Quantity::parse_plot_literal("25cm").unwrap())),
+            maximum: Some(Box::new(Quantity::parse_plot_literal("50cm").unwrap())),
+            minimum_endpoint: IntervalEndpoint::Inclusive,
+            maximum_endpoint: IntervalEndpoint::Exclusive,
+        }],
+    )
+    .unwrap();
+    let mut cases = Vec::new();
+    for (n, d, unit, accept) in [
+        (1, 3, Unit::Meter, true),
+        (1, 4, Unit::Meter, true),
+        (1, 2, Unit::Meter, false),
+        (1, 6, Unit::Meter, false),
+        (25, 1, Unit::Centimeter, true),
+        (50, 1, Unit::Centimeter, false),
+        (30, 1, Unit::Centimeter, true),
+    ] {
+        let coordinate = ExactRational::ratio(n, d, &mut work()).unwrap();
+        let v3 = rational_wire(coordinate, unit, QuantityRole::Linear);
+        let value = RationalQuantity::new(coordinate, unit, QuantityRole::Linear).unwrap();
+        let mut v2 = vec![0; QUANTITY_VALUE_MAX_ENCODED_BYTES];
+        let n = encode_rational_quantity_value(value, &mut v2).unwrap();
+        v2.truncate(n);
+        cases.push((v3, v2, accept));
+    }
+    let symbolic = wire(true);
+    let (_, allocations) = observe(|| {
+        for (v3, v2, accept) in &cases {
+            let actual =
+                contract.validate_with_quantity_profile(v3, QuantityValueProfile::Mathematical);
+            let reference =
+                contract.validate_with_quantity_profile(v2, QuantityValueProfile::Exact);
+            assert_eq!(actual, reference);
+            assert_eq!(actual.is_ok(), *accept);
+            assert!(contract.validate(v3).is_err());
+        }
+        assert_eq!(
+            contract.validate_with_quantity_profile(&symbolic, QuantityValueProfile::Mathematical),
+            Err(QuantityProfileContractRefusal::Contract(
+                ValueConstraintRefusal::QuantityRange
+            ))
+        );
+        // A prior refusal does not change later constraint outcomes.
+        assert!(contract
+            .validate_with_quantity_profile(&cases[0].0, QuantityValueProfile::Mathematical)
+            .is_ok());
     });
     assert_eq!(allocations, 0);
 }

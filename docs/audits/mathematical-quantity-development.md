@@ -103,8 +103,11 @@ original parent requirements remain authoritative. No checkbox is closed here.
 
 The selected mathematical profile validates the same physical Kind before
 applying authored checked-contract predicates. A representation grant does not
-implement symbolic ordered comparison: current physical range predicates still
-refuse v3, including rational-shaped v3, until that comparison path is reviewed.
-This limitation is tested separately from successful unconstrained admission.
+implement symbolic ordered comparison. Physical range predicates now reuse the
+existing exact rational Quantity comparison for rational-shaped v3 coordinates,
+including cross-Unit coordinates and inclusive/exclusive endpoints. Unresolved
+symbolic coordinates still refuse a range requiring order; no interval or IEEE
+projection is silently selected to satisfy it. Tests compare v3 outcomes against
+the existing v2 physical comparison and cover refusal followed by recovery.
 The extended view retains borrowed bytes rather than an owning symbolic DAG;
 its fixed size stays within the existing Unit plus 64-byte envelope.
