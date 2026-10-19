@@ -975,8 +975,8 @@ reader suite passes all 18 projection tests, including traversal with zero
 observed allocations, every-byte mutation without a reader panic, terminal
 outcomes, hostile extents and the independent wire golden. Both CLI tests pass,
 including rejection of a malformed report whose outer digest is consistently
-recomputed. Core checks without default features. Final workspace lint and the
-final test-helper rerun remain pending at this preparation checkpoint.
+recomputed. Core checks without default features. Strict workspace all-target Clippy passes, and the final test-helper rerun passes
+all 18 projection tests.
 
 Ordinary routed-value inspection is connected to this reader for the exact
 mathematical enclosed-binary32 Near producer profile. Its output labels the
