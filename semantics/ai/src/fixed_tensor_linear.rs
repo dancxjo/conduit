@@ -1,4 +1,4 @@
-//! Unbiased scalar reference projection over an admitted exact tensor resource.
+//! Unbiased ordered-f32 projection over an admitted exact tensor resource.
 use crate::fixed_neural::FixedNumericRefusal;
 use crate::fixed_tensor::{FixedMatrixOrder, FixedTensorRefusal};
 #[cfg(target_has_atomic = "ptr")]
@@ -78,19 +78,32 @@ impl<'a, const INPUT: usize, const OUTPUT: usize> FixedTensorLinear<'a, INPUT, O
         }
         let bytes = self.view.bytes();
         let mut staged = [0.0; OUTPUT];
-        for (row, result) in staged.iter_mut().enumerate() {
-            let mut sum = 0.0_f32;
-            for (column, value) in input.iter().enumerate() {
-                let index = match self.order {
-                    FixedMatrixOrder::InputMajor => column * OUTPUT + row,
-                    FixedMatrixOrder::OutputMajor => row * INPUT + column,
-                };
-                sum += read(&bytes[index * 4..index * 4 + 4]) * value;
+        match self.order {
+            FixedMatrixOrder::InputMajor => {
+                // Each output still accumulates columns in authored order.
+                // Walk contiguous weights across independent outputs; no sum
+                // reassociation, extra tensor copy or new scratch allocation.
+                for (column, value) in input.iter().enumerate() {
+                    let start = column * OUTPUT * 4;
+                    let weights = &bytes[start..start + OUTPUT * 4];
+                    for (weight, result) in weights.as_chunks::<4>().0.iter().zip(&mut staged) {
+                        *result += f32::from_le_bytes(*weight) * value;
+                    }
+                }
             }
-            if !sum.is_finite() {
-                return Err(FixedNumericRefusal::NonfiniteOutput);
+            FixedMatrixOrder::OutputMajor => {
+                for (row, result) in staged.iter_mut().enumerate() {
+                    let mut sum = 0.0_f32;
+                    for (column, value) in input.iter().enumerate() {
+                        let index = row * INPUT + column;
+                        sum += read(&bytes[index * 4..index * 4 + 4]) * value;
+                    }
+                    *result = sum;
+                }
             }
-            *result = sum;
+        }
+        if staged.iter().any(|value| !value.is_finite()) {
+            return Err(FixedNumericRefusal::NonfiniteOutput);
         }
         *output = staged;
         Ok(())
