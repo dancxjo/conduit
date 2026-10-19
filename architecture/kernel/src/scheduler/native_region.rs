@@ -74,6 +74,21 @@ where
             return Err(SchedulerError::InvalidPlan);
         }
         let mut reservations = 1u32;
+        // All disjoint regions share this store. Reserve their queued native
+        // values together, plus one not-yet-published generated value.
+        for cord in &self.cord_specs[..self.active_cords] {
+            if let (Some((source, output)), Some((sink, input))) =
+                (cord.source_local(), cord.sink_local())
+            {
+                if self.native_output_ports[usize::from(source.0)] == Some(output)
+                    && self.native_input_ports[usize::from(sink.0)] == Some(input)
+                {
+                    reservations = reservations
+                        .checked_add(u32::from(cord.item_capacity))
+                        .ok_or(SchedulerError::InvalidPlan)?;
+                }
+            }
+        }
         for node in nodes {
             let n = usize::from(node.0);
             if n >= self.active_nodes
@@ -121,7 +136,7 @@ where
                 .checked_add(u32::from(cord.item_capacity))
                 .ok_or(SchedulerError::InvalidPlan)?;
         }
-        let (items, bytes) = self.values.native_u64_capacity();
+        let (items, bytes) = self.values.native_u64_available();
         if u32::from(items) < reservations
             || bytes
                 < reservations

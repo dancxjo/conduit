@@ -77,8 +77,14 @@ impl<S: ValueStorage, const N: usize> NativeU64ValueStore<S, N> {
     }
 }
 impl<S: ValueStorage, const N: usize> ValueStorage for NativeU64ValueStore<S, N> {
-    fn native_u64_capacity(&self) -> (u16, u32) {
-        (N as u16, self.native_byte_capacity)
+    fn native_u64_available(&self) -> (u16, u32) {
+        (
+            self.native
+                .iter()
+                .filter(|slot| slot.references == 0 && slot.generation != u16::MAX)
+                .count() as u16,
+            self.native_byte_capacity - u32::from(self.native_used) * 8,
+        )
     }
     fn item_capacity(&self) -> u16 {
         self.canonical_slots + N as u16
