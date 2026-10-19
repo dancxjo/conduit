@@ -1,3 +1,4 @@
+mod values;
 use conduit_core::{
     ConnectionTerminalDisposition, ExpectedTerminal, HostAdvertisement, LineOffer, Observation,
     ObservationKind, Plan, TerminalDisposition,
@@ -273,6 +274,7 @@ pub fn write_execution_artifacts(
     snapshot: &ObservatorySnapshot,
     active_plays: &[conduit_core::ActivePlayIdentity],
     sign_identities: &[conduit_core::SignIdentity],
+    routed_values: &[crate::product_execution::RuntimeRoutedValue],
 ) -> Result<(), String> {
     validate_snapshot(snapshot)?;
     if directory.exists() {
@@ -371,6 +373,7 @@ pub fn write_execution_artifacts(
         return Err("not every retained Sign has an exact standalone identity".into());
     }
 
+    let values = values::build(&signs, routed_values)?;
     let temporary = temporary_path(directory);
     fs::create_dir(&temporary).map_err(|error| error.to_string())?;
     let result = (|| {
@@ -392,6 +395,15 @@ pub fn write_execution_artifacts(
         for artifact in &signs {
             write_json_artifact(
                 &temporary.join(format!("sign-{}.json", artifact.identity.sign_id.as_str())),
+                artifact,
+            )?;
+        }
+        for artifact in &values {
+            write_json_artifact(
+                &temporary.join(format!(
+                    "value-{}.json",
+                    artifact.sign.identity.sign_id.as_str()
+                )),
                 artifact,
             )?;
         }

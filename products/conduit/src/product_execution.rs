@@ -10,6 +10,7 @@ use std::collections::BTreeSet;
 use std::io::Write;
 
 mod artifact_identity;
+pub(crate) use artifact_identity::RuntimeRoutedValue;
 mod numerical;
 
 use artifact_identity::{from_std_report, RuntimeArtifactIdentity};
@@ -28,6 +29,8 @@ pub(crate) struct ProductExecution {
     pub(crate) active_plays: Vec<conduit_core::ActivePlayIdentity>,
     #[allow(dead_code)]
     pub(crate) sign_identities: Vec<conduit_core::SignIdentity>,
+    #[allow(dead_code)]
+    pub(crate) routed_values: Vec<RuntimeRoutedValue>,
 }
 
 pub(crate) enum ProductRuntime {
@@ -401,11 +404,13 @@ impl ProductExecutionContext {
                 observations,
                 active_plays: Vec::new(),
                 sign_identities: Vec::new(),
+                routed_values: Vec::new(),
             });
         }
         let mut observations = Vec::new();
         let mut active_plays = Vec::new();
         let mut sign_identities = Vec::new();
+        let mut routed_values = Vec::new();
         for fragment in plan.fragments.iter().cloned() {
             let runtime = self
                 .runtimes
@@ -416,6 +421,7 @@ impl ProductExecutionContext {
             observations.extend(execution.observations);
             active_plays.extend(execution.active_play);
             sign_identities.extend(execution.sign_identities);
+            routed_values.extend(execution.routed_values);
         }
         Ok(ProductExecution {
             advertisements: self.advertisements.clone(),
@@ -424,6 +430,7 @@ impl ProductExecutionContext {
             observations,
             active_plays,
             sign_identities,
+            routed_values,
         })
     }
 

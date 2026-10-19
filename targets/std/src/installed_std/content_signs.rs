@@ -12,6 +12,8 @@ pub struct ContentSignAdmission {
     pub event_items: u16,
     pub binding_storage_bytes: u32,
     pub maximum_digest_input_bytes: u32,
+    pub value_storage_bytes: Option<u32>,
+    pub maximum_copy_passes: u8,
 }
 pub(super) struct CoreContentDigest {
     maximum_bytes: u32,
@@ -28,7 +30,14 @@ pub(super) enum StdSignLog {
         log: HostedContentSignLog<HostedSignLog, CoreContentDigest>,
         admission: ContentSignAdmission,
     },
+    Values {
+        log: HostedContentSignLog<HostedSignLog, CoreContentDigest, Vec<u8>>,
+        admission: ContentSignAdmission,
+    },
 }
+mod evidence;
+pub(super) use evidence::capture_report;
+pub use evidence::{ContentEvidenceReport, RetainedRoutedValue};
 impl StdSignLog {
     pub(super) fn prepare(
         inner: HostedSignLog,
@@ -37,7 +46,10 @@ impl StdSignLog {
     ) -> Result<Self, String> {
         let expected = conduit_std_offers::routed_content_sign_requirement()
             .map_err(|why| format!("content Sign schema: {why:?}"))?;
+        let values_expected = conduit_std_offers::routed_content_value_requirement()
+            .map_err(|why| format!("content value schema: {why:?}"))?;
         let mut requested = false;
+        let mut values_requested = false;
         for property in fragments
             .iter()
             .flat_map(|f| &f.placements)
@@ -52,6 +64,15 @@ impl StdSignLog {
                 }
                 requested = true;
             }
+            if property.profile() == values_expected.profile() {
+                if property != &values_expected {
+                    return Err("content value requirement differs from installed policy".into());
+                }
+                values_requested = true;
+            }
+        }
+        if values_requested && !requested {
+            return Err("content values require their exact digest profile".into());
         }
         if !requested {
             return Ok(Self::Plain(inner));
@@ -59,12 +80,22 @@ impl StdSignLog {
         let event_items = inner.item_capacity();
         let binding_storage_bytes =
             content_sign_storage_bytes(event_items).ok_or("content Sign byte budget overflow")?;
+        let value_storage_bytes = if values_requested {
+            Some(
+                content_value_storage_bytes(event_items, maximum_value_bytes)
+                    .ok_or("content value byte budget overflow")?,
+            )
+        } else {
+            None
+        };
         let admission = ContentSignAdmission {
             digest_domain: conduit_std_offers::ROUTED_CONTENT_DIGEST_DOMAIN,
             digest_scheme: conduit_std_offers::ROUTED_CONTENT_DIGEST_SCHEME,
             event_items,
             binding_storage_bytes,
             maximum_digest_input_bytes: maximum_value_bytes,
+            value_storage_bytes,
+            maximum_copy_passes: u8::from(values_requested),
         };
         let log = HostedContentSignLog::new(
             inner,
@@ -74,12 +105,29 @@ impl StdSignLog {
             binding_storage_bytes,
         )
         .map_err(|why| format!("prepare content Sign storage: {why:?}"))?;
-        Ok(Self::Content { log, admission })
+        if let Some(bytes) = value_storage_bytes {
+            let length = usize::try_from(bytes).map_err(|_| "content value address space")?;
+            let mut storage = Vec::new();
+            storage
+                .try_reserve_exact(length)
+                .map_err(|_| "content value allocation refused")?;
+            if storage.capacity() != length {
+                return Err("content value capacity differs from admission".into());
+            }
+            storage.resize(length, 0);
+            let log = log
+                .with_value_storage(maximum_value_bytes, storage)
+                .map_err(|why| format!("prepare content values: {why:?}"))?;
+            Ok(Self::Values { log, admission })
+        } else {
+            Ok(Self::Content { log, admission })
+        }
     }
     fn base(&self) -> &HostedSignLog {
         match self {
             Self::Plain(log) => log,
             Self::Content { log, .. } => log.inner(),
+            Self::Values { log, .. } => log.inner(),
         }
     }
     pub(super) fn events(&self) -> impl Iterator<Item = KernelEvent> + '_ {
@@ -88,15 +136,28 @@ impl StdSignLog {
     pub(super) fn admission(&self) -> Option<&ContentSignAdmission> {
         match self {
             Self::Plain(_) => None,
-            Self::Content { admission, .. } => Some(admission),
+            Self::Content { admission, .. } | Self::Values { admission, .. } => Some(admission),
         }
     }
     pub(super) fn bindings(&self) -> impl Iterator<Item = ContentSignBinding> + '_ {
-        let log = match self {
-            Self::Plain(_) => None,
+        let digest = match self {
             Self::Content { log, .. } => Some(log),
+            _ => None,
         };
-        log.into_iter().flat_map(|log| log.bindings())
+        let values = match self {
+            Self::Values { log, .. } => Some(log),
+            _ => None,
+        };
+        digest
+            .into_iter()
+            .flat_map(|log| log.bindings())
+            .chain(values.into_iter().flat_map(|log| log.bindings()))
+    }
+    fn retained_value(&self, event: u32) -> Option<&[u8]> {
+        match self {
+            Self::Values { log, .. } => log.retained_value(event),
+            _ => None,
+        }
     }
 }
 impl SignSink for StdSignLog {
@@ -119,6 +180,7 @@ impl SignSink for StdSignLog {
         match self {
             Self::Plain(log) => log.ensure_value_extent(maximum_bytes),
             Self::Content { log, .. } => log.ensure_value_extent(maximum_bytes),
+            Self::Values { log, .. } => log.ensure_value_extent(maximum_bytes),
         }
     }
     fn ensure_remote_capacity(&self, n: u16) -> Result<(), SignError> {
@@ -134,6 +196,7 @@ impl SignSink for StdSignLog {
         match self {
             Self::Plain(log) => log.record(node, port, request, kind),
             Self::Content { log, .. } => log.record(node, port, request, kind),
+            Self::Values { log, .. } => log.record(node, port, request, kind),
         }
     }
     fn record_value(
@@ -146,6 +209,7 @@ impl SignSink for StdSignLog {
         match self {
             Self::Plain(log) => log.record_value(node, port, cord, bytes),
             Self::Content { log, .. } => log.record_value(node, port, cord, bytes),
+            Self::Values { log, .. } => log.record_value(node, port, cord, bytes),
         }
     }
     fn record_remote(
@@ -158,6 +222,7 @@ impl SignSink for StdSignLog {
         match self {
             Self::Plain(log) => log.record_remote(node, port, kind, remote),
             Self::Content { log, .. } => log.record_remote(node, port, kind, remote),
+            Self::Values { log, .. } => log.record_remote(node, port, kind, remote),
         }
     }
 }
@@ -174,57 +239,4 @@ impl SignQuery for StdSignLog {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    fn base() -> HostedSignLog {
-        HostedSignLog::new(4, (4 * core::mem::size_of::<KernelEvent>()) as u32).unwrap()
-    }
-    #[test]
-    fn declared_policy_prepares_sha256_storage_and_undeclared_profiles_stay_plain() {
-        let exact = conduit_signal_conformance::exact_distributed_signal_plan().unwrap();
-        let mut fragment = exact.plan.fragments[0].clone();
-        let plain = StdSignLog::prepare(base(), &[&fragment], 32).unwrap();
-        assert!(plain.admission().is_none());
-        assert_eq!(plain.bindings().count(), 0);
-        fragment.placements[0]
-            .realization_properties
-            .push(conduit_std_offers::routed_content_sign_requirement().unwrap());
-        let mut log = StdSignLog::prepare(base(), &[&fragment], 32).unwrap();
-        let admission = *log.admission().unwrap();
-        assert_eq!(
-            admission.binding_storage_bytes,
-            content_sign_storage_bytes(4).unwrap()
-        );
-        assert_eq!(admission.maximum_digest_input_bytes, 32);
-        let guard = crate::allocation_probe::begin();
-        for i in 0..16u32 {
-            let bytes = i.to_le_bytes();
-            let event = log
-                .record_value(NodeId(0), PortId(0), CordId(0), &bytes)
-                .unwrap();
-            let binding = log
-                .bindings()
-                .find(|b| b.event_sequence == event.sequence)
-                .unwrap();
-            assert_eq!(
-                binding.digest,
-                conduit_core::semantic_digest(admission.digest_domain, &bytes)
-            );
-            assert_eq!(binding.byte_length, 4);
-        }
-        assert_eq!(guard.finish(), 0);
-    }
-    #[test]
-    fn changed_digest_or_storage_policy_refuses_during_preparation() {
-        let exact = conduit_signal_conformance::exact_distributed_signal_plan().unwrap();
-        let mut fragment = exact.plan.fragments[0].clone();
-        let requirement = conduit_std_offers::routed_content_sign_requirement().unwrap();
-        let mut bytes = requirement.canonical_value().to_vec();
-        *bytes.last_mut().unwrap() ^= 1;
-        let changed =
-            conduit_core::StructuredConfigurationValue::new(requirement.profile().clone(), bytes)
-                .unwrap();
-        fragment.placements[0].realization_properties.push(changed);
-        assert!(StdSignLog::prepare(base(), &[&fragment], 32).is_err());
-    }
-}
+mod tests;

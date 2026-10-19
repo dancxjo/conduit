@@ -198,6 +198,48 @@ fn assert_chain(source: &str) {
             String::from_utf8_lossy(&inspected.stderr)
         );
         assert!(String::from_utf8_lossy(&inspected.stdout).contains("RoutedContent"));
+        let value_path = path
+            .join("artifacts")
+            .join(format!("value-{}.json", sign.sign_id.as_str()));
+        let value: conduit_observatory::RoutedValueArtifact =
+            serde_json::from_slice(&std::fs::read(&value_path).unwrap()).unwrap();
+        conduit_observatory::validate_routed_value_artifact(&value).unwrap();
+        assert_eq!(value.sign.sign, *sign);
+        assert_eq!(value.bytes.len(), evidence.byte_length as usize);
+        let frame = conduit_core::validate_canonical_structured_value(&value.bytes).unwrap();
+        let report = frame
+            .record_field("representation")
+            .unwrap()
+            .unwrap()
+            .variant_payload("enclosed_binary32")
+            .unwrap()
+            .unwrap()
+            .record_field("projection-evidence")
+            .unwrap()
+            .unwrap();
+        assert_eq!(&report.value_node()[5..9], b"CPE\x01");
+        let inspected = Command::new(env!("CARGO_BIN_EXE_conduit"))
+            .arg("inspect")
+            .arg(&value_path)
+            .output()
+            .unwrap();
+        assert!(
+            inspected.status.success(),
+            "{}",
+            String::from_utf8_lossy(&inspected.stderr)
+        );
+        assert!(String::from_utf8_lossy(&inspected.stdout).contains("byte correlation verified"));
+        let mut forged = value.clone();
+        forged.bytes[0] ^= 1;
+        let forged_path = path.join("forged-value.json");
+        std::fs::write(&forged_path, serde_json::to_vec(&forged).unwrap()).unwrap();
+        assert!(!Command::new(env!("CARGO_BIN_EXE_conduit"))
+            .arg("inspect")
+            .arg(&forged_path)
+            .output()
+            .unwrap()
+            .status
+            .success());
 
         println!(
             "DIMENSIONED_BINARY32_PRODUCT source={} plan={} selected_mathematical={}",

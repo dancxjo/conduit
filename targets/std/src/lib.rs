@@ -351,31 +351,12 @@ pub struct SpeechRecognitionExecutionReceipt {
     pub diagnostic_bytes: u16,
 }
 
-pub use installed_std::content_signs::ContentSignAdmission;
+pub use installed_std::content_signs::{
+    ContentEvidenceReport, ContentSignAdmission, RetainedRoutedValue,
+};
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct StdKernelExecutionReport {
-    pub content_sign_admission: Option<ContentSignAdmission>,
-    pub content_sign_bindings: Vec<conduit_kernel::content_sign::ContentSignBinding>,
-    pub external_fore_stream: Option<ExternalForeStreamStats>,
-    pub active_play: conduit_core::ActivePlayIdentity,
-    pub active_play_id: conduit_core::ActivePlayId,
-    pub decisions: u32,
-    pub logical_invocations: u64,
-    pub kernel_events: u16,
-    pub kernel_sign: Vec<conduit_kernel::KernelEvent>,
-    pub value_allocation_capacity_before: (usize, usize),
-    pub value_allocation_capacity_after: (usize, usize),
-    pub face_ids: Vec<conduit_core::FaceId>,
-    pub playback: Vec<hosted_audio::PlaybackReport>,
-    pub wav_artifacts: Vec<hosted_wav_artifact::WavArtifactReport>,
-    pub midi_input: Vec<hosted_midi::MidiInputReport>,
-    pub midi_output: Vec<hosted_midi::MidiOutputReport>,
-    pub identity: conduit_plan_lowering::lowering::KernelExecutionIdentityMap,
-    pub fore_endpoints: Vec<conduit_plan_lowering::lowering::KernelForeEndpointIdentity>,
-    #[cfg(test)]
-    pub post_play_start_allocations: usize,
-}
+mod kernel_report;
+pub use kernel_report::StdKernelExecutionReport;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SignalReceipt {

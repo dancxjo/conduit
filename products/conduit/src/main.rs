@@ -185,6 +185,7 @@ fn run_with_placements(
                 &snapshot,
                 &execution.active_plays,
                 &execution.sign_identities,
+                &execution.routed_values,
             )?;
         }
     }

@@ -2,10 +2,17 @@
 
 use conduit_core::{ActivePlayIdentity, Observation, SignIdentity};
 
+// The library entry point executes without exporting CLI artifacts.
+#[allow(dead_code)]
+pub(crate) struct RuntimeRoutedValue {
+    pub(crate) active_play_id: conduit_core::ActivePlayId,
+    pub(crate) value: conduit_std_host::RetainedRoutedValue,
+}
 pub(super) struct RuntimeArtifactIdentity {
     pub(super) observations: Vec<Observation>,
     pub(super) active_play: Option<ActivePlayIdentity>,
     pub(super) sign_identities: Vec<SignIdentity>,
+    pub(super) routed_values: Vec<RuntimeRoutedValue>,
 }
 
 pub(super) fn from_std_report(
@@ -16,6 +23,7 @@ pub(super) fn from_std_report(
             observations: report.observations,
             active_play: None,
             sign_identities: Vec::new(),
+            routed_values: Vec::new(),
         });
     };
     let sign_identities = report
@@ -46,7 +54,17 @@ pub(super) fn from_std_report(
             Ok(identity)
         })
         .collect::<Result<Vec<_>, String>>()?;
+    let routed_values = kernel
+        .content_evidence
+        .retained_values
+        .into_iter()
+        .map(|value| RuntimeRoutedValue {
+            active_play_id: kernel.active_play_id.clone(),
+            value,
+        })
+        .collect();
     Ok(RuntimeArtifactIdentity {
+        routed_values,
         observations: report.observations,
         active_play: Some(kernel.active_play),
         sign_identities,

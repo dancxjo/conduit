@@ -59,6 +59,7 @@ fn inspect_json(path: &Path, bytes: &[u8]) -> Result<String, String> {
         conduit_observatory::PLAN_ARTIFACT_SCHEMA => inspect_plan(bytes),
         conduit_observatory::PLAY_ARTIFACT_SCHEMA => inspect_play(bytes),
         conduit_observatory::SIGN_ARTIFACT_SCHEMA => inspect_sign(bytes),
+        conduit_observatory::ROUTED_VALUE_ARTIFACT_SCHEMA => inspect_value(bytes),
         BODY_BIOGRAPHY_SCHEMA => inspect_body(bytes),
         crate::durable_host::INSTALL_SCHEMA => crate::durable_host::inspect_installation(path),
         _ => Err(format!("inspection does not yet support schema {schema}")),
@@ -204,4 +205,15 @@ mod tests {
         .unwrap_err();
         assert!(error.starts_with("decode Body biography:"));
     }
+}
+
+fn inspect_value(bytes: &[u8]) -> Result<String, String> {
+    let artifact: conduit_observatory::RoutedValueArtifact = serde_json::from_slice(bytes)
+        .map_err(|error| format!("decode routed value artifact: {error}"))?;
+    conduit_observatory::validate_routed_value_artifact(&artifact)?;
+    Ok(format!("Routed value\nSign {}\nPlay {}\nPlan {}\nkind {}\nbytes {}\nbyte correlation verified\nsemantic validation not performed\n",
+        artifact.sign.identity.sign_id.as_str(),
+        artifact.sign.identity.active_play_id.as_ref().unwrap().as_str(),
+        artifact.sign.sign.plan_id.as_ref().unwrap().as_str(),
+        artifact.value_kind.as_str(), artifact.bytes.len()))
 }

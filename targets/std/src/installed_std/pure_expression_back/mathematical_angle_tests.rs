@@ -119,8 +119,8 @@ fn play(mut host: crate::StdHost, plan: &Plan, input: Vec<u8>) -> Vec<u8> {
         .placements
         .iter()
         .any(|p| p.realization_properties.contains(&requirement));
-    assert_eq!(kernel.content_sign_admission.is_some(), requested);
-    if let Some(admission) = kernel.content_sign_admission {
+    assert_eq!(kernel.content_evidence.admission.is_some(), requested);
+    if let Some(admission) = kernel.content_evidence.admission {
         assert_eq!(
             admission.digest_domain,
             conduit_std_offers::ROUTED_CONTENT_DIGEST_DOMAIN
@@ -130,8 +130,8 @@ fn play(mut host: crate::StdHost, plan: &Plan, input: Vec<u8>) -> Vec<u8> {
             conduit_kernel::content_sign::content_sign_storage_bytes(admission.event_items)
                 .unwrap()
         );
-        assert!(!kernel.content_sign_bindings.is_empty());
-        for binding in &kernel.content_sign_bindings {
+        assert!(!kernel.content_evidence.bindings.is_empty());
+        for binding in &kernel.content_evidence.bindings {
             assert!(binding.byte_length <= admission.maximum_digest_input_bytes);
             assert!(kernel
                 .kernel_sign
@@ -153,7 +153,8 @@ fn play(mut host: crate::StdHost, plan: &Plan, input: Vec<u8>) -> Vec<u8> {
                 .unwrap();
             let digest = semantic_digest(admission.digest_domain, &outputs.0[0]);
             let binding = kernel
-                .content_sign_bindings
+                .content_evidence
+                .bindings
                 .iter()
                 .find(|b| {
                     b.digest == digest
@@ -172,6 +173,19 @@ fn play(mut host: crate::StdHost, plan: &Plan, input: Vec<u8>) -> Vec<u8> {
                 .iter()
                 .any(|c| &c.connection_id == connection_id));
             assert_eq!(binding.byte_length as usize, outputs.0[0].len());
+            let captured = kernel
+                .content_evidence
+                .retained_values
+                .iter()
+                .find(|v| v.binding == *binding)
+                .expect("actual routed certificate bytes are retained");
+            assert_eq!(captured.bytes, outputs.0[0]);
+            assert_eq!(
+                conduit_core::semantic_digest(admission.digest_domain, &captured.bytes),
+                binding.digest
+            );
+            assert!(admission.value_storage_bytes.is_some());
+            assert_eq!(admission.maximum_copy_passes, 1);
             let sign = report
                 .observations
                 .iter()

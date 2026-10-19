@@ -111,6 +111,7 @@ fn offer(limit: Quantity, algorithm: NearQuantityAlgorithm) -> Result<Capability
         "std/near-artifact@1",
         concat!(
             include_str!("near_back.rs"),
+            include_str!("../../offers/src/routed_content_signs.rs"),
             include_str!("../numerical_host/near_step.rs"),
             include_str!("../numerical_host/near_step/projection_ids.rs"),
             include_str!("../numerical_host/near_encoding.rs"),
@@ -190,6 +191,16 @@ fn offer(limit: Quantity, algorithm: NearQuantityAlgorithm) -> Result<Capability
     .to_property()
     .map_err(|why| format!("near wire: {why:?}"))?;
     offer.realization_properties = vec![binding, wire, bounds(&back, algorithm)?];
+    if algorithm == NearQuantityAlgorithm::EnclosedBinary32 {
+        offer.realization_properties.push(
+            conduit_std_offers::routed_content_sign_requirement()
+                .map_err(|why| format!("Near Sign policy: {why:?}"))?,
+        );
+        offer.realization_properties.push(
+            conduit_std_offers::routed_content_value_requirement()
+                .map_err(|why| format!("Near value custody: {why:?}"))?,
+        );
+    }
     offer
         .realization_properties
         .sort_by(|a, b| a.profile().cmp(b.profile()));

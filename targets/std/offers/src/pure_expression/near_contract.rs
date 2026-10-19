@@ -72,6 +72,8 @@ pub fn near_contract_std_artifact() -> ArtifactId {
         include_str!("near_contract.rs"),
         include_str!("../routed_content_signs.rs"),
         include_str!("../../../src/installed_std/content_signs.rs"),
+        include_str!("../../../src/installed_std/content_signs/evidence.rs"),
+        include_str!("../../../src/kernel_report.rs"),
         include_str!("../../../src/installed_std/execution_observations.rs"),
         include_str!("../../../src/installed_std/routed_content_observations.rs"),
         include_str!("../../../../../architecture/core/src/observation.rs"),
@@ -159,6 +161,10 @@ pub fn pure_near_contract_std_offer(
     offer.realization_properties.push(
         crate::routed_content_sign_requirement()
             .map_err(|why| format!("content Sign requirement: {why:?}"))?,
+    );
+    offer.realization_properties.push(
+        crate::routed_content_value_requirement()
+            .map_err(|why| format!("content value requirement: {why:?}"))?,
     );
     offer
         .realization_properties

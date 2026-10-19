@@ -921,3 +921,39 @@ Std still selects digest-only capture. An explicit value-custody profile, its
 full storage/work admission, product value artifacts and ordinary generic report
 inspection remain unfinished. This prerequisite closes no original parent audit
 requirement and has no stable-acceptance claim.
+
+### Explicit Std value custody and product artifacts (private development)
+
+Std now admits raw routed bytes only under the exact
+`std/routed-content-values@1` realization property, together with its exact
+content-digest property. Preparation checks the slot-count/maximum-value byte
+product, reserves the fixed arena before Play and records the mandatory copy
+pass. Altered policies, missing digest admission and overflowing budgets refuse.
+Plain and digest-only execution retain their existing storage behavior.
+Post-Play export verifies retained bytes against every retained content binding.
+
+The mathematical binary32 Near producer and qualified consumer request this
+profile. The ordinary product artifact export retains those actual bytes in
+`conduit.routed-value/artifact@1`, with the exact producing Sign and Plan/Play
+context. `conduit inspect` checks context, producing port kind, extent and content
+digest. It explicitly reports that domain semantics were not validated. Export
+refuses absent or ambiguous routing Sign context before committing its output
+directory. External Fore routes that currently lack a corresponding Core routing
+Sign therefore remain unsupported for raw-value artifact export; no connection
+is synthesized to conceal that limitation.
+
+The complete Std library suite passes (871 tests, 18 ignored), six focused
+Observatory artifact tests pass, and both CLI tests pass across three actual run
+invocations. The positive cases cover degree/turn inputs, retained general report
+bytes, ordinary value inspection and refusal of changed bytes. A separate retained
+CLI run exports ten routed values. Independent Python SHA-256 and exact context
+checks verify all ten, including the 11,436-byte mathematical projection record.
+The source and executed binaries are preserved in the local proof custody.
+Workspace formatting passes; full Observatory and strict workspace lint remain
+pending at this checkpoint.
+
+This establishes inspectable byte correlation for the supported routing context.
+Generic report metadata/domain inspection, native/exact general report transport,
+complete resource and target proof, public admission and stable acceptance remain
+open. The original 93-row parent audit remains unchanged; this checkpoint closes
+no parent requirement.

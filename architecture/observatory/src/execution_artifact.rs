@@ -15,6 +15,9 @@ use crate::PlayReport;
 
 #[path = "execution_artifact/event_gap.rs"]
 mod event_gap;
+#[path = "execution_artifact/routed_value.rs"]
+mod routed_value;
+pub use routed_value::*;
 
 pub const PLAN_ARTIFACT_SCHEMA: &str = "conduit.plan/artifact@1";
 pub const PLAY_ARTIFACT_SCHEMA: &str = "conduit.play/artifact@1";

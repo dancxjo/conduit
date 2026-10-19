@@ -32,7 +32,7 @@ pub(crate) enum Command {
         /// Write a neutral runtime report after execution.
         #[arg(long)]
         report: Option<PathBuf>,
-        /// Retain separately validated Plan, Play, and Sign artifacts in a new directory.
+        /// Retain Plan, Play, Sign, and explicitly admitted routed value artifacts in a new directory.
         #[arg(long)]
         artifacts: Option<PathBuf>,
         /// Exact canonical Body construction source used for Host and Line truth.
