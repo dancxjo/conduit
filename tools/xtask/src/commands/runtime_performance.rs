@@ -10,6 +10,8 @@ use std::{
 mod config;
 #[path = "runtime_performance_fargan.rs"]
 mod fargan;
+#[path = "runtime_performance_transport.rs"]
+mod transport;
 
 fn git(root: &Path, arguments: &[&str]) -> Result<String, Box<dyn std::error::Error>> {
     let output = Command::new("git")
@@ -24,8 +26,11 @@ fn git(root: &Path, arguments: &[&str]) -> Result<String, Box<dyn std::error::Er
 
 pub fn run(arguments: &[String], dry_run: bool) -> Result<(), Box<dyn std::error::Error>> {
     if arguments == ["--help"] {
-        println!("cargo xtask prove runtime-performance [--output PATH] [--values N] [--repetitions N] [--decisions N] [--samples N] [--hosted-pipeline true|false]\nRetains release measurements from committed, clean source. Output must be new and outside tracked source (default target/runtime-performance). FARGAN: --fargan-fixture PATH [--output PATH] [--repetitions 2..20] [--fargan-owners fresh|prepared] uses a private pinned model and oracle; no automatic download.\nHosted pipeline includes matched unfused, canonical-fused and native-U64 chain trials with bounded retained Sign history. Finite defaults: 1000000 values, 5 repetitions, 10000 decisions, 2000 samples.");
+        println!("cargo xtask prove runtime-performance [--output PATH] [--values N] [--repetitions N] [--decisions N] [--samples N] [--hosted-pipeline true|false]\nRetains release measurements from committed, clean source. Output must be new and outside tracked source (default target/runtime-performance). FARGAN: --fargan-fixture PATH [--output PATH] [--repetitions 2..20] [--fargan-owners fresh|prepared] uses a private pinned model and oracle; no automatic download.\nTwo-Host: --two-host [--output PATH] [--repetitions 1..20] [--rotation 0..2] records actual loopback transfers with both kernels evidence; repeated calls create fresh Plans/Lines, not warm transport.\nHosted pipeline includes matched unfused, canonical-fused and native-U64 chain trials with bounded retained Sign history. Finite defaults: 1000000 values, 5 repetitions, 10000 decisions, 2000 samples.");
         return Ok(());
+    }
+    if arguments.iter().any(|a| a == "--two-host") {
+        return transport::run(arguments, dry_run);
     }
     if arguments.iter().any(|a| a == "--fargan-fixture") {
         return fargan::run(arguments, dry_run);

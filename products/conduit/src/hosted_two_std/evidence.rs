@@ -15,6 +15,7 @@ pub struct RemoteKernelEvidence {
 
 #[derive(Debug)]
 pub struct TwoHostKernelEvidence {
+    pub phases: Vec<TwoHostPhaseTiming>,
     pub source: RemoteKernelEvidence,
     pub sink: RemoteKernelEvidence,
 }
@@ -35,5 +36,46 @@ pub(super) fn retain(runtime: &InstalledRemoteFragment) -> RemoteKernelEvidence 
         events,
         remote_identities,
         retention_gap: signs.retention_gap(),
+    }
+}
+
+/// One observed API phase. Line timing includes both kernels and post-drain
+/// evidence copying; it is not isolated socket or scheduler time.
+#[derive(Debug)]
+pub struct TwoHostPhaseTiming {
+    pub phase: &'static str,
+    pub elapsed_ns: u64,
+}
+
+pub(super) struct PhaseClock {
+    last: std::time::Instant,
+    phases: Vec<TwoHostPhaseTiming>,
+}
+impl PhaseClock {
+    pub(super) fn new() -> Self {
+        let last = std::time::Instant::now();
+        Self {
+            last,
+            phases: Vec::with_capacity(6),
+        }
+    }
+    pub(super) fn mark(clock: &mut Option<Self>, phase: &'static str) -> Result<(), String> {
+        if let Some(clock) = clock {
+            if clock.phases.len() == 6 {
+                return Err("two-Host observation phase reservation exceeded".into());
+            }
+            let now = std::time::Instant::now();
+            let elapsed_ns = u64::try_from(now.duration_since(clock.last).as_nanos())
+                .map_err(|_| "two-Host observation clock range exceeded")?;
+            clock.phases.push(TwoHostPhaseTiming { phase, elapsed_ns });
+            clock.last = now;
+        }
+        Ok(())
+    }
+    pub(super) fn finish(self) -> Result<Vec<TwoHostPhaseTiming>, String> {
+        if self.phases.len() != 6 {
+            return Err("two-Host observation phase coverage incomplete".into());
+        }
+        Ok(self.phases)
     }
 }
