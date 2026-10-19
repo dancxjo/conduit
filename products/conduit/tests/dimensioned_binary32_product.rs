@@ -91,6 +91,25 @@ fn assert_chain(source: &str) {
         for placement in &mathematical {
             assert!(placement.source_span.is_some());
         }
+        let qualified = plan
+            .fragments
+            .iter()
+            .flat_map(|f| &f.placements)
+            .filter(|p| {
+                p.execution_profile_id.as_str() == "std/pure-expression-near-contract-hosted@1"
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(
+            qualified.len(),
+            1,
+            "authored tolerance must select its prepared consumer"
+        );
+        assert!(qualified[0].source_span.is_some());
+        assert!(qualified[0]
+            .semantic_contract
+            .laws
+            .iter()
+            .any(|law| matches!(law, conduit_core::KindSemanticLaw::ValueContracts(_))));
         let boundary = plan
             .fragments
             .iter()
