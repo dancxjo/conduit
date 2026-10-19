@@ -51,7 +51,9 @@ of one fixed image; it does not by itself establish an idle measurement role.
 The retained worker at source `65d06e007` ran in three fresh processes pinned to
 CPU 4, without this work's concurrent compilation. Each process passed nine
 raster tests and retained 25 timing rows: five cases, five repetitions per case,
-64 frames per repetition. The combined 75 raw rows and all three logs are in
+64 frames per repetition. Logs with terminal blank lines are stored in lossless `.xz` containers; their
+decoded byte digests are included in the bundle manifest. The combined 75 raw
+rows and all three logs are in
 [evidence](evidence/retained-raster-20261019/fallback-isolated.json).
 
 | Case | Median retained/reference batch ratio |

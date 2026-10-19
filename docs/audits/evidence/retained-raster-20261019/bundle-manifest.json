@@ -1,9 +1,12 @@
 {
   "files": [
     {
-      "file": "current-base-focused-tests.log",
-      "sha256": "d1c02dd3122ec1eb7ea9b1ea2068b1b12772e8d28c362b075e18476acf7b67de",
-      "bytes": 1574
+      "file": "current-base-focused-tests.log.xz",
+      "sha256": "ab6fd90474a20df41cbefb9d9754c8c3e2e9462eb1bcd61dedc0c5213bb93187",
+      "bytes": 748,
+      "decoded_file": "current-base-focused-tests.log",
+      "decoded_sha256": "d1c02dd3122ec1eb7ea9b1ea2068b1b12772e8d28c362b075e18476acf7b67de",
+      "encoding": "xz"
     },
     {
       "file": "current-base-full-xtask-clippy.log",
@@ -31,19 +34,28 @@
       "bytes": 17695
     },
     {
-      "file": "fallback-isolated-1.log",
-      "sha256": "e1e7c04e9860e9eab119ca12570dfaabc01acbcbd8bddba3eac5797ba1ee634d",
-      "bytes": 5613
+      "file": "fallback-isolated-1.log.xz",
+      "sha256": "b060907577906ac218c318e77c2ae008100afb88a8eefada09ee7bb4f1d85fe7",
+      "bytes": 920,
+      "decoded_file": "fallback-isolated-1.log",
+      "decoded_sha256": "e1e7c04e9860e9eab119ca12570dfaabc01acbcbd8bddba3eac5797ba1ee634d",
+      "encoding": "xz"
     },
     {
-      "file": "fallback-isolated-2.log",
-      "sha256": "b14f78200d20f6a790725b89b6f5c19b3896ea842a52d01fd9b1d37d8de4f744",
-      "bytes": 5621
+      "file": "fallback-isolated-2.log.xz",
+      "sha256": "3844d113596046e875377589b34c04df40729377685fb8a18226e28cee9c1e32",
+      "bytes": 920,
+      "decoded_file": "fallback-isolated-2.log",
+      "decoded_sha256": "b14f78200d20f6a790725b89b6f5c19b3896ea842a52d01fd9b1d37d8de4f744",
+      "encoding": "xz"
     },
     {
-      "file": "fallback-isolated-3.log",
-      "sha256": "ab95f9ace74a276b0dc1822b39a9c7e2e0e99d9e0f3dd11c4b2aba4da6dbc0ea",
-      "bytes": 5613
+      "file": "fallback-isolated-3.log.xz",
+      "sha256": "cc5effd864ab7c89b024d12d708e9cd2ff246c6bf1a8a0faa2d04ddac9aae9bc",
+      "bytes": 912,
+      "decoded_file": "fallback-isolated-3.log",
+      "decoded_sha256": "ab95f9ace74a276b0dc1822b39a9c7e2e0e99d9e0f3dd11c4b2aba4da6dbc0ea",
+      "encoding": "xz"
     },
     {
       "file": "fallback-isolated.json",
@@ -121,9 +133,12 @@
       "bytes": 490
     },
     {
-      "file": "typing-latency-tests.log",
-      "sha256": "2e8a530fdf283c3c94fc57966ff3d696e8c7d36c95e272ef4eec8dc2d9ba9ba4",
-      "bytes": 4293
+      "file": "typing-latency-tests.log.xz",
+      "sha256": "49ace08fe797f982a65dcce91a1ef2261bd38ad7223213e237cab04cd058aef9",
+      "bytes": 1012,
+      "decoded_file": "typing-latency-tests.log",
+      "decoded_sha256": "2e8a530fdf283c3c94fc57966ff3d696e8c7d36c95e272ef4eec8dc2d9ba9ba4",
+      "encoding": "xz"
     },
     {
       "file": "typing-retained-transcript-reconstruction-receipt.json",
