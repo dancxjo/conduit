@@ -178,3 +178,6 @@ mod reference_validation;
 mod selection_evidence;
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod atan2_role_tests;
