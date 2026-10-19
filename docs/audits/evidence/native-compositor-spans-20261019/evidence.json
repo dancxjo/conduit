@@ -76,8 +76,30 @@
   ],
   "files": {
     "worker.json": "5a1517e478e6f781a1dbdde9430a9e689cfa73cbdf8d4c78b4d9968d6e4a76f7",
-    "scanout-optimized-run-4.log": "7a9f236bc85c1f2ce6fd0004812477a1c0bdd05660d1658b21e315b0aca8d0a5",
-    "scanout-optimized-run-2.log": "010e374dab12ba2ced881d4442bec0fe71b24b1143cd817173f9e487f8147761",
-    "scanout-optimized-run-3.log": "cc0ff48c97ab06e3cd2a129b16764a9512d0dc93d987740babd66f8a14a5b34e"
+    "raw-logs.tar.gz": "a134d29ce6aa5642474a84388cd8a33a16b075366345700aa0cb6e3a68d31117"
+  },
+  "raw_log_archive": {
+    "path": "raw-logs.tar.gz",
+    "sha256": "a134d29ce6aa5642474a84388cd8a33a16b075366345700aa0cb6e3a68d31117",
+    "bytes": 7207,
+    "members": {
+      "public-proof.log": {
+        "sha256": "c24a78990fae00ad780bade23046dd08d12fe915b092ff495cefad4dab1f4c6c",
+        "bytes": 43765
+      },
+      "scanout-optimized-run-2.log": {
+        "sha256": "010e374dab12ba2ced881d4442bec0fe71b24b1143cd817173f9e487f8147761",
+        "bytes": 4094
+      },
+      "scanout-optimized-run-3.log": {
+        "sha256": "cc0ff48c97ab06e3cd2a129b16764a9512d0dc93d987740babd66f8a14a5b34e",
+        "bytes": 4087
+      },
+      "scanout-optimized-run-4.log": {
+        "sha256": "7a9f236bc85c1f2ce6fd0004812477a1c0bdd05660d1658b21e315b0aca8d0a5",
+        "bytes": 4085
+      }
+    },
+    "encoding": "Exact original stdout/stderr bytes, including final blank lines, retained inside gzip-compressed tar so patch hygiene does not require modifying measurement output."
   }
 }
