@@ -82,6 +82,8 @@ pub enum CheckSuite {
     ProsodyCommitment,
     /// Check committed noun/verb pronunciation and installed compact PCM.
     RecordPronunciation,
+    /// Check exact checked parser-rebase replay and public Source correlation.
+    ParserRebaseReplay,
     /// Prove bounded speech selection and explicit detail from exact Faces.
     TodoSpeech,
     InputSemantics,

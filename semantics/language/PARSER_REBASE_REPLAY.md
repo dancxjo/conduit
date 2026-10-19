@@ -39,3 +39,6 @@ only in this isolated worktree for review; do not replace root's complete files.
 Then owner-coordinated validation can run the new Native test first, followed by
 the affected existing actual rebase Plan/Play test. No builds were performed
 while preparing this slice.
+
+Focused repository entrance: `cargo +stable xtask check parser-rebase-replay`.
+This runs the reusable receipt/refusal tests and actual public Source correlation.
