@@ -198,6 +198,33 @@ mod tests {
         assert_eq!(expanded.front, front);
     }
     #[test]
+    fn qualification_whitespace_preserves_predicates_and_default_bounds() {
+        let mut startup = StartupCatalog::new();
+        let mut profile = ProfileCatalog::new();
+        install_numerical_catalogs(&mut startup, &mut profile).unwrap();
+        let mut expected = None;
+        for separator in [" ", "  ", "\t", " \t "] {
+            let ty = format!("Frequency{separator}near{separator}0.01Hz");
+            let source = format!("plot accept (\n >> value: {ty}\n result: {ty} >>\n) = .\n");
+            let syntax = conduit_plot::parse_syntax_document(&source);
+            assert!(syntax.diagnostics.is_empty(), "{:?}", syntax.diagnostics);
+            let checked = conduit_plot::check_syntax_document(&syntax, &startup).unwrap();
+            let front = checked.plots[0].checked_front();
+            for entry in front.value_contracts() {
+                assert_eq!(entry.contract.maximum_bytes, NUMERICAL_NEAR_MAX_BYTES);
+            }
+            if let Some(expected) = &expected {
+                assert_eq!(front.value_contracts(), expected);
+            } else {
+                expected = Some(front.value_contracts().to_vec());
+            }
+            let expanded =
+                conduit_plot::expand_canonical_plot_for_authoring(&checked, "accept", &profile)
+                    .unwrap();
+            assert_eq!(expanded.front, front);
+        }
+    }
+    #[test]
     fn qualified_fore_never_implicitly_becomes_exact_or_accepts_invalid_tolerance() {
         let mut startup = StartupCatalog::new();
         let mut profile = ProfileCatalog::new();
@@ -208,6 +235,9 @@ mod tests {
             ("Frequency near -0.01Hz", "Frequency near -0.01Hz"),
             ("Frequency near 0.01m", "Frequency near 0.01m"),
             ("Frequency near 0.01Hz near 0.1Hz", "NearQuantity"),
+            ("Frequency\tnear\t0.01Hz\tnear\t0.1Hz", "NearQuantity"),
+            ("Frequencynear 0.01Hz", "NearQuantity"),
+            ("Frequency near0.01Hz", "NearQuantity"),
             ("Count near 0Hz", "NearQuantity"),
         ] {
             let source = format!("plot refuse (\n >> value: {input}\n result: {output} >>\n) {{\n value >> result\n}}\n");
