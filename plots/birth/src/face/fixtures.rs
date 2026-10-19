@@ -1,12 +1,61 @@
 //! Canonically checked/planned Mask fixture, not a product effect acknowledgement.
 //! Uses the same ordinary Mask construction as face interaction conformance.
+use super::super::{BirthFaceBasis, HostOwnedBirthFaceBasis};
+use crate::{BirthDraft, BirthPlotChoice};
 use alloc::{format, vec, vec::Vec};
+use conduit_body::ResidentPlot;
 use conduit_core::*;
 use conduit_face::*;
 use conduit_plot::{
     KindSignature, ProfileCatalog, StartupCatalog, check_syntax_document,
     expand_canonical_plot_for_authoring, parse_syntax_document,
 };
+
+pub(super) fn basis() -> BirthFaceBasis {
+    let plan = producer_plan();
+    BirthFaceBasis {
+        host_id: "host/birth".into(),
+        boot_id: "boot/birth".into(),
+        encounter_id: "arrival/one".into(),
+        producer_plot: PlotIdentity {
+            source_document_id: plan.source_document_id.clone(),
+            checked_plot_id: plan.checked_plot_id.clone(),
+            expanded_plot_id: plan.expanded_plot_id.clone(),
+        },
+        producer_plan_id: plan.plan_id,
+    }
+}
+
+pub(super) fn host_owned_basis() -> HostOwnedBirthFaceBasis {
+    HostOwnedBirthFaceBasis {
+        host_id: "host/birth".into(),
+        boot_id: "boot/birth".into(),
+        encounter_id: "arrival/one".into(),
+    }
+}
+
+pub(super) fn draft() -> BirthDraft {
+    BirthDraft::new(
+        "550e8400-e29b-41d4-a716-446655440000".into(),
+        vec![
+            BirthPlotChoice {
+                title: "Clock".into(),
+                search_text: "time".into(),
+                plot: ResidentPlot::new("source/clock".into(), "checked/clock".into()),
+                refusal: None,
+                selected: true,
+            },
+            BirthPlotChoice {
+                title: "Speaker".into(),
+                search_text: "sound".into(),
+                plot: ResidentPlot::new("source/speaker".into(), "checked/speaker".into()),
+                refusal: Some("This Host has no admitted audio output.".into()),
+                selected: false,
+            },
+        ],
+    )
+    .unwrap()
+}
 fn mask_port(
     name: &str,
     kind: &str,

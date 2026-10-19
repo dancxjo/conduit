@@ -264,7 +264,16 @@ pub(super) fn prepare(
                 }
                 let hint = argument_hint(argument);
                 append(Item {
-                    text: format!("{} · {}", argument.value_name, hint),
+                    text: super::text_field::current(face, index).map_or_else(
+                        || format!("{} · {}", argument.value_name, hint),
+                        |value| {
+                            format!(
+                                "{}: {}",
+                                subject.name,
+                                if value.is_empty() { "(empty)" } else { value }
+                            )
+                        },
+                    ),
                     role: GraphicsTextRole::Label,
                     paint,
                     control: interaction_admitted.then_some(FaceControl {

@@ -42,6 +42,30 @@ fn face(draft: &BirthDraft) -> Face {
         .unwrap()
 }
 
+#[test]
+fn source_disclosure_presents_one_title_and_preserves_every_exact_clause() {
+    let original = face(&draft());
+    let (primary, details) = document::prepare(&original, true).unwrap();
+    assert_eq!(
+        primary
+            .iter()
+            .filter(|row| row.text == "A body of your own")
+            .count(),
+        1,
+    );
+    let exact: String = details.iter().map(|row| row.text.as_str()).collect();
+    for clause in plan_face_utterances(&original).unwrap().clauses {
+        assert!(exact.contains(&clause.text), "lost exact Source clause");
+    }
+    assert!(primary.iter().any(|row| {
+        row.text.starts_with("Friendly Body name: ")
+            && row.control.is_some_and(|control| {
+                control.argument == Some(0)
+                    && original.actions[control.action].identity == "creche.name"
+            })
+    }));
+}
+
 fn key(usage: u8, shift: bool) -> KeyEvent {
     KeyEvent::new(
         usage,
