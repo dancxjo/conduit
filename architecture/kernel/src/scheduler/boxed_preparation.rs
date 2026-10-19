@@ -100,6 +100,8 @@ where
             decisions: 0,
             logical_invocations: 0,
             region_successors: [None; NODES],
+            native_input_ports: [None; NODES],
+            native_output_ports: [None; NODES],
             last_host_request: [None; NODES],
             cancelled: false,
             debug_control: DebugControlState::new(),

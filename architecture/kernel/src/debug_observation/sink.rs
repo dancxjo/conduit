@@ -281,6 +281,9 @@ where
         self.inner.ensure_remote_capacity(additional)
     }
 
+    fn requires_canonical_debug_values(&self) -> bool {
+        self.observations.is_some() || self.inner.requires_canonical_debug_values()
+    }
     fn observe_debug(&mut self, event: DebugRuntimeEvent<'_>) {
         self.project(event)
     }

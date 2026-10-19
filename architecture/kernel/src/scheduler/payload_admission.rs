@@ -108,7 +108,26 @@ where
         node: usize,
         io: &mut StepIo<PORTS>,
     ) -> Result<Option<ValueRef>, SchedulerError> {
-        if let Some((port, declared_len)) = io.prepared_output {
+        if let Some((port, output)) = io.prepared_output {
+            let declared_len = output.logical_bytes();
+            #[cfg(feature = "alloc")]
+            if let PreparedStepValue::NativeU64(value) = output {
+                if self.native_output_ports[node] != Some(port) {
+                    return Err(SchedulerError::InvalidPlan);
+                }
+                self.ensure_output_value_envelope(node, port, declared_len)?;
+                let value = self.values.store_native_u64(value)?;
+                let slot = io
+                    .outputs
+                    .get_mut(usize::from(port.0))
+                    .ok_or(SchedulerError::InvalidPortAccess)?;
+                if slot.is_some() {
+                    self.values.release(value)?;
+                    return Err(SchedulerError::InvalidPortAccess);
+                }
+                *slot = Some(value);
+                return Ok(Some(value));
+            }
             let bytes = self.drivers[node]
                 .prepared_output(port)
                 .ok_or(SchedulerError::InvalidPlan)?;
