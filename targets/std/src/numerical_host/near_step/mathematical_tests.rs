@@ -292,12 +292,28 @@ fn checked_source_consumer_prepares_all_form_contracts_at_both_boundaries() {
     let mut startup = StartupCatalog::new();
     let mut profiles = ProfileCatalog::new();
     conduit_semantic_catalog::install_numerical_catalogs(&mut startup, &mut profiles).unwrap();
-    let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
-    let expanded = expand_canonical_plot_for_authoring(&checked, "accept", &profiles).unwrap();
-    let ConfigurationValue::Text(hex) = &expanded.expanded.gears[0].configuration[0].value else {
-        panic!("program")
+    let program_for = |source: &str| {
+        let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
+        let expanded = expand_canonical_plot_for_authoring(&checked, "accept", &profiles).unwrap();
+        let ConfigurationValue::Text(hex) = &expanded.expanded.gears[0].configuration[0].value
+        else {
+            panic!("program")
+        };
+        PortableExpressionProgram::from_canonical_hex(hex).unwrap()
     };
-    let program = PortableExpressionProgram::from_canonical_hex(hex).unwrap();
+    let program = program_for(source);
+    let tight_program = program_for(&source.replace(
+        "result: Angle near 0.000001rad",
+        "result: Angle near 0.00000000001rad",
+    ));
+    let mut tight_output =
+        PreparedPortableExpressionEvaluator::new_with_mathematical_near_contracts(
+            &tight_program,
+            mathematical::requirements(),
+            Binary32Rounding::NearestTiesEven,
+            900_000_000,
+        )
+        .unwrap();
     let mut evaluator = PreparedPortableExpressionEvaluator::new_with_mathematical_near_contracts(
         &program,
         mathematical::requirements(),
@@ -343,6 +359,15 @@ fn checked_source_consumer_prepares_all_form_contracts_at_both_boundaries() {
     let guard = crate::allocation_probe::begin();
     for _ in 0..4 {
         assert!(evaluator.evaluate(&forged).is_err());
+        assert!(matches!(
+            tight_output.evaluate(&records[0]),
+            Err(PortableExpressionEvaluationRefusal::OutputValueConstraint(
+                ValueConstraintRefusal::NearQuantity(
+                    NearQuantityEvidenceRefusal::InsufficientTolerance
+                )
+            ))
+        ));
+        assert_eq!(tight_output.evaluate(&records[1]).unwrap(), records[1]);
         for record in &records {
             assert_eq!(evaluator.evaluate(record).unwrap(), record);
         }
