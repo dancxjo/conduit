@@ -1,6 +1,70 @@
 //! Qualified Source Fores may not lose their predicate when inlined.
 use super::*;
 use conduit_core::{FrontValueLocation as Location, ValueConstraint};
+
+/// The shared evidence carrier does not erase two known physical source Types.
+/// Generic Quantity keeps its existing runtime physical refinement gate.
+pub(super) fn incompatible_physical_sources(
+    input: Option<&conduit_core::CheckedValueContract>,
+    output: Option<&conduit_core::CheckedValueContract>,
+) -> bool {
+    fn source(contract: &conduit_core::CheckedValueContract) -> Option<&KindId> {
+        contract.constraints.iter().find_map(|constraint| {
+            if let ValueConstraint::NearQuantity { source_kind, .. } = constraint {
+                Some(source_kind)
+            } else {
+                None
+            }
+        })
+    }
+    match (input.and_then(source), output.and_then(source)) {
+        (Some(input), Some(output)) => {
+            input != output
+                && input.as_str() != conduit_core::QUANTITY_INFO_ID
+                && output.as_str() != conduit_core::QUANTITY_INFO_ID
+        }
+        _ => false,
+    }
+}
+
+pub(super) fn validate_connections(
+    gears: &[CheckedGear],
+    connections: &[CheckedConnection],
+) -> Result<(), CanonicalExpansionDiagnostic> {
+    let contract = |id: &GearId, location: Location| {
+        gears
+            .iter()
+            .find(|gear| &gear.gear_id == id)
+            .and_then(|gear| {
+                gear.semantic_contract
+                    .value_contracts()
+                    .iter()
+                    .find(|entry| entry.location == location)
+            })
+            .map(|entry| &entry.contract)
+    };
+    for connection in connections {
+        if connection.track == conduit_core::ConnectionTrack::Payload
+            && incompatible_physical_sources(
+                contract(
+                    &connection.source_gear_id,
+                    Location::Output(connection.source_port_id.clone()),
+                ),
+                contract(
+                    &connection.sink_gear_id,
+                    Location::Input(connection.sink_port_id.clone()),
+                ),
+            )
+        {
+            return Err(CanonicalExpansionDiagnostic::new(
+                "CND-FRM-045",
+                "qualified cord connects incompatible physical source Kinds".into(),
+            ));
+        }
+    }
+    Ok(())
+}
+
 pub(super) fn validate(
     plot: &CheckedCanonicalPlot,
     inputs: &BTreeMap<String, Vec<TrackedEndpoint>>,

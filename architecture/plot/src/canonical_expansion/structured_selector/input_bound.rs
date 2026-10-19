@@ -82,7 +82,7 @@ pub(super) fn retain_contracts(
     right: Option<&Stage>,
     plot: &CheckedCanonicalPlot,
     gears: &[CheckedGear],
-) {
+) -> Result<(), CanonicalExpansionDiagnostic> {
     fn retained(
         contract: Option<&conduit_core::CheckedValueContract>,
     ) -> Option<conduit_core::CheckedValueContract> {
@@ -130,4 +130,16 @@ pub(super) fn retain_contracts(
                 })
                 .and_then(|c| retained(Some(&c.contract))),
         });
+    if matches!(checked.syntax, crate::ExpressionSyntax::Input(_))
+        && super::super::qualified_front::incompatible_physical_sources(
+            checked.input_value_contract.as_ref(),
+            checked.output_value_contract.as_ref(),
+        )
+    {
+        return Err(CanonicalExpansionDiagnostic::new(
+            "CND-FRM-046",
+            "identity expression cannot change a qualified physical source Kind".into(),
+        ));
+    }
+    Ok(())
 }
