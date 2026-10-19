@@ -281,6 +281,15 @@ pub mod syllable_intent;
 #[cfg(feature = "semantic-bindings")]
 pub mod syllable_structure;
 
+#[cfg(all(feature = "semantic-bindings", feature = "kernel"))]
+pub mod carried_formant;
+#[cfg(all(
+    feature = "semantic-bindings",
+    feature = "kernel",
+    target_has_atomic = "ptr"
+))]
+pub mod carried_formant_kernel;
+
 /// Optional full-float FARGAN topology, checked by the ordinary Plot compiler.
 #[cfg(feature = "fargan-source")]
 pub mod fargan;
