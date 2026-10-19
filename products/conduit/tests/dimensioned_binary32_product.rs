@@ -21,6 +21,8 @@ fn assert_chain(source: &str) {
             .arg("--await-terminal")
             .arg("--report")
             .arg(path.join("report.json"))
+            .arg("--artifacts")
+            .arg(path.join("artifacts"))
             .output()
             .unwrap();
         assert!(
@@ -169,6 +171,34 @@ fn assert_chain(source: &str) {
         assert!(evidence.byte_length <= connection.byte_capacity);
         assert_eq!(evidence.digest_domain, "conduit/routed-value-content@1");
         assert_eq!(evidence.digest_scheme, "core/semantic-sha256@1");
+        let artifact_path = path
+            .join("artifacts")
+            .join(format!("sign-{}.json", sign.sign_id.as_str()));
+        let artifact: conduit_observatory::SignArtifact =
+            serde_json::from_slice(&std::fs::read(&artifact_path).unwrap()).unwrap();
+        conduit_observatory::validate_sign_artifact(&artifact).unwrap();
+        assert_eq!(&artifact.sign, sign);
+        assert_eq!(
+            conduit_core::bind_sign(
+                &artifact.identity.host_id,
+                &artifact.identity.boot_id,
+                artifact.identity.active_play_id.as_ref(),
+                artifact.identity.sequence
+            ),
+            artifact.identity
+        );
+        let inspected = Command::new(env!("CARGO_BIN_EXE_conduit"))
+            .arg("inspect")
+            .arg(&artifact_path)
+            .output()
+            .unwrap();
+        assert!(
+            inspected.status.success(),
+            "{}",
+            String::from_utf8_lossy(&inspected.stderr)
+        );
+        assert!(String::from_utf8_lossy(&inspected.stdout).contains("RoutedContent"));
+
         println!(
             "DIMENSIONED_BINARY32_PRODUCT source={} plan={} selected_mathematical={}",
             plan.source_document_id.as_str(),
