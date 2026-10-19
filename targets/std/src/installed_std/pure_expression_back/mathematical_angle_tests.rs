@@ -290,7 +290,7 @@ fn ordinary_source_preparation_selects_compatible_angle_profiles_across_the_chai
 
 #[test]
 fn authored_dimensioned_chain_reaches_selected_binary32_consumer_and_independent_reader() {
-    let source = "plot bridge (\n >> value: Angle\n result: Angle >>\n) = (math/angle-radians(.))\nplot carry (\n >> value: Angle\n result: Angle >>\n) = (.)\nplot expose (\n >> value: Angle\n result: Quantity >>\n) = (quantity/value(.))\nplot project (\n >> value: Angle\n result: NearQuantity <= 131072B >>\n) {\n converted: bridge\n carried: carry\n exposed: expose\n boundary: math/near(limit=0.000001rad)\n value >> converted.value\n converted.result >> carried.value\n carried.result >> exposed.value\n exposed.result >> boundary.value\n boundary.result >> result\n}\n";
+    let source = "plot bridge (\n >> value: Angle\n result: Angle >>\n) = (math/angle-radians(.))\nplot carry (\n >> value: Angle\n result: Angle >>\n) = (.)\nplot expose (\n >> value: Angle\n result: Quantity >>\n) = (quantity/value(.))\nplot project (\n >> value: Angle\n result: Angle near 0.000001rad >>\n) {\n converted: bridge\n carried: carry\n exposed: expose\n boundary: math/near(limit=0.000001rad)\n value >> converted.value\n converted.result >> carried.value\n carried.result >> exposed.value\n exposed.result >> boundary.value\n boundary.result >> result\n}\n";
     let source = format!("plot halve (\n >> value: Angle\n result: Angle >>\n) = (. / 2)\nplot double (\n >> value: Angle\n result: Angle >>\n) = (. * 2)\n{}", source
         .replace(" converted: bridge", " halved: halve\n doubled: double\n converted: bridge")
         .replace(" value >> converted.value", " value >> halved.value\n halved.result >> doubled.value\n doubled.result >> converted.value"));
