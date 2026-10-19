@@ -96,6 +96,12 @@ pub(super) fn raster(
             break;
         }
     }
+    // Full invalidation has no retained work to save. Use the original clear
+    // and renderer directly rather than rebuilding an equivalent replay scene.
+    if dirty == extent {
+        buffer.clear();
+        return render(buffer, scene);
+    }
     let mut replay = GraphicsScene::empty();
     for command in new {
         let Some(rect) = footprint(command, extent).and_then(|rect| intersection(rect, dirty))
