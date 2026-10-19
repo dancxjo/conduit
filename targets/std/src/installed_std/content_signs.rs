@@ -115,6 +115,12 @@ impl SignSink for StdSignLog {
     fn ensure_capacity(&self, n: u16) -> Result<(), SignError> {
         self.base().ensure_capacity(n)
     }
+    fn ensure_value_extent(&self, maximum_bytes: u32) -> Result<(), SignError> {
+        match self {
+            Self::Plain(log) => log.ensure_value_extent(maximum_bytes),
+            Self::Content { log, .. } => log.ensure_value_extent(maximum_bytes),
+        }
+    }
     fn ensure_remote_capacity(&self, n: u16) -> Result<(), SignError> {
         self.base().ensure_remote_capacity(n)
     }

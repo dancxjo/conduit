@@ -58,12 +58,13 @@ where
         }
         routes.validate_active_prefix(active_nodes, active_cords)?;
         host_bindings.validate_active_nodes(active_nodes)?;
-        validate_plan::<NODES, CORDS, PORTS, QUEUE_SLOTS, ROUTE_SLOTS, ROUTE_TARGETS>(
+        validate_plan::<NODES, CORDS, PORTS, QUEUE_SLOTS, ROUTE_SLOTS, ROUTE_TARGETS, _>(
             active_nodes,
             active_cords,
             &node_specs,
             &cord_specs,
             &routes,
+            &signs,
         )?;
         Ok(alloc::boxed::Box::new(Self {
             node_specs,

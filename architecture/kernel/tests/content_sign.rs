@@ -250,18 +250,25 @@ impl StepBack<1> for Driver<'_> {
         }
     }
 }
-type Play<'a> = FixedScheduler<
-    Driver<'a>,
-    FixedValueStore<2, 8>,
-    ContentSignLog<FixedSignLog<32>, FixtureDigest, 32>,
-    2,
-    1,
-    1,
-    2,
-    2,
-    1,
->;
+type Play<'a, S = ContentSignLog<FixedSignLog<32>, FixtureDigest, 32>> =
+    FixedScheduler<Driver<'a>, FixedValueStore<2, 8>, S, 2, 1, 1, 2, 2, 1>;
 fn play<'a>(bytes: &[u8], repeats: u8, gate: Option<&'a Cell<bool>>) -> Play<'a> {
+    play_with_signs(bytes, repeats, gate, log::<32>())
+}
+fn play_with_signs<'a, S: SignSink>(
+    bytes: &[u8],
+    repeats: u8,
+    gate: Option<&'a Cell<bool>>,
+    signs: S,
+) -> Play<'a, S> {
+    try_play_with_signs(bytes, repeats, gate, signs).unwrap()
+}
+fn try_play_with_signs<'a, S: SignSink>(
+    bytes: &[u8],
+    repeats: u8,
+    gate: Option<&'a Cell<bool>>,
+    signs: S,
+) -> Result<Play<'a, S>, SchedulerError> {
     let mut values = FixedValueStore::<2, 8>::new(16).unwrap();
     let value = values.store(bytes).unwrap();
     // Fixture source owns one preloaded reference per future emission.
@@ -313,9 +320,8 @@ fn play<'a>(bytes: &[u8], repeats: u8, gate: Option<&'a Cell<bool>>) -> Play<'a>
             Driver::Sink { allow: gate },
         ],
         values,
-        log::<32>(),
+        signs,
     )
-    .unwrap()
 }
 #[test]
 fn actual_scheduler_binds_committed_output_bytes_after_value_storage_is_released() {
@@ -461,3 +467,6 @@ fn hosted_binding_storage_is_prepared_once_and_matches_fixed_rows() {
     assert_eq!((alloc.allocations, alloc.reallocations), (0, 0));
     assert_eq!(hosted.content_allocation_capacity(), capacity);
 }
+
+#[path = "content_sign/values.rs"]
+mod values;

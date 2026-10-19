@@ -270,6 +270,9 @@ where
     fn ensure_capacity(&self, additional: u16) -> Result<(), SignError> {
         self.inner.ensure_capacity(additional)
     }
+    fn ensure_value_extent(&self, maximum_bytes: u32) -> Result<(), SignError> {
+        self.inner.ensure_value_extent(maximum_bytes)
+    }
 
     fn record_value(
         &mut self,

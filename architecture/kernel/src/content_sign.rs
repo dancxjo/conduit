@@ -6,6 +6,10 @@ use crate::{
     RequestId, SignError, SignQuery, SignRetentionGap, SignSink,
 };
 
+mod values;
+pub use values::content_value_storage_bytes;
+use values::ValueStorage;
+
 /// An infallible, bounded, allocation-free digest implementation chosen before
 /// Play. Its algorithm identity and work/storage bounds must be retained by the
 /// owning profile; these bytes alone do not identify a hash algorithm.
@@ -18,6 +22,13 @@ pub trait OrderedTransientRetention: SignSink + SignQuery {}
 impl<const N: usize> OrderedTransientRetention for FixedSignLog<N> {}
 #[cfg(feature = "alloc")]
 impl OrderedTransientRetention for crate::HostedSignLog {}
+/// Successful mandatory records use consecutive native sequence numbers without
+/// filtering/resetting them; ValueRouted events obey oldest-transient eviction.
+/// This stronger property permits bounded ring slots for actual retained bytes.
+pub trait ContiguousTransientRetention: OrderedTransientRetention {}
+impl<const N: usize> ContiguousTransientRetention for FixedSignLog<N> {}
+#[cfg(feature = "alloc")]
+impl ContiguousTransientRetention for crate::HostedSignLog {}
 
 /// Join to the retained KernelEvent by exact sequence, then to the owning
 /// execution's node/port bindings. Not a free-standing execution attestation.
@@ -39,10 +50,11 @@ pub fn content_sign_storage_bytes(items: u16) -> Option<u32> {
 pub type ContentSignLog<S, D, const N: usize> =
     BoundedContentSignLog<S, D, [Option<ContentSignBinding>; N]>;
 #[cfg(feature = "alloc")]
-pub type HostedContentSignLog<S, D> =
-    BoundedContentSignLog<S, D, alloc::vec::Vec<Option<ContentSignBinding>>>;
+pub type HostedContentSignLog<S, D, V = [u8; 0]> =
+    BoundedContentSignLog<S, D, alloc::vec::Vec<Option<ContentSignBinding>>, V>;
 
-pub struct BoundedContentSignLog<S, D, B> {
+pub struct BoundedContentSignLog<S, D, B, V = [u8; 0]> {
+    values: ValueStorage<V>,
     inner: S,
     provider: D,
     entries: B,
@@ -59,6 +71,7 @@ impl<S: OrderedTransientRetention, D: ContentDigestProvider, const N: usize>
             return Err(SignError::InvalidBudget);
         }
         Ok(Self {
+            values: ValueStorage::disabled(),
             inner,
             provider,
             entries: [None; N],
@@ -82,6 +95,7 @@ impl<S: OrderedTransientRetention, D: ContentDigestProvider> HostedContentSignLo
             return Err(SignError::InvalidBudget);
         }
         Ok(Self {
+            values: ValueStorage::disabled(),
             inner,
             provider,
             entries,
@@ -89,13 +103,11 @@ impl<S: OrderedTransientRetention, D: ContentDigestProvider> HostedContentSignLo
             pruned_through: None,
         })
     }
-    pub fn content_allocation_capacity(&self) -> usize {
-        self.entries.capacity()
-    }
 }
-impl<S: OrderedTransientRetention, D: ContentDigestProvider, B> BoundedContentSignLog<S, D, B>
+impl<S: OrderedTransientRetention, D: ContentDigestProvider, B, V> BoundedContentSignLog<S, D, B, V>
 where
     B: AsRef<[Option<ContentSignBinding>]> + AsMut<[Option<ContentSignBinding>]>,
+    V: AsRef<[u8]> + AsMut<[u8]>,
 {
     pub const fn inner(&self) -> &S {
         &self.inner
@@ -121,6 +133,18 @@ where
     pub fn binding(&self, event_sequence: u32) -> Option<ContentSignBinding> {
         self.bindings().find(|b| b.event_sequence == event_sequence)
     }
+    /// Actual bytes copied at the routing seam, available only while their
+    /// native event/binding remains retained. Disabled profiles return None.
+    pub fn retained_value(&self, event_sequence: u32) -> Option<&[u8]> {
+        let binding = self.binding(event_sequence)?;
+        self.values.get(binding, self.entries.as_ref().len() as u16)
+    }
+    pub fn maximum_retained_value_bytes(&self) -> Option<u32> {
+        self.values.maximum()
+    }
+    pub fn value_storage_capacity_bytes(&self) -> u32 {
+        self.values.capacity_bytes()
+    }
     fn prune(&mut self) {
         let Some(last) = self.inner.retention_gap().map(|g| g.last_sequence) else {
             return;
@@ -139,10 +163,11 @@ where
         self.pruned_through = Some(last);
     }
 }
-impl<S: OrderedTransientRetention, D: ContentDigestProvider, B> SignSink
-    for BoundedContentSignLog<S, D, B>
+impl<S: OrderedTransientRetention, D: ContentDigestProvider, B, V> SignSink
+    for BoundedContentSignLog<S, D, B, V>
 where
     B: AsRef<[Option<ContentSignBinding>]> + AsMut<[Option<ContentSignBinding>]>,
+    V: AsRef<[u8]> + AsMut<[u8]>,
 {
     fn item_capacity(&self) -> u16 {
         self.inner.item_capacity()
@@ -158,6 +183,10 @@ where
     }
     fn ensure_capacity(&self, additional: u16) -> Result<(), SignError> {
         self.inner.ensure_capacity(additional)
+    }
+    fn ensure_value_extent(&self, maximum_bytes: u32) -> Result<(), SignError> {
+        self.inner.ensure_value_extent(maximum_bytes)?;
+        self.values.admit_extent(maximum_bytes)
     }
     fn record(
         &mut self,
@@ -178,12 +207,15 @@ where
         bytes: &[u8],
     ) -> Result<KernelEvent, SignError> {
         let byte_length = u32::try_from(bytes.len()).map_err(|_| SignError::InvalidBudget)?;
+        self.ensure_value_extent(byte_length)?;
         self.inner.ensure_capacity(1)?;
         let digest = self.provider.digest(bytes);
         let event = self
             .inner
             .record(node, Some(port), None, KernelEventKind::ValueRouted)?;
         self.prune();
+        self.values
+            .record(event.sequence, self.entries.as_ref().len() as u16, bytes);
         // Every retained binding owns a distinct retained event. Constructor
         // admission makes N >= all retained events; this slot must be free.
         self.entries.as_mut()[usize::from(self.len)] = Some(ContentSignBinding {
@@ -213,10 +245,11 @@ where
         self.inner.observe_debug(event)
     }
 }
-impl<S: OrderedTransientRetention, D: ContentDigestProvider, B> SignQuery
-    for BoundedContentSignLog<S, D, B>
+impl<S: OrderedTransientRetention, D: ContentDigestProvider, B, V> SignQuery
+    for BoundedContentSignLog<S, D, B, V>
 where
     B: AsRef<[Option<ContentSignBinding>]> + AsMut<[Option<ContentSignBinding>]>,
+    V: AsRef<[u8]> + AsMut<[u8]>,
 {
     fn contains_kind(&self, kind: KernelEventKind) -> bool {
         self.inner.contains_kind(kind)
@@ -226,5 +259,44 @@ where
     }
     fn retention_gap(&self) -> Option<SignRetentionGap> {
         self.inner.retention_gap()
+    }
+}
+
+impl<S: ContiguousTransientRetention, D: ContentDigestProvider, B> BoundedContentSignLog<S, D, B>
+where
+    B: AsRef<[Option<ContentSignBinding>]> + AsMut<[Option<ContentSignBinding>]>,
+{
+    /// Enable complete value custody before any execution event. Storage must
+    /// contain exactly one fixed maximum-sized slot per admitted binding row.
+    /// Work adds one bounded copy per successful route; no allocation or growth.
+    pub fn with_value_storage<V: AsRef<[u8]> + AsMut<[u8]>>(
+        self,
+        maximum_value_bytes: u32,
+        storage: V,
+    ) -> Result<BoundedContentSignLog<S, D, B, V>, SignError> {
+        if self.inner.len() != 0 {
+            return Err(SignError::InvalidBudget);
+        }
+        let values = ValueStorage::new(
+            storage,
+            self.entries.as_ref().len() as u16,
+            maximum_value_bytes,
+        )?;
+        Ok(BoundedContentSignLog {
+            inner: self.inner,
+            provider: self.provider,
+            entries: self.entries,
+            len: self.len,
+            pruned_through: self.pruned_through,
+            values,
+        })
+    }
+}
+#[cfg(feature = "alloc")]
+impl<S: OrderedTransientRetention, D: ContentDigestProvider, V: AsRef<[u8]> + AsMut<[u8]>>
+    HostedContentSignLog<S, D, V>
+{
+    pub fn content_allocation_capacity(&self) -> usize {
+        self.entries.capacity()
     }
 }
