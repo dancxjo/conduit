@@ -258,6 +258,26 @@ fn original_target_observation_and_conversion_are_separately_retained() {
 }
 
 #[test]
+fn unreferenced_amplitude_cannot_be_silently_admitted_as_decibels() {
+    let unreferenced = AudioLevelRatio::amplitude(1, 10).unwrap();
+    let bytes = unreferenced.clone().encode().unwrap();
+    assert_eq!(AudioLevelRatio::decode(&bytes).unwrap(), unreferenced);
+    let projection = PreparedExactPowerOfTenDecibels::new().unwrap();
+    assert!(matches!(
+        projection.ratio_to_decibels(&bytes),
+        Err(AudioDecibelRefusal::Admission(_))
+    ));
+    // The same exact ratio is eligible once an actual reference is declared.
+    // Refusal above must not be an unsupported logarithm or invalid ratio.
+    let referenced =
+        AudioReferencedLevelRatio::new(basis("required-reference", false), unreferenced).unwrap();
+    let receipt = projection
+        .ratio_to_decibels(&referenced.clone().encode().unwrap())
+        .unwrap();
+    assert_eq!(receipt.original(), &referenced);
+}
+
+#[test]
 fn custody_uncertainty_and_unsupported_log_profiles_refuse() {
     let (inventory, profile, text, intent, phonemes, phones) = (
         fixture::inventory(),
