@@ -658,3 +658,39 @@ ordinary routing evidence needs an explicit, bounded shared identity contract.
 Do not relabel a constructed digest witness as a Gear-produced ValuePayload.
 Broader original requirements and exact-source stable acceptance remain open;
 this checkpoint closes no parent audit item.
+
+### Private shared routed-content Sign export
+
+Core observation definitions and Std observation projection are extracted into
+responsibility-owned modules, retaining existing public Core names. The new
+shared `RoutedContent` observation is appended after existing wire variants.
+It carries digest domain/scheme, byte extent, native event sequence and exact
+output port, while the enclosing observation retains Plan/Play, Host/boot,
+producer placement and connection identities. It is retained routing evidence,
+not a constructed Gear-produced value or a general projection certificate.
+
+The optional Std content profile reserves Core Sign identity capacity before
+Play at its native retained-event ceiling. After Play, internal routing rows
+must join retained ValueRouted events and the exact planned Cord source before
+receiving canonical Core Sign identities. External Fore boundary rows remain
+native evidence; this checkpoint does not invent producer placements or internal
+Cords for them. Sign artifact validation additionally checks source Host/boot,
+port, connection extent and finite digest labels against its exact Plan/Play
+context. It validates structure and correlation, not hostile-code attestation.
+
+All six installed Angle tests pass with the new actual numerical output-to-Core
+Sign join, existing independent numerical replay, and zero-allocation Play
+checks. The same preserved test executable passes the complete Std library suite:
+867 passed, 18 existing ignored. Four artifact-envelope tests pass in their first
+form; expanded extent/label refusal cases, wire compatibility, actual CLI export
+and strict workspace checks are still running or queued at this checkpoint.
+The executed artifact and installed test binaries have verified gzip/hash
+roundtrips. Full workspace tests remain unproven after two baseline link-time
+disk exhaustion failures; their logs and cleanup receipts are retained.
+
+This advances shared internal routing custody. Native retention-gap export,
+external Fore/Body/remote product evidence, canonical general projection reports,
+and whole-algorithm source/input/request/output custody remain unfinished.
+The earlier actual CLI report remains terminal-only evidence until the new real
+CLI gate passes. Public stable acceptance and the broader original parent scope
+remain open; no parent requirement is closed here.
