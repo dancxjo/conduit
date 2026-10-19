@@ -23,6 +23,7 @@ mod component;
 #[path = "owner_face_mask/interaction.rs"]
 mod interaction;
 pub(crate) mod local;
+pub(crate) mod local_component;
 #[path = "owner_face_mask/preparation.rs"]
 mod preparation;
 #[path = "owner_face_mask/view.rs"]

@@ -6,6 +6,7 @@ pub(super) struct MaskHostBasis {
     pub host_id: HostId,
     pub boot_id: BootId,
     pub visual_constraints: Option<component::VisualConstraints>,
+    pub renderer_profile: local_component::RendererProfile,
 }
 
 impl OwnerBrowserMask {
@@ -28,6 +29,7 @@ impl OwnerBrowserMask {
                 host_id: basis.host_id,
                 boot_id: basis.boot_id,
                 visual_constraints: basis.visual_constraints,
+                renderer_profile: local_component::RendererProfile::Ordinary,
             },
             face,
             planned,

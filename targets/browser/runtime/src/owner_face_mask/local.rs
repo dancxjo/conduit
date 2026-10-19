@@ -12,14 +12,14 @@ impl LocalBrowserMask {
         source: &str,
         root: &str,
         sequence: u64,
+        renderer_profile: local_component::RendererProfile,
     ) -> Result<Self, String> {
         face.validate()
             .map_err(|error| format!("local Face: {error:?}"))?;
         if face.basis.body_id.is_some() {
             return Err("local Mask requires a zero-Body Face".into());
         }
-        let host =
-            crate::installed_browser::membership_advertisement(host_id.clone(), boot_id.clone());
+        let host = renderer_profile.host(host_id.clone(), boot_id.clone());
         let planned = crate::installed_browser::dom_mask::planned_local_mask(&host, source, root)?;
         OwnerBrowserMask::prepare_context(
             preparation::MaskHostBasis {
@@ -27,6 +27,7 @@ impl LocalBrowserMask {
                 host_id,
                 boot_id,
                 visual_constraints: None,
+                renderer_profile,
             },
             face,
             planned,
@@ -87,8 +88,14 @@ impl LocalBrowserMask {
         self.retire(ManifestationLifecycle::Closed)
     }
 
-    pub(crate) fn replace(&mut self) -> Result<(), String> {
-        self.retire(ManifestationLifecycle::Replaced)
+    pub(crate) fn replace(&mut self) -> Result<serde_json::Value, String> {
+        self.retire(ManifestationLifecycle::Replaced)?;
+        Ok(
+            serde_json::json!({"schema":"conduit.browser/local-mask-retirement@1",
+            "show_id":self.0.show.show_id,"face_id":self.0.face.identity,
+            "face_revision":self.0.face.revision.to_string(),"mask_plan_id":self.0.planned.plan.plan_id,
+            "mask_play_id":self.0.play.active_play_id,"lifecycle":self.0.show.show.lifecycle}),
+        )
     }
 
     fn retire(&mut self, lifecycle: ManifestationLifecycle) -> Result<(), String> {

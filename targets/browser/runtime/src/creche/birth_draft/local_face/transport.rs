@@ -88,3 +88,13 @@ pub extern "C" fn conduit_creche_local_face_close(generation: u32) -> i32 {
         }
     }
 }
+
+/// Host observation descriptor only; this does not register or acknowledge DOM.
+#[no_mangle]
+pub extern "C" fn conduit_creche_local_face_component_descriptor() -> i32 {
+    if write(&crate::owner_face_mask::local_component::descriptor()).is_ok() {
+        0
+    } else {
+        ERROR_DRAFT
+    }
+}
