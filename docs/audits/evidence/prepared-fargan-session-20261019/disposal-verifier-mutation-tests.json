@@ -1,0 +1,73 @@
+{
+  "refusal_cases": 17,
+  "results": [
+    {
+      "mutation": "source identity",
+      "refused": true
+    },
+    {
+      "mutation": "dirty metadata with refreshed checksum",
+      "refused": true
+    },
+    {
+      "mutation": "Play allocation with refreshed checksum",
+      "refused": true
+    },
+    {
+      "mutation": "oracle error bound",
+      "refused": true
+    },
+    {
+      "mutation": "cold reservation",
+      "refused": true
+    },
+    {
+      "mutation": "old evidence count",
+      "refused": true
+    },
+    {
+      "mutation": "active identity digest",
+      "refused": true
+    },
+    {
+      "mutation": "missing evidence release",
+      "refused": true
+    },
+    {
+      "mutation": "duplicate paired frame",
+      "refused": true
+    },
+    {
+      "mutation": "correlated request generation with refreshed hashes",
+      "refused": true
+    },
+    {
+      "mutation": "Sign ordering with refreshed hashes",
+      "refused": true
+    },
+    {
+      "mutation": "output mismatch with refreshed hashes",
+      "refused": true
+    },
+    {
+      "mutation": "Plan content with refreshed checksum",
+      "refused": true
+    },
+    {
+      "mutation": "raw checksum mismatch",
+      "refused": true
+    },
+    {
+      "mutation": "missing final session disposal",
+      "refused": true
+    },
+    {
+      "mutation": "allocation during disposal",
+      "refused": true
+    },
+    {
+      "mutation": "removing required final-disposal coverage flag",
+      "refused": true
+    }
+  ]
+}

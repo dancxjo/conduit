@@ -1,0 +1,215 @@
+{
+  "source": "e4fbac12b38ff0f787fe626f4c587cbd175ab5b8",
+  "independent_processes": 3,
+  "independent_paired_frames": 144,
+  "all_paired_frames_with_public": 192,
+  "ordered_signs_verified": 2678784,
+  "median_admitted_plan_trajectory_ratio": 0.1100962306999736,
+  "independent_trajectory_ratio_range": [
+    0.10940428117661584,
+    0.11083865203237638
+  ],
+  "median_standalone_cold_attribution_ratio": 0.2128989343550929,
+  "median_two_trajectory_process_phase_accounted_ratio": 0.1992457373574715,
+  "trajectories": [
+    {
+      "capture": "fargan-prepared-disposal-public",
+      "repetition": 0,
+      "fresh_admitted_plan_ns": 7941378217,
+      "prepared_admitted_plan_ns": 892195692,
+      "ratio": 0.11234771441688658,
+      "final_disposal": {
+        "allocator": {
+          "allocations": 0,
+          "deallocations": 60076,
+          "live_heap_bytes_at_end": 13268258,
+          "phase_peak_heap_bytes": 51224650,
+          "reallocations": 0,
+          "requested_bytes": 0
+        },
+        "process_cpu_ns": 2124041,
+        "wall_ns": 2123387
+      },
+      "common_cold_source_model_plan_ns": 1030043830,
+      "attributed_standalone_cold_ratio": 0.21426252292330708
+    },
+    {
+      "capture": "fargan-prepared-disposal-public",
+      "repetition": 1,
+      "fresh_admitted_plan_ns": 7913848960,
+      "prepared_admitted_plan_ns": 873321062,
+      "ratio": 0.11035351652705791,
+      "final_disposal": {
+        "allocator": {
+          "allocations": 0,
+          "deallocations": 60076,
+          "live_heap_bytes_at_end": 13268770,
+          "phase_peak_heap_bytes": 51225162,
+          "reallocations": 0,
+          "requested_bytes": 0
+        },
+        "process_cpu_ns": 2303532,
+        "wall_ns": 2302677
+      },
+      "common_cold_source_model_plan_ns": 1048929987,
+      "attributed_standalone_cold_ratio": 0.21447042935756117
+    },
+    {
+      "capture": "fargan-prepared-disposal-replay-1",
+      "repetition": 0,
+      "fresh_admitted_plan_ns": 8004513351,
+      "prepared_admitted_plan_ns": 887209470,
+      "ratio": 0.11083865203237638,
+      "final_disposal": {
+        "allocator": {
+          "allocations": 0,
+          "deallocations": 60076,
+          "live_heap_bytes_at_end": 13268263,
+          "phase_peak_heap_bytes": 51224655,
+          "reallocations": 0,
+          "requested_bytes": 0
+        },
+        "process_cpu_ns": 2196973,
+        "wall_ns": 2196172
+      },
+      "common_cold_source_model_plan_ns": 1049914189,
+      "attributed_standalone_cold_ratio": 0.21394214603212783
+    },
+    {
+      "capture": "fargan-prepared-disposal-replay-1",
+      "repetition": 1,
+      "fresh_admitted_plan_ns": 7970343681,
+      "prepared_admitted_plan_ns": 875094476,
+      "ratio": 0.10979381956716404,
+      "final_disposal": {
+        "allocator": {
+          "allocations": 0,
+          "deallocations": 60076,
+          "live_heap_bytes_at_end": 13268775,
+          "phase_peak_heap_bytes": 51225167,
+          "reallocations": 0,
+          "requested_bytes": 0
+        },
+        "process_cpu_ns": 2388365,
+        "wall_ns": 2390781
+      },
+      "common_cold_source_model_plan_ns": 1045498739,
+      "attributed_standalone_cold_ratio": 0.21302426612287662
+    },
+    {
+      "capture": "fargan-prepared-disposal-replay-2",
+      "repetition": 0,
+      "fresh_admitted_plan_ns": 7977670002,
+      "prepared_admitted_plan_ns": 882380934,
+      "ratio": 0.11060634668754,
+      "final_disposal": {
+        "allocator": {
+          "allocations": 0,
+          "deallocations": 60076,
+          "live_heap_bytes_at_end": 13268259,
+          "phase_peak_heap_bytes": 51224651,
+          "reallocations": 0,
+          "requested_bytes": 0
+        },
+        "process_cpu_ns": 2211767,
+        "wall_ns": 2211017
+      },
+      "common_cold_source_model_plan_ns": 1043100919,
+      "attributed_standalone_cold_ratio": 0.21344981153634596
+    },
+    {
+      "capture": "fargan-prepared-disposal-replay-2",
+      "repetition": 1,
+      "fresh_admitted_plan_ns": 8116623330,
+      "prepared_admitted_plan_ns": 887993341,
+      "ratio": 0.10940428117661584,
+      "final_disposal": {
+        "allocator": {
+          "allocations": 0,
+          "deallocations": 60076,
+          "live_heap_bytes_at_end": 13268771,
+          "phase_peak_heap_bytes": 51225163,
+          "reallocations": 0,
+          "requested_bytes": 0
+        },
+        "process_cpu_ns": 2223643,
+        "wall_ns": 2222913
+      },
+      "common_cold_source_model_plan_ns": 1061543433,
+      "attributed_standalone_cold_ratio": 0.2124102584253731
+    },
+    {
+      "capture": "fargan-prepared-disposal-replay-3",
+      "repetition": 0,
+      "fresh_admitted_plan_ns": 8008732846,
+      "prepared_admitted_plan_ns": 884153229,
+      "ratio": 0.11039864183278314,
+      "final_disposal": {
+        "allocator": {
+          "allocations": 0,
+          "deallocations": 60076,
+          "live_heap_bytes_at_end": 13268267,
+          "phase_peak_heap_bytes": 51224659,
+          "reallocations": 0,
+          "requested_bytes": 0
+        },
+        "process_cpu_ns": 2085621,
+        "wall_ns": 2084602
+      },
+      "common_cold_source_model_plan_ns": 1041496720,
+      "attributed_standalone_cold_ratio": 0.2127736025873092
+    },
+    {
+      "capture": "fargan-prepared-disposal-replay-3",
+      "repetition": 1,
+      "fresh_admitted_plan_ns": 7965126691,
+      "prepared_admitted_plan_ns": 871780814,
+      "ratio": 0.10944971094873449,
+      "final_disposal": {
+        "allocator": {
+          "allocations": 0,
+          "deallocations": 60076,
+          "live_heap_bytes_at_end": 13268779,
+          "phase_peak_heap_bytes": 51225171,
+          "reallocations": 0,
+          "requested_bytes": 0
+        },
+        "process_cpu_ns": 2198382,
+        "wall_ns": 2197366
+      },
+      "common_cold_source_model_plan_ns": 1042805220,
+      "attributed_standalone_cold_ratio": 0.21254446113896697
+    }
+  ],
+  "processes": [
+    {
+      "capture": "fargan-prepared-disposal-public",
+      "fresh_ns": 17620972967,
+      "prepared_ns": 3531262544,
+      "shared_cold_ns": 313228027,
+      "phase_accounted_ratio": 0.20040111012106065
+    },
+    {
+      "capture": "fargan-prepared-disposal-replay-1",
+      "fresh_ns": 17759072302,
+      "prepared_ns": 3546519216,
+      "shared_cold_ns": 311197658,
+      "phase_accounted_ratio": 0.19970182877179887
+    },
+    {
+      "capture": "fargan-prepared-disposal-replay-2",
+      "fresh_ns": 17888033477,
+      "prepared_ns": 3564114420,
+      "shared_cold_ns": 310904207,
+      "phase_accounted_ratio": 0.1992457373574715
+    },
+    {
+      "capture": "fargan-prepared-disposal-replay-3",
+      "fresh_ns": 17746951544,
+      "prepared_ns": 3529026050,
+      "shared_cold_ns": 311209933,
+      "phase_accounted_ratio": 0.19885252074140672
+    }
+  ],
+  "scope": "Includes final prepared-owner/session destruction and initial input encoding. Per-process accounting includes common Source/model admission once and Plan per trajectory. Phase-attributed comparison, not isolated whole-process stopwatch runs. Oracle/output/Sign comparison, artifact I/O and common result destruction remain harness costs. No hardware memory-traffic, native numerical-region, ordinary Body or realtime claim."
+}
