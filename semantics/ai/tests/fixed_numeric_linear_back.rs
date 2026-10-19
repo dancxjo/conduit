@@ -12,6 +12,8 @@ use conduit_kernel::{
 };
 use conduit_plot::rust_binding::BoundedSequence;
 use std::{cell::Cell, rc::Rc};
+#[path = "fixed_numeric_linear_back/compact.rs"]
+mod compact;
 #[path = "fixed_numeric_reuse/linear.rs"]
 mod reuse;
 const PORTS: usize = conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
