@@ -82,6 +82,11 @@ fn actual_cli_refuses_zero_width_symbolic_projection_without_success_output() {
         .output()
         .unwrap();
     assert!(!result.status.success());
+    let stderr = String::from_utf8_lossy(&result.stderr);
+    assert!(
+        stderr.contains("BackFailed(Failure { code: InvalidInput, detail: 4 })"),
+        "{stderr}"
+    );
     assert!(!String::from_utf8_lossy(&result.stdout).contains("certified dynamic enclosure"));
     println!(
         "SYMBOLIC_ENCLOSURE_REFUSAL stderr={}",

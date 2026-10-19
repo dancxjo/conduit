@@ -6,7 +6,7 @@ plot radians (
 plot explain (
     >> value: MathematicalEnclosure <= 65536B
     result: Text >>
-) = (.source == math/radians(1°) ? (.width <= .maximum-width ? "certified dynamic enclosure" : "wide") : "wrong source")
+) = (.source == math/radians(1°) ? (.maximum-width == 0.00000000000000001 ? "certified dynamic enclosure" : "wrong limit") : "wrong source")
 
 plot main {
     seed: math/realize(request={value:0,maximum-error:0})
