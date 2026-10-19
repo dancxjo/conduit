@@ -433,3 +433,6 @@ impl<const ROWS: usize, const WIDTH: usize, const PORTS: usize> StepBack<PORTS>
         self.state.cancel();
     }
 }
+
+#[path = "fixed_numeric_reuse/operations.rs"]
+mod reuse;
