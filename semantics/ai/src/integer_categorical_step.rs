@@ -405,3 +405,10 @@ pub mod invocation;
 
 #[cfg(feature = "kernel-operation-owners")]
 pub mod owner;
+
+#[cfg(all(
+    feature = "kernel-operation-owners",
+    target_has_atomic = "ptr",
+    target_has_atomic = "8"
+))]
+pub mod channel;

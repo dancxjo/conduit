@@ -661,3 +661,7 @@ mod invocation_cases;
 #[cfg(target_has_atomic = "8")]
 #[path = "integer_categorical_step/concurrent_invocation_cases.rs"]
 mod concurrent_invocation_cases;
+
+#[cfg(target_has_atomic = "8")]
+#[path = "integer_categorical_step/channel_cases.rs"]
+mod channel_cases;

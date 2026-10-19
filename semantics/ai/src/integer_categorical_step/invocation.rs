@@ -72,6 +72,10 @@ impl CategoricalInvocationOutlet {
     pub fn contains(&self, invocation: &CommittedCategoricalInvocation) -> bool {
         Arc::ptr_eq(&self.0, &invocation.inner)
     }
+    // Private channel is the sole writer; reader drops only increase capacity.
+    pub(super) fn has_capacity(&self) -> bool {
+        self.available_slots() != 0
+    }
     pub fn capacity(&self) -> usize {
         self.0.slots.len()
     }
