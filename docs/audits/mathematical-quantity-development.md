@@ -532,3 +532,46 @@ resource/property and artifact binding, including general structured validation
 work, factory recomputation, Source/Plan/kernel/CLI proof and stable acceptance.
 General projection/Sign custody and all remaining original requirements stay
 open; this checkpoint does not establish full parent completion.
+
+### Private installed qualified consumer and actual CLI
+
+The explicit hosted profile `std/pure-expression-near-contract-hosted@1` now
+prepares consuming predicate replay before Play. Source batching offers it for
+`near`-qualified expressions, retains custom offers, and replaces its own prior
+batch idempotently. Its factory rechecks the existing annotation-witness gate,
+exact Fore laws, implementation/module identity, replay/component bounds, Host
+Call extents and queue limits. Changed or missing facts refuse installation.
+The profile retains Value, Flow, closing Flow and Current offer contracts;
+actual execution proof here remains the Value path.
+
+Its sealed property separates predicate replay meters and prepared replay
+containers/buffers from per-record mathematical validation and structural
+node/depth/extent caps. These are finite component bounds, not a total CPU/WCET
+or allocator/kernel/stack memory claim. The module-source artifact identifies
+reviewed code; separately retained binary hashes identify the executables used
+for this proof. Neither alone attests a later live execution.
+
+Six installed Angle tests, eight qualified Fore tests, and eleven Source-offer
+lifecycle tests pass. The dimensioned chain has two exact arithmetic stages,
+symbolic radian conversion, carry, explicit physical exposure, selected binary32
+projection and a qualified consumer. The outer Fore retains the consuming
+tolerance; its earlier planning refusal is preserved rather than bypassed.
+Actual kernel execution reports zero allocations after Play starts and fixed
+value-storage capacity, followed by independent certificate replay.
+
+Two CLI tests pass across three invocations: equivalent 90-degree and quarter
+turn runs select the prepared consumer and inspect the exact certified-bound
+value, while zero allowance refuses without success output. One additional real
+CLI run retains stdout and its raw report, with matching actual Source/Plan/Play
+bindings, selected profiles and completed terminal. All-target Std Offers/Host
+Clippy and focused CLI test Clippy pass on the final implementation. Source
+bundles and three executed binaries have verified archive/hash roundtrips.
+
+This supersedes the missing installed consumer and CLI proof noted above. The
+raw report has only a terminal observation, with no retention drops. The
+retained kernel events identify node/port/request, but not the numerical report
+content digest. Per-projection general report/Sign custody is therefore still
+unproven and must use the shared projection/Sign system. Total cost/latency,
+full resource accounting, broader dimensioned and whole-floating-algorithm
+requirements and exact-source stable acceptance also remain open. No original
+parent checkbox is closed by this private checkpoint.
