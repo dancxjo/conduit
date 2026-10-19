@@ -245,8 +245,19 @@ fn prepare(
             ),
         ))
     } else {
+        let maximum_input_bytes = if placement.execution_profile_id.as_str()
+            == conduit_std_offers::PURE_MATHEMATICAL_ANGLE_STD_PROFILE
+        {
+            placement
+                .host_calls
+                .first()
+                .ok_or("mathematical Angle Host Call missing")?
+                .maximum_input_bytes
+        } else {
+            MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32
+        };
         Ok(InstalledBack::PureExpression(PureExpressionBack::new(
-            MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
+            maximum_input_bytes,
         )))
     }
 }

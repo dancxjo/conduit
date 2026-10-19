@@ -185,6 +185,53 @@ fn installed_factory_recomputes_wire_work_storage_artifact_and_host_call_bounds(
             StructuredConfigurationValue::new(p.profile().clone(), bytes).unwrap();
         assert!(PureExpressionHost::from_placement(&changed).is_err());
     }
+    let index = original
+        .realization_properties
+        .iter()
+        .position(|p| {
+            let value = StructuredInfoValue::from_canonical_bytes(p.canonical_value()).unwrap();
+            matches!(value.value_type().shape(),StructuredInfoTypeShape::Record { schema,.. }
+            if schema.as_str()==conduit_std_offers::MATHEMATICAL_ANGLE_BOUNDS_SCHEMA)
+        })
+        .unwrap();
+    for name in [
+        "maximum-nodes",
+        "maximum-depth",
+        "retained-prepared-payload-ceiling-bytes",
+        "maximum-numerical-work",
+        "maximum-input-bytes",
+        "output-capacity-bytes",
+    ] {
+        let mut changed = original.clone();
+        let property = &changed.realization_properties[index];
+        let value = StructuredInfoValue::from_canonical_bytes(property.canonical_value()).unwrap();
+        let StructuredInfoValueShape::Record(fields) = value.shape() else {
+            panic!("bounds record");
+        };
+        let mut fields = fields.to_vec();
+        let position = fields.iter().position(|f| f.name() == name).unwrap();
+        let field = &fields[position];
+        let StructuredInfoValueShape::Leaf(bytes) = field.value().shape() else {
+            panic!("u64");
+        };
+        let n = u64::from_le_bytes(bytes.try_into().unwrap()) + 1;
+        fields[position] = StructuredFieldValue::new(
+            name,
+            StructuredInfoValue::leaf(field.value().value_type().clone(), n.to_le_bytes().to_vec())
+                .unwrap(),
+        )
+        .unwrap();
+        let value = StructuredInfoValue::record(value.value_type().clone(), fields).unwrap();
+        changed.realization_properties[index] = StructuredConfigurationValue::new(
+            property.profile().clone(),
+            value.canonical_bytes().unwrap(),
+        )
+        .unwrap();
+        assert!(
+            PureExpressionHost::from_placement(&changed).is_err(),
+            "{name}"
+        );
+    }
     let mut artifact = original.clone();
     artifact.artifact_id = "foreign/angle@1".into();
     assert!(PureExpressionHost::from_placement(&artifact).is_err());

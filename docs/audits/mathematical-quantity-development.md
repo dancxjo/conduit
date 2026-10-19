@@ -29,8 +29,8 @@ Decimal and Exact retain v1 and v1/v2 respectively. The existing canonical wire
 property uses code 3 for the new grant and keeps omitted ports Decimal. Ordinary
 `QuantityValueView::decode` still rejects v3; selected profile decoding alone
 returns a borrowed mathematical-coordinate view. Unresolved coordinates refuse
-rational or decimal materialization. No Source/Plan offer or installed Back
-advertises this profile yet. An unfamiliar form remains a named refusal.
+rational or decimal materialization. An explicit private Std offer and installed Back now admit the bounded Angle
+subset described below; automatic Source advertisement remains unfinished. An unfamiliar form remains a named refusal.
 
 ## Unit coordinates and numerical realization remain separate
 
@@ -205,7 +205,7 @@ Type while applying the existing exact turn/radian law. The released
 ports, native-to-symbolic-radian conversion, transport, typed trig and bounded
 conditional structure. Existing profiles refuse the new conversion before
 execution. Quantity arithmetic and refinements remain preparation refusals until
-reviewed; no installed Host offer advertises the new profile.
+reviewed. The explicit private installed offer is described below.
 
 The checked Source test compiles separate conversion, Angle carry and sine plots,
 plus a nested equivalent. Original native coordinates are compared against the
@@ -228,3 +228,33 @@ stable bounds across the conversion/carry/trig chain. The work ceiling reserves
 the bridge's two metered phases plus node/input validation; it is not CPU time or
 WCET. Stack, allocator bookkeeping and kernel/caller storage remain separate.
 The existing exact-profile bounds entrance retains its profile distinction.
+
+
+## Explicit installed Std Angle profile
+
+The private `std/pure-expression-mathematical-angle-hosted@1` offer selects this
+prepared evaluator through the ordinary installed Std factory and admitted Host
+Call boundary. Angle ports explicitly grant the mathematical wire profile.
+The offer retains node/depth, prepared payload, numerical work, input extent and
+output capacity bounds; factory preparation independently recomputes those
+properties, the implementation source identity, ports, limits and Host Calls.
+That source identity is a selected-module digest, not a complete executable or
+live execution receipt. Automatic Source advertisement and CLI selection remain
+unfinished.
+
+Three installed tests pass: separate checked Source conversion and sine Plans
+inspect the actual transported Pi/2-radian frame; one checked Source Plan runs
+conversion, Angle carry and sine with both quarter-turn and 90-degree inputs;
+and factory tests reject changed profile, wire grant, all six structured bounds,
+artifact identity, limits and Host Call metadata. The execution tests use the
+production fixed kernel and observe zero reported post-Play-start allocations
+and unchanged value capacity. The test advertisement explicitly adds the genuine
+offer; this does not prove automatic discovery or product CLI admission.
+
+The first execution correctly refused a Back requesting the old generic 64 KiB
+input allowance against the offer's smaller sealed Host Call bound. Preparation
+now uses the selected bound for this profile. The corrected tests pass; the
+original refusal and a subsequent test compilation diagnostic are retained.
+General projection Source/Plan/Sign custody, broader Quantity expressions,
+refinements, public Candidate and exact-source integration/publication remain
+separate gates. No parent acceptance checkbox changes from this private proof.
