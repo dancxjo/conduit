@@ -234,6 +234,7 @@ pub(super) enum InstalledBack {
     StructuredSelector(StructuredSelectorBack),
     PureFilter(StructuredSelectorBack),
     PureExpression(PureExpressionBack),
+    NativeU64Expression(crate::flow_activation::PreparedNativeU64ExpressionBack),
     LocalExpression(crate::flow_activation::PreparedLocalExpressionBack),
     Numerical(conduit_semantic_catalog::NumericalRealizationBack),
     NearQuantity(crate::numerical_host::near_step::NearQuantityBack),

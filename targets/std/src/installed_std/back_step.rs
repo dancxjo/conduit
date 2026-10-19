@@ -9,6 +9,12 @@ use conduit_kernel::RequestId;
 macro_rules! installed_step_dispatch {
     ($( $(#[$attribute:meta])* $variant:ident ),+ $(,)?) => {
         impl<const PORTS: usize> StepBack<PORTS> for InstalledBack {
+            fn native_u64_ports(&self) -> Option<(conduit_kernel::PortId, conduit_kernel::PortId)> {
+                match self {
+                    Self::NativeU64Expression(back) => StepBack::<PORTS>::native_u64_ports(back),
+                    _ => None,
+                }
+            }
             fn terminal_transductions(&self) -> [Option<AssignedTerminalTransduction>; PORTS] {
                 match self {
                     Self::NativeSpeech(operation) => StepBack::<PORTS>::terminal_transductions(operation.as_ref()),
@@ -336,6 +342,7 @@ installed_step_dispatch!(
     PureFilter,
     PureExpression,
     LocalExpression,
+    NativeU64Expression,
     Numerical,
     NearQuantity,
     IeeeBinary64,

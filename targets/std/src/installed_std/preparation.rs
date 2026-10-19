@@ -130,6 +130,18 @@ pub(super) fn prepare_ordinary_operation(
     if conduit_semantic_catalog::face_data_label_required(placement.kind_id.as_str()) {
         conduit_semantic_catalog::face_data_label(&placement.configuration)?;
     }
+    if fragment.execution_fusions.iter().any(|fusion| {
+        fusion.execution_profile_id.as_str() == crate::pure_chain_fusion::NATIVE_U64_CHAIN_PROFILE
+            && fusion.implementation_id.as_str()
+                == crate::pure_chain_fusion::NATIVE_U64_CHAIN_IMPLEMENTATION
+            && fusion.artifact_id.as_str() == crate::pure_chain_fusion::NATIVE_U64_CHAIN_ARTIFACT
+            && fusion.preserved_placements.contains(placement_id)
+    }) {
+        let back =
+            crate::flow_activation::PreparedNativeU64ExpressionBack::from_placement(placement)?;
+        values.prepare_native_u64();
+        return Ok(InstalledBack::NativeU64Expression(back));
+    }
     let factory = factory(&placement.implementation_id).ok_or_else(|| {
         "planned implementation is not installed or lacks sealed State".to_string()
     })?;

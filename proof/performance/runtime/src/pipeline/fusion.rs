@@ -9,10 +9,24 @@ pub(super) fn select(
     fused_work: u64,
     boundaries: &[FusionBoundary],
 ) -> Result<FusionSelection, Box<dyn Error>> {
+    select_profile(authoring, hosts, placements, fused_work, boundaries, false)
+}
+
+pub(super) fn select_profile(
+    authoring: &conduit_plot::ExpandedAuthoringPlot,
+    hosts: &[conduit_core::HostAdvertisement],
+    placements: &PlacementChoices,
+    fused_work: u64,
+    boundaries: &[FusionBoundary],
+    native: bool,
+) -> Result<FusionSelection, Box<dyn Error>> {
     let plot = &authoring.expanded;
     let host = &hosts[0];
-    let (offer, kinds) =
-        conduit_std_host::pure_chain_fusion::pure_chain_fusion_offer(authoring, host)?;
+    let (offer, kinds) = if native {
+        conduit_std_host::pure_chain_fusion::native_u64_chain_fusion_offer(authoring, host)?
+    } else {
+        conduit_std_host::pure_chain_fusion::pure_chain_fusion_offer(authoring, host)?
+    };
     let provenance = |id: &str| ObservationProvenance {
         sign_id: format!("sign/runtime-chain/{id}").into(),
         source: "frozen dispatch work assumptions; runtime counters separately measured".into(),
@@ -44,8 +58,8 @@ pub(super) fn select(
                 provenance: provenance(g.gear_id.as_str()),
             })
             .collect(),
-        // This Back deliberately materializes every Cord. Set removable local
-        // transport savings to zero rather than claiming avoided encoding/copies.
+        // Keep transport cost savings at zero in this conformance fixture.
+        // Native codec avoidance is tested separately; these are not measurements.
         local_cords: plot
             .connections
             .iter()
