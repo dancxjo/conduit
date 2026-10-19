@@ -149,3 +149,6 @@ pub mod parser_punctuation_model;
 
 /// Opaque replay of the existing single-survivor checked revision rebase.
 pub mod parser_rebase_replay;
+
+pub mod analysis_epoch_initialization;
+pub mod analysis_epoch_owner;

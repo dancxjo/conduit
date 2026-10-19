@@ -49,6 +49,7 @@ pub fn install_linguistics_catalogs(
         .chain(crate::lexical_consumer::lexical_consumer_types())
         .chain(crate::parser_types())
         .chain(crate::parser_revision_types())
+        .chain(crate::analysis_epoch_initialization::analysis_epoch_types())
         .chain(crate::discourse::discourse_types())
         .chain(crate::prosody::prosody_types())
         .chain(crate::prosody_commitment::committed_prosody_types())
