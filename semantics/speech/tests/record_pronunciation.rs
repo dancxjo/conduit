@@ -216,7 +216,7 @@ fn only_the_record_target_changes_compact_pcm_not_a_different_prefix() {
         assert_eq!(counts, [800, 800, 800, 1600, 800]);
         let mut render = Renderer::prepare_timed(&events, &counts).unwrap();
         let mut pcm = Vec::new();
-        let mut block = [0i16; 256];
+        let mut block = [0i16; conduit_speech::MAXIMUM_BLOCK_FRAMES];
         while !render.is_complete() {
             let n = render.render(&mut block).unwrap();
             pcm.extend_from_slice(&block[..n]);
