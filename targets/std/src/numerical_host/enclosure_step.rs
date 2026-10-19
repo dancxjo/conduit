@@ -5,7 +5,9 @@ use conduit_kernel::{
     scheduler::{SchedulerError, StepBack, StepInputBytes, StepIo, StepOutcome},
     Failure, FailureCode, PortId,
 };
-pub const ENCLOSURE_WORK: u64 = 100_000_000;
+// The composed root/Pi/scale specimen spends 108,915,008 units. Admit a
+// finite 200M numerical ceiling and bind it into the offered properties/report.
+pub const ENCLOSURE_WORK: u64 = 200_000_000;
 // Composer leaf checks, child views and final record validation have separate
 // existing meters. This conservative ceiling covers all five mathematical fields.
 pub const ENCLOSURE_TOTAL_WORK: u64 = ENCLOSURE_WORK + 32 * MATHEMATICAL_VALUE_VALIDATION_WORK;

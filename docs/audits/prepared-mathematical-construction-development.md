@@ -68,6 +68,7 @@ separately encoded Pi/180 and sqrt(2) operands with zero observed allocations,
 unchanged retained capacity and byte equality with ordinary Core construction.
 Node/work refusals followed by reset and recovery are also guarded.
 
-This prepares reuse for exact symbolic Source arithmetic. The current Source
-arithmetic evaluator still accepts rational operands only; this method does not
-by itself establish that integration, numerical projection, or parent acceptance.
+At this import-only checkpoint, Source arithmetic still accepted rational
+operands only. The subsequent private integration is recorded in
+[symbolic Source arithmetic](symbolic-source-arithmetic-development.md). Import
+alone establishes neither numerical projection nor parent acceptance.

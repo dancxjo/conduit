@@ -73,7 +73,8 @@ pub(super) fn evaluate_node<'a>(
             )?;
             PrimitiveValue::borrowed(expected, &output[..length])?
         }
-        PreparedOperation::RationalBinary {
+        PreparedOperation::MathematicalBinary {
+            writer,
             operator,
             left,
             right,
@@ -81,12 +82,7 @@ pub(super) fn evaluate_node<'a>(
         } => {
             let left = evaluate_node(left, input, input_kind)?;
             let right = evaluate_node(right, input, input_kind)?;
-            let length = crate::mathematical_value::arithmetic(
-                *operator,
-                left.as_slice(),
-                right.as_slice(),
-                output,
-            )?;
+            let length = writer.encode(*operator, left.as_slice(), right.as_slice(), output)?;
             PrimitiveValue::borrowed(expected, &output[..length])?
         }
         PreparedOperation::Equality(equality) => equality.evaluate(input)?,

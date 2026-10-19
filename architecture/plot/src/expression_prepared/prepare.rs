@@ -68,11 +68,12 @@ pub(super) fn prepare_node(
                     | BinaryOperator::Divide
             ) =>
         {
-            PreparedOperation::RationalBinary {
+            PreparedOperation::MathematicalBinary {
+                writer: Box::new(crate::mathematical_value::PreparedArithmetic::new()?),
                 operator: *operator,
                 left: Box::new(prepare_node(left, input_type, prepared_input)?),
                 right: Box::new(prepare_node(right, input_type, prepared_input)?),
-                output: vec![0; conduit_core::EXACT_RATIONAL_MAX_ENCODED_BYTES + 3],
+                output: vec![0; conduit_core::MATHEMATICAL_VALUE_MAX_ENCODED_BYTES],
             }
         }
         PortableExpressionOperation::Binary {

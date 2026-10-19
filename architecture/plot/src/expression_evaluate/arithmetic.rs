@@ -73,7 +73,7 @@ pub(super) fn binary(
         .encode()
         .to_vec()
     } else if leaf_kind(&left.value_type)? == conduit_core::MATHEMATICAL_VALUE_ID {
-        let mut output = vec![0; conduit_core::EXACT_RATIONAL_MAX_ENCODED_BYTES + 3];
+        let mut output = vec![0; conduit_core::MATHEMATICAL_VALUE_MAX_ENCODED_BYTES];
         let length = crate::mathematical_value::arithmetic(
             operator,
             &primitive_bytes(&left)?,

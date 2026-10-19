@@ -135,7 +135,8 @@ enum PreparedOperation {
         right: Box<PreparedNode>,
         output: Vec<u8>,
     },
-    RationalBinary {
+    MathematicalBinary {
+        writer: Box<crate::mathematical_value::PreparedArithmetic>,
         operator: BinaryOperator,
         left: Box<PreparedNode>,
         right: Box<PreparedNode>,

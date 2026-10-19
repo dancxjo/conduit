@@ -115,3 +115,22 @@ symbolic Quantity wire, separate Unit-coordinate projection, approximate-input
 composition, physical fusion, DSP/ML acceptance, or throughput claim here. The
 full #5392 acceptance corpus and exact-source integration/publication gates remain
 open. No second numerical implementation PR is opened while #6005 is in flight.
+
+
+## Private composed-input work continuation
+
+The original input-profile/cost captures above used a 100-million numerical
+work ceiling. A nine-node Source-authored `((sqrt(2) + pi/180) * 3) / 2`
+consumer spends 108915008 metered units at the same 1e-17 maximum width.
+The former 100-million grant correctly refuses. The private Std profile now
+admits 200 million numerical units plus the existing 640-million validation
+allowance, with the resulting 840-million total bound sealed in offer facts
+and independently recomputed by the factory. Report identity binds the admitted
+numerical ceiling too. No execution may silently overrun the old grant.
+
+A guarded Core test retains the smaller-grant refusal, then succeeds under
+the larger finite ceiling with zero allocations and a nonzero width below the
+same requested tolerance. Independent decimal brackets enclose its endpoints.
+This specimen does not prove every admitted graph succeeds, a WCET, or a new
+throughput claim. Earlier source-pinned 100-million cost captures remain
+historical and unchanged.

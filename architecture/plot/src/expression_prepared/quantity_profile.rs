@@ -157,14 +157,19 @@ impl super::PreparedPortableExpressionEvaluator {
                     right,
                     output,
                     ..
-                }
-                | Op::RationalBinary {
+                } => output
+                    .capacity()
+                    .checked_add(child(left)?)?
+                    .checked_add(child(right)?)?,
+                Op::MathematicalBinary {
                     left,
                     right,
+                    writer,
                     output,
                     ..
                 } => output
                     .capacity()
+                    .checked_add(writer.retained_payload_bytes())?
                     .checked_add(child(left)?)?
                     .checked_add(child(right)?)?,
                 Op::Conditional {

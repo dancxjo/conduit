@@ -253,12 +253,11 @@ fn checked_source_preserves_large_integers_and_exact_thirds() {
 }
 
 #[test]
-fn exact_arithmetic_refuses_zero_division_extent_overflow_and_symbolic_operands() {
+fn exact_arithmetic_refuses_zero_division_and_extent_overflow() {
     use conduit_plot::PortableExpressionEvaluationRefusal as R;
     for (expression, literal) in [
         (". / 0", "1".to_owned()),
         (". * .", format!("1{}", "0".repeat(1000))),
-        (". + .", "π".to_owned()),
     ] {
         let source = format!("plot refuse (\n >> input: MathematicalValue\n output: MathematicalValue >>\n) = ({expression})\n");
         let syntax = parse_syntax_document(&source);
