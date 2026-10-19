@@ -73,22 +73,17 @@ fn altered_or_extra_cached_content_is_refused_before_any_compiler_execution() {
         .contains("content changed"));
 }
 #[test]
-fn installation_versions_are_package_versions_and_wrong_or_duplicate_entries_refuse() {
-    let valid = serde_json::json!({"platforms": [
-        {"id":"arduino:avr","installed_version":ARDUINO_AVR_VERSION},
-        {"id":"SparkFun:avr","installed_version":SPARKFUN_AVR_VERSION}
-    ]});
-    verify_versions(&valid).unwrap();
-    let mut wrong = valid.clone();
-    wrong["platforms"][1]["installed_version"] = "1.6.19".into();
-    assert!(verify_versions(&wrong).is_err());
-    let mut duplicate = valid.clone();
-    duplicate["platforms"]
-        .as_array_mut()
-        .unwrap()
-        .push(valid["platforms"][0].clone());
-    assert!(verify_versions(&duplicate).is_err());
-    assert!(verify_versions(&serde_json::json!({"platforms":[]})).is_err());
+fn old_trust_mode_and_changed_archive_provenance_refuse() {
+    let f = Fixture::new();
+    let mut receipt = snapshot(&f.0).unwrap();
+    receipt.schema = "conduit.avr-core-installation/v1".into();
+    fs::write(f.0.join(RECEIPT), serde_json::to_vec(&receipt).unwrap()).unwrap();
+    assert!(verify(&f.0).is_err());
+    receipt = snapshot(&f.0).unwrap();
+    let identity = receipt.archives.values_mut().next().unwrap();
+    identity.push_str("changed");
+    fs::write(f.0.join(RECEIPT), serde_json::to_vec(&receipt).unwrap()).unwrap();
+    assert!(verify(&f.0).is_err());
 }
 #[test]
 fn forged_receipt_version_or_missing_core_refuses() {

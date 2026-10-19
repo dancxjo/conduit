@@ -403,6 +403,8 @@ test("malformed packaged Handbook Plot leaves an editable recovery route into a 
 });
 
 test("Handbook checker spans identify edited source without replacing the active Play", async ({}, testInfo) => {
+  // Cold Body preparation has its own finite allowance before checker interactions.
+  testInfo.setTimeout(20_000 + BROWSER_COLD_PREPARATION_MS);
   const site = await stageStaticApplications();
   const session = await openStaticProfile(testInfo.outputPath("checker-span-profile"), new URL(site.url).origin);
   try {

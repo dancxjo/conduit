@@ -5,6 +5,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { chromium } from "@playwright/test";
 import { startStaticProduct } from "./static-product-server.mjs";
+import { BROWSER_COLD_PREPARATION_MS } from "./browser-preparation.mjs";
 
 const [siteRoot, reportRoot] = process.argv.slice(2);
 assert(siteRoot && reportRoot && process.argv.length === 4,
@@ -89,7 +90,9 @@ try {
         assert.equal(await page.getByRole("main").count(), 1, "Workspace main landmark");
       }
       if (["handbook", "start-here"].includes(id)) {
-        await page.waitForFunction(() => Boolean(globalThis.__conduitApplication));
+        await page.waitForFunction(() => Boolean(globalThis.__conduitApplication), null, {
+          timeout: BROWSER_COLD_PREPARATION_MS,
+        });
         const truth = await page.evaluate(() => globalThis.__conduitApplication.snapshot());
         for (const identity of ["hostId", "bootId", "bodyId", "planId", "playId"]) assert(truth[identity], `${id}: missing live ${identity}`);
       }

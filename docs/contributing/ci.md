@@ -102,7 +102,13 @@ Each lane resolves one package set and checks installed tools before acquiring
 anything. Linux lanes use one apt transaction; browser dependencies come from
 the pinned Playwright package. Pico radio assets are already versioned source
 and are verified without downloading them again. AVR checks its retained core
-and compiler identities before repeating setup. Cargo-installed tools and ESP
+and compiler identities before repeating setup. Fresh AVR setup installs the
+five exact core/tool archives from reviewed official HTTPS URLs and SHA256 pins,
+without consulting a mutable package index. Its versioned content receipt binds
+those archive identities and the entire installed tree. This archive-pin trust
+mode does not claim Arduino package-index signature verification; no CLI
+signature check is disabled. An existing unreceipted package tree is preserved
+and refused instead of silently adopted. Cargo-installed tools and ESP
 compilers retain their exact version and content checks on cache restoration.
 The AVR check and Pico doctor use the dependency-light xtask dispatcher and
 the same target-owned verification modules as the full tooling, so acquiring
