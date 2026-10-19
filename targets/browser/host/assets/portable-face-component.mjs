@@ -26,20 +26,22 @@ export function registerPortableFaceComponent({ render, styleText }) {
       this.#controller?.retire();
       this.#encounter = encounter;
       this.#disconnected = callbacks.disconnected;
-      this.#controller = render(this.#root, encounter, { ...callbacks, enhanced: true });
+      this.#controller = render(this.#root, encounter, { ...callbacks, enhanced: true, inspectSurface: () => this.#inspectBounds() });
       return this.#controller;
     }
     activate(encounter) { this.#controller?.activate(encounter); }
-    inspect() {
-      const receipt = this.#controller?.inspect();
+    inspect() { return this.#controller?.inspect(); }
+    #inspectBounds() {
+      const nodes = this.shadowRoot.querySelectorAll('*');
+      if (nodes.length > PORTABLE_FACE_COMPONENT.maximum_nodes) throw new Error('Component node capacity');
       let depth = 0;
-      for (const node of this.shadowRoot.querySelectorAll('*')) {
+      for (const node of nodes) {
         let current = node, value = 0;
         while (current && current !== this.shadowRoot) { value += 1; current = current.parentNode; }
         depth = Math.max(depth, value);
       }
       if (depth > PORTABLE_FACE_COMPONENT.maximum_depth) throw new Error('Component depth capacity');
-      return { ...receipt, depth };
+      return { nodes: nodes.length, depth };
     }
     retire() { this.#controller?.retire(); }
     disconnectedCallback() {

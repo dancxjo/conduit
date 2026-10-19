@@ -7,7 +7,7 @@ let surfaceSequence = 0;
 
 // One browser Back's DOM preparation over original Face references. Input drafts
 // and popup navigation stay local; the trusted Host owns Show and submission.
-export function renderPortableFace(root, encounter, { enhanced = false, submit, onRefusal = () => {} } = {}) {
+export function renderPortableFace(root, encounter, { enhanced = false, submit, onRefusal = () => {}, inspectSurface = () => ({}) } = {}) {
   const model = portableFaceModel(encounter);
   if (typeof submit !== 'function' || ++surfaceSequence > 0xffff_ffff) throw new Error('Portable Face Host binding is absent');
   const prefix = `conduit-controls-${surfaceSequence}`;
@@ -189,7 +189,7 @@ export function renderPortableFace(root, encounter, { enhanced = false, submit, 
           || (active && !control.disabled && !faceControlReachable(control));
       })) throw new Error('A required source control is inaccessible');
       if (article.querySelectorAll('*').length > 2048) throw new Error('Component node capacity');
-      return { controls: required.length, nodes: article.querySelectorAll('*').length };
+      return { controls: required.length, nodes: article.querySelectorAll('*').length, ...inspectSurface() };
     }
   return {
     activate(current) {
