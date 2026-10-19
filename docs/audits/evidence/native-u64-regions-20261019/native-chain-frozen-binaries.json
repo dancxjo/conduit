@@ -1,0 +1,14 @@
+[
+  {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-18/goal-optimize-performance-referenced-pasted-text/work/native-chain-worker",
+    "bytes": 23374024,
+    "sha256": "effea49dc5ac0d3f08225bd464d8dc55fe7eb1a0fc7e6499f5ed1b56e75606ca",
+    "source": "5feaf16031ed29368f9f348b5cbf13c41b5651d2"
+  },
+  {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-18/goal-optimize-performance-referenced-pasted-text/work/native-chain-conformance-tests",
+    "bytes": 24063952,
+    "sha256": "fe02fbf64eb1f72e51d7201d56408b3fa08000bd621acc4c9ede54bcb516e068",
+    "source": "5feaf16031ed29368f9f348b5cbf13c41b5651d2"
+  }
+]

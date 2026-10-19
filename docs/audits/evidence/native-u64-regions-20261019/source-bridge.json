@@ -1,0 +1,239 @@
+{
+  "measured_source": "5feaf16031ed29368f9f348b5cbf13c41b5651d2",
+  "review_product_source": "e126eb9ed5025784e47f4d0435ca8532d9739726",
+  "base": "d231024bb7cf41fad7f2cde8b18cca67a536c038",
+  "identical_native_owned_files": [
+    {
+      "path": "architecture/kernel/src/debug_observation.rs",
+      "measured_sha256": "e8fd9a18344fb82c80635b1bbe6c4c4e52d4af88e7b7ee8551b18ab97589cac0",
+      "review_sha256": "e8fd9a18344fb82c80635b1bbe6c4c4e52d4af88e7b7ee8551b18ab97589cac0"
+    },
+    {
+      "path": "architecture/kernel/src/debug_observation/control.rs",
+      "measured_sha256": "b289df4e3e38f8fae99b1c44094fc7d9343217480823ffd047888aa60fcd7741",
+      "review_sha256": "b289df4e3e38f8fae99b1c44094fc7d9343217480823ffd047888aa60fcd7741"
+    },
+    {
+      "path": "architecture/kernel/src/debug_observation/sink.rs",
+      "measured_sha256": "a437059aa2c68d92e89f3a2972344fc2e1f4127eb1548a4aef70acb18fb35df3",
+      "review_sha256": "a437059aa2c68d92e89f3a2972344fc2e1f4127eb1548a4aef70acb18fb35df3"
+    },
+    {
+      "path": "architecture/kernel/src/hosted.rs",
+      "measured_sha256": "82f8aad20eae94f93065b4fa52a41fbb84bef5822de46f4e368d1384c5516c67",
+      "review_sha256": "82f8aad20eae94f93065b4fa52a41fbb84bef5822de46f4e368d1384c5516c67"
+    },
+    {
+      "path": "architecture/kernel/src/hosted/native_values.rs",
+      "measured_sha256": "28ef333bd995d0633f9390eca4af5dca31d0eee1c59750f8f3a2ce5be96d47be",
+      "review_sha256": "28ef333bd995d0633f9390eca4af5dca31d0eee1c59750f8f3a2ce5be96d47be"
+    },
+    {
+      "path": "architecture/kernel/src/hosted/native_values/tests.rs",
+      "measured_sha256": "ebb4577b73a0271e7b08d4c2ed86c3db02f4e09da6bfb36fc95626459ccddb3b",
+      "review_sha256": "ebb4577b73a0271e7b08d4c2ed86c3db02f4e09da6bfb36fc95626459ccddb3b"
+    },
+    {
+      "path": "architecture/kernel/src/hosted/value_admission.rs",
+      "measured_sha256": "bed8d7bd05cf42a75114d6d44c67155e9ae3fdf176ada7166bd7019cc0a6b327",
+      "review_sha256": "bed8d7bd05cf42a75114d6d44c67155e9ae3fdf176ada7166bd7019cc0a6b327"
+    },
+    {
+      "path": "architecture/kernel/src/lib.rs",
+      "measured_sha256": "af10ae0ab6c0c5025c1488688d4d667e0f6922d1b1b05f4daaa191d40680df0b",
+      "review_sha256": "af10ae0ab6c0c5025c1488688d4d667e0f6922d1b1b05f4daaa191d40680df0b"
+    },
+    {
+      "path": "architecture/kernel/src/native_value_store.rs",
+      "measured_sha256": "9d77d5342bd1bf6dea8c9b988acb1a830a5226248bdfa8ec03f5fe35284b83f5",
+      "review_sha256": "9d77d5342bd1bf6dea8c9b988acb1a830a5226248bdfa8ec03f5fe35284b83f5"
+    },
+    {
+      "path": "architecture/kernel/src/native_value_store/tests.rs",
+      "measured_sha256": "ea70388cc70524ee419dfbf360d2bc2b7ae4ec77fee9091039e640a00a60ad95",
+      "review_sha256": "ea70388cc70524ee419dfbf360d2bc2b7ae4ec77fee9091039e640a00a60ad95"
+    },
+    {
+      "path": "architecture/kernel/src/scheduler/boxed_preparation.rs",
+      "measured_sha256": "8d41fd359feae7680999767fb29572a6eccaee833d82791b4f683a65ba821d44",
+      "review_sha256": "8d41fd359feae7680999767fb29572a6eccaee833d82791b4f683a65ba821d44"
+    },
+    {
+      "path": "architecture/kernel/src/scheduler/debug_control.rs",
+      "measured_sha256": "13ef399158f03651bc0d910664b85ad3a214a245a19c835323a07e6dd47b41af",
+      "review_sha256": "13ef399158f03651bc0d910664b85ad3a214a245a19c835323a07e6dd47b41af"
+    },
+    {
+      "path": "architecture/kernel/src/scheduler/execution_region.rs",
+      "measured_sha256": "dc186e0bb316d7badf06bf4c73584098c65a9d4f24f77590f27210d1180f3a15",
+      "review_sha256": "dc186e0bb316d7badf06bf4c73584098c65a9d4f24f77590f27210d1180f3a15"
+    },
+    {
+      "path": "architecture/kernel/src/scheduler/generated_value.rs",
+      "measured_sha256": "64ca000403bf5fc774f89909d39537e01bfd49085fae61a595acecf1918449ec",
+      "review_sha256": "64ca000403bf5fc774f89909d39537e01bfd49085fae61a595acecf1918449ec"
+    },
+    {
+      "path": "architecture/kernel/src/scheduler/native_region.rs",
+      "measured_sha256": "610b0118a5da1f595203d3504a5bfdaa526bcaf3deae96c7364dc3a6e77bc897",
+      "review_sha256": "610b0118a5da1f595203d3504a5bfdaa526bcaf3deae96c7364dc3a6e77bc897"
+    },
+    {
+      "path": "architecture/kernel/src/scheduler/payload_admission.rs",
+      "measured_sha256": "7e041b708b77ca7626df689b5d6902eed905563236f5438ebfbccde5568309e1",
+      "review_sha256": "7e041b708b77ca7626df689b5d6902eed905563236f5438ebfbccde5568309e1"
+    },
+    {
+      "path": "architecture/kernel/src/scheduler/test_support.rs",
+      "measured_sha256": "853749fc58c7cd772b336383e2c0a3abe8291c60293e1b50a3cc57f00c31ab02",
+      "review_sha256": "853749fc58c7cd772b336383e2c0a3abe8291c60293e1b50a3cc57f00c31ab02"
+    },
+    {
+      "path": "architecture/kernel/tests/hosted_native_values.rs",
+      "measured_sha256": "7ae6c29d68d69f0e8a1af7c1b700b8a48964d598b7a58b9ab18847d7a931be5c",
+      "review_sha256": "7ae6c29d68d69f0e8a1af7c1b700b8a48964d598b7a58b9ab18847d7a931be5c"
+    },
+    {
+      "path": "architecture/kernel/tests/native_region.rs",
+      "measured_sha256": "5d59a1941ee42d23ca5c9893f409c360a06b82d33eb33e8275d2f44ad4c0667e",
+      "review_sha256": "5d59a1941ee42d23ca5c9893f409c360a06b82d33eb33e8275d2f44ad4c0667e"
+    },
+    {
+      "path": "architecture/kernel/tests/native_region/fixture.rs",
+      "measured_sha256": "f32165b5a1e282baa87476858ff56f87073a042fd5439d319aa7eea2a704b19c",
+      "review_sha256": "f32165b5a1e282baa87476858ff56f87073a042fd5439d319aa7eea2a704b19c"
+    },
+    {
+      "path": "architecture/plot/src/expression_prepared.rs",
+      "measured_sha256": "de72567afd5359249b1f67b74092d7f8b66d28bb034a94cfc033f5d9d08d921a",
+      "review_sha256": "de72567afd5359249b1f67b74092d7f8b66d28bb034a94cfc033f5d9d08d921a"
+    },
+    {
+      "path": "architecture/plot/src/expression_prepared/native_u64.rs",
+      "measured_sha256": "2b83d5cac9ae71f945917446da07912267bc02cf8b6d4c7406ae4d27fe0cffc1",
+      "review_sha256": "2b83d5cac9ae71f945917446da07912267bc02cf8b6d4c7406ae4d27fe0cffc1"
+    },
+    {
+      "path": "architecture/plot/tests/native_u64_expression.rs",
+      "measured_sha256": "8d1b919b34bcb0961304a78ccaee903d12731ceaae96dbc474de96030318f9eb",
+      "review_sha256": "8d1b919b34bcb0961304a78ccaee903d12731ceaae96dbc474de96030318f9eb"
+    },
+    {
+      "path": "proof/performance/runtime/src/artifact.rs",
+      "measured_sha256": "d542089bc80c94cd62d9e93dd1bae816686be0494d583e26590b08d82a3c87b6",
+      "review_sha256": "d542089bc80c94cd62d9e93dd1bae816686be0494d583e26590b08d82a3c87b6"
+    },
+    {
+      "path": "proof/performance/runtime/src/main.rs",
+      "measured_sha256": "df28dfec2890620c1d17c649f33c74926e8c3e6d8e700db331f12dd73467e7f9",
+      "review_sha256": "df28dfec2890620c1d17c649f33c74926e8c3e6d8e700db331f12dd73467e7f9"
+    },
+    {
+      "path": "proof/performance/runtime/src/pipeline.rs",
+      "measured_sha256": "7ee3688730575c9be4ac75e6852ef0487f2448cd98b840813c9713320d5ba87a",
+      "review_sha256": "7ee3688730575c9be4ac75e6852ef0487f2448cd98b840813c9713320d5ba87a"
+    },
+    {
+      "path": "proof/performance/runtime/src/pipeline/fusion.rs",
+      "measured_sha256": "344070b0021716da833c9b13e06ff4db2ff544f435994bb3b3692d7d6a5029be",
+      "review_sha256": "344070b0021716da833c9b13e06ff4db2ff544f435994bb3b3692d7d6a5029be"
+    },
+    {
+      "path": "proof/performance/runtime/src/pipeline/fusion_measurement.rs",
+      "measured_sha256": "f980f92f8278d4641ff99d50f041bdeaa0a017ea4dc808c2b055bf17d161fd1d",
+      "review_sha256": "f980f92f8278d4641ff99d50f041bdeaa0a017ea4dc808c2b055bf17d161fd1d"
+    },
+    {
+      "path": "proof/performance/runtime/src/pipeline/phase_observation.rs",
+      "measured_sha256": "bef2a15f37e5c82e86bb5e0e19aba67417dbc85a8201f28b1ce9078276edd550",
+      "review_sha256": "bef2a15f37e5c82e86bb5e0e19aba67417dbc85a8201f28b1ce9078276edd550"
+    },
+    {
+      "path": "proof/performance/runtime/src/pipeline/preparation.rs",
+      "measured_sha256": "ab21eff6adac52376821ee44a7d0f55c1051195abeb8648ad7efb007056b59ed",
+      "review_sha256": "ab21eff6adac52376821ee44a7d0f55c1051195abeb8648ad7efb007056b59ed"
+    },
+    {
+      "path": "targets/std/src/flow_activation.rs",
+      "measured_sha256": "a7fda50e5c9fc2fe52b83f24869f9ec687b74d6ab7a143d4cbdde6c846efabdf",
+      "review_sha256": "a7fda50e5c9fc2fe52b83f24869f9ec687b74d6ab7a143d4cbdde6c846efabdf"
+    },
+    {
+      "path": "targets/std/src/flow_activation/local_expression.rs",
+      "measured_sha256": "66d8d8a78f742f5b37860de497a56db8aa1d5b45d624b283d34958b0374f8625",
+      "review_sha256": "66d8d8a78f742f5b37860de497a56db8aa1d5b45d624b283d34958b0374f8625"
+    },
+    {
+      "path": "targets/std/src/flow_activation/native_u64_expression.rs",
+      "measured_sha256": "ed88362a8eaf2875c2909efebc1c56f785735ee1e3e581ab3fa4160d8b7e76e5",
+      "review_sha256": "ed88362a8eaf2875c2909efebc1c56f785735ee1e3e581ab3fa4160d8b7e76e5"
+    },
+    {
+      "path": "targets/std/src/installed_std/back_capacity.rs",
+      "measured_sha256": "ef896f59b13d32c726a8d9f78f679a57018ae7722e2b9c5d532df7f18c26fbef",
+      "review_sha256": "ef896f59b13d32c726a8d9f78f679a57018ae7722e2b9c5d532df7f18c26fbef"
+    },
+    {
+      "path": "targets/std/src/installed_std/back_kind.rs",
+      "measured_sha256": "453148e04456c30f5b7ba4ab938dd4ef4c16f9b1dd1232d44a8fda4cf2e9ec57",
+      "review_sha256": "453148e04456c30f5b7ba4ab938dd4ef4c16f9b1dd1232d44a8fda4cf2e9ec57"
+    },
+    {
+      "path": "targets/std/src/installed_std/back_step.rs",
+      "measured_sha256": "db0911c139dc293f7b3c34f0d24bb84fa4c49407efb3dc8d7e68fb46251596cf",
+      "review_sha256": "db0911c139dc293f7b3c34f0d24bb84fa4c49407efb3dc8d7e68fb46251596cf"
+    },
+    {
+      "path": "targets/std/src/installed_std/body_kernel.rs",
+      "measured_sha256": "2bca77b9e8dcb9f5395bdebcf1d22652c9aa29b826097b8f549a7127c33f6721",
+      "review_sha256": "2bca77b9e8dcb9f5395bdebcf1d22652c9aa29b826097b8f549a7127c33f6721"
+    },
+    {
+      "path": "targets/std/src/installed_std/fusion.rs",
+      "measured_sha256": "653f5f20554a0555dbf11eb4583e53a5c563d979c0af7a5bea0d1cc52abe8ea3",
+      "review_sha256": "653f5f20554a0555dbf11eb4583e53a5c563d979c0af7a5bea0d1cc52abe8ea3"
+    },
+    {
+      "path": "targets/std/src/installed_std/kernel_preparation.rs",
+      "measured_sha256": "6fe99a7b7fc8cb3b2717dfbd8308d55d2f7110cda59ecb33d47be9c13b1917c1",
+      "review_sha256": "6fe99a7b7fc8cb3b2717dfbd8308d55d2f7110cda59ecb33d47be9c13b1917c1"
+    },
+    {
+      "path": "targets/std/src/installed_std/preparation.rs",
+      "measured_sha256": "141100fa06364ad9db61f209abad1e4e4d317f93b87d30c435dcbcb841a7aa03",
+      "review_sha256": "141100fa06364ad9db61f209abad1e4e4d317f93b87d30c435dcbcb841a7aa03"
+    },
+    {
+      "path": "targets/std/src/installed_std/remote_fragment_kernel.rs",
+      "measured_sha256": "9d1fea1c62ca76433c2e17026d07ed7346a9fb191eb3ea949ee1d64364a79d2f",
+      "review_sha256": "9d1fea1c62ca76433c2e17026d07ed7346a9fb191eb3ea949ee1d64364a79d2f"
+    },
+    {
+      "path": "targets/std/src/pure_chain_fusion.rs",
+      "measured_sha256": "f0bbf8f096a7a8445fd366168a47312148d2dd3feab46b3e8a1b921d6a21fd9c",
+      "review_sha256": "f0bbf8f096a7a8445fd366168a47312148d2dd3feab46b3e8a1b921d6a21fd9c"
+    }
+  ],
+  "different_native_owned_files": [
+    {
+      "path": "architecture/kernel/src/scheduler.rs",
+      "measured_sha256": "8455ac7bb0d7e5b6b45c1d8ee40f2e3ee692f02afc4a7ad2716aa921729b0d47",
+      "review_sha256": "4a1e5933bb569a5fa5b96b2d20e34ea4faaddb06f76696043e3a4eed51e0ade9",
+      "diff": "diff --git a/architecture/kernel/src/scheduler.rs b/architecture/kernel/src/scheduler.rs\nindex 724cdc474..c02f7d372 100644\n--- a/architecture/kernel/src/scheduler.rs\n+++ b/architecture/kernel/src/scheduler.rs\n@@ -37,8 +37,6 @@ mod queue_index;\n mod quiescence;\n use queue_index::queue_slot;\n mod payload_admission;\n-#[cfg(feature = \"alloc\")]\n-pub mod prepared_session;\n #[cfg(feature = \"linear-ready-reference-test\")]\n mod ready_reference;\n mod ready_set;\n"
+    },
+    {
+      "path": "proof/performance/runtime/src/pipeline/tests.rs",
+      "measured_sha256": "d7715a781792cd67babceb23e12edcbfa78f7f576fbff4590b9b7efc5a9a1a36",
+      "review_sha256": "2c55debfa0020fd168a68a6571f7e8ceee66e4ac65549b57170ead2abba8774d",
+      "diff": "diff --git a/proof/performance/runtime/src/pipeline/tests.rs b/proof/performance/runtime/src/pipeline/tests.rs\nindex cb6a3e22b..a2405a4c8 100644\n--- a/proof/performance/runtime/src/pipeline/tests.rs\n+++ b/proof/performance/runtime/src/pipeline/tests.rs\n@@ -74,8 +74,24 @@ fn ordinary_checked_pipelines_keep_equal_work_and_exact_boot_custody() -> Result\n         for alteration in 0..4 {\n             let mut changed = collector.values.clone();\n             match alteration {\n-                0 => changed[0].value_kind = conduit_core::kind_id(\"value/i64\"),\n-                1 => changed[0].front_port_id = \"foreign-output\".into(),\n+                0 | 1 => {\n+                    let original = &changed[0];\n+                    changed[0] = ExternalForeDelivery::new(\n+                        if alteration == 1 {\n+                            \"foreign-output\".into()\n+                        } else {\n+                            original.front_port_id.clone()\n+                        },\n+                        original.track,\n+                        if alteration == 0 {\n+                            conduit_core::kind_id(\"value/i64\")\n+                        } else {\n+                            original.value_kind.clone()\n+                        },\n+                        original.sequence,\n+                        original.bytes.clone(),\n+                    );\n+                }\n                 2 => changed[0].sequence = 1,\n                 _ => changed.swap(0, 1),\n             }\n"
+    },
+    {
+      "path": "tools/xtask/src/commands/runtime_performance.rs",
+      "measured_sha256": "24f2eb6a264b74aeb3d1f5072674efcd079a4ea297ee905b1b32212c5cb53d2a",
+      "review_sha256": "cf74603b3448ead32d7278161aa403d43d9026cdf6e882f48576544c54bb5056",
+      "diff": "diff --git a/tools/xtask/src/commands/runtime_performance.rs b/tools/xtask/src/commands/runtime_performance.rs\nindex 81bc83e7f..4eac47f12 100644\n--- a/tools/xtask/src/commands/runtime_performance.rs\n+++ b/tools/xtask/src/commands/runtime_performance.rs\n@@ -24,7 +24,7 @@ fn git(root: &Path, arguments: &[&str]) -> Result<String, Box<dyn std::error::Er\n \n pub fn run(arguments: &[String], dry_run: bool) -> Result<(), Box<dyn std::error::Error>> {\n     if arguments == [\"--help\"] {\n-        println!(\"cargo xtask prove runtime-performance [--output PATH] [--values N] [--repetitions N] [--decisions N] [--samples N] [--hosted-pipeline true|false]\\nRetains release measurements from committed, clean source. Output must be new and outside tracked source (default target/runtime-performance). FARGAN: --fargan-fixture PATH [--output PATH] [--repetitions 2..20] [--fargan-owners fresh|prepared] uses a private pinned model and oracle; no automatic download.\\nHosted pipeline includes matched unfused, canonical-fused and native-U64 chain trials with bounded retained Sign history. Finite defaults: 1000000 values, 5 repetitions, 10000 decisions, 2000 samples.\");\n+        println!(\"cargo xtask prove runtime-performance [--output PATH] [--values N] [--repetitions N] [--decisions N] [--samples N] [--hosted-pipeline true|false]\\nRetains release measurements from committed, clean source. Output must be new and outside tracked source (default target/runtime-performance). FARGAN: --fargan-fixture PATH [--output PATH] [--repetitions 2..20] uses a private pinned model and oracle; no automatic download.\\nHosted pipeline includes matched unfused, canonical-fused and native-U64 chain trials with bounded retained Sign history. Finite defaults: 1000000 values, 5 repetitions, 10000 decisions, 2000 samples.\");\n         return Ok(());\n     }\n     if arguments.iter().any(|a| a == \"--fargan-fixture\") {\n"
+    }
+  ],
+  "dependency": "The five-line alloc debug-state predicate is copied unchanged from held session commit3a4796e22; no session API is included.",
+  "measurement_scope": "Timings stay attributed to5fe. Current-dev shared-delivery implementation and absent unused session ancestry require refreshed validation; no new timing equivalence claim."
+}

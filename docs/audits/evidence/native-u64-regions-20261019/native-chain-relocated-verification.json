@@ -1,0 +1,46 @@
+{
+  "source": "5feaf16031ed29368f9f348b5cbf13c41b5651d2",
+  "all_archive_member_hashes_verified": true,
+  "accepted_captures": [
+    {
+      "source": "5feaf16031ed29368f9f348b5cbf13c41b5651d2",
+      "capture": "/home/dancxjo/Documents/Codex/2026-10-18/goal-optimize-performance-referenced-pasted-text/work/native-chain-relocated-211gnk7p/native-chain-public",
+      "verified_profile_rows": 24,
+      "native_canonical_pairs": 6,
+      "retained_fused_sign_records_compared": 2220,
+      "scope": "all recorded retained Signs; bounded history, not a lifetime transient trace",
+      "verified_artifacts": 287
+    },
+    {
+      "source": "5feaf16031ed29368f9f348b5cbf13c41b5651d2",
+      "capture": "/home/dancxjo/Documents/Codex/2026-10-18/goal-optimize-performance-referenced-pasted-text/work/native-chain-relocated-211gnk7p/native-chain-final-1",
+      "verified_profile_rows": 24,
+      "native_canonical_pairs": 6,
+      "retained_fused_sign_records_compared": 2220,
+      "scope": "all recorded retained Signs; bounded history, not a lifetime transient trace",
+      "verified_artifacts": 284
+    },
+    {
+      "source": "5feaf16031ed29368f9f348b5cbf13c41b5651d2",
+      "capture": "/home/dancxjo/Documents/Codex/2026-10-18/goal-optimize-performance-referenced-pasted-text/work/native-chain-relocated-211gnk7p/native-chain-final-2",
+      "verified_profile_rows": 24,
+      "native_canonical_pairs": 6,
+      "retained_fused_sign_records_compared": 2220,
+      "scope": "all recorded retained Signs; bounded history, not a lifetime transient trace",
+      "verified_artifacts": 284
+    },
+    {
+      "source": "5feaf16031ed29368f9f348b5cbf13c41b5651d2",
+      "capture": "/home/dancxjo/Documents/Codex/2026-10-18/goal-optimize-performance-referenced-pasted-text/work/native-chain-relocated-211gnk7p/native-chain-final-3",
+      "verified_profile_rows": 24,
+      "native_canonical_pairs": 6,
+      "retained_fused_sign_records_compared": 2220,
+      "scope": "all recorded retained Signs; bounded history, not a lifetime transient trace",
+      "verified_artifacts": 284
+    }
+  ],
+  "excluded_roles_preserved": [
+    "correctness-only-timing-excluded",
+    "rejected-filesystem-exhaustion"
+  ]
+}

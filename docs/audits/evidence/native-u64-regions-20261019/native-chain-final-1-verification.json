@@ -1,0 +1,9 @@
+{
+  "source": "5feaf16031ed29368f9f348b5cbf13c41b5651d2",
+  "capture": "work/native-chain-final-1",
+  "verified_profile_rows": 24,
+  "native_canonical_pairs": 6,
+  "retained_fused_sign_records_compared": 2220,
+  "scope": "all recorded retained Signs; bounded history, not a lifetime transient trace",
+  "verified_artifacts": 284
+}

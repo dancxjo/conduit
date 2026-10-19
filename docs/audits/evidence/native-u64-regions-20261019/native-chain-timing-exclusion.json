@@ -1,0 +1,34 @@
+{
+  "time_utc": "2026-10-19T10:15:57.744927+00:00",
+  "reason": "Proactive disk reclamation during initial replay group; exclude the whole preliminary group from timing claims, retain correctness evidence.",
+  "preliminary_captures": [
+    "native-chain-replay-1",
+    "native-chain-replay-2",
+    "native-chain-replay-3"
+  ],
+  "timing_action": "Collect three fresh CPU4 processes after cleanup with prefix native-chain-confirmation.",
+  "preserved": [
+    "frozen worker",
+    "optimized conformance executable",
+    "supported public capture and source custody",
+    "all raw captures and logs"
+  ],
+  "removed": "inactive owned release build cache; no active process executes from that cache",
+  "failed_confirmation_group": {
+    "captures": [
+      "native-chain-confirmation-1"
+    ],
+    "wrapper_exit_code": 120,
+    "worker_error": "No space left on device (os error 28)",
+    "completion_receipt_bytes": 0,
+    "accepted": false
+  },
+  "accepted_timing_group_planned": [
+    "native-chain-final-1",
+    "native-chain-final-2",
+    "native-chain-final-3"
+  ],
+  "headroom_before_final_group": "7.5 GiB",
+  "decision_before_inspecting_timing_ratios": true,
+  "updated_utc": "2026-10-19T10:27:52.111857+00:00"
+}
