@@ -29,3 +29,15 @@ test('pointer publication refuses missing target geometry in the transcript', ()
   const { receipt, serial } = pointerFixture();
   assert.throws(() => validateNativePointerReceipt(receipt, serial.replace('"width":200', '"width":null')), /pointer receipt differs/);
 });
+
+test('held motion must reach the refreshed control even when custody is otherwise intact', () => {
+  const { receipt, serial } = pointerFixture();
+  const changed = serial.split('\n').map(line => {
+    if (!line.startsWith('CONDUIT_NATIVE_POINTER ')) return line;
+    const sample = JSON.parse(line.slice('CONDUIT_NATIVE_POINTER '.length));
+    if (sample.sequence === 2) sample.display_y = 156;
+    return 'CONDUIT_NATIVE_POINTER ' + JSON.stringify(sample);
+  }).join('\n');
+  receipt.held_motion_after_fresh_show.display_y = 156;
+  assert.throws(() => validateNativePointerReceipt(receipt, changed), /pointer receipt differs/);
+});

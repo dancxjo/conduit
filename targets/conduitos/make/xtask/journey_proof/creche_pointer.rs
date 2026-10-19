@@ -35,7 +35,7 @@ pub(super) fn exercise(
         (false, true, "creche-pointer-three-selected"),
         (true, false, "creche-pointer-four-restored"),
     ] {
-        move_to_hit(serial, child, stream, reader, (x, y))?;
+        move_to_hit(serial, child, stream, reader, (x, y), false)?;
         gesture(
             serial,
             child,
@@ -212,6 +212,13 @@ fn rectangle(focus: &Value) -> Result<(i64, i64, i64, i64, i64, i64), ConduitosE
     }
     Ok((x, y, width, height, display_width, display_height))
 }
+fn within_hit(sample: &Value, focus: &Value) -> Result<bool, ConduitosError> {
+    let (x, y, width, height, _, _) = rectangle(focus)?;
+    let px = number(sample, "display_x")?;
+    let py = number(sample, "display_y")?;
+    Ok(px >= x && px < x + width && py >= y && py < y + height)
+}
+
 fn move_by(
     serial: &Path,
     child: &mut Child,
@@ -246,6 +253,7 @@ fn move_to_hit(
     stream: &mut UnixStream,
     reader: &mut qmp::Reader,
     scale: (i64, i64),
+    pressed: bool,
 ) -> Result<(), ConduitosError> {
     let focus = focus(serial)?;
     let (x, y, width, height, display_width, display_height) = rectangle(&focus)?;
@@ -257,9 +265,10 @@ fn move_to_hit(
             .last()
             .ok_or_else(|| refusal("pointer origin observation absent"))?;
         bind(current, &focus)?;
-        let px = number(current, "display_x")?;
-        let py = number(current, "display_y")?;
-        if px >= x && px < x + width && py >= y && py < y + height {
+        if current["primary_pressed"] != pressed {
+            return Err(refusal("pointer positioning changed the held button state"));
+        }
+        if within_hit(current, &focus)? {
             return Ok(());
         }
         let target_x = (x + width / 2) * 1_000_000 / display_width;
@@ -271,7 +280,7 @@ fn move_to_hit(
         if delta == (0, 0) {
             break;
         }
-        move_by(serial, child, stream, reader, scale, delta, false)?;
+        move_by(serial, child, stream, reader, scale, delta, pressed)?;
     }
     Err(refusal(
         "actual pointer did not reach current hit within the finite motion bound",
@@ -327,8 +336,18 @@ fn gesture(
                 ));
             }
             if held {
-                let sample = move_by(serial, child, stream, reader, scale, (1, 0), true)?;
-                if sample["press_edge"] != false || records(serial, CHANGE)?.len() != before + 1 {
+                // First observe the still-held cursor under the fresh Show,
+                // then move onto its current hit without releasing the button.
+                move_by(serial, child, stream, reader, scale, (1, 0), true)?;
+                move_to_hit(serial, child, stream, reader, scale, true)?;
+                let sample = records(serial, POINTER)?
+                    .last()
+                    .cloned()
+                    .ok_or_else(|| refusal("held cursor observation absent"))?;
+                if !within_hit(&sample, &focus(serial)?)?
+                    || sample["press_edge"] != false
+                    || records(serial, CHANGE)?.len() != before + 1
+                {
                     return Err(refusal(
                         "held motion after fresh Show repeated the Source action",
                     ));
@@ -376,5 +395,12 @@ mod tests {
         assert!(rectangle(&focus).is_err());
         focus["hit_bounds"]["width"] = json!(0);
         assert!(rectangle(&focus).is_err());
+    }
+    #[test]
+    fn held_probe_must_enter_the_refreshed_control_not_its_old_location() {
+        let focus = json!({"hit_bounds":{"x":60,"y":56,"width":1188,"height":33},
+            "display_bounds":{"x":0,"y":0,"width":1280,"height":800}});
+        assert!(!within_hit(&json!({"display_x":660,"display_y":156}), &focus).unwrap());
+        assert!(within_hit(&json!({"display_x":660,"display_y":70}), &focus).unwrap());
     }
 }

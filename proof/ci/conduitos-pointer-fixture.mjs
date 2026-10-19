@@ -27,7 +27,7 @@ export function pointerFixture() {
     entrance: 'normal-product-creche', proof_class: 'freestanding-emulator',
     target_action: 'creche.plot.3', target_geometry: 'observed-current-frame-hit-bounds',
     keyboard_action_count: 2, pointer_action_count: 2, source_changes, presses, releases,
-    held_motion_after_fresh_show: held, held_motion_duplicate_effects: 0,
+    held_motion_after_fresh_show: held, held_motion_duplicate_effects: 0, held_motion_on_refreshed_control: true,
     physical_evidence: false, human_enactment: false };
   const lines = (prefix, values) => values.map(value => prefix + JSON.stringify(value) + '\n').join('');
   return { receipt, serial: lines('CONDUIT_CRECHE_FOCUS ', focuses)
