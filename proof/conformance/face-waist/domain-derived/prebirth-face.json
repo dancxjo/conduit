@@ -1,5 +1,5 @@
 {
-  "identity": "f3498156b480a0be1700c6c8d3fed7934f58624d63f4938cfe407712cbe48c1e",
+  "identity": "5331d87e2f79a7cc90db12e3d2c45958bfc199413b706e3dab72995ef9db6a60",
   "revision": 1,
   "basis": {
     "body_id": null,
@@ -78,22 +78,22 @@
       "name": "Plots to include"
     },
     {
-      "identity": "birth/encounter/prebirth-conformance/initial-plots/0",
+      "identity": "birth/encounter/prebirth-conformance/initial-plots/6da1e4365edd4e421790e05c3785e4b36e38032927e2cb9e4f78bb9302976d21",
       "role": "Plot",
       "name": "Scratch"
     },
     {
-      "identity": "birth/encounter/prebirth-conformance/initial-plots/0/selection-details",
+      "identity": "birth/encounter/prebirth-conformance/initial-plots/6da1e4365edd4e421790e05c3785e4b36e38032927e2cb9e4f78bb9302976d21/selection-details",
       "role": "Info",
       "name": "Scratch selection details"
     },
     {
-      "identity": "birth/encounter/prebirth-conformance/initial-plots/1",
+      "identity": "birth/encounter/prebirth-conformance/initial-plots/3ab3b864858792bacf897d79251fc8ea120db0c84485b9bd254a1f6bb41bdaf3",
       "role": "Plot",
       "name": "Chime"
     },
     {
-      "identity": "birth/encounter/prebirth-conformance/initial-plots/1/selection-details",
+      "identity": "birth/encounter/prebirth-conformance/initial-plots/3ab3b864858792bacf897d79251fc8ea120db0c84485b9bd254a1f6bb41bdaf3/selection-details",
       "role": "Info",
       "name": "Chime selection details"
     },
@@ -173,22 +173,22 @@
     },
     {
       "source": "birth/encounter/prebirth-conformance/initial-plots",
-      "target": "birth/encounter/prebirth-conformance/initial-plots/0",
+      "target": "birth/encounter/prebirth-conformance/initial-plots/6da1e4365edd4e421790e05c3785e4b36e38032927e2cb9e4f78bb9302976d21",
       "kind": "Contains"
     },
     {
-      "source": "birth/encounter/prebirth-conformance/initial-plots/0",
-      "target": "birth/encounter/prebirth-conformance/initial-plots/0/selection-details",
+      "source": "birth/encounter/prebirth-conformance/initial-plots/6da1e4365edd4e421790e05c3785e4b36e38032927e2cb9e4f78bb9302976d21",
+      "target": "birth/encounter/prebirth-conformance/initial-plots/6da1e4365edd4e421790e05c3785e4b36e38032927e2cb9e4f78bb9302976d21/selection-details",
       "kind": "Contains"
     },
     {
       "source": "birth/encounter/prebirth-conformance/initial-plots",
-      "target": "birth/encounter/prebirth-conformance/initial-plots/1",
+      "target": "birth/encounter/prebirth-conformance/initial-plots/3ab3b864858792bacf897d79251fc8ea120db0c84485b9bd254a1f6bb41bdaf3",
       "kind": "Contains"
     },
     {
-      "source": "birth/encounter/prebirth-conformance/initial-plots/1",
-      "target": "birth/encounter/prebirth-conformance/initial-plots/1/selection-details",
+      "source": "birth/encounter/prebirth-conformance/initial-plots/3ab3b864858792bacf897d79251fc8ea120db0c84485b9bd254a1f6bb41bdaf3",
+      "target": "birth/encounter/prebirth-conformance/initial-plots/3ab3b864858792bacf897d79251fc8ea120db0c84485b9bd254a1f6bb41bdaf3/selection-details",
       "kind": "Contains"
     },
     {
@@ -576,28 +576,42 @@
       }
     },
     {
-      "subject": "birth/encounter/prebirth-conformance/initial-plots/0",
+      "subject": "birth/encounter/prebirth-conformance/initial-plots/6da1e4365edd4e421790e05c3785e4b36e38032927e2cb9e4f78bb9302976d21",
+      "name": "checked-plot-id",
+      "value": {
+        "Identity": "checked/scratch"
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/initial-plots/6da1e4365edd4e421790e05c3785e4b36e38032927e2cb9e4f78bb9302976d21",
       "name": "selected",
       "value": {
         "Flag": true
       }
     },
     {
-      "subject": "birth/encounter/prebirth-conformance/initial-plots/0",
+      "subject": "birth/encounter/prebirth-conformance/initial-plots/6da1e4365edd4e421790e05c3785e4b36e38032927e2cb9e4f78bb9302976d21",
       "name": "boolean-change-action",
       "value": {
         "Identity": "creche.plot.0"
       }
     },
     {
-      "subject": "birth/encounter/prebirth-conformance/initial-plots/1",
+      "subject": "birth/encounter/prebirth-conformance/initial-plots/3ab3b864858792bacf897d79251fc8ea120db0c84485b9bd254a1f6bb41bdaf3",
+      "name": "checked-plot-id",
+      "value": {
+        "Identity": "checked/chime"
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/initial-plots/3ab3b864858792bacf897d79251fc8ea120db0c84485b9bd254a1f6bb41bdaf3",
       "name": "selected",
       "value": {
         "Flag": false
       }
     },
     {
-      "subject": "birth/encounter/prebirth-conformance/initial-plots/1",
+      "subject": "birth/encounter/prebirth-conformance/initial-plots/3ab3b864858792bacf897d79251fc8ea120db0c84485b9bd254a1f6bb41bdaf3",
       "name": "boolean-change-action",
       "value": {
         "Identity": "creche.plot.1"
@@ -629,7 +643,7 @@
     },
     {
       "subject": "birth/encounter/prebirth-conformance/body-name/input-details",
-      "text": "Current value: Gonçalo Pacheco Guerreiro."
+      "text": "Current value: Gon\u00e7alo Pacheco Guerreiro."
     },
     {
       "subject": "birth/encounter/prebirth-conformance/name-system",
@@ -689,11 +703,11 @@
     },
     {
       "subject": "birth/encounter/prebirth-conformance/name-system/input-details",
-      "text": "Choice: Vietnamese (family–middle–given). Value: vietnamese. Not selected."
+      "text": "Choice: Vietnamese (family\u2013middle\u2013given). Value: vietnamese. Not selected."
     },
     {
       "subject": "birth/encounter/prebirth-conformance/name-system/input-details",
-      "text": "Choice: Yorùbá personal and family names. Value: yoruba. Not selected."
+      "text": "Choice: Yor\u00f9b\u00e1 personal and family names. Value: yoruba. Not selected."
     },
     {
       "subject": "birth/encounter/prebirth-conformance/name-system/input-details",
@@ -744,16 +758,16 @@
       "text": "Current value: (empty)."
     },
     {
-      "subject": "birth/encounter/prebirth-conformance/initial-plots/0/selection-details",
+      "subject": "birth/encounter/prebirth-conformance/initial-plots/6da1e4365edd4e421790e05c3785e4b36e38032927e2cb9e4f78bb9302976d21/selection-details",
       "text": "Included."
     },
     {
-      "subject": "birth/encounter/prebirth-conformance/initial-plots/1/selection-details",
+      "subject": "birth/encounter/prebirth-conformance/initial-plots/3ab3b864858792bacf897d79251fc8ea120db0c84485b9bd254a1f6bb41bdaf3/selection-details",
       "text": "Not included."
     },
     {
       "subject": "birth/encounter/prebirth-conformance/birth-review",
-      "text": "Name: Gonçalo Pacheco Guerreiro. Starting Plots selected: 1 of 2. Birth: available."
+      "text": "Name: Gon\u00e7alo Pacheco Guerreiro. Starting Plots selected: 1 of 2. Birth: available."
     },
     {
       "subject": "birth/encounter/prebirth-conformance/birth-review-plot-0",
@@ -1097,7 +1111,7 @@
     {
       "identity": "creche.plot.0",
       "intent": "conduit.intent/creche.plot.0@1",
-      "target": "birth/encounter/prebirth-conformance/initial-plots/0",
+      "target": "birth/encounter/prebirth-conformance/initial-plots/6da1e4365edd4e421790e05c3785e4b36e38032927e2cb9e4f78bb9302976d21",
       "name": "Include Plot",
       "arguments": [
         {
@@ -1116,7 +1130,7 @@
     {
       "identity": "creche.plot.1",
       "intent": "conduit.intent/creche.plot.1@1",
-      "target": "birth/encounter/prebirth-conformance/initial-plots/1",
+      "target": "birth/encounter/prebirth-conformance/initial-plots/3ab3b864858792bacf897d79251fc8ea120db0c84485b9bd254a1f6bb41bdaf3",
       "name": "Include Plot",
       "arguments": [
         {
@@ -1169,11 +1183,11 @@
       "level": "SelectedDetail"
     },
     {
-      "subject": "birth/encounter/prebirth-conformance/initial-plots/0/selection-details",
+      "subject": "birth/encounter/prebirth-conformance/initial-plots/6da1e4365edd4e421790e05c3785e4b36e38032927e2cb9e4f78bb9302976d21/selection-details",
       "level": "SelectedDetail"
     },
     {
-      "subject": "birth/encounter/prebirth-conformance/initial-plots/1/selection-details",
+      "subject": "birth/encounter/prebirth-conformance/initial-plots/3ab3b864858792bacf897d79251fc8ea120db0c84485b9bd254a1f6bb41bdaf3/selection-details",
       "level": "SelectedDetail"
     },
     {
