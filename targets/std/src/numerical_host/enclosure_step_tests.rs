@@ -1,5 +1,8 @@
 use super::*;
 use conduit_kernel::ValueRef;
+#[cfg(target_os = "linux")]
+#[path = "enclosure_cost_tests.rs"]
+mod cost;
 fn requirements() -> MathematicalEnclosureRequirements {
     let mut w = ExactNumericWork::new(ENCLOSURE_WORK);
     MathematicalEnclosureRequirements {
