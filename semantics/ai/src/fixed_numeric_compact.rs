@@ -1,4 +1,4 @@
-//! Explicit compact transport for the owned finite pointwise Value operators.
+//! Compact pointwise owners and shared finite-f32 transport helpers.
 //! Arithmetic and commit state stay in the canonical owners. Only a kernel-bound
 //! internal output uses raw lanes; every escaping output retains its exact codec.
 use crate::{
@@ -25,6 +25,27 @@ pub const DAG_ARTIFACT: &str = "conduit-kernel/logical-step-f32-dag@1";
 pub(crate) struct CompactVectorBuffer<const W: usize> {
     bytes: Vec<u8>,
     published: bool,
+}
+
+impl<const W: usize> CompactVectorBuffer<W> {
+    pub(crate) fn prepare() -> Result<Self, FixedCodecRefusal> {
+        if W == 0 || W > 1024 {
+            return Err(FixedCodecRefusal::Shape);
+        }
+        Ok(Self {
+            bytes: vec![0; W * 4],
+            published: false,
+        })
+    }
+    pub(crate) fn reset(&mut self) {
+        self.published = false;
+    }
+    pub(crate) fn published_bytes(&self) -> Option<&[u8]> {
+        self.published.then_some(self.bytes.as_slice())
+    }
+    pub(crate) fn scratch_bytes(&self) -> usize {
+        self.bytes.capacity()
+    }
 }
 
 pub(crate) fn decode<const W: usize, const P: usize>(
