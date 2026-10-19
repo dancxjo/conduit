@@ -100,6 +100,14 @@ pub struct ExternalForeDelivery {
 /// been accepted. Returning an error leaves the kernel value undelivered.
 pub trait ExternalForeOutputAdapter {
     fn deliver(&mut self, output: ExternalForeDelivery) -> Result<(), String>;
+
+    /// Synchronously accept a Flow output without retaining its owned buffers.
+    /// Success acknowledges the effect exactly as `deliver` does. The borrow
+    /// ends before kernel acceptance; retaining adapters can keep using `deliver`.
+    /// The default preserves the existing owned-adapter contract.
+    fn deliver_flow(&mut self, output: &ExternalForeDelivery) -> Result<(), String> {
+        self.deliver(output.clone())
+    }
 }
 pub mod direct_spoken_mask;
 pub mod direct_spoken_mask_runtime;

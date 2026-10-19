@@ -225,3 +225,37 @@ server with the sealed-runtime selector is required (the repair is #5937). The
 local capture used the explicitly named server from Source513 above. Repeat in
 three new output directories for independent browser processes. There are no
 performance thresholds or automatic browser passes from missing evidence.
+
+## Synchronous Flow adapter borrowing
+
+`ExternalForeOutputAdapter::deliver_flow` permits a synchronous Flow sink to
+borrow the report's owned delivery for the duration of its callback. Its default
+clones into the existing `deliver` callback, preserving adapters that retain
+ownership. Installed std Flow egress calls this method before kernel acceptance
+and acknowledgement; an adapter error still exits before either operation.
+Value-temporal output keeps its separate pair of prepared owned deliveries.
+
+The paired `borrowed_flow_acknowledgement_avoids_owned_clone_with_same_kernel_evidence`
+conformance test runs the ordinary checked 64-output arithmetic pipeline with
+1/8/32 Gears. It compares the unchanged owned collector with a synchronous sink
+that validates each exact port, Kind, sequence and output byte, retaining the
+ordinary report in both cases. It checks equal report deliveries and complete ordered
+kernel events (including sequence, node, port and request), callback refusal,
+and cancellation after one accepted output.
+Allocator snapshots cover the same first-to-last callback window. The expected
+source-level saving is three allocations and 23 copied/requested bytes per
+additional output: one port identity, one Kind identity and one eight-byte
+payload. There is still one owned report delivery and its payload copy.
+
+This is an opt-in Host boundary improvement. Existing owning collectors retain
+their six-allocation behavior; the earlier historical captures remain valid.
+It does not establish a throughput speedup, eliminate all Play allocations, or
+change the prepared Value profile. The test is included in the ordinary
+`cargo xtask check workspace-test-foundation` suite's hosted-pipeline coverage.
+
+Three independent local debug test processes each passed all three Gear counts:
+378 allocation requests/2,898 bytes for the owned window versus 189/1,449
+for the borrowing window, with zero reallocations in each. These deterministic
+allocator observations are not optimized wall-time benchmark results. Required
+Signs were retained and compared exactly; runtime implementation selection was
+unchanged. The historical owned collector remains available as the reference.

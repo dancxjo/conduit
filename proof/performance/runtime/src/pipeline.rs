@@ -487,3 +487,6 @@ pub fn run(
 #[cfg(test)]
 #[path = "pipeline/tests.rs"]
 mod tests;
+
+#[cfg(test)]
+mod borrowed_flow_tests;
