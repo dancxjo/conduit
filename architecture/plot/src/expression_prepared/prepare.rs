@@ -110,9 +110,9 @@ pub(super) fn prepare_node(
             inverse_trigonometry::prepare(node, kind, arguments, input_type, prepared_input)?
         }
         PortableExpressionOperation::SemanticCall { kind, arguments }
-            if kind == crate::expression_angle_reference::CALL =>
+            if crate::expression_angle_reference::is_call(kind) =>
         {
-            angle_reference::prepare(node, arguments, input_type, prepared_input)?
+            angle_reference::prepare(node, kind, arguments, input_type, prepared_input)?
         }
         PortableExpressionOperation::SemanticCall { kind, arguments }
             if crate::expression_trigonometry::function(kind).is_some() =>

@@ -7,6 +7,7 @@ pub(super) fn evaluate_node<'a>(
     input_kind: Option<PrimitiveInfoKind>,
 ) -> Result<PrimitiveValue<'a>, Refusal> {
     let expected = node.kind;
+    let quantity_profile = node.quantity_profile;
     let value = match &mut node.operation {
         PreparedOperation::SquareRoot {
             argument,
@@ -36,9 +37,21 @@ pub(super) fn evaluate_node<'a>(
             )?;
             PrimitiveValue::borrowed(expected, &output[..n])?
         }
-        PreparedOperation::AngleReference { argument, output } => {
+        PreparedOperation::AngleReference {
+            coordinate,
+            argument,
+            output,
+        } => {
             let value = evaluate_node(argument, input, input_kind)?;
-            let length = crate::expression_angle_reference::encode(value.as_slice(), output)?;
+            let length = if let Some(coordinate) = coordinate {
+                crate::expression_angle_reference::encode_angle(
+                    value.as_slice(),
+                    coordinate,
+                    output,
+                )?
+            } else {
+                crate::expression_angle_reference::encode(value.as_slice(), output)?
+            };
             PrimitiveValue::borrowed(expected, &output[..length])?
         }
         PreparedOperation::Trigonometry {
@@ -47,8 +60,12 @@ pub(super) fn evaluate_node<'a>(
             output,
         } => {
             let value = evaluate_node(argument, input, input_kind)?;
-            let length =
-                crate::expression_trigonometry::encode(*function, value.as_slice(), output)?;
+            let length = crate::expression_trigonometry::encode_profile(
+                *function,
+                value.as_slice(),
+                output,
+                quantity_profile,
+            )?;
             PrimitiveValue::borrowed(expected, &output[..length])?
         }
         PreparedOperation::QuantityBinary {

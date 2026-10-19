@@ -49,3 +49,28 @@ pub fn encode_mathematical_angle_trigonometric_denotation(
     super::super::symbolic::encode_rational_turns(function, turns, output, work)
         .map_err(R::Denotation)
 }
+
+/// Explicit optional-profile entrance for legacy rational coordinate forms.
+pub fn encode_rational_angle_trigonometric_denotation(
+    function: AngleTrigonometricFunction,
+    source: RationalQuantity,
+    output: &mut [u8],
+    work: &mut ExactNumericWork,
+) -> Result<usize, R> {
+    if source.family() != Unit::Turn.family() {
+        return Err(R::NotAngle);
+    }
+    if source.role() != QuantityRole::Linear {
+        return Err(R::UnsupportedRole);
+    }
+    let turns = if source.coordinate() == ExactRational::ZERO {
+        ExactRational::ZERO
+    } else {
+        source
+            .convert_to_unit(Unit::Turn, work)
+            .map_err(R::Coordinate)?
+            .coordinate()
+    };
+    super::super::symbolic::encode_rational_turns(function, turns, output, work)
+        .map_err(R::Denotation)
+}

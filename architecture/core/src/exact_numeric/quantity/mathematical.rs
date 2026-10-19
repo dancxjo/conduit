@@ -83,7 +83,7 @@ impl<'a> MathematicalQuantityView<'a> {
         &self.coordinate
     }
     pub fn validate_kind(&self, identity: &str) -> Result<(), QuantityValueContractRefusal> {
-        super::value_profile::validate_quantity_kind(self.unit, self.role, identity)
+        super::value_profile::validate_mathematical_quantity_kind(self.unit, self.role, identity)
     }
     /// Explicit exact materialization only. An unresolved symbolic coordinate
     /// never becomes a rounded rational or a source with its Unit erased.

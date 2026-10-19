@@ -9,7 +9,7 @@ pub(super) fn output_capacity(
     maximum: Option<u32>,
     profile: QuantityValueProfile,
 ) -> Result<usize, Refusal> {
-    if profile == QuantityValueProfile::Exact
+    if profile != QuantityValueProfile::Decimal
         && super::leaf_info_kind(&node.value_type)
             .is_ok_and(crate::expression_quantity::is_quantity)
     {
@@ -206,4 +206,52 @@ impl super::PreparedPortableExpressionEvaluator {
             .checked_add(conduit_core::MATHEMATICAL_VALUE_VALIDATION_WORK)?;
         Some((nodes, depth, payload, work))
     }
+}
+
+// The first physical symbolic expression profile has deliberately finite support.
+pub(super) fn admit_mathematical_angles(root: &PortableExpressionNode) -> Result<(), Refusal> {
+    fn visit(node: &PortableExpressionNode, depth: usize, left: &mut usize) -> Result<(), Refusal> {
+        use crate::PortableExpressionOperation as O;
+        if depth > conduit_core::MAXIMUM_STRUCTURED_INFO_DEPTH || *left == 0 {
+            return Err(Refusal::UnsupportedType(
+                "mathematical Angle program bound".into(),
+            ));
+        }
+        *left -= 1;
+        if !matches!(
+            node.value_type.shape(),
+            conduit_core::StructuredInfoTypeShape::Leaf(_)
+        ) {
+            return Err(Refusal::UnsupportedType(
+                "mathematical Angle primitive intermediates".into(),
+            ));
+        }
+        let mut child = |n: &PortableExpressionNode| visit(n, depth + 1, left);
+        match &node.operation {
+            O::Input | O::Literal(_) | O::CanonicalLiteral(_) | O::Constant(_) => Ok(()),
+            O::Conditional {
+                condition,
+                when_true,
+                when_false,
+            } => {
+                child(condition)?;
+                child(when_true)?;
+                child(when_false)
+            }
+            O::SemanticCall { kind, arguments }
+                if kind == crate::expression_angle_reference::ANGLE_CALL
+                    || crate::expression_trigonometry::function(kind).is_some() =>
+            {
+                for arg in arguments {
+                    child(arg)?;
+                }
+                Ok(())
+            }
+            _ => Err(Refusal::UnsupportedType(
+                "mathematical Angle operation/refinement requires reviewed profile support".into(),
+            )),
+        }
+    }
+    let mut left = conduit_core::MAXIMUM_STRUCTURED_INFO_NODES;
+    visit(root, 1, &mut left)
 }

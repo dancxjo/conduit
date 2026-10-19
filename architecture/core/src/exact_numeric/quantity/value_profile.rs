@@ -64,7 +64,11 @@ impl QuantityValueProfile {
             QuantityValueView::decode(encoded, work)
         }
         .map_err(QuantityValueContractRefusal::Encoding)?;
-        value.validate_kind(identity)?;
+        if self == Self::Mathematical {
+            validate_mathematical_quantity_kind(value.unit(), value.role(), identity)?;
+        } else {
+            value.validate_kind(identity)?;
+        }
         Ok(value)
     }
 }
@@ -120,5 +124,17 @@ pub(super) fn validate_quantity_kind(
     }
     // Preserve the legacy named-dimension contract. Family/role leaves use
     // the exact intrinsic identity branch above rather than this fallback.
+    Ok(())
+}
+
+pub(super) fn validate_mathematical_quantity_kind(
+    unit: crate::Unit,
+    role: crate::QuantityRole,
+    identity: &str,
+) -> Result<(), QuantityValueContractRefusal> {
+    validate_quantity_kind(unit, role, identity)?;
+    if identity == crate::ANGLE_INFO_ID && unit.family() != crate::Unit::Turn.family() {
+        return Err(QuantityValueContractRefusal::WrongFamily);
+    }
     Ok(())
 }

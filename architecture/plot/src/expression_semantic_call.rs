@@ -77,7 +77,7 @@ pub(super) fn check(
         ));
     }
     if crate::expression_trigonometry::function(&name.text).is_some()
-        || name.text == crate::expression_angle_reference::CALL
+        || crate::expression_angle_reference::is_call(&name.text)
     {
         let [argument] = arguments else {
             return Err(diagnostic(
@@ -103,7 +103,11 @@ pub(super) fn check(
             ));
         }
         return Ok(CheckedExpressionType::semantic(
-            conduit_core::MATHEMATICAL_VALUE_ID,
+            if name.text == crate::expression_angle_reference::ANGLE_CALL {
+                conduit_core::ANGLE_INFO_ID
+            } else {
+                conduit_core::MATHEMATICAL_VALUE_ID
+            },
         ));
     }
     if name.text == "text/material" {
@@ -477,7 +481,7 @@ pub(crate) fn is_intrinsic(name: &str) -> bool {
     crate::expression_inverse_trigonometry::function(name).is_some()
         || crate::expression_trigonometry::function(name).is_some()
         || name == crate::expression_square_root::CALL
-        || name == crate::expression_angle_reference::CALL
+        || crate::expression_angle_reference::is_call(name)
         || integer_widening_target(name).is_some()
         || matches!(
             name,

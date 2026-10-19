@@ -26,7 +26,12 @@ pub(super) fn prepare(
     if let PreparedOperation::Literal(encoded) = &argument.operation {
         // Known domain failures are preparation failures. Exact constant
         // denotations are constructed before Steps; ordinary validation remains.
-        let length = crate::expression_trigonometry::encode(function, encoded, &mut output)?;
+        let length = crate::expression_trigonometry::encode_profile(
+            function,
+            encoded,
+            &mut output,
+            prepared_input.quantity_profile(),
+        )?;
         output.truncate(length);
         return Ok(PreparedOperation::Literal(output));
     }

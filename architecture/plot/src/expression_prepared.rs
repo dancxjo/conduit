@@ -120,6 +120,7 @@ enum PreparedOperation {
         output: Vec<u8>,
     },
     AngleReference {
+        coordinate: Option<Vec<u8>>,
         argument: Box<PreparedNode>,
         output: Vec<u8>,
     },
@@ -222,6 +223,27 @@ impl PreparedPortableExpressionEvaluator {
         }
         quantity_profile::admit_primitive_nodes(&program.root)?;
         Self::new_profile(program, conduit_core::QuantityValueProfile::Exact)
+    }
+
+    /// Optional bounded Angle-frame transport and typed trig. This is not an
+    /// installed Host offer; refinements and Quantity arithmetic remain unsupported.
+    pub fn new_with_mathematical_angles(
+        program: &PortableExpressionProgram,
+    ) -> Result<Self, Refusal> {
+        for ty in [&program.input_type, &program.output_type] {
+            if !matches!(ty.shape(), StructuredInfoTypeShape::Leaf(_))
+                || !matches!(
+                    leaf_info_kind(ty)?,
+                    conduit_core::ANGLE_INFO_ID | conduit_core::MATHEMATICAL_VALUE_ID
+                )
+            {
+                return Err(Refusal::UnsupportedType(
+                    "mathematical Angle profile requires Angle/math primitive ports".into(),
+                ));
+            }
+        }
+        quantity_profile::admit_mathematical_angles(&program.root)?;
+        Self::new_profile(program, conduit_core::QuantityValueProfile::Mathematical)
     }
 
     fn new_profile(

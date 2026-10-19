@@ -195,3 +195,27 @@ existing symbolic trig result. Unsupported symbolic/rational radian shapes and
 exhausted work refuse, followed by successful recovery, with zero guarded
 allocations. Source integration is still required: released `math/radians`
 continues returning its existing mathematical coordinate Type.
+
+## Checked Source Angle continuation
+
+A private proposed `math/angle-radians` intrinsic preserves the existing Angle
+Type while applying the existing exact turn/radian law. The released
+`math/radians` coordinate-extraction API is unchanged. An explicit
+`new_with_mathematical_angles` preparation entrance admits primitive Angle/math
+ports, native-to-symbolic-radian conversion, transport, typed trig and bounded
+conditional structure. Existing profiles refuse the new conversion before
+execution. Quantity arithmetic and refinements remain preparation refusals until
+reviewed; no installed Host offer advertises the new profile.
+
+The checked Source test compiles separate conversion, Angle carry and sine plots,
+plus a nested equivalent. Original native coordinates are compared against the
+existing exact reference receipt; transported radian frames retain family/role
+and their canonical coordinate bytes. Quarter-turn and 90-degree inputs yield
+exact sine 1; half-turn yields zero. Repeated execution observes zero allocations
+and stable output capacities. Legacy native/rational and proposed mathematical
+forms consume through the explicitly selected profile; old profiles refuse v3.
+The optional Angle guard rejects scalar-family Units even at SI dimension one.
+The initial test used an unavailable Type accessor; its diagnostic is retained,
+and direct checked Type equality is used instead. Installed offer recomputation,
+resource/projection custody, actual authored Plan/kernel/CLI and public gates
+still remain. The spelling and form remain private proposals under #5392.
