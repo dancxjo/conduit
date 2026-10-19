@@ -4,6 +4,8 @@ Development preparation for [#6038](https://github.com/dancxjo/conduit/issues/60
 starting with [C1 #6039](https://github.com/dancxjo/conduit/issues/6039).
 This record does not establish component-Fore, browser Back or native acceptance.
 
+The table records the initial audit, before the development changes below.
+
 | Existing source | Reusable contract | Limit or missing proof |
 | --- | --- | --- |
 | `plots/todo/face` | Collection/Item containment, stable item IDs, source order, completion flags, exact complete/reopen/remove actions, bounded add text | No exclusive-choice domain action; do not invent one for this specimen. |
@@ -44,8 +46,9 @@ producer and remains shared by browser/linear conformance.
 
 ## Handoff boundaries
 
-C1 still needs reusable checked Fore consumption and the complete collection,
-exclusive-choice and independent-choice corpus. Naming tradition is a real
+At this first handoff, C1 still needed reusable checked Fore consumption and the
+complete collection, exclusive-choice and independent-choice corpus. The later
+development preparation below supplies those source contracts. Naming tradition is a real
 exclusive source action; it must not be replaced by a new invented Todo action.
 C2 owns atomic text/editor/suggestion composition. W4 consumes those portable
 contracts after the selected Web Component foundations; it must retain current
@@ -72,3 +75,59 @@ preparation. The original branches and proofs remain intact. Admission still
 waits for the normal repair and exact Candidate/Integration gates; this is not
 a competing native scene PR. #5651/#5652 remain separate assembly work. N4
 follows #5994's serial native route. Parent #6038 and C1 #6039 remain open.
+
+
+## Portable source contracts and browser Back in development
+
+C1 now supplies reusable prepared informational, exclusive and independent
+collection references, bounded pages, stable source item identities and typed
+proposals tied to the current Face and Show. Independent selection remains a
+source-owned reversible Boolean action; a readable list does not acquire one.
+C2 composes atomic UTF-8 named arguments with source-owned fixed or free
+suggestions. Candidate browsing does not call the name generator or commit a
+value. These atomic fields remain separate from the revisioned `face/editor`
+document contract and Memory Lantern's existing textarea.
+
+The browser preparation consumes the actual Crèche `CURRENT` Birth draft through
+ordinary checked Mask planning, Play, Show acknowledgement and interaction Fore
+execution. It is a **Host-owned zero-Body encounter**; no Body or membership is
+fabricated. The existing Body owner Mask path retains its mandatory Body basis.
+The legacy application projection remains migration evidence and still serves
+the surrounding lifecycle/source shell, but does not commit these controls.
+
+One finite built-in Back contains five exact resources: renderer, source-reference
+model, suggestion handling, a registered custom-element module, and its Look.
+The Rust Host descriptor and browser loader verify their versioned length-framed
+SHA-256 bundle, per-resource hashes and lengths, identity/version/tag and finite
+caps. Its actual selected placement uses the bundle-derived ArtifactId. Missing
+or altered optional bytes, foreign registration, unsupported required slots or
+an inaccessible prepared surface choose an actual generic Mask Plan before
+Show acknowledgement. Registration alone admits no interaction.
+
+Both Backs borrow the same source values, choice identities and checked argument
+contracts. Native DOM drafts and popup highlights are provisional; explicit
+submission crosses the checked interaction Fore before updating the owner.
+A consumed or refused encounter needs a fresh Show. An explicit refresh never
+replays the old proposal. Required input/action visibility, the whole Shadow
+node/depth bounds, one pending event and disconnected/hidden surfaces are guarded.
+The selected Back realizes the checked single-column visual profile and refuses
+unsupported profiles. Generic reading retains the complete canonical Face facts.
+
+Local source proof includes 379 passing focused package tests (three ignored),
+native field/navigation regressions and Clippy. The shared owner component guard
+extraction also passes 97 pinned Chromium renderer tests. The first integrated
+Workspace run passed 50 Node contracts and 52 Chromium cases but failed three
+test assertions: an Escape-dismissed popup was not reopened, an empty-list label
+was guessed incorrectly, and a global option count included Host appearance
+options. The original failed run, trace archives, sealed artifacts and exact
+source receipt are preserved. A fresh full run is required after those fixes;
+these results do not establish CI or stable acceptance.
+
+The native audit remains a separate handoff. Current native focus/page changes
+and blank/focus-changing clicks can commit pending drafts; N4 requires those
+navigation actions to leave the owner unchanged. Native suggestion composition,
+actual captured-Face browser comparison, capability limits and ordinary QEMU
+interaction proof remain outstanding after #5994's serial acceptance and native
+scene ownership handoff. No browser result establishes that native evidence or
+physical/human input acceptance. All four children and parent #6038 remain open
+until their required exact-source and stable gates are satisfied.

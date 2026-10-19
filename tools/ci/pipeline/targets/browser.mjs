@@ -8,6 +8,7 @@ import { retainWorkspaceEvidence } from './workspace-evidence.mjs';
 import { retainExactQuantityEvidence } from './quantity-evidence.mjs';
 import { retainNativeValueEvidence } from './native-value-evidence.mjs';
 import { retainThermostatEvidence } from './thermostat-evidence.mjs';
+import { retainPortableFaceEvidence } from './portable-face-evidence.mjs';
 
 // Exact staged Workspace acceptance plus independent browser adapter contracts.
 // Cross-target deployment tests require another lane's artifacts and are not
@@ -73,6 +74,7 @@ export function browser(directory) {
       CONDUIT_CRECHE_RENDEZVOUS_PRODUCT: product,
       CONDUIT_BROWSER_RUNTIME_WASM: path.resolve(releases, 'runtime.wasm') },
   });
+  retainPortableFaceEvidence('proof/browser/test-results', path.join(directory, 'portable-controls'), process.env.CONDUIT_CHECKOUT_SHA);
   retainExactQuantityEvidence('proof/browser/test-results', path.join(directory, 'exact-quantity'),
     path.join(releases, 'runtime.wasm'), process.env.CONDUIT_CHECKOUT_SHA);
   retainNativeValueEvidence('proof/browser/test-results', path.join(directory, 'native-value-types'),

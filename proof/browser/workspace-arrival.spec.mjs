@@ -399,7 +399,7 @@ test("Workspace Birth binds naming, search, exact selection, review, and receipt
   await search.fill('no-such-plot');
   await birth.getByRole('button', { name: 'Search Plots', exact: true }).click();
   await expect(birth.locator('[data-source-collection$="/initial-plots"]')).toHaveText(
-    'Starting PlotsNo items.',
+    'Plots to includeNo items.',
   );
   await expect(selected).toContainText(`Starting Plots selected: ${initialCount}`);
   await search.fill('');

@@ -72,7 +72,7 @@ test('editable fixed popup highlights and chooses a draft before source commit',
   await expect(page.locator(`[id="${active}"]`)).toHaveAttribute('aria-selected', 'true');
   expect(await revision(page)).toBe(before);
   await input.press('Escape'); await expect(input).toHaveAttribute('aria-expanded', 'false');
-  await input.fill(''); await page.locator('[role="option"][data-source-value="chinese"]').click();
+  await input.press('ArrowDown'); await page.locator('[role="option"][data-source-value="chinese"]').click();
   expect(await revision(page)).toBe(before);
   await page.getByRole('button', { name: 'Use naming tradition', exact: true }).click();
   await expect(input).toHaveValue('Chinese (romanized, family name first)');

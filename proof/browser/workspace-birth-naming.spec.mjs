@@ -51,7 +51,7 @@ test("Workspace Birth suggestions expose diverse structures while remaining edit
   expect(selectedStyle.fill).not.toBe("rgba(0, 0, 0, 0)");
   const selectTradition = async value => {
     await tradition.fill("");
-    await expect(birth.getByRole("option")).toHaveCount(24);
+    await expect(birth.getByRole("listbox", { name: "Naming tradition suggestions", exact: true }).getByRole("option")).toHaveCount(24);
     await birth.locator(`[role="option"][data-source-value="${value}"]`).click();
     await birth.getByRole("button", { name: "Use naming tradition", exact: true }).click();
     await expect(tradition).toBeEnabled();
