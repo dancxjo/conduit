@@ -868,11 +868,23 @@ passes two tests covering three invocations, including ordinary artifact/Sign
 correlation and a zero-allowance refusal. Exact executed Core, Std, CLI-test and
 CLI binaries have verified SHA-256/archive roundtrips; code source bundles and
 file hashes are retained. The first compile exposed the new refusal's exhaustive
-Plot mapping, which now has its own machine-readable code. Workspace Clippy is
-running; this checkpoint does not claim its terminal result. Full workspace test
-execution still lacks the previously documented multi-gigabyte linker headroom.
+Plot mapping, which now has its own machine-readable code. Workspace all-target
+Clippy with warnings denied also passes. Full workspace test execution still
+lacks the previously documented multi-gigabyte linker headroom.
 
 Raw report persistence in product artifacts, ordinary generic report inspection,
 remaining profile accounting, native/rational report transport, broader original
 requirements and exact-source stable acceptance remain open. No parent audit
 status changes from this private component proof.
+
+
+A separately retained ordinary CLI run completes the same dimensioned chain.
+All thirteen Plan/Play/Sign artifacts and the authored Source pass ordinary
+inspection. Independent SHA-256 reconstruction verifies all eleven canonical
+Sign identities and their actual Plan/Play/connection context; ten are routed
+content observations, and retention reports zero drops. The mathematical
+projection's actual routed value is 11,436 bytes under the revision-2 back.
+The raw run report, inspected artifacts and Source are retained, including a
+verified compressed-report roundtrip. The Sign records the digest and extent;
+it does not itself preserve the original report-containing value bytes. That
+remaining product custody gap is not replaced by this correlation proof.
