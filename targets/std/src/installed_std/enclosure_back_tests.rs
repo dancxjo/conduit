@@ -144,6 +144,30 @@ fn dynamic_pi_over_180_and_sqrt_two_cross_exact_transport_and_installed_interval
         let lower = rational(&result, "lower");
         let upper = rational(&result, "upper");
         let width = rational(&result, "width");
+        let placement = plan.fragments[0]
+            .placements
+            .iter()
+            .find(|p| p.kind_id.as_str() == MATHEMATICAL_ENCLOSE_KIND)
+            .unwrap();
+        let requirements = mathematical_enclose_requirements(&placement.configuration).unwrap();
+        let mut verifier = PreparedMathematicalEnclosureVerifier::new(
+            &mathematical_enclosure_type(),
+            requirements,
+            800_000_000,
+            131072,
+        )
+        .unwrap();
+        let guard = crate::allocation_probe::begin();
+        let checked = verifier
+            .verify(
+                &output.0[0],
+                requirements.maximum_width,
+                Some(&input),
+                &mut ExactNumericWork::new(800_000_000),
+            )
+            .unwrap();
+        assert_eq!(checked.width(), width);
+        assert_eq!(guard.finish(), 0);
         assert_eq!(
             rational(&result, "maximum-width"),
             q(1, 100_000_000_000_000_000)

@@ -10,9 +10,11 @@ use alloc::vec::Vec;
 use core::{cmp::Ordering, mem::size_of};
 mod borrowed;
 mod borrowed_projection;
+mod evidence;
 pub use borrowed_projection::{
     BorrowedMathematicalEnclosureDomain, BorrowedMathematicalEnclosurePolicy,
 };
+pub use evidence::*;
 mod evaluate;
 mod interval;
 pub use borrowed::{BorrowedMathematicalEnclosure, PreparedMathematicalEnclosureEvaluator};

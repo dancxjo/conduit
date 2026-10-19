@@ -35,8 +35,15 @@ endpoints, width and the actual numerical policy parameters. Kernel Signs retain
 Plan/Play execution custody separately. The result record alone is not a
 self-authenticating producer certificate: a later independent consumer must
 verify its typed envelope and claims against retained source and requirements.
-The Core borrowed verifier provides recomputation of source/bounds/width claims;
-this slice does not claim a new universal certified-carrier protocol.
+`PreparedMathematicalEnclosureVerifier` prepares that exact schema and producer
+requirements, then borrows the incoming record and independently recomputes the
+source/bounds/width claims. It rejects changed schema, declared policy, source or
+claims and applies the receiving consumer's width separately. Its reserved
+validation allowance is charged before parsing; arithmetic and refused attempts
+also consume the caller's smaller prepared work ceiling. Storage admission counts
+the schema, container and evaluator scratch. It returns only recomputed fields.
+It attests numerical validity, not producer execution or physical/source authority,
+and does not introduce another projection/fidelity protocol.
 
 Before consuming input, the Back checks output pressure and fuel. Only a complete
 successful evaluation/encoding may stage output; the ordinary commit publishes
@@ -53,6 +60,21 @@ exact rational input succeeds using the same Host and Plan. These are dynamic
 input-consuming tests, distinct from the older startup-frozen numerical receipts.
 Raw logs retain their exact test/source identities; final validation is recorded
 separately rather than inferred from this description.
+
+The input-profile checkpoint passes all 852 Std library tests with 17 existing
+ignored tests, all 193 catalog tests, and strict Std/catalog all-target Clippy.
+The actual CLI corpus also executes an existing `math/radians(1°)` construction
+through the new consumer, checks source and requested-width equality in an
+ordinary inspected result, and reaches Completed with a verified Source/Plan
+identity. Its zero-width variant reaches the numerical Back and refuses with
+`InvalidInput`, detail 4, without success output. Ordered general
+`MathematicalValue` comparison is not assumed; actual endpoint/width inequalities
+are checked independently in the kernel corpus. Source-specific logs/bundles
+distinguish these checkpoints from subsequent verifier work and stable acceptance.
+Three independent Core record-verifier tests cover schema/extent/storage/work
+admission, source and claim forgery, changed policy, stronger/weak consumer limits,
+zero-width exact results, allocation-free refusals and recovery. The original
+input-profile checkpoint remains separate from this later verification API.
 
 There is no installed browser/no_std/device profile, machine-float computation,
 symbolic Quantity wire, separate Unit-coordinate projection, approximate-input
