@@ -1,0 +1,15 @@
+{
+  "source": "ddaf3e23f",
+  "exit_code": 0,
+  "command": "cargo test --locked -p conduit-kernel --features alloc",
+  "totals": {
+    "passed": 268,
+    "failed": 0,
+    "ignored": 6,
+    "measured": 0,
+    "filtered": 0
+  },
+  "result_blocks": 31,
+  "log_sha256": "6f417eaa3194a97118137936e7178886f430cebe83f14f338ae2205a4e399aab",
+  "scope": "Complete alloc-enabled kernel package on combined native-region+prepared-session source, including new native session composition regression. No fullworkspace claim."
+}
