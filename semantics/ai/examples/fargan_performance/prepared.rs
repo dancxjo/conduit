@@ -3,6 +3,9 @@ use super::{allocation, artifact, frame, plan, runtime, shared, state, timing, R
 use serde_json::json;
 #[path = "prepared_conformance.rs"]
 mod conformance;
+#[path = "prepared_profile.rs"]
+mod profiles;
+pub(super) use profiles::Profile;
 use std::{path::Path, time::Instant};
 fn observe(
     run: impl FnOnce(&mut dyn FnMut(), &mut dyn FnMut()) -> Option<runtime::EncodedResultAndTiming>,
@@ -103,8 +106,9 @@ pub(super) fn run(
     resources: &shared::Resources,
     oracle: &frame::Oracle,
     raw: &mut artifact::Raw,
-    compact_local: bool,
+    profile: Profile,
 ) -> Result<(), Box<dyn std::error::Error>> {
+    let compact_local = profile.local();
     let mut fresh_walls = Vec::new();
     let mut retained_walls = Vec::new();
     let mut previous_sign_count = 0;
@@ -117,14 +121,9 @@ pub(super) fn run(
             &plan,
         )?;
         let plan_sha = artifact::digest(&serde_json::to_vec(&plan)?);
-        let candidate = if compact_local {
+        let candidate = if let Some(numeric) = profile.numeric() {
             let (candidate, cold) = timing::measure(|| {
-                plan::prepare_entry_plan_profile(
-                    schema,
-                    &plan::source(),
-                    frame::ENTRY,
-                    plan::NumericProfile::CompactDagLocalExpressions,
-                )
+                plan::prepare_entry_plan_profile(schema, &plan::source(), frame::ENTRY, numeric)
             });
             raw.row(&json!({"phase":"candidate-check-expand-plan","repetition":repetition,"metrics":cold}))?;
             conformance::same_source(&plan, &candidate);
@@ -217,7 +216,7 @@ pub(super) fn run(
                 (f, r)
             };
             assert_eq!(actual.outputs, fresh.outputs, "paired frame {index}");
-            conformance::compare(&fresh, &actual, index, compact_local);
+            conformance::compare(&fresh, &actual, index, profile);
             previous_sign_count = actual.signs.len();
             assert_eq!(retained.kernel_address(), address);
             fresh_walls.push(fresh_metrics["whole_call_wall_ns"].as_u64().unwrap());
@@ -242,11 +241,7 @@ pub(super) fn run(
                         FrameKey {
                             repetition,
                             index,
-                            profile: if compact_local {
-                                "prepared-compact-local"
-                            } else {
-                                "prepared"
-                            },
+                            profile: profile.name(),
                             plan_sha: &candidate_sha,
                         },
                         &actual,
@@ -293,9 +288,9 @@ pub(super) fn run(
     }
     artifact::json(
         &output.join("summary.json"),
-        &json!({"schema":if compact_local { "conduit.fargan-compact-local-performance@1" } else { "conduit.fargan-prepared-performance@1" },"repetitions":repetitions,"frames_per_repetition":24,"prepared_final_disposal_measured":true,"compact_local":compact_local,
+        &json!({"schema":profile.schema(),"repetitions":repetitions,"frames_per_repetition":24,"prepared_final_disposal_measured":true,"compact_local":compact_local,"owners":profile.name(),
         "fresh_whole_call":timing::distribution(&fresh_walls),"prepared_whole_call":timing::distribution(&retained_walls),"source_sha256":artifact::digest(plan::source().as_bytes()),
-        "scope":"Paired full authored frame; production prepared kernel and owners, fixture acceptance controller; explicit compact pointwise DAG/local expression candidate when selected; not ordinary Body integration, realtime or intelligibility proof.",
+        "scope":"Paired full authored frame; production prepared kernel and owners, fixture acceptance controller; explicit compact pointwise or matrix/slice DAG/local expression candidate when selected; not ordinary Body integration, realtime or intelligibility proof.",
         "accounting":"Cold schema/model common; baseline and selected candidate Plan preparation disclosed separately; cold trajectory includes all evidence reservations; rearm includes staging clone; old evidence release and complete output acceptance/state advance separately measured; whole frame includes output decoding; fresh binding clones and final prepared-owner/session destruction separately disclosed. No hardware memory-traffic claim; canonical and native successful store counters reported per profile. Separate Plan IDs and raw full event logs retained; different physical schedules compare ordered per-node value transactions."}),
     )?;
     Ok(())

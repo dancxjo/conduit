@@ -40,7 +40,10 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         [fixture, output, repetitions, owners] => (fixture, output, repetitions, owners.as_str()),
         _ => return Err("internal worker expects fixture/output/repetitions/[owners]".into()),
     };
-    if !matches!(owners, "fresh" | "prepared" | "prepared-compact-local") {
+    if !matches!(
+        owners,
+        "fresh" | "prepared" | "prepared-compact-local" | "prepared-matrix-local"
+    ) {
         return Err("unknown owner profile".into());
     }
     let repetitions: u32 = repetitions.parse()?;
@@ -79,7 +82,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
             &resources,
             &oracle,
             &mut raw,
-            owners == "prepared-compact-local",
+            prepared_performance::Profile::from_name(owners)?,
         )?;
         raw.finish()?;
         return Ok(());

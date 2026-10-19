@@ -123,7 +123,18 @@ fn full_frame_selected_matrix_dags_match_canonical_and_unfused_outputs() {
 #[test]
 #[ignore = "requires explicitly supplied private model and pinned full-float C oracle"]
 fn pinned_matrix_dag_trajectory_matches_canonical_fresh_and_oracle() {
-    crate::on_large_stack(|| {
+    pinned_profiles(
+        NumericProfile::CanonicalMatrixDag,
+        NumericProfile::CompactMatrixDag,
+        false,
+    );
+}
+pub(super) fn pinned_profiles(
+    canonical_profile: NumericProfile,
+    compact_profile: NumericProfile,
+    local: bool,
+) {
+    crate::on_large_stack(move || {
         use crate::runtime::session::PreparedTrajectory;
         use conduit_core::bind_active_play;
         let root = std::path::PathBuf::from(
@@ -134,14 +145,9 @@ fn pinned_matrix_dag_trajectory_matches_canonical_fresh_and_oracle() {
         let oracle = oracle(&root);
         assert_eq!(oracle.cases.len(), 24);
         let unfused = prepare_entry_plan(&schema, &source(), ENTRY);
-        let canonical_plan = prepare_entry_plan_profile(
-            &schema,
-            &source(),
-            ENTRY,
-            NumericProfile::CanonicalMatrixDag,
-        );
-        let compact_plan =
-            prepare_entry_plan_profile(&schema, &source(), ENTRY, NumericProfile::CompactMatrixDag);
+        let canonical_plan =
+            prepare_entry_plan_profile(&schema, &source(), ENTRY, canonical_profile);
+        let compact_plan = prepare_entry_plan_profile(&schema, &source(), ENTRY, compact_profile);
         assert_eq!(unfused.source_document_id, compact_plan.source_document_id);
         assert_eq!(
             unfused.source_document_id,
@@ -209,8 +215,16 @@ fn pinned_matrix_dag_trajectory_matches_canonical_fresh_and_oracle() {
             );
             for node in 0..768 {
                 assert_eq!(
-                    logical(&fresh.signs, node),
-                    logical(&result.signs, node),
+                    if local {
+                        super::local_expression_tests::value_transactions(&fresh.signs, node)
+                    } else {
+                        logical(&fresh.signs, node)
+                    },
+                    if local {
+                        super::local_expression_tests::value_transactions(&result.signs, node)
+                    } else {
+                        logical(&result.signs, node)
+                    },
                     "unfused node {node} frame {index}"
                 );
             }
@@ -219,6 +233,10 @@ fn pinned_matrix_dag_trajectory_matches_canonical_fresh_and_oracle() {
                 addresses
             );
             assert_eq!(result.work.compact_values, 236);
+            if local {
+                assert_eq!(result.work.expression_calls, 0);
+                assert_eq!(result.work.local_expression_calls, 207);
+            }
             if let Some(expected) = expected_values {
                 assert_eq!(result.work.compact_values, expected);
             }
@@ -270,7 +288,7 @@ fn pinned_matrix_dag_trajectory_matches_canonical_fresh_and_oracle() {
         }
         assert!(pcm_error < 0.002 && state_error < 0.05 && history_error < 0.001);
         assert_eq!(native_values, 24 * expected_values.unwrap());
-        eprintln!("pinned matrix DAG: 24 frames; exact all outputs/fresh per-node logical transactions/same-DAG complete Signs; {native_values} native values, {native_bytes} physical lane bytes, {avoided_canonical_bytes} avoided canonical bytes; PCM max_abs={pcm_error}; state max_abs={state_error}; history max_abs={history_error}. Diagnostic conformance, not a speed or hardware-traffic claim.");
+        eprintln!("pinned matrix DAG local={local}: 24 frames; exact all outputs/fresh per-node logical transactions/same-DAG complete Signs; {native_values} native values, {native_bytes} physical lane bytes, {avoided_canonical_bytes} avoided canonical bytes; PCM max_abs={pcm_error}; state max_abs={state_error}; history max_abs={history_error}. Diagnostic conformance, not a speed or hardware-traffic claim.");
     });
 }
 
