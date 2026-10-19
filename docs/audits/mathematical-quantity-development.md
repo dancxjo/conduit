@@ -957,3 +957,30 @@ Generic report metadata/domain inspection, native/exact general report transport
 complete resource and target proof, public admission and stable acceptance remain
 open. The original 93-row parent audit remains unchanged; this checkpoint closes
 no parent requirement.
+
+### General evidence inventory reader (private preparation)
+
+`inspect_projection_evidence` now provides a borrowed, allocation-free view of
+all generic wire claims. It retains the codec and contract identities, exact
+policy configuration digest, report basis and boundary, opaque complete domain
+payloads, every fact, unknown native payload, original and normalized score,
+admitted realization, attempt and fallback reason, diagnostics and claimed
+summary. Counts, text, blobs and total extent have finite bounds; malformed tags,
+truncation, trailing bytes and inconsistent summary inventory refuse.
+
+The view is deliberately distinct from an admitted `ProjectionReport`. Decoding
+an opaque changed source can succeed while independent admitted-report comparison
+refuses it. No target-consumption gate accepts the inspection view. The focused
+reader suite passes all 18 projection tests, including traversal with zero
+observed allocations, every-byte mutation without a reader panic, terminal
+outcomes, hostile extents and the independent wire golden. Both CLI tests pass,
+including rejection of a malformed report whose outer digest is consistently
+recomputed. Core checks without default features. Final workspace lint and the
+final test-helper rerun remain pending at this preparation checkpoint.
+
+Ordinary routed-value inspection is connected to this reader for the exact
+mathematical enclosed-binary32 Near producer profile. Its output labels the
+inventory as report claims and states that policy and domain claims are not
+validated. Domain payloads remain opaque here; numerical semantic inspection and
+other report-producing profiles remain open. This preparation does not change
+runtime numerical verification or the original parent acceptance audit.

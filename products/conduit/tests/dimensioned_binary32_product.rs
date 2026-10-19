@@ -229,6 +229,36 @@ fn assert_chain(source: &str) {
             String::from_utf8_lossy(&inspected.stderr)
         );
         assert!(String::from_utf8_lossy(&inspected.stdout).contains("byte correlation verified"));
+        assert!(String::from_utf8_lossy(&inspected.stdout).contains("Projection report claims"));
+        assert!(String::from_utf8_lossy(&inspected.stdout)
+            .contains("policy and domain claims not validated"));
+        // Correlation is separate from report framing: a consistently rehashed
+        // unknown report version still refuses ordinary inspection.
+        let report_start =
+            report.value_node().as_ptr() as usize - value.bytes.as_ptr() as usize + 5;
+        let mut malformed_report = value.clone();
+        malformed_report.bytes[report_start + 3] = 2;
+        let digest = conduit_core::semantic_digest(
+            "conduit/routed-value-content@1",
+            &malformed_report.bytes,
+        );
+        if let ObservationKind::RoutedContent { evidence } = &mut malformed_report.sign.sign.kind {
+            evidence.digest = digest;
+        }
+        conduit_observatory::validate_routed_value_artifact(&malformed_report).unwrap();
+        let malformed_path = path.join("malformed-report.json");
+        std::fs::write(
+            &malformed_path,
+            serde_json::to_vec(&malformed_report).unwrap(),
+        )
+        .unwrap();
+        let refused = Command::new(env!("CARGO_BIN_EXE_conduit"))
+            .arg("inspect")
+            .arg(&malformed_path)
+            .output()
+            .unwrap();
+        assert!(!refused.status.success());
+        assert!(String::from_utf8_lossy(&refused.stderr).contains("projection evidence framing"));
         let mut forged = value.clone();
         forged.bytes[0] ^= 1;
         let forged_path = path.join("forged-value.json");

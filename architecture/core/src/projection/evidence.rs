@@ -4,6 +4,8 @@
 //! arbitrary bytes and their digest do not establish semantic validity.
 use super::*;
 mod encode;
+mod read;
+pub use read::*;
 mod writer;
 pub use writer::ProjectionEvidenceWriter;
 

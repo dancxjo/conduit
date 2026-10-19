@@ -3,6 +3,8 @@
 use conduit_observatory::{build_report, render_text_report};
 use std::path::Path;
 
+mod projection;
+
 const MAX_ARTIFACT_BYTES: usize = 8 * 1024 * 1024;
 const BODY_BIOGRAPHY_SCHEMA: &str = "conduit.body/biography-evidence@2";
 
@@ -189,11 +191,13 @@ fn inspect_value(bytes: &[u8]) -> Result<String, String> {
     let artifact: conduit_observatory::RoutedValueArtifact = serde_json::from_slice(bytes)
         .map_err(|error| format!("decode routed value artifact: {error}"))?;
     conduit_observatory::validate_routed_value_artifact(&artifact)?;
-    Ok(format!("Routed value\nSign {}\nPlay {}\nPlan {}\nkind {}\nbytes {}\nbyte correlation verified\nsemantic validation not performed\n",
+    let mut output = format!("Routed value\nSign {}\nPlay {}\nPlan {}\nkind {}\nbytes {}\nbyte correlation verified\nsemantic validation not performed\n",
         artifact.sign.identity.sign_id.as_str(),
         artifact.sign.identity.active_play_id.as_ref().unwrap().as_str(),
         artifact.sign.sign.plan_id.as_ref().unwrap().as_str(),
-        artifact.value_kind.as_str(), artifact.bytes.len()))
+        artifact.value_kind.as_str(), artifact.bytes.len());
+    output.push_str(&projection::render(&artifact)?);
+    Ok(output)
 }
 
 #[cfg(test)]

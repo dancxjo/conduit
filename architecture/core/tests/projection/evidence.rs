@@ -7,6 +7,8 @@ mod allocation_probe;
 #[path = "evidence/support.rs"]
 mod support;
 use support::*;
+#[path = "evidence/reader.rs"]
+mod reader;
 
 #[test]
 fn complete_inventory_scores_attempts_and_unknown_native_bytes_survive_canonical_verification() {
@@ -111,11 +113,13 @@ fn complete_inventory_scores_attempts_and_unknown_native_bytes_survive_canonical
         for i in 0..n {
             wire[i] ^= 1;
             assert!(verify_projection_evidence(&report, &codec, limits(), &wire[..n]).is_err());
+            let _ = inspect_projection_evidence(&wire[..n]);
             wire[i] ^= 1;
         }
         n
     });
     assert_eq!(allocations, 0);
+    reader::complete_inventory(&wire[..length]);
     assert!(wire[..length]
         .windows(native[0].bytes.len())
         .any(|w| w == native[0].bytes));
@@ -232,6 +236,9 @@ fn terminal_mechanisms_remain_distinct_without_a_target_or_fabricated_success() 
         let mut bytes = [0; 4096];
         let length = encode_projection_evidence(&report, &codec, limits(), &mut bytes).unwrap();
         verify_projection_evidence(&report, &codec, limits(), &bytes[..length]).unwrap();
+        let decoded = inspect_projection_evidence(&bytes[..length]).unwrap();
+        assert_eq!(decoded.mechanism, outcome);
+        assert_eq!(decoded.claimed_summary, report.summary());
         let digest = projection_evidence_digest(&bytes[..length]).unwrap();
         assert_ne!(prior, Some(digest));
         prior = Some(digest);
