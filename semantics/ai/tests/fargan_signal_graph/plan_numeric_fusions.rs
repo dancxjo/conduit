@@ -12,6 +12,25 @@ pub enum NumericProfile {
     Unfused,
     CanonicalDag,
     CompactDag,
+    LocalExpressions,
+    CompactDagLocalExpressions,
+}
+impl NumericProfile {
+    pub fn local_expressions(self) -> bool {
+        matches!(
+            self,
+            Self::LocalExpressions | Self::CompactDagLocalExpressions
+        )
+    }
+    pub fn dags(self) -> bool {
+        matches!(
+            self,
+            Self::CanonicalDag | Self::CompactDag | Self::CompactDagLocalExpressions
+        )
+    }
+    fn compact(self) -> bool {
+        matches!(self, Self::CompactDag | Self::CompactDagLocalExpressions)
+    }
 }
 pub fn offers(
     authoring: &ExpandedAuthoringPlot,
@@ -121,7 +140,7 @@ pub fn offers(
         if pairs.len() != cords.len() {
             continue;
         } // the current generic offer identifies each Cord by its pair
-        let compact = profile == NumericProfile::CompactDag;
+        let compact = profile.compact();
         result.push(FusionRealizationOffer {
             fusion_id: format!(
                 "fargan-pointwise/{}/{}",

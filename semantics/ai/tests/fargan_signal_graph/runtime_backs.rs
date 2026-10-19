@@ -16,6 +16,8 @@ pub struct WorkTiming {
     pub steps: u64,
     pub expressions: Duration,
     pub expression_calls: u64,
+    pub local_expressions: Duration,
+    pub local_expression_calls: u64,
     pub signs: usize,
     pub scheduler_bytes: usize,
     pub canonical_values: u64,

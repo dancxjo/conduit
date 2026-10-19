@@ -53,6 +53,16 @@ impl PreparedTrajectory {
             phase: Phase::Prepared,
         }
     }
+    pub fn cancel(&mut self) -> Result<(), &'static str> {
+        self.phase = Phase::Faulted;
+        self.prepared
+            .scheduler
+            .cancel()
+            .map_err(|_| "kernel cancellation refused")
+    }
+    pub fn retained_signs(&self) -> impl Iterator<Item = KernelEvent> + '_ {
+        self.prepared.scheduler.signs().events()
+    }
     pub fn active(&self) -> &ActivePlayIdentity {
         &self.active
     }

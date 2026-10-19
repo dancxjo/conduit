@@ -22,6 +22,12 @@ impl std::ops::Deref for ExecutionKernel {
     }
 }
 impl ExecutionKernel {
+    pub(super) fn cancel(&mut self) -> Result<(), SchedulerError> {
+        match self {
+            Self::Fresh(kernel) => kernel.cancel(),
+            Self::Reusable(kernel) => kernel.cancel(),
+        }
+    }
     pub(super) fn step(&mut self) -> Result<SchedulerStatus, SchedulerError> {
         match self {
             Self::Fresh(k) => k.step(),
