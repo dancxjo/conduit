@@ -85,6 +85,12 @@ impl PureExpressionHost {
                 conduit_plot::PreparedPortableExpressionEvaluator::new_with_exact_quantities(
                     &program,
                 )
+            } else if placement.execution_profile_id.as_str()
+                == conduit_std_offers::PURE_MATHEMATICAL_ANGLE_STD_PROFILE
+            {
+                conduit_plot::PreparedPortableExpressionEvaluator::new_with_mathematical_angles(
+                    &program,
+                )
             } else {
                 conduit_plot::PreparedPortableExpressionEvaluator::new(&program)
             }
@@ -159,6 +165,10 @@ fn validate_placement(
         == conduit_std_offers::PURE_EXACT_QUANTITY_STD_PROFILE
     {
         conduit_std_offers::pure_exact_quantity_std_offer(program, temporal)?
+    } else if placement.execution_profile_id.as_str()
+        == conduit_std_offers::PURE_MATHEMATICAL_ANGLE_STD_PROFILE
+    {
+        conduit_std_offers::pure_mathematical_angle_std_offer(program, temporal)?
     } else {
         let result =
             if placement.kind_contract_revision.as_str() == conduit_plot::PURE_FILTER_REVISION {
@@ -198,6 +208,9 @@ fn validate_placement(
         || placement.inputs != offer.inputs
         || placement.outputs != offer.outputs
         || placement.host_calls != offer.host_calls
+        || (placement.execution_profile_id.as_str()
+            == conduit_std_offers::PURE_MATHEMATICAL_ANGLE_STD_PROFILE
+            && placement.limits != offer.limits)
         || (placement.implementation_id.as_str()
             == conduit_std_offers::PURE_SCALAR_TAPE_STD_IMPLEMENTATION
             && placement.realization_properties != offer.realization_properties)
@@ -328,3 +341,7 @@ mod scalar_tape_parity_tests;
 #[cfg(test)]
 #[path = "pure_expression_back/exact_quantity_tests.rs"]
 mod exact_quantity_tests;
+
+#[cfg(test)]
+#[path = "pure_expression_back/mathematical_angle_tests.rs"]
+mod mathematical_angle_tests;

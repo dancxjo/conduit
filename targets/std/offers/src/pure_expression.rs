@@ -192,3 +192,6 @@ pub use quantity_expression::*;
 
 mod value_contract_bounds;
 pub use value_contract_bounds::pure_expression_value_contract_bounds_profile;
+
+mod mathematical_angle;
+pub use mathematical_angle::*;

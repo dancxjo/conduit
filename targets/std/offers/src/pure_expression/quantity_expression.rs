@@ -61,14 +61,17 @@ pub fn pure_exact_quantity_std_offer(
         },
         Ok,
     )?;
-    let bounds = bounds_property(&[
-        ("maximum-nodes", nodes as u64),
-        ("maximum-depth", depth as u64),
-        ("retained-prepared-payload-ceiling-bytes", payload as u64),
-        ("maximum-numerical-work", work),
-        ("maximum-input-bytes", u64::from(input)),
-        ("output-capacity-bytes", evaluator.output_capacity() as u64),
-    ])?;
+    let bounds = bounds_property(
+        "std/exact-quantity-expression-bounds@1",
+        &[
+            ("maximum-nodes", nodes as u64),
+            ("maximum-depth", depth as u64),
+            ("retained-prepared-payload-ceiling-bytes", payload as u64),
+            ("maximum-numerical-work", work),
+            ("maximum-input-bytes", u64::from(input)),
+            ("output-capacity-bytes", evaluator.output_capacity() as u64),
+        ],
+    )?;
     offer.realization_properties.extend([wire, bounds]);
     offer
         .realization_properties
@@ -112,11 +115,14 @@ fn has_quantity_operation(
         _ => false,
     })
 }
-fn bounds_property(fields: &[(&str, u64)]) -> Result<StructuredConfigurationValue, String> {
+pub(super) fn bounds_property(
+    schema: &str,
+    fields: &[(&str, u64)],
+) -> Result<StructuredConfigurationValue, String> {
     let build = || -> Result<_, conduit_core::StructuredInfoRefusal> {
         let integer = StructuredInfoType::leaf(kind_id("value/u64"))?;
         let ty = StructuredInfoType::record(
-            kind_id("std/exact-quantity-expression-bounds@1"),
+            kind_id(schema),
             fields
                 .iter()
                 .map(|(name, _)| StructuredFieldType::new(*name, integer.clone()))
