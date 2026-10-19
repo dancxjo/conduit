@@ -260,3 +260,80 @@ fn owner_checkpoint_stops_each_logical_frontier_inside_a_compact_region() {
         );
     }
 }
+
+#[test]
+fn explicit_external_canonical_input_preserves_exact_transactions_and_zero_play_allocations() {
+    let mut canonical = prepare_canonical_input(1, PortId(0));
+    let mut compact = prepare_canonical_input(1, PortId(0));
+    assert_eq!(
+        compact.bind_compact_f32_dag(&nodes()),
+        Err(SchedulerError::InvalidPlan)
+    );
+    assert_eq!(compact.compact_f32_binding_bytes(), 0);
+    compact
+        .bind_compact_f32_dag_with_canonical_inputs(&nodes(), &[(NodeId(1), PortId(0))])
+        .unwrap();
+    let (_, alloc) = allocation_probe::observe(|| {
+        finish(&mut canonical);
+        finish(&mut compact);
+    });
+    assert_eq!((alloc.allocations, alloc.reallocations), (0, 0));
+    assert_eq!(compact.drivers()[5].result, Some([9., 6.]));
+    assert_eq!(compact.drivers()[5].result, canonical.drivers()[5].result);
+    assert_eq!(
+        compact.signs().events().collect::<Vec<_>>(),
+        canonical.signs().events().collect::<Vec<_>>()
+    );
+    assert_eq!(
+        compact.logical_invocations(),
+        canonical.logical_invocations()
+    );
+    assert!(compact.decisions() < canonical.decisions());
+    assert_eq!(
+        (
+            compact.values().canonical,
+            compact.values().compact,
+            compact.values().physical
+        ),
+        (2, 3, 24)
+    );
+    assert_eq!(compact.values().used_items(), 0);
+}
+
+#[test]
+fn canonical_input_declarations_refuse_conflicts_internal_edges_and_invalid_ports_atomically() {
+    let requests = [
+        vec![(NodeId(1), PortId(0)), (NodeId(1), PortId(0))],
+        vec![(NodeId(1), PortId(1))],
+        vec![(NodeId(1), PortId(2))],
+        vec![(NodeId(5), PortId(0))],
+        vec![(NodeId(6), PortId(0))],
+    ];
+    for request in requests {
+        let mut play = prepare_canonical_input(1, PortId(0));
+        assert_eq!(
+            play.bind_compact_f32_dag_with_canonical_inputs(&nodes(), &request),
+            Err(SchedulerError::InvalidPlan)
+        );
+        assert_eq!(play.compact_f32_binding_bytes(), 0);
+        finish(&mut play);
+        assert_eq!(play.values().compact, 0);
+        assert_eq!(play.drivers()[5].result, Some([9., 6.]));
+    }
+    for (mut play, declaration) in [
+        (prepare(true, 0, None, None), (NodeId(1), PortId(0))),
+        (
+            prepare_canonical_input(2, PortId(0)),
+            (NodeId(2), PortId(0)),
+        ),
+    ] {
+        assert_eq!(
+            play.bind_compact_f32_dag_with_canonical_inputs(&nodes(), &[declaration]),
+            Err(SchedulerError::InvalidPlan)
+        );
+        assert_eq!(play.compact_f32_binding_bytes(), 0);
+        finish(&mut play);
+        assert_eq!(play.values().compact, 0);
+        assert_eq!(play.drivers()[5].result, Some([9., 6.]));
+    }
+}

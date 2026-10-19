@@ -115,6 +115,17 @@ where
     /// outputs stay canonical. Physical continuation follows the existing kernel
     /// Step loop; every logical Step, queue transaction and Sign still runs.
     pub fn bind_compact_f32_dag(&mut self, nodes: &[NodeId]) -> Result<(), SchedulerError> {
+        self.bind_compact_f32_dag_with_canonical_inputs(nodes, &[])
+    }
+    /// Keep explicitly named external inputs canonical, such as an immutable
+    /// tensor reference. Host/Plan preparation still proves each exact typed
+    /// port, semantic eligibility and resource authority. This does not grant
+    /// resource access or permit compact producers to feed canonical-only ports.
+    pub fn bind_compact_f32_dag_with_canonical_inputs(
+        &mut self,
+        nodes: &[NodeId],
+        canonical_inputs: &[(NodeId, PortId)],
+    ) -> Result<(), SchedulerError> {
         if !(2..=32).contains(&nodes.len())
             || self.decisions != 0
             || self.cancelled
@@ -127,6 +138,31 @@ where
             .len()
             .checked_mul(P)
             .ok_or(SchedulerError::InvalidPlan)?;
+        if canonical_inputs.len() > capacity {
+            return Err(SchedulerError::InvalidPlan);
+        }
+        for (ordinal, &(node, port)) in canonical_inputs.iter().enumerate() {
+            let n = usize::from(node.0);
+            let p = usize::from(port.0);
+            if !nodes.contains(&node)
+                || n >= self.active_nodes
+                || p >= P
+                || canonical_inputs[..ordinal].contains(&(node, port))
+                || self.drivers[n].compact_f32_input(port).is_some()
+            {
+                return Err(SchedulerError::InvalidPlan);
+            }
+            let cord = self.node_specs[n].input_cords[p]
+                .and_then(|cord| self.cord_specs[..self.active_cords].get(usize::from(cord.0)))
+                .ok_or(SchedulerError::InvalidPlan)?;
+            if cord.sink_local() != Some((node, port))
+                || cord
+                    .source_local()
+                    .is_none_or(|(source, _)| nodes.contains(&source))
+            {
+                return Err(SchedulerError::InvalidPlan);
+            }
+        }
         let mut outputs = Vec::with_capacity(nodes.len());
         let mut inputs = Vec::with_capacity(capacity);
         for (ordinal, node) in nodes.iter().enumerate() {
@@ -156,10 +192,12 @@ where
             }
             for (p, cord) in self.node_specs[n].input_cords.iter().enumerate() {
                 if cord.is_some() {
-                    self.drivers[n]
-                        .compact_f32_input(PortId(as_u16(p)?))
-                        .ok_or(SchedulerError::InvalidPlan)?
-                        .physical_bytes()?;
+                    let port = PortId(as_u16(p)?);
+                    if let Some(layout) = self.drivers[n].compact_f32_input(port) {
+                        layout.physical_bytes()?;
+                    } else if !canonical_inputs.contains(&(*node, port)) {
+                        return Err(SchedulerError::InvalidPlan);
+                    }
                 }
             }
             let outgoing = || {
