@@ -126,6 +126,18 @@ pub(super) fn prepare(
                     timing: timing.clone(),
                 }))
             });
+        } else if gear.implementation_id.as_str()
+            == conduit_semantic_catalog::EXPRESSION_VALUE_IMPLEMENTATION
+        {
+            let back = super::local_expressions::TimedExpression {
+                back: conduit_semantic_catalog::prepare_expression_value(gear).unwrap(),
+                timing: timing.clone(),
+            };
+            drivers.push(if reuse {
+                Driver::ReusableOperation(Box::new(back))
+            } else {
+                Driver::Operation(Box::new(back))
+            });
         } else if gear.implementation_id.as_str() == conduitos::expression_host_call::IMPLEMENTATION
         {
             let owner = expressions.prepare(&gear.placement_id).unwrap();

@@ -24,6 +24,8 @@ pub use backs::WorkTiming;
 use backs::{Driver, TimedNumeric};
 #[path = "runtime_execution_kernel.rs"]
 mod execution_kernel;
+#[path = "runtime_local_expressions.rs"]
+mod local_expressions;
 #[path = "runtime_prepared.rs"]
 mod prepared;
 #[path = "runtime_session.rs"]

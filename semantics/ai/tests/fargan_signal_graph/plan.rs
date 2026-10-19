@@ -158,7 +158,11 @@ pub fn prepare_entry_plan_profile(
             assert_eq!(entry.key, "program");
             let program =
                 conduit_plot::PortableExpressionProgram::from_canonical_hex(encoded).unwrap();
-            Some(conduitos::expression_host_call::offer(&program, PortTemporal::Value).unwrap())
+            Some(if numeric.local_expressions() {
+                conduit_semantic_catalog::prepared_expression_value_offer(&program).unwrap()
+            } else {
+                conduitos::expression_host_call::offer(&program, PortTemporal::Value).unwrap()
+            })
         } else {
             None
         };
@@ -214,7 +218,7 @@ pub fn prepare_entry_plan_profile(
             },
         );
     }
-    if numeric != NumericProfile::Unfused {
+    if numeric.dags() {
         let (offers, kinds) = numeric_fusions::offers(&authoring, &hosts[0], &placements, numeric);
         assert!(!offers.is_empty());
         let options = conduit_planner::PlanningOptions {
