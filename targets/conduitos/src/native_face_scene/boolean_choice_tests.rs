@@ -35,6 +35,64 @@ fn fixture() -> (BirthDraft, BirthFaceBasis) {
     )
 }
 
+#[test]
+fn subject_name_stays_primary_when_boolean_association_is_absent() {
+    let (draft, basis) = fixture();
+    let mut face = draft.face(&basis).unwrap();
+    let action = face
+        .actions
+        .iter()
+        .find(|a| a.identity == "creche.plot.0")
+        .unwrap();
+    let target = action.target.clone();
+    let name = face
+        .subjects
+        .iter()
+        .find(|s| s.identity == target)
+        .unwrap()
+        .name
+        .clone();
+    let (primary, _) = document::prepare(&face, true).unwrap();
+    let named: Vec<_> = primary.iter().filter(|row| row.text == name).collect();
+    assert_eq!(named.len(), 1);
+    assert!(named[0].checkbox.is_some());
+
+    // A separately supplied completion fact is distinct from selection. Its
+    // decorated heading must survive even when a checkbox names the subject.
+    let mut completion = face.clone();
+    completion
+        .subjects
+        .iter_mut()
+        .find(|s| s.identity == target)
+        .unwrap()
+        .role = conduit_face::FaceRole::Item;
+    completion.properties.push(conduit_face::FaceProperty {
+        subject: target.clone(),
+        name: "complete".into(),
+        value: FacePropertyValue::Flag(true),
+    });
+    let original_basis = completion.basis.clone();
+    let completion = completion.with_basis(original_basis).unwrap();
+    let (distinct, _) = document::prepare(&completion, true).unwrap();
+    assert!(distinct.iter().any(|row| row.text == format!("[x] {name}")));
+    assert!(
+        distinct
+            .iter()
+            .any(|row| row.text == name && row.checkbox.is_some())
+    );
+
+    face.properties
+        .retain(|property| property.subject != target || property.name != "boolean-change-action");
+    let original_basis = face.basis.clone();
+    let face = face.with_basis(original_basis).unwrap();
+    let (fallback, _) = document::prepare(&face, true).unwrap();
+    assert!(
+        fallback
+            .iter()
+            .any(|row| { row.text == name && row.control.is_none() && row.checkbox.is_none() })
+    );
+}
+
 fn key(usage: u8) -> KeyEvent {
     KeyEvent::new(usage, KeyTransition::Pressed, KeyModifiers::NONE).unwrap()
 }

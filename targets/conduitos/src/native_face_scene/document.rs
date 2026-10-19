@@ -180,10 +180,16 @@ pub(super) fn prepare(
             FaceRole::Region | FaceRole::Collection => GraphicsPaintRole::Accent,
             _ => GraphicsPaintRole::Foreground,
         };
-        let bound_text_field = face.actions.iter().enumerate().any(|(index, action)| {
-            action.target == subject.identity && super::text_field::current(face, index).is_some()
+        // An exactly associated field/checkbox row already carries this
+        // subject's name. Keep the complete named subject in Details without
+        // displaying a second primary expression of that same name.
+        let named_control = face.actions.iter().enumerate().any(|(index, action)| {
+            action.target == subject.identity
+                && (super::text_field::current(face, index).is_some()
+                    || (heading.text == subject.name
+                        && super::boolean_choice::selected(face, index).is_some()))
         });
-        if !bound_text_field {
+        if !named_control {
             append(heading);
         }
         // The source-supplied Body status follows its name. This presents the

@@ -99,57 +99,59 @@ fn full_inventory_fixture_keeps_long_and_empty_names_and_filtered_review_readabl
         .collect();
     let mut draft =
         BirthDraft::new("550e8400-e29b-41d4-a716-446655440000".into(), choices).unwrap();
-    draft.search_plots(draft.revision(), "no-match").unwrap();
     let provider = crate::product_bases::fixture_surface_provider();
-    for name in ["É".repeat(32), alloc::string::String::new()] {
-        draft.edit_name(draft.revision(), name.clone()).unwrap();
-        let mut mask = NativeFaceMask::prepare_creche(
-            "host/creche-bounds".into(),
-            "boot/creche-bounds".into(),
-            OfferGeneration(1),
-            "creche-bounds",
-            provider.entry.base_id.clone(),
-            "surface/creche-bounds",
-            &provider,
-            CrecheComponentRecipe::ResponsiveColumns,
-        )
-        .unwrap();
-        let face = draft
-            .face(&mask.birth_basis("arrival/creche-bounds"))
-            .unwrap();
-        let mut pixels = Pixels::new(320, 240);
-        mask.present(face.clone(), 1, 1, &mut pixels).unwrap();
-        assert_eq!(mask.component_fallback(), None);
-        let mut words = alloc::string::String::new();
-        let mut birth_hit = false;
-        for page in 0..mask.scene().unwrap().pages() {
-            let frame = mask.scene().unwrap().frame().unwrap();
-            assert!(frame.scene.commands().len() <= conduit_face::MAX_GRAPHICS_COMMANDS);
-            for command in frame.scene.commands() {
-                words.push_str(command.payload());
-            }
-            birth_hit |= frame
-                .hits
-                .iter()
-                .any(|hit| hit.action.identity == "creche.birth");
-            mask.key(
-                KeyEvent::new(78, KeyTransition::Pressed, KeyModifiers::NONE).unwrap(),
-                page as u64 + 2,
-                &mut pixels,
+    for query in ["", "no-match"] {
+        draft.search_plots(draft.revision(), query).unwrap();
+        for name in ["É".repeat(32), alloc::string::String::new()] {
+            draft.edit_name(draft.revision(), name.clone()).unwrap();
+            let mut mask = NativeFaceMask::prepare_creche(
+                "host/creche-bounds".into(),
+                "boot/creche-bounds".into(),
+                OfferGeneration(1),
+                "creche-bounds",
+                provider.entry.base_id.clone(),
+                "surface/creche-bounds",
+                &provider,
+                CrecheComponentRecipe::ResponsiveColumns,
             )
             .unwrap();
+            let face = draft
+                .face(&mask.birth_basis("arrival/creche-bounds"))
+                .unwrap();
+            let mut pixels = Pixels::new(320, 240);
+            mask.present(face.clone(), 1, 1, &mut pixels).unwrap();
+            assert_eq!(mask.component_fallback(), None);
+            let mut words = alloc::string::String::new();
+            let mut birth_hit = false;
+            for page in 0..mask.scene().unwrap().pages() {
+                let frame = mask.scene().unwrap().frame().unwrap();
+                assert!(frame.scene.commands().len() <= conduit_face::MAX_GRAPHICS_COMMANDS);
+                for command in frame.scene.commands() {
+                    words.push_str(command.payload());
+                }
+                birth_hit |= frame
+                    .hits
+                    .iter()
+                    .any(|hit| hit.action.identity == "creche.birth");
+                mask.key(
+                    KeyEvent::new(78, KeyTransition::Pressed, KeyModifiers::NONE).unwrap(),
+                    page as u64 + 2,
+                    &mut pixels,
+                )
+                .unwrap();
+            }
+            assert!(words.contains(&alloc::format!(
+                "Friendly Body name: {}",
+                if name.is_empty() { "(empty)" } else { &name }
+            )));
+            for choice in draft.choices() {
+                assert!(
+                    words.contains(&choice.title),
+                    "lost full Plot name with query {query:?}"
+                );
+            }
+            assert_eq!(birth_hit, !name.is_empty());
+            assert_eq!(mask.scene().unwrap().face(), &face);
         }
-        assert!(words.contains(&alloc::format!(
-            "Friendly Body name: {}",
-            if name.is_empty() { "(empty)" } else { &name }
-        )));
-        for choice in draft.choices() {
-            assert!(
-                words.contains(&choice.title),
-                "lost selected Plot from filtered review"
-            );
-        }
-        assert_eq!(birth_hit, !name.is_empty());
-        assert_eq!(mask.scene().unwrap().face(), &face);
     }
 }

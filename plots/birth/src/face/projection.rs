@@ -311,6 +311,20 @@ impl Projection {
                         name: option.label.clone(),
                     });
                     self.relationships.push(contains(&subject, &id));
+                    // Independent selection is already primary typed meaning.
+                    // Keep its readable fallback explicitly inspectable without
+                    // requiring any Mask to infer state from these words.
+                    let selection_details = format!("{id}/selection-details");
+                    self.subjects.push(FaceSubject {
+                        identity: selection_details.clone(),
+                        role: FaceRole::Info,
+                        name: format!("{} selection details", option.label),
+                    });
+                    self.relationships.push(contains(&id, &selection_details));
+                    self.disclosures.push(FaceDisclosure {
+                        subject: selection_details.clone(),
+                        level: FaceDisclosureLevel::SelectedDetail,
+                    });
                     self.properties.push(FaceProperty {
                         subject: id.clone(),
                         name: "selected".into(),
@@ -329,7 +343,7 @@ impl Projection {
                         });
                     }
                     self.words(
-                        &id,
+                        &selection_details,
                         if option.selected {
                             "Included.".into()
                         } else {
