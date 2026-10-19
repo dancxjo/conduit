@@ -15,12 +15,14 @@ export function recordAvrIdentities(root = process.cwd()) {
   const receiptPath = path.join(base, 'core-verification.json');
   assert(statSync(receiptPath).size <= 32 * 1024 * 1024, 'AVR receipt exceeds bound');
   const receipt = JSON.parse(readFileSync(receiptPath, 'utf8'));
-  assert.equal(receipt.schema, 'conduit.avr-core-installation/v1');
+  assert.equal(receipt.schema, 'conduit.avr-core-installation/v2');
   assert.equal(receipt.arduino, '1.8.8');
   assert.equal(receipt.sparkfun, '1.1.13');
+  assert.equal(Object.keys(receipt.archives || {}).length, 5, 'AVR receipt must identify all pinned archives');
   assert(receipt.files && Object.keys(receipt.files).length > 0, 'AVR receipt omitted installed content');
   recordTool('avr-core-installation', {
-    arduino: receipt.arduino, sparkfun: receipt.sparkfun,
+    arduino: receipt.arduino, sparkfun: receipt.sparkfun, archives: receipt.archives,
+    trust: 'reviewed-official-archive-sha256',
     sha256: digest(receiptPath), files: Object.keys(receipt.files).length,
   });
 

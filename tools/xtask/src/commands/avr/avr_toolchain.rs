@@ -6,6 +6,8 @@ use std::{
 
 use super::{require_success, sha256_file};
 
+#[path = "avr_toolchain/core_archives.rs"]
+mod core_archives;
 #[path = "avr_toolchain/core_receipt.rs"]
 mod core_receipt;
 
@@ -85,22 +87,7 @@ pub(super) fn verify_cores(cli: &Path, root: &Path) -> Result<(), Box<dyn std::e
     if core_receipt::verify(root)? {
         return Ok(());
     }
-    let config = config_path(root);
-    let update = Command::new(cli)
-        .args(["core", "update-index", "--config-file"])
-        .arg(&config)
-        .output()?;
-    require_success(&update, "AVR package index update")?;
-    for core in [
-        format!("arduino:avr@{ARDUINO_AVR_VERSION}"),
-        format!("SparkFun:avr@{SPARKFUN_AVR_VERSION}"),
-    ] {
-        let output = Command::new(cli)
-            .args(["core", "install", &core, "--config-file"])
-            .arg(&config)
-            .output()?;
-        require_success(&output, "pinned AVR core install")?;
-    }
+    core_archives::install(root)?;
     core_receipt::seal(cli, root)
 }
 
