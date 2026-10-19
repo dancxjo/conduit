@@ -111,8 +111,19 @@ export function createPortableCrecheFace({ root, host, onSnapshot, onRefusal }) 
       catch (error) { controller?.retire(); if (current) close(current.view.show_id); report(error); }
       finally { presenting = false; }
     },
-    retire() { retired = true; if (current) close(current.view.show_id); },
+    retire() {
+      retired = true; if (current) close(current.view.show_id);
+      disconnect.disconnect(); document.removeEventListener('visibilitychange', visibility);
+    },
   };
+  const disconnect = new MutationObserver(() => { if (!mount.isConnected) carrier.retire(); });
+  disconnect.observe(document.documentElement, { childList: true, subtree: true });
+  const visibility = () => {
+    if (document.visibilityState !== 'visible' && current) {
+      close(current.view.show_id); refresh.hidden = false;
+    }
+  };
+  document.addEventListener('visibilitychange', visibility);
   refresh.addEventListener('click', event => {
     if (event.isTrusted && !retired && !presenting && latestSnapshot) void carrier.present(latestSnapshot);
   });

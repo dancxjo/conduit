@@ -282,6 +282,7 @@ function renderRefusal(runner, api, code, state, faceOptions) {
 }
 
 function renderReceipt(runner, receipt, retained, state, faceOptions) {
+  faceOptions.portableFace?.retire();
   runner.querySelector(".body-birth-result").hidden = false;
   runner.dataset.bodyId = receipt.body_id;
   runner.dataset.birthSignId = receipt.birth_sign_id;

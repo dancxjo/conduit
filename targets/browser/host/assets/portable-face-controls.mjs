@@ -121,7 +121,7 @@ export function renderPortableFace(root, encounter, { enhanced = false, submit, 
     });
     form.append(save, cancel);
     if (!model.available(field.action)) form.append(node('p', reason(field.action)));
-    required.push(save); placed.add(field.action.identity); article.append(form);
+    required.push(input, save); placed.add(field.action.identity); article.append(form);
   }
 
   for (const collection of model.collections) {
