@@ -99,7 +99,7 @@ program/input/output and separate final boundary query. Point samples establish
 no between-point reconstruction or sample-and-hold guarantee. The selected
 trajectory step/linear profile still controls numerical eligibility.
 
-Local clock/control validation now passes four clock tests, four cadence tests,
+Local clock/control validation now passes four clock tests, five cadence tests,
 two cadence-report tests, three public catalog tests and four installed-host
 Source/Plan/Play tests. These exercise positive clock conversion with nonzero
 anchors and three declared rates, 100/200-Hz control queries, retained originals,
@@ -134,8 +134,12 @@ The new numeric adapters preserve the existing owner algorithms and use Core's
   center/bandwidth/response tolerances. It supplies no certified per-request
   bound or universal numerical enclosure.
 
-These numeric adapters/tests are under validation; their passing execution is
-not established by the earlier clock/control results. Their policies must reject
+Both numeric adapters pass their four focused tests. The supported aggregate
+passes 98 tests across 25 binaries, including the public installed Source example,
+periodic and resonator Plan/Play, exact quantities, clocks and control cadence.
+The strengthened original-to-PCM custody test also passes separately; production
+code is unchanged from the aggregate-tested revision. Exact-head CI and stable
+acceptance remain pending. The policies reject
 fabricated preservation, missing obligations and changed target/source evidence;
 exact consumers must reject a lossy numeric target. The final aggregate must
 retain that evidence alongside positive independent control/sample-rate cases
