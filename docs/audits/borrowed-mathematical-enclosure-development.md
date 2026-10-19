@@ -5,6 +5,9 @@ canonical mathematical-value encoding. A caller can construct π/180 or principa
 sqrt(2) after preparation, then obtain an exact rational interval without growing
 the evaluator's storage. The owning enclosure and borrowed consumer use the same
 per-node arithmetic, constant series and root refinement implementation.
+The installed source-specific numerical offer's artifact digest includes the
+extracted arithmetic module, so subsequent edits there change its inspected
+implementation identity too.
 
 Preparation reserves the existing 32-node profile and admits source extent,
 scratch payload, retained payload, limb work, interval width, constant terms and
@@ -40,6 +43,11 @@ The local Linux x86_64 capture records one preparation allocation, 65,792 bytes
 of interval scratch and 67,920 bytes of retained payload. This fixed reservation
 is paid even for small inputs. All 144 selected Core regression tests, strict
 Core all-target Clippy, Core without default features and formatting pass.
+Eight existing Std tests also pass after the artifact digest change: two
+initialized-factory tamper/refusal tests, three Angle/radian projection tests,
+the installed exact/binary64 receipt test and two transactional offer tests.
+These validate existing source-specific prepared receipts, not an installed
+borrowed-input consumer.
 
 This work does not add symbolic Quantity wire, Source syntax, physical Type
 binding, Plan/Play/Sign integration, producer attestation or an installed Back.

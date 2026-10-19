@@ -72,6 +72,9 @@ fn offer(prepared: &PreparedNumericalRealization) -> Result<CapabilityOffer, Str
             include_str!("../../../../architecture/core/src/exact_numeric/symbolic.rs"),
             include_str!("../../../../architecture/core/src/exact_numeric/symbolic/enclosure.rs"),
             include_str!(
+                "../../../../architecture/core/src/exact_numeric/symbolic/enclosure/evaluate.rs"
+            ),
+            include_str!(
                 "../../../../architecture/core/src/exact_numeric/symbolic/enclosure/interval.rs"
             ),
             include_str!(
