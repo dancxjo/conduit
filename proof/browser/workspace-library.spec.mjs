@@ -112,7 +112,7 @@ test("Use installs into the same body; repeated Use preserves Play and removal s
 });
 
 test("Pocket Theremin plays continuous two-axis PCM on the browser host", async ({ page }, testInfo) => {
-  test.setTimeout(90_000);
+  test.setTimeout(90_000 + BROWSER_COLD_PREPARATION_MS);
   await page.addInitScript(() => {
     const NativeAudioContext = window.AudioContext;
     globalThis.__thereminAudio = { blocks: [], starts: [], pcm: [], captureEnabled: true };
@@ -148,6 +148,7 @@ test("Pocket Theremin plays continuous two-axis PCM on the browser host", async 
   await openLibrary(page);
   await page.getByRole("textbox", { name: "Find a plot", exact: true }).fill("theremin");
   await card(page, "Pocket Theremin").getByRole("button", { name: "Use", exact: true }).click();
+  await waitForWorkspacePreparation(page, { surfaceTitle: 'Pocket Theremin' });
   await expect(page.locator("#surface-title")).toHaveText("Pocket Theremin");
   const surface = page.locator("#plot-input[data-pocket-theremin]");
   await expect(surface).toBeVisible();
