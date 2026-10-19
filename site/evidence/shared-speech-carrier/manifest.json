@@ -1,0 +1,23 @@
+{
+  "schema": "conduit.speech/shared-carrier-evidence@1",
+  "producer_code_commit": "5ead234687fc30cbde4e021dc16fc0cca9e69105",
+  "command": "cargo +stable xtask prove journey native-speech --output ../complete-carrier-public-5ead",
+  "files": {
+    "you-would.native": {
+      "bytes": 1773627,
+      "sha256": "2ff94eae7fdad0514eb6cf6f4f42ce683dcb5484edf12856b498b3fbce926060"
+    },
+    "you-would.wav": {
+      "bytes": 8044,
+      "sha256": "ef4d192fa9e12133953f5dfcdf057c868a9d37c09c8bef912ca3db5a837b283f"
+    },
+    "you-would.json": {
+      "bytes": 35345,
+      "sha256": "a4299ae35f4cd72ea9b2d53cad6ad1ebf20d2ba4bb02c35d938287de6f2e22d7"
+    }
+  },
+  "proof": "installed factory and execution kernel; complete admitted carrier retained by formant and lexical model entrances; authored offline PCM and explicit acoustic-model refusal",
+  "human_listening": false,
+  "device_playback": false,
+  "trained_weights": false
+}
