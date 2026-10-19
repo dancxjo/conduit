@@ -46,14 +46,21 @@ impl RevisionDomain for DependencyRevisions<'_> {
         self.tokens > 0 && self.tokens <= 4096 && cursor.0 <= self.tokens
     }
     fn region(&self, delta: &DependencyDelta) -> (TokenFrontier, TokenFrontier) {
-        let token = match delta {
-            DependencyDelta::Assert(arc) => arc.dependent().token(),
-            DependencyDelta::Withdraw(token) => token,
+        let (dependent, observed) = match delta {
+            DependencyDelta::Assert(arc) => {
+                let dependent = *arc.dependent().token().ordinal();
+                let observed = match arc.governor() {
+                    LanguageDependencyHead::Token(head) => dependent.max(*head.token().ordinal()),
+                    LanguageDependencyHead::Root => dependent,
+                };
+                (dependent, observed)
+            }
+            DependencyDelta::Withdraw(token) => (*token.ordinal(), *token.ordinal()),
         };
-        (
-            TokenFrontier(*token.ordinal()),
-            TokenFrontier(*token.ordinal() + 1),
-        )
+        // The edge changes its dependent, but also observes its referenced
+        // governor. A future governor must count toward the finite window;
+        // an already committed governor is not itself being rewritten.
+        (TokenFrontier(dependent), TokenFrontier(observed + 1))
     }
     fn distance(&self, start: TokenFrontier, end: TokenFrontier) -> Option<u64> {
         end.0.checked_sub(start.0)
