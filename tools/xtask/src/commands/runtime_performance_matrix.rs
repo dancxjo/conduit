@@ -56,7 +56,7 @@ pub fn run(arguments: &[String], dry_run: bool) -> Result<(), Box<dyn std::error
         "-p",
         "conduit-ai",
         "--features",
-        "kernel-operation-owners,hosted-catalog-cache",
+        "kernel-operation-owners,hosted-catalog-cache,matrix-projection-reference",
     ];
     let proof = Command::new("cargo")
         .arg("test")
