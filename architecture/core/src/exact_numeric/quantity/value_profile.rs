@@ -73,33 +73,39 @@ pub enum QuantityValueContractRefusal {
 impl QuantityValueView<'_> {
     /// A wire representation does not weaken the declared physical Type.
     pub fn validate_kind(self, identity: &str) -> Result<(), QuantityValueContractRefusal> {
-        use QuantityValueContractRefusal as R;
-        if let Some((family, role)) = crate::parse_quantity_role_info_id(identity) {
-            if self.family().identity() != family {
-                return Err(R::WrongFamily);
-            }
-            if self.role() != role {
-                return Err(R::WrongRole);
-            }
-            return Ok(());
-        }
-        if identity == crate::QUANTITY_INFO_ID {
-            return Ok(());
-        }
-        let expected = crate::quantity_info_dimension(identity).ok_or(R::NotQuantityKind)?;
-        let actual = self.dimension();
-        if actual != expected {
-            let mut descriptors = [0; 2 * crate::DIMENSION_DEFINITION_ENCODED_LEN];
-            descriptors[..crate::DIMENSION_DEFINITION_ENCODED_LEN]
-                .copy_from_slice(&expected.encode());
-            descriptors[crate::DIMENSION_DEFINITION_ENCODED_LEN..]
-                .copy_from_slice(&actual.encode());
-            return Err(R::WrongDimension {
-                comparison: crate::semantic_digest("physical/dimension-mismatch@1", &descriptors),
-            });
-        }
-        // Preserve the legacy named-dimension contract. Family/role leaves use
-        // the exact intrinsic identity branch above rather than this fallback.
-        Ok(())
+        validate_quantity_kind(self.unit(), self.role(), identity)
     }
+}
+
+pub(super) fn validate_quantity_kind(
+    unit: crate::Unit,
+    actual_role: crate::QuantityRole,
+    identity: &str,
+) -> Result<(), QuantityValueContractRefusal> {
+    use QuantityValueContractRefusal as R;
+    if let Some((family, role)) = crate::parse_quantity_role_info_id(identity) {
+        if unit.family().identity() != family {
+            return Err(R::WrongFamily);
+        }
+        if actual_role != role {
+            return Err(R::WrongRole);
+        }
+        return Ok(());
+    }
+    if identity == crate::QUANTITY_INFO_ID {
+        return Ok(());
+    }
+    let expected = crate::quantity_info_dimension(identity).ok_or(R::NotQuantityKind)?;
+    let actual = unit.dimension();
+    if actual != expected {
+        let mut descriptors = [0; 2 * crate::DIMENSION_DEFINITION_ENCODED_LEN];
+        descriptors[..crate::DIMENSION_DEFINITION_ENCODED_LEN].copy_from_slice(&expected.encode());
+        descriptors[crate::DIMENSION_DEFINITION_ENCODED_LEN..].copy_from_slice(&actual.encode());
+        return Err(R::WrongDimension {
+            comparison: crate::semantic_digest("physical/dimension-mismatch@1", &descriptors),
+        });
+    }
+    // Preserve the legacy named-dimension contract. Family/role leaves use
+    // the exact intrinsic identity branch above rather than this fallback.
+    Ok(())
 }
