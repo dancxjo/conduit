@@ -125,7 +125,9 @@ test("Workspace Birth suggestions expose diverse structures while remaining edit
   // Source view formats that exact readiness result and withholds Birth.
   await expect(review).toContainText("Name: (empty).");
   await expect(review).toContainText("Birth: unavailable (InvalidName).");
-  await expect(birthAction).toBeDisabled();
+  await expect(birth.getByRole("button", {
+    name: "Birth Body — unavailable: InvalidName", exact: true,
+  })).toBeDisabled();
 
   const unicodeName = "Éléonore 雪";
   const namedRevision = Number(await slot.getAttribute("data-application-revision"));
