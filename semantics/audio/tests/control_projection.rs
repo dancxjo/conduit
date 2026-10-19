@@ -297,6 +297,38 @@ fn same_point_one_second_200hz_intent_survives_independent_pcm_and_control_grids
     .unwrap();
     let original = authored.clone().encode().unwrap();
     let prepared = PreparedAudioControlProjection::new(&original).unwrap();
+    let original_trajectory = authored.controls().as_slice()[0].trajectory();
+    let original_segment = &original_trajectory.segments().as_slice()[0];
+    // Zero start makes the original endpoint the exact authored duration;
+    // copy its fields instead of independently retyping the expected literal.
+    assert_eq!(original_segment.start(), &time(0, 1));
+    let duration = AudioSampleProjectionQuantity::duration(
+        *original_segment.end().denominator(),
+        *original_segment.end().numerator_seconds(),
+    )
+    .unwrap();
+    let AudioTrajectoryQuantity::Frequency(frequency) = original_segment.left() else {
+        panic!("authored frequency domain")
+    };
+    let frequency_canonical = frequency.clone().encode().unwrap();
+    let reciprocal = PreparedAcousticReciprocal::new()
+        .unwrap()
+        .frequency_to_cycle(&frequency_canonical)
+        .unwrap();
+    assert_eq!(reciprocal.input(), frequency);
+    assert_eq!(reciprocal.original_canonical(), frequency_canonical);
+    assert_eq!(*reciprocal.result().numerator_seconds(), 1);
+    assert_eq!(*reciprocal.result().denominator(), 200);
+    assert_eq!(
+        conduit_plot::PortableExpressionProgram::from_canonical_hex(
+            reciprocal.source_program_hex()
+        )
+        .unwrap()
+        .evaluate(reciprocal.original_canonical())
+        .unwrap(),
+        reciprocal.result_canonical()
+    );
+    let cycle = AudioSampleProjectionQuantity::Cycle(reciprocal.result().clone());
     // Explicit caller-declared relation: numeric rates never select a clock.
     let declared_clock = clock();
     for cadence in [100, 200] {
@@ -326,9 +358,13 @@ fn same_point_one_second_200hz_intent_survives_independent_pcm_and_control_grids
         }
         for pcm_rate in [8000, 16000, 48000] {
             let sample_request = AudioSampleProjectionRequest::new(
-                AudioSampleRateBasis::new(anchor(1, 1), AudioFrameQuantization::Floor, pcm_rate)
-                    .unwrap(),
-                AudioSampleProjectionQuantity::duration(10, 1).unwrap(),
+                AudioSampleRateBasis::new(
+                    original_trajectory.anchor().clone(),
+                    AudioFrameQuantization::Floor,
+                    pcm_rate,
+                )
+                .unwrap(),
+                duration.clone(),
             )
             .unwrap();
             let sample = PreparedAudioSampleProjection::new()
@@ -340,6 +376,33 @@ fn same_point_one_second_200hz_intent_survives_independent_pcm_and_control_grids
             assert_eq!(*sample.result().fraction().denominator(), 10);
             assert_eq!(*sample.result().raw().whole_frames(), pcm_rate / 10);
             assert_eq!(*sample.result().raw().remainder_numerator(), 0);
+            assert_eq!(sample.original().quantity(), &duration);
+            assert_eq!(
+                sample.original().basis().anchor(),
+                original_trajectory.anchor()
+            );
+            let cycle_request =
+                AudioSampleProjectionRequest::new(sample.original().basis().clone(), cycle.clone())
+                    .unwrap();
+            let cycle_projection = PreparedAudioSampleProjection::new()
+                .unwrap()
+                .project(&cycle_request.clone().encode().unwrap())
+                .unwrap();
+            assert_eq!(cycle_projection.original(), &cycle_request);
+            assert_eq!(cycle_projection.original().quantity(), &cycle);
+            assert_eq!(
+                *cycle_projection.result().fraction().numerator_seconds(),
+                *reciprocal.result().numerator_seconds()
+            );
+            assert_eq!(
+                *cycle_projection.result().fraction().denominator(),
+                *reciprocal.result().denominator()
+            );
+            assert_eq!(
+                *cycle_projection.result().raw().whole_frames(),
+                pcm_rate / 200
+            );
+            assert_eq!(*cycle_projection.result().raw().remainder_numerator(), 0);
             assert_eq!(receipt.original_canonical(), original);
             assert_ne!(*receipt.schedule().cadence().updates_per_second(), pcm_rate);
         }
