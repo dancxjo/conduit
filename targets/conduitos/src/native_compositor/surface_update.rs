@@ -155,24 +155,35 @@ impl NativeCompositor {
             }
         }
         // A failed raster update must not leave the old revision routable.
+        let previous = surface.raster_scene.take().filter(|_| {
+            surface
+                .receipt
+                .as_ref()
+                .is_some_and(|receipt| receipt.visual_expression == surface.visual_expression)
+        });
+        let cacheable = super::raster_reuse::canonical(scene);
+        let previous = previous.as_ref().filter(|_| cacheable);
         surface.receipt = None;
         surface.input_ready = false;
         self.scanout_pixels = [0; MAX_COMPOSITOR_SURFACES];
-        surface.buffer.clear();
         #[cfg(feature = "native-compositor")]
         let display = {
             let format = surface.buffer.format();
             let expression = surface.visual_expression.as_ref();
-            crate::display::typography::render_scene_configured(
-                &mut surface.buffer,
-                scene,
-                |_, command| command.text_role().into(),
-                expression.map_or(100, |value| value.expression.text_scale_percent),
-                |role| visual_paint(format, role, expression),
-            )?
+            super::raster_reuse::raster(&mut surface.buffer, scene, previous, |buffer, replay| {
+                crate::display::typography::render_scene_configured(
+                    buffer,
+                    replay,
+                    |_, command| command.text_role().into(),
+                    expression.map_or(100, |value| value.expression.text_scale_percent),
+                    |role| visual_paint(format, role, expression),
+                )
+            })?
         };
         #[cfg(not(feature = "native-compositor"))]
-        let display = render_scene(&mut surface.buffer, scene)?;
+        let display =
+            super::raster_reuse::raster(&mut surface.buffer, scene, previous, render_scene)?;
+        surface.raster_scene = cacheable.then_some(*scene);
         surface.binding = Some(SurfaceBinding {
             manifestation_id: manifestation.manifestation_id.clone(),
             plan_id: manifestation.plan_id.clone(),
