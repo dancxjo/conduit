@@ -12,6 +12,8 @@ pub enum NumericProfile {
     Unfused,
     CanonicalMatrixDag,
     CompactMatrixDag,
+    CanonicalMatrixDagLocalExpressions,
+    CompactMatrixDagLocalExpressions,
     CanonicalDag,
     CompactDag,
     LocalExpressions,
@@ -21,7 +23,10 @@ impl NumericProfile {
     pub fn local_expressions(self) -> bool {
         matches!(
             self,
-            Self::LocalExpressions | Self::CompactDagLocalExpressions
+            Self::LocalExpressions
+                | Self::CompactDagLocalExpressions
+                | Self::CanonicalMatrixDagLocalExpressions
+                | Self::CompactMatrixDagLocalExpressions
         )
     }
     pub fn dags(self) -> bool {
@@ -32,6 +37,8 @@ impl NumericProfile {
                 | Self::CompactDagLocalExpressions
                 | Self::CanonicalMatrixDag
                 | Self::CompactMatrixDag
+                | Self::CanonicalMatrixDagLocalExpressions
+                | Self::CompactMatrixDagLocalExpressions
         )
     }
     fn compact(self) -> bool {
@@ -46,7 +53,10 @@ pub fn offers(
 ) -> (Vec<FusionRealizationOffer>, Vec<Kind>) {
     if matches!(
         profile,
-        NumericProfile::CanonicalMatrixDag | NumericProfile::CompactMatrixDag
+        NumericProfile::CanonicalMatrixDag
+            | NumericProfile::CompactMatrixDag
+            | NumericProfile::CanonicalMatrixDagLocalExpressions
+            | NumericProfile::CompactMatrixDagLocalExpressions
     ) {
         use conduit_ai::operation_owners::fixed_numeric::*;
         let selected = placements
@@ -66,7 +76,10 @@ pub fn offers(
             authoring,
             host,
             &selected,
-            if profile == NumericProfile::CompactMatrixDag {
+            if matches!(
+                profile,
+                NumericProfile::CompactMatrixDag | NumericProfile::CompactMatrixDagLocalExpressions
+            ) {
                 NumericDagTransport::Compact
             } else {
                 NumericDagTransport::Canonical
