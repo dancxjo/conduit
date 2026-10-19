@@ -411,6 +411,8 @@ pub enum StorageError {
     ReferenceOverflow,
     /// No reusable slot remains after finite reference generations retired.
     GenerationExhausted,
+    /// An admitted physical representation cannot be read as canonical bytes.
+    RepresentationMismatch,
 }
 
 pub trait ValueStorage {
@@ -424,7 +426,21 @@ pub trait ValueStorage {
     fn retain(&mut self, value: ValueRef) -> Result<(), StorageError>;
     fn release(&mut self, value: ValueRef) -> Result<(), StorageError>;
     fn clear(&mut self);
+    /// Native transport is opt-in; canonical-only profiles refuse publication.
+    fn store_native_u64(&mut self, _value: u64) -> Result<ValueRef, StorageError> {
+        Err(StorageError::RepresentationMismatch)
+    }
+    /// Ordinary stores validate ownership and report no native representation.
+    fn native_u64(&self, value: ValueRef) -> Result<Option<u64>, StorageError> {
+        self.reference_count(value)?;
+        Ok(None)
+    }
 }
+
+#[cfg(feature = "alloc")]
+mod native_value_store;
+#[cfg(feature = "alloc")]
+pub use native_value_store::NativeU64ValueStore;
 
 mod fixed_value_store;
 pub use fixed_value_store::FixedValueStore;
