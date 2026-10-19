@@ -66,8 +66,10 @@ offset by converting zero and one through the existing role-aware
 `RationalQuantity` law, then imports the coordinate into the existing bounded
 mathematical builder and forms `scale * coordinate + offset`. The returned
 computational receipt retains the complete source frame, target Unit, exact
-scale/offset and output length. It does not attest Source spelling, Unit binding,
-Plan authority or a generic projection report.
+scale/offset, output length and emitted-frame digest. The digest is computed
+under reserved work after atomic encoding; it identifies that output rather than
+asserting cross-Unit byte equality. Source spelling, Unit binding and Plan
+authority remain separate custody.
 
 Point and difference roles remain unchanged; the existing physical law supplies
 an offset only for points. Distinct incompatible origins still refuse, including
@@ -82,6 +84,15 @@ Tests independently build the expected Pi expressions, verify Fahrenheit scale
 and offset, then enclose converted Pi-centimetres and check physical endpoints
 against independent Pi brackets. Guarded repeated conversion, enclosure,
 refusal and recovery paths observe zero allocations and stable prepared payload.
+
+The conversion receipt also adapts to the existing general projection report:
+physical denotation and family/role are preserved, while Unit coordinates are
+explicitly transformed by the reused exact affine law. The domain binds the
+actual emitted frame, not any arbitrary same-Type target. The policy pins the
+requested target Unit. Tests construct this exact Unit report followed by the
+separate lossy numerical report, with continuous frame identity between them.
+Changed target values, Units, roles, policies or obligation inventories refuse.
+These are computational reports; they do not attest Source/Plan/Sign custody.
 
 ## Physical projection evidence
 

@@ -12,6 +12,8 @@ mod binary32;
 mod enclosure;
 mod mathematical;
 mod mathematical_conversion;
+mod mathematical_conversion_projection;
+pub use mathematical_conversion_projection::*;
 mod mathematical_enclosure;
 pub use mathematical_conversion::*;
 mod mathematical_projection;

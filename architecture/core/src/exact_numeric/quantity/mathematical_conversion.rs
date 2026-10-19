@@ -28,6 +28,7 @@ pub struct MathematicalQuantityCoordinateConversion<'source> {
     scale: ExactRational,
     offset: ExactRational,
     encoded_bytes: usize,
+    target_representation_digest: [u8; 32],
 }
 impl MathematicalQuantityCoordinateConversion<'_> {
     pub const fn source(&self) -> &MathematicalQuantityView<'_> {
@@ -41,6 +42,10 @@ impl MathematicalQuantityCoordinateConversion<'_> {
     }
     pub const fn offset(&self) -> ExactRational {
         self.offset
+    }
+    /// Identity of the exact emitted frame; not physical equality or authority.
+    pub const fn target_representation_digest(&self) -> [u8; 32] {
+        self.target_representation_digest
     }
     pub const fn encoded_bytes(&self) -> usize {
         self.encoded_bytes
@@ -150,11 +155,17 @@ impl PreparedMathematicalQuantityConversion {
             MathematicalValueView::decode(&self.coordinate[..n], work).map_err(R::Mathematical)?;
         // Encoder preflights output/work before mutation. Earlier refusal only
         // changes private prepared scratch, reset on the next transaction.
+        // Reserve bounded digest work before the atomic output commit.
+        work.charge((2 + crate::UNIT_ENCODED_LEN + n) as u64)
+            .map_err(R::Numeric)?;
         let encoded_bytes =
             super::encode_mathematical_quantity_value(&value, target, source.role(), output, work)
                 .map_err(R::Quantity)?;
+        let target_representation_digest =
+            crate::semantic_digest(crate::QUANTITY_INFO_ID, &output[..encoded_bytes]);
         Ok(MathematicalQuantityCoordinateConversion {
             source,
+            target_representation_digest,
             target_unit: target,
             scale,
             offset,
