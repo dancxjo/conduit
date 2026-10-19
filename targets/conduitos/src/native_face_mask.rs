@@ -460,5 +460,8 @@ impl NativeFaceMask {
 }
 
 #[cfg(test)]
+#[path = "native_face_mask/creche_tests.rs"]
+mod creche_tests;
+#[cfg(test)]
 #[path = "native_face_mask/tests.rs"]
 mod tests;

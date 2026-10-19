@@ -56,6 +56,10 @@ fn fixture() -> (NativeFaceMask, BirthDraft) {
         &provider,
     )
     .unwrap();
+    (service, draft())
+}
+
+pub(super) fn draft() -> BirthDraft {
     let choices = crate::native_workset::profile()
         .installed()
         .iter()
@@ -67,8 +71,7 @@ fn fixture() -> (NativeFaceMask, BirthDraft) {
             selected: true,
         })
         .collect();
-    let draft = BirthDraft::new("550e8400-e29b-41d4-a716-446655440000".into(), choices).unwrap();
-    (service, draft)
+    BirthDraft::new("550e8400-e29b-41d4-a716-446655440000".into(), choices).unwrap()
 }
 
 #[test]
