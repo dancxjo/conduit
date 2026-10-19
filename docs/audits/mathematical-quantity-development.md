@@ -798,3 +798,35 @@ zero allocations. This API is not yet wired into the Near record reader; the
 wire integration must pin its original projection work budget as well as the
 producer allowance before comparing complete receipt bytes. Parent audit
 statuses and public admission remain unchanged.
+
+
+### Private Near reader original-policy reconstruction
+
+The actual mathematical Near reader now reconstructs the original requested
+allowance before numerical replay. Producer and reader share the existing
+200-million projection work ceiling; envelope parsing and physical checks cannot
+silently change the replay receipt's admitted budget. Insufficient remaining
+work refuses before replay, and failed replay work is charged without fallback.
+The verified result retains the complete independently replayed receipt, with
+its original allowance, enclosure profile, work metadata and midpoint rounding.
+Existing source/target/rounding accessors keep their meaning.
+
+The domain codec exposes derived bounds: source 50,431 bytes, target 777, typed
+error detail 1,035 and policy 1,808. These cover complete canonical field data;
+they are not a total Near envelope, CPU, stack or whole-Host memory bound.
+The returned full receipt remains caller-owned storage requiring explicit
+profile accounting alongside codec work and transport buffers.
+
+Seven Core tests pass, including actual canonical Near record verification
+that reproduces the producer's entire general report under both tighter and
+looser accepting consumer limits. Zero-error consumers, altered requests and
+insufficient replay budgets refuse, and recovery succeeds with zero observed
+allocations. Strict Core all-target Clippy and Core no-default checks pass.
+The integrated four Std mathematical Near tests pass, followed by the complete
+Std library suite: 868 passed and 18 existing ignored tests. Exact Core and Std
+executed binaries and source bundles have verified hash/archive roundtrips.
+
+The Near wire record still does not retain the generic report bytes, and the
+outer certificate/request binding, ordinary inspection, product artifacts,
+complete finite admission and stable acceptance remain unfinished. The original
+93-requirement audit text was rechecked unchanged; no status is closed here.
