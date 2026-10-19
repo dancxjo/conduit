@@ -17,6 +17,7 @@ use conduit_face::{
     FACE_VALUE_KIND, SHOW_VALUE_KIND,
 };
 
+pub mod owner_component;
 mod remote;
 pub use remote::{planned_owner_face_show_interaction_mask, planned_owner_face_show_mask};
 

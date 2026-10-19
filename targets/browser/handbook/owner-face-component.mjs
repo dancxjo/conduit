@@ -1,4 +1,4 @@
-import { OwnerFacePresentation } from './owner-face-presentation.mjs';
+import { OwnerFacePresentation } from "./owner-face-presentation.mjs";
 
 // Custom-element composition of the same trusted DOM presentation. The SDK
 // retains the current Show and the checked return route to the source owner.
