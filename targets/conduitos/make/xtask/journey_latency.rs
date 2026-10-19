@@ -103,7 +103,8 @@ pub(super) fn retain(
         return Err(refusal("first framebuffer capture clock differs"));
     }
     let result = json!({"schema":"conduit.conduitos/host-observed-latency@1","proof_class":"freestanding-emulator",
-        "source_commit":context["source_commit"],"image_sha256":context["image_sha256"],"observer_clock":observation_clock::ID,
+        "source_commit":context["source_commit"],"source_scope":"host proof producer; image_sha256 identifies the supplied guest image",
+        "image_sha256":context["image_sha256"],"observer_clock":observation_clock::ID,
         "scope":"Host-observed upper bounds include guest work, serial output, host scheduling and observer delay. QMP acceptance is distinct from guest consumption. No physical scanout or exact first-paint time is established.",
         "host_observer_start_ns":start,"boot_stage_observations":stages,
         "host_observer_to_front_door_ready_ns":number(ready[0],"observed_ns")?-start,
