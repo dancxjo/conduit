@@ -1,6 +1,11 @@
 //! Exact owner-route validation and bounded Mask preparation before Show.
 use super::*;
 
+struct MaskHostContext<'a> {
+    basis: HostBasis,
+    host: &'a conduit_core::HostAdvertisement,
+}
+
 impl OwnerBrowserMask {
     pub(super) fn prepare(
         basis: HostBasis,
@@ -20,10 +25,10 @@ impl OwnerBrowserMask {
         {
             return Err("owner route differs from the current Face".into());
         }
-        let host = crate::installed_browser::membership_advertisement(
+        let host = crate::membership_abi::owner_component::current_advertisement(
             basis.host_id.clone(),
             basis.boot_id.clone(),
-        );
+        )?;
         route
             .validate_mask_host_offer(&host)
             .map_err(|error| format!("owner Mask route differs from this browser: {error:?}"))?;
@@ -39,8 +44,8 @@ impl OwnerBrowserMask {
             route.return_line.clone(),
             route.interaction_line.clone(),
         );
-        Self::prepare_planned(
-            basis,
+        Self::prepare_with_host(
+            MaskHostContext { basis, host: &host },
             face,
             route.planned_mask,
             Some(inspection),
@@ -79,6 +84,8 @@ impl OwnerBrowserMask {
         )
     }
 
+    /// Explicit local mechanism fixture; never an exported production profile.
+    #[cfg(test)]
     pub(super) fn prepare_planned(
         basis: HostBasis,
         face: Face,
@@ -92,7 +99,36 @@ impl OwnerBrowserMask {
         play_sequence: u64,
         interactions_admitted: bool,
     ) -> Result<Self, String> {
-        let component = component::prepare(&basis, &planned, &face)?;
+        let host = crate::installed_browser::membership_advertisement(
+            basis.host_id.clone(),
+            basis.boot_id.clone(),
+        );
+        Self::prepare_with_host(
+            MaskHostContext { basis, host: &host },
+            face,
+            planned,
+            route,
+            selected_lines,
+            play_sequence,
+            interactions_admitted,
+        )
+    }
+
+    fn prepare_with_host(
+        context: MaskHostContext<'_>,
+        face: Face,
+        planned: conduit_face::PlannedMaskPlot,
+        route: Option<RouteView>,
+        selected_lines: Option<(
+            conduit_core::AdmittedLine,
+            conduit_core::AdmittedLine,
+            Option<conduit_core::AdmittedLine>,
+        )>,
+        play_sequence: u64,
+        interactions_admitted: bool,
+    ) -> Result<Self, String> {
+        let MaskHostContext { basis, host } = context;
+        let component = component::prepare(&basis, &planned, &face, host)?;
         let terminal = planned.show_placement();
         let play = bind_active_play(
             &planned.plan.plan_id,

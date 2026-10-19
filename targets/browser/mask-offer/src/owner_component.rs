@@ -24,7 +24,7 @@ const SOURCES: [(&str, &str, usize, &[u8]); 3] = [
     ),
     (
         "style",
-        "owner-face-look.css",
+        "owner-face-component-look.css",
         16_384,
         include_bytes!("../../handbook/owner-face-look.css"),
     ),

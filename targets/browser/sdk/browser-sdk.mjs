@@ -1,4 +1,4 @@
-import { clearOwnerFaceShow, ownerFacePrepare, ownerFaceAcknowledge, ownerFaceDiscard, ownerComponentSelect, ownerFaceCanonicalSnapshot } from "./browser-sdk-owner-show-state.mjs";
+import { clearOwnerFaceShow, ownerFacePrepare, ownerFaceAcknowledge, ownerFaceDiscard, ownerComponentSelect, ownerFaceCanonicalSnapshot, admitOwnerFaceComponentBack } from "./browser-sdk-owner-show-state.mjs";
 import { attachBrowserSyntaxEditor, projectBrowserSyntax } from "./browser-sdk-syntax.mjs";
 import { applicationContinuity, createSdkContinuity } from "./browser-sdk-continuity.mjs";
 import { checkedAcknowledgedOwnerFaceArguments } from "./browser-sdk-face-actions.mjs";
@@ -119,6 +119,9 @@ export class BrowserHost {
   async review(plots) {
     return reviewBrowserPlots({ bridge: this.#state.bridge, host: this.id, boot: this.bootId, plots });
   }
+
+  admitOwnerFaceComponent(application) { return admitOwnerFaceComponentBack(this.#state, application,
+    { fetchAsset, sha256, importModule: url => import(url) }); }
 
   /** Join this already-admitted Host and Boot to one external Body invitation. */
   async participate({ invitation, expectedBodyId = null, retainedCredential = null, onCredential,

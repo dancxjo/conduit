@@ -147,3 +147,110 @@ export function ownerFaceCanonicalSnapshot(state, participation) {
   }
   return state.host.bridge.ownerFaceCanonicalSnapshot();
 }
+
+const ownerComponentModules = new Map();
+const ownerEncoder = new TextEncoder();
+const ownerDecoder = new TextDecoder('utf-8', { fatal: true });
+const ownerResources = [
+  ['component', 'owner-face-component.mjs', 8192],
+  ['presentation', 'owner-face-presentation.mjs', 49152],
+  ['style', 'owner-face-component-look.css', 16384],
+];
+
+function ownerBundleBytes(resources) {
+  const chunks = [ownerEncoder.encode('conduit.browser/owner-face-bundle@1\n')];
+  for (const { role, bytes } of resources) {
+    for (const value of [ownerEncoder.encode(role), bytes]) {
+      const length = new Uint8Array(4);
+      new DataView(length.buffer).setUint32(0, value.byteLength, false);
+      chunks.push(length, value);
+    }
+  }
+  const result = new Uint8Array(chunks.reduce((total, chunk) => total + chunk.byteLength, 0));
+  let offset = 0;
+  for (const chunk of chunks) { result.set(chunk, offset); offset += chunk.byteLength; }
+  return result;
+}
+
+// Trusted Host admission over the application's already verified generic DOM
+// module and style, plus one optional, digest-pinned custom-element sidecar.
+export async function admitOwnerFaceComponentBack(state, application, { fetchAsset, sha256, importModule }) {
+  if (state.ownerComponentBack) return state.ownerComponentBack;
+  try {
+    const api = state.api;
+    const read = () => {
+      const length = api.conduit_browser_membership_output_len();
+      if (!Number.isSafeInteger(length) || length < 1 || length > 8192) throw new Error('Owner component descriptor bound');
+      return new Uint8Array(api.memory.buffer, api.conduit_browser_membership_output_ptr(), length).slice();
+    };
+    if (typeof api.conduit_browser_membership_owner_component_descriptor !== 'function'
+      || typeof api.conduit_browser_membership_owner_component_admit !== 'function'
+      || api.conduit_browser_membership_owner_component_descriptor() < 0) throw new Error('Owner component admission unavailable');
+    const descriptor = JSON.parse(ownerDecoder.decode(read()));
+    if (descriptor.schema !== 'conduit.browser/owner-face-component-back@1'
+      || descriptor.identity !== 'conduit.browser/owner-face-component@1' || descriptor.version !== 1
+      || descriptor.tag !== 'conduit-owner-face' || descriptor.maximum_bundle_bytes !== 65536
+      || !/^[0-9a-f]{64}$/.test(descriptor.bundle_sha256 ?? '')
+      || descriptor.artifact_id !== `artifact/browser-owner-face-component@1/sha256/${descriptor.bundle_sha256}`
+      || descriptor.implementation_id !== 'implementation/browser-owner-face-component@1'
+      || descriptor.capability_id !== 'capability/browser-owner-face-component@1'
+      || !Array.isArray(descriptor.resources) || descriptor.resources.length !== 3) throw new Error('Owner component descriptor refused');
+    const byRole = new Map(application.manifest.resources.map(resource => [resource.role, resource]));
+    const presentation = byRole.get('owner-face-presentation');
+    const style = byRole.get('owner-face-look');
+    if (presentation?.kind !== 'module' || presentation.path !== ownerResources[1][1]
+      || presentation.dependencies.length !== 0 || style?.kind !== 'style' || style.path !== 'owner-face-look.css') {
+      throw new Error('Owner component generic dependency graph differs');
+    }
+    const packageRoot = new URL('./', presentation.url);
+    const content = [];
+    for (const [index, [role, path, maximum]] of ownerResources.entries()) {
+      const resource = descriptor.resources[index];
+      if (resource?.role !== role || resource.path !== path || resource.maximum_bytes !== maximum
+        || !Number.isSafeInteger(resource.bytes) || resource.bytes < 1 || resource.bytes > maximum
+        || !/^[0-9a-f]{64}$/.test(resource.sha256 ?? '')) throw new Error('Owner component resource descriptor refused');
+      const bytes = index !== 1 ? await fetchAsset(packageRoot, path, maximum)
+        : application.bytes('owner-face-presentation');
+      if (!(bytes instanceof Uint8Array) || bytes.byteLength !== resource.bytes
+        || await sha256(bytes) !== `sha256:${resource.sha256}`
+        || (index === 1 && presentation.sha256 !== `sha256:${resource.sha256}`)) {
+        throw new Error('Owner component resource identity differs');
+      }
+      content.push({ role, bytes });
+    }
+    if (content.reduce((total, resource) => total + resource.bytes.byteLength, 0) > 65536
+      || await sha256(ownerBundleBytes(content)) !== `sha256:${descriptor.bundle_sha256}`) throw new Error('Owner component bundle identity differs');
+    const presentationSource = ownerDecoder.decode(content[1].bytes);
+    const styleText = ownerDecoder.decode(content[2].bytes);
+    const source = ownerDecoder.decode(content[0].bytes);
+    const marker = '"./owner-face-presentation.mjs"';
+    if (source.split(marker).length !== 2 || /\bimport\s*(?:\(|["'])|\bfrom\s*["']/.test(source.replace(marker, ''))
+      || /\bimport\s*(?:\(|["'])|\bfrom\s*["']/.test(presentationSource)
+      || /@import\b|url\s*\(/i.test(styleText)) throw new Error('Owner component has an unpinned dependency');
+    let pending = ownerComponentModules.get(descriptor.bundle_sha256);
+    if (!pending) {
+      if (ownerComponentModules.size >= 4 || globalThis.customElements?.get(descriptor.tag)) throw new Error('Owner component registration differs');
+      const dependencyUrl = URL.createObjectURL(new Blob([presentationSource], { type: 'text/javascript' }));
+      const moduleUrl = URL.createObjectURL(new Blob([source.replace(marker, JSON.stringify(dependencyUrl))], { type: 'text/javascript' }));
+      pending = (async () => {
+        try { return await importModule(moduleUrl); }
+        finally { URL.revokeObjectURL(moduleUrl); URL.revokeObjectURL(dependencyUrl); }
+      })();
+      ownerComponentModules.set(descriptor.bundle_sha256, pending);
+      pending.catch(() => { if (ownerComponentModules.get(descriptor.bundle_sha256) === pending) ownerComponentModules.delete(descriptor.bundle_sha256); });
+    }
+    const module = await pending;
+    if (typeof module.OwnerFaceElement !== 'function' || typeof module.admitOwnerFaceStyle !== 'function'
+      || globalThis.customElements?.get(descriptor.tag) !== module.OwnerFaceElement
+      || module.admitOwnerFaceStyle(styleText) !== module.OwnerFaceElement) throw new Error('Owner component registration refused');
+    const component = { identity: descriptor.identity, version: descriptor.version, tag: descriptor.tag, bundle_sha256: descriptor.bundle_sha256 };
+    const request = ownerEncoder.encode(JSON.stringify({ host_id: state.hostId, boot_id: state.boot.boot_id, component }));
+    if (request.byteLength > api.conduit_browser_membership_input_capacity()) throw new Error('Owner component admission input bound');
+    new Uint8Array(api.memory.buffer, api.conduit_browser_membership_input_ptr(), request.byteLength).set(request);
+    if (api.conduit_browser_membership_owner_component_admit(request.byteLength) < 0) throw new Error('Owner component Host profile is already frozen or differs');
+    return state.ownerComponentBack = Object.freeze({ selected: true, constructor: module.OwnerFaceElement,
+      identity: descriptor.identity, artifactId: descriptor.artifact_id, bundleSha256: descriptor.bundle_sha256 });
+  } catch (error) {
+    return Object.freeze({ selected: false, reason: error instanceof Error ? error.message : 'Owner component admission refused' });
+  }
+}
