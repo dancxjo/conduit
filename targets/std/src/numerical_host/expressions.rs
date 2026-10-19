@@ -7,6 +7,12 @@ const OWNED: &str = "std/source-expression/";
 const MAXIMUM_OFFERS: usize = 32;
 
 impl StdHost {
+    pub(crate) fn validate_prepared_expression_annotations(
+        program: &PortableExpressionProgram,
+    ) -> Result<(), String> {
+        reference_validation::check(program)
+    }
+
     /// Prepare at most 32 additional expression realizations from checked Source.
     /// The checked tape is offered where eligible; other supported programs use
     /// the existing reference Back. Selection never changes during Play.

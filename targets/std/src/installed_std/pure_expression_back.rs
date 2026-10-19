@@ -157,6 +157,10 @@ fn validate_placement(
     placement: &PlannedGear,
     program: &conduit_plot::PortableExpressionProgram,
 ) -> Result<(), String> {
+    if placement.execution_profile_id.as_str() == conduit_std_offers::PURE_NEAR_CONTRACT_STD_PROFILE
+    {
+        crate::StdHost::validate_prepared_expression_annotations(program)?;
+    }
     let temporal = placement
         .inputs
         .first()
