@@ -24,7 +24,7 @@ fn draw(buffer: &mut SurfaceBuffer, scene: &GraphicsScene) -> Result<DisplayRece
 fn scene(variant: usize) -> GraphicsScene {
     let extent = rect(0, 0, 96, 64);
     let mut scene = GraphicsScene::empty();
-    if variant % 9 != 0 {
+    if !variant.is_multiple_of(9) {
         scene
             .push(
                 GraphicsCommand::rect(extent, extent, Paint::Background, GraphicsShapeStyle::Fill)
@@ -37,7 +37,11 @@ fn scene(variant: usize) -> GraphicsScene {
             rect(2, 3, 28, 25),
             extent,
             Paint::Foreground,
-            if variant % 2 == 0 { "Wi" } else { "ề\ni" },
+            if variant.is_multiple_of(2) {
+                "Wi"
+            } else {
+                "ề\ni"
+            },
         )
         .unwrap(),
         GraphicsCommand::rect(
