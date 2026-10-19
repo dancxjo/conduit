@@ -1,17 +1,21 @@
-//! Supplied committed syntax, canonical phones and installed compact synthesis.
+//! Canonical phones, committed authority, installed Source and compact PCM.
 use crate::process::Step;
 
+// One Cargo graph unifies the Speech/StdHost features and avoids recompiling
+// their shared dependencies between the two installed proof boundaries.
 pub const STEPS: &[Step] = &[Step::new(
-    "record-pronunciation.source-plan-play",
-    "Check syntax-sensitive record phones, authority refusals and installed PCM",
+    "record-pronunciation.committed-consumer",
+    "Check canonical phones, current authority, installed Source Plan/Play and compact PCM",
     "cargo",
     &[
         "test",
         "--locked",
         "-p",
         "conduit-speech",
+        "-p",
+        "conduit-std-host",
         "--features",
-        "semantic-bindings,kernel",
+        "conduit-speech/semantic-bindings,conduit-speech/kernel",
         "--test",
         "record_pronunciation",
         "--test",
@@ -19,12 +23,5 @@ pub const STEPS: &[Step] = &[Step::new(
         "--",
         "--nocapture",
         "--test-threads=1",
-    ],
-), Step::new(
-    "record-pronunciation.std-source-plan-play",
-    "Execute exact pronunciation Source through installed StdHost and compare complete receipts",
-    "cargo", &[
-        "test", "--locked", "-p", "conduit-std-host", "--test", "record_pronunciation",
-        "--", "--nocapture", "--test-threads=1",
     ],
 )];
