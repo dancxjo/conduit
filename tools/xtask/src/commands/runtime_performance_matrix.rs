@@ -10,6 +10,7 @@ pub fn run(arguments: &[String], dry_run: bool) -> Result<(), Box<dyn std::error
         .filter(|a| a.as_str() != "--matrix-projection")
         .collect();
     let mut output = PathBuf::from("target/matrix-projection-performance");
+    let mut group = "all".to_owned();
     let mut iterations = 256u32;
     let mut repetitions = 9u32;
     for pair in arguments.chunks(2) {
@@ -20,6 +21,7 @@ pub fn run(arguments: &[String], dry_run: bool) -> Result<(), Box<dyn std::error
             "--output" => output = PathBuf::from(value.as_str()),
             "--iterations" => iterations = value.parse()?,
             "--repetitions" => repetitions = value.parse()?,
+            "--case-group" if matches!(value.as_str(), "all" | "tiny") => group = value.to_string(),
             _ => return Err(format!("unsupported matrix option {key}").into()),
         }
     }
@@ -87,6 +89,7 @@ pub fn run(arguments: &[String], dry_run: bool) -> Result<(), Box<dyn std::error
         .arg(&output)
         .arg(iterations.to_string())
         .arg(repetitions.to_string())
+        .arg(&group)
         .current_dir(&root)
         .env("CARGO_BUILD_JOBS", "2")
         .env("CARGO_INCREMENTAL", "0")
@@ -100,7 +103,7 @@ pub fn run(arguments: &[String], dry_run: bool) -> Result<(), Box<dyn std::error
     fs::write(
         output.join("status.json"),
         serde_json::to_vec_pretty(
-            &serde_json::json!({"schema":"conduit.matrix-projection-performance-command@1","git_sha":source,"final_git_sha":final_source,"source_custody_verified":custody,"conformance_success":true,"worker_success":worker.success(),"worker_exit_code":worker.code(),"iterations":iterations,"repetitions":repetitions,"artifact_sha256":manifest}),
+            &serde_json::json!({"schema":"conduit.matrix-projection-performance-command@1","git_sha":source,"final_git_sha":final_source,"source_custody_verified":custody,"conformance_success":true,"worker_success":worker.success(),"worker_exit_code":worker.code(),"iterations":iterations,"repetitions":repetitions,"case_group":group,"artifact_sha256":manifest}),
         )?,
     )?;
     if !custody || !worker.success() {

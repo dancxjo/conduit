@@ -92,7 +92,12 @@ fn case<const I: usize, const O: usize>(
     }
     Ok(())
 }
-fn run(output: &Path, iterations: u32, repetitions: u32) -> Result<(), Box<dyn std::error::Error>> {
+fn run(
+    output: &Path,
+    iterations: u32,
+    repetitions: u32,
+    group: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
     if cfg!(debug_assertions) {
         return Err("release measurements required".into());
     }
@@ -105,6 +110,11 @@ fn run(output: &Path, iterations: u32, repetitions: u32) -> Result<(), Box<dyn s
     let mut raw = artifact::Raw::new(&output.join("raw.jsonl"))?;
     raw.row(&json!({"phase":"timer-control","samples_ns":timing::timer_control(2000),"subtracted":false}))?;
     for order in [FixedMatrixOrder::InputMajor, FixedMatrixOrder::OutputMajor] {
+        if group == "tiny" {
+            case::<3, 2>(&mut raw, iterations, repetitions, order)?;
+            case::<80, 1>(&mut raw, iterations, repetitions, order)?;
+            continue;
+        }
         case::<3, 2>(&mut raw, iterations, repetitions, order)?;
         case::<18, 18>(&mut raw, iterations, repetitions, order)?;
         case::<80, 1>(&mut raw, iterations, repetitions, order)?;
@@ -132,19 +142,23 @@ fn run(output: &Path, iterations: u32, repetitions: u32) -> Result<(), Box<dyn s
     raw.finish()?;
     artifact::json(
         &output.join("summary.json"),
-        &json!({"schema":"conduit.matrix-projection-performance@1","iterations":iterations,"repetitions":repetitions,"reference_profile":"prior-scalar-library-view@1","candidate_profile":"shape-selected","shapes":22,"orders":2,"shape_list":["3x2","18x18","80x1","161x18","192x4","128x40","328x192","192x192","272x480","160x480","240x384","128x384","208x384","160x160","128x128","688x128","20x40","40x128","128x160","160x128","192x160","320x160"],"scope":"Isolated ordered-f32 matrix arithmetic on validated immutable synthetic bytes. No full Back, Plan, FARGAN, realtime, hardware traffic or total RAM claim. No quiet timing acceptance without independent process controls.","accounting":"Fixture generation and tensor preparation measured separately; warm bulk includes function calls, finite checks, prepared/reference scratch and result guards. Both paths retain column accumulation order. Reference uses the opt-in library method over the identical prepared view and prior scalar helper. Output inspection/hashing and evidence writes occur outside warm timing; timer controls not subtracted."}),
+        &json!({"schema":"conduit.matrix-projection-performance@1","iterations":iterations,"repetitions":repetitions,"reference_profile":"prior-scalar-library-view@1","candidate_profile":"shape-selected","case_group":group,"shapes":if group=="tiny" {2} else {22},"orders":2,"shape_list":if group=="tiny" {vec!["3x2","80x1"]} else {vec!["3x2","18x18","80x1","161x18","192x4","128x40","328x192","192x192","272x480","160x480","240x384","128x384","208x384","160x160","128x128","688x128","20x40","40x128","128x160","160x128","192x160","320x160"]},"scope":"Isolated ordered-f32 matrix arithmetic on validated immutable synthetic bytes. No full Back, Plan, FARGAN, realtime, hardware traffic or total RAM claim. No quiet timing acceptance without independent process controls.","accounting":"Fixture generation and tensor preparation measured separately; warm bulk includes function calls, finite checks, prepared/reference scratch and result guards. Both paths retain column accumulation order. Reference uses the opt-in library method over the identical prepared view and prior scalar helper. Output inspection/hashing and evidence writes occur outside warm timing; timer controls not subtracted."}),
     )?;
     Ok(())
 }
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<_> = std::env::args().skip(1).collect();
-    let [output, iterations, repetitions] = args.as_slice() else {
-        return Err("internal worker expects output/iterations/repetitions".into());
+    let (output, iterations, repetitions, group) = match args.as_slice() {
+        [output, iterations, repetitions] => (output, iterations, repetitions, "all"),
+        [output, iterations, repetitions, group] if matches!(group.as_str(), "all" | "tiny") => {
+            (output, iterations, repetitions, group.as_str())
+        }
+        _ => return Err("internal worker expects output/iterations/repetitions/[all|tiny]".into()),
     };
     let iterations = iterations.parse()?;
     let repetitions = repetitions.parse()?;
     if !(1..=100000).contains(&iterations) || !(3..=101).contains(&repetitions) {
         return Err("finite matrix measurement bounds refused".into());
     }
-    run(Path::new(output), iterations, repetitions)
+    run(Path::new(output), iterations, repetitions, group)
 }
