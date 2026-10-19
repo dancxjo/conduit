@@ -74,6 +74,8 @@ pub enum CheckSuite {
     ParserScorerReproduce,
     /// Exercise optional admitted parser scoring through ordinary Plan/Play.
     ParserSelection,
+    /// Exercise classified ASR revisions through common Language and installed StdHost.
+    AsrCommonLanguage,
     /// Prove bounded speech selection and explicit detail from exact Faces.
     TodoSpeech,
     InputSemantics,

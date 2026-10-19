@@ -4,6 +4,8 @@ mod acoustic_control;
 mod acoustic_flow;
 #[path = "../suites/angle_reference.rs"]
 mod angle_reference;
+#[path = "../suites/asr_common_language.rs"]
+mod asr_common_language;
 #[path = "../suites/dsp_shared_compositions.rs"]
 mod dsp_shared_compositions;
 #[path = "../suites/expression_baseline.rs"]
@@ -92,6 +94,7 @@ pub fn run(args: CheckArgs, opts: &GlobalOpts) -> Result<(), StepError> {
         CheckSuite::TodoDurability => run_suite(todo::TODO_DURABILITY_STEPS, &root, opts),
         CheckSuite::ModelInference => run_suite(model_inference::STEPS, &root, opts),
         CheckSuite::AcousticFlow => run_suite(acoustic_flow::STEPS, &root, opts),
+        CheckSuite::AsrCommonLanguage => run_suite(asr_common_language::STEPS, &root, opts),
         CheckSuite::ParserSelection => run_suite(parser_scorer::SELECTION, &root, opts),
         CheckSuite::ParserScorer => run_suite(parser_scorer::STEPS, &root, opts),
         CheckSuite::ParserScorerReproduce => run_suite(parser_scorer::REPRODUCE, &root, opts),
