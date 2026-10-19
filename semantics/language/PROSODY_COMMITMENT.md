@@ -146,3 +146,11 @@ execution nor currentness. The actual public Plan/Play path supplies execution
 proof; the shared owning analysis session supplies current authority. Tests
 exercise that complete boundary and separately refuse forged correlation and a
 validly correlated observation with a different numerical result.
+
+A dependency changes its dependent occurrence while observing both endpoints.
+The shared journal's default `observation_end` remains the changed region's end;
+Language extends it through a referenced governor when needed. This context
+counts against the admitted revisable window and can support a stable frontier,
+but grants no commitment. Correction containment and committed-prefix protection
+still use only the changed dependent region. Exact Source commitment and live
+analysis authority remain separate requirements.
