@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, cpSync, readFileSync, writeFileSync, rmSync, symlinkSync } from 'node:fs';
+import { mkdtempSync, cpSync, readFileSync, writeFileSync, rmSync, symlinkSync, mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
@@ -12,6 +12,11 @@ function fixture(t) {
   const root = mkdtempSync(path.join(tmpdir(), 'speech-publish-'));
   t.after(() => rmSync(root, { recursive: true, force: true }));
   cpSync(path.join(repository, 'site'), path.join(root, 'site'), { recursive: true, filter: source => source === path.join(repository, 'site') || source === path.join(repository, 'site/evidence') || source.startsWith(path.join(repository, SHARED_SPEECH_EVIDENCE_ROOT)) });
+  for (const relative of ['site/navigation.html', 'site/chrome.css', 'targets/browser/host/assets/conduit.css']) {
+    const destination = path.join(root, relative);
+    mkdirSync(path.dirname(destination), { recursive: true });
+    cpSync(path.join(repository, relative), destination);
+  }
   return root;
 }
 function change(root, name, fn, rehash = false) {
@@ -33,6 +38,13 @@ test('stages every retained byte and distinguishes producer from staged source',
   assert.equal(receipt.staged_source_commit, commit);
   assert.notEqual(receipt.producer_code_commit, commit);
   const html = readFileSync(path.join(result.destination, 'index.html'), 'utf8');
+  assert.ok(html.includes(readFileSync(path.join(repository, 'site/navigation.html'), 'utf8')));
+  assert.ok(html.includes(readFileSync(path.join(repository, 'site/chrome.css'), 'utf8')));
+  assert.ok(html.includes(readFileSync(path.join(repository, 'targets/browser/host/assets/conduit.css'), 'utf8')));
+  assert.ok(html.includes('class="site-content speech-proof"'));
+  assert.ok(html.includes('.site-content.speech-proof { max-width: 75ch; }'));
+  assert.ok(html.includes('.speech-proof code { overflow-wrap: anywhere; }'));
+  assert.ok(html.includes('.speech-proof audio { display: block; width: 100%; }'));
   for (const text of ['audio controls', 'NoAdmittedAcousticBack', 'publication.json', 'No physical-device', 'human listening', commit]) assert.ok(html.includes(text));
 });
 test('absent optional evidence is allowed; partial evidence is rejected', t => {
