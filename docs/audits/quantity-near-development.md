@@ -137,7 +137,7 @@ all-target Clippy, Core without default features and formatting pass. Fresh
 current-producer runs plus historical revision-3 runs verify all 113 retained
 artifacts with separate execution/inspection executable hashes. Revision-1/2
 support has reviewed historical-source and Core-schema proof; no old execution
-artifacts were fabricated. Source and every executed relevant Core/Std/CLI
+artifacts were fabricated. Source and each final passing Core/Std/CLI
 binary are retained with verified archive roundtrips. The code is private
 development, not accepted main or parent completion. The explicit remaining
 Fore-context, track-kind, binary64, computation/composition, coordinate-report,
