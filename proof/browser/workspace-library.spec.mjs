@@ -148,7 +148,7 @@ test("Pocket Theremin plays continuous two-axis PCM on the browser host", async 
   await openLibrary(page);
   await page.getByRole("textbox", { name: "Find a plot", exact: true }).fill("theremin");
   await card(page, "Pocket Theremin").getByRole("button", { name: "Use", exact: true }).click();
-  await expect(page.locator("#surface-title")).toHaveText("Pocket Theremin");
+  await waitForWorkspacePreparation(page, { surfaceTitle: "Pocket Theremin" });
   const surface = page.locator("#plot-input[data-pocket-theremin]");
   await expect(surface).toBeVisible();
   // Raw mouse coordinates do not perform locator scrolling. Bring the surface
