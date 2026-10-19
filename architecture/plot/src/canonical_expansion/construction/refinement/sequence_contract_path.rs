@@ -1,4 +1,4 @@
-//! Recover existing all-element Bytes metadata through a successful selection.
+//! Recover exact all-element Bytes/finite-F32 metadata through successful selection.
 //! This path is never a branch-fact identity and cannot establish a narrower law.
 use super::{
     input_path, Op, PortableExpressionNode, PortableExpressionProjection, String,
@@ -6,19 +6,29 @@ use super::{
 };
 use conduit_core::{CheckedValueContract, ValueConstraint};
 
-pub(super) fn bytes_path(
+pub(super) fn declared_path(
     node: &PortableExpressionNode,
     required: &CheckedValueContract,
 ) -> Option<String> {
-    if required.value_kind.as_str() != "value/bytes"
-        || !required
-            .constraints
-            .iter()
-            .all(|constraint| matches!(constraint, ValueConstraint::ByteLength { .. }))
-    {
+    if !supported(required) {
         return None;
     }
     path(node)
+}
+pub(super) fn supported(required: &CheckedValueContract) -> bool {
+    (required.value_kind.as_str() == "value/bytes"
+        && required
+            .constraints
+            .iter()
+            .all(|c| matches!(c, ValueConstraint::ByteLength { .. })))
+        || (required.value_kind.as_str() == conduit_core::F32_INFO_ID
+            && required.constraints.as_slice() == [ValueConstraint::FloatFinite])
+}
+fn representation(mut ty: &conduit_core::StructuredInfoType) -> &conduit_core::StructuredInfoType {
+    while let StructuredInfoTypeShape::Nominal { representation, .. } = ty.shape() {
+        ty = representation;
+    }
+    ty
 }
 fn path(node: &PortableExpressionNode) -> Option<String> {
     if let Some(path) = input_path(node) {
@@ -29,7 +39,7 @@ fn path(node: &PortableExpressionNode) -> Option<String> {
             let [source, index] = arguments.as_slice() else {
                 return None;
             };
-            let element = match source.value_type.shape() {
+            let element = match representation(&source.value_type).shape() {
                 StructuredInfoTypeShape::Collection { element, .. }
                 | StructuredInfoTypeShape::Sequence { element, .. } => element,
                 _ => return None,
