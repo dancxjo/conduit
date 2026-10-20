@@ -202,6 +202,12 @@ fn pressure_stale_input_ack_failure_and_cancel_never_reprepare_or_replay() {
     assert!(s.begin_next([()], log(32)).is_err());
     s.close_owned_input(IN.endpoint, IN.cord).unwrap();
     s.step().unwrap();
+    assert_eq!(s.kernel.cords[0].len, 0);
+    assert_eq!(
+        s.admit_owned_input(IN.endpoint, IN.cord, 1, &[8]).unwrap(),
+        RemoteIngressOutcome::Full { sequence: 1 },
+        "a consumed queue is still a live Value invocation until exact output acceptance"
+    );
     let output = s.owned_output(OUT.endpoint, OUT.cord).unwrap().unwrap();
     assert!(s
         .accept_owned_output(OUT.endpoint, OUT.cord, output.sequence + 1)
@@ -218,4 +224,27 @@ fn pressure_stale_input_ack_failure_and_cancel_never_reprepare_or_replay() {
         Err(SchedulerError::RemoteSequenceRejected)
     );
     assert!(s.begin_next([()], log(32)).is_err());
+}
+
+#[test]
+fn empty_value_closure_and_sequence_exhaustion_are_explicit_refusals() {
+    let mut empty = session();
+    assert_eq!(
+        empty.close_owned_input(IN.endpoint, IN.cord),
+        Err(SchedulerError::ValueOwnershipViolation)
+    );
+    assert!(empty.begin_next([()], log(32)).is_err());
+    let mut s = session();
+    invoke(&mut s, 0, &[7]);
+    s.owned_value_index = u64::MAX - 1;
+    for cord in &mut s.kernel.cords {
+        cord.next_remote_sequence = u64::MAX;
+    }
+    let before = s.kernel().signs().events().collect::<alloc::vec::Vec<_>>();
+    let refusal = s.begin_next([()], log(32)).err().unwrap();
+    assert_eq!(refusal.reason, SessionRefusal::InvocationExhausted);
+    assert_eq!(
+        s.kernel().signs().events().collect::<alloc::vec::Vec<_>>(),
+        before
+    );
 }
