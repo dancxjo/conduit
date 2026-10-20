@@ -1,0 +1,45 @@
+{
+  "base": "97bf3e4d5c40f93269766c6e4ab388509298713e",
+  "files": [
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-18/goal-finish-and-close-https-github/work/analysis-epoch-handoff-prep/semantics/language/build.rs",
+      "repository_path": "semantics/language/build.rs",
+      "sha256": "3b6ef834eaa2afa77310b38e86664b9c80517efb9b53618317230ac8a854358d"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-18/goal-finish-and-close-https-github/work/analysis-epoch-handoff-prep/semantics/language/src/catalog.rs",
+      "repository_path": "semantics/language/src/catalog.rs",
+      "sha256": "d6336c6f85350361d6fdef671bcbd67c49190d1d57cbafe09b56dd3f4e88e1cc"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-18/goal-finish-and-close-https-github/work/analysis-epoch-handoff-prep/semantics/language/src/analysis_session.rs",
+      "repository_path": "semantics/language/src/analysis_session.rs",
+      "sha256": "58ad889ea9394fb4b0252737319d01f987ddf5a59227a6d4862c8d712070b145"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-18/goal-finish-and-close-https-github/work/analysis-epoch-handoff-prep/semantics/language/src/lib.rs",
+      "repository_path": "semantics/language/src/lib.rs",
+      "sha256": "d3cd175895a6d10d870e96d6f75a711437e07355ca60baa9d7010b46a4497113"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-18/goal-finish-and-close-https-github/work/analysis-epoch-handoff-prep/semantics/language/analysis_epoch_initialization.conduit",
+      "repository_path": "semantics/language/analysis_epoch_initialization.conduit",
+      "sha256": "e1a6c2768e572b89afc81f8216be6a2de742a963403b9980b26b716681e5cabf"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-18/goal-finish-and-close-https-github/work/analysis-epoch-handoff-prep/semantics/language/src/analysis_epoch_initialization.rs",
+      "repository_path": "semantics/language/src/analysis_epoch_initialization.rs",
+      "sha256": "630307fe16f1224af1377830b6621b901f74c9f31289db99065527c93d8a5136"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-18/goal-finish-and-close-https-github/work/analysis-epoch-handoff-prep/semantics/language/src/analysis_epoch_owner.rs",
+      "repository_path": "semantics/language/src/analysis_epoch_owner.rs",
+      "sha256": "92a4c8d066f4886527c99ffee7a9b2dfd0196efb8987af653893a158ad4595ab"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-18/goal-finish-and-close-https-github/work/analysis-epoch-handoff-prep/semantics/language/tests/analysis_epoch_initialization.rs",
+      "repository_path": "semantics/language/tests/analysis_epoch_initialization.rs",
+      "sha256": "b010e3d850beee4504bf4824c6c217f15b77f73445747d190f65a3f33ed789b1"
+    }
+  ]
+}

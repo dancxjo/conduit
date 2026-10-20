@@ -1,0 +1,1026 @@
+diff --git a/semantics/language/build.rs b/semantics/language/build.rs
+index c6f393b27..2c5afa570 100644
+--- a/semantics/language/build.rs
++++ b/semantics/language/build.rs
+@@ -30,6 +30,7 @@ fn main() {
+     ] {
+         println!("cargo:rerun-if-changed={file}");
+     }
++    println!("cargo:rerun-if-changed=analysis_epoch_initialization.conduit");
+     let source = [
+         include_str!("types.conduit"),
+         include_str!("identity.conduit"),
+@@ -54,6 +55,7 @@ fn main() {
+         include_str!("prosody.conduit"),
+         include_str!("dependency_commitment.conduit"),
+         include_str!("prosody_commitment.conduit"),
++        include_str!("analysis_epoch_initialization.conduit"),
+     ]
+     .join("\n");
+     let checked = check_syntax_document(&parse_syntax_document(&source), &StartupCatalog::new())
+@@ -102,6 +104,18 @@ fn main() {
+     assert_eq!(ordered.len(), 8);
+     fs::write(PathBuf::from(env::var_os("OUT_DIR").unwrap()).join("commitment_programs.rs"), format!("pub const COMMITMENT_SOURCE_ID: &str = {:?};\npub(crate) const COMMITMENT_PROGRAMS: [&str; 8] = {:?};\n", checked.source_document_id.as_str(), ordered)).unwrap();
+     for (plot, file) in [
++        (
++            "language-parser-initialize",
++            "analysis_initialize_program.hex",
++        ),
++        (
++            "language/analysis-rebased-envelope",
++            "analysis_rebased_envelope.hex",
++        ),
++        (
++            "language/analysis-initial-envelope",
++            "analysis_initial_envelope.hex",
++        ),
+         (
+             "language-parser-availability",
+             "parser_availability_program.hex",
+diff --git a/semantics/language/src/analysis_session.rs b/semantics/language/src/analysis_session.rs
+index 4fcf20cdb..afc0c1b49 100644
+--- a/semantics/language/src/analysis_session.rs
++++ b/semantics/language/src/analysis_session.rs
+@@ -47,6 +47,22 @@ impl<'a> AnalysisSession<'a> {
+             lexical: None,
+         })
+     }
++    pub(crate) fn from_retained_prefix(
++        domain: &'a DependencyRevisions<'a>,
++        context: RevisionContext<'a>,
++        limits: RevisionLimits,
++        initial: TokenFrontier,
++    ) -> Result<Self, RevisionRefusal> {
++        Ok(Self {
++            journal: RevisionJournal::new(domain, context, initial, limits)?,
++            source: domain.source_text,
++            committed: None,
++            lexical: None,
++        })
++    }
++    pub(crate) fn context(&self) -> RevisionContext<'a> {
++        self.journal.context()
++    }
+     fn current_arc(
+         &self,
+         reference: RevisionReference<'a>,
+diff --git a/semantics/language/src/catalog.rs b/semantics/language/src/catalog.rs
+index 35fd1a67f..5a07d9909 100644
+--- a/semantics/language/src/catalog.rs
++++ b/semantics/language/src/catalog.rs
+@@ -49,6 +49,7 @@ pub fn install_linguistics_catalogs(
+         .chain(crate::lexical_consumer::lexical_consumer_types())
+         .chain(crate::parser_types())
+         .chain(crate::parser_revision_types())
++        .chain(crate::analysis_epoch_initialization::analysis_epoch_types())
+         .chain(crate::discourse::discourse_types())
+         .chain(crate::prosody::prosody_types())
+         .chain(crate::prosody_commitment::committed_prosody_types())
+diff --git a/semantics/language/src/lib.rs b/semantics/language/src/lib.rs
+index 63c832e42..75406356a 100644
+--- a/semantics/language/src/lib.rs
++++ b/semantics/language/src/lib.rs
+@@ -149,3 +149,6 @@ pub mod parser_punctuation_model;
+ 
+ /// Opaque replay of the existing single-survivor checked revision rebase.
+ pub mod parser_rebase_replay;
++
++pub mod analysis_epoch_initialization;
++pub mod analysis_epoch_owner;
+--- /dev/null
++++ b/semantics/language/analysis_epoch_initialization.conduit
+@@ -0,0 +1,26 @@
++# Declared initial scorer envelope, not learned choices or parser transitions.
++# Existing language-parser-initialize alone owns the initial graph state.
++type LanguageAnalysisInitialRawBeam = {
++    candidate0: LanguageParserScorerRawHypothesis
++    candidate1: LanguageParserScorerRawHypothesis
++    candidate2: LanguageParserScorerRawHypothesis
++    candidate3: LanguageParserScorerRawHypothesis
++}
++plot language/analysis-initial-envelope (
++    input: LanguageParserNumericState...| >> output: LanguageAnalysisInitialRawBeam...|
++) = ({
++    candidate0: { parser: { state: ., identity: 1, score: 0, active: true }, choices: [0,0,0,0], selected: 0 },
++    candidate1: { parser: { state: ., identity: 2, score: 0, active: false }, choices: [0,0,0,0], selected: 0 },
++    candidate2: { parser: { state: ., identity: 3, score: 0, active: false }, choices: [0,0,0,0], selected: 0 },
++    candidate3: { parser: { state: ., identity: 4, score: 0, active: false }, choices: [0,0,0,0], selected: 0 }
++})
++# Named fresh-revision envelope: keep slot identities/active membership and
++# committed lexical choices; reset only uncommitted choices and all scores.
++type LanguageAnalysisRebasedEnvelopeInput = {
++    prior: LanguageParserScorerHypothesis
++    state: LanguageParserNumericState
++}
++plot language/analysis-rebased-envelope (
++    input: LanguageAnalysisRebasedEnvelopeInput...| >> output: LanguageParserScorerRawHypothesis...|
++) = ({ parser: {state: .state, identity: .prior.parser.identity, score: 0, active: .prior.parser.active},
++    choices: [(.state.committed > 0 ? .prior.choices.0 : 0),(.state.committed > 1 ? .prior.choices.1 : 0),(.state.committed > 2 ? .prior.choices.2 : 0),(.state.committed > 3 ? .prior.choices.3 : 0)], selected: .state.unread })
+--- /dev/null
++++ b/semantics/language/src/analysis_epoch_initialization.rs
+@@ -0,0 +1,169 @@
++//! Exact initial Source replay; supplied observations are not installed proof.
++use crate::{generated::LanguageAnalysisInitialRawBeam, lexical::PreparedLexicalTape, *};
++use alloc::vec::Vec;
++use conduit_plot::{
++    rust_binding::{NativeBindingRefusal, NativeRustBinding},
++    PortableExpressionProgram,
++};
++#[derive(Debug)]
++pub enum AnalysisInitializationRefusal {
++    Native(NativeBindingRefusal),
++    Program,
++    Evaluation,
++    ObservationMismatch,
++    LexicalBasis,
++    Bound,
++}
++pub struct PreparedAnalysisInitializationProgram {
++    initialize: PortableExpressionProgram,
++    envelope: PortableExpressionProgram,
++}
++pub struct PreparedAnalysisInitialization {
++    pub(crate) lexical: PreparedLexicalTape,
++    pub(crate) beam: LanguageParserScorerBeam,
++    request: LanguageParserBegin,
++    input: Vec<u8>,
++    output: Vec<u8>,
++    envelope_output: Vec<u8>,
++}
++impl PreparedAnalysisInitializationProgram {
++    pub fn prepare() -> Result<Self, AnalysisInitializationRefusal> {
++        use AnalysisInitializationRefusal::*;
++        Ok(Self {
++            initialize: PortableExpressionProgram::from_canonical_hex(include_str!(concat!(
++                env!("OUT_DIR"),
++                "/analysis_initialize_program.hex"
++            )))
++            .map_err(|_| Program)?,
++            envelope: PortableExpressionProgram::from_canonical_hex(include_str!(concat!(
++                env!("OUT_DIR"),
++                "/analysis_initial_envelope.hex"
++            )))
++            .map_err(|_| Program)?,
++        })
++    }
++    pub fn replay(
++        &self,
++        lexical: PreparedLexicalTape,
++        request: &LanguageParserBegin,
++        observed: &LanguageParserNumericState,
++    ) -> Result<PreparedAnalysisInitialization, AnalysisInitializationRefusal> {
++        use AnalysisInitializationRefusal::*;
++        let tape = lexical.tape();
++        if tape.tokens().is_empty() || tape.tokens().len() > 4 {
++            return Err(LexicalBasis);
++        }
++        let available = tape
++            .tokens()
++            .iter()
++            .take_while(|t| {
++                matches!(t.completeness(), LanguageLexicalCompleteness::Complete)
++                    && !t.candidates().is_empty()
++            })
++            .count() as u64;
++        if request.basis().text() != tape.source().material().identity()
++            || request.basis().source_revision() != tape.source().material().revision()
++            || *request.token_count() != available
++        {
++            return Err(LexicalBasis);
++        }
++        let input = request.clone().encode().map_err(Native)?;
++        if input.len() > 65536 {
++            return Err(Bound);
++        }
++        LanguageParserBegin::decode(&input).map_err(Native)?;
++        let output = self.initialize.evaluate(&input).map_err(|_| Evaluation)?;
++        if output.len() > 65536 {
++            return Err(Bound);
++        }
++        let actual = LanguageParserNumericState::decode(&output).map_err(Native)?;
++        if &actual != observed {
++            return Err(ObservationMismatch);
++        }
++        let envelope_output = self.envelope.evaluate(&output).map_err(|_| Evaluation)?;
++        if envelope_output.len() > 65536 {
++            return Err(Bound);
++        }
++        let raw = LanguageAnalysisInitialRawBeam::decode(&envelope_output).map_err(Native)?;
++        let beam = LanguageParserScorerBeam::new(
++            admit(raw.candidate0())?,
++            admit(raw.candidate1())?,
++            admit(raw.candidate2())?,
++            admit(raw.candidate3())?,
++        )
++        .map_err(Native)?;
++        Ok(PreparedAnalysisInitialization {
++            lexical,
++            beam,
++            request: request.clone(),
++            input,
++            output,
++            envelope_output,
++        })
++    }
++}
++pub(crate) fn admit(
++    raw: &LanguageParserScorerRawHypothesis,
++) -> Result<LanguageParserScorerHypothesis, AnalysisInitializationRefusal> {
++    use AnalysisInitializationRefusal::Native;
++    let parser = raw.parser();
++    let state = parser.state();
++    let state = LanguageParserState::new(
++        state.basis().clone(),
++        *state.committed(),
++        *state.depth(),
++        *state.heads(),
++        state.relation0().clone(),
++        state.relation1().clone(),
++        state.relation2().clone(),
++        state.relation3().clone(),
++        *state.stack(),
++        *state.token_count(),
++        *state.unread(),
++    )
++    .map_err(Native)?;
++    let parser =
++        LanguageParserHypothesis::new(*parser.active(), *parser.identity(), *parser.score(), state)
++            .map_err(Native)?;
++    LanguageParserScorerHypothesis::new(*raw.choices(), parser, *raw.selected()).map_err(Native)
++}
++impl PreparedAnalysisInitialization {
++    pub fn request(&self) -> &LanguageParserBegin {
++        &self.request
++    }
++    pub fn beam(&self) -> &LanguageParserScorerBeam {
++        &self.beam
++    }
++    pub fn input_canonical(&self) -> &[u8] {
++        &self.input
++    }
++    pub fn output_canonical(&self) -> &[u8] {
++        &self.output
++    }
++    pub fn envelope_output_canonical(&self) -> &[u8] {
++        &self.envelope_output
++    }
++    pub fn source_id(&self) -> &'static str {
++        crate::parser_commitment::COMMITMENT_SOURCE_ID
++    }
++    pub fn initializer_program_hex(&self) -> &'static str {
++        include_str!(concat!(env!("OUT_DIR"), "/analysis_initialize_program.hex"))
++    }
++    pub fn envelope_program_hex(&self) -> &'static str {
++        include_str!(concat!(env!("OUT_DIR"), "/analysis_initial_envelope.hex"))
++    }
++}
++
++pub fn analysis_epoch_types() -> Vec<(&'static str, conduit_core::StructuredInfoType)> {
++    alloc::vec![
++        (
++            "LanguageAnalysisInitialRawBeam",
++            LanguageAnalysisInitialRawBeam::semantic_type().expect("checked raw envelope")
++        ),
++        (
++            "LanguageAnalysisRebasedEnvelopeInput",
++            crate::generated::LanguageAnalysisRebasedEnvelopeInput::semantic_type()
++                .expect("checked rebase envelope")
++        ),
++    ]
++}
+--- /dev/null
++++ b/semantics/language/src/analysis_epoch_owner.rs
+@@ -0,0 +1,417 @@
++//! Finite semantic epoch custody; not an installed decoder or playback owner.
++//! General learned decoder updates deliberately have no public acceptance API.
++use crate::generated::LanguageAnalysisRebasedEnvelopeInput;
++use crate::{
++    analysis_epoch_initialization::*,
++    analysis_session::*,
++    lexical::{prepare_lexical_tape, PreparedLexicalTape},
++    parser_rebase_replay::PreparedParserRebaseReplay,
++    revision::*,
++    *,
++};
++use alloc::vec::Vec;
++use conduit_core::revision::*;
++use conduit_plot::{
++    rust_binding::{NativeBindingRefusal, NativeRustBinding},
++    PortableExpressionProgram,
++};
++#[derive(Debug)]
++pub enum AnalysisEpochRefusal {
++    Revision(RevisionRefusal),
++    Session(AnalysisSessionRefusal),
++    Initialization(AnalysisInitializationRefusal),
++    Native(NativeBindingRefusal),
++    Domain,
++    Generation,
++    Replay,
++    Lexical,
++    Context,
++    Capacity,
++    FrontierCustody,
++}
++enum Material {
++    Initial(PreparedAnalysisInitialization),
++    Rebased {
++        lexical: PreparedLexicalTape,
++        receipts: [PreparedParserRebaseReplay; 4],
++        envelopes: Vec<Vec<u8>>,
++    },
++}
++pub struct AnalysisEpochOwner<'a> {
++    session: AnalysisSession<'a>,
++    material: Material,
++    beam: LanguageParserScorerBeam,
++    generation: u64,
++    commitments: Vec<&'a crate::dependency_commitment::PreparedCommittedDependency>,
++    commitment_limit: usize,
++}
++pub struct ArchivedAnalysisEpoch<'a> {
++    owner: AnalysisEpochOwner<'a>,
++}
++pub struct AnalysisEpochHandoffFailure<'a> {
++    pub owner: AnalysisEpochOwner<'a>,
++    pub refusal: AnalysisEpochRefusal,
++    pub replays: [PreparedParserRebaseReplay; 4],
++}
++impl<'a> AnalysisEpochOwner<'a> {
++    pub fn initialize(
++        initial: PreparedAnalysisInitialization,
++        domain: &'a DependencyRevisions<'a>,
++        context: RevisionContext<'a>,
++        limits: RevisionLimits,
++    ) -> Result<Self, AnalysisEpochRefusal> {
++        if domain.source_text != initial.lexical.tape().source().material()
++            || domain.tokens != initial.lexical.tape().tokens().len() as u64
++        {
++            return Err(AnalysisEpochRefusal::Domain);
++        }
++        let session = AnalysisSession::new(domain, context, limits)
++            .map_err(AnalysisEpochRefusal::Revision)?;
++        let beam = initial.beam.clone();
++        Ok(Self {
++            session,
++            material: Material::Initial(initial),
++            beam,
++            generation: 0,
++            commitments: Vec::with_capacity(limits.history_events),
++            commitment_limit: limits.history_events,
++        })
++    }
++    pub fn beam(&self) -> &LanguageParserScorerBeam {
++        &self.beam
++    }
++    pub fn lexical(&self) -> &PreparedLexicalTape {
++        match &self.material {
++            Material::Initial(i) => &i.lexical,
++            Material::Rebased { lexical, .. } => lexical,
++        }
++    }
++    pub fn commitment_receipts(
++        &self,
++    ) -> &[&'a crate::dependency_commitment::PreparedCommittedDependency] {
++        &self.commitments
++    }
++    pub fn generation(&self) -> u64 {
++        self.generation
++    }
++    pub fn initialization_receipt(&self) -> Option<&PreparedAnalysisInitialization> {
++        match &self.material {
++            Material::Initial(i) => Some(i),
++            Material::Rebased { .. } => None,
++        }
++    }
++    pub fn rebase_receipts(&self) -> &[PreparedParserRebaseReplay] {
++        match &self.material {
++            Material::Initial(_) => &[],
++            Material::Rebased { receipts, .. } => receipts,
++        }
++    }
++    pub fn rebase_envelope_outputs(&self) -> &[Vec<u8>] {
++        match &self.material {
++            Material::Initial(_) => &[],
++            Material::Rebased { envelopes, .. } => envelopes,
++        }
++    }
++    pub fn frontiers(&self) -> RevisionFrontiers<TokenFrontier> {
++        self.session.frontiers()
++    }
++    pub fn history(
++        &self,
++    ) -> impl DoubleEndedIterator<Item = &'a RevisionEvent<'a, DependencyRevisions<'a>>> + '_ {
++        self.session.history()
++    }
++    /// No arbitrary beam setter exists. This initial owner cannot yet consume
++    /// learned transition output: that requires opaque stage-by-stage custody.
++    pub fn current<'s>(
++        &'s self,
++        reference: RevisionReference<'a>,
++        receipt: &'s crate::dependency_commitment::PreparedCommittedDependency,
++    ) -> Result<CurrentCommittedDependency<'s, 'a>, AnalysisSessionRefusal> {
++        self.session.current(reference, receipt)
++    }
++    /// Admit ordinary semantic lifecycle events; commit has its own correlated
++    /// entrance so it cannot advance the journal without replacing every slot.
++    pub fn append_event(
++        &mut self,
++        event: &'a RevisionEvent<'a, DependencyRevisions<'a>>,
++        cancelled: bool,
++        pressure: bool,
++    ) -> Result<(), AnalysisEpochRefusal> {
++        if matches!(event.change(), RevisionChange::Committed { .. }) {
++            return Err(AnalysisEpochRefusal::Replay);
++        }
++        if matches!(event.change(), RevisionChange::Stable { .. }) {
++            return Err(AnalysisEpochRefusal::FrontierCustody);
++        }
++        let generation = self
++            .generation
++            .checked_add(1)
++            .ok_or(AnalysisEpochRefusal::Generation)?;
++        self.session
++            .append(event, None, cancelled, pressure)
++            .map_err(AnalysisEpochRefusal::Session)?;
++        self.generation = generation;
++        Ok(())
++    }
++    pub fn append_commitment(
++        &mut self,
++        event: &'a RevisionEvent<'a, DependencyRevisions<'a>>,
++        receipt: &'a crate::dependency_commitment::PreparedCommittedDependency,
++        cancelled: bool,
++        pressure: bool,
++    ) -> Result<(), AnalysisEpochRefusal> {
++        use AnalysisEpochRefusal::*;
++        require_commitment_capacity(
++            self.commitments.len(),
++            self.commitment_limit,
++            self.commitments.capacity(),
++        )?;
++        if !matches!(event.change(), RevisionChange::Committed { .. }) {
++            return Err(Replay);
++        }
++        let slots = [
++            self.beam.candidate0(),
++            self.beam.candidate1(),
++            self.beam.candidate2(),
++            self.beam.candidate3(),
++        ];
++        let expected = LanguageParserAdmittedBeam::new(
++            slots[0].parser().state().basis().clone(),
++            slots[0].parser().clone(),
++            slots[1].parser().clone(),
++            slots[2].parser().clone(),
++            slots[3].parser().clone(),
++        )
++        .map_err(Native)?;
++        if receipt.commitment().request().beam() != &expected
++            || receipt.lexical() != self.lexical().tape()
++        {
++            return Err(Replay);
++        }
++        let actual = receipt.commitment().result();
++        let outputs = [
++            actual.candidate0(),
++            actual.candidate1(),
++            actual.candidate2(),
++            actual.candidate3(),
++        ];
++        let mut updated = Vec::new();
++        for (prior, output) in slots.into_iter().zip(outputs) {
++            updated.push(
++                LanguageParserScorerHypothesis::new(
++                    *prior.choices(),
++                    output.clone(),
++                    *prior.selected(),
++                )
++                .map_err(Native)?,
++            );
++        }
++        let mut it = updated.into_iter();
++        let beam = LanguageParserScorerBeam::new(
++            it.next().ok_or(Replay)?,
++            it.next().ok_or(Replay)?,
++            it.next().ok_or(Replay)?,
++            it.next().ok_or(Replay)?,
++        )
++        .map_err(Native)?;
++        let generation = self.generation.checked_add(1).ok_or(Generation)?;
++        self.session
++            .append(event, Some(receipt), cancelled, pressure)
++            .map_err(Session)?;
++        self.commitments.push(receipt);
++        self.beam = beam;
++        self.generation = generation;
++        Ok(())
++    }
++    /// Consuming handoff preserves old history privately and cannot coexist with
++    /// a live authority borrow. Failure returns the old owner unchanged.
++    pub fn handoff(
++        self,
++        receipts: [PreparedParserRebaseReplay; 4],
++        next_domain: &'a DependencyRevisions<'a>,
++        context: RevisionContext<'a>,
++        limits: RevisionLimits,
++    ) -> Result<(Self, ArchivedAnalysisEpoch<'a>), AnalysisEpochHandoffFailure<'a>> {
++        let prepared = self.prepare_next(&receipts, next_domain, context, limits);
++        let (session, lexical, beam, generation, envelopes) = match prepared {
++            Ok(p) => p,
++            Err(refusal) => {
++                return Err(AnalysisEpochHandoffFailure {
++                    owner: self,
++                    refusal,
++                    replays: receipts,
++                })
++            }
++        };
++        let next = Self {
++            session,
++            material: Material::Rebased {
++                lexical,
++                receipts,
++                envelopes,
++            },
++            beam,
++            generation,
++            commitments: Vec::with_capacity(limits.history_events),
++            commitment_limit: limits.history_events,
++        };
++        Ok((next, ArchivedAnalysisEpoch { owner: self }))
++    }
++    fn prepare_next(
++        &self,
++        receipts: &[PreparedParserRebaseReplay; 4],
++        domain: &'a DependencyRevisions<'a>,
++        context: RevisionContext<'a>,
++        limits: RevisionLimits,
++    ) -> Result<
++        (
++            AnalysisSession<'a>,
++            PreparedLexicalTape,
++            LanguageParserScorerBeam,
++            u64,
++            Vec<Vec<u8>>,
++        ),
++        AnalysisEpochRefusal,
++    > {
++        use AnalysisEpochRefusal::*;
++        let generation = self.generation.checked_add(1).ok_or(Generation)?;
++        let previous_context = self.session.context();
++        if context.epoch == previous_context.epoch
++            || context.stream != previous_context.stream
++            || context.subject != previous_context.subject
++            || context.producer != previous_context.producer
++            || context.policy != previous_context.policy
++        {
++            return Err(Context);
++        }
++        let slots = [
++            self.beam.candidate0(),
++            self.beam.candidate1(),
++            self.beam.candidate2(),
++            self.beam.candidate3(),
++        ];
++        let next_source = receipts[0].preparation().lexical().tape().source();
++        let lexical = prepare_lexical_tape(
++            next_source,
++            self.lexical().tape().profile(),
++            Some(self.lexical()),
++        )
++        .map_err(|_| Lexical)?;
++        if lexical.tape().tokens().len() > 4 {
++            return Err(Domain);
++        }
++        if domain.source_text != next_source.material()
++            || domain.tokens != lexical.tape().tokens().len() as u64
++        {
++            return Err(Domain);
++        }
++        let program = PortableExpressionProgram::from_canonical_hex(include_str!(concat!(
++            env!("OUT_DIR"),
++            "/analysis_rebased_envelope.hex"
++        )))
++        .map_err(|_| Replay)?;
++        let mut admitted = Vec::new();
++        let mut envelopes = Vec::new();
++        for (prior, replay) in slots.into_iter().zip(receipts) {
++            let request = replay.preparation().request();
++            if request.previous() != prior.parser().state()
++                || request.previous_lexical().tape() != self.lexical().tape()
++                || replay.preparation().lexical().tape() != lexical.tape()
++                || replay.result().basis() != receipts[0].result().basis()
++                || (*prior.parser().active()
++                    && *replay.result().committed() != self.frontiers().committed.0)
++            {
++                return Err(Replay);
++            }
++            let input = LanguageAnalysisRebasedEnvelopeInput::new(
++                prior.clone(),
++                replay.raw_result().clone(),
++            )
++            .map_err(Native)?;
++            let output = program
++                .evaluate(&input.encode().map_err(Native)?)
++                .map_err(|_| Replay)?;
++            if output.len() > 65536 {
++                return Err(Capacity);
++            }
++            let raw = LanguageParserScorerRawHypothesis::decode(&output).map_err(Native)?;
++            admitted
++                .push(crate::analysis_epoch_initialization::admit(&raw).map_err(Initialization)?);
++            envelopes.push(output);
++        }
++        let mut it = admitted.into_iter();
++        let beam = LanguageParserScorerBeam::new(
++            it.next().ok_or(Replay)?,
++            it.next().ok_or(Replay)?,
++            it.next().ok_or(Replay)?,
++            it.next().ok_or(Replay)?,
++        )
++        .map_err(Native)?;
++        let session = AnalysisSession::from_retained_prefix(
++            domain,
++            context,
++            limits,
++            self.frontiers().committed,
++        )
++        .map_err(Revision)?;
++        Ok((session, lexical, beam, generation, envelopes))
++    }
++}
++impl<'a> ArchivedAnalysisEpoch<'a> {
++    pub fn initialization_receipt(&self) -> Option<&PreparedAnalysisInitialization> {
++        self.owner.initialization_receipt()
++    }
++    pub fn rebase_receipts(&self) -> &[PreparedParserRebaseReplay] {
++        self.owner.rebase_receipts()
++    }
++    pub fn beam(&self) -> &LanguageParserScorerBeam {
++        &self.owner.beam
++    }
++    pub fn commitment_receipts(
++        &self,
++    ) -> &[&'a crate::dependency_commitment::PreparedCommittedDependency] {
++        self.owner.commitment_receipts()
++    }
++    pub fn lexical(&self) -> &PreparedLexicalTape {
++        self.owner.lexical()
++    }
++    pub fn frontiers(&self) -> RevisionFrontiers<TokenFrontier> {
++        self.owner.frontiers()
++    }
++    pub fn generation(&self) -> u64 {
++        self.owner.generation
++    }
++    pub fn history(
++        &self,
++    ) -> impl DoubleEndedIterator<Item = &'a RevisionEvent<'a, DependencyRevisions<'a>>> + '_ {
++        self.owner.history()
++    }
++}
++
++fn require_commitment_capacity(
++    len: usize,
++    limit: usize,
++    capacity: usize,
++) -> Result<(), AnalysisEpochRefusal> {
++    if len >= limit || len >= capacity {
++        Err(AnalysisEpochRefusal::Capacity)
++    } else {
++        Ok(())
++    }
++}
++#[cfg(test)]
++mod capacity_tests {
++    use super::*;
++    #[test]
++    fn logical_archive_limit_precedes_spare_allocator_capacity() {
++        assert!(matches!(
++            require_commitment_capacity(2, 2, 8),
++            Err(AnalysisEpochRefusal::Capacity)
++        ));
++        assert!(matches!(
++            require_commitment_capacity(0, 4, 0),
++            Err(AnalysisEpochRefusal::Capacity)
++        ));
++        assert!(require_commitment_capacity(1, 2, 8).is_ok());
++    }
++}
+--- /dev/null
++++ b/semantics/language/tests/analysis_epoch_initialization.rs
+@@ -0,0 +1,313 @@
++//! Initial-owner custody proof only; no learned transitions or installed runtime.
++use conduit_core::revision::*;
++use conduit_language::{
++    analysis_epoch_initialization::*, analysis_epoch_owner::*, lexical::*, revision::*, *,
++};
++use conduit_plot::{
++    rust_binding::{BoundedSequence, NativeRustBinding},
++    PortableExpressionProgram,
++};
++fn text(s: &str) -> RevisionText<'_> {
++    RevisionText::new(s).unwrap()
++}
++fn lexical() -> PreparedLexicalTape {
++    let provenance =
++        LinguisticDerivationProvenance::deterministic_rule("epoch-fixture".into(), "1".into())
++            .unwrap();
++    let source = LanguageTextRevision::new(
++        LanguageTextFinality::Final,
++        LanguageText::new(
++            LanguageTextId::new("epoch-source".into()).unwrap(),
++            LanguageId::new("language/en".into()).unwrap(),
++            LanguageTextRevisionId::new("1".into()).unwrap(),
++            "Hello".into(),
++        )
++        .unwrap(),
++        None,
++        provenance.clone(),
++        0,
++        Some(5),
++    )
++    .unwrap();
++    let entry = LanguageLexicalEntry::new(
++        BoundedSequence::try_from_iter([LanguageLexicalCandidate::new(
++            "hello".into(),
++            BoundedSequence::new(),
++            LanguageLexicalPos::Interjection,
++        )
++        .unwrap()])
++        .unwrap(),
++        "Hello".into(),
++    )
++    .unwrap();
++    let profile = LanguageLexicalProfile::new(
++        BoundedSequence::try_from_iter([entry]).unwrap(),
++        "epoch-fixture".into(),
++        source.material().language().clone(),
++        provenance,
++    )
++    .unwrap();
++    prepare_lexical_tape(&source, &profile, None).unwrap()
++}
++fn request(tape: &PreparedLexicalTape) -> LanguageParserBegin {
++    LanguageParserBegin::new(
++        LanguageParserBasis::new(
++            LanguageAnalysisRevisionId::new("analysis/1".into()).unwrap(),
++            tape.tape().source().material().revision().clone(),
++            tape.tape().source().material().identity().clone(),
++        )
++        .unwrap(),
++        LanguageParserRelation::new(
++            LanguageUniversalDependencyRelation::Dep,
++            LanguageParserSubtype::new("".into()).unwrap(),
++        )
++        .unwrap(),
++        1,
++    )
++    .unwrap()
++}
++fn observed(request: &LanguageParserBegin) -> LanguageParserNumericState {
++    let program = PortableExpressionProgram::from_canonical_hex(include_str!(concat!(
++        env!("OUT_DIR"),
++        "/analysis_initialize_program.hex"
++    )))
++    .unwrap();
++    LanguageParserNumericState::decode(
++        &program
++            .evaluate(&request.clone().encode().unwrap())
++            .unwrap(),
++    )
++    .unwrap()
++}
++#[test]
++fn only_exact_uncommitted_source_initialization_seeds_all_four_private_slots() {
++    let lexical = lexical();
++    let request = request(&lexical);
++    let actual = observed(&request);
++    let program = PreparedAnalysisInitializationProgram::prepare().unwrap();
++    let initial = program.replay(lexical, &request, &actual).unwrap();
++    assert_eq!(*initial.beam().candidate0().parser().active(), true);
++    for slot in [
++        initial.beam().candidate0(),
++        initial.beam().candidate1(),
++        initial.beam().candidate2(),
++        initial.beam().candidate3(),
++    ] {
++        assert_eq!(*slot.parser().state().committed(), 0);
++        assert_eq!(*slot.choices(), [0; 4]);
++        assert_eq!(*slot.selected(), 0);
++    }
++    let source = initial.request().basis().clone();
++    let domain_text = LanguageText::new(
++        source.text().clone(),
++        LanguageId::new("language/en".into()).unwrap(),
++        source.source_revision().clone(),
++        "Hello".into(),
++    )
++    .unwrap();
++    let domain = DependencyRevisions {
++        source_text: &domain_text,
++        tokens: 1,
++    };
++    let context = RevisionContext {
++        stream: text("analysis"),
++        subject: text("epoch-source"),
++        epoch: text("1"),
++        producer: text("fixture"),
++        policy: text("epoch@1"),
++    };
++    let proposal = RevisionReference {
++        context,
++        sequence: 1,
++        event: text("untrusted-proposal"),
++    };
++    let evidence = [RevisionEvidence {
++        source: text("caller-supplied-stability"),
++        generation: text("1"),
++    }];
++    let stable = RevisionEvent::new(
++        &domain,
++        RevisionReference {
++            context,
++            sequence: 2,
++            event: text("untrusted-stable"),
++        },
++        &evidence,
++        RevisionChange::Stable {
++            revision: proposal,
++            through: TokenFrontier(0),
++        },
++    )
++    .unwrap();
++    let mut owner = AnalysisEpochOwner::initialize(
++        initial,
++        &domain,
++        context,
++        RevisionLimits {
++            history_events: 8,
++            revisable_units: 4,
++        },
++    )
++    .unwrap();
++    assert!(matches!(
++        owner.append_event(&stable, false, false),
++        Err(AnalysisEpochRefusal::FrontierCustody)
++    ));
++    assert_eq!(owner.generation(), 0);
++    assert_eq!(owner.frontiers().committed, TokenFrontier(0));
++    assert_eq!(owner.history().count(), 0);
++    assert!(owner.commitment_receipts().is_empty());
++}
++#[test]
++fn foreign_observation_refuses_without_publishing_owner() {
++    let lexical = lexical();
++    let request = request(&lexical);
++    let actual = observed(&request);
++    let changed = LanguageParserNumericState::new(
++        actual.basis().clone(),
++        1,
++        *actual.depth(),
++        *actual.heads(),
++        actual.relation0().clone(),
++        actual.relation1().clone(),
++        actual.relation2().clone(),
++        actual.relation3().clone(),
++        *actual.stack(),
++        *actual.token_count(),
++        *actual.unread(),
++    )
++    .unwrap();
++    assert!(matches!(
++        PreparedAnalysisInitializationProgram::prepare()
++            .unwrap()
++            .replay(lexical, &request, &changed),
++        Err(AnalysisInitializationRefusal::ObservationMismatch)
++    ));
++}
++#[test]
++fn consuming_zero_prefix_epoch_handoff_retains_every_slot_and_archives_history_only() {
++    use conduit_language::parser_rebase_replay::*;
++    let lexical = lexical();
++    let request = request(&lexical);
++    let actual = observed(&request);
++    let old_text = lexical.tape().source().material().clone();
++    let next_source = LanguageTextRevision::new(
++        LanguageTextFinality::Final,
++        LanguageText::new(
++            old_text.identity().clone(),
++            old_text.language().clone(),
++            LanguageTextRevisionId::new("2".into()).unwrap(),
++            old_text.text().clone(),
++        )
++        .unwrap(),
++        Some(LanguageTextPriorRevision::new(old_text.revision().clone(), 0).unwrap()),
++        lexical.tape().source().provenance().clone(),
++        1,
++        Some(5),
++    )
++    .unwrap();
++    let initial = PreparedAnalysisInitializationProgram::prepare()
++        .unwrap()
++        .replay(lexical, &request, &actual)
++        .unwrap();
++    let old_domain = DependencyRevisions {
++        source_text: &old_text,
++        tokens: 1,
++    };
++    let next_domain = DependencyRevisions {
++        source_text: next_source.material(),
++        tokens: 1,
++    };
++    let context = RevisionContext {
++        stream: text("analysis"),
++        subject: text("epoch-source"),
++        epoch: text("1"),
++        producer: text("fixture"),
++        policy: text("epoch@1"),
++    };
++    let limits = RevisionLimits {
++        history_events: 8,
++        revisable_units: 4,
++    };
++    let owner = AnalysisEpochOwner::initialize(initial, &old_domain, context, limits).unwrap();
++    let previous = owner.beam().clone();
++    let replay_program = PreparedParserRebaseProgram::prepare().unwrap();
++    let expression = PortableExpressionProgram::from_canonical_hex(include_str!(concat!(
++        env!("OUT_DIR"),
++        "/parser_rebase_program.hex"
++    )))
++    .unwrap();
++    let mut receipts = Vec::new();
++    for slot in [
++        previous.candidate0(),
++        previous.candidate1(),
++        previous.candidate2(),
++        previous.candidate3(),
++    ] {
++        let p = PreparedParserRevisionRebase::prepare(
++            slot.parser().state(),
++            owner.lexical(),
++            &next_source,
++            LanguageAnalysisRevisionId::new("analysis/2".into()).unwrap(),
++            request.default_relation().clone(),
++        )
++        .unwrap();
++        let observed = LanguageParserNumericState::decode(
++            &expression
++                .evaluate(&p.request().clone().encode().unwrap())
++                .unwrap(),
++        )
++        .unwrap();
++        receipts.push(replay_program.replay(p, &observed).unwrap());
++    }
++    let receipts = receipts.try_into().ok().unwrap();
++    let next_context = RevisionContext {
++        epoch: text("2"),
++        ..context
++    };
++    let foreign_context = RevisionContext {
++        stream: text("other-stream"),
++        ..next_context
++    };
++    let failure = match owner.handoff(receipts, &next_domain, foreign_context, limits) {
++        Err(f) => f,
++        Ok(_) => panic!("cross-stream handoff accepted"),
++    };
++    assert!(matches!(failure.refusal, AnalysisEpochRefusal::Context));
++    assert_eq!(failure.owner.beam(), &previous);
++    assert_eq!(failure.owner.generation(), 0);
++    assert_eq!(failure.owner.history().count(), 0);
++    let owner = failure.owner;
++    let receipts = failure.replays;
++    let (next, archive) = match owner.handoff(receipts, &next_domain, next_context, limits) {
++        Ok(value) => value,
++        Err(_) => panic!("exact handoff refused"),
++    };
++    assert_eq!(archive.beam(), &previous);
++    assert_eq!(archive.generation(), 0);
++    assert_eq!(next.generation(), 1);
++    assert_eq!(next.rebase_receipts().len(), 4);
++    assert_eq!(next.frontiers().committed, TokenFrontier(0));
++    assert_eq!(next.history().count(), 0);
++    assert!(next.commitment_receipts().is_empty());
++    for (old, new) in [
++        previous.candidate0(),
++        previous.candidate1(),
++        previous.candidate2(),
++        previous.candidate3(),
++    ]
++    .into_iter()
++    .zip([
++        next.beam().candidate0(),
++        next.beam().candidate1(),
++        next.beam().candidate2(),
++        next.beam().candidate3(),
++    ]) {
++        assert_eq!(old.parser().identity(), new.parser().identity());
++        assert_eq!(old.parser().active(), new.parser().active());
++        assert_eq!(
++            new.parser().state().basis().source_revision(),
++            next_source.material().revision()
++        );
++    }
++}
