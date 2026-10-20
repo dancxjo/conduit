@@ -143,3 +143,63 @@ fn ordinary_kernel_channel_refuses_foreign_definition_and_keeps_cancelled_pendin
     assert_eq!(lease, "cancelled");
     assert!(receipt.is_none());
 }
+
+#[test]
+fn admitted_32_invocation_channel_retains_full_ack_history_and_all_tokens_without_growth() {
+    let profile = profile();
+    let (plot, definition) = channel_definition(&profile);
+    let mut channel =
+        PreparedCategoricalChannel::prepare(&plot, definition.clone(), profile.clone(), 32)
+            .unwrap();
+    let bytes = indices(&profile, &[1, 1]);
+    let mut retained = Vec::with_capacity(32);
+    let (_, growth) = allocation_probe::observe(|| {
+        for invocation in 1..=32 {
+            assert_eq!(
+                channel.submit(invocation, &bytes).unwrap(),
+                CategoricalChannelSubmission::Accepted
+            );
+            let (lease, receipt) = poll(&mut channel).into_parts();
+            assert_eq!(lease, invocation);
+            assert_eq!(receipt.invocation(), invocation);
+            assert_eq!(receipt.plan(), &definition.internal_plan);
+            assert_eq!(receipt.active_plays(), channel.active_plays());
+            retained.push(receipt);
+        }
+        assert_eq!(channel.available_slots(), 0);
+        let pressure = channel.submit(33, &bytes).unwrap_err();
+        assert_eq!(pressure.refusal, CategoricalChannelRefusal::Pressure);
+        assert_eq!(pressure.lease, 33);
+        assert!(channel.pending().is_none());
+        assert!(!channel.is_closed());
+    });
+    assert_eq!(growth.allocations, 0);
+    assert_eq!(growth.reallocations, 0);
+    assert_eq!(growth.deallocations, 0);
+    assert_eq!(retained.len(), 32);
+    for receipt in &retained {
+        let mut input = vec![0; receipt.input_len()];
+        receipt.copy_input_into(&mut input).unwrap();
+        assert_eq!(input, bytes);
+        let mut output = vec![0; receipt.output_len()];
+        receipt.copy_output_into(&mut output).unwrap();
+        assert_eq!(scores(&output), [4, -4]);
+    }
+    // All four lifecycle records per request survive, not merely a small ring.
+    let signs = channel.signs();
+    for kind in [
+        conduit_kernel::KernelEventKind::RemoteInputAdmitted,
+        conduit_kernel::KernelEventKind::RemoteValueOffered,
+        conduit_kernel::KernelEventKind::RemoteValueAccepted,
+        conduit_kernel::KernelEventKind::RemoteValueDelivered,
+    ] {
+        assert_eq!(
+            signs
+                .values()
+                .flatten()
+                .filter(|event| event.kind == kind)
+                .count(),
+            32
+        );
+    }
+}

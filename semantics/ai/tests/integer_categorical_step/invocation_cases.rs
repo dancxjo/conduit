@@ -35,7 +35,7 @@ fn opaque_outlet_publishes_only_after_ack_and_holds_exact_bytes_under_pressure()
     let (factory, mut readers) =
         owner::CategoricalOperationFactory::for_plan_with_invocation_outlets(
             &plan,
-            &[profile.clone()],
+            std::slice::from_ref(&profile),
             1,
         )
         .unwrap();
@@ -63,7 +63,7 @@ fn opaque_outlet_publishes_only_after_ack_and_holds_exact_bytes_under_pressure()
     let (_, foreign_readers) =
         owner::CategoricalOperationFactory::for_plan_with_invocation_outlets(
             &plan,
-            &[profile.clone()],
+            std::slice::from_ref(&profile),
             1,
         )
         .unwrap();
@@ -116,7 +116,7 @@ fn cancellation_and_bad_input_never_publish_and_capacity_is_admitted_before_use(
         assert!(
             owner::CategoricalOperationFactory::for_plan_with_invocation_outlets(
                 &plan,
-                &[profile.clone()],
+                std::slice::from_ref(&profile),
                 capacity
             )
             .is_err()
@@ -124,7 +124,7 @@ fn cancellation_and_bad_input_never_publish_and_capacity_is_admitted_before_use(
     }
     let (factory, readers) = owner::CategoricalOperationFactory::for_plan_with_invocation_outlets(
         &plan,
-        &[profile.clone()],
+        std::slice::from_ref(&profile),
         1,
     )
     .unwrap();

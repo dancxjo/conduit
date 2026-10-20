@@ -187,8 +187,22 @@ impl<L> PreparedCategoricalChannel<L> {
         let outlet = outlets.pop().ok_or(Definition)?;
         let mut registry = KernelOperationRegistry::new();
         registry.install(factory).map_err(|_| Preparation)?;
+        // Preserve durable input/output lifecycle evidence for the admitted
+        // outlet capacity, rather than relying on the small generic default.
+        // This is finite preparation storage, not additional invocation authority.
+        let signs = conduit_composite::KernelCompositeSignStorage {
+            additional_local_items: capacity
+                .checked_mul(16)
+                .and_then(|n| u16::try_from(n).ok())
+                .ok_or(Preparation)?,
+            additional_remote_items: capacity
+                .checked_mul(4)
+                .and_then(|n| u16::try_from(n).ok())
+                .ok_or(Preparation)?,
+        };
         let mut kernel =
-            KernelCompositeHost::prepare(definition, &registry).map_err(|_| Preparation)?;
+            KernelCompositeHost::prepare_with_sign_storage(definition, &registry, signs)
+                .map_err(|_| Preparation)?;
         kernel.start().map_err(|_| Preparation)?;
         let input_codec = IntegerCollectionCodec::prepare(&profile.indices, profile.dimensions().2)
             .map_err(|_| Preparation)?;
@@ -217,6 +231,11 @@ impl<L> PreparedCategoricalChannel<L> {
     /// Allocating diagnostic snapshot, outside the bounded step path.
     pub fn signs(&self) -> BTreeMap<HostId, Vec<conduit_kernel::KernelEvent>> {
         self.kernel.signs()
+    }
+    /// Bounded observed free-slot scan; does not reserve or grant a slot.
+    /// The channel is the sole writer; its later submission still performs CAS.
+    pub fn available_slots(&self) -> usize {
+        self.outlet.available_slots()
     }
     pub fn pending(&self) -> Option<&L> {
         self.pending.as_ref().map(|pending| &pending.lease)

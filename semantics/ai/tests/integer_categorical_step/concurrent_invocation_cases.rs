@@ -10,7 +10,7 @@ fn concurrent_readers_have_one_winner_and_held_bytes_survive_pressure_then_reuse
     let (factory, mut outlets) =
         owner::CategoricalOperationFactory::for_plan_with_invocation_outlets(
             &plan,
-            &[profile.clone()],
+            std::slice::from_ref(&profile),
             1,
         )
         .unwrap();
