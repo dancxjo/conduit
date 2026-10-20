@@ -3,6 +3,18 @@ use crate::{process::Step, proof::ProofClass};
 /// Deterministic K5/K5b contracts plus K8's two truthful platform seams.
 pub const INPUT_SEMANTICS_STEPS: &[Step] = &[
     Step::new(
+        "check.input-semantics.portable-collections",
+        "check source-owned collection membership, selection and bounded pages",
+        "cargo",
+        &[
+            "test",
+            "-p",
+            "conduit-birth-plot",
+            "face::tests::collections",
+            "--lib",
+        ],
+    ),
+    Step::new(
         "check.input-semantics.native-edit-receipt",
         "check source-session and Unicode-byte correlation in native edit receipts",
         "node",
