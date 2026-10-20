@@ -47,6 +47,22 @@ impl<'a> AnalysisSession<'a> {
             lexical: None,
         })
     }
+    pub(crate) fn from_retained_prefix(
+        domain: &'a DependencyRevisions<'a>,
+        context: RevisionContext<'a>,
+        limits: RevisionLimits,
+        initial: TokenFrontier,
+    ) -> Result<Self, RevisionRefusal> {
+        Ok(Self {
+            journal: RevisionJournal::new(domain, context, initial, limits)?,
+            source: domain.source_text,
+            committed: None,
+            lexical: None,
+        })
+    }
+    pub(crate) fn context(&self) -> RevisionContext<'a> {
+        self.journal.context()
+    }
     fn current_arc(
         &self,
         reference: RevisionReference<'a>,
@@ -133,6 +149,9 @@ impl<'a> AnalysisSession<'a> {
     }
     pub fn frontiers(&self) -> RevisionFrontiers<TokenFrontier> {
         self.journal.frontiers()
+    }
+    pub(crate) fn is_closed(&self) -> bool {
+        self.journal.is_closed()
     }
     pub fn history(
         &self,
