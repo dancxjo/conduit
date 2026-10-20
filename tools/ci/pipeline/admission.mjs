@@ -35,7 +35,15 @@ export function admissionPlan(paths, metadata, root) {
     if (/^(?:tools\/ci\/|proof\/ci\/|\.github\/)/.test(name)) {
       for (const item of owners.filter(item => item.directory.startsWith('tools/xtask'))) selected.add(item.pkg.name);
     }
-    else if (owner) selected.add(owner.pkg.name);
+    else if (owner) {
+      selected.add(owner.pkg.name);
+      // The dispatcher includes shared xtask modules by source path, outside
+      // Cargo's dependency graph. Compile both entrances for these edits so a
+      // module-layout error cannot pass Candidate and fail Integration later.
+      if (owner.directory === 'tools/xtask') {
+        for (const item of owners.filter(item => item.directory === 'tools/xtask-dispatch')) selected.add(item.pkg.name);
+      }
+    }
     else if (name.startsWith('plots/')) {
       // Authored plots and their inventory are consumed by the product and
       // xtask catalog commands, rather than every workspace package.
