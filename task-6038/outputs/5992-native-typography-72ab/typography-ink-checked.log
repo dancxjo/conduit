@@ -1,0 +1,44 @@
+   Compiling conduitos v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/conduitos)
+    Finished `test` profile [optimized] target(s) in 39.80s
+     Running unittests src/lib.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/deps/conduitos-9bf31814da61c6ef)
+
+running 17 tests
+test display::typography::ensemble_tests::every_selected_fallback_and_rescue_ink_fits_scaled_line_metrics ... ok
+test display::typography::ensemble_tests::serif_ink_wrap_and_caret_use_actual_scaled_edges ... ok
+test display::typography::ensemble_tests::serif_title_keeps_proportional_advance_and_zero_advance_marks ... ok
+test display::typography::layout::tests::admitted_scale_changes_the_same_glyphs_and_line_metrics ... ok
+test display::typography::layout::tests::byte_admission_and_unicode_iteration_are_exact ... ok
+test display::typography::layout::tests::explicit_lines_and_height_use_same_metrics ... ok
+test display::typography::layout::tests::words_wrap_together_and_long_tokens_make_progress ... FAILED
+test display::typography::raster::tests::grayscale_blends_retained_background_and_preserves_clip ... ok
+test display::typography::raster::tests::maximum_admitted_unicode_remains_bounded_at_one_pixel_width ... FAILED
+test display::typography::raster::tests::oversized_text_refuses_before_any_surface_write_even_when_clipped ... ok
+test display::typography::raster::tests::scaled_text_raster_uses_the_measured_cursor_and_preserves_default ... ok
+test display::typography::raster::tests::text_layout_raster_is_repeatable_and_confined_to_its_rectangle ... ok
+test display::typography::tests::doubled_glyph_preserves_every_coverage_sample_in_four_pixels ... ok
+test display::typography::tests::fixed_tables_are_ordered_bounded_and_have_smooth_coverage ... ok
+test display::typography::tests::naming_catalog_and_uppercase_have_admitted_coverage ... ok
+test display::typography::tests::prose_is_proportional_and_code_is_monospace ... ok
+test display::typography::tests::unknown_scalar_has_explicit_deterministic_replacement ... ok
+
+failures:
+
+---- display::typography::layout::tests::words_wrap_together_and_long_tokens_make_progress stdout ----
+
+thread 'display::typography::layout::tests::words_wrap_together_and_long_tokens_make_progress' (2201456) panicked at targets/conduitos/src/display/typography/layout.rs:235:55:
+called `Result::unwrap()` on an `Err` value: InvalidExtent
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- display::typography::raster::tests::maximum_admitted_unicode_remains_bounded_at_one_pixel_width stdout ----
+
+thread 'display::typography::raster::tests::maximum_admitted_unicode_remains_bounded_at_one_pixel_width' (2201458) panicked at targets/conduitos/src/display/typography/raster.rs:224:79:
+called `Result::unwrap()` on an `Err` value: InvalidExtent
+
+
+failures:
+    display::typography::layout::tests::words_wrap_together_and_long_tokens_make_progress
+    display::typography::raster::tests::maximum_admitted_unicode_remains_bounded_at_one_pixel_width
+
+test result: FAILED. 15 passed; 2 failed; 0 ignored; 0 measured; 1203 filtered out; finished in 0.25s
+
+error: test failed, to rerun pass `-p conduitos --lib`

@@ -1,0 +1,368 @@
+    Finished `dev` profile [unoptimized] target(s) in 0.12s
+     Running `/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/conduit-xtask-dispatch ci pipeline preflight 9c2847e431280ea1ed816ae1f09bd065b8b587aa`
+    Finished `dev` profile [unoptimized] target(s) in 0.13s
+     Running `/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/conduit-xtask-dispatch ci standalone-locks --locked`
+standalone_locks_checked=8
+✔ already installed merged packages skip every privileged command (5.760543ms)
+✔ cold downloads then warm fresh baseline verifies and installs exact version without downloads (4.908823ms)
+✔ corrupt cache refuses before install (3.077577ms)
+✔ cached version absent from authenticated metadata fails closed (2.00434ms)
+✔ changed image baseline cannot silently reuse previous resolution (3.061993ms)
+✔ mixed requests acquire only missing packages and retain installed baseline versions (1.664575ms)
+✔ cold and warm fresh-machine runs retain identical tool identity (7.184405ms)
+✔ successful acquisition makes apt private working entries readable for runner cache archival (1.28854ms)
+✔ foreign architecture does not satisfy an unqualified native request (1.198472ms)
+✔ explicit native architecture does not use a foreign installed package (1.240228ms)
+✔ explicit installed foreign architecture is satisfied exactly (0.59759ms)
+✔ architecture-independent installed package satisfies a native request (0.439211ms)
+✔ unrelated vendor outage is excluded and host repository configuration is preserved (1.227311ms)
+✔ required source failure refuses both cold and warm acquisition before installation (1.741713ms)
+✔ selected signing keys and runner profile bind cache identity; unrelated sources do not (2.221709ms)
+✔ unsupported profile and vendor-only required package refuse without fallback (0.990231ms)
+✔ each warm attempt refreshes a distinct index directory with strict authentication (1.921949ms)
+✔ selected scope contains only exact Ubuntu suites, components, architecture and keyring (0.894556ms)
+✔ resolution permits authenticated same-version reinstalls but refuses actual downgrades and removals (0.48849ms)
+✔ cold and warm resolution reject version decreases before package effects (2.531965ms)
+✔ authentication enumerates archive records even when an installed same-version record has no digest (1.697336ms)
+✔ all covers each canonical runner/target plus unit and preflight; inputs cannot inject matrix entries (4.986544ms)
+✔ comparison includes cache overhead and preserves honest negative savings (0.688962ms)
+✔ cache population cost cannot conceal a regression against uncached setup (0.320655ms)
+✔ identity object ordering and tool ordering do not invalidate the same installed closure (8.20328ms)
+✔ rejects cold cache hit (1.117449ms)
+✔ rejects warm cache miss (0.316304ms)
+✔ rejects different source (0.49666ms)
+✔ rejects runner image drift (1.25724ms)
+✔ rejects tool binary drift (0.494984ms)
+✔ rejects specification drift (0.340845ms)
+✔ rejects failed actual setup (0.209644ms)
+✔ rejects failed acquisition receipt (0.154986ms)
+✔ rejects missing installed identities (0.181606ms)
+✔ rejects invalid measured duration (0.161374ms)
+✔ acquisition cache separates source-independent tools by platform, runner image and exact specification (8.022494ms)
+✔ curated caches exclude product evidence, installed system packages and arbitrary toolchains (5.775859ms)
+✔ RISC-V64 caches only verified emulator outputs and its receipt (0.444611ms)
+✔ IA-32 cache retains verified firmware files without run variables or lock/staging state (1.867828ms)
+Acquisition spec-tools-stability-2275836: success in 89 ms; report target/acquisition/spec-tools-stability-2275836.json
+Acquisition spec-tools-stability-2275836: success in 86 ms; report target/acquisition/spec-tools-stability-2275836.json
+✔ each ConduitOS package set includes only its own emulator/firmware (4.945475ms)
+✔ pinned Playwright dry-run discovers missing libraries without swallowing refusal (0.722468ms)
+✔ Rust installed checks use selected toolchain and exact targets (0.811603ms)
+✔ LLVM tools install alias recognizes rustup canonical installed component (3.196699ms)
+✔ Cargo receipt rejects wrong version, source and executable (0.492619ms)
+✔ warm Cargo tool verifies receipt and executable; stale binary is reacquired (2.794365ms)
+✔ warm ESP RISC-V reuses toolchain but installs missing exact target only (0.541994ms)
+✔ actionlint archive trust is checked in rather than fetched beside archive (0.163273ms)
+✔ Rust acquisition refuses successful installer that left required target absent (1.335693ms)
+✔ cold and warm Rust acquisition retain identical actual tool identities (209.2447ms)
+✔ Pico setup verifies tracked radio assets instead of refreshing downloads (0.355633ms)
+Admission packages: conduit
+Admission packages: conduit
+Admission packages: conduit-data, conduit-kernel, conduit-planner
+Admission packages: conduit, conduit-data, conduit-kernel, conduit-planner
+Admission packages: conduit, conduit-data, conduit-kernel, conduit-planner
+Admission packages: conduit-data, conduit-kernel, conduit-planner
+Admission packages: conduit, conduit-data, conduit-kernel, conduit-planner
+Admission packages: conduit-data, conduit-kernel, conduit-planner, conduit-semantic-catalog
+Admission packages: conduit-semantic-catalog
+Admission packages: conduit-std-host
+Admission packages: conduit-std-host
+Admission packages: conduit-std-host
+Admission packages: conduit, conduit-data, conduit-kernel, conduit-planner
+Admission packages: conduit, conduit-data, conduit-kernel, conduit-planner, conduit-semantic-catalog
+Admission packages: conduit, conduit-core, conduit-data, conduit-kernel, conduit-planner, conduit-semantic-catalog, conduit-std-host
+Admission packages: conduit, conduit-core, conduit-data, conduit-kernel, conduit-planner, conduit-semantic-catalog, conduit-std-host
+Admission packages: conduit, conduit-core, conduit-data, conduit-kernel, conduit-planner, conduit-semantic-catalog, conduit-std-host
+Admission packages: conduit, conduit-data, conduit-kernel, conduit-planner, conduit-semantic-catalog
+Admission packages: conduit, conduit-data, conduit-kernel, conduit-planner, conduit-semantic-catalog
+Admission packages: conduit, conduit-data, conduit-kernel, conduit-planner, conduit-semantic-catalog
+Admission packages: conduit, conduit-data, conduit-kernel, conduit-planner, conduit-semantic-catalog
+Admission packages: conduit, conduit-data, conduit-kernel, conduit-planner, conduit-semantic-catalog
+Admission packages: conduit, conduit-data, conduit-kernel, conduit-planner, conduit-semantic-catalog
+Admission packages: conduit-language
+Admission packages: conduit-language
+Admission packages: conduit-language
+Admission packages: conduit, conduit-data, conduit-kernel, conduit-language, conduit-planner
+Admission packages: conduit, conduit-data, conduit-kernel, conduit-language, conduit-planner
+Admission packages: conduit
+Admission packages: conduit
+Admission packages: conduit, conduit-data, conduit-kernel, conduit-planner
+Admission packages: conduit-data, conduit-kernel, conduit-planner
+Admission packages: conduit
+Admission packages: conduit
+Admission packages: conduit
+Admission packages: conduitos
+Admission packages: conduit
+Admission packages: conduit, conduit-data, conduit-kernel, conduit-planner, conduitos
+Admission packages: conduit-xtask-dispatch, xtask
+Admission packages: conduit-xtask-dispatch, xtask
+Admission packages: conduit-xtask-dispatch, xtask
+✔ test corrections run their owning package without unrelated emulator proof (7.150302ms)
+✔ numerical certificates and cancellation retain shared boundary tests (0.461878ms)
+✔ native ownership and isolation require native proof, including either rename side (0.422658ms)
+✔ unknown, deleted-package and empty changes retain all workspace tests (2.435113ms)
+✔ recognized documentation needs preflight alone; runtime needs smoke (0.648ms)
+✔ a failed lint cannot be converted into successful admission (0.504054ms)
+✔ boundary admission retains allocation-feature kernel conformance (0.415827ms)
+✔ numerical changes exercise the actual Plan/Play Back behind its feature gate (0.634149ms)
+✔ plot inventories select their consumers without unrelated workspace tests (0.771446ms)
+✔ lock updates with owned manifests select consumers; standalone locks remain broad (0.632249ms)
+✔ Std changes use a hosted smoke without unrelated browser compilation (0.474844ms)
+✔ architecture smoke retains multi-placement and recovery; browser changes build WASM (0.607568ms)
+✔ numerical catalogue changes select numerical tests; other catalogue edits retain full tests (0.886617ms)
+✔ numerical consumer admission retains full library and actual CLI tests, with broad fallback (2.527601ms)
+✔ unknown or global changes disable narrowed numerical consumer admission (0.506163ms)
+✔ numerical consumers share one compiler context and actual CLI smoke (0.995911ms)
+✔ parallel broad workspace proof preserves every additional admission command (1.284866ms)
+✔ narrow admission cannot suppress its package proof using the broad route (0.591339ms)
+✔ language package admission exercises and lints the optional admitted scorer (1.498126ms)
+✔ narrow admission lints selected packages and broad changes retain workspace lint (0.384797ms)
+✔ sensitive changes lint every selected boundary package (0.274038ms)
+✔ preflight-owned tooling and prose do not compile Rust packages (2.350223ms)
+✔ mixed tooling and runtime edits retain the runtime package and its failures (0.934255ms)
+✔ tooling filenames and prose cannot select unrelated runtime supplements (0.529393ms)
+✔ non-script tooling data retains conservative Rust tooling coverage (0.265678ms)
+✔ descriptive measurement receipts use preflight without broadening mixed runtime proof (4.852737ms)
+✔ native owner package admission retains the workspace network feature context (0.541362ms)
+✔ parallel broad admission retains explicit native lint without repeating package tests (0.32531ms)
+✔ shared xtask sources compile both tooling entrances during narrow admission (1.337246ms)
+✔ candidate scanner selects the complete broad corpus for Cargo.toml (298.999381ms)
+✔ candidate scanner selects the complete broad corpus for unknown/input.rs (190.662741ms)
+✔ candidate scanner selects the complete broad corpus for site/index.html (188.911637ms)
+✔ candidate scanner selects the complete broad corpus for proof/browser/browser-preparation.mjs (186.037574ms)
+✔ candidate scanner selects the complete broad corpus for products/conduit/src/main.rs (183.196873ms)
+✔ candidate scanner selects the complete broad corpus for README.md (115.032772ms)
+✔ broad admission runs independently while completion requires every delegated shard (8.596629ms)
+✔ retain a fully delivered abort notification separately from failures (3.869607ms)
+✔ real failed, truncated, absent and unrelated transfers remain fatal (0.925656ms)
+✔ browser queueing before the HTTP request does not change its identity (0.24226ms)
+✔ one complete response cannot excuse an ambiguous or repeated failure (0.221578ms)
+✔ a real failure arriving while earlier response evidence awaits is retained (0.339479ms)
+✔ complete fragmented headers need not finish within one millisecond of first byte (0.208931ms)
+✔ invalid ordering within Resource Timing remains fatal (0.215448ms)
+✔ exact transfer identity survives independently converted browser clocks (0.262452ms)
+✔ missing malformed duplicated or mismatched transfer identities remain fatal (0.999913ms)
+✔ same URL transfers are distinguished and one identity cannot excuse two responses (0.705173ms)
+✔ retired Tour and Creche products have no source trees (3.981945ms)
+✔ browser WebRTC realization is owned by the browser Host (0.764625ms)
+✔ generic browser membership is owned by the browser Host (0.576631ms)
+✔ Workspace package dependencies name real source owners (3.442662ms)
+✔ target source moves preserve declared browser resource URLs and relative dependencies (4.687986ms)
+✔ staged Workspace modules declare every static import (22.413471ms)
+✔ default legacy runtime URL retains the raw Cargo artifact (273.070464ms)
+✔ explicit legacy alias serves exact selected runtime without changing raw Cargo bytes (176.175324ms)
+▶ missing, empty and non-file selected runtimes never fall back to raw Cargo bytes
+  ✔ "missing" (116.659454ms)
+  ✔ "" (108.887545ms)
+  ✔ "directory" (111.206468ms)
+✔ missing, empty and non-file selected runtimes never fall back to raw Cargo bytes (337.538627ms)
+✔ CI browser proof launch selects the sealed release with existing env override (2.409377ms)
+✔ proof responses expose distinct matching header and Server Timing identities (112.410028ms)
+> git rev-parse HEAD
+> git fetch --depth 1 origin 791bc19a3927d9bb12abbbb0947d3e4145f1f8e7
+✔ pipeline identifies the command that makes a full checkout shallow (90.366911ms)
+✔ both proofs retain one Cargo context and owner-before-browser execution (3.79961ms)
+✔ failed compilation or owner execution stops before the consumer (0.43766ms)
+✔ zero, duplicate or multiple selected tests refuse, including across harnesses (0.55669ms)
+✔ failed or empty browser proof remains a failure without retry (0.471597ms)
+✔ the parent product package and feature context reaches both exact proofs (0.771926ms)
+✔ invalid contexts cannot replace the locked source selection or add a filter (0.728607ms)
+✔ an already selected browser runtime and locked flag are retained once (0.241231ms)
+✔ Pages composition publishes only the exact refusal and reentry QMP journey (358.520811ms)
+✔ Pages composition refuses a changed screenshot before writing pages (193.372593ms)
+✔ Pages composition refuses a transcript from another Body before writing pages (175.165371ms)
+✔ Pages composition refuses a journey missing creche-three-selected (174.979555ms)
+✔ Pages composition refuses a journey missing creche-four-restored (166.004869ms)
+✔ Pages composition refuses a journey missing wake-refused (167.934443ms)
+✔ Pages composition refuses a journey missing home-returned (158.517587ms)
+✔ Pages composition refuses a journey missing patchbay-reentered (168.617736ms)
+✔ Pages composition refuses a journey missing protected-keyboard-canvas (159.621708ms)
+✔ Pages composition refuses a journey missing protected-memory-lantern (157.494456ms)
+✔ Pages composition refuses a journey missing patchbay-gear-details (161.351658ms)
+✔ Pages composition refuses a journey missing patchbay-diagram-returned (161.080836ms)
+✔ Pages composition refuses reordered captures (159.954393ms)
+✔ Pages composition refuses paired evidence with changed source pin (167.016782ms)
+✔ Pages composition refuses paired evidence with changed image pin (164.19891ms)
+✔ Pages composition refuses paired evidence with changed schema (164.623865ms)
+✔ Pages composition refuses paired evidence with changed refusal effect (163.727708ms)
+✔ Pages composition refuses paired evidence with changed refusal state (166.096195ms)
+✔ Pages composition refuses paired evidence with changed count (161.532184ms)
+✔ Pages composition refuses paired evidence with changed linear action contract (164.263865ms)
+✔ Pages composition rejects a refusal screenshot claiming mandatory pixel change (160.391161ms)
+✔ Pages composition rejects Unicode bytes while paired native evidence remains valid (168.601781ms)
+✔ Pages composition rejects Host identity while paired native evidence remains valid (166.092175ms)
+✔ Pages composition rejects Plan/Play guest correlation while paired native evidence remains valid (161.653109ms)
+✔ failed dev remains distinct from green, accepted, published and absent deployed source (4.013425ms)
+✔ pending runs have no completed timing or conclusion and stay in queue (0.342053ms)
+✔ failed latest Pages attempt does not replace an observed successful deployment (0.362669ms)
+✔ unobserved successful integration and publication remain null; malformed identity refuses (0.523651ms)
+✔ candidate selection separates skipped jobs and preserves measured wall-clock baseline (0.357559ms)
+✔ a superseded success on a failed deployment is not current deployment evidence (0.201704ms)
+✔ a green manual integration from a feature branch cannot assert green development (0.438399ms)
+✔ candidate head identity never substitutes for an unobserved tested merge preview (0.228637ms)
+✔ release publication date wins over API list order, drafts and missing manifests (0.756691ms)
+✔ live publisher manifest separates deployed build source from workflow head (0.471493ms)
+✔ unverifiable release publication date refuses ordering (1.881775ms)
+✔ retained direct speech has 11 same-Play reading WAVs and one distinct opening (61.358026ms)
+✔ retained direct speech refuses changed PCM identity and inflated proof (60.996428ms)
+✔ complete actual parent walk admits self, ordinary, merge and reversed timestamps (138.161042ms)
+✔ unrelated, missing, noncommit and noncanonical identities refuse (141.722328ms)
+✔ missing reachable parent refuses even when source equals publication (21.384479ms)
+✔ shallow repositories refuse (28.140204ms)
+✔ replacement refs cannot invent ancestry or hide genuine ancestry (50.231402ms)
+✔ graft files refuse even if empty (20.936814ms)
+✔ exact semantic hello admits optional labels and native line endings (2.464425ms)
+✔ a friendly caption cannot substitute for exact emitted bytes (0.451252ms)
+✔ missing completion or wrong host still blocks retention (0.277711ms)
+✔ ordinary site builds omit absent One Body evidence (2.377932ms)
+✔ publication refuses incomplete or unrelated One Body evidence (3.229477ms)
+✔ publication refuses a linked evidence root, including a broken link (0.707512ms)
+✔ a browser harness modification must select real browser product proof in Candidate (2.261592ms)
+✔ only recognized prose can omit target lanes (3.144063ms)
+✔ unknown, empty, and shared changes select every target (0.595366ms)
+✔ target-local changes select the owning family (0.774742ms)
+✔ other xtask evidence changes retain the full target matrix (0.282157ms)
+✔ renamed paths select both old and new owners in stable order (0.240726ms)
+✔ full integration always selects every family, even for prose (0.343354ms)
+✔ malformed path collections cannot silently become docs-only (2.159806ms)
+✔ shared target libraries retain every consuming platform proof (0.367828ms)
+✔ isolated firmware remains target-local despite shared target libraries (0.386154ms)
+✔ browser-only assets omit unrelated hosts but mixed and unknown changes fail closed (0.50048ms)
+✔ Integration scanner emits the complete unit matrix consumed by Actions (160.127679ms)
+Publication history: {"stage":"fixture-before","git":"git version 2.53.0","head":"c0d58501bc4258efc852c642249bda1704a59f70","shallow":"true","commonDir":"/tmp/conduit-publication-history-pYVKcq/shallow/.git","boundary":{"bytes":41,"mtimeMs":1792529731977.2659,"inode":596175,"capped":false,"count":1,"sha":["c0d58501bc4258efc852c642249bda1704a59f70"]}}
+Publication history: {"stage":"before-acquisition","git":"git version 2.53.0","head":"c0d58501bc4258efc852c642249bda1704a59f70","shallow":"true","commonDir":"/tmp/conduit-publication-history-pYVKcq/shallow/.git","boundary":{"bytes":41,"mtimeMs":1792529731977.2659,"inode":596175,"capped":false,"count":1,"sha":["c0d58501bc4258efc852c642249bda1704a59f70"]}}
+Publication history: {"stage":"post-acquisition","git":"git version 2.53.0","head":"c0d58501bc4258efc852c642249bda1704a59f70","shallow":"false","commonDir":"/tmp/conduit-publication-history-pYVKcq/shallow/.git","boundary":null}
+Publication history: {"stage":"before-acquisition","git":"git version 2.53.0","head":"b328b0b5424490f7490bfb154b52f31122f3eebe","shallow":"true","commonDir":"/tmp/conduit-publication-history-cRiGTn/shallow/.git","boundary":{"bytes":41,"mtimeMs":1792529732121.2656,"inode":596539,"capped":false,"count":1,"sha":["b328b0b5424490f7490bfb154b52f31122f3eebe"]}}
+Publication history: {"stage":"before-acquisition","git":"git version 2.53.0","head":"b328b0b5424490f7490bfb154b52f31122f3eebe","shallow":"true","commonDir":"/tmp/conduit-publication-history-Z9TzBb/shallow/.git","boundary":{"bytes":41,"mtimeMs":1792529732177.2656,"inode":597281,"capped":false,"count":1,"sha":["b328b0b5424490f7490bfb154b52f31122f3eebe"]}}
+Publication history: {"stage":"before-acquisition","git":"git version 2.53.0","head":"b328b0b5424490f7490bfb154b52f31122f3eebe","shallow":"false","commonDir":"/tmp/conduit-publication-history-khYGdj/.git","boundary":null}
+Publication history: {"stage":"post-acquisition","git":"git version 2.53.0","head":"b328b0b5424490f7490bfb154b52f31122f3eebe","shallow":"false","commonDir":"/tmp/conduit-publication-history-khYGdj/.git","boundary":null}
+Publication history: {"stage":"before-acquisition","git":"git version 2.53.0","head":"b328b0b5424490f7490bfb154b52f31122f3eebe","shallow":"true","commonDir":"/tmp/conduit-publication-history-bkkFoT/shallow/.git","boundary":{"bytes":41,"mtimeMs":1792529732263.4844,"inode":598722,"capped":false,"count":1,"sha":["b328b0b5424490f7490bfb154b52f31122f3eebe"]}}
+✔ genuine shallow file-origin restoration admits exact ancestor and retains HEAD (146.727878ms)
+✔ shallow missing origin refuses without changing HEAD (61.206168ms)
+✔ shallow invalid origin refuses without changing HEAD (44.405408ms)
+✔ complete repository with invalid origin performs no fetch (42.588676ms)
+✔ HEAD mismatch and noncanonical identity refuse before any fetch (36.647889ms)
+✔ promotes a release PR and publishes verified artifacts with separate source/main identities (43.96239ms)
+✔ uses Actions repository identity without a GraphQL repository lookup (15.531473ms)
+✔ refuses an Actions repository identity inconsistent with the integration run (4.240848ms)
+✔ refuses failed run before any GitHub mutation (3.015603ms)
+✔ refuses skipped run before any GitHub mutation (2.507536ms)
+✔ refuses cancelled run before any GitHub mutation (7.411806ms)
+✔ refuses unfinished run before any GitHub mutation (2.578166ms)
+✔ refuses PR run before any GitHub mutation (1.873852ms)
+✔ refuses wrong branch before any GitHub mutation (1.554256ms)
+✔ refuses wrong workflow before any GitHub mutation (1.408721ms)
+✔ refuses wrong repository before any GitHub mutation (1.36799ms)
+✔ refuses fork source before any GitHub mutation (1.546591ms)
+✔ refuses wrong checkout before any GitHub mutation (2.028549ms)
+✔ refuses diverged main before any GitHub mutation (2.536975ms)
+✔ refuses source removed from dev before any GitHub mutation (1.569165ms)
+✔ refuses another release before any GitHub mutation (2.381883ms)
+✔ refuses open synchronization before any GitHub mutation (1.767054ms)
+✔ tampered bundle cannot promote main (3.935239ms)
+✔ a merge tree mismatch refuses release publication (2.545681ms)
+✔ resumes a partially uploaded draft without merging or replacing verified assets (21.762089ms)
+✔ an existing different asset is never overwritten (12.04604ms)
+✔ a moved release tag is refused on rerun (12.842836ms)
+✔ a second release accepts the prior source lineage without syncing the main merge to dev (6.752159ms)
+✔ main-only content in a previous release merge blocks the next promotion (2.663071ms)
+✔ failed commit status prevents the release PR merge and publication (2.614842ms)
+✔ tag authorization failure leaves main accepted but creates no release or assets (6.959617ms)
+✔ pre-existing wrong tag is never replaced (7.408559ms)
+✔ tag movement while assets upload prevents publishing the draft (7.091682ms)
+✔ resuming a historical draft preserves the newer latest release (17.289577ms)
+✔ quantity captures retain original bytes and bind all five roles to sealed runtime/source (9.966743ms)
+✔ quantity capture refusal leaves no success artifact for stale runtime or kernel receipts (18.956636ms)
+✔ quantity capture refuses duplicate current corpus and invalid source identity (1.838734ms)
+✔ derived quantity capture refuses malformed, stale, incomplete, and duplicate predicates without artifacts (15.350157ms)
+✔ derived quantity capture requires exactly one current report (3.085344ms)
+✔ derived quantity capture refuses malformed JSON before artifact creation (0.959391ms)
+✔ seals exact products and verifies a multi-target bundle with distinct proof classes (34.44879ms)
+✔ rejects changed bytes after successful proof (3.869798ms)
+✔ rejects extra file after successful proof (2.601136ms)
+✔ rejects missing file after successful proof (1.891633ms)
+✔ rejects renamed file after successful proof (3.031239ms)
+✔ rejects receipt with wrong commit (1.539073ms)
+✔ rejects receipt with wrong target (1.908596ms)
+✔ rejects receipt with wrong proof class (2.076349ms)
+✔ rejects receipt with unknown proof class (2.668206ms)
+✔ rejects receipt with wrong schema (3.044424ms)
+✔ rejects receipt with empty products (3.376858ms)
+✔ rejects receipt with duplicate products (2.004149ms)
+✔ rejects receipt with parent traversal (2.740842ms)
+✔ rejects receipt with absolute path (2.800935ms)
+✔ rejects receipt with Windows absolute path (5.176412ms)
+✔ rejects receipt with Windows traversal (1.684772ms)
+✔ rejects receipt with receipt as product (1.298754ms)
+✔ rejects receipt with invalid digest (1.396687ms)
+✔ requires exactly the authoritative target set (1.851939ms)
+✔ failed or absent target proof cannot verify without its receipt (1.489831ms)
+✔ empty products and invalid seal identities never write a receipt (1.566863ms)
+✔ rejects a symlink file (3.819526ms)
+✔ rejects a symlink directory (3.193908ms)
+✔ rejects a symlink receipt (2.871799ms)
+✔ rejects a symlink target (2.057107ms)
+✔ rejects a symlink bundle (3.987203ms)
+✔ candidate proof fails fast while exhaustive Integration preserves complete aggregation (2.197882ms)
+✔ code-changing PR events run exact proof without restarting on visibility changes (0.734438ms)
+✔ the actual AND gate rejects every failed, cancelled, or missing selected lane (97.192169ms)
+✔ required candidate accepts healthy drafts and rejects unsuccessful proof (20.919759ms)
+✔ PR scopes use the actual merge-preview parent, including admission (0.296381ms)
+✔ diagnostic runtime measurements run on demand without occupying every Candidate (0.34066ms)
+✔ stages every retained byte and distinguishes producer from staged source (17.551607ms)
+✔ absent optional evidence is allowed; partial evidence is rejected (6.268189ms)
+✔ rejects raw byte corruption (7.10208ms)
+✔ rejects WAV geometry despite valid digest (6.335214ms)
+✔ rejects false formant realization despite valid digest (4.745657ms)
+✔ rejects false model conditioning despite valid digest (4.93729ms)
+✔ rejects foreign model source despite valid digest (4.463672ms)
+✔ rejects foreign plan projection despite valid digest (4.350539ms)
+✔ rejects manifest path inventory (2.585191ms)
+✔ rejects false listening claim (1.911069ms)
+✔ rejects symbolic links even when target bytes match (3.2454ms)
+✔ accepts local pages, media, anchors, and external links (6.002993ms)
+✔ rejects missing media and fragment targets before publication (1.240587ms)
+✔ catches commit-addressed back links that stop at a directory without an index (1.69888ms)
+✔ ticker entrance is truthful and preserves historical recording links and bytes (4.128849ms)
+✔ accepts exact clean source with ignored generated artifacts before and after proof (62.117228ms)
+✔ rejects unstaged tracked source changes (34.393837ms)
+✔ rejects staged tracked source changes (33.669574ms)
+✔ rejects nonignored untracked source before proof and introduced during proof (40.626943ms)
+✔ rejects a changed HEAD even when tracked source is clean (32.757587ms)
+✔ development evidence is absent until a retained diagnostic manifest exists (6.363623ms)
+✔ retained complete producer packet exposes same-Body refusals and remaining work (61.273055ms)
+✔ refusal evidence refuses foreign Body, changed list and false repair even with new file hashes (40.032773ms)
+✔ complete fixture renders task sequence in shared shell with real media links (6.728231ms)
+✔ rejects partial and mixed evidence before publication (4.492003ms)
+✔ rejects substituted speech PCM even when the WAV file digest is updated (2.701872ms)
+✔ guest WAV may package the exact raw QEMU PCM but refuses another run output (3.016761ms)
+✔ rejects stale Face and source commit drift (2.398358ms)
+✔ requested spoken detail cannot be recast as a Body Face action (1.827211ms)
+✔ three required Masks publish without extra graphical providers (4.952359ms)
+✔ omitting any required Mask still refuses publication (4.621947ms)
+✔ explicit selected WAV route renders without claiming speaker delivery (4.380529ms)
+✔ selected WAV route refuses false delivery, incomplete Plays, and mismatched PCM (36.454181ms)
+✔ real u64 Face revisions retain exact decimal identity across chapter receipts (1.589837ms)
+✔ unsafe, overflowing and noncanonical Face revisions cannot publish (15.450297ms)
+✔ one remaining-items chapter may retain distinct same-Face batch Plays (4.802481ms)
+✔ retains original Workspace captures and rejects incomplete or ambiguous runs (4.957791ms)
+Xtensa acquisition or verification failed; cleaning the pipeline toolchain before one final attempt: HTTP 503
+Xtensa acquisition or verification failed; cleaning the pipeline toolchain before one final attempt: GCC unavailable
+Xtensa acquisition or verification failed; cleaning the pipeline toolchain before one final attempt: HTTP 503
+Xtensa acquisition or verification failed; cleaning the pipeline toolchain before one final attempt: GCC unavailable
+Xtensa acquisition or verification failed; cleaning the pipeline toolchain before one final attempt: HTTP 503
+✔ successful Xtensa acquisition installs once (3.114503ms)
+✔ failed Xtensa acquisition removes its partial toolchain before retry (1.162848ms)
+✔ a successful but incomplete Xtensa install is cleaned before retry (0.353101ms)
+✔ Xtensa acquisition makes only one clean retry (0.617814ms)
+✔ a second incomplete Xtensa install fails rather than emitting a receipt (0.370742ms)
+✔ failed cleanup does not install on top of a partial toolchain (0.333358ms)
+✔ cleanup removes only the named Rustup toolchain and its own clang link (2.757577ms)
+✔ cleanup refuses a foreign clang link without changing it (0.890021ms)
+ℹ tests 296
+ℹ suites 0
+ℹ pass 296
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 4363.257456

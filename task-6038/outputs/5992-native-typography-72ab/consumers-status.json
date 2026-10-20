@@ -1,0 +1,42 @@
+[
+  {
+    "name": "typography-consumers",
+    "args": [
+      "cargo",
+      "+stable",
+      "test",
+      "-p",
+      "conduitos",
+      "--locked",
+      "--features",
+      "hosted-tools,native-compositor",
+      "--lib",
+      "display::typography",
+      "--",
+      "--test-threads=1",
+      "--nocapture"
+    ],
+    "status": 0,
+    "seconds": 54.57448649406433
+  },
+  {
+    "name": "native-face-consumers",
+    "args": [
+      "cargo",
+      "+stable",
+      "test",
+      "-p",
+      "conduitos",
+      "--locked",
+      "--features",
+      "hosted-tools,native-compositor",
+      "--lib",
+      "native_face",
+      "--",
+      "--test-threads=1",
+      "--nocapture"
+    ],
+    "status": 101,
+    "seconds": 49.832916021347046
+  }
+]

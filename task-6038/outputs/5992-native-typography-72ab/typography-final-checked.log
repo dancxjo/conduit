@@ -1,0 +1,18 @@
+   Compiling conduitos v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/conduitos)
+error[E0425]: cannot find type `Vec` in this scope
+   --> targets/conduitos/src/native_face_scene/ports/tests.rs:320:28
+    |
+320 |                 .collect::<Vec<_>>();
+    |                            ^^^ not found in this scope
+    |
+help: consider importing one of these structs
+    |
+  1 + use crate::native_face_scene::Vec;
+    |
+  1 + use std::vec::Vec;
+    |
+  1 + use alloc::vec::Vec;
+    |
+
+For more information about this error, try `rustc --explain E0425`.
+error: could not compile `conduitos` (lib test) due to 1 previous error

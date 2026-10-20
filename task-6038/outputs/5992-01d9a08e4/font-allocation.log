@@ -1,0 +1,10 @@
+   Compiling conduitos v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/conduitos)
+    Finished `test` profile [optimized] target(s) in 27.79s
+     Running tests/native_typography.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/deps/native_typography-889523aa977654d4)
+
+running 2 tests
+test first_and_repeated_frames_have_no_runtime_font_allocations ... ok
+test icons_and_rounded_shapes_have_no_frame_allocations ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.08s
+

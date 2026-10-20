@@ -1,0 +1,81 @@
+[
+  {
+    "name": "typography-final-verified",
+    "args": [
+      "cargo",
+      "+stable",
+      "test",
+      "-p",
+      "conduitos",
+      "--locked",
+      "--features",
+      "hosted-tools,native-compositor",
+      "--lib",
+      "display::typography",
+      "--",
+      "--test-threads=1",
+      "--nocapture"
+    ],
+    "status": 0,
+    "seconds": 49.041707038879395
+  },
+  {
+    "name": "native-face-final-verified",
+    "args": [
+      "cargo",
+      "+stable",
+      "test",
+      "-p",
+      "conduitos",
+      "--locked",
+      "--features",
+      "hosted-tools,native-compositor",
+      "--lib",
+      "native_face",
+      "--",
+      "--test-threads=1",
+      "--nocapture"
+    ],
+    "status": 0,
+    "seconds": 46.707552909851074
+  },
+  {
+    "name": "font-allocation-final-verified",
+    "args": [
+      "cargo",
+      "+stable",
+      "test",
+      "-p",
+      "conduitos",
+      "--locked",
+      "--features",
+      "hosted-tools,native-compositor",
+      "--test",
+      "native_typography",
+      "--",
+      "--test-threads=1"
+    ],
+    "status": 0,
+    "seconds": 32.14879822731018
+  },
+  {
+    "name": "strict-clippy-final-verified",
+    "args": [
+      "cargo",
+      "+stable",
+      "clippy",
+      "-p",
+      "conduitos",
+      "--locked",
+      "--features",
+      "hosted-tools,native-compositor",
+      "--lib",
+      "--tests",
+      "--",
+      "-D",
+      "warnings"
+    ],
+    "status": 101,
+    "seconds": 209.6405942440033
+  }
+]

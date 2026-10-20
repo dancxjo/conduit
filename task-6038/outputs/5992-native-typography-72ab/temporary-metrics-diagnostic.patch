@@ -1,0 +1,29 @@
+--- targets/conduitos/src/native_face_scene/chrome.rs
++++ targets/conduitos/src/native_face_scene/chrome.rs
+@@ -47,7 +47,7 @@
+     scale: u16,
+ ) -> Result<u16, FaceSceneError> {
+     let height = TextLayout::new_scaled(text, role.into(), width, scale)
+-        .map_err(|_| FaceSceneError::InputBound)?
++        .map_err(|error| { #[cfg(test)] std::eprintln!("TYPOGRAPHY_CHROME_REFUSAL {error:?} text={text:?} width={width} scale={scale}"); FaceSceneError::InputBound })?
+         .finish_height();
+     u16::try_from(height).map_err(|_| FaceSceneError::InvalidExtent)
+ }
+@@ -111,6 +111,7 @@
+                 .checked_add(EDGE * 2)
+                 .ok_or(FaceSceneError::InvalidExtent)?,
+         );
++        #[cfg(test)] std::eprintln!("TYPOGRAPHY_CHROME_METRICS screen={screen:?} scale={scale} top={top} footer={footer_extent}");
+         let bottom = screen
+             .height
+             .checked_sub(footer_extent)
+--- targets/conduitos/src/display/typography/layout.rs
++++ targets/conduitos/src/display/typography/layout.rs
+@@ -49,6 +49,7 @@
+                 && super::ink::span(&remaining[..bytes], role, scale, 0).fresh_width()
+                     > u32::from(width)
+             {
++                #[cfg(test)] std::eprintln!("TYPOGRAPHY_CLUSTER_REFUSAL role={role:?} width={width} scale={text_scale_percent} cluster={:?}", &remaining[..bytes]);
+                 return Err(DisplayError::InvalidExtent);
+             }
+             remaining = &remaining[bytes..];

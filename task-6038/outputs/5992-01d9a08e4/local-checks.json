@@ -1,0 +1,262 @@
+{
+  "source": "01d9a08e4d8925a0b81ff4e561500d7ceb5e6e2f",
+  "tree": "ea15d9b03ee743b7bee30474fa0a0854d84caf9a",
+  "base": "9c2847e431280ea1ed816ae1f09bd065b8b587aa",
+  "proof_class": "hosted CPU conformance",
+  "checks": [
+    {
+      "name": "setup-ci",
+      "args": [
+        "cargo",
+        "+stable",
+        "xtask",
+        "ci",
+        "pipeline",
+        "setup-ci"
+      ],
+      "status": 0,
+      "seconds": 1.121415138244629
+    },
+    {
+      "name": "preflight",
+      "args": [
+        "cargo",
+        "+stable",
+        "xtask",
+        "ci",
+        "pipeline",
+        "preflight",
+        "9c2847e431280ea1ed816ae1f09bd065b8b587aa"
+      ],
+      "status": 0,
+      "seconds": 17.21752691268921
+    },
+    {
+      "name": "typography",
+      "args": [
+        "cargo",
+        "+stable",
+        "test",
+        "-p",
+        "conduitos",
+        "--locked",
+        "--features",
+        "hosted-tools,native-compositor",
+        "--lib",
+        "display::typography",
+        "--",
+        "--test-threads=1",
+        "--nocapture"
+      ],
+      "status": 0,
+      "seconds": 333.802357673645
+    },
+    {
+      "name": "native-face",
+      "args": [
+        "cargo",
+        "+stable",
+        "test",
+        "-p",
+        "conduitos",
+        "--locked",
+        "--features",
+        "hosted-tools,native-compositor",
+        "--lib",
+        "native_face",
+        "--",
+        "--test-threads=1",
+        "--nocapture"
+      ],
+      "status": 0,
+      "seconds": 40.58552527427673
+    },
+    {
+      "name": "font-allocation",
+      "args": [
+        "cargo",
+        "+stable",
+        "test",
+        "-p",
+        "conduitos",
+        "--locked",
+        "--features",
+        "hosted-tools,native-compositor",
+        "--test",
+        "native_typography",
+        "--",
+        "--test-threads=1"
+      ],
+      "status": 0,
+      "seconds": 27.909086227416992
+    },
+    {
+      "name": "strict-clippy",
+      "args": [
+        "cargo",
+        "+stable",
+        "clippy",
+        "-p",
+        "conduitos",
+        "--locked",
+        "--features",
+        "hosted-tools,native-compositor",
+        "--lib",
+        "--tests",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "status": 0,
+      "seconds": 164.7578239440918
+    },
+    {
+      "name": "fmt",
+      "args": [
+        "cargo",
+        "+stable",
+        "fmt",
+        "--package",
+        "conduitos",
+        "--",
+        "--check"
+      ],
+      "status": 0,
+      "seconds": 1.3527288436889648
+    }
+  ],
+  "counts": {
+    "preflight": 296,
+    "typography": 20,
+    "native_face": 113,
+    "allocation": 2
+  },
+  "environment": {
+    "CARGO_TARGET_DIR": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target",
+    "CARGO_BUILD_JOBS": 4,
+    "CARGO_INCREMENTAL": 0,
+    "CARGO_PROFILE_DEV_DEBUG": 0,
+    "CARGO_PROFILE_TEST_DEBUG": 0,
+    "CARGO_PROFILE_TEST_OPT_LEVEL": 1,
+    "CARGO_PROFILE_TEST_DEBUG_ASSERTIONS": true,
+    "CARGO_PROFILE_TEST_OVERFLOW_CHECKS": true
+  },
+  "source_files": {
+    "targets/conduitos/assets/fonts/dejavu/DejaVuSerif.ttf": {
+      "git_blob": "0b803d206c1a4f19559d14f4d3cbd5bbfe0a86a1",
+      "sha256": "42d1edeb7952f31b1f96d767ed7030b08a39e0c372b0071641518864e2bffb51",
+      "bytes": 380132
+    },
+    "targets/conduitos/assets/fonts/dejavu/README.md": {
+      "git_blob": "10e3a14ae600f923146966f94204745d8956e671",
+      "sha256": "98b26e50b6b1764f2af980a5f393afd6902f86d8611348f2086ed8def16717bb",
+      "bytes": 4213
+    },
+    "targets/conduitos/assets/fonts/dejavu/native-ensemble.json": {
+      "git_blob": "7b12bcdf5a3c75aee929f8f7c13602f8898019f2",
+      "sha256": "27741cd141affb92b521bbe9042bf39db8012d6058fe445cc8fd00779b0d75ea",
+      "bytes": 1944
+    },
+    "targets/conduitos/assets/graphical/README.md": {
+      "git_blob": "d0700cf1851e5a07ce68def8411e8935cfb0fcf1",
+      "sha256": "77cf4a787ef952cc6d2d2a4b1d5989c5e4ef27351b5c4438b244d88349356dcc",
+      "bytes": 3526
+    },
+    "targets/conduitos/build/typography.rs": {
+      "git_blob": "b324c788c12ef263eaf2933aaf9bbf57da3455bb",
+      "sha256": "068e09fbac7dec490bf92891626799ac22f6f5b2adaab48e5d04593341582948",
+      "bytes": 6881
+    },
+    "targets/conduitos/src/display/typography.rs": {
+      "git_blob": "8abc40ef8c3e9429a40cd8800adab626fd0c7a29",
+      "sha256": "3c7644308400217de0b42448d8abf29b8ce792d7beea199a095fe6fcd70c196e",
+      "bytes": 9370
+    },
+    "targets/conduitos/src/display/typography/ensemble_tests.rs": {
+      "git_blob": "34f7a5480669e41474c3540aefe076665c257ed3",
+      "sha256": "fbeba520c24e65a743769107ff2c20f1ad2be07102274bbe069c83caa5289bb1",
+      "bytes": 7108
+    },
+    "targets/conduitos/src/display/typography/ink.rs": {
+      "git_blob": "517df572a9cf499cc1e82ce679142106945f6182",
+      "sha256": "cbcce0aa2b21b87a68e995c31b72ebc164a9212d063583f0416eeb184fde2b4e",
+      "bytes": 1851
+    },
+    "targets/conduitos/src/display/typography/layout.rs": {
+      "git_blob": "55f24cbd79012024b403ad9f80c730d90c5bb711",
+      "sha256": "2d561a6d78774d08c3fb448897687d6e74ac0501b9104e48bdb8e87032598618",
+      "bytes": 9298
+    },
+    "targets/conduitos/src/display/typography/raster.rs": {
+      "git_blob": "a8db4bcc204eb385be0ac3bd7513c4b4684566e7",
+      "sha256": "c45a13800380a0bc7d95268164cc432c783b212979e19554f2f09279c5b036b4",
+      "bytes": 11054
+    },
+    "targets/conduitos/src/native_face_scene/chrome.rs": {
+      "git_blob": "cba0c22885621abdb1ef06458e357c5e98a95413",
+      "sha256": "eeb6203e49b4c52814fe0a60e071ea888cfa19f88e3dc2b4ba0cfe8c8484fff3",
+      "bytes": 7890
+    },
+    "targets/conduitos/src/native_face_scene/document.rs": {
+      "git_blob": "d8e6c6627552f67401895f2f158db34711047ed0",
+      "sha256": "2faf4c329ab9fed2d917312540d4113c1d8e59e3472b8213cd6b1551e2db49f0",
+      "bytes": 14448
+    },
+    "targets/conduitos/src/native_face_scene/frame.rs": {
+      "git_blob": "5f617e00e6d78229631acb2a4eebc7e0d469a7db",
+      "sha256": "e1c78f9b9657822cd86a009c9189a0665cc6768d2031e2db119a7976b3a606e5",
+      "bytes": 7629
+    },
+    "targets/conduitos/src/native_face_scene/layout.rs": {
+      "git_blob": "e1912d5a50553c3b5522aed6ff78cf8318ef224f",
+      "sha256": "c73979f6663f3f0944e8d243d15588abb3aae60d3d3c5c9f63d60d5e4b9a5f44",
+      "bytes": 12449
+    },
+    "targets/conduitos/src/native_face_scene/layout/panels.rs": {
+      "git_blob": "60185117129b450d1c613e2c06c08fd2f4d78fcc",
+      "sha256": "9b3ec04a2376267537a6f1036451a1476fe91e0a12ea008cb886d5e029895215",
+      "bytes": 9292
+    },
+    "targets/conduitos/src/native_face_scene/layout/panels/tests.rs": {
+      "git_blob": "7a84dbcfe2ac1e880abe4933b9c9f9538bcdb92c",
+      "sha256": "b7dfb832ef856b87fd4768dc74b0212ea930a222779cef0d4ee231e9f0b98527",
+      "bytes": 11951
+    },
+    "targets/conduitos/src/native_face_scene/layout/panels/tests/creche.rs": {
+      "git_blob": "2c9c3c54c7a7369c0d90b7b6c50dbb692027c484",
+      "sha256": "e270fd1bd891dc669ad4f270d8f0be2eca59d15729f37e870ca1a2b4e540fa20",
+      "bytes": 9032
+    },
+    "targets/conduitos/src/native_face_scene/layout/panels/tests/creche/font_details.rs": {
+      "git_blob": "f7abea84290b6b60bf8df3a69da11120bad379f1",
+      "sha256": "2c2b248cd0b93c86a7aadc97080dfc76822ef63aa086a52eba2482613259630c",
+      "bytes": 2859
+    },
+    "targets/conduitos/src/native_face_scene/ports/tests.rs": {
+      "git_blob": "15dd3983b6fc9abe3ef84db830c38dfb40b4a311",
+      "sha256": "3a9b4bc70d441ff51c899ca10aaf5026daef5ff5135e4c8d198231f88ad1644c",
+      "bytes": 14255
+    },
+    "targets/conduitos/src/native_face_scene/text_editor.rs": {
+      "git_blob": "2295f0f21f04e9e4850416cb05db0c2cdd5b7f84",
+      "sha256": "975217d351a44473340b6e9555b0ceca3e9055b313ca5c8e9082ec042e3bd5f8",
+      "bytes": 8245
+    }
+  },
+  "logs": {
+    "preflight.log": "e29935fb11f64acca79dad9832874a2fd757682eb69e2cecc2b7c406c853100d",
+    "fmt.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "typography.log": "06b44538f9da23825378461d8deba84348305062f8505784e6b3b6fccc31c662",
+    "font-allocation.log": "b21cac66017be2cae215c949ac0bafb3a03e2d1df63c7ae854a8b016812c7950",
+    "setup-ci.log": "d19149af5b13d9fba7ecf1c90a0e35194653570ab73ef837bea98fcd1f6659d2",
+    "strict-clippy.log": "bea8237d23a979f7f887193aef7a2ea1ab698cecd785f41c5a79a7aaa825ee89",
+    "native-face.log": "4fd80b0d34ddb5417fb1831604d5db1f795b3edf6944bc5fe3ddf2477685020b"
+  },
+  "boundaries": [
+    "No CI/stable/physical/human claim. Product/QEMU proof pending separately.",
+    "Allocation target: 128x5 render_text calls over preallocated stack Surface; not whole NativeFaceScene::frame allocation freedom.",
+    "Zero-advance cluster preservation applies within admitted <=192-byte TextLayout command; preexisting UTF-8 item chunking is not full grapheme or shaping support.",
+    "Fixed mechanism only; Look selection remains deferred #5628/#5629."
+  ],
+  "historical_source": "ef8c6c8300236ba7e43845ea24a72e6a2d7a6ff0 oldbase72ab logs preserved separately"
+}

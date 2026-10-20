@@ -1,0 +1,278 @@
+{
+  "parent": "67ad020622346ad88fd296298bd8a7bad418ff7f",
+  "scope": "Exact 01d CPU checks plus historical 72ab preparation diagnostics whose Source varies; no product/guest acceptance yet",
+  "files": [
+    {
+      "source": "outputs/5992-01d9a08e4/local-checks.json",
+      "tree_path": "task-6038/outputs/5992-01d9a08e4/local-checks.json",
+      "bytes": 9014,
+      "sha256": "8b2c2ecf1e56fa497f999cc4da613c09699f7ae5e29542fd5f88c7d3168771d7",
+      "mode": "100644",
+      "blob": "aef343fa2a8760ffd2cd37b3d4ae3071e4f271e2"
+    },
+    {
+      "source": "outputs/5992-01d9a08e4/preflight.log",
+      "tree_path": "task-6038/outputs/5992-01d9a08e4/preflight.log",
+      "bytes": 30892,
+      "sha256": "e29935fb11f64acca79dad9832874a2fd757682eb69e2cecc2b7c406c853100d",
+      "mode": "100644",
+      "blob": "47576721f80c297940178caea2e1d1bf8b8052f6"
+    },
+    {
+      "source": "outputs/5992-01d9a08e4/fmt.log",
+      "tree_path": "task-6038/outputs/5992-01d9a08e4/fmt.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "mode": "100644",
+      "blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+    },
+    {
+      "source": "outputs/5992-01d9a08e4/typography.log",
+      "tree_path": "task-6038/outputs/5992-01d9a08e4/typography.log",
+      "bytes": 11487,
+      "sha256": "06b44538f9da23825378461d8deba84348305062f8505784e6b3b6fccc31c662",
+      "mode": "100644",
+      "blob": "dea46749aaa933b7b905cbe913a428d5c17bda54"
+    },
+    {
+      "source": "outputs/5992-01d9a08e4/font-allocation.log",
+      "tree_path": "task-6038/outputs/5992-01d9a08e4/font-allocation.log",
+      "bytes": 601,
+      "sha256": "b21cac66017be2cae215c949ac0bafb3a03e2d1df63c7ae854a8b016812c7950",
+      "mode": "100644",
+      "blob": "6c5aab2a3787f9993ca5a3c67b680c1f319f5e18"
+    },
+    {
+      "source": "outputs/5992-01d9a08e4/setup-ci.log",
+      "tree_path": "task-6038/outputs/5992-01d9a08e4/setup-ci.log",
+      "bytes": 608,
+      "sha256": "d19149af5b13d9fba7ecf1c90a0e35194653570ab73ef837bea98fcd1f6659d2",
+      "mode": "100644",
+      "blob": "84a5659f0f9769927d402d71bdbb8977d05813ab"
+    },
+    {
+      "source": "outputs/5992-01d9a08e4/strict-clippy.log",
+      "tree_path": "task-6038/outputs/5992-01d9a08e4/strict-clippy.log",
+      "bytes": 9041,
+      "sha256": "bea8237d23a979f7f887193aef7a2ea1ab698cecd785f41c5a79a7aaa825ee89",
+      "mode": "100644",
+      "blob": "06f74b1ea49b1789023125d18244dc4f4c35c7f4"
+    },
+    {
+      "source": "outputs/5992-01d9a08e4/native-face.log",
+      "tree_path": "task-6038/outputs/5992-01d9a08e4/native-face.log",
+      "bytes": 78695,
+      "sha256": "4fd80b0d34ddb5417fb1831604d5db1f795b3edf6944bc5fe3ddf2477685020b",
+      "mode": "100644",
+      "blob": "2d22d20c17c5a7e600249dd5336c0c37848b5788"
+    },
+    {
+      "source": "outputs/5992-native-typography-72ab/consumers-status.json",
+      "tree_path": "task-6038/outputs/5992-native-typography-72ab/consumers-status.json",
+      "bytes": 745,
+      "sha256": "fa245ec5ac0443abe00f024b45ed6f85a3a2cbc962dbc7d3abc2887a810f0275",
+      "mode": "100644",
+      "blob": "d74c26da27daf04f475711597f40cb7c0b0ccf74"
+    },
+    {
+      "source": "outputs/5992-native-typography-72ab/diagnostic-metrics-refusal.log",
+      "tree_path": "task-6038/outputs/5992-native-typography-72ab/diagnostic-metrics-refusal.log",
+      "bytes": 1468,
+      "sha256": "df7e0f1ad140c303ff59764c471db1623279ba419df89cc97b8e70ccf91a0f81",
+      "mode": "100644",
+      "blob": "fc06a17372a316c7f3421a749e62ec4e5439ecd8"
+    },
+    {
+      "source": "outputs/5992-native-typography-72ab/diagnostic-supported-extent.log",
+      "tree_path": "task-6038/outputs/5992-native-typography-72ab/diagnostic-supported-extent.log",
+      "bytes": 105162,
+      "sha256": "f7df46abdd0a6110bba9b293ce283b955b1bd1a7ac72f879dd4bdaf990ea024e",
+      "mode": "100644",
+      "blob": "c70c7a626caa27534e9ee9183a8e530619f660de"
+    },
+    {
+      "source": "outputs/5992-native-typography-72ab/final-status.json",
+      "tree_path": "task-6038/outputs/5992-native-typography-72ab/final-status.json",
+      "bytes": 382,
+      "sha256": "5881352e3c6aa5c1cfdaff54ed31181be5dc3a9847804462fe3b12bc9926df30",
+      "mode": "100644",
+      "blob": "efb9dcc143b8613a236f2131fa5ee890b059a07b"
+    },
+    {
+      "source": "outputs/5992-native-typography-72ab/final-verified-status.json",
+      "tree_path": "task-6038/outputs/5992-native-typography-72ab/final-verified-status.json",
+      "bytes": 1471,
+      "sha256": "fa4d6eda90197190683cf8f3eaa7248b6a93e579788e006ce66f8f011ec3ba8f",
+      "mode": "100644",
+      "blob": "bd4bbba90bb98d8565411e825813cb21de9b96b7"
+    },
+    {
+      "source": "outputs/5992-native-typography-72ab/fmt-green.log",
+      "tree_path": "task-6038/outputs/5992-native-typography-72ab/fmt-green.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "mode": "100644",
+      "blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+    },
+    {
+      "source": "outputs/5992-native-typography-72ab/font-allocation-final-verified.log",
+      "tree_path": "task-6038/outputs/5992-native-typography-72ab/font-allocation-final-verified.log",
+      "bytes": 601,
+      "sha256": "085ee3664c258bc6e3eb6312b6deaa5de8fbea90f8ff2dd7bd2c0d2a5e831127",
+      "mode": "100644",
+      "blob": "7414bf80fa53ba5f7024e48d16c8435fa496d4d1"
+    },
+    {
+      "source": "outputs/5992-native-typography-72ab/lint-repair-status.json",
+      "tree_path": "task-6038/outputs/5992-native-typography-72ab/lint-repair-status.json",
+      "bytes": 936,
+      "sha256": "b8dbcc20eb846e96f977eea5645484844e3919e8446f0ff562ba2da230861bd6",
+      "mode": "100644",
+      "blob": "ebdc7a84e0e6ec8733606013f013a5fd558a5a28"
+    },
+    {
+      "source": "outputs/5992-native-typography-72ab/native-face-consumers.log",
+      "tree_path": "task-6038/outputs/5992-native-typography-72ab/native-face-consumers.log",
+      "bytes": 79173,
+      "sha256": "0d4054614adf39e7e99fffb85066d62adc5bbf941033ef29d861ee36ec7fd35d",
+      "mode": "100644",
+      "blob": "6d958dadd7d12bc0a94d80fef5686d041db62d3d"
+    },
+    {
+      "source": "outputs/5992-native-typography-72ab/native-face-final-verified.log",
+      "tree_path": "task-6038/outputs/5992-native-typography-72ab/native-face-final-verified.log",
+      "bytes": 78695,
+      "sha256": "82d3e13e0609b055843272628e9eba3a3bf5fe570e570dd5c47d9d03e5bf8448",
+      "mode": "100644",
+      "blob": "54f707d757aa95d990ef80a97d6ff66bc13868a5"
+    },
+    {
+      "source": "outputs/5992-native-typography-72ab/native-face-verified.log",
+      "tree_path": "task-6038/outputs/5992-native-typography-72ab/native-face-verified.log",
+      "bytes": 86412,
+      "sha256": "6f41f0267c079655e4b3b96d6b57a49852cde4b2680ab7918282ae36898aae4f",
+      "mode": "100644",
+      "blob": "d98854c7a2741ba101769315fe0ffb89ce484cb4"
+    },
+    {
+      "source": "outputs/5992-native-typography-72ab/receipt.json",
+      "tree_path": "task-6038/outputs/5992-native-typography-72ab/receipt.json",
+      "bytes": 10028,
+      "sha256": "edc25a45f4fe264f68b6c2df6d4b9c60b90bd1a855aac872360f5b712d2e0d65",
+      "mode": "100644",
+      "blob": "27958207ae4203be42a222f54509caf833b5fc9e"
+    },
+    {
+      "source": "outputs/5992-native-typography-72ab/resource-ledger.json",
+      "tree_path": "task-6038/outputs/5992-native-typography-72ab/resource-ledger.json",
+      "bytes": 3977,
+      "sha256": "d34a30747468c08b488f69c228e91dcf4fc43a68131accd5c7b3ae7b61ca576a",
+      "mode": "100644",
+      "blob": "7dfcda34391374e5dcd00d7f968a2dc5a584cd0c"
+    },
+    {
+      "source": "outputs/5992-native-typography-72ab/status.json",
+      "tree_path": "task-6038/outputs/5992-native-typography-72ab/status.json",
+      "bytes": 743,
+      "sha256": "33e7400b7164c2c84a6851eb303e7398449de4db556c0f7cdab835bb969f9619",
+      "mode": "100644",
+      "blob": "a5cc762637a78c9411a3d499cad998455993d2dd"
+    },
+    {
+      "source": "outputs/5992-native-typography-72ab/strict-clippy-final-verified.log",
+      "tree_path": "task-6038/outputs/5992-native-typography-72ab/strict-clippy-final-verified.log",
+      "bytes": 10503,
+      "sha256": "1482b7784a77ff539bd120f44ce042198c446399a665dde73067eda26029a599",
+      "mode": "100644",
+      "blob": "22e5f0ea442e7f1a0a188efe23bbbd4786edaaee"
+    },
+    {
+      "source": "outputs/5992-native-typography-72ab/strict-clippy-green.log",
+      "tree_path": "task-6038/outputs/5992-native-typography-72ab/strict-clippy-green.log",
+      "bytes": 184,
+      "sha256": "5bc0ffae8ca16d632ec513a1ec81faba2fc7222d85897772a695c290f5ac274d",
+      "mode": "100644",
+      "blob": "82f89faa0c8cd0e1a26df5682bf58e865ef34ec0"
+    },
+    {
+      "source": "outputs/5992-native-typography-72ab/temporary-metrics-diagnostic.patch",
+      "tree_path": "task-6038/outputs/5992-native-typography-72ab/temporary-metrics-diagnostic.patch",
+      "bytes": 1480,
+      "sha256": "867f4318b9a40f4c1f1f172ed9516c7a84a321ec98e8638a03d7c6fa2f6a50da",
+      "mode": "100644",
+      "blob": "7c30cbec844471533675b7ecb8c46bb440e92753"
+    },
+    {
+      "source": "outputs/5992-native-typography-72ab/typography-consumers.log",
+      "tree_path": "task-6038/outputs/5992-native-typography-72ab/typography-consumers.log",
+      "bytes": 2631,
+      "sha256": "425942fc39fa6163b291a944fb54cbaa96a5dae7c40023c48d0f7a71aa62ba03",
+      "mode": "100644",
+      "blob": "ae3ff36a2fb8c96e43acad761bfb04c11c4d901b"
+    },
+    {
+      "source": "outputs/5992-native-typography-72ab/typography-final-checked.log",
+      "tree_path": "task-6038/outputs/5992-native-typography-72ab/typography-final-checked.log",
+      "bytes": 665,
+      "sha256": "4b1537899aa86941ef4c9e6c388b20a62e59e131fb571fd95528eb23d11a240c",
+      "mode": "100644",
+      "blob": "2268720a80c1881a3b1ce74f23a55bf8a5e3021f"
+    },
+    {
+      "source": "outputs/5992-native-typography-72ab/typography-final-verified.log",
+      "tree_path": "task-6038/outputs/5992-native-typography-72ab/typography-final-verified.log",
+      "bytes": 2631,
+      "sha256": "2afa93c4382ae2ecbd07b65106031b2000771439fbb2728ad178a64e6817b6b0",
+      "mode": "100644",
+      "blob": "8ace49d39f31af49314d5033c6a4f2bab1ae3a58"
+    },
+    {
+      "source": "outputs/5992-native-typography-72ab/typography-final.log",
+      "tree_path": "task-6038/outputs/5992-native-typography-72ab/typography-final.log",
+      "bytes": 2303,
+      "sha256": "e414dfb27e775ee8c92fd7f35556d33f88ed8a483d2b72f5e64dc4a028deb2bd",
+      "mode": "100644",
+      "blob": "f9c52d7276f2f37176a18a3311a469e052023adc"
+    },
+    {
+      "source": "outputs/5992-native-typography-72ab/typography-green.log",
+      "tree_path": "task-6038/outputs/5992-native-typography-72ab/typography-green.log",
+      "bytes": 2631,
+      "sha256": "9368e3dbe17d93262c1552613f88cb5405c8a0c8cdff0b934192f0f67038ee49",
+      "mode": "100644",
+      "blob": "48e8b690c615e822de4437ecc6adb18557ebb714"
+    },
+    {
+      "source": "outputs/5992-native-typography-72ab/typography-initial.log",
+      "tree_path": "task-6038/outputs/5992-native-typography-72ab/typography-initial.log",
+      "bytes": 10196,
+      "sha256": "992456ab3e5c49968fb219cc9e4d01058239e42ab604bf24561644bd890b3b87",
+      "mode": "100644",
+      "blob": "c8eed8530f109cdf46573304a0d0b912c6139ac1"
+    },
+    {
+      "source": "outputs/5992-native-typography-72ab/typography-ink-checked.log",
+      "tree_path": "task-6038/outputs/5992-native-typography-72ab/typography-ink-checked.log",
+      "bytes": 3246,
+      "sha256": "219482da06fa5ff087c2f239503121836daabbbe01b9bcb4de74b891c94d4de5",
+      "mode": "100644",
+      "blob": "1b624fe7c4f87709321f92b77256a5415e706735"
+    },
+    {
+      "source": "outputs/5992-native-typography-72ab/typography-ink-first.log",
+      "tree_path": "task-6038/outputs/5992-native-typography-72ab/typography-ink-first.log",
+      "bytes": 871,
+      "sha256": "32619f77771bd3593dd7e7fcd1da89e536b251dbddb3731270e6b7c0bbad6c04",
+      "mode": "100644",
+      "blob": "bd2ca2c0f7bea9b65a674460751add970aa3721d"
+    },
+    {
+      "source": "outputs/5992-native-typography-72ab/typography-verified.log",
+      "tree_path": "task-6038/outputs/5992-native-typography-72ab/typography-verified.log",
+      "bytes": 2520,
+      "sha256": "4077cc74d7ab4ed8b4d68891e6bd83281b938a5f1b8803b38a06e98885bc0178",
+      "mode": "100644",
+      "blob": "c1b45b9646c4b4fd07c68055f7449b94a0824259"
+    }
+  ]
+}

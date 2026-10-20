@@ -1,0 +1,22 @@
+[
+  {
+    "name": "typography-final-checked",
+    "args": [
+      "cargo",
+      "+stable",
+      "test",
+      "-p",
+      "conduitos",
+      "--locked",
+      "--features",
+      "hosted-tools,native-compositor",
+      "--lib",
+      "display::typography",
+      "--",
+      "--test-threads=1",
+      "--nocapture"
+    ],
+    "status": 101,
+    "seconds": 8.866331815719604
+  }
+]

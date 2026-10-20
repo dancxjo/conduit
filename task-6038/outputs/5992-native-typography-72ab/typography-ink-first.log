@@ -1,0 +1,15 @@
+   Compiling conduitos v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/conduitos)
+error[E0599]: no method named `text_value` found for reference `&conduit_face::GraphicsCommand` in the current scope
+  --> targets/conduitos/src/native_face_scene/layout/panels/tests/creche/font_details.rs:69:55
+   |
+69 |                         painted_code.push_str(command.text_value().unwrap());
+   |                                                       ^^^^^^^^^^
+   |
+help: there is a method `text_role` with a similar name
+   |
+69 -                         painted_code.push_str(command.text_value().unwrap());
+69 +                         painted_code.push_str(command.text_role().unwrap());
+   |
+
+For more information about this error, try `rustc --explain E0599`.
+error: could not compile `conduitos` (lib test) due to 1 previous error

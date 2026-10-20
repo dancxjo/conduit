@@ -1,0 +1,215 @@
+{
+  "source": "ef8c6c8300236ba7e43845ea24a72e6a2d7a6ff0",
+  "tree": "cea36e2f735437c96d11f87d46894429a674cca3",
+  "base": "72ab3b367c236653dff0b5726939e08de62390b9",
+  "scope": "preparation conformance on historical base; not currentdev/product/stable acceptance",
+  "results": {
+    "typography": 20,
+    "native_face": 113,
+    "allocation_tests": 2,
+    "strict_clippy": "pass",
+    "fmt": "pass"
+  },
+  "test_lint_repair": "After113nativeFace/2allocation, only ensemble_tests.rs changed chunks_exact(2) to as_chunks::<2>().0;20typography reran+currentallowningClippy/fmt. Allproduction/nativeFace cases andallocationtest Source remained byte-identical. Freshbase fullsuite required separately.",
+  "allocation_boundary": "128x5 render_text calls overpreallocatedstackSurface first/repeatedfontpath zeroallocatorcalls; not whole NativeFaceScene.frame allocation-free",
+  "source_file_sha256": {
+    "targets/conduitos/assets/fonts/dejavu/DejaVuSerif.ttf": "42d1edeb7952f31b1f96d767ed7030b08a39e0c372b0071641518864e2bffb51",
+    "targets/conduitos/assets/fonts/dejavu/README.md": "98b26e50b6b1764f2af980a5f393afd6902f86d8611348f2086ed8def16717bb",
+    "targets/conduitos/assets/fonts/dejavu/native-ensemble.json": "27741cd141affb92b521bbe9042bf39db8012d6058fe445cc8fd00779b0d75ea",
+    "targets/conduitos/assets/graphical/README.md": "77cf4a787ef952cc6d2d2a4b1d5989c5e4ef27351b5c4438b244d88349356dcc",
+    "targets/conduitos/build/typography.rs": "068e09fbac7dec490bf92891626799ac22f6f5b2adaab48e5d04593341582948",
+    "targets/conduitos/src/display/typography.rs": "3c7644308400217de0b42448d8abf29b8ce792d7beea199a095fe6fcd70c196e",
+    "targets/conduitos/src/display/typography/ensemble_tests.rs": "fbeba520c24e65a743769107ff2c20f1ad2be07102274bbe069c83caa5289bb1",
+    "targets/conduitos/src/display/typography/ink.rs": "cbcce0aa2b21b87a68e995c31b72ebc164a9212d063583f0416eeb184fde2b4e",
+    "targets/conduitos/src/display/typography/layout.rs": "2d561a6d78774d08c3fb448897687d6e74ac0501b9104e48bdb8e87032598618",
+    "targets/conduitos/src/display/typography/raster.rs": "c45a13800380a0bc7d95268164cc432c783b212979e19554f2f09279c5b036b4",
+    "targets/conduitos/src/native_face_scene/chrome.rs": "eeb6203e49b4c52814fe0a60e071ea888cfa19f88e3dc2b4ba0cfe8c8484fff3",
+    "targets/conduitos/src/native_face_scene/document.rs": "2faf4c329ab9fed2d917312540d4113c1d8e59e3472b8213cd6b1551e2db49f0",
+    "targets/conduitos/src/native_face_scene/frame.rs": "e1c78f9b9657822cd86a009c9189a0665cc6768d2031e2db119a7976b3a606e5",
+    "targets/conduitos/src/native_face_scene/layout.rs": "c73979f6663f3f0944e8d243d15588abb3aae60d3d3c5c9f63d60d5e4b9a5f44",
+    "targets/conduitos/src/native_face_scene/layout/panels.rs": "9b3ec04a2376267537a6f1036451a1476fe91e0a12ea008cb886d5e029895215",
+    "targets/conduitos/src/native_face_scene/layout/panels/tests.rs": "b7dfb832ef856b87fd4768dc74b0212ea930a222779cef0d4ee231e9f0b98527",
+    "targets/conduitos/src/native_face_scene/layout/panels/tests/creche.rs": "e270fd1bd891dc669ad4f270d8f0be2eca59d15729f37e870ca1a2b4e540fa20",
+    "targets/conduitos/src/native_face_scene/layout/panels/tests/creche/font_details.rs": "2c2b248cd0b93c86a7aadc97080dfc76822ef63aa086a52eba2482613259630c",
+    "targets/conduitos/src/native_face_scene/ports/tests.rs": "3a9b4bc70d441ff51c899ca10aaf5026daef5ff5135e4c8d198231f88ad1644c",
+    "targets/conduitos/src/native_face_scene/text_editor.rs": "975217d351a44473340b6e9555b0ceca3e9055b313ca5c8e9082ec042e3bd5f8"
+  },
+  "commands": [
+    {
+      "name": "typography-final-verified",
+      "args": [
+        "cargo",
+        "+stable",
+        "test",
+        "-p",
+        "conduitos",
+        "--locked",
+        "--features",
+        "hosted-tools,native-compositor",
+        "--lib",
+        "display::typography",
+        "--",
+        "--test-threads=1",
+        "--nocapture"
+      ],
+      "status": 0,
+      "seconds": 49.041707038879395
+    },
+    {
+      "name": "native-face-final-verified",
+      "args": [
+        "cargo",
+        "+stable",
+        "test",
+        "-p",
+        "conduitos",
+        "--locked",
+        "--features",
+        "hosted-tools,native-compositor",
+        "--lib",
+        "native_face",
+        "--",
+        "--test-threads=1",
+        "--nocapture"
+      ],
+      "status": 0,
+      "seconds": 46.707552909851074
+    },
+    {
+      "name": "font-allocation-final-verified",
+      "args": [
+        "cargo",
+        "+stable",
+        "test",
+        "-p",
+        "conduitos",
+        "--locked",
+        "--features",
+        "hosted-tools,native-compositor",
+        "--test",
+        "native_typography",
+        "--",
+        "--test-threads=1"
+      ],
+      "status": 0,
+      "seconds": 32.14879822731018
+    },
+    {
+      "name": "strict-clippy-final-verified",
+      "args": [
+        "cargo",
+        "+stable",
+        "clippy",
+        "-p",
+        "conduitos",
+        "--locked",
+        "--features",
+        "hosted-tools,native-compositor",
+        "--lib",
+        "--tests",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "status": 101,
+      "seconds": 209.6405942440033
+    }
+  ],
+  "lint_repair": [
+    {
+      "name": "typography-green",
+      "args": [
+        "cargo",
+        "+stable",
+        "test",
+        "-p",
+        "conduitos",
+        "--locked",
+        "--features",
+        "hosted-tools,native-compositor",
+        "--lib",
+        "display::typography",
+        "--",
+        "--test-threads=1",
+        "--nocapture"
+      ],
+      "status": 0,
+      "seconds": 54.534075021743774
+    },
+    {
+      "name": "strict-clippy-green",
+      "args": [
+        "cargo",
+        "+stable",
+        "clippy",
+        "-p",
+        "conduitos",
+        "--locked",
+        "--features",
+        "hosted-tools,native-compositor",
+        "--lib",
+        "--tests",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "status": 0,
+      "seconds": 10.152526617050171
+    },
+    {
+      "name": "fmt-green",
+      "args": [
+        "cargo",
+        "+stable",
+        "fmt",
+        "--package",
+        "conduitos",
+        "--",
+        "--check"
+      ],
+      "status": 0,
+      "seconds": 1.6982858180999756
+    }
+  ],
+  "meaningful_negatives": [
+    "typography-ink-checked.log two obsolete1pxclippingexpectations corrected to InvalidExtent/noink",
+    "native-face-verified.log92pass20fail actualmetricconsumers",
+    "native-face-consumers.log111pass1fail wholeleaflongidentityexpectation replacedbystrongeractualpaintconservation",
+    "strict-clippy-final-verified.log test-onlyas_chunkslint",
+    "diagnostic-metrics-refusal.log diagramfooter measuredmetricregression",
+    "diagnostic-supported-extent.log320x240/200 metricpressure"
+  ],
+  "remaining": "Product/normalQEMU/F2/headlessexclusion/image+codecost and currentdevowningchecks pending; Lookselection5628/5629 deferred; scalarzero-advancehandling scopedone<=192Bcommand, not fullshaping.",
+  "artifact_sha256": {
+    "native-face-final-verified.log": "82d3e13e0609b055843272628e9eba3a3bf5fe570e570dd5c47d9d03e5bf8448",
+    "typography-verified.log": "4077cc74d7ab4ed8b4d68891e6bd83281b938a5f1b8803b38a06e98885bc0178",
+    "resource-ledger.json": "d34a30747468c08b488f69c228e91dcf4fc43a68131accd5c7b3ae7b61ca576a",
+    "typography-consumers.log": "425942fc39fa6163b291a944fb54cbaa96a5dae7c40023c48d0f7a71aa62ba03",
+    "strict-clippy-final-verified.log": "1482b7784a77ff539bd120f44ce042198c446399a665dde73067eda26029a599",
+    "native-face-consumers.log": "0d4054614adf39e7e99fffb85066d62adc5bbf941033ef29d861ee36ec7fd35d",
+    "font-allocation-final-verified.log": "085ee3664c258bc6e3eb6312b6deaa5de8fbea90f8ff2dd7bd2c0d2a5e831127",
+    "typography-ink-checked.log": "219482da06fa5ff087c2f239503121836daabbbe01b9bcb4de74b891c94d4de5",
+    "layout.rs.before-diagnostic": "2d561a6d78774d08c3fb448897687d6e74ac0501b9104e48bdb8e87032598618",
+    "typography-ink-first.log": "32619f77771bd3593dd7e7fcd1da89e536b251dbddb3731270e6b7c0bbad6c04",
+    "chrome.rs.before-diagnostic": "94fa9e63f57be126e63328f9b9a0528122814c3a59194eeb25f34ad22b5bac49",
+    "diagnostic-metrics-refusal.log": "df7e0f1ad140c303ff59764c471db1623279ba419df89cc97b8e70ccf91a0f81",
+    "final-status.json": "5881352e3c6aa5c1cfdaff54ed31181be5dc3a9847804462fe3b12bc9926df30",
+    "typography-green.log": "9368e3dbe17d93262c1552613f88cb5405c8a0c8cdff0b934192f0f67038ee49",
+    "typography-final-verified.log": "2afa93c4382ae2ecbd07b65106031b2000771439fbb2728ad178a64e6817b6b0",
+    "fmt-green.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "lint-repair-status.json": "b8dbcc20eb846e96f977eea5645484844e3919e8446f0ff562ba2da230861bd6",
+    "temporary-metrics-diagnostic.patch": "867f4318b9a40f4c1f1f172ed9516c7a84a321ec98e8638a03d7c6fa2f6a50da",
+    "final-verified-status.json": "fa4d6eda90197190683cf8f3eaa7248b6a93e579788e006ce66f8f011ec3ba8f",
+    "typography-final.log": "e414dfb27e775ee8c92fd7f35556d33f88ed8a483d2b72f5e64dc4a028deb2bd",
+    "typography-final-checked.log": "4b1537899aa86941ef4c9e6c388b20a62e59e131fb571fd95528eb23d11a240c",
+    "strict-clippy-green.log": "5bc0ffae8ca16d632ec513a1ec81faba2fc7222d85897772a695c290f5ac274d",
+    "status.json": "33e7400b7164c2c84a6851eb303e7398449de4db556c0f7cdab835bb969f9619",
+    "diagnostic-supported-extent.log": "f7df46abdd0a6110bba9b293ce283b955b1bd1a7ac72f879dd4bdaf990ea024e",
+    "native-face-verified.log": "6f41f0267c079655e4b3b96d6b57a49852cde4b2680ab7918282ae36898aae4f",
+    "typography-initial.log": "992456ab3e5c49968fb219cc9e4d01058239e42ab604bf24561644bd890b3b87",
+    "consumers-status.json": "fa245ec5ac0443abe00f024b45ed6f85a3a2cbc962dbc7d3abc2887a810f0275",
+    "generated-profiles/native_typography.rs": "8386f66424c5a48e63077fb63c396901603ac3cd6da1c39b3c251dffcd7e8eef",
+    "generated-profiles/native_coverage.bin": "40e2501492b27bdeff988866ced595e310b8753935af43bb773ea8121dfb0370",
+    "generated-profiles/native_typography_resources.tsv": "b1cbb5dd8ca08682e9f5d2ef25e1169f9a1a1a69eb85971747c473b859e2dca5"
+  }
+}

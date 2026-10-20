@@ -1,0 +1,22 @@
+   Compiling conduitos v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/conduitos)
+    Finished `test` profile [optimized] target(s) in 46.13s
+     Running unittests src/lib.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/deps/conduitos-9bf31814da61c6ef)
+
+running 1 test
+TYPOGRAPHY_CHROME_METRICS screen=LayoutRect { height: 240, width: 320, x: 0, y: 0 } scale=100 top=56 footer=56
+TYPOGRAPHY_CHROME_METRICS screen=LayoutRect { height: 240, width: 320, x: 0, y: 0 } scale=100 top=56 footer=56
+TYPOGRAPHY_CHROME_METRICS screen=LayoutRect { height: 240, width: 320, x: 0, y: 0 } scale=100 top=56 footer=56
+
+thread 'native_face_scene::connected_layout::tests::directional_fan_graphs_and_disconnected_components_have_stable_order' (2229392) panicked at targets/conduitos/src/native_face_scene/connected_layout/tests.rs:121:35:
+called `Result::unwrap()` on an `Err` value: InputBound
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test native_face_scene::connected_layout::tests::directional_fan_graphs_and_disconnected_components_have_stable_order ... FAILED
+
+failures:
+
+failures:
+    native_face_scene::connected_layout::tests::directional_fan_graphs_and_disconnected_components_have_stable_order
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 1221 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p conduitos --lib`

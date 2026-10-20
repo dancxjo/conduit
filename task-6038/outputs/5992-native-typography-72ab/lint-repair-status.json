@@ -1,0 +1,56 @@
+[
+  {
+    "name": "typography-green",
+    "args": [
+      "cargo",
+      "+stable",
+      "test",
+      "-p",
+      "conduitos",
+      "--locked",
+      "--features",
+      "hosted-tools,native-compositor",
+      "--lib",
+      "display::typography",
+      "--",
+      "--test-threads=1",
+      "--nocapture"
+    ],
+    "status": 0,
+    "seconds": 54.534075021743774
+  },
+  {
+    "name": "strict-clippy-green",
+    "args": [
+      "cargo",
+      "+stable",
+      "clippy",
+      "-p",
+      "conduitos",
+      "--locked",
+      "--features",
+      "hosted-tools,native-compositor",
+      "--lib",
+      "--tests",
+      "--",
+      "-D",
+      "warnings"
+    ],
+    "status": 0,
+    "seconds": 10.152526617050171
+  },
+  {
+    "name": "fmt-green",
+    "args": [
+      "cargo",
+      "+stable",
+      "fmt",
+      "--package",
+      "conduitos",
+      "--",
+      "--check"
+    ],
+    "status": 0,
+    "seconds": 1.6982858180999756
+  }
+]
