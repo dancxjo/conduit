@@ -51,5 +51,7 @@ pub use operation::*;
 pub use planned_activation::*;
 pub use seeded_state::SeededStateBack;
 
+mod kernel_each_back;
 mod kernel_scan_back;
+pub use kernel_each_back::KernelEachBack;
 pub use kernel_scan_back::KernelScanBack;
