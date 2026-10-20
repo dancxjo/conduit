@@ -40,6 +40,7 @@ pub(super) fn parse(serial: &str) -> Result<Value, ConduitosError> {
                     | "kernel-prepare"
                     | "play-start"
                     | "play-input"
+                    | "pointer-feedback"
             )
             || (records.is_empty() != (stage == "boot-entry"))
         {

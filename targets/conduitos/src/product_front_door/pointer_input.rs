@@ -80,6 +80,9 @@ pub(super) fn dispatch(
     if state.retired {
         return Ok(());
     }
+    let _native_timing = crate::native_observation::Interval::begin(
+        crate::native_observation::Stage::PointerFeedback,
+    );
     let activate = match state.observe(sample) {
         Ok(activate) => activate,
         Err(reason) => {

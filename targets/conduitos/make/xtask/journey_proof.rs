@@ -53,8 +53,7 @@ pub(super) fn execute_supplied(
     let paths = Paths::new(ConduitosArch::X86_64)?;
     fs::create_dir_all(&paths.target).map_err(io_error)?;
     // Unix sockets have a small pathname limit, independent of filesystem limits.
-    let monitor_socket =
-        std::env::temp_dir().join(format!("cj-{}.sock", std::process::id()));
+    let monitor_socket = std::env::temp_dir().join(format!("cj-{}.sock", std::process::id()));
     let serial_path = paths.target.join("journey-serial.log");
     let _ = fs::remove_file(&monitor_socket);
     let _ = fs::remove_file(&serial_path);

@@ -14,6 +14,7 @@ pub enum Stage {
     KernelPrepare,
     PlayStart,
     PlayInput,
+    PointerFeedback,
 }
 impl Stage {
     pub const fn as_str(self) -> &'static str {
@@ -26,6 +27,7 @@ impl Stage {
             Self::KernelPrepare => "kernel-prepare",
             Self::PlayStart => "play-start",
             Self::PlayInput => "play-input",
+            Self::PointerFeedback => "pointer-feedback",
         }
     }
 }
@@ -105,4 +107,25 @@ pub fn point(stage: Stage) {
         feature = "native-latency-observation"
     )))]
     let _ = stage;
+}
+
+/// Raw observation clock for existing identity-bearing receipts. Publication
+/// and serialization costs follow this sample; no conversion to elapsed time.
+pub fn counter_ticks() -> Option<u64> {
+    #[cfg(all(
+        target_arch = "x86_64",
+        target_os = "none",
+        feature = "native-latency-observation"
+    ))]
+    {
+        Some(counter::read())
+    }
+    #[cfg(not(all(
+        target_arch = "x86_64",
+        target_os = "none",
+        feature = "native-latency-observation"
+    )))]
+    {
+        None
+    }
 }

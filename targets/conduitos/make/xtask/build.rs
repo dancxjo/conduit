@@ -323,7 +323,15 @@ fn execute_with_features(
     backbone::check(
         &paths,
         opts,
-        product_artifact.map(|artifact| artifact.rust_target),
+        product_artifact
+            .map(|artifact| artifact.rust_target)
+            .or_else(|| {
+                // An observation of one real x86 journey is not a new cross-target
+                // qualification. The normal architecture gate still checks all.
+                features
+                    .contains(&"native-latency-observation")
+                    .then_some(target)
+            }),
     )?;
     let base_commit = git_head(&paths.root)?;
     let legacy_image_id = format!("conduitos-image/{base_commit}/{}/v1", arch.as_str());
