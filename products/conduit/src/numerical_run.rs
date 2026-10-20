@@ -136,7 +136,7 @@ fn write_json(path: &Path, value: &serde_json::Value) -> Result<(), String> {
     .map_err(|e| e.to_string())?;
     std::fs::rename(temporary, path).map_err(|e| e.to_string())
 }
-fn prepare(
+pub(crate) fn prepare(
     source: &CanonicalSource,
     checked: &conduit_plot::CheckedSyntaxDocument,
     authored: &conduit_plot::ExpandedAuthoringPlot,
