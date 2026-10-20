@@ -209,3 +209,36 @@ test('sensitive changes lint every selected boundary package', () => {
   for (const name of ['conduit-data', 'conduit-kernel', 'conduit-planner']) assert.ok(lint.includes(name));
   assert.ok(!lint.includes('--workspace'));
 });
+
+
+test('preflight-owned tooling and prose do not compile Rust packages', () => {
+  for (const paths of [
+    ['tools/ci/pipeline/admission.mjs', 'proof/ci/pipeline-numerical.spec.mjs'],
+    ['.github/workflows/candidate.yml'],
+    ['targets/std/README.md'],
+  ]) {
+    assert.deepEqual(plan(paths), {packages: [], broad: false, native: false, smoke: false});
+    const commands = [];
+    runAdmission(paths, metadata, '/repo', (...args) => commands.push(args));
+    assert.deepEqual(commands, []);
+  }
+});
+
+test('mixed tooling and runtime edits retain the runtime package and its failures', () => {
+  const paths = ['tools/ci/pipeline/admission.mjs', 'products/conduit/src/main.rs'];
+  assert.deepEqual(plan(paths).packages, ['conduit']);
+  const commands = [];
+  runAdmission(paths, metadata, '/repo', (...args) => commands.push(args));
+  assert.ok(commands.some(([, args]) => args[0] === 'test' && args.includes('conduit')));
+  assert.throws(() => runAdmission(paths, metadata, '/repo', () => {throw new Error('runtime lint failure');}), /runtime lint failure/);
+  assert.equal(plan(['unknown/tooling-format.bin']).broad, true);
+});
+
+
+test('tooling filenames and prose cannot select unrelated runtime supplements', () => {
+  const model = {...metadata, packages: [...metadata.packages, {name: 'conduit-semantic-catalog'}]};
+  const commands = [];
+  runAdmission(['products/conduit/src/main.rs', 'architecture/README.md', 'proof/ci/pipeline-numerical.spec.mjs'], model, '/repo', (...args) => commands.push(args));
+  assert.equal(commands.length, 2);
+  assert.deepEqual(commands.map(([, args]) => args[0]), ['clippy', 'test']);
+});
