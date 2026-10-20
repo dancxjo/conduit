@@ -1,0 +1,102 @@
+{
+  "parent": "fc2d74cb42cc3ff4956e888a9275109158f60772",
+  "scope": "Verified stage05/06 stable acceptance and frozen font repair metadata; checks ongoing; raw products remain local",
+  "files": [
+    {
+      "source": "work/revised-native-goal-state.json",
+      "tree_path": "task-6038/work/revised-native-goal-state.json",
+      "bytes": 3079,
+      "sha256": "3b31d04b20961cd2c953b89236ee646327b1a88bd5a305d4c8d6494590bdbde3",
+      "mode": "100644",
+      "blob": "4d95534a13cd58e53bfa7e7cf29b28dd8341fa7f"
+    },
+    {
+      "source": "work/5994-stage05-06-stable-followup.md",
+      "tree_path": "task-6038/work/5994-stage05-06-stable-followup.md",
+      "bytes": 812,
+      "sha256": "7206ff9898072f0e105031cb3cf9c3c0250c020210a357a103163d0902cab296",
+      "mode": "100644",
+      "blob": "830c4dc41b40d7fb1867877e823d6aa2ab41f2be"
+    },
+    {
+      "source": "work/5992-draft-pr-body.md",
+      "tree_path": "task-6038/work/5992-draft-pr-body.md",
+      "bytes": 2003,
+      "sha256": "455d012b61b1920696a08790415af281ed386678945a764795598d9f7a8379fb",
+      "mode": "100644",
+      "blob": "a8c17e4fddd2097f29ad1b53d3a10ff3c6a41fef"
+    },
+    {
+      "source": "work/run-5992-41cbc199d-product-proof.py",
+      "tree_path": "task-6038/work/run-5992-41cbc199d-product-proof.py",
+      "bytes": 3026,
+      "sha256": "fd5c12bfa734d51bce0fe226f0b629952e086017802fb83410307b224041586a",
+      "mode": "100644",
+      "blob": "d5f79ce4cb2942ab053f528afad9d6c5c3abdade"
+    },
+    {
+      "source": "outputs/ci-resumed-20261020/observation-2140/manifest.json",
+      "tree_path": "task-6038/outputs/ci-resumed-20261020/observation-2140/manifest.json",
+      "bytes": 268627,
+      "sha256": "ed4788fec74ed2726b2c7c8cb61f9245ab568b249049cd18c4fb900698cb076d",
+      "mode": "100644",
+      "blob": "9a7ddbf31dbff645e5b8bf718314de1e0ce41b22"
+    },
+    {
+      "source": "outputs/ci-resumed-20261020/observation-2140/accepted-main.json",
+      "tree_path": "task-6038/outputs/ci-resumed-20261020/observation-2140/accepted-main.json",
+      "bytes": 2744,
+      "sha256": "2d5970920747167754e3cfc5b8613bd27801e75751e327450eacfdff4b2f5d81",
+      "mode": "100644",
+      "blob": "9763619aa1cf6619ac778d14ad14213f3f0b08f9"
+    },
+    {
+      "source": "outputs/ci-resumed-20261020/observation-2140/publisher.json",
+      "tree_path": "task-6038/outputs/ci-resumed-20261020/observation-2140/publisher.json",
+      "bytes": 3160,
+      "sha256": "ffa754f5e18a321fbd83d8c0b1530e5478555b55503268f0059272c641bc6a72",
+      "mode": "100644",
+      "blob": "c470dfdfad24d4690214920d7826cc285c9d8b3f"
+    },
+    {
+      "source": "outputs/ci-resumed-20261020/observation-2140/source.json",
+      "tree_path": "task-6038/outputs/ci-resumed-20261020/observation-2140/source.json",
+      "bytes": 2686,
+      "sha256": "4c2db9731fa7dc8d3e5a77a6e2c2723677470c64a98c6c38e469de57a8393faf",
+      "mode": "100644",
+      "blob": "e06be4efaa247af1c151cea17303e3db3dde5141"
+    },
+    {
+      "source": "outputs/ci-resumed-20261020/observation-2140/integration00525.json",
+      "tree_path": "task-6038/outputs/ci-resumed-20261020/observation-2140/integration00525.json",
+      "bytes": 51571,
+      "sha256": "1f201e152795bf7ff4f4ea3cfe86a69b984bb134c9abbb5a817dc772912da886",
+      "mode": "100644",
+      "blob": "dec5217e66fda99763e5090648264e5915f4a7b5"
+    },
+    {
+      "source": "outputs/ci-resumed-20261020/observation-2140/site-publication.json",
+      "tree_path": "task-6038/outputs/ci-resumed-20261020/observation-2140/site-publication.json",
+      "bytes": 3283,
+      "sha256": "1047131fe0e8c0114c54eeef19017ec1e49a6bfb4587066802ab1ccb4327c600",
+      "mode": "100644",
+      "blob": "d139fc8757e74f76bdfae35b57b51c21e596edf0"
+    },
+    {
+      "source": "outputs/6167-a302c3271/committed-source-binding.json",
+      "tree_path": "task-6038/outputs/6167-a302c3271/committed-source-binding.json",
+      "bytes": 3056,
+      "sha256": "5f1abf042d7a3cca71c1bc9a026622415c5d68c4159a32c630c1a4e5974b8de7",
+      "mode": "100644",
+      "blob": "93c17fc071bd2525d2753b4c7501fa713e9adc76"
+    },
+    {
+      "source": "outputs/6167-a302c3271/frozen-source-sha256.json",
+      "tree_path": "task-6038/outputs/6167-a302c3271/frozen-source-sha256.json",
+      "bytes": 1570,
+      "sha256": "a05764c04888b3252e0fb9f5eba38d68f39204acd7f3b1828491eb154275d280",
+      "mode": "100644",
+      "blob": "2d7583a23a89c00913017c09658ea9fa5d4fc490"
+    }
+  ]
+}

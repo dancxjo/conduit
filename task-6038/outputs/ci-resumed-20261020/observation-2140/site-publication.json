@@ -1,0 +1,69 @@
+{
+  "schema": "conduit.site-publication/v1",
+  "sourceCommit": "72ab3b367c236653dff0b5726939e08de62390b9",
+  "recordedHistoryCommit": "d9b79319bd78c72e4a6b48ef524e269300a82bdf",
+  "handbook": {
+    "sourceCommit": "72ab3b367c236653dff0b5726939e08de62390b9",
+    "environment": "Chromium",
+    "path": "journeys/verticals/handbook/"
+  },
+  "fieldStation": {
+    "sourceCommit": "72ab3b367c236653dff0b5726939e08de62390b9",
+    "environment": "Chromium",
+    "path": "journeys/verticals/field-station-clock/"
+  },
+  "threeBodies": {
+    "sourceCommit": "8c6f4a8bea743b733fa9de46aaeb6c6f119e1faa",
+    "path": "journeys/current/three-bodies/",
+    "refreshedExecution": false
+  },
+  "oneBody": {
+    "captureSourceCommit": "9b79486146bfb0af3369f8133a81b3d14792bd1c",
+    "publicationSourceCommit": "72ab3b367c236653dff0b5726939e08de62390b9",
+    "path": "journeys/current/one-body-five-masks/",
+    "proof": "producer-owned-complete-evidence"
+  },
+  "directSpokenDevelopment": {
+    "captureSourceCommit": "2f1df6f640a4ad967d90d795bd47fe98b177851e",
+    "publicationSourceCommit": "72ab3b367c236653dff0b5726939e08de62390b9",
+    "path": "journeys/current/direct-spoken-development/",
+    "proof": "separate-retained-local-selected-alsa-evidence",
+    "humanListeningObserved": false
+  },
+  "todoJourney": {
+    "captureSourceCommit": "0f6b89e931e34d8b49b8f1aefedfaa1272b8ef65",
+    "publicationSourceCommit": "72ab3b367c236653dff0b5726939e08de62390b9",
+    "path": "journeys/current/todo/",
+    "proof": "producer-correlated-complete-evidence",
+    "humanListeningObserved": false
+  },
+  "thermostatJourney": {
+    "captureSourceCommit": "ef64e8241f63c86dcf52fb3094e2cc74ce2fa37a",
+    "publicationSourceCommit": "72ab3b367c236653dff0b5726939e08de62390b9",
+    "bodyId": "28304c413736074a225519134768d8c19520191c9a35184c41d9042533809ab7",
+    "path": "journeys/current/thermostat/",
+    "proof": "retained-local-browser-terminal-spoken",
+    "speechAvailable": true
+  },
+  "todoBrowserDevelopment": {
+    "captureSourceCommit": "99399c157c6e1d7d7fe740a312315b4709dccafd",
+    "browserRuntimeSourceCommit": "f7778c323e1ffdc4c939ba27e59ca58cf0da7195",
+    "longListActionsSourceCommit": "88f187fdb2263dee9cfca49b7e3182fd7df8a7dd",
+    "longListBrowserSourceCommit": "459e672cbb83495f4677a3cff60be18be55a8a04",
+    "publicationSourceCommit": "72ab3b367c236653dff0b5726939e08de62390b9",
+    "bodyId": "335e956d4370f3373b62cdef8a6990b4a1ed414cd693f3d8ee92403b5fcff287",
+    "path": "journeys/development/todo-browser/",
+    "proof": "retained-cross-source-browser-add"
+  },
+  "conduitos": {
+    "sourceCommit": "72ab3b367c236653dff0b5726939e08de62390b9",
+    "proofClass": "freestanding-emulator",
+    "imageSha256": "435726151281eeb2d91182283fe2b360ffa881a8f36afc28b42aeda9b2caf5c5",
+    "serialSha256": "9f8d99d12c04ab912c0535660c843f38e089fd7da094f8da41fa485747e3e186",
+    "committedEditSha256": "d67f00d87fbbcedf6e4d2a6c5c7cac39cb0fe8e337479bcc37702ccb1b678b60",
+    "committedEditPath": "journeys/current/conduitos/x86_64/memory-lantern-native-edit.json",
+    "pairedSha256": "1ea86cb51e92cd36476b4c574a57c581cafbc87ff8b506b07b36c3b32f7c1949",
+    "pairedPath": "journeys/current/conduitos/x86_64/native-shell-paired-linear.json",
+    "path": "journeys/current/conduitos/x86_64/"
+  }
+}

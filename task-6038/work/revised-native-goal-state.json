@@ -18,7 +18,7 @@
   "combined_integration": {
     "run": 39490452233,
     "source": "72ab3b367c236653dff0b5726939e08de62390b9",
-    "last_observed": "running20:56UTC;fourlanesremaining/allotherssuccess",
+    "last_observed": "terminal_success2026-10-20T21:29UTC;alljobs;publisher_unverified",
     "superseded_pending_run": 39484454692,
     "superseded_outcome": "cancelled/coalesced;notacceptance"
   },
@@ -49,9 +49,20 @@
     "tree": "ea15d9b03ee743b7bee30474fa0a0854d84caf9a",
     "draft": true,
     "candidate": 39496067090,
-    "observed": "in_progress20:56UTC",
+    "observed": "terminal_failure2026-10-20T21:29UTC;admissionTourstatusheight;all5nativejobsPassed",
     "old_prepared_source": "ef8c6c8300236ba7e43845ea24a72e6a2d7a6ff0",
     "old_source_checks": "20typography/113native/2allocation/Clippy/fmt passed; fresh exactSource checks running",
-    "product_proof": "pending"
+    "product_proof": "exact01d normal7graphicalproofsPassed;headlessblockedBeforeBootByUnregisteredEntranceAndStrippedSymbols;6167repairInProgress",
+    "current_work": "rebasedFontDeltaOn00525;unpublished;workerOwns6167AndActualTourStatusMetricConsumerRepair",
+    "proof_origin": "fc2d74cb42cc3ff4956e888a9275109158f60772"
+  },
+  "stable_through_stage06": {
+    "tested_source": "72ab3b367c236653dff0b5726939e08de62390b9",
+    "accepted_main": "f78adef760e9906272c2a64b3562c3506aec4cd9",
+    "tree": "fccca2ce0c48203790d02443bb594298dbc4aa48",
+    "integration": 39490452233,
+    "publisher": 39500834785,
+    "live_pages_source": "72ab3b367c236653dff0b5726939e08de62390b9",
+    "observed": "2026-10-20T21:40UTC"
   }
 }

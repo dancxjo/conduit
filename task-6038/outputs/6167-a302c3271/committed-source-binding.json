@@ -1,0 +1,60 @@
+{
+  "source": "41cbc199d7a13ce81f0e98e62797085a6737ec08",
+  "tree": "2d62bcce79243ece64282a4ede2d4479fd1206f7",
+  "base": "00525faf30522b6851d226613e61e277f2b48f43",
+  "files": {
+    "targets/conduitos/make/xtask/build.rs": {
+      "sha256": "4e2c8c843773379fcc976eefc5e6ae23e40c55a381c914ebf612bf61913b7c7c",
+      "blob": "751ee5b6ca72a56b4c19c603bd522b8c405eeb7d"
+    },
+    "targets/conduitos/make/xtask/build/aarch64_domain.rs": {
+      "sha256": "08df5067bf4595d5a2fa0e7e2914852328b6e01255b99d3e6a1997ef0210399e",
+      "blob": "cb322c41400c0670b4b2b6830ec550af09e796da"
+    },
+    "targets/conduitos/make/xtask/build/ia32_domain.rs": {
+      "sha256": "f18df1ba5a8290acb99bc122e96b27032fdd1b43639f224544cddfb3e1c7937f",
+      "blob": "0db23feef12146418ce6d2e0b8dcc1156660d496"
+    },
+    "targets/conduitos/make/xtask/build/loongarch64_domain.rs": {
+      "sha256": "19407398cf546758579375dd766ec78f3326cd67bae556c27d19866a863c8644",
+      "blob": "e02a57e8421eeda388cdc1eee52b72aa3d07efdd"
+    },
+    "targets/conduitos/make/xtask/build/riscv64_domain.rs": {
+      "sha256": "9b8ffc5407ec3918949e218f92b230624bf42ac23cd998af0e2452437a4f41ec",
+      "blob": "ca7a2029fce40df070f611ba058f28388a9377c4"
+    },
+    "targets/conduitos/make/xtask/command.rs": {
+      "sha256": "f048bc7677edb4a264bc577ed2f783e49de9da083629e4f1f41a29ca51474921",
+      "blob": "f484182c911c4a3f3b5526e0cafa08d78ad0d0df"
+    },
+    "targets/conduitos/make/xtask/headless_proof.rs": {
+      "sha256": "70991c6f65bbaa745a5c2a16b0d58e4848bd4058d5cb81a42e7fbd47fb170cb9",
+      "blob": "8989e31620bb6ae3f2ba27bf6cf62f8cd3fdc11b"
+    },
+    "targets/conduitos/make/xtask/mod.rs": {
+      "sha256": "f955affac0ac17102f4973aff7d4b18d0b1b1627cc1471b152c55bbdf9cacede",
+      "blob": "a41339a69e0ddb993c68069d484872f559eeb363"
+    },
+    "targets/conduitos/src/display/typography.rs": {
+      "sha256": "78c9dfbd3875eb33e1dd6cb00be760722686af2597df43cd72beea517d5bb964",
+      "blob": "f4db3c0db46f4dae256c99c23016e699ddd2e5fa"
+    },
+    "targets/conduitos/src/tour_shell/scene_content_tests.rs": {
+      "sha256": "5586e54015092152c0bbb651e6959a1aea1606a391ad9424a3fcfbc0f1f9c2c4",
+      "blob": "faa514eb0de4e3b8dc518389348761c2e8bb99c7"
+    },
+    "targets/conduitos/src/tour_workspace.rs": {
+      "sha256": "fe2c2ded4f79a2778628f4819f765228e5de4ec05197b7a84110c29f93d1086f",
+      "blob": "13bbe52f813f68c82771592460c19f4b671ceac1"
+    },
+    "targets/conduitos/make/xtask/headless_profile.rs": {
+      "sha256": "8e059879a2f630312d0c3085686a3e804d9085de61fab5387e90b7207acd8898",
+      "blob": "989758fd237cd666106b438babfeaf019764d685"
+    },
+    "targets/conduitos/make/xtask/headless_profile/tests.rs": {
+      "sha256": "6906660443aa4f8c28d100ab6486181951aa45fe351a77a3f757ec5ad1343faa",
+      "blob": "3ddb314202d1005ee611be6dabfd33c1e4a23411"
+    }
+  },
+  "boundary": "Focused checks started against reviewed frozen bytes before commit; all 13 frozen files match committed blobs exactly. Existing 01d product proofs remain historical, not refreshed to this Source."
+}

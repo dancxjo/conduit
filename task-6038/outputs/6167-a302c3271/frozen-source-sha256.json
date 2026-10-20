@@ -1,0 +1,15 @@
+{
+  "targets/conduitos/make/xtask/build.rs": "4e2c8c843773379fcc976eefc5e6ae23e40c55a381c914ebf612bf61913b7c7c",
+  "targets/conduitos/make/xtask/build/aarch64_domain.rs": "08df5067bf4595d5a2fa0e7e2914852328b6e01255b99d3e6a1997ef0210399e",
+  "targets/conduitos/make/xtask/build/ia32_domain.rs": "f18df1ba5a8290acb99bc122e96b27032fdd1b43639f224544cddfb3e1c7937f",
+  "targets/conduitos/make/xtask/build/loongarch64_domain.rs": "19407398cf546758579375dd766ec78f3326cd67bae556c27d19866a863c8644",
+  "targets/conduitos/make/xtask/build/riscv64_domain.rs": "9b8ffc5407ec3918949e218f92b230624bf42ac23cd998af0e2452437a4f41ec",
+  "targets/conduitos/make/xtask/command.rs": "f048bc7677edb4a264bc577ed2f783e49de9da083629e4f1f41a29ca51474921",
+  "targets/conduitos/make/xtask/headless_proof.rs": "70991c6f65bbaa745a5c2a16b0d58e4848bd4058d5cb81a42e7fbd47fb170cb9",
+  "targets/conduitos/make/xtask/mod.rs": "f955affac0ac17102f4973aff7d4b18d0b1b1627cc1471b152c55bbdf9cacede",
+  "targets/conduitos/src/display/typography.rs": "78c9dfbd3875eb33e1dd6cb00be760722686af2597df43cd72beea517d5bb964",
+  "targets/conduitos/src/tour_shell/scene_content_tests.rs": "5586e54015092152c0bbb651e6959a1aea1606a391ad9424a3fcfbc0f1f9c2c4",
+  "targets/conduitos/src/tour_workspace.rs": "fe2c2ded4f79a2778628f4819f765228e5de4ec05197b7a84110c29f93d1086f",
+  "targets/conduitos/make/xtask/headless_profile.rs": "8e059879a2f630312d0c3085686a3e804d9085de61fab5387e90b7207acd8898",
+  "targets/conduitos/make/xtask/headless_profile/tests.rs": "6906660443aa4f8c28d100ab6486181951aa45fe351a77a3f757ec5ad1343faa"
+}
