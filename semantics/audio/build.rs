@@ -104,7 +104,7 @@ fn main() {
         programs,
     )
     .expect("write acoustic programs");
-    let generated = generate_rust_bindings_with_forms(
+    let mut generated = generate_rust_bindings_with_forms(
         &checked.native_types,
         &checked.type_forms,
         &RustBindingOptions {
@@ -252,6 +252,23 @@ fn main() {
         },
     )
     .expect("audio semantic Types and Forms must generate exact Rust bindings");
+    // Emit beside the bindings so the owner-private contract and invariant
+    // reconstruction methods remain the single metadata implementation.
+    generated.source.push_str(
+        "pub(crate) fn checked_authoring_types() -> Result<Vec<conduit_plot::CheckedNativeType>, NativeBindingRefusal> { Ok(vec![\n",
+    );
+    for ty in &checked.native_types {
+        let name = &ty.name;
+        // These owner declarations use their exact Rust identifier spelling.
+        // Fail at generation if future naming needs an explicit mapping.
+        assert!(name.chars().all(|c| c.is_ascii_alphanumeric()));
+        assert!(generated.source.contains(&format!("impl {name} {{")));
+        generated.source.push_str(&format!(
+            "conduit_plot::CheckedNativeType {{ name: {name:?}.into(), identity: conduit_core::kind_id({identity:?}), value_type: {name}::semantic_type()?, value_contracts: {name}::value_contracts(), invariants: {name}::invariants()? }},\n",
+            identity = ty.identity.as_str(),
+        ));
+    }
+    generated.source.push_str("] ) }\n");
     let output = PathBuf::from(env::var_os("OUT_DIR").expect("Cargo supplies OUT_DIR"))
         .join("semantic_types.rs");
     fs::write(output, generated.source).expect("write generated audio bindings");

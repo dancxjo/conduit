@@ -1,0 +1,52 @@
+# Roles distinguish meanings; Audio owns Hz, trajectories and finite policies.
+type SpeechFrequencyRole =
+    fundamental
+    | formant_center
+    | bandwidth
+type SpeechFrequencyGestureTarget = {
+    scope: SpeechAcousticScope
+    role: SpeechFrequencyRole
+    control: AudioScopedControlTrajectory
+    where .control.domain is frequency
+    where .scope is phone ? .control.trajectory.anchor == .scope.phone.value.anchor : .scope is syllable ? .control.trajectory.anchor == .scope.syllable.value.carrier.anchor : .scope is word ? .control.trajectory.anchor == .scope.word.value.carrier.anchor : .scope is phrase ? .control.trajectory.anchor == .scope.phrase.value.carrier.anchor : .scope is utterance ? .control.trajectory.anchor == .scope.utterance.value.anchor : false
+}
+type SpeechFrequencyGestureSet = {
+    targets: sequence SpeechFrequencyGestureTarget in 1..=8
+    conflict: AudioControlConflictPolicy
+    gap: AudioControlGapPolicy
+}
+# A shared Audio control identity cannot change its Speech role under priority.
+type SpeechFrequencyRoleAgreement = {
+    earlier: SpeechFrequencyGestureTarget
+    later: SpeechFrequencyGestureTarget
+    where .earlier.control.control_identity == .later.control.control_identity ? .earlier.role == .later.role : true
+}
+# Exact means zero allowed error without inventing a second zero-Hz quantity.
+# Positive allowances reuse the positive Audio frequency domain unchanged.
+type SpeechFrequencyErrorAllowance =
+    exact
+    | positive SpeechAcousticScopeCase<AudioFrequencyHz>
+type SpeechFrequencyErrorSpecification = SpeechSpec<SpeechFrequencyErrorAllowance>
+type SpeechFrequencyObservationEvidence = {
+    scope: SpeechAcousticScope
+    role: SpeechFrequencyRole
+    frequency: AudioFrequencyHz
+    at: AudioTrajectoryQuery
+    span: AudioExactTimeOffset
+    error: SpeechFrequencyErrorSpecification
+    provenance: SpeechEvidenceProvenance
+    confidence: SpeechConfidence
+    where .scope is phone ? .at.anchor == .scope.phone.value.anchor : .scope is syllable ? .at.anchor == .scope.syllable.value.carrier.anchor : .scope is word ? .at.anchor == .scope.word.value.carrier.anchor : .scope is phrase ? .at.anchor == .scope.phrase.value.carrier.anchor : .scope is utterance ? .at.anchor == .scope.utterance.value.anchor : false
+}
+type SpeechFrequencyMeasurement = { evidence: SpeechFrequencyObservationEvidence }
+type SpeechFrequencyInference = { evidence: SpeechFrequencyObservationEvidence }
+type SpeechFrequencyObservation =
+    measured SpeechFrequencyMeasurement
+    | inferred SpeechFrequencyInference
+type SpeechFrequencyObservationMatch = {
+    target: SpeechFrequencyGestureTarget
+    observation: SpeechFrequencyObservationEvidence
+    where .target.scope == .observation.scope
+    where .target.role == .observation.role
+    where .target.control.trajectory.anchor == .observation.at.anchor
+}

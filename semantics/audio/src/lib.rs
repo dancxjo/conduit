@@ -7,6 +7,8 @@
 
 extern crate alloc;
 
+pub mod authoring;
+
 mod pitch_analysis;
 mod pitch_encoding;
 mod pitch_native;
