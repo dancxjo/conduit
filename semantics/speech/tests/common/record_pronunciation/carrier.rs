@@ -3,6 +3,7 @@
 use super::inventory;
 #[path = "../carried_formant_fixture.rs"]
 mod base;
+pub(super) use base::commitment_kernel;
 use base::seq;
 use conduit_core::IeeeF32;
 use conduit_language::*;
