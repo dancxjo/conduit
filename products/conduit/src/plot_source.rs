@@ -218,7 +218,11 @@ fn prepare_catalogs(include_dsp: bool) -> Result<(StartupCatalog, ProfileCatalog
             vec![],
         )?,
         &conduit_core::CheckedValueContract::new(
-            conduit_semantic_catalog::near_quantity_type().profile().map_err(|e| format!("Near Type: {e:?}"))?.value_kind().clone(),
+            conduit_semantic_catalog::near_quantity_type()
+                .profile()
+                .map_err(|e| format!("Near Type: {e:?}"))?
+                .value_kind()
+                .clone(),
             conduit_core::NEAR_QUANTITY_EVIDENCE_MAX_BYTES as u32,
             vec![],
         )?,
