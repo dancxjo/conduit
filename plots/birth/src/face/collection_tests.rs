@@ -243,3 +243,6 @@ mod contract;
 mod interactions;
 #[path = "collection_profile_tests.rs"]
 mod profile;
+
+#[path = "collection_reconstruction_tests.rs"]
+mod reconstruction;
