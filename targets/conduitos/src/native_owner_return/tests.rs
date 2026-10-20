@@ -44,7 +44,8 @@ impl BinaryWebSocketIo for RecordedLine {
 
 #[test]
 fn action_chunks_are_finite_ordered_and_digest_bound() {
-    let data = vec![0x5a; 20_000];
+    let payload_capacity = MAXIMUM_BINARY_MESSAGE_BYTES - CHUNK_HEADER_BYTES;
+    let data = vec![0x5a; payload_capacity + 1];
     let mut frame = vec![0; MAXIMUM_BINARY_MESSAGE_BYTES];
     let mut line = RecordedLine::default();
     send_chunks(&mut line, &data, &mut frame).unwrap();
@@ -52,7 +53,10 @@ fn action_chunks_are_finite_ordered_and_digest_bound() {
     let digest = Sha256::digest(&data);
     for (index, chunk) in line.0.iter().enumerate() {
         assert!(chunk.len() <= MAXIMUM_BINARY_MESSAGE_BYTES);
-        assert_eq!(u32::from_le_bytes(chunk[..4].try_into().unwrap()), 20_000);
+        assert_eq!(
+            u32::from_le_bytes(chunk[..4].try_into().unwrap()) as usize,
+            data.len()
+        );
         assert_eq!(
             u32::from_le_bytes(chunk[4..8].try_into().unwrap()) as usize,
             index * (MAXIMUM_BINARY_MESSAGE_BYTES - CHUNK_HEADER_BYTES)
@@ -60,9 +64,18 @@ fn action_chunks_are_finite_ordered_and_digest_bound() {
         assert_eq!(&chunk[8..CHUNK_HEADER_BYTES], digest.as_slice());
     }
     assert_eq!(
+        line.0
+            .iter()
+            .flat_map(|chunk| &chunk[CHUNK_HEADER_BYTES..])
+            .copied()
+            .collect::<Vec<_>>(),
+        data
+    );
+    assert_eq!(
         send_chunks(&mut line, &vec![0; MAX_RETURN_ACTION_BYTES + 1], &mut frame),
         Err("native-owner-return-action-pressure")
     );
+    assert_eq!(line.0.len(), 2, "pressure must not send a partial action");
 }
 
 #[test]
