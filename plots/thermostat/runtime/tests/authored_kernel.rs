@@ -46,6 +46,17 @@ fn authored_thermostat_commands_execute_exact_plan_and_play() {
     assert!(receipts
         .iter()
         .all(|receipt| receipt.parent_active_play_id == report.play.active_play_id));
+    let mut plays = std::collections::BTreeSet::new();
+    for (index, receipt) in receipts.iter().enumerate() {
+        assert_eq!(usize::from(receipt.invocation), index);
+        assert!(plays.insert(receipt.child_active_play_id.clone()));
+        assert!(!receipt.events.is_empty());
+        assert!(!receipt.remote_lifecycle.is_empty());
+        assert!(receipt
+            .remote_lifecycle
+            .iter()
+            .all(|(_, identity)| { identity.sequence == index as u64 }));
+    }
     assert_eq!(state.target, 190);
 }
 
