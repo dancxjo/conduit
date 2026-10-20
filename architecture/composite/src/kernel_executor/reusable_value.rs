@@ -93,7 +93,7 @@ impl KernelCompositeHost {
     }
     /// The containing controller must have accepted the current output. Kernel
     /// drain alone never advances the controller's recurrent accumulator.
-    /// A refused rearm is terminal for that invocation; there is no cold retry.
+    /// A refusal leaves old mandatory evidence owned; there is no cold fallback.
     pub fn rearm_value(
         &mut self,
         next: PreparedValueInvocation,
@@ -139,3 +139,6 @@ impl KernelCompositeHost {
         })
     }
 }
+
+#[cfg(test)]
+mod tests;
