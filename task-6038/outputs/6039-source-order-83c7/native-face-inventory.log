@@ -1,0 +1,182 @@
+    Finished `test` profile [optimized] target(s) in 0.17s
+     Running unittests src/lib.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/portable-source-target/debug/deps/conduitos-9bf31814da61c6ef)
+
+running 105 tests
+test native_face_mask::creche_tests::checked_creche_masks_admit_three_fields_and_present_both_column_counts ... FAILED
+test native_face_mask::creche_tests::full_inventory_fixture_keeps_long_and_empty_names_and_filtered_review_readable ... FAILED
+test native_face_mask::tests::birth_face_crosses_producer_mask_scanout_and_exact_interaction_fore ... FAILED
+test native_face_mask::tests::compositor_refusal_keeps_its_specific_machine_reason ... ok
+test native_face_mask::tests::failed_scanout_does_not_publish_a_mask_show ... FAILED
+test native_face_mask::tests::layout_receipt::cpu_native_mask_reflow_retains_face_and_retires_old_show ... ok
+test native_face_mask::tests::owner_body_face_keeps_exact_identity_and_has_read_only_mask_navigation ... ok
+test native_face_mask::tests::pointer_motion::cursor_requires_acknowledged_show_and_scanout_loss_retires_it ... FAILED
+test native_face_mask::tests::pointer_motion::motion_draws_cursor_without_submitting_or_republishing_the_face ... FAILED
+test native_face_mask::tests::stale_scene_input_redraws_a_notice_and_preserves_the_refusal ... FAILED
+test native_face_mask::tests::valid_face_beyond_checked_recipe_capacity_keeps_generic_reading_and_controls ... ok
+test native_face_scene::boolean_choice_tests::generic_or_one_way_boolean_is_not_inferred_as_reversible_choice ... ok
+test native_face_scene::boolean_choice_tests::keyboard_boolean_false_then_true_requires_source_acceptance_and_fresh_show ... ok
+test native_face_scene::boolean_choice_tests::ordinary_name_entry_reaches_first_choice_with_one_tab ... ok
+test native_face_scene::boolean_choice_tests::pointer_checkbox_has_named_hit_and_independent_non_color_state_geometry ... ok
+test native_face_scene::boolean_choice_tests::subject_name_stays_primary_when_boolean_association_is_absent ... ok
+test native_face_scene::boolean_choice_tests::unavailable_and_stale_choices_never_toggle_or_grow_scene_budget ... ok
+test native_face_scene::chrome::draft_tests::suffix_is_measured_at_each_supported_width_and_scale ... ok
+test native_face_scene::connected_layout::tests::cycles_and_self_links_preserve_every_declared_cord_and_bounded_pages ... ok
+test native_face_scene::connected_layout::tests::directional_fan_graphs_and_disconnected_components_have_stable_order ... ok
+test native_face_scene::connected_layout::tests::exact_node_and_cord_limits_are_admitted_without_bitmap_overflow ... ok
+test native_face_scene::connected_layout::tests::missing_and_off_page_ambiguous_owners_never_invent_connectivity ... ok
+test native_face_scene::connected_layout::tests::over_budget_layout_keeps_original_order_and_all_details ... ok
+test native_face_scene::creche_navigation_tests::installed_creche_all_controls_and_named_choices_survive_narrow_overflow ... ok
+test native_face_scene::creche_navigation_tests::real_naming_catalogue_uses_checked_membership_and_keeps_choice_uncommitted ... ok
+test native_face_scene::creche_navigation_tests::refreshed_creche_focus_uses_action_names_and_filtered_choice_refuses ... ok
+test native_face_scene::creche_navigation_tests::source_disclosure_presents_one_title_and_preserves_every_exact_clause ... ok
+test native_face_scene::creche_navigation_tests::unavailable_birth_remains_readable_but_never_focusable ... ok
+test native_face_scene::diagram::geometry::tests::overflow_notice_never_overlaps_visible_port_rows ... ok
+test native_face_scene::diagram::tests::notice_counts_capped_links_and_missing_endpoints_without_changing_face ... ok
+test native_face_scene::input::preview_tests::checked_binary_argument_keeps_exact_bytes_without_text_preview ... ok
+test native_face_scene::layout::panels::ordering::tests::ordering_refuses_count_and_text_before_permutation_allocation ... ok
+test native_face_scene::layout::panels::ordering::tests::restoration_handles_three_cycle_fixed_point_and_original_item_chunks ... ok
+test native_face_scene::layout::panels::tests::authored_pair_is_independent_of_early_review_reading_order ... ok
+test native_face_scene::layout::panels::tests::creche::actual_zero_body_creche_places_body_and_plot_groups_in_one_band ... ok
+test native_face_scene::layout::panels::tests::creche::full_unicode_name_draft_fits_narrow_and_wide_without_shortening_submission ... ok
+test native_face_scene::layout::panels::tests::empty_group_does_not_add_panel_geometry_or_displace_reading ... ok
+test native_face_scene::layout::panels::tests::impossible_panel_width_refuses_without_an_overflow_scene ... ok
+test native_face_scene::layout::panels::tests::interleaved_unmatched_reading_uses_complete_tail_without_losing_rows ... ok
+test native_face_scene::layout::panels::tests::layout_preserves_the_original_face_control_traversal_and_complete_details ... ok
+test native_face_scene::layout::panels::tests::measured_unicode_command_pressure_retains_every_byte_and_reserves_panel_outlines ... ok
+test native_face_scene::layout::panels::tests::narrow_configuration_preserves_existing_linear_reading_geometry ... ok
+test native_face_scene::layout::panels::tests::nonmonotonic_pages_include_later_visual_pages_and_preserve_turning ... ok
+test native_face_scene::layout::panels::tests::panel_metadata_has_a_finite_preparation_storage_delta ... ok
+test native_face_scene::measured_layout_tests::dense_regions_and_multiple_typed_arguments_admit_complete_bounded_pages ... ok
+test native_face_scene::measured_layout_tests::editor_geometry_tests::active_editor_uses_measured_regions_and_retains_exact_long_names_in_details ... ok
+test native_face_scene::measured_layout_tests::every_canonical_page_fits_measured_chrome_at_supported_extents_and_scales ... ok
+test native_face_scene::measured_layout_tests::independent_diagram_geometry_refuses_expanded_chrome_with_readable_facts_fallback ... ok
+test native_face_scene::measured_layout_tests::minimum_viewport_reflows_a_permitted_two_column_recipe_to_one_column ... ok
+test native_face_scene::measured_layout_tests::read_only_chrome_is_measured_without_exposing_action_hits ... ok
+test native_face_scene::measured_layout_tests::runtime_face_tests::captured_current_owner_faces_fit_without_semantic_mutation_or_detail_loss ... ok
+test native_face_scene::measured_layout_tests::source_body_status_is_readable_without_native_lifecycle_inference ... ok
+test native_face_scene::measured_layout_tests::unicode_and_unbroken_names_reconstruct_exactly_in_details ... ok
+test native_face_scene::measured_layout_tests::unsupported_bounds_and_unmeasurable_notice_refuse_before_replacing_frame ... ok
+test native_face_scene::navigation_tests::keyboard_reaches_every_available_control_and_every_detail_page ... ok
+test native_face_scene::navigation_tests::pointer_selection_survives_keyboard_details_and_return ... ok
+test native_face_scene::observation_tests::observed_display_bounds_contain_real_control_hits ... ok
+test native_face_scene::open_domain_tests::native_generic_mask_keeps_lifecycle_basis_and_refuses_the_other_states_face ... ok
+test native_face_scene::open_domain_tests::native_generic_mask_preserves_finite_places_without_inventing_connectivity ... ok
+test native_face_scene::open_domain_tests::native_generic_mask_preserves_open_domain_meaning_and_typed_controls ... ok
+test native_face_scene::open_domain_tests::native_mask_preserves_complete_source_derived_patchbay_face ... ok
+test native_face_scene::open_domain_tests::native_prebirth_layout_preserves_choices_without_inventing_a_body ... ok
+test native_face_scene::ports::tests::large_graphs_keep_every_identity_reachable_and_report_omitted_geometry ... ok
+test native_face_scene::ports::tests::missing_port_facts_are_not_inferred_from_misleading_wording ... ok
+test native_face_scene::ports::tests::missing_relationship_cannot_be_replaced_by_a_nearby_port ... ok
+test native_face_scene::ports::tests::off_page_ambiguous_endpoint_never_borrows_a_visible_ports_geometry ... ok
+test native_face_scene::ports::tests::typed_direction_labels_and_exact_endpoints_survive_mixed_fan_graphs ... ok
+test native_face_scene::raster_layout_tests::measured_frames_rasterize_at_the_same_scale_without_touching_guard_pixels ... ok
+test native_face_scene::tests::bounded_local_return_notice_does_not_mutate_owner_face ... ok
+test native_face_scene::tests::checked_mask_show_survives_compact_bounded_wire_roundtrip ... ok
+test native_face_scene::tests::checked_native_recipe_marks_contiguous_runs_without_reordering_controls ... ok
+test native_face_scene::tests::creche_name_argument_reverses_to_birth_without_inventory_index_guessing ... ok
+test native_face_scene::tests::every_utf8_byte_survives_layout_pages_with_bounded_commands ... ok
+test native_face_scene::tests::face_words_render_as_nonuniform_scene_pixels ... ok
+test native_face_scene::tests::focused_action_has_visible_focus_and_unavailable_action_has_no_hit ... ok
+test native_face_scene::tests::full_face_retained_and_semantic_order_is_not_action_index_order ... ok
+test native_face_scene::tests::incomplete_local_input_can_be_corrected_on_the_same_show ... ok
+test native_face_scene::tests::maximum_todo_projection_keeps_all_controls_and_detail_pages_in_both_native_looks ... ok
+test native_face_scene::tests::modifier_press_on_argument_free_action_does_not_submit_or_refuse ... ok
+test native_face_scene::tests::native_density_changes_measured_padding_without_changing_source_geometry ... ok
+test native_face_scene::tests::ordinary_graphics_lead_with_primary_content_and_keep_context_inspectable ... ok
+test native_face_scene::tests::patchbay_diagram_uses_exact_face_gears_ports_and_cord_endpoints ... ok
+test native_face_scene::tests::pointer_mapping_retains_contract_and_never_invokes_an_unavailable_action ... ok
+test native_face_scene::tests::primary_action_names_bounded_text_choices_from_current_face_contract ... ok
+test native_face_scene::tests::primary_view_keeps_relationships_and_composition_in_inspection ... ok
+test native_face_scene::tests::primary_view_leaves_properties_in_details ... ok
+test native_face_scene::tests::stale_show_unacknowledged_show_and_stale_mapping_refuse ... ok
+test native_face_scene::tests::text_bound_and_backspace_preserve_valid_replacement ... ok
+test native_face_scene::tests::typing_and_tab_commit_exact_argument_then_refuse_more_input_on_old_show ... ok
+test native_face_scene::text_editor::tests::immutable_unicode_document_has_a_clipped_visible_end_caret_at_bounded_extents ... ok
+test native_face_scene::text_field_tests::a_finite_choice_cannot_bypass_other_constraints_or_expand_its_admitted_view ... ok
+test native_face_scene::text_field_tests::a_foreign_action_contract_or_subject_cannot_become_the_field_binding ... ok
+test native_face_scene::text_field_tests::ambiguous_or_untyped_current_values_fall_back_without_reading_prose ... ok
+test native_face_scene::text_field_tests::arrow_choice_is_a_cancellable_draft_until_the_checked_enter_submission ... ok
+test native_face_scene::text_field_tests::current_field_row_targets_the_existing_argument_and_details_retain_the_contract ... ok
+test native_face_scene::text_field_tests::finite_choices_wrap_only_inside_the_bound_source_contract ... ok
+test native_face_scene::text_field_tests::verified_current_text_is_read_only_and_unavailable_state_does_not_erase_it ... ok
+test native_face_snapshot::tests::another_plan_or_claimed_body_play_cannot_be_laundered_as_snapshot_provenance ... ok
+test native_face_snapshot::tests::long_semantic_face_crosses_the_admitted_native_fore ... ok
+test native_face_snapshot::tests::prepared_kernel_can_cancel_without_publishing_or_changing_the_snapshot ... FAILED
+test native_face_snapshot::tests::real_zero_body_birth_face_crosses_exact_kernel_fore_without_changing_facts ... FAILED
+test native_face_snapshot::tests::resting_body_snapshot_forwarding_does_not_wake_the_body ... ok
+test native_face_snapshot::tests::stale_plan_seal_is_refused_before_kernel_preparation ... FAILED
+test native_face_snapshot::tests::whole_valid_face_above_profile_capacity_is_refused_before_execution ... ok
+test product_front_door::workspace_input::tests::physical_memory_lantern_commits_unicode_to_the_immutable_native_face_scene ... ok
+
+failures:
+
+---- native_face_mask::creche_tests::checked_creche_masks_admit_three_fields_and_present_both_column_counts stdout ----
+
+thread 'native_face_mask::creche_tests::checked_creche_masks_admit_three_fields_and_present_both_column_counts' (2137922) panicked at targets/conduitos/src/native_face_mask/creche_tests.rs:56:59:
+called `Result::unwrap()` on an `Err` value: Producer(Capacity)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- native_face_mask::creche_tests::full_inventory_fixture_keeps_long_and_empty_names_and_filtered_review_readable stdout ----
+
+thread 'native_face_mask::creche_tests::full_inventory_fixture_keeps_long_and_empty_names_and_filtered_review_readable' (2137923) panicked at targets/conduitos/src/native_face_mask/creche_tests.rs:122:59:
+called `Result::unwrap()` on an `Err` value: Producer(Capacity)
+
+---- native_face_mask::tests::birth_face_crosses_producer_mask_scanout_and_exact_interaction_fore stdout ----
+
+thread 'native_face_mask::tests::birth_face_crosses_producer_mask_scanout_and_exact_interaction_fore' (2137924) panicked at targets/conduitos/src/native_face_mask/tests.rs:86:73:
+called `Result::unwrap()` on an `Err` value: Producer(Capacity)
+
+---- native_face_mask::tests::failed_scanout_does_not_publish_a_mask_show stdout ----
+
+thread 'native_face_mask::tests::failed_scanout_does_not_publish_a_mask_show' (2137926) panicked at targets/conduitos/src/native_face_mask/tests.rs:145:5:
+assertion failed: matches!(service.present(face, 1, 1, &mut display),
+    Err(NativeFaceMaskError::Compositor(_)))
+
+---- native_face_mask::tests::pointer_motion::cursor_requires_acknowledged_show_and_scanout_loss_retires_it stdout ----
+
+thread 'native_face_mask::tests::pointer_motion::cursor_requires_acknowledged_show_and_scanout_loss_retires_it' (2137929) panicked at targets/conduitos/src/native_face_mask/pointer_motion_tests.rs:49:44:
+called `Result::unwrap()` on an `Err` value: Producer(Capacity)
+
+---- native_face_mask::tests::pointer_motion::motion_draws_cursor_without_submitting_or_republishing_the_face stdout ----
+
+thread 'native_face_mask::tests::pointer_motion::motion_draws_cursor_without_submitting_or_republishing_the_face' (2137931) panicked at targets/conduitos/src/native_face_mask/pointer_motion_tests.rs:13:52:
+called `Result::unwrap()` on an `Err` value: Producer(Capacity)
+
+---- native_face_mask::tests::stale_scene_input_redraws_a_notice_and_preserves_the_refusal stdout ----
+
+thread 'native_face_mask::tests::stale_scene_input_redraws_a_notice_and_preserves_the_refusal' (2137932) panicked at targets/conduitos/src/native_face_mask/tests.rs:390:55:
+called `Result::unwrap()` on an `Err` value: Producer(Capacity)
+
+---- native_face_snapshot::tests::prepared_kernel_can_cancel_without_publishing_or_changing_the_snapshot stdout ----
+
+thread 'native_face_snapshot::tests::prepared_kernel_can_cancel_without_publishing_or_changing_the_snapshot' (2138025) panicked at targets/conduitos/src/native_face_snapshot/tests.rs:206:10:
+called `Result::unwrap()` on an `Err` value: Capacity
+
+---- native_face_snapshot::tests::real_zero_body_birth_face_crosses_exact_kernel_fore_without_changing_facts stdout ----
+real native Birth Face: 62132 bytes
+
+thread 'native_face_snapshot::tests::real_zero_body_birth_face_crosses_exact_kernel_fore_without_changing_facts' (2138026) panicked at targets/conduitos/src/native_face_snapshot/tests.rs:63:59:
+called `Result::unwrap()` on an `Err` value: Capacity
+
+---- native_face_snapshot::tests::stale_plan_seal_is_refused_before_kernel_preparation stdout ----
+
+thread 'native_face_snapshot::tests::stale_plan_seal_is_refused_before_kernel_preparation' (2138028) panicked at targets/conduitos/src/native_face_snapshot/tests.rs:223:5:
+assertion failed: matches!(producer.prepare_snapshot(face, 1, 1),
+    Err(FaceSnapshotRefusal::Plan))
+
+
+failures:
+    native_face_mask::creche_tests::checked_creche_masks_admit_three_fields_and_present_both_column_counts
+    native_face_mask::creche_tests::full_inventory_fixture_keeps_long_and_empty_names_and_filtered_review_readable
+    native_face_mask::tests::birth_face_crosses_producer_mask_scanout_and_exact_interaction_fore
+    native_face_mask::tests::failed_scanout_does_not_publish_a_mask_show
+    native_face_mask::tests::pointer_motion::cursor_requires_acknowledged_show_and_scanout_loss_retires_it
+    native_face_mask::tests::pointer_motion::motion_draws_cursor_without_submitting_or_republishing_the_face
+    native_face_mask::tests::stale_scene_input_redraws_a_notice_and_preserves_the_refusal
+    native_face_snapshot::tests::prepared_kernel_can_cancel_without_publishing_or_changing_the_snapshot
+    native_face_snapshot::tests::real_zero_body_birth_face_crosses_exact_kernel_fore_without_changing_facts
+    native_face_snapshot::tests::stale_plan_seal_is_refused_before_kernel_preparation
+
+test result: FAILED. 95 passed; 10 failed; 0 ignored; 0 measured; 1105 filtered out; finished in 21.60s
+
+error: test failed, to rerun pass `-p conduitos --lib`

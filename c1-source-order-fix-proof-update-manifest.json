@@ -1,0 +1,110 @@
+{
+  "parent": "b9a15fc6ac5a3ec176e540590f498cc7118d1b3b",
+  "scope": "Preserve refreshed Source and pending proof runner, verified prior repair restoration, and confirmed renderer occlusion red diagnostic",
+  "files": [
+    {
+      "source": "outputs/6039-source-order-83c7/receipt.json",
+      "tree_path": "task-6038/outputs/6039-source-order-83c7/receipt.json",
+      "bytes": 11256,
+      "sha256": "afea1335214a0e7c523010d3649854ff785e41a29f47084818024f295ef9ee97",
+      "mode": "100644",
+      "blob": "90a4c3c97d20ea0841a2d3c561080e534e303e83"
+    },
+    {
+      "source": "outputs/6039-source-order-83c7/canonical-native-five-face.json",
+      "tree_path": "task-6038/outputs/6039-source-order-83c7/canonical-native-five-face.json",
+      "bytes": 64530,
+      "sha256": "a4d64d116eeffd1d75a3458613d950bd1a05979ed7184d74b56e7fac267fa066",
+      "mode": "100644",
+      "blob": "817951718cc83e692da2ae87d54944e776ac7113"
+    },
+    {
+      "source": "outputs/6039-source-order-83c7/clippy.log",
+      "tree_path": "task-6038/outputs/6039-source-order-83c7/clippy.log",
+      "bytes": 185,
+      "sha256": "aaed6a19bf19d3e17f84a07d2f4fd80fe0b4ac7e1825711abcd573a7c0a15f81",
+      "mode": "100644",
+      "blob": "696152d379472a25cf09b053a8dc8db60f249e39"
+    },
+    {
+      "source": "outputs/6039-source-order-83c7/configured-creche.log",
+      "tree_path": "task-6038/outputs/6039-source-order-83c7/configured-creche.log",
+      "bytes": 133520,
+      "sha256": "dee948379514e993682b85f21654d7df278566171fee772602471ad2403d7364",
+      "mode": "100644",
+      "blob": "c21a258f5d397908376d4e22a72bb71255e06133"
+    },
+    {
+      "source": "outputs/6039-source-order-83c7/face-birth-full.log",
+      "tree_path": "task-6038/outputs/6039-source-order-83c7/face-birth-full.log",
+      "bytes": 267928,
+      "sha256": "fa56ae11e322e8dcc6faf6aa7fca60b3d1165f46bb6209ed7f292ad1c11e7d86",
+      "mode": "100644",
+      "blob": "f96fb76ba6e4b4bfb0f1aa73f2f6a7b310cbeec2"
+    },
+    {
+      "source": "outputs/6039-source-order-83c7/fmt.log",
+      "tree_path": "task-6038/outputs/6039-source-order-83c7/fmt.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "mode": "100644",
+      "blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+    },
+    {
+      "source": "outputs/6039-source-order-83c7/generic-observation.json",
+      "tree_path": "task-6038/outputs/6039-source-order-83c7/generic-observation.json",
+      "bytes": 74603,
+      "sha256": "d83b5703438bbfe49a46a363cd4a26425d5ec55a143675a6fd84e7eaacd90a5b",
+      "mode": "100644",
+      "blob": "84750a5652b8ed00a854e95de263922f6e14a6c6"
+    },
+    {
+      "source": "outputs/6039-source-order-83c7/linear.json",
+      "tree_path": "task-6038/outputs/6039-source-order-83c7/linear.json",
+      "bytes": 56343,
+      "sha256": "221ac036ff60fe1a46cd364f961b9365a06e1ac3bd40f85e1bfec3c272fe1bbb",
+      "mode": "100644",
+      "blob": "e46d5848ab8c3392b77999446081a17f809722e3"
+    },
+    {
+      "source": "outputs/6039-source-order-83c7/native-face-inventory.log",
+      "tree_path": "task-6038/outputs/6039-source-order-83c7/native-face-inventory.log",
+      "bytes": 17282,
+      "sha256": "3697333ead3e59c18577179844d59c3f778ea4985b9ed1957af2e0802e16013a",
+      "mode": "100644",
+      "blob": "895c313ea7b24fe3f6f5150e8ae698ef00d9c0df"
+    },
+    {
+      "source": "outputs/6039-source-order-83c7/reconstructed-account.json",
+      "tree_path": "task-6038/outputs/6039-source-order-83c7/reconstructed-account.json",
+      "bytes": 34104,
+      "sha256": "3275bfad18173ee06ea251bad2f9fe06d4ab9beb24487b99def90621bfa41165",
+      "mode": "100644",
+      "blob": "0adb3b4f53559ccda9ddc53aef30223582c7c659"
+    },
+    {
+      "source": "outputs/6039-source-order-83c7/source-face.json",
+      "tree_path": "task-6038/outputs/6039-source-order-83c7/source-face.json",
+      "bytes": 52915,
+      "sha256": "93851a36331b517103450eff9f495c927cdfdf5192db940142bb03e6a673e3d2",
+      "mode": "100644",
+      "blob": "8ffa314088228ad1baf7c7ca4b743f742ae88c74"
+    },
+    {
+      "source": "outputs/6039-source-order-83c7/temporary-native-export.patch",
+      "tree_path": "task-6038/outputs/6039-source-order-83c7/temporary-native-export.patch",
+      "bytes": 769,
+      "sha256": "abb6ade53050511fcf3632c688d69114ad7fddc7c069b1e4ae814ee951fde3ae",
+      "mode": "100644",
+      "blob": "18abab782f09e7cdaff0c761261fef7de171186f"
+    },
+    {
+      "source": "outputs/6039-source-order-83c7/temporary-producer-export.patch",
+      "tree_path": "task-6038/outputs/6039-source-order-83c7/temporary-producer-export.patch",
+      "bytes": 639,
+      "sha256": "0c78bfb306b8fb1cdc4a62c70fbf6542c551d44d7867cbf69c68cd90d53b5f7e",
+      "mode": "100644",
+      "blob": "61d1ed41905cb5dedd742b0eda0bc7461e970aa9"
+    }
+  ]
+}

@@ -1,0 +1,132 @@
+{
+  "base": "83c7a5d03776f167e912b9fe4da718b21a54a921",
+  "scope": "Held portable Source order lowering; not native Host/QEMU/installed/stable acceptance",
+  "environment": {
+    "CARGO_BUILD_JOBS": "4",
+    "CARGO_INCREMENTAL": "0",
+    "dev_and_test": {
+      "opt-level": 1,
+      "debug": 0,
+      "debug-assertions": true,
+      "overflow-checks": true
+    },
+    "target_dir": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/portable-source-target"
+  },
+  "commands": [
+    "cargo +stable test -p conduit-face -p conduit-birth-plot --locked -- --test-threads=1 --nocapture",
+    "cargo +stable clippy -p conduit-face -p conduit-birth-plot --all-targets --locked -- -D warnings",
+    "cargo +stable fmt --package conduit-face --package conduit-birth-plot -- --check",
+    "cargo +stable test -p conduitos --lib --locked --features hosted-tools,native-compositor native_face_scene::layout::panels::tests::creche -- --test-threads=1 --nocapture",
+    "cargo +stable test -p conduitos --lib --locked --features hosted-tools,native-compositor native_face -- --test-threads=1"
+  ],
+  "portable": {
+    "passed": 360,
+    "targets": 66,
+    "ignored": [
+      "test spoken_template_looks::tests::actual_control_face_retains_human_settings_and_actions_in_checked_summary ... ignored, requires an actual retained control Face; no runtime or audio claim",
+      "test spoken_template_looks::tests::actual_retained_face_preserves_essential_clauses_in_both_checked_looks ... ignored, requires explicit actual retained Face; never manufactures owner state"
+    ],
+    "strict_clippy": "pass",
+    "fmt": "pass"
+  },
+  "native_cpu": {
+    "configured": {
+      "passed": 2
+    },
+    "inventory": {
+      "passed": 95,
+      "failed": 10,
+      "failures": {
+        "native_face_mask::creche_tests::checked_creche_masks_admit_three_fields_and_present_both_column_counts": {
+          "classification": "direct capacity refusal",
+          "raw_failure": "thread 'native_face_mask::creche_tests::checked_creche_masks_admit_three_fields_and_present_both_column_counts' (2137922) panicked at targets/conduitos/src/native_face_mask/creche_tests.rs:56:59:\ncalled `Result::unwrap()` on an `Err` value: Producer(Capacity)\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace"
+        },
+        "native_face_mask::creche_tests::full_inventory_fixture_keeps_long_and_empty_names_and_filtered_review_readable": {
+          "classification": "direct capacity refusal",
+          "raw_failure": "thread 'native_face_mask::creche_tests::full_inventory_fixture_keeps_long_and_empty_names_and_filtered_review_readable' (2137923) panicked at targets/conduitos/src/native_face_mask/creche_tests.rs:122:59:\ncalled `Result::unwrap()` on an `Err` value: Producer(Capacity)"
+        },
+        "native_face_mask::tests::birth_face_crosses_producer_mask_scanout_and_exact_interaction_fore": {
+          "classification": "direct capacity refusal",
+          "raw_failure": "thread 'native_face_mask::tests::birth_face_crosses_producer_mask_scanout_and_exact_interaction_fore' (2137924) panicked at targets/conduitos/src/native_face_mask/tests.rs:86:73:\ncalled `Result::unwrap()` on an `Err` value: Producer(Capacity)"
+        },
+        "native_face_mask::tests::failed_scanout_does_not_publish_a_mask_show": {
+          "classification": "later-branch assertion; capacity masking inference only",
+          "raw_failure": "thread 'native_face_mask::tests::failed_scanout_does_not_publish_a_mask_show' (2137926) panicked at targets/conduitos/src/native_face_mask/tests.rs:145:5:\nassertion failed: matches!(service.present(face, 1, 1, &mut display),\n    Err(NativeFaceMaskError::Compositor(_)))"
+        },
+        "native_face_mask::tests::pointer_motion::cursor_requires_acknowledged_show_and_scanout_loss_retires_it": {
+          "classification": "direct capacity refusal",
+          "raw_failure": "thread 'native_face_mask::tests::pointer_motion::cursor_requires_acknowledged_show_and_scanout_loss_retires_it' (2137929) panicked at targets/conduitos/src/native_face_mask/pointer_motion_tests.rs:49:44:\ncalled `Result::unwrap()` on an `Err` value: Producer(Capacity)"
+        },
+        "native_face_mask::tests::pointer_motion::motion_draws_cursor_without_submitting_or_republishing_the_face": {
+          "classification": "direct capacity refusal",
+          "raw_failure": "thread 'native_face_mask::tests::pointer_motion::motion_draws_cursor_without_submitting_or_republishing_the_face' (2137931) panicked at targets/conduitos/src/native_face_mask/pointer_motion_tests.rs:13:52:\ncalled `Result::unwrap()` on an `Err` value: Producer(Capacity)"
+        },
+        "native_face_mask::tests::stale_scene_input_redraws_a_notice_and_preserves_the_refusal": {
+          "classification": "direct capacity refusal",
+          "raw_failure": "thread 'native_face_mask::tests::stale_scene_input_redraws_a_notice_and_preserves_the_refusal' (2137932) panicked at targets/conduitos/src/native_face_mask/tests.rs:390:55:\ncalled `Result::unwrap()` on an `Err` value: Producer(Capacity)"
+        },
+        "native_face_snapshot::tests::prepared_kernel_can_cancel_without_publishing_or_changing_the_snapshot": {
+          "classification": "direct capacity refusal",
+          "raw_failure": "thread 'native_face_snapshot::tests::prepared_kernel_can_cancel_without_publishing_or_changing_the_snapshot' (2138025) panicked at targets/conduitos/src/native_face_snapshot/tests.rs:206:10:\ncalled `Result::unwrap()` on an `Err` value: Capacity"
+        },
+        "native_face_snapshot::tests::real_zero_body_birth_face_crosses_exact_kernel_fore_without_changing_facts": {
+          "classification": "direct capacity refusal",
+          "raw_failure": "real native Birth Face: 62132 bytes\n\nthread 'native_face_snapshot::tests::real_zero_body_birth_face_crosses_exact_kernel_fore_without_changing_facts' (2138026) panicked at targets/conduitos/src/native_face_snapshot/tests.rs:63:59:\ncalled `Result::unwrap()` on an `Err` value: Capacity"
+        },
+        "native_face_snapshot::tests::stale_plan_seal_is_refused_before_kernel_preparation": {
+          "classification": "later-branch assertion; capacity masking inference only",
+          "raw_failure": "thread 'native_face_snapshot::tests::stale_plan_seal_is_refused_before_kernel_preparation' (2138028) panicked at targets/conduitos/src/native_face_snapshot/tests.rs:223:5:\nassertion failed: matches!(producer.prepare_snapshot(face, 1, 1),\n    Err(FaceSnapshotRefusal::Plan))\n\n\nfailures:\n    native_face_mask::creche_tests::checked_creche_masks_admit_three_fields_and_present_both_column_counts\n    native_face_mask::creche_tests::full_inventory_fixture_keeps_long_and_empty_names_and_filtered_review_readable\n    native_face_mask::tests::birth_face_crosses_producer_mask_scanout_and_exact_interaction_fore\n    native_face_mask::tests::failed_scanout_does_not_publish_a_mask_show\n    native_face_mask::tests::pointer_motion::cursor_requires_acknowledged_show_and_scanout_loss_retires_it\n    native_face_mask::tests::pointer_motion::motion_draws_cursor_without_submitting_or_republishing_the_face\n    native_face_mask::tests::stale_scene_input_redraws_a_notice_and_preserves_the_refusal\n    native_face_snapshot::tests::prepared_kernel_can_cancel_without_publishing_or_changing_the_snapshot\n    native_face_snapshot::tests::real_zero_body_birth_face_crosses_exact_kernel_fore_without_changing_facts\n    native_face_snapshot::tests::stale_plan_seal_is_refused_before_kernel_preparation\n\ntest result: FAILED. 95 passed; 10 failed; 0 ignored; 0 measured; 1105 filtered out; finished in 21.60s\n\nerror: test failed, to rerun pass `-p conduitos --lib`"
+        }
+      }
+    },
+    "prior_first_tab_failure": "now PASS",
+    "canonical_five_face_bytes": 64530,
+    "canonical_five_sha256": "a4d64d116eeffd1d75a3458613d950bd1a05979ed7184d74b56e7fac267fa066",
+    "max_fixture_bytes": {
+      "one_unselected": 85260,
+      "one_selected": 87738,
+      "sixteen_unselected": 153019,
+      "sixteen_selected": 201468
+    },
+    "envelope": "not emitted by this entrance; no claim"
+  },
+  "preserved_negatives": [
+    "producer-export-before-golden.log expected stale golden before regeneration",
+    "../6039-fore-consumer-e74/native-face-inventory.log previous Source order and capacity failures"
+  ],
+  "instrumentation_restored_to_head": {
+    "plots/birth/tests/face.rs": true,
+    "targets/conduitos/src/native_face_scene/layout/panels/tests/creche.rs": true
+  },
+  "tested_file_sha256": {
+    "docs/architecture/portable-collection-handoff.md": "ff00b0a2acdb6afa64b80c5820d5fcf00bb49926b674942b6e688cc88c2006fa",
+    "plots/birth/src/face/collection_reconstruction_tests.rs": "074d1159e1605b112ab328303cbd0cdf7224173875348645cbf0911a713fc959",
+    "plots/birth/src/face/collection_tests.rs": "480b0c862cc17246cc7dd22b46f8658d4d8cf4ca64e8936cc0875de40d5f768e",
+    "plots/birth/src/face/projection/collections.rs": "d007e54534252154042236737dd86a42beee0f86027952df5034906791e7aa09",
+    "plots/birth/src/face/projection/fields.rs": "d3031b8873797f76fcca8e372f091397c852a41bfc0d48789c8132d2791a04e8",
+    "proof/conformance/face-waist/domain-derived/prebirth-face.json": "671df137db3875add18925ae99b5a38e2dbbd8767404d69222750616942c19e8",
+    "plots/birth/src/face/collection_order_tests.rs": "6f2409191b238e95b76235c0bf0bdf5180c39e4f5c255bf7d70ffdeaa2566652"
+  },
+  "capacity_hold": "#6156, after existing #5994 serial route; no budget changes or C1 PR",
+  "artifacts": {
+    "source-face.json": "93851a36331b517103450eff9f495c927cdfdf5192db940142bb03e6a673e3d2",
+    "fmt.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "generic-observation.json": "d83b5703438bbfe49a46a363cd4a26425d5ec55a143675a6fd84e7eaacd90a5b",
+    "reconstructed-account.json": "3275bfad18173ee06ea251bad2f9fe06d4ab9beb24487b99def90621bfa41165",
+    "status.txt": "f19644e23348b548a41b6c8957ee34bd35747b71be5b1b9c1d29ea07a1aa2f51",
+    "canonical-native-five-face.json": "a4d64d116eeffd1d75a3458613d950bd1a05979ed7184d74b56e7fac267fa066",
+    "birth-face-test-original.rs": "bd32770f1b4a652291b58998ee5366a6f857d7b59e82e164af834fa545f20157",
+    "linear.json": "221ac036ff60fe1a46cd364f961b9365a06e1ac3bd40f85e1bfec3c272fe1bbb",
+    "native-test-original.rs": "628badc2431781986434b3219247bd3fecad7489d3ed04d8cd60c17d46870cbf",
+    "face-birth-full.log": "fa56ae11e322e8dcc6faf6aa7fca60b3d1165f46bb6209ed7f292ad1c11e7d86",
+    "temporary-producer-export.patch": "0c78bfb306b8fb1cdc4a62c70fbf6542c551d44d7867cbf69c68cd90d53b5f7e",
+    "configured-creche.log": "dee948379514e993682b85f21654d7df278566171fee772602471ad2403d7364",
+    "temporary-native-export.patch": "abb6ade53050511fcf3632c688d69114ad7fddc7c069b1e4ae814ee951fde3ae",
+    "producer-export-before-golden.log": "248952a0944964a08424e4e83329b99a187070f47de8c0b6357e77625f7ecba0",
+    "native-face-inventory.log": "3697333ead3e59c18577179844d59c3f778ea4985b9ed1957af2e0802e16013a",
+    "clippy.log": "aaed6a19bf19d3e17f84a07d2f4fd80fe0b4ac7e1825711abcd573a7c0a15f81"
+  },
+  "final_head": "97277a818aae7e01b0a4812e0dfc4b0fd0ddb1b7",
+  "final_tree": "d2925e8b68a740eb1a86d5c18f03b18d12dd07eb",
+  "final_status": ""
+}

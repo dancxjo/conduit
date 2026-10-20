@@ -1,0 +1,15 @@
+diff --git a/plots/birth/tests/face.rs b/plots/birth/tests/face.rs
+index 180924865..b514aa61f 100644
+--- a/plots/birth/tests/face.rs
++++ b/plots/birth/tests/face.rs
+@@ -18,6 +18,10 @@ fn zero_body_draft_preserves_choice_availability_in_nonvisual_projections() {
+             encounter_id: "encounter/prebirth-conformance".into(),
+         })
+         .unwrap();
++    println!(
++        "ORDER_FIXED_PREBIRTH_JSON {}",
++        serde_json::to_string(&face).unwrap()
++    );
+     let specimen: conduit_face::Face = serde_json::from_str(include_str!(
+         "../../../proof/conformance/face-waist/domain-derived/prebirth-face.json"
+     ))
