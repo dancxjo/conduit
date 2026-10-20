@@ -28,3 +28,9 @@ opt-level = "s"
 codegen-units = 1
 # Eliminate intermediate fixed-state copies across kernel crate boundaries.
 lto = "thin"
+
+# The private protection-domain workspace runs the same finite catalogue/font
+# generators as the root build. Optimize their build-time work while retaining
+# the admitted domain binary's size-oriented release profile above.
+[profile.release.build-override]
+opt-level = 1

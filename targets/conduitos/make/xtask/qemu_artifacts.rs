@@ -5,8 +5,9 @@ use std::{fs, io::Read, os::unix::net::UnixStream, path::PathBuf, time::Instant}
 
 // The bounded lifecycle, refusal, navigation, and reentry journey plus failure capture.
 const DEFAULT_MAX_CHECKPOINTS: usize = 20;
-// Twenty-two normal-product frames plus one retained failure capture.
-const MAX_ADMITTED_CHECKPOINTS: usize = 23;
+// Ordinary journey plus the admitted six typing and three navigation observations,
+// including one retained failure capture.
+const MAX_ADMITTED_CHECKPOINTS: usize = 32;
 
 pub(super) struct Artifacts {
     directory: PathBuf,
@@ -40,6 +41,10 @@ impl Artifacts {
         Ok(result)
     }
 
+    pub(super) fn observation_origin(&self) -> Instant {
+        self.started
+    }
+
     /// Prepare a finite capture plan before the journey starts. Once any
     /// capture exists, the admitted bound cannot be changed to erase pressure.
     pub(super) fn with_capture_limit(mut self, maximum: usize) -> Result<Self, ConduitosError> {
@@ -71,6 +76,7 @@ impl Artifacts {
                 format!("at most {} captures admitted", self.capture_limit),
             ));
         }
+        let observation_start_ns = self.started.elapsed().as_nanos();
         let mut serial = Vec::new();
         fs::File::open(&self.serial)
             .map_err(io_error)?
@@ -97,8 +103,11 @@ impl Artifacts {
         let record = super::journey_records::latest_checkpoint(text)?;
         let boot = super::journey_records::boot(text)?;
         let native = super::journey_records::native_checkpoint(text)?;
+        let timing = super::native_timing::parse(text)?;
+        let frame_request_start_ns = self.started.elapsed().as_nanos();
         let (frame, health_refusal) =
             qmp_display::capture(stream, reader, &self.directory, checkpoint)?;
+        let frame_response_end_ns = self.started.elapsed().as_nanos();
         let health_refusal = health_refusal.or_else(|| {
             if frame["width"] != 1280 || frame["height"] != 800 {
                 Some(ConduitosError::refusal(
@@ -122,6 +131,11 @@ impl Artifacts {
         self.entries.push(json!({"index":self.entries.len(),"checkpoint":checkpoint,
             "journey_step_ids":journey_step_ids(checkpoint),
             "elapsed_millis":self.started.elapsed().as_millis(),"serial_byte_end":serial.len(),
+            "native_timing":timing,
+            "host_observation":{"clock":"std::time::Instant","units":"nanoseconds",
+                "checkpoint_start":observation_start_ns,"frame_request_start":frame_request_start_ns,
+                "frame_response_end":frame_response_end_ns,
+                "interpretation":"Observer intervals include serial reading and QMP capture. They are not input-to-paint latency; QMP acceptance is not guest input acceptance."},
             "guest_record":record,"guest_boot_record":boot,"native_receipts":native,"frame":frame,"expected_change":expect_change,"unchanged":unchanged,
             "health_refusal":health_refusal.as_ref().map(|error|json!({"reason":error.reason,"detail":error.detail}))}));
         self.previous_pixels = Some(pixels);
@@ -273,14 +287,14 @@ mod tests {
         let new =
             || Artifacts::new(directory.clone(), directory.join("serial.log"), json!({})).unwrap();
         assert!(new().with_capture_limit(0).is_err());
-        assert!(new().with_capture_limit(24).is_err());
-        let mut admitted = new().with_capture_limit(23).unwrap();
+        assert!(new().with_capture_limit(33).is_err());
+        let mut admitted = new().with_capture_limit(32).unwrap();
         assert_eq!(
             admitted.context["capture_contract"]["maximum_checkpoints"],
-            23
+            32
         );
-        assert!(admitted.entries.capacity() >= 23);
-        for _ in 0..23 {
+        assert!(admitted.entries.capacity() >= 32);
+        for _ in 0..32 {
             admitted.entries.push(json!({"fixture": true}));
         }
         let (mut client, _server) = UnixStream::pair().unwrap();
@@ -293,7 +307,7 @@ mod tests {
                 .reason,
             "qemu-display-checkpoint-bound"
         );
-        assert!(admitted.with_capture_limit(23).is_err());
+        assert!(admitted.with_capture_limit(32).is_err());
         fs::remove_file(directory.join("manifest.json")).unwrap();
         fs::remove_dir(directory).unwrap();
     }

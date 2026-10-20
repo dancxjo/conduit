@@ -38,7 +38,7 @@ pub(super) fn key_until_status(
         || wait_status_retaining_guest(serial, child, status),
     )
 }
-fn held_key(
+pub(super) fn held_key(
     mut send: impl FnMut(bool) -> Result<(), ConduitosError>,
     observe: impl FnOnce() -> Result<(), ConduitosError>,
 ) -> Result<(), ConduitosError> {
