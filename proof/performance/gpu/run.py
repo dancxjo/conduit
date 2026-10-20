@@ -1,6 +1,7 @@
 """Finite local CUDA feasibility, invoked by cargo xtask; never admits a Back."""
 import argparse
 import ctypes
+from datetime import datetime, timezone
 import hashlib
 import json
 import os
@@ -15,8 +16,10 @@ import time
 BLOB_SHA = 'd35f0510da476716183a33caafe45cc095e48d496f06de2db7655e780a385e47'
 UPSTREAM = '503d81b138d76621aae4b12786e90de48aa8db3a'
 SOURCE_SHA = '68ba6e8731007f7184be862d7d1afe4cef096a7c9bcbfa115962340f725e004c'
-CASES = [('sig_net_gru1_input_weights_float', 272, 480),
-         ('sig_net_sig_dense_out_weights_float', 128, 40)]
+CASES = [('sig_net_gru1_input_weights_float', 272, 480,
+          'c9297da108f5cd11e76b714cd733e108f0181e9a7aba3737e377fc9b31380784'),
+         ('sig_net_sig_dense_out_weights_float', 128, 40,
+          'ef04dadd3930eeea7dcb94e66e9d34514369b14d016da14aa0a03abc797ef182')]
 ROOT = Path(__file__).resolve().parents[3]
 
 
@@ -69,11 +72,11 @@ def fixture(root):
         raise RuntimeError('pinned-model-content-refusal')
     arrays = {a['name']: a for a in manifest['arrays']}
     selected = []
-    for name, inputs, outputs in CASES:
+    for name, inputs, outputs, expected_sha in CASES:
         array = arrays[name]
         span = array['profiles']['f32']
         offset, size = span['offset'], span['bytes']
-        if (array['type'] != 'f32le' or offset < 0 or size != inputs * outputs * 4
+        if (array['sha256'] != expected_sha or array['type'] != 'f32le' or offset < 0 or size != inputs * outputs * 4
                 or offset + size > len(blob)
                 or hashlib.sha256(blob[offset:offset + size]).hexdigest() != array['sha256']):
             raise RuntimeError('exact-tensor-span-refusal:' + name)
@@ -84,18 +87,25 @@ def fixture(root):
 
 def process(args, prefix, env=None):
     started = time.perf_counter_ns()
-    result = subprocess.run(args, capture_output=True, text=True, env=env, timeout=120)
+    stdout_path, stderr_path = prefix.with_suffix('.jsonl'), prefix.with_suffix('.stderr')
+    timeout = False
+    with stdout_path.open('w') as stdout, stderr_path.open('w') as stderr:
+        try:
+            result = subprocess.run(args, stdout=stdout, stderr=stderr, text=True, env=env, timeout=120)
+            code = result.returncode
+        except subprocess.TimeoutExpired:
+            timeout, code = True, 124
     elapsed = time.perf_counter_ns() - started
-    prefix.with_suffix('.jsonl').write_text(result.stdout)
-    prefix.with_suffix('.stderr').write_text(result.stderr)
-    rows = [json.loads(line) for line in result.stdout.splitlines()]
-    return dict(exit_code=result.returncode, process_wall_ns=elapsed, rows=rows)
+    inspection = time.perf_counter_ns()
+    rows = [json.loads(line) for line in stdout_path.read_text().splitlines()]
+    return dict(exit_code=code, timed_out=timeout, process_wall_ns=elapsed, rows=rows,
+                raw_inspection_ns=time.perf_counter_ns() - inspection)
 
 
 def run(args, out):
     if git('status', '--porcelain'):
         raise RuntimeError('freeze-and-commit-source-before-measurement')
-    custody = dict(source=git('rev-parse', 'HEAD'), tree=git('rev-parse', 'HEAD^{tree}'),
+    custody = dict(recorded_at_utc=datetime.now(timezone.utc).isoformat(), source=git('rev-parse', 'HEAD'), tree=git('rev-parse', 'HEAD^{tree}'),
                    accepted_main=git('rev-parse', 'refs/remotes/origin/main'),
                    host=platform.node(), platform=platform.platform(),
                    blob_sha256=BLOB_SHA, upstream_source=UPSTREAM)
@@ -115,10 +125,9 @@ def run(args, out):
     compile_args = [compiler, *flags, str(ROOT / 'proof/performance/gpu/fargan_projection.cu'),
                     '-o', str(worker)]
     started = time.perf_counter_ns()
-    compilation = subprocess.run(compile_args, capture_output=True, text=True, timeout=120)
+    with (out / 'compiler.stdout').open('w') as stdout, (out / 'compiler.stderr').open('w') as stderr:
+        compilation = subprocess.run(compile_args, stdout=stdout, stderr=stderr, text=True, timeout=120)
     compile_ns = time.perf_counter_ns() - started
-    (out / 'compiler.stdout').write_text(compilation.stdout)
-    (out / 'compiler.stderr').write_text(compilation.stderr)
     save(out / 'compiler.json', dict(flags=flags, compile_ns=compile_ns,
          cuda_version=subprocess.check_output([compiler, '--version'], text=True),
          host_version=subprocess.check_output([host_compiler, '--version'], text=True),
@@ -193,7 +202,7 @@ def main():
     out.mkdir(parents=True, exist_ok=False)
     try:
         run(args, out)
-    except (RuntimeError, OSError, ValueError, KeyError, subprocess.SubprocessError) as error:
+    except (RuntimeError, OSError, ValueError, KeyError, TypeError, AttributeError, IndexError, subprocess.SubprocessError) as error:
         save(out / 'refusal.json', dict(reason=str(error), conduit_gpu_offer_admitted=False))
         print(error, file=sys.stderr)
         return 2
