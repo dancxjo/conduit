@@ -122,3 +122,7 @@ impl StdHost {
         Ok(())
     }
 }
+
+#[cfg(test)]
+#[path = "numerical_host/preparation_cost_tests.rs"]
+mod preparation_cost_tests;
