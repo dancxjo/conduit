@@ -52,7 +52,11 @@ pub(super) fn assert_actual_failure_custody(
     let refusal = host
         .run_external_plot_to(
             unavailable.fragments[0].clone(),
-            &[],
+            &[ExternalForeInput {
+                front_port_id: "input".into(),
+                track: ConnectionTrack::Payload,
+                bytes: 1_u64.to_le_bytes().to_vec(),
+            }],
             &mut Outputs::default(),
             &mut Vec::new(),
             &mut NoTimer,
