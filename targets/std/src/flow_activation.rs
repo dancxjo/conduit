@@ -20,6 +20,8 @@ mod value_pair;
 pub use value_pair::PreparedValuePairFactory;
 
 mod local_expression;
+mod near_quantity;
+pub use near_quantity::NearQuantityFactory;
 mod native_u64_expression;
 pub use local_expression::{LocalExpressionFactory, PreparedLocalExpressionBack};
 pub use native_u64_expression::PreparedNativeU64ExpressionBack;
@@ -91,6 +93,7 @@ pub fn standard_child_registry() -> Result<KernelOperationRegistry, String> {
     let mut registry = KernelOperationRegistry::new();
     registry.install(TodoCombineFactory)?;
     registry.install(ThermostatCombineFactory)?;
+    registry.install(NearQuantityFactory)?;
     registry.install(LocalExpressionFactory)?;
     Ok(registry)
 }

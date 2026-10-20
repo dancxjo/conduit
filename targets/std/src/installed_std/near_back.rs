@@ -8,7 +8,7 @@ use conduit_semantic_catalog::{
     NUMERICAL_NEAR_KIND,
 };
 use std::fmt::Write;
-const IMPLEMENTATION: &str = "conduit.std/quantity-near@1";
+pub(crate) const IMPLEMENTATION: &str = "conduit.std/quantity-near@1";
 const EXACT: &str = "std/quantity-near-exact-rational@1";
 const FLOAT: &str = "std/quantity-near-binary32-single-round@1";
 pub(super) static FACTORY: BackFactory = BackFactory {
@@ -166,7 +166,7 @@ pub(crate) fn owns_offer(offer: &CapabilityOffer) -> bool {
             EXACT | FLOAT
         )
 }
-fn admitted(gear: &PlannedGear) -> Result<NearQuantityBack, String> {
+pub(crate) fn admitted(gear: &PlannedGear) -> Result<NearQuantityBack, String> {
     if gear.kind_id.as_str() != NUMERICAL_NEAR_KIND {
         return Err("numeric/near-wrong-kind@1".into());
     }
