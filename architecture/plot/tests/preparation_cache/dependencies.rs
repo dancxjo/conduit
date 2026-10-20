@@ -70,38 +70,58 @@ fn absent_import_resolution_is_a_dependency_even_when_local_plot_supplies_meanin
 }
 
 #[test]
-fn fore_changes_invalidate_checking_without_a_signature_generation_key() {
-    let (startup, _) = catalog("unit@1");
+fn fore_changes_invalidate_shorthand_binding_without_a_generation_key() {
+    let make = |output_kind: &str| {
+        let mut startup = StartupCatalog::new();
+        startup
+            .insert(KindSignature {
+                kind: "test/unit".into(),
+                startup_parameters: vec![],
+            })
+            .unwrap();
+        let port = |name, kind, direction| PortDescriptor {
+            port_id: port_id(name),
+            value_kind: kind_id(kind),
+            direction,
+            temporal: PortTemporal::Value,
+            abnormal_kind: None,
+        };
+        startup
+            .insert_fore(
+                "test/unit",
+                CheckedFront::new(
+                    vec![],
+                    vec![port("input", "value/text", PortDirection::Input)],
+                    vec![port("output", output_kind, PortDirection::Output)],
+                    Some((port_id("input"), port_id("output"))),
+                ),
+            )
+            .unwrap();
+        Arc::new(startup)
+    };
+    let source = "sans glyphs\nwith test/unit as ^^\nplot main (\n >> input: Text\n output: Text >>\n) {\n input ^^ output\n}\n";
+    let old = make("value/text");
     let mut cache = cache();
-    let original = cache.check(SOURCE, &startup).unwrap();
-    let mut changed = StartupCatalog::new();
-    changed
-        .insert(startup.signature("test/unit").unwrap().clone())
-        .unwrap();
-    changed
-        .insert_fore(
-            "test/unit",
-            CheckedFront::new(
-                vec![],
-                vec![],
-                vec![PortDescriptor {
-                    port_id: port_id("changed"),
-                    value_kind: kind_id("value/text"),
-                    direction: PortDirection::Output,
-                    temporal: PortTemporal::Value,
-                    abnormal_kind: None,
-                }],
-                None,
-            ),
-        )
-        .unwrap();
-    let changed = Arc::new(changed);
-    let current = cache.check(SOURCE, &changed).unwrap();
-    assert!(!Arc::ptr_eq(original.checked(), current.checked()));
-    assert_eq!(
-        **current.checked(),
-        check_syntax_document(&parse_syntax_document(SOURCE), &changed).unwrap()
-    );
+    let original = cache.check(source, &old).unwrap();
+    assert!(original
+        .checking_dependencies()
+        .unwrap()
+        .iter()
+        .any(|read| matches!(
+            read.table,
+            CatalogueTable::Fore | CatalogueTable::VariadicFore
+        ) && read.key == "test/unit"));
+    let changed = make("value/u64");
+    let expected = check_syntax_document(&parse_syntax_document(source), &changed);
+    match (cache.check(source, &changed), expected) {
+        (Ok(current), Ok(expected)) => {
+            assert!(!Arc::ptr_eq(original.checked(), current.checked()));
+            assert_eq!(**current.checked(), expected);
+        }
+        (Err(actual), Err(expected)) => assert_eq!(actual, expected),
+        _ => panic!("incremental Fore binding disagreed with cold checking"),
+    }
+    assert_eq!(cache.stats().checks, 2);
 }
 
 #[test]
