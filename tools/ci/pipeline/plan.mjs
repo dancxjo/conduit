@@ -7,6 +7,14 @@ export const UNIT_SHARDS = Object.freeze([
   "foundation", "hosts-std", "hosts-browser", "hosts-conduitos", "hosts-workbench", "products", "lint",
 ]);
 
+// A change to the browser CI harness must actually execute the browser target
+// at Candidate, not just the portable/tooling admission corpus. Release and
+// complete integration keep the full target matrix independently.
+export function candidateBrowserProofRequired(paths) {
+  return paths.some(path => /^(?:site|proof\/browser|targets\/browser)\//.test(path)
+    || path === 'tools/ci/pipeline/targets/browser.mjs');
+}
+
 // Browser proof and site assets do not change Rust implementations. Keep their
 // browser/workbench fixtures and tooling tests; any source or dependency change
 // retains all portable proof rather than guessing reverse package dependencies.
