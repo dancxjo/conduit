@@ -248,3 +248,19 @@ test('non-script tooling data retains conservative Rust tooling coverage', () =>
   const model = {workspace_members: [...names, 'xtask'], packages: [...metadata.packages, {id: 'xtask', name: 'xtask', manifest_path: '/repo/tools/xtask/Cargo.toml'}]};
   assert.deepEqual(admissionPlan(['proof/ci/publication-history/receipt.json'], model, '/repo').packages, ['xtask']);
 });
+
+
+test('descriptive measurement receipts use preflight without broadening mixed runtime proof', () => {
+  for (const directory of ['build-generators', 'signs', 'catalogue', 'line', 'browser', 'raster']) {
+    const receipt = `proof/performance/${directory}/observation.json`;
+    assert.equal(plan([receipt]).broad, false);
+    assert.deepEqual(plan([receipt]).packages, []);
+    assert.deepEqual(plan([receipt, 'products/conduit/src/lib.rs']), plan(['products/conduit/src/lib.rs']));
+    const commands = [];
+    runAdmission([receipt], metadata, '/repo', (...args) => commands.push(args));
+    assert.deepEqual(commands, []);
+  }
+  for (const fixture of ['proof/performance/runtime/fixtures/input.json', 'proof/performance/line/fixtures/input.json', 'proof/performance/new-format/input.json']) {
+    assert.equal(plan([fixture]).broad, true, fixture);
+  }
+});
