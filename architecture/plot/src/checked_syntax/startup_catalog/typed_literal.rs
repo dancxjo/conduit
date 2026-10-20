@@ -178,6 +178,7 @@ impl StartupCatalog {
         profile: &crate::ProfileCatalog,
     ) -> Result<(), String> {
         let path = path.into();
+        self.observe_signature(&path);
         if path.len() > MAXIMUM_IDENTITY_BYTES
             || !crate::surface_lex::is_source_import_path(&path)
             || self.typed_literal_families.contains_key(&path)
