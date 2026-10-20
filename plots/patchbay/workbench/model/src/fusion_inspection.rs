@@ -131,28 +131,58 @@ impl PatchbayTopology {
             return Err(Invalid);
         }
         let mut document = self.document(None)?;
-        push_line(&mut document.lines, format!(
+        let mut remaining = 64 * 1024;
+        append(&mut document.lines, &mut remaining, format_args!(
             "FUSION SELECTION plan={} candidate={} historical-at-ms={} work units are planner evidence, not measured latency or resource grants",
             plan.plan_id.as_str(), selection.selected_candidate_id, selection.locality_basis.now_ms))?;
         for candidate in &selection.considered {
-            push_line(&mut document.lines, format!(
+            append(&mut document.lines, &mut remaining, format_args!(
                 "  CANDIDATE {} disposition={:?} compute-work={} transport-work={} transported-bytes={} total-work={} groups={:?} supporting-signs={:?}",
                 candidate.candidate_id, candidate.disposition, candidate.compute_work_units,
                 candidate.transport_work_units, candidate.transported_bytes, candidate.total_work_units,
                 candidate.fusion_groups, candidate.supporting_sign_ids))?;
         }
         for observation in &selection.fusion_observations {
-            push_line(
+            append(
                 &mut document.lines,
-                format!(
+                &mut remaining,
+                format_args!(
                     "  FUSION EVIDENCE {} work={} provenance={:?}",
                     observation.fusion_id, observation.fused_work_units, observation.provenance
                 ),
             )?;
         }
-        if document.lines.iter().map(String::len).sum::<usize>() > MAX_RETAINED_REPORT_BYTES {
-            return Err(TopologyViewError::FaceTooLarge);
-        }
         Ok(document)
     }
+}
+
+/// The retained report keeps its existing 96 KiB budget. Borrowed decision
+/// details have a separate finite 64 KiB rendering budget and are not retained.
+fn append(
+    lines: &mut Vec<String>,
+    remaining: &mut usize,
+    args: std::fmt::Arguments<'_>,
+) -> Result<(), TopologyViewError> {
+    use std::fmt::Write;
+    struct Limited {
+        text: String,
+        maximum: usize,
+    }
+    impl Write for Limited {
+        fn write_str(&mut self, text: &str) -> std::fmt::Result {
+            if text.len() > self.maximum - self.text.len() {
+                return Err(std::fmt::Error);
+            }
+            self.text.push_str(text);
+            Ok(())
+        }
+    }
+    let mut line = Limited {
+        text: String::new(),
+        maximum: *remaining,
+    };
+    line.write_fmt(args)
+        .map_err(|_| TopologyViewError::FaceTooLarge)?;
+    *remaining -= line.text.len();
+    push_line(lines, line.text)
 }
