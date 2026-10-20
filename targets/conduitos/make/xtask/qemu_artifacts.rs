@@ -287,14 +287,14 @@ mod tests {
         let new =
             || Artifacts::new(directory.clone(), directory.join("serial.log"), json!({})).unwrap();
         assert!(new().with_capture_limit(0).is_err());
-        assert!(new().with_capture_limit(24).is_err());
-        let mut admitted = new().with_capture_limit(23).unwrap();
+        assert!(new().with_capture_limit(33).is_err());
+        let mut admitted = new().with_capture_limit(32).unwrap();
         assert_eq!(
             admitted.context["capture_contract"]["maximum_checkpoints"],
-            23
+            32
         );
-        assert!(admitted.entries.capacity() >= 23);
-        for _ in 0..23 {
+        assert!(admitted.entries.capacity() >= 32);
+        for _ in 0..32 {
             admitted.entries.push(json!({"fixture": true}));
         }
         let (mut client, _server) = UnixStream::pair().unwrap();
@@ -307,7 +307,7 @@ mod tests {
                 .reason,
             "qemu-display-checkpoint-bound"
         );
-        assert!(admitted.with_capture_limit(23).is_err());
+        assert!(admitted.with_capture_limit(32).is_err());
         fs::remove_file(directory.join("manifest.json")).unwrap();
         fs::remove_dir(directory).unwrap();
     }
