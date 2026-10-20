@@ -39,9 +39,14 @@ impl<const W: usize> CompactVectorBuffer<W> {
     }
     pub(crate) fn reset(&mut self) {
         self.published = false;
+        // A committed ownership transfer returns an empty, fully reserved buffer.
+        self.bytes.resize(W * 4, 0);
     }
     pub(crate) fn published_bytes(&self) -> Option<&[u8]> {
         self.published.then_some(self.bytes.as_slice())
+    }
+    pub(crate) fn published_buffer_mut(&mut self) -> Option<&mut Vec<u8>> {
+        self.published.then_some(&mut self.bytes)
     }
     pub(crate) fn scratch_bytes(&self) -> usize {
         self.bytes.capacity()
@@ -167,8 +172,16 @@ impl<const W: usize, const P: usize> StepBack<P> for CompactNumericBack<W> {
     fn compact_f32_output(&self) -> Option<(PortId, CompactF32Layout)> {
         Some((PortId(0), self.layout))
     }
+    fn owns_compact_f32_output(&self, port: PortId) -> bool {
+        port == PortId(0)
+    }
+    fn prepared_compact_f32_output_mut(&mut self, port: PortId) -> Option<&mut Vec<u8>> {
+        (port == PortId(0))
+            .then(|| self.buffer.published_buffer_mut())
+            .flatten()
+    }
     fn step(&mut self, io: &mut StepIo<P>, inputs: &StepInputBytes<'_, P>) -> StepOutcome {
-        self.buffer.published = false;
+        self.buffer.reset();
         match &mut self.owner {
             Owner::Elementwise(back) => back.step_transport(io, inputs, Some(&mut self.buffer)),
             Owner::Tanh(back) => back.step_transport(io, inputs, Some(&mut self.buffer)),

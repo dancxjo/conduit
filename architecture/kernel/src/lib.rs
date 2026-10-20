@@ -438,6 +438,59 @@ pub trait ValueStorage {
     ) -> Result<ValueRef, StorageError> {
         Err(StorageError::RepresentationMismatch)
     }
+    /// Typed producer pools are explicitly reserved before Play. Unsupported
+    /// storage profiles refuse rather than copying an owned publication.
+    /// Canonical reservations name additional free generic slot capacities
+    /// that conversion must preserve. Preparation either publishes the entire
+    /// batch or leaves storage unchanged; preflight itself is read-only.
+    #[cfg(feature = "alloc")]
+    fn preflight_owned_compact_f32_outputs(
+        &self,
+        _requests: &[(scheduler::CompactF32Layout, u16)],
+        _canonical_reservations: &[u32],
+    ) -> Result<(), StorageError> {
+        Err(StorageError::RepresentationMismatch)
+    }
+    #[cfg(feature = "alloc")]
+    fn prepare_owned_compact_f32_outputs(
+        &mut self,
+        _requests: &[(scheduler::CompactF32Layout, u16)],
+        _canonical_reservations: &[u32],
+    ) -> Result<alloc::vec::Vec<PreparedCompactF32Output>, StorageError> {
+        Err(StorageError::RepresentationMismatch)
+    }
+    #[cfg(feature = "alloc")]
+    fn owned_compact_f32_available(
+        &self,
+        _owner: &PreparedCompactF32Output,
+    ) -> Result<bool, StorageError> {
+        Err(StorageError::RepresentationMismatch)
+    }
+    #[cfg(feature = "alloc")]
+    fn swap_owned_compact_f32(
+        &mut self,
+        _owner: &PreparedCompactF32Output,
+        _bytes: &mut alloc::vec::Vec<u8>,
+    ) -> Result<PendingCompactF32Publication, StorageError> {
+        Err(StorageError::RepresentationMismatch)
+    }
+    #[cfg(feature = "alloc")]
+    fn commit_owned_compact_f32(
+        &mut self,
+        _owner: &PreparedCompactF32Output,
+        _pending: &mut PendingCompactF32Publication,
+    ) -> Result<ValueRef, StorageError> {
+        Err(StorageError::RepresentationMismatch)
+    }
+    #[cfg(feature = "alloc")]
+    fn restore_owned_compact_f32(
+        &mut self,
+        _owner: &PreparedCompactF32Output,
+        _pending: &mut PendingCompactF32Publication,
+        _bytes: &mut alloc::vec::Vec<u8>,
+    ) -> Result<(), StorageError> {
+        Err(StorageError::RepresentationMismatch)
+    }
     /// Canonical-only profiles validate ownership and report no compact view.
     fn compact_f32(&self, value: ValueRef) -> Result<Option<&[u8]>, StorageError> {
         self.reference_count(value)?;
@@ -465,6 +518,11 @@ pub use native_value_store::NativeU64ValueStore;
 
 mod fixed_value_store;
 pub use fixed_value_store::FixedValueStore;
+
+#[cfg(feature = "alloc")]
+mod owned_compact_output;
+#[cfg(feature = "alloc")]
+pub use owned_compact_output::{PendingCompactF32Publication, PreparedCompactF32Output};
 
 #[cfg(feature = "alloc")]
 mod hosted;

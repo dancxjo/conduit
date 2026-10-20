@@ -141,7 +141,8 @@ pub fn run_entry_plan_observed_at_sequence(
     before_play: impl FnOnce(),
     after_play: impl FnOnce(),
 ) -> Option<EncodedResultAndTiming> {
-    let mut prepared = prepared::prepare(plan, resources, input_values, mode, false, sequence);
+    let mut prepared =
+        prepared::prepare(plan, resources, input_values, mode, false, sequence, false);
     execute_prepared(&mut prepared, mode, before_play, after_play)
 }
 pub fn run_entry_plan_at_sequence(
@@ -157,6 +158,7 @@ pub fn run_entry_plan_at_sequence(
         ExecutionMode::Normal,
         false,
         sequence,
+        false,
     );
     execute_prepared(&mut prepared, ExecutionMode::Normal, || {}, || {})
 }
@@ -296,6 +298,10 @@ fn execute_prepared(
         work.canonical_bytes = stores_after.canonical_bytes - stores_before.canonical_bytes;
         work.compact_values = stores_after.compact_values - stores_before.compact_values;
         work.compact_bytes = stores_after.compact_bytes - stores_before.compact_bytes;
+        work.owned_values = stores_after.owned_values - stores_before.owned_values;
+        work.owned_bytes = stores_after.owned_bytes - stores_before.owned_bytes;
+        work.owned_logical_bytes =
+            stores_after.owned_logical_bytes - stores_before.owned_logical_bytes;
         work.compact_logical_bytes =
             stores_after.compact_logical_bytes - stores_before.compact_logical_bytes;
         work.logical_invocations = scheduler.logical_invocations();

@@ -1,0 +1,505 @@
+{
+  "schema": "conduit.compact-owned-publication-observation@1",
+  "scope": "Matched committed release workers: full 24-frame private pinned FARGAN trajectory, two repetitions, same Source/Plan and exact output/event hashes. Prepared fixture controller, not ordinary Std/Body Fore adoption.",
+  "limits": [
+    "Physical publication counters do not measure all codec/arithmetic/tensor copying or zeroing.",
+    "Lifecycle phases retain common reference/controller state; heap counters are allocator observations, not RSS.",
+    "Single sequential capture pair; timing is a local observation, not a portable or calibrated speedup claim.",
+    "Additional preparation allocations and peak heap are retained alongside reduced publication copies."
+  ],
+  "compared_frames": 48,
+  "exact_outputs_events_and_plan_equal": true,
+  "reference": {
+    "source_commit": "a020695ca510161f062cb8b1a56a586c625bced1",
+    "worker_sha256": "a46a698a41934540da9bcad3d30d7ca0ae3000a16f8296a54752635e03d46432",
+    "raw_sha256": "d91a0b3605b23446dbe2971cf575ea8e62e618497651634eaa127e9288ea28a5",
+    "status_sha256": "816000192292d3965ec941da004901fdee871bad314a9c632879c26c9b9b2734",
+    "source_custody_verified": true,
+    "worker_conformance_passed": true,
+    "retained_frames": 48,
+    "publication_copied_bytes_per_frame": [
+      158208
+    ],
+    "publication_owned_bytes_per_frame": [
+      0
+    ],
+    "publication_owned_values_per_frame": [
+      0
+    ],
+    "play_allocation_requests": 0,
+    "play_wall_ns": {
+      "median": 21221030.5,
+      "minimum": 20993138,
+      "maximum": 22562461
+    },
+    "retained_owner_heap_released_bytes": [
+      40170366,
+      40170366
+    ],
+    "cold_prepared_trajectory": [
+      {
+        "allocator": {
+          "allocations": 3445941,
+          "deallocations": 3420244,
+          "live_heap_bytes_at_end": 69262189,
+          "phase_peak_heap_bytes": 71084339,
+          "reallocations": 919260,
+          "requested_bytes": 636334977
+        },
+        "process_cpu_ns": 341846413,
+        "wall_ns": 341889665
+      },
+      {
+        "allocator": {
+          "allocations": 3445941,
+          "deallocations": 3420244,
+          "live_heap_bytes_at_end": 69262701,
+          "phase_peak_heap_bytes": 71084851,
+          "reallocations": 919260,
+          "requested_bytes": 636334977
+        },
+        "process_cpu_ns": 342814163,
+        "wall_ns": 342839930
+      }
+    ],
+    "trajectory_release": [
+      {
+        "allocator": {
+          "allocations": 0,
+          "deallocations": 60482,
+          "live_heap_bytes_at_end": 14019055,
+          "phase_peak_heap_bytes": 54189421,
+          "reallocations": 0,
+          "requested_bytes": 0
+        },
+        "process_cpu_ns": 2140107,
+        "wall_ns": 2139489
+      },
+      {
+        "allocator": {
+          "allocations": 0,
+          "deallocations": 60482,
+          "live_heap_bytes_at_end": 14019567,
+          "phase_peak_heap_bytes": 54189933,
+          "reallocations": 0,
+          "requested_bytes": 0
+        },
+        "process_cpu_ns": 2237446,
+        "wall_ns": 2236732
+      }
+    ],
+    "lifecycle_phases": {
+      "cold-source-schema": {
+        "samples": 1,
+        "allocation_requests_range": [
+          1179592,
+          1179592
+        ],
+        "requested_bytes_range": [
+          122972528,
+          122972528
+        ]
+      },
+      "cold-model-resource-admission": {
+        "samples": 1,
+        "allocation_requests_range": [
+          530753,
+          530753
+        ],
+        "requested_bytes_range": [
+          68176867,
+          68176867
+        ]
+      },
+      "cold-check-expand-plan": {
+        "samples": 2,
+        "allocation_requests_range": [
+          6754642,
+          6754642
+        ],
+        "requested_bytes_range": [
+          508389746,
+          508389746
+        ]
+      },
+      "candidate-check-expand-plan": {
+        "samples": 2,
+        "allocation_requests_range": [
+          6989056,
+          6989056
+        ],
+        "requested_bytes_range": [
+          597665189,
+          597665189
+        ]
+      },
+      "initial-input-encoding": {
+        "samples": 2,
+        "allocation_requests_range": [
+          9191,
+          9191
+        ],
+        "requested_bytes_range": [
+          844667,
+          844667
+        ]
+      },
+      "cold-prepared-trajectory": {
+        "samples": 2,
+        "allocation_requests_range": [
+          4365201,
+          4365201
+        ],
+        "requested_bytes_range": [
+          636334977,
+          636334977
+        ]
+      },
+      "frame-input-encoding": {
+        "samples": 48,
+        "allocation_requests_range": [
+          9191,
+          9191
+        ],
+        "requested_bytes_range": [
+          844667,
+          844667
+        ]
+      },
+      "fresh-call-bindings": {
+        "samples": 48,
+        "allocation_requests_range": [
+          34672,
+          34672
+        ],
+        "requested_bytes_range": [
+          8804177,
+          8804177
+        ]
+      },
+      "paired-evidence-reconstruction-and-write": {
+        "samples": 48,
+        "allocation_requests_range": [
+          263,
+          263
+        ],
+        "requested_bytes_range": [
+          4682816,
+          4684250
+        ]
+      },
+      "output-acceptance-state-advance": {
+        "samples": 48,
+        "allocation_requests_range": [
+          1024,
+          1024
+        ],
+        "requested_bytes_range": [
+          14240,
+          14240
+        ]
+      },
+      "paired-frame-result-release": {
+        "samples": 48,
+        "allocation_requests_range": [
+          0,
+          0
+        ],
+        "requested_bytes_range": [
+          0,
+          0
+        ]
+      },
+      "prepared-rearm": {
+        "samples": 46,
+        "allocation_requests_range": [
+          16,
+          16
+        ],
+        "requested_bytes_range": [
+          12389,
+          12389
+        ]
+      },
+      "previous-evidence-release": {
+        "samples": 46,
+        "allocation_requests_range": [
+          0,
+          0
+        ],
+        "requested_bytes_range": [
+          0,
+          0
+        ]
+      },
+      "prepared-trajectory-release": {
+        "samples": 2,
+        "allocation_requests_range": [
+          0,
+          0
+        ],
+        "requested_bytes_range": [
+          0,
+          0
+        ]
+      }
+    }
+  },
+  "candidate": {
+    "source_commit": "e992687c343ae6c2ac771e08e1995b2357df9821",
+    "worker_sha256": "4b48511142692bd250970de7ec6a78b19cd46cd7c7bc199d0157c3640173af46",
+    "raw_sha256": "7a761b46b1bd311a8becebba6c06dc7dc79fb01ee616563a7444e47cedcf710c",
+    "status_sha256": "f6e220bfd427a6cb783586fe843bc087e98395055c42c1ad58e42060e7186773",
+    "source_custody_verified": true,
+    "worker_conformance_passed": true,
+    "retained_frames": 48,
+    "publication_copied_bytes_per_frame": [
+      39936
+    ],
+    "publication_owned_bytes_per_frame": [
+      118272
+    ],
+    "publication_owned_values_per_frame": [
+      164
+    ],
+    "play_allocation_requests": 0,
+    "play_wall_ns": {
+      "median": 21871478.0,
+      "minimum": 21139118,
+      "maximum": 23360096
+    },
+    "retained_owner_heap_released_bytes": [
+      35124307,
+      35124307
+    ],
+    "cold_prepared_trajectory": [
+      {
+        "allocator": {
+          "allocations": 3447772,
+          "deallocations": 3421416,
+          "live_heap_bytes_at_end": 64216144,
+          "phase_peak_heap_bytes": 71143541,
+          "reallocations": 920332,
+          "requested_bytes": 638273254
+        },
+        "process_cpu_ns": 391937209,
+        "wall_ns": 391975576
+      },
+      {
+        "allocator": {
+          "allocations": 3447772,
+          "deallocations": 3421416,
+          "live_heap_bytes_at_end": 64216656,
+          "phase_peak_heap_bytes": 71144053,
+          "reallocations": 920332,
+          "requested_bytes": 638273254
+        },
+        "process_cpu_ns": 380232892,
+        "wall_ns": 380271400
+      }
+    ],
+    "trajectory_release": [
+      {
+        "allocator": {
+          "allocations": 0,
+          "deallocations": 61141,
+          "live_heap_bytes_at_end": 14019069,
+          "phase_peak_heap_bytes": 49143376,
+          "reallocations": 0,
+          "requested_bytes": 0
+        },
+        "process_cpu_ns": 2149770,
+        "wall_ns": 2149201
+      },
+      {
+        "allocator": {
+          "allocations": 0,
+          "deallocations": 61141,
+          "live_heap_bytes_at_end": 14019581,
+          "phase_peak_heap_bytes": 49143888,
+          "reallocations": 0,
+          "requested_bytes": 0
+        },
+        "process_cpu_ns": 2314174,
+        "wall_ns": 2313761
+      }
+    ],
+    "lifecycle_phases": {
+      "cold-source-schema": {
+        "samples": 1,
+        "allocation_requests_range": [
+          1179592,
+          1179592
+        ],
+        "requested_bytes_range": [
+          122972528,
+          122972528
+        ]
+      },
+      "cold-model-resource-admission": {
+        "samples": 1,
+        "allocation_requests_range": [
+          530753,
+          530753
+        ],
+        "requested_bytes_range": [
+          68176867,
+          68176867
+        ]
+      },
+      "cold-check-expand-plan": {
+        "samples": 2,
+        "allocation_requests_range": [
+          6754642,
+          6754642
+        ],
+        "requested_bytes_range": [
+          508389746,
+          508389746
+        ]
+      },
+      "candidate-check-expand-plan": {
+        "samples": 2,
+        "allocation_requests_range": [
+          6989056,
+          6989056
+        ],
+        "requested_bytes_range": [
+          597665189,
+          597665189
+        ]
+      },
+      "initial-input-encoding": {
+        "samples": 2,
+        "allocation_requests_range": [
+          9191,
+          9191
+        ],
+        "requested_bytes_range": [
+          844667,
+          844667
+        ]
+      },
+      "cold-prepared-trajectory": {
+        "samples": 2,
+        "allocation_requests_range": [
+          4368104,
+          4368104
+        ],
+        "requested_bytes_range": [
+          638273254,
+          638273254
+        ]
+      },
+      "frame-input-encoding": {
+        "samples": 48,
+        "allocation_requests_range": [
+          9191,
+          9191
+        ],
+        "requested_bytes_range": [
+          844667,
+          844667
+        ]
+      },
+      "fresh-call-bindings": {
+        "samples": 48,
+        "allocation_requests_range": [
+          34672,
+          34672
+        ],
+        "requested_bytes_range": [
+          8804177,
+          8804177
+        ]
+      },
+      "paired-evidence-reconstruction-and-write": {
+        "samples": 48,
+        "allocation_requests_range": [
+          273,
+          273
+        ],
+        "requested_bytes_range": [
+          4684326,
+          4685760
+        ]
+      },
+      "output-acceptance-state-advance": {
+        "samples": 48,
+        "allocation_requests_range": [
+          1024,
+          1024
+        ],
+        "requested_bytes_range": [
+          14240,
+          14240
+        ]
+      },
+      "paired-frame-result-release": {
+        "samples": 48,
+        "allocation_requests_range": [
+          0,
+          0
+        ],
+        "requested_bytes_range": [
+          0,
+          0
+        ]
+      },
+      "prepared-rearm": {
+        "samples": 46,
+        "allocation_requests_range": [
+          16,
+          16
+        ],
+        "requested_bytes_range": [
+          12389,
+          12389
+        ]
+      },
+      "previous-evidence-release": {
+        "samples": 46,
+        "allocation_requests_range": [
+          0,
+          0
+        ],
+        "requested_bytes_range": [
+          0,
+          0
+        ]
+      },
+      "prepared-trajectory-release": {
+        "samples": 2,
+        "allocation_requests_range": [
+          0,
+          0
+        ],
+        "requested_bytes_range": [
+          0,
+          0
+        ]
+      }
+    }
+  },
+  "initial_candidate_observation": {
+    "source_commit": "c10b4b35bfb11f76560eb8302dd8418d4460d0a7",
+    "worker_sha256": "acebf1e5f4c22a6f98b91779709ee7f8662ec4e073bb090d7c74fb85ab50ce97",
+    "raw_sha256": "22b1dd3beaecb506a57425a4b17a36235fa3e4b029b7ca8d88b4758e9dfaee5f",
+    "play_median_wall_ns": 23853863.0,
+    "finding": "Typed pools incorrectly disabled the remaining generic uniform allocator fast path. Restored the cursor path with typed-slot exclusion and separate retirement/pressure controls; all initial evidence retained."
+  },
+  "validation": {
+    "kernel_release_unit_tests_passed": 205,
+    "existing_ignored_unit_tests": 3,
+    "kernel_integration_suites_passed": true,
+    "compact_dag_integration_tests_passed": 15,
+    "new_owned_frontier_controls_passed": 5,
+    "full_pinned_frame_diagnostic_invocations": 2,
+    "full_release_worker_frames_compared": 48
+  },
+  "interrupted_diagnostics": [
+    "First unoptimized diagnostic interrupted after replacing admission matching; not a successful measurement.",
+    "Second diagnostic omitted the catalog-cache feature selected by the supported entrance and was interrupted.",
+    "First supported-feature diagnostic refused preparation because prior owned queues were charged again as canonical; corrected before successful captures."
+  ]
+}

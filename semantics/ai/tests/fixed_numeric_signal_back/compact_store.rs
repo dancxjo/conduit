@@ -4,8 +4,59 @@ pub(super) struct Counted {
     pub canonical: u64,
     pub compact: u64,
     pub physical: u64,
+    pub owned: u64,
+    pub owned_bytes: u64,
 }
 impl ValueStorage for Counted {
+    fn preflight_owned_compact_f32_outputs(
+        &self,
+        requests: &[(conduit_kernel::scheduler::CompactF32Layout, u16)],
+        canonical: &[u32],
+    ) -> Result<(), StorageError> {
+        self.inner
+            .preflight_owned_compact_f32_outputs(requests, canonical)
+    }
+    fn prepare_owned_compact_f32_outputs(
+        &mut self,
+        requests: &[(conduit_kernel::scheduler::CompactF32Layout, u16)],
+        canonical: &[u32],
+    ) -> Result<Vec<conduit_kernel::PreparedCompactF32Output>, StorageError> {
+        self.inner
+            .prepare_owned_compact_f32_outputs(requests, canonical)
+    }
+    fn owned_compact_f32_available(
+        &self,
+        owner: &conduit_kernel::PreparedCompactF32Output,
+    ) -> Result<bool, StorageError> {
+        self.inner.owned_compact_f32_available(owner)
+    }
+    fn swap_owned_compact_f32(
+        &mut self,
+        owner: &conduit_kernel::PreparedCompactF32Output,
+        bytes: &mut Vec<u8>,
+    ) -> Result<conduit_kernel::PendingCompactF32Publication, StorageError> {
+        let size = bytes.len();
+        let result = self.inner.swap_owned_compact_f32(owner, bytes)?;
+        self.owned += 1;
+        self.owned_bytes += size as u64;
+        Ok(result)
+    }
+    fn commit_owned_compact_f32(
+        &mut self,
+        owner: &conduit_kernel::PreparedCompactF32Output,
+        pending: &mut conduit_kernel::PendingCompactF32Publication,
+    ) -> Result<ValueRef, StorageError> {
+        self.inner.commit_owned_compact_f32(owner, pending)
+    }
+    fn restore_owned_compact_f32(
+        &mut self,
+        owner: &conduit_kernel::PreparedCompactF32Output,
+        pending: &mut conduit_kernel::PendingCompactF32Publication,
+        bytes: &mut Vec<u8>,
+    ) -> Result<(), StorageError> {
+        self.inner.restore_owned_compact_f32(owner, pending, bytes)
+    }
+
     fn item_capacity(&self) -> u16 {
         self.inner.item_capacity()
     }
