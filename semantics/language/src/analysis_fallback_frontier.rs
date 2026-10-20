@@ -139,6 +139,8 @@ impl<'a> AnalysisEpochOwner<'a> {
         }
         Ok(frontier)
     }
+    // Transactional refusal returns the original frontier receipt without allocating.
+    #[allow(clippy::result_large_err)]
     pub fn append_fallback_frontier(
         &mut self,
         event: &'a RevisionEvent<'a, DependencyRevisions<'a>>,
