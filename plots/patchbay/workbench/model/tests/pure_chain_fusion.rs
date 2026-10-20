@@ -201,6 +201,13 @@ fn all_thirty_two_logical_gears_and_cords_survive_physical_inspection() {
     assert_eq!(report.execution_fusions.len(), 1);
     assert_eq!(report.placements.len(), 32);
     assert_eq!(report.connections.len(), 31);
+    let fragment = &snapshot.plans[0].fragments[0];
+    let admission = report.fragments[0].admission.as_ref().unwrap();
+    assert_eq!(admission.sign_storage_budget, fragment.sign_storage_budget);
+    assert_eq!(admission.expected_sign, fragment.expected_sign);
+    assert_eq!(admission.shared_pools, fragment.shared_pools);
+    assert_eq!(admission.cancellation_policy, fragment.cancellation_policy);
+    assert_eq!(admission.terminal_policy, fragment.terminal_policy);
     for row in &report.placements {
         let logical = row
             .logical_gear
@@ -211,6 +218,21 @@ fn all_thirty_two_logical_gears_and_cords_survive_physical_inspection() {
             .iter()
             .find(|p| p.placement_id == row.placement_id)
             .unwrap();
+        let admission = row.admission.as_ref().unwrap();
+        assert_eq!(admission.limits, original.limits);
+        assert_eq!(
+            admission.realization_characteristics,
+            original.realization_characteristics
+        );
+        assert_eq!(
+            admission.realization_properties,
+            original.realization_properties
+        );
+        assert_eq!(admission.pool_references, original.pool_references);
+        assert_eq!(
+            admission.terminal_transductions,
+            original.terminal_transductions
+        );
         assert_eq!(logical.gear_id, original.gear_id);
         assert_eq!(logical.inputs, original.inputs);
         assert_eq!(logical.outputs, original.outputs);
@@ -248,4 +270,23 @@ fn all_thirty_two_logical_gears_and_cords_survive_physical_inspection() {
     let retained: ObservatoryReport =
         serde_json::from_str(&serde_json::to_string(report).unwrap()).unwrap();
     assert_eq!(retained, *report);
+    assert!(text.contains("sealed-admission"));
+    assert!(text.contains("sign_storage_budget"));
+    // Historical reports without admission retain an explicit unknown value.
+    let mut historical = serde_json::to_value(report).unwrap();
+    for row in historical["placements"].as_array_mut().unwrap() {
+        row.as_object_mut().unwrap().remove("admission");
+    }
+    for row in historical["fragments"].as_array_mut().unwrap() {
+        row.as_object_mut().unwrap().remove("admission");
+    }
+    let historical: ObservatoryReport = serde_json::from_value(historical).unwrap();
+    assert!(historical
+        .placements
+        .iter()
+        .all(|row| row.admission.is_none()));
+    assert!(historical
+        .fragments
+        .iter()
+        .all(|row| row.admission.is_none()));
 }
