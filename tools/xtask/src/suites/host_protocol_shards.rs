@@ -4,6 +4,12 @@ use std::process::Command;
 use crate::{process::Step, suites::workspace_shards::WorkspaceShard};
 
 pub const PACKAGE: &str = "conduitos";
+pub const FEATURES: &str = "hosted-tools,native-compositor";
+const NATIVE_TESTS: &[&str] = &[
+    "native_compositor",
+    "native_compositor_input",
+    "native_compositor_scanout",
+];
 const BODY: &str = "protocol_operations::tests::automatic_body";
 const CLOCK: &str = "protocol_operations::tests::automatic_clock";
 const USB_PLOTS: &str = "usb_protocol_plots";
@@ -70,11 +76,19 @@ fn integration_owner(name: &str) -> WorkspaceShard {
     }
 }
 
-fn arguments() -> Vec<String> {
-    ["test", "--locked", "--no-fail-fast", "-p", PACKAGE]
-        .into_iter()
-        .map(str::to_owned)
-        .collect()
+pub fn arguments() -> Vec<String> {
+    [
+        "test",
+        "--locked",
+        "--no-fail-fast",
+        "-p",
+        PACKAGE,
+        "--features",
+        FEATURES,
+    ]
+    .into_iter()
+    .map(str::to_owned)
+    .collect()
 }
 
 pub fn proofs(shard: WorkspaceShard) -> Result<Vec<ProtocolProof>, String> {
@@ -158,8 +172,8 @@ fn integration_targets(metadata: &serde_json::Value) -> Result<Vec<String>, Stri
         .iter()
         .find(|package| package["name"] == PACKAGE)
         .ok_or("ConduitOS package missing")?;
-    // The old host suite proves the default feature set. Refuse a future default
-    // or example change until its additional target obligations are classified.
+    // Defaults and additional targets must remain classified. Library and test
+    // commands explicitly enable the workspace native presentation profile.
     if package["features"]["default"] != serde_json::json!([]) {
         return Err(
             "ConduitOS default feature changes require updating portable proof selection".into(),
@@ -177,18 +191,19 @@ fn integration_targets(metadata: &serde_json::Value) -> Result<Vec<String>, Stri
         if kinds.iter().any(|kind| kind == "example") {
             return Err("ConduitOS examples require updating portable proof selection".into());
         }
-        if kinds.iter().any(|kind| kind == "test")
-            && target["test"] == true
-            && target["required-features"]
-                .as_array()
-                .is_none_or(Vec::is_empty)
-        {
-            targets.push(
-                target["name"]
-                    .as_str()
-                    .ok_or("target name missing")?
-                    .to_owned(),
-            );
+        if kinds.iter().any(|kind| kind == "test") && target["test"] == true {
+            let name = target["name"].as_str().ok_or("target name missing")?;
+            let required = target["required-features"].as_array();
+            let gated = required.is_some_and(|features| !features.is_empty());
+            if gated
+                && (!NATIVE_TESTS.contains(&name)
+                    || required != Some(&vec![serde_json::json!("native-compositor")]))
+            {
+                return Err(format!(
+                    "unclassified ConduitOS integration features: {name}"
+                ));
+            }
+            targets.push(name.to_owned());
         }
     }
     targets.sort();
@@ -197,6 +212,12 @@ fn integration_targets(metadata: &serde_json::Value) -> Result<Vec<String>, Stri
         .all(|required| targets.iter().any(|name| name == required))
     {
         return Err("USB protocol plot or HID report proof missing".into());
+    }
+    if !NATIVE_TESTS
+        .iter()
+        .all(|name| targets.iter().any(|target| target == name))
+    {
+        return Err("native compositor integration proof missing".into());
     }
     Ok(targets)
 }
@@ -280,7 +301,7 @@ mod tests {
     }
 
     #[test]
-    fn integration_inventory_preserves_all_default_targets_once() {
+    fn integration_inventory_preserves_default_and_native_targets_once() {
         let output = Command::new("cargo")
             .args(["metadata", "--locked", "--no-deps", "--format-version", "1"])
             .output()
@@ -289,6 +310,38 @@ mod tests {
         let metadata = serde_json::from_slice(&output.stdout).unwrap();
         let targets = integration_targets(&metadata).unwrap();
         assert!(targets.len() > 1);
+        for name in NATIVE_TESTS {
+            assert_eq!(targets.iter().filter(|target| target == name).count(), 1);
+            assert_eq!(integration_owner(name), WorkspaceShard::TestHostsConduitos);
+        }
+        assert!(
+            arguments()
+                .windows(2)
+                .any(|pair| pair == ["--features", FEATURES])
+        );
+        let mut unknown = metadata.clone();
+        let packages = unknown["packages"].as_array_mut().unwrap();
+        let package = packages.iter_mut().find(|p| p["name"] == PACKAGE).unwrap();
+        let target = package["targets"]
+            .as_array_mut()
+            .unwrap()
+            .iter_mut()
+            .find(|t| t["name"] == NATIVE_TESTS[0])
+            .unwrap();
+        target["required-features"] = serde_json::json!(["unclassified"]);
+        assert!(integration_targets(&unknown).is_err());
+        let mut missing = metadata.clone();
+        let package = missing["packages"]
+            .as_array_mut()
+            .unwrap()
+            .iter_mut()
+            .find(|p| p["name"] == PACKAGE)
+            .unwrap();
+        package["targets"]
+            .as_array_mut()
+            .unwrap()
+            .retain(|target| target["name"] != NATIVE_TESTS[0]);
+        assert!(integration_targets(&missing).is_err());
         for name in &targets {
             assert!(matches!(
                 integration_owner(name),
