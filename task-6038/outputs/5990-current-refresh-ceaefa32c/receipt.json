@@ -30,7 +30,33 @@
     "tools/xtask/src/suites/host_protocol_shards.rs",
     "tools/xtask/src/suites/workspace_shard_features_tests.rs"
   ],
-  "normal_product": "fresh supported build running in dedicated native-panels-host-target; no new pass claim",
+  "normal_product": {
+    "status": "build-passed",
+    "source": "ceaefa32c00dd9a15aa4365f831cf68862771dd4",
+    "artifact_role": "product-host",
+    "image": {
+      "role": "final-bootable-image",
+      "file": "conduitos-x86_64.iso",
+      "sha256": "aed60e75304e9cb09b504e6b2d2f55da344691a883a22863cb9cf01568ada67b"
+    },
+    "kernel": {
+      "role": "freestanding-kernel",
+      "file": "conduitos-kernel.elf",
+      "sha256": "ad8f09827d961454892deec24a75fb8422e473b1a9feb6a42e973d2f90f5230c"
+    },
+    "build_log_sha256": "941e8c68f2448dede9feefe4c5a1c5babdcb71310dba867274ece20fbbdf182e"
+  },
   "required_next": "new exact Candidate, fresh normal22checkpoint journey and wide/narrow panel+pointer packets; then merge/Integration/stable evidence",
-  "working_tree_clean": true
+  "working_tree_clean": true,
+  "new_qemu_proof": {
+    "status": "passed",
+    "normal_checkpoints": 22,
+    "supplements": 4,
+    "packet": "outputs/5990-stage05-ceaefa32c/receipt.json",
+    "hashed_files": 85
+  },
+  "candidate": {
+    "id": 39447128904,
+    "last_observed": "queued at 15:24 UTC"
+  }
 }

@@ -1,0 +1,94 @@
+{
+  "parent": "99090f5bf4f5618c56d3dedfc436e431415f1363",
+  "scope": "Native stage05 current-dev refresh and exact preflight receipt; normal product and all five emulator runs passed; Candidate still running",
+  "files": [
+    {
+      "source": "work/run-5990-ceaefa-product-proof.py",
+      "tree_path": "task-6038/work/run-5990-ceaefa-product-proof.py",
+      "bytes": 2398,
+      "sha256": "8565c7685d83dedc874b556d91eb338b10815080f23d0c0da8dbe4b91f072c58",
+      "mode": "100644",
+      "blob": "f0311e36c8b9c2e2500056cd170bf7f45bb4129a"
+    },
+    {
+      "source": "work/6055-body-final-ceaefa32c.md",
+      "tree_path": "task-6038/work/6055-body-final-ceaefa32c.md",
+      "bytes": 5740,
+      "sha256": "729b8432f3cfa8555e0eedcf38035640bb034203e5dc957dcfa3bb0e9bd42384",
+      "mode": "100644",
+      "blob": "8ffb0343f98c392caffded130f2a41cfd75b0ea6"
+    },
+    {
+      "source": "work/6055-body-final-ceaefa32c.json",
+      "tree_path": "task-6038/work/6055-body-final-ceaefa32c.json",
+      "bytes": 5795,
+      "sha256": "991d12a79ba8b996fe53835b6debdcf5b7c28053cd2553e4e72e94915939f254",
+      "mode": "100644",
+      "blob": "5d38763b79b0ad443caa57c6110093714c1d907a"
+    },
+    {
+      "source": "outputs/5990-current-refresh-ceaefa32c/receipt.json",
+      "tree_path": "task-6038/outputs/5990-current-refresh-ceaefa32c/receipt.json",
+      "bytes": 2580,
+      "sha256": "9216450bbc2de3b3db1a09c35bed92fd6d154c1525291d48671c3181c2cbd6bd",
+      "mode": "100644",
+      "blob": "32b2ff6dfe16860cf4534c8a5f71b25afe41ddbb"
+    },
+    {
+      "source": "outputs/5990-stage05-ceaefa32c/receipt.json",
+      "tree_path": "task-6038/outputs/5990-stage05-ceaefa32c/receipt.json",
+      "bytes": 17037,
+      "sha256": "203e626f1e78db2e802ee2974a21da515038c118137796f6bd974f6c36406b38",
+      "mode": "100644",
+      "blob": "7daa81443aebf5a9b6dd4223f402cf95f3fb7035"
+    },
+    {
+      "source": "outputs/5990-product-ceaefa32c/build-manifest.json",
+      "tree_path": "task-6038/outputs/5990-product-ceaefa32c/build-manifest.json",
+      "bytes": 4269,
+      "sha256": "10e6da8970a3b444afb10426a0cd1c614ac90195edf20b9b9c1248617c48bdb4",
+      "mode": "100644",
+      "blob": "834f1681fb389ef8fdc481edb1bb1524780e631d"
+    },
+    {
+      "source": "outputs/5990-normal-journey-ceaefa32c/x86_64/journey-proof.json",
+      "tree_path": "task-6038/outputs/5990-normal-journey-ceaefa32c/x86_64/journey-proof.json",
+      "bytes": 12918,
+      "sha256": "9ef749012f8f098e2691a369ad076f4c49c2ce4ef19704e351a923b54e192969",
+      "mode": "100644",
+      "blob": "753230cc13a1130c3f0df23098fa79f6e2cd4ed5"
+    },
+    {
+      "source": "outputs/5990-panels-wide-ceaefa32c/receipt.json",
+      "tree_path": "task-6038/outputs/5990-panels-wide-ceaefa32c/receipt.json",
+      "bytes": 29928,
+      "sha256": "02f15b0fe22882219f6950dac73f05be45b45cbf118de53ed4fa0aeff498e56c",
+      "mode": "100644",
+      "blob": "1d495a460f205b28e0fb506c7a3cfc93c96ea86c"
+    },
+    {
+      "source": "outputs/5990-panels-narrow-ceaefa32c/receipt.json",
+      "tree_path": "task-6038/outputs/5990-panels-narrow-ceaefa32c/receipt.json",
+      "bytes": 33006,
+      "sha256": "3cd1bd47b610f17d751060e690b6538418ec75689499749ef3b8ae7f3c490508",
+      "mode": "100644",
+      "blob": "04267e6abf701f2e8be0978c2ad8ef5e1b82b458"
+    },
+    {
+      "source": "outputs/5990-pointer-wide-ceaefa32c-cold-birth/receipt.json",
+      "tree_path": "task-6038/outputs/5990-pointer-wide-ceaefa32c-cold-birth/receipt.json",
+      "bytes": 50277,
+      "sha256": "af860df538e4f2db7aafc7c02e3b56b41fd9027ed7e40dd31498db88955a8bc9",
+      "mode": "100644",
+      "blob": "21871590a84c8ac960a2569900d70a3476ba1b22"
+    },
+    {
+      "source": "outputs/5990-pointer-narrow-ceaefa32c-cold-birth/receipt.json",
+      "tree_path": "task-6038/outputs/5990-pointer-narrow-ceaefa32c-cold-birth/receipt.json",
+      "bytes": 49426,
+      "sha256": "0297866e7fa18a6ba0ed99254cbcc61171e6afe8759b7cb1d53add9779437d18",
+      "mode": "100644",
+      "blob": "c4b90c955f05d33d458e470185480f6f9e07ed5f"
+    }
+  ]
+}
