@@ -35,10 +35,10 @@ impl PatchbayTopology {
             if !ids.insert(&candidate.candidate_id) {
                 return Err(Invalid);
             }
-            if candidate.disposition == Disposition::Selected {
-                if selected.replace(candidate).is_some() {
-                    return Err(Invalid);
-                }
+            if candidate.disposition == Disposition::Selected
+                && selected.replace(candidate).is_some()
+            {
+                return Err(Invalid);
             }
             if !matches!(candidate.disposition, Disposition::Rejected(_))
                 && candidate
