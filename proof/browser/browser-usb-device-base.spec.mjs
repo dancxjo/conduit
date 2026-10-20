@@ -29,6 +29,11 @@ async function startEntrance() {
   });
 }
 
+async function openUsbControls(page) {
+  await page.locator("#usb-controls > summary").click();
+  await expect(page.locator("#usb")).toBeEnabled();
+}
+
 async function installSuccessfulUsb(page, transferStatus = "ok", zeroLengthIn = false) {
   await page.addInitScript(({ transferStatus, zeroLengthIn }) => {
     class FakeUsbDevice {
@@ -109,6 +114,7 @@ test.afterEach(() => {
 
 test("superset WebUSB adapter refuses PROFILE omission before the chooser", async ({ page }) => {
   await page.goto(await startEntrance());
+  await openUsbControls(page);
   await page.waitForFunction(() => globalThis.__conduitBrowserHost?.runtime);
   const result = await page.evaluate(async () => {
     let chooserCalls = 0;
@@ -134,6 +140,7 @@ test("superset WebUSB adapter refuses PROFILE omission before the chooser", asyn
 test("explicit WebUSB acquisition creates one exact finite Base then bounded use", async ({ page }) => {
   await installSuccessfulUsb(page);
   await page.goto(await startEntrance());
+  await openUsbControls(page);
   await page.locator("#usb").click();
   await expect(page.locator("#usb-device-status")).toHaveText("resource-truth");
 
@@ -222,6 +229,7 @@ test("selection, API, open, configuration, interface, and alternate failures rem
     const isolated = await page.context().newPage();
     await installUsbFailure(isolated, name, stage);
     await isolated.goto(await startEntrance());
+  await openUsbControls(isolated);
     await expect(isolated.locator("#identity")).toBeVisible();
     await isolated.evaluate(async (options) => {
       try { await __conduitBrowserHost.usbDevices.acquireUsb(options); } catch {}
@@ -238,6 +246,7 @@ test("selection, API, open, configuration, interface, and alternate failures rem
     Object.defineProperty(navigator, "usb", { configurable: true, value: undefined });
   });
   await unsupported.goto(await startEntrance());
+  await openUsbControls(unsupported);
   await unsupported.locator("#usb").click();
   await expect(unsupported.locator("#usb-device-status")).toHaveText("terminal: Unsupported");
   await expect(unsupported.locator("#usb-close")).toBeDisabled();
@@ -245,6 +254,7 @@ test("selection, API, open, configuration, interface, and alternate failures rem
   const invalid = await page.context().newPage();
   await installSuccessfulUsb(invalid);
   await invalid.goto(await startEntrance());
+  await openUsbControls(invalid);
   await expect(invalid.locator("#identity")).toBeVisible();
   const invalidResult = await invalid.evaluate(async () => {
     try {
@@ -262,6 +272,7 @@ test("selection, API, open, configuration, interface, and alternate failures rem
 test("control transfers and zero-length acknowledgements remain finite Base truth", async ({ page }) => {
   await installSuccessfulUsb(page, "ok", true);
   await page.goto(await startEntrance());
+  await openUsbControls(page);
   await expect(page.locator("#identity")).toBeVisible();
   const result = await page.evaluate(async () => {
     const resource = await __conduitBrowserHost.usbDevices.acquireUsb({
@@ -328,6 +339,7 @@ test("control transfers and zero-length acknowledgements remain finite Base trut
 test("disconnect, cancellation, overflow, and stalled transfer terminate without replacement", async ({ page }) => {
   await installSuccessfulUsb(page);
   await page.goto(await startEntrance());
+  await openUsbControls(page);
   await page.locator("#usb").click();
   const lost = await page.evaluate(() => {
     const event = new Event("disconnect");
@@ -340,6 +352,7 @@ test("disconnect, cancellation, overflow, and stalled transfer terminate without
   const cancelled = await page.context().newPage();
   await installSuccessfulUsb(cancelled);
   await cancelled.goto(await startEntrance());
+  await openUsbControls(cancelled);
   await cancelled.locator("#usb").click();
   const cancellation = await cancelled.evaluate(() => {
     __conduitBrowserHost.usbDevices.terminate();
@@ -350,6 +363,7 @@ test("disconnect, cancellation, overflow, and stalled transfer terminate without
   const oversized = await page.context().newPage();
   await installSuccessfulUsb(oversized);
   await oversized.goto(await startEntrance());
+  await openUsbControls(oversized);
   await oversized.locator("#usb").click();
   const overflow = await oversized.evaluate(async () => {
     const resource = globalThis.__conduitUsbResource;
@@ -364,6 +378,7 @@ test("disconnect, cancellation, overflow, and stalled transfer terminate without
   const stalled = await page.context().newPage();
   await installSuccessfulUsb(stalled, "stall");
   await stalled.goto(await startEntrance());
+  await openUsbControls(stalled);
   await stalled.locator("#usb").click();
   const stall = await stalled.evaluate(async () => {
     const resource = globalThis.__conduitUsbResource;
@@ -372,4 +387,80 @@ test("disconnect, cancellation, overflow, and stalled transfer terminate without
     catch { return resource.evidence(); }
   });
   expect(stall).toMatchObject({ phase: "terminal", terminal: "TransferStalled" });
+});
+
+test("USB demand loading preserves keyboard access and a fresh chooser activation", async ({ page }) => {
+  const requests = [];
+  page.on("request", request => {
+    if (new URL(request.url()).pathname === "/usb-device-base.mjs") requests.push(request.url());
+  });
+  await page.addInitScript(() => {
+    globalThis.usbChooserCalls = [];
+    const usb = new EventTarget();
+    usb.requestDevice = async () => {
+      usbChooserCalls.push(navigator.userActivation.isActive);
+      throw new DOMException("No device selected", "NotFoundError");
+    };
+    Object.defineProperty(navigator, "usb", { configurable: true, value: usb });
+  });
+  await page.goto(await startEntrance());
+  await expect(page.locator("#host")).toBeVisible();
+  expect(requests).toHaveLength(0);
+  expect(await page.evaluate(() => __conduitBrowserHost.usbDevices)).toBeNull();
+  const summary = page.locator("#usb-controls > summary");
+  await summary.focus();
+  await summary.press("Enter");
+  await expect(page.locator("#usb")).toBeEnabled();
+  expect(requests).toHaveLength(1);
+  expect(await page.evaluate(() => usbChooserCalls)).toEqual([]);
+  await page.locator("#usb").focus();
+  await page.locator("#usb").press("Enter");
+  await expect(page.locator("#usb-device-status")).toHaveText("terminal: NoDeviceSelected");
+  expect(await page.evaluate(() => usbChooserCalls)).toEqual([true]);
+  await summary.press("Enter");
+  await summary.press("Enter");
+  expect(requests).toHaveLength(1);
+  expect(await page.evaluate(() => usbChooserCalls)).toEqual([true]);
+});
+
+test("USB module refusal leaves the Host usable without retrying permission or loading", async ({ page }) => {
+  let loads = 0;
+  await page.route("**/usb-device-base.mjs", route => { loads += 1; return route.abort("failed"); });
+  await page.goto(await startEntrance());
+  await expect(page.locator("#host")).toBeVisible();
+  expect(loads).toBe(0);
+  const summary = page.locator("#usb-controls > summary");
+  await summary.click();
+  await expect(page.locator("#usb-device-status")).toHaveText("USB is unavailable. Reload this page to try again.");
+  await expect(page.locator("#usb")).toBeDisabled();
+  await summary.click();
+  await summary.click();
+  expect(loads).toBe(1);
+  await expect(page.locator("#serial")).toBeEnabled();
+  expect(await page.evaluate(() => __conduitBrowserHost.usbDevices)).toBeNull();
+});
+
+test("retired Host cannot initialize a USB adapter after a pending module load", async ({ page }) => {
+  let release;
+  let requested;
+  const pending = new Promise(resolve => { requested = resolve; });
+  const ready = new Promise(resolve => { release = resolve; });
+  await page.route("**/usb-device-base.mjs", async route => {
+    requested();
+    await ready;
+    await route.continue();
+  });
+  await page.goto(await startEntrance());
+  await expect(page.locator("#host")).toBeVisible();
+  await page.locator("#usb-controls > summary").click();
+  await pending;
+  await expect(page.locator("#usb")).toBeDisabled();
+  await page.evaluate(() => dispatchEvent(new PageTransitionEvent("pagehide")));
+  const loaded = page.waitForResponse(response => new URL(response.url()).pathname === "/usb-device-base.mjs");
+  release();
+  await loaded;
+  // A subsequent script import observes completion of the same module graph.
+  await page.evaluate(() => import("/usb-device-base.mjs"));
+  expect(await page.evaluate(() => __conduitBrowserHost.usbDevices)).toBeNull();
+  await expect(page.locator("#usb")).toBeDisabled();
 });
