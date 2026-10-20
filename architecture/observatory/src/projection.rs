@@ -150,6 +150,13 @@ pub fn build_report(snapshot: &ObservatorySnapshot) -> Result<ObservatoryReport,
         .iter()
         .flat_map(|plan| {
             plan.fragments.iter().map(|fragment| FragmentRow {
+                admission: Some(crate::FragmentAdmission {
+                    sign_storage_budget: fragment.sign_storage_budget,
+                    expected_sign: fragment.expected_sign.clone(),
+                    shared_pools: fragment.shared_pools.clone(),
+                    cancellation_policy: fragment.cancellation_policy,
+                    terminal_policy: fragment.terminal_policy,
+                }),
                 plan_id: plan.plan_id.clone(),
                 fragment_id: fragment.fragment_id.clone(),
                 host_id: fragment.host_id.clone(),
@@ -167,6 +174,15 @@ pub fn build_report(snapshot: &ObservatorySnapshot) -> Result<ObservatoryReport,
                     .placements
                     .iter()
                     .map(move |placement| PlacementRow {
+                        admission: Some(crate::PlacementAdmission {
+                            limits: placement.limits.clone(),
+                            realization_characteristics: placement
+                                .realization_characteristics
+                                .clone(),
+                            realization_properties: placement.realization_properties.clone(),
+                            pool_references: placement.pool_references.clone(),
+                            terminal_transductions: placement.terminal_transductions.clone(),
+                        }),
                         logical_gear: Some(crate::LogicalGearRow {
                             gear_id: placement.gear_id.clone(),
                             source_span: placement.source_span,

@@ -343,9 +343,17 @@ fn bundle_workspace_catalog(root: &Path, output: &Path) -> Result<(), String> {
             graceful_fallback,
         });
     }
+    // The reviewed registry also counts reusable and non-browser subjects.
+    // Workspace publication keeps the independent installed library bound.
+    let maximum_plots = inventory
+        .maximum_plots
+        .min(conduit_plot_library::MAX_LIBRARY_PLOTS);
+    if plots.len() > maximum_plots {
+        return Err("reviewed Workspace Plot catalog exceeds its installed library bound".into());
+    }
     let catalog = WorkspaceCatalog {
         schema: "conduit.workspace/reviewed-plot-catalog@3",
-        maximum_plots: inventory.maximum_plots,
+        maximum_plots,
         plots,
     };
     let bytes = serde_json::to_vec_pretty(&catalog).map_err(|error| error.to_string())?;

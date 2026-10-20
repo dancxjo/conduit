@@ -5,6 +5,8 @@ use conduit_planner::*;
 use conduit_plot::*;
 use conduit_std_host::{StdHost, StdHostComposition, StdHostConfig};
 use std::collections::BTreeMap;
+#[path = "support/fusion_runtime.rs"]
+mod fusion_runtime;
 
 #[test]
 fn all_thirty_two_logical_gears_and_cords_survive_physical_inspection() {
@@ -91,7 +93,7 @@ fn all_thirty_two_logical_gears_and_cords_survive_physical_inspection() {
             })
             .collect(),
     };
-    let candidates: Vec<_> = [false, true]
+    let mut candidates: Vec<_> = [false, true]
         .into_iter()
         .map(|fused| {
             let id = if fused { "fused" } else { "unfused" };
@@ -110,6 +112,15 @@ fn all_thirty_two_logical_gears_and_cords_survive_physical_inspection() {
             }
         })
         .collect();
+    candidates.push(FusionCandidate {
+        candidate_id: "unavailable-fusion".into(),
+        realization: LocalityCandidate {
+            candidate_id: "unavailable-fusion".into(),
+            placements: placements.clone(),
+            lines: BTreeMap::new(),
+        },
+        fusion_ids: vec!["not-offered".into()],
+    });
     let selection = select_expanded_fusion_candidate(
         &plot.expanded,
         &hosts,
@@ -165,6 +176,7 @@ fn all_thirty_two_logical_gears_and_cords_survive_physical_inspection() {
         &boundary_limits,
     )
     .unwrap();
+    let unfused = fusion_runtime::assert_actual_failure_custody(&optimized.plan, &advertisement);
     let snapshot = ObservatorySnapshot {
         schema: SNAPSHOT_SCHEMA.into(),
         hosts: vec![HostReport {
@@ -184,7 +196,7 @@ fn all_thirty_two_logical_gears_and_cords_survive_physical_inspection() {
         }],
         bases: vec![],
         lines: vec![],
-        plans: vec![optimized.plan],
+        plans: vec![optimized.plan.clone()],
         plays: vec![],
         observations: vec![],
         historical_observations: vec![],
@@ -197,10 +209,59 @@ fn all_thirty_two_logical_gears_and_cords_survive_physical_inspection() {
     };
     let mut patchbay = conduit_patchbay_workbench::PatchbayTopology::new(1).unwrap();
     patchbay.ingest(&snapshot).unwrap();
+    let explanation = patchbay
+        .document_with_fusion_selection(&optimized, &selection)
+        .unwrap();
+    let explanation = explanation.lines().join("\n");
+    assert!(explanation.contains("FUSION SELECTION"));
+    assert!(explanation.contains("CANDIDATE fused disposition=Selected"));
+    assert!(explanation.contains("CANDIDATE unfused disposition=Admitted"));
+    assert!(explanation.contains("CANDIDATE unavailable-fusion disposition=Rejected"));
+    assert!(explanation.contains("sign/patchbay-fusion/fused"));
+    let mut wrong = selection.clone();
+    wrong.checked_plot_id = "foreign-checked".into();
+    assert!(patchbay
+        .document_with_fusion_selection(&optimized, &wrong)
+        .is_err());
+    let mut wrong = selection.clone();
+    wrong
+        .considered
+        .iter_mut()
+        .find(|c| c.candidate_id == "fused")
+        .unwrap()
+        .total_work_units += 1;
+    assert!(patchbay
+        .document_with_fusion_selection(&optimized, &wrong)
+        .is_err());
+    let mut wrong = selection.clone();
+    wrong.locality_basis.realization_work[0].boot_id = "foreign-boot".into();
+    assert!(patchbay
+        .document_with_fusion_selection(&optimized, &wrong)
+        .is_err());
+    let mut oversized = selection.clone();
+    oversized
+        .considered
+        .iter_mut()
+        .find(|c| c.candidate_id == "unavailable-fusion")
+        .unwrap()
+        .disposition = CandidatePlacementDisposition::Rejected("x".repeat(70 * 1024));
+    assert_eq!(
+        patchbay
+            .document_with_fusion_selection(&optimized, &oversized)
+            .unwrap_err(),
+        conduit_patchbay_workbench::TopologyViewError::FaceTooLarge
+    );
     let report = patchbay.current_report().unwrap();
     assert_eq!(report.execution_fusions.len(), 1);
     assert_eq!(report.placements.len(), 32);
     assert_eq!(report.connections.len(), 31);
+    let fragment = &snapshot.plans[0].fragments[0];
+    let admission = report.fragments[0].admission.as_ref().unwrap();
+    assert_eq!(admission.sign_storage_budget, fragment.sign_storage_budget);
+    assert_eq!(admission.expected_sign, fragment.expected_sign);
+    assert_eq!(admission.shared_pools, fragment.shared_pools);
+    assert_eq!(admission.cancellation_policy, fragment.cancellation_policy);
+    assert_eq!(admission.terminal_policy, fragment.terminal_policy);
     for row in &report.placements {
         let logical = row
             .logical_gear
@@ -211,6 +272,21 @@ fn all_thirty_two_logical_gears_and_cords_survive_physical_inspection() {
             .iter()
             .find(|p| p.placement_id == row.placement_id)
             .unwrap();
+        let admission = row.admission.as_ref().unwrap();
+        assert_eq!(admission.limits, original.limits);
+        assert_eq!(
+            admission.realization_characteristics,
+            original.realization_characteristics
+        );
+        assert_eq!(
+            admission.realization_properties,
+            original.realization_properties
+        );
+        assert_eq!(admission.pool_references, original.pool_references);
+        assert_eq!(
+            admission.terminal_transductions,
+            original.terminal_transductions
+        );
         assert_eq!(logical.gear_id, original.gear_id);
         assert_eq!(logical.inputs, original.inputs);
         assert_eq!(logical.outputs, original.outputs);
@@ -248,4 +324,54 @@ fn all_thirty_two_logical_gears_and_cords_survive_physical_inspection() {
     let retained: ObservatoryReport =
         serde_json::from_str(&serde_json::to_string(report).unwrap()).unwrap();
     assert_eq!(retained, *report);
+    assert!(text.contains("sealed-admission"));
+    assert!(text.contains("sign_storage_budget"));
+    // Historical reports without admission retain an explicit unknown value.
+    let mut historical = serde_json::to_value(report).unwrap();
+    for row in historical["placements"].as_array_mut().unwrap() {
+        row.as_object_mut().unwrap().remove("admission");
+    }
+    for row in historical["fragments"].as_array_mut().unwrap() {
+        row.as_object_mut().unwrap().remove("admission");
+    }
+    let historical: ObservatoryReport = serde_json::from_value(historical).unwrap();
+    assert!(historical
+        .placements
+        .iter()
+        .all(|row| row.admission.is_none()));
+    assert!(historical
+        .fragments
+        .iter()
+        .all(|row| row.admission.is_none()));
+    let logical_gears: Vec<_> = report
+        .placements
+        .iter()
+        .map(|row| row.logical_gear.clone())
+        .collect();
+    let logical_cords: Vec<_> = report
+        .connections
+        .iter()
+        .map(|row| row.logical_cord.clone())
+        .collect();
+    let mut ordinary = snapshot.clone();
+    ordinary.plans = vec![unfused];
+    patchbay.ingest(&ordinary).unwrap();
+    let report = patchbay.current_report().unwrap();
+    assert!(report.execution_fusions.is_empty());
+    assert_eq!(
+        logical_gears,
+        report
+            .placements
+            .iter()
+            .map(|row| row.logical_gear.clone())
+            .collect::<Vec<_>>()
+    );
+    assert_eq!(
+        logical_cords,
+        report
+            .connections
+            .iter()
+            .map(|row| row.logical_cord.clone())
+            .collect::<Vec<_>>()
+    );
 }

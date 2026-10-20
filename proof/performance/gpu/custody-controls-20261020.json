@@ -1,0 +1,20 @@
+[
+  {
+    "control": "changed-source",
+    "exit_code": 1,
+    "refusal": {
+      "reason": "pinned-source-refusal",
+      "conduit_gpu_offer_admitted": false
+    },
+    "refused_before_device_probe_and_compilation": true
+  },
+  {
+    "control": "changed-tensor",
+    "exit_code": 1,
+    "refusal": {
+      "reason": "exact-tensor-span-refusal:sig_net_gru1_input_weights_float",
+      "conduit_gpu_offer_admitted": false
+    },
+    "refused_before_device_probe_and_compilation": true
+  }
+]
