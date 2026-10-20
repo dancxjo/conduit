@@ -11,6 +11,7 @@ pub(super) fn run(arguments: &[String], dry_run: bool) -> Result<(), Box<dyn std
     let mut output = None;
     let mut repetitions = 3usize;
     let mut rotation = 0usize;
+    let mut values = None;
     let mut args = arguments.iter();
     let mut selected = false;
     while let Some(option) = args.next() {
@@ -26,10 +27,15 @@ pub(super) fn run(arguments: &[String], dry_run: bool) -> Result<(), Box<dyn std
             "--output" => output = Some(PathBuf::from(value)),
             "--repetitions" => repetitions = value.parse()?,
             "--rotation" => rotation = value.parse()?,
+            "--values" => values = Some(value.parse::<u16>()?),
             _ => return Err(format!("unknown two-Host argument {option}").into()),
         }
     }
-    if !selected || !(1..=20).contains(&repetitions) || rotation > 2 {
+    if !selected
+        || !(1..=20).contains(&repetitions)
+        || rotation > 2
+        || values.is_some_and(|n| !(1..=64).contains(&n) || rotation != 0)
+    {
         return Err("two-Host capture bounds refused".into());
     }
     let root = crate::workspace::workspace_root()?;
@@ -54,7 +60,7 @@ pub(super) fn run(arguments: &[String], dry_run: bool) -> Result<(), Box<dyn std
     }
     if dry_run {
         println!(
-            "two-Host release worker: {repetitions} repetitions, rotation {rotation}, output {}",
+            "two-Host release worker: {repetitions} repetitions, rotation {rotation}, persistent Values {values:?}, output {}",
             output.display()
         );
         return Ok(());
@@ -140,18 +146,36 @@ pub(super) fn run(arguments: &[String], dry_run: bool) -> Result<(), Box<dyn std
     {
         return Err("source changed during two-Host preparation".into());
     }
+    let toolchain = Command::new("rustc")
+        .args(["--version", "--verbose"])
+        .current_dir(&root)
+        .output()?;
+    if !toolchain.status.success() {
+        return Err("two-Host toolchain observation refused".into());
+    }
+    let environment = serde_json::json!({
+        "rustc":String::from_utf8(toolchain.stdout)?,
+        "os":std::env::consts::OS,"architecture":std::env::consts::ARCH,
+        "available_parallelism":std::thread::available_parallelism()?.get(),
+        "clock":"std::time::Instant monotonic wall clock; nanosecond representation, resolution not calibrated",
+        "isolation":"local shared machine; exclusive CPU and quiet environment not established"
+    });
     let worker = &artifacts[0];
     let worker_sha = format!("{:x}", Sha256::digest(fs::read(worker)?));
+    let mut worker_args = vec![
+        "--output".to_owned(),
+        output.to_str().ok_or("output is not UTF-8")?.to_owned(),
+        "--repetitions".to_owned(),
+        repetitions.to_string(),
+        "--rotation".to_owned(),
+        rotation.to_string(),
+    ];
+    if let Some(values) = values {
+        worker_args.extend(["--values".to_owned(), values.to_string()]);
+    }
     let status = Command::new(worker)
         .current_dir(&root)
-        .args([
-            "--output",
-            output.to_str().ok_or("output is not UTF-8")?,
-            "--repetitions",
-            &repetitions.to_string(),
-            "--rotation",
-            &rotation.to_string(),
-        ])
+        .args(&worker_args)
         .stdout(Stdio::from(fs::File::create(
             output.join("worker.stdout.log"),
         )?))
@@ -165,7 +189,7 @@ pub(super) fn run(arguments: &[String], dry_run: bool) -> Result<(), Box<dyn std
     fs::write(
         output.join("command.json"),
         serde_json::to_vec_pretty(
-            &serde_json::json!({"schema":"conduit.two-host-performance-command@1","source_commit":source,"source_custody_verified":custody,"worker":worker,"worker_sha256":worker_sha,"worker_exit_code":status.code(),"worker_success":status.success(),"conformance_success":true,"build_command":build,"features":feature,"role":"capture only; independent timing acceptance required"}),
+            &serde_json::json!({"schema":"conduit.two-host-performance-command@1","source_commit":source,"source_custody_verified":custody,"worker":worker,"worker_sha256":worker_sha,"worker_exit_code":status.code(),"worker_success":status.success(),"conformance_success":true,"build_command":build,"features":feature,"worker_arguments":worker_args,"environment":environment,"role":"capture only; independent timing acceptance required"}),
         )?,
     )?;
     if !status.success() || !custody {

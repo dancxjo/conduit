@@ -3,7 +3,9 @@
 mod evidence;
 mod transport;
 use evidence::PhaseClock;
-pub use evidence::{RemoteKernelEvidence, TwoHostKernelEvidence, TwoHostPhaseTiming};
+pub use evidence::{
+    RemoteKernelEvidence, TwoHostKernelEvidence, TwoHostLineTiming, TwoHostPhaseTiming,
+};
 
 use std::{collections::BTreeMap, io::Write};
 
@@ -15,7 +17,7 @@ use conduit_core::{
     LinkEndpoint, LinkEndpointId, LinkLimits, OfferGeneration, PlanId, SignId,
 };
 use conduit_planner::{PlacementChoice, PlacementChoices};
-use conduit_std_host::{InstalledRemoteFragment, StdHost, StdHostConfig};
+use conduit_std_host::{InstalledRemoteFragment, RemoteSignRetention, StdHost, StdHostConfig};
 
 use crate::{
     plot_source,
@@ -28,6 +30,42 @@ const SOURCE_BOOT: &str = "tour/std-source/boot-1";
 const SINK_BOOT: &str = "tour/std-sink/boot-1";
 // SessionBinding currently seals the first play of each exact fragment.
 const PLAY_SEQUENCE: u64 = 0;
+
+#[derive(Clone, Copy)]
+pub(super) enum Workload {
+    Text,
+    Ticks(u16),
+}
+impl Workload {
+    pub(super) fn count(self) -> u64 {
+        match self {
+            Self::Text => 1,
+            Self::Ticks(count) => u64::from(count),
+        }
+    }
+}
+
+/// Run a finite authored tick Flow over one established ordinary two-Std Line.
+/// Zero-duration waits are completed explicitly; no timer deadline is fabricated.
+/// The caller receives both kernels' complete retained lifecycle evidence.
+pub fn execute_hosted_two_std_tick_flow_with_evidence(
+    count: u16,
+    output: &mut impl Write,
+) -> Result<(HostedTwoHostExecution, TwoHostKernelEvidence), String> {
+    if !(1..=64).contains(&count) {
+        return Err("two-Host tick Flow count must be 1..=64".into());
+    }
+    let source = format!(
+        r#"plot warm_line {{
+ ticks: time/tick(count = {count}, period-ms = 0)
+ show: face/tick("Warm ticks")
+ ticks.tick >> show.tick
+}}
+"#
+    );
+    let (execution, evidence) = execute::<true>(&source, output, Workload::Ticks(count))?;
+    Ok((execution, evidence.ok_or("two-Host evidence missing")?))
+}
 
 pub struct HostedTwoHostExecution {
     pub source_document_id: conduit_core::SourceDocumentId,
@@ -47,7 +85,7 @@ pub fn execute_hosted_two_std_plot(
     source: &str,
     output: &mut impl Write,
 ) -> Result<HostedTwoHostExecution, String> {
-    execute::<false>(source, output).map(|(execution, _)| execution)
+    execute::<false>(source, output, Workload::Text).map(|(execution, _)| execution)
 }
 
 /// Execute the same admitted Source/Plan/Line path and retain both kernels'
@@ -57,13 +95,14 @@ pub fn execute_hosted_two_std_plot_with_evidence(
     source: &str,
     output: &mut impl Write,
 ) -> Result<(HostedTwoHostExecution, TwoHostKernelEvidence), String> {
-    let (execution, evidence) = execute::<true>(source, output)?;
+    let (execution, evidence) = execute::<true>(source, output, Workload::Text)?;
     Ok((execution, evidence.ok_or("two-Host evidence missing")?))
 }
 
 fn execute<const OBSERVE: bool>(
     source: &str,
     output: &mut impl Write,
+    workload: Workload,
 ) -> Result<(HostedTwoHostExecution, Option<TwoHostKernelEvidence>), String> {
     let mut clock = OBSERVE.then(PhaseClock::new);
     let plot = plot_source::parse(source)?.expand_entry()?;
@@ -89,7 +128,7 @@ fn execute<const OBSERVE: bool>(
         Vec::new(),
     )?;
     PhaseClock::mark(&mut clock, "host_advertisements_context")?;
-    let plan = context.plan_with_placements(&plot, &placements(&plot)?)?;
+    let plan = context.plan_with_placements(&plot, &placements(&plot, workload)?)?;
     PhaseClock::mark(&mut clock, "plan_select")?;
     let source_fragment = plan
         .fragments
@@ -111,10 +150,31 @@ fn execute<const OBSERVE: bool>(
         .iter()
         .find(|host| host.host_id.as_str() == SINK_HOST)
         .ok_or_else(|| "two-Host sink advertisement is missing".to_string())?;
-    let source_runtime =
-        InstalledRemoteFragment::prepare(source_advertisement, source_fragment, PLAY_SEQUENCE)?;
-    let sink_runtime =
-        InstalledRemoteFragment::prepare(sink_advertisement, sink_fragment, PLAY_SEQUENCE)?;
+    let retention = match workload {
+        Workload::Text => RemoteSignRetention::default(),
+        Workload::Ticks(count) => RemoteSignRetention {
+            event_items: count
+                .checked_mul(256)
+                .and_then(|n| n.checked_add(128))
+                .ok_or("tick Flow event reservation overflow")?,
+            remote_items: count
+                .checked_mul(3)
+                .and_then(|n| n.checked_add(1))
+                .ok_or("tick Flow identity reservation overflow")?,
+        },
+    };
+    let source_runtime = InstalledRemoteFragment::prepare_with_retention(
+        source_advertisement,
+        source_fragment,
+        PLAY_SEQUENCE,
+        retention,
+    )?;
+    let sink_runtime = InstalledRemoteFragment::prepare_with_retention(
+        sink_advertisement,
+        sink_fragment,
+        PLAY_SEQUENCE,
+        retention,
+    )?;
     let source_endpoint = transport::exact_endpoint(
         &source_runtime,
         conduit_plan_lowering::lowering::RemoteCordDirection::Egress,
@@ -129,14 +189,20 @@ fn execute<const OBSERVE: bool>(
         source_endpoint,
         sink_runtime,
         sink_endpoint,
+        workload,
     )?;
     PhaseClock::mark(&mut clock, "line_and_evidence_retention")?;
     output
         .write_all(&sink_output)
         .map_err(|error| error.to_string())?;
-    let result = core::str::from_utf8(&transfer.bytes)
-        .map_err(|_| "two-Host text is not UTF-8")?
-        .to_string();
+    let result = match workload {
+        Workload::Text => core::str::from_utf8(&transfer.bytes)
+            .map_err(|_| "two-Host text is not UTF-8")?
+            .to_string(),
+        Workload::Ticks(_) => conduit_time::decode_tick(&transfer.bytes)
+            .map_err(|_| "two-Host tick is malformed")?
+            .to_string(),
+    };
     let execution = HostedTwoHostExecution {
         source_document_id: plot.source_document_id,
         checked_plot_id: plot.checked_plot_id,
@@ -159,7 +225,8 @@ fn execute<const OBSERVE: bool>(
         )
         .active_play_id,
         line_id,
-        transferred_values: 1,
+        transferred_values: u32::try_from(workload.count())
+            .map_err(|_| "two-Host transfer count overflow")?,
         result,
     };
     PhaseClock::mark(&mut clock, "output_and_execution_receipt")?;
@@ -227,12 +294,25 @@ fn host(host_id: &str, boot_id: &str) -> StdHost {
     })
 }
 
-fn placements(plot: &conduit_plot::ExpandedCanonicalPlot) -> Result<PlacementChoices, String> {
+fn placements(
+    plot: &conduit_plot::ExpandedCanonicalPlot,
+    workload: Workload,
+) -> Result<PlacementChoices, String> {
     let mut by_gear = BTreeMap::new();
     for gear in &plot.gears {
         let (host, capability) = match gear.kind_id.as_str() {
-            conduit_text::TEXT_LITERAL_KIND => (SOURCE_HOST, "text-literal-v1"),
-            conduit_semantic_catalog::TEXT_FACE_KIND => (SINK_HOST, "face-text-v1"),
+            conduit_text::TEXT_LITERAL_KIND if matches!(workload, Workload::Text) => {
+                (SOURCE_HOST, "text-literal-v1")
+            }
+            conduit_semantic_catalog::TEXT_FACE_KIND if matches!(workload, Workload::Text) => {
+                (SINK_HOST, "face-text-v1")
+            }
+            conduit_time::TICK_KIND if matches!(workload, Workload::Ticks(_)) => {
+                (SOURCE_HOST, "time-tick-v2")
+            }
+            conduit_semantic_catalog::TICK_FACE_KIND if matches!(workload, Workload::Ticks(_)) => {
+                (SINK_HOST, "face-tick-v1")
+            }
             kind => return Err(format!("two-Host Tour does not implement kind '{kind}'")),
         };
         by_gear.insert(

@@ -86,9 +86,9 @@ publication continues to require those exact verified artifacts. PR admission
 never establishes stable acceptance or supplies publication receipts.
 
 Broad candidate admission uses the same complete parallel workspace unit shards
-as Integration, including workspace lint. The stable required `admission` check
-waits for their aggregate success, then runs the remaining feature-specific
-checks and integration smoke. Narrow changes retain affected-package admission.
+as Integration, including workspace lint. Remaining feature-specific checks and integration smoke run concurrently with
+those shards. The final completion gate requires both admission and every
+workspace shard to succeed. Narrow changes retain affected-package admission.
 A skipped, missing, failed or cancelled workspace aggregate cannot satisfy broad
 admission. Shard tests also compare their enabled package features with the
 workspace-wide feature inventory; the Std Host shard explicitly retains local
@@ -100,6 +100,10 @@ The integration matrix remains in `plan.mjs` and `targets.mjs`. Target proof
 failures do not cancel sibling lanes. Code tests have no retries; acquisition
 may have one bounded infrastructure retry. Browser acceptance retains pinned
 Chromium, one worker and zero retries.
+
+Descriptive JSON measurement receipts in the owned performance receipt directories are syntax-checked in preflight. They do not broaden mixed runtime changes to the entire workspace; runtime fixtures and unknown data paths remain conservative. Receipts never stand in for executing the required checks.
+
+Unit and admission jobs retain Rust compiler caches even after a failed check, so a test correction can reuse compiled dependencies. Cargo still validates its dependency fingerprints and every required check runs again. These are build caches, not accepted test results or release evidence; target proof caches retain their existing failure policy.
 
 ## On-demand runtime measurements
 

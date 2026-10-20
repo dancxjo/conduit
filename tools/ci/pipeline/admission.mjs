@@ -1,7 +1,14 @@
 import path from 'node:path';
 
+// These owned directories retain descriptive measurement outputs, never runtime
+// fixtures. Their JSON syntax is checked in preflight; checks still execute from
+// source and do not trust these records as passing results.
+export function isMeasurementReceipt(name) {
+  return /^proof\/performance\/(?:build-generators|signs|catalogue|line|browser|raster)\/[^/]+\.json$/.test(name);
+}
+
 function preflightOnly(name) {
-  return name.endsWith('.md') || name === 'LICENSE'
+  return isMeasurementReceipt(name) || name.endsWith('.md') || name === 'LICENSE'
     || /^(?:tools\/ci\/|proof\/ci\/).+\.(?:mjs|js)$/.test(name)
     || /^\.github\/workflows\/[^/]+\.ya?ml$/.test(name);
 }
@@ -49,6 +56,8 @@ export function admissionPlan(paths, metadata, root) {
 
 export function runAdmission(paths, metadata, root, run, { workspaceChecked = false } = {}) {
   const plan = admissionPlan(paths, metadata, root);
+  // In CI this corpus runs in independent unit jobs. The final workflow gate
+  // requires their success; this flag delegates work rather than trusting a cache.
   if (workspaceChecked && !plan.broad) throw new Error('parallel workspace proof is valid only for broad admission');
   if (paths.length && paths.every(preflightOnly)) return;
   const runtimePaths = paths.filter(name => !preflightOnly(name));

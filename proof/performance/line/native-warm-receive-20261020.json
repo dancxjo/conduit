@@ -1,0 +1,44 @@
+{
+  "source": "57d2af62f87392b9b4226007098b9e975d41c1d6",
+  "records": [
+    {
+      "borrowed": false,
+      "client_allocations": 66,
+      "client_reallocations": 0,
+      "client_receive_copy_bytes": 512,
+      "payload_bytes": 4096,
+      "peer_allocations": 66,
+      "peer_reallocations": 1,
+      "peer_receive_copy_bytes": 262144,
+      "rounds": 64,
+      "scope": "established loopback native WebSocket transport; excludes session codec/kernel and OS/framing copies",
+      "setup_ns": 5184567,
+      "warm_client_ns": 3299987,
+      "warm_peer_ns": 3301200,
+      "wire_application_bytes": 262656
+    },
+    {
+      "borrowed": true,
+      "client_allocations": 66,
+      "client_reallocations": 0,
+      "client_receive_copy_bytes": 0,
+      "payload_bytes": 4096,
+      "peer_allocations": 66,
+      "peer_reallocations": 1,
+      "peer_receive_copy_bytes": 0,
+      "rounds": 64,
+      "scope": "established loopback native WebSocket transport; excludes session codec/kernel and OS/framing copies",
+      "setup_ns": 200716,
+      "warm_client_ns": 1433477,
+      "warm_peer_ns": 1434166,
+      "wire_application_bytes": 262656
+    }
+  ],
+  "scope": "Persistent native WebSocket loopback transport only; not complete codec/kernel lifetime attribution. Body adoption separately passed two roundtrip/stale-Boot tests.",
+  "limitations": "One uncalibrated local pair with other activity. Setup excluded from warm metrics; no statistical throughput claim; allocation counts unchanged. Caller-buffer copy bytes only, excluding Tungstenite/OS and payload generation copies.",
+  "body_test_source": "8454e71f6b27ff2a467cf007bc8cb664f51aa684",
+  "schema": "conduit.performance/native-warm-websocket-receive@1",
+  "command": "cargo test --locked -p conduit-std-host --test warm_websocket_receive -- --include-ignored --nocapture --test-threads=1",
+  "profile": "test opt-level=1, dev/test debug=0, incremental=0, build jobs=2",
+  "result": "Two transport tests and two separate ordinary Body tests passed; caller-buffer receive copies removed with unchanged allocation counts."
+}

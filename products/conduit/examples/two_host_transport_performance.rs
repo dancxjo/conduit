@@ -1,6 +1,8 @@
 //! Bounded actual two-Host Source→Plan→kernels→WebSocket API lifetime probe.
 #[path = "two_host_transport_performance/allocation.rs"]
 mod allocation;
+#[path = "two_host_transport_performance/persistent.rs"]
+mod persistent;
 #[path = "two_host_transport_performance/retention.rs"]
 mod retention;
 use serde_json::json;
@@ -11,6 +13,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut output = None;
     let mut repetitions = 3usize;
     let mut rotation = 0usize;
+    let mut values = None;
     let mut args = std::env::args().skip(1);
     while let Some(option) = args.next() {
         let value = args.next().ok_or("missing argument value")?;
@@ -18,10 +21,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             "--output" => output = Some(PathBuf::from(value)),
             "--repetitions" => repetitions = value.parse()?,
             "--rotation" => rotation = value.parse()?,
+            "--values" => values = Some(value.parse::<u16>()?),
             _ => return Err(format!("unknown argument {option}").into()),
         }
     }
-    if !(1..=20).contains(&repetitions) || rotation > 2 {
+    if !(1..=20).contains(&repetitions)
+        || rotation > 2
+        || values.is_some_and(|n| !(1..=64).contains(&n) || rotation != 0)
+    {
         return Err("capture bounds refused".into());
     }
     let output = output.ok_or("--output required")?;
@@ -40,6 +47,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         || !git(&["status", "--porcelain"])?.is_empty()
     {
         return Err("worker requires its exact sealed clean source; enter through xtask".into());
+    }
+    if let Some(values) = values {
+        persistent::capture(&output, repetitions, values, &source_sha)?;
+        if git(&["rev-parse", "HEAD"])? != source_sha
+            || !git(&["status", "--porcelain"])?.is_empty()
+        {
+            return Err("source changed during persistent capture".into());
+        }
+        return Ok(());
     }
     let mut trials = fs::OpenOptions::new()
         .write(true)

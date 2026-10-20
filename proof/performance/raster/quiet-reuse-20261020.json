@@ -1,0 +1,371 @@
+{
+  "source_commit": "1850bb3740eec5bf64688153b5300281d90e200b",
+  "worker": "/home/dancxjo/Documents/Codex/2026-10-19/please-finish-and-close-https-github/work/raster-current-dev-worker",
+  "worker_sha256": "c35d3e5fd4508329e1703d067eee53f3c12656ccb062aaf3c5aff133d54fb00e",
+  "profile": "canonical release",
+  "status": "accepted-software-family",
+  "failure": null,
+  "clock": "std::time::Instant monotonic wall; nanosecond representation, not calibrated resolution",
+  "host": {
+    "system": "Linux",
+    "node": "victus",
+    "release": "7.0.0-38-generic",
+    "version": "#38-Ubuntu SMP PREEMPT_DYNAMIC Fri Sep  4 09:10:14 UTC 2026",
+    "machine": "x86_64",
+    "processor": ""
+  },
+  "paused_owned_build_processes": [],
+  "pause_scope": "Only own browser package build, resumed in finally; no other users processes paused. No other active compiler/VM admitted. Worker pinned to one allowed CPU.",
+  "process_cpu_activity": [
+    {
+      "pid": 1489,
+      "name": "NetworkManager",
+      "cpu_seconds": 0.01
+    },
+    {
+      "pid": 5497,
+      "name": "codex",
+      "cpu_seconds": 0.01
+    },
+    {
+      "pid": 6086,
+      "name": "ChatGPT",
+      "cpu_seconds": 0.01
+    },
+    {
+      "pid": 1450096,
+      "name": "kworker/u80:1-flush-259:0",
+      "cpu_seconds": 0.01
+    },
+    {
+      "pid": 1459167,
+      "name": "python3",
+      "cpu_seconds": 0.01
+    }
+  ],
+  "cpu_activity_scope": "Surviving processes sampled before/after; short-lived processes may be absent. Not proof of exclusive CPU reservation or physical latency.",
+  "command": [
+    "taskset",
+    "-c",
+    "19",
+    "/home/dancxjo/Documents/Codex/2026-10-19/please-finish-and-close-https-github/work/raster-current-dev-worker",
+    "native_compositor::raster_reuse::performance::retained_raster_performance",
+    "--ignored",
+    "--exact",
+    "--nocapture",
+    "--test-threads=1"
+  ],
+  "elapsed_ns": 539841722,
+  "all25_trials": [
+    {
+      "case": "full",
+      "repeat": 0,
+      "frames": 64,
+      "reference_ns": 15534300,
+      "retained_ns": 15728133,
+      "reference_pixels": 20170752,
+      "retained_pixels": 20170752,
+      "reference_commands": 320,
+      "retained_commands": 320
+    },
+    {
+      "case": "full",
+      "repeat": 1,
+      "frames": 64,
+      "reference_ns": 14956689,
+      "retained_ns": 15698349,
+      "reference_pixels": 20170752,
+      "retained_pixels": 20170752,
+      "reference_commands": 320,
+      "retained_commands": 320
+    },
+    {
+      "case": "full",
+      "repeat": 2,
+      "frames": 64,
+      "reference_ns": 14975428,
+      "retained_ns": 15260695,
+      "reference_pixels": 20170752,
+      "retained_pixels": 20170752,
+      "reference_commands": 320,
+      "retained_commands": 320
+    },
+    {
+      "case": "full",
+      "repeat": 3,
+      "frames": 64,
+      "reference_ns": 15090394,
+      "retained_ns": 15252752,
+      "reference_pixels": 20170752,
+      "retained_pixels": 20170752,
+      "reference_commands": 320,
+      "retained_commands": 320
+    },
+    {
+      "case": "full",
+      "repeat": 4,
+      "frames": 64,
+      "reference_ns": 15051989,
+      "retained_ns": 15212356,
+      "reference_pixels": 20170752,
+      "retained_pixels": 20170752,
+      "reference_commands": 320,
+      "retained_commands": 320
+    },
+    {
+      "case": "tiny",
+      "repeat": 0,
+      "frames": 64,
+      "reference_ns": 14882916,
+      "retained_ns": 290959,
+      "reference_pixels": 20170752,
+      "retained_pixels": 512,
+      "reference_commands": 320,
+      "retained_commands": 128
+    },
+    {
+      "case": "tiny",
+      "repeat": 1,
+      "frames": 64,
+      "reference_ns": 14985192,
+      "retained_ns": 290158,
+      "reference_pixels": 20170752,
+      "retained_pixels": 512,
+      "reference_commands": 320,
+      "retained_commands": 128
+    },
+    {
+      "case": "tiny",
+      "repeat": 2,
+      "frames": 64,
+      "reference_ns": 14893305,
+      "retained_ns": 287381,
+      "reference_pixels": 20170752,
+      "retained_pixels": 512,
+      "reference_commands": 320,
+      "retained_commands": 128
+    },
+    {
+      "case": "tiny",
+      "repeat": 3,
+      "frames": 64,
+      "reference_ns": 14900347,
+      "retained_ns": 291084,
+      "reference_pixels": 20170752,
+      "retained_pixels": 512,
+      "reference_commands": 320,
+      "retained_commands": 128
+    },
+    {
+      "case": "tiny",
+      "repeat": 4,
+      "frames": 64,
+      "reference_ns": 14910829,
+      "retained_ns": 290660,
+      "reference_pixels": 20170752,
+      "retained_pixels": 512,
+      "reference_commands": 320,
+      "retained_commands": 128
+    },
+    {
+      "case": "scroll",
+      "repeat": 0,
+      "frames": 64,
+      "reference_ns": 14906710,
+      "retained_ns": 11845252,
+      "reference_pixels": 20170752,
+      "retained_pixels": 6726656,
+      "reference_commands": 320,
+      "retained_commands": 128
+    },
+    {
+      "case": "scroll",
+      "repeat": 1,
+      "frames": 64,
+      "reference_ns": 14890329,
+      "retained_ns": 11839360,
+      "reference_pixels": 20170752,
+      "retained_pixels": 6726656,
+      "reference_commands": 320,
+      "retained_commands": 128
+    },
+    {
+      "case": "scroll",
+      "repeat": 2,
+      "frames": 64,
+      "reference_ns": 14889458,
+      "retained_ns": 11832766,
+      "reference_pixels": 20170752,
+      "retained_pixels": 6726656,
+      "reference_commands": 320,
+      "retained_commands": 128
+    },
+    {
+      "case": "scroll",
+      "repeat": 3,
+      "frames": 64,
+      "reference_ns": 14915648,
+      "retained_ns": 11830132,
+      "reference_pixels": 20170752,
+      "retained_pixels": 6726656,
+      "reference_commands": 320,
+      "retained_commands": 128
+    },
+    {
+      "case": "scroll",
+      "repeat": 4,
+      "frames": 64,
+      "reference_ns": 14892645,
+      "retained_ns": 11871159,
+      "reference_pixels": 20170752,
+      "retained_pixels": 6726656,
+      "reference_commands": 320,
+      "retained_commands": 128
+    },
+    {
+      "case": "hover",
+      "repeat": 0,
+      "frames": 64,
+      "reference_ns": 14874265,
+      "retained_ns": 458001,
+      "reference_pixels": 20170752,
+      "retained_pixels": 97536,
+      "reference_commands": 320,
+      "retained_commands": 128
+    },
+    {
+      "case": "hover",
+      "repeat": 1,
+      "frames": 64,
+      "reference_ns": 14863848,
+      "retained_ns": 455977,
+      "reference_pixels": 20170752,
+      "retained_pixels": 97536,
+      "reference_commands": 320,
+      "retained_commands": 128
+    },
+    {
+      "case": "hover",
+      "repeat": 2,
+      "frames": 64,
+      "reference_ns": 14862327,
+      "retained_ns": 455202,
+      "reference_pixels": 20170752,
+      "retained_pixels": 97536,
+      "reference_commands": 320,
+      "retained_commands": 128
+    },
+    {
+      "case": "hover",
+      "repeat": 3,
+      "frames": 64,
+      "reference_ns": 14859657,
+      "retained_ns": 452420,
+      "reference_pixels": 20170752,
+      "retained_pixels": 97536,
+      "reference_commands": 320,
+      "retained_commands": 128
+    },
+    {
+      "case": "hover",
+      "repeat": 4,
+      "frames": 64,
+      "reference_ns": 14880562,
+      "retained_ns": 454020,
+      "reference_pixels": 20170752,
+      "retained_pixels": 97536,
+      "reference_commands": 320,
+      "retained_commands": 128
+    },
+    {
+      "case": "typing",
+      "repeat": 0,
+      "frames": 64,
+      "reference_ns": 14958763,
+      "retained_ns": 441532,
+      "reference_pixels": 20174368,
+      "retained_pixels": 103456,
+      "reference_commands": 320,
+      "retained_commands": 128
+    },
+    {
+      "case": "typing",
+      "repeat": 1,
+      "frames": 64,
+      "reference_ns": 14957095,
+      "retained_ns": 443604,
+      "reference_pixels": 20174368,
+      "retained_pixels": 103456,
+      "reference_commands": 320,
+      "retained_commands": 128
+    },
+    {
+      "case": "typing",
+      "repeat": 2,
+      "frames": 64,
+      "reference_ns": 15500126,
+      "retained_ns": 447225,
+      "reference_pixels": 20174368,
+      "retained_pixels": 103456,
+      "reference_commands": 320,
+      "retained_commands": 128
+    },
+    {
+      "case": "typing",
+      "repeat": 3,
+      "frames": 64,
+      "reference_ns": 14977512,
+      "retained_ns": 442147,
+      "reference_pixels": 20174368,
+      "retained_pixels": 103456,
+      "reference_commands": 320,
+      "retained_commands": 128
+    },
+    {
+      "case": "typing",
+      "repeat": 4,
+      "frames": 64,
+      "reference_ns": 14965401,
+      "retained_ns": 444773,
+      "reference_pixels": 20174368,
+      "retained_pixels": 103456,
+      "reference_commands": 320,
+      "retained_commands": 128
+    }
+  ],
+  "native_conformance": "Candidate39388945960: all5nativeQEMUtargetjobs andunits passed; separate from localsoftwaretimingfamily.",
+  "previous_exclusion": "Earlier entire timing family excluded for compileractivity; retained earlier logs are not used as this quietfamily.",
+  "parser_correction": "Rust test harness prefixes first result with its test name. Initial parser omitted that row and reported an empty-message AssertionError. Raw run and controls preserved; reparsing the original log retains all25 rows. No timing rerun or sample exclusion was used to fix the parser.",
+  "case_medians": {
+    "full": {
+      "reference_ns": 15051989,
+      "retained_ns": 15260695,
+      "reference_pixels": 20170752,
+      "retained_pixels": 20170752
+    },
+    "tiny": {
+      "reference_ns": 14900347,
+      "retained_ns": 290660,
+      "reference_pixels": 20170752,
+      "retained_pixels": 512
+    },
+    "scroll": {
+      "reference_ns": 14892645,
+      "retained_ns": 11839360,
+      "reference_pixels": 20170752,
+      "retained_pixels": 6726656
+    },
+    "hover": {
+      "reference_ns": 14863848,
+      "retained_ns": 455202,
+      "reference_pixels": 20170752,
+      "retained_pixels": 97536
+    },
+    "typing": {
+      "reference_ns": 14965401,
+      "retained_ns": 443604,
+      "reference_pixels": 20174368,
+      "retained_pixels": 103456
+    }
+  }
+}

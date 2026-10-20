@@ -27,6 +27,8 @@ async function startEntrance() {
 }
 
 async function waitForBrowserHost(page) {
+  await page.locator("#usb-controls > summary").click();
+  await expect(page.locator("#usb")).toBeEnabled();
   await page.waitForFunction(() => globalThis.__conduitBrowserHost?.devices && globalThis.__conduitBrowserHost?.usbDevices);
 }
 
