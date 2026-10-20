@@ -53,18 +53,12 @@ pub(super) fn observe(
         "continue".into(),
         "printf \"MAGIC=%#x\\n\", $eax".into(),
         "printf \"INFO=%#x\\n\", $ebx".into(),
-        format!(
-            "dump binary memory {:?} $ebx $ebx+128",
-            input.to_str().ok_or_else(|| fail(
-                "graphics-probe-path-encoding",
-                "non-UTF8 debugger output path"
-            ))?
-        ),
+        "dump binary memory multiboot-information.bin $ebx $ebx+128".into(),
         "disconnect".into(),
     ];
     let stdout = output.join("debugger.log");
     let mut command = Command::new("gdb");
-    command.args(["-nx", "-batch"]);
+    command.current_dir(output).args(["-nx", "-batch"]);
     for operation in commands {
         command.arg("-ex").arg(operation);
     }

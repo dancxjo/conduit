@@ -59,7 +59,12 @@ Its 128-byte record follows the pinned Limine 12.5.2 structure, whose RGB fields
 begin at byte 112 after an explicit reserved word. A legacy text console is
 retained as text, not relabeled as linear graphics. Other architectures read the
 pinned Limine request through QMP, verify its guest ID/revision, and bound
-framebuffer/mode counts before following their pointers.
+framebuffer/mode counts before following their pointers. Discovery admits at most
+four framebuffer records and 128 modes per record (the retained x86 firmware
+actually offers 66). RISC-V requires a complete product or refusal line and
+100 ms of serial quiescence before pausing, to avoid reading a Root virtual
+address during an SBI console call. An unreadable address remains a refusal,
+never an absent framebuffer or graphical acceptance.
 
 The collector stops its own guest. Persistent human launch, checked surface and
 scanout admission, source-backed rendering, acknowledged Show, input journeys,

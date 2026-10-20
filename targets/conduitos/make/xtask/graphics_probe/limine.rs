@@ -1,7 +1,7 @@
 //! Decode immutable debugger observations. Discovery is never display admission.
 use super::elf;
 pub(super) const MAX_FRAMEBUFFERS: usize = 4;
-pub(super) const MAX_MODES: usize = 16;
+pub(super) const MAX_MODES: usize = 128;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Mode {
@@ -186,7 +186,7 @@ mod tests {
         excessive.insert(0x2000, vec![1, 5, 0]);
         assert_eq!(inspect(excessive), Err("framebuffer-count-bound"));
         let mut excessive = memory();
-        excessive.get_mut(&0x4000).unwrap()[8] = 17;
+        excessive.get_mut(&0x4000).unwrap()[8] = (MAX_MODES + 1) as u64;
         assert_eq!(inspect(excessive), Err("framebuffer-mode-count-bound"));
     }
     #[test]
@@ -224,7 +224,13 @@ mod tests {
             .collect();
         raw[..3].copy_from_slice(&[4096, 1024, 768]);
         map.insert(0x6000, raw);
+        // The retained standard-VGA firmware exposes 66 modes. Preserve the
+        // complete finite list rather than confusing the old 16-mode tooling
+        // limit with an unsupported product framebuffer.
+        map.get_mut(&0x4000).unwrap()[8] = 66;
+        map.insert(0x5000, vec![0x6000; 66]);
         let observation = inspect(map).unwrap();
+        assert_eq!(observation.framebuffers[0].modes.len(), 66);
         assert_eq!(observation.framebuffers[0].modes[0].height, 768);
         assert_eq!(observation.framebuffers[0].modes[0].blue, (8, 0));
     }

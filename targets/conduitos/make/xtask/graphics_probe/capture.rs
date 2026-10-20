@@ -12,6 +12,7 @@ use std::{
 };
 pub(super) const HANDOFF_SECONDS: u64 = 60;
 const SERIAL_BYTES: usize = 1024 * 1024;
+const RISCV_SERIAL_QUIET: Duration = Duration::from_millis(100);
 
 pub(super) fn observe(
     args: &ProbeArgs,
@@ -28,6 +29,8 @@ pub(super) fn observe(
         debugger::observe(guest, checkpoint, output)?
     } else {
         let deadline = Instant::now() + Duration::from_secs(HANDOFF_SECONDS);
+        let mut last_serial_size = 0;
+        let mut last_serial_change = Instant::now();
         loop {
             let mut serial = Vec::new();
             fs::File::open(&guest.serial)
@@ -41,7 +44,18 @@ pub(super) fn observe(
                     "serial transcript exceeds 1 MiB",
                 ));
             }
-            if String::from_utf8_lossy(&serial).contains("CONDUIT_") {
+            if serial.len() != last_serial_size {
+                last_serial_size = serial.len();
+                last_serial_change = Instant::now();
+            }
+            // SBI console calls temporarily execute in M-mode, where QEMU's
+            // virtual debugger cannot translate the Root kernel address. Wait
+            // for the complete product/refusal line and serial quiescence;
+            // unreadable memory still refuses, never becomes an absent GOP.
+            if checkpoint_ready(args.arch, &serial)
+                && (args.arch != ConduitosArch::Riscv64
+                    || last_serial_change.elapsed() >= RISCV_SERIAL_QUIET)
+            {
                 break;
             }
             if let Some(status) = guest.child.try_wait().map_err(io)? {
@@ -99,6 +113,17 @@ pub(super) fn observe(
         json!({"handoff":observation,"display":display,"graphical_show_proved":false,"elapsed_to_observed_display_ms":guest.started.elapsed().as_millis()}),
     )
 }
+fn checkpoint_ready(arch: ConduitosArch, serial: &[u8]) -> bool {
+    let text = String::from_utf8_lossy(serial);
+    if arch != ConduitosArch::Riscv64 {
+        return text.contains("CONDUIT_");
+    }
+    text.split_inclusive('\n').any(|line| {
+        line.ends_with('\n')
+            && (line.starts_with("CONDUIT_RISCV64_PRODUCT ")
+                || line.starts_with("CONDUIT_RISCV64_PRODUCT_REFUSAL "))
+    })
+}
 fn mode(mode: &limine::Mode) -> Value {
     json!({"width":mode.width,"height":mode.height,"pitch":mode.pitch,"bits_per_pixel":mode.bits_per_pixel,"memory_model":mode.memory_model,"red":mode.red,"green":mode.green,"blue":mode.blue})
 }
@@ -126,7 +151,7 @@ fn read_words(
     })
 }
 fn parse_words(text: &str, count: usize) -> Result<Vec<u64>, &'static str> {
-    if count > 16 || text.len() > 4096 {
+    if count > limine::MAX_MODES || text.len() > 16 * 1024 {
         return Err("graphics-probe-memory-bound");
     }
     let mut words = Vec::with_capacity(count);
@@ -154,6 +179,25 @@ fn parse_words(text: &str, count: usize) -> Result<Vec<u64>, &'static str> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn riscv_checkpoint_is_not_a_partial_line_or_an_active_domain_sign() {
+        assert!(!checkpoint_ready(
+            ConduitosArch::Riscv64,
+            b"CONDUIT_DOMAIN_COST {}\n"
+        ));
+        assert!(!checkpoint_ready(
+            ConduitosArch::Riscv64,
+            b"CONDUIT_RISCV64_PRODUCT {}"
+        ));
+        assert!(checkpoint_ready(
+            ConduitosArch::Riscv64,
+            b"CONDUIT_RISCV64_PRODUCT {}\r\n"
+        ));
+        assert!(checkpoint_ready(
+            ConduitosArch::Riscv64,
+            b"CONDUIT_RISCV64_PRODUCT_REFUSAL absent\n"
+        ));
+    }
     #[test]
     fn unreadable_extra_and_malformed_memory_never_become_zero_filled_responses() {
         assert_eq!(
