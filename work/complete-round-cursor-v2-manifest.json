@@ -1,0 +1,69 @@
+{
+  "base": "3c57aaae38b7fceb22854038eccb913f06f835fc",
+  "baseline": "exact current root files captured separately; preserve already-owned prelude",
+  "paths": [
+    {
+      "path": "semantics/language/src/analysis_fallback_io.rs",
+      "sha256": "8c55ab5ab4f8be83d6c1c1dacbd7218d73bd2f35cdd6a7734eeaeae905b7f26c",
+      "baseline_sha256": "91e280ef3b476e67efe3b8a4e5b9dadbd785655a51439e52fe4814e2f83d2531"
+    },
+    {
+      "path": "semantics/language/src/analysis_fallback_round.rs",
+      "sha256": "31f652a2df06f41a3188d83bebc9a5880503acfccce5403e6c3ad07b5b6e38ea",
+      "baseline_sha256": "ea37bbb7b4e2a5f2e453d3317ea77b37f7c26859fd766a8268f1bce6f376271b"
+    },
+    {
+      "path": "semantics/language/src/analysis_learned_round.rs",
+      "sha256": "6ca1987d617761fbc1a9fb51f750f19970107dcbaf6c734b837c95f3a999ec95",
+      "baseline_sha256": "5e04d04cfa7c61fda7793f025cd75f83c17f6f67894b2ba337c8d253a85ffa92"
+    },
+    {
+      "path": "semantics/language/src/analysis_round_cursor.rs",
+      "sha256": "115d21c3b58fac60a48e3754669790772b914ee6d7f77b21d32a2c4102416ad8",
+      "baseline_sha256": null
+    },
+    {
+      "path": "semantics/language/src/analysis_round_storage.rs",
+      "sha256": "e832a7fde99c50dd3e847fd55e792924e8a3c6b5fbc6844f6519b6117b931519",
+      "baseline_sha256": null
+    },
+    {
+      "path": "semantics/language/src/analysis_round_material.rs",
+      "sha256": "a5a112f7133091547910776652cd7687dbeb5f81859371c12ed4963819cdbc5a",
+      "baseline_sha256": null
+    },
+    {
+      "path": "semantics/language/src/analysis_round_machine.rs",
+      "sha256": "d5902ea1b09138d684cc7fc0f6d53d9705f886a644b90f1bbfccb5a174179f15",
+      "baseline_sha256": null
+    },
+    {
+      "path": "semantics/language/src/analysis_round_build.rs",
+      "sha256": "a34760add47712dc07008e5050b2b2f39dc944b73fe482be5d8048b8ba89b8ad",
+      "baseline_sha256": null
+    },
+    {
+      "path": "semantics/language/src/analysis_round_numeric.rs",
+      "sha256": "e308a8ed8172822931633b2c1cfcb2ef1a62bf82a930482863878108cbff9488",
+      "baseline_sha256": null
+    },
+    {
+      "path": "semantics/language/src/analysis_round_hosted.rs",
+      "sha256": "b5c4d5eb8ba6958c36f4bd657a8a9367f2d6050ac10f386c07e8eddf809d8ce8",
+      "baseline_sha256": null
+    },
+    {
+      "path": "semantics/language/tests/analysis_round_cursor.rs",
+      "sha256": "4bc129f2402ba477f1c4b044490878548b49814089704667dd18d76be5f83900",
+      "baseline_sha256": null
+    }
+  ],
+  "builds_run": false,
+  "requires": [
+    "full language_semantic_source getter",
+    "exact Core optional Native recognition",
+    "Native actual-occurrence template traversal (in preparation)"
+  ],
+  "version": 2,
+  "supersedes": "complete-round-cursor.patch v1; same exact baseline snapshots"
+}
