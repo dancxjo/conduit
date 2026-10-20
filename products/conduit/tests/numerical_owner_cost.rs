@@ -71,7 +71,7 @@ fn delta(before: Snapshot, after: Snapshot) -> serde_json::Value {
         "live_bytes_delta":after.live as i64-before.live as i64})
 }
 
-fn owner() -> NumericalFore {
+fn owner() -> (plot_source::CanonicalSource, NumericalFore) {
     let source = plot_source::parse(include_str!(
         "../../../plots/quantity-projection/main.conduit"
     ))
@@ -84,19 +84,20 @@ fn owner() -> NumericalFore {
     )
     .unwrap();
     let (host, plan) = preparation::prepare(&source, &checked, &authored).unwrap();
-    NumericalFore::from_plan(host, plan).unwrap()
+    (source, NumericalFore::from_plan(host, plan).unwrap())
 }
 #[test]
 #[ignore = "matched full-owner allocation/timing observation; run alone"]
 fn observe_numerical_owner() {
     let input = Quantity::parse_plot_literal("0.3m").unwrap();
-    let mut primer = owner();
+    let (primer_source, mut primer) = owner();
     primer.execute(input).unwrap();
     drop(primer.finish().unwrap());
+    drop(primer_source);
     let before = snapshot();
     PEAK.store(before.live, Relaxed);
     let cold_start = Instant::now();
-    let mut execution = owner();
+    let (source, mut execution) = owner();
     let cold_ns = cold_start.elapsed().as_nanos();
     let prepared = snapshot();
     let mut warm_ns = [0_u128; 32];
@@ -119,6 +120,7 @@ fn observe_numerical_owner() {
     let sidecars: usize = receipts.iter().map(|r| r.remote_lifecycle.len()).sum();
     assert!(events > 0 && sidecars > 0);
     drop(report);
+    drop(source);
     let disposed = snapshot();
     let peak = PEAK.load(Relaxed) - before.live;
     println!(

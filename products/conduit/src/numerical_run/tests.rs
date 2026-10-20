@@ -120,3 +120,88 @@ fn substituted_plan_and_replacement_host_cannot_start_the_numerical_owner() {
     );
     assert!(NumericalFore::from_plan(replacement, plan).is_err());
 }
+
+#[test]
+fn numerical_child_keeps_pending_output_until_the_exact_ack_and_cancels_without_replay() {
+    use conduit_composite::{
+        BoundedActivationAdmission as Admission, BoundedActivationState as State,
+    };
+    use conduit_std_host::flow_activation::{
+        install_reusable_planned_activation, standard_child_registry, StdActivationHost,
+    };
+    let (_, plan) = prepared();
+    let PlannedActivationEntry::Unary(planned) = &plan.activations[0] else {
+        panic!()
+    };
+    let fragment = &plan.fragments[0];
+    let mut host = StdActivationHost::new(
+        PreparationHostIdentity {
+            host_id: fragment.host_id.clone(),
+            boot_id: fragment.boot_id.clone(),
+            offer_generation: fragment.offer_generation,
+        },
+        standard_child_registry().unwrap(),
+    );
+    let mut receipts = prepare_plan_on_hosts(&plan, &mut [&mut host]).unwrap();
+    let mut each = install_reusable_planned_activation(
+        &plan,
+        &mut receipts,
+        &planned.activation_id,
+        &mut host,
+    )
+    .unwrap()
+    .into_unary()
+    .unwrap();
+    assert!(install_reusable_planned_activation(
+        &plan,
+        &mut receipts,
+        &planned.activation_id,
+        &mut host
+    )
+    .is_err());
+    each.bind_parent_play(&ActivePlayId::from("numerical/acceptance-control"))
+        .unwrap();
+    let input = ValuePayload {
+        value_kind: QUANTITY_INFO_ID.into(),
+        encoded: Quantity::new(3, Unit::Meter).encode().to_vec(),
+    };
+    assert_eq!(
+        each.activate(0, &input).unwrap(),
+        Admission::Accepted { sequence: 0 }
+    );
+    for _ in 0..8 {
+        if each.output().unwrap().is_some() {
+            break;
+        }
+        each.step().unwrap();
+    }
+    let (sequence, output) = each.output().unwrap().unwrap();
+    assert_eq!(sequence, 0);
+    let pending = output.clone();
+    assert!(each.complete_output(1).is_err());
+    assert_eq!(
+        each.activate(1, &input).unwrap(),
+        Admission::Full { sequence: 1 }
+    );
+    each.step().unwrap();
+    assert_eq!(each.output().unwrap().unwrap().1, &pending);
+    each.complete_output(0).unwrap();
+    for _ in 0..8 {
+        if each.step().unwrap() == &(State::Succeeded { sequence: 0 }) {
+            break;
+        }
+    }
+    assert!(each.activate(0, &input).is_err());
+    assert_eq!(
+        each.activate(1, &input).unwrap(),
+        Admission::Accepted { sequence: 1 }
+    );
+    each.cancel().unwrap();
+    assert!(each.activate(2, &input).is_err());
+    let evidence = each.child_sign_receipts().unwrap();
+    assert_eq!(evidence.len(), 2);
+    assert_ne!(
+        evidence[0].child_active_play_id,
+        evidence[1].child_active_play_id
+    );
+}
