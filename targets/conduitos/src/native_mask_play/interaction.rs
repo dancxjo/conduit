@@ -16,8 +16,8 @@ impl NativeMaskInteractionSession {
         &self.play.renderer.prepared_show
     }
 
-    #[cfg(test)]
-    pub fn render_receipt(&self) -> &NativeMaskPlayReceipt {
+    /// Only `complete_render` constructs this session, retaining its receipt.
+    pub(crate) fn render_receipt(&self) -> &NativeMaskPlayReceipt {
         self.play
             .receipt
             .as_ref()

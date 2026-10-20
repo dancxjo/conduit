@@ -31,7 +31,7 @@ impl FirmwareScanout {
         {
             return Err("aarch64-framebuffer-translation-regime-unsupported");
         }
-        let mapping = mapping::validate(virtual_start,physical_start,bytes,|address| {
+        let mapping = mapping::validate(virtual_start,physical_start,bytes as u64,|address| {
             let par: u64;
             unsafe { core::arch::asm!("at s1e1w, {address}","isb","mrs {par}, par_el1",address=in(reg) address,par=out(reg) par,options(nostack)); }
             par
