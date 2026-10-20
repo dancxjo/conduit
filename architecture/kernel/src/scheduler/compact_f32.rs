@@ -14,7 +14,7 @@ pub struct CompactF32Layout {
     pub logical_bytes: u32,
 }
 impl CompactF32Layout {
-    pub(super) fn physical_bytes(self) -> Result<u32, SchedulerError> {
+    pub(crate) fn physical_bytes(self) -> Result<u32, SchedulerError> {
         let bytes = u32::from(self.lanes) * 4;
         if bytes == 0 || bytes > self.logical_bytes {
             return Err(SchedulerError::InvalidPlan);
