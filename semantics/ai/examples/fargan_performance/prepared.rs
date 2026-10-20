@@ -65,11 +65,7 @@ fn retain_frame(
         profile,
         plan_sha,
     } = key;
-    let signs = result
-        .signs
-        .iter()
-        .map(|s| format!("{s:?}\n"))
-        .collect::<String>();
+    let signs = super::sign_text::render(&result.signs);
     let signs_file = format!("{profile}-{repetition}-{index}.signs.txt");
     std::fs::write(output.join(&signs_file), &signs)?;
     let values = result

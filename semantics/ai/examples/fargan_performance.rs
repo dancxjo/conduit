@@ -27,6 +27,8 @@ static ALLOCATOR: allocation::Allocator = allocation::Allocator;
 const STACK_BYTES: usize = 32 * 1024 * 1024;
 #[path = "fargan_performance/prepared.rs"]
 mod prepared_performance;
+#[path = "fargan_performance/sign_text.rs"]
+mod sign_text;
 use serde_json::json;
 use std::{cell::RefCell, path::PathBuf};
 
@@ -144,11 +146,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
             for (a, b) in next.flattened().iter().zip(case.next.flattened()) {
                 state_error = state_error.max((a - b).abs());
             }
-            let sign_text = result
-                .signs
-                .iter()
-                .map(|event| format!("{event:?}\n"))
-                .collect::<String>();
+            let sign_text = sign_text::render(&result.signs);
             let sign_sha = artifact::digest(sign_text.as_bytes());
             if repetition == 0 && index == 0 {
                 std::fs::write(output.join("signs-first-frame.txt"), &sign_text)?;
