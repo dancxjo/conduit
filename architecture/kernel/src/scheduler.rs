@@ -381,6 +381,20 @@ pub trait StepBack<const PORTS: usize> {
     fn compact_f32_output(&self) -> Option<(PortId, CompactF32Layout)> {
         None
     }
+    /// Exact prepared raw-buffer ownership support. The default has no transfer
+    /// permission. Once staged, the buffer stays available through commit or
+    /// rollback; a rejected Step must not consume the producer's pending value.
+    #[cfg(feature = "alloc")]
+    fn owns_compact_f32_output(&self, _port: PortId) -> bool {
+        false
+    }
+    #[cfg(feature = "alloc")]
+    fn prepared_compact_f32_output_mut(
+        &mut self,
+        _port: PortId,
+    ) -> Option<&mut alloc::vec::Vec<u8>> {
+        None
+    }
     /// Physical bytes staged by prepared or admitted compact publication. The storage
     /// belongs to this already-prepared Back and must remain unchanged until
     /// `step_committed`; the scheduler copies it into admitted value storage

@@ -161,6 +161,46 @@ impl HostedValueStore {
 }
 
 impl ValueStorage for HostedValueStore {
+    fn preflight_owned_compact_f32_outputs(
+        &self,
+        requests: &[(crate::scheduler::CompactF32Layout, u16)],
+    ) -> Result<(), StorageError> {
+        HostedValueStore::preflight_owned_compact_f32_outputs(self, requests)
+    }
+    fn prepare_owned_compact_f32_outputs(
+        &mut self,
+        requests: &[(crate::scheduler::CompactF32Layout, u16)],
+    ) -> Result<Vec<crate::PreparedCompactF32Output>, StorageError> {
+        HostedValueStore::prepare_owned_compact_f32_outputs(self, requests)
+    }
+    fn owned_compact_f32_available(
+        &self,
+        owner: &crate::PreparedCompactF32Output,
+    ) -> Result<bool, StorageError> {
+        HostedValueStore::owned_compact_f32_available(self, owner)
+    }
+    fn swap_owned_compact_f32(
+        &mut self,
+        owner: &crate::PreparedCompactF32Output,
+        bytes: &mut Vec<u8>,
+    ) -> Result<crate::PendingCompactF32Publication, StorageError> {
+        HostedValueStore::swap_owned_compact_f32(self, owner, bytes)
+    }
+    fn commit_owned_compact_f32(
+        &mut self,
+        owner: &crate::PreparedCompactF32Output,
+        pending: &mut crate::PendingCompactF32Publication,
+    ) -> Result<ValueRef, StorageError> {
+        HostedValueStore::commit_owned_compact_f32(self, owner, pending)
+    }
+    fn restore_owned_compact_f32(
+        &mut self,
+        owner: &crate::PreparedCompactF32Output,
+        pending: &mut crate::PendingCompactF32Publication,
+        bytes: &mut Vec<u8>,
+    ) -> Result<(), StorageError> {
+        HostedValueStore::restore_owned_compact_f32(self, owner, pending, bytes)
+    }
     fn compact_f32_available(&self, logical_bytes: u32) -> (u16, u32) {
         self.available_compact_f32(logical_bytes)
     }
@@ -249,6 +289,7 @@ impl ValueStorage for HostedValueStore {
                 *word = None;
             }
             self.clear_compact_layout(value.slot);
+            self.clear_owned_pending(usize::from(value.slot));
             self.used_items -= 1;
             self.used_bytes -= len;
             if self.slots[usize::from(value.slot)].generation == u16::MAX {
@@ -268,6 +309,7 @@ impl ValueStorage for HostedValueStore {
         }
         self.native_words.fill(None);
         self.compact_f32_lengths.fill(None);
+        self.reset_owned_pending();
         self.used_items = 0;
         self.used_bytes = 0;
         self.free_search_start = 0;

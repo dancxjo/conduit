@@ -16,6 +16,10 @@ impl PreparedCompactF32Output {
     pub fn layout(&self) -> CompactF32Layout {
         self.layout
     }
+    /// Heap backing retained by the opaque producer-pool handle.
+    pub fn reserved_storage_bytes(&self) -> usize {
+        self.slots.capacity() * core::mem::size_of::<u16>() + core::mem::size_of::<u8>()
+    }
     pub fn slot_count(&self) -> usize {
         self.slots.len()
     }

@@ -16,6 +16,16 @@ impl HostedValueStore {
             .get(slot)
             .is_some_and(Option::is_some)
     }
+    pub(super) fn clear_owned_pending(&mut self, index: usize) {
+        if let Some(Some(slot)) = self.owned_compact_slots.get_mut(index) {
+            slot.pending = false;
+        }
+    }
+    pub(super) fn reset_owned_pending(&mut self) {
+        for slot in self.owned_compact_slots.iter_mut().flatten() {
+            slot.pending = false;
+        }
+    }
     fn owned_store_identity(&self) -> Option<usize> {
         self.owned_compact_identity
             .as_deref()
