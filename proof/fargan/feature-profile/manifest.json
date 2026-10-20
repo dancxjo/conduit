@@ -1,0 +1,30 @@
+{
+  "profile": "speech/fargan-formant-spectral-approximation@1",
+  "element": "f32-le",
+  "matrix_order": "input-major",
+  "arrays": {
+    "bands161x18": {
+      "shape": [
+        161,
+        18
+      ],
+      "bytes": 11592,
+      "sha256": "f3e181ecfdf3a579b76699a0924efebbb2ba6e0a9837cb265a87e929c18da1c3"
+    },
+    "band_bias18": {
+      "shape": [
+        18
+      ],
+      "bytes": 72,
+      "sha256": "ccc8ef501158d683a793b5de106853c5d7a556205bc98003893c0c9d5c12f123"
+    },
+    "dct18x18": {
+      "shape": [
+        18,
+        18
+      ],
+      "bytes": 1296,
+      "sha256": "0ee4290f4ec2b3408882aefe5d379cd9a8e0050b319a0e67d297d22442b928a5"
+    }
+  }
+}
