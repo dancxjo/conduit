@@ -92,8 +92,7 @@ fn fore_changes_invalidate_checking_without_a_signature_generation_key() {
                     abnormal_kind: None,
                 }],
                 None,
-            )
-            .unwrap(),
+            ),
         )
         .unwrap();
     let changed = Arc::new(changed);
