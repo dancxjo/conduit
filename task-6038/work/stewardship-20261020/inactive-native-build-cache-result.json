@@ -1,0 +1,15 @@
+{
+  "cache": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-product-target",
+  "cleanup_log": "Removed 14009 files, 11.8GiB total",
+  "after_available_bytes": 66530861056,
+  "preserved_product_hashes": {
+    "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/outputs/5990-product-ed262de88/conduitos-x86_64.iso": "5b843b50caea67d1a74f73ce815bc9f1118c799185704bb3eec2a166da733ef1",
+    "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/outputs/5990-product-ed262de88/conduitos-kernel.elf": "f70e32f6fb38589a0ad9ea08e461a48594838bde28f3b654dadcf24087e0ea8b"
+  },
+  "source_worktrees": "three owned feature/CI/collection checkouts verified clean",
+  "active_builds_after": [],
+  "before_inventory": "Retained tool output at14:58:35: debug6.4G/release763M/x86_64-unknown-none3.6G; no active Cargo/Rust/QEMU process. All cached outputs regenerable, products/logs/Source preserved outside cache.",
+  "guard_error": "Inline process filter accidentally searched shell arguments and matched its own parent shell. Python assertion stopped before saving exact pre-clean bytes, but following newline shell command still ran cargo clean. No physical-free delta can be claimed; report Cargo removed total and current free space. Corrected process inventory parses comm separately. Future clean must be invoked inside successful guarded Python subprocess, never after an unguarded newline.",
+  "next_cache": "Separate work/native-panels-host-target; native checkout only after repair accepted and feature refreshed",
+  "finished_at": "2026-10-20T15:00:20Z"
+}

@@ -1,0 +1,22 @@
+{
+  "parent": "1336f7a9aac2a91a24b678f6874cc52e61b7a2b5",
+  "scope": "Inactive regenerable build-cache maintenance and explicit guard error record; products and raw proof logs preserved locally",
+  "files": [
+    {
+      "source": "work/5990-ed262de88-acceptance-audit.md",
+      "tree_path": "task-6038/work/5990-ed262de88-acceptance-audit.md",
+      "bytes": 5713,
+      "sha256": "a1bd765814afaacb8d7982ac0997863aa0c841a3fe5f2993bfb07d1b6e7406d6",
+      "mode": "100644",
+      "blob": "e06b898fb9598028720ffacc33bca53118eccb84"
+    },
+    {
+      "source": "work/stewardship-20261020/inactive-native-build-cache-result.json",
+      "tree_path": "task-6038/work/stewardship-20261020/inactive-native-build-cache-result.json",
+      "bytes": 1564,
+      "sha256": "4f27464601aa2fd1a2abe3fae669deea54fdc4879611c273c1689796e64184ce",
+      "mode": "100644",
+      "blob": "2f002bfa0b79637e968a585bed2b7c3ffba777f0"
+    }
+  ]
+}
