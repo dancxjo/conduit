@@ -49,7 +49,7 @@ fn default_std_graph_retains_exact_catalogues_across_preparation() {
         "STD_CATALOG_COMPATIBILITY={}",
         serde_json::json!({
             "workload": "ordinary Std Greet welcome; no numerical Play claim",
-            "plan_id": first.0, "output": first.1, "kernel_signs": first.2,
+            "plan_id": first.0, "output": first.1, "observations": first.2,
         })
     );
     println!("STD_CATALOG_PREPARATION={{\"scope\":\"default Std dependency graph numeric catalogue preparation; excludes Play and Host construction\",\"cold_allocations\":{},\"warm_allocations\":{},\"cold_reallocations\":{},\"warm_reallocations\":{},\"cold_peak_new_bytes\":{},\"warm_peak_new_bytes\":{},\"cold_ns\":{},\"warm_ns\":{},\"types\":{},\"contracts\":{}}}",
