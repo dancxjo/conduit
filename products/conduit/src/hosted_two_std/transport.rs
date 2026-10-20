@@ -72,7 +72,15 @@ fn drive_sink(
 ) -> Result<(), String> {
     for _ in 0..32 {
         if let Some(request) = runtime.next_host_request() {
-            return complete_text_face(runtime, request, output, workload);
+            complete_text_face(runtime, request, output, workload)?;
+            // Commit the accepted effect and release its retained ingress Value
+            // before Delivered permits the next transfer into the same slot.
+            return match runtime.step()? {
+                SchedulerStatus::Progress { .. } | SchedulerStatus::Drained => Ok(()),
+                state => Err(format!(
+                    "sink did not settle its completed effect: {state:?}"
+                )),
+            };
         }
         match runtime.step()? {
             SchedulerStatus::Progress { .. } => {}
