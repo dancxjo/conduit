@@ -283,6 +283,7 @@ jobs:
           name: diagnostics-${{ matrix.id }}
           path: |
             proof/browser/test-results/
+            target/pipeline/${{ matrix.id }}/**/*.json
             target/conduitos/**/*.log
             target/conduitos/**/*.json
             target/conduitos/**/*.png
