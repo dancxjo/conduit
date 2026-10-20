@@ -1,0 +1,14 @@
+{
+  "parent": "e70c6b6731d7b42575f02111885aa8c5ea841d7b",
+  "scope": "One explicitly approved native route boundary audit; raw proof products and logs excluded",
+  "files": [
+    {
+      "source": "work/6039-native-route-boundary-audit.md",
+      "tree_path": "task-6038/work/6039-native-route-boundary-audit.md",
+      "bytes": 2546,
+      "sha256": "410a771988080b25422006998b05422ab4b961a13a64aa5f664cf4e2351719d0",
+      "mode": "100644",
+      "blob": "0982100a839dd12a487caf499134293d29e0255b"
+    }
+  ]
+}
