@@ -5,7 +5,7 @@ mod allocation_probe;
 static ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;
 use conduit_std_host::websocket::{NativeWebSocketLine, NativeWebSocketListener};
 use std::{
-    sync::{Arc, Barrier},
+    sync::mpsc::sync_channel,
     time::{Duration, Instant},
 };
 const BYTES: usize = 4096;
@@ -35,8 +35,8 @@ fn established_native_line_compares_copy_and_borrow_without_reconnection() {
         let started = Instant::now();
         let listener = NativeWebSocketListener::bind_loopback(BYTES as u32).unwrap();
         let address = listener.local_addr().unwrap();
-        let ready = Arc::new(Barrier::new(2));
-        let peer_ready = ready.clone();
+        let (peer_ready, ready) = sync_channel(0);
+        let (start, peer_start) = sync_channel(0);
         let peer = std::thread::spawn(move || {
             let mut line = listener
                 .accept_with_timeout(Duration::from_secs(5))
@@ -44,7 +44,8 @@ fn established_native_line_compares_copy_and_borrow_without_reconnection() {
             line.set_read_timeout(Some(Duration::from_secs(5))).unwrap();
             let mut buffer = [0; BYTES];
             let mut payload = [0x5a; BYTES];
-            peer_ready.wait();
+            peer_ready.send(()).unwrap();
+            peer_start.recv_timeout(Duration::from_secs(5)).unwrap();
             let started = Instant::now();
             let (copied, allocation) = allocation_probe::observe(|| {
                 let mut copied = 0;
@@ -63,8 +64,9 @@ fn established_native_line_compares_copy_and_borrow_without_reconnection() {
         line.set_read_timeout(Some(Duration::from_secs(5))).unwrap();
         let mut payload = [0x5a; BYTES];
         let mut acknowledgement = [0; 8];
-        ready.wait();
+        ready.recv_timeout(Duration::from_secs(5)).unwrap();
         let setup_ns = started.elapsed().as_nanos();
+        start.send(()).unwrap();
         let started = Instant::now();
         let (copied, allocation) = allocation_probe::observe(|| {
             let mut copied = 0;
