@@ -59,6 +59,11 @@ pub mod flow_activation;
 pub mod pure_chain_fusion;
 pub use body_live_fore::{BodyLiveForeAdmission, BodyLiveForeQueue, BodyLiveForeStatus};
 mod host_execution;
+mod reluctant_replan;
+pub use reluctant_replan::{
+    StdReluctantReplanError, StdReluctantReplanOutcome, StdReluctantReplanRefusal,
+    StdReluctantReplanRequest, STD_REPLAN_PREVIOUS_EVIDENCE_CAPACITY,
+};
 pub mod hosted_audio;
 mod hosted_body_conversation_context;
 pub use hosted_body_conversation_context::{

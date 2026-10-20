@@ -42,7 +42,7 @@ pub const STEPS: &[Step] = &[
         "prove.resource-frame.replanning",
         "Check finite reluctant policy against reserved provider replacement costs and signed fixture forecasts",
         "cargo",
-        &["test", "--locked", "-p", "conduit-std-host", "--test", "reluctant_replan_policy", "--test", "resource_replacement_cost", "--test", "resource_replacement_scope"],
+        &["test", "--locked", "-p", "conduit-std-host", "--test", "reluctant_replan_policy", "--test", "reluctant_replan_execution", "--test", "resource_replacement_cost", "--test", "resource_replacement_scope"],
         None, None, Some(ProofClass::HostedIntegration), &[],
     ),
     Step::typed(
