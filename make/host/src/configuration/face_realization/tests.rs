@@ -1,8 +1,7 @@
 use crate::{
     check_host_configuration, parse_host_configuration_conduit, ConfigurationDiagnostic,
-    MakeCatalog, MakeContribution, MakePackageSet,
+    MakeCatalog, MakePackageSet,
 };
-const TARGET: &str = "conduitos/aarch64/virt";
 const NATIVE: &str = "presenter/native-graphical@1";
 const SOURCE: &str = r#"host anchored-display {
   schema = 1
@@ -13,27 +12,12 @@ const SOURCE: &str = r#"host anchored-display {
   limits = {static_memory_bytes: 8388608, heap_arena_bytes: 268435456, queue_items: 64, buffered_bytes: 16384, active_instances: 16, operation_slots: 64, timer_slots: 4, line_sessions: 1, evidence_items: 64}
 }"#;
 fn packages_and_catalog() -> (MakePackageSet, MakeCatalog) {
-    let mut contributions = crate::test_packages::test_package_set()
-        .contributions()
-        .to_vec();
-    for contribution in &mut contributions {
-        if let MakeContribution::Extension(extension) = contribution {
-            if extension.package_id == "linear-framebuffer-fixture@1" {
-                extension.compatible_target_patterns.push(TARGET.into());
-                extension.offers[0].target_patterns.push(TARGET.into());
-            }
-        }
-    }
-    let packages = MakePackageSet::from_contributions(contributions).unwrap();
-    let mut catalog = crate::test_packages::test_catalog().with_packages(&packages);
-    catalog
-        .presenters
-        .get_mut(NATIVE)
-        .unwrap()
-        .targets
-        .push(TARGET.into());
-    (packages, catalog)
+    (
+        crate::test_packages::test_package_set(),
+        crate::test_packages::test_catalog(),
+    )
 }
+
 #[test]
 fn explicitly_selected_surface_retains_anchor_and_adds_one_complete_realization() {
     let (packages, catalog) = packages_and_catalog();

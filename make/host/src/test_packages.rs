@@ -276,12 +276,20 @@ pub(crate) fn test_package_set() -> MakePackageSet {
             package_id: "linear-framebuffer-fixture@1".into(),
             package_revision: 1,
             catalog: Default::default(),
-            compatible_target_patterns: vec!["std/*/*".into(), "conduitos/x86_64/pc".into()],
+            compatible_target_patterns: vec![
+                "std/*/*".into(),
+                "conduitos/x86_64/pc".into(),
+                "conduitos/aarch64/virt".into(),
+            ],
             offers: vec![ImplementationOffer {
                 base_kind: "display/scanout".into(),
                 implementation_id: "display/linear-framebuffer@1".into(),
                 implementation_revision: 1,
-                target_patterns: vec!["std/x86_64/computer".into(), "conduitos/x86_64/pc".into()],
+                target_patterns: vec![
+                    "std/x86_64/computer".into(),
+                    "conduitos/x86_64/pc".into(),
+                    "conduitos/aarch64/virt".into(),
+                ],
                 prerequisites: Vec::new(),
                 build_feature: Some("base-linear-framebuffer".into()),
             }],
@@ -353,7 +361,11 @@ fn test_catalog_metadata() -> PackageCatalogContribution {
             (
                 "presenter/native-graphical@1".into(),
                 PresenterMetadata {
-                    targets: vec!["std/x86_64/computer".into(), "conduitos/x86_64/pc".into()],
+                    targets: vec![
+                        "std/x86_64/computer".into(),
+                        "conduitos/x86_64/pc".into(),
+                        "conduitos/aarch64/virt".into(),
+                    ],
                     prerequisites: vec![
                         PrerequisiteNode::HostCall("conduit.host/present@1".into()),
                         PrerequisiteNode::Facility("compositor/native@1".into()),
