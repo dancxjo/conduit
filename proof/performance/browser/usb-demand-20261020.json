@@ -1,0 +1,1053 @@
+{
+  "schema": "conduit.browser-usb-demand-observation@1",
+  "sources": {
+    "reference": "34077427aa190ff745b93e55733c93acced57b6e",
+    "candidate": "a8ab3554d522dc2c21630e213d45782ad475638b"
+  },
+  "workers": {
+    "reference": {
+      "url": "http://127.0.0.1:37163/",
+      "worker": "/home/dancxjo/Documents/Codex/2026-10-19/please-finish-and-close-https-github/work/browser-demand-reference-host",
+      "sha256": "fe41837f1b3e35a5e502665a7c43ad340910010cc70ec4b497a3d5a0431047d9",
+      "source": "34077427aa190ff745b93e55733c93acced57b6e"
+    },
+    "candidate": {
+      "url": "http://127.0.0.1:40963/",
+      "worker": "/home/dancxjo/Documents/Codex/2026-10-19/please-finish-and-close-https-github/work/browser-demand-candidate-host",
+      "sha256": "6e09fddaca797d84f84a68b0d7eabbad350fa2f4341e316ebd8717ce2a1cd0b6",
+      "source": "a8ab3554d522dc2c21630e213d45782ad475638b"
+    }
+  },
+  "runtime": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-19/please-finish-and-close-https-github/work/accepted-browser-1d/browser/host-release/runtime.wasm",
+    "sha256": "984fce564370b0fe45e1efd0525f219a717f9e60ae618d0d483703e6d64e6754",
+    "producer": "accepted release 1d1eca48d1478d4fae52246d6cff0da394a2b288; shared unchanged runtime fixture, not a fresh dev Wasm build"
+  },
+  "chromium": "151.0.7922.34",
+  "repetitions": 3,
+  "rows": [
+    {
+      "mode": "reference",
+      "repetition": 0,
+      "warmth": "fresh-context",
+      "success": true,
+      "initial": {
+        "ready": 84,
+        "focus": 118.10000002384186,
+        "resources": [
+          {
+            "path": "/host.mjs",
+            "transferSize": 4162,
+            "encodedBodySize": 3862,
+            "decodedBodySize": 3862,
+            "duration_ms": 2.799999952316284
+          },
+          {
+            "path": "/browser-host-bootstrap.mjs",
+            "transferSize": 1124,
+            "encodedBodySize": 824,
+            "decodedBodySize": 824,
+            "duration_ms": 0.8999999761581421
+          },
+          {
+            "path": "/browser-host-membership.mjs",
+            "transferSize": 5163,
+            "encodedBodySize": 4863,
+            "decodedBodySize": 4863,
+            "duration_ms": 0.7999999523162842
+          },
+          {
+            "path": "/browser-host-identity.mjs",
+            "transferSize": 5246,
+            "encodedBodySize": 4946,
+            "decodedBodySize": 4946,
+            "duration_ms": 0.6999999284744263
+          },
+          {
+            "path": "/runtime.wasm",
+            "transferSize": 15645878,
+            "encodedBodySize": 15645578,
+            "decodedBodySize": 15645578,
+            "duration_ms": 10.399999976158142
+          },
+          {
+            "path": "/media-host.mjs",
+            "transferSize": 7856,
+            "encodedBodySize": 7556,
+            "decodedBodySize": 7556,
+            "duration_ms": 0.7999999523162842
+          },
+          {
+            "path": "/device-base.mjs",
+            "transferSize": 15624,
+            "encodedBodySize": 15324,
+            "decodedBodySize": 15324,
+            "duration_ms": 0.7999999523162842
+          },
+          {
+            "path": "/usb-device-base.mjs",
+            "transferSize": 15915,
+            "encodedBodySize": 15615,
+            "decodedBodySize": 15615,
+            "duration_ms": 0.5
+          }
+        ],
+        "host_id": "browser/f8854a4a-050a-4769-b548-7a457daf63c4",
+        "boot_id": "browser-boot/e334576c-6c05-40f3-8eb5-a6ed80573662",
+        "wasm_memory_bytes": 12910592,
+        "js_heap": {
+          "used": 19300000,
+          "total": 19300000,
+          "scope": "Chromium approximate process heap; not isolated per document or peak memory"
+        },
+        "usb_initialized": true
+      },
+      "demand": null,
+      "page_errors": []
+    },
+    {
+      "mode": "reference",
+      "repetition": 0,
+      "warmth": "reused-context",
+      "success": true,
+      "initial": {
+        "ready": 74.79999995231628,
+        "focus": 95,
+        "resources": [
+          {
+            "path": "/host.mjs",
+            "transferSize": 4162,
+            "encodedBodySize": 3862,
+            "decodedBodySize": 3862,
+            "duration_ms": 0.8999999761581421
+          },
+          {
+            "path": "/browser-host-bootstrap.mjs",
+            "transferSize": 1124,
+            "encodedBodySize": 824,
+            "decodedBodySize": 824,
+            "duration_ms": 1
+          },
+          {
+            "path": "/browser-host-membership.mjs",
+            "transferSize": 5163,
+            "encodedBodySize": 4863,
+            "decodedBodySize": 4863,
+            "duration_ms": 0.7999999523162842
+          },
+          {
+            "path": "/browser-host-identity.mjs",
+            "transferSize": 5246,
+            "encodedBodySize": 4946,
+            "decodedBodySize": 4946,
+            "duration_ms": 0.7999999523162842
+          },
+          {
+            "path": "/runtime.wasm",
+            "transferSize": 15645878,
+            "encodedBodySize": 15645578,
+            "decodedBodySize": 15645578,
+            "duration_ms": 10.300000071525574
+          },
+          {
+            "path": "/media-host.mjs",
+            "transferSize": 7856,
+            "encodedBodySize": 7556,
+            "decodedBodySize": 7556,
+            "duration_ms": 0.7999999523162842
+          },
+          {
+            "path": "/device-base.mjs",
+            "transferSize": 15624,
+            "encodedBodySize": 15324,
+            "decodedBodySize": 15324,
+            "duration_ms": 0.5
+          },
+          {
+            "path": "/usb-device-base.mjs",
+            "transferSize": 15915,
+            "encodedBodySize": 15615,
+            "decodedBodySize": 15615,
+            "duration_ms": 0.5
+          }
+        ],
+        "host_id": "browser/f8854a4a-050a-4769-b548-7a457daf63c4",
+        "boot_id": "browser-boot/e0cf7441-deaf-4ec4-b617-55686a9d1f27",
+        "wasm_memory_bytes": 12910592,
+        "js_heap": {
+          "used": 19300000,
+          "total": 19300000,
+          "scope": "Chromium approximate process heap; not isolated per document or peak memory"
+        },
+        "usb_initialized": true
+      },
+      "demand": null,
+      "page_errors": []
+    },
+    {
+      "mode": "candidate",
+      "repetition": 0,
+      "warmth": "fresh-context",
+      "success": true,
+      "initial": {
+        "ready": 72.10000002384186,
+        "focus": 93.10000002384186,
+        "resources": [
+          {
+            "path": "/host.mjs",
+            "transferSize": 5216,
+            "encodedBodySize": 4916,
+            "decodedBodySize": 4916,
+            "duration_ms": 3.100000023841858
+          },
+          {
+            "path": "/browser-host-bootstrap.mjs",
+            "transferSize": 1124,
+            "encodedBodySize": 824,
+            "decodedBodySize": 824,
+            "duration_ms": 0.8999999761581421
+          },
+          {
+            "path": "/browser-host-membership.mjs",
+            "transferSize": 5163,
+            "encodedBodySize": 4863,
+            "decodedBodySize": 4863,
+            "duration_ms": 0.5
+          },
+          {
+            "path": "/browser-host-identity.mjs",
+            "transferSize": 5246,
+            "encodedBodySize": 4946,
+            "decodedBodySize": 4946,
+            "duration_ms": 0.7000000476837158
+          },
+          {
+            "path": "/runtime.wasm",
+            "transferSize": 15645878,
+            "encodedBodySize": 15645578,
+            "decodedBodySize": 15645578,
+            "duration_ms": 9.5
+          },
+          {
+            "path": "/media-host.mjs",
+            "transferSize": 7856,
+            "encodedBodySize": 7556,
+            "decodedBodySize": 7556,
+            "duration_ms": 0.7999999523162842
+          },
+          {
+            "path": "/device-base.mjs",
+            "transferSize": 15624,
+            "encodedBodySize": 15324,
+            "decodedBodySize": 15324,
+            "duration_ms": 0.5
+          }
+        ],
+        "host_id": "browser/86daddbe-666c-489c-a96a-7fa9591c3469",
+        "boot_id": "browser-boot/b9505b11-affc-4543-96d8-6018a173b3da",
+        "wasm_memory_bytes": 12910592,
+        "js_heap": {
+          "used": 18200000,
+          "total": 19300000,
+          "scope": "Chromium approximate process heap; not isolated per document or peak memory"
+        },
+        "usb_initialized": false
+      },
+      "demand": {
+        "usb_initialized": true,
+        "wasm_memory_bytes": 12910592,
+        "resource": [
+          {
+            "encodedBodySize": 15615,
+            "decodedBodySize": 15615,
+            "transferSize": 15915,
+            "duration_ms": 0.7999999523162842
+          }
+        ]
+      },
+      "page_errors": []
+    },
+    {
+      "mode": "candidate",
+      "repetition": 0,
+      "warmth": "reused-context",
+      "success": true,
+      "initial": {
+        "ready": 76.10000002384186,
+        "focus": 91.5,
+        "resources": [
+          {
+            "path": "/host.mjs",
+            "transferSize": 5216,
+            "encodedBodySize": 4916,
+            "decodedBodySize": 4916,
+            "duration_ms": 1.100000023841858
+          },
+          {
+            "path": "/browser-host-bootstrap.mjs",
+            "transferSize": 1124,
+            "encodedBodySize": 824,
+            "decodedBodySize": 824,
+            "duration_ms": 0.5999999046325684
+          },
+          {
+            "path": "/browser-host-membership.mjs",
+            "transferSize": 5163,
+            "encodedBodySize": 4863,
+            "decodedBodySize": 4863,
+            "duration_ms": 1
+          },
+          {
+            "path": "/browser-host-identity.mjs",
+            "transferSize": 5246,
+            "encodedBodySize": 4946,
+            "decodedBodySize": 4946,
+            "duration_ms": 0.5
+          },
+          {
+            "path": "/runtime.wasm",
+            "transferSize": 15645878,
+            "encodedBodySize": 15645578,
+            "decodedBodySize": 15645578,
+            "duration_ms": 12
+          },
+          {
+            "path": "/media-host.mjs",
+            "transferSize": 7856,
+            "encodedBodySize": 7556,
+            "decodedBodySize": 7556,
+            "duration_ms": 1.100000023841858
+          },
+          {
+            "path": "/device-base.mjs",
+            "transferSize": 15624,
+            "encodedBodySize": 15324,
+            "decodedBodySize": 15324,
+            "duration_ms": 0.7999999523162842
+          }
+        ],
+        "host_id": "browser/86daddbe-666c-489c-a96a-7fa9591c3469",
+        "boot_id": "browser-boot/867d5b00-013d-4eee-b7bb-1a7007fbdc34",
+        "wasm_memory_bytes": 12910592,
+        "js_heap": {
+          "used": 18200000,
+          "total": 19300000,
+          "scope": "Chromium approximate process heap; not isolated per document or peak memory"
+        },
+        "usb_initialized": false
+      },
+      "demand": {
+        "usb_initialized": true,
+        "wasm_memory_bytes": 12910592,
+        "resource": [
+          {
+            "encodedBodySize": 15615,
+            "decodedBodySize": 15615,
+            "transferSize": 15915,
+            "duration_ms": 1.100000023841858
+          }
+        ]
+      },
+      "page_errors": []
+    },
+    {
+      "mode": "candidate",
+      "repetition": 1,
+      "warmth": "fresh-context",
+      "success": true,
+      "initial": {
+        "ready": 72.5,
+        "focus": 91.10000002384186,
+        "resources": [
+          {
+            "path": "/host.mjs",
+            "transferSize": 5216,
+            "encodedBodySize": 4916,
+            "decodedBodySize": 4916,
+            "duration_ms": 2.6999999284744263
+          },
+          {
+            "path": "/browser-host-bootstrap.mjs",
+            "transferSize": 1124,
+            "encodedBodySize": 824,
+            "decodedBodySize": 824,
+            "duration_ms": 0.8999999761581421
+          },
+          {
+            "path": "/browser-host-membership.mjs",
+            "transferSize": 5163,
+            "encodedBodySize": 4863,
+            "decodedBodySize": 4863,
+            "duration_ms": 0.6000000238418579
+          },
+          {
+            "path": "/browser-host-identity.mjs",
+            "transferSize": 5246,
+            "encodedBodySize": 4946,
+            "decodedBodySize": 4946,
+            "duration_ms": 0.3999999761581421
+          },
+          {
+            "path": "/runtime.wasm",
+            "transferSize": 15645878,
+            "encodedBodySize": 15645578,
+            "decodedBodySize": 15645578,
+            "duration_ms": 9.399999976158142
+          },
+          {
+            "path": "/media-host.mjs",
+            "transferSize": 7856,
+            "encodedBodySize": 7556,
+            "decodedBodySize": 7556,
+            "duration_ms": 0.8999999761581421
+          },
+          {
+            "path": "/device-base.mjs",
+            "transferSize": 15624,
+            "encodedBodySize": 15324,
+            "decodedBodySize": 15324,
+            "duration_ms": 0.3999999761581421
+          }
+        ],
+        "host_id": "browser/a4047c56-43dd-4470-9dc3-a78f15095081",
+        "boot_id": "browser-boot/04362d68-1b90-4851-b12f-c453a348f0ae",
+        "wasm_memory_bytes": 12910592,
+        "js_heap": {
+          "used": 18200000,
+          "total": 19300000,
+          "scope": "Chromium approximate process heap; not isolated per document or peak memory"
+        },
+        "usb_initialized": false
+      },
+      "demand": {
+        "usb_initialized": true,
+        "wasm_memory_bytes": 12910592,
+        "resource": [
+          {
+            "encodedBodySize": 15615,
+            "decodedBodySize": 15615,
+            "transferSize": 15915,
+            "duration_ms": 1.100000023841858
+          }
+        ]
+      },
+      "page_errors": []
+    },
+    {
+      "mode": "candidate",
+      "repetition": 1,
+      "warmth": "reused-context",
+      "success": true,
+      "initial": {
+        "ready": 74.20000004768372,
+        "focus": 90.60000002384186,
+        "resources": [
+          {
+            "path": "/host.mjs",
+            "transferSize": 5216,
+            "encodedBodySize": 4916,
+            "decodedBodySize": 4916,
+            "duration_ms": 1
+          },
+          {
+            "path": "/browser-host-bootstrap.mjs",
+            "transferSize": 1124,
+            "encodedBodySize": 824,
+            "decodedBodySize": 824,
+            "duration_ms": 0.8999999761581421
+          },
+          {
+            "path": "/browser-host-membership.mjs",
+            "transferSize": 5163,
+            "encodedBodySize": 4863,
+            "decodedBodySize": 4863,
+            "duration_ms": 0.6000000238418579
+          },
+          {
+            "path": "/browser-host-identity.mjs",
+            "transferSize": 5246,
+            "encodedBodySize": 4946,
+            "decodedBodySize": 4946,
+            "duration_ms": 0.8000000715255737
+          },
+          {
+            "path": "/runtime.wasm",
+            "transferSize": 15645878,
+            "encodedBodySize": 15645578,
+            "decodedBodySize": 15645578,
+            "duration_ms": 10.600000023841858
+          },
+          {
+            "path": "/media-host.mjs",
+            "transferSize": 7856,
+            "encodedBodySize": 7556,
+            "decodedBodySize": 7556,
+            "duration_ms": 1
+          },
+          {
+            "path": "/device-base.mjs",
+            "transferSize": 15624,
+            "encodedBodySize": 15324,
+            "decodedBodySize": 15324,
+            "duration_ms": 0.7000000476837158
+          }
+        ],
+        "host_id": "browser/a4047c56-43dd-4470-9dc3-a78f15095081",
+        "boot_id": "browser-boot/6c7eeda5-e04f-4820-a28f-66b5fd5b4654",
+        "wasm_memory_bytes": 12910592,
+        "js_heap": {
+          "used": 18200000,
+          "total": 19300000,
+          "scope": "Chromium approximate process heap; not isolated per document or peak memory"
+        },
+        "usb_initialized": false
+      },
+      "demand": {
+        "usb_initialized": true,
+        "wasm_memory_bytes": 12910592,
+        "resource": [
+          {
+            "encodedBodySize": 15615,
+            "decodedBodySize": 15615,
+            "transferSize": 15915,
+            "duration_ms": 0.9000000953674316
+          }
+        ]
+      },
+      "page_errors": []
+    },
+    {
+      "mode": "reference",
+      "repetition": 1,
+      "warmth": "fresh-context",
+      "success": true,
+      "initial": {
+        "ready": 78,
+        "focus": 97.5,
+        "resources": [
+          {
+            "path": "/host.mjs",
+            "transferSize": 4162,
+            "encodedBodySize": 3862,
+            "decodedBodySize": 3862,
+            "duration_ms": 3.899999976158142
+          },
+          {
+            "path": "/browser-host-bootstrap.mjs",
+            "transferSize": 1124,
+            "encodedBodySize": 824,
+            "decodedBodySize": 824,
+            "duration_ms": 0.7000000476837158
+          },
+          {
+            "path": "/browser-host-membership.mjs",
+            "transferSize": 5163,
+            "encodedBodySize": 4863,
+            "decodedBodySize": 4863,
+            "duration_ms": 0.3999999761581421
+          },
+          {
+            "path": "/browser-host-identity.mjs",
+            "transferSize": 5246,
+            "encodedBodySize": 4946,
+            "decodedBodySize": 4946,
+            "duration_ms": 0.40000009536743164
+          },
+          {
+            "path": "/runtime.wasm",
+            "transferSize": 15645878,
+            "encodedBodySize": 15645578,
+            "decodedBodySize": 15645578,
+            "duration_ms": 12.199999928474426
+          },
+          {
+            "path": "/media-host.mjs",
+            "transferSize": 7856,
+            "encodedBodySize": 7556,
+            "decodedBodySize": 7556,
+            "duration_ms": 0.8999999761581421
+          },
+          {
+            "path": "/device-base.mjs",
+            "transferSize": 15624,
+            "encodedBodySize": 15324,
+            "decodedBodySize": 15324,
+            "duration_ms": 0.5
+          },
+          {
+            "path": "/usb-device-base.mjs",
+            "transferSize": 15915,
+            "encodedBodySize": 15615,
+            "decodedBodySize": 15615,
+            "duration_ms": 0.3999999761581421
+          }
+        ],
+        "host_id": "browser/fb4f6e88-c8bb-4d7e-bb13-96017fe6a227",
+        "boot_id": "browser-boot/78dacb99-dc15-411b-b231-4db9a1f3eb4d",
+        "wasm_memory_bytes": 12910592,
+        "js_heap": {
+          "used": 19300000,
+          "total": 19300000,
+          "scope": "Chromium approximate process heap; not isolated per document or peak memory"
+        },
+        "usb_initialized": true
+      },
+      "demand": null,
+      "page_errors": []
+    },
+    {
+      "mode": "reference",
+      "repetition": 1,
+      "warmth": "reused-context",
+      "success": true,
+      "initial": {
+        "ready": 75.39999997615814,
+        "focus": 93.89999997615814,
+        "resources": [
+          {
+            "path": "/host.mjs",
+            "transferSize": 4162,
+            "encodedBodySize": 3862,
+            "decodedBodySize": 3862,
+            "duration_ms": 0.6999999284744263
+          },
+          {
+            "path": "/browser-host-bootstrap.mjs",
+            "transferSize": 1124,
+            "encodedBodySize": 824,
+            "decodedBodySize": 824,
+            "duration_ms": 0.5
+          },
+          {
+            "path": "/browser-host-membership.mjs",
+            "transferSize": 5163,
+            "encodedBodySize": 4863,
+            "decodedBodySize": 4863,
+            "duration_ms": 0.7000000476837158
+          },
+          {
+            "path": "/browser-host-identity.mjs",
+            "transferSize": 5246,
+            "encodedBodySize": 4946,
+            "decodedBodySize": 4946,
+            "duration_ms": 0.8999999761581421
+          },
+          {
+            "path": "/runtime.wasm",
+            "transferSize": 15645878,
+            "encodedBodySize": 15645578,
+            "decodedBodySize": 15645578,
+            "duration_ms": 18.300000071525574
+          },
+          {
+            "path": "/media-host.mjs",
+            "transferSize": 7856,
+            "encodedBodySize": 7556,
+            "decodedBodySize": 7556,
+            "duration_ms": 0.8999999761581421
+          },
+          {
+            "path": "/device-base.mjs",
+            "transferSize": 15624,
+            "encodedBodySize": 15324,
+            "decodedBodySize": 15324,
+            "duration_ms": 0.6000000238418579
+          },
+          {
+            "path": "/usb-device-base.mjs",
+            "transferSize": 15915,
+            "encodedBodySize": 15615,
+            "decodedBodySize": 15615,
+            "duration_ms": 0.3999999761581421
+          }
+        ],
+        "host_id": "browser/fb4f6e88-c8bb-4d7e-bb13-96017fe6a227",
+        "boot_id": "browser-boot/092fc7aa-93dc-4d59-b4f9-363e8990a9a9",
+        "wasm_memory_bytes": 12910592,
+        "js_heap": {
+          "used": 19300000,
+          "total": 19300000,
+          "scope": "Chromium approximate process heap; not isolated per document or peak memory"
+        },
+        "usb_initialized": true
+      },
+      "demand": null,
+      "page_errors": []
+    },
+    {
+      "mode": "reference",
+      "repetition": 2,
+      "warmth": "fresh-context",
+      "success": true,
+      "initial": {
+        "ready": 73.29999995231628,
+        "focus": 92.59999990463257,
+        "resources": [
+          {
+            "path": "/host.mjs",
+            "transferSize": 4162,
+            "encodedBodySize": 3862,
+            "decodedBodySize": 3862,
+            "duration_ms": 4.5
+          },
+          {
+            "path": "/browser-host-bootstrap.mjs",
+            "transferSize": 1124,
+            "encodedBodySize": 824,
+            "decodedBodySize": 824,
+            "duration_ms": 0.8999999761581421
+          },
+          {
+            "path": "/browser-host-membership.mjs",
+            "transferSize": 5163,
+            "encodedBodySize": 4863,
+            "decodedBodySize": 4863,
+            "duration_ms": 0.7000000476837158
+          },
+          {
+            "path": "/browser-host-identity.mjs",
+            "transferSize": 5246,
+            "encodedBodySize": 4946,
+            "decodedBodySize": 4946,
+            "duration_ms": 0.5
+          },
+          {
+            "path": "/runtime.wasm",
+            "transferSize": 15645878,
+            "encodedBodySize": 15645578,
+            "decodedBodySize": 15645578,
+            "duration_ms": 9.399999976158142
+          },
+          {
+            "path": "/media-host.mjs",
+            "transferSize": 7856,
+            "encodedBodySize": 7556,
+            "decodedBodySize": 7556,
+            "duration_ms": 0.7999999523162842
+          },
+          {
+            "path": "/device-base.mjs",
+            "transferSize": 15624,
+            "encodedBodySize": 15324,
+            "decodedBodySize": 15324,
+            "duration_ms": 0.8999999761581421
+          },
+          {
+            "path": "/usb-device-base.mjs",
+            "transferSize": 15915,
+            "encodedBodySize": 15615,
+            "decodedBodySize": 15615,
+            "duration_ms": 0.6999999284744263
+          }
+        ],
+        "host_id": "browser/14cf8bcd-bd41-4c6d-89aa-4baa68852bee",
+        "boot_id": "browser-boot/a6e41e7b-dbb3-48e0-8b4d-679df9e3527b",
+        "wasm_memory_bytes": 12910592,
+        "js_heap": {
+          "used": 19300000,
+          "total": 19300000,
+          "scope": "Chromium approximate process heap; not isolated per document or peak memory"
+        },
+        "usb_initialized": true
+      },
+      "demand": null,
+      "page_errors": []
+    },
+    {
+      "mode": "reference",
+      "repetition": 2,
+      "warmth": "reused-context",
+      "success": true,
+      "initial": {
+        "ready": 72.5,
+        "focus": 92.69999992847443,
+        "resources": [
+          {
+            "path": "/host.mjs",
+            "transferSize": 4162,
+            "encodedBodySize": 3862,
+            "decodedBodySize": 3862,
+            "duration_ms": 1.100000023841858
+          },
+          {
+            "path": "/browser-host-bootstrap.mjs",
+            "transferSize": 1124,
+            "encodedBodySize": 824,
+            "decodedBodySize": 824,
+            "duration_ms": 0.5999999046325684
+          },
+          {
+            "path": "/browser-host-membership.mjs",
+            "transferSize": 5163,
+            "encodedBodySize": 4863,
+            "decodedBodySize": 4863,
+            "duration_ms": 0.7000000476837158
+          },
+          {
+            "path": "/browser-host-identity.mjs",
+            "transferSize": 5246,
+            "encodedBodySize": 4946,
+            "decodedBodySize": 4946,
+            "duration_ms": 0.6000000238418579
+          },
+          {
+            "path": "/runtime.wasm",
+            "transferSize": 15645878,
+            "encodedBodySize": 15645578,
+            "decodedBodySize": 15645578,
+            "duration_ms": 9.700000047683716
+          },
+          {
+            "path": "/media-host.mjs",
+            "transferSize": 7856,
+            "encodedBodySize": 7556,
+            "decodedBodySize": 7556,
+            "duration_ms": 0.8999999761581421
+          },
+          {
+            "path": "/device-base.mjs",
+            "transferSize": 15624,
+            "encodedBodySize": 15324,
+            "decodedBodySize": 15324,
+            "duration_ms": 0.6000000238418579
+          },
+          {
+            "path": "/usb-device-base.mjs",
+            "transferSize": 15915,
+            "encodedBodySize": 15615,
+            "decodedBodySize": 15615,
+            "duration_ms": 0.5
+          }
+        ],
+        "host_id": "browser/14cf8bcd-bd41-4c6d-89aa-4baa68852bee",
+        "boot_id": "browser-boot/4133232e-70b1-41c6-8ead-5a7072affa1d",
+        "wasm_memory_bytes": 12910592,
+        "js_heap": {
+          "used": 19300000,
+          "total": 19300000,
+          "scope": "Chromium approximate process heap; not isolated per document or peak memory"
+        },
+        "usb_initialized": true
+      },
+      "demand": null,
+      "page_errors": []
+    },
+    {
+      "mode": "candidate",
+      "repetition": 2,
+      "warmth": "fresh-context",
+      "success": true,
+      "initial": {
+        "ready": 74,
+        "focus": 95,
+        "resources": [
+          {
+            "path": "/host.mjs",
+            "transferSize": 5216,
+            "encodedBodySize": 4916,
+            "decodedBodySize": 4916,
+            "duration_ms": 2.899999976158142
+          },
+          {
+            "path": "/browser-host-bootstrap.mjs",
+            "transferSize": 1124,
+            "encodedBodySize": 824,
+            "decodedBodySize": 824,
+            "duration_ms": 0.8000000715255737
+          },
+          {
+            "path": "/browser-host-membership.mjs",
+            "transferSize": 5163,
+            "encodedBodySize": 4863,
+            "decodedBodySize": 4863,
+            "duration_ms": 0.7999999523162842
+          },
+          {
+            "path": "/browser-host-identity.mjs",
+            "transferSize": 5246,
+            "encodedBodySize": 4946,
+            "decodedBodySize": 4946,
+            "duration_ms": 0.3999999761581421
+          },
+          {
+            "path": "/runtime.wasm",
+            "transferSize": 15645878,
+            "encodedBodySize": 15645578,
+            "decodedBodySize": 15645578,
+            "duration_ms": 9
+          },
+          {
+            "path": "/media-host.mjs",
+            "transferSize": 7856,
+            "encodedBodySize": 7556,
+            "decodedBodySize": 7556,
+            "duration_ms": 1
+          },
+          {
+            "path": "/device-base.mjs",
+            "transferSize": 15624,
+            "encodedBodySize": 15324,
+            "decodedBodySize": 15324,
+            "duration_ms": 0.8999999761581421
+          }
+        ],
+        "host_id": "browser/bcbbd629-3706-43a5-bc1c-bdaf712c5e31",
+        "boot_id": "browser-boot/a38193e8-f1fa-4180-8982-f83f7b656be3",
+        "wasm_memory_bytes": 12910592,
+        "js_heap": {
+          "used": 18200000,
+          "total": 19300000,
+          "scope": "Chromium approximate process heap; not isolated per document or peak memory"
+        },
+        "usb_initialized": false
+      },
+      "demand": {
+        "usb_initialized": true,
+        "wasm_memory_bytes": 12910592,
+        "resource": [
+          {
+            "encodedBodySize": 15615,
+            "decodedBodySize": 15615,
+            "transferSize": 15915,
+            "duration_ms": 1.0999999046325684
+          }
+        ]
+      },
+      "page_errors": []
+    },
+    {
+      "mode": "candidate",
+      "repetition": 2,
+      "warmth": "reused-context",
+      "success": true,
+      "initial": {
+        "ready": 72.09999990463257,
+        "focus": 88.59999990463257,
+        "resources": [
+          {
+            "path": "/host.mjs",
+            "transferSize": 5216,
+            "encodedBodySize": 4916,
+            "decodedBodySize": 4916,
+            "duration_ms": 0.7999999523162842
+          },
+          {
+            "path": "/browser-host-bootstrap.mjs",
+            "transferSize": 1124,
+            "encodedBodySize": 824,
+            "decodedBodySize": 824,
+            "duration_ms": 0.5
+          },
+          {
+            "path": "/browser-host-membership.mjs",
+            "transferSize": 5163,
+            "encodedBodySize": 4863,
+            "decodedBodySize": 4863,
+            "duration_ms": 0.7000000476837158
+          },
+          {
+            "path": "/browser-host-identity.mjs",
+            "transferSize": 5246,
+            "encodedBodySize": 4946,
+            "decodedBodySize": 4946,
+            "duration_ms": 0.5
+          },
+          {
+            "path": "/runtime.wasm",
+            "transferSize": 15645878,
+            "encodedBodySize": 15645578,
+            "decodedBodySize": 15645578,
+            "duration_ms": 9.599999904632568
+          },
+          {
+            "path": "/media-host.mjs",
+            "transferSize": 7856,
+            "encodedBodySize": 7556,
+            "decodedBodySize": 7556,
+            "duration_ms": 0.7000000476837158
+          },
+          {
+            "path": "/device-base.mjs",
+            "transferSize": 15624,
+            "encodedBodySize": 15324,
+            "decodedBodySize": 15324,
+            "duration_ms": 0.5
+          }
+        ],
+        "host_id": "browser/bcbbd629-3706-43a5-bc1c-bdaf712c5e31",
+        "boot_id": "browser-boot/57e03339-64ce-431a-9c61-ff4371d0dd0b",
+        "wasm_memory_bytes": 12910592,
+        "js_heap": {
+          "used": 18200000,
+          "total": 19300000,
+          "scope": "Chromium approximate process heap; not isolated per document or peak memory"
+        },
+        "usb_initialized": false
+      },
+      "demand": {
+        "usb_initialized": true,
+        "wasm_memory_bytes": 12910592,
+        "resource": [
+          {
+            "encodedBodySize": 15615,
+            "decodedBodySize": 15615,
+            "transferSize": 15915,
+            "duration_ms": 1.1999999284744263
+          }
+        ]
+      },
+      "page_errors": []
+    }
+  ],
+  "protocol": "Alternating candidate/reference order, one fresh then reused browser context per source per repetition. Servers send Cache-Control:no-store; reused context means browser/Wasm compiler reuse, not a claimed HTTP cache hit. Exact same four Tab keys acknowledge serial focus. First usable focus includes automation/polling latency. Adapter request/bytes observed with ResourceTiming; memory reports exact per-instance Wasm buffer and approximate non-isolated Chromium JS heap.",
+  "environment": "Shared machine with concurrent Rust release build; no calibrated latency or CPU claim.",
+  "limits": [
+    "Not a complete newly built dev browser distribution",
+    "No physical USB device or permission chooser was invoked by this observation",
+    "No measured browser RSS/peak live memory"
+  ],
+  "excluded_attempts": [
+    {
+      "log": "work/browser-demand-measurement.log",
+      "result": "Chromium target crashed before the first Host became visible; no retained measurement trial. Default temporary directory used; retry uses explicit workspace TMPDIR. Cause not established by this report."
+    }
+  ],
+  "summary": {
+    "reference": {
+      "initial_encoded_resource_bytes": [
+        15698568,
+        15698568,
+        15698568,
+        15698568,
+        15698568,
+        15698568
+      ],
+      "initial_usb_fetches": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    "candidate": {
+      "initial_encoded_resource_bytes": [
+        15684007,
+        15684007,
+        15684007,
+        15684007,
+        15684007,
+        15684007
+      ],
+      "initial_usb_fetches": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    }
+  }
+}
