@@ -87,6 +87,21 @@ impl BoundedActivationHost {
         definition: &KernelCompositeDefinition,
         ready: Vec<KernelCompositeHost>,
     ) -> Result<Self, BoundedActivationError> {
+        Self::prepare_planned_mode(planned, definition, ready, false)
+    }
+    pub(crate) fn prepare_planned_reusable_with_ready(
+        planned: &PlannedActivation,
+        definition: &KernelCompositeDefinition,
+        ready: Vec<KernelCompositeHost>,
+    ) -> Result<Self, BoundedActivationError> {
+        Self::prepare_planned_mode(planned, definition, ready, true)
+    }
+    fn prepare_planned_mode(
+        planned: &PlannedActivation,
+        definition: &KernelCompositeDefinition,
+        ready: Vec<KernelCompositeHost>,
+        reusable: bool,
+    ) -> Result<Self, BoundedActivationError> {
         let contract = BoundedActivationContract::for_definition(
             definition,
             planned.input.front_port_id.clone(),
@@ -100,15 +115,25 @@ impl BoundedActivationHost {
         {
             return Err(BoundedActivationError::PlannedContractMismatch);
         }
-        Self::prepare_with_ready(contract, ready)
+        let mut activation = Self::prepare_ready_mode(contract, ready, reusable)?;
+        activation.activation_id = Some(planned.activation_id.clone());
+        Ok(activation)
     }
 
     fn prepare_with_ready(
         contract: BoundedActivationContract,
         ready: Vec<KernelCompositeHost>,
     ) -> Result<Self, BoundedActivationError> {
+        Self::prepare_ready_mode(contract, ready, false)
+    }
+    fn prepare_ready_mode(
+        contract: BoundedActivationContract,
+        mut ready: Vec<KernelCompositeHost>,
+        reusable: bool,
+    ) -> Result<Self, BoundedActivationError> {
         let maximum_items = usize::from(contract.maximum_items);
-        if ready.len() != maximum_items || ready.capacity() != maximum_items {
+        let expected = if reusable { 1 } else { maximum_items };
+        if maximum_items == 0 || ready.len() != expected || ready.capacity() != expected {
             return Err(BoundedActivationError::PlannedContractMismatch);
         }
         let output_buffer = ValuePayload {
@@ -123,10 +148,23 @@ impl BoundedActivationHost {
                     value_kind,
                     encoded: Vec::with_capacity(contract.maximum_queue_bytes as usize),
                 });
+        let reusable = if reusable {
+            let pool = crate::reusable_value_pool::ReusableValuePool::new(
+                ready.pop().unwrap(),
+                contract.maximum_items,
+            )?;
+            ready = Vec::new();
+            Some(Box::new(pool))
+        } else {
+            None
+        };
         Ok(Self {
             contract,
             ready,
-            receipts: Vec::with_capacity(maximum_items),
+            receipts: Vec::with_capacity(if reusable.is_some() { 0 } else { maximum_items }),
+            reusable,
+            activation_id: None,
+            parent_play: None,
             active: None,
             input_close_pending: false,
             output_completed: false,

@@ -1,7 +1,9 @@
 //! Bounded activation lifecycle and terminal propagation.
 use crate::prelude::*;
 mod contract;
+mod inspection;
 mod preparation;
+mod reusable;
 #[cfg_attr(not(feature = "fixture-registry-preparation"), allow(unused_imports))]
 use crate::{
     AdmittedKernelCompositeHostRequest, KernelCompositeError, KernelCompositeHost,
@@ -82,6 +84,9 @@ pub enum BoundedActivationFault {
 pub struct BoundedActivationHost {
     contract: BoundedActivationContract,
     ready: Vec<KernelCompositeHost>,
+    reusable: Option<Box<crate::reusable_value_pool::ReusableValuePool>>,
+    activation_id: Option<String>,
+    parent_play: Option<conduit_core::ActivePlayId>,
     receipts: Vec<KernelCompositeHost>,
     active: Option<KernelCompositeHost>,
     input_close_pending: bool,
@@ -112,6 +117,9 @@ impl BoundedActivationHost {
         sequence: u64,
         value: &ValuePayload,
     ) -> Result<BoundedActivationAdmission, BoundedActivationError> {
+        if self.reusable.is_some() {
+            return self.activate_reusable(sequence, value);
+        }
         if self.pending_input_terminal.is_some()
             || matches!(
                 self.state,
@@ -172,10 +180,13 @@ impl BoundedActivationHost {
         if self.state != (BoundedActivationState::Active { sequence }) {
             return Err(BoundedActivationError::InvalidLifecycle);
         }
+        let output_sequence = self
+            .output_sequence
+            .ok_or(BoundedActivationError::InvalidLifecycle)?;
         self.active
             .as_mut()
             .ok_or(BoundedActivationError::InvalidLifecycle)?
-            .complete_output(&self.contract.output_port, 0)
+            .complete_output(&self.contract.output_port, output_sequence)
             .map_err(BoundedActivationError::Refused)?;
         self.output_completed = true;
         self.output_sequence = None;
@@ -200,7 +211,7 @@ impl BoundedActivationHost {
                 if self.input_close_pending {
                     if let Err(fault) = activation.close_input(&self.contract.input_port) {
                         let completed = self.active.take().expect("active child was borrowed");
-                        self.receipts.push(completed);
+                        self.retire_child(completed);
                         self.input_close_pending = false;
                         self.state = BoundedActivationState::Faulted {
                             sequence,
@@ -226,17 +237,21 @@ impl BoundedActivationHost {
                             .expect("planned abnormal buffer")
                     });
                 let completed = self.active.take().expect("active child was borrowed");
-                self.receipts.push(completed);
+                self.retire_child(completed);
                 self.input_close_pending = false;
                 self.state =
                     activation_terminal_state(sequence, terminal, abnormal, self.output_completed);
-                if !matches!(self.state, BoundedActivationState::Succeeded { .. }) {
+                if matches!(self.state, BoundedActivationState::Succeeded { .. }) {
+                    if let Some(pool) = &mut self.reusable {
+                        pool.advance()?;
+                    }
+                } else {
                     self.pending_input_terminal = None;
                 }
             }
             Ok(KernelCompositeStatus::Cancelled) => {
                 let completed = self.active.take().expect("active child was borrowed");
-                self.receipts.push(completed);
+                self.retire_child(completed);
                 self.input_close_pending = false;
                 self.state = BoundedActivationState::Cancelled {
                     sequence: Some(sequence),
@@ -244,7 +259,7 @@ impl BoundedActivationHost {
             }
             Err(fault) => {
                 let completed = self.active.take().expect("active child was borrowed");
-                self.receipts.push(completed);
+                self.retire_child(completed);
                 self.input_close_pending = false;
                 self.state = BoundedActivationState::Faulted {
                     sequence,
@@ -256,6 +271,13 @@ impl BoundedActivationHost {
     }
 
     pub fn cancel(&mut self) -> Result<(), BoundedActivationError> {
+        if self.reusable.is_some() && self.active.is_none() {
+            self.state = BoundedActivationState::Cancelled { sequence: None };
+            self.pending_input_terminal = None;
+            self.output_sequence = None;
+            self.output_completed = false;
+            return Ok(());
+        }
         let sequence = match self.state {
             BoundedActivationState::Active { sequence } => Some(sequence),
             BoundedActivationState::Idle => None,
@@ -268,7 +290,7 @@ impl BoundedActivationHost {
             .map(KernelCompositeHost::cancel)
             .transpose();
         if let Some(cancelled) = self.active.take() {
-            self.receipts.push(cancelled);
+            self.retire_child(cancelled);
         }
         self.input_close_pending = false;
         self.output_completed = false;
@@ -277,116 +299,6 @@ impl BoundedActivationHost {
         cancellation
             .map(|_| ())
             .map_err(BoundedActivationError::Refused)
-    }
-
-    pub fn next_host_request(&mut self) -> Option<KernelCompositeHostRequest> {
-        self.active.as_mut()?.next_host_request()
-    }
-
-    pub fn host_request_obligation(
-        &self,
-        request: &KernelCompositeHostRequest,
-    ) -> Result<&crate::KernelCompositeHostCallObligation, BoundedActivationError> {
-        self.active
-            .as_ref()
-            .ok_or(BoundedActivationError::InvalidLifecycle)?
-            .host_request_obligation(request)
-            .map_err(BoundedActivationError::Refused)
-    }
-
-    pub fn host_request_view(
-        &self,
-        request: &KernelCompositeHostRequest,
-    ) -> Result<crate::KernelCompositeHostRequestView<'_>, BoundedActivationError> {
-        self.active
-            .as_ref()
-            .ok_or(BoundedActivationError::InvalidLifecycle)?
-            .host_request_view(request)
-            .map_err(BoundedActivationError::Refused)
-    }
-
-    pub fn admit_host_request(
-        &self,
-        request: &KernelCompositeHostRequest,
-        host: &conduit_core::PreparationHostIdentity,
-        resources: &[conduit_core::ResourceBinding],
-        authorities: &[conduit_core::AuthorityBinding],
-    ) -> Result<AdmittedKernelCompositeHostRequest, BoundedActivationError> {
-        self.active
-            .as_ref()
-            .ok_or(BoundedActivationError::InvalidLifecycle)?
-            .admit_host_request(request, host, resources, authorities)
-            .map_err(BoundedActivationError::Refused)
-    }
-
-    pub fn complete_host_call(
-        &mut self,
-        request: &AdmittedKernelCompositeHostRequest,
-        outcome: HostCallOutcome,
-    ) -> Result<(), BoundedActivationError> {
-        self.active
-            .as_mut()
-            .ok_or(BoundedActivationError::InvalidLifecycle)?
-            .complete_host_call(request, outcome)
-            .map_err(BoundedActivationError::Refused)
-    }
-
-    pub fn host_request_input(
-        &self,
-        request: &AdmittedKernelCompositeHostRequest,
-    ) -> Result<&[u8], BoundedActivationError> {
-        self.active
-            .as_ref()
-            .ok_or(BoundedActivationError::InvalidLifecycle)?
-            .host_request_input(request)
-            .map_err(BoundedActivationError::Refused)
-    }
-
-    pub fn complete_host_call_bytes(
-        &mut self,
-        request: &AdmittedKernelCompositeHostRequest,
-        bytes: &[u8],
-    ) -> Result<(), BoundedActivationError> {
-        self.active
-            .as_mut()
-            .ok_or(BoundedActivationError::InvalidLifecycle)?
-            .complete_host_call_bytes(request, bytes)
-            .map_err(BoundedActivationError::Refused)
-    }
-
-    pub fn signs(&self) -> BTreeMap<conduit_core::HostId, Vec<KernelEvent>> {
-        let mut signs = BTreeMap::new();
-        for receipt in self.receipts.iter().chain(self.active.iter()) {
-            for (host, events) in receipt.signs() {
-                signs.entry(host).or_insert_with(Vec::new).extend(events);
-            }
-        }
-        signs
-    }
-
-    pub fn allocation_capacities(&self) -> (usize, usize) {
-        (self.ready.capacity(), self.receipts.capacity())
-    }
-
-    /// Resolve a failure index against the exact prepared child identities.
-    pub fn child_identity(&self, child: usize) -> Option<&conduit_core::HostId> {
-        self.active
-            .as_ref()
-            .or_else(|| self.receipts.last())
-            .or_else(|| self.ready.last())
-            .and_then(|host| host.child_identity(child))
-    }
-
-    pub fn last_cancellation_failures(
-        &self,
-    ) -> &[(usize, conduit_kernel::scheduler::SchedulerError)] {
-        self.receipts
-            .last()
-            .map_or(&[], KernelCompositeHost::cancellation_failures)
-    }
-
-    pub fn remaining_items(&self) -> usize {
-        self.ready.len()
     }
 
     /// Admit normal closure of the lifted input flow. If one activation is
