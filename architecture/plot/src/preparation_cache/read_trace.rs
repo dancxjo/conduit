@@ -10,10 +10,13 @@ const MAX_READS: usize = 4096;
 const MAX_KEY_BYTES: usize = 128 * 1024;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub(crate) enum CatalogueTable {
+pub enum CatalogueTable {
     Signature,
     Fore,
     VariadicFore,
+    Projection,
+    CanonicalKind,
+    VariadicKind,
 }
 impl CatalogueTable {
     fn code(self) -> u8 {
@@ -21,6 +24,9 @@ impl CatalogueTable {
             Self::Signature => 1,
             Self::Fore => 2,
             Self::VariadicFore => 3,
+            Self::Projection => 4,
+            Self::CanonicalKind => 5,
+            Self::VariadicKind => 6,
         }
     }
     fn from_code(code: u8) -> Option<Self> {
@@ -28,13 +34,16 @@ impl CatalogueTable {
             1 => Some(Self::Signature),
             2 => Some(Self::Fore),
             3 => Some(Self::VariadicFore),
+            4 => Some(Self::Projection),
+            5 => Some(Self::CanonicalKind),
+            6 => Some(Self::VariadicKind),
             _ => None,
         }
     }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub(crate) struct CatalogueRead {
+pub struct CatalogueRead {
     pub table: CatalogueTable,
     pub key: String,
 }
@@ -43,6 +52,7 @@ pub(crate) struct CatalogueRead {
 pub(crate) enum ReadTraceFallback {
     Capacity,
     Unfinished,
+    Enumeration,
 }
 
 struct Slot {
@@ -71,6 +81,7 @@ pub(crate) struct ReadTrace {
     next: AtomicUsize,
     used: AtomicUsize,
     overflow: AtomicBool,
+    enumeration: AtomicBool,
 }
 impl ReadTrace {
     pub fn new() -> Self {
@@ -84,10 +95,14 @@ impl ReadTrace {
             next: AtomicUsize::new(0),
             used: AtomicUsize::new(0),
             overflow: AtomicBool::new(false),
+            enumeration: AtomicBool::new(false),
         }
     }
+    pub fn observe_all(&self) {
+        self.enumeration.store(true, Ordering::Release);
+    }
     pub fn record(&self, table: CatalogueTable, key: &str) {
-        if self.overflow.load(Ordering::Relaxed) {
+        if self.overflow.load(Ordering::Relaxed) || self.enumeration.load(Ordering::Relaxed) {
             return;
         }
         let slot = self
@@ -120,6 +135,9 @@ impl ReadTrace {
     /// Close after the synchronous checker returns. Keys retain exact UTF-8,
     /// not hashes; a prior miss remains a dependency on that absent key.
     pub fn finish(&self) -> Result<Vec<CatalogueRead>, ReadTraceFallback> {
+        if self.enumeration.load(Ordering::Acquire) {
+            return Err(ReadTraceFallback::Enumeration);
+        }
         if self.overflow.load(Ordering::Acquire) {
             return Err(ReadTraceFallback::Capacity);
         }
@@ -141,6 +159,9 @@ impl ReadTrace {
             reads.insert(CatalogueRead { table, key });
         }
         // A concurrent overflow cannot turn an incomplete family into a hit.
+        if self.enumeration.load(Ordering::Acquire) {
+            return Err(ReadTraceFallback::Enumeration);
+        }
         if self.overflow.load(Ordering::Acquire) {
             return Err(ReadTraceFallback::Capacity);
         }
@@ -204,5 +225,46 @@ mod tests {
             thread.join().unwrap();
         }
         assert_eq!(trace.finish().unwrap().len(), 256);
+    }
+}
+
+/// Auxiliary observations have no catalogue semantic identity. Only cold
+/// preparation installs this handle; published snapshots keep the disabled default.
+#[derive(Clone, Default)]
+pub(crate) struct TraceHandle(Option<alloc::sync::Arc<ReadTrace>>);
+impl TraceHandle {
+    pub fn new() -> Self {
+        Self(Some(alloc::sync::Arc::new(ReadTrace::new())))
+    }
+    #[inline]
+    pub fn record(&self, table: CatalogueTable, key: &str) {
+        if let Some(trace) = &self.0 {
+            trace.record(table, key);
+        }
+    }
+    pub fn observe_all(&self) {
+        if let Some(trace) = &self.0 {
+            trace.observe_all();
+        }
+    }
+    pub fn reads(&self) -> Option<alloc::sync::Arc<[CatalogueRead]>> {
+        let trace = self.0.as_ref()?;
+        // All internal catalogue clones must have retired before a read set is
+        // retained. A surviving observer causes whole-context fallback.
+        if alloc::sync::Arc::strong_count(trace) != 1 {
+            return None;
+        }
+        trace.finish().ok().map(Into::into)
+    }
+}
+impl PartialEq for TraceHandle {
+    fn eq(&self, _: &Self) -> bool {
+        true
+    }
+}
+impl Eq for TraceHandle {}
+impl core::fmt::Debug for TraceHandle {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str("PreparationObserver")
     }
 }

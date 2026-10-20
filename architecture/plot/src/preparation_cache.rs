@@ -1,10 +1,13 @@
 //! Explicit, finite preparation reuse. No Plan, Host, authority or runtime cache.
+pub(crate) mod read_trace;
 use crate::{
     check_syntax_document, expand_canonical_plot_for_authoring_with_backs, parse_syntax_document,
     CanonicalBackCatalog, CanonicalExpansionDiagnostic, CheckedSyntaxDocument,
     ExpandedAuthoringPlot, ProfileCatalog, StartupCatalog, SyntaxCheckDiagnostic,
 };
 use alloc::{string::String, sync::Arc, vec::Vec};
+use read_trace::TraceHandle;
+pub use read_trace::{CatalogueRead, CatalogueTable};
 use sha2::{Digest, Sha256};
 
 /// Bounds retained entries, not admission of authored Source or catalogue data.
@@ -49,8 +52,15 @@ pub struct PreparedSource {
     source: Arc<str>,
     startup: Arc<StartupCatalog>,
     checked: Arc<CheckedSyntaxDocument>,
+    reads: Option<Arc<[CatalogueRead]>>,
 }
 impl PreparedSource {
+    /// Exact catalogue queries, including misses; other declaration, Type,
+    /// law, import and private contexts retain whole-context equality.
+    /// `None` means conservative whole-catalogue invalidation.
+    pub fn checking_dependencies(&self) -> Option<&[CatalogueRead]> {
+        self.reads.as_deref()
+    }
     pub fn source_digest(&self) -> [u8; 32] {
         self.digest
     }
@@ -66,19 +76,21 @@ struct Expansion {
     profiles: Arc<ProfileCatalog>,
     backs: Arc<CanonicalBackCatalog>,
     value: Arc<ExpandedAuthoringPlot>,
+    reads: Option<Arc<[CatalogueRead]>>,
 }
 struct SourceEntry {
     prepared: PreparedSource,
     expansions: Vec<Expansion>,
 }
 /// Owned FIFO cache for ordinary canonical checking and authoring expansion.
-/// Source SHA-256 selects candidates; exact Source bytes and complete checking
-/// catalogue equality fence collisions and stale dependencies. Expansion also
-/// requires exact profile and Back catalogues, including laws, private Type
-/// contexts and retained Back owners. No caller-supplied cache key is trusted.
+/// Source SHA-256 selects candidates; exact bytes and recorded catalogue reads
+/// fence collisions and stale dependencies. Remaining checking/profile contexts
+/// and complete Back catalogues retain exact equality, including laws, private
+/// Types and retained owners. No caller-supplied cache key is trusted.
 ///
-/// Dependency snapshots are deliberately whole catalogues. Unrelated catalogue
-/// edits can miss; this API does not claim minimal subgraph invalidation.
+/// Kind/Fore queries retain exact positive and negative read dependencies.
+/// Other contexts and catalogue enumeration retain conservative whole equality.
+/// Finite trace exhaustion also falls back to whole-catalogue invalidation.
 /// Errors are never cached. Oversized Source and zero limits use the ordinary
 /// cold path. Eviction drops only this cache's references; borrowed owners live.
 pub struct SourcePreparationCache {
@@ -112,6 +124,18 @@ impl SourcePreparationCache {
     pub fn retained_expansions(&self) -> usize {
         self.entries.iter().map(|e| e.expansions.len()).sum()
     }
+    /// Queries retained for one cached expansion. Absence means whole context
+    /// equality or an owner already evicted from this finite cache.
+    pub fn expansion_dependencies(
+        &self,
+        value: &Arc<ExpandedAuthoringPlot>,
+    ) -> Option<&[CatalogueRead]> {
+        self.entries
+            .iter()
+            .flat_map(|entry| &entry.expansions)
+            .find(|entry| Arc::ptr_eq(&entry.value, value))
+            .and_then(|entry| entry.reads.as_deref())
+    }
     pub fn clear(&mut self) {
         self.entries.clear();
     }
@@ -124,21 +148,35 @@ impl SourcePreparationCache {
         if let Some(entry) = self.entries.iter().find(|e| {
             e.prepared.digest == digest
                 && e.prepared.source.as_ref() == source
-                && e.prepared.startup == *startup
+                && (e.prepared.startup == *startup
+                    || e.prepared
+                        .reads
+                        .as_ref()
+                        .is_some_and(|reads| e.prepared.startup.same_read_context(startup, reads)))
         }) {
             self.stats.check_hits = self.stats.check_hits.saturating_add(1);
             return Ok(entry.prepared.clone());
         }
         self.stats.checks = self.stats.checks.saturating_add(1);
-        let checked = Arc::new(check_syntax_document(
-            &parse_syntax_document(source),
-            startup,
-        )?);
+        let retained = self.limits.sources > 0 && source.len() <= self.limits.source_bytes;
+        let trace = if retained {
+            TraceHandle::new()
+        } else {
+            TraceHandle::default()
+        };
+        let checked = Arc::new(if retained {
+            let observed = startup.traced(trace.clone());
+            check_syntax_document(&parse_syntax_document(source), &observed)?
+        } else {
+            check_syntax_document(&parse_syntax_document(source), startup)?
+        });
+        let reads = trace.reads();
         let prepared = PreparedSource {
             digest,
             source: Arc::from(source),
             startup: startup.clone(),
             checked,
+            reads,
         };
         if self.limits.sources == 0 || source.len() > self.limits.source_bytes {
             self.stats.unretained_checks = self.stats.unretained_checks.saturating_add(1);
@@ -166,21 +204,42 @@ impl SourcePreparationCache {
             .iter()
             .position(|e| Arc::ptr_eq(&e.prepared.checked, &prepared.checked));
         if let Some(cached) = source.and_then(|i| {
-            self.entries[i]
-                .expansions
-                .iter()
-                .find(|e| e.entry == entry && e.profiles == *profiles && e.backs == *backs)
+            self.entries[i].expansions.iter().find(|e| {
+                e.entry == entry
+                    && e.backs == *backs
+                    && (e.profiles == *profiles
+                        || e.reads
+                            .as_ref()
+                            .is_some_and(|reads| e.profiles.same_read_context(profiles, reads)))
+            })
         }) {
             self.stats.expansion_hits = self.stats.expansion_hits.saturating_add(1);
             return Ok(cached.value.clone());
         }
         self.stats.expansions = self.stats.expansions.saturating_add(1);
-        let value = Arc::new(expand_canonical_plot_for_authoring_with_backs(
-            &prepared.checked,
-            entry,
-            profiles,
-            backs,
-        )?);
+        let retained = source.is_some() && self.limits.expansions_per_source > 0;
+        let trace = if retained {
+            TraceHandle::new()
+        } else {
+            TraceHandle::default()
+        };
+        let value = Arc::new(if retained {
+            let observed = profiles.traced(trace.clone());
+            expand_canonical_plot_for_authoring_with_backs(
+                &prepared.checked,
+                entry,
+                &observed,
+                backs,
+            )?
+        } else {
+            expand_canonical_plot_for_authoring_with_backs(
+                &prepared.checked,
+                entry,
+                profiles,
+                backs,
+            )?
+        });
+        let reads = trace.reads();
         if let Some(i) = source.filter(|_| self.limits.expansions_per_source > 0) {
             let expansions = &mut self.entries[i].expansions;
             if expansions.len() == self.limits.expansions_per_source {
@@ -192,6 +251,7 @@ impl SourcePreparationCache {
                 profiles: profiles.clone(),
                 backs: backs.clone(),
                 value: value.clone(),
+                reads,
             });
         }
         Ok(value)
