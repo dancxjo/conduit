@@ -1,11 +1,11 @@
 # One declared physical allowance, reused for each accepted numerical Value.
 plot quantity-projection/value (
     >> value: Quantity <= 1800B
-    result: NearQuantity <= 16384B >>
+    mapped: NearQuantity <= 16384B >>
 ) {
     near: math/near(limit = 0.01m)
     value >> near.value
-    near.result >> result
+    near.result >> mapped
 }
 plot quantity-projection/main (
     >> values: Quantity...| <= 1800B
@@ -13,5 +13,5 @@ plot quantity-projection/main (
 ) {
     project: activate(maximum-items = 64) quantity-projection/value()
     values >> project.value
-    project.result >> results
+    project.mapped >> results
 }.
