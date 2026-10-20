@@ -424,6 +424,15 @@ fn workspace_catalog_preserves_memory_lantern_semantic_editor_requirement() {
     let bytes = fs::read(&output).unwrap();
     fs::remove_file(&output).unwrap();
     let catalog: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+    assert_eq!(
+        catalog["maximum_plots"],
+        conduit_plot_library::MAX_LIBRARY_PLOTS
+    );
+    assert!(catalog["plots"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .all(|plot| plot["slug"] != "quantity-projection"));
     let memory = catalog["plots"]
         .as_array()
         .unwrap()
