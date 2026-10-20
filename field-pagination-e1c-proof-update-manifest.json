@@ -1,0 +1,166 @@
+{
+  "parent": "ea2a0764921f98769dd3e7862d592b19398730ab",
+  "scope": "Exact e1c native field cohesion checks and normal-product QEMU metadata; raw products remain local",
+  "files": [
+    {
+      "source": "work/6158-e1c-root-visual-review.md",
+      "tree_path": "task-6038/work/6158-e1c-root-visual-review.md",
+      "bytes": 910,
+      "sha256": "1d32c08ecf0816611788b95b8dc1dc27d63bc22aebfad384fa20dc07269e8783",
+      "mode": "100644",
+      "blob": "f5b3dbe7a1d5c897cb2541a7e21d44fe83cea33d"
+    },
+    {
+      "source": "work/6158-e1c6dda63-packet-audit.md",
+      "tree_path": "task-6038/work/6158-e1c6dda63-packet-audit.md",
+      "bytes": 2871,
+      "sha256": "e2c4d8401ddebca22ced32ef84137a8127e41d4374fae2d9ff5dfdf0c08a980a",
+      "mode": "100644",
+      "blob": "9ffdd7c98bedb962f27a55c130ef43a237e5c3dc"
+    },
+    {
+      "source": "outputs/6158-stage05-e1c6dda63/receipt.json",
+      "tree_path": "task-6038/outputs/6158-stage05-e1c6dda63/receipt.json",
+      "bytes": 16939,
+      "sha256": "e397e1d30dc2bfc368a42ce8dfec50ad821022e2c3dafe1d777c1c13c3c32cf3",
+      "mode": "100644",
+      "blob": "a8ec9d71fc3cb5ed63dba0ddbf38eb805797b429"
+    },
+    {
+      "source": "outputs/6158-stage05-e1c6dda63/local-checks.json",
+      "tree_path": "task-6038/outputs/6158-stage05-e1c6dda63/local-checks.json",
+      "bytes": 2322,
+      "sha256": "e50f15f70e72be0eff7d4108740c2634e3563cb4581fa0b0aa6aa00daa184834",
+      "mode": "100644",
+      "blob": "236712e9c90af127f5d0202a809f4ad0413ee678"
+    },
+    {
+      "source": "outputs/6158-after-preview-e1c6dda63/receipt.json",
+      "tree_path": "task-6038/outputs/6158-after-preview-e1c6dda63/receipt.json",
+      "bytes": 5536,
+      "sha256": "99622faea38c918ff0608c4d8f1bb30c402fc4af20063d18dca4c28d8b6acede",
+      "mode": "100644",
+      "blob": "686d54f574d913e49f32b5bab021cb505859d9af"
+    },
+    {
+      "source": "work/6158-e1c6dda63-byte-measurement.log",
+      "tree_path": "task-6038/work/6158-e1c6dda63-byte-measurement.log",
+      "bytes": 2489,
+      "sha256": "00ac9993924a9656e158cb9d1dc1b8163b35879b138a4c5368f06d931cbe3649",
+      "mode": "100644",
+      "blob": "1ad1d7579ae17e71d4c1d0c52251efd3bae5db2b"
+    },
+    {
+      "source": "work/6158-e1c6dda63-consolidation.log",
+      "tree_path": "task-6038/work/6158-e1c6dda63-consolidation.log",
+      "bytes": 254,
+      "sha256": "b4d484fe15cd569b5c399a7b7c1ab2424ac8a2779863e2f2575880fd27125ebd",
+      "mode": "100644",
+      "blob": "d2e043bfc7b23eb04f3cb3b331825922117b7c34"
+    },
+    {
+      "source": "work/6158-e1c6dda63-five-runs.log",
+      "tree_path": "task-6038/work/6158-e1c6dda63-five-runs.log",
+      "bytes": 274,
+      "sha256": "d7c0a67e9118b8636d0227d4647c0510c77d0dd32c1887c6e5a34bd87867401f",
+      "mode": "100644",
+      "blob": "5cf3029869dd24704b476e7eecbeb593f753f723"
+    },
+    {
+      "source": "work/6158-e1c6dda63-fmt.log",
+      "tree_path": "task-6038/work/6158-e1c6dda63-fmt.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "mode": "100644",
+      "blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+    },
+    {
+      "source": "work/6158-e1c6dda63-native-face-tests.log",
+      "tree_path": "task-6038/work/6158-e1c6dda63-native-face-tests.log",
+      "bytes": 13231,
+      "sha256": "969cd1d0a1f677af466e8149de48060cb90ce909893f603ca9a8d39f76c88a10",
+      "mode": "100644",
+      "blob": "60c5470ad7c09e7fcc8e58f65b160aceca7376fb"
+    },
+    {
+      "source": "work/6158-e1c6dda63-preflight-before-setup.log",
+      "tree_path": "task-6038/work/6158-e1c6dda63-preflight-before-setup.log",
+      "bytes": 31251,
+      "sha256": "9a61e23dc795c27bd12acd5e399cc84bc052a7b6556c7424d53414deffe90736",
+      "mode": "100644",
+      "blob": "cc3aa4ed6dc0cd74f67169629d581f0911d78698"
+    },
+    {
+      "source": "work/6158-e1c6dda63-preflight.log",
+      "tree_path": "task-6038/work/6158-e1c6dda63-preflight.log",
+      "bytes": 30793,
+      "sha256": "29fecf5edc8b6fc2d14e05fdca42d85f9f0362ec8c1714f4aad06a9d77be1e85",
+      "mode": "100644",
+      "blob": "1f6fdc0ac863873a8d56cf43f70b46e7fb6eafb5"
+    },
+    {
+      "source": "work/6158-e1c6dda63-range-diff.txt",
+      "tree_path": "task-6038/work/6158-e1c6dda63-range-diff.txt",
+      "bytes": 89,
+      "sha256": "4e6834008d93b2adf43a64f817ff225af6649d1e6ce65568678a914f4ef23aff",
+      "mode": "100644",
+      "blob": "9a9bce85b2f6cd07c08264dce94f27c3ea36881e"
+    },
+    {
+      "source": "work/6158-e1c6dda63-sequence-before-setup-status.json",
+      "tree_path": "task-6038/work/6158-e1c6dda63-sequence-before-setup-status.json",
+      "bytes": 269,
+      "sha256": "943f938d64bb16decdb42591f968c99ea3a3e2ab6443da8408f14f5c2e2321b1",
+      "mode": "100644",
+      "blob": "370e10de867d20c52be18d6b09653e1577005480"
+    },
+    {
+      "source": "work/6158-e1c6dda63-sequence-status.json",
+      "tree_path": "task-6038/work/6158-e1c6dda63-sequence-status.json",
+      "bytes": 1931,
+      "sha256": "94d1af816c1ae35772f3a6a6a276ad7885117d48a5bf1cb62fcc3c3c72773b9a",
+      "mode": "100644",
+      "blob": "a5257d94c6ff7c391822f92aa53e518be0890961"
+    },
+    {
+      "source": "work/6158-e1c6dda63-setup-ci.log",
+      "tree_path": "task-6038/work/6158-e1c6dda63-setup-ci.log",
+      "bytes": 468,
+      "sha256": "b01e3f0e46b17052cc0c891c9a7b941e2bde3c443cb779023ae153ee6d0097bb",
+      "mode": "100644",
+      "blob": "b645bbbd04a0a6a043244640109ea19e276e0f82"
+    },
+    {
+      "source": "work/6158-e1c6dda63-strict-clippy.log",
+      "tree_path": "task-6038/work/6158-e1c6dda63-strict-clippy.log",
+      "bytes": 190,
+      "sha256": "6530e4f9a401bedb5bbd6207121dd1dc2359bcca474e1e3b2ad2e1c80cb03c61",
+      "mode": "100644",
+      "blob": "fb12c56e3deefa3d8e57c9bbffe0124b2245acce"
+    },
+    {
+      "source": "work/6158-product-e1c6dda63-build.log",
+      "tree_path": "task-6038/work/6158-product-e1c6dda63-build.log",
+      "bytes": 23200,
+      "sha256": "a1c6c7e80295de2ba4c2238cb06d6a37293c1d53fd5df8acd2754b9f8294596f",
+      "mode": "100644",
+      "blob": "85348cab994701efd9b5c0d3f1d99dad6428053e"
+    },
+    {
+      "source": "work/6158-runners-e1c6dda63/prove-5990-panels-qemu.py",
+      "tree_path": "task-6038/work/6158-runners-e1c6dda63/prove-5990-panels-qemu.py",
+      "bytes": 15913,
+      "sha256": "026db27fe9c59d851fea4500a5e11f97670793650d10a2861d6731430e6230e6",
+      "mode": "100644",
+      "blob": "9ad260a30494b2e9f2abf27f3264ef9486621e94"
+    },
+    {
+      "source": "work/6158-runners-e1c6dda63/prove-5990-pointer-qemu.py",
+      "tree_path": "task-6038/work/6158-runners-e1c6dda63/prove-5990-pointer-qemu.py",
+      "bytes": 17891,
+      "sha256": "16c037f6a431c2395dabda8842c1ef6a8bbf733d3f3bae117af4d45a737d7954",
+      "mode": "100644",
+      "blob": "d93623e2349a856daa0a7b897586b026dda4e022"
+    }
+  ]
+}

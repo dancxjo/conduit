@@ -1,0 +1,16 @@
+[
+  {
+    "name": "6158-e1c6dda63-preflight",
+    "argv": [
+      "cargo",
+      "+stable",
+      "xtask",
+      "ci",
+      "pipeline",
+      "preflight",
+      "2024df899d52cd89c6ca553c6626066a09a8cad9"
+    ],
+    "status": 1,
+    "seconds": 16.546254634857178
+  }
+]

@@ -1,0 +1,102 @@
+[
+  {
+    "name": "6158-e1c6dda63-preflight",
+    "argv": [
+      "cargo",
+      "+stable",
+      "xtask",
+      "ci",
+      "pipeline",
+      "preflight",
+      "2024df899d52cd89c6ca553c6626066a09a8cad9"
+    ],
+    "status": 0,
+    "seconds": 15.712725400924683
+  },
+  {
+    "name": "6158-e1c6dda63-strict-clippy",
+    "argv": [
+      "cargo",
+      "+stable",
+      "clippy",
+      "-p",
+      "conduitos",
+      "--lib",
+      "--tests",
+      "--locked",
+      "--features",
+      "hosted-tools,native-compositor",
+      "--",
+      "-D",
+      "warnings"
+    ],
+    "status": 0,
+    "seconds": 8.642071723937988
+  },
+  {
+    "name": "6158-e1c6dda63-native-face-tests",
+    "argv": [
+      "cargo",
+      "+stable",
+      "test",
+      "-p",
+      "conduitos",
+      "--lib",
+      "--locked",
+      "--features",
+      "hosted-tools,native-compositor",
+      "native_face",
+      "--",
+      "--test-threads=1"
+    ],
+    "status": 0,
+    "seconds": 60.30992603302002
+  },
+  {
+    "name": "6158-e1c6dda63-fmt",
+    "argv": [
+      "cargo",
+      "+stable",
+      "fmt",
+      "--package",
+      "conduitos",
+      "--",
+      "--check"
+    ],
+    "status": 0,
+    "seconds": 1.3389809131622314
+  },
+  {
+    "name": "6158-product-e1c6dda63-build",
+    "argv": [
+      "cargo",
+      "+stable",
+      "xtask",
+      "make",
+      "conduitos",
+      "live",
+      "x86_64",
+      "--locked"
+    ],
+    "status": 0,
+    "seconds": 426.5904097557068
+  },
+  {
+    "name": "6158-e1c6dda63-five-runs",
+    "argv": [
+      "python3",
+      "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/run-6158-e1c6dda63-product-proof.py"
+    ],
+    "status": 0,
+    "seconds": 249.49728679656982
+  },
+  {
+    "name": "6158-e1c6dda63-consolidation",
+    "argv": [
+      "python3",
+      "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/consolidate-6158-e1c6dda63.py"
+    ],
+    "status": 0,
+    "seconds": 0.15014958381652832
+  }
+]

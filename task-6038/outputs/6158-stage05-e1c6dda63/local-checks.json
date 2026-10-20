@@ -1,0 +1,59 @@
+{
+  "source": "e1c6dda63e71247c268aaf44fd7d3cdad8b925da",
+  "tree": "fccca2ce0c48203790d02443bb594298dbc4aa48",
+  "base": "2024df899d52cd89c6ca553c6626066a09a8cad9",
+  "preflight": {
+    "pass": 295,
+    "fail": 0
+  },
+  "strict_clippy": "conduitos lib/tests hosted-tools,native-compositor warnings denied passed",
+  "fmt": "pass",
+  "native_face_tests": {
+    "pass": 111,
+    "fail": 0,
+    "ignore": 0,
+    "new_regressions": 6
+  },
+  "clean": true,
+  "proof_class": "local deterministic + freestanding normal-product emulator; no CI/stable/human claim",
+  "prior_infra_failure": "First preflight portable295passed, then actionlintENOENT in freshWT. Supported setup-ci checksum/version verified warmcache; freshpreflightpassed. First logs retained separately.",
+  "recovery": "origin/recovery/6158-63af-before-2024-refresh exact63af pushed/lsremote verified before onecommit equalrebase",
+  "logs": {
+    "work/6158-e1c6dda63-preflight.log": {
+      "sha256": "29fecf5edc8b6fc2d14e05fdca42d85f9f0362ec8c1714f4aad06a9d77be1e85",
+      "bytes": 30793
+    },
+    "work/6158-e1c6dda63-strict-clippy.log": {
+      "sha256": "6530e4f9a401bedb5bbd6207121dd1dc2359bcca474e1e3b2ad2e1c80cb03c61",
+      "bytes": 190
+    },
+    "work/6158-e1c6dda63-native-face-tests.log": {
+      "sha256": "969cd1d0a1f677af466e8149de48060cb90ce909893f603ca9a8d39f76c88a10",
+      "bytes": 13231
+    },
+    "work/6158-e1c6dda63-fmt.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "work/6158-e1c6dda63-preflight-before-setup.log": {
+      "sha256": "9a61e23dc795c27bd12acd5e399cc84bc052a7b6556c7424d53414deffe90736",
+      "bytes": 31251
+    },
+    "work/6158-e1c6dda63-setup-ci.log": {
+      "sha256": "b01e3f0e46b17052cc0c891c9a7b941e2bde3c443cb779023ae153ee6d0097bb",
+      "bytes": 468
+    },
+    "work/6158-product-e1c6dda63-build.log": {
+      "sha256": "a1c6c7e80295de2ba4c2238cb06d6a37293c1d53fd5df8acd2754b9f8294596f",
+      "bytes": 23200
+    },
+    "work/6158-e1c6dda63-sequence-status.json": {
+      "sha256": "94d1af816c1ae35772f3a6a6a276ad7885117d48a5bf1cb62fcc3c3c72773b9a",
+      "bytes": 1931
+    },
+    "work/6158-e1c6dda63-range-diff.txt": {
+      "sha256": "4e6834008d93b2adf43a64f817ff225af6649d1e6ce65568678a914f4ef23aff",
+      "bytes": 89
+    }
+  }
+}

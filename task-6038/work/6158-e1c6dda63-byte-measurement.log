@@ -1,0 +1,55 @@
+{
+  "source": "e1c6dda63e71247c268aaf44fd7d3cdad8b925da",
+  "method": "Exact UTF-8 span of top-level face field, parsed independently and compared with fully decoded record; complete observation JSON bytes measured separately",
+  "observations_count": 49,
+  "maximum_face_bytes": 22030,
+  "maximum_observation_json_bytes": 25737,
+  "existing_limits": {
+    "native_mask_snapshot_bytes": 49152,
+    "native_receive_carrier_frame_bytes": 32768,
+    "observer_record_bytes": 98304
+  },
+  "boundary": "Observed current stage05 normal-product states only, including five-candidate long-Unicode/refusal/filter states. Not C1/C2, maximum16-Plot fixture, whole-route envelope/transport admission, runtime allocation/latency, physical or human proof. No limit change. The32KiB carrier bound is not a whole-Face limit; local Cr\u00e8che bypasses remote owner transport.",
+  "supplement_arrival_observations": {
+    "method": "Host monotonic elapsed from immediately before QEMU Popen to read-only observation of CONDUIT_BOOT_STAGE front-door-ready, including QMP connection; four separately booted runs, one observation per run",
+    "runs": [
+      {
+        "receipt": "6158-panels-wide-e1c6dda63/receipt.json",
+        "receipt_sha256": "7700c1dad9eccb1f4523663d68d6294f425a4583e2186db60afc0ed53325905b",
+        "viewport": [
+          1280,
+          800
+        ],
+        "arrival_observed_ms": 20028.077
+      },
+      {
+        "receipt": "6158-panels-narrow-e1c6dda63/receipt.json",
+        "receipt_sha256": "0c5d85976f4bf2d6b8fd0f21baf2b4dcd596ff6bb3879ebcd662778b0d024121",
+        "viewport": [
+          640,
+          480
+        ],
+        "arrival_observed_ms": 19745.689
+      },
+      {
+        "receipt": "6158-pointer-wide-e1c6dda63-cold-birth/receipt.json",
+        "receipt_sha256": "64e31836c4b9a11809a622db0af7a24bdd3141c0f7e13a4aaffeccc0f1231385",
+        "viewport": [
+          1280,
+          800
+        ],
+        "arrival_observed_ms": 21227.809
+      },
+      {
+        "receipt": "6158-pointer-narrow-e1c6dda63-cold-birth/receipt.json",
+        "receipt_sha256": "586bbfc60a5175a800cd4aa0bccdd6757866206a97502dab826e6f0fb1ccb44f",
+        "viewport": [
+          640,
+          480
+        ],
+        "arrival_observed_ms": 20223.487
+      }
+    ],
+    "boundary": "Local emulator observations, uncontrolled host/cache conditions. No speedup, cold-cache, realtime, human-perceived readiness, worst-case or other-Host claim. No workload repeated for timing."
+  }
+}
