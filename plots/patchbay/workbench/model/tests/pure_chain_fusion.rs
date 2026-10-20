@@ -174,7 +174,7 @@ fn all_thirty_two_logical_gears_and_cords_survive_physical_inspection() {
         &boundary_limits,
     )
     .unwrap();
-    assert_actual_failure_custody(&optimized.plan, &advertisement);
+    let unfused = assert_actual_failure_custody(&optimized.plan, &advertisement);
     let snapshot = ObservatorySnapshot {
         schema: SNAPSHOT_SCHEMA.into(),
         hosts: vec![HostReport {
@@ -236,6 +236,19 @@ fn all_thirty_two_logical_gears_and_cords_survive_physical_inspection() {
     assert!(patchbay
         .document_with_fusion_selection(&optimized, &wrong)
         .is_err());
+    let mut oversized = selection.clone();
+    oversized
+        .considered
+        .iter_mut()
+        .find(|c| c.candidate_id == "unavailable-fusion")
+        .unwrap()
+        .disposition = CandidatePlacementDisposition::Rejected("x".repeat(70 * 1024));
+    assert_eq!(
+        patchbay
+            .document_with_fusion_selection(&optimized, &oversized)
+            .unwrap_err(),
+        conduit_patchbay_workbench::TopologyViewError::FaceTooLarge
+    );
     let report = patchbay.current_report().unwrap();
     assert_eq!(report.execution_fusions.len(), 1);
     assert_eq!(report.placements.len(), 32);
@@ -328,9 +341,40 @@ fn all_thirty_two_logical_gears_and_cords_survive_physical_inspection() {
         .fragments
         .iter()
         .all(|row| row.admission.is_none()));
+    let logical_gears: Vec<_> = report
+        .placements
+        .iter()
+        .map(|row| row.logical_gear.clone())
+        .collect();
+    let logical_cords: Vec<_> = report
+        .connections
+        .iter()
+        .map(|row| row.logical_cord.clone())
+        .collect();
+    let mut ordinary = snapshot.clone();
+    ordinary.plans = vec![unfused];
+    patchbay.ingest(&ordinary).unwrap();
+    let report = patchbay.current_report().unwrap();
+    assert!(report.execution_fusions.is_empty());
+    assert_eq!(
+        logical_gears,
+        report
+            .placements
+            .iter()
+            .map(|row| row.logical_gear.clone())
+            .collect::<Vec<_>>()
+    );
+    assert_eq!(
+        logical_cords,
+        report
+            .connections
+            .iter()
+            .map(|row| row.logical_cord.clone())
+            .collect::<Vec<_>>()
+    );
 }
 
-fn assert_actual_failure_custody(fused: &Plan, advertisement: &HostAdvertisement) {
+fn assert_actual_failure_custody(fused: &Plan, advertisement: &HostAdvertisement) -> Plan {
     use conduit_std_host::{
         ExternalForeDelivery, ExternalForeInput, ExternalForeOutputAdapter, TimerAdapter,
     };
@@ -425,4 +469,5 @@ fn assert_actual_failure_custody(fused: &Plan, advertisement: &HostAdvertisement
         assert!(error.contains(fused.source_document_id.as_str()));
         assert!(error.contains(&format!("source-span={:?}", expected.source_span)));
     }
+    unfused
 }
