@@ -226,6 +226,22 @@ impl NativeWebSocketLine {
     }
 
     pub fn receive_binary(&mut self, output: &mut [u8]) -> Result<usize, NativeWebSocketError> {
+        self.receive_binary_with(|bytes| {
+            if output.len() < bytes.len() {
+                return Err(NativeWebSocketError::OutputTooSmall);
+            }
+            output[..bytes.len()].copy_from_slice(bytes);
+            Ok(bytes.len())
+        })?
+    }
+
+    /// Consume one bounded binary message while the transport retains it.
+    /// The borrow cannot escape the callback. Framing, disconnect and message
+    /// limits are identical to `receive_binary`; no caller-buffer copy occurs.
+    pub fn receive_binary_with<R>(
+        &mut self,
+        consume: impl FnOnce(&[u8]) -> R,
+    ) -> Result<R, NativeWebSocketError> {
         loop {
             let message = self.socket.read().map_err(map_socket_error)?;
             match message {
@@ -233,11 +249,7 @@ impl NativeWebSocketLine {
                     if bytes.len() > self.maximum_message_bytes {
                         return Err(NativeWebSocketError::OversizedMessage);
                     }
-                    if output.len() < bytes.len() {
-                        return Err(NativeWebSocketError::OutputTooSmall);
-                    }
-                    output[..bytes.len()].copy_from_slice(&bytes);
-                    return Ok(bytes.len());
+                    return Ok(consume(&bytes));
                 }
                 Message::Text(_) => return Err(NativeWebSocketError::TextMessageRejected),
                 Message::Ping(_) | Message::Pong(_) => {

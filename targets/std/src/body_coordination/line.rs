@@ -20,13 +20,9 @@ pub enum CoordinationLineError {
     Contract(String),
 }
 
-enum ReceivedMessage<'a> {
+enum ReceivedMessage {
     Hello,
     Ready,
-    Offered {
-        sequence: u64,
-        payload: &'a [u8],
-    },
     Accepted {
         sequence: u64,
     },
@@ -214,21 +210,32 @@ fn receive_offer(
     line: &mut NativeWebSocketLine,
 ) -> Result<(), CoordinationLineError> {
     let direction = RemoteCordDirection::Ingress;
-    let mut input = [0; FRAME_BYTES];
-    let ReceivedMessage::Offered { sequence, payload } =
-        receive(endpoint, direction, line, &mut input)?
-    else {
-        return Err(CoordinationLineError::Classified(
-            CoordinationFailure::Malformed,
-        ));
-    };
-    endpoint.admit_input(sequence, payload).map_err(|detail| {
-        if detail.to_ascii_lowercase().contains("duplicate") {
-            CoordinationLineError::Classified(CoordinationFailure::Duplicate)
-        } else {
-            CoordinationLineError::Contract(detail)
-        }
-    })?;
+    let sequence = line
+        .receive_binary_with(|input| {
+            let decoded =
+                decode_session_frame(input, MAX_TEXT_BYTES, BODY_COORDINATION_MAXIMUM_FRAME_BYTES)
+                    .map_err(|_| {
+                        CoordinationLineError::Classified(CoordinationFailure::Malformed)
+                    })?;
+            endpoint
+                .session_mut(direction)
+                .admit_inbound(decoded)
+                .map_err(classify_wire_error)?;
+            let SessionMessage::Offered { sequence, payload } = decoded.message else {
+                return Err(CoordinationLineError::Classified(
+                    CoordinationFailure::Malformed,
+                ));
+            };
+            endpoint.admit_input(sequence, payload).map_err(|detail| {
+                if detail.to_ascii_lowercase().contains("duplicate") {
+                    CoordinationLineError::Classified(CoordinationFailure::Duplicate)
+                } else {
+                    CoordinationLineError::Contract(detail)
+                }
+            })?;
+            Ok(sequence)
+        })
+        .map_err(transport)??;
     send(
         endpoint,
         direction,
@@ -357,14 +364,14 @@ fn send_frame(
     line.send_binary(&output[..length]).map_err(transport)
 }
 
-// The caller keeps this bounded frame alive through kernel admission. Payload
-// ownership and the separate Accepted/Delivered transitions are unchanged.
-fn receive<'a>(
+// Control frames retain the existing bounded copy path. Offered payloads are
+// borrowed directly from transport storage in receive_offer through admission.
+fn receive(
     endpoint: &mut CoordinationEndpoint,
     direction: RemoteCordDirection,
     line: &mut NativeWebSocketLine,
-    input: &'a mut [u8; FRAME_BYTES],
-) -> Result<ReceivedMessage<'a>, CoordinationLineError> {
+    input: &mut [u8; FRAME_BYTES],
+) -> Result<ReceivedMessage, CoordinationLineError> {
     let length = line.receive_binary(input).map_err(transport)?;
     let decoded = decode_session_frame(
         &input[..length],
@@ -379,9 +386,6 @@ fn receive<'a>(
     Ok(match decoded.message {
         SessionMessage::Hello(_) => ReceivedMessage::Hello,
         SessionMessage::Ready => ReceivedMessage::Ready,
-        SessionMessage::Offered { sequence, payload } => {
-            ReceivedMessage::Offered { sequence, payload }
-        }
         SessionMessage::Accepted { sequence } => ReceivedMessage::Accepted { sequence },
         SessionMessage::Delivered { sequence } => ReceivedMessage::Delivered { sequence },
         SessionMessage::Pressure { .. } => ReceivedMessage::Pressure,
