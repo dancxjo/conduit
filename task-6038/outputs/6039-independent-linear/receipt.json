@@ -1,0 +1,46 @@
+{
+  "tested_base": "d48c4b603e21f709520e475bc014cbe8c3d7933a",
+  "proof_class": "held historical Source deterministic conformance; not actual owner execution, current dev, workspace, platform, Candidate or stable acceptance",
+  "birth_library_tests": 37,
+  "new_reconstruction_tests": 3,
+  "clippy": "Birth library/tests warnings denied passed",
+  "format": "Birth package check passed",
+  "face_json_bytes": 46170,
+  "linear_bytes": 47469,
+  "linear_lines": 272,
+  "face_identity": "e713ca3cd98ea2e312afbb348147530d859ec63aaa035b4c0af6f96a344736af",
+  "revision": 1,
+  "owned_test_files": {
+    "plots/birth/src/face/collection_tests.rs": "5a26f93bb4d359ee715719c9fb781f8e34810d32cee1a8b4154dfdabd0ad50b3",
+    "plots/birth/src/face/collection_reconstruction_tests.rs": "21b0930f18b291884359b7d0e7c519aad93ef7b281c0c5beb01a4826d0d6e0f3",
+    "plots/birth/src/face/linear_collection_records.rs": "5781c7c6f81ed58890568cb41bf3f65e184acfd6dbbdc7d72a8a897196dc8b7f"
+  },
+  "evidence": {
+    "linear.txt": "5e74ef9d0b9c2b3c2170d161f8ed2a395a6c948fbc9cbdd5a123e6be3a0399c7",
+    "source-face.json": "bfa2958d811755e0720debd155a7f9f1584c04bf3eb0f4da906b0b2fcc4e8bcc",
+    "linear-lines.json": "b7f22d79cfe6106c3bf539fa65cbaede109c2c78bd0bb1ec4aad07a12805b17a",
+    "fmt.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "reconstructed-account.txt": "3e9c4e883b13555618fe30ef0580633f77ef6e7bc95082b57eb1a41069ec231a",
+    "birth-tests.log": "d676aa60f30fb6de735287faaf359c239bb4e5c0528d682cdc25efad07435648",
+    "clippy.log": "71537bc8e61e6197fec4a510820cf70f7b328e3a575179714dfcb5cc3784feab",
+    "face-tests.log": "d3b0f5b16211fa04caa9b6d113d835d9db41df1b75786e85b63323cf5726c94d"
+  },
+  "negative_evidence": {
+    "wrong_cwd_first_compile": "work/6039-linear-reconstruction-first.log; historical root checkout; not d48 source regression; temporary own files moved and root restored clean",
+    "first_correct_source_failure": "work/6039-linear-reconstruction-correct-wt.log; test incorrectly equated canonically sorted membership with domain presentation order; corrected independent expected member set sorting while retaining ordered item identity checks"
+  },
+  "remaining": [
+    "refresh to accepted native stage05/current dev preserving selectors",
+    "refresh producer golden and Source pins",
+    "actual installed owner/browser/native correspondence and capacity prerequisites",
+    "full workspace and exact Candidate/Integration/stable acceptance"
+  ],
+  "committed_head": "87d97d7d323e8da1efab98444a283776880ea118",
+  "face_library_tests": {
+    "passed": 62,
+    "ignored_existing": 2,
+    "failed": 0
+  },
+  "reader_boundary": "Narrow fixture-only record reader: canonical values <=128 bytes, <=64 collection members, JSON-compatible quoted Rust Debug strings; refuses unsupported escapes/profiles. Not a generic arbitrary linear decoder or action execution engine.",
+  "tested_owned_files_match_commit": true
+}

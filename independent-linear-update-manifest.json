@@ -1,0 +1,30 @@
+{
+  "parent": "cc9f6d98d05a7b7f3aae81ce0fe98830e1f9476c",
+  "scope": "Independent collection proof handoff and lightweight receipts; raw products and logs excluded",
+  "files": [
+    {
+      "source": "work/6039-source-recovery-handoff.md",
+      "tree_path": "task-6038/work/6039-source-recovery-handoff.md",
+      "bytes": 19210,
+      "sha256": "f265e5341bbc10a00da0889468392743db1f6a2deedffc9127edd11e21f456bf",
+      "mode": "100644",
+      "blob": "b5b7ff124bd7cc7f83c2c232d60a08d92668dcf2"
+    },
+    {
+      "source": "outputs/6039-independent-linear/receipt.json",
+      "tree_path": "task-6038/outputs/6039-independent-linear/receipt.json",
+      "bytes": 2952,
+      "sha256": "96dd8dafef27a021689b7cd9b6c2e107d97e251bd1b229e8ce9f74c6d2cf5cd8",
+      "mode": "100644",
+      "blob": "df94977f34e9e5165821763c9c800a73fcfb96f6"
+    },
+    {
+      "source": "outputs/shared-shard-path-66d34c83e/receipt.json",
+      "tree_path": "task-6038/outputs/shared-shard-path-66d34c83e/receipt.json",
+      "bytes": 999,
+      "sha256": "72ffd56f795062e941b28e23ac8e6fc385c067c9320b818caf40b6d86b93ca3e",
+      "mode": "100644",
+      "blob": "1684b46cc1e4c81dfc2c092ec68076a7d3952337"
+    }
+  ]
+}

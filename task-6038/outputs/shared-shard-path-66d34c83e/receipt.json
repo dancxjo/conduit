@@ -17,5 +17,9 @@
     "shared-shard-path-tests.log": "ec4a1649bb3d4cfa68309fe5b91cecd77431a7a0a60a3137669aa039e55aeff9",
     "shared-shard-path-preflight.log": "7f75578b970fde7874a34ad8b965ce689b88588fff4b36132dae3fdfde91e297"
   },
-  "acceptance": "local proof only; Candidate and merged Integration remain required"
+  "acceptance": "local proof only; Candidate and merged Integration remain required",
+  "independent_review": {
+    "result": "no blockers",
+    "scope": "read-only exact two-line diff and both module/reexport layouts; validation receipt reviewed, not rerun"
+  }
 }
