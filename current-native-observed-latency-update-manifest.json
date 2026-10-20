@@ -1,0 +1,30 @@
+{
+  "parent": "8adddf64dbc770aea27aadffea8a573cb9b8c32e",
+  "scope": "Native stage05 current-dev refresh and exact preflight receipt; normal product and all five emulator runs passed; Candidate still running",
+  "files": [
+    {
+      "source": "work/measure-native-face-ceaefa32c.py",
+      "tree_path": "task-6038/work/measure-native-face-ceaefa32c.py",
+      "bytes": 3399,
+      "sha256": "de4558c979d127825a0fb8ac8270a8f616953a8f9dcdcc4ef9aff350bad0bdad",
+      "mode": "100644",
+      "blob": "476282c8612cba764f7631029ff811976146144a"
+    },
+    {
+      "source": "work/5990-ceaefa32c-acceptance-audit.md",
+      "tree_path": "task-6038/work/5990-ceaefa32c-acceptance-audit.md",
+      "bytes": 5961,
+      "sha256": "abd71c19de5588d72a76ee321439ef60664724263ccc3e3c1f6458d57cfbd0d3",
+      "mode": "100644",
+      "blob": "c68280f6433afe972783bc5d80ad315b2c85a060"
+    },
+    {
+      "source": "outputs/native-face-byte-audit-ceaefa32c/receipt.json",
+      "tree_path": "task-6038/outputs/native-face-byte-audit-ceaefa32c/receipt.json",
+      "bytes": 21849,
+      "sha256": "9118bebe396b8a469972edda20305cee8a4e5f000965fd83088ddd6f1e824877",
+      "mode": "100644",
+      "blob": "8a6086298ea53e62946598c024d3ce5c0f40f29f"
+    }
+  ]
+}

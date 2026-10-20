@@ -23,3 +23,5 @@ A concurrent base change modified Plot preparation/cache code, so historical pro
 ## Current observed serialized sizes
 
 A separate exact-span audit over all five retained guest serial logs measures49 complete Face observations: maximum Face22029bytes and maximum complete observation JSON25736bytes. `outputs/native-face-byte-audit-ceaefa32c/receipt.json` retains input hashes, each raw-span hash and per-record size. Existing49152-byte Mask/snapshot,32768-byte routed-frame and98304-byte observer-record ceilings remain separate. This does not establish the later C1/C2 projection, maximum16-Plot fixture, whole-route envelope admission or runtime allocation/latency. No ceiling changed. The original85-file stage05 packet remains unchanged; this is a separate derived ledger.
+
+The same separate ledger retains four existing host-monotonic launch-to-front-door-ready observations:20221.988,22630.859,21978.380 and20527.224ms. These include QMP setup and read-only observation latency, have uncontrolled host/cache conditions, and are not a cold-cache, speedup, worst-case or human-readiness claim. No workload was rerun for timing.

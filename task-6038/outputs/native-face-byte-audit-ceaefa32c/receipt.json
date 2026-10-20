@@ -508,5 +508,47 @@
       "sha256": "7ba43170a5aa218b7030bbf3bf2174f07bb8f784be3e0d8a26136ca293599c9a",
       "plot_candidates": 5
     }
-  ]
+  ],
+  "supplement_arrival_observations": {
+    "method": "Host monotonic elapsed from immediately before QEMU Popen to read-only observation of CONDUIT_BOOT_STAGE front-door-ready, including QMP connection; four separately booted runs, one observation per run",
+    "runs": [
+      {
+        "receipt": "5990-panels-wide-ceaefa32c/receipt.json",
+        "receipt_sha256": "02f15b0fe22882219f6950dac73f05be45b45cbf118de53ed4fa0aeff498e56c",
+        "viewport": [
+          1280,
+          800
+        ],
+        "arrival_observed_ms": 20221.988
+      },
+      {
+        "receipt": "5990-panels-narrow-ceaefa32c/receipt.json",
+        "receipt_sha256": "3cd1bd47b610f17d751060e690b6538418ec75689499749ef3b8ae7f3c490508",
+        "viewport": [
+          640,
+          480
+        ],
+        "arrival_observed_ms": 22630.859
+      },
+      {
+        "receipt": "5990-pointer-wide-ceaefa32c-cold-birth/receipt.json",
+        "receipt_sha256": "af860df538e4f2db7aafc7c02e3b56b41fd9027ed7e40dd31498db88955a8bc9",
+        "viewport": [
+          1280,
+          800
+        ],
+        "arrival_observed_ms": 21978.38
+      },
+      {
+        "receipt": "5990-pointer-narrow-ceaefa32c-cold-birth/receipt.json",
+        "receipt_sha256": "0297866e7fa18a6ba0ed99254cbcc61171e6afe8759b7cb1d53add9779437d18",
+        "viewport": [
+          640,
+          480
+        ],
+        "arrival_observed_ms": 20527.224
+      }
+    ],
+    "boundary": "Local emulator observations, uncontrolled host/cache conditions. No speedup, cold-cache, realtime, human-perceived readiness, worst-case or other-Host claim. No workload repeated for timing."
+  }
 }
