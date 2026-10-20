@@ -194,3 +194,40 @@ fn independent_profile_refuses_cardinality_limits_and_impossible_inventory_count
         );
     }
 }
+
+#[test]
+fn exclusive_collection_cannot_hide_an_unselected_checked_alternative() {
+    let original = draft().face(&basis()).unwrap();
+    let id = collection(&original, "/name-system/input-details")
+        .identity
+        .clone();
+    let omitted = children(&original, &id)
+        .into_iter()
+        .find(|item| {
+            property(&original, &item.identity, "selected") == &FacePropertyValue::Flag(false)
+        })
+        .unwrap()
+        .identity
+        .clone();
+    let mut incomplete = original.clone();
+    incomplete.relationships.retain(|relationship| {
+        !(relationship.source == id
+            && relationship.kind == FaceRelationshipKind::Contains
+            && relationship.target == omitted)
+    });
+    let count = children(&incomplete, &id).len() as u64;
+    set(
+        &mut incomplete,
+        &id,
+        "item-count",
+        FacePropertyValue::Count(count),
+    );
+    // The Face and declared count remain consistent; only checked-domain
+    // completeness can detect the silently omitted reachable alternative.
+    let incomplete = rehash(incomplete);
+    assert_eq!(
+        prepare_face_collection(&incomplete, &id, 32).err(),
+        Some(Refusal::Membership)
+    );
+    assert!(prepare_face_collection(&original, &id, 32).is_ok());
+}
