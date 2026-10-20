@@ -94,8 +94,8 @@ mod aarch64;
 ))]
 pub use aarch64::FirmwareScanout;
 #[cfg(test)]
-#[path = "aarch64/framebuffer/mapping.rs"]
-mod aarch64_framebuffer_mapping_conformance;
+#[path = "aarch64/framebuffer/conformance.rs"]
+mod aarch64_framebuffer_conformance;
 
 #[cfg(all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5")))]
 pub use aarch64::{

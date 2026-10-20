@@ -242,6 +242,7 @@ fn prepare_graphical_face(
     let display =
         arch::FirmwareScanout::prepare(display, record).unwrap_or_else(|reason| refuse(reason));
     let mapping = display.mapping().clone();
+    let cache = *display.cache_policy();
     let source = arch::DomainEntropy::detect(1).unwrap_or_else(|error| refuse(error.as_str()));
     let mut entropy =
         conduitos::cryptographic_entropy::CryptographicEntropyBase::<_, 1>::admit(source)
@@ -261,7 +262,7 @@ fn prepare_graphical_face(
     let proof = serde_json::to_vec(&serde_json::json!({
         "schema":"conduit.conduitos/aarch64-framebuffer-mapping@1",
         "host_id":identity::hex(&identities.host),"boot_id":identity::hex(&identities.boot),
-        "base_id":graphic.framebuffer_basis().base_id,"mapping":mapping,
+        "base_id":graphic.framebuffer_basis().base_id,"mapping":mapping,"cache":cache,
         "physical_scanout_proved":false,"gpu_acceleration_proved":false
     }))
     .unwrap_or_else(|_| refuse("framebuffer-mapping-evidence-encoding"));

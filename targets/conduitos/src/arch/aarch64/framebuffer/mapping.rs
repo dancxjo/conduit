@@ -2,6 +2,7 @@
 pub const PAGE_BYTES: u64 = 4096;
 pub const MAX_SCANOUT_BYTES: u64 = 8 * 1024 * 1024;
 const NORMAL_NC: u8 = 0x44;
+const NORMAL_WB: u8 = 0xff;
 const PAR_ADDRESS: u64 = 0x000f_ffff_ffff_f000;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Serialize)]
@@ -32,8 +33,8 @@ impl MappingRefusal {
 }
 
 /// No writes occur here. Each returned PAR must be an actual AT S1E1W result.
-/// Only the initial firmware RAM scanout's Normal inner/outer NC policy is
-/// admitted; a cached or Device mapping requires its own reviewed realization.
+/// Only uniform Normal NC or Normal WB memory is admitted. The caller must
+/// install the corresponding store-completion/cache-maintenance policy.
 pub fn validate(
     virtual_start: u64,
     physical_start: u64,
@@ -52,6 +53,7 @@ pub fn validate(
         return Err(MappingRefusal::Extent);
     }
     let pages = byte_length.div_ceil(PAGE_BYTES);
+    let mut attribute = None;
     for page in 0..pages {
         let offset = page * PAGE_BYTES;
         let par = translate(virtual_start + offset);
@@ -61,16 +63,20 @@ pub fn validate(
         if par & PAR_ADDRESS != physical_start + offset {
             return Err(MappingRefusal::PhysicalMismatch);
         }
-        if (par >> 56) as u8 != NORMAL_NC {
+        let current = (par >> 56) as u8;
+        if !matches!(current, NORMAL_NC | NORMAL_WB)
+            || attribute.is_some_and(|previous| previous != current)
+        {
             return Err(MappingRefusal::CachePolicy);
         }
+        attribute = Some(current);
     }
     Ok(MappingEvidence {
         virtual_start,
         physical_start,
         byte_length,
         checked_pages: pages as u32,
-        par_memory_attribute: NORMAL_NC,
+        par_memory_attribute: attribute.ok_or(MappingRefusal::CachePolicy)?,
     })
 }
 
@@ -89,14 +95,25 @@ mod tests {
         assert_eq!(result.checked_pages, 2);
     }
     #[test]
-    fn faults_wrong_physical_addresses_and_cached_mappings_remain_distinct() {
+    fn faults_wrong_physical_addresses_and_unsupported_mappings_remain_distinct() {
         for (par, error) in [
             (1, MappingRefusal::Translation),
             ((0x44 << 56) | 0x5000, MappingRefusal::PhysicalMismatch),
-            ((0xff << 56) | 0x4000, MappingRefusal::CachePolicy),
+            (0x4000, MappingRefusal::CachePolicy),
         ] {
             assert_eq!(validate(0x8000, 0x4000, 4096, |_| par), Err(error));
         }
+    }
+    #[test]
+    fn writeback_observation_is_explicit_and_mixed_attributes_refuse() {
+        let result = validate(0x8000, 0x4000, 8192, |va| (0xff << 56) | (va - 0x4000)).unwrap();
+        assert_eq!(result.par_memory_attribute, 0xff);
+        assert_eq!(
+            validate(0x8000, 0x4000, 8192, |va| {
+                (if va == 0x8000 { 0xff } else { 0x44 }) << 56 | (va - 0x4000)
+            }),
+            Err(MappingRefusal::CachePolicy)
+        );
     }
     #[test]
     fn invalid_extents_refuse_before_a_translation_or_pixel_write() {
