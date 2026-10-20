@@ -1,0 +1,206 @@
+{
+  "schema": "conduit.fargan/model-provenance-preparation@1",
+  "status": "provenance preparation only; not rights resolution, model admission, numerical rerun or issue closure",
+  "audited_conduit_base": "3ddae3bb9d41a466e446a55464348dc043eb6ed4",
+  "observed_date": "2026-10-19",
+  "upstream": {
+    "repository": "https://github.com/xiph/opus",
+    "commit": "503d81b138d76621aae4b12786e90de48aa8db3a",
+    "model_archive_url": "https://media.xiph.org/opus/models/opus_data-a5177ec6fb7d15058e99e57029746100121f68e4890b1467d4094aa336b6013e.tar.gz",
+    "download_pin_source": "https://github.com/xiph/opus/blob/503d81b138d76621aae4b12786e90de48aa8db3a/autogen.sh",
+    "download_verifier": "https://github.com/xiph/opus/blob/503d81b138d76621aae4b12786e90de48aa8db3a/dnn/download_model.sh",
+    "model_description": "https://github.com/xiph/opus/blob/503d81b138d76621aae4b12786e90de48aa8db3a/dnn/torch/fargan/README.md",
+    "checkpoint_member": "dnn/models/fargan_sq1Ab_adv_50.pth",
+    "generated_members": [
+      "dnn/fargan_data.c",
+      "dnn/fargan_data.h"
+    ]
+  },
+  "verified_local_artifacts": {
+    "archive": {
+      "bytes": 134674421,
+      "sha256": "a5177ec6fb7d15058e99e57029746100121f68e4890b1467d4094aa336b6013e"
+    },
+    "checkpoint": {
+      "bytes": 13775086,
+      "sha256": "2eb56f36f71f246174d769658b5712fa81214650bd425cf050c740c8d6b4464c"
+    },
+    "generated_c": {
+      "bytes": 21978624,
+      "sha256": "68ba6e8731007f7184be862d7d1afe4cef096a7c9bcbfa115962340f725e004c"
+    },
+    "generated_h": {
+      "bytes": 1844,
+      "sha256": "402e691f4975d6d156903f0fe12da3385e20ec6dd6155c3387e9dad536f654cd"
+    },
+    "f32_bundle": {
+      "bytes": 3272868,
+      "sha256": "d35f0510da476716183a33caafe45cc095e48d496f06de2db7655e780a385e47"
+    },
+    "reproduced_f32_bundle": {
+      "bytes": 3272868,
+      "sha256": "d35f0510da476716183a33caafe45cc095e48d496f06de2db7655e780a385e47"
+    },
+    "array_manifest": {
+      "bytes": 28289,
+      "sha256": "66f20ea7fdd23070440638070a15833d58196490781e3fe21e9c6a2519bd9cec"
+    },
+    "synthetic_features": {
+      "bytes": 1920,
+      "sha256": "b07eb41153246c28e868c5ad2a3c161b539fa5d370db2a1afeb7b2557e738dff"
+    },
+    "conditioning_oracle": {
+      "bytes": 43200,
+      "sha256": "ca634e3e31af975329ed3db41d38cf1d8c05a164ed0d8b16bcebcd270e5faacd"
+    },
+    "subframe_oracle": {
+      "bytes": 689280,
+      "sha256": "bf52f0431af52435e775818d7e7fe65ccf8b6ff7de38e57eab4b0db9935feccf"
+    }
+  },
+  "verification": {
+    "archive_generated_c_matches_exporter_pin": true,
+    "archive_checkpoint_matches_existing_file": true,
+    "f32_reproduction_copy_identical": true,
+    "parameters_downloaded_or_executed": false,
+    "archive_extracted_by_this_preparation": false,
+    "current_full_frame_oracle_present_in_inspected_fixture": false,
+    "scope": "Hashes/read-only archive member inspection; no exporter/build/test execution."
+  },
+  "export": {
+    "script": "proof/fargan/development-reference/export_development_fixture.py",
+    "method": "Pinned C arrays, explicit little-endian IEEE F32 serialization; all output digests checked before writes. Exporter is development tooling, not runtime.",
+    "manifest_array_entries": 82,
+    "selected_profile": "f32",
+    "bundle_float_elements": 818217,
+    "compact_profile": "Existing exporter also declares a distinct compact blob; no compact whole-network parity or admission claimed here.",
+    "license_status_in_existing_manifest": "local development only; explicit checkpoint grant unresolved"
+  },
+  "topology": {
+    "source_files_sha256": {
+      "semantics/speech/fargan_conditioning.conduit": "c1a6e245af7783dbdb71b8bbc838a4ac3e39a8a92fb2594b65d0f74ba4372033",
+      "semantics/speech/fargan_signal.conduit": "d22b63a492075a1af918558d33cb45fda7a1cfc17e77960f22927d8450479c83",
+      "semantics/speech/fargan_pitch_history.conduit": "3b501a720bb503300e94abf361e95b193a0ead558d1460f7d6ee3e3414709180",
+      "semantics/speech/fargan_subframe.conduit": "310311fbefc743ecfc58fa0cbea77b1bf6c4060c34c26e418b62e76aacd7cb08",
+      "semantics/speech/fargan_frame.conduit": "74ec7540ec7fb90f8c95861e4275f7d5342bd8c0805609723b820b451bb56320",
+      "proof/fargan/development-reference/export_development_fixture.py": "51b320a5687eb53fceb182d36a22eb586f3b8875c34352d75cfbbc2c1582dec9",
+      "proof/fargan/development-reference/full_frame_oracle.c": "44b7158fe10c4b866300714293f4f4313a89064cf3c580ba13add657d63ae72a",
+      "proof/fargan/development-reference/build_full_frame_oracle.sh": "654d5859d663005f1be3f79a38315f8bb550a4c169777be4d893f7f76db85403"
+    },
+    "authored_entry": "speech/fargan-frame",
+    "conditioner_entry": "speech/fargan-conditioning",
+    "subframe_entry": "speech/fargan-subframe",
+    "features_f32": 20,
+    "sample_rate_hz": 16000,
+    "frame_samples": 160,
+    "subframes_per_frame": 4,
+    "subframe_samples": 40,
+    "conditioning_history_f32": 128,
+    "active_signal_state_f32": 837,
+    "pitch_period_samples": {
+      "minimum": 32,
+      "maximum": 255
+    },
+    "numerical_contract": "conduit.numeric/fixed-f32-libm@3",
+    "precision_profile": "number/ieee754-f32-libm-reference@1",
+    "architecture_profile": "speech/fargan-xiph-503d81b1@1",
+    "format_profile": "model/fargan-array-bundle-f32-le@1",
+    "network_owner": "Checked Source; host numerical owners do not define layer order.",
+    "scope": "Finite full-float hosted graph, not live persistent speech conditioning, booted ConduitOS or attended voice proof."
+  },
+  "rights": {
+    "software_license_evidence": "https://github.com/xiph/opus/blob/503d81b138d76621aae4b12786e90de48aa8db3a/COPYING",
+    "contributor_statement": "https://github.com/xiph/opus/blob/503d81b138d76621aae4b12786e90de48aa8db3a/LICENSE_PLEASE_READ.txt",
+    "official_implementation_license": "https://opus-codec.org/license/",
+    "documented_software_terms": "BSD-3-Clause implementation redistribution with notices/disclaimer and non-endorsement condition retained. Patent references remain separate.",
+    "archive_notice_members": [],
+    "generated_c_explicit_license_header": false,
+    "checkpoint_specific_license_or_exclusion_located": false,
+    "redistribution_status": "Explicit separate checkpoint/model-bundle grant not located in inspected primary sources; not a conclusion that redistribution is forbidden. Official README supplies these weights as C/checkpoint with the implementation. Resolve/package documented scope before public parameter redistribution.",
+    "unknowns": [
+      "Precise applicability of repository-wide implementation terms to separately delivered checkpoint/derived tensor bundle is not explicitly stated in inspected archive.",
+      "Exact training-data composition, rights and speaker provenance for this checkpoint are not established merely by the README training-data example."
+    ],
+    "no_claims": [
+      "No legal opinion",
+      "No public model redistribution approval",
+      "No change to existing private-development resource restriction"
+    ]
+  },
+  "oracle": {
+    "build_script": "proof/fargan/development-reference/build_full_frame_oracle.sh",
+    "required_local_pins": [
+      {
+        "path": "opus/dnn/fargan.c",
+        "expected_sha256": "fca4e51f0407f9791900a972119a69f724485f034e48a2e77a608d24d950cc2c",
+        "verified_local_match": true
+      },
+      {
+        "path": "opus/dnn/nnet.c",
+        "expected_sha256": "1b376a8499167e143f8a4ec8d0c622d259b4ae99d8c7495a80d6318912de81e7",
+        "verified_local_match": true
+      },
+      {
+        "path": "opus/dnn/nnet_default.c",
+        "expected_sha256": "1402eb611b7fcc1fe7fa18639f0395e0af47a783ef87450318411483516e9011",
+        "verified_local_match": true
+      },
+      {
+        "path": "opus/dnn/parse_lpcnet_weights.c",
+        "expected_sha256": "78ab42e0fc04a72f89bc1a1af9363c630263608cb1065751c2c4d89c5f93e89a",
+        "verified_local_match": true
+      },
+      {
+        "path": "opus/dnn/vec.h",
+        "expected_sha256": "fbdf49c54d60cfaa81607caef2f2d83bebde51de2a53aee2607b114350425a8e",
+        "verified_local_match": true
+      },
+      {
+        "path": "opus/dnn/fargan.h",
+        "expected_sha256": "e1761b61669f70ed6ae918772b8fae3ed9fe5c65f67d2ce3d68749ac4bd9a4ad",
+        "verified_local_match": true
+      },
+      {
+        "path": "opus/dnn/nnet.h",
+        "expected_sha256": "be76402755570a7d9251f1cb9e9960792378dbb52bb5273f5478ceeb83571d10",
+        "verified_local_match": true
+      },
+      {
+        "path": "opus/dnn/nnet_arch.h",
+        "expected_sha256": "3b227cd54ae376c21050a1116261665c9c8d82b9ec46b1c9aed9af6a6cd444d0",
+        "verified_local_match": true
+      },
+      {
+        "path": "model/fargan_data.c",
+        "expected_sha256": "68ba6e8731007f7184be862d7d1afe4cef096a7c9bcbfa115962340f725e004c",
+        "verified_local_match": true
+      },
+      {
+        "path": "opus/dnn/fargan_data.c",
+        "expected_sha256": "68ba6e8731007f7184be862d7d1afe4cef096a7c9bcbfa115962340f725e004c",
+        "verified_local_match": true
+      },
+      {
+        "path": "model/fargan_data.h",
+        "expected_sha256": "402e691f4975d6d156903f0fe12da3385e20ec6dd6155c3387e9dad536f654cd",
+        "verified_local_match": true
+      },
+      {
+        "path": "opus/dnn/fargan_data.h",
+        "expected_sha256": "402e691f4975d6d156903f0fe12da3385e20ec6dd6155c3387e9dad536f654cd",
+        "verified_local_match": true
+      }
+    ],
+    "output_file": "full-frame-oracle.bin",
+    "expected_bytes": 113880,
+    "expected_sha256": "9c676f6c76aec71281ea097fe0c477c5a3b77f5022e639a0d82dbb4a5437fcc3",
+    "profile": "Scalar full float, cc -O2, FMA contraction/SIMD/tree vectorization disabled; DISABLE_DEBUG_FLOAT must not be set.",
+    "build_or_run_performed": false,
+    "wall_cpu_memory_cost": "Not measured by this preparation; no estimate asserted."
+  },
+  "remaining_5711_obligations": [
+    "Review and resolve/document precise rights scope without treating uncertainty as prohibition.",
+    "Capture actual topology/signature/program identities and admitted resource/profile checks on the intended current source.",
+    "Preserve positive numerical/streaming and later same-plan speech/ConduitOS/listening obligations; this record does not close5711/4898/5726."
+  ]
+}

@@ -254,6 +254,16 @@ fn exercise<const I: usize, const O: usize, const N: usize, const C: usize>(
             } else if let Some(index) = gear.kind_id.as_str().strip_prefix("numeric-test/source") {
                 Driver::Source(references[index.parse::<usize>().unwrap()], false)
             } else {
+                if I == 320 && O == 40 {
+                    let mut foreign = gear.clone();
+                    foreign.artifact_id = ArtifactId::from("foreign/numeric-artifact");
+                    assert!(FixedIndexBack::<I, O>::prepare_planned::<PORTS>(
+                        &foreign,
+                        lowered.node_specs[i].maximum_step_fuel,
+                        operation,
+                    )
+                    .is_err());
+                }
                 Driver::Operation(Box::new(
                     FixedIndexBack::prepare_planned::<PORTS>(
                         gear,
@@ -421,5 +431,34 @@ fn ordinary_gather640x160_retains_explicit_indices_and_refuses_overflow_or_press
     assert!(
         conduit_ai::operation_owners::fixed_numeric::fixed_numeric_offer("numeric/gather640x160")
             .is_ok()
+    );
+}
+
+#[test]
+fn selected_slice320x40_accepts_last_window_and_refuses_overrun_or_pressure() {
+    let input = core::array::from_fn(|i| i as f32);
+    exercise::<320, 40, 4, 3>(
+        FixedIndexOperation::Slice,
+        input,
+        &[280],
+        core::array::from_fn(|i| (280 + i) as f32),
+        false,
+        false,
+    );
+    exercise::<320, 40, 4, 3>(
+        FixedIndexOperation::Slice,
+        input,
+        &[281],
+        [0.; 40],
+        true,
+        false,
+    );
+    exercise::<320, 40, 4, 3>(
+        FixedIndexOperation::Slice,
+        input,
+        &[0],
+        core::array::from_fn(|i| i as f32),
+        false,
+        true,
     );
 }

@@ -27,6 +27,7 @@ macro_rules! run {
         })()
     }};
 }
+mod dispatch_dsp;
 mod dispatch_tensors;
 mod dispatch_values;
 mod dispatch_vectors;
@@ -44,7 +45,8 @@ fn select(
     planned: Option<(&PlannedGear, u16)>,
     bindings: &TensorBindings,
 ) -> Result<Selection, String> {
-    dispatch_tensors::select(kind, planned, bindings)
+    dispatch_dsp::select(kind, planned)
+        .or_else(|| dispatch_tensors::select(kind, planned, bindings))
         .or_else(|| dispatch_vectors::select(kind, planned))
         .or_else(|| dispatch_values::select(kind, planned))
         .ok_or_else(|| format!("unsupported generic numeric operation {kind}"))?
@@ -59,6 +61,7 @@ fn owns_implementation(id: &ImplementationId) -> bool {
         crate::fixed_numeric_index_back::INDEX_IMPLEMENTATION,
         crate::fixed_numeric_signal_back::ELEMENTWISE_IMPLEMENTATION,
         crate::fixed_numeric_pair_back::VALUE_PAIR_IMPLEMENTATION,
+        crate::fixed_numeric_dsp_catalog::DSP_IMPLEMENTATION,
         "conduit.numeric/scalar-tanh@1",
         "conduit.numeric/concatenate@1",
         "conduit.numeric/resource-embedding@1",
