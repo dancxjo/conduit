@@ -16,7 +16,11 @@ pub fn near_each_offer(
     if maximum_items == 0
         || maximum_items > MAXIMUM_ITEMS
         || input.value_kind.as_str() != QUANTITY_INFO_ID
-        || output.value_kind.as_str() != conduit_semantic_catalog::NEAR_QUANTITY_INFO_ID
+        || &output.value_kind
+            != conduit_semantic_catalog::near_quantity_type()
+                .profile()
+                .map_err(|e| format!("Near output Type: {e:?}"))?
+                .value_kind()
     {
         return Err("Near Each requires finite Quantity-to-NearQuantity Values".into());
     }

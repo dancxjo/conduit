@@ -92,10 +92,10 @@ impl KernelEachBack {
     ) -> alloc::collections::BTreeMap<conduit_core::HostId, Vec<conduit_kernel::KernelEvent>> {
         self.activation.signs()
     }
-    pub fn child_sign_receipts(&self) -> Result<Vec<ScanChildSignReceipt>, String> {
-        self.activation
-            .child_sign_receipts()
-            .map_err(|e| format!("Each child evidence: {e:?}"))
+    pub fn child_sign_receipts(
+        &self,
+    ) -> Result<Vec<ScanChildSignReceipt>, crate::BoundedActivationError> {
+        self.activation.child_sign_receipts()
     }
     pub fn cancellation_failed(&self) -> bool {
         self.cancellation_failed

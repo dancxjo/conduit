@@ -24,6 +24,7 @@ impl InstalledBack {
             Self::TimeWindow(operation) => operation.allocation_capacity(),
             Self::FlowCollect(operation) => operation.allocation_capacity(),
             Self::BodyScan(operation) => operation.allocation_capacity(),
+            Self::BodyEach(operation) => operation.allocation_capacity(),
             Self::TimedButtonAttempt(operation) => operation.allocation_capacity(),
             Self::StateCount(operation) => operation.allocation_capacity(),
             Self::RoboticsSource(operation) => operation.allocation_capacity(),
