@@ -167,6 +167,7 @@ pub(super) fn execute_line<const OBSERVE: bool>(
     ),
     String,
 > {
+    let mut line_clock = OBSERVE.then(super::evidence::LineClock::new);
     let listener = NativeWebSocketListener::bind_loopback(MAXIMUM_FRAME_BYTES)
         .map_err(|error| format!("bind Tour Line: {error:?}"))?;
     let address = listener
@@ -184,6 +185,9 @@ pub(super) fn execute_line<const OBSERVE: bool>(
         line.set_read_timeout(Some(std::time::Duration::from_secs(5)))
             .map_err(|error| format!("source Line timeout: {error:?}"))?;
         activate_source(&mut source, source_endpoint, &mut line)?;
+        if let Some(clock) = &mut line_clock {
+            clock.ready();
+        }
         let mut final_transfer = None;
         for expected_sequence in 0..workload.count() {
             let transfer = next_transfer(&mut source)?;
@@ -211,10 +215,18 @@ pub(super) fn execute_line<const OBSERVE: bool>(
                 }
                 message => return Err(format!("unexpected Tour Line delivery {message:?}")),
             }
+            if expected_sequence == 0 {
+                if let Some(clock) = &mut line_clock {
+                    clock.first();
+                }
+            }
             final_transfer = Some(transfer);
         }
         let transfer = final_transfer.ok_or("two-Host source produced no value")?;
         let final_sequence = workload.count();
+        if let Some(clock) = &mut line_clock {
+            clock.transfers_done();
+        }
         drain_source(&mut source)?;
         send_message(
             &mut source,
@@ -263,15 +275,25 @@ pub(super) fn execute_line<const OBSERVE: bool>(
         (Err(source), _) => return Err(source),
         (_, Err(sink)) => return Err(sink),
     };
-    let evidence = if OBSERVE {
+    let mut evidence = if OBSERVE {
         Some(super::TwoHostKernelEvidence {
             phases: Vec::new(),
+            line: None,
             source: super::evidence::retain(&source),
             sink: sink_evidence.ok_or("sink evidence missing")?,
         })
     } else {
         None
     };
+    drop(source);
+    if let Some(clock) = line_clock {
+        evidence
+            .as_mut()
+            .ok_or("two-Host Line evidence missing")?
+            .line = Some(clock.finish(
+            u32::try_from(workload.count()).map_err(|_| "two-Host Line count overflow")?,
+        )?);
+    }
     Ok((transfer, sink_output, evidence))
 }
 

@@ -142,6 +142,7 @@ fn persistent_tick_flow_retains_all_values_and_both_kernel_lifecycles() {
         conduit::execute_hosted_two_std_tick_flow_with_evidence(count, &mut output).unwrap();
     assert_eq!(execution.transferred_values, u32::from(count));
     assert_eq!(execution.result, "63");
+    assert_eq!(evidence.line.as_ref().unwrap().values, u32::from(count));
     let expected: String = (0..count).map(|n| format!("{n}\n")).collect();
     assert_eq!(String::from_utf8(output).unwrap(), expected);
     for host in [&evidence.source, &evidence.sink] {
