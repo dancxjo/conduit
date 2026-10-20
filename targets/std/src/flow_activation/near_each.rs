@@ -1,5 +1,5 @@
 //! Source-bound pure numerical Each through the ordinary prepared activation.
-use super::{install_reusable_planned_activation, NearQuantityFactory, StdActivationHost};
+use super::{install_planned_activation, NearQuantityFactory, StdActivationHost};
 use conduit_composite::{KernelEachBack, KernelOperationFactory};
 use conduit_core::*;
 
@@ -148,7 +148,7 @@ pub fn install_pure_near_each(
         })
         .ok_or("Near Each activation is absent")?;
     validate_near_each(plan, planned)?;
-    let each = install_reusable_planned_activation(plan, prepared, activation_id, host)
+    let each = install_planned_activation(plan, prepared, activation_id, host)
         .map_err(|e| format!("Near Each child receipt handoff: {e:?}"))?
         .into_unary()
         .map_err(|e| format!("Near Each coordinator: {e:?}"))?;
