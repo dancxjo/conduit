@@ -441,8 +441,16 @@ fn status_revision_advances_when_tour_state_changes_under_one_lifecycle_basis() 
     let updated = shell
         .present_with_lifecycle(&tour, &lifecycle, &mut display)
         .unwrap();
-    assert!(updated.status.display.commands > 0);
     assert_ne!(initial.status.face_id, updated.status.face_id);
+    // A semantic revision may retain the exact same status pixels. Compare
+    // against a fresh presentation rather than requiring redundant raster work.
+    let (_, mut cold_shell, mut cold_display) = fixture();
+    let cold = cold_shell
+        .present_with_lifecycle(&tour, &lifecycle, &mut cold_display)
+        .unwrap();
+    assert!(cold.status.display.commands > 0);
+    assert_eq!(updated.status.face_id, cold.status.face_id);
+    assert_eq!(display.pixels, cold_display.pixels);
 }
 
 fn invoke_journey(
