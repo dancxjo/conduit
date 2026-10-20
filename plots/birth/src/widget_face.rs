@@ -81,7 +81,7 @@ impl BirthWidgetFace for BirthDraft {
                     };
                 }
                 ChoiceOption {
-                    identity: choice.plot.checked_plot_id.as_str().into(),
+                    identity: crate::plot_choice_identity::plot_choice_identity(&choice.plot),
                     label: choice.title.clone(),
                     selected: choice.selected,
                     change_action: change,

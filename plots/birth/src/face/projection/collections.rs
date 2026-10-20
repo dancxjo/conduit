@@ -72,8 +72,8 @@ impl Projection {
             });
         }
         for (order, choice) in draft.choices().iter().enumerate() {
-            let digest = Sha256::digest(choice.plot.checked_plot_id.as_str().as_bytes());
-            let subject = format!("{inventory}/{digest:x}");
+            let digest = crate::plot_choice_identity::plot_choice_identity(&choice.plot);
+            let subject = format!("{inventory}/{digest}");
             if self.subjects.iter().any(|s| s.identity == subject) {
                 self.properties.push(FaceProperty {
                     subject,
@@ -104,8 +104,8 @@ impl Projection {
             .enumerate()
             .filter(|(_, choice)| choice.selected)
         {
-            let digest = Sha256::digest(choice.plot.checked_plot_id.as_str().as_bytes());
-            let identity = format!("{review}/{digest:x}");
+            let digest = crate::plot_choice_identity::plot_choice_identity(&choice.plot);
+            let identity = format!("{review}/{digest}");
             self.subjects.push(FaceSubject {
                 identity: identity.clone(),
                 role: FaceRole::Item,

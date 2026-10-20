@@ -25,8 +25,8 @@ Order values may have gaps; vector position and label are not order or identity.
 The view sorts by these facts. Duplicate relevant profile facts, repeated
 members and ambiguous order refuse preparation. Empty informational and independent views are valid.
 
-The Crèche producer uses a checked-Plot digest under the collection identity for
-Plot subjects, and a source option-ID digest for naming alternatives. Display
+The Crèche producer uses a domain-separated, length-prefixed digest of the exact
+Source-document/checked-Plot pair under the collection identity for Plot subjects, and a source option-ID digest for naming alternatives. Display
 labels may coincide or change without becoming submitted values. These are
 producer identity rules; a Mask must retain the supplied subject identities.
 

@@ -9,6 +9,21 @@ use records::Records;
 mod commits;
 #[path = "generic_collection_observation.rs"]
 mod generic_observation;
+#[path = "linear_collection_pair_identity_tests.rs"]
+mod pair_identity;
+
+fn independent_pair_digest(plot: &conduit_body::ResidentPlot) -> String {
+    let mut framed = Vec::new();
+    for value in [
+        "conduit.birth/plot-choice@1",
+        plot.source_document_id.as_str(),
+        plot.checked_plot_id.as_str(),
+    ] {
+        framed.extend_from_slice(&u32::try_from(value.len()).unwrap().to_le_bytes());
+        framed.extend_from_slice(value.as_bytes());
+    }
+    format!("{:x}", Sha256::digest(&framed))
+}
 
 fn rehash(face: Face) -> Face {
     Face::new_with_semantics(
@@ -183,12 +198,7 @@ fn verify_owner(draft: &BirthDraft, face: &Face) -> Records {
     let expected_plot_ids: Vec<_> = draft
         .choices()
         .iter()
-        .map(|c| {
-            format!(
-                "{inventory}/{:x}",
-                Sha256::digest(c.plot.checked_plot_id.as_str().as_bytes())
-            )
-        })
+        .map(|c| format!("{inventory}/{}", independent_pair_digest(&c.plot)))
         .collect();
     assert_eq!(linear.items(&inventory), expected_plot_ids);
     let mut selected = Vec::new();
@@ -214,8 +224,8 @@ fn verify_owner(draft: &BirthDraft, face: &Face) -> Records {
         }
         if choice.selected {
             selected.push(format!(
-                "{review}/{:x}",
-                Sha256::digest(choice.plot.checked_plot_id.as_str().as_bytes())
+                "{review}/{}",
+                independent_pair_digest(&choice.plot)
             ));
         }
     }

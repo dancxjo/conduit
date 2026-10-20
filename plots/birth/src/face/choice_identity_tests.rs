@@ -196,3 +196,34 @@ fn longest_encounter_retains_bounded_identifiers_and_inventory_replacement_inval
     assert_eq!(replacement.revision(), revision);
     assert_eq!(replacement.selection(revision).unwrap(), selection);
 }
+
+#[test]
+fn distinct_source_documents_with_one_checked_plot_retain_distinct_choice_subjects() {
+    let checked = "checked/same-graph";
+    let pairs = ["source/document-one", "source/document-two"]
+        .map(|source| ResidentPlot::new(source.into(), checked.into()));
+    let workset = conduit_body::BodyWorkset::from_plots(pairs.clone()).unwrap();
+    assert_eq!(workset.len(), 2);
+    let owner = from_inventory(
+        pairs
+            .into_iter()
+            .map(|plot| BirthPlotChoice {
+                title: "同じ label".into(),
+                search_text: "same graph".into(),
+                plot,
+                refusal: None,
+                selected: true,
+            })
+            .collect(),
+    );
+    let face = owner
+        .face(&basis())
+        .expect("both authoritative Source/check pairs must project");
+    let subjects: Vec<_> = face
+        .subjects
+        .iter()
+        .filter(|s| s.role == FaceRole::Plot)
+        .collect();
+    assert_eq!(subjects.len(), 2);
+    assert_ne!(subjects[0].identity, subjects[1].identity);
+}

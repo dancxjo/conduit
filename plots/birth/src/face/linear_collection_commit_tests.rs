@@ -12,7 +12,7 @@ fn collection_id(linear: &Records, suffix: &str) -> String {
     id
 }
 
-fn proposal(
+pub(super) fn proposal(
     face: &Face,
     show: &MaskShow,
     linear: &Records,

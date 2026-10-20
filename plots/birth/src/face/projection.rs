@@ -88,7 +88,7 @@ pub(super) fn project(
         ],
         selected_review_in_primary: !draft.search().trim().is_empty(),
     };
-    projection.node(&view.root)?;
+    projection.node(&view.root, draft)?;
     projection.collections(draft);
     let (source_document_id, checked_plot_id, expanded_plot_id, plan_id) = match &basis {
         BirthProjectionBasis::Planned(b) => (
@@ -196,7 +196,11 @@ impl Projection {
         });
         self.events.push((action.identity.clone(), action.event));
     }
-    fn node(&mut self, node: &SemanticFaceNode) -> Result<(), BirthFaceRefusal> {
+    fn node(
+        &mut self,
+        node: &SemanticFaceNode,
+        draft: &BirthDraft,
+    ) -> Result<(), BirthFaceRefusal> {
         let subject = format!("{}/{}", self.root, node.key);
         match &node.mechanism {
             FaceMechanism::Shell => {}
@@ -214,9 +218,18 @@ impl Projection {
                 });
                 self.relationships.push(contains(&self.article, &subject));
                 for option in options {
-                    // Checked Plot identity survives filtering and catalogue reorder.
-                    let digest = Sha256::digest(option.identity.as_bytes());
-                    let id = format!("{subject}/{digest:x}");
+                    // The widget option carries the exact Source/check pair's
+                    // bounded identity. Recover facts from that immutable owner,
+                    // never a label, index or digest treated as a checked Plot.
+                    let choice = draft
+                        .choices()
+                        .iter()
+                        .find(|choice| {
+                            crate::plot_choice_identity::plot_choice_identity(&choice.plot)
+                                == option.identity
+                        })
+                        .ok_or(BirthFaceRefusal::InvalidProjection)?;
+                    let id = format!("{subject}/{}", option.identity);
                     self.subjects.push(FaceSubject {
                         identity: id.clone(),
                         role: FaceRole::Plot,
@@ -240,7 +253,9 @@ impl Projection {
                     self.properties.push(FaceProperty {
                         subject: id.clone(),
                         name: "checked-plot-id".into(),
-                        value: FacePropertyValue::Identity(option.identity.clone()),
+                        value: FacePropertyValue::Identity(
+                            choice.plot.checked_plot_id.as_str().into(),
+                        ),
                     });
                     self.properties.push(FaceProperty {
                         subject: id.clone(),
@@ -297,7 +312,7 @@ impl Projection {
             _ => return Err(BirthFaceRefusal::UnsupportedMechanism),
         }
         for child in &node.children {
-            self.node(child)?;
+            self.node(child, draft)?;
         }
         Ok(())
     }

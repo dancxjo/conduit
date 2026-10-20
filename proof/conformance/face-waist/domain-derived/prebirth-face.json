@@ -1,5 +1,5 @@
 {
-  "identity": "f3498156b480a0be1700c6c8d3fed7934f58624d63f4938cfe407712cbe48c1e",
+  "identity": "2cfeb6454ba21547125eaa25e204177e439681e4a81fc527d5ca228f7c64ed3c",
   "revision": 1,
   "basis": {
     "body_id": null,
@@ -59,8 +59,128 @@
     },
     {
       "identity": "birth/encounter/prebirth-conformance/name-system/input-details",
-      "role": "Info",
-      "name": "Naming tradition input details"
+      "role": "Collection",
+      "name": "Naming tradition choices"
+    },
+    {
+      "identity": "birth/encounter/prebirth-conformance/name-system/input-details/0832c0adf05418144b7b5f01e14600782ba7a302a606b49e3bf26214b765c176",
+      "role": "Item",
+      "name": "Surprise me"
+    },
+    {
+      "identity": "birth/encounter/prebirth-conformance/name-system/input-details/4eaae75f1df2f52bda44f6b18a400542d51c81bd7c00b0e720be5dc2c997575d",
+      "role": "Item",
+      "name": "Roman tria nomina"
+    },
+    {
+      "identity": "birth/encounter/prebirth-conformance/name-system/input-details/e2d3b41db9567ddf0334e14b2ff58556581630566061a0c643fec42d12c47122",
+      "role": "Item",
+      "name": "Chinese (romanized, family name first)"
+    },
+    {
+      "identity": "birth/encounter/prebirth-conformance/name-system/input-details/e6deb10a6558650aebf4c4d95fc47c716dfb2da7350183c114041c19ae9bfcd3",
+      "role": "Item",
+      "name": "Contemporary American"
+    },
+    {
+      "identity": "birth/encounter/prebirth-conformance/name-system/input-details/0faa155716f526ef52b450e853aca61ed7c037d51372ea62f7a303598a226f09",
+      "role": "Item",
+      "name": "Mexican (two surnames)"
+    },
+    {
+      "identity": "birth/encounter/prebirth-conformance/name-system/input-details/44418d3c3dfc57a20b112ebeccfeaa99df0baa6657939708e8ad121dd459d994",
+      "role": "Item",
+      "name": "Icelandic patronymic or matronymic"
+    },
+    {
+      "identity": "birth/encounter/prebirth-conformance/name-system/input-details/42e1eb95ac3ebc9076c837c657265bdf53febef917d4ccdbc32c1a2aa03ee088",
+      "role": "Item",
+      "name": "Japanese (romanized, family name first)"
+    },
+    {
+      "identity": "birth/encounter/prebirth-conformance/name-system/input-details/fbec97e237d3a956cc3bd1327a53139defe5926bc8c2ba833c798d18f8b08a88",
+      "role": "Item",
+      "name": "Arabic lineage plot"
+    },
+    {
+      "identity": "birth/encounter/prebirth-conformance/name-system/input-details/21bb36ad06385b1ccc1f48489b71eea397b7e8b0fa39f91b920f51ce00af459e",
+      "role": "Item",
+      "name": "Contemporary French"
+    },
+    {
+      "identity": "birth/encounter/prebirth-conformance/name-system/input-details/17684a3307c6d0527b4487b695b843d916a6f370a19cbbf2d994f37c0b0b1f2b",
+      "role": "Item",
+      "name": "Contemporary British"
+    },
+    {
+      "identity": "birth/encounter/prebirth-conformance/name-system/input-details/608fc491ee9f119a3e46e2a5d9ac743012918633eabd7a3fc60af885992eebcd",
+      "role": "Item",
+      "name": "Classic Anglophone"
+    },
+    {
+      "identity": "birth/encounter/prebirth-conformance/name-system/input-details/e35fbb1a86bcd6f6736a4e44e9ebe408465f0d28fba23421191a9ea64168fac5",
+      "role": "Item",
+      "name": "Korean (romanized, family name first)"
+    },
+    {
+      "identity": "birth/encounter/prebirth-conformance/name-system/input-details/4aeaf0c480c0a8c806d30d251cc98445e9df63436fadde72deb98abbd49b9bde",
+      "role": "Item",
+      "name": "Vietnamese (family–middle–given)"
+    },
+    {
+      "identity": "birth/encounter/prebirth-conformance/name-system/input-details/818ee56667083246736326b82cfd965fd996c1831ea3b1bb2644777834e705c2",
+      "role": "Item",
+      "name": "Yorùbá personal and family names"
+    },
+    {
+      "identity": "birth/encounter/prebirth-conformance/name-system/input-details/87d8ab25d296a9f6fef77d0145d633156d05d424c2ddf47a4d2bd0c8257686e5",
+      "role": "Item",
+      "name": "Ukrainian (official romanization)"
+    },
+    {
+      "identity": "birth/encounter/prebirth-conformance/name-system/input-details/f679a30110c51a5fc228e3a074837e8d409e39e440309438d2039dec8827c2d7",
+      "role": "Item",
+      "name": "Biblical Hebrew-inspired patronymic (romanized)"
+    },
+    {
+      "identity": "birth/encounter/prebirth-conformance/name-system/input-details/773c8b10ff56bde943c39a8dfdf8196b23504c397c2b8a9f5ac4651783219411",
+      "role": "Item",
+      "name": "Amharic-style patronymic (romanized)"
+    },
+    {
+      "identity": "birth/encounter/prebirth-conformance/name-system/input-details/e35242c809c8c717756d1b3fc9e292d80a05352030cc44f8d1585d7db489484d",
+      "role": "Item",
+      "name": "Portuguese multi-surname"
+    },
+    {
+      "identity": "birth/encounter/prebirth-conformance/name-system/input-details/d9614030c34f73f1b9b755459977284960c50b37605262fe9828cad6158cf8a7",
+      "role": "Item",
+      "name": "Tamil patronymic plots (romanized)"
+    },
+    {
+      "identity": "birth/encounter/prebirth-conformance/name-system/input-details/4b918d589849ae62a79b2f1f2a8e55d210d2891f584000a4315e747127d9ada6",
+      "role": "Item",
+      "name": "Indonesian complete personal-name plots (romanized)"
+    },
+    {
+      "identity": "birth/encounter/prebirth-conformance/name-system/input-details/a7dfd819ed4e23417fd5d0a48cce595c954597fa6f48d0c0a0827d25f29e2357",
+      "role": "Item",
+      "name": "Welsh modern and patronymic plots"
+    },
+    {
+      "identity": "birth/encounter/prebirth-conformance/name-system/input-details/709a44e4c98dbe9095d177dcfe2c0dfe02099be39f34f9b7f3561edd92adf233",
+      "role": "Item",
+      "name": "Kurdish Kurmanji (Latin script)"
+    },
+    {
+      "identity": "birth/encounter/prebirth-conformance/name-system/input-details/75cfda9badebc3176c3887afc0af27fd26d6b83c0c67f1c8f16c02ee14924243",
+      "role": "Item",
+      "name": "The TARGUS family"
+    },
+    {
+      "identity": "birth/encounter/prebirth-conformance/name-system/input-details/8c944874038d2227e9610960efa3e459a73fa4dcdde7dabb660cdf5bfd857049",
+      "role": "Item",
+      "name": "Original Elvish-inspired"
     },
     {
       "identity": "birth/encounter/prebirth-conformance/plot-search",
@@ -78,22 +198,22 @@
       "name": "Plots to include"
     },
     {
-      "identity": "birth/encounter/prebirth-conformance/initial-plots/0",
+      "identity": "birth/encounter/prebirth-conformance/initial-plots/f079edfa8290f0cf315a8d3adcef58cc8c74dca80c9fe4848487e44b3b84b36e",
       "role": "Plot",
       "name": "Scratch"
     },
     {
-      "identity": "birth/encounter/prebirth-conformance/initial-plots/0/selection-details",
+      "identity": "birth/encounter/prebirth-conformance/initial-plots/f079edfa8290f0cf315a8d3adcef58cc8c74dca80c9fe4848487e44b3b84b36e/selection-details",
       "role": "Info",
       "name": "Scratch selection details"
     },
     {
-      "identity": "birth/encounter/prebirth-conformance/initial-plots/1",
+      "identity": "birth/encounter/prebirth-conformance/initial-plots/2edce3de9e4f5788606db11b5cca5ba721f37631cd4c5833507851116c4a25ab",
       "role": "Plot",
       "name": "Chime"
     },
     {
-      "identity": "birth/encounter/prebirth-conformance/initial-plots/1/selection-details",
+      "identity": "birth/encounter/prebirth-conformance/initial-plots/2edce3de9e4f5788606db11b5cca5ba721f37631cd4c5833507851116c4a25ab/selection-details",
       "role": "Info",
       "name": "Chime selection details"
     },
@@ -111,6 +231,16 @@
       "identity": "birth/encounter/prebirth-conformance/birth-review-plot-0",
       "role": "Status",
       "name": "Starting Plot 1"
+    },
+    {
+      "identity": "birth/encounter/prebirth-conformance/reviewed-plots",
+      "role": "Collection",
+      "name": "Selected starting Plots"
+    },
+    {
+      "identity": "birth/encounter/prebirth-conformance/reviewed-plots/f079edfa8290f0cf315a8d3adcef58cc8c74dca80c9fe4848487e44b3b84b36e",
+      "role": "Item",
+      "name": "Scratch"
     }
   ],
   "relationships": [
@@ -157,6 +287,126 @@
       "kind": "Contains"
     },
     {
+      "source": "birth/encounter/prebirth-conformance/name-system/input-details",
+      "target": "birth/encounter/prebirth-conformance/name-system/input-details/0832c0adf05418144b7b5f01e14600782ba7a302a606b49e3bf26214b765c176",
+      "kind": "Contains"
+    },
+    {
+      "source": "birth/encounter/prebirth-conformance/name-system/input-details",
+      "target": "birth/encounter/prebirth-conformance/name-system/input-details/4eaae75f1df2f52bda44f6b18a400542d51c81bd7c00b0e720be5dc2c997575d",
+      "kind": "Contains"
+    },
+    {
+      "source": "birth/encounter/prebirth-conformance/name-system/input-details",
+      "target": "birth/encounter/prebirth-conformance/name-system/input-details/e2d3b41db9567ddf0334e14b2ff58556581630566061a0c643fec42d12c47122",
+      "kind": "Contains"
+    },
+    {
+      "source": "birth/encounter/prebirth-conformance/name-system/input-details",
+      "target": "birth/encounter/prebirth-conformance/name-system/input-details/e6deb10a6558650aebf4c4d95fc47c716dfb2da7350183c114041c19ae9bfcd3",
+      "kind": "Contains"
+    },
+    {
+      "source": "birth/encounter/prebirth-conformance/name-system/input-details",
+      "target": "birth/encounter/prebirth-conformance/name-system/input-details/0faa155716f526ef52b450e853aca61ed7c037d51372ea62f7a303598a226f09",
+      "kind": "Contains"
+    },
+    {
+      "source": "birth/encounter/prebirth-conformance/name-system/input-details",
+      "target": "birth/encounter/prebirth-conformance/name-system/input-details/44418d3c3dfc57a20b112ebeccfeaa99df0baa6657939708e8ad121dd459d994",
+      "kind": "Contains"
+    },
+    {
+      "source": "birth/encounter/prebirth-conformance/name-system/input-details",
+      "target": "birth/encounter/prebirth-conformance/name-system/input-details/42e1eb95ac3ebc9076c837c657265bdf53febef917d4ccdbc32c1a2aa03ee088",
+      "kind": "Contains"
+    },
+    {
+      "source": "birth/encounter/prebirth-conformance/name-system/input-details",
+      "target": "birth/encounter/prebirth-conformance/name-system/input-details/fbec97e237d3a956cc3bd1327a53139defe5926bc8c2ba833c798d18f8b08a88",
+      "kind": "Contains"
+    },
+    {
+      "source": "birth/encounter/prebirth-conformance/name-system/input-details",
+      "target": "birth/encounter/prebirth-conformance/name-system/input-details/21bb36ad06385b1ccc1f48489b71eea397b7e8b0fa39f91b920f51ce00af459e",
+      "kind": "Contains"
+    },
+    {
+      "source": "birth/encounter/prebirth-conformance/name-system/input-details",
+      "target": "birth/encounter/prebirth-conformance/name-system/input-details/17684a3307c6d0527b4487b695b843d916a6f370a19cbbf2d994f37c0b0b1f2b",
+      "kind": "Contains"
+    },
+    {
+      "source": "birth/encounter/prebirth-conformance/name-system/input-details",
+      "target": "birth/encounter/prebirth-conformance/name-system/input-details/608fc491ee9f119a3e46e2a5d9ac743012918633eabd7a3fc60af885992eebcd",
+      "kind": "Contains"
+    },
+    {
+      "source": "birth/encounter/prebirth-conformance/name-system/input-details",
+      "target": "birth/encounter/prebirth-conformance/name-system/input-details/e35fbb1a86bcd6f6736a4e44e9ebe408465f0d28fba23421191a9ea64168fac5",
+      "kind": "Contains"
+    },
+    {
+      "source": "birth/encounter/prebirth-conformance/name-system/input-details",
+      "target": "birth/encounter/prebirth-conformance/name-system/input-details/4aeaf0c480c0a8c806d30d251cc98445e9df63436fadde72deb98abbd49b9bde",
+      "kind": "Contains"
+    },
+    {
+      "source": "birth/encounter/prebirth-conformance/name-system/input-details",
+      "target": "birth/encounter/prebirth-conformance/name-system/input-details/818ee56667083246736326b82cfd965fd996c1831ea3b1bb2644777834e705c2",
+      "kind": "Contains"
+    },
+    {
+      "source": "birth/encounter/prebirth-conformance/name-system/input-details",
+      "target": "birth/encounter/prebirth-conformance/name-system/input-details/87d8ab25d296a9f6fef77d0145d633156d05d424c2ddf47a4d2bd0c8257686e5",
+      "kind": "Contains"
+    },
+    {
+      "source": "birth/encounter/prebirth-conformance/name-system/input-details",
+      "target": "birth/encounter/prebirth-conformance/name-system/input-details/f679a30110c51a5fc228e3a074837e8d409e39e440309438d2039dec8827c2d7",
+      "kind": "Contains"
+    },
+    {
+      "source": "birth/encounter/prebirth-conformance/name-system/input-details",
+      "target": "birth/encounter/prebirth-conformance/name-system/input-details/773c8b10ff56bde943c39a8dfdf8196b23504c397c2b8a9f5ac4651783219411",
+      "kind": "Contains"
+    },
+    {
+      "source": "birth/encounter/prebirth-conformance/name-system/input-details",
+      "target": "birth/encounter/prebirth-conformance/name-system/input-details/e35242c809c8c717756d1b3fc9e292d80a05352030cc44f8d1585d7db489484d",
+      "kind": "Contains"
+    },
+    {
+      "source": "birth/encounter/prebirth-conformance/name-system/input-details",
+      "target": "birth/encounter/prebirth-conformance/name-system/input-details/d9614030c34f73f1b9b755459977284960c50b37605262fe9828cad6158cf8a7",
+      "kind": "Contains"
+    },
+    {
+      "source": "birth/encounter/prebirth-conformance/name-system/input-details",
+      "target": "birth/encounter/prebirth-conformance/name-system/input-details/4b918d589849ae62a79b2f1f2a8e55d210d2891f584000a4315e747127d9ada6",
+      "kind": "Contains"
+    },
+    {
+      "source": "birth/encounter/prebirth-conformance/name-system/input-details",
+      "target": "birth/encounter/prebirth-conformance/name-system/input-details/a7dfd819ed4e23417fd5d0a48cce595c954597fa6f48d0c0a0827d25f29e2357",
+      "kind": "Contains"
+    },
+    {
+      "source": "birth/encounter/prebirth-conformance/name-system/input-details",
+      "target": "birth/encounter/prebirth-conformance/name-system/input-details/709a44e4c98dbe9095d177dcfe2c0dfe02099be39f34f9b7f3561edd92adf233",
+      "kind": "Contains"
+    },
+    {
+      "source": "birth/encounter/prebirth-conformance/name-system/input-details",
+      "target": "birth/encounter/prebirth-conformance/name-system/input-details/75cfda9badebc3176c3887afc0af27fd26d6b83c0c67f1c8f16c02ee14924243",
+      "kind": "Contains"
+    },
+    {
+      "source": "birth/encounter/prebirth-conformance/name-system/input-details",
+      "target": "birth/encounter/prebirth-conformance/name-system/input-details/8c944874038d2227e9610960efa3e459a73fa4dcdde7dabb660cdf5bfd857049",
+      "kind": "Contains"
+    },
+    {
       "source": "birth/encounter/prebirth-conformance/article",
       "target": "birth/encounter/prebirth-conformance/plot-search",
       "kind": "Contains"
@@ -173,22 +423,22 @@
     },
     {
       "source": "birth/encounter/prebirth-conformance/initial-plots",
-      "target": "birth/encounter/prebirth-conformance/initial-plots/0",
+      "target": "birth/encounter/prebirth-conformance/initial-plots/f079edfa8290f0cf315a8d3adcef58cc8c74dca80c9fe4848487e44b3b84b36e",
       "kind": "Contains"
     },
     {
-      "source": "birth/encounter/prebirth-conformance/initial-plots/0",
-      "target": "birth/encounter/prebirth-conformance/initial-plots/0/selection-details",
+      "source": "birth/encounter/prebirth-conformance/initial-plots/f079edfa8290f0cf315a8d3adcef58cc8c74dca80c9fe4848487e44b3b84b36e",
+      "target": "birth/encounter/prebirth-conformance/initial-plots/f079edfa8290f0cf315a8d3adcef58cc8c74dca80c9fe4848487e44b3b84b36e/selection-details",
       "kind": "Contains"
     },
     {
       "source": "birth/encounter/prebirth-conformance/initial-plots",
-      "target": "birth/encounter/prebirth-conformance/initial-plots/1",
+      "target": "birth/encounter/prebirth-conformance/initial-plots/2edce3de9e4f5788606db11b5cca5ba721f37631cd4c5833507851116c4a25ab",
       "kind": "Contains"
     },
     {
-      "source": "birth/encounter/prebirth-conformance/initial-plots/1",
-      "target": "birth/encounter/prebirth-conformance/initial-plots/1/selection-details",
+      "source": "birth/encounter/prebirth-conformance/initial-plots/2edce3de9e4f5788606db11b5cca5ba721f37631cd4c5833507851116c4a25ab",
+      "target": "birth/encounter/prebirth-conformance/initial-plots/2edce3de9e4f5788606db11b5cca5ba721f37631cd4c5833507851116c4a25ab/selection-details",
       "kind": "Contains"
     },
     {
@@ -204,6 +454,16 @@
     {
       "source": "birth/encounter/prebirth-conformance/article",
       "target": "birth/encounter/prebirth-conformance/birth-review-plot-0",
+      "kind": "Contains"
+    },
+    {
+      "source": "birth/encounter/prebirth-conformance/article",
+      "target": "birth/encounter/prebirth-conformance/reviewed-plots",
+      "kind": "Contains"
+    },
+    {
+      "source": "birth/encounter/prebirth-conformance/reviewed-plots",
+      "target": "birth/encounter/prebirth-conformance/reviewed-plots/f079edfa8290f0cf315a8d3adcef58cc8c74dca80c9fe4848487e44b3b84b36e",
       "kind": "Contains"
     }
   ],
@@ -262,6 +522,935 @@
       "name": "value-change-action",
       "value": {
         "Identity": "creche.name"
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details",
+      "name": "item-count",
+      "value": {
+        "Count": 24
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details",
+      "name": "choice-multiplicity",
+      "value": {
+        "Text": "exclusive"
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details",
+      "name": "minimum-selected-count",
+      "value": {
+        "Count": 1
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details",
+      "name": "maximum-selected-count",
+      "value": {
+        "Count": 1
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details",
+      "name": "selection-action",
+      "value": {
+        "Identity": "creche.naming"
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details",
+      "name": "value-source",
+      "value": {
+        "Identity": "birth/encounter/prebirth-conformance/name-system"
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/0832c0adf05418144b7b5f01e14600782ba7a302a606b49e3bf26214b765c176",
+      "name": "order",
+      "value": {
+        "Count": 0
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/0832c0adf05418144b7b5f01e14600782ba7a302a606b49e3bf26214b765c176",
+      "name": "selected",
+      "value": {
+        "Flag": true
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/0832c0adf05418144b7b5f01e14600782ba7a302a606b49e3bf26214b765c176",
+      "name": "choice-value",
+      "value": {
+        "TypedValue": {
+          "contract": {
+            "value_kind": "value/text",
+            "maximum_bytes": 64,
+            "constraints": []
+          },
+          "bytes": [
+            115,
+            117,
+            114,
+            112,
+            114,
+            105,
+            115,
+            101
+          ]
+        }
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/4eaae75f1df2f52bda44f6b18a400542d51c81bd7c00b0e720be5dc2c997575d",
+      "name": "order",
+      "value": {
+        "Count": 1
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/4eaae75f1df2f52bda44f6b18a400542d51c81bd7c00b0e720be5dc2c997575d",
+      "name": "selected",
+      "value": {
+        "Flag": false
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/4eaae75f1df2f52bda44f6b18a400542d51c81bd7c00b0e720be5dc2c997575d",
+      "name": "choice-value",
+      "value": {
+        "TypedValue": {
+          "contract": {
+            "value_kind": "value/text",
+            "maximum_bytes": 64,
+            "constraints": []
+          },
+          "bytes": [
+            114,
+            111,
+            109,
+            97,
+            110
+          ]
+        }
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/e2d3b41db9567ddf0334e14b2ff58556581630566061a0c643fec42d12c47122",
+      "name": "order",
+      "value": {
+        "Count": 2
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/e2d3b41db9567ddf0334e14b2ff58556581630566061a0c643fec42d12c47122",
+      "name": "selected",
+      "value": {
+        "Flag": false
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/e2d3b41db9567ddf0334e14b2ff58556581630566061a0c643fec42d12c47122",
+      "name": "choice-value",
+      "value": {
+        "TypedValue": {
+          "contract": {
+            "value_kind": "value/text",
+            "maximum_bytes": 64,
+            "constraints": []
+          },
+          "bytes": [
+            99,
+            104,
+            105,
+            110,
+            101,
+            115,
+            101
+          ]
+        }
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/e6deb10a6558650aebf4c4d95fc47c716dfb2da7350183c114041c19ae9bfcd3",
+      "name": "order",
+      "value": {
+        "Count": 3
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/e6deb10a6558650aebf4c4d95fc47c716dfb2da7350183c114041c19ae9bfcd3",
+      "name": "selected",
+      "value": {
+        "Flag": false
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/e6deb10a6558650aebf4c4d95fc47c716dfb2da7350183c114041c19ae9bfcd3",
+      "name": "choice-value",
+      "value": {
+        "TypedValue": {
+          "contract": {
+            "value_kind": "value/text",
+            "maximum_bytes": 64,
+            "constraints": []
+          },
+          "bytes": [
+            97,
+            109,
+            101,
+            114,
+            105,
+            99,
+            97,
+            110
+          ]
+        }
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/0faa155716f526ef52b450e853aca61ed7c037d51372ea62f7a303598a226f09",
+      "name": "order",
+      "value": {
+        "Count": 4
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/0faa155716f526ef52b450e853aca61ed7c037d51372ea62f7a303598a226f09",
+      "name": "selected",
+      "value": {
+        "Flag": false
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/0faa155716f526ef52b450e853aca61ed7c037d51372ea62f7a303598a226f09",
+      "name": "choice-value",
+      "value": {
+        "TypedValue": {
+          "contract": {
+            "value_kind": "value/text",
+            "maximum_bytes": 64,
+            "constraints": []
+          },
+          "bytes": [
+            109,
+            101,
+            120,
+            105,
+            99,
+            97,
+            110
+          ]
+        }
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/44418d3c3dfc57a20b112ebeccfeaa99df0baa6657939708e8ad121dd459d994",
+      "name": "order",
+      "value": {
+        "Count": 5
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/44418d3c3dfc57a20b112ebeccfeaa99df0baa6657939708e8ad121dd459d994",
+      "name": "selected",
+      "value": {
+        "Flag": false
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/44418d3c3dfc57a20b112ebeccfeaa99df0baa6657939708e8ad121dd459d994",
+      "name": "choice-value",
+      "value": {
+        "TypedValue": {
+          "contract": {
+            "value_kind": "value/text",
+            "maximum_bytes": 64,
+            "constraints": []
+          },
+          "bytes": [
+            105,
+            99,
+            101,
+            108,
+            97,
+            110,
+            100,
+            105,
+            99
+          ]
+        }
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/42e1eb95ac3ebc9076c837c657265bdf53febef917d4ccdbc32c1a2aa03ee088",
+      "name": "order",
+      "value": {
+        "Count": 6
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/42e1eb95ac3ebc9076c837c657265bdf53febef917d4ccdbc32c1a2aa03ee088",
+      "name": "selected",
+      "value": {
+        "Flag": false
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/42e1eb95ac3ebc9076c837c657265bdf53febef917d4ccdbc32c1a2aa03ee088",
+      "name": "choice-value",
+      "value": {
+        "TypedValue": {
+          "contract": {
+            "value_kind": "value/text",
+            "maximum_bytes": 64,
+            "constraints": []
+          },
+          "bytes": [
+            106,
+            97,
+            112,
+            97,
+            110,
+            101,
+            115,
+            101
+          ]
+        }
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/fbec97e237d3a956cc3bd1327a53139defe5926bc8c2ba833c798d18f8b08a88",
+      "name": "order",
+      "value": {
+        "Count": 7
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/fbec97e237d3a956cc3bd1327a53139defe5926bc8c2ba833c798d18f8b08a88",
+      "name": "selected",
+      "value": {
+        "Flag": false
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/fbec97e237d3a956cc3bd1327a53139defe5926bc8c2ba833c798d18f8b08a88",
+      "name": "choice-value",
+      "value": {
+        "TypedValue": {
+          "contract": {
+            "value_kind": "value/text",
+            "maximum_bytes": 64,
+            "constraints": []
+          },
+          "bytes": [
+            97,
+            114,
+            97,
+            98,
+            105,
+            99
+          ]
+        }
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/21bb36ad06385b1ccc1f48489b71eea397b7e8b0fa39f91b920f51ce00af459e",
+      "name": "order",
+      "value": {
+        "Count": 8
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/21bb36ad06385b1ccc1f48489b71eea397b7e8b0fa39f91b920f51ce00af459e",
+      "name": "selected",
+      "value": {
+        "Flag": false
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/21bb36ad06385b1ccc1f48489b71eea397b7e8b0fa39f91b920f51ce00af459e",
+      "name": "choice-value",
+      "value": {
+        "TypedValue": {
+          "contract": {
+            "value_kind": "value/text",
+            "maximum_bytes": 64,
+            "constraints": []
+          },
+          "bytes": [
+            102,
+            114,
+            101,
+            110,
+            99,
+            104
+          ]
+        }
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/17684a3307c6d0527b4487b695b843d916a6f370a19cbbf2d994f37c0b0b1f2b",
+      "name": "order",
+      "value": {
+        "Count": 9
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/17684a3307c6d0527b4487b695b843d916a6f370a19cbbf2d994f37c0b0b1f2b",
+      "name": "selected",
+      "value": {
+        "Flag": false
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/17684a3307c6d0527b4487b695b843d916a6f370a19cbbf2d994f37c0b0b1f2b",
+      "name": "choice-value",
+      "value": {
+        "TypedValue": {
+          "contract": {
+            "value_kind": "value/text",
+            "maximum_bytes": 64,
+            "constraints": []
+          },
+          "bytes": [
+            98,
+            114,
+            105,
+            116,
+            105,
+            115,
+            104
+          ]
+        }
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/608fc491ee9f119a3e46e2a5d9ac743012918633eabd7a3fc60af885992eebcd",
+      "name": "order",
+      "value": {
+        "Count": 10
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/608fc491ee9f119a3e46e2a5d9ac743012918633eabd7a3fc60af885992eebcd",
+      "name": "selected",
+      "value": {
+        "Flag": false
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/608fc491ee9f119a3e46e2a5d9ac743012918633eabd7a3fc60af885992eebcd",
+      "name": "choice-value",
+      "value": {
+        "TypedValue": {
+          "contract": {
+            "value_kind": "value/text",
+            "maximum_bytes": 64,
+            "constraints": []
+          },
+          "bytes": [
+            99,
+            108,
+            97,
+            115,
+            115,
+            105,
+            99,
+            45,
+            97,
+            110,
+            103,
+            108,
+            111,
+            112,
+            104,
+            111,
+            110,
+            101
+          ]
+        }
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/e35fbb1a86bcd6f6736a4e44e9ebe408465f0d28fba23421191a9ea64168fac5",
+      "name": "order",
+      "value": {
+        "Count": 11
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/e35fbb1a86bcd6f6736a4e44e9ebe408465f0d28fba23421191a9ea64168fac5",
+      "name": "selected",
+      "value": {
+        "Flag": false
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/e35fbb1a86bcd6f6736a4e44e9ebe408465f0d28fba23421191a9ea64168fac5",
+      "name": "choice-value",
+      "value": {
+        "TypedValue": {
+          "contract": {
+            "value_kind": "value/text",
+            "maximum_bytes": 64,
+            "constraints": []
+          },
+          "bytes": [
+            107,
+            111,
+            114,
+            101,
+            97,
+            110
+          ]
+        }
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/4aeaf0c480c0a8c806d30d251cc98445e9df63436fadde72deb98abbd49b9bde",
+      "name": "order",
+      "value": {
+        "Count": 12
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/4aeaf0c480c0a8c806d30d251cc98445e9df63436fadde72deb98abbd49b9bde",
+      "name": "selected",
+      "value": {
+        "Flag": false
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/4aeaf0c480c0a8c806d30d251cc98445e9df63436fadde72deb98abbd49b9bde",
+      "name": "choice-value",
+      "value": {
+        "TypedValue": {
+          "contract": {
+            "value_kind": "value/text",
+            "maximum_bytes": 64,
+            "constraints": []
+          },
+          "bytes": [
+            118,
+            105,
+            101,
+            116,
+            110,
+            97,
+            109,
+            101,
+            115,
+            101
+          ]
+        }
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/818ee56667083246736326b82cfd965fd996c1831ea3b1bb2644777834e705c2",
+      "name": "order",
+      "value": {
+        "Count": 13
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/818ee56667083246736326b82cfd965fd996c1831ea3b1bb2644777834e705c2",
+      "name": "selected",
+      "value": {
+        "Flag": false
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/818ee56667083246736326b82cfd965fd996c1831ea3b1bb2644777834e705c2",
+      "name": "choice-value",
+      "value": {
+        "TypedValue": {
+          "contract": {
+            "value_kind": "value/text",
+            "maximum_bytes": 64,
+            "constraints": []
+          },
+          "bytes": [
+            121,
+            111,
+            114,
+            117,
+            98,
+            97
+          ]
+        }
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/87d8ab25d296a9f6fef77d0145d633156d05d424c2ddf47a4d2bd0c8257686e5",
+      "name": "order",
+      "value": {
+        "Count": 14
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/87d8ab25d296a9f6fef77d0145d633156d05d424c2ddf47a4d2bd0c8257686e5",
+      "name": "selected",
+      "value": {
+        "Flag": false
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/87d8ab25d296a9f6fef77d0145d633156d05d424c2ddf47a4d2bd0c8257686e5",
+      "name": "choice-value",
+      "value": {
+        "TypedValue": {
+          "contract": {
+            "value_kind": "value/text",
+            "maximum_bytes": 64,
+            "constraints": []
+          },
+          "bytes": [
+            117,
+            107,
+            114,
+            97,
+            105,
+            110,
+            105,
+            97,
+            110
+          ]
+        }
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/f679a30110c51a5fc228e3a074837e8d409e39e440309438d2039dec8827c2d7",
+      "name": "order",
+      "value": {
+        "Count": 15
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/f679a30110c51a5fc228e3a074837e8d409e39e440309438d2039dec8827c2d7",
+      "name": "selected",
+      "value": {
+        "Flag": false
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/f679a30110c51a5fc228e3a074837e8d409e39e440309438d2039dec8827c2d7",
+      "name": "choice-value",
+      "value": {
+        "TypedValue": {
+          "contract": {
+            "value_kind": "value/text",
+            "maximum_bytes": 64,
+            "constraints": []
+          },
+          "bytes": [
+            97,
+            110,
+            99,
+            105,
+            101,
+            110,
+            116,
+            45,
+            104,
+            101,
+            98,
+            114,
+            101,
+            119
+          ]
+        }
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/773c8b10ff56bde943c39a8dfdf8196b23504c397c2b8a9f5ac4651783219411",
+      "name": "order",
+      "value": {
+        "Count": 16
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/773c8b10ff56bde943c39a8dfdf8196b23504c397c2b8a9f5ac4651783219411",
+      "name": "selected",
+      "value": {
+        "Flag": false
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/773c8b10ff56bde943c39a8dfdf8196b23504c397c2b8a9f5ac4651783219411",
+      "name": "choice-value",
+      "value": {
+        "TypedValue": {
+          "contract": {
+            "value_kind": "value/text",
+            "maximum_bytes": 64,
+            "constraints": []
+          },
+          "bytes": [
+            97,
+            109,
+            104,
+            97,
+            114,
+            105,
+            99
+          ]
+        }
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/e35242c809c8c717756d1b3fc9e292d80a05352030cc44f8d1585d7db489484d",
+      "name": "order",
+      "value": {
+        "Count": 17
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/e35242c809c8c717756d1b3fc9e292d80a05352030cc44f8d1585d7db489484d",
+      "name": "selected",
+      "value": {
+        "Flag": false
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/e35242c809c8c717756d1b3fc9e292d80a05352030cc44f8d1585d7db489484d",
+      "name": "choice-value",
+      "value": {
+        "TypedValue": {
+          "contract": {
+            "value_kind": "value/text",
+            "maximum_bytes": 64,
+            "constraints": []
+          },
+          "bytes": [
+            112,
+            111,
+            114,
+            116,
+            117,
+            103,
+            117,
+            101,
+            115,
+            101
+          ]
+        }
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/d9614030c34f73f1b9b755459977284960c50b37605262fe9828cad6158cf8a7",
+      "name": "order",
+      "value": {
+        "Count": 18
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/d9614030c34f73f1b9b755459977284960c50b37605262fe9828cad6158cf8a7",
+      "name": "selected",
+      "value": {
+        "Flag": false
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/d9614030c34f73f1b9b755459977284960c50b37605262fe9828cad6158cf8a7",
+      "name": "choice-value",
+      "value": {
+        "TypedValue": {
+          "contract": {
+            "value_kind": "value/text",
+            "maximum_bytes": 64,
+            "constraints": []
+          },
+          "bytes": [
+            116,
+            97,
+            109,
+            105,
+            108
+          ]
+        }
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/4b918d589849ae62a79b2f1f2a8e55d210d2891f584000a4315e747127d9ada6",
+      "name": "order",
+      "value": {
+        "Count": 19
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/4b918d589849ae62a79b2f1f2a8e55d210d2891f584000a4315e747127d9ada6",
+      "name": "selected",
+      "value": {
+        "Flag": false
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/4b918d589849ae62a79b2f1f2a8e55d210d2891f584000a4315e747127d9ada6",
+      "name": "choice-value",
+      "value": {
+        "TypedValue": {
+          "contract": {
+            "value_kind": "value/text",
+            "maximum_bytes": 64,
+            "constraints": []
+          },
+          "bytes": [
+            105,
+            110,
+            100,
+            111,
+            110,
+            101,
+            115,
+            105,
+            97,
+            110
+          ]
+        }
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/a7dfd819ed4e23417fd5d0a48cce595c954597fa6f48d0c0a0827d25f29e2357",
+      "name": "order",
+      "value": {
+        "Count": 20
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/a7dfd819ed4e23417fd5d0a48cce595c954597fa6f48d0c0a0827d25f29e2357",
+      "name": "selected",
+      "value": {
+        "Flag": false
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/a7dfd819ed4e23417fd5d0a48cce595c954597fa6f48d0c0a0827d25f29e2357",
+      "name": "choice-value",
+      "value": {
+        "TypedValue": {
+          "contract": {
+            "value_kind": "value/text",
+            "maximum_bytes": 64,
+            "constraints": []
+          },
+          "bytes": [
+            119,
+            101,
+            108,
+            115,
+            104
+          ]
+        }
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/709a44e4c98dbe9095d177dcfe2c0dfe02099be39f34f9b7f3561edd92adf233",
+      "name": "order",
+      "value": {
+        "Count": 21
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/709a44e4c98dbe9095d177dcfe2c0dfe02099be39f34f9b7f3561edd92adf233",
+      "name": "selected",
+      "value": {
+        "Flag": false
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/709a44e4c98dbe9095d177dcfe2c0dfe02099be39f34f9b7f3561edd92adf233",
+      "name": "choice-value",
+      "value": {
+        "TypedValue": {
+          "contract": {
+            "value_kind": "value/text",
+            "maximum_bytes": 64,
+            "constraints": []
+          },
+          "bytes": [
+            107,
+            117,
+            114,
+            109,
+            97,
+            110,
+            106,
+            105
+          ]
+        }
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/75cfda9badebc3176c3887afc0af27fd26d6b83c0c67f1c8f16c02ee14924243",
+      "name": "order",
+      "value": {
+        "Count": 22
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/75cfda9badebc3176c3887afc0af27fd26d6b83c0c67f1c8f16c02ee14924243",
+      "name": "selected",
+      "value": {
+        "Flag": false
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/75cfda9badebc3176c3887afc0af27fd26d6b83c0c67f1c8f16c02ee14924243",
+      "name": "choice-value",
+      "value": {
+        "TypedValue": {
+          "contract": {
+            "value_kind": "value/text",
+            "maximum_bytes": 64,
+            "constraints": []
+          },
+          "bytes": [
+            116,
+            97,
+            114,
+            103,
+            117,
+            115
+          ]
+        }
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/8c944874038d2227e9610960efa3e459a73fa4dcdde7dabb660cdf5bfd857049",
+      "name": "order",
+      "value": {
+        "Count": 23
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/8c944874038d2227e9610960efa3e459a73fa4dcdde7dabb660cdf5bfd857049",
+      "name": "selected",
+      "value": {
+        "Flag": false
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/8c944874038d2227e9610960efa3e459a73fa4dcdde7dabb660cdf5bfd857049",
+      "name": "choice-value",
+      "value": {
+        "TypedValue": {
+          "contract": {
+            "value_kind": "value/text",
+            "maximum_bytes": 64,
+            "constraints": []
+          },
+          "bytes": [
+            101,
+            108,
+            118,
+            105,
+            115,
+            104
+          ]
+        }
       }
     },
     {
@@ -576,31 +1765,115 @@
       }
     },
     {
-      "subject": "birth/encounter/prebirth-conformance/initial-plots/0",
+      "subject": "birth/encounter/prebirth-conformance/initial-plots/f079edfa8290f0cf315a8d3adcef58cc8c74dca80c9fe4848487e44b3b84b36e",
+      "name": "checked-plot-id",
+      "value": {
+        "Identity": "checked/scratch"
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/initial-plots/f079edfa8290f0cf315a8d3adcef58cc8c74dca80c9fe4848487e44b3b84b36e",
       "name": "selected",
       "value": {
         "Flag": true
       }
     },
     {
-      "subject": "birth/encounter/prebirth-conformance/initial-plots/0",
+      "subject": "birth/encounter/prebirth-conformance/initial-plots/f079edfa8290f0cf315a8d3adcef58cc8c74dca80c9fe4848487e44b3b84b36e",
       "name": "boolean-change-action",
       "value": {
         "Identity": "creche.plot.0"
       }
     },
     {
-      "subject": "birth/encounter/prebirth-conformance/initial-plots/1",
+      "subject": "birth/encounter/prebirth-conformance/initial-plots/2edce3de9e4f5788606db11b5cca5ba721f37631cd4c5833507851116c4a25ab",
+      "name": "checked-plot-id",
+      "value": {
+        "Identity": "checked/chime"
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/initial-plots/2edce3de9e4f5788606db11b5cca5ba721f37631cd4c5833507851116c4a25ab",
       "name": "selected",
       "value": {
         "Flag": false
       }
     },
     {
-      "subject": "birth/encounter/prebirth-conformance/initial-plots/1",
+      "subject": "birth/encounter/prebirth-conformance/initial-plots/2edce3de9e4f5788606db11b5cca5ba721f37631cd4c5833507851116c4a25ab",
       "name": "boolean-change-action",
       "value": {
         "Identity": "creche.plot.1"
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/initial-plots",
+      "name": "item-count",
+      "value": {
+        "Count": 2
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/initial-plots",
+      "name": "inventory-count",
+      "value": {
+        "Count": 2
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/initial-plots",
+      "name": "selected-count",
+      "value": {
+        "Count": 1
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/initial-plots",
+      "name": "choice-multiplicity",
+      "value": {
+        "Text": "independent"
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/initial-plots",
+      "name": "query-source",
+      "value": {
+        "Identity": "birth/encounter/prebirth-conformance/plot-search"
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/initial-plots/f079edfa8290f0cf315a8d3adcef58cc8c74dca80c9fe4848487e44b3b84b36e",
+      "name": "order",
+      "value": {
+        "Count": 0
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/initial-plots/2edce3de9e4f5788606db11b5cca5ba721f37631cd4c5833507851116c4a25ab",
+      "name": "order",
+      "value": {
+        "Count": 1
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/reviewed-plots",
+      "name": "item-count",
+      "value": {
+        "Count": 1
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/reviewed-plots/f079edfa8290f0cf315a8d3adcef58cc8c74dca80c9fe4848487e44b3b84b36e",
+      "name": "checked-plot-id",
+      "value": {
+        "Identity": "checked/scratch"
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/reviewed-plots/f079edfa8290f0cf315a8d3adcef58cc8c74dca80c9fe4848487e44b3b84b36e",
+      "name": "order",
+      "value": {
+        "Count": 0
       }
     },
     {
@@ -744,11 +2017,11 @@
       "text": "Current value: (empty)."
     },
     {
-      "subject": "birth/encounter/prebirth-conformance/initial-plots/0/selection-details",
+      "subject": "birth/encounter/prebirth-conformance/initial-plots/f079edfa8290f0cf315a8d3adcef58cc8c74dca80c9fe4848487e44b3b84b36e/selection-details",
       "text": "Included."
     },
     {
-      "subject": "birth/encounter/prebirth-conformance/initial-plots/1/selection-details",
+      "subject": "birth/encounter/prebirth-conformance/initial-plots/2edce3de9e4f5788606db11b5cca5ba721f37631cd4c5833507851116c4a25ab/selection-details",
       "text": "Not included."
     },
     {
@@ -1097,7 +2370,7 @@
     {
       "identity": "creche.plot.0",
       "intent": "conduit.intent/creche.plot.0@1",
-      "target": "birth/encounter/prebirth-conformance/initial-plots/0",
+      "target": "birth/encounter/prebirth-conformance/initial-plots/f079edfa8290f0cf315a8d3adcef58cc8c74dca80c9fe4848487e44b3b84b36e",
       "name": "Include Plot",
       "arguments": [
         {
@@ -1116,7 +2389,7 @@
     {
       "identity": "creche.plot.1",
       "intent": "conduit.intent/creche.plot.1@1",
-      "target": "birth/encounter/prebirth-conformance/initial-plots/1",
+      "target": "birth/encounter/prebirth-conformance/initial-plots/2edce3de9e4f5788606db11b5cca5ba721f37631cd4c5833507851116c4a25ab",
       "name": "Include Plot",
       "arguments": [
         {
@@ -1165,19 +2438,123 @@
       "level": "SelectedDetail"
     },
     {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/0832c0adf05418144b7b5f01e14600782ba7a302a606b49e3bf26214b765c176",
+      "level": "SelectedDetail"
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/4eaae75f1df2f52bda44f6b18a400542d51c81bd7c00b0e720be5dc2c997575d",
+      "level": "SelectedDetail"
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/e2d3b41db9567ddf0334e14b2ff58556581630566061a0c643fec42d12c47122",
+      "level": "SelectedDetail"
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/e6deb10a6558650aebf4c4d95fc47c716dfb2da7350183c114041c19ae9bfcd3",
+      "level": "SelectedDetail"
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/0faa155716f526ef52b450e853aca61ed7c037d51372ea62f7a303598a226f09",
+      "level": "SelectedDetail"
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/44418d3c3dfc57a20b112ebeccfeaa99df0baa6657939708e8ad121dd459d994",
+      "level": "SelectedDetail"
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/42e1eb95ac3ebc9076c837c657265bdf53febef917d4ccdbc32c1a2aa03ee088",
+      "level": "SelectedDetail"
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/fbec97e237d3a956cc3bd1327a53139defe5926bc8c2ba833c798d18f8b08a88",
+      "level": "SelectedDetail"
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/21bb36ad06385b1ccc1f48489b71eea397b7e8b0fa39f91b920f51ce00af459e",
+      "level": "SelectedDetail"
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/17684a3307c6d0527b4487b695b843d916a6f370a19cbbf2d994f37c0b0b1f2b",
+      "level": "SelectedDetail"
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/608fc491ee9f119a3e46e2a5d9ac743012918633eabd7a3fc60af885992eebcd",
+      "level": "SelectedDetail"
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/e35fbb1a86bcd6f6736a4e44e9ebe408465f0d28fba23421191a9ea64168fac5",
+      "level": "SelectedDetail"
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/4aeaf0c480c0a8c806d30d251cc98445e9df63436fadde72deb98abbd49b9bde",
+      "level": "SelectedDetail"
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/818ee56667083246736326b82cfd965fd996c1831ea3b1bb2644777834e705c2",
+      "level": "SelectedDetail"
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/87d8ab25d296a9f6fef77d0145d633156d05d424c2ddf47a4d2bd0c8257686e5",
+      "level": "SelectedDetail"
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/f679a30110c51a5fc228e3a074837e8d409e39e440309438d2039dec8827c2d7",
+      "level": "SelectedDetail"
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/773c8b10ff56bde943c39a8dfdf8196b23504c397c2b8a9f5ac4651783219411",
+      "level": "SelectedDetail"
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/e35242c809c8c717756d1b3fc9e292d80a05352030cc44f8d1585d7db489484d",
+      "level": "SelectedDetail"
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/d9614030c34f73f1b9b755459977284960c50b37605262fe9828cad6158cf8a7",
+      "level": "SelectedDetail"
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/4b918d589849ae62a79b2f1f2a8e55d210d2891f584000a4315e747127d9ada6",
+      "level": "SelectedDetail"
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/a7dfd819ed4e23417fd5d0a48cce595c954597fa6f48d0c0a0827d25f29e2357",
+      "level": "SelectedDetail"
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/709a44e4c98dbe9095d177dcfe2c0dfe02099be39f34f9b7f3561edd92adf233",
+      "level": "SelectedDetail"
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/75cfda9badebc3176c3887afc0af27fd26d6b83c0c67f1c8f16c02ee14924243",
+      "level": "SelectedDetail"
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details/8c944874038d2227e9610960efa3e459a73fa4dcdde7dabb660cdf5bfd857049",
+      "level": "SelectedDetail"
+    },
+    {
       "subject": "birth/encounter/prebirth-conformance/plot-search/input-details",
       "level": "SelectedDetail"
     },
     {
-      "subject": "birth/encounter/prebirth-conformance/initial-plots/0/selection-details",
+      "subject": "birth/encounter/prebirth-conformance/initial-plots/f079edfa8290f0cf315a8d3adcef58cc8c74dca80c9fe4848487e44b3b84b36e/selection-details",
       "level": "SelectedDetail"
     },
     {
-      "subject": "birth/encounter/prebirth-conformance/initial-plots/1/selection-details",
+      "subject": "birth/encounter/prebirth-conformance/initial-plots/2edce3de9e4f5788606db11b5cca5ba721f37631cd4c5833507851116c4a25ab/selection-details",
       "level": "SelectedDetail"
     },
     {
       "subject": "birth/encounter/prebirth-conformance/birth-review-plot-0",
+      "level": "SelectedDetail"
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/reviewed-plots",
+      "level": "SelectedDetail"
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/reviewed-plots/f079edfa8290f0cf315a8d3adcef58cc8c74dca80c9fe4848487e44b3b84b36e",
       "level": "SelectedDetail"
     }
   ],

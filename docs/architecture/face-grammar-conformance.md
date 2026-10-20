@@ -1022,7 +1022,7 @@ selection and unexposed inventory can account for the declared total.
 
 The source-derived Crèche specimen supplies an informational selected-Plot
 review, exclusive naming options and independent starting-Plot choices. Stable
-checked Plot identities survive query filtering and duplicate display names.
+full Source-document/checked-Plot pair identities survive query filtering and duplicate display names.
 Interaction construction retains Face identity/revision and current Show;
 normal source-owner validation still decides whether a proposal commits.
 
