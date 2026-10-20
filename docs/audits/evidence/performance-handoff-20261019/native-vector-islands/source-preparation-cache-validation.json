@@ -1,0 +1,174 @@
+{
+  "schema": "conduit.source-preparation-cache-validation@1",
+  "source": "6ad1442dbfad482521758dfdec62f0503b959aac",
+  "base": "5fdf8b222dca48dae8dba337833cfa1d70267922",
+  "status": "committed/pushed clean owned branch; exact Source cache and supported diagnostic conformance passed; not canonical CI/integration/stable acceptance",
+  "implementation": {
+    "owner": "explicit in-process bounded SourcePreparationCache in conduit-plot; available on pointer-atomic targets",
+    "keys": "computed SHA256 plus exact Source bytes and complete immutable StartupCatalogue equality; expansion also exact ProfileCatalogue and CanonicalBackCatalogue contexts",
+    "ownership": "shared immutable checked/expanded owners; no caller-supplied key; no Plan, Host incarnation, resource grant, runtime value or execution state cached",
+    "behavior": "errors never cached; zero/oversized retention uses cold checking; FIFO eviction only drops cache-owned references; copied caller mutations cannot modify retained truth",
+    "limits": {
+      "default_sources": 4,
+      "default_expansions_per_source": 4,
+      "default_source_bytes": 1048576,
+      "maximum_sources": 16,
+      "maximum_expansions_per_source": 16,
+      "maximum_source_bytes": 4194304,
+      "scope": "entry/source retention limits, not a byte-accurate total RAM reservation"
+    }
+  },
+  "tests": {
+    "focused_plot": 8,
+    "ordinary_frame": 14,
+    "topology": 2,
+    "ordinary_distinct_total": 24,
+    "private_unit_tests_ignored": 8,
+    "frame_cache_sequence": {
+      "requests": 9,
+      "checks": 1,
+      "expansions": 1,
+      "hits": 8,
+      "physical_profiles": 3,
+      "all_complete_cold_plans_outputs_and_events_equal": true,
+      "edited_Source_forces_new_check_and_expansion_with_cold_equality": true
+    },
+    "clippy": "release Plot library/cache tests and AI library/full-frame/measurement example; warnings denied; pass",
+    "format": "workspace format check pass"
+  },
+  "capture": {
+    "owners": "prepared-matrix-source-cache",
+    "repetitions": 2,
+    "frames_per_repetition": 24,
+    "paired_frames": 48,
+    "play_invocations": 96,
+    "independent_events_parsed": 621552,
+    "all_play_allocation_requests": 0,
+    "cache_stats": [
+      {
+        "check_hits": 0,
+        "checks": 1,
+        "complete_cold_plan_equal": true,
+        "expansion_hits": 0,
+        "expansions": 1,
+        "phase": "source-cache-preparation",
+        "repetition": 0,
+        "retained_expansions": 1,
+        "retained_sources": 1
+      },
+      {
+        "check_hits": 1,
+        "checks": 1,
+        "complete_cold_plan_equal": true,
+        "expansion_hits": 1,
+        "expansions": 1,
+        "phase": "source-cache-preparation",
+        "repetition": 1,
+        "retained_expansions": 1,
+        "retained_sources": 1
+      }
+    ],
+    "matched_cold_candidate_plan_files_exact": 2,
+    "mutation_controls_refused": 23,
+    "before_after": {
+      "schema": "conduit.source-cache-before-after-equivalence@1",
+      "before_source": "5fdf8b222dca48dae8dba337833cfa1d70267922",
+      "after_source": "6ad1442dbfad482521758dfdec62f0503b959aac",
+      "all_complete_plan_files_exact": 4,
+      "all_complete_frame_receipts_exact": 96,
+      "all_complete_events_exact": 621552,
+      "store_and_work_counters_exact": true,
+      "classification": "independent complete before/after conformance; timing metrics deliberately excluded; no accepted latency, hardware traffic or stable release claim"
+    },
+    "replay": "source-cache-public-capture-replay.json",
+    "controls": "source-cache-verifier-controls.json",
+    "archive": "source-cache-public-capture-1.tar.xz",
+    "custody": "source-cache-public-capture-1-custody.json"
+  },
+  "warm_preparation_allocator_observation": {
+    "scope": "second repetition full candidate Plan preparation versus its separately retained same-profile cold oracle; observed counts, not a general bound",
+    "cold": {
+      "allocations": 6733447,
+      "deallocations": 6698650,
+      "live_heap_bytes_at_end": 34641998,
+      "phase_peak_heap_bytes": 62387852,
+      "reallocations": 246194,
+      "requested_bytes": 597124643
+    },
+    "warm": {
+      "allocations": 3523419,
+      "deallocations": 3488622,
+      "live_heap_bytes_at_end": 44518558,
+      "phase_peak_heap_bytes": 64277927,
+      "reallocations": 38094,
+      "requested_bytes": 273138665
+    },
+    "reduction": {
+      "allocations": 3210028,
+      "reallocations": 208100,
+      "requested_bytes": 323985978
+    },
+    "timing_classification": "all wall/CPU values in raw capture are diagnostic; no quiet-family timing acceptance"
+  },
+  "cache_owner_drop": {
+    "layout_bytes_released": 10758458,
+    "allocations": 0,
+    "scope": "tracked Rust allocation layout bytes released by cache owner, not RSS or a total RAM reduction claim"
+  },
+  "worker": {
+    "sha256": "9f38584550eac3997b2818daa6dd040390a0c987d2cea1e9fafb5b002f2aead3",
+    "bytes": 10967296,
+    "frozen": "work/frozen-source-cache-6ad1442db/fargan_performance"
+  },
+  "test_workers": "source-cache-test-workers.json",
+  "remaining": [
+    "Minimal dependency/subgraph invalidation beyond conservative whole-context snapshots",
+    "Ordinary Body/Fore adoption and admitted cache memory policy",
+    "Compiled numeric instruction program and bounded scratch beyond per-node Back dispatch",
+    "Remaining original audit requirements, including multicore, graphics/transport measurements and accepted quiet families",
+    "Canonical CI, owned PR integration through dev, automated exact-source main release and stable artifact verification"
+  ],
+  "environment": {
+    "root_headroom_reclamation": "10 own inactive session-review debug Rust libraries805139712B archived53274320B, all roundtrip hashed before unlink; active target, workers, source, models, images and raw evidence retained",
+    "manifest": "work/frozen-worker-archives/session-debug-source-cache-headroom/manifest.json",
+    "build_observation": "adding Plot API triggered broad binding regeneration across test/Clippy/command contexts; release build-dependency/invalidation assessment remains pending"
+  },
+  "logs": [
+    {
+      "file": "source-preparation-cache-check.log",
+      "sha256": "1d96d5753ad00d1b2373d7e3fb917e4e112f3edb669076aa20f140650527d304"
+    },
+    {
+      "file": "source-preparation-cache-tests.log",
+      "sha256": "c63ffdfe82f14cedbcff45dbd03cd6fa3f586f709a57497c08b2c1666c630d01"
+    },
+    {
+      "file": "source-preparation-cache-tests-final.log",
+      "sha256": "c0522a615a804a7668c032114f27adf67b6ed2b4ae185a8dca92e3674998d597"
+    },
+    {
+      "file": "source-preparation-cache-fargan-tests.log",
+      "sha256": "c4c1c7cff6577677fee0069aae7b8ff0d67a583be25e6c33709f81c676806c50"
+    },
+    {
+      "file": "source-preparation-cache-plot-clippy.log",
+      "sha256": "40331e18ac4166bde50e47f453d148604d80febbbe81c67261decca414cf2d58"
+    },
+    {
+      "file": "source-preparation-cache-ai-clippy.log",
+      "sha256": "53fcc2d4715bf2ced439df0c8bd1bc8acc86eb6daf038ae22ea5ed840c438de7"
+    },
+    {
+      "file": "source-preparation-cache-fmt-final.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "source-cache-command-help.log",
+      "sha256": "e870610e05aad459390cda91a0b0a621142a3f84acd07d02436a8662f5a04a1e"
+    },
+    {
+      "file": "source-cache-public-command.log",
+      "sha256": "dd0de1ad0e6dd147155e1d0c57f9d634c98e73a0aace1faacb5b07e521ac2f15"
+    }
+  ]
+}

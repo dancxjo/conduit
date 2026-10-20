@@ -1,0 +1,76 @@
+{
+  "recorded_at_utc": "2026-10-20T01:18:14.919378+00:00",
+  "prior_source": "058993d32cb50bdf90c1e149e56982a640b4a5cb",
+  "prior_base": "6ca11ad4eb4c26c4e64599a0e2452ad3c662cd8c",
+  "source": "21945053a31ea22a5e8062c190fae8965959029b",
+  "base": "c2f90fac5c998d53effee532cf65e12efb769b7a",
+  "tree": "147472805471a099ad09d7f25e1e5d1d0f9ed78b",
+  "owned_delta_file_count": 15,
+  "owned_delta_files_byte_identical": true,
+  "files": {
+    "products/conduit/examples/two_host_transport_performance.rs": {
+      "old_blob": "72096453fe11c5650a8d8139ae231c95e1ea6ed6",
+      "new_blob": "72096453fe11c5650a8d8139ae231c95e1ea6ed6"
+    },
+    "products/conduit/examples/two_host_transport_performance/allocation.rs": {
+      "old_blob": "64b689fe317f7a688908d0fb63defbebf7793b29",
+      "new_blob": "64b689fe317f7a688908d0fb63defbebf7793b29"
+    },
+    "products/conduit/examples/two_host_transport_performance/retention.rs": {
+      "old_blob": "e92b8333b12be37140eb15d30aa7c62d35a0bf79",
+      "new_blob": "e92b8333b12be37140eb15d30aa7c62d35a0bf79"
+    },
+    "products/conduit/src/hosted_two_std.rs": {
+      "old_blob": "bde84fbae2c5fc81686c6006375b976da4c0f34e",
+      "new_blob": "bde84fbae2c5fc81686c6006375b976da4c0f34e"
+    },
+    "products/conduit/src/hosted_two_std/evidence.rs": {
+      "old_blob": "63bb787a9990efbefa451fad660c93cecacab7b6",
+      "new_blob": "63bb787a9990efbefa451fad660c93cecacab7b6"
+    },
+    "products/conduit/src/hosted_two_std/transport.rs": {
+      "old_blob": "b8668e1fd1c1fe0f0c04f63b65c3ea364d4dbb55",
+      "new_blob": "b8668e1fd1c1fe0f0c04f63b65c3ea364d4dbb55"
+    },
+    "products/conduit/src/lib.rs": {
+      "old_blob": "079e86c2ad6a48874dec9c75210a4542dbebcae7",
+      "new_blob": "079e86c2ad6a48874dec9c75210a4542dbebcae7"
+    },
+    "products/conduit/src/product_execution.rs": {
+      "old_blob": "9bf07d2b73dbb3cd7edcd245696ccd6de1fc493e",
+      "new_blob": "9bf07d2b73dbb3cd7edcd245696ccd6de1fc493e"
+    },
+    "products/conduit/tests/two_host_kernel_evidence.rs": {
+      "old_blob": "df40a8fa6fad16dca86b3604db1b3bd984a7671b",
+      "new_blob": "df40a8fa6fad16dca86b3604db1b3bd984a7671b"
+    },
+    "targets/std/src/installed_std/remote_fragment_kernel.rs": {
+      "old_blob": "024bc66c8189a67b2b4fec9a7bc8ac19133111ac",
+      "new_blob": "024bc66c8189a67b2b4fec9a7bc8ac19133111ac"
+    },
+    "targets/std/src/installed_std/remote_fragment_kernel/evidence.rs": {
+      "old_blob": "fe75c0e3adff8f6f51a5b9cd0e59a58739eb71d3",
+      "new_blob": "fe75c0e3adff8f6f51a5b9cd0e59a58739eb71d3"
+    },
+    "targets/std/src/remote_cord_sessions.rs": {
+      "old_blob": "070022014c8532490523419ae5e6dda7bd7886a9",
+      "new_blob": "070022014c8532490523419ae5e6dda7bd7886a9"
+    },
+    "targets/std/src/remote_cord_sessions/codec_tests.rs": {
+      "old_blob": "946f18618046be56b0098ed4fe7063a4dc5c8596",
+      "new_blob": "946f18618046be56b0098ed4fe7063a4dc5c8596"
+    },
+    "tools/xtask/src/commands/runtime_performance.rs": {
+      "old_blob": "7557552e771cb6eede2c4c7dcbb5874570ba5e68",
+      "new_blob": "7557552e771cb6eede2c4c7dcbb5874570ba5e68"
+    },
+    "tools/xtask/src/commands/runtime_performance_transport.rs": {
+      "old_blob": "77d06219fb29878281fed5a308409843bbb4d68c",
+      "new_blob": "77d06219fb29878281fed5a308409843bbb4d68c"
+    }
+  },
+  "old_source_retained": "archive/perf-two-host-058993d3",
+  "superseded_candidate": 39348892345,
+  "fresh_candidate_required": true,
+  "scope": "Five-commit owned transport delta refreshed onto actual current dev without edits. Prior standalone conformance/allocation proof remains bound to its original source; combined Candidate and current dev acceptance remain required."
+}

@@ -1,0 +1,33 @@
+{
+  "recorded_at_utc": "2026-10-20T01:30:20.975369+00:00",
+  "existing_implementation_commit": "560916ec4f361901e23449f7b44d984dc067c1c3",
+  "existing_pr": 5881,
+  "verified_ci_source": "6ca11ad4eb4c26c4e64599a0e2452ad3c662cd8c",
+  "run": 39348140032,
+  "job": 118386045622,
+  "job_conclusion": "success",
+  "test_file": "architecture/planner/tests/incremental_real_plan.rs",
+  "test_file_sha256": "2bdd41bfa04483472c9ee31ac62bc4563261d29c4a9c7a5e0ad6340d8347483c",
+  "passing_tests": [
+    "authority_content_changes_invalidate_even_at_the_same_generation",
+    "changed_cost_and_resource_facts_reuse_only_unaffected_real_plans"
+  ],
+  "test_count": 2,
+  "coverage": [
+    "Actual ordinary Plans, fresh exact cost forecasts, capacity refusal and authority refusal",
+    "Same-generation changed content invalidation",
+    "Unchanged alternative candidates reused; changed alternatives invalidated",
+    "Cold/incremental selected Plan identities, admissibility and cost agree",
+    "Previous sealed Plan snapshots remain equal and verifiable"
+  ],
+  "not_established": [
+    "Complete Host/Boot/Line dependency replacement and removal cases",
+    "Multi-node partial provider loss preserving unaffected executing work",
+    "Actual old Play outcomes and Signs retained across replacement",
+    "H2 preparation/transfer/residency/continuity net benefit and persistence-window hysteresis",
+    "Integrated certified bounded-response selection"
+  ],
+  "scope": "Preexisting proof verified in the foundation source CI; not new implementation credit, not complete parent H3 acceptance, not proof for later current-dev commits or current held Body source.",
+  "log_sha256": "8ff6c187fc583183b45d986833574edc8de57e28746f28c5c57acf99f6e4d000",
+  "compressed_log_sha256": "14a85ef556ba652a2c3c14f7608bb60dfe68f6a10295760fb96ed1e5bfcb9f2d"
+}

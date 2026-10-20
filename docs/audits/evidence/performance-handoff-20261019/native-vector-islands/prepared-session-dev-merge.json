@@ -1,0 +1,22 @@
+{
+  "schema": "conduit.prepared-session-dev-merge@1",
+  "recorded_at_utc": "2026-10-20T00:43:47.571581+00:00",
+  "pr": "https://github.com/dancxjo/conduit/pull/6045",
+  "candidate_head": "2a7415da10f6dcdf7e7f2ecda2c890da9c694956",
+  "candidate_run": 39337836221,
+  "required_candidate": "completed success",
+  "prior_dev": "a2583abd72c01418c99d880f104ed7e6b1b16c15",
+  "prior_dev_integration": 39335064466,
+  "prior_dev_integration_conclusion": "success",
+  "observed_potential_merge_preview": "46170c539c20e824f302bc314dbf04bbfdee3c11",
+  "potential_preview_scope": "Observed before merge; not asserted as a checkout-extracted CI preview SHA",
+  "actual_dev_commit": "6ca11ad4eb4c26c4e64599a0e2452ad3c662cd8c",
+  "actual_tree": "9f6b0df5ebcb7c9de91555c87195f3ca9c23ed86",
+  "actual_parent": "a2583abd72c01418c99d880f104ed7e6b1b16c15",
+  "actual_tree_equals_candidate_head_and_observed_preview": true,
+  "merge_method": "squash through protected dev PR with exact head guard; branch retained",
+  "new_integration_run": 39348140032,
+  "new_integration_last_observed": "queued",
+  "release_acceptance": false,
+  "scope": "Prepared session foundation admitted to dev; full combined Integration and automated main release still required. Full original audit remains open."
+}

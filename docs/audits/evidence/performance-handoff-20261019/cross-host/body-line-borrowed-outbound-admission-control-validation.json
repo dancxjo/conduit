@@ -1,0 +1,15 @@
+{
+  "recorded_at_utc": "2026-10-20T01:55:42.949923+00:00",
+  "source": "d9e0d9018a7d43aabe9045c308fa8a22b645b625",
+  "negative_exit_code": 101,
+  "negative_compiled": true,
+  "negative_refused_expected_roundtrip_assertion": true,
+  "restored_positive_exit_code": 0,
+  "source_restored_exact": true,
+  "original_line_sha256": "93103bd507f22c1881cebb0f4f3bedffc4c6f789c9845255300ffe81d6211a03",
+  "negative_worker_sha256": "7edf0c704685b4f007852365e39771145439296bbfb9caf44d045692a0d75792",
+  "negative_worker_archive": "outputs/cross-host/body-line-borrowed-outbound-admission-control-worker.tar.xz",
+  "negative_worker_archive_sha256": "22baefcb93bac65eea860ccd065ca1f970e12fb5bac0385ebbfbb90d55dd9ae0",
+  "negative_worker_archive_roundtrip_verified": true,
+  "scope": "Actual Cargo package Line fixture; omission of outbound session admission must fail the real two-WebSocket roundtrip. Restored source must pass the same exact fixture. No timing claim."
+}

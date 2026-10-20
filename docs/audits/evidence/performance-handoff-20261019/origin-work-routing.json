@@ -1,0 +1,50 @@
+{
+  "recorded_at_utc": "2026-10-20T05:15:21.170939+00:00",
+  "dev_observed": "09cb583ccdec99be762759dce48754a019a370d5",
+  "main_observed": "9562b01e2c49b15bfd4678b072fd331f5dbab431",
+  "routes": [
+    {
+      "issue": 6079,
+      "branch": "perf/std-catalog-cache-current",
+      "origin_head_observed": "13e977a0277afdc135550673924c90812248ce44",
+      "retained_proof_commit": "13e977a0277afdc135550673924c90812248ce44"
+    },
+    {
+      "issue": 6082,
+      "branch": "perf/compact-f32-current",
+      "origin_head_observed": "241b0be7597f27d60bc03440f5522edd75d38f80",
+      "retained_proof_commit": "1048d498f2fc872f9f8175b834cf327d4cad96eb"
+    },
+    {
+      "issue": 6083,
+      "branch": "perf/body-line-borrowed-receive",
+      "origin_head_observed": "d9e0d9018a7d43aabe9045c308fa8a22b645b625",
+      "retained_proof_commit": "d9e0d9018a7d43aabe9045c308fa8a22b645b625"
+    },
+    {
+      "issue": 6087,
+      "branch": "perf/input-major-linear-36c",
+      "origin_head_observed": "6ad1442dbfad482521758dfdec62f0503b959aac",
+      "retained_proof_commit": "6ad1442dbfad482521758dfdec62f0503b959aac"
+    },
+    {
+      "issue": 6088,
+      "branch": "perf/input-major-linear-36c",
+      "origin_head_observed": "6ad1442dbfad482521758dfdec62f0503b959aac",
+      "retained_proof_commit": "6ad1442dbfad482521758dfdec62f0503b959aac"
+    },
+    {
+      "issue": 6089,
+      "branch": "perf/retained-raster-current",
+      "origin_head_observed": "1379ae0cb6574b7e27897d823d9e5228e035af5a",
+      "retained_proof_commit": "1379ae0cb6574b7e27897d823d9e5228e035af5a"
+    },
+    {
+      "issue": 5761,
+      "branch": "perf/input-major-linear-36c",
+      "origin_head_observed": "6ad1442dbfad482521758dfdec62f0503b959aac",
+      "retained_proof_commit": "6ad1442dbfad482521758dfdec62f0503b959aac"
+    }
+  ],
+  "scope": "Observed named origin refs and retained proof revisions. A later origin head is not automatically covered by an earlier proof."
+}

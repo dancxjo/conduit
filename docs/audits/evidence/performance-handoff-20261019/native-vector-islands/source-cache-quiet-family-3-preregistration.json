@@ -1,0 +1,100 @@
+{
+  "schema": "conduit.fargan-source-cache-family-preregistration@1",
+  "family": "fargan-source-cache-quiet-3",
+  "created_at_utc": "2026-10-20T02:33:46.154177+00:00",
+  "source": "6ad1442dbfad482521758dfdec62f0503b959aac",
+  "worker_sha256": "9f38584550eac3997b2818daa6dd040390a0c987d2cea1e9fafb5b002f2aead3",
+  "worker_bytes": 10967296,
+  "owner_profile": "prepared-matrix-source-cache",
+  "original_command_receipt_sha256": "be7fe482fb936ac7c6771206afa39bb3b775df7e0e60ff50c65fee7f7e57c6a1",
+  "public_conformance_validation": "outputs/native-vector-islands/source-preparation-cache-validation.json",
+  "processes": 3,
+  "cpu": 4,
+  "repetitions_per_process": 2,
+  "frames_per_repetition": 24,
+  "expected_paired_frames": 144,
+  "expected_play_invocations": 288,
+  "expected_raw_events": 1864656,
+  "order": "fresh then candidate at even frame indices; candidate then fresh at odd indices; no permutation or dropped frames",
+  "controller_sha256": "7a5f71a5d9c9402d88064e99ce28ce0ec466600fee9a7051f5fc017540d564bb",
+  "repeat_verifier_sha256": "b23f254cf4fc7cc225903ac1e4e2eccd4456c5be90ca6dc0571423023295425d",
+  "capture_verifier_sha256": "a921876d6f06e23b4935721dbb06a3bfc583f84f4df7f9dc64941832833e543c",
+  "initial_output_space_required_bytes": 1040187392,
+  "per_process_raw_space_allowance_bytes": 167772160,
+  "minimum_free_before_each_process_bytes": 536870912,
+  "preflight": [
+    "Original canonical command receipt independently replayed against exact Source and frozen worker, no chained receipt reuse",
+    "Clean Source6ad and exact worker hash before and after every process; CPU4 allowed and each worker taskset pinned to4",
+    "Six-second gate with13 observations, no Cargo/compiler/linker/build-script/VM/browser processes, including sleeping processes",
+    "No active owned build or archive; enough persistent space for all3 raw captures plus512MiB headroom; at least512MiB before each process"
+  ],
+  "monitor": {
+    "period_ms": 500,
+    "maximum_gap_ms": 2000,
+    "fields": "monotonic timestamp,PID,comm,state,CPU ticks; no process arguments/environment retained",
+    "extra_cpu_exclusion": "any non-monitor,non-worker process accumulating at leastSC_CLK_TCK/10 CPU ticks between two observations; no process exemption for idle compilers",
+    "cpu_clock_ticks_per_second": 100
+  },
+  "whole_family_exclusion": [
+    "Any competing forbidden process or other-process CPU threshold crossing in preflight/worker",
+    "Any monitor gap>2seconds, worker failure, changed Source/binary, wrong affinity, insufficient space or missing custody/conformance",
+    "All executed data retained; no selected rerun or dropped process/frame. A preflight attempt with0 sample processes may be retried only after an observed environment change, using this unchanged registration/controller and preserving every prior attempt"
+  ],
+  "analysis": {
+    "units": "all ratios per independent process;3 independent processes,48 matched pairs each; no independent-frame significance claim",
+    "common_wall_phases": [
+      "cold-source-schema",
+      "cold-model-resource-admission",
+      "frame-input-encoding"
+    ],
+    "reference_wall_terms": [
+      "common phases",
+      "cold-check-expand-plan",
+      "fresh-call-bindings",
+      "fresh.metrics.whole_call_wall_ns"
+    ],
+    "candidate_wall_terms": [
+      "common phases",
+      "candidate-check-expand-plan",
+      "initial-input-encoding",
+      "cold-prepared-trajectory",
+      "prepared-rearm",
+      "previous-evidence-release",
+      "candidate.metrics.whole_call_wall_ns",
+      "output-acceptance-state-advance",
+      "prepared-trajectory-release",
+      "paired-frame-result-release",
+      "source-cache-owner-creation",
+      "source-cache-owner-release"
+    ],
+    "conservative_attribution": "reference state advancement and joint result disposal excluded from reference; candidate charged full state acceptance and joint fresh/candidate result disposal",
+    "separate_validation_costs": [
+      "candidate-cold-check-expand-plan",
+      "paired-evidence-reconstruction-and-write"
+    ],
+    "no_total_process_speedup": "joint inspection/write and extra cold oracle validation are reported separately; no per-profile attribution or total process speedup inferred",
+    "prepared_lifetime_gain": "all3 process accounted candidate/reference wall ratios<0.8; composite reuse/matrix/local/cache profile, no isolated component gain inferred",
+    "play_regression": "investigate if any process median paired candidate/reference Play wall ratio>1.05; retain all samples and do not waive",
+    "faster_play": "only if all3 per-process medians of the48 paired Play ratios<0.95; otherwise no demonstrated faster Play",
+    "warm_source_preparation": "repetition1 cached full Plan preparation/matched cold full Plan oracle, separately wall and process CPU; material warm gain only if all3 ratios<0.8 for the named metric",
+    "two_plan_source_cache_net": "sum both cached candidate Plan preparations plus source-cache owner construction/release divided by sum both matched cold candidate oracles; material net gain only if all3 wall ratios<0.9; exactly2 Plans per process, no projection to other lifetimes",
+    "traffic_memory": "only successful store counters, allocator requests and tracked layout bytes released by cache Drop; no hardware traffic,cache misses,total RAM or RSS reduction claim",
+    "variation": "report all3 ratios/medians/ranges and raw counts, no selected best process"
+  },
+  "scope_limits": [
+    "Fixture Source/Plan execution and acceptance controller; ordinary Body/Fore integration remains pending",
+    "Per-node scalar Backs remain; no compiled numeric instruction program claim",
+    "No realtime,intelligibility,global-optimal placement or full audit completion claim",
+    "No dev/main merge or stable release acceptance inferred from timings"
+  ],
+  "status": "preregistered; no sample processes started",
+  "predecessor": {
+    "registration_sha256": "0d2a9752c365fa7667a02c6170fafdcc267b911316d161164c64f0db42521eef",
+    "complete_timing_excluded_family": "source-cache-family-2-attempt-8-archive-validation.json",
+    "all_three_processes_retained": true,
+    "cause": "ChatGPT process crossed unchanged other-process CPU threshold",
+    "timing_ratios_inspected": false,
+    "sample_subset_reused": false
+  },
+  "observation_plan": "One uninterrupted tool wait while the unchanged controller runs, minimizing agent UI updates during capture. The monitor continues to reject every non-monitor/non-worker process at the original threshold; no process exemptions or changed acceptance thresholds."
+}

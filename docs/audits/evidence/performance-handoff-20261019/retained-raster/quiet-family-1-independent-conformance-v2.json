@@ -1,0 +1,379 @@
+{
+  "family": "quiet-qemu-1379-family-1",
+  "source": "1379ae0cb6574b7e27897d823d9e5228e035af5a",
+  "image_sha256": "4301b518701f988d0af9427d5ec54cf97af1dc342aa721cbaec341a42a556797",
+  "runs": [
+    {
+      "conformance_only": true,
+      "quiet_candidate": false,
+      "timing_admitted": false,
+      "boot_id": "6cd489c79c8d430910da4602ae357e231f8113e18bedbcbb1fc0b160e754fde2",
+      "source": "1379ae0cb6574b7e27897d823d9e5228e035af5a",
+      "image_sha256": "4301b518701f988d0af9427d5ec54cf97af1dc342aa721cbaec341a42a556797",
+      "checkpoints_verified": 22,
+      "png_hashes_and_dimensions_verified": 22,
+      "independent_rgba_pixel_digests_verified": 22,
+      "serial_records_verified": 194,
+      "incomplete_serial_tail_bytes": 0,
+      "pointer_rows_reconstructed": 2,
+      "scope": "Relocated raw evidence and exact host-observation reconstruction. PNG integrity, dimensions and all 22 RGBA pixel digests independently decoded with Pillow. Quiet-candidate raw reconstruction; family-wide admission remains separate. No accepted performance comparison or physical display latency claim.",
+      "run": 1,
+      "typing_rows_independently_reconstructed": 6,
+      "typing_rows": [
+        {
+          "qmp_id": "70:journey-protected-text-input",
+          "command_ns": 97197958502,
+          "qmp_accepted_ns": 97200189539,
+          "keys": [
+            "a"
+          ],
+          "result": "a",
+          "revision": 14,
+          "face_id": "0b122eabfb5ca348fbbc281d5f836b25e23370a60c3bc6762834202228ccc5e0",
+          "manifestation_id": "05303bac1ce2a296c27625a8ff3f2b4c96d629a4f26c22209d06853e0cc43bb7",
+          "input_sign_id": "conduitos/product/input/body-play/sha256:2d9f228be7544bd8131cef4b77747c1591521d5c8e612fb99254ac3165aadc0f/2",
+          "result_sign_id": "conduitos/product/result/body-play/sha256:2d9f228be7544bd8131cef4b77747c1591521d5c8e612fb99254ac3165aadc0f/2/2",
+          "serial_byte_start": 348655,
+          "command_to_rendered_journey_observed_ns": 56173377
+        },
+        {
+          "qmp_id": "72:journey-protected-text-input",
+          "command_ns": 97255128190,
+          "qmp_accepted_ns": 97257165228,
+          "keys": [
+            "backspace"
+          ],
+          "result": "",
+          "revision": 16,
+          "face_id": "fe3d7a95f67f4701b721a143468fc9c0dbde00116431f575befbdaf6bb707f45",
+          "manifestation_id": "8a89acf1e4cdfa84974d4c99c630cc30c1578ade40474adb4e4831fff2a51b60",
+          "input_sign_id": "conduitos/product/input/body-play/sha256:2d9f228be7544bd8131cef4b77747c1591521d5c8e612fb99254ac3165aadc0f/4",
+          "result_sign_id": "conduitos/product/result/body-play/sha256:2d9f228be7544bd8131cef4b77747c1591521d5c8e612fb99254ac3165aadc0f/2/4",
+          "serial_byte_start": 388576,
+          "command_to_rendered_journey_observed_ns": 98380170
+        },
+        {
+          "qmp_id": "74:journey-protected-text-input",
+          "command_ns": 97358937758,
+          "qmp_accepted_ns": 97359319186,
+          "keys": [
+            "c"
+          ],
+          "result": "c",
+          "revision": 18,
+          "face_id": "75ce0f563add15c1232bc3553acfc07fa7e2b89a42cfc9c99074f469be9569ca",
+          "manifestation_id": "68d9fa7c8cf79da0b7f7411f13f2544caf61c3a032db92c011a1e70116f7b2c9",
+          "input_sign_id": "conduitos/product/input/body-play/sha256:2d9f228be7544bd8131cef4b77747c1591521d5c8e612fb99254ac3165aadc0f/6",
+          "result_sign_id": "conduitos/product/result/body-play/sha256:2d9f228be7544bd8131cef4b77747c1591521d5c8e612fb99254ac3165aadc0f/2/6",
+          "serial_byte_start": 428496,
+          "command_to_rendered_journey_observed_ns": 96445765
+        },
+        {
+          "qmp_id": "76:journey-protected-text-input",
+          "command_ns": 97458056197,
+          "qmp_accepted_ns": 97458689328,
+          "keys": [
+            "a"
+          ],
+          "result": "ca",
+          "revision": 20,
+          "face_id": "9fde3ccfe8c808ceb40da564490aa3fc8ee6c2d6f7a961e6c0d5df71807a66e8",
+          "manifestation_id": "765acb3e90b6db93de161028ea889ffafd0441d99b2982370e8f19278a366375",
+          "input_sign_id": "conduitos/product/input/body-play/sha256:2d9f228be7544bd8131cef4b77747c1591521d5c8e612fb99254ac3165aadc0f/8",
+          "result_sign_id": "conduitos/product/result/body-play/sha256:2d9f228be7544bd8131cef4b77747c1591521d5c8e612fb99254ac3165aadc0f/2/8",
+          "serial_byte_start": 468724,
+          "command_to_rendered_journey_observed_ns": 103132071
+        },
+        {
+          "qmp_id": "78:journey-protected-text-input",
+          "command_ns": 97562901951,
+          "qmp_accepted_ns": 97565744350,
+          "keys": [
+            "f"
+          ],
+          "result": "caf",
+          "revision": 22,
+          "face_id": "ef6dad3de2b057024acbe907a1824a5752534a2b10ac096b645099e619aa1faf",
+          "manifestation_id": "fb4eac4eeb63e030c89180c64ff5c9235cac1279f4e142eb0ebbd1e82170a7a7",
+          "input_sign_id": "conduitos/product/input/body-play/sha256:2d9f228be7544bd8131cef4b77747c1591521d5c8e612fb99254ac3165aadc0f/10",
+          "result_sign_id": "conduitos/product/result/body-play/sha256:2d9f228be7544bd8131cef4b77747c1591521d5c8e612fb99254ac3165aadc0f/2/10",
+          "serial_byte_start": 488859,
+          "command_to_rendered_journey_observed_ns": 54707931
+        },
+        {
+          "qmp_id": "80:journey-unicode-input",
+          "command_ns": 97622136340,
+          "qmp_accepted_ns": 97622979771,
+          "keys": [
+            "alt_r",
+            "e"
+          ],
+          "result": "caf\u00e9",
+          "revision": 25,
+          "face_id": "c31ecc61084dded008bd87e33211f17c3cd33baeeed5e5bca8cb3ce7e846fccf",
+          "manifestation_id": "044db9cde212aea353862f2e3988a757519b1ef645b11dafac390bd64c8ee152",
+          "input_sign_id": "conduitos/product/input/body-play/sha256:2d9f228be7544bd8131cef4b77747c1591521d5c8e612fb99254ac3165aadc0f/13",
+          "result_sign_id": "conduitos/product/result/body-play/sha256:2d9f228be7544bd8131cef4b77747c1591521d5c8e612fb99254ac3165aadc0f/2/13",
+          "serial_byte_start": 549228,
+          "command_to_rendered_journey_observed_ns": 159280330
+        }
+      ],
+      "archive_sha256": "44525afd9d5fa9d5929953dd1c17bf072e4f956a088ef8ebdc703121ef0141a8",
+      "all_archive_members_verified": 38,
+      "contaminated_polls": 4,
+      "maximum_monitor_gap_ns": 110121378,
+      "strict_timing_refusal": "quiet timing eligibility failed"
+    },
+    {
+      "conformance_only": true,
+      "quiet_candidate": false,
+      "timing_admitted": false,
+      "boot_id": "8d2c04090983469c846e0571e0d5f904e4ca58f8d749ed5d35e6caea032e1810",
+      "source": "1379ae0cb6574b7e27897d823d9e5228e035af5a",
+      "image_sha256": "4301b518701f988d0af9427d5ec54cf97af1dc342aa721cbaec341a42a556797",
+      "checkpoints_verified": 22,
+      "png_hashes_and_dimensions_verified": 22,
+      "independent_rgba_pixel_digests_verified": 22,
+      "serial_records_verified": 191,
+      "incomplete_serial_tail_bytes": 0,
+      "pointer_rows_reconstructed": 2,
+      "scope": "Relocated raw evidence and exact host-observation reconstruction. PNG integrity, dimensions and all 22 RGBA pixel digests independently decoded with Pillow. Quiet-candidate raw reconstruction; family-wide admission remains separate. No accepted performance comparison or physical display latency claim.",
+      "run": 2,
+      "typing_rows_independently_reconstructed": 6,
+      "typing_rows": [
+        {
+          "qmp_id": "70:journey-protected-text-input",
+          "command_ns": 98084683784,
+          "qmp_accepted_ns": 98086180708,
+          "keys": [
+            "a"
+          ],
+          "result": "a",
+          "revision": 14,
+          "face_id": "87649fcf31eae59c7c508974d1d0ff019de4d8322252db2a16fbdf3c908159c9",
+          "manifestation_id": "3bb15ea81f0bfad9cd4b804229b5e583b4115f0c0b70d7765dd3d96ccb241955",
+          "input_sign_id": "conduitos/product/input/body-play/sha256:9909257a31c5cb038c0e5c08b54dd67f22b704dc1f22f76ce000a4dc0da8bb28/2",
+          "result_sign_id": "conduitos/product/result/body-play/sha256:9909257a31c5cb038c0e5c08b54dd67f22b704dc1f22f76ce000a4dc0da8bb28/2/2",
+          "serial_byte_start": 348532,
+          "command_to_rendered_journey_observed_ns": 52996445
+        },
+        {
+          "qmp_id": "72:journey-protected-text-input",
+          "command_ns": 98139892375,
+          "qmp_accepted_ns": 98140256050,
+          "keys": [
+            "backspace"
+          ],
+          "result": "",
+          "revision": 16,
+          "face_id": "a3f6bae6f5a680758ded9770dc6f7a2c639b181e443a9683081ec34b033dfef1",
+          "manifestation_id": "1bab4889a07165e7eab35ea24184518b37e2aeaf527af01a3323a117502be2c7",
+          "input_sign_id": "conduitos/product/input/body-play/sha256:9909257a31c5cb038c0e5c08b54dd67f22b704dc1f22f76ce000a4dc0da8bb28/4",
+          "result_sign_id": "conduitos/product/result/body-play/sha256:9909257a31c5cb038c0e5c08b54dd67f22b704dc1f22f76ce000a4dc0da8bb28/2/4",
+          "serial_byte_start": 388441,
+          "command_to_rendered_journey_observed_ns": 96567513
+        },
+        {
+          "qmp_id": "74:journey-protected-text-input",
+          "command_ns": 98237835913,
+          "qmp_accepted_ns": 98239318531,
+          "keys": [
+            "c"
+          ],
+          "result": "c",
+          "revision": 18,
+          "face_id": "15b91a8e8ec49bf0bb6a3e269545ce00c2ef9be2cd91530d5b976f709e31068d",
+          "manifestation_id": "e774aaaf720886ab2f2fc2185c2f3a180972d591ffc5f7c1e6ff8b78f90d8d67",
+          "input_sign_id": "conduitos/product/input/body-play/sha256:9909257a31c5cb038c0e5c08b54dd67f22b704dc1f22f76ce000a4dc0da8bb28/6",
+          "result_sign_id": "conduitos/product/result/body-play/sha256:9909257a31c5cb038c0e5c08b54dd67f22b704dc1f22f76ce000a4dc0da8bb28/2/6",
+          "serial_byte_start": 408559,
+          "command_to_rendered_journey_observed_ns": 51280105
+        },
+        {
+          "qmp_id": "76:journey-protected-text-input",
+          "command_ns": 98292791096,
+          "qmp_accepted_ns": 98293133689,
+          "keys": [
+            "a"
+          ],
+          "result": "ca",
+          "revision": 20,
+          "face_id": "d9195a3f6355d6e8ec642f118dbd84f2ded305e13d1760a96976991208cb8a07",
+          "manifestation_id": "f228617858b0948971428076af5bdcb5a1aba7a8a90890138281ae80d8a61721",
+          "input_sign_id": "conduitos/product/input/body-play/sha256:9909257a31c5cb038c0e5c08b54dd67f22b704dc1f22f76ce000a4dc0da8bb28/8",
+          "result_sign_id": "conduitos/product/result/body-play/sha256:9909257a31c5cb038c0e5c08b54dd67f22b704dc1f22f76ce000a4dc0da8bb28/2/8",
+          "serial_byte_start": 448775,
+          "command_to_rendered_journey_observed_ns": 98769252
+        },
+        {
+          "qmp_id": "78:journey-protected-text-input",
+          "command_ns": 98393200048,
+          "qmp_accepted_ns": 98395936413,
+          "keys": [
+            "f"
+          ],
+          "result": "caf",
+          "revision": 22,
+          "face_id": "289d552ddc7725cb4ab14cf2faf60867fc2a15d21dc7c52c8def1ba9d9f5a218",
+          "manifestation_id": "56d26b8490b8621e7b67d9663b64681ebb22024b275dbe1a119e9056d8065683",
+          "input_sign_id": "conduitos/product/input/body-play/sha256:9909257a31c5cb038c0e5c08b54dd67f22b704dc1f22f76ce000a4dc0da8bb28/10",
+          "result_sign_id": "conduitos/product/result/body-play/sha256:9909257a31c5cb038c0e5c08b54dd67f22b704dc1f22f76ce000a4dc0da8bb28/2/10",
+          "serial_byte_start": 468904,
+          "command_to_rendered_journey_observed_ns": 55330043
+        },
+        {
+          "qmp_id": "80:journey-unicode-input",
+          "command_ns": 98450029761,
+          "qmp_accepted_ns": 98451967998,
+          "keys": [
+            "alt_r",
+            "e"
+          ],
+          "result": "caf\u00e9",
+          "revision": 25,
+          "face_id": "349a6f16ebe12add3d3317637b82894c2eb908854c80178dab745d339356b8ed",
+          "manifestation_id": "27497c2e5f0b5e73ff688101e6623b8b6f0ce9b79520e29cd20b09f147dea916",
+          "input_sign_id": "conduitos/product/input/body-play/sha256:9909257a31c5cb038c0e5c08b54dd67f22b704dc1f22f76ce000a4dc0da8bb28/13",
+          "result_sign_id": "conduitos/product/result/body-play/sha256:9909257a31c5cb038c0e5c08b54dd67f22b704dc1f22f76ce000a4dc0da8bb28/2/13",
+          "serial_byte_start": 529255,
+          "command_to_rendered_journey_observed_ns": 165495912
+        }
+      ],
+      "archive_sha256": "8cf3da7e532ac7954a51693e9d010e21cea165ebb22190f8311d862af1ac023f",
+      "all_archive_members_verified": 38,
+      "contaminated_polls": 11,
+      "maximum_monitor_gap_ns": 113621523,
+      "strict_timing_refusal": "quiet timing eligibility failed"
+    },
+    {
+      "conformance_only": true,
+      "quiet_candidate": false,
+      "timing_admitted": false,
+      "boot_id": "86ae09d10ef710a9fd0a22526b2feeb0d38a4828fefe8e0a4767c29d06aa5bf2",
+      "source": "1379ae0cb6574b7e27897d823d9e5228e035af5a",
+      "image_sha256": "4301b518701f988d0af9427d5ec54cf97af1dc342aa721cbaec341a42a556797",
+      "checkpoints_verified": 22,
+      "png_hashes_and_dimensions_verified": 22,
+      "independent_rgba_pixel_digests_verified": 22,
+      "serial_records_verified": 197,
+      "incomplete_serial_tail_bytes": 0,
+      "pointer_rows_reconstructed": 2,
+      "scope": "Relocated raw evidence and exact host-observation reconstruction. PNG integrity, dimensions and all 22 RGBA pixel digests independently decoded with Pillow. Quiet-candidate raw reconstruction; family-wide admission remains separate. No accepted performance comparison or physical display latency claim.",
+      "run": 3,
+      "typing_rows_independently_reconstructed": 6,
+      "typing_rows": [
+        {
+          "qmp_id": "70:journey-protected-text-input",
+          "command_ns": 98466807252,
+          "qmp_accepted_ns": 98467218206,
+          "keys": [
+            "a"
+          ],
+          "result": "a",
+          "revision": 14,
+          "face_id": "77a2841bdf742f3f60e31ef3ab61a90722a3beeff5ca943ebbd954d55a554145",
+          "manifestation_id": "ab5d96214739f7b39f9ea4fc93a12b3360f3608683549c89e52c90a3c05f63fe",
+          "input_sign_id": "conduitos/product/input/body-play/sha256:c1c2fe8459578343308d4e19c83ef083b09abf0b63a9599b6f313086523577af/2",
+          "result_sign_id": "conduitos/product/result/body-play/sha256:c1c2fe8459578343308d4e19c83ef083b09abf0b63a9599b6f313086523577af/2/2",
+          "serial_byte_start": 348532,
+          "command_to_rendered_journey_observed_ns": 55124642
+        },
+        {
+          "qmp_id": "72:journey-protected-text-input",
+          "command_ns": 98523232509,
+          "qmp_accepted_ns": 98525265538,
+          "keys": [
+            "backspace"
+          ],
+          "result": "",
+          "revision": 16,
+          "face_id": "be1f7c7acba2c7b09579f4d513b07734473284b8f96cf58680d3c3158c9f54a3",
+          "manifestation_id": "839e2e5d22d0103952bbed76e0288110c42d0ad4490e00a3bd4edc75ca1f13d7",
+          "input_sign_id": "conduitos/product/input/body-play/sha256:c1c2fe8459578343308d4e19c83ef083b09abf0b63a9599b6f313086523577af/4",
+          "result_sign_id": "conduitos/product/result/body-play/sha256:c1c2fe8459578343308d4e19c83ef083b09abf0b63a9599b6f313086523577af/2/4",
+          "serial_byte_start": 388441,
+          "command_to_rendered_journey_observed_ns": 101782822
+        },
+        {
+          "qmp_id": "74:journey-protected-text-input",
+          "command_ns": 98626470802,
+          "qmp_accepted_ns": 98629145449,
+          "keys": [
+            "c"
+          ],
+          "result": "c",
+          "revision": 18,
+          "face_id": "73186f535f884bb8dafdc1157991ef9ee60e92ff96c2649ed7598a4e8e1e57cb",
+          "manifestation_id": "3a72452c56a8afba46a920251400666a28acf870312dec5eac3e8c4b19d866cf",
+          "input_sign_id": "conduitos/product/input/body-play/sha256:c1c2fe8459578343308d4e19c83ef083b09abf0b63a9599b6f313086523577af/6",
+          "result_sign_id": "conduitos/product/result/body-play/sha256:c1c2fe8459578343308d4e19c83ef083b09abf0b63a9599b6f313086523577af/2/6",
+          "serial_byte_start": 428349,
+          "command_to_rendered_journey_observed_ns": 105131945
+        },
+        {
+          "qmp_id": "76:journey-protected-text-input",
+          "command_ns": 98734275976,
+          "qmp_accepted_ns": 98734657655,
+          "keys": [
+            "a"
+          ],
+          "result": "ca",
+          "revision": 20,
+          "face_id": "ddb0c817b186257111720fd97376877bf668dc256a137780c7840811bef012b7",
+          "manifestation_id": "fadfb30635f033611c8aafd336dfd020a4d88ba905f3b99019f71d700c846437",
+          "input_sign_id": "conduitos/product/input/body-play/sha256:c1c2fe8459578343308d4e19c83ef083b09abf0b63a9599b6f313086523577af/8",
+          "result_sign_id": "conduitos/product/result/body-play/sha256:c1c2fe8459578343308d4e19c83ef083b09abf0b63a9599b6f313086523577af/2/8",
+          "serial_byte_start": 468565,
+          "command_to_rendered_journey_observed_ns": 108897417
+        },
+        {
+          "qmp_id": "78:journey-protected-text-input",
+          "command_ns": 98846052087,
+          "qmp_accepted_ns": 98846419217,
+          "keys": [
+            "f"
+          ],
+          "result": "caf",
+          "revision": 22,
+          "face_id": "0276f9dc1a50477c2bd3b01ce7ae6fcc27f98842371572c9a6f0f8a0307d1791",
+          "manifestation_id": "23e290aca83de2879ffcbd2bb8edb21232ae813b25eb320662bdfbd50ea4cdd7",
+          "input_sign_id": "conduitos/product/input/body-play/sha256:c1c2fe8459578343308d4e19c83ef083b09abf0b63a9599b6f313086523577af/10",
+          "result_sign_id": "conduitos/product/result/body-play/sha256:c1c2fe8459578343308d4e19c83ef083b09abf0b63a9599b6f313086523577af/2/10",
+          "serial_byte_start": 508793,
+          "command_to_rendered_journey_observed_ns": 112068639
+        },
+        {
+          "qmp_id": "80:journey-unicode-input",
+          "command_ns": 98960074004,
+          "qmp_accepted_ns": 98962207607,
+          "keys": [
+            "alt_r",
+            "e"
+          ],
+          "result": "caf\u00e9",
+          "revision": 25,
+          "face_id": "95624ca8dae07eb4e784ca1c6f93094222d090f6e6c60f21370dd0b2d890031b",
+          "manifestation_id": "73b0233cadf007ab045d508ecf4c4b5b9b1e37e3f5f89f4da338ac92a840ce1f",
+          "input_sign_id": "conduitos/product/input/body-play/sha256:c1c2fe8459578343308d4e19c83ef083b09abf0b63a9599b6f313086523577af/13",
+          "result_sign_id": "conduitos/product/result/body-play/sha256:c1c2fe8459578343308d4e19c83ef083b09abf0b63a9599b6f313086523577af/2/13",
+          "serial_byte_start": 569144,
+          "command_to_rendered_journey_observed_ns": 184739240
+        }
+      ],
+      "archive_sha256": "87b8615715b81b8edad158718def73b4faf23f41175c01e2085d5d1da8aef2b0",
+      "all_archive_members_verified": 38,
+      "contaminated_polls": 190,
+      "maximum_monitor_gap_ns": 114663527,
+      "strict_timing_refusal": "quiet timing eligibility failed"
+    }
+  ],
+  "all_66_rgba_digests_verified": true,
+  "pointer_rows_reconstructed": 6,
+  "typing_rows_reconstructed": 18,
+  "fresh_distinct_boots": true,
+  "timing_admitted": false,
+  "timing_exclusion": "Entire preregistered family excluded: detected foreign Cargo/Rustc. No quieter subset selected.",
+  "scope": "Relocated byte integrity and raw conformance only, including exact Source/image/driver/protected text identities and sampled build-window report reconstruction. No accepted performance comparison, sustained typing or physical display timing claim.",
+  "supersedes": "quiet-family-1-independent-conformance.json",
+  "scope_correction": "v2 adds an explicit raw guest Boot-to-build/image/proof binding and narrows the initial metadata scope label; no separate resource attestation is claimed."
+}

@@ -1,0 +1,36 @@
+{
+  "library": "libcuda.so.1",
+  "cuInit": 0,
+  "count_status": 0,
+  "devices": [
+    {
+      "ordinal": 0,
+      "name": "NVIDIA GeForce RTX 3060",
+      "total_memory_bytes": 12489654272,
+      "compute_capability": [
+        8,
+        6
+      ],
+      "driver_api_version": 13020,
+      "statuses": {
+        "name": 0,
+        "total_memory": 0,
+        "compute_capability": 0,
+        "driver_version": 0
+      }
+    }
+  ],
+  "schema": "conduit.local-gpu-feasibility-inventory@1",
+  "recorded_at_utc": "2026-10-20T01:08:44.445962+00:00",
+  "cuda_compiler_version_output": "nvcc: NVIDIA (R) Cuda compiler driver\nCopyright (c) 2005-2024 NVIDIA Corporation\nBuilt on Thu_Mar_28_02:18:24_PDT_2024\nCuda compilation tools, release 12.4, V12.4.131\nBuild cuda_12.4.r12.4/compiler.34097967_0\n",
+  "observation_scope": "Driver initialization and device property queries only; no context creation requested, allocation, transfer, launch, resource reservation or Conduit capability admission tested.",
+  "conduit_gpu_offer_admitted": false,
+  "performance_benefit_proven": false,
+  "remaining_proof": [
+    "Exact planned resource and authority admission, finite device/scratch ownership and refusal paths",
+    "Matched CPU/GPU arithmetic and source attribution under explicit numerical laws; no unproved reassociation/FMA changes",
+    "Cold compilation/context/preparation costs, warm launch, host-device transfers and synchronization measured separately",
+    "Compare full eligible regions rather than claiming fine-grained per-Gear launch speedup",
+    "Exact logical cancellation, pressure, commits and mandatory Signs, including device loss and output acceptance boundaries"
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "classification": "source-bound supported release command and independent conformance replay; no quiet timing, throughput, realtime or release acceptance claim",
+  "paired_frames": 48,
+  "raw_events_parsed": 625152,
+  "all_final_outputs_exact": true,
+  "per_node_ordered_value_transactions_exact": true,
+  "all_plan_digests_and_source_identities_verified": true,
+  "all_play_allocation_requests": 0,
+  "phases": {
+    "timer-control": 1,
+    "cold-source-schema": 1,
+    "cold-model-resource-admission": 1,
+    "cold-check-expand-plan": 2,
+    "candidate-check-expand-plan": 2,
+    "initial-input-encoding": 2,
+    "cold-prepared-trajectory": 2,
+    "frame-input-encoding": 48,
+    "fresh-call-bindings": 48,
+    "paired-fargan-frame": 96,
+    "paired-evidence-reconstruction-and-write": 48,
+    "output-acceptance-state-advance": 48,
+    "paired-frame-conformance": 48,
+    "paired-frame-result-release": 48,
+    "prepared-rearm": 46,
+    "previous-evidence-release": 46,
+    "prepared-trajectory-release": 2
+  },
+  "source": "1048d498f2fc872f9f8175b834cf327d4cad96eb",
+  "worker_sha256": "38d303a5a9788786ed7aecc326e6ebe3d7502b64b5fdef1548b86369dd149fbe",
+  "status_sha256": "0fb95cd6b71bc5fe14060b76234718c1783b205e801c5deff5b57261d4107067",
+  "canonical_conformance_counts": [
+    10,
+    2
+  ],
+  "conformance_receipt_kind": "canonical-command"
+}

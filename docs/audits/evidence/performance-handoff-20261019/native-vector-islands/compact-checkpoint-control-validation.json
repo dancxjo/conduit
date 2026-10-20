@@ -1,0 +1,9 @@
+{
+  "recorded_at_utc": "2026-10-20T01:00:46.798700+00:00",
+  "negative_control": "Skip owner checkpoints after the first logical node of each physical region",
+  "negative_exit_code": 101,
+  "positive_exit_code": 0,
+  "runtime_source_restored_sha256": "391b777d7e091d4713be7342e544f926c267c705b6c060deeda660f33a016ada",
+  "source_restored_exact": true,
+  "scope": "2-lane diamond compact DAG; all four internal owner-denial frontiers, no later staging/publication, exact logical events and resume result; no timing claim"
+}

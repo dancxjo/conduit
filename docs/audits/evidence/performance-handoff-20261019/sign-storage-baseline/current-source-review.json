@@ -1,0 +1,41 @@
+{
+  "source": "f8267b06227f48ed5d3cba645623d53fb7516e2c",
+  "kernel_product_source_identical_to_tested": "1b35a99134786bc9f94af47800b39beac3ec977b",
+  "kernel_source_diff": "",
+  "test_log_sha256": "8286136b6e85e41f65b18884cb7ca9681672e640b3d2a8204b099d4358456c0c",
+  "review": "KernelEvent already stores numeric sequence/node/port/request/kind, HostedSignLog retains bounded numeric slots; descriptive formatting happens on inspection in the performance worker. No new compact-storage rewrite or speedup claimed.",
+  "covered_test_names": [
+    "test scheduler::tests::remote_delivery_sign_exhaustion_preserves_the_in_flight_value ... ok",
+    "test scheduler::tests::remote_ingress_sign_exhaustion_preserves_queue_sequence_and_open_state ... ok",
+    "test scheduler::tests::terminal_sign_admission::oversized_abnormal_terminal_refuses_before_commit_and_allows_smaller_retry ... ok",
+    "test scheduler::tests::terminal_sign_admission::abnormal_terminal_obeys_each_branch_semantic_envelope_before_commit ... ok",
+    "test sign_retention::tests::fixed_byte_pressure_reclaims_transient_history_before_item_slots_fill ... ok",
+    "test scheduler::tests::terminal_sign_admission::terminal_sign_sequence_reserves_both_value_and_remote_closure ... ok",
+    "test sign_retention::tests::fixed_gap_overflow_preserves_complete_history ... ok",
+    "test sign_retention::tests::fixed_remote_and_sequence_failures_do_not_publish_retained_entries ... ok",
+    "test scheduler::tests::terminal_sign_admission::remote_terminal_sign_pressure_refuses_before_step_commit ... ok",
+    "test sign_retention::tests::fixed_remote_byte_pressure_publishes_or_preserves_history_atomically ... ok",
+    "test sign_retention::tests::fixed_remote_sequence_overflow_preserves_history_and_sidecar ... ok",
+    "test sign_retention::tests::fixed_reservation_checks_byte_pressure_gap_growth_for_the_entire_batch ... ok",
+    "test sign_retention::tests::fixed_reservation_checks_event_sequence_before_publication ... ok",
+    "test sign_retention::tests::hosted_byte_pressure_reclaims_transient_history_before_item_slots_fill ... ok",
+    "test sign_retention::tests::hosted_gap_overflow_preserves_complete_history ... ok",
+    "test sign_retention::tests::hosted_remote_and_sequence_failures_do_not_publish_retained_entries ... ok",
+    "test sign_retention::tests::hosted_remote_byte_pressure_publishes_or_preserves_history_atomically ... ok",
+    "test sign_retention::tests::hosted_remote_sequence_overflow_preserves_history_and_sidecar ... ok",
+    "test sign_retention::tests::hosted_reservation_checks_byte_pressure_gap_growth_for_the_entire_batch ... ok",
+    "test sign_retention::tests::hosted_reservation_checks_event_sequence_before_publication ... ok",
+    "test sign_retention::tests::maximum_reservation_uses_retained_count_without_narrowing_overflow ... ok",
+    "test tests::remote_sign_evicts_transient_history_but_preserves_remote_lifecycle_identity ... ok",
+    "test tests::remote_sign_identity_requires_separate_admission_and_fails_atomically ... ok",
+    "test sign_retention::tests::fixed_retained_count_matches_history_through_eviction_and_refused_records ... ok",
+    "test sign_retention::tests::hosted_retained_count_matches_history_through_eviction_and_refused_records ... ok",
+    "test pressure_overwrites_only_debug_history_and_exposes_the_exact_gap ... ok"
+  ],
+  "fargan_evidence": "../prepared-kernel-session/fargan-reuse-trajectory.json",
+  "limits": [
+    "Existing20byte diagnostic layout belongs to its recorded cached library; no fresh current-binary layout timing claim.",
+    "Kernel conformance covers gaps, ordering, budgets, remote identity and refusal; complete downstream Host/debugger reconstruction cost remains unmeasured.",
+    "Current optimized FARGAN capture still running; no optimized Sign attribution claimed."
+  ]
+}

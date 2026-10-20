@@ -1,0 +1,112 @@
+{
+  "location": {
+    "attempt": 8,
+    "scratch_parent": "/var/tmp/conduit-source-cache-quiet-family-2-attempt-8-asxt36x6",
+    "capture": "/var/tmp/conduit-source-cache-quiet-family-2-attempt-8-asxt36x6/captures",
+    "launch_receipt": "/var/tmp/conduit-source-cache-quiet-family-2-attempt-8-asxt36x6/launch-receipt.json",
+    "log": "/var/tmp/conduit-source-cache-quiet-family-2-attempt-8-asxt36x6/controller.log",
+    "observed_change": "Own Body Cargo/Clippy and archive processes terminal, foreign Cargo/rustc processes no longer observed; inactive checkpoint cache reclaimed after85 ELF archives, root free1.26GB",
+    "protocol_changed": false,
+    "registration_sha256": "0d2a9752c365fa7667a02c6170fafdcc267b911316d161164c64f0db42521eef"
+  },
+  "exit_code": 2,
+  "family": {
+    "schema": "conduit.fargan-source-cache-quiet-repeat-family@1",
+    "controller_sha256": "7a5f71a5d9c9402d88064e99ce28ce0ec466600fee9a7051f5fc017540d564bb",
+    "registration_sha256": "0d2a9752c365fa7667a02c6170fafdcc267b911316d161164c64f0db42521eef",
+    "source": "6ad1442dbfad482521758dfdec62f0503b959aac",
+    "worker_sha256": "9f38584550eac3997b2818daa6dd040390a0c987d2cea1e9fafb5b002f2aead3",
+    "processes": [
+      {
+        "index": 1,
+        "pid": 969497,
+        "exit_code": 0,
+        "source_custody": true,
+        "affinity_verified": true,
+        "capture": "capture-1",
+        "status_sha256": "01080dda0b7aa6fd50b764ada7adc3713a07485438c7bdd48ee41e217873ff88"
+      },
+      {
+        "index": 2,
+        "pid": 969583,
+        "exit_code": 0,
+        "source_custody": true,
+        "affinity_verified": true,
+        "capture": "capture-2",
+        "status_sha256": "a2955e0866419aab5274d47da659d8539c8846de33a0544f2c0ae6b6b446cf7c"
+      },
+      {
+        "index": 3,
+        "pid": 969688,
+        "exit_code": 0,
+        "source_custody": true,
+        "affinity_verified": true,
+        "capture": "capture-3",
+        "status_sha256": "b629fadb88dc2dd90ab48aeee26d83a349d7e8b1ab9087b7f3af29196a0be619"
+      }
+    ],
+    "timing_excluded": true,
+    "causes": [
+      {
+        "cause": "competing-process",
+        "index": 1,
+        "processes": [
+          {
+            "pid": 6086,
+            "comm": "ChatGPT",
+            "state": "R",
+            "cpu_ticks": 2209042,
+            "cause": "other-process-cpu",
+            "delta_cpu_ticks": 35
+          }
+        ]
+      }
+    ],
+    "reference_verifier_sha256": "bcbb77bac3721a57494f369363280953493378e147f9a47534e90de8f0a1eb8a",
+    "verified_reference": {
+      "classification": "source-bound supported release command and independent conformance replay; no quiet timing, throughput, realtime or release acceptance claim",
+      "paired_frames": 48,
+      "cache_owner_drop_layout_bytes": 10758458,
+      "raw_events_parsed": 621552,
+      "all_final_outputs_exact": true,
+      "per_node_ordered_value_transactions_exact": true,
+      "all_plan_digests_and_source_identities_verified": true,
+      "all_play_allocation_requests": 0,
+      "phases": {
+        "timer-control": 1,
+        "cold-source-schema": 1,
+        "cold-model-resource-admission": 1,
+        "source-cache-owner-creation": 1,
+        "cold-check-expand-plan": 2,
+        "candidate-cold-check-expand-plan": 2,
+        "candidate-check-expand-plan": 2,
+        "source-cache-preparation": 2,
+        "initial-input-encoding": 2,
+        "cold-prepared-trajectory": 2,
+        "frame-input-encoding": 48,
+        "fresh-call-bindings": 48,
+        "paired-fargan-frame": 96,
+        "paired-evidence-reconstruction-and-write": 48,
+        "output-acceptance-state-advance": 48,
+        "paired-frame-conformance": 48,
+        "paired-frame-result-release": 48,
+        "prepared-rearm": 46,
+        "previous-evidence-release": 46,
+        "prepared-trajectory-release": 2,
+        "source-cache-owner-release": 1
+      },
+      "source": "6ad1442dbfad482521758dfdec62f0503b959aac",
+      "worker_sha256": "9f38584550eac3997b2818daa6dd040390a0c987d2cea1e9fafb5b002f2aead3",
+      "status_sha256": "be7fe482fb936ac7c6771206afa39bb3b775df7e0e60ff50c65fee7f7e57c6a1",
+      "canonical_conformance_counts": [
+        14,
+        2
+      ],
+      "conformance_receipt_kind": "canonical-command"
+    },
+    "monitor_sha256": "ded35d55d89acba68be73640514198e6d4e26ae5dd6fbc6a08512a43220a983a",
+    "complete": true,
+    "scope": "Raw matched observations only; independent replay and preregistered analysis still required. No automatic speedup, realtime or release claim."
+  },
+  "classification": "Whole family timing excluded after samples started. Preserve all completed data; do not apply zero-process retry exception or salvage any timing subset."
+}

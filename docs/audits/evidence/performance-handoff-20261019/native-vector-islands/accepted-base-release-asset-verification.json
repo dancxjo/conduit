@@ -1,0 +1,202 @@
+{
+  "schema": "conduit.published-release-asset-verification@1",
+  "verified_at_utc": "2026-10-20T01:25:26.481843+00:00",
+  "tag": "release-a2583abd72c01418c99d880f104ed7e6b1b16c15",
+  "tested_source_sha": "a2583abd72c01418c99d880f104ed7e6b1b16c15",
+  "accepted_main_sha": "8dddea0ca4cd14f7bf53d1c9a299f7a39bedcceb",
+  "integration_run": "39335064466",
+  "tree_sha": "f5c7b9a287bad62e919214ed55e9fc023daa773a",
+  "source_and_accepted_main_git_trees_match": true,
+  "manifest_sha256": "0e5f5cb1f779b40150f5da4e2a850fb2d556f5ddb094e443ab4f258ed2d24241",
+  "manifest_unchanged_after_verification": true,
+  "assets": [
+    {
+      "asset": "avr.tar.gz",
+      "archive_bytes": 31818,
+      "archive_sha256": "f796e01fc8257bb8bc6ab7f1617eb46457e513bdf258d9e6b5323e68cbc2f3b5",
+      "verified_files": 3,
+      "verified_uncompressed_bytes": 78638,
+      "target_receipt_exact": true,
+      "all_member_hashes_exact": true,
+      "executables": []
+    },
+    {
+      "asset": "browser.tar.gz",
+      "archive_bytes": 73003276,
+      "archive_sha256": "b3c7b00d25b7b61996d3ae05e794d479ced07e39c2ef8e83220af7fd4e9eab9f",
+      "verified_files": 1095,
+      "verified_uncompressed_bytes": 277517141,
+      "target_receipt_exact": true,
+      "all_member_hashes_exact": true,
+      "executables": []
+    },
+    {
+      "asset": "conduitos-aarch64.tar.gz",
+      "archive_bytes": 7358202,
+      "archive_sha256": "8b933c7293f19d0f30822dad66a7ba7825866d139b0e8089c81f927d0d58f57e",
+      "verified_files": 7,
+      "verified_uncompressed_bytes": 19449548,
+      "target_receipt_exact": true,
+      "all_member_hashes_exact": true,
+      "executables": [
+        "conduitos-kernel.elf"
+      ]
+    },
+    {
+      "asset": "conduitos-ia32.tar.gz",
+      "archive_bytes": 6090660,
+      "archive_sha256": "071ef8e777c33787f64e66df9da90d199a4eb98e1b39e1e215213b95d64ec7ea",
+      "verified_files": 11,
+      "verified_uncompressed_bytes": 16139474,
+      "target_receipt_exact": true,
+      "all_member_hashes_exact": true,
+      "executables": [
+        "conduitos-kernel.elf"
+      ]
+    },
+    {
+      "asset": "conduitos-loongarch64.tar.gz",
+      "archive_bytes": 6033105,
+      "archive_sha256": "e024bf2d86bbb5b42793ebf9eb35383cd3bfff918a5756688feb94e41473a724",
+      "verified_files": 6,
+      "verified_uncompressed_bytes": 17059450,
+      "target_receipt_exact": true,
+      "all_member_hashes_exact": true,
+      "executables": [
+        "conduitos-kernel.elf"
+      ]
+    },
+    {
+      "asset": "conduitos-riscv64.tar.gz",
+      "archive_bytes": 5716493,
+      "archive_sha256": "58f62a31d9ddc82a862cacde04263d0cf347e1f50f784bcc6a27d07e4db04312",
+      "verified_files": 6,
+      "verified_uncompressed_bytes": 13455164,
+      "target_receipt_exact": true,
+      "all_member_hashes_exact": true,
+      "executables": [
+        "conduitos-kernel.elf"
+      ]
+    },
+    {
+      "asset": "conduitos-x86_64.tar.gz",
+      "archive_bytes": 13790563,
+      "archive_sha256": "fc58386f496b5c7a22d8e09be63cf4365f3da432dea6683f9299572025a44318",
+      "verified_files": 35,
+      "verified_uncompressed_bytes": 43054229,
+      "target_receipt_exact": true,
+      "all_member_hashes_exact": true,
+      "executables": [
+        "conduitos-kernel.elf"
+      ]
+    },
+    {
+      "asset": "esp32-c3.tar.gz",
+      "archive_bytes": 2666286,
+      "archive_sha256": "2c1c087f77aed759b637ca99437f3494eb80b6964ac3e2195a2090e1fba95925",
+      "verified_files": 5,
+      "verified_uncompressed_bytes": 8549231,
+      "target_receipt_exact": true,
+      "all_member_hashes_exact": true,
+      "executables": [
+        "esp32-c3.elf"
+      ]
+    },
+    {
+      "asset": "esp32-s3.tar.gz",
+      "archive_bytes": 2468472,
+      "archive_sha256": "8bb3c7258634209138fa0cd2e7c323fbdb24ff2d238d7c2d32c74c9009b342cf",
+      "verified_files": 5,
+      "verified_uncompressed_bytes": 8206849,
+      "target_receipt_exact": true,
+      "all_member_hashes_exact": true,
+      "executables": [
+        "esp32-s3.elf"
+      ]
+    },
+    {
+      "asset": "esp32-wroom.tar.gz",
+      "archive_bytes": 2510736,
+      "archive_sha256": "03bd49943bb9ef6c848db13af67208d3b6ea123e3b58d84f980ec28410a1696a",
+      "verified_files": 5,
+      "verified_uncompressed_bytes": 8118270,
+      "target_receipt_exact": true,
+      "all_member_hashes_exact": true,
+      "executables": [
+        "esp32-wroom.elf"
+      ]
+    },
+    {
+      "asset": "hosted-linux.tar.gz",
+      "archive_bytes": 20644751,
+      "archive_sha256": "ce778845d847a9cf75ec32da9aaeb9f5e776e426a84c152a2bc2a6fa2785950f",
+      "verified_files": 6,
+      "verified_uncompressed_bytes": 66732131,
+      "target_receipt_exact": true,
+      "all_member_hashes_exact": true,
+      "executables": [
+        "conduit"
+      ]
+    },
+    {
+      "asset": "hosted-macos.tar.gz",
+      "archive_bytes": 18178359,
+      "archive_sha256": "c4135b57a665307e8f1c75ebe94903027ae24af00eae8b37495947bc0c0d803d",
+      "verified_files": 6,
+      "verified_uncompressed_bytes": 57913267,
+      "target_receipt_exact": true,
+      "all_member_hashes_exact": true,
+      "executables": [
+        "conduit"
+      ]
+    },
+    {
+      "asset": "hosted-windows.tar.gz",
+      "archive_bytes": 16011125,
+      "archive_sha256": "3b4769f72f876219be12fd11886c708e415c09a2f5406af8778ae98aa42bbffa",
+      "verified_files": 6,
+      "verified_uncompressed_bytes": 59969603,
+      "target_receipt_exact": true,
+      "all_member_hashes_exact": true,
+      "executables": [
+        "conduit.exe"
+      ]
+    },
+    {
+      "asset": "orange-pi.tar.gz",
+      "archive_bytes": 1879567,
+      "archive_sha256": "e0231d2da75c86dcb313e3a91b50693db9dcd7e024b972521c35714d4e3fd55a",
+      "verified_files": 3,
+      "verified_uncompressed_bytes": 67110991,
+      "target_receipt_exact": true,
+      "all_member_hashes_exact": true,
+      "executables": []
+    },
+    {
+      "asset": "raspberry-pi.tar.gz",
+      "archive_bytes": 15129711,
+      "archive_sha256": "b3c36df0f624e78b6b985a88ecdf94a96bf4f8021e447eeec8c276cba4e396e6",
+      "verified_files": 9,
+      "verified_uncompressed_bytes": 268449133,
+      "target_receipt_exact": true,
+      "all_member_hashes_exact": true,
+      "executables": []
+    },
+    {
+      "asset": "rp2040.tar.gz",
+      "archive_bytes": 571946,
+      "archive_sha256": "3ac27ef24512694360737edec4014ce038ad993e29302aa7190b68e809effdba",
+      "verified_files": 5,
+      "verified_uncompressed_bytes": 1473637,
+      "target_receipt_exact": true,
+      "all_member_hashes_exact": true,
+      "executables": [
+        "conduit-pico-w-signal"
+      ]
+    }
+  ],
+  "verified_assets": 16,
+  "verified_member_files": 1213,
+  "all_archive_and_member_hashes_exact": true,
+  "scope": "Independent streamed verification of this accepted base release only. Containers and every declared member match release manifest; embedded target receipts match exactly. No newer prepared-session, transport, numeric/cache, Body or raster release acceptance implied. No files extracted or asset bodies retained."
+}

@@ -1,0 +1,70 @@
+{
+  "recorded_at_utc": "2026-10-20T01:49:52.550441+00:00",
+  "source": "d9e0d9018a7d43aabe9045c308fa8a22b645b625",
+  "reference_source": "31948891d30cf81e08ee003c1d65c4c5af6ae42c",
+  "base": "c2f90fac5c998d53effee532cf65e12efb769b7a",
+  "tests_passed": 3,
+  "matched_roundtrips": 3,
+  "allocation_requests_removed_per_roundtrip": 2,
+  "reallocations_unchanged": true,
+  "stale_boot_behavior_and_counts_unchanged": true,
+  "allocations": [
+    {
+      "stale": false,
+      "forebrain_allocations": 58,
+      "forebrain_reallocations": 12,
+      "motherbrain_allocations": 58,
+      "motherbrain_reallocations": 12
+    },
+    {
+      "stale": false,
+      "forebrain_allocations": 57,
+      "forebrain_reallocations": 12,
+      "motherbrain_allocations": 58,
+      "motherbrain_reallocations": 12
+    },
+    {
+      "stale": false,
+      "forebrain_allocations": 57,
+      "forebrain_reallocations": 12,
+      "motherbrain_allocations": 58,
+      "motherbrain_reallocations": 12
+    },
+    {
+      "stale": true,
+      "forebrain_allocations": 42,
+      "forebrain_reallocations": 11,
+      "motherbrain_allocations": 41,
+      "motherbrain_reallocations": 11
+    }
+  ],
+  "scope": "Actual release Cargo package integration tests: one coordination conformance test, three real loopback roundtrips, stale Boot refusal. Allocation observations include complete Line lifetimes and exclude Plan/endpoint/listener/thread preparation. No timing claim.",
+  "worker_archive": "outputs/cross-host/body-line-borrowed-outbound-workers.tar.xz",
+  "archive_sha256": "aae73f49d867f46d055fc0925e7056847a2bf9a553d748f063341959f9baaa94",
+  "archive_roundtrip_verified": true,
+  "workers": {
+    "body_coordination-da642929d4f8acbf": {
+      "bytes": 9965936,
+      "sha256": "9403002419264c675d5feb893d9d91b68d936d204ab6728fd2ef504f462ed697"
+    },
+    "body_coordination_line-d7d70244ca3fd581": {
+      "bytes": 10552224,
+      "sha256": "0071da99eeeb602d2ab51bf106f644c06e025a597cc2f6f1da34d49b21e944a5"
+    }
+  },
+  "negative_control_pending": false,
+  "clippy_pending": false,
+  "full_workspace_extraction_gate_pending": true,
+  "dev_main_release_accepted": false,
+  "admission_omission_control": "body-line-borrowed-outbound-admission-control-validation.json",
+  "admission_omission_control_passed": true,
+  "scoped_release_clippy_exit_code": 0,
+  "scoped_release_clippy_command": "cargo clippy --offline --release -p conduit-std-host --lib --test body_coordination --test body_coordination_line -- -D warnings",
+  "clippy_log_sha256": "cfd3e6eb24360011940fe6a0ee10016af748785e38ec72944f8d4343a33d7318",
+  "clippy_log": "body-line-borrowed-outbound-cargo-clippy.log",
+  "transport_checkout_restored": {
+    "branch": "perf/two-host-codec-3dd",
+    "source": "21945053a31ea22a5e8062c190fae8965959029b",
+    "clean": true
+  }
+}

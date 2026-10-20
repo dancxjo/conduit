@@ -1,0 +1,995 @@
+{
+  "schema": "conduit.performance-issue-breakdown@1",
+  "ranking_basis": "Estimated remaining effort, uncertainty, ownership and proof risk; not delivery order or expected performance benefit. Dependencies govern execution.",
+  "source_dev": "09cb583ccdec99be762759dce48754a019a370d5",
+  "source_main": "9562b01e2c49b15bfd4678b072fd331f5dbab431",
+  "handoff_branch": "perf/audit-issue-handoff",
+  "items": [
+    {
+      "rank": 1,
+      "key": "std-catalog",
+      "title": "Enable immutable numeric catalogue reuse in the ordinary Std Host",
+      "outcome": "Enable the existing hosted-catalog-cache implementation for ordinary Std Host preparation without changing cache semantics.",
+      "acceptance": [
+        "Refresh the one-file feature delta onto current dev and prove the exact feature graph.",
+        "Run ordinary Std Host cold/repeated preparation with identical Plans, outputs, refusal cases and retained evidence.",
+        "Measure preparation allocations and latency separately from Play; retain reference and candidate source identities.",
+        "Pass affected package/Candidate checks and verify automatic dev/main publication."
+      ],
+      "scope": "targets/std/Cargo.toml; existing AI catalogue preparation only. No new global cache.",
+      "existing": null,
+      "related": [
+        5395
+      ],
+      "dependencies": [],
+      "branch": "perf/std-catalog-cache-current",
+      "commit": "13e977a0277afdc135550673924c90812248ce44",
+      "evidence": [],
+      "status": "One-file activation is already on origin. Current dev still enables plot-catalog without hosted-catalog-cache; rebase and actual ordinary-path validation remain.",
+      "number": 6079,
+      "url": "https://github.com/dancxjo/conduit/issues/6079"
+    },
+    {
+      "rank": 2,
+      "key": "foundation-release",
+      "title": "Verify published prepared-session foundation against accepted main",
+      "outcome": "Finish independent release custody for the already merged prepared Value-session foundation.",
+      "acceptance": [
+        "Bind PR #6045 implementation to the exact tested dev source and accepted main tree.",
+        "Verify every declared product archive/member and embedded target receipt against the unchanged published manifest.",
+        "Verify Pages source identity and classify the proof as foundation only.",
+        "Record remaining ordinary Body/Fore and streaming adoption separately; do not close #5715 from fixture proof."
+      ],
+      "scope": "Release/evidence verification for PR #6045; no feature changes or manual release train.",
+      "existing": null,
+      "related": [
+        5715
+      ],
+      "dependencies": [],
+      "branch": null,
+      "commit": null,
+      "evidence": [
+        "native-vector-islands/prepared-session-dev-merge.json",
+        "native-vector-islands/accepted-base-release-asset-verification.json"
+      ],
+      "status": "PR #6045 merged. release-9ff334927f546c7f9a4a241ef38b548bd1b25549 is published; the older full-asset verification belongs to source a258 and cannot be reused as proof for this release.",
+      "number": 6080,
+      "url": "https://github.com/dancxjo/conduit/issues/6080"
+    },
+    {
+      "rank": 3,
+      "key": "line-release",
+      "title": "Finish integrated release acceptance for borrowed two-host Line codecs",
+      "outcome": "Verify the merged transport optimization through exact combined integration and stable publication.",
+      "acceptance": [
+        "Trace merged PR #6048 to its exact dev Integration and automatic release/main tree.",
+        "Retain the actual loopback transfer conformance and separate ownership, admission, ACK, delivery and terminal evidence.",
+        "Verify published transport-bearing artifacts and supported command availability.",
+        "Keep isolated21 to 0 allocation result distinct from whole-Line and throughput claims."
+      ],
+      "scope": "PR #6048 release completion only; further warm-Line work is separate.",
+      "existing": null,
+      "related": [
+        5395
+      ],
+      "dependencies": [],
+      "branch": null,
+      "commit": null,
+      "evidence": [
+        "cross-host/transport-current-dev-refresh.json"
+      ],
+      "status": "PR #6048 merged as 1d1eca48d1478d4fae52246d6cff0da394a2b288. Its integration was still running at this inventory; current dev has accumulated further changes.",
+      "number": 6081,
+      "url": "https://github.com/dancxjo/conduit/issues/6081"
+    },
+    {
+      "rank": 4,
+      "key": "numeric-release",
+      "title": "Integrate and release compact F32 DAGs and local prepared expressions",
+      "outcome": "Complete PR #6053 without overstating compact DAG continuation as a compiled numeric program.",
+      "acceptance": [
+        "Validate the actual current PR head and combined base, including any merge/update commits after1048.",
+        "Retain all eight DAG checks and owner-denial negative control, and full FARGAN paired output/event replay with zero Play allocation.",
+        "Pass Candidate, exact merged dev Integration and supported automatic main release; verify published products.",
+        "Retain explicit limits: original per-node Backs and compact payload publication copies remain."
+      ],
+      "scope": "PR #6053 owned files and validation; no matrix/cache/Body adoption in this ticket.",
+      "existing": null,
+      "related": [
+        5544,
+        5545,
+        5715
+      ],
+      "dependencies": [],
+      "branch": "perf/compact-f32-current",
+      "commit": "1048d498f2fc872f9f8175b834cf327d4cad96eb",
+      "evidence": [
+        "native-vector-islands/compact-current-1048-full-fargan-replay.json",
+        "native-vector-islands/compact-checkpoint-control-validation.json",
+        "native-vector-islands/sign-inspection-compact-local-allocation-experiment.json"
+      ],
+      "status": "Candidate39357717306 and source 1048 full paired replay passed:48 pairs,625,152 events,96 allocation-free Plays. Origin PR head is now 241b0be7597f27d60bc03440f5522edd75d38f80 and ready; exact refreshed-head coverage/release remain to verify.",
+      "number": 6082,
+      "url": "https://github.com/dancxjo/conduit/issues/6082"
+    },
+    {
+      "rank": 5,
+      "key": "body-line",
+      "title": "Integrate borrowed Body Line receive, binding and outbound offer paths",
+      "outcome": "Finish the held Body coordination Line changes while preserving separate protocol events.",
+      "acceptance": [
+        "Refresh only the owned delta onto current dev; reconcile overlap with merged PR #6048.",
+        "Retain matched reference/candidate real WebSocket package tests, stale Boot refusal and the compiled outbound-admission omission control.",
+        "Pass the required full workspace tests/Clippy extraction gate or retain the exact canonical infrastructure failure.",
+        "Verify dev/main release. Report incremental 2 fewer allocation requests per matched roundtrip separately from older different-base observations."
+      ],
+      "scope": "targets/std Body coordination endpoint/outbound and Line; no ordinary Body prepared-Value adoption.",
+      "existing": null,
+      "related": [],
+      "dependencies": [
+        "line-release"
+      ],
+      "branch": "perf/body-line-borrowed-receive",
+      "commit": "d9e0d9018a7d43aabe9045c308fa8a22b645b625",
+      "evidence": [
+        "cross-host/body-line-borrowed-outbound-validation.json",
+        "cross-host/body-line-borrowed-outbound-admission-control-validation.json"
+      ],
+      "status": "Implementation is pushed. Three release package tests, matched counts, compiled negative control and scoped release Clippy passed. No PR; full extraction/integration/release gates remain.",
+      "number": 6083,
+      "url": "https://github.com/dancxjo/conduit/issues/6083"
+    },
+    {
+      "rank": 6,
+      "key": "release-generators",
+      "title": "Measure and optimize release-profile build generators",
+      "outcome": "Extend the measured dev/test generator optimization to release builds only when a matched experiment supports it.",
+      "acceptance": [
+        "Obtain integration-owner handoff before changing the reserved root manifest.",
+        "Measure same-source release generator wall/CPU, generated-byte equality and end-to-end cold/warm build effects.",
+        "Use bounded release build-dependency optimization only if it improves the measured workload; preserve dependency semantics and products.",
+        "Retain matched evidence and complete build/Candidate/integration gates."
+      ],
+      "scope": "Root release build-override ownership and generator measurement; existing dev/test opt1 is historical completed work.",
+      "existing": null,
+      "related": [
+        5395
+      ],
+      "dependencies": [],
+      "branch": null,
+      "commit": null,
+      "evidence": [],
+      "status": "The audit records124s-to7s for dev/test generation. The release override is absent; no release improvement is proved.",
+      "number": 6084,
+      "url": "https://github.com/dancxjo/conduit/issues/6084"
+    },
+    {
+      "rank": 7,
+      "key": "build-invalidation",
+      "title": "Narrow generated-artifact rebuild invalidation with exact dependency evidence",
+      "outcome": "Avoid broad rebuilds after unrelated edits while regenerating when any real build input changes.",
+      "acceptance": [
+        "Inventory actual generator inputs and rerun dependencies on current dev.",
+        "Demonstrate unchanged outputs and no generator rerun for an unrelated edit.",
+        "Mutate each declared schema/catalogue/generator input and prove regeneration; compare generated artifacts with a clean build.",
+        "Measure cold and incremental build wall/CPU and publish exact source/toolchain evidence."
+      ],
+      "scope": "One measured generator/dependency seam at a time; no broad CI redesign.",
+      "existing": null,
+      "related": [
+        5395
+      ],
+      "dependencies": [
+        "release-generators"
+      ],
+      "branch": null,
+      "commit": null,
+      "evidence": [],
+      "status": "Not implemented for this scope; begin from current dev after dependencies and ownership are checked.",
+      "number": 6085,
+      "url": "https://github.com/dancxjo/conduit/issues/6085"
+    },
+    {
+      "rank": 8,
+      "key": "sign-inspection",
+      "title": "Defer descriptive Sign reconstruction on ordinary Host inspection paths",
+      "outcome": "Apply measured allocation reduction beyond the FARGAN evidence writer without removing mandatory records.",
+      "acceptance": [
+        "Inventory actual ordinary Host/inspection reconstruction allocations; credit existing numeric 20-byte records instead of rewriting them.",
+        "Use bounded/interned metadata or direct writing for one proven hot path and preserve byte-exact inspection output.",
+        "Prove ordering, correlation, capacity, overflow/gap reporting, remote records and debugger/source attribution.",
+        "Report recording/Play, reconstruction and retention memory separately; validate the product path and release."
+      ],
+      "scope": "One ordinary inspection consumer; numeric recording remains the authoritative evidence.",
+      "existing": null,
+      "related": [],
+      "dependencies": [
+        "numeric-release"
+      ],
+      "branch": null,
+      "commit": null,
+      "evidence": [
+        "native-vector-islands/sign-inspection-compact-local-allocation-experiment.json"
+      ],
+      "status": "Numeric Sign storage already exists. PR #6053 optimizes only the FARGAN inspection String writer; ordinary product reconstruction is still unmeasured.",
+      "number": 6086,
+      "url": "https://github.com/dancxjo/conduit/issues/6086"
+    },
+    {
+      "rank": 9,
+      "key": "source-cache",
+      "title": "Integrate bounded exact-source checking and expansion reuse",
+      "outcome": "Ship the held content-addressed Source/check/expand cache without claiming minimal dependency invalidation or total RAM admission.",
+      "acceptance": [
+        "Extract the smallest cache delta from the held matrix/cache branch and refresh onto current dev after numeric dependencies.",
+        "Retain all cache bound/key/collision/private-context/law/refusal and cold-vs-cached Plan/output/event checks.",
+        "Measure cache-owner lifetime/drop and finite entry limits; do not present tracked allocation layouts as RSS.",
+        "Pass current conformance/Candidate/integration/release; link the separate quiet timing gate."
+      ],
+      "scope": "Immutable hosted Source/check/expand cache only; no runtime Host/grant or mutable Plan cache.",
+      "existing": null,
+      "related": [],
+      "dependencies": [
+        "numeric-release",
+        "matrix"
+      ],
+      "branch": "perf/input-major-linear-36c",
+      "commit": "6ad1442dbfad482521758dfdec62f0503b959aac",
+      "evidence": [
+        "native-vector-islands/source-preparation-cache-validation.json",
+        "native-vector-islands/source-cache-quiet-family-2-attempt-8-excluded.json"
+      ],
+      "status": "Pushed held implementation. Frozen 6ad passed cache tests and independent 144 paired-frame replay; that family timing was excluded for foreign CPU activity.",
+      "number": 6087,
+      "url": "https://github.com/dancxjo/conduit/issues/6087"
+    },
+    {
+      "rank": 10,
+      "key": "matrix",
+      "title": "Integrate shape-selected input-major Linear and Slice numeric lowering",
+      "outcome": "Ship measured eligible matrix/Slice lowering from the held branch with explicit fallback for regressing shapes.",
+      "acceptance": [
+        "Separate the smallest matrix/Slice delta from Source-cache additions and refresh onto the accepted numeric foundation.",
+        "Retain all 16 shape decisions, negative controls, exact ownership/eligibility and reference outputs/per-node evidence.",
+        "Show why each selected shape is cheaper using matched full-path evidence; retain declared fallback for regressions.",
+        "Pass current package/Candidate/integration/release and bound every scratch/output reservation."
+      ],
+      "scope": "AI Linear/Slice numeric realization and Planner ownership; not a compiled multi-node instruction program.",
+      "existing": null,
+      "related": [],
+      "dependencies": [
+        "numeric-release"
+      ],
+      "branch": "perf/input-major-linear-36c",
+      "commit": "6ad1442dbfad482521758dfdec62f0503b959aac",
+      "evidence": [
+        "native-vector-islands/source-preparation-cache-validation.json"
+      ],
+      "status": "Implementation shares origin branch with Source caching; split/review in dependency order rather than merging the complete stacked branch blindly.",
+      "number": 6088,
+      "url": "https://github.com/dancxjo/conduit/issues/6088"
+    },
+    {
+      "rank": 11,
+      "key": "raster",
+      "title": "Integrate revision-safe retained raster reuse in ConduitOS",
+      "outcome": "Avoid clearing/rasterizing an entire retained surface for eligible unchanged regions while preserving Face/Show truth.",
+      "acceptance": [
+        "Refresh the held raster delta onto current dev and preserve exact Show revisions, damage bounds and failure fallback.",
+        "Retain differential rendering and actual QEMU frame/interaction conformance for edits, cursor, focus and stale input.",
+        "Run a fresh uncontaminated whole measurement family for full redraw/tiny damage/scroll/hover/typing; retain every excluded family.",
+        "Pass current native/Candidate/integration/release. Keep already released span compositor savings separate."
+      ],
+      "scope": "targets/conduitos retained surface/raster responsibility only.",
+      "existing": null,
+      "related": [],
+      "dependencies": [],
+      "branch": "perf/retained-raster-current",
+      "commit": "1379ae0cb6574b7e27897d823d9e5228e035af5a",
+      "evidence": [
+        "retained-raster/quiet-family-1-independent-conformance-v2.json",
+        "retained-raster/current-source-bridge.json"
+      ],
+      "status": "Held source is already on origin. Earlier QEMU conformance passed; the complete timing family was excluded for compiler activity.",
+      "number": 6089,
+      "url": "https://github.com/dancxjo/conduit/issues/6089"
+    },
+    {
+      "rank": 12,
+      "key": "fusion-cost",
+      "title": "Benchmark fusion cost and report target-specific unsupported limits",
+      "outcome": "Complete the existing 1/8/32-chain end-to-end measurement issue with exact source and honest unsupported profiles.",
+      "acceptance": [
+        "Retain matched unfused/canonical-fused/native trials with required Sign overhead and all mandatory work.",
+        "Separate dispatch savings, payload encodes/decodes/copies, cold preparation, first output and total throughput.",
+        "Publish target/profile-specific benefits or regressions; no microbenchmark-only speedup claim.",
+        "Link exact dev/main artifacts and supported commands before closing existing acceptance."
+      ],
+      "scope": "Existing issue acceptance is preserved; coordinate numeric and compact Quantity without duplicating it.",
+      "existing": 5546,
+      "related": [
+        5397
+      ],
+      "dependencies": [
+        "numeric-release"
+      ],
+      "branch": null,
+      "commit": null,
+      "evidence": [],
+      "status": "Not implemented for this scope; begin from current dev after dependencies and ownership are checked.",
+      "number": 5546,
+      "url": "https://github.com/dancxjo/conduit/issues/5546"
+    },
+    {
+      "rank": 13,
+      "key": "fargan-cost",
+      "title": "Measure native FARGAN resource cost and real-time factor",
+      "outcome": "Finish the existing performance acceptance issue using matched fresh/prepared/cache trajectories on supported profiles.",
+      "acceptance": [
+        "Preserve frozen registrations, all excluded attempts and strict whole-family quiet/affinity/source/custody gates.",
+        "Obtain accepted whole-family measurements of cold preparation, warm frame, validation, evidence reconstruction, input/acceptance and final owner disposal.",
+        "Report admitted scratch/model/code/stack/resource costs and tracked allocation bytes distinctly from RSS and hardware traffic.",
+        "Verify current ordinary-product/std and supported ConduitOS scope; do not close from the private fixture alone."
+      ],
+      "scope": "Existing #5761 remains the product performance owner; frozen fixture timing is a scoped evidence contribution.",
+      "existing": 5761,
+      "related": [
+        5715,
+        5716,
+        5717
+      ],
+      "dependencies": [
+        "numeric-release",
+        "source-cache"
+      ],
+      "branch": "perf/input-major-linear-36c",
+      "commit": "6ad1442dbfad482521758dfdec62f0503b959aac",
+      "evidence": [
+        "native-vector-islands/source-cache-quiet-family-3-preregistration.json",
+        "native-vector-islands/source-cache-quiet-family-2-attempt-8-excluded.json"
+      ],
+      "status": "Frozen conformance is strong; no accepted quiet cache timing family yet. Preregistered family 3 has only a zero-process busy preflight and must not be restarted while known busy.",
+      "number": 5761,
+      "url": "https://github.com/dancxjo/conduit/issues/5761"
+    },
+    {
+      "rank": 14,
+      "key": "native-latency",
+      "title": "Measure ConduitOS boot, first usable input and interaction stages",
+      "outcome": "Produce source-bound actual graphical startup and interaction latency breakdowns before choosing further native optimizations.",
+      "acceptance": [
+        "Instrument boot entry, first visible paint, first acknowledged usable input and distinct Plot build/seal/prepare/Play stages.",
+        "Measure pointer feedback, steady typing, scrolling and redraw on the actual QEMU/native route with frame and input custody.",
+        "Keep clock/source/profile/host identities, cold/warm protocol and total process work; reject contaminated families.",
+        "Preserve exact Face/Show revision input acceptance and distinguish emulator from physical proof."
+      ],
+      "scope": "Graphical startup markers and one real interaction journey; no synthetic screenshot timing substitution.",
+      "existing": null,
+      "related": [
+        5994,
+        6060
+      ],
+      "dependencies": [
+        "raster"
+      ],
+      "branch": null,
+      "commit": null,
+      "evidence": [],
+      "status": "Not implemented for this scope; begin from current dev after dependencies and ownership are checked.",
+      "number": 6090,
+      "url": "https://github.com/dancxjo/conduit/issues/6090"
+    },
+    {
+      "rank": 15,
+      "key": "warm-lines",
+      "title": "Measure and reduce copies on established warm cross-host Lines",
+      "outcome": "Find and remove the next demonstrated full-path transport bottleneck with a long-lived admitted Line.",
+      "acceptance": [
+        "Add a matched persistent-Line workload that separates connection/admission from steady transfers.",
+        "Attribute encoding/framing/buffering/kernel ingress allocation requests, copied bytes and throughput across both Hosts.",
+        "Remove only demonstrated redundant ownership/copy work, keeping bounded buffers, backpressure, ACK/delivery/cancel/terminal events distinct.",
+        "Retain exact transferred bytes and both kernels evidence, negative controls and whole-path before/after release proof."
+      ],
+      "scope": "Cross-host established Line path; current isolated21 to 0 result is not a whole-path claim.",
+      "existing": null,
+      "related": [],
+      "dependencies": [
+        "line-release",
+        "body-line"
+      ],
+      "branch": null,
+      "commit": null,
+      "evidence": [],
+      "status": "Not implemented for this scope; begin from current dev after dependencies and ownership are checked.",
+      "number": 6091,
+      "url": "https://github.com/dancxjo/conduit/issues/6091"
+    },
+    {
+      "rank": 16,
+      "key": "baseline",
+      "title": "Publish a matched five-workload cold and warm performance baseline",
+      "outcome": "Complete the audit comparison across short arithmetic, repeated Quantity, full FARGAN, a native graphical journey and a multi-Host workload.",
+      "acceptance": [
+        "Pin a common accepted source/toolchain/profile and the actual Host/resource identities for all five workloads.",
+        "Record cold/warm latency, complete lifetime allocations, actual materialized/copied bytes, scheduler work and mandatory retained Signs.",
+        "Include preparation, validation, input/acceptance, inspection and disposal separately; preserve all failed/excluded trials and uncertainty.",
+        "Publish supported reproducible commands and source/main/release custody; never add unrelated ratios or substitute fixture proof for a product path."
+      ],
+      "scope": "Cross-subsystem evidence aggregation and missing baseline measurements; not another optimization implementation.",
+      "existing": null,
+      "related": [],
+      "dependencies": [
+        "fusion-cost",
+        "quantity",
+        "fargan-cost",
+        "native-latency",
+        "warm-lines"
+      ],
+      "branch": null,
+      "commit": null,
+      "evidence": [],
+      "status": "Not implemented for this scope; begin from current dev after dependencies and ownership are checked.",
+      "number": 6092,
+      "url": "https://github.com/dancxjo/conduit/issues/6092"
+    },
+    {
+      "rank": 17,
+      "key": "browser-loading",
+      "title": "Load optional browser adapters on demand with exact bundle and activation custody",
+      "outcome": "Reduce initial browser work/footprint by loading one optional adapter only when its admitted use requires it.",
+      "acceptance": [
+        "Measure current pinned-Chromium initial bytes/Wasm/memory, first usable input and adapter costs.",
+        "Design the demand boundary within the reviewed dependency closure and exact digest/identity refusal rules.",
+        "Preserve trusted user activation for media/device/USB permissions, keyboard accessibility, lifecycle/cancel/retirement and failure behavior.",
+        "Prove real packaged Chromium zero-retry conformance and matched cold/warm benefit; preserve stable semantic interfaces."
+      ],
+      "scope": "One optional adapter/module seam first; no unreviewed dynamic imports or automatic permission retry.",
+      "existing": null,
+      "related": [],
+      "dependencies": [],
+      "branch": null,
+      "commit": null,
+      "evidence": [],
+      "status": "The bundle already has the historical size fix. Optional media/device/USB imports are awaited before reveal; a safe demand boundary still needs implementation and actual browser proof.",
+      "number": 6093,
+      "url": "https://github.com/dancxjo/conduit/issues/6093"
+    },
+    {
+      "rank": 18,
+      "key": "source-dependencies",
+      "title": "Invalidate only the smallest provably affected checked and expanded subgraphs",
+      "outcome": "Extend whole-snapshot Source reuse to exact dependency-scoped invalidation.",
+      "acceptance": [
+        "Record exact declaration/type/law/private-context/import dependencies for one bounded checking/expansion seam.",
+        "Show unrelated edits preserve reusable work and each relevant content change invalidates it, including same-generation mutations.",
+        "Compare cold and incremental checked/expanded identities, Plans and execution/refusal results on a hostile mutation corpus.",
+        "Measure bounded cache ownership and preparation cost without retaining stale authority or mutable runtime state."
+      ],
+      "scope": "Checked/expanded Source dependency graph; prepared executable code reuse is separate.",
+      "existing": null,
+      "related": [],
+      "dependencies": [
+        "source-cache"
+      ],
+      "branch": null,
+      "commit": null,
+      "evidence": [],
+      "status": "Not implemented for this scope; begin from current dev after dependencies and ownership are checked.",
+      "number": 6094,
+      "url": "https://github.com/dancxjo/conduit/issues/6094"
+    },
+    {
+      "rank": 19,
+      "key": "prepared-backs",
+      "title": "Reuse immutable prepared Back fragments and type specializations with exact keys",
+      "outcome": "Cache one measured expensive immutable preparation fragment rather than redoing invariant work.",
+      "acceptance": [
+        "Choose a measured preparation seam and define exact Source/type/law/Back/version/profile/Host compatibility dependencies.",
+        "Bound owner/code/scratch lifetime and reject stale keys, collisions, incompatible precision or authority contexts.",
+        "Prove cached/cold equality, changed-fact invalidation and error/cancel/drop behavior with negative controls.",
+        "Measure full owner lifetime and ordinary-path cold/warm benefit before admission and release."
+      ],
+      "scope": "One immutable preparation/code fragment; do not cache mutable kernels, grants, active Plays or Host sessions.",
+      "existing": null,
+      "related": [],
+      "dependencies": [
+        "source-dependencies",
+        "numeric-release"
+      ],
+      "branch": null,
+      "commit": null,
+      "evidence": [],
+      "status": "Not implemented for this scope; begin from current dev after dependencies and ownership are checked.",
+      "number": 6095,
+      "url": "https://github.com/dancxjo/conduit/issues/6095"
+    },
+    {
+      "rank": 20,
+      "key": "body-values",
+      "title": "Adopt reusable prepared Value sessions in one ordinary Body lifecycle",
+      "outcome": "Use the accepted prepared-session foundation for successive ordinary Body Values, retaining immutable bindings and reservations.",
+      "acceptance": [
+        "Inventory the actual existing Body/kernel lifetime and select one remaining repeated preparation path.",
+        "Run successive admitted Values through ordinary source/Plan/Body entry with exact output acceptance and recurrent-state commit.",
+        "Refuse stale Boot/Plan/input shape, pressure, cancellation, failed output acceptance and exhausted reservations without hidden reprepare or replay.",
+        "Measure complete cold owner/warm Value/final disposal and exact evidence against the reference; verify release."
+      ],
+      "scope": "One production Body Value consumer. Long-lived Flows that already retain kernels are not new optimization credit.",
+      "existing": null,
+      "related": [
+        5715
+      ],
+      "dependencies": [
+        "foundation-release",
+        "numeric-release"
+      ],
+      "branch": null,
+      "commit": null,
+      "evidence": [],
+      "status": "Not implemented for this scope; begin from current dev after dependencies and ownership are checked.",
+      "number": 6096,
+      "url": "https://github.com/dancxjo/conduit/issues/6096"
+    },
+    {
+      "rank": 21,
+      "key": "fore-values",
+      "title": "Reuse prepared numeric and Source resources through an ordinary Fore",
+      "outcome": "Carry prepared Value reuse through one real Fore-selected numerical product path.",
+      "acceptance": [
+        "Choose one ordinary Fore consumer and preserve exact typed ports, Kind/Back selection and sealed Plan identity.",
+        "Reuse admitted immutable code/weights/numeric representations and applicable Source preparation across successive accepted Values.",
+        "Keep state advance tied to accepted output and prove cancel/pressure/Host loss/terminal behavior against reference.",
+        "Measure real caller cold/warm allocations, latency, bytes and evidence, then verify dev/main artifacts."
+      ],
+      "scope": "One Fore-to-Body numerical consumer; no private fixture presented as general product adoption.",
+      "existing": null,
+      "related": [
+        5715
+      ],
+      "dependencies": [
+        "body-values",
+        "prepared-backs",
+        "matrix"
+      ],
+      "branch": null,
+      "commit": null,
+      "evidence": [],
+      "status": "Not implemented for this scope; begin from current dev after dependencies and ownership are checked.",
+      "number": 6097,
+      "url": "https://github.com/dancxjo/conduit/issues/6097"
+    },
+    {
+      "rank": 22,
+      "key": "gpu-cost",
+      "title": "Measure truthful GPU admission, transfer costs and numeric feasibility",
+      "outcome": "Determine whether one real numeric workload justifies a GPU Back before promising GPU speedup.",
+      "acceptance": [
+        "Use actual device/context/allocation/transfer/launch operations and bind observed device/driver/features to finite resource admission.",
+        "Measure complete upload/warm residency/launch/download/synchronization/cleanup and CPU reference costs.",
+        "Prove selected numeric law, exact source attribution and honest missing-device/quota/context/refusal behavior.",
+        "Publish a concrete justified go/no-go decision including short-workload regressions; inventory alone is insufficient."
+      ],
+      "scope": "One actual local GPU feasibility experiment. An unbeneficial result can close this experiment with evidence, not the conditional provider ticket.",
+      "existing": null,
+      "related": [],
+      "dependencies": [],
+      "branch": null,
+      "commit": null,
+      "evidence": [
+        "native-vector-islands/local-gpu-feasibility-inventory.json"
+      ],
+      "status": "Actual CUDA enumeration found an RTX 3060, compute 8.6,12,489,654,272 B VRAM and nvcc. Context, allocation, transfer, kernel execution and admitted benefit are not yet proved.",
+      "number": 6098,
+      "url": "https://github.com/dancxjo/conduit/issues/6098"
+    },
+    {
+      "rank": 23,
+      "key": "quantity",
+      "title": "Specialize compact Quantity regions without per-operation canonical materialization",
+      "outcome": "Deliver the existing exact Quantity specialization sidecar after its semantic prerequisites.",
+      "acceptance": [
+        "Preserve all existing #6016 laws and QC2/QC3 prerequisites; use one bounded exact scalar chain.",
+        "Keep complete Unit/family/role/anchor/law provenance at typed boundaries and checked full intermediate ranges.",
+        "Prove actual internal canonical materialization is avoided with source-linked failure, mandatory checkpoints and zero hidden Play growth.",
+        "Retain exact reference behavior and matched ordinary-path costs with accepted release evidence."
+      ],
+      "scope": "Existing #6016, not a new universal numeric runtime or a prerequisite for QC1\u2192QC5.",
+      "existing": 6016,
+      "related": [
+        6006,
+        6008,
+        6009,
+        5392
+      ],
+      "dependencies": [
+        "numeric-release"
+      ],
+      "branch": null,
+      "commit": null,
+      "evidence": [],
+      "status": "Not implemented for this scope; begin from current dev after dependencies and ownership are checked.",
+      "number": 6016,
+      "url": "https://github.com/dancxjo/conduit/issues/6016"
+    },
+    {
+      "rank": 24,
+      "key": "fusion-inspection",
+      "title": "Retain per-Gear observability and exact failure attribution under fusion",
+      "outcome": "Finish the existing inspection contract for physically grouped execution.",
+      "acceptance": [
+        "Reconstruct every original logical Gear/port/Cord/source reference in real Plan/Patchbay inspection.",
+        "Preserve exact per-Gear failure/refusal and mandatory observation/authority boundaries.",
+        "Show selected realization, admitted scratch/storage/cost and refusal/fallback reasons.",
+        "Use exact ordinary product and source-bound evidence; retain original #5545 acceptance unchanged."
+      ],
+      "scope": "Existing fusion inspection issue; grouping never changes source meaning or selected precision.",
+      "existing": 5545,
+      "related": [
+        5397
+      ],
+      "dependencies": [
+        "numeric-release"
+      ],
+      "branch": null,
+      "commit": null,
+      "evidence": [],
+      "status": "Not implemented for this scope; begin from current dev after dependencies and ownership are checked.",
+      "number": 5545,
+      "url": "https://github.com/dancxjo/conduit/issues/5545"
+    },
+    {
+      "rank": 25,
+      "key": "numeric-scratch",
+      "title": "Admit typed numeric scratch and atomic output ownership without publication copies",
+      "outcome": "Add the kernel/provider ownership seam needed to eliminate demonstrated compact numeric publication copies.",
+      "acceptance": [
+        "Use a concrete numerical producer to define typed finite scratch/output reservations and nonaliasing input ownership.",
+        "Transfer/swap a completed prepared output into an admitted ValueStore slot without copying its payload; preserve atomic fan-out and pressure refusal.",
+        "Prove stale generation, partial publication, cancellation at every logical frontier, owner denial and failed acceptance leave no hidden state/output.",
+        "Measure actual copied bytes and allocations against the current compact publication path; retain full kernel negative controls."
+      ],
+      "scope": "One concrete kernel storage/AI provider seam; no unused generic direct-producer API.",
+      "existing": null,
+      "related": [],
+      "dependencies": [
+        "numeric-release",
+        "fusion-inspection"
+      ],
+      "branch": null,
+      "commit": null,
+      "evidence": [],
+      "status": "Not implemented for this scope; begin from current dev after dependencies and ownership are checked.",
+      "number": 6099,
+      "url": "https://github.com/dancxjo/conduit/issues/6099"
+    },
+    {
+      "rank": 26,
+      "key": "numeric-program",
+      "title": "Compile eligible numerical islands into bounded typed instruction programs",
+      "outcome": "Replace original per-node Back dispatch in one eligible real FARGAN segment with a prepared numeric program and admitted scratch.",
+      "acceptance": [
+        "Keep unchanged authored 768-node/1,211-Cord Source and exact numeric law; prebind bounded instructions, slots, weights and source attribution.",
+        "Execute each logical instruction only after the existing kernel owner/fuel/readiness/cancel permit; never eagerly compute denied future work.",
+        "Avoid internal canonical materialization and repeated codecs where proven eligible; retain Watch/state/effect/authority/pressure boundaries or refuse fusion.",
+        "Differentially verify full FARGAN outputs, each required logical event/failure and zero Play growth, plus matched cold/warm whole-path costs and release."
+      ],
+      "scope": "One existing Planner/Back/kernel realization, not a second scheduler, opaque mega-Back or JIT obligation.",
+      "existing": null,
+      "related": [
+        5544,
+        5397,
+        5715
+      ],
+      "dependencies": [
+        "numeric-scratch",
+        "matrix"
+      ],
+      "branch": null,
+      "commit": null,
+      "evidence": [],
+      "status": "Not implemented for this scope; begin from current dev after dependencies and ownership are checked.",
+      "number": 6100,
+      "url": "https://github.com/dancxjo/conduit/issues/6100"
+    },
+    {
+      "rank": 27,
+      "key": "residency-cost",
+      "title": "Expose measured preparation, transfer and resident-resource costs for replanning",
+      "outcome": "Supply exact bounded cost facts required for net-benefit decisions before implementing policy.",
+      "acceptance": [
+        "Represent fresh dimensioned preparation, transfer, residency, migration and continuity costs with source/Host/Boot/profile and uncertainty.",
+        "Bind lifetime/reservation facts to actual resident owners and refuse stale/incomplete observations.",
+        "Measure at least one retained-resource and one moved-resource case with reproducible cold/warm accounting.",
+        "Expose finite candidate comparison facts without mutating Plans or issuing a replacement by itself."
+      ],
+      "scope": "Cost-fact seam under #5233/#5568; no cloud autoscaler or policy hidden in a Gear.",
+      "existing": null,
+      "related": [
+        5227,
+        5233,
+        5568
+      ],
+      "dependencies": [],
+      "branch": null,
+      "commit": null,
+      "evidence": [],
+      "status": "Not implemented for this scope; begin from current dev after dependencies and ownership are checked.",
+      "number": 6101,
+      "url": "https://github.com/dancxjo/conduit/issues/6101"
+    },
+    {
+      "rank": 28,
+      "key": "hysteresis",
+      "title": "Admit hysteresis and net-benefit replan policy with fresh costs",
+      "outcome": "Complete the existing reluctant-replanning policy against measured cost facts.",
+      "acceptance": [
+        "Preserve #5568 criteria and add bounded observation windows, persistence thresholds and cooldown.",
+        "Demonstrate a persistent large net benefit triggers an authorized new Plan while noisy load does not repeatedly retrigger.",
+        "Include preparation/transfer/residency/migration/continuity costs and fresh signed decisive observations.",
+        "Retain inspectable no-replan rationale; never mutate in-flight Plans or replay external effects."
+      ],
+      "scope": "Existing H2 policy owner; cost facts and old-Play custody are separately scoped prerequisites.",
+      "existing": 5568,
+      "related": [
+        5233
+      ],
+      "dependencies": [
+        "residency-cost"
+      ],
+      "branch": null,
+      "commit": null,
+      "evidence": [],
+      "status": "Not implemented for this scope; begin from current dev after dependencies and ownership are checked.",
+      "number": 5568,
+      "url": "https://github.com/dancxjo/conduit/issues/5568"
+    },
+    {
+      "rank": 29,
+      "key": "planner-oracle",
+      "title": "Prove incremental cache validity against cold planner oracle",
+      "outcome": "Complete the existing H3 oracle with full Host/Boot/Line/resource/authority replacement coverage.",
+      "acceptance": [
+        "Credit the existing actual-Plan resource/cost/authority mutation tests rather than reimplementing them.",
+        "Add exact Host/Boot/Line removal/replacement and multi-provider partial-loss cases; preserve unaffected real work.",
+        "Compare cold/incremental hard admissibility and selected resource contracts under identical fresh inputs.",
+        "Bind replacement IDs and old outcome custody to the separate custody proof; retain original #5571 criteria."
+      ],
+      "scope": "Existing incremental Planner validity owner; not proof from cached structures alone.",
+      "existing": 5571,
+      "related": [
+        5233
+      ],
+      "dependencies": [],
+      "branch": null,
+      "commit": null,
+      "evidence": [
+        "native-vector-islands/planner-existing-cold-oracle-evidence.json"
+      ],
+      "status": "Existing real-Plan tests cover cost/resource/authority changes, including same-generation authority mutation. Full Host/Boot/Line replacement, partial provider loss and old-Play custody remain.",
+      "number": 5571,
+      "url": "https://github.com/dancxjo/conduit/issues/5571"
+    },
+    {
+      "rank": 30,
+      "key": "old-play-custody",
+      "title": "Preserve old Play outcomes and resident resources across Plan replacement",
+      "outcome": "Prove the lifecycle boundary when a new immutable Plan replaces active work.",
+      "acceptance": [
+        "Retain each old Plan/Play/output/Sign identity and terminal custody while the replacement receives new IDs.",
+        "Keep unaffected admitted/resident work alive where valid and explicitly retire invalid resources.",
+        "Exercise partial provider loss, in-flight output acceptance, cancellation, drain and uncertain external delivery without replay.",
+        "Demonstrate replacement admission/refusal, bounded cleanup and complete causal evidence in a real kernel/Host route."
+      ],
+      "scope": "One product replacement lifecycle under #5233; no mutable Plan patches.",
+      "existing": null,
+      "related": [
+        5233,
+        5571
+      ],
+      "dependencies": [
+        "planner-oracle",
+        "residency-cost"
+      ],
+      "branch": null,
+      "commit": null,
+      "evidence": [],
+      "status": "Not implemented for this scope; begin from current dev after dependencies and ownership are checked.",
+      "number": 6102,
+      "url": "https://github.com/dancxjo/conduit/issues/6102"
+    },
+    {
+      "rank": 31,
+      "key": "lane-admission",
+      "title": "Plan immutable region partitions and admitted finite lane resources",
+      "outcome": "Finish the existing finite lane admission contract before physical worker execution.",
+      "acceptance": [
+        "Preserve #5563 one/two/four-lane admission and explicit refusal criteria.",
+        "Bound each lane worker/mailbox/scratch and exact typed cross-region transfer before Play.",
+        "Retain source/Plan/effect ownership and a valid one-lane reference.",
+        "Use current source-bound product proof; fixture lane metadata is not physical overlap evidence."
+      ],
+      "scope": "Existing #5563 admission/partition owner under #5232.",
+      "existing": 5563,
+      "related": [
+        5232
+      ],
+      "dependencies": [],
+      "branch": null,
+      "commit": null,
+      "evidence": [],
+      "status": "Not implemented for this scope; begin from current dev after dependencies and ownership are checked.",
+      "number": 5563,
+      "url": "https://github.com/dancxjo/conduit/issues/5563"
+    },
+    {
+      "rank": 32,
+      "key": "simd",
+      "title": "Offer a measured SIMD numeric Back with exact semantic eligibility",
+      "outcome": "Select a vectorized CPU realization for one workload whose throughput exceeds preparation/layout overhead.",
+      "acceptance": [
+        "Use actual detected/admitted CPU features and explicitly selected IEEE/precision/order laws.",
+        "Prove scalar/SIMD output, failure, boundary and evidence equivalence across supported shapes; refuse ineligible profiles before Play.",
+        "Bound alignment/tails/scratch and demonstrate actual vector execution with no hidden allocations.",
+        "Measure whole-path cold/warm benefit, fallback and short-workload regressions before release."
+      ],
+      "scope": "One numeric provider, not blanket fast-math or reassociation.",
+      "existing": null,
+      "related": [
+        5392
+      ],
+      "dependencies": [
+        "matrix",
+        "numeric-program"
+      ],
+      "branch": null,
+      "commit": null,
+      "evidence": [],
+      "status": "Not implemented for this scope; begin from current dev after dependencies and ownership are checked.",
+      "number": 6103,
+      "url": "https://github.com/dancxjo/conduit/issues/6103"
+    },
+    {
+      "rank": 33,
+      "key": "deadline",
+      "title": "Integrate bounded-response deadline admission with global placement",
+      "outcome": "Finish the remaining semantic deadline/product gap in the existing global optimizer without duplicating its completed search implementation.",
+      "acceptance": [
+        "Trace current UnsupportedIntent for BoundedResponse and connect only certified dimensioned timing/resource facts.",
+        "Preserve all hard authority/resource/Line/deadline constraints and explicit unknown/unsupported/refusal outcomes.",
+        "Compare bounded global and greedy/cold reference Plans on feasible, infeasible, uncertain and search-limited cases.",
+        "Demonstrate actual admitted product execution and inspectable deadline/cost/search status; do not claim hard real time from averages."
+      ],
+      "scope": "Remaining #5230 integrated deadline path; G1-G3 search work already exists.",
+      "existing": null,
+      "related": [
+        5230,
+        5227
+      ],
+      "dependencies": [
+        "residency-cost"
+      ],
+      "branch": null,
+      "commit": null,
+      "evidence": [],
+      "status": "Not implemented for this scope; begin from current dev after dependencies and ownership are checked.",
+      "number": 6104,
+      "url": "https://github.com/dancxjo/conduit/issues/6104"
+    },
+    {
+      "rank": 34,
+      "key": "physical-workers",
+      "title": "Execute two independent admitted pure regions on hosted workers",
+      "outcome": "Complete the existing actual physical overlap implementation and evidence issue.",
+      "acceptance": [
+        "Preserve #5564 existing criteria: real simultaneous monotonic intervals, two pure regions and one serialized effect region.",
+        "Prepare bounded workers/mailboxes before Play and preserve deterministic required commit order.",
+        "Test pressure, cancellation, worker loss and no duplicate/missing commit against the single-lane reference.",
+        "Retain actual Host/Boot/lane/resource and source evidence; do not call interleaving parallelism."
+      ],
+      "scope": "Existing hosted worker issue, no unsupported ConduitOS SMP/preemption claim.",
+      "existing": 5564,
+      "related": [
+        5232
+      ],
+      "dependencies": [
+        "lane-admission"
+      ],
+      "branch": null,
+      "commit": null,
+      "evidence": [],
+      "status": "Not implemented for this scope; begin from current dev after dependencies and ownership are checked.",
+      "number": 5564,
+      "url": "https://github.com/dancxjo/conduit/issues/5564"
+    },
+    {
+      "rank": 35,
+      "key": "lane-proof",
+      "title": "Publish physical-lane equivalence and resource evidence",
+      "outcome": "Complete the existing source-pinned1/2/4-lane physical proof package.",
+      "acceptance": [
+        "Preserve all #5566 requirements and publish exact per-lane occupancy, transfers, commit/effect order and bounds.",
+        "Demonstrate real physical overlap and exact checked outputs/evidence against the one-lane reference.",
+        "Use supported product/proof entrances with reproducible raw interval/resource records.",
+        "Label hosted hardware, software fixture, emulator and unsupported bare-metal profiles distinctly."
+      ],
+      "scope": "Existing physical proof/publication issue.",
+      "existing": 5566,
+      "related": [
+        5232
+      ],
+      "dependencies": [
+        "physical-workers"
+      ],
+      "branch": null,
+      "commit": null,
+      "evidence": [],
+      "status": "Not implemented for this scope; begin from current dev after dependencies and ownership are checked.",
+      "number": 5566,
+      "url": "https://github.com/dancxjo/conduit/issues/5566"
+    },
+    {
+      "rank": 36,
+      "key": "fair-lanes",
+      "title": "Prove fair responsive interactive work beside batch saturation",
+      "outcome": "Complete the existing mixed-workload fairness and responsiveness acceptance.",
+      "acceptance": [
+        "Preserve #5565 requirements and use one real checked interactive activity with a saturating admitted batch.",
+        "Measure latency under the admitted profile and explain occupancy, queueing and commit waits.",
+        "Exercise starvation, duplicate/missing wake, pressure and cancellation with exact effect/Sign ordering.",
+        "Retain whole-source physical proof and honest bounds; no invented hard real-time promise."
+      ],
+      "scope": "Existing mixed-workload acceptance under #5232 and #5739.",
+      "existing": 5565,
+      "related": [
+        5232,
+        5739
+      ],
+      "dependencies": [
+        "physical-workers",
+        "lane-proof",
+        "deadline"
+      ],
+      "branch": null,
+      "commit": null,
+      "evidence": [],
+      "status": "Not implemented for this scope; begin from current dev after dependencies and ownership are checked.",
+      "number": 5565,
+      "url": "https://github.com/dancxjo/conduit/issues/5565"
+    },
+    {
+      "rank": 37,
+      "key": "gpu-provider",
+      "title": "Implement one admitted GPU numeric Back only after a beneficial feasibility result",
+      "outcome": "If the measured go/no-go supports it, ship one Planner-selected GPU numeric realization with ordinary execution custody.",
+      "acceptance": [
+        "Require positive net-benefit and semantic feasibility from the GPU experiment; otherwise document the evidence-backed unsupported/deferred disposition.",
+        "Admit actual device/context/VRAM/transfer/scratch/resident owner lifetimes and exact selected Host/Boot/Back identity.",
+        "Preserve source-node numeric/effect laws, required checkpoints/evidence, cancellation, pressure, device loss and output acceptance; no fake offers.",
+        "Differentially verify the unchanged real workload and full transfer-inclusive cold/warm cost, then complete supported dev/main release."
+      ],
+      "scope": "One conditional GPU provider, not an accelerator framework or hardware-offer fiction.",
+      "existing": null,
+      "related": [
+        5230,
+        5392
+      ],
+      "dependencies": [
+        "gpu-cost",
+        "numeric-program",
+        "residency-cost"
+      ],
+      "branch": null,
+      "commit": null,
+      "evidence": [],
+      "status": "Not implemented for this scope; begin from current dev after dependencies and ownership are checked.",
+      "number": 6105,
+      "url": "https://github.com/dancxjo/conduit/issues/6105"
+    }
+  ],
+  "tracker": {
+    "number": 6078,
+    "id": 5936316414,
+    "html_url": "https://github.com/dancxjo/conduit/issues/6078",
+    "title": "[Performance audit] Deliver and release the remaining measured optimizations"
+  }
+}

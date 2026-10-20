@@ -1,0 +1,62 @@
+{
+  "schema": "conduit.browser-demand-loading-gap-audit@1",
+  "recorded_at_utc": "2026-10-20T00:57:34.128406+00:00",
+  "source": "0f71c2142132237e628c78705655f20689c92eec",
+  "files": {
+    "targets/browser/host/assets/host.mjs": {
+      "bytes": 3862,
+      "sha256": "0923aac4842375721975d34bc404282cb52b22fb40ee84cb97e569f87fb9099c"
+    },
+    "targets/browser/host/assets/browser-host-bootstrap.mjs": {
+      "bytes": 824,
+      "sha256": "5a34c6fab3c998e3dc5e3c95a51e72ba1d0784e0d8d234f389e68a6578f723e5"
+    },
+    "targets/browser/host/assets/media-host.mjs": {
+      "bytes": 7556,
+      "sha256": "366a7eb30243a947d32a973ce8508496d1974bddc22eb455d849ac94a9a3f173"
+    },
+    "targets/browser/host/assets/device-base.mjs": {
+      "bytes": 15324,
+      "sha256": "9257f42f723df21e42a6bcc205fb6924b0f8d5645d1424bbb372c17d1c0cb8d3"
+    },
+    "targets/browser/host/assets/usb-device-base.mjs": {
+      "bytes": 15615,
+      "sha256": "a6564ddc75bce96878da828698d6e9517b16befa81c188b3e645969685f62bd7"
+    },
+    "targets/browser/sdk/browser-sdk.mjs": {
+      "bytes": 45586,
+      "sha256": "3ec92aad12359606bc6a0e9d730958056dcdbc9bfbe1cb15bc3c1f95987e6ae7"
+    },
+    "Cargo.toml": {
+      "bytes": 3397,
+      "sha256": "7e3dbb35ad24869c20ffe09a4913b4021cc413f2cf9ff9d91eef57f9a7fb8209"
+    }
+  },
+  "findings": [
+    {
+      "path": "targets/browser/host/assets/host.mjs",
+      "finding": "Dynamic imports exist but all three optional adapters are awaited serially before revealHost; dynamic syntax alone does not establish demand-driven loading."
+    },
+    {
+      "path": "targets/browser/host/assets/browser-host-bootstrap.mjs",
+      "finding": "Bootstrap fetches full runtime.wasm and materializes an ArrayBuffer before initialization; maximum admission bound 20 MiB."
+    },
+    {
+      "path": "targets/browser/sdk/browser-sdk.mjs",
+      "finding": "readBundlePayloads fetches and hashes every declared bundle file before runtime instantiation. Module tree import admits exact reviewed dependencies and refuses dynamic/undeclared imports."
+    },
+    {
+      "path": "Cargo.toml",
+      "finding": "Dev/test build-override opt-level 1 present; release build-override absent."
+    }
+  ],
+  "optional_adapter_source_bytes": 38495,
+  "remaining_acceptance": [
+    "Measure network bytes, parsed/compiled bytes, retained memory and first usable input on actual pinned Chromium before and after.",
+    "Preserve exact bundle digest, declared IMAGE closure, finite bounds and refusal distinctions under deferred admission.",
+    "Prove device permission calls still satisfy user activation after any loading change; do not insert an unproved asynchronous first-click acquisition path.",
+    "WASM demand splitting requires preserving exported semantic interfaces and admitted capability identities, not merely deferring optional JS adapters."
+  ],
+  "implementation_complete": false,
+  "performance_gain_accepted": false
+}

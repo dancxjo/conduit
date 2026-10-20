@@ -1,0 +1,233 @@
+{
+  "files": [
+    {
+      "file": "cross-host/body-line-borrowed-outbound-admission-control-validation.json",
+      "bytes": 958,
+      "sha256": "7db04b7caf5710dc67c1a0b5ab12b0cf584a105b2cef5629ac975f787c06ebf4",
+      "kind": "retained source-bound record; inspect its scope and source, not current release acceptance"
+    },
+    {
+      "file": "cross-host/body-line-borrowed-outbound-validation.json",
+      "bytes": 2813,
+      "sha256": "f078940b682ae84ae8be4e5eb6b2eb9b195568926fb6b44020fc7f9f9fdbf884",
+      "kind": "retained source-bound record; inspect its scope and source, not current release acceptance"
+    },
+    {
+      "file": "cross-host/transport-current-dev-refresh.json",
+      "bytes": 3679,
+      "sha256": "bbfbb256cdd7b89c12672d972d77fb350cfe6862b0b38c0649924224456542d2",
+      "kind": "retained source-bound record; inspect its scope and source, not current release acceptance"
+    },
+    {
+      "file": "native-vector-islands/accepted-base-release-asset-verification.json",
+      "bytes": 7017,
+      "sha256": "95a64fb61763b79354187225f03a423581aea23b8e00dcaa29de89ba3e50f097",
+      "kind": "retained source-bound record; inspect its scope and source, not current release acceptance"
+    },
+    {
+      "file": "native-vector-islands/browser-demand-loading-gap-audit.json",
+      "bytes": 2936,
+      "sha256": "ace870f0a8ee3fdf6c63cd474ab11393a4505b17ba1fa74109fc21cf6803e38f",
+      "kind": "retained source-bound record; inspect its scope and source, not current release acceptance"
+    },
+    {
+      "file": "native-vector-islands/compact-checkpoint-control-validation.json",
+      "bytes": 524,
+      "sha256": "126ea2b93af400739db1668633697741fe120901677a86bbba80ffeec240a948",
+      "kind": "retained source-bound record; inspect its scope and source, not current release acceptance"
+    },
+    {
+      "file": "native-vector-islands/compact-current-1048-full-fargan-replay.json",
+      "bytes": 1356,
+      "sha256": "30e3eaf34f9a05452125a856332337978c5b5cefc2e2a5e6c37ef5c14d6ab128",
+      "kind": "retained source-bound record; inspect its scope and source, not current release acceptance"
+    },
+    {
+      "file": "native-vector-islands/local-gpu-feasibility-inventory.json",
+      "bytes": 1688,
+      "sha256": "de0dc9801c6477d43e0138435444e6ef5bb6f56b3bdf383d3b9492c8679ed142",
+      "kind": "retained source-bound record; inspect its scope and source, not current release acceptance"
+    },
+    {
+      "file": "native-vector-islands/planner-existing-cold-oracle-evidence.json",
+      "bytes": 1833,
+      "sha256": "2002cd0814ebe199dab2def5e2c8570aae021b2e6785a3314ff60c86a001283f",
+      "kind": "retained source-bound record; inspect its scope and source, not current release acceptance"
+    },
+    {
+      "file": "native-vector-islands/planner-remaining-gap-audit.json",
+      "bytes": 14836,
+      "sha256": "6e21fd708b8250a1eca5d52f8626426c9bc8e6c3947839280de2b8acf4990536",
+      "kind": "retained source-bound record; inspect its scope and source, not current release acceptance"
+    },
+    {
+      "file": "native-vector-islands/prepared-session-dev-merge.json",
+      "bytes": 1271,
+      "sha256": "8fad69180be49340dfdbdc6379d2bfb492b36062a013551f04958841127b573d",
+      "kind": "retained source-bound record; inspect its scope and source, not current release acceptance"
+    },
+    {
+      "file": "native-vector-islands/sign-inspection-compact-local-allocation-experiment.json",
+      "bytes": 50010,
+      "sha256": "4c3e34cd1554ab3774913957eb19a1b9b4cf365cd502554b9f3b219704988369",
+      "kind": "retained source-bound record; inspect its scope and source, not current release acceptance"
+    },
+    {
+      "file": "native-vector-islands/source-cache-family-2-attempt-8-process-1-conformance.json",
+      "bytes": 1597,
+      "sha256": "5a02d57a471d94d6ce4aee74016d194e5faee9fe811e72757672ff57333455ed",
+      "kind": "retained source-bound record; inspect its scope and source, not current release acceptance"
+    },
+    {
+      "file": "native-vector-islands/source-cache-family-2-attempt-8-process-2-conformance.json",
+      "bytes": 1597,
+      "sha256": "118f0725377c5013984ef45f8e6deabb027616108621e14563cb3a9ecb9a66c7",
+      "kind": "retained source-bound record; inspect its scope and source, not current release acceptance"
+    },
+    {
+      "file": "native-vector-islands/source-cache-family-2-attempt-8-process-3-conformance.json",
+      "bytes": 1597,
+      "sha256": "e9062db50fced08abf6a562ba943a8eca7ba4e9db3961e0b5fd908971adb45fd",
+      "kind": "retained source-bound record; inspect its scope and source, not current release acceptance"
+    },
+    {
+      "file": "native-vector-islands/source-cache-quiet-family-2-attempt-8-excluded.json",
+      "bytes": 4704,
+      "sha256": "f9d4e0e52bf13e4a70566bec4e1e954e9fe7c6e0de3856731ee8836ffe79528b",
+      "kind": "retained source-bound record; inspect its scope and source, not current release acceptance"
+    },
+    {
+      "file": "native-vector-islands/source-cache-quiet-family-3-preregistration.json",
+      "bytes": 6618,
+      "sha256": "efca12659f1c3e4b50b26b84d8a7922e2b13fd6a4294bc961b158f84c84906c3",
+      "kind": "retained source-bound record; inspect its scope and source, not current release acceptance"
+    },
+    {
+      "file": "native-vector-islands/source-preparation-cache-validation.json",
+      "bytes": 7507,
+      "sha256": "f3a4b905c8623fd0a9be0a1ac0381b1cd57acbb02fc44bb13683a57f660e06dc",
+      "kind": "retained source-bound record; inspect its scope and source, not current release acceptance"
+    },
+    {
+      "file": "retained-raster/current-source-bridge.json",
+      "bytes": 2871,
+      "sha256": "832d377af43222e732be01428a2bb63ee0f0fb56ef63aafcb258ac2f04a50397",
+      "kind": "retained source-bound record; inspect its scope and source, not current release acceptance"
+    },
+    {
+      "file": "retained-raster/quiet-family-1-independent-conformance-v2.json",
+      "bytes": 19800,
+      "sha256": "448a2d084faf1b34b216593b69cb75584d4e5022e9a8c638b6ee8826ece5d111",
+      "kind": "retained source-bound record; inspect its scope and source, not current release acceptance"
+    },
+    {
+      "file": "sign-storage-baseline/current-source-review.json",
+      "bytes": 3849,
+      "sha256": "e6e757d682226582c4312e2eba1605bf4e53d1b70a88e14f7ceb8a4702ebbe9a",
+      "kind": "retained source-bound record; inspect its scope and source, not current release acceptance"
+    },
+    {
+      "file": "verifiers/analyze-source-cache-quiet-family.py",
+      "bytes": 7410,
+      "sha256": "cf3995bcd04cd29270b4973eae83e31ddee8cd54cf936e50aaca4f7c58ea3388",
+      "kind": "unchanged retained verifier/controller; private inputs and raw captures not included"
+    },
+    {
+      "file": "verifiers/launch-source-cache-quiet-family.py",
+      "bytes": 1029,
+      "sha256": "4c4de971db06e71562b8b9ca78582a5f407721b76231efa5b6d04f70fcf3ad11",
+      "kind": "unchanged retained verifier/controller; private inputs and raw captures not included"
+    },
+    {
+      "file": "verifiers/run-fargan-quiet-family.py",
+      "bytes": 7864,
+      "sha256": "21ea6555e4a229b5614bd871ab188893457aa3766e46aadcc97c1be6aedd9e93",
+      "kind": "unchanged retained verifier/controller; private inputs and raw captures not included"
+    },
+    {
+      "file": "verifiers/run-source-cache-quiet-family.py",
+      "bytes": 9738,
+      "sha256": "7a5f71a5d9c9402d88064e99ce28ce0ec466600fee9a7051f5fc017540d564bb",
+      "kind": "unchanged retained verifier/controller; private inputs and raw captures not included"
+    },
+    {
+      "file": "verifiers/test-conformance-receipt-verifier.py",
+      "bytes": 3354,
+      "sha256": "2ed25ec22bdf17e5664a0b2af365941a8085cb275c9d9d7b8659fdd0bacfad77",
+      "kind": "unchanged retained verifier/controller; private inputs and raw captures not included"
+    },
+    {
+      "file": "verifiers/verify-compact-linear-controls.py",
+      "bytes": 5251,
+      "sha256": "387f00e5907de2fd3604655a1ccc7441d89f3f11a6b6777b3814d56ad3228319",
+      "kind": "unchanged retained verifier/controller; private inputs and raw captures not included"
+    },
+    {
+      "file": "verifiers/verify-compact-linear-factory-controls.py",
+      "bytes": 5466,
+      "sha256": "a20c1f581c4d08d5a0367cb4aad79c52162f439d0f4615e2fc31e61bdbfa8d72",
+      "kind": "unchanged retained verifier/controller; private inputs and raw captures not included"
+    },
+    {
+      "file": "verifiers/verify-compact-local-capture.py",
+      "bytes": 4608,
+      "sha256": "7b5d8d580f835ce936d8242be8e45bbd2dd840ffaf14f96d7c242dc268cb46ff",
+      "kind": "unchanged retained verifier/controller; private inputs and raw captures not included"
+    },
+    {
+      "file": "verifiers/verify-compact-local-public.py",
+      "bytes": 4635,
+      "sha256": "75f3cff7baf216a2597b3951f40789dd351159c45fc583560d278348a422c660",
+      "kind": "unchanged retained verifier/controller; private inputs and raw captures not included"
+    },
+    {
+      "file": "verifiers/verify-matrix-local-capture.py",
+      "bytes": 6362,
+      "sha256": "ab4b4ac1a2de2685ea50036638e2508ffacc59715cad409abc8c3f0bd31a5be7",
+      "kind": "unchanged retained verifier/controller; private inputs and raw captures not included"
+    },
+    {
+      "file": "verifiers/verify-matrix-local-public.py",
+      "bytes": 3124,
+      "sha256": "1527725f3a3c796b33132e28a276b50f17fe982c7b493ee9972d59630e1f219d",
+      "kind": "unchanged retained verifier/controller; private inputs and raw captures not included"
+    },
+    {
+      "file": "verifiers/verify-matrix-projection-capture.py",
+      "bytes": 6158,
+      "sha256": "0723e81237c4e5cc01521a6a3f4e3e3a17c9ce6ad5583b4265a762b6694c5545",
+      "kind": "unchanged retained verifier/controller; private inputs and raw captures not included"
+    },
+    {
+      "file": "verifiers/verify-source-cache-capture.py",
+      "bytes": 7539,
+      "sha256": "a921876d6f06e23b4935721dbb06a3bfc583f84f4df7f9dc64941832833e543c",
+      "kind": "unchanged retained verifier/controller; private inputs and raw captures not included"
+    },
+    {
+      "file": "verifiers/verify-source-cache-equivalence.py",
+      "bytes": 3252,
+      "sha256": "b2921551c53434fcab95c6d8fb8f4f7e401d5a33693affd24fcd42c234437e64",
+      "kind": "unchanged retained verifier/controller; private inputs and raw captures not included"
+    },
+    {
+      "file": "verifiers/verify-source-cache-public.py",
+      "bytes": 3228,
+      "sha256": "bcbb77bac3721a57494f369363280953493378e147f9a47534e90de8f0a1eb8a",
+      "kind": "unchanged retained verifier/controller; private inputs and raw captures not included"
+    },
+    {
+      "file": "verifiers/verify-source-cache-repeat.py",
+      "bytes": 4388,
+      "sha256": "b23f254cf4fc7cc225903ac1e4e2eccd4456c5be90ca6dc0571423023295425d",
+      "kind": "unchanged retained verifier/controller; private inputs and raw captures not included"
+    },
+    {
+      "file": "performance-audit-input.md",
+      "bytes": 17109,
+      "sha256": "7db89ca39c18715cc255ae1158a7dad648a8f5dd630ac43672a08fcfb873a65b",
+      "kind": "user supplied audit input"
+    }
+  ],
+  "scope": "Selected exact-copy proof records and verifiers. Not private models, raw local captures, workers, build outputs or a release receipt."
+}
