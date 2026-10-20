@@ -97,5 +97,15 @@
   "unrelated_edit_does_not_regenerate": true,
   "fresh_output_replays_match": true,
   "original_source_restored": true,
-  "restore_checks_passed": 5
+  "restore_checks_passed": 5,
+  "accepted_main_with_unchanged_inputs": "b6f1ed3f1e9f7ec1ffc7eaef1e79a90fd7bdef24",
+  "unchanged_accepted_paths": [
+    "semantics/human",
+    "architecture/core",
+    "architecture/plot",
+    "architecture/assigned-plan",
+    "Cargo.lock",
+    "rust-toolchain.toml",
+    ".cargo"
+  ]
 }
