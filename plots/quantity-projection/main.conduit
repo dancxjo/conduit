@@ -13,5 +13,5 @@ plot quantity-projection/main (
 ) {
     project: activate(maximum-items = 64) quantity-projection/value()
     values >> project.value
-    project.mapped >> results
+    project.result >> results
 }.
