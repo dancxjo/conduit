@@ -91,7 +91,7 @@ fn all_thirty_two_logical_gears_and_cords_survive_physical_inspection() {
             })
             .collect(),
     };
-    let candidates: Vec<_> = [false, true]
+    let mut candidates: Vec<_> = [false, true]
         .into_iter()
         .map(|fused| {
             let id = if fused { "fused" } else { "unfused" };
@@ -110,6 +110,15 @@ fn all_thirty_two_logical_gears_and_cords_survive_physical_inspection() {
             }
         })
         .collect();
+    candidates.push(FusionCandidate {
+        candidate_id: "unavailable-fusion".into(),
+        realization: LocalityCandidate {
+            candidate_id: "unavailable-fusion".into(),
+            placements: placements.clone(),
+            lines: BTreeMap::new(),
+        },
+        fusion_ids: vec!["not-offered".into()],
+    });
     let selection = select_expanded_fusion_candidate(
         &plot.expanded,
         &hosts,
@@ -205,6 +214,7 @@ fn all_thirty_two_logical_gears_and_cords_survive_physical_inspection() {
     assert!(explanation.contains("FUSION SELECTION"));
     assert!(explanation.contains("CANDIDATE fused disposition=Selected"));
     assert!(explanation.contains("CANDIDATE unfused disposition=Admitted"));
+    assert!(explanation.contains("CANDIDATE unavailable-fusion disposition=Rejected"));
     assert!(explanation.contains("sign/patchbay-fusion/fused"));
     let mut wrong = selection.clone();
     wrong.checked_plot_id = "foreign-checked".into();
