@@ -9,8 +9,8 @@ use conduit_core::{
 
 use crate::StartupCatalog;
 
+mod near;
 pub(crate) mod refinement;
-use refinement::checked_refinements;
 
 pub(crate) fn canonical_value_kind(source_type: &str) -> KindId {
     if let Some(value_type) = source_type.strip_prefix('&') {
@@ -58,6 +58,9 @@ pub(crate) fn checked_value_kind(
     source_type: &str,
     catalog: &StartupCatalog,
 ) -> Result<KindId, StructuredInfoRefusal> {
+    if let Some((value_type, _)) = near::qualification(source_type, catalog)? {
+        return Ok(value_type.profile()?.value_kind().clone());
+    }
     if let Some(value_type) = source_type.strip_prefix('&') {
         if value_type.is_empty() || value_type.starts_with('&') {
             return Err(StructuredInfoRefusal::WrongType);
@@ -95,6 +98,9 @@ pub(crate) fn checked_value_type(
     source_type: &str,
     catalog: &StartupCatalog,
 ) -> Result<conduit_core::StructuredInfoType, StructuredInfoRefusal> {
+    if let Some((value_type, _)) = near::qualification(source_type, catalog)? {
+        return Ok(value_type);
+    }
     if let Some(value_type) = catalog.structured_type(source_type) {
         return Ok(value_type.clone());
     }
@@ -146,7 +152,8 @@ pub(crate) fn checked_front(
                 .iter()
                 .find(|checked| checked.name == parameter.name.text)
                 .expect("checked startup parameter preserves its name");
-            let (maximum_bytes, constraints) = checked_refinements(
+            let (maximum_bytes, constraints) = near::checked_refinements(
+                &parameter.value_type.text,
                 &parameter.refinements,
                 parameter.maximum_bytes,
                 &checked.value_type,
@@ -194,7 +201,8 @@ pub(crate) fn checked_front(
             abnormal_kind: None,
         };
         if port.maximum_bytes.is_some() || !port.refinements.is_empty() {
-            let (maximum_bytes, constraints) = checked_refinements(
+            let (maximum_bytes, constraints) = near::checked_refinements(
+                &port.value_type.text,
                 &port.refinements,
                 port.maximum_bytes,
                 &descriptor.value_kind,

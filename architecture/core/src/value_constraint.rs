@@ -9,13 +9,16 @@ use core::cmp::Ordering;
 use serde::{Deserialize, Serialize};
 
 use crate::{validate_primitive_info, KindId, PrimitiveInfoRefusal};
+mod decode;
 mod definition;
 mod identity;
+mod near_quantity;
 mod quantity_profile;
 mod text_pattern;
 
 #[cfg(test)]
 mod tests;
+pub use near_quantity::NEAR_VALUE_CONSTRAINT_WORK;
 pub use quantity_profile::QuantityProfileContractRefusal;
 
 pub const MAX_VALUE_CONSTRAINTS: usize = 16;
@@ -86,6 +89,12 @@ pub enum ValueConstraint {
         anchored_end: bool,
         negated: bool,
     },
+    /// Absolute numerical tolerance over the distinct retained evidence wire.
+    NearQuantity {
+        source_kind: KindId,
+        limit: Box<crate::Quantity>,
+        schema: Vec<u8>,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -120,6 +129,7 @@ pub enum ConstraintDefinitionError {
     InvalidFixedIntegerRange,
     InvalidQuantityRange,
     InvalidFloatRange,
+    InvalidNearQuantity,
     EmptyMembership,
     TooManyMembershipValues,
     MembershipBytesExceeded,
@@ -134,6 +144,7 @@ pub enum ConstraintDefinitionError {
     NondeterministicTransitions,
     NonCanonicalTransitions,
     MatchWorkExceeded,
+    InvalidCanonicalEncoding,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -147,6 +158,7 @@ pub enum ValueConstraintRefusal {
     FixedIntegerRange,
     QuantityRange,
     FloatFinite,
+    NearQuantity(crate::NearQuantityEvidenceRefusal),
     FloatRange,
     Membership,
     TextPattern,
@@ -201,6 +213,7 @@ impl ValueConstraint {
             Self::FloatRange { .. } => 6,
             Self::CanonicalMembership { .. } => 7,
             Self::TextPattern { .. } => 8,
+            Self::NearQuantity { .. } => 9,
         }
     }
 
@@ -295,6 +308,11 @@ impl ValueConstraint {
                 *minimum_endpoint,
                 *maximum_endpoint,
             ),
+            Self::NearQuantity {
+                source_kind,
+                limit,
+                schema,
+            } => near_quantity::validate(schema, source_kind, limit, canonical),
             Self::FloatFinite => decode_float(value_kind, canonical)
                 .filter(|value| value.is_finite())
                 .map(|_| ())

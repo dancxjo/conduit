@@ -1,0 +1,22 @@
+{
+  "scope": "Recoverable exact development source snapshots; no stable acceptance. Bundles were git-verified with their recorded prerequisites before copying.",
+  "original_broad_validation_source": "54a7f64a4d51f1f9b42140c85be8374b50db4ef5",
+  "original_delta_identical_to_published_branch_code": "68cac5eaa",
+  "whitespace_validation_source": "984d9077a3775d87b669f033bf49a6bc1916d05d",
+  "physical_validation_source": "e97223ec7655d1f0b17a57752259ac195045c8f2",
+  "pre_repair_snapshot": "5160a45805e5424440c8ed14be1add78133a22dd",
+  "bundles": [
+    {
+      "path": "fore-near-original-validation-source-20261019.bundle",
+      "sha256": "7ba356f317c3e2ee69e7fb8fad56338efb0ba63c76d37a06bef30eeb52ffc358",
+      "bytes": 42597,
+      "prerequisite": "efbbff37d56062b57dde15b3ed58d1bab9813774"
+    },
+    {
+      "path": "fore-near-pre-repair-source-20261019.bundle",
+      "sha256": "f8d9aa2f8cdab0f8a288250b2dfcb32043a921e65f2326e3f4a87eb99df7347c",
+      "bytes": 308471,
+      "prerequisite": "74df700b426f4fcb49c4e5f532f9702ca20c8184"
+    }
+  ]
+}

@@ -163,4 +163,177 @@ mod tests {
             assert!(near_quantity_limit(&config).unwrap_err().contains(name));
         }
     }
+    #[test]
+    fn absolute_fore_qualification_retains_physical_source_and_consuming_tolerance() {
+        let mut startup = StartupCatalog::new();
+        let mut profile = ProfileCatalog::new();
+        install_numerical_catalogs(&mut startup, &mut profile).unwrap();
+        let source = "plot accept (\n >> value: Frequency near 0.01Hz\n result: Frequency near 0.1Hz >>\n) = .\n";
+        let syntax = conduit_plot::parse_syntax_document(source);
+        assert!(syntax.diagnostics.is_empty(), "{:?}", syntax.diagnostics);
+        let checked = conduit_plot::check_syntax_document(&syntax, &startup).unwrap();
+        let front = checked.plots[0].checked_front();
+        assert_eq!(
+            front.inputs()[0].value_kind,
+            near_quantity_type().profile().unwrap().value_kind().clone()
+        );
+        assert_eq!(front.value_contracts().len(), 2);
+        for entry in front.value_contracts() {
+            let [ValueConstraint::NearQuantity {
+                source_kind, limit, ..
+            }] = entry.contract.constraints.as_slice()
+            else {
+                panic!("qualified contract")
+            };
+            assert_eq!(source_kind.as_str(), FREQUENCY_INFO_ID);
+            assert_eq!(limit.unit(), Unit::resolve("Hz").unwrap());
+        }
+        assert_ne!(
+            front.value_contracts()[0].contract.identity_bytes(),
+            front.value_contracts()[1].contract.identity_bytes()
+        );
+        let expanded =
+            conduit_plot::expand_canonical_plot_for_authoring(&checked, "accept", &profile)
+                .unwrap();
+        assert_eq!(expanded.front, front);
+    }
+    #[test]
+    fn qualification_whitespace_preserves_predicates_and_default_bounds() {
+        let mut startup = StartupCatalog::new();
+        let mut profile = ProfileCatalog::new();
+        install_numerical_catalogs(&mut startup, &mut profile).unwrap();
+        let mut expected = None;
+        for separator in [" ", "  ", "\t", " \t "] {
+            let ty = format!("Frequency{separator}near{separator}0.01Hz");
+            let source = format!("plot accept (\n >> value: {ty}\n result: {ty} >>\n) = .\n");
+            let syntax = conduit_plot::parse_syntax_document(&source);
+            assert!(syntax.diagnostics.is_empty(), "{:?}", syntax.diagnostics);
+            let checked = conduit_plot::check_syntax_document(&syntax, &startup).unwrap();
+            let front = checked.plots[0].checked_front();
+            for entry in front.value_contracts() {
+                assert_eq!(entry.contract.maximum_bytes, NUMERICAL_NEAR_MAX_BYTES);
+            }
+            if let Some(expected) = &expected {
+                assert_eq!(front.value_contracts(), expected);
+            } else {
+                expected = Some(front.value_contracts().to_vec());
+            }
+            let expanded =
+                conduit_plot::expand_canonical_plot_for_authoring(&checked, "accept", &profile)
+                    .unwrap();
+            assert_eq!(expanded.front, front);
+        }
+    }
+    #[test]
+    fn qualified_identity_cannot_retag_a_known_physical_source() {
+        let mut startup = StartupCatalog::new();
+        let mut profile = ProfileCatalog::new();
+        install_numerical_catalogs(&mut startup, &mut profile).unwrap();
+        for output in ["Distance near 0.01m", "Duration near 0.01s"] {
+            let source = format!(
+                "plot refuse (\n >> value: Frequency near 0.01Hz\n result: {output} >>\n) = .\n"
+            );
+            let checked = conduit_plot::check_syntax_document(
+                &conduit_plot::parse_syntax_document(&source),
+                &startup,
+            )
+            .unwrap();
+            let refusal =
+                conduit_plot::expand_canonical_plot_for_authoring(&checked, "refuse", &profile)
+                    .unwrap_err();
+            assert_eq!(refusal.code, "CND-FRM-046");
+            assert!(refusal.message.contains("qualified physical source Kind"));
+        }
+        let source = "plot frequency (\n >> value: Frequency near 0.01Hz\n result: Frequency near 0.01Hz >>\n) = .\nplot distance (\n >> value: Distance near 0.01m\n result: Distance near 0.01m >>\n) = .\nplot main (\n >> value: Frequency near 0.01Hz\n result: Distance near 0.01m >>\n) {\n first: frequency\n second: distance\n value >> first.value\n first.result >> second.value\n second.result >> result\n}\n";
+        let checked = conduit_plot::check_syntax_document(
+            &conduit_plot::parse_syntax_document(source),
+            &startup,
+        )
+        .unwrap();
+        let refusal = conduit_plot::expand_canonical_plot_for_authoring(&checked, "main", &profile)
+            .unwrap_err();
+        assert_eq!(refusal.code, "CND-FRM-045");
+        assert!(refusal
+            .message
+            .contains("incompatible physical source Kinds"));
+    }
+    #[test]
+    fn qualified_fore_never_implicitly_becomes_exact_or_accepts_invalid_tolerance() {
+        let mut startup = StartupCatalog::new();
+        let mut profile = ProfileCatalog::new();
+        install_numerical_catalogs(&mut startup, &mut profile).unwrap();
+        for (input, output) in [
+            ("Frequency near 0.01Hz", "Frequency"),
+            ("Frequency", "Frequency near 0.01Hz"),
+            ("Frequency near -0.01Hz", "Frequency near -0.01Hz"),
+            ("Frequency near 0.01m", "Frequency near 0.01m"),
+            ("Frequency near 0.01Hz near 0.1Hz", "NearQuantity"),
+            ("Frequency\tnear\t0.01Hz\tnear\t0.1Hz", "NearQuantity"),
+            ("Frequencynear 0.01Hz", "NearQuantity"),
+            ("Frequency near0.01Hz", "NearQuantity"),
+            ("Count near 0Hz", "NearQuantity"),
+        ] {
+            let source = format!("plot refuse (\n >> value: {input}\n result: {output} >>\n) {{\n value >> result\n}}\n");
+            assert!(
+                conduit_plot::check_syntax_document(
+                    &conduit_plot::parse_syntax_document(&source),
+                    &startup
+                )
+                .is_err(),
+                "{input} -> {output}"
+            );
+        }
+    }
+    #[test]
+    fn source_inlining_refuses_a_gear_that_would_drop_the_fore_predicate() {
+        let mut startup = StartupCatalog::new();
+        let mut profile = ProfileCatalog::new();
+        install_numerical_catalogs(&mut startup, &mut profile).unwrap();
+        let mut unqualified = near_quantity_semantic_contract();
+        unqualified.kind_id = kind_id("test/unqualified-near-consumer");
+        unqualified.kind_contract_revision = "test/unqualified-near-consumer@1".into();
+        unqualified.startup_parameters.clear();
+        unqualified.configuration.clear();
+        unqualified.semantic_laws.clear();
+        unqualified.inputs[0].value_kind =
+            near_quantity_type().profile().unwrap().value_kind().clone();
+        startup
+            .insert(conduit_plot::KindSignature {
+                kind: unqualified.kind_id.as_str().into(),
+                startup_parameters: vec![],
+            })
+            .unwrap();
+        startup
+            .insert_fore(unqualified.kind_id.as_str(), unqualified.checked_front())
+            .unwrap();
+        profile.insert_kind(unqualified).unwrap();
+        let source = "plot dropped (\n >> value: Frequency near 0.01Hz\n result: Frequency near 0.1Hz >>\n) {\n consumer: test/unqualified-near-consumer\n value >> consumer.value\n consumer.result >> result\n}\n";
+        let checked = conduit_plot::check_syntax_document(
+            &conduit_plot::parse_syntax_document(source),
+            &startup,
+        )
+        .unwrap();
+        let error =
+            conduit_plot::expand_canonical_plot_for_authoring(&checked, "dropped", &profile)
+                .unwrap_err();
+        assert_eq!(error.code, "CND-FRM-046");
+        assert!(error.message.contains("retain its checked predicate"));
+    }
+    #[test]
+    fn a_second_projection_cannot_discard_incoming_numerical_error() {
+        let mut startup = StartupCatalog::new();
+        let mut profile = ProfileCatalog::new();
+        install_numerical_catalogs(&mut startup, &mut profile).unwrap();
+        let source = "plot again (\n >> value: Frequency near 0.01Hz\n result: NearQuantity <= 16384B >>\n) {\n second: math/near(limit=0.000000001Hz)\n value >> second.value\n second.result >> result\n}\n";
+        let syntax = conduit_plot::parse_syntax_document(source);
+        match conduit_plot::check_syntax_document(&syntax, &startup) {
+            Err(error) => assert!(error.message.contains("Type") || error.message.contains("type")),
+            Ok(checked) => {
+                let error =
+                    conduit_plot::expand_canonical_plot_for_authoring(&checked, "again", &profile)
+                        .unwrap_err();
+                assert_eq!(error.code, "CND-FRM-045");
+            }
+        }
+    }
 }

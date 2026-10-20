@@ -50,7 +50,7 @@ pub(super) fn checked_bound(
 pub(super) fn semantic_laws(
     checked: &crate::CheckedExpression,
 ) -> Result<Vec<KindSemanticLaw>, CanonicalExpansionDiagnostic> {
-    crate::expression_program::input_bound::semantic_laws_for_identity(
+    let mut laws = crate::expression_program::input_bound::semantic_laws_for_identity(
         checked
             .input_type
             .value_kind()
@@ -60,7 +60,13 @@ pub(super) fn semantic_laws(
         checked.input_type == checked.value_type
             && matches!(checked.syntax, crate::ExpressionSyntax::Input(_)),
     )
-    .map_err(diagnostic)
+    .map_err(diagnostic)?;
+    crate::expression_program::value_contract::retain_laws(
+        &mut laws,
+        checked.input_value_contract.as_ref(),
+        checked.output_value_contract.as_ref(),
+    );
+    Ok(laws)
 }
 
 fn diagnostic(error: impl core::fmt::Debug) -> CanonicalExpansionDiagnostic {
@@ -68,4 +74,72 @@ fn diagnostic(error: impl core::fmt::Debug) -> CanonicalExpansionDiagnostic {
         "CND-FRM-046",
         format!("pure expression input bound: {error:?}"),
     )
+}
+
+pub(super) fn retain_contracts(
+    checked: &mut crate::CheckedExpression,
+    source: &StageSource,
+    right: Option<&Stage>,
+    plot: &CheckedCanonicalPlot,
+    gears: &[CheckedGear],
+) -> Result<(), CanonicalExpansionDiagnostic> {
+    fn retained(
+        contract: Option<&conduit_core::CheckedValueContract>,
+    ) -> Option<conduit_core::CheckedValueContract> {
+        contract
+            .filter(|c| {
+                c.constraints.iter().any(|constraint| {
+                    matches!(
+                        constraint,
+                        conduit_core::ValueConstraint::NearQuantity { .. }
+                    )
+                })
+            })
+            .cloned()
+    }
+    checked.input_value_contract = match source {
+        StageSource::FaceInput(name, ..) => retained(
+            plot.runtime_front
+                .value_contract(&FrontValueLocation::Input(conduit_core::port_id(name))),
+        ),
+        StageSource::Internal(endpoint) => gears
+            .iter()
+            .find(|g| g.gear_id == endpoint.gear_id)
+            .and_then(|g| {
+                g.semantic_contract.value_contracts().iter().find(|c| {
+                    c.location == FrontValueLocation::Output(endpoint.port.port_id.clone())
+                })
+            })
+            .and_then(|c| retained(Some(&c.contract))),
+    };
+    checked.output_value_contract = right
+        .and_then(|s| s.input.as_ref())
+        .and_then(|s| s.first())
+        .and_then(|sink| match sink {
+            StageSink::FaceOutput(name, ..) => retained(
+                plot.runtime_front
+                    .value_contract(&FrontValueLocation::Output(conduit_core::port_id(name))),
+            ),
+            StageSink::Internal(endpoint) => gears
+                .iter()
+                .find(|g| g.gear_id == endpoint.gear_id)
+                .and_then(|g| {
+                    g.semantic_contract.value_contracts().iter().find(|c| {
+                        c.location == FrontValueLocation::Input(endpoint.port.port_id.clone())
+                    })
+                })
+                .and_then(|c| retained(Some(&c.contract))),
+        });
+    if matches!(checked.syntax, crate::ExpressionSyntax::Input(_))
+        && super::super::qualified_front::incompatible_physical_sources(
+            checked.input_value_contract.as_ref(),
+            checked.output_value_contract.as_ref(),
+        )
+    {
+        return Err(CanonicalExpansionDiagnostic::new(
+            "CND-FRM-046",
+            "identity expression cannot change a qualified physical source Kind".into(),
+        ));
+    }
+    Ok(())
 }

@@ -386,6 +386,10 @@ fn constraint_literal(constraint: &ValueConstraint) -> String {
             "conduit_core::ValueConstraint::QuantityRange {{ minimum: {}, maximum: {}, minimum_endpoint: {}, maximum_endpoint: {} }}",
             optional_quantity_literal(minimum), optional_quantity_literal(maximum), endpoint_literal(*minimum_endpoint), endpoint_literal(*maximum_endpoint)
         ),
+        ValueConstraint::NearQuantity { source_kind, limit, schema } => format!(
+            "conduit_core::ValueConstraint::NearQuantity {{ source_kind: conduit_core::kind_id({:?}), limit: Box::new(conduit_core::Quantity::decode(&{:?}).expect(\"checked near limit\")), schema: vec!{:?} }}",
+            source_kind.as_str(), limit.encode(), schema
+        ),
         ValueConstraint::FloatFinite => "conduit_core::ValueConstraint::FloatFinite".into(),
         ValueConstraint::FloatRange { minimum, maximum, minimum_endpoint, maximum_endpoint } => format!(
             "conduit_core::ValueConstraint::FloatRange {{ minimum: {}, maximum: {}, minimum_endpoint: {}, maximum_endpoint: {} }}",

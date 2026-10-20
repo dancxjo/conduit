@@ -469,5 +469,6 @@ fn constraint_rank(constraint: &ValueConstraint) -> u8 {
         ValueConstraint::FloatRange { .. } => 6,
         ValueConstraint::CanonicalMembership { .. } => 7,
         ValueConstraint::TextPattern { .. } => 8,
+        ValueConstraint::NearQuantity { .. } => 9,
     }
 }
