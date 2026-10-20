@@ -1,0 +1,25 @@
+{
+  "face_bytes": 56232,
+  "face_sha256": "8551c00d0195148725903cf7d41b6bca7735f2c72c2f0a80c94c1cddbc22fd3f",
+  "face_identity": "4094b5b6b3f834b5db694191184658b444084a4fd14df263924d32914ba827f6",
+  "basis": {
+    "body_id": null,
+    "wake_id": null,
+    "source_document_id": "199e85e9d68b77d822612f1a0f735c64b78020e238a6848151a2fedd8a1c5734",
+    "checked_plot_id": "fcb09908a65a40e1cdc06ad7fe0c697db0793495b0e25ad597fc3f2043111095",
+    "expanded_plot_id": "6d6f4d3570b634eeeb2ede32770d486e53e836ada41786513f416c7ccd567fe8",
+    "plan_id": "b6159e8fb736ed61040a46717bd45027d4e36a04c1d42ed714c4c563fe3d24ec",
+    "active_play_id": null,
+    "sign_ids": []
+  },
+  "default_candidate_count": 5,
+  "available_candidates": 4,
+  "snapshot_bound": 49152,
+  "snapshot_overage_bytes": 7080,
+  "route_frame_bound": 32768,
+  "route_or_observer_envelope": "not emitted by this entrance; no invented admission measurement",
+  "scope": "pair-fixed actual canonical FrontDoor::creche_face CPU producer with checked producer/testHost basis; subsequent configured recipe refuses SlotCapacity; not Host/Mask/QEMU acceptance",
+  "native_prerequisite": "https://github.com/dancxjo/conduit/issues/6156",
+  "separate_recipe_prerequisite": "selection role(Collection) max_subjects1 matches three C1 collections; proposed later checked independent selector without increasing slot budget",
+  "temporary_export_files_restored": true
+}

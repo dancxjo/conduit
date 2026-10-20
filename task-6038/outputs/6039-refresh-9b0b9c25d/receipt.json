@@ -1,0 +1,140 @@
+{
+  "source_head": "e74d6f060caff897ac42a5e8dc06b2f8c0bde38e",
+  "source_tree": "c61e0705d408f6f11e11747531d46529558cd01b",
+  "base": "03bd8b99d1018544f7df9bae159e8f416c859689",
+  "rebased_stack_before_fix": "9b0b9c25d5ae512ef690fbcf19256fcd1de05961",
+  "proof_class": "prepared held Source stack deterministic package conformance and actual canonical native producer CPU export; not current accepted dev, native Host/Mask admission, platform, Candidate, Integration or stable",
+  "source_conformance": {
+    "passes": 358,
+    "existing_ignores": [
+      "test spoken_template_looks::tests::actual_control_face_retains_human_settings_and_actions_in_checked_summary ... ignored, requires an actual retained control Face; no runtime or audio claim",
+      "test spoken_template_looks::tests::actual_retained_face_preserves_essential_clauses_in_both_checked_looks ... ignored, requires explicit actual retained Face; never manufactures owner state"
+    ],
+    "test_doc_targets": 66,
+    "clippy": "Face/Birth all-targets warnings denied passed",
+    "fmt_diff_hygiene": "passed"
+  },
+  "commands": {
+    "packages": "cargo +stable test -p conduit-face -p conduit-birth-plot --locked -- --test-threads=1 --nocapture",
+    "clippy": "cargo +stable clippy -p conduit-face -p conduit-birth-plot --all-targets --locked -- -D warnings",
+    "native_export": "cargo +stable test -p conduitos --lib --locked --features hosted-tools,native-compositor actual_zero_body_creche_places_body_and_plot_groups_in_one_band -- --nocapture",
+    "fmt": "cargo +stable fmt --package conduit-face --package conduit-birth-plot -- --check"
+  },
+  "environment": {
+    "CARGO_TARGET_DIR": "work/portable-source-target exclusive",
+    "CARGO_BUILD_JOBS": 4,
+    "CARGO_INCREMENTAL": 0,
+    "CARGO_PROFILE_DEV_DEBUG": 0,
+    "CARGO_PROFILE_TEST_DEBUG": 0,
+    "CARGO_PROFILE_TEST_OPT_LEVEL": 1,
+    "CARGO_PROFILE_TEST_DEBUG_ASSERTIONS": true,
+    "CARGO_PROFILE_TEST_OVERFLOW_CHECKS": true,
+    "native_export_additional_dev_profile": {
+      "opt_level": 1,
+      "debug_assertions": true,
+      "overflow_checks": true
+    }
+  },
+  "tested_changed_files_match_commit": {
+    "docs/architecture/face-grammar-conformance.md": "1184fc2460c02cc9d74b9ffc92a6ab8a5fc9dcc7da1aa002dc3bbcff6fb71a62",
+    "docs/architecture/portable-collection-handoff.md": "7cf01a3f36691be2f87dca98570cf4a0bab93f040a9ed3cd1232703077fc87e6",
+    "plots/birth/src/face/choice_identity_tests.rs": "12a10fee2b4e449ba7bbe1c3f824956dd2559407d44f19e59bb295b130ddb6f8",
+    "plots/birth/src/face/collection_reconstruction_tests.rs": "42414c898effb9bf16a2b0d6b1c2409d2bfebf612949f8e4d3eb8ed85dc88e5c",
+    "plots/birth/src/face/linear_collection_commit_tests.rs": "18b7853569f100a13c18f4d930588df7320500e7a055cfdce810c700507d6720",
+    "plots/birth/src/face/linear_collection_pair_identity_tests.rs": "0d07e0281c35dc77cf891bcada94b3f2af837ca8d81f93595cc32e0f0fe63b6a",
+    "plots/birth/src/face/projection.rs": "4cf3ca915ccec454eadacba7cbd4d64317ceacaccccb165cc9f628aca89825e5",
+    "plots/birth/src/face/projection/collections.rs": "86b9246427548781dd4d87df894ef0de7cc036fdbc2720dfc40884a678f8b766",
+    "plots/birth/src/lib.rs": "d5ee076fe3b7cdfadc149e6d43d74515835c4986ba813e014fbb037c4f0d1b92",
+    "plots/birth/src/plot_choice_identity.rs": "f2d8dc250e9ad401a7cc5a34d773dfd42efc65d3fb14d4c07818f9c67258b01e",
+    "plots/birth/src/widget_face.rs": "c48d2a1d74b8b5458955a2571050ce88615f4041fe0498dcff7a8b6f82623bde",
+    "proof/conformance/face-waist/domain-derived/prebirth-face.json": "cd2e066a8b8606998fe492be6aabc0396db49bdec315a3cceb2cacd057549341",
+    "targets/browser/host/assets/application-look.mjs": "a7c8b42e253b5162b2c5bc82e398f581a30b9af571c963252be38031ea339711"
+  },
+  "temporary_producer_instrumentation_restored": true,
+  "source_pin": "SHA256(types.conduit + newline + look.conduit), checked through full look_browser_binding integration test",
+  "maximum_finite_source_fixture_profiles": [
+    "collection-profile items=1 selected=false face_json_bytes=73392 subjects=37 properties=93",
+    "collection-profile items=1 selected=false linear_bytes=74676 linear_lines=239",
+    "collection-profile items=1 selected=true face_json_bytes=75870 subjects=39 properties=95",
+    "collection-profile items=1 selected=true linear_bytes=77159 linear_lines=248",
+    "collection-profile items=16 selected=false face_json_bytes=133771 subjects=70 properties=156",
+    "collection-profile items=16 selected=false linear_bytes=135286 linear_lines=417",
+    "collection-profile items=16 selected=true face_json_bytes=174810 subjects=102 properties=188",
+    "collection-profile items=16 selected=true linear_bytes=176180 linear_lines=561"
+  ],
+  "actual_default_native_five_cpu_measurement": {
+    "face_bytes": 56232,
+    "face_sha256": "8551c00d0195148725903cf7d41b6bca7735f2c72c2f0a80c94c1cddbc22fd3f",
+    "face_identity": "4094b5b6b3f834b5db694191184658b444084a4fd14df263924d32914ba827f6",
+    "basis": {
+      "body_id": null,
+      "wake_id": null,
+      "source_document_id": "199e85e9d68b77d822612f1a0f735c64b78020e238a6848151a2fedd8a1c5734",
+      "checked_plot_id": "fcb09908a65a40e1cdc06ad7fe0c697db0793495b0e25ad597fc3f2043111095",
+      "expanded_plot_id": "6d6f4d3570b634eeeb2ede32770d486e53e836ada41786513f416c7ccd567fe8",
+      "plan_id": "b6159e8fb736ed61040a46717bd45027d4e36a04c1d42ed714c4c563fe3d24ec",
+      "active_play_id": null,
+      "sign_ids": []
+    },
+    "default_candidate_count": 5,
+    "available_candidates": 4,
+    "snapshot_bound": 49152,
+    "snapshot_overage_bytes": 7080,
+    "route_frame_bound": 32768,
+    "route_or_observer_envelope": "not emitted by this entrance; no invented admission measurement",
+    "scope": "pair-fixed actual canonical FrontDoor::creche_face CPU producer with checked producer/testHost basis; subsequent configured recipe refuses SlotCapacity; not Host/Mask/QEMU acceptance",
+    "native_prerequisite": "https://github.com/dancxjo/conduit/issues/6156",
+    "separate_recipe_prerequisite": "selection role(Collection) max_subjects1 matches three C1 collections; proposed later checked independent selector without increasing slot budget",
+    "temporary_export_files_restored": true
+  },
+  "negative_evidence": {
+    "look-before.log": "stale wholeSource fingerprint reproduced before regeneration",
+    "producer-before.log": "stale actual producer golden reproduced before regeneration",
+    "pair-identity-before.log": "valid BodyWorkset distinct Source/check pairs collide in checked-only ChoiceOption.identity; production defect reproduced",
+    "pair-birth-library.log": "test expectation correction only: bool byte2 is MalformedEncoding, not ViolatedConstraint",
+    "native-default-five-export.log": "legacy migration FrontDoor::face exported6849; explicitly not canonical C1 capacity",
+    "native-canonical-five-export.log": "pre-fix canonical face56232 exported; configured recipe SlotCapacity refusal",
+    "pair-fixed-native-canonical-five-export.log": "post-fix canonical face56232 exported; configured recipe SlotCapacity refusal remains"
+  },
+  "admission_hold": [
+    "https://github.com/dancxjo/conduit/issues/6156 canonical default Face56232 exceeds49152 snapshot by7080",
+    "Separate checked collection selector consumer repair needed; no slotbudget increase or recipe edit in this change",
+    "Native serial route, current exact admission and crossMask/platform proofs remain outstanding"
+  ],
+  "evidence_sha256": {
+    "temporary-native-canonical-producer-export.patch": "c21c7204ebb262731d44cc10b5b2e3e7c921b4835d993ddf743cd41dc0752cd9",
+    "look-before.log": "d3807882fdd2cdf5bc4f96136320b999bdfd16ebe414973b63b6b97909f33aab",
+    "pair-fixed-face-birth-full.log": "f1736789445136b2f38e49a68c94144c62f6286368caf24cec97346816199377",
+    "pair-fixed-native-canonical-five-measurement.json": "cc9a4894d4f40975279616a8eaeaf580659ddd8238b2d644e0e220e096c3a49e",
+    "producer-export.log": "0ed3ae3cdd51a0aba26837ae3d5885d7a822122c896ca54a28e33df12de6ad1d",
+    "native-canonical-five-export.log": "f842b93738e2783a2f81e067dadda864df9c0d9dd82777577f149c2e0a3d1ff8",
+    "status.txt": "3107d644c34c9a636645e738d953cc2eb1aa73a8609f83979e6cbdd01d101219",
+    "birth-face-test-original.rs": "bd32770f1b4a652291b58998ee5366a6f857d7b59e82e164af834fa545f20157",
+    "pair-fixed-generic-observation.json": "6e2fac2e237410225876e09ee88364fde87b0456d2951f5d5c78ace562d7130c",
+    "pair-birth-library.log": "fe62cf153307afae8dd1f45f24a658323bbb126175855e2e2455901a5db73fb4",
+    "temporary-native-producer-export.patch": "bc2ca9d5d871c1339a444f3e10d0a51349fa67925fa55cb69219a787966fb309",
+    "pair-fixed-producer-export.log": "b1f7930b99e41e7296a38cdba296a145f15676ba4c72930235009e7345b932a0",
+    "clippy-full.log": "d6da438fa791d7ec2cbb4dbaed5cf8bf2ebf4256f0129120dcd49d5e705424d4",
+    "face-birth-full.log": "eccafe02604f90ccec7227a90a2d1d698891be9f6e85d8a512490b062982a3dc",
+    "producer-before.log": "2d126f1cabdc4cf0169f8ae2cdb311c8472ad4d20f00c104a6909b5a3936be68",
+    "temporary-producer-export.patch": "3243bf2171d6886b5d0adab31b6ff0f586584886bdc296675943d796169f050f",
+    "pair-fixed-fmt.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "native-actual-creche-test-original.rs": "628badc2431781986434b3219247bd3fecad7489d3ed04d8cd60c17d46870cbf",
+    "native-default-five-export.log": "7b0f6be161ff129bc82f9137d34f96bf6ca8a02a94a3b8a0a9a97edc19b24657",
+    "pair-identity-before.log": "3122140175b5ffc810cd0b5477be7d0348f9151cba84e31f934de9267b0a3557",
+    "native-default-five-measurement.json": "26550c991597feb3f368baac5cccf26e2e32f7600f4a9cbcb2c7150292093dd1",
+    "pair-fixed-linear-lines.json": "bb53a40b4fbabeacdadb5ce6d97317c7d9ef82215a13ac65f35b8b85ae5bb8b6",
+    "pair-identity-after-initial.log": "ea7335c5d49af74d626bae9d29c0c60816f76325377dc99cadd33b77d0fb08b6",
+    "pair-fixed-temporary-native-export.patch": "943c411ccd85db2eac57f22bf9118d624451bcf13f4bc6e6b44a81c797db30d2",
+    "pair-fixed-source-face.json": "7c3539b21bca7a5e63e64cc432d2f472b4f6b67aef783648d0b38f4d6413226a",
+    "native-default-five-face.json": "4d8658b3bde8e20a9435b500f7ef5c90e2b5af70bd36be3ec4681a82acb180b0",
+    "native-canonical-five-measurement.json": "d64010f8854b701151324814814e40b6412e12fe93636a7d0233beb2eecd4b8c",
+    "pair-fixed-clippy.log": "659997516b883746324a0fd3fbbd675d3353b050c28f6422bba0ede21696ac23",
+    "native-arrival-test-original.rs": "e7a3dd13124cf6efbe92b28fc88644581b0ee8a1e0b9ce75ecd1b6c27ab61f3b",
+    "pair-fixed-native-canonical-five-export.log": "6c1b5ca1ca10e76a78bc232ad340d5daf299226e78d700a76dad02711d722e0a",
+    "native-canonical-five-face.json": "274ef89a51e3e570af1e173bec5c078ad09cf0281fb04915197647bb0bdccfcc",
+    "prebirth-before.json": "48c9ffc935282ee4acacd9bb25d3411a5fc572d081c25e4e5ac74f2f06b20951",
+    "pair-fixed-reconstructed-account.txt": "3275bfad18173ee06ea251bad2f9fe06d4ab9beb24487b99def90621bfa41165",
+    "pair-fixed-native-canonical-five-face.json": "dd9b48e3a929f12181896976ada42bf151ff1705dd440f089f5ec67d5049ac7f"
+  }
+}

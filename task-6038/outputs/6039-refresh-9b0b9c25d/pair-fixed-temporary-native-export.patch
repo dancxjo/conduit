@@ -1,0 +1,12 @@
+diff --git a/targets/conduitos/src/native_face_scene/layout/panels/tests/creche.rs b/targets/conduitos/src/native_face_scene/layout/panels/tests/creche.rs
+index 05d6e0317..57eddf049 100644
+--- a/targets/conduitos/src/native_face_scene/layout/panels/tests/creche.rs
++++ b/targets/conduitos/src/native_face_scene/layout/panels/tests/creche.rs
+@@ -36,6 +36,7 @@ fn actual_creche() -> (
+             producer_plan_id: producer.plan_id,
+         })
+         .unwrap();
++    { extern crate std; std::println!("PAIR_FIXED_CANONICAL_NATIVE_FACE_JSON {}", serde_json::to_string(&face).unwrap()); }
+     assert!(face.basis.body_id.is_none());
+     let provider = scene_tests::fixture::framebuffer_provider_entry();
+     let host = conduit_conduitos_mask_offer::native_host_advertisement(

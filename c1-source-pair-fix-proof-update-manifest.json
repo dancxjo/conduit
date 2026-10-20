@@ -1,0 +1,102 @@
+{
+  "parent": "df1d7bc1d0408a4d2c289b650f10ecdd2f1ea8e6",
+  "scope": "Preserve refreshed Source and pending proof runner, verified prior repair restoration, and confirmed renderer occlusion red diagnostic",
+  "files": [
+    {
+      "source": "outputs/6039-refresh-9b0b9c25d/receipt.json",
+      "tree_path": "task-6038/outputs/6039-refresh-9b0b9c25d/receipt.json",
+      "bytes": 11048,
+      "sha256": "991776b0e65a5db0b178969c6f65014be470caf7aceb942e1896b05202cd0282",
+      "mode": "100644",
+      "blob": "56418ef2369262d557a2075dbdaeabf39d867e6d"
+    },
+    {
+      "source": "outputs/6039-refresh-9b0b9c25d/pair-fixed-face-birth-full.log",
+      "tree_path": "task-6038/outputs/6039-refresh-9b0b9c25d/pair-fixed-face-birth-full.log",
+      "bytes": 253736,
+      "sha256": "f1736789445136b2f38e49a68c94144c62f6286368caf24cec97346816199377",
+      "mode": "100644",
+      "blob": "4dda19487596d9a32cf4b20ba29e350578a47c45"
+    },
+    {
+      "source": "outputs/6039-refresh-9b0b9c25d/pair-fixed-clippy.log",
+      "tree_path": "task-6038/outputs/6039-refresh-9b0b9c25d/pair-fixed-clippy.log",
+      "bytes": 187,
+      "sha256": "659997516b883746324a0fd3fbbd675d3353b050c28f6422bba0ede21696ac23",
+      "mode": "100644",
+      "blob": "ff298282c44758d070580e59f7592744953d905c"
+    },
+    {
+      "source": "outputs/6039-refresh-9b0b9c25d/pair-fixed-fmt.log",
+      "tree_path": "task-6038/outputs/6039-refresh-9b0b9c25d/pair-fixed-fmt.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "mode": "100644",
+      "blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+    },
+    {
+      "source": "outputs/6039-refresh-9b0b9c25d/pair-fixed-native-canonical-five-measurement.json",
+      "tree_path": "task-6038/outputs/6039-refresh-9b0b9c25d/pair-fixed-native-canonical-five-measurement.json",
+      "bytes": 1414,
+      "sha256": "cc9a4894d4f40975279616a8eaeaf580659ddd8238b2d644e0e220e096c3a49e",
+      "mode": "100644",
+      "blob": "5213dc4ed542fa1058b7dd4f3ce21b92b25a6b29"
+    },
+    {
+      "source": "outputs/6039-refresh-9b0b9c25d/pair-fixed-native-canonical-five-face.json",
+      "tree_path": "task-6038/outputs/6039-refresh-9b0b9c25d/pair-fixed-native-canonical-five-face.json",
+      "bytes": 56233,
+      "sha256": "dd9b48e3a929f12181896976ada42bf151ff1705dd440f089f5ec67d5049ac7f",
+      "mode": "100644",
+      "blob": "692ea696bae334b5b5654f01a81180b28daea719"
+    },
+    {
+      "source": "outputs/6039-refresh-9b0b9c25d/pair-fixed-native-canonical-five-export.log",
+      "tree_path": "task-6038/outputs/6039-refresh-9b0b9c25d/pair-fixed-native-canonical-five-export.log",
+      "bytes": 57806,
+      "sha256": "6c1b5ca1ca10e76a78bc232ad340d5daf299226e78d700a76dad02711d722e0a",
+      "mode": "100644",
+      "blob": "f8151cdc14151a6976259717bd8f014231ddd70d"
+    },
+    {
+      "source": "outputs/6039-refresh-9b0b9c25d/pair-fixed-generic-observation.json",
+      "tree_path": "task-6038/outputs/6039-refresh-9b0b9c25d/pair-fixed-generic-observation.json",
+      "bytes": 74603,
+      "sha256": "6e2fac2e237410225876e09ee88364fde87b0456d2951f5d5c78ace562d7130c",
+      "mode": "100644",
+      "blob": "8545b5a7e56bdef792a906f5202d0d8b9db6a52f"
+    },
+    {
+      "source": "outputs/6039-refresh-9b0b9c25d/pair-fixed-linear-lines.json",
+      "tree_path": "task-6038/outputs/6039-refresh-9b0b9c25d/pair-fixed-linear-lines.json",
+      "bytes": 49167,
+      "sha256": "bb53a40b4fbabeacdadb5ce6d97317c7d9ef82215a13ac65f35b8b85ae5bb8b6",
+      "mode": "100644",
+      "blob": "edc44658e0bce6dccb0221ab7fcd8a5ac8bc3372"
+    },
+    {
+      "source": "outputs/6039-refresh-9b0b9c25d/pair-fixed-source-face.json",
+      "tree_path": "task-6038/outputs/6039-refresh-9b0b9c25d/pair-fixed-source-face.json",
+      "bytes": 46171,
+      "sha256": "7c3539b21bca7a5e63e64cc432d2f472b4f6b67aef783648d0b38f4d6413226a",
+      "mode": "100644",
+      "blob": "cfea948c6dfe23d7812615939127f3b5e66a9295"
+    },
+    {
+      "source": "outputs/6039-refresh-9b0b9c25d/pair-fixed-reconstructed-account.txt",
+      "tree_path": "task-6038/outputs/6039-refresh-9b0b9c25d/pair-fixed-reconstructed-account.txt",
+      "bytes": 34104,
+      "sha256": "3275bfad18173ee06ea251bad2f9fe06d4ab9beb24487b99def90621bfa41165",
+      "mode": "100644",
+      "blob": "0adb3b4f53559ccda9ddc53aef30223582c7c659"
+    },
+    {
+      "source": "outputs/6039-refresh-9b0b9c25d/pair-fixed-temporary-native-export.patch",
+      "tree_path": "task-6038/outputs/6039-refresh-9b0b9c25d/pair-fixed-temporary-native-export.patch",
+      "bytes": 778,
+      "sha256": "943c411ccd85db2eac57f22bf9118d624451bcf13f4bc6e6b44a81c797db30d2",
+      "mode": "100644",
+      "blob": "8e9ab48ab093d3f3ad2689b3cf1fe13014c5e8ff"
+    }
+  ]
+}
