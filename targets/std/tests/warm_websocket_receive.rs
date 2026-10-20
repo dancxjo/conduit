@@ -132,3 +132,46 @@ fn borrowed_receive_refuses_text_and_oversized_frames_before_callback() {
         peer.join().unwrap();
     }
 }
+
+#[test]
+fn traffic_counts_actual_borrowed_and_copied_receives() {
+    use conduit_std_host::websocket::NativeWebSocketError;
+    let listener = NativeWebSocketListener::bind_loopback(16).unwrap();
+    let address = listener.local_addr().unwrap();
+    let url = listener.url().unwrap();
+    let peer = std::thread::spawn(move || {
+        let mut line = listener
+            .accept_with_timeout(Duration::from_secs(5))
+            .unwrap();
+        assert!(line.traffic().is_none());
+        line.start_traffic_observation();
+        line.receive_binary_with(|bytes| assert_eq!(bytes, b"abc"))
+            .unwrap();
+        let mut buffer = [0; 3];
+        assert_eq!(line.receive_binary(&mut buffer).unwrap(), 3);
+        assert_eq!(&buffer, b"def");
+        assert_eq!(
+            line.receive_binary(&mut []),
+            Err(NativeWebSocketError::OutputTooSmall)
+        );
+        let traffic = line.traffic().unwrap();
+        assert_eq!(traffic.received_messages, 3);
+        assert_eq!(traffic.received_binary_bytes, 9);
+        assert_eq!(traffic.receive_copy_bytes, 3);
+        assert!(!traffic.saturated);
+    });
+    let mut line = NativeWebSocketLine::connect(address, &url, 16).unwrap();
+    line.start_traffic_observation();
+    for bytes in [b"abc", b"def", b"ghi"] {
+        line.send_binary(bytes).unwrap();
+    }
+    assert_eq!(
+        line.send_binary(&[0; 17]),
+        Err(NativeWebSocketError::OversizedMessage)
+    );
+    let traffic = line.traffic().unwrap();
+    assert_eq!(traffic.sent_messages, 3);
+    assert_eq!(traffic.sent_binary_bytes, 9);
+    assert_eq!(traffic.transmit_copy_bytes, 9);
+    peer.join().unwrap();
+}
