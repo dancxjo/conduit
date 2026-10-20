@@ -2,7 +2,7 @@
 // Input-major F32 projection, fixed input-order round-to-nearest operations.
 #include <cuda_runtime.h>
 #include <algorithm>
-#include <immintrin.h>
+#include <xmmintrin.h>
 #include <chrono>
 #include <cmath>
 #include <cstdint>
