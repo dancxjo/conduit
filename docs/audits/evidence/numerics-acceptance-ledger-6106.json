@@ -1,0 +1,1122 @@
+{
+  "schema": "conduit.numerics-acceptance-ledger/v1",
+  "issue": 6106,
+  "parent": 5392,
+  "integration_corpus": 5534,
+  "audited_at_utc": "2026-10-20T05:26:40.505468+00:00",
+  "review_base_dev": "09cb583ccdec99be762759dce48754a019a370d5",
+  "observed_accepted_main": "9562b01e2c49b15bfd4678b072fd331f5dbab431",
+  "original_routing_source": "https://github.com/dancxjo/conduit/blob/51c90019ec/docs/audits/evidence/numerics-work-routing/requirements-and-ranking.json",
+  "policy": "Preserve all 93 original requirement strings and recorded statuses. Verify historical accepted leaves against exact source, actual CI tests, identical accepted tree and publication. Do not assert a fresh execution of current dev, promote other rows, or close the parent.",
+  "counts": {
+    "requirements": 93,
+    "verified_recorded_accepted": 11,
+    "not_promoted": 82,
+    "recorded_statuses": {
+      "partial": 58,
+      "reviewed-gap": 21,
+      "complete-accepted-main": 6,
+      "incomplete": 3,
+      "accepted-main": 5
+    }
+  },
+  "closed_children": [
+    {
+      "issue": 5530,
+      "observed_state": "CLOSED",
+      "title": "[Numerics N1] Preserve bounded exact large integers and rationals",
+      "url": "https://github.com/dancxjo/conduit/issues/5530",
+      "assessment": "Closure is recorded, not used as independent proof of broader parent completion. Follow-up issue links remain in its body."
+    },
+    {
+      "issue": 5531,
+      "observed_state": "CLOSED",
+      "title": "[Numerics N2] Prove two consumer-specific numeric realizations share authored meaning",
+      "url": "https://github.com/dancxjo/conduit/issues/5531",
+      "assessment": "Closure is recorded, not used as independent proof of broader parent completion. Follow-up issue links remain in its body."
+    },
+    {
+      "issue": 5532,
+      "observed_state": "CLOSED",
+      "title": "[Numerics N3] Admit typed Angle sine, cosine and tangent with exact cardinal values",
+      "url": "https://github.com/dancxjo/conduit/issues/5532",
+      "assessment": "Closure is recorded, not used as independent proof of broader parent completion. Follow-up issue links remain in its body."
+    },
+    {
+      "issue": 5533,
+      "observed_state": "CLOSED",
+      "title": "[Numerics N4] Prove cheap fixed-width scalar realization without erasing exact laws",
+      "url": "https://github.com/dancxjo/conduit/issues/5533",
+      "assessment": "Closure is recorded, not used as independent proof of broader parent completion. Follow-up issue links remain in its body."
+    },
+    {
+      "issue": 5733,
+      "observed_state": "CLOSED",
+      "title": "[Numerics N6] Preserve finite named and algebraic symbolic denotations",
+      "url": "https://github.com/dancxjo/conduit/issues/5733",
+      "assessment": "Closure is recorded, not used as independent proof of broader parent completion. Follow-up issue links remain in its body."
+    },
+    {
+      "issue": 5734,
+      "observed_state": "CLOSED",
+      "title": "[Numerics N7] Admit dimension-checked atan2 and inverse trig branches",
+      "url": "https://github.com/dancxjo/conduit/issues/5734",
+      "assessment": "Closure is recorded, not used as independent proof of broader parent completion. Follow-up issue links remain in its body."
+    },
+    {
+      "issue": 5735,
+      "observed_state": "CLOSED",
+      "title": "[Numerics N8] Transport exact turn-to-radian \u03c0 law into certified projections",
+      "url": "https://github.com/dancxjo/conduit/issues/5735",
+      "assessment": "Closure is recorded, not used as independent proof of broader parent completion. Follow-up issue links remain in its body."
+    }
+  ],
+  "closed_prerequisite": {
+    "issue": 5396,
+    "state": "CLOSED",
+    "release_key": "scalar",
+    "scope": "Bounded fixed-integer/Boolean scalar specialization only."
+  },
+  "additional_accepted_slice": {
+    "pr": 6005,
+    "release_key": "fore-near",
+    "scope": "Absolute physical near predicates across Fores and the installed Std profile; no whole-parent or qualified composite acceptance."
+  },
+  "requirements": [
+    {
+      "id": "R01",
+      "section": "Motivating failures / examples",
+      "requirement": "- `1/3` is an exact rational, not inherently an inexact float.",
+      "recorded_status": "partial",
+      "owner_issue": 6106,
+      "follow_up_issue": 6117,
+      "reconciliation": "not-promoted",
+      "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row.",
+      "related_scoped_accepted_rows": [
+        "R66"
+      ]
+    },
+    {
+      "id": "R02",
+      "section": "Motivating failures / examples",
+      "requirement": "- `sqrt(2)` is an exact algebraic number when expressed by a supported root definition.",
+      "recorded_status": "partial",
+      "owner_issue": 6118,
+      "follow_up_issue": 6118,
+      "reconciliation": "not-promoted",
+      "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row."
+    },
+    {
+      "id": "R03",
+      "section": "Motivating failures / examples",
+      "requirement": "- `\u03c0` and `\u03c0/180` are exact named/symbolic mathematical expressions, even though a particular numerical projection is approximate.",
+      "recorded_status": "partial",
+      "owner_issue": 6118,
+      "follow_up_issue": 6118,
+      "reconciliation": "not-promoted",
+      "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row."
+    },
+    {
+      "id": "R04",
+      "section": "Motivating failures / examples",
+      "requirement": "- `10^1000 + 1` has an exact finite integer value; a native `i64` cannot represent it, but that is a realization constraint, not a mathematical error.",
+      "recorded_status": "partial",
+      "owner_issue": 6106,
+      "follow_up_issue": 6128,
+      "reconciliation": "not-promoted",
+      "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row.",
+      "related_scoped_accepted_rows": [
+        "R67"
+      ]
+    },
+    {
+      "id": "R05",
+      "section": "Motivating failures / examples",
+      "requirement": "- `sin(\u03c0/7)` may remain a finite symbolic expression even where no supported closed-form simplification is available.",
+      "recorded_status": "partial",
+      "owner_issue": 6118,
+      "follow_up_issue": 6118,
+      "reconciliation": "not-promoted",
+      "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row."
+    },
+    {
+      "id": "R06",
+      "section": "Motivating failures / examples",
+      "requirement": "- An exact unit conversion should be able to retain rational scale and affine-offset laws instead of refusing solely because the destination magnitude is not representable by the current fixed-width numeric carrier.",
+      "recorded_status": "partial",
+      "owner_issue": 6115,
+      "follow_up_issue": 6115,
+      "reconciliation": "not-promoted",
+      "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row."
+    },
+    {
+      "id": "R07",
+      "section": "Motivating failures / examples",
+      "requirement": "- A sensor measurement with uncertainty is **not** made exact by exact arithmetic on its encoded reading.",
+      "recorded_status": "partial",
+      "owner_issue": 6126,
+      "follow_up_issue": 6126,
+      "reconciliation": "not-promoted",
+      "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row."
+    },
+    {
+      "id": "R08",
+      "section": "Required semantic distinctions",
+      "requirement": "1. **Exact denotation**: fixed integers, arbitrary-precision integers, reduced rationals, supported algebraic numbers/root definitions, named mathematical constants, and bounded canonical symbolic expression DAGs. This is a *representable subset* of mathematical numbers/expressions, not all mathematical reals.",
+      "recorded_status": "partial",
+      "owner_issue": 6117,
+      "follow_up_issue": 6117,
+      "reconciliation": "not-promoted",
+      "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row."
+    },
+    {
+      "id": "R09",
+      "section": "Required semantic distinctions",
+      "requirement": "2. **Concrete numerical realization**: checked fixed-width integer, fixed-point, IEEE floating point, arbitrary-precision integer/rational, certified interval/ball arithmetic, symbolic evaluation or another reviewed implementation. These are representation/algorithm choices, not automatically different authored meanings.",
+      "recorded_status": "reviewed-gap",
+      "owner_issue": 6127,
+      "follow_up_issue": 6127,
+      "reconciliation": "not-promoted",
+      "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row."
+    },
+    {
+      "id": "R10",
+      "section": "Required semantic distinctions",
+      "requirement": "3. **Certified approximation**: a value/projection with a specified absolute/relative/ULP bound or interval enclosure, rounding policy and provenance. Distinguish a verified bound from a merely requested tolerance or empirical error estimate.",
+      "recorded_status": "reviewed-gap",
+      "owner_issue": 6119,
+      "follow_up_issue": 6119,
+      "reconciliation": "not-promoted",
+      "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row."
+    },
+    {
+      "id": "R11",
+      "section": "Required semantic distinctions",
+      "requirement": "4. **Measured/estimated uncertainty**: distribution, confidence, resolution, calibration or observation interval with source/provenance, separate from arithmetic rounding and truncation. Do not conflate uncertainty and guaranteed numerical error.",
+      "recorded_status": "partial",
+      "owner_issue": 6126,
+      "follow_up_issue": 6126,
+      "reconciliation": "not-promoted",
+      "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row."
+    },
+    {
+      "id": "R12",
+      "section": "Required semantic distinctions",
+      "requirement": "5. **Refusal/indeterminacy**: unsupported symbolic comparison/identity, insufficient resource bounds or proof, singularities/domain faults, overflow, and unmet tolerance must be represented truthfully. Never silently return a rounded value or falsely claim exactness.",
+      "recorded_status": "partial",
+      "owner_issue": 6120,
+      "follow_up_issue": 6120,
+      "reconciliation": "not-promoted",
+      "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row."
+    },
+    {
+      "id": "R13",
+      "section": "Floating point is a planned projection, not the default number ontology",
+      "requirement": "- **Three levels, no conflation:** (1) exact mathematical value / finite supported expression, (2) planned numerical realization (including `f32`, `f64`, hardware vector/GPU math, fixed-point and intervals), and (3) result with admitted precision, rounding/error evidence and provenance. A `Float64` carrier does not automatically redefine the authored expression.",
+      "recorded_status": "reviewed-gap",
+      "owner_issue": 6127,
+      "follow_up_issue": 6127,
+      "reconciliation": "not-promoted",
+      "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row."
+    },
+    {
+      "id": "R14",
+      "section": "Floating point is a planned projection, not the default number ontology",
+      "requirement": "- **Postpone numerical commitment:** permit an exact expression to flow through multiple Plots, dimensional transformations and bounded simplifications before projecting to `f32`/`f64` at a specific consuming Gear/Back (GPU, DSP buffer, model inference, protocol, etc.). Do not eagerly narrow values merely because native floats exist.",
+      "recorded_status": "reviewed-gap",
+      "owner_issue": 6123,
+      "follow_up_issue": 6123,
+      "reconciliation": "not-promoted",
+      "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row."
+    },
+    {
+      "id": "R15",
+      "section": "Floating point is a planned projection, not the default number ontology",
+      "requirement": "- **Project the computation, not just its final answer:** an `f64` realization generally rounds *intermediate operands and operations*. Admission must account for accumulated errors, cancellation, overflow/underflow, subnormals, operation order, fused operations, transcendental implementation and the claimed reproducibility contract. It is not sufficient to evaluate exact math and round just the output unless that is the selected algorithm. Reassociations/optimizations need justification against admitted fidelity.",
+      "recorded_status": "reviewed-gap",
+      "owner_issue": 6121,
+      "follow_up_issue": 6121,
+      "reconciliation": "not-promoted",
+      "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row."
+    },
+    {
+      "id": "R16",
+      "section": "Floating point is a planned projection, not the default number ontology",
+      "requirement": "- **Proof obligation:** declare a consumer's numeric requirement; choose floating point only if a checked range/error analysis, certified enclosure or appropriate reviewed numerical contract establishes that the **whole selected computation** satisfies it. Where proof is not available, request explicit tolerance/acceptance or choose another Back; do not fabricate rigorous guarantees from empirical tests or heuristic error estimates.",
+      "recorded_status": "reviewed-gap",
+      "owner_issue": 6120,
+      "follow_up_issue": 6120,
+      "reconciliation": "not-promoted",
+      "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row."
+    },
+    {
+      "id": "R17",
+      "section": "Floating point is a planned projection, not the default number ontology",
+      "requirement": "- **Exact semantics example:** with ordinary mathematical literals, `0.1 + 0.2 == 0.3` is exactly true (tenths are rationals). IEEE binary64 operational evaluation may instead yield different bit patterns because of operand and intermediate rounding. These should not be treated as the same contract.",
+      "recorded_status": "partial",
+      "owner_issue": 6106,
+      "follow_up_issue": 6117,
+      "reconciliation": "not-promoted",
+      "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row.",
+      "related_scoped_accepted_rows": [
+        "R76"
+      ]
+    },
+    {
+      "id": "R18",
+      "section": "Floating point is a planned projection, not the default number ontology",
+      "requirement": "- **Explicit IEEE escape hatch:** retain a distinct opt-in semantic mode/type for work where IEEE-754 representation and operations **are themselves the intended meaning**, including NaN and infinity propagation, signed zero, exact bit patterns, rounding modes, exceptions/flags, and platform-relevant operation order. In that mode neither the checker nor Planner may substitute real-number identities or reassociate operations if doing so changes specified IEEE behavior. No compulsory symbolic detour for emulators, numeric conformance tests, binary protocols or systems code.",
+      "recorded_status": "partial",
+      "owner_issue": 6106,
+      "follow_up_issue": 6134,
+      "reconciliation": "not-promoted",
+      "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row.",
+      "related_scoped_accepted_rows": [
+        "R80"
+      ]
+    },
+    {
+      "id": "R19",
+      "section": "Floating point is a planned projection, not the default number ontology",
+      "requirement": "- **Projection boundaries and evidence:** record the exact source denotation/expression identity (or well-defined provenance), selected float format, rounding mode, operation strategy, assumptions, error/exception contract, and observed result at the agreed boundary. Use #4952 projection-loss evidence and #4051 Back invariance; do not define a competing numerical-only projection subsystem.",
+      "recorded_status": "partial",
+      "owner_issue": 6110,
+      "follow_up_issue": 6110,
+      "reconciliation": "not-promoted",
+      "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row."
+    },
+    {
+      "id": "R20",
+      "section": "Floating point is a planned projection, not the default number ontology",
+      "requirement": "- **Resource sanity:** ordinary bounded scalar hot paths should still compile straight to efficient machine floating point or fixed-width integers when admitted. Symbolic representations remain a semantic option, not a runtime tax on all calculations.",
+      "recorded_status": "partial",
+      "owner_issue": 6122,
+      "follow_up_issue": 6122,
+      "reconciliation": "not-promoted",
+      "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row.",
+      "related_scoped_accepted_rows": [
+        "R75"
+      ]
+    },
+    {
+      "id": "R21",
+      "section": "Dimension-aware trigonometry; canonical angle unit = turn (cross-ticket #5390)",
+      "requirement": "- `turn` gives exact rational circle fractions: `90\u00b0 = 1/4turn`, `180\u00b0 = 1/2turn`, `1turn = 360\u00b0`; `1turn = 2\u03c0 rad` is **symbolically exact** rather than a stored float approximation of \u03c0. The current `architecture/core/src/quantity/wide_conversion.rs` cross-radian `Inexact` refusal should become a representation limitation addressed by #5392, not a permanent claim that degree/turn vs radian is incompatible. `#5390` declares/resolves angle units, while this issue owns the \u03c0-bearing numeric expression/precision projections.",
+      "recorded_status": "partial",
+      "owner_issue": 6116,
+      "follow_up_issue": 6116,
+      "reconciliation": "not-promoted",
+      "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row."
+    },
+    {
+      "id": "R22",
+      "section": "Dimension-aware trigonometry; canonical angle unit = turn (cross-ticket #5390)",
+      "requirement": "- Known exact identities should simplify/prove exactly, with no float leak: `sin(0turn) = 0`, `sin(1/4turn) = 1`, `cos(1/2turn) = -1`, `sin(90\u00b0) = sin(\u03c0/2 rad) = 1`, `tan(1/4turn)` refuses undefined. For other values, preserve exact symbolic denotation where bounded/representable and project only at a consuming Back according to admitted numerical precision/error constraints. Do not require a full computer algebra system or universal symbolic equality algorithm.",
+      "recorded_status": "partial",
+      "owner_issue": 6116,
+      "follow_up_issue": 6116,
+      "reconciliation": "not-promoted",
+      "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row."
+    },
+    {
+      "id": "R23",
+      "section": "Dimension-aware trigonometry; canonical angle unit = turn (cross-ticket #5390)",
+      "requirement": "- Bare `sin(42)` must **fail type checking** (not silently choose `42rad` or `42turn`); `sin(1m)` and `sin(1Hz)` fail dimensional/role checking. Explicit Angle construction can use a reviewed existing literal such as `0.25turn`; unspecified other constructor syntax is not asserted implemented.",
+      "recorded_status": "partial",
+      "owner_issue": 6106,
+      "follow_up_issue": 6116,
+      "reconciliation": "not-promoted",
+      "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row.",
+      "related_scoped_accepted_rows": [
+        "R29"
+      ]
+    },
+    {
+      "id": "R24",
+      "section": "Dimension-aware trigonometry; canonical angle unit = turn (cross-ticket #5390)",
+      "requirement": "- `atan2` permits compatible unit-bearing inputs sharing dimension and role (e.g., `3m`, `400cm`); emits a canonical-turn Angle. Do not infer a physical Angle from arbitrary mixed-dimension ratios. Distinguish Angle vs dimensionless Ratio even though SI radian is dimensionless.",
+      "recorded_status": "partial",
+      "owner_issue": 6113,
+      "follow_up_issue": 6113,
+      "reconciliation": "not-promoted",
+      "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row."
+    },
+    {
+      "id": "R25",
+      "section": "Dimension-aware trigonometry; canonical angle unit = turn (cross-ticket #5390)",
+      "requirement": "- Distinguish cyclic frequency `f` in cycles/s (Hz) from angular frequency `\u03c9` in turn/s. The checked relation is `\u03c9 = f \u00d7 (1turn/cycle)`, or `\u03c9 = 2\u03c0 f` when represented in rad/s. Neither Hz nor rad/s may silently convert to the other simply because both reduce to inverse time.",
+      "recorded_status": "reviewed-gap",
+      "owner_issue": 6124,
+      "follow_up_issue": 6124,
+      "reconciliation": "not-promoted",
+      "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row."
+    },
+    {
+      "id": "R26",
+      "section": "Dimension-aware trigonometry; canonical angle unit = turn (cross-ticket #5390)",
+      "requirement": "- Explicit IEEE operations, approximated trigonometric algorithms, range reduction and accumulation require algorithm-wide error/exception evidence under this issue's existing planned-projection law. The same exact Angle expression may be realized using approved float, interval or symbolic Backs according to contract.",
+      "recorded_status": "reviewed-gap",
+      "owner_issue": 6134,
+      "follow_up_issue": 6134,
+      "reconciliation": "not-promoted",
+      "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row."
+    },
+    {
+      "id": "R27",
+      "section": "Dimension-aware trigonometry; canonical angle unit = turn (cross-ticket #5390)",
+      "requirement": "- [ ] #5390 establishes `turn` as canonical/reference/default Angle unit in its built-in source declaration; `0.25turn` and `90\u00b0` remain exact, while explicit authored units remain visible as evidence.",
+      "recorded_status": "complete-accepted-main",
+      "owner_issue": 6106,
+      "follow_up_issue": 6106,
+      "reconciliation": "accepted-at-recorded-exact-source",
+      "release_key": "angle",
+      "test_ids": [
+        "angle/source_default_angle_is_turn_and_quarter_turn_is_exact"
+      ],
+      "verified_scope": "Canonical/default turn and exact quarter-turn/90-degree comparison; explicit degree coordinate retained.",
+      "scope_limit": "Does not establish symbolic radian conversion or the complete two-projection chain."
+    },
+    {
+      "id": "R28",
+      "section": "Dimension-aware trigonometry; canonical angle unit = turn (cross-ticket #5390)",
+      "requirement": "- [ ] `1turn = 2\u03c0 rad` transports as an exact supported symbolic conversion without inventing rational \u03c0; limited numeric projection is either witnessed to tolerance or precisely refused.",
+      "recorded_status": "partial",
+      "owner_issue": 6116,
+      "follow_up_issue": 6116,
+      "reconciliation": "not-promoted",
+      "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row."
+    },
+    {
+      "id": "R29",
+      "section": "Dimension-aware trigonometry; canonical angle unit = turn (cross-ticket #5390)",
+      "requirement": "- [ ] Trig checks `sin(Angle)`, rejects `sin(42)`, `sin(1m)`, and does not implicitly make radians the unit of scalars.",
+      "recorded_status": "complete-accepted-main",
+      "owner_issue": 6106,
+      "follow_up_issue": 6106,
+      "reconciliation": "accepted-at-recorded-exact-source",
+      "release_key": "angle",
+      "test_ids": [
+        "angle/scalar_and_wrong_dimension_calls_fail_angle_typechecking",
+        "angle/exact_literal_and_dynamic_angle_calls_preserve_denotation_without_play_growth"
+      ],
+      "verified_scope": "Checked Angle calls and rejection of bare Scalar, Length and Frequency.",
+      "scope_limit": "Input typing and selected expression cases; not complete inverse/trig numerical installation."
+    },
+    {
+      "id": "R30",
+      "section": "Dimension-aware trigonometry; canonical angle unit = turn (cross-ticket #5390)",
+      "requirement": "- [ ] Cardinal/quadrant trig identities are established exactly; tangent poles and inverse-domain/branch/refusal behavior are checked.",
+      "recorded_status": "partial",
+      "owner_issue": 6116,
+      "follow_up_issue": 6116,
+      "reconciliation": "not-promoted",
+      "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row."
+    },
+    {
+      "id": "R31",
+      "section": "Dimension-aware trigonometry; canonical angle unit = turn (cross-ticket #5390)",
+      "requirement": "- [ ] `atan2(3m, 400cm)` admits unit conversion and returns turn-valued Angle; `atan2(3m, 4s)`, mismatched point/delta roles and undefined `atan2(0,0)` are rejected under explicit contracts.",
+      "recorded_status": "partial",
+      "owner_issue": 6113,
+      "follow_up_issue": 6113,
+      "reconciliation": "not-promoted",
+      "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row."
+    },
+    {
+      "id": "R32",
+      "section": "Dimension-aware trigonometry; canonical angle unit = turn (cross-ticket #5390)",
+      "requirement": "- [ ] Cyclic frequency versus angular frequency requires an explicit semantic operation; any `2\u03c0` factor stays exact until a Back projects it.",
+      "recorded_status": "reviewed-gap",
+      "owner_issue": 6124,
+      "follow_up_issue": 6124,
+      "reconciliation": "not-promoted",
+      "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row."
+    },
+    {
+      "id": "R33",
+      "section": "Dimension\u2013Unit\u2013Quantity separation (coordinate projection vs numeric projection)",
+      "requirement": "- A numeric expression carried by a Quantity retains its exact denotation (where finitely supportable), **dimension, quantity family and point/difference role**. A pure Scalar is not an Angle just because radians have SI dimension one. Numeric representation lowering must not erase any of these checked facts.",
+      "recorded_status": "partial",
+      "owner_issue": 6108,
+      "follow_up_issue": 6108,
+      "reconciliation": "not-promoted",
+      "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row."
+    },
+    {
+      "id": "R34",
+      "section": "Dimension\u2013Unit\u2013Quantity separation (coordinate projection vs numeric projection)",
+      "requirement": "- Explicit unit-coordinate projection (e.g. `90\u00b0 \u2194 0.25turn`, or `turn \u2194 rad` with symbolic \u03c0) and numeric realization projection (e.g. exact \u2194 `f64`) are **orthogonal planning decisions**, each with its own law/evidence. A proposed fast `f32` Back cannot justify silently changing the physical Unit, and unit conversion cannot silently justify IEEE rounding.",
+      "recorded_status": "reviewed-gap",
+      "owner_issue": 6123,
+      "follow_up_issue": 6123,
+      "reconciliation": "not-promoted",
+      "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row."
+    },
+    {
+      "id": "R35",
+      "section": "Dimension\u2013Unit\u2013Quantity separation (coordinate projection vs numeric projection)",
+      "requirement": "- A Quantity can retain a finite pair of authored coordinates + Unit and source evidence as a transport encoding. Its **semantic physical equality** is distinct from structural/byte equality; don't require eagerly materializing normalized symbolic numbers at every Port.",
+      "recorded_status": "partial",
+      "owner_issue": 6115,
+      "follow_up_issue": 6115,
+      "reconciliation": "not-promoted",
+      "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row."
+    },
+    {
+      "id": "R36",
+      "section": "Dimension\u2013Unit\u2013Quantity separation (coordinate projection vs numeric projection)",
+      "requirement": "- Keep distinction of compatible dimensions versus authorized semantic operations: Length/Time is derivable; Energy/Torque share dimensional exponents yet can remain nominally different families; temperature points and differences cannot be silently added or equated. #5390 owns that physical type law; this issue owns exact mathematical expression support and admitted numerical projection.",
+      "recorded_status": "partial",
+      "owner_issue": 6115,
+      "follow_up_issue": 6115,
+      "reconciliation": "not-promoted",
+      "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row."
+    },
+    {
+      "id": "R37",
+      "section": "Dimension\u2013Unit\u2013Quantity separation (coordinate projection vs numeric projection)",
+      "requirement": "- The coherent integration proof is one exact Angle Quantity authored as `0.25turn`, equated exactly to `90\u00b0` and symbolically to `\u03c0/2 rad`, consumed by `sin(Angle)` for exact value 1, and optionally lowered to an admitted machine representation with appropriate error evidence. Preserve `turn` as the canonical angular reference, and bare `42` as Scalar.",
+      "recorded_status": "partial",
+      "owner_issue": 6123,
+      "follow_up_issue": 6123,
+      "reconciliation": "not-promoted",
+      "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row."
+    },
+    {
+      "id": "R38",
+      "section": "Dimension\u2013Unit\u2013Quantity separation (coordinate projection vs numeric projection)",
+      "requirement": "- [ ] An exact Quantity survives **two independent projections** (Unit coordinates and numerical implementation) without losing its Dimension, family/role, mathematical denotation or source evidence; admissible substitutions produce equivalent semantics and truthful separate projection evidence.",
+      "recorded_status": "incomplete",
+      "owner_issue": 6123,
+      "follow_up_issue": 6123,
+      "reconciliation": "not-promoted",
+      "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row."
+    },
+    {
+      "id": "R39",
+      "section": "Dimension\u2013Unit\u2013Quantity separation (coordinate projection vs numeric projection)",
+      "requirement": "- [ ] `Dimension`, `Unit`, and `Quantity` are not aliased types in the checked numeric IR or source/Plan value transport. A Dimension is not guessed from a bare numeric literal or smuggled via Text.",
+      "recorded_status": "partial",
+      "owner_issue": 6108,
+      "follow_up_issue": 6108,
+      "reconciliation": "not-promoted",
+      "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row."
+    },
+    {
+      "id": "R40",
+      "section": "Semantic / Planner contract",
+      "requirement": "- Specify one canonical, typed **mathematical-value IR** with bounded DAG nodes, normalized exact literals (including decimal-as-rational when authored exactly), dimensions and relevant `where` facts. Specify canonical serialization, identity/hash/equality semantics and bounded simplification rules; sharing and cycle rejection matter. Do not force symbolic DAG materialization for every mundane integer.",
+      "recorded_status": "partial",
+      "owner_issue": 6117,
+      "follow_up_issue": 6117,
+      "reconciliation": "not-promoted",
+      "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row."
+    },
+    {
+      "id": "R41",
+      "section": "Semantic / Planner contract",
+      "requirement": "- Specify deterministic exact arithmetic rules and their domain/overflow behavior. Evaluate `1/3` as an exact rational when semantics call for rational division; leave a genuine integer-division operation distinct if the language exposes one.",
+      "recorded_status": "partial",
+      "owner_issue": 6117,
+      "follow_up_issue": 6117,
+      "reconciliation": "not-promoted",
+      "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row."
+    },
+    {
+      "id": "R42",
+      "section": "Semantic / Planner contract",
+      "requirement": "- Keep exact mathematical equality distinct from structural identity, numerical equality within tolerance, and undecidable/unknown comparisons. No magical general theorem prover; bounded simplification, interval reasoning and optional specialist solvers may establish only what they can prove.",
+      "recorded_status": "partial",
+      "owner_issue": 6125,
+      "follow_up_issue": 6125,
+      "reconciliation": "not-promoted",
+      "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row."
+    },
+    {
+      "id": "R43",
+      "section": "Semantic / Planner contract",
+      "requirement": "- Allow a consuming Plot/Gear to declare **numeric requirements**: exactness or tolerated error, range, rounding/overflow behavior, deterministic/reproducible behavior, resource budget and potentially throughput/latency. Names and source spellings must be settled against #4109 rather than asserted here.",
+      "recorded_status": "reviewed-gap",
+      "owner_issue": 6127,
+      "follow_up_issue": 6127,
+      "reconciliation": "not-promoted",
+      "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row."
+    },
+    {
+      "id": "R44",
+      "section": "Semantic / Planner contract",
+      "requirement": "- Planner selects an eligible algorithm + representation per edge/region, considering Host capability and costs. Cheap integer/fixed-point/`f32`/`f64` realizations remain eligible when proven sufficient; bignum, symbolic or interval realizations are chosen only where justified and offered.",
+      "recorded_status": "partial",
+      "owner_issue": 6128,
+      "follow_up_issue": 6128,
+      "reconciliation": "not-promoted",
+      "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row."
+    },
+    {
+      "id": "R45",
+      "section": "Semantic / Planner contract",
+      "requirement": "- Plan records the selected realization plus the *justification*: admitted finite storage/work bounds and proof/witness (or explicit trusted capability contract) that numerical error fits the requirement. An error budget is a first-class planning resource, not a license for unchecked rounding.",
+      "recorded_status": "reviewed-gap",
+      "owner_issue": 6127,
+      "follow_up_issue": 6127,
+      "reconciliation": "not-promoted",
+      "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row."
+    },
+    {
+      "id": "R46",
+      "section": "Semantic / Planner contract",
+      "requirement": "- Carry loss/rounding/uncertainty metadata across conversions and compositions; preserve exactness until a named, admitted projection. Replanning/substituting Backs may change costs, not silently weaken meaning or numerical fidelity.",
+      "recorded_status": "reviewed-gap",
+      "owner_issue": 6129,
+      "follow_up_issue": 6129,
+      "reconciliation": "not-promoted",
+      "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row."
+    },
+    {
+      "id": "R47",
+      "section": "Semantic / Planner contract",
+      "requirement": "- If exact symbolic evaluation can be represented but a consumer insists on concrete digits, either refine to the admitted precision, return a certified enclosure, or refuse with a concrete reason. No generic `inexact` simply because the old representation was too small.",
+      "recorded_status": "partial",
+      "owner_issue": 6118,
+      "follow_up_issue": 6118,
+      "reconciliation": "not-promoted",
+      "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row."
+    },
+    {
+      "id": "R48",
+      "section": "Semantic / Planner contract",
+      "requirement": "- Preserve existing dimension/type checks and exact unit/prefix/affine conversion law (#5328, #5390, #3719). Dynamically defined units are resolved and checked at their established binding boundary; this ticket must not silently move unit-definition authority or permit dimensionally invalid arithmetic.",
+      "recorded_status": "partial",
+      "owner_issue": 6108,
+      "follow_up_issue": 6108,
+      "reconciliation": "not-promoted",
+      "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row."
+    },
+    {
+      "id": "R49",
+      "section": "Semantic / Planner contract",
+      "requirement": "- Preserve Conduit's **finite execution** invariant. Exact expressions with potentially huge results require admitted size/complexity bounds or symbolic retention; no implicit unbounded memory, infinite-precision loops or undecidable proof obligations at runtime.",
+      "recorded_status": "partial",
+      "owner_issue": 6109,
+      "follow_up_issue": 6109,
+      "reconciliation": "not-promoted",
+      "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row."
+    },
+    {
+      "id": "R50",
+      "section": "Performance invariant for universal numbers (2026-10-10)",
+      "requirement": "- When the checker proves a bounded integer, a rational whose particular operation has an admitted cheap exact implementation, or a consumer-sanctioned `f32`/`f64` profile, the Planner must be able to select a direct, preprepared machine realization **without allocating expression DAG nodes or big-number objects per arithmetic operation**.",
+      "recorded_status": "partial",
+      "owner_issue": 6122,
+      "follow_up_issue": 6122,
+      "reconciliation": "not-promoted",
+      "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row."
+    },
+    {
+      "id": "R51",
+      "section": "Performance invariant for universal numbers (2026-10-10)",
+      "requirement": "- Keep universal exact expressions an available checked denotation and computational strategy where warranted, not the mandatory carrier for every tiny loop counter, acoustic buffer or sensor sample. Deferred symbolic evaluation and common-subexpression sharing are optional semantic representations, not compulsory dynamic dispatch at Play.",
+      "recorded_status": "partial",
+      "owner_issue": 6122,
+      "follow_up_issue": 6122,
+      "reconciliation": "not-promoted",
+      "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row."
+    },
+    {
+      "id": "R52",
+      "section": "Performance invariant for universal numbers (2026-10-10)",
+      "requirement": "- The **representation decision is planned and inspected**, accounting for range/overflow, relative/absolute error or rounding law, numeric exceptions, dimension/family/role, reproducibility and finite cost. It may specialize a whole eligible expression or fused region but cannot silently reassociate when an IEEE operation sequence is semantically authoritative.",
+      "recorded_status": "reviewed-gap",
+      "owner_issue": 6127,
+      "follow_up_issue": 6127,
+      "reconciliation": "not-promoted",
+      "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row."
+    },
+    {
+      "id": "R53",
+      "section": "Performance invariant for universal numbers (2026-10-10)",
+      "requirement": "- Cost-model estimates alone do not establish runtime superiority. Reuse #5395 measured cold preparation, per-operation decoding/dispatch, allocations, queue/Sign and throughput baselines. Show separately how much is spent on mathematical reasoning before Play and on actual numeric operations during Play.",
+      "recorded_status": "partial",
+      "owner_issue": 6122,
+      "follow_up_issue": 6122,
+      "reconciliation": "not-promoted",
+      "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row."
+    },
+    {
+      "id": "R54",
+      "section": "Performance invariant for universal numbers (2026-10-10)",
+      "requirement": "- Preserve exact meaning under optimized substitutions. If a fixed-width fast path is ineligible for `10^1000 + 1`, use an admitted exact big-number/symbolic representation or refuse before Play where determinable. If an `f64` path cannot meet the declared tolerance, it is *not* an eligible cheaper substitute.",
+      "recorded_status": "reviewed-gap",
+      "owner_issue": 6128,
+      "follow_up_issue": 6128,
+      "reconciliation": "not-promoted",
+      "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row."
+    },
+    {
+      "id": "R55",
+      "section": "Performance invariant for universal numbers (2026-10-10)",
+      "requirement": "- **No big-bang dependency:** #5396 and #5397 may optimize already-implemented fixed-width exact expression semantics independently of generalized symbolic \u03c0, arbitrary algebraics or a complete CAS; #5392's novel numeric representations follow behind a proven cheap path rather than blocking it.",
+      "recorded_status": "partial",
+      "owner_issue": 6106,
+      "follow_up_issue": 6133,
+      "reconciliation": "not-promoted",
+      "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row.",
+      "related_scoped_accepted_rows": [
+        "R57"
+      ]
+    },
+    {
+      "id": "R56",
+      "section": "Performance invariant for universal numbers (2026-10-10)",
+      "requirement": "- [ ] #5395's 1/3/8/32-op native/practical numeric benchmarks show actual cold/warm costs for current, specialized and (when applicable) symbolic execution, with raw artifacts. No universal-native-speed claim without evidence.",
+      "recorded_status": "partial",
+      "owner_issue": 6122,
+      "follow_up_issue": 6122,
+      "reconciliation": "not-promoted",
+      "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row."
+    },
+    {
+      "id": "R57",
+      "section": "Performance invariant for universal numbers (2026-10-10)",
+      "requirement": "- [x] One mathematical expression with proven finite machine eligibility lowers to a direct checked arithmetic realization through an ordinary Plan/Play without per-op symbolic DAG allocation, while its exact semantic identity remains inspectable.",
+      "recorded_status": "accepted-main",
+      "owner_issue": 6106,
+      "follow_up_issue": 6106,
+      "reconciliation": "accepted-at-recorded-exact-source",
+      "release_key": "scalar",
+      "test_ids": [
+        "scalar/actual_std_plan_and_kernel_play_select_the_scalar_tape_back",
+        "scalar/actual_std_boolean_matrix_preserves_reference_outcomes_without_play_allocations"
+      ],
+      "verified_scope": "Installed 1/3/8/32-operation fixed-integer/Boolean tape through real Plan/kernel Play, identity/capacity/zero-allocation checks.",
+      "scope_limit": "No arbitrary generated native code, qualified composite profile or native-speed equivalence."
+    },
+    {
+      "id": "R58",
+      "section": "Performance invariant for universal numbers (2026-10-10)",
+      "requirement": "- [ ] One ineligible fixed-width and one unsupported numeric tolerance case refuses or selects an admitted alternative without silent rounding, overflow, or out-of-budget execution.",
+      "recorded_status": "reviewed-gap",
+      "owner_issue": 6128,
+      "follow_up_issue": 6128,
+      "reconciliation": "not-promoted",
+      "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row."
+    },
+    {
+      "id": "R59",
+      "section": "Performance invariant for universal numbers (2026-10-10)",
+      "requirement": "- [ ] A precision-safe numerical realization can participate in #5397 physical fusion without losing each logical Gear's numeric/dimensional contract, observability and provenance.",
+      "recorded_status": "partial",
+      "owner_issue": 6133,
+      "follow_up_issue": 6133,
+      "reconciliation": "not-promoted",
+      "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row."
+    },
+    {
+      "id": "R60",
+      "section": "Suggested incremental slices (avoid a numeric-system big bang)",
+      "requirement": "1. **Semantic specification and gap audit**: inspect current Scalar/Quantity representation, conversion refusal cases, expression lowering and Planner capability/precision contracts; write the numeric-denotation vs realization law and define the MVP subset.",
+      "recorded_status": "partial",
+      "owner_issue": 6106,
+      "follow_up_issue": 5392,
+      "reconciliation": "not-promoted",
+      "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row."
+    },
+    {
+      "id": "R61",
+      "section": "Suggested incremental slices (avoid a numeric-system big bang)",
+      "requirement": "2. **Exact rational spine**: canonical integers + rationals and exact decimal parsing, arithmetic, normalization, serialization and Quantity conversion. Preserve existing behavior for fast native values.",
+      "recorded_status": "partial",
+      "owner_issue": 6117,
+      "follow_up_issue": 6117,
+      "reconciliation": "not-promoted",
+      "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row."
+    },
+    {
+      "id": "R62",
+      "section": "Suggested incremental slices (avoid a numeric-system big bang)",
+      "requirement": "3. **Explicit projection contract**: requirements/witness/evidence for fixed-width, float, fixed-point and bounded rational realizations; test deterministic failures when no Back meets bounds.",
+      "recorded_status": "reviewed-gap",
+      "owner_issue": 6127,
+      "follow_up_issue": 6127,
+      "reconciliation": "not-promoted",
+      "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row."
+    },
+    {
+      "id": "R63",
+      "section": "Suggested incremental slices (avoid a numeric-system big bang)",
+      "requirement": "4. **Planner selection**: pick admissible implementations for two differently constrained consumers of the same source semantic expression; verify no default float coercion.",
+      "recorded_status": "partial",
+      "owner_issue": 6128,
+      "follow_up_issue": 6128,
+      "reconciliation": "not-promoted",
+      "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row."
+    },
+    {
+      "id": "R64",
+      "section": "Suggested incremental slices (avoid a numeric-system big bang)",
+      "requirement": "5. **Extensible symbolic/algebraic domain**: bounded nodes for named constants and roots; certified interval evaluation where a concrete value is needed. This may be follow-on tickets; do not block rational MVP on a general CAS.",
+      "recorded_status": "partial",
+      "owner_issue": 6118,
+      "follow_up_issue": 6118,
+      "reconciliation": "not-promoted",
+      "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row."
+    },
+    {
+      "id": "R65",
+      "section": "Suggested incremental slices (avoid a numeric-system big bang)",
+      "requirement": "6. **Cross-domain integration**: runtime-defined Unit/Quantity conversion, one DSP control, one ML/tensor numeric projection; use the same projection/evidence discipline.",
+      "recorded_status": "reviewed-gap",
+      "owner_issue": 6130,
+      "follow_up_issue": 6130,
+      "reconciliation": "not-promoted",
+      "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row."
+    },
+    {
+      "id": "R66",
+      "section": "Acceptance tests",
+      "requirement": "- [ ] `1/3 + 1/3 + 1/3 == 1` is provably exact in the rational domain without relying on floating-point coincidence.",
+      "recorded_status": "complete-accepted-main",
+      "owner_issue": 6106,
+      "follow_up_issue": 6106,
+      "reconciliation": "accepted-at-recorded-exact-source",
+      "release_key": "numerical",
+      "test_ids": [
+        "numerical-products/ordinary_thirds_sum_exactly_through_the_default_product_host"
+      ],
+      "verified_scope": "Actual conduit CLI establishes exact rational thirds with Source/checked/expanded/Plan/Play identity checks.",
+      "scope_limit": "Specific supported rational product profile, not universal symbolic evaluation."
+    },
+    {
+      "id": "R67",
+      "section": "Acceptance tests",
+      "requirement": "- [ ] `10^1000 + 1` remains a valid finite *semantic* integer under an adequate declared bound; an `i64` realization refuses or another admitted representation is selected. It never wraps or silently rounds.",
+      "recorded_status": "complete-accepted-main",
+      "owner_issue": 6106,
+      "follow_up_issue": 6106,
+      "reconciliation": "accepted-at-recorded-exact-source",
+      "release_key": "numerical",
+      "test_ids": [
+        "numerical-products/a_large_exact_expression_never_wraps_or_silently_rounds_to_a_machine_integer"
+      ],
+      "verified_scope": "Actual CLI preserves 10^1000+1 and verifies selection of the admitted rational Back.",
+      "scope_limit": "One finite supported bound and admitted alternative; not all arbitrary-precision workloads."
+    },
+    {
+      "id": "R68",
+      "section": "Acceptance tests",
+      "requirement": "- [ ] `\u03c0/180` and `sqrt(2)` survive symbolic transport as exact denotations; a consumer requesting a finite numeric realization gets a value **with a verified bound** or an explicit refusal. The system does not assert that a decimal expansion is exact.",
+      "recorded_status": "partial",
+      "owner_issue": 6118,
+      "follow_up_issue": 6118,
+      "reconciliation": "not-promoted",
+      "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row."
+    },
+    {
+      "id": "R69",
+      "section": "Acceptance tests",
+      "requirement": "- [ ] Two consumers of one expression can select, for example, a verified fast approximate `f64` realization and an exact rational realization without changing the authored meaning.",
+      "recorded_status": "partial",
+      "owner_issue": 6128,
+      "follow_up_issue": 6128,
+      "reconciliation": "not-promoted",
+      "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row."
+    },
+    {
+      "id": "R70",
+      "section": "Acceptance tests",
+      "requirement": "- [ ] Exact rational unit conversions survive an otherwise inexact fixed-width conversion. Affine quantities and incompatible dimensions retain their existing laws; ordinary unquoted unit literals continue to work.",
+      "recorded_status": "incomplete",
+      "owner_issue": 6115,
+      "follow_up_issue": 6115,
+      "reconciliation": "not-promoted",
+      "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row."
+    },
+    {
+      "id": "R71",
+      "section": "Acceptance tests",
+      "requirement": "- [ ] Unsatisfiable numeric tolerance/resource demands refuse before Play where determinable; execution-time conditions have explicit safe failure contracts.",
+      "recorded_status": "reviewed-gap",
+      "owner_issue": 6120,
+      "follow_up_issue": 6120,
+      "reconciliation": "not-promoted",
+      "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row."
+    },
+    {
+      "id": "R72",
+      "section": "Acceptance tests",
+      "requirement": "- [ ] Comparison of general symbolic expressions may return unknown/refuse; there is no unsound equality or ordering claim.",
+      "recorded_status": "complete-accepted-main",
+      "owner_issue": 6106,
+      "follow_up_issue": 6106,
+      "reconciliation": "accepted-at-recorded-exact-source",
+      "release_key": "numerical",
+      "test_ids": [
+        "numerical-foundation/rounded_values_do_not_become_exact_and_zero_width_requests_refuse"
+      ],
+      "verified_scope": "Direct and prepared symbolic comparison return UnprovedMathematicalComparison instead of unsound equality.",
+      "scope_limit": "Unknown/refusal semantics only; not a complete symbolic equality solver or numeric consumer."
+    },
+    {
+      "id": "R73",
+      "section": "Acceptance tests",
+      "requirement": "- [ ] Measurement uncertainty remains distinct from certified numerical approximation.",
+      "recorded_status": "complete-accepted-main",
+      "owner_issue": 6106,
+      "follow_up_issue": 6106,
+      "reconciliation": "accepted-at-recorded-exact-source",
+      "release_key": "numerical",
+      "test_ids": [
+        "numerical-products/declared_observation_uncertainty_is_retained_separately_from_numeric_error"
+      ],
+      "verified_scope": "Actual CLI retains authored observation uncertainty separately and verifies the numerical certificate bound is smaller.",
+      "scope_limit": "Authored metadata, not physical measurement, calibration or general ML-confidence integration."
+    },
+    {
+      "id": "R74",
+      "section": "Acceptance tests",
+      "requirement": "- [ ] Planner/Plan/Play evidence includes realization, precision requirements, rounding/error claim and why the selected Back satisfies them; replanning cannot silently degrade fidelity.",
+      "recorded_status": "partial",
+      "owner_issue": 6129,
+      "follow_up_issue": 6129,
+      "reconciliation": "not-promoted",
+      "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row."
+    },
+    {
+      "id": "R75",
+      "section": "Acceptance tests",
+      "requirement": "- [x] A cheap bounded integer path remains cheap: no compulsory arbitrary-precision allocation or symbolic evaluation overhead in its hot path.",
+      "recorded_status": "accepted-main",
+      "owner_issue": 6106,
+      "follow_up_issue": 6106,
+      "reconciliation": "accepted-at-recorded-exact-source",
+      "release_key": "scalar",
+      "test_ids": [
+        "scalar/actual_std_plan_and_kernel_play_select_the_scalar_tape_back",
+        "scalar/actual_std_boolean_matrix_preserves_reference_outcomes_without_play_allocations"
+      ],
+      "verified_scope": "Same bounded fixed-integer/Boolean hot-path allocation and capacity proof.",
+      "scope_limit": "Cold preparation and whole-Play costs remain separate; no universal throughput claim."
+    },
+    {
+      "id": "R76",
+      "section": "Acceptance tests",
+      "requirement": "- [x] For ordinary mathematical literals, `0.1 + 0.2 == 0.3` is established exactly without binary floating-point contamination, while an explicitly IEEE-binary64 computation retains its native rounding and comparison behavior.",
+      "recorded_status": "accepted-main",
+      "owner_issue": 6106,
+      "follow_up_issue": 6106,
+      "reconciliation": "accepted-at-recorded-exact-source",
+      "release_key": "numerical",
+      "test_ids": [
+        "numerical-products/ordinary_exact_tenths_keep_meaning_across_new_plans_without_float_coercion",
+        "numerical-products/explicit_f64_cancellation_keeps_intermediate_rounding_in_the_product"
+      ],
+      "verified_scope": "Exact mathematical tenths retain meaning across new Plans, while explicit F64 cancellation preserves intermediate rounding.",
+      "scope_limit": "Does not retroactively change intentional fixed-point Scalar semantics or prove qualified composite execution."
+    },
+    {
+      "id": "R77",
+      "section": "Acceptance tests",
+      "requirement": "- [ ] A chain of dimensioned/exact transforms can remain exact until a selected consuming Back projects it to `f32` or `f64`; the projection is identified and its loss inspected.",
+      "recorded_status": "incomplete",
+      "owner_issue": 6123,
+      "follow_up_issue": 6123,
+      "reconciliation": "not-promoted",
+      "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row."
+    },
+    {
+      "id": "R78",
+      "section": "Acceptance tests",
+      "requirement": "- [x] Float realization tests account for **intermediate** rounding and selected operation order (including a cancellation case); merely rounding the final exact answer must not be mistaken for the floating-point algorithm.",
+      "recorded_status": "accepted-main",
+      "owner_issue": 6106,
+      "follow_up_issue": 6106,
+      "reconciliation": "accepted-at-recorded-exact-source",
+      "release_key": "numerical",
+      "test_ids": [
+        "numerical-foundation/property_retains_complete_operation_order_and_rechecks_cancellation_error",
+        "numerical-products/explicit_f64_cancellation_keeps_intermediate_rounding_in_the_product"
+      ],
+      "verified_scope": "Algorithm property replays full operation order and cancellation; actual explicit-F64 product preserves that order.",
+      "scope_limit": "Component algorithm evidence and explicit IEEE product proof; not N5 input-consuming qualified composites."
+    },
+    {
+      "id": "R79",
+      "section": "Acceptance tests",
+      "requirement": "- [ ] An admitted float Back either demonstrates the end-to-end declared error/range policy under its assumptions or explicitly refuses/requests admission; it may not silently claim a verified bound.",
+      "recorded_status": "partial",
+      "owner_issue": 6120,
+      "follow_up_issue": 6120,
+      "reconciliation": "not-promoted",
+      "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row."
+    },
+    {
+      "id": "R80",
+      "section": "Acceptance tests",
+      "requirement": "- [x] Explicit IEEE-value semantics preserve signed zero, NaN, infinities, bit representation, rounding modes and exceptions as specified, and disallow unsound algebraic reassociation.",
+      "recorded_status": "accepted-main",
+      "owner_issue": 6106,
+      "follow_up_issue": 6106,
+      "reconciliation": "accepted-at-recorded-exact-source",
+      "release_key": "numerical",
+      "test_ids": [
+        "numerical-foundation/binary64_bits_and_all_flags_match_the_independent_oracle_without_allocating",
+        "numerical-foundation/operation_order_and_explicit_sticky_flags_do_not_become_exact_final_rounding",
+        "numerical-foundation/raw_binary64_equality_preserves_nan_payloads_signed_zero_and_infinities",
+        "numerical-foundation/finite_binary64_operations_preserve_intermediate_rounding_and_refuse_invalid_domains",
+        "numerical-foundation/ieee_signed_zero_survives_property_and_forged_target_or_error_kind_refuse",
+        "numerical-products/explicit_ieee_back_executes_source_rounding_and_flags_through_the_product",
+        "numerical-products/quiet_ieee_predicates_execute_through_the_product_with_separate_invalid_flags"
+      ],
+      "verified_scope": "Declared finite IEEE profile covers signed zero, NaN/Inf/bit identity, four rounding directions, five flags, authoritative order and actual installed arithmetic/quiet predicates.",
+      "scope_limit": "Bounded independent edge/oracle conformance, not exhaustive operand-pair proof, arbitrary algorithms or browser/device parity."
+    },
+    {
+      "id": "R81",
+      "section": "Boundaries / coordination",
+      "requirement": "- **#5328** owns SI prefixes, exact conversion and unit resolution; **#5390** owns authored first-class runtime `Unit`/`Quantity` across Gear Fores. This issue supplies shared numeric semantics and representation-planning, not a parallel unit catalog or rewritten literal syntax.",
+      "recorded_status": "partial",
+      "owner_issue": 6108,
+      "follow_up_issue": 6108,
+      "reconciliation": "not-promoted",
+      "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row."
+    },
+    {
+      "id": "R82",
+      "section": "Boundaries / coordination",
+      "requirement": "- **#4488** owns semantically open-ended scalar ranges versus finite execution bounds.",
+      "recorded_status": "partial",
+      "owner_issue": 6109,
+      "follow_up_issue": 6109,
+      "reconciliation": "not-promoted",
+      "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row."
+    },
+    {
+      "id": "R83",
+      "section": "Boundaries / coordination",
+      "requirement": "- **#4952** owns general semantic projection-loss evidence; **#4051** owns realization invariance. Reuse those contracts, rather than introducing numerical-only parallel projection machinery.",
+      "recorded_status": "partial",
+      "owner_issue": 6110,
+      "follow_up_issue": 6110,
+      "reconciliation": "not-promoted",
+      "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row."
+    },
+    {
+      "id": "R84",
+      "section": "Boundaries / coordination",
+      "requirement": "- **#3964 / #4639** own pure expression and proof/fact propagation, respectively; integrate without bypassing the checker.",
+      "recorded_status": "partial",
+      "owner_issue": 6108,
+      "follow_up_issue": 6108,
+      "reconciliation": "not-promoted",
+      "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row."
+    },
+    {
+      "id": "R85",
+      "section": "Boundaries / coordination",
+      "requirement": "- **#2134 / #3997 / #2141** are useful tensor, linear-algebra and dynamics consumers. Do not make an entire CAS, solver, computer algebra syntax, or precision-driven global optimizer prerequisites of the rational MVP.",
+      "recorded_status": "partial",
+      "owner_issue": 6131,
+      "follow_up_issue": 6131,
+      "reconciliation": "not-promoted",
+      "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row."
+    },
+    {
+      "id": "R86",
+      "section": "Thin delivery slices (2026-10-13)",
+      "requirement": "- [x] **N2** #5531: Prove two consumer-specific numeric realizations share authored meaning",
+      "recorded_status": "reviewed-gap",
+      "owner_issue": 6128,
+      "follow_up_issue": 6128,
+      "reconciliation": "not-promoted",
+      "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row."
+    },
+    {
+      "id": "R87",
+      "section": "Thin delivery slices (2026-10-13)",
+      "requirement": "- [ ] **N4** #5533: Prove cheap fixed-width scalar realization without erasing exact laws",
+      "recorded_status": "partial",
+      "owner_issue": 6106,
+      "follow_up_issue": 6122,
+      "reconciliation": "not-promoted",
+      "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row.",
+      "related_scoped_accepted_rows": [
+        "R57",
+        "R75"
+      ]
+    },
+    {
+      "id": "R88",
+      "section": "Thin delivery slices (2026-10-13)",
+      "requirement": "- [ ] **N5** #5534: Complete cross-projection numerical refusal and acceptance corpus",
+      "recorded_status": "reviewed-gap",
+      "owner_issue": 5534,
+      "follow_up_issue": 5534,
+      "reconciliation": "not-promoted",
+      "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row."
+    },
+    {
+      "id": "R89",
+      "section": "Thin delivery slices (2026-10-13)",
+      "requirement": "- [x] #5530: [Numerics N1] Preserve bounded exact large integers and rationals",
+      "recorded_status": "partial",
+      "owner_issue": 6106,
+      "follow_up_issue": 6117,
+      "reconciliation": "not-promoted",
+      "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row.",
+      "related_scoped_accepted_rows": [
+        "R66",
+        "R67"
+      ]
+    },
+    {
+      "id": "R90",
+      "section": "Thin delivery slices (2026-10-13)",
+      "requirement": "- [ ] #5733: [Numerics N6] Preserve finite named and algebraic symbolic denotations",
+      "recorded_status": "partial",
+      "owner_issue": 6118,
+      "follow_up_issue": 6118,
+      "reconciliation": "not-promoted",
+      "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row."
+    },
+    {
+      "id": "R91",
+      "section": "Thin delivery slices (2026-10-13)",
+      "requirement": "- [ ] #5532: [Numerics N3] Admit typed Angle sine, cosine and tangent with exact cardinal values",
+      "recorded_status": "partial",
+      "owner_issue": 6116,
+      "follow_up_issue": 6116,
+      "reconciliation": "not-promoted",
+      "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row."
+    },
+    {
+      "id": "R92",
+      "section": "Thin delivery slices (2026-10-13)",
+      "requirement": "- [ ] #5734: [Numerics N7] Admit dimension-checked atan2 and inverse trig branches",
+      "recorded_status": "partial",
+      "owner_issue": 6113,
+      "follow_up_issue": 6113,
+      "reconciliation": "not-promoted",
+      "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row."
+    },
+    {
+      "id": "R93",
+      "section": "Thin delivery slices (2026-10-13)",
+      "requirement": "- [ ] #5735: [Numerics N8] Transport exact turn-to-radian \u03c0 law into certified projections",
+      "recorded_status": "partial",
+      "owner_issue": 6116,
+      "follow_up_issue": 6116,
+      "reconciliation": "not-promoted",
+      "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row."
+    }
+  ],
+  "schema_provenance": {
+    "review_base_dev": "09cb583ccdec99be762759dce48754a019a370d5",
+    "accepted_dev_near_revision": "numeric/quantity-near@1",
+    "accepted_dev_shape": "Nine root fields; exact_rational and binary32 representations; no root projection-evidence field.",
+    "held_source": "5f9641a761",
+    "held_near_revision": "numeric/quantity-near@5",
+    "held_shape": "Ten root fields including projection-evidence; adds enclosed and binary64_computation forms.",
+    "historical_fixture_scope": "The @4 fixture is held development history, not evidence that @4 reached accepted dev.",
+    "follow_up": "#6107 must preserve accepted @1 and held @4 replay; integrating the held complete-report baseline depends on #6112. Six targeted held catalog tests do not prove accepted @1 compatibility."
+  }
+}
