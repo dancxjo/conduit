@@ -20,7 +20,10 @@ mod value_pair;
 pub use value_pair::PreparedValuePairFactory;
 
 mod local_expression;
+mod near_each;
 mod near_quantity;
+pub(crate) use near_each::validate_near_each;
+pub use near_each::{install_pure_near_each, near_each_offer};
 pub use near_quantity::NearQuantityFactory;
 mod native_u64_expression;
 pub use local_expression::{LocalExpressionFactory, PreparedLocalExpressionBack};
@@ -148,7 +151,7 @@ pub fn install_planned_activation(
 }
 
 /// Exact reusable scan handoff; no one-shot fallback or registry lookup at Play.
-pub fn install_reusable_planned_scan(
+pub fn install_reusable_planned_activation(
     plan: &Plan,
     prepared: &mut PreparedPlan,
     activation_id: &str,

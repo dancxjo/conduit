@@ -55,7 +55,7 @@ impl KernelEachBack {
             &planned.output.front_port_id,
             conduit_core::PortDirection::Output,
         )?;
-        if input == 0 || output == 0 || output > planned.limits.maximum_queue_bytes {
+        if input == 0 || output == 0 || output > activation.contract().maximum_queue_bytes {
             return Err("Each value storage was not admitted".into());
         }
         Ok(Self {
