@@ -51,6 +51,9 @@ pub fn observe(
     request_address: u64,
     mut read: impl FnMut(u64, usize) -> Result<Vec<u64>, &'static str>,
 ) -> Result<Observation, &'static str> {
+    if !request_address.is_multiple_of(8) {
+        return Err("guest-memory-address-invalid");
+    }
     let mut words = |address: u64, count: usize| {
         if count > MAX_MODES {
             return Err("guest-memory-word-bound");
@@ -58,10 +61,10 @@ pub fn observe(
         if count == 0 {
             return Ok(Vec::new());
         }
-        if address == 0
-            || !address.is_multiple_of(8)
-            || address.checked_add((count as u64) * 8).is_none()
-        {
+        // Debugger reads copy bytes; they never dereference a guest pointer
+        // as a Rust reference. Retained x86 firmware mode records are spaced
+        // 60 bytes apart and therefore need not be naturally u64-aligned.
+        if address == 0 || address.checked_add((count as u64) * 8).is_none() {
             return Err("guest-memory-address-invalid");
         }
         let data = read(address, count)?;
@@ -223,12 +226,12 @@ mod tests {
             .map(|x| u64::from_le_bytes(*x))
             .collect();
         raw[..3].copy_from_slice(&[4096, 1024, 768]);
-        map.insert(0x6000, raw);
+        map.insert(0x603c, raw);
         // The retained standard-VGA firmware exposes 66 modes. Preserve the
         // complete finite list rather than confusing the old 16-mode tooling
         // limit with an unsupported product framebuffer.
         map.get_mut(&0x4000).unwrap()[8] = 66;
-        map.insert(0x5000, vec![0x6000; 66]);
+        map.insert(0x5000, vec![0x603c; 66]);
         let observation = inspect(map).unwrap();
         assert_eq!(observation.framebuffers[0].modes.len(), 66);
         assert_eq!(observation.framebuffers[0].modes[0].height, 768);
