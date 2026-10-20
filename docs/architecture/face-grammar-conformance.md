@@ -1001,6 +1001,9 @@ acceptance remain separate work; this section claims none of them.
 
 ### Portable collection preparation in development (#6039)
 
+The [portable collection handoff](portable-collection-handoff.md) records the
+implemented properties, profile limits and browser/native proof boundaries.
+
 `prepare_face_collection` borrows the original immutable Face and admits at most
 64 source items. Direct Contains relationships, exact item-count, distinct source
 identities and distinct order facts define membership and navigation. Pages are
@@ -1028,8 +1031,11 @@ identity and bounded Unicode labels, checking a 256 KiB Source specimen envelope
 This is not a claim that the current native relay admits that envelope: native
 storage, browser manifestation and actual product transport require separate
 proof. `cargo xtask check input-semantics` registers collection conformance.
-Current-source execution, independent linear reconstruction receipts, Candidate
-and stable acceptance remain outstanding for this recovered development slice.
+Source-derived development-branch tests now include independent linear
+reconstruction and separately observed generic views. They do not establish
+current-dev or installed owner/Host acceptance. Final producer specimen and
+Source pin refresh, current-tree checks, Candidate and stable acceptance remain
+outstanding for this recovered development slice.
 
 #### Failed linear typed-value reconstruction found during C1 validation
 
