@@ -81,7 +81,6 @@ impl BoundedActivationHost {
         if let Some(pool) = &self.reusable {
             for evidence in &pool.evidence {
                 for host in evidence.active_plays().keys() {
-                    use conduit_kernel::SignQuery;
                     signs
                         .entry(host.clone())
                         .or_insert_with(Vec::new)

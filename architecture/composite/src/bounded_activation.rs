@@ -80,8 +80,9 @@ pub enum BoundedActivationFault {
 }
 
 /// Owns at most one activation of an exact planned subgraph. Every accepted
-/// value receives a fresh ordinary kernel execution; no callback, Kind lookup,
-/// iterator, retry, or hidden scheduler participates.
+/// value receives a distinct ordinary kernel invocation. An explicitly admitted
+/// reusable owner may retain its kernel; no callback, Kind lookup, retry, or
+/// hidden scheduler participates.
 pub struct BoundedActivationHost {
     contract: BoundedActivationContract,
     ready: Vec<KernelCompositeHost>,

@@ -117,6 +117,7 @@ impl BoundedActivationHost {
         let mut child = self.reusable.as_mut().ok_or(InvalidLifecycle)?.take()?;
         let outcome = child
             .start()
+            .map(|_| ())
             .and_then(|()| child.admit_input(&self.contract.input_port, sequence, value));
         let error = match outcome {
             Ok(RemoteIngressOutcome::Accepted { .. }) => {
