@@ -142,10 +142,86 @@ impl Chrome {
         })
     }
 
+    /// Only the visible provisional suffix is shortened. The argument buffer
+    /// remains authoritative for submission; geometry uses the paint metrics.
+    pub fn draft_preview(
+        &self,
+        value: &str,
+        scale: u16,
+    ) -> Result<alloc::string::String, FaceSceneError> {
+        // At most 64 suffix bytes and 130 measured candidates across two hint forms.
+        // Never scan or clone the full admitted input to paint its preview.
+        let mut initial = value.len().saturating_sub(64);
+        while !value.is_char_boundary(initial) {
+            initial += 1;
+        }
+        for compact in [false, true] {
+            let mut start = initial;
+            loop {
+                let preview = alloc::format!(
+                    "Draft{}: {}{} · Enter{}",
+                    if start > 0 { " (end)" } else { "" },
+                    if start > 0 { "…" } else { "" },
+                    &value[start..],
+                    if compact { "" } else { " applies" }
+                );
+                if preview.len() <= conduit_face::MAX_GRAPHICS_TEXT_BYTES
+                    && self.admit_footer(&preview, scale).is_ok()
+                {
+                    return Ok(preview);
+                }
+                let Some(next) = value[start..].chars().next() else {
+                    break;
+                };
+                start += next.len_utf8();
+            }
+        }
+        // Compact chrome can be narrower than the explicit suffix label.
+        let preview = alloc::string::String::from("Draft… · Enter");
+        self.admit_footer(&preview, scale)?;
+        Ok(preview)
+    }
+
     pub fn admit_footer(&self, text: &str, scale: u16) -> Result<(), FaceSceneError> {
         if height(text, GraphicsTextRole::Muted, self.footer.width, scale)? > self.footer.height {
             return Err(FaceSceneError::InputBound);
         }
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod draft_tests {
+    use super::*;
+    #[test]
+    fn suffix_is_measured_at_each_supported_width_and_scale() {
+        for (width, height, scale) in [
+            (320, 240, 100),
+            (320, 240, 200),
+            (640, 480, 100),
+            (640, 480, 200),
+            (1280, 800, 100),
+            (1280, 800, 200),
+        ] {
+            let chrome = Chrome::prepare(
+                LayoutRect {
+                    x: 0,
+                    y: 0,
+                    width,
+                    height,
+                },
+                scale,
+            )
+            .unwrap();
+            for value in ["a".repeat(64), "é".repeat(32), "雪".repeat(21)] {
+                let preview = chrome.draft_preview(&value, scale).unwrap();
+                chrome.admit_footer(&preview, scale).unwrap();
+                assert!(preview.len() <= conduit_face::MAX_GRAPHICS_TEXT_BYTES);
+                assert!(preview.contains("Draft") && preview.contains("Enter"));
+                if !preview.contains(&value) {
+                    assert!(preview.contains('…'));
+                }
+            }
+        }
     }
 }
