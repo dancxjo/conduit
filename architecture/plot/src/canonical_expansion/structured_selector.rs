@@ -288,6 +288,8 @@ fn expand_expression(
         }
     }
 
+    let boundary_contracts =
+        input_bound::boundary_contracts(source, right_stage, source_plot, gears);
     let input_type = crate::CheckedExpressionType::Semantic(input_kind);
     let mut expression = substitute_immutable_values(expression, source_plot, environment)?;
     let constants = substitution::structured_constants(&expression, source_plot, environment)?;
@@ -364,7 +366,7 @@ fn expand_expression(
         )
     })?;
     checked.input_maximum_bytes = input_bound::checked_bound(source, source_plot, gears)?;
-    input_bound::retain_contracts(&mut checked, source, right_stage, source_plot, gears)?;
+    boundary_contracts.retain(&mut checked)?;
     checked.canonical_literals = canonical_literals;
     checked.immutable_constants = constants;
     if let Some(invariants) = catalog.type_invariants(

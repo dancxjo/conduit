@@ -76,13 +76,20 @@ fn diagnostic(error: impl core::fmt::Debug) -> CanonicalExpansionDiagnostic {
     )
 }
 
-pub(super) fn retain_contracts(
-    checked: &mut crate::CheckedExpression,
+pub(super) struct ExpressionBoundaryContracts {
+    pub(super) input: Option<conduit_core::CheckedValueContract>,
+    pub(super) output: Option<conduit_core::CheckedValueContract>,
+}
+
+/// Resolve the carrier contracts before checking the expression body. Physical
+/// expression typing must not reconstruct or weaken the surrounding evidence
+/// contracts from the carrier Kind alone.
+pub(super) fn boundary_contracts(
     source: &StageSource,
     right: Option<&Stage>,
     plot: &CheckedCanonicalPlot,
     gears: &[CheckedGear],
-) -> Result<(), CanonicalExpansionDiagnostic> {
+) -> ExpressionBoundaryContracts {
     fn retained(
         contract: Option<&conduit_core::CheckedValueContract>,
     ) -> Option<conduit_core::CheckedValueContract> {
@@ -97,7 +104,7 @@ pub(super) fn retain_contracts(
             })
             .cloned()
     }
-    checked.input_value_contract = match source {
+    let input = match source {
         StageSource::FaceInput(name, ..) => retained(
             plot.runtime_front
                 .value_contract(&FrontValueLocation::Input(conduit_core::port_id(name))),
@@ -112,7 +119,7 @@ pub(super) fn retain_contracts(
             })
             .and_then(|c| retained(Some(&c.contract))),
     };
-    checked.output_value_contract = right
+    let output = right
         .and_then(|s| s.input.as_ref())
         .and_then(|s| s.first())
         .and_then(|sink| match sink {
@@ -130,16 +137,27 @@ pub(super) fn retain_contracts(
                 })
                 .and_then(|c| retained(Some(&c.contract))),
         });
-    if matches!(checked.syntax, crate::ExpressionSyntax::Input(_))
-        && super::super::qualified_front::incompatible_physical_sources(
-            checked.input_value_contract.as_ref(),
-            checked.output_value_contract.as_ref(),
-        )
-    {
-        return Err(CanonicalExpansionDiagnostic::new(
-            "CND-FRM-046",
-            "identity expression cannot change a qualified physical source Kind".into(),
-        ));
+    ExpressionBoundaryContracts { input, output }
+}
+
+impl ExpressionBoundaryContracts {
+    pub(super) fn retain(
+        self,
+        checked: &mut crate::CheckedExpression,
+    ) -> Result<(), CanonicalExpansionDiagnostic> {
+        checked.input_value_contract = self.input;
+        checked.output_value_contract = self.output;
+        if matches!(checked.syntax, crate::ExpressionSyntax::Input(_))
+            && super::super::qualified_front::incompatible_physical_sources(
+                checked.input_value_contract.as_ref(),
+                checked.output_value_contract.as_ref(),
+            )
+        {
+            return Err(CanonicalExpansionDiagnostic::new(
+                "CND-FRM-046",
+                "identity expression cannot change a qualified physical source Kind".into(),
+            ));
+        }
+        Ok(())
     }
-    Ok(())
 }
