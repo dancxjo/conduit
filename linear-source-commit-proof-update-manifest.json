@@ -1,0 +1,22 @@
+{
+  "parent": "97586da084d7962ea4daee035e837c42270e4662",
+  "scope": "Native stage05 current-dev refresh and exact preflight receipt; normal product and all five emulator runs passed; Candidate still running",
+  "files": [
+    {
+      "source": "work/6039-source-recovery-handoff.md",
+      "tree_path": "task-6038/work/6039-source-recovery-handoff.md",
+      "bytes": 23628,
+      "sha256": "6bcf009260d1899aaba572cd1bbdc0c0126cbc3140911b6e86373ad95e377191",
+      "mode": "100644",
+      "blob": "470d60a3e09bd1ab9b6c67657868e664517c8cd6"
+    },
+    {
+      "source": "outputs/6039-linear-source-commits/receipt.json",
+      "tree_path": "task-6038/outputs/6039-linear-source-commits/receipt.json",
+      "bytes": 2115,
+      "sha256": "4aa5520fdc560acadd6e6395e09de990a2f80356b6d2b1bdbfd5142587513900",
+      "mode": "100644",
+      "blob": "d445caa44fa5c3a7204f815247090e8e06aa3282"
+    }
+  ]
+}

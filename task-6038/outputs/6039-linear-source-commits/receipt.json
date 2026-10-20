@@ -1,0 +1,45 @@
+{
+  "source": "2489304d6644a94bb15e1672ca7ac75d86c3ce9e",
+  "parent": "afcc28f6a74391a14a66311285720c10c9a87295",
+  "branch": "codex/6039-source-contract",
+  "origin_verified": true,
+  "scope": "Test-only linear-derived choice proposals through real BirthDraft with checked Mask fixture; no production/native/browser changes",
+  "files": [
+    "plots/birth/src/face/collection_reconstruction_tests.rs",
+    "plots/birth/src/face/linear_collection_commit_tests.rs"
+  ],
+  "focused": {
+    "passed": 2,
+    "failed": 0,
+    "ignored": 0
+  },
+  "birth_library": {
+    "passed": 39,
+    "failed": 0,
+    "ignored": 0
+  },
+  "strict_clippy": "Birth lib/tests warnings denied passed",
+  "format_and_patch_hygiene": "passed",
+  "independent_review": "No blockers; kinds come from declared specimen profile, action/target/argumentname/optionbytes from actual linear output",
+  "refusal_boundary": "Stale replay reaches owner admission and is refused; forged membership/unavailable proposals refuse during checked interaction construction. Owner Face remains unchanged.",
+  "limits": "Held C1 Source on historical base; not refreshed/currentdev/installed owner/BodyPlay/terminalI/O/platform/Candidate/Integration/stable proof. Existing stale browser contract pin remains a known final-refresh gate.",
+  "logs": {
+    "6039-linear-source-commits-first.log": {
+      "sha256": "896f7d92a9f050fe0e5258fc7a210dac7ad7c41b0d6eaba4844efc6b78ebde9b",
+      "bytes": 748
+    },
+    "6039-linear-source-commits-birth-lib.log": {
+      "sha256": "933d1f2b0418df26f0e2e94ae6927630c454083b1f6d3da090f6e3c69bf9b3fc",
+      "bytes": 4793
+    },
+    "6039-linear-source-commits-clippy.log": {
+      "sha256": "8f15512dea6cb47fde94168da1d89ccea0f0093849182905bedc63716a4f364e",
+      "bytes": 187
+    }
+  },
+  "finished": "2026-10-20T16:12:52Z",
+  "committed_file_hashes": {
+    "plots/birth/src/face/collection_reconstruction_tests.rs": "0466f449e2063bff7fceaaeaa65c7a030d492ff090c316575b07205641a40ed7",
+    "plots/birth/src/face/linear_collection_commit_tests.rs": "8ffa568e456fa22b3b54b7428ca21075a624cd55fe685b0f7a253dd8a641ab9b"
+  }
+}
