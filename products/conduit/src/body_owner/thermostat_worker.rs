@@ -69,6 +69,7 @@ impl Owner {
                 "Thermostat scan requires an idle exact resident and bounded duration".into(),
             );
         }
+        self.ensure_execution_retained(root)?;
         let bytes =
             super::super::super::bounded_read(&root.join("body/source.conduit"), 256 * 1024)?;
         let source = crate::plot_source::parse(std::str::from_utf8(&bytes).map_err(debug)?)?;
@@ -78,6 +79,7 @@ impl Owner {
         self.set_resident_plot_name(&checked)?;
         self.plan_with_source(&source, &checked)?;
         self.persist(root)?;
+        state::require_execution_capacity(root)?;
         let proposed = self
             .session
             .realization()
@@ -334,16 +336,7 @@ impl ThermostatWorker {
             "scan_cancellation_failed":report.scan_cancellation_failed,
             "scan_output_completion_failed":report.scan_output_completion_failed,
         });
-        state::retain_session(
-            root,
-            &mut next,
-            Some(&receipt),
-            owner.admissions.as_ref(),
-            None,
-            None,
-        )?;
-        owner.session = next;
-        owner.last_execution = Some(receipt);
+        owner.retain_execution(root, next, receipt)?;
         owner.thermostat_live = None;
         Ok(true)
     }

@@ -6,6 +6,8 @@ use super::super::{
 use conduit_body::{BodyBiographyArchiveSegment, BodyBiographyEvidence, BodyLifecycleSession};
 #[path = "state_archive.rs"]
 mod archive;
+#[path = "state_execution_custody.rs"]
+mod execution_custody;
 #[cfg(test)]
 use archive::archive_path;
 use archive::{retain_archive_segments, validate_archive_segments, verify_retained_archive};
@@ -20,6 +22,8 @@ struct Transaction {
     installation: Installation,
     #[serde(default)]
     last_execution: Option<serde_json::Value>,
+    #[serde(default)]
+    execution_custody: Option<execution_custody::Prepared>,
     #[serde(default)]
     admissions: Option<conduit_body::AdmissionManager>,
     /// A checked source replacement travels with the matching biography.
@@ -87,19 +91,33 @@ fn commit(root: &Path, transaction: &Transaction) -> Result<(), String> {
     }
     if let Some(source) = &transaction.source {
         validate_source(&transaction.biography, source)?;
+    }
+    validate_archive_segments(root, &transaction.biography, &transaction.archives)?;
+    // Journal replay preserves immutable outcomes before replacing current state.
+    let migrated;
+    let custody = if let Some(prepared) = &transaction.execution_custody {
+        prepared
+    } else {
+        migrated = execution_custody::prepare(
+            root,
+            &transaction.installation.host_id,
+            transaction.biography.body_id.as_str(),
+            transaction.last_execution.as_ref(),
+        )?;
+        &migrated
+    };
+    custody.require_latest(transaction.last_execution.as_ref())?;
+    execution_custody::commit(
+        root,
+        custody,
+        &transaction.installation.host_id,
+        transaction.biography.body_id.as_str(),
+    )?;
+    if let Some(source) = &transaction.source {
         write_bytes_atomic(&root.join("body/source.conduit"), source)?;
     }
     retain_archive_segments(root, &transaction.biography, &transaction.archives)?;
     write_bytes_atomic(&root.join("body/biography.json"), &bytes)?;
-    write_json_atomic(
-        &root.join("body/owner-execution.json"),
-        &serde_json::json!({
-            "host_id": transaction.installation.host_id, "body_id": transaction.biography.body_id,
-            "schema": "conduit.body/owner-execution@1",
-            "sha256": digest(&serde_json::to_vec(&transaction.last_execution).map_err(|e| e.to_string())?),
-            "last_execution": transaction.last_execution
-        }),
-    )?;
     if let Some(manager) = &transaction.admissions {
         // The installed Host's invitation entrance and its foreground owner
         // must consume the same single-use admission authority.
@@ -214,6 +232,7 @@ fn retain_inner(
     todo_selection: Option<&super::super::selected_todo::Selection>,
     archives: &[BodyBiographyArchiveSegment],
 ) -> Result<(), String> {
+    recover(root)?;
     validate_archive_segments(root, biography, archives)?;
     if let Some(source) = source {
         validate_source(biography, source)?;
@@ -263,11 +282,25 @@ fn retain_inner(
         biography_sha256: digest(&bytes),
         biography_path: directory.join("biography.json").display().to_string(),
     });
+    if new_play_started(root, biography)? {
+        execution_custody::require_capacity(
+            root,
+            &installation.host_id,
+            biography.body_id.as_str(),
+        )?;
+    }
+    let execution_custody = execution_custody::prepare(
+        root,
+        &installation.host_id,
+        biography.body_id.as_str(),
+        last_execution,
+    )?;
     let transaction = Transaction {
         schema: "conduit.body/owner-transaction@1".into(),
         biography: biography.clone(),
         installation,
         last_execution: last_execution.cloned(),
+        execution_custody: Some(execution_custody),
         admissions: admissions.cloned(),
         source: source.map(Vec::from),
         archives: archives.to_vec(),
@@ -325,33 +358,12 @@ pub(super) fn load(root: &Path) -> Result<Option<BodyBiographyEvidence>, String>
 
 /// Retained execution is historical evidence, never an instruction to restart a Play.
 pub(super) fn execution(root: &Path) -> Result<Option<serde_json::Value>, String> {
-    let file = root.join("body/owner-execution.json");
-    if !file.exists() {
-        return Ok(None);
-    }
-    let value: serde_json::Value = serde_json::from_slice(&bounded_read(&file, 192 * 1024)?)
-        .map_err(|e| format!("invalid owner execution receipt: {e}"))?;
+    recover(root)?;
     let installation = read_installation(&root.join("installation.json"))?;
-    if value["schema"] != "conduit.body/owner-execution@1"
-        || value["sha256"].as_str()
-            != Some(
-                digest(&serde_json::to_vec(&value["last_execution"]).map_err(|e| e.to_string())?)
-                    .as_str(),
-            )
-        || value["host_id"].as_str() != Some(installation.host_id.as_str())
-        || value["body_id"].as_str()
-            != installation
-                .body_state
-                .as_ref()
-                .map(|body| body.body_id.as_str())
-    {
-        return Err("execution receipt belongs to another Host or Body".into());
-    }
-    match value.get("last_execution") {
-        Some(serde_json::Value::Null) => Ok(None),
-        Some(receipt) if receipt.is_object() => Ok(Some(receipt.clone())),
-        _ => Err("execution receipt is malformed".into()),
-    }
+    let Some(binding) = &installation.body_state else {
+        return Ok(None);
+    };
+    execution_custody::latest(root, &installation.host_id, &binding.body_id)
 }
 
 /// Continuity keys are retained with the same recoverable biography transaction.
@@ -389,3 +401,49 @@ mod archive_tests;
 #[cfg(test)]
 #[path = "state_tests.rs"]
 mod tests;
+
+/// Finite retrospective receipts, never instructions to execute historical work.
+pub(super) fn execution_history(root: &Path) -> Result<serde_json::Value, String> {
+    recover(root)?;
+    let installation = read_installation(&root.join("installation.json"))?;
+    let Some(binding) = &installation.body_state else {
+        return Err("execution custody requires a retained Body".into());
+    };
+    execution_custody::history(root, &installation.host_id, &binding.body_id)
+}
+pub(super) fn require_execution_capacity(root: &Path) -> Result<(), String> {
+    recover(root)?;
+    let installation = read_installation(&root.join("installation.json"))?;
+    let binding = installation
+        .body_state
+        .as_ref()
+        .ok_or("execution custody requires a retained Body")?;
+    execution_custody::require_capacity(root, &installation.host_id, &binding.body_id)
+}
+fn new_play_started(root: &Path, biography: &BodyBiographyEvidence) -> Result<bool, String> {
+    let file = root.join("body/biography.json");
+    let previous: Option<BodyBiographyEvidence> = if file.exists() {
+        Some(
+            serde_json::from_slice(&bounded_read(&file, MAXIMUM_STATE)?)
+                .map_err(|e| e.to_string())?,
+        )
+    } else {
+        None
+    };
+    let old: std::collections::BTreeSet<_> = previous
+        .iter()
+        .flat_map(|b| &b.wakes)
+        .flat_map(|w| &w.plans)
+        .filter_map(|p| p.active_play_id.as_ref())
+        .collect();
+    Ok(biography
+        .wakes
+        .iter()
+        .flat_map(|w| &w.plans)
+        .filter_map(|p| p.active_play_id.as_ref())
+        .any(|play| !old.contains(play)))
+}
+
+#[cfg(test)]
+#[path = "state_execution_custody_tests.rs"]
+mod execution_custody_tests;

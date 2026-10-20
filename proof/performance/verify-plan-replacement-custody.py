@@ -19,8 +19,18 @@ def require(condition, message):
 
 
 def verify(log):
-    records = [json.loads(line) for line in log.splitlines() if line.startswith('{')]
-    records = [row for row in records if "case" in row]
+    records = []
+    for line in log.splitlines():
+        start = line.find('{')
+        if start < 0:
+            continue
+        try:
+            row, _ = json.JSONDecoder().raw_decode(line[start:])
+        except ValueError:
+            continue
+        if isinstance(row, dict):
+            records.append(row)
+    records = [row for row in records if row.get("case") in CASES]
     require(len(records) == 3 and {r['case'] for r in records} == CASES, "missing or duplicate lifecycle case")
     require(any(line.startswith('test result: ok. 3 passed; 0 failed;') for line in log.splitlines()), "missing successful test result")
     for row in records:

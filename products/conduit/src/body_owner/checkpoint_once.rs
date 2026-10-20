@@ -129,6 +129,7 @@ impl Owner {
         command: &TodoCommand,
         maximum_millis: u64,
     ) -> Result<TodoState, String> {
+        self.ensure_execution_retained(state_root)?;
         if !(1..=60_000).contains(&maximum_millis) {
             return Err("checkpoint run duration must be 1..60000 milliseconds".into());
         }
@@ -171,6 +172,7 @@ impl Owner {
             },
         ];
         self.persist(state_root)?;
+        state::require_execution_capacity(state_root)?;
         let authority = self.host.advertisement().clone();
         let control = RunControl::default();
         let session = &mut self.session;
@@ -277,16 +279,7 @@ impl Owner {
             "committed_fore_count":report.fore_deliveries.len(),
             "committed_fore_sha256":report.fore_deliveries.first().map(|fore| super::super::super::digest(&fore.bytes)),
         });
-        state::retain_session(
-            state_root,
-            &mut next,
-            Some(&receipt),
-            self.admissions.as_ref(),
-            None,
-            None,
-        )?;
-        self.session = next;
-        self.last_execution = Some(receipt);
+        self.retain_execution(state_root, next, receipt)?;
         delivered
     }
 }

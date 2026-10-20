@@ -29,8 +29,14 @@ for name, case, mutate in controls:
     mutate(changed)
     lines = []
     for line in log.splitlines():
-        if line.startswith('{') and json.loads(line).get('case') == case:
-            line = json.dumps(changed, separators=(',', ':'))
+        start = line.find('{')
+        if start >= 0:
+            try:
+                row, end = json.JSONDecoder().raw_decode(line[start:])
+            except ValueError:
+                row, end = {}, 0
+            if isinstance(row, dict) and row.get('case') == case:
+                line = line[:start] + json.dumps(changed, separators=(',', ':')) + line[start+end:]
         lines.append(line)
     try:
         verify('\n'.join(lines))

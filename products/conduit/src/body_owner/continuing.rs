@@ -44,6 +44,7 @@ impl Owner {
         if self.host.is_playing() || self.session.realization().is_some() {
             return Err("Body already has a current proposal or Play".into());
         }
+        self.ensure_execution_retained(root)?;
         let checked = super::super::checked_retained_source(root)?
             .ok_or("retained source is unavailable for Body Play")?;
         let resident = ResidentPlot::new(
@@ -55,6 +56,7 @@ impl Owner {
         }
         self.plan(&checked)?;
         self.persist(root)?;
+        state::require_execution_capacity(root)?;
         let proposed = self
             .session
             .realization()
@@ -188,16 +190,7 @@ impl Owner {
                 })
             }
         };
-        state::retain_session(
-            root,
-            &mut next,
-            Some(&receipt),
-            self.admissions.as_ref(),
-            None,
-            None,
-        )?;
-        self.session = next;
-        self.last_execution = Some(receipt);
+        self.retain_execution(root, next, receipt)?;
         Ok(())
     }
 }

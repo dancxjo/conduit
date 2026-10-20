@@ -6,6 +6,8 @@ use conduit_std_host::{StdHost, StdHostConfig};
 
 use crate::mask_test_common;
 
+#[path = "owner_execution_custody_tests.rs"]
+mod owner_execution_custody;
 #[path = "todo_continuity_tests.rs"]
 mod todo_continuity;
 

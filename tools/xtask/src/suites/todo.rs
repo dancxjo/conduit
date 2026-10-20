@@ -133,6 +133,13 @@ pub(super) const TODO_DURABILITY_STEPS: &[Step] = &[
             "checkpoint_once::tests",
             "--",
             "--test-threads=1",
+            "--nocapture",
         ],
+    ),
+    Step::new(
+        "todo-durability.execution-custody",
+        "Prove finite historical owner receipt retention, replay and corruption/capacity refusal",
+        "cargo",
+        &["test", "--locked", "-p", "conduit", "--bin", "conduit", "durable_host::owner::state::", "--", "--test-threads=1"],
     ),
 ];
