@@ -394,7 +394,19 @@
       "warnings": "deny",
       "log_sha256": "9d2ff0a16cb4e798198259fdf1a1a77ac0a0291b1fe62cf06893cfee5fce3391"
     },
-    "focused_current_head_tests": "Candidate ConduitOS library shard includes all native_face_scene laws with bothfeatures; result pending",
+    "focused_current_head_tests": {
+      "status": "passed",
+      "passed": 105,
+      "failed": 0,
+      "ignored": 0,
+      "filter": "native_face",
+      "features": [
+        "hosted-tools",
+        "native-compositor"
+      ],
+      "test_threads": 1,
+      "log_sha256": "9742c920515817c73d5d300f2b0b3c130c19f1927e0d8070860fa4513342c76f"
+    },
     "historical_cpu_tests": "447 at3557606fc, not relabeled current"
   }
 }

@@ -1,0 +1,62 @@
+{
+  "parent": "cf1915b6ea0d6eac2b59532076329488bea1fcc5",
+  "scope": "Native stage05 current-dev refresh and exact preflight receipt; normal product and all five emulator runs passed; Candidate still running",
+  "files": [
+    {
+      "source": "work/6055-body-final-ceaefa32c.md",
+      "tree_path": "task-6038/work/6055-body-final-ceaefa32c.md",
+      "bytes": 6441,
+      "sha256": "ca6b2680323757548be12a8e3dd815358590be341f241e86fc1e1b4fb5415baf",
+      "mode": "100644",
+      "blob": "ac1b851b16614c93fbba2f8e99e99e519237e01f"
+    },
+    {
+      "source": "work/6055-body-final-ceaefa32c.json",
+      "tree_path": "task-6038/work/6055-body-final-ceaefa32c.json",
+      "bytes": 6498,
+      "sha256": "5583db4bf5dd0a1e602a9c499b40458f36ab20a61b1e2891744d546a4209b59b",
+      "mode": "100644",
+      "blob": "49e6456444692f2f22eb59692331ffd9bedc5b6d"
+    },
+    {
+      "source": "work/5990-ceaefa32c-acceptance-audit.md",
+      "tree_path": "task-6038/work/5990-ceaefa32c-acceptance-audit.md",
+      "bytes": 4909,
+      "sha256": "d007a9cca6d7e5d10ab6a9d77253c9f504496b5fb6a2ec1f0c4306426305fdcf",
+      "mode": "100644",
+      "blob": "29b7f9e7100902b1a33782de2025b03770afc4ab"
+    },
+    {
+      "source": "outputs/5990-stage05-ceaefa32c/receipt.json",
+      "tree_path": "task-6038/outputs/5990-stage05-ceaefa32c/receipt.json",
+      "bytes": 17708,
+      "sha256": "f3acdd37ef15208cc5ced611055a6e4d93d615fba2cd3894bfcc18c39dc0a990",
+      "mode": "100644",
+      "blob": "8256bed69c0d9a04155996ff2b220269d6b0af07"
+    },
+    {
+      "source": "work/5994-current-acceptance-1538.json",
+      "tree_path": "task-6038/work/5994-current-acceptance-1538.json",
+      "bytes": 9223,
+      "sha256": "e0be009e8fe4a8b62ed2faf6e4b9c0db82f7c693200aa1d0a990236f2d8853d9",
+      "mode": "100644",
+      "blob": "4832eb761a70688a0f171cd683a7f80309de4a21"
+    },
+    {
+      "source": "work/6038-current-acceptance-1538.json",
+      "tree_path": "task-6038/work/6038-current-acceptance-1538.json",
+      "bytes": 8706,
+      "sha256": "30971d2c241bf2b1e19596edead73968e969c11f5602640d3f7beee3927663df",
+      "mode": "100644",
+      "blob": "10b172e7f2d1acdfe3aeed208ceddf35934d9df4"
+    },
+    {
+      "source": "work/remaining-route-criteria-1539.json",
+      "tree_path": "task-6038/work/remaining-route-criteria-1539.json",
+      "bytes": 34738,
+      "sha256": "b477cc9ca952a0d6517214d433fbe3355b45b04772faff3557e3137bd3dc2356",
+      "mode": "100644",
+      "blob": "ad2047d708070ea338f25503d232b3cbc2d4f9f5"
+    }
+  ]
+}
