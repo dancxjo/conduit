@@ -1,0 +1,111 @@
+{
+  "schema": "conduit.generator-input-observation@1",
+  "source": "dc8c4a0a96b73af2fba020f2ae58a3c458d7ce9a",
+  "observed_at_utc": "2026-10-20T06:24:27.706233+00:00",
+  "scope": "One generator seam: human types and keymap schemas, their two Rust generators, and an unrelated runtime-source edit. Transitive Rust build dependencies remain Cargo-owned; this does not claim every transitive file was mutated. Fresh-output replay uses the newly compiled generator executable in an empty OUT_DIR. Other local activity is present.",
+  "result": "Existing direct-input invalidation for this seam is narrow; no generator implementation change is needed. This is not a claim of minimal invalidation inside the shared checker dependency.",
+  "command": [
+    "cargo",
+    "build",
+    "--locked",
+    "--release",
+    "-p",
+    "conduit-human"
+  ],
+  "build_dependency_opt_level": 1,
+  "toolchain": "rustc 1.98.1 (48a229cea 2026-09-01)\nbinary: rustc\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\ncommit-date: 2026-09-01\nhost: x86_64-unknown-linux-gnu\nrelease: 1.98.1\nLLVM version: 22.1.8\n",
+  "declared_schema_inputs": [
+    "keymap-layouts.conduit",
+    "types.conduit"
+  ],
+  "automatic_rust_inputs": [
+    "build.rs",
+    "keymap_layout_build.rs"
+  ],
+  "cargo_build_dependency_packages": [
+    "conduit-core",
+    "conduit-plot"
+  ],
+  "trials": [
+    {
+      "label": "cold",
+      "wall_seconds": 76.97526089393068,
+      "cpu_seconds": 153.379169
+    },
+    {
+      "label": "warm",
+      "wall_seconds": 0.15395617194008082,
+      "cpu_seconds": 0.15501399999998577
+    },
+    {
+      "label": "unrelated-runtime",
+      "wall_seconds": 4.823999831918627,
+      "cpu_seconds": 6.5827180000000185,
+      "input": "semantics/human/src/lib.rs",
+      "input_sha256": "a0e466593e6ff7c6467ef8f9aefab558494e3ba32de72d39aab8d46b4cec30a5",
+      "generator_reran": false,
+      "fresh_generator_output_equal": true,
+      "generated_file_count": 2,
+      "generated_manifest_sha256": "169a80fb64385bb02808f32e4990cd53a7de1bc8e7110a0bb2afb0b2a3a7bcd1"
+    },
+    {
+      "label": "types-schema",
+      "wall_seconds": 8.563963509048335,
+      "cpu_seconds": 10.62498399999998,
+      "input": "semantics/human/types.conduit",
+      "input_sha256": "6ae598e76813f635d716ab1966c5e1ef817902014a5147544c7dded858408078",
+      "generator_reran": true,
+      "fresh_generator_output_equal": true,
+      "generated_file_count": 2,
+      "generated_manifest_sha256": "169a80fb64385bb02808f32e4990cd53a7de1bc8e7110a0bb2afb0b2a3a7bcd1"
+    },
+    {
+      "label": "keymap-schema",
+      "wall_seconds": 8.497665522969328,
+      "cpu_seconds": 10.590319999999997,
+      "input": "semantics/human/keymap-layouts.conduit",
+      "input_sha256": "aa4e909c3ca06823c85d3fd22a5d7f296812c0224a0f8a3e3c2a4aba1dffa354",
+      "generator_reran": true,
+      "fresh_generator_output_equal": true,
+      "generated_file_count": 2,
+      "generated_manifest_sha256": "a10a38c7d68277889b4b1d3bed13b148b4f99b3bf894f55143ed52c2f39f2741"
+    },
+    {
+      "label": "type-generator",
+      "wall_seconds": 8.54115537495818,
+      "cpu_seconds": 10.608366000000023,
+      "input": "semantics/human/build.rs",
+      "input_sha256": "d99eefef409f3103c9755b62d2d19af98052bff63257210f322739922cdea80d",
+      "generator_reran": true,
+      "fresh_generator_output_equal": true,
+      "generated_file_count": 2,
+      "generated_manifest_sha256": "169a80fb64385bb02808f32e4990cd53a7de1bc8e7110a0bb2afb0b2a3a7bcd1"
+    },
+    {
+      "label": "keymap-generator",
+      "wall_seconds": 8.56616580102127,
+      "cpu_seconds": 10.67204799999999,
+      "input": "semantics/human/keymap_layout_build.rs",
+      "input_sha256": "c76c4437f897fc3f364f48e60767ac02c0a5ab928de521a6351308f8da966168",
+      "generator_reran": true,
+      "fresh_generator_output_equal": true,
+      "generated_file_count": 2,
+      "generated_manifest_sha256": "169a80fb64385bb02808f32e4990cd53a7de1bc8e7110a0bb2afb0b2a3a7bcd1"
+    }
+  ],
+  "all_direct_inputs_regenerate": true,
+  "unrelated_edit_does_not_regenerate": true,
+  "fresh_output_replays_match": true,
+  "original_source_restored": true,
+  "restore_checks_passed": 5,
+  "accepted_main_with_unchanged_inputs": "b6f1ed3f1e9f7ec1ffc7eaef1e79a90fd7bdef24",
+  "unchanged_accepted_paths": [
+    "semantics/human",
+    "architecture/core",
+    "architecture/plot",
+    "architecture/assigned-plan",
+    "Cargo.lock",
+    "rust-toolchain.toml",
+    ".cargo"
+  ]
+}

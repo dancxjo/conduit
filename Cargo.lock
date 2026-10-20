@@ -1587,6 +1587,7 @@ dependencies = [
  "conduit-body-make",
  "conduit-browser-mask-offer",
  "conduit-chat",
+ "conduit-composite",
  "conduit-conduitos-mask-offer",
  "conduit-core",
  "conduit-data",

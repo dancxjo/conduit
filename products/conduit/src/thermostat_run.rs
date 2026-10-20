@@ -1,4 +1,5 @@
 //! Ordinary CLI Play for the exact authored Thermostat scan, with typed stdin controls.
+mod evidence;
 use crate::plot_source::CanonicalSource;
 use conduit_core::{
     port_id, BaseImplementationId, ConnectionTrack, PlannedActivationEntry, PortDirection,
@@ -37,45 +38,44 @@ pub(crate) fn run(
         output.flush().map_err(|e| e.to_string())?;
     }
     let report = execution.finish()?;
-    let child_signs = report.scan_child_signs.as_ref().map_err(|e| format!("child Signs: {e:?}"))?.iter().map(|child| serde_json::json!({
-        "parent_active_play_id": child.parent_active_play_id, "activation_id":child.activation_id,
-        "selected_plan_id":child.selected_plan_id,"invocation":child.invocation,"child_host_id":child.child_host_id,
-        "child_active_play_id":child.child_active_play_id,"events":child.events.iter().map(event_json).collect::<Vec<_>>()
-    })).collect::<Vec<_>>();
-    let native = serde_json::json!({"schema":"conduit.thermostat/native-body-run@1","proof_class":"local-hosted",
-        "authored_source":source.source, "advertisement": advertisement, "source_plan": source_plan, "body_plan":body_plan,
-        "play":report.play,"terminal":report.terminal,"terminal_sign":report.terminal_sign,
-        "kernel_events":report.kernel_events.iter().map(event_json).collect::<Vec<_>>(),"scan_child_signs":child_signs,
-        "failure":report.failure,"cleanup_failure":report.cleanup_failure,
-        "scan_cancellation_failed":report.scan_cancellation_failed,"scan_output_completion_failed":report.scan_output_completion_failed,
-        "outputs":report.fore_deliveries.iter().map(|delivery| serde_json::json!({"front_port_id":delivery.front_port_id,"value_kind":delivery.value_kind,"sequence":delivery.sequence,"track":delivery.track,"bytes":delivery.bytes})).collect::<Vec<_>>()});
-    if let Some(path) = report_path {
-        write_json(path, &native)?;
-    }
-    if let Some(directory) = artifacts {
-        std::fs::create_dir(directory).map_err(|e| e.to_string())?;
-        std::fs::write(directory.join("source.conduit"), &source.source)
-            .map_err(|e| e.to_string())?;
-        for (file, value) in [
-            (
-                "plan.json",
-                serde_json::json!({"schema":"conduit.thermostat/source-plan@1","plan":source_plan}),
-            ),
-            (
-                "body-plan.json",
-                serde_json::json!({"schema":"conduit.thermostat/body-plan@1","body_plan":body_plan}),
-            ),
-            (
-                "play.json",
-                serde_json::json!({"schema":"conduit.thermostat/body-play@1","identity":report.play}),
-            ),
-            (
-                "sign.json",
-                serde_json::json!({"schema":"conduit.thermostat/body-sign@1","identity":report.terminal_sign,"scan_child_signs":child_signs}),
-            ),
-            ("report.json", native),
-        ] {
-            write_json(&directory.join(file), &value)?;
+    if let Some(evidence) = evidence::render(
+        report_path.is_some() || artifacts.is_some(),
+        source,
+        &advertisement,
+        &source_plan,
+        &body_plan,
+        &report,
+    )? {
+        let child_signs = evidence.child_signs;
+        let native = evidence.report;
+        if let Some(path) = report_path {
+            write_json(path, &native)?;
+        }
+        if let Some(directory) = artifacts {
+            std::fs::create_dir(directory).map_err(|e| e.to_string())?;
+            std::fs::write(directory.join("source.conduit"), &source.source)
+                .map_err(|e| e.to_string())?;
+            for (file, value) in [
+                (
+                    "plan.json",
+                    serde_json::json!({"schema":"conduit.thermostat/source-plan@1","plan":source_plan}),
+                ),
+                (
+                    "body-plan.json",
+                    serde_json::json!({"schema":"conduit.thermostat/body-plan@1","body_plan":body_plan}),
+                ),
+                (
+                    "play.json",
+                    serde_json::json!({"schema":"conduit.thermostat/body-play@1","identity":report.play}),
+                ),
+                (
+                    "sign.json",
+                    serde_json::json!({"schema":"conduit.thermostat/body-sign@1","identity":report.terminal_sign,"scan_child_signs":child_signs}),
+                ),
+                ("report.json", native),
+            ] {
+                write_json(&directory.join(file), &value)?;
+            }
         }
     }
     if report.cleanup_failure.is_some()
@@ -119,9 +119,6 @@ fn write_json(path: &std::path::Path, value: &serde_json::Value) -> Result<(), S
     )
     .map_err(|e| e.to_string())?;
     std::fs::rename(temporary, path).map_err(|e| e.to_string())
-}
-fn event_json(event: &conduit_kernel::KernelEvent) -> serde_json::Value {
-    serde_json::json!({"sequence":event.sequence,"node":event.node.0,"port":event.port.map(|p|p.0),"request":event.request.map(|r|r.0),"kind":format!("{:?}",event.kind)})
 }
 
 fn prepare(

@@ -27,9 +27,13 @@ pub fn run(arguments: &[String], dry_run: bool) -> Result<(), Box<dyn std::error
     }
     if !matches!(
         owners.as_str(),
-        "fresh" | "prepared" | "prepared-compact-local"
+        "fresh"
+            | "prepared"
+            | "prepared-compact-local"
+            | "prepared-matrix-local"
+            | "prepared-matrix-source-cache"
     ) {
-        return Err("FARGAN owners must be fresh, prepared or prepared-compact-local".into());
+        return Err("FARGAN owners must be fresh, prepared, prepared-compact-local, prepared-matrix-local or prepared-matrix-source-cache".into());
     }
     let root = crate::workspace::workspace_root()?;
     let fixture = fixture

@@ -20,6 +20,8 @@ sha2 = { version = "0.10", default-features = false }
 [features]
 # Hosted preparation only: immutable checked built-in catalogues, never model data.
 hosted-catalog-cache = []
+# Development proof only: retain the prior scalar arithmetic over the same view.
+matrix-projection-reference = []
 default = []
 kernel-step = ["dep:conduit-kernel"]
 kernel-operation-owners = ["kernel-step", "dep:conduit-composite", "dep:conduit-plan-lowering"]
@@ -46,3 +48,7 @@ conduit-plot = { path = "../../architecture/plot" }
 [[example]]
 name = "fargan_performance"
 required-features = ["kernel-operation-owners"]
+
+[[example]]
+name = "matrix_projection_performance"
+required-features = ["matrix-projection-reference"]

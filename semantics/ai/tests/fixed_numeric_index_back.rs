@@ -74,6 +74,7 @@ fn fixture(name: &str, ty: &StructuredInfoType, source: bool) -> CapabilityOffer
 enum Driver<const I: usize, const O: usize> {
     Source(ValueRef, bool),
     Operation(Box<FixedIndexBack<I, O>>),
+    Compact(Box<conduit_ai::fixed_numeric_compact_slice::CompactSliceBack<I, O>>),
     Sink(Rc<Cell<bool>>, Vec<u8>),
 }
 impl<const I: usize, const O: usize> StepBack<PORTS> for Driver<I, O> {
@@ -91,6 +92,7 @@ impl<const I: usize, const O: usize> StepBack<PORTS> for Driver<I, O> {
                 StepOutcome::Complete
             }
             Self::Operation(back) => back.step(io, inputs),
+            Self::Compact(back) => back.step(io, inputs),
             Self::Sink(seen, expected) => {
                 if io.input(KPort(0)).is_none() {
                     return StepOutcome::Await;
@@ -103,20 +105,36 @@ impl<const I: usize, const O: usize> StepBack<PORTS> for Driver<I, O> {
         }
     }
     fn step_committed(&mut self) {
-        if let Self::Operation(back) = self {
-            <FixedIndexBack<I, O> as StepBack<PORTS>>::step_committed(back);
+        match self {
+            Self::Operation(back) => {
+                <FixedIndexBack<I, O> as StepBack<PORTS>>::step_committed(back)
+            }
+            Self::Compact(back) => {
+                <conduit_ai::fixed_numeric_compact_slice::CompactSliceBack<I, O> as StepBack<
+                    PORTS,
+                >>::step_committed(back)
+            }
+            _ => (),
         }
     }
     fn prepared_output(&self, port: KPort) -> Option<&[u8]> {
         if let Self::Operation(back) = self {
             <FixedIndexBack<I, O> as StepBack<PORTS>>::prepared_output(back, port)
+        } else if let Self::Compact(back) = self {
+            <conduit_ai::fixed_numeric_compact_slice::CompactSliceBack<I,O> as StepBack<PORTS>>::prepared_output(back,port)
         } else {
             None
         }
     }
     fn cancel(&mut self) {
-        if let Self::Operation(back) = self {
-            <FixedIndexBack<I, O> as StepBack<PORTS>>::cancel(back);
+        match self {
+            Self::Operation(back) => <FixedIndexBack<I, O> as StepBack<PORTS>>::cancel(back),
+            Self::Compact(back) => {
+                <conduit_ai::fixed_numeric_compact_slice::CompactSliceBack<I, O> as StepBack<
+                    PORTS,
+                >>::cancel(back)
+            }
+            _ => (),
         }
     }
 }
@@ -127,6 +145,19 @@ fn exercise<const I: usize, const O: usize, const N: usize, const C: usize>(
     expected: [f32; O],
     overflow: bool,
     pressure: bool,
+) {
+    exercise_owner::<I, O, N, C>(
+        operation, input, indices, expected, overflow, pressure, false,
+    )
+}
+fn exercise_owner<const I: usize, const O: usize, const N: usize, const C: usize>(
+    operation: FixedIndexOperation,
+    input: [f32; I],
+    indices: &[u16],
+    expected: [f32; O],
+    overflow: bool,
+    pressure: bool,
+    compact: bool,
 ) {
     let mut startup = conduit_plot::StartupCatalog::new();
     let mut profiles = conduit_plot::ProfileCatalog::new();
@@ -254,14 +285,22 @@ fn exercise<const I: usize, const O: usize, const N: usize, const C: usize>(
             } else if let Some(index) = gear.kind_id.as_str().strip_prefix("numeric-test/source") {
                 Driver::Source(references[index.parse::<usize>().unwrap()], false)
             } else {
-                Driver::Operation(Box::new(
-                    FixedIndexBack::prepare_planned::<PORTS>(
-                        gear,
-                        lowered.node_specs[i].maximum_step_fuel,
-                        operation,
-                    )
-                    .unwrap(),
-                ))
+                let owner = FixedIndexBack::prepare_planned::<PORTS>(
+                    gear,
+                    lowered.node_specs[i].maximum_step_fuel,
+                    operation,
+                )
+                .unwrap();
+                if compact {
+                    Driver::Compact(Box::new(
+                        conduit_ai::fixed_numeric_compact_slice::CompactSliceBack::from_slice(
+                            owner,
+                        )
+                        .unwrap(),
+                    ))
+                } else {
+                    Driver::Operation(Box::new(owner))
+                }
             }
         })
         .collect();
@@ -309,8 +348,10 @@ fn exercise<const I: usize, const O: usize, const N: usize, const C: usize>(
     assert_eq!(refused, overflow || pressure);
     if pressure {
         for driver in scheduler.drivers() {
-            if let Driver::Operation(back) = driver {
-                assert!(!back.has_committed_result());
+            match driver {
+                Driver::Operation(back) => assert!(!back.has_committed_result()),
+                Driver::Compact(back) => assert!(!back.has_committed_result()),
+                _ => (),
             }
         }
         scheduler.cancel().unwrap();
@@ -423,3 +464,6 @@ fn ordinary_gather640x160_retains_explicit_indices_and_refuses_overflow_or_press
             .is_ok()
     );
 }
+
+#[path = "fixed_numeric_index_back/compact.rs"]
+mod compact_tests;

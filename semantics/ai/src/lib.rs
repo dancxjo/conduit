@@ -228,6 +228,10 @@ mod fixed_numeric_signal_catalog;
 pub mod fixed_numeric_operations_back;
 
 #[cfg(feature = "kernel-step")]
+pub mod fixed_numeric_compact_linear;
+#[cfg(feature = "kernel-step")]
+pub mod fixed_numeric_compact_slice;
+#[cfg(feature = "kernel-step")]
 pub mod fixed_numeric_linear_back;
 
 #[cfg(feature = "kernel-step")]
