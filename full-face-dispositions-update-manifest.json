@@ -1,0 +1,22 @@
+{
+  "parent": "ac200e4dabba1bb3d357545132969581fd53a74c",
+  "scope": "Held Face full test-target dispositions and handoff; raw logs excluded",
+  "files": [
+    {
+      "source": "work/6039-source-recovery-handoff.md",
+      "tree_path": "task-6038/work/6039-source-recovery-handoff.md",
+      "bytes": 21102,
+      "sha256": "e5e8917308729083662504afdb8336137eb2fc231b7051dde9f624dae9a6850c",
+      "mode": "100644",
+      "blob": "a35681d4e42dd33bf9952d2f20432ba07d9f1153"
+    },
+    {
+      "source": "outputs/6039-held-face-suite-3e2d7e364/receipt.json",
+      "tree_path": "task-6038/outputs/6039-held-face-suite-3e2d7e364/receipt.json",
+      "bytes": 1217,
+      "sha256": "be53daa5e173afd5d56114b51a24e1e298d89745963d12e7f66c468b2238db23",
+      "mode": "100644",
+      "blob": "39af1e0ff0dc5d5e39767e33a05798fed3644cd5"
+    }
+  ]
+}

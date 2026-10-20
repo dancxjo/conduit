@@ -1,0 +1,20 @@
+{
+  "source": "3e2d7e3641eb51fe5f21ccce86d77799e66b9f80",
+  "scope": "Full conduit-face test targets on held historical C1 Source only; no current-dev/platform/full-workspace acceptance",
+  "command": "cargo +stable test --locked -p conduit-face --tests --no-fail-fast",
+  "exit_code": 101,
+  "test_target_summaries": 60,
+  "totals": {
+    "passed": 298,
+    "failed": 1,
+    "ignored": 2
+  },
+  "failed_target": "look_browser_binding",
+  "failed_test": "browser_profile_matches_checked_source_and_native_type_exactly",
+  "failure": "Checked Face source digest no longer matches browser LOOK_CONTRACT_SOURCE_SHA256; Source/browser pin refresh is already required when refreshing C1 onto accepted native stage05. Preserve ActionTarget plus Collection selectors and update final exact hash once.",
+  "disposition": "One explicit stale binding pin; all other discovered Face test targets passed. Not overall green. Do not weaken/skip guard or claim current-dev product failure.",
+  "logs": {
+    "6039-held-full-face-tests.log": "09d10232290f67fbfc77ed1426cda7e04cc6279092d6e8a844f966a8e74c0333",
+    "6039-held-face-all-target-dispositions.log": "30a1990628a67296028a1bccd96035423f088d880c4f0fe0a3665cd0bec6fd82"
+  }
+}
