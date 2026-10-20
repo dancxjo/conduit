@@ -1,0 +1,36 @@
+{
+  "objective": "merge6055;fix6158/finish5990;close5607;finish5992/remainingnativeproof;Patchbayinteraction",
+  "completed": {
+    "6055_merge": "2024df899d52cd89c6ca553c6626066a09a8cad9"
+  },
+  "candidate": {
+    "run": 39471533018,
+    "status": "success",
+    "tested_head": "e29922753a2fca04145551bbb6ae00504fed76a9",
+    "preview": "a7320fe33261f6277b668a3a068569f941e0247f",
+    "tree": "77166933eb300f12a64e2ddf445d7a39b69183ee"
+  },
+  "merged_tree": "f6088d8fc2d7c24233cb1eb7698d05aa9ed8a171",
+  "combined_integration": {
+    "run": 39484454692,
+    "last_observed": "pending19:48UTC"
+  },
+  "6158_prepared_head": "63af5abb13a8939d2c52665f61dfd5666e76d50b",
+  "6158_next": "Candidate+combineddevhealth;exactbase/treecheck;merge;scopeclosure5990/5607",
+  "parked": [
+    "C1/C2/W1/W4/N4 portablecontrols",
+    "6159generalmechanicallayoutproposal"
+  ],
+  "goal_status": "active",
+  "6158_current": {
+    "pr": 6162,
+    "head": "e1c6dda63e71247c268aaf44fd7d3cdad8b925da",
+    "tree": "fccca2ce0c48203790d02443bb594298dbc4aa48",
+    "ready": true,
+    "local": "295preflight/111nativeFace/Clippy/fmt/fiveNormalQEMU passed",
+    "proof_origin": "9aed8d8597480bebbb6b7f3ff3db9a4d6a57635b",
+    "screens_origin": "aa7face54221ec1d4fb79f37e7a21ae290d81ddb",
+    "candidate_run": 39485010086,
+    "candidate_observed": "in_progress19:48UTC"
+  }
+}

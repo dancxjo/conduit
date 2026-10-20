@@ -1,0 +1,30 @@
+{
+  "parent": "aa7face54221ec1d4fb79f37e7a21ae290d81ddb",
+  "scope": "Exact e1c native field cohesion checks and normal-product QEMU metadata; raw products remain local",
+  "files": [
+    {
+      "source": "work/6158-ready-pr-body.md",
+      "tree_path": "task-6038/work/6158-ready-pr-body.md",
+      "bytes": 1998,
+      "sha256": "a8a5b6da3a158c0e81b4b19a234c4c5ffe6ff8537d38e6e5002f4bcd1fcd8a79",
+      "mode": "100644",
+      "blob": "cef9bb96a1465d2d1a438c60581a500eb60d8b2e"
+    },
+    {
+      "source": "work/6158-current-proof-comment.md",
+      "tree_path": "task-6038/work/6158-current-proof-comment.md",
+      "bytes": 1105,
+      "sha256": "3abd77ce8bd4686e9f417d6636935160baa723d8fe9d78a9fa8da453f21bc0dc",
+      "mode": "100644",
+      "blob": "bb0aa3923f417d2d9d99c66e290c7d37086df7a1"
+    },
+    {
+      "source": "work/revised-native-goal-state.json",
+      "tree_path": "task-6038/work/revised-native-goal-state.json",
+      "bytes": 1349,
+      "sha256": "89afc94daf9ab6a638e4e75ec21396b797a910e67bae329af3172d0ae58049cd",
+      "mode": "100644",
+      "blob": "6e43338cf9289a7f2c66ffa886903f825dfced4d"
+    }
+  ]
+}
