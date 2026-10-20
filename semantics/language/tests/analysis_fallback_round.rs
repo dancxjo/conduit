@@ -4,6 +4,8 @@
 mod fixture;
 #[path = "common/analysis_epoch_runtime.rs"]
 mod runtime;
+#[path = "common/analysis_session_probe.rs"]
+mod session_probe;
 use conduit_core::revision::*;
 use conduit_language::{
     analysis_epoch_initialization::*,
@@ -34,6 +36,8 @@ fn actual_fallback_rounds_commit_then_handoff_without_reopening_protected_prefix
     run_scenario(&mut runtime, false);
     run_scenario(&mut runtime, true);
 }
+// Borrowed event slots must precede the owner so retained history drops first.
+#[allow(clippy::needless_late_init)]
 fn run_scenario(runtime: &mut runtime::Runtime, dispute: bool) {
     let old = fixture::revision("answer ", None, 7);
     let next = fixture::revision("answer record ", Some(&old), 7);
@@ -381,9 +385,7 @@ fn run_scenario(runtime: &mut runtime::Runtime, dispute: bool) {
         direct = AnalysisSession::new(&old_domain, context, limits).unwrap();
         direct.append(&proposed, None, false, false).unwrap();
         direct.append(&stable, None, false, false).unwrap();
-        direct
-            .append(&commit, Some(&receipt), false, false)
-            .unwrap();
+        session_probe::append_and_current(&mut direct, &commit, proposed.reference(), &receipt);
         direct
             .append(&same_epoch_correction, None, false, false)
             .unwrap();

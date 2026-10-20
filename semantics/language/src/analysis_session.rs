@@ -1,6 +1,8 @@
 //! One shared dependency-analysis authority over the existing revision journal.
 //! Installed owners retain this session; receipt preparation alone is not current.
+use crate::dependency_commitment::CommittedSnapshot;
 use crate::{dependency_commitment::PreparedCommittedDependency, revision::*, *};
+use alloc::vec::Vec;
 use conduit_core::revision::*;
 #[derive(Debug)]
 pub enum AnalysisSessionRefusal {
@@ -14,8 +16,9 @@ pub enum AnalysisSessionRefusal {
 pub struct AnalysisSession<'a> {
     journal: RevisionJournal<'a, DependencyRevisions<'a>>,
     source: &'a LanguageText,
-    committed: Option<LanguageCommittedDependencyAdmission>,
-    lexical: Option<LanguageLexicalTape>,
+    // Retain every prior snapshot through execution: replacement cannot drop
+    // the final share of a full Native admission or lexical tape.
+    committed: Vec<CommittedSnapshot>,
     publication_dispute: Option<RevisionReference<'a>>,
 }
 /// Borrowing the owning session prevents advancing it while using this authority.
@@ -45,8 +48,7 @@ impl<'a> AnalysisSession<'a> {
         Ok(Self {
             journal: RevisionJournal::new(domain, context, TokenFrontier(0), limits)?,
             source: domain.source_text,
-            committed: None,
-            lexical: None,
+            committed: Vec::with_capacity(limits.history_events),
             publication_dispute: None,
         })
     }
@@ -59,8 +61,7 @@ impl<'a> AnalysisSession<'a> {
         Ok(Self {
             journal: RevisionJournal::new(domain, context, initial, limits)?,
             source: domain.source_text,
-            committed: None,
-            lexical: None,
+            committed: Vec::with_capacity(limits.history_events),
             publication_dispute: None,
         })
     }
@@ -108,6 +109,9 @@ impl<'a> AnalysisSession<'a> {
             if self.publication_dispute.is_some() {
                 return Err(Corrected);
             }
+            if self.committed.len() == self.committed.capacity() {
+                return Err(Pressure);
+            }
             let receipt = receipt.ok_or(Commitment)?;
             let arc = self.current_arc(*revision)?;
             let query = receipt.admission().query();
@@ -133,8 +137,7 @@ impl<'a> AnalysisSession<'a> {
         }
         if matches!(event.change(), RevisionChange::Committed { .. }) {
             let receipt = receipt.ok_or(Commitment)?;
-            self.committed = Some(receipt.admission().clone());
-            self.lexical = Some(receipt.lexical().clone());
+            self.committed.push(receipt.shared_snapshot());
         }
         Ok(())
     }
@@ -146,8 +149,10 @@ impl<'a> AnalysisSession<'a> {
         if self.publication_dispute.is_some() {
             return Err(AnalysisSessionRefusal::Corrected);
         }
-        if self.lexical.as_ref() != Some(receipt.lexical())
-            || self.committed.as_ref() != Some(receipt.admission())
+        if !self
+            .committed
+            .last()
+            .is_some_and(|snapshot| snapshot.matches(receipt))
             || receipt.admission().query().source().material() != self.source
             || self.current_arc(reference)? != receipt.arc()
             || self.journal.frontiers().committed.0 <= *receipt.arc().dependent().token().ordinal()
