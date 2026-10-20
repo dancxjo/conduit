@@ -1,0 +1,218 @@
+   Compiling generic-array v0.14.7
+   Compiling serde v1.0.229
+   Compiling zeroize v1.9.0
+   Compiling subtle v2.6.1
+   Compiling conduit-time v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/time)
+   Compiling memchr v2.8.3
+   Compiling signature v2.2.0
+   Compiling ed25519 v2.2.3
+   Compiling crypto-common v0.1.7
+   Compiling block-buffer v0.10.4
+   Compiling conduit-assigned-plan v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/architecture/assigned-plan)
+   Compiling digest v0.10.7
+   Compiling serde_json v1.0.151
+   Compiling sha2 v0.10.9
+   Compiling conduit-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/architecture/core)
+   Compiling conduit-kernel v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/architecture/kernel)
+   Compiling curve25519-dalek v4.1.3
+   Compiling postcard v1.1.3
+   Compiling ed25519-dalek v2.2.0
+   Compiling conduit-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/face)
+   Compiling conduit-data v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/data)
+   Compiling conduit-web v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/web)
+   Compiling conduit-process v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/process)
+   Compiling conduit-alife v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/alife)
+   Compiling conduit-net v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/net)
+   Compiling conduit-text v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/text)
+   Compiling conduit-robotics v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/robotics)
+   Compiling conduit-purpose v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/purpose)
+   Compiling conduit-education v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/education)
+   Compiling stable_deref_trait v1.2.1
+   Compiling serde_spanned v0.6.9
+   Compiling toml_datetime v0.6.11
+   Compiling conduit-ai v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/ai)
+   Compiling static-automata v1.0.3
+   Compiling toml_edit v0.22.27
+   Compiling langtag v1.1.0
+   Compiling heapless v0.8.0
+   Compiling speaking v0.1.0 (https://github.com/dancxjo/tongues.git?rev=b5d7535b2ccd3730b4db878fb61b2e4e48ae89c9#b5d7535b)
+   Compiling toml v0.8.23
+   Compiling simd-adler32 v0.3.10
+   Compiling serde-json-core v0.6.0
+   Compiling conduit-signal v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/signal)
+   Compiling conduit-tongues v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/tongues)
+   Compiling conduit-chat v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/chat)
+   Compiling zerofrom v0.1.8
+   Compiling yoke v0.8.3
+   Compiling zerovec v0.11.8
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/architecture/plot)
+   Compiling conduit-body v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/architecture/body)
+   Compiling conduit-language v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/language)
+   Compiling conduit-planner v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/architecture/planner)
+   Compiling conduit-human v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/human)
+   Compiling conduit-audio v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/audio)
+   Compiling conduit-midi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/mechanisms/protocols/midi)
+   Compiling conduit-semantic-catalog v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/catalog)
+   Compiling conduit-plan-lowering v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/architecture/plan-lowering)
+   Compiling conduit-host-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/make/host)
+   Compiling conduit-todo-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/plots/todo/model)
+   Compiling conduit-thermostat-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/plots/thermostat/model)
+   Compiling tongues-pipeline v0.1.0 (https://github.com/dancxjo/tongues.git?rev=b5d7535b2ccd3730b4db878fb61b2e4e48ae89c9#b5d7535b)
+   Compiling conduit-std-offers v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/std/offers)
+   Compiling inout v0.1.4
+   Compiling log v0.4.34
+   Compiling conduit-wire v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/architecture/wire)
+   Compiling cipher v0.4.4
+   Compiling universal-hash v0.5.1
+   Compiling writeable v0.6.4
+   Compiling poly1305 v0.8.0
+   Compiling chacha20 v0.9.1
+   Compiling miniz_oxide v0.8.9
+   Compiling aead v0.5.2
+   Compiling crc32fast v1.5.2
+   Compiling tinystr v0.8.4
+   Compiling chacha20poly1305 v0.10.1
+   Compiling rustls-pki-types v1.15.1
+   Compiling unicode-width v0.2.2
+   Compiling litemap v0.8.3
+   Compiling icu_locale_core v2.3.0
+   Compiling icu_locale_fallback_data v2.3.0
+   Compiling conduit-tutorial-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/tutorial)
+   Compiling noise-rust-crypto v0.6.2
+   Compiling conduit-bluetooth v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/mechanisms/protocols/bluetooth)
+   Compiling potential_utf v0.1.6
+   Compiling zerotrie v0.2.5
+   Compiling conduit-host-browser-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/browser/make)
+   Compiling conduit-composite v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/architecture/composite)
+   Compiling conduit-observatory v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/architecture/observatory)
+   Compiling patchbay-graph v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/plots/patchbay/graph)
+   Compiling x25519-dalek v2.0.1
+   Compiling miniz_oxide v0.9.1
+   Compiling patchbay-control v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/plots/patchbay)
+   Compiling bytemuck v1.25.2
+   Compiling float-cmp v0.9.0
+   Compiling icu_segmenter_data v2.3.0
+   Compiling strict-num v0.1.1
+   Compiling conduit-plot-library v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/plot-library)
+   Compiling conduit-body-invitation-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/body-invitation)
+   Compiling patchbay-application v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/plots/patchbay/application)
+   Compiling flate2 v1.1.10
+   Compiling conduit-protected-line v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/architecture/protected-line)
+   Compiling icu_provider v2.3.1
+   Compiling conduit-signal-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/proof/conformance/signal)
+   Compiling conduit-speech v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/speech)
+   Compiling conduit-host-hosted v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/std/make)
+   Compiling conduit-host-esp32-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/esp32/make)
+   Compiling conduit-host-conduitos-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/conduitos/make)
+   Compiling conduit-linear-framebuffer-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/mechanisms/implementations/linear-framebuffer-make)
+   Compiling conduit-host-avr-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/avr/make)
+   Compiling conduit-host-rp2040 v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/rp2040/make)
+   Compiling conduit-host-orange-pi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/orange-pi/make)
+   Compiling conduit-host-raspberry-pi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/raspberry-pi/make)
+   Compiling conduit-tour-model v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/plots/tour)
+   Compiling conduit-synth v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/mechanisms/implementations/synth)
+   Compiling conduit-birth-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/plots/birth)
+   Compiling utf8parse v0.2.2
+   Compiling utf8_iter v1.0.4
+   Compiling arrayref v0.3.9
+   Compiling once_cell v1.21.4
+   Compiling tiny-skia-path v0.11.4
+   Compiling icu_collections v2.3.0
+   Compiling portable-atomic v1.15.0
+   Compiling anstyle-parse v1.0.0
+   Compiling conduit-browser-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/browser/runtime)
+   Compiling icu_locale_fallback v2.3.0
+   Compiling rustls-webpki v0.103.15
+   Compiling conduit-browser-mask-offer v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/browser/mask-offer)
+   Compiling conduit-thermostat-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/plots/thermostat/face)
+   Compiling conduit-body-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/make/body)
+   Compiling conduit-little-seismograph-fixture v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/plots/little-seismograph/fixture)
+   Compiling kurbo v0.11.3
+   Compiling fdeflate v0.3.7
+   Compiling is_terminal_polyfill v1.70.2
+   Compiling anstyle-query v1.1.5
+   Compiling bitflags v1.3.2
+   Compiling anstyle v1.0.14
+   Compiling colorchoice v1.0.5
+   Compiling strsim v0.11.1
+   Compiling anstream v1.0.0
+   Compiling png v0.17.16
+   Compiling ureq-proto v0.6.4
+   Compiling conduit-home-model v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/home)
+   Compiling conduit-finance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/finance)
+   Compiling svgtypes v0.15.3
+   Compiling icu_segmenter v2.3.0
+   Compiling rustls v0.23.45
+   Compiling webpki-roots v1.0.9
+   Compiling console v0.16.6
+   Compiling simplecss v0.2.2
+   Compiling imagesize v0.13.0
+   Compiling clap_lex v1.1.1
+   Compiling xmlwriter v0.1.0
+   Compiling roxmltree v0.20.0
+   Compiling smawk v0.3.3
+   Compiling unit-prefix v0.5.2
+   Compiling base64 v0.22.1
+   Compiling data-url v0.3.2
+   Compiling pico-args v0.5.0
+   Compiling conduit-create-oi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/mechanisms/devices/create-oi)
+   Compiling usvg v0.45.1
+   Compiling pulldown-cmark v0.12.2
+   Compiling ureq v3.4.2
+   Compiling tungstenite v0.30.0
+   Compiling indicatif v0.18.6
+   Compiling textwrap v0.16.4
+   Compiling clap_builder v4.6.7
+   Compiling conduitos v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/conduitos)
+   Compiling heapless v0.7.17
+   Compiling tiny-skia v0.11.4
+   Compiling conduit-workspace-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/make/workspace)
+   Compiling conduit-r1-network-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/proof/conformance/network-r1)
+   Compiling rgb v0.8.53
+   Compiling rustls-pemfile v2.2.0
+   Compiling getopts v0.2.24
+   Compiling conduit-patchbay-workbench-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/proof/conformance/patchbay-workbench)
+   Compiling conduit-todo-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/plots/todo/face)
+   Compiling conduit-alife-distributed-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/proof/conformance/alife-distributed)
+   Compiling conduit-conduitos-mask-offer v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/conduitos/mask-offer)
+   Compiling patchbay-workbench-host-contract v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/plots/patchbay/workbench/host-contract)
+   Compiling conduit-rp2040-network-realization v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/rp2040/network-realization)
+   Compiling sha1 v0.10.7
+   Compiling unicase v2.9.0
+   Compiling pulldown-cmark-escape v0.11.0
+   Compiling conduit-mpu6050 v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/mechanisms/devices/mpu6050)
+   Compiling embedded-websocket v0.9.5
+   Compiling conduit-pete v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/bodies/pete)
+   Compiling resvg v0.45.1
+   Compiling clap v4.6.7
+   Compiling cliclack v0.5.6
+   Compiling conduit-embedded-build v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/make/embedded-build)
+   Compiling conduit-std-host v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/std)
+   Compiling conduit-patchbay-workbench v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/plots/patchbay/workbench/model)
+   Compiling xtask v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/tools/xtask)
+error[E0063]: missing field `manifest` in initializer of `commands::conduitos::build::ProfileMake<'_>`
+  --> tools/xtask/src/commands/../../../../targets/conduitos/make/xtask/build/aarch64_domain.rs:23:14
+   |
+23 |         Some(ProfileMake {
+   |              ^^^^^^^^^^^ missing `manifest`
+
+error[E0063]: missing field `manifest` in initializer of `commands::conduitos::build::ProfileMake<'_>`
+  --> tools/xtask/src/commands/../../../../targets/conduitos/make/xtask/build/ia32_domain.rs:23:14
+   |
+23 |         Some(ProfileMake {
+   |              ^^^^^^^^^^^ missing `manifest`
+
+error[E0063]: missing field `manifest` in initializer of `commands::conduitos::build::ProfileMake<'_>`
+  --> tools/xtask/src/commands/../../../../targets/conduitos/make/xtask/build/loongarch64_domain.rs:23:14
+   |
+23 |         Some(ProfileMake {
+   |              ^^^^^^^^^^^ missing `manifest`
+
+error[E0063]: missing field `manifest` in initializer of `commands::conduitos::build::ProfileMake<'_>`
+  --> tools/xtask/src/commands/../../../../targets/conduitos/make/xtask/build/riscv64_domain.rs:23:14
+   |
+23 |         Some(ProfileMake {
+   |              ^^^^^^^^^^^ missing `manifest`
+
+For more information about this error, try `rustc --explain E0063`.
+error: could not compile `xtask` (bin "xtask" test) due to 4 previous errors

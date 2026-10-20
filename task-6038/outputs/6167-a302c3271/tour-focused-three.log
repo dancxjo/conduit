@@ -1,0 +1,16 @@
+   Compiling ring v0.17.14
+   Compiling rustls v0.23.45
+   Compiling rustls-webpki v0.103.15
+   Compiling ureq v3.4.2
+   Compiling conduit-std-host v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/std)
+   Compiling conduitos v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/conduitos)
+    Finished `test` profile [optimized] target(s) in 1m 12s
+     Running unittests src/lib.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/deps/conduitos-9bf31814da61c6ef)
+
+running 3 tests
+test tour_shell::lifecycle::tests::native_host_projection_keeps_full_identity_without_inventing_lines_or_membership ... ok
+test tour_shell::scene::content_tests::projected_host_status_uses_actual_label_geometry_or_refuses_unrenderable_cells ... ok
+test tour_workspace::tests::native_scene_manifests_every_shared_region_and_visible_focus ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 1222 filtered out; finished in 0.05s
+

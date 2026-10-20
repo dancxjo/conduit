@@ -1,0 +1,16 @@
+   Compiling conduitos v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/conduitos)
+   Compiling xtask v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/tools/xtask)
+    Finished `test` profile [optimized] target(s) in 51.27s
+     Running unittests src/main.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/deps/xtask-e9ae8d923015936c)
+
+running 7 tests
+test commands::conduitos::command::headless_command_tests::headless_proof_requires_exact_output_directory ... ok
+test commands::conduitos::headless_profile::tests::only_exact_empty_x86_product_retains_final_elf_symbols ... ok
+test commands::conduitos::headless_proof::validation::tests::headless_proof_rejects_false_success_graphics_and_invented_workload ... ok
+test commands::conduitos::headless_proof::validation::tests::headless_proof_requires_real_entry_and_excludes_linked_graphical_symbols ... ok
+test commands::conduitos::target_build::tests::checked_headless_profile_enters_the_same_authoritative_target_lowering ... ok
+test commands::conduitos::target_lowering::tests::http_profile_selects_exact_native_closure_and_headless_omits_it ... ok
+test commands::pico::flash::tests::accepts_only_one_fixed_headless_mount_path ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 578 filtered out; finished in 0.17s
+

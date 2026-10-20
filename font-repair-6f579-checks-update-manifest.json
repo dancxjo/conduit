@@ -1,0 +1,158 @@
+{
+  "parent": "d30db4d884f19254b30d999a5e839bed68ee96bc",
+  "scope": "Font repair source-bound checks including preserved failed compile and broad library run, then test-only corrections; fresh guest proof pending",
+  "files": [
+    {
+      "source": "work/revised-native-goal-state.json",
+      "tree_path": "task-6038/work/revised-native-goal-state.json",
+      "bytes": 3190,
+      "sha256": "b10a62bd9fd01114224df9ea14ee5141a22f758c8403d57ea7ade77bb095e0d7",
+      "mode": "100644",
+      "blob": "f653199b6f6c3a3c3f1c71a735838a03207269b3"
+    },
+    {
+      "source": "work/5992-draft-pr-body.md",
+      "tree_path": "task-6038/work/5992-draft-pr-body.md",
+      "bytes": 2515,
+      "sha256": "ed006b927e9d1246d226dcf7c279410760c85a5907244f33c2d44575d4b7abbd",
+      "mode": "100644",
+      "blob": "7f28fdd23af6dcfe9c93bdb92677f6b279090ab9"
+    },
+    {
+      "source": "work/run-5992-6f579f684-product-proof.py",
+      "tree_path": "task-6038/work/run-5992-6f579f684-product-proof.py",
+      "bytes": 3026,
+      "sha256": "5f5c0adf094348ebd26e395c815c977979eb7da8c442f6441c288ff2ea3902ca",
+      "mode": "100644",
+      "blob": "2551b9a9c1fe25731422ef5b97002d711a3f3683"
+    },
+    {
+      "source": "work/6167-frozen-repair-progress.md",
+      "tree_path": "task-6038/work/6167-frozen-repair-progress.md",
+      "bytes": 631,
+      "sha256": "e2a44300a130893333a4a7ad93de4b04e9705c99b1bf33df7ce1f9ea47b1d4d6",
+      "mode": "100644",
+      "blob": "b3f1f72eea2d258c751a9a8b5ea008e4b339b35b"
+    },
+    {
+      "source": "outputs/6167-a302c3271/corrected-frozen-source-sha256.json",
+      "tree_path": "task-6038/outputs/6167-a302c3271/corrected-frozen-source-sha256.json",
+      "bytes": 1570,
+      "sha256": "aeabd60ef9d08c73ed10e8398789831e73961d293bc184ec475aebc3cef408ae",
+      "mode": "100644",
+      "blob": "f5b6e8248f5aa5a76d1b73892e9d2e9f049ced2a"
+    },
+    {
+      "source": "outputs/6167-a302c3271/preflight.log",
+      "tree_path": "task-6038/outputs/6167-a302c3271/preflight.log",
+      "bytes": 30877,
+      "sha256": "5255d9ac723f22b5bf67a5582f39e3a082f24bf197fc4828436e7b91f2e4e870",
+      "mode": "100644",
+      "blob": "e66bbed757eb486549c9099e849cda58fe6940a0"
+    },
+    {
+      "source": "outputs/6167-a302c3271/fmt.log",
+      "tree_path": "task-6038/outputs/6167-a302c3271/fmt.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "mode": "100644",
+      "blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+    },
+    {
+      "source": "outputs/6167-a302c3271/headless-focused-first.log",
+      "tree_path": "task-6038/outputs/6167-a302c3271/headless-focused-first.log",
+      "bytes": 15855,
+      "sha256": "005afb572507031fd8e4820962e61254a4134c37a0cd23bae96da4414e141b60",
+      "mode": "100644",
+      "blob": "4e51bea350afe9d9f9b4d748d8ec50c028fa4b46"
+    },
+    {
+      "source": "outputs/6167-a302c3271/review-first.patch",
+      "tree_path": "task-6038/outputs/6167-a302c3271/review-first.patch",
+      "bytes": 8771,
+      "sha256": "f0e367a37c99409980edcd8a9bc28c1cb6eeadfac845e734143f19b46e42b632",
+      "mode": "100644",
+      "blob": "fdc656a9b41d407e7721d19e819ec9109caea85e"
+    },
+    {
+      "source": "outputs/6167-a302c3271/hosted-conduitos-wrapper.log",
+      "tree_path": "task-6038/outputs/6167-a302c3271/hosted-conduitos-wrapper.log",
+      "bytes": 137028,
+      "sha256": "a38810aa52895c1ad204da128330d0443ae1c7045d14de09a0dff45e92879c79",
+      "mode": "100644",
+      "blob": "e8c508fca2f684ef9b07fabeb6c147f5074b3780"
+    },
+    {
+      "source": "outputs/6167-a302c3271/corrected-status.json",
+      "tree_path": "task-6038/outputs/6167-a302c3271/corrected-status.json",
+      "bytes": 1788,
+      "sha256": "bcc03ad5937cccd544a3d44edeffdea0a52c5a03fa417e93b5d5085715c24469",
+      "mode": "100644",
+      "blob": "c4c3aae8036d129afc9f10ed8cc6ede069415d1d"
+    },
+    {
+      "source": "outputs/6167-a302c3271/refresh-range-diff.txt",
+      "tree_path": "task-6038/outputs/6167-a302c3271/refresh-range-diff.txt",
+      "bytes": 83,
+      "sha256": "651e85d4e75bd524f9fbacaf24ad5621c384e3b80d3529b5aa31746acddef02d",
+      "mode": "100644",
+      "blob": "0852d8af76536e805c5d30d5a970be9ee214cc96"
+    },
+    {
+      "source": "outputs/6167-a302c3271/xtask-strict-clippy.log",
+      "tree_path": "task-6038/outputs/6167-a302c3271/xtask-strict-clippy.log",
+      "bytes": 14685,
+      "sha256": "2930a30f84a6886505c5cba0af358312428d981bd5d131d95ce97c8807875e47",
+      "mode": "100644",
+      "blob": "4a3bd1ee00ede94c8d4dd13570bd0489cd6a4a25"
+    },
+    {
+      "source": "outputs/6167-a302c3271/tour-focused-three.log",
+      "tree_path": "task-6038/outputs/6167-a302c3271/tour-focused-three.log",
+      "bytes": 1043,
+      "sha256": "d63c78bf62bdd523cbb9c7750845c9b5f421a3fdc0af70ab1b7e3faec9d44029",
+      "mode": "100644",
+      "blob": "b0e5124ae079fa87664c9304e980934addb58ec8"
+    },
+    {
+      "source": "outputs/6167-a302c3271/native-strict-clippy.log",
+      "tree_path": "task-6038/outputs/6167-a302c3271/native-strict-clippy.log",
+      "bytes": 823,
+      "sha256": "4a6544fa6325efb6dbabd948498294eb30bf928209142b22a4ea01487ea1cac7",
+      "mode": "100644",
+      "blob": "982447fcac226b5012c10048802a97e6eea68cd8"
+    },
+    {
+      "source": "outputs/6167-a302c3271/frozen-source-sha256.json",
+      "tree_path": "task-6038/outputs/6167-a302c3271/frozen-source-sha256.json",
+      "bytes": 1570,
+      "sha256": "a05764c04888b3252e0fb9f5eba38d68f39204acd7f3b1828491eb154275d280",
+      "mode": "100644",
+      "blob": "2d7583a23a89c00913017c09658ea9fa5d4fc490"
+    },
+    {
+      "source": "outputs/6167-a302c3271/status.json",
+      "tree_path": "task-6038/outputs/6167-a302c3271/status.json",
+      "bytes": 223,
+      "sha256": "19c0c927536854de1f310488a825bf97d5329bf4c2879d6fc9086a500eaa576b",
+      "mode": "100644",
+      "blob": "bf16f6c0fdb98ccbce7183475e26f1c3d0817b91"
+    },
+    {
+      "source": "outputs/6167-a302c3271/headless-focused-fixed.log",
+      "tree_path": "task-6038/outputs/6167-a302c3271/headless-focused-fixed.log",
+      "bytes": 1400,
+      "sha256": "5fd09ba51a2bd5e302cb596f4fa8826d30eea2c3fd7714c812dad4bbfe0e50cb",
+      "mode": "100644",
+      "blob": "2e0478dee7e9064c3cd60ec95c95b08d877b8fb9"
+    },
+    {
+      "source": "outputs/6167-a302c3271/committed-source-binding.json",
+      "tree_path": "task-6038/outputs/6167-a302c3271/committed-source-binding.json",
+      "bytes": 3056,
+      "sha256": "5f1abf042d7a3cca71c1bc9a026622415c5d68c4159a32c630c1a4e5974b8de7",
+      "mode": "100644",
+      "blob": "93c17fc071bd2525d2753b4c7501fa713e9adc76"
+    }
+  ]
+}

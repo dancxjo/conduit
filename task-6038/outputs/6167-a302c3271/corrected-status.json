@@ -1,0 +1,91 @@
+[
+  {
+    "name": "tour-focused-three",
+    "args": [
+      "cargo",
+      "+stable",
+      "test",
+      "-p",
+      "conduitos",
+      "--locked",
+      "--features",
+      "hosted-tools,native-compositor",
+      "--lib",
+      "--",
+      "--exact",
+      "tour_shell::lifecycle::tests::native_host_projection_keeps_full_identity_without_inventing_lines_or_membership",
+      "tour_shell::scene::content_tests::projected_host_status_uses_actual_label_geometry_or_refuses_unrenderable_cells",
+      "tour_workspace::tests::native_scene_manifests_every_shared_region_and_visible_focus",
+      "--test-threads=1"
+    ],
+    "status": 0,
+    "seconds": 72.3238615989685
+  },
+  {
+    "name": "xtask-strict-clippy",
+    "args": [
+      "cargo",
+      "+stable",
+      "clippy",
+      "-p",
+      "xtask",
+      "--locked",
+      "--all-targets",
+      "--",
+      "-D",
+      "warnings"
+    ],
+    "status": 0,
+    "seconds": 170.2876582145691
+  },
+  {
+    "name": "native-strict-clippy",
+    "args": [
+      "cargo",
+      "+stable",
+      "clippy",
+      "-p",
+      "conduitos",
+      "--locked",
+      "--features",
+      "hosted-tools,native-compositor",
+      "--lib",
+      "--tests",
+      "--",
+      "-D",
+      "warnings"
+    ],
+    "status": 0,
+    "seconds": 17.47793698310852
+  },
+  {
+    "name": "fmt",
+    "args": [
+      "cargo",
+      "+stable",
+      "fmt",
+      "--package",
+      "xtask",
+      "--package",
+      "conduitos",
+      "--",
+      "--check"
+    ],
+    "status": 0,
+    "seconds": 2.353581190109253
+  },
+  {
+    "name": "preflight",
+    "args": [
+      "cargo",
+      "+stable",
+      "xtask",
+      "ci",
+      "pipeline",
+      "preflight",
+      "00525faf30522b6851d226613e61e277f2b48f43"
+    ],
+    "status": 0,
+    "seconds": 16.848844051361084
+  }
+]

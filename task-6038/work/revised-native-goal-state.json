@@ -44,17 +44,19 @@
   "current_stage": "5992boundedfontmechanism;nativeworkerownsisolatedWT",
   "font_stage": {
     "pr": 6165,
-    "head": "01d9a08e4d8925a0b81ff4e561500d7ceb5e6e2f",
-    "base": "9c2847e431280ea1ed816ae1f09bd065b8b587aa",
-    "tree": "ea15d9b03ee743b7bee30474fa0a0854d84caf9a",
+    "head": "6f579f684500e6bf54c5dd7b5870c5c5c6fb7d6d",
+    "base": "00525faf30522b6851d226613e61e277f2b48f43",
+    "tree": "22e4f4f26457a43ba34a289f50fa6de4d7f4ac0d",
     "draft": true,
-    "candidate": 39496067090,
-    "observed": "terminal_failure2026-10-20T21:29UTC;admissionTourstatusheight;all5nativejobsPassed",
+    "candidate": null,
+    "observed": "newheadpushed;Candidateunobserved",
     "old_prepared_source": "ef8c6c8300236ba7e43845ea24a72e6a2d7a6ff0",
     "old_source_checks": "20typography/113native/2allocation/Clippy/fmt passed; fresh exactSource checks running",
     "product_proof": "exact01d normal7graphicalproofsPassed;headlessblockedBeforeBootByUnregisteredEntranceAndStrippedSymbols;6167repairInProgress",
-    "current_work": "rebasedFontDeltaOn00525;unpublished;workerOwns6167AndActualTourStatusMetricConsumerRepair",
-    "proof_origin": "fc2d74cb42cc3ff4956e888a9275109158f60772"
+    "current_work": "focused3/Clippy/fmt/preflight296green;normalproductbuildrunning",
+    "proof_origin": "fc2d74cb42cc3ff4956e888a9275109158f60772",
+    "previous_published_head": "01d9a08e4d8925a0b81ff4e561500d7ceb5e6e2f",
+    "local_broad_negative": "41cbc:1216pass/2testexpectationfail/3ignored/4filtered;testonlycorrectionfocused3green"
   },
   "stable_through_stage06": {
     "tested_source": "72ab3b367c236653dff0b5726939e08de62390b9",

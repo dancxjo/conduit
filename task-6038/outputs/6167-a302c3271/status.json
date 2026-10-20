@@ -1,0 +1,14 @@
+[
+  {
+    "name": "hosted-conduitos-wrapper",
+    "args": [
+      "cargo",
+      "+stable",
+      "xtask",
+      "check",
+      "workspace-test-hosts-conduitos"
+    ],
+    "status": 1,
+    "seconds": 579.275595664978
+  }
+]

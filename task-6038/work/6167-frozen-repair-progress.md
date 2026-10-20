@@ -1,0 +1,3 @@
+The reviewed repair is preserved on origin at [the frozen source](https://github.com/dancxjo/conduit/commit/41cbc199d7a13ce81f0e98e62797085a6737ec08), pending validation in #6165. It registers the required-output proof command and retains symbols only for the exact resolved empty x86_64 product profile; architecture proof helpers and graphical profile flags remain unchanged. The verifier still rejects missing symbols.
+
+Focused command/profile/validator tests passed. Broader native tests are running. A rebuilt headless image, symbol/font exclusions and both real boots remain pending; this is source recovery, not acceptance.
