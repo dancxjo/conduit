@@ -13,7 +13,10 @@ use std::{io::Write, path::Path};
 
 use conduit_core::{HostAdvertisement, LineOffer, Observation, Plan};
 
-pub use hosted_two_std::{execute_hosted_two_std_plot, HostedTwoHostExecution};
+pub use hosted_two_std::{
+    execute_hosted_two_std_plot, execute_hosted_two_std_plot_with_evidence, HostedTwoHostExecution,
+    RemoteKernelEvidence, TwoHostKernelEvidence, TwoHostPhaseTiming,
+};
 
 /// Exact result of running authored source through the installed hosted Host.
 pub struct HostedPlotExecution {

@@ -1,6 +1,9 @@
 //! Exact two-std-Host realization of one authored text Plot over an admitted Line.
 
+mod evidence;
 mod transport;
+use evidence::PhaseClock;
+pub use evidence::{RemoteKernelEvidence, TwoHostKernelEvidence, TwoHostPhaseTiming};
 
 use std::{collections::BTreeMap, io::Write};
 
@@ -44,7 +47,27 @@ pub fn execute_hosted_two_std_plot(
     source: &str,
     output: &mut impl Write,
 ) -> Result<HostedTwoHostExecution, String> {
+    execute::<false>(source, output).map(|(execution, _)| execution)
+}
+
+/// Execute the same admitted Source/Plan/Line path and retain both kernels'
+/// evidence after terminal drain. This includes owned reconstruction costs;
+/// it is not a second scheduler or an alternative acknowledgement path.
+pub fn execute_hosted_two_std_plot_with_evidence(
+    source: &str,
+    output: &mut impl Write,
+) -> Result<(HostedTwoHostExecution, TwoHostKernelEvidence), String> {
+    let (execution, evidence) = execute::<true>(source, output)?;
+    Ok((execution, evidence.ok_or("two-Host evidence missing")?))
+}
+
+fn execute<const OBSERVE: bool>(
+    source: &str,
+    output: &mut impl Write,
+) -> Result<(HostedTwoHostExecution, Option<TwoHostKernelEvidence>), String> {
+    let mut clock = OBSERVE.then(PhaseClock::new);
     let plot = plot_source::parse(source)?.expand_entry()?;
+    PhaseClock::mark(&mut clock, "source_parse_expand")?;
     let source_host = host(SOURCE_HOST, SOURCE_BOOT);
     let sink_host = host(SINK_HOST, SINK_BOOT);
     let line_offer = line_offer(&source_host, &sink_host);
@@ -65,7 +88,9 @@ pub fn execute_hosted_two_std_plot(
         vec![line_offer],
         Vec::new(),
     )?;
+    PhaseClock::mark(&mut clock, "host_advertisements_context")?;
     let plan = context.plan_with_placements(&plot, &placements(&plot)?)?;
+    PhaseClock::mark(&mut clock, "plan_select")?;
     let source_fragment = plan
         .fragments
         .iter()
@@ -98,15 +123,21 @@ pub fn execute_hosted_two_std_plot(
         &sink_runtime,
         conduit_plan_lowering::lowering::RemoteCordDirection::Ingress,
     )?;
-    let (transfer, sink_output) =
-        transport::execute_line(source_runtime, source_endpoint, sink_runtime, sink_endpoint)?;
+    PhaseClock::mark(&mut clock, "fragments_prepare")?;
+    let (transfer, sink_output, mut evidence) = transport::execute_line::<OBSERVE>(
+        source_runtime,
+        source_endpoint,
+        sink_runtime,
+        sink_endpoint,
+    )?;
+    PhaseClock::mark(&mut clock, "line_and_evidence_retention")?;
     output
         .write_all(&sink_output)
         .map_err(|error| error.to_string())?;
     let result = core::str::from_utf8(&transfer.bytes)
         .map_err(|_| "two-Host text is not UTF-8")?
         .to_string();
-    Ok(HostedTwoHostExecution {
+    let execution = HostedTwoHostExecution {
         source_document_id: plot.source_document_id,
         checked_plot_id: plot.checked_plot_id,
         expanded_plot_id: plot.expanded_plot_id,
@@ -130,7 +161,12 @@ pub fn execute_hosted_two_std_plot(
         line_id,
         transferred_values: 1,
         result,
-    })
+    };
+    PhaseClock::mark(&mut clock, "output_and_execution_receipt")?;
+    if let Some(clock) = clock {
+        evidence.as_mut().ok_or("two-Host evidence missing")?.phases = clock.finish()?;
+    }
+    Ok((execution, evidence))
 }
 
 fn line_offer(source: &StdHost, sink: &StdHost) -> LineOffer {

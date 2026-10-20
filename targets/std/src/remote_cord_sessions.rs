@@ -5,7 +5,10 @@ use conduit_kernel::{CordId, RemoteEndpointId};
 use conduit_plan_lowering::lowering::{
     LoweredPlanFragment, LoweredRemoteEndpoint, RemoteCordDirection,
 };
-use conduit_wire::{SessionBinding, SessionMachine, SessionMessage, SessionRole, WireError};
+use conduit_wire::{
+    encode_session_frame_into, SessionBinding, SessionMachine, SessionMessage, SessionRole,
+    WireError,
+};
 
 const MAXIMUM_REMOTE_ENDPOINTS: usize = 16;
 
@@ -28,6 +31,36 @@ impl RemoteCordSession {
 
     pub fn machine_mut(&mut self) -> &mut SessionMachine {
         &mut self.machine
+    }
+
+    /// Admit and encode with borrowed exact binding metadata and caller storage.
+    /// Admission precedes encoding, as on the existing transport path. An
+    /// encoding failure does not roll back the admitted session transition.
+    pub fn encode_outbound(
+        &mut self,
+        message: SessionMessage<'_>,
+        output: &mut [u8],
+    ) -> Result<usize, WireError> {
+        let frame = self.binding.frame(message);
+        self.machine.admit_outbound(frame)?;
+        encode_session_frame_into(
+            frame,
+            output,
+            self.binding.limits.maximum_payload_bytes,
+            self.binding.attachment.limits.maximum_frame_bytes,
+        )
+    }
+
+    /// Encode this exact session's Hello without cloning its borrowed identities.
+    pub fn encode_outbound_hello(&mut self, output: &mut [u8]) -> Result<usize, WireError> {
+        let frame = self.binding.hello_frame();
+        self.machine.admit_outbound(frame)?;
+        encode_session_frame_into(
+            frame,
+            output,
+            self.binding.limits.maximum_payload_bytes,
+            self.binding.attachment.limits.maximum_frame_bytes,
+        )
     }
 }
 
@@ -241,3 +274,7 @@ mod tests {
         );
     }
 }
+
+#[cfg(test)]
+#[path = "remote_cord_sessions/codec_tests.rs"]
+mod codec_tests;
