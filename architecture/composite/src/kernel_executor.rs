@@ -4,6 +4,7 @@ mod host_dispatch;
 use host_dispatch::{dispatch_matches, outstanding_host_call_index};
 mod parent_play;
 mod preparation;
+mod reusable_value;
 mod sign_storage;
 use crate::child::{
     BoundaryEndpoint, ChildExecutionError, ChildKernel, ChildTerminalError, ChildTransportError,
@@ -20,6 +21,7 @@ use conduit_kernel::{HostCallId, HostCallOutcome, KernelEvent, NodeId, RemoteEnd
 use conduit_plan_lowering::lowering::{LoweredPlanFragment, LoweringError};
 #[cfg(test)]
 use preparation::host_call_obligation_identity;
+pub use reusable_value::{PreparedValueInvocation, ValueInvocationEvidence};
 pub use sign_storage::KernelCompositeSignStorage;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -105,12 +107,12 @@ pub enum KernelCompositeTerminal {
 }
 
 pub struct KernelCompositeHost {
-    definition: KernelCompositeDefinition,
+    definition: alloc::sync::Arc<KernelCompositeDefinition>,
     children: BTreeMap<HostId, ChildKernel>,
     fronts: BTreeMap<PortId, FaceRoute>,
     links: Vec<InternalLink>,
     active_plays: BTreeMap<HostId, ActivePlayId>,
-    parent_play_binding: Option<(ActivePlayId, u16)>,
+    parent_play_binding: Option<(ActivePlayId, String, u16)>,
     started: bool,
     cancelled: bool,
     host_call_obligations:
@@ -122,7 +124,7 @@ pub struct KernelCompositeHost {
 
 impl KernelCompositeHost {
     pub(crate) fn has_exact_definition(&self, definition: &KernelCompositeDefinition) -> bool {
-        &self.definition == definition
+        self.definition.as_ref() == definition
     }
 
     /// Resolve the prepared child identity retained by an execution refusal.
