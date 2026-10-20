@@ -1,0 +1,11 @@
+# Current Patchbay gap audit
+
+Read-only refresh: #5516, #5518, #5519 and #5358 remain open. Inspected font head `3860faa7e` explicitly; `3860` alone is ambiguous. `docs/presenter-hourglass.md` still makes Face identity, relationships and admitted actions authoritative. Closed P1–P4/P6 remain reusable, not work to repeat.
+
+1. **#5516: exact Port/Cord navigation is still missing.** `native_face_scene/diagram_geometry.rs::GearHits` remains six Gear rectangles; `diagram.rs::append` returns those alone. `input.rs::{pointer,key}` therefore select only Gear cards (keys 1–6), although `inspect_subject` already validates current Face/revision and can open complete Gear, Port or Cord Details. Reuse that reader and stale guards. Add a finite, responsibility-named inspection-target/navigation seam with exact Port/Cord identities, deterministic overlapping-hit priority and off-page access; do not grow the existing input reducer or fabricate graph actions. Prove keyboard/pointer role identity, full labels/direction/provenance, refreshed/stale refusal, and unchanged scene/storage bounds. The existing Details helper is Mask-local reading, not proof of an owner-admitted action.
+
+2. **#5518: missing common-specimen observation.** `journey_proof/face_correspondence.rs` already pairs actual guest Face with `render_linear_face`, but explicitly reports browser unsupported. Reuse those exact retained bytes in the actual pinned browser Mask and compare role IDs, ordered endpoints, relationships and selection references against Face truth. Keep missing-endpoint/Unicode/stale fixture variants distinct from real product proof. Do not introduce another graph store or infer cords from geometry.
+
+3. **#5519/#5358: final real-product acceptance.** After #5994 Look/native prerequisites and the above slices, capture one current QEMU Body/Plan journey proving readable compact directional nodes, Gear/Port/Cord Details and >12-link continuation; attach common-Face comparison, narrow/large and topology regressions, and required checks. Existing compact-card receipts and native-linear proofs cover foundations but cannot establish these remaining interactions.
+
+Serial order: #5516 implementation → #5518 common-Face proof → #5519 final guest/parent audit. No new broad layout rewrite.

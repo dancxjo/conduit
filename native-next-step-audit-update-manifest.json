@@ -1,0 +1,22 @@
+{
+  "parent": "943b136f10c0881583ea45a7dfd8ddd37c7229cd",
+  "scope": "Read-only exact-current Patchbay gap audit and observed native font Candidate; implementation remains serial",
+  "files": [
+    {
+      "source": "work/patchbay-current-gap-audit.md",
+      "tree_path": "task-6038/work/patchbay-current-gap-audit.md",
+      "bytes": 2293,
+      "sha256": "881e825fbe0d6ef5bcb50aee081b517974b50873ce8c91e1572b98d6f35fcfed",
+      "mode": "100644",
+      "blob": "292199aa12f34863d1fe6652f819818d73af5a22"
+    },
+    {
+      "source": "work/revised-native-goal-state.json",
+      "tree_path": "task-6038/work/revised-native-goal-state.json",
+      "bytes": 3306,
+      "sha256": "e70ad8c8050c4033724733f5cdd0da1557266b04e4344937566601a2d58db7e6",
+      "mode": "100644",
+      "blob": "72776d4214d9a5798e2d9ec0f934dd34f5ade025"
+    }
+  ]
+}
