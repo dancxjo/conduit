@@ -73,3 +73,18 @@ test('CI browser proof launch selects the sealed release with existing env overr
   assert.match(source, /CONDUIT_BROWSER_RUNTIME_WASM:\s*path\.resolve\(releases,\s*['"]runtime\.wasm['"]\)/);
   assert.match(source, /'--workers', '1', '--retries', '0'/);
 });
+
+test('proof responses expose distinct matching header and Server Timing identities', async t => {
+  const f = await fixture(t);
+  const identities = [];
+  for (let index = 0; index < 2; index++) {
+    const response = await fetch(new URL(legacy, f.url));
+    const identity = response.headers.get('x-conduit-proof-transfer');
+    assert.match(identity, /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}:[1-9][0-9]*$/);
+    assert.equal(response.headers.get('server-timing'), `conduit-transfer;desc="${identity}"`);
+    assert.equal(response.headers.get('cache-control'), 'no-store');
+    assert.equal(await response.text(), 'raw-cargo-diagnostic');
+    identities.push(identity);
+  }
+  assert.notEqual(identities[0], identities[1]);
+});
