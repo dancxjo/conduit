@@ -1,0 +1,94 @@
+--- a/semantics/language/build.rs
++++ b/semantics/language/build.rs
+@@ -12,6 +12,7 @@
+     println!("cargo:rerun-if-changed=text_revision.conduit");
+     println!("cargo:rerun-if-changed=revision_lineage.conduit");
+     println!("cargo:rerun-if-changed=lexical.conduit");
++    println!("cargo:rerun-if-changed=resource_lexicon_snapshot.conduit");
+     println!("cargo:rerun-if-changed=pronunciation_selection.conduit");
+     println!("cargo:rerun-if-changed=lexical_consumer.conduit");
+     println!("cargo:rerun-if-changed=parser.conduit");
+@@ -43,6 +44,7 @@
+         include_str!("text_revision.conduit"),
+         include_str!("revision_lineage.conduit"),
+         include_str!("lexical.conduit"),
++        include_str!("resource_lexicon_snapshot.conduit"),
+         include_str!("pronunciation_selection.conduit"),
+         include_str!("lexical_consumer.conduit"),
+         include_str!("parser.conduit"),
+@@ -63,7 +65,19 @@
+         include_str!("analysis_fallback_round.conduit"),
+     ]
+     .join("\n");
+-    let checked = check_syntax_document(&parse_syntax_document(&source), &StartupCatalog::new())
++    fs::write(
++        PathBuf::from(env::var_os("OUT_DIR").unwrap()).join("language_owner_source.conduit"),
++        &source,
++    )
++    .expect("retain exact full Language owner Source");
++    let mut startup = StartupCatalog::new();
++    startup
++        .insert_value_kind_alias(
++            "ResourceRef",
++            conduit_core::kind_id(conduit_core::RESOURCE_REFERENCE_INFO_ID),
++        )
++        .expect("Core ResourceRef builtin");
++    let checked = check_syntax_document(&parse_syntax_document(&source), &startup)
+         .expect("language semantic Types must check");
+     fallback_programs::retain(&checked);
+     let commitment = conduit_plot::expand_canonical_plot_for_authoring(
+@@ -111,6 +125,10 @@
+     fs::write(PathBuf::from(env::var_os("OUT_DIR").unwrap()).join("commitment_programs.rs"), format!("pub const COMMITMENT_SOURCE_ID: &str = {:?};\npub(crate) const COMMITMENT_PROGRAMS: [&str; 8] = {:?};\n", checked.source_document_id.as_str(), ordered)).unwrap();
+     for (plot, file) in [
+         (
++            "language/resource-lexical-binding",
++            "resource_lexical_binding.hex",
++        ),
++        (
+             "language-parser-initialize",
+             "analysis_initialize_program.hex",
+         ),
+--- a/semantics/language/src/lib.rs
++++ b/semantics/language/src/lib.rs
+@@ -156,3 +156,20 @@
+ /// Pinned immutable resource admission; requires pointer atomics for shared custody.
+ #[cfg(target_has_atomic = "ptr")]
+ pub mod train_lexicon;
++
++/// Initial-only resource-backed lexical preparation; no rebase/installed reader.
++#[cfg(target_has_atomic = "ptr")]
++pub mod resource_lexicon_snapshot;
++pub use generated::LanguageResourceLexicalBinding;
++/// Register the portable Source query on all targets; no resource is opened.
++pub fn resource_lexicon_snapshot_types(
++) -> alloc::vec::Vec<(&'static str, conduit_core::StructuredInfoType)> {
++    alloc::vec![("LanguageResourceLexicalBinding", <LanguageResourceLexicalBinding as conduit_plot::rust_binding::NativeRustBinding>::semantic_type().expect("checked resource snapshot Type"))]
++}
++
++/// Exact full Source composition checked by this crate's build entrance.
++/// Consumers must install the Language catalog (including Core ResourceRef).
++/// This text grants no resource read, parser currentness or playback authority.
++pub fn language_semantic_source() -> &'static str {
++    include_str!(concat!(env!("OUT_DIR"), "/language_owner_source.conduit"))
++}
+--- a/semantics/language/src/catalog.rs
++++ b/semantics/language/src/catalog.rs
+@@ -37,6 +37,10 @@
+     startup: &mut conduit_plot::StartupCatalog,
+     profile: &mut conduit_plot::ProfileCatalog,
+ ) -> Result<(), String> {
++    startup.insert_value_kind_alias(
++        "ResourceRef",
++        kind_id(conduit_core::RESOURCE_REFERENCE_INFO_ID),
++    )?;
+     for (name, value_type) in crate::identity_types()
+         .into_iter()
+         .chain(crate::realization_types())
+@@ -45,6 +49,7 @@
+         .chain(crate::parser_availability_types())
+         .chain(crate::parser_scorer_types())
+         .chain(crate::lexical::lexical_types())
++        .chain(crate::resource_lexicon_snapshot_types())
+         .chain(crate::pronunciation_selection::pronunciation_selection_types())
+         .chain(crate::lexical_consumer::lexical_consumer_types())
+         .chain(crate::parser_types())

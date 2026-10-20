@@ -1,0 +1,73 @@
+--- a/targets/std/src/analysis_round_driver.rs
++++ b/targets/std/src/analysis_round_driver.rs
+@@ -149,7 +149,7 @@
+             output: &self.arena[record.output.clone()],
+             acknowledged_sequence: record.ack,
+             submitted_to_cursor: record.submitted,
+-            definition: &operation.definition,
++            definition: operation.kernel.definition(),
+             active_plays: &operation.plays,
+         })
+     }
+--- a/targets/std/src/analysis_round_driver_source.rs
++++ b/targets/std/src/analysis_round_driver_source.rs
+@@ -2,11 +2,10 @@
+ use super::*;
+ use conduit_core::*;
+ use conduit_kernel::scheduler::RemoteIngressOutcome;
+-use std::{collections::BTreeMap, ops::Range, sync::Arc};
++use std::{collections::BTreeMap, ops::Range};
+ 
+ pub(super) struct Operation {
+     pub name: &'static str,
+-    pub definition: Arc<KernelCompositeDefinition>,
+     pub kernel: KernelCompositeHost,
+     pub plays: BTreeMap<HostId, ActivePlayId>,
+     input_port: PortId,
+@@ -46,7 +45,6 @@
+         };
+         let input_port = input_front.external_port.port_id.clone();
+         let output_port = output_front.external_port.port_id.clone();
+-        let definition = Arc::new(definition);
+         let mut registry = KernelOperationRegistry::new();
+         registry
+             .install(crate::flow_activation::LocalExpressionFactory)
+@@ -54,12 +52,13 @@
+                 stage: "kernel-preparation",
+                 detail: format!("{name}: {error:?}"),
+             })?;
+-        let mut kernel =
+-            KernelCompositeHost::prepare_with_sign_storage((*definition).clone(), &registry, signs)
+-                .map_err(|error| DriverRefusal::PreparationDetail {
+-                    stage: "kernel-preparation",
+-                    detail: format!("{name}: {error:?}"),
+-                })?;
++        let mut kernel = KernelCompositeHost::prepare_with_sign_storage(
++            definition, &registry, signs,
++        )
++        .map_err(|error| DriverRefusal::PreparationDetail {
++            stage: "kernel-preparation",
++            detail: format!("{name}: {error:?}"),
++        })?;
+         kernel
+             .start()
+             .map_err(|error| DriverRefusal::PreparationDetail {
+@@ -69,7 +68,6 @@
+         let plays = kernel.active_plays().clone();
+         Ok(Self {
+             name,
+-            definition,
+             plays,
+             kernel,
+             input_port,
+--- a/targets/std/src/analysis_round_driver_preparation.rs
++++ b/targets/std/src/analysis_round_driver_preparation.rs
+@@ -157,7 +157,7 @@
+         self.operation.retained_output()
+     }
+     pub fn definition(&self) -> &KernelCompositeDefinition {
+-        &self.operation.definition
++        self.operation.kernel.definition()
+     }
+     pub fn signs(
+         &self,

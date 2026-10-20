@@ -1,0 +1,8 @@
+{
+  "protocol": "language/train-structural-relation-pos-metadata@1",
+  "status": "frozen before metadata scan; no model calls",
+  "corpus_sha256": "d68e06122a702464c613076523d56740f047e5bbe89dd90ec32737e04d952143",
+  "scope": "all integer-token rows of already acquired pinned EWT TRAIN, exact annotated UPOS and dependency base relations, no form/name/text selection",
+  "queries": ["UPOS counts for dependents annotated punct", "base relation and dependent UPOS counts for nonroot edges whose annotated head UPOS is INTJ", "head UPOS counts for PROPN dependents annotated obj"],
+  "nonclaims": ["no universal legality rule", "no native parsing accuracy", "no eligibility filtering", "no threshold/model/policy selection", "no independent calibration"]
+}

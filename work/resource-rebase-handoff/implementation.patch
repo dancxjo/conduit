@@ -1,0 +1,1668 @@
+--- a/semantics/language/parser_revision_rebase.conduit
++++ b/semantics/language/parser_revision_rebase.conduit
+@@ -30,6 +30,20 @@
+  where .previous.committed <= 3 ? true : (3 < .next.token_count ? (sequence/at(.next.tape.tokens,3).prior_occurrence is some ? (sequence/at(.next.tape.tokens,3).prior_occurrence.some == sequence/at(.previous_lexical.tape.tokens,3).identity && sequence/at(.next.tape.tokens,3).span.start == sequence/at(.previous_lexical.tape.tokens,3).span.start && sequence/at(.next.tape.tokens,3).span.end == sequence/at(.previous_lexical.tape.tokens,3).span.end && sequence/at(.next.tape.tokens,3).surface == sequence/at(.previous_lexical.tape.tokens,3).surface && sequence/at(.next.tape.tokens,3).candidates == sequence/at(.previous_lexical.tape.tokens,3).candidates) : false) : false)
+  where .previous.committed <= 3 || sequence/at(.previous.heads,3) == 4 ? true : (sequence/at(.previous.heads,3) < .next.token_count ? (sequence/at(.next.tape.tokens,sequence/at(.previous.heads,3)).prior_occurrence is some ? (sequence/at(.next.tape.tokens,sequence/at(.previous.heads,3)).prior_occurrence.some == sequence/at(.previous_lexical.tape.tokens,sequence/at(.previous.heads,3)).identity && sequence/at(.next.tape.tokens,sequence/at(.previous.heads,3)).span.start == sequence/at(.previous_lexical.tape.tokens,sequence/at(.previous.heads,3)).span.start && sequence/at(.next.tape.tokens,sequence/at(.previous.heads,3)).span.end == sequence/at(.previous_lexical.tape.tokens,sequence/at(.previous.heads,3)).span.end && sequence/at(.next.tape.tokens,sequence/at(.previous.heads,3)).surface == sequence/at(.previous_lexical.tape.tokens,sequence/at(.previous.heads,3)).surface && sequence/at(.next.tape.tokens,sequence/at(.previous.heads,3)).candidates == sequence/at(.previous_lexical.tape.tokens,sequence/at(.previous.heads,3)).candidates) : false) : false)
+ }
+-plot language-parser-revision-rebase (
+- input: LanguageParserRevisionRebaseRequest...| <= 65536B >> output: LanguageParserNumericState...|
+-) = { basis: .basis, token_count: .next.token_count, unread: .previous.committed, depth: ((.previous.committed > 0 && .previous.heads.0 == 4) || (.previous.committed > 1 && .previous.heads.1 == 4) || (.previous.committed > 2 && .previous.heads.2 == 4) || (.previous.committed > 3 && .previous.heads.3 == 4) ? 2 : 1), stack: [4,(.previous.committed > 0 && .previous.heads.0 == 4 ? 0 : (.previous.committed > 1 && .previous.heads.1 == 4 ? 1 : (.previous.committed > 2 && .previous.heads.2 == 4 ? 2 : (.previous.committed > 3 && .previous.heads.3 == 4 ? 3 : 4)))),4,4,4], heads: [(.previous.committed > 0 ? .previous.heads.0 : 5),(.previous.committed > 1 ? .previous.heads.1 : 5),(.previous.committed > 2 ? .previous.heads.2 : 5),(.previous.committed > 3 ? .previous.heads.3 : 5),4], relation0: (.previous.committed > 0 ? .previous.relation0 : .default_relation), relation1: (.previous.committed > 1 ? .previous.relation1 : .default_relation), relation2: (.previous.committed > 2 ? .previous.relation2 : .default_relation), relation3: (.previous.committed > 3 ? .previous.relation3 : .default_relation), committed: .previous.committed }
++# Shared mechanical body: both entrances forward admitted state unchanged.
++type LanguageParserRebaseInput = {
++ basis: LanguageParserBasis
++ previous: LanguageParserState
++ next_count: U64
++ default_relation: LanguageParserRelation
++}
++plot language-parser-rebase-numeric (
++ input: LanguageParserRebaseInput...| <= 65536B >> output: LanguageParserNumericState...|
++) = { basis: .basis, token_count: .next_count, unread: .previous.committed, depth: ((.previous.committed > 0 && .previous.heads.0 == 4) || (.previous.committed > 1 && .previous.heads.1 == 4) || (.previous.committed > 2 && .previous.heads.2 == 4) || (.previous.committed > 3 && .previous.heads.3 == 4) ? 2 : 1), stack: [4,(.previous.committed > 0 && .previous.heads.0 == 4 ? 0 : (.previous.committed > 1 && .previous.heads.1 == 4 ? 1 : (.previous.committed > 2 && .previous.heads.2 == 4 ? 2 : (.previous.committed > 3 && .previous.heads.3 == 4 ? 3 : 4)))),4,4,4], heads: [(.previous.committed > 0 ? .previous.heads.0 : 5),(.previous.committed > 1 ? .previous.heads.1 : 5),(.previous.committed > 2 ? .previous.heads.2 : 5),(.previous.committed > 3 ? .previous.heads.3 : 5),4], relation0: (.previous.committed > 0 ? .previous.relation0 : .default_relation), relation1: (.previous.committed > 1 ? .previous.relation1 : .default_relation), relation2: (.previous.committed > 2 ? .previous.relation2 : .default_relation), relation3: (.previous.committed > 3 ? .previous.relation3 : .default_relation), committed: .previous.committed }
++
++plot language-parser-revision-rebase-adapter (
++ input: LanguageParserRevisionRebaseRequest...| <= 65536B >> output: LanguageParserRebaseInput...|
++) = { basis: .basis, previous: .previous, next_count: .next.token_count, default_relation: .default_relation }
++plot language-parser-revision-rebase (input: LanguageParserRevisionRebaseRequest...| <= 65536B >> output: LanguageParserNumericState...|) {
++ input >> language-parser-revision-rebase-adapter() >> language-parser-rebase-numeric() >> output
++}
+--- /dev/null
++++ b/semantics/language/resource_parser_rebase.conduit
+@@ -0,0 +1,40 @@
++# Four-token symbolic revision profile. Retain committed dependent and head
++# occurrences exactly; discard only uncommitted graph choices. Mechanical text
++# and lexical lineage admission remains with the existing lexical owner.
++# Derived from retained 798b3e5d6 parser_session_rebase, without learned choices.
++type LanguageResourceParserRebaseRequest = {
++ lineage: LanguageTextRevisionLineage
++ previous: LanguageParserState
++ previous_lexical: LanguageParserAvailableLexical
++ next: LanguageParserAvailableLexical
++ resource: ResourceRef
++ previous_resource: ResourceRef
++ basis: LanguageParserBasis
++ default_relation: LanguageParserRelation
++ where .default_relation.base is dep
++ where .previous.token_count == .previous_lexical.token_count
++ where .previous.basis.text == .previous_lexical.tape.source.material.identity
++ where .previous.basis.source_revision == .previous_lexical.tape.source.material.revision
++ where .lineage.previous == .previous_lexical.tape.source
++ where .lineage.next == .next.tape.source
++ where .resource == .previous_resource
++ where .basis.text == .next.tape.source.material.identity
++ where .basis.source_revision == .next.tape.source.material.revision
++ where .basis.analysis_revision != .previous.basis.analysis_revision
++ where .next.token_count > 0
++ where .previous.committed <= .next.token_count
++ where .previous.committed <= 0 ? true : (0 < .next.token_count ? (sequence/at(.next.tape.tokens,0).prior_occurrence is some ? (sequence/at(.next.tape.tokens,0).prior_occurrence.some == sequence/at(.previous_lexical.tape.tokens,0).identity && sequence/at(.next.tape.tokens,0).span.start == sequence/at(.previous_lexical.tape.tokens,0).span.start && sequence/at(.next.tape.tokens,0).span.end == sequence/at(.previous_lexical.tape.tokens,0).span.end && sequence/at(.next.tape.tokens,0).surface == sequence/at(.previous_lexical.tape.tokens,0).surface && sequence/at(.next.tape.tokens,0).candidates == sequence/at(.previous_lexical.tape.tokens,0).candidates) : false) : false)
++ where .previous.committed <= 0 || sequence/at(.previous.heads,0) == 4 ? true : (sequence/at(.previous.heads,0) < .next.token_count ? (sequence/at(.next.tape.tokens,sequence/at(.previous.heads,0)).prior_occurrence is some ? (sequence/at(.next.tape.tokens,sequence/at(.previous.heads,0)).prior_occurrence.some == sequence/at(.previous_lexical.tape.tokens,sequence/at(.previous.heads,0)).identity && sequence/at(.next.tape.tokens,sequence/at(.previous.heads,0)).span.start == sequence/at(.previous_lexical.tape.tokens,sequence/at(.previous.heads,0)).span.start && sequence/at(.next.tape.tokens,sequence/at(.previous.heads,0)).span.end == sequence/at(.previous_lexical.tape.tokens,sequence/at(.previous.heads,0)).span.end && sequence/at(.next.tape.tokens,sequence/at(.previous.heads,0)).surface == sequence/at(.previous_lexical.tape.tokens,sequence/at(.previous.heads,0)).surface && sequence/at(.next.tape.tokens,sequence/at(.previous.heads,0)).candidates == sequence/at(.previous_lexical.tape.tokens,sequence/at(.previous.heads,0)).candidates) : false) : false)
++ where .previous.committed <= 1 ? true : (1 < .next.token_count ? (sequence/at(.next.tape.tokens,1).prior_occurrence is some ? (sequence/at(.next.tape.tokens,1).prior_occurrence.some == sequence/at(.previous_lexical.tape.tokens,1).identity && sequence/at(.next.tape.tokens,1).span.start == sequence/at(.previous_lexical.tape.tokens,1).span.start && sequence/at(.next.tape.tokens,1).span.end == sequence/at(.previous_lexical.tape.tokens,1).span.end && sequence/at(.next.tape.tokens,1).surface == sequence/at(.previous_lexical.tape.tokens,1).surface && sequence/at(.next.tape.tokens,1).candidates == sequence/at(.previous_lexical.tape.tokens,1).candidates) : false) : false)
++ where .previous.committed <= 1 || sequence/at(.previous.heads,1) == 4 ? true : (sequence/at(.previous.heads,1) < .next.token_count ? (sequence/at(.next.tape.tokens,sequence/at(.previous.heads,1)).prior_occurrence is some ? (sequence/at(.next.tape.tokens,sequence/at(.previous.heads,1)).prior_occurrence.some == sequence/at(.previous_lexical.tape.tokens,sequence/at(.previous.heads,1)).identity && sequence/at(.next.tape.tokens,sequence/at(.previous.heads,1)).span.start == sequence/at(.previous_lexical.tape.tokens,sequence/at(.previous.heads,1)).span.start && sequence/at(.next.tape.tokens,sequence/at(.previous.heads,1)).span.end == sequence/at(.previous_lexical.tape.tokens,sequence/at(.previous.heads,1)).span.end && sequence/at(.next.tape.tokens,sequence/at(.previous.heads,1)).surface == sequence/at(.previous_lexical.tape.tokens,sequence/at(.previous.heads,1)).surface && sequence/at(.next.tape.tokens,sequence/at(.previous.heads,1)).candidates == sequence/at(.previous_lexical.tape.tokens,sequence/at(.previous.heads,1)).candidates) : false) : false)
++ where .previous.committed <= 2 ? true : (2 < .next.token_count ? (sequence/at(.next.tape.tokens,2).prior_occurrence is some ? (sequence/at(.next.tape.tokens,2).prior_occurrence.some == sequence/at(.previous_lexical.tape.tokens,2).identity && sequence/at(.next.tape.tokens,2).span.start == sequence/at(.previous_lexical.tape.tokens,2).span.start && sequence/at(.next.tape.tokens,2).span.end == sequence/at(.previous_lexical.tape.tokens,2).span.end && sequence/at(.next.tape.tokens,2).surface == sequence/at(.previous_lexical.tape.tokens,2).surface && sequence/at(.next.tape.tokens,2).candidates == sequence/at(.previous_lexical.tape.tokens,2).candidates) : false) : false)
++ where .previous.committed <= 2 || sequence/at(.previous.heads,2) == 4 ? true : (sequence/at(.previous.heads,2) < .next.token_count ? (sequence/at(.next.tape.tokens,sequence/at(.previous.heads,2)).prior_occurrence is some ? (sequence/at(.next.tape.tokens,sequence/at(.previous.heads,2)).prior_occurrence.some == sequence/at(.previous_lexical.tape.tokens,sequence/at(.previous.heads,2)).identity && sequence/at(.next.tape.tokens,sequence/at(.previous.heads,2)).span.start == sequence/at(.previous_lexical.tape.tokens,sequence/at(.previous.heads,2)).span.start && sequence/at(.next.tape.tokens,sequence/at(.previous.heads,2)).span.end == sequence/at(.previous_lexical.tape.tokens,sequence/at(.previous.heads,2)).span.end && sequence/at(.next.tape.tokens,sequence/at(.previous.heads,2)).surface == sequence/at(.previous_lexical.tape.tokens,sequence/at(.previous.heads,2)).surface && sequence/at(.next.tape.tokens,sequence/at(.previous.heads,2)).candidates == sequence/at(.previous_lexical.tape.tokens,sequence/at(.previous.heads,2)).candidates) : false) : false)
++ where .previous.committed <= 3 ? true : (3 < .next.token_count ? (sequence/at(.next.tape.tokens,3).prior_occurrence is some ? (sequence/at(.next.tape.tokens,3).prior_occurrence.some == sequence/at(.previous_lexical.tape.tokens,3).identity && sequence/at(.next.tape.tokens,3).span.start == sequence/at(.previous_lexical.tape.tokens,3).span.start && sequence/at(.next.tape.tokens,3).span.end == sequence/at(.previous_lexical.tape.tokens,3).span.end && sequence/at(.next.tape.tokens,3).surface == sequence/at(.previous_lexical.tape.tokens,3).surface && sequence/at(.next.tape.tokens,3).candidates == sequence/at(.previous_lexical.tape.tokens,3).candidates) : false) : false)
++ where .previous.committed <= 3 || sequence/at(.previous.heads,3) == 4 ? true : (sequence/at(.previous.heads,3) < .next.token_count ? (sequence/at(.next.tape.tokens,sequence/at(.previous.heads,3)).prior_occurrence is some ? (sequence/at(.next.tape.tokens,sequence/at(.previous.heads,3)).prior_occurrence.some == sequence/at(.previous_lexical.tape.tokens,sequence/at(.previous.heads,3)).identity && sequence/at(.next.tape.tokens,sequence/at(.previous.heads,3)).span.start == sequence/at(.previous_lexical.tape.tokens,sequence/at(.previous.heads,3)).span.start && sequence/at(.next.tape.tokens,sequence/at(.previous.heads,3)).span.end == sequence/at(.previous_lexical.tape.tokens,sequence/at(.previous.heads,3)).span.end && sequence/at(.next.tape.tokens,sequence/at(.previous.heads,3)).surface == sequence/at(.previous_lexical.tape.tokens,sequence/at(.previous.heads,3)).surface && sequence/at(.next.tape.tokens,sequence/at(.previous.heads,3)).candidates == sequence/at(.previous_lexical.tape.tokens,sequence/at(.previous.heads,3)).candidates) : false) : false)
++}
++plot language-resource-parser-rebase-adapter (
++ input: LanguageResourceParserRebaseRequest...| <= 65536B >> output: LanguageParserRebaseInput...|
++) = { basis: .basis, previous: .previous, next_count: .next.token_count, default_relation: .default_relation }
++plot language-resource-parser-rebase (input: LanguageResourceParserRebaseRequest...| <= 65536B >> output: LanguageParserNumericState...|) {
++ input >> language-resource-parser-rebase-adapter() >> language-parser-rebase-numeric() >> output
++}
+--- a/semantics/language/src/lexical.rs
++++ b/semantics/language/src/lexical.rs
+@@ -35,6 +35,31 @@
+     previous: Option<&PreparedLexicalTape>,
+ ) -> Result<PreparedLexicalTape, LexicalRefusal> {
+     use LexicalRefusal::*;
++    validate_profile(source, profile)?;
++    if let Some(old) = previous {
++        if old.tape.profile() != profile {
++            return Err(Profile);
++        }
++    } else if source.prior().is_some() {
++        return Err(Prior);
++    }
++    prepare_lexical_tape_inner(source, profile, previous)
++}
++
++/// Only the resource snapshot owner can construct this proof. The legacy
++/// entrance above retains its exact full-profile equality contract.
++#[cfg(target_has_atomic = "ptr")]
++pub(crate) fn prepare_resource_lexical_tape(
++    proof: &crate::resource_lexicon_snapshot::ResourceRevisionProfile<'_, '_>,
++) -> Result<PreparedLexicalTape, LexicalRefusal> {
++    validate_profile(proof.source(), proof.profile())?;
++    prepare_lexical_tape_inner(proof.source(), proof.profile(), Some(proof.previous()))
++}
++fn validate_profile(
++    source: &LanguageTextRevision,
++    profile: &LanguageLexicalProfile,
++) -> Result<(), LexicalRefusal> {
++    use LexicalRefusal::*;
+     if source.material().language() != profile.language() {
+         return Err(Language);
+     }
+@@ -48,13 +73,14 @@
+             return Err(DuplicateEntry);
+         }
+     }
+-    if let Some(old) = previous {
+-        if old.tape.profile() != profile {
+-            return Err(Profile);
+-        }
+-    } else if source.prior().is_some() {
+-        return Err(Prior);
+-    }
++    Ok(())
++}
++fn prepare_lexical_tape_inner(
++    source: &LanguageTextRevision,
++    profile: &LanguageLexicalProfile,
++    previous: Option<&PreparedLexicalTape>,
++) -> Result<PreparedLexicalTape, LexicalRefusal> {
++    use LexicalRefusal::*;
+     validate_text_revision(previous.map(|old| old.tape.source()), source, 0, 4096)
+         .map_err(Revision)?;
+     let chars: Vec<_> = source.material().text().chars().collect();
+--- a/semantics/language/src/resource_lexicon_snapshot.rs
++++ b/semantics/language/src/resource_lexicon_snapshot.rs
+@@ -1,6 +1,7 @@
+-//! Initial-source-only resource lexical snapshot preparation. Source correlation
++//! Initial and revised resource lexical snapshot preparation. Source correlation
+ //! is replayed over actual legacy tokenization and complete borrowed resource
+-//! rows. No generic resource-reader Back, epoch/rebase or model proof is claimed.
++//! rows. Resource revisions retain the original resource and token lineage.
++//! No generic resource-reader Back or model proof is claimed.
+ use crate::{lexical::*, train_lexicon::*, *};
+ use alloc::{string::ToString, vec::Vec};
+ use conduit_plot::{
+@@ -10,6 +11,7 @@
+ 
+ pub const SOURCE: &str = include_str!("../resource_lexicon_snapshot.conduit");
+ pub const PROFILE: &str = "language/resource-lexical-snapshot/initial-short4@1";
++pub const REVISION_PROFILE: &str = "language/resource-lexical-snapshot/revision-short4@1";
+ #[derive(Debug)]
+ pub enum ResourceSnapshotRefusal {
+     PriorRequiresRebase,
+@@ -64,6 +66,7 @@
+     lexicon: &'a PreparedTrainLexicon,
+     lexical: PreparedLexicalTape,
+     bindings: Vec<ResourceSnapshotBinding<'a>>,
++    previous: Option<LanguageLexicalTape>,
+ }
+ impl<'a> PreparedResourceLexicalSnapshot<'a> {
+     pub fn prepare(
+@@ -72,27 +75,59 @@
+         program: &PreparedResourceSnapshotProgram,
+     ) -> Result<Self, ResourceSnapshotRefusal> {
+         use ResourceSnapshotRefusal::*;
+-        // A new owner must implement checked resource-backed lineage/rebase;
+-        // never bypass the legacy exact-profile/prior correspondence contract.
+         if source.material().language().get() != "language/en" {
+             return Err(Language);
+         }
+         if source.prior().is_some() {
+             return Err(PriorRequiresRebase);
+         }
++        Self::prepare_inner(source, lexicon, None, program)
++    }
++    /// Distinct resource-backed lineage entrance. Actual adopted resource and
++    /// complete candidate rows are inherited from the original opaque owner.
++    pub fn prepare_revision(
++        source: &LanguageTextRevision,
++        previous: &PreparedResourceLexicalSnapshot<'a>,
++        program: &PreparedResourceSnapshotProgram,
++    ) -> Result<Self, ResourceSnapshotRefusal> {
++        Self::prepare_inner(source, previous.lexicon, Some(previous.lexical()), program)
++    }
++    fn prepare_inner(
++        source: &LanguageTextRevision,
++        lexicon: &'a PreparedTrainLexicon,
++        previous: Option<&PreparedLexicalTape>,
++        program: &PreparedResourceSnapshotProgram,
++    ) -> Result<Self, ResourceSnapshotRefusal> {
++        use ResourceSnapshotRefusal::*;
++        if source.material().language().get() != "language/en" {
++            return Err(Language);
++        }
++        let profile_domain = if previous.is_some() {
++            REVISION_PROFILE
++        } else {
++            PROFILE
++        };
+         let provenance = LinguisticDerivationProvenance::library(
+-            PROFILE.to_string(),
++            profile_domain.to_string(),
+             digest_hex(lexicon.reference().semantic_digest().map_err(|_| Bound)?),
+         )
+         .map_err(Native)?;
+         let empty = LanguageLexicalProfile::new(
+             BoundedSequence::new(),
+-            PROFILE.to_string(),
++            profile_domain.to_string(),
+             source.material().language().clone(),
+             provenance.clone(),
+         )
+         .map_err(Native)?;
+-        let skeleton = prepare_lexical_tape(source, &empty, None).map_err(Lexical)?;
++        // Reuse unchanged tokenization/correspondence with the exact old profile
++        // solely to locate actual new surfaces. This temporary tape publishes
++        // no new resource membership or selected POS.
++        let skeleton = prepare_lexical_tape(
++            source,
++            previous.map_or(&empty, |p| p.tape().profile()),
++            previous,
++        )
++        .map_err(Lexical)?;
+         if skeleton.tape().tokens().is_empty() || skeleton.tape().tokens().len() > 4 {
+             return Err(Bound);
+         }
+@@ -120,13 +155,13 @@
+         let encoded = BoundedSequence::<_, 64>::try_from_iter(entries).map_err(|_| Bound)?;
+         let temporary = LanguageLexicalProfile::new(
+             encoded,
+-            PROFILE.to_string(),
++            profile_domain.to_string(),
+             source.material().language().clone(),
+             provenance,
+         )
+         .map_err(Native)?;
+         let identity = digest_hex(conduit_core::semantic_digest(
+-            PROFILE,
++            profile_domain,
+             &temporary.clone().encode().map_err(Native)?,
+         ));
+         let profile = LanguageLexicalProfile::new(
+@@ -136,7 +171,18 @@
+             temporary.provenance().clone(),
+         )
+         .map_err(Native)?;
+-        let lexical = prepare_lexical_tape(source, &profile, None).map_err(Lexical)?;
++        let lexical = if let Some(previous) = previous {
++            // Private proof is constructed only after every complete actual
++            // surface resolved to the pinned owner's entire ordered row above.
++            let proof = ResourceRevisionProfile {
++                source,
++                previous,
++                profile,
++            };
++            prepare_resource_lexical_tape(&proof).map_err(Lexical)?
++        } else {
++            prepare_lexical_tape(source, &profile, None).map_err(Lexical)?
++        };
+         let mut bindings = Vec::with_capacity(rows.len());
+         for (ordinal, row, entry) in rows {
+             let token = lexical.tape().tokens()[ordinal].clone();
+@@ -169,6 +215,7 @@
+             lexicon,
+             lexical,
+             bindings,
++            previous: previous.map(|p| p.tape().clone()),
+         })
+     }
+     pub fn lexicon(&self) -> &'a PreparedTrainLexicon {
+@@ -179,6 +226,9 @@
+     }
+     pub fn bindings(&self) -> &[ResourceSnapshotBinding<'a>] {
+         &self.bindings
++    }
++    pub fn previous_tape(&self) -> Option<&LanguageLexicalTape> {
++        self.previous.as_ref()
+     }
+     pub fn source_id(&self) -> &'static str {
+         crate::parser_commitment::COMMITMENT_SOURCE_ID
+@@ -232,3 +282,22 @@
+ #[cfg(test)]
+ #[path = "resource_lexicon_snapshot_tests.rs"]
+ mod tests;
++
++/// Crate-private construction proof; external callers cannot supply a profile
++/// bypass. Resource membership is prepared before this shared lexical entrance.
++pub(crate) struct ResourceRevisionProfile<'s, 'p> {
++    source: &'s LanguageTextRevision,
++    previous: &'p PreparedLexicalTape,
++    profile: LanguageLexicalProfile,
++}
++impl ResourceRevisionProfile<'_, '_> {
++    pub(crate) fn source(&self) -> &LanguageTextRevision {
++        self.source
++    }
++    pub(crate) fn previous(&self) -> &PreparedLexicalTape {
++        self.previous
++    }
++    pub(crate) fn profile(&self) -> &LanguageLexicalProfile {
++        &self.profile
++    }
++}
+--- a/semantics/language/src/parser_rebase_replay.rs
++++ b/semantics/language/src/parser_rebase_replay.rs
+@@ -1,10 +1,12 @@
+-//! Replay of one existing checked rebase expression, not installed currentness.
++//! Legacy admitted adapter and shared checked numeric rebase body.
++//! Replay is exact Source preparation, not installed currentness.
+ use crate::*;
+ use alloc::vec::Vec;
+ use conduit_plot::{
+     rust_binding::{NativeBindingRefusal, NativeRustBinding},
+     PortableExpressionProgram,
+ };
++const ADAPTER: &str = include_str!(concat!(env!("OUT_DIR"), "/parser_rebase_adapter.hex"));
+ const PROGRAM: &str = include_str!(concat!(env!("OUT_DIR"), "/parser_rebase_program.hex"));
+ #[derive(Debug)]
+ pub enum ParserRebaseReplayRefusal {
+@@ -22,14 +24,18 @@
+     result: LanguageParserState,
+     input: Vec<u8>,
+     output: Vec<u8>,
++    adapted: Vec<u8>,
+ }
+ /// Immutable Source program preparation shared across survivors and epochs.
+ pub struct PreparedParserRebaseProgram {
+     program: PortableExpressionProgram,
++    adapter: PortableExpressionProgram,
+ }
+ impl PreparedParserRebaseProgram {
+     pub fn prepare() -> Result<Self, ParserRebaseReplayRefusal> {
+         Ok(Self {
++            adapter: PortableExpressionProgram::from_canonical_hex(ADAPTER)
++                .map_err(|_| ParserRebaseReplayRefusal::Program)?,
+             program: PortableExpressionProgram::from_canonical_hex(PROGRAM)
+                 .map_err(|_| ParserRebaseReplayRefusal::Program)?,
+         })
+@@ -47,7 +53,8 @@
+         // Decode executes every generated request constraint, including nested
+         // Source laws, before the retained expression consumes its input.
+         LanguageParserRevisionRebaseRequest::decode(&input).map_err(Native)?;
+-        let output = self.program.evaluate(&input).map_err(|_| Evaluation)?;
++        let adapted = self.adapter.evaluate(&input).map_err(|_| Evaluation)?;
++        let output = self.program.evaluate(&adapted).map_err(|_| Evaluation)?;
+         if output.len() > PARSER_REVISION_MAXIMUM_INPUT_BYTES {
+             return Err(Bound);
+         }
+@@ -56,26 +63,14 @@
+             return Err(ObservationMismatch);
+         }
+         // Exact representation adapter only: Source already chose all fields.
+-        let result = LanguageParserState::new(
+-            raw.basis().clone(),
+-            *raw.committed(),
+-            *raw.depth(),
+-            *raw.heads(),
+-            raw.relation0().clone(),
+-            raw.relation1().clone(),
+-            raw.relation2().clone(),
+-            raw.relation3().clone(),
+-            *raw.stack(),
+-            *raw.token_count(),
+-            *raw.unread(),
+-        )
+-        .map_err(Native)?;
++        let result = admit_state(&raw).map_err(Native)?;
+         Ok(PreparedParserRebaseReplay {
+             preparation,
+             raw_result: raw,
+             result,
+             input,
+             output,
++            adapted,
+         })
+     }
+ }
+@@ -92,8 +87,14 @@
+     pub fn input_canonical(&self) -> &[u8] {
+         &self.input
+     }
++    pub fn adapted_canonical(&self) -> &[u8] {
++        &self.adapted
++    }
+     pub fn output_canonical(&self) -> &[u8] {
+         &self.output
++    }
++    pub fn adapter_hex(&self) -> &'static str {
++        ADAPTER
+     }
+     pub fn program_hex(&self) -> &'static str {
+         PROGRAM
+@@ -102,3 +103,21 @@
+         crate::parser_commitment::COMMITMENT_SOURCE_ID
+     }
+ }
++
++pub(crate) fn admit_state(
++    raw: &LanguageParserNumericState,
++) -> Result<LanguageParserState, NativeBindingRefusal> {
++    LanguageParserState::new(
++        raw.basis().clone(),
++        *raw.committed(),
++        *raw.depth(),
++        *raw.heads(),
++        raw.relation0().clone(),
++        raw.relation1().clone(),
++        raw.relation2().clone(),
++        raw.relation3().clone(),
++        *raw.stack(),
++        *raw.token_count(),
++        *raw.unread(),
++    )
++}
+--- /dev/null
++++ b/semantics/language/src/resource_parser_rebase.rs
+@@ -0,0 +1,179 @@
++//! Actual resource-backed rebase replay through the shared checked numeric body.
++//! Opaque snapshots provide complete rows; Source retains committed candidates.
++use crate::generated::LanguageResourceParserRebaseRequest;
++use crate::{resource_lexicon_snapshot::*, *};
++use alloc::vec::Vec;
++use conduit_plot::{
++    rust_binding::{NativeBindingRefusal, NativeRustBinding},
++    PortableExpressionProgram,
++};
++#[derive(Debug)]
++pub enum ResourceParserRebaseRefusal {
++    Lineage,
++    Resource,
++    Revision(TextRevisionRefusal),
++    Native(NativeBindingRefusal),
++    Bound,
++    Program,
++    Evaluation(conduit_plot::PortableExpressionEvaluationRefusal),
++}
++pub struct PreparedResourceParserRebaseProgram {
++    adapter: PortableExpressionProgram,
++    numeric: PortableExpressionProgram,
++}
++/// Retains the exact Source request and both actual expression boundaries.
++/// No observation equality or installed runtime execution is claimed.
++pub struct PreparedResourceParserRebaseReplay {
++    request: LanguageResourceParserRebaseRequest,
++    raw: LanguageParserNumericState,
++    result: LanguageParserState,
++    input: Vec<u8>,
++    adapted: Vec<u8>,
++    output: Vec<u8>,
++}
++impl PreparedResourceParserRebaseProgram {
++    pub fn prepare() -> Result<Self, ResourceParserRebaseRefusal> {
++        use ResourceParserRebaseRefusal::Program;
++        Ok(Self {
++            adapter: PortableExpressionProgram::from_canonical_hex(include_str!(concat!(
++                env!("OUT_DIR"),
++                "/resource_parser_rebase_adapter.hex"
++            )))
++            .map_err(|_| Program)?,
++            numeric: PortableExpressionProgram::from_canonical_hex(include_str!(concat!(
++                env!("OUT_DIR"),
++                "/parser_rebase_program.hex"
++            )))
++            .map_err(|_| Program)?,
++        })
++    }
++    pub fn replay(
++        &self,
++        previous: &LanguageParserState,
++        old: &PreparedResourceLexicalSnapshot<'_>,
++        next: &PreparedResourceLexicalSnapshot<'_>,
++        analysis: LanguageAnalysisRevisionId,
++        default_relation: LanguageParserRelation,
++    ) -> Result<PreparedResourceParserRebaseReplay, ResourceParserRebaseRefusal> {
++        use ResourceParserRebaseRefusal::*;
++        // Actual owner equality, not caller-supplied digest or membership flags.
++        if !core::ptr::eq(old.lexicon(), next.lexicon()) {
++            return Err(Resource);
++        }
++        if next.previous_tape() != Some(old.lexical().tape()) {
++            return Err(Lineage);
++        }
++        let mut protected_end = 0;
++        for dependent in 0..*previous.committed() as usize {
++            let head = previous.heads()[dependent] as usize;
++            for ordinal in [Some(dependent), (head < 4).then_some(head)]
++                .into_iter()
++                .flatten()
++            {
++                let token = old
++                    .lexical()
++                    .tape()
++                    .tokens()
++                    .iter()
++                    .nth(ordinal)
++                    .ok_or(Lineage)?;
++                protected_end =
++                    protected_end.max(u32::try_from(*token.span().end()).map_err(|_| Bound)?);
++            }
++        }
++        let next_source = next.lexical().tape().source();
++        validate_text_revision(
++            Some(old.lexical().tape().source()),
++            next_source,
++            protected_end,
++            4096,
++        )
++        .map_err(Revision)?;
++        let count = next
++            .lexical()
++            .tape()
++            .tokens()
++            .iter()
++            .take_while(|t| {
++                matches!(t.completeness(), LanguageLexicalCompleteness::Complete)
++                    && !t.candidates().is_empty()
++            })
++            .count() as u64;
++        let previous_lexical = LanguageParserAvailableLexical::new(
++            old.lexical().tape().clone(),
++            *previous.token_count(),
++        )
++        .map_err(Native)?;
++        let next_lexical =
++            LanguageParserAvailableLexical::new(next.lexical().tape().clone(), count)
++                .map_err(Native)?;
++        let basis = LanguageParserBasis::new(
++            analysis,
++            next_source.material().revision().clone(),
++            next_source.material().identity().clone(),
++        )
++        .map_err(Native)?;
++        let lineage = LanguageTextRevisionLineage::new(
++            next_source.clone(),
++            old.lexical().tape().source().clone(),
++        )
++        .map_err(Native)?;
++        let request = LanguageResourceParserRebaseRequest::new(
++            basis,
++            default_relation,
++            lineage,
++            next_lexical,
++            previous.clone(),
++            previous_lexical,
++            old.lexicon().reference().clone(),
++            next.lexicon().reference().clone(),
++        )
++        .map_err(Native)?;
++        let input = request.clone().encode().map_err(Native)?;
++        if input.len() > 65536 {
++            return Err(Bound);
++        }
++        LanguageResourceParserRebaseRequest::decode(&input).map_err(Native)?;
++        let adapted = self.adapter.evaluate(&input).map_err(Evaluation)?;
++        if adapted.len() > 65536 {
++            return Err(Bound);
++        }
++        let output = self.numeric.evaluate(&adapted).map_err(Evaluation)?;
++        if output.len() > 65536 {
++            return Err(Bound);
++        }
++        let raw = LanguageParserNumericState::decode(&output).map_err(Native)?;
++        let result = crate::parser_rebase_replay::admit_state(&raw).map_err(Native)?;
++        Ok(PreparedResourceParserRebaseReplay {
++            request,
++            raw,
++            result,
++            input,
++            adapted,
++            output,
++        })
++    }
++}
++impl PreparedResourceParserRebaseReplay {
++    pub fn request(&self) -> &LanguageResourceParserRebaseRequest {
++        &self.request
++    }
++    pub fn raw_result(&self) -> &LanguageParserNumericState {
++        &self.raw
++    }
++    pub fn result(&self) -> &LanguageParserState {
++        &self.result
++    }
++    pub fn input_canonical(&self) -> &[u8] {
++        &self.input
++    }
++    pub fn adapted_canonical(&self) -> &[u8] {
++        &self.adapted
++    }
++    pub fn output_canonical(&self) -> &[u8] {
++        &self.output
++    }
++    pub fn source_id(&self) -> &'static str {
++        crate::parser_commitment::COMMITMENT_SOURCE_ID
++    }
++}
+--- a/semantics/language/src/analysis_epoch_owner.rs
++++ b/semantics/language/src/analysis_epoch_owner.rs
+@@ -1,6 +1,5 @@
+ //! Finite semantic epoch custody; not an installed decoder or playback owner.
+ //! General learned decoder updates deliberately have no public acceptance API.
+-use crate::generated::LanguageAnalysisRebasedEnvelopeInput;
+ use crate::{
+     analysis_epoch_initialization::*,
+     analysis_session::*,
+@@ -9,12 +8,13 @@
+     revision::*,
+     *,
+ };
++#[cfg(target_has_atomic = "ptr")]
++use crate::{
++    resource_lexicon_snapshot::PreparedResourceLexicalSnapshot, resource_parser_rebase::*,
++};
+ use alloc::vec::Vec;
+ use conduit_core::revision::*;
+-use conduit_plot::{
+-    rust_binding::{NativeBindingRefusal, NativeRustBinding},
+-    PortableExpressionProgram,
+-};
++use conduit_plot::rust_binding::NativeBindingRefusal;
+ #[derive(Debug)]
+ pub enum AnalysisEpochRefusal {
+     Closed,
+@@ -25,6 +25,8 @@
+     Domain,
+     Generation,
+     Replay,
++    #[cfg(target_has_atomic = "ptr")]
++    ResourceRebase(ResourceParserRebaseRefusal),
+     Lexical,
+     Context,
+     Capacity,
+@@ -32,6 +34,11 @@
+ }
+ enum Material {
+     Initial(PreparedAnalysisInitialization),
++    #[cfg(target_has_atomic = "ptr")]
++    ResourceRebased {
++        receipts: [PreparedResourceParserRebaseReplay; 4],
++        envelopes: Vec<Vec<u8>>,
++    },
+     Rebased {
+         lexical: PreparedLexicalTape,
+         receipts: [PreparedParserRebaseReplay; 4],
+@@ -41,6 +48,8 @@
+ pub struct AnalysisEpochOwner<'a> {
+     session: AnalysisSession<'a>,
+     material: Material,
++    #[cfg(target_has_atomic = "ptr")]
++    resource: Option<PreparedResourceLexicalSnapshot<'a>>,
+     beam: LanguageParserScorerBeam,
+     generation: u64,
+     commitments: Vec<&'a crate::dependency_commitment::PreparedCommittedDependency>,
+@@ -86,6 +95,8 @@
+         Ok(Self {
+             session,
+             material: Material::Initial(initial),
++            #[cfg(target_has_atomic = "ptr")]
++            resource: None,
+             beam,
+             generation: 0,
+             commitments: Vec::with_capacity(limits.history_events),
+@@ -103,6 +114,12 @@
+         match &self.material {
+             Material::Initial(i) => &i.lexical,
+             Material::Rebased { lexical, .. } => lexical,
++            #[cfg(target_has_atomic = "ptr")]
++            Material::ResourceRebased { .. } => self
++                .resource
++                .as_ref()
++                .expect("resource owner invariant")
++                .lexical(),
+         }
+     }
+     pub fn commitment_receipts(
+@@ -117,11 +134,15 @@
+         match &self.material {
+             Material::Initial(i) => Some(i),
+             Material::Rebased { .. } => None,
++            #[cfg(target_has_atomic = "ptr")]
++            Material::ResourceRebased { .. } => None,
+         }
+     }
+     pub fn rebase_receipts(&self) -> &[PreparedParserRebaseReplay] {
+         match &self.material {
+             Material::Initial(_) => &[],
++            #[cfg(target_has_atomic = "ptr")]
++            Material::ResourceRebased { .. } => &[],
+             Material::Rebased { receipts, .. } => receipts,
+         }
+     }
+@@ -129,6 +150,8 @@
+         match &self.material {
+             Material::Initial(_) => &[],
+             Material::Rebased { envelopes, .. } => envelopes,
++            #[cfg(target_has_atomic = "ptr")]
++            Material::ResourceRebased { envelopes, .. } => envelopes,
+         }
+     }
+     pub fn frontiers(&self) -> RevisionFrontiers<TokenFrontier> {
+@@ -267,6 +290,8 @@
+         };
+         let next = Self {
+             session,
++            #[cfg(target_has_atomic = "ptr")]
++            resource: None,
+             material: Material::Rebased {
+                 lexical,
+                 receipts,
+@@ -283,6 +308,45 @@
+         };
+         Ok((next, ArchivedAnalysisEpoch { owner: self }))
+     }
++    fn handoff_generation(
++        &self,
++        context: RevisionContext<'a>,
++    ) -> Result<u64, AnalysisEpochRefusal> {
++        use AnalysisEpochRefusal::*;
++        if self.session.is_closed() {
++            return Err(Closed);
++        }
++        if self.session.publication_dispute().is_some() {
++            return Err(Session(AnalysisSessionRefusal::Corrected));
++        }
++        let generation = self.generation.checked_add(1).ok_or(Generation)?;
++        let previous_context = self.session.context();
++        if context.epoch == previous_context.epoch
++            || context.stream != previous_context.stream
++            || context.subject != previous_context.subject
++            || context.producer != previous_context.producer
++            || context.policy != previous_context.policy
++        {
++            return Err(Context);
++        }
++        Ok(generation)
++    }
++    fn retained_session(
++        &self,
++        domain: &'a DependencyRevisions<'a>,
++        context: RevisionContext<'a>,
++        limits: RevisionLimits,
++    ) -> Result<AnalysisSession<'a>, AnalysisEpochRefusal> {
++        use AnalysisEpochRefusal::*;
++        let session = AnalysisSession::from_retained_prefix(
++            domain,
++            context,
++            limits,
++            self.frontiers().committed,
++        )
++        .map_err(Revision)?;
++        Ok(session)
++    }
+     fn prepare_next(
+         &self,
+         receipts: &[PreparedParserRebaseReplay; 4],
+@@ -300,22 +364,11 @@
+         AnalysisEpochRefusal,
+     > {
+         use AnalysisEpochRefusal::*;
+-        if self.session.is_closed() {
+-            return Err(Closed);
+-        }
+-        if self.session.publication_dispute().is_some() {
+-            return Err(Session(AnalysisSessionRefusal::Corrected));
+-        }
+-        let generation = self.generation.checked_add(1).ok_or(Generation)?;
+-        let previous_context = self.session.context();
+-        if context.epoch == previous_context.epoch
+-            || context.stream != previous_context.stream
+-            || context.subject != previous_context.subject
+-            || context.producer != previous_context.producer
+-            || context.policy != previous_context.policy
+-        {
+-            return Err(Context);
+-        }
++        #[cfg(target_has_atomic = "ptr")]
++        if self.resource.is_some() {
++            return Err(Lexical);
++        }
++        let generation = self.handoff_generation(context)?;
+         let slots = [
+             self.beam.candidate0(),
+             self.beam.candidate1(),
+@@ -337,14 +390,7 @@
+         {
+             return Err(Domain);
+         }
+-        let program = PortableExpressionProgram::from_canonical_hex(include_str!(concat!(
+-            env!("OUT_DIR"),
+-            "/analysis_rebased_envelope.hex"
+-        )))
+-        .map_err(|_| Replay)?;
+-        let mut admitted = Vec::new();
+-        let mut envelopes = Vec::new();
+-        for (prior, replay) in slots.into_iter().zip(receipts) {
++        for (prior, replay) in slots.iter().zip(receipts) {
+             let request = replay.preparation().request();
+             if request.previous() != prior.parser().state()
+                 || request.previous_lexical().tape() != self.lexical().tape()
+@@ -355,37 +401,10 @@
+             {
+                 return Err(Replay);
+             }
+-            let input = LanguageAnalysisRebasedEnvelopeInput::new(
+-                prior.clone(),
+-                replay.raw_result().clone(),
+-            )
+-            .map_err(Native)?;
+-            let output = program
+-                .evaluate(&input.encode().map_err(Native)?)
+-                .map_err(|_| Replay)?;
+-            if output.len() > 65536 {
+-                return Err(Capacity);
+-            }
+-            let raw = LanguageParserScorerRawHypothesis::decode(&output).map_err(Native)?;
+-            admitted
+-                .push(crate::analysis_epoch_initialization::admit(&raw).map_err(Initialization)?);
+-            envelopes.push(output);
+-        }
+-        let mut it = admitted.into_iter();
+-        let beam = LanguageParserScorerBeam::new(
+-            it.next().ok_or(Replay)?,
+-            it.next().ok_or(Replay)?,
+-            it.next().ok_or(Replay)?,
+-            it.next().ok_or(Replay)?,
+-        )
+-        .map_err(Native)?;
+-        let session = AnalysisSession::from_retained_prefix(
+-            domain,
+-            context,
+-            limits,
+-            self.frontiers().committed,
+-        )
+-        .map_err(Revision)?;
++        }
++        let (beam, envelopes) =
++            rebase_envelopes(slots, receipts.each_ref().map(|r| r.raw_result()))?;
++        let session = self.retained_session(domain, context, limits)?;
+         Ok((session, lexical, beam, generation, envelopes))
+     }
+ }
+@@ -450,3 +469,13 @@
+ 
+ #[path = "analysis_fallback_round.rs"]
+ pub mod fallback_round;
++
++#[cfg(target_has_atomic = "ptr")]
++#[path = "analysis_epoch_resource.rs"]
++mod resource;
++#[cfg(target_has_atomic = "ptr")]
++pub use resource::{ResourceEpochHandoffFailure, ResourceEpochTarget};
++
++#[path = "analysis_epoch_rebase.rs"]
++mod rebase;
++use rebase::rebase_envelopes;
+--- a/semantics/language/tests/resource_lexicon_snapshot.rs
++++ b/semantics/language/tests/resource_lexicon_snapshot.rs
+@@ -1,94 +1,9 @@
+ #![cfg(target_has_atomic = "ptr")]
+-//! Private TRAIN resource + Source/Native preparation. No model, independent
+-//! evaluation, epoch/rebase, generic resource-reader Back or publication proof.
+-use conduit_core::*;
+-use conduit_language::{resource_lexicon_snapshot::*, train_lexicon::*, *};
+-use std::{
+-    collections::{BTreeMap, BTreeSet},
+-    sync::Arc,
+-};
+-fn pinned_owner() -> PreparedTrainLexicon {
+-    let raw = std::fs::read(
+-        std::env::var_os("CONDUIT_EWT_TRAIN_CONLLU").expect("explicit existing pinned TRAIN path"),
+-    )
+-    .unwrap();
+-    let hex: String = semantic_digest("language/ewt-train-conllu@1", &raw)
+-        .iter()
+-        .map(|b| format!("{b:02x}"))
+-        .collect();
+-    assert_eq!(
+-        hex,
+-        "661219e208cf02bcc7cffbd9635605cf0778081e8839a92c48da4e73ad39558d"
+-    );
+-    let mut support: BTreeMap<&str, BTreeSet<u8>> = BTreeMap::new();
+-    for line in std::str::from_utf8(&raw).unwrap().lines() {
+-        let fields: Vec<_> = line.split('\t').collect();
+-        if fields.len() != 10
+-            || fields[0].is_empty()
+-            || !fields[0].bytes().all(|b| b.is_ascii_digit())
+-        {
+-            continue;
+-        }
+-        let code = POS_CODES
+-            .iter()
+-            .position(|p| *p == fields[3])
+-            .expect("TRAIN UPOS") as u8;
+-        support.entry(fields[1]).or_default().insert(code);
+-    }
+-    let rows: Vec<_> = support
+-        .into_iter()
+-        .filter(|(surface, codes)| !surface.is_empty() && surface.len() <= 128 && codes.len() <= 4)
+-        .collect();
+-    assert_eq!(rows.len(), ENTRIES);
+-    let mut bytes = b"CLXPOS1\0".to_vec();
+-    bytes
+-        .extend((0..32).map(|i| u8::from_str_radix(&SOURCE_SHA256[i * 2..i * 2 + 2], 16).unwrap()));
+-    bytes.extend_from_slice(&(rows.len() as u32).to_le_bytes());
+-    for (surface, codes) in rows {
+-        bytes.extend_from_slice(&(surface.len() as u16).to_le_bytes());
+-        bytes.extend_from_slice(surface.as_bytes());
+-        bytes.push(codes.len() as u8);
+-        bytes.extend(codes);
+-    }
+-    assert_eq!(bytes.len(), RESOURCE_BYTES);
+-    assert_eq!(semantic_digest(IDENTITY_DOMAIN, &bytes), CONTENT_DIGEST);
+-    let reference = pinned_train_lexicon_reference();
+-    let binding = ResourceReferenceBinding {
+-        identity: reference.identity,
+-        version: reference.lifetime.version,
+-        content_profile: reference.content_profile.clone(),
+-        access_class: reference.access_class.clone(),
+-        handle: ResourceHandleId::from("private-resource-snapshot-fixture"),
+-        authority_contract: AuthorityContractId::from(READ_AUTHORITY),
+-        authority_grant: AuthorityGrantId::from("private-resource-snapshot-fixture"),
+-        maximum_bytes: RESOURCE_BYTES as u64,
+-        maximum_items: Some(ENTRIES as u64),
+-        availability: ResourceReferenceAvailability::Available,
+-    };
+-    PreparedTrainLexicon::admit(reference, &binding, Arc::from(bytes))
+-        .unwrap_or_else(|e| panic!("private adoption: {e:?}"))
+-}
+-fn source(text: &str, finality: LanguageTextFinality) -> LanguageTextRevision {
+-    LanguageTextRevision::new(
+-        finality,
+-        LanguageText::new(
+-            LanguageTextId::new("opaque-snapshot-fixture".into()).unwrap(),
+-            LanguageId::new("language/en".into()).unwrap(),
+-            LanguageTextRevisionId::new("1".into()).unwrap(),
+-            text.into(),
+-        )
+-        .unwrap(),
+-        None,
+-        LinguisticDerivationProvenance::deterministic_rule(
+-            "snapshot-unit-fixture".into(),
+-            "1".into(),
+-        )
+-        .unwrap(),
+-        0,
+-        Some(text.chars().count() as u32),
+-    )
+-    .unwrap()
+-}
++#[path = "common/resource_lexicon.rs"]
++mod fixture;
++use conduit_language::{resource_lexicon_snapshot::*, *};
++use fixture::{pinned_owner, source};
++
+ #[test]
+ #[ignore = "requires explicit existing private pinned TRAIN path; no corpus/resource files written"]
+ fn actual_pinned_resource_rows_survive_source_binding_without_selected_pos() {
+@@ -137,7 +52,10 @@
+     ));
+     assert!(matches!(
+         PreparedResourceLexicalSnapshot::prepare(
+-            &source("answer answer answer answer answer", LanguageTextFinality::Final),
++            &source(
++                "answer answer answer answer answer",
++                LanguageTextFinality::Final
++            ),
+             &owner,
+             &program
+         ),
+--- a/semantics/language/tests/analysis_epoch_initialization.rs
++++ b/semantics/language/tests/analysis_epoch_initialization.rs
+@@ -244,6 +244,11 @@
+         "/parser_rebase_program.hex"
+     )))
+     .unwrap();
++    let adapter = PortableExpressionProgram::from_canonical_hex(include_str!(concat!(
++        env!("OUT_DIR"),
++        "/parser_rebase_adapter.hex"
++    )))
++    .unwrap();
+     let mut receipts = Vec::new();
+     for slot in [
+         previous.candidate0(),
+@@ -261,7 +266,11 @@
+         .unwrap();
+         let observed = LanguageParserNumericState::decode(
+             &expression
+-                .evaluate(&p.request().clone().encode().unwrap())
++                .evaluate(
++                    &adapter
++                        .evaluate(&p.request().clone().encode().unwrap())
++                        .unwrap(),
++                )
+                 .unwrap(),
+         )
+         .unwrap();
+--- /dev/null
++++ b/semantics/language/src/analysis_epoch_resource.rs
+@@ -0,0 +1,176 @@
++//! Resource-backed entrances into the existing epoch owner and Session lifecycle.
++//! Snapshot custody changes; parser numerical policy and currentness stay shared.
++use super::*;
++
++#[cfg(target_has_atomic = "ptr")]
++pub struct ResourceEpochHandoffFailure<'a> {
++    pub owner: AnalysisEpochOwner<'a>,
++    pub next: PreparedResourceLexicalSnapshot<'a>,
++    pub refusal: AnalysisEpochRefusal,
++}
++/// Requested next epoch basis and the existing revision-domain limits.
++#[cfg(target_has_atomic = "ptr")]
++pub struct ResourceEpochTarget<'a> {
++    pub analysis: LanguageAnalysisRevisionId,
++    pub default_relation: LanguageParserRelation,
++    pub domain: &'a DependencyRevisions<'a>,
++    pub context: RevisionContext<'a>,
++    pub limits: RevisionLimits,
++}
++#[cfg(target_has_atomic = "ptr")]
++struct ResourceEpochPreparation<'a> {
++    session: AnalysisSession<'a>,
++    receipts: [PreparedResourceParserRebaseReplay; 4],
++    beam: LanguageParserScorerBeam,
++    generation: u64,
++    envelopes: Vec<Vec<u8>>,
++}
++impl<'a> AnalysisEpochOwner<'a> {
++    /// Retain the actual resource owner beside the ordinary initial epoch.
++    #[cfg(target_has_atomic = "ptr")]
++    pub fn initialize_resource(
++        initial: PreparedAnalysisInitialization,
++        snapshot: PreparedResourceLexicalSnapshot<'a>,
++        domain: &'a DependencyRevisions<'a>,
++        context: RevisionContext<'a>,
++        limits: RevisionLimits,
++    ) -> Result<Self, AnalysisEpochRefusal> {
++        if initial.lexical.tape() != snapshot.lexical().tape() || snapshot.previous_tape().is_some()
++        {
++            return Err(AnalysisEpochRefusal::Lexical);
++        }
++        let mut owner = Self::initialize(initial, domain, context, limits)?;
++        owner.resource = Some(snapshot);
++        Ok(owner)
++    }
++    #[cfg(target_has_atomic = "ptr")]
++    pub fn resource_snapshot(&self) -> Option<&PreparedResourceLexicalSnapshot<'a>> {
++        self.resource.as_ref()
++    }
++    #[cfg(target_has_atomic = "ptr")]
++    pub fn resource_rebase_receipts(&self) -> &[PreparedResourceParserRebaseReplay] {
++        match &self.material {
++            Material::ResourceRebased { receipts, .. } => receipts,
++            _ => &[],
++        }
++    }
++    /// Actual all-four Source rebasing and the existing epoch/session handoff.
++    /// Failure retains both original owners without publishing a next epoch.
++    #[cfg(target_has_atomic = "ptr")]
++    pub fn handoff_resource(
++        self,
++        next: PreparedResourceLexicalSnapshot<'a>,
++        program: &PreparedResourceParserRebaseProgram,
++        target: ResourceEpochTarget<'a>,
++    ) -> Result<(Self, ArchivedAnalysisEpoch<'a>), ResourceEpochHandoffFailure<'a>> {
++        let limits = target.limits;
++        let prepared = self.prepare_resource_next(&next, program, target);
++        let ResourceEpochPreparation {
++            session,
++            receipts,
++            beam,
++            generation,
++            envelopes,
++        } = match prepared {
++            Ok(p) => p,
++            Err(refusal) => {
++                return Err(ResourceEpochHandoffFailure {
++                    owner: self,
++                    next,
++                    refusal,
++                })
++            }
++        };
++        let new = Self {
++            session,
++            material: Material::ResourceRebased {
++                receipts,
++                envelopes,
++            },
++            resource: Some(next),
++            beam,
++            generation,
++            commitments: Vec::with_capacity(limits.history_events),
++            commitment_limit: limits.history_events,
++            identity_cursor: self.identity_cursor,
++            rounds: Vec::with_capacity(limits.history_events),
++            round_limit: limits.history_events,
++            frontier_receipts: Vec::with_capacity(limits.history_events),
++        };
++        Ok((new, ArchivedAnalysisEpoch { owner: self }))
++    }
++    #[cfg(target_has_atomic = "ptr")]
++    fn prepare_resource_next(
++        &self,
++        next: &PreparedResourceLexicalSnapshot<'a>,
++        program: &PreparedResourceParserRebaseProgram,
++        target: ResourceEpochTarget<'a>,
++    ) -> Result<ResourceEpochPreparation<'a>, AnalysisEpochRefusal> {
++        let ResourceEpochTarget {
++            analysis,
++            default_relation,
++            domain,
++            context,
++            limits,
++        } = target;
++        use AnalysisEpochRefusal::*;
++        let generation = self.handoff_generation(context)?;
++        let old = self.resource.as_ref().ok_or(Lexical)?;
++        if old.lexical().tape() != self.lexical().tape()
++            || next.previous_tape() != Some(old.lexical().tape())
++        {
++            return Err(Lexical);
++        }
++        if domain.source_text != next.lexical().tape().source().material()
++            || domain.tokens != next.lexical().tape().tokens().len() as u64
++        {
++            return Err(Domain);
++        }
++        let slots = [
++            self.beam.candidate0(),
++            self.beam.candidate1(),
++            self.beam.candidate2(),
++            self.beam.candidate3(),
++        ];
++        let mut receipts = Vec::new();
++        for slot in slots {
++            let receipt = program
++                .replay(
++                    slot.parser().state(),
++                    old,
++                    next,
++                    analysis.clone(),
++                    default_relation.clone(),
++                )
++                .map_err(ResourceRebase)?;
++            if *slot.parser().active()
++                && *receipt.result().committed() != self.frontiers().committed.0
++            {
++                return Err(Replay);
++            }
++            receipts.push(receipt);
++        }
++        let receipts: [PreparedResourceParserRebaseReplay; 4] =
++            receipts.try_into().map_err(|_| Replay)?;
++        let (beam, envelopes) =
++            rebase_envelopes(slots, receipts.each_ref().map(|r| r.raw_result()))?;
++        let session = self.retained_session(domain, context, limits)?;
++        Ok(ResourceEpochPreparation {
++            session,
++            receipts,
++            beam,
++            generation,
++            envelopes,
++        })
++    }
++}
++impl<'a> ArchivedAnalysisEpoch<'a> {
++    #[cfg(target_has_atomic = "ptr")]
++    pub fn resource_snapshot(&self) -> Option<&PreparedResourceLexicalSnapshot<'a>> {
++        self.owner.resource_snapshot()
++    }
++    #[cfg(target_has_atomic = "ptr")]
++    pub fn resource_rebase_receipts(&self) -> &[PreparedResourceParserRebaseReplay] {
++        self.owner.resource_rebase_receipts()
++    }
++}
+--- /dev/null
++++ b/semantics/language/src/analysis_epoch_rebase.rs
+@@ -0,0 +1,40 @@
++//! Shared exact Source envelope replay and beam admission for both epoch routes.
++use super::*;
++use crate::generated::LanguageAnalysisRebasedEnvelopeInput;
++use conduit_plot::{rust_binding::NativeRustBinding, PortableExpressionProgram};
++
++pub(super) fn rebase_envelopes(
++    slots: [&LanguageParserScorerHypothesis; 4],
++    raws: [&LanguageParserNumericState; 4],
++) -> Result<(LanguageParserScorerBeam, Vec<Vec<u8>>), AnalysisEpochRefusal> {
++    use AnalysisEpochRefusal::*;
++    let program = PortableExpressionProgram::from_canonical_hex(include_str!(concat!(
++        env!("OUT_DIR"),
++        "/analysis_rebased_envelope.hex"
++    )))
++    .map_err(|_| Replay)?;
++    let mut admitted = Vec::new();
++    let mut envelopes = Vec::new();
++    for (prior, raw) in slots.into_iter().zip(raws) {
++        let input = LanguageAnalysisRebasedEnvelopeInput::new(prior.clone(), raw.clone())
++            .map_err(Native)?;
++        let output = program
++            .evaluate(&input.encode().map_err(Native)?)
++            .map_err(|_| Replay)?;
++        if output.len() > 65536 {
++            return Err(Capacity);
++        }
++        let raw = LanguageParserScorerRawHypothesis::decode(&output).map_err(Native)?;
++        admitted.push(crate::analysis_epoch_initialization::admit(&raw).map_err(Initialization)?);
++        envelopes.push(output);
++    }
++    let mut it = admitted.into_iter();
++    let beam = LanguageParserScorerBeam::new(
++        it.next().ok_or(Replay)?,
++        it.next().ok_or(Replay)?,
++        it.next().ok_or(Replay)?,
++        it.next().ok_or(Replay)?,
++    )
++    .map_err(Native)?;
++    Ok((beam, envelopes))
++}
+--- /dev/null
++++ b/semantics/language/tests/resource_lexicon_revision.rs
+@@ -0,0 +1,363 @@
++#![cfg(target_has_atomic = "ptr")]
++#[path = "common/resource_lexicon.rs"]
++mod fixture;
++use conduit_language::{resource_lexicon_snapshot::*, *};
++use fixture::{pinned_owner, source};
++
++fn revised_source(
++    previous: &LanguageTextRevision,
++    text: &str,
++    stable: u32,
++) -> LanguageTextRevision {
++    LanguageTextRevision::new(
++        LanguageTextFinality::Partial,
++        LanguageText::new(
++            previous.material().identity().clone(),
++            previous.material().language().clone(),
++            LanguageTextRevisionId::new(format!("{}", previous.sequence() + 2)).unwrap(),
++            text.into(),
++        )
++        .unwrap(),
++        Some(
++            LanguageTextPriorRevision::new(
++                previous.material().revision().clone(),
++                *previous.sequence(),
++            )
++            .unwrap(),
++        ),
++        previous.provenance().clone(),
++        previous.sequence() + 1,
++        Some(stable),
++    )
++    .unwrap()
++}
++fn dep() -> LanguageParserRelation {
++    LanguageParserRelation::new(
++        LanguageUniversalDependencyRelation::Dep,
++        LanguageParserSubtype::new("".into()).unwrap(),
++    )
++    .unwrap()
++}
++#[test]
++#[ignore = "requires explicit existing private pinned TRAIN path; actual Source revision and all-four epoch handoff, no model"]
++fn actual_resource_revision_extends_profile_and_rebases_all_four_through_same_epoch_owner() {
++    use conduit_core::revision::*;
++    use conduit_language::{
++        analysis_epoch_initialization::*, analysis_epoch_owner::*, lexical::*,
++        resource_parser_rebase::*, revision::*,
++    };
++    use conduit_plot::{rust_binding::NativeRustBinding, PortableExpressionProgram};
++    let resource = pinned_owner();
++    let snapshot_program = PreparedResourceSnapshotProgram::prepare().unwrap();
++    for surface in ["answer", "record"] {
++        assert_eq!(
++            resource.lookup(surface).unwrap().unwrap().pos_codes().len(),
++            2
++        );
++    }
++    let old_source = source("answer ", LanguageTextFinality::Partial);
++    let partial_source = revised_source(&old_source, "answer rec", 7);
++    let next_source = revised_source(&partial_source, "answer record ", 14);
++    let old = PreparedResourceLexicalSnapshot::prepare(&old_source, &resource, &snapshot_program)
++        .unwrap();
++    let partial =
++        PreparedResourceLexicalSnapshot::prepare_revision(&partial_source, &old, &snapshot_program)
++            .unwrap();
++    assert_eq!(partial.bindings().len(), 1);
++    assert!(partial.lexical().tape().tokens()[1].candidates().is_empty());
++    assert!(matches!(
++        partial.lexical().tape().tokens()[1].completeness(),
++        LanguageLexicalCompleteness::TrailingPartial
++    ));
++    let next = PreparedResourceLexicalSnapshot::prepare_revision(
++        &next_source,
++        &partial,
++        &snapshot_program,
++    )
++    .unwrap();
++    assert_eq!(next.bindings().len(), 2);
++    assert_eq!(next.lexical().tape().profile().entries().len(), 2);
++    assert_ne!(
++        next.lexical().tape().profile(),
++        partial.lexical().tape().profile()
++    );
++    assert_eq!(
++        next.lexical().tape().tokens()[0]
++            .prior_occurrence()
++            .as_ref(),
++        Some(partial.lexical().tape().tokens()[0].identity())
++    );
++    assert_eq!(
++        next.lexical().tape().tokens()[0].candidates(),
++        partial.lexical().tape().tokens()[0].candidates()
++    );
++    // Legacy route still refuses rotating the full active profile.
++    assert!(matches!(
++        prepare_lexical_tape(
++            &next_source,
++            next.lexical().tape().profile(),
++            Some(partial.lexical())
++        ),
++        Err(LexicalRefusal::Profile)
++    ));
++    // Initialize directly on the partial epoch: its trailing token has no POS.
++    let lexical = prepare_lexical_tape(&old_source, old.lexical().tape().profile(), None).unwrap();
++    let begin = LanguageParserBegin::new(
++        LanguageParserBasis::new(
++            LanguageAnalysisRevisionId::new("analysis/1".into()).unwrap(),
++            old_source.material().revision().clone(),
++            old_source.material().identity().clone(),
++        )
++        .unwrap(),
++        dep(),
++        1,
++    )
++    .unwrap();
++    let init_expression = PortableExpressionProgram::from_canonical_hex(include_str!(concat!(
++        env!("OUT_DIR"),
++        "/analysis_initialize_program.hex"
++    )))
++    .unwrap();
++    let observed = LanguageParserNumericState::decode(
++        &init_expression
++            .evaluate(&begin.clone().encode().unwrap())
++            .unwrap(),
++    )
++    .unwrap();
++    let initial = PreparedAnalysisInitializationProgram::prepare()
++        .unwrap()
++        .replay(lexical, &begin, &observed)
++        .unwrap();
++    let old_domain = DependencyRevisions {
++        source_text: old_source.material(),
++        tokens: 1,
++    };
++    let partial_domain = DependencyRevisions {
++        source_text: partial_source.material(),
++        tokens: 2,
++    };
++    let next_domain = DependencyRevisions {
++        source_text: next_source.material(),
++        tokens: 2,
++    };
++    let context = RevisionContext {
++        stream: RevisionText::new("resource-stream").unwrap(),
++        subject: RevisionText::new("resource-subject").unwrap(),
++        epoch: RevisionText::new("1").unwrap(),
++        producer: RevisionText::new("fixture").unwrap(),
++        policy: RevisionText::new("resource@1").unwrap(),
++    };
++    let limits = RevisionLimits {
++        history_events: 8,
++        revisable_units: 4,
++    };
++    let owner = AnalysisEpochOwner::initialize_resource(initial, old, &old_domain, context, limits)
++        .unwrap();
++    let prior_beam = owner.beam().clone();
++    let program = PreparedResourceParserRebaseProgram::prepare().unwrap();
++    // Same-epoch context refuses transactionally before any next publication.
++    let failed = owner
++        .handoff_resource(
++            partial,
++            &program,
++            ResourceEpochTarget {
++                analysis: LanguageAnalysisRevisionId::new("analysis/2".into()).unwrap(),
++                default_relation: dep(),
++                domain: &partial_domain,
++                context: context,
++                limits: limits,
++            },
++        )
++        .err()
++        .expect("same context refusal");
++    assert!(matches!(failed.refusal, AnalysisEpochRefusal::Context));
++    assert_eq!(failed.owner.beam(), &prior_beam);
++    assert!(failed.owner.resource_rebase_receipts().is_empty());
++    let owner = failed.owner;
++    let partial = failed.next;
++    let (owner, archived) = owner
++        .handoff_resource(
++            partial,
++            &program,
++            ResourceEpochTarget {
++                analysis: LanguageAnalysisRevisionId::new("analysis/2".into()).unwrap(),
++                default_relation: dep(),
++                domain: &partial_domain,
++                context: RevisionContext {
++                    epoch: RevisionText::new("2").unwrap(),
++                    ..context
++                },
++                limits: limits,
++            },
++        )
++        .unwrap_or_else(|_| panic!("partial handoff"));
++    assert_eq!(archived.beam(), &prior_beam);
++    assert_eq!(owner.resource_rebase_receipts().len(), 4);
++    assert_eq!(*owner.beam().candidate0().parser().state().token_count(), 1);
++    let prior_beam = owner.beam().clone();
++    let (owner, archived) = owner
++        .handoff_resource(
++            next,
++            &program,
++            ResourceEpochTarget {
++                analysis: LanguageAnalysisRevisionId::new("analysis/3".into()).unwrap(),
++                default_relation: dep(),
++                domain: &next_domain,
++                context: RevisionContext {
++                    epoch: RevisionText::new("3").unwrap(),
++                    ..context
++                },
++                limits: limits,
++            },
++        )
++        .unwrap_or_else(|_| panic!("complete handoff"));
++    for (receipt, prior) in owner.resource_rebase_receipts().iter().zip([
++        prior_beam.candidate0(),
++        prior_beam.candidate1(),
++        prior_beam.candidate2(),
++        prior_beam.candidate3(),
++    ]) {
++        assert_eq!(receipt.request().previous(), prior.parser().state());
++        assert_eq!(
++            receipt.request().previous_lexical().tape(),
++            archived.lexical().tape()
++        );
++        assert_eq!(receipt.request().next().tape(), owner.lexical().tape());
++        assert_eq!(*receipt.result().token_count(), 2);
++        assert!(!receipt.input_canonical().is_empty());
++        assert!(!receipt.adapted_canonical().is_empty());
++        assert_eq!(
++            receipt.output_canonical(),
++            receipt.raw_result().clone().encode().unwrap()
++        );
++    }
++    assert_eq!(owner.frontiers().committed.0, 0);
++    assert_eq!(
++        *owner.beam().candidate0().parser().identity(),
++        *prior_beam.candidate0().parser().identity()
++    );
++    assert_eq!(
++        owner.lexical().tape().tokens()[0].candidates(),
++        archived.lexical().tape().tokens()[0].candidates()
++    );
++    assert!(std::ptr::eq(
++        owner.resource_snapshot().unwrap().lexicon(),
++        &resource
++    ));
++}
++
++#[test]
++#[ignore = "requires explicit existing private pinned TRAIN path; checked committed candidate and resource custody refusals"]
++fn resource_rebase_preserves_committed_candidates_and_refuses_foreign_or_absent_lineage() {
++    use conduit_language::resource_parser_rebase::*;
++    let resource = pinned_owner();
++    let other_resource = pinned_owner();
++    let snapshot_program = PreparedResourceSnapshotProgram::prepare().unwrap();
++    let old_source = source("answer ", LanguageTextFinality::Partial);
++    let next_source = revised_source(&old_source, "answer record ", 14);
++    let old = PreparedResourceLexicalSnapshot::prepare(&old_source, &resource, &snapshot_program)
++        .unwrap();
++    let next =
++        PreparedResourceLexicalSnapshot::prepare_revision(&next_source, &old, &snapshot_program)
++            .unwrap();
++    let basis = LanguageParserBasis::new(
++        LanguageAnalysisRevisionId::new("analysis/1".into()).unwrap(),
++        old_source.material().revision().clone(),
++        old_source.material().identity().clone(),
++    )
++    .unwrap();
++    let root = LanguageParserRelation::new(
++        LanguageUniversalDependencyRelation::Root,
++        LanguageParserSubtype::new("".into()).unwrap(),
++    )
++    .unwrap();
++    // Explicit semantic fixture: this is not an installed commitment receipt.
++    let committed = LanguageParserState::new(
++        basis,
++        1,
++        2,
++        [4, 5, 5, 5, 4],
++        root.clone(),
++        dep(),
++        dep(),
++        dep(),
++        [4, 0, 4, 4, 4],
++        1,
++        1,
++    )
++    .unwrap();
++    let program = PreparedResourceParserRebaseProgram::prepare().unwrap();
++    let replay = program
++        .replay(
++            &committed,
++            &old,
++            &next,
++            LanguageAnalysisRevisionId::new("analysis/2".into()).unwrap(),
++            dep(),
++        )
++        .unwrap();
++    assert_eq!(*replay.result().committed(), 1);
++    assert_eq!(*replay.result().unread(), 1);
++    assert_eq!(replay.result().heads(), &[4, 5, 5, 5, 4]);
++    assert_eq!(replay.result().relation0(), &root);
++    assert_eq!(
++        replay.request().previous_lexical().tape().tokens()[0].candidates(),
++        replay.request().next().tape().tokens()[0].candidates()
++    );
++    let foreign_old =
++        PreparedResourceLexicalSnapshot::prepare(&old_source, &other_resource, &snapshot_program)
++            .unwrap();
++    let foreign_next = PreparedResourceLexicalSnapshot::prepare_revision(
++        &next_source,
++        &foreign_old,
++        &snapshot_program,
++    )
++    .unwrap();
++    assert!(matches!(
++        program.replay(
++            &committed,
++            &old,
++            &foreign_next,
++            LanguageAnalysisRevisionId::new("analysis/2".into()).unwrap(),
++            dep()
++        ),
++        Err(ResourceParserRebaseRefusal::Resource)
++    ));
++    assert!(matches!(
++        program.replay(
++            &committed,
++            &old,
++            &old,
++            LanguageAnalysisRevisionId::new("analysis/2".into()).unwrap(),
++            dep()
++        ),
++        Err(ResourceParserRebaseRefusal::Lineage)
++    ));
++    assert!(PreparedResourceLexicalSnapshot::prepare_revision(
++        &old_source,
++        &old,
++        &snapshot_program
++    )
++    .is_err());
++    assert!(PreparedResourceLexicalSnapshot::prepare_revision(
++        &revised_source(&old_source, "record ", 7),
++        &old,
++        &snapshot_program
++    )
++    .is_err());
++    assert!(PreparedResourceLexicalSnapshot::prepare_revision(
++        &revised_source(&old_source, "answer answer answer answer answer ", 35),
++        &old,
++        &snapshot_program
++    )
++    .is_err());
++    assert!(program
++        .replay(
++            &committed,
++            &old,
++            &next,
++            committed.basis().analysis_revision().clone(),
++            dep()
++        )
++        .is_err());
++}
+--- /dev/null
++++ b/semantics/language/tests/common/resource_lexicon.rs
+@@ -0,0 +1,89 @@
++//! Private pinned metadata reconstruction, with no corpus/resource publication.
++use conduit_core::*;
++use conduit_language::{train_lexicon::*, *};
++use std::{
++    collections::{BTreeMap, BTreeSet},
++    sync::Arc,
++};
++pub fn pinned_owner() -> PreparedTrainLexicon {
++    let raw = std::fs::read(
++        std::env::var_os("CONDUIT_EWT_TRAIN_CONLLU").expect("explicit existing pinned TRAIN path"),
++    )
++    .unwrap();
++    let hex: String = semantic_digest("language/ewt-train-conllu@1", &raw)
++        .iter()
++        .map(|b| format!("{b:02x}"))
++        .collect();
++    assert_eq!(
++        hex,
++        "661219e208cf02bcc7cffbd9635605cf0778081e8839a92c48da4e73ad39558d"
++    );
++    let mut support: BTreeMap<&str, BTreeSet<u8>> = BTreeMap::new();
++    for line in std::str::from_utf8(&raw).unwrap().lines() {
++        let fields: Vec<_> = line.split('\t').collect();
++        if fields.len() != 10
++            || fields[0].is_empty()
++            || !fields[0].bytes().all(|b| b.is_ascii_digit())
++        {
++            continue;
++        }
++        let code = POS_CODES
++            .iter()
++            .position(|p| *p == fields[3])
++            .expect("TRAIN UPOS") as u8;
++        support.entry(fields[1]).or_default().insert(code);
++    }
++    let rows: Vec<_> = support
++        .into_iter()
++        .filter(|(surface, codes)| !surface.is_empty() && surface.len() <= 128 && codes.len() <= 4)
++        .collect();
++    assert_eq!(rows.len(), ENTRIES);
++    let mut bytes = b"CLXPOS1\0".to_vec();
++    bytes
++        .extend((0..32).map(|i| u8::from_str_radix(&SOURCE_SHA256[i * 2..i * 2 + 2], 16).unwrap()));
++    bytes.extend_from_slice(&(rows.len() as u32).to_le_bytes());
++    for (surface, codes) in rows {
++        bytes.extend_from_slice(&(surface.len() as u16).to_le_bytes());
++        bytes.extend_from_slice(surface.as_bytes());
++        bytes.push(codes.len() as u8);
++        bytes.extend(codes);
++    }
++    assert_eq!(bytes.len(), RESOURCE_BYTES);
++    assert_eq!(semantic_digest(IDENTITY_DOMAIN, &bytes), CONTENT_DIGEST);
++    let reference = pinned_train_lexicon_reference();
++    let binding = ResourceReferenceBinding {
++        identity: reference.identity,
++        version: reference.lifetime.version,
++        content_profile: reference.content_profile.clone(),
++        access_class: reference.access_class.clone(),
++        handle: ResourceHandleId::from("private-resource-snapshot-fixture"),
++        authority_contract: AuthorityContractId::from(READ_AUTHORITY),
++        authority_grant: AuthorityGrantId::from("private-resource-snapshot-fixture"),
++        maximum_bytes: RESOURCE_BYTES as u64,
++        maximum_items: Some(ENTRIES as u64),
++        availability: ResourceReferenceAvailability::Available,
++    };
++    PreparedTrainLexicon::admit(reference, &binding, Arc::from(bytes))
++        .unwrap_or_else(|e| panic!("private adoption: {e:?}"))
++}
++pub fn source(text: &str, finality: LanguageTextFinality) -> LanguageTextRevision {
++    LanguageTextRevision::new(
++        finality,
++        LanguageText::new(
++            LanguageTextId::new("opaque-snapshot-fixture".into()).unwrap(),
++            LanguageId::new("language/en".into()).unwrap(),
++            LanguageTextRevisionId::new("1".into()).unwrap(),
++            text.into(),
++        )
++        .unwrap(),
++        None,
++        LinguisticDerivationProvenance::deterministic_rule(
++            "snapshot-unit-fixture".into(),
++            "1".into(),
++        )
++        .unwrap(),
++        0,
++        Some(text.chars().count() as u32),
++    )
++    .unwrap()
++}

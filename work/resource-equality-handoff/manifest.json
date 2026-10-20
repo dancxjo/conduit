@@ -1,0 +1,33 @@
+{
+  "status": "prepared-unbuilt",
+  "baseline_head": "d72d39e8f9ed06e4ba83a30903e87587f0bd5e87",
+  "source_worktree": "/home/dancxjo/Documents/Codex/2026-10-18/goal-finish-and-close-https-github/work/lexicon-source-snapshot",
+  "files": [
+    {
+      "path": "architecture/plot/src/expression_evaluate/equality.rs",
+      "baseline_sha256": "7af209ef394e41227963844c27dc1dca56666f77e429b8e86b2d80e2e0619ca7",
+      "proposed_sha256": "6463c549ad4541c8ecafca3a76cc4dac0bddd6d5cfe29dbcdee03a4e2a510e3b"
+    },
+    {
+      "path": "architecture/plot/src/expression_prepared/equality.rs",
+      "baseline_sha256": "9cf0b9313b00416b4404fcddd0e7fa88bf1152ca6925943097cec698ff994dcd",
+      "proposed_sha256": "35cf4a74cab2d6b1b0a61c5e20c2d27f0ffa63736bbae8137151b1c7a7b421c2"
+    },
+    {
+      "path": "architecture/plot/tests/resource_reference_equality.rs",
+      "baseline_sha256": null,
+      "proposed_sha256": "434f8b85f9dbb0a3c304ef19e253b363c89e8a4cea2a40f385c8e0af5b37ab86"
+    }
+  ],
+  "patch_sha256": "45e8fd2ef357680b3ddec036903c45e72e461dbc0b62e808d7254e6052dc8686",
+  "verification": [
+    "rustfmt parser success",
+    "git diff --check success"
+  ],
+  "not_run": [
+    "builds",
+    "tests",
+    "inference"
+  ],
+  "scope": "Exact Core value/resource-ref@1 equality/inequality only; canonical payload validation and full encoded reference identity. No ordering/dereference/authority/opaque fallback."
+}

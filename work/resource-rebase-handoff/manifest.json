@@ -1,0 +1,150 @@
+{
+  "status": "prepared-unbuilt",
+  "source_worktree": "/home/dancxjo/Documents/Codex/2026-10-18/goal-finish-and-close-https-github/work/lexicon-source-snapshot",
+  "baseline_root_head": "b9bff0a10b139dc30ce4a2de462895e3641e34dc",
+  "baseline_note": "Current root working-file hashes after initial snapshot proof and ResourceRef equality b9bff0a10. No root source mutated. Parent API extracted before growth; same shared Session/currentness/envelope paths.",
+  "files": [
+    {
+      "path": "semantics/language/parser_revision_rebase.conduit",
+      "group": "implementation",
+      "root_baseline_sha256": "2ce50b6d4651b7ff22f9b2c77ebc2ea91ede6911250fb41dc81a7155ad0ad06f",
+      "proposed_sha256": "4f03e6bfee516e84f50d24dd303b7bd5d7a39e019dd5845cc030b866b23204cb",
+      "new": false
+    },
+    {
+      "path": "semantics/language/resource_parser_rebase.conduit",
+      "group": "implementation",
+      "root_baseline_sha256": null,
+      "proposed_sha256": "e4e50891e55ccb6ca852eee4076779ad1dd21498bf0cfcbcf01f36a66cd6655d",
+      "new": true
+    },
+    {
+      "path": "semantics/language/src/lexical.rs",
+      "group": "implementation",
+      "root_baseline_sha256": "3b775806d1ffc87395f9163e3c24c59c8c563d36359dd50ef6b5caa13440370d",
+      "proposed_sha256": "b59a521c1c2556acc8373992d18006f52a88779f740ecaa2bd0c049176c8ba62",
+      "new": false
+    },
+    {
+      "path": "semantics/language/src/resource_lexicon_snapshot.rs",
+      "group": "implementation",
+      "root_baseline_sha256": "3aca2c61bc175ab13e17c13d1715d1bb05833a7c0d74bb700ec9205be0d6e5cf",
+      "proposed_sha256": "7b624c0578c2afc1c4fcca52473d45ffb25844d815d3c4433f3105e6ca8ef12b",
+      "new": false
+    },
+    {
+      "path": "semantics/language/src/parser_rebase_replay.rs",
+      "group": "implementation",
+      "root_baseline_sha256": "ac6d060a37fc12ab044689c5c757b1103db76371ab3a49698b040c56d9e29ba9",
+      "proposed_sha256": "177afdf3fdecd46935ce73a5841a28073892cf213c71fbfdeb022fabd4b1271a",
+      "new": false
+    },
+    {
+      "path": "semantics/language/src/resource_parser_rebase.rs",
+      "group": "implementation",
+      "root_baseline_sha256": null,
+      "proposed_sha256": "d134ac66ee2fbf64ab077b4c6fea4f037e5407ed75941d1843c39da37c8b7988",
+      "new": true
+    },
+    {
+      "path": "semantics/language/src/analysis_epoch_owner.rs",
+      "group": "implementation",
+      "root_baseline_sha256": "501466e7f231ddd08b69d409bf5dadd4d18d340032da5fac3e77efe11a467bbb",
+      "proposed_sha256": "3b0a9cc04ef5a0d9a8807f636f16fb0c5e0267d972d8f2d8576a555d4197ed28",
+      "new": false
+    },
+    {
+      "path": "semantics/language/tests/resource_lexicon_snapshot.rs",
+      "group": "implementation",
+      "root_baseline_sha256": "955f09be7830e947025925024f01253dff1f74f3accd1c58b705a78fe0801a3c",
+      "proposed_sha256": "4a66cad57c803d55c43aeba541a3745dd90336ebfe7e43b8772709a35fa3ba4a",
+      "new": false
+    },
+    {
+      "path": "semantics/language/tests/analysis_epoch_initialization.rs",
+      "group": "implementation",
+      "root_baseline_sha256": "404583f69739ee796a927c6b8de928d053c5535a816d149485130d10b090a302",
+      "proposed_sha256": "23e0aade9b6bc313603937e164c3bdef049edf5db1f65d256466f29bcce0fefe",
+      "new": false
+    },
+    {
+      "path": "semantics/language/build.rs",
+      "group": "wiring",
+      "root_baseline_sha256": "de2444771b0038c537e28cd6efbc90dfa6f8ec1a97ace96f2742e9ca1f659b26",
+      "proposed_sha256": "acfe4c4f0f8dbc48d89a0137d7d28abd7c445bb7946908dad1ed71634e5f1f79",
+      "new": false
+    },
+    {
+      "path": "semantics/language/src/lib.rs",
+      "group": "wiring",
+      "root_baseline_sha256": "dca13e238b77f96153417d835b3be82c3b1853b7d36f4ce248da588c45583941",
+      "proposed_sha256": "0da6e3434ecc0121df1ce19264c32c75c5f8b7088b6f7160286f5a295deb1b92",
+      "new": false
+    },
+    {
+      "path": "semantics/language/src/catalog.rs",
+      "group": "wiring",
+      "root_baseline_sha256": "752bfe06de39c2ad5bfd68c3494442f4f98e0834517664be119ed9993515481e",
+      "proposed_sha256": "f9e05561142c45b382fec9af74faef98e3b003a60e70df7be8a501f2aa3a733f",
+      "new": false
+    },
+    {
+      "path": "semantics/language/src/analysis_epoch_resource.rs",
+      "group": "implementation",
+      "new": true,
+      "root_baseline_sha256": null,
+      "proposed_sha256": "70626359ddfd73a1337ba7dab5657d32a1585ba75eabb256795254848e5befa6"
+    },
+    {
+      "path": "semantics/language/src/analysis_epoch_rebase.rs",
+      "group": "implementation",
+      "new": true,
+      "root_baseline_sha256": null,
+      "proposed_sha256": "15d2f9b51e4ed797c2d6b598ca8a0251531a2e5649c13f1c1d95d983be3b06e9"
+    },
+    {
+      "path": "semantics/language/tests/resource_lexicon_revision.rs",
+      "group": "implementation",
+      "new": true,
+      "root_baseline_sha256": null,
+      "proposed_sha256": "75c3601bcc669a3a13141448a9758524330de82c1e2483a18d92232212f893ec"
+    },
+    {
+      "path": "semantics/language/tests/common/resource_lexicon.rs",
+      "group": "implementation",
+      "new": true,
+      "root_baseline_sha256": null,
+      "proposed_sha256": "467a7794b141ba7b4580a175027c8f199d4a134edc01f809ce29200aa5f3c73c"
+    }
+  ],
+  "checks": [
+    "rustfmt parser success",
+    "git diff --check success"
+  ],
+  "not_run": [
+    "build",
+    "Source expansion",
+    "tests",
+    "inference",
+    "model training",
+    "calibration"
+  ],
+  "frozen": [
+    "V2",
+    "V3",
+    "TRAIN resource identity/format/bounds",
+    "quarantined inventory48"
+  ],
+  "patches": {
+    "implementation": "64e048d75e1f18cbb2a6e6739916a3b5fc7963b5f3106b1e1e9e5828cdfdc081",
+    "wiring": "3605dcada36fb3ff430c9ec529927df5cdc4bc9ca262578d40b2f25d6f4005a1"
+  },
+  "module_lines": {
+    "semantics/language/src/analysis_epoch_owner.rs": 481,
+    "semantics/language/src/analysis_epoch_resource.rs": 176,
+    "semantics/language/src/analysis_epoch_rebase.rs": 40,
+    "semantics/language/tests/resource_lexicon_snapshot.rs": 89,
+    "semantics/language/tests/resource_lexicon_revision.rs": 363,
+    "semantics/language/tests/common/resource_lexicon.rs": 89
+  }
+}

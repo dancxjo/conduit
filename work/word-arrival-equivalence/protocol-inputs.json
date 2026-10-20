@@ -1,0 +1,683 @@
+{
+  "protocol_id": "language/v3-causal-word-arrival-same-input-instrumentation@1",
+  "status": "frozen-before-new-test-execution",
+  "relation_to_frozen_negative": "EXACT SAME INPUT; no additive word-arrival difference exists",
+  "old_report_path": "/home/dancxjo/Documents/Codex/2026-10-18/goal-finish-and-close-https-github/work/goal4907/punctuation-v3-causal-ci-profile.json",
+  "old_report_sha256": "87862fb46524925a566eaaca96d1689a15b3e2efea69bb886abe2c8aedcc46d2",
+  "existing_test_source_sha256": "a44a17d0b1413cfce16fb72a320b520bc2586458134ab57bed8cb6e47ae5844a",
+  "artifact_sha256": "fcd5baafa388f47410a37ed44b51c2228bdf3c84d9c034c80045f34d90be025c",
+  "revisions": [
+    {
+      "text": "Hello ",
+      "stable_scalars": 5,
+      "finality": "partial",
+      "complete_tokens": 1
+    },
+    {
+      "text": "Hello, ",
+      "stable_scalars": 6,
+      "finality": "partial",
+      "complete_tokens": 2
+    },
+    {
+      "text": "Hello, Travis ",
+      "stable_scalars": 13,
+      "finality": "partial",
+      "complete_tokens": 3
+    },
+    {
+      "text": "Hello, Travis.",
+      "stable_scalars": 14,
+      "finality": "partial",
+      "complete_tokens": 4
+    }
+  ],
+  "new_test": {
+    "path": "semantics/language/tests/parser_word_arrival_lineage.rs",
+    "sha256": "67155262dbaece493bba0b4b0a5b71a36471d31136ab982e3e14ea861b56ae0b",
+    "proposed_operations": "four actual checked availability Source boundaries plus Native lineage/completeness controls",
+    "model_calls": 0,
+    "not_run": true
+  },
+  "retained_negative": [
+    {
+      "text": "Hello ",
+      "stable": 1,
+      "committed": 0,
+      "model_invocations": 6,
+      "beam_before": [
+        {
+          "active": true,
+          "choices": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "committed": 0,
+          "heads": [
+            4,
+            5,
+            5,
+            5,
+            4
+          ],
+          "identity": 7,
+          "relation_subtypes": [
+            "",
+            "",
+            "",
+            ""
+          ],
+          "relations": [
+            "root",
+            "dep",
+            "dep",
+            "dep"
+          ],
+          "score": 27190,
+          "selected": 1
+        },
+        {
+          "active": true,
+          "choices": [
+            1,
+            0,
+            0,
+            0
+          ],
+          "committed": 0,
+          "heads": [
+            4,
+            5,
+            5,
+            5,
+            4
+          ],
+          "identity": 8,
+          "relation_subtypes": [
+            "",
+            "",
+            "",
+            ""
+          ],
+          "relations": [
+            "root",
+            "dep",
+            "dep",
+            "dep"
+          ],
+          "score": 22639,
+          "selected": 1
+        },
+        {
+          "active": false,
+          "choices": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "committed": 0,
+          "heads": [
+            5,
+            5,
+            5,
+            5,
+            4
+          ],
+          "identity": 1,
+          "relation_subtypes": [
+            "",
+            "",
+            "",
+            ""
+          ],
+          "relations": [
+            "dep",
+            "dep",
+            "dep",
+            "dep"
+          ],
+          "score": 0,
+          "selected": 0
+        },
+        {
+          "active": false,
+          "choices": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "committed": 0,
+          "heads": [
+            5,
+            5,
+            5,
+            5,
+            4
+          ],
+          "identity": 1,
+          "relation_subtypes": [
+            "",
+            "",
+            "",
+            ""
+          ],
+          "relations": [
+            "dep",
+            "dep",
+            "dep",
+            "dep"
+          ],
+          "score": 0,
+          "selected": 0
+        }
+      ],
+      "agreements": [
+        {
+          "agrees": true,
+          "head": 4,
+          "ordinal": 0,
+          "relation": "root",
+          "survivors": 2
+        }
+      ]
+    },
+    {
+      "text": "Hello, ",
+      "stable": 1,
+      "committed": 0,
+      "model_invocations": 14,
+      "beam_before": [
+        {
+          "active": true,
+          "choices": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "committed": 0,
+          "heads": [
+            4,
+            0,
+            5,
+            5,
+            4
+          ],
+          "identity": 35,
+          "relation_subtypes": [
+            "",
+            "",
+            "",
+            ""
+          ],
+          "relations": [
+            "root",
+            "punct",
+            "dep",
+            "dep"
+          ],
+          "score": 59073,
+          "selected": 2
+        },
+        {
+          "active": true,
+          "choices": [
+            1,
+            0,
+            0,
+            0
+          ],
+          "committed": 0,
+          "heads": [
+            4,
+            0,
+            5,
+            5,
+            4
+          ],
+          "identity": 36,
+          "relation_subtypes": [
+            "",
+            "",
+            "",
+            ""
+          ],
+          "relations": [
+            "root",
+            "punct",
+            "dep",
+            "dep"
+          ],
+          "score": 52859,
+          "selected": 2
+        },
+        {
+          "active": true,
+          "choices": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "committed": 0,
+          "heads": [
+            4,
+            0,
+            5,
+            5,
+            4
+          ],
+          "identity": 37,
+          "relation_subtypes": [
+            "",
+            "",
+            "",
+            ""
+          ],
+          "relations": [
+            "root",
+            "vocative",
+            "dep",
+            "dep"
+          ],
+          "score": 47803,
+          "selected": 2
+        },
+        {
+          "active": true,
+          "choices": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "committed": 0,
+          "heads": [
+            4,
+            0,
+            5,
+            5,
+            4
+          ],
+          "identity": 38,
+          "relation_subtypes": [
+            "",
+            "",
+            "",
+            ""
+          ],
+          "relations": [
+            "root",
+            "flat",
+            "dep",
+            "dep"
+          ],
+          "score": 47536,
+          "selected": 2
+        }
+      ],
+      "agreements": [
+        {
+          "agrees": true,
+          "head": 4,
+          "ordinal": 0,
+          "relation": "root",
+          "survivors": 4
+        },
+        {
+          "agrees": false,
+          "head": 0,
+          "ordinal": 1,
+          "relation": "punct",
+          "survivors": 4
+        }
+      ]
+    },
+    {
+      "text": "Hello, Travis ",
+      "stable": 1,
+      "committed": 0,
+      "model_invocations": 26,
+      "beam_before": [
+        {
+          "active": true,
+          "choices": [
+            0,
+            0,
+            1,
+            0
+          ],
+          "committed": 0,
+          "heads": [
+            4,
+            2,
+            0,
+            5,
+            4
+          ],
+          "identity": 113,
+          "relation_subtypes": [
+            "",
+            "",
+            "",
+            ""
+          ],
+          "relations": [
+            "root",
+            "punct",
+            "vocative",
+            "dep"
+          ],
+          "score": 81562,
+          "selected": 3
+        },
+        {
+          "active": true,
+          "choices": [
+            0,
+            0,
+            1,
+            0
+          ],
+          "committed": 0,
+          "heads": [
+            4,
+            0,
+            0,
+            5,
+            4
+          ],
+          "identity": 114,
+          "relation_subtypes": [
+            "",
+            "",
+            "",
+            ""
+          ],
+          "relations": [
+            "root",
+            "punct",
+            "vocative",
+            "dep"
+          ],
+          "score": 75682,
+          "selected": 3
+        },
+        {
+          "active": true,
+          "choices": [
+            0,
+            0,
+            1,
+            0
+          ],
+          "committed": 0,
+          "heads": [
+            4,
+            2,
+            0,
+            5,
+            4
+          ],
+          "identity": 115,
+          "relation_subtypes": [
+            "",
+            "",
+            "",
+            ""
+          ],
+          "relations": [
+            "root",
+            "punct",
+            "obj",
+            "dep"
+          ],
+          "score": 70866,
+          "selected": 3
+        },
+        {
+          "active": true,
+          "choices": [
+            0,
+            0,
+            1,
+            0
+          ],
+          "committed": 0,
+          "heads": [
+            4,
+            2,
+            0,
+            5,
+            4
+          ],
+          "identity": 116,
+          "relation_subtypes": [
+            "",
+            "",
+            "",
+            ""
+          ],
+          "relations": [
+            "root",
+            "punct",
+            "punct",
+            "dep"
+          ],
+          "score": 70402,
+          "selected": 3
+        }
+      ],
+      "agreements": [
+        {
+          "agrees": true,
+          "head": 4,
+          "ordinal": 0,
+          "relation": "root",
+          "survivors": 4
+        },
+        {
+          "agrees": false,
+          "head": 2,
+          "ordinal": 1,
+          "relation": "punct",
+          "survivors": 4
+        },
+        {
+          "agrees": false,
+          "head": 0,
+          "ordinal": 2,
+          "relation": "vocative",
+          "survivors": 4
+        }
+      ]
+    },
+    {
+      "text": "Hello, Travis.",
+      "stable": 3,
+      "committed": 3,
+      "model_invocations": 34,
+      "beam_before": [
+        {
+          "active": true,
+          "choices": [
+            0,
+            0,
+            1,
+            0
+          ],
+          "committed": 0,
+          "heads": [
+            4,
+            2,
+            0,
+            2,
+            4
+          ],
+          "identity": 214,
+          "relation_subtypes": [
+            "",
+            "",
+            "",
+            ""
+          ],
+          "relations": [
+            "root",
+            "punct",
+            "vocative",
+            "punct"
+          ],
+          "score": 100956,
+          "selected": 4
+        },
+        {
+          "active": true,
+          "choices": [
+            0,
+            0,
+            1,
+            0
+          ],
+          "committed": 0,
+          "heads": [
+            4,
+            2,
+            0,
+            0,
+            4
+          ],
+          "identity": 215,
+          "relation_subtypes": [
+            "",
+            "",
+            "",
+            ""
+          ],
+          "relations": [
+            "root",
+            "punct",
+            "vocative",
+            "punct"
+          ],
+          "score": 99529,
+          "selected": 4
+        },
+        {
+          "active": true,
+          "choices": [
+            0,
+            0,
+            1,
+            0
+          ],
+          "committed": 0,
+          "heads": [
+            4,
+            2,
+            0,
+            2,
+            4
+          ],
+          "identity": 216,
+          "relation_subtypes": [
+            "",
+            "",
+            "",
+            ""
+          ],
+          "relations": [
+            "root",
+            "punct",
+            "vocative",
+            "acl"
+          ],
+          "score": 94510,
+          "selected": 4
+        },
+        {
+          "active": true,
+          "choices": [
+            0,
+            0,
+            1,
+            0
+          ],
+          "committed": 0,
+          "heads": [
+            4,
+            2,
+            0,
+            2,
+            4
+          ],
+          "identity": 217,
+          "relation_subtypes": [
+            "",
+            "",
+            "",
+            ""
+          ],
+          "relations": [
+            "root",
+            "punct",
+            "vocative",
+            "advcl"
+          ],
+          "score": 94510,
+          "selected": 4
+        }
+      ],
+      "agreements": [
+        {
+          "agrees": true,
+          "head": 4,
+          "ordinal": 0,
+          "relation": "root",
+          "survivors": 4
+        },
+        {
+          "agrees": true,
+          "head": 2,
+          "ordinal": 1,
+          "relation": "punct",
+          "survivors": 4
+        },
+        {
+          "agrees": true,
+          "head": 0,
+          "ordinal": 2,
+          "relation": "vocative",
+          "survivors": 4
+        },
+        {
+          "agrees": false,
+          "head": 2,
+          "ordinal": 3,
+          "relation": "punct",
+          "survivors": 4
+        }
+      ]
+    }
+  ],
+  "prefinal_commit_success": false,
+  "old_report_preserved": true,
+  "no_changes": [
+    "model",
+    "weights",
+    "defaults",
+    "thresholds",
+    "beam/pruning policy",
+    "Source consensus",
+    "training/calibration",
+    "frozen negative report"
+  ],
+  "limitations": [
+    "Metadata inspection and prepared unbuilt test only; no new Source execution or inference",
+    "Existing learned negative is previously observed diagnostic, not independent quality",
+    "Character-prefix control differs by absent trailing space; frozen learned report already has trailing space"
+  ]
+}

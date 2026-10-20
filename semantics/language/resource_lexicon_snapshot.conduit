@@ -1,0 +1,15 @@
+# Pure correlation of one original token and a complete admitted resource row.
+# ResourceRef is Core's builtin portable reference, not a dictionary literal.
+# This operation cannot read a resource or authenticate supplied row membership.
+# The opaque Native owner retains the actual adopted lexicon and lookup receipt.
+type LanguageResourceLexicalBinding = {
+    resource: ResourceRef
+    row_resource: ResourceRef
+    source: LanguageText
+    ordinal: U64 in 0..=3
+    token: LanguageLexicalToken
+    row: LanguageLexicalEntry
+}
+plot language/resource-lexical-binding (
+    input: LanguageResourceLexicalBinding...| <= 65536B >> accepted: Boolean...|
+) = ((((.resource == .row_resource && .source.language == "language/en") && (.token.identity.ordinal == .ordinal && .token.identity.text_identity == .source.identity)) && ((.token.identity.text_revision == .source.revision && .token.span.text_identity == .source.identity) && (.token.span.text_revision == .source.revision && .token.span.basis is unicode_scalar))) && (((.token.completeness is complete && .token.surface == .row.surface) && (sequence/length(.token.candidates) == sequence/length(.row.candidates) && (sequence/length(.token.candidates) <= 0 ? true : sequence/at(.token.candidates, 0) == sequence/at(.row.candidates, 0)))) && (((sequence/length(.token.candidates) <= 1 ? true : sequence/at(.token.candidates, 1) == sequence/at(.row.candidates, 1)) && (sequence/length(.token.candidates) <= 2 ? true : sequence/at(.token.candidates, 2) == sequence/at(.row.candidates, 2))) && ((sequence/length(.token.candidates) <= 3 ? true : sequence/at(.token.candidates, 3) == sequence/at(.row.candidates, 3)) && (sequence/length(.token.candidates) >= 1 && sequence/length(.token.candidates) <= 4)))))

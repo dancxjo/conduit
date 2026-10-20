@@ -1,0 +1,37 @@
+{
+  "classification": "metadata only; labels/UPOS are annotation references, no native or learned execution",
+  "input_sha256": "d68e06122a702464c613076523d56740f047e5bbe89dd90ec32737e04d952143",
+  "protocol_sha256": "363ec284319e67661b031380f909dce5600d05a97b8ac4ff4f0be5fca0814d8e",
+  "sentences": 12544,
+  "integer_token_rows": 204578,
+  "errors": {},
+  "punct_dependent_upos": {
+    "PUNCT": 23556
+  },
+  "intj_head_outgoing_relation_dependent_upos": {
+    "advmod/ADV": 5,
+    "case/ADP": 3,
+    "cc/CCONJ": 5,
+    "conj/ADV": 1,
+    "conj/INTJ": 4,
+    "conj/VERB": 1,
+    "cop/AUX": 1,
+    "discourse/INTJ": 18,
+    "mark/SCONJ": 4,
+    "nmod/INTJ": 1,
+    "nsubj/DET": 1,
+    "obl/ADV": 1,
+    "obl/NOUN": 2,
+    "parataxis/PROPN": 1,
+    "parataxis/VERB": 1,
+    "punct/PUNCT": 288,
+    "vocative/DET": 2,
+    "vocative/NOUN": 5,
+    "vocative/PRON": 1,
+    "vocative/PROPN": 10
+  },
+  "propn_obj_head_upos": {
+    "VERB": 479
+  },
+  "no_forms_ids_or_raw_corpus_written": true
+}

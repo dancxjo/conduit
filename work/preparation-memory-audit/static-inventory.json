@@ -1,0 +1,126 @@
+{
+  "classification": "static source/retained-file inventory only, no benchmark/process sampling/execution",
+  "parent_reported_sample": "PID1217876 RSS approximately3.8GiB whole std test fixture; not sampled or attributed by this worker",
+  "artifact": "/home/dancxjo/Documents/Codex/2026-10-18/goal-finish-and-close-https-github/work/energy-target/debug/build/conduit-language-06df6c76fdd8e11c/out/fallback_round_programs.rs",
+  "artifact_sha256": "91a97fc4f11a56982900ed8d2f4d0730ff7d48b7a0de22f388b0dfd754929250",
+  "artifact_matches_sampled_pid": "not established",
+  "entries": [
+    {
+      "entry": "language-parser-score-proposal",
+      "gears": 2,
+      "canonical_program_bytes": 303327,
+      "retained_hex_characters": 606654
+    },
+    {
+      "entry": "language-parser-transition",
+      "gears": 22,
+      "canonical_program_bytes": 8581374,
+      "retained_hex_characters": 17162748
+    },
+    {
+      "entry": "language-parser-decode-complete",
+      "gears": 1,
+      "canonical_program_bytes": 66000,
+      "retained_hex_characters": 132000
+    },
+    {
+      "entry": "language-parser-scorer-branch",
+      "gears": 1,
+      "canonical_program_bytes": 1095826,
+      "retained_hex_characters": 2191652
+    },
+    {
+      "entry": "language-parser-scorer-model-features",
+      "gears": 17,
+      "canonical_program_bytes": 9290465,
+      "retained_hex_characters": 18580930
+    },
+    {
+      "entry": "language-parser-scorer-legality",
+      "gears": 1,
+      "canonical_program_bytes": 2912839,
+      "retained_hex_characters": 5825678
+    },
+    {
+      "entry": "language-parser-scorer-fallback",
+      "gears": 1,
+      "canonical_program_bytes": 3824,
+      "retained_hex_characters": 7648
+    },
+    {
+      "entry": "language-parser-scorer-rank",
+      "gears": 8,
+      "canonical_program_bytes": 554550,
+      "retained_hex_characters": 1109100
+    },
+    {
+      "entry": "language-parser-scorer-ranking-next",
+      "gears": 1,
+      "canonical_program_bytes": 58913,
+      "retained_hex_characters": 117826
+    },
+    {
+      "entry": "language-parser-scorer-expand",
+      "gears": 2,
+      "canonical_program_bytes": 1552067,
+      "retained_hex_characters": 3104134
+    },
+    {
+      "entry": "language-parser-scorer-merge",
+      "gears": 5,
+      "canonical_program_bytes": 6715977,
+      "retained_hex_characters": 13431954
+    },
+    {
+      "entry": "language/analysis-round-empty",
+      "gears": 1,
+      "canonical_program_bytes": 701658,
+      "retained_hex_characters": 1403316
+    },
+    {
+      "entry": "language-parser-admitted-agreement",
+      "gears": 8,
+      "canonical_program_bytes": 7468390,
+      "retained_hex_characters": 14936780
+    },
+    {
+      "entry": "language-parser-advance-stable",
+      "gears": 1,
+      "canonical_program_bytes": 298312,
+      "retained_hex_characters": 596624
+    }
+  ],
+  "entry_count": 14,
+  "gear_count": 71,
+  "canonical_program_bytes": 39603522,
+  "hex_characters": 79207044,
+  "retained_rust_file_bytes": 79207926,
+  "source_sha256": {
+    "targets/std/src/flow_activation/local_expression.rs": "66d8d8a78f742f5b37860de497a56db8aa1d5b45d624b283d34958b0374f8625",
+    "targets/std/src/analysis_round_driver.rs": "0813243d3be8c075c1e4d90e47d6b5fd6e069dbba54928d12fffc7052d4ba12e",
+    "targets/std/src/analysis_round_driver_plan.rs": "e88e7132951b5180dfca43f835098ffbed4a58ed3207568eb3ec245de8973942",
+    "targets/std/src/analysis_round_driver_source.rs": "b8c8912fbd9f947f61e4f0b088f1d006f95b828f7fac0ad02e6aa6ca63ac1fa7",
+    "architecture/plot/src/expression_prepared.rs": "de72567afd5359249b1f67b74092d7f8b66d28bb034a94cfc033f5d9d08d921a",
+    "architecture/plot/src/expression_prepared/structured.rs": "50fb251a8daf594de9d9d7700fa6cb8e1136a4fb4c87353df1aa024bbee60929",
+    "architecture/plot/src/expression_prepared/storage_bound.rs": "c6f006ff90bd401d7502d6a79682741915b2fac1d08f14da7267db4aed865c28",
+    "architecture/plot/src/expression_prepared/shared_input.rs": "1fb886dc6d1fc6d7ae9319d5e0834277300df51caecd04658ee5852f5a935921",
+    "architecture/plot/src/expression_prepared/member_selection.rs": "097c88ec98325f21e0c9727796da2485adae08567d1f8f1410fcc141dbece20b",
+    "architecture/composite/src/child/preparation.rs": "b18bf9256a0bc5b2ab6f245955839bb4c965bc5418c1a6c7b01c1f88573c36d9",
+    "architecture/composite/src/kernel_executor/preparation.rs": "a8e3e28b192626b26c988d6c620da728ce16cd4316dd0fae9f49a5cb98c978bd",
+    "architecture/kernel/src/hosted.rs": "82f8aad20eae94f93065b4fa52a41fbb84bef5822de46f4e368d1384c5516c67",
+    "architecture/plot/src/canonical_expansion/structured_selector/input_bound.rs": "4110e29d48e118e475a714243b01051d69d6db1eab689aee25e6d95e4720da7d",
+    "architecture/plot/src/expression_program/input_bound.rs": "768604e53d014b5b72a92c2beec30d5c886306f2da565225badc51f350d6792d"
+  },
+  "no_changes_or_runs": [
+    "Source",
+    "Program bounds",
+    "offers",
+    "Plan identity",
+    "model",
+    "inference",
+    "build",
+    "benchmark",
+    "cache",
+    "root files"
+  ]
+}

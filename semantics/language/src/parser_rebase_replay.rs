@@ -1,10 +1,12 @@
-//! Replay of one existing checked rebase expression, not installed currentness.
+//! Legacy admitted adapter and shared checked numeric rebase body.
+//! Replay is exact Source preparation, not installed currentness.
 use crate::*;
 use alloc::vec::Vec;
 use conduit_plot::{
     rust_binding::{NativeBindingRefusal, NativeRustBinding},
     PortableExpressionProgram,
 };
+const ADAPTER: &str = include_str!(concat!(env!("OUT_DIR"), "/parser_rebase_adapter.hex"));
 const PROGRAM: &str = include_str!(concat!(env!("OUT_DIR"), "/parser_rebase_program.hex"));
 #[derive(Debug)]
 pub enum ParserRebaseReplayRefusal {
@@ -22,14 +24,18 @@ pub struct PreparedParserRebaseReplay {
     result: LanguageParserState,
     input: Vec<u8>,
     output: Vec<u8>,
+    adapted: Vec<u8>,
 }
 /// Immutable Source program preparation shared across survivors and epochs.
 pub struct PreparedParserRebaseProgram {
     program: PortableExpressionProgram,
+    adapter: PortableExpressionProgram,
 }
 impl PreparedParserRebaseProgram {
     pub fn prepare() -> Result<Self, ParserRebaseReplayRefusal> {
         Ok(Self {
+            adapter: PortableExpressionProgram::from_canonical_hex(ADAPTER)
+                .map_err(|_| ParserRebaseReplayRefusal::Program)?,
             program: PortableExpressionProgram::from_canonical_hex(PROGRAM)
                 .map_err(|_| ParserRebaseReplayRefusal::Program)?,
         })
@@ -47,7 +53,8 @@ impl PreparedParserRebaseProgram {
         // Decode executes every generated request constraint, including nested
         // Source laws, before the retained expression consumes its input.
         LanguageParserRevisionRebaseRequest::decode(&input).map_err(Native)?;
-        let output = self.program.evaluate(&input).map_err(|_| Evaluation)?;
+        let adapted = self.adapter.evaluate(&input).map_err(|_| Evaluation)?;
+        let output = self.program.evaluate(&adapted).map_err(|_| Evaluation)?;
         if output.len() > PARSER_REVISION_MAXIMUM_INPUT_BYTES {
             return Err(Bound);
         }
@@ -56,26 +63,14 @@ impl PreparedParserRebaseProgram {
             return Err(ObservationMismatch);
         }
         // Exact representation adapter only: Source already chose all fields.
-        let result = LanguageParserState::new(
-            raw.basis().clone(),
-            *raw.committed(),
-            *raw.depth(),
-            *raw.heads(),
-            raw.relation0().clone(),
-            raw.relation1().clone(),
-            raw.relation2().clone(),
-            raw.relation3().clone(),
-            *raw.stack(),
-            *raw.token_count(),
-            *raw.unread(),
-        )
-        .map_err(Native)?;
+        let result = admit_state(&raw).map_err(Native)?;
         Ok(PreparedParserRebaseReplay {
             preparation,
             raw_result: raw,
             result,
             input,
             output,
+            adapted,
         })
     }
 }
@@ -92,8 +87,14 @@ impl PreparedParserRebaseReplay {
     pub fn input_canonical(&self) -> &[u8] {
         &self.input
     }
+    pub fn adapted_canonical(&self) -> &[u8] {
+        &self.adapted
+    }
     pub fn output_canonical(&self) -> &[u8] {
         &self.output
+    }
+    pub fn adapter_hex(&self) -> &'static str {
+        ADAPTER
     }
     pub fn program_hex(&self) -> &'static str {
         PROGRAM
@@ -101,4 +102,22 @@ impl PreparedParserRebaseReplay {
     pub fn source_id(&self) -> &'static str {
         crate::parser_commitment::COMMITMENT_SOURCE_ID
     }
+}
+
+pub(crate) fn admit_state(
+    raw: &LanguageParserNumericState,
+) -> Result<LanguageParserState, NativeBindingRefusal> {
+    LanguageParserState::new(
+        raw.basis().clone(),
+        *raw.committed(),
+        *raw.depth(),
+        *raw.heads(),
+        raw.relation0().clone(),
+        raw.relation1().clone(),
+        raw.relation2().clone(),
+        raw.relation3().clone(),
+        *raw.stack(),
+        *raw.token_count(),
+        *raw.unread(),
+    )
 }

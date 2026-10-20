@@ -1,0 +1,45 @@
+{
+  "status": "prepared-unbuilt",
+  "root_head": "b9bff0a10b139dc30ce4a2de462895e3641e34dc",
+  "source_worktree": "/home/dancxjo/Documents/Codex/2026-10-18/goal-finish-and-close-https-github/work/lexicon-source-snapshot",
+  "files": [
+    {
+      "path": "targets/std/src/analysis_round_driver.rs",
+      "changed": true,
+      "baseline_sha256": "0813243d3be8c075c1e4d90e47d6b5fd6e069dbba54928d12fffc7052d4ba12e",
+      "proposed_sha256": "bcc6311b0e7d3dcf98906027f8890ba25d79f4298efb55576b2e0b47a78b1931"
+    },
+    {
+      "path": "targets/std/src/analysis_round_driver_source.rs",
+      "changed": true,
+      "baseline_sha256": "b8c8912fbd9f947f61e4f0b088f1d006f95b828f7fac0ad02e6aa6ca63ac1fa7",
+      "proposed_sha256": "d05ac74ad5e099e4954461d15cec3c8087a1cc3818b99b4dce4302ca1d2bf283"
+    },
+    {
+      "path": "targets/std/src/analysis_round_driver_preparation.rs",
+      "changed": true,
+      "baseline_sha256": "f31bb398e5437a62dbbe5641df0a13222dbed64bf87eef38006d86ae9b307240",
+      "proposed_sha256": "473c4f03e30aff2cb101cdfb1f8068fbdbc6aa09e84192b1a9813dcf9650905e"
+    },
+    {
+      "path": "targets/std/src/analysis_round_driver_plan.rs",
+      "changed": false,
+      "baseline_sha256": "e88e7132951b5180dfca43f835098ffbed4a58ed3207568eb3ec245de8973942",
+      "proposed_sha256": "e88e7132951b5180dfca43f835098ffbed4a58ed3207568eb3ec245de8973942"
+    }
+  ],
+  "patch_sha256": "c1e8604fd4fbb29ff6aa296b96ee28ac59152eddbfe1b56ecee788ecbcdb37eb",
+  "scope": "Remove only redundant Operation definition Arc/clone; actual KernelCompositeHost owns the moved definition and public borrowed evidence accessors read it. No Program/Source/offer/Plan bounds or mutable lifecycle changes.",
+  "checks": [
+    "all four Std module uses audited",
+    "rustfmt parser success; skip_children=true",
+    "git diff --check success"
+  ],
+  "not_run": [
+    "build",
+    "tests",
+    "benchmark",
+    "model/inference"
+  ],
+  "nonclaim": "No measured RSS reduction attributed."
+}

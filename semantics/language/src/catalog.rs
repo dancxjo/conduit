@@ -37,6 +37,10 @@ pub fn install_linguistics_catalogs(
     startup: &mut conduit_plot::StartupCatalog,
     profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), String> {
+    startup.insert_value_kind_alias(
+        "ResourceRef",
+        kind_id(conduit_core::RESOURCE_REFERENCE_INFO_ID),
+    )?;
     for (name, value_type) in crate::identity_types()
         .into_iter()
         .chain(crate::realization_types())
@@ -45,6 +49,8 @@ pub fn install_linguistics_catalogs(
         .chain(crate::parser_availability_types())
         .chain(crate::parser_scorer_types())
         .chain(crate::lexical::lexical_types())
+        .chain(crate::resource_lexicon_snapshot_types())
+        .chain(crate::resource_parser_rebase_types())
         .chain(crate::pronunciation_selection::pronunciation_selection_types())
         .chain(crate::lexical_consumer::lexical_consumer_types())
         .chain(crate::parser_types())

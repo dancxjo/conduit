@@ -156,3 +156,32 @@ pub mod analysis_epoch_owner;
 /// Pinned immutable resource admission; requires pointer atomics for shared custody.
 #[cfg(target_has_atomic = "ptr")]
 pub mod train_lexicon;
+
+/// Resource-backed lexical preparation; no installed generic resource reader.
+#[cfg(target_has_atomic = "ptr")]
+pub mod resource_lexicon_snapshot;
+pub use generated::LanguageResourceLexicalBinding;
+/// Register the portable Source query on all targets; no resource is opened.
+pub fn resource_lexicon_snapshot_types(
+) -> alloc::vec::Vec<(&'static str, conduit_core::StructuredInfoType)> {
+    alloc::vec![("LanguageResourceLexicalBinding", <LanguageResourceLexicalBinding as conduit_plot::rust_binding::NativeRustBinding>::semantic_type().expect("checked resource snapshot Type"))]
+}
+
+/// Exact full Source composition checked by this crate's build entrance.
+/// Consumers must install the Language catalog (including Core ResourceRef).
+/// This text grants no resource read, parser currentness or playback authority.
+pub fn language_semantic_source() -> &'static str {
+    include_str!(concat!(env!("OUT_DIR"), "/language_owner_source.conduit"))
+}
+
+/// Resource-backed mechanical rebase preparation; shares the legacy numeric Source.
+#[cfg(target_has_atomic = "ptr")]
+pub mod resource_parser_rebase;
+pub use generated::{LanguageParserRebaseInput, LanguageResourceParserRebaseRequest};
+pub fn resource_parser_rebase_types(
+) -> alloc::vec::Vec<(&'static str, conduit_core::StructuredInfoType)> {
+    alloc::vec![
+        ("LanguageParserRebaseInput", <LanguageParserRebaseInput as conduit_plot::rust_binding::NativeRustBinding>::semantic_type().expect("checked numeric rebase input")),
+        ("LanguageResourceParserRebaseRequest", <LanguageResourceParserRebaseRequest as conduit_plot::rust_binding::NativeRustBinding>::semantic_type().expect("checked resource rebase request")),
+    ]
+}

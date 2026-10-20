@@ -1,0 +1,385 @@
+{
+  "classification": "read-only existing evidence and static Source inspection; no builds/model calls/retuning",
+  "report_sha256": "87862fb46524925a566eaaca96d1689a15b3e2efea69bb886abe2c8aedcc46d2",
+  "tested_revision": "97bf3e4d5",
+  "artifact_sha256": "fcd5baafa388f47410a37ed44b51c2228bdf3c84d9c034c80045f34d90be025c",
+  "model_content_digest": "20296199940f9c812871507e688601813ad0cced00f7564680121d88b4d078ef",
+  "inputs": {
+    "semantics/language/tests/parser_punctuation_selection.rs": "a44a17d0b1413cfce16fb72a320b520bc2586458134ab57bed8cb6e47ae5844a",
+    "semantics/language/tests/common/parser_selection_driver.rs": "a2f828ae40dc64b954910e0ad351a1149a57af402dcef6f9f4a1d6669729b98e",
+    "semantics/language/tests/common/parser_selection_values.rs": "7c34a0529a0e93f7ceb042a16497c0b1cb762abd5a18e54c4d5a60e55116198e",
+    "semantics/language/parser_scorer_features.conduit": "d415a1728fdcfa7b59e7479eea663317feaf79c0bc83c81fc1fbcda95a577e7a",
+    "semantics/language/parser_scorer_search.conduit": "0a7e3ab211941fb4d35153bfba9f7b3f7214ba5efc6d0ce4827ec5f49ceb7277",
+    "semantics/language/parser_scorer_actions.conduit": "eb980145939ac2f563c69d621c6004d7b2c26da24d0dfa47d95c9ccd0ddad176",
+    "semantics/language/parser_scorer_ranking.conduit": "4fb1d19210d6dfdd391afa26010270924c77b28c73442e538379bc80de7cc271",
+    "semantics/language/parser_beam.conduit": "804e69bb21937042405c949fe66d3e7ebbb0b23ccccb765b8993891004808fb1",
+    "semantics/language/training/train_ewt_punctuation_v3.py": "16790f2d71ffee98ed32a0ab0a31aa1e4e55b47c03fd381c629291da318ac85b",
+    "semantics/language/training/train_ewt.py": "7e738a0e3656fa2b90b6e94d199894dba84de5a343dd1cb1b1e83dbf09b23530",
+    "semantics/language/training/ewt_punctuation_v3/manifest.json": "1efbdac3e4b63c2fa66e538c5379980df531ea06669d35e710e69f8afc430f1b",
+    "semantics/language/training/ewt_joint_v2/manifest.json": "96ed7d269946960568d073c122eb2fe0eabddb616bfe25545025a8da8c0f4cc0",
+    "semantics/language/training/ewt_joint_v2/lexical_profile.json": "045a51b00224785f77983a7c8127f690a1ca8e3c471eb40f6339ceec60c5251b",
+    "semantics/language/training/ewt_punctuation_v3/schema.json": "1e40cadc24f6a05bb79288e45152ed75b03c37c3f34ddc61d3d219c9a8798707",
+    "semantics/language/training/ewt_punctuation_v3/reserved_evaluation.json": "74e35548215f2f92a1e8f5ff2341dab9fbccfb5cbfa441a4c998738b0b8effe9"
+  },
+  "prefinal": {
+    "text": "Hello, Travis ",
+    "available": 3,
+    "stable": 1,
+    "committed": 0,
+    "complete_best": true,
+    "all_survivor_completion": "not individually retained; complete field checks best only",
+    "beam": [
+      {
+        "active": true,
+        "choices": [
+          0,
+          0,
+          1,
+          0
+        ],
+        "committed": 0,
+        "heads": [
+          4,
+          2,
+          0,
+          5,
+          4
+        ],
+        "identity": 113,
+        "relation_subtypes": [
+          "",
+          "",
+          "",
+          ""
+        ],
+        "relations": [
+          "root",
+          "punct",
+          "vocative",
+          "dep"
+        ],
+        "score": 81562,
+        "selected": 3
+      },
+      {
+        "active": true,
+        "choices": [
+          0,
+          0,
+          1,
+          0
+        ],
+        "committed": 0,
+        "heads": [
+          4,
+          0,
+          0,
+          5,
+          4
+        ],
+        "identity": 114,
+        "relation_subtypes": [
+          "",
+          "",
+          "",
+          ""
+        ],
+        "relations": [
+          "root",
+          "punct",
+          "vocative",
+          "dep"
+        ],
+        "score": 75682,
+        "selected": 3
+      },
+      {
+        "active": true,
+        "choices": [
+          0,
+          0,
+          1,
+          0
+        ],
+        "committed": 0,
+        "heads": [
+          4,
+          2,
+          0,
+          5,
+          4
+        ],
+        "identity": 115,
+        "relation_subtypes": [
+          "",
+          "",
+          "",
+          ""
+        ],
+        "relations": [
+          "root",
+          "punct",
+          "obj",
+          "dep"
+        ],
+        "score": 70866,
+        "selected": 3
+      },
+      {
+        "active": true,
+        "choices": [
+          0,
+          0,
+          1,
+          0
+        ],
+        "committed": 0,
+        "heads": [
+          4,
+          2,
+          0,
+          5,
+          4
+        ],
+        "identity": 116,
+        "relation_subtypes": [
+          "",
+          "",
+          "",
+          ""
+        ],
+        "relations": [
+          "root",
+          "punct",
+          "punct",
+          "dep"
+        ],
+        "score": 70402,
+        "selected": 3
+      }
+    ],
+    "agreements": [
+      {
+        "agrees": true,
+        "head": 4,
+        "ordinal": 0,
+        "relation": "root",
+        "survivors": 4
+      },
+      {
+        "agrees": false,
+        "head": 2,
+        "ordinal": 1,
+        "relation": "punct",
+        "survivors": 4
+      },
+      {
+        "agrees": false,
+        "head": 0,
+        "ordinal": 2,
+        "relation": "vocative",
+        "survivors": 4
+      }
+    ],
+    "model_invocation_range": [
+      21,
+      46
+    ],
+    "model_calls": 26,
+    "numeric_work_units": 49400,
+    "numeric_receipts": "input/output digests only; no actual feature indices/score vectors/parent transition trace",
+    "top1_graph_matches_first3_reserved_reference_edges": true
+  },
+  "feature_schema": {
+    "categories": 413,
+    "lookups": 25,
+    "actions": 76,
+    "reads": [
+      "selected top POS",
+      "selected buffer POS",
+      "top/buffer POS pair",
+      "stack depth",
+      "unread cursor",
+      "top head assigned Boolean",
+      "bias",
+      "available count",
+      "next+1 complete candidate POS membership17bits"
+    ],
+    "does_not_read": [
+      "surface/name/lemma",
+      "morphology",
+      "current relation labels",
+      "head ordinal identity",
+      "second stack POS",
+      "distance/direction",
+      "sentence finality/stability"
+    ]
+  },
+  "static_context_vectors_not_observed_model_inputs": {
+    "possible_travis_attachment_prefinal": [
+      6,
+      29,
+      155,
+      362,
+      368,
+      372,
+      373,
+      377,
+      379,
+      381,
+      383,
+      385,
+      387,
+      389,
+      391,
+      393,
+      395,
+      397,
+      399,
+      401,
+      403,
+      405,
+      407,
+      409,
+      411
+    ],
+    "possible_travis_attachment_with_terminal_punct": [
+      6,
+      29,
+      155,
+      362,
+      368,
+      372,
+      373,
+      378,
+      379,
+      381,
+      383,
+      385,
+      387,
+      389,
+      391,
+      393,
+      395,
+      397,
+      399,
+      401,
+      404,
+      405,
+      407,
+      409,
+      411
+    ],
+    "possible_comma_left_attachment_to_next_propn": [
+      12,
+      29,
+      263,
+      363,
+      368,
+      371,
+      373,
+      377,
+      379,
+      381,
+      383,
+      385,
+      387,
+      389,
+      391,
+      393,
+      395,
+      397,
+      399,
+      401,
+      403,
+      405,
+      407,
+      409,
+      411
+    ]
+  },
+  "nonclaims": [
+    "No first temporal divergence or source-operation count recovered from digest-only receipts",
+    "Scores/margins are not probabilities",
+    "No independent accuracy or calibration claim",
+    "48 resource-inventory segments remain quarantined",
+    "V2/V3 model/default/Source/beam/gate unchanged"
+  ],
+  "tested_vs_current_file_comparison": {
+    "semantics/language/tests/parser_punctuation_selection.rs": {
+      "tested_commit_available": true,
+      "tested_commit_sha256": "a44a17d0b1413cfce16fb72a320b520bc2586458134ab57bed8cb6e47ae5844a",
+      "current_equals_tested_commit": true
+    },
+    "semantics/language/tests/common/parser_selection_driver.rs": {
+      "tested_commit_available": true,
+      "tested_commit_sha256": "a2f828ae40dc64b954910e0ad351a1149a57af402dcef6f9f4a1d6669729b98e",
+      "current_equals_tested_commit": true
+    },
+    "semantics/language/tests/common/parser_selection_values.rs": {
+      "tested_commit_available": true,
+      "tested_commit_sha256": "7c34a0529a0e93f7ceb042a16497c0b1cb762abd5a18e54c4d5a60e55116198e",
+      "current_equals_tested_commit": true
+    },
+    "semantics/language/parser_scorer_features.conduit": {
+      "tested_commit_available": true,
+      "tested_commit_sha256": "d415a1728fdcfa7b59e7479eea663317feaf79c0bc83c81fc1fbcda95a577e7a",
+      "current_equals_tested_commit": true
+    },
+    "semantics/language/parser_scorer_search.conduit": {
+      "tested_commit_available": true,
+      "tested_commit_sha256": "0a7e3ab211941fb4d35153bfba9f7b3f7214ba5efc6d0ce4827ec5f49ceb7277",
+      "current_equals_tested_commit": true
+    },
+    "semantics/language/parser_scorer_actions.conduit": {
+      "tested_commit_available": true,
+      "tested_commit_sha256": "eb980145939ac2f563c69d621c6004d7b2c26da24d0dfa47d95c9ccd0ddad176",
+      "current_equals_tested_commit": true
+    },
+    "semantics/language/parser_scorer_ranking.conduit": {
+      "tested_commit_available": true,
+      "tested_commit_sha256": "4fb1d19210d6dfdd391afa26010270924c77b28c73442e538379bc80de7cc271",
+      "current_equals_tested_commit": true
+    },
+    "semantics/language/parser_beam.conduit": {
+      "tested_commit_available": true,
+      "tested_commit_sha256": "804e69bb21937042405c949fe66d3e7ebbb0b23ccccb765b8993891004808fb1",
+      "current_equals_tested_commit": true
+    },
+    "semantics/language/training/train_ewt_punctuation_v3.py": {
+      "tested_commit_available": true,
+      "tested_commit_sha256": "16790f2d71ffee98ed32a0ab0a31aa1e4e55b47c03fd381c629291da318ac85b",
+      "current_equals_tested_commit": true
+    },
+    "semantics/language/training/train_ewt.py": {
+      "tested_commit_available": true,
+      "tested_commit_sha256": "7e738a0e3656fa2b90b6e94d199894dba84de5a343dd1cb1b1e83dbf09b23530",
+      "current_equals_tested_commit": true
+    },
+    "semantics/language/training/ewt_punctuation_v3/manifest.json": {
+      "tested_commit_available": true,
+      "tested_commit_sha256": "1efbdac3e4b63c2fa66e538c5379980df531ea06669d35e710e69f8afc430f1b",
+      "current_equals_tested_commit": true
+    },
+    "semantics/language/training/ewt_joint_v2/manifest.json": {
+      "tested_commit_available": true,
+      "tested_commit_sha256": "96ed7d269946960568d073c122eb2fe0eabddb616bfe25545025a8da8c0f4cc0",
+      "current_equals_tested_commit": true
+    },
+    "semantics/language/training/ewt_joint_v2/lexical_profile.json": {
+      "tested_commit_available": true,
+      "tested_commit_sha256": "045a51b00224785f77983a7c8127f690a1ca8e3c471eb40f6339ceec60c5251b",
+      "current_equals_tested_commit": true
+    },
+    "semantics/language/training/ewt_punctuation_v3/schema.json": {
+      "tested_commit_available": true,
+      "tested_commit_sha256": "1e40cadc24f6a05bb79288e45152ed75b03c37c3f34ddc61d3d219c9a8798707",
+      "current_equals_tested_commit": true
+    },
+    "semantics/language/training/ewt_punctuation_v3/reserved_evaluation.json": {
+      "tested_commit_available": true,
+      "tested_commit_sha256": "74e35548215f2f92a1e8f5ff2341dab9fbccfb5cbfa441a4c998738b0b8effe9",
+      "current_equals_tested_commit": true
+    }
+  }
+}

@@ -1,0 +1,73 @@
+--- a/semantics/language/build.rs
++++ b/semantics/language/build.rs
+@@ -18,6 +18,7 @@
+     println!("cargo:rerun-if-changed=parser.conduit");
+     println!("cargo:rerun-if-changed=parser_available.conduit");
+     println!("cargo:rerun-if-changed=parser_revision_rebase.conduit");
++    println!("cargo:rerun-if-changed=resource_parser_rebase.conduit");
+     println!("cargo:rerun-if-changed=parser_beam_commit.conduit");
+     println!("cargo:rerun-if-changed=parser_beam.conduit");
+     println!("cargo:rerun-if-changed=discourse.conduit");
+@@ -51,6 +52,7 @@
+         include_str!("parser_beam.conduit"),
+         include_str!("parser_available.conduit"),
+         include_str!("parser_revision_rebase.conduit"),
++        include_str!("resource_parser_rebase.conduit"),
+         include_str!("parser_beam_commit.conduit"),
+         include_str!("parser_scorer_features.conduit"),
+         include_str!("parser_scorer_search.conduit"),
+@@ -161,8 +163,16 @@
+         ),
+         ("language/prosody-frontier", "prosody_frontier_program.hex"),
+         (
+-            "language-parser-revision-rebase",
++            "language-parser-rebase-numeric",
+             "parser_rebase_program.hex",
++        ),
++        (
++            "language-parser-revision-rebase-adapter",
++            "parser_rebase_adapter.hex",
++        ),
++        (
++            "language-resource-parser-rebase-adapter",
++            "resource_parser_rebase_adapter.hex",
+         ),
+         (
+             "language/committed-dependency-evidence",
+--- a/semantics/language/src/lib.rs
++++ b/semantics/language/src/lib.rs
+@@ -157,7 +157,7 @@
+ #[cfg(target_has_atomic = "ptr")]
+ pub mod train_lexicon;
+ 
+-/// Initial-only resource-backed lexical preparation; no rebase/installed reader.
++/// Resource-backed lexical preparation; no installed generic resource reader.
+ #[cfg(target_has_atomic = "ptr")]
+ pub mod resource_lexicon_snapshot;
+ pub use generated::LanguageResourceLexicalBinding;
+@@ -173,3 +173,15 @@
+ pub fn language_semantic_source() -> &'static str {
+     include_str!(concat!(env!("OUT_DIR"), "/language_owner_source.conduit"))
+ }
++
++/// Resource-backed mechanical rebase preparation; shares the legacy numeric Source.
++#[cfg(target_has_atomic = "ptr")]
++pub mod resource_parser_rebase;
++pub use generated::{LanguageParserRebaseInput, LanguageResourceParserRebaseRequest};
++pub fn resource_parser_rebase_types(
++) -> alloc::vec::Vec<(&'static str, conduit_core::StructuredInfoType)> {
++    alloc::vec![
++        ("LanguageParserRebaseInput", <LanguageParserRebaseInput as conduit_plot::rust_binding::NativeRustBinding>::semantic_type().expect("checked numeric rebase input")),
++        ("LanguageResourceParserRebaseRequest", <LanguageResourceParserRebaseRequest as conduit_plot::rust_binding::NativeRustBinding>::semantic_type().expect("checked resource rebase request")),
++    ]
++}
+--- a/semantics/language/src/catalog.rs
++++ b/semantics/language/src/catalog.rs
+@@ -50,6 +50,7 @@
+         .chain(crate::parser_scorer_types())
+         .chain(crate::lexical::lexical_types())
+         .chain(crate::resource_lexicon_snapshot_types())
++        .chain(crate::resource_parser_rebase_types())
+         .chain(crate::pronunciation_selection::pronunciation_selection_types())
+         .chain(crate::lexical_consumer::lexical_consumer_types())
+         .chain(crate::parser_types())
