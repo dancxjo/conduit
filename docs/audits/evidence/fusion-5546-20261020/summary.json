@@ -1,0 +1,164 @@
+{
+  "source": "80bf55640ae789952bd98f54258b0c02d0d5bd5d",
+  "verified_groups": 9,
+  "profiles": {
+    "1": {
+      "fused": {
+        "value_capacities": [
+          [
+            3,
+            24
+          ]
+        ],
+        "decisions": [
+          130
+        ],
+        "logical_invocations": [
+          130
+        ],
+        "full_call_wall_ns_median": 443652,
+        "full_call_cpu_ns_median": 446108,
+        "cold_plus_call_ns_median": 6146809,
+        "first_output_ns_median": 220009,
+        "completion_outputs_per_second_median": 302954.52796799265
+      },
+      "local-unfused": {
+        "value_capacities": [
+          [
+            3,
+            24
+          ]
+        ],
+        "decisions": [
+          130
+        ],
+        "logical_invocations": [
+          130
+        ],
+        "full_call_wall_ns_median": 460969,
+        "full_call_cpu_ns_median": 463456,
+        "cold_plus_call_ns_median": 6161016,
+        "first_output_ns_median": 215395,
+        "completion_outputs_per_second_median": 285772.6066544193
+      }
+    },
+    "8": {
+      "fused": {
+        "value_capacities": [
+          [
+            17,
+            136
+          ]
+        ],
+        "decisions": [
+          130
+        ],
+        "logical_invocations": [
+          1040
+        ],
+        "full_call_wall_ns_median": 1179081,
+        "full_call_cpu_ns_median": 1181617,
+        "cold_plus_call_ns_median": 7493965,
+        "first_output_ns_median": 438104,
+        "completion_outputs_per_second_median": 90464.08073416627
+      },
+      "local-unfused": {
+        "value_capacities": [
+          [
+            17,
+            136
+          ]
+        ],
+        "decisions": [
+          1040
+        ],
+        "logical_invocations": [
+          1040
+        ],
+        "full_call_wall_ns_median": 1107521,
+        "full_call_cpu_ns_median": 1108126,
+        "cold_plus_call_ns_median": 7166090,
+        "first_output_ns_median": 334041,
+        "completion_outputs_per_second_median": 86032.07767467583
+      },
+      "native-fused": {
+        "value_capacities": [
+          [
+            17,
+            408
+          ]
+        ],
+        "decisions": [
+          130
+        ],
+        "logical_invocations": [
+          1040
+        ],
+        "full_call_wall_ns_median": 1040866,
+        "full_call_cpu_ns_median": 1043493,
+        "cold_plus_call_ns_median": 7422091,
+        "first_output_ns_median": 432338,
+        "completion_outputs_per_second_median": 110635.98127968953
+      }
+    },
+    "32": {
+      "fused": {
+        "value_capacities": [
+          [
+            65,
+            520
+          ]
+        ],
+        "decisions": [
+          194
+        ],
+        "logical_invocations": [
+          4160
+        ],
+        "full_call_wall_ns_median": 3534201,
+        "full_call_cpu_ns_median": 3536595,
+        "cold_plus_call_ns_median": 11650101,
+        "first_output_ns_median": 1031892,
+        "completion_outputs_per_second_median": 26357.285132692195
+      },
+      "local-unfused": {
+        "value_capacities": [
+          [
+            65,
+            520
+          ]
+        ],
+        "decisions": [
+          4160
+        ],
+        "logical_invocations": [
+          4160
+        ],
+        "full_call_wall_ns_median": 3541594,
+        "full_call_cpu_ns_median": 3542112,
+        "cold_plus_call_ns_median": 10710802,
+        "first_output_ns_median": 812996,
+        "completion_outputs_per_second_median": 24164.660296657647
+      },
+      "native-fused": {
+        "value_capacities": [
+          [
+            65,
+            1560
+          ]
+        ],
+        "decisions": [
+          194
+        ],
+        "logical_invocations": [
+          4160
+        ],
+        "full_call_wall_ns_median": 3214995,
+        "full_call_cpu_ns_median": 3215596,
+        "cold_plus_call_ns_median": 11327588,
+        "first_output_ns_median": 971667,
+        "completion_outputs_per_second_median": 29601.25697274053
+      }
+    }
+  }
+}

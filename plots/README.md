@@ -72,3 +72,6 @@ These cases do not acquire devices or grant browser permissions.
 availability for gated proofs. Add `--dry-run` to inspect planned work without
 running execution oracles. The report distinguishes failed, unavailable,
 not-applicable, and refused results.
+
+[Quantity projection](quantity-projection/README.md) drives a bounded authored
+numerical Each through the ordinary stdin Fore with verified NearQuantity receipts.

@@ -47,6 +47,11 @@ impl PlotResult {
             NativePlot::MemoryLantern => self.current = Some(value),
             NativePlot::Tour => self.current = Some(value),
             NativePlot::Patchbay => self.current = Some(value),
+            NativePlot::Hello => {
+                return Err(JourneyError::Workset(
+                    native_workset::WorksetRefusal::UnknownPlot,
+                ));
+            }
         }
         self.sign = Some(sign);
         Ok(())
@@ -57,6 +62,7 @@ impl PlotResult {
             NativePlot::MemoryLantern => self.current.as_ref().map(NativeFace::text),
             NativePlot::Tour => self.current.as_ref().map(NativeFace::text),
             NativePlot::Patchbay => self.current.as_ref().map(NativeFace::text),
+            NativePlot::Hello => None,
         }
     }
     pub(super) fn omitted_bytes(&self, plot: Option<NativePlot>) -> u64 {

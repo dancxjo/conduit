@@ -146,16 +146,27 @@ impl PreparedPlannedActivationComposite {
         let entry = activation(outer, activation_id)
             .ok_or(PlannedActivationCompositeError::MissingActivation)?;
         if handoff.reusable {
-            let PlannedActivationEntry::Scan(value) = entry else {
-                return Err(PlannedActivationCompositeError::WrongActivationKind);
+            return match entry {
+                PlannedActivationEntry::Scan(value) => {
+                    BoundedScanActivationHost::prepare_reusable_with_ready(
+                        value,
+                        handoff.definition,
+                        handoff.ready,
+                    )
+                    .map(Self::Scan)
+                    .map_err(PlannedActivationCompositeError::Scan)
+                }
+                PlannedActivationEntry::Unary(value) => {
+                    BoundedActivationHost::prepare_planned_reusable_with_ready(
+                        value,
+                        &handoff.definition,
+                        handoff.ready,
+                    )
+                    .map(Self::Unary)
+                    .map_err(PlannedActivationCompositeError::Unary)
+                }
+                _ => Err(PlannedActivationCompositeError::WrongActivationKind),
             };
-            return BoundedScanActivationHost::prepare_reusable_with_ready(
-                value,
-                handoff.definition,
-                handoff.ready,
-            )
-            .map(Self::Scan)
-            .map_err(PlannedActivationCompositeError::Scan);
         }
         match entry {
             PlannedActivationEntry::Unary(value) => {

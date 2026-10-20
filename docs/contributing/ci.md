@@ -105,6 +105,74 @@ Descriptive JSON measurement receipts in the owned performance receipt directori
 
 Unit and admission jobs retain Rust compiler caches even after a failed check, so a test correction can reuse compiled dependencies. Cargo still validates its dependency fingerprints and every required check runs again. These are build caches, not accepted test results or release evidence; target proof caches retain their existing failure policy.
 
+## Chromium proof batching (October 20, 2026 experiment)
+
+The full browser target remains **one exact product producer**. It builds and
+stages the browser runtime and static Bodies once, then proves the reviewed
+Chromium inventory before assembling the site, copying products, sealing the
+target receipt, or granting publication eligibility. A failed or missing
+Chromium batch fails that one target. No shard may publish alone.
+
+Timestamped logs from recent successful full Integration runs:
+
+| Integration run | Browser target wall time | Serial Chromium | Foundation shard |
+| --- | ---: | ---: | ---: |
+| [39465043673](https://github.com/dancxjo/conduit/actions/runs/39465043673) | 55.9 min | 31.7 min (263 tests) | 43.6 min |
+| [39385476891](https://github.com/dancxjo/conduit/actions/runs/39385476891) | 63.4 min | 31.3 min (260 tests) | 50.5 min |
+| [39149303771](https://github.com/dancxjo/conduit/actions/runs/39149303771) | 44.0 min | 19.8 min (259 tests) | 40.8 min |
+| [39109266735](https://github.com/dancxjo/conduit/actions/runs/39109266735) | 46.6 min | 21.5 min (257 tests) | 30.5 min |
+
+These are elapsed job/test windows, not CPU-hours or a controlled speedup
+experiment. In run 39465043673, browser finished after every other target and
+foundation. The serial Chromium group was the **critical-path opportunity**,
+not ordinary tool acquisition (about two minutes before browser product work
+started). The browser build/static staging still takes roughly 20 minutes.
+
+For the October 20 Chromium run, inferred start-to-next-test intervals for
+the largest spec families were about 8.0 min for
+`static-body-application`, 7.5 min for `workspace-library`,
+4.7 min for `workspace-arrival`, 2.6 min for
+`workspace-membership`, and 2.6 min for `thermostat-local`.
+The same relative hot spots recur in the other successful runs. They
+are measured serial occupancy estimates, not isolated per-spec benchmarks.
+
+Candidate specifically selects the real browser target when
+`tools/ci/pipeline/targets/browser.mjs` changes. The previous scanner could
+run only CI preflight/admission for a browser harness edit and leave its own
+Chromium product path entirely unexecuted; the new routing has a focused
+regression check in `proof/ci/pipeline-plan.spec.mjs`.
+
+The browser target now permits **two concurrent one-worker batches on the same
+runner**, while retaining `--retries 0`, the existing checked spec list,
+shared prebuilt sealed source product and an unchanged exact output receipt.
+Batch 1 runs `static-body-application`, `workspace-arrival` and
+`workspace-membership`. Batch 2 runs all other reviewed specs. This
+balances historical durations better than dividing the spec names or test
+counts in half. Each batch has a distinct loopback static-server port
+(4173/4174) and output directory (`ci-1`/`ci-2`); existing recursive
+evidence verifiers require every expected Source/Chromium capture and unique
+receipt after **both** processes succeed. No tests may be skipped, retried,
+sharded onto a weaker browser project, or replaced by mocks.
+
+For a controlled same-source comparison on a clean runner use
+`CONDUIT_CI_BROWSER_BATCHES=1 cargo xtask ci pipeline target browser SHA`
+versus `CONDUIT_CI_BROWSER_BATCHES=2 cargo xtask ci pipeline target browser SHA`
+with the normal target setup and empty output directories. The default is
+two; an invalid value refuses. Compare the logged per-batch durations,
+target elapsed time, complete test count, hashes and preserved negative
+cases. This is **a throughput experiment**, not a claim of a measured
+speedup: two Chromium processes on one host may compete for CPU/memory.
+If concurrent state, ports, proof directories, artifacts or case counts
+conflict, revert to the one-batch mode and do not promote the experiment.
+Do not change the full Integration product matrix or skip stable release
+verification on a speed result alone.
+
+If the measured gain is durable, the next potential boundary is separating
+read-only Chromium proof from product construction across Actions jobs using
+a byte-verified, already-built staging artifact. That is a **distinct
+contract change**: cross-job artifact custody, exact test-set aggregation and
+a single publication seal must be proved before implementing it.
+
 ## On-demand runtime measurements
 
 Runtime measurements are diagnostic and have no calibrated regression threshold.

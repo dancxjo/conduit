@@ -3,6 +3,10 @@ use conduit_face::*;
 use conduit_plot::rust_binding::{BoundedSequence, NativeRustBinding};
 
 fn face(items: usize) -> Face {
+    face_with_action(items, "test/do", "list")
+}
+
+fn face_with_action(items: usize, action_identity: &str, action_target: &str) -> Face {
     let mut subjects = vec![FaceSubject {
         identity: "list".into(),
         role: FaceRole::Collection,
@@ -35,9 +39,9 @@ fn face(items: usize) -> Face {
         vec![],
         vec![],
         vec![FaceAction {
-            identity: "test/do".into(),
+            identity: action_identity.into(),
             intent: "test/do@1".into(),
-            target: "list".into(),
+            target: action_target.into(),
             name: "Do this".into(),
             arguments: vec![],
             disclosure: FaceDisclosureLevel::CurrentAction,
@@ -86,6 +90,50 @@ fn regions(group: u8) -> Vec<ComponentRegionInfo> {
             group,
         ),
     ]
+}
+
+#[test]
+fn action_target_selects_original_subject_without_labels_or_role_assumptions() {
+    let face = face_with_action(2, "source/選ぶ", "item/1");
+    let before = face.clone();
+    let prepared = prepare_component_recipe(
+        recipe(
+            vec![region(
+                "input",
+                ComponentSubjectSelector::action_target("source/選ぶ".into()).unwrap(),
+                1,
+                0,
+            )],
+            2,
+        ),
+        &face,
+    )
+    .unwrap();
+    assert_eq!(prepared.subject_regions, vec![None, None, Some(0), None]);
+    assert_eq!(prepared.reading, plan_face_utterances(&face).unwrap());
+    assert_eq!(face, before);
+}
+
+#[test]
+fn absent_optional_action_target_preserves_complete_generic_reading() {
+    let face = face(2);
+    for missing in ["absent/action", "Do this", "list"] {
+        let prepared = prepare_component_recipe(
+            recipe(
+                vec![region(
+                    "optional-input",
+                    ComponentSubjectSelector::action_target(missing.into()).unwrap(),
+                    1,
+                    0,
+                )],
+                2,
+            ),
+            &face,
+        )
+        .unwrap();
+        assert!(prepared.subject_regions.iter().all(Option::is_none));
+        assert_eq!(prepared.reading, plan_face_utterances(&face).unwrap());
+    }
 }
 #[test]
 fn different_structure_preserves_complete_original_reading_and_unmatched_meaning() {

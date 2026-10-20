@@ -139,37 +139,39 @@ impl NativeFaceScene {
                 });
             }
         }
-        let footer = self
-            .local_notice
-            .clone()
-            .or_else(|| self.input.preview(self.focus))
-            .unwrap_or_else(|| {
-                if editor_visible {
-                    if chrome.compact {
-                        chrome::EDITOR_COMPACT_FOOTER.into()
-                    } else {
-                        chrome::EDITOR_FOOTER.into()
-                    }
-                } else if chrome.compact && !self.showing_diagram {
-                    if self.interaction_admitted {
-                        "PgDn · F2".into()
-                    } else {
-                        "Read only · F2".into()
-                    }
-                } else if self.showing_diagram {
-                    diagram::link_notice(&self.face, self.screen, self.page)
-                } else if !self.interaction_admitted && self.has_diagram() {
-                    "Read only · PgUp/PgDn pages · F2 facts · F3 Patchbay".into()
-                } else if !self.interaction_admitted {
-                    "Read only · PgUp/PgDn pages · F2 facts".into()
-                } else if self.showing_details {
-                    "PgUp/PgDn pages · Tab next · F2 return".into()
-                } else if self.has_diagram() {
-                    "Tab next · Enter act · F2 inspect · F3 Patchbay".into()
+        let preview = if self.local_notice.is_none() {
+            self.input
+                .preview(self.focus, &chrome, self.text_scale_percent)?
+        } else {
+            None
+        };
+        let footer = self.local_notice.clone().or(preview).unwrap_or_else(|| {
+            if editor_visible {
+                if chrome.compact {
+                    chrome::EDITOR_COMPACT_FOOTER.into()
                 } else {
-                    "PgUp/PgDn pages · Tab next · Enter act · F2 inspect".into()
+                    chrome::EDITOR_FOOTER.into()
                 }
-            });
+            } else if chrome.compact && !self.showing_diagram {
+                if self.interaction_admitted {
+                    "PgDn · F2".into()
+                } else {
+                    "Read only · F2".into()
+                }
+            } else if self.showing_diagram {
+                diagram::link_notice(&self.face, self.screen, self.page)
+            } else if !self.interaction_admitted && self.has_diagram() {
+                "Read only · PgUp/PgDn pages · F2 facts · F3 Patchbay".into()
+            } else if !self.interaction_admitted {
+                "Read only · PgUp/PgDn pages · F2 facts".into()
+            } else if self.showing_details {
+                "PgUp/PgDn pages · Tab next · F2 return".into()
+            } else if self.has_diagram() {
+                "Tab next · Enter act · F2 inspect · F3 Patchbay".into()
+            } else {
+                "PgUp/PgDn pages · Tab next · Enter act · F2 inspect".into()
+            }
+        });
         chrome.admit_footer(&footer, self.text_scale_percent)?;
         push(
             &mut scene,
