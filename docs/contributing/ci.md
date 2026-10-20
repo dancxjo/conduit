@@ -142,8 +142,9 @@ run only CI preflight/admission for a browser harness edit and leave its own
 Chromium product path entirely unexecuted; the new routing has a focused
 regression check in `proof/ci/pipeline-plan.spec.mjs`.
 
-The browser target now permits **two concurrent one-worker batches on the same
-runner**, while retaining `--retries 0`, the existing checked spec list,
+The browser target defaults to **one Chromium process with one worker**.
+The opt-in experiment permits two concurrent one-worker batches on the same
+runner, while retaining `--retries 0`, the existing checked spec list,
 shared prebuilt sealed source product and an unchanged exact output receipt.
 Batch 1 runs `static-body-application`, `workspace-arrival` and
 `workspace-membership`. Batch 2 runs all other reviewed specs. This
@@ -158,7 +159,7 @@ For a controlled same-source comparison on a clean runner use
 `CONDUIT_CI_BROWSER_BATCHES=1 cargo xtask ci pipeline target browser SHA`
 versus `CONDUIT_CI_BROWSER_BATCHES=2 cargo xtask ci pipeline target browser SHA`
 with the normal target setup and empty output directories. The default is
-two; an invalid value refuses. Compare the logged per-batch durations,
+one; an invalid value refuses. Compare the logged per-batch durations,
 target elapsed time, complete test count, hashes and preserved negative
 cases. This is **a throughput experiment**, not a claim of a measured
 speedup: two Chromium processes on one host may compete for CPU/memory.
@@ -166,6 +167,13 @@ If concurrent state, ports, proof directories, artifacts or case counts
 conflict, revert to the one-batch mode and do not promote the experiment.
 Do not change the full Integration product matrix or skip stable release
 verification on a speed result alone.
+
+The default returned to one after [#6172](https://github.com/dancxjo/conduit/issues/6172):
+the first combined Integration using the experiment failed four slow-batch
+cases and left 29 unexecuted while the other batch passed. The retained run
+and traces remain negative evidence. Resource contention is not yet proven;
+the single-worker reference must pass the complete product proof before
+delivery resumes. Two batches remain a controlled diagnostic option.
 
 If the measured gain is durable, the next potential boundary is separating
 read-only Chromium proof from product construction across Actions jobs using
