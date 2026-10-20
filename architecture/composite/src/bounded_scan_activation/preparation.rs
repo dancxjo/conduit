@@ -101,7 +101,10 @@ impl BoundedScanActivationHost {
         let reusable = if reusable {
             let host = ready.pop().unwrap();
             ready = Vec::new();
-            Some(ReusableScanPool::new(host, planned.limits.maximum_items)?)
+            Some(Box::new(ReusableScanPool::new(
+                host,
+                planned.limits.maximum_items,
+            )?))
         } else {
             None
         };

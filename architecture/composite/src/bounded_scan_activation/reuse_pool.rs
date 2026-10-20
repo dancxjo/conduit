@@ -53,6 +53,12 @@ impl ReusableScanPool {
         self.bound = true;
         Ok(())
     }
+    pub(super) fn has_admitted_capacity(&self, expected: usize) -> bool {
+        usize::from(self.maximum) == expected
+            && matches!(self.slot, Slot::Ready(_))
+            && self.pending.capacity() >= expected - 1
+            && self.evidence.capacity() >= expected - 1
+    }
     pub(super) fn remaining(&self) -> usize {
         self.pending.len() + usize::from(matches!(self.slot, Slot::Ready(_)))
     }

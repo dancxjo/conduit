@@ -297,6 +297,16 @@ impl BoundedScanActivationHost {
         self.output_ready = false;
         cancellation.map(|_| ()).map_err(BoundedScanError::Refused)
     }
+    pub(crate) fn has_admitted_children(&self, expected: usize) -> bool {
+        if let Some(pool) = &self.reusable {
+            pool.has_admitted_capacity(expected)
+        } else {
+            self.ready.len() == expected
+                && self.ready.capacity() == expected
+                && self.receipts.capacity() == expected
+        }
+    }
+
     pub fn allocation_capacities(&self) -> (usize, usize) {
         (self.ready.capacity(), self.receipts.capacity())
     }
