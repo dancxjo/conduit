@@ -76,3 +76,20 @@ fn bounded_decoder_rejects_truncation_unknown_version_and_trailing_data() {
     trailing.push(0);
     assert!(PortableExpressionProgram::from_canonical_bytes(&trailing).is_err());
 }
+
+#[test]
+fn legacy_identity_program_bytes_do_not_gain_empty_predicate_envelopes() {
+    // Frozen pre-qualification v2/v3 vectors for the same U64 identity.
+    let ty = conduit_core::StructuredInfoType::leaf(conduit_core::kind_id("value/u64")).unwrap();
+    for (bound, expected) in [
+        (None, "636f6e647569742e707572652d65787072657373696f6e2e70726f6772616d2e76320e00000000000000000900000076616c75652f7536340e00000000000000000900000076616c75652f7536340e00000000000000000900000076616c75652f75363400"),
+        (Some(8), "636f6e647569742e707572652d65787072657373696f6e2e70726f6772616d2e7633080000000e00000000000000000900000076616c75652f7536340e00000000000000000900000076616c75652f7536340e00000000000000000900000076616c75652f75363400"),
+    ] {
+        let program = PortableExpressionProgram {
+            input_type: ty.clone(), input_maximum_bytes: bound, output_type: ty.clone(),
+            root: PortableExpressionNode { value_type: ty.clone(), operation: PortableExpressionOperation::Input },
+        };
+        assert_eq!(program.canonical_hex().unwrap(), expected);
+        assert_eq!(PortableExpressionProgram::from_canonical_hex(expected).unwrap(), program);
+    }
+}

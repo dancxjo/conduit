@@ -8,6 +8,17 @@ impl ValueConstraint {
         maximum_bytes: u32,
     ) -> Result<(), ConstraintDefinitionError> {
         match self {
+            Self::NearQuantity {
+                source_kind,
+                limit,
+                schema,
+            } => near_quantity::validate_definition(
+                value_kind,
+                maximum_bytes,
+                schema,
+                source_kind,
+                limit,
+            ),
             Self::ByteLength { minimum, maximum }
                 if minimum > maximum || *maximum > maximum_bytes =>
             {

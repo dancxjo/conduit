@@ -1,0 +1,162 @@
+{
+  "at": "2026-10-19T01:23:07.029780+00:00",
+  "source_commit": "e97223ec7655d1f0b17a57752259ac195045c8f2",
+  "scope": "Development correction to retain knownphysical SourceKinds despite shared near evidence carrier. No parent/N5/stable acceptance.",
+  "results": {
+    "catalog_focused": "8passed identityFreq->Distance/Duration and physicalcord refused beforePlan; validwhitespace/samephysicaltolerance retained",
+    "plot_lib": "467passed,1existingignored",
+    "catalog_lib": "191passed",
+    "plot_catalog_all_target_clippy": "passed -Dwarnings",
+    "format": "passed"
+  },
+  "raw_archive": {
+    "path": "fore-near-physical-development-20261019-raw.tar.gz",
+    "sha256": "f70b7d04be46908de6eaa505347588df61d3197ad21eca6bd458fc1f32470871",
+    "bytes": 185141
+  },
+  "raw_members": [
+    {
+      "path": "fore-near-physical-cord-tests.log",
+      "sha256": "e738e09c0b29cfad5f4a0d1c809654afd0ac83956bc30802771bd60d92e440dc",
+      "bytes": 3824
+    },
+    {
+      "path": "fore-near-physical-full-libs.log",
+      "sha256": "15f649533fe130806ea746b66903d34e681b5235ac3ec8b7ce57be2114add16f",
+      "bytes": 69648
+    },
+    {
+      "path": "fore-near-physical-clippy.log",
+      "sha256": "b02f8c3ab6743438b833d66a4cd6ea3b50ba88f3b37a1f839ea9d8d8040b70cb",
+      "bytes": 2707
+    },
+    {
+      "path": "fore-near-physical-format.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "n5-physical-identity-probe/main.conduit",
+      "sha256": "0f76d0ed31813f43c931fdc443650044ccbde2f0150c7a5d828f0707e8419e17",
+      "bytes": 83
+    },
+    {
+      "path": "n5-physical-identity-probe/unknown-length-type.stderr",
+      "sha256": "1b265051bee71f72cc6b67e711a32d84e85e6e902d0dafcedc358fd4c7c0d1ee",
+      "bytes": 77
+    },
+    {
+      "path": "n5-physical-identity-probe/manifest.json",
+      "sha256": "01f5b60005fd5ddc0753fc513420f4bb2a57e9a6d01c13143a9b541349537689",
+      "bytes": 2028
+    },
+    {
+      "path": "n5-physical-identity-probe/unknown-length-type.conduit",
+      "sha256": "f441b6d05866f3393a01db8b3181bb4a3a8b512c3fb3fc9fc14c1c7ba144c3e2",
+      "bytes": 81
+    },
+    {
+      "path": "n5-physical-identity-probe/cord.conduit",
+      "sha256": "104bb6956ae20d3b64c7f216cf556a0b55f5a54a3f36d37bf87f3bef6c400763",
+      "bytes": 371
+    },
+    {
+      "path": "n5-physical-identity-probe/cord.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "n5-physical-identity-probe/cord.stdout.json",
+      "sha256": "d0a933fde645d10f99377791114646b6fe5546da958cb19c54fc1d760e2ca3aa",
+      "bytes": 1677
+    },
+    {
+      "path": "n5-physical-identity-probe/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "n5-physical-identity-probe/stdout.json",
+      "sha256": "b240412e8fc27db2ea744519e2dfbc74c6311ca78172de2252a84f0036c8c719",
+      "bytes": 1009
+    },
+    {
+      "path": "n5-uncertainty-kind-probes/observation.conduit",
+      "sha256": "a5e7e8890aba314aa12f8513794856e8ce020f1a495f93cdb28e6a311449b47a",
+      "bytes": 950
+    },
+    {
+      "path": "n5-uncertainty-kind-probes/confidence-positive.report.json",
+      "sha256": "f5073fbd87651c38720a799e368d410f35afc00f177e6bb9c3939205937eec9c",
+      "bytes": 8006966
+    },
+    {
+      "path": "n5-uncertainty-kind-probes/confidence-positive.stdout",
+      "sha256": "58c82e987c2aa1e09a57904f49f9718d87e55e438a703010edafd860bbd28fd9",
+      "bytes": 2787
+    },
+    {
+      "path": "n5-uncertainty-kind-probes/confidence.conduit",
+      "sha256": "87f0d701c2a1ff466f509daa50fc4d53f2e1af97ac7e6d709906acc14f4c7fa7",
+      "bytes": 969
+    },
+    {
+      "path": "n5-uncertainty-kind-probes/manifest.json",
+      "sha256": "3198e7f7e1d029b81bd76495f88ccba93741dc5c835ba0e8bb181c05ca55cdd5",
+      "bytes": 1118
+    },
+    {
+      "path": "n5-uncertainty-kind-probes/confidence-positive.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "n5-uncertainty-kind-probes/confidence-positive.conduit",
+      "sha256": "ea666f642647be08516b2d12ea3be90cdbcd49917ad16bca25aa7ad4cd69d806",
+      "bytes": 919
+    },
+    {
+      "path": "n5-uncertainty-kind-probes/confidence.stderr",
+      "sha256": "792749dd800d21b0b22883a9db0bb537ec51d2986fb31a2965deac5914e452c6",
+      "bytes": 201
+    },
+    {
+      "path": "n5-uncertainty-kind-probes/observation.stdout",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "n5-uncertainty-kind-probes/confidence.stdout",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "n5-uncertainty-kind-probes/observation.stderr",
+      "sha256": "c6094418509dfed0786754b98b1962d7c20d9d6d6969463ff7ea540a2019c0d7",
+      "bytes": 201
+    }
+  ],
+  "executables": [
+    {
+      "gzip": "/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/fore-near-physical-proof/conduit_plot-fd2a891d1506c3e4.gz",
+      "gzip_sha256": "83447d1f066e90bd58ef7ca11c5a9f89ee5523c7e69515e7d4c110586ddfcc15",
+      "bytes": 116783760,
+      "uncompressed_sha256": "b9fd3d40bd44410886712d5e301a61991cc8eb50eedf25260af6b94e4f1648dd",
+      "roundtrip_verified": true
+    },
+    {
+      "gzip": "/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/fore-near-physical-proof/conduit_semantic_catalog-2d4e0aad3f3764d0.gz",
+      "gzip_sha256": "eb462da97a03115d9770650760f5fc6b60e0953c19fc3d0132469392552f0197",
+      "bytes": 205480848,
+      "uncompressed_sha256": "55b341a8be44b834909ad9722775d6b781597fc21b7fa94b54143174cbf2c5f5",
+      "roundtrip_verified": true
+    }
+  ],
+  "limits": [
+    "The rawCLI physical probes are before-fix reproductions; initial unknown LengthType refusal is separate from validDistance misuse reproductions.",
+    "Post-fix checking/expansion is established by actual Catalogtests, not a rebuiltCLI. Exact-preview combined CI remains required.",
+    "Supplemental authoredconfidence positive actualCLI run and confidence/observation type-refusal cases use earlier digest-bound CLI. No real sensor/model calibration, generaluncertaintycalculus or N5closure.",
+    "GenericQuantity physicalrefinement remains runtimechecked; this adds no globalKindsubtyping or implicit conversion.",
+    "Full localworkspace test pass still notclaimed due diskheadroom; prior fullworkspaceClippy predates this final guard; final CI must cover combined source."
+  ]
+}

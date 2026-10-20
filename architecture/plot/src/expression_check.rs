@@ -185,6 +185,8 @@ pub struct CheckedExpression {
     pub syntax: ExpressionSyntax,
     pub input_type: CheckedExpressionType,
     pub(crate) input_maximum_bytes: Option<u32>,
+    pub(crate) input_value_contract: Option<conduit_core::CheckedValueContract>,
+    pub(crate) output_value_contract: Option<conduit_core::CheckedValueContract>,
     pub value_type: CheckedExpressionType,
     pub node_types: Vec<CheckedExpressionNodeType>,
     /// Arithmetic nodes whose safety follows from declared input-Type laws.
@@ -298,6 +300,8 @@ pub(crate) fn check_expression_as(
         syntax: syntax.clone(),
         input_type: context.input.clone(),
         input_maximum_bytes: None,
+        input_value_contract: None,
+        output_value_contract: None,
         value_type,
         node_types,
         proven_arithmetic: BTreeSet::new(),

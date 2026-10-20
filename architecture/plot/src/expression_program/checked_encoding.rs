@@ -35,6 +35,15 @@ fn encode(
         }
         push_type(sink, &ty)?;
     }
+    if checked.input_value_contract.is_some() || checked.output_value_contract.is_some() {
+        let ty = checked
+            .value_type
+            .structured_info_type_with(&checked.semantic_structures)?;
+        push_type(sink, &ty)?;
+        sink.push(13);
+        value_contract::push_contract(sink, checked.input_value_contract.as_ref());
+        value_contract::push_contract(sink, checked.output_value_contract.as_ref());
+    }
     push_checked(sink, &checked.syntax, checked)?;
     if sink.length > MAXIMUM_PURE_EXPRESSION_PROGRAM_BYTES {
         return Err(PortableExpressionProgramRefusal::TooLarge);

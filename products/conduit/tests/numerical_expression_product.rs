@@ -518,3 +518,6 @@ fn qualified_numerical_result_cannot_be_relabelled_as_exact_quantity() {
         "must refuse before Play"
     );
 }
+
+#[path = "numerical_expression_product/near_fore.rs"]
+mod near_fore;

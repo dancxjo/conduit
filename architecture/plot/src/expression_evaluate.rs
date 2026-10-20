@@ -28,6 +28,8 @@ use core::cmp::Ordering;
 pub enum PortableExpressionEvaluationRefusal {
     InvalidInput,
     InvalidProgram,
+    InputValueConstraint(conduit_core::ValueConstraintRefusal),
+    OutputValueConstraint(conduit_core::ValueConstraintRefusal),
     InvalidLiteral,
     Arithmetic,
     QuantityProduct(conduit_core::RationalQuantityRefusal),
@@ -77,6 +79,24 @@ fn evaluate_node(
     input_type: &StructuredInfoType,
 ) -> Result<Value, PortableExpressionEvaluationRefusal> {
     let value = match &node.operation {
+        PortableExpressionOperation::ValueContract {
+            input: required_input,
+            output: required_output,
+            value,
+        } => {
+            if let Some(contract) = required_input {
+                contract
+                    .validate(input)
+                    .map_err(PortableExpressionEvaluationRefusal::InputValueConstraint)?;
+            }
+            let value = evaluate_node(value, input, input_type)?;
+            if let Some(contract) = required_output {
+                contract
+                    .validate(&value.encoded)
+                    .map_err(PortableExpressionEvaluationRefusal::OutputValueConstraint)?;
+            }
+            value
+        }
         PortableExpressionOperation::Constant(value) => {
             if value.value_type() != &node.value_type {
                 return Err(PortableExpressionEvaluationRefusal::InvalidProgram);
@@ -384,4 +404,36 @@ const fn quantity_kind(kind: PrimitiveInfoKind) -> bool {
             | PrimitiveInfoKind::Ratio
             | PrimitiveInfoKind::PixelCount
     )
+}
+
+/// Stable input/output predicate causes shared by installed Host adapters.
+pub fn value_contract_failure_detail(refusal: &PortableExpressionEvaluationRefusal) -> u16 {
+    use conduit_core::{NearQuantityEvidenceRefusal as N, ValueConstraintRefusal as C};
+    let (base, refusal) = match refusal {
+        PortableExpressionEvaluationRefusal::InputValueConstraint(reason) => (100, reason),
+        PortableExpressionEvaluationRefusal::OutputValueConstraint(reason) => (200, reason),
+        _ => return 0,
+    };
+    let reason = match refusal {
+        C::NearQuantity(reason) => match reason {
+            N::Schema => 1,
+            N::Malformed => 2,
+            N::Extent => 3,
+            N::InvalidSource => 4,
+            N::SourceMismatch => 5,
+            N::Physical => 6,
+            N::InvalidLimit => 7,
+            N::InvalidClaim => 8,
+            N::UnsupportedDenotation => 9,
+            N::UnsupportedCoordinate => 10,
+            N::UnsupportedRepresentation => 11,
+            N::FiniteRange => 12,
+            N::WorkLimit => 13,
+            N::InsufficientTolerance => 14,
+            N::ExactnessRequired => 15,
+        },
+        C::Oversize { .. } => 16,
+        _ => 31,
+    };
+    base + reason
 }
