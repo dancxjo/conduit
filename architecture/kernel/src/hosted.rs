@@ -117,9 +117,7 @@ impl HostedValueStore {
             + self.native_words.capacity() * core::mem::size_of::<Option<u64>>()
             + self.compact_f32_lengths.capacity()
                 * core::mem::size_of::<Option<core::num::NonZeroU32>>()
-            + self.owned_compact_slots.capacity()
-                * core::mem::size_of::<Option<owned_compact_f32::OwnedSlot>>()
-            + usize::from(self.owned_compact_identity.is_some())
+            + self.owned_compact_backing_bytes()
     }
 
     pub fn allocation_capacities(&self) -> (usize, usize) {
@@ -132,9 +130,7 @@ impl HostedValueStore {
                 + self.native_words.capacity() * core::mem::size_of::<Option<u64>>()
                 + self.compact_f32_lengths.capacity()
                     * core::mem::size_of::<Option<core::num::NonZeroU32>>()
-                + self.owned_compact_slots.capacity()
-                    * core::mem::size_of::<Option<owned_compact_f32::OwnedSlot>>()
-                + usize::from(self.owned_compact_identity.is_some()),
+                + self.owned_compact_backing_bytes(),
         )
     }
 

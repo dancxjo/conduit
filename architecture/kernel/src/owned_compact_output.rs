@@ -34,8 +34,14 @@ impl PreparedCompactF32Output {
 #[derive(Debug)]
 pub struct PendingCompactF32Publication {
     pub(crate) value: Option<ValueRef>,
+    pub(crate) identity: Option<Box<u8>>,
 }
 impl PendingCompactF32Publication {
+    pub(crate) fn identity(&self) -> Option<usize> {
+        self.identity
+            .as_deref()
+            .map(|v| core::ptr::from_ref(v) as usize)
+    }
     pub fn value(&self) -> Result<ValueRef, crate::StorageError> {
         self.value.ok_or(crate::StorageError::StaleReference)
     }

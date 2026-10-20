@@ -156,3 +156,28 @@ fn logical_pressure_and_retired_generations_refuse_before_buffer_transfer() {
     assert_eq!(second.as_ptr(), pointer);
     assert_eq!(values.used_items(), 0);
 }
+
+#[test]
+fn numerically_equal_foreign_pending_receipts_cannot_commit_another_store() {
+    let (mut a, a_owner) = store();
+    let (mut b, b_owner) = store();
+    let mut a_bytes = LANES.to_vec();
+    let mut b_bytes = LANES.to_vec();
+    let mut a_pending = a.swap_owned_compact_f32(&a_owner, &mut a_bytes).unwrap();
+    let mut b_pending = b.swap_owned_compact_f32(&b_owner, &mut b_bytes).unwrap();
+    assert_eq!(a_pending.value().unwrap(), b_pending.value().unwrap());
+    assert!(b
+        .commit_owned_compact_f32(&b_owner, &mut a_pending)
+        .is_err());
+    assert!(b
+        .restore_owned_compact_f32(&b_owner, &mut a_pending, &mut b_bytes)
+        .is_err());
+    b.restore_owned_compact_f32(&b_owner, &mut b_pending, &mut b_bytes)
+        .unwrap();
+    a.restore_owned_compact_f32(&a_owner, &mut a_pending, &mut a_bytes)
+        .unwrap();
+    assert_eq!(a_bytes, LANES);
+    assert_eq!(b_bytes, LANES);
+    assert_eq!(a.used_items(), 0);
+    assert_eq!(b.used_items(), 0);
+}

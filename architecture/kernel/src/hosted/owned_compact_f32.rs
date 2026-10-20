@@ -4,11 +4,12 @@ use crate::{owned_compact_output::*, scheduler::CompactF32Layout};
 use alloc::{boxed::Box, vec};
 use core::num::NonZeroU32;
 
-#[derive(Clone, Copy)]
 pub(super) struct OwnedSlot {
     owner: usize,
     layout: CompactF32Layout,
     pending: bool,
+    pending_identity: usize,
+    identity: Option<Box<u8>>,
 }
 impl HostedValueStore {
     pub(super) fn is_owned_compact(&self, slot: usize) -> bool {
@@ -19,12 +20,27 @@ impl HostedValueStore {
     pub(super) fn clear_owned_pending(&mut self, index: usize) {
         if let Some(Some(slot)) = self.owned_compact_slots.get_mut(index) {
             slot.pending = false;
+            slot.pending_identity = 0;
+            if slot.identity.is_none() {
+                self.slots[index].generation = u16::MAX;
+                self.has_retired_slots = true;
+            }
         }
     }
     pub(super) fn reset_owned_pending(&mut self) {
-        for slot in self.owned_compact_slots.iter_mut().flatten() {
-            slot.pending = false;
+        for index in 0..self.owned_compact_slots.len() {
+            self.clear_owned_pending(index);
         }
+    }
+    pub(super) fn owned_compact_backing_bytes(&self) -> usize {
+        self.owned_compact_slots.capacity() * core::mem::size_of::<Option<OwnedSlot>>()
+            + usize::from(self.owned_compact_identity.is_some())
+            + self
+                .owned_compact_slots
+                .iter()
+                .flatten()
+                .filter(|slot| slot.identity.is_some() || slot.pending)
+                .count()
     }
     fn owned_store_identity(&self) -> Option<usize> {
         self.owned_compact_identity
@@ -99,6 +115,10 @@ impl HostedValueStore {
                     .collect()
             })
             .collect();
+        let identities: Vec<Vec<Box<u8>>> = requests
+            .iter()
+            .map(|(_, count)| (0..*count).map(|_| Box::new(0)).collect())
+            .collect();
         let identity = self
             .owned_compact_identity
             .take()
@@ -116,16 +136,19 @@ impl HostedValueStore {
             .collect();
         self.prepare_compact_f32();
         if self.owned_compact_slots.is_empty() {
-            self.owned_compact_slots.resize(self.slots.len(), None);
+            self.owned_compact_slots
+                .resize_with(self.slots.len(), || None);
         }
-        for (output, buffers) in outputs.iter().zip(&mut buffers) {
-            for (index, bytes) in output.slots.iter().zip(buffers) {
+        for ((output, buffers), identities) in outputs.iter().zip(&mut buffers).zip(identities) {
+            for ((index, bytes), identity) in output.slots.iter().zip(buffers).zip(identities) {
                 let index = usize::from(*index);
                 self.slots[index].bytes = core::mem::take(bytes);
                 self.owned_compact_slots[index] = Some(OwnedSlot {
                     owner: output.identity(),
                     layout: output.layout,
                     pending: false,
+                    pending_identity: 0,
+                    identity: Some(identity),
                 });
                 self.clear_compact_layout(index as u16);
                 if let Some(word) = self.native_words.get_mut(index) {
@@ -141,14 +164,13 @@ impl HostedValueStore {
         &self,
         owner: &PreparedCompactF32Output,
         index: u16,
-    ) -> Result<OwnedSlot, StorageError> {
+    ) -> Result<&OwnedSlot, StorageError> {
         if self.owned_store_identity() != Some(owner.store) || !owner.slots.contains(&index) {
             return Err(StorageError::StaleReference);
         }
         self.owned_compact_slots
             .get(usize::from(index))
-            .copied()
-            .flatten()
+            .and_then(Option::as_ref)
             .filter(|slot| slot.owner == owner.identity() && slot.layout == owner.layout)
             .ok_or(StorageError::StaleReference)
     }
@@ -235,11 +257,17 @@ impl HostedValueStore {
         self.used_bytes = used;
         self.used_items += 1;
         self.compact_f32_lengths[usize::from(index)] = NonZeroU32::new(logical);
-        self.owned_compact_slots[usize::from(index)]
+        let metadata = self.owned_compact_slots[usize::from(index)]
             .as_mut()
-            .unwrap()
-            .pending = true;
+            .unwrap();
+        let identity = metadata
+            .identity
+            .take()
+            .expect("free pool slot retains its prepared receipt");
+        metadata.pending_identity = core::ptr::from_ref(identity.as_ref()) as usize;
+        metadata.pending = true;
         Ok(PendingCompactF32Publication {
+            identity: Some(identity),
             value: Some(ValueRef {
                 slot: index,
                 generation: slot.generation,
@@ -255,13 +283,15 @@ impl HostedValueStore {
         let value = publication.value()?;
         let metadata = self.owned_slot(owner, value.slot)?;
         self.slot(value)?;
-        if !metadata.pending {
+        if !metadata.pending || publication.identity() != Some(metadata.pending_identity) {
             return Err(StorageError::StaleReference);
         }
-        self.owned_compact_slots[usize::from(value.slot)]
+        let metadata = self.owned_compact_slots[usize::from(value.slot)]
             .as_mut()
-            .unwrap()
-            .pending = false;
+            .unwrap();
+        metadata.identity = publication.identity.take();
+        metadata.pending_identity = 0;
+        metadata.pending = false;
         publication.value = None;
         Ok(value)
     }
@@ -275,6 +305,7 @@ impl HostedValueStore {
         let metadata = self.owned_slot(owner, value.slot)?;
         let slot = self.slot(value)?;
         if !metadata.pending
+            || publication.identity() != Some(metadata.pending_identity)
             || slot.references != 1
             || !bytes.is_empty()
             || bytes.capacity()
@@ -294,10 +325,12 @@ impl HostedValueStore {
         self.clear_compact_layout(value.slot);
         self.has_retired_slots |= value.generation == u16::MAX;
         publication.value = None;
-        self.owned_compact_slots[usize::from(value.slot)]
+        let metadata = self.owned_compact_slots[usize::from(value.slot)]
             .as_mut()
-            .unwrap()
-            .pending = false;
+            .unwrap();
+        metadata.identity = publication.identity.take();
+        metadata.pending_identity = 0;
+        metadata.pending = false;
         Ok(())
     }
 }
