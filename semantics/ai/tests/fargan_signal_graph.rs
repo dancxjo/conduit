@@ -133,3 +133,13 @@ mod conditioning;
 
 #[path = "fargan_signal_graph/frame.rs"]
 mod frame;
+
+#[path = "fargan_signal_graph/warm_start.rs"]
+mod warm_start;
+
+#[path = "fargan_signal_graph/conditioning_support.rs"]
+mod conditioning_support;
+#[path = "fargan_signal_graph/frame_support.rs"]
+mod frame_support;
+#[path = "fargan_signal_graph/warm_start_support.rs"]
+mod warm_start_support;
