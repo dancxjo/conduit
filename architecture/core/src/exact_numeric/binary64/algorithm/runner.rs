@@ -1,5 +1,7 @@
 //! Reuse the existing arithmetic evaluator with preallocated transactional state.
 use super::*;
+mod program;
+pub use program::{Binary64ProgramRunnerLimits, PreparedBinary64ProgramRunner};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Binary64AlgorithmInput<'a> {

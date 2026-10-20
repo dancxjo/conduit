@@ -4,7 +4,10 @@ use alloc::{boxed::Box, vec::Vec};
 mod projected_input;
 mod runner;
 pub use projected_input::Binary64ProjectedInput;
-pub use runner::{Binary64AlgorithmInput, PreparedBinary64AlgorithmRunner};
+pub use runner::{
+    Binary64AlgorithmInput, Binary64ProgramRunnerLimits, PreparedBinary64AlgorithmRunner,
+    PreparedBinary64ProgramRunner,
+};
 pub const BINARY64_ALGORITHM_MAX_STEPS: usize = 32;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Binary64Operation {
@@ -101,35 +104,7 @@ impl PreparedBinary64Algorithm {
         if maximum_error.is_negative() {
             return Err(Binary64Refusal::NegativeTolerance.into());
         }
-        if program.is_empty() {
-            return Err(R::InvalidProgram);
-        }
-        if program.len() > BINARY64_ALGORITHM_MAX_STEPS
-            || program.len() > limits.maximum_steps as usize
-        {
-            return Err(R::StepLimit);
-        }
-        let retained_heap_bytes = program
-            .iter()
-            .try_fold(0usize, |total, op| {
-                total.checked_add(match op {
-                    Binary64Operation::Constant(_) => core::mem::size_of::<ExactRational>(),
-                    Binary64Operation::ProjectedConstant(_) => {
-                        core::mem::size_of::<Binary64ProjectedInput>()
-                    }
-                    _ => 0,
-                })
-            })
-            .ok_or(R::StorageLimit)?;
-        let retained_payload_bytes = program
-            .len()
-            .checked_mul(core::mem::size_of::<Binary64Step>())
-            .and_then(|n| n.checked_add(core::mem::size_of::<Self>()))
-            .and_then(|n| n.checked_add(retained_heap_bytes))
-            .ok_or(R::StorageLimit)?;
-        if retained_payload_bytes > limits.maximum_retained_bytes as usize {
-            return Err(R::StorageLimit);
-        }
+        let retained_payload_bytes = retained_program_bytes(program, limits)?;
         let admitted_limb_work = work.remaining();
         let before = work.spent();
         work.charge(1)?;
@@ -301,4 +276,40 @@ fn evaluate_value(
         }
     }
     Ok((semantic_value, projection))
+}
+
+fn retained_program_bytes(
+    program: &[Binary64Operation],
+    limits: Binary64AlgorithmLimits,
+) -> Result<usize, Binary64AlgorithmRefusal> {
+    use Binary64AlgorithmRefusal as R;
+    if program.is_empty() {
+        return Err(R::InvalidProgram);
+    }
+    if program.len() > BINARY64_ALGORITHM_MAX_STEPS || program.len() > limits.maximum_steps as usize
+    {
+        return Err(R::StepLimit);
+    }
+    let retained_heap_bytes = program
+        .iter()
+        .try_fold(0usize, |total, op| {
+            total.checked_add(match op {
+                Binary64Operation::Constant(_) => core::mem::size_of::<ExactRational>(),
+                Binary64Operation::ProjectedConstant(_) => {
+                    core::mem::size_of::<Binary64ProjectedInput>()
+                }
+                _ => 0,
+            })
+        })
+        .ok_or(R::StorageLimit)?;
+    let retained_payload_bytes = program
+        .len()
+        .checked_mul(core::mem::size_of::<Binary64Step>())
+        .and_then(|n| n.checked_add(core::mem::size_of::<PreparedBinary64Algorithm>()))
+        .and_then(|n| n.checked_add(retained_heap_bytes))
+        .ok_or(R::StorageLimit)?;
+    if retained_payload_bytes > limits.maximum_retained_bytes as usize {
+        return Err(R::StorageLimit);
+    }
+    Ok(retained_payload_bytes)
 }
