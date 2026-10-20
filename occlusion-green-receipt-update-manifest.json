@@ -1,0 +1,14 @@
+{
+  "parent": "6160eaa810466f12d76ab9d1d4179a012c8ef023",
+  "scope": "Preserve refreshed Source and pending proof runner, verified prior repair restoration, and confirmed renderer occlusion red diagnostic",
+  "files": [
+    {
+      "source": "outputs/5645-occlusion-followup/receipt.json",
+      "tree_path": "task-6038/outputs/5645-occlusion-followup/receipt.json",
+      "bytes": 2347,
+      "sha256": "7fc709c1959a41aa54cce60161a5804af9bcaaac4d9842ca820dd59396b9e95f",
+      "mode": "100644",
+      "blob": "4672ce945e06838d8d531d53ca8b231de185710b"
+    }
+  ]
+}

@@ -1,0 +1,42 @@
+{
+  "source_head": "bc1448c4bd233257c416bfe5b30c21c940b57293",
+  "base_head": "a252d091c95de386da8132f71d7221263d578083",
+  "tested_owned_files_match_commit": {
+    "proof/browser/owner-face-reachability.spec.mjs": "21ee1a29c0a9f9302e38bde4b9994e9b26c6258b640c80b131e1b242794a1916",
+    "targets/browser/handbook/handbook.application.template.json": "c916c615fc6128c6dc40f29b86d27df3d774058e285a5675280396cae0109a8a",
+    "targets/browser/handbook/owner-face-presentation.mjs": "2710698b86ac3f7420cb283e9cb944b3caae560ed4ecfbb1c1fe2caadae04de1",
+    "targets/browser/handbook/owner-face-reachability.mjs": "5ecc8ec097d4445cd18c7b43945131a5c777c8de90f36a54af875e9855546302"
+  },
+  "proof_class": "held browser renderer/SDK conformance and source asset bounds; not final refreshed Source, sealed/installed owner, current dev, Candidate, Integration, stable or full accessibility certification",
+  "chromium": {
+    "passed": 131,
+    "workers": 1,
+    "retries": 0,
+    "files": [
+      "owner-face-component.spec.mjs",
+      "owner-face-reachability.spec.mjs"
+    ],
+    "results": "work/owner-presentation/proof/browser/test-results/w1-occlusion-a252"
+  },
+  "external_unchanged_diagnostic": {
+    "passed": 3,
+    "log": "work/a3-occlusion-fixed-a252.log",
+    "results": "outputs/a3-occlusion-fixed-a252/results",
+    "original_failed_packet_preserved": "outputs/a3-occlusion-diagnostic-a252"
+  },
+  "sdk_node_passed": 58,
+  "csp_node_passed": 4,
+  "independent_review": "Root reviewed four-file diff with no blockers before commit",
+  "boundaries": [
+    "Conservative centerpoint actual shadow-aware pointer path; not full visual/subjective accessibility",
+    "Pointer-transparent opaque overlay passes pointer guard; this does not establish unobscured visual wording",
+    "Deferred ordinary scroll/native disclosure preparation is retained; actual activation needs visible unobstructed pointer path",
+    "No workspace/release/installed proof or Source refresh performed"
+  ],
+  "logs": {
+    "browser.log": "a731b09156863928b5173b78f8374be63e960979186de3fe3d1406f3ed697e8b",
+    "sdk.log": "62ffae7533230ef8f8760c3103d6ade537c03d576220be09c4fd96aa2baf1b35",
+    "asset-bounds.json": "c58e7813d1f934fcbe57c296abf3b80fe3a1b106c058ab5aa9e78a46f73ceeb9",
+    "csp.log": "2d699e28c9f6bf37f0eec13f70a95fa9d2ff34abdacf7b915f46a9a1ea8baa0d"
+  }
+}
