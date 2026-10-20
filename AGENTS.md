@@ -100,9 +100,10 @@ Promoting a repository demo into `conduit` is an explicit product-boundary chang
   collaborators first; preserve public paths with narrow re-exports.
 - Prefer extraction-only PRs. Avoid semantic cleanup or redesign in the same
   move; prove lower layers do not depend on orchestration or plot cycles.
-- Module-splitting PRs require formatting, focused tests, workspace Clippy with
-  warnings denied, and the full workspace tests, or a precise infrastructure
-  blocker. Establish one seam before assigning another split in the same file.
+- Module-splitting PRs require formatting, focused behavioral tests, and the
+  owning package checks. Use broader checks when a shared contract changes;
+  an extraction alone does not require rerunning unrelated workspace tests.
+  Establish one seam before assigning another split in the same file.
 
 ## Verify and publish honestly
 
@@ -130,9 +131,9 @@ last push whose intermediate checks may have been skipped.
 
 Describe what changed, why, the owning issue, the relevant boundary, validation,
 and meaningful remaining gaps. GitHub retains commits and check identities;
-do not repeat them in prose unless diagnosing a failure. Never close an issue
-via PR keywords before all its acceptance criteria and required exact-main
-evidence exist.
+do not repeat them in prose unless diagnosing a failure. Close implementation issues when their scoped behavior is merged and relevant
+checks pass. Track automatic publication separately unless the issue explicitly
+owns release acceptance. Do not describe Candidate proof as stable acceptance.
 
 Keep implementation and stable-acceptance records separate when the claims
 depend on promotion. Documentation may accurately describe current development

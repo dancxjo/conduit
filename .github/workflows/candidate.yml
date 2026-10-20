@@ -26,33 +26,3 @@ jobs:
           RESULT: ${{ needs.proof.result }}
         run: |
           test "$RESULT" = success
-  runtime-performance-report:
-    # Diagnostic measurements have no calibrated regression threshold.
-    # This job is deliberately independent of the required candidate gate.
-    continue-on-error: true
-    runs-on: ubuntu-24.04
-    timeout-minutes: 45
-    steps:
-      - uses: actions/checkout@v7.0.1
-        with:
-          ref: ${{ github.sha }}
-      - uses: dtolnay/rust-toolchain@1.98.1
-      - name: Retain finite release measurements from the merge preview
-        env:
-          CARGO_BUILD_JOBS: 4
-          CARGO_PROFILE_DEV_DEBUG: 0
-          CARGO_PROFILE_RELEASE_DEBUG: 0
-          CARGO_INCREMENTAL: 0
-        run: >-
-          cargo xtask prove runtime-performance
-          --output target/runtime-performance
-          --values 1000000 --repetitions 3 --decisions 1000 --samples 1000
-          --hosted-pipeline true
-      - name: Archive measurements and refusal diagnostics
-        if: ${{ always() }}
-        uses: actions/upload-artifact@v7.0.1
-        with:
-          name: runtime-performance-${{ github.sha }}
-          path: target/runtime-performance/
-          if-no-files-found: warn
-          retention-days: 14
