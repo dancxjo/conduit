@@ -1,0 +1,15 @@
+{
+  "source": "91155b33641e479df3af31055e4272783ba5ed99",
+  "scope": "Generic categorical custody after current core/composite/numerical interfaces; no parser/Current authority or stable-publication claim",
+  "checks": {
+    "runtime": "12passed; actual32 retained submit/ACK requests;33rd pressure;allfour lifecycle kinds;0alloc/realloc/dealloc in admitted loop",
+    "clippy": "AI all-targets kernel-operation-owners with warningsdenied; passed",
+    "compatibility": "AI no-default-features library passed"
+  },
+  "local_log_sha256": {
+    "6062-refreshed-runtime.log": "98a3ef66d28df6de7f87049324c408a80a5c752d4679738811854ed91d19b313",
+    "6062-refreshed-clippy.log": "60fe5ba3d16bf6f99a009fa20ba9d663834429b8806f29e3f9528e8ba543f819",
+    "6062-refreshed-compatibility.log": "f790d72068d89346e3857c754a0a8c3bf140cf79521d305891795181d88d5a36"
+  },
+  "acceptance": "Reviewed PR, exact-head Candidate and campaign Integration/publication remain gates"
+}
