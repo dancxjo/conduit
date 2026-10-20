@@ -1,0 +1,284 @@
+{
+  "implementation": {
+    "source": "9faabe6fca5fc1e15644db73de4281390b56fc7a",
+    "source_after": "9faabe6fca5fc1e15644db73de4281390b56fc7a",
+    "clean_before": true,
+    "clean_after": true,
+    "environment": {
+      "CARGO_INCREMENTAL": "0",
+      "CARGO_PROFILE_DEV_DEBUG": "0",
+      "CARGO_PROFILE_TEST_DEBUG": "0",
+      "CARGO_BUILD_JOBS": "3"
+    },
+    "results": [
+      {
+        "name": "resource-frame",
+        "command": [
+          "cargo",
+          "xtask",
+          "prove",
+          "resource-frame"
+        ],
+        "exit_code": 0,
+        "test_summaries": [
+          [
+            6,
+            0,
+            0
+          ],
+          [
+            2,
+            0,
+            0
+          ],
+          [
+            8,
+            0,
+            0
+          ],
+          [
+            4,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            7,
+            0,
+            0
+          ],
+          [
+            6,
+            0,
+            0
+          ],
+          [
+            4,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            2,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            3,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0
+          ]
+        ],
+        "log": "../5568-bridge-resource-frame.log",
+        "file": "resource-frame.log.gz",
+        "sha256": "c36bafd2efc84d00f4ae3dce335e61f4d52d6d3faca8bb5a69de89317790c84d",
+        "raw_sha256": "1649c0c21cd5f6abe96917e4e81299bcae4a06e71509c9f389d18d33c32d13f9",
+        "raw_bytes": 29353
+      },
+      {
+        "name": "clippy",
+        "command": [
+          "cargo",
+          "clippy",
+          "--locked",
+          "-p",
+          "conduit-std-host",
+          "--lib",
+          "--test",
+          "reluctant_replan_execution",
+          "--test",
+          "reluctant_replan_policy",
+          "--test",
+          "resource_replacement_cost",
+          "--test",
+          "resource_replacement_scope",
+          "--",
+          "-D",
+          "warnings"
+        ],
+        "exit_code": 0,
+        "log": "../5568-bridge-clippy-final.log",
+        "file": "clippy.log.gz",
+        "sha256": "09cb9f1758d3c93172a75e1ed64a977eeae448aa41bd0a836c16bc44d3d680a5",
+        "raw_sha256": "6b79fc23b3fa14748f6fa58763e9e9259f4b810f927d9c687482e66d553dd0ed",
+        "raw_bytes": 354
+      },
+      {
+        "name": "format",
+        "command": [
+          "rustfmt",
+          "--check",
+          "--edition",
+          "2021",
+          "--config",
+          "skip_children=true",
+          "targets/std/src/lib.rs",
+          "targets/std/src/reluctant_replan.rs",
+          "targets/std/tests/replan_common/expression.rs",
+          "targets/std/tests/reluctant_replan_execution.rs",
+          "tools/xtask/src/suites/resource_frame.rs"
+        ],
+        "exit_code": 0,
+        "log": "../5568-bridge-format-final.log",
+        "file": "format.log.gz",
+        "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+        "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "raw_bytes": 0
+      }
+    ]
+  },
+  "integrated": {
+    "source": "5a45da40c20a0c6fa3aa7a42bd26af3f640d7cf0",
+    "source_after": "5a45da40c20a0c6fa3aa7a42bd26af3f640d7cf0",
+    "clean_before": true,
+    "clean_after": true,
+    "accepted_dev_parent": "7254aa64f91745afb33103485c471584c55471b7",
+    "results": [
+      {
+        "name": "integrated-tests",
+        "command": [
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "conduit-std-host",
+          "--test",
+          "reluctant_replan_execution",
+          "--test",
+          "reluctant_replan_policy",
+          "--test",
+          "resource_replacement_cost",
+          "--test",
+          "resource_replacement_scope"
+        ],
+        "exit_code": 0,
+        "test_summaries": [
+          [
+            7,
+            0,
+            0
+          ],
+          [
+            6,
+            0,
+            0
+          ],
+          [
+            4,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0
+          ]
+        ],
+        "log": "../5568-bridge-integrated-tests.log",
+        "file": "integrated-tests.log.gz",
+        "sha256": "5b51830d63e8d5293de1891927383a9a2e563a43150fb9bf2f345b7f0e994b10",
+        "raw_sha256": "eda7e8c00b53db9ef9e3630bf14f57f4642a00d296a7972a91cf67f98578e4fd",
+        "raw_bytes": 2822
+      },
+      {
+        "name": "integrated-clippy",
+        "command": [
+          "cargo",
+          "clippy",
+          "--locked",
+          "-p",
+          "conduit-std-host",
+          "--lib",
+          "--test",
+          "reluctant_replan_execution",
+          "--test",
+          "reluctant_replan_policy",
+          "--test",
+          "resource_replacement_cost",
+          "--test",
+          "resource_replacement_scope",
+          "--",
+          "-D",
+          "warnings"
+        ],
+        "exit_code": 0,
+        "log": "../5568-bridge-integrated-clippy.log",
+        "file": "integrated-clippy.log.gz",
+        "sha256": "97aa55f09d7565551da7d43597af18ef9672b99ae8423531d2bdf13c5268de7e",
+        "raw_sha256": "f694a9e074374d315f58b8a63ce849858b1b8708cf56b3d194218605bd2a9d6e",
+        "raw_bytes": 60
+      },
+      {
+        "name": "integrated-format",
+        "command": [
+          "rustfmt",
+          "--check",
+          "--edition",
+          "2021",
+          "--config",
+          "skip_children=true",
+          "targets/std/src/lib.rs",
+          "targets/std/src/reluctant_replan.rs",
+          "targets/std/tests/replan_common/expression.rs",
+          "targets/std/tests/reluctant_replan_execution.rs",
+          "tools/xtask/src/suites/resource_frame.rs"
+        ],
+        "exit_code": 0,
+        "log": "../5568-bridge-integrated-format.log",
+        "file": "integrated-format.log.gz",
+        "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+        "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "raw_bytes": 0
+      }
+    ]
+  },
+  "scope": "Partial #5568 execution bridge. Fixed-clock tests are not measured benefit acceptance."
+}

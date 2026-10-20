@@ -1,6 +1,11 @@
 # Bounded reluctant-replanning policy
 
-**Partial #5568 implementation. The issue remains open.** The planner now has
+**Partial #5568 implementation. The issue remains open.** The
+[ordinary Std Host execution bridge](reluctant-execution-bridge-20261020.md) now
+connects recommendations to fresh installed execution. The source-pinned policy
+snapshot below predates that bridge; measured acceptance remains unfinished.
+
+**Original policy snapshot:** The planner now has
 a finite local gate over existing fresh replacement costs. Its decision is a
 recommendation, not authority to install or execute a Plan. The measured product
 observation and authorized replacement route remains to be connected and proved.
