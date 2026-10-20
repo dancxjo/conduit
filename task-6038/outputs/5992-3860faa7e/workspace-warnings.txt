@@ -1,0 +1,86 @@
+warning: variable does not need to be mutable
+warning: unused variable: `cdc`
+warning: constant `FLASH_BOOTSTRAP_ADDRESS` is never used
+warning: constant `FLASH_BOOTSTRAP_BYTES` is never used
+warning: constant `MAGIC` is never used
+warning: constant `HEADER_BYTES` is never used
+warning: function `load` is never used
+warning: function `parse` is never used
+warning: `conduit-pico-w-signal` (bin "conduit-pico-w-signal") generated 8 warnings (run `cargo fix --bin "conduit-pico-w-signal" -p conduit-pico-w-signal` to apply 2 suggestions)
+warning: the following packages contain code that will be rejected by a future version of Rust: proc-macro-error2 v2.0.1
+warning: the following packages contain code that will be rejected by a future version of Rust: proc-macro-error2 v2.0.1
+warning: type alias `RemoteResult` is never used
+warning: `conduit-pico-w-signal` (bin "conduit-pico-w-signal") generated 1 warning
+warning: the following packages contain code that will be rejected by a future version of Rust: proc-macro-error2 v2.0.1
+warning: constant `FLASH_BOOTSTRAP_ADDRESS` is never used
+warning: constant `FLASH_BOOTSTRAP_BYTES` is never used
+warning: constant `MAGIC` is never used
+warning: constant `HEADER_BYTES` is never used
+warning: function `load` is never used
+warning: function `parse` is never used
+warning: `conduit-pico-w-signal` (bin "conduit-pico-w-signal") generated 6 warnings
+warning: the following packages contain code that will be rejected by a future version of Rust: proc-macro-error2 v2.0.1
+warning: constant `FLASH_BOOTSTRAP_ADDRESS` is never used
+warning: constant `FLASH_BOOTSTRAP_BYTES` is never used
+warning: constant `MAGIC` is never used
+warning: constant `HEADER_BYTES` is never used
+warning: function `load` is never used
+warning: function `parse` is never used
+warning: method `boot` is never used
+warning: `conduit-pico-w-signal` (bin "conduit-pico-w-signal") generated 7 warnings
+warning: the following packages contain code that will be rejected by a future version of Rust: proc-macro-error2 v2.0.1
+warning: constant `FLASH_BOOTSTRAP_ADDRESS` is never used
+warning: constant `FLASH_BOOTSTRAP_BYTES` is never used
+warning: constant `MAGIC` is never used
+warning: constant `HEADER_BYTES` is never used
+warning: function `load` is never used
+warning: function `parse` is never used
+warning: method `boot` is never used
+warning: `conduit-pico-w-signal` (bin "conduit-pico-w-signal") generated 7 warnings
+warning: the following packages contain code that will be rejected by a future version of Rust: proc-macro-error2 v2.0.1
+warning: field `embedded_spore` is never read
+warning: method `serve_spawn_request` is never used
+warning: method `boot` is never used
+warning: `conduit-pico-w-signal` (bin "conduit-pico-w-signal") generated 3 warnings
+warning: the following packages contain code that will be rejected by a future version of Rust: proc-macro-error2 v2.0.1
+warning: field `embedded_spore` is never read
+warning: method `serve_spawn_request` is never used
+warning: method `boot` is never used
+warning: `conduit-pico-w-signal` (bin "conduit-pico-w-signal") generated 3 warnings
+warning: the following packages contain code that will be rejected by a future version of Rust: proc-macro-error2 v2.0.1
+warning: constant `FLASH_BOOTSTRAP_ADDRESS` is never used
+warning: constant `FLASH_BOOTSTRAP_BYTES` is never used
+warning: constant `MAGIC` is never used
+warning: constant `HEADER_BYTES` is never used
+warning: function `load` is never used
+warning: function `parse` is never used
+warning: method `code` is never used
+warning: associated function `new` is never used
+warning: struct `BootIdentity` is never constructed
+warning: struct `FaceReceiptIdentity` is never constructed
+warning: methods `write_boot_identity`, `write_receipt`, and `write_terminal` are never used
+warning: type alias `RemoteResult` is never used
+warning: `conduit-pico-w-signal` (bin "conduit-pico-w-signal") generated 12 warnings
+warning: the following packages contain code that will be rejected by a future version of Rust: proc-macro-error2 v2.0.1
+warning: constant `FLASH_BOOTSTRAP_ADDRESS` is never used
+warning: constant `FLASH_BOOTSTRAP_BYTES` is never used
+warning: constant `MAGIC` is never used
+warning: constant `HEADER_BYTES` is never used
+warning: function `load` is never used
+warning: function `parse` is never used
+warning: method `code` is never used
+warning: associated function `new` is never used
+warning: struct `BootIdentity` is never constructed
+warning: struct `FaceReceiptIdentity` is never constructed
+warning: methods `write_boot_identity`, `write_receipt`, and `write_terminal` are never used
+warning: type alias `RemoteResult` is never used
+warning: `conduit-pico-w-signal` (bin "conduit-pico-w-signal") generated 12 warnings
+warning: the following packages contain code that will be rejected by a future version of Rust: proc-macro-error2 v2.0.1
+warning: constant `FLASH_BOOTSTRAP_ADDRESS` is never used
+warning: constant `FLASH_BOOTSTRAP_BYTES` is never used
+warning: constant `MAGIC` is never used
+warning: constant `HEADER_BYTES` is never used
+warning: function `load` is never used
+warning: function `parse` is never used
+warning: `conduit-pico-w-signal` (bin "conduit-pico-w-signal") generated 6 warnings
+warning: the following packages contain code that will be rejected by a future version of Rust: proc-macro-error2 v2.0.1

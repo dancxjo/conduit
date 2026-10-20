@@ -52,8 +52,8 @@
     "observed": "terminal_success2026-10-20T23:03UTC",
     "old_prepared_source": "ef8c6c8300236ba7e43845ea24a72e6a2d7a6ff0",
     "old_source_checks": "20typography/113native/2allocation/Clippy/fmt passed; fresh exactSource checks running",
-    "product_proof": "exact01d normal7graphicalproofsPassed;headlessblockedBeforeBootByUnregisteredEntranceAndStrippedSymbols;6167repairInProgress",
-    "current_work": "3860fullworkspaceunit/integrationtestsrunning; wholeworkspaceClippy/fmt/correspondencePassed; finalproductrebuildHeldForCurrentDevRefreshAfter6173",
+    "product_proof": "exact6f579normal7runsAndHeadless2bootsPassed;historicalNot3860",
+    "current_work": "full3860workspacePassed;productrebuildHeldUntil6173AndCurrentDevGreen",
     "proof_origin": "6391be2de4ae5ee7e693833135585b311799babb",
     "previous_published_head": "6f579f684500e6bf54c5dd7b5870c5c5c6fb7d6d",
     "local_broad_negative": "41cbc:1216pass/2testexpectationfail/3ignored/4filtered;testonlycorrectionfocused3green",
@@ -71,7 +71,7 @@
         "ignored": 48,
         "filtered": 0
       },
-      "aggregate": "extra_alloc_cross_target_gates_running"
+      "aggregate": "52_supported_steps_passed_exit0"
     }
   },
   "stable_through_stage06": {
@@ -94,9 +94,9 @@
     "scope": "restore defaultsingleworker; keep2batchoptin; untouchedtimeouts/retries/specs",
     "local": "20focusedchecksPassed;actualChromiumpending",
     "candidate": 39510280635,
-    "observed": "browser_running/other_selected_success2026-10-20T23:03UTC",
-    "current_dev": "c93a4cca2ac48405415ce813e43e973d93005bad",
-    "current_dev_integration": 39509619906,
-    "current_dev_observed": "c93Integration_cancelled_coalesced_notacceptance23:03UTC"
+    "observed": "Candidate_browser_running/otherSelectedSuccess23:27UTC",
+    "current_dev": "7254aa64f91745afb33103485c471584c55471b7",
+    "current_dev_integration": 39513100838,
+    "current_dev_observed": "pending23:27UTC"
   }
 }

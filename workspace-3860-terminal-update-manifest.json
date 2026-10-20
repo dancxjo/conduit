@@ -1,0 +1,62 @@
+{
+  "parent": "85da68545cf448dc75cf50ff16fc3e718f1d5d63",
+  "scope": "Full frozen3860 supported workspace success and explicit warnings/ignored records; raw 1.5MiB log remains local hash-bound",
+  "files": [
+    {
+      "source": "outputs/5992-3860faa7e/receipt.json",
+      "tree_path": "task-6038/outputs/5992-3860faa7e/receipt.json",
+      "bytes": 18574,
+      "sha256": "4d341f7f8c44e771eea76b6e8c7b7c02d116dba504f21667d0d228c3cd7b0d81",
+      "mode": "100644",
+      "blob": "429a5fb961255d968be96dbb8601f4c5b8e18424"
+    },
+    {
+      "source": "outputs/5992-3860faa7e/workspace-status.json",
+      "tree_path": "task-6038/outputs/5992-3860faa7e/workspace-status.json",
+      "bytes": 675,
+      "sha256": "211420dd7f699875ec4ecef9260e35cd23ecbd57108c34c2dfee6fd5b1aed72f",
+      "mode": "100644",
+      "blob": "f35725a7e6723dfc15bc5cd15ba826ca6f1f4d9f"
+    },
+    {
+      "source": "outputs/5992-3860faa7e/workspace-warnings.txt",
+      "tree_path": "task-6038/outputs/5992-3860faa7e/workspace-warnings.txt",
+      "bytes": 5377,
+      "sha256": "4863ba1b4666163601477c4d1f102ec191ab54276f0058fd7f0ba174b473ec82",
+      "mode": "100644",
+      "blob": "b06f185f4bb75c5f6b2e9d72fd91b98883d4e613"
+    },
+    {
+      "source": "outputs/5992-3860faa7e/workspace-core-pass.json",
+      "tree_path": "task-6038/outputs/5992-3860faa7e/workspace-core-pass.json",
+      "bytes": 668,
+      "sha256": "b871d8883bfeb7b71e73c6c0702b15744bc25d847eba028328da499cb65fb77e",
+      "mode": "100644",
+      "blob": "bbe0c22918f53f247227539a65192a1401575e2e"
+    },
+    {
+      "source": "outputs/5992-3860faa7e/workspace-ignored-tests.txt",
+      "tree_path": "task-6038/outputs/5992-3860faa7e/workspace-ignored-tests.txt",
+      "bytes": 8263,
+      "sha256": "38de9f9a17d55bf3426a4b04e120a3273615c6f9d39eef793b5f27befc877248",
+      "mode": "100644",
+      "blob": "3298ed275e47a0492302e227b878e1a62a9bddba"
+    },
+    {
+      "source": "work/5992-draft-pr-body.md",
+      "tree_path": "task-6038/work/5992-draft-pr-body.md",
+      "bytes": 3619,
+      "sha256": "3920c56d34fd550cc9d1ad532e1c3aa44671b08c5333ac35e4d2181c5a9242a7",
+      "mode": "100644",
+      "blob": "9bd05388d37b0c097256ce36a9a07b6659893844"
+    },
+    {
+      "source": "work/revised-native-goal-state.json",
+      "tree_path": "task-6038/work/revised-native-goal-state.json",
+      "bytes": 4511,
+      "sha256": "b08a519a2e8dd4270a0719b103990f8539a676883a8299596f9ba96689f180ee",
+      "mode": "100644",
+      "blob": "c2653562a7605d500c32ab33ba46ed9d7fa85929"
+    }
+  ]
+}

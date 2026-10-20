@@ -1,0 +1,463 @@
+{
+  "source": "3860faa7e51d0ca8c85f244cbdf9b0101877981f",
+  "tree": "927ce36da9c289d9cc587db308ad906c71e81865",
+  "base": "00525faf30522b6851d226613e61e277f2b48f43",
+  "clean": true,
+  "status": "full supported workspace validation passed",
+  "command_status": {
+    "source": "3860faa7e51d0ca8c85f244cbdf9b0101877981f",
+    "args": [
+      "cargo",
+      "+stable",
+      "xtask",
+      "check",
+      "workspace",
+      "--locked"
+    ],
+    "status": 0,
+    "seconds": 4705.333774328232,
+    "free_before": 67181604864,
+    "environment": {
+      "CARGO_TARGET_DIR": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target",
+      "CARGO_BUILD_JOBS": "4",
+      "CARGO_INCREMENTAL": "0",
+      "CARGO_PROFILE_DEV_DEBUG": "0",
+      "CARGO_PROFILE_TEST_DEBUG": "0",
+      "CARGO_PROFILE_TEST_OPT_LEVEL": "1",
+      "CARGO_PROFILE_TEST_DEBUG_ASSERTIONS": "true",
+      "CARGO_PROFILE_TEST_OVERFLOW_CHECKS": "true",
+      "RUST_TEST_THREADS": "1"
+    }
+  },
+  "completed_steps": [
+    {
+      "id": "check.committed-todo-mask-exchange",
+      "description": "Prove fresh owner checkpoint Faces through native, linear, aural and checked browser Masks"
+    },
+    {
+      "id": "check.fmt",
+      "description": "Check formatting across workspace"
+    },
+    {
+      "id": "check.clippy",
+      "description": "Clippy warnings check across workspace"
+    },
+    {
+      "id": "check.test",
+      "description": "Workspace unit and integration tests"
+    },
+    {
+      "id": "check.kernel-alloc",
+      "description": "Kernel alloc feature tests"
+    },
+    {
+      "id": "check.system-continuity",
+      "description": "Durable system continuity conformance"
+    },
+    {
+      "id": "check.no-std.kernel",
+      "description": "Kernel no-default-features check"
+    },
+    {
+      "id": "check.no-std.chat",
+      "description": "Portable chat and messaging no-default-features check"
+    },
+    {
+      "id": "check.no-std.data",
+      "description": "Structured-data semantics no-default-features check"
+    },
+    {
+      "id": "check.no-std.language",
+      "description": "Language semantics no-default-features check"
+    },
+    {
+      "id": "check.no-std.signal",
+      "description": "Signal no-default-features check"
+    },
+    {
+      "id": "check.no-std.speech",
+      "description": "Native speech fixed-storage no-default-features check"
+    },
+    {
+      "id": "check.no-std.wire",
+      "description": "Wire no-default-features check"
+    },
+    {
+      "id": "check.no-std.semantic-catalog",
+      "description": "semantic-catalog no-default-features check"
+    },
+    {
+      "id": "check.no-std.face",
+      "description": "Portable face no-default-features check"
+    },
+    {
+      "id": "check.no-std.extracted-domains",
+      "description": "Extracted domains and resident Patchbay Plot no-default-features check"
+    },
+    {
+      "id": "check.no-std.std-host",
+      "description": "std-host no-default-features check"
+    },
+    {
+      "id": "check.thumb.chat thumbv6m-none-eabi/contract-compile",
+      "description": "Portable chat and messaging Thumb target check"
+    },
+    {
+      "id": "check.thumb.data thumbv6m-none-eabi/contract-compile",
+      "description": "Structured-data semantics Thumb target check"
+    },
+    {
+      "id": "check.thumb.language thumbv6m-none-eabi/contract-compile",
+      "description": "Language semantics Thumb target check"
+    },
+    {
+      "id": "check.thumb.system-continuity thumbv6m-none-eabi/contract-compile",
+      "description": "Durable system continuity Thumb target check"
+    },
+    {
+      "id": "check.thumb.extracted-domains thumbv6m-none-eabi/contract-compile",
+      "description": "Extracted domains and resident Patchbay Plot Thumb target check"
+    },
+    {
+      "id": "check.wasm.browser-runtime wasm32-unknown-unknown/contract-compile",
+      "description": "Browser runtime WASM target check"
+    },
+    {
+      "id": "check.wasm.wire wasm32-unknown-unknown/contract-compile",
+      "description": "Wire WASM session corpus check"
+    },
+    {
+      "id": "check.thumb.kernel thumbv6m-none-eabi/contract-compile",
+      "description": "Kernel thumb target check"
+    },
+    {
+      "id": "check.thumb.create-oi thumbv6m-none-eabi/contract-compile",
+      "description": "Create OI mechanism thumb target check"
+    },
+    {
+      "id": "check.thumb.core thumbv6m-none-eabi/contract-compile",
+      "description": "Core thumb target check"
+    },
+    {
+      "id": "check.thumb.body thumbv6m-none-eabi/contract-compile",
+      "description": "Body lifecycle thumb target check"
+    },
+    {
+      "id": "check.thumb.observatory thumbv6m-none-eabi/contract-compile",
+      "description": "Observatory thumb target check"
+    },
+    {
+      "id": "check.thumb.semantic-catalog thumbv6m-none-eabi/contract-compile",
+      "description": "semantic-catalog thumb target check"
+    },
+    {
+      "id": "check.thumb.face thumbv6m-none-eabi/contract-compile",
+      "description": "Portable face Thumb target check"
+    },
+    {
+      "id": "check.pico-local.dry-run",
+      "description": "Dry-run verify of Pico W receipts"
+    },
+    {
+      "id": "check.std-pico-usb.dry-run",
+      "description": "Dry-run verify of std-to-Pico USB-CDC remote session proof"
+    },
+    {
+      "id": "check.pico-wifi-bootstrap.dry-run",
+      "description": "Dry-run verify of the USB-authorized Pico W Wi-Fi proof"
+    },
+    {
+      "id": "check.pico-appliance.dry-run",
+      "description": "Dry-run verify of the physical Pico W AP/DHCP/DNS/HTTP Hello proof"
+    },
+    {
+      "id": "check.pico-appliance-hil.dry-run",
+      "description": "Dry-run verify of the exact two-Pico AP/DHCP/DNS/HTTP Hello proof"
+    },
+    {
+      "id": "check.r1-new-plan-recovery-hil.dry-run",
+      "description": "Dry-run verify of the physical R1 WebSocket-to-USB new-Plan proof"
+    },
+    {
+      "id": "check.r1-plan-c-continuation-hil.dry-run",
+      "description": "Dry-run verify of the physical R1 same-Plan Line continuation proof"
+    },
+    {
+      "id": "check.r1-hil.dry-run",
+      "description": "Dry-run verify of the combined one-Body physical R1 proof"
+    },
+    {
+      "id": "check.no-std.net",
+      "description": "Network capability no-default-features check"
+    },
+    {
+      "id": "check.thumb.net thumbv6m-none-eabi/contract-compile",
+      "description": "Network capability Thumb target check"
+    },
+    {
+      "id": "check.thumb.firmware-indicator-resource thumbv6m-none-eabi/contract-compile",
+      "description": "Pico W acquired indicator peripheral Thumb check"
+    },
+    {
+      "id": "check.thumb.firmware-usb-midi-fixture thumbv6m-none-eabi/contract-compile",
+      "description": "Pico W bounded breadboard USB-MIDI fixture Thumb check"
+    },
+    {
+      "id": "check.thumb.firmware thumbv6m-none-eabi/contract-compile",
+      "description": "Pico W default local composition Thumb check"
+    },
+    {
+      "id": "check.thumb.firmware-minimal thumbv6m-none-eabi/contract-compile",
+      "description": "Pico W minimal local composition Thumb check"
+    },
+    {
+      "id": "check.thumb.firmware-usb-remote thumbv6m-none-eabi/contract-compile",
+      "description": "Pico W USB remote sink composition Thumb check"
+    },
+    {
+      "id": "check.thumb.firmware-triple-remote thumbv6m-none-eabi/contract-compile",
+      "description": "Pico W triple remote sink composition Thumb check"
+    },
+    {
+      "id": "check.thumb.firmware-wifi-bootstrap thumbv6m-none-eabi/contract-compile",
+      "description": "Pico W USB-authorized Wi-Fi bootstrap composition Thumb check"
+    },
+    {
+      "id": "check.thumb.firmware-r1-control thumbv6m-none-eabi/contract-compile",
+      "description": "Pico W R1 three-peer control composition Thumb check"
+    },
+    {
+      "id": "check.thumb.firmware-appliance-hello thumbv6m-none-eabi/contract-compile",
+      "description": "Pico W finite AP/DHCP/DNS/HTTP Hello composition Thumb check"
+    },
+    {
+      "id": "check.thumb.firmware-appliance-hil-client thumbv6m-none-eabi/contract-compile",
+      "description": "Pico W fixture-only AP/DHCP/DNS/HTTP client probe Thumb check"
+    },
+    {
+      "id": "check.thumb.firmware-bluetooth-line thumbv6m-none-eabi/contract-compile",
+      "description": "Pico W finite BLE GATT Line composition Thumb check"
+    }
+  ],
+  "workspace_tests": {
+    "result_sections": 1354,
+    "passed": 10020,
+    "failed": 0,
+    "ignored": 48,
+    "measured": 0,
+    "filtered_out": 0
+  },
+  "native_library": {
+    "passed": 1222,
+    "failed": 0,
+    "ignored": 3,
+    "filtered_out": 0,
+    "seconds": 400.78
+  },
+  "warning_records": 86,
+  "warnings_file": "workspace-warnings.txt",
+  "warnings_boundary": "86 warning-header occurrence lines (including repeated warnings and summary lines) are indexed in workspace-warnings.txt; full diagnostics remain verbatim in workspace.log. They arise in additional cross-target checks, including proc-macro-error2 future incompatibility and unchanged Pico firmware. Workspace Clippy ran with -D warnings and passed. No warning source edits made.",
+  "extraction": {
+    "preformat_equality_receipt": "outputs/5992-f0a913758/extraction-equality.json",
+    "postformat_equality_receipt": "outputs/5992-f0a913758/postformat-equality.json",
+    "focused_tour_workspace_tests": 19,
+    "production_prefix_byte_identical_to_6f579": true,
+    "test_body_only_three_approved_whitespace_wraps_after_exact_extraction": true
+  },
+  "source_files": {
+    "targets/conduitos/assets/fonts/dejavu/DejaVuSerif.ttf": {
+      "blob": "0b803d206c1a4f19559d14f4d3cbd5bbfe0a86a1",
+      "sha256": "42d1edeb7952f31b1f96d767ed7030b08a39e0c372b0071641518864e2bffb51",
+      "bytes": 380132
+    },
+    "targets/conduitos/assets/fonts/dejavu/README.md": {
+      "blob": "10e3a14ae600f923146966f94204745d8956e671",
+      "sha256": "98b26e50b6b1764f2af980a5f393afd6902f86d8611348f2086ed8def16717bb",
+      "bytes": 4213
+    },
+    "targets/conduitos/assets/fonts/dejavu/native-ensemble.json": {
+      "blob": "7b12bcdf5a3c75aee929f8f7c13602f8898019f2",
+      "sha256": "27741cd141affb92b521bbe9042bf39db8012d6058fe445cc8fd00779b0d75ea",
+      "bytes": 1944
+    },
+    "targets/conduitos/assets/graphical/README.md": {
+      "blob": "d0700cf1851e5a07ce68def8411e8935cfb0fcf1",
+      "sha256": "77cf4a787ef952cc6d2d2a4b1d5989c5e4ef27351b5c4438b244d88349356dcc",
+      "bytes": 3526
+    },
+    "targets/conduitos/build/typography.rs": {
+      "blob": "b324c788c12ef263eaf2933aaf9bbf57da3455bb",
+      "sha256": "068e09fbac7dec490bf92891626799ac22f6f5b2adaab48e5d04593341582948",
+      "bytes": 6881
+    },
+    "targets/conduitos/make/xtask/build.rs": {
+      "blob": "751ee5b6ca72a56b4c19c603bd522b8c405eeb7d",
+      "sha256": "4e2c8c843773379fcc976eefc5e6ae23e40c55a381c914ebf612bf61913b7c7c",
+      "bytes": 19216
+    },
+    "targets/conduitos/make/xtask/build/aarch64_domain.rs": {
+      "blob": "cb322c41400c0670b4b2b6830ec550af09e796da",
+      "sha256": "08df5067bf4595d5a2fa0e7e2914852328b6e01255b99d3e6a1997ef0210399e",
+      "bytes": 1136
+    },
+    "targets/conduitos/make/xtask/build/ia32_domain.rs": {
+      "blob": "0db23feef12146418ce6d2e0b8dcc1156660d496",
+      "sha256": "f18df1ba5a8290acb99bc122e96b27032fdd1b43639f224544cddfb3e1c7937f",
+      "bytes": 1120
+    },
+    "targets/conduitos/make/xtask/build/loongarch64_domain.rs": {
+      "blob": "e02a57e8421eeda388cdc1eee52b72aa3d07efdd",
+      "sha256": "19407398cf546758579375dd766ec78f3326cd67bae556c27d19866a863c8644",
+      "bytes": 1156
+    },
+    "targets/conduitos/make/xtask/build/riscv64_domain.rs": {
+      "blob": "ca7a2029fce40df070f611ba058f28388a9377c4",
+      "sha256": "9b8ffc5407ec3918949e218f92b230624bf42ac23cd998af0e2452437a4f41ec",
+      "bytes": 1137
+    },
+    "targets/conduitos/make/xtask/command.rs": {
+      "blob": "f484182c911c4a3f3b5526e0cafa08d78ad0d0df",
+      "sha256": "f048bc7677edb4a264bc577ed2f783e49de9da083629e4f1f41a29ca51474921",
+      "bytes": 14210
+    },
+    "targets/conduitos/make/xtask/headless_profile.rs": {
+      "blob": "989758fd237cd666106b438babfeaf019764d685",
+      "sha256": "8e059879a2f630312d0c3085686a3e804d9085de61fab5387e90b7207acd8898",
+      "bytes": 1055
+    },
+    "targets/conduitos/make/xtask/headless_profile/tests.rs": {
+      "blob": "3ddb314202d1005ee611be6dabfd33c1e4a23411",
+      "sha256": "6906660443aa4f8c28d100ab6486181951aa45fe351a77a3f757ec5ad1343faa",
+      "bytes": 2416
+    },
+    "targets/conduitos/make/xtask/headless_proof.rs": {
+      "blob": "8989e31620bb6ae3f2ba27bf6cf62f8cd3fdc11b",
+      "sha256": "70991c6f65bbaa745a5c2a16b0d58e4848bd4058d5cb81a42e7fbd47fb170cb9",
+      "bytes": 8021
+    },
+    "targets/conduitos/make/xtask/mod.rs": {
+      "blob": "a41339a69e0ddb993c68069d484872f559eeb363",
+      "sha256": "f955affac0ac17102f4973aff7d4b18d0b1b1627cc1471b152c55bbdf9cacede",
+      "bytes": 28048
+    },
+    "targets/conduitos/src/display/typography.rs": {
+      "blob": "f4db3c0db46f4dae256c99c23016e699ddd2e5fa",
+      "sha256": "78c9dfbd3875eb33e1dd6cb00be760722686af2597df43cd72beea517d5bb964",
+      "bytes": 9376
+    },
+    "targets/conduitos/src/display/typography/ensemble_tests.rs": {
+      "blob": "34f7a5480669e41474c3540aefe076665c257ed3",
+      "sha256": "fbeba520c24e65a743769107ff2c20f1ad2be07102274bbe069c83caa5289bb1",
+      "bytes": 7108
+    },
+    "targets/conduitos/src/display/typography/ink.rs": {
+      "blob": "517df572a9cf499cc1e82ce679142106945f6182",
+      "sha256": "cbcce0aa2b21b87a68e995c31b72ebc164a9212d063583f0416eeb184fde2b4e",
+      "bytes": 1851
+    },
+    "targets/conduitos/src/display/typography/layout.rs": {
+      "blob": "55f24cbd79012024b403ad9f80c730d90c5bb711",
+      "sha256": "2d561a6d78774d08c3fb448897687d6e74ac0501b9104e48bdb8e87032598618",
+      "bytes": 9298
+    },
+    "targets/conduitos/src/display/typography/raster.rs": {
+      "blob": "a8db4bcc204eb385be0ac3bd7513c4b4684566e7",
+      "sha256": "c45a13800380a0bc7d95268164cc432c783b212979e19554f2f09279c5b036b4",
+      "bytes": 11054
+    },
+    "targets/conduitos/src/native_face_scene/chrome.rs": {
+      "blob": "cba0c22885621abdb1ef06458e357c5e98a95413",
+      "sha256": "eeb6203e49b4c52814fe0a60e071ea888cfa19f88e3dc2b4ba0cfe8c8484fff3",
+      "bytes": 7890
+    },
+    "targets/conduitos/src/native_face_scene/document.rs": {
+      "blob": "d8e6c6627552f67401895f2f158db34711047ed0",
+      "sha256": "2faf4c329ab9fed2d917312540d4113c1d8e59e3472b8213cd6b1551e2db49f0",
+      "bytes": 14448
+    },
+    "targets/conduitos/src/native_face_scene/frame.rs": {
+      "blob": "5f617e00e6d78229631acb2a4eebc7e0d469a7db",
+      "sha256": "e1c78f9b9657822cd86a009c9189a0665cc6768d2031e2db119a7976b3a606e5",
+      "bytes": 7629
+    },
+    "targets/conduitos/src/native_face_scene/layout.rs": {
+      "blob": "e1912d5a50553c3b5522aed6ff78cf8318ef224f",
+      "sha256": "c73979f6663f3f0944e8d243d15588abb3aae60d3d3c5c9f63d60d5e4b9a5f44",
+      "bytes": 12449
+    },
+    "targets/conduitos/src/native_face_scene/layout/panels.rs": {
+      "blob": "60185117129b450d1c613e2c06c08fd2f4d78fcc",
+      "sha256": "9b3ec04a2376267537a6f1036451a1476fe91e0a12ea008cb886d5e029895215",
+      "bytes": 9292
+    },
+    "targets/conduitos/src/native_face_scene/layout/panels/tests.rs": {
+      "blob": "7a84dbcfe2ac1e880abe4933b9c9f9538bcdb92c",
+      "sha256": "b7dfb832ef856b87fd4768dc74b0212ea930a222779cef0d4ee231e9f0b98527",
+      "bytes": 11951
+    },
+    "targets/conduitos/src/native_face_scene/layout/panels/tests/creche.rs": {
+      "blob": "2c9c3c54c7a7369c0d90b7b6c50dbb692027c484",
+      "sha256": "e270fd1bd891dc669ad4f270d8f0be2eca59d15729f37e870ca1a2b4e540fa20",
+      "bytes": 9032
+    },
+    "targets/conduitos/src/native_face_scene/layout/panels/tests/creche/font_details.rs": {
+      "blob": "f7abea84290b6b60bf8df3a69da11120bad379f1",
+      "sha256": "2c2b248cd0b93c86a7aadc97080dfc76822ef63aa086a52eba2482613259630c",
+      "bytes": 2859
+    },
+    "targets/conduitos/src/native_face_scene/ports/tests.rs": {
+      "blob": "15dd3983b6fc9abe3ef84db830c38dfb40b4a311",
+      "sha256": "3a9b4bc70d441ff51c899ca10aaf5026daef5ff5135e4c8d198231f88ad1644c",
+      "bytes": 14255
+    },
+    "targets/conduitos/src/native_face_scene/text_editor.rs": {
+      "blob": "2295f0f21f04e9e4850416cb05db0c2cdd5b7f84",
+      "sha256": "975217d351a44473340b6e9555b0ceca3e9055b313ca5c8e9082ec042e3bd5f8",
+      "bytes": 8245
+    },
+    "targets/conduitos/src/tour_shell/scene_content_tests.rs": {
+      "blob": "5b68e665c96fa42d07ba2e653323f49daf43b97a",
+      "sha256": "f2dd19a7b7f5f6e4cd6ac793a43de893ff03ec8b3f6d71cd9571994d0285aa09",
+      "bytes": 9215
+    },
+    "targets/conduitos/src/tour_workspace.rs": {
+      "blob": "951fc65116911745f2894b98e8016d55eafd4c5a",
+      "sha256": "c53315577c5f6118c873006eef739c71cb729d482425f64e853a0718c162f51c",
+      "bytes": 11834
+    },
+    "targets/conduitos/src/tour_workspace/tests.rs": {
+      "blob": "922545944316e536be9fa0569053989a0ca6d26d",
+      "sha256": "b4432219546bb7a2344a41025e579d26963cbc5be653b6c7ca341c605b098f0d",
+      "bytes": 6159
+    }
+  },
+  "artifacts": {
+    "outputs/5992-3860faa7e/workspace-core-pass.json": {
+      "sha256": "b871d8883bfeb7b71e73c6c0702b15744bc25d847eba028328da499cb65fb77e",
+      "bytes": 668
+    },
+    "outputs/5992-3860faa7e/workspace-ignored-tests.txt": {
+      "sha256": "38de9f9a17d55bf3426a4b04e120a3273615c6f9d39eef793b5f27befc877248",
+      "bytes": 8263
+    },
+    "outputs/5992-3860faa7e/workspace-status.json": {
+      "sha256": "211420dd7f699875ec4ecef9260e35cd23ecbd57108c34c2dfee6fd5b1aed72f",
+      "bytes": 675
+    },
+    "outputs/5992-3860faa7e/workspace-warnings.txt": {
+      "sha256": "4863ba1b4666163601477c4d1f102ec191ab54276f0058fd7f0ba174b473ec82",
+      "bytes": 5377
+    },
+    "outputs/5992-3860faa7e/workspace.log": {
+      "sha256": "4759a98d6526b43d99f5c89c144e7551c9e0bed12930d48e1ba21905570e6917",
+      "bytes": 1564488
+    }
+  },
+  "free_after": 63222546432,
+  "proof_boundaries": [
+    "Hosted workspace tests and contract-compile checks; no new normal-product/headless build or emulator proof for3860. All6f579 and01d product proofs remain historical and unchanged.",
+    "Full workspace check includes10020 tests with48 ignored records, preserved separately. No filtered or skipped tests added by this work.",
+    "No physical/HIL or human proof claimed from Thumb/Pico/WASM compile gates.",
+    "Current-dev browser repair6173 and Integration remain separate root-owned admission obligations. All product rebuilds and Source refresh held pending explicit handoff."
+  ]
+}
