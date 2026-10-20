@@ -1,0 +1,147 @@
+{
+  "schema": "conduit.release-generator-measurement@1",
+  "scope": "Two representative generator-owning packages on one Linux host; descriptive local measurement, not a full workspace, Host, Play or calibrated regression claim. Other local activity was present. Cold means an empty project compiler cache, not an empty machine.",
+  "reference_generator_source": "b58c15e032259d29996c544add4bff5dd7866692",
+  "candidate_generator_source": "8ffc5a4e26c59b146d6a596242a5fea06106bd7a",
+  "matched_build_source": "8ffc5a4e26c59b146d6a596242a5fea06106bd7a",
+  "refreshed_base": "810018074b4f525caec69921b2dd31f71bf3fe0d",
+  "generator_inputs_unchanged_on_refreshed_base": true,
+  "unchanged_paths": [
+    "architecture/core",
+    "architecture/plot",
+    "architecture/assigned-plan",
+    "semantics/language",
+    "semantics/human",
+    "Cargo.lock",
+    "rust-toolchain.toml",
+    ".cargo"
+  ],
+  "toolchain": "rustc 1.98.1 (48a229cea 2026-09-01)\nbinary: rustc\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\ncommit-date: 2026-09-01\nhost: x86_64-unknown-linux-gnu\nrelease: 1.98.1\nLLVM version: 22.1.8\n",
+  "os": "Linux-7.0.0-38-generic-x86_64-with-glibc2.43",
+  "cpu": "12th Gen Intel(R) Core(TM) i7-12700",
+  "generator_trials": [
+    {
+      "package": "language",
+      "repetition": 0,
+      "profile": "reference",
+      "wall_seconds": 91.83942309906706,
+      "cpu_seconds": 91.834563,
+      "executable_sha256": "e5e8950231352f0b6a3cb2f2a90a0d9994d4ad3a80aa27d547d4b2c44223c5ad"
+    },
+    {
+      "package": "language",
+      "repetition": 0,
+      "profile": "candidate",
+      "wall_seconds": 8.126543415011838,
+      "cpu_seconds": 8.125558999999953,
+      "executable_sha256": "b8ead48d1ad89e9aa8cf20d7afc0128f006b7305aab10b7d14c7416642ed7e68"
+    },
+    {
+      "package": "language",
+      "repetition": 1,
+      "profile": "reference",
+      "wall_seconds": 93.0287956839893,
+      "cpu_seconds": 92.944543,
+      "executable_sha256": "e5e8950231352f0b6a3cb2f2a90a0d9994d4ad3a80aa27d547d4b2c44223c5ad"
+    },
+    {
+      "package": "language",
+      "repetition": 1,
+      "profile": "candidate",
+      "wall_seconds": 8.308611894957721,
+      "cpu_seconds": 8.307256999999979,
+      "executable_sha256": "b8ead48d1ad89e9aa8cf20d7afc0128f006b7305aab10b7d14c7416642ed7e68"
+    },
+    {
+      "package": "human",
+      "repetition": 0,
+      "profile": "reference",
+      "wall_seconds": 116.93899771897122,
+      "cpu_seconds": 116.92463900000001,
+      "executable_sha256": "c99a8242d6d3e919de4a25bc64e9277fa143c17e98cc4869c0e454f885b79378"
+    },
+    {
+      "package": "human",
+      "repetition": 0,
+      "profile": "candidate",
+      "wall_seconds": 4.046139448997565,
+      "cpu_seconds": 4.040824000000039,
+      "executable_sha256": "869bdb2b37f1c1c499f601825d7d46d43f72422db50b2a7ee32fdfba703f6acf"
+    },
+    {
+      "package": "human",
+      "repetition": 1,
+      "profile": "reference",
+      "wall_seconds": 124.81143030198291,
+      "cpu_seconds": 124.79388699999993,
+      "executable_sha256": "c99a8242d6d3e919de4a25bc64e9277fa143c17e98cc4869c0e454f885b79378"
+    },
+    {
+      "package": "human",
+      "repetition": 1,
+      "profile": "candidate",
+      "wall_seconds": 3.9596339489798993,
+      "cpu_seconds": 3.9592130000000516,
+      "executable_sha256": "869bdb2b37f1c1c499f601825d7d46d43f72422db50b2a7ee32fdfba703f6acf"
+    }
+  ],
+  "build_command": [
+    "cargo",
+    "build",
+    "--locked",
+    "--release",
+    "-p",
+    "conduit-language",
+    "-p",
+    "conduit-human"
+  ],
+  "build_trials": [
+    {
+      "profile": "reference",
+      "build_dependency_opt_level": 0,
+      "phase": "cold",
+      "wall_seconds": 211.4443480859045,
+      "cpu_seconds": 375.11277800000005
+    },
+    {
+      "profile": "reference",
+      "build_dependency_opt_level": 0,
+      "phase": "warm",
+      "wall_seconds": 0.15963286603800952,
+      "cpu_seconds": 0.1605180000000166
+    },
+    {
+      "profile": "candidate",
+      "build_dependency_opt_level": 1,
+      "phase": "cold",
+      "wall_seconds": 98.8667963660555,
+      "cpu_seconds": 185.91534700000003
+    },
+    {
+      "profile": "candidate",
+      "build_dependency_opt_level": 1,
+      "phase": "warm",
+      "wall_seconds": 0.19573506398592144,
+      "cpu_seconds": 0.16097999999987778
+    }
+  ],
+  "generated_files_identical": true,
+  "generated_files": {
+    "language/rich_prosody_program.hex": "24b6dd6a727253050a39ac930f73f6de6fc220463f641203bc0422ee9346f95b",
+    "language/semantic_types.rs": "a7d63ad04cb5b748c754c1ecda9fbda1c75124de60e2ba74d063e0fe5775b2f9",
+    "language/pronunciation_pos_program.hex": "1a1843074ed19c01ad5ccd8505311f6027705f1505520795385ccfa29673c01f",
+    "language/commitment_programs.rs": "2f9f7d4cdf4b8fc47560ef07ce022ada792cf48168ebdb51add21cf1d5ad12ff",
+    "language/parser_availability_program.hex": "a4f14757951d29b6f0634fa695b76054d7be79906bc44250461db7323a045f47",
+    "language/prosody_frontier_program.hex": "913b216b5f617f8d3eafcafbf577856cac015340cd5e7dea2e05ec84b58140e1",
+    "language/committed_prosody_program.hex": "3a20900e2f22fb1f981476bed3dcba8568db5b6ebb60bc5556cac74212ba24ba",
+    "language/discourse_program.hex": "9a33d324dc56605ef371f9fe5b55212f86fdf61ead0f10f5e6b48505397b8d42",
+    "language/dependency_execution_context.hex": "aa6a45202002ab4c929a882f9c0ef83b3993f9f6bd46d4d3fdee6231d2323835",
+    "language/committed_dependency_program.hex": "807bbc1b79dec13efefd5160cf76cf9cfd839245c99ec743a79c55519c7516ee",
+    "language/fallback_prosody_program.hex": "111c4e1b0c6dd645144e599315cf672db25e972f900612a380c254a44a7a3729",
+    "language/dependency_execution_evidence.hex": "dab38d422848666a3933437f9f881ce6ab3b76a1d2efe463455e59706fb50cde",
+    "language/pronunciation_candidate_program.hex": "fef3bed2dbaf59195718812f6bdbb1f54ca452f0f26d7dad8d6b02949a8639eb",
+    "human/semantic_types.rs": "f7f09fcddbffd1d0e5a7303c1544b924ce46f610cece485b4e86fdd32c177795",
+    "human/keymap_layouts.rs": "c5110a075493e603d8a6b2aaa2aaebd3bde9db7ab3d2e10d7b67fa76de1595b4"
+  },
+  "interpretation": "Build-dependency opt-level 1 reduced generator work and the representative cold build. The warm no-op builds show no useful speedup. Runtime release optimization, assertions and product code are unchanged."
+}
