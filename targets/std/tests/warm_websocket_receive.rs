@@ -98,3 +98,35 @@ fn established_native_line_compares_copy_and_borrow_without_reconnection() {
         );
     }
 }
+
+#[test]
+fn borrowed_receive_refuses_text_and_oversized_frames_before_callback() {
+    use conduit_std_host::websocket::NativeWebSocketError;
+    use tungstenite::Message;
+    for (message, expected) in [
+        (
+            Message::Text("not binary".into()),
+            NativeWebSocketError::TextMessageRejected,
+        ),
+        (
+            Message::Binary(vec![0; 17].into()),
+            NativeWebSocketError::OversizedMessage,
+        ),
+    ] {
+        let listener = NativeWebSocketListener::bind_loopback(16).unwrap();
+        let url = listener.url().unwrap();
+        let peer = std::thread::spawn(move || {
+            let mut line = listener
+                .accept_with_timeout(Duration::from_secs(5))
+                .unwrap();
+            line.set_read_timeout(Some(Duration::from_secs(5))).unwrap();
+            assert_eq!(
+                line.receive_binary_with(|_| panic!("invalid message reached consumer")),
+                Err(expected)
+            );
+        });
+        let (mut socket, _) = tungstenite::connect(url.as_str()).unwrap();
+        socket.send(message).unwrap();
+        peer.join().unwrap();
+    }
+}
