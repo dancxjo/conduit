@@ -169,7 +169,7 @@ impl Owner {
                     "wake_id":proposed.wake.wake_id, "play":report.play,
                     "wake_at_start":report.wake_at_start, "terminal":report.terminal,
                     "failure":report.failure, "cleanup_failure":report.cleanup_failure,
-            "fore_pending_output":report.fore_pending_output.as_ref().map(|pending|pending.metadata()),
+                    "fore_pending_output":report.fore_pending_output.as_ref().map(|pending|pending.metadata()),
                     "terminal_sign":report.terminal_sign,
                     "output_utf8":String::from_utf8_lossy(&output),
                 })
