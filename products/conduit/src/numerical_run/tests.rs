@@ -44,7 +44,7 @@ fn authored_numerical_fore_retains_all_admitted_values_and_exact_child_evidence(
         assert_eq!(output.play, play);
         assert!(!output.canonical.is_empty());
     }
-    assert!(execution.execute(Quantity::new(65, Unit::Metre)).is_err());
+    assert!(execution.execute(Quantity::new(65, Unit::Meter)).is_err());
     let report = execution.finish().unwrap();
     assert_eq!(report.terminal, TerminalDisposition::Completed);
     assert!(!report.each_cancellation_failed);
@@ -78,7 +78,7 @@ fn malformed_input_does_not_spend_a_value_and_stop_retains_accepted_evidence() {
     let (host, plan) = prepared();
     let mut execution = NumericalFore::from_plan(host, plan).unwrap();
     assert!(execution.execute_encoded(&[0; 3]).is_err());
-    execution.execute(Quantity::new(3, Unit::Metre)).unwrap();
+    execution.execute(Quantity::new(3, Unit::Meter)).unwrap();
     let report = execution.stop().unwrap();
     assert_ne!(report.terminal, TerminalDisposition::Completed);
     let receipts = report.each_child_signs.unwrap();
@@ -94,7 +94,7 @@ fn producer_pressure_and_close_do_not_admit_an_extra_value() {
     let (_, plan) = prepared();
     let control = RunControl::default();
     let queue = BodyLiveForeQueue::for_near_each_plan(&plan, control, 1).unwrap();
-    let bytes = Quantity::new(3, Unit::Metre).encode();
+    let bytes = Quantity::new(3, Unit::Meter).encode();
     assert_eq!(
         queue.submit(&bytes).unwrap(),
         BodyLiveForeAdmission::Accepted { sequence: 0 }
