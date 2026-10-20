@@ -2,6 +2,18 @@
 use super::*;
 
 impl Projection {
+    /// One owner enumeration supplies scoped order and ordinary reading order.
+    /// Only actual projected siblings are chained; no layout or host facts.
+    pub(super) fn ordered_member(&mut self, previous: &mut Option<String>, current: &str) {
+        if let Some(before) = previous.replace(current.into()) {
+            self.relationships.push(FaceRelationship {
+                source: before,
+                target: current.into(),
+                kind: FaceRelationshipKind::Semantic(kind_id("document/precedes")),
+            });
+        }
+    }
+
     pub(super) fn collections(&mut self, draft: &BirthDraft) {
         let inventory = format!("{}/initial-plots", self.root);
         // The migration view uses a status when the source query has no matches.
@@ -71,10 +83,12 @@ impl Projection {
                 },
             });
         }
+        let mut previous_inventory = None;
         for (order, choice) in draft.choices().iter().enumerate() {
             let digest = crate::plot_choice_identity::plot_choice_identity(&choice.plot);
             let subject = format!("{inventory}/{digest}");
             if self.subjects.iter().any(|s| s.identity == subject) {
+                self.ordered_member(&mut previous_inventory, &subject);
                 self.properties.push(FaceProperty {
                     subject,
                     name: "order".into(),
@@ -98,6 +112,7 @@ impl Projection {
             name: "item-count".into(),
             value: FacePropertyValue::Count(selected as u64),
         });
+        let mut previous_review = None;
         for (order, choice) in draft
             .choices()
             .iter()
@@ -116,6 +131,7 @@ impl Projection {
                 subject: identity.clone(),
                 level: FaceDisclosureLevel::SelectedDetail,
             });
+            self.ordered_member(&mut previous_review, &identity);
             self.properties.extend([
                 FaceProperty {
                     subject: identity.clone(),

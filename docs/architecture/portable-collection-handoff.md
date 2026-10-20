@@ -137,8 +137,18 @@ collection selector resolves recipe membership, not storage or routed-envelope
 admission; no native budget is raised by this preparation. C1 admission remains
 held while the known native consumer capacity refusal is unresolved.
 
-The held native consumer inventory also retains a separate focus-order failure:
-`ordinary_name_entry_reaches_first_choice_with_one_tab` reaches `creche.plot.2`
-where the existing test expects `creche.plot.0`. This is not classified as a
-capacity failure or waived by changing the test expectation; explicit collection
-order and native traversal still need independent correspondence review.
+The Source producer lowers each collection's declared Count order into adjacent
+`document/precedes` relationships from the same owner enumeration. The chains
+connect only actual projected members within one collection; zero or one member
+adds no edge. Generic aural traversal and checked collection Fore order now agree
+across filtering, review, naming options and reordered storage. No native sorting
+or identity-based geometry policy is introduced.
+
+The refreshed canonical five-candidate CPU producer measures 64,530 Face JSON bytes.
+The maximum 16-item selected long-Unicode Source fixture measures 201,468 bytes;
+these are complete Face measurements, not observer or route envelopes. Earlier
+56,232-byte and 174,810-byte receipts describe earlier Source versions. The
+configured Crèche tests and the formerly failing one-Tab first-choice test pass;
+the broader native consumer inventory retains ten failures involving capacity
+or assertions on later branches. This remains held preparation under #6156,
+not full native Host, emulator or stable acceptance.

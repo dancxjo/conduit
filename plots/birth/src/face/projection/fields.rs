@@ -142,6 +142,7 @@ impl Projection {
             vec![],
         )
         .map_err(|_| BirthFaceRefusal::InvalidProjection)?;
+        let mut previous = None;
         for (order, option) in options.iter().enumerate() {
             contract
                 .validate(option.identity.as_bytes())
@@ -158,6 +159,7 @@ impl Projection {
                 subject: identity.clone(),
                 level: FaceDisclosureLevel::SelectedDetail,
             });
+            self.ordered_member(&mut previous, &identity);
             self.properties.extend([
                 FaceProperty {
                     subject: identity.clone(),

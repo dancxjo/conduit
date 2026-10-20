@@ -336,6 +336,15 @@ fn duplicate_unicode_labels_and_reordered_storage_do_not_replace_stable_identity
             *order = original.len() as u64 - 1 - *order;
         }
     }
+    // The coherent varied Source changes both representations of its order.
+    for relationship in &mut reordered.relationships {
+        if original.contains(&relationship.source)
+            && original.contains(&relationship.target)
+            && relationship.kind == FaceRelationshipKind::Semantic(kind_id("document/precedes"))
+        {
+            core::mem::swap(&mut relationship.source, &mut relationship.target);
+        }
+    }
     let reordered = rehash(reordered);
     let linear = account(&reordered);
     compare_generic(&reordered, &linear, &id);

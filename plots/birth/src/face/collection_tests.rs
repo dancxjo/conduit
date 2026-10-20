@@ -246,3 +246,6 @@ mod profile;
 
 #[path = "collection_reconstruction_tests.rs"]
 mod reconstruction;
+
+#[path = "collection_order_tests.rs"]
+mod reading_order;
