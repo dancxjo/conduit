@@ -118,7 +118,7 @@ pub(super) enum ConduitosCommand {
     /// Prove the normal IMAGE Body/Wake/Plan/Play product journey.
     JourneyProof,
     /// Observe instrumented graphical startup and the real native journey.
-    NativeLatencyProof,
+    NativeLatencyProof(native_latency::NativeLatencyArgs),
     /// Prove the default graphical profile through the canonical live ISO and retained gallery.
     GraphicalProfileProof,
     /// Boot one architecture proof appliance and validate its bounded terminal Sign.

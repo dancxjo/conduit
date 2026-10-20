@@ -16,6 +16,31 @@ pub(super) fn parse(serial: &str) -> Result<Value, ConduitosError> {
             return Err(refuse());
         }
         let Some(text) = line.strip_prefix("CONDUIT_NATIVE_TIMING ") else {
+            for prefix in [
+                "CONDUIT_NATIVE_FACE ",
+                "CONDUIT_CRECHE_CHANGE ",
+                "CONDUIT_CRECHE_FOCUS ",
+                "CONDUIT_NATIVE_POINTER ",
+                "CONDUIT_NATIVE_BIRTH ",
+                "CONDUIT_NATIVE_ACTION ",
+                "CONDUIT_NATIVE_READING ",
+                "CONDUIT_NATIVE_JOURNEY_TIMING ",
+            ] {
+                let Some(text) = line.strip_prefix(prefix) else {
+                    continue;
+                };
+                let record: Value = serde_json::from_str(text).map_err(|_| refuse())?;
+                if let Some(clock) = record.get("native_observer") {
+                    let ticks = clock["ticks"].as_u64().ok_or_else(refuse)?;
+                    if records.is_empty()
+                        || clock["clock"] != "x86-tsc-lfence"
+                        || previous_end.is_some_and(|previous| ticks < previous)
+                    {
+                        return Err(refuse());
+                    }
+                    previous_end = Some(ticks);
+                }
+            }
             continue;
         };
         let record: Value = serde_json::from_str(text).map_err(|_| refuse())?;
@@ -93,5 +118,25 @@ mod tests {
             assert!(parse(&(boot.clone() + &suffix)).is_err());
         }
         assert!(parse(&record(0, "plot-build", 10, 20)).is_err());
+    }
+}
+
+#[cfg(test)]
+mod custody_clock_tests {
+    use super::*;
+    #[test]
+    fn custody_receipts_cannot_hide_counter_reversal_between_stage_records() {
+        let boot = "CONDUIT_NATIVE_TIMING {\"schema\":\"conduit.conduitos/native-timing@1\",\"sequence\":0,\"stage\":\"boot-entry\",\"clock\":\"x86-tsc-lfence\",\"frequency_hz\":null,\"start_ticks\":10,\"end_ticks\":10,\"counter_reversed\":false}\n";
+        for (clock, ticks, valid) in [
+            ("x86-tsc-lfence", 11, true),
+            ("x86-tsc-lfence", 9, false),
+            ("another-clock", 11, false),
+        ] {
+            let custody = format!(
+                "CONDUIT_CRECHE_FOCUS {}\n",
+                json!({"native_observer":{"clock":clock,"ticks":ticks}})
+            );
+            assert_eq!(parse(&(boot.to_owned() + &custody)).is_ok(), valid);
+        }
     }
 }

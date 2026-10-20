@@ -549,7 +549,7 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
         ConduitosCommand::Demo(target) => demo::execute(target.arch.into(), opts),
         ConduitosCommand::FrontDoorProof => front_door_proof::execute(opts),
         ConduitosCommand::JourneyProof => journey_proof::execute(opts),
-        ConduitosCommand::NativeLatencyProof => native_latency::execute(opts),
+        ConduitosCommand::NativeLatencyProof(args) => native_latency::execute(args, opts),
         ConduitosCommand::GraphicalProfileProof => graphical_profile_proof::execute(opts),
         ConduitosCommand::Run(target) => {
             target.arch.require_boot_backend()?;

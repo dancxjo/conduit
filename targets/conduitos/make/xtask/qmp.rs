@@ -30,6 +30,10 @@ impl Reader {
         }
     }
 
+    pub(super) fn observer_elapsed_ns(&self) -> u128 {
+        self.observation_origin.elapsed().as_nanos()
+    }
+
     fn next_request_id(&mut self, label: &str) -> String {
         let slot = self.next_request_slot;
         self.next_request_slot = (slot + 1) % REQUEST_ID_SLOTS;

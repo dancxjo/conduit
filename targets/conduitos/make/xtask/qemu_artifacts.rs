@@ -5,8 +5,9 @@ use std::{fs, io::Read, os::unix::net::UnixStream, path::PathBuf, time::Instant}
 
 // The bounded lifecycle, refusal, navigation, and reentry journey plus failure capture.
 const DEFAULT_MAX_CHECKPOINTS: usize = 20;
-// Twenty-two normal-product frames plus one retained failure capture.
-const MAX_ADMITTED_CHECKPOINTS: usize = 23;
+// Ordinary journey plus the admitted six typing and three navigation observations,
+// including one retained failure capture.
+const MAX_ADMITTED_CHECKPOINTS: usize = 32;
 
 pub(super) struct Artifacts {
     directory: PathBuf,
