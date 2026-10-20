@@ -25,6 +25,8 @@ mod timing;
 #[global_allocator]
 static ALLOCATOR: allocation::Allocator = allocation::Allocator;
 const STACK_BYTES: usize = 32 * 1024 * 1024;
+#[path = "fargan_performance/prepared.rs"]
+mod prepared_performance;
 use serde_json::json;
 use std::{cell::RefCell, path::PathBuf};
 
@@ -33,9 +35,14 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         return Err("release measurements required".into());
     }
     let args: Vec<_> = std::env::args().skip(1).collect();
-    let [fixture, output, repetitions] = args.as_slice() else {
-        return Err("internal worker expects fixture/output/repetitions".into());
+    let (fixture, output, repetitions, owners) = match args.as_slice() {
+        [fixture, output, repetitions] => (fixture, output, repetitions, "fresh"),
+        [fixture, output, repetitions, owners] => (fixture, output, repetitions, owners.as_str()),
+        _ => return Err("internal worker expects fixture/output/repetitions/[owners]".into()),
     };
+    if !matches!(owners, "fresh" | "prepared") {
+        return Err("unknown owner profile".into());
+    }
     let repetitions: u32 = repetitions.parse()?;
     assert!((2..=20).contains(&repetitions));
     let output = PathBuf::from(output);
@@ -60,6 +67,11 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
             "precision_profile":"number/ieee754-f32-libm-reference@1","parameters_published":false
         }),
     )?;
+    if owners == "prepared" {
+        prepared_performance::run(&output, repetitions, &schema, &resources, &oracle, &mut raw)?;
+        raw.finish()?;
+        return Ok(());
+    }
     let cases = &oracle.cases;
     let mut walls = Vec::new();
     for repetition in 0..repetitions {
