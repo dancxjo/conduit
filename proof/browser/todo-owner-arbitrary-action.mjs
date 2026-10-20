@@ -15,11 +15,18 @@ export async function captureArbitraryTodoRefusals({ page, face, output, sourceR
   const currentAdd = originalView.actions.find(action => action.identity === 'todo.add');
   assert.ok(currentAdd);
   assert.equal(currentAdd.arguments.length, 1);
+  const currentItemAction = originalView.actions.find(action => action.target.startsWith('todo/item/')
+    && action.availability === 'available' && action.arguments.length === 0);
+  assert.ok(currentItemAction, 'the actual Todo item must offer a current checked action');
+  assert.ok(beforeAttempt.face.subjects.some(subject => subject.identity === currentItemAction.target));
   const declaration = currentAdd.arguments[0];
   const argument = {name:declaration.name,value:'Must never become a Todo item'};
   const cases = [
     {name:'unknown-action',actionId:'invented.body.action',code:'UnknownAction'},
     {name:'wrong-target',target:'invented/body-port',code:'WrongTarget'},
+    {name:'wrong-item',actionId:currentItemAction.identity,target:'todo/item/unknown',arguments:[],code:'WrongTarget'},
+    {name:'item-unknown-argument',actionId:currentItemAction.identity,target:currentItemAction.target,
+      arguments:[argument],code:'UnknownArgument'},
     {name:'missing-argument',arguments:[],code:'MissingArgument'},
     {name:'unknown-argument',arguments:[{...argument,name:'invented/input'}],code:'UnknownArgument'},
     {name:'duplicate-argument',arguments:[argument,argument],code:'DuplicateArgument'},
@@ -71,7 +78,10 @@ export async function captureArbitraryTodoRefusals({ page, face, output, sourceR
     const after = face();
     await unchangedExecution();
     assert.deepEqual(after,beforeAttempt,'refusal preserves canonical owner Face, revision and Host/Boot');
-    results.push({case:specimen.name,...result,unchanged_owner_face:after.face,
+    results.push({case:specimen.name,...result,
+      submitted_action:{identity:specimen.actionId ?? currentAdd.identity,
+        target:specimen.target ?? currentAdd.target,arguments:specimen.arguments ?? [argument]},
+      unchanged_owner_face:after.face,
       accepted_domain_mutations:0,gate:'production-sdk-before-wasm'});
     await retain();
     await page.locator('#todo-adversarial-probe').evaluate(element => element.remove());
