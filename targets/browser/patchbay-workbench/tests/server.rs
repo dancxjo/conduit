@@ -198,19 +198,23 @@ fn debugger_trace_uses_exact_causal_parent_and_not_graph_reachability() {
     assert_eq!(traced.face, face);
 }
 
-#[test]
-fn debugger_break_and_resume_cross_the_real_kernel_control_contract() {
-    // This integration fixture prepares and runs the hosted kernel before the
-    // HTTP debugger assertions. Its debug-build preparation frames exceed the
-    // test harness's 2 MiB default; retain an explicit finite 4 MiB test budget.
-    // The server and its request worker keep their normal production paths.
+fn run_hosted_kernel_contract(name: &str, contract: fn()) {
+    // These fixtures prepare and run the hosted kernel before HTTP assertions.
+    // Unoptimized preparation frames exceed the harness's 2 MiB default, so
+    // their owner gets the existing finite 4 MiB fixture budget. The server
+    // and its request worker keep their normal production paths.
     std::thread::Builder::new()
-        .name("hosted-debugger-contract".into())
+        .name(name.into())
         .stack_size(4 * 1024 * 1024)
-        .spawn(debugger_break_and_resume_contract)
+        .spawn(contract)
         .unwrap()
         .join()
         .unwrap();
+}
+
+#[test]
+fn debugger_break_and_resume_cross_the_real_kernel_control_contract() {
+    run_hosted_kernel_contract("hosted-debugger-contract", debugger_break_and_resume_contract);
 }
 
 fn debugger_break_and_resume_contract() {
@@ -324,6 +328,10 @@ fn debugger_watch_mutation_is_exact_revisioned_and_topology_immutable() {
 
 #[test]
 fn exact_read_only_routes_are_bounded_no_store_and_typed() {
+    run_hosted_kernel_contract("hosted-read-only-routes-contract", read_only_routes_contract);
+}
+
+fn read_only_routes_contract() {
     let index = request("/", "GET");
     assert!(index.starts_with("HTTP/1.1 200 OK"));
     assert!(index.contains("Cache-Control: no-store"));
