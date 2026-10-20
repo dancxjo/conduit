@@ -22,6 +22,7 @@ test('each ConduitOS package set includes only its own emulator/firmware', () =>
       assert.equal(packages.includes(dependency), ['riscv64', 'loongarch64'].includes(arch), dependency);
     }
     assert.equal(packages.includes('patch'), arch === 'loongarch64');
+    assert.equal(packages.includes('gdb'), arch === 'ia32');
   }
   assert.throws(() => targetPackages({ family: 'conduitos', id: 'conduitos-unknown' }));
   assert.ok(targetPackages({ id: 'raspberry-pi' }).includes('mtools'));

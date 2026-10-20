@@ -25,6 +25,7 @@ mod emitted_line;
 mod front_door_proof;
 mod graphical_asset_proof;
 mod graphical_profile_proof;
+mod graphics_probe;
 mod hid_proof;
 mod hid_qmp;
 mod hid_run;
@@ -454,6 +455,7 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
         ConduitosCommand::ProtocolImage(args) => protocol_image::execute(args, opts),
         ConduitosCommand::ProtocolInput(args) => protocol_input::execute(args, opts),
         ConduitosCommand::ProtocolRun(args) => protocol_run::execute(args, opts),
+        ConduitosCommand::FramebufferProbe(args) => graphics_probe::execute(&args, opts),
         ConduitosCommand::ArchitectureMatrix => architecture_matrix::execute(opts),
         ConduitosCommand::ProductReadinessMatrix => product_readiness_matrix::execute(opts),
         ConduitosCommand::Build(target) => {

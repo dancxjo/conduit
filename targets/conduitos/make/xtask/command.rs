@@ -71,6 +71,8 @@ pub(super) enum ConduitosCommand {
     ProtocolRun(protocol_run::RunArgs),
     /// Verify and report the pinned Limine architecture/backend matrix.
     ArchitectureMatrix,
+    /// Observe exact firmware framebuffer handoff without claiming graphical Show.
+    FramebufferProbe(graphics_probe::ProbeArgs),
     /// Report exact earned Product Spine cells independently of A0-A4.
     ProductReadinessMatrix,
     /// Compile and mechanically inspect one bounded architecture proof appliance.

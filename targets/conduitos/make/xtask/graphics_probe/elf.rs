@@ -37,6 +37,11 @@ fn format(image: &[u8]) -> Result<u8, &'static str> {
         _ => Err("elf-class-unsupported"),
     }
 }
+/// ELF class and machine are observations, not a replacement for product verification.
+pub fn identity(image: &[u8]) -> Result<(u8, u16), &'static str> {
+    Ok((format(image)?, u16_at(image, 18)?))
+}
+
 pub fn entry_point(image: &[u8]) -> Result<u64, &'static str> {
     match format(image)? {
         1 => Ok(u64::from(u32_at(image, 24)?)),
@@ -114,6 +119,7 @@ mod tests {
     fn image() -> Vec<u8> {
         let mut image = vec![0; 256];
         image[..6].copy_from_slice(b"\x7fELF\x02\x01");
+        image[18..20].copy_from_slice(&183_u16.to_le_bytes());
         image[24..32].copy_from_slice(&0xffff_ffff_8000_0000_u64.to_le_bytes());
         image[32..40].copy_from_slice(&64_u64.to_le_bytes());
         image[54..56].copy_from_slice(&56_u16.to_le_bytes());
@@ -131,6 +137,7 @@ mod tests {
     #[test]
     fn locates_request_and_entry_independently() {
         let image = image();
+        assert_eq!(identity(&image), Ok((2, 183)));
         assert_eq!(entry_point(&image), Ok(0xffff_ffff_8000_0000));
         assert_eq!(framebuffer_request(&image), Ok(0xffff_ffff_8071_0020));
     }

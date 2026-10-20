@@ -1,7 +1,7 @@
 //! Decode immutable debugger observations. Discovery is never display admission.
 use super::elf;
-const MAX_FRAMEBUFFERS: usize = 4;
-const MAX_MODES: usize = 16;
+pub(super) const MAX_FRAMEBUFFERS: usize = 4;
+pub(super) const MAX_MODES: usize = 16;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Mode {
