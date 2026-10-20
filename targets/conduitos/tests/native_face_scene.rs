@@ -1,6 +1,6 @@
 #![cfg(feature = "native-compositor")]
 extern crate alloc;
-use conduitos::display;
+use conduitos::{display, front_door};
 mod native_workset {
     pub use conduitos::native_workset::{profile, resident};
 }

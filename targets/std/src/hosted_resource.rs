@@ -1,5 +1,7 @@
 //! A bounded local Resource provider over the kernel's immutable value storage.
 //! Platform dispatch must supply its exact admitted authority grant on every call.
+mod cost;
+
 use conduit_core::{
     AuthorityGrantId, BoundedResourceRef, ResourceAccessMode, ResourceBinding,
     ResourceContentOffer, ResourceDereferenceRequirement, ResourceReferenceBinding,
@@ -44,6 +46,7 @@ enum Publication {
 /// One exact admitted generation. Another generation requires its own sealed
 /// binding and finite provider storage; an old Plan is never rewritten in place.
 pub struct HostedResourceGeneration {
+    binding: ResourceBinding,
     offer: ResourceContentOffer,
     reference: BoundedResourceRef,
     access_requirement: ResourceDereferenceRequirement,
@@ -108,6 +111,7 @@ impl HostedResourceGeneration {
             .as_bytes(),
         );
         Ok(Self {
+            binding: binding.clone(),
             scope,
             additional_readers: Vec::new(),
             leases: vec![None; usize::from(offer.contract.reader_leases)],

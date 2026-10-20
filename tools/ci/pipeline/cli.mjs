@@ -2,7 +2,7 @@ import { readDeliveryStatus } from './delivery-status.mjs';
 import { appendFileSync, mkdirSync, readdirSync, existsSync, readFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { resolve } from 'node:path';
-import { planChanges, UNIT_SHARDS } from './plan.mjs';
+import { candidateBrowserProofRequired, planChanges, UNIT_SHARDS } from './plan.mjs';
 import { admissionPlan, nativeRisk, runAdmission, isMeasurementReceipt } from './admission.mjs';
 import { sealTarget, verifyBundle } from './receipts.mjs';
 import { TARGETS, setupTarget, runTarget } from './targets.mjs';
@@ -63,7 +63,7 @@ try {
       if (args[2] === 'candidate') {
         plan.families = plan.families.filter(family =>
           (family === 'conduitos' && nativeRisk(paths))
-          || (family === 'browser' && paths.some(path => /^(?:site|proof\/browser|targets\/browser)\//.test(path)))
+          || (family === 'browser' && candidateBrowserProofRequired(paths))
           || paths.some(path => path.startsWith(`targets/${family}/firmware/`)));
       }
       let broadAdmission = false;

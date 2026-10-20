@@ -67,6 +67,11 @@ pub fn prepare_component_recipe(
                         false
                     }
                 }
+                ComponentSubjectSelector::ActionTarget(identity) => {
+                    face.actions.iter().any(|action| {
+                        &action.identity == identity && action.target == subject.identity
+                    })
+                }
                 ComponentSubjectSelector::Role(role) => {
                     existing_role_name(&subject.role) == Some(role.as_str())
                 }

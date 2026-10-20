@@ -27,16 +27,13 @@ pub enum ArrivalInput {
 
 impl FrontDoor {
     pub fn open_creche(&mut self, uuid: String, refusal: Option<String>) -> Result<(), Error> {
-        self.open_creche_reviewed(
-            uuid,
-            [refusal.clone(), refusal.clone(), refusal.clone(), refusal],
-        )
+        self.open_creche_reviewed(uuid, core::array::from_fn(|_| refusal.clone()))
     }
 
     pub fn open_creche_reviewed(
         &mut self,
         uuid: String,
-        refusals: [Option<String>; crate::native_workset::NATIVE_PLOT_CAPACITY],
+        refusals: [Option<String>; crate::native_workset::NATIVE_CANDIDATE_CAPACITY],
     ) -> Result<(), Error> {
         if !self.lifecycle_authority_admitted {
             return Err(Error::ActionUnavailable);
@@ -46,10 +43,21 @@ impl FrontDoor {
         }
         let draft = BirthDraft::new(
             uuid,
-            crate::native_workset::inventory()
+            crate::native_workset::candidate_inventory()
                 .into_iter()
                 .zip(refusals)
                 .map(|(plot, refusal)| {
+                    // A visible Source candidate is not installed authority.
+                    // Even a missing caller refusal cannot widen this profile.
+                    let refusal = if crate::native_workset::profile().installed().contains(&plot) {
+                        refusal
+                    } else {
+                        Some(
+                            crate::native_workset::WorksetRefusal::UnknownPlot
+                                .as_str()
+                                .into(),
+                        )
+                    };
                     let available = refusal.is_none();
                     Ok(BirthPlotChoice {
                         title: plot.title().into(),
