@@ -1,0 +1,37 @@
+# EXPERIMENT ONLY. No calibrated production profile or decoder installation.
+# Counts must later bind actual scored transitions; identity strings alone
+# authenticate no calibration or installed authority.
+type ExperimentalRetentionInput = {
+    profile: Text <= 64B
+    calibration: Text <= 64B
+    confirmation: Text <= 64B
+    margin_numerator: I64 in 0..=2000000
+    margin_denominator: I64 in 1..=64
+    active0: Boolean
+    score0: I64 in -1000000..=1000000
+    count0: I64 in 0..=8
+    active1: Boolean
+    score1: I64 in -1000000..=1000000
+    count1: I64 in 0..=8
+    active2: Boolean
+    score2: I64 in -1000000..=1000000
+    count2: I64 in 0..=8
+    active3: Boolean
+    score3: I64 in -1000000..=1000000
+    count3: I64 in 0..=8
+}
+type ExperimentalRetentionResult = {
+    accepted: Boolean
+    mask: collection Boolean = 4
+}
+plot experimental/retain-score-margin (
+    input: ExperimentalRetentionInput...| >> output: ExperimentalRetentionResult...|
+) = {
+    accepted: .profile == "experimental/normalized-margin@1" && .calibration != "" && .confirmation != "" && (.active0 || .active1 || .active2 || .active3) && (!.active0 || .count0 > 0) && (!.active1 || .count1 > 0) && (!.active2 || .count2 > 0) && (!.active3 || .count3 > 0)
+    mask: [
+        ((.profile == "experimental/normalized-margin@1" && .calibration != "" && .confirmation != "" && (.active0 || .active1 || .active2 || .active3) && (!.active0 || .count0 > 0) && (!.active1 || .count1 > 0) && (!.active2 || .count2 > 0) && (!.active3 || .count3 > 0)) ? (.active0 && (!.active0 || ((.score0 * .count0 - .score0 * .count0) * .margin_denominator <= .margin_numerator * .count0 * .count0)) && (!.active1 || ((.score1 * .count0 - .score0 * .count1) * .margin_denominator <= .margin_numerator * .count0 * .count1)) && (!.active2 || ((.score2 * .count0 - .score0 * .count2) * .margin_denominator <= .margin_numerator * .count0 * .count2)) && (!.active3 || ((.score3 * .count0 - .score0 * .count3) * .margin_denominator <= .margin_numerator * .count0 * .count3))) : false),
+        ((.profile == "experimental/normalized-margin@1" && .calibration != "" && .confirmation != "" && (.active0 || .active1 || .active2 || .active3) && (!.active0 || .count0 > 0) && (!.active1 || .count1 > 0) && (!.active2 || .count2 > 0) && (!.active3 || .count3 > 0)) ? (.active1 && (!.active0 || ((.score0 * .count1 - .score1 * .count0) * .margin_denominator <= .margin_numerator * .count1 * .count0)) && (!.active1 || ((.score1 * .count1 - .score1 * .count1) * .margin_denominator <= .margin_numerator * .count1 * .count1)) && (!.active2 || ((.score2 * .count1 - .score1 * .count2) * .margin_denominator <= .margin_numerator * .count1 * .count2)) && (!.active3 || ((.score3 * .count1 - .score1 * .count3) * .margin_denominator <= .margin_numerator * .count1 * .count3))) : false),
+        ((.profile == "experimental/normalized-margin@1" && .calibration != "" && .confirmation != "" && (.active0 || .active1 || .active2 || .active3) && (!.active0 || .count0 > 0) && (!.active1 || .count1 > 0) && (!.active2 || .count2 > 0) && (!.active3 || .count3 > 0)) ? (.active2 && (!.active0 || ((.score0 * .count2 - .score2 * .count0) * .margin_denominator <= .margin_numerator * .count2 * .count0)) && (!.active1 || ((.score1 * .count2 - .score2 * .count1) * .margin_denominator <= .margin_numerator * .count2 * .count1)) && (!.active2 || ((.score2 * .count2 - .score2 * .count2) * .margin_denominator <= .margin_numerator * .count2 * .count2)) && (!.active3 || ((.score3 * .count2 - .score2 * .count3) * .margin_denominator <= .margin_numerator * .count2 * .count3))) : false),
+        ((.profile == "experimental/normalized-margin@1" && .calibration != "" && .confirmation != "" && (.active0 || .active1 || .active2 || .active3) && (!.active0 || .count0 > 0) && (!.active1 || .count1 > 0) && (!.active2 || .count2 > 0) && (!.active3 || .count3 > 0)) ? (.active3 && (!.active0 || ((.score0 * .count3 - .score3 * .count0) * .margin_denominator <= .margin_numerator * .count3 * .count0)) && (!.active1 || ((.score1 * .count3 - .score3 * .count1) * .margin_denominator <= .margin_numerator * .count3 * .count1)) && (!.active2 || ((.score2 * .count3 - .score3 * .count2) * .margin_denominator <= .margin_numerator * .count3 * .count2)) && (!.active3 || ((.score3 * .count3 - .score3 * .count3) * .margin_denominator <= .margin_numerator * .count3 * .count3))) : false)
+    ]
+}
