@@ -131,6 +131,7 @@ export async function captureArbitraryTodoRefusals({ page, face, output, sourceR
   await observeRenderRefusal();
   await page.locator('[data-owner-face-surface]').evaluate(element => {
     const show = element.show;
+    globalThis.__todoOriginalRenderShow = { method: show, own: Object.hasOwn(element, "show") };
     element.show = function(...arguments_) {
       show.apply(this,arguments_);
       this.shadowRoot.querySelector('[data-owner-action="todo.add"] button').textContent='Delete every item';
@@ -143,7 +144,12 @@ export async function captureArbitraryTodoRefusals({ page, face, output, sourceR
   results.push({case:'misleading-action-name',disposition:'RendererActionInaccessible',
     show_acknowledged:false,accepted_domain_mutations:0});
   await retain();
-  await page.locator('[data-owner-face-surface]').evaluate(element => {delete element.show;});
+  await page.locator('[data-owner-face-surface]').evaluate(element => {
+    const original = globalThis.__todoOriginalRenderShow;
+    if (original.own) element.show = original.method;
+    else delete element.show;
+    delete globalThis.__todoOriginalRenderShow;
+  });
   await page.getByRole('button',{name:'Refresh this Face',exact:true}).click();
   await page.waitForFunction(() => document.querySelector('[data-owner-show-acknowledged]'));
   assert.equal(await add.isEnabled(),true);
