@@ -3,7 +3,9 @@ use crate::{PortableExpressionNode, PortableExpressionOperation as Op, PortableE
 use alloc::{boxed::Box, vec::Vec};
 use conduit_core::*;
 use sha2::{Digest, Sha256};
+mod evidence;
 mod lowering;
+pub use evidence::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum QualifiedQuantityBinary64Refusal {
@@ -52,6 +54,7 @@ pub struct PreparedQualifiedQuantityBinary64 {
     projected: PreparedBinary64ProgramRunner,
     retained: usize,
     maximum_work: u64,
+    policy: QualifiedQuantityBinary64Policy,
 }
 
 /// Available only after incoming evidence replay and the selected computation succeed.
@@ -60,6 +63,10 @@ pub struct QualifiedQuantityBinary64Result<'a> {
     source: RationalQuantity,
     incoming_evidence: &'a [u8],
     incoming_source_digest: [u8; 32],
+    incoming_digest: [u8; 32],
+    canonical_program: &'a [u8],
+    policy: QualifiedQuantityBinary64Policy,
+    error: Binary64ErrorClaim,
 }
 impl QualifiedQuantityBinary64Result<'_> {
     pub fn algorithm(&self) -> &PreparedBinary64Algorithm {
@@ -176,6 +183,15 @@ impl PreparedQualifiedQuantityBinary64 {
             projected,
             retained,
             maximum_work: limits.maximum_numerical_work,
+            policy: QualifiedQuantityBinary64Policy::new(
+                program_digest,
+                unit,
+                role,
+                Binary64AlgorithmPolicy {
+                    maximum_error: output_limit.coordinate(),
+                    rounding,
+                },
+            ),
         })
     }
 
@@ -185,6 +201,9 @@ impl PreparedQualifiedQuantityBinary64 {
     }
     pub fn canonical_program(&self) -> &[u8] {
         &self.canonical_program
+    }
+    pub const fn policy(&self) -> QualifiedQuantityBinary64Policy {
+        self.policy
     }
     pub const fn coordinate_unit(&self) -> Unit {
         self.unit
@@ -263,6 +282,10 @@ impl PreparedQualifiedQuantityBinary64 {
             source,
             incoming_evidence: incoming,
             incoming_source_digest: verified.source_wire_digest(),
+            incoming_digest: Sha256::digest(incoming).into(),
+            canonical_program: &self.canonical_program,
+            policy: self.policy,
+            error: algorithm.error(),
         })
     }
 }

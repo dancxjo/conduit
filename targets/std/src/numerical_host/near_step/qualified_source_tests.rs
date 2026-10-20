@@ -368,3 +368,5 @@ fn domain_faults_and_exhausted_shared_work_are_charged_and_remain_distinct() {
     assert_eq!(short.spent(), 1);
     assert_eq!(guard.finish(), 0);
 }
+
+mod evidence_tests;
