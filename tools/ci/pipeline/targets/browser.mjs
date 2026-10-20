@@ -36,7 +36,7 @@ const SLOW_CHROMIUM_SPECS = new Set([
 ]);
 
 function chromiumBatches() {
-  const requested = process.env.CONDUIT_CI_BROWSER_BATCHES || '2';
+  const requested = process.env.CONDUIT_CI_BROWSER_BATCHES || '1';
   if (requested !== '1' && requested !== '2') {
     throw new Error('CONDUIT_CI_BROWSER_BATCHES must be 1 or 2');
   }
