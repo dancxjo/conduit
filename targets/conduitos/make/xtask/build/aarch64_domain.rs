@@ -2,6 +2,7 @@
 use super::*;
 
 pub(crate) fn execute(
+    manifest: &BuildManifest,
     profile_id: &str,
     build_id: &str,
     image_binding: &str,
@@ -16,10 +17,12 @@ pub(crate) fn execute(
             return Err(ConduitosError::refusal("proof-make-mismatch", identity));
         }
     }
+    let mut features = target_lowering::lower(manifest)?.cargo_features;
+    features.push("ordinary-domain-proof");
     execute_with_features(
         ConduitosArch::Aarch64,
         opts,
-        &["aarch64-product", "ordinary-domain-proof"],
+        &features,
         Some(ProfileMake {
             generated: &generated,
             build_id,

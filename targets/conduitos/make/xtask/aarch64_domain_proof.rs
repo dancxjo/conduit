@@ -40,6 +40,7 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
     let normal: serde_json::Value = serde_json::from_slice(&normal)
         .map_err(|error| ConduitosError::refusal("product-proof-invalid", error.to_string()))?;
     build::aarch64_domain::execute(
+        &manifest.resolved_build,
         &manifest.profile_id,
         &manifest.build_id,
         &manifest.resolved_description_binding,
