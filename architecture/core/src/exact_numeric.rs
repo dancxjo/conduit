@@ -68,6 +68,22 @@ impl ExactNumericWork {
     pub const fn remaining(self) -> u64 {
         self.remaining
     }
+    /// Run a bounded sub-operation and charge its actual work, including refusal.
+    /// The child cannot receive more work than this caller still owns.
+    pub fn with_limit<T, E>(
+        &mut self,
+        maximum_limb_work: u64,
+        operation: impl FnOnce(&mut Self) -> Result<T, E>,
+    ) -> Result<T, E>
+    where
+        E: From<ExactNumericRefusal>,
+    {
+        let mut local = Self::new(self.remaining.min(maximum_limb_work));
+        let result = operation(&mut local);
+        self.charge(local.spent).map_err(E::from)?;
+        result
+    }
+
     fn charge(&mut self, amount: u64) -> Result<(), ExactNumericRefusal> {
         if amount > self.remaining {
             return Err(ExactNumericRefusal::WorkLimit);

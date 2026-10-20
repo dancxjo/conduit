@@ -22,6 +22,11 @@ fn linear(kind: &str) -> bool {
             && kind != conduit_core::TEMPERATURE_INFO_ID
     }
 }
+fn additive(kind: &str) -> bool {
+    linear(kind)
+        || conduit_core::parse_quantity_role_info_id(kind)
+            .is_some_and(|(_, role)| role == QuantityRole::Delta)
+}
 pub(crate) fn result_kind(op: O, left: &str, right: &str) -> Option<Result<KindId, ()>> {
     if !is_quantity(left) && !is_quantity(right) {
         return None;
@@ -33,15 +38,23 @@ pub(crate) fn result_kind(op: O, left: &str, right: &str) -> Option<Result<KindI
         return None;
     }
     Some(match op {
-        O::Add | O::Subtract if left == right && linear(left) => Ok(kind_id(left)),
+        O::Add | O::Subtract if left == right && additive(left) => Ok(kind_id(left)),
+        O::Add | O::Subtract
+            if (left == conduit_core::QUANTITY_INFO_ID
+                || right == conduit_core::QUANTITY_INFO_ID)
+                && additive(left)
+                && additive(right) =>
+        {
+            Ok(kind_id(conduit_core::QUANTITY_INFO_ID))
+        }
         O::Divide if left == right && linear(left) && left != conduit_core::QUANTITY_INFO_ID => {
             Ok(kind_id(SCALAR_INFO_ID))
         }
         O::Multiply | O::Divide if linear(left) && linear(right) => {
             Ok(kind_id(conduit_core::QUANTITY_INFO_ID))
         }
-        O::Multiply | O::Divide if linear(left) && right == SCALAR_INFO_ID => Ok(kind_id(left)),
-        O::Multiply if left == SCALAR_INFO_ID && linear(right) => Ok(kind_id(right)),
+        O::Multiply | O::Divide if additive(left) && right == SCALAR_INFO_ID => Ok(kind_id(left)),
+        O::Multiply if left == SCALAR_INFO_ID && additive(right) => Ok(kind_id(right)),
         _ => Err(()),
     })
 }
@@ -66,7 +79,7 @@ fn rational(
     let value = profile
         .decode(kind, bytes, work)
         .map_err(|_| R::InvalidProgram)?;
-    if value.role() != QuantityRole::Linear {
+    if value.role() == QuantityRole::Point {
         return Err(R::QuantityProduct(
             conduit_core::RationalQuantityRefusal::InvalidRole,
         ));
@@ -98,11 +111,12 @@ impl Output<'_> {
         &mut self,
         coordinate: ExactRational,
         unit: conduit_core::Unit,
+        role: QuantityRole,
         work: &mut ExactNumericWork,
     ) -> Result<usize, R> {
         if self.profile == conduit_core::QuantityValueProfile::Exact {
-            let value = RationalQuantity::new(coordinate, unit, QuantityRole::Linear)
-                .map_err(R::QuantityProduct)?;
+            let value =
+                RationalQuantity::new(coordinate, unit, role).map_err(R::QuantityProduct)?;
             return conduit_core::encode_rational_quantity_value(value, self.bytes).map_err(
                 |why| match why {
                     conduit_core::QuantityValueRefusal::Rational(why) => R::QuantityProduct(why),
@@ -113,8 +127,8 @@ impl Output<'_> {
         let (coefficient, exponent) = coordinate
             .checked_decimal_parts(work)
             .map_err(R::QuantityProjection)?;
-        let value =
-            Quantity::from_decimal(coefficient, exponent, unit).map_err(R::QuantityEncoding)?;
+        let value = Quantity::from_decimal_role(coefficient, exponent, unit, role)
+            .map_err(R::QuantityEncoding)?;
         let target = self
             .bytes
             .get_mut(..QUANTITY_ENCODED_LEN)
@@ -181,7 +195,7 @@ pub(crate) fn evaluate_into(
                 left.checked_quotient(right, &mut work)
             }
             .map_err(R::QuantityProduct)?;
-            return output.quantity(result.coordinate(), result.unit(), &mut work);
+            return output.quantity(result.coordinate(), result.unit(), result.role(), &mut work);
         }
         let right = right
             .convert_to_unit(left.unit(), &mut work)
@@ -211,7 +225,7 @@ pub(crate) fn evaluate_into(
             }
             _ => return Err(R::InvalidProgram),
         };
-        return output.quantity(coordinate, left.unit(), &mut work);
+        return output.quantity(coordinate, left.unit(), left.role(), &mut work);
     }
     let (value, factor, divide) = if is_quantity(left_kind) && right_kind == SCALAR_INFO_ID {
         (
@@ -237,7 +251,7 @@ pub(crate) fn evaluate_into(
         value.coordinate().checked_multiply(factor, &mut work)
     }
     .map_err(|_| R::Arithmetic)?;
-    output.quantity(coordinate, value.unit(), &mut work)
+    output.quantity(coordinate, value.unit(), value.role(), &mut work)
 }
 
 /// Physical equality/order can cross coordinate representations. Preserve the

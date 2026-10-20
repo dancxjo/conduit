@@ -41,6 +41,8 @@ mod expression_numeric_type;
 mod expression_prepared;
 mod expression_program;
 mod expression_program_decode;
+mod qualified_quantity_binary64;
+pub use qualified_quantity_binary64::*;
 mod expression_proof;
 mod expression_quantity;
 mod expression_semantic_call;

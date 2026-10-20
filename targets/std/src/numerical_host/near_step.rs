@@ -376,3 +376,6 @@ pub(crate) use mathematical::requirements as mathematical_near_requirements;
 
 #[cfg(test)]
 mod report_tests;
+
+#[cfg(test)]
+mod qualified_source_tests;

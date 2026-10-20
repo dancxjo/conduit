@@ -105,3 +105,22 @@ fn arithmetic_cannot_escape_qualification_or_change_physical_family() {
         assert!(compile(output, body).is_err(), "{output}: {body}");
     }
 }
+
+#[test]
+fn generic_physical_operands_and_existing_difference_constructors_keep_their_types() {
+    for source in [
+        "plot fold (\n >> value: Quantity near 0.001m\n result: Quantity near 0.2m >>\n) = (. + 1m)\n",
+        "plot fold (\n >> value: TemperatureDelta near TemperatureDelta(0.001, °C)\n result: TemperatureDelta near TemperatureDelta(0.2, °C) >>\n) = (. + TemperatureDelta(1, °C))\n",
+    ] {
+        let mut startup = StartupCatalog::new();
+        let mut profile = ProfileCatalog::new();
+        install_numerical_catalogs(&mut startup, &mut profile).unwrap();
+        let syntax = parse_syntax_document(source);
+        assert!(syntax.diagnostics.is_empty(), "{:?}", syntax.diagnostics);
+        let checked = check_syntax_document(&syntax, &startup).unwrap();
+        let expanded = expand_canonical_plot_for_authoring(&checked, "fold", &profile).unwrap();
+        let ConfigurationValue::Text(encoded) = &expanded.expanded.gears[0].configuration[0].value else { panic!() };
+        let program = PortableExpressionProgram::from_canonical_hex(encoded).unwrap();
+        assert!(matches!(program.root.operation, PortableExpressionOperation::QualifiedQuantity { .. }));
+    }
+}
