@@ -2,8 +2,8 @@
 //! Look never enters this preparation, so expression changes cannot rearrange
 //! semantics, actions, disclosure, or navigation.
 use crate::{
-    ComponentRecipeInfo, ComponentSubjectSelector, Face, FaceRole, FaceUtterancePlan,
-    FaceUtterancePlanError, plan_face_utterances,
+    plan_face_utterances, ComponentRecipeInfo, ComponentSubjectSelector, Face, FaceRole,
+    FaceUtterancePlan, FaceUtterancePlanError,
 };
 use alloc::{collections::BTreeSet, vec, vec::Vec};
 use conduit_core::StructuredInfoValue;
