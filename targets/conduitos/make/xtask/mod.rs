@@ -61,6 +61,7 @@ mod loongarch64_emulator;
 mod loongarch64_entropy_input;
 mod loongarch64_product_boot;
 mod make_resolution;
+mod native_latency;
 mod native_timing;
 mod opl2_proof;
 #[path = "../../../orange-pi/make/xtask/orange_pi_5_image.rs"]
@@ -548,7 +549,7 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
         ConduitosCommand::Demo(target) => demo::execute(target.arch.into(), opts),
         ConduitosCommand::FrontDoorProof => front_door_proof::execute(opts),
         ConduitosCommand::JourneyProof => journey_proof::execute(opts),
-        ConduitosCommand::NativeLatencyProof => journey_proof::execute_timed(opts),
+        ConduitosCommand::NativeLatencyProof => native_latency::execute(opts),
         ConduitosCommand::GraphicalProfileProof => graphical_profile_proof::execute(opts),
         ConduitosCommand::Run(target) => {
             target.arch.require_boot_backend()?;
