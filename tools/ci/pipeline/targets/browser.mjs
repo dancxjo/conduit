@@ -157,7 +157,7 @@ export async function browser(directory) {
     { recursive: true, errorOnExist: true, force: false });
   command('node', ['proof/browser/verify-public-site.mjs', site, path.join(directory, 'site-proof')]);
   writeFileSync(path.join(directory, 'proof-scope.json'), JSON.stringify({
-    product: 'workspace/', project: 'chromium', workersPerBatch: 1, retries: 0, specs: SPECS,
+    product: 'workspace/', project: 'chromium', workers: 1, workersPerBatch: 1, retries: 0, specs: SPECS,
     chromiumProof,
     additionalProof: 'Workspace WCAG 2.2 AA and local asset/link smoke',
     website: 'Homepage, durable static Handbook with resident Patchbay and live source editing, journeys, Field Station captures, shared navigation and responsive layout',
