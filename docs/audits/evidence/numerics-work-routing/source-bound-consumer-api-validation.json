@@ -1,0 +1,35 @@
+{
+  "commit": "b3cec555877242387e7948190bcd8af62dd56844",
+  "validation": {
+    "component_tests": "11 passed, 0 failed, 905 filtered out; no warnings",
+    "strict_clippy": "Plot and Std libraries passed with warnings denied",
+    "native_no_default": "Plot library passed",
+    "format_and_diff": "passed"
+  },
+  "proof": [
+    "independent retained program and incoming frame replay before returning target",
+    "changed basis and byte tampering refused",
+    "oversized evidence refused before numerical work",
+    "numerical work and malformed incoming evidence remain distinct refusals",
+    "short output leaves staging unchanged",
+    "recovery and zero observed allocations"
+  ],
+  "evidence": [
+    "source-freeze.json",
+    "source.tar.gz",
+    "executable-custody.json",
+    "eleven-tests.elf.gz",
+    "checkpoint.bundle"
+  ],
+  "limits": [
+    "original numerical allowance and boundary basis must be independently retained",
+    "component proof only; no installed Plan/Play or full workspace/device proof",
+    "parent requirement statuses unchanged"
+  ],
+  "next": [
+    "versioned qualified output representation preserving historical Near v4 replay",
+    "explicit bounded prepared consuming profile; Core remains independent of Plot",
+    "installed Source-specific host back through existing kernel",
+    "original Source/Plan/Cord/Sign proof and stable acceptance"
+  ]
+}

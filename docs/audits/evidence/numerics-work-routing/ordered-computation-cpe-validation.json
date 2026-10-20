@@ -1,0 +1,25 @@
+{
+  "commit": "15c71e6238598c773e87146b39728550d3fd4657",
+  "validation": {
+    "full_core": "605 passed, 0 failed, 0 ignored; 116 summaries, 115 executed ELFs retained",
+    "focused": "7 passed across computation evidence, runner and qualified fold",
+    "strict_clippy": "Core lib and tests, warnings denied, passed",
+    "native_no_default": "Core lib passed",
+    "format_and_diff": "passed"
+  },
+  "scope": "Shared CPE transport of complete ordered binary64 computation, existing Binary64AlgorithmDomain and policy; no new runtime or evidence format",
+  "proof": [
+    "all four rounding modes",
+    "full canonical byte tampering, truncation and trailing data refused",
+    "all operations and 32-step inventory",
+    "final-only projection rejected as different computation",
+    "zero transport allocations and short output preflight"
+  ],
+  "remaining": [
+    "physical qualified Source wrapper binding original checked program and complete incoming evidence",
+    "independent consuming replay tied to exact Source and coordinate role",
+    "qualified output representation and bounded installed host back",
+    "original Source/Plan/Play and Sign evidence",
+    "full parent acceptance audit and exact stable main proof"
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "base": "3c4b4d14c8a3ebb69bbdd5cd837abe1fdad858ed",
+  "files": {
+    "architecture/core/src/exact_numeric/binary64.rs": "609dd47c358d76bfb85260f764a978e0c5f7fc2e1c158cf7ffbef3f14b32548d",
+    "architecture/core/src/exact_numeric/binary64/evidence.rs": "f26fe4cbef1feb114f9e57139360fe9f41f10d3feeb9ddefcefe0c0382f34282",
+    "architecture/core/src/exact_numeric/binary64/projection.rs": "93c2fe712bdb1b116320700f6d38a11db6a80b531396af19ca21d131ca1ea710",
+    "architecture/core/tests/binary64_computation_evidence.rs": "383d2bee5c442405d2b9ebf6e6b0cc9175fdc32a4ea949a47a83d35ce7df24be"
+  }
+}

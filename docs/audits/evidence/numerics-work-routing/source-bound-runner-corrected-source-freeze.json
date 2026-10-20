@@ -1,0 +1,15 @@
+{
+  "base": "637f56175524db1d8bf7d753d20c746e3578b1a7",
+  "files": {
+    "architecture/core/src/exact_numeric.rs": "af228c2dac8a263ecde858e8359a9c290e4abc48020731f654ab1630152fdec4",
+    "architecture/core/tests/numerical_work_composition.rs": "cf01db913a73afc7d16d0d5029c3c19888ce808cecdc1044d4e1b86488fda072",
+    "architecture/plot/src/expression_quantity.rs": "1b79f419240888aab783eeffbb0e6b8304e7245a7e74d7b2f53a5d91278e7a0e",
+    "architecture/plot/src/lib.rs": "a51239fc20fe90334e7ebeaa3836d6e62bd8bab2b340528ddeb260e3adf185fb",
+    "architecture/plot/src/qualified_quantity_binary64.rs": "4b9f2b2bd31b7b4f222eef5e09a385ac879dcfa595881bdf1668f6d59e4579ff",
+    "architecture/plot/src/qualified_quantity_binary64/lowering.rs": "9fdf79bfe310683c728da41e5554a5e0668dc1e7bf56be63e82cfb4c05cbef2a",
+    "architecture/plot/tests/quantity_delta_arithmetic.rs": "c92ec0035f5909c54c020d8f4f998ed43e4dcfc38f9653397c1c70d8a71c0c03",
+    "semantics/catalog/tests/qualified_computation.rs": "306232f16aab2da28aa8d273cbb3e965cfa2823b4b6132486e257f041ef07b94",
+    "targets/std/src/numerical_host/near_step.rs": "9af066850f7163d4c47c75c180790ec0874b07a1b0ecf5b99bd1941e60c29d4c",
+    "targets/std/src/numerical_host/near_step/qualified_source_tests.rs": "567ba18651a8a09d7eb608e169d7d3d4688f92f8faa2d8b1f78b0ce449620955"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "at": "2026-10-20T03:03:22.654377+00:00",
+  "parent": "0eb3097d676f27ea789893da3a77c8e1197bd14b",
+  "files": {
+    "architecture/core/src/exact_numeric/binary64/algorithm.rs": "1bae77263010952148ea6d0320aa4ee27eb9a1c9f355778ef7796cec2e242067",
+    "architecture/core/src/exact_numeric/binary64/algorithm/runner.rs": "ed543f0ca2cd0a40d1e89f350b35b4515a6fbf77612f052a9f340c29d86a8624",
+    "architecture/core/src/exact_numeric/binary64/algorithm/runner/program.rs": "824c0766fd699cf692762288f7e741abbb301818e26a2ee6f32f5027b44f34a3",
+    "architecture/core/tests/binary64_program_runner.rs": "94b8e4e15b01993dd0ba257d043f8fe4ef0209a4d338276b4520600674a5490e"
+  }
+}

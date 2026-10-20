@@ -1,0 +1,78 @@
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/architecture/plot)
+   Compiling conduit-time v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/semantics/time)
+   Compiling conduit-language v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/semantics/language)
+   Compiling conduit-human v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/semantics/human)
+   Compiling conduit-data v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/semantics/data)
+   Compiling conduit-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/semantics/face)
+   Compiling conduit-planner v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/architecture/planner)
+   Compiling conduit-audio v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/semantics/audio)
+   Compiling conduit-web v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/semantics/web)
+   Compiling conduit-net v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/semantics/net)
+   Compiling conduit-process v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/semantics/process)
+   Compiling conduit-text v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/semantics/text)
+   Compiling conduit-alife v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/semantics/alife)
+   Compiling conduit-education v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/semantics/education)
+   Compiling conduit-purpose v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/semantics/purpose)
+   Compiling conduit-robotics v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/semantics/robotics)
+   Compiling conduit-midi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/mechanisms/protocols/midi)
+   Compiling conduit-semantic-catalog v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/semantics/catalog)
+   Compiling conduit-host-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/make/host)
+   Compiling conduit-ai v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/semantics/ai)
+   Compiling conduit-tongues v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/semantics/tongues)
+   Compiling conduit-chat v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/semantics/chat)
+   Compiling conduit-signal v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/semantics/signal)
+   Compiling conduit-todo-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/plots/todo/model)
+   Compiling conduit-thermostat-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/plots/thermostat/model)
+   Compiling conduit-wire v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/architecture/wire)
+   Compiling conduit-std-offers v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/targets/std/offers)
+   Compiling conduit-bluetooth v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/mechanisms/protocols/bluetooth)
+   Compiling conduit-speech v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/semantics/speech)
+   Compiling conduit-host-browser-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/targets/browser/make)
+   Compiling conduit-tutorial-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/semantics/tutorial)
+   Compiling conduit-body-invitation-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/semantics/body-invitation)
+   Compiling conduit-plot-library v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/semantics/plot-library)
+   Compiling conduit-signal-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/proof/conformance/signal)
+   Compiling conduit-host-hosted v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/targets/std/make)
+   Compiling conduit-host-raspberry-pi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/targets/raspberry-pi/make)
+   Compiling conduit-host-esp32-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/targets/esp32/make)
+   Compiling conduit-host-rp2040 v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/targets/rp2040/make)
+   Compiling conduit-linear-framebuffer-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/mechanisms/implementations/linear-framebuffer-make)
+   Compiling conduit-host-avr-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/targets/avr/make)
+   Compiling conduit-host-conduitos-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/targets/conduitos/make)
+   Compiling conduit-host-orange-pi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/targets/orange-pi/make)
+   Compiling patchbay-graph v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/plots/patchbay/graph)
+   Compiling conduit-finance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/semantics/finance)
+   Compiling patchbay-application v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/plots/patchbay/application)
+   Compiling conduit-browser-mask-offer v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/targets/browser/mask-offer)
+   Compiling conduit-thermostat-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/plots/thermostat/face)
+   Compiling conduit-composite v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/architecture/composite)
+   Compiling conduit-observatory v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/architecture/observatory)
+   Compiling conduit-body-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/make/body)
+   Compiling conduit-tour-model v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/plots/tour)
+   Compiling conduit-synth v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/mechanisms/implementations/synth)
+   Compiling conduit-little-seismograph-fixture v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/plots/little-seismograph/fixture)
+   Compiling conduit-birth-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/plots/birth)
+   Compiling conduit-browser-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/targets/browser/runtime)
+   Compiling conduit-workspace-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/make/workspace)
+   Compiling conduit-r1-network-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/proof/conformance/network-r1)
+   Compiling conduit-todo-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/plots/todo/face)
+   Compiling conduit-alife-distributed-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/proof/conformance/alife-distributed)
+   Compiling conduit-std-host v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/targets/std)
+    Finished `test` profile [unoptimized] target(s) in 4m 50s
+     Running unittests src/lib.rs (target/debug/deps/conduit_std_host-c17476a0eb8447ce)
+
+running 11 tests
+test numerical_host::near_step::qualified_source_tests::evidence_tests::original_program_and_incoming_frame_bind_independently_replayed_shared_evidence ... ok
+test numerical_host::near_step::qualified_source_tests::widening_retains_the_actual_negative_zero_after_incoming_underflow ... ok
+test numerical_host::near_step::qualified_source_tests::evidence_tests::bounded_consumer_api_checks_artifacts_basis_work_and_transport_before_returning_a_target ... ok
+test numerical_host::near_step::qualified_source_tests::input_evidence_physical_frame_and_coordinate_policy_are_independent ... ok
+test numerical_host::near_step::qualified_source_tests::difference_coordinates_keep_their_role_and_do_not_receive_point_offsets ... ok
+test numerical_host::near_step::qualified_source_tests::exact_incoming_contract_does_not_forbid_the_computations_own_admitted_rounding ... ok
+test numerical_host::near_step::qualified_source_tests::domain_faults_and_exhausted_shared_work_are_charged_and_remain_distinct ... ok
+test numerical_host::near_step::qualified_source_tests::checked_source_and_actual_incoming_representation_reach_the_ordered_runner_without_growth ... ok
+test numerical_host::near_step::qualified_source_tests::coordinate_choice_is_independent_of_the_units_used_to_state_error_bounds ... ok
+test numerical_host::near_step::qualified_source_tests::evidence_tests::same_denotation_and_target_do_not_erase_incoming_or_program_custody ... ok
+test numerical_host::near_step::qualified_source_tests::source_binding_refuses_hidden_unit_changes_scalar_reinterpretation_and_false_operator_types ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 905 filtered out; finished in 6.29s
+

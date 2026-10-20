@@ -1,0 +1,996 @@
+{
+  "schema": "conduit.numerics-work-routing/v1",
+  "parent_issue": 5392,
+  "scope": "All 93 original requirement texts and recorded statuses preserved; routing is not acceptance. Difficulty estimates describe remaining effort, not dependency execution order.",
+  "code_snapshot": "5f9641a761eace2285e2e9c7afc2ea4ae3507907",
+  "origin_branches": [
+    "codex/5392-numerics-integration-preparation",
+    "codex/5392-atan2-delta-preparation",
+    "codex/5392-routed-content-preparation"
+  ],
+  "issues": [
+    {
+      "number": 6106,
+      "rank": 1,
+      "title": "[Numerics S01] Reconcile the original 93 requirements against accepted release evidence",
+      "dependencies": [],
+      "checkpoints": [
+        "b3cec55587"
+      ]
+    },
+    {
+      "number": 6107,
+      "rank": 2,
+      "title": "[Numerics S02] Version qualified binary64 output schemas and preserve Near v4 replay",
+      "dependencies": [],
+      "checkpoints": [
+        "5f9641a761"
+      ]
+    },
+    {
+      "number": 6108,
+      "rank": 3,
+      "title": "[Numerics S03] Integrate checked physical bodies behind qualified expression carriers",
+      "dependencies": [],
+      "checkpoints": [
+        "b74fd54ada",
+        "0eb3097d67",
+        "3c4b4d14c8"
+      ]
+    },
+    {
+      "number": 6109,
+      "rank": 4,
+      "title": "[Numerics S04] Admit bounded binary64 programs without fabricated execution certificates",
+      "dependencies": [
+        6108
+      ],
+      "checkpoints": [
+        "637f561755",
+        "3c4b4d14c8"
+      ]
+    },
+    {
+      "number": 6110,
+      "rank": 5,
+      "title": "[Numerics S05] Integrate complete Source-bound binary64 CPE and bounded consuming replay",
+      "dependencies": [
+        6108,
+        6109
+      ],
+      "checkpoints": [
+        "15c71e6238",
+        "e7f70db334",
+        "b3cec55587"
+      ]
+    },
+    {
+      "number": 6111,
+      "rank": 6,
+      "title": "[Numerics S06] Publish bounded routed values and complete numerical inspection artifacts",
+      "dependencies": [],
+      "checkpoints": [
+        "815b9ecb62",
+        "97ea072a0c",
+        "295ed17180",
+        "e733d95129"
+      ]
+    },
+    {
+      "number": 6112,
+      "rank": 7,
+      "title": "[Numerics S07] Integrate complete exact, binary32 and enclosed Near receipt replay",
+      "dependencies": [],
+      "checkpoints": [
+        "35184b42a9",
+        "8d5aea3ff1",
+        "b55872d7c3",
+        "da808fb2b5"
+      ]
+    },
+    {
+      "number": 6113,
+      "rank": 8,
+      "title": "[Numerics S08] Integrate same-role temperature-difference atan2 through normal Source",
+      "dependencies": [],
+      "checkpoints": [
+        "4573abbd5f",
+        "0800e572d2",
+        "3d14b5a350"
+      ]
+    },
+    {
+      "number": 6114,
+      "rank": 9,
+      "title": "[Numerics S09] Admit prepared multi-port output publication atomically under pressure",
+      "dependencies": [],
+      "checkpoints": [
+        "e9284490eb"
+      ]
+    },
+    {
+      "number": 6115,
+      "rank": 10,
+      "title": "[Numerics S10] Install exact input-consuming Quantity coordinate projection",
+      "dependencies": [
+        6114,
+        6111
+      ],
+      "checkpoints": [
+        "5a684760fa",
+        "5435ac1dd3",
+        "03e9a7466c",
+        "45c5336344"
+      ]
+    },
+    {
+      "number": 6116,
+      "rank": 11,
+      "title": "[Numerics S11] Integrate exact turn/radian and inverse-angle coordinate certificates",
+      "dependencies": [
+        6115
+      ],
+      "checkpoints": [
+        "c602703402",
+        "09a34abd6f",
+        "347f80aebb"
+      ]
+    },
+    {
+      "number": 6117,
+      "rank": 12,
+      "title": "[Numerics S12] Complete exact scalar Source arithmetic and bounded canonical IR",
+      "dependencies": [],
+      "checkpoints": [
+        "ad73b8c4e0",
+        "93906c1fa8",
+        "5bad5aacac"
+      ]
+    },
+    {
+      "number": 6118,
+      "rank": 13,
+      "title": "[Numerics S13] Integrate dynamic root and symbolic Source expressions with certified consumers",
+      "dependencies": [
+        6117
+      ],
+      "checkpoints": [
+        "aab8a32c3b",
+        "a533f202e8",
+        "ad73b8c4e0",
+        "5bad5aacac"
+      ]
+    },
+    {
+      "number": 6119,
+      "rank": 14,
+      "title": "[Numerics S14] Encode and consume bounded qualified binary64 result records",
+      "dependencies": [
+        6107,
+        6110
+      ],
+      "checkpoints": []
+    },
+    {
+      "number": 6120,
+      "rank": 15,
+      "title": "[Numerics S15] Install an offered Source-specific qualified computation Back",
+      "dependencies": [
+        6108,
+        6109,
+        6110,
+        6119
+      ],
+      "checkpoints": []
+    },
+    {
+      "number": 6121,
+      "rank": 16,
+      "title": "[Numerics S16] Prove the original cancellation-sensitive qualified Source through conduit",
+      "dependencies": [
+        6120,
+        6111,
+        6112
+      ],
+      "checkpoints": [
+        "3c4b4d14c8",
+        "b3cec55587"
+      ]
+    },
+    {
+      "number": 6122,
+      "rank": 17,
+      "title": "[Numerics S17] Measure cold and warm numeric costs without a symbolic fast-path tax",
+      "dependencies": [
+        6120
+      ],
+      "checkpoints": [
+        "0a0a666157",
+        "93dd5de4a6"
+      ]
+    },
+    {
+      "number": 6123,
+      "rank": 18,
+      "title": "[Numerics S18] Prove independent coordinate and numeric projections in one unchanged Source",
+      "dependencies": [
+        6115,
+        6116,
+        6118,
+        6111
+      ],
+      "checkpoints": [
+        "b30d0cd3e6"
+      ]
+    },
+    {
+      "number": 6124,
+      "rank": 19,
+      "title": "[Numerics S19] Author an explicit cyclic-to-angular frequency operation",
+      "dependencies": [
+        6116
+      ],
+      "checkpoints": []
+    },
+    {
+      "number": 6125,
+      "rank": 20,
+      "title": "[Numerics S20] Keep qualified comparisons sound at tolerance thresholds",
+      "dependencies": [
+        6120
+      ],
+      "checkpoints": []
+    },
+    {
+      "number": 6126,
+      "rank": 21,
+      "title": "[Numerics S21] Preserve observation uncertainty separately through numerical composition",
+      "dependencies": [
+        6120
+      ],
+      "checkpoints": []
+    },
+    {
+      "number": 6127,
+      "rank": 22,
+      "title": "[Numerics S22] Bind consumer precision, range and reproducibility requirements in Plans",
+      "dependencies": [
+        6120,
+        6112
+      ],
+      "checkpoints": []
+    },
+    {
+      "number": 6128,
+      "rank": 23,
+      "title": "[Numerics S23] Select eligible alternatives for two differently constrained consumers",
+      "dependencies": [
+        6127,
+        6121
+      ],
+      "checkpoints": []
+    },
+    {
+      "number": 6129,
+      "rank": 24,
+      "title": "[Numerics S24] Preserve fidelity and provenance across numerical Back substitution",
+      "dependencies": [
+        6128,
+        6111
+      ],
+      "checkpoints": []
+    },
+    {
+      "number": 6130,
+      "rank": 25,
+      "title": "[Numerics S25] Demonstrate one real DSP consumer using the common projection contract",
+      "dependencies": [
+        6128,
+        6124
+      ],
+      "checkpoints": []
+    },
+    {
+      "number": 6131,
+      "rank": 26,
+      "title": "[Numerics S26] Demonstrate one real ML or tensor consumer using the common projection contract",
+      "dependencies": [
+        6128
+      ],
+      "checkpoints": []
+    },
+    {
+      "number": 6132,
+      "rank": 27,
+      "title": "[Numerics S27] Prove the declared numerical portability and unsupported-profile matrix",
+      "dependencies": [
+        6121,
+        6123
+      ],
+      "checkpoints": []
+    },
+    {
+      "number": 6133,
+      "rank": 28,
+      "title": "[Numerics S28] Preserve numerical contracts in one admitted fused physical region",
+      "dependencies": [
+        6127,
+        6128
+      ],
+      "checkpoints": []
+    },
+    {
+      "number": 6134,
+      "rank": 29,
+      "title": "[Numerics S29] Establish whole-algorithm contracts for reviewed additional float strategies",
+      "dependencies": [
+        6127,
+        6116
+      ],
+      "checkpoints": []
+    },
+    {
+      "number": 5534,
+      "rank": 30,
+      "title": "N5 integration acceptance corpus"
+    },
+    {
+      "number": 5392,
+      "rank": 31,
+      "title": "Parent original-scope stable acceptance audit"
+    }
+  ],
+  "requirements": [
+    {
+      "id": "R01",
+      "section": "Motivating failures / examples",
+      "requirement": "- `1/3` is an exact rational, not inherently an inexact float.",
+      "recorded_status": "partial",
+      "owner_issue": 6106
+    },
+    {
+      "id": "R02",
+      "section": "Motivating failures / examples",
+      "requirement": "- `sqrt(2)` is an exact algebraic number when expressed by a supported root definition.",
+      "recorded_status": "partial",
+      "owner_issue": 6118
+    },
+    {
+      "id": "R03",
+      "section": "Motivating failures / examples",
+      "requirement": "- `π` and `π/180` are exact named/symbolic mathematical expressions, even though a particular numerical projection is approximate.",
+      "recorded_status": "partial",
+      "owner_issue": 6118
+    },
+    {
+      "id": "R04",
+      "section": "Motivating failures / examples",
+      "requirement": "- `10^1000 + 1` has an exact finite integer value; a native `i64` cannot represent it, but that is a realization constraint, not a mathematical error.",
+      "recorded_status": "partial",
+      "owner_issue": 6106
+    },
+    {
+      "id": "R05",
+      "section": "Motivating failures / examples",
+      "requirement": "- `sin(π/7)` may remain a finite symbolic expression even where no supported closed-form simplification is available.",
+      "recorded_status": "partial",
+      "owner_issue": 6118
+    },
+    {
+      "id": "R06",
+      "section": "Motivating failures / examples",
+      "requirement": "- An exact unit conversion should be able to retain rational scale and affine-offset laws instead of refusing solely because the destination magnitude is not representable by the current fixed-width numeric carrier.",
+      "recorded_status": "partial",
+      "owner_issue": 6115
+    },
+    {
+      "id": "R07",
+      "section": "Motivating failures / examples",
+      "requirement": "- A sensor measurement with uncertainty is **not** made exact by exact arithmetic on its encoded reading.",
+      "recorded_status": "partial",
+      "owner_issue": 6126
+    },
+    {
+      "id": "R08",
+      "section": "Required semantic distinctions",
+      "requirement": "1. **Exact denotation**: fixed integers, arbitrary-precision integers, reduced rationals, supported algebraic numbers/root definitions, named mathematical constants, and bounded canonical symbolic expression DAGs. This is a *representable subset* of mathematical numbers/expressions, not all mathematical reals.",
+      "recorded_status": "partial",
+      "owner_issue": 6117
+    },
+    {
+      "id": "R09",
+      "section": "Required semantic distinctions",
+      "requirement": "2. **Concrete numerical realization**: checked fixed-width integer, fixed-point, IEEE floating point, arbitrary-precision integer/rational, certified interval/ball arithmetic, symbolic evaluation or another reviewed implementation. These are representation/algorithm choices, not automatically different authored meanings.",
+      "recorded_status": "reviewed-gap",
+      "owner_issue": 6127
+    },
+    {
+      "id": "R10",
+      "section": "Required semantic distinctions",
+      "requirement": "3. **Certified approximation**: a value/projection with a specified absolute/relative/ULP bound or interval enclosure, rounding policy and provenance. Distinguish a verified bound from a merely requested tolerance or empirical error estimate.",
+      "recorded_status": "reviewed-gap",
+      "owner_issue": 6119
+    },
+    {
+      "id": "R11",
+      "section": "Required semantic distinctions",
+      "requirement": "4. **Measured/estimated uncertainty**: distribution, confidence, resolution, calibration or observation interval with source/provenance, separate from arithmetic rounding and truncation. Do not conflate uncertainty and guaranteed numerical error.",
+      "recorded_status": "partial",
+      "owner_issue": 6126
+    },
+    {
+      "id": "R12",
+      "section": "Required semantic distinctions",
+      "requirement": "5. **Refusal/indeterminacy**: unsupported symbolic comparison/identity, insufficient resource bounds or proof, singularities/domain faults, overflow, and unmet tolerance must be represented truthfully. Never silently return a rounded value or falsely claim exactness.",
+      "recorded_status": "partial",
+      "owner_issue": 6120
+    },
+    {
+      "id": "R13",
+      "section": "Floating point is a planned projection, not the default number ontology",
+      "requirement": "- **Three levels, no conflation:** (1) exact mathematical value / finite supported expression, (2) planned numerical realization (including `f32`, `f64`, hardware vector/GPU math, fixed-point and intervals), and (3) result with admitted precision, rounding/error evidence and provenance. A `Float64` carrier does not automatically redefine the authored expression.",
+      "recorded_status": "reviewed-gap",
+      "owner_issue": 6127
+    },
+    {
+      "id": "R14",
+      "section": "Floating point is a planned projection, not the default number ontology",
+      "requirement": "- **Postpone numerical commitment:** permit an exact expression to flow through multiple Plots, dimensional transformations and bounded simplifications before projecting to `f32`/`f64` at a specific consuming Gear/Back (GPU, DSP buffer, model inference, protocol, etc.). Do not eagerly narrow values merely because native floats exist.",
+      "recorded_status": "reviewed-gap",
+      "owner_issue": 6123
+    },
+    {
+      "id": "R15",
+      "section": "Floating point is a planned projection, not the default number ontology",
+      "requirement": "- **Project the computation, not just its final answer:** an `f64` realization generally rounds *intermediate operands and operations*. Admission must account for accumulated errors, cancellation, overflow/underflow, subnormals, operation order, fused operations, transcendental implementation and the claimed reproducibility contract. It is not sufficient to evaluate exact math and round just the output unless that is the selected algorithm. Reassociations/optimizations need justification against admitted fidelity.",
+      "recorded_status": "reviewed-gap",
+      "owner_issue": 6121
+    },
+    {
+      "id": "R16",
+      "section": "Floating point is a planned projection, not the default number ontology",
+      "requirement": "- **Proof obligation:** declare a consumer's numeric requirement; choose floating point only if a checked range/error analysis, certified enclosure or appropriate reviewed numerical contract establishes that the **whole selected computation** satisfies it. Where proof is not available, request explicit tolerance/acceptance or choose another Back; do not fabricate rigorous guarantees from empirical tests or heuristic error estimates.",
+      "recorded_status": "reviewed-gap",
+      "owner_issue": 6120
+    },
+    {
+      "id": "R17",
+      "section": "Floating point is a planned projection, not the default number ontology",
+      "requirement": "- **Exact semantics example:** with ordinary mathematical literals, `0.1 + 0.2 == 0.3` is exactly true (tenths are rationals). IEEE binary64 operational evaluation may instead yield different bit patterns because of operand and intermediate rounding. These should not be treated as the same contract.",
+      "recorded_status": "partial",
+      "owner_issue": 6106
+    },
+    {
+      "id": "R18",
+      "section": "Floating point is a planned projection, not the default number ontology",
+      "requirement": "- **Explicit IEEE escape hatch:** retain a distinct opt-in semantic mode/type for work where IEEE-754 representation and operations **are themselves the intended meaning**, including NaN and infinity propagation, signed zero, exact bit patterns, rounding modes, exceptions/flags, and platform-relevant operation order. In that mode neither the checker nor Planner may substitute real-number identities or reassociate operations if doing so changes specified IEEE behavior. No compulsory symbolic detour for emulators, numeric conformance tests, binary protocols or systems code.",
+      "recorded_status": "partial",
+      "owner_issue": 6106
+    },
+    {
+      "id": "R19",
+      "section": "Floating point is a planned projection, not the default number ontology",
+      "requirement": "- **Projection boundaries and evidence:** record the exact source denotation/expression identity (or well-defined provenance), selected float format, rounding mode, operation strategy, assumptions, error/exception contract, and observed result at the agreed boundary. Use #4952 projection-loss evidence and #4051 Back invariance; do not define a competing numerical-only projection subsystem.",
+      "recorded_status": "partial",
+      "owner_issue": 6110
+    },
+    {
+      "id": "R20",
+      "section": "Floating point is a planned projection, not the default number ontology",
+      "requirement": "- **Resource sanity:** ordinary bounded scalar hot paths should still compile straight to efficient machine floating point or fixed-width integers when admitted. Symbolic representations remain a semantic option, not a runtime tax on all calculations.",
+      "recorded_status": "partial",
+      "owner_issue": 6122
+    },
+    {
+      "id": "R21",
+      "section": "Dimension-aware trigonometry; canonical angle unit = turn (cross-ticket #5390)",
+      "requirement": "- `turn` gives exact rational circle fractions: `90° = 1/4turn`, `180° = 1/2turn`, `1turn = 360°`; `1turn = 2π rad` is **symbolically exact** rather than a stored float approximation of π. The current `architecture/core/src/quantity/wide_conversion.rs` cross-radian `Inexact` refusal should become a representation limitation addressed by #5392, not a permanent claim that degree/turn vs radian is incompatible. `#5390` declares/resolves angle units, while this issue owns the π-bearing numeric expression/precision projections.",
+      "recorded_status": "partial",
+      "owner_issue": 6116
+    },
+    {
+      "id": "R22",
+      "section": "Dimension-aware trigonometry; canonical angle unit = turn (cross-ticket #5390)",
+      "requirement": "- Known exact identities should simplify/prove exactly, with no float leak: `sin(0turn) = 0`, `sin(1/4turn) = 1`, `cos(1/2turn) = -1`, `sin(90°) = sin(π/2 rad) = 1`, `tan(1/4turn)` refuses undefined. For other values, preserve exact symbolic denotation where bounded/representable and project only at a consuming Back according to admitted numerical precision/error constraints. Do not require a full computer algebra system or universal symbolic equality algorithm.",
+      "recorded_status": "partial",
+      "owner_issue": 6116
+    },
+    {
+      "id": "R23",
+      "section": "Dimension-aware trigonometry; canonical angle unit = turn (cross-ticket #5390)",
+      "requirement": "- Bare `sin(42)` must **fail type checking** (not silently choose `42rad` or `42turn`); `sin(1m)` and `sin(1Hz)` fail dimensional/role checking. Explicit Angle construction can use a reviewed existing literal such as `0.25turn`; unspecified other constructor syntax is not asserted implemented.",
+      "recorded_status": "partial",
+      "owner_issue": 6106
+    },
+    {
+      "id": "R24",
+      "section": "Dimension-aware trigonometry; canonical angle unit = turn (cross-ticket #5390)",
+      "requirement": "- `atan2` permits compatible unit-bearing inputs sharing dimension and role (e.g., `3m`, `400cm`); emits a canonical-turn Angle. Do not infer a physical Angle from arbitrary mixed-dimension ratios. Distinguish Angle vs dimensionless Ratio even though SI radian is dimensionless.",
+      "recorded_status": "partial",
+      "owner_issue": 6113
+    },
+    {
+      "id": "R25",
+      "section": "Dimension-aware trigonometry; canonical angle unit = turn (cross-ticket #5390)",
+      "requirement": "- Distinguish cyclic frequency `f` in cycles/s (Hz) from angular frequency `ω` in turn/s. The checked relation is `ω = f × (1turn/cycle)`, or `ω = 2π f` when represented in rad/s. Neither Hz nor rad/s may silently convert to the other simply because both reduce to inverse time.",
+      "recorded_status": "reviewed-gap",
+      "owner_issue": 6124
+    },
+    {
+      "id": "R26",
+      "section": "Dimension-aware trigonometry; canonical angle unit = turn (cross-ticket #5390)",
+      "requirement": "- Explicit IEEE operations, approximated trigonometric algorithms, range reduction and accumulation require algorithm-wide error/exception evidence under this issue's existing planned-projection law. The same exact Angle expression may be realized using approved float, interval or symbolic Backs according to contract.",
+      "recorded_status": "reviewed-gap",
+      "owner_issue": 6134
+    },
+    {
+      "id": "R27",
+      "section": "Dimension-aware trigonometry; canonical angle unit = turn (cross-ticket #5390)",
+      "requirement": "- [ ] #5390 establishes `turn` as canonical/reference/default Angle unit in its built-in source declaration; `0.25turn` and `90°` remain exact, while explicit authored units remain visible as evidence.",
+      "recorded_status": "complete-accepted-main",
+      "owner_issue": 6106
+    },
+    {
+      "id": "R28",
+      "section": "Dimension-aware trigonometry; canonical angle unit = turn (cross-ticket #5390)",
+      "requirement": "- [ ] `1turn = 2π rad` transports as an exact supported symbolic conversion without inventing rational π; limited numeric projection is either witnessed to tolerance or precisely refused.",
+      "recorded_status": "partial",
+      "owner_issue": 6116
+    },
+    {
+      "id": "R29",
+      "section": "Dimension-aware trigonometry; canonical angle unit = turn (cross-ticket #5390)",
+      "requirement": "- [ ] Trig checks `sin(Angle)`, rejects `sin(42)`, `sin(1m)`, and does not implicitly make radians the unit of scalars.",
+      "recorded_status": "complete-accepted-main",
+      "owner_issue": 6106
+    },
+    {
+      "id": "R30",
+      "section": "Dimension-aware trigonometry; canonical angle unit = turn (cross-ticket #5390)",
+      "requirement": "- [ ] Cardinal/quadrant trig identities are established exactly; tangent poles and inverse-domain/branch/refusal behavior are checked.",
+      "recorded_status": "partial",
+      "owner_issue": 6116
+    },
+    {
+      "id": "R31",
+      "section": "Dimension-aware trigonometry; canonical angle unit = turn (cross-ticket #5390)",
+      "requirement": "- [ ] `atan2(3m, 400cm)` admits unit conversion and returns turn-valued Angle; `atan2(3m, 4s)`, mismatched point/delta roles and undefined `atan2(0,0)` are rejected under explicit contracts.",
+      "recorded_status": "partial",
+      "owner_issue": 6113
+    },
+    {
+      "id": "R32",
+      "section": "Dimension-aware trigonometry; canonical angle unit = turn (cross-ticket #5390)",
+      "requirement": "- [ ] Cyclic frequency versus angular frequency requires an explicit semantic operation; any `2π` factor stays exact until a Back projects it.",
+      "recorded_status": "reviewed-gap",
+      "owner_issue": 6124
+    },
+    {
+      "id": "R33",
+      "section": "Dimension–Unit–Quantity separation (coordinate projection vs numeric projection)",
+      "requirement": "- A numeric expression carried by a Quantity retains its exact denotation (where finitely supportable), **dimension, quantity family and point/difference role**. A pure Scalar is not an Angle just because radians have SI dimension one. Numeric representation lowering must not erase any of these checked facts.",
+      "recorded_status": "partial",
+      "owner_issue": 6108
+    },
+    {
+      "id": "R34",
+      "section": "Dimension–Unit–Quantity separation (coordinate projection vs numeric projection)",
+      "requirement": "- Explicit unit-coordinate projection (e.g. `90° ↔ 0.25turn`, or `turn ↔ rad` with symbolic π) and numeric realization projection (e.g. exact ↔ `f64`) are **orthogonal planning decisions**, each with its own law/evidence. A proposed fast `f32` Back cannot justify silently changing the physical Unit, and unit conversion cannot silently justify IEEE rounding.",
+      "recorded_status": "reviewed-gap",
+      "owner_issue": 6123
+    },
+    {
+      "id": "R35",
+      "section": "Dimension–Unit–Quantity separation (coordinate projection vs numeric projection)",
+      "requirement": "- A Quantity can retain a finite pair of authored coordinates + Unit and source evidence as a transport encoding. Its **semantic physical equality** is distinct from structural/byte equality; don't require eagerly materializing normalized symbolic numbers at every Port.",
+      "recorded_status": "partial",
+      "owner_issue": 6115
+    },
+    {
+      "id": "R36",
+      "section": "Dimension–Unit–Quantity separation (coordinate projection vs numeric projection)",
+      "requirement": "- Keep distinction of compatible dimensions versus authorized semantic operations: Length/Time is derivable; Energy/Torque share dimensional exponents yet can remain nominally different families; temperature points and differences cannot be silently added or equated. #5390 owns that physical type law; this issue owns exact mathematical expression support and admitted numerical projection.",
+      "recorded_status": "partial",
+      "owner_issue": 6115
+    },
+    {
+      "id": "R37",
+      "section": "Dimension–Unit–Quantity separation (coordinate projection vs numeric projection)",
+      "requirement": "- The coherent integration proof is one exact Angle Quantity authored as `0.25turn`, equated exactly to `90°` and symbolically to `π/2 rad`, consumed by `sin(Angle)` for exact value 1, and optionally lowered to an admitted machine representation with appropriate error evidence. Preserve `turn` as the canonical angular reference, and bare `42` as Scalar.",
+      "recorded_status": "partial",
+      "owner_issue": 6123
+    },
+    {
+      "id": "R38",
+      "section": "Dimension–Unit–Quantity separation (coordinate projection vs numeric projection)",
+      "requirement": "- [ ] An exact Quantity survives **two independent projections** (Unit coordinates and numerical implementation) without losing its Dimension, family/role, mathematical denotation or source evidence; admissible substitutions produce equivalent semantics and truthful separate projection evidence.",
+      "recorded_status": "incomplete",
+      "owner_issue": 6123
+    },
+    {
+      "id": "R39",
+      "section": "Dimension–Unit–Quantity separation (coordinate projection vs numeric projection)",
+      "requirement": "- [ ] `Dimension`, `Unit`, and `Quantity` are not aliased types in the checked numeric IR or source/Plan value transport. A Dimension is not guessed from a bare numeric literal or smuggled via Text.",
+      "recorded_status": "partial",
+      "owner_issue": 6108
+    },
+    {
+      "id": "R40",
+      "section": "Semantic / Planner contract",
+      "requirement": "- Specify one canonical, typed **mathematical-value IR** with bounded DAG nodes, normalized exact literals (including decimal-as-rational when authored exactly), dimensions and relevant `where` facts. Specify canonical serialization, identity/hash/equality semantics and bounded simplification rules; sharing and cycle rejection matter. Do not force symbolic DAG materialization for every mundane integer.",
+      "recorded_status": "partial",
+      "owner_issue": 6117
+    },
+    {
+      "id": "R41",
+      "section": "Semantic / Planner contract",
+      "requirement": "- Specify deterministic exact arithmetic rules and their domain/overflow behavior. Evaluate `1/3` as an exact rational when semantics call for rational division; leave a genuine integer-division operation distinct if the language exposes one.",
+      "recorded_status": "partial",
+      "owner_issue": 6117
+    },
+    {
+      "id": "R42",
+      "section": "Semantic / Planner contract",
+      "requirement": "- Keep exact mathematical equality distinct from structural identity, numerical equality within tolerance, and undecidable/unknown comparisons. No magical general theorem prover; bounded simplification, interval reasoning and optional specialist solvers may establish only what they can prove.",
+      "recorded_status": "partial",
+      "owner_issue": 6125
+    },
+    {
+      "id": "R43",
+      "section": "Semantic / Planner contract",
+      "requirement": "- Allow a consuming Plot/Gear to declare **numeric requirements**: exactness or tolerated error, range, rounding/overflow behavior, deterministic/reproducible behavior, resource budget and potentially throughput/latency. Names and source spellings must be settled against #4109 rather than asserted here.",
+      "recorded_status": "reviewed-gap",
+      "owner_issue": 6127
+    },
+    {
+      "id": "R44",
+      "section": "Semantic / Planner contract",
+      "requirement": "- Planner selects an eligible algorithm + representation per edge/region, considering Host capability and costs. Cheap integer/fixed-point/`f32`/`f64` realizations remain eligible when proven sufficient; bignum, symbolic or interval realizations are chosen only where justified and offered.",
+      "recorded_status": "partial",
+      "owner_issue": 6128
+    },
+    {
+      "id": "R45",
+      "section": "Semantic / Planner contract",
+      "requirement": "- Plan records the selected realization plus the *justification*: admitted finite storage/work bounds and proof/witness (or explicit trusted capability contract) that numerical error fits the requirement. An error budget is a first-class planning resource, not a license for unchecked rounding.",
+      "recorded_status": "reviewed-gap",
+      "owner_issue": 6127
+    },
+    {
+      "id": "R46",
+      "section": "Semantic / Planner contract",
+      "requirement": "- Carry loss/rounding/uncertainty metadata across conversions and compositions; preserve exactness until a named, admitted projection. Replanning/substituting Backs may change costs, not silently weaken meaning or numerical fidelity.",
+      "recorded_status": "reviewed-gap",
+      "owner_issue": 6129
+    },
+    {
+      "id": "R47",
+      "section": "Semantic / Planner contract",
+      "requirement": "- If exact symbolic evaluation can be represented but a consumer insists on concrete digits, either refine to the admitted precision, return a certified enclosure, or refuse with a concrete reason. No generic `inexact` simply because the old representation was too small.",
+      "recorded_status": "partial",
+      "owner_issue": 6118
+    },
+    {
+      "id": "R48",
+      "section": "Semantic / Planner contract",
+      "requirement": "- Preserve existing dimension/type checks and exact unit/prefix/affine conversion law (#5328, #5390, #3719). Dynamically defined units are resolved and checked at their established binding boundary; this ticket must not silently move unit-definition authority or permit dimensionally invalid arithmetic.",
+      "recorded_status": "partial",
+      "owner_issue": 6108
+    },
+    {
+      "id": "R49",
+      "section": "Semantic / Planner contract",
+      "requirement": "- Preserve Conduit's **finite execution** invariant. Exact expressions with potentially huge results require admitted size/complexity bounds or symbolic retention; no implicit unbounded memory, infinite-precision loops or undecidable proof obligations at runtime.",
+      "recorded_status": "partial",
+      "owner_issue": 6109
+    },
+    {
+      "id": "R50",
+      "section": "Performance invariant for universal numbers (2026-10-10)",
+      "requirement": "- When the checker proves a bounded integer, a rational whose particular operation has an admitted cheap exact implementation, or a consumer-sanctioned `f32`/`f64` profile, the Planner must be able to select a direct, preprepared machine realization **without allocating expression DAG nodes or big-number objects per arithmetic operation**.",
+      "recorded_status": "partial",
+      "owner_issue": 6122
+    },
+    {
+      "id": "R51",
+      "section": "Performance invariant for universal numbers (2026-10-10)",
+      "requirement": "- Keep universal exact expressions an available checked denotation and computational strategy where warranted, not the mandatory carrier for every tiny loop counter, acoustic buffer or sensor sample. Deferred symbolic evaluation and common-subexpression sharing are optional semantic representations, not compulsory dynamic dispatch at Play.",
+      "recorded_status": "partial",
+      "owner_issue": 6122
+    },
+    {
+      "id": "R52",
+      "section": "Performance invariant for universal numbers (2026-10-10)",
+      "requirement": "- The **representation decision is planned and inspected**, accounting for range/overflow, relative/absolute error or rounding law, numeric exceptions, dimension/family/role, reproducibility and finite cost. It may specialize a whole eligible expression or fused region but cannot silently reassociate when an IEEE operation sequence is semantically authoritative.",
+      "recorded_status": "reviewed-gap",
+      "owner_issue": 6127
+    },
+    {
+      "id": "R53",
+      "section": "Performance invariant for universal numbers (2026-10-10)",
+      "requirement": "- Cost-model estimates alone do not establish runtime superiority. Reuse #5395 measured cold preparation, per-operation decoding/dispatch, allocations, queue/Sign and throughput baselines. Show separately how much is spent on mathematical reasoning before Play and on actual numeric operations during Play.",
+      "recorded_status": "partial",
+      "owner_issue": 6122
+    },
+    {
+      "id": "R54",
+      "section": "Performance invariant for universal numbers (2026-10-10)",
+      "requirement": "- Preserve exact meaning under optimized substitutions. If a fixed-width fast path is ineligible for `10^1000 + 1`, use an admitted exact big-number/symbolic representation or refuse before Play where determinable. If an `f64` path cannot meet the declared tolerance, it is *not* an eligible cheaper substitute.",
+      "recorded_status": "reviewed-gap",
+      "owner_issue": 6128
+    },
+    {
+      "id": "R55",
+      "section": "Performance invariant for universal numbers (2026-10-10)",
+      "requirement": "- **No big-bang dependency:** #5396 and #5397 may optimize already-implemented fixed-width exact expression semantics independently of generalized symbolic π, arbitrary algebraics or a complete CAS; #5392's novel numeric representations follow behind a proven cheap path rather than blocking it.",
+      "recorded_status": "partial",
+      "owner_issue": 6106
+    },
+    {
+      "id": "R56",
+      "section": "Performance invariant for universal numbers (2026-10-10)",
+      "requirement": "- [ ] #5395's 1/3/8/32-op native/practical numeric benchmarks show actual cold/warm costs for current, specialized and (when applicable) symbolic execution, with raw artifacts. No universal-native-speed claim without evidence.",
+      "recorded_status": "partial",
+      "owner_issue": 6122
+    },
+    {
+      "id": "R57",
+      "section": "Performance invariant for universal numbers (2026-10-10)",
+      "requirement": "- [x] One mathematical expression with proven finite machine eligibility lowers to a direct checked arithmetic realization through an ordinary Plan/Play without per-op symbolic DAG allocation, while its exact semantic identity remains inspectable.",
+      "recorded_status": "accepted-main",
+      "owner_issue": 6106
+    },
+    {
+      "id": "R58",
+      "section": "Performance invariant for universal numbers (2026-10-10)",
+      "requirement": "- [ ] One ineligible fixed-width and one unsupported numeric tolerance case refuses or selects an admitted alternative without silent rounding, overflow, or out-of-budget execution.",
+      "recorded_status": "reviewed-gap",
+      "owner_issue": 6128
+    },
+    {
+      "id": "R59",
+      "section": "Performance invariant for universal numbers (2026-10-10)",
+      "requirement": "- [ ] A precision-safe numerical realization can participate in #5397 physical fusion without losing each logical Gear's numeric/dimensional contract, observability and provenance.",
+      "recorded_status": "partial",
+      "owner_issue": 6133
+    },
+    {
+      "id": "R60",
+      "section": "Suggested incremental slices (avoid a numeric-system big bang)",
+      "requirement": "1. **Semantic specification and gap audit**: inspect current Scalar/Quantity representation, conversion refusal cases, expression lowering and Planner capability/precision contracts; write the numeric-denotation vs realization law and define the MVP subset.",
+      "recorded_status": "partial",
+      "owner_issue": 6106
+    },
+    {
+      "id": "R61",
+      "section": "Suggested incremental slices (avoid a numeric-system big bang)",
+      "requirement": "2. **Exact rational spine**: canonical integers + rationals and exact decimal parsing, arithmetic, normalization, serialization and Quantity conversion. Preserve existing behavior for fast native values.",
+      "recorded_status": "partial",
+      "owner_issue": 6117
+    },
+    {
+      "id": "R62",
+      "section": "Suggested incremental slices (avoid a numeric-system big bang)",
+      "requirement": "3. **Explicit projection contract**: requirements/witness/evidence for fixed-width, float, fixed-point and bounded rational realizations; test deterministic failures when no Back meets bounds.",
+      "recorded_status": "reviewed-gap",
+      "owner_issue": 6127
+    },
+    {
+      "id": "R63",
+      "section": "Suggested incremental slices (avoid a numeric-system big bang)",
+      "requirement": "4. **Planner selection**: pick admissible implementations for two differently constrained consumers of the same source semantic expression; verify no default float coercion.",
+      "recorded_status": "partial",
+      "owner_issue": 6128
+    },
+    {
+      "id": "R64",
+      "section": "Suggested incremental slices (avoid a numeric-system big bang)",
+      "requirement": "5. **Extensible symbolic/algebraic domain**: bounded nodes for named constants and roots; certified interval evaluation where a concrete value is needed. This may be follow-on tickets; do not block rational MVP on a general CAS.",
+      "recorded_status": "partial",
+      "owner_issue": 6118
+    },
+    {
+      "id": "R65",
+      "section": "Suggested incremental slices (avoid a numeric-system big bang)",
+      "requirement": "6. **Cross-domain integration**: runtime-defined Unit/Quantity conversion, one DSP control, one ML/tensor numeric projection; use the same projection/evidence discipline.",
+      "recorded_status": "reviewed-gap",
+      "owner_issue": 6130
+    },
+    {
+      "id": "R66",
+      "section": "Acceptance tests",
+      "requirement": "- [ ] `1/3 + 1/3 + 1/3 == 1` is provably exact in the rational domain without relying on floating-point coincidence.",
+      "recorded_status": "complete-accepted-main",
+      "owner_issue": 6106
+    },
+    {
+      "id": "R67",
+      "section": "Acceptance tests",
+      "requirement": "- [ ] `10^1000 + 1` remains a valid finite *semantic* integer under an adequate declared bound; an `i64` realization refuses or another admitted representation is selected. It never wraps or silently rounds.",
+      "recorded_status": "complete-accepted-main",
+      "owner_issue": 6106
+    },
+    {
+      "id": "R68",
+      "section": "Acceptance tests",
+      "requirement": "- [ ] `π/180` and `sqrt(2)` survive symbolic transport as exact denotations; a consumer requesting a finite numeric realization gets a value **with a verified bound** or an explicit refusal. The system does not assert that a decimal expansion is exact.",
+      "recorded_status": "partial",
+      "owner_issue": 6118
+    },
+    {
+      "id": "R69",
+      "section": "Acceptance tests",
+      "requirement": "- [ ] Two consumers of one expression can select, for example, a verified fast approximate `f64` realization and an exact rational realization without changing the authored meaning.",
+      "recorded_status": "partial",
+      "owner_issue": 6128
+    },
+    {
+      "id": "R70",
+      "section": "Acceptance tests",
+      "requirement": "- [ ] Exact rational unit conversions survive an otherwise inexact fixed-width conversion. Affine quantities and incompatible dimensions retain their existing laws; ordinary unquoted unit literals continue to work.",
+      "recorded_status": "incomplete",
+      "owner_issue": 6115
+    },
+    {
+      "id": "R71",
+      "section": "Acceptance tests",
+      "requirement": "- [ ] Unsatisfiable numeric tolerance/resource demands refuse before Play where determinable; execution-time conditions have explicit safe failure contracts.",
+      "recorded_status": "reviewed-gap",
+      "owner_issue": 6120
+    },
+    {
+      "id": "R72",
+      "section": "Acceptance tests",
+      "requirement": "- [ ] Comparison of general symbolic expressions may return unknown/refuse; there is no unsound equality or ordering claim.",
+      "recorded_status": "complete-accepted-main",
+      "owner_issue": 6106
+    },
+    {
+      "id": "R73",
+      "section": "Acceptance tests",
+      "requirement": "- [ ] Measurement uncertainty remains distinct from certified numerical approximation.",
+      "recorded_status": "complete-accepted-main",
+      "owner_issue": 6106
+    },
+    {
+      "id": "R74",
+      "section": "Acceptance tests",
+      "requirement": "- [ ] Planner/Plan/Play evidence includes realization, precision requirements, rounding/error claim and why the selected Back satisfies them; replanning cannot silently degrade fidelity.",
+      "recorded_status": "partial",
+      "owner_issue": 6129
+    },
+    {
+      "id": "R75",
+      "section": "Acceptance tests",
+      "requirement": "- [x] A cheap bounded integer path remains cheap: no compulsory arbitrary-precision allocation or symbolic evaluation overhead in its hot path.",
+      "recorded_status": "accepted-main",
+      "owner_issue": 6106
+    },
+    {
+      "id": "R76",
+      "section": "Acceptance tests",
+      "requirement": "- [x] For ordinary mathematical literals, `0.1 + 0.2 == 0.3` is established exactly without binary floating-point contamination, while an explicitly IEEE-binary64 computation retains its native rounding and comparison behavior.",
+      "recorded_status": "accepted-main",
+      "owner_issue": 6106
+    },
+    {
+      "id": "R77",
+      "section": "Acceptance tests",
+      "requirement": "- [ ] A chain of dimensioned/exact transforms can remain exact until a selected consuming Back projects it to `f32` or `f64`; the projection is identified and its loss inspected.",
+      "recorded_status": "incomplete",
+      "owner_issue": 6123
+    },
+    {
+      "id": "R78",
+      "section": "Acceptance tests",
+      "requirement": "- [x] Float realization tests account for **intermediate** rounding and selected operation order (including a cancellation case); merely rounding the final exact answer must not be mistaken for the floating-point algorithm.",
+      "recorded_status": "accepted-main",
+      "owner_issue": 6106
+    },
+    {
+      "id": "R79",
+      "section": "Acceptance tests",
+      "requirement": "- [ ] An admitted float Back either demonstrates the end-to-end declared error/range policy under its assumptions or explicitly refuses/requests admission; it may not silently claim a verified bound.",
+      "recorded_status": "partial",
+      "owner_issue": 6120
+    },
+    {
+      "id": "R80",
+      "section": "Acceptance tests",
+      "requirement": "- [x] Explicit IEEE-value semantics preserve signed zero, NaN, infinities, bit representation, rounding modes and exceptions as specified, and disallow unsound algebraic reassociation.",
+      "recorded_status": "accepted-main",
+      "owner_issue": 6106
+    },
+    {
+      "id": "R81",
+      "section": "Boundaries / coordination",
+      "requirement": "- **#5328** owns SI prefixes, exact conversion and unit resolution; **#5390** owns authored first-class runtime `Unit`/`Quantity` across Gear Fores. This issue supplies shared numeric semantics and representation-planning, not a parallel unit catalog or rewritten literal syntax.",
+      "recorded_status": "partial",
+      "owner_issue": 6108
+    },
+    {
+      "id": "R82",
+      "section": "Boundaries / coordination",
+      "requirement": "- **#4488** owns semantically open-ended scalar ranges versus finite execution bounds.",
+      "recorded_status": "partial",
+      "owner_issue": 6109
+    },
+    {
+      "id": "R83",
+      "section": "Boundaries / coordination",
+      "requirement": "- **#4952** owns general semantic projection-loss evidence; **#4051** owns realization invariance. Reuse those contracts, rather than introducing numerical-only parallel projection machinery.",
+      "recorded_status": "partial",
+      "owner_issue": 6110
+    },
+    {
+      "id": "R84",
+      "section": "Boundaries / coordination",
+      "requirement": "- **#3964 / #4639** own pure expression and proof/fact propagation, respectively; integrate without bypassing the checker.",
+      "recorded_status": "partial",
+      "owner_issue": 6108
+    },
+    {
+      "id": "R85",
+      "section": "Boundaries / coordination",
+      "requirement": "- **#2134 / #3997 / #2141** are useful tensor, linear-algebra and dynamics consumers. Do not make an entire CAS, solver, computer algebra syntax, or precision-driven global optimizer prerequisites of the rational MVP.",
+      "recorded_status": "partial",
+      "owner_issue": 6131
+    },
+    {
+      "id": "R86",
+      "section": "Thin delivery slices (2026-10-13)",
+      "requirement": "- [x] **N2** #5531: Prove two consumer-specific numeric realizations share authored meaning",
+      "recorded_status": "reviewed-gap",
+      "owner_issue": 6128
+    },
+    {
+      "id": "R87",
+      "section": "Thin delivery slices (2026-10-13)",
+      "requirement": "- [ ] **N4** #5533: Prove cheap fixed-width scalar realization without erasing exact laws",
+      "recorded_status": "partial",
+      "owner_issue": 6106
+    },
+    {
+      "id": "R88",
+      "section": "Thin delivery slices (2026-10-13)",
+      "requirement": "- [ ] **N5** #5534: Complete cross-projection numerical refusal and acceptance corpus",
+      "recorded_status": "reviewed-gap",
+      "owner_issue": 5534
+    },
+    {
+      "id": "R89",
+      "section": "Thin delivery slices (2026-10-13)",
+      "requirement": "- [x] #5530: [Numerics N1] Preserve bounded exact large integers and rationals",
+      "recorded_status": "partial",
+      "owner_issue": 6106
+    },
+    {
+      "id": "R90",
+      "section": "Thin delivery slices (2026-10-13)",
+      "requirement": "- [ ] #5733: [Numerics N6] Preserve finite named and algebraic symbolic denotations",
+      "recorded_status": "partial",
+      "owner_issue": 6118
+    },
+    {
+      "id": "R91",
+      "section": "Thin delivery slices (2026-10-13)",
+      "requirement": "- [ ] #5532: [Numerics N3] Admit typed Angle sine, cosine and tangent with exact cardinal values",
+      "recorded_status": "partial",
+      "owner_issue": 6116
+    },
+    {
+      "id": "R92",
+      "section": "Thin delivery slices (2026-10-13)",
+      "requirement": "- [ ] #5734: [Numerics N7] Admit dimension-checked atan2 and inverse trig branches",
+      "recorded_status": "partial",
+      "owner_issue": 6113
+    },
+    {
+      "id": "R93",
+      "section": "Thin delivery slices (2026-10-13)",
+      "requirement": "- [ ] #5735: [Numerics N8] Transport exact turn-to-radian π law into certified projections",
+      "recorded_status": "partial",
+      "owner_issue": 6116
+    }
+  ]
+}

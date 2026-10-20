@@ -1,0 +1,10 @@
+{
+  "base": "15c71e6238598c773e87146b39728550d3fd4657",
+  "files": {
+    "architecture/plot/src/qualified_quantity_binary64.rs": "3766f2e6bea769ef37e3f01c94f171d1f2b88a6c3da3209f7fe5ecf9a106327e",
+    "architecture/plot/src/qualified_quantity_binary64/evidence.rs": "32caa805198310f99440f28697b3fa6419eb1ecd3d1e86c747618aec9db65c33",
+    "architecture/plot/src/qualified_quantity_binary64/evidence/codec.rs": "6fe490ce0d5d9cdebe1827a60d6361d81beb02866454c890f884201f1780dd4b",
+    "targets/std/src/numerical_host/near_step/qualified_source_tests.rs": "cf1ccfb070766469f739b0ca53683231331e21d94b95ce51af6daaa78d1e11a1",
+    "targets/std/src/numerical_host/near_step/qualified_source_tests/evidence_tests.rs": "2b69426143ade3c2dc8d43195c2bdd53c8c25976d89567a96a5bd4bffb8db6ea"
+  }
+}

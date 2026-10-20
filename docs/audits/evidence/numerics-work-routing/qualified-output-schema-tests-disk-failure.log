@@ -1,0 +1,5 @@
+    Blocking waiting for file lock on build directory
+   Compiling conduit-data v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/semantics/data)
+error: failed to write to `/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/target/debug/deps/rmetaRrPcUm/full.rmeta`: No space left on device (os error 28)
+
+error: could not compile `conduit-data` (lib) due to 1 previous error

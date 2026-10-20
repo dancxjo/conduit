@@ -1,0 +1,29 @@
+{
+  "commit": "3c4b4d14c8a3ebb69bbdd5cd837abe1fdad858ed",
+  "source_freeze": "corrected-source-freeze.json",
+  "validation": {
+    "std_component_tests": "8 passed; 905 filtered out",
+    "core_work_meter_tests": "2 passed",
+    "catalog_qualified_typing_tests": "3 passed",
+    "plot_regressions": "477 passed; 1 preexisting ignored",
+    "strict_clippy": "Core/Plot/Std libraries and Core tests passed, warnings denied",
+    "native_no_default_features": "Core/Plot libraries passed",
+    "format_and_diff": "passed"
+  },
+  "scope": "private source-bound bounded binary64 component; exact and incoming binary32 rational quantity records",
+  "remaining": [
+    "installed source-specific host offer and existing-kernel execution",
+    "versioned qualified binary64 output representation",
+    "shared #4952 CPE encoding with Source and incoming-evidence custody",
+    "independent consuming replay and original Source end-to-end acceptance",
+    "all original parent requirements and exact accepted-main proof"
+  ],
+  "not_claimed": [
+    "full workspace validation",
+    "installed Plan/Play",
+    "symbolic or enclosed input support in this component",
+    "physical device proof",
+    "parent issue completion"
+  ],
+  "evidence": "corrected-component-executables/; prior failed runs retained separately"
+}

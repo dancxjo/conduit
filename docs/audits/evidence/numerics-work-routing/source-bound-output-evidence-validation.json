@@ -1,0 +1,37 @@
+{
+  "commit": "e7f70db33456798be5dfde0d3a3f24e77b3f00e3",
+  "scope": "private physical checked-program and incoming-frame custody around the shared ordered-binary64 CPE codec",
+  "validation": {
+    "component_tests": "10 passed, 0 failed, 905 filtered out, no warnings",
+    "strict_clippy": "Plot and Std libraries, warnings denied, passed",
+    "native_no_default": "Plot library passed",
+    "format_and_diff": "passed"
+  },
+  "evidence": [
+    "final-source-freeze.json",
+    "final-source.tar.gz",
+    "final-executable-custody.json",
+    "final-ten-tests.elf.gz",
+    "checkpoint.bundle"
+  ],
+  "proof": [
+    "independently prepared producer/consumer replay",
+    "same exact value and final bits cannot erase distinct incoming evidence",
+    "program/tolerance changes bind a different policy configuration",
+    "original checked-program and incoming-frame digest/length references retained",
+    "full existing ordered algorithm, physical Unit/role, source wire digest and total error retained",
+    "zero transport allocations, byte tampering and short output preflight"
+  ],
+  "limits": [
+    "exact external references require original artifacts; digest alone is not Source/Plan/Play identity",
+    "component profile remains rational native and incoming binary32; symbolic/enclosed forms remain explicit unsupported",
+    "no installed host execution or ordinary CLI result yet",
+    "no full workspace or device proof; no parent acceptance changes"
+  ],
+  "next": [
+    "versioned qualified output representation preserving Near v4 historical replay",
+    "bounded Source-specific host offer through existing kernel",
+    "consuming replay and exact Source/Plan/Cord/Sign artifacts",
+    "whole original parent requirement audit and stable-main acceptance"
+  ]
+}

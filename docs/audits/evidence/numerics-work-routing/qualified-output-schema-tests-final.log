@@ -1,0 +1,40 @@
+   Compiling conduit-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/architecture/core)
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/architecture/plot)
+   Compiling conduit-time v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/semantics/time)
+   Compiling conduit-data v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/semantics/data)
+   Compiling conduit-human v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/semantics/human)
+   Compiling conduit-audio v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/semantics/audio)
+   Compiling conduit-language v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/semantics/language)
+   Compiling conduit-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/semantics/face)
+   Compiling conduit-body v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/architecture/body)
+   Compiling conduit-planner v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/architecture/planner)
+   Compiling conduit-education v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/semantics/education)
+   Compiling conduit-net v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/semantics/net)
+   Compiling conduit-process v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/semantics/process)
+   Compiling conduit-robotics v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/semantics/robotics)
+   Compiling conduit-text v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/semantics/text)
+   Compiling conduit-alife v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/semantics/alife)
+   Compiling conduit-web v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/semantics/web)
+   Compiling conduit-purpose v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/semantics/purpose)
+   Compiling conduit-midi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/mechanisms/protocols/midi)
+   Compiling conduit-plan-lowering v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/architecture/plan-lowering)
+   Compiling conduit-semantic-catalog v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-17/goal-finish-and-close-https-github-2/work/composite-numerics-preparation/semantics/catalog)
+    Finished `test` profile [unoptimized] target(s) in 3m 06s
+     Running tests/qualified_computation.rs (target/debug/deps/qualified_computation-5c3068812edf9e63)
+
+running 3 tests
+test generic_physical_operands_and_existing_difference_constructors_keep_their_types ... ok
+test physical_body_retains_qualified_ports_and_requires_a_certified_host ... ok
+test arithmetic_cannot_escape_qualification_or_change_physical_family ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.44s
+
+     Running tests/qualified_output_schema.rs (target/debug/deps/qualified_output_schema-8df230558b4d893b)
+
+running 3 tests
+test a_recognized_computation_schema_is_not_a_numerical_witness ... ok
+test computation_definitions_require_binary64_and_both_retained_artifacts ... ok
+test v4_and_v5_exact_records_replay_without_retagging_their_pinned_schema ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.48s
+

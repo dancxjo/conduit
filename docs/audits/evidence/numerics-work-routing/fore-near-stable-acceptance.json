@@ -1,0 +1,12 @@
+{
+  "tested_source": "9ff334927f546c7f9a4a241ef38b548bd1b25549",
+  "accepted_main": "9562b01e2c49b15bfd4678b072fd331f5dbab431",
+  "tree": "48d4612accdead634e9793bd5db8f052bcabcec7",
+  "integration_run": "39359646210",
+  "manifest_sha256": "9c159cea368d45c17ea8a957bb838a730adeeded8d103221f78ff8e6c3b165d5",
+  "verified_target_sources": 16,
+  "matched_asset_api_digests": 16,
+  "manifest_api_digest_matches": true,
+  "contains_pr_6005_merge": true,
+  "scope": "stable acceptance of Fore near slice only; no parent completion or new device execution claim"
+}

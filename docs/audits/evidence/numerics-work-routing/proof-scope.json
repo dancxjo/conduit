@@ -1,0 +1,8 @@
+{
+  "schema_checkpoint": "5f9641a761",
+  "schema_current_validation": "6 catalog tests passed; no full Core/workspace Clippy or workspace tests claimed at schema checkpoint",
+  "prior_consumer_checkpoint": "b3cec555877242387e7948190bcd8af62dd56844",
+  "prior_consumer_validation": "11 component tests, Plot/Std strict library Clippy, native no-default Plot check and formatting passed",
+  "binary_custody": "Exact executed ELF archives, full local source tarballs and custody receipts remain locally retained; this origin directory publishes source pins, test logs and scoped receipts rather than large executable archives",
+  "stable_slice": "PR6005 accepted; whole parent and N5 remain open"
+}

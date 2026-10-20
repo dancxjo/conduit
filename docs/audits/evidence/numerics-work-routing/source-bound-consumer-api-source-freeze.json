@@ -1,0 +1,8 @@
+{
+  "base": "e7f70db33456798be5dfde0d3a3f24e77b3f00e3",
+  "files": {
+    "architecture/plot/src/qualified_quantity_binary64/evidence.rs": "e11c7a5b262c41d956896d5d16187d200d7604af860a40a3ab7088054eec8c4c",
+    "architecture/plot/src/qualified_quantity_binary64/evidence/consumer.rs": "ff7ebfe5544a1823506538b4d06b374de1ee01f9dcf6e2119b15b40a527041be",
+    "targets/std/src/numerical_host/near_step/qualified_source_tests/evidence_tests.rs": "9f4880a081a35040c35ddd6c0cb2ce499674a27870308a1605bcfb3f2212e0ca"
+  }
+}
