@@ -1,0 +1,57 @@
+{
+  "issues": [
+    6102,
+    5571
+  ],
+  "state": "partial: runtime repair and API lifecycle evidence complete; normal foreground-owner durable prior-receipt retention remains open",
+  "source": "180b88cfda0f669a1d3bbaacf211f8b00c4abafd",
+  "base": "22bff77d142cd214e1f0689d52bf7082bde0f734",
+  "durability_tests_passed": 44,
+  "shared_regressions_passed": 6,
+  "ignored": "actual_retained_dom_completion_reconstructs_native_linear_and_utterance_meaning requires a separate exact-source retained DOM exchange; outside this local replacement proof",
+  "strict_scoped_clippy": "PASS",
+  "focused_formatting": "PASS",
+  "independent_lifecycle_cases": 3,
+  "negative_controls_rejected": 7,
+  "proof_class": "local hosted production kernel/Host execution, real selected filesystem effects, declared fixture Host/Boot labels; no remote-network or physical reboot proof",
+  "not_claimed": [
+    "durable old owner-execution receipts across normal foreground-owner replacement",
+    "automatic replan/migration controller",
+    "performance savings",
+    "Candidate/Integration/main release acceptance"
+  ],
+  "logs": {
+    "format.log.gz": {
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "archive_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+    },
+    "todo-durability.log.gz": {
+      "raw_sha256": "f805a3d284e75277e3e7d2863555d1d623e138a4ce7c9640902e4467e510abad",
+      "archive_sha256": "95777932dab67214cf20294e0bc8b09a51075cfb9e0155983dd799e21bd2b24c"
+    },
+    "clippy.log.gz": {
+      "raw_sha256": "c3e9e84d32f38a9ccf8c13ddb14a80309d8fed6fae9a5f250d204994ed91acc2",
+      "archive_sha256": "5b79cbd74955ab0faad731b1a306ef7f725cd2fb6a4ba03bb85af4f94b4ce8ef"
+    },
+    "parsec-regressions.log.gz": {
+      "raw_sha256": "38ace2e13bde6c8c6f4ead1e7526f7b698959eb4767bc34b6acaa405ca475442",
+      "archive_sha256": "5cfd3d9f7a05edee2e0873421add8c180f37f723ab0ab38c1907cbbb7e694b29"
+    },
+    "cancellation-regressions.log.gz": {
+      "raw_sha256": "efa11dfae6b8976752915219de81f624dc0350c98a2bae85050dc2df9aaf42dd",
+      "archive_sha256": "e5c53bb0e8e4a8a9ea1e5f7a1d5123c41a18ee8e08faeb348c1c2d35403b601c"
+    },
+    "release-regressions.log.gz": {
+      "raw_sha256": "3afca995ded1ad55acb99f1a43f264411db12f09a26bd8c27291041fb63e2a2d",
+      "archive_sha256": "7500f06774e8004c27655d76e31e5efaac173fd16fd9c9eaa64fd03bfe6af68b"
+    },
+    "verification.log.gz": {
+      "raw_sha256": "70db2bd032e6c52c567fea756a5f02fcbf5c5c20bc44e10af9ebe4d535af5209",
+      "archive_sha256": "d83f58be5e9cbac4160372aa026bdb937f043e4fb7066286362bd5f4237bc5f8"
+    },
+    "negative-controls.log.gz": {
+      "raw_sha256": "3b4e8732e356c0f889cbf994db5ba0228346f53ae44ff1442ab86739c9e5a882",
+      "archive_sha256": "1f4bd37b963162ba2449fb653c63a63354ce9562d329b9db6d0561257d04082e"
+    }
+  }
+}

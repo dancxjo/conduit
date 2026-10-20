@@ -57,3 +57,13 @@ delivery without replay. A retained immutable Plan alone does not prove that.
 #6078 retains publication follow-through; no Candidate, Integration or accepted
 main artifact is claimed here. Direct dev publication follows the task's explicit
 workflow override.
+
+## Runtime custody follow-through
+
+The [local Body replacement audit](plan-replacement-custody-20261020.md) now binds
+actual executed Todo Plan IDs to the cold/incremental oracle and retains old
+Plan/Play/output/terminal Sign evidence through provider loss, cancellation and
+unknown external acknowledgement. It also repairs the runner's dropped attempted
+Fore output. #5571 and #6102 remain open: the normal foreground owner still needs
+durable prior-execution receipt retention across its replacement path. The
+earlier pending status above describes the preceding evidence snapshot.
