@@ -5,6 +5,8 @@ use sha2::{Digest, Sha256};
 #[path = "linear_collection_records.rs"]
 mod records;
 use records::Records;
+#[path = "linear_collection_commit_tests.rs"]
+mod commits;
 #[path = "generic_collection_observation.rs"]
 mod generic_observation;
 
