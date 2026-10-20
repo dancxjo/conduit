@@ -183,4 +183,8 @@ fn authored_numerical_fore_retains_all_admitted_values_and_exact_child_evidence(
             .iter()
             .all(|old| old.child_active_play_id != receipt.child_active_play_id));
     }
+    println!(
+        "CONDUIT_PLOT_EVIDENCE={}",
+        serde_json::json!({"plan_id": report.play.plan_id, "play_id": report.play.active_play_id})
+    );
 }
