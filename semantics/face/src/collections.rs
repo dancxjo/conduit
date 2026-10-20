@@ -230,6 +230,29 @@ fn exclusive<'a>(
     if selected_count != 1 {
         return Err(Refusal::Selection);
     }
+    // This profile promises all exact alternatives, not an implicit filtered
+    // subset. A positive finite membership bounds the domain; validate every
+    // member against the complete contract so intersecting constraints retain
+    // their ordinary checked meaning.
+    let members = contract
+        .constraints
+        .iter()
+        .find_map(|constraint| match constraint {
+            conduit_core::ValueConstraint::CanonicalMembership {
+                members,
+                negated: false,
+            } => Some(members),
+            _ => None,
+        })
+        .ok_or(Refusal::UnsupportedProfile)?;
+    for member in members
+        .iter()
+        .filter(|member| contract.validate(member).is_ok())
+    {
+        if !values.contains(member.as_slice()) {
+            return Err(Refusal::Membership);
+        }
+    }
     Ok(action)
 }
 // This profile admits unconstrained Boolean replacements only. Inventory facts
