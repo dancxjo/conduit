@@ -31,7 +31,7 @@ preview; all required checks and branch protection remain unchanged.
 PR admission runs Clippy with warnings denied for the selected packages and their
 dependencies, then the owning packages' unit, integration and doc tests, with one
 test thread. Broad changes retain workspace Clippy; every dev Integration still
-runs exhaustive workspace lint and tests. JavaScript pipeline tools, their JSON fixtures, workflow YAML and prose are
+runs exhaustive workspace lint and tests. JavaScript pipeline tools, workflow YAML and prose are
 validated by preflight without compiling Rust tooling. Mixed edits still select
 the changed runtime packages; unknown formats keep their conservative fallback.
 Both sides of
