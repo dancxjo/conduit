@@ -24,7 +24,7 @@ fn field<'a>(value: &'a StructuredInfoValue, name: &str) -> &'a [u8] {
     bytes
 }
 fn prepared() -> (StdHost, Plan) {
-    let source = "plot report-carry (\n >> value: QuantityCoordinateEvidence <= 131500B\n result: QuantityCoordinateEvidence <= 131500B >>\n) = .\n\nplot chain (\n >> value: Quantity <= 33829B\n coordinate-evidence: QuantityCoordinateEvidence <= 131500B >>\n numeric-evidence: NearQuantity <= 131072B >>\n) {\n coordinates: math/coordinates(request={unit:cm})\n numeric: math/near(limit=0.01cm)\n report: report-carry()\n value >> coordinates.value\n coordinates.result >> numeric.value\n coordinates.evidence >> report.value\n report.result >> coordinate-evidence\n numeric.result >> numeric-evidence\n}\n";
+    let source = "plot chain (\n >> value: Quantity <= 33829B\n coordinate-evidence: QuantityCoordinateEvidence <= 131500B >>\n numeric-evidence: NearQuantity <= 131072B >>\n) {\n coordinates: math/coordinates(request={unit:cm})\n numeric: math/near(limit=0.01cm)\n value >> coordinates.value\n coordinates.result >> numeric.value\n coordinates.evidence >> coordinate-evidence\n numeric.result >> numeric-evidence\n}\n";
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     install_numerical_catalogs(&mut startup, &mut profile).unwrap();
@@ -40,8 +40,6 @@ fn prepared() -> (StdHost, Plan) {
     assert_eq!(abnormal.gear_port_id.as_str(), "evidence");
 
     let mut host = StdHost::new();
-    host.prepare_expression_realizations(&authored.expanded)
-        .unwrap();
     host.prepare_numerical_realizations(&authored.expanded)
         .unwrap();
     let hosts = [host.advertisement().clone()];
@@ -89,6 +87,7 @@ fn prepared() -> (StdHost, Plan) {
     )
     .unwrap();
     assert!(verify_plan(&plan));
+    assert_eq!(plan.fragments[0].placements.len(), 2);
     assert_eq!(plan.source_document_id, syntax.source_document_id());
     assert!(plan.fragments[0]
         .placements
@@ -231,4 +230,26 @@ fn coordinate_installation_refuses_missing_wire_or_resource_proof_and_stale_iden
         .realization_properties
         .retain(|p| p.profile() == &QuantityWireContract::property_kind());
     assert!(admitted(&missing_bounds).is_err());
+}
+
+#[test]
+fn direct_evidence_fore_does_not_turn_physical_refusal_into_normal_completion() {
+    let (mut host, plan) = prepared();
+    let mut output = Outputs(Vec::new());
+    let why = host
+        .run_external_plot_to(
+            plan.fragments[0].clone(),
+            &[ExternalForeInput {
+                front_port_id: "value".into(),
+                track: ConnectionTrack::Payload,
+                bytes: Quantity::new(1, Unit::Kelvin).encode().to_vec(),
+            }],
+            &mut output,
+            &mut Vec::new(),
+            &mut NoTimer,
+        )
+        .unwrap_err();
+    assert!(why.contains("SemanticAbnormal"), "{why}");
+    assert!(!why.contains("BackFailed"), "{why}");
+    assert!(output.0.is_empty());
 }

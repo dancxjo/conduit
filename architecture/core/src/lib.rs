@@ -1306,11 +1306,12 @@ fn verify_fragment_fore_ports(fragment: &PlanFragment) -> bool {
                                 return false;
                             }
                             let port_contract_matches = match boundary.track {
-                                ConnectionTrack::Payload => {
-                                    port.value_kind == boundary.value_kind
-                                        && port.abnormal_kind == boundary.abnormal_kind
-                                        && port.temporal == boundary.temporal
-                                }
+                                ConnectionTrack::Payload => port.matches_fore_payload(
+                                    boundary.direction,
+                                    &boundary.value_kind,
+                                    boundary.temporal,
+                                    boundary.abnormal_kind.as_ref(),
+                                ),
                                 ConnectionTrack::AbnormalTerminal => {
                                     port.abnormal_kind.as_ref() == Some(&boundary.value_kind)
                                         && boundary.temporal == PortTemporal::Value

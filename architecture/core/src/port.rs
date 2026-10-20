@@ -40,3 +40,23 @@ pub struct PortDescriptor {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub abnormal_kind: Option<KindId>,
 }
+
+impl PortDescriptor {
+    /// Match only the payload selected by a Fore binding. An output may expose
+    /// payload without promising its sibling abnormal track; unhandled abnormal
+    /// truth remains a separate Plot obligation. An explicitly promised abnormal
+    /// kind must match exactly. Input contracts retain exact channel matching.
+    pub fn matches_fore_payload(
+        &self,
+        direction: PortDirection,
+        value_kind: &KindId,
+        temporal: PortTemporal,
+        abnormal_kind: Option<&KindId>,
+    ) -> bool {
+        self.direction == direction
+            && &self.value_kind == value_kind
+            && self.temporal == temporal
+            && (self.abnormal_kind.as_ref() == abnormal_kind
+                || (direction == PortDirection::Output && abnormal_kind.is_none()))
+    }
+}

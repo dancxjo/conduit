@@ -1,4 +1,4 @@
-//! Source-request binding and independently recomputed installed interval profile.
+//! Source-bound exact coordinates and independently recomputed installation.
 use super::back::{BackBudget, BackFactory, InstalledBack};
 #[cfg(test)]
 use crate::numerical_host::coordinate_step::COORDINATE_WORK;

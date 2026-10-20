@@ -196,11 +196,12 @@ fn seal_fore(
                 PlannerError::InvalidPlotIdentity("external Fore internal port is missing".into())
             })?;
             let internal_matches = match binding.track {
-                conduit_core::ConnectionTrack::Payload => {
-                    internal.value_kind == descriptor.value_kind
-                        && internal.temporal == descriptor.temporal
-                        && internal.abnormal_kind == descriptor.abnormal_kind
-                }
+                conduit_core::ConnectionTrack::Payload => internal.matches_fore_payload(
+                    direction,
+                    &descriptor.value_kind,
+                    descriptor.temporal,
+                    descriptor.abnormal_kind.as_ref(),
+                ),
                 conduit_core::ConnectionTrack::AbnormalTerminal => {
                     internal.abnormal_kind.as_ref() == Some(&descriptor.value_kind)
                         && descriptor.temporal == conduit_core::PortTemporal::Value
