@@ -1,0 +1,62 @@
+{
+  "parent": "46aafb6e732a36d35c5c5052efaef9b3987bf540",
+  "scope": "Preserve refreshed Source and pending proof runner, verified prior repair restoration, and confirmed renderer occlusion red diagnostic",
+  "files": [
+    {
+      "source": "work/6055-03bd8b99d-refresh.json",
+      "tree_path": "task-6038/work/6055-03bd8b99d-refresh.json",
+      "bytes": 482,
+      "sha256": "891e75187177c02db1cea002cfce0bc97f455bb4ce2c260ad309ef5ff994723a",
+      "mode": "100644",
+      "blob": "574c32496f5377eba7ff41893b388bb73f9d974b"
+    },
+    {
+      "source": "work/run-5990-03bd8b99d-build-and-proof.py",
+      "tree_path": "task-6038/work/run-5990-03bd8b99d-build-and-proof.py",
+      "bytes": 859,
+      "sha256": "4c36fe9c022051ecd4b9083b4fe6e565963b31ed9391598328ab1cfd3d6197ae",
+      "mode": "100644",
+      "blob": "0e4dd2196b0e57d9593b35d545c03e1ef80a0880"
+    },
+    {
+      "source": "work/run-5990-03bd8b99d-product-proof.py",
+      "tree_path": "task-6038/work/run-5990-03bd8b99d-product-proof.py",
+      "bytes": 2398,
+      "sha256": "afa0722393da9cded3355713d911d2e2360d0c4124896ac10eb22b6798381b59",
+      "mode": "100644",
+      "blob": "663b259f620546e01a118804c48359b47f56d6c9"
+    },
+    {
+      "source": "outputs/ci-resumed-20261020/observation-1651/repair-restoration-receipt.json",
+      "tree_path": "task-6038/outputs/ci-resumed-20261020/observation-1651/repair-restoration-receipt.json",
+      "bytes": 863,
+      "sha256": "f207ca908f2551a556aa57f9216b5a73f570f8aadc8ebbc6357d2d4e5cfe7bd9",
+      "mode": "100644",
+      "blob": "3d1eb6826a3c6c03919f8c9a7053f5b3fbf5c248"
+    },
+    {
+      "source": "work/a3-occlusion-diagnostic-a252/playwright.config.mjs",
+      "tree_path": "task-6038/work/a3-occlusion-diagnostic-a252/playwright.config.mjs",
+      "bytes": 656,
+      "sha256": "f962e3001ecc63fe2c492997f991e2b707558d36252a59a664ac703a4b9a329b",
+      "mode": "100644",
+      "blob": "9b648081c1b47edb71616a6fdced44e9498eb7ab"
+    },
+    {
+      "source": "work/a3-occlusion-diagnostic-a252/occlusion.spec.mjs",
+      "tree_path": "task-6038/work/a3-occlusion-diagnostic-a252/occlusion.spec.mjs",
+      "bytes": 3342,
+      "sha256": "79ca6c377674f02a9a11ed3ee94f8317dff4b04f57409c478bc4f1cea79cc216",
+      "mode": "100644",
+      "blob": "b4711eb8657412228d6c5448d0d579d80af75f78"
+    },
+    {
+      "source": "outputs/a3-occlusion-diagnostic-a252/receipt.json",
+      "tree_path": "task-6038/outputs/a3-occlusion-diagnostic-a252/receipt.json",
+      "bytes": 2139,
+      "sha256": "ed210c0d8e3ae4134485290775ee72477a9ca8667d50e271c5c29e921632de6c",
+      "mode": "100644",
+      "blob": "9ad0738a78640f194f994bfd48c2698ead6a0a2b"
+    }
+  ]
+}

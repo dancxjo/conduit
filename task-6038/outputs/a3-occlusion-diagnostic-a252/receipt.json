@@ -1,0 +1,66 @@
+{
+  "source": "a252d091c95de386da8132f71d7221263d578083",
+  "production_worktree_clean": true,
+  "diagnostic": "Temporary external fixture spec/config; no production Source modification",
+  "proof_class": "Pinned Chromium renderer fixture diagnostic, not installed owner or Body effect",
+  "project": "chromium",
+  "workers": 1,
+  "retries": 0,
+  "passed": 1,
+  "failed": 2,
+  "observations": [
+    {
+      "scope": "none",
+      "baselinePassed": true,
+      "hitIsBlocker": false,
+      "hitIsControl": true,
+      "admitted": true,
+      "code": null,
+      "callbacks": 0,
+      "box": {
+        "x": 56,
+        "y": 270.78125,
+        "width": 129.703125,
+        "height": 40.1875
+      }
+    },
+    {
+      "scope": "shadow",
+      "baselinePassed": true,
+      "hitIsBlocker": true,
+      "hitIsControl": false,
+      "admitted": true,
+      "code": null,
+      "callbacks": 0,
+      "box": {
+        "x": 56,
+        "y": 270.78125,
+        "width": 129.703125,
+        "height": 40.1875
+      }
+    },
+    {
+      "scope": "document",
+      "baselinePassed": true,
+      "hitIsBlocker": true,
+      "hitIsControl": false,
+      "admitted": true,
+      "code": null,
+      "callbacks": 0,
+      "box": {
+        "x": 56,
+        "y": 270.78125,
+        "width": 129.703125,
+        "height": 40.1875
+      }
+    }
+  ],
+  "production_hashes": {
+    "targets/browser/handbook/owner-face-presentation.mjs": "a0426d59420e957503fd61ddce9bd856e0c920aee6e77c8c5af1e17c9e830d21",
+    "targets/browser/handbook/owner-face-reachability.mjs": "418372fe1fa5c63ec0653b27cfe8fa1cc82ccb56e1d148cf9aa3d826a8e7c78c",
+    "targets/browser/handbook/owner-face-component.mjs": "38dba33ca5d97d3a5a88ccb2b4083f3d7f376dddc09f34fdd0bff6fb96c538eb",
+    "targets/browser/handbook/owner-face-look.css": "9c6fe95ae475e75a07f1c5b9c9b37a4efd7e262cc5fbcc7d326ec476bffc27fb"
+  },
+  "log_sha256": "e2cf4a7540b6e87225a5581c03d8fc5c14deba67f2fffee75c7a4440353d0395",
+  "boundary": "Pre-ack reachability guard accepts both actual shadow and document pointer blockers. No callbacks or domain actions performed. Retain failure; change Source before revalidation."
+}

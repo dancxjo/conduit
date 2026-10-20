@@ -1,0 +1,17 @@
+{
+  "observed_at_utc": "2026-10-20T16:52:32.004745+00:00",
+  "tested_source": "956e9e069366af9f3065e020e9067c653d3fb097",
+  "integration_run": "39445459109",
+  "integration_conclusion": "success",
+  "publisher_run": 39460188239,
+  "publisher_workflow_head": "7c6defe20d5c0ef344d96d9b5abf0fb6131ade49",
+  "publisher_actual_source": "956e9e069366af9f3065e020e9067c653d3fb097",
+  "publisher_conclusion": "success",
+  "accepted_main": "18f561be8bdb44852020a3cd4656e2dd929c671a",
+  "tree": "e3e379ad5e69233093ddc8f83cfe9812f9ff06f9",
+  "tree_equal_tested_and_main": true,
+  "release_published_at": "2026-10-20T16:47:37Z",
+  "release_manifest_sha256": "9e14da07fa9b54e20166b1ebe3360d64faab26c1bf55e9b298d9e72cc8e10ee8",
+  "live_pages_source": "956e9e069366af9f3065e020e9067c653d3fb097",
+  "feature_scope": "Repair restoration only; feature6055 not merged or stable."
+}

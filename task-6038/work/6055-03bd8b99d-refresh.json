@@ -1,0 +1,9 @@
+{
+  "source": "03bd8b99d1018544f7df9bae159e8f416c859689",
+  "base": "7c6defe20d5c0ef344d96d9b5abf0fb6131ade49",
+  "previous_source": "ceaefa32c00dd9a15aa4365f831cf68862771dd4",
+  "preserved_remote": "recovery/6055-ceaefa-before-7c6-refresh",
+  "patches": "All six range-diff entries equal",
+  "status": "Pushed; fresh Candidate and normal product proof pending",
+  "repair_restoration": "956 Integration39445459109 and publication39460188239 verified; does not claim7c6 accepted"
+}
