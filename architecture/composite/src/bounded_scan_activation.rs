@@ -48,7 +48,7 @@ pub enum BoundedScanAdmission {
 pub struct BoundedScanActivationHost {
     planned: PlannedScanActivation,
     ready: Vec<KernelCompositeHost>,
-    reusable: Option<ReusableScanPool>,
+    reusable: Option<Box<ReusableScanPool>>,
     receipts: Vec<KernelCompositeHost>,
     accumulator: ValuePayload,
     queued: ValuePayload,

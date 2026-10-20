@@ -220,10 +220,14 @@ impl PlannedActivationChildPoolHost for StdActivationHost {
         receipts: &[PreparedFragmentReceipt],
         definition: &conduit_composite::KernelCompositeDefinition,
     ) -> Result<KernelCompositeHost, HostPreparationRefusal> {
-        if receipts.is_empty()
-            || receipts
-                .iter()
-                .any(|receipt| receipt.host() != &self.identity || !self.prepared.contains(receipt))
+        let [fragment] = definition.internal_plan.fragments.as_slice() else {
+            return Err(HostPreparationRefusal::PreparedBindingMismatch);
+        };
+        let expected = PreparedFragmentReceipt::new(fragment);
+        if receipts.len() != 1
+            || receipts.first() != Some(&expected)
+            || expected.host() != &self.identity
+            || !self.prepared.contains(&expected)
         {
             return Err(HostPreparationRefusal::PreparedBindingMismatch);
         }

@@ -118,7 +118,7 @@ impl BoundedScanActivationHost {
     pub(super) fn remaining_children(&self) -> usize {
         self.reusable
             .as_ref()
-            .map_or(self.ready.len(), ReusableScanPool::remaining)
+            .map_or(self.ready.len(), |pool| pool.remaining())
     }
     pub(super) fn retire_child(&mut self, host: KernelCompositeHost) {
         if let Some(pool) = &mut self.reusable {
@@ -130,7 +130,7 @@ impl BoundedScanActivationHost {
     pub(super) fn observed_child(&self) -> Option<&KernelCompositeHost> {
         self.active
             .as_ref()
-            .or_else(|| self.reusable.as_ref().and_then(ReusableScanPool::host))
+            .or_else(|| self.reusable.as_ref().and_then(|pool| pool.host()))
             .or_else(|| self.receipts.last())
             .or_else(|| self.ready.last())
     }

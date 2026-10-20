@@ -34,7 +34,7 @@ impl BoundedScanActivationHost {
             .receipts
             .iter()
             .chain(self.active.iter())
-            .chain(self.reusable.iter().filter_map(ReusableScanPool::drained))
+            .chain(self.reusable.iter().filter_map(|pool| pool.drained()))
         {
             for (host, events) in receipt.signs() {
                 signs.entry(host).or_insert_with(Vec::new).extend(events);
@@ -117,7 +117,7 @@ impl BoundedScanActivationHost {
             .receipts
             .iter()
             .chain(self.active.iter())
-            .chain(self.reusable.iter().filter_map(ReusableScanPool::drained))
+            .chain(self.reusable.iter().filter_map(|pool| pool.drained()))
             .enumerate()
         {
             let invocation = u16::try_from(index + offset)
