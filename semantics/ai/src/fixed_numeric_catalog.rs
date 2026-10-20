@@ -13,6 +13,7 @@ use conduit_plot::{
 mod explicit_slice;
 mod pointwise;
 mod readonly_linear;
+#[cfg(feature = "kernel-step")]
 pub(crate) use explicit_slice::is_pure_slice;
 #[cfg(feature = "kernel-step")]
 pub(crate) use pointwise::is_pure_pointwise;

@@ -1,0 +1,252 @@
+{
+  "schema": "conduit.numerics-test-verification/v1",
+  "source": "GitHub job-log API downloads; matching test definitions were read at the tested source",
+  "limitation": "Named passing cases prove only their inspected assertions. The complete CI jobs succeeded, but no all-operand or universal profile coverage is inferred.",
+  "jobs": [
+    {
+      "key": "scalar",
+      "integration_run": 39097004615,
+      "job": 117586518128,
+      "job_url": "https://github.com/dancxjo/conduit/actions/runs/39097004615/job/117586518128",
+      "raw_log_sha256": "46bc425ef6b811e11a100d0e298e85dded30df5bb6e165262ae64b988b4b57ae",
+      "verified_tests": [
+        {
+          "test": "actual_std_plan_and_kernel_play_select_the_scalar_tape_back",
+          "passing_log_line": "2026-10-18T05:10:07.6757245Z test installed_std::pure_expression_back::scalar_tape_tests::actual_std_plan_and_kernel_play_select_the_scalar_tape_back ... ok",
+          "id": "scalar/actual_std_plan_and_kernel_play_select_the_scalar_tape_back",
+          "source_file": "targets/std/src/installed_std/pure_expression_back/scalar_tape_tests.rs",
+          "source_line": 12,
+          "source_blob_oid": "32cbb8b9a7a1c391f5ae695c14eef73bd420ace9",
+          "source_url": "https://github.com/dancxjo/conduit/blob/1180bdfd85ad87f48958b715879d4c688cf46a09/targets/std/src/installed_std/pure_expression_back/scalar_tape_tests.rs#L12",
+          "tested_source": "1180bdfd85ad87f48958b715879d4c688cf46a09",
+          "proof_class": "installed-std-kernel"
+        },
+        {
+          "test": "actual_std_boolean_matrix_preserves_reference_outcomes_without_play_allocations",
+          "passing_log_line": "2026-10-18T05:10:07.3161121Z test installed_std::pure_expression_back::scalar_tape_tests::actual_std_boolean_matrix_preserves_reference_outcomes_without_play_allocations ... ok",
+          "id": "scalar/actual_std_boolean_matrix_preserves_reference_outcomes_without_play_allocations",
+          "source_file": "targets/std/src/installed_std/pure_expression_back/scalar_tape_tests.rs",
+          "source_line": 129,
+          "source_blob_oid": "32cbb8b9a7a1c391f5ae695c14eef73bd420ace9",
+          "source_url": "https://github.com/dancxjo/conduit/blob/1180bdfd85ad87f48958b715879d4c688cf46a09/targets/std/src/installed_std/pure_expression_back/scalar_tape_tests.rs#L129",
+          "tested_source": "1180bdfd85ad87f48958b715879d4c688cf46a09",
+          "proof_class": "installed-std-kernel"
+        }
+      ]
+    },
+    {
+      "key": "angle",
+      "integration_run": 39105984916,
+      "job": 117612101568,
+      "job_url": "https://github.com/dancxjo/conduit/actions/runs/39105984916/job/117612101568",
+      "raw_log_sha256": "1cb3fa86bcc2a39f40edc0c4d338ee99c96c5fe01e386d1d99d2f26600f9e7cb",
+      "verified_tests": [
+        {
+          "test": "source_default_angle_is_turn_and_quarter_turn_is_exact",
+          "passing_log_line": "2026-10-18T07:18:22.5043537Z test source_default_angle_is_turn_and_quarter_turn_is_exact ... ok",
+          "id": "angle/source_default_angle_is_turn_and_quarter_turn_is_exact",
+          "source_file": "architecture/core/tests/declared_physical_values.rs",
+          "source_line": 294,
+          "source_blob_oid": "553e766efcebaedaeb889e51512ac9de71710235",
+          "source_url": "https://github.com/dancxjo/conduit/blob/f0de071a30e174ad8aea37001ab2b1f6efd9ec2f/architecture/core/tests/declared_physical_values.rs#L294",
+          "tested_source": "f0de071a30e174ad8aea37001ab2b1f6efd9ec2f",
+          "proof_class": "component-conformance"
+        },
+        {
+          "test": "scalar_and_wrong_dimension_calls_fail_angle_typechecking",
+          "passing_log_line": "2026-10-18T07:30:16.2115406Z test scalar_and_wrong_dimension_calls_fail_angle_typechecking ... ok",
+          "id": "angle/scalar_and_wrong_dimension_calls_fail_angle_typechecking",
+          "source_file": "architecture/plot/tests/angle_trigonometry.rs",
+          "source_line": 83,
+          "source_blob_oid": "00bed821b5a18faae3431913bc2ffc939e32fca9",
+          "source_url": "https://github.com/dancxjo/conduit/blob/f0de071a30e174ad8aea37001ab2b1f6efd9ec2f/architecture/plot/tests/angle_trigonometry.rs#L83",
+          "tested_source": "f0de071a30e174ad8aea37001ab2b1f6efd9ec2f",
+          "proof_class": "component-conformance"
+        },
+        {
+          "test": "exact_literal_and_dynamic_angle_calls_preserve_denotation_without_play_growth",
+          "passing_log_line": "2026-10-18T07:30:16.2204687Z test exact_literal_and_dynamic_angle_calls_preserve_denotation_without_play_growth ... ok",
+          "id": "angle/exact_literal_and_dynamic_angle_calls_preserve_denotation_without_play_growth",
+          "source_file": "architecture/plot/tests/angle_trigonometry.rs",
+          "source_line": 47,
+          "source_blob_oid": "00bed821b5a18faae3431913bc2ffc939e32fca9",
+          "source_url": "https://github.com/dancxjo/conduit/blob/f0de071a30e174ad8aea37001ab2b1f6efd9ec2f/architecture/plot/tests/angle_trigonometry.rs#L47",
+          "tested_source": "f0de071a30e174ad8aea37001ab2b1f6efd9ec2f",
+          "proof_class": "component-conformance"
+        }
+      ]
+    },
+    {
+      "key": "numerical-foundation",
+      "integration_run": 39120676170,
+      "job": 117655728740,
+      "job_url": "https://github.com/dancxjo/conduit/actions/runs/39120676170/job/117655728740",
+      "raw_log_sha256": "9ab9ac999b6910363c32fda4b04795e04155740da698d10e59d5d38b792de0d9",
+      "verified_tests": [
+        {
+          "test": "rounded_values_do_not_become_exact_and_zero_width_requests_refuse",
+          "passing_log_line": "2026-10-18T11:19:18.9803663Z test rounded_values_do_not_become_exact_and_zero_width_requests_refuse ... ok",
+          "id": "numerical-foundation/rounded_values_do_not_become_exact_and_zero_width_requests_refuse",
+          "source_file": "architecture/plot/tests/symbolic_denotation_projection.rs",
+          "source_line": 136,
+          "source_blob_oid": "2cf6fd369eef3a86e9006faa5bf3698a6645d839",
+          "source_url": "https://github.com/dancxjo/conduit/blob/e62a477ae3f0bc36758c7cbb3c21ff8065054ba6/architecture/plot/tests/symbolic_denotation_projection.rs#L136",
+          "tested_source": "e62a477ae3f0bc36758c7cbb3c21ff8065054ba6",
+          "proof_class": "component-conformance"
+        },
+        {
+          "test": "property_retains_complete_operation_order_and_rechecks_cancellation_error",
+          "passing_log_line": "2026-10-18T11:05:50.8001910Z test property_retains_complete_operation_order_and_rechecks_cancellation_error ... ok",
+          "id": "numerical-foundation/property_retains_complete_operation_order_and_rechecks_cancellation_error",
+          "source_file": "architecture/core/tests/numerical_float_realization.rs",
+          "source_line": 48,
+          "source_blob_oid": "8ad35194b7d806604842e9f9c53c9630ed8dd151",
+          "source_url": "https://github.com/dancxjo/conduit/blob/e62a477ae3f0bc36758c7cbb3c21ff8065054ba6/architecture/core/tests/numerical_float_realization.rs#L48",
+          "tested_source": "e62a477ae3f0bc36758c7cbb3c21ff8065054ba6",
+          "proof_class": "component-conformance"
+        },
+        {
+          "test": "ieee_signed_zero_survives_property_and_forged_target_or_error_kind_refuse",
+          "passing_log_line": "2026-10-18T11:05:50.7994109Z test ieee_signed_zero_survives_property_and_forged_target_or_error_kind_refuse ... ok",
+          "id": "numerical-foundation/ieee_signed_zero_survives_property_and_forged_target_or_error_kind_refuse",
+          "source_file": "architecture/core/tests/numerical_float_realization.rs",
+          "source_line": 109,
+          "source_blob_oid": "8ad35194b7d806604842e9f9c53c9630ed8dd151",
+          "source_url": "https://github.com/dancxjo/conduit/blob/e62a477ae3f0bc36758c7cbb3c21ff8065054ba6/architecture/core/tests/numerical_float_realization.rs#L109",
+          "tested_source": "e62a477ae3f0bc36758c7cbb3c21ff8065054ba6",
+          "proof_class": "component-conformance"
+        },
+        {
+          "test": "binary64_bits_and_all_flags_match_the_independent_oracle_without_allocating",
+          "passing_log_line": "2026-10-18T11:05:49.8703033Z test binary64_bits_and_all_flags_match_the_independent_oracle_without_allocating ... ok",
+          "id": "numerical-foundation/binary64_bits_and_all_flags_match_the_independent_oracle_without_allocating",
+          "source_file": "architecture/core/tests/ieee_binary64.rs",
+          "source_line": 59,
+          "source_blob_oid": "5f436f1003918c7f5191e2c95b93050dad0661e7",
+          "source_url": "https://github.com/dancxjo/conduit/blob/e62a477ae3f0bc36758c7cbb3c21ff8065054ba6/architecture/core/tests/ieee_binary64.rs#L59",
+          "tested_source": "e62a477ae3f0bc36758c7cbb3c21ff8065054ba6",
+          "proof_class": "component-conformance"
+        },
+        {
+          "test": "operation_order_and_explicit_sticky_flags_do_not_become_exact_final_rounding",
+          "passing_log_line": "2026-10-18T11:05:47.4570335Z test operation_order_and_explicit_sticky_flags_do_not_become_exact_final_rounding ... ok",
+          "id": "numerical-foundation/operation_order_and_explicit_sticky_flags_do_not_become_exact_final_rounding",
+          "source_file": "architecture/core/tests/ieee_binary64.rs",
+          "source_line": 119,
+          "source_blob_oid": "5f436f1003918c7f5191e2c95b93050dad0661e7",
+          "source_url": "https://github.com/dancxjo/conduit/blob/e62a477ae3f0bc36758c7cbb3c21ff8065054ba6/architecture/core/tests/ieee_binary64.rs#L119",
+          "tested_source": "e62a477ae3f0bc36758c7cbb3c21ff8065054ba6",
+          "proof_class": "component-conformance"
+        },
+        {
+          "test": "raw_binary64_equality_preserves_nan_payloads_signed_zero_and_infinities",
+          "passing_log_line": "2026-10-18T11:18:11.1995592Z test raw_binary64_equality_preserves_nan_payloads_signed_zero_and_infinities ... ok",
+          "id": "numerical-foundation/raw_binary64_equality_preserves_nan_payloads_signed_zero_and_infinities",
+          "source_file": "architecture/plot/tests/ieee_f64_expression.rs",
+          "source_line": 107,
+          "source_blob_oid": "0623f1c583dda29f4cdb6b641449aacf608714ea",
+          "source_url": "https://github.com/dancxjo/conduit/blob/e62a477ae3f0bc36758c7cbb3c21ff8065054ba6/architecture/plot/tests/ieee_f64_expression.rs#L107",
+          "tested_source": "e62a477ae3f0bc36758c7cbb3c21ff8065054ba6",
+          "proof_class": "component-conformance"
+        },
+        {
+          "test": "finite_binary64_operations_preserve_intermediate_rounding_and_refuse_invalid_domains",
+          "passing_log_line": "2026-10-18T11:18:11.2634330Z test finite_binary64_operations_preserve_intermediate_rounding_and_refuse_invalid_domains ... ok",
+          "id": "numerical-foundation/finite_binary64_operations_preserve_intermediate_rounding_and_refuse_invalid_domains",
+          "source_file": "architecture/plot/tests/ieee_f64_expression.rs",
+          "source_line": 164,
+          "source_blob_oid": "0623f1c583dda29f4cdb6b641449aacf608714ea",
+          "source_url": "https://github.com/dancxjo/conduit/blob/e62a477ae3f0bc36758c7cbb3c21ff8065054ba6/architecture/plot/tests/ieee_f64_expression.rs#L164",
+          "tested_source": "e62a477ae3f0bc36758c7cbb3c21ff8065054ba6",
+          "proof_class": "component-conformance"
+        }
+      ]
+    },
+    {
+      "key": "numerical-products",
+      "integration_run": 39120676170,
+      "job": 117655728791,
+      "job_url": "https://github.com/dancxjo/conduit/actions/runs/39120676170/job/117655728791",
+      "raw_log_sha256": "2d7d54eda1481de2658fd65175a8266d4c45a88f90b78248b6b26d229e112d3f",
+      "verified_tests": [
+        {
+          "test": "ordinary_exact_tenths_keep_meaning_across_new_plans_without_float_coercion",
+          "passing_log_line": "2026-10-18T11:02:23.7797553Z test ordinary_exact_tenths_keep_meaning_across_new_plans_without_float_coercion ... ok",
+          "id": "numerical-products/ordinary_exact_tenths_keep_meaning_across_new_plans_without_float_coercion",
+          "source_file": "products/conduit/tests/numerical_expression_product.rs",
+          "source_line": 86,
+          "source_blob_oid": "34ecc54ac85a247f572e71ff6d7b1026cac14159",
+          "source_url": "https://github.com/dancxjo/conduit/blob/e62a477ae3f0bc36758c7cbb3c21ff8065054ba6/products/conduit/tests/numerical_expression_product.rs#L86",
+          "tested_source": "e62a477ae3f0bc36758c7cbb3c21ff8065054ba6",
+          "proof_class": "product-cli"
+        },
+        {
+          "test": "ordinary_thirds_sum_exactly_through_the_default_product_host",
+          "passing_log_line": "2026-10-18T11:02:22.9618046Z test ordinary_thirds_sum_exactly_through_the_default_product_host ... ok",
+          "id": "numerical-products/ordinary_thirds_sum_exactly_through_the_default_product_host",
+          "source_file": "products/conduit/tests/numerical_expression_product.rs",
+          "source_line": 96,
+          "source_blob_oid": "34ecc54ac85a247f572e71ff6d7b1026cac14159",
+          "source_url": "https://github.com/dancxjo/conduit/blob/e62a477ae3f0bc36758c7cbb3c21ff8065054ba6/products/conduit/tests/numerical_expression_product.rs#L96",
+          "tested_source": "e62a477ae3f0bc36758c7cbb3c21ff8065054ba6",
+          "proof_class": "product-cli"
+        },
+        {
+          "test": "a_large_exact_expression_never_wraps_or_silently_rounds_to_a_machine_integer",
+          "passing_log_line": "2026-10-18T11:02:21.8277515Z test a_large_exact_expression_never_wraps_or_silently_rounds_to_a_machine_integer ... ok",
+          "id": "numerical-products/a_large_exact_expression_never_wraps_or_silently_rounds_to_a_machine_integer",
+          "source_file": "products/conduit/tests/numerical_expression_product.rs",
+          "source_line": 105,
+          "source_blob_oid": "34ecc54ac85a247f572e71ff6d7b1026cac14159",
+          "source_url": "https://github.com/dancxjo/conduit/blob/e62a477ae3f0bc36758c7cbb3c21ff8065054ba6/products/conduit/tests/numerical_expression_product.rs#L105",
+          "tested_source": "e62a477ae3f0bc36758c7cbb3c21ff8065054ba6",
+          "proof_class": "product-cli"
+        },
+        {
+          "test": "declared_observation_uncertainty_is_retained_separately_from_numeric_error",
+          "passing_log_line": "2026-10-18T11:02:21.9837473Z test declared_observation_uncertainty_is_retained_separately_from_numeric_error ... ok",
+          "id": "numerical-products/declared_observation_uncertainty_is_retained_separately_from_numeric_error",
+          "source_file": "products/conduit/tests/numerical_expression_product.rs",
+          "source_line": 187,
+          "source_blob_oid": "34ecc54ac85a247f572e71ff6d7b1026cac14159",
+          "source_url": "https://github.com/dancxjo/conduit/blob/e62a477ae3f0bc36758c7cbb3c21ff8065054ba6/products/conduit/tests/numerical_expression_product.rs#L187",
+          "tested_source": "e62a477ae3f0bc36758c7cbb3c21ff8065054ba6",
+          "proof_class": "product-cli"
+        },
+        {
+          "test": "explicit_f64_cancellation_keeps_intermediate_rounding_in_the_product",
+          "passing_log_line": "2026-10-18T11:02:22.8187189Z test explicit_f64_cancellation_keeps_intermediate_rounding_in_the_product ... ok",
+          "id": "numerical-products/explicit_f64_cancellation_keeps_intermediate_rounding_in_the_product",
+          "source_file": "products/conduit/tests/numerical_expression_product.rs",
+          "source_line": 132,
+          "source_blob_oid": "34ecc54ac85a247f572e71ff6d7b1026cac14159",
+          "source_url": "https://github.com/dancxjo/conduit/blob/e62a477ae3f0bc36758c7cbb3c21ff8065054ba6/products/conduit/tests/numerical_expression_product.rs#L132",
+          "tested_source": "e62a477ae3f0bc36758c7cbb3c21ff8065054ba6",
+          "proof_class": "product-cli"
+        },
+        {
+          "test": "explicit_ieee_back_executes_source_rounding_and_flags_through_the_product",
+          "passing_log_line": "2026-10-18T11:02:40.8672785Z test explicit_ieee_back_executes_source_rounding_and_flags_through_the_product ... ok",
+          "id": "numerical-products/explicit_ieee_back_executes_source_rounding_and_flags_through_the_product",
+          "source_file": "products/conduit/tests/numerical_expression_product.rs",
+          "source_line": 275,
+          "source_blob_oid": "34ecc54ac85a247f572e71ff6d7b1026cac14159",
+          "source_url": "https://github.com/dancxjo/conduit/blob/e62a477ae3f0bc36758c7cbb3c21ff8065054ba6/products/conduit/tests/numerical_expression_product.rs#L275",
+          "tested_source": "e62a477ae3f0bc36758c7cbb3c21ff8065054ba6",
+          "proof_class": "product-cli"
+        },
+        {
+          "test": "quiet_ieee_predicates_execute_through_the_product_with_separate_invalid_flags",
+          "passing_log_line": "2026-10-18T11:02:30.1970394Z test quiet_ieee_predicates_execute_through_the_product_with_separate_invalid_flags ... ok",
+          "id": "numerical-products/quiet_ieee_predicates_execute_through_the_product_with_separate_invalid_flags",
+          "source_file": "products/conduit/tests/numerical_expression_product.rs",
+          "source_line": 409,
+          "source_blob_oid": "34ecc54ac85a247f572e71ff6d7b1026cac14159",
+          "source_url": "https://github.com/dancxjo/conduit/blob/e62a477ae3f0bc36758c7cbb3c21ff8065054ba6/products/conduit/tests/numerical_expression_product.rs#L409",
+          "tested_source": "e62a477ae3f0bc36758c7cbb3c21ff8065054ba6",
+          "proof_class": "product-cli"
+        }
+      ]
+    }
+  ]
+}
