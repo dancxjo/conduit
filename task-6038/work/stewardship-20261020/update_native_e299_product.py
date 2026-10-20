@@ -1,0 +1,30 @@
+import pathlib,json,subprocess,tempfile,os,hashlib,re,stat,time
+T=pathlib.Path('/home/dancxjo/Documents/Codex/2026-10-19/goal-6038');B=T/'work/stewardship-20261020';R='/home/dancxjo/conduit';ref='refs/heads/recovery/local-sync-20261020/auxiliary-proof-source';parent='64e35984c7d55cd2b0c3dd5493a5d7346b4699be'
+files=[('work/consolidate-5990-e29922753.py', 'task-6038/work/consolidate-5990-e29922753.py'), ('work/measure-native-face-e29922753.py', 'task-6038/work/measure-native-face-e29922753.py'), ('work/6055-e299-admission-state.json', 'task-6038/work/6055-e299-admission-state.json'), ('work/6055-e29922753-range-diff.txt', 'task-6038/work/6055-e29922753-range-diff.txt'), ('work/5990-e29922753-independent-audit.md', 'task-6038/work/5990-e29922753-independent-audit.md'), ('outputs/5990-stage05-e29922753/receipt.json', 'task-6038/outputs/5990-stage05-e29922753/receipt.json'), ('outputs/native-face-byte-audit-e29922753/receipt.json', 'task-6038/outputs/native-face-byte-audit-e29922753/receipt.json'), ('outputs/5990-product-e29922753/build-manifest.json', 'task-6038/outputs/5990-product-e29922753/build-manifest.json'), ('outputs/5990-product-e29922753/resolved-image.json', 'task-6038/outputs/5990-product-e29922753/resolved-image.json'), ('outputs/5990-normal-journey-e29922753/x86_64/journey-proof.json', 'task-6038/outputs/5990-normal-journey-e29922753/x86_64/journey-proof.json'), ('outputs/5990-panels-wide-e29922753/receipt.json', 'task-6038/outputs/5990-panels-wide-e29922753/receipt.json'), ('outputs/5990-panels-narrow-e29922753/receipt.json', 'task-6038/outputs/5990-panels-narrow-e29922753/receipt.json'), ('outputs/5990-pointer-wide-e29922753-cold-birth/receipt.json', 'task-6038/outputs/5990-pointer-wide-e29922753-cold-birth/receipt.json'), ('outputs/5990-pointer-narrow-e29922753-cold-birth/receipt.json', 'task-6038/outputs/5990-pointer-narrow-e29922753-cold-birth/receipt.json'), ('outputs/5990-stage05-e29922753/local-checks.json', 'task-6038/outputs/5990-stage05-e29922753/local-checks.json'), ('work/6055-e29922753-preflight.log', 'task-6038/work/6055-e29922753-preflight.log'), ('work/5990-e29922753-strict-clippy.log', 'task-6038/work/5990-e29922753-strict-clippy.log'), ('work/5990-e29922753-native-face-tests.log', 'task-6038/work/5990-e29922753-native-face-tests.log'), ('work/5990-product-e29922753-build.log', 'task-6038/work/5990-product-e29922753-build.log'), ('work/5990-e29922753-sequence-status.json', 'task-6038/work/5990-e29922753-sequence-status.json'), ('work/run-5990-e29922753-refresh.py', 'task-6038/work/run-5990-e29922753-refresh.py'), ('work/run-5990-e29922753-product-proof.py', 'task-6038/work/run-5990-e29922753-product-proof.py')]
+def g(*a,env=None,data=None):return subprocess.check_output(['git',*a],cwd=R,env=env,input=data)
+def remote():return g('ls-remote','--heads','origin',ref).decode().split()[0]
+if remote()!=parent:raise RuntimeError('Remote parent drift')
+sigs=[re.compile(rb'-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----'),re.compile(rb'\b(?:gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{40,})\b'),re.compile(rb'\bAKIA[A-Z0-9]{16}\b'),re.compile(rb'(?i)(?:api[_-]?key|password|bearer|access[_-]?token|client[_-]?secret)\s*[=:]\s*[\"\'][^\"\']{12,}[\"\']')];batch=[]
+for source,target in files:
+ p=T/source
+ if p.is_symlink() or not p.is_file() or not p.resolve().is_relative_to(T):raise RuntimeError('Source path bounds')
+ data=p.read_bytes()
+ if b'\0' in data or len(data)>2**20 or any(s.search(data) for s in sigs):raise RuntimeError('Unsafe source scan '+source)
+ data.decode();batch.append({'source':source,'tree_path':target,'bytes':len(data),'sha256':hashlib.sha256(data).hexdigest(),'mode':'100755' if p.stat().st_mode&stat.S_IXUSR else '100644','content':data})
+fd,idx=tempfile.mkstemp(prefix='aux-update-index-',dir=B);os.close(fd);os.unlink(idx);env=dict(os.environ,GIT_INDEX_FILE=idx)
+try:
+ g('read-tree',parent,env=env)
+ for f in batch:
+  blob=g('hash-object','-w','--stdin',data=f['content']).decode().strip();f['blob']=blob;g('update-index','--add','--cacheinfo',f['mode'],blob,f['tree_path'],env=env)
+ manifest={'parent':parent,'scope':'Preserve refreshed Source and pending proof runner, verified prior repair restoration, and confirmed renderer occlusion red diagnostic','files':[{k:v for k,v in f.items() if k!='content'} for f in batch]};manifestbytes=(json.dumps(manifest,indent=2)+'\n').encode();mblob=g('hash-object','-w','--stdin',data=manifestbytes).decode().strip();g('update-index','--add','--cacheinfo','100644',mblob,'native-e299-fresh-product-update-manifest.json',env=env);tree=g('write-tree',env=env).decode().strip();commit=g('commit-tree',tree,'-p',parent,data=b'Preserve refreshed native product and all five emulator run receipts\n\nRecovery metadata only; raw products and proof logs remain local.\n').decode().strip()
+finally:pathlib.Path(idx).unlink(missing_ok=True)
+for f in batch:
+ if hashlib.sha256((T/f['source']).read_bytes()).hexdigest()!=f['sha256']:raise RuntimeError('Source drift before push')
+if remote()!=parent:raise RuntimeError('Remote changed before push')
+p=subprocess.run(['git','push','origin',commit+':'+ref],cwd=R,text=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE);(B/'native-e299-fresh-product-update-push.log').write_text(p.stdout+p.stderr)
+if p.returncode:raise RuntimeError('Normal FF push failed')
+if remote()!=commit:raise RuntimeError('Origin mismatch')
+if g('rev-parse',commit+'^').decode().strip()!=parent:raise RuntimeError('Parent mismatch')
+for f in batch:
+ if hashlib.sha256(g('show',commit+':'+f['tree_path'])).hexdigest()!=f['sha256']:raise RuntimeError('Committed byte mismatch')
+manifest.update(commit=commit,tree=tree,ref=ref,origin_verified=True,finished=time.strftime('%FT%TZ',time.gmtime()));(B/'native-e299-fresh-product-update-result.json').write_text(json.dumps(manifest,indent=2)+'\n');print(json.dumps({'files':len(batch),'parent':parent,'commit':commit,'tree':tree,'origin_verified':True},indent=2))

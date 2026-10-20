@@ -1,0 +1,27 @@
+{
+  "parent": "9cd32eea0fa7d14ffc550131eefd0c6481bb79ba",
+  "scope": "Read-only native capacity seam plan and public Source measurement correction; no implementation or platform proof",
+  "files": [
+    {
+      "source": "work/6156-source-order-measurement-update.md",
+      "tree_path": "task-6038/work/6156-source-order-measurement-update.md",
+      "bytes": 1925,
+      "sha256": "a52584e83368d8aea154a9d727f6129aa81dc2792adec7fc87c01712e8092b32",
+      "mode": "100644",
+      "blob": "d5ee05a620da6db7151fb2f4a801eec12dfc8dc5"
+    },
+    {
+      "source": "work/6156-native-capacity-readonly-plan.md",
+      "tree_path": "task-6038/work/6156-native-capacity-readonly-plan.md",
+      "bytes": 10022,
+      "sha256": "1b7c1e057f26ee6b394b44cd25f39eac5b7367ee4512dc1a6308ae2a6bfbeb1c",
+      "mode": "100644",
+      "blob": "694e87197b55a567ae4267aac1487959c62c861a"
+    }
+  ],
+  "commit": "72bc11f302338c6a1044d648908fdf84799c0509",
+  "tree": "25f9df92286056c79aeacdede4deaa51a7445e99",
+  "ref": "refs/heads/recovery/local-sync-20261020/auxiliary-proof-source",
+  "origin_verified": true,
+  "finished": "2026-10-20T17:58:59Z"
+}

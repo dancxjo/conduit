@@ -1,0 +1,227 @@
+{
+  "observed": "2026-10-20T18:41:13Z",
+  "worktrees": [
+    {
+      "worktree": "/home/dancxjo/conduit",
+      "head": "80bf55640ae789952bd98f54258b0c02d0d5bd5d",
+      "clean": true,
+      "origin_contains_head": true
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-17/goal-please-finish-and-close-https/work/face-shell",
+      "head": "0dd4d2a9c024a2c7f86a4de75e641453a2f5ba06",
+      "clean": false,
+      "origin_contains_head": true,
+      "dirty_bytes_match_origin_snapshot": true,
+      "recovery": "refs/remotes/origin/recovery/local-sync-20261020/face-shell",
+      "snapshot_tree": "20d8381d36559d5c392a80e6429e256ef2236a3a",
+      "staged_index_preserved": true
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-18/goal-finish-and-close-https-github/work/parser-punctuation-training",
+      "head": "3ddae3bb9d41a466e446a55464348dc043eb6ed4",
+      "clean": false,
+      "origin_contains_head": true,
+      "dirty_bytes_match_origin_snapshot": true,
+      "recovery": "refs/remotes/origin/recovery/local-sync-20261020/parser-punctuation-training",
+      "snapshot_tree": "8ab2364b7764fc1b000e30b0ebb61b461c11124b"
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/browser-local-face",
+      "head": "ad35c67a03d67364bf47d7b7a83cd1c859f9fa00",
+      "clean": false,
+      "origin_contains_head": true,
+      "dirty_bytes_match_origin_snapshot": true,
+      "recovery": "refs/remotes/origin/recovery/local-sync-20261020/browser-local-face",
+      "snapshot_tree": "8181ef205fdbe653076e7ff5d47fa6f49660c10e"
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/collection-source",
+      "head": "97277a818aae7e01b0a4812e0dfc4b0fd0ddb1b7",
+      "clean": true,
+      "origin_contains_head": true
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/component-admission",
+      "head": "43ebd1005c529bafb3256eda135d715f7a63e040",
+      "clean": true,
+      "origin_contains_head": true
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/mechanical-layout-design",
+      "head": "fb335ca254bebbcf34e479d19d5b239709c6b2ad",
+      "clean": true,
+      "origin_contains_head": true
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-face-readonly",
+      "head": "a9ed419828d41ea58da7c1ed4c011bd441f3081b",
+      "clean": true,
+      "origin_contains_head": true
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels",
+      "head": "e29922753a2fca04145551bbb6ae00504fed76a9",
+      "clean": true,
+      "origin_contains_head": true
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/owner-presentation",
+      "head": "bc1448c4bd233257c416bfe5b30c21c940b57293",
+      "clean": true,
+      "origin_contains_head": true
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/portable-controls",
+      "head": "263a5b4a702957daaf47b9ef3e165deafd9c84dc",
+      "clean": true,
+      "origin_contains_head": true
+    }
+  ],
+  "local_branches": [
+    {
+      "branch": "refs/heads/codex/6039-source-contract",
+      "head": "97277a818aae7e01b0a4812e0dfc4b0fd0ddb1b7",
+      "origin_contained": true
+    },
+    {
+      "branch": "refs/heads/codex/6159-mechanical-layout-design",
+      "head": "fb335ca254bebbcf34e479d19d5b239709c6b2ad",
+      "origin_contained": true
+    },
+    {
+      "branch": "refs/heads/codex/native-ci-feature-coverage",
+      "head": "10fbda078498ae23370789510117733877c411bc",
+      "origin_contained": true
+    },
+    {
+      "branch": "refs/heads/codex/shared-shard-test-module-path",
+      "head": "e24fe3f402ab22a78df3bbfdb17e12b13331e7f4",
+      "origin_contained": true
+    },
+    {
+      "branch": "refs/heads/dev",
+      "head": "80bf55640ae789952bd98f54258b0c02d0d5bd5d",
+      "origin_contained": true
+    },
+    {
+      "branch": "refs/heads/fix/5604-current-face",
+      "head": "0dd4d2a9c024a2c7f86a4de75e641453a2f5ba06",
+      "origin_contained": true
+    },
+    {
+      "branch": "refs/heads/prep/4907-parser-punctuation",
+      "head": "3ddae3bb9d41a466e446a55464348dc043eb6ed4",
+      "origin_contained": true
+    },
+    {
+      "branch": "refs/heads/prep/5990-responsive-panels",
+      "head": "e29922753a2fca04145551bbb6ae00504fed76a9",
+      "origin_contained": true
+    },
+    {
+      "branch": "refs/heads/prep/6039-on-creche",
+      "head": "263a5b4a702957daaf47b9ef3e165deafd9c84dc",
+      "origin_contained": true
+    },
+    {
+      "branch": "refs/heads/prep/6041-component-admission",
+      "head": "43ebd1005c529bafb3256eda135d715f7a63e040",
+      "origin_contained": true
+    },
+    {
+      "branch": "refs/heads/prep/6041-local-creche-mask",
+      "head": "ad35c67a03d67364bf47d7b7a83cd1c859f9fa00",
+      "origin_contained": true
+    },
+    {
+      "branch": "refs/heads/prep/6042-readonly-browser",
+      "head": "a9ed419828d41ea58da7c1ed4c011bd441f3081b",
+      "origin_contained": true
+    },
+    {
+      "branch": "refs/heads/recovery/4d1dd-native-ci-feature-coverage",
+      "head": "4d1dd89260002dc6fd23610688eb3f92a4107ba8",
+      "origin_contained": true
+    },
+    {
+      "branch": "refs/heads/recovery/5212-before-complete-carrier-d03",
+      "head": "d03f7fd454344ee865e2aeda330ddc9d6ddbe243",
+      "origin_contained": true
+    },
+    {
+      "branch": "refs/heads/recovery/5212-carried-before-library-budget",
+      "head": "5a6c53b5cd154995bc4c6fb18977930eaf7987fd",
+      "origin_contained": true
+    },
+    {
+      "branch": "refs/heads/recovery/5212-carried-before-native-boolean",
+      "head": "37279b19e111c01e4b253669d9dcea38a53f74b6",
+      "origin_contained": true
+    },
+    {
+      "branch": "refs/heads/recovery/5212-carried-on-duplicate-repair",
+      "head": "a15f6a909b6fa0ce53607bb987f49ba474660377",
+      "origin_contained": true
+    },
+    {
+      "branch": "refs/heads/recovery/5212-integrated-quantity-prep",
+      "head": "99d71eb08b0c71342ba33fc0cbe80664fb1f6b91",
+      "origin_contained": true
+    },
+    {
+      "branch": "refs/heads/recovery/5212-model-and-rate-prep",
+      "head": "cd12acae79a6f26ab851ec227038533d694c2a0a",
+      "origin_contained": true
+    },
+    {
+      "branch": "refs/heads/recovery/5212-model-before-expression-94",
+      "head": "d33649e68fd188c20d6849c19861f4d05f77ff64",
+      "origin_contained": true
+    },
+    {
+      "branch": "refs/heads/recovery/5212-model-before-library-budget",
+      "head": "29ba617e2599fefdcce7d443ab294821f6c609a7",
+      "origin_contained": true
+    },
+    {
+      "branch": "refs/heads/recovery/5212-model-before-q3-admission-1018",
+      "head": "1018f0cf9febf5679878445e046665f2941c8236",
+      "origin_contained": true
+    },
+    {
+      "branch": "refs/heads/recovery/5212-model-on-duplicate-repair",
+      "head": "cacca39799551433825b8264233ce2e8a59b375f",
+      "origin_contained": true
+    },
+    {
+      "branch": "refs/heads/recovery/5212-quantity-before-audio99",
+      "head": "aa4d631e44bc43eeb7dfbc6f5e16e6aefdaadb07",
+      "origin_contained": true
+    },
+    {
+      "branch": "refs/heads/recovery/5645-d571300ba-before-dev-refresh",
+      "head": "d571300ba8d97f99efabe9b852e49b5b70a09a52",
+      "origin_contained": true
+    },
+    {
+      "branch": "refs/heads/recovery/5668-fundamental-before-authored",
+      "head": "f79b93919aab36658b38a88a169d46b263ffcc4b",
+      "origin_contained": true
+    },
+    {
+      "branch": "refs/heads/recovery/6055-3dc-before-current-dev",
+      "head": "3dc68b8a7a0dbfa2e91388f803225a2a244fbfb6",
+      "origin_contained": true
+    },
+    {
+      "branch": "refs/heads/refresh/5645-current-dev",
+      "head": "bc1448c4bd233257c416bfe5b30c21c940b57293",
+      "origin_contained": true
+    }
+  ],
+  "all_worktree_heads_and_branch_heads_origin_contained": true,
+  "intentional_dirty_snapshots_origin_identical": true,
+  "active_cargo_rustc_qemu": [],
+  "boundary": "Raw product/guest binaries remain local and digest-bound in origin-backed proof receipts; credentials/private state are not uploaded."
+}

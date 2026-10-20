@@ -1,0 +1,9 @@
+Traceback (most recent call last):
+  File "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/diagnose-6158-e299-wide.py", line 9, in <module>
+    g=b.Guest(T/'outputs/5990-product-e29922753',H,out,2560,1600)
+  File "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/prove-5990-panels-qemu.py", line 58, in __init__
+    self.wait(lambda: 'CONDUIT_BOOT_STAGE front-door-ready\n' in self.text(), 60)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/prove-5990-panels-qemu.py", line 97, in wait
+    raise TimeoutError('guest observation deadline')
+TimeoutError: guest observation deadline

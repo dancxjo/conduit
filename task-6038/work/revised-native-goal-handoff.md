@@ -1,0 +1,11 @@
+Synchronized handoff before continuing the revised native goal:
+
+1. **#6055:** origin `prep/5990-responsive-panels`, exact head `e29922753a2fca04145551bbb6ae00504fed76a9`, base 80bf. Local preflight 295, strict Clippy,105 native Face tests and all five normal-product QEMU runs pass. [83-file packet](https://github.com/dancxjo/conduit/blob/8ea6a9515211dc38ccc138158ef70bb080cb62f7/task-6038/outputs/5990-stage05-e29922753/receipt.json). Candidate 39471533018 was running without failure at 18:35 UTC; dev Integration 39465043673 awaited only browser. No terminal-Candidate/stable claim.
+2. **#6158 / #5990:** original screenshots preserved on origin; exact reported Source/guest mode unknown. One 2560×1600 diagnostic refused before Crèche at existing pixel cap; no pagination reproduction/disproof. [Retained negative](https://github.com/dancxjo/conduit/blob/9a1305514b2d5d5723601652a58e6630acd00e96/task-6038/work/6158-e299-wide-diagnostic-audit.md). Verify supported configured/fallback layout before closure.
+3. **#5607:** reviewed-equivalent focus/navigation evidence is ready; acceptance remains conditional on panels integration and scoped checks. Preserve CPU versus guest proof boundaries.
+4. **#5992:** read-only font/provenance/specimen plans preserved; no typography implementation started. Maintain serial native order.
+5. **Patchbay:** existing Gear/Port/Cord and three-Mask audits retained; complete after required native gates.
+
+The broader mechanical layout proposal is on [origin/codex/6159-mechanical-layout-design](https://github.com/dancxjo/conduit/blob/fb335ca254bebbcf34e479d19d5b239709c6b2ad/docs/architecture/mechanical-layout.md), linked to #6159. It is proposed design, not runtime implementation. Portable C1 `97277a818` and browser W1 `bc1448c4` remain held on origin, linked to #6039/#5645; #6156 capacity remains open. They are parked outside the revised five-step goal; #6038 is not claimed complete.
+
+All 11 worktree heads and 28 local branch heads were verified origin-contained; all three intentional dirty snapshots exactly match origin recovery trees. No local Cargo/QEMU process remained. Raw products/captures stay local with origin-backed digest receipts; private state is not uploaded. User clarified: finish synchronization, then continue the revised native goal.

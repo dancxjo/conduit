@@ -1,0 +1,5 @@
+Prepared Source work is synchronized at `97277a818aae7e01b0a4812e0dfc4b0fd0ddb1b7` on [codex/6039-source-contract](https://github.com/dancxjo/conduit/tree/codex/6039-source-contract). It remains held, with no C1 PR/admission claim.
+
+[Exact Source-order proof and remaining native failures](https://github.com/dancxjo/conduit/blob/9cd32eea0fa7d14ffc550131eefd0c6481bb79ba/task-6038/outputs/6039-source-order-83c7/receipt.json): 360 Face/Birth passes, configured Crèche checks, strict owning-package Clippy; the broad native inventory is 95 pass/10 fail. Full Source/checked pair option identity, exact independent-collection selector and explicit source precedence were corrected. Default canonical Face is 64,530 B; maximum exercised specimen 201,468 B. These are CPU/linear measurements, not native Host/guest admission.
+
+#6156 owns the explicit native profile/storage/observer prerequisite; C1 must not merge while its default native consumer is known to refuse. Preserve the complete Source and negative evidence. The user requested synchronization and a stop; no further work or claim of completion is made.

@@ -1,0 +1,51 @@
+{
+  "parent": "8ea6a9515211dc38ccc138158ef70bb080cb62f7",
+  "scope": "Read-only native capacity seam plan and public Source measurement correction; no implementation or platform proof",
+  "files": [
+    {
+      "source": "work/5990-e29922753-secondary-independent-audit.md",
+      "tree_path": "task-6038/work/5990-e29922753-secondary-independent-audit.md",
+      "bytes": 3886,
+      "sha256": "7b7a8ae46c9604ca622d9995c1933c574b14b8537092228324e8aa2b53409528",
+      "mode": "100644",
+      "blob": "66c42ff349ff21ccf178b1a98594f44101cb4d07"
+    },
+    {
+      "source": "work/6055-body-e299-local-green.md",
+      "tree_path": "task-6038/work/6055-body-e299-local-green.md",
+      "bytes": 5062,
+      "sha256": "598b674ac9d1f7c9fcc821b7447f96cd805410c14239bcf1084bbfe4cc1b0d24",
+      "mode": "100644",
+      "blob": "83e0793565501178549f176828f99df2e72d449f"
+    },
+    {
+      "source": "work/6055-body-e299-local-green.json",
+      "tree_path": "task-6038/work/6055-body-e299-local-green.json",
+      "bytes": 5113,
+      "sha256": "e9f4164964ab62decec110fbebed9700bc34ad5f0bcc4636d2592509816d9edf",
+      "mode": "100644",
+      "blob": "d1449807cdc0946a0149ebc84f490ce452568d65"
+    },
+    {
+      "source": "work/5990-e299-implementation-acceptance-comment.md",
+      "tree_path": "task-6038/work/5990-e299-implementation-acceptance-comment.md",
+      "bytes": 3200,
+      "sha256": "1abc2038efdf782fd158a3fadca0759d1fd17fce772611f3fc5ea97b09958200",
+      "mode": "100644",
+      "blob": "49c2d4f6042a33a11200b068d41fd8453c7b8eb1"
+    },
+    {
+      "source": "work/5607-e299-implementation-acceptance-comment.md",
+      "tree_path": "task-6038/work/5607-e299-implementation-acceptance-comment.md",
+      "bytes": 3445,
+      "sha256": "cb456bd040b4ff09d8d1cda6349d5417cdad616885e9dbf987276babdbdbb187",
+      "mode": "100644",
+      "blob": "9809ec8175ccca2ad4825a1025a5a3dcfa896a68"
+    }
+  ],
+  "commit": "3c3611b4f4eb7af8a36795453dc38c52274310fd",
+  "tree": "6187bc0850cf705bae8df01802944120aac6b9ff",
+  "ref": "refs/heads/recovery/local-sync-20261020/auxiliary-proof-source",
+  "origin_verified": true,
+  "finished": "2026-10-20T18:20:52Z"
+}

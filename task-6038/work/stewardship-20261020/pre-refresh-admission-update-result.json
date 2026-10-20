@@ -1,0 +1,43 @@
+{
+  "parent": "72bc11f302338c6a1044d648908fdf84799c0509",
+  "scope": "Read-only native capacity seam plan and public Source measurement correction; no implementation or platform proof",
+  "files": [
+    {
+      "source": "work/5990-implementation-acceptance-comment.md",
+      "tree_path": "task-6038/work/5990-implementation-acceptance-comment.md",
+      "bytes": 3200,
+      "sha256": "8d449d1ab421b3c6b20e9b310f12366a290019ef545c227e0e76e3464ca7dace",
+      "mode": "100644",
+      "blob": "a365cc1a56a4e2624c16fdd188afd6fd2760d98d"
+    },
+    {
+      "source": "work/5607-implementation-acceptance-comment.md",
+      "tree_path": "task-6038/work/5607-implementation-acceptance-comment.md",
+      "bytes": 3445,
+      "sha256": "2e837ff0d679d59a04818d2e89a76b0aa16c12425641390d555ee4c9b6a4f93c",
+      "mode": "100644",
+      "blob": "01532b13388632309ee69648d8d1c0c1fe910c38"
+    },
+    {
+      "source": "outputs/ci-resumed-20261020/observation-1803/tested-preview-commit.json",
+      "tree_path": "task-6038/outputs/ci-resumed-20261020/observation-1803/tested-preview-commit.json",
+      "bytes": 2614,
+      "sha256": "c3d6a4fa9fb8c90722db6b4db222ccaf48dcdbc70eb9c458e56c4d9bd85a91ed",
+      "mode": "100644",
+      "blob": "feb7f181f249daa2f1556035339904a493536289"
+    },
+    {
+      "source": "outputs/ci-resumed-20261020/observation-1803/currentdev-runs.json",
+      "tree_path": "task-6038/outputs/ci-resumed-20261020/observation-1803/currentdev-runs.json",
+      "bytes": 24353,
+      "sha256": "d99813b143c5c35061dc652458a2938cde0f60fb68c6782d74aa9293fc4dcf5c",
+      "mode": "100644",
+      "blob": "a9ba9e9e37a24c52ebfbb7be947205c36ab7a6e7"
+    }
+  ],
+  "commit": "dc9bfd5bf2b782115b3cddedbd789b44897001f3",
+  "tree": "386c561e6a3c13d34513bf5f5e1ea9d16681bcfb",
+  "ref": "refs/heads/recovery/local-sync-20261020/auxiliary-proof-source",
+  "origin_verified": true,
+  "finished": "2026-10-20T18:04:03Z"
+}

@@ -1,0 +1,43 @@
+{
+  "parent": "dc9bfd5bf2b782115b3cddedbd789b44897001f3",
+  "scope": "Read-only native capacity seam plan and public Source measurement correction; no implementation or platform proof",
+  "files": [
+    {
+      "source": "work/5992-technical-specimen-readonly-plan.md",
+      "tree_path": "task-6038/work/5992-technical-specimen-readonly-plan.md",
+      "bytes": 6274,
+      "sha256": "196b7fc7b4fba3e435c7c8df2e7d96eca7548a0129ed6c5af8cd32b32f7eb81b",
+      "mode": "100644",
+      "blob": "ccb3350f36e4be018328cc162f4d8264512bb5a3"
+    },
+    {
+      "source": "work/6055-e299-admission-state.json",
+      "tree_path": "task-6038/work/6055-e299-admission-state.json",
+      "bytes": 936,
+      "sha256": "841551afe56ae0c295be6e2ef86d78171a4c3b2b2a63e52f74e08074364d5ff9",
+      "mode": "100644",
+      "blob": "cb7d13a256333ddae6bae11328983bef5a386332"
+    },
+    {
+      "source": "work/6055-body-e299-pending-proof.md",
+      "tree_path": "task-6038/work/6055-body-e299-pending-proof.md",
+      "bytes": 4498,
+      "sha256": "1210d62d7e2ff8bc827641fee9bed1e1119de06660ab772f95a9403c1aee44d0",
+      "mode": "100644",
+      "blob": "8084b849dc730fb637562c56be0a369d447838d6"
+    },
+    {
+      "source": "work/6055-body-e299-pending-proof.json",
+      "tree_path": "task-6038/work/6055-body-e299-pending-proof.json",
+      "bytes": 4535,
+      "sha256": "c8bdeb411b5d8ae8087208d8d695253958fffa6f9dd6ba1e3a969d092cb12aee",
+      "mode": "100644",
+      "blob": "a824118b5464acd32f16409a751aee1a2849af3c"
+    }
+  ],
+  "commit": "882fbc6b518b8903cdf03d195a3487c04a9e15c6",
+  "tree": "7093d0bf98b943211536d0e71ab5994cf30e701f",
+  "ref": "refs/heads/recovery/local-sync-20261020/auxiliary-proof-source",
+  "origin_verified": true,
+  "finished": "2026-10-20T18:06:04Z"
+}
