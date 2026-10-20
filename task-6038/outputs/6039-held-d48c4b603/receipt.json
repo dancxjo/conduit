@@ -1,0 +1,29 @@
+{
+  "source": "d48c4b603e21f709520e475bc014cbe8c3d7933a",
+  "scope": "Held historical C1 source branch; not current-dev, native, browser, Candidate or stable acceptance. Linear PROPERTY retains existing typed contract and exact canonical bytes.",
+  "validation": {
+    "face_birth_libraries": {
+      "passed": 96,
+      "ignored_existing": 2
+    },
+    "typed_value_integration": {
+      "passed": 6
+    },
+    "strict_clippy": "passed",
+    "format_diff": "passed",
+    "red_regression": "equal-length values indistinguishable and exact canonical bytes missing before fix"
+  },
+  "linear_profiles": {
+    "one_unselected": 74676,
+    "one_selected": 77159,
+    "sixteen_unselected": 135286,
+    "sixteen_selected": 176180
+  },
+  "logs": {
+    "6039-held-linear-value-red.log": "ee09a39b654f695052ec09811c5d5051c461ca9f9a2021ad74777f4180c3f43d",
+    "6039-held-linear-value-green.log": "8a25a207a0d7c907ab76b48d94733fae98b0aae643187e2947e4876f57ddd4b9",
+    "6039-held-linear-face-birth-tests.log": "8e0ab94083e2f66efb8aa98109b6dbc9c7fd6c50787adea3c69757da469618a5",
+    "6039-held-linear-typed-value-tests.log": "b1281bfa0cec44494a457ab4fcd3d1800c776c9946706c75ead1d940b7b0da57",
+    "6039-held-linear-clippy.log": "76307712bb5da0421be728e10f71f02fabe6e2f63da8c686fbf4f8da7b66c94e"
+  }
+}

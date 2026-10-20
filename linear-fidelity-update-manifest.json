@@ -1,0 +1,22 @@
+{
+  "parent": "97576612d6f595e0f7cec24e9ec2908274ef44f9",
+  "scope": "Held Source handoff and lightweight linear fidelity receipt; raw products and logs excluded",
+  "files": [
+    {
+      "source": "work/6039-source-recovery-handoff.md",
+      "tree_path": "task-6038/work/6039-source-recovery-handoff.md",
+      "bytes": 17650,
+      "sha256": "4845440b816f1768d7a5c9e6cba41e64c4ec0a171130fa8d086d734d45062fe1",
+      "mode": "100644",
+      "blob": "d0101d89559bc3ef27d459db94284de9cfa4ca65"
+    },
+    {
+      "source": "outputs/6039-held-d48c4b603/receipt.json",
+      "tree_path": "task-6038/outputs/6039-held-d48c4b603/receipt.json",
+      "bytes": 1290,
+      "sha256": "108438e7da2cd4278f146e213466eea6729824bc58af20dbc5c478f5bd0c2c49",
+      "mode": "100644",
+      "blob": "788fb1fc38248dc08e9cf3bdfd43d9134eab98aa"
+    }
+  ]
+}
