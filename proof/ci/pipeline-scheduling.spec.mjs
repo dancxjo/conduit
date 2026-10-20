@@ -77,3 +77,16 @@ test('PR scopes use the actual merge-preview parent, including admission', () =>
   assert.match(job(ci, 'preflight'), /BASE: \$\{\{ steps\.base\.outputs\.sha \}\}/);
   assert.match(job(ci, 'admission'), /BASE: \$\{\{ needs\.preflight\.outputs\.base \}\}/);
 });
+
+
+test('diagnostic runtime measurements run on demand without occupying every Candidate', () => {
+  const measurements = readFileSync('.github/workflows/runtime-performance.yml', 'utf8');
+  assert.equal(job(candidate, 'runtime-performance-report'), undefined);
+  assert.match(measurements, /workflow_dispatch:/);
+  assert.doesNotMatch(measurements, /pull_request:|push:/);
+  const measurement = job(measurements, 'runtime-performance-report');
+  assert.match(measurement, /ref: \$\{\{ github.sha \}\}/);
+  assert.match(measurement, /cargo xtask prove runtime-performance/);
+  assert.match(measurement, /if: \$\{\{ always\(\) \}\}/);
+  assert.doesNotMatch(measurement, /continue-on-error: true/);
+});

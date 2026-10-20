@@ -188,3 +188,24 @@ test('language package admission exercises and lints the optional admitted score
   runAdmission(['products/conduit/src/main.rs'], model, '/repo', (...args) => unrelated.push(args));
   assert.ok(unrelated.every(([, args]) => !args.includes('conduit-language/parser-model')));
 });
+
+
+test('narrow admission lints selected packages and broad changes retain workspace lint', () => {
+  for (const [paths, expected] of [
+    [['products/conduit/tests/installed_screen_free_birth.rs'], ['-p', 'conduit']],
+    [['Cargo.toml'], ['--workspace']],
+  ]) {
+    const commands = [];
+    runAdmission(paths, metadata, '/repo', (...args) => commands.push(args));
+    const lint = commands.find(([, args]) => args[0] === 'clippy')[1];
+    assert.deepEqual(lint, ['clippy', '--locked', ...expected, '--all-targets', '--', '-D', 'warnings']);
+  }
+});
+
+test('sensitive changes lint every selected boundary package', () => {
+  const commands = [];
+  runAdmission(['semantics/data/src/number.rs'], metadata, '/repo', (...args) => commands.push(args));
+  const lint = commands.find(([, args]) => args[0] === 'clippy')[1];
+  for (const name of ['conduit-data', 'conduit-kernel', 'conduit-planner']) assert.ok(lint.includes(name));
+  assert.ok(!lint.includes('--workspace'));
+});
