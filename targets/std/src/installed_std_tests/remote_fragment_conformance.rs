@@ -303,6 +303,17 @@ fn run_body_time_qualified_remote_fragment_flow() {
             }
             if let Some(request) = source_runtime.next_host_request() {
                 let work = source_runtime.describe_host_request(request).unwrap();
+                let probe = crate::allocation_probe::begin();
+                let view = source_runtime.host_request_view(request).unwrap();
+                assert_eq!(view.request, work.request);
+                assert_eq!(view.contract_id, &work.contract_id);
+                assert_eq!(view.maximum_output_bytes, work.maximum_output_bytes);
+                assert_eq!(view.input, work.input.as_slice());
+                assert_eq!(
+                    probe.finish(),
+                    0,
+                    "borrowing admitted Host work must not allocate"
+                );
                 assert_eq!(work.request, request);
                 assert_eq!(
                     work.contract_id,
@@ -698,6 +709,11 @@ fn run_body_time_qualified_tick() {
     for _ in 0..8 {
         if let Some(request) = sink_runtime.next_host_request() {
             let work = sink_runtime.describe_host_request(request).unwrap();
+            let probe = crate::allocation_probe::begin();
+            let view = sink_runtime.host_request_view(request).unwrap();
+            assert_eq!(view.contract_id, &work.contract_id);
+            assert_eq!(view.input, work.input.as_slice());
+            assert_eq!(probe.finish(), 0);
             assert_eq!(work.input, transfer.bytes);
             sink_runtime
                 .complete_host_call(

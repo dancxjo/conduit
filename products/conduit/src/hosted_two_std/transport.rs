@@ -41,7 +41,7 @@ fn next_transfer(
             return Ok(transfer);
         }
         if let Some(request) = runtime.next_host_request() {
-            let work = runtime.describe_host_request(request)?;
+            let work = runtime.host_request_view(request)?;
             if work.contract_id.as_str() != conduit_core::WAIT_HOST_CALL_CONTRACT
                 || work.input != 0_u64.to_le_bytes()
             {
@@ -99,7 +99,7 @@ fn complete_text_face(
     output: &mut impl Write,
     workload: super::Workload,
 ) -> Result<(), String> {
-    let work = runtime.describe_host_request(request)?;
+    let work = runtime.host_request_view(request)?;
     if work.contract_id.as_str() != conduit_core::PRESENT_HOST_CALL_CONTRACT {
         return Err(format!(
             "unexpected two-Host Call {}",
@@ -108,12 +108,12 @@ fn complete_text_face(
     }
     match workload {
         super::Workload::Text => {
-            let text = core::str::from_utf8(&work.input)
+            let text = core::str::from_utf8(work.input)
                 .map_err(|_| "presented two-Host text is not UTF-8")?;
             writeln!(output, "{text}").map_err(|error| error.to_string())?;
         }
         super::Workload::Ticks(_) => {
-            let tick = conduit_time::decode_tick(&work.input)
+            let tick = conduit_time::decode_tick(work.input)
                 .map_err(|_| "presented two-Host tick is malformed")?;
             writeln!(output, "{tick}").map_err(|error| error.to_string())?;
         }

@@ -8,9 +8,7 @@ use super::{
     MAX_NODES, MAX_QUEUE_SLOTS, ROUTE_SLOTS, ROUTE_TARGETS,
 };
 use crate::remote_cord_sessions::RemoteCordSessions;
-use conduit_core::{
-    bind_active_play, kind_id, HostAdvertisement, HostCallContractId, PlanFragment,
-};
+use conduit_core::{bind_active_play, kind_id, HostAdvertisement, PlanFragment};
 use conduit_kernel::scheduler::{HostCallRequest, RemoteIngressOutcome};
 use conduit_kernel::{
     BoundedValueRef, CordId, HostCallDisposition, HostCallOutcome, HostedSignLog, HostedValueStore,
@@ -62,13 +60,8 @@ pub struct RemoteValueTransfer {
     pub bytes: Vec<u8>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct RemoteHostWork {
-    pub request: HostCallRequest,
-    pub contract_id: HostCallContractId,
-    pub maximum_output_bytes: u32,
-    pub input: Vec<u8>,
-}
+mod host_work;
+pub use host_work::{RemoteHostWork, RemoteHostWorkRef};
 
 pub struct InstalledRemoteFragment {
     scheduler: Box<InstalledScheduler>,
@@ -258,28 +251,6 @@ impl InstalledRemoteFragment {
     }
     pub fn next_host_request(&mut self) -> Option<HostCallRequest> {
         self.scheduler.next_host_request()
-    }
-    pub fn describe_host_request(
-        &self,
-        request: HostCallRequest,
-    ) -> Result<RemoteHostWork, String> {
-        let operation = self
-            .lowered
-            .host_calls
-            .iter()
-            .find(|operation| operation.node == request.node && operation.call == request.call)
-            .ok_or_else(|| "remote host request has no lowered contract identity".to_string())?;
-        let input = self
-            .scheduler
-            .host_value(request.input.value)
-            .map_err(|error| format!("read remote std host input: {error:?}"))?
-            .to_vec();
-        Ok(RemoteHostWork {
-            request,
-            contract_id: operation.contract_id.clone(),
-            maximum_output_bytes: operation.binding.maximum_output_bytes,
-            input,
-        })
     }
     pub fn complete_host_call(
         &mut self,
