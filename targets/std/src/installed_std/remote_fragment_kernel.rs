@@ -37,6 +37,15 @@ fn semantic_data_refusal(detail: u16) -> HostCallOutcome {
     }
 }
 
+/// Optional minimum retention admitted before a remote fragment starts.
+/// Counts bound fixed numeric event and remote identity storage; neither can
+/// grow during Play. Zero retains the ordinary operation-derived reservation.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct RemoteSignRetention {
+    pub event_items: u16,
+    pub remote_items: u16,
+}
+
 /// Exact retained offer metadata, without creating a second payload owner.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct RemoteValueIdentity {
@@ -94,6 +103,23 @@ impl InstalledRemoteFragment {
         advertisement: &HostAdvertisement,
         fragment: &PlanFragment,
         play_sequence: u64,
+    ) -> Result<Self, String> {
+        Self::prepare_with_retention(
+            advertisement,
+            fragment,
+            play_sequence,
+            RemoteSignRetention::default(),
+        )
+    }
+
+    /// Prepare the same exact fragment with caller-selected finite Sign retention.
+    /// This reserves storage now; it neither changes the Plan/session identity
+    /// nor retains mutable execution resources across different fragment owners.
+    pub fn prepare_with_retention(
+        advertisement: &HostAdvertisement,
+        fragment: &PlanFragment,
+        play_sequence: u64,
+        retention: RemoteSignRetention,
     ) -> Result<Self, String> {
         if advertisement.host_id != fragment.host_id || advertisement.boot_id != fragment.boot_id {
             return Err("remote fragment preparation requires its exact host and Boot".into());
@@ -155,10 +181,11 @@ impl InstalledRemoteFragment {
             preparation::prepare_operations(fragment, &lowered, &mut values, &play, None, None)?;
         let mut tables = KernelTables::prepare(&[&lowered])?;
         tables.bind_fusions(fragment, &lowered)?;
+        let sign_items = sign_items.max(retention.event_items);
         let sign_bytes = u32::from(sign_items)
             .checked_mul(core::mem::size_of::<conduit_kernel::KernelEvent>() as u32)
             .ok_or_else(|| "remote fragment Sign byte budget overflow".to_string())?;
-        let remote_sign_items = remote_sign_capacity(&lowered)?;
+        let remote_sign_items = remote_sign_capacity(&lowered)?.max(retention.remote_items);
         let remote_sign_bytes = conduit_kernel::remote_sign_storage_bytes(remote_sign_items)
             .ok_or_else(|| "remote fragment remote Sign byte budget overflow".to_string())?;
         let signs = HostedSignLog::new_with_remote_storage(

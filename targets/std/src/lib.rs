@@ -143,7 +143,8 @@ mod vision_ocr;
 mod vision_tracker;
 
 pub use installed_std::{
-    InstalledRemoteFragment, RemoteHostWork, RemoteValueIdentity, RemoteValueTransfer,
+    InstalledRemoteFragment, RemoteHostWork, RemoteSignRetention, RemoteValueIdentity,
+    RemoteValueTransfer,
 };
 pub use vision_ocr::{
     encode_graymap, visit_tesseract_tsv, OcrCandidate, OcrProviderRefusal, TesseractOcrProvider,
