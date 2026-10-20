@@ -1,0 +1,14 @@
+{
+  "parent": "c405414f52d6841236cc0e69aee96b27a01d411e",
+  "scope": "Preserve refreshed Source and pending proof runner, verified prior repair restoration, and confirmed renderer occlusion red diagnostic",
+  "files": [
+    {
+      "source": "work/6040-current-reuse-gap-map.md",
+      "tree_path": "task-6038/work/6040-current-reuse-gap-map.md",
+      "bytes": 6928,
+      "sha256": "7c25ae325924fd6df53060780118749c0ac161eda41abeaffc126d2b34943d8f",
+      "mode": "100644",
+      "blob": "0a1f0e494a6bd72216410900f4af07bf5c8e342e"
+    }
+  ]
+}
