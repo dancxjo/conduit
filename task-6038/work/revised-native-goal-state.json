@@ -95,8 +95,12 @@
     "local": "20focusedchecksPassed;actualChromiumpending",
     "candidate": 39510280635,
     "observed": "Candidate_browser_running/otherSelectedSuccess23:27UTC",
-    "current_dev": "7254aa64f91745afb33103485c471584c55471b7",
-    "current_dev_integration": 39513100838,
-    "current_dev_observed": "pending23:27UTC"
+    "current_dev": "ae13d6f1af65fd70fa84c3849e598ea0b66c30aa",
+    "current_dev_integration": 39517412250,
+    "current_dev_observed": "pendingAfterRepairMerge",
+    "merged": "ae13d6f1af65fd70fa84c3849e598ea0b66c30aa",
+    "merged_tree": "cadccf43b4c01a75db383793153667002b2f2093",
+    "candidate_status": "terminal_success23:48UTC",
+    "browser": "263passed/31specs/onebatch/oneworker/zeroretries"
   }
 }

@@ -1,0 +1,38 @@
+{
+  "parent": "416851163d4224dbfacbe925605a48a3969524d8",
+  "scope": "Source-bound serial browser repair proof; raw logs retained locally and in Actions; aggregate still queued",
+  "files": [
+    {
+      "source": "outputs/6172-local/merge-response.json",
+      "tree_path": "task-6038/outputs/6172-local/merge-response.json",
+      "bytes": 109,
+      "sha256": "87baf40a84482255446224f79a019d8fcf70555ef5fd4ef0bae10fd394116151",
+      "mode": "100644",
+      "blob": "6370cea06bef3e073ddeb803d0f44fc7f73fa527"
+    },
+    {
+      "source": "outputs/6172-local/root-merge-audit.json",
+      "tree_path": "task-6038/outputs/6172-local/root-merge-audit.json",
+      "bytes": 644,
+      "sha256": "437451f132e71824b55b110d060516030e783073357367ff933b514d7dc02e35",
+      "mode": "100644",
+      "blob": "1fd2131fdf7123e07849f8b4314bb9f25d491386"
+    },
+    {
+      "source": "work/revised-native-goal-state.json",
+      "tree_path": "task-6038/work/revised-native-goal-state.json",
+      "bytes": 4759,
+      "sha256": "b4c452cb53f0989908cd8c6106453f8735a1628a22e04c31c598d186e0f78a49",
+      "mode": "100644",
+      "blob": "6248f92f01d2c260096e93df5cf4427406ddf24b"
+    },
+    {
+      "source": "work/6172-browser-pass-progress.md",
+      "tree_path": "task-6038/work/6172-browser-pass-progress.md",
+      "bytes": 628,
+      "sha256": "b424e357ab923dd58dc66cd86db0548aa1da2a5bda722ecf589c5bb88afd0100",
+      "mode": "100644",
+      "blob": "07116d2c5c80e399afe97329b130c9c40275aee8"
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "browser_log_sha256": "d305052294c35f31b9702366578abeaf23f1c5721cfdbb931646affb90c49d10",
+  "bytes": 614096,
+  "actual_worker_and_complete_inventory_lines_verified": true,
+  "merge": "ae13d6f1af65fd70fa84c3849e598ea0b66c30aa",
+  "merge_tree": "cadccf43b4c01a75db383793153667002b2f2093",
+  "candidate_tree": "84cc4e04f9df13d0eaa449eb24fc9f7ab4dc0aa9",
+  "different_merged_base": "d71ccf5e1866484e2dc7e7cc9c87f89181a3c0e1",
+  "base_review": "no changed path overlap with two-file repair; independent dev delta requires exact combined Integration",
+  "integration": 39517412250,
+  "integration_status": "pending",
+  "closure": "not claimed"
+}

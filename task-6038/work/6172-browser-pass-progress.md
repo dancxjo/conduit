@@ -1,0 +1,3 @@
+The serial reference passed all 263 browser tests across the complete 31-spec inventory, with one worker and zero retries. Every underlying Candidate check passed; the aggregate was queued at the last observation. [Source-bound receipt](https://github.com/dancxjo/conduit/blob/416851163d4224dbfacbe925605a48a3969524d8/task-6038/outputs/ci-resumed-20261020/observation-2342/serial-browser-repair-proof.json).
+
+The earlier two-batch failures remain negative evidence; this pass does not establish their cause. Repair merge and combined-dev Integration remain pending. Typography stays draft until combined development is healthy.
