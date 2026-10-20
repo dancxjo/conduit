@@ -29,7 +29,11 @@ pub(super) fn render(
     let child_signs = children.iter().map(|child| serde_json::json!({
         "parent_active_play_id": child.parent_active_play_id, "activation_id":child.activation_id,
         "selected_plan_id":child.selected_plan_id,"invocation":child.invocation,"child_host_id":child.child_host_id,
-        "child_active_play_id":child.child_active_play_id,"events":child.events.iter().map(event_json).collect::<Vec<_>>()
+        "child_active_play_id":child.child_active_play_id,"events":child.events.iter().map(event_json).collect::<Vec<_>>(),
+        "remote_lifecycle":child.remote_lifecycle.iter().map(|(event,identity)|serde_json::json!({
+            "event_sequence":event,"endpoint":identity.endpoint.0,"cord":identity.cord.0,
+            "direction":format!("{:?}",identity.direction),"sequence":identity.sequence
+        })).collect::<Vec<_>>()
     })).collect::<Vec<_>>();
     let native = serde_json::json!({"schema":"conduit.thermostat/native-body-run@1","proof_class":"local-hosted",
         "authored_source":source.source, "advertisement": advertisement, "source_plan": source_plan, "body_plan":body_plan,

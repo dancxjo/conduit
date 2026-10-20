@@ -91,6 +91,16 @@ fn ordinary_reportless_execution_avoids_descriptive_reconstruction() {
     let children = fixture.report.scan_child_signs.as_ref().unwrap();
     assert_eq!(rendered.child_signs.len(), children.len());
     for (row, child) in rendered.child_signs.iter().zip(children) {
+        let lifecycle = row["remote_lifecycle"].as_array().unwrap();
+        assert_eq!(lifecycle.len(), child.remote_lifecycle.len());
+        assert!(!lifecycle.is_empty());
+        for (row, (event, identity)) in lifecycle.iter().zip(&child.remote_lifecycle) {
+            assert_eq!(row["event_sequence"], *event);
+            assert_eq!(row["endpoint"], identity.endpoint.0);
+            assert_eq!(row["cord"], identity.cord.0);
+            assert_eq!(row["sequence"], identity.sequence);
+            assert_eq!(row["direction"], format!("{:?}", identity.direction));
+        }
         assert_eq!(
             row["parent_active_play_id"],
             child.parent_active_play_id.as_str()
