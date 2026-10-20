@@ -1,0 +1,46 @@
+{
+  "parent": "dc94e5474e4207b2ec421b5b82765fb215d4f1e7",
+  "scope": "Preserve refreshed Source and pending proof runner, verified prior repair restoration, and confirmed renderer occlusion red diagnostic",
+  "files": [
+    {
+      "source": "work/a3-order-reuse-gap-bc144.md",
+      "tree_path": "task-6038/work/a3-order-reuse-gap-bc144.md",
+      "bytes": 3152,
+      "sha256": "c572acf059591a4db32892db6ec54b596a5159a2546fe3fdd635a3df67849039",
+      "mode": "100644",
+      "blob": "7b21cc9aae247c42b7345ab42bcfd6a78f05230e"
+    },
+    {
+      "source": "work/a3-order-diagnostic-bc144/order.spec.mjs",
+      "tree_path": "task-6038/work/a3-order-diagnostic-bc144/order.spec.mjs",
+      "bytes": 3082,
+      "sha256": "711c09786b57c44b1b057f43360079c1ecbfd287eb35faf51386f43433367b42",
+      "mode": "100644",
+      "blob": "7df1587e8b10f6188a208ecf754154815b42a532"
+    },
+    {
+      "source": "work/a3-order-diagnostic-bc144/playwright.config.mjs",
+      "tree_path": "task-6038/work/a3-order-diagnostic-bc144/playwright.config.mjs",
+      "bytes": 646,
+      "sha256": "202efcb234a220963c51d3c264a44e8fb5dc41e972b04d9e9fa17f7678267ed8",
+      "mode": "100644",
+      "blob": "13463f564a9a766a9a48d4adaf58a8ae8cb3de4a"
+    },
+    {
+      "source": "outputs/a3-order-diagnostic-bc144/receipt.json",
+      "tree_path": "task-6038/outputs/a3-order-diagnostic-bc144/receipt.json",
+      "bytes": 1532,
+      "sha256": "31c21c5f5e09fa10d47018870843b3ee4fd9889a1aa4e2c7374514d7e8c51325",
+      "mode": "100644",
+      "blob": "267ba8f801f1e3e6daf870c24817cdd87b158d2c"
+    },
+    {
+      "source": "outputs/a3-order-diagnostic-bc144/observations.json",
+      "tree_path": "task-6038/outputs/a3-order-diagnostic-bc144/observations.json",
+      "bytes": 3091,
+      "sha256": "be8c63196e4ef6e6b090944566554a006c661e270f88ca44cc4be35be8a954f0",
+      "mode": "100644",
+      "blob": "3fbcb4ec211ed25ad5ff9e96bd9c8432ccd822cb"
+    }
+  ]
+}

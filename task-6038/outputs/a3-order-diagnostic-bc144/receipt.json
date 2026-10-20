@@ -1,0 +1,23 @@
+{
+  "source": "bc1448c4bd233257c416bfe5b30c21c940b57293",
+  "scope": "bounded renderer fixture, actual Chromium runtime; no Body/owner effects; no certified artifact tampering bypass proven",
+  "workers": 1,
+  "retries": 0,
+  "baseline_passed": 1,
+  "expected_refusal_failures": 2,
+  "actual": "CSS reverses observed visual geometry while source/DOM vectors are unchanged; current guard admits. Incidental vector/DOM/x-y order is not authoritative semantic order.",
+  "log": "work/a3-order-diagnostic-bc144.log",
+  "files": {
+    "work/a3-order-diagnostic-bc144.log": "af4128817308df61aee5be0b5092f6b41cf87b7279da60c4fde721b0e6c2c2c9",
+    "work/a3-order-diagnostic-bc144/order.spec.mjs": "711c09786b57c44b1b057f43360079c1ecbfd287eb35faf51386f43433367b42",
+    "work/a3-order-diagnostic-bc144/playwright.config.mjs": "202efcb234a220963c51d3c264a44e8fb5dc41e972b04d9e9fa17f7678267ed8",
+    "outputs/a3-order-diagnostic-bc144/observations.json": "be8c63196e4ef6e6b090944566554a006c661e270f88ca44cc4be35be8a954f0"
+  },
+  "classification": "Two failed assertions expose unsupported test expectations, NOT a demonstrated semantic correspondence defect: fixture relationships=[] declares no semantic order.",
+  "withdrawn_claims": [
+    "meaningful Source-order violation",
+    "required runtime CSS order/reverse-flow refusal",
+    "smallest production fix"
+  ],
+  "next_requirement": "First obtain actual explicit semantic order/Fore policy and its independently checked materialization; no new run or fix justified by this fixture."
+}

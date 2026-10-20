@@ -1,0 +1,128 @@
+[
+  {
+    "attack": "none",
+    "sourceOrder": [
+      "fixture/action/first",
+      "fixture/action/second",
+      "fixture/action/third"
+    ],
+    "domOrder": [
+      "fixture/action/first",
+      "fixture/action/second",
+      "fixture/action/third"
+    ],
+    "visualOrder": [
+      "fixture/action/first",
+      "fixture/action/second",
+      "fixture/action/third"
+    ],
+    "boxes": [
+      {
+        "name": "Act first",
+        "action": "fixture/action/first",
+        "y": 148.1875,
+        "tabIndex": 0
+      },
+      {
+        "name": "Act second",
+        "action": "fixture/action/second",
+        "y": 148.1875,
+        "tabIndex": 0
+      },
+      {
+        "name": "Act third",
+        "action": "fixture/action/third",
+        "y": 148.1875,
+        "tabIndex": 0
+      }
+    ],
+    "admitted": true,
+    "code": null,
+    "calls": 0,
+    "boundary": "Adversarial runtime style mutation of trusted renderer; not a tampered artifact admitted by the selected Back hash checker; no Body or owner effects"
+  },
+  {
+    "attack": "column-reverse",
+    "sourceOrder": [
+      "fixture/action/first",
+      "fixture/action/second",
+      "fixture/action/third"
+    ],
+    "domOrder": [
+      "fixture/action/first",
+      "fixture/action/second",
+      "fixture/action/third"
+    ],
+    "visualOrder": [
+      "fixture/action/third",
+      "fixture/action/second",
+      "fixture/action/first"
+    ],
+    "boxes": [
+      {
+        "name": "Act first",
+        "action": "fixture/action/first",
+        "y": 675.3125,
+        "tabIndex": 0
+      },
+      {
+        "name": "Act second",
+        "action": "fixture/action/second",
+        "y": 411.75,
+        "tabIndex": 0
+      },
+      {
+        "name": "Act third",
+        "action": "fixture/action/third",
+        "y": 148.1875,
+        "tabIndex": 0
+      }
+    ],
+    "admitted": true,
+    "code": null,
+    "calls": 0,
+    "boundary": "Adversarial runtime style mutation of trusted renderer; not a tampered artifact admitted by the selected Back hash checker; no Body or owner effects"
+  },
+  {
+    "attack": "order",
+    "sourceOrder": [
+      "fixture/action/first",
+      "fixture/action/second",
+      "fixture/action/third"
+    ],
+    "domOrder": [
+      "fixture/action/first",
+      "fixture/action/second",
+      "fixture/action/third"
+    ],
+    "visualOrder": [
+      "fixture/action/third",
+      "fixture/action/second",
+      "fixture/action/first"
+    ],
+    "boxes": [
+      {
+        "name": "Act first",
+        "action": "fixture/action/first",
+        "y": 675.3125,
+        "tabIndex": 0
+      },
+      {
+        "name": "Act second",
+        "action": "fixture/action/second",
+        "y": 411.75,
+        "tabIndex": 0
+      },
+      {
+        "name": "Act third",
+        "action": "fixture/action/third",
+        "y": 148.1875,
+        "tabIndex": 0
+      }
+    ],
+    "admitted": true,
+    "code": null,
+    "calls": 0,
+    "boundary": "Adversarial runtime style mutation of trusted renderer; not a tampered artifact admitted by the selected Back hash checker; no Body or owner effects"
+  }
+]
