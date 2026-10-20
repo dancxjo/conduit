@@ -1,6 +1,5 @@
 //! Finite semantic epoch custody; not an installed decoder or playback owner.
 //! General learned decoder updates deliberately have no public acceptance API.
-use crate::generated::LanguageAnalysisRebasedEnvelopeInput;
 use crate::{
     analysis_epoch_initialization::*,
     analysis_session::*,
@@ -9,12 +8,25 @@ use crate::{
     revision::*,
     *,
 };
-use alloc::vec::Vec;
-use conduit_core::revision::*;
-use conduit_plot::{
-    rust_binding::{NativeBindingRefusal, NativeRustBinding},
-    PortableExpressionProgram,
+#[cfg(target_has_atomic = "ptr")]
+use crate::{
+    resource_lexicon_snapshot::PreparedResourceLexicalSnapshot, resource_parser_rebase::*,
 };
+#[cfg(not(target_has_atomic = "ptr"))]
+use alloc::rc::Rc as EpochShared;
+#[cfg(target_has_atomic = "ptr")]
+use alloc::sync::Arc as EpochShared;
+use alloc::vec::Vec;
+/// Opaque epoch-owner instance membership, independent of currentness/authority.
+#[derive(Clone)]
+pub struct AnalysisEpochInstanceHandle(EpochShared<()>);
+impl AnalysisEpochInstanceHandle {
+    pub fn matches(&self, owner: &AnalysisEpochOwner<'_>) -> bool {
+        EpochShared::ptr_eq(&self.0, &owner.instance.0)
+    }
+}
+use conduit_core::revision::*;
+use conduit_plot::rust_binding::NativeBindingRefusal;
 #[derive(Debug)]
 pub enum AnalysisEpochRefusal {
     Closed,
@@ -25,23 +37,26 @@ pub enum AnalysisEpochRefusal {
     Domain,
     Generation,
     Replay,
+    #[cfg(target_has_atomic = "ptr")]
+    ResourceRebase(ResourceParserRebaseRefusal),
     Lexical,
     Context,
     Capacity,
     FrontierCustody,
 }
-enum Material {
-    Initial(PreparedAnalysisInitialization),
-    Rebased {
-        lexical: PreparedLexicalTape,
-        receipts: [PreparedParserRebaseReplay; 4],
-        envelopes: Vec<Vec<u8>>,
-    },
-}
+#[path = "analysis_epoch_retained.rs"]
+mod retained;
+use retained::{Material, PreparedNextEpoch};
+#[path = "analysis_beam_slot.rs"]
+mod beam_slot;
+use beam_slot::SharedBeam;
 pub struct AnalysisEpochOwner<'a> {
+    instance: AnalysisEpochInstanceHandle,
     session: AnalysisSession<'a>,
     material: Material,
-    beam: LanguageParserScorerBeam,
+    #[cfg(target_has_atomic = "ptr")]
+    resource: Option<PreparedResourceLexicalSnapshot<'a>>,
+    beam: SharedBeam,
     generation: u64,
     commitments: Vec<&'a crate::dependency_commitment::PreparedCommittedDependency>,
     commitment_limit: usize,
@@ -59,6 +74,9 @@ pub struct AnalysisEpochHandoffFailure<'a> {
     pub replays: [PreparedParserRebaseReplay; 4],
 }
 impl<'a> AnalysisEpochOwner<'a> {
+    pub fn instance_handle(&self) -> AnalysisEpochInstanceHandle {
+        self.instance.clone()
+    }
     pub fn initialize(
         initial: PreparedAnalysisInitialization,
         domain: &'a DependencyRevisions<'a>,
@@ -72,7 +90,7 @@ impl<'a> AnalysisEpochOwner<'a> {
         }
         let session = AnalysisSession::new(domain, context, limits)
             .map_err(AnalysisEpochRefusal::Revision)?;
-        let beam = initial.beam.clone();
+        let beam = SharedBeam::prepare(initial.beam.clone());
         let identity_cursor = [
             beam.candidate0(),
             beam.candidate1(),
@@ -84,8 +102,11 @@ impl<'a> AnalysisEpochOwner<'a> {
         .max()
         .ok_or(AnalysisEpochRefusal::Generation)?;
         Ok(Self {
+            instance: AnalysisEpochInstanceHandle(EpochShared::new(())),
             session,
             material: Material::Initial(initial),
+            #[cfg(target_has_atomic = "ptr")]
+            resource: None,
             beam,
             generation: 0,
             commitments: Vec::with_capacity(limits.history_events),
@@ -97,12 +118,18 @@ impl<'a> AnalysisEpochOwner<'a> {
         })
     }
     pub fn beam(&self) -> &LanguageParserScorerBeam {
-        &self.beam
+        self.beam.get()
     }
     pub fn lexical(&self) -> &PreparedLexicalTape {
         match &self.material {
             Material::Initial(i) => &i.lexical,
             Material::Rebased { lexical, .. } => lexical,
+            #[cfg(target_has_atomic = "ptr")]
+            Material::ResourceRebased { .. } => self
+                .resource
+                .as_ref()
+                .expect("resource owner invariant")
+                .lexical(),
         }
     }
     pub fn commitment_receipts(
@@ -117,11 +144,15 @@ impl<'a> AnalysisEpochOwner<'a> {
         match &self.material {
             Material::Initial(i) => Some(i),
             Material::Rebased { .. } => None,
+            #[cfg(target_has_atomic = "ptr")]
+            Material::ResourceRebased { .. } => None,
         }
     }
     pub fn rebase_receipts(&self) -> &[PreparedParserRebaseReplay] {
         match &self.material {
             Material::Initial(_) => &[],
+            #[cfg(target_has_atomic = "ptr")]
+            Material::ResourceRebased { .. } => &[],
             Material::Rebased { receipts, .. } => receipts,
         }
     }
@@ -129,6 +160,8 @@ impl<'a> AnalysisEpochOwner<'a> {
         match &self.material {
             Material::Initial(_) => &[],
             Material::Rebased { envelopes, .. } => envelopes,
+            #[cfg(target_has_atomic = "ptr")]
+            Material::ResourceRebased { envelopes, .. } => envelopes,
         }
     }
     pub fn frontiers(&self) -> RevisionFrontiers<TokenFrontier> {
@@ -241,12 +274,14 @@ impl<'a> AnalysisEpochOwner<'a> {
             .append(event, Some(receipt), cancelled, pressure)
             .map_err(Session)?;
         self.commitments.push(receipt);
-        self.beam = beam;
+        self.beam = SharedBeam::prepare(beam);
         self.generation = generation;
         Ok(())
     }
     /// Consuming handoff preserves old history privately and cannot coexist with
     /// a live authority borrow. Failure returns the old owner unchanged.
+    // Refusal returns the original owner and four replay receipts without allocation.
+    #[allow(clippy::result_large_err)]
     pub fn handoff(
         self,
         receipts: [PreparedParserRebaseReplay; 4],
@@ -266,13 +301,16 @@ impl<'a> AnalysisEpochOwner<'a> {
             }
         };
         let next = Self {
+            instance: AnalysisEpochInstanceHandle(EpochShared::new(())),
             session,
+            #[cfg(target_has_atomic = "ptr")]
+            resource: None,
             material: Material::Rebased {
                 lexical,
                 receipts,
                 envelopes,
             },
-            beam,
+            beam: SharedBeam::prepare(beam),
             generation,
             commitments: Vec::with_capacity(limits.history_events),
             commitment_limit: limits.history_events,
@@ -283,22 +321,10 @@ impl<'a> AnalysisEpochOwner<'a> {
         };
         Ok((next, ArchivedAnalysisEpoch { owner: self }))
     }
-    fn prepare_next(
+    fn handoff_generation(
         &self,
-        receipts: &[PreparedParserRebaseReplay; 4],
-        domain: &'a DependencyRevisions<'a>,
         context: RevisionContext<'a>,
-        limits: RevisionLimits,
-    ) -> Result<
-        (
-            AnalysisSession<'a>,
-            PreparedLexicalTape,
-            LanguageParserScorerBeam,
-            u64,
-            Vec<Vec<u8>>,
-        ),
-        AnalysisEpochRefusal,
-    > {
+    ) -> Result<u64, AnalysisEpochRefusal> {
         use AnalysisEpochRefusal::*;
         if self.session.is_closed() {
             return Err(Closed);
@@ -316,6 +342,37 @@ impl<'a> AnalysisEpochOwner<'a> {
         {
             return Err(Context);
         }
+        Ok(generation)
+    }
+    fn retained_session(
+        &self,
+        domain: &'a DependencyRevisions<'a>,
+        context: RevisionContext<'a>,
+        limits: RevisionLimits,
+    ) -> Result<AnalysisSession<'a>, AnalysisEpochRefusal> {
+        use AnalysisEpochRefusal::*;
+        let session = AnalysisSession::from_retained_prefix(
+            domain,
+            context,
+            limits,
+            self.frontiers().committed,
+        )
+        .map_err(Revision)?;
+        Ok(session)
+    }
+    fn prepare_next(
+        &self,
+        receipts: &[PreparedParserRebaseReplay; 4],
+        domain: &'a DependencyRevisions<'a>,
+        context: RevisionContext<'a>,
+        limits: RevisionLimits,
+    ) -> Result<PreparedNextEpoch<'a>, AnalysisEpochRefusal> {
+        use AnalysisEpochRefusal::*;
+        #[cfg(target_has_atomic = "ptr")]
+        if self.resource.is_some() {
+            return Err(Lexical);
+        }
+        let generation = self.handoff_generation(context)?;
         let slots = [
             self.beam.candidate0(),
             self.beam.candidate1(),
@@ -337,14 +394,7 @@ impl<'a> AnalysisEpochOwner<'a> {
         {
             return Err(Domain);
         }
-        let program = PortableExpressionProgram::from_canonical_hex(include_str!(concat!(
-            env!("OUT_DIR"),
-            "/analysis_rebased_envelope.hex"
-        )))
-        .map_err(|_| Replay)?;
-        let mut admitted = Vec::new();
-        let mut envelopes = Vec::new();
-        for (prior, replay) in slots.into_iter().zip(receipts) {
+        for (prior, replay) in slots.iter().zip(receipts) {
             let request = replay.preparation().request();
             if request.previous() != prior.parser().state()
                 || request.previous_lexical().tape() != self.lexical().tape()
@@ -355,37 +405,10 @@ impl<'a> AnalysisEpochOwner<'a> {
             {
                 return Err(Replay);
             }
-            let input = LanguageAnalysisRebasedEnvelopeInput::new(
-                prior.clone(),
-                replay.raw_result().clone(),
-            )
-            .map_err(Native)?;
-            let output = program
-                .evaluate(&input.encode().map_err(Native)?)
-                .map_err(|_| Replay)?;
-            if output.len() > 65536 {
-                return Err(Capacity);
-            }
-            let raw = LanguageParserScorerRawHypothesis::decode(&output).map_err(Native)?;
-            admitted
-                .push(crate::analysis_epoch_initialization::admit(&raw).map_err(Initialization)?);
-            envelopes.push(output);
         }
-        let mut it = admitted.into_iter();
-        let beam = LanguageParserScorerBeam::new(
-            it.next().ok_or(Replay)?,
-            it.next().ok_or(Replay)?,
-            it.next().ok_or(Replay)?,
-            it.next().ok_or(Replay)?,
-        )
-        .map_err(Native)?;
-        let session = AnalysisSession::from_retained_prefix(
-            domain,
-            context,
-            limits,
-            self.frontiers().committed,
-        )
-        .map_err(Revision)?;
+        let (beam, envelopes) =
+            rebase_envelopes(slots, receipts.each_ref().map(|r| r.raw_result()))?;
+        let session = self.retained_session(domain, context, limits)?;
         Ok((session, lexical, beam, generation, envelopes))
     }
 }
@@ -397,7 +420,7 @@ impl<'a> ArchivedAnalysisEpoch<'a> {
         self.owner.rebase_receipts()
     }
     pub fn beam(&self) -> &LanguageParserScorerBeam {
-        &self.owner.beam
+        self.owner.beam.get()
     }
     pub fn commitment_receipts(
         &self,
@@ -450,3 +473,13 @@ mod capacity_tests {
 
 #[path = "analysis_fallback_round.rs"]
 pub mod fallback_round;
+
+#[cfg(target_has_atomic = "ptr")]
+#[path = "analysis_epoch_resource.rs"]
+mod resource;
+#[cfg(target_has_atomic = "ptr")]
+pub use resource::{ResourceEpochHandoffFailure, ResourceEpochTarget};
+
+#[path = "analysis_epoch_rebase.rs"]
+mod rebase;
+use rebase::rebase_envelopes;
