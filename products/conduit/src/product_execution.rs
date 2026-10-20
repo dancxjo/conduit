@@ -239,8 +239,20 @@ impl ProductExecutionContext {
                             .min(source_capability.limits.max_queue_items)
                             .min(sink_capability.limits.max_queue_items)
                             .min(realization_item_capacity),
-                        byte_capacity: Self::maximum_output_value_bytes(source_capability)
-                            .min(Self::maximum_input_value_bytes(sink_capability)),
+                        byte_capacity: Self::directional_value_bytes(
+                            source_capability,
+                            conduit_core::FrontValueLocation::Output(
+                                connection.source_port_id.clone(),
+                            ),
+                            |operation| operation.maximum_output_bytes,
+                        )
+                        .min(Self::directional_value_bytes(
+                            sink_capability,
+                            conduit_core::FrontValueLocation::Input(
+                                connection.sink_port_id.clone(),
+                            ),
+                            |operation| operation.maximum_input_bytes,
+                        )),
                     },
                 ))
             })
@@ -285,21 +297,12 @@ impl ProductExecutionContext {
             })
     }
 
-    fn maximum_output_value_bytes(capability: &conduit_core::CapabilityOffer) -> u32 {
-        Self::directional_value_bytes(capability, |operation| operation.maximum_output_bytes)
-    }
-
-    fn maximum_input_value_bytes(capability: &conduit_core::CapabilityOffer) -> u32 {
-        Self::directional_value_bytes(capability, |operation| operation.maximum_input_bytes)
-    }
-
-    /// Finite value storage from the exact implementation offer.
-    ///
-    /// A directional Host Call bound is authoritative when present. Pure
-    /// kernel directions fall back to the capability's finite per-item share;
-    /// the opposite endpoint independently narrows the connection intersection.
+    /// Exact checked port bounds avoid treating a total queue budget as
+    /// equally sized item slots. Legacy ports without a checked value bound
+    /// retain their existing finite share; Host Call bounds remain authoritative.
     fn directional_value_bytes(
         capability: &conduit_core::CapabilityOffer,
+        location: conduit_core::FrontValueLocation,
         operation_bytes: impl Fn(&conduit_core::HostCallRequirement) -> u32,
     ) -> u32 {
         let directional = capability
@@ -308,9 +311,19 @@ impl ProductExecutionContext {
             .map(operation_bytes)
             .filter(|bytes| *bytes > 0)
             .max();
-        directional.unwrap_or_else(|| {
-            capability.limits.max_queue_bytes / u32::from(capability.limits.max_queue_items.max(1))
-        })
+        let checked = capability
+            .checked_front()
+            .value_contracts()
+            .iter()
+            .find(|bound| bound.location == location)
+            .map(|bound| bound.contract.maximum_bytes);
+        directional
+            .or(checked)
+            .unwrap_or_else(|| {
+                capability.limits.max_queue_bytes
+                    / u32::from(capability.limits.max_queue_items.max(1))
+            })
+            .min(capability.limits.max_queue_bytes)
     }
 
     fn line_item_capacity(
