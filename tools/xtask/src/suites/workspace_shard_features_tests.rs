@@ -82,3 +82,22 @@ fn parallel_test_roots_retain_workspace_enabled_features() {
         }
     }
 }
+
+#[test]
+fn delegated_conduitos_retains_workspace_enabled_features() {
+    let workspace = features(&["--workspace"]);
+    let arguments = super::super::host_protocol_shards::arguments();
+    let arguments: Vec<_> = arguments
+        .iter()
+        .skip(1)
+        .map(String::as_str)
+        .filter(|arg| !matches!(*arg, "--locked" | "--no-fail-fast"))
+        .collect();
+    let selected = features(&arguments);
+    let package = super::super::host_protocol_shards::PACKAGE;
+    let missing: Vec<_> = workspace[package].difference(&selected[package]).collect();
+    assert!(
+        missing.is_empty(),
+        "delegated {package} loses features: {missing:?}"
+    );
+}
