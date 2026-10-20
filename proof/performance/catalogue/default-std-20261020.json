@@ -1,0 +1,18 @@
+{
+  "scope": "default Std dependency graph numeric catalogue preparation; excludes Play and Host construction",
+  "cold_allocations": 916636,
+  "warm_allocations": 5121,
+  "cold_reallocations": 25154,
+  "warm_reallocations": 0,
+  "cold_peak_new_bytes": 3686457,
+  "warm_peak_new_bytes": 455216,
+  "cold_ns": 53831837,
+  "warm_ns": 134205,
+  "types": 87,
+  "contracts": 93,
+  "source": "14934419b7db3058f10497e5a0a718c3b24b2b21",
+  "profile": "test opt-level=1, dev/test debug=0, default Std package features",
+  "kind": "same-process first-use versus repeated preparation; not feature-off reference",
+  "schema": "conduit.performance/default-std-catalogue-observation@1",
+  "limitations": "Local observation with other compilation activity. Catalogue preparation only; no numerical Play or whole-process RSS claim. Feature-off reference still pending."
+}
