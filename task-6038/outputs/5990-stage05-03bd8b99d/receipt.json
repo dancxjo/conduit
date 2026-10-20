@@ -1,0 +1,379 @@
+{
+  "source": "03bd8b99d1018544f7df9bae159e8f416c859689",
+  "base": "7c6defe20d5c0ef344d96d9b5abf0fb6131ade49",
+  "image_sha256": "b9bfca9cb6f4e84e1c4c2be569c2f272d81a32c0585b5847f83b96e29a8694df",
+  "artifact_role": "product-host",
+  "proof_class": "freestanding-emulator",
+  "physical_hardware": false,
+  "human_enactment": false,
+  "normal_journey_checkpoints": 22,
+  "candidate_integration_stable": "pending for this refreshed Source",
+  "supplements": {
+    "5990-panels-wide-03bd8b99d": {
+      "controls": 12,
+      "accepted_source_edits": 5,
+      "captures": 13
+    },
+    "5990-panels-narrow-03bd8b99d": {
+      "controls": 12,
+      "accepted_source_edits": 5,
+      "captures": 18
+    },
+    "5990-pointer-wide-03bd8b99d-cold-birth": {
+      "physical_control_hits": 12,
+      "boolean_typed_commits": 2,
+      "birth_accepted_effects": 1,
+      "boundary": "All eligible hits physically reached; argument fields pointer-focused from distinct same-page controls without Source mutation; one Boolean toggled/restored; Birth enacted last. Main action rows with arguments and Suggest are reached without dispatch.",
+      "post_birth_release": {
+        "qmp_acknowledged": true,
+        "physical_guest_observation": false,
+        "boundary": "Cr\u00e8che pointer observation ends when Birth closes its entrance"
+      }
+    },
+    "5990-pointer-narrow-03bd8b99d-cold-birth": {
+      "physical_control_hits": 12,
+      "boolean_typed_commits": 2,
+      "birth_accepted_effects": 1,
+      "boundary": "All eligible hits physically reached; argument fields pointer-focused from distinct same-page controls without Source mutation; one Boolean toggled/restored; Birth enacted last. Main action rows with arguments and Suggest are reached without dispatch.",
+      "post_birth_release": {
+        "qmp_acknowledged": true,
+        "physical_guest_observation": false,
+        "boundary": "Cr\u00e8che pointer observation ends when Birth closes its entrance"
+      }
+    }
+  },
+  "files": {
+    "5990-product-03bd8b99d/build-manifest.json": {
+      "sha256": "6075d38428851317e3051364c24e83f38eb6b18b520edfa3e70bbacddd5e8c19",
+      "bytes": 4269
+    },
+    "5990-product-03bd8b99d/conduitos-kernel.elf": {
+      "sha256": "a607ba8de3abeb77db785bcd1d47f78e7d412c1b51e624923b6c2e54b56b7e47",
+      "bytes": 16766656
+    },
+    "5990-product-03bd8b99d/conduitos-x86_64.iso": {
+      "sha256": "b9bfca9cb6f4e84e1c4c2be569c2f272d81a32c0585b5847f83b96e29a8694df",
+      "bytes": 21039104
+    },
+    "5990-product-03bd8b99d/resolved-image.json": {
+      "sha256": "f1dfcf9083d2225e74a4151f555cac8e6b0f0d77269c605783ff80d3249e966b",
+      "bytes": 4453
+    },
+    "5990-normal-journey-03bd8b99d/x86_64/journey-frames/body-born.png": {
+      "sha256": "cbe5b6a5d2f25717d05f97455084225df7bcfad9ff4f80b00b249b9e4b7ddf59",
+      "bytes": 101762
+    },
+    "5990-normal-journey-03bd8b99d/x86_64/journey-frames/body-planned.png": {
+      "sha256": "af911957c8ab0eb925fe3753059e88798237a7aa98477d23932b80b707baf552",
+      "bytes": 101433
+    },
+    "5990-normal-journey-03bd8b99d/x86_64/journey-frames/body-playing.png": {
+      "sha256": "57cd03c280a3e7181850ada270f04c01459bdaa47166e027b6f8092653f7e57d",
+      "bytes": 107544
+    },
+    "5990-normal-journey-03bd8b99d/x86_64/journey-frames/body-stopped.png": {
+      "sha256": "24d07c6274fd9f1afba6ccda3ce8ee099696bbc637f15de5e5114c29c9011983",
+      "bytes": 198342
+    },
+    "5990-normal-journey-03bd8b99d/x86_64/journey-frames/body-woken.png": {
+      "sha256": "fd6e4013dc42ba5f5d68bd882daead075e6a41e1fa1ba7e8f6c413464307e6b1",
+      "bytes": 100222
+    },
+    "5990-normal-journey-03bd8b99d/x86_64/journey-frames/creche-four-restored.png": {
+      "sha256": "5b83c347d10d7ca2f2a5b51319091b11308bb01b101a6cb570ef44e3fdfa5d77",
+      "bytes": 169734
+    },
+    "5990-normal-journey-03bd8b99d/x86_64/journey-frames/creche-fourth-checked.png": {
+      "sha256": "a86fe1060f349e92091f8e643e967522c7ad76a1a61dc8e6eec4f831b1b33d8f",
+      "bytes": 96942
+    },
+    "5990-normal-journey-03bd8b99d/x86_64/journey-frames/creche-pointer-four-restored.png": {
+      "sha256": "c34da527e3e598690522df0d21633409ca1d8dd1c3fc9acda44d1b1cd7e7eaa1",
+      "bytes": 96953
+    },
+    "5990-normal-journey-03bd8b99d/x86_64/journey-frames/creche-pointer-three-selected.png": {
+      "sha256": "f5e3c65c67337172e630932140b6c064a63a7b171c63e7bff21e63e705ada5cb",
+      "bytes": 96856
+    },
+    "5990-normal-journey-03bd8b99d/x86_64/journey-frames/creche-three-selected.png": {
+      "sha256": "7cbd9a6937c9a28c6f24fbafc40cb872e66f89dcfa88e66a13c534e09da55a8b",
+      "bytes": 169615
+    },
+    "5990-normal-journey-03bd8b99d/x86_64/journey-frames/front-door-ready.png": {
+      "sha256": "22f851de4d8cb3baa41aaf1f9571173d892d11d35ccc5952f8673063043292a1",
+      "bytes": 169736
+    },
+    "5990-normal-journey-03bd8b99d/x86_64/journey-frames/home-returned.png": {
+      "sha256": "1971fbd4b3327e63f74a3029874a9d934795b09618b73e87dfc55d3c07b9fb53",
+      "bytes": 105019
+    },
+    "5990-normal-journey-03bd8b99d/x86_64/journey-frames/home.png": {
+      "sha256": "1cfef1b7eafe6fd5d2a2bce3231ebf5327a66052e7a0569001ae0f4cdca0e7b3",
+      "bytes": 106939
+    },
+    "5990-normal-journey-03bd8b99d/x86_64/journey-frames/manifest.json": {
+      "sha256": "22aa3074dfbaf2cca0df24c9fb062081537fea7dc657064e8061c42485e973e5",
+      "bytes": 416635
+    },
+    "5990-normal-journey-03bd8b99d/x86_64/journey-frames/patchbay-diagram-returned.png": {
+      "sha256": "0a39a1be1d78712978c701868c0906b8deaef9b4a4528fe5a7e094f56b1e44b5",
+      "bytes": 141209
+    },
+    "5990-normal-journey-03bd8b99d/x86_64/journey-frames/patchbay-diagram.png": {
+      "sha256": "0a39a1be1d78712978c701868c0906b8deaef9b4a4528fe5a7e094f56b1e44b5",
+      "bytes": 141209
+    },
+    "5990-normal-journey-03bd8b99d/x86_64/journey-frames/patchbay-face.png": {
+      "sha256": "6ad2d0b0342b4996df21fe10eeb584b41dd2f035cf4d329b819b3f34c184bcf1",
+      "bytes": 240502
+    },
+    "5990-normal-journey-03bd8b99d/x86_64/journey-frames/patchbay-gear-details.png": {
+      "sha256": "cd9a6f47a232fd583ace28bed4d4f4275e30c3b289f7f5d5b16653db54a1d74c",
+      "bytes": 262896
+    },
+    "5990-normal-journey-03bd8b99d/x86_64/journey-frames/patchbay-reentered.png": {
+      "sha256": "e7c6e9316b1a90a2abb61b7917e629b60219ffd52cb8184976757d0a895a39a3",
+      "bytes": 54087
+    },
+    "5990-normal-journey-03bd8b99d/x86_64/journey-frames/patchbay-workspace.png": {
+      "sha256": "262cbf0d90fb57f5263b2822f787d3619c2c9e8276c802126ae2c4bcd9f46f9c",
+      "bytes": 106821
+    },
+    "5990-normal-journey-03bd8b99d/x86_64/journey-frames/protected-keyboard-canvas.png": {
+      "sha256": "1eaddf8fc1d9b9c176a29d7604a000eccccdb24ce6af3e2d68795c482be7a308",
+      "bytes": 67801
+    },
+    "5990-normal-journey-03bd8b99d/x86_64/journey-frames/protected-memory-lantern.png": {
+      "sha256": "071e68a8b2420663ab6dd55579768cdcaddfaff481c5737ba5600d0313c95972",
+      "bytes": 66627
+    },
+    "5990-normal-journey-03bd8b99d/x86_64/journey-frames/wake-refused.png": {
+      "sha256": "e7718ded454dcccbf0e79e0edc16e77a227496bc60006ccc7feb0b106ed08d09",
+      "bytes": 114368
+    },
+    "5990-normal-journey-03bd8b99d/x86_64/journey-proof.json": {
+      "sha256": "895ea7caee074fadb2794edfa33b41c3cf31705aa415c2e2d83e44417545bcc1",
+      "bytes": 12918
+    },
+    "5990-normal-journey-03bd8b99d/x86_64/journey-qemu-stderr.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "5990-normal-journey-03bd8b99d/x86_64/journey-qmp.log": {
+      "sha256": "d82fc0fd1fc003540d3e990cbc85daa03d55a416f35df5ce2162db7e747a754e",
+      "bytes": 57161
+    },
+    "5990-normal-journey-03bd8b99d/x86_64/journey-serial.log": {
+      "sha256": "4bf3a2671d5ceaf0c41e8370840ecb57cdf2584968b63b92ac83b6e4ab0ba889",
+      "bytes": 764822
+    },
+    "5990-normal-journey-03bd8b99d/x86_64/memory-lantern-native-edit.json": {
+      "sha256": "a96278c9ed930278216a419b937e3b67d8ddc07a2f74b3b9f9fd488466fb9a23",
+      "bytes": 5856
+    },
+    "5990-normal-journey-03bd8b99d/x86_64/native-shell-paired-linear.json": {
+      "sha256": "11f5891f078ea6af87db49eb3a0d5e1e858bcdaf2e771d01b530b28c81b815b3",
+      "bytes": 1450806
+    },
+    "5990-normal-journey-03bd8b99d/x86_64/x86_64-product-journey-proof.json": {
+      "sha256": "895ea7caee074fadb2794edfa33b41c3cf31705aa415c2e2d83e44417545bcc1",
+      "bytes": 12918
+    },
+    "5990-panels-wide-03bd8b99d/arrival.ppm": {
+      "sha256": "4cd8a5d93896ee1634a42a03c9bf5823e64c9fd425515a42aa09cb80a795a0df",
+      "bytes": 3072016
+    },
+    "5990-panels-wide-03bd8b99d/empty-name-unavailable-page-1.ppm": {
+      "sha256": "788722a447b876f85e5b6cdbf805befcbd6f57db424bfd7613a5e3033f042739",
+      "bytes": 3072016
+    },
+    "5990-panels-wide-03bd8b99d/empty-name-unavailable-page-2.ppm": {
+      "sha256": "d7f31aa8f93e13da40e83aa20d7bc9d7a3dfe526a912c20e9271b9a774f3b0d1",
+      "bytes": 3072016
+    },
+    "5990-panels-wide-03bd8b99d/filtered-review-page-1.ppm": {
+      "sha256": "8d6abcdaa9b1203a2a4c22ba3d6d0377d7e890d883052209e6dd26b22374db32",
+      "bytes": 3072016
+    },
+    "5990-panels-wide-03bd8b99d/filtered-review-page-2.ppm": {
+      "sha256": "80d4ea6156eb53b1924642741918168c15b6f8c5258157aa79112390645017e2",
+      "bytes": 3072016
+    },
+    "5990-panels-wide-03bd8b99d/filtered-review.ppm": {
+      "sha256": "8d6abcdaa9b1203a2a4c22ba3d6d0377d7e890d883052209e6dd26b22374db32",
+      "bytes": 3072016
+    },
+    "5990-panels-wide-03bd8b99d/long-unicode-committed-page-1.ppm": {
+      "sha256": "94cdc20852ae5c2fc731baf033a645841bb53bf451e2db6b6e9c5bdf742f6bb9",
+      "bytes": 3072016
+    },
+    "5990-panels-wide-03bd8b99d/long-unicode-committed-page-2.ppm": {
+      "sha256": "9bafaad08475c9d75ac83a9e61f108e95d1124343d5ea247a632af7e24699ef0",
+      "bytes": 3072016
+    },
+    "5990-panels-wide-03bd8b99d/long-unicode-draft.ppm": {
+      "sha256": "87c2db0b3da7e4790148fae03cb0ee5cce383a010164a16ec7459f60a0904f14",
+      "bytes": 3072016
+    },
+    "5990-panels-wide-03bd8b99d/navigation-page-2.ppm": {
+      "sha256": "2f086355fae925bdfd75b2628f63f8a7d502055922b9bd1fb1511673931bf046",
+      "bytes": 3072016
+    },
+    "5990-panels-wide-03bd8b99d/qemu-stderr.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "5990-panels-wide-03bd8b99d/qmp.jsonl": {
+      "sha256": "b82e55fe10b3a833dfe179a95a6bc928152501e2aed9cfb8454ecfed4df0c1ca",
+      "bytes": 36265
+    },
+    "5990-panels-wide-03bd8b99d/receipt.json": {
+      "sha256": "1c5ae655e79fef85562f64b44e57e92b0cb2b914c190d555ce9b63e2ccab0892",
+      "bytes": 29928
+    },
+    "5990-panels-wide-03bd8b99d/serial.log": {
+      "sha256": "7893bd5389621d03d4d2f6d6c224399ec58e477db061e92c9b699b1dbb5ba43f",
+      "bytes": 207943
+    },
+    "5990-panels-wide-03bd8b99d/tradition-committed.ppm": {
+      "sha256": "d6695a493beb09f135f249a1a0b64a473146803c84b3f7a81f43152a8c3afb1d",
+      "bytes": 3072016
+    },
+    "5990-panels-wide-03bd8b99d/tradition-draft.ppm": {
+      "sha256": "2ce5dd5262298dd2729c32f82898bbb6fa8b98cdc3bbadee9839d39ed5e3b21c",
+      "bytes": 3072016
+    },
+    "5990-panels-wide-03bd8b99d/unicode-committed.ppm": {
+      "sha256": "94cdc20852ae5c2fc731baf033a645841bb53bf451e2db6b6e9c5bdf742f6bb9",
+      "bytes": 3072016
+    },
+    "5990-panels-narrow-03bd8b99d/arrival.ppm": {
+      "sha256": "f82ca3a1254f25c5094b0475b02b0428c714c0dbc0da1f7f6eabd1c36ec45fa8",
+      "bytes": 921615
+    },
+    "5990-panels-narrow-03bd8b99d/empty-name-unavailable-page-1.ppm": {
+      "sha256": "d46d9f526b88be9eeaf2c410d5ced15dd983e2467bfc4c3a550137f4a573e099",
+      "bytes": 921615
+    },
+    "5990-panels-narrow-03bd8b99d/empty-name-unavailable-page-2.ppm": {
+      "sha256": "dae3ea15da2cc7b977f1638d180fd4287d367c793f8143ea73a6445bc67f42f7",
+      "bytes": 921615
+    },
+    "5990-panels-narrow-03bd8b99d/empty-name-unavailable-page-3.ppm": {
+      "sha256": "73806fb8363937be34ebde128b130a0022d02d8a93c254f15ad9afb56a00976f",
+      "bytes": 921615
+    },
+    "5990-panels-narrow-03bd8b99d/filtered-review-page-1.ppm": {
+      "sha256": "d0917c4ac30bfa30618528d8bb023dd2294c3c424114e99c6be08ebc3bcc5a46",
+      "bytes": 921615
+    },
+    "5990-panels-narrow-03bd8b99d/filtered-review-page-2.ppm": {
+      "sha256": "33897d22af55d657149f0747309cd2dbac9ff6fed856ba7ac6c50010e4d13716",
+      "bytes": 921615
+    },
+    "5990-panels-narrow-03bd8b99d/filtered-review-page-3.ppm": {
+      "sha256": "599382263c6717c66fa06228010cf96a3c138abc4871485218efea8226b10f97",
+      "bytes": 921615
+    },
+    "5990-panels-narrow-03bd8b99d/filtered-review-page-4.ppm": {
+      "sha256": "453b2fa2cde9207f497cbef6930db839634ee9560b72c66a3d9274f22be09ff3",
+      "bytes": 921615
+    },
+    "5990-panels-narrow-03bd8b99d/filtered-review.ppm": {
+      "sha256": "5897ac64ae79a0d9ca1698854a9e8d5e892829909502ef53fff2b5105ae784fe",
+      "bytes": 921615
+    },
+    "5990-panels-narrow-03bd8b99d/long-unicode-committed-page-1.ppm": {
+      "sha256": "ba1d786f3f96e0d9885095ea6c4c6b5ef81ed2658e85db2d899296613f8abf92",
+      "bytes": 921615
+    },
+    "5990-panels-narrow-03bd8b99d/long-unicode-committed-page-2.ppm": {
+      "sha256": "522374ed7f6e3def74c1953b821ed57f21262d7d4a636bba49353bcda2ae59a5",
+      "bytes": 921615
+    },
+    "5990-panels-narrow-03bd8b99d/long-unicode-committed-page-3.ppm": {
+      "sha256": "73806fb8363937be34ebde128b130a0022d02d8a93c254f15ad9afb56a00976f",
+      "bytes": 921615
+    },
+    "5990-panels-narrow-03bd8b99d/long-unicode-draft.ppm": {
+      "sha256": "38b12689138f2f54d6f248a4864675f7759063e71163f0ed3372dc7cf3946f62",
+      "bytes": 921615
+    },
+    "5990-panels-narrow-03bd8b99d/navigation-page-1.ppm": {
+      "sha256": "34cb3aadc08b3265da54368efc7d7a7930642cbadf675739402a36b18392b243",
+      "bytes": 921615
+    },
+    "5990-panels-narrow-03bd8b99d/navigation-page-3.ppm": {
+      "sha256": "cc30440c68c1465c2752ae38413629198121b779b424f8a66f5a3ae7df7330a3",
+      "bytes": 921615
+    },
+    "5990-panels-narrow-03bd8b99d/qemu-stderr.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "5990-panels-narrow-03bd8b99d/qmp.jsonl": {
+      "sha256": "7bc5de3aed25dedf7ee1506a7399d9dc0e652f0a770278e1d2750e961e873639",
+      "bytes": 39720
+    },
+    "5990-panels-narrow-03bd8b99d/receipt.json": {
+      "sha256": "0b16f17baeccfc509cccd92ec783b821905e88464afd657524b2a8f558a7a985",
+      "bytes": 33007
+    },
+    "5990-panels-narrow-03bd8b99d/serial.log": {
+      "sha256": "cf8976ba73f6638a6fca11116fca2558910c0f9c6e4a767161b2b73f281c8dd9",
+      "bytes": 211386
+    },
+    "5990-panels-narrow-03bd8b99d/tradition-committed.ppm": {
+      "sha256": "c8dba3a23a23fd614a06949bfb7df2ef1f3f5ba2d0287c23982d566ebc58fae0",
+      "bytes": 921615
+    },
+    "5990-panels-narrow-03bd8b99d/tradition-draft.ppm": {
+      "sha256": "8832cb674a00d5b278b2140114238d2a5b59697b1e144b4aa4315c5b0a04eded",
+      "bytes": 921615
+    },
+    "5990-panels-narrow-03bd8b99d/unicode-committed.ppm": {
+      "sha256": "2031275a105efd437e243b276c097af07f976cef46b4a0f21d0ac475b45a7346",
+      "bytes": 921615
+    },
+    "5990-pointer-wide-03bd8b99d-cold-birth/arrival.ppm": {
+      "sha256": "75cd2578d49900738db27fc238e20628fe18ad6dd7a3bdf4fbb1ec3e8a18aca1",
+      "bytes": 3072016
+    },
+    "5990-pointer-wide-03bd8b99d-cold-birth/qemu-stderr.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "5990-pointer-wide-03bd8b99d-cold-birth/qmp.jsonl": {
+      "sha256": "3381043c32daac670241400be261c21fa8f84ede56f3c5cf19cba75a137f71b8",
+      "bytes": 16902
+    },
+    "5990-pointer-wide-03bd8b99d-cold-birth/receipt.json": {
+      "sha256": "3eb93851ccc533f4f605a68af0113cce3b085fe977b112aff35b258658746c19",
+      "bytes": 50264
+    },
+    "5990-pointer-wide-03bd8b99d-cold-birth/serial.log": {
+      "sha256": "41e1c10d4931341d91726c933a252e278a0f73c452f53dce54594948500c83d5",
+      "bytes": 125570
+    },
+    "5990-pointer-narrow-03bd8b99d-cold-birth/arrival.ppm": {
+      "sha256": "4e990f164da175edd455baaa939a4b795f341914084901b96d84baf7d43bb7cd",
+      "bytes": 921615
+    },
+    "5990-pointer-narrow-03bd8b99d-cold-birth/qemu-stderr.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "5990-pointer-narrow-03bd8b99d-cold-birth/qmp.jsonl": {
+      "sha256": "9997b58230ec29b0461bd82f840d19e43a0ec9b05be81f8bd6773ad36a1087fc",
+      "bytes": 19552
+    },
+    "5990-pointer-narrow-03bd8b99d-cold-birth/receipt.json": {
+      "sha256": "e2e4e21044f9ad8d8aacf82cbe8a4997922fd0175e7ae9d412f06e90ab636d54",
+      "bytes": 49419
+    },
+    "5990-pointer-narrow-03bd8b99d-cold-birth/serial.log": {
+      "sha256": "08ff83ac51c636084471f9cade52e9a45d6f5f3320141b601097a5d72a0bda4e",
+      "bytes": 129345
+    }
+  }
+}

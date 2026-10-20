@@ -1,0 +1,6 @@
+1:  eea1d61a1 = 1:  175c27afd Arrange native Creche panels from checked recipe groups
+2:  384e96446 = 2:  3e3f9ceac Refresh Look Source fingerprint after structural selector addition
+3:  ab4fd392b = 3:  2ac290784 Fit provisional native drafts to measured footer bounds
+4:  d114cfbc1 = 4:  450bbeffb Retain exact network inputs when browser smoke refuses
+5:  c6dbdec2b = 5:  ae9b3dac3 Match complete browser responses across fragmented headers
+6:  ceaefa32c = 6:  03bd8b99d Identify completed browser proof transfers by response identity

@@ -5,5 +5,8 @@
   "preserved_remote": "recovery/6055-ceaefa-before-7c6-refresh",
   "patches": "All six range-diff entries equal",
   "status": "Pushed; fresh Candidate and normal product proof pending",
-  "repair_restoration": "956 Integration39445459109 and publication39460188239 verified; does not claim7c6 accepted"
+  "repair_restoration": "956 Integration39445459109 and publication39460188239 verified; does not claim7c6 accepted",
+  "local_product": "Normal22-checkpoint journey and wide/narrow panels+pointer supplements passed",
+  "product_receipt": "outputs/5990-stage05-03bd8b99d/receipt.json",
+  "source_branch_origin_verified": "2026-10-20T17:03UTC"
 }

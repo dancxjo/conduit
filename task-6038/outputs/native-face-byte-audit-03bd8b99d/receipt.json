@@ -1,0 +1,554 @@
+{
+  "source": "03bd8b99d1018544f7df9bae159e8f416c859689",
+  "method": "Exact UTF-8 span of top-level face field, parsed independently and compared with fully decoded record; complete observation JSON bytes measured separately",
+  "inputs": {
+    "5990-normal-journey-03bd8b99d/x86_64/journey-serial.log": "4bf3a2671d5ceaf0c41e8370840ecb57cdf2584968b63b92ac83b6e4ab0ba889",
+    "5990-panels-wide-03bd8b99d/serial.log": "7893bd5389621d03d4d2f6d6c224399ec58e477db061e92c9b699b1dbb5ba43f",
+    "5990-panels-narrow-03bd8b99d/serial.log": "cf8976ba73f6638a6fca11116fca2558910c0f9c6e4a767161b2b73f281c8dd9",
+    "5990-pointer-wide-03bd8b99d-cold-birth/serial.log": "41e1c10d4931341d91726c933a252e278a0f73c452f53dce54594948500c83d5",
+    "5990-pointer-narrow-03bd8b99d-cold-birth/serial.log": "08ff83ac51c636084471f9cade52e9a45d6f5f3320141b601097a5d72a0bda4e"
+  },
+  "observations_count": 49,
+  "maximum_face_bytes": 22025,
+  "maximum_observation_json_bytes": 25732,
+  "existing_limits": {
+    "native_mask_snapshot_bytes": 49152,
+    "routed_join_frame_bytes": 32768,
+    "observer_record_bytes": 98304
+  },
+  "boundary": "Observed current stage05 normal-product states only, including five-candidate long-Unicode/refusal/filter states. Not C1/C2, maximum16-Plot fixture, whole-route envelope/transport admission, runtime allocation/latency, physical or human proof. No limit change.",
+  "observations": [
+    {
+      "input": "5990-normal-journey-03bd8b99d/x86_64/journey-serial.log",
+      "line": 21,
+      "face_id": "50a7bea3ba3fc791bdf57ec173456647c870b4f6df024ba77921925bd376ead7",
+      "revision": 1,
+      "face_bytes": 21565,
+      "observation_json_bytes": 25053,
+      "sha256": "2fd4547460f1d701a93d430fc2356d38b9e97f900f90ba5d06952a3c6e0263fb",
+      "plot_candidates": 5
+    },
+    {
+      "input": "5990-normal-journey-03bd8b99d/x86_64/journey-serial.log",
+      "line": 30,
+      "face_id": "c7605815583d6cc80a53ddf8511a5989fc5806ef96bb0ae3e2aa5d38c755477c",
+      "revision": 2,
+      "face_bytes": 21151,
+      "observation_json_bytes": 24639,
+      "sha256": "56e734ef2409c7a22c8c3bec21204139f6a392d093ba58bfeea38235a5103532",
+      "plot_candidates": 5
+    },
+    {
+      "input": "5990-normal-journey-03bd8b99d/x86_64/journey-serial.log",
+      "line": 34,
+      "face_id": "26ffe07d84b0069ee0a3f231a56896a9ed9cf62530bbb4d61214fd998d703087",
+      "revision": 3,
+      "face_bytes": 21565,
+      "observation_json_bytes": 25053,
+      "sha256": "877c0015e39ca95a2ea6635695194586cb29f8be4ad8b8747deaa8d4f348ec3b",
+      "plot_candidates": 5
+    },
+    {
+      "input": "5990-normal-journey-03bd8b99d/x86_64/journey-serial.log",
+      "line": 48,
+      "face_id": "220840585c97a633742ecc0654ba2bb447ce587cc98ef04c39c13a671a20489d",
+      "revision": 4,
+      "face_bytes": 21158,
+      "observation_json_bytes": 24646,
+      "sha256": "424a916958c68dbef9efa24e5e3e9c4df99ffefe5a10501798422bb044cecd3c",
+      "plot_candidates": 5
+    },
+    {
+      "input": "5990-normal-journey-03bd8b99d/x86_64/journey-serial.log",
+      "line": 55,
+      "face_id": "412df880353cb2b41440ce4f4d9ff7f10a7a669edfe8921bc45af954a03af1a7",
+      "revision": 5,
+      "face_bytes": 21565,
+      "observation_json_bytes": 25053,
+      "sha256": "a77787c0056a1f6ec454e01ca0e36fbf6d55fb4d0cf4b62d1393f2639bc63403",
+      "plot_candidates": 5
+    },
+    {
+      "input": "5990-normal-journey-03bd8b99d/x86_64/journey-serial.log",
+      "line": 78,
+      "face_id": "1e053a1448cf8cc5536036a735fae3486f61f13602c38219682c0b034dddb066",
+      "revision": 9,
+      "face_bytes": 7765,
+      "observation_json_bytes": 11403,
+      "sha256": "0cc56848d92f1189f19edd2f03c2d15777d2ebbce282e8d284471865cd60e3ef",
+      "plot_candidates": 1
+    },
+    {
+      "input": "5990-normal-journey-03bd8b99d/x86_64/journey-serial.log",
+      "line": 80,
+      "face_id": "eb3e168a74152dfc02b2bc15a440f88870b826128b0edaff8534fdbabf255641",
+      "revision": 10,
+      "face_bytes": 8591,
+      "observation_json_bytes": 12293,
+      "sha256": "439d9bd12bf8065af6b29e5eef12aaabd66061c23aab38421ced81dacba0a7f5",
+      "plot_candidates": 1
+    },
+    {
+      "input": "5990-normal-journey-03bd8b99d/x86_64/journey-serial.log",
+      "line": 83,
+      "face_id": "eb3e168a74152dfc02b2bc15a440f88870b826128b0edaff8534fdbabf255641",
+      "revision": 10,
+      "face_bytes": 8591,
+      "observation_json_bytes": 12293,
+      "sha256": "439d9bd12bf8065af6b29e5eef12aaabd66061c23aab38421ced81dacba0a7f5",
+      "plot_candidates": 1
+    },
+    {
+      "input": "5990-normal-journey-03bd8b99d/x86_64/journey-serial.log",
+      "line": 85,
+      "face_id": "59038b1e9a73f711ee0c8d6dd3fca97855b24bcb99a6be6ac941208e9a44908e",
+      "revision": 11,
+      "face_bytes": 8837,
+      "observation_json_bytes": 12539,
+      "sha256": "76d455bf7cb1960f3ce986269fb036f80da5519f8cbb32f1590bcbf4dd5f9eac",
+      "plot_candidates": 1
+    },
+    {
+      "input": "5990-normal-journey-03bd8b99d/x86_64/journey-serial.log",
+      "line": 88,
+      "face_id": "59038b1e9a73f711ee0c8d6dd3fca97855b24bcb99a6be6ac941208e9a44908e",
+      "revision": 11,
+      "face_bytes": 8837,
+      "observation_json_bytes": 12544,
+      "sha256": "76d455bf7cb1960f3ce986269fb036f80da5519f8cbb32f1590bcbf4dd5f9eac",
+      "plot_candidates": 1
+    },
+    {
+      "input": "5990-normal-journey-03bd8b99d/x86_64/journey-serial.log",
+      "line": 90,
+      "face_id": "2db573be8ca06005f0c948bbf36c60c4b400bbdd8e3b53316d6950cfc8ef0b22",
+      "revision": 12,
+      "face_bytes": 8598,
+      "observation_json_bytes": 12305,
+      "sha256": "4aeff29653f8e0b129eab1c28ad54b1372b58c8d27e6534a97dbaae2c8bc86c7",
+      "plot_candidates": 1
+    },
+    {
+      "input": "5990-normal-journey-03bd8b99d/x86_64/journey-serial.log",
+      "line": 93,
+      "face_id": "2db573be8ca06005f0c948bbf36c60c4b400bbdd8e3b53316d6950cfc8ef0b22",
+      "revision": 12,
+      "face_bytes": 8598,
+      "observation_json_bytes": 12305,
+      "sha256": "4aeff29653f8e0b129eab1c28ad54b1372b58c8d27e6534a97dbaae2c8bc86c7",
+      "plot_candidates": 1
+    },
+    {
+      "input": "5990-normal-journey-03bd8b99d/x86_64/journey-serial.log",
+      "line": 96,
+      "face_id": "fdfbc7bd29357e24753edb6dc82a41e6b2360d85469c5d820be08d3c69ed8a31",
+      "revision": 13,
+      "face_bytes": 8941,
+      "observation_json_bytes": 12648,
+      "sha256": "7711353e2a118620b0d8763d717ab8c6e6fe54f390f9cc687758098fbf96110b",
+      "plot_candidates": 1
+    },
+    {
+      "input": "5990-normal-journey-03bd8b99d/x86_64/journey-serial.log",
+      "line": 100,
+      "face_id": "ca13246761182b4b9785f77556baba4e485cfdb33849166cbd87ddcac47da844",
+      "revision": 14,
+      "face_bytes": 9740,
+      "observation_json_bytes": 13447,
+      "sha256": "81a7c7fa7d1e3e4a8ffa3ee947dfe897c1493cade6735c08f98ff1e3b531bfd8",
+      "plot_candidates": 1
+    },
+    {
+      "input": "5990-normal-journey-03bd8b99d/x86_64/journey-serial.log",
+      "line": 114,
+      "face_id": "ea4e8948db57e27c4f722890ffc80570a38e1db5c88b304051cf16a9c0af0d1a",
+      "revision": 22,
+      "face_bytes": 9850,
+      "observation_json_bytes": 13557,
+      "sha256": "203bd97d622fb91153bc94fb50bf7be772941a7b0823781f94868829ded57494",
+      "plot_candidates": 1
+    },
+    {
+      "input": "5990-normal-journey-03bd8b99d/x86_64/journey-serial.log",
+      "line": 118,
+      "face_id": "52a16aba7c945dbdc7492054d10bc69884e0eb34aea22b57eaf7acc77efd2589",
+      "revision": 23,
+      "face_bytes": 10147,
+      "observation_json_bytes": 13854,
+      "sha256": "15939f5af263e09e8a67eb1b3a0d2908b30f2b4012e05e122ea7c7b6083ecc4d",
+      "plot_candidates": 1
+    },
+    {
+      "input": "5990-normal-journey-03bd8b99d/x86_64/journey-serial.log",
+      "line": 121,
+      "face_id": "8f2207f990e273b2d983820a82692c6092fb9c9d3c0433fd46bf3e9fda1b0144",
+      "revision": 25,
+      "face_bytes": 10147,
+      "observation_json_bytes": 13854,
+      "sha256": "6dc00244bf1feeb107ec9673ffbb0110106a504fad1738c4db2cba8c3f975270",
+      "plot_candidates": 1
+    },
+    {
+      "input": "5990-normal-journey-03bd8b99d/x86_64/journey-serial.log",
+      "line": 125,
+      "face_id": "f4a607201c788fcbbb2d4bb0f7b12e46777059af0281fa8f4d5908b51fc4df89",
+      "revision": 26,
+      "face_bytes": 9844,
+      "observation_json_bytes": 13551,
+      "sha256": "bcf09e6f380af06878e6976ec9f4e6a2612229d9462051bd39ddf85f94141846",
+      "plot_candidates": 1
+    },
+    {
+      "input": "5990-normal-journey-03bd8b99d/x86_64/journey-serial.log",
+      "line": 128,
+      "face_id": "ca09ed50a82058656e4b7771035903c728c6c918dfdf67bff4a36253fc10f15c",
+      "revision": 28,
+      "face_bytes": 9844,
+      "observation_json_bytes": 13551,
+      "sha256": "baaaad6791950a8ae7c8d1f59100fbe0d663b4ec83e6f6ede4814862853efb2d",
+      "plot_candidates": 1
+    },
+    {
+      "input": "5990-normal-journey-03bd8b99d/x86_64/journey-serial.log",
+      "line": 132,
+      "face_id": "59da4979feec85fb5a9a4c0fe8ecfac50f53ccc926d0c14e8ea19b1a79fe62da",
+      "revision": 29,
+      "face_bytes": 10147,
+      "observation_json_bytes": 13854,
+      "sha256": "5d90404544485c018d231c17bdee111260ab796d80ca2f4cc4b111f050af1635",
+      "plot_candidates": 1
+    },
+    {
+      "input": "5990-normal-journey-03bd8b99d/x86_64/journey-serial.log",
+      "line": 135,
+      "face_id": "a2b103d6e74d0ab53988f8220ba2400edb31ecb5177b21457a8801b0d503ff6a",
+      "revision": 31,
+      "face_bytes": 10147,
+      "observation_json_bytes": 13854,
+      "sha256": "f7679f2a9d59de37e442fc0fa3b81b720b0431d849c361fb29b0520a7da7126f",
+      "plot_candidates": 1
+    },
+    {
+      "input": "5990-normal-journey-03bd8b99d/x86_64/journey-serial.log",
+      "line": 139,
+      "face_id": "df0db83db3dbd955d62c8fd08658cfd5e9acfa440d62fd74ac97875a7e4f2e17",
+      "revision": 32,
+      "face_bytes": 10149,
+      "observation_json_bytes": 13856,
+      "sha256": "6074a59de359612c682eac380fc0767be1a28b635c384de5b936965afbd43bf9",
+      "plot_candidates": 1
+    },
+    {
+      "input": "5990-normal-journey-03bd8b99d/x86_64/journey-serial.log",
+      "line": 142,
+      "face_id": "c1924f1c6293385b54168e90d06e660fad61ac123257811e9b75efd043c61924",
+      "revision": 34,
+      "face_bytes": 10150,
+      "observation_json_bytes": 13857,
+      "sha256": "49edfc3f05c29fd90903c8012cc26c1e97214a6dff56e3512b904582949cf2cc",
+      "plot_candidates": 1
+    },
+    {
+      "input": "5990-normal-journey-03bd8b99d/x86_64/journey-serial.log",
+      "line": 146,
+      "face_id": "0b310a16f361c636c79eb09fc7471482960bbe9edf33a9727a8874e5721f59a7",
+      "revision": 35,
+      "face_bytes": 10154,
+      "observation_json_bytes": 13861,
+      "sha256": "00cd84727fb531cb40913cb0595966c6f2894b43e282e6344c0867369d6d582c",
+      "plot_candidates": 1
+    },
+    {
+      "input": "5990-normal-journey-03bd8b99d/x86_64/journey-serial.log",
+      "line": 149,
+      "face_id": "60f0c8eff13caebde84090c3d19916a7ee7a39a77959422a6bab42838c375cbe",
+      "revision": 37,
+      "face_bytes": 10154,
+      "observation_json_bytes": 13861,
+      "sha256": "5e96272115f8c52b82d1b3f0d80340fa0209cd0f917530cf3efd2e597d98e48a",
+      "plot_candidates": 1
+    },
+    {
+      "input": "5990-normal-journey-03bd8b99d/x86_64/journey-serial.log",
+      "line": 152,
+      "face_id": "09e6f428eb5b9b49cb521613cc495351f6353860c4ceb06e3a2ba2f42cbc63e2",
+      "revision": 38,
+      "face_bytes": 10154,
+      "observation_json_bytes": 13861,
+      "sha256": "cfa9f693657557bfb3939b5becfddaef737590d3525239773a7e382a9c9d920a",
+      "plot_candidates": 1
+    },
+    {
+      "input": "5990-normal-journey-03bd8b99d/x86_64/journey-serial.log",
+      "line": 156,
+      "face_id": "8440d8d344a91d534ace4c9a7cb427d81b85bb43d189e548d50710ab020f5660",
+      "revision": 39,
+      "face_bytes": 10158,
+      "observation_json_bytes": 13865,
+      "sha256": "a2a3b5a861963af279cc3698beec41ce4fbad7b41bd31a0cbb21ebf3561d951e",
+      "plot_candidates": 1
+    },
+    {
+      "input": "5990-normal-journey-03bd8b99d/x86_64/journey-serial.log",
+      "line": 159,
+      "face_id": "b64ebff3d6727e3d79ccd9e494ed0c991f1facb4a7a695c4d59928165280b731",
+      "revision": 41,
+      "face_bytes": 10158,
+      "observation_json_bytes": 13865,
+      "sha256": "e289084bc1c166643c6ab04dc471cda5a4e6622402ce602624bea539f3549bc0",
+      "plot_candidates": 1
+    },
+    {
+      "input": "5990-normal-journey-03bd8b99d/x86_64/journey-serial.log",
+      "line": 162,
+      "face_id": "e316580f6fca71291ca6eb0eadcad0e49e9c541eacf9bf3aecd951c0d8722083",
+      "revision": 43,
+      "face_bytes": 10158,
+      "observation_json_bytes": 13865,
+      "sha256": "d870860f8166aaa6d2607b16c7d4a728eda3ebe38ac37212b55b546232c3d93f",
+      "plot_candidates": 1
+    },
+    {
+      "input": "5990-normal-journey-03bd8b99d/x86_64/journey-serial.log",
+      "line": 174,
+      "face_id": "74955d95a7019cff654cd30ab9d204b57ce4c2b7832b2a878d7aa279c1b61333",
+      "revision": 50,
+      "face_bytes": 22025,
+      "observation_json_bytes": 25732,
+      "sha256": "1299b0bf4c61aafe9449b6aaa7166f90740e77204b51a8cb020751c134cbc9b4",
+      "plot_candidates": 2
+    },
+    {
+      "input": "5990-normal-journey-03bd8b99d/x86_64/journey-serial.log",
+      "line": 190,
+      "face_id": "e08851eb8835128dc97620353a89f46d9a4a8d4a7bfe1f04a451ed17e1a03904",
+      "revision": 51,
+      "face_bytes": 7742,
+      "observation_json_bytes": 11387,
+      "sha256": "a853a2fb159bd9bed0c01bc3298cc562e86324f155baacd669d671a82243a1d6",
+      "plot_candidates": 1
+    },
+    {
+      "input": "5990-panels-wide-03bd8b99d/serial.log",
+      "line": 21,
+      "face_id": "a6e52823403e3a5e7b1635793f638b2c684b082ee1c73e6ab7616dbe721b9392",
+      "revision": 1,
+      "face_bytes": 21585,
+      "observation_json_bytes": 25073,
+      "sha256": "88b1eef994e5cf9b2f47f1ad20365d8d3e44325e90850ec047a81e3799914744",
+      "plot_candidates": 5
+    },
+    {
+      "input": "5990-panels-wide-03bd8b99d/serial.log",
+      "line": 66,
+      "face_id": "d60adc7a299db67b99edea94040d9fc03604234b663e168f52731cc52dc9f5c9",
+      "revision": 2,
+      "face_bytes": 21610,
+      "observation_json_bytes": 25098,
+      "sha256": "9974099f9c1857c5b4f0dce13d3c9b5d366815c4501afaab8e9d74c95f728f62",
+      "plot_candidates": 5
+    },
+    {
+      "input": "5990-panels-wide-03bd8b99d/serial.log",
+      "line": 208,
+      "face_id": "8224854e8427580d7c4ca482123aea8ac5b99436de4a5d072e67cc9e9a7e81cf",
+      "revision": 3,
+      "face_bytes": 21802,
+      "observation_json_bytes": 25290,
+      "sha256": "7b2d1ffe3fedeb6251ba5d70e2b756bd4d62c625226991e897dbe17d10826d86",
+      "plot_candidates": 5
+    },
+    {
+      "input": "5990-panels-wide-03bd8b99d/serial.log",
+      "line": 224,
+      "face_id": "08a4a240654fc466399cdb50f6ad6da29c1985aa80de6b34cc1ec3bcb50a6a1a",
+      "revision": 4,
+      "face_bytes": 21578,
+      "observation_json_bytes": 25066,
+      "sha256": "abde735e2f2a318837d971cf5bc72d50e0b483c4ba6df1a726b215f10b0224f1",
+      "plot_candidates": 5
+    },
+    {
+      "input": "5990-panels-wide-03bd8b99d/serial.log",
+      "line": 244,
+      "face_id": "f4c727129a087f32f4f7cc67c2b814bdead953b3ffe760b643f1934147e17c97",
+      "revision": 5,
+      "face_bytes": 21507,
+      "observation_json_bytes": 24995,
+      "sha256": "9508eff2a8d87def2af453bb0d2258bbacb99a2a991d606638c2ba3504ecf860",
+      "plot_candidates": 5
+    },
+    {
+      "input": "5990-panels-wide-03bd8b99d/serial.log",
+      "line": 272,
+      "face_id": "673aee96dbeb626076cfcb5956281cb0b95f61bc22f91622dc00a3fbfd7d9d62",
+      "revision": 6,
+      "face_bytes": 14728,
+      "observation_json_bytes": 18216,
+      "sha256": "128ba946cff1e4dedfd618a9eb859619581d7df40dd8f47ea23c75c8067bba16",
+      "plot_candidates": 0
+    },
+    {
+      "input": "5990-panels-narrow-03bd8b99d/serial.log",
+      "line": 21,
+      "face_id": "f3ebe9cbfc4ca52f491129d9ff90df8966ea2b5e8b653c69ec08aea7135e386f",
+      "revision": 1,
+      "face_bytes": 21675,
+      "observation_json_bytes": 25163,
+      "sha256": "2cbd078ebd24ea8f2e6561b955abc6f8ac0043a95ea990f236c9325f7ae66464",
+      "plot_candidates": 5
+    },
+    {
+      "input": "5990-panels-narrow-03bd8b99d/serial.log",
+      "line": 66,
+      "face_id": "813cc63a0e88cc511c3de2bf143cbdb034684022463edd00f2f2a7f00598bd5f",
+      "revision": 2,
+      "face_bytes": 21604,
+      "observation_json_bytes": 25092,
+      "sha256": "4b23f936ec02986d6ae66e27f32ca77244c6c7d80ad8dadf4042d1020b5a8c21",
+      "plot_candidates": 5
+    },
+    {
+      "input": "5990-panels-narrow-03bd8b99d/serial.log",
+      "line": 208,
+      "face_id": "e3573b2eb4cb0a1d9e3b9ce7364b43d1f4a82cd25ce3496ef4d91277b7d318ee",
+      "revision": 3,
+      "face_bytes": 21802,
+      "observation_json_bytes": 25290,
+      "sha256": "7cff77fe4a9df8429591d61729f4169801b640890b75856e5a3ac2d6c3d64ca9",
+      "plot_candidates": 5
+    },
+    {
+      "input": "5990-panels-narrow-03bd8b99d/serial.log",
+      "line": 228,
+      "face_id": "bc72d4e1f9ca35cb58426c1e9c7569828989a9a3478cfa52d6ee6da06cd81df5",
+      "revision": 4,
+      "face_bytes": 21578,
+      "observation_json_bytes": 25066,
+      "sha256": "32f0dc780ad3f8e53241cb7b218c37f84d93d154f894df378b41c5951f346cc9",
+      "plot_candidates": 5
+    },
+    {
+      "input": "5990-panels-narrow-03bd8b99d/serial.log",
+      "line": 252,
+      "face_id": "5e4917325e26858619278d02c39b2a8f2cd415e16fe11ad47ffb47941ba1c8d2",
+      "revision": 5,
+      "face_bytes": 21507,
+      "observation_json_bytes": 24995,
+      "sha256": "34a05e887c0e840f6425b9deace78cd40eebd7932ee3308b9e58b1bba6e2ddb8",
+      "plot_candidates": 5
+    },
+    {
+      "input": "5990-panels-narrow-03bd8b99d/serial.log",
+      "line": 280,
+      "face_id": "f4c6a5debf9b75784c187780838763a941bf8b429d8c63653e1f986bf8690c8b",
+      "revision": 6,
+      "face_bytes": 14728,
+      "observation_json_bytes": 18216,
+      "sha256": "29a3d041376f566684eaeab33d9f1a4638ee57a4853fa228ed095c249c18ca58",
+      "plot_candidates": 0
+    },
+    {
+      "input": "5990-pointer-wide-03bd8b99d-cold-birth/serial.log",
+      "line": 21,
+      "face_id": "7b635bb58fe88ff1741a0b17db1f509640e06ef3360661b159ca2829a3da1a13",
+      "revision": 1,
+      "face_bytes": 21590,
+      "observation_json_bytes": 25078,
+      "sha256": "e055cd9a81aeddca8cc2ce98d0cc9c1642391e065df1f096f0561d5a1e460357",
+      "plot_candidates": 5
+    },
+    {
+      "input": "5990-pointer-wide-03bd8b99d-cold-birth/serial.log",
+      "line": 129,
+      "face_id": "558c0189d79e8ff568a0baf5c4e7f89c6cffe810e3f0b7c7f7d347ff7197d04a",
+      "revision": 2,
+      "face_bytes": 21176,
+      "observation_json_bytes": 24664,
+      "sha256": "1d77c7932a95cc3f78ad914927e7a824969e92320f07c39308d6d18ed2334bd7",
+      "plot_candidates": 5
+    },
+    {
+      "input": "5990-pointer-wide-03bd8b99d-cold-birth/serial.log",
+      "line": 135,
+      "face_id": "dccae8a5f926ad29a9133273f8f92dab954ceea936e73d451d895dd802fc612e",
+      "revision": 3,
+      "face_bytes": 21590,
+      "observation_json_bytes": 25078,
+      "sha256": "3994da1bf594e6f388ec46a9f420a13319c0cf74353956556b462b6ae92cffa0",
+      "plot_candidates": 5
+    },
+    {
+      "input": "5990-pointer-narrow-03bd8b99d-cold-birth/serial.log",
+      "line": 21,
+      "face_id": "8c932513eec90a9d0cada7dc40d1ac9c189c2bafaf85eb775fc05f2555c337b1",
+      "revision": 1,
+      "face_bytes": 21578,
+      "observation_json_bytes": 25066,
+      "sha256": "e3f0f4598dac5e29d517cd7dedd5be67d51bb0caea2783dc08108502440925ec",
+      "plot_candidates": 5
+    },
+    {
+      "input": "5990-pointer-narrow-03bd8b99d-cold-birth/serial.log",
+      "line": 148,
+      "face_id": "ca0b1210e45a7eb1e0c1bbe176f17469d8f9abeb14343ee83a1f8a125f9b92d7",
+      "revision": 2,
+      "face_bytes": 21164,
+      "observation_json_bytes": 24652,
+      "sha256": "8a6699701674ec88b145e4cf4aebf61b0007ba3382fbf712d33f22f343e2d407",
+      "plot_candidates": 5
+    },
+    {
+      "input": "5990-pointer-narrow-03bd8b99d-cold-birth/serial.log",
+      "line": 154,
+      "face_id": "57fbcc6b258e03b064e13b205b91ed8c9b42c30e2f996eda8f68fb35ffde68d8",
+      "revision": 3,
+      "face_bytes": 21578,
+      "observation_json_bytes": 25066,
+      "sha256": "c93585d85e674fd395ae445223f789b03da0615d861999e66351d604481cceab",
+      "plot_candidates": 5
+    }
+  ],
+  "supplement_arrival_observations": {
+    "method": "Host monotonic elapsed from immediately before QEMU Popen to read-only observation of CONDUIT_BOOT_STAGE front-door-ready, including QMP connection; four separately booted runs, one observation per run",
+    "runs": [
+      {
+        "receipt": "5990-panels-wide-03bd8b99d/receipt.json",
+        "receipt_sha256": "1c5ae655e79fef85562f64b44e57e92b0cb2b914c190d555ce9b63e2ccab0892",
+        "viewport": [
+          1280,
+          800
+        ],
+        "arrival_observed_ms": 20874.679
+      },
+      {
+        "receipt": "5990-panels-narrow-03bd8b99d/receipt.json",
+        "receipt_sha256": "0b16f17baeccfc509cccd92ec783b821905e88464afd657524b2a8f558a7a985",
+        "viewport": [
+          640,
+          480
+        ],
+        "arrival_observed_ms": 21174.735
+      },
+      {
+        "receipt": "5990-pointer-wide-03bd8b99d-cold-birth/receipt.json",
+        "receipt_sha256": "3eb93851ccc533f4f605a68af0113cce3b085fe977b112aff35b258658746c19",
+        "viewport": [
+          1280,
+          800
+        ],
+        "arrival_observed_ms": 19775.857
+      },
+      {
+        "receipt": "5990-pointer-narrow-03bd8b99d-cold-birth/receipt.json",
+        "receipt_sha256": "e2e4e21044f9ad8d8aacf82cbe8a4997922fd0175e7ae9d412f06e90ab636d54",
+        "viewport": [
+          640,
+          480
+        ],
+        "arrival_observed_ms": 20031.094
+      }
+    ],
+    "boundary": "Local emulator observations, uncontrolled host/cache conditions. No speedup, cold-cache, realtime, human-perceived readiness, worst-case or other-Host claim. No workload repeated for timing."
+  }
+}
