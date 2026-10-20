@@ -27,12 +27,12 @@ function target(id) {
 export function setupTarget(id) { setup(target(id)); }
 
 /** Return only after the retained product passes its declared proof class. */
-export function runTarget(id, directory) {
+export async function runTarget(id, directory) {
   const selected = target(id);
   directory = path.resolve(directory);
   mkdirSync(directory, { recursive: true });
   if (readdirSync(directory).length) throw new Error(`Target output must be empty: ${directory}`);
-  if (selected.family === 'browser') browser(directory);
+  if (selected.family === 'browser') await browser(directory);
   else if (selected.family === 'hosted') hosted(id, directory);
   else if (selected.family === 'conduitos') conduitos(id, directory);
   else embedded(id, directory);
