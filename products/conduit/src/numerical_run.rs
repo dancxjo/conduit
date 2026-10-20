@@ -230,3 +230,6 @@ fn prepare(
     .map_err(|e| format!("{e:?}"))?;
     Ok((host, plan))
 }
+
+#[cfg(test)]
+mod tests;
