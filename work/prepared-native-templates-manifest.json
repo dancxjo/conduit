@@ -1,0 +1,26 @@
+{
+  "depends_on": "prepared-native-optional.patch exact snapshot",
+  "paths": [
+    {
+      "path": "architecture/plot/src/rust_binding/mod.rs",
+      "sha256": "f77e6db3d5bf0abd174064c677dfbbc8fa912d5b24a60c7d57ac2c6ae5260c4d",
+      "baseline_sha256": "ba075fbc5f3ca23b61e00b65df81848b06a80114d7844a28e14f9f4b0f6b9868"
+    },
+    {
+      "path": "architecture/plot/src/rust_binding/prepared_native.rs",
+      "sha256": "8bdc15e7b4a67736498ffa51e4e6b832031767bc949d1464b97f34bb027d0fd4",
+      "baseline_sha256": "19ec7d3169fa3a712bd87be80fbe38cd6fdc171e65a2fb3e53d511cc646acae1"
+    },
+    {
+      "path": "architecture/plot/src/rust_binding/prepared_native/traversal.rs",
+      "sha256": "73bdfb93123559f8efa84aadd620e2c759dce2ae772b96b79b380bad7b219a63",
+      "baseline_sha256": null
+    },
+    {
+      "path": "architecture/plot/tests/prepared_native_occurrences.rs",
+      "sha256": "2eaa4ef7744cd9bb6241750f8e224040bb2dabb806b6b24f15d162f7bc811194",
+      "baseline_sha256": null
+    }
+  ],
+  "builds_run": false
+}

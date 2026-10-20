@@ -1,0 +1,16 @@
+{
+  "base": "c8946a6f33db8515dba14d9eaf3fbffe463046bd",
+  "paths": [
+    {
+      "path": "semantics/language/tests/prepared_beam_admission.rs",
+      "sha256": "b7b599d6d4fc1b799631ac9732efe01e17ac272e6952a50a4d24f26e680b03be",
+      "baseline_sha256": null
+    }
+  ],
+  "builds_run": false,
+  "requires_root_changes": [
+    "prepared Native commit3c57aaae3",
+    "language_semantic_source exact checked build snapshot getter",
+    "current analysis_epoch_runtime source getter wiring"
+  ]
+}

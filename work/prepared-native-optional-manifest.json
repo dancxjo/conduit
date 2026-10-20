@@ -1,0 +1,16 @@
+{
+  "base": "3c57aaae38b7fceb22854038eccb913f06f835fc",
+  "paths": [
+    {
+      "path": "architecture/plot/src/rust_binding/prepared_native.rs",
+      "sha256": "19ec7d3169fa3a712bd87be80fbe38cd6fdc171e65a2fb3e53d511cc646acae1",
+      "baseline_sha256": "8676a3a96039ca47e9b18483d64ff76eb8dae5aa02e2c1c2ada344b136987d91"
+    },
+    {
+      "path": "architecture/plot/tests/prepared_native_optional.rs",
+      "sha256": "ce6aeb1db8eca1ca80df5053b38d8b2050d7027aa469618abc1e743dfbb8559c",
+      "baseline_sha256": null
+    }
+  ],
+  "builds_run": false
+}

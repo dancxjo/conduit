@@ -1,0 +1,646 @@
+diff --git a/architecture/plot/src/rust_binding/mod.rs b/architecture/plot/src/rust_binding/mod.rs
+index 0e86e7a63..837c5ffb0 100644
+--- a/architecture/plot/src/rust_binding/mod.rs
++++ b/architecture/plot/src/rust_binding/mod.rs
+@@ -5,6 +5,8 @@
+ 
+ mod bounded;
+ mod native_contracts;
++mod prepared_native;
++pub use prepared_native::{AdmittedNativeCanonical, PreparedNativeAdmission, PreparedNativeBounds, PreparedNativeProgress, PreparedNativeRefusal};
+ pub use native_contracts::{validate_native_contracts_borrowed, BorrowedNativeContractRefusal};
+ mod generate;
+ mod generate_conversion;
+diff --git a/architecture/plot/src/rust_binding/prepared_native.rs b/architecture/plot/src/rust_binding/prepared_native.rs
+new file mode 100644
+index 000000000..261f5c51b
+--- /dev/null
++++ b/architecture/plot/src/rust_binding/prepared_native.rs
+@@ -0,0 +1,441 @@
++//! Retained, bounded Native admission. Shape alone never yields a witness.
++use super::validate_native_contracts_borrowed;
++use crate::{CheckedNativeType, CheckedSyntaxDocument, PreparedPortableExpressionEvaluator};
++use alloc::{string::String, vec::Vec};
++use conduit_core::{
++    validate_canonical_structured_value, InfoBool, KindId, PreparedStructuredValueValidator,
++    StructuredInfoType, StructuredInfoTypeShape as Shape, ValidatedCanonicalStructuredValue,
++    ValueConstraintRefusal,
++};
++
++#[derive(Debug, Clone, PartialEq, Eq)]
++pub enum PreparedNativeRefusal {
++    Bounds,
++    MissingNativeMetadata,
++    ConflictingNativeMetadata,
++    InvalidProgram,
++    Shape,
++    Contract {
++        scope: usize,
++        contract: usize,
++        refusal: ValueConstraintRefusal,
++    },
++    Invariant {
++        scope: usize,
++        invariant: usize,
++    },
++    Evaluation {
++        scope: usize,
++        invariant: usize,
++    },
++    State,
++    Cancelled,
++}
++#[derive(Clone)]
++enum Part {
++    Representation,
++    Field(String),
++    Index(u16),
++    Variant(String),
++}
++struct Scope<'d> {
++    path: Vec<Part>,
++    native: &'d CheckedNativeType,
++    evaluators: Vec<PreparedPortableExpressionEvaluator>,
++}
++/// A finite admission profile; exceeding either bound refuses preparation.
++#[derive(Debug, Clone, Copy)]
++pub struct PreparedNativeBounds {
++    pub canonical_bytes: usize,
++    pub scopes: usize,
++    pub invariants: usize,
++}
++#[derive(Debug, Clone, Copy, PartialEq, Eq)]
++pub enum PreparedNativeProgress {
++    Pending,
++    Admitted,
++}
++/// Private witness borrows the exact retained bytes and checked Native metadata.
++/// It cannot cast a different schema or construct a generated Rust value.
++pub struct AdmittedNativeCanonical<'a> {
++    native: &'a CheckedNativeType,
++    bytes: &'a [u8],
++}
++impl AdmittedNativeCanonical<'_> {
++    pub fn native_type(&self) -> &CheckedNativeType {
++        self.native
++    }
++    pub fn canonical_bytes(&self) -> &[u8] {
++        self.bytes
++    }
++}
++pub struct PreparedNativeAdmission<'d> {
++    document: &'d CheckedSyntaxDocument,
++    native: &'d CheckedNativeType,
++    shape: PreparedStructuredValueValidator,
++    scopes: Vec<Scope<'d>>,
++    input: Vec<u8>,
++    scratch: Vec<u8>,
++    maximum: usize,
++    next: usize,
++    active: bool,
++    failure: Option<PreparedNativeRefusal>,
++}
++impl<'d> PreparedNativeAdmission<'d> {
++    pub fn new(
++        document: &'d CheckedSyntaxDocument,
++        identity: &KindId,
++        bounds: PreparedNativeBounds,
++    ) -> Result<Self, PreparedNativeRefusal> {
++        if bounds.scopes == 0 || bounds.scopes > 4096 || bounds.invariants > 4096 {
++            return Err(PreparedNativeRefusal::Bounds);
++        }
++        let native = lookup(document, identity)?;
++        let shape =
++            PreparedStructuredValueValidator::new(&native.value_type, bounds.canonical_bytes)
++                .map_err(|_| PreparedNativeRefusal::Bounds)?;
++        let mut scopes = Vec::new();
++        let mut count = (0, 0);
++        prepare(
++            document,
++            &native.value_type,
++            &mut Vec::new(),
++            &mut scopes,
++            bounds,
++            &mut count,
++        )?;
++        Ok(Self {
++            document,
++            native,
++            shape,
++            scopes,
++            input: Vec::with_capacity(bounds.canonical_bytes),
++            scratch: Vec::with_capacity(bounds.canonical_bytes),
++            maximum: bounds.canonical_bytes,
++            next: 0,
++            active: false,
++            failure: None,
++        })
++    }
++    pub fn source_document(&self) -> &CheckedSyntaxDocument {
++        self.document
++    }
++    pub fn native_type(&self) -> &CheckedNativeType {
++        self.native
++    }
++    pub fn scope_count(&self) -> usize {
++        self.scopes.len()
++    }
++    pub fn scope_native_type(&self, scope: usize) -> Option<&CheckedNativeType> {
++        self.scopes.get(scope).map(|v| v.native)
++    }
++    pub fn invariant_output(&self, scope: usize, invariant: usize) -> Option<&[u8]> {
++        self.scopes
++            .get(scope)?
++            .evaluators
++            .get(invariant)
++            .map(|v| v.output_bytes())
++    }
++    pub fn retained_bytes(&self) -> &[u8] {
++        &self.input
++    }
++    pub fn failure(&self) -> Option<&PreparedNativeRefusal> {
++        self.failure.as_ref()
++    }
++    /// Copies only into admitted storage. Pressure/state refusal leaves evidence intact.
++    pub fn begin(&mut self, bytes: &[u8]) -> Result<(), PreparedNativeRefusal> {
++        if self.active || self.failure.is_some() {
++            return Err(PreparedNativeRefusal::State);
++        }
++        if bytes.len() > self.maximum {
++            return Err(PreparedNativeRefusal::Bounds);
++        }
++        self.input.clear();
++        self.input.extend_from_slice(bytes);
++        self.next = 0;
++        self.active = true;
++        if self.shape.validate(&self.input).is_err() {
++            return self.fail(PreparedNativeRefusal::Shape);
++        }
++        Ok(())
++    }
++    fn fail<T>(&mut self, reason: PreparedNativeRefusal) -> Result<T, PreparedNativeRefusal> {
++        self.failure = Some(reason.clone());
++        Err(reason)
++    }
++    pub fn cancel(&mut self) {
++        self.failure = Some(PreparedNativeRefusal::Cancelled);
++    }
++    /// One finite schema scope per call; all Source programs were prepared before begin.
++    pub fn step(&mut self) -> Result<PreparedNativeProgress, PreparedNativeRefusal> {
++        if let Some(reason) = &self.failure {
++            return Err(reason.clone());
++        }
++        if !self.active {
++            return Err(PreparedNativeRefusal::State);
++        }
++        if self.next == self.scopes.len() {
++            return Ok(PreparedNativeProgress::Admitted);
++        }
++        let index = self.next;
++        let outcome = validate_scope(
++            &mut self.scopes[index],
++            &self.input,
++            &mut self.scratch,
++            self.maximum,
++            index,
++        );
++        if let Err(reason) = outcome {
++            return self.fail(reason);
++        }
++        self.next += 1;
++        Ok(if self.next == self.scopes.len() {
++            PreparedNativeProgress::Admitted
++        } else {
++            PreparedNativeProgress::Pending
++        })
++    }
++    /// Explicitly retire a successful admission before reusing its prepared storage.
++    /// Failure/cancellation evidence cannot be silently reset by this entrance.
++    pub fn retire_admitted(&mut self) -> Result<(), PreparedNativeRefusal> {
++        if !self.active || self.next != self.scopes.len() || self.failure.is_some() {
++            return Err(PreparedNativeRefusal::State);
++        }
++        self.input.clear();
++        self.scratch.clear();
++        self.next = 0;
++        self.active = false;
++        Ok(())
++    }
++    pub fn admitted(&self) -> Result<AdmittedNativeCanonical<'_>, PreparedNativeRefusal> {
++        if let Some(reason) = &self.failure {
++            return Err(reason.clone());
++        }
++        if !self.active || self.next != self.scopes.len() {
++            return Err(PreparedNativeRefusal::State);
++        }
++        Ok(AdmittedNativeCanonical {
++            native: self.native,
++            bytes: &self.input,
++        })
++    }
++}
++fn lookup<'d>(
++    document: &'d CheckedSyntaxDocument,
++    identity: &KindId,
++) -> Result<&'d CheckedNativeType, PreparedNativeRefusal> {
++    let mut result: Option<&CheckedNativeType> = None;
++    for native in document
++        .native_types
++        .iter()
++        .chain(document.retained_native_types.iter())
++        .filter(|v| &v.identity == identity)
++    {
++        if let Some(prior) = result {
++            if prior.value_type != native.value_type
++                || prior.value_contracts != native.value_contracts
++                || prior.invariants != native.invariants
++            {
++                return Err(PreparedNativeRefusal::ConflictingNativeMetadata);
++            }
++        } else {
++            result = Some(native);
++        }
++    }
++    result.ok_or(PreparedNativeRefusal::MissingNativeMetadata)
++}
++fn prepare<'d>(
++    document: &'d CheckedSyntaxDocument,
++    ty: &StructuredInfoType,
++    path: &mut Vec<Part>,
++    scopes: &mut Vec<Scope<'d>>,
++    bounds: PreparedNativeBounds,
++    count: &mut (usize, usize),
++) -> Result<(), PreparedNativeRefusal> {
++    count.1 += 1;
++    if path.len() > 64 || count.1 > 4096 {
++        return Err(PreparedNativeRefusal::Bounds);
++    }
++    let identity = match ty.shape() {
++        Shape::Nominal { schema, .. }
++        | Shape::Record { schema, .. }
++        | Shape::Variant { schema, .. } => Some(schema),
++        _ => None,
++    };
++    if let Some(identity) = identity {
++        if scopes.len() >= bounds.scopes {
++            return Err(PreparedNativeRefusal::Bounds);
++        }
++        let native = lookup(document, identity)?;
++        if &native.value_type != ty {
++            return Err(PreparedNativeRefusal::ConflictingNativeMetadata);
++        }
++        let mut evaluators = Vec::new();
++        for program in &native.invariants {
++            count.0 += 1;
++            if count.0 > bounds.invariants
++                || &program.input_type != ty
++                || program.output_type
++                    != StructuredInfoType::leaf(KindId::new("value/bool"))
++                        .map_err(|_| PreparedNativeRefusal::InvalidProgram)?
++            {
++                return Err(PreparedNativeRefusal::InvalidProgram);
++            }
++            evaluators.push(
++                PreparedPortableExpressionEvaluator::new(program)
++                    .map_err(|_| PreparedNativeRefusal::InvalidProgram)?,
++            );
++        }
++        scopes.push(Scope {
++            path: path.clone(),
++            native,
++            evaluators,
++        });
++    }
++    match ty.shape() {
++        Shape::Leaf(_) => (),
++        Shape::Nominal { representation, .. } => {
++            if matches!(representation.shape(), Shape::Nominal { .. }) {
++                return Err(PreparedNativeRefusal::MissingNativeMetadata);
++            }
++            path.push(Part::Representation);
++            prepare(document, representation, path, scopes, bounds, count)?;
++            path.pop();
++        }
++        Shape::Record { fields, .. } => {
++            for field in fields {
++                path.push(Part::Field(field.name().into()));
++                prepare(document, field.value_type(), path, scopes, bounds, count)?;
++                path.pop();
++            }
++        }
++        Shape::Variant { cases, .. } => {
++            for case in cases {
++                path.push(Part::Variant(case.tag().into()));
++                prepare(document, case.payload_type(), path, scopes, bounds, count)?;
++                path.pop();
++            }
++        }
++        Shape::Collection { element, length } => {
++            prepare_elements(document, element, length, path, scopes, bounds, count)?
++        }
++        Shape::Sequence {
++            element,
++            maximum_items,
++            ..
++        } => prepare_elements(
++            document,
++            element,
++            maximum_items,
++            path,
++            scopes,
++            bounds,
++            count,
++        )?,
++    }
++    Ok(())
++}
++fn prepare_elements<'d>(
++    document: &'d CheckedSyntaxDocument,
++    element: &StructuredInfoType,
++    length: u16,
++    path: &mut Vec<Part>,
++    scopes: &mut Vec<Scope<'d>>,
++    bounds: PreparedNativeBounds,
++    count: &mut (usize, usize),
++) -> Result<(), PreparedNativeRefusal> {
++    for index in 0..length {
++        path.push(Part::Index(index));
++        prepare(document, element, path, scopes, bounds, count)?;
++        path.pop();
++    }
++    Ok(())
++}
++fn select<'a>(
++    mut value: ValidatedCanonicalStructuredValue<'a>,
++    path: &[Part],
++) -> Result<Option<ValidatedCanonicalStructuredValue<'a>>, PreparedNativeRefusal> {
++    for part in path {
++        let next = match part {
++            Part::Representation => Some(
++                value
++                    .representation()
++                    .map_err(|_| PreparedNativeRefusal::Shape)?,
++            ),
++            Part::Field(name) => value
++                .record_field(name)
++                .map_err(|_| PreparedNativeRefusal::Shape)?,
++            Part::Index(index) => value
++                .collection_index(*index)
++                .map_err(|_| PreparedNativeRefusal::Shape)?,
++            Part::Variant(tag) => value
++                .variant_payload(tag)
++                .map_err(|_| PreparedNativeRefusal::Shape)?,
++        };
++        let Some(next) = next else {
++            return Ok(None);
++        };
++        value = next;
++    }
++    Ok(Some(value))
++}
++fn validate_scope(
++    scope: &mut Scope<'_>,
++    input: &[u8],
++    scratch: &mut Vec<u8>,
++    maximum: usize,
++    index: usize,
++) -> Result<(), PreparedNativeRefusal> {
++    let value =
++        validate_canonical_structured_value(input).map_err(|_| PreparedNativeRefusal::Shape)?;
++    let Some(value) = select(value, &scope.path)? else {
++        return Ok(());
++    };
++    if let Err(reason) = validate_native_contracts_borrowed(value, &scope.native.value_contracts) {
++        let contract = scope
++            .native
++            .value_contracts
++            .iter()
++            .position(|v| v.representation_path == reason.representation_path)
++            .ok_or(PreparedNativeRefusal::Shape)?;
++        return Err(PreparedNativeRefusal::Contract {
++            scope: index,
++            contract,
++            refusal: reason.refusal,
++        });
++    }
++    if value
++        .type_bytes()
++        .len()
++        .checked_add(value.value_node().len())
++        .filter(|v| *v <= maximum)
++        .is_none()
++    {
++        return Err(PreparedNativeRefusal::Bounds);
++    }
++    scratch.clear();
++    scratch.extend_from_slice(value.type_bytes());
++    scratch.extend_from_slice(value.value_node());
++    for (invariant, evaluator) in scope.evaluators.iter_mut().enumerate() {
++        let result =
++            evaluator
++                .evaluate(scratch)
++                .map_err(|_| PreparedNativeRefusal::Evaluation {
++                    scope: index,
++                    invariant,
++                })?;
++        if !InfoBool::decode(result)
++            .map_err(|_| PreparedNativeRefusal::Evaluation {
++                scope: index,
++                invariant,
++            })?
++            .get()
++        {
++            return Err(PreparedNativeRefusal::Invariant {
++                scope: index,
++                invariant,
++            });
++        }
++    }
++    Ok(())
++}
+diff --git a/architecture/plot/tests/prepared_native_admission.rs b/architecture/plot/tests/prepared_native_admission.rs
+new file mode 100644
+index 000000000..fb176b104
+--- /dev/null
++++ b/architecture/plot/tests/prepared_native_admission.rs
+@@ -0,0 +1,180 @@
++use conduit_core::*;
++use conduit_plot::rust_binding::*;
++use conduit_plot::*;
++#[path = "common/allocation_probe.rs"]
++mod allocation_probe;
++#[global_allocator]
++static ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;
++fn document() -> CheckedSyntaxDocument {
++    check_syntax_document(
++        &parse_syntax_document(
++            r#"
++type RawInterval = {
++    end: U64
++    start: U64
++}
++type Interval = {
++    end: U64 in 0..=9
++    start: U64 in 0..=9
++    where .start <= .end
++}
++type Holder = {
++    interval: Interval
++}
++type Other = {
++    interval: Interval
++}
++"#,
++        ),
++        &StartupCatalog::new(),
++    )
++    .unwrap()
++}
++fn native<'a>(d: &'a CheckedSyntaxDocument, name: &str) -> &'a CheckedNativeType {
++    d.native_types.iter().find(|v| v.name == name).unwrap()
++}
++fn bounds() -> PreparedNativeBounds {
++    PreparedNativeBounds {
++        canonical_bytes: 16384,
++        scopes: 32,
++        invariants: 32,
++    }
++}
++fn bytes(d: &CheckedSyntaxDocument, holder: &str, start: u64, end: u64) -> Vec<u8> {
++    let integer = |n: u64| {
++        primitive_into_structured(
++            StructuredInfoType::leaf(KindId::new("value/u64")).unwrap(),
++            &n,
++        )
++        .unwrap()
++    };
++    let interval = StructuredInfoValue::record(
++        native(d, "Interval").value_type.clone(),
++        vec![
++            StructuredFieldValue::new("start", integer(start)).unwrap(),
++            StructuredFieldValue::new("end", integer(end)).unwrap(),
++        ],
++    )
++    .unwrap();
++    StructuredInfoValue::record(
++        native(d, holder).value_type.clone(),
++        vec![StructuredFieldValue::new("interval", interval).unwrap()],
++    )
++    .unwrap()
++    .canonical_bytes()
++    .unwrap()
++}
++fn complete(admission: &mut PreparedNativeAdmission<'_>) -> Result<(), PreparedNativeRefusal> {
++    loop {
++        if admission.step()? == PreparedNativeProgress::Admitted {
++            return Ok(());
++        }
++    }
++}
++#[test]
++fn nested_native_laws_and_contracts_are_required_without_runtime_allocation() {
++    let d = document();
++    let identity = &native(&d, "Holder").identity;
++    let valid = bytes(&d, "Holder", 2, 7);
++    let mut admission = PreparedNativeAdmission::new(&d, identity, bounds()).unwrap();
++    let ((), observation) = allocation_probe::observe(|| {
++        admission.begin(&valid).unwrap();
++        complete(&mut admission).unwrap();
++        let proof = admission.admitted().unwrap();
++        assert_eq!(proof.canonical_bytes(), valid);
++        assert_eq!(&proof.native_type().identity, identity);
++    });
++    assert_eq!(observation.allocations, 0);
++    assert_eq!(observation.reallocations, 0);
++    let invalid = bytes(&d, "Holder", 7, 2);
++    let mut admission = PreparedNativeAdmission::new(&d, identity, bounds()).unwrap();
++    admission.begin(&invalid).unwrap();
++    assert!(matches!(
++        complete(&mut admission),
++        Err(PreparedNativeRefusal::Invariant { .. })
++    ));
++    assert!(admission.admitted().is_err());
++    assert_eq!(admission.retained_bytes(), invalid);
++    let invalid = bytes(&d, "Holder", 1, 10);
++    let mut admission = PreparedNativeAdmission::new(&d, identity, bounds()).unwrap();
++    admission.begin(&invalid).unwrap();
++    assert!(matches!(
++        complete(&mut admission),
++        Err(PreparedNativeRefusal::Contract { .. })
++    ));
++    assert!(admission.admitted().is_err());
++}
++#[test]
++fn foreign_schema_cancel_and_pressure_never_mint_native_truth() {
++    let d = document();
++    let identity = &native(&d, "Holder").identity;
++    let valid = bytes(&d, "Holder", 1, 3);
++    let mut admission = PreparedNativeAdmission::new(&d, identity, bounds()).unwrap();
++    let foreign = bytes(&d, "Other", 1, 3);
++    assert_eq!(admission.begin(&foreign), Err(PreparedNativeRefusal::Shape));
++    assert_eq!(admission.retained_bytes(), foreign);
++    assert!(admission.admitted().is_err());
++    let mut admission = PreparedNativeAdmission::new(&d, identity, bounds()).unwrap();
++    assert_eq!(
++        admission.begin(&vec![0; bounds().canonical_bytes + 1]),
++        Err(PreparedNativeRefusal::Bounds)
++    );
++    assert!(admission.retained_bytes().is_empty());
++    admission.begin(&valid).unwrap();
++    admission.cancel();
++    assert_eq!(admission.step(), Err(PreparedNativeRefusal::Cancelled));
++    assert_eq!(admission.retained_bytes(), valid);
++    assert!(admission.admitted().is_err());
++    assert!(PreparedNativeAdmission::new(
++        &d,
++        identity,
++        PreparedNativeBounds {
++            scopes: 1,
++            ..bounds()
++        }
++    )
++    .is_err());
++}
++
++#[test]
++fn exact_field_composition_requires_laws_and_never_relabels_raw_bytes() {
++    let d = document();
++    let raw_type = native(&d, "RawInterval").value_type.clone();
++    let target = native(&d, "Interval");
++    let u64_type = StructuredInfoType::leaf(KindId::new("value/u64")).unwrap();
++    let raw = StructuredInfoValue::record(
++        raw_type,
++        vec![
++            StructuredFieldValue::new(
++                "start",
++                primitive_into_structured(u64_type.clone(), &7u64).unwrap(),
++            )
++            .unwrap(),
++            StructuredFieldValue::new("end", primitive_into_structured(u64_type, &2u64).unwrap())
++                .unwrap(),
++        ],
++    )
++    .unwrap()
++    .canonical_bytes()
++    .unwrap();
++    let mut direct = PreparedNativeAdmission::new(&d, &target.identity, bounds()).unwrap();
++    assert_eq!(direct.begin(&raw), Err(PreparedNativeRefusal::Shape));
++    let mut composer =
++        PreparedStructuredComposer::new(&target.value_type, bounds().canonical_bytes).unwrap();
++    let mut admission = PreparedNativeAdmission::new(&d, &target.identity, bounds()).unwrap();
++    let (result, observation) = allocation_probe::observe(|| {
++        let raw = validate_canonical_structured_value(&raw).unwrap();
++        let end = raw.record_field("end").unwrap().unwrap();
++        let start = raw.record_field("start").unwrap().unwrap();
++        let exact = composer.record(&[end, start]).unwrap();
++        admission.begin(exact).unwrap();
++        complete(&mut admission)
++    });
++    assert!(matches!(
++        result,
++        Err(PreparedNativeRefusal::Invariant { .. })
++    ));
++    assert_eq!(observation.allocations, 0);
++    assert_eq!(observation.reallocations, 0);
++    assert!(admission.admitted().is_err());
++}

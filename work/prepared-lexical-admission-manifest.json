@@ -1,0 +1,14 @@
+{
+  "paths": [
+    {
+      "path": "semantics/language/tests/prepared_lexical_admission.rs",
+      "sha256": "211c43d29d3363140ba0fd9d3d56726eb6ce2586fdb293a6aaa3ea53d7e2f45d",
+      "baseline_sha256": null
+    }
+  ],
+  "builds_run": false,
+  "requires": [
+    "full Source getter",
+    "prepared Native optional and actual-occurrence templates"
+  ]
+}
