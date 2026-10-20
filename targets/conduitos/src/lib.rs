@@ -55,6 +55,15 @@ pub mod flow_concat_finite;
 pub mod flow_merge_finite;
 pub mod flow_singleton;
 pub mod flow_zip;
+#[cfg(any(
+    test,
+    target_arch = "x86_64",
+    feature = "ia32-product",
+    feature = "aarch64-product",
+    feature = "riscv64-product",
+    feature = "loongarch64-product",
+    feature = "aarch64-orange-pi-5"
+))]
 pub mod front_door;
 pub mod functional_offers;
 #[cfg(target_arch = "x86_64")]
