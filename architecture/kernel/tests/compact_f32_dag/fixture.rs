@@ -1,4 +1,6 @@
 use super::*;
+use core::cell::Cell;
+use std::rc::Rc;
 pub const N: usize = 6;
 pub const C: usize = 6;
 pub const SHAPE: CompactF32Layout = CompactF32Layout {
@@ -10,8 +12,69 @@ pub struct Counted {
     pub canonical: u64,
     pub compact: u64,
     pub physical: u64,
+    pub owned: u64,
+    pub owned_bytes: u64,
+    pub restored: u64,
+    pub deny_compact_refs: Cell<bool>,
+    pub fail_signs_after_transfer: Cell<bool>,
+    pub signs_refusal: Rc<Cell<bool>>,
 }
 impl ValueStorage for Counted {
+    fn preflight_owned_compact_f32_outputs(
+        &self,
+        requests: &[(conduit_kernel::scheduler::CompactF32Layout, u16)],
+        canonical: &[u32],
+    ) -> Result<(), StorageError> {
+        self.inner
+            .preflight_owned_compact_f32_outputs(requests, canonical)
+    }
+    fn prepare_owned_compact_f32_outputs(
+        &mut self,
+        requests: &[(conduit_kernel::scheduler::CompactF32Layout, u16)],
+        canonical: &[u32],
+    ) -> Result<Vec<conduit_kernel::PreparedCompactF32Output>, StorageError> {
+        self.inner
+            .prepare_owned_compact_f32_outputs(requests, canonical)
+    }
+    fn owned_compact_f32_available(
+        &self,
+        owner: &conduit_kernel::PreparedCompactF32Output,
+    ) -> Result<bool, StorageError> {
+        self.inner.owned_compact_f32_available(owner)
+    }
+    fn swap_owned_compact_f32(
+        &mut self,
+        owner: &conduit_kernel::PreparedCompactF32Output,
+        bytes: &mut Vec<u8>,
+    ) -> Result<conduit_kernel::PendingCompactF32Publication, StorageError> {
+        let size = bytes.len();
+        let result = self.inner.swap_owned_compact_f32(owner, bytes)?;
+        if self.fail_signs_after_transfer.get() {
+            self.signs_refusal.set(true);
+        }
+        self.owned += 1;
+        self.owned_bytes += size as u64;
+        Ok(result)
+    }
+    fn commit_owned_compact_f32(
+        &mut self,
+        owner: &conduit_kernel::PreparedCompactF32Output,
+        pending: &mut conduit_kernel::PendingCompactF32Publication,
+    ) -> Result<ValueRef, StorageError> {
+        self.inner.commit_owned_compact_f32(owner, pending)
+    }
+    fn restore_owned_compact_f32(
+        &mut self,
+        owner: &conduit_kernel::PreparedCompactF32Output,
+        pending: &mut conduit_kernel::PendingCompactF32Publication,
+        bytes: &mut Vec<u8>,
+    ) -> Result<(), StorageError> {
+        self.inner
+            .restore_owned_compact_f32(owner, pending, bytes)?;
+        self.restored += 1;
+        Ok(())
+    }
+
     fn item_capacity(&self) -> u16 {
         self.inner.item_capacity()
     }
@@ -39,6 +102,9 @@ impl ValueStorage for Counted {
         self.inner.release(v)
     }
     fn reference_count(&self, v: ValueRef) -> Result<u16, StorageError> {
+        if self.deny_compact_refs.get() && self.inner.compact_f32(v)?.is_some() {
+            return Err(StorageError::RepresentationMismatch);
+        }
         self.inner.reference_count(v)
     }
     fn clear(&mut self) {
@@ -57,13 +123,68 @@ impl ValueStorage for Counted {
         Ok(v)
     }
 }
-pub type Play = FixedScheduler<Driver, Counted, HostedSignLog, N, C, 2, C, 12, C>;
+pub struct Signs {
+    inner: HostedSignLog,
+    refusal: Rc<Cell<bool>>,
+}
+impl Signs {
+    pub fn events(&self) -> impl Iterator<Item = KernelEvent> + '_ {
+        self.inner.events()
+    }
+}
+impl SignSink for Signs {
+    fn item_capacity(&self) -> u16 {
+        self.inner.item_capacity()
+    }
+    fn byte_capacity(&self) -> u32 {
+        self.inner.byte_capacity()
+    }
+    fn len(&self) -> u16 {
+        self.inner.len()
+    }
+    fn used_bytes(&self) -> u32 {
+        self.inner.used_bytes()
+    }
+    fn ensure_capacity(&self, count: u16) -> Result<(), SignError> {
+        if self.refusal.get() {
+            return Err(SignError::ItemCapacityExceeded);
+        }
+        self.inner.ensure_capacity(count)
+    }
+    fn record(
+        &mut self,
+        node: NodeId,
+        port: Option<PortId>,
+        request: Option<RequestId>,
+        kind: KernelEventKind,
+    ) -> Result<KernelEvent, SignError> {
+        self.inner.record(node, port, request, kind)
+    }
+    fn record_remote(
+        &mut self,
+        node: NodeId,
+        port: PortId,
+        kind: KernelEventKind,
+        remote: RemoteLifecycleIdentity,
+    ) -> Result<KernelEvent, SignError> {
+        self.inner.record_remote(node, port, kind, remote)
+    }
+    fn ensure_remote_capacity(&self, count: u16) -> Result<(), SignError> {
+        self.inner.ensure_remote_capacity(count)
+    }
+    fn requires_canonical_debug_values(&self) -> bool {
+        self.inner.requires_canonical_debug_values()
+    }
+}
+pub type Play = FixedScheduler<Driver, Counted, Signs, N, C, 2, C, 12, C>;
 pub struct Driver {
     index: usize,
     source: Option<ValueRef>,
     finished: bool,
     staged: bool,
     bytes: [u8; 16],
+    owned: Option<Vec<u8>>,
+    pub deny_owner_buffer: Cell<bool>,
     length: usize,
     pub result: Option<[f32; 2]>,
     staged_result: Option<[f32; 2]>,
@@ -74,6 +195,9 @@ pub struct Driver {
     canonical_input: Option<PortId>,
 }
 impl Driver {
+    pub fn owned_output(&self) -> Option<&[u8]> {
+        self.owned.as_deref()
+    }
     pub fn execution_witness(&self) -> bool {
         self.staged || self.finished || self.length != 0
     }
@@ -107,7 +231,22 @@ impl StepBack<2> for Driver {
     fn compact_f32_output(&self) -> Option<(PortId, CompactF32Layout)> {
         (self.supported && (1..=4).contains(&self.index)).then_some((PortId(0), SHAPE))
     }
+    fn owns_compact_f32_output(&self, port: PortId) -> bool {
+        port == PortId(0) && self.owned.is_some()
+    }
+    fn prepared_compact_f32_output_mut(&mut self, port: PortId) -> Option<&mut Vec<u8>> {
+        if port == PortId(0) && self.length == 8 && !self.deny_owner_buffer.get() {
+            self.owned.as_mut()
+        } else {
+            None
+        }
+    }
     fn prepared_output(&self, _: PortId) -> Option<&[u8]> {
+        if self.length == 8 {
+            if let Some(bytes) = &self.owned {
+                return Some(bytes);
+            }
+        }
         Some(&self.bytes[..self.length])
     }
     fn step(&mut self, io: &mut StepIo<2>, input: &StepInputBytes<'_, 2>) -> StepOutcome {
@@ -165,6 +304,12 @@ impl StepBack<2> for Driver {
             self.bytes[i * 4..i * 4 + 4].copy_from_slice(&value.to_le_bytes());
         }
         self.length = if io.compact_f32_output(PortId(0)).is_some() {
+            // Fixture staging is deliberately simple. Real zero-copy producer
+            // evidence comes from the AI provider tests and pinned worker.
+            if let Some(bytes) = &mut self.owned {
+                bytes.clear();
+                bytes.extend_from_slice(&self.bytes[..8]);
+            }
             io.send_compact_f32(PortId(0)).unwrap();
             8
         } else {
@@ -202,10 +347,13 @@ pub fn prepare_with_layout(
     unsupported: Option<usize>,
     mismatch: Option<CompactF32Layout>,
 ) -> Play {
-    prepare_with_inputs(prepared, delay, failure, unsupported, mismatch, None)
+    prepare_with_inputs(prepared, delay, failure, unsupported, mismatch, None, false)
 }
 pub fn prepare_canonical_input(node: usize, port: PortId) -> Play {
-    prepare_with_inputs(true, 0, None, None, None, Some((node, port)))
+    prepare_with_inputs(true, 0, None, None, None, Some((node, port)), false)
+}
+pub fn prepare_owned(delay: usize, failure: Option<usize>) -> Play {
+    prepare_with_inputs(true, delay, failure, None, None, None, true)
 }
 fn prepare_with_inputs(
     prepared: bool,
@@ -214,16 +362,24 @@ fn prepare_with_inputs(
     unsupported: Option<usize>,
     mismatch: Option<CompactF32Layout>,
     canonical: Option<(usize, PortId)>,
+    owned: bool,
 ) -> Play {
     let mut inner = HostedValueStore::new(32, 16, 512).unwrap();
     if prepared {
         inner.prepare_compact_f32();
     }
+    let signs_refusal = Rc::new(Cell::new(false));
     let mut values = Counted {
         inner,
         canonical: 0,
         compact: 0,
         physical: 0,
+        owned: 0,
+        owned_bytes: 0,
+        restored: 0,
+        deny_compact_refs: Cell::new(false),
+        fail_signs_after_transfer: Cell::new(false),
+        signs_refusal: Rc::clone(&signs_refusal),
     };
     let mut source = [0; 16];
     source[8..].copy_from_slice(b"F32CANON");
@@ -293,6 +449,8 @@ fn prepare_with_inputs(
             finished: false,
             staged: false,
             bytes: [0; 16],
+            owned: (owned && (1..=3).contains(&n)).then(|| Vec::with_capacity(8)),
+            deny_owner_buffer: Cell::new(false),
             length: 0,
             result: None,
             staged_result: None,
@@ -309,7 +467,11 @@ fn prepare_with_inputs(
             },
         }),
         values,
-        HostedSignLog::new(4096, 4096 * core::mem::size_of::<KernelEvent>() as u32).unwrap(),
+        Signs {
+            inner: HostedSignLog::new(4096, 4096 * core::mem::size_of::<KernelEvent>() as u32)
+                .unwrap(),
+            refusal: signs_refusal,
+        },
     )
     .unwrap()
 }

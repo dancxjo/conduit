@@ -337,3 +337,6 @@ fn canonical_input_declarations_refuse_conflicts_internal_edges_and_invalid_port
         assert_eq!(play.drivers()[5].result, Some([9., 6.]));
     }
 }
+
+#[path = "compact_f32_dag/owned.rs"]
+mod owned;
