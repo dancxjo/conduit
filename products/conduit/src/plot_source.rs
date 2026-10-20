@@ -210,6 +210,23 @@ fn prepare_catalogs(include_dsp: bool) -> Result<(StartupCatalog, ProfileCatalog
     let mut profiles = conduit_signal::primary_signal_profile_catalog();
     conduit_semantic_catalog::install_numerical_catalogs(&mut startup, &mut profiles)?;
     conduit_semantic_catalog::install_quantity_info_catalog(&mut startup, &mut profiles)?;
+    // The shipped numerical Fore admits one bounded Quantity -> NearQuantity Each.
+    conduit_semantic_catalog::install_flow_each_kind(
+        &conduit_core::CheckedValueContract::new(
+            conduit_core::QUANTITY_INFO_ID.into(),
+            conduit_core::QUANTITY_VALUE_MAX_ENCODED_BYTES as u32,
+            vec![],
+        )?,
+        &conduit_core::CheckedValueContract::new(
+            conduit_semantic_catalog::near_quantity_type().profile().map_err(|e| format!("Near Type: {e:?}"))?.value_kind().clone(),
+            conduit_core::NEAR_QUANTITY_EVIDENCE_MAX_BYTES as u32,
+            vec![],
+        )?,
+        None,
+        conduit_std_host::flow_activation::NEAR_EACH_MAXIMUM_ITEMS,
+        &mut startup,
+        &mut profiles,
+    )?;
     if include_dsp {
         // Keep shipped Types before other catalogs, as in the original full
         // catalog. Extending an already prepared base would redeclare Types.

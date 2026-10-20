@@ -22,7 +22,7 @@ pub use value_pair::PreparedValuePairFactory;
 mod local_expression;
 mod near_each;
 mod near_quantity;
-pub use near_each::{install_pure_near_each, near_each_offer};
+pub use near_each::{install_pure_near_each, near_each_offer, MAXIMUM_ITEMS as NEAR_EACH_MAXIMUM_ITEMS};
 pub(crate) use near_each::{owns_offer as owns_near_each_offer, validate_near_each};
 pub use near_quantity::NearQuantityFactory;
 mod native_u64_expression;
