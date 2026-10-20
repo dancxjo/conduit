@@ -1,0 +1,17 @@
+{
+  "source": "afcc28f6a74391a14a66311285720c10c9a87295",
+  "tested_code_witness": "3e2d7e3641eb51fe5f21ccce86d77799e66b9f80",
+  "scope": "Required C1 handoff to browser W4/native N4; description of existing profile only, no new authority/semantics or platform acceptance",
+  "changed_files": {
+    "docs/architecture/face-grammar-conformance.md": "56cf40b6f228a4bc800c002cbdf8decbc81db9b9ae15f1dacb14b27d979e70cf",
+    "docs/architecture/portable-collection-handoff.md": "f0fe9fd3612a321bfe246e15d1cd90765760317432b65f376b54531b071cb8d8"
+  },
+  "validation": {
+    "independent_review": "no blockers against collection/Boolean/selector/Source projection contracts",
+    "new_relative_links": "all resolve",
+    "diff_check": "passed",
+    "code_change": "none; no repeated code test run needed"
+  },
+  "known_baseline": "Historical Face grammar page has old presentation-waist link predating this edit. No whole-site link validation claim; refresh current-dev documentation carefully.",
+  "remaining": "Refresh current dev after native05, update phase-specific held-branch wording, browser Source pin and producer golden, actual installed owner/cross-Mask and exact admission/stable evidence."
+}

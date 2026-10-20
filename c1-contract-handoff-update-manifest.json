@@ -1,0 +1,22 @@
+{
+  "parent": "5398522122a0a5b8879c408619a2e46b8cf6d251",
+  "scope": "C1 browser-native handoff proof and recovery handoff; raw logs excluded",
+  "files": [
+    {
+      "source": "work/6039-source-recovery-handoff.md",
+      "tree_path": "task-6038/work/6039-source-recovery-handoff.md",
+      "bytes": 21986,
+      "sha256": "860131ec1305bc7af9f0a883895c8db99b4788a5a66ec47d58ccecd2e9de218d",
+      "mode": "100644",
+      "blob": "5ce0762f7981f833e7eefabede186624c955a2f9"
+    },
+    {
+      "source": "outputs/6039-handoff-afcc28f6a/receipt.json",
+      "tree_path": "task-6038/outputs/6039-handoff-afcc28f6a/receipt.json",
+      "bytes": 1197,
+      "sha256": "489d9dff60b457eab8b6e4c368c17bb213d9b3e224b36eb483f401ee5fa60e39",
+      "mode": "100644",
+      "blob": "6cc6f08005bf04a50f710bdd4a16852d14324c2a"
+    }
+  ]
+}
