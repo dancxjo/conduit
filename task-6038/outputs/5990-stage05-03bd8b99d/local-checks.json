@@ -1,0 +1,33 @@
+{
+  "source": "03bd8b99d1018544f7df9bae159e8f416c859689",
+  "base": "7c6defe20d5c0ef344d96d9b5abf0fb6131ade49",
+  "preflight": {
+    "pass": 295,
+    "fail": 0
+  },
+  "strict_clippy": "conduitos lib/tests hosted-tools,native-compositor warnings denied passed",
+  "native_face_tests": {
+    "pass": 105,
+    "fail": 0,
+    "ignore": 0
+  },
+  "candidate": {
+    "id": 39461761302,
+    "last_observed": "queued at17:03UTC"
+  },
+  "pr": "6055 ready for review; no auto-merge enabled; CI/stable acceptance pending",
+  "logs": {
+    "work/6055-03bd8b99d-preflight.log": {
+      "sha256": "1f7d7f7e8c079643c9bbe5bedef55e3c8d6a5e0a2d401c51538b635d51879fb6",
+      "bytes": 30770
+    },
+    "work/5990-03bd8b99d-strict-clippy.log": {
+      "sha256": "81835a3d48767f947598604b028e99560f4870e2a914e557558b1c30721b0ea3",
+      "bytes": 5148
+    },
+    "work/5990-03bd8b99d-native-face-tests.log": {
+      "sha256": "ff3089e5691dd11d654c5013173f360ae28f644c9564f883f851a244d0e6c0c5",
+      "bytes": 17413
+    }
+  }
+}

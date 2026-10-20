@@ -1,0 +1,46 @@
+{
+  "parent": "811cc8c3bf274ddfed468bee69f6c8ac82cf7432",
+  "scope": "Preserve refreshed Source and pending proof runner, verified prior repair restoration, and confirmed renderer occlusion red diagnostic",
+  "files": [
+    {
+      "source": "work/6055-03bd8b99d-preflight.log",
+      "tree_path": "task-6038/work/6055-03bd8b99d-preflight.log",
+      "bytes": 30770,
+      "sha256": "1f7d7f7e8c079643c9bbe5bedef55e3c8d6a5e0a2d401c51538b635d51879fb6",
+      "mode": "100644",
+      "blob": "8a27047ee49ef405623544dbd5631a842fc25c24"
+    },
+    {
+      "source": "work/5990-03bd8b99d-strict-clippy.log",
+      "tree_path": "task-6038/work/5990-03bd8b99d-strict-clippy.log",
+      "bytes": 5148,
+      "sha256": "81835a3d48767f947598604b028e99560f4870e2a914e557558b1c30721b0ea3",
+      "mode": "100644",
+      "blob": "f6e91969af72edeb5197947f8552568c0054e6ab"
+    },
+    {
+      "source": "work/5990-03bd8b99d-native-face-tests.log",
+      "tree_path": "task-6038/work/5990-03bd8b99d-native-face-tests.log",
+      "bytes": 17413,
+      "sha256": "ff3089e5691dd11d654c5013173f360ae28f644c9564f883f851a244d0e6c0c5",
+      "mode": "100644",
+      "blob": "0b12fb85ebb2882ec9ed10edde2e5b2e364fecd9"
+    },
+    {
+      "source": "outputs/5990-stage05-03bd8b99d/local-checks.json",
+      "tree_path": "task-6038/outputs/5990-stage05-03bd8b99d/local-checks.json",
+      "bytes": 1004,
+      "sha256": "bc5e6f5e872e29a69992fad6ec9671671365761a7571cdd68123748cd01f4e56",
+      "mode": "100644",
+      "blob": "a81149c7f0bd2b3bd1a27366b4784ecc00fcded5"
+    },
+    {
+      "source": "work/6055-body-product-green-03bd8b99d.md",
+      "tree_path": "task-6038/work/6055-body-product-green-03bd8b99d.md",
+      "bytes": 5231,
+      "sha256": "07dee797c428a9422df13fb7fc41449d261334bde1e1cf819681bc371e308124",
+      "mode": "100644",
+      "blob": "58bbbcf72906802c53f28ef7676219961dcf60f0"
+    }
+  ]
+}
