@@ -107,6 +107,24 @@ pub(super) fn select(
                 FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
             >(gear, fuel)
         )),
+        "numeric/concatenate40x40" => Some(run!(
+            planned,
+            gear,
+            fuel,
+            fixed_concatenate_offer::<40, 40>(),
+            FixedConcatenateBack::<40, 40, 80>::prepare_planned::<
+                FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
+            >(gear, fuel)
+        )),
+        "numeric/concatenate80x80" => Some(run!(
+            planned,
+            gear,
+            fuel,
+            fixed_concatenate_offer::<80, 80>(),
+            FixedConcatenateBack::<80, 80, 160>::prepare_planned::<
+                FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
+            >(gear, fuel)
+        )),
         "numeric/concatenate80x44" => Some(run!(
             planned,
             gear,
