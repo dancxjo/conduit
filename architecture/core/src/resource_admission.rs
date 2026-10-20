@@ -112,6 +112,11 @@ impl ResourceAdmissionOwner {
         }
     }
 
+    /// Exact immutable inventory owned by this boot-scoped reservation ledger.
+    pub fn host(&self) -> &HostAdvertisement {
+        &self.host
+    }
+
     pub fn admissions(&self) -> &[ResourceAdmission] {
         &self.admissions
     }
