@@ -1,6 +1,7 @@
 // Local feasibility worker, not a Conduit Back or a performance admission.
 // Input-major F32 projection, fixed input-order round-to-nearest operations.
 #include <cuda_runtime.h>
+#include <algorithm>
 #include <immintrin.h>
 #include <chrono>
 #include <cmath>
@@ -76,6 +77,8 @@ int main(int argc,char** argv) {
         }
         stage=Clock::now();check(cudaFree(dy),"free-output");dy=nullptr;check(cudaFree(dx),"free-input");dx=nullptr;check(cudaFree(dw),"free-weights");dw=nullptr;
         check(cudaDeviceReset(),"destroy-owned-context");context=false;
+        file.close();
+        std::vector<float>().swap(w);std::vector<float>().swap(x);std::vector<float>().swap(reference);std::vector<float>().swap(actual);
         printf("{\"record\":\"cleanup\",\"success\":true,\"cleanup_ns\":%lld,\"complete_owner_ns\":%lld,\"conduit_gpu_offer_admitted\":false}\n",ns(stage),ns(owner));
         return 0;
     } catch(const std::exception& e) {
