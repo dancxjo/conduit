@@ -24,11 +24,17 @@ fn field<'a>(value: &'a StructuredInfoValue, name: &str) -> &'a [u8] {
     bytes
 }
 fn prepared() -> (StdHost, Plan) {
+    prepared_for("cm", "0.01cm")
+}
+fn prepared_for(target: &str, limit: &str) -> (StdHost, Plan) {
     let source = "plot chain (\n >> value: Quantity <= 33829B\n coordinate-evidence: QuantityCoordinateEvidence <= 131500B >>\n numeric-evidence: NearQuantity <= 131072B >>\n) {\n coordinates: math/coordinates(request={unit:cm})\n numeric: math/near(limit=0.01cm)\n value >> coordinates.value\n coordinates.result >> numeric.value\n coordinates.evidence >> coordinate-evidence\n numeric.result >> numeric-evidence\n}\n";
+    let source = source
+        .replace("unit:cm", &format!("unit:{target}"))
+        .replace("limit=0.01cm", &format!("limit={limit}"));
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     install_numerical_catalogs(&mut startup, &mut profile).unwrap();
-    let syntax = parse_syntax_document(source);
+    let syntax = parse_syntax_document(&source);
     let checked = check_syntax_document(&syntax, &startup).unwrap();
     let authored = expand_canonical_plot_for_authoring(&checked, "chain", &profile).unwrap();
     let abnormal = authored
@@ -253,3 +259,6 @@ fn direct_evidence_fore_does_not_turn_physical_refusal_into_normal_completion() 
     assert!(!why.contains("BackFailed"), "{why}");
     assert!(output.0.is_empty());
 }
+
+#[path = "coordinate_back_tests/physical.rs"]
+mod physical;
