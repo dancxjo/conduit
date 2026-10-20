@@ -3,14 +3,18 @@ use conduit_ai::fixed_numeric_binding::*;
 use conduit_composite::KernelOperationFactory;
 use conduit_core::*;
 use conduit_kernel::{
-    scheduler::FixedScheduler, BoundedValueRef, FixedRoutes, HostedSignLog, HostedValueStore,
-    KernelEvent, ValueStorage,
+    scheduler::FixedScheduler, BoundedValueRef, FixedRoutes, HostedSignLog, KernelEvent,
+    ValueStorage,
 };
 use std::{
     collections::BTreeMap,
     rc::Rc,
     time::{Duration, Instant},
 };
+#[path = "runtime_values.rs"]
+mod values;
+pub use values::ObservedValues;
+
 const PORTS: usize = conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 const N: usize = 1024;
 const C: usize = 2048;
@@ -20,6 +24,8 @@ pub use backs::WorkTiming;
 use backs::{Driver, TimedNumeric};
 #[path = "runtime_execution_kernel.rs"]
 mod execution_kernel;
+#[path = "runtime_local_expressions.rs"]
+mod local_expressions;
 #[path = "runtime_prepared.rs"]
 mod prepared;
 #[path = "runtime_session.rs"]
@@ -174,6 +180,7 @@ fn execute_prepared(
         ..
     } = prepared;
     let fragment = &plan.fragments[0];
+    let stores_before = scheduler.values().metrics();
     before_play();
     let execute = Instant::now();
     let mut drained = false;
@@ -282,6 +289,19 @@ fn execute_prepared(
         .or_else(|| outputs.values().next())?
         .clone();
     let signs: Vec<_> = scheduler.signs().events().collect();
+    let stores_after = scheduler.values().metrics();
+    {
+        let mut work = timing.borrow_mut();
+        work.canonical_values = stores_after.canonical_values - stores_before.canonical_values;
+        work.canonical_bytes = stores_after.canonical_bytes - stores_before.canonical_bytes;
+        work.compact_values = stores_after.compact_values - stores_before.compact_values;
+        work.compact_bytes = stores_after.compact_bytes - stores_before.compact_bytes;
+        work.compact_logical_bytes =
+            stores_after.compact_logical_bytes - stores_before.compact_logical_bytes;
+        work.logical_invocations = scheduler.logical_invocations();
+        work.physical_decisions = scheduler.decisions();
+        work.compact_binding_bytes = scheduler.compact_f32_binding_bytes();
+    }
     timing.borrow_mut().signs = signs.len();
     let work = core::mem::take(&mut *timing.borrow_mut());
     Some(EncodedResultAndTiming {

@@ -26,6 +26,7 @@ impl HostedValueStore {
         }
         let value = self.allocate_value_slot(8)?;
         self.native_words[usize::from(value.slot)] = Some(word);
+        self.clear_compact_layout(value.slot);
         Ok(value)
     }
 }

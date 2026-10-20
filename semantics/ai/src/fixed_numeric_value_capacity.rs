@@ -1,5 +1,5 @@
 //! Explicit larger instance budget for stateless Value numerical owners.
-//! Mathematical contracts and per-instance storage remain exact and unchanged.
+//! Mathematical behavior and per-instance storage retain their exact contracts.
 use crate::fixed_numeric_catalog::fixed_numeric_contract;
 pub const INDEX_IMPLEMENTATION: &str = "conduit.numeric/scalar-explicit-index@1";
 pub const ELEMENTWISE_IMPLEMENTATION: &str = "conduit.numeric/scalar-finite-elementwise@1";
@@ -57,7 +57,13 @@ pub fn value_capacity64_contract(mut kind: Kind) -> Result<Kind, String> {
     if kind != original {
         return Err("Value64 requires the exact owned base contract".into());
     }
-    kind.kind_contract_revision = value_capacity64_profile(implementation)?.into();
+    let profile = value_capacity64_profile(implementation)?;
+    kind.kind_contract_revision =
+        if crate::fixed_numeric_catalog::is_pure_pointwise(kind.kind_id.as_str()) {
+            format!("{profile}/{}", original.kind_contract_revision.as_str()).into()
+        } else {
+            profile.into()
+        };
     kind.limits.max_active_instances = 64;
     Ok(kind)
 }

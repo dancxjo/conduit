@@ -10,6 +10,10 @@ use conduit_plot::{
     StartupCatalog,
 };
 
+mod pointwise;
+#[cfg(feature = "kernel-step")]
+pub(crate) use pointwise::is_pure_pointwise;
+
 pub const FIXED_NUMERIC_SOURCE: &str = include_str!("../fixed_numeric.conduit");
 pub const FIXED_NUMERIC_SIGNAL_SOURCE: &str = include_str!("../fixed_numeric_signal.conduit");
 pub const FIXED_NUMERIC_REVISION: &str = "conduit.numeric/fixed-f32-libm@3";
@@ -259,15 +263,17 @@ fn fixed_numeric_contracts_uncached() -> Result<Vec<Kind>, String> {
                 .collect();
             Ok(Kind {
                 kind_id: kind_id(&name),
-                kind_contract_revision: KindIdentity::from(format!(
-                    "{FIXED_NUMERIC_REVISION}/{name}"
-                )),
+                kind_contract_revision: KindIdentity::from(pointwise::revision(&name)),
                 startup_parameters: vec![],
                 shorthand: None,
                 configuration: vec![],
                 inputs,
                 outputs,
-                semantic_laws: vec![KindSemanticLaw::ValueContracts(contracts)],
+                semantic_laws: {
+                    let mut laws = vec![KindSemanticLaw::ValueContracts(contracts)];
+                    laws.extend(pointwise::laws(&name));
+                    laws
+                },
                 limits: CapabilityLimits {
                     max_active_instances: 16,
                     max_queue_items: 1,

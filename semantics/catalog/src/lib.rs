@@ -513,6 +513,17 @@ pub use pure_expression::{pure_expression_contract, pure_filter_contract};
 mod pure_expression_back;
 #[cfg(feature = "kernel-step")]
 pub use pure_expression_back::PureExpressionBack;
+#[cfg(feature = "kernel-step")]
+mod prepared_expression_back;
+#[cfg(feature = "kernel-step")]
+pub use prepared_expression_back::{prepared_expression_bounds, PreparedExpressionBack};
+#[cfg(feature = "prepared-expression-session")]
+mod prepared_expression_offer;
+#[cfg(feature = "prepared-expression-session")]
+pub use prepared_expression_offer::{
+    prepare_expression_value, prepared_expression_value_offer, EXPRESSION_VALUE_IMPLEMENTATION,
+    EXPRESSION_VALUE_PROFILE,
+};
 
 #[cfg(feature = "kernel-step")]
 mod converted_equals_back;
