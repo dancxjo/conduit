@@ -11,7 +11,7 @@ plot quantity-projection/main (
     >> values: Quantity...| <= 1800B
     results: NearQuantity...| <= 16384B >>
 ) {
-    project: each(maximum-items = 64) quantity-projection/value()
+    project: activate(maximum-items = 64) quantity-projection/value()
     values >> project.value
     project.mapped >> results
 }.
