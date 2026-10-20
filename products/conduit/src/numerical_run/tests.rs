@@ -26,12 +26,11 @@ fn authored_numerical_fore_retains_all_admitted_values_and_exact_child_evidence(
     let play = execution.play().clone();
     for index in 0..64 {
         let literal = format!("{}m", index + 1);
-        let input = RationalQuantity::from_quantity(
-            Quantity::parse_plot_literal(&literal).unwrap(),
-            &mut ExactNumericWork::new(200_000_000),
-        )
-        .unwrap();
-        let output = execution.execute(input).unwrap();
+        let quantity = Quantity::parse_plot_literal(&literal).unwrap();
+        let input =
+            RationalQuantity::from_quantity(quantity, &mut ExactNumericWork::new(200_000_000))
+                .unwrap();
+        let output = execution.execute(quantity).unwrap();
         assert_eq!(output.value.source(), input);
         assert_eq!(output.play, play);
         assert!(!output.canonical.is_empty());

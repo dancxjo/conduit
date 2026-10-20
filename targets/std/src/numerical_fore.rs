@@ -170,10 +170,8 @@ impl NumericalFore {
     pub fn play(&self) -> &BodyPlayIdentity {
         &self.play
     }
-    pub fn execute(&mut self, value: RationalQuantity) -> Result<NumericalValue, String> {
-        let mut bytes = [0_u8; QUANTITY_VALUE_MAX_ENCODED_BYTES];
-        let length = encode_rational_quantity_value(value, &mut bytes).map_err(error)?;
-        self.execute_encoded(&bytes[..length])
+    pub fn execute(&mut self, value: Quantity) -> Result<NumericalValue, String> {
+        self.execute_encoded(&value.encode())
     }
     pub fn execute_encoded(&mut self, bytes: &[u8]) -> Result<NumericalValue, String> {
         let source = semantic_digest(QUANTITY_INFO_ID, bytes);

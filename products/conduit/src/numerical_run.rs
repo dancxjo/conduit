@@ -57,9 +57,6 @@ pub(crate) fn run(
             }
             let quantity =
                 Quantity::parse_plot_literal(line).map_err(|e| format!("Quantity: {e:?}"))?;
-            let quantity =
-                RationalQuantity::from_quantity(quantity, &mut ExactNumericWork::new(200_000_000))
-                    .map_err(|e| format!("Quantity: {e:?}"))?;
             let result = execution.execute(quantity)?;
             let record = match result.value.representation() {
                 VerifiedNearRepresentation::ExactRational => {
