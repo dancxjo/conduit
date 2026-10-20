@@ -1,0 +1,37 @@
+{
+  "observed": "2026-10-20T15:48:08Z",
+  "scope": "Remaining dirty tracked/untracked source bytes match reviewed origin recovery snapshots; intentional dirty work is preserved rather than reset",
+  "rows": [
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-17/goal-please-finish-and-close-https/work/face-shell",
+      "working_snapshot": "refs/remotes/origin/recovery/local-sync-20261020/face-shell",
+      "working_tree": "20d8381d36559d5c392a80e6429e256ef2236a3a",
+      "exact_tree_verified": true,
+      "staged_tree": "414f04cd2457e9bab0082cfa134ce16d8028565a",
+      "live_state_preserved": true,
+      "all_current_changed_untracked_paths_covered": true,
+      "changed_untracked_paths": 13
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-18/goal-finish-and-close-https-github/work/parser-punctuation-training",
+      "working_snapshot": "refs/remotes/origin/recovery/local-sync-20261020/parser-punctuation-training",
+      "working_tree": "8ab2364b7764fc1b000e30b0ebb61b461c11124b",
+      "exact_tree_verified": true,
+      "staged_tree": null,
+      "live_state_preserved": true,
+      "all_current_changed_untracked_paths_covered": true,
+      "changed_untracked_paths": 25
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/browser-local-face",
+      "working_snapshot": "refs/remotes/origin/recovery/local-sync-20261020/browser-local-face",
+      "working_tree": "8181ef205fdbe653076e7ff5d47fa6f49660c10e",
+      "exact_tree_verified": true,
+      "staged_tree": null,
+      "live_state_preserved": true,
+      "all_current_changed_untracked_paths_covered": true,
+      "changed_untracked_paths": 5
+    }
+  ],
+  "all_matched": true
+}

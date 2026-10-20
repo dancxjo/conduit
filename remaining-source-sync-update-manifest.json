@@ -1,0 +1,22 @@
+{
+  "parent": "e49b156aef987a0727f424a524dee73b11bbbaed",
+  "scope": "Native stage05 current-dev refresh and exact preflight receipt; normal product and all five emulator runs passed; Candidate still running",
+  "files": [
+    {
+      "source": "work/stewardship-20261020/remaining-worktree-sync-1548.json",
+      "tree_path": "task-6038/work/stewardship-20261020/remaining-worktree-sync-1548.json",
+      "bytes": 19219,
+      "sha256": "08a7977869bb53dfd6ba1d0ae9242655fbd4740d13e8e1776a43b6fb92ecca9d",
+      "mode": "100644",
+      "blob": "1fdd92232180152092e8786c6c295521e9ce765e"
+    },
+    {
+      "source": "work/stewardship-20261020/remaining-dirty-snapshot-verification-1549.json",
+      "tree_path": "task-6038/work/stewardship-20261020/remaining-dirty-snapshot-verification-1549.json",
+      "bytes": 1721,
+      "sha256": "db25a78a05c4236d6f8f28a3c57b266fac0592b233a005d7e2d3a5df729e77ea",
+      "mode": "100644",
+      "blob": "125d775bc73cb99b8f075afcf5c7b279ad6fd999"
+    }
+  ]
+}
