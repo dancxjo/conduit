@@ -188,10 +188,12 @@ impl<const P: usize> StepBack<P> for KernelEachBack {
         } else if !self.input_closed {
             return StepOutcome::Await;
         }
-        if self.child_steps == self.maximum_child_steps {
-            return fail(FailureCode::WorkBudgetExhausted, 9);
+        if matches!(phase, BoundedActivationState::Active { .. }) {
+            if self.child_steps == self.maximum_child_steps {
+                return fail(FailureCode::WorkBudgetExhausted, 9);
+            }
+            self.child_steps += 1;
         }
-        self.child_steps += 1;
         let state = match self.activation.step() {
             Ok(state) => state.clone(),
             Err(_) => return fail(FailureCode::InvalidLifecycle, 10),
@@ -210,6 +212,17 @@ impl<const P: usize> StepBack<P> for KernelEachBack {
             }
             BoundedActivationState::Succeeded { .. } => StepOutcome::Progress,
             BoundedActivationState::Drained if self.input_closed => StepOutcome::Complete,
+            BoundedActivationState::Faulted {
+                fault:
+                    crate::BoundedActivationFault::Execution(crate::KernelCompositeError::Execution {
+                        reason:
+                            crate::ChildExecutionError::Scheduler(
+                                conduit_kernel::scheduler::SchedulerError::BackFailed(failure),
+                            ),
+                        ..
+                    }),
+                ..
+            } => StepOutcome::Fail(failure),
             BoundedActivationState::Cancelled { .. } => fail(FailureCode::Cancelled, 12),
             _ => fail(FailureCode::InvalidLifecycle, 13),
         }
