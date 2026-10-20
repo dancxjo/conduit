@@ -3,7 +3,9 @@
 mod evidence;
 mod transport;
 use evidence::PhaseClock;
-pub use evidence::{RemoteKernelEvidence, TwoHostKernelEvidence, TwoHostPhaseTiming};
+pub use evidence::{
+    RemoteKernelEvidence, TwoHostKernelEvidence, TwoHostLineTiming, TwoHostPhaseTiming,
+};
 
 use std::{collections::BTreeMap, io::Write};
 

@@ -16,7 +16,7 @@ use conduit_core::{HostAdvertisement, LineOffer, Observation, Plan};
 pub use hosted_two_std::{
     execute_hosted_two_std_plot, execute_hosted_two_std_plot_with_evidence,
     execute_hosted_two_std_tick_flow_with_evidence, HostedTwoHostExecution, RemoteKernelEvidence,
-    TwoHostKernelEvidence, TwoHostPhaseTiming,
+    TwoHostKernelEvidence, TwoHostLineTiming, TwoHostPhaseTiming,
 };
 
 /// Exact result of running authored source through the installed hosted Host.
