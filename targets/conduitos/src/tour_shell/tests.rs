@@ -450,7 +450,24 @@ fn status_revision_advances_when_tour_state_changes_under_one_lifecycle_basis() 
         .unwrap();
     assert!(cold.status.display.commands > 0);
     assert_eq!(updated.status.face_id, cold.status.face_id);
-    assert_eq!(display.pixels, cold_display.pixels);
+    // First presentation establishes default focus after its initial scanout.
+    // Settle that same admitted affordance before comparing full frame pixels.
+    cold_shell.compose_affordances(&mut cold_display).unwrap();
+    assert_eq!(
+        shell.compositor.focused_surface(),
+        cold_shell.compositor.focused_surface()
+    );
+    let mismatch = display
+        .pixels
+        .iter()
+        .zip(&cold_display.pixels)
+        .enumerate()
+        .find(|(_, (warm, cold))| warm != cold)
+        .map(|(index, (warm, cold))| (index, *warm, *cold));
+    assert_eq!(
+        mismatch, None,
+        "retained frame differs from settled fresh presentation"
+    );
 }
 
 fn invoke_journey(
