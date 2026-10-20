@@ -1,0 +1,14 @@
+{
+  "parent": "0d85184ea801b73bd1ef35f053af5cb6e8744805",
+  "scope": "Preserve refreshed Source and pending proof runner, verified prior repair restoration, and confirmed renderer occlusion red diagnostic",
+  "files": [
+    {
+      "source": "work/5607-exact-scope-review-03bd8b99d.md",
+      "tree_path": "task-6038/work/5607-exact-scope-review-03bd8b99d.md",
+      "bytes": 7890,
+      "sha256": "7c36647ec8210297972cbaab9e3be430239b2f7b12e53959dcd5e157472f7701",
+      "mode": "100644",
+      "blob": "4b6ec3424175b2c4337e1fdd047a56f093921b9b"
+    }
+  ]
+}
