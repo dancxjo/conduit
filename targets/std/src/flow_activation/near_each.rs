@@ -145,3 +145,10 @@ pub fn install_pure_near_each(
         .ok_or("Near Each work overflow")?;
     KernelEachBack::prepare(each, planned, MAXIMUM_ITEMS, steps)
 }
+
+pub(crate) fn owns_offer(offer: &CapabilityOffer) -> bool {
+    offer.capability_id.as_str().starts_with("std/near-each/")
+        && offer.implementation.implementation_id.as_str() == IMPLEMENTATION
+        && offer.implementation.execution_profile_id.as_str() == PROFILE
+        && offer.implementation.artifact_id.as_str() == ARTIFACT
+}
