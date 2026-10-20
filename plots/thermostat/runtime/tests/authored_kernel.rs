@@ -52,10 +52,15 @@ fn authored_thermostat_commands_execute_exact_plan_and_play() {
         assert!(plays.insert(receipt.child_active_play_id.clone()));
         assert!(!receipt.events.is_empty());
         assert!(!receipt.remote_lifecycle.is_empty());
+        // Payload Signs retain this Value's index; normal-close Signs retain
+        // the next transport sequence. Neither may reset at rearm.
+        assert!(receipt.remote_lifecycle.iter().all(|(_, identity)| {
+            identity.sequence == index as u64 || identity.sequence == index as u64 + 1
+        }));
         assert!(receipt
             .remote_lifecycle
             .iter()
-            .all(|(_, identity)| { identity.sequence == index as u64 }));
+            .any(|(_, identity)| { identity.sequence == index as u64 }));
     }
     assert_eq!(state.target, 190);
 }
