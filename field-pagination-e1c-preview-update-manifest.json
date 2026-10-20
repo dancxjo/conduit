@@ -1,0 +1,30 @@
+{
+  "parent": "9aed8d8597480bebbb6b7f3ff3db9a4d6a57635b",
+  "scope": "Three visually reviewed normal-product public guest screenshots; source and capture bindings in prior receipt",
+  "files": [
+    {
+      "source": "outputs/6158-after-preview-e1c6dda63/arrival.png",
+      "tree_path": "task-6038/outputs/6158-after-preview-e1c6dda63/arrival.png",
+      "bytes": 22643,
+      "sha256": "1e8edda4a4f445761914d32129f1d3236f05e7534306a43362d3b1776aff9413",
+      "mode": "100644",
+      "blob": "19bd582e3cad0dda98843cd1d3a7dbef6d499063"
+    },
+    {
+      "source": "outputs/6158-after-preview-e1c6dda63/navigation-page-1.png",
+      "tree_path": "task-6038/outputs/6158-after-preview-e1c6dda63/navigation-page-1.png",
+      "bytes": 25272,
+      "sha256": "a020649272b2d3de6cbc9bc8b4d08f66429909a1e80b92cfdeafd4472ec4cd4e",
+      "mode": "100644",
+      "blob": "21df8d9d565e4540858dffc7c3f53a336742722b"
+    },
+    {
+      "source": "outputs/6158-after-preview-e1c6dda63/navigation-page-3.png",
+      "tree_path": "task-6038/outputs/6158-after-preview-e1c6dda63/navigation-page-3.png",
+      "bytes": 27346,
+      "sha256": "2784a3d0d4ddb7aafa34e12a22a9342291acfab62ee00b017aeb4517e3ec4411",
+      "mode": "100644",
+      "blob": "2066f27a1caa2bfd65b00676f2edbd2bf79b9479"
+    }
+  ]
+}
