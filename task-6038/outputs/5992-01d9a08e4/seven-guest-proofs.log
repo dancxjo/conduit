@@ -1,0 +1,15 @@
+Supported normal journey passed; packet retained
+panels 1280 passed; packet retained
+panels 640 passed; packet retained
+pointer 1280 passed; packet retained
+pointer 640 passed; packet retained
+All fresh normal-product emulator runs passed; visual and identity audit remains
+Details 1280 passed; packet retained
+Traceback (most recent call last):
+  File "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/run-5992-01d9a08e4-product-proof.py", line 39, in <module>
+    subprocess.run(['python3',str(T/'work/5992-runners/prove-typography-details.py'),str(product),head,str(output),'--harness',str(T/'work/6158-runners-e1c6dda63/prove-5990-panels-qemu.py'),'--width',str(width)],cwd=W,env=env,stdout=log,stderr=subprocess.STDOUT,check=True)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/linuxbrew/.linuxbrew/Cellar/python@3.14/3.14.4/lib/python3.14/subprocess.py", line 578, in run
+    raise CalledProcessError(retcode, process.args,
+                             output=stdout, stderr=stderr)
+subprocess.CalledProcessError: Command '['python3', '/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/5992-runners/prove-typography-details.py', '/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/outputs/5992-product-01d9a08e4', '01d9a08e4d8925a0b81ff4e561500d7ceb5e6e2f', '/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/outputs/5992-details-narrow-01d9a08e4', '--harness', '/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/6158-runners-e1c6dda63/prove-5990-panels-qemu.py', '--width', '640']' returned non-zero exit status 1.

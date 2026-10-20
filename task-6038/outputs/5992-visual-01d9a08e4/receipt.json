@@ -1,0 +1,1067 @@
+{
+  "source": "01d9a08e4d8925a0b81ff4e561500d7ceb5e6e2f",
+  "previews": [
+    {
+      "source": "outputs/5992-panels-wide-01d9a08e4/arrival.ppm",
+      "source_sha256": "59a342eac6cd5d982169a74bb66555f2ad3a6963b2c0a53fc537584b9bfe80fe",
+      "pixels_sha256": "107fbfd2fbeba466fe2069474ee9b84094c8e1b57b3277b2b4762160f5fb0323",
+      "preview": "panels-wide-arrival.png",
+      "preview_sha256": "3bc2878651e245977056d8aba9c1a21474e5ae4d9770b68048fd6fdb043f13cf",
+      "width": 1280,
+      "height": 800,
+      "transform": "Lossless RGB P6 to PNG; no scaling/crop/edit",
+      "focus": {
+        "action_id": "creche.name",
+        "argument_name": "value",
+        "display_bounds": {
+          "height": 800,
+          "width": 1280,
+          "x": 0,
+          "y": 0
+        },
+        "face_id": "2bdc981d3007e5238d15da0f15172ba4313e13776117374766f9c78adcfd3344",
+        "face_revision": 1,
+        "hit_bounds": {
+          "height": 36,
+          "width": 578,
+          "x": 48,
+          "y": 398
+        },
+        "page": 1,
+        "pages": 2,
+        "schema": "conduit.creche-focus/v1",
+        "show_id": "show/ad0c636b3ff2d71c0e9fd10c60ca62f24c0664c942432f6e1ba25653829dadb1"
+      }
+    },
+    {
+      "source": "outputs/5992-panels-wide-01d9a08e4/navigation-page-2.ppm",
+      "source_sha256": "dcc63ea47b457b1f66beef4515ca280e52cd73e4d3f3aec0214aa23771273fae",
+      "pixels_sha256": "faf15c887d5b9d22ac3621aa58321782a9ff07f7dd234fc8fda78966d036b92c",
+      "preview": "panels-wide-navigation-page-2.png",
+      "preview_sha256": "ff6e51745403b4abce730f0027a302d368abf3f2161415d582de03bfcd90cb5b",
+      "width": 1280,
+      "height": 800,
+      "transform": "Lossless RGB P6 to PNG; no scaling/crop/edit",
+      "focus": {
+        "action_id": "creche.plot.2",
+        "argument_name": null,
+        "display_bounds": {
+          "height": 800,
+          "width": 1280,
+          "x": 0,
+          "y": 0
+        },
+        "face_id": "2bdc981d3007e5238d15da0f15172ba4313e13776117374766f9c78adcfd3344",
+        "face_revision": 1,
+        "hit_bounds": {
+          "height": 36,
+          "width": 578,
+          "x": 682,
+          "y": 64
+        },
+        "page": 2,
+        "pages": 2,
+        "schema": "conduit.creche-focus/v1",
+        "show_id": "show/ad0c636b3ff2d71c0e9fd10c60ca62f24c0664c942432f6e1ba25653829dadb1"
+      }
+    },
+    {
+      "source": "outputs/5992-details-wide-01d9a08e4/primary.ppm",
+      "source_sha256": "25f8709dc0b7cac7d1a982dddbaf0cf17a83c97ac1de9d44d6ec1260517ce7b8",
+      "pixels_sha256": "3987f190d0a316ab9eef7c9af6286cbf4b322abacdde78940760d1dba4c2053c",
+      "preview": "details-wide-primary.png",
+      "preview_sha256": "0199f83030f41566009fd38b8ac2fd09ec203c76286c49874ab530bb8aadac19",
+      "width": 1280,
+      "height": 800,
+      "transform": "Lossless RGB P6 to PNG; no scaling/crop/edit",
+      "focus": {
+        "action_id": "creche.name",
+        "argument_name": "value",
+        "display_bounds": {
+          "height": 800,
+          "width": 1280,
+          "x": 0,
+          "y": 0
+        },
+        "face_id": "149a75f15a1996e08c12e28b38c9d75bec864747575ff79fa3813727c9b6f0c1",
+        "face_revision": 1,
+        "hit_bounds": {
+          "height": 36,
+          "width": 578,
+          "x": 48,
+          "y": 398
+        },
+        "page": 1,
+        "pages": 2,
+        "schema": "conduit.creche-focus/v1",
+        "show_id": "show/b803f2eb322e81b820702b45b519d8ec7ed4e7a8f78a527aa2c7a887b7ff72a6"
+      }
+    },
+    {
+      "source": "outputs/5992-details-wide-01d9a08e4/details-page-1.ppm",
+      "source_sha256": "9e3a05b469257beceb7c8f84cd2653621873b4bb13e29904beb0cf0106d5af2d",
+      "pixels_sha256": "c9960d4d796d831ddb1f17209aa8556bc0105445da816113c280dd985447d06d",
+      "preview": "details-wide-details-page-1.png",
+      "preview_sha256": "19f9de8bb5bd4fc5d5fce8e6780d43a40a37139369e8ed06d735bcd47bcd9684",
+      "width": 1280,
+      "height": 800,
+      "transform": "Lossless RGB P6 to PNG; no scaling/crop/edit",
+      "focus": {
+        "action_id": null,
+        "argument_name": null,
+        "display_bounds": {
+          "height": 800,
+          "width": 1280,
+          "x": 0,
+          "y": 0
+        },
+        "face_id": "149a75f15a1996e08c12e28b38c9d75bec864747575ff79fa3813727c9b6f0c1",
+        "face_revision": 1,
+        "hit_bounds": null,
+        "page": 1,
+        "pages": 8,
+        "schema": "conduit.creche-focus/v1",
+        "show_id": "show/b803f2eb322e81b820702b45b519d8ec7ed4e7a8f78a527aa2c7a887b7ff72a6"
+      }
+    },
+    {
+      "source": "outputs/5992-details-wide-01d9a08e4/details-page-2.ppm",
+      "source_sha256": "37f9a321e91a29dc3c9aedcf4aaebb9bd76a31c2f735620e734202c416811191",
+      "pixels_sha256": "035075945a54adc51a7352a73a33fb63b8a3d288a7076a7140d4237d05b0e16f",
+      "preview": "details-wide-details-page-2.png",
+      "preview_sha256": "de1810ac1a37f661594eddbc0363fc02bd17a8b6aa262584e0bd3ae1bdd5d749",
+      "width": 1280,
+      "height": 800,
+      "transform": "Lossless RGB P6 to PNG; no scaling/crop/edit",
+      "focus": {
+        "action_id": null,
+        "argument_name": null,
+        "display_bounds": {
+          "height": 800,
+          "width": 1280,
+          "x": 0,
+          "y": 0
+        },
+        "face_id": "149a75f15a1996e08c12e28b38c9d75bec864747575ff79fa3813727c9b6f0c1",
+        "face_revision": 1,
+        "hit_bounds": null,
+        "page": 2,
+        "pages": 8,
+        "schema": "conduit.creche-focus/v1",
+        "show_id": "show/b803f2eb322e81b820702b45b519d8ec7ed4e7a8f78a527aa2c7a887b7ff72a6"
+      }
+    },
+    {
+      "source": "outputs/5992-details-wide-01d9a08e4/details-page-3.ppm",
+      "source_sha256": "3898bfe28ac8d69ea5f1d32c9803bc7dc3a61405a321efb2038ab9ff8db52634",
+      "pixels_sha256": "1cfa26f3d09a14dc01bf4435775dfe25724fe85fe5445f2abbe226f300b2d99e",
+      "preview": "details-wide-details-page-3.png",
+      "preview_sha256": "3e66e9f6c2fae06d4b0f8ab682a973ad8447faad48381ccabb95ccf1bc06fd74",
+      "width": 1280,
+      "height": 800,
+      "transform": "Lossless RGB P6 to PNG; no scaling/crop/edit",
+      "focus": {
+        "action_id": null,
+        "argument_name": null,
+        "display_bounds": {
+          "height": 800,
+          "width": 1280,
+          "x": 0,
+          "y": 0
+        },
+        "face_id": "149a75f15a1996e08c12e28b38c9d75bec864747575ff79fa3813727c9b6f0c1",
+        "face_revision": 1,
+        "hit_bounds": null,
+        "page": 3,
+        "pages": 8,
+        "schema": "conduit.creche-focus/v1",
+        "show_id": "show/b803f2eb322e81b820702b45b519d8ec7ed4e7a8f78a527aa2c7a887b7ff72a6"
+      }
+    },
+    {
+      "source": "outputs/5992-details-wide-01d9a08e4/details-page-4.ppm",
+      "source_sha256": "14f9205b18e0d08b2ae12d1a00bd3958d5953b9be0037bc95f6f6122eb655a94",
+      "pixels_sha256": "74afaca8b6f6aa3320cd1dcfc3723ad95cf98365dd8d77b6390c8bb7f3a97726",
+      "preview": "details-wide-details-page-4.png",
+      "preview_sha256": "b2b56b6ee5e1cc273dbcbd91dfb9f197bc16a81b4e8774b78c7702d5a3b0e483",
+      "width": 1280,
+      "height": 800,
+      "transform": "Lossless RGB P6 to PNG; no scaling/crop/edit",
+      "focus": {
+        "action_id": null,
+        "argument_name": null,
+        "display_bounds": {
+          "height": 800,
+          "width": 1280,
+          "x": 0,
+          "y": 0
+        },
+        "face_id": "149a75f15a1996e08c12e28b38c9d75bec864747575ff79fa3813727c9b6f0c1",
+        "face_revision": 1,
+        "hit_bounds": null,
+        "page": 4,
+        "pages": 8,
+        "schema": "conduit.creche-focus/v1",
+        "show_id": "show/b803f2eb322e81b820702b45b519d8ec7ed4e7a8f78a527aa2c7a887b7ff72a6"
+      }
+    },
+    {
+      "source": "outputs/5992-details-wide-01d9a08e4/details-page-5.ppm",
+      "source_sha256": "efca6b78125ccc7740875de51547c5849c9be54c25b02617950517b26d3e468d",
+      "pixels_sha256": "ca3e25ea9ebb333fb0fec38934eadf47175aad7f051974dc4c68b4cb81c2f5c7",
+      "preview": "details-wide-details-page-5.png",
+      "preview_sha256": "2261533f59be595633d683981f811aec5a506d6b2f120e0a5af6377fa70785f1",
+      "width": 1280,
+      "height": 800,
+      "transform": "Lossless RGB P6 to PNG; no scaling/crop/edit",
+      "focus": {
+        "action_id": null,
+        "argument_name": null,
+        "display_bounds": {
+          "height": 800,
+          "width": 1280,
+          "x": 0,
+          "y": 0
+        },
+        "face_id": "149a75f15a1996e08c12e28b38c9d75bec864747575ff79fa3813727c9b6f0c1",
+        "face_revision": 1,
+        "hit_bounds": null,
+        "page": 5,
+        "pages": 8,
+        "schema": "conduit.creche-focus/v1",
+        "show_id": "show/b803f2eb322e81b820702b45b519d8ec7ed4e7a8f78a527aa2c7a887b7ff72a6"
+      }
+    },
+    {
+      "source": "outputs/5992-details-wide-01d9a08e4/details-page-6.ppm",
+      "source_sha256": "8f333986bcaf89e0ab05522090fda055da60f594de7bd4f313a3996262343250",
+      "pixels_sha256": "77c5ca57be2e9aa0e980b5d1393535f088d10a1d28653854dcd3b291cf2c205f",
+      "preview": "details-wide-details-page-6.png",
+      "preview_sha256": "1b92000bfda1ef020d3130b9495bd600f45fb145b5c907efa77c18f77e92b208",
+      "width": 1280,
+      "height": 800,
+      "transform": "Lossless RGB P6 to PNG; no scaling/crop/edit",
+      "focus": {
+        "action_id": null,
+        "argument_name": null,
+        "display_bounds": {
+          "height": 800,
+          "width": 1280,
+          "x": 0,
+          "y": 0
+        },
+        "face_id": "149a75f15a1996e08c12e28b38c9d75bec864747575ff79fa3813727c9b6f0c1",
+        "face_revision": 1,
+        "hit_bounds": null,
+        "page": 6,
+        "pages": 8,
+        "schema": "conduit.creche-focus/v1",
+        "show_id": "show/b803f2eb322e81b820702b45b519d8ec7ed4e7a8f78a527aa2c7a887b7ff72a6"
+      }
+    },
+    {
+      "source": "outputs/5992-details-wide-01d9a08e4/details-page-7.ppm",
+      "source_sha256": "87f8f32bdeb97f68ecb95421bab13faa17f92b8951f30017c5ceb2f524ebb814",
+      "pixels_sha256": "fc6e1e5ad3ded3043ff269b65305df30816727eea367ad45f24d5c5ed640b925",
+      "preview": "details-wide-details-page-7.png",
+      "preview_sha256": "63e4493e0a3d96459ccd44fcc4985d24d2ca5dbe187f818103c62db24c622927",
+      "width": 1280,
+      "height": 800,
+      "transform": "Lossless RGB P6 to PNG; no scaling/crop/edit",
+      "focus": {
+        "action_id": null,
+        "argument_name": null,
+        "display_bounds": {
+          "height": 800,
+          "width": 1280,
+          "x": 0,
+          "y": 0
+        },
+        "face_id": "149a75f15a1996e08c12e28b38c9d75bec864747575ff79fa3813727c9b6f0c1",
+        "face_revision": 1,
+        "hit_bounds": null,
+        "page": 7,
+        "pages": 8,
+        "schema": "conduit.creche-focus/v1",
+        "show_id": "show/b803f2eb322e81b820702b45b519d8ec7ed4e7a8f78a527aa2c7a887b7ff72a6"
+      }
+    },
+    {
+      "source": "outputs/5992-details-wide-01d9a08e4/details-page-8.ppm",
+      "source_sha256": "cac031aa1d58c70ea2219ad0a39e24b956612280c2d71283ee7094f6f338f236",
+      "pixels_sha256": "68aaa4d1d0b68f74b3384a3597c151b0ef977ec9c0b1f8edf8bc0789e59551d4",
+      "preview": "details-wide-details-page-8.png",
+      "preview_sha256": "838a6994a53bd84993acac0b141d4e657f217b8ce031dc83a9c7327d7113dd56",
+      "width": 1280,
+      "height": 800,
+      "transform": "Lossless RGB P6 to PNG; no scaling/crop/edit",
+      "focus": {
+        "action_id": null,
+        "argument_name": null,
+        "display_bounds": {
+          "height": 800,
+          "width": 1280,
+          "x": 0,
+          "y": 0
+        },
+        "face_id": "149a75f15a1996e08c12e28b38c9d75bec864747575ff79fa3813727c9b6f0c1",
+        "face_revision": 1,
+        "hit_bounds": null,
+        "page": 8,
+        "pages": 8,
+        "schema": "conduit.creche-focus/v1",
+        "show_id": "show/b803f2eb322e81b820702b45b519d8ec7ed4e7a8f78a527aa2c7a887b7ff72a6"
+      }
+    },
+    {
+      "source": "outputs/5992-details-wide-01d9a08e4/returned-primary.ppm",
+      "source_sha256": "ebd12b0a3759daeea7307e9e13b50b038ab306fa045bc46c7f502878b26a28da",
+      "pixels_sha256": "16999e6f37ec902ac142d1d362bc20b86e771e08000762cb178ce71f0c1f9188",
+      "preview": "details-wide-returned-primary.png",
+      "preview_sha256": "00febb84af3550f9f2e3adb19c6ae89dc2dd07a4d3a6016f477c1e9de46ac6c2",
+      "width": 1280,
+      "height": 800,
+      "transform": "Lossless RGB P6 to PNG; no scaling/crop/edit",
+      "focus": {
+        "action_id": null,
+        "argument_name": null,
+        "display_bounds": {
+          "height": 800,
+          "width": 1280,
+          "x": 0,
+          "y": 0
+        },
+        "face_id": "149a75f15a1996e08c12e28b38c9d75bec864747575ff79fa3813727c9b6f0c1",
+        "face_revision": 1,
+        "hit_bounds": null,
+        "page": 1,
+        "pages": 2,
+        "schema": "conduit.creche-focus/v1",
+        "show_id": "show/b803f2eb322e81b820702b45b519d8ec7ed4e7a8f78a527aa2c7a887b7ff72a6"
+      }
+    },
+    {
+      "source": "outputs/5992-panels-narrow-01d9a08e4/arrival.ppm",
+      "source_sha256": "bc5b8bc6e6799fe8bc2b8a4092982d5df0fc26e028c60518b4912a5ef59ab5fa",
+      "pixels_sha256": "db5831abe6f8b36df888fc0c38da47c5a74a85160bc65181c330bbb18051a7f4",
+      "preview": "panels-narrow-arrival.png",
+      "preview_sha256": "7023d515edb26147041f5dfe10817fa4ffd41a6f4377aa4e8857b0af1a151e2b",
+      "width": 640,
+      "height": 480,
+      "transform": "Lossless RGB P6 to PNG; no scaling/crop/edit",
+      "focus": {
+        "action_id": "creche.name",
+        "argument_name": "value",
+        "display_bounds": {
+          "height": 480,
+          "width": 640,
+          "x": 0,
+          "y": 0
+        },
+        "face_id": "f4cdf747d3f3b06a780a484b1b424fef4fe4c69a506d63dd555e87ec7245265a",
+        "face_revision": 1,
+        "hit_bounds": {
+          "height": 36,
+          "width": 588,
+          "x": 40,
+          "y": 147
+        },
+        "page": 2,
+        "pages": 3,
+        "schema": "conduit.creche-focus/v1",
+        "show_id": "show/4698a243e657db13a02a265d0d96cbd30117d58ffd130f6b2aeb880c8468d68d"
+      }
+    },
+    {
+      "source": "outputs/5992-panels-narrow-01d9a08e4/navigation-page-3.ppm",
+      "source_sha256": "d8e51211a5ffa76f02b136946599680f917e74dc53e02658440334e90524d7eb",
+      "pixels_sha256": "13eea454fb669fab76f0f3e9ca94512e3997fed53a8e9013eb1358ba1071b5c4",
+      "preview": "panels-narrow-navigation-page-3.png",
+      "preview_sha256": "8371792efcdfdbb29c843f567afbb6e619d5a8290288a46d06cdf2af849136ba",
+      "width": 640,
+      "height": 480,
+      "transform": "Lossless RGB P6 to PNG; no scaling/crop/edit",
+      "focus": {
+        "action_id": "creche.naming",
+        "argument_name": null,
+        "display_bounds": {
+          "height": 480,
+          "width": 640,
+          "x": 0,
+          "y": 0
+        },
+        "face_id": "f4cdf747d3f3b06a780a484b1b424fef4fe4c69a506d63dd555e87ec7245265a",
+        "face_revision": 1,
+        "hit_bounds": {
+          "height": 36,
+          "width": 588,
+          "x": 40,
+          "y": 147
+        },
+        "page": 3,
+        "pages": 3,
+        "schema": "conduit.creche-focus/v1",
+        "show_id": "show/4698a243e657db13a02a265d0d96cbd30117d58ffd130f6b2aeb880c8468d68d"
+      }
+    },
+    {
+      "source": "outputs/5992-panels-narrow-01d9a08e4/navigation-page-1.ppm",
+      "source_sha256": "700f0a757dae146a04b9893c95bde4f2a31441b5e278e50025f46c98f0f19c3d",
+      "pixels_sha256": "9450b4b6a75d40187627be099489904bb6924419bc0ca87eb189379fd1766951",
+      "preview": "panels-narrow-navigation-page-1.png",
+      "preview_sha256": "7aee0bc1192d9c41541725fbae3e2d6de1faa0d0a6d69e0c8c68eaf2a479d156",
+      "width": 640,
+      "height": 480,
+      "transform": "Lossless RGB P6 to PNG; no scaling/crop/edit",
+      "focus": {
+        "action_id": "creche.birth",
+        "argument_name": null,
+        "display_bounds": {
+          "height": 480,
+          "width": 640,
+          "x": 0,
+          "y": 0
+        },
+        "face_id": "f4cdf747d3f3b06a780a484b1b424fef4fe4c69a506d63dd555e87ec7245265a",
+        "face_revision": 1,
+        "hit_bounds": {
+          "height": 45,
+          "width": 588,
+          "x": 40,
+          "y": 158
+        },
+        "page": 1,
+        "pages": 3,
+        "schema": "conduit.creche-focus/v1",
+        "show_id": "show/4698a243e657db13a02a265d0d96cbd30117d58ffd130f6b2aeb880c8468d68d"
+      }
+    },
+    {
+      "source": "outputs/5992-details-narrow-01d9a08e4-bounded30/primary.ppm",
+      "source_sha256": "a98fa1b87c81b5062cc93619a95b93347dbc3c94baeba694071d29b81a5e0f56",
+      "pixels_sha256": "53ea52c086021b66d0b296ecd1dd6ee4d07d9488eea7897ff747a8cffd83ff32",
+      "preview": "details-narrow-primary.png",
+      "preview_sha256": "d5154930f4472d97f6de3eb11c61304153dbdf52629d1eb9dc587413019ae458",
+      "width": 640,
+      "height": 480,
+      "transform": "Lossless RGB P6 to PNG; no scaling/crop/edit",
+      "focus": {
+        "action_id": "creche.name",
+        "argument_name": "value",
+        "display_bounds": {
+          "height": 480,
+          "width": 640,
+          "x": 0,
+          "y": 0
+        },
+        "face_id": "807aa361a1cc819f8be8325deae1eb351de76c8afcdbe883dcd50dac781323d0",
+        "face_revision": 1,
+        "hit_bounds": {
+          "height": 36,
+          "width": 588,
+          "x": 40,
+          "y": 147
+        },
+        "page": 2,
+        "pages": 3,
+        "schema": "conduit.creche-focus/v1",
+        "show_id": "show/1164119d0bd9041d90a1a37915dd7dc775a1d85599fb7c56485afa02f388b23f"
+      }
+    },
+    {
+      "source": "outputs/5992-details-narrow-01d9a08e4-bounded30/details-page-1.ppm",
+      "source_sha256": "87655d007a73e29c03c14808aa77424290cd4ab3e4ec8e079b9e4ce3807db78e",
+      "pixels_sha256": "6168ee71360fd43cc0a4f162871e609de798a2efa6d542bfc3f6796c5bcecec4",
+      "preview": "details-narrow-details-page-1.png",
+      "preview_sha256": "f1b159b85e4ee8290d866888d423f50dab2066724fa99e9c6334392078c028a8",
+      "width": 640,
+      "height": 480,
+      "transform": "Lossless RGB P6 to PNG; no scaling/crop/edit",
+      "focus": {
+        "action_id": null,
+        "argument_name": null,
+        "display_bounds": {
+          "height": 480,
+          "width": 640,
+          "x": 0,
+          "y": 0
+        },
+        "face_id": "807aa361a1cc819f8be8325deae1eb351de76c8afcdbe883dcd50dac781323d0",
+        "face_revision": 1,
+        "hit_bounds": null,
+        "page": 1,
+        "pages": 21,
+        "schema": "conduit.creche-focus/v1",
+        "show_id": "show/1164119d0bd9041d90a1a37915dd7dc775a1d85599fb7c56485afa02f388b23f"
+      }
+    },
+    {
+      "source": "outputs/5992-details-narrow-01d9a08e4-bounded30/details-page-2.ppm",
+      "source_sha256": "737178530121feb4c835d3d4573515a166d6f510f92db215c00d6e00cafd5429",
+      "pixels_sha256": "f6d5a31f27700e63c65b1de3c27b724588584dba45555fcedbbdcb475b379ee1",
+      "preview": "details-narrow-details-page-2.png",
+      "preview_sha256": "9bc7e8be11d11255ce706b11fc21ba6789fc60cc7216f15954da88b8bcc51830",
+      "width": 640,
+      "height": 480,
+      "transform": "Lossless RGB P6 to PNG; no scaling/crop/edit",
+      "focus": {
+        "action_id": null,
+        "argument_name": null,
+        "display_bounds": {
+          "height": 480,
+          "width": 640,
+          "x": 0,
+          "y": 0
+        },
+        "face_id": "807aa361a1cc819f8be8325deae1eb351de76c8afcdbe883dcd50dac781323d0",
+        "face_revision": 1,
+        "hit_bounds": null,
+        "page": 2,
+        "pages": 21,
+        "schema": "conduit.creche-focus/v1",
+        "show_id": "show/1164119d0bd9041d90a1a37915dd7dc775a1d85599fb7c56485afa02f388b23f"
+      }
+    },
+    {
+      "source": "outputs/5992-details-narrow-01d9a08e4-bounded30/details-page-3.ppm",
+      "source_sha256": "ac4e57c0de62fd69195e87ca4ab43bfcc7509f79163ce86cc3ac57f06b6ea72d",
+      "pixels_sha256": "b361042b1e24280074748304adc8abf7a63f0a2bf64eebb831fd0ca20e00813f",
+      "preview": "details-narrow-details-page-3.png",
+      "preview_sha256": "1b7d752ec61b7899b371d30ad1d5c1a11415998f9b731a8f9b71aefa2e8de8c2",
+      "width": 640,
+      "height": 480,
+      "transform": "Lossless RGB P6 to PNG; no scaling/crop/edit",
+      "focus": {
+        "action_id": null,
+        "argument_name": null,
+        "display_bounds": {
+          "height": 480,
+          "width": 640,
+          "x": 0,
+          "y": 0
+        },
+        "face_id": "807aa361a1cc819f8be8325deae1eb351de76c8afcdbe883dcd50dac781323d0",
+        "face_revision": 1,
+        "hit_bounds": null,
+        "page": 3,
+        "pages": 21,
+        "schema": "conduit.creche-focus/v1",
+        "show_id": "show/1164119d0bd9041d90a1a37915dd7dc775a1d85599fb7c56485afa02f388b23f"
+      }
+    },
+    {
+      "source": "outputs/5992-details-narrow-01d9a08e4-bounded30/details-page-4.ppm",
+      "source_sha256": "72a742d084d52522ead4294565b5def3207659c08893212e9ecb7174b3f7374b",
+      "pixels_sha256": "da86f7d9277d6282c3defbd3aa195a46b1f0921ed791866115420fdd9c1208b4",
+      "preview": "details-narrow-details-page-4.png",
+      "preview_sha256": "382bd4221db86a9376049d842f9cc6c5ea05006ad9c0e4a1e18667ff0c6ff311",
+      "width": 640,
+      "height": 480,
+      "transform": "Lossless RGB P6 to PNG; no scaling/crop/edit",
+      "focus": {
+        "action_id": null,
+        "argument_name": null,
+        "display_bounds": {
+          "height": 480,
+          "width": 640,
+          "x": 0,
+          "y": 0
+        },
+        "face_id": "807aa361a1cc819f8be8325deae1eb351de76c8afcdbe883dcd50dac781323d0",
+        "face_revision": 1,
+        "hit_bounds": null,
+        "page": 4,
+        "pages": 21,
+        "schema": "conduit.creche-focus/v1",
+        "show_id": "show/1164119d0bd9041d90a1a37915dd7dc775a1d85599fb7c56485afa02f388b23f"
+      }
+    },
+    {
+      "source": "outputs/5992-details-narrow-01d9a08e4-bounded30/details-page-5.ppm",
+      "source_sha256": "8d3ecf17d34d741b8578a5d48e2bf0960453e96578b1c443609d6fffd9ff4c56",
+      "pixels_sha256": "4a2d9b71645a0645972614acb3fbf45a7ec068220ce2403b65d60ea6290b9960",
+      "preview": "details-narrow-details-page-5.png",
+      "preview_sha256": "3a0aea62a9931c2dfe1b9650a15b385af9cc37fb87be06a112035ba6508bb3a7",
+      "width": 640,
+      "height": 480,
+      "transform": "Lossless RGB P6 to PNG; no scaling/crop/edit",
+      "focus": {
+        "action_id": null,
+        "argument_name": null,
+        "display_bounds": {
+          "height": 480,
+          "width": 640,
+          "x": 0,
+          "y": 0
+        },
+        "face_id": "807aa361a1cc819f8be8325deae1eb351de76c8afcdbe883dcd50dac781323d0",
+        "face_revision": 1,
+        "hit_bounds": null,
+        "page": 5,
+        "pages": 21,
+        "schema": "conduit.creche-focus/v1",
+        "show_id": "show/1164119d0bd9041d90a1a37915dd7dc775a1d85599fb7c56485afa02f388b23f"
+      }
+    },
+    {
+      "source": "outputs/5992-details-narrow-01d9a08e4-bounded30/details-page-6.ppm",
+      "source_sha256": "2d273621f3c500d372c1b6cd611c98ae751a0418a7e26f0c45df0947252e819f",
+      "pixels_sha256": "04983a64cebbfac551f2c8d6bc5ac9225059344ea21f1c0297e395efea6385d4",
+      "preview": "details-narrow-details-page-6.png",
+      "preview_sha256": "6c5acc92c07f719ba952f39cdbb73daccd81a7d78563b7a1745a6eee94779f99",
+      "width": 640,
+      "height": 480,
+      "transform": "Lossless RGB P6 to PNG; no scaling/crop/edit",
+      "focus": {
+        "action_id": null,
+        "argument_name": null,
+        "display_bounds": {
+          "height": 480,
+          "width": 640,
+          "x": 0,
+          "y": 0
+        },
+        "face_id": "807aa361a1cc819f8be8325deae1eb351de76c8afcdbe883dcd50dac781323d0",
+        "face_revision": 1,
+        "hit_bounds": null,
+        "page": 6,
+        "pages": 21,
+        "schema": "conduit.creche-focus/v1",
+        "show_id": "show/1164119d0bd9041d90a1a37915dd7dc775a1d85599fb7c56485afa02f388b23f"
+      }
+    },
+    {
+      "source": "outputs/5992-details-narrow-01d9a08e4-bounded30/details-page-7.ppm",
+      "source_sha256": "7832f01ad5f53293636c6f39df1807ae148c5598949a7fd340b342d40d983d9e",
+      "pixels_sha256": "b763278f1f7c4f5be82e976b5d8134e41952e0e1755df610f61fd4b885867fe1",
+      "preview": "details-narrow-details-page-7.png",
+      "preview_sha256": "59a1246129d6ff5384f58cfd89bdfa4ddb7985ee127a97f9d09bca03863482e8",
+      "width": 640,
+      "height": 480,
+      "transform": "Lossless RGB P6 to PNG; no scaling/crop/edit",
+      "focus": {
+        "action_id": null,
+        "argument_name": null,
+        "display_bounds": {
+          "height": 480,
+          "width": 640,
+          "x": 0,
+          "y": 0
+        },
+        "face_id": "807aa361a1cc819f8be8325deae1eb351de76c8afcdbe883dcd50dac781323d0",
+        "face_revision": 1,
+        "hit_bounds": null,
+        "page": 7,
+        "pages": 21,
+        "schema": "conduit.creche-focus/v1",
+        "show_id": "show/1164119d0bd9041d90a1a37915dd7dc775a1d85599fb7c56485afa02f388b23f"
+      }
+    },
+    {
+      "source": "outputs/5992-details-narrow-01d9a08e4-bounded30/details-page-8.ppm",
+      "source_sha256": "4f9489d3a98ed6fb02b86d6ddba4f0d7eb144bdd66c26cd2479e807c404cdda2",
+      "pixels_sha256": "430563a1232e3a0e88ccbe36179374dbd08d0430fce3bc4a14a45f83e5e002fd",
+      "preview": "details-narrow-details-page-8.png",
+      "preview_sha256": "032e3a57207887a34f9f4466452120f98a4e6f67ad76e4bb2aac6808995db204",
+      "width": 640,
+      "height": 480,
+      "transform": "Lossless RGB P6 to PNG; no scaling/crop/edit",
+      "focus": {
+        "action_id": null,
+        "argument_name": null,
+        "display_bounds": {
+          "height": 480,
+          "width": 640,
+          "x": 0,
+          "y": 0
+        },
+        "face_id": "807aa361a1cc819f8be8325deae1eb351de76c8afcdbe883dcd50dac781323d0",
+        "face_revision": 1,
+        "hit_bounds": null,
+        "page": 8,
+        "pages": 21,
+        "schema": "conduit.creche-focus/v1",
+        "show_id": "show/1164119d0bd9041d90a1a37915dd7dc775a1d85599fb7c56485afa02f388b23f"
+      }
+    },
+    {
+      "source": "outputs/5992-details-narrow-01d9a08e4-bounded30/details-page-9.ppm",
+      "source_sha256": "ab80d0de7c0dd9e1dfc2172844ce2f58250d9eb9c732576167dd2ea4c5c129da",
+      "pixels_sha256": "c1e978657439acaa363546f914dbf699125ff6d1ade5402ce047e39307c3b166",
+      "preview": "details-narrow-details-page-9.png",
+      "preview_sha256": "bc1ac930cb289d5f57d61f2737968f19c7f18d0d0f0df5cd941306217b650b46",
+      "width": 640,
+      "height": 480,
+      "transform": "Lossless RGB P6 to PNG; no scaling/crop/edit",
+      "focus": {
+        "action_id": null,
+        "argument_name": null,
+        "display_bounds": {
+          "height": 480,
+          "width": 640,
+          "x": 0,
+          "y": 0
+        },
+        "face_id": "807aa361a1cc819f8be8325deae1eb351de76c8afcdbe883dcd50dac781323d0",
+        "face_revision": 1,
+        "hit_bounds": null,
+        "page": 9,
+        "pages": 21,
+        "schema": "conduit.creche-focus/v1",
+        "show_id": "show/1164119d0bd9041d90a1a37915dd7dc775a1d85599fb7c56485afa02f388b23f"
+      }
+    },
+    {
+      "source": "outputs/5992-details-narrow-01d9a08e4-bounded30/details-page-10.ppm",
+      "source_sha256": "d9f26ac84f00db626e23908195cce2e24a17f84b7a792aba150d5a3db81742f7",
+      "pixels_sha256": "51cab34c44785a44f9d69f08aa4755709502abdc6678bc2dce77e82735de9dc5",
+      "preview": "details-narrow-details-page-10.png",
+      "preview_sha256": "a7e4a356ff5648a590ae83e08becb9a5f82c27f603b7af8209325b48e46363f0",
+      "width": 640,
+      "height": 480,
+      "transform": "Lossless RGB P6 to PNG; no scaling/crop/edit",
+      "focus": {
+        "action_id": null,
+        "argument_name": null,
+        "display_bounds": {
+          "height": 480,
+          "width": 640,
+          "x": 0,
+          "y": 0
+        },
+        "face_id": "807aa361a1cc819f8be8325deae1eb351de76c8afcdbe883dcd50dac781323d0",
+        "face_revision": 1,
+        "hit_bounds": null,
+        "page": 10,
+        "pages": 21,
+        "schema": "conduit.creche-focus/v1",
+        "show_id": "show/1164119d0bd9041d90a1a37915dd7dc775a1d85599fb7c56485afa02f388b23f"
+      }
+    },
+    {
+      "source": "outputs/5992-details-narrow-01d9a08e4-bounded30/details-page-11.ppm",
+      "source_sha256": "5beaa004a0b438513a6bc88ac7e70bed28525c7cb675222280acc38caa0b84d5",
+      "pixels_sha256": "2192118808c63dc173a1fd676a288456a93a184b10de2455a6310aae62aece85",
+      "preview": "details-narrow-details-page-11.png",
+      "preview_sha256": "3bcfcd71db3b24498a9daaa67cb2164d0cce32a847ea66cfbf94891d403075ff",
+      "width": 640,
+      "height": 480,
+      "transform": "Lossless RGB P6 to PNG; no scaling/crop/edit",
+      "focus": {
+        "action_id": null,
+        "argument_name": null,
+        "display_bounds": {
+          "height": 480,
+          "width": 640,
+          "x": 0,
+          "y": 0
+        },
+        "face_id": "807aa361a1cc819f8be8325deae1eb351de76c8afcdbe883dcd50dac781323d0",
+        "face_revision": 1,
+        "hit_bounds": null,
+        "page": 11,
+        "pages": 21,
+        "schema": "conduit.creche-focus/v1",
+        "show_id": "show/1164119d0bd9041d90a1a37915dd7dc775a1d85599fb7c56485afa02f388b23f"
+      }
+    },
+    {
+      "source": "outputs/5992-details-narrow-01d9a08e4-bounded30/details-page-12.ppm",
+      "source_sha256": "0b46e1f953b05845db6c3c0689d6a9734f9c18287534f65c79e2a94f1bd128b8",
+      "pixels_sha256": "f908960561c79226fee200c6fd5ce136365d3f5a4a93e9c3fb129a2c33815182",
+      "preview": "details-narrow-details-page-12.png",
+      "preview_sha256": "e7a603fa2125d9a52f1b089c99850c977fcf0ecc2e95dd2e687d37e33fb093e3",
+      "width": 640,
+      "height": 480,
+      "transform": "Lossless RGB P6 to PNG; no scaling/crop/edit",
+      "focus": {
+        "action_id": null,
+        "argument_name": null,
+        "display_bounds": {
+          "height": 480,
+          "width": 640,
+          "x": 0,
+          "y": 0
+        },
+        "face_id": "807aa361a1cc819f8be8325deae1eb351de76c8afcdbe883dcd50dac781323d0",
+        "face_revision": 1,
+        "hit_bounds": null,
+        "page": 12,
+        "pages": 21,
+        "schema": "conduit.creche-focus/v1",
+        "show_id": "show/1164119d0bd9041d90a1a37915dd7dc775a1d85599fb7c56485afa02f388b23f"
+      }
+    },
+    {
+      "source": "outputs/5992-details-narrow-01d9a08e4-bounded30/details-page-13.ppm",
+      "source_sha256": "9fdeaacc41f421cbb5d2dd5f4ea98de9bb2810351294c123538bc31e838012dd",
+      "pixels_sha256": "3eabdc8b8112d47b7e916aa311cba143c8bd247cfb319396a06b6ab90375d444",
+      "preview": "details-narrow-details-page-13.png",
+      "preview_sha256": "ca99eb0ad90e29595e32f36f46db781f809061cc75a645662a85c88efd9bd8ee",
+      "width": 640,
+      "height": 480,
+      "transform": "Lossless RGB P6 to PNG; no scaling/crop/edit",
+      "focus": {
+        "action_id": null,
+        "argument_name": null,
+        "display_bounds": {
+          "height": 480,
+          "width": 640,
+          "x": 0,
+          "y": 0
+        },
+        "face_id": "807aa361a1cc819f8be8325deae1eb351de76c8afcdbe883dcd50dac781323d0",
+        "face_revision": 1,
+        "hit_bounds": null,
+        "page": 13,
+        "pages": 21,
+        "schema": "conduit.creche-focus/v1",
+        "show_id": "show/1164119d0bd9041d90a1a37915dd7dc775a1d85599fb7c56485afa02f388b23f"
+      }
+    },
+    {
+      "source": "outputs/5992-details-narrow-01d9a08e4-bounded30/details-page-14.ppm",
+      "source_sha256": "bfbd3b9a3404fa458417e3632c7a73701183612b0c8e89e812ede46be058f065",
+      "pixels_sha256": "ca6895d84e92998c907c2c6850f2fdaf07cfd51383bda67518c5df75eb033545",
+      "preview": "details-narrow-details-page-14.png",
+      "preview_sha256": "7629d568ddbad33bdac7a029143380dae0c763433bda95b7c76072dc1120cfc1",
+      "width": 640,
+      "height": 480,
+      "transform": "Lossless RGB P6 to PNG; no scaling/crop/edit",
+      "focus": {
+        "action_id": null,
+        "argument_name": null,
+        "display_bounds": {
+          "height": 480,
+          "width": 640,
+          "x": 0,
+          "y": 0
+        },
+        "face_id": "807aa361a1cc819f8be8325deae1eb351de76c8afcdbe883dcd50dac781323d0",
+        "face_revision": 1,
+        "hit_bounds": null,
+        "page": 14,
+        "pages": 21,
+        "schema": "conduit.creche-focus/v1",
+        "show_id": "show/1164119d0bd9041d90a1a37915dd7dc775a1d85599fb7c56485afa02f388b23f"
+      }
+    },
+    {
+      "source": "outputs/5992-details-narrow-01d9a08e4-bounded30/details-page-15.ppm",
+      "source_sha256": "a7c7b21185f1b14cb1bd7bbb1313c2c0dc68b0bc0f8ef5bd4b01fc4472232206",
+      "pixels_sha256": "c6d640c651eba9f3929d1172639f485ca8e0e7db96fdeb6d9ef1256a26a2b025",
+      "preview": "details-narrow-details-page-15.png",
+      "preview_sha256": "4d54bdc085c396ee0ceb22b4690f0d1f474cfc9b7b786d2cf6b9657f62e53378",
+      "width": 640,
+      "height": 480,
+      "transform": "Lossless RGB P6 to PNG; no scaling/crop/edit",
+      "focus": {
+        "action_id": null,
+        "argument_name": null,
+        "display_bounds": {
+          "height": 480,
+          "width": 640,
+          "x": 0,
+          "y": 0
+        },
+        "face_id": "807aa361a1cc819f8be8325deae1eb351de76c8afcdbe883dcd50dac781323d0",
+        "face_revision": 1,
+        "hit_bounds": null,
+        "page": 15,
+        "pages": 21,
+        "schema": "conduit.creche-focus/v1",
+        "show_id": "show/1164119d0bd9041d90a1a37915dd7dc775a1d85599fb7c56485afa02f388b23f"
+      }
+    },
+    {
+      "source": "outputs/5992-details-narrow-01d9a08e4-bounded30/details-page-16.ppm",
+      "source_sha256": "ef349f2159bc0e216a5025b5f86245c6199afdbe8226bf7084d4032782a32336",
+      "pixels_sha256": "0c912991f0fd352594e92ad8a888550b3be28e397317b2a065b9a38723e25b6f",
+      "preview": "details-narrow-details-page-16.png",
+      "preview_sha256": "fc0dea805dbcabdd01e39b4e577956973afbb20e6f25b3135d7ef157cace2bfa",
+      "width": 640,
+      "height": 480,
+      "transform": "Lossless RGB P6 to PNG; no scaling/crop/edit",
+      "focus": {
+        "action_id": null,
+        "argument_name": null,
+        "display_bounds": {
+          "height": 480,
+          "width": 640,
+          "x": 0,
+          "y": 0
+        },
+        "face_id": "807aa361a1cc819f8be8325deae1eb351de76c8afcdbe883dcd50dac781323d0",
+        "face_revision": 1,
+        "hit_bounds": null,
+        "page": 16,
+        "pages": 21,
+        "schema": "conduit.creche-focus/v1",
+        "show_id": "show/1164119d0bd9041d90a1a37915dd7dc775a1d85599fb7c56485afa02f388b23f"
+      }
+    },
+    {
+      "source": "outputs/5992-details-narrow-01d9a08e4-bounded30/details-page-17.ppm",
+      "source_sha256": "102c93f960f8dc2ae5756b035d4d36d077f3af17e8e22cbad0643557b3446068",
+      "pixels_sha256": "1b657c5e106672ea1fef87a46c0a21e74f8902f52aa1ad3d66be861855aa13ab",
+      "preview": "details-narrow-details-page-17.png",
+      "preview_sha256": "5f360231535b43fa16c5a943c371525b690feb43b7ab0cda438f487d1de0ae94",
+      "width": 640,
+      "height": 480,
+      "transform": "Lossless RGB P6 to PNG; no scaling/crop/edit",
+      "focus": {
+        "action_id": null,
+        "argument_name": null,
+        "display_bounds": {
+          "height": 480,
+          "width": 640,
+          "x": 0,
+          "y": 0
+        },
+        "face_id": "807aa361a1cc819f8be8325deae1eb351de76c8afcdbe883dcd50dac781323d0",
+        "face_revision": 1,
+        "hit_bounds": null,
+        "page": 17,
+        "pages": 21,
+        "schema": "conduit.creche-focus/v1",
+        "show_id": "show/1164119d0bd9041d90a1a37915dd7dc775a1d85599fb7c56485afa02f388b23f"
+      }
+    },
+    {
+      "source": "outputs/5992-details-narrow-01d9a08e4-bounded30/details-page-18.ppm",
+      "source_sha256": "832bfd6a1e1d5c3dc8340193e90803de36c13cb24d4143dc5a8cfc2d402b9db2",
+      "pixels_sha256": "4157edfec1fd8068594abd3927ade1c40dc7290c846674c1b3664ae5f6103e43",
+      "preview": "details-narrow-details-page-18.png",
+      "preview_sha256": "86b4a7cad9e3519cc9bed85e329d0966be4178fe3c6eb62266e8a38f4847d571",
+      "width": 640,
+      "height": 480,
+      "transform": "Lossless RGB P6 to PNG; no scaling/crop/edit",
+      "focus": {
+        "action_id": null,
+        "argument_name": null,
+        "display_bounds": {
+          "height": 480,
+          "width": 640,
+          "x": 0,
+          "y": 0
+        },
+        "face_id": "807aa361a1cc819f8be8325deae1eb351de76c8afcdbe883dcd50dac781323d0",
+        "face_revision": 1,
+        "hit_bounds": null,
+        "page": 18,
+        "pages": 21,
+        "schema": "conduit.creche-focus/v1",
+        "show_id": "show/1164119d0bd9041d90a1a37915dd7dc775a1d85599fb7c56485afa02f388b23f"
+      }
+    },
+    {
+      "source": "outputs/5992-details-narrow-01d9a08e4-bounded30/details-page-19.ppm",
+      "source_sha256": "bc973df798deababa73194581a5e2f920b97d75d0839eec3f313b44c7b1767b8",
+      "pixels_sha256": "8777701f6d144dd9ca12ba7a751301c4ea2af32b291d0de725fc6148b62d2c07",
+      "preview": "details-narrow-details-page-19.png",
+      "preview_sha256": "4690f4e0affc0c6b044eb2546659c1a20ea67ea23794351f1f0112979efa6827",
+      "width": 640,
+      "height": 480,
+      "transform": "Lossless RGB P6 to PNG; no scaling/crop/edit",
+      "focus": {
+        "action_id": null,
+        "argument_name": null,
+        "display_bounds": {
+          "height": 480,
+          "width": 640,
+          "x": 0,
+          "y": 0
+        },
+        "face_id": "807aa361a1cc819f8be8325deae1eb351de76c8afcdbe883dcd50dac781323d0",
+        "face_revision": 1,
+        "hit_bounds": null,
+        "page": 19,
+        "pages": 21,
+        "schema": "conduit.creche-focus/v1",
+        "show_id": "show/1164119d0bd9041d90a1a37915dd7dc775a1d85599fb7c56485afa02f388b23f"
+      }
+    },
+    {
+      "source": "outputs/5992-details-narrow-01d9a08e4-bounded30/details-page-20.ppm",
+      "source_sha256": "5883cb63d9be41e11ef32d16c363c2a64f836ed3073621d180aac61e9ce76f80",
+      "pixels_sha256": "0de5301b431f1687c0c76c97589e407f344334d9c18c9091fc4624af2d77fe58",
+      "preview": "details-narrow-details-page-20.png",
+      "preview_sha256": "9f2aae3998e8e1d0bf97bb1975c507c339cd0c7abe098726a59c3559ddef9297",
+      "width": 640,
+      "height": 480,
+      "transform": "Lossless RGB P6 to PNG; no scaling/crop/edit",
+      "focus": {
+        "action_id": null,
+        "argument_name": null,
+        "display_bounds": {
+          "height": 480,
+          "width": 640,
+          "x": 0,
+          "y": 0
+        },
+        "face_id": "807aa361a1cc819f8be8325deae1eb351de76c8afcdbe883dcd50dac781323d0",
+        "face_revision": 1,
+        "hit_bounds": null,
+        "page": 20,
+        "pages": 21,
+        "schema": "conduit.creche-focus/v1",
+        "show_id": "show/1164119d0bd9041d90a1a37915dd7dc775a1d85599fb7c56485afa02f388b23f"
+      }
+    },
+    {
+      "source": "outputs/5992-details-narrow-01d9a08e4-bounded30/details-page-21.ppm",
+      "source_sha256": "dd22732db6de649318b21a3c52083cdd4fb2221d0059dbddd6d2adee46d16616",
+      "pixels_sha256": "3783500d555463946be4108998ee399b253b4830619c770d204ffb48a7d2f506",
+      "preview": "details-narrow-details-page-21.png",
+      "preview_sha256": "85f4ac4f9990a0392490624bb8c7823a9fba20ae489cc28a8ba188b0c15432d3",
+      "width": 640,
+      "height": 480,
+      "transform": "Lossless RGB P6 to PNG; no scaling/crop/edit",
+      "focus": {
+        "action_id": null,
+        "argument_name": null,
+        "display_bounds": {
+          "height": 480,
+          "width": 640,
+          "x": 0,
+          "y": 0
+        },
+        "face_id": "807aa361a1cc819f8be8325deae1eb351de76c8afcdbe883dcd50dac781323d0",
+        "face_revision": 1,
+        "hit_bounds": null,
+        "page": 21,
+        "pages": 21,
+        "schema": "conduit.creche-focus/v1",
+        "show_id": "show/1164119d0bd9041d90a1a37915dd7dc775a1d85599fb7c56485afa02f388b23f"
+      }
+    },
+    {
+      "source": "outputs/5992-details-narrow-01d9a08e4-bounded30/returned-primary.ppm",
+      "source_sha256": "01f78029a42644e5fcd5d79cea9f674ed2511a1f31d9118e2df85235ca3623c5",
+      "pixels_sha256": "6ad583a5838bbba4c6f381e95310cd623ea0797dfae0c5f7b175829a3723c9a6",
+      "preview": "details-narrow-returned-primary.png",
+      "preview_sha256": "2346af645dd8e2a45f09d2c843623b8085a07639989aa5a67b7ccce7ce7fae91",
+      "width": 640,
+      "height": 480,
+      "transform": "Lossless RGB P6 to PNG; no scaling/crop/edit",
+      "focus": {
+        "action_id": null,
+        "argument_name": null,
+        "display_bounds": {
+          "height": 480,
+          "width": 640,
+          "x": 0,
+          "y": 0
+        },
+        "face_id": "807aa361a1cc819f8be8325deae1eb351de76c8afcdbe883dcd50dac781323d0",
+        "face_revision": 1,
+        "hit_bounds": null,
+        "page": 1,
+        "pages": 3,
+        "schema": "conduit.creche-focus/v1",
+        "show_id": "show/1164119d0bd9041d90a1a37915dd7dc775a1d85599fb7c56485afa02f388b23f"
+      }
+    }
+  ],
+  "boundary": "Format conversion only; visual inspection recorded separately"
+}

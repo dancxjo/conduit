@@ -31,10 +31,18 @@ try:
     before = len(g.records('CONDUIT_CRECHE_CHANGE '))
     g.local('f2')
     pages = g.focus()['pages']
-    assert 1 <= pages <= 16, 'proof capture bound; product admission is separate'
+    # Imported harness admits 32 captures; reserve two for primary views.
+    assert 1 <= pages <= 30, 'proof capture bound; product admission is separate'
     g.receipt['details_pages'] = pages
     # Ordinary page input only; every page has an acknowledged focus observation.
-    g.capture_pages('details')
+    for _ in range(g.focus()['page'] - 1):
+        g.local('pgup')
+    for page in range(1, pages + 1):
+        assert g.focus()['page'] == page
+        assert g.focus()['pages'] == pages
+        g.capture(f'details-page-{page}')
+        if page < pages:
+            g.local('pgdn')
     assert g.face() == initial, 'Details changed authoritative Face/Show'
     assert len(g.records('CONDUIT_CRECHE_CHANGE ')) == before
     g.local('f2')

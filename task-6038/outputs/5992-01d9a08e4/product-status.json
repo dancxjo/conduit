@@ -1,0 +1,28 @@
+[
+  {
+    "name": "normal-product-build",
+    "args": [
+      "cargo",
+      "+stable",
+      "xtask",
+      "make",
+      "conduitos",
+      "live",
+      "x86_64",
+      "--locked"
+    ],
+    "status": 0,
+    "seconds": 438.43849635124207,
+    "free_before": 73296883712
+  },
+  {
+    "name": "seven-guest-proofs",
+    "args": [
+      "python3",
+      "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/run-5992-01d9a08e4-product-proof.py"
+    ],
+    "status": 1,
+    "seconds": 322.659131526947,
+    "free_before": 72568360960
+  }
+]

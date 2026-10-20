@@ -1,0 +1,11 @@
+    Finished `dev` profile [unoptimized] target(s) in 0.13s
+     Running `/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/conduit-xtask-dispatch make conduitos headless-proof /home/dancxjo/Documents/Codex/2026-10-19/goal-6038/outputs/5992-headless-01d9a08e4`
+    Finished `dev` profile [unoptimized] target(s) in 0.16s
+     Running `/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/xtask make conduitos headless-proof /home/dancxjo/Documents/Codex/2026-10-19/goal-6038/outputs/5992-headless-01d9a08e4`
+error: unrecognized subcommand 'headless-proof'
+
+  tip: some similar subcommands exist: 'xhci-proof', 'opl2-proof', 'usb-proof', 'rescue-proof', 'help', 'hid-proof'
+
+Usage: xtask make conduitos [OPTIONS] <COMMAND>
+
+For more information, try '--help'.

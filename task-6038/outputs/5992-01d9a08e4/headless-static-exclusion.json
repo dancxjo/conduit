@@ -1,0 +1,50 @@
+{
+  "source": "01d9a08e4d8925a0b81ff4e561500d7ceb5e6e2f",
+  "image": {
+    "role": "final-bootable-image",
+    "file": "conduitos-x86_64.iso",
+    "sha256": "01a92f4995b0fb62e142a77d99d99ef5579e8b1f5d0475b3fa7c6b6bc1f7e84d"
+  },
+  "kernel": {
+    "role": "freestanding-kernel",
+    "file": "conduitos-kernel.elf",
+    "sha256": "26d4dafb7098c397eb6ded0b5af21d981484d97711dca6e379dbb6a829948027"
+  },
+  "proof_class": "read-only final ELF inspection; not emulator proof",
+  "symbol_inspection": {
+    "status": "unavailable: final ELF stripped; nm stdout empty",
+    "nm_exit": 0,
+    "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stderr_sha256": "d38e5a384aa6e9b39638b548481690fadb1d9c33f573f34896b78540cd552d8a",
+    "symbol_exclusion_proved": false
+  },
+  "font_assets": [
+    {
+      "path": "targets/conduitos/assets/fonts/dejavu/DejaVuSans.ttf",
+      "sha256": "7da195a74c55bef988d0d48f9508bd5d849425c1770dba5d7bfc6ce9ed848954",
+      "bytes": 757076,
+      "complete_font_absent_from_elf": true
+    },
+    {
+      "path": "targets/conduitos/assets/fonts/dejavu/DejaVuSansMono.ttf",
+      "sha256": "b4a6c3e4faab8773f4ff761d56451646409f29abedd68f05d38c2df667d3c582",
+      "bytes": 340712,
+      "complete_font_absent_from_elf": true
+    },
+    {
+      "path": "targets/conduitos/assets/fonts/dejavu/DejaVuSerif.ttf",
+      "sha256": "42d1edeb7952f31b1f96d767ed7030b08a39e0c372b0071641518864e2bffb51",
+      "bytes": 380132,
+      "complete_font_absent_from_elf": true
+    }
+  ],
+  "graphical_selections": {
+    "presenters": [],
+    "facilities": [],
+    "resource_budgets": [],
+    "base_selections": [],
+    "driver_selections": [],
+    "host_calls": []
+  },
+  "boundary": "Supported headless image build passed. Existing headless proof module is not registered in CLI, so requested command refused before boot; even registration alone would encounter stripped ELF. Complete pinned font-byte absence only is verified here, not arbitrary generated raster/resource absence or graphical symbol absence. No headless runtime or unsupported-startup claim. Raw failures retained. No Source changes."
+}

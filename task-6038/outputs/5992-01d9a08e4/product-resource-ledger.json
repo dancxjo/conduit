@@ -1,0 +1,181 @@
+{
+  "source_base": "9c2847e431280ea1ed816ae1f09bd065b8b587aa",
+  "scope": "Actual supported normal product freestanding generated resources; image and ELF separately measured; guest proof separate",
+  "active_out_dir": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/x86_64-unknown-none/release/build/conduitos-35f5f48901d36388/out",
+  "active_include": "targets/conduitos/src/display/typography.rs concat!(env!(OUT_DIR), native_typography.rs/native_coverage.bin)",
+  "generator_sha256": "068e09fbac7dec490bf92891626799ac22f6f5b2adaab48e5d04593341582948",
+  "source_manifest_sha256": "27741cd141affb92b521bbe9042bf39db8012d6058fe445cc8fd00779b0d75ea",
+  "fontdue_version": "0.9.3 make-only pinned Cargo dependency, no manifest change",
+  "corpus_source_sha256": {
+    "subset": "36dc9161951eb379c10013143b2cb6b99119a64e02add3e8bdba6cac20a2e127",
+    "names": "a1d4e4b5304b16ca1f0397e9c17085a55aa8752dc8afb13bb0bb0f56949027a4"
+  },
+  "source_corpus_scalars": 1000,
+  "smooth_scalars_each_profile": 990,
+  "rescue_scalars": [
+    888,
+    889,
+    896,
+    897,
+    898,
+    899,
+    907,
+    909,
+    930,
+    20013
+  ],
+  "glyph_records": 4950,
+  "coverage_bytes": 761651,
+  "glyph_record_bytes": 118800,
+  "profile_bytes": 20,
+  "ensemble_static_bytes": 880471,
+  "historical_355_coverage_bytes": 745507,
+  "coverage_delta": 16144,
+  "existing_limits": {
+    "profiles": 5,
+    "scalars": 1024,
+    "glyph_edge": 64,
+    "coverage_bytes": 4194304,
+    "font_source_bytes_each": 1048576,
+    "graphics_commands": 48,
+    "text_payload_bytes": 192,
+    "page_rows": 20,
+    "compositor_surfaces": 8
+  },
+  "profiles": [
+    {
+      "profile": "0",
+      "font": "DejaVuSans.ttf",
+      "size": "14",
+      "glyphs": "990",
+      "fallbacks": "0",
+      "coverage_bytes": "95775",
+      "ascent": "15",
+      "line_height": "20",
+      "left_ink": "15",
+      "right_overhang": "2",
+      "max_width": 21,
+      "max_height": 19
+    },
+    {
+      "profile": "1",
+      "font": "DejaVuSans.ttf",
+      "size": "16",
+      "glyphs": "990",
+      "fallbacks": "0",
+      "coverage_bytes": "122236",
+      "ascent": "17",
+      "line_height": "23",
+      "left_ink": "17",
+      "right_overhang": "2",
+      "max_width": 24,
+      "max_height": 22
+    },
+    {
+      "profile": "2",
+      "font": "DejaVuSans.ttf",
+      "size": "20",
+      "glyphs": "990",
+      "fallbacks": "0",
+      "coverage_bytes": "184808",
+      "ascent": "22",
+      "line_height": "29",
+      "left_ink": "21",
+      "right_overhang": "2",
+      "max_width": 30,
+      "max_height": 27
+    },
+    {
+      "profile": "3",
+      "font": "DejaVuSerif.ttf",
+      "size": "24",
+      "glyphs": "990",
+      "fallbacks": "66",
+      "coverage_bytes": "274804",
+      "ascent": "26",
+      "line_height": "34",
+      "left_ink": "25",
+      "right_overhang": "4",
+      "max_width": 35,
+      "max_height": 32
+    },
+    {
+      "profile": "4",
+      "font": "DejaVuSansMono.ttf",
+      "size": "14",
+      "glyphs": "990",
+      "fallbacks": "113",
+      "coverage_bytes": "84028",
+      "ascent": "15",
+      "line_height": "20",
+      "left_ink": "15",
+      "right_overhang": "8",
+      "max_width": 21,
+      "max_height": 19
+    }
+  ],
+  "generated_files": {
+    "native_typography.rs": {
+      "sha256": "8386f66424c5a48e63077fb63c396901603ac3cd6da1c39b3c251dffcd7e8eef",
+      "bytes": 512970
+    },
+    "native_coverage.bin": {
+      "sha256": "40e2501492b27bdeff988866ced595e310b8753935af43bb773ea8121dfb0370",
+      "bytes": 761651
+    },
+    "native_typography_resources.tsv": {
+      "sha256": "b1cbb5dd8ca08682e9f5d2ef25e1169f9a1a1a69eb85971747c473b859e2dca5",
+      "bytes": 319
+    }
+  },
+  "boundary": "Static ensemble880471B excludes existing rescue subset and code. Actual ELF/image measured separately; BSS is not peak runtime memory. No runtime font parsing/growing font allocation; allocation test scope remains640 render_text calls on stack Surface, not entire NativeFaceScene::frame. Scalar/zero-advance command handling is not full shaping. Fixed Host mechanism, no Look selection; deferred5628/5629.",
+  "source": "01d9a08e4d8925a0b81ff4e561500d7ceb5e6e2f",
+  "matches_prior_generated_bytes": {
+    "native_typography.rs": true,
+    "native_coverage.bin": true,
+    "native_typography_resources.tsv": true
+  },
+  "product": {
+    "source_identity": "01d9a08e4d8925a0b81ff4e561500d7ceb5e6e2f",
+    "image": {
+      "role": "final-bootable-image",
+      "file": "conduitos-x86_64.iso",
+      "sha256": "0fe17e8a80c737e858d4d523ba99e323d4b5bc2983f8372e9fb26616cdfbfa51"
+    },
+    "kernel": {
+      "role": "freestanding-kernel",
+      "file": "conduitos-kernel.elf",
+      "sha256": "18d0fd03f96dedb18ff11367324e26016cf079c29629c2cd194b08ae6be87225"
+    },
+    "profile_id": "sha256:0cff773abd0b177ddcbac249c7a9ce22ed4e9fdb9151a5683c03d0f8acf4f5cd",
+    "build_id": "build:sha256:240605272b1d009d057dbfaf3e5f00656f7ffdf882aa0c9da373dcc0f1cb80c1",
+    "image_bytes": 21178368,
+    "elf_file_bytes": 16905920,
+    "elf_sections": {
+      "text": 15236835,
+      "data": 73768,
+      "bss": 1581056,
+      "sum": 16891659,
+      "boundary": "GNU size section totals, not peak runtime heap or font-only size. No attribution to font delta across unrelated base changes."
+    }
+  },
+  "resolved_bounds": {
+    "static_memory_bytes": 8388608,
+    "heap_arena_bytes": 268435456,
+    "queue_items": 1024,
+    "buffered_bytes": 8388608,
+    "active_instances": 128,
+    "operation_slots": 64,
+    "timer_slots": 32,
+    "line_sessions": 8,
+    "evidence_items": 1024
+  },
+  "resolved_resource_budgets": [
+    {
+      "id": "surface/main",
+      "class": "face/surface",
+      "slots": 4,
+      "bytes": 8388608
+    }
+  ]
+}

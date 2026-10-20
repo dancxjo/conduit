@@ -1,0 +1,51 @@
+[
+  {
+    "name": "details-narrow-bounded30",
+    "args": [
+      "python3",
+      "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/5992-runners/prove-typography-details.py",
+      "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/outputs/5992-product-01d9a08e4",
+      "01d9a08e4d8925a0b81ff4e561500d7ceb5e6e2f",
+      "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/outputs/5992-details-narrow-01d9a08e4-bounded30",
+      "--harness",
+      "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/6158-runners-e1c6dda63/prove-5990-panels-qemu.py",
+      "--width",
+      "640"
+    ],
+    "status": 0,
+    "seconds": 22.31988501548767,
+    "free_before": 72421511168
+  },
+  {
+    "name": "headless-build",
+    "args": [
+      "cargo",
+      "+stable",
+      "xtask",
+      "make",
+      "host",
+      "build",
+      "targets/conduitos/profiles/conduitos-x86_64-pc.host.conduit",
+      "--output",
+      "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/outputs/5992-headless-01d9a08e4"
+    ],
+    "status": 0,
+    "seconds": 134.1872124671936,
+    "free_before": 72399904768
+  },
+  {
+    "name": "headless-proof",
+    "args": [
+      "cargo",
+      "+stable",
+      "xtask",
+      "make",
+      "conduitos",
+      "headless-proof",
+      "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/outputs/5992-headless-01d9a08e4"
+    ],
+    "status": 2,
+    "seconds": 0.36188745498657227,
+    "free_before": 71508496384
+  }
+]

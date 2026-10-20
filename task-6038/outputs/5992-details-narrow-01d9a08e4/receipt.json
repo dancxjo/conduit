@@ -1,0 +1,187 @@
+{
+  "source": "01d9a08e4d8925a0b81ff4e561500d7ceb5e6e2f",
+  "proof_runner_sha256": "026db27fe9c59d851fea4500a5e11f97670793650d10a2861d6731430e6230e6",
+  "image_sha256": "0fe17e8a80c737e858d4d523ba99e323d4b5bc2983f8372e9fb26616cdfbfa51",
+  "proof_class": "freestanding-emulator",
+  "viewport": [
+    640,
+    480
+  ],
+  "status": "failed",
+  "captures": [
+    {
+      "file": "primary.ppm",
+      "sha256": "a4ce114b045b0507b30a048d0dd0832a856a167ba385b0bd698adf7d1abe45ba",
+      "focus": {
+        "action_id": "creche.name",
+        "argument_name": "value",
+        "display_bounds": {
+          "height": 480,
+          "width": 640,
+          "x": 0,
+          "y": 0
+        },
+        "face_id": "34f4c6572c30dc2dd145cd97d821c57591101b2661018b14a4623ea2c1b0b240",
+        "face_revision": 1,
+        "hit_bounds": {
+          "height": 36,
+          "width": 588,
+          "x": 40,
+          "y": 147
+        },
+        "page": 2,
+        "pages": 3,
+        "schema": "conduit.creche-focus/v1",
+        "show_id": "show/428e245d52ec485fb510600c718dad77ea8d37df57c0227d3e9b063acced7ede"
+      }
+    }
+  ],
+  "edits": [],
+  "argv": [
+    "qemu-system-x86_64",
+    "-M",
+    "q35",
+    "-cpu",
+    "max",
+    "-m",
+    "512M",
+    "-smp",
+    "1",
+    "-display",
+    "none",
+    "-vga",
+    "std",
+    "-global",
+    "VGA.xres=640",
+    "-global",
+    "VGA.yres=480",
+    "-monitor",
+    "none",
+    "-qmp",
+    "unix:/tmp/creche-panels-pq9u0_nc/qmp,server=on,wait=off",
+    "-serial",
+    "file:/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/outputs/5992-details-narrow-01d9a08e4/serial.log",
+    "-no-reboot",
+    "-net",
+    "none",
+    "-device",
+    "qemu-xhci,id=conduitos-xhci,p2=3,p3=0",
+    "-device",
+    "usb-kbd,id=conduitos-keyboard,bus=conduitos-xhci.0,port=1",
+    "-device",
+    "usb-mouse,id=conduitos-pointer,bus=conduitos-xhci.0,port=2",
+    "-cdrom",
+    "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/outputs/5992-product-01d9a08e4/conduitos-x86_64.iso",
+    "-boot",
+    "d"
+  ],
+  "owned_pid": 2302679,
+  "arrival_observed_ms": 20272.222,
+  "chapter_runner_sha256": "f1e5c189d658ee8da640e0276e3a164c5104810955a7409a5263263ad6449f95",
+  "harness_sha256": "026db27fe9c59d851fea4500a5e11f97670793650d10a2861d6731430e6230e6",
+  "typed_identity_properties": [
+    [
+      1,
+      {
+        "name": "value-change-action",
+        "subject": "birth/conduitos/creche/current/body-name",
+        "value": {
+          "Identity": "creche.name"
+        }
+      }
+    ],
+    [
+      3,
+      {
+        "name": "value-change-action",
+        "subject": "birth/conduitos/creche/current/name-system",
+        "value": {
+          "Identity": "creche.naming"
+        }
+      }
+    ],
+    [
+      5,
+      {
+        "name": "value-change-action",
+        "subject": "birth/conduitos/creche/current/plot-search",
+        "value": {
+          "Identity": "creche.search"
+        }
+      }
+    ],
+    [
+      7,
+      {
+        "name": "boolean-change-action",
+        "subject": "birth/conduitos/creche/current/initial-plots/0",
+        "value": {
+          "Identity": "creche.plot.0"
+        }
+      }
+    ],
+    [
+      9,
+      {
+        "name": "boolean-change-action",
+        "subject": "birth/conduitos/creche/current/initial-plots/1",
+        "value": {
+          "Identity": "creche.plot.1"
+        }
+      }
+    ],
+    [
+      11,
+      {
+        "name": "boolean-change-action",
+        "subject": "birth/conduitos/creche/current/initial-plots/2",
+        "value": {
+          "Identity": "creche.plot.2"
+        }
+      }
+    ],
+    [
+      13,
+      {
+        "name": "boolean-change-action",
+        "subject": "birth/conduitos/creche/current/initial-plots/3",
+        "value": {
+          "Identity": "creche.plot.3"
+        }
+      }
+    ],
+    [
+      15,
+      {
+        "name": "boolean-change-action",
+        "subject": "birth/conduitos/creche/current/initial-plots/4",
+        "value": {
+          "Identity": "creche.plot.4"
+        }
+      }
+    ],
+    [
+      16,
+      {
+        "name": "host-id",
+        "subject": "birth/conduitos/creche/current",
+        "value": {
+          "Identity": "fd8cef00f21598fbe6728772c864b78bcc3f518b79309bc0681673e46722c9dc"
+        }
+      }
+    ],
+    [
+      17,
+      {
+        "name": "boot-id",
+        "subject": "birth/conduitos/creche/current",
+        "value": {
+          "Identity": "cf4e17b440c374928e5eab85ad6693361d7533001e357880fd23c30f3a55d02e"
+        }
+      }
+    ]
+  ],
+  "role_evidence": "CPU provenance-to-Code tests; screenshots inspected separately",
+  "error": "AssertionError('proof capture bound; product admission is separate')",
+  "exit_code": 0
+}

@@ -1,0 +1,126 @@
+{
+  "source": "01d9a08e4d8925a0b81ff4e561500d7ceb5e6e2f",
+  "tree": "ea15d9b03ee743b7bee30474fa0a0854d84caf9a",
+  "clean": true,
+  "status": "graphical and hosted checks passed; headless proof blocked before boot",
+  "normal_image_sha256": "0fe17e8a80c737e858d4d523ba99e323d4b5bc2983f8372e9fb26616cdfbfa51",
+  "checks": {
+    "preflight": 296,
+    "typography": 20,
+    "native_face": 113,
+    "allocation": 2,
+    "strict_clippy": true,
+    "format": true,
+    "normal_journey_checkpoints": 22,
+    "normal_panel_pointer_runs": 4,
+    "details_wide_pages": 8,
+    "details_narrow_pages": 21
+  },
+  "headless": {
+    "build": "passed",
+    "image_sha256": "01a92f4995b0fb62e142a77d99d99ef5579e8b1f5d0475b3fa7c6b6bc1f7e84d",
+    "proof": "blocked: command is not registered; existing proof also requires unavailable symbols in stripped final ELF",
+    "emulator_started": false
+  },
+  "negative_evidence": {
+    "narrow_details_original": "16-page proof harness cap; product reported21pages. Corrected bounded30 runner passed newpacket. All oldfiles untouched.",
+    "headless_cli": "Unrecognized subcommand; no boot attempted.",
+    "headless_symbols": "nm reports no symbols; entry validation unavailable; no false graphical-symbol absence claim."
+  },
+  "proof_class": "hosted CPU conformance plus normal-product QEMU; no CI/stable/physical/human/Look selection claim",
+  "files": {
+    "outputs/5992-01d9a08e4/local-checks.json": {
+      "sha256": "8b2c2ecf1e56fa497f999cc4da613c09699f7ae5e29542fd5f88c7d3168771d7",
+      "bytes": 9014
+    },
+    "outputs/5992-01d9a08e4/product-resource-ledger.json": {
+      "sha256": "a9edc436eaf6576eebd09144e633a24579f392e76cad6f9f329205d26062d51a",
+      "bytes": 5739
+    },
+    "outputs/5992-01d9a08e4/graphical-audit.json": {
+      "sha256": "c45fef532e27024bfd95e379313d58097fd77097d3e82bc6ec176a43d955340e",
+      "bytes": 2766
+    },
+    "outputs/5992-01d9a08e4/headless-static-exclusion.json": {
+      "sha256": "dc0830b455c755d73ee0eb21b1df1faf339dd7e5f140127b32fe0be7fce610c7",
+      "bytes": 2148
+    },
+    "outputs/5992-01d9a08e4/product-status.json": {
+      "sha256": "19d12f50a97557bcaf845714c40c234586f3cbedaaa71b477d60a90ef7b4ffe0",
+      "bytes": 541
+    },
+    "outputs/5992-01d9a08e4/continuation-status.json": {
+      "sha256": "c04dd134a26aa1790ba34f0bedc8eb7d8ed2ff7a9e0a5601586e8d44697ba07e",
+      "bytes": 1438
+    },
+    "outputs/5992-typography-proof-01d9a08e4/receipt.json": {
+      "sha256": "bc6f6edb747327d66372ef67796d35564466c354c21bff7e9fdfa846a14e3045",
+      "bytes": 24703
+    },
+    "outputs/5992-visual-01d9a08e4/receipt.json": {
+      "sha256": "a4635632dd834382bbf3adae5564ef65105d194cc2f9d867857a4a67a2159140",
+      "bytes": 40974
+    },
+    "outputs/5992-unicode-visual-01d9a08e4/receipt.json": {
+      "sha256": "b08062b03c06a7595972106728c550c134ef22a3c421be06b4be818c8a81371f",
+      "bytes": 11353
+    },
+    "outputs/5992-native-face-byte-audit-01d9a08e4/receipt.json": {
+      "sha256": "89545f2ac6dc0e249ccb658def1691fb34022f904b3303e93ddc57fcc50d09f9",
+      "bytes": 21962
+    },
+    "outputs/5992-details-narrow-01d9a08e4/receipt.json": {
+      "sha256": "8ae02dabaf274d4be624b032c2fcf94aaa75e46069dd224f5ae888f5552fd5f1",
+      "bytes": 4660
+    },
+    "outputs/5992-01d9a08e4/preflight.log": {
+      "sha256": "e29935fb11f64acca79dad9832874a2fd757682eb69e2cecc2b7c406c853100d",
+      "bytes": 30892
+    },
+    "outputs/5992-01d9a08e4/fmt.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "outputs/5992-01d9a08e4/headless-build.log": {
+      "sha256": "199dd9b40892a3b9e7b77d60369ea38955a1494576e9a8705532a757700a4d56",
+      "bytes": 7501
+    },
+    "outputs/5992-01d9a08e4/headless-proof.log": {
+      "sha256": "6d5eb3b81f05a9e31eb6bab942d6078c70eb83362a65f16e017bca0cab47cf1e",
+      "bytes": 832
+    },
+    "outputs/5992-01d9a08e4/typography.log": {
+      "sha256": "06b44538f9da23825378461d8deba84348305062f8505784e6b3b6fccc31c662",
+      "bytes": 11487
+    },
+    "outputs/5992-01d9a08e4/normal-product-build.log": {
+      "sha256": "342e3ca66cf2509151ec5d87f306097c37f0579e0e03e29e031be6e006100ef7",
+      "bytes": 22240
+    },
+    "outputs/5992-01d9a08e4/details-narrow-bounded30.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "outputs/5992-01d9a08e4/font-allocation.log": {
+      "sha256": "b21cac66017be2cae215c949ac0bafb3a03e2d1df63c7ae854a8b016812c7950",
+      "bytes": 601
+    },
+    "outputs/5992-01d9a08e4/setup-ci.log": {
+      "sha256": "d19149af5b13d9fba7ecf1c90a0e35194653570ab73ef837bea98fcd1f6659d2",
+      "bytes": 608
+    },
+    "outputs/5992-01d9a08e4/strict-clippy.log": {
+      "sha256": "bea8237d23a979f7f887193aef7a2ea1ab698cecd785f41c5a79a7aaa825ee89",
+      "bytes": 9041
+    },
+    "outputs/5992-01d9a08e4/native-face.log": {
+      "sha256": "4fd80b0d34ddb5417fb1831604d5db1f795b3edf6944bc5fe3ddf2477685020b",
+      "bytes": 78695
+    },
+    "outputs/5992-01d9a08e4/seven-guest-proofs.log": {
+      "sha256": "1eb0eddc188aa92d34ded3e4b1fdbca3fc597a91505b0dd700896237e31480dc",
+      "bytes": 1783
+    }
+  },
+  "cache_lease": "no owned process active after continuation exit; awaiting parent handoff"
+}

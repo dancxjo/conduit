@@ -1,0 +1,46 @@
+{
+  "source": "01d9a08e4d8925a0b81ff4e561500d7ceb5e6e2f",
+  "image_sha256": "0fe17e8a80c737e858d4d523ba99e323d4b5bc2983f8372e9fb26616cdfbfa51",
+  "graphical_receipt_sha256": "bc6f6edb747327d66372ef67796d35564466c354c21bff7e9fdfa846a14e3045",
+  "retained_files": 125,
+  "inspected_previews": [
+    {
+      "file": "5992-visual-01d9a08e4/panels-wide-arrival.png",
+      "sha256": "3bc2878651e245977056d8aba9c1a21474e5ae4d9770b68048fd6fdb043f13cf"
+    },
+    {
+      "file": "5992-visual-01d9a08e4/panels-narrow-navigation-page-1.png",
+      "sha256": "7aee0bc1192d9c41541725fbae3e2d6de1faa0d0a6d69e0c8c68eaf2a479d156"
+    },
+    {
+      "file": "5992-visual-01d9a08e4/panels-narrow-arrival.png",
+      "sha256": "7023d515edb26147041f5dfe10817fa4ffd41a6f4377aa4e8857b0af1a151e2b"
+    },
+    {
+      "file": "5992-visual-01d9a08e4/details-wide-details-page-3.png",
+      "sha256": "3e66e9f6c2fae06d4b0f8ab682a973ad8447faad48381ccabb95ccf1bc06fd74"
+    },
+    {
+      "file": "5992-visual-01d9a08e4/details-narrow-details-page-8.png",
+      "sha256": "032e3a57207887a34f9f4466452120f98a4e6f67ad76e4bb2aac6808995db204"
+    },
+    {
+      "file": "5992-unicode-visual-01d9a08e4/panels-narrow-long-unicode-committed-page-2.png",
+      "sha256": "1cda536169026c912926055503095c55c70971b2e84cb2707c5e923b93fb5955"
+    }
+  ],
+  "visual_findings": [
+    "Serif title and proportional Sans controls are visible without observed clipping at 1280x800 and 640x480.",
+    "Actual typed Identity provenance clauses in ordinary F2 Details are visibly monospace; Body clauses remain proportional. CPU tests independently establish role mapping to the final frame.",
+    "Narrow help/action/value cluster remains together; the long Unicode committed value wraps visibly with continuation pages."
+  ],
+  "proof_boundaries": [
+    "Seven separate normal-product QEMU boots, same frozen Source and ISO; not physical, human, CI, or stable proof.",
+    "F2 wide: 8 pages / 10 captures used the original runner. Narrow: 21 pages / 23 captures used the corrected 30-page bounded runner. Each raw receipt retains its actual runner hash.",
+    "The original narrow 16-page-bound failed receipt is preserved as a proof harness limit, not a product refusal. No normal run was repeated.",
+    "Normal product screenshots use 100 percent text scale. CPU metrics at every 100..200 percent, layout/raster/caret at 100/125/200, and native 320x240/200 conformance are separate proof.",
+    "Fallback and rescue scalars are proved by CPU corpus/raster tests; no claim that CJK was entered through the native keyboard.",
+    "No full shaping/grapheme guarantee across preexisting 192-byte item chunk boundaries. Fixed Host ensemble only; no Look selection claim."
+  ],
+  "headless": "pending separately"
+}
