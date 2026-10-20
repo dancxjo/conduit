@@ -470,22 +470,22 @@ impl DurableHostRuntime {
             SessionMessage::Accepted { sequence } => {
                 let transfer = admitted
                     .runtime_mut()
-                    .next_egress(endpoint)?
+                    .next_egress_identity(endpoint)?
                     .ok_or_else(|| "remote-egress-absent".to_string())?;
                 if transfer.sequence != sequence {
                     return Err("remote-egress-sequence".into());
                 }
-                admitted.runtime_mut().accept_egress(&transfer)?;
+                admitted.runtime_mut().accept_egress_identity(&transfer)?;
             }
             SessionMessage::Delivered { sequence } => {
                 let transfer = admitted
                     .runtime_mut()
-                    .next_egress(endpoint)?
+                    .next_egress_identity(endpoint)?
                     .ok_or_else(|| "remote-egress-absent".to_string())?;
                 if transfer.sequence != sequence {
                     return Err("remote-egress-sequence".into());
                 }
-                admitted.runtime_mut().deliver_egress(&transfer)?;
+                admitted.runtime_mut().deliver_egress_identity(&transfer)?;
                 drive_remote_fragment(&mut self.host, admitted, &mut responses, cancelled)?;
             }
             SessionMessage::InputClosed { .. } => {

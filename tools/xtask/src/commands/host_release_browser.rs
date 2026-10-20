@@ -13,10 +13,6 @@ pub(super) fn optimize_runtime(
     destination: &Path,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let linked_bytes = fs::metadata(source)?.len();
-    super::require_success(
-        Command::new("wasm-opt").arg("--version"),
-        "identify Binaryen browser optimizer (install wasm-opt if missing)",
-    )?;
     // Stage beside the destination so validated publication is one rename.
     // A failed optimizer or validation leaves the previous package untouched.
     let staged = destination.with_extension(format!("{}.optimized.wasm", std::process::id()));

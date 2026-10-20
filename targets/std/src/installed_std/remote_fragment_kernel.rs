@@ -8,9 +8,7 @@ use super::{
     MAX_NODES, MAX_QUEUE_SLOTS, ROUTE_SLOTS, ROUTE_TARGETS,
 };
 use crate::remote_cord_sessions::RemoteCordSessions;
-use conduit_core::{
-    bind_active_play, kind_id, HostAdvertisement, HostCallContractId, PlanFragment,
-};
+use conduit_core::{bind_active_play, kind_id, HostAdvertisement, PlanFragment};
 use conduit_kernel::scheduler::{HostCallRequest, RemoteIngressOutcome};
 use conduit_kernel::{
     BoundedValueRef, CordId, HostCallDisposition, HostCallOutcome, HostedSignLog, HostedValueStore,
@@ -37,6 +35,23 @@ fn semantic_data_refusal(detail: u16) -> HostCallOutcome {
     }
 }
 
+/// Optional minimum retention admitted before a remote fragment starts.
+/// Counts bound fixed numeric event and remote identity storage; neither can
+/// grow during Play. Zero retains the ordinary operation-derived reservation.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct RemoteSignRetention {
+    pub event_items: u16,
+    pub remote_items: u16,
+}
+
+/// Exact retained offer metadata, without creating a second payload owner.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct RemoteValueIdentity {
+    pub endpoint: RemoteEndpointId,
+    pub cord: CordId,
+    pub sequence: u64,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct RemoteValueTransfer {
     pub endpoint: RemoteEndpointId,
@@ -45,13 +60,8 @@ pub struct RemoteValueTransfer {
     pub bytes: Vec<u8>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct RemoteHostWork {
-    pub request: HostCallRequest,
-    pub contract_id: HostCallContractId,
-    pub maximum_output_bytes: u32,
-    pub input: Vec<u8>,
-}
+mod host_work;
+pub use host_work::{RemoteHostWork, RemoteHostWorkRef};
 
 pub struct InstalledRemoteFragment {
     scheduler: Box<InstalledScheduler>,
@@ -86,6 +96,23 @@ impl InstalledRemoteFragment {
         advertisement: &HostAdvertisement,
         fragment: &PlanFragment,
         play_sequence: u64,
+    ) -> Result<Self, String> {
+        Self::prepare_with_retention(
+            advertisement,
+            fragment,
+            play_sequence,
+            RemoteSignRetention::default(),
+        )
+    }
+
+    /// Prepare the same exact fragment with caller-selected finite Sign retention.
+    /// This reserves storage now; it neither changes the Plan/session identity
+    /// nor retains mutable execution resources across different fragment owners.
+    pub fn prepare_with_retention(
+        advertisement: &HostAdvertisement,
+        fragment: &PlanFragment,
+        play_sequence: u64,
+        retention: RemoteSignRetention,
     ) -> Result<Self, String> {
         if advertisement.host_id != fragment.host_id || advertisement.boot_id != fragment.boot_id {
             return Err("remote fragment preparation requires its exact host and Boot".into());
@@ -147,10 +174,11 @@ impl InstalledRemoteFragment {
             preparation::prepare_operations(fragment, &lowered, &mut values, &play, None, None)?;
         let mut tables = KernelTables::prepare(&[&lowered])?;
         tables.bind_fusions(fragment, &lowered)?;
+        let sign_items = sign_items.max(retention.event_items);
         let sign_bytes = u32::from(sign_items)
             .checked_mul(core::mem::size_of::<conduit_kernel::KernelEvent>() as u32)
             .ok_or_else(|| "remote fragment Sign byte budget overflow".to_string())?;
-        let remote_sign_items = remote_sign_capacity(&lowered)?;
+        let remote_sign_items = remote_sign_capacity(&lowered)?.max(retention.remote_items);
         let remote_sign_bytes = conduit_kernel::remote_sign_storage_bytes(remote_sign_items)
             .ok_or_else(|| "remote fragment remote Sign byte budget overflow".to_string())?;
         let signs = HostedSignLog::new_with_remote_storage(
@@ -223,28 +251,6 @@ impl InstalledRemoteFragment {
     }
     pub fn next_host_request(&mut self) -> Option<HostCallRequest> {
         self.scheduler.next_host_request()
-    }
-    pub fn describe_host_request(
-        &self,
-        request: HostCallRequest,
-    ) -> Result<RemoteHostWork, String> {
-        let operation = self
-            .lowered
-            .host_calls
-            .iter()
-            .find(|operation| operation.node == request.node && operation.call == request.call)
-            .ok_or_else(|| "remote host request has no lowered contract identity".to_string())?;
-        let input = self
-            .scheduler
-            .host_value(request.input.value)
-            .map_err(|error| format!("read remote std host input: {error:?}"))?
-            .to_vec();
-        Ok(RemoteHostWork {
-            request,
-            contract_id: operation.contract_id.clone(),
-            maximum_output_bytes: operation.binding.maximum_output_bytes,
-            input,
-        })
     }
     pub fn complete_host_call(
         &mut self,
@@ -547,12 +553,7 @@ impl InstalledRemoteFragment {
         &mut self,
         endpoint: RemoteEndpointId,
     ) -> Result<Option<RemoteValueTransfer>, String> {
-        let cord = self.endpoint_cord(endpoint, RemoteCordDirection::Egress)?;
-        let Some(offer) = self
-            .scheduler
-            .remote_egress_offer(endpoint, cord)
-            .map_err(|error| format!("offer remote std value: {error:?}"))?
-        else {
+        let Some((cord, offer)) = self.egress_offer(endpoint)? else {
             return Ok(None);
         };
         let bytes = self
@@ -567,15 +568,56 @@ impl InstalledRemoteFragment {
             bytes,
         }))
     }
-    pub fn accept_egress(&mut self, transfer: &RemoteValueTransfer) -> Result<(), String> {
+    fn egress_offer(
+        &mut self,
+        endpoint: RemoteEndpointId,
+    ) -> Result<Option<(CordId, conduit_kernel::scheduler::RemoteValueOffer)>, String> {
+        let cord = self.endpoint_cord(endpoint, RemoteCordDirection::Egress)?;
+        self.scheduler
+            .remote_egress_offer(endpoint, cord)
+            .map(|offer| offer.map(|offer| (cord, offer)))
+            .map_err(|error| format!("offer remote std value: {error:?}"))
+    }
+
+    /// Inspect the pending offer for ACK/delivery without copying its payload.
+    pub fn next_egress_identity(
+        &mut self,
+        endpoint: RemoteEndpointId,
+    ) -> Result<Option<RemoteValueIdentity>, String> {
+        Ok(self
+            .egress_offer(endpoint)?
+            .map(|(cord, offer)| RemoteValueIdentity {
+                endpoint,
+                cord,
+                sequence: offer.sequence,
+            }))
+    }
+    pub fn accept_egress_identity(&mut self, transfer: &RemoteValueIdentity) -> Result<(), String> {
         self.scheduler
             .remote_egress_accept(transfer.endpoint, transfer.cord, transfer.sequence)
             .map_err(|error| format!("accept remote std value: {error:?}"))
     }
-    pub fn deliver_egress(&mut self, transfer: &RemoteValueTransfer) -> Result<(), String> {
+    pub fn deliver_egress_identity(
+        &mut self,
+        transfer: &RemoteValueIdentity,
+    ) -> Result<(), String> {
         self.scheduler
             .remote_egress_delivered(transfer.endpoint, transfer.cord, transfer.sequence)
             .map_err(|error| format!("deliver remote std value: {error:?}"))
+    }
+    pub fn accept_egress(&mut self, transfer: &RemoteValueTransfer) -> Result<(), String> {
+        self.accept_egress_identity(&RemoteValueIdentity {
+            endpoint: transfer.endpoint,
+            cord: transfer.cord,
+            sequence: transfer.sequence,
+        })
+    }
+    pub fn deliver_egress(&mut self, transfer: &RemoteValueTransfer) -> Result<(), String> {
+        self.deliver_egress_identity(&RemoteValueIdentity {
+            endpoint: transfer.endpoint,
+            cord: transfer.cord,
+            sequence: transfer.sequence,
+        })
     }
     pub fn admit_ingress(
         &mut self,

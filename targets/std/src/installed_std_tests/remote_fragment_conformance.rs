@@ -303,6 +303,17 @@ fn run_body_time_qualified_remote_fragment_flow() {
             }
             if let Some(request) = source_runtime.next_host_request() {
                 let work = source_runtime.describe_host_request(request).unwrap();
+                let probe = crate::allocation_probe::begin();
+                let view = source_runtime.host_request_view(request).unwrap();
+                assert_eq!(view.request, work.request);
+                assert_eq!(view.contract_id, &work.contract_id);
+                assert_eq!(view.maximum_output_bytes, work.maximum_output_bytes);
+                assert_eq!(view.input, work.input.as_slice());
+                assert_eq!(
+                    probe.finish(),
+                    0,
+                    "borrowing admitted Host work must not allocate"
+                );
                 assert_eq!(work.request, request);
                 assert_eq!(
                     work.contract_id,
@@ -327,7 +338,26 @@ fn run_body_time_qualified_remote_fragment_flow() {
             None
         })
         .expect("literal reaches remote Cord");
-    source_runtime.accept_egress(&transfer).unwrap();
+    let identity = source_runtime
+        .next_egress_identity(source_endpoint)
+        .unwrap()
+        .unwrap();
+    assert_eq!(
+        (identity.endpoint, identity.cord, identity.sequence),
+        (transfer.endpoint, transfer.cord, transfer.sequence)
+    );
+    let stale = crate::RemoteValueIdentity {
+        sequence: identity.sequence.checked_add(1).unwrap(),
+        ..identity
+    };
+    assert!(source_runtime.accept_egress_identity(&stale).is_err());
+    assert_eq!(
+        source_runtime
+            .next_egress_identity(source_endpoint)
+            .unwrap(),
+        Some(identity)
+    );
+    source_runtime.accept_egress_identity(&identity).unwrap();
     middle_runtime
         .admit_ingress(middle_ingress, transfer.sequence, &transfer.bytes)
         .unwrap();
@@ -679,6 +709,11 @@ fn run_body_time_qualified_tick() {
     for _ in 0..8 {
         if let Some(request) = sink_runtime.next_host_request() {
             let work = sink_runtime.describe_host_request(request).unwrap();
+            let probe = crate::allocation_probe::begin();
+            let view = sink_runtime.host_request_view(request).unwrap();
+            assert_eq!(view.contract_id, &work.contract_id);
+            assert_eq!(view.input, work.input.as_slice());
+            assert_eq!(probe.finish(), 0);
             assert_eq!(work.input, transfer.bytes);
             sink_runtime
                 .complete_host_call(

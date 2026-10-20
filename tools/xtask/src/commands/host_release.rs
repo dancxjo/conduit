@@ -78,6 +78,14 @@ pub(crate) fn run(
 }
 
 fn build_browser(output: &Path, source_identity: &str) -> Result<(), Box<dyn std::error::Error>> {
+    // Refuse a missing optimizer before paying for the browser Rust build.
+    require_success(
+        Command::new("wasm-opt").arg("--version"),
+        "identify Binaryen browser optimizer",
+    )
+    .map_err(|error| {
+        format!("browser optimizer unavailable; install wasm-opt (Binaryen): {error}")
+    })?;
     require_success(
         Command::new("cargo")
             .args([
