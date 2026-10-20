@@ -169,7 +169,11 @@ pub(super) fn admit(
     let mut reading_order = Vec::new();
     let mut bytes = 0usize;
     let mut previous_region = None;
-    for (original, item) in items {
+    let mut items = items.into_iter();
+    let mut previous_item = None;
+    while let Some((original, item)) = items.next() {
+        let cluster_start = field_clusters::starts(previous_item, &item);
+        previous_item = field_clusters::key(&item);
         bytes = bytes
             .checked_add(item.text.len())
             .filter(|value| *value <= MAX_DOCUMENT_BYTES)
@@ -181,17 +185,7 @@ pub(super) fn admit(
             .width(lane)
             .checked_sub(inset)
             .ok_or(FaceSceneError::InvalidExtent)?;
-        let text_width = width
-            .checked_sub(padding * 2)
-            .and_then(|value| {
-                value.checked_sub(if item.checkbox.is_some() {
-                    super::super::boolean_choice::INSET
-                } else {
-                    0
-                })
-            })
-            .filter(|value| *value > 0)
-            .ok_or(FaceSceneError::InvalidExtent)?;
+        let text_width = field_clusters::text_width(&item, width, padding)?;
         let maximum_height = flow
             .bottom
             .checked_sub(flow.top)
@@ -202,6 +196,36 @@ pub(super) fn admit(
             .ok_or(FaceSceneError::InvalidExtent)?;
         let mut region_start = item.region.is_some() && item.region != previous_region;
         previous_region = item.region;
+        if cluster_start
+            && let Some(demand) = field_clusters::measure(
+                core::iter::once(&item).chain(items.as_slice().iter().map(|(_, item)| item)),
+                field_clusters::Metrics {
+                    width: flow.width(lane),
+                    maximum_height,
+                    scale,
+                    padding,
+                },
+                region_start,
+            )?
+        {
+            let edge = if lane.is_some() { EDGE } else { 0 };
+            let fresh = flow.top + edge;
+            let bottom = flow.bottom - edge;
+            if demand.fits(
+                fresh,
+                bottom,
+                0,
+                chrome::COMMANDS + 1 + usize::from(lane.is_some()),
+            ) && !demand.fits(
+                flow.y(lane),
+                bottom,
+                flow.count,
+                flow.commands + usize::from(flow.new_panel(lane)),
+            ) {
+                flow.next_page(lane, &mut rows);
+            }
+        }
+
         let mut remaining = item.text.as_str();
         let mut chunk = 0usize;
         while !remaining.is_empty() {

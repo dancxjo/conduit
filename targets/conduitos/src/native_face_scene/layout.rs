@@ -2,6 +2,8 @@
 use super::*;
 use alloc::string::String;
 
+#[path = "layout/field_clusters.rs"]
+mod field_clusters;
 #[path = "layout/panels.rs"]
 mod panels;
 
@@ -143,6 +145,7 @@ pub(super) fn admit_with_expression(
     text_scale_percent: u16,
     padding: u16,
 ) -> Result<Vec<Row>, FaceSceneError> {
+    field_clusters::validate(&items)?;
     if !(1..=2).contains(&columns) || !(SPACE_SM..=SPACE_SM * 2).contains(&padding) {
         return Err(FaceSceneError::InvalidExtent);
     }
@@ -169,24 +172,41 @@ pub(super) fn admit_with_expression(
     let mut previous_region = None;
     // Reserve one non-color focus marker per page, including continuation pages.
     let mut commands = chrome::COMMANDS + 1;
-    for item in items {
+    let mut items = items.into_iter();
+    let mut previous_item = None;
+    while let Some(item) = items.next() {
+        let cluster_start = field_clusters::starts(previous_item, &item);
+        previous_item = field_clusters::key(&item);
         let mut region_start = item.region.is_some() && item.region != previous_region;
         previous_region = item.region;
         let inset = u16::from(item.indent) * INDENT_STEP;
         let item_width = width
             .checked_sub(inset)
             .ok_or(FaceSceneError::InvalidExtent)?;
-        let text_width = item_width
-            .checked_sub(padding * 2)
-            .and_then(|width| {
-                width.checked_sub(if item.checkbox.is_some() {
-                    super::boolean_choice::INSET
-                } else {
-                    0
-                })
-            })
-            .filter(|width| *width > 0)
-            .ok_or(FaceSceneError::InvalidExtent)?;
+        let text_width = field_clusters::text_width(&item, item_width, padding)?;
+        if cluster_start
+            && let Some(demand) = field_clusters::measure(
+                core::iter::once(&item).chain(items.as_slice().iter()),
+                field_clusters::Metrics {
+                    width,
+                    maximum_height,
+                    scale: text_scale_percent,
+                    padding,
+                },
+                region_start,
+            )?
+            && demand.fits(chrome.top, bottom, 0, chrome::COMMANDS + 1)
+            && !demand.fits(y, bottom, count, commands)
+        {
+            column += 1;
+            if column == columns || !demand.fits(chrome.top, bottom, count, commands) {
+                page += 1;
+                count = 0;
+                column = 0;
+                commands = chrome::COMMANDS + 1;
+            }
+            y = chrome.top;
+        }
         bytes = bytes
             .checked_add(item.text.len())
             .ok_or(FaceSceneError::DocumentBound)?;
@@ -320,3 +340,7 @@ fn measure_prefix(
         }
     }
 }
+
+#[cfg(test)]
+#[path = "layout/field_cluster_tests.rs"]
+mod field_cluster_tests;
