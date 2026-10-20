@@ -9,11 +9,11 @@ mod text_state;
 mod tutorial_application;
 
 pub use application_delivery::NativeApplicationRequest;
-pub use eligibility::eligibility;
 pub use catalog::{
     NATIVE_CANDIDATE_CAPACITY, NATIVE_PLOT_CAPACITY, NativePlot, NativePlotProfile,
     candidate_inventory, checked, inventory, profile, resident, resolve,
 };
+pub use eligibility::eligibility;
 pub use planning::{AdmittedPlotInput, PreparedNativeWorkset, prepare, review};
 pub(crate) use planning::{prepare_exact, propose_partitions};
 pub use play::{NativeFace, NativeWorksetPlay, PlayRefusal};
