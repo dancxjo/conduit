@@ -1,0 +1,485 @@
+{
+  "schema": "conduit.persistent-line-copy-pair@1",
+  "metadata": {
+    "candidate": {
+      "command": {
+        "build_command": [
+          "build",
+          "--locked",
+          "--release",
+          "-p",
+          "conduit",
+          "--features",
+          "conduit-ai/hosted-catalog-cache",
+          "--example",
+          "two_host_transport_performance",
+          "--message-format=json-render-diagnostics"
+        ],
+        "conformance_success": true,
+        "features": "conduit-ai/hosted-catalog-cache",
+        "role": "capture only; independent timing acceptance required",
+        "schema": "conduit.two-host-performance-command@1",
+        "source_commit": "fea38f80fc8fd72ccae2fbc856d11ca42f3146d8",
+        "source_custody_verified": true,
+        "worker": "/home/dancxjo/Documents/Codex/2026-10-19/please-finish-and-close-https-github/work/matrix/../thermostat-target/release/examples/two_host_transport_performance",
+        "worker_arguments": [
+          "--output",
+          "/home/dancxjo/Documents/Codex/2026-10-19/please-finish-and-close-https-github/work/warm-line-release-candidate-retry",
+          "--repetitions",
+          "3",
+          "--rotation",
+          "0",
+          "--values",
+          "64"
+        ],
+        "worker_exit_code": 0,
+        "worker_sha256": "ff88cf7102a22e011ab7922880533a08eb2659700a3975158fa7a0e0e210dfa5",
+        "worker_success": true
+      },
+      "conformance": {
+        "command": [
+          "test",
+          "--locked",
+          "--release",
+          "-p",
+          "conduit",
+          "--features",
+          "conduit-ai/hosted-catalog-cache",
+          "--test",
+          "two_host_kernel_evidence"
+        ],
+        "exit_code": 0,
+        "role": "optimized conformance, timings discarded",
+        "source": "fea38f80fc8fd72ccae2fbc856d11ca42f3146d8",
+        "success": true
+      },
+      "report": {
+        "allocation_scope": "Successful Rust global allocation/reallocation/deallocation requests across both joined owner threads for the whole API. Request bytes, not peak live memory or OS allocations.",
+        "missing_metrics": [
+          "per-stage allocation and copy attribution",
+          "CPU time",
+          "peak live memory",
+          "OS and hardware traffic"
+        ],
+        "proof_class": "hosted-loopback-two-logical-hosts",
+        "repetitions": 3,
+        "schema": "conduit.two-host-persistent-performance@1",
+        "source_commit": "fea38f80fc8fd72ccae2fbc856d11ca42f3146d8",
+        "timing_acceptance": "local observation only; no calibrated throughput claim",
+        "timing_scope": "Each trial creates one fresh Plan and pair of kernels. All Values share one admitted Line/session. Source monotonic wall intervals distinguish connection/session, first Value, remaining Values, shutdown/retained evidence. Whole API includes preparation and evidence retention; final caller-held disposal is separate. Validation and JSON reconstruction are outside measurement.",
+        "trace": "trials.jsonl",
+        "trials": 3,
+        "values_per_line": 64
+      },
+      "trials_sha256": "f1663690316fbdaa83973193ffdf355502e07eb5b8068b18130ffafc00a49142"
+    },
+    "reference": {
+      "command": {
+        "build_command": [
+          "build",
+          "--locked",
+          "--release",
+          "-p",
+          "conduit",
+          "--features",
+          "conduit-ai/hosted-catalog-cache",
+          "--example",
+          "two_host_transport_performance",
+          "--message-format=json-render-diagnostics"
+        ],
+        "conformance_success": true,
+        "features": "conduit-ai/hosted-catalog-cache",
+        "role": "capture only; independent timing acceptance required",
+        "schema": "conduit.two-host-performance-command@1",
+        "source_commit": "cc5b327cc01ee5739be950036190d4ad3180cf0e",
+        "source_custody_verified": true,
+        "worker": "/home/dancxjo/Documents/Codex/2026-10-19/please-finish-and-close-https-github/work/matrix/../thermostat-target/release/examples/two_host_transport_performance",
+        "worker_arguments": [
+          "--output",
+          "/home/dancxjo/Documents/Codex/2026-10-19/please-finish-and-close-https-github/work/warm-line-release-reference",
+          "--repetitions",
+          "3",
+          "--rotation",
+          "0",
+          "--values",
+          "64"
+        ],
+        "worker_exit_code": 0,
+        "worker_sha256": "d2f33105eaa03266c91721f64903a4ba57434a1bb6279b203491c594a92b46c5",
+        "worker_success": true
+      },
+      "conformance": {
+        "command": [
+          "test",
+          "--locked",
+          "--release",
+          "-p",
+          "conduit",
+          "--features",
+          "conduit-ai/hosted-catalog-cache",
+          "--test",
+          "two_host_kernel_evidence"
+        ],
+        "exit_code": 0,
+        "role": "optimized conformance, timings discarded",
+        "source": "cc5b327cc01ee5739be950036190d4ad3180cf0e",
+        "success": true
+      },
+      "report": {
+        "allocation_scope": "Successful Rust global allocation/reallocation/deallocation requests across both joined owner threads for the whole API. Request bytes, not peak live memory or OS allocations.",
+        "missing_metrics": [
+          "per-stage allocation and copy attribution",
+          "CPU time",
+          "peak live memory",
+          "OS and hardware traffic"
+        ],
+        "proof_class": "hosted-loopback-two-logical-hosts",
+        "repetitions": 3,
+        "schema": "conduit.two-host-persistent-performance@1",
+        "source_commit": "cc5b327cc01ee5739be950036190d4ad3180cf0e",
+        "timing_acceptance": "local observation only; no calibrated throughput claim",
+        "timing_scope": "Each trial creates one fresh Plan and pair of kernels. All Values share one admitted Line/session. Source monotonic wall intervals distinguish connection/session, first Value, remaining Values, shutdown/retained evidence. Whole API includes preparation and evidence retention; final caller-held disposal is separate. Validation and JSON reconstruction are outside measurement.",
+        "trace": "trials.jsonl",
+        "trials": 3,
+        "values_per_line": 64
+      },
+      "trials_sha256": "a8b5fecdcdbd40c022ed238adaa866fb0855ee166b67110d65580b724f25b9aa"
+    }
+  },
+  "summary": {
+    "candidate": [
+      {
+        "repetition": 0,
+        "api": {
+          "allocated_request_bytes": 501850105,
+          "allocations": 7118756,
+          "deallocated_request_bytes": 505721533,
+          "deallocations": 6195732,
+          "elapsed_ns": 469994065,
+          "reallocated_request_bytes": 111547388,
+          "reallocations": 70008
+        },
+        "line_intervals": {
+          "connection_and_session_ns": 5437978,
+          "first_value_ns": 236428,
+          "shutdown_and_retention_ns": 121635,
+          "steady_values_ns": 1374665,
+          "values": 64
+        },
+        "source_traffic": {
+          "receive_copy_bytes": 0,
+          "received_binary_bytes": 67808,
+          "received_messages": 131,
+          "saturated": false,
+          "sent_binary_bytes": 36068,
+          "sent_messages": 68,
+          "transmit_copy_bytes": 36068
+        },
+        "sink_traffic": {
+          "receive_copy_bytes": 0,
+          "received_binary_bytes": 36068,
+          "received_messages": 68,
+          "saturated": false,
+          "sent_binary_bytes": 67808,
+          "sent_messages": 131,
+          "transmit_copy_bytes": 67808
+        },
+        "receipt": {
+          "checked_plot_id": "803a807f8a8203175ecae00826427e4bf7a2c97644734e253d1064aa8a812830",
+          "expanded_plot_id": "7ea98a10ef48ba362b7622c65c3f7558587ee25ef774e8cb2944e4b0babcd5dc",
+          "line_id": "tour-line/tour/std-source/tour/std-sink",
+          "plan_id": "6a909dbc2decb40b9775fa21e73740c7ce45ebb6bea027be29e4c064ea45a79f",
+          "result": "63",
+          "sink_active_play_id": "74b2ac0c6877a05c5e2af591740f9e13266dfb485f6a12c42bf14c7f90d90dde",
+          "sink_fragment_id": "32281ce8da49e07b1b518973434236b2d218f37a8a717278c3f6c03a49ffe847",
+          "source_active_play_id": "39cce1bfdb1361b0b7e80330ad583d5dc23970d107b212318da6ee6d2aef8ce0",
+          "source_document_id": "a88b761c687aabb13ed985dcd7f300a82531796cf60251ad94267d7b553c276a",
+          "source_fragment_id": "84ec107100f9b9046d6b132a65f5129c7a3c4d58286bfd10ff25b50003ccf9c9",
+          "transferred_values": 64
+        }
+      },
+      {
+        "repetition": 1,
+        "api": {
+          "allocated_request_bytes": 159174444,
+          "allocations": 2677330,
+          "deallocated_request_bytes": 170068525,
+          "deallocations": 2677285,
+          "elapsed_ns": 159301503,
+          "reallocated_request_bytes": 21814782,
+          "reallocations": 31632
+        },
+        "line_intervals": {
+          "connection_and_session_ns": 5399738,
+          "first_value_ns": 36883,
+          "shutdown_and_retention_ns": 115343,
+          "steady_values_ns": 931264,
+          "values": 64
+        },
+        "source_traffic": {
+          "receive_copy_bytes": 0,
+          "received_binary_bytes": 67808,
+          "received_messages": 131,
+          "saturated": false,
+          "sent_binary_bytes": 36068,
+          "sent_messages": 68,
+          "transmit_copy_bytes": 36068
+        },
+        "sink_traffic": {
+          "receive_copy_bytes": 0,
+          "received_binary_bytes": 36068,
+          "received_messages": 68,
+          "saturated": false,
+          "sent_binary_bytes": 67808,
+          "sent_messages": 131,
+          "transmit_copy_bytes": 67808
+        },
+        "receipt": {
+          "checked_plot_id": "803a807f8a8203175ecae00826427e4bf7a2c97644734e253d1064aa8a812830",
+          "expanded_plot_id": "7ea98a10ef48ba362b7622c65c3f7558587ee25ef774e8cb2944e4b0babcd5dc",
+          "line_id": "tour-line/tour/std-source/tour/std-sink",
+          "plan_id": "6a909dbc2decb40b9775fa21e73740c7ce45ebb6bea027be29e4c064ea45a79f",
+          "result": "63",
+          "sink_active_play_id": "74b2ac0c6877a05c5e2af591740f9e13266dfb485f6a12c42bf14c7f90d90dde",
+          "sink_fragment_id": "32281ce8da49e07b1b518973434236b2d218f37a8a717278c3f6c03a49ffe847",
+          "source_active_play_id": "39cce1bfdb1361b0b7e80330ad583d5dc23970d107b212318da6ee6d2aef8ce0",
+          "source_document_id": "a88b761c687aabb13ed985dcd7f300a82531796cf60251ad94267d7b553c276a",
+          "source_fragment_id": "84ec107100f9b9046d6b132a65f5129c7a3c4d58286bfd10ff25b50003ccf9c9",
+          "transferred_values": 64
+        }
+      },
+      {
+        "repetition": 2,
+        "api": {
+          "allocated_request_bytes": 159174444,
+          "allocations": 2677330,
+          "deallocated_request_bytes": 170068525,
+          "deallocations": 2677285,
+          "elapsed_ns": 159776239,
+          "reallocated_request_bytes": 21814782,
+          "reallocations": 31632
+        },
+        "line_intervals": {
+          "connection_and_session_ns": 5370228,
+          "first_value_ns": 119404,
+          "shutdown_and_retention_ns": 111158,
+          "steady_values_ns": 995680,
+          "values": 64
+        },
+        "source_traffic": {
+          "receive_copy_bytes": 0,
+          "received_binary_bytes": 67808,
+          "received_messages": 131,
+          "saturated": false,
+          "sent_binary_bytes": 36068,
+          "sent_messages": 68,
+          "transmit_copy_bytes": 36068
+        },
+        "sink_traffic": {
+          "receive_copy_bytes": 0,
+          "received_binary_bytes": 36068,
+          "received_messages": 68,
+          "saturated": false,
+          "sent_binary_bytes": 67808,
+          "sent_messages": 131,
+          "transmit_copy_bytes": 67808
+        },
+        "receipt": {
+          "checked_plot_id": "803a807f8a8203175ecae00826427e4bf7a2c97644734e253d1064aa8a812830",
+          "expanded_plot_id": "7ea98a10ef48ba362b7622c65c3f7558587ee25ef774e8cb2944e4b0babcd5dc",
+          "line_id": "tour-line/tour/std-source/tour/std-sink",
+          "plan_id": "6a909dbc2decb40b9775fa21e73740c7ce45ebb6bea027be29e4c064ea45a79f",
+          "result": "63",
+          "sink_active_play_id": "74b2ac0c6877a05c5e2af591740f9e13266dfb485f6a12c42bf14c7f90d90dde",
+          "sink_fragment_id": "32281ce8da49e07b1b518973434236b2d218f37a8a717278c3f6c03a49ffe847",
+          "source_active_play_id": "39cce1bfdb1361b0b7e80330ad583d5dc23970d107b212318da6ee6d2aef8ce0",
+          "source_document_id": "a88b761c687aabb13ed985dcd7f300a82531796cf60251ad94267d7b553c276a",
+          "source_fragment_id": "84ec107100f9b9046d6b132a65f5129c7a3c4d58286bfd10ff25b50003ccf9c9",
+          "transferred_values": 64
+        }
+      }
+    ],
+    "reference": [
+      {
+        "repetition": 0,
+        "api": {
+          "allocated_request_bytes": 501850105,
+          "allocations": 7118756,
+          "deallocated_request_bytes": 505721533,
+          "deallocations": 6195732,
+          "elapsed_ns": 473868334,
+          "reallocated_request_bytes": 111547388,
+          "reallocations": 70008
+        },
+        "line_intervals": {
+          "connection_and_session_ns": 5485381,
+          "first_value_ns": 127866,
+          "shutdown_and_retention_ns": 121096,
+          "steady_values_ns": 1211103,
+          "values": 64
+        },
+        "source_traffic": {
+          "receive_copy_bytes": 67808,
+          "received_binary_bytes": 67808,
+          "received_messages": 131,
+          "saturated": false,
+          "sent_binary_bytes": 36068,
+          "sent_messages": 68,
+          "transmit_copy_bytes": 36068
+        },
+        "sink_traffic": {
+          "receive_copy_bytes": 36068,
+          "received_binary_bytes": 36068,
+          "received_messages": 68,
+          "saturated": false,
+          "sent_binary_bytes": 67808,
+          "sent_messages": 131,
+          "transmit_copy_bytes": 67808
+        },
+        "receipt": {
+          "checked_plot_id": "803a807f8a8203175ecae00826427e4bf7a2c97644734e253d1064aa8a812830",
+          "expanded_plot_id": "7ea98a10ef48ba362b7622c65c3f7558587ee25ef774e8cb2944e4b0babcd5dc",
+          "line_id": "tour-line/tour/std-source/tour/std-sink",
+          "plan_id": "6a909dbc2decb40b9775fa21e73740c7ce45ebb6bea027be29e4c064ea45a79f",
+          "result": "63",
+          "sink_active_play_id": "74b2ac0c6877a05c5e2af591740f9e13266dfb485f6a12c42bf14c7f90d90dde",
+          "sink_fragment_id": "32281ce8da49e07b1b518973434236b2d218f37a8a717278c3f6c03a49ffe847",
+          "source_active_play_id": "39cce1bfdb1361b0b7e80330ad583d5dc23970d107b212318da6ee6d2aef8ce0",
+          "source_document_id": "a88b761c687aabb13ed985dcd7f300a82531796cf60251ad94267d7b553c276a",
+          "source_fragment_id": "84ec107100f9b9046d6b132a65f5129c7a3c4d58286bfd10ff25b50003ccf9c9",
+          "transferred_values": 64
+        }
+      },
+      {
+        "repetition": 1,
+        "api": {
+          "allocated_request_bytes": 159174444,
+          "allocations": 2677330,
+          "deallocated_request_bytes": 170068525,
+          "deallocations": 2677285,
+          "elapsed_ns": 162225764,
+          "reallocated_request_bytes": 21814782,
+          "reallocations": 31632
+        },
+        "line_intervals": {
+          "connection_and_session_ns": 5333648,
+          "first_value_ns": 41152,
+          "shutdown_and_retention_ns": 119938,
+          "steady_values_ns": 959801,
+          "values": 64
+        },
+        "source_traffic": {
+          "receive_copy_bytes": 67808,
+          "received_binary_bytes": 67808,
+          "received_messages": 131,
+          "saturated": false,
+          "sent_binary_bytes": 36068,
+          "sent_messages": 68,
+          "transmit_copy_bytes": 36068
+        },
+        "sink_traffic": {
+          "receive_copy_bytes": 36068,
+          "received_binary_bytes": 36068,
+          "received_messages": 68,
+          "saturated": false,
+          "sent_binary_bytes": 67808,
+          "sent_messages": 131,
+          "transmit_copy_bytes": 67808
+        },
+        "receipt": {
+          "checked_plot_id": "803a807f8a8203175ecae00826427e4bf7a2c97644734e253d1064aa8a812830",
+          "expanded_plot_id": "7ea98a10ef48ba362b7622c65c3f7558587ee25ef774e8cb2944e4b0babcd5dc",
+          "line_id": "tour-line/tour/std-source/tour/std-sink",
+          "plan_id": "6a909dbc2decb40b9775fa21e73740c7ce45ebb6bea027be29e4c064ea45a79f",
+          "result": "63",
+          "sink_active_play_id": "74b2ac0c6877a05c5e2af591740f9e13266dfb485f6a12c42bf14c7f90d90dde",
+          "sink_fragment_id": "32281ce8da49e07b1b518973434236b2d218f37a8a717278c3f6c03a49ffe847",
+          "source_active_play_id": "39cce1bfdb1361b0b7e80330ad583d5dc23970d107b212318da6ee6d2aef8ce0",
+          "source_document_id": "a88b761c687aabb13ed985dcd7f300a82531796cf60251ad94267d7b553c276a",
+          "source_fragment_id": "84ec107100f9b9046d6b132a65f5129c7a3c4d58286bfd10ff25b50003ccf9c9",
+          "transferred_values": 64
+        }
+      },
+      {
+        "repetition": 2,
+        "api": {
+          "allocated_request_bytes": 159174444,
+          "allocations": 2677330,
+          "deallocated_request_bytes": 170068525,
+          "deallocations": 2677285,
+          "elapsed_ns": 162142714,
+          "reallocated_request_bytes": 21814782,
+          "reallocations": 31632
+        },
+        "line_intervals": {
+          "connection_and_session_ns": 5347040,
+          "first_value_ns": 135299,
+          "shutdown_and_retention_ns": 117391,
+          "steady_values_ns": 1021942,
+          "values": 64
+        },
+        "source_traffic": {
+          "receive_copy_bytes": 67808,
+          "received_binary_bytes": 67808,
+          "received_messages": 131,
+          "saturated": false,
+          "sent_binary_bytes": 36068,
+          "sent_messages": 68,
+          "transmit_copy_bytes": 36068
+        },
+        "sink_traffic": {
+          "receive_copy_bytes": 36068,
+          "received_binary_bytes": 36068,
+          "received_messages": 68,
+          "saturated": false,
+          "sent_binary_bytes": 67808,
+          "sent_messages": 131,
+          "transmit_copy_bytes": 67808
+        },
+        "receipt": {
+          "checked_plot_id": "803a807f8a8203175ecae00826427e4bf7a2c97644734e253d1064aa8a812830",
+          "expanded_plot_id": "7ea98a10ef48ba362b7622c65c3f7558587ee25ef774e8cb2944e4b0babcd5dc",
+          "line_id": "tour-line/tour/std-source/tour/std-sink",
+          "plan_id": "6a909dbc2decb40b9775fa21e73740c7ce45ebb6bea027be29e4c064ea45a79f",
+          "result": "63",
+          "sink_active_play_id": "74b2ac0c6877a05c5e2af591740f9e13266dfb485f6a12c42bf14c7f90d90dde",
+          "sink_fragment_id": "32281ce8da49e07b1b518973434236b2d218f37a8a717278c3f6c03a49ffe847",
+          "source_active_play_id": "39cce1bfdb1361b0b7e80330ad583d5dc23970d107b212318da6ee6d2aef8ce0",
+          "source_document_id": "a88b761c687aabb13ed985dcd7f300a82531796cf60251ad94267d7b553c276a",
+          "source_fragment_id": "84ec107100f9b9046d6b132a65f5129c7a3c4d58286bfd10ff25b50003ccf9c9",
+          "transferred_values": 64
+        }
+      }
+    ]
+  },
+  "source_diff_stat": " products/conduit/src/hosted_two_std/transport.rs | 32 ++++++++++--------------\n 1 file changed, 13 insertions(+), 19 deletions(-)\n",
+  "exact_output_and_receipts_match": true,
+  "complete_kernel_records_match_after_removing_traffic_counters": true,
+  "all_other_traffic_counters_match": true,
+  "reference_receive_copy_bytes_per_line": 103876,
+  "candidate_receive_copy_bytes_per_line": 0,
+  "clock_scope": "std::time::Instant monotonic wall; source-owner intervals and wholeAPI. Nanosecond representation, not calibrated resolution.",
+  "limitations": [
+    "Local3trialobservations on sharedmachine, other builds present; not a calibrated latency/throughput benchmark.",
+    "WholeAPIallocation counters include Source/Plan/Host preparation, Line work and retained evidence; per-stage allocation attribution remains outstanding.",
+    "Measured explicit receivebuffercopies only; transmit copies and remaining codec/kernel/OS copies remain.",
+    "5releaseconformancecases passed on eachsource. This is localoptimizedproof, not publishedrelease acceptance."
+  ],
+  "failed_attempts": [
+    {
+      "directory": "work/warm-line-release-candidate",
+      "cause": "ring C compilation hit /tmp userquota; no conformance or measurement claimed. Retry used absolute workspaceTMPDIR."
+    }
+  ],
+  "raw_capture": {
+    "local_path": "outputs/warm-line-release-pair.json",
+    "sha256": "1354da72054701cea478d7b98be80862c7ac13e0df9f0af0dcce490bb80f572b",
+    "bytes": 1295991
+  },
+  "attribution_observation": {
+    "local_path": "outputs/warm-line-allocation-attribution.json",
+    "scope": "One symbolized allocation trace; companion optimized .text bytes match canonical release candidate. 644allocation-function calls retain a Line transport frame. Broad stack classification, not a complete per-stage allocation meter or RSS acceptance.",
+    "finding": "256calls originate in owned describe_host_request; borrowed view optimization prepared afterward, not included in this pair.",
+    "symbolized_text_sha256": "c053fdfa87ac1a6d0f1da20c4861f290ebc7172826ba45463c8364bcf0ea81b0"
+  }
+}

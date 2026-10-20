@@ -133,3 +133,77 @@ fn payload_above_the_text_contract_is_refused_before_transport() {
     assert!(execute_hosted_two_std_plot_with_evidence(&source, &mut output).is_err());
     assert!(output.is_empty());
 }
+
+#[test]
+fn persistent_tick_flow_retains_all_values_and_both_kernel_lifecycles() {
+    let count = 64;
+    let mut output = Vec::new();
+    let (execution, evidence) =
+        conduit::execute_hosted_two_std_tick_flow_with_evidence(count, &mut output).unwrap();
+    assert_eq!(execution.transferred_values, u32::from(count));
+    assert_eq!(execution.result, "63");
+    assert_eq!(evidence.line.as_ref().unwrap().values, u32::from(count));
+    let expected: String = (0..count).map(|n| format!("{n}\n")).collect();
+    assert_eq!(String::from_utf8(output).unwrap(), expected);
+    for host in [&evidence.source, &evidence.sink] {
+        assert!(host.retention_gap.is_none());
+        assert_eq!(host.identity.plan_id, execution.plan_id);
+    }
+    let source_traffic = evidence.source.traffic.unwrap();
+    let sink_traffic = evidence.sink.traffic.unwrap();
+    assert!(!source_traffic.saturated && !sink_traffic.saturated);
+    assert_eq!(
+        source_traffic.sent_binary_bytes,
+        sink_traffic.received_binary_bytes
+    );
+    assert_eq!(
+        sink_traffic.sent_binary_bytes,
+        source_traffic.received_binary_bytes
+    );
+    assert_eq!(source_traffic.sent_messages, sink_traffic.received_messages);
+    assert_eq!(sink_traffic.sent_messages, source_traffic.received_messages);
+    assert!(source_traffic.receive_copy_bytes <= source_traffic.received_binary_bytes);
+    assert!(sink_traffic.receive_copy_bytes <= sink_traffic.received_binary_bytes);
+    for wire_sequence in 0..u64::from(count) {
+        let mut kinds = Vec::new();
+        for event in &evidence.source.events {
+            if !matches!(
+                event.kind,
+                KernelEventKind::RemoteValueOffered
+                    | KernelEventKind::RemoteValueAccepted
+                    | KernelEventKind::RemoteValueDelivered
+            ) {
+                continue;
+            }
+            let identity = evidence
+                .source
+                .remote_identities
+                .iter()
+                .find(|(sequence, _)| *sequence == event.sequence)
+                .expect("every retained event keeps its exact remote correlation")
+                .1;
+            if identity.sequence == wire_sequence {
+                kinds.push(event.kind);
+            }
+        }
+        assert_eq!(
+            kinds,
+            [
+                KernelEventKind::RemoteValueOffered,
+                KernelEventKind::RemoteValueAccepted,
+                KernelEventKind::RemoteValueDelivered
+            ]
+        );
+    }
+}
+
+#[test]
+fn persistent_tick_flow_count_refuses_outside_its_preplay_bound() {
+    for count in [0, 65] {
+        let mut output = Vec::new();
+        assert!(
+            conduit::execute_hosted_two_std_tick_flow_with_evidence(count, &mut output).is_err()
+        );
+        assert!(output.is_empty());
+    }
+}

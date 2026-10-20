@@ -39,7 +39,7 @@ test('code-changing PR events run exact proof without restarting on visibility c
 
 test('the actual AND gate rejects every failed, cancelled, or missing selected lane', () => {
   const script = job(ci, 'complete').split('        run: |\n')[1].replace(/^          /gm, '');
-  const base = { PREFLIGHT: 'success', EXHAUSTIVE: 'true', DOCS_ONLY: 'false', UNIT: 'success', TARGET: 'success', ADMISSION: 'success', HAS_TARGETS: 'true' };
+  const base = { PREFLIGHT: 'success', EXHAUSTIVE: 'true', DOCS_ONLY: 'false', UNIT: 'success', TARGET: 'success', ADMISSION: 'success', BROAD_ADMISSION: 'false', HAS_TARGETS: 'true' };
   function passes(overrides) {
     return spawnSync('bash', ['-e', '-c', script], { env: { ...process.env, ...base, ...overrides } }).status === 0;
   }
@@ -50,6 +50,13 @@ test('the actual AND gate rejects every failed, cancelled, or missing selected l
   assert.equal(passes({ DOCS_ONLY: 'true', UNIT: 'skipped', TARGET: 'skipped', HAS_TARGETS: 'false' }), true);
   assert.equal(passes({ EXHAUSTIVE: 'false', UNIT: 'skipped', TARGET: 'skipped', HAS_TARGETS: 'false' }), true);
   assert.equal(passes({ EXHAUSTIVE: 'false', PREFLIGHT: 'failure' }), false);
+  assert.equal(passes({ EXHAUSTIVE: 'false', BROAD_ADMISSION: 'true' }), true);
+  for (const result of ['failure', 'cancelled', 'skipped', '', 'pending']) {
+    assert.equal(passes({ EXHAUSTIVE: 'false', BROAD_ADMISSION: 'true', UNIT: result }), false);
+  }
+  for (const route of ['', 'unknown']) {
+    assert.equal(passes({ EXHAUSTIVE: 'false', BROAD_ADMISSION: route }), false);
+  }
   for (const result of ['failure', 'cancelled', 'skipped', '']) {
     assert.equal(passes({ EXHAUSTIVE: 'false', ADMISSION: result }), false);
     assert.equal(passes({ EXHAUSTIVE: 'false', TARGET: result }), false);

@@ -1,9 +1,9 @@
 import { readDeliveryStatus } from './delivery-status.mjs';
-import { appendFileSync, mkdirSync, readdirSync, existsSync } from 'node:fs';
+import { appendFileSync, mkdirSync, readdirSync, existsSync, readFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { resolve } from 'node:path';
 import { planChanges, UNIT_SHARDS } from './plan.mjs';
-import { admissionPlan, nativeRisk, runAdmission } from './admission.mjs';
+import { admissionPlan, nativeRisk, runAdmission, isMeasurementReceipt } from './admission.mjs';
 import { sealTarget, verifyBundle } from './receipts.mjs';
 import { TARGETS, setupTarget, runTarget } from './targets.mjs';
 import { setupCi, setupUnit } from './setup.mjs';
@@ -104,6 +104,13 @@ try {
       }
       retainedTodoBrowserDevelopmentEvidence(undefined, run('git', ['rev-parse', 'HEAD'], true));
       run('git', ['diff', '--check', exactSha(args[0]), 'HEAD']);
+      const changed = run('git', ['diff', '--name-only', '--no-renames', '-z', exactSha(args[0]), 'HEAD'], true).split('\0').filter(Boolean);
+      for (const name of changed.filter(isMeasurementReceipt)) {
+        if (existsSync(name)) {
+          try { JSON.parse(readFileSync(name, 'utf8')); }
+          catch (error) { throw new Error(`Invalid measurement receipt ${name}: ${error.message}`); }
+        }
+      }
       run('cargo', ['fmt', '--all', '--check']);
       run('cargo', ['metadata', '--locked', '--no-deps', '--format-version', '1'], true);
       // Physical definitions are authored in Conduitese; derived bindings must

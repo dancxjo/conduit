@@ -1,3 +1,6 @@
+mod traffic;
+pub use traffic::NativeWebSocketTraffic;
+
 use std::io::ErrorKind;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr, SocketAddrV4, TcpListener, TcpStream};
 use std::time::{Duration, Instant};
@@ -161,11 +164,13 @@ impl NativeWebSocketListener {
         Ok(NativeWebSocketLine {
             socket,
             maximum_message_bytes: self.maximum_message_bytes,
+            traffic: None,
         })
     }
 }
 
 pub struct NativeWebSocketLine {
+    traffic: Option<NativeWebSocketTraffic>,
     socket: WebSocket<TcpStream>,
     maximum_message_bytes: usize,
 }
@@ -202,7 +207,17 @@ impl NativeWebSocketLine {
         Ok(Self {
             socket,
             maximum_message_bytes,
+            traffic: None,
         })
+    }
+
+    /// Begin a fresh optional observation after the WebSocket handshake.
+    pub fn start_traffic_observation(&mut self) {
+        self.traffic = Some(NativeWebSocketTraffic::default());
+    }
+
+    pub fn traffic(&self) -> Option<NativeWebSocketTraffic> {
+        self.traffic
     }
 
     pub fn maximum_message_bytes(&self) -> usize {
@@ -220,12 +235,39 @@ impl NativeWebSocketLine {
         if bytes.len() > self.maximum_message_bytes {
             return Err(NativeWebSocketError::OversizedMessage);
         }
+        if let Some(traffic) = &mut self.traffic {
+            traffic.transmit_copy(bytes.len());
+        }
         self.socket
             .send(Message::Binary(bytes.to_vec().into()))
-            .map_err(map_socket_error)
+            .map_err(map_socket_error)?;
+        if let Some(traffic) = &mut self.traffic {
+            traffic.sent(bytes.len());
+        }
+        Ok(())
     }
 
     pub fn receive_binary(&mut self, output: &mut [u8]) -> Result<usize, NativeWebSocketError> {
+        let length = self.receive_binary_with(|bytes| {
+            if output.len() < bytes.len() {
+                return Err(NativeWebSocketError::OutputTooSmall);
+            }
+            output[..bytes.len()].copy_from_slice(bytes);
+            Ok(bytes.len())
+        })??;
+        if let Some(traffic) = &mut self.traffic {
+            traffic.receive_copy(length);
+        }
+        Ok(length)
+    }
+
+    /// Consume one bounded binary message while the transport retains it.
+    /// The borrow cannot escape the callback. Framing, disconnect and message
+    /// limits are identical to `receive_binary`; no caller-buffer copy occurs.
+    pub fn receive_binary_with<R>(
+        &mut self,
+        consume: impl FnOnce(&[u8]) -> R,
+    ) -> Result<R, NativeWebSocketError> {
         loop {
             let message = self.socket.read().map_err(map_socket_error)?;
             match message {
@@ -233,11 +275,10 @@ impl NativeWebSocketLine {
                     if bytes.len() > self.maximum_message_bytes {
                         return Err(NativeWebSocketError::OversizedMessage);
                     }
-                    if output.len() < bytes.len() {
-                        return Err(NativeWebSocketError::OutputTooSmall);
+                    if let Some(traffic) = &mut self.traffic {
+                        traffic.received(bytes.len());
                     }
-                    output[..bytes.len()].copy_from_slice(&bytes);
-                    return Ok(bytes.len());
+                    return Ok(consume(&bytes));
                 }
                 Message::Text(_) => return Err(NativeWebSocketError::TextMessageRejected),
                 Message::Ping(_) | Message::Pong(_) => {

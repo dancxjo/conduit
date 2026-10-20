@@ -40,8 +40,25 @@ fn next_transfer(
         if let Some(transfer) = runtime.next_egress(endpoint)? {
             return Ok(transfer);
         }
+        if let Some(request) = runtime.next_host_request() {
+            let work = runtime.host_request_view(request)?;
+            if work.contract_id.as_str() != conduit_core::WAIT_HOST_CALL_CONTRACT
+                || work.input != 0_u64.to_le_bytes()
+            {
+                return Err("two-Host source permits only exact zero-duration waits".into());
+            }
+            runtime.complete_host_call(
+                request,
+                HostCallOutcome {
+                    disposition: HostCallDisposition::Completed,
+                    output: None,
+                    failure: None,
+                },
+            )?;
+        }
         match runtime.step()? {
             SchedulerStatus::Progress { .. } => {}
+            SchedulerStatus::Idle if runtime.next_host_request().is_some() => {}
             state => return Err(format!("source reached {state:?} before its Line value")),
         }
     }
@@ -51,10 +68,22 @@ fn next_transfer(
 fn drive_sink(
     runtime: &mut InstalledRemoteFragment,
     output: &mut impl Write,
+    workload: super::Workload,
 ) -> Result<(), String> {
     for _ in 0..32 {
         if let Some(request) = runtime.next_host_request() {
-            return complete_text_face(runtime, request, output);
+            complete_text_face(runtime, request, output, workload)?;
+            if matches!(workload, super::Workload::Text) {
+                return Ok(());
+            }
+            // Commit the accepted effect and release its retained ingress Value
+            // before Delivered permits the next transfer into the same slot.
+            return match runtime.step()? {
+                SchedulerStatus::Progress { .. } | SchedulerStatus::Drained => Ok(()),
+                state => Err(format!(
+                    "sink did not settle its completed effect: {state:?}"
+                )),
+            };
         }
         match runtime.step()? {
             SchedulerStatus::Progress { .. } => {}
@@ -68,17 +97,27 @@ fn complete_text_face(
     runtime: &mut InstalledRemoteFragment,
     request: HostCallRequest,
     output: &mut impl Write,
+    workload: super::Workload,
 ) -> Result<(), String> {
-    let work = runtime.describe_host_request(request)?;
+    let work = runtime.host_request_view(request)?;
     if work.contract_id.as_str() != conduit_core::PRESENT_HOST_CALL_CONTRACT {
         return Err(format!(
             "unexpected two-Host Call {}",
             work.contract_id.as_str()
         ));
     }
-    let text =
-        core::str::from_utf8(&work.input).map_err(|_| "presented two-Host text is not UTF-8")?;
-    writeln!(output, "{text}").map_err(|error| error.to_string())?;
+    match workload {
+        super::Workload::Text => {
+            let text = core::str::from_utf8(work.input)
+                .map_err(|_| "presented two-Host text is not UTF-8")?;
+            writeln!(output, "{text}").map_err(|error| error.to_string())?;
+        }
+        super::Workload::Ticks(_) => {
+            let tick = conduit_time::decode_tick(work.input)
+                .map_err(|_| "presented two-Host tick is malformed")?;
+            writeln!(output, "{tick}").map_err(|error| error.to_string())?;
+        }
+    }
     runtime.complete_host_call(
         request,
         HostCallOutcome {
@@ -101,10 +140,11 @@ fn drain_source(runtime: &mut InstalledRemoteFragment) -> Result<(), String> {
 fn drain_sink(
     runtime: &mut InstalledRemoteFragment,
     output: &mut impl Write,
+    workload: super::Workload,
 ) -> Result<(), String> {
     for _ in 0..32 {
         if let Some(request) = runtime.next_host_request() {
-            complete_text_face(runtime, request, output)?;
+            complete_text_face(runtime, request, output, workload)?;
         }
         if matches!(runtime.step()?, SchedulerStatus::Drained) {
             return Ok(());
@@ -118,6 +158,7 @@ pub(super) fn execute_line<const OBSERVE: bool>(
     source_endpoint: RemoteEndpointId,
     sink: InstalledRemoteFragment,
     sink_endpoint: RemoteEndpointId,
+    workload: super::Workload,
 ) -> Result<
     (
         RemoteValueTransfer,
@@ -126,6 +167,7 @@ pub(super) fn execute_line<const OBSERVE: bool>(
     ),
     String,
 > {
+    let mut line_clock = OBSERVE.then(super::evidence::LineClock::new);
     let listener = NativeWebSocketListener::bind_loopback(MAXIMUM_FRAME_BYTES)
         .map_err(|error| format!("bind Tour Line: {error:?}"))?;
     let address = listener
@@ -135,79 +177,131 @@ pub(super) fn execute_line<const OBSERVE: bool>(
         .url()
         .map_err(|error| format!("name Tour Line: {error:?}"))?;
     let sink_handle =
-        thread::spawn(move || run_sink::<OBSERVE>(sink, sink_endpoint, address, &url));
-    let mut line = listener
-        .accept()
-        .map_err(|error| format!("accept Tour Line: {error:?}"))?;
-    activate_source(&mut source, source_endpoint, &mut line)?;
-    let mut receive_bytes = [0; MAXIMUM_FRAME_BYTES as usize];
-    let transfer = next_transfer(&mut source)?;
-    send_message(
-        &mut source,
-        source_endpoint,
-        &mut line,
-        SessionMessage::Offered {
-            sequence: transfer.sequence,
-            payload: &transfer.bytes,
-        },
-    )?;
-    match receive_message(&mut source, source_endpoint, &mut line, &mut receive_bytes)? {
-        ReceivedMessage::Accepted { sequence } if sequence == transfer.sequence => {
-            source.accept_egress(&transfer)?;
+        thread::spawn(move || run_sink::<OBSERVE>(sink, sink_endpoint, address, &url, workload));
+    let mut source_traffic = None;
+    let source_result: Result<RemoteValueTransfer, String> = (|| {
+        let mut line = listener
+            .accept_with_timeout(std::time::Duration::from_secs(5))
+            .map_err(|error| format!("accept Tour Line: {error:?}"))?;
+        line.set_read_timeout(Some(std::time::Duration::from_secs(5)))
+            .map_err(|error| format!("source Line timeout: {error:?}"))?;
+        if OBSERVE {
+            line.start_traffic_observation();
         }
-        message => return Err(format!("unexpected Tour Line acceptance {message:?}")),
-    }
-    match receive_message(&mut source, source_endpoint, &mut line, &mut receive_bytes)? {
-        ReceivedMessage::Delivered { sequence } if sequence == transfer.sequence => {
-            source.deliver_egress(&transfer)?;
+        activate_source(&mut source, source_endpoint, &mut line)?;
+        if let Some(clock) = &mut line_clock {
+            clock.ready();
         }
-        message => return Err(format!("unexpected Tour Line delivery {message:?}")),
-    }
-    drain_source(&mut source)?;
-    send_message(
-        &mut source,
-        source_endpoint,
-        &mut line,
-        SessionMessage::InputClosed { final_sequence: 1 },
-    )?;
-    send_message(
-        &mut source,
-        source_endpoint,
-        &mut line,
-        SessionMessage::Terminal {
-            disposition: SessionTerminalDisposition::Completed,
-            final_sequence: 1,
-        },
-    )?;
-    if !matches!(
-        receive_message(&mut source, source_endpoint, &mut line, &mut receive_bytes)?,
-        ReceivedMessage::Terminal {
-            disposition: SessionTerminalDisposition::Completed,
-            final_sequence: 1
+        let mut final_transfer = None;
+        for expected_sequence in 0..workload.count() {
+            let transfer = next_transfer(&mut source)?;
+            if transfer.sequence != expected_sequence {
+                return Err("two-Host source sequence mismatch".into());
+            }
+            send_message(
+                &mut source,
+                source_endpoint,
+                &mut line,
+                SessionMessage::Offered {
+                    sequence: transfer.sequence,
+                    payload: &transfer.bytes,
+                },
+            )?;
+            match receive_message(&mut source, source_endpoint, &mut line)? {
+                ReceivedMessage::Accepted { sequence } if sequence == transfer.sequence => {
+                    source.accept_egress(&transfer)?;
+                }
+                message => return Err(format!("unexpected Tour Line acceptance {message:?}")),
+            }
+            match receive_message(&mut source, source_endpoint, &mut line)? {
+                ReceivedMessage::Delivered { sequence } if sequence == transfer.sequence => {
+                    source.deliver_egress(&transfer)?;
+                }
+                message => return Err(format!("unexpected Tour Line delivery {message:?}")),
+            }
+            if expected_sequence == 0 {
+                if let Some(clock) = &mut line_clock {
+                    clock.first();
+                }
+            }
+            final_transfer = Some(transfer);
         }
-    ) || !source
-        .sessions()
-        .get(source_endpoint)
-        .ok_or("source Line session missing")?
-        .machine()
-        .is_terminal()
-    {
-        return Err("source Tour Line did not terminate exactly".into());
-    }
-    line.close()
-        .map_err(|error| format!("close Tour Line: {error:?}"))?;
-    let (sink_output, sink_evidence) = sink_handle
+        let transfer = final_transfer.ok_or("two-Host source produced no value")?;
+        let final_sequence = workload.count();
+        if let Some(clock) = &mut line_clock {
+            clock.transfers_done();
+        }
+        drain_source(&mut source)?;
+        send_message(
+            &mut source,
+            source_endpoint,
+            &mut line,
+            SessionMessage::InputClosed { final_sequence },
+        )?;
+        send_message(
+            &mut source,
+            source_endpoint,
+            &mut line,
+            SessionMessage::Terminal {
+                disposition: SessionTerminalDisposition::Completed,
+                final_sequence,
+            },
+        )?;
+        if !matches!(
+            receive_message(&mut source, source_endpoint, &mut line)?,
+            ReceivedMessage::Terminal {
+                disposition: SessionTerminalDisposition::Completed,
+                final_sequence: current
+            } if current == final_sequence
+        ) || !source
+            .sessions()
+            .get(source_endpoint)
+            .ok_or("source Line session missing")?
+            .machine()
+            .is_terminal()
+        {
+            return Err("source Tour Line did not terminate exactly".into());
+        }
+        source_traffic = line.traffic();
+        line.close()
+            .map_err(|error| format!("close Tour Line: {error:?}"))?;
+        Ok(transfer)
+    })();
+    // Dropping the source socket ends a failed peer's read. Always reap the
+    // other owner and preserve its actual refusal instead of hiding it behind
+    // the resulting WebSocket disconnect.
+    let sink_result = sink_handle
         .join()
-        .map_err(|_| "sink Tour Host panicked".to_string())??;
-    let evidence = if OBSERVE {
+        .map_err(|_| "sink Tour Host panicked".to_string())
+        .and_then(|result| result);
+    let (transfer, (sink_output, sink_evidence)) = match (source_result, sink_result) {
+        (Ok(source), Ok(sink)) => (source, sink),
+        (Err(source), Err(sink)) => return Err(format!("source: {source}; sink: {sink}")),
+        (Err(source), _) => return Err(source),
+        (_, Err(sink)) => return Err(sink),
+    };
+    let mut evidence = if OBSERVE {
         Some(super::TwoHostKernelEvidence {
             phases: Vec::new(),
+            line: None,
             source: super::evidence::retain(&source),
             sink: sink_evidence.ok_or("sink evidence missing")?,
         })
     } else {
         None
     };
+    if let Some(evidence) = &mut evidence {
+        evidence.source.traffic = source_traffic;
+    }
+    drop(source);
+    if let Some(clock) = line_clock {
+        evidence
+            .as_mut()
+            .ok_or("two-Host Line evidence missing")?
+            .line = Some(clock.finish(
+            u32::try_from(workload.count()).map_err(|_| "two-Host Line count overflow")?,
+        )?);
+    }
     Ok((transfer, sink_output, evidence))
 }
 
@@ -216,55 +310,80 @@ fn run_sink<const OBSERVE: bool>(
     sink_endpoint: RemoteEndpointId,
     address: std::net::SocketAddr,
     url: &str,
+    workload: super::Workload,
 ) -> Result<(Vec<u8>, Option<super::RemoteKernelEvidence>), String> {
     let mut line = NativeWebSocketLine::connect(address, url, MAXIMUM_FRAME_BYTES)
         .map_err(|error| format!("connect Tour Line: {error:?}"))?;
+    line.set_read_timeout(Some(std::time::Duration::from_secs(5)))
+        .map_err(|error| format!("sink Line timeout: {error:?}"))?;
+    if OBSERVE {
+        line.start_traffic_observation();
+    }
     activate_sink(&mut sink, sink_endpoint, &mut line)?;
     let mut output = Vec::with_capacity(conduit_text::MAX_TEXT_BYTES as usize + 1);
-    let mut receive_bytes = [0; MAXIMUM_FRAME_BYTES as usize];
-    let sequence = match receive_message(&mut sink, sink_endpoint, &mut line, &mut receive_bytes)? {
-        ReceivedMessage::Offered { sequence, payload } => {
-            match sink.admit_ingress(sink_endpoint, sequence, payload)? {
-                RemoteIngressOutcome::Accepted { .. } => sequence,
-                RemoteIngressOutcome::Full { .. } => return Err("Tour sink Line pressure".into()),
-            }
-        }
-        message => return Err(format!("unexpected Tour Line offer {message:?}")),
-    };
-    send_message(
-        &mut sink,
-        sink_endpoint,
-        &mut line,
-        SessionMessage::Accepted { sequence },
-    )?;
-    drive_sink(&mut sink, &mut output)?;
-    send_message(
-        &mut sink,
-        sink_endpoint,
-        &mut line,
-        SessionMessage::Delivered { sequence },
-    )?;
-    match receive_message(&mut sink, sink_endpoint, &mut line, &mut receive_bytes)? {
-        ReceivedMessage::InputClosed { final_sequence: 1 } => sink.close_ingress(sink_endpoint)?,
+    for expected_sequence in 0..workload.count() {
+        let sequence =
+            with_message(
+                &mut sink,
+                sink_endpoint,
+                &mut line,
+                |sink, message| match message {
+                    SessionMessage::Offered { sequence, payload } => {
+                        match sink.admit_ingress(sink_endpoint, sequence, payload)? {
+                            RemoteIngressOutcome::Accepted { .. }
+                                if sequence == expected_sequence =>
+                            {
+                                Ok(sequence)
+                            }
+                            RemoteIngressOutcome::Accepted { .. } => {
+                                Err("two-Host sink sequence mismatch".into())
+                            }
+                            RemoteIngressOutcome::Full { .. } => {
+                                Err("Tour sink Line pressure".into())
+                            }
+                        }
+                    }
+                    message => Err(format!("unexpected Tour Line offer {message:?}")),
+                },
+            )?;
+        send_message(
+            &mut sink,
+            sink_endpoint,
+            &mut line,
+            SessionMessage::Accepted { sequence },
+        )?;
+        drive_sink(&mut sink, &mut output, workload)?;
+        send_message(
+            &mut sink,
+            sink_endpoint,
+            &mut line,
+            SessionMessage::Delivered { sequence },
+        )?;
+    }
+    let final_sequence = workload.count();
+    match receive_message(&mut sink, sink_endpoint, &mut line)? {
+        ReceivedMessage::InputClosed {
+            final_sequence: current,
+        } if current == final_sequence => sink.close_ingress(sink_endpoint)?,
         message => return Err(format!("unexpected Tour Line close {message:?}")),
     }
     if !matches!(
-        receive_message(&mut sink, sink_endpoint, &mut line, &mut receive_bytes)?,
+        receive_message(&mut sink, sink_endpoint, &mut line)?,
         ReceivedMessage::Terminal {
             disposition: SessionTerminalDisposition::Completed,
-            final_sequence: 1
-        }
+            final_sequence: current
+        } if current == final_sequence
     ) {
         return Err("sink Tour Line received wrong terminal".into());
     }
-    drain_sink(&mut sink, &mut output)?;
+    drain_sink(&mut sink, &mut output, workload)?;
     send_message(
         &mut sink,
         sink_endpoint,
         &mut line,
         SessionMessage::Terminal {
             disposition: SessionTerminalDisposition::Completed,
-            final_sequence: 1,
+            final_sequence,
         },
     )?;
     if !sink
@@ -276,7 +395,11 @@ fn run_sink<const OBSERVE: bool>(
     {
         return Err("sink Tour Line did not terminate exactly".into());
     }
-    let evidence = OBSERVE.then(|| super::evidence::retain(&sink));
+    let evidence = OBSERVE.then(|| {
+        let mut evidence = super::evidence::retain(&sink);
+        evidence.traffic = line.traffic();
+        evidence
+    });
     Ok((output, evidence))
 }
 
@@ -285,16 +408,15 @@ fn activate_source(
     endpoint: RemoteEndpointId,
     line: &mut NativeWebSocketLine,
 ) -> Result<(), String> {
-    let mut receive_bytes = [0; MAXIMUM_FRAME_BYTES as usize];
     if !matches!(
-        receive_message(runtime, endpoint, line, &mut receive_bytes)?,
+        receive_message(runtime, endpoint, line)?,
         ReceivedMessage::Hello
     ) {
         return Err("Tour sink omitted Hello".into());
     }
     send_hello(runtime, endpoint, line)?;
     if !matches!(
-        receive_message(runtime, endpoint, line, &mut receive_bytes)?,
+        receive_message(runtime, endpoint, line)?,
         ReceivedMessage::Ready
     ) {
         return Err("Tour sink omitted Ready".into());
@@ -307,17 +429,16 @@ fn activate_sink(
     endpoint: RemoteEndpointId,
     line: &mut NativeWebSocketLine,
 ) -> Result<(), String> {
-    let mut receive_bytes = [0; MAXIMUM_FRAME_BYTES as usize];
     send_hello(runtime, endpoint, line)?;
     if !matches!(
-        receive_message(runtime, endpoint, line, &mut receive_bytes)?,
+        receive_message(runtime, endpoint, line)?,
         ReceivedMessage::Hello
     ) {
         return Err("Tour source omitted Hello".into());
     }
     send_message(runtime, endpoint, line, SessionMessage::Ready)?;
     if !matches!(
-        receive_message(runtime, endpoint, line, &mut receive_bytes)?,
+        receive_message(runtime, endpoint, line)?,
         ReceivedMessage::Ready
     ) {
         return Err("Tour source omitted Ready".into());
@@ -359,13 +480,9 @@ fn send_message(
 }
 
 #[derive(Debug)]
-enum ReceivedMessage<'a> {
+enum ReceivedMessage {
     Hello,
     Ready,
-    Offered {
-        sequence: u64,
-        payload: &'a [u8],
-    },
     Accepted {
         sequence: u64,
     },
@@ -381,36 +498,37 @@ enum ReceivedMessage<'a> {
     },
 }
 
-// The offered payload stays in caller-owned bounded storage until ingress
-// copies it into the kernel. Session admission still precedes that handoff.
-fn receive_message<'a>(
+// Payload and control frames are consumed while transport retains their bytes.
+// Session admission precedes the callback and kernel ingress ownership transfer.
+fn with_message<R>(
     runtime: &mut InstalledRemoteFragment,
     endpoint: RemoteEndpointId,
     line: &mut NativeWebSocketLine,
-    bytes: &'a mut [u8; MAXIMUM_FRAME_BYTES as usize],
-) -> Result<ReceivedMessage<'a>, String> {
-    let length = line
-        .receive_binary(bytes)
-        .map_err(|error| format!("receive Tour Line frame: {error:?}"))?;
-    let frame = decode_session_frame(
-        &bytes[..length],
-        conduit_text::MAX_TEXT_BYTES,
-        MAXIMUM_FRAME_BYTES,
-    )
-    .map_err(|error| format!("decode Tour Line frame: {error:?}"))?;
-    runtime
-        .sessions_mut()
-        .get_mut(endpoint)
-        .ok_or("Tour Line session missing")?
-        .machine_mut()
-        .admit_inbound(frame)
-        .map_err(|error| format!("admit inbound Tour Line frame: {error:?}"))?;
-    match frame.message {
+    consume: impl FnOnce(&mut InstalledRemoteFragment, SessionMessage<'_>) -> Result<R, String>,
+) -> Result<R, String> {
+    line.receive_binary_with(|bytes| {
+        let frame = decode_session_frame(bytes, conduit_text::MAX_TEXT_BYTES, MAXIMUM_FRAME_BYTES)
+            .map_err(|error| format!("decode Tour Line frame: {error:?}"))?;
+        runtime
+            .sessions_mut()
+            .get_mut(endpoint)
+            .ok_or("Tour Line session missing")?
+            .machine_mut()
+            .admit_inbound(frame)
+            .map_err(|error| format!("admit inbound Tour Line frame: {error:?}"))?;
+        consume(runtime, frame.message)
+    })
+    .map_err(|error| format!("receive Tour Line frame: {error:?}"))?
+}
+
+fn receive_message(
+    runtime: &mut InstalledRemoteFragment,
+    endpoint: RemoteEndpointId,
+    line: &mut NativeWebSocketLine,
+) -> Result<ReceivedMessage, String> {
+    with_message(runtime, endpoint, line, |_, message| match message {
         SessionMessage::Hello(_) => Ok(ReceivedMessage::Hello),
         SessionMessage::Ready => Ok(ReceivedMessage::Ready),
-        SessionMessage::Offered { sequence, payload } => {
-            Ok(ReceivedMessage::Offered { sequence, payload })
-        }
         SessionMessage::Accepted { sequence } => Ok(ReceivedMessage::Accepted { sequence }),
         SessionMessage::Delivered { sequence } => Ok(ReceivedMessage::Delivered { sequence }),
         SessionMessage::InputClosed { final_sequence } => {
@@ -424,5 +542,5 @@ fn receive_message<'a>(
             final_sequence,
         }),
         message => Err(format!("unexpected Tour Line message {message:?}")),
-    }
+    })
 }
