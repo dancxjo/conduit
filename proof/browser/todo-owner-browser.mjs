@@ -522,7 +522,7 @@ try {
       owner_after: ownerAfter, browser_after: after, terminal_input: 'terminal-complete.input',
       terminal_stdout: 'terminal-complete.stdout', terminal_stderr: 'terminal-complete.stderr' };
   }
-  if (scenario === 'first-add') await captureArbitraryTodoRefusals({
+  if (scenario === 'first-add' || scenario === 'required-component') await captureArbitraryTodoRefusals({
     page, face, output, sourceRecord, bodyId, identity, retiredView: before, state,
     acceptCurrent: () => performAdd('Verify recovered current Show'),
   });
