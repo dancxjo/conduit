@@ -99,8 +99,9 @@ now remains below 500 lines. Neither Face meaning nor active Plans are mutated.
 
 ## Validation and limits
 
-Executed source: `180b88c` (full identity in the retained validation receipt),
-based on `22bff77`. Source and worktree were clean and unchanged before/after the
+Executed source: `8d5b6368e2937e8528e4cba14ad5be34ae8ad297`, integrating accepted dev
+`00525faf30522b6851d226613e61e277f2b48f43` with this repair. The merge preserves
+both the upstream each-child evidence and the pending Fore custody record. Source and worktree were clean and unchanged before/after the
 validation matrix. `cargo xtask check todo-durability` passes 44 tests; its one
 ignored test requires a separate exact-source retained DOM exchange and does not
 establish DOM reconstruction here. Four Parsec Fore tests and two exact
