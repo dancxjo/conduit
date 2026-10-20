@@ -30,7 +30,7 @@ fn exact_fragment_reuse_and_changed_facts_match_cold_factory() {
     );
     assert!(original
         .iter()
-        .all(|offer| offer.authority_requirements.is_empty()));
+        .all(|offer| offer.implementation.authority_requirements.is_empty()));
     for mutation in 0..8 {
         let mut changed_plot = plot.clone();
         let mut changed_gear = gear.clone();
