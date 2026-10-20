@@ -54,3 +54,13 @@ pub enum NativeFormRefusal {
 }
 
 mod external_binding_validation;
+
+mod generate_prepared_storage;
+mod prepared_decode;
+pub use generate_prepared_storage::{
+    generate_rust_bindings_with_prepared_storage, PreparedStorageGenerationError,
+};
+pub use prepared_decode::{
+    check_prepared_decode_native, prepared_decode_primitive, prepared_decode_text,
+    PreparedDecodeBounds, PreparedDecodeGate, PreparedDecodeProgress, PreparedDecodeRefusal,
+};
