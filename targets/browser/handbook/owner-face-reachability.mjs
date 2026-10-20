@@ -1,3 +1,5 @@
+import { ownerFacePointerReachable } from "./owner-face-presentation.mjs";
+
 // A conservative admission check for this generic native-control renderer.
 // This does not certify arbitrary CSS or another renderer's accessibility tree.
 const fail = action => {
@@ -49,8 +51,9 @@ export function assertOwnerFaceReachability(element, view) {
     && !control.hasAttribute('aria-labelledby') && control.getAttribute('aria-disabled') !== 'true'
     && control.matches(':disabled') === disabled;
   const visibleControl = control => control.matches('input[type=radio]')
-    ? visiblePath(control, true) && [...control.labels].some(label => visiblePath(label))
-    : visiblePath(control);
+    ? visiblePath(control, true) && [...control.labels].some(label => visiblePath(label)
+      && ownerFacePointerReachable(label, { allowDeferred: true }))
+    : visiblePath(control) && ownerFacePointerReachable(control, { allowDeferred: true });
   for (const action of view.actions.filter(action => action.availability === 'available')) {
     const regions = [...element.shadowRoot.querySelectorAll('[data-owner-action]')]
       .filter(region => region.dataset.ownerAction === action.identity);

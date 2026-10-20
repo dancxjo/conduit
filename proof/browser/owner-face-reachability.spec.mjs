@@ -116,3 +116,59 @@ for (const corruptDependency of [false,true]) {
       ?'application module owner-participation did not use its declared dependency':'Owner modules admitted');
   });
 }
+
+
+for (const scope of ['none', 'shadow', 'document', 'pointer-transparent']) {
+  test(`offered controls refuse pointer occlusion before acknowledgement and activation (${scope})`, async ({ page }) => {
+    await page.goto('/proof/browser/signal-dom-host.test.html');
+    const active = { ...view, show_state: 'available', interactions_admitted: true };
+    await page.evaluate(async ({ view, scope }) => {
+      await import('/targets/browser/handbook/owner-face-component.mjs');
+      const { assertOwnerFaceReachability } = await import('/targets/browser/handbook/owner-face-reachability.mjs');
+      const element = document.createElement('conduit-owner-face');
+      document.body.replaceChildren(element); globalThis.calls = [];
+      element.show(view, { invoke: async call => globalThis.calls.push(call) });
+      const link = element.shadowRoot.querySelector('link');
+      if (!link.sheet) await new Promise((resolve, reject) => {
+        link.addEventListener('load', resolve, { once: true });
+        link.addEventListener('error', reject, { once: true });
+      });
+      assertOwnerFaceReachability(element, view);
+      const button = element.shadowRoot.querySelector('button');
+      if (scope !== 'none') {
+        const bounds = button.getBoundingClientRect();
+        const blocker = document.createElement('div'); blocker.id = 'pointer-blocker';
+        blocker.textContent = 'Decorative overlay';
+        blocker.style.cssText = `position:fixed;left:${bounds.left}px;top:${bounds.top}px;width:${bounds.width}px;height:${bounds.height}px;z-index:2147483647;background:white;color:black;pointer-events:${scope === 'pointer-transparent' ? 'none' : 'auto'}`;
+        (scope === 'shadow' ? element.shadowRoot : document.body).append(blocker);
+      }
+      globalThis.occlusion = { element, view, assertOwnerFaceReachability };
+    }, { view: active, scope });
+    const blocked = ['shadow', 'document'].includes(scope);
+    const admission = await page.evaluate(() => {
+      const { element, view, assertOwnerFaceReachability } = globalThis.occlusion;
+      try { assertOwnerFaceReachability(element, view); return 'admitted'; }
+      catch (error) { return error.code; }
+    });
+    expect(admission).toBe(blocked ? 'RendererActionInaccessible' : 'admitted');
+    const button = page.locator('conduit-owner-face').getByRole('button', { name: 'Add item', exact: true });
+    await page.locator('conduit-owner-face').getByRole('textbox', { name: 'Item text', exact: true }).fill('Bounded draft');
+    await button.focus();
+    await page.keyboard.press('Enter');
+    expect(await page.evaluate(() => globalThis.calls.length)).toBe(blocked ? 0 : 1);
+    if (blocked) {
+      // Synthetic events are an adversarial check, never trusted enactment.
+      await button.evaluate(node => node.form.requestSubmit());
+      expect(await page.evaluate(() => globalThis.calls.length)).toBe(0);
+      await page.evaluate(() => {
+        const { element, view, assertOwnerFaceReachability } = globalThis.occlusion;
+        (element.shadowRoot.querySelector('#pointer-blocker') ?? document.querySelector('#pointer-blocker')).remove();
+        assertOwnerFaceReachability(element, view);
+      });
+      await button.click();
+      expect(await page.evaluate(() => globalThis.calls.length)).toBe(1);
+    }
+    const calls = await page.evaluate(() => globalThis.calls);
+    expect(calls[0]).toEqual({ view: active, action: active.actions[0], arguments: [{ name: 'text', value: 'Bounded draft' }] });
+  });
+}
