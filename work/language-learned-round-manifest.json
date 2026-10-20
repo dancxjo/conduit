@@ -1,0 +1,31 @@
+{
+  "base": "73defbe38cb9813c374896cb0a56872fb4b7ea3d",
+  "prerequisite": "root accepted categorical channel8ce3f9b1c5f6e65a81c2e14ceec17f2258f30732",
+  "files": [
+    {
+      "path": "semantics/language/src/analysis_fallback_round.rs",
+      "bytes": 15508,
+      "sha256": "f9a94091d1522da5acf02298cae2fc68c62cc322a2b81a021a4592cd165311f6"
+    },
+    {
+      "path": "semantics/language/src/analysis_round_scoring.rs",
+      "bytes": 1047,
+      "sha256": "9184a9e4432d3acb9a82f358c596eeba41ed11e1a8c9651832e10cb58e85a3cf"
+    },
+    {
+      "path": "semantics/language/src/analysis_learned_round.rs",
+      "bytes": 14629,
+      "sha256": "9276d0dde476109e6c9d42f939ca6239cd3876cb076eeac3557029ed2d29a1f3"
+    },
+    {
+      "path": "semantics/language/tests/analysis_learned_round.rs",
+      "bytes": 7075,
+      "sha256": "1d5253c43b0b62eca075cfa6750b178854baa1d6bfd72235259edbc6922a063e"
+    },
+    {
+      "path": "semantics/language/tests/common/parser_round_model_channel.rs",
+      "bytes": 4382,
+      "sha256": "af7548e1673f72f1edcf4c5a6a48dac9677e0c1c5fcba3a9885883a4fb662234"
+    }
+  ]
+}

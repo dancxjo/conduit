@@ -1,0 +1,24 @@
+{
+  "base_checkout": "../carried-fore-dependency-check",
+  "base_head": "6af29cfcf9e85c73394c6ff793019461d3708756",
+  "files": [
+    {
+      "path": "semantics/ai/src/integer_categorical_step/channel.rs",
+      "base_sha256": "c17a3cbbd23b2fbf3ff7ebc7e384570214f0ead3b38640c0ba6d6401d6c9080d",
+      "bytes": 12949,
+      "sha256": "313001a7f1766f63ec2f554d96544c5cb5e50fb838e62d418b5ae7aa3ba6a68a"
+    },
+    {
+      "path": "semantics/language/tests/common/parser_round_model_channel.rs",
+      "base_sha256": "af7548e1673f72f1edcf4c5a6a48dac9677e0c1c5fcba3a9885883a4fb662234",
+      "bytes": 6563,
+      "sha256": "7240ef961012bbe07d71ad2d1df8bc22a6c51354a3742c3b88bdb8ad31070a31"
+    },
+    {
+      "path": "semantics/language/tests/categorical_full_model_channel.rs",
+      "base_sha256": null,
+      "bytes": 3129,
+      "sha256": "b9c193d19768175bac2c7950bde5bf83edd5ce837445e86f97811abc00a67874"
+    }
+  ]
+}

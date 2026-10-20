@@ -657,3 +657,7 @@ fn scheduler_pressure_cancel_and_storage_failure_do_not_publish_uncommitted_fram
 #[cfg(target_has_atomic = "8")]
 #[path = "integer_categorical_step/invocation_cases.rs"]
 mod invocation_cases;
+
+#[cfg(target_has_atomic = "8")]
+#[path = "integer_categorical_step/channel_cases.rs"]
+mod channel_cases;

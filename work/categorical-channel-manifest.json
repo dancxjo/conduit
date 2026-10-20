@@ -1,0 +1,35 @@
+{
+  "base": "73defbe38cb9813c374896cb0a56872fb4b7ea3d",
+  "files": [
+    {
+      "path": "semantics/ai/src/integer_categorical_step.rs",
+      "bytes": 16385,
+      "sha256": "d148e9c742f2b0fa29ef2d2ad5d106f33c730c291c4fa18d6f8983c3f5dc5e4f"
+    },
+    {
+      "path": "semantics/ai/src/integer_categorical_step/invocation.rs",
+      "bytes": 8470,
+      "sha256": "d0d81277457c549a45beae51fda925f0a5af37a75bf201951b6c0a00e0b13c1c"
+    },
+    {
+      "path": "semantics/ai/src/integer_categorical_step/channel.rs",
+      "bytes": 11994,
+      "sha256": "c17a3cbbd23b2fbf3ff7ebc7e384570214f0ead3b38640c0ba6d6401d6c9080d"
+    },
+    {
+      "path": "semantics/ai/tests/integer_categorical_step.rs",
+      "bytes": 24349,
+      "sha256": "308f0eb6f53aeaafda606f737d70b74ecc164844fe66f9f0243b49b5e7e89b1f"
+    },
+    {
+      "path": "semantics/ai/tests/integer_categorical_step/invocation_cases.rs",
+      "bytes": 5734,
+      "sha256": "253fca5aa830632cf6168781c379708936eab7b501fb5cebdd126a07158b7cde"
+    },
+    {
+      "path": "semantics/ai/tests/integer_categorical_step/channel_cases.rs",
+      "bytes": 6154,
+      "sha256": "efbadf266ad3ba0f18ca75de6b812b24e120c5cf445d41d82cd9d12c32c890fe"
+    }
+  ]
+}

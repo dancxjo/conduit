@@ -68,6 +68,18 @@ impl CategoricalInvocationOutlet {
             bytes_per_slot,
         })))
     }
+    /// Exact outlet membership only; this does not establish current request or Play custody.
+    pub fn contains(&self, invocation: &CommittedCategoricalInvocation) -> bool {
+        Arc::ptr_eq(&self.0, &invocation.inner)
+    }
+    // Only the owning channel calls this before ingress. Its private kernel is
+    // the sole writer; concurrent reader drops can only increase free capacity.
+    pub(super) fn has_capacity(&self) -> bool {
+        self.0
+            .slots
+            .iter()
+            .any(|slot| slot.state.load(Ordering::Acquire) == FREE)
+    }
     pub fn capacity(&self) -> usize {
         self.0.slots.len()
     }

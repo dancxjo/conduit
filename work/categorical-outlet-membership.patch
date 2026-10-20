@@ -1,0 +1,37 @@
+diff --git a/semantics/ai/src/integer_categorical_step/invocation.rs b/semantics/ai/src/integer_categorical_step/invocation.rs
+index 2658e71cf..c36b919ed 100644
+--- a/semantics/ai/src/integer_categorical_step/invocation.rs
++++ b/semantics/ai/src/integer_categorical_step/invocation.rs
+@@ -68,6 +68,10 @@ impl CategoricalInvocationOutlet {
+             bytes_per_slot,
+         })))
+     }
++    /// Exact outlet membership only; this does not establish current request or Play custody.
++    pub fn contains(&self, invocation: &CommittedCategoricalInvocation) -> bool {
++        Arc::ptr_eq(&self.0, &invocation.inner)
++    }
+     pub fn capacity(&self) -> usize {
+         self.0.slots.len()
+     }
+diff --git a/semantics/ai/tests/integer_categorical_step/invocation_cases.rs b/semantics/ai/tests/integer_categorical_step/invocation_cases.rs
+index 5fd85a6d9..99b74a83a 100644
+--- a/semantics/ai/tests/integer_categorical_step/invocation_cases.rs
++++ b/semantics/ai/tests/integer_categorical_step/invocation_cases.rs
+@@ -54,6 +54,17 @@ fn opaque_outlet_publishes_only_after_ack_and_holds_exact_bytes_under_pressure()
+     assert_eq!(allocations.allocations, 0);
+     let receipt = outlet.try_take().unwrap();
+     assert!(outlet.try_take().is_none());
++    assert!(outlet.contains(&receipt));
++    assert!(outlet.clone().contains(&receipt));
++    let (_, foreign_readers) =
++        owner::CategoricalOperationFactory::for_plan_with_invocation_outlets(
++            &plan,
++            &[profile.clone()],
++            1,
++        )
++        .unwrap();
++    // Identical Plan/profile/invocation origin does not confer outlet membership.
++    assert!(!foreign_readers[0].contains(&receipt));
+     assert_eq!(receipt.invocation(), 1);
+     assert_eq!(receipt.placement(), gear(&plan));
+     assert_eq!(receipt.plan(), &plan);

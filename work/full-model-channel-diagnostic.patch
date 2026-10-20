@@ -1,0 +1,304 @@
+diff --git a/semantics/ai/src/integer_categorical_step/channel.rs b/semantics/ai/src/integer_categorical_step/channel.rs
+--- a/semantics/ai/src/integer_categorical_step/channel.rs
++++ b/semantics/ai/src/integer_categorical_step/channel.rs
+@@ -4,7 +4,8 @@
+ use super::{invocation::*, owner::CategoricalOperationFactory, *};
+ use alloc::collections::BTreeMap;
+ use conduit_composite::{
+-    KernelCompositeDefinition, KernelCompositeHost, KernelCompositeStatus, KernelOperationRegistry,
++    KernelCompositeDefinition, KernelCompositeError, KernelCompositeHost, KernelCompositeStatus,
++    KernelOperationRegistry,
+ };
+ use conduit_kernel::scheduler::RemoteIngressOutcome;
+ use conduit_plot::CheckedPlot;
+@@ -52,6 +53,7 @@
+     pending: Option<Pending<L>>,
+     next: u64,
+     closed: bool,
++    last_kernel_error: Option<KernelCompositeError>,
+ }
+ /// Private construction ties the exact moved lease to this channel's invocation.
+ pub struct CompletedCategoricalRequest<L> {
+@@ -166,6 +168,7 @@
+             pending: None,
+             next: 1,
+             closed: false,
++            last_kernel_error: None,
+         })
+     }
+     pub fn active_plays(&self) -> &BTreeMap<HostId, ActivePlayId> {
+@@ -177,6 +180,11 @@
+     }
+     pub fn pending(&self) -> Option<&L> {
+         self.pending.as_ref().map(|pending| &pending.lease)
++    }
++    /// Most recent actual underlying error, retained without formatting/allocation.
++    /// A later failed cancellation can replace the earlier error.
++    pub fn last_kernel_error(&self) -> Option<&KernelCompositeError> {
++        self.last_kernel_error.as_ref()
+     }
+     pub fn is_closed(&self) -> bool {
+         self.closed
+@@ -226,6 +234,11 @@
+                     lease: pending.lease,
+                 })
+             }
++            Err(error) => {
++                self.last_kernel_error = Some(error);
++                self.closed = true;
++                Ok(CategoricalChannelSubmission::TerminalRetained(Kernel))
++            }
+             _ => {
+                 // An unexpected admission outcome might have accepted an effect.
+                 // Keep its lease privately rather than returning it for reuse.
+@@ -247,6 +260,11 @@
+         }
+         match self.kernel.step() {
+             Ok(KernelCompositeStatus::Active) => (),
++            Err(error) => {
++                self.last_kernel_error = Some(error);
++                self.closed = true;
++                return Err(Kernel);
++            }
+             _ => {
+                 self.closed = true;
+                 return Err(Kernel);
+@@ -271,7 +289,8 @@
+         let sequence = match self.kernel.output_into(&self.output_port, &mut self.output) {
+             Ok(Some(sequence)) => sequence,
+             Ok(None) => return Ok(None),
+-            Err(_) => {
++            Err(error) => {
++                self.last_kernel_error = Some(error);
+                 self.closed = true;
+                 return Err(Kernel);
+             }
+@@ -280,11 +299,8 @@
+             self.closed = true;
+             return Err(Evidence);
+         }
+-        if self
+-            .kernel
+-            .complete_output(&self.output_port, sequence)
+-            .is_err()
+-        {
++        if let Err(error) = self.kernel.complete_output(&self.output_port, sequence) {
++            self.last_kernel_error = Some(error);
+             self.closed = true;
+             return Err(Kernel);
+         }
+@@ -301,9 +317,13 @@
+     /// Terminal even when cancellation reports a kernel error. Pending evidence stays owned.
+     pub fn cancel(&mut self) -> Result<(), CategoricalChannelRefusal> {
+         self.closed = true;
+-        self.kernel
+-            .cancel()
+-            .map_err(|_| CategoricalChannelRefusal::Kernel)
++        match self.kernel.cancel() {
++            Ok(()) => Ok(()),
++            Err(error) => {
++                self.last_kernel_error = Some(error);
++                Err(CategoricalChannelRefusal::Kernel)
++            }
++        }
+     }
+     /// Recover exact pending custody only by consuming the terminal channel.
+     pub fn into_pending(
+diff --git a/semantics/language/tests/common/parser_round_model_channel.rs b/semantics/language/tests/common/parser_round_model_channel.rs
+--- a/semantics/language/tests/common/parser_round_model_channel.rs
++++ b/semantics/language/tests/common/parser_round_model_channel.rs
+@@ -3,7 +3,7 @@
+ use conduit_composite::KernelCompositeDefinition;
+ use conduit_core::*;
+ use conduit_language::parser_model::*;
+-use std::sync::Arc;
++use std::{collections::BTreeMap, sync::Arc};
+ pub fn profile() -> Arc<PreparedCategoricalStep> {
+     let (artifact, signature) = english_parser_scorer_descriptor();
+     let reference = &artifact.content;
+@@ -61,9 +61,13 @@
+     profile.install(&mut startup, &mut catalog, true).unwrap();
+     let input = profile.indices_type().profile().unwrap();
+     let output = profile.scores_type().profile().unwrap();
++    let input_max =
++        conduit_plot::maximum_prepared_canonical_value_bytes(profile.indices_type()).unwrap();
++    let output_max =
++        conduit_plot::maximum_prepared_canonical_value_bytes(profile.scores_type()).unwrap();
+     let source = format!(
+-        "plot parser-round-numeric (\n >> input: {}...|\n output: {}...| >>\n) {{\n model: {}\n input >> model.indices\n model.scores >> output\n}}\n",
+-        input.value_kind().as_str(), output.value_kind().as_str(), profile.kind_identity(true));
++        "plot parser-round-numeric (\n >> input: {}...| <= {}B\n output: {}...| <= {}B >>\n) {{\n model: {}\n input >> model.indices\n model.scores >> output\n}}\n",
++        input.value_kind().as_str(), input_max, output.value_kind().as_str(), output_max, profile.kind_identity(true));
+     let plot = conduit_plot::parse_with_startup(&source, &startup, &catalog).unwrap();
+     let hosts = [HostAdvertisement {
+         protocol_version: PROTOCOL_VERSION,
+@@ -76,19 +80,75 @@
+         planner_capabilities: vec![],
+         capabilities: vec![profile.offer(true).unwrap()],
+     }];
+-    let placements = conduit_planner::default_placements(&plot, &hosts).unwrap();
+-    let maximum = conduit_plot::maximum_prepared_canonical_value_bytes(profile.indices_type())
+-        .unwrap()
+-        .max(conduit_plot::maximum_prepared_canonical_value_bytes(profile.scores_type()).unwrap());
+-    let plan = conduit_planner::plan_with_connection_limits(
+-        &plot,
++    let syntax = conduit_plot::parse_syntax_document(&source);
++    let checked =
++        conduit_plot::check_syntax_document_with_literal_constructors(&syntax, &startup, &catalog)
++            .unwrap();
++    let authoring = conduit_plot::expand_canonical_plot_for_authoring(
++        &checked,
++        "parser-round-numeric",
++        &catalog,
++    )
++    .unwrap();
++    let placements =
++        conduit_planner::default_expanded_placements(&authoring.expanded, &hosts).unwrap();
++    let empty_bases = BTreeMap::new();
++    let empty_lines = BTreeMap::new();
++    let options = conduit_planner::PlanningOptions {
++        connection_bases: &empty_bases,
++        line_candidates: &empty_lines,
++        connection_item_capacity: 1,
++        connection_byte_capacity: input_max.max(output_max),
++        authority_grants: &[],
++        protected_resource_grants: &[],
++        line_offers: &[],
++    };
++    let bounds = BTreeMap::from([
++        (
++            conduit_planner::ForeBoundaryKey {
++                direction: PortDirection::Input,
++                front_port_id: port_id("input"),
++                track: ConnectionTrack::Payload,
++            },
++            conduit_planner::ConnectionQueueLimits {
++                item_capacity: 1,
++                byte_capacity: input_max,
++            },
++        ),
++        (
++            conduit_planner::ForeBoundaryKey {
++                direction: PortDirection::Output,
++                front_port_id: port_id("output"),
++                track: ConnectionTrack::Payload,
++            },
++            conduit_planner::ConnectionQueueLimits {
++                item_capacity: 1,
++                byte_capacity: output_max,
++            },
++        ),
++    ]);
++    let plan = conduit_planner::plan_expanded_authoring_with_options(
++        &authoring,
+         &hosts,
+         &placements,
+         &["conduit.base/local@1".into()],
+-        1,
+-        maximum,
++        options,
++        &bounds,
+     )
+     .unwrap();
++    let fores = &plan.fragments[0].fore_ports;
++    assert_eq!(
++        fores.len(),
++        2,
++        "both actual Fore queues must be Plan sealed"
++    );
++    assert!(fores.iter().all(|fore| fore.item_capacity == 1));
++    assert!(fores
++        .iter()
++        .any(|fore| fore.direction == PortDirection::Input && fore.byte_capacity == input_max));
++    assert!(fores
++        .iter()
++        .any(|fore| fore.direction == PortDirection::Output && fore.byte_capacity == output_max));
+     let definition = KernelCompositeDefinition::from_authored_export(
+         "parser-round-channel".into(),
+         "parser-round-channel-boot".into(),
+diff --git a/semantics/language/tests/categorical_full_model_channel.rs b/semantics/language/tests/categorical_full_model_channel.rs
+new file mode 100644
+--- /dev/null
++++ b/semantics/language/tests/categorical_full_model_channel.rs
+@@ -0,0 +1,81 @@
++//! Isolate full413/76/25 ordinary numeric kernel admission from Source preparation.
++#![cfg(all(
++    feature = "parser-model",
++    target_has_atomic = "ptr",
++    target_has_atomic = "8"
++))]
++#[path = "common/parser_round_model_channel.rs"]
++mod numeric;
++use conduit_ai::integer_categorical_step::channel::*;
++use conduit_core::*;
++#[test]
++fn full_parser_model_channel_admits_canonical_features_and_retains_ack() {
++    let profile = numeric::profile();
++    assert_eq!(profile.dimensions(), (413, 76, 25));
++    let (plot, definition) = numeric::definition(&profile);
++    let allowance = definition.external_capability.limits.max_queue_bytes;
++    let fores: Vec<_> = definition
++        .internal_plan
++        .fragments
++        .iter()
++        .flat_map(|fragment| &fragment.fore_ports)
++        .map(|fore| {
++            (
++                fore.front_port_id.clone(),
++                fore.byte_capacity,
++                fore.value_contract.clone(),
++            )
++        })
++        .collect();
++    let StructuredInfoTypeShape::Collection { element, .. } = profile.indices_type().shape() else {
++        panic!("indices");
++    };
++    let input = StructuredInfoValue::collection(
++        profile.indices_type().clone(),
++        (0..25)
++            .map(|_| {
++                StructuredInfoValue::leaf(element.clone(), 0u64.to_le_bytes().to_vec()).unwrap()
++            })
++            .collect(),
++    )
++    .unwrap()
++    .canonical_bytes()
++    .unwrap();
++    assert!(
++        input.len() >= 200,
++        "regress beyond the incidental64B toy profile"
++    );
++    let mut channel = PreparedCategoricalChannel::prepare(&plot, definition, profile, 1).unwrap();
++    match channel.submit((),&input) {
++        Ok(CategoricalChannelSubmission::Accepted) => (),
++        other => panic!("actual ingress {other:?}; underlying {:?}; input {}B; exported allowance {allowance}B; sealed fores {fores:?}",
++            channel.last_kernel_error(),input.len()),
++    }
++    for _ in 0..16 {
++        match channel.step() {
++            Ok(Some(done)) => {
++                let (_, receipt) = done.into_parts();
++                let mut retained = vec![0; receipt.input_len()];
++                receipt.copy_input_into(&mut retained).unwrap();
++                assert_eq!(retained, input);
++                assert_eq!(receipt.invocation(), 1);
++                let mut output = vec![0; receipt.output_len()];
++                receipt.copy_output_into(&mut output).unwrap();
++                let value = StructuredInfoValue::from_canonical_bytes(&output).unwrap();
++                let StructuredInfoValueShape::Collection(values) = value.shape() else {
++                    panic!("scores");
++                };
++                assert_eq!(values.len(), 76);
++                assert!(!receipt.active_plays().is_empty());
++                assert!(!channel.signs().is_empty());
++                return;
++            }
++            Ok(None) => (),
++            Err(refusal) => panic!(
++                "actual step {refusal:?}; underlying {:?}",
++                channel.last_kernel_error()
++            ),
++        }
++    }
++    panic!("bounded actual numerical request did not complete")
++}

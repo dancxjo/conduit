@@ -1,0 +1,48 @@
+{
+  "base_head": "0830505ebca558b6cf6e15ba8ad5e548f89d5f1d",
+  "base_kind": "exact CURRENT root dirty-file baseline hashes verified before patch creation",
+  "files": [
+    {
+      "path": "architecture/composite/src/lib.rs",
+      "base_sha256": "3d1f895779fed4219ae77c0fb356246964da80f41e2727ba2edfd707b37e54d5",
+      "bytes": 1316,
+      "sha256": "1db3d306c403baf9a3d6d24d0c40f1df72471a45dc8077cbc9a954f579e92385"
+    },
+    {
+      "path": "semantics/ai/src/integer_categorical_step/channel.rs",
+      "base_sha256": "313001a7f1766f63ec2f554d96544c5cb5e50fb838e62d418b5ae7aa3ba6a68a",
+      "bytes": 14516,
+      "sha256": "1a6ee5753685dc26ea7f4057b98760fb98429ce264705b9231a61fee790de586"
+    },
+    {
+      "path": "semantics/language/src/analysis_learned_round.rs",
+      "base_sha256": "4da88942a23e2d00580ed38b6a2a2f6e8ef2d66700b1aee8b5d553bbba601fbb",
+      "bytes": 15974,
+      "sha256": "5e04d04cfa7c61fda7793f025cd75f83c17f6f67894b2ba337c8d253a85ffa92"
+    },
+    {
+      "path": "semantics/language/tests/common/parser_round_model_channel.rs",
+      "base_sha256": "7240ef961012bbe07d71ad2d1df8bc22a6c51354a3742c3b88bdb8ad31070a31",
+      "bytes": 6574,
+      "sha256": "b20010e451006fe6dfa1d01059c50b6898cefd15a399097656cf9768b3606e66"
+    },
+    {
+      "path": "semantics/language/tests/categorical_full_model_channel.rs",
+      "base_sha256": "b9c193d19768175bac2c7950bde5bf83edd5ce837445e86f97811abc00a67874",
+      "bytes": 8364,
+      "sha256": "63e726817731614e843abb110d509385fe39d834df70f76f63aa3e173aa4f1a0"
+    },
+    {
+      "path": "semantics/language/tests/analysis_learned_round.rs",
+      "base_sha256": "bf703a8f57ec2897f26b570c00f4b93ff1d8b56af3ab1129cdc7caa1b4b68c42",
+      "bytes": 7714,
+      "sha256": "594902910b97f25a771ddcebcc163840bd14abcc5a6c32773e3707e87e4308dc"
+    },
+    {
+      "path": "architecture/composite/src/canonical_export.rs",
+      "base_sha256": null,
+      "bytes": 16131,
+      "sha256": "7ad222b7af4d9f72592a4222fb03d773b0ddcea41590a9945e8a1c5fb2a97bd0"
+    }
+  ]
+}

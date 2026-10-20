@@ -1,0 +1,545 @@
+diff --git a/semantics/ai/src/integer_categorical_step.rs b/semantics/ai/src/integer_categorical_step.rs
+--- a/semantics/ai/src/integer_categorical_step.rs
++++ b/semantics/ai/src/integer_categorical_step.rs
+@@ -405,3 +405,10 @@
+ 
+ #[cfg(feature = "kernel-operation-owners")]
+ pub mod owner;
++
++#[cfg(all(
++    feature = "kernel-operation-owners",
++    target_has_atomic = "ptr",
++    target_has_atomic = "8"
++))]
++pub mod channel;
+diff --git a/semantics/ai/src/integer_categorical_step/invocation.rs b/semantics/ai/src/integer_categorical_step/invocation.rs
+--- a/semantics/ai/src/integer_categorical_step/invocation.rs
++++ b/semantics/ai/src/integer_categorical_step/invocation.rs
+@@ -68,6 +68,18 @@
+             bytes_per_slot,
+         })))
+     }
++    /// Exact outlet membership only; this does not establish current request or Play custody.
++    pub fn contains(&self, invocation: &CommittedCategoricalInvocation) -> bool {
++        Arc::ptr_eq(&self.0, &invocation.inner)
++    }
++    // Only the owning channel calls this before ingress. Its private kernel is
++    // the sole writer; concurrent reader drops can only increase free capacity.
++    pub(super) fn has_capacity(&self) -> bool {
++        self.0
++            .slots
++            .iter()
++            .any(|slot| slot.state.load(Ordering::Acquire) == FREE)
++    }
+     pub fn capacity(&self) -> usize {
+         self.0.slots.len()
+     }
+diff --git a/semantics/ai/src/integer_categorical_step/channel.rs b/semantics/ai/src/integer_categorical_step/channel.rs
+new file mode 100644
+--- /dev/null
++++ b/semantics/ai/src/integer_categorical_step/channel.rs
+@@ -0,0 +1,322 @@
++//! Request custody around the existing production composite kernel.
++//! Generic lease metadata is returned only with this private runtime's ACK.
++//! This is numerical dispatch custody, not parser legality or Std-issued identity.
++use super::{invocation::*, owner::CategoricalOperationFactory, *};
++use alloc::collections::BTreeMap;
++use conduit_composite::{
++    KernelCompositeDefinition, KernelCompositeHost, KernelCompositeStatus, KernelOperationRegistry,
++};
++use conduit_kernel::scheduler::RemoteIngressOutcome;
++use conduit_plot::CheckedPlot;
++
++#[derive(Debug, Clone, Copy, PartialEq, Eq)]
++pub enum CategoricalChannelRefusal {
++    Definition,
++    Preparation,
++    Busy,
++    Pressure,
++    Closed,
++    Input,
++    Sequence,
++    Kernel,
++    Evidence,
++}
++#[derive(Debug, Clone, Copy, PartialEq, Eq)]
++pub enum CategoricalChannelSubmission {
++    Accepted,
++    TerminalRetained(CategoricalChannelRefusal),
++}
++#[derive(Debug)]
++pub struct CategoricalChannelSubmitFailure<L> {
++    pub refusal: CategoricalChannelRefusal,
++    pub lease: L,
++}
++struct Pending<L> {
++    lease: L,
++    token: Option<CommittedCategoricalInvocation>,
++}
++/// No constructor accepts an externally executed token or existing runtime.
++/// `L` is metadata to AI; consumers must make their own lease unforgeable.
++pub struct PreparedCategoricalChannel<L> {
++    kernel: KernelCompositeHost,
++    plays: Arc<BTreeMap<HostId, ActivePlayId>>,
++    outlet: CategoricalInvocationOutlet,
++    input_port: conduit_core::PortId,
++    output_port: conduit_core::PortId,
++    input: ValuePayload,
++    input_codec: IntegerCollectionCodec,
++    input_indices: Vec<u64>,
++    output: ValuePayload,
++    retained_input: Vec<u8>,
++    retained_output: Vec<u8>,
++    pending: Option<Pending<L>>,
++    next: u64,
++    closed: bool,
++}
++/// Private construction ties the exact moved lease to this channel's invocation.
++pub struct CompletedCategoricalRequest<L> {
++    lease: L,
++    invocation: DispatchedCategoricalInvocation,
++}
++/// Keeps actual runtime identity alongside the opaque numerical acknowledgement.
++/// No public constructor or extraction of an uncorrelated owned token is exposed.
++pub struct DispatchedCategoricalInvocation {
++    invocation: CommittedCategoricalInvocation,
++    plays: Arc<BTreeMap<HostId, ActivePlayId>>,
++}
++impl DispatchedCategoricalInvocation {
++    pub fn active_plays(&self) -> &BTreeMap<HostId, ActivePlayId> {
++        &self.plays
++    }
++}
++impl core::ops::Deref for DispatchedCategoricalInvocation {
++    type Target = CommittedCategoricalInvocation;
++    fn deref(&self) -> &Self::Target {
++        &self.invocation
++    }
++}
++impl<L> CompletedCategoricalRequest<L> {
++    pub fn into_parts(self) -> (L, DispatchedCategoricalInvocation) {
++        (self.lease, self.invocation)
++    }
++}
++impl<L> PreparedCategoricalChannel<L> {
++    pub fn prepare(
++        plot: &CheckedPlot,
++        definition: KernelCompositeDefinition,
++        profile: Arc<PreparedCategoricalStep>,
++        capacity: usize,
++    ) -> Result<Self, CategoricalChannelRefusal> {
++        use CategoricalChannelRefusal::*;
++        let cap = &definition.external_capability;
++        let rebuilt = KernelCompositeDefinition::from_authored_export(
++            definition.host_id.clone(),
++            definition.boot_id.clone(),
++            definition.offer_generation,
++            definition.profile.clone(),
++            cap.implementation.implementation_id.clone(),
++            cap.implementation.artifact_id.clone(),
++            plot,
++            &cap.capability_id,
++            definition.internal_plan.clone(),
++            definition.failure_translation.clone(),
++        )
++        .map_err(|_| Definition)?;
++        if rebuilt != definition
++            || definition.internal_plan.fragments.len() != 1
++            || definition.internal_plan.fragments[0].placements.len() != 1
++            || definition.boundary.input_fronts.len() != 1
++            || definition.boundary.output_fronts.len() != 1
++        {
++            return Err(Definition);
++        }
++        let gear = &definition.internal_plan.fragments[0].placements[0];
++        profile
++            .verify_placement(gear, true)
++            .map_err(|_| Definition)?;
++        let input_front = &definition.boundary.input_fronts[0];
++        let output_front = &definition.boundary.output_fronts[0];
++        if input_front.internal_placement_id != gear.placement_id
++            || output_front.internal_placement_id != gear.placement_id
++            || input_front.internal_port_id != gear.inputs[0].port_id
++            || output_front.internal_port_id != gear.outputs[0].port_id
++        {
++            return Err(Definition);
++        }
++        let input_port = input_front.external_port.port_id.clone();
++        let output_port = output_front.external_port.port_id.clone();
++        let input = ValuePayload {
++            value_kind: input_front.external_port.value_kind.clone(),
++            encoded: vec![0; profile.input_bytes as usize],
++        };
++        let output = ValuePayload {
++            value_kind: output_front.external_port.value_kind.clone(),
++            encoded: vec![0; profile.output_bytes as usize],
++        };
++        let (factory, mut outlets) = CategoricalOperationFactory::for_plan_with_invocation_outlets(
++            &definition.internal_plan,
++            &[profile.clone()],
++            capacity,
++        )
++        .map_err(|_| Preparation)?;
++        if outlets.len() != 1 {
++            return Err(Definition);
++        }
++        let outlet = outlets.pop().ok_or(Definition)?;
++        let mut registry = KernelOperationRegistry::new();
++        registry.install(factory).map_err(|_| Preparation)?;
++        let mut kernel =
++            KernelCompositeHost::prepare(definition, &registry).map_err(|_| Preparation)?;
++        kernel.start().map_err(|_| Preparation)?;
++        let input_codec = IntegerCollectionCodec::prepare(&profile.indices, profile.dimensions().2)
++            .map_err(|_| Preparation)?;
++        let plays = Arc::new(kernel.active_plays().clone());
++        Ok(Self {
++            plays,
++            input_codec,
++            input_indices: vec![0; profile.dimensions().2],
++            kernel,
++            outlet,
++            input_port,
++            output_port,
++            input,
++            output,
++            retained_input: vec![0; profile.input_bytes as usize],
++            retained_output: vec![0; profile.output_bytes as usize],
++            pending: None,
++            next: 1,
++            closed: false,
++        })
++    }
++    pub fn active_plays(&self) -> &BTreeMap<HostId, ActivePlayId> {
++        self.kernel.active_plays()
++    }
++    /// Allocating diagnostic snapshot, outside the bounded step path.
++    pub fn signs(&self) -> BTreeMap<HostId, Vec<conduit_kernel::KernelEvent>> {
++        self.kernel.signs()
++    }
++    pub fn pending(&self) -> Option<&L> {
++        self.pending.as_ref().map(|pending| &pending.lease)
++    }
++    pub fn is_closed(&self) -> bool {
++        self.closed
++    }
++    pub fn submit(
++        &mut self,
++        lease: L,
++        exact_input: &[u8],
++    ) -> Result<CategoricalChannelSubmission, CategoricalChannelSubmitFailure<L>> {
++        use CategoricalChannelRefusal::*;
++        let refusal = if self.closed {
++            Some(Closed)
++        } else if self.pending.is_some() {
++            Some(Busy)
++        } else if self.next == u64::MAX {
++            Some(Sequence)
++        } else if exact_input.len() != self.input.encoded.len() {
++            Some(Input)
++        } else if self
++            .input_codec
++            .decode(exact_input, &mut self.input_indices)
++            .is_err()
++        {
++            Some(Input)
++        } else if !self.outlet.has_capacity() {
++            Some(Pressure)
++        } else {
++            None
++        };
++        if let Some(refusal) = refusal {
++            return Err(CategoricalChannelSubmitFailure { refusal, lease });
++        }
++        self.input.encoded.copy_from_slice(exact_input);
++        // Own the lease before crossing actual ingress. No other kernel writer exists.
++        self.pending = Some(Pending { lease, token: None });
++        match self
++            .kernel
++            .admit_input(&self.input_port, self.next - 1, &self.input)
++        {
++            Ok(RemoteIngressOutcome::Accepted { sequence }) if sequence == self.next - 1 => {
++                Ok(CategoricalChannelSubmission::Accepted)
++            }
++            Ok(RemoteIngressOutcome::Full { .. }) => {
++                let pending = self.pending.take().expect("private pending before ingress");
++                Err(CategoricalChannelSubmitFailure {
++                    refusal: Pressure,
++                    lease: pending.lease,
++                })
++            }
++            _ => {
++                // An unexpected admission outcome might have accepted an effect.
++                // Keep its lease privately rather than returning it for reuse.
++                self.closed = true;
++                Ok(CategoricalChannelSubmission::TerminalRetained(Kernel))
++            }
++        }
++    }
++    /// Exactly one production kernel step. No busy loop or caller observation callback.
++    pub fn step(
++        &mut self,
++    ) -> Result<Option<CompletedCategoricalRequest<L>>, CategoricalChannelRefusal> {
++        use CategoricalChannelRefusal::*;
++        if self.closed {
++            return Err(Closed);
++        }
++        if self.pending.is_none() {
++            return Ok(None);
++        }
++        match self.kernel.step() {
++            Ok(KernelCompositeStatus::Active) => (),
++            _ => {
++                self.closed = true;
++                return Err(Kernel);
++            }
++        }
++        let pending = self.pending.as_mut().ok_or(Evidence)?;
++        if pending.token.is_none() {
++            pending.token = self.outlet.try_take();
++        }
++        let Some(token) = pending.token.as_ref() else {
++            return Ok(None);
++        };
++        if !self.outlet.contains(token)
++            || token.invocation() != self.next
++            || token.copy_input_into(&mut self.retained_input).is_err()
++            || self.retained_input != self.input.encoded
++            || token.copy_output_into(&mut self.retained_output).is_err()
++        {
++            self.closed = true;
++            return Err(Evidence);
++        }
++        let sequence = match self.kernel.output_into(&self.output_port, &mut self.output) {
++            Ok(Some(sequence)) => sequence,
++            Ok(None) => return Ok(None),
++            Err(_) => {
++                self.closed = true;
++                return Err(Kernel);
++            }
++        };
++        if sequence != self.next - 1 || self.output.encoded != self.retained_output {
++            self.closed = true;
++            return Err(Evidence);
++        }
++        if self
++            .kernel
++            .complete_output(&self.output_port, sequence)
++            .is_err()
++        {
++            self.closed = true;
++            return Err(Kernel);
++        }
++        self.next += 1;
++        let pending = self.pending.take().ok_or(Evidence)?;
++        Ok(Some(CompletedCategoricalRequest {
++            lease: pending.lease,
++            invocation: DispatchedCategoricalInvocation {
++                invocation: pending.token.ok_or(Evidence)?,
++                plays: self.plays.clone(),
++            },
++        }))
++    }
++    /// Terminal even when cancellation reports a kernel error. Pending evidence stays owned.
++    pub fn cancel(&mut self) -> Result<(), CategoricalChannelRefusal> {
++        self.closed = true;
++        self.kernel
++            .cancel()
++            .map_err(|_| CategoricalChannelRefusal::Kernel)
++    }
++    /// Recover exact pending custody only by consuming the terminal channel.
++    pub fn into_pending(
++        mut self,
++    ) -> Result<Option<(L, Option<CommittedCategoricalInvocation>)>, Self> {
++        if !self.closed {
++            return Err(self);
++        }
++        if let Some(pending) = &mut self.pending {
++            if pending.token.is_none() {
++                pending.token = self.outlet.try_take();
++            }
++        }
++        Ok(self.pending.map(|pending| (pending.lease, pending.token)))
++    }
++}
+diff --git a/semantics/ai/tests/integer_categorical_step.rs b/semantics/ai/tests/integer_categorical_step.rs
+--- a/semantics/ai/tests/integer_categorical_step.rs
++++ b/semantics/ai/tests/integer_categorical_step.rs
+@@ -657,3 +657,7 @@
+ #[cfg(target_has_atomic = "8")]
+ #[path = "integer_categorical_step/invocation_cases.rs"]
+ mod invocation_cases;
++
++#[cfg(target_has_atomic = "8")]
++#[path = "integer_categorical_step/channel_cases.rs"]
++mod channel_cases;
+diff --git a/semantics/ai/tests/integer_categorical_step/invocation_cases.rs b/semantics/ai/tests/integer_categorical_step/invocation_cases.rs
+--- a/semantics/ai/tests/integer_categorical_step/invocation_cases.rs
++++ b/semantics/ai/tests/integer_categorical_step/invocation_cases.rs
+@@ -54,6 +54,17 @@
+     assert_eq!(allocations.allocations, 0);
+     let receipt = outlet.try_take().unwrap();
+     assert!(outlet.try_take().is_none());
++    assert!(outlet.contains(&receipt));
++    assert!(outlet.clone().contains(&receipt));
++    let (_, foreign_readers) =
++        owner::CategoricalOperationFactory::for_plan_with_invocation_outlets(
++            &plan,
++            &[profile.clone()],
++            1,
++        )
++        .unwrap();
++    // Identical Plan/profile/invocation origin does not confer outlet membership.
++    assert!(!foreign_readers[0].contains(&receipt));
+     assert_eq!(receipt.invocation(), 1);
+     assert_eq!(receipt.placement(), gear(&plan));
+     assert_eq!(receipt.plan(), &plan);
+diff --git a/semantics/ai/tests/integer_categorical_step/channel_cases.rs b/semantics/ai/tests/integer_categorical_step/channel_cases.rs
+new file mode 100644
+--- /dev/null
++++ b/semantics/ai/tests/integer_categorical_step/channel_cases.rs
+@@ -0,0 +1,145 @@
++//! The existing production composite kernel drives the real categorical factory.
++//! No test Back, scheduler replacement, or manual step_committed call is used.
++use super::*;
++use conduit_ai::integer_categorical_step::channel::*;
++use conduit_composite::KernelCompositeDefinition;
++
++fn channel_definition(
++    profile: &PreparedCategoricalStep,
++) -> (conduit_plot::CheckedPlot, KernelCompositeDefinition) {
++    let mut startup = conduit_plot::StartupCatalog::new();
++    let mut catalog = conduit_plot::ProfileCatalog::new();
++    profile.install(&mut startup, &mut catalog, true).unwrap();
++    let input = profile.indices_type().profile().unwrap();
++    let output = profile.scores_type().profile().unwrap();
++    let source = format!(
++        "plot categorical-channel (\n >> input: {}...|\n output: {}...| >>\n) {{\n model: {}\n input >> model.indices\n model.scores >> output\n}}\n",
++        input.value_kind().as_str(), output.value_kind().as_str(), profile.kind_identity(true));
++    let plot = conduit_plot::parse_with_startup(&source, &startup, &catalog).unwrap();
++    let hosts = [HostAdvertisement {
++        protocol_version: PROTOCOL_VERSION,
++        host_id: "categorical-test".into(),
++        boot_id: "categorical-test-boot".into(),
++        offer_generation: OfferGeneration(1),
++        profile: "test/host@1".into(),
++        bases: vec![],
++        resources: vec![profile.resource_offer().clone()],
++        planner_capabilities: vec![],
++        capabilities: vec![profile.offer(true).unwrap()],
++    }];
++    let placements = conduit_planner::default_placements(&plot, &hosts).unwrap();
++    let maximum = conduit_plot::maximum_prepared_canonical_value_bytes(profile.indices_type())
++        .unwrap()
++        .max(conduit_plot::maximum_prepared_canonical_value_bytes(profile.scores_type()).unwrap());
++    let plan = conduit_planner::plan_with_connection_limits(
++        &plot,
++        &hosts,
++        &placements,
++        &["conduit.base/local@1".into()],
++        1,
++        maximum,
++    )
++    .unwrap();
++    let definition = KernelCompositeDefinition::from_authored_export(
++        "categorical-channel".into(),
++        "categorical-channel-boot".into(),
++        OfferGeneration(1),
++        "categorical/channel@1".into(),
++        "categorical/channel@1".into(),
++        "categorical/channel-artifact@1".into(),
++        &plot,
++        &"run".into(),
++        plan,
++        FailureReason::CompositeCapabilityFailed,
++    )
++    .unwrap();
++    (plot, definition)
++}
++fn poll<L>(channel: &mut PreparedCategoricalChannel<L>) -> CompletedCategoricalRequest<L> {
++    // Test harness bound; production channel performs exactly one kernel step per poll.
++    for _ in 0..16 {
++        if let Some(done) = channel.step().unwrap() {
++            return done;
++        }
++    }
++    panic!("production kernel did not complete bounded numerical request")
++}
++
++#[test]
++fn ordinary_kernel_channel_keeps_distinct_leases_for_equal_inputs_and_preflights_pressure() {
++    let profile = profile();
++    let (plot, definition) = channel_definition(&profile);
++    let mut channel =
++        PreparedCategoricalChannel::prepare(&plot, definition.clone(), profile.clone(), 1).unwrap();
++    assert_eq!(channel.active_plays().len(), 1);
++    let bytes = indices(&profile, &[1, 1]);
++    assert_eq!(
++        channel.submit("branch-a", &bytes).unwrap(),
++        CategoricalChannelSubmission::Accepted
++    );
++    assert_eq!(channel.pending(), Some(&"branch-a"));
++    let busy = channel.submit("branch-b", &bytes).unwrap_err();
++    assert_eq!(busy.refusal, CategoricalChannelRefusal::Busy);
++    assert_eq!(busy.lease, "branch-b");
++    let (lease, receipt) = poll(&mut channel).into_parts();
++    assert_eq!(lease, "branch-a");
++    assert_eq!(receipt.invocation(), 1);
++    assert_eq!(receipt.active_plays(), channel.active_plays());
++    let mut actual = vec![0; receipt.output_len()];
++    receipt.copy_output_into(&mut actual).unwrap();
++    assert_eq!(scores(&actual), [4, -4]);
++    let pressure = channel.submit(busy.lease, &bytes).unwrap_err();
++    assert_eq!(pressure.refusal, CategoricalChannelRefusal::Pressure);
++    assert_eq!(pressure.lease, "branch-b");
++    assert!(channel.pending().is_none());
++    assert!(!channel.is_closed());
++    drop(receipt);
++    assert_eq!(
++        channel.submit(pressure.lease, &bytes).unwrap(),
++        CategoricalChannelSubmission::Accepted
++    );
++    let (lease, receipt) = poll(&mut channel).into_parts();
++    assert_eq!(lease, "branch-b");
++    assert_eq!(receipt.invocation(), 2);
++    assert_eq!(receipt.plan(), &definition.internal_plan);
++    assert_eq!(channel.pending(), None);
++}
++
++#[test]
++fn ordinary_kernel_channel_refuses_foreign_definition_and_keeps_cancelled_pending_lease() {
++    let profile = profile();
++    let (plot, definition) = channel_definition(&profile);
++    let mut foreign = definition.clone();
++    foreign.boundary.input_fronts[0].internal_port_id = "foreign".into();
++    assert!(matches!(
++        PreparedCategoricalChannel::<()>::prepare(&plot, foreign, profile.clone(), 1),
++        Err(CategoricalChannelRefusal::Definition)
++    ));
++    let mut channel =
++        PreparedCategoricalChannel::prepare(&plot, definition, profile.clone(), 1).unwrap();
++    let malformed = channel.submit("malformed", &[]).unwrap_err();
++    assert_eq!(malformed.refusal, CategoricalChannelRefusal::Input);
++    assert_eq!(malformed.lease, "malformed");
++    assert!(channel.pending().is_none());
++    let bytes = indices(&profile, &[0, 2]);
++    assert_eq!(
++        channel.submit("cancelled", &bytes).unwrap(),
++        CategoricalChannelSubmission::Accepted
++    );
++    channel.cancel().unwrap();
++    assert!(channel.is_closed());
++    assert!(matches!(
++        channel.step(),
++        Err(CategoricalChannelRefusal::Closed)
++    ));
++    let refused = channel.submit("after-close", &bytes).unwrap_err();
++    assert_eq!(refused.refusal, CategoricalChannelRefusal::Closed);
++    assert_eq!(refused.lease, "after-close");
++    let pending = match channel.into_pending() {
++        Ok(value) => value,
++        Err(_) => panic!("closed channel"),
++    };
++    let (lease, receipt) = pending.unwrap();
++    assert_eq!(lease, "cancelled");
++    assert!(receipt.is_none());
++}

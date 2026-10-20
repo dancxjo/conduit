@@ -1,0 +1,747 @@
+diff --git a/architecture/composite/src/lib.rs b/architecture/composite/src/lib.rs
+--- a/architecture/composite/src/lib.rs
++++ b/architecture/composite/src/lib.rs
+@@ -21,6 +21,7 @@
+ pub use child::{ChildExecutionError, ChildTerminalError, ChildTransportError};
+ mod current_sample;
+ mod definition;
++mod canonical_export;
+ mod flow_singleton;
+ pub use flow_singleton::FlowSingletonBack;
+ mod flow_concat_finite;
+diff --git a/semantics/ai/src/integer_categorical_step/channel.rs b/semantics/ai/src/integer_categorical_step/channel.rs
+--- a/semantics/ai/src/integer_categorical_step/channel.rs
++++ b/semantics/ai/src/integer_categorical_step/channel.rs
+@@ -8,7 +8,7 @@
+     KernelOperationRegistry,
+ };
+ use conduit_kernel::scheduler::RemoteIngressOutcome;
+-use conduit_plot::CheckedPlot;
++use conduit_plot::{CheckedPlot, CheckedSyntaxDocument, ProfileCatalog};
+ 
+ #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+ pub enum CategoricalChannelRefusal {
+@@ -104,8 +104,48 @@
+             definition.failure_translation.clone(),
+         )
+         .map_err(|_| Definition)?;
+-        if rebuilt != definition
+-            || definition.internal_plan.fragments.len() != 1
++        if rebuilt != definition {
++            return Err(Definition);
++        }
++        Self::prepare_verified(definition, profile, capacity)
++    }
++    /// Canonical Source and exact sealed Fore, preserving all three identities.
++    pub fn prepare_canonical(
++        document: &CheckedSyntaxDocument,
++        entry: &str,
++        catalog: &ProfileCatalog,
++        definition: KernelCompositeDefinition,
++        profile: Arc<PreparedCategoricalStep>,
++        capacity: usize,
++    ) -> Result<Self, CategoricalChannelRefusal> {
++        use CategoricalChannelRefusal::Definition;
++        let cap = &definition.external_capability;
++        let rebuilt = KernelCompositeDefinition::from_canonical_export(
++            definition.host_id.clone(),
++            definition.boot_id.clone(),
++            definition.offer_generation,
++            definition.profile.clone(),
++            cap.implementation.implementation_id.clone(),
++            cap.implementation.artifact_id.clone(),
++            document,
++            entry,
++            catalog,
++            definition.internal_plan.clone(),
++            definition.failure_translation.clone(),
++        )
++        .map_err(|_| Definition)?;
++        if rebuilt != definition {
++            return Err(Definition);
++        }
++        Self::prepare_verified(definition, profile, capacity)
++    }
++    fn prepare_verified(
++        definition: KernelCompositeDefinition,
++        profile: Arc<PreparedCategoricalStep>,
++        capacity: usize,
++    ) -> Result<Self, CategoricalChannelRefusal> {
++        use CategoricalChannelRefusal::*;
++        if definition.internal_plan.fragments.len() != 1
+             || definition.internal_plan.fragments[0].placements.len() != 1
+             || definition.boundary.input_fronts.len() != 1
+             || definition.boundary.output_fronts.len() != 1
+diff --git a/semantics/language/src/analysis_learned_round.rs b/semantics/language/src/analysis_learned_round.rs
+--- a/semantics/language/src/analysis_learned_round.rs
++++ b/semantics/language/src/analysis_learned_round.rs
+@@ -5,7 +5,7 @@
+ use conduit_ai::integer_categorical_step::{channel::*, PreparedCategoricalStep};
+ use conduit_composite::KernelCompositeDefinition;
+ use conduit_core::{StructuredInfoTypeShape, StructuredInfoValue, StructuredInfoValueShape};
+-use conduit_plot::CheckedPlot;
++use conduit_plot::{CheckedPlot, CheckedSyntaxDocument, ProfileCatalog};
+ 
+ pub const MAX_LEARNED_REQUESTS_PER_ROUND: usize = 16;
+ pub const MAX_LEARNED_REQUESTS_PER_EPOCH: u64 = 128;
+@@ -91,6 +91,37 @@
+         selection: ParserRoundModel,
+         capacity: usize,
+     ) -> Result<Self, FallbackRoundRefusal> {
++        Self::validate_model(&profile, selection)?;
++        let numerical =
++            PreparedCategoricalChannel::prepare(plot, definition, profile.clone(), capacity)
++                .map_err(|_| FallbackRoundRefusal::Model)?;
++        Ok(Self::with_numerical(numerical, profile, selection))
++    }
++    pub fn prepare_canonical(
++        document: &CheckedSyntaxDocument,
++        entry: &str,
++        catalog: &ProfileCatalog,
++        definition: KernelCompositeDefinition,
++        profile: Arc<PreparedCategoricalStep>,
++        selection: ParserRoundModel,
++        capacity: usize,
++    ) -> Result<Self, FallbackRoundRefusal> {
++        Self::validate_model(&profile, selection)?;
++        let numerical = PreparedCategoricalChannel::prepare_canonical(
++            document,
++            entry,
++            catalog,
++            definition,
++            profile.clone(),
++            capacity,
++        )
++        .map_err(|_| FallbackRoundRefusal::Model)?;
++        Ok(Self::with_numerical(numerical, profile, selection))
++    }
++    fn validate_model(
++        profile: &PreparedCategoricalStep,
++        selection: ParserRoundModel,
++    ) -> Result<(), FallbackRoundRefusal> {
+         use crate::{parser_model::*, parser_punctuation_model::*};
+         let (artifact, signature, bytes) = match selection {
+             ParserRoundModel::AcceptedEnglishV2 => {
+@@ -117,10 +148,14 @@
+         {
+             return Err(FallbackRoundRefusal::Model);
+         }
+-        let numerical =
+-            PreparedCategoricalChannel::prepare(plot, definition, profile.clone(), capacity)
+-                .map_err(|_| FallbackRoundRefusal::Model)?;
+-        Ok(Self {
++        Ok(())
++    }
++    fn with_numerical(
++        numerical: PreparedCategoricalChannel<PendingParserScore>,
++        profile: Arc<PreparedCategoricalStep>,
++        selection: ParserRoundModel,
++    ) -> Self {
++        Self {
+             numerical,
+             profile,
+             selection,
+@@ -128,7 +163,7 @@
+             refused: None,
+             stopped: false,
+             context: None,
+-        })
++        }
+     }
+     /// Terminal wrapper state; it does not claim the underlying kernel was cancelled.
+     pub fn is_stopped(&self) -> bool {
+diff --git a/semantics/language/tests/common/parser_round_model_channel.rs b/semantics/language/tests/common/parser_round_model_channel.rs
+--- a/semantics/language/tests/common/parser_round_model_channel.rs
++++ b/semantics/language/tests/common/parser_round_model_channel.rs
+@@ -55,7 +55,11 @@
+ }
+ pub fn definition(
+     profile: &PreparedCategoricalStep,
+-) -> (conduit_plot::CheckedPlot, KernelCompositeDefinition) {
++) -> (
++    conduit_plot::CheckedSyntaxDocument,
++    conduit_plot::ProfileCatalog,
++    KernelCompositeDefinition,
++) {
+     let mut startup = conduit_plot::StartupCatalog::new();
+     let mut catalog = conduit_plot::ProfileCatalog::new();
+     profile.install(&mut startup, &mut catalog, true).unwrap();
+@@ -68,7 +72,6 @@
+     let source = format!(
+         "plot parser-round-numeric (\n >> input: {}...| <= {}B\n output: {}...| <= {}B >>\n) {{\n model: {}\n input >> model.indices\n model.scores >> output\n}}\n",
+         input.value_kind().as_str(), input_max, output.value_kind().as_str(), output_max, profile.kind_identity(true));
+-    let plot = conduit_plot::parse_with_startup(&source, &startup, &catalog).unwrap();
+     let hosts = [HostAdvertisement {
+         protocol_version: PROTOCOL_VERSION,
+         host_id: "parser-model-test".into(),
+@@ -149,18 +152,19 @@
+     assert!(fores
+         .iter()
+         .any(|fore| fore.direction == PortDirection::Output && fore.byte_capacity == output_max));
+-    let definition = KernelCompositeDefinition::from_authored_export(
++    let definition = KernelCompositeDefinition::from_canonical_export(
+         "parser-round-channel".into(),
+         "parser-round-channel-boot".into(),
+         OfferGeneration(1),
+         "parser/channel@1".into(),
+         "parser/channel@1".into(),
+         "parser/channel-artifact@1".into(),
+-        &plot,
+-        &"run".into(),
++        &checked,
++        "parser-round-numeric",
++        &catalog,
+         plan,
+         FailureReason::CompositeCapabilityFailed,
+     )
+     .unwrap();
+-    (plot, definition)
++    (checked, catalog, definition)
+ }
+diff --git a/semantics/language/tests/categorical_full_model_channel.rs b/semantics/language/tests/categorical_full_model_channel.rs
+--- a/semantics/language/tests/categorical_full_model_channel.rs
++++ b/semantics/language/tests/categorical_full_model_channel.rs
+@@ -12,7 +12,7 @@
+ fn full_parser_model_channel_admits_canonical_features_and_retains_ack() {
+     let profile = numeric::profile();
+     assert_eq!(profile.dimensions(), (413, 76, 25));
+-    let (plot, definition) = numeric::definition(&profile);
++    let (document, catalog, definition) = numeric::definition(&profile);
+     let allowance = definition.external_capability.limits.max_queue_bytes;
+     let fores: Vec<_> = definition
+         .internal_plan
+@@ -45,7 +45,15 @@
+         input.len() >= 200,
+         "regress beyond the incidental64B toy profile"
+     );
+-    let mut channel = PreparedCategoricalChannel::prepare(&plot, definition, profile, 1).unwrap();
++    let mut channel = PreparedCategoricalChannel::prepare_canonical(
++        &document,
++        "parser-round-numeric",
++        &catalog,
++        definition,
++        profile,
++        1,
++    )
++    .unwrap();
+     match channel.submit((),&input) {
+         Ok(CategoricalChannelSubmission::Accepted) => (),
+         other => panic!("actual ingress {other:?}; underlying {:?}; input {}B; exported allowance {allowance}B; sealed fores {fores:?}",
+@@ -79,3 +87,143 @@
+     }
+     panic!("bounded actual numerical request did not complete")
+ }
++
++fn reseal_for_refusal(plan: Plan) -> Plan {
++    // Deliberately re-seal malformed test candidates so rejection must inspect
++    // canonical Source/Fore correspondence, not just a stale Plan digest.
++    seal_plan_with_completion(
++        PlotIdentity {
++            source_document_id: plan.source_document_id,
++            checked_plot_id: plan.checked_plot_id,
++            expanded_plot_id: plan.expanded_plot_id,
++        },
++        plan.completion_policy,
++        plan.fragments,
++    )
++}
++fn rebuild(
++    document: &conduit_plot::CheckedSyntaxDocument,
++    catalog: &conduit_plot::ProfileCatalog,
++    definition: &conduit_composite::KernelCompositeDefinition,
++    plan: Plan,
++) -> Result<
++    conduit_composite::KernelCompositeDefinition,
++    conduit_composite::KernelCompositeDefinitionError,
++> {
++    let cap = &definition.external_capability;
++    conduit_composite::KernelCompositeDefinition::from_canonical_export(
++        definition.host_id.clone(),
++        definition.boot_id.clone(),
++        definition.offer_generation,
++        definition.profile.clone(),
++        cap.implementation.implementation_id.clone(),
++        cap.implementation.artifact_id.clone(),
++        document,
++        "parser-round-numeric",
++        catalog,
++        plan,
++        definition.failure_translation.clone(),
++    )
++}
++#[test]
++fn canonical_export_rejects_foreign_source_and_resealed_missing_extra_queue_contract_forgeries() {
++    let profile = numeric::profile();
++    let (document, catalog, definition) = numeric::definition(&profile);
++    let mut foreign = document.clone();
++    foreign.source_document_id = "source/foreign-canonical-document".into();
++    assert!(rebuild(
++        &foreign,
++        &catalog,
++        &definition,
++        definition.internal_plan.clone()
++    )
++    .is_err());
++    for alteration in 0..5 {
++        let mut plan = definition.internal_plan.clone();
++        let fores = &mut plan.fragments[0].fore_ports;
++        match alteration {
++            0 => {
++                fores.pop();
++            }
++            1 => fores.push(fores[0].clone()),
++            2 => fores[0].byte_capacity = 1,
++            3 => fores[0].value_contract.as_mut().unwrap().maximum_bytes = 1,
++            4 => fores[0].track = ConnectionTrack::NormalClose,
++            _ => unreachable!(),
++        }
++        let plan = reseal_for_refusal(plan);
++        assert!(
++            verify_plan(&plan),
++            "negative candidate must have a valid seal"
++        );
++        assert!(
++            rebuild(&document, &catalog, &definition, plan).is_err(),
++            "forgery {alteration}"
++        );
++    }
++    for alteration in 0..3 {
++        let mut plan = definition.internal_plan.clone();
++        let gear = &mut plan.fragments[0].placements[0];
++        match alteration {
++            0 => gear.gear_id = "forged/internal-gear".into(),
++            1 => gear.kind_id = "forged/internal-kind".into(),
++            2 => gear.configuration.push(ConfigurationEntry {
++                key: "forged-configuration".into(),
++                value: ConfigurationValue::Text("not-authored".into()),
++            }),
++            _ => unreachable!(),
++        }
++        let plan = reseal_for_refusal(plan);
++        assert!(
++            verify_plan(&plan),
++            "internal forgery must retain a valid integrity seal"
++        );
++        assert!(
++            rebuild(&document, &catalog, &definition, plan).is_err(),
++            "internal forgery {alteration}"
++        );
++    }
++    let mut extra_cord = definition.internal_plan.clone();
++    let gear = &extra_cord.fragments[0].placements[0];
++    let cord = PlannedConnection {
++        connection_id: "forged/internal-cord".into(),
++        source_placement_id: gear.placement_id.clone(),
++        source_port_id: gear.outputs[0].port_id.clone(),
++        sink_placement_id: gear.placement_id.clone(),
++        sink_port_id: gear.inputs[0].port_id.clone(),
++        value_kind: gear.outputs[0].value_kind.clone(),
++        resource: None,
++        abnormal_kind: None,
++        track: ConnectionTrack::Payload,
++        temporal: gear.outputs[0].temporal,
++        pressure_policy: DeliveryPressurePolicy::PreserveOrder,
++        selected_line: None,
++        admitted_lines: vec![],
++        item_capacity: 1,
++        byte_capacity: gear.limits.max_queue_bytes,
++    };
++    extra_cord.fragments[0].connections.push(cord);
++    // This particular model has25index inputs and76score outputs. Core can
++    // already reject its ill-typed self-loop; the canonical graph also requires
++    // zero internal cords, independently of any claimed Source identity.
++    assert!(rebuild(
++        &document,
++        &catalog,
++        &definition,
++        reseal_for_refusal(extra_cord)
++    )
++    .is_err());
++    let mut forged_definition = definition;
++    forged_definition.external_capability.limits.max_queue_bytes += 1;
++    assert!(matches!(
++        PreparedCategoricalChannel::<()>::prepare_canonical(
++            &document,
++            "parser-round-numeric",
++            &catalog,
++            forged_definition,
++            profile,
++            1
++        ),
++        Err(CategoricalChannelRefusal::Definition)
++    ));
++}
+diff --git a/semantics/language/tests/analysis_learned_round.rs b/semantics/language/tests/analysis_learned_round.rs
+--- a/semantics/language/tests/analysis_learned_round.rs
++++ b/semantics/language/tests/analysis_learned_round.rs
+@@ -89,10 +89,12 @@
+     )
+     .unwrap();
+     let profile = numeric::profile();
+-    let (plot, definition) = numeric::definition(&profile);
++    let (document, catalog, definition) = numeric::definition(&profile);
+     assert!(matches!(
+-        PreparedLearnedRoundChannel::prepare(
+-            &plot,
++        PreparedLearnedRoundChannel::prepare_canonical(
++            &document,
++            "parser-round-numeric",
++            &catalog,
+             definition.clone(),
+             profile.clone(),
+             ParserRoundModel::UnacceptedPunctuationV3,
+@@ -100,8 +102,10 @@
+         ),
+         Err(FallbackRoundRefusal::Model)
+     ));
+-    let mut channel = PreparedLearnedRoundChannel::prepare(
+-        &plot,
++    let mut channel = PreparedLearnedRoundChannel::prepare_canonical(
++        &document,
++        "parser-round-numeric",
++        &catalog,
+         definition,
+         profile,
+         ParserRoundModel::AcceptedEnglishV2,
+diff --git a/architecture/composite/src/canonical_export.rs b/architecture/composite/src/canonical_export.rs
+new file mode 100644
+--- /dev/null
++++ b/architecture/composite/src/canonical_export.rs
+@@ -0,0 +1,337 @@
++//! Exact canonical checked export to its Plan-sealed independent payload Fore.
++//! No legacy CheckedPlot projection, identity rewriting or default queue exists here.
++use crate::{
++    KernelCompositeBoundary, KernelCompositeDefinition, KernelCompositeDefinitionError,
++    KernelCompositeFrontBinding,
++};
++use alloc::{format, vec, vec::Vec};
++use conduit_core::*;
++use conduit_plot::{
++    expand_canonical_plot_for_authoring, CheckedSyntaxDocument, CompositeFrontTerminal,
++    ProfileCatalog,
++};
++fn invalid(reason: &str) -> KernelCompositeDefinitionError {
++    KernelCompositeDefinitionError::InvalidInternalPlan(reason.into())
++}
++impl KernelCompositeDefinition {
++    /// Re-expand the actual checked Source and bind every declared payload Fore.
++    /// Initial profile: one fragment, no fanout, independent payload tracks only.
++    #[allow(clippy::too_many_arguments)]
++    pub fn from_canonical_export(
++        host_id: HostId,
++        boot_id: BootId,
++        offer_generation: OfferGeneration,
++        profile: HostProfileId,
++        implementation_id: ImplementationId,
++        artifact_id: ArtifactId,
++        document: &CheckedSyntaxDocument,
++        entry: &str,
++        catalog: &ProfileCatalog,
++        internal_plan: Plan,
++        failure_translation: FailureReason,
++    ) -> Result<Self, KernelCompositeDefinitionError> {
++        let authored = expand_canonical_plot_for_authoring(document, entry, catalog)
++            .map_err(|_| invalid("canonical entry expansion refused"))?;
++        if !verify_plan(&internal_plan)
++            || internal_plan.source_document_id != authored.expanded.source_document_id
++            || internal_plan.checked_plot_id != authored.expanded.checked_plot_id
++            || internal_plan.expanded_plot_id != authored.expanded.expanded_plot_id
++            || internal_plan.fragments.len() != 1
++        {
++            return Err(invalid(
++                "canonical Source and sealed Plan identity mismatch",
++            ));
++        }
++        if !authored.front.startup_parameters().is_empty()
++            || !authored.front.resource_ports().is_empty()
++            || authored.abnormal_export.is_some()
++        {
++            return Err(invalid(
++                "canonical export startup/resource/abnormal Fore unsupported",
++            ));
++        }
++        verify_authored_graph(&authored.expanded, &internal_plan)?;
++        let fragment = &internal_plan.fragments[0];
++        let expected = authored.input_bindings.len() + authored.output_bindings.len();
++        if expected == 0
++            || fragment.fore_ports.len() != expected
++            || authored.front.inputs().len() + authored.front.outputs().len() != expected
++        {
++            return Err(invalid("canonical export missing/extra/fanout Fore"));
++        }
++        let mut boundary = KernelCompositeBoundary {
++            input_fronts: Vec::new(),
++            output_fronts: Vec::new(),
++        };
++        let mut seen = Vec::new();
++        let mut maximum_items = 0;
++        let mut maximum_bytes = 0;
++        for (direction, bindings, ports) in [
++            (
++                PortDirection::Input,
++                authored.input_bindings.as_slice(),
++                authored.front.inputs(),
++            ),
++            (
++                PortDirection::Output,
++                authored.output_bindings.as_slice(),
++                authored.front.outputs(),
++            ),
++        ] {
++            for binding in bindings {
++                if binding.track != ConnectionTrack::Payload
++                    || seen.contains(&binding.front_port_id)
++                {
++                    return Err(invalid(
++                        "canonical export duplicate/unsupported track or fanout",
++                    ));
++                }
++                seen.push(binding.front_port_id.clone());
++                let descriptor = ports
++                    .iter()
++                    .find(|port| port.port_id == binding.front_port_id)
++                    .ok_or_else(|| invalid("canonical authored descriptor missing"))?;
++                let mut fores = fragment.fore_ports.iter().filter(|fore| {
++                    fore.front_port_id == binding.front_port_id && fore.direction == direction
++                });
++                let fore = fores
++                    .next()
++                    .ok_or_else(|| invalid("canonical sealed Fore missing"))?;
++                if fores.next().is_some() || fore.track != ConnectionTrack::Payload {
++                    return Err(invalid("canonical sealed Fore duplicate/unsupported track"));
++                }
++                if fore.pressure_policy != DeliveryPressurePolicy::PreserveOrder
++                    || fore.selected_line.is_some()
++                {
++                    return Err(invalid(
++                        "canonical export pressure/selected Line unsupported",
++                    ));
++                }
++                let mut selected = fragment
++                    .placements
++                    .iter()
++                    .filter(|gear| gear.gear_id == binding.gear_id);
++                let gear = selected
++                    .next()
++                    .ok_or_else(|| invalid("canonical selected gear missing"))?;
++                if selected.next().is_some()
++                    || fore.placement_id != gear.placement_id
++                    || fore.gear_port_id != binding.gear_port_id
++                {
++                    return Err(invalid("canonical selected gear/binding mismatch"));
++                }
++                let actual = match direction {
++                    PortDirection::Input => &gear.inputs,
++                    PortDirection::Output => &gear.outputs,
++                }
++                .iter()
++                .find(|port| port.port_id == binding.gear_port_id)
++                .ok_or_else(|| invalid("canonical selected port missing"))?;
++                if descriptor.abnormal_kind.is_some() {
++                    return Err(invalid(
++                        "canonical export abnormal payload Fore unsupported",
++                    ));
++                }
++                if actual.direction != direction
++                    || descriptor.direction != direction
++                    || actual.value_kind != descriptor.value_kind
++                    || actual.temporal != descriptor.temporal
++                    || actual.abnormal_kind != descriptor.abnormal_kind
++                    || fore.value_kind != descriptor.value_kind
++                    || fore.temporal != descriptor.temporal
++                    || fore.abnormal_kind != descriptor.abnormal_kind
++                {
++                    return Err(invalid("canonical Fore descriptor mismatch"));
++                }
++                let external_location = match direction {
++                    PortDirection::Input => {
++                        FrontValueLocation::Input(binding.front_port_id.clone())
++                    }
++                    PortDirection::Output => {
++                        FrontValueLocation::Output(binding.front_port_id.clone())
++                    }
++                };
++                let internal_location = match direction {
++                    PortDirection::Input => FrontValueLocation::Input(binding.gear_port_id.clone()),
++                    PortDirection::Output => {
++                        FrontValueLocation::Output(binding.gear_port_id.clone())
++                    }
++                };
++                let contract = authored.front.value_contract(&external_location);
++                let selected_front = gear.checked_port_front();
++                if contract != fore.value_contract.as_ref()
++                    || contract != selected_front.value_contract(&internal_location)
++                {
++                    return Err(invalid("canonical Fore value contract mismatch"));
++                }
++                if fore.item_capacity == 0
++                    || fore.byte_capacity == 0
++                    || fore.item_capacity > gear.limits.max_queue_items
++                    || fore.byte_capacity > gear.limits.max_queue_bytes
++                {
++                    return Err(invalid("canonical Fore queue outside selected bounds"));
++                }
++                if let Some(contract) = contract {
++                    contract
++                        .validate_definition()
++                        .map_err(|_| invalid("canonical Fore contract invalid"))?;
++                    if contract.maximum_bytes > fore.byte_capacity {
++                        return Err(invalid("canonical Fore cannot retain typed payload bound"));
++                    }
++                }
++                maximum_items = maximum_items.max(fore.item_capacity);
++                maximum_bytes = maximum_bytes.max(fore.byte_capacity);
++                let front = KernelCompositeFrontBinding {
++                    external_port: descriptor.clone(),
++                    internal_child: fragment.host_id.clone(),
++                    internal_placement_id: fore.placement_id.clone(),
++                    internal_port_id: fore.gear_port_id.clone(),
++                    terminal: CompositeFrontTerminal::Independent,
++                };
++                match direction {
++                    PortDirection::Input => boundary.input_fronts.push(front),
++                    PortDirection::Output => boundary.output_fronts.push(front),
++                }
++            }
++        }
++        Ok(Self {
++            host_id,
++            boot_id,
++            offer_generation,
++            profile,
++            external_capability: conduit_core::capability_offer_from_parts! {
++                semantic_contract: KindSemanticContract { configuration: vec![], laws: vec![KindSemanticLaw::ValueContracts(authored.front.value_contracts().to_vec())] },
++                startup_parameters: vec![], shorthand: None,
++                capability_id: CapabilityId::from(entry.rsplit('/').next().unwrap_or(entry)),
++                kind_id: KindId::from(entry), kind_contract_revision: KindIdentity::from(authored.expanded.checked_plot_id.as_str()),
++                implementation: ImplementationOffer { execution_profile_id: ExecutionProfileId::from(format!("composite:{}@1", implementation_id.as_str())), implementation_id, artifact_id },
++                inputs: authored.front.inputs().to_vec(), outputs: authored.front.outputs().to_vec(),
++                host_calls: vec![], resource_requirements: vec![], authority_requirements: vec![],
++                limits: CapabilityLimits { max_active_instances: 1, max_queue_items: maximum_items, max_queue_bytes: maximum_bytes },
++            },
++            internal_plan,
++            boundary,
++            failure_translation,
++        })
++    }
++}
++
++/// Plan integrity is distinct from correspondence to the supplied checked Source.
++fn verify_authored_graph(
++    authored: &conduit_plot::ExpandedCanonicalPlot,
++    plan: &Plan,
++) -> Result<(), KernelCompositeDefinitionError> {
++    let fragment = &plan.fragments[0];
++    let completion = match authored.completion {
++        conduit_plot::PlotCompletionPolicy::Live => PlanCompletionPolicy::Live,
++        conduit_plot::PlotCompletionPolicy::SemanticCompletion => {
++            PlanCompletionPolicy::SemanticCompletion
++        }
++    };
++    if plan.completion_policy != completion
++        || authored.realization_backs != plan.realization_backs
++        || !authored.activations.is_empty()
++        || !plan.activations.is_empty()
++        || !plan.activation_preparations.is_empty()
++        || !authored.shared_pools.is_empty()
++        || !fragment.shared_pools.is_empty()
++        || !fragment.states.is_empty()
++        || !fragment.execution_fusions.is_empty()
++        || !fragment.execution_regions.is_empty()
++        || authored.gears.len() != fragment.placements.len()
++        || authored.connections.len() != fragment.connections.len()
++    {
++        return Err(invalid("canonical internal graph/profile mismatch"));
++    }
++    let mut seen_gears = Vec::new();
++    let mut seen_placements = Vec::new();
++    for expected in &authored.gears {
++        if seen_gears.contains(&expected.gear_id) || !expected.resource_ports.is_empty() {
++            return Err(invalid(
++                "canonical duplicate gear/resource Cord unsupported",
++            ));
++        }
++        seen_gears.push(expected.gear_id.clone());
++        let mut matches = fragment
++            .placements
++            .iter()
++            .filter(|gear| gear.gear_id == expected.gear_id);
++        let actual = matches
++            .next()
++            .ok_or_else(|| invalid("canonical internal gear missing"))?;
++        if matches.next().is_some()
++            || seen_placements.contains(&actual.placement_id)
++            || actual.kind_id != expected.kind_id
++            || actual.kind_contract_revision != expected.kind_contract_revision
++            || actual.configuration != expected.configuration
++            || actual.inputs != expected.inputs
++            || actual.outputs != expected.outputs
++            || actual.semantic_contract != expected.semantic_contract
++            || actual.terminal_transductions != expected.terminal_transductions
++            || actual.pool_references != expected.pool_references
++            || actual.host_id != fragment.host_id
++            || actual.boot_id != fragment.boot_id
++            || actual.offer_generation != fragment.offer_generation
++        {
++            return Err(invalid("canonical internal gear meaning mismatch"));
++        }
++        seen_placements.push(actual.placement_id.clone());
++    }
++    let mut seen_cords = Vec::new();
++    for expected in &authored.connections {
++        let source = fragment
++            .placements
++            .iter()
++            .find(|gear| gear.gear_id == expected.source_gear_id)
++            .ok_or_else(|| invalid("canonical internal source missing"))?;
++        let sink = fragment
++            .placements
++            .iter()
++            .find(|gear| gear.gear_id == expected.sink_gear_id)
++            .ok_or_else(|| invalid("canonical internal sink missing"))?;
++        let mut matches = fragment.connections.iter().filter(|cord| {
++            cord.source_placement_id == source.placement_id
++                && cord.source_port_id == expected.source_port_id
++                && cord.sink_placement_id == sink.placement_id
++                && cord.sink_port_id == expected.sink_port_id
++                && cord.track == expected.track
++        });
++        let actual = matches
++            .next()
++            .ok_or_else(|| invalid("canonical internal Cord missing"))?;
++        if matches.next().is_some()
++            || seen_cords.contains(&actual.connection_id)
++            || actual.value_kind != expected.value_kind
++            || actual.temporal != expected.temporal
++            || actual.track != ConnectionTrack::Payload
++            || actual.resource.is_some()
++            || actual.abnormal_kind.is_some()
++            || actual.item_capacity == 0
++            || actual.byte_capacity == 0
++            || actual.item_capacity > source.limits.max_queue_items
++            || actual.item_capacity > sink.limits.max_queue_items
++            || actual.byte_capacity > source.limits.max_queue_bytes
++            || actual.byte_capacity > sink.limits.max_queue_bytes
++            || actual.pressure_policy != DeliveryPressurePolicy::PreserveOrder
++            || actual.selected_line.is_some()
++            || !actual.admitted_lines.is_empty()
++        {
++            return Err(invalid("canonical internal Cord meaning/profile mismatch"));
++        }
++        // Typed endpoints and exact authored field comparisons above are the
++        // semantic graph. Queue allowance remains the already admitted Plan fact.
++        if !source.outputs.iter().any(|port| {
++            port.port_id == actual.source_port_id
++                && port.value_kind == actual.value_kind
++                && port.temporal == actual.temporal
++        }) || !sink.inputs.iter().any(|port| {
++            port.port_id == actual.sink_port_id
++                && port.value_kind == actual.value_kind
++                && port.temporal == actual.temporal
++        }) {
++            return Err(invalid("canonical internal Cord endpoint mismatch"));
++        }
++        seen_cords.push(actual.connection_id.clone());
++    }
++    Ok(())
++}
