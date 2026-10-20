@@ -166,79 +166,92 @@ pub(super) fn execute_line<const OBSERVE: bool>(
         .map_err(|error| format!("name Tour Line: {error:?}"))?;
     let sink_handle =
         thread::spawn(move || run_sink::<OBSERVE>(sink, sink_endpoint, address, &url, workload));
-    let mut line = listener
-        .accept()
-        .map_err(|error| format!("accept Tour Line: {error:?}"))?;
-    line.set_read_timeout(Some(std::time::Duration::from_secs(5)))
-        .map_err(|error| format!("source Line timeout: {error:?}"))?;
-    activate_source(&mut source, source_endpoint, &mut line)?;
-    let mut final_transfer = None;
-    for expected_sequence in 0..workload.count() {
-        let transfer = next_transfer(&mut source)?;
-        if transfer.sequence != expected_sequence {
-            return Err("two-Host source sequence mismatch".into());
+    let source_result: Result<RemoteValueTransfer, String> = (|| {
+        let mut line = listener
+            .accept_with_timeout(std::time::Duration::from_secs(5))
+            .map_err(|error| format!("accept Tour Line: {error:?}"))?;
+        line.set_read_timeout(Some(std::time::Duration::from_secs(5)))
+            .map_err(|error| format!("source Line timeout: {error:?}"))?;
+        activate_source(&mut source, source_endpoint, &mut line)?;
+        let mut final_transfer = None;
+        for expected_sequence in 0..workload.count() {
+            let transfer = next_transfer(&mut source)?;
+            if transfer.sequence != expected_sequence {
+                return Err("two-Host source sequence mismatch".into());
+            }
+            send_message(
+                &mut source,
+                source_endpoint,
+                &mut line,
+                SessionMessage::Offered {
+                    sequence: transfer.sequence,
+                    payload: &transfer.bytes,
+                },
+            )?;
+            match receive_message(&mut source, source_endpoint, &mut line)? {
+                ReceivedMessage::Accepted { sequence } if sequence == transfer.sequence => {
+                    source.accept_egress(&transfer)?;
+                }
+                message => return Err(format!("unexpected Tour Line acceptance {message:?}")),
+            }
+            match receive_message(&mut source, source_endpoint, &mut line)? {
+                ReceivedMessage::Delivered { sequence } if sequence == transfer.sequence => {
+                    source.deliver_egress(&transfer)?;
+                }
+                message => return Err(format!("unexpected Tour Line delivery {message:?}")),
+            }
+            final_transfer = Some(transfer);
         }
+        let transfer = final_transfer.ok_or("two-Host source produced no value")?;
+        let final_sequence = workload.count();
+        drain_source(&mut source)?;
         send_message(
             &mut source,
             source_endpoint,
             &mut line,
-            SessionMessage::Offered {
-                sequence: transfer.sequence,
-                payload: &transfer.bytes,
+            SessionMessage::InputClosed { final_sequence },
+        )?;
+        send_message(
+            &mut source,
+            source_endpoint,
+            &mut line,
+            SessionMessage::Terminal {
+                disposition: SessionTerminalDisposition::Completed,
+                final_sequence,
             },
         )?;
-        match receive_message(&mut source, source_endpoint, &mut line)? {
-            ReceivedMessage::Accepted { sequence } if sequence == transfer.sequence => {
-                source.accept_egress(&transfer)?;
-            }
-            message => return Err(format!("unexpected Tour Line acceptance {message:?}")),
+        if !matches!(
+            receive_message(&mut source, source_endpoint, &mut line)?,
+            ReceivedMessage::Terminal {
+                disposition: SessionTerminalDisposition::Completed,
+                final_sequence: current
+            } if current == final_sequence
+        ) || !source
+            .sessions()
+            .get(source_endpoint)
+            .ok_or("source Line session missing")?
+            .machine()
+            .is_terminal()
+        {
+            return Err("source Tour Line did not terminate exactly".into());
         }
-        match receive_message(&mut source, source_endpoint, &mut line)? {
-            ReceivedMessage::Delivered { sequence } if sequence == transfer.sequence => {
-                source.deliver_egress(&transfer)?;
-            }
-            message => return Err(format!("unexpected Tour Line delivery {message:?}")),
-        }
-        final_transfer = Some(transfer);
-    }
-    let transfer = final_transfer.ok_or("two-Host source produced no value")?;
-    let final_sequence = workload.count();
-    drain_source(&mut source)?;
-    send_message(
-        &mut source,
-        source_endpoint,
-        &mut line,
-        SessionMessage::InputClosed { final_sequence },
-    )?;
-    send_message(
-        &mut source,
-        source_endpoint,
-        &mut line,
-        SessionMessage::Terminal {
-            disposition: SessionTerminalDisposition::Completed,
-            final_sequence,
-        },
-    )?;
-    if !matches!(
-        receive_message(&mut source, source_endpoint, &mut line)?,
-        ReceivedMessage::Terminal {
-            disposition: SessionTerminalDisposition::Completed,
-            final_sequence: current
-        } if current == final_sequence
-    ) || !source
-        .sessions()
-        .get(source_endpoint)
-        .ok_or("source Line session missing")?
-        .machine()
-        .is_terminal()
-    {
-        return Err("source Tour Line did not terminate exactly".into());
-    }
-    line.close()
-        .map_err(|error| format!("close Tour Line: {error:?}"))?;
-    let (sink_output, sink_evidence) = sink_handle
+        line.close()
+            .map_err(|error| format!("close Tour Line: {error:?}"))?;
+        Ok(transfer)
+    })();
+    // Dropping the source socket ends a failed peer's read. Always reap the
+    // other owner and preserve its actual refusal instead of hiding it behind
+    // the resulting WebSocket disconnect.
+    let sink_result = sink_handle
         .join()
-        .map_err(|_| "sink Tour Host panicked".to_string())??;
+        .map_err(|_| "sink Tour Host panicked".to_string())
+        .and_then(|result| result);
+    let (transfer, (sink_output, sink_evidence)) = match (source_result, sink_result) {
+        (Ok(source), Ok(sink)) => (source, sink),
+        (Err(source), Err(sink)) => return Err(format!("source: {source}; sink: {sink}")),
+        (Err(source), _) => return Err(source),
+        (_, Err(sink)) => return Err(sink),
+    };
     let evidence = if OBSERVE {
         Some(super::TwoHostKernelEvidence {
             phases: Vec::new(),
