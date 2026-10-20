@@ -175,8 +175,10 @@ local entrance remains `cargo xtask ci pipeline setup <target>` (`setup-unit`
 and `setup-ci` cover portable checks and CI validation).
 
 The **Measure tool acquisition** workflow compares a cold project cache with
-an exact restored cache on a second, fresh hosted runner. It runs when a tooling
-PR becomes ready for review, or manually with selected target IDs or `all`.
+an exact restored cache on a second, fresh hosted runner. Run it manually
+with selected target IDs or `all` when acquisition measurements are needed.
+Routine PRs run their normal setup and product checks without this optional
+benchmark matrix.
 Each target's cold and warm jobs form one bounded pair; at most two pairs run
 concurrently. A whole-matrix cold phase can evict its own cache entries before
 any warm phase begins when the repository cache is busy.
