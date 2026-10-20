@@ -34,7 +34,7 @@ pub(super) fn open(
         &hex[16..20],
         &hex[20..32]
     );
-    let refusals = native_workset::inventory().map(|plot| {
+    let refusals = native_workset::candidate_inventory().map(|plot| {
         native_workset::review(plot, identities, offer, make.build_id)
             .err()
             .map(|error| error.as_str().into())

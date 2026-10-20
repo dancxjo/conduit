@@ -677,6 +677,7 @@ type VisualExpressionInfo = {
 # widgets, paint roles, or replacement semantic subjects/actions.
 type ComponentSubjectSelector =
     subject Text <= 256B not in [""]
+    | action_target Text <= 256B not in [""]
     | role Text in ["Document", "Body", "Part", "Candidate", "Plot", "Gear", "Port", "Cord", "Plan", "Play", "Host", "Capability", "Line", "Manifestation", "Route", "Diagnostic", "Sign", "Info", "Region", "Collection", "Item", "TextEntry", "Status", "Action"]
 
 type ComponentRegionInfo = {

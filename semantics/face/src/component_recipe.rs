@@ -54,6 +54,11 @@ pub fn prepare_component_recipe(
         for (subject_index, subject) in face.subjects.iter().enumerate() {
             let selected = match region.selector() {
                 ComponentSubjectSelector::Subject(identity) => identity == &subject.identity,
+                ComponentSubjectSelector::ActionTarget(identity) => {
+                    face.actions.iter().any(|action| {
+                        &action.identity == identity && action.target == subject.identity
+                    })
+                }
                 ComponentSubjectSelector::Role(role) => {
                     existing_role_name(&subject.role) == Some(role.as_str())
                 }

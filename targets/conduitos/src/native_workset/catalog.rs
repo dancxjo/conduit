@@ -6,6 +6,8 @@ use conduit_plot::{ExpandedCanonicalPlot, ProfileCatalog, StartupCatalog};
 /// Finite native product profile. Capacity is a reviewed deployment choice,
 /// not a claim that a body conceptually consists of these particular Plots.
 pub const NATIVE_PLOT_CAPACITY: usize = 4;
+/// Known Source candidates may outnumber this profile's installed workset.
+pub const NATIVE_CANDIDATE_CAPACITY: usize = NATIVE_PLOT_CAPACITY + 1;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct NativePlotProfile {
@@ -35,6 +37,7 @@ pub enum NativePlot {
     MemoryLantern,
     Tour,
     Patchbay,
+    Hello,
 }
 
 impl NativePlot {
@@ -44,6 +47,7 @@ impl NativePlot {
             Self::MemoryLantern => "memory_lantern",
             Self::Tour => "tour",
             Self::Patchbay => "patchbay",
+            Self::Hello => "hello",
         }
     }
     pub const fn title(self) -> &'static str {
@@ -52,6 +56,7 @@ impl NativePlot {
             Self::MemoryLantern => "Memory Lantern",
             Self::Tour => "Tutorial",
             Self::Patchbay => "Patchbay",
+            Self::Hello => "Hello, world.",
         }
     }
     pub const fn source(self) -> &'static str {
@@ -62,6 +67,7 @@ impl NativePlot {
             }
             Self::Tour => include_str!("../../../../plots/tour/main.conduit"),
             Self::Patchbay => include_str!("../../../../plots/patchbay/main.conduit"),
+            Self::Hello => include_str!("../../../../plots/hello/main.conduit"),
         }
     }
 }
@@ -81,6 +87,19 @@ pub const fn profile() -> NativePlotProfile {
 
 pub const fn inventory() -> [NativePlot; NATIVE_PLOT_CAPACITY] {
     profile().installed
+}
+
+/// Reviewed Source visibility does not grant native execution. Hello is real
+/// checked Source, but is outside this finite installed profile and is refused.
+pub const fn candidate_inventory() -> [NativePlot; NATIVE_CANDIDATE_CAPACITY] {
+    let installed = inventory();
+    [
+        installed[0],
+        installed[1],
+        installed[2],
+        installed[3],
+        NativePlot::Hello,
+    ]
 }
 
 pub fn checked(plot: NativePlot) -> Result<ExpandedCanonicalPlot, WorksetRefusal> {
