@@ -1,0 +1,14 @@
+{
+  "parent": "aa8650e60f2dcf6cd0ac8aac7ee3590a5a5b7977",
+  "scope": "Preserve refreshed Source and pending proof runner, verified prior repair restoration, and confirmed renderer occlusion red diagnostic",
+  "files": [
+    {
+      "source": "work/6038-native-capacity-prerequisite-issue.md",
+      "tree_path": "task-6038/work/6038-native-capacity-prerequisite-issue.md",
+      "bytes": 4383,
+      "sha256": "40a2b750ea253335486e88b3ed777780c7ebd29eca26f8f29b8765e297ef36dd",
+      "mode": "100644",
+      "blob": "078df5ccbc23bbb9704b77446b814205115c7175"
+    }
+  ]
+}
