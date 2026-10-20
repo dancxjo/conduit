@@ -72,6 +72,15 @@
         "filtered": 0
       },
       "aggregate": "52_supported_steps_passed_exit0"
+    },
+    "prepared_refresh": {
+      "head": "ffcdb1a8ea7caaf9fbdaa4e077c8b04b620dd2b7",
+      "base": "ae13d6f1af65fd70fa84c3849e598ea0b66c30aa",
+      "branch": "codex/5992-repaired-dev-preparation",
+      "origin_verified": true,
+      "delta": "33paths/fullbinarypatchIdentical3860",
+      "proof": "none;buildsHeld",
+      "pr_head_unchanged": true
     }
   },
   "stable_through_stage06": {

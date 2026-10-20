@@ -1,0 +1,46 @@
+{
+  "parent": "ffa9ed224be76607c26bf19cd397a03dff0831c8",
+  "scope": "Source-bound serial browser repair proof; raw logs retained locally and in Actions; aggregate still queued",
+  "files": [
+    {
+      "source": "outputs/5992-repaired-dev-preparation/before-transfer.json",
+      "tree_path": "task-6038/outputs/5992-repaired-dev-preparation/before-transfer.json",
+      "bytes": 12586,
+      "sha256": "42d7b3a5712d79283cc4ee5a306146e2180523c98ab76c780e6ebd8f958ebcb5",
+      "mode": "100644",
+      "blob": "369ffeba8de0bb57f3f1dc977f06c489095ac1ab"
+    },
+    {
+      "source": "outputs/5992-repaired-dev-preparation/receipt.json",
+      "tree_path": "task-6038/outputs/5992-repaired-dev-preparation/receipt.json",
+      "bytes": 20646,
+      "sha256": "2d8a3a593555601fde1baf0daa7d9aba910776fd24407267522c97308ff74393",
+      "mode": "100644",
+      "blob": "635f5b4ab5e3cc4662ec646700b39790533e2329"
+    },
+    {
+      "source": "work/run-5992-ffcdb1a8e-product-proof.py",
+      "tree_path": "task-6038/work/run-5992-ffcdb1a8e-product-proof.py",
+      "bytes": 3026,
+      "sha256": "fe38b77a1e330f609d3fa91a9eada5e034afbed13f95c6c24b93aea2ebf3201d",
+      "mode": "100644",
+      "blob": "7062d78c15d6e7f5fa23112ad515d69f7f3f3438"
+    },
+    {
+      "source": "work/audit-5992-ffcdb1a8e.py",
+      "tree_path": "task-6038/work/audit-5992-ffcdb1a8e.py",
+      "bytes": 3887,
+      "sha256": "a2881459aae79dffe1fe4b9c257e671362e1c70ebadc04c809a67b9e8d512bad",
+      "mode": "100644",
+      "blob": "c2d64b3b1d92ac5f12b14b02a848d5d32ccd7018"
+    },
+    {
+      "source": "work/revised-native-goal-state.json",
+      "tree_path": "task-6038/work/revised-native-goal-state.json",
+      "bytes": 5115,
+      "sha256": "42f235cd28159f07b600777ea742104b3a486b6b3d4ffed713d04691bc064516",
+      "mode": "100644",
+      "blob": "932a32d9bf40eff577308981e9c44de3d9231e2c"
+    }
+  ]
+}

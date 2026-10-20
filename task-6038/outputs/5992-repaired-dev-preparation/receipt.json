@@ -1,0 +1,375 @@
+{
+  "original_head": "3860faa7e51d0ca8c85f244cbdf9b0101877981f",
+  "original_base": "00525faf30522b6851d226613e61e277f2b48f43",
+  "prepared_base": "ae13d6f1af65fd70fa84c3849e598ea0b66c30aa",
+  "original_branch": "codex/5992-native-typography",
+  "preparation_branch": "codex/5992-repaired-dev-preparation",
+  "owned_paths": [
+    "targets/conduitos/assets/fonts/dejavu/DejaVuSerif.ttf",
+    "targets/conduitos/assets/fonts/dejavu/README.md",
+    "targets/conduitos/assets/fonts/dejavu/native-ensemble.json",
+    "targets/conduitos/assets/graphical/README.md",
+    "targets/conduitos/build/typography.rs",
+    "targets/conduitos/make/xtask/build.rs",
+    "targets/conduitos/make/xtask/build/aarch64_domain.rs",
+    "targets/conduitos/make/xtask/build/ia32_domain.rs",
+    "targets/conduitos/make/xtask/build/loongarch64_domain.rs",
+    "targets/conduitos/make/xtask/build/riscv64_domain.rs",
+    "targets/conduitos/make/xtask/command.rs",
+    "targets/conduitos/make/xtask/headless_profile.rs",
+    "targets/conduitos/make/xtask/headless_profile/tests.rs",
+    "targets/conduitos/make/xtask/headless_proof.rs",
+    "targets/conduitos/make/xtask/mod.rs",
+    "targets/conduitos/src/display/typography.rs",
+    "targets/conduitos/src/display/typography/ensemble_tests.rs",
+    "targets/conduitos/src/display/typography/ink.rs",
+    "targets/conduitos/src/display/typography/layout.rs",
+    "targets/conduitos/src/display/typography/raster.rs",
+    "targets/conduitos/src/native_face_scene/chrome.rs",
+    "targets/conduitos/src/native_face_scene/document.rs",
+    "targets/conduitos/src/native_face_scene/frame.rs",
+    "targets/conduitos/src/native_face_scene/layout.rs",
+    "targets/conduitos/src/native_face_scene/layout/panels.rs",
+    "targets/conduitos/src/native_face_scene/layout/panels/tests.rs",
+    "targets/conduitos/src/native_face_scene/layout/panels/tests/creche.rs",
+    "targets/conduitos/src/native_face_scene/layout/panels/tests/creche/font_details.rs",
+    "targets/conduitos/src/native_face_scene/ports/tests.rs",
+    "targets/conduitos/src/native_face_scene/text_editor.rs",
+    "targets/conduitos/src/tour_shell/scene_content_tests.rs",
+    "targets/conduitos/src/tour_workspace.rs",
+    "targets/conduitos/src/tour_workspace/tests.rs"
+  ],
+  "upstream_paths": [
+    "architecture/kernel/src/hosted.rs",
+    "architecture/kernel/src/hosted/compact_f32.rs",
+    "architecture/kernel/src/hosted/owned_compact_f32.rs",
+    "architecture/kernel/src/hosted/owned_compact_f32/tests.rs",
+    "architecture/kernel/src/hosted/value_admission.rs",
+    "architecture/kernel/src/lib.rs",
+    "architecture/kernel/src/owned_compact_output.rs",
+    "architecture/kernel/src/scheduler.rs",
+    "architecture/kernel/src/scheduler/compact_f32.rs",
+    "architecture/kernel/src/scheduler/payload_admission.rs",
+    "architecture/kernel/tests/compact_f32_dag.rs",
+    "architecture/kernel/tests/compact_f32_dag/fixture.rs",
+    "architecture/kernel/tests/compact_f32_dag/owned.rs",
+    "architecture/planner/src/resource_cost.rs",
+    "architecture/planner/src/resource_cost/replan_policy.rs",
+    "architecture/plot/tests/common/allocation_probe.rs",
+    "docs/audits/evidence/fusion-inspection-5545-20261020/clippy.log.gz",
+    "docs/audits/evidence/fusion-inspection-5545-20261020/observatory.log.gz",
+    "docs/audits/evidence/fusion-inspection-5545-20261020/parent-child-reconciliation.json",
+    "docs/audits/evidence/fusion-inspection-5545-20261020/source-inspection.log.gz",
+    "docs/audits/evidence/fusion-inspection-5545-20261020/topology.log.gz",
+    "docs/audits/evidence/fusion-inspection-5545-20261020/validation.json",
+    "docs/audits/evidence/owner-execution-custody-20261020/cancellation-regressions.log.gz",
+    "docs/audits/evidence/owner-execution-custody-20261020/check-owner-execution-custody-negatives.log.gz",
+    "docs/audits/evidence/owner-execution-custody-20261020/check-plan-replacement-custody-negatives.log.gz",
+    "docs/audits/evidence/owner-execution-custody-20261020/format.log.gz",
+    "docs/audits/evidence/owner-execution-custody-20261020/manifest.json",
+    "docs/audits/evidence/owner-execution-custody-20261020/parsec-regressions.log.gz",
+    "docs/audits/evidence/owner-execution-custody-20261020/product-clippy.log.gz",
+    "docs/audits/evidence/owner-execution-custody-20261020/release-regressions.log.gz",
+    "docs/audits/evidence/owner-execution-custody-20261020/todo-durability.log.gz",
+    "docs/audits/evidence/owner-execution-custody-20261020/validation.json",
+    "docs/audits/evidence/owner-execution-custody-20261020/verify-owner-execution-custody.log.gz",
+    "docs/audits/evidence/owner-execution-custody-20261020/verify-plan-replacement-custody.log.gz",
+    "docs/audits/evidence/plan-replacement-custody-20261020/cancellation-regressions.log.gz",
+    "docs/audits/evidence/plan-replacement-custody-20261020/clippy.log.gz",
+    "docs/audits/evidence/plan-replacement-custody-20261020/format.log.gz",
+    "docs/audits/evidence/plan-replacement-custody-20261020/negative-controls.log.gz",
+    "docs/audits/evidence/plan-replacement-custody-20261020/parsec-regressions.log.gz",
+    "docs/audits/evidence/plan-replacement-custody-20261020/release-regressions.log.gz",
+    "docs/audits/evidence/plan-replacement-custody-20261020/summary.json",
+    "docs/audits/evidence/plan-replacement-custody-20261020/todo-durability.log.gz",
+    "docs/audits/evidence/plan-replacement-custody-20261020/validation.json",
+    "docs/audits/evidence/plan-replacement-custody-20261020/verification.log.gz",
+    "docs/audits/evidence/reluctant-execution-bridge-20261020/clippy.log.gz",
+    "docs/audits/evidence/reluctant-execution-bridge-20261020/excluded-diagnostics.json",
+    "docs/audits/evidence/reluctant-execution-bridge-20261020/exploratory-alternatives.json.gz",
+    "docs/audits/evidence/reluctant-execution-bridge-20261020/exploratory-producer.rs.gz",
+    "docs/audits/evidence/reluctant-execution-bridge-20261020/exploratory-tape.json.gz",
+    "docs/audits/evidence/reluctant-execution-bridge-20261020/format.log.gz",
+    "docs/audits/evidence/reluctant-execution-bridge-20261020/integrated-clippy.log.gz",
+    "docs/audits/evidence/reluctant-execution-bridge-20261020/integrated-format.log.gz",
+    "docs/audits/evidence/reluctant-execution-bridge-20261020/integrated-tests.log.gz",
+    "docs/audits/evidence/reluctant-execution-bridge-20261020/resource-frame.log.gz",
+    "docs/audits/evidence/reluctant-execution-bridge-20261020/validation.json",
+    "docs/audits/evidence/reluctant-replanning-policy-20261020/clippy.log.gz",
+    "docs/audits/evidence/reluctant-replanning-policy-20261020/format.log.gz",
+    "docs/audits/evidence/reluctant-replanning-policy-20261020/resource-frame.log.gz",
+    "docs/audits/evidence/reluctant-replanning-policy-20261020/validation.json",
+    "docs/audits/fusion-inspection-5545-20261020.md",
+    "docs/audits/incremental-host-line-20261020.md",
+    "docs/audits/owner-execution-custody-20261020.md",
+    "docs/audits/plan-replacement-custody-20261020.md",
+    "docs/audits/reluctant-execution-bridge-20261020.md",
+    "docs/audits/reluctant-replanning-policy-20261020.md",
+    "docs/contributing/ci.md",
+    "docs/performance/compact-output-ownership.md",
+    "docs/reuse-ledger.md",
+    "products/conduit/src/body_owner/checkpoint_once.rs",
+    "products/conduit/src/body_owner/checkpoint_once_tests.rs",
+    "products/conduit/src/body_owner/continuing.rs",
+    "products/conduit/src/body_owner/controller.rs",
+    "products/conduit/src/body_owner/controller/birth.rs",
+    "products/conduit/src/body_owner/execution_retention.rs",
+    "products/conduit/src/body_owner/mod.rs",
+    "products/conduit/src/body_owner/owner_execution_custody_tests.rs",
+    "products/conduit/src/body_owner/state.rs",
+    "products/conduit/src/body_owner/state_archive_tests.rs",
+    "products/conduit/src/body_owner/state_execution_custody.rs",
+    "products/conduit/src/body_owner/state_execution_custody_tests.rs",
+    "products/conduit/src/body_owner/state_tests.rs",
+    "products/conduit/src/body_owner/thermostat_worker.rs",
+    "products/conduit/src/body_owner/todo_continuity_tests.rs",
+    "products/conduit/src/body_owner/todo_read.rs",
+    "products/conduit/src/body_owner/todo_waiting.rs",
+    "products/conduit/src/thermostat_run/evidence.rs",
+    "proof/language/categorical-runtime-current-context-20261020.json",
+    "proof/language/categorical-runtime-recovery-20261020.json",
+    "proof/performance/check-owner-execution-custody-negatives.py",
+    "proof/performance/check-plan-replacement-custody-negatives.py",
+    "proof/performance/numeric/compact-owned-output-20261020.json",
+    "proof/performance/numeric/compact-owned-output-current-context-20261020.json",
+    "proof/performance/verify-owner-execution-custody.py",
+    "proof/performance/verify-plan-replacement-custody.py",
+    "semantics/ai/examples/fargan_performance.rs",
+    "semantics/ai/examples/fargan_performance/prepared.rs",
+    "semantics/ai/examples/fargan_performance/prepared_conformance.rs",
+    "semantics/ai/examples/fargan_performance/prepared_profile.rs",
+    "semantics/ai/src/fixed_numeric_compact.rs",
+    "semantics/ai/src/fixed_numeric_compact_linear.rs",
+    "semantics/ai/src/integer_categorical_step.rs",
+    "semantics/ai/src/integer_categorical_step/back.rs",
+    "semantics/ai/src/integer_categorical_step/channel.rs",
+    "semantics/ai/src/integer_categorical_step/invocation.rs",
+    "semantics/ai/src/integer_categorical_step/owner.rs",
+    "semantics/ai/tests/fargan_signal_graph/runtime.rs",
+    "semantics/ai/tests/fargan_signal_graph/runtime_backs.rs",
+    "semantics/ai/tests/fargan_signal_graph/runtime_prepared.rs",
+    "semantics/ai/tests/fargan_signal_graph/runtime_session.rs",
+    "semantics/ai/tests/fargan_signal_graph/runtime_values.rs",
+    "semantics/ai/tests/fixed_numeric_signal_back/compact.rs",
+    "semantics/ai/tests/fixed_numeric_signal_back/compact_store.rs",
+    "semantics/ai/tests/integer_categorical_step.rs",
+    "semantics/ai/tests/integer_categorical_step/channel_cases.rs",
+    "semantics/ai/tests/integer_categorical_step/concurrent_invocation_cases.rs",
+    "semantics/ai/tests/integer_categorical_step/invocation_cases.rs",
+    "targets/conduitos/README.md",
+    "targets/conduitos/make/xtask/qemu_artifacts.rs",
+    "targets/conduitos/src/native_workset.rs",
+    "targets/conduitos/src/native_workset/eligibility.rs",
+    "targets/conduitos/src/product_front_door.rs",
+    "targets/conduitos/src/product_front_door/arrival.rs",
+    "targets/conduitos/src/product_journey/workset_admission_tests.rs",
+    "targets/std/examples/resource_replacement_cost/fixture.rs",
+    "targets/std/src/body_causal_evidence_tests.rs",
+    "targets/std/src/body_execution.rs",
+    "targets/std/src/body_execution/fore_custody.rs",
+    "targets/std/src/installed_std/body_kernel.rs",
+    "targets/std/src/installed_std/body_kernel/fore_route.rs",
+    "targets/std/src/installed_std/body_kernel/fore_route/custody.rs",
+    "targets/std/src/lib.rs",
+    "targets/std/src/reluctant_replan.rs",
+    "targets/std/tests/common/checkpoint_fixture.rs",
+    "targets/std/tests/reluctant_replan_execution.rs",
+    "targets/std/tests/reluctant_replan_policy.rs",
+    "targets/std/tests/replacement_fore_custody.rs",
+    "targets/std/tests/replacement_fore_custody/accepted_then_cancelled.rs",
+    "targets/std/tests/replacement_fore_custody/provider_loss.rs",
+    "targets/std/tests/replan_common/expression.rs",
+    "targets/std/tests/resource_common/replan_policy.rs",
+    "targets/std/tests/todo_checkpoint_body_play.rs",
+    "tools/ci/pipeline/targets/browser.mjs",
+    "tools/xtask/src/commands/check.rs",
+    "tools/xtask/src/commands/check/cli.rs",
+    "tools/xtask/src/commands/runtime_performance.rs",
+    "tools/xtask/src/commands/runtime_performance_fargan.rs",
+    "tools/xtask/src/suites/categorical_runtime.rs",
+    "tools/xtask/src/suites/resource_frame.rs",
+    "tools/xtask/src/suites/todo.rs"
+  ],
+  "intersection": [],
+  "original_history": [
+    "3860faa7e51d0ca8c85f244cbdf9b0101877981f Format extracted Tour workspace tests",
+    "f0a913758b0dec61d9c620da385b6aa5a41bbf06 Keep Tour workspace conformance tests in their own module",
+    "6f579f684500e6bf54c5dd7b5870c5c5c6fb7d6d Align status tests with text primitives and measured native reservation",
+    "41cbc199d7a13ce81f0e98e62797085a6737ec08 Restore inspectable headless proof and fit Tour status to font metrics",
+    "a302c327171643b2e5197dd7502d9546de741038 Prepare pinned serif sans and mono native typography"
+  ],
+  "prepared_head": "ffcdb1a8ea7caaf9fbdaa4e077c8b04b620dd2b7",
+  "prepared_tree": "bfb6ce1758348d1876ac84686bc0c8999b90ae66",
+  "patch_sha256": "c52b5cb4b43d97e6046a902ef6abbc6848a8b234ea95f274393e1af8b246106a",
+  "prepared_patch_byte_identical": true,
+  "all33_path_blobs_byte_identical": true,
+  "original_branch_unchanged": true,
+  "files": {
+    "targets/conduitos/assets/fonts/dejavu/DejaVuSerif.ttf": {
+      "blob": "0b803d206c1a4f19559d14f4d3cbd5bbfe0a86a1",
+      "sha256": "42d1edeb7952f31b1f96d767ed7030b08a39e0c372b0071641518864e2bffb51",
+      "bytes": 380132
+    },
+    "targets/conduitos/assets/fonts/dejavu/README.md": {
+      "blob": "10e3a14ae600f923146966f94204745d8956e671",
+      "sha256": "98b26e50b6b1764f2af980a5f393afd6902f86d8611348f2086ed8def16717bb",
+      "bytes": 4213
+    },
+    "targets/conduitos/assets/fonts/dejavu/native-ensemble.json": {
+      "blob": "7b12bcdf5a3c75aee929f8f7c13602f8898019f2",
+      "sha256": "27741cd141affb92b521bbe9042bf39db8012d6058fe445cc8fd00779b0d75ea",
+      "bytes": 1944
+    },
+    "targets/conduitos/assets/graphical/README.md": {
+      "blob": "d0700cf1851e5a07ce68def8411e8935cfb0fcf1",
+      "sha256": "77cf4a787ef952cc6d2d2a4b1d5989c5e4ef27351b5c4438b244d88349356dcc",
+      "bytes": 3526
+    },
+    "targets/conduitos/build/typography.rs": {
+      "blob": "b324c788c12ef263eaf2933aaf9bbf57da3455bb",
+      "sha256": "068e09fbac7dec490bf92891626799ac22f6f5b2adaab48e5d04593341582948",
+      "bytes": 6881
+    },
+    "targets/conduitos/make/xtask/build.rs": {
+      "blob": "751ee5b6ca72a56b4c19c603bd522b8c405eeb7d",
+      "sha256": "4e2c8c843773379fcc976eefc5e6ae23e40c55a381c914ebf612bf61913b7c7c",
+      "bytes": 19216
+    },
+    "targets/conduitos/make/xtask/build/aarch64_domain.rs": {
+      "blob": "cb322c41400c0670b4b2b6830ec550af09e796da",
+      "sha256": "08df5067bf4595d5a2fa0e7e2914852328b6e01255b99d3e6a1997ef0210399e",
+      "bytes": 1136
+    },
+    "targets/conduitos/make/xtask/build/ia32_domain.rs": {
+      "blob": "0db23feef12146418ce6d2e0b8dcc1156660d496",
+      "sha256": "f18df1ba5a8290acb99bc122e96b27032fdd1b43639f224544cddfb3e1c7937f",
+      "bytes": 1120
+    },
+    "targets/conduitos/make/xtask/build/loongarch64_domain.rs": {
+      "blob": "e02a57e8421eeda388cdc1eee52b72aa3d07efdd",
+      "sha256": "19407398cf546758579375dd766ec78f3326cd67bae556c27d19866a863c8644",
+      "bytes": 1156
+    },
+    "targets/conduitos/make/xtask/build/riscv64_domain.rs": {
+      "blob": "ca7a2029fce40df070f611ba058f28388a9377c4",
+      "sha256": "9b8ffc5407ec3918949e218f92b230624bf42ac23cd998af0e2452437a4f41ec",
+      "bytes": 1137
+    },
+    "targets/conduitos/make/xtask/command.rs": {
+      "blob": "f484182c911c4a3f3b5526e0cafa08d78ad0d0df",
+      "sha256": "f048bc7677edb4a264bc577ed2f783e49de9da083629e4f1f41a29ca51474921",
+      "bytes": 14210
+    },
+    "targets/conduitos/make/xtask/headless_profile.rs": {
+      "blob": "989758fd237cd666106b438babfeaf019764d685",
+      "sha256": "8e059879a2f630312d0c3085686a3e804d9085de61fab5387e90b7207acd8898",
+      "bytes": 1055
+    },
+    "targets/conduitos/make/xtask/headless_profile/tests.rs": {
+      "blob": "3ddb314202d1005ee611be6dabfd33c1e4a23411",
+      "sha256": "6906660443aa4f8c28d100ab6486181951aa45fe351a77a3f757ec5ad1343faa",
+      "bytes": 2416
+    },
+    "targets/conduitos/make/xtask/headless_proof.rs": {
+      "blob": "8989e31620bb6ae3f2ba27bf6cf62f8cd3fdc11b",
+      "sha256": "70991c6f65bbaa745a5c2a16b0d58e4848bd4058d5cb81a42e7fbd47fb170cb9",
+      "bytes": 8021
+    },
+    "targets/conduitos/make/xtask/mod.rs": {
+      "blob": "a41339a69e0ddb993c68069d484872f559eeb363",
+      "sha256": "f955affac0ac17102f4973aff7d4b18d0b1b1627cc1471b152c55bbdf9cacede",
+      "bytes": 28048
+    },
+    "targets/conduitos/src/display/typography.rs": {
+      "blob": "f4db3c0db46f4dae256c99c23016e699ddd2e5fa",
+      "sha256": "78c9dfbd3875eb33e1dd6cb00be760722686af2597df43cd72beea517d5bb964",
+      "bytes": 9376
+    },
+    "targets/conduitos/src/display/typography/ensemble_tests.rs": {
+      "blob": "34f7a5480669e41474c3540aefe076665c257ed3",
+      "sha256": "fbeba520c24e65a743769107ff2c20f1ad2be07102274bbe069c83caa5289bb1",
+      "bytes": 7108
+    },
+    "targets/conduitos/src/display/typography/ink.rs": {
+      "blob": "517df572a9cf499cc1e82ce679142106945f6182",
+      "sha256": "cbcce0aa2b21b87a68e995c31b72ebc164a9212d063583f0416eeb184fde2b4e",
+      "bytes": 1851
+    },
+    "targets/conduitos/src/display/typography/layout.rs": {
+      "blob": "55f24cbd79012024b403ad9f80c730d90c5bb711",
+      "sha256": "2d561a6d78774d08c3fb448897687d6e74ac0501b9104e48bdb8e87032598618",
+      "bytes": 9298
+    },
+    "targets/conduitos/src/display/typography/raster.rs": {
+      "blob": "a8db4bcc204eb385be0ac3bd7513c4b4684566e7",
+      "sha256": "c45a13800380a0bc7d95268164cc432c783b212979e19554f2f09279c5b036b4",
+      "bytes": 11054
+    },
+    "targets/conduitos/src/native_face_scene/chrome.rs": {
+      "blob": "cba0c22885621abdb1ef06458e357c5e98a95413",
+      "sha256": "eeb6203e49b4c52814fe0a60e071ea888cfa19f88e3dc2b4ba0cfe8c8484fff3",
+      "bytes": 7890
+    },
+    "targets/conduitos/src/native_face_scene/document.rs": {
+      "blob": "d8e6c6627552f67401895f2f158db34711047ed0",
+      "sha256": "2faf4c329ab9fed2d917312540d4113c1d8e59e3472b8213cd6b1551e2db49f0",
+      "bytes": 14448
+    },
+    "targets/conduitos/src/native_face_scene/frame.rs": {
+      "blob": "5f617e00e6d78229631acb2a4eebc7e0d469a7db",
+      "sha256": "e1c78f9b9657822cd86a009c9189a0665cc6768d2031e2db119a7976b3a606e5",
+      "bytes": 7629
+    },
+    "targets/conduitos/src/native_face_scene/layout.rs": {
+      "blob": "e1912d5a50553c3b5522aed6ff78cf8318ef224f",
+      "sha256": "c73979f6663f3f0944e8d243d15588abb3aae60d3d3c5c9f63d60d5e4b9a5f44",
+      "bytes": 12449
+    },
+    "targets/conduitos/src/native_face_scene/layout/panels.rs": {
+      "blob": "60185117129b450d1c613e2c06c08fd2f4d78fcc",
+      "sha256": "9b3ec04a2376267537a6f1036451a1476fe91e0a12ea008cb886d5e029895215",
+      "bytes": 9292
+    },
+    "targets/conduitos/src/native_face_scene/layout/panels/tests.rs": {
+      "blob": "7a84dbcfe2ac1e880abe4933b9c9f9538bcdb92c",
+      "sha256": "b7dfb832ef856b87fd4768dc74b0212ea930a222779cef0d4ee231e9f0b98527",
+      "bytes": 11951
+    },
+    "targets/conduitos/src/native_face_scene/layout/panels/tests/creche.rs": {
+      "blob": "2c9c3c54c7a7369c0d90b7b6c50dbb692027c484",
+      "sha256": "e270fd1bd891dc669ad4f270d8f0be2eca59d15729f37e870ca1a2b4e540fa20",
+      "bytes": 9032
+    },
+    "targets/conduitos/src/native_face_scene/layout/panels/tests/creche/font_details.rs": {
+      "blob": "f7abea84290b6b60bf8df3a69da11120bad379f1",
+      "sha256": "2c2b248cd0b93c86a7aadc97080dfc76822ef63aa086a52eba2482613259630c",
+      "bytes": 2859
+    },
+    "targets/conduitos/src/native_face_scene/ports/tests.rs": {
+      "blob": "15dd3983b6fc9abe3ef84db830c38dfb40b4a311",
+      "sha256": "3a9b4bc70d441ff51c899ca10aaf5026daef5ff5135e4c8d198231f88ad1644c",
+      "bytes": 14255
+    },
+    "targets/conduitos/src/native_face_scene/text_editor.rs": {
+      "blob": "2295f0f21f04e9e4850416cb05db0c2cdd5b7f84",
+      "sha256": "975217d351a44473340b6e9555b0ceca3e9055b313ca5c8e9082ec042e3bd5f8",
+      "bytes": 8245
+    },
+    "targets/conduitos/src/tour_shell/scene_content_tests.rs": {
+      "blob": "5b68e665c96fa42d07ba2e653323f49daf43b97a",
+      "sha256": "f2dd19a7b7f5f6e4cd6ac793a43de893ff03ec8b3f6d71cd9571994d0285aa09",
+      "bytes": 9215
+    },
+    "targets/conduitos/src/tour_workspace.rs": {
+      "blob": "951fc65116911745f2894b98e8016d55eafd4c5a",
+      "sha256": "c53315577c5f6118c873006eef739c71cb729d482425f64e853a0718c162f51c",
+      "bytes": 11834
+    },
+    "targets/conduitos/src/tour_workspace/tests.rs": {
+      "blob": "922545944316e536be9fa0569053989a0ca6d26d",
+      "sha256": "b4432219546bb7a2344a41025e579d26963cbc5be653b6c7ca341c605b098f0d",
+      "bytes": 6159
+    }
+  },
+  "boundary": "Local prepared source only. No builds, fetch, push, GitHub mutation, admission or current-dev proof claim."
+}
