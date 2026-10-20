@@ -33,7 +33,7 @@ fn prove_partial_loss() {
         Duration::from_secs(30),
     )
     .unwrap();
-    let (steady_wake, steady_body_plan) = body_plan(steady_plan);
+    let (steady_wake, steady_body_plan) = body_plan_at_birth(steady_plan, 2);
     let steady_root_worker = steady_root.clone();
     let queue_worker = queue.clone();
     let (started_tx, started_rx) = std::sync::mpsc::sync_channel(1);
@@ -78,6 +78,7 @@ fn prove_partial_loss() {
     let (mut lost_host, lost_plan, lost_root) = planned_checkpoint();
     let old_plan = lost_plan.clone();
     let (lost_wake, lost_body_plan) = body_plan(lost_plan);
+    assert_ne!(steady_play.body_id, lost_body_plan.body_id);
     let mut lost_output = CapturedFore::default();
     let lost = lost_host
         .run_body_plan_with_todo_checkpoint_to_with_start(
@@ -219,6 +220,7 @@ fn prove_partial_loss() {
         "unaffected_report":format!("{steady:?}"),
             "old_play":lost.play.active_play_id.as_str(), "old_terminal_sign":lost.terminal_sign.sign_id.as_str(),
             "replacement_play":replacement.play.active_play_id.as_str(), "replacement_terminal_sign":replacement.terminal_sign.sign_id.as_str(),
+            "unaffected_body_id":steady.play.body_id.as_str(),
             "unaffected_play":steady.play.active_play_id.as_str(), "unaffected_terminal_sign":steady.terminal_sign.sign_id.as_str(),
             "old_refusal":lost.failure, "unaffected_outputs":steady_output.0.len(), "replacement_outputs":replacement_output.0.len(),
         })

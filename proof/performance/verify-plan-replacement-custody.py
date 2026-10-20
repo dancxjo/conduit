@@ -61,6 +61,7 @@ def verify(log):
     require(cancelled['old_output_count'] == cancelled['replacement_output_count'] == 1, "cancelled output replayed or lost")
     require(cancelled['replacement_items'] == ['Buy milk', 'After cancellation'], "cancelled command replayed")
     lost = by_case['selected-provider-loss-independent-live-Play']
+    require(lost['unaffected_body_id'] != lost['old_body_plan']['body_id'], "independent work reused the same Body birth")
     require(lost['unaffected_play'] not in [lost['old_play'], lost['replacement_play']], "independent Play identity conflated")
     require('HostCallFailed' in lost['old_refusal'], "actual selected provider loss not retained")
     require(lost['unaffected_outputs'] == lost['replacement_outputs'] == 1, "independent/replacement output custody differs")

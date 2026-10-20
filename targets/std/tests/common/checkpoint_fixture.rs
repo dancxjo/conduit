@@ -178,6 +178,13 @@ impl BodyForeOutputAdapter for CapturedFore {
 }
 
 pub(crate) fn body_plan(plan: Plan) -> (conduit_body::Wake, BodyPlan) {
+    body_plan_at_birth(plan, 1)
+}
+
+pub(crate) fn body_plan_at_birth(
+    plan: Plan,
+    birth_sequence: u64,
+) -> (conduit_body::Wake, BodyPlan) {
     let resident = ResidentPlot::new(
         plan.source_document_id.clone(),
         plan.checked_plot_id.clone(),
@@ -185,8 +192,12 @@ pub(crate) fn body_plan(plan: Plan) -> (conduit_body::Wake, BodyPlan) {
     let body = Body::born(
         plan.source_document_id.clone(),
         plan.checked_plot_id.clone(),
-        1,
-        SignId::from("sign/born"),
+        birth_sequence,
+        SignId::from(if birth_sequence == 1 {
+            "sign/born".to_owned()
+        } else {
+            format!("sign/born/{birth_sequence}")
+        }),
     )
     .unwrap();
     let wake = body.wake(1, SignId::from("sign/wake")).unwrap().1;

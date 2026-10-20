@@ -22,6 +22,7 @@ controls = [
     ('replayed old command', cancelled, lambda r: r['replacement_items'].append('Buy milk')),
     ('delivery after cancellation', cancelled, lambda r: r.__setitem__('cancelled_event', r['delivered_event'])),
     ('conflated independent Play', lost, lambda r: r.__setitem__('unaffected_play', r['old_play'])),
+    ('conflated independent Body', lost, lambda r: r.__setitem__('unaffected_body_id', r['old_body_plan']['body_id'])),
 ]
 for name, case, mutate in controls:
     changed = copy.deepcopy(next(r for r in records if r['case'] == case))
