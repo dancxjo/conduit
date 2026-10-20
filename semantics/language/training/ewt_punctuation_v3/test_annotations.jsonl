@@ -1,0 +1,5 @@
+{"forms": ["Good", "luck", ","], "heads": [1, 4, 1], "id": "email-enronsent27_02-0013", "pos": [0, 7, 12], "relations": ["amod", "root", "punct"]}
+{"forms": ["Hi", "David", ":"], "heads": [1, 4, 1], "id": "email-enronsent04_02-0007", "pos": [6, 11, 12], "relations": ["discourse", "root", "punct"]}
+{"forms": ["Sara", ","], "heads": [4, 0], "id": "email-enronsent36_01-0001", "pos": [11, 12], "relations": ["root", "punct"]}
+{"forms": ["Thanks", "-"], "heads": [4, 0], "id": "email-enronsent36_01-0007", "pos": [7, 12], "relations": ["root", "punct"]}
+{"forms": ["Hi", "Sara", ","], "heads": [4, 0, 0], "id": "email-enronsent36_01-0031", "pos": [6, 11, 12], "relations": ["root", "vocative", "punct"]}

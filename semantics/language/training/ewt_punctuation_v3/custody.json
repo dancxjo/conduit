@@ -1,0 +1,36 @@
+{
+  "base_revision": "3ddae3bb9d41a466e446a55464348dc043eb6ed4",
+  "branch": "prep/4907-parser-punctuation",
+  "status": "local unaccepted preparation; no native execution proof",
+  "files_sha256": {
+    "ewt_punctuation_v3/CORPUS_LICENSE.txt": "351041923dd6d18f88ca4e40d68d7b38ca520fda73f32509aedf9c2f01dfaffa",
+    "ewt_punctuation_v3/CORPUS_README.txt": "c2dc7edaf5937d18cb3ff142410fde7460e32faa69b2bd0a041abc3f957da281",
+    "ewt_punctuation_v3/PREPARATION.md": "0746627fff6f3ba5bafc64dc30d7fedb918d48fe4f83f7bffa52e51db94f3962",
+    "ewt_punctuation_v3/conditional-regression-analysis.json": "24868d056a44d2f9a054c27eca2812400a4a7a12faab0d6a19f1ca25b9b46bff",
+    "ewt_punctuation_v3/dev_annotations.jsonl": "eeda046711d1f0a8d4df5fc6e2addde925021b31de693880afbef52a701758a7",
+    "ewt_punctuation_v3/ewt_joint.i16": "fcd5baafa388f47410a37ed44b51c2228bdf3c84d9c034c80045f34d90be025c",
+    "ewt_punctuation_v3/feature-group-bound.json": "feb6993beadb5b3ec1be57ee97040c6d745c8a15fd437b6fefb095d4f16d837f",
+    "ewt_punctuation_v3/lexical_profile.json": "045a51b00224785f77983a7c8127f690a1ca8e3c471eb40f6339ceec60c5251b",
+    "ewt_punctuation_v3/manifest.json": "1efbdac3e4b63c2fa66e538c5379980df531ea06669d35e710e69f8afc430f1b",
+    "ewt_punctuation_v3/preparation-result.json": "9e5d5311bba22bba700e95194b88b5ccef7cd766bfdc36f5dc4215156900a6b4",
+    "ewt_punctuation_v3/ranking_cases.json": "bf91e1a61c0c2fce02051b4d4ee6fee7383c5706671931353dce1e6b5404d664",
+    "ewt_punctuation_v3/reserved_evaluation.json": "74e35548215f2f92a1e8f5ff2341dab9fbccfb5cbfa441a4c998738b0b8effe9",
+    "ewt_punctuation_v3/reviewed_teaching.json": "62b24370eee752586973f73da1b23b7bf2033d22a8b1338d0e4f1e762c86c569",
+    "ewt_punctuation_v3/schema.json": "1e40cadc24f6a05bb79288e45152ed75b03c37c3f34ddc61d3d219c9a8798707",
+    "ewt_punctuation_v3/teaching-provenance.json": "5345d929c23a51ebd98fbed23e60e16a08c5d8508a52e25bc94973c9172e917f",
+    "ewt_punctuation_v3/test_annotations.jsonl": "51c781e15df8e41999caaf2cd4164c94aba5b5955b68e99119914b2c20e5eda1",
+    "train_ewt.py": "7e738a0e3656fa2b90b6e94d199894dba84de5a343dd1cb1b1e83dbf09b23530",
+    "train_ewt_joint_v2.py": "af844ec0b57c9c5bcdb159ab114fe56b8595b666cce128d2000b3d4158fe47a1",
+    "train_ewt_punctuation_v3.py": "16790f2d71ffee98ed32a0ab0a31aa1e4e55b47c03fd381c629291da318ac85b",
+    "analyze_ewt_punctuation_v3.py": "fd5ec89eff02c6679d033f3574fe02359978b0c684fbb83e496f4b89e152dc92"
+  },
+  "training_command": "python3 semantics/language/training/train_ewt_punctuation_v3.py --corpus <pinned-ewt-directory> --output <fresh-output-directory> --epochs 12",
+  "analysis_command": "python3 semantics/language/training/analyze_ewt_punctuation_v3.py --directory <candidate-directory>",
+  "native_evaluation": "Explicit two-track fresh-revision descriptor/test prepared, not built or run; no actual beam claim.",
+  "prepared_evaluation_files_sha256": {
+    "src/parser_punctuation_model.rs": "00110475dbc61496f1dd98eefa41d648570afb4e39750d3afd5909056eef5bb0",
+    "tests/parser_punctuation_selection.rs": "1badb1fb4aa5edaa10f64e91a41841517e2fb66e1756f316ddcf56bd6d43fe33",
+    "tests/common/parser_model_kernel.rs": "a55aaf96ae66833d7c2043c89756ac3333cfc28264622e153a0d208f6e25d72d",
+    "tests/common/parser_selection_driver.rs": "a2f828ae40dc64b954910e0ad351a1149a57af402dcef6f9f4a1d6669729b98e"
+  }
+}

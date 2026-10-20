@@ -1,0 +1,244 @@
+[
+  {
+    "id": "punctuation-teaching/final-morgan",
+    "forms": [
+      "Hi",
+      ",",
+      "Morgan"
+    ],
+    "pos": [
+      6,
+      12,
+      11
+    ],
+    "heads": [
+      4,
+      2,
+      0
+    ],
+    "relations": [
+      "root",
+      "punct",
+      "vocative"
+    ]
+  },
+  {
+    "id": "punctuation-teaching/initial-alex",
+    "forms": [
+      "Alex",
+      ",",
+      "Hi"
+    ],
+    "pos": [
+      11,
+      12,
+      6
+    ],
+    "heads": [
+      2,
+      0,
+      4
+    ],
+    "relations": [
+      "vocative",
+      "punct",
+      "root"
+    ]
+  },
+  {
+    "id": "punctuation-teaching/final-alex",
+    "forms": [
+      "Hi",
+      "Alex",
+      ","
+    ],
+    "pos": [
+      6,
+      11,
+      12
+    ],
+    "heads": [
+      4,
+      0,
+      1
+    ],
+    "relations": [
+      "root",
+      "vocative",
+      "punct"
+    ]
+  },
+  {
+    "id": "punctuation-teaching/final-period",
+    "forms": [
+      "Hi",
+      ",",
+      "Alex",
+      "."
+    ],
+    "pos": [
+      6,
+      12,
+      11,
+      12
+    ],
+    "heads": [
+      4,
+      2,
+      0,
+      0
+    ],
+    "relations": [
+      "root",
+      "punct",
+      "vocative",
+      "punct"
+    ]
+  },
+  {
+    "id": "punctuation-teaching/initial-period",
+    "forms": [
+      "Morgan",
+      ",",
+      "Hi",
+      "."
+    ],
+    "pos": [
+      11,
+      12,
+      6,
+      12
+    ],
+    "heads": [
+      2,
+      0,
+      4,
+      2
+    ],
+    "relations": [
+      "vocative",
+      "punct",
+      "root",
+      "punct"
+    ]
+  },
+  {
+    "id": "punctuation-teaching/medial-following-comma",
+    "forms": [
+      "Hi",
+      "Morgan",
+      ",",
+      "pal"
+    ],
+    "pos": [
+      6,
+      11,
+      12,
+      7
+    ],
+    "heads": [
+      4,
+      0,
+      1,
+      0
+    ],
+    "relations": [
+      "root",
+      "vocative",
+      "punct",
+      "obj"
+    ]
+  },
+  {
+    "id": "punctuation-teaching/medial-preceding-comma",
+    "forms": [
+      "Hi",
+      ",",
+      "Alex",
+      "friend"
+    ],
+    "pos": [
+      6,
+      12,
+      11,
+      7
+    ],
+    "heads": [
+      4,
+      2,
+      0,
+      0
+    ],
+    "relations": [
+      "root",
+      "punct",
+      "vocative",
+      "obj"
+    ]
+  },
+  {
+    "id": "punctuation-teaching/initial-no-punctuation",
+    "forms": [
+      "Alex",
+      "Hi"
+    ],
+    "pos": [
+      11,
+      6
+    ],
+    "heads": [
+      1,
+      4
+    ],
+    "relations": [
+      "vocative",
+      "root"
+    ]
+  },
+  {
+    "id": "punctuation-teaching/medial-no-punctuation",
+    "forms": [
+      "Hi",
+      "Morgan",
+      "friend"
+    ],
+    "pos": [
+      6,
+      11,
+      7
+    ],
+    "heads": [
+      4,
+      0,
+      0
+    ],
+    "relations": [
+      "root",
+      "vocative",
+      "obj"
+    ]
+  },
+  {
+    "id": "punctuation-teaching/final-no-punctuation",
+    "forms": [
+      "Hi",
+      "pal",
+      "Alex"
+    ],
+    "pos": [
+      6,
+      7,
+      11
+    ],
+    "heads": [
+      4,
+      0,
+      0
+    ],
+    "relations": [
+      "root",
+      "obj",
+      "vocative"
+    ]
+  }
+]

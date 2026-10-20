@@ -1,0 +1,92 @@
+{
+  "status": "prepared unaccepted model; no actual Source beam/greeting proof",
+  "artifact_sha256": "fcd5baafa388f47410a37ed44b51c2228bdf3c84d9c034c80045f34d90be025c",
+  "model_identity": "20296199940f9c812871507e688601813ad0cced00f7564680121d88b4d078ef",
+  "old_artifact_preserved": true,
+  "old_new_dev_test_annotations_identical": true,
+  "same_feature_contract_identity": "4ef50a4b93019af66f02c59328e816dc118d1a64f3c15ab0c9e2eaed9ae083a3",
+  "same_lexical_profile_identity": "37e56df9605021d58cdd29dd542996f1c6944644391ed159fa108561f713aef3",
+  "maximum_arbitrary_indices_bound": 165675,
+  "maximum_checked_feature_group_bound": 25827,
+  "existing_source_score_bound": 128525,
+  "training_one_cpu": {
+    "elapsed_seconds": 7.93,
+    "maximum_rss_kib": 99432,
+    "exit": 0
+  },
+  "negative_regression": {
+    "test_conditioned_joint_v2": [
+      25,
+      26
+    ],
+    "test_conditioned_joint_candidate": [
+      23,
+      26
+    ],
+    "test_incremental_gold_state_v2": [
+      14,
+      16
+    ],
+    "test_incremental_gold_state_candidate": [
+      13,
+      16
+    ]
+  },
+  "conditional_analysis": {
+    "new_authored_teaching": {
+      "annotation_sha256": "62b24370eee752586973f73da1b23b7bf2033d22a8b1338d0e4f1e762c86c569",
+      "conditional_gold_state": {
+        "tokens": 33,
+        "pos_correct": 33,
+        "ambiguous_tokens": 20,
+        "ambiguous_pos_correct": 20,
+        "oracle_steps": 66,
+        "joint_context_action_correct": 66,
+        "joint_context_action_accuracy": 1.0
+      },
+      "conditional_incremental_gold_state": {
+        "correct": 41,
+        "total": 47,
+        "accuracy": 0.8723404255319149,
+        "condition": "gold parser state/POS; available prefix ends at next; future candidate membership withheld; not blind attachment accuracy"
+      }
+    },
+    "previously_observed_v2_teaching": {
+      "annotation_sha256": "013039c84503263c61348b001826ca3d0fcd7055b7b184bf729f481791a46f74",
+      "conditional_gold_state": {
+        "tokens": 8,
+        "pos_correct": 8,
+        "ambiguous_tokens": 6,
+        "ambiguous_pos_correct": 6,
+        "oracle_steps": 16,
+        "joint_context_action_correct": 16,
+        "joint_context_action_accuracy": 1.0
+      },
+      "conditional_incremental_gold_state": {
+        "correct": 10,
+        "total": 11,
+        "accuracy": 0.9090909090909091,
+        "condition": "gold parser state/POS; available prefix ends at next; future candidate membership withheld; not blind attachment accuracy"
+      }
+    },
+    "reserved_not_used_for_training": {
+      "annotation_sha256": "74e35548215f2f92a1e8f5ff2341dab9fbccfb5cbfa441a4c998738b0b8effe9",
+      "conditional_gold_state": {
+        "tokens": 23,
+        "pos_correct": 23,
+        "ambiguous_tokens": 14,
+        "ambiguous_pos_correct": 14,
+        "oracle_steps": 46,
+        "joint_context_action_correct": 45,
+        "joint_context_action_accuracy": 0.9782608695652174
+      },
+      "conditional_incremental_gold_state": {
+        "correct": 27,
+        "total": 33,
+        "accuracy": 0.8181818181818182,
+        "condition": "gold parser state/POS; available prefix ends at next; future candidate membership withheld; not blind attachment accuracy"
+      }
+    }
+  },
+  "reproducibility": "Seeded exact scripts/corpus identities retained; fresh byte-identical rerun command provided, not yet performed for candidate."
+}

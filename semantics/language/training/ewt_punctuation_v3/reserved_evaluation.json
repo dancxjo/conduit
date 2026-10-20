@@ -1,0 +1,171 @@
+[
+  {
+    "id": "reserved-punctuation-evaluation/motivator-partial",
+    "forms": [
+      "Hello",
+      ",",
+      "Travis"
+    ],
+    "pos": [
+      6,
+      12,
+      11
+    ],
+    "heads": [
+      4,
+      2,
+      0
+    ],
+    "relations": [
+      "root",
+      "punct",
+      "vocative"
+    ]
+  },
+  {
+    "id": "reserved-punctuation-evaluation/motivator-period",
+    "forms": [
+      "Hello",
+      ",",
+      "Travis",
+      "."
+    ],
+    "pos": [
+      6,
+      12,
+      11,
+      12
+    ],
+    "heads": [
+      4,
+      2,
+      0,
+      0
+    ],
+    "relations": [
+      "root",
+      "punct",
+      "vocative",
+      "punct"
+    ]
+  },
+  {
+    "id": "reserved-punctuation-evaluation/reserved-name",
+    "forms": [
+      "Hi",
+      ",",
+      "Travis"
+    ],
+    "pos": [
+      6,
+      12,
+      11
+    ],
+    "heads": [
+      4,
+      2,
+      0
+    ],
+    "relations": [
+      "root",
+      "punct",
+      "vocative"
+    ]
+  },
+  {
+    "id": "reserved-punctuation-evaluation/reserved-greeting",
+    "forms": [
+      "Hello",
+      ",",
+      "Morgan"
+    ],
+    "pos": [
+      6,
+      12,
+      11
+    ],
+    "heads": [
+      4,
+      2,
+      0
+    ],
+    "relations": [
+      "root",
+      "punct",
+      "vocative"
+    ]
+  },
+  {
+    "id": "reserved-punctuation-evaluation/reserved-initial",
+    "forms": [
+      "Travis",
+      ",",
+      "Hello"
+    ],
+    "pos": [
+      11,
+      12,
+      6
+    ],
+    "heads": [
+      2,
+      0,
+      4
+    ],
+    "relations": [
+      "vocative",
+      "punct",
+      "root"
+    ]
+  },
+  {
+    "id": "reserved-punctuation-evaluation/reserved-terminal",
+    "forms": [
+      "Hello",
+      "Travis",
+      "!"
+    ],
+    "pos": [
+      6,
+      11,
+      12
+    ],
+    "heads": [
+      4,
+      0,
+      0
+    ],
+    "relations": [
+      "root",
+      "vocative",
+      "punct"
+    ]
+  },
+  {
+    "id": "reserved-punctuation-evaluation/reserved-medial",
+    "forms": [
+      "Hello",
+      "Travis",
+      ",",
+      "friend"
+    ],
+    "pos": [
+      6,
+      11,
+      12,
+      7
+    ],
+    "heads": [
+      4,
+      0,
+      1,
+      0
+    ],
+    "relations": [
+      "root",
+      "vocative",
+      "punct",
+      "obj"
+    ]
+  }
+]
