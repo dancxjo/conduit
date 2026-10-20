@@ -62,9 +62,14 @@ impl ProductJourney {
         } else {
             Vec::new()
         };
-        session
-            .propose_with_masks(partitions, masks, &self.host_id, &self.boot_id)
-            .map_err(JourneyError::Lifecycle)?;
+        {
+            let _native_timing = crate::native_observation::Interval::begin(
+                crate::native_observation::Stage::PlanSeal,
+            );
+            session
+                .propose_with_masks(partitions, masks, &self.host_id, &self.boot_id)
+                .map_err(JourneyError::Lifecycle)?;
+        }
         Self::require_archive_storage(&session)?;
         self.session = Some(session);
         self.mask_control = control;

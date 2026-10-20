@@ -1,5 +1,7 @@
 //! Ordinary graphical input, exact Body identity, and retained domain cost.
-use super::super::{journey_input, journey_records, qmp, ConduitosError};
+use super::super::{
+    journey_input, journey_records, qemu_artifacts::Artifacts, qmp, ConduitosError,
+};
 use serde_json::Value;
 use std::{fs, os::unix::net::UnixStream, path::Path, process::Child};
 
@@ -26,6 +28,7 @@ pub(super) fn exercise(
         reader,
         conduitos::native_workset::NativePlot::KeyboardCanvas,
         &[("a", "A")],
+        None,
     )
 }
 
@@ -34,6 +37,7 @@ pub(super) fn exercise_editor(
     child: &mut Child,
     stream: &mut UnixStream,
     reader: &mut qmp::Reader,
+    observations: Option<&mut Artifacts>,
 ) -> Result<Value, ConduitosError> {
     exercise_plot(
         serial,
@@ -51,6 +55,7 @@ pub(super) fn exercise_editor(
             ("f", "caf"),
             ("altgr-e", "café"),
         ],
+        observations,
     )
 }
 
@@ -67,6 +72,7 @@ pub(super) fn verify_sibling(
         reader,
         conduitos::native_workset::NativePlot::KeyboardCanvas,
         &[],
+        None,
     )?;
     if latest(serial)?["result"] != "A" {
         return Err(refusal("retained editor changed its sibling's face"));
@@ -81,6 +87,7 @@ fn exercise_plot(
     reader: &mut qmp::Reader,
     plot: conduitos::native_workset::NativePlot,
     inputs: &[(&str, &str)],
+    mut observations: Option<&mut Artifacts>,
 ) -> Result<Value, ConduitosError> {
     let expected =
         conduitos::native_workset::resident(plot).map_err(|error| refusal(format!("{error:?}")))?;
@@ -118,7 +125,9 @@ fn exercise_plot(
             "selection replaced the admitted Body Play or did not select the checked keyboard Source",
         ));
     }
-    for (key, expected_result) in inputs {
+    let mut timing_rows = Vec::with_capacity(inputs.len());
+    for (input_index, (key, expected_result)) in inputs.iter().enumerate() {
+        let command_start_ns = reader.observer_elapsed_ns();
         let revision = latest(serial)?["revision"]
             .as_u64()
             .ok_or_else(|| refusal("missing revision"))?;
@@ -158,6 +167,23 @@ fn exercise_plot(
                 }))
             },
         )?;
+        let accepted_ns = reader.observer_elapsed_ns();
+        if let Some(artifacts) = observations.as_deref_mut() {
+            let accepted = latest(serial)?;
+            artifacts.capture(stream, reader, &format!("typing-{input_index}"), true)?;
+            timing_rows.push(serde_json::json!({"index":input_index,"key":key,
+                "command_start_ns":command_start_ns,"accepted_record_observed_ns":accepted_ns,
+                "frame_observed_ns":reader.observer_elapsed_ns(),"guest_record":accepted,
+                "frame_checkpoint":format!("typing-{input_index}")}));
+            fs::write(serial.with_file_name("journey-typing-timing.json"),
+                serde_json::to_vec_pretty(&serde_json::json!({
+                    "schema":"conduit.conduitos/native-typing-observation@1", "clock":"std::time::Instant",
+                    "units":"nanoseconds", "origin":"shared QMP/frame observation origin",
+                    "interpretation":"Command-to-observed accepted guest record and captured frame; includes driver, polling and screenshot overhead. Six ordinary edits stay inside the admitted eight-value Face bound.",
+                    "rows":timing_rows
+                })).map_err(|error| refusal(error.to_string()))?
+            ).map_err(|error| refusal(error.to_string()))?;
+        }
     }
     let committed = latest(serial)?;
     if plot == conduitos::native_workset::NativePlot::MemoryLantern {

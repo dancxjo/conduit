@@ -45,6 +45,7 @@ mod scripted_startup;
 #[cfg(target_os = "none")]
 #[unsafe(no_mangle)]
 extern "C" fn conduitos_start() -> ! {
+    conduitos::native_observation::point(conduitos::native_observation::Stage::BootEntry);
     match boot::normalize_boot_with_arena_bytes(
         conduitos::make::EMBEDDED_MAKE.runtime_arena_ceiling,
     ) {

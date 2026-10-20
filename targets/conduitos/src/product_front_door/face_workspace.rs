@@ -218,13 +218,17 @@ impl FaceWorkspace {
         self.next_interaction = sequence
             .checked_add(1)
             .ok_or("workspace-face-input-bound")?;
+        let previous_page = self.mask.scene().map_or(0, |scene| scene.page());
         match self
             .mask
             .key(event, sequence, display)
             .map_err(|error| error.as_str())?
         {
             NativeFaceMaskInput::Unchanged => Ok(None),
-            NativeFaceMaskInput::Redrawn(receipt) => Ok(Some(receipt)),
+            NativeFaceMaskInput::Redrawn(receipt) => {
+                super::native_action_evidence::reading(&self.mask, event.usage(), previous_page)?;
+                Ok(Some(receipt))
+            }
             NativeFaceMaskInput::Submitted { correlation, .. } => self
                 .apply_interaction(
                     door,

@@ -84,6 +84,8 @@ pub const fn inventory() -> [NativePlot; NATIVE_PLOT_CAPACITY] {
 }
 
 pub fn checked(plot: NativePlot) -> Result<ExpandedCanonicalPlot, WorksetRefusal> {
+    let _native_timing =
+        crate::native_observation::Interval::begin(crate::native_observation::Stage::PlotBuild);
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     conduit_semantic_catalog::install_keyboard_catalogs(&mut startup, &mut profile)

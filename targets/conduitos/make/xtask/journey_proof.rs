@@ -8,6 +8,7 @@ mod face_correspondence;
 mod face_input;
 mod failure_stack;
 mod keyboard_domain;
+mod timing_interactions;
 
 use std::{
     fs,
@@ -47,14 +48,26 @@ pub(super) fn execute_supplied(
     image_path: &Path,
     image_sha256: String,
 ) -> Result<JourneyIdentity, ConduitosError> {
+    execute_supplied_observed(opts, image_path, image_sha256, false, None)
+}
+
+pub(super) fn execute_supplied_observed(
+    opts: &GlobalOpts,
+    image_path: &Path,
+    image_sha256: String,
+    observe: bool,
+    output: Option<&Path>,
+) -> Result<JourneyIdentity, ConduitosError> {
     if opts.dry_run {
         return Err(refusal("a live product journey needs a real guest"));
     }
-    let paths = Paths::new(ConduitosArch::X86_64)?;
+    let mut paths = Paths::new(ConduitosArch::X86_64)?;
+    if let Some(output) = output {
+        paths.target = output.to_owned();
+    }
     fs::create_dir_all(&paths.target).map_err(io_error)?;
     // Unix sockets have a small pathname limit, independent of filesystem limits.
-    let monitor_socket =
-        std::env::temp_dir().join(format!("conduit-journey-{}.sock", std::process::id()));
+    let monitor_socket = std::env::temp_dir().join(format!("cj-{}.sock", std::process::id()));
     let serial_path = paths.target.join("journey-serial.log");
     let _ = fs::remove_file(&monitor_socket);
     let _ = fs::remove_file(&serial_path);
@@ -116,15 +129,16 @@ pub(super) fn execute_supplied(
         json!({"source_commit":source,"image_sha256":image_sha256,
             "qemu_argv":command.get_args().map(|arg|arg.to_string_lossy().into_owned()).collect::<Vec<_>>()}),
     )?
-    .with_capture_limit(23)?;
+    .with_capture_limit(if observe { 32 } else { 23 })?;
     let mut child = command
         .spawn()
         .map_err(|error| ConduitosError::refusal("missing-qemu", error.to_string()))?;
     let result = (|| {
-        let (mut qmp, mut reader) = super::qmp::connect_traced(
+        let (mut qmp, mut reader) = super::qmp::connect_traced_at(
             &monitor_socket,
             &mut child,
             Some(&paths.target.join("journey-qmp.log")),
+            artifacts.observation_origin(),
         )?;
         hid_qmp::wait_for_product_arrival(
             &serial_path,
@@ -177,9 +191,15 @@ pub(super) fn execute_supplied(
             keyboard_domain::exercise(&serial_path, &mut child, &mut qmp, &mut reader)?;
         artifacts.capture(&mut qmp, &mut reader, "protected-keyboard-canvas", true)?;
 
-        let editor_identity =
-            keyboard_domain::exercise_editor(&serial_path, &mut child, &mut qmp, &mut reader)?;
-        artifacts.capture(&mut qmp, &mut reader, "protected-memory-lantern", true)?;
+        let editor_identity = keyboard_domain::exercise_editor(
+            &serial_path,
+            &mut child,
+            &mut qmp,
+            &mut reader,
+            observe.then_some(&mut artifacts),
+        )?;
+        // In observation mode the last typed value already has its own frame.
+        artifacts.capture(&mut qmp, &mut reader, "protected-memory-lantern", !observe)?;
 
         keyboard_domain::verify_sibling(&serial_path, &mut child, &mut qmp, &mut reader)?;
 
@@ -215,6 +235,15 @@ pub(super) fn execute_supplied(
             "journey-face-timeout",
         )?;
         artifacts.capture(&mut qmp, &mut reader, "patchbay-face", true)?;
+        if observe {
+            timing_interactions::reading_pages(
+                &serial_path,
+                &mut child,
+                &mut qmp,
+                &mut reader,
+                &mut artifacts,
+            )?;
+        }
         let before = stage_count(&serial_path, "CONDUIT_WORKSPACE_VIEW ")?;
         journey_input::key_pair(&mut qmp, &mut reader, "f3", "journey-open-diagram")?;
         hid_qmp::wait_for_stage_count(
