@@ -16,6 +16,7 @@ pub(super) struct Item {
     pub indent: u8,
     pub subject_index: Option<usize>,
     pub region: Option<u8>,
+    pub region_order: Option<usize>,
     pub checkbox: Option<bool>,
 }
 
@@ -28,6 +29,7 @@ fn item(text: String, role: GraphicsTextRole) -> Item {
         indent: 0,
         subject_index: None,
         region: None,
+        region_order: None,
         checkbox: None,
     }
 }
@@ -268,6 +270,7 @@ pub(super) fn prepare(
                 indent: 0,
                 subject_index: None,
                 region: None,
+                region_order: None,
                 checkbox,
             });
             if !available && super::text_field::current(face, index).is_none() {
@@ -310,6 +313,7 @@ pub(super) fn prepare(
                     indent: 0,
                     subject_index: None,
                     region: None,
+                    region_order: None,
                     checkbox: None,
                 });
             }
