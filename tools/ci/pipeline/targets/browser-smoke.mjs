@@ -22,7 +22,8 @@ try {
     return { url: request.url(), errorText: request.failure()?.errorText,
       method: request.method(), resourceType: request.resourceType(),
       ...request.timing(), status: response?.status(),
-      contentLength: Number(response?.headers()['content-length']) };
+      contentLength: Number(response?.headers()['content-length']),
+      transferIdentity: response?.headers()['x-conduit-proof-transfer'] };
   })());
   page.on('requestfailed', recordRequestFailure);
   await page.goto(entrance.url);

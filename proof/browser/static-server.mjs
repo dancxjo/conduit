@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { createReadStream } from "node:fs";
 import { stat } from "node:fs/promises";
 import { createServer } from "node:http";
@@ -25,6 +26,10 @@ const mediaTypes = new Map([
 if (!Number.isSafeInteger(port) || port < 0 || port > 65_535) {
   throw new Error("invalid browser-host test port");
 }
+
+// Correlate proof observations by response, independently of browser clocks.
+const transferSession = randomUUID();
+let transferSequence = 0;
 
 const server = createServer(async (request, response) => {
   try {
@@ -60,7 +65,14 @@ const server = createServer(async (request, response) => {
       response.writeHead(404).end();
       return;
     }
+    if (transferSequence === Number.MAX_SAFE_INTEGER) {
+      response.writeHead(503).end();
+      return;
+    }
+    const transferIdentity = `${transferSession}:${++transferSequence}`;
     response.writeHead(200, {
+      "X-Conduit-Proof-Transfer": transferIdentity,
+      "Server-Timing": `conduit-transfer;desc="${transferIdentity}"`,
       "Cache-Control": "no-store",
       "Content-Length": metadata.size,
       "Content-Type": mediaTypes.get(extname(file)) ?? "application/octet-stream",
