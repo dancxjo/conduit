@@ -1,0 +1,56 @@
+{
+  "candidate": {
+    "STD_CATALOG_PREPARATION": {
+      "scope": "default Std dependency graph numeric catalogue preparation; excludes Play and Host construction",
+      "cold_allocations": 916636,
+      "warm_allocations": 5121,
+      "cold_reallocations": 25154,
+      "warm_reallocations": 0,
+      "cold_peak_new_bytes": 3686457,
+      "warm_peak_new_bytes": 455216,
+      "cold_ns": 62678492,
+      "warm_ns": 131361,
+      "types": 87,
+      "contracts": 93
+    },
+    "STD_CATALOG_COMPATIBILITY": {
+      "observations": 1,
+      "output": "host catalogue-measurement-host boot catalogue-measurement-boot profile rust-std protocol 1\nplan 106038087ca9a81c6f7657296fa4423f68607cc4c3488b9e063fb9a3c77d7765 source_document=05d52026d318ff4c03600908c3661a26697da7edd7d902bacdba06eb8e7553c7 checked_plot=962bc59548c70eee5d3e8cfee564737e0f67fbed68e9cc8af9fd813095b87398 expanded_plot=8b86d613e746e1722dfc58cbb966b1663e8522bcd3e7be482f6468edcc45bb9f\nplace welcome/hello/join kind=text/join host=catalogue-measurement-host boot=catalogue-measurement-boot capability=text-join-v1 implementation=std/kernel-text-join@1 artifact=conduit-std-host/text-join@1\nplace welcome/inline-6a5fef611c88-0 kind=face/text host=catalogue-measurement-host boot=catalogue-measurement-boot capability=face-text-v1 implementation=std/kernel-face-text@1 artifact=conduit-std-host/face-text@1\nplace welcome/literal-64a086b4d791-0 kind=text/literal host=catalogue-measurement-host boot=catalogue-measurement-boot capability=text-literal-v1 implementation=std/kernel-text-literal@1 artifact=conduit-std-host/text-literal@1\nconnection ff5d211cc5862359d223f5139921aacd7330c8f93f81d410c0c0801dd79c239b 546f63644e3b50c21da0eb6ee997f8e22a54fe3d70724b4b3c58fd22a157d5bd:text > 9241a347522da5998cc442ee8f1a3d73430e200b419dc8dbf59c6c2137e48ea2:text line=local base=BaseImplementationId(\"conduit.base/local@1\") queue=4\nconnection d2f7300f8e8c78ecc7cf558625648a9a9e1a363b6876587a1d3b934674d86291 74b33e6741617d6eab558be409a3e4f6b494117814a22f25fc2e0806a078cfef:text > 546f63644e3b50c21da0eb6ee997f8e22a54fe3d70724b4b3c58fd22a157d5bd:source line=local base=BaseImplementationId(\"conduit.base/local@1\") queue=4\nFACE-TEXT bytes=13 hex=57656c636f6d65547261766973\nGreeting: WelcomeTravis\nplan 106038087ca9a81c6f7657296fa4423f68607cc4c3488b9e063fb9a3c77d7765 complete\nreceipts 0\n",
+      "plan_id": "106038087ca9a81c6f7657296fa4423f68607cc4c3488b9e063fb9a3c77d7765",
+      "workload": "ordinary Std Greet welcome; no numerical Play claim"
+    },
+    "source": "35e3374e6ed740162bd261de69aa273cb09e1b1a"
+  },
+  "reference": {
+    "STD_CATALOG_PREPARATION": {
+      "scope": "default Std dependency graph numeric catalogue preparation; excludes Play and Host construction",
+      "cold_allocations": 1809066,
+      "warm_allocations": 1809066,
+      "cold_reallocations": 49758,
+      "warm_reallocations": 49758,
+      "cold_peak_new_bytes": 3946114,
+      "warm_peak_new_bytes": 3946114,
+      "cold_ns": 110158552,
+      "warm_ns": 97810432,
+      "types": 87,
+      "contracts": 93
+    },
+    "STD_CATALOG_COMPATIBILITY": {
+      "observations": 1,
+      "output": "host catalogue-measurement-host boot catalogue-measurement-boot profile rust-std protocol 1\nplan 106038087ca9a81c6f7657296fa4423f68607cc4c3488b9e063fb9a3c77d7765 source_document=05d52026d318ff4c03600908c3661a26697da7edd7d902bacdba06eb8e7553c7 checked_plot=962bc59548c70eee5d3e8cfee564737e0f67fbed68e9cc8af9fd813095b87398 expanded_plot=8b86d613e746e1722dfc58cbb966b1663e8522bcd3e7be482f6468edcc45bb9f\nplace welcome/hello/join kind=text/join host=catalogue-measurement-host boot=catalogue-measurement-boot capability=text-join-v1 implementation=std/kernel-text-join@1 artifact=conduit-std-host/text-join@1\nplace welcome/inline-6a5fef611c88-0 kind=face/text host=catalogue-measurement-host boot=catalogue-measurement-boot capability=face-text-v1 implementation=std/kernel-face-text@1 artifact=conduit-std-host/face-text@1\nplace welcome/literal-64a086b4d791-0 kind=text/literal host=catalogue-measurement-host boot=catalogue-measurement-boot capability=text-literal-v1 implementation=std/kernel-text-literal@1 artifact=conduit-std-host/text-literal@1\nconnection ff5d211cc5862359d223f5139921aacd7330c8f93f81d410c0c0801dd79c239b 546f63644e3b50c21da0eb6ee997f8e22a54fe3d70724b4b3c58fd22a157d5bd:text > 9241a347522da5998cc442ee8f1a3d73430e200b419dc8dbf59c6c2137e48ea2:text line=local base=BaseImplementationId(\"conduit.base/local@1\") queue=4\nconnection d2f7300f8e8c78ecc7cf558625648a9a9e1a363b6876587a1d3b934674d86291 74b33e6741617d6eab558be409a3e4f6b494117814a22f25fc2e0806a078cfef:text > 546f63644e3b50c21da0eb6ee997f8e22a54fe3d70724b4b3c58fd22a157d5bd:source line=local base=BaseImplementationId(\"conduit.base/local@1\") queue=4\nFACE-TEXT bytes=13 hex=57656c636f6d65547261766973\nGreeting: WelcomeTravis\nplan 106038087ca9a81c6f7657296fa4423f68607cc4c3488b9e063fb9a3c77d7765 complete\nreceipts 0\n",
+      "plan_id": "106038087ca9a81c6f7657296fa4423f68607cc4c3488b9e063fb9a3c77d7765",
+      "workload": "ordinary Std Greet welcome; no numerical Play claim"
+    },
+    "source": "2ab6dd40ac29afab374ee4b3d521f09628724153"
+  },
+  "compatibility_equal": true,
+  "difference": "Only default Std conduit-ai/hosted-catalog-cache feature activation differs. Same test/source tree otherwise.",
+  "scope": "Numeric catalogue preparation only. Ordinary Greet Plan/output and terminal/capacity compatibility checked separately. No numerical Play timing or whole-process claim.",
+  "limitations": "Single local cold/repeated observation per source with other machine work present; latency is not a quiet statistical benchmark.",
+  "schema": "conduit.performance/default-std-catalogue-pair@1",
+  "candidate_features": "conduit-ai v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/please-finish-and-close-https-github/work/catalog-preparation/semantics/ai)\n\u251c\u2500\u2500 conduit-chat v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/please-finish-and-close-https-github/work/catalog-preparation/semantics/chat)\n\u2502   \u251c\u2500\u2500 conduit-chat feature \"conduit-ai\"\n\u2502   \u251c\u2500\u2500 conduit-chat feature \"conversation-flow\"\n\u2502   \u251c\u2500\u2500 conduit-chat feature \"default\"\n\u2502   \u2514\u2500\u2500 conduit-chat feature \"plot-catalog\"\n\u2514\u2500\u2500 conduit-tutorial-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/please-finish-and-close-https-github/work/catalog-preparation/semantics/tutorial)\n    \u2514\u2500\u2500 conduit-tutorial-plot feature \"default\"\n\u251c\u2500\u2500 conduit-ai feature \"default\"\n\u2502   \u251c\u2500\u2500 conduit-browser-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/please-finish-and-close-https-github/work/catalog-preparation/targets/browser/runtime)\n\u2502   \u251c\u2500\u2500 conduit-std-host v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/please-finish-and-close-https-github/work/catalog-preparation/targets/std)\n\u2502   \u251c\u2500\u2500 conduit-std-offers v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/please-finish-and-close-https-github/work/catalog-preparation/targets/std/offers)\n\u2502   \u2514\u2500\u2500 conduit-tongues v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/please-finish-and-close-https-github/work/catalog-preparation/semantics/tongues)\n\u251c\u2500\u2500 conduit-ai feature \"hosted-catalog-cache\"\n\u2502   \u2514\u2500\u2500 conduit-std-host v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/please-finish-and-close-https-github/work/catalog-preparation/targets/std) (*)\n\u2514\u2500\u2500 conduit-ai feature \"plot-catalog\"\n    \u251c\u2500\u2500 conduit-browser-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/please-finish-and-close-https-github/work/catalog-preparation/targets/browser/runtime) (*)\n    \u251c\u2500\u2500 conduit-std-host v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/please-finish-and-close-https-github/work/catalog-preparation/targets/std) (*)\n    \u2514\u2500\u2500 conduit-tongues v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/please-finish-and-close-https-github/work/catalog-preparation/semantics/tongues) (*)\n    \u2514\u2500\u2500 conduit-chat feature \"plot-catalog\" (*)\n",
+  "reference_features": "conduit-ai v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/please-finish-and-close-https-github/work/matrix/semantics/ai)\n\u251c\u2500\u2500 conduit-chat v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/please-finish-and-close-https-github/work/matrix/semantics/chat)\n\u2502   \u251c\u2500\u2500 conduit-chat feature \"conduit-ai\"\n\u2502   \u251c\u2500\u2500 conduit-chat feature \"conversation-flow\"\n\u2502   \u251c\u2500\u2500 conduit-chat feature \"default\"\n\u2502   \u2514\u2500\u2500 conduit-chat feature \"plot-catalog\"\n\u2514\u2500\u2500 conduit-tutorial-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/please-finish-and-close-https-github/work/matrix/semantics/tutorial)\n    \u2514\u2500\u2500 conduit-tutorial-plot feature \"default\"\n\u251c\u2500\u2500 conduit-ai feature \"default\"\n\u2502   \u251c\u2500\u2500 conduit-browser-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/please-finish-and-close-https-github/work/matrix/targets/browser/runtime)\n\u2502   \u251c\u2500\u2500 conduit-std-host v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/please-finish-and-close-https-github/work/matrix/targets/std)\n\u2502   \u251c\u2500\u2500 conduit-std-offers v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/please-finish-and-close-https-github/work/matrix/targets/std/offers)\n\u2502   \u2514\u2500\u2500 conduit-tongues v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/please-finish-and-close-https-github/work/matrix/semantics/tongues)\n\u2514\u2500\u2500 conduit-ai feature \"plot-catalog\"\n    \u251c\u2500\u2500 conduit-browser-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/please-finish-and-close-https-github/work/matrix/targets/browser/runtime) (*)\n    \u251c\u2500\u2500 conduit-std-host v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/please-finish-and-close-https-github/work/matrix/targets/std) (*)\n    \u2514\u2500\u2500 conduit-tongues v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/please-finish-and-close-https-github/work/matrix/semantics/tongues) (*)\n    \u2514\u2500\u2500 conduit-chat feature \"plot-catalog\" (*)\n",
+  "profile": "CARGO_BUILD_JOBS=2 CARGO_INCREMENTAL=0 CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 CARGO_PROFILE_TEST_OPT_LEVEL=1",
+  "command": "cargo test --locked -p conduit-std-host --test catalog_preparation -- --ignored --nocapture --test-threads=1",
+  "toolchain": "rustc 1.98.1 (48a229cea 2026-09-01)"
+}
