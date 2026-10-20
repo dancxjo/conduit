@@ -1,5 +1,7 @@
 //! Cache/cold equivalence for actual ordinary Plans and modeled cost-source identities.
 mod common;
+#[path = "incremental_real_plan/host_boot.rs"]
+mod host_boot;
 use conduit_core::*;
 use conduit_planner::{resource_cost::*, *};
 use sha2::{Digest, Sha256};
@@ -12,6 +14,9 @@ struct Facts {
     milliseconds: [i128; 2],
     capacity: [u32; 2],
     denied: [bool; 2],
+    host_revision: [u32; 2],
+    boot_revision: [u32; 2],
+    present: [bool; 2],
 }
 impl Default for Facts {
     fn default() -> Self {
@@ -19,6 +24,9 @@ impl Default for Facts {
             milliseconds: [10, 1],
             capacity: [4, 4],
             denied: [false; 2],
+            host_revision: [0; 2],
+            boot_revision: [0; 2],
+            present: [true; 2],
         }
     }
 }
@@ -35,6 +43,12 @@ fn key(domain: FactDomain, index: usize) -> PlanningFactKey {
 }
 fn host(f: &Facts, i: usize) -> HostAdvertisement {
     let mut host = common::competing_hosts()[i].clone();
+    if f.host_revision[i] != 0 {
+        host.host_id = format!("replacement/host/{i}/{}", f.host_revision[i]).into();
+    }
+    if f.boot_revision[i] != 0 {
+        host.boot_id = format!("replacement/boot/{i}/{}", f.boot_revision[i]).into();
+    }
     if f.denied[i] {
         let offer = &mut host.capabilities[0];
         offer.authority_requirements.push(AuthorityRequirement {
@@ -45,8 +59,10 @@ fn host(f: &Facts, i: usize) -> HostAdvertisement {
     }
     host
 }
-fn dependency_keys(i: usize) -> [PlanningFactKey; 4] {
+fn dependency_keys(i: usize) -> [PlanningFactKey; 6] {
     [
+        key(FactDomain::Host, i),
+        key(FactDomain::Boot, i),
         key(FactDomain::Offer, i),
         key(FactDomain::Resource, i),
         key(FactDomain::Authority, i),
@@ -57,7 +73,12 @@ fn snapshots(f: &Facts) -> Vec<PlanningFact> {
     let hosts = [host(f, 0), host(f, 1)];
     let mut facts = Vec::new();
     for (i, host) in hosts.iter().enumerate() {
+        if !f.present[i] {
+            continue;
+        }
         let contents = [
+            host.host_id.as_str().to_owned(),
+            host.boot_id.as_str().to_owned(),
             serde_json::to_string(host).unwrap(),
             f.capacity[i].to_string(),
             f.denied[i].to_string(),
@@ -73,8 +94,9 @@ fn snapshots(f: &Facts) -> Vec<PlanningFact> {
     }
     facts
 }
-fn candidates() -> Vec<CandidateStructure> {
+fn candidates(facts: &Facts) -> Vec<CandidateStructure> {
     (0..2)
+        .filter(|&i| facts.present[i])
         .map(|i| CandidateStructure {
             candidate_id: i.to_string(),
             semantic_contract_id: plot().checked_plot_id.as_str().to_owned(),
@@ -231,7 +253,7 @@ fn compare(
     facts: &Facts,
     retained: &mut BTreeMap<String, Plan>,
 ) -> Result<IncrementalPlan, PlannerError> {
-    let candidates = candidates();
+    let candidates = candidates(facts);
     let basis = snapshots(facts);
     let policy = StabilityPolicy::disabled();
     let incremental = planner.plan(&candidates, &basis, &policy, |c, b| {
@@ -244,6 +266,7 @@ fn compare(
         (Ok(a), Ok(b)) => {
             assert_eq!(a.selected_result_identity, b.selected_result_identity);
             assert_eq!(a.selected_cost, b.selected_cost);
+            assert_eq!(a.considered.len(), b.considered.len());
             for (x, y) in a.considered.iter().zip(&b.considered) {
                 assert_eq!(x.evaluation, y.evaluation);
             }
