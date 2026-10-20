@@ -1,0 +1,16 @@
+{
+  "pr": 6151,
+  "source": "e24fe3f402ab22a78df3bbfdb17e12b13331e7f4",
+  "candidate": 39439989259,
+  "candidate_status": "success",
+  "tested_preview": "ebebe0c675c99cb39fcff635d496f73fab4e6a23",
+  "merged_dev": "956e9e069366af9f3065e020e9067c653d3fb097",
+  "tested_and_merged_tree": "e3e379ad5e69233093ddc8f83cfe9812f9ff06f9",
+  "tree_equality_verified": true,
+  "integration": {
+    "id": 39445459109,
+    "last_observed": "pending at15:34UTC"
+  },
+  "source_recovery_ref": "origin/recovery/6151-accepted-candidate-e24fe3f40",
+  "claim": "Merged CI admission correction; Integration and stable acceptance remain separate"
+}

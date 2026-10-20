@@ -377,5 +377,24 @@
   "supported_normal_journey_checkpoints": 22,
   "visual_review": "Actual new wide/narrow arrival captures reviewed: distinct Body/Plot panels at1280; single column, explicit3-page continuation and unavailable fifth candidate at640.",
   "historical_failure": "Old ed262 first pointer collector failure retained separately; no new failure in five current-source emulator runs.",
-  "validation": "Current preflight295; original447 CPU tests and ed262 strict Clippy remain historical; exact-head Candidate pending."
+  "validation": {
+    "preflight": {
+      "passed": 295
+    },
+    "strict_native_clippy": {
+      "status": "passed",
+      "features": [
+        "hosted-tools",
+        "native-compositor"
+      ],
+      "targets": [
+        "lib",
+        "tests"
+      ],
+      "warnings": "deny",
+      "log_sha256": "9d2ff0a16cb4e798198259fdf1a1a77ac0a0291b1fe62cf06893cfee5fce3391"
+    },
+    "focused_current_head_tests": "Candidate ConduitOS library shard includes all native_face_scene laws with bothfeatures; result pending",
+    "historical_cpu_tests": "447 at3557606fc, not relabeled current"
+  }
 }
