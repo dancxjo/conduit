@@ -226,3 +226,84 @@ fn numerical_physical_refusal_keeps_failed_child_evidence_without_an_accepted_ou
     assert!(!receipts[0].events.is_empty());
     assert!(!receipts[0].remote_lifecycle.is_empty());
 }
+
+#[test]
+fn refused_external_fore_delivery_is_not_reported_as_accepted_or_replayed() {
+    use conduit_body::{Body, BodyPlan, BodyPlotPlan, ResidentPlot};
+    use conduit_std_host::{
+        body_execution::{BodyForeOutputAdapter, BodyRunRequest},
+        BodyLiveForeQueue, ExternalForeDelivery, RunControl, ThreadTimer,
+    };
+    struct Refuse;
+    impl BodyForeOutputAdapter for Refuse {
+        fn deliver(&mut self, _: &ExternalForeDelivery) -> Result<(), String> {
+            Err("consumer refused delivery".into())
+        }
+    }
+    let (mut host, plan) = prepared();
+    std::thread::Builder::new()
+        .stack_size(4 * 1024 * 1024)
+        .spawn(move || {
+            let body = Body::born(
+                plan.source_document_id.clone(),
+                plan.checked_plot_id.clone(),
+                1,
+                "numerical/refused-fore-born".into(),
+            )
+            .unwrap();
+            let wake = body
+                .wake(1, "numerical/refused-fore-wake".into())
+                .unwrap()
+                .1;
+            let body_plan = BodyPlan::seal(
+                &wake,
+                vec![BodyPlotPlan {
+                    plot: ResidentPlot::new(
+                        plan.source_document_id.clone(),
+                        plan.checked_plot_id.clone(),
+                    ),
+                    plan,
+                }],
+            )
+            .unwrap();
+            let control = RunControl::default();
+            let queue =
+                BodyLiveForeQueue::for_near_each_plan(&body_plan.plots[0].plan, control.clone(), 1)
+                    .unwrap();
+            queue
+                .submit(&Quantity::new(3, Unit::Meter).encode())
+                .unwrap();
+            queue.close().unwrap();
+            let report = host
+                .run_body_plan_with_live_fore_to(
+                    BodyRunRequest {
+                        wake: &wake,
+                        plan: &body_plan,
+                        control: &control,
+                        keyboard: None,
+                    },
+                    &queue,
+                    &mut Refuse,
+                    &mut Vec::new(),
+                    &mut ThreadTimer,
+                )
+                .unwrap();
+            assert!(matches!(
+                report.terminal,
+                TerminalDisposition::Failed { .. }
+            ));
+            assert!(report.fore_deliveries.is_empty());
+            assert!(report
+                .failure
+                .as_deref()
+                .unwrap()
+                .contains("consumer refused delivery"));
+            let children = report.each_child_signs.unwrap();
+            assert_eq!(children.len(), 1);
+            assert_eq!(children[0].invocation, 0);
+            assert!(!children[0].events.is_empty());
+        })
+        .unwrap()
+        .join()
+        .unwrap();
+}
