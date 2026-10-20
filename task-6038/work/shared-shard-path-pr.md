@@ -1,7 +1,7 @@
-The delegated native feature-coverage test added in #6148 compiles in the full xtask binary but fails in the dependency-light dispatcher, where its source module has a different parent. This breaks dev lint/products and the held #6055 Candidate before native product acceptance.
+The native feature-coverage test added in #6148 compiles in full xtask but fails in the dependency-light dispatcher, whose shared source module has a different parent. This breaks dev lint/products and the held #6055 Candidate.
 
-Use the existing `crate::suites` re-export shared by both binaries for the helper and package constant. The feature inventory and delegated native proof selection remain unchanged.
+Use the existing `crate::suites` re-export shared by both binaries for the helper and package constant. Also select the dispatcher as an explicit consumer of xtask source edits: it includes those files by source path, outside Cargo's dependency graph. Candidate previously selected only xtask and missed the dispatcher compile error that Integration later found. Both tooling packages now receive all-target Clippy and package tests, without broadening to unrelated workspace packages or compiling documentation-only changes. Native proof selection and feature contracts remain unchanged.
 
-Validation passed: strict Clippy across all targets of both tooling packages; both actual Cargo feature-inventory tests through each binary entrance (four passes); supported `cargo +stable xtask ci pipeline preflight` (288 tests plus formatting/standalone-lock checks).
+Validation passed: strict Clippy across all targets of both tooling packages and both actual Cargo feature-inventory tests through each binary (four passes), with those Rust files unchanged by the admission follow-up; 29 admission tests, including a new regression that fails before the consumer-selection fix; supported pipeline preflight (289 tests plus formatting/standalone-lock checks). Independent read-only reviews found no blockers in either the module-path correction or admission selection.
 
-This repairs shared CI admission for #5994 and #6038; neither parent is complete.
+This repairs shared CI admission for #5994 and #6038; neither parent is complete. The native panels PR remains draft until this repair merges and its refreshed exact-head Candidate passes.

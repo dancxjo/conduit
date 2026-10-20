@@ -1,0 +1,28 @@
+{
+  "source": "e24fe3f402ab22a78df3bbfdb17e12b13331e7f4",
+  "previous_module_path_witness": "66d34c83e3b21f6a2a3a39b0c3fe1c5b26b13884",
+  "pull_request": 6151,
+  "problem": "Candidate owner-only admission omitted dispatcher compilation for shared xtask modules reused by source path; Integration later caught a missing relative module reference.",
+  "fix": "Stable crate suite reexport paths plus explicit dispatcher consumer for xtask Source edits. Both packages get all-target Clippy and package tests; docs-only/narrow admission retained.",
+  "validation": {
+    "admission_tests": 29,
+    "supported_preflight": 289,
+    "red_regression": "Before fix selected only xtask; expected xtask plus conduit-xtask-dispatch.",
+    "strict_clippy_and_feature_inventory": "Prior66 witness; all Rust sources unchanged by exact two-file JS follow-up. Both packages/all targets Clippy and4 feature tests passed.",
+    "independent_reviews": "No blockers in both two-reference correction and explicit consumer selection"
+  },
+  "logs": {
+    "shared-tooling-admission-red.log": "51d8fa58e30f8ce8ce35f15a1cf150e37651a5b4d3fc1bd86013c450db30ab0f",
+    "shared-tooling-admission-green.log": "39ccafd589ac9c063e7ba109925acdc25e2af0c30f866b57ad93d080a984f5c6",
+    "shared-tooling-admission-preflight.log": "0ac917a398b00bde841d116c7483b29d7bcc3a657bd0de12955aae2b7a8116c6"
+  },
+  "changed_since_witness": [
+    "proof/ci/pipeline-admission.spec.mjs",
+    "tools/ci/pipeline/admission.mjs"
+  ],
+  "tested_files_match_commit": {
+    "proof/ci/pipeline-admission.spec.mjs": "ea68b0bfa78903140aaed26d962348a21c3c1287d560ac529fd8349716610b6f",
+    "tools/ci/pipeline/admission.mjs": "06434e1b03364b1cf2ee9b67f662da232e57141907482a4a7153d2a7fad9dcf2"
+  },
+  "acceptance": "Local proof only; new exact Candidate then merged Integration/stable still required. Parent issues remain open."
+}

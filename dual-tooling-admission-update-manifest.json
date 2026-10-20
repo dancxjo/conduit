@@ -1,0 +1,22 @@
+{
+  "parent": "2f72c35e9bfabfaa0b210066b8f50d639434b052",
+  "scope": "Shared tooling explicit-consumer admission repair description and local proof; raw logs excluded",
+  "files": [
+    {
+      "source": "work/shared-shard-path-pr.md",
+      "tree_path": "task-6038/work/shared-shard-path-pr.md",
+      "bytes": 1510,
+      "sha256": "f2dc77bab338ff4b52496c0553e78013d9ca36233fca59717c55509828b27e04",
+      "mode": "100644",
+      "blob": "4d66e199a8c6623695d320ca879d9ae094fe9e46"
+    },
+    {
+      "source": "outputs/shared-tooling-admission-e24fe3f40/receipt.json",
+      "tree_path": "task-6038/outputs/shared-tooling-admission-e24fe3f40/receipt.json",
+      "bytes": 1867,
+      "sha256": "35e0e94d6454887564a9c31051ea1f9d13f6b78fc8444bb7a847b0459a016037",
+      "mode": "100644",
+      "blob": "75026e2fa918d177a1a448416df687c00dc70eda"
+    }
+  ]
+}
