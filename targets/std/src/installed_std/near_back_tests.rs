@@ -288,3 +288,5 @@ fn initialized_factory_rejects_stale_limit_and_missing_bounds_before_play() {
 
 #[path = "near_fore_tests.rs"]
 mod near_fore_tests;
+
+mod source_dependencies;
