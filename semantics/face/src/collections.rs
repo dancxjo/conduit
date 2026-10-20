@@ -284,7 +284,10 @@ fn independent_counts(
         for item in items {
             chosen += u64::from(selected(face, &item.identity)?);
         }
-        if *total < chosen || *total > chosen + inventory - visible {
+        // Inventory already covers every visible item; subtract first so even
+        // a full u64 inventory preserves the exact bound without overflow.
+        let maximum_selected = inventory - visible + chosen;
+        if *total < chosen || *total > maximum_selected {
             return Err(Refusal::Selection);
         }
     }

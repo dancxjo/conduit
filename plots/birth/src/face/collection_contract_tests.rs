@@ -231,3 +231,49 @@ fn exclusive_collection_cannot_hide_an_unselected_checked_alternative() {
     );
     assert!(prepare_face_collection(&original, &id, 32).is_ok());
 }
+
+#[test]
+fn finite_inventory_count_accepts_the_full_u64_selection_boundary() {
+    let face = draft().face(&basis()).unwrap();
+    let id = collection(&face, "/initial-plots").identity.clone();
+    let items = children(&face, &id);
+    let visible = items.len() as u64;
+    let chosen = items
+        .iter()
+        .filter(|item| {
+            matches!(
+                property(&face, &item.identity, "selected"),
+                FacePropertyValue::Flag(true)
+            )
+        })
+        .count() as u64;
+    assert!(chosen > 0 && chosen < visible);
+    // All hidden items may be selected, but visible unselected items cannot be.
+    let upper = u64::MAX - (visible - chosen);
+    let mut boundary = face;
+    set(
+        &mut boundary,
+        &id,
+        "inventory-count",
+        FacePropertyValue::Count(u64::MAX),
+    );
+    set(
+        &mut boundary,
+        &id,
+        "selected-count",
+        FacePropertyValue::Count(upper),
+    );
+    let boundary = rehash(boundary);
+    assert!(prepare_face_collection(&boundary, &id, 64).is_ok());
+    let mut excessive = boundary;
+    set(
+        &mut excessive,
+        &id,
+        "selected-count",
+        FacePropertyValue::Count(upper + 1),
+    );
+    assert_eq!(
+        prepare_face_collection(&rehash(excessive), &id, 64).err(),
+        Some(Refusal::Selection)
+    );
+}
