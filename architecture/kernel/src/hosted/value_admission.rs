@@ -39,6 +39,7 @@ impl HostedValueStore {
                 })?
         } else {
             let mut retired_fit = false;
+            let owned = &self.owned_compact_slots;
             self.slots
                 .iter_mut()
                 .enumerate()
@@ -48,8 +49,10 @@ impl HostedValueStore {
                         *probes += 1;
                     }
                 })
-                .filter(|(_, slot)| {
-                    let free_fit = slot.references == 0 && slot.bytes.capacity() >= length;
+                .filter(|(_index, slot)| {
+                    let free_fit = slot.references == 0
+                        && slot.bytes.capacity() >= length
+                        && owned.get(*_index).is_none_or(Option::is_none);
                     retired_fit |= free_fit && slot.generation == u16::MAX;
                     free_fit && slot.generation != u16::MAX
                 })

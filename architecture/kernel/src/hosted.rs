@@ -3,6 +3,7 @@ use alloc::vec::Vec;
 use super::{StorageError, ValueRef, ValueStorage};
 mod compact_f32;
 mod native_values;
+mod owned_compact_f32;
 mod value_admission;
 
 struct HostedValueSlot {
@@ -17,6 +18,8 @@ pub struct HostedValueStore {
     slots: Vec<HostedValueSlot>,
     native_words: Vec<Option<u64>>,
     compact_f32_lengths: Vec<Option<core::num::NonZeroU32>>,
+    owned_compact_slots: Vec<Option<owned_compact_f32::OwnedSlot>>,
+    owned_compact_identity: Option<alloc::boxed::Box<u8>>,
     maximum_value_bytes: usize,
     byte_capacity: u32,
     used_items: u16,
@@ -87,6 +90,8 @@ impl HostedValueStore {
             slots,
             native_words: Vec::new(),
             compact_f32_lengths: Vec::new(),
+            owned_compact_slots: Vec::new(),
+            owned_compact_identity: None,
             uniform_slots,
             free_search_start: 0,
             has_retired_slots: false,
@@ -112,6 +117,9 @@ impl HostedValueStore {
             + self.native_words.capacity() * core::mem::size_of::<Option<u64>>()
             + self.compact_f32_lengths.capacity()
                 * core::mem::size_of::<Option<core::num::NonZeroU32>>()
+            + self.owned_compact_slots.capacity()
+                * core::mem::size_of::<Option<owned_compact_f32::OwnedSlot>>()
+            + usize::from(self.owned_compact_identity.is_some())
     }
 
     pub fn allocation_capacities(&self) -> (usize, usize) {
@@ -123,7 +131,10 @@ impl HostedValueStore {
                 .sum::<usize>()
                 + self.native_words.capacity() * core::mem::size_of::<Option<u64>>()
                 + self.compact_f32_lengths.capacity()
-                    * core::mem::size_of::<Option<core::num::NonZeroU32>>(),
+                    * core::mem::size_of::<Option<core::num::NonZeroU32>>()
+                + self.owned_compact_slots.capacity()
+                    * core::mem::size_of::<Option<owned_compact_f32::OwnedSlot>>()
+                + usize::from(self.owned_compact_identity.is_some()),
         )
     }
 

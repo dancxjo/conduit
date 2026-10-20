@@ -467,6 +467,11 @@ mod fixed_value_store;
 pub use fixed_value_store::FixedValueStore;
 
 #[cfg(feature = "alloc")]
+mod owned_compact_output;
+#[cfg(feature = "alloc")]
+pub use owned_compact_output::{PreparedCompactF32Output, PendingCompactF32Publication};
+
+#[cfg(feature = "alloc")]
 mod hosted;
 
 #[cfg(feature = "alloc")]
