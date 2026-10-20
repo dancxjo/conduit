@@ -12,8 +12,7 @@ fn chooser_label_fits_a_complete_measured_font_line() {
             .iter()
             .find(|command| command.payload() == "Gears")
             .unwrap();
-        let measured =
-            crate::display::text_height(label.payload(), label.bounds.width).unwrap();
+        let measured = crate::display::text_height(label.payload(), label.bounds.width).unwrap();
         assert!(label.bounds.height >= measured);
         assert!(label.bounds.y >= label.clip.y);
         assert!(
@@ -84,9 +83,11 @@ fn native_scene_manifests_every_shared_region_and_visible_focus() {
     assert!(scene.commands()[7].payload().starts_with("Output\n\n"));
     assert!(scene.commands()[5].payload().ends_with("}."));
     assert!(scene.commands()[7].payload().contains("Patchbay open"));
-    assert!(scene.commands().iter().take(16).all(|command| {
-        command.clip_class() == conduit_face::GraphicsClipClass::FullyVisible
-    }));
+    assert!(
+        scene.commands().iter().take(16).all(|command| {
+            command.clip_class() == conduit_face::GraphicsClipClass::FullyVisible
+        })
+    );
 }
 
 #[test]
@@ -135,8 +136,7 @@ fn graph_cards_project_catalog_ports_and_selected_gear() {
     assert_eq!(card.paint, GraphicsPaintRole::Selected);
     assert!(card.payload().contains("Selected\n"));
     assert!(scene.commands().iter().any(|command| {
-        command.payload().contains("value/text")
-            && command.paint == GraphicsPaintRole::Foreground
+        command.payload().contains("value/text") && command.paint == GraphicsPaintRole::Foreground
     }));
     assert!(
         scene
