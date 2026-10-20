@@ -150,7 +150,7 @@ pub fn install_planned_activation(
     PreparedPlannedActivationComposite::prepare(plan, activation_id, children).map_err(Box::new)
 }
 
-/// Exact reusable scan handoff; no one-shot fallback or registry lookup at Play.
+/// Exact reusable Value activation handoff; no one-shot fallback or registry lookup at Play.
 pub fn install_reusable_planned_activation(
     plan: &Plan,
     prepared: &mut PreparedPlan,

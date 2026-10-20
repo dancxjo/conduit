@@ -5,9 +5,13 @@ use crate::{
     BodyLiveForeAdmission, BodyLiveForeQueue, ExternalForeDelivery, RunControl,
     RunControlRequestId, StdHost, ThreadTimer,
 };
-use conduit_body::{Body, BodyPlan, BodyPlotPlan, ResidentPlot};
+use conduit_body::{Body, BodyPlan, BodyPlayIdentity, BodyPlotPlan, ResidentPlot};
 use conduit_core::*;
-use std::{sync::mpsc, thread::JoinHandle, time::Duration};
+use std::{
+    sync::{mpsc, Arc},
+    thread::JoinHandle,
+    time::Duration,
+};
 
 pub struct NumericalFore {
     queue: BodyLiveForeQueue,
@@ -15,7 +19,7 @@ pub struct NumericalFore {
     outputs: mpsc::Receiver<Vec<u8>>,
     worker: Option<JoinHandle<Result<BodyRunReport, String>>>,
     play: BodyPlayIdentity,
-    body_plan: BodyPlan,
+    body_plan: Arc<BodyPlan>,
     verifier: PreparedNearQuantityVerifier,
     limit: RationalQuantity,
 }
@@ -81,7 +85,8 @@ impl NumericalFore {
         let control = RunControl::default();
         let queue =
             BodyLiveForeQueue::for_near_each_plan(&body_plan.plots[0].plan, control.clone(), 1)?;
-        let retained = body_plan.clone();
+        let body_plan = Arc::new(body_plan);
+        let retained = Arc::clone(&body_plan);
         let producer = queue.clone();
         let run_control = control.clone();
         let (started_tx, started_rx) = mpsc::sync_channel(1);

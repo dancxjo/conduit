@@ -120,6 +120,7 @@ impl BoundedActivationHost {
         Ok(activation)
     }
 
+    #[cfg(feature = "fixture-registry-preparation")]
     fn prepare_with_ready(
         contract: BoundedActivationContract,
         ready: Vec<KernelCompositeHost>,
