@@ -17,6 +17,12 @@ impl HostedValueStore {
         if usize::from(self.used_items) == self.slots.len() {
             return Err(StorageError::ItemCapacityExceeded);
         }
+        let retired_uniform = self.uniform_slots
+            && self.has_retired_slots
+            && self.slots.iter().enumerate().any(|(index, slot)| {
+                slot.references == 0 && slot.generation == u16::MAX && !self.is_owned_compact(index)
+            });
+        let owned = &self.owned_compact_slots;
         #[cfg(test)]
         let probes = &mut self.slot_probes;
         let (slot_index, slot) = if self.uniform_slots {
@@ -30,16 +36,19 @@ impl HostedValueStore {
                         *probes += 1;
                     }
                 })
-                .find(|(_, slot)| slot.references == 0 && slot.generation != u16::MAX)
+                .find(|(offset, slot)| {
+                    slot.references == 0
+                        && slot.generation != u16::MAX
+                        && owned.get(start + offset).is_none_or(Option::is_none)
+                })
                 .map(|(offset, slot)| (start + offset, slot))
-                .ok_or(if self.has_retired_slots {
+                .ok_or(if retired_uniform {
                     StorageError::GenerationExhausted
                 } else {
                     StorageError::ItemCapacityExceeded
                 })?
         } else {
             let mut retired_fit = false;
-            let owned = &self.owned_compact_slots;
             self.slots
                 .iter_mut()
                 .enumerate()

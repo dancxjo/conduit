@@ -296,7 +296,7 @@ impl ValueStorage for HostedValueStore {
             self.used_bytes -= len;
             if self.slots[usize::from(value.slot)].generation == u16::MAX {
                 self.has_retired_slots = true;
-            } else if self.uniform_slots {
+            } else if self.uniform_slots && !self.is_owned_compact(usize::from(value.slot)) {
                 self.free_search_start = self.free_search_start.min(usize::from(value.slot));
             }
         }

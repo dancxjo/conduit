@@ -232,3 +232,54 @@ fn best_fit_conversion_preserves_larger_canonical_slots() {
     assert_eq!(values.get(a).unwrap(), [1; 24]);
     assert_eq!(values.get(b).unwrap(), [2; 24]);
 }
+
+#[test]
+fn typed_pools_preserve_the_generic_uniform_cursor_bound() {
+    let (mut values, owner) = store();
+    assert!(values.uniform_slots);
+    values.slot_probes = 0;
+    let a = values.store(&[1; 24]).unwrap();
+    let b = values.store(&[2; 24]).unwrap();
+    assert!(!owner.slots.contains(&a.slot));
+    assert!(!owner.slots.contains(&b.slot));
+    assert!(values.slot_probes <= values.slots.len());
+    assert_eq!(values.get(a).unwrap(), [1; 24]);
+    assert_eq!(values.get(b).unwrap(), [2; 24]);
+}
+
+#[test]
+fn retired_owned_slots_do_not_turn_generic_pressure_into_generation_exhaustion() {
+    let mut values = HostedValueStore::new(3, 24, 72).unwrap();
+    let owner = values
+        .prepare_owned_compact_f32_outputs(&[(layout(), 2)], &[24])
+        .unwrap()
+        .remove(0);
+    for index in &owner.slots {
+        values.slots[usize::from(*index)].generation = u16::MAX;
+    }
+    values.has_retired_slots = true;
+    let canonical = values.store(&[1; 24]).unwrap();
+    assert_eq!(values.store(&[2]), Err(StorageError::ItemCapacityExceeded));
+    values.release(canonical).unwrap();
+    values.slots[usize::from(canonical.slot)].generation = u16::MAX;
+    assert_eq!(values.store(&[2]), Err(StorageError::GenerationExhausted));
+}
+
+#[test]
+fn releasing_owned_buffers_does_not_rewind_the_generic_cursor() {
+    let (mut values, owner) = store();
+    let first = values.store(&[1; 24]).unwrap();
+    let mut bytes = LANES.to_vec();
+    let mut pending = values.swap_owned_compact_f32(&owner, &mut bytes).unwrap();
+    let value = values
+        .commit_owned_compact_f32(&owner, &mut pending)
+        .unwrap();
+    values.release(value).unwrap();
+    values.slot_probes = 0;
+    let second = values.store(&[2; 24]).unwrap();
+    assert_eq!(values.slot_probes, 1);
+    values.release(first).unwrap();
+    let replacement = values.store(&[3; 24]).unwrap();
+    assert_eq!(replacement.slot, first.slot);
+    assert_ne!(second.slot, replacement.slot);
+}

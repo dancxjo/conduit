@@ -178,7 +178,8 @@ impl HostedValueStore {
             }
         }
         self.owned_compact_identity = Some(identity);
-        self.uniform_slots = false;
+        // Converting typed slots preserves uniform capacity among the remaining
+        // generic slots. Their cursor allocator excludes every typed slot.
         Ok(outputs)
     }
     fn owned_slot(
