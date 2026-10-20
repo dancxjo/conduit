@@ -102,12 +102,9 @@ impl PreparedActivationChildPool {
             return Err(PlannedActivationCompositeError::StaleOrSubstitutedHandoff);
         }
         let mut returned = if reusable {
-            let mut ready = Vec::with_capacity(1);
-            ready.push(
-                host.take_reusable_activation_child(&receipts, &definition)
-                    .map_err(PlannedActivationCompositeError::HostPreparation)?,
-            );
-            ready
+            alloc::vec![host
+                .take_reusable_activation_child(&receipts, &definition)
+                .map_err(PlannedActivationCompositeError::HostPreparation)?]
         } else {
             host.take_activation_child_pool(&receipts, &definition, maximum_items)
                 .map_err(PlannedActivationCompositeError::HostPreparation)?
