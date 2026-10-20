@@ -367,15 +367,24 @@ fn checked_fused_refusals_name_every_original_gear_and_preserve_unfused_errors(
                 reason.starts_with("installed kernel step: BackFailed("),
                 "{reason}"
             );
-            if fused {
-                assert!(
-                    reason.contains(&format!("logical-gear={}", gear.as_str())),
-                    "{index}: {reason}"
-                );
-                assert!(reason.contains("source-span=Some"), "{reason}");
-            } else {
-                assert!(!reason.contains("; logical-gear="), "{reason}");
-            }
+            let original = fragment
+                .placements
+                .iter()
+                .find(|placement| &placement.gear_id == gear)
+                .ok_or("original logical Gear absent")?;
+            assert!(
+                reason.contains(&format!("logical-gear={}", gear.as_str())),
+                "{index}: {reason}"
+            );
+            assert!(
+                reason.contains(&format!("source-document={}", fragment.source_document_id)),
+                "{reason}"
+            );
+            assert!(original.source_span.is_some());
+            assert!(
+                reason.contains(&format!("source-span={:?}", original.source_span)),
+                "{reason}"
+            );
             assert!(outputs.values.is_empty());
         }
     }
