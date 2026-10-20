@@ -180,3 +180,6 @@ pub fn resource_parser_rebase_types(
         ("LanguageResourceParserRebaseRequest", <LanguageResourceParserRebaseRequest as conduit_plot::rust_binding::NativeRustBinding>::semantic_type().expect("checked resource rebase request")),
     ]
 }
+/// Explicit unaccepted candidate, never the default accepted model selection.
+#[cfg(all(feature = "parser-model", target_has_atomic = "ptr"))]
+pub mod parser_punctuation_model;

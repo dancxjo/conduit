@@ -1,0 +1,23 @@
+{
+  "status": "authored reviewed-supervision proposal, not independently human-reviewed or corpus annotation",
+  "license": "MIT repository license; authored annotations, not copied UD examples",
+  "sources": [
+    {
+      "url": "https://universaldependencies.org/u/dep/punct.html",
+      "principle": "Punctuation adjacent to a dependent unit attaches to that unit; terminal punctuation attaches to its highest projective content head."
+    },
+    {
+      "url": "https://universaldependencies.org/u/dep/vocative.html",
+      "principle": "Addressee occurrence attaches to its host utterance by vocative."
+    }
+  ],
+  "policy": "Finite greeting-host fixture: Hi as root interjection, names as vocative dependents, friend/pal as supplied object context; punctuation is orthographic supervision only, never acoustic policy.",
+  "limitations": [
+    "Addressed intent is deliberately supplied supervision, not inferable solely from a comma.",
+    "Hi+name can have non-vocative corpus analyses; original observed heldout counterexample remains a regression case.",
+    "Motivator Hello/Travis and all seven reserved combinations excluded from training.",
+    "Existing DEV/TEST are previously observed regression evaluations, not newly blind."
+  ],
+  "teaching_rows": 10,
+  "reserved_rows": 7
+}

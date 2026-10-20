@@ -39,6 +39,9 @@ pub struct Decoded {
 }
 impl Decoder {
     pub fn new() -> Self {
+        Self::with_model(ModelDriver::new())
+    }
+    pub fn with_model(model: ModelDriver) -> Self {
         use conduitos::protocol_source::{ProtocolSpecializationRequest, ProtocolValueReference};
         let transition_source = parser_scorer_transition_source();
         let (imports, plots): (Vec<_>, Vec<_>) = transition_source
@@ -122,7 +125,7 @@ impl Decoder {
             fallback: graph("language-parser-scorer-fallback"),
             complete: graph("language-parser-decode-complete"),
             rebase: graph("language-parser-revision-rebase"),
-            model: ModelDriver::new(),
+            model,
             illegal: 0,
             refused_expansions: 0,
             identity: 0,
@@ -208,14 +211,113 @@ impl Decoder {
             beam.candidate3().clone(),
         ]
     }
+    /// Rebase all active hypotheses, preserve committed lexical choices, reset
+    /// scores, and coalesce only exact admitted state+choice duplicates. Source
+    /// merge owns ordering/admission of every distinct retained seed.
+    pub fn rebase_fresh_revision(
+        &mut self,
+        previous: &LanguageParserScorerBeam,
+        previous_lexical: &lexical::PreparedLexicalTape,
+        source: &LanguageTextRevision,
+        analysis: &LanguageAnalysisRevisionId,
+    ) -> (
+        lexical::PreparedLexicalTape,
+        LanguageParserScorerBeam,
+        usize,
+    ) {
+        let lexical = lexical::prepare_lexical_tape(
+            source,
+            previous_lexical.tape().profile(),
+            Some(previous_lexical),
+        )
+        .unwrap();
+        let mut retained = Vec::new();
+        let mut coalesced = 0;
+        for prior in Self::slots(previous) {
+            if !*prior.parser().active() {
+                continue;
+            }
+            let rebase = PreparedParserRevisionRebase::prepare(
+                prior.parser().state(),
+                previous_lexical,
+                source,
+                analysis.clone(),
+                dep(),
+            )
+            .unwrap();
+            assert_eq!(rebase.lexical().tape(), lexical.tape());
+            let raw = self.rebase.run_native(rebase.request().clone());
+            let state = admit_state(raw);
+            let mut choices = [0; 4];
+            let committed = *state.committed() as usize;
+            choices[..committed].copy_from_slice(&prior.choices()[..committed]);
+            retained.push(
+                LanguageParserScorerHypothesis::new(
+                    choices,
+                    LanguageParserHypothesis::new(
+                        true,
+                        *prior.parser().identity(),
+                        0,
+                        state.clone(),
+                    )
+                    .unwrap(),
+                    *state.unread(),
+                )
+                .unwrap(),
+            );
+        }
+        let first = retained.first().expect("active retained beam");
+        let inactive = LanguageParserScorerHypothesis::new(
+            *first.choices(),
+            LanguageParserHypothesis::new(false, self.id(), 0, first.parser().state().clone())
+                .unwrap(),
+            *first.selected(),
+        )
+        .unwrap();
+        let mut beam = LanguageParserScorerBeam::new(
+            inactive.clone(),
+            inactive.clone(),
+            inactive.clone(),
+            inactive.clone(),
+        )
+        .unwrap();
+        for candidate in retained {
+            beam = self.insert(beam, candidate);
+        }
+        // Source ranks all at most four score-zero seeds before exact value
+        // coalescing, so the retained duplicate identity follows Source ties.
+        let mut unique = Vec::new();
+        for candidate in Self::slots(&beam) {
+            if !*candidate.parser().active() {
+                continue;
+            }
+            if unique.iter().any(|prior: &LanguageParserScorerHypothesis| {
+                prior.parser().state() == candidate.parser().state()
+                    && prior.choices() == candidate.choices()
+            }) {
+                coalesced += 1;
+            } else {
+                unique.push(candidate);
+            }
+        }
+        let mut beam = LanguageParserScorerBeam::new(
+            inactive.clone(),
+            inactive.clone(),
+            inactive.clone(),
+            inactive,
+        )
+        .unwrap();
+        for candidate in unique {
+            beam = self.insert(beam, candidate);
+        }
+        (lexical, beam, coalesced)
+    }
     pub fn decode(
         &mut self,
         lexical: &LanguageParserAvailableLexical,
         initial: LanguageParserState,
         learned: bool,
     ) -> Decoded {
-        let start = std::time::Instant::now();
-        let before = self.model.invocations();
         let inactive = LanguageParserScorerHypothesis::new(
             [0; 4],
             LanguageParserHypothesis::new(false, self.id(), 0, initial.clone()).unwrap(),
@@ -228,13 +330,46 @@ impl Decoder {
             *inactive.selected(),
         )
         .unwrap();
-        let mut beam = LanguageParserScorerBeam::new(
+        let beam = LanguageParserScorerBeam::new(
             seed,
             inactive.clone(),
             inactive.clone(),
             inactive.clone(),
         )
         .unwrap();
+        self.decode_seeded(lexical, beam, learned, inactive)
+    }
+    /// Explicit fresh-revision profile. Scores describe only this revision's
+    /// continuations; callers rebase every survivor before entering here.
+    pub fn decode_from_beam(
+        &mut self,
+        lexical: &LanguageParserAvailableLexical,
+        beam: LanguageParserScorerBeam,
+        learned: bool,
+    ) -> Decoded {
+        let inactive = LanguageParserScorerHypothesis::new(
+            *beam.candidate0().choices(),
+            LanguageParserHypothesis::new(
+                false,
+                self.id(),
+                0,
+                beam.candidate0().parser().state().clone(),
+            )
+            .unwrap(),
+            *beam.candidate0().selected(),
+        )
+        .unwrap();
+        self.decode_seeded(lexical, beam, learned, inactive)
+    }
+    fn decode_seeded(
+        &mut self,
+        lexical: &LanguageParserAvailableLexical,
+        mut beam: LanguageParserScorerBeam,
+        learned: bool,
+        inactive: LanguageParserScorerHypothesis,
+    ) -> Decoded {
+        let start = std::time::Instant::now();
+        let before = self.model.invocations();
         let mut steps = 0;
         // Each accepted arc-eager action reads or pops a token: at most2n.
         for _ in 0..8 {
