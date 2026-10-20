@@ -10,6 +10,8 @@ use std::{
 mod config;
 #[path = "runtime_performance_fargan.rs"]
 mod fargan;
+#[path = "runtime_performance_matrix.rs"]
+mod matrix;
 #[path = "runtime_performance_transport.rs"]
 mod transport;
 
@@ -26,8 +28,11 @@ fn git(root: &Path, arguments: &[&str]) -> Result<String, Box<dyn std::error::Er
 
 pub fn run(arguments: &[String], dry_run: bool) -> Result<(), Box<dyn std::error::Error>> {
     if arguments == ["--help"] {
-        println!("cargo xtask prove runtime-performance [--output PATH] [--values N] [--repetitions N] [--decisions N] [--samples N] [--hosted-pipeline true|false]\nRetains release measurements from committed, clean source. Output must be new and outside tracked source (default target/runtime-performance). FARGAN: --fargan-fixture PATH [--output PATH] [--repetitions 2..20] [--fargan-owners fresh|prepared|prepared-compact-local] uses a private pinned model and oracle; no automatic download.\nTwo-Host: --two-host [--output PATH] [--repetitions 1..20] [--rotation 0..2] records actual loopback transfers with both kernels evidence; repeated calls create fresh Plans/Lines, not warm transport.\nHosted pipeline includes matched unfused, canonical-fused and native-U64 chain trials with bounded retained Sign history. Finite defaults: 1000000 values, 5 repetitions, 10000 decisions, 2000 samples.");
+        println!("cargo xtask prove runtime-performance [--output PATH] [--values N] [--repetitions N] [--decisions N] [--samples N] [--hosted-pipeline true|false]\nRetains release measurements from committed, clean source. Output must be new and outside tracked source (default target/runtime-performance). FARGAN: --fargan-fixture PATH [--output PATH] [--repetitions 2..20] [--fargan-owners fresh|prepared|prepared-compact-local|prepared-matrix-local|prepared-matrix-source-cache] uses a private pinned model and oracle; no automatic download.\nTwo-Host: --two-host [--output PATH] [--repetitions 1..20] [--rotation 0..2] records actual loopback transfers with both kernels evidence; repeated calls create fresh Plans/Lines, not warm transport.\nMatrix projection: --matrix-projection [--output PATH] [--iterations 1..100000] [--repetitions 3..101] [--case-group all|tiny] compares prior scalar and contiguous traversal over synthetic validated bytes, outside full Back/Plan execution.\nHosted pipeline includes matched unfused, canonical-fused and native-U64 chain trials with bounded retained Sign history. Finite defaults: 1000000 values, 5 repetitions, 10000 decisions, 2000 samples.");
         return Ok(());
+    }
+    if arguments.iter().any(|a| a == "--matrix-projection") {
+        return matrix::run(arguments, dry_run);
     }
     if arguments.iter().any(|a| a == "--two-host") {
         return transport::run(arguments, dry_run);

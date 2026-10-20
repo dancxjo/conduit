@@ -81,3 +81,6 @@ fn unbiased_projection_refuses_nonfinite_input_weight_and_overflow_atomically() 
         ))
     ));
 }
+
+#[path = "fixed_tensor_linear/layout.rs"]
+mod layout;

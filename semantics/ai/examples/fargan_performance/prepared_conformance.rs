@@ -33,17 +33,17 @@ pub(super) fn compare(
     reference: &EncodedResultAndTiming,
     candidate: &EncodedResultAndTiming,
     index: usize,
-    compact_local: bool,
+    profile: super::Profile,
 ) {
     assert_eq!(
         (reference.nodes, reference.cords),
         (candidate.nodes, candidate.cords)
     );
-    if compact_local {
+    if profile.local() {
         assert_eq!((candidate.nodes, candidate.cords), (768, 1211));
         assert_eq!(candidate.work.expression_calls, 0);
         assert_eq!(candidate.work.local_expression_calls, 207);
-        assert_eq!(candidate.work.compact_values, 140);
+        assert_eq!(candidate.work.compact_values, profile.native_values());
         assert!(!candidate.signs.iter().any(|event| matches!(
             event.kind,
             KernelEventKind::HostCallRequested
@@ -85,7 +85,16 @@ fn pinned_compact_local_capture_covers_all_trajectory_phases() {
         let resources = crate::frame::resources(&fixture, &schema);
         let oracle = crate::frame::oracle(&fixture);
         let mut raw = crate::artifact::Raw::new(&output.join("raw.jsonl")).unwrap();
-        super::run(&output, 2, &schema, &resources, &oracle, &mut raw, true).unwrap();
+        super::run(
+            &output,
+            2,
+            &schema,
+            &resources,
+            &oracle,
+            &mut raw,
+            super::Profile::CompactLocal,
+        )
+        .unwrap();
         raw.finish().unwrap();
         let rows = std::fs::read_to_string(output.join("raw.jsonl")).unwrap();
         let rows: Vec<serde_json::Value> = rows

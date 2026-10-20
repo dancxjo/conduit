@@ -230,3 +230,15 @@ mod numeric_dag_tests;
 #[cfg(test)]
 #[path = "frame_local_expressions.rs"]
 mod local_expression_tests;
+
+#[cfg(test)]
+#[path = "frame_matrix_dags.rs"]
+mod matrix_dag_tests;
+
+#[cfg(test)]
+#[path = "frame_matrix_local.rs"]
+mod matrix_local_tests;
+
+#[cfg(test)]
+#[path = "frame_preparation_cache.rs"]
+mod preparation_cache_tests;

@@ -59,7 +59,9 @@ pub fn value_capacity64_contract(mut kind: Kind) -> Result<Kind, String> {
     }
     let profile = value_capacity64_profile(implementation)?;
     kind.kind_contract_revision =
-        if crate::fixed_numeric_catalog::is_pure_pointwise(kind.kind_id.as_str()) {
+        if crate::fixed_numeric_catalog::is_pure_pointwise(kind.kind_id.as_str())
+            || crate::fixed_numeric_catalog::is_pure_slice(kind.kind_id.as_str())
+        {
             format!("{profile}/{}", original.kind_contract_revision.as_str()).into()
         } else {
             profile.into()

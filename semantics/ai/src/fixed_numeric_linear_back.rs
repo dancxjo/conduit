@@ -147,10 +147,36 @@ impl<'a, const INPUT: usize, const OUTPUT: usize> FixedLinearBack<'a, INPUT, OUT
         self.finished
     }
 }
-impl<const INPUT: usize, const OUTPUT: usize, const PORTS: usize> StepBack<PORTS>
-    for FixedLinearBack<'_, INPUT, OUTPUT>
-{
-    fn step(&mut self, io: &mut StepIo<PORTS>, inputs: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+impl<const INPUT: usize, const OUTPUT: usize> FixedLinearBack<'_, INPUT, OUTPUT> {
+    pub(crate) fn compact_layouts(
+        &self,
+    ) -> Result<
+        (
+            conduit_kernel::scheduler::CompactF32Layout,
+            conduit_kernel::scheduler::CompactF32Layout,
+        ),
+        FixedCodecRefusal,
+    > {
+        let layout = |width: usize, bytes: usize| {
+            if width == 0 || width > 1024 || width * 4 > bytes {
+                return Err(FixedCodecRefusal::Shape);
+            }
+            Ok(conduit_kernel::scheduler::CompactF32Layout {
+                lanes: width as u16,
+                logical_bytes: u32::try_from(bytes).map_err(|_| FixedCodecRefusal::Shape)?,
+            })
+        };
+        Ok((
+            layout(INPUT, self.input.maximum_bytes())?,
+            layout(OUTPUT, self.output.maximum_bytes())?,
+        ))
+    }
+    pub(crate) fn step_transport<const PORTS: usize>(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        inputs: &StepInputBytes<'_, PORTS>,
+        mut compact: Option<&mut crate::fixed_numeric_compact::CompactVectorBuffer<OUTPUT>>,
+    ) -> StepOutcome {
         if self.cancelled {
             return StepOutcome::Fail(Failure {
                 code: FailureCode::Cancelled,
@@ -166,16 +192,33 @@ impl<const INPUT: usize, const OUTPUT: usize, const PORTS: usize> StepBack<PORTS
         if (0..2).any(|p| io.input(PortId(p)).is_none()) || !io.output_ready(PortId(0)) {
             return StepOutcome::Await;
         }
-        let (Some(value), Some(weights)) = (inputs.input(PortId(0)), inputs.input(PortId(1)))
-        else {
+        let Some(weights) = inputs.input(PortId(1)) else {
             return fail(1402);
         };
+        if inputs.input(PortId(0)).is_none()
+            && (compact.is_none() || inputs.compact_f32(PortId(0)).is_none())
+        {
+            return fail(1402);
+        }
         let mut input = [0.; INPUT];
         let mut output = [0.; OUTPUT];
         if !self.binding.matches(weights)
-            || self.input.decode(value, &mut input).is_err()
+            || crate::fixed_numeric_compact::decode(
+                &self.input,
+                inputs,
+                PortId(0),
+                &mut input,
+                compact.is_some(),
+            )
+            .is_err()
             || self.projection.apply(&input, &mut output).is_err()
-            || self.output.encode(&output).is_err()
+            || crate::fixed_numeric_compact::encode(
+                &mut self.output,
+                &output,
+                io,
+                compact.as_deref_mut(),
+            )
+            .is_err()
         {
             return fail(1403);
         }
@@ -184,14 +227,21 @@ impl<const INPUT: usize, const OUTPUT: usize, const PORTS: usize> StepBack<PORTS
                 return fail(1404);
             }
         }
-        if io
-            .send_prepared(PortId(0), self.output.encoded().len() as u32)
+        if crate::fixed_numeric_compact::send(io, self.output.encoded().len(), compact.as_deref())
             .is_err()
         {
             return fail(1405);
         }
         self.staged = true;
         StepOutcome::Progress
+    }
+}
+
+impl<const INPUT: usize, const OUTPUT: usize, const PORTS: usize> StepBack<PORTS>
+    for FixedLinearBack<'_, INPUT, OUTPUT>
+{
+    fn step(&mut self, io: &mut StepIo<PORTS>, inputs: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        self.step_transport(io, inputs, None)
     }
     fn step_committed(&mut self) {
         if self.staged {

@@ -1,0 +1,20 @@
+{
+  "event_storage_scope": "numeric Vec capacity only, excluding metadata and RSS",
+  "numeric_event_bytes": 20,
+  "requested_allocations": 15947,
+  "requested_peak_new_bytes": 10538545,
+  "requested_reallocations": 0,
+  "requested_report_json_bytes": 953012,
+  "retained_child_event_storage_bytes": 960,
+  "retained_parent_event_storage_bytes": 1280,
+  "scope": "post-Play JSON reconstruction only; no recording/Play or whole-process allocation claim",
+  "unrequested_allocations": 0,
+  "source": "d6ef055fa4c1fbe00c39b32b4263b0ad6d1df39f",
+  "tests_passed": 4,
+  "limitations": "Post-Play reconstruction only. No claim of zero-allocation Play, whole-process memory reduction, remote transport validation or accepted release.",
+  "schema": "conduit.performance/thermostat-reconstruction-observation@1",
+  "command": "CARGO_BUILD_JOBS=2 CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 CARGO_PROFILE_TEST_OPT_LEVEL=1 cargo test --locked -p conduit --bin conduit thermostat_run -- --nocapture --test-threads=1",
+  "requested_builder": "Existing descriptive report builder moved unchanged into evidence::render; requested file writers unchanged.",
+  "mandatory_records": "Numeric parent/child events retained; missing child-Sign refusal checked before the unrequested-report return.",
+  "reference": "Both requested and unrequested modes from the same producer source and real three-command execution; not a separate old-source whole-process benchmark."
+}

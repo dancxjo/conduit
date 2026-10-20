@@ -109,6 +109,24 @@ pub fn prepare_entry_plan_profile(
     entry: &str,
     numeric: NumericProfile,
 ) -> Plan {
+    prepare_entry_plan_profile_reuse(schema, source, entry, numeric, None)
+}
+pub fn prepare_entry_plan_profile_cached(
+    schema: &SourceSchema,
+    source: &str,
+    entry: &str,
+    numeric: NumericProfile,
+    cache: &mut conduit_plot::SourcePreparationCache,
+) -> Plan {
+    prepare_entry_plan_profile_reuse(schema, source, entry, numeric, Some(cache))
+}
+fn prepare_entry_plan_profile_reuse(
+    schema: &SourceSchema,
+    source: &str,
+    entry: &str,
+    numeric: NumericProfile,
+    cache: Option<&mut conduit_plot::SourcePreparationCache>,
+) -> Plan {
     let mut startup = conduit_plot::StartupCatalog::new();
     let mut profiles = conduit_plot::ProfileCatalog::new();
     install_fixed_numeric_catalogs_capacity64(&mut startup, &mut profiles).unwrap();
@@ -133,14 +151,32 @@ pub fn prepare_entry_plan_profile(
         });
     }
     wrapper.push_str("}\n");
-    let checked = conduit_plot::check_syntax_document(
-        &conduit_plot::parse_syntax_document(&format!("{source}{wrapper}")),
-        &startup,
-    )
-    .unwrap();
-    let authoring =
-        conduit_plot::expand_canonical_plot_for_authoring(&checked, "subframe-proof", &profiles)
-            .unwrap();
+    let source = format!("{source}{wrapper}");
+    let authoring = if let Some(cache) = cache {
+        let checked = cache.check(&source, &std::sync::Arc::new(startup)).unwrap();
+        cache
+            .expand(
+                &checked,
+                "subframe-proof",
+                &std::sync::Arc::new(profiles),
+                &std::sync::Arc::new(conduit_plot::CanonicalBackCatalog::new()),
+            )
+            .unwrap()
+    } else {
+        let checked = conduit_plot::check_syntax_document(
+            &conduit_plot::parse_syntax_document(&source),
+            &startup,
+        )
+        .unwrap();
+        std::sync::Arc::new(
+            conduit_plot::expand_canonical_plot_for_authoring(
+                &checked,
+                "subframe-proof",
+                &profiles,
+            )
+            .unwrap(),
+        )
+    };
     assert!(authoring.input_bindings.is_empty() && authoring.output_bindings.is_empty());
     let plot = &authoring.expanded;
     for gear in &plot.gears {
