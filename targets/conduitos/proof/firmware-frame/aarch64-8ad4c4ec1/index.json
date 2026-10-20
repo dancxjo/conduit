@@ -1,0 +1,101 @@
+{
+  "schema": "conduit.proof/aarch64-firmware-frame-retention@1",
+  "source_commit": "8ad4c4ec1b869efb076d0de06165930f03e4c947",
+  "source_tree": "c202ca29bc315cef734414653ee1fafd454a8302",
+  "proof_class": "freestanding-emulator",
+  "image_sha256": "018a4fe3d3fee2fe42718b1affac7bca0f820067eed6f2d07de47652f0152af9",
+  "cases": {
+    "first": {
+      "original_directory": "/home/dancxjo/src/conduit/target/conduitos/aarch64/aarch64-frame-167125-1792477712690309621",
+      "result": "acknowledged-source-backed-frame",
+      "local_input_proved": false
+    },
+    "second": {
+      "original_directory": "/home/dancxjo/src/conduit/target/conduitos/aarch64/aarch64-frame-167125-1792477739054487412",
+      "result": "acknowledged-source-backed-frame",
+      "local_input_proved": false
+    },
+    "prior-nc-only-refusal": {
+      "original_directory": "target/conduitos/aarch64/aarch64-frame-164461-1792477215583074693",
+      "source_commit": "c475989901f6253ae47dfcbf77a5228b9a2cac15",
+      "result": "aarch64-product-refused",
+      "guest_reason": "aarch64-framebuffer-cache-policy-unsupported",
+      "observed_par_memory_attribute": 255,
+      "source_backed_frame_proved": false
+    }
+  },
+  "files": {
+    "build-manifest.json": {
+      "bytes": 5061,
+      "sha256": "acca7b1c61d8203437fd7a1ea900b4dd305145ecf89a7e8a67eeb48ee2247394"
+    },
+    "first/capture.json": {
+      "bytes": 93996,
+      "sha256": "ffc3ce02ee06817709c2d1c92eee28df27775e8849ca837d7eb40721b59c9dfe"
+    },
+    "first/creche-read-only.png": {
+      "bytes": 231976,
+      "sha256": "9c59a528854f86bcf7afc9fa964fa8a8c7af7528e77aa5322829995eeb73e51e"
+    },
+    "first/launch.json": {
+      "bytes": 1426,
+      "sha256": "0a3f99e629514cd289e0292db8b914c5b3b9d38a3341710dcfee9c341d57a6d6"
+    },
+    "first/qemu-stderr.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "first/qmp.jsonl": {
+      "bytes": 1328,
+      "sha256": "19c50b2d049704be6c69339a1c41186e9b0c7fef809d613d496adf00bf287c27"
+    },
+    "first/serial.log": {
+      "bytes": 86489,
+      "sha256": "b42af605c06ce7aa3282b39d404d089d2fc81a00b1ad4912a13642fb61b03fa0"
+    },
+    "prior-nc-only-refusal/launch.json": {
+      "bytes": 1434,
+      "sha256": "2e0dab567511cd11d0d3eacc8f5babac2d20d05ac39512379a11aa476645643c"
+    },
+    "prior-nc-only-refusal/qemu-stderr.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "prior-nc-only-refusal/serial.log": {
+      "bytes": 6037,
+      "sha256": "bfb70aa91f9175a9a0bea9863d6ae94eb9f649bbd86b6c89c16510a20ef4bf32"
+    },
+    "product-proof.json": {
+      "bytes": 377582,
+      "sha256": "8704943f48f70e367bd010bccb5b04f35dfb28bf94174e8f9798d38f1ce838dd"
+    },
+    "second/capture.json": {
+      "bytes": 93807,
+      "sha256": "9e82dfb0c6799f595682184631b1f7a77c72798828416fd02ca4df370c7d74bb"
+    },
+    "second/creche-read-only.png": {
+      "bytes": 231313,
+      "sha256": "544d4e85a345af5e5bb070e0d9c6e50ce36b068de133f266728bf175ea281cc2"
+    },
+    "second/launch.json": {
+      "bytes": 1426,
+      "sha256": "af792148fa5eb7dbc6f127850fca4ccd05a3a7a42244fd2fee09d975a8e452f4"
+    },
+    "second/qemu-stderr.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "second/qmp.jsonl": {
+      "bytes": 1328,
+      "sha256": "3c1bb0e518fd3ffa62c4b251df4d5fc86a0f29dc1fb52d25a5e93652cbfcec0c"
+    },
+    "second/serial.log": {
+      "bytes": 86436,
+      "sha256": "ec90a4c0cc06ce115cabab17b539b9a872134709fad7224a43adac8a1606e479"
+    }
+  },
+  "physical_scanout_proved": false,
+  "gpu_acceleration_proved": false,
+  "local_input_proved": false,
+  "accepted_release": false
+}
