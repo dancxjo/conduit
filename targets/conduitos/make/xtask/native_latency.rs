@@ -18,6 +18,11 @@ pub(super) fn execute(args: &NativeLatencyArgs, opts: &GlobalOpts) -> Result<(),
             "native latency observation needs a real image and guest",
         ));
     }
+    if !(1..=8).contains(&args.trials) {
+        return Err(refusal(
+            "native observation admits one through eight trials",
+        ));
+    }
     let paths = Paths::new(ConduitosArch::X86_64)?;
     require_clean_source(&paths.root)?;
     let source = git_head(&paths.root)?;
@@ -48,6 +53,8 @@ pub(super) fn execute(args: &NativeLatencyArgs, opts: &GlobalOpts) -> Result<(),
         for trial in 0..args.trials {
             let output = family.join(format!("trial-{trial}"));
             fs::create_dir_all(&output).map_err(io_error)?;
+            context["active_trial"] = json!(trial);
+            write(&family.join("manifest.json"), &context)?;
             let trial_started = std::time::Instant::now();
             let identity = super::journey_proof::execute_supplied_observed(
                 opts,
@@ -92,6 +99,7 @@ pub(super) fn execute(args: &NativeLatencyArgs, opts: &GlobalOpts) -> Result<(),
                 "typing_observations":"journey-typing-timing.json","reading_observations":"journey-reading-timing.json"});
             write(&output.join("timing.json"), &record)?;
             trials.push(record);
+            context["active_trial"] = serde_json::Value::Null;
             context["completed_trials"] = json!(trials);
             write(&family.join("manifest.json"), &context)?;
         }
@@ -99,6 +107,14 @@ pub(super) fn execute(args: &NativeLatencyArgs, opts: &GlobalOpts) -> Result<(),
     })();
     context["total_ns"] = json!(started.elapsed().as_nanos());
     context["status"] = if result.is_ok() { "complete" } else { "failed" }.into();
+    if result.is_err() {
+        let excluded_start = context["active_trial"]
+            .as_u64()
+            .map_or(trials.len() as u64, |trial| trial + 1);
+        context["excluded_trials"] = json!((excluded_start..u64::from(args.trials))
+            .map(|trial| json!({"index":trial,"reason":"family-stopped-after-failure; no retry"}))
+            .collect::<Vec<_>>());
+    }
     if let Err(error) = &result {
         context["failure"] = json!({"reason":error.reason,"detail":error.detail});
     }
