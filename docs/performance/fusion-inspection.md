@@ -45,7 +45,7 @@ new benchmark or hardware performance result.
 
 ```sh
 cargo test -p conduit-patchbay-workbench --test pure_chain_fusion --test sealed_admission
-cargo test -p conduit-patchbay-workbench --lib topology_tests
+cargo test -p conduit-patchbay-workbench --lib topology::tests
 cargo test -p conduit-observatory --lib
 cargo clippy -p conduit-observatory --all-targets \
   -p conduit-patchbay-workbench --lib --tests -- -D warnings

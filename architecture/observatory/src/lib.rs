@@ -2,6 +2,7 @@
 
 extern crate alloc;
 
+mod admission_display;
 mod causal_explanation;
 mod clock_quality;
 mod cost_comparison_explanation;

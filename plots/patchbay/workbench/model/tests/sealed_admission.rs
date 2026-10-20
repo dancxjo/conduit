@@ -107,6 +107,8 @@ fn installed_near_scratch_and_work_bounds_survive_patchbay_projection() {
     assert_eq!(admission.limits, original.limits);
     let text = patchbay.document(None).unwrap().lines().join("\n");
     assert!(text.contains("sealed-admission"));
+    assert!(text.contains("retained-prepared-payload-bytes"));
+    assert!(text.contains("maximum-numerical-limb-work"));
     for property in &original.realization_properties {
         assert!(text.contains(property.profile().as_str()));
     }

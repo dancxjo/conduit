@@ -342,7 +342,7 @@ pub struct LogicalCordRow {
     pub abnormal_kind: Option<KindId>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PlacementAdmission {
     pub limits: CapabilityLimits,
     pub realization_characteristics: Vec<conduit_core::RealizationCharacteristic>,
