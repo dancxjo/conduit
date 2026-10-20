@@ -210,3 +210,53 @@ fn an_escaping_dispatch_boundary_retains_region_membership() {
     assert_eq!(play.drivers()[5].result, Some([9., 6.]));
     assert_eq!(play.values().compact, 0);
 }
+
+#[test]
+fn owner_checkpoint_stops_each_logical_frontier_inside_a_compact_region() {
+    for frontier in 1..=4 {
+        let mut canonical = prepare(true, 0, None, None);
+        let mut compact = prepare(true, 0, None, None);
+        compact.bind_compact_f32_dag(&nodes()).unwrap();
+        for play in [&mut canonical, &mut compact] {
+            let mut stopped = false;
+            for _ in 0..100 {
+                play.step_with_checkpoint(|node| {
+                    if node == NodeId(frontier) {
+                        stopped = true;
+                        false
+                    } else {
+                        true
+                    }
+                })
+                .unwrap();
+                if stopped {
+                    break;
+                }
+            }
+            assert!(stopped, "frontier {frontier} was not reached");
+            // A denied node must not even stage arithmetic or publish bytes.
+            for node in usize::from(frontier)..=4 {
+                assert!(!play.drivers()[node].execution_witness());
+            }
+            assert_eq!(play.drivers()[5].result, None);
+        }
+        assert_eq!(
+            canonical.logical_invocations(),
+            compact.logical_invocations()
+        );
+        assert_eq!(
+            canonical.signs().events().collect::<Vec<_>>(),
+            compact.signs().events().collect::<Vec<_>>()
+        );
+        // Denial is a checkpoint, not a fabricated failure or cancellation.
+        // Resuming must still consume the retained inputs exactly once.
+        finish(&mut canonical);
+        finish(&mut compact);
+        assert_eq!(compact.drivers()[5].result, Some([9., 6.]));
+        assert_eq!(canonical.drivers()[5].result, compact.drivers()[5].result);
+        assert_eq!(
+            canonical.signs().events().collect::<Vec<_>>(),
+            compact.signs().events().collect::<Vec<_>>()
+        );
+    }
+}

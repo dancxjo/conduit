@@ -73,6 +73,9 @@ pub struct Driver {
     input_layout: CompactF32Layout,
 }
 impl Driver {
+    pub fn execution_witness(&self) -> bool {
+        self.staged || self.finished || self.length != 0
+    }
     pub fn compact_staging_witness(&self) -> bool {
         self.length == 8 && &self.bytes[8..] != b"F32CANON"
     }
