@@ -1,0 +1,14 @@
+{
+  "parent": "24209611ef981250f5da3aa7b60db00af7e382dc",
+  "scope": "Prepared ordinary-product F2 capture runner; compile checked only, no guest proof yet",
+  "files": [
+    {
+      "source": "work/5992-runners/prove-typography-details.py",
+      "tree_path": "task-6038/work/5992-runners/prove-typography-details.py",
+      "bytes": 2282,
+      "sha256": "8165affbf665a7f8185e1bc75e4413fdd519dae491d5b03b5657f3987bf1c61d",
+      "mode": "100644",
+      "blob": "12d9220a8531ffdafe9d8f43c9e83c470b31a0be"
+    }
+  ]
+}
