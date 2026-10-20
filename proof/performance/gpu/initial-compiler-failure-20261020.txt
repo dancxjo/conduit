@@ -1,0 +1,9 @@
+/usr/lib/gcc/x86_64-linux-gnu/13/include/amxtileintrin.h(42): error: identifier "__builtin_ia32_ldtilecfg" is undefined
+    __builtin_ia32_ldtilecfg (__config);
+    ^
+
+/usr/lib/gcc/x86_64-linux-gnu/13/include/amxtileintrin.h(49): error: identifier "__builtin_ia32_sttilecfg" is undefined
+    __builtin_ia32_sttilecfg (__config);
+    ^
+
+2 errors detected in the compilation of "work/gpu-feasibility/proof/performance/gpu/fargan_projection.cu".

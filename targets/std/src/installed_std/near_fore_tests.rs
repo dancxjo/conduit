@@ -258,10 +258,16 @@ fn weak_certificate_cannot_be_relabelled_as_a_tighter_qualified_result() {
             );
         } else {
             assert!(output.0.is_empty());
-            assert_eq!(
-                result.unwrap_err(),
-                "installed kernel step: BackFailed(Failure { code: HostCallFailed, detail: 214 })"
+            let error = result.unwrap_err();
+            assert!(error.starts_with("installed kernel step: BackFailed(Failure { code: HostCallFailed, detail: 214 }); logical-gear=project/consumer/"), "{error}");
+            assert!(
+                error.contains(&format!(
+                    " source-document={}",
+                    plan.source_document_id.as_str()
+                )),
+                "{error}"
             );
+            assert!(error.contains(" source-span=Some("), "{error}");
         }
     }
 }

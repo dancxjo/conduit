@@ -1,5 +1,5 @@
 schema = "conduit.reviewed-plot-inventory/v2"
-maximum_plots = 128
+maximum_plots = 256
 maximum_combined_workloads = 4
 
 # Membership is explicit: repository path discovery validates this list but never creates it.
@@ -627,3 +627,12 @@ entry = "commons"
 workspace_catalog = false
 deterministic = { package = "conduit-std-host", test = "commons_places", case = "commons_source_places_and_relations_execute_in_installed_plan_play", plan_play_evidence = true }
 browser_safe_not_applicable = "checked domain blueprint only; lifecycle actions and cross-Mask traversal remain separate"
+
+[[plots]]
+slug = "quantity-projection"
+title = "Quantity projection"
+entry = "quantity-projection/main"
+workspace_catalog = false
+reusable_entries = [{ entry = "quantity-projection/value", title = "Near Quantity Value", composition = { parent = "quantity-projection/main", occurrences = ["project"] } }]
+deterministic = { package = "conduit", test = "numerical_owner_cost", case = "authored_numerical_fore_retains_all_admitted_values_and_exact_child_evidence", plan_play_evidence = true }
+browser_safe_not_applicable = "this finite numerical Fore has an installed local Std realization; no browser realization is claimed"

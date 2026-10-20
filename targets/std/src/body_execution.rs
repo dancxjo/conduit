@@ -100,6 +100,12 @@ pub struct BodyRunReport {
         Result<Vec<conduit_composite::ScanChildSignReceipt>, conduit_composite::BoundedScanError>,
     pub scan_cancellation_failed: bool,
     pub scan_output_completion_failed: bool,
+    pub each_child_signs: Result<
+        Vec<conduit_composite::ScanChildSignReceipt>,
+        conduit_composite::BoundedActivationError,
+    >,
+    pub each_cancellation_failed: bool,
+    pub each_output_completion_failed: bool,
     pub fore_deliveries: Vec<ExternalForeDelivery>,
     /// Stopped delivery, including an adapter error with unknown external outcome.
     pub fore_pending_output: Option<BodyForePendingOutput>,
@@ -518,6 +524,9 @@ impl StdHost {
                 scan_child_signs: result.scan_child_signs,
                 scan_cancellation_failed: result.scan_cancellation_failed,
                 scan_output_completion_failed: result.scan_output_completion_failed,
+                each_child_signs: result.each_child_signs,
+                each_cancellation_failed: result.each_cancellation_failed,
+                each_output_completion_failed: result.each_output_completion_failed,
                 fore_deliveries: result.fore_deliveries,
                 fore_pending_output: result.fore_pending_output,
                 live_fore_status: live_queue.map(BodyLiveForeQueue::status),

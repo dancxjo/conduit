@@ -35,6 +35,12 @@ pub(super) fn prepare_with_parsec_sources(
             return Err("installed Body supports at most one exact scan per Plot".into());
         }
         let PlannedActivationEntry::Scan(planned) = &partition.plan.activations[0] else {
+            if matches!(
+                &partition.plan.activations[0],
+                PlannedActivationEntry::Unary(_)
+            ) {
+                continue;
+            }
             return Err("installed Body activation Kind is unsupported".into());
         };
         let fragment = partition

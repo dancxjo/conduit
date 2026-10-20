@@ -159,6 +159,7 @@ pub(super) enum InstalledBack {
     FlowZip(FlowZipBack),
     FlowCollect(Box<FlowCollectBack>),
     BodyScan(Box<BodyScanBack>),
+    BodyEach(Box<conduit_composite::KernelEachBack>),
     FlowJoinByKey(Box<FlowJoinByKeyBack>),
     FlowGateScalar(FlowGateScalarBack),
     FlowFirst(FlowFirstBack),

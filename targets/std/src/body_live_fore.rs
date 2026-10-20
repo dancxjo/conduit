@@ -12,6 +12,7 @@ use std::{
     time::{Duration, Instant},
 };
 
+mod numerical;
 mod parsec;
 
 pub const MAX_LIVE_FORE_SLOTS: usize = 8;
@@ -302,18 +303,18 @@ impl BodyLiveForeQueue {
 
     pub fn submit(&self, canonical: &[u8]) -> Result<BodyLiveForeAdmission, String> {
         if self.control.stop_requested() {
-            return Err("live Todo Fore Play is cancelling".into());
+            return Err("live Fore Play is cancelling".into());
         }
         if canonical.len() > self.port.byte_capacity as usize {
-            return Err("live Todo Fore value exceeds its sealed byte bound".into());
+            return Err("live Fore value exceeds its sealed byte bound".into());
         }
         if let Some(contract) = &self.port.value_contract {
             contract
                 .validate(canonical)
-                .map_err(|error| format!("live Todo Fore value contract: {error:?}"))?;
+                .map_err(|error| format!("live Fore value contract: {error:?}"))?;
         } else {
             conduit_core::validate_primitive_info(self.port.value_kind.as_str(), canonical)
-                .map_err(|error| format!("live Todo Fore value kind: {error:?}"))?;
+                .map_err(|error| format!("live Fore value kind: {error:?}"))?;
         }
         if self.initial.is_some() {
             conduit_todo_plot::TodoCommand::decode_info(canonical)
@@ -324,10 +325,10 @@ impl BodyLiveForeQueue {
             return Err("waiting checkpoint command requires a started Body Play".into());
         }
         if state.close_requested || state.kernel_closed || state.play_terminal {
-            return Err("live Todo Fore input is closed".into());
+            return Err("live Fore input is closed".into());
         }
         if state.submitted == self.maximum_items {
-            return Err("live Todo Fore selected item bound is exhausted".into());
+            return Err("live Fore selected item bound is exhausted".into());
         }
         let Some(index) = state.free.pop() else {
             return Ok(BodyLiveForeAdmission::Full);
@@ -345,7 +346,7 @@ impl BodyLiveForeQueue {
     pub fn close(&self) -> Result<(), String> {
         let mut state = self.state.lock().expect("live Fore queue lock poisoned");
         if state.close_requested || state.play_terminal {
-            return Err("live Todo Fore was already closed".into());
+            return Err("live Fore was already closed".into());
         }
         state.close_requested = true;
         drop(state);

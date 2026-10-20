@@ -30,6 +30,7 @@ mod parsec_acknowledged_map;
 mod parsec_sources;
 mod parsec_terminal_owner;
 pub(crate) use parsec_terminal_owner::QualifiedParsecInstruction;
+mod each_route;
 mod scan_route;
 use crate::body_execution::ObservedKernelEvent;
 use clock_observation::KernelClockObservations;
@@ -50,7 +51,7 @@ pub(crate) struct BodyKernel<'a> {
     input_keymaps: [Option<conduit_human::PreparedKeymapChoices>; MAX_NODES],
     requests: Vec<HostCallRequest>,
     clock_observations: KernelClockObservations,
-    supported_pure_scan: bool,
+    supported_pure_activation: bool,
     supported_parsec_input_scan: bool,
     parsec_map: Option<parsec_acknowledged_map::ParsecAcknowledgedMap>,
     parsec_terminal: Option<parsec_terminal_owner::ParsecTerminalOwner>,
@@ -70,6 +71,12 @@ pub(crate) struct BodyKernelResult {
         Result<Vec<conduit_composite::ScanChildSignReceipt>, conduit_composite::BoundedScanError>,
     pub scan_cancellation_failed: bool,
     pub scan_output_completion_failed: bool,
+    pub each_child_signs: Result<
+        Vec<conduit_composite::ScanChildSignReceipt>,
+        conduit_composite::BoundedActivationError,
+    >,
+    pub each_cancellation_failed: bool,
+    pub each_output_completion_failed: bool,
     pub fore_deliveries: Vec<ExternalForeDelivery>,
     pub fore_pending_output: Option<crate::body_execution::BodyForePendingOutput>,
     pub clock_observations: Vec<ObservedKernelEvent>,
@@ -253,6 +260,7 @@ impl<'a> BodyKernel<'a> {
         } else {
             scan_route::prepare(partitions, parent_play)?
         };
+        let mut each = each_route::prepare(partitions, parent_play, fore_inputs.len())?;
         if scans.len() == 1 {
             let conduit_core::PlannedActivationEntry::Scan(planned) =
                 &partitions[scans[0].partition].plan.activations[0]
@@ -263,7 +271,7 @@ impl<'a> BodyKernel<'a> {
                 return Err("preloaded Todo commands exceed the selected scan bound".into());
             }
         }
-        let supported_pure_scan = scans.len() == 1
+        let supported_pure_activation = scans.len() + each.len() == 1
             && partitions.len() == 1
             && fragments[0].placements.len() == 1
             && !has_keyboard
@@ -336,6 +344,10 @@ impl<'a> BodyKernel<'a> {
                     scan.partition == partition_index && scan.owner == placement.placement_id
                 }) {
                     &scan.budget
+                } else if let Some(each) = each.iter().find(|each| {
+                    each.partition == partition_index && each.owner == placement.placement_id
+                }) {
+                    &each.budget
                 } else {
                     // Ordinary Backs are budgeted only after exact activation
                     // owners have been consumed by the whole-Plan scan route.
@@ -387,6 +399,14 @@ impl<'a> BodyKernel<'a> {
                             .take()
                             .ok_or("installed scan owner was prepared twice")?,
                     ))
+                } else if let Some(each) = each.iter_mut().find(|each| {
+                    each.partition == partition_index && each.owner == node.placement_id
+                }) {
+                    InstalledBack::BodyEach(Box::new(
+                        each.back
+                            .take()
+                            .ok_or("installed Each owner was prepared twice")?,
+                    ))
                 } else {
                     preparation::prepare_ordinary_operation(
                         fragment,
@@ -395,6 +415,9 @@ impl<'a> BodyKernel<'a> {
                     )?
                 };
             }
+        }
+        if each.iter().any(|each| each.back.is_some()) {
+            return Err("installed Each has no lowered owner node".into());
         }
         if scans.iter().any(|scan| scan.back.is_some()) {
             return Err("installed scan has no lowered owner node".into());
@@ -479,7 +502,7 @@ impl<'a> BodyKernel<'a> {
             input_keymaps,
             requests: Vec::with_capacity(request_capacity),
             clock_observations: KernelClockObservations::with_capacity(usize::from(sign_items)),
-            supported_pure_scan,
+            supported_pure_activation,
             supported_parsec_input_scan,
             parsec_map: None,
             parsec_terminal: None,
@@ -650,7 +673,7 @@ impl<'a> BodyKernel<'a> {
             .activations
             .iter()
             .any(|bound| !bound.entries.is_empty())
-            && !self.supported_pure_scan
+            && !self.supported_pure_activation
             && !self.supported_parsec_input_scan
         {
             return Err("Body activation coordinator is not installed".into());
@@ -1353,6 +1376,22 @@ impl<'a> BodyKernel<'a> {
         let scan_output_completion_failed = self.scheduler.drivers().iter().any(|driver| {
             matches!(driver, InstalledBack::BodyScan(scan) if scan.output_completion_failed())
         });
+        let each_child_signs = self
+            .scheduler
+            .drivers()
+            .iter()
+            .filter_map(|driver| match driver {
+                InstalledBack::BodyEach(each) => Some(each.as_ref()),
+                _ => None,
+            })
+            .try_fold(Vec::new(), |mut receipts, each| {
+                receipts.extend(each.child_sign_receipts()?);
+                Ok(receipts)
+            });
+        let each_cancellation_failed = self.scheduler.drivers().iter().any(
+            |driver| matches!(driver,InstalledBack::BodyEach(each) if each.cancellation_failed()),
+        );
+        let each_output_completion_failed = self.scheduler.drivers().iter().any(|driver| matches!(driver,InstalledBack::BodyEach(each) if each.output_completion_failed()));
         let (fore_deliveries, fore_pending_output) = self.fore.into_custody();
         BodyKernelResult {
             terminal,
@@ -1365,6 +1404,9 @@ impl<'a> BodyKernel<'a> {
             scan_child_signs,
             scan_cancellation_failed,
             scan_output_completion_failed,
+            each_child_signs,
+            each_cancellation_failed,
+            each_output_completion_failed,
             fore_deliveries,
             fore_pending_output,
             clock_observations: self.clock_observations.into_observations(),

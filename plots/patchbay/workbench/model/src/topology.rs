@@ -4,6 +4,8 @@ use conduit_observatory::{build_report, ObservatoryReport, ObservatorySnapshot};
 use std::collections::VecDeque;
 
 use crate::topology_hosts::render_hosts;
+#[path = "fusion_inspection.rs"]
+mod fusion_inspection;
 
 pub const MAX_TOPOLOGY_LINES: usize = 256;
 // The complete standard Hosted adapter report remains below 96 KiB while the
@@ -16,6 +18,7 @@ pub enum TopologyViewError {
     InvalidReport(String),
     ReportTooLarge,
     FaceTooLarge,
+    InvalidFusionExplanation,
 }
 
 impl std::fmt::Display for TopologyViewError {
@@ -27,6 +30,9 @@ impl std::fmt::Display for TopologyViewError {
             }
             Self::ReportTooLarge => {
                 formatter.write_str("Observatory report exceeds Patchbay retention bounds")
+            }
+            Self::InvalidFusionExplanation => {
+                formatter.write_str("fusion explanation does not match the inspected sealed Plan")
             }
             Self::FaceTooLarge => {
                 formatter.write_str("topology face exceeds its finite line bound")
@@ -194,11 +200,12 @@ fn render_plans_and_plays(
         push_line(
             lines,
             format!(
-                "    FRAGMENT {} plan={} host={} boot={}",
+                "    FRAGMENT {} plan={} host={} boot={} sealed-admission={:?}",
                 fragment.fragment_id.as_str(),
                 fragment.plan_id.as_str(),
                 fragment.host_id.as_str(),
-                fragment.boot_id.as_str()
+                fragment.boot_id.as_str(),
+                fragment.admission
             ),
         )?;
     }
@@ -227,7 +234,7 @@ fn render_plans_and_plays(
         push_line(
             lines,
             format!(
-                "    PLACEMENT {} plan={} host={} boot={} capability={} kind={} contract={} profile={} implementation={} artifact={} Host Calls={:?} resources={:?} logical={:?}",
+                "    PLACEMENT {} plan={} host={} boot={} capability={} kind={} contract={} profile={} implementation={} artifact={} Host Calls={:?} resources={:?} authority={:?} logical={:?} sealed-admission={:?}",
                 placement.placement_id.as_str(),
                 placement.plan_id.as_str(),
                 placement.host_id.as_str(),
@@ -240,7 +247,9 @@ fn render_plans_and_plays(
                 placement.artifact_id.as_str(),
                 placement.host_calls,
                 placement.resources,
-                placement.logical_gear
+                placement.authority,
+                placement.logical_gear,
+                placement.admission
             ),
         )?;
         if let Some(device) = super::topology_hosts::current_device_for_placement(report, placement)

@@ -110,6 +110,7 @@ pub struct NearQuantityBack {
     state: Box<NearState>,
     staged: bool,
     complete: bool,
+    cancelled: bool,
 }
 struct NearState {
     requested_limit: Quantity,
@@ -140,6 +141,7 @@ impl NearQuantityBack {
             }),
             staged: false,
             complete: false,
+            cancelled: false,
         })
     }
     pub fn retained_capacity_bytes(&self) -> usize {
@@ -290,6 +292,18 @@ impl<const PORTS: usize> StepBack<PORTS> for NearQuantityBack {
     fn cancel(&mut self) {
         self.complete = true;
         self.staged = false;
+        self.cancelled = true;
+    }
+}
+impl<const PORTS: usize> conduit_kernel::scheduler::prepared_session::ReusableStepBack<PORTS>
+    for NearQuantityBack
+{
+    type Next = ();
+    fn preflight_next(&self, _: &(), _: &dyn conduit_kernel::ValueStorage) -> bool {
+        self.complete && !self.staged && !self.cancelled
+    }
+    fn begin_next(&mut self, _: ()) {
+        self.complete = false;
     }
 }
 
