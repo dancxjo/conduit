@@ -1,0 +1,14 @@
+{
+  "parent": "85899dcf1393c12d139fd183bcb5174f5af4ce28",
+  "scope": "Confirmed Candidate merge-preview checkout identity; raw logs excluded",
+  "files": [
+    {
+      "source": "outputs/6151-preview-ebebe0c67/receipt.json",
+      "tree_path": "task-6038/outputs/6151-preview-ebebe0c67/receipt.json",
+      "bytes": 2227,
+      "sha256": "36ff9a294cb7be9b73a78e4b4fb7854c6a67cdb102825c28c3a39ed2efd8d0d0",
+      "mode": "100644",
+      "blob": "f17098212cc82844c44644f684637319135b94ad"
+    }
+  ]
+}

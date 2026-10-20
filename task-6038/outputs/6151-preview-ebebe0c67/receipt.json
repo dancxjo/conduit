@@ -9,7 +9,7 @@
   ],
   "preview_tree": "e3e379ad5e69233093ddc8f83cfe9812f9ff06f9",
   "preview_committed_at": "2026-10-20T14:31:20Z",
-  "source_identity_scope": "Exact current pull/6151/merge fetched; Candidate quick checkout confirmation requested from sole CI observer. No overall green/merge claim.",
+  "source_identity_scope": "Exact Candidate checkout confirmed by workflow sha, environment, git checkout and pipeline scan; Source54a\u2192mergepreviewebebe. Admission still running, no Candidate completion/merge/Integration claim.",
   "new_dev_paths": [
     "architecture/plot/src/checked_syntax/startup_catalog.rs",
     "architecture/plot/src/checked_syntax/startup_catalog/read_dependencies.rs",
@@ -25,5 +25,9 @@
     "targets/std/src/installed_std/near_back_tests.rs",
     "targets/std/src/installed_std/near_back_tests/source_dependencies.rs"
   ],
-  "native_refresh_consequence": "Refreshing6055 onto accepted repair also admits6150 Plot preparation/cache runtime code, so old ed262 product witness is no longer equal runtime Source to refreshed feature. Preserve old receipts; rebuild supported normal product, rerun22checkpoint journey and wide/narrow panel+pointer supplements on the final refreshed Source before stage05 closure. Feature6commit delta may remain unchanged, but cannot claim only4CI files differ from old product witness."
+  "native_refresh_consequence": "Refreshing6055 onto accepted repair also admits6150 Plot preparation/cache runtime code, so old ed262 product witness is no longer equal runtime Source to refreshed feature. Preserve old receipts; rebuild supported normal product, rerun22checkpoint journey and wide/narrow panel+pointer supplements on the final refreshed Source before stage05 closure. Feature6commit delta may remain unchanged, but cannot claim only4CI files differ from old product witness.",
+  "candidate_run": 39439989259,
+  "quick_job": 118687471467,
+  "checkout_log_sha256": "4d6912fa30c646ff5a0ede2d388aa959f15ba2d1643c60994f48f72c90b0dfd8",
+  "confirmed_at": "2026-10-20T14:54Z"
 }
