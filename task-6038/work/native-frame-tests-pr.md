@@ -1,0 +1,5 @@
+The 32 KiB native frame admission repair in #6054 made the existing 20,000-byte document fixtures fit in one frame. Full workspace tests exposed two stale assumptions: the truncated-document case sent a complete document, and the action-chunk case expected two chunks from a single-frame payload.
+
+Derive the document and action fixtures from the admitted frame capacity so they necessarily exercise continuation. Retain truncation and tampering refusal, and verify exact payload reconstruction and zero emitted chunks on action pressure. This repairs integration fallout blocking #5994 / #6038; production limits and behavior are unchanged.
+
+Final-commit validation: 14/14 native owner tests passed; strict ConduitOS library/test Clippy passed with warnings denied; formatting and diff checks passed. Independent review found no blocker. The original focused 14/14 result before refreshing onto current dev is retained separately. The preceding full workspace run stopped with these two native failures (8,894 tests passed before stopping); it is retained as failure evidence and is not a passing workspace result. No issue closure is requested by this PR.

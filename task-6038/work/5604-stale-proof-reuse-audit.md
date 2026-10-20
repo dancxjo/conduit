@@ -1,0 +1,27 @@
+# #5604 stale-input proof reuse audit
+
+Read-only, no builds/guest/source changes. Reviewed historical face-shell goal products, merged#5972 source, later#5607 handoff and current supported collector. No actual guest retired-Show replay receipt was found. Existing CPU and QEMU evidence should be reused with their distinct boundaries.
+
+## What exists
+
+- Merged3e4daa37d/#5972 owns actual NativeFaceMask current-Show lifecycle binding and focused stale/owner/refusal tests. `targets/conduitos/src/product_front_door/face_workspace_editor_admission_tests.rs::actual_editor_commit_retires_old_lifecycle_show_then_fresh_stop_preserves_body` uses real planned native Mask submission and ordinary editor input. It retains old Face/Show/Stop interaction, commits actual editor text, submits retained old interaction, expects `workspace-face-stale-face`, independently compares unchanged complete owner projection and then succeeds with fresh Stop. This is **deterministic CPU integration**, explicitly stated by the file and `docs/audits/native-shell-face-f2.md`; not a guest held-release replay.
+- Historical actual QEMU product is retained at `/home/dancxjo/Documents/Codex/2026-10-17/goal-please-finish-and-close-https/work/native-success-8e722275b/journey-proof.json`: exact8e722275be1f2e6707ca499b1d57a031c97f07d3, freestanding-emulator, real-QMP-keyboard,17steps. It includes unavailable-Wake refusal and fresh recovery, normal editor input, Patchbay Gear Details. It does **not** identify a retired-Show replay checkpoint. Browser unsupported, physical/human absent.
+- Later accepted normal product4c4 has retained audit under the5607 goal (`work/5605-published`, `outputs/5605-published-audit.json`) and `docs/proof/native-shell-cross-mask.md`:30target hashes,17screenshots,27paired native/linear Faces, one Birth, fouraccepted lifecycle actions, onezero-effect unavailable refusal, fresh recovery. This is real normal-product QEMU evidence, but no stale replay.
+- Current collector `targets/conduitos/make/xtask/journey_proof/face_correspondence.rs:189` explicitly emits `stale_show_replay.coverage="separate deterministic admission suite; not asserted by this harness"`, `installed_enactment:false`. Current355 product uses that collector. Its actual held pointer movement after fresh Show demonstrates no duplicate effect without a new press; it is not obsolete semantic interaction submission.
+- Important historical correction: the ec663264f17-stage#5607 journey in `2026-10-18/...5607/outputs/5607-qemu-proof` is the **architecture appliance**, not a normal product. Later state.md explicitly corrects that classification. Reuse its actual QMP evidence only as architecture-appliance evidence; do not promote it to installed normal-product proof or configured current responsive-Crèche proof.
+
+## Smallest existing supported route
+
+Normal product input travels through ordinary QMP USB keyboard/pointer into the current acknowledged native Face Mask, then current owner admission. `CONDUIT_NATIVE_FACE`, `CONDUIT_CRECHE_FOCUS`, `CONDUIT_CRECHE_CHANGE` and native action receipts expose exact observed Face/revision/Show/typed actions without adding authority. The supported producer remains `cargo +stable xtask make conduitos live x86_64 --locked`, then `cargo +stable xtask make host verify PRODUCT --journey`. The internal supplemental panel harness may reuse an unchanged normal ISO for viewport/focus inspection, but is not a public entrance replacement.
+
+Ordinary keyboard dispatch constructs interactions against the current acknowledged Show. Retaining a key release or sending another key after refresh does not submit a retained old FaceInteraction. No inspected existing supported normal-product input entrance can deliberately replay an obsolete semantic Show; do not invent a debug owner hook or describe unavailable Wake/held pointer motion as stale replay. CPU replay is already thorough and should cover #5607 deterministic refusal unless its exact owner contract explicitly requires guest replay. Historical#5605 contract reconciliation was separately recorded; do not reopen that accepted scope merely because no guest stale replay exists.
+
+## Remaining configured #5607 focus/Details proof
+
+Current355 wide/narrow normal-ISO receipts already cover12available Source-control forward traversal,64-byte Unicode provisional/committed input, empty-name unavailable Birth reason, fivevisible candidates/fouravailable, search-preserved selected review and exact fresh-Show commits. Small remaining composition remains:
+
+1. Complete Shift-Tab reverse cycle and wraparound in actual configured wide/narrow Crèche, independently compared to Source control order.
+2. F2 into complete Details, everypage reading and return to exact named action/argument; repeat over Unicode/search states and confirm local navigation changes no Source revision.
+3. Configured CPU stable-name focus migration, oldFace resolution refusal and filtered-away target refusal, reusing existing generic contracts rather than new product semantics.
+
+Use real existing receipt schemas and current stale CPU tests; add production behavior only if this combined proof demonstrates a defect. Stage05 must merge before stage06 implementation. Stage12 final acceptance can reuse predecessor evidence by exact source/lineage while capturing its genuinely missing combined product cases, not rerun all historical chapters or claim a stale replay the harness does not perform.

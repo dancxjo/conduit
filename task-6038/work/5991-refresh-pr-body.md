@@ -1,0 +1,7 @@
+Crèche now presents one primary Source title, typed current name/naming fields, source-backed readiness and selected-Plot review, and one prominent offered Birth action. Native drafts still commit through the existing exact action/argument contract; complete names, input wording, refusal reasons and filtered-out selections remain inspectable. The two authored structural roots reuse the checked component machinery; meaningful responsive panels remain stage 05, #5990.
+
+This is the bounded current-dev refresh of #6043. Its 24 product files are byte-identical to that reviewed preparation, with original commit provenance retained in the refresh commit. A separate prerequisite commit repairs three retained cold-preparation failures in two browser specs using the existing finite preparation allowance. It preserves #6047's repair, every substantive assertion, one Chromium worker and zero retries.
+
+Validation: the refreshed Source suite passes 16 unit and 15 integration cases. Current native focused and supported Workspace proof are running. Prior #6043 native/QEMU receipts remain historical evidence, not acceptance of this refreshed head. Fresh Candidate, exact-dev Integration and required stable evidence remain outstanding; this PR will stay draft until its local proof is complete and will not merge while combined dev lacks green acceptance.
+
+Owning issue: #5991, stage 04 of #5994. Prerequisite ownership is carried under #6038. Supersedes #6043 while preserving its discussion, source branch and receipts. No issue closure is claimed.

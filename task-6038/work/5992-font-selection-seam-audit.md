@@ -1,0 +1,11 @@
+# Read-only native font selection seam audit
+
+Inspected native-panels clean Source56e0da706 (font product ancestry3557606fc) and live issue5992. This is preparation only; stage05 then06 remain the serial implementation gates.
+
+Current active build-only typography generator emits five profiles Label14,Body16,Heading20,Title24 from pinned Sans and Code14 from pinned Mono. It uses Sans fallback per absent selected-font scalar; source-font parsing/rasterization is build-time only. Runtime TextRole selects these immutable records; metrics(), glyph(), TextLayout and render_text_scaled share the same profile identity. Native render_scene_configured accepts role selector, text scale and paint resolver. Preserve that single measure/paint identity when extending profiles.
+
+Current canonical VisualExpression has closed fields version,identity,density,palette,text_scale_percent,motion. It has no independent typography/family/style selection. VisualPalette::Editorial is a palette, not an admitted font-family selection. Do not silently derive a new font choice from arbitrary Look identity strings or guess it from source text. Issue5992 explicitly allows a bounded pinned mechanism first and subsequent Look-selection integration under5628/5629; no second Look engine is warranted. Future selection must remain presentation-only, finite, checked and aligned across layout/paint; exact-family provider facts remain Host-owned.
+
+Candidate font source and coverage metadata are retained under outputs/5992-font-source-audit. Existing immutable five-profile coverage baseline is work/5992-existing-font-resource-baseline.json. Neither provides runtime raster proof of the Serif. Keep Sans fallback for the candidate missing66 admitted scalars; retain explicit rescue/unsupported scalar behavior. No optional italic is needed for this finite scope.
+
+Before implementation, choose the smallest explicit admitted typography expression seam under the existing Look law, or isolate the allowed immutable mechanism first. Check current dev again, preserve headless exclusion and all48/192/20/8 scene limits. A font swap must produce newly measured layout and acknowledged Show, never only repaint old hit regions. No source, font assets, tests, branch or GitHub mutation was made by this audit.

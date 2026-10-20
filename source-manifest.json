@@ -1,0 +1,438 @@
+{
+  "files": [
+    {
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/5516-5518-existing-work-audit.md",
+      "tree_path": "task-6038/work/5516-5518-existing-work-audit.md",
+      "bytes": 9261,
+      "sha256": "a68f03382dff1dd9b16d82ea07dc2cc1ea7c2fff2c7929e99c897d76d324e7c6",
+      "git_mode": "100644",
+      "git_blob": "3615590c09b05f4c3c44eeaea1ae587fd8cd081f",
+      "source_mode": "0o664"
+    },
+    {
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/5604-stale-proof-reuse-audit.md",
+      "tree_path": "task-6038/work/5604-stale-proof-reuse-audit.md",
+      "bytes": 5459,
+      "sha256": "f7380aae56f6d58fc9457a1f1821fa1974748c6de81018582c8f591193e4353d",
+      "git_mode": "100644",
+      "git_blob": "2ef8fa4116c7c9780e70c88b12a81802cee7611a",
+      "source_mode": "0o664"
+    },
+    {
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/5607-stage06-355-gap-addendum.md",
+      "tree_path": "task-6038/work/5607-stage06-355-gap-addendum.md",
+      "bytes": 13499,
+      "sha256": "4d104edfb15c6a65644948f514bd00a764898c6f50d781db895a777f2fd3fc90",
+      "git_mode": "100644",
+      "git_blob": "3195fa180b4e44d262691e38c728f0a80326a9d4",
+      "source_mode": "0o664"
+    },
+    {
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/5607-stage06-readonly-gap-audit-c7.md",
+      "tree_path": "task-6038/work/5607-stage06-readonly-gap-audit-c7.md",
+      "bytes": 7659,
+      "sha256": "f9912b06095c37fcf0afa02b9fb6dfc0f4e6f5dbfc2b16f27efccda043f4860e",
+      "git_mode": "100644",
+      "git_blob": "c9028f67b731b78398ca3a6fe2ac404e6d65b24a",
+      "source_mode": "0o664"
+    },
+    {
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/5627-closure-comment.md",
+      "tree_path": "task-6038/work/5627-closure-comment.md",
+      "bytes": 1857,
+      "sha256": "645ae5cc7716120cbf9a972ee59d3187feb89813dbc6dcf23f1cb1609e39924b",
+      "git_mode": "100644",
+      "git_blob": "bb07cf82717f26aa3617601dcde79f430512eb6c",
+      "source_mode": "0o664"
+    },
+    {
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/5627-original-acceptance-audit.md",
+      "tree_path": "task-6038/work/5627-original-acceptance-audit.md",
+      "bytes": 6981,
+      "sha256": "9836db217fd17ee18192e4ca365c78590dec608158c0c54dff33061fab30d96e",
+      "git_mode": "100644",
+      "git_blob": "94886733519b3f8936580b24f8beb6b47a237d60",
+      "source_mode": "0o664"
+    },
+    {
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/5628-native-selection-route-audit.md",
+      "tree_path": "task-6038/work/5628-native-selection-route-audit.md",
+      "bytes": 9625,
+      "sha256": "5f0e57485945c34bbe348376e64c715f635cde095e39f1f5a480f1474696a791",
+      "git_mode": "100644",
+      "git_blob": "1846100bfa95c8cf71c1656d7d87a36eaede984a",
+      "source_mode": "0o664"
+    },
+    {
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/5645-5646-readonly-acceptance-matrix.md",
+      "tree_path": "task-6038/work/5645-5646-readonly-acceptance-matrix.md",
+      "bytes": 3736,
+      "sha256": "b47265e182ac1c27dd473b4aadec6d0c275c50b916468d74992d48a691c420e7",
+      "git_mode": "100644",
+      "git_blob": "ffbffd66c1e50043ab7742e4339ca601348a84bb",
+      "source_mode": "0o664"
+    },
+    {
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/5645-a252-substance-review.md",
+      "tree_path": "task-6038/work/5645-a252-substance-review.md",
+      "bytes": 6466,
+      "sha256": "d62dafe2ceb29a25d50a38d330e10c5678332ef12c303a36c9eac8ae0a1ac287",
+      "git_mode": "100644",
+      "git_blob": "88a14fcaa76b5d5adb3049bab7c33a9186933177",
+      "source_mode": "0o664"
+    },
+    {
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/5645-body-birth-diagnostic-original.rs",
+      "tree_path": "task-6038/work/5645-body-birth-diagnostic-original.rs",
+      "bytes": 8854,
+      "sha256": "fcc84de6057feff88211ab23a8a1bd84a42b262fd01371661a11fc47eaec90d0",
+      "git_mode": "100644",
+      "git_blob": "2ff2e865b2a897a83165687061995419d5838218",
+      "source_mode": "0o664"
+    },
+    {
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/5645-current-head-proof-plan.md",
+      "tree_path": "task-6038/work/5645-current-head-proof-plan.md",
+      "bytes": 7445,
+      "sha256": "e785d41298c455688d09963d6c8dcd1391e6b7292c8b039fda7eb788ac164914",
+      "git_mode": "100644",
+      "git_blob": "c4f6fbde3b3d165f10d6e4a4dbe50471c763d522",
+      "source_mode": "0o664"
+    },
+    {
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/5645-installed-birth-diagnostic-original.rs",
+      "tree_path": "task-6038/work/5645-installed-birth-diagnostic-original.rs",
+      "bytes": 33871,
+      "sha256": "98b6e70e6c876e78d7dc69dc227e09c7b7848ecf904784b450aed66225d5470a",
+      "git_mode": "100644",
+      "git_blob": "6520e651596efd59bbbe71c3062fe6691cedfef0",
+      "source_mode": "0o664"
+    },
+    {
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/5645-installed-proof-runner-current.sh",
+      "tree_path": "task-6038/work/5645-installed-proof-runner-current.sh",
+      "bytes": 6816,
+      "sha256": "8dfb80c8d5e91cb2aeba879011461770cd6dae083783d5862ff78ea12f90a121",
+      "git_mode": "100755",
+      "git_blob": "49c812ba8a57535bb0cb059380a06e13f79536ce",
+      "source_mode": "0o700"
+    },
+    {
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/5645-installed-proof-runner.sh",
+      "tree_path": "task-6038/work/5645-installed-proof-runner.sh",
+      "bytes": 6108,
+      "sha256": "fcd3e4b59391e31c1369198de2d52548e9af7a4a6ffdbe3172fae2c21fb413c8",
+      "git_mode": "100644",
+      "git_blob": "9cb3171396a7e5a66a80a4e08237cf7cb85e682b",
+      "source_mode": "0o664"
+    },
+    {
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/5645-owner-fixture-repair-proposed.spec.mjs",
+      "tree_path": "task-6038/work/5645-owner-fixture-repair-proposed.spec.mjs",
+      "bytes": 81513,
+      "sha256": "e1b02e70ebba6522cee17e9a70d2cf9025794a03695483317f97f4f98557a0ec",
+      "git_mode": "100644",
+      "git_blob": "b2b3adba0c80238e330a6f660b7b8d58a17bedb1",
+      "source_mode": "0o664"
+    },
+    {
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/5990-combined-355-native-checks.py",
+      "tree_path": "task-6038/work/5990-combined-355-native-checks.py",
+      "bytes": 1503,
+      "sha256": "cfdb81ba86c90ea7c042ab6815bffdcc04ea190ad7a9628c7f911871d1d33276",
+      "git_mode": "100644",
+      "git_blob": "8e9921c7b14a17eddf28d02ad1ac61915585c157",
+      "source_mode": "0o664"
+    },
+    {
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/5990-combined-native-checks.py",
+      "tree_path": "task-6038/work/5990-combined-native-checks.py",
+      "bytes": 1503,
+      "sha256": "16fb38f33003fdfb36906cae6d8657213103a1d56863e606648066466f3f5edb",
+      "git_mode": "100644",
+      "git_blob": "7412c68db9481ffdce4ee95d5be201c132d9925b",
+      "source_mode": "0o664"
+    },
+    {
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/5990-ed262de88-acceptance-audit.md",
+      "tree_path": "task-6038/work/5990-ed262de88-acceptance-audit.md",
+      "bytes": 3163,
+      "sha256": "cc38419e52bb60dc49e52b3a11556b2e28582f144a2c27c236d643a08bc20276",
+      "git_mode": "100644",
+      "git_blob": "b8ace07a4865fe4f287c1432bd2e15b69fbe9f42",
+      "source_mode": "0o664"
+    },
+    {
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/5990-panel-handoff.md",
+      "tree_path": "task-6038/work/5990-panel-handoff.md",
+      "bytes": 2323,
+      "sha256": "86b80adf1b5cf9c75f6b1990b7700505296db297ffe689804afb75c54fd4e129",
+      "git_mode": "100644",
+      "git_blob": "22868f28424b3bda33cc01801144f7223df61f9f",
+      "source_mode": "0o664"
+    },
+    {
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/5990-panel-source-test.rs",
+      "tree_path": "task-6038/work/5990-panel-source-test.rs",
+      "bytes": 3406,
+      "sha256": "b4a49b2aeb33f8d143096f979d3f6ecb8c735e75de69b7ee83b3ed62f0c612e6",
+      "git_mode": "100644",
+      "git_blob": "45b7501be52918f28e32aaf77b9a3fcfdbb98534",
+      "source_mode": "0o664"
+    },
+    {
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/5990-pr-draft.md",
+      "tree_path": "task-6038/work/5990-pr-draft.md",
+      "bytes": 3347,
+      "sha256": "35c08f98e2182b117a6c1e3846973f08229216bdf952261ac24d6405ec40ab32",
+      "git_mode": "100644",
+      "git_blob": "100a3206e9092b84593c71a66267898a88b6c49e",
+      "source_mode": "0o664"
+    },
+    {
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/5991-refresh-pr-body.md",
+      "tree_path": "task-6038/work/5991-refresh-pr-body.md",
+      "bytes": 1553,
+      "sha256": "3917e8fcebde51266913b40981ecd24d4df2041703f023a2da7f18c9642fecfa",
+      "git_mode": "100644",
+      "git_blob": "2586af66103a09ee3bf3b77aca9a8aa57cdce5ce",
+      "source_mode": "0o664"
+    },
+    {
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/5991-stable-closure-comment.md",
+      "tree_path": "task-6038/work/5991-stable-closure-comment.md",
+      "bytes": 2849,
+      "sha256": "8775d281794bb65b46276b68feb03d0e8b51810f6125f0a5ffc938eb51f6400d",
+      "git_mode": "100644",
+      "git_blob": "0d1e61d997e24b9ca44bfca1c8a85f200938fabf",
+      "source_mode": "0o664"
+    },
+    {
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/5992-font-selection-seam-audit.md",
+      "tree_path": "task-6038/work/5992-font-selection-seam-audit.md",
+      "bytes": 2288,
+      "sha256": "688a40024f4d6fd94402a8a30693c11ee64c4f294a70c6560477eeba6589c5f7",
+      "git_mode": "100644",
+      "git_blob": "557515a01020df65adbc6f9dac55e38ff11d1793",
+      "source_mode": "0o664"
+    },
+    {
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/5994-existing-work-progress.md",
+      "tree_path": "task-6038/work/5994-existing-work-progress.md",
+      "bytes": 1491,
+      "sha256": "a63fe76ca7d5b4f9849b51239b988c33aba110ce495c467c53df2762d01fa717",
+      "git_mode": "100644",
+      "git_blob": "3de05b50a1566d76c5e5b2ee8fa22bfe37ac03e1",
+      "source_mode": "0o664"
+    },
+    {
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/5994-frame-repair-comment.md",
+      "tree_path": "task-6038/work/5994-frame-repair-comment.md",
+      "bytes": 972,
+      "sha256": "7bbcbfdae854db89181104b00667d35893b1ad948cc2379eee2cb812c829ba3a",
+      "git_mode": "100644",
+      "git_blob": "5294dd360a45d50ee30180c62af0362298530011",
+      "source_mode": "0o664"
+    },
+    {
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/6038-prerequisites-progress.md",
+      "tree_path": "task-6038/work/6038-prerequisites-progress.md",
+      "bytes": 1570,
+      "sha256": "962c18563ddf9627ba3d254f5bf3edf3d51914918c7bd060e25775ca224ed484",
+      "git_mode": "100644",
+      "git_blob": "fa9b9138e93482b4b1ab8664f157a7d226862550",
+      "source_mode": "0o664"
+    },
+    {
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/6039-6040-minimal-reuse-audit.md",
+      "tree_path": "task-6038/work/6039-6040-minimal-reuse-audit.md",
+      "bytes": 6345,
+      "sha256": "00039d161127f66ba0593aa1daf480ea48274bf5a4f54ded8cb46c6894e94dcf",
+      "git_mode": "100644",
+      "git_blob": "11bbb4441277ddd142b6626b13dc86459866dbdc",
+      "source_mode": "0o664"
+    },
+    {
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/6039-native-route-boundary-audit.md",
+      "tree_path": "task-6038/work/6039-native-route-boundary-audit.md",
+      "bytes": 1306,
+      "sha256": "35b40163a3f5e1281690f4196f822526d1a2a9c467d16bbfcf7af947f7ca1be0",
+      "git_mode": "100644",
+      "git_blob": "b06253a12e02ce8365058d4f390ceeeda99c8b6c",
+      "source_mode": "0o664"
+    },
+    {
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/6039-source-recovery-handoff.md",
+      "tree_path": "task-6038/work/6039-source-recovery-handoff.md",
+      "bytes": 14180,
+      "sha256": "e12eefb567e3be665744e773fe066e49becaa1c4f4fdb01a7bdaafe072061e95",
+      "git_mode": "100644",
+      "git_blob": "531ef66581e8a61f1da22abb36dcf61950843e5f",
+      "source_mode": "0o664"
+    },
+    {
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/6041-retain-portable-evidence.mjs",
+      "tree_path": "task-6038/work/6041-retain-portable-evidence.mjs",
+      "bytes": 4840,
+      "sha256": "8bd6d88be3ad989e3cae53425ec37a573fe1ba3b7eebcc3c0dcfdc3b5fa6d85a",
+      "git_mode": "100644",
+      "git_blob": "e0c03d87218a182161670dca83ad2315355934c6",
+      "source_mode": "0o664"
+    },
+    {
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/6055-before-transfer-identity.mjs",
+      "tree_path": "task-6038/work/6055-before-transfer-identity.mjs",
+      "bytes": 2350,
+      "sha256": "483114452146061d0b123febdca98cec8974ba1ede7fcd8a95824efcde1f4cda",
+      "git_mode": "100644",
+      "git_blob": "aef74a0394b779e2d1b77dc11afb7a8ce59ad14d",
+      "source_mode": "0o664"
+    },
+    {
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/6055-body-current.md",
+      "tree_path": "task-6038/work/6055-body-current.md",
+      "bytes": 8052,
+      "sha256": "9e23f3044496c33bbcebb86c063ed9eade5174c0979235a4775cc1e00f5aed82",
+      "git_mode": "100644",
+      "git_blob": "98e2551fa148bccbd803c02ea7b84e69370aa8c1",
+      "source_mode": "0o664"
+    },
+    {
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/6055-current-smoke-diagnostic.mjs",
+      "tree_path": "task-6038/work/6055-current-smoke-diagnostic.mjs",
+      "bytes": 4194,
+      "sha256": "27d0e6a7873db0081add6070a59365f510661b60b6ced7b09457b3058f1c20fa",
+      "git_mode": "100644",
+      "git_blob": "de75940332068b385a26c3652f0510ce75df5d1e",
+      "source_mode": "0o664"
+    },
+    {
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/6055-fragmented-header-diagnostic.mjs",
+      "tree_path": "task-6038/work/6055-fragmented-header-diagnostic.mjs",
+      "bytes": 3187,
+      "sha256": "7b2af5a429adbb6e40fc28ddc9a17fb8e4dd2db4eb90c6bc907a743b1c0577ad",
+      "git_mode": "100644",
+      "git_blob": "57c39df09da25f156bfb340d500cc82cc0b3ca8e",
+      "source_mode": "0o664"
+    },
+    {
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/6055-smoke-monotonic-diagnostic.mjs",
+      "tree_path": "task-6038/work/6055-smoke-monotonic-diagnostic.mjs",
+      "bytes": 4075,
+      "sha256": "e1964d0b433b021ab42a145fc4430bd20484c00a6f19c3512c8f6120a08ceb8f",
+      "git_mode": "100644",
+      "git_blob": "df4794fffbd21638c938ea2c5eaaa8f93764ff33",
+      "source_mode": "0o664"
+    },
+    {
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/6055-transfer-identity-before.spec.mjs",
+      "tree_path": "task-6038/work/6055-transfer-identity-before.spec.mjs",
+      "bytes": 7735,
+      "sha256": "86453484a732eb52b07b92b663d6af6e263048d0220ae12f5be6379f17e816a0",
+      "git_mode": "100644",
+      "git_blob": "2a6c3ebce9f9450183bace47cecba935f37ed028",
+      "source_mode": "0o664"
+    },
+    {
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/6055-transfer-identity-chromium.mjs",
+      "tree_path": "task-6038/work/6055-transfer-identity-chromium.mjs",
+      "bytes": 3656,
+      "sha256": "2e817f0978ec1851f050fc5c6012bd5a2d98c3b58265e202ebf9785e464ef71c",
+      "git_mode": "100644",
+      "git_blob": "71547297a3a0890bc18162165b16ab0963c8b599",
+      "source_mode": "0o664"
+    },
+    {
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/6055-transfer-identity-smoke.mjs",
+      "tree_path": "task-6038/work/6055-transfer-identity-smoke.mjs",
+      "bytes": 4265,
+      "sha256": "028cde66ba4a5277dcc8f0b99e0ab295e4bb07e61742cfdc77265f329d4ef973",
+      "git_mode": "100644",
+      "git_blob": "a62d7aaadbeef984bdd871bc815d1f17763bee58",
+      "source_mode": "0o664"
+    },
+    {
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/6140-ci-feature-coverage-audit.md",
+      "tree_path": "task-6038/work/6140-ci-feature-coverage-audit.md",
+      "bytes": 4091,
+      "sha256": "f2293bb3bf164d10df1f1ac039dc1492474a4159755807efffd51a526a972c4d",
+      "git_mode": "100644",
+      "git_blob": "3440fdcb96193fdce4990ca1a3addd54893900cd",
+      "source_mode": "0o664"
+    },
+    {
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/6148-body-current.md",
+      "tree_path": "task-6038/work/6148-body-current.md",
+      "bytes": 2310,
+      "sha256": "c85b3f52b77dd8d68a5d530a0d14d62673d1be226221d53d664f28e07db02dc5",
+      "git_mode": "100644",
+      "git_blob": "222165fdbc91469f2ad1bfb2cea6f3e8303dbbb7",
+      "source_mode": "0o664"
+    },
+    {
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-ci-coverage-pr.md",
+      "tree_path": "task-6038/work/native-ci-coverage-pr.md",
+      "bytes": 1374,
+      "sha256": "967755463b62cc827db3f3685cecda8a7416cc74ee3b7b8b2c518b1ba9de06a8",
+      "git_mode": "100644",
+      "git_blob": "f27c24ca1cd2c2cb08df7eafba9dc58c2e2b0dd1",
+      "source_mode": "0o664"
+    },
+    {
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-frame-tests-pr.md",
+      "tree_path": "task-6038/work/native-frame-tests-pr.md",
+      "bytes": 1158,
+      "sha256": "831171807bf6316c19882bcf2f6fc781f8fafdb7e84157f677182abc5d458018",
+      "git_mode": "100644",
+      "git_blob": "0145f283767f9199481be20773a4ca0d7624405c",
+      "source_mode": "0o664"
+    },
+    {
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-frame-tests-review.md",
+      "tree_path": "task-6038/work/native-frame-tests-review.md",
+      "bytes": 1000,
+      "sha256": "0fc417bace70c4454dce2c5e7466af23a9d19ca86e3eb2971b296197365e8d7e",
+      "git_mode": "100644",
+      "git_blob": "c90c2f392fc50e6512e62faa807641e18b9dde07",
+      "source_mode": "0o664"
+    },
+    {
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-join-repair-pr.md",
+      "tree_path": "task-6038/work/native-join-repair-pr.md",
+      "bytes": 1418,
+      "sha256": "9fe9100f2d7984acac42475e57369a6969991e0dcfcf4ecb5f1486714f498a38",
+      "git_mode": "100644",
+      "git_blob": "149b1ea97dc0de66f658d339ca75812c7cbd7bcf",
+      "source_mode": "0o664"
+    },
+    {
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/prove-5990-panels-qemu.py",
+      "tree_path": "task-6038/work/prove-5990-panels-qemu.py",
+      "bytes": 15913,
+      "sha256": "026db27fe9c59d851fea4500a5e11f97670793650d10a2861d6731430e6230e6",
+      "git_mode": "100644",
+      "git_blob": "9ad260a30494b2e9f2abf27f3264ef9486621e94",
+      "source_mode": "0o664"
+    },
+    {
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/prove-5990-pointer-qemu.py",
+      "tree_path": "task-6038/work/prove-5990-pointer-qemu.py",
+      "bytes": 17843,
+      "sha256": "c4e6d65b60bbd6050fd05e63db7575f02e04ddb9b51da12506dd5a7c1df972c8",
+      "git_mode": "100644",
+      "git_blob": "3048aee5b74f92b277f6a8d71802593b0cf8f0af",
+      "source_mode": "0o664"
+    },
+    {
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/validate-native-ci-edf.sh",
+      "tree_path": "task-6038/work/validate-native-ci-edf.sh",
+      "bytes": 1574,
+      "sha256": "a6b38c94c3caf7fd01db485c66896e143086029efb915bd4c23f0f97e7981277",
+      "git_mode": "100755",
+      "git_blob": "c9555693131cdd169ee9318624a7150c6cc2ccfe",
+      "source_mode": "0o700"
+    }
+  ],
+  "skipped": [],
+  "scope": "Direct task work directory source/audit files only; no recursion, products, logs, configs or binaries"
+}
