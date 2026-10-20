@@ -261,3 +261,50 @@ fn installed_inverse_pi_coordinates_satisfy_zero_tolerance_at_the_numeric_bounda
     assert_eq!(checked.maximum_error(), ExactRational::ZERO);
     assert_eq!(guard.finish(), 0);
 }
+
+#[test]
+fn installed_reciprocal_pi_coordinates_feed_a_bounded_projection_without_growth() {
+    let source = Quantity::parse_plot_literal("1rad").unwrap().encode();
+    let (coordinate, numeric) = execute(&source, "turn", "0.001turn");
+    let target = field(&numeric, "source-wire");
+    let value = MathematicalQuantityView::decode(target, &mut work()).unwrap();
+    assert_eq!(value.unit(), Unit::Turn);
+    assert!(value
+        .coordinate()
+        .as_rational(&mut work())
+        .unwrap()
+        .is_none());
+    replay_coordinate(&source, target, Unit::Turn, &coordinate);
+    let allowance = RationalQuantity::from_quantity(
+        Quantity::parse_plot_literal("0.001turn").unwrap(),
+        &mut work(),
+    )
+    .unwrap();
+    let mut verifier = PreparedMathematicalNearQuantityVerifier::new(
+        &near_quantity_type(),
+        crate::numerical_host::near_step::mathematical_near_requirements(),
+        Binary32Rounding::NearestTiesEven,
+        allowance,
+        900_000_000,
+    )
+    .unwrap();
+    let bytes = numeric.canonical_bytes().unwrap();
+    let guard = crate::allocation_probe::begin();
+    let checked = verifier
+        .verify(
+            &bytes,
+            QUANTITY_INFO_ID,
+            Some(semantic_digest(QUANTITY_INFO_ID, target)),
+            &mut ExactNumericWork::new(900_000_000),
+        )
+        .unwrap();
+    assert_eq!(checked.source().encoded(), target);
+    assert_eq!(checked.target().bits(), 0x3e22_f983);
+    assert_ne!(checked.maximum_error(), ExactRational::ZERO);
+    assert!(checked
+        .maximum_error()
+        .checked_compare(allowance.coordinate(), &mut work())
+        .unwrap()
+        .is_le());
+    assert_eq!(guard.finish(), 0);
+}

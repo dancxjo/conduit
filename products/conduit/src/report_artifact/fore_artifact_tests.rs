@@ -28,7 +28,8 @@ impl ExternalForeOutputAdapter for Outputs {
     }
 }
 
-fn prepared(relay: bool, coordinates: bool) -> (StdHost, Plan) {
+fn prepared(relay: bool, coordinate_request: Option<(&str, &str)>) -> (StdHost, Plan) {
+    let coordinates = coordinate_request.is_some();
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     conduit_semantic_catalog::install_numerical_catalogs(&mut startup, &mut profile).unwrap();
@@ -43,8 +44,8 @@ fn prepared(relay: bool, coordinates: bool) -> (StdHost, Plan) {
         " value >> boundary.value"
     };
     let source = format!("{prefix}plot project (\n >> value: Quantity <= 33829B\n result: NearQuantity <= 131072B >>\n) {{\n boundary: math/near(limit=0.0001m)\n{input}\n boundary.result >> result\n}}\n");
-    let source = if coordinates {
-        "plot project (\n >> value: Quantity <= 33829B\n coordinate-evidence: QuantityCoordinateEvidence <= 131500B >>\n result: NearQuantity <= 131072B >>\n) {\n coordinates: math/coordinates(request={unit:cm})\n boundary: math/near(limit=0.01cm)\n value >> coordinates.value\n coordinates.result >> boundary.value\n coordinates.evidence >> coordinate-evidence\n boundary.result >> result\n}\n".to_string()
+    let source = if let Some((unit, limit)) = coordinate_request {
+        "plot project (\n >> value: Quantity <= 33829B\n coordinate-evidence: QuantityCoordinateEvidence <= 131500B >>\n result: NearQuantity <= 131072B >>\n) {\n coordinates: math/coordinates(request={unit:cm})\n boundary: math/near(limit=0.01cm)\n value >> coordinates.value\n coordinates.result >> boundary.value\n coordinates.evidence >> coordinate-evidence\n boundary.result >> result\n}\n".replace("unit:cm", &format!("unit:{unit}")).replace("limit=0.01cm", &format!("limit={limit}"))
     } else {
         source
     };
@@ -146,7 +147,7 @@ fn actual_output_fore_bytes_export_and_inspect_without_a_core_cord() {
             .to_vec(),
         rational,
     ] {
-        export_and_inspect(input, false, false);
+        export_and_inspect(input, false, None);
     }
     export_and_inspect(
         Quantity::parse_plot_literal("1m")
@@ -154,25 +155,62 @@ fn actual_output_fore_bytes_export_and_inspect_without_a_core_cord() {
             .encode()
             .to_vec(),
         true,
-        false,
+        None,
     );
 }
 
 #[test]
 fn actual_coordinate_reports_export_and_replay_against_the_plan_request() {
-    export_and_inspect(
-        Quantity::parse_plot_literal("1m")
-            .unwrap()
-            .encode()
-            .to_vec(),
-        false,
-        true,
-    );
+    let mut work = ExactNumericWork::new(200_000_000);
+    let pi = MathematicalValue::parse_literal("pi", &mut work).unwrap();
+    let mut coordinate = vec![0; MATHEMATICAL_VALUE_MAX_ENCODED_BYTES];
+    let n = pi.encode(&mut coordinate).unwrap();
+    let pi = MathematicalValueView::decode(&coordinate[..n], &mut work).unwrap();
+    let mut pi_radians = vec![0; MATHEMATICAL_QUANTITY_MAX_ENCODED_BYTES];
+    let n = encode_mathematical_quantity_value(
+        &pi,
+        Unit::Radian,
+        QuantityRole::Linear,
+        &mut pi_radians,
+        &mut work,
+    )
+    .unwrap();
+    pi_radians.truncate(n);
+    for (input, unit, limit) in [
+        (
+            Quantity::parse_plot_literal("1m")
+                .unwrap()
+                .encode()
+                .to_vec(),
+            "cm",
+            "0.01cm",
+        ),
+        (
+            Quantity::parse_plot_literal("1turn")
+                .unwrap()
+                .encode()
+                .to_vec(),
+            "rad",
+            "0.01rad",
+        ),
+        (pi_radians, "turn", "0turn"),
+        (
+            Quantity::parse_plot_literal("1rad")
+                .unwrap()
+                .encode()
+                .to_vec(),
+            "turn",
+            "0.001turn",
+        ),
+    ] {
+        export_and_inspect(input, false, Some((unit, limit)));
+    }
 }
 
-fn export_and_inspect(input: Vec<u8>, relay: bool, coordinates: bool) {
+fn export_and_inspect(input: Vec<u8>, relay: bool, coordinate_request: Option<(&str, &str)>) {
     let input_proof = input.clone();
-    let (mut host, plan) = prepared(relay, coordinates);
+    let (mut host, plan) = prepared(relay, coordinate_request);
+    let coordinates = coordinate_request.is_some();
     let advertisement = host.advertisement().clone();
     let mut outputs = Outputs::default();
     let report = host
@@ -189,6 +227,10 @@ fn export_and_inspect(input: Vec<u8>, relay: bool, coordinates: bool) {
         )
         .unwrap();
     let kernel = report.kernel.as_ref().unwrap();
+    assert_eq!(
+        kernel.value_allocation_capacity_before,
+        kernel.value_allocation_capacity_after
+    );
     let active_play = kernel.active_play.clone();
     let sign_identities = report
         .observations
@@ -366,6 +408,35 @@ fn export_and_inspect(input: Vec<u8>, relay: bool, coordinates: bool) {
             "{inspection}"
         );
         assert!(inspection.contains("Fore"), "{inspection}");
+        if coordinate_request == Some(("turn", "0.001turn"))
+            && inspection.contains("Numerical certificate independently replayed")
+        {
+            assert!(
+                inspection.contains("target binary32 0x3e22f983"),
+                "{inspection}"
+            );
+            assert!(
+                !inspection.contains("maximum absolute error 0 turn\n"),
+                "{inspection}"
+            );
+        }
+        if coordinate_request == Some(("turn", "0turn"))
+            && inspection.contains("Numerical certificate independently replayed")
+        {
+            assert!(
+                inspection.contains("target binary32 0x3f000000"),
+                "{inspection}"
+            );
+            assert!(
+                inspection.contains("maximum absolute error 0 turn"),
+                "{inspection}"
+            );
+            assert!(
+                inspection.contains("requested allowance 0 turn"),
+                "{inspection}"
+            );
+        }
+
         assert!(
             inspection.contains("Numerical certificate independently replayed")
                 || (coordinates
