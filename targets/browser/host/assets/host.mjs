@@ -39,9 +39,30 @@ try {
   const devices = createBrowserDeviceBase({
     api, hostId, bootId, selectedImplementations: selectedDeviceImplementations,
   });
-  const { createBrowserUsbDeviceBase } = await import("./usb-device-base.mjs");
-  const usbDevices = createBrowserUsbDeviceBase({
-    api, hostId, bootId, selectedImplementations: selectedDeviceImplementations,
+  let usbDevices = null;
+  let usbLoadStarted = false;
+  let retired = false;
+  globalThis.addEventListener("pagehide", () => { retired = true; }, { once: true });
+  const usbControls = document.querySelector("#usb-controls");
+  const usbAcquire = document.querySelector("#usb");
+  const usbStatus = document.querySelector("#usb-device-status");
+  usbControls.addEventListener("toggle", async () => {
+    if (!usbControls.open || usbLoadStarted || retired) return;
+    usbLoadStarted = true;
+    usbStatus.textContent = "Getting USB controls ready…";
+    try {
+      // Keep the reviewed literal module URL and adapter unchanged. Loading
+      // cannot prompt: acquisition requires a later, fresh button activation.
+      const { createBrowserUsbDeviceBase } = await import("./usb-device-base.mjs");
+      if (retired) return;
+      usbDevices = createBrowserUsbDeviceBase({
+        api, hostId, bootId, selectedImplementations: selectedDeviceImplementations,
+      });
+      usbStatus.textContent = "WebUSB acquisition offer available";
+      usbAcquire.disabled = false;
+    } catch {
+      if (!retired) usbStatus.textContent = "USB is unavailable. Reload this page to try again.";
+    }
   });
   document.querySelector("#devices").hidden = false;
   const serialClose = document.querySelector("#serial-close");
@@ -69,6 +90,7 @@ try {
   });
   document.querySelector("#usb").addEventListener("click", async () => {
     try {
+      if (!usbDevices || retired) return;
       usbResource = await usbDevices.acquireUsb();
       globalThis.__conduitUsbResource = usbResource;
       usbClose.disabled = false;
@@ -92,7 +114,7 @@ try {
     runtime: api,
     media,
     devices,
-    usbDevices,
+    get usbDevices() { return usbDevices; },
   });
   revealHost();
 } catch (error) {
