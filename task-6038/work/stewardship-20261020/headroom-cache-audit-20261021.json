@@ -1,0 +1,305 @@
+{
+  "time": "2026-10-20T20:51:26Z",
+  "active_compilers": [
+    {
+      "pid": "2259225",
+      "comm": "cargo",
+      "cwd": "/home/dancxjo/Documents/Codex/2026-10-20/goal-read-the-codex-goal-objective/work/creche-catalog-first",
+      "cargo_target_dirs": [
+        "/home/dancxjo/conduit/target"
+      ]
+    },
+    {
+      "pid": "2270202",
+      "comm": "cargo",
+      "cwd": "/home/dancxjo/Documents/Codex/2026-10-20/goal-read-the-codex-goal-objective/work/creche-catalog-first",
+      "cargo_target_dirs": [
+        "/home/dancxjo/conduit/target"
+      ]
+    },
+    {
+      "pid": "2271100",
+      "comm": "rustc",
+      "cwd": "/home/dancxjo/Documents/Codex/2026-10-20/goal-read-the-codex-goal-objective/work/creche-catalog-first",
+      "cargo_target_dirs": [
+        "/home/dancxjo/conduit/target"
+      ]
+    },
+    {
+      "pid": "2271102",
+      "comm": "rustc",
+      "cwd": "/home/dancxjo/Documents/Codex/2026-10-20/goal-read-the-codex-goal-objective/work/creche-catalog-first",
+      "cargo_target_dirs": [
+        "/home/dancxjo/conduit/target"
+      ]
+    },
+    {
+      "pid": "2272023",
+      "comm": "cargo",
+      "cwd": "/home/dancxjo/Documents/Codex/2026-10-20/goal-read-the-codex-goal-objective/work/creche-catalog-first",
+      "cargo_target_dirs": [
+        "/home/dancxjo/conduit/target"
+      ]
+    }
+  ],
+  "targets": [
+    {
+      "target": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/portable-source-target",
+      "children": [
+        {
+          "name": ".rustc_info.json",
+          "bytes": 4096,
+          "symlink": null
+        },
+        {
+          "name": "tmp",
+          "bytes": 4096,
+          "symlink": null
+        },
+        {
+          "name": "debug",
+          "bytes": 6436405248,
+          "symlink": null
+        },
+        {
+          "name": "CACHEDIR.TAG",
+          "bytes": 4096,
+          "symlink": null
+        }
+      ],
+      "debug_direct_files": [
+        {
+          "name": ".cargo-build-lock",
+          "bytes": 0,
+          "mtime": 1792502696.429079
+        },
+        {
+          "name": ".cargo-artifact-lock",
+          "bytes": 0,
+          "mtime": 1792502696.429079
+        },
+        {
+          "name": ".cargo-lock",
+          "bytes": 0,
+          "mtime": 1792502696.429079
+        }
+      ],
+      "debug_directories": [
+        ".fingerprint",
+        "examples",
+        "deps",
+        "incremental",
+        "build"
+      ],
+      "process_references": []
+    },
+    {
+      "target": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/owner-installed-release-target",
+      "children": [
+        {
+          "name": "wasm32-unknown-unknown",
+          "bytes": 1202913280,
+          "symlink": null
+        },
+        {
+          "name": ".rustc_info.json",
+          "bytes": 4096,
+          "symlink": null
+        },
+        {
+          "name": "tmp",
+          "bytes": 4096,
+          "symlink": null
+        },
+        {
+          "name": "debug",
+          "bytes": 20576100352,
+          "symlink": null
+        },
+        {
+          "name": "CACHEDIR.TAG",
+          "bytes": 4096,
+          "symlink": null
+        },
+        {
+          "name": "aarch64-unknown-linux-gnu",
+          "bytes": 1473409024,
+          "symlink": null
+        }
+      ],
+      "debug_direct_files": [
+        {
+          "name": "patchbay-learned-watch-proof",
+          "bytes": 55282472,
+          "mtime": 1792473834.4540365
+        },
+        {
+          "name": "pool-webchat-server",
+          "bytes": 17663744,
+          "mtime": 1792473786.0151231
+        },
+        {
+          "name": "patchbay-body-workbench-proof",
+          "bytes": 32593016,
+          "mtime": 1792473901.0959182
+        },
+        {
+          "name": "browser-webrtc-rendezvous-probe",
+          "bytes": 14910824,
+          "mtime": 1792473942.6818447
+        },
+        {
+          "name": "protected-line-browser-peer",
+          "bytes": 683432,
+          "mtime": 1792473724.584234
+        },
+        {
+          "name": "conduit-tongues-analysis",
+          "bytes": 12017032,
+          "mtime": 1792474023.2357037
+        },
+        {
+          "name": "browser-admission-probe",
+          "bytes": 16968088,
+          "mtime": 1792473858.6339934
+        },
+        {
+          "name": "conduit-tongues-demo",
+          "bytes": 13095448,
+          "mtime": 1792474026.9586973
+        },
+        {
+          "name": "browser-body-camera-realization-capstone",
+          "bytes": 21993816,
+          "mtime": 1792473906.5579085
+        },
+        {
+          "name": "webchat-server",
+          "bytes": 35418328,
+          "mtime": 1792473784.6091256
+        },
+        {
+          "name": "conduit-relay",
+          "bytes": 12499888,
+          "mtime": 1792473714.088253
+        },
+        {
+          "name": "browser-spawn-probe",
+          "bytes": 14624656,
+          "mtime": 1792473759.0731716
+        },
+        {
+          "name": "conduit-xtask-dispatch",
+          "bytes": 2472472,
+          "mtime": 1792474113.7585466
+        },
+        {
+          "name": "triple-signal-server",
+          "bytes": 18269856,
+          "mtime": 1792473891.9729342
+        },
+        {
+          "name": "conduitos",
+          "bytes": 450728,
+          "mtime": 1792498349.7014692
+        },
+        {
+          "name": "conduit-tongues-research",
+          "bytes": 11888016,
+          "mtime": 1792474029.1566935
+        },
+        {
+          "name": "text-lab-live-server",
+          "bytes": 18792216,
+          "mtime": 1792473683.7493083
+        },
+        {
+          "name": ".cargo-build-lock",
+          "bytes": 0,
+          "mtime": 1792455720.4408169
+        },
+        {
+          "name": "conduit-browser-patchbay-workbench",
+          "bytes": 55485832,
+          "mtime": 1792473946.8198376
+        },
+        {
+          "name": "xtask",
+          "bytes": 86399504,
+          "mtime": 1792473923.694878
+        },
+        {
+          "name": "conduit",
+          "bytes": 81298048,
+          "mtime": 1792473760.7451687
+        },
+        {
+          "name": "r1-three-peer-input-server",
+          "bytes": 17650144,
+          "mtime": 1792473811.9170766
+        },
+        {
+          "name": ".cargo-artifact-lock",
+          "bytes": 0,
+          "mtime": 1792455720.4408169
+        },
+        {
+          "name": "patchbay-static-assets",
+          "bytes": 46427648,
+          "mtime": 1792473883.3809495
+        },
+        {
+          "name": "websocket-line-probe",
+          "bytes": 9315192,
+          "mtime": 1792473706.1632674
+        },
+        {
+          "name": ".cargo-lock",
+          "bytes": 0,
+          "mtime": 1792455720.4408169
+        },
+        {
+          "name": "xtask.d",
+          "bytes": 479676,
+          "mtime": 1792472898.0279317
+        },
+        {
+          "name": "distributed-signal-server",
+          "bytes": 17857616,
+          "mtime": 1792473684.3203073
+        },
+        {
+          "name": "distributed-toggle-server",
+          "bytes": 17952584,
+          "mtime": 1792473765.7411597
+        },
+        {
+          "name": "conduit-xtask-dispatch.d",
+          "bytes": 6695,
+          "mtime": 1792472716.310408
+        }
+      ],
+      "debug_directories": [
+        ".fingerprint",
+        "examples",
+        "deps",
+        "incremental",
+        "build"
+      ],
+      "process_references": []
+    }
+  ],
+  "read_only": true,
+  "root_executed_cleanup": {
+    "timestamp_observed": "2026-10-20T20:52:04Z",
+    "command": "cargo +stable clean --profile dev --target-dir /home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/portable-source-target",
+    "result_reported_by_root": "Removed 6872 files, 6.4GiB total; success",
+    "root_immediate_process_check": "cargo/rustc/xtask/QEMU cmdline/env/cwd/exe had no portable cache references",
+    "target_bytes_after": 16384,
+    "previous_debug_bytes": 6436405248,
+    "free_bytes_now": 72560377856,
+    "free_GiB_now": 67.577,
+    "free_delta_limitation": "No immediately preceding df measurement was recorded; concurrent external builds prevent attributing filesystem free-space delta exactly. Prior audit showed rounded 63 GiB free.",
+    "preserved": "Owner proof binaries, crossarch/WASM profiles, all active caches, worktrees and evidence untouched by this agent; no further deletion."
+  }
+}

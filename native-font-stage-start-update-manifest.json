@@ -1,0 +1,46 @@
+{
+  "parent": "775330b7ec600ece3cbc466d13dad074f4cb7dfe",
+  "scope": "Typography draft and proof preparation; no current guest/CI acceptance claim; verified inactive cache cleanup",
+  "files": [
+    {
+      "source": "work/5992-runners/prove-typography-details.py",
+      "tree_path": "task-6038/work/5992-runners/prove-typography-details.py",
+      "bytes": 2551,
+      "sha256": "f1e5c189d658ee8da640e0276e3a164c5104810955a7409a5263263ad6449f95",
+      "mode": "100644",
+      "blob": "51cf066502ad85a4e4d530fef037349c2c0b8411"
+    },
+    {
+      "source": "work/5628-typography-wire-readonly-plan.md",
+      "tree_path": "task-6038/work/5628-typography-wire-readonly-plan.md",
+      "bytes": 1544,
+      "sha256": "f7db4969bb761296ae0181edc65a93ec68a2dcb0009d4d4839328111dba67567",
+      "mode": "100644",
+      "blob": "b3a81f4ff9d1ccc38fb6256947a438b7dd34cfdb"
+    },
+    {
+      "source": "work/5992-draft-pr-body.md",
+      "tree_path": "task-6038/work/5992-draft-pr-body.md",
+      "bytes": 1243,
+      "sha256": "23887bc41aa76cc374faaa43ef82362cbb86f083670f1cca1b4b0a85715ef8da",
+      "mode": "100644",
+      "blob": "b164d22cc84870a624013fbe114b3d3b11bcea29"
+    },
+    {
+      "source": "work/revised-native-goal-state.json",
+      "tree_path": "task-6038/work/revised-native-goal-state.json",
+      "bytes": 2319,
+      "sha256": "32804417ed7c03b02f16f41110e232cc48dfa0da490c596f8d848bc0740cd940",
+      "mode": "100644",
+      "blob": "7f603a160b4977e2184aa10d77d0ca5c606a54d6"
+    },
+    {
+      "source": "work/stewardship-20261020/headroom-cache-audit-20261021.json",
+      "tree_path": "task-6038/work/stewardship-20261020/headroom-cache-audit-20261021.json",
+      "bytes": 8318,
+      "sha256": "9e046392c3c938d385107023741febbd7ec761843e179984e0f82c6c17a14be7",
+      "mode": "100644",
+      "blob": "aa8a7bff1f76c2086add7268d29bdd4e48137a36"
+    }
+  ]
+}

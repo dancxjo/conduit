@@ -18,7 +18,7 @@
   "combined_integration": {
     "run": 39490452233,
     "source": "72ab3b367c236653dff0b5726939e08de62390b9",
-    "last_observed": "pending20:21UTC",
+    "last_observed": "running20:56UTC;fourlanesremaining/allotherssuccess",
     "superseded_pending_run": 39484454692,
     "superseded_outcome": "cancelled/coalesced;notacceptance"
   },
@@ -41,5 +41,17 @@
     "candidate_observed": "terminal_success20:21UTC",
     "merged": "72ab3b367c236653dff0b5726939e08de62390b9"
   },
-  "current_stage": "5992boundedfontmechanism;nativeworkerownsisolatedWT"
+  "current_stage": "5992boundedfontmechanism;nativeworkerownsisolatedWT",
+  "font_stage": {
+    "pr": 6165,
+    "head": "01d9a08e4d8925a0b81ff4e561500d7ceb5e6e2f",
+    "base": "9c2847e431280ea1ed816ae1f09bd065b8b587aa",
+    "tree": "ea15d9b03ee743b7bee30474fa0a0854d84caf9a",
+    "draft": true,
+    "candidate": 39496067090,
+    "observed": "in_progress20:56UTC",
+    "old_prepared_source": "ef8c6c8300236ba7e43845ea24a72e6a2d7a6ff0",
+    "old_source_checks": "20typography/113native/2allocation/Clippy/fmt passed; fresh exactSource checks running",
+    "product_proof": "pending"
+  }
 }

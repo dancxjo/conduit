@@ -41,6 +41,11 @@ try:
     assert g.face() == initial
     assert len(g.records('CONDUIT_CRECHE_CHANGE ')) == before
     g.capture('returned-primary')
+    for capture in g.receipt['captures']:
+        focus = capture['focus']
+        assert focus['face_id'] == initial['face']['identity']
+        assert focus['face_revision'] == initial['face']['revision']
+        assert focus['show_id'] == initial['show']['show_id']
     g.receipt.update(status='passed', source_effects=0,
                      boundary='normal-product QEMU; no physical/human or pixel-inferred font-role claim')
     g.save()
