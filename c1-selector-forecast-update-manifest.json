@@ -1,0 +1,38 @@
+{
+  "parent": "de768c93f81b03fe9b7247ad1f1174db43ebd281",
+  "scope": "Native stage05 current-dev refresh and exact preflight receipt; normal product and all five emulator runs passed; Candidate still running",
+  "files": [
+    {
+      "source": "work/6039-source-recovery-handoff.md",
+      "tree_path": "task-6038/work/6039-source-recovery-handoff.md",
+      "bytes": 24163,
+      "sha256": "e3414f3f9aa96ce8b2a6910ab9f859d201fb841cf5c238eef9d40d0476225d9b",
+      "mode": "100644",
+      "blob": "79b2135425c15a3ac37803ffe9d5aeef4fd56974"
+    },
+    {
+      "source": "outputs/6039-forecast-on-ceaefa32c/receipt.json",
+      "tree_path": "task-6038/outputs/6039-forecast-on-ceaefa32c/receipt.json",
+      "bytes": 1605,
+      "sha256": "677269665be02d8f1fbc44f2ae9556df30041888612b6cbe3ef6df0ea07cce8b",
+      "mode": "100644",
+      "blob": "a1bdf3ca1317f181b03d0643ec3371b6812b9f43"
+    },
+    {
+      "source": "outputs/6039-forecast-on-ceaefa32c/merge-tree.txt",
+      "tree_path": "task-6038/outputs/6039-forecast-on-ceaefa32c/merge-tree.txt",
+      "bytes": 784,
+      "sha256": "e67aacbcba156293eed826982ee768ac4ce9847caf5fa6c56b0fc3058ad43866",
+      "mode": "100644",
+      "blob": "9a1b9fca518bce462208bb4b4bb905a41ab20708"
+    },
+    {
+      "source": "outputs/6039-forecast-on-ceaefa32c/resolution-handoff.md",
+      "tree_path": "task-6038/outputs/6039-forecast-on-ceaefa32c/resolution-handoff.md",
+      "bytes": 1637,
+      "sha256": "b8d4b078004592ef7bd684e29387082aaaa20ce40e768ff79dc420e9d29eff06",
+      "mode": "100644",
+      "blob": "fb0ce6d99c8cc7e7a62427fb61462ce59ff03e5c"
+    }
+  ]
+}

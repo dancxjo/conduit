@@ -1,0 +1,8 @@
+# C1 selector refresh forecast
+
+Object-only merge forecast: nativeceaefa32c00dd9a15aa4365f831cf68862771dd4 plus heldC12489304d6644a94bb15e1672ca7ac75d86c3ce9e. Exactly two adjacent-alternative content conflicts occur. No branch, index or worktree changed. The forecast tree contains conflict markers and is not a buildable or accepted Source.
+
+- semantics/face/src/component_recipe.rs: preserve Bound validation unchanged, keep the native ActionTarget arm matching the exact offered action identity and its original target, and append the C1 Collection arm validating mode plus maximum_items. Close each match arm independently; neither arm replaces the other. Both native ActionTarget tests and C1 Collection tests must survive.
+- semantics/face/types.conduit: retain the existing subject and bound alternatives, retain action_target Text<=256B/nonempty, add collection with the exact three modes and maximum_items1..=64, then retain role. No compatibility decoder or second selector wire.
+
+After native05 merges, refresh the smallest C1 delta against actual current dev, recheck this forecast, and resolve these two alternatives together. Only then regenerate the browser Look Source fingerprint from final types.conduit+newline+look.conduit and regenerate the committed producer Face golden from its actual fixture. Keep the known stale-pin failure until corrected; do not weaken its guard. Run focused/current full Face and Birth proof, relevant workspace checks and the separately required installed/cross-Mask proof. This forecast does not authorize native06 implementation or feature admission during the repair-restoration hold.

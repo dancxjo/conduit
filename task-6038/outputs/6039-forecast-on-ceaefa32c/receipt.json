@@ -1,0 +1,33 @@
+{
+  "native_source": "ceaefa32c00dd9a15aa4365f831cf68862771dd4",
+  "held_portable_source": "2489304d6644a94bb15e1672ca7ac75d86c3ce9e",
+  "forecast_tree": "20b73662e2199c1e246256c5b3c856fda16c3741",
+  "merge_tree_exit": 1,
+  "forecast_changed_paths": [
+    "docs/architecture/face-grammar-conformance.md",
+    "docs/architecture/portable-collection-handoff.md",
+    "plots/birth/src/face/choice_identity_tests.rs",
+    "plots/birth/src/face/collection_contract_tests.rs",
+    "plots/birth/src/face/collection_interaction_tests.rs",
+    "plots/birth/src/face/collection_profile_tests.rs",
+    "plots/birth/src/face/collection_reconstruction_tests.rs",
+    "plots/birth/src/face/collection_tests.rs",
+    "plots/birth/src/face/generic_collection_observation.rs",
+    "plots/birth/src/face/linear_collection_commit_tests.rs",
+    "plots/birth/src/face/linear_collection_records.rs",
+    "plots/birth/src/face/projection.rs",
+    "plots/birth/src/face/projection/collections.rs",
+    "plots/birth/src/face/projection/fields.rs",
+    "plots/birth/src/face/tests.rs",
+    "semantics/face/src/boolean_replacement.rs",
+    "semantics/face/src/collections.rs",
+    "semantics/face/src/component_recipe.rs",
+    "semantics/face/src/lib.rs",
+    "semantics/face/src/linear.rs",
+    "semantics/face/src/linear/tests.rs",
+    "semantics/face/types.conduit",
+    "tools/xtask/src/suites/input_semantics_check.rs"
+  ],
+  "scope": "Git object-only three-way merge forecast; no refs/worktrees/index changed, no candidate or runtime proof, do not use conflict tree as product source",
+  "observed": "2026-10-20T16:20:08Z"
+}

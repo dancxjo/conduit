@@ -1,0 +1,12 @@
+20b73662e2199c1e246256c5b3c856fda16c3741
+100644 044581f2b8c8253ed14c10e14e2ec2b593ff7dec 1	semantics/face/src/component_recipe.rs
+100644 7d69be1c6a212508afa7ceb85e98e3d3fd109688 2	semantics/face/src/component_recipe.rs
+100644 5b57eea3fd1c68e64da213d0ac8264ef3be432a4 3	semantics/face/src/component_recipe.rs
+100644 e48f6ccbff09ea8633de5ca393ec49af64bc3025 1	semantics/face/types.conduit
+100644 5429bd02f370cf63b7ecd9c2b11358cc6a4681c3 2	semantics/face/types.conduit
+100644 b5464300a0cbc6c061cc58918dd2c36db2ef7a44 3	semantics/face/types.conduit
+
+Auto-merging semantics/face/src/component_recipe.rs
+CONFLICT (content): Merge conflict in semantics/face/src/component_recipe.rs
+Auto-merging semantics/face/types.conduit
+CONFLICT (content): Merge conflict in semantics/face/types.conduit
