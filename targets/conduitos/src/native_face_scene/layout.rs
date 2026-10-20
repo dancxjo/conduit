@@ -161,6 +161,12 @@ pub(super) fn admit_with_expression(
         .ok_or(FaceSceneError::InvalidExtent)?;
     let chrome = chrome::Chrome::prepare(screen, text_scale_percent)?;
     let bottom = chrome.bottom;
+    let padding = fit_padding(
+        items.iter(),
+        bottom - chrome.top,
+        text_scale_percent,
+        padding,
+    );
     let maximum_height = bottom
         .checked_sub(chrome.top)
         .and_then(|height| height.checked_sub(padding * 2))
@@ -301,6 +307,23 @@ pub(super) fn admit_configured(
     } else {
         admit_with_expression(items, screen, gutter, columns, text_scale_percent, padding)
     }
+}
+
+/// Density-derived spacing is preferred geometry, not an authored hard minimum.
+/// At a constrained extent retain the requested text scale and the existing
+/// admitted minimum padding. If even that cannot fit, ordinary admission refuses.
+fn fit_padding<'a>(
+    items: impl Iterator<Item = &'a document::Item>,
+    available: u16,
+    scale: u16,
+    preferred: u16,
+) -> u16 {
+    let needs_minimum = items.filter(|item| !item.text.is_empty()).any(|item| {
+        TextLayout::new_scaled("", item.role.into(), 1, scale).is_ok_and(|layout| {
+            layout.finish_height() + u32::from(preferred) * 2 > u32::from(available)
+        })
+    });
+    if needs_minimum { SPACE_SM } else { preferred }
 }
 
 fn row_commands(item: &document::Item, region_start: bool) -> usize {

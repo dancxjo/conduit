@@ -54,11 +54,25 @@ pub(super) fn append(
         TextLayout::new_scaled("", GraphicsTextRole::Label.into(), bounds.width - 16, scale)
             .map_err(|_| FaceSceneError::InvalidExtent)?
             .finish_height() as u16;
+    let body_line =
+        TextLayout::new_scaled("", GraphicsTextRole::Body.into(), bounds.width - 16, scale)
+            .map_err(|_| FaceSceneError::InvalidExtent)?
+            .finish_height() as u16;
+    // Keep a complete measured caption and at least one text/caret line. Only
+    // the old fixed gaps shrink under pressure; the border retains one pixel.
+    let gaps = bounds
+        .height
+        .checked_sub(label_height + body_line)
+        .filter(|gaps| *gaps >= 2)
+        .ok_or(FaceSceneError::InvalidExtent)?
+        .min(24);
+    let outer = (gaps / 3).clamp(1, 8);
+    let between = gaps - outer * 2;
     let content = LayoutRect {
         x: bounds.x + 8,
-        y: bounds.y + label_height as i16 + 16,
+        y: bounds.y + (outer + label_height + between) as i16,
         width: bounds.width - 16,
-        height: bounds.height.saturating_sub(label_height + 24),
+        height: bounds.height - label_height - gaps,
     };
     let height = TextLayout::new_scaled(text, GraphicsTextRole::Body.into(), content.width, scale)
         .map_err(|_| FaceSceneError::InvalidExtent)?
@@ -66,7 +80,7 @@ pub(super) fn append(
     let scroll = height.saturating_sub(u32::from(content.height));
     let label = LayoutRect {
         x: bounds.x + 8,
-        y: bounds.y + 8,
+        y: bounds.y + outer as i16,
         width: bounds.width - 16,
         height: label_height,
     };

@@ -77,7 +77,19 @@ pub(super) fn prepare(
         }
     }
     for clause in &plan.clauses {
-        let mut detail = item(clause.text.clone(), GraphicsTextRole::Body);
+        let detail_role = match &clause.provenance {
+            Provenance::Property(value) => match &face
+                .properties
+                .get(*value.index() as usize)
+                .ok_or(FaceSceneError::InvalidFace)?
+                .value
+            {
+                FacePropertyValue::Identity(_) => GraphicsTextRole::Code,
+                _ => GraphicsTextRole::Body,
+            },
+            _ => GraphicsTextRole::Body,
+        };
+        let mut detail = item(clause.text.clone(), detail_role);
         let action_name = match &clause.provenance {
             Provenance::Action(value) => Some((value.identity(), None)),
             Provenance::ActionArgument(value) => {

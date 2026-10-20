@@ -191,7 +191,7 @@ impl NativeFaceScene {
         push(
             &mut scene,
             GraphicsCommand::text(bounds, self.screen, GraphicsPaintRole::Muted, &footer)
-                .and_then(|command| command.with_text_role(GraphicsTextRole::Muted)),
+                .and_then(|command| command.with_text_role(GraphicsTextRole::Label)),
         )?;
         Ok(FaceFrame {
             scene,

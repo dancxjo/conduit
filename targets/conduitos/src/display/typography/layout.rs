@@ -20,6 +20,7 @@ pub struct TextLayout<'a> {
     x: u32,
     line: u32,
     word_start: bool,
+    cluster_remaining: usize,
 }
 
 impl<'a> TextLayout<'a> {
@@ -39,14 +40,28 @@ impl<'a> TextLayout<'a> {
         if width == 0 {
             return Err(DisplayError::InvalidExtent);
         }
+        // Reject an indivisible ink span before paint; never silently clip or
+        // detach a following zero-advance mark to satisfy a narrow rectangle.
+        let mut remaining = value;
+        while !remaining.is_empty() {
+            let bytes = super::ink::cluster_bytes(remaining, role, scale);
+            if &remaining[..bytes] != "\n"
+                && super::ink::span(&remaining[..bytes], role, scale, 0).fresh_width()
+                    > u32::from(width)
+            {
+                return Err(DisplayError::InvalidExtent);
+            }
+            remaining = &remaining[bytes..];
+        }
         Ok(Self {
             remaining: value,
             role,
             scale,
-            width: u32::from(width) * 64,
+            width: u32::from(width),
             x: 0,
             line: 0,
             word_start: true,
+            cluster_remaining: 0,
         })
     }
 
@@ -80,40 +95,58 @@ impl Iterator for TextLayout<'_> {
     fn next(&mut self) -> Option<Self::Item> {
         loop {
             let character = self.remaining.chars().next()?;
-            self.remaining = &self.remaining[character.len_utf8()..];
             if character == '\n' {
+                self.remaining = &self.remaining[1..];
                 self.newline();
                 self.word_start = true;
+                self.cluster_remaining = 0;
                 continue;
             }
             let whitespace = character == ' ' || character == '\t';
+            if self.word_start && !whitespace {
+                let bytes = self
+                    .remaining
+                    .chars()
+                    .take_while(|c| !matches!(c, ' ' | '\t' | '\n'))
+                    .map(char::len_utf8)
+                    .sum::<usize>();
+                let word = &self.remaining[..bytes];
+                let fresh = super::ink::span(word, self.role, self.scale, 0);
+                if self.x > 0
+                    && fresh.fresh_width() <= self.width
+                    && !super::ink::span(word, self.role, self.scale, self.x).fits(self.width)
+                {
+                    self.newline();
+                }
+            }
+            if self.cluster_remaining == 0 {
+                let bytes = super::ink::cluster_bytes(self.remaining, self.role, self.scale);
+                let cluster = &self.remaining[..bytes];
+                if self.x > 0
+                    && !super::ink::span(cluster, self.role, self.scale, self.x).fits(self.width)
+                {
+                    self.newline();
+                    if whitespace {
+                        self.remaining = &self.remaining[character.len_utf8()..];
+                        self.word_start = true;
+                        continue;
+                    }
+                }
+                let span = super::ink::span(cluster, self.role, self.scale, self.x);
+                if span.left < 0 {
+                    self.x += (-span.left) as u32 * 64;
+                }
+                self.cluster_remaining = span.bytes;
+            }
+            self.remaining = &self.remaining[character.len_utf8()..];
+            self.cluster_remaining -= character.len_utf8();
+            self.word_start = whitespace;
             let raster = scaled_glyph(
                 self.role,
                 if character == '\t' { ' ' } else { character },
                 self.scale,
             );
             let advance = u32::from(raster.advance()) * if character == '\t' { 4 } else { 1 };
-            if self.word_start && !whitespace {
-                let word_width = advance
-                    + self
-                        .remaining
-                        .chars()
-                        .take_while(|character| !matches!(character, ' ' | '\t' | '\n'))
-                        .map(|character| {
-                            u32::from(scaled_glyph(self.role, character, self.scale).advance())
-                        })
-                        .sum::<u32>();
-                if self.x > 0 && word_width <= self.width && self.x + word_width > self.width {
-                    self.newline();
-                }
-            }
-            self.word_start = whitespace;
-            if self.x > 0 && self.x + advance > self.width {
-                self.newline();
-                if whitespace {
-                    continue;
-                }
-            }
             let pen = (
                 (self.x / 64) as i32,
                 (self.line
@@ -199,7 +232,12 @@ mod tests {
         assert_eq!(positions[3].0, 0);
         assert!(positions[3].1 > positions[0].1);
         assert_eq!(positions[3].1, positions[5].1);
-        assert_eq!(TextLayout::new("abcdef", role, 1).unwrap().count(), 6);
+        let narrow = (cell * 2).div_ceil(64) as u16;
+        assert_eq!(TextLayout::new("abcdef", role, narrow).unwrap().count(), 6);
+        assert!(matches!(
+            TextLayout::new("abcdef", role, 1),
+            Err(DisplayError::InvalidExtent)
+        ));
     }
 
     #[test]
