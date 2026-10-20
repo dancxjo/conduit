@@ -44,6 +44,8 @@ pub enum MathematicalEnclosureRefusal {
     InverseRootResolution,
     SourceMismatch,
     InvalidClaim,
+    /// The current enclosure does not establish a nonzero divisor.
+    DivisorIntervalContainsZero,
 }
 impl From<ExactNumericRefusal> for MathematicalEnclosureRefusal {
     fn from(value: ExactNumericRefusal) -> Self {

@@ -17,14 +17,16 @@ pub struct PreparedAngleRadianQuantityConversion {
     retained_payload_bytes: usize,
 }
 /// Computational receipt; spelling, binding and execution custody stay separate.
-pub struct AngleRadianQuantityConversion<'a> {
+pub struct AngleCoordinateConversion<'a> {
     source: QuantityValueView<'a>,
     scale: ExactRational,
     uses_pi_law: bool,
     encoded_bytes: usize,
     target_digest: [u8; 32],
 }
-impl<'a> AngleRadianQuantityConversion<'a> {
+/// Receipt returned by the established radian-only preparation entrance.
+pub type AngleRadianQuantityConversion<'a> = AngleCoordinateConversion<'a>;
+impl<'a> AngleCoordinateConversion<'a> {
     pub const fn source(&self) -> &QuantityValueView<'a> {
         &self.source
     }
@@ -104,16 +106,26 @@ impl PreparedAngleRadianQuantityConversion {
         output: &mut [u8],
         work: &mut ExactNumericWork,
     ) -> Result<AngleRadianQuantityConversion<'a>, R> {
+        Self::convert_to_prepared(builder, coordinate, input, Unit::Radian, output, work)
+    }
+    pub(super) fn convert_to_prepared<'a>(
+        builder: &mut PreparedMathematicalValueBuilder,
+        coordinate: &mut [u8],
+        input: &'a [u8],
+        target_unit: Unit,
+        output: &mut [u8],
+        work: &mut ExactNumericWork,
+    ) -> Result<AngleCoordinateConversion<'a>, R> {
         let source = QuantityValueProfile::Mathematical
             .decode(ANGLE_INFO_ID, input, work)
             .map_err(R::Input)?;
-        if source.unit() == Unit::Radian && input.first() == Some(&3) {
+        if source.unit() == target_unit && input.first() == Some(&3) {
             let target = output
                 .get_mut(..input.len())
                 .ok_or(R::Numeric(ExactNumericRefusal::EncodingBufferTooSmall))?;
             work.charge((2 * input.len()) as u64).map_err(R::Numeric)?;
             target.copy_from_slice(input);
-            return Ok(AngleRadianQuantityConversion {
+            return Ok(AngleCoordinateConversion {
                 source,
                 scale: ExactRational::ONE,
                 uses_pi_law: false,
@@ -121,22 +133,8 @@ impl PreparedAngleRadianQuantityConversion {
                 target_digest: semantic_digest(QUANTITY_INFO_ID, target),
             });
         }
-        let one = RationalQuantity::new(ExactRational::ONE, source.unit(), QuantityRole::Linear)
-            .map_err(R::Physical)?;
-        let (scale, uses_pi_law) = match one.convert_to_unit(Unit::Radian, work) {
-            Ok(radians) => (radians.coordinate(), false),
-            Err(RationalQuantityRefusal::Physical(QuantityConversionRefusal::Inexact)) => {
-                let turns = one.convert_to_unit(Unit::Turn, work).map_err(R::Physical)?;
-                (
-                    turns
-                        .coordinate()
-                        .checked_multiply(ExactRational::from_i128(2), work)
-                        .map_err(R::Numeric)?,
-                    true,
-                )
-            }
-            Err(why) => return Err(R::Physical(why)),
-        };
+        let (scale, mut pi_power) = coordinate_scale(source.unit(), target_unit, work)?;
+        let uses_pi_law = pi_power != 0;
         builder.reset();
         let mathematical = if input.first() == Some(&3) {
             Some(
@@ -150,10 +148,23 @@ impl PreparedAngleRadianQuantityConversion {
             None
         };
         let rational = if let Some(value) = &mathematical {
-            value
-                .coordinate()
-                .as_rational(work)
-                .map_err(R::Mathematical)?
+            let cancelled = if pi_power == -1 {
+                value
+                    .coordinate()
+                    .rational_pi_coefficient(work)
+                    .map_err(R::Mathematical)?
+            } else {
+                None
+            };
+            if let Some(coefficient) = cancelled {
+                pi_power = 0;
+                Some(coefficient)
+            } else {
+                value
+                    .coordinate()
+                    .as_rational(work)
+                    .map_err(R::Mathematical)?
+            }
         } else {
             Some(
                 source
@@ -164,7 +175,7 @@ impl PreparedAngleRadianQuantityConversion {
         };
         let root = if let Some(value) = rational {
             let coefficient = value.checked_multiply(scale, work).map_err(R::Numeric)?;
-            if !uses_pi_law || coefficient == ExactRational::ZERO {
+            if pi_power == 0 || coefficient == ExactRational::ZERO {
                 builder
                     .insert(MathematicalNode::Rational(coefficient), work)
                     .map_err(R::Mathematical)?
@@ -172,14 +183,21 @@ impl PreparedAngleRadianQuantityConversion {
                 let pi = builder
                     .insert(MathematicalNode::Pi, work)
                     .map_err(R::Mathematical)?;
-                if coefficient == ExactRational::ONE {
+                if coefficient == ExactRational::ONE && pi_power == 1 {
                     pi
                 } else {
                     let factor = builder
                         .insert(MathematicalNode::Rational(coefficient), work)
                         .map_err(R::Mathematical)?;
                     builder
-                        .insert(MathematicalNode::Multiply(factor, pi), work)
+                        .insert(
+                            if pi_power == 1 {
+                                MathematicalNode::Multiply(factor, pi)
+                            } else {
+                                MathematicalNode::Divide(factor, pi)
+                            },
+                            work,
+                        )
                         .map_err(R::Mathematical)?
                 }
             }
@@ -198,12 +216,19 @@ impl PreparedAngleRadianQuantityConversion {
                     .insert(MathematicalNode::Multiply(root, factor), work)
                     .map_err(R::Mathematical)?;
             }
-            if uses_pi_law {
+            if pi_power != 0 {
                 let pi = builder
                     .insert(MathematicalNode::Pi, work)
                     .map_err(R::Mathematical)?;
                 root = builder
-                    .insert(MathematicalNode::Multiply(root, pi), work)
+                    .insert(
+                        if pi_power == 1 {
+                            MathematicalNode::Multiply(root, pi)
+                        } else {
+                            MathematicalNode::Divide(root, pi)
+                        },
+                        work,
+                    )
                     .map_err(R::Mathematical)?;
             }
             root
@@ -217,7 +242,7 @@ impl PreparedAngleRadianQuantityConversion {
             .map_err(R::Numeric)?;
         let encoded_bytes = encode_mathematical_quantity_value(
             &value,
-            Unit::Radian,
+            target_unit,
             QuantityRole::Linear,
             output,
             work,
@@ -228,12 +253,65 @@ impl PreparedAngleRadianQuantityConversion {
             ))
         })?;
         let target_digest = semantic_digest(QUANTITY_INFO_ID, &output[..encoded_bytes]);
-        Ok(AngleRadianQuantityConversion {
+        Ok(AngleCoordinateConversion {
             source,
             scale,
             uses_pi_law,
             encoded_bytes,
             target_digest,
         })
+    }
+}
+
+// A rational coefficient plus the explicit reference Pi factor. Unit capsules
+// retain all definition authority; an unknown origin is still refused.
+fn coordinate_scale(
+    source: Unit,
+    target: Unit,
+    work: &mut ExactNumericWork,
+) -> Result<(ExactRational, i8), R> {
+    let one = RationalQuantity::new(ExactRational::ONE, source, QuantityRole::Linear)
+        .map_err(R::Physical)?;
+    match one.convert_to_unit(target, work) {
+        Ok(value) => Ok((value.coordinate(), 0)),
+        Err(RationalQuantityRefusal::Physical(QuantityConversionRefusal::Inexact)) => {
+            if target.reference_anchor() == Unit::Radian.reference_anchor() {
+                let turns = one.convert_to_unit(Unit::Turn, work).map_err(R::Physical)?;
+                let mut scale = turns
+                    .coordinate()
+                    .checked_multiply(ExactRational::from_i128(2), work)
+                    .map_err(R::Numeric)?;
+                // Preserve the established canonical-radian work receipt.
+                if target != Unit::Radian {
+                    let unit =
+                        RationalQuantity::new(ExactRational::ONE, target, QuantityRole::Linear)
+                            .and_then(|q| q.convert_to_unit(Unit::Radian, work))
+                            .map_err(R::Physical)?;
+                    scale = scale
+                        .checked_divide(unit.coordinate(), work)
+                        .map_err(R::Numeric)?;
+                }
+                Ok((scale, 1))
+            } else {
+                let radians = one
+                    .convert_to_unit(Unit::Radian, work)
+                    .map_err(R::Physical)?;
+                let unit = RationalQuantity::new(ExactRational::ONE, target, QuantityRole::Linear)
+                    .and_then(|q| q.convert_to_unit(Unit::Turn, work))
+                    .map_err(R::Physical)?;
+                let denominator = unit
+                    .coordinate()
+                    .checked_multiply(ExactRational::from_i128(2), work)
+                    .map_err(R::Numeric)?;
+                Ok((
+                    radians
+                        .coordinate()
+                        .checked_divide(denominator, work)
+                        .map_err(R::Numeric)?,
+                    -1,
+                ))
+            }
+        }
+        Err(why) => Err(R::Physical(why)),
     }
 }

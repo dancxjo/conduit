@@ -8,6 +8,14 @@ fn work() -> ExactNumericWork {
 
 #[test]
 fn turn_to_radian_coordinates_keep_symbolic_pi_and_replayable_reference_evidence() {
+    for (target_unit, coefficient) in [
+        (Unit::Radian, 2),
+        (Quantity::parse_plot_literal("1mrad").unwrap().unit(), 2000),
+    ] {
+        reference_projection(target_unit, ExactRational::from_i128(coefficient));
+    }
+}
+fn reference_projection(target_unit: Unit, coefficient: ExactRational) {
     let source = Quantity::parse_plot_literal("1turn").unwrap().encode();
     let mut converter = PreparedQuantityCoordinateConversion::new(500000, 200_000_000).unwrap();
     let mut verifier = PreparedQuantityCoordinateConversion::new(500000, 200_000_000).unwrap();
@@ -15,22 +23,20 @@ fn turn_to_radian_coordinates_keep_symbolic_pi_and_replayable_reference_evidence
     let mut scratch = target.clone();
     let limits = QUANTITY_COORDINATE_CONVERSION_EVIDENCE_LIMITS;
     let mut evidence = vec![0; limits.total_bytes];
-    let policy = QuantityCoordinateConversionPolicy {
-        target_unit: Unit::Radian,
-    };
+    let policy = QuantityCoordinateConversionPolicy { target_unit };
     let (_, allocations) = allocation_probe::observe(|| {
         let receipt = converter
-            .execute(&source, Unit::Radian, &mut target, &mut work())
+            .execute(&source, target_unit, &mut target, &mut work())
             .unwrap();
         let bytes = &target[..receipt.encoded_bytes()];
         let value = MathematicalQuantityView::decode(bytes, &mut work()).unwrap();
-        assert_eq!(value.unit(), Unit::Radian);
+        assert_eq!(value.unit(), target_unit);
         assert_eq!(
             value
                 .coordinate()
                 .rational_pi_coefficient(&mut work())
                 .unwrap(),
-            Some(ExactRational::from_i128(2))
+            Some(coefficient)
         );
         let domain = QuantityCoordinateConversionDomain::new();
         let facts = domain.facts(&receipt);
@@ -52,7 +58,7 @@ fn turn_to_radian_coordinates_keep_symbolic_pi_and_replayable_reference_evidence
             &[],
             ProjectionMechanism::Completed
         ));
-        let ids = QuantityCoordinateContentIds::new(&source, bytes, Unit::Radian);
+        let ids = QuantityCoordinateContentIds::new(&source, bytes, target_unit);
         let report = ProjectionReport::new(
             &domain,
             &policy,

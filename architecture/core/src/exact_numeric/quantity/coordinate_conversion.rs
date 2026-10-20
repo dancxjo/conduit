@@ -129,13 +129,13 @@ impl PreparedQuantityCoordinateConversion {
         // Coefficients come from the role-aware physical law independently of
         // the source magnitude. Exact native conversion does not first
         // materialize an owning rational coordinate.
-        let (scale, offset, n, reference_law) = if target == Unit::Radian
-            && source.family() == Unit::Turn.family()
-            && source.unit().reference_anchor() != Unit::Radian.reference_anchor()
+        let (scale, offset, n, reference_law) = if source.family() == Unit::Turn.family()
+            && target.family() == Unit::Turn.family()
+            && source.unit().reference_anchor() != target.reference_anchor()
         {
             let converted = self
                 .mathematical
-                .execute_radians(encoded, &mut self.staged, work)
+                .execute_angle_coordinates(encoded, target, &mut self.staged, work)
                 .map_err(|why| match why {
                     AngleRadianQuantityRefusal::Input(n) => R::Input(n),
                     AngleRadianQuantityRefusal::Physical(n) => R::Physical(n),

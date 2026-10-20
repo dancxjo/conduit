@@ -59,4 +59,15 @@ impl MathematicalInterval {
     pub(super) fn scale(self, factor: Q, work: &mut Work) -> Result<Self, R> {
         self.multiply(Self::point(factor), work)
     }
+    pub(super) fn reciprocal(self, work: &mut Work) -> Result<Self, R> {
+        if self.lower.checked_compare(Q::ZERO, work)? != Ordering::Greater
+            && self.upper.checked_compare(Q::ZERO, work)? != Ordering::Less
+        {
+            return Err(R::DivisorIntervalContainsZero);
+        }
+        Ok(Self::bounds(
+            Q::ONE.checked_divide(self.upper, work)?,
+            Q::ONE.checked_divide(self.lower, work)?,
+        ))
+    }
 }

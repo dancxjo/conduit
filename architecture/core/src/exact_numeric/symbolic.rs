@@ -257,12 +257,9 @@ impl MathematicalValueBuilder {
             }
             N::Add(a, b) | N::Subtract(a, b) | N::Multiply(a, b) | N::Divide(a, b) => {
                 if matches!(node, N::Divide(..)) {
-                    let q = self
-                        .rational(b)
-                        .ok_or(MathematicalValueRefusal::UnsupportedDomainProof)?;
-                    if q == ExactRational::ZERO {
-                        return Err(ExactNumericRefusal::DivisionByZero.into());
-                    }
+                    let q = self.rational(b);
+                    let pi = q.is_none() && matches!(self.node(b)?, N::Pi);
+                    require_divisor(q, pi)?;
                 }
                 if let (Some(left), Some(right)) = (self.rational(a), self.rational(b)) {
                     return Ok(N::Rational(match node {
@@ -418,5 +415,19 @@ impl MathematicalValue {
         let mut bytes = alloc::vec![0; MATHEMATICAL_VALUE_MAX_ENCODED_BYTES];
         let length = self.encode(&mut bytes).expect("bounded symbolic codec");
         crate::semantic_digest(MATHEMATICAL_VALUE_ID, &bytes[..length])
+    }
+}
+
+// The named Pi constant is strictly positive. This bounded proof admits its
+// reciprocal without claiming a general symbolic sign/equality procedure.
+fn require_divisor(
+    rational: Option<ExactRational>,
+    pi: bool,
+) -> Result<(), MathematicalValueRefusal> {
+    match rational {
+        Some(q) if q == ExactRational::ZERO => Err(ExactNumericRefusal::DivisionByZero.into()),
+        Some(_) => Ok(()),
+        None if pi => Ok(()),
+        None => Err(MathematicalValueRefusal::UnsupportedDomainProof),
     }
 }

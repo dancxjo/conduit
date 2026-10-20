@@ -266,10 +266,8 @@ impl<'a> MathematicalValueView<'a> {
                 let left = self.rational_node(a, work)?;
                 let right = self.rational_node(b, work)?;
                 if matches!(node, N::Divide(..)) {
-                    let q = right.ok_or(R::UnsupportedDomainProof)?;
-                    if q == ExactRational::ZERO {
-                        return Err(ExactNumericRefusal::DivisionByZero.into());
-                    }
+                    let pi = right.is_none() && matches!(self.node(b.index as usize, work)?, N::Pi);
+                    require_divisor(right, pi)?;
                 }
                 if left.is_some() && right.is_some() {
                     return Err(R::NonCanonicalEncoding);

@@ -42,12 +42,13 @@ pub(super) fn node(
         Node::Divide(a, b) => {
             let divisor = get(b)?;
             if divisor.lower() != divisor.upper() {
-                return Err(R::InvalidExpression);
+                get(a)?.multiply(divisor.reciprocal(work)?, work)?
+            } else {
+                get(a)?.scale(
+                    ExactRational::ONE.checked_divide(divisor.lower(), work)?,
+                    work,
+                )?
             }
-            get(a)?.scale(
-                ExactRational::ONE.checked_divide(divisor.lower(), work)?,
-                work,
-            )?
         }
         Node::PrincipalSquareRoot(a) => {
             let radicand = get(a)?;

@@ -210,3 +210,54 @@ fn installed_turn_to_radian_conversion_retains_pi_until_near_consumes_it() {
     assert_eq!(checked.source().encoded(), target);
     assert_eq!(guard.finish(), 0);
 }
+
+#[test]
+fn installed_inverse_pi_coordinates_satisfy_zero_tolerance_at_the_numeric_boundary() {
+    let pi = MathematicalValue::parse_literal("pi", &mut work()).unwrap();
+    let mut encoded = vec![0; MATHEMATICAL_VALUE_MAX_ENCODED_BYTES];
+    let n = pi.encode(&mut encoded).unwrap();
+    let pi = MathematicalValueView::decode(&encoded[..n], &mut work()).unwrap();
+    let mut source = vec![0; MATHEMATICAL_QUANTITY_MAX_ENCODED_BYTES];
+    let n = encode_mathematical_quantity_value(
+        &pi,
+        Unit::Radian,
+        QuantityRole::Linear,
+        &mut source,
+        &mut work(),
+    )
+    .unwrap();
+    source.truncate(n);
+    let (coordinate, numeric) = execute(&source, "turn", "0turn");
+    let target = field(&numeric, "source-wire");
+    let value = MathematicalQuantityView::decode(target, &mut work()).unwrap();
+    assert_eq!(value.unit(), Unit::Turn);
+    assert_eq!(
+        value.coordinate().as_rational(&mut work()).unwrap(),
+        Some(ExactRational::ratio(1, 2, &mut work()).unwrap())
+    );
+    replay_coordinate(&source, target, Unit::Turn, &coordinate);
+    let allowance =
+        RationalQuantity::new(ExactRational::ZERO, Unit::Turn, QuantityRole::Linear).unwrap();
+    let mut verifier = PreparedMathematicalNearQuantityVerifier::new(
+        &near_quantity_type(),
+        crate::numerical_host::near_step::mathematical_near_requirements(),
+        Binary32Rounding::NearestTiesEven,
+        allowance,
+        900_000_000,
+    )
+    .unwrap();
+    let bytes = numeric.canonical_bytes().unwrap();
+    let guard = crate::allocation_probe::begin();
+    let checked = verifier
+        .verify(
+            &bytes,
+            QUANTITY_INFO_ID,
+            Some(semantic_digest(QUANTITY_INFO_ID, target)),
+            &mut ExactNumericWork::new(900_000_000),
+        )
+        .unwrap();
+    assert_eq!(checked.source().encoded(), target);
+    assert_eq!(checked.target().bits(), 0x3f00_0000);
+    assert_eq!(checked.maximum_error(), ExactRational::ZERO);
+    assert_eq!(guard.finish(), 0);
+}
