@@ -1,0 +1,38 @@
+{
+  "parent": "d41c71aff4e7588ddd3dd5b2b0f12255ba4055a1",
+  "scope": "Four explicitly approved Source/metadata files; raw proof products and logs excluded",
+  "files": [
+    {
+      "source": "work/6039-source-recovery-handoff.md",
+      "tree_path": "task-6038/work/6039-source-recovery-handoff.md",
+      "bytes": 16427,
+      "sha256": "aa4e761e106651b85af823775a639a977458eb279f2b0469b41a3cfb733b8868",
+      "mode": "100644",
+      "blob": "aa5aaa74327420194d019e3cf8e150a340f90ff1"
+    },
+    {
+      "source": "work/6055-body-final-a637.md",
+      "tree_path": "task-6038/work/6055-body-final-a637.md",
+      "bytes": 5399,
+      "sha256": "5b8910b1d48c99bee3e2814e6976d716054ef9287542f5bf61b4eecd753c0954",
+      "mode": "100644",
+      "blob": "b769318f4c7859b73112c83908313607afd79c5f"
+    },
+    {
+      "source": "outputs/6039-held-de55e1509/receipt.json",
+      "tree_path": "task-6038/evidence/6039-held-de55e1509/receipt.json",
+      "bytes": 3456,
+      "sha256": "9d5f06e1700df865a0f93b3d83bf2d5b4d45ab8821e4cbebfb6a3db679bd4afa",
+      "mode": "100644",
+      "blob": "75bfc46632051808ac46c358aafc38866473fe33"
+    },
+    {
+      "source": "outputs/5990-ci-refresh-a6378a3ad/receipt.json",
+      "tree_path": "task-6038/evidence/5990-ci-refresh-a6378a3ad/receipt.json",
+      "bytes": 1176,
+      "sha256": "3414f746e6c35439801fec3a5332f4e02c78eb4f53c35a9cc12d7e229ba2c31f",
+      "mode": "100644",
+      "blob": "7f3ecd37981a0ee161957c72e8fcd622ad08c40b"
+    }
+  ]
+}

@@ -1,0 +1,52 @@
+{
+  "source": "de55e15098f83e0f772c11712739593a9d54a7b7",
+  "tree": "866413011740fd124d28f111d8a4429af3ecabd4",
+  "branch": "origin/codex/6039-source-contract",
+  "proof_class": "held Source-derived deterministic conformance; not current-dev/platform acceptance",
+  "baseline": {
+    "source": "d545693e4d7529e89f3ef8c3113324d7bae59bad",
+    "collection_tests_passed": 12
+  },
+  "regression": {
+    "red": "Valid derived maximum selected count at u64::MAX inventory panicked on intermediate chosen+inventory addition",
+    "green": "Subtract visible inventory first; accept exact legal maximum and reject one larger count as Selection",
+    "preliminary_probe": "Earlier initial probe set selected total to u64::MAX despite visible unselected items; it also panicked, but the corrected valid-boundary regression was run separately and reproduced the same failure"
+  },
+  "validation": {
+    "focused_collection_tests": 13,
+    "birth_library_tests": 34,
+    "face_library_tests": 59,
+    "existing_face_ignores": 2,
+    "failures": 0,
+    "strict_face_birth_clippy": "passed, library and tests",
+    "cargo_package_format_and_patch_hygiene": "passed",
+    "timing_boundary": "Commands ran before commit; exact production/test file hashes match the subsequently committed clean tree"
+  },
+  "finite_serialization_fixture": {
+    "one_item_unselected_bytes": 73392,
+    "one_item_selected_bytes": 75870,
+    "sixteen_items_unselected_bytes": 133771,
+    "sixteen_items_selected_bytes": 174810,
+    "boundary": "Long Unicode fields and 128-byte encounter ID specimen, not installed native current Face; existing native Mask/snapshot bound49152B remains separate prerequisite"
+  },
+  "remaining": [
+    "refresh after native05 acceptance, preserving ActionTarget and Source grouping",
+    "fresh Source hash/browser pin and producer fixture regeneration",
+    "independent linear reconstruction",
+    "current-head Candidate/Integration and required full checks before admission",
+    "native storage/transport and browser/native realization proof"
+  ],
+  "files": {
+    "semantics/face/src/collections.rs": "ac80db1e1c15ffd3dd54ef5cb6cb7cdca28223bc16a649d234046697737ac04d",
+    "semantics/face/src/component_recipe.rs": "7dacd48f912daeba38c99431ed6454505fad8e9dbbbd7c8f8fc47abb5ffbf6c1",
+    "plots/birth/src/face/collection_contract_tests.rs": "adab65d2088330db2a83c66a946f247df90893b4a4a0b6487667d1fcb5957662"
+  },
+  "logs": {
+    "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/6039-held-d545-collection-tests.log": "8005903c2d907cb4a636cf5cc233f60137b555a62f4a8d501f850ca4edd031ff",
+    "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/6039-held-d545-inventory-overflow-red.log": "7908ad553a146f4207d4b2ce2b745a5550c1980091f5e0b9388e2bc3a34f483b",
+    "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/6039-held-d545-inventory-boundary-red.log": "7566cd1ee8820397062caa2abf31f55dce5d9a0d0d92d40be3d04a683651f266",
+    "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/6039-held-inventory-boundary-green.log": "5bbb5f0fb9fdc357d8c5d5e7b7d7352bbbc110fabfdce9397288ffe5074a053f",
+    "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/6039-held-inventory-boundary-clippy.log": "9a980248be98e7256e7ebb9437bf5c1818933b21feefdd318103d04adea97f0f",
+    "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/6039-held-face-birth-library-tests.log": "9aa6faaf8fc7efe00bee452047d0c5d97d2b4ddf60dd38f9073638ccb38dfeae"
+  }
+}

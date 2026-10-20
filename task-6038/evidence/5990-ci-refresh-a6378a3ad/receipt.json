@@ -1,0 +1,22 @@
+{
+  "source": "a6378a3ad741d73bd5997bd90c4d7723b762636a",
+  "base": "00574baf4453cac3d82a63696c3a6149987d0a3c",
+  "previous_product_witness_source": "ed262de880aaf3515681d66675ab3de037bfbef8",
+  "old_head_recovery_ref": "origin/recovery/6055-ed262-before-native-coverage",
+  "changed_tracked_paths_from_product_witness": [
+    "proof/ci/pipeline-admission.spec.mjs",
+    "tools/ci/pipeline/admission.mjs",
+    "tools/xtask/src/suites/host_protocol_shards.rs",
+    "tools/xtask/src/suites/workspace_shard_features_tests.rs"
+  ],
+  "all_other_tracked_file_bytes_and_modes_equal": true,
+  "feature_commit_range_diff": "Six feature commits unchanged; redundant native evidence reorder already merged through6148",
+  "product_packet": "../5990-stage05-ed262de88/receipt.json",
+  "boundary": "Product receipts retain original Source and image identities; no binary or Source relabeling. Fresh coverage-aware Candidate and merged-source Integration/stable proof remain required.",
+  "preflight": {
+    "status": "passed",
+    "tests": 294,
+    "actionlint": "passed",
+    "log": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/6055-a637-native-coverage-preflight.log"
+  }
+}
