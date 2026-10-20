@@ -1,0 +1,21 @@
+{
+  "before_source": "e1c6dda63e71247c268aaf44fd7d3cdad8b925da",
+  "before_image_sha256": "1bd65efb29875e579a9a73484d25a3fbbbe25295207af521cedf6e06b492c110",
+  "after_source": "6f579f684500e6bf54c5dd7b5870c5c5c6fb7d6d",
+  "after_image_sha256": "4c4e50e53b057828056fdcdb3aab03f4637f3b24dd5e6a572ff7dc02b80f2eb2",
+  "viewport": [
+    1280,
+    800
+  ],
+  "same_source_title": {
+    "subject": "birth/conduitos/creche/current/main",
+    "text": "A body of your own"
+  },
+  "captures": {
+    "outputs/6158-panels-wide-e1c6dda63/arrival.ppm": "3d32cb0bd6ac64aa5a24da622441c207605b970dedd6dac65cbe1198469084c0",
+    "outputs/5992-root-before-after/before-wide-arrival.png": "eaf360f8e78035c69e37f64d599ed6d0ac4e6fac68ad35b22afff9a2044ede64",
+    "outputs/5992-visual-6f579f684/panels-wide-arrival.png": "8b3ee7d3f570f23e39f0a9aaf39492d7a06540fb1e219efb93938419ec74a86b"
+  },
+  "conversion": "PPM to PNG; exact decoded RGB pixel equality verified",
+  "boundary": "Independent boots with different generated names/identities, not same-Face two-Look proof. Root inspected serif title/sans controls and technical Mono Details separately."
+}

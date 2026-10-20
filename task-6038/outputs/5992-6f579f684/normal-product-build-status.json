@@ -1,0 +1,16 @@
+{
+  "source": "6f579f684500e6bf54c5dd7b5870c5c5c6fb7d6d",
+  "args": [
+    "cargo",
+    "+stable",
+    "xtask",
+    "make",
+    "conduitos",
+    "live",
+    "x86_64",
+    "--locked"
+  ],
+  "status": 0,
+  "seconds": 72.14268898963928,
+  "free_before": 67991601152
+}

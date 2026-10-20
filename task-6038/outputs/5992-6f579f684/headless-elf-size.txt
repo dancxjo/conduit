@@ -1,0 +1,2 @@
+   text	   data	    bss	    dec	    hex	filename
+7118267	  73256	1089536	8281059	 7e5be3	/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/outputs/5992-headless-6f579f684/conduitos-kernel.elf

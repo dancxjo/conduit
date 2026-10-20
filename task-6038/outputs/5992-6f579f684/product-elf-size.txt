@@ -1,0 +1,2 @@
+   text	   data	    bss	    dec	    hex	filename
+15236739	  73768	1581056	16891563	101beab	/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/target/conduitos/live/x86_64-pc/conduitos-kernel.elf

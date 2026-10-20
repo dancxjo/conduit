@@ -1,0 +1,17 @@
+{
+  "status": "passed",
+  "source": "6f579f684500e6bf54c5dd7b5870c5c5c6fb7d6d",
+  "headless_proof_sha256": "1095dba79890d4abde5065c6ab15e8298b08db87c0f24c71184d54d4f5e19fc2",
+  "profile_id": "sha256:1ce15b181e243033995f418e5ce265e2c4d64f689ad605355b33b902331be82f",
+  "build_id": "build:sha256:5bff7c92e5ba05327b5e0b0a414a6b32ebb808478fef54a975a57ce5cbfabd4c",
+  "semantic_image_binding": "image:sha256:571062101c6025f448521785a5489ff70a2ab962e194ee3c1d7992de552d99eb",
+  "final_image_sha256": "ae3cdd9ce464c6c971ea8877f2d5c6abe3891aea40508699bd23f251b35829a7",
+  "checks": [
+    "actual artifact digests",
+    "two serial digests",
+    "symbol table digest",
+    "fresh boot/host IDs",
+    "unsupported/no workload/no initialized providers"
+  ],
+  "audit_correction": "Initial root audit incorrectly compared semantic image_binding to final artifact image_id; corrected to resolved_build.image_id. Product verifier and artifacts unchanged."
+}

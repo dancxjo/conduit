@@ -1,0 +1,1021 @@
+{
+  "source": "6f579f684500e6bf54c5dd7b5870c5c5c6fb7d6d",
+  "proof_runner_sha256": "026db27fe9c59d851fea4500a5e11f97670793650d10a2861d6731430e6230e6",
+  "image_sha256": "4c4e50e53b057828056fdcdb3aab03f4637f3b24dd5e6a572ff7dc02b80f2eb2",
+  "proof_class": "freestanding-emulator",
+  "viewport": [
+    1280,
+    800
+  ],
+  "status": "passed",
+  "captures": [
+    {
+      "file": "arrival.ppm",
+      "sha256": "5a1aac6c6de15bf9364e8bef1059195d4b30a7ef3bae3348e3d44432c281f294",
+      "focus": {
+        "action_id": "creche.name",
+        "argument_name": "value",
+        "display_bounds": {
+          "height": 800,
+          "width": 1280,
+          "x": 0,
+          "y": 0
+        },
+        "face_id": "8fac22173711c45c91d487466445aed34858e763f9c1976effa67f5281b263a3",
+        "face_revision": 1,
+        "hit_bounds": {
+          "height": 36,
+          "width": 578,
+          "x": 48,
+          "y": 398
+        },
+        "page": 1,
+        "pages": 2,
+        "schema": "conduit.creche-focus/v1",
+        "show_id": "show/71fb9dee8c93d2ed2003b52b0af7d19d80e544fde89f63759896df69dc36385f"
+      }
+    },
+    {
+      "file": "navigation-page-2.ppm",
+      "sha256": "c3e3c9c6a4337bfa9ac06d0c8f08aa4432e09696d110612db7ef8da442c981a2",
+      "focus": {
+        "action_id": "creche.plot.2",
+        "argument_name": null,
+        "display_bounds": {
+          "height": 800,
+          "width": 1280,
+          "x": 0,
+          "y": 0
+        },
+        "face_id": "8fac22173711c45c91d487466445aed34858e763f9c1976effa67f5281b263a3",
+        "face_revision": 1,
+        "hit_bounds": {
+          "height": 36,
+          "width": 578,
+          "x": 682,
+          "y": 64
+        },
+        "page": 2,
+        "pages": 2,
+        "schema": "conduit.creche-focus/v1",
+        "show_id": "show/71fb9dee8c93d2ed2003b52b0af7d19d80e544fde89f63759896df69dc36385f"
+      }
+    },
+    {
+      "file": "tradition-draft.ppm",
+      "sha256": "d64586cba490bdbd599bb888235362e6724e0d3094f388f3e814df5504f79513",
+      "focus": {
+        "action_id": "creche.naming",
+        "argument_name": "value",
+        "display_bounds": {
+          "height": 800,
+          "width": 1280,
+          "x": 0,
+          "y": 0
+        },
+        "face_id": "8fac22173711c45c91d487466445aed34858e763f9c1976effa67f5281b263a3",
+        "face_revision": 1,
+        "hit_bounds": {
+          "height": 36,
+          "width": 578,
+          "x": 48,
+          "y": 533
+        },
+        "page": 1,
+        "pages": 2,
+        "schema": "conduit.creche-focus/v1",
+        "show_id": "show/71fb9dee8c93d2ed2003b52b0af7d19d80e544fde89f63759896df69dc36385f"
+      }
+    },
+    {
+      "file": "tradition-committed.ppm",
+      "sha256": "5889630574b6df28f440eb5f160083fedbb6735d571a97137d23cb5614b3b9b6",
+      "focus": {
+        "action_id": "creche.naming",
+        "argument_name": "value",
+        "display_bounds": {
+          "height": 800,
+          "width": 1280,
+          "x": 0,
+          "y": 0
+        },
+        "face_id": "9e93a4a2ea01ee5de4853498ca27aa1e50a6c0e573bb559ff23fa16026c883cd",
+        "face_revision": 2,
+        "hit_bounds": {
+          "height": 36,
+          "width": 578,
+          "x": 48,
+          "y": 533
+        },
+        "page": 1,
+        "pages": 2,
+        "schema": "conduit.creche-focus/v1",
+        "show_id": "show/75ab35014dcc61ea4ad35dc7d02a12d98f8cda1e26578ca8365e9c402c73842b"
+      }
+    },
+    {
+      "file": "long-unicode-draft.ppm",
+      "sha256": "5202af3c185b76907ce9ed0ba55ab9f30d7bbde596ad6929165598a69c9f91e8",
+      "focus": {
+        "action_id": "creche.name",
+        "argument_name": "value",
+        "display_bounds": {
+          "height": 800,
+          "width": 1280,
+          "x": 0,
+          "y": 0
+        },
+        "face_id": "9e93a4a2ea01ee5de4853498ca27aa1e50a6c0e573bb559ff23fa16026c883cd",
+        "face_revision": 2,
+        "hit_bounds": {
+          "height": 36,
+          "width": 578,
+          "x": 48,
+          "y": 398
+        },
+        "page": 1,
+        "pages": 2,
+        "schema": "conduit.creche-focus/v1",
+        "show_id": "show/75ab35014dcc61ea4ad35dc7d02a12d98f8cda1e26578ca8365e9c402c73842b"
+      }
+    },
+    {
+      "file": "long-unicode-committed-page-1.ppm",
+      "sha256": "e5355e23bae1e8411b4180a990ee78660aab5dec1e4259203645076ce478ec02",
+      "focus": {
+        "action_id": "creche.name",
+        "argument_name": "value",
+        "display_bounds": {
+          "height": 800,
+          "width": 1280,
+          "x": 0,
+          "y": 0
+        },
+        "face_id": "02ba36603c919c95750d7e6662ceb4b55d12db9c8930e431d0bc56c2873c9e50",
+        "face_revision": 3,
+        "hit_bounds": {
+          "height": 76,
+          "width": 578,
+          "x": 48,
+          "y": 398
+        },
+        "page": 1,
+        "pages": 2,
+        "schema": "conduit.creche-focus/v1",
+        "show_id": "show/5683700b70512548099d22dc72229aea3554ada1a94e88483a8f0b09e3cdab5d"
+      }
+    },
+    {
+      "file": "long-unicode-committed-page-2.ppm",
+      "sha256": "35a0ec10e912afbbb181518a5d13d2225163afbe0b6ace53664bc4c7a14d3edd",
+      "focus": {
+        "action_id": null,
+        "argument_name": null,
+        "display_bounds": {
+          "height": 800,
+          "width": 1280,
+          "x": 0,
+          "y": 0
+        },
+        "face_id": "02ba36603c919c95750d7e6662ceb4b55d12db9c8930e431d0bc56c2873c9e50",
+        "face_revision": 3,
+        "hit_bounds": null,
+        "page": 2,
+        "pages": 2,
+        "schema": "conduit.creche-focus/v1",
+        "show_id": "show/5683700b70512548099d22dc72229aea3554ada1a94e88483a8f0b09e3cdab5d"
+      }
+    },
+    {
+      "file": "unicode-committed.ppm",
+      "sha256": "e5355e23bae1e8411b4180a990ee78660aab5dec1e4259203645076ce478ec02",
+      "focus": {
+        "action_id": "creche.name",
+        "argument_name": "value",
+        "display_bounds": {
+          "height": 800,
+          "width": 1280,
+          "x": 0,
+          "y": 0
+        },
+        "face_id": "02ba36603c919c95750d7e6662ceb4b55d12db9c8930e431d0bc56c2873c9e50",
+        "face_revision": 3,
+        "hit_bounds": {
+          "height": 76,
+          "width": 578,
+          "x": 48,
+          "y": 398
+        },
+        "page": 1,
+        "pages": 2,
+        "schema": "conduit.creche-focus/v1",
+        "show_id": "show/5683700b70512548099d22dc72229aea3554ada1a94e88483a8f0b09e3cdab5d"
+      }
+    },
+    {
+      "file": "empty-name-unavailable-page-1.ppm",
+      "sha256": "7db6655a2209a6028a76078ef063d3b4a333868471c7422bf3db830b1331c981",
+      "focus": {
+        "action_id": "creche.name",
+        "argument_name": "value",
+        "display_bounds": {
+          "height": 800,
+          "width": 1280,
+          "x": 0,
+          "y": 0
+        },
+        "face_id": "137fc1fb4ab71edf56042c164bb905ebb0cd9364bb5d3b72b75d22082ece23f0",
+        "face_revision": 4,
+        "hit_bounds": {
+          "height": 36,
+          "width": 578,
+          "x": 48,
+          "y": 398
+        },
+        "page": 1,
+        "pages": 2,
+        "schema": "conduit.creche-focus/v1",
+        "show_id": "show/ff408d2aabb7b59e944d82a225f6090d3a0e4b6e7c0c0327a9e8ae0509a5d5ea"
+      }
+    },
+    {
+      "file": "empty-name-unavailable-page-2.ppm",
+      "sha256": "f2189c746d7a563e05b3c04f2a2a7702470b070c48037ae1807c6b0852e09259",
+      "focus": {
+        "action_id": null,
+        "argument_name": null,
+        "display_bounds": {
+          "height": 800,
+          "width": 1280,
+          "x": 0,
+          "y": 0
+        },
+        "face_id": "137fc1fb4ab71edf56042c164bb905ebb0cd9364bb5d3b72b75d22082ece23f0",
+        "face_revision": 4,
+        "hit_bounds": null,
+        "page": 2,
+        "pages": 2,
+        "schema": "conduit.creche-focus/v1",
+        "show_id": "show/ff408d2aabb7b59e944d82a225f6090d3a0e4b6e7c0c0327a9e8ae0509a5d5ea"
+      }
+    },
+    {
+      "file": "filtered-review.ppm",
+      "sha256": "bbf665210555496b86adfe12dc2cdf5f26f2000e09f0bbaf2ded5f744031d099",
+      "focus": {
+        "action_id": "creche.search",
+        "argument_name": "value",
+        "display_bounds": {
+          "height": 800,
+          "width": 1280,
+          "x": 0,
+          "y": 0
+        },
+        "face_id": "e5eb7c017c181cc10d763b39aa557d2e9ad3156179dabe4ccc474db40bd70260",
+        "face_revision": 6,
+        "hit_bounds": {
+          "height": 36,
+          "width": 578,
+          "x": 682,
+          "y": 398
+        },
+        "page": 1,
+        "pages": 2,
+        "schema": "conduit.creche-focus/v1",
+        "show_id": "show/c4ae6fe5983fde7f531249d8c02101cf7d86ea182e3ef20adca78f5b70df46cb"
+      }
+    },
+    {
+      "file": "filtered-review-page-1.ppm",
+      "sha256": "bbf665210555496b86adfe12dc2cdf5f26f2000e09f0bbaf2ded5f744031d099",
+      "focus": {
+        "action_id": "creche.search",
+        "argument_name": "value",
+        "display_bounds": {
+          "height": 800,
+          "width": 1280,
+          "x": 0,
+          "y": 0
+        },
+        "face_id": "e5eb7c017c181cc10d763b39aa557d2e9ad3156179dabe4ccc474db40bd70260",
+        "face_revision": 6,
+        "hit_bounds": {
+          "height": 36,
+          "width": 578,
+          "x": 682,
+          "y": 398
+        },
+        "page": 1,
+        "pages": 2,
+        "schema": "conduit.creche-focus/v1",
+        "show_id": "show/c4ae6fe5983fde7f531249d8c02101cf7d86ea182e3ef20adca78f5b70df46cb"
+      }
+    },
+    {
+      "file": "filtered-review-page-2.ppm",
+      "sha256": "1f13f72a76e36da51130f95ae3d1b0fbac88191d6ff1be8dc60057ed36b2e44b",
+      "focus": {
+        "action_id": null,
+        "argument_name": null,
+        "display_bounds": {
+          "height": 800,
+          "width": 1280,
+          "x": 0,
+          "y": 0
+        },
+        "face_id": "e5eb7c017c181cc10d763b39aa557d2e9ad3156179dabe4ccc474db40bd70260",
+        "face_revision": 6,
+        "hit_bounds": null,
+        "page": 2,
+        "pages": 2,
+        "schema": "conduit.creche-focus/v1",
+        "show_id": "show/c4ae6fe5983fde7f531249d8c02101cf7d86ea182e3ef20adca78f5b70df46cb"
+      }
+    }
+  ],
+  "edits": [
+    {
+      "change": {
+        "after_face_id": "9e93a4a2ea01ee5de4853498ca27aa1e50a6c0e573bb559ff23fa16026c883cd",
+        "after_revision": 2,
+        "after_show_id": "show/75ab35014dcc61ea4ad35dc7d02a12d98f8cda1e26578ca8365e9c402c73842b",
+        "before_face_id": "8fac22173711c45c91d487466445aed34858e763f9c1976effa67f5281b263a3",
+        "before_revision": 1,
+        "before_show_id": "show/71fb9dee8c93d2ed2003b52b0af7d19d80e544fde89f63759896df69dc36385f",
+        "disposition": "source-accepted-and-shown",
+        "interaction": {
+          "action_id": "creche.naming",
+          "arguments": [
+            {
+              "name": "value",
+              "value": [
+                114,
+                111,
+                109,
+                97,
+                110
+              ],
+              "value_kind": "value/text"
+            }
+          ],
+          "face_id": "8fac22173711c45c91d487466445aed34858e763f9c1976effa67f5281b263a3",
+          "face_revision": 1,
+          "identity": "60a7e09bdaf31f9737f1539328dadc2463822dc62e836a33d2a9c12b20df4b39",
+          "sequence": 39,
+          "show_id": "show/71fb9dee8c93d2ed2003b52b0af7d19d80e544fde89f63759896df69dc36385f",
+          "target": "birth/conduitos/creche/current/name-system"
+        },
+        "schema": "conduit.creche-change/v1"
+      },
+      "observed_submit_ms": 151.894
+    },
+    {
+      "change": {
+        "after_face_id": "02ba36603c919c95750d7e6662ceb4b55d12db9c8930e431d0bc56c2873c9e50",
+        "after_revision": 3,
+        "after_show_id": "show/5683700b70512548099d22dc72229aea3554ada1a94e88483a8f0b09e3cdab5d",
+        "before_face_id": "9e93a4a2ea01ee5de4853498ca27aa1e50a6c0e573bb559ff23fa16026c883cd",
+        "before_revision": 2,
+        "before_show_id": "show/75ab35014dcc61ea4ad35dc7d02a12d98f8cda1e26578ca8365e9c402c73842b",
+        "disposition": "source-accepted-and-shown",
+        "interaction": {
+          "action_id": "creche.name",
+          "arguments": [
+            {
+              "name": "value",
+              "value": [
+                99,
+                97,
+                102,
+                195,
+                169,
+                97,
+                97,
+                97,
+                97,
+                97,
+                97,
+                97,
+                97,
+                97,
+                97,
+                97,
+                97,
+                97,
+                97,
+                97,
+                97,
+                97,
+                97,
+                97,
+                97,
+                97,
+                97,
+                97,
+                97,
+                97,
+                97,
+                97,
+                97,
+                97,
+                97,
+                97,
+                97,
+                97,
+                97,
+                97,
+                97,
+                97,
+                97,
+                97,
+                97,
+                97,
+                97,
+                97,
+                97,
+                97,
+                97,
+                97,
+                97,
+                97,
+                97,
+                97,
+                97,
+                97,
+                97,
+                97,
+                97,
+                97,
+                97,
+                97
+              ],
+              "value_kind": "value/text"
+            }
+          ],
+          "face_id": "9e93a4a2ea01ee5de4853498ca27aa1e50a6c0e573bb559ff23fa16026c883cd",
+          "face_revision": 2,
+          "identity": "03ba253926f3e86bbc3a3b73c91c763b12085e1993c1a5d684f72f9ab4c0cf87",
+          "sequence": 181,
+          "show_id": "show/75ab35014dcc61ea4ad35dc7d02a12d98f8cda1e26578ca8365e9c402c73842b",
+          "target": "birth/conduitos/creche/current/body-name"
+        },
+        "schema": "conduit.creche-change/v1"
+      },
+      "observed_submit_ms": 152.562
+    },
+    {
+      "change": {
+        "after_face_id": "137fc1fb4ab71edf56042c164bb905ebb0cd9364bb5d3b72b75d22082ece23f0",
+        "after_revision": 4,
+        "after_show_id": "show/ff408d2aabb7b59e944d82a225f6090d3a0e4b6e7c0c0327a9e8ae0509a5d5ea",
+        "before_face_id": "02ba36603c919c95750d7e6662ceb4b55d12db9c8930e431d0bc56c2873c9e50",
+        "before_revision": 3,
+        "before_show_id": "show/5683700b70512548099d22dc72229aea3554ada1a94e88483a8f0b09e3cdab5d",
+        "disposition": "source-accepted-and-shown",
+        "interaction": {
+          "action_id": "creche.name",
+          "arguments": [
+            {
+              "name": "value",
+              "value": [],
+              "value_kind": "value/text"
+            }
+          ],
+          "face_id": "02ba36603c919c95750d7e6662ceb4b55d12db9c8930e431d0bc56c2873c9e50",
+          "face_revision": 3,
+          "identity": "5484f8dd658ea1d4c5cfad01c13c3301390b50b8fdea9e71125a5c2719fc7e04",
+          "sequence": 195,
+          "show_id": "show/5683700b70512548099d22dc72229aea3554ada1a94e88483a8f0b09e3cdab5d",
+          "target": "birth/conduitos/creche/current/body-name"
+        },
+        "schema": "conduit.creche-change/v1"
+      },
+      "observed_submit_ms": 153.245
+    },
+    {
+      "change": {
+        "after_face_id": "350b51cd37fca52aef6dd97f4b2381b601ed6deac180401a7f9b4ae55f99c15c",
+        "after_revision": 5,
+        "after_show_id": "show/f5e3c02406d645ed6eec4f8329575a47331d061e9a4e2f56ba965db8668afbb1",
+        "before_face_id": "137fc1fb4ab71edf56042c164bb905ebb0cd9364bb5d3b72b75d22082ece23f0",
+        "before_revision": 4,
+        "before_show_id": "show/ff408d2aabb7b59e944d82a225f6090d3a0e4b6e7c0c0327a9e8ae0509a5d5ea",
+        "disposition": "source-accepted-and-shown",
+        "interaction": {
+          "action_id": "creche.name",
+          "arguments": [
+            {
+              "name": "value",
+              "value": [
+                99,
+                97,
+                102,
+                195,
+                169
+              ],
+              "value_kind": "value/text"
+            }
+          ],
+          "face_id": "137fc1fb4ab71edf56042c164bb905ebb0cd9364bb5d3b72b75d22082ece23f0",
+          "face_revision": 4,
+          "identity": "27bc8d6c52168ed90b2011642553395bbb21f38237338a9e7b7224b1c64ea383",
+          "sequence": 215,
+          "show_id": "show/ff408d2aabb7b59e944d82a225f6090d3a0e4b6e7c0c0327a9e8ae0509a5d5ea",
+          "target": "birth/conduitos/creche/current/body-name"
+        },
+        "schema": "conduit.creche-change/v1"
+      },
+      "observed_submit_ms": 153.211
+    },
+    {
+      "change": {
+        "after_face_id": "e5eb7c017c181cc10d763b39aa557d2e9ad3156179dabe4ccc474db40bd70260",
+        "after_revision": 6,
+        "after_show_id": "show/c4ae6fe5983fde7f531249d8c02101cf7d86ea182e3ef20adca78f5b70df46cb",
+        "before_face_id": "350b51cd37fca52aef6dd97f4b2381b601ed6deac180401a7f9b4ae55f99c15c",
+        "before_revision": 5,
+        "before_show_id": "show/f5e3c02406d645ed6eec4f8329575a47331d061e9a4e2f56ba965db8668afbb1",
+        "disposition": "source-accepted-and-shown",
+        "interaction": {
+          "action_id": "creche.search",
+          "arguments": [
+            {
+              "name": "value",
+              "value": [
+                122,
+                122,
+                122,
+                122
+              ],
+              "value_kind": "value/text"
+            }
+          ],
+          "face_id": "350b51cd37fca52aef6dd97f4b2381b601ed6deac180401a7f9b4ae55f99c15c",
+          "face_revision": 5,
+          "identity": "80eadfe4f59239ee078bd2887b4fee9f7ce3c7f85c18e93047832bdf60c8d334",
+          "sequence": 241,
+          "show_id": "show/f5e3c02406d645ed6eec4f8329575a47331d061e9a4e2f56ba965db8668afbb1",
+          "target": "birth/conduitos/creche/current/plot-search"
+        },
+        "schema": "conduit.creche-change/v1"
+      },
+      "observed_submit_ms": 102.586
+    }
+  ],
+  "argv": [
+    "qemu-system-x86_64",
+    "-M",
+    "q35",
+    "-cpu",
+    "max",
+    "-m",
+    "512M",
+    "-smp",
+    "1",
+    "-display",
+    "none",
+    "-vga",
+    "std",
+    "-global",
+    "VGA.xres=1280",
+    "-global",
+    "VGA.yres=800",
+    "-monitor",
+    "none",
+    "-qmp",
+    "unix:/tmp/creche-panels-1o62nzrs/qmp,server=on,wait=off",
+    "-serial",
+    "file:/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/outputs/5992-panels-wide-6f579f684/serial.log",
+    "-no-reboot",
+    "-net",
+    "none",
+    "-device",
+    "qemu-xhci,id=conduitos-xhci,p2=3,p3=0",
+    "-device",
+    "usb-kbd,id=conduitos-keyboard,bus=conduitos-xhci.0,port=1",
+    "-device",
+    "usb-mouse,id=conduitos-pointer,bus=conduitos-xhci.0,port=2",
+    "-cdrom",
+    "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/outputs/5992-product-6f579f684/conduitos-x86_64.iso",
+    "-boot",
+    "d"
+  ],
+  "owned_pid": 2347081,
+  "arrival_observed_ms": 23440.641,
+  "source_plot_candidates": [
+    {
+      "arguments": [
+        {
+          "contract": {
+            "constraints": [],
+            "maximum_bytes": 1,
+            "value_kind": "value/bool"
+          },
+          "name": "value",
+          "value_name": "Include Plot"
+        }
+      ],
+      "availability": "Available",
+      "disclosure": "CurrentAction",
+      "identity": "creche.plot.0",
+      "intent": "conduit.intent/creche.plot.0@1",
+      "name": "Include Plot",
+      "target": "birth/conduitos/creche/current/initial-plots/0"
+    },
+    {
+      "arguments": [
+        {
+          "contract": {
+            "constraints": [],
+            "maximum_bytes": 1,
+            "value_kind": "value/bool"
+          },
+          "name": "value",
+          "value_name": "Include Plot"
+        }
+      ],
+      "availability": "Available",
+      "disclosure": "CurrentAction",
+      "identity": "creche.plot.1",
+      "intent": "conduit.intent/creche.plot.1@1",
+      "name": "Include Plot",
+      "target": "birth/conduitos/creche/current/initial-plots/1"
+    },
+    {
+      "arguments": [
+        {
+          "contract": {
+            "constraints": [],
+            "maximum_bytes": 1,
+            "value_kind": "value/bool"
+          },
+          "name": "value",
+          "value_name": "Include Plot"
+        }
+      ],
+      "availability": "Available",
+      "disclosure": "CurrentAction",
+      "identity": "creche.plot.2",
+      "intent": "conduit.intent/creche.plot.2@1",
+      "name": "Include Plot",
+      "target": "birth/conduitos/creche/current/initial-plots/2"
+    },
+    {
+      "arguments": [
+        {
+          "contract": {
+            "constraints": [],
+            "maximum_bytes": 1,
+            "value_kind": "value/bool"
+          },
+          "name": "value",
+          "value_name": "Include Plot"
+        }
+      ],
+      "availability": "Available",
+      "disclosure": "CurrentAction",
+      "identity": "creche.plot.3",
+      "intent": "conduit.intent/creche.plot.3@1",
+      "name": "Include Plot",
+      "target": "birth/conduitos/creche/current/initial-plots/3"
+    },
+    {
+      "arguments": [
+        {
+          "contract": {
+            "constraints": [],
+            "maximum_bytes": 1,
+            "value_kind": "value/bool"
+          },
+          "name": "value",
+          "value_name": "Include Plot"
+        }
+      ],
+      "availability": {
+        "Unavailable": {
+          "explanation": "native-body-plot-unavailable",
+          "reason_code": "birth/unavailable"
+        }
+      },
+      "disclosure": "CurrentAction",
+      "identity": "creche.plot.4",
+      "intent": "conduit.intent/creche.plot.4@1",
+      "name": "Include Plot",
+      "target": "birth/conduitos/creche/current/initial-plots/4"
+    }
+  ],
+  "initial_focus_cycle": [
+    {
+      "action_id": "creche.name",
+      "argument_name": "value",
+      "display_bounds": {
+        "height": 800,
+        "width": 1280,
+        "x": 0,
+        "y": 0
+      },
+      "face_id": "8fac22173711c45c91d487466445aed34858e763f9c1976effa67f5281b263a3",
+      "face_revision": 1,
+      "hit_bounds": {
+        "height": 36,
+        "width": 578,
+        "x": 48,
+        "y": 398
+      },
+      "page": 1,
+      "pages": 2,
+      "schema": "conduit.creche-focus/v1",
+      "show_id": "show/71fb9dee8c93d2ed2003b52b0af7d19d80e544fde89f63759896df69dc36385f"
+    },
+    {
+      "action_id": "creche.plot.0",
+      "argument_name": null,
+      "display_bounds": {
+        "height": 800,
+        "width": 1280,
+        "x": 0,
+        "y": 0
+      },
+      "face_id": "8fac22173711c45c91d487466445aed34858e763f9c1976effa67f5281b263a3",
+      "face_revision": 1,
+      "hit_bounds": {
+        "height": 36,
+        "width": 578,
+        "x": 682,
+        "y": 495
+      },
+      "page": 1,
+      "pages": 2,
+      "schema": "conduit.creche-focus/v1",
+      "show_id": "show/71fb9dee8c93d2ed2003b52b0af7d19d80e544fde89f63759896df69dc36385f"
+    },
+    {
+      "action_id": "creche.plot.1",
+      "argument_name": null,
+      "display_bounds": {
+        "height": 800,
+        "width": 1280,
+        "x": 0,
+        "y": 0
+      },
+      "face_id": "8fac22173711c45c91d487466445aed34858e763f9c1976effa67f5281b263a3",
+      "face_revision": 1,
+      "hit_bounds": {
+        "height": 36,
+        "width": 578,
+        "x": 682,
+        "y": 539
+      },
+      "page": 1,
+      "pages": 2,
+      "schema": "conduit.creche-focus/v1",
+      "show_id": "show/71fb9dee8c93d2ed2003b52b0af7d19d80e544fde89f63759896df69dc36385f"
+    },
+    {
+      "action_id": "creche.plot.2",
+      "argument_name": null,
+      "display_bounds": {
+        "height": 800,
+        "width": 1280,
+        "x": 0,
+        "y": 0
+      },
+      "face_id": "8fac22173711c45c91d487466445aed34858e763f9c1976effa67f5281b263a3",
+      "face_revision": 1,
+      "hit_bounds": {
+        "height": 36,
+        "width": 578,
+        "x": 682,
+        "y": 64
+      },
+      "page": 2,
+      "pages": 2,
+      "schema": "conduit.creche-focus/v1",
+      "show_id": "show/71fb9dee8c93d2ed2003b52b0af7d19d80e544fde89f63759896df69dc36385f"
+    },
+    {
+      "action_id": "creche.plot.3",
+      "argument_name": null,
+      "display_bounds": {
+        "height": 800,
+        "width": 1280,
+        "x": 0,
+        "y": 0
+      },
+      "face_id": "8fac22173711c45c91d487466445aed34858e763f9c1976effa67f5281b263a3",
+      "face_revision": 1,
+      "hit_bounds": {
+        "height": 36,
+        "width": 578,
+        "x": 682,
+        "y": 108
+      },
+      "page": 2,
+      "pages": 2,
+      "schema": "conduit.creche-focus/v1",
+      "show_id": "show/71fb9dee8c93d2ed2003b52b0af7d19d80e544fde89f63759896df69dc36385f"
+    },
+    {
+      "action_id": "creche.naming",
+      "argument_name": null,
+      "display_bounds": {
+        "height": 800,
+        "width": 1280,
+        "x": 0,
+        "y": 0
+      },
+      "face_id": "8fac22173711c45c91d487466445aed34858e763f9c1976effa67f5281b263a3",
+      "face_revision": 1,
+      "hit_bounds": {
+        "height": 36,
+        "width": 578,
+        "x": 48,
+        "y": 489
+      },
+      "page": 1,
+      "pages": 2,
+      "schema": "conduit.creche-focus/v1",
+      "show_id": "show/71fb9dee8c93d2ed2003b52b0af7d19d80e544fde89f63759896df69dc36385f"
+    },
+    {
+      "action_id": "creche.naming",
+      "argument_name": "value",
+      "display_bounds": {
+        "height": 800,
+        "width": 1280,
+        "x": 0,
+        "y": 0
+      },
+      "face_id": "8fac22173711c45c91d487466445aed34858e763f9c1976effa67f5281b263a3",
+      "face_revision": 1,
+      "hit_bounds": {
+        "height": 36,
+        "width": 578,
+        "x": 48,
+        "y": 533
+      },
+      "page": 1,
+      "pages": 2,
+      "schema": "conduit.creche-focus/v1",
+      "show_id": "show/71fb9dee8c93d2ed2003b52b0af7d19d80e544fde89f63759896df69dc36385f"
+    },
+    {
+      "action_id": "creche.search",
+      "argument_name": null,
+      "display_bounds": {
+        "height": 800,
+        "width": 1280,
+        "x": 0,
+        "y": 0
+      },
+      "face_id": "8fac22173711c45c91d487466445aed34858e763f9c1976effa67f5281b263a3",
+      "face_revision": 1,
+      "hit_bounds": {
+        "height": 36,
+        "width": 578,
+        "x": 682,
+        "y": 354
+      },
+      "page": 1,
+      "pages": 2,
+      "schema": "conduit.creche-focus/v1",
+      "show_id": "show/71fb9dee8c93d2ed2003b52b0af7d19d80e544fde89f63759896df69dc36385f"
+    },
+    {
+      "action_id": "creche.search",
+      "argument_name": "value",
+      "display_bounds": {
+        "height": 800,
+        "width": 1280,
+        "x": 0,
+        "y": 0
+      },
+      "face_id": "8fac22173711c45c91d487466445aed34858e763f9c1976effa67f5281b263a3",
+      "face_revision": 1,
+      "hit_bounds": {
+        "height": 36,
+        "width": 578,
+        "x": 682,
+        "y": 398
+      },
+      "page": 1,
+      "pages": 2,
+      "schema": "conduit.creche-focus/v1",
+      "show_id": "show/71fb9dee8c93d2ed2003b52b0af7d19d80e544fde89f63759896df69dc36385f"
+    },
+    {
+      "action_id": "creche.birth",
+      "argument_name": null,
+      "display_bounds": {
+        "height": 800,
+        "width": 1280,
+        "x": 0,
+        "y": 0
+      },
+      "face_id": "8fac22173711c45c91d487466445aed34858e763f9c1976effa67f5281b263a3",
+      "face_revision": 1,
+      "hit_bounds": {
+        "height": 45,
+        "width": 1228,
+        "x": 40,
+        "y": 158
+      },
+      "page": 1,
+      "pages": 2,
+      "schema": "conduit.creche-focus/v1",
+      "show_id": "show/71fb9dee8c93d2ed2003b52b0af7d19d80e544fde89f63759896df69dc36385f"
+    },
+    {
+      "action_id": "creche.suggest",
+      "argument_name": null,
+      "display_bounds": {
+        "height": 800,
+        "width": 1280,
+        "x": 0,
+        "y": 0
+      },
+      "face_id": "8fac22173711c45c91d487466445aed34858e763f9c1976effa67f5281b263a3",
+      "face_revision": 1,
+      "hit_bounds": {
+        "height": 36,
+        "width": 1228,
+        "x": 40,
+        "y": 211
+      },
+      "page": 1,
+      "pages": 2,
+      "schema": "conduit.creche-focus/v1",
+      "show_id": "show/71fb9dee8c93d2ed2003b52b0af7d19d80e544fde89f63759896df69dc36385f"
+    },
+    {
+      "action_id": "creche.name",
+      "argument_name": null,
+      "display_bounds": {
+        "height": 800,
+        "width": 1280,
+        "x": 0,
+        "y": 0
+      },
+      "face_id": "8fac22173711c45c91d487466445aed34858e763f9c1976effa67f5281b263a3",
+      "face_revision": 1,
+      "hit_bounds": {
+        "height": 36,
+        "width": 578,
+        "x": 48,
+        "y": 354
+      },
+      "page": 1,
+      "pages": 2,
+      "schema": "conduit.creche-focus/v1",
+      "show_id": "show/71fb9dee8c93d2ed2003b52b0af7d19d80e544fde89f63759896df69dc36385f"
+    }
+  ],
+  "observed_second_column_control": true,
+  "empty_name_birth_availability": {
+    "Unavailable": {
+      "explanation": "InvalidName",
+      "reason_code": "birth/unavailable"
+    }
+  },
+  "filtered_selected_subjects": [
+    {
+      "identity": "birth/conduitos/creche/current/birth-review-plot-0",
+      "name": "Starting Plot 1",
+      "role": "Status"
+    },
+    {
+      "identity": "birth/conduitos/creche/current/birth-review-plot-1",
+      "name": "Starting Plot 2",
+      "role": "Status"
+    },
+    {
+      "identity": "birth/conduitos/creche/current/birth-review-plot-2",
+      "name": "Starting Plot 3",
+      "role": "Status"
+    },
+    {
+      "identity": "birth/conduitos/creche/current/birth-review-plot-3",
+      "name": "Starting Plot 4",
+      "role": "Status"
+    }
+  ],
+  "filtered_selected_names": [
+    {
+      "subject": "birth/conduitos/creche/current/birth-review-plot-0",
+      "text": "Keyboard canvas"
+    },
+    {
+      "subject": "birth/conduitos/creche/current/birth-review-plot-1",
+      "text": "Memory Lantern"
+    },
+    {
+      "subject": "birth/conduitos/creche/current/birth-review-plot-2",
+      "text": "Tutorial"
+    },
+    {
+      "subject": "birth/conduitos/creche/current/birth-review-plot-3",
+      "text": "Patchbay"
+    }
+  ],
+  "exit_code": 0
+}

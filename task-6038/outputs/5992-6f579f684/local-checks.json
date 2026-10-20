@@ -1,0 +1,344 @@
+{
+  "source": "6f579f684500e6bf54c5dd7b5870c5c5c6fb7d6d",
+  "tree": "22e4f4f26457a43ba34a289f50fa6de4d7f4ac0d",
+  "base": "00525faf30522b6851d226613e61e277f2b48f43",
+  "source_files": {
+    "targets/conduitos/assets/fonts/dejavu/DejaVuSerif.ttf": {
+      "sha256": "42d1edeb7952f31b1f96d767ed7030b08a39e0c372b0071641518864e2bffb51",
+      "bytes": 380132,
+      "blob": "0b803d206c1a4f19559d14f4d3cbd5bbfe0a86a1"
+    },
+    "targets/conduitos/assets/fonts/dejavu/README.md": {
+      "sha256": "98b26e50b6b1764f2af980a5f393afd6902f86d8611348f2086ed8def16717bb",
+      "bytes": 4213,
+      "blob": "10e3a14ae600f923146966f94204745d8956e671"
+    },
+    "targets/conduitos/assets/fonts/dejavu/native-ensemble.json": {
+      "sha256": "27741cd141affb92b521bbe9042bf39db8012d6058fe445cc8fd00779b0d75ea",
+      "bytes": 1944,
+      "blob": "7b12bcdf5a3c75aee929f8f7c13602f8898019f2"
+    },
+    "targets/conduitos/assets/graphical/README.md": {
+      "sha256": "77cf4a787ef952cc6d2d2a4b1d5989c5e4ef27351b5c4438b244d88349356dcc",
+      "bytes": 3526,
+      "blob": "d0700cf1851e5a07ce68def8411e8935cfb0fcf1"
+    },
+    "targets/conduitos/build/typography.rs": {
+      "sha256": "068e09fbac7dec490bf92891626799ac22f6f5b2adaab48e5d04593341582948",
+      "bytes": 6881,
+      "blob": "b324c788c12ef263eaf2933aaf9bbf57da3455bb"
+    },
+    "targets/conduitos/make/xtask/build.rs": {
+      "sha256": "4e2c8c843773379fcc976eefc5e6ae23e40c55a381c914ebf612bf61913b7c7c",
+      "bytes": 19216,
+      "blob": "751ee5b6ca72a56b4c19c603bd522b8c405eeb7d"
+    },
+    "targets/conduitos/make/xtask/build/aarch64_domain.rs": {
+      "sha256": "08df5067bf4595d5a2fa0e7e2914852328b6e01255b99d3e6a1997ef0210399e",
+      "bytes": 1136,
+      "blob": "cb322c41400c0670b4b2b6830ec550af09e796da"
+    },
+    "targets/conduitos/make/xtask/build/ia32_domain.rs": {
+      "sha256": "f18df1ba5a8290acb99bc122e96b27032fdd1b43639f224544cddfb3e1c7937f",
+      "bytes": 1120,
+      "blob": "0db23feef12146418ce6d2e0b8dcc1156660d496"
+    },
+    "targets/conduitos/make/xtask/build/loongarch64_domain.rs": {
+      "sha256": "19407398cf546758579375dd766ec78f3326cd67bae556c27d19866a863c8644",
+      "bytes": 1156,
+      "blob": "e02a57e8421eeda388cdc1eee52b72aa3d07efdd"
+    },
+    "targets/conduitos/make/xtask/build/riscv64_domain.rs": {
+      "sha256": "9b8ffc5407ec3918949e218f92b230624bf42ac23cd998af0e2452437a4f41ec",
+      "bytes": 1137,
+      "blob": "ca7a2029fce40df070f611ba058f28388a9377c4"
+    },
+    "targets/conduitos/make/xtask/command.rs": {
+      "sha256": "f048bc7677edb4a264bc577ed2f783e49de9da083629e4f1f41a29ca51474921",
+      "bytes": 14210,
+      "blob": "f484182c911c4a3f3b5526e0cafa08d78ad0d0df"
+    },
+    "targets/conduitos/make/xtask/headless_profile.rs": {
+      "sha256": "8e059879a2f630312d0c3085686a3e804d9085de61fab5387e90b7207acd8898",
+      "bytes": 1055,
+      "blob": "989758fd237cd666106b438babfeaf019764d685"
+    },
+    "targets/conduitos/make/xtask/headless_profile/tests.rs": {
+      "sha256": "6906660443aa4f8c28d100ab6486181951aa45fe351a77a3f757ec5ad1343faa",
+      "bytes": 2416,
+      "blob": "3ddb314202d1005ee611be6dabfd33c1e4a23411"
+    },
+    "targets/conduitos/make/xtask/headless_proof.rs": {
+      "sha256": "70991c6f65bbaa745a5c2a16b0d58e4848bd4058d5cb81a42e7fbd47fb170cb9",
+      "bytes": 8021,
+      "blob": "8989e31620bb6ae3f2ba27bf6cf62f8cd3fdc11b"
+    },
+    "targets/conduitos/make/xtask/mod.rs": {
+      "sha256": "f955affac0ac17102f4973aff7d4b18d0b1b1627cc1471b152c55bbdf9cacede",
+      "bytes": 28048,
+      "blob": "a41339a69e0ddb993c68069d484872f559eeb363"
+    },
+    "targets/conduitos/src/display/typography.rs": {
+      "sha256": "78c9dfbd3875eb33e1dd6cb00be760722686af2597df43cd72beea517d5bb964",
+      "bytes": 9376,
+      "blob": "f4db3c0db46f4dae256c99c23016e699ddd2e5fa"
+    },
+    "targets/conduitos/src/display/typography/ensemble_tests.rs": {
+      "sha256": "fbeba520c24e65a743769107ff2c20f1ad2be07102274bbe069c83caa5289bb1",
+      "bytes": 7108,
+      "blob": "34f7a5480669e41474c3540aefe076665c257ed3"
+    },
+    "targets/conduitos/src/display/typography/ink.rs": {
+      "sha256": "cbcce0aa2b21b87a68e995c31b72ebc164a9212d063583f0416eeb184fde2b4e",
+      "bytes": 1851,
+      "blob": "517df572a9cf499cc1e82ce679142106945f6182"
+    },
+    "targets/conduitos/src/display/typography/layout.rs": {
+      "sha256": "2d561a6d78774d08c3fb448897687d6e74ac0501b9104e48bdb8e87032598618",
+      "bytes": 9298,
+      "blob": "55f24cbd79012024b403ad9f80c730d90c5bb711"
+    },
+    "targets/conduitos/src/display/typography/raster.rs": {
+      "sha256": "c45a13800380a0bc7d95268164cc432c783b212979e19554f2f09279c5b036b4",
+      "bytes": 11054,
+      "blob": "a8db4bcc204eb385be0ac3bd7513c4b4684566e7"
+    },
+    "targets/conduitos/src/native_face_scene/chrome.rs": {
+      "sha256": "eeb6203e49b4c52814fe0a60e071ea888cfa19f88e3dc2b4ba0cfe8c8484fff3",
+      "bytes": 7890,
+      "blob": "cba0c22885621abdb1ef06458e357c5e98a95413"
+    },
+    "targets/conduitos/src/native_face_scene/document.rs": {
+      "sha256": "2faf4c329ab9fed2d917312540d4113c1d8e59e3472b8213cd6b1551e2db49f0",
+      "bytes": 14448,
+      "blob": "d8e6c6627552f67401895f2f158db34711047ed0"
+    },
+    "targets/conduitos/src/native_face_scene/frame.rs": {
+      "sha256": "e1c78f9b9657822cd86a009c9189a0665cc6768d2031e2db119a7976b3a606e5",
+      "bytes": 7629,
+      "blob": "5f617e00e6d78229631acb2a4eebc7e0d469a7db"
+    },
+    "targets/conduitos/src/native_face_scene/layout.rs": {
+      "sha256": "c73979f6663f3f0944e8d243d15588abb3aae60d3d3c5c9f63d60d5e4b9a5f44",
+      "bytes": 12449,
+      "blob": "e1912d5a50553c3b5522aed6ff78cf8318ef224f"
+    },
+    "targets/conduitos/src/native_face_scene/layout/panels.rs": {
+      "sha256": "9b3ec04a2376267537a6f1036451a1476fe91e0a12ea008cb886d5e029895215",
+      "bytes": 9292,
+      "blob": "60185117129b450d1c613e2c06c08fd2f4d78fcc"
+    },
+    "targets/conduitos/src/native_face_scene/layout/panels/tests.rs": {
+      "sha256": "b7dfb832ef856b87fd4768dc74b0212ea930a222779cef0d4ee231e9f0b98527",
+      "bytes": 11951,
+      "blob": "7a84dbcfe2ac1e880abe4933b9c9f9538bcdb92c"
+    },
+    "targets/conduitos/src/native_face_scene/layout/panels/tests/creche.rs": {
+      "sha256": "e270fd1bd891dc669ad4f270d8f0be2eca59d15729f37e870ca1a2b4e540fa20",
+      "bytes": 9032,
+      "blob": "2c9c3c54c7a7369c0d90b7b6c50dbb692027c484"
+    },
+    "targets/conduitos/src/native_face_scene/layout/panels/tests/creche/font_details.rs": {
+      "sha256": "2c2b248cd0b93c86a7aadc97080dfc76822ef63aa086a52eba2482613259630c",
+      "bytes": 2859,
+      "blob": "f7abea84290b6b60bf8df3a69da11120bad379f1"
+    },
+    "targets/conduitos/src/native_face_scene/ports/tests.rs": {
+      "sha256": "3a9b4bc70d441ff51c899ca10aaf5026daef5ff5135e4c8d198231f88ad1644c",
+      "bytes": 14255,
+      "blob": "15dd3983b6fc9abe3ef84db830c38dfb40b4a311"
+    },
+    "targets/conduitos/src/native_face_scene/text_editor.rs": {
+      "sha256": "975217d351a44473340b6e9555b0ceca3e9055b313ca5c8e9082ec042e3bd5f8",
+      "bytes": 8245,
+      "blob": "2295f0f21f04e9e4850416cb05db0c2cdd5b7f84"
+    },
+    "targets/conduitos/src/tour_shell/scene_content_tests.rs": {
+      "sha256": "f2dd19a7b7f5f6e4cd6ac793a43de893ff03ec8b3f6d71cd9571994d0285aa09",
+      "bytes": 9215,
+      "blob": "5b68e665c96fa42d07ba2e653323f49daf43b97a"
+    },
+    "targets/conduitos/src/tour_workspace.rs": {
+      "sha256": "bb67b00277d78a1ef31b2480a8c8ed276d669e074186c414f1653b0e24e590d9",
+      "bytes": 18678,
+      "blob": "4e4553fc0c933abf5c9eacaafd2da04559a5905b"
+    }
+  },
+  "final_checks": [
+    {
+      "name": "tour-focused-three",
+      "args": [
+        "cargo",
+        "+stable",
+        "test",
+        "-p",
+        "conduitos",
+        "--locked",
+        "--features",
+        "hosted-tools,native-compositor",
+        "--lib",
+        "--",
+        "--exact",
+        "tour_shell::lifecycle::tests::native_host_projection_keeps_full_identity_without_inventing_lines_or_membership",
+        "tour_shell::scene::content_tests::projected_host_status_uses_actual_label_geometry_or_refuses_unrenderable_cells",
+        "tour_workspace::tests::native_scene_manifests_every_shared_region_and_visible_focus",
+        "--test-threads=1"
+      ],
+      "status": 0,
+      "seconds": 72.3238615989685
+    },
+    {
+      "name": "xtask-strict-clippy",
+      "args": [
+        "cargo",
+        "+stable",
+        "clippy",
+        "-p",
+        "xtask",
+        "--locked",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "status": 0,
+      "seconds": 170.2876582145691
+    },
+    {
+      "name": "native-strict-clippy",
+      "args": [
+        "cargo",
+        "+stable",
+        "clippy",
+        "-p",
+        "conduitos",
+        "--locked",
+        "--features",
+        "hosted-tools,native-compositor",
+        "--lib",
+        "--tests",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "status": 0,
+      "seconds": 17.47793698310852
+    },
+    {
+      "name": "fmt",
+      "args": [
+        "cargo",
+        "+stable",
+        "fmt",
+        "--package",
+        "xtask",
+        "--package",
+        "conduitos",
+        "--",
+        "--check"
+      ],
+      "status": 0,
+      "seconds": 2.353581190109253
+    },
+    {
+      "name": "preflight",
+      "args": [
+        "cargo",
+        "+stable",
+        "xtask",
+        "ci",
+        "pipeline",
+        "preflight",
+        "00525faf30522b6851d226613e61e277f2b48f43"
+      ],
+      "status": 0,
+      "seconds": 16.848844051361084
+    }
+  ],
+  "focused_headless": {
+    "passed": 7,
+    "source_files_unchanged_from_focused_test": true,
+    "scope": "4 CLI/profile/validator tests; 2 existing target/lowering tests; 1 Pico test selected by name filter"
+  },
+  "broad_hosted_library": {
+    "source": "41cbc199d7a13ce81f0e98e62797085a6737ec08",
+    "passed": 1216,
+    "failed": 2,
+    "ignored": 3,
+    "filtered": 4,
+    "seconds": 398.14,
+    "boundary": "Production code unchanged in final6f579. Two test-only corrections passed focused rerun plus original lifecycle. Broad final-head library has not been rerun locally; new Candidate owns complete final-head proof."
+  },
+  "manual_ignored_tests": {
+    "display::raw::tests::volatile_scanout_performance": "manual optimized volatile scanout observation",
+    "native_compositor::frame_composition::differential::span_compositor_performance": "manual optimized compositor performance observation",
+    "native_compositor::raster_reuse::performance::retained_raster_performance": "manual optimized retained raster observation"
+  },
+  "omitted_families": {
+    "protocol_operations::tests::automatic_body": [
+      "automatic_bus_time_topology_plans_against_exact_retained_native_owners",
+      "refused_native_protocol_preparation_returns_the_unchanged_biography",
+      "unstarted_protocol_body_retires_without_native_effects_or_play_evidence"
+    ],
+    "protocol_operations::tests::automatic_clock_failure": [
+      "unavailable_and_lost_clock_publish_exact_refusals_and_close_without_retry"
+    ]
+  },
+  "environment": {
+    "CARGO_TARGET_DIR": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target",
+    "CARGO_BUILD_JOBS": 4,
+    "CARGO_INCREMENTAL": 0,
+    "CARGO_PROFILE_DEV_DEBUG": 0,
+    "CARGO_PROFILE_TEST_DEBUG": 0,
+    "CARGO_PROFILE_TEST_OPT_LEVEL": 1,
+    "CARGO_PROFILE_TEST_DEBUG_ASSERTIONS": true,
+    "CARGO_PROFILE_TEST_OVERFLOW_CHECKS": true
+  },
+  "preflight_passed": 296,
+  "negative_evidence": [
+    "01d supported headless-proof unregistered CLI; final ELF stripped. Old packets preserved.",
+    "First #6167 compile found four architecture ProfileMake constructors requiring explicit None; corrected with no architecture flag change.",
+    "41cbc broad run: status test incorrectly included Icon payloads and workspace snapshot retained old228px native height. Both corrected tests plus original lifecycle passed; no production change in correction."
+  ],
+  "proof_boundaries": [
+    "320px status test proves TextLayout InvalidExtent for actual5px text width, not scene admission refusal.",
+    "STATUS_HEIGHT reserves actual Label metrics at640/1280; no identity truncation or budget change.",
+    "815-line dispatch module received only related two-module/one-arm wiring. Substantive new helper30lines plus separate tests69lines. Existing build wrapper received only immutable manifest and command configuration wiring.",
+    "01d graphical7boot product proof remains historical. Exact6f579 product build is separate and currently running; no new guest/CI/stable/human/physical claim.",
+    "Fixed Host font ensemble only; Look integration deferred5628/5629."
+  ],
+  "logs": {
+    "outputs/6167-a302c3271/preflight.log": {
+      "sha256": "5255d9ac723f22b5bf67a5582f39e3a082f24bf197fc4828436e7b91f2e4e870",
+      "bytes": 30877
+    },
+    "outputs/6167-a302c3271/fmt.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "outputs/6167-a302c3271/headless-focused-first.log": {
+      "sha256": "005afb572507031fd8e4820962e61254a4134c37a0cd23bae96da4414e141b60",
+      "bytes": 15855
+    },
+    "outputs/6167-a302c3271/hosted-conduitos-wrapper.log": {
+      "sha256": "a38810aa52895c1ad204da128330d0443ae1c7045d14de09a0dff45e92879c79",
+      "bytes": 137028
+    },
+    "outputs/6167-a302c3271/xtask-strict-clippy.log": {
+      "sha256": "2930a30f84a6886505c5cba0af358312428d981bd5d131d95ce97c8807875e47",
+      "bytes": 14685
+    },
+    "outputs/6167-a302c3271/tour-focused-three.log": {
+      "sha256": "d63c78bf62bdd523cbb9c7750845c9b5f421a3fdc0af70ab1b7e3faec9d44029",
+      "bytes": 1043
+    },
+    "outputs/6167-a302c3271/native-strict-clippy.log": {
+      "sha256": "4a6544fa6325efb6dbabd948498294eb30bf928209142b22a4ea01487ea1cac7",
+      "bytes": 823
+    },
+    "outputs/6167-a302c3271/headless-focused-fixed.log": {
+      "sha256": "5fd09ba51a2bd5e302cb596f4fa8826d30eea2c3fd7714c812dad4bbfe0e50cb",
+      "bytes": 1400
+    }
+  }
+}

@@ -1,0 +1,378 @@
+{
+  "source": "6f579f684500e6bf54c5dd7b5870c5c5c6fb7d6d",
+  "proof_runner_sha256": "026db27fe9c59d851fea4500a5e11f97670793650d10a2861d6731430e6230e6",
+  "image_sha256": "4c4e50e53b057828056fdcdb3aab03f4637f3b24dd5e6a572ff7dc02b80f2eb2",
+  "proof_class": "freestanding-emulator",
+  "viewport": [
+    1280,
+    800
+  ],
+  "status": "passed",
+  "captures": [
+    {
+      "file": "primary.ppm",
+      "sha256": "22931050cb2cef605fbc7a596534ea1a879e27632f907981a2d0d38c5b14d746",
+      "focus": {
+        "action_id": "creche.name",
+        "argument_name": "value",
+        "display_bounds": {
+          "height": 800,
+          "width": 1280,
+          "x": 0,
+          "y": 0
+        },
+        "face_id": "764548525ce632d95030b76d248e69538848992bdb4121f62521de86249e4da6",
+        "face_revision": 1,
+        "hit_bounds": {
+          "height": 36,
+          "width": 578,
+          "x": 48,
+          "y": 398
+        },
+        "page": 1,
+        "pages": 2,
+        "schema": "conduit.creche-focus/v1",
+        "show_id": "show/17509ca50b8d6f00e7058fc80fa993ac2120d934e9fc60f26e6131974dbe6974"
+      }
+    },
+    {
+      "file": "details-page-1.ppm",
+      "sha256": "9e3a05b469257beceb7c8f84cd2653621873b4bb13e29904beb0cf0106d5af2d",
+      "focus": {
+        "action_id": null,
+        "argument_name": null,
+        "display_bounds": {
+          "height": 800,
+          "width": 1280,
+          "x": 0,
+          "y": 0
+        },
+        "face_id": "764548525ce632d95030b76d248e69538848992bdb4121f62521de86249e4da6",
+        "face_revision": 1,
+        "hit_bounds": null,
+        "page": 1,
+        "pages": 8,
+        "schema": "conduit.creche-focus/v1",
+        "show_id": "show/17509ca50b8d6f00e7058fc80fa993ac2120d934e9fc60f26e6131974dbe6974"
+      }
+    },
+    {
+      "file": "details-page-2.ppm",
+      "sha256": "37f9a321e91a29dc3c9aedcf4aaebb9bd76a31c2f735620e734202c416811191",
+      "focus": {
+        "action_id": null,
+        "argument_name": null,
+        "display_bounds": {
+          "height": 800,
+          "width": 1280,
+          "x": 0,
+          "y": 0
+        },
+        "face_id": "764548525ce632d95030b76d248e69538848992bdb4121f62521de86249e4da6",
+        "face_revision": 1,
+        "hit_bounds": null,
+        "page": 2,
+        "pages": 8,
+        "schema": "conduit.creche-focus/v1",
+        "show_id": "show/17509ca50b8d6f00e7058fc80fa993ac2120d934e9fc60f26e6131974dbe6974"
+      }
+    },
+    {
+      "file": "details-page-3.ppm",
+      "sha256": "35a74cf111aee622be08ec815a92abafd0e8dd2a63c89a704e161d47f61644ca",
+      "focus": {
+        "action_id": null,
+        "argument_name": null,
+        "display_bounds": {
+          "height": 800,
+          "width": 1280,
+          "x": 0,
+          "y": 0
+        },
+        "face_id": "764548525ce632d95030b76d248e69538848992bdb4121f62521de86249e4da6",
+        "face_revision": 1,
+        "hit_bounds": null,
+        "page": 3,
+        "pages": 8,
+        "schema": "conduit.creche-focus/v1",
+        "show_id": "show/17509ca50b8d6f00e7058fc80fa993ac2120d934e9fc60f26e6131974dbe6974"
+      }
+    },
+    {
+      "file": "details-page-4.ppm",
+      "sha256": "74bde2267db2c998f5c5185d4cc443e5dfd2659eba68bd3c2efcc881298d7bec",
+      "focus": {
+        "action_id": null,
+        "argument_name": null,
+        "display_bounds": {
+          "height": 800,
+          "width": 1280,
+          "x": 0,
+          "y": 0
+        },
+        "face_id": "764548525ce632d95030b76d248e69538848992bdb4121f62521de86249e4da6",
+        "face_revision": 1,
+        "hit_bounds": null,
+        "page": 4,
+        "pages": 8,
+        "schema": "conduit.creche-focus/v1",
+        "show_id": "show/17509ca50b8d6f00e7058fc80fa993ac2120d934e9fc60f26e6131974dbe6974"
+      }
+    },
+    {
+      "file": "details-page-5.ppm",
+      "sha256": "efca6b78125ccc7740875de51547c5849c9be54c25b02617950517b26d3e468d",
+      "focus": {
+        "action_id": null,
+        "argument_name": null,
+        "display_bounds": {
+          "height": 800,
+          "width": 1280,
+          "x": 0,
+          "y": 0
+        },
+        "face_id": "764548525ce632d95030b76d248e69538848992bdb4121f62521de86249e4da6",
+        "face_revision": 1,
+        "hit_bounds": null,
+        "page": 5,
+        "pages": 8,
+        "schema": "conduit.creche-focus/v1",
+        "show_id": "show/17509ca50b8d6f00e7058fc80fa993ac2120d934e9fc60f26e6131974dbe6974"
+      }
+    },
+    {
+      "file": "details-page-6.ppm",
+      "sha256": "8f333986bcaf89e0ab05522090fda055da60f594de7bd4f313a3996262343250",
+      "focus": {
+        "action_id": null,
+        "argument_name": null,
+        "display_bounds": {
+          "height": 800,
+          "width": 1280,
+          "x": 0,
+          "y": 0
+        },
+        "face_id": "764548525ce632d95030b76d248e69538848992bdb4121f62521de86249e4da6",
+        "face_revision": 1,
+        "hit_bounds": null,
+        "page": 6,
+        "pages": 8,
+        "schema": "conduit.creche-focus/v1",
+        "show_id": "show/17509ca50b8d6f00e7058fc80fa993ac2120d934e9fc60f26e6131974dbe6974"
+      }
+    },
+    {
+      "file": "details-page-7.ppm",
+      "sha256": "87f8f32bdeb97f68ecb95421bab13faa17f92b8951f30017c5ceb2f524ebb814",
+      "focus": {
+        "action_id": null,
+        "argument_name": null,
+        "display_bounds": {
+          "height": 800,
+          "width": 1280,
+          "x": 0,
+          "y": 0
+        },
+        "face_id": "764548525ce632d95030b76d248e69538848992bdb4121f62521de86249e4da6",
+        "face_revision": 1,
+        "hit_bounds": null,
+        "page": 7,
+        "pages": 8,
+        "schema": "conduit.creche-focus/v1",
+        "show_id": "show/17509ca50b8d6f00e7058fc80fa993ac2120d934e9fc60f26e6131974dbe6974"
+      }
+    },
+    {
+      "file": "details-page-8.ppm",
+      "sha256": "cac031aa1d58c70ea2219ad0a39e24b956612280c2d71283ee7094f6f338f236",
+      "focus": {
+        "action_id": null,
+        "argument_name": null,
+        "display_bounds": {
+          "height": 800,
+          "width": 1280,
+          "x": 0,
+          "y": 0
+        },
+        "face_id": "764548525ce632d95030b76d248e69538848992bdb4121f62521de86249e4da6",
+        "face_revision": 1,
+        "hit_bounds": null,
+        "page": 8,
+        "pages": 8,
+        "schema": "conduit.creche-focus/v1",
+        "show_id": "show/17509ca50b8d6f00e7058fc80fa993ac2120d934e9fc60f26e6131974dbe6974"
+      }
+    },
+    {
+      "file": "returned-primary.ppm",
+      "sha256": "1bfc57e8d71378f45f52e23621c349a6c4a276cadce01232341111d2820170fc",
+      "focus": {
+        "action_id": null,
+        "argument_name": null,
+        "display_bounds": {
+          "height": 800,
+          "width": 1280,
+          "x": 0,
+          "y": 0
+        },
+        "face_id": "764548525ce632d95030b76d248e69538848992bdb4121f62521de86249e4da6",
+        "face_revision": 1,
+        "hit_bounds": null,
+        "page": 1,
+        "pages": 2,
+        "schema": "conduit.creche-focus/v1",
+        "show_id": "show/17509ca50b8d6f00e7058fc80fa993ac2120d934e9fc60f26e6131974dbe6974"
+      }
+    }
+  ],
+  "edits": [],
+  "argv": [
+    "qemu-system-x86_64",
+    "-M",
+    "q35",
+    "-cpu",
+    "max",
+    "-m",
+    "512M",
+    "-smp",
+    "1",
+    "-display",
+    "none",
+    "-vga",
+    "std",
+    "-global",
+    "VGA.xres=1280",
+    "-global",
+    "VGA.yres=800",
+    "-monitor",
+    "none",
+    "-qmp",
+    "unix:/tmp/creche-panels-jybvj5li/qmp,server=on,wait=off",
+    "-serial",
+    "file:/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/outputs/5992-details-wide-6f579f684/serial.log",
+    "-no-reboot",
+    "-net",
+    "none",
+    "-device",
+    "qemu-xhci,id=conduitos-xhci,p2=3,p3=0",
+    "-device",
+    "usb-kbd,id=conduitos-keyboard,bus=conduitos-xhci.0,port=1",
+    "-device",
+    "usb-mouse,id=conduitos-pointer,bus=conduitos-xhci.0,port=2",
+    "-cdrom",
+    "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/outputs/5992-product-6f579f684/conduitos-x86_64.iso",
+    "-boot",
+    "d"
+  ],
+  "owned_pid": 2351015,
+  "arrival_observed_ms": 23308.411,
+  "chapter_runner_sha256": "7799ade8ca133ab8a1eb0661d145583263b94abdfc9a50a2a08682178d7278c4",
+  "harness_sha256": "026db27fe9c59d851fea4500a5e11f97670793650d10a2861d6731430e6230e6",
+  "typed_identity_properties": [
+    [
+      1,
+      {
+        "name": "value-change-action",
+        "subject": "birth/conduitos/creche/current/body-name",
+        "value": {
+          "Identity": "creche.name"
+        }
+      }
+    ],
+    [
+      3,
+      {
+        "name": "value-change-action",
+        "subject": "birth/conduitos/creche/current/name-system",
+        "value": {
+          "Identity": "creche.naming"
+        }
+      }
+    ],
+    [
+      5,
+      {
+        "name": "value-change-action",
+        "subject": "birth/conduitos/creche/current/plot-search",
+        "value": {
+          "Identity": "creche.search"
+        }
+      }
+    ],
+    [
+      7,
+      {
+        "name": "boolean-change-action",
+        "subject": "birth/conduitos/creche/current/initial-plots/0",
+        "value": {
+          "Identity": "creche.plot.0"
+        }
+      }
+    ],
+    [
+      9,
+      {
+        "name": "boolean-change-action",
+        "subject": "birth/conduitos/creche/current/initial-plots/1",
+        "value": {
+          "Identity": "creche.plot.1"
+        }
+      }
+    ],
+    [
+      11,
+      {
+        "name": "boolean-change-action",
+        "subject": "birth/conduitos/creche/current/initial-plots/2",
+        "value": {
+          "Identity": "creche.plot.2"
+        }
+      }
+    ],
+    [
+      13,
+      {
+        "name": "boolean-change-action",
+        "subject": "birth/conduitos/creche/current/initial-plots/3",
+        "value": {
+          "Identity": "creche.plot.3"
+        }
+      }
+    ],
+    [
+      15,
+      {
+        "name": "boolean-change-action",
+        "subject": "birth/conduitos/creche/current/initial-plots/4",
+        "value": {
+          "Identity": "creche.plot.4"
+        }
+      }
+    ],
+    [
+      16,
+      {
+        "name": "host-id",
+        "subject": "birth/conduitos/creche/current",
+        "value": {
+          "Identity": "92d999f6bce7df4a4b146a7aab4056730fe7c1c5c45f9d849f6f441ac90247fa"
+        }
+      }
+    ],
+    [
+      17,
+      {
+        "name": "boot-id",
+        "subject": "birth/conduitos/creche/current",
+        "value": {
+          "Identity": "0a9ca8111148d7fcb9093dafaebea304043d1e9b96481d5644268306e3dcc45e"
+        }
+      }
+    ]
+  ],
+  "role_evidence": "CPU provenance-to-Code tests; screenshots inspected separately",
+  "details_pages": 8,
+  "source_effects": 0,
+  "boundary": "normal-product QEMU; no physical/human or pixel-inferred font-role claim",
+  "exit_code": 0
+}

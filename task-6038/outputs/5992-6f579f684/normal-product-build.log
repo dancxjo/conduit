@@ -1,0 +1,26 @@
+    Finished `dev` profile [unoptimized] target(s) in 0.18s
+     Running `/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/conduit-xtask-dispatch make conduitos live x86_64 --locked`
+   Compiling ring v0.17.14
+   Compiling conduit-browser-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/browser/runtime)
+   Compiling conduitos v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/conduitos)
+   Compiling rustls v0.23.45
+   Compiling rustls-webpki v0.103.15
+   Compiling ureq v3.4.2
+   Compiling conduit-patchbay-workbench v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/plots/patchbay/workbench/model)
+   Compiling conduit-std-host v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/std)
+   Compiling xtask v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/tools/xtask)
+    Finished `dev` profile [unoptimized] target(s) in 29.66s
+     Running `/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/xtask make conduitos live x86_64 --locked`
+    Checking conduit-composite v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/architecture/composite)
+    Checking conduit-observatory v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/architecture/observatory)
+    Checking conduitos v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/conduitos)
+    Finished `dev` profile [unoptimized] target(s) in 4.06s
+   Compiling conduitos v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/conduitos)
+   Compiling conduit-composite v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/architecture/composite)
+   Compiling conduit-observatory v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/architecture/observatory)
+    Finished `release` profile [optimized] target(s) in 36.84s
+ConduitOS ELF: /home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/target/conduitos/x86_64/conduitos
+ConduitOS image: /home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/target/conduitos/x86_64/conduitos.iso
+ConduitOS live media: /home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/target/conduitos/live/x86_64-pc/conduitos-x86_64.iso
+Host type: conduitos/x86_64/pc
+manifest: /home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/target/conduitos/live/x86_64-pc/build-manifest.json

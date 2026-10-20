@@ -1,0 +1,90 @@
+{
+  "source": "6f579f684500e6bf54c5dd7b5870c5c5c6fb7d6d",
+  "tree": "22e4f4f26457a43ba34a289f50fa6de4d7f4ac0d",
+  "status": "supported headless build and proof passed",
+  "proof_class": "freestanding-emulator",
+  "image": {
+    "role": "final-bootable-image",
+    "file": "conduitos-x86_64.iso",
+    "sha256": "ae3cdd9ce464c6c971ea8877f2d5c6abe3891aea40508699bd23f251b35829a7"
+  },
+  "kernel": {
+    "role": "freestanding-kernel",
+    "file": "conduitos-kernel.elf",
+    "sha256": "f0a5b2a4e2cb8f2b7920211997b0cb7dacb425de2a614932fcf0134c5673d46d"
+  },
+  "artifact_role": "product-host",
+  "actual_boots": 2,
+  "expected_exit_code": 35,
+  "graphical_symbols_absent": true,
+  "excluded_font_assets": [
+    {
+      "asset": "targets/conduitos/assets/fonts/dejavu/DejaVuSans.ttf",
+      "sha256": "7da195a74c55bef988d0d48f9508bd5d849425c1770dba5d7bfc6ce9ed848954"
+    },
+    {
+      "asset": "targets/conduitos/assets/fonts/dejavu/DejaVuSansMono.ttf",
+      "sha256": "b4a6c3e4faab8773f4ff761d56451646409f29abedd68f05d38c2df667d3c582"
+    },
+    {
+      "asset": "targets/conduitos/assets/fonts/dejavu/DejaVuSerif.ttf",
+      "sha256": "42d1edeb7952f31b1f96d767ed7030b08a39e0c372b0071641518864e2bffb51"
+    }
+  ],
+  "runtime": {
+    "arena_bytes_each_boot": 33554432,
+    "arena_ceiling_each_boot": 33554432,
+    "allocated_bytes_each_boot": 0,
+    "initialized_capabilities": 0,
+    "presenters": 0,
+    "facilities": 0,
+    "face_surface_slots": 0,
+    "face_surface_bytes": 0
+  },
+  "fresh_host_and_boot_ids": true,
+  "elf_file_bytes": 10131704,
+  "image_file_bytes": 14403584,
+  "files": {
+    "outputs/5992-headless-6f579f684/build-manifest.json": {
+      "sha256": "3346c9e7d03ca8e30fc816ec6522a0e817085d17e4e58c811c4aecbefbc21f3b",
+      "bytes": 2959
+    },
+    "outputs/5992-headless-6f579f684/conduitos-kernel.elf": {
+      "sha256": "f0a5b2a4e2cb8f2b7920211997b0cb7dacb425de2a614932fcf0134c5673d46d",
+      "bytes": 10131704
+    },
+    "outputs/5992-headless-6f579f684/conduitos-x86_64.iso": {
+      "sha256": "ae3cdd9ce464c6c971ea8877f2d5c6abe3891aea40508699bd23f251b35829a7",
+      "bytes": 14403584
+    },
+    "outputs/5992-headless-6f579f684/headless-boot-1-stderr.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "outputs/5992-headless-6f579f684/headless-boot-1.log": {
+      "sha256": "988dae0e11049f01830a46556a0428f2602a8b0515e1d8246052d10c72e7bf80",
+      "bytes": 1120
+    },
+    "outputs/5992-headless-6f579f684/headless-boot-2-stderr.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "outputs/5992-headless-6f579f684/headless-boot-2.log": {
+      "sha256": "49b3a5bbbfe619a73854e8cd08c8215e51c670727c9a0eb15f96d162d10e7e65",
+      "bytes": 1120
+    },
+    "outputs/5992-headless-6f579f684/headless-elf-symbols.txt": {
+      "sha256": "e75c1c5d916f1b2aee08a674ddc98d438ad57d91a916f940e6b0e281ad872bcf",
+      "bytes": 1596809
+    },
+    "outputs/5992-headless-6f579f684/headless-proof.json": {
+      "sha256": "1095dba79890d4abde5065c6ab15e8298b08db87c0f24c71184d54d4f5e19fc2",
+      "bytes": 4898
+    },
+    "outputs/5992-headless-6f579f684/resolved-image.json": {
+      "sha256": "7f01929010ad6887a8b4200c1831e8ec9c5a5c706ea4bce6cf6ef9870e109ad2",
+      "bytes": 2602
+    }
+  },
+  "boundary": "The exact final ProductHost ELF retains symbols under the resolved empty x86 selection. Actual two boots report unsupported/no resident workload, zero initialized graphical capabilities and zero boot-arena allocation. Not workload execution, graphical headless UI, physical/human/CI/stable proof. Old01d unregistered-command and stripped-ELF failures remain preserved. Section/file sizes are not peak runtime memory."
+}

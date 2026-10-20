@@ -1,0 +1,5 @@
+    Finished `dev` profile [unoptimized] target(s) in 0.18s
+     Running `/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/conduit-xtask-dispatch make conduitos headless-proof /home/dancxjo/Documents/Codex/2026-10-19/goal-6038/outputs/5992-headless-6f579f684`
+    Finished `dev` profile [unoptimized] target(s) in 0.20s
+     Running `/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/xtask make conduitos headless-proof /home/dancxjo/Documents/Codex/2026-10-19/goal-6038/outputs/5992-headless-6f579f684`
+Headless unsupported-startup proof: /home/dancxjo/Documents/Codex/2026-10-19/goal-6038/outputs/5992-headless-6f579f684/headless-proof.json

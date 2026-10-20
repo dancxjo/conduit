@@ -1,0 +1,112 @@
+    Finished `dev` profile [unoptimized] target(s) in 0.12s
+     Running `/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/conduit-xtask-dispatch make host build targets/conduitos/profiles/conduitos-x86_64-pc.host.conduit --output /home/dancxjo/Documents/Codex/2026-10-19/goal-6038/outputs/5992-headless-6f579f684`
+    Finished `dev` profile [unoptimized] target(s) in 0.16s
+     Running `/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/xtask make host build targets/conduitos/profiles/conduitos-x86_64-pc.host.conduit --output /home/dancxjo/Documents/Codex/2026-10-19/goal-6038/outputs/5992-headless-6f579f684`
+    Finished `dev` profile [unoptimized] target(s) in 0.14s
+   Compiling typenum v1.20.1
+   Compiling cpufeatures v0.2.17
+   Compiling cfg-if v1.0.5
+   Compiling serde_core v1.0.229
+   Compiling libm v0.2.16
+   Compiling zeroize v1.9.0
+   Compiling subtle v2.6.1
+   Compiling thiserror v2.0.20
+   Compiling zmij v1.0.23
+   Compiling generic-array v0.14.7
+   Compiling signature v2.2.0
+   Compiling memchr v2.8.3
+   Compiling crypto-common v0.1.7
+   Compiling block-buffer v0.10.4
+   Compiling digest v0.10.7
+   Compiling sha2 v0.10.9
+   Compiling curve25519-dalek v4.1.3
+   Compiling serde v1.0.229
+   Compiling itoa v1.0.18
+   Compiling serde_json v1.0.151
+   Compiling conduit-assigned-plan v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/architecture/assigned-plan)
+   Compiling ed25519 v2.2.3
+   Compiling conduit-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/architecture/core)
+   Compiling cobs v0.3.0
+   Compiling tinyvec v1.13.3
+   Compiling postcard v1.1.3
+   Compiling unicode-normalization v0.1.25
+   Compiling ed25519-dalek v2.2.0
+   Compiling minicbor v2.3.0
+   Compiling conduit-kernel v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/architecture/kernel)
+   Compiling inout v0.1.4
+   Compiling cipher v0.4.4
+   Compiling universal-hash v0.5.1
+   Compiling opaque-debug v0.3.1
+   Compiling chacha20 v0.9.1
+   Compiling poly1305 v0.8.0
+   Compiling aead v0.5.2
+   Compiling arrayvec v0.7.8
+   Compiling chacha20poly1305 v0.10.1
+   Compiling rand_core v0.6.4
+   Compiling noise-protocol v0.2.1
+   Compiling x25519-dalek v2.0.1
+   Compiling patchbay-control v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/plots/patchbay)
+   Compiling noise-rust-crypto v0.6.2
+   Compiling bitflags v2.13.2
+   Compiling limine v0.5.0
+   Compiling conduit-protected-line v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/architecture/protected-line)
+   Compiling conduitos v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/conduitos)
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/architecture/plot)
+   Compiling conduit-body v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/architecture/body)
+   Compiling conduit-plan-lowering v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/architecture/plan-lowering)
+   Compiling conduit-time v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/time)
+   Compiling conduit-language v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/language)
+   Compiling conduit-human v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/human)
+   Compiling conduit-planner v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/architecture/planner)
+   Compiling conduit-data v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/data)
+   Compiling conduit-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/face)
+   Compiling conduit-audio v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/audio)
+   Compiling conduit-process v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/process)
+   Compiling conduit-midi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/mechanisms/protocols/midi)
+   Compiling conduit-education v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/education)
+   Compiling conduit-alife v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/alife)
+   Compiling conduit-robotics v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/robotics)
+   Compiling conduit-net v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/net)
+   Compiling conduit-purpose v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/purpose)
+   Compiling conduit-web v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/web)
+   Compiling conduit-text v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/text)
+   Compiling conduit-semantic-catalog v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/catalog)
+   Compiling conduit-ai v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/ai)
+   Compiling conduit-observatory v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/architecture/observatory)
+   Compiling patchbay-graph v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/plots/patchbay/graph)
+   Compiling patchbay-application v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/plots/patchbay/application)
+   Compiling conduit-tutorial-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/tutorial)
+   Compiling conduit-tour-model v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/plots/tour)
+   Compiling conduit-synth v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/mechanisms/implementations/synth)
+   Compiling conduit-conduitos-mask-offer v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/conduitos/mask-offer)
+   Compiling conduit-home-model v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/home)
+   Compiling conduit-birth-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/plots/birth)
+   Compiling conduit-wire v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/architecture/wire)
+   Compiling conduit-composite v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/architecture/composite)
+warning: unused variable: `identities`
+  --> targets/conduitos/src/main.rs:90:29
+   |
+90 |                         let identities = conduitos::identity::derive(
+   |                             ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_identities`
+   |
+   = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: fields `pending` and `routed_request` are never read
+  --> targets/conduitos/src/main.rs:22:5
+   |
+21 | struct InspectedSpore {
+   |        -------------- fields in this struct
+22 |     pending: spore_join::PendingNativeJoin,
+   |     ^^^^^^^
+23 |     routed_request: Option<conduit_body::RoutedAdmissionRequest>,
+   |     ^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `conduitos` (bin "conduitos") generated 2 warnings (run `cargo fix --bin "conduitos" -p conduitos` to apply 1 suggestion)
+    Finished `release` profile [optimized] target(s) in 1m 40s
+ConduitOS ELF: /home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/target/conduitos/x86_64/conduitos
+ConduitOS image: /home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/target/conduitos/x86_64/conduitos.iso
+BUILT image:sha256:ae3cdd9ce464c6c971ea8877f2d5c6abe3891aea40508699bd23f251b35829a7 (DiskImage)
+IMAGE: /home/dancxjo/Documents/Codex/2026-10-19/goal-6038/outputs/5992-headless-6f579f684/conduitos-x86_64.iso
+manifest: /home/dancxjo/Documents/Codex/2026-10-19/goal-6038/outputs/5992-headless-6f579f684/build-manifest.json

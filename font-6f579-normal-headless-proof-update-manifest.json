@@ -1,0 +1,326 @@
+{
+  "parent": "acf29d758caa6834ef001a3927a89ea573154fb2",
+  "scope": "Exact6f579 seven normal proof runs and two headless unsupported boots; raw binary artifacts and symbol table remain local hash-bound",
+  "files": [
+    {
+      "source": "work/revised-native-goal-state.json",
+      "tree_path": "task-6038/work/revised-native-goal-state.json",
+      "bytes": 3190,
+      "sha256": "b10a62bd9fd01114224df9ea14ee5141a22f758c8403d57ea7ade77bb095e0d7",
+      "mode": "100644",
+      "blob": "f653199b6f6c3a3c3f1c71a735838a03207269b3"
+    },
+    {
+      "source": "work/5992-draft-pr-body.md",
+      "tree_path": "task-6038/work/5992-draft-pr-body.md",
+      "bytes": 2515,
+      "sha256": "ed006b927e9d1246d226dcf7c279410760c85a5907244f33c2d44575d4b7abbd",
+      "mode": "100644",
+      "blob": "7f28fdd23af6dcfe9c93bdb92677f6b279090ab9"
+    },
+    {
+      "source": "work/run-5992-6f579f684-product-proof.py",
+      "tree_path": "task-6038/work/run-5992-6f579f684-product-proof.py",
+      "bytes": 3026,
+      "sha256": "5f5c0adf094348ebd26e395c815c977979eb7da8c442f6441c288ff2ea3902ca",
+      "mode": "100644",
+      "blob": "2551b9a9c1fe25731422ef5b97002d711a3f3683"
+    },
+    {
+      "source": "work/audit-5992-6f579f684.py",
+      "tree_path": "task-6038/work/audit-5992-6f579f684.py",
+      "bytes": 3887,
+      "sha256": "e083129f048d5beb39ff7f0c9516e39ab0d11b5d8a9b2d114d8a9d52fbb5fa4b",
+      "mode": "100644",
+      "blob": "c9a2dcfdfe069ba38c77aa72304c9a7c5ec19dfb"
+    },
+    {
+      "source": "work/5992-6f579-root-visual-review.md",
+      "tree_path": "task-6038/work/5992-6f579-root-visual-review.md",
+      "bytes": 1594,
+      "sha256": "b79dfaaf658c2905196528c908503a6b9eb77ce41d53f09fbda7483de45e3192",
+      "mode": "100644",
+      "blob": "93e061c6e9a9cdb55ec41beeb9ea4292e429f766"
+    },
+    {
+      "source": "outputs/5992-visual-6f579f684/preview-receipt.json",
+      "tree_path": "task-6038/outputs/5992-visual-6f579f684/preview-receipt.json",
+      "bytes": 32588,
+      "sha256": "4ee60bc719d2b918d8d53afe0f3bdf804d9bcd057f2518d028ef043f7ee84a32",
+      "mode": "100644",
+      "blob": "5a1833c15842adcdbbaa364a0b71f1b231b24e56"
+    },
+    {
+      "source": "outputs/5992-6f579f684/root-headless-audit.json",
+      "tree_path": "task-6038/outputs/5992-6f579f684/root-headless-audit.json",
+      "bytes": 944,
+      "sha256": "6372129e0ae949aaf8f1f6b0dda3548a44d46e8c9583fa0cd19be2ca9797c1bf",
+      "mode": "100644",
+      "blob": "9dc3398f900c4c4dc6f7417b9251a7d8e40590b6"
+    },
+    {
+      "source": "outputs/5992-6f579f684/headless-build.log",
+      "tree_path": "task-6038/outputs/5992-6f579f684/headless-build.log",
+      "bytes": 8591,
+      "sha256": "f2fee0b07bc33cbe8cc934373ef342a7df1d3bbb2281e62df1b7a157ed00c117",
+      "mode": "100644",
+      "blob": "d3c63f24602acab80318e2bec89953b7597108e3"
+    },
+    {
+      "source": "outputs/5992-6f579f684/headless-proof.log",
+      "tree_path": "task-6038/outputs/5992-6f579f684/headless-proof.log",
+      "bytes": 720,
+      "sha256": "eeb650cdcb48beb90de3f2a9e0b0e4c2c185247e5c7698ffb47c3ac1cfccecd4",
+      "mode": "100644",
+      "blob": "837813556a6cfc0327daa4dc9b16c187a642e085"
+    },
+    {
+      "source": "outputs/5992-6f579f684/headless-program-headers.txt",
+      "tree_path": "task-6038/outputs/5992-6f579f684/headless-program-headers.txt",
+      "bytes": 648,
+      "sha256": "ca18bfd878f35dd0208b8f4c54c04bacdb6deb6c64eac74d22e60ecd75574a42",
+      "mode": "100644",
+      "blob": "f51b42716dfb6535537795a02afd281ab70f8468"
+    },
+    {
+      "source": "outputs/5992-6f579f684/product-resource-ledger.json",
+      "tree_path": "task-6038/outputs/5992-6f579f684/product-resource-ledger.json",
+      "bytes": 5710,
+      "sha256": "3498820fb49728b08425c3ce63235e728cac667c0a1518f811529641bcf16eab",
+      "mode": "100644",
+      "blob": "3b73eeb895d7d8f4ef26ececc7aa166cec5551a8"
+    },
+    {
+      "source": "outputs/5992-6f579f684/headless-elf-size.txt",
+      "tree_path": "task-6038/outputs/5992-6f579f684/headless-elf-size.txt",
+      "bytes": 193,
+      "sha256": "96ba9827e4fa38ea3728c782e3cf1410449c2d7b98075a4f8b5597ce723d7726",
+      "mode": "100644",
+      "blob": "fe6845397b192254c13e789996bd923e43995378"
+    },
+    {
+      "source": "outputs/5992-6f579f684/normal-product-build.log",
+      "tree_path": "task-6038/outputs/5992-6f579f684/normal-product-build.log",
+      "bytes": 2702,
+      "sha256": "cc966ad7aa7685cfddfeb5a173409c4fc874a38254c754d75d256fa340e9206f",
+      "mode": "100644",
+      "blob": "2021bc30ef02ef6a71c2a3ba0643a2855b3d014d"
+    },
+    {
+      "source": "outputs/5992-6f579f684/receipt.json",
+      "tree_path": "task-6038/outputs/5992-6f579f684/receipt.json",
+      "bytes": 33012,
+      "sha256": "4e0801af2d36855151908e61636ad9cbb8c5133e7f2323fb4d6728eb8c130c07",
+      "mode": "100644",
+      "blob": "437fba72462658f9472243251da2b240d39cd518"
+    },
+    {
+      "source": "outputs/5992-6f579f684/headless-audit.json",
+      "tree_path": "task-6038/outputs/5992-6f579f684/headless-audit.json",
+      "bytes": 3776,
+      "sha256": "39d153d169ee4ba7a9afa67954ecaf4f9e6da8507dc1ea98a242b42d7af6876b",
+      "mode": "100644",
+      "blob": "adedc85adfdb78d8061024d1032c00cef0880e9d"
+    },
+    {
+      "source": "outputs/5992-6f579f684/product-elf-size.txt",
+      "tree_path": "task-6038/outputs/5992-6f579f684/product-elf-size.txt",
+      "bytes": 218,
+      "sha256": "52941258381f8aa0007647864e4fc001e06c79292d265d14bd172fb541907cad",
+      "mode": "100644",
+      "blob": "4474745ba3624fe987006d3b219eeb2c0426cf69"
+    },
+    {
+      "source": "outputs/5992-6f579f684/before-after.json",
+      "tree_path": "task-6038/outputs/5992-6f579f684/before-after.json",
+      "bytes": 1131,
+      "sha256": "ef5b1296e3d59d6aa349d4f1cc872cb44c99a978f385eb5d05262fc6d6062937",
+      "mode": "100644",
+      "blob": "a0a668007adbabe0dcc16460720bc78314faee3d"
+    },
+    {
+      "source": "outputs/5992-6f579f684/normal-product-build-status.json",
+      "tree_path": "task-6038/outputs/5992-6f579f684/normal-product-build-status.json",
+      "bytes": 264,
+      "sha256": "b406eb8e3f6e691f65539486421f0d6136bf875707cbc1967faa23afc8171c94",
+      "mode": "100644",
+      "blob": "b2f10c0a9f3ad4cd60a97d07e0a36a05ce154e0c"
+    },
+    {
+      "source": "outputs/5992-6f579f684/headless-section-headers.txt",
+      "tree_path": "task-6038/outputs/5992-6f579f684/headless-section-headers.txt",
+      "bytes": 1510,
+      "sha256": "af6bc9190c13ae9d8a78a6380256cebca901dc95c9fa2ad9e110689408770fe4",
+      "mode": "100644",
+      "blob": "635ccce59f053286d43cfae75ca34d390bbc6657"
+    },
+    {
+      "source": "outputs/5992-6f579f684/headless-elf-file.txt",
+      "tree_path": "task-6038/outputs/5992-6f579f684/headless-elf-file.txt",
+      "bytes": 190,
+      "sha256": "4bc25272cce97d23998cbfffcb7e739740a827d43fde5852ce75c3c3a9ab1c62",
+      "mode": "100644",
+      "blob": "070de591b92ecb1ad245c849b804dd1481f02f06"
+    },
+    {
+      "source": "outputs/5992-6f579f684/local-checks.json",
+      "tree_path": "task-6038/outputs/5992-6f579f684/local-checks.json",
+      "bytes": 14013,
+      "sha256": "c5d3f1fbee6c8a4dd7d0859f1ac1966b634d27238066d14c296e14bff6631bd5",
+      "mode": "100644",
+      "blob": "c47f5151d1ead7932ea812da2d38b342707f5195"
+    },
+    {
+      "source": "outputs/5992-6f579f684/headless-status.json",
+      "tree_path": "task-6038/outputs/5992-6f579f684/headless-status.json",
+      "bytes": 752,
+      "sha256": "fd60f5270cec604cdbbed5e0b3bcfa059f61bc2ab0b7e743a6b799631f5e4f86",
+      "mode": "100644",
+      "blob": "2106f753a0d05a614ba48e5752c816a0c94ae18a"
+    },
+    {
+      "source": "outputs/5992-panels-wide-6f579f684/receipt.json",
+      "tree_path": "task-6038/outputs/5992-panels-wide-6f579f684/receipt.json",
+      "bytes": 29929,
+      "sha256": "5b397fa98b3e3cb4d9489320673591c61a83aff2cae7e32ab35b56250d372968",
+      "mode": "100644",
+      "blob": "af039fc498829a6611926410410d845675062f65"
+    },
+    {
+      "source": "outputs/5992-panels-narrow-6f579f684/receipt.json",
+      "tree_path": "task-6038/outputs/5992-panels-narrow-6f579f684/receipt.json",
+      "bytes": 33687,
+      "sha256": "3a93dc2d931270822b8392a783c94f2a5a38fda640f81ffd067d5089d0116125",
+      "mode": "100644",
+      "blob": "9f82c79a25016d937361f825146b1b40f14640e8"
+    },
+    {
+      "source": "outputs/5992-pointer-wide-6f579f684-cold-birth/receipt.json",
+      "tree_path": "task-6038/outputs/5992-pointer-wide-6f579f684-cold-birth/receipt.json",
+      "bytes": 50263,
+      "sha256": "87b534668453f478d55a02419ccdea11ab83c42d11a6fbd4ca4869a479d966e6",
+      "mode": "100644",
+      "blob": "1e026cc2217a273fd8e624e11e8984429d0c8473"
+    },
+    {
+      "source": "outputs/5992-pointer-narrow-6f579f684-cold-birth/receipt.json",
+      "tree_path": "task-6038/outputs/5992-pointer-narrow-6f579f684-cold-birth/receipt.json",
+      "bytes": 49436,
+      "sha256": "55883d1ed621c4166f091043f5b90fcfc5e3b9613e26b07192cb5cb65676a41a",
+      "mode": "100644",
+      "blob": "5ffeb1e50375589d2bdc56ad3e050c180b6ad638"
+    },
+    {
+      "source": "outputs/5992-details-wide-6f579f684/receipt.json",
+      "tree_path": "task-6038/outputs/5992-details-wide-6f579f684/receipt.json",
+      "bytes": 10637,
+      "sha256": "5065a38eb8106f0b2e1dcdcdcecab057baf9d43b4903a6e58a946c039d108955",
+      "mode": "100644",
+      "blob": "caef2f989811fb53330d7c9ff91e017d6707aae2"
+    },
+    {
+      "source": "outputs/5992-details-narrow-6f579f684/receipt.json",
+      "tree_path": "task-6038/outputs/5992-details-narrow-6f579f684/receipt.json",
+      "bytes": 19214,
+      "sha256": "262fdc5495aaffbc5f76ad612699cd6612f5a57fca552d3ae4599808e493b456",
+      "mode": "100644",
+      "blob": "85157863c91675ad58f46ec52240ecd4613c4b9a"
+    },
+    {
+      "source": "outputs/5992-normal-journey-6f579f684/x86_64/native-shell-paired-linear.json",
+      "tree_path": "task-6038/outputs/5992-normal-journey-6f579f684/x86_64/native-shell-paired-linear.json",
+      "bytes": 1451009,
+      "sha256": "4de65caeb5f2e8b0074488c122886e5b449819ec97f1e3357392ce19acbae319",
+      "mode": "100644",
+      "blob": "4a2763bd626518f0448fee438fe490d87d4b1b13"
+    },
+    {
+      "source": "outputs/5992-normal-journey-6f579f684/x86_64/memory-lantern-native-edit.json",
+      "tree_path": "task-6038/outputs/5992-normal-journey-6f579f684/x86_64/memory-lantern-native-edit.json",
+      "bytes": 5857,
+      "sha256": "153dc340ee63f5a7164a49d8ddc69c81f3a988fde22d2c3271aed4cc5f58b90a",
+      "mode": "100644",
+      "blob": "e62a7d8e00561e4b88ca34768c9d81eaba6495e3"
+    },
+    {
+      "source": "outputs/5992-normal-journey-6f579f684/x86_64/journey-proof.json",
+      "tree_path": "task-6038/outputs/5992-normal-journey-6f579f684/x86_64/journey-proof.json",
+      "bytes": 12918,
+      "sha256": "8e08615660298a0d716c015c2bf4f0c7bc0a72f70e37eb4c8f0cad025e011485",
+      "mode": "100644",
+      "blob": "7a677c28a08c83c79b8c8b4284ac0aebca200fd7"
+    },
+    {
+      "source": "outputs/5992-normal-journey-6f579f684/x86_64/x86_64-product-journey-proof.json",
+      "tree_path": "task-6038/outputs/5992-normal-journey-6f579f684/x86_64/x86_64-product-journey-proof.json",
+      "bytes": 12918,
+      "sha256": "8e08615660298a0d716c015c2bf4f0c7bc0a72f70e37eb4c8f0cad025e011485",
+      "mode": "100644",
+      "blob": "7a677c28a08c83c79b8c8b4284ac0aebca200fd7"
+    },
+    {
+      "source": "outputs/5992-normal-journey-6f579f684/x86_64/journey-frames/manifest.json",
+      "tree_path": "task-6038/outputs/5992-normal-journey-6f579f684/x86_64/journey-frames/manifest.json",
+      "bytes": 420777,
+      "sha256": "3e500b4193784e7b33bc60ce20710ce8bae12ce42dd19e29988a3579e1eae7dc",
+      "mode": "100644",
+      "blob": "b408f44e9e7fdb236bdd6ece736184299a61d16d"
+    },
+    {
+      "source": "outputs/5992-headless-6f579f684/headless-boot-2-stderr.log",
+      "tree_path": "task-6038/outputs/5992-headless-6f579f684/headless-boot-2-stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "mode": "100644",
+      "blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+    },
+    {
+      "source": "outputs/5992-headless-6f579f684/headless-proof.json",
+      "tree_path": "task-6038/outputs/5992-headless-6f579f684/headless-proof.json",
+      "bytes": 4898,
+      "sha256": "1095dba79890d4abde5065c6ab15e8298b08db87c0f24c71184d54d4f5e19fc2",
+      "mode": "100644",
+      "blob": "042942bde322b874b1c40bedb2aa0cc48e0a2dd3"
+    },
+    {
+      "source": "outputs/5992-headless-6f579f684/resolved-image.json",
+      "tree_path": "task-6038/outputs/5992-headless-6f579f684/resolved-image.json",
+      "bytes": 2602,
+      "sha256": "7f01929010ad6887a8b4200c1831e8ec9c5a5c706ea4bce6cf6ef9870e109ad2",
+      "mode": "100644",
+      "blob": "74158b4c548c2523dddef0666f1d61801556d646"
+    },
+    {
+      "source": "outputs/5992-headless-6f579f684/headless-boot-2.log",
+      "tree_path": "task-6038/outputs/5992-headless-6f579f684/headless-boot-2.log",
+      "bytes": 1120,
+      "sha256": "49b3a5bbbfe619a73854e8cd08c8215e51c670727c9a0eb15f96d162d10e7e65",
+      "mode": "100644",
+      "blob": "74a4ef01cd971d7721b59c584c536d73b179e3e1"
+    },
+    {
+      "source": "outputs/5992-headless-6f579f684/build-manifest.json",
+      "tree_path": "task-6038/outputs/5992-headless-6f579f684/build-manifest.json",
+      "bytes": 2959,
+      "sha256": "3346c9e7d03ca8e30fc816ec6522a0e817085d17e4e58c811c4aecbefbc21f3b",
+      "mode": "100644",
+      "blob": "3537146e15ce5cef4a9e96c0fa3bca59a584b2d1"
+    },
+    {
+      "source": "outputs/5992-headless-6f579f684/headless-boot-1-stderr.log",
+      "tree_path": "task-6038/outputs/5992-headless-6f579f684/headless-boot-1-stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "mode": "100644",
+      "blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+    },
+    {
+      "source": "outputs/5992-headless-6f579f684/headless-boot-1.log",
+      "tree_path": "task-6038/outputs/5992-headless-6f579f684/headless-boot-1.log",
+      "bytes": 1120,
+      "sha256": "988dae0e11049f01830a46556a0428f2602a8b0515e1d8246052d10c72e7bf80",
+      "mode": "100644",
+      "blob": "d40305020c66a6807d0373655714a8f9a7a786e4"
+    }
+  ]
+}
