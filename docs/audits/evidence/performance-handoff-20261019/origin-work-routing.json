@@ -46,5 +46,19 @@
       "retained_proof_commit": "6ad1442dbfad482521758dfdec62f0503b959aac"
     }
   ],
-  "scope": "Observed named origin refs and retained proof revisions. A later origin head is not automatically covered by an earlier proof."
+  "scope": "Observed named origin refs and retained proof revisions. A later origin head is not automatically covered by an earlier proof.",
+  "historical_completed_work": [
+    {
+      "pr": 6026,
+      "branch": "perf/shared-fore-measured-20261019",
+      "origin_head_observed": "f2bb3b0b9640c8a9f2ccd2626af817538706c7e5",
+      "scope": "Prepared shared Fore identities and immutable payload delivery; matched historical evidence, no universal throughput gain claimed."
+    },
+    {
+      "pr": 6032,
+      "branch": "perf/native-numeric-region",
+      "origin_head_observed": "5feaf16031ed29368f9f348b5cbf13c41b5651d2",
+      "scope": "Native U64 Planner-selected pure chains, not full FARGAN numeric programs."
+    }
+  ]
 }

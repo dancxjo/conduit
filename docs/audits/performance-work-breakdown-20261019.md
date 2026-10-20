@@ -72,7 +72,7 @@ Tracker: [#6078](https://github.com/dancxjo/conduit/issues/6078). This index cov
 
 ## Existing work and issue ownership
 
-- Preserve released Flow ownership PR #6019, preparation/catalogue PR #6021 and span compositor/scanout PR #6024. Preserve existing compact Sign records and the browser size regression fix. The remaining tickets extend or verify them rather than starting over.
+- Preserve released Flow borrowing PR #6019, prepared shared Fore payload/identity PR #6026, preparation/catalogue PR #6021, native U64 chain PR #6032 and span compositor/scanout PR #6024. Preserve existing compact Sign records and the browser size regression fix. The remaining tickets extend or verify them rather than starting over.
 - #5715 owns ordinary streaming FARGAN. Foundation fixtures and a numeric measurement profile do not establish full product speech or resource acceptance.
 - #5230 owns global placement; its completed bounded search is not rewritten. #5233 owns reluctant replacement; #5567/H1 is already closed. H2/H3 and old-Play custody remain separate work.
 - #5232 and #5563–#5566 own actual physical CPU lanes. Plan lane metadata alone is not physical overlap.
@@ -84,8 +84,8 @@ Tracker: [#6078](https://github.com/dancxjo/conduit/issues/6078). This index cov
 |---|---|
 | Five-workload cold/warm baseline, allocations, bytes, scheduler work and Signs | #6092; #5546; #5761; #6016; #6090; #6091 |
 | Reusable prepared graph/weight/code/binding/reservation lifetime | #6080; #6095; #6096; #6097; existing #5715 |
-| True numeric islands, scratch and avoided canonical materialization | #6082; #6088; #6099; #6100; #6016 |
-| Hosted Flow ownership and Cross-host Line copying/framing | PR #6019; #6081; #6083; #6091 |
+| True numeric islands, scratch and avoided canonical materialization | Prior native U64 PR #6032; #6082; #6088; #6099; #6100; #6016 |
+| Hosted Flow ownership and Cross-host Line copying/framing | PR #6019; PR #6026; #6081; #6083; #6091 |
 | Per-pixel span/scanout and retained incremental raster | PR #6024; #6089 |
 | Boot/paint/usable input/redraw/pointer/typing/Plot-stage responsiveness | #6090 |
 | Immutable checking/expansion/type/law/prepared Back reuse and minimal invalidation | #6079; #6087; #6094; #6095 |
@@ -108,3 +108,5 @@ Private models/fixture inputs, large raw local captures, worker binaries and bui
 Refresh the smallest owned delta onto current dev when its dependencies and review slot are ready. Keep at most two overlapping implementation PRs in review and at most one merge-ready shared-core PR. Preserve held branches and do not absorb other owners’ unmerged changes. Start with the low-effort catalogue activation and already implemented release/integration tickets; start deeper provider work only after its explicit prerequisites.
 
 Every change preserves exact Source/Plan/Host/Boot/Back identity, typed ports, finite pre-Play resources, owner/fuel/pressure/cancel checkpoints, separate ownership/ACK/delivery and mandatory evidence. Stable main receives only the supported automatic release train after exact-source full dev Integration, with retained tested artifacts and identical accepted tree. No parent closes until its actual product and release requirements are proved.
+
+Historical source remains on origin: [shared Fore delivery measurement](https://github.com/dancxjo/conduit/tree/perf/shared-fore-measured-20261019) and [native U64 region measurement](https://github.com/dancxjo/conduit/tree/perf/native-numeric-region). These precede the new remaining-work issues and must not be presented as fresh combined-source proof.
