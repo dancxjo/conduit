@@ -1,4 +1,4 @@
-//! Unbiased scalar reference projection over an admitted exact tensor resource.
+//! Unbiased ordered-f32 projection over an admitted exact tensor resource.
 use crate::fixed_neural::FixedNumericRefusal;
 use crate::fixed_tensor::{FixedMatrixOrder, FixedTensorRefusal};
 #[cfg(target_has_atomic = "ptr")]
@@ -73,11 +73,52 @@ impl<'a, const INPUT: usize, const OUTPUT: usize> FixedTensorLinear<'a, INPUT, O
         input: &[f32; INPUT],
         output: &mut [f32; OUTPUT],
     ) -> Result<(), FixedNumericRefusal> {
+        // Tiny matrices and short, wide reductions retain the row traversal:
+        // contiguous accumulation regressed these shapes in matched diagnostics.
+        if self.order == FixedMatrixOrder::OutputMajor
+            || INPUT.saturating_mul(OUTPUT) <= 64
+            || (INPUT <= 32 && OUTPUT >= 32)
+        {
+            return self.apply_scalar_ordered(input, output);
+        }
         if input.iter().any(|v| !v.is_finite()) {
             return Err(FixedNumericRefusal::NonfiniteInput);
         }
         let bytes = self.view.bytes();
         let mut staged = [0.0; OUTPUT];
+        // Independent output accumulators retain their exact column order.
+        for (column, value) in input.iter().enumerate() {
+            let start = column * OUTPUT * 4;
+            let weights = &bytes[start..start + OUTPUT * 4];
+            for (weight, result) in weights.as_chunks::<4>().0.iter().zip(&mut staged) {
+                *result += f32::from_le_bytes(*weight) * value;
+            }
+        }
+        if staged.iter().any(|value| !value.is_finite()) {
+            return Err(FixedNumericRefusal::NonfiniteOutput);
+        }
+        *output = staged;
+        Ok(())
+    }
+    /// Development comparison only; same validated content and exact old order.
+    #[cfg(feature = "matrix-projection-reference")]
+    pub fn apply_scalar_reference(
+        &self,
+        input: &[f32; INPUT],
+        output: &mut [f32; OUTPUT],
+    ) -> Result<(), FixedNumericRefusal> {
+        self.apply_scalar_ordered(input, output)
+    }
+    fn apply_scalar_ordered(
+        &self,
+        input: &[f32; INPUT],
+        output: &mut [f32; OUTPUT],
+    ) -> Result<(), FixedNumericRefusal> {
+        if input.iter().any(|value| !value.is_finite()) {
+            return Err(FixedNumericRefusal::NonfiniteInput);
+        }
+        let bytes = self.view.bytes();
+        let mut staged = [0.; OUTPUT];
         for (row, result) in staged.iter_mut().enumerate() {
             let mut sum = 0.0_f32;
             for (column, value) in input.iter().enumerate() {

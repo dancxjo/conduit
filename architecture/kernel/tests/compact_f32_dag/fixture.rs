@@ -71,6 +71,7 @@ pub struct Driver {
     failure: bool,
     supported: bool,
     input_layout: CompactF32Layout,
+    canonical_input: Option<PortId>,
 }
 impl Driver {
     pub fn execution_witness(&self) -> bool {
@@ -98,6 +99,7 @@ fn decode(input: &StepInputBytes<'_, 2>, port: PortId) -> Option<[f32; 2]> {
 impl StepBack<2> for Driver {
     fn compact_f32_input(&self, p: PortId) -> Option<CompactF32Layout> {
         (self.supported
+            && self.canonical_input != Some(p)
             && (1..=4).contains(&self.index)
             && (p == PortId(0) || self.index == 4 && p == PortId(1)))
         .then_some(self.input_layout)
@@ -200,6 +202,19 @@ pub fn prepare_with_layout(
     unsupported: Option<usize>,
     mismatch: Option<CompactF32Layout>,
 ) -> Play {
+    prepare_with_inputs(prepared, delay, failure, unsupported, mismatch, None)
+}
+pub fn prepare_canonical_input(node: usize, port: PortId) -> Play {
+    prepare_with_inputs(true, 0, None, None, None, Some((node, port)))
+}
+fn prepare_with_inputs(
+    prepared: bool,
+    delay: usize,
+    failure: Option<usize>,
+    unsupported: Option<usize>,
+    mismatch: Option<CompactF32Layout>,
+    canonical: Option<(usize, PortId)>,
+) -> Play {
     let mut inner = HostedValueStore::new(32, 16, 512).unwrap();
     if prepared {
         inner.prepare_compact_f32();
@@ -284,6 +299,9 @@ pub fn prepare_with_layout(
             delay: if n == 5 { delay } else { 0 },
             failure: failure == Some(n),
             supported: unsupported != Some(n),
+            canonical_input: canonical
+                .filter(|(node, _)| *node == n)
+                .map(|(_, port)| port),
             input_layout: if n == 2 {
                 mismatch.unwrap_or(SHAPE)
             } else {

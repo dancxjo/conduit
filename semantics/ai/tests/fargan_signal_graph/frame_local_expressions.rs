@@ -1,7 +1,7 @@
 //! Same authored FARGAN, explicitly selected computational expressions.
 use super::*;
 use conduit_kernel::{KernelEvent, KernelEventKind, NodeId};
-fn value_transactions(
+pub(super) fn value_transactions(
     events: &[KernelEvent],
     node: u16,
 ) -> Vec<(Option<conduit_kernel::PortId>, KernelEventKind)> {
