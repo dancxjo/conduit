@@ -1,0 +1,38 @@
+{
+  "parent": "b81906facf3c62dc6a752ee562fc202b1a10ac9b",
+  "scope": "Source-bound serial browser repair proof; raw logs retained locally and in Actions; aggregate still queued",
+  "files": [
+    {
+      "source": "outputs/ci-resumed-20261020/observation-2342/serial-browser-repair-proof.json",
+      "tree_path": "task-6038/outputs/ci-resumed-20261020/observation-2342/serial-browser-repair-proof.json",
+      "bytes": 553,
+      "sha256": "daf9b7955f2173bfca7adb071cc95bcaeeaaa04a1398394bb2c82f12d0daa1a8",
+      "mode": "100644",
+      "blob": "ecfa5d052b73a0d655be67d8c4407ac51bf47a1a"
+    },
+    {
+      "source": "outputs/ci-resumed-20261020/observation-2342/preview.json",
+      "tree_path": "task-6038/outputs/ci-resumed-20261020/observation-2342/preview.json",
+      "bytes": 2614,
+      "sha256": "7b81f7e09c71a619b1131052f84edd1a1d9d3204981aeecb636e07e0d12b49f8",
+      "mode": "100644",
+      "blob": "16a46e5040f7d9f4dfa959986e7f1417d9b8eb4a"
+    },
+    {
+      "source": "outputs/ci-resumed-20261020/observation-2342/repair6173.json",
+      "tree_path": "task-6038/outputs/ci-resumed-20261020/observation-2342/repair6173.json",
+      "bytes": 11622,
+      "sha256": "a610d2737cf6002277f841874752738b7818f72ddb2adb889e6ef06b7babc80f",
+      "mode": "100644",
+      "blob": "90cb0773b7a7f2daa136b8241469f00b63958ffa"
+    },
+    {
+      "source": "outputs/ci-resumed-20261020/observation-2342/integration7254-run.json",
+      "tree_path": "task-6038/outputs/ci-resumed-20261020/observation-2342/integration7254-run.json",
+      "bytes": 12239,
+      "sha256": "3bd86b93500f0a1d307358245191049004c15529c52ed28a64251261077a9457",
+      "mode": "100644",
+      "blob": "6572e9aa828604eea145b94a0136a98b0f1332fe"
+    }
+  ]
+}

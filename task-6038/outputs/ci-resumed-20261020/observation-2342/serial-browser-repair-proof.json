@@ -1,0 +1,19 @@
+{
+  "candidate": 39510280635,
+  "feature_head": "9ef231be7b4bd2227b86dd0d0fd9b6c323ba1782",
+  "tested_preview": "e3fc8593ce0d42aa7f65cb60fa9b5c644c73522b",
+  "tested_tree": "84cc4e04f9df13d0eaa449eb24fc9f7ab4dc0aa9",
+  "parents": [
+    "c93a4cca2ac48405415ce813e43e973d93005bad",
+    "9ef231be7b4bd2227b86dd0d0fd9b6c323ba1782"
+  ],
+  "browser_job": 118931140312,
+  "browser_conclusion": "success",
+  "spec_files": 31,
+  "tests_passed": 263,
+  "batch_count": 1,
+  "workers": 1,
+  "retries": 0,
+  "seconds": 1284,
+  "aggregate_status_at_2342": "queued"
+}
