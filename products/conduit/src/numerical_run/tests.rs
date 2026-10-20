@@ -205,3 +205,24 @@ fn numerical_child_keeps_pending_output_until_the_exact_ack_and_cancels_without_
         evidence[1].child_active_play_id
     );
 }
+
+#[test]
+fn numerical_physical_refusal_keeps_failed_child_evidence_without_an_accepted_output() {
+    let (host, plan) = prepared();
+    let mut execution = NumericalFore::from_plan(host, plan).unwrap();
+    assert!(execution
+        .execute(Quantity::parse_plot_literal("3s").unwrap())
+        .is_err());
+    let report = execution.finish().unwrap();
+    assert!(matches!(
+        report.terminal,
+        TerminalDisposition::Failed { .. }
+    ));
+    assert!(report.kernel_failure.is_some());
+    assert!(report.fore_deliveries.is_empty());
+    let receipts = report.each_child_signs.unwrap();
+    assert_eq!(receipts.len(), 1);
+    assert_eq!(receipts[0].invocation, 0);
+    assert!(!receipts[0].events.is_empty());
+    assert!(!receipts[0].remote_lifecycle.is_empty());
+}
