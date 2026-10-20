@@ -1,0 +1,7 @@
+# #5628 private glyph-profile budget
+
+At `3860faa7e`, five text purposes also happen to equal five glyph resources; they need not remain identical. Generator `targets/conduitos/build/typography.rs:28–30` fixes Sans14/Sans16/Sans20/Serif24/Mono14. Runtime `src/display/typography.rs:17–25,100–106` directly casts purpose to profile index. Tests hard-code `5 * 1024` glyph records (`typography.rs:213`; `typography/ensemble_tests.rs:169`) and enumerate only five profiles (`ensemble_tests.rs:6–12`). Manifest `assets/fonts/dejavu/native-ensemble.json:25–50` records that exact mapping.
+
+Engineering Sans Title24 plus Editorial Serif Title24 therefore needs a sixth **private resource profile**, with explicit Look/purpose→profile selection; adding an enum Face purpose or font-family field is unnecessary. Update the private profile-count contract, manifest and complete-profile tests, bound records to six admitted repertoires, and measure generated record/coverage/metrics and image bytes. Existing 4MiB total coverage, 1024-scalar, 64px-edge and per-source 1MiB gates (`build/typography.rs:8–11,110–114`) can remain if measured output passes; a sixth profile does not automatically require larger budgets or a portable schema change.
+
+Mapping Engineering Title purpose to existing Sans Heading20 preserves five resources and avoids Sans24 preparation. It sacrifices equal 24px title sizing/hierarchy and changes wrap/line metrics between Looks; acknowledge that presentation choice and prove layout rather than claiming same-size family substitution.

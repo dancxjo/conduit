@@ -1,0 +1,94 @@
+{
+  "parent": "ca49be94566b9413fc12d7f84a7cb32caf64533d",
+  "scope": "Failed00525browser trace diagnosis and exact6172 serial-default containment checks; raw diagnostic archive remains retained GitHub and locally",
+  "files": [
+    {
+      "source": "work/00525-browser-failure-diagnosis.md",
+      "tree_path": "task-6038/work/00525-browser-failure-diagnosis.md",
+      "bytes": 6880,
+      "sha256": "8f916d0953909bfb9c3cd44ff27b5e7bbde26ba39c1b4c6672c8015a7a0f8bbc",
+      "mode": "100644",
+      "blob": "80656e133654f33a91d8a5bff73c34040c0c6444"
+    },
+    {
+      "source": "work/browser-serial-reference-issue.md",
+      "tree_path": "task-6038/work/browser-serial-reference-issue.md",
+      "bytes": 1704,
+      "sha256": "be04f7c90b9501e2b9cccf32524fa71585fa8085bcbdf619b412923bd4c8bffa",
+      "mode": "100644",
+      "blob": "e6ef094c26606a56c9d5f9900f040d2760977dbe"
+    },
+    {
+      "source": "work/browser-serial-reference-issue.json",
+      "tree_path": "task-6038/work/browser-serial-reference-issue.json",
+      "bytes": 76,
+      "sha256": "c6df1d572bc4d5320139c588ffa6f32399fbc893133a03ba4c77046a92ead77e",
+      "mode": "100644",
+      "blob": "a112b8e9e888607928c0aa33c4bcd1e500be64d2"
+    },
+    {
+      "source": "work/6172-pr-body.md",
+      "tree_path": "task-6038/work/6172-pr-body.md",
+      "bytes": 859,
+      "sha256": "eae8c0c8d34096157eeff6b908bb3145035dd6bd45b68d72fed528745855afd2",
+      "mode": "100644",
+      "blob": "6e66fc30d625ca0e9a58796ee5bf6ba2cd616ee2"
+    },
+    {
+      "source": "work/6172-pr-url.txt",
+      "tree_path": "task-6038/work/6172-pr-url.txt",
+      "bytes": 45,
+      "sha256": "7bd06cd8bcc6adf891214ac030ca5e764d5812b5ad7ae70058a6e63178822f2a",
+      "mode": "100644",
+      "blob": "23caccf45adf1f36fd263d229dcf8dce4e664459"
+    },
+    {
+      "source": "work/5628-profile-budget-audit.md",
+      "tree_path": "task-6038/work/5628-profile-budget-audit.md",
+      "bytes": 1568,
+      "sha256": "d326576da68b5517ca44b501ae4a27b785b602e250d8888ca5a2022b841b9f44",
+      "mode": "100644",
+      "blob": "f587ce0e5218ee432cf478c939bf04e9c31e9722"
+    },
+    {
+      "source": "work/revised-native-goal-state.json",
+      "tree_path": "task-6038/work/revised-native-goal-state.json",
+      "bytes": 3819,
+      "sha256": "961c778121bfb36d7df01f031ecd19b20a2afa84b3e6d5d1207e721e2de6335f",
+      "mode": "100644",
+      "blob": "c5669cc8f5072fc59d165b788697a9c44bffde7b"
+    },
+    {
+      "source": "outputs/00525-browser-failure/custody.json",
+      "tree_path": "task-6038/outputs/00525-browser-failure/custody.json",
+      "bytes": 1218,
+      "sha256": "89ca8e505a746585dddc920876716f2eee5836f0331480b7935d201da5a3bf7f",
+      "mode": "100644",
+      "blob": "a157bbbcb9dc6cd1174d3b3dc0f9f9c36425f7fa"
+    },
+    {
+      "source": "outputs/6172-local/focused.log",
+      "tree_path": "task-6038/outputs/6172-local/focused.log",
+      "bytes": 1722,
+      "sha256": "d4fd1ecff51efc435653e504063a1f247b8880b0c08158c1fe504d07b7a59bfb",
+      "mode": "100644",
+      "blob": "57576dd1dc2025dc2d4823f8f3f6d34e34b9f6e4"
+    },
+    {
+      "source": "outputs/6172-local/focused-status.json",
+      "tree_path": "task-6038/outputs/6172-local/focused-status.json",
+      "bytes": 277,
+      "sha256": "24ae5a04c5038f6b37a1691a92ea9d139a4d52f526d00d179979c35c18f68a4e",
+      "mode": "100644",
+      "blob": "5707dadbfba6c66c7059a020f6dd29114540f8a5"
+    },
+    {
+      "source": "outputs/6172-local/receipt.json",
+      "tree_path": "task-6038/outputs/6172-local/receipt.json",
+      "bytes": 848,
+      "sha256": "4b1e297b98056d87798a38cb2484b731729f253052ad2da871f56ece3ddb2403",
+      "mode": "100644",
+      "blob": "3b674e59905c73a57e48aa465654aa70fa6e8856"
+    }
+  ]
+}

@@ -53,7 +53,7 @@
     "old_prepared_source": "ef8c6c8300236ba7e43845ea24a72e6a2d7a6ff0",
     "old_source_checks": "20typography/113native/2allocation/Clippy/fmt passed; fresh exactSource checks running",
     "product_proof": "exact01d normal7graphicalproofsPassed;headlessblockedBeforeBootByUnregisteredEntranceAndStrippedSymbols;6167repairInProgress",
-    "current_work": "test-onlyextractionpolicyrepair;focused19+fmtPassed;fullworkspacevalidationrunning;freshguestproofpending",
+    "current_work": "3860fullworkspaceunit/integrationtestsrunning; wholeworkspaceClippy/fmt/correspondencePassed; finalproductrebuildHeldForCurrentDevRefreshAfter6173",
     "proof_origin": "6391be2de4ae5ee7e693833135585b311799babb",
     "previous_published_head": "6f579f684500e6bf54c5dd7b5870c5c5c6fb7d6d",
     "local_broad_negative": "41cbc:1216pass/2testexpectationfail/3ignored/4filtered;testonlycorrectionfocused3green",
@@ -67,5 +67,16 @@
     "publisher": 39500834785,
     "live_pages_source": "72ab3b367c236653dff0b5726939e08de62390b9",
     "observed": "2026-10-20T21:40UTC"
+  },
+  "dev_browser_blocker": {
+    "issue": 6172,
+    "pr": 6173,
+    "head": "9ef231be7b4bd2227b86dd0d0fd9b6c323ba1782",
+    "base": "c93a4cca2ac48405415ce813e43e973d93005bad",
+    "failed_integration": 39500212975,
+    "failed_source": "00525faf30522b6851d226613e61e277f2b48f43",
+    "failed_artifact": 12304194618,
+    "scope": "restore defaultsingleworker; keep2batchoptin; untouchedtimeouts/retries/specs",
+    "local": "20focusedchecksPassed;actualChromiumpending"
   }
 }

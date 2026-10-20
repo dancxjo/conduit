@@ -1,0 +1,29 @@
+✔ default legacy runtime URL retains the raw Cargo artifact (149.89647ms)
+✔ explicit legacy alias serves exact selected runtime without changing raw Cargo bytes (110.959303ms)
+▶ missing, empty and non-file selected runtimes never fall back to raw Cargo bytes
+  ✔ "missing" (100.876383ms)
+  ✔ "" (105.941334ms)
+  ✔ "directory" (101.898364ms)
+✔ missing, empty and non-file selected runtimes never fall back to raw Cargo bytes (309.312369ms)
+✔ CI browser proof launch selects the sealed release with existing env override (0.654829ms)
+✔ proof responses expose distinct matching header and Server Timing identities (107.103649ms)
+✔ a browser harness modification must select real browser product proof in Candidate (1.027621ms)
+✔ only recognized prose can omit target lanes (1.393641ms)
+✔ unknown, empty, and shared changes select every target (0.262215ms)
+✔ target-local changes select the owning family (0.319157ms)
+✔ other xtask evidence changes retain the full target matrix (0.124819ms)
+✔ renamed paths select both old and new owners in stable order (0.093052ms)
+✔ full integration always selects every family, even for prose (0.082248ms)
+✔ malformed path collections cannot silently become docs-only (0.758182ms)
+✔ shared target libraries retain every consuming platform proof (0.188626ms)
+✔ isolated firmware remains target-local despite shared target libraries (0.205956ms)
+✔ browser-only assets omit unrelated hosts but mixed and unknown changes fail closed (0.219222ms)
+✔ Integration scanner emits the complete unit matrix consumed by Actions (87.642264ms)
+ℹ tests 20
+ℹ suites 0
+ℹ pass 20
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 759.596852

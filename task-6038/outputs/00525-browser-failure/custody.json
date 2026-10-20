@@ -1,0 +1,17 @@
+{
+  "artifact": 12304194618,
+  "run": 39500212975,
+  "source": "00525faf30522b6851d226613e61e277f2b48f43",
+  "zip_bytes": 51735955,
+  "zip_sha256": "5f794a8f52bc8d1b9b39b370471f6e92a33757db15ed2e40eea1d66306d269cc",
+  "extracted": [
+    "proof/browser/test-results/ci-1/static-body-application-st-b5823-n-reset-and-browser-restart-chromium/error-context.md",
+    "proof/browser/test-results/ci-1/static-body-application-st-b5823-n-reset-and-browser-restart-chromium/trace.zip",
+    "proof/browser/test-results/ci-1/workspace-arrival-Birth-ha-cc2de-d-reload-preserves-the-body-chromium/error-context.md",
+    "proof/browser/test-results/ci-1/workspace-arrival-Birth-ha-cc2de-d-reload-preserves-the-body-chromium/trace.zip",
+    "proof/browser/test-results/ci-1/workspace-arrival-a-failed-01e7c--before-dispatching-effects-chromium/error-context.md",
+    "proof/browser/test-results/ci-1/workspace-arrival-a-failed-01e7c--before-dispatching-effects-chromium/trace.zip",
+    "proof/browser/test-results/ci-1/workspace-membership-an-al-19176-he-browser-Host-or-its-body-chromium/trace.zip",
+    "proof/browser/test-results/ci-1/workspace-membership-an-al-19176-he-browser-Host-or-its-body-chromium/error-context.md"
+  ]
+}

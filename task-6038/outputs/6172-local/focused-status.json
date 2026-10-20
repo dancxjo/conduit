@@ -1,0 +1,11 @@
+{
+  "argv": [
+    "node",
+    "--test",
+    "proof/ci/pipeline-browser-runtime.spec.mjs",
+    "proof/ci/pipeline-plan.spec.mjs"
+  ],
+  "exit_code": 0,
+  "seconds": 0.8287949660152663,
+  "scope": "internal focused pipeline checks; actual Chromium acceptance remains required"
+}

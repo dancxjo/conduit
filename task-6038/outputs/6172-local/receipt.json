@@ -1,0 +1,25 @@
+{
+  "source": "9ef231be7b4bd2227b86dd0d0fd9b6c323ba1782",
+  "base": "c93a4cca2ac48405415ce813e43e973d93005bad",
+  "pr": 6173,
+  "issue": 6172,
+  "files": {
+    "tools/ci/pipeline/targets/browser.mjs": "9330af15a2a7481e935fd930df87097d52b97fcff20ec76f40c63cffd55afd7d",
+    "docs/contributing/ci.md": "2d4ac4c302f077352d59362fba36c95fa2171a538e36db57367e035b3c692331"
+  },
+  "focused": {
+    "argv": [
+      "node",
+      "--test",
+      "proof/ci/pipeline-browser-runtime.spec.mjs",
+      "proof/ci/pipeline-plan.spec.mjs"
+    ],
+    "exit_code": 0,
+    "seconds": 0.8287949660152663,
+    "scope": "internal focused pipeline checks; actual Chromium acceptance remains required"
+  },
+  "tests": 20,
+  "passes": 20,
+  "skipped": 0,
+  "proof_boundary": "Focused pipeline checks only; actual full Chromium Candidate and combined Integration pending"
+}
