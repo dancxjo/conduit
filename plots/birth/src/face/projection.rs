@@ -4,6 +4,7 @@ use crate::{BirthDraft, BirthWidgetFace};
 use alloc::{format, string::String, vec, vec::Vec};
 use conduit_core::{CheckedValueContract, kind_id};
 use conduit_face::*;
+use sha2::{Digest, Sha256};
 
 mod fields;
 
@@ -210,8 +211,10 @@ impl Projection {
                     name: label.clone(),
                 });
                 self.relationships.push(contains(&self.article, &subject));
-                for (index, option) in options.iter().enumerate() {
-                    let id = format!("{subject}/{index}");
+                for option in options {
+                    // Checked Plot identity survives filtering and catalogue reorder.
+                    let digest = Sha256::digest(option.identity.as_bytes());
+                    let id = format!("{subject}/{digest:x}");
                     self.subjects.push(FaceSubject {
                         identity: id.clone(),
                         role: FaceRole::Plot,
@@ -231,6 +234,11 @@ impl Projection {
                     self.disclosures.push(FaceDisclosure {
                         subject: selection_details.clone(),
                         level: FaceDisclosureLevel::SelectedDetail,
+                    });
+                    self.properties.push(FaceProperty {
+                        subject: id.clone(),
+                        name: "checked-plot-id".into(),
+                        value: FacePropertyValue::Identity(option.identity.clone()),
                     });
                     self.properties.push(FaceProperty {
                         subject: id.clone(),

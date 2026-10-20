@@ -456,3 +456,6 @@ fn birth_review_is_current_face_meaning_for_every_mask() {
     assert!(detail.text.contains("Starting Plots selected: 0 of 2"));
     assert!(detail.text.contains("Birth: unavailable (EmptySelection)"));
 }
+
+#[path = "choice_identity_tests.rs"]
+mod choice_identity;
