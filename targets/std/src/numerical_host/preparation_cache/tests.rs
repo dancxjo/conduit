@@ -30,7 +30,7 @@ fn exact_fragment_reuse_and_changed_facts_match_cold_factory() {
     );
     assert!(original
         .iter()
-        .all(|offer| offer.implementation.authority_requirements.is_empty()));
+        .all(|offer| offer.authority_requirements.is_empty()));
     for mutation in 0..8 {
         let mut changed_plot = plot.clone();
         let mut changed_gear = gear.clone();
@@ -82,7 +82,7 @@ fn exact_request_bytes_fence_identity_collisions_precision_errors_and_fifo_lifet
         &old,
         &cache.near(&plot, gear, host.advertisement()).unwrap()
     ));
-    for i in 0..5 {
+    for i in [0, 2, 3, 4, 5] {
         let mut changed = gear.clone();
         changed.configuration[0].value = conduit_core::ConfigurationValue::Quantity(
             conduit_core::QuantityConfigurationValue::from_value(
