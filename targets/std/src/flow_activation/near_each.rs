@@ -24,9 +24,21 @@ pub fn near_each_offer(
     {
         return Err("Near Each requires finite Quantity-to-NearQuantity Values".into());
     }
-    let kind =
+    let mut kind =
         conduit_semantic_catalog::flow_each_semantic_contract(input, output, None, maximum_items)
             .map_err(str::to_string)?;
+    // Authored activate carries the core coordinator law. The separately named
+    // flow/each Kind also declares a terminal-transduction profile; that extra
+    // law is not interchangeable with the checked activation's exact meaning.
+    kind.semantic_laws = flow_each_activation_contract(
+        input,
+        output,
+        None,
+        port_id("value"),
+        port_id("mapped"),
+        maximum_items,
+    )
+    .laws;
     let identity = compute_checked_front_fingerprint(&kind.checked_front());
     Ok(BackOfferBuilder::new(
         kind,
