@@ -17,7 +17,7 @@ Doctor and `live-boot ia32` verify local bytes and never download. Each UEFI
 run copies the immutable VARS template into its own writable variable store.
 These checks establish acquisition, not a ConduitOS boot or graphics result.
 The package is extracted as data, never installed with dpkg or mixed into
-the host's APT sources. `copyright` preserves upstream/component licensing.
+the host's APT sources. `copyright` preserves upstream/component licensing with trailing whitespace normalized.
 
 On 19 October 2026 the retained `noble-updates.InRelease` was verified with
 `gpgv` against `/usr/share/keyrings/ubuntu-archive-keyring.gpg`, producing a
