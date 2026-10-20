@@ -1,11 +1,11 @@
 {
   "schema": "conduit.speech/shared-carrier-evidence@1",
-  "producer_code_commit": "5ead234687fc30cbde4e021dc16fc0cca9e69105",
-  "command": "cargo +stable xtask prove journey native-speech --output ../complete-carrier-public-5ead",
+  "producer_code_commit": "1e1a9d720b213716fc97ad20e1dd771c7af59698",
+  "command": "cargo +stable xtask prove journey native-speech --output ../goal4907/shared-carrier-refresh-1e1a9 --shared-carrier-only",
   "files": {
     "you-would.native": {
       "bytes": 1773627,
-      "sha256": "2ff94eae7fdad0514eb6cf6f4f42ce683dcb5484edf12856b498b3fbce926060"
+      "sha256": "4f04c7cc73e67af2fb2d318b45a7a04b8b59f015e5953006aafde6b162b6f98c"
     },
     "you-would.wav": {
       "bytes": 8044,
@@ -13,7 +13,7 @@
     },
     "you-would.json": {
       "bytes": 35345,
-      "sha256": "a4299ae35f4cd72ea9b2d53cad6ad1ebf20d2ba4bb02c35d938287de6f2e22d7"
+      "sha256": "4cbe7c21e1a5e7575e2904d438878c0f519bb4a149bf9a08958f0e06837e6e79"
     }
   },
   "proof": "installed factory and execution kernel; complete admitted carrier retained by formant and lexical model entrances; authored offline PCM and explicit acoustic-model refusal",

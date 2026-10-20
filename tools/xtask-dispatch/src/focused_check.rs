@@ -17,6 +17,9 @@ mod physical_values;
 #[path = "../../xtask/src/suites/print_pool.rs"]
 mod print_pool;
 
+#[path = "../../xtask/src/suites/prosody_commitment.rs"]
+mod prosody_commitment;
+
 struct Suite {
     steps: &'static [Step],
     path: &'static str,
@@ -74,6 +77,11 @@ fn selected(arguments: &[String]) -> Option<Suite> {
             steps: parser_scorer::SELECTION,
             path: "tools/xtask/src/suites/parser_scorer.rs",
             source: include_bytes!("../../xtask/src/suites/parser_scorer.rs"),
+        }),
+        [check, suite] if check == "check" && suite == "prosody-commitment" => Some(Suite {
+            steps: prosody_commitment::STEPS,
+            path: "tools/xtask/src/suites/prosody_commitment.rs",
+            source: include_bytes!("../../xtask/src/suites/prosody_commitment.rs"),
         }),
         // Global options and all other commands retain the full CLI parser.
         _ => None,
@@ -133,6 +141,7 @@ mod tests {
             ("dsp-shared-compositions", dsp_shared_compositions::STEPS),
             ("inverse-angle", inverse_angle::STEPS),
             ("print-pool", print_pool::STEPS),
+            ("prosody-commitment", prosody_commitment::STEPS),
         ] {
             let steps = selected(&arguments(&["check", name])).unwrap().steps;
             assert_eq!(format!("{steps:?}"), format!("{expected:?}"), "{name}");
@@ -157,6 +166,7 @@ mod tests {
             vec!["--json", "check", "angle-reference"],
             vec!["check", "angle-reference", "--quiet"],
             vec!["ci", "pipeline", "unit", "foundation"],
+            vec!["check", "prosody-commitment", "--quiet"],
             vec!["check"],
         ] {
             assert!(selected(&arguments(&values)).is_none(), "{values:?}");

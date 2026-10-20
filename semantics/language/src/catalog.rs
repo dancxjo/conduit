@@ -51,6 +51,7 @@ pub fn install_linguistics_catalogs(
         .chain(crate::parser_revision_types())
         .chain(crate::discourse::discourse_types())
         .chain(crate::prosody::prosody_types())
+        .chain(crate::prosody_commitment::committed_prosody_types())
         .chain(linguistic_types())
     {
         startup.ensure_structured_type(name, value_type)?;

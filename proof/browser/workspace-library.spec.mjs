@@ -26,6 +26,8 @@ async function birth(page) {
   await expect(page.locator("[data-play-state]")).toHaveText("Playing");
 }
 test("five ordinary plots start together beyond the old aggregate placement ceiling", async ({ page }) => {
+  // Include cold Body preparation without reducing the interaction assertions.
+  test.setTimeout(20_000 + BROWSER_COLD_PREPARATION_MS);
   await page.goto(entrance.url);
   for (const title of ["Button Across the Room", "Firefly Choir"]) {
     await page.getByRole("checkbox", { name: title, exact: true }).check();
@@ -148,7 +150,7 @@ test("Pocket Theremin plays continuous two-axis PCM on the browser host", async 
   await openLibrary(page);
   await page.getByRole("textbox", { name: "Find a plot", exact: true }).fill("theremin");
   await card(page, "Pocket Theremin").getByRole("button", { name: "Use", exact: true }).click();
-  await expect(page.locator("#surface-title")).toHaveText("Pocket Theremin");
+  await waitForWorkspacePreparation(page, { surfaceTitle: "Pocket Theremin" });
   const surface = page.locator("#plot-input[data-pocket-theremin]");
   await expect(surface).toBeVisible();
   // Raw mouse coordinates do not perform locator scrolling. Bring the surface

@@ -1,0 +1,279 @@
+{
+  "old_source": "6f108852608c3fb4dfa960da629709efb7a0bd5a",
+  "source": "5a2f767a658719a4e9a5b43016e7a599acdf8d97",
+  "base": "c10e6a265d5e1022d3d470639e2b99d3a3ac0f18",
+  "identical": 41,
+  "total": 43,
+  "files": [
+    {
+      "path": "architecture/kernel/src/scheduler.rs",
+      "identical": false,
+      "old_sha256": "bc850e824b9cecefde96d7077033651ccd9dca3c1339d82abece43e7db61f2fc",
+      "new_sha256": "8455ac7bb0d7e5b6b45c1d8ee40f2e3ee692f02afc4a7ad2716aa921729b0d47"
+    },
+    {
+      "path": "architecture/kernel/src/scheduler/debug_control.rs",
+      "identical": true,
+      "old_sha256": "13ef399158f03651bc0d910664b85ad3a214a245a19c835323a07e6dd47b41af",
+      "new_sha256": "13ef399158f03651bc0d910664b85ad3a214a245a19c835323a07e6dd47b41af"
+    },
+    {
+      "path": "architecture/kernel/src/scheduler/host_call_back.rs",
+      "identical": true,
+      "old_sha256": "2d5a6b92f37c3368788639ce1358d24f3f753fb0a9584ac9249fd5d252268e89",
+      "new_sha256": "2d5a6b92f37c3368788639ce1358d24f3f753fb0a9584ac9249fd5d252268e89"
+    },
+    {
+      "path": "architecture/kernel/src/scheduler/prepared_session.rs",
+      "identical": true,
+      "old_sha256": "b7d995bd39a83d8697e4101fbab8011f80411fdd2f5a49c25da011cf536cae7e",
+      "new_sha256": "b7d995bd39a83d8697e4101fbab8011f80411fdd2f5a49c25da011cf536cae7e"
+    },
+    {
+      "path": "architecture/kernel/src/scheduler/prepared_session/tests.rs",
+      "identical": true,
+      "old_sha256": "270a11dc46bb921cc0edeb2dc633b3ba0e4482235a0aab853c78256de5391e09",
+      "new_sha256": "270a11dc46bb921cc0edeb2dc633b3ba0e4482235a0aab853c78256de5391e09"
+    },
+    {
+      "path": "architecture/kernel/tests/prepared_session_allocation.rs",
+      "identical": true,
+      "old_sha256": "95f7c82672879285b6254831665b3c1baf10a6c4bf6722ab3ad3b1ad2caa0bf7",
+      "new_sha256": "95f7c82672879285b6254831665b3c1baf10a6c4bf6722ab3ad3b1ad2caa0bf7"
+    },
+    {
+      "path": "docs/audits/evidence/prepared-fargan-session-20261019/disposal-archive-manifest.json",
+      "identical": true,
+      "old_sha256": "70525da8c1e226604bc90898a11593ab08b9a510dc6c80012a562968dfd598cd",
+      "new_sha256": "70525da8c1e226604bc90898a11593ab08b9a510dc6c80012a562968dfd598cd"
+    },
+    {
+      "path": "docs/audits/evidence/prepared-fargan-session-20261019/disposal-capture-0.tar.xz",
+      "identical": true,
+      "old_sha256": "20d56c032b6d2b815b8a41174a25ec24047594e2de8811af111db70aa06fd67f",
+      "new_sha256": "20d56c032b6d2b815b8a41174a25ec24047594e2de8811af111db70aa06fd67f"
+    },
+    {
+      "path": "docs/audits/evidence/prepared-fargan-session-20261019/disposal-capture-1.tar.xz",
+      "identical": true,
+      "old_sha256": "f6a2fb221e97e3742a956b9c4f8d02dac58aec5a88d0d87b1d6c070251fe5656",
+      "new_sha256": "f6a2fb221e97e3742a956b9c4f8d02dac58aec5a88d0d87b1d6c070251fe5656"
+    },
+    {
+      "path": "docs/audits/evidence/prepared-fargan-session-20261019/disposal-capture-2.tar.xz",
+      "identical": true,
+      "old_sha256": "c6384c16047d79bef7db1a1d77bda32338eb43f3a632ace5abfa998362a9d373",
+      "new_sha256": "c6384c16047d79bef7db1a1d77bda32338eb43f3a632ace5abfa998362a9d373"
+    },
+    {
+      "path": "docs/audits/evidence/prepared-fargan-session-20261019/disposal-capture-3.tar.xz",
+      "identical": true,
+      "old_sha256": "bf0ff5bb7e8359977c543fc7d04b70a209499bf7213879b89e170b4f40f0cdaf",
+      "new_sha256": "bf0ff5bb7e8359977c543fc7d04b70a209499bf7213879b89e170b4f40f0cdaf"
+    },
+    {
+      "path": "docs/audits/evidence/prepared-fargan-session-20261019/disposal-complete-accounting.json",
+      "identical": true,
+      "old_sha256": "e5a4403dfc7499d03136604015fdc7ec2b3e217cfc5e1bf6816231581ea9fbb1",
+      "new_sha256": "e5a4403dfc7499d03136604015fdc7ec2b3e217cfc5e1bf6816231581ea9fbb1"
+    },
+    {
+      "path": "docs/audits/evidence/prepared-fargan-session-20261019/disposal-public-verification.json",
+      "identical": true,
+      "old_sha256": "12a6615cd916016bd9bd884ba911039174936119b473337bf1175acf5d7d5394",
+      "new_sha256": "12a6615cd916016bd9bd884ba911039174936119b473337bf1175acf5d7d5394"
+    },
+    {
+      "path": "docs/audits/evidence/prepared-fargan-session-20261019/disposal-relocated-verification.json",
+      "identical": true,
+      "old_sha256": "74ea84629f913695f5cd071ea71ba3498b7c97a4a844339c3d2b5efdcfaafb7a",
+      "new_sha256": "74ea84629f913695f5cd071ea71ba3498b7c97a4a844339c3d2b5efdcfaafb7a"
+    },
+    {
+      "path": "docs/audits/evidence/prepared-fargan-session-20261019/disposal-verifier-mutation-tests.json",
+      "identical": true,
+      "old_sha256": "3492c92a6742c86ac02418ad8944789c4cb5f8c888144380eb251c6e1dffab7c",
+      "new_sha256": "3492c92a6742c86ac02418ad8944789c4cb5f8c888144380eb251c6e1dffab7c"
+    },
+    {
+      "path": "docs/audits/evidence/prepared-fargan-session-20261019/review-source-bridge.json",
+      "identical": true,
+      "old_sha256": "6c2da4ef45def13d4450f256d5f5d654cb7f3fa84bca06f44df6f40c85449f8b",
+      "new_sha256": "6c2da4ef45def13d4450f256d5f5d654cb7f3fa84bca06f44df6f40c85449f8b"
+    },
+    {
+      "path": "docs/audits/evidence/prepared-fargan-session-20261019/test-prepared-fargan-disposal-verifier.py",
+      "identical": true,
+      "old_sha256": "88afc63d7d5e635721c2ba72e94fed11ead55700bf17f8ff226447e405786f46",
+      "new_sha256": "88afc63d7d5e635721c2ba72e94fed11ead55700bf17f8ff226447e405786f46"
+    },
+    {
+      "path": "docs/audits/evidence/prepared-fargan-session-20261019/verify-prepared-fargan.py",
+      "identical": true,
+      "old_sha256": "281b195e6a6c81e07a2d6f2a93ad3de3b032429cc83807cb6ec1c43d2e6a98e6",
+      "new_sha256": "281b195e6a6c81e07a2d6f2a93ad3de3b032429cc83807cb6ec1c43d2e6a98e6"
+    },
+    {
+      "path": "docs/audits/prepared-fargan-session-20261019.md",
+      "identical": true,
+      "old_sha256": "084515cdb3f6c74956a90e7ec7a4b43595a66c37e1142fb694dbc5b7e3760073",
+      "new_sha256": "084515cdb3f6c74956a90e7ec7a4b43595a66c37e1142fb694dbc5b7e3760073"
+    },
+    {
+      "path": "semantics/ai/examples/fargan_performance.rs",
+      "identical": true,
+      "old_sha256": "9f3d47c357c957cd16d6a39c4b6838d6ce275948c8d7df4c2afc0ef063a8d5d6",
+      "new_sha256": "9f3d47c357c957cd16d6a39c4b6838d6ce275948c8d7df4c2afc0ef063a8d5d6"
+    },
+    {
+      "path": "semantics/ai/examples/fargan_performance/prepared.rs",
+      "identical": true,
+      "old_sha256": "f1d14c1bdbe2bd758d174ce90f30d22e58f07e3494c7ca8e21b37d24905689e5",
+      "new_sha256": "f1d14c1bdbe2bd758d174ce90f30d22e58f07e3494c7ca8e21b37d24905689e5"
+    },
+    {
+      "path": "semantics/ai/src/fixed_numeric_back.rs",
+      "identical": true,
+      "old_sha256": "6bcc4d9846540da8fbd79a66ce373fbe7ea3024779151af8caed05a2ac09c48a",
+      "new_sha256": "6bcc4d9846540da8fbd79a66ce373fbe7ea3024779151af8caed05a2ac09c48a"
+    },
+    {
+      "path": "semantics/ai/src/fixed_numeric_index_back.rs",
+      "identical": true,
+      "old_sha256": "c1d4092994f9dc7c3a390cc83d2badf960c7bd0cfe5207986597c51278cc7439",
+      "new_sha256": "c1d4092994f9dc7c3a390cc83d2badf960c7bd0cfe5207986597c51278cc7439"
+    },
+    {
+      "path": "semantics/ai/src/fixed_numeric_linear_back.rs",
+      "identical": true,
+      "old_sha256": "fa3ad96011154922b2e37d5fe6c91b0810194eb5048caf3920a6a790581c9d35",
+      "new_sha256": "fa3ad96011154922b2e37d5fe6c91b0810194eb5048caf3920a6a790581c9d35"
+    },
+    {
+      "path": "semantics/ai/src/fixed_numeric_operations_back.rs",
+      "identical": true,
+      "old_sha256": "94f745da1dd841b0f3fe1b324db71f6c30509a1282d1f8ac16a32abfc1742a9e",
+      "new_sha256": "94f745da1dd841b0f3fe1b324db71f6c30509a1282d1f8ac16a32abfc1742a9e"
+    },
+    {
+      "path": "semantics/ai/src/fixed_numeric_pair_back.rs",
+      "identical": true,
+      "old_sha256": "af00bf17969f996799a1b00ca097f9a407c39e8e66f193e41411b65f3564e5b5",
+      "new_sha256": "af00bf17969f996799a1b00ca097f9a407c39e8e66f193e41411b65f3564e5b5"
+    },
+    {
+      "path": "semantics/ai/src/fixed_numeric_reuse/operations.rs",
+      "identical": true,
+      "old_sha256": "7d1b175fabb2def69a7a63b1cbc97612e1ccf0eccbc92a0eb60706ad819a0a60",
+      "new_sha256": "7d1b175fabb2def69a7a63b1cbc97612e1ccf0eccbc92a0eb60706ad819a0a60"
+    },
+    {
+      "path": "semantics/ai/src/fixed_numeric_scan_back.rs",
+      "identical": true,
+      "old_sha256": "b0c6abea3825d62a5724f1fa1c6037a780dc0acdeffb3704e9ae3d68ba446304",
+      "new_sha256": "b0c6abea3825d62a5724f1fa1c6037a780dc0acdeffb3704e9ae3d68ba446304"
+    },
+    {
+      "path": "semantics/ai/src/fixed_numeric_signal_back.rs",
+      "identical": true,
+      "old_sha256": "94570487cf46333cc7492a95a3c64a49b1ca17bacf0e47281ef37634da9dcd4a",
+      "new_sha256": "94570487cf46333cc7492a95a3c64a49b1ca17bacf0e47281ef37634da9dcd4a"
+    },
+    {
+      "path": "semantics/ai/src/fixed_numeric_window_back.rs",
+      "identical": true,
+      "old_sha256": "210af5ea4c24d843299d7e4587bc144289b2261d5df2e815c709436b79a3dcec",
+      "new_sha256": "210af5ea4c24d843299d7e4587bc144289b2261d5df2e815c709436b79a3dcec"
+    },
+    {
+      "path": "semantics/ai/src/operation_owners/fixed_numeric.rs",
+      "identical": true,
+      "old_sha256": "1b50412eaeef7acbcc695db4e8f119baf9b17f84947f6cb719a36fdcb0ddba12",
+      "new_sha256": "1b50412eaeef7acbcc695db4e8f119baf9b17f84947f6cb719a36fdcb0ddba12"
+    },
+    {
+      "path": "semantics/ai/tests/fargan_signal_graph/frame.rs",
+      "identical": true,
+      "old_sha256": "1e879f8e53b3e601c704ef2146a7b4ffddf6c552c6ccc10951e35c9566d09b79",
+      "new_sha256": "1e879f8e53b3e601c704ef2146a7b4ffddf6c552c6ccc10951e35c9566d09b79"
+    },
+    {
+      "path": "semantics/ai/tests/fargan_signal_graph/frame_session.rs",
+      "identical": true,
+      "old_sha256": "1bd8a58d356fb2b08a8285cfb5576c0e84ba4642636c6a07fe531d64484ae1ae",
+      "new_sha256": "1bd8a58d356fb2b08a8285cfb5576c0e84ba4642636c6a07fe531d64484ae1ae"
+    },
+    {
+      "path": "semantics/ai/tests/fargan_signal_graph/runtime.rs",
+      "identical": true,
+      "old_sha256": "f8af1331d597f8184e4a9b065ab1a370fbd328a23cc823dad171624f5a3ed026",
+      "new_sha256": "f8af1331d597f8184e4a9b065ab1a370fbd328a23cc823dad171624f5a3ed026"
+    },
+    {
+      "path": "semantics/ai/tests/fargan_signal_graph/runtime_backs.rs",
+      "identical": true,
+      "old_sha256": "9837a0a209db4534f3776d755080c724be2d6e0376516d6db3dd7113bf217ba1",
+      "new_sha256": "9837a0a209db4534f3776d755080c724be2d6e0376516d6db3dd7113bf217ba1"
+    },
+    {
+      "path": "semantics/ai/tests/fargan_signal_graph/runtime_execution_kernel.rs",
+      "identical": true,
+      "old_sha256": "7b2ef2f6bcc51b5197b239c2484af1c1b24d16fc7cd593835bd1cbe943262eb0",
+      "new_sha256": "7b2ef2f6bcc51b5197b239c2484af1c1b24d16fc7cd593835bd1cbe943262eb0"
+    },
+    {
+      "path": "semantics/ai/tests/fargan_signal_graph/runtime_prepared.rs",
+      "identical": true,
+      "old_sha256": "f9c4f5e23d147019627ba61c8aef810994ecbccd83fb6f4223c7a68e51fbae49",
+      "new_sha256": "f9c4f5e23d147019627ba61c8aef810994ecbccd83fb6f4223c7a68e51fbae49"
+    },
+    {
+      "path": "semantics/ai/tests/fargan_signal_graph/runtime_rearm.rs",
+      "identical": true,
+      "old_sha256": "10416c27b23f446d896110a6295392db7c556dbe655467244f92e405541b47a7",
+      "new_sha256": "10416c27b23f446d896110a6295392db7c556dbe655467244f92e405541b47a7"
+    },
+    {
+      "path": "semantics/ai/tests/fargan_signal_graph/runtime_session.rs",
+      "identical": true,
+      "old_sha256": "75fe6764f587c0ca1c4fa1d93c0c04535cc0642bd49d02b6fd5bdc88a12246b0",
+      "new_sha256": "75fe6764f587c0ca1c4fa1d93c0c04535cc0642bd49d02b6fd5bdc88a12246b0"
+    },
+    {
+      "path": "semantics/ai/tests/fixed_numeric_linear_back.rs",
+      "identical": true,
+      "old_sha256": "ddb9d2ffa5712eef88002b9aeff159fbc8b9b3bab465242725a36295455bf957",
+      "new_sha256": "ddb9d2ffa5712eef88002b9aeff159fbc8b9b3bab465242725a36295455bf957"
+    },
+    {
+      "path": "semantics/ai/tests/fixed_numeric_reuse/linear.rs",
+      "identical": true,
+      "old_sha256": "c41d6b124d6f121ad650b686feb11e403c1ac30ce2be65e88b88bf98ee5b3955",
+      "new_sha256": "c41d6b124d6f121ad650b686feb11e403c1ac30ce2be65e88b88bf98ee5b3955"
+    },
+    {
+      "path": "tools/xtask/src/commands/runtime_performance.rs",
+      "identical": false,
+      "old_sha256": "d9c1390d605df7da9047e69c394be1e66bec888907725c8235c2a0f2a50f8d7e",
+      "new_sha256": "24f2eb6a264b74aeb3d1f5072674efcd079a4ea297ee905b1b32212c5cb53d2a"
+    },
+    {
+      "path": "tools/xtask/src/commands/runtime_performance_fargan.rs",
+      "identical": true,
+      "old_sha256": "93791463e77e372f2b40e490a8abedf8e007f032433e781acaeefe258f46beef",
+      "new_sha256": "93791463e77e372f2b40e490a8abedf8e007f032433e781acaeefe258f46beef"
+    }
+  ],
+  "scope": "41/43 session-delta files byte-identical; both differences exactly reconstructed from repaireddev plus required session declarations/help. Combined-base tests remain required.",
+  "reviewed_differences": {
+    "architecture/kernel/src/scheduler.rs": "Exactly repaireddev native-aware scheduler plus two-line alloc-gated prepared_session module declaration; independently constructed expected bytes match. Native immutable bindings retained.",
+    "tools/xtask/src/commands/runtime_performance.rs": "Exactly repaireddev native-chain help plus fargan-owners flag in existing FARGAN synopsis; independently constructed expected bytes match. Only cherry-pick conflict."
+  },
+  "additional_regression": {
+    "source": "ddaf3e23fe2ab71c3f8d2d2bd47c40d4f2aac246",
+    "path": "architecture/kernel/tests/native_prepared_session.rs",
+    "sha256": "5e53bbbac35c7d96ccc0a1bb58bdf195ea8578b3a0c7bcb2cbcfda09d27625f8",
+    "test": "8native/canonicalinvocations: exactoutputs/Signs, addressesretained,storesdrain,generationsreject",
+    "all_target_kernel_clippy": "passed"
+  }
+}

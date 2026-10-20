@@ -65,16 +65,29 @@ impl FaceArrival {
         provider: &NativeSurfaceProvider,
         owner_route: Option<&RemoteOwnerMaskRouteSeal>,
     ) -> Result<Self, &'static str> {
-        let mask = NativeFaceMask::prepare_with_owner_route(
-            host_id.clone(),
-            boot_id.clone(),
-            generation,
-            build_id,
-            display_base_id.clone(),
-            "conduitos/creche/face",
-            provider,
-            owner_route,
-        )
+        let mask = if owner_route.is_some() {
+            NativeFaceMask::prepare_with_owner_route(
+                host_id.clone(),
+                boot_id.clone(),
+                generation,
+                build_id,
+                display_base_id.clone(),
+                "conduitos/creche/face",
+                provider,
+                owner_route,
+            )
+        } else {
+            NativeFaceMask::prepare_creche(
+                host_id.clone(),
+                boot_id.clone(),
+                generation,
+                build_id,
+                display_base_id.clone(),
+                "conduitos/creche/face",
+                provider,
+                conduit_face::CrecheComponentRecipe::ResponsiveColumns,
+            )
+        }
         .map_err(|error| error.as_str())?;
         let basis = mask.birth_basis("conduitos/creche/current");
         Ok(Self {

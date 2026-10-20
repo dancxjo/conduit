@@ -1,0 +1,10 @@
+{
+  "source": "ddaf3e23fe2ab71c3f8d2d2bd47c40d4f2aac246",
+  "exit_code": 0,
+  "test": "frame::session_tests::pinned_full_frame_reusable_trajectory_matches_fresh_owners_and_scalar_oracle",
+  "profile": "kernel-operation-owners,hosted-catalog-cache",
+  "frames": 24,
+  "comparison": "freshowners and pinnedscalaroracle",
+  "log_sha256": "69b9980aaf2be454f21343f872c2666eed69c612bb6022b5268703041392ae1e",
+  "scope": "Currentcombinednative+session source; conformanceunderconcurrentbuilds, notperformanceacceptance."
+}
