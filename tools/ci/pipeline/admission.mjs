@@ -2,8 +2,9 @@ import path from 'node:path';
 
 export function nativeRisk(paths) {
   // The native kernel owns isolation, device ownership and preemption. Its
-  // standalone sources cannot be covered by workspace package tests alone.
-  return paths.some(name => /^targets\/conduitos\/(?:(?:src|domain|build|proof)\/|(?:Cargo\.(?:toml|lock)|build\.rs)$)/.test(name));
+  // standalone sources and product build/proof collectors cannot be covered
+  // by workspace package tests alone.
+  return paths.some(name => /^targets\/conduitos\/(?:(?:src|domain|build|proof|make\/xtask)\/|(?:Cargo\.(?:toml|lock)|build\.rs)$)/.test(name));
 }
 
 export function admissionPlan(paths, metadata, root) {

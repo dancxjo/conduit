@@ -28,6 +28,22 @@ the second boots that artifact in QEMU. The build needs the Rust toolchain,
 The builder acquires pinned boot dependencies. An interactive boot is useful
 for exploration; the proof commands below validate specific behaviors.
 
+### Prepare IA-32 UEFI firmware
+
+Before `cargo xtask make conduitos live-boot ia32 --locked`, prepare and
+verify its pinned firmware:
+
+```sh
+cargo xtask make conduitos prepare-ia32-firmware
+cargo xtask make conduitos doctor-ia32-firmware
+```
+
+This uses a matching installed pair or a hash-verified repository-local cache.
+It works without Ubuntu 26.04's removed `ovmf-ia32` package and does not alter
+APT sources. Boot never downloads firmware. See the [firmware pin and refusal
+procedure](tools/ia32-firmware/README.md) for offline use and provenance.
+UEFI and legacy BIOS retain separate proof routes.
+
 ### Boot a provisioned owner route
 
 For the shared-Body journey, issue a routed, short-lived invitation from the

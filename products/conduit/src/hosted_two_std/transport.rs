@@ -11,9 +11,7 @@ use conduit_std_host::{
     websocket::{NativeWebSocketLine, NativeWebSocketListener},
     InstalledRemoteFragment, RemoteValueTransfer,
 };
-use conduit_wire::{
-    decode_session_frame, encode_session_frame_into, SessionMessage, SessionTerminalDisposition,
-};
+use conduit_wire::{decode_session_frame, SessionMessage, SessionTerminalDisposition};
 
 const MAXIMUM_FRAME_BYTES: u32 = 2_048;
 pub(super) fn exact_endpoint(
@@ -115,12 +113,19 @@ fn drain_sink(
     Err("sink did not drain within its admitted steps".into())
 }
 
-pub(super) fn execute_line(
+pub(super) fn execute_line<const OBSERVE: bool>(
     mut source: InstalledRemoteFragment,
     source_endpoint: RemoteEndpointId,
     sink: InstalledRemoteFragment,
     sink_endpoint: RemoteEndpointId,
-) -> Result<(RemoteValueTransfer, Vec<u8>), String> {
+) -> Result<
+    (
+        RemoteValueTransfer,
+        Vec<u8>,
+        Option<super::TwoHostKernelEvidence>,
+    ),
+    String,
+> {
     let listener = NativeWebSocketListener::bind_loopback(MAXIMUM_FRAME_BYTES)
         .map_err(|error| format!("bind Tour Line: {error:?}"))?;
     let address = listener
@@ -129,11 +134,13 @@ pub(super) fn execute_line(
     let url = listener
         .url()
         .map_err(|error| format!("name Tour Line: {error:?}"))?;
-    let sink_handle = thread::spawn(move || run_sink(sink, sink_endpoint, address, &url));
+    let sink_handle =
+        thread::spawn(move || run_sink::<OBSERVE>(sink, sink_endpoint, address, &url));
     let mut line = listener
         .accept()
         .map_err(|error| format!("accept Tour Line: {error:?}"))?;
     activate_source(&mut source, source_endpoint, &mut line)?;
+    let mut receive_bytes = [0; MAXIMUM_FRAME_BYTES as usize];
     let transfer = next_transfer(&mut source)?;
     send_message(
         &mut source,
@@ -144,13 +151,13 @@ pub(super) fn execute_line(
             payload: &transfer.bytes,
         },
     )?;
-    match receive_message(&mut source, source_endpoint, &mut line)? {
+    match receive_message(&mut source, source_endpoint, &mut line, &mut receive_bytes)? {
         ReceivedMessage::Accepted { sequence } if sequence == transfer.sequence => {
             source.accept_egress(&transfer)?;
         }
         message => return Err(format!("unexpected Tour Line acceptance {message:?}")),
     }
-    match receive_message(&mut source, source_endpoint, &mut line)? {
+    match receive_message(&mut source, source_endpoint, &mut line, &mut receive_bytes)? {
         ReceivedMessage::Delivered { sequence } if sequence == transfer.sequence => {
             source.deliver_egress(&transfer)?;
         }
@@ -173,7 +180,7 @@ pub(super) fn execute_line(
         },
     )?;
     if !matches!(
-        receive_message(&mut source, source_endpoint, &mut line)?,
+        receive_message(&mut source, source_endpoint, &mut line, &mut receive_bytes)?,
         ReceivedMessage::Terminal {
             disposition: SessionTerminalDisposition::Completed,
             final_sequence: 1
@@ -189,25 +196,35 @@ pub(super) fn execute_line(
     }
     line.close()
         .map_err(|error| format!("close Tour Line: {error:?}"))?;
-    let sink_output = sink_handle
+    let (sink_output, sink_evidence) = sink_handle
         .join()
         .map_err(|_| "sink Tour Host panicked".to_string())??;
-    Ok((transfer, sink_output))
+    let evidence = if OBSERVE {
+        Some(super::TwoHostKernelEvidence {
+            phases: Vec::new(),
+            source: super::evidence::retain(&source),
+            sink: sink_evidence.ok_or("sink evidence missing")?,
+        })
+    } else {
+        None
+    };
+    Ok((transfer, sink_output, evidence))
 }
 
-fn run_sink(
+fn run_sink<const OBSERVE: bool>(
     mut sink: InstalledRemoteFragment,
     sink_endpoint: RemoteEndpointId,
     address: std::net::SocketAddr,
     url: &str,
-) -> Result<Vec<u8>, String> {
+) -> Result<(Vec<u8>, Option<super::RemoteKernelEvidence>), String> {
     let mut line = NativeWebSocketLine::connect(address, url, MAXIMUM_FRAME_BYTES)
         .map_err(|error| format!("connect Tour Line: {error:?}"))?;
     activate_sink(&mut sink, sink_endpoint, &mut line)?;
     let mut output = Vec::with_capacity(conduit_text::MAX_TEXT_BYTES as usize + 1);
-    let sequence = match receive_message(&mut sink, sink_endpoint, &mut line)? {
+    let mut receive_bytes = [0; MAXIMUM_FRAME_BYTES as usize];
+    let sequence = match receive_message(&mut sink, sink_endpoint, &mut line, &mut receive_bytes)? {
         ReceivedMessage::Offered { sequence, payload } => {
-            match sink.admit_ingress(sink_endpoint, sequence, &payload)? {
+            match sink.admit_ingress(sink_endpoint, sequence, payload)? {
                 RemoteIngressOutcome::Accepted { .. } => sequence,
                 RemoteIngressOutcome::Full { .. } => return Err("Tour sink Line pressure".into()),
             }
@@ -227,12 +244,12 @@ fn run_sink(
         &mut line,
         SessionMessage::Delivered { sequence },
     )?;
-    match receive_message(&mut sink, sink_endpoint, &mut line)? {
+    match receive_message(&mut sink, sink_endpoint, &mut line, &mut receive_bytes)? {
         ReceivedMessage::InputClosed { final_sequence: 1 } => sink.close_ingress(sink_endpoint)?,
         message => return Err(format!("unexpected Tour Line close {message:?}")),
     }
     if !matches!(
-        receive_message(&mut sink, sink_endpoint, &mut line)?,
+        receive_message(&mut sink, sink_endpoint, &mut line, &mut receive_bytes)?,
         ReceivedMessage::Terminal {
             disposition: SessionTerminalDisposition::Completed,
             final_sequence: 1
@@ -259,7 +276,8 @@ fn run_sink(
     {
         return Err("sink Tour Line did not terminate exactly".into());
     }
-    Ok(output)
+    let evidence = OBSERVE.then(|| super::evidence::retain(&sink));
+    Ok((output, evidence))
 }
 
 fn activate_source(
@@ -267,21 +285,16 @@ fn activate_source(
     endpoint: RemoteEndpointId,
     line: &mut NativeWebSocketLine,
 ) -> Result<(), String> {
+    let mut receive_bytes = [0; MAXIMUM_FRAME_BYTES as usize];
     if !matches!(
-        receive_message(runtime, endpoint, line)?,
+        receive_message(runtime, endpoint, line, &mut receive_bytes)?,
         ReceivedMessage::Hello
     ) {
         return Err("Tour sink omitted Hello".into());
     }
-    let binding = runtime
-        .sessions()
-        .get(endpoint)
-        .ok_or("source Line binding missing")?
-        .binding()
-        .clone();
-    send_message(runtime, endpoint, line, binding.hello_frame().message)?;
+    send_hello(runtime, endpoint, line)?;
     if !matches!(
-        receive_message(runtime, endpoint, line)?,
+        receive_message(runtime, endpoint, line, &mut receive_bytes)?,
         ReceivedMessage::Ready
     ) {
         return Err("Tour sink omitted Ready".into());
@@ -294,27 +307,38 @@ fn activate_sink(
     endpoint: RemoteEndpointId,
     line: &mut NativeWebSocketLine,
 ) -> Result<(), String> {
-    let binding = runtime
-        .sessions()
-        .get(endpoint)
-        .ok_or("sink Line binding missing")?
-        .binding()
-        .clone();
-    send_message(runtime, endpoint, line, binding.hello_frame().message)?;
+    let mut receive_bytes = [0; MAXIMUM_FRAME_BYTES as usize];
+    send_hello(runtime, endpoint, line)?;
     if !matches!(
-        receive_message(runtime, endpoint, line)?,
+        receive_message(runtime, endpoint, line, &mut receive_bytes)?,
         ReceivedMessage::Hello
     ) {
         return Err("Tour source omitted Hello".into());
     }
     send_message(runtime, endpoint, line, SessionMessage::Ready)?;
     if !matches!(
-        receive_message(runtime, endpoint, line)?,
+        receive_message(runtime, endpoint, line, &mut receive_bytes)?,
         ReceivedMessage::Ready
     ) {
         return Err("Tour source omitted Ready".into());
     }
     Ok(())
+}
+
+fn send_hello(
+    runtime: &mut InstalledRemoteFragment,
+    endpoint: RemoteEndpointId,
+    line: &mut NativeWebSocketLine,
+) -> Result<(), String> {
+    let mut bytes = [0; MAXIMUM_FRAME_BYTES as usize];
+    let length = runtime
+        .sessions_mut()
+        .get_mut(endpoint)
+        .ok_or("Tour Line session missing")?
+        .encode_outbound_hello(&mut bytes)
+        .map_err(|error| format!("admit and encode outbound Tour Line Hello: {error:?}"))?;
+    line.send_binary(&bytes[..length])
+        .map_err(|error| format!("send Tour Line Hello: {error:?}"))
 }
 
 fn send_message(
@@ -323,39 +347,24 @@ fn send_message(
     line: &mut NativeWebSocketLine,
     message: SessionMessage<'_>,
 ) -> Result<(), String> {
-    let binding = runtime
-        .sessions()
-        .get(endpoint)
-        .ok_or("Tour Line binding missing")?
-        .binding()
-        .clone();
-    let frame = binding.frame(message);
-    runtime
+    let mut bytes = [0; MAXIMUM_FRAME_BYTES as usize];
+    let length = runtime
         .sessions_mut()
         .get_mut(endpoint)
-        .unwrap()
-        .machine_mut()
-        .admit_outbound(frame)
-        .map_err(|error| format!("admit outbound Tour Line frame: {error:?}"))?;
-    let mut bytes = [0; MAXIMUM_FRAME_BYTES as usize];
-    let length = encode_session_frame_into(
-        frame,
-        &mut bytes,
-        conduit_text::MAX_TEXT_BYTES,
-        MAXIMUM_FRAME_BYTES,
-    )
-    .map_err(|error| format!("encode Tour Line frame: {error:?}"))?;
+        .ok_or("Tour Line session missing")?
+        .encode_outbound(message, &mut bytes)
+        .map_err(|error| format!("admit and encode outbound Tour Line frame: {error:?}"))?;
     line.send_binary(&bytes[..length])
         .map_err(|error| format!("send Tour Line frame: {error:?}"))
 }
 
 #[derive(Debug)]
-enum ReceivedMessage {
+enum ReceivedMessage<'a> {
     Hello,
     Ready,
     Offered {
         sequence: u64,
-        payload: Vec<u8>,
+        payload: &'a [u8],
     },
     Accepted {
         sequence: u64,
@@ -372,14 +381,16 @@ enum ReceivedMessage {
     },
 }
 
-fn receive_message(
+// The offered payload stays in caller-owned bounded storage until ingress
+// copies it into the kernel. Session admission still precedes that handoff.
+fn receive_message<'a>(
     runtime: &mut InstalledRemoteFragment,
     endpoint: RemoteEndpointId,
     line: &mut NativeWebSocketLine,
-) -> Result<ReceivedMessage, String> {
-    let mut bytes = [0; MAXIMUM_FRAME_BYTES as usize];
+    bytes: &'a mut [u8; MAXIMUM_FRAME_BYTES as usize],
+) -> Result<ReceivedMessage<'a>, String> {
     let length = line
-        .receive_binary(&mut bytes)
+        .receive_binary(bytes)
         .map_err(|error| format!("receive Tour Line frame: {error:?}"))?;
     let frame = decode_session_frame(
         &bytes[..length],
@@ -397,10 +408,9 @@ fn receive_message(
     match frame.message {
         SessionMessage::Hello(_) => Ok(ReceivedMessage::Hello),
         SessionMessage::Ready => Ok(ReceivedMessage::Ready),
-        SessionMessage::Offered { sequence, payload } => Ok(ReceivedMessage::Offered {
-            sequence,
-            payload: payload.to_vec(),
-        }),
+        SessionMessage::Offered { sequence, payload } => {
+            Ok(ReceivedMessage::Offered { sequence, payload })
+        }
         SessionMessage::Accepted { sequence } => Ok(ReceivedMessage::Accepted { sequence }),
         SessionMessage::Delivered { sequence } => Ok(ReceivedMessage::Delivered { sequence }),
         SessionMessage::InputClosed { final_sequence } => {

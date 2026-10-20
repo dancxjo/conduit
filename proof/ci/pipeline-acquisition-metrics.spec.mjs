@@ -50,3 +50,10 @@ test('RISC-V64 caches only verified emulator outputs and its receipt', () => {
   assert.ok(tools.some(value => value.endsWith('/receipt.json')));
   assert.ok(tools.every(value => !value.includes('attempt-') && !value.endsWith('/build')));
 });
+
+
+test('IA-32 cache retains verified firmware files without run variables or lock/staging state', () => {
+  const { paths } = acquisitionIdentity('conduitos-ia32', { root: '/test/repo', home: '/test/home' });
+  const tools = paths.filter(value => value.includes('ovmf-ia32'));
+  assert.deepEqual(tools.map(value => path.basename(value)).sort(), ['OVMF32_CODE_4M.fd', 'OVMF32_VARS_4M.fd', 'copyright', 'manifest.json']);
+});
