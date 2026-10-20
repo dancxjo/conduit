@@ -290,9 +290,10 @@ fn display_property(value: &FacePropertyValue) -> String {
                 content.extent.items
             )
         }
-        FacePropertyValue::TypedValue { contract, bytes } => {
+        FacePropertyValue::TypedValue { contract, bytes } => format!(
+            "{} contract={contract:?} canonical={bytes:?}",
             crate::display_typed_value(contract, bytes)
-        }
+        ),
         FacePropertyValue::ValueContract(contract) => {
             format!("value-contract:{contract:?}")
         }

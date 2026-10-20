@@ -127,3 +127,93 @@ fn rendering_is_deterministic_and_contains_no_renderer_local_input() {
         "renderer-local state {renderer_local_state:?} has no projection input"
     );
 }
+
+fn typed_property_face(bytes: &[u8], constraints: Vec<conduit_core::ValueConstraint>) -> Face {
+    let face = exact_face();
+    let mut properties = face.properties;
+    properties.push(FaceProperty {
+        subject: "subject/play".into(),
+        name: "choice-value".into(),
+        value: FacePropertyValue::TypedValue {
+            contract: conduit_core::CheckedValueContract::new(
+                conduit_core::kind_id("value/text"),
+                16,
+                constraints,
+            )
+            .unwrap(),
+            bytes: bytes.to_vec(),
+        },
+    });
+    Face::new(
+        face.revision,
+        face.basis,
+        face.subjects,
+        face.relationships,
+        properties,
+        face.text,
+    )
+    .unwrap()
+}
+
+fn choice_property_record(bytes: &[u8]) -> String {
+    render_linear_face(&typed_property_face(bytes, vec![]))
+        .unwrap()
+        .lines
+        .into_iter()
+        .find(|line| line.starts_with("PROPERTY ") && line.contains("name=\"choice-value\""))
+        .unwrap()
+}
+
+#[test]
+fn linear_typed_property_distinguishes_equal_length_canonical_values() {
+    assert_ne!(choice_property_record(b"aa"), choice_property_record(b"bb"));
+}
+
+#[test]
+fn linear_typed_property_recovers_exact_bytes_without_labels_or_face_digest() {
+    for expected in [b"".as_slice(), b"aa", b"\0\n\"\\\xc3\xa9"] {
+        let record = choice_property_record(expected);
+        // This test-only reader consumes the emitted numeric byte field, with
+        // no access to the Face or its opaque digest while reconstructing it.
+        let encoded = record.rsplit_once(" canonical=").unwrap().1;
+        let body = encoded
+            .strip_prefix('[')
+            .unwrap()
+            .strip_suffix(']')
+            .unwrap();
+        let decoded: Vec<u8> = if body.is_empty() {
+            Vec::new()
+        } else {
+            body.split(',')
+                .map(|part| part.trim().parse().unwrap())
+                .collect()
+        };
+        assert!(decoded.len() <= crate::MAX_FACE_VALUE_BYTES as usize);
+        assert_eq!(decoded, expected);
+        assert!(record.contains("value_kind: KindId(\"value/text\")"));
+        assert!(record.contains("maximum_bytes: 16"));
+        assert!(record.contains("constraints: []"));
+        assert!(!record.contains('\n'));
+    }
+}
+
+#[test]
+fn linear_typed_property_preserves_nonempty_checked_membership() {
+    let face = typed_property_face(
+        b"aa",
+        vec![conduit_core::ValueConstraint::CanonicalMembership {
+            members: vec![b"aa".to_vec(), b"bb".to_vec()],
+            negated: false,
+        }],
+    );
+    let record = render_linear_face(&face)
+        .unwrap()
+        .lines
+        .into_iter()
+        .find(|line| line.starts_with("PROPERTY ") && line.contains("name=\"choice-value\""))
+        .unwrap();
+    assert_ne!(record, choice_property_record(b"aa"));
+    assert!(record.contains("CanonicalMembership"));
+    assert!(record.contains("members: [[97, 97], [98, 98]]"));
+    assert!(record.contains("negated: false"));
+}

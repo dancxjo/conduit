@@ -1030,3 +1030,21 @@ storage, browser manifestation and actual product transport require separate
 proof. `cargo xtask check input-semantics` registers collection conformance.
 Current-source execution, independent linear reconstruction receipts, Candidate
 and stable acceptance remain outstanding for this recovered development slice.
+
+#### Failed linear typed-value reconstruction found during C1 validation
+
+The existing Face `TypedValue` already contains a checked contract and exact
+canonical bytes. Its linear property lowering, however, emits only human
+wording; for plain UTF-8 that is a kind plus byte count. A property containing
+`aa` and the same property containing `bb` therefore produce identical property
+records. A different opaque Face digest cannot reconstruct the option-to-value
+association, and equal or misleading labels must not supply that authority.
+The same lowering also omits the property's checked constraint details.
+
+This is a Mask lowering loss, not missing Face meaning. The bounded correction
+is to retain the existing human wording while exposing the supplied checked
+contract and exact canonical bytes in the same linear property record. Existing
+line/byte admission limits remain unchanged. No widget Kind, new property,
+production reverse parser, or independently owned selection state is needed.
+Current-tree and end-to-end collection reconstruction proof remain separate
+from this focused regression and the recovered development branch.

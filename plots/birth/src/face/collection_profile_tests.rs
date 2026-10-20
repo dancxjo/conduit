@@ -37,6 +37,12 @@ fn finite_collection_specimen_has_a_measured_bounded_input_envelope() {
             "source specimen input bytes={}",
             bytes.len()
         );
+        let linear = conduit_face::render_linear_face(&face).unwrap();
+        std::println!(
+            "collection-profile items={items} selected={selected} linear_bytes={} linear_lines={}",
+            linear.encoded_bytes,
+            linear.lines.len(),
+        );
         assert_eq!(draft.choices().len(), items);
     }
 }
