@@ -74,7 +74,13 @@ impl KernelCompositeHost {
     ) -> Result<Self, KernelCompositeError> {
         if reusable
             && (definition.internal_plan.fragments.len() != 1
-                || !definition.internal_plan.connections.is_empty()
+                || definition.internal_plan.fragments.iter().any(|f| {
+                    f.placements.len() != 1
+                        || !f.connections.is_empty()
+                        || !f.states.is_empty()
+                        || !f.shared_pools.is_empty()
+                        || f.fore_ports.iter().any(|p| p.selected_line.is_some())
+                })
                 || definition
                     .boundary
                     .input_fronts
@@ -268,7 +274,7 @@ impl KernelCompositeHost {
             })
             .collect();
         Ok(Self {
-            definition,
+            definition: alloc::sync::Arc::new(definition),
             children,
             fronts,
             links,

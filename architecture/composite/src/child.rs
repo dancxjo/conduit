@@ -101,6 +101,21 @@ pub(crate) struct ChildKernel {
 }
 
 impl ChildKernel {
+    pub(crate) fn empty_value_evidence(&self) -> Result<HostedSignLog, String> {
+        self.scheduler.empty_evidence()
+    }
+    pub(crate) fn rearm_value(
+        &mut self,
+        signs: HostedSignLog,
+    ) -> Result<
+        conduit_kernel::scheduler::prepared_session::DrainedInvocation<HostedSignLog>,
+        conduit_kernel::scheduler::prepared_session::SessionRefusal,
+    > {
+        let old = self.scheduler.rearm(signs)?;
+        self.status = SchedulerStatus::Idle;
+        Ok(old)
+    }
+
     pub(crate) fn step(&mut self) -> Result<SchedulerStatus, ChildExecutionError> {
         self.status = self.scheduler.step().map_err(ChildExecutionError::from)?;
         Ok(self.status)

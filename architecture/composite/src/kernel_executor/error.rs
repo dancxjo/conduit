@@ -36,6 +36,9 @@ pub enum KernelCompositeError {
     },
     MissingHostCallObligation,
     InvalidLifecycle,
+    ValueRearm {
+        reason: conduit_kernel::scheduler::prepared_session::SessionRefusal,
+    },
     CancellationRefused {
         failed_children: usize,
     },
