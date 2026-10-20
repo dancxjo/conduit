@@ -206,3 +206,27 @@ fn pre_birth_review_checks_each_exact_plot_without_a_body_or_play() {
         );
     }
 }
+
+#[test]
+fn visible_checked_candidate_does_not_widen_installed_workset_authority() {
+    let candidates = candidate_inventory();
+    assert_eq!(candidates.len(), 5);
+    assert_eq!(&candidates[..4], &inventory());
+    assert_eq!(profile().capacity, 4);
+    let hello = resident(NativePlot::Hello).unwrap();
+    assert_eq!(
+        NativePlot::Hello.source(),
+        include_str!("../../../../plots/hello/main.conduit")
+    );
+    assert!(!profile().contains(&hello).unwrap());
+    assert_eq!(resolve(&hello), Err(WorksetRefusal::UnknownPlot));
+    let (ids, offer) = fixture();
+    assert_eq!(
+        review(NativePlot::Hello, &ids, &offer, "build"),
+        Err(WorksetRefusal::UnknownPlot)
+    );
+    assert!(matches!(
+        prepare(&wake(&[NativePlot::Hello]), &ids, &offer, "build"),
+        Err(WorksetRefusal::UnknownPlot)
+    ));
+}

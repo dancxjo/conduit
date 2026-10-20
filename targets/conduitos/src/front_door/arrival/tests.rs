@@ -84,7 +84,7 @@ fn zero_body_arrival_has_no_lifecycle_plot_while_creche_inventory_is_usable() {
             .iter()
             .filter(|subject| subject.role == conduit_face::FaceRole::Plot)
             .count(),
-        crate::native_workset::inventory().len()
+        crate::native_workset::candidate_inventory().len()
     );
     assert!(matches!(press(&mut door, 60), ArrivalInput::Birth(_)));
 }
@@ -205,7 +205,7 @@ fn shared_search_filters_visible_controls_without_losing_included_plots() {
 }
 
 #[test]
-fn four_plot_scene_keeps_choices_status_and_birth_visually_separate() {
+fn five_candidate_scene_keeps_choices_status_and_birth_visually_separate() {
     let mut door = door(None);
     assert!(door.scene(&super::super::tests::Sink).is_ok());
     press(&mut door, 42);
@@ -219,7 +219,10 @@ fn four_plot_scene_keeps_choices_status_and_birth_visually_separate() {
             command.payload().starts_with("●  ") || command.payload().starts_with("○  ")
         })
         .collect();
-    assert_eq!(choices.len(), 4);
+    assert_eq!(choices.len(), 5);
+    let unavailable = choices.last().unwrap().payload();
+    assert!(unavailable.starts_with("○  ") && unavailable.contains("Hello, world."));
+    assert!(unavailable.contains("/ unavailable"));
     assert!(choices.windows(2).all(|rows| {
         rows[1].bounds.y - rows[0].bounds.y
             >= crate::display::profile::line_height(conduit_face::GraphicsTextRole::Body) as i16
@@ -246,7 +249,7 @@ fn native_plot_availability_is_reviewed_independently() {
     door.arrival = None;
     door.open_creche_reviewed(
         "00112233-4455-6677-8899-aabbccddeeff".into(),
-        [Some("Canvas unavailable".into()), None, None, None],
+        [Some("Canvas unavailable".into()), None, None, None, None],
     )
     .unwrap();
     let ArrivalInput::Birth(selection) = press(&mut door, 60) else {
@@ -279,4 +282,47 @@ fn altgr_dead_keys_survive_release_and_edit_the_name_before_birth() {
         panic!("a later Enter births")
     };
     assert_eq!(selection.friendly_name, "éé");
+}
+
+#[test]
+fn fifth_visible_source_candidate_stays_unavailable_and_unselected() {
+    let mut door = door(None);
+    let draft = &mut door.arrival.as_mut().unwrap().draft;
+    assert_eq!(draft.choices().len(), 5);
+    assert_eq!(
+        draft
+            .choices()
+            .iter()
+            .filter(|choice| choice.selected)
+            .count(),
+        4
+    );
+    let candidate = &draft.choices()[4];
+    assert_eq!(
+        candidate.plot,
+        crate::native_workset::resident(crate::native_workset::NativePlot::Hello).unwrap()
+    );
+    assert_eq!(
+        candidate.refusal.as_deref(),
+        Some(crate::native_workset::WorksetRefusal::UnknownPlot.as_str())
+    );
+    assert!(!candidate.selected);
+    let revision = draft.revision();
+    assert_eq!(
+        draft.select(revision, 4, true),
+        Err(BirthDraftRefusal::UnavailablePlot)
+    );
+    assert_eq!(draft.revision(), revision);
+    assert!(!draft.choices()[4].selected);
+    let face = door.face().unwrap();
+    let action = face
+        .actions
+        .iter()
+        .find(|action| action.identity == "creche.plot.4")
+        .unwrap();
+    assert!(matches!(
+        action.availability,
+        FaceActionAvailability::Unavailable { .. }
+    ));
+    assert!(face.basis.body_id.is_none());
 }
