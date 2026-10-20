@@ -11,6 +11,7 @@ use conduit_std_host::{StdHost, StdHostConfig};
 use std::time::Instant;
 
 #[test]
+#[ignore = "manual fresh-process preparation allocation and latency measurement"]
 fn default_std_graph_retains_exact_catalogues_across_preparation() {
     let prepare = || {
         let started = Instant::now();
