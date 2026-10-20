@@ -1,0 +1,32 @@
+{
+  "head": "e24fe3f402ab22a78df3bbfdb17e12b13331e7f4",
+  "remote_exact": "origin/recovery/6151-accepted-candidate-e24fe3f40",
+  "branch_retained": "codex/shared-shard-test-module-path",
+  "files": {
+    "acquisition/preflight.json": {
+      "bytes": 1712,
+      "sha256": "b133a372b0b31ad29e7b874eb6a7da2f77aafab25397a3eb215f17ec098be68b"
+    },
+    "ci-tools/actionlint": {
+      "bytes": 5132440,
+      "sha256": "9f7dedb4e23f89f2922073d1a6720405b7b520d4f5832ebb96f0d55a2958886c"
+    },
+    "conduitos/aarch64/make-record.rs": {
+      "bytes": 678,
+      "sha256": "81d926d394264e29a0f01f04bb99399f9ed2655b24daab1969699d9256473034"
+    },
+    "conduitos/x86_64/make-record.rs": {
+      "bytes": 684,
+      "sha256": "e1eaa7edb6432498cb7857714a5aa9e67c2e8282dce08f3c4ebc7a17d0ffe04e"
+    }
+  },
+  "unique_metadata_preserved": true,
+  "no_active_processes_verified": true,
+  "removal": "git worktree remove without force",
+  "cargo_clean": "Refused missing CACHEDIR.TAG; retained rejection log, no cache marker fabricated",
+  "free_before": 56575512576,
+  "free_after": 57077035008,
+  "available_delta": 501522432,
+  "removed_class": "Inactive source checkout and generated target metadata; exact source retained locally and on origin, three metadata records copied outside, regenerable actionlint binary discarded",
+  "finished": "2026-10-20T15:46:56Z"
+}

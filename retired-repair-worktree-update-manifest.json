@@ -1,0 +1,46 @@
+{
+  "parent": "aa5ec352bdada32c7eb6c57e5ca567b2c1db392a",
+  "scope": "Native stage05 current-dev refresh and exact preflight receipt; normal product and all five emulator runs passed; Candidate still running",
+  "files": [
+    {
+      "source": "work/stewardship-20261020/retired-6151-worktree/receipt.json",
+      "tree_path": "task-6038/work/stewardship-20261020/retired-6151-worktree/receipt.json",
+      "bytes": 1357,
+      "sha256": "ad8dc1421c0be008860d54f600d78b5ad9feea11b864d9522c95f308a2930222",
+      "mode": "100644",
+      "blob": "5236f9357f0af117afcc370648a4757790a5465a"
+    },
+    {
+      "source": "work/stewardship-20261020/retired-6151-worktree/cargo-clean.log",
+      "tree_path": "task-6038/work/stewardship-20261020/retired-6151-worktree/cargo-clean.log",
+      "bytes": 234,
+      "sha256": "770aa6a1061c578b963d51938914c58d65d15a8da460e8169cfe5d18c397d546",
+      "mode": "100644",
+      "blob": "13f9a171ffbd0d91f3e2de4f0313d0bd38378c9b"
+    },
+    {
+      "source": "work/stewardship-20261020/retired-6151-worktree/acquisition/preflight.json",
+      "tree_path": "task-6038/work/stewardship-20261020/retired-6151-worktree/acquisition/preflight.json",
+      "bytes": 1712,
+      "sha256": "b133a372b0b31ad29e7b874eb6a7da2f77aafab25397a3eb215f17ec098be68b",
+      "mode": "100644",
+      "blob": "1a5f902397e7a711fba7a617e32321b53e899958"
+    },
+    {
+      "source": "work/stewardship-20261020/retired-6151-worktree/conduitos/aarch64/make-record.rs",
+      "tree_path": "task-6038/work/stewardship-20261020/retired-6151-worktree/conduitos/aarch64/make-record.rs",
+      "bytes": 678,
+      "sha256": "81d926d394264e29a0f01f04bb99399f9ed2655b24daab1969699d9256473034",
+      "mode": "100644",
+      "blob": "d09cf47829cb8c1e0e8eb1647950015bd59b5721"
+    },
+    {
+      "source": "work/stewardship-20261020/retired-6151-worktree/conduitos/x86_64/make-record.rs",
+      "tree_path": "task-6038/work/stewardship-20261020/retired-6151-worktree/conduitos/x86_64/make-record.rs",
+      "bytes": 684,
+      "sha256": "e1eaa7edb6432498cb7857714a5aa9e67c2e8282dce08f3c4ebc7a17d0ffe04e",
+      "mode": "100644",
+      "blob": "9bcbd4e59235c81a3233ac80287cade078125624"
+    }
+  ]
+}
