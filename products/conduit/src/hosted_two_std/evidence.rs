@@ -7,6 +7,7 @@ use conduit_std_host::InstalledRemoteFragment;
 /// kernel Play and must be included when measuring the observed entrance.
 #[derive(Debug)]
 pub struct RemoteKernelEvidence {
+    pub traffic: Option<conduit_std_host::websocket::NativeWebSocketTraffic>,
     pub identity: KernelIdentityMap,
     pub events: Vec<KernelEvent>,
     pub remote_identities: Vec<(u32, RemoteLifecycleIdentity)>,
@@ -33,6 +34,7 @@ pub(super) fn retain(runtime: &InstalledRemoteFragment) -> RemoteKernelEvidence 
         })
         .collect();
     RemoteKernelEvidence {
+        traffic: None,
         identity: runtime.kernel_identity().clone(),
         events,
         remote_identities,

@@ -178,12 +178,16 @@ pub(super) fn execute_line<const OBSERVE: bool>(
         .map_err(|error| format!("name Tour Line: {error:?}"))?;
     let sink_handle =
         thread::spawn(move || run_sink::<OBSERVE>(sink, sink_endpoint, address, &url, workload));
+    let mut source_traffic = None;
     let source_result: Result<RemoteValueTransfer, String> = (|| {
         let mut line = listener
             .accept_with_timeout(std::time::Duration::from_secs(5))
             .map_err(|error| format!("accept Tour Line: {error:?}"))?;
         line.set_read_timeout(Some(std::time::Duration::from_secs(5)))
             .map_err(|error| format!("source Line timeout: {error:?}"))?;
+        if OBSERVE {
+            line.start_traffic_observation();
+        }
         activate_source(&mut source, source_endpoint, &mut line)?;
         if let Some(clock) = &mut line_clock {
             clock.ready();
@@ -258,6 +262,7 @@ pub(super) fn execute_line<const OBSERVE: bool>(
         {
             return Err("source Tour Line did not terminate exactly".into());
         }
+        source_traffic = line.traffic();
         line.close()
             .map_err(|error| format!("close Tour Line: {error:?}"))?;
         Ok(transfer)
@@ -285,6 +290,9 @@ pub(super) fn execute_line<const OBSERVE: bool>(
     } else {
         None
     };
+    if let Some(evidence) = &mut evidence {
+        evidence.source.traffic = source_traffic;
+    }
     drop(source);
     if let Some(clock) = line_clock {
         evidence
@@ -308,6 +316,9 @@ fn run_sink<const OBSERVE: bool>(
         .map_err(|error| format!("connect Tour Line: {error:?}"))?;
     line.set_read_timeout(Some(std::time::Duration::from_secs(5)))
         .map_err(|error| format!("sink Line timeout: {error:?}"))?;
+    if OBSERVE {
+        line.start_traffic_observation();
+    }
     activate_sink(&mut sink, sink_endpoint, &mut line)?;
     let mut output = Vec::with_capacity(conduit_text::MAX_TEXT_BYTES as usize + 1);
     for expected_sequence in 0..workload.count() {
@@ -384,7 +395,11 @@ fn run_sink<const OBSERVE: bool>(
     {
         return Err("sink Tour Line did not terminate exactly".into());
     }
-    let evidence = OBSERVE.then(|| super::evidence::retain(&sink));
+    let evidence = OBSERVE.then(|| {
+        let mut evidence = super::evidence::retain(&sink);
+        evidence.traffic = line.traffic();
+        evidence
+    });
     Ok((output, evidence))
 }
 

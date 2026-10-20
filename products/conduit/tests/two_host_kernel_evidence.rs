@@ -149,6 +149,21 @@ fn persistent_tick_flow_retains_all_values_and_both_kernel_lifecycles() {
         assert!(host.retention_gap.is_none());
         assert_eq!(host.identity.plan_id, execution.plan_id);
     }
+    let source_traffic = evidence.source.traffic.unwrap();
+    let sink_traffic = evidence.sink.traffic.unwrap();
+    assert!(!source_traffic.saturated && !sink_traffic.saturated);
+    assert_eq!(
+        source_traffic.sent_binary_bytes,
+        sink_traffic.received_binary_bytes
+    );
+    assert_eq!(
+        sink_traffic.sent_binary_bytes,
+        source_traffic.received_binary_bytes
+    );
+    assert_eq!(source_traffic.sent_messages, sink_traffic.received_messages);
+    assert_eq!(sink_traffic.sent_messages, source_traffic.received_messages);
+    assert!(source_traffic.receive_copy_bytes <= source_traffic.received_binary_bytes);
+    assert!(sink_traffic.receive_copy_bytes <= sink_traffic.received_binary_bytes);
     for wire_sequence in 0..u64::from(count) {
         let mut kinds = Vec::new();
         for event in &evidence.source.events {

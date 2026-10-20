@@ -13,7 +13,11 @@ pub fn retain(host: &RemoteKernelEvidence) -> Result<Value, String> {
     {
         return Err("kernel Sign order differs".into());
     }
+    if host.traffic.is_some_and(|traffic| traffic.saturated) {
+        return Err("Line traffic counter saturated".into());
+    }
     Ok(json!({
+        "traffic":host.traffic,
         "plan_id":identity.plan_id.as_str(),"fragment_id":identity.fragment_id.as_str(),
         "placements":identity.placements.iter().map(|(node, placement)|json!({"node":node.0,"placement":placement.as_str()})).collect::<Vec<_>>(),
         "ports":identity.ports.iter().map(|p|json!({"node":p.node.0,"direction":format!("{:?}",p.direction),"port":p.port.0,"plan_port":p.port_id.as_str()})).collect::<Vec<_>>(),
