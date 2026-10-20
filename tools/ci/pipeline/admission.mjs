@@ -2,7 +2,7 @@ import path from 'node:path';
 
 function preflightOnly(name) {
   return name.endsWith('.md') || name === 'LICENSE'
-    || /^(?:tools\/ci\/|proof\/ci\/).+\.(?:mjs|js|json)$/.test(name)
+    || /^(?:tools\/ci\/|proof\/ci\/).+\.(?:mjs|js)$/.test(name)
     || /^\.github\/workflows\/[^/]+\.ya?ml$/.test(name);
 }
 

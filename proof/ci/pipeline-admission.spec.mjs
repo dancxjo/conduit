@@ -242,3 +242,9 @@ test('tooling filenames and prose cannot select unrelated runtime supplements', 
   assert.equal(commands.length, 2);
   assert.deepEqual(commands.map(([, args]) => args[0]), ['clippy', 'test']);
 });
+
+
+test('non-script tooling data retains conservative Rust tooling coverage', () => {
+  const model = {workspace_members: [...names, 'xtask'], packages: [...metadata.packages, {id: 'xtask', name: 'xtask', manifest_path: '/repo/tools/xtask/Cargo.toml'}]};
+  assert.deepEqual(admissionPlan(['proof/ci/publication-history/receipt.json'], model, '/repo').packages, ['xtask']);
+});
