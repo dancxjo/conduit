@@ -72,6 +72,18 @@ impl PatchbayTopology {
             };
             if choice.host_id != placement.host_id
                 || choice.capability_id != placement.capability_id
+                || selection
+                    .locality_basis
+                    .realization_work
+                    .iter()
+                    .filter(|work| {
+                        work.gear_id == placement.gear_id
+                            && work.host_id == placement.host_id
+                            && work.boot_id == placement.boot_id
+                            && work.capability_id == placement.capability_id
+                    })
+                    .count()
+                    != 1
             {
                 return Err(Invalid);
             }
@@ -84,6 +96,38 @@ impl PatchbayTopology {
                     .map(|f| f.execution_fusions.len())
                     .sum::<usize>()
         {
+            return Err(Invalid);
+        }
+        let mut lines = std::collections::BTreeMap::new();
+        for fragment in &plan.fragments {
+            for cord in &fragment.connections {
+                let Some(line) = &cord.selected_line else {
+                    continue;
+                };
+                let source = plan
+                    .fragments
+                    .iter()
+                    .flat_map(|f| &f.placements)
+                    .find(|p| p.placement_id == cord.source_placement_id)
+                    .ok_or(Invalid)?;
+                let sink = plan
+                    .fragments
+                    .iter()
+                    .flat_map(|f| &f.placements)
+                    .find(|p| p.placement_id == cord.sink_placement_id)
+                    .ok_or(Invalid)?;
+                if lines
+                    .insert(
+                        (source.gear_id.clone(), sink.gear_id.clone()),
+                        line.line_id.clone(),
+                    )
+                    .is_some_and(|previous| previous != line.line_id)
+                {
+                    return Err(Invalid);
+                }
+            }
+        }
+        if lines != selection.selected_realization.lines {
             return Err(Invalid);
         }
         let mut document = self.document(None)?;

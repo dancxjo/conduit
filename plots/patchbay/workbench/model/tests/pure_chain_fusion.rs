@@ -184,7 +184,7 @@ fn all_thirty_two_logical_gears_and_cords_survive_physical_inspection() {
         }],
         bases: vec![],
         lines: vec![],
-        plans: vec![optimized.plan],
+        plans: vec![optimized.plan.clone()],
         plays: vec![],
         observations: vec![],
         historical_observations: vec![],
@@ -197,6 +197,34 @@ fn all_thirty_two_logical_gears_and_cords_survive_physical_inspection() {
     };
     let mut patchbay = conduit_patchbay_workbench::PatchbayTopology::new(1).unwrap();
     patchbay.ingest(&snapshot).unwrap();
+    let explanation = patchbay
+        .document_with_fusion_selection(&optimized, &selection)
+        .unwrap();
+    let explanation = explanation.lines().join("\n");
+    assert!(explanation.contains("FUSION SELECTION"));
+    assert!(explanation.contains("CANDIDATE fused disposition=Selected"));
+    assert!(explanation.contains("CANDIDATE unfused disposition=Admitted"));
+    assert!(explanation.contains("sign/patchbay-fusion/fused"));
+    let mut wrong = selection.clone();
+    wrong.checked_plot_id = "foreign-checked".into();
+    assert!(patchbay
+        .document_with_fusion_selection(&optimized, &wrong)
+        .is_err());
+    let mut wrong = selection.clone();
+    wrong
+        .considered
+        .iter_mut()
+        .find(|c| c.candidate_id == "fused")
+        .unwrap()
+        .total_work_units += 1;
+    assert!(patchbay
+        .document_with_fusion_selection(&optimized, &wrong)
+        .is_err());
+    let mut wrong = selection.clone();
+    wrong.locality_basis.realization_work[0].boot_id = "foreign-boot".into();
+    assert!(patchbay
+        .document_with_fusion_selection(&optimized, &wrong)
+        .is_err());
     let report = patchbay.current_report().unwrap();
     assert_eq!(report.execution_fusions.len(), 1);
     assert_eq!(report.placements.len(), 32);
