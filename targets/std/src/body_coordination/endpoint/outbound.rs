@@ -16,6 +16,18 @@ impl CoordinationEndpoint {
     }
 
     pub fn next_offer(&mut self) -> Result<CoordinationOffer, String> {
+        self.with_next_offer(|sequence, payload, _, _| CoordinationOffer {
+            sequence,
+            bytes: payload.to_vec(),
+        })
+    }
+
+    // The kernel owns the offer until the separate acceptance/delivery calls.
+    // A callback can encode it while protocol state is borrowed independently.
+    pub(in crate::body_coordination) fn with_next_offer<T>(
+        &mut self,
+        use_offer: impl FnOnce(u64, &[u8], &SessionBinding, &mut SessionMachine) -> T,
+    ) -> Result<T, String> {
         loop {
             self.complete_face_request()?;
             let (endpoint, cord) = self.remote(RemoteCordDirection::Egress);
@@ -24,14 +36,21 @@ impl CoordinationEndpoint {
                 .remote_egress_offer(endpoint, cord)
                 .map_err(|error| format!("{error:?}"))?
             {
-                return Ok(CoordinationOffer {
-                    sequence: offer.sequence,
-                    bytes: self
-                        .scheduler
-                        .host_value(offer.value)
-                        .map_err(|error| format!("{error:?}"))?
-                        .to_vec(),
-                });
+                let payload = self
+                    .scheduler
+                    .host_value(offer.value)
+                    .map_err(|error| format!("{error:?}"))?;
+                let session = self
+                    .sessions
+                    .iter_mut()
+                    .find(|session| session.direction == RemoteCordDirection::Egress)
+                    .expect("exact coordination direction exists");
+                return Ok(use_offer(
+                    offer.sequence,
+                    payload,
+                    &session.binding,
+                    &mut session.machine,
+                ));
             }
             match self
                 .scheduler

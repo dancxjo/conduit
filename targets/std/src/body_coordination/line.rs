@@ -164,25 +164,21 @@ fn send_offer(
     endpoint: &mut CoordinationEndpoint,
     line: &mut NativeWebSocketLine,
 ) -> Result<(), CoordinationLineError> {
-    let offer = endpoint
-        .next_offer()
-        .map_err(CoordinationLineError::Contract)?;
-    send(
-        endpoint,
-        RemoteCordDirection::Egress,
-        line,
-        SessionMessage::Offered {
-            sequence: offer.sequence,
-            payload: &offer.bytes,
-        },
-    )?;
+    let offered_sequence = endpoint
+        .with_next_offer(|sequence, payload, binding, machine| {
+            let frame = binding.frame(SessionMessage::Offered { sequence, payload });
+            machine.admit_outbound(frame).map_err(classify_wire_error)?;
+            send_frame(line, frame)?;
+            Ok::<_, CoordinationLineError>(sequence)
+        })
+        .map_err(CoordinationLineError::Contract)??;
     match receive(
         endpoint,
         RemoteCordDirection::Egress,
         line,
         &mut [0; FRAME_BYTES],
     )? {
-        ReceivedMessage::Accepted { sequence } if sequence == offer.sequence => {
+        ReceivedMessage::Accepted { sequence } if sequence == offered_sequence => {
             endpoint
                 .accept_offer(sequence)
                 .map_err(CoordinationLineError::Contract)?;
@@ -204,7 +200,7 @@ fn send_offer(
         line,
         &mut [0; FRAME_BYTES],
     )? {
-        ReceivedMessage::Delivered { sequence } if sequence == offer.sequence => endpoint
+        ReceivedMessage::Delivered { sequence } if sequence == offered_sequence => endpoint
             .deliver_offer(sequence)
             .map_err(CoordinationLineError::Contract),
         _ => Err(CoordinationLineError::Classified(
