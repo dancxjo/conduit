@@ -1,7 +1,7 @@
 //! One absolute physical numerical allowance, separate from exact Quantity.
 use super::*;
 pub const NUMERICAL_NEAR_KIND: &str = "math/near";
-pub const NUMERICAL_NEAR_REVISION: &str = "numeric/quantity-near@4";
+pub const NUMERICAL_NEAR_REVISION: &str = "numeric/quantity-near@5";
 pub const NUMERICAL_NEAR_MAX_BYTES: u32 = NEAR_QUANTITY_EVIDENCE_MAX_BYTES as u32;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NearQuantityAlgorithm {

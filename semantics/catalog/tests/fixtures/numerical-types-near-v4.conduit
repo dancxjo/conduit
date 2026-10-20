@@ -1,0 +1,119 @@
+# Exact source meaning and admitted absolute numerical error.
+type QuantityCoordinateRequest = {
+    unit: Unit
+}
+# One shared CPE frame split at 65536 bytes: head then tail. The tail is
+# empty for a shorter frame; these fields are not independent reports.
+type QuantityCoordinateEvidence = {
+    projection-evidence-head: Bytes <= 65536B
+    projection-evidence-tail: Bytes <= 65536B
+}
+
+type NumericalRequest = {
+    value: MathematicalValue
+    maximum-error: MathematicalValue
+}
+
+# A bounded interval consumer receives exact data during Play. Width is a
+# numerical enclosure requirement, independent of measurement uncertainty.
+type MathematicalEnclosureRequest = {
+    maximum-width: MathematicalValue
+}
+type MathematicalEnclosure = {
+    source: MathematicalValue
+    lower: MathematicalValue
+    upper: MathematicalValue
+    width: MathematicalValue
+    maximum-width: MathematicalValue
+}
+
+# The selected operation order uses these explicit rounding directions.
+type NumericalRounding =
+    nearest_ties_even
+    | toward_zero
+    | toward_positive
+    | toward_negative
+
+type NumericalErrorClaim =
+    exact_distance
+    | certified_bound
+
+type NumericalRepresentation =
+    exact_rational
+    | outward_i64
+    | binary64 {
+        target: F64 finite
+        rounding: NumericalRounding
+        any-inexact: Boolean
+        any-tiny-inexact: Boolean
+        step-count: U8
+        error-claim: NumericalErrorClaim
+    }
+
+type NumericalResult = {
+    source: MathematicalValue
+    lower: MathematicalValue
+    upper: MathematicalValue
+    maximum-error: MathematicalValue
+    representation: NumericalRepresentation
+}
+
+# Explicit IEEE operations return exceptions as values, independently of
+# mathematical projection error or observation uncertainty.
+type IeeeBinary64Operation =
+    add
+    | subtract
+    | multiply
+    | divide
+type IeeeBinary64QuietPredicate =
+    equal
+    | less
+    | less_equal
+    | unordered
+type IeeeBinary64Flags = {
+    invalid: Boolean
+    divide-by-zero: Boolean
+    overflow: Boolean
+    underflow: Boolean
+    inexact: Boolean
+}
+type IeeeBinary64Result = {
+    value: F64
+    flags: IeeeBinary64Flags
+}
+type IeeeBinary64ComparisonResult = {
+    value: Boolean
+    flags: IeeeBinary64Flags
+}
+
+# Qualified numerical output retains its exact physical source separately from
+# the selected numerical representation. It is not an exact Quantity alias.
+type NearQuantityRole =
+    linear
+    | point
+    | delta
+type NearQuantityErrorClaim =
+    exact_distance
+    | certified_bound
+type NearQuantityRepresentation =
+    exact_rational MathematicalValue
+    | binary32 {
+        target: F32 finite
+        rounding: NumericalRounding
+    }
+    | enclosed_binary32 {
+        target: F32 finite
+        rounding: NumericalRounding
+    }
+type NearQuantity = {
+    projection-evidence: Bytes <= 54650B
+    source: MathematicalValue
+    source-wire: Bytes <= 33829B
+    requested-limit: Quantity
+    unit: Unit
+    role: NearQuantityRole
+    maximum-error: MathematicalValue
+    limit: MathematicalValue
+    claim: NearQuantityErrorClaim
+    representation: NearQuantityRepresentation
+}

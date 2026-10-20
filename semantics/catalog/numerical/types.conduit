@@ -105,8 +105,16 @@ type NearQuantityRepresentation =
         target: F32 finite
         rounding: NumericalRounding
     }
+    # Source-bound computation requires an explicitly prepared replay profile.
+    # Artifacts remain finite; the enclosing Near contract also caps total bytes.
+    | binary64_computation {
+        target: F64 finite
+        rounding: NumericalRounding
+        program: Bytes <= 131072B
+        incoming: Bytes <= 131072B
+    }
 type NearQuantity = {
-    projection-evidence: Bytes <= 54650B
+    projection-evidence: Bytes <= 131072B
     source: MathematicalValue
     source-wire: Bytes <= 33829B
     requested-limit: Quantity
