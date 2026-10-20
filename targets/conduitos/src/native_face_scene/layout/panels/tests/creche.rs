@@ -1,8 +1,11 @@
 //! Actual Source draft and authored recipe; CPU proof, not guest enactment.
 use super::*;
 
-#[test]
-fn actual_zero_body_creche_places_body_and_plot_groups_in_one_band() {
+fn actual_creche() -> (
+    conduit_face::Face,
+    conduit_face::PreparedComponentRecipe,
+    conduit_face::AdmittedVisualExpression,
+) {
     use conduit_core::{BootId, CheckedPlotId, HostId, OfferGeneration, SourceDocumentId};
     use conduit_face::*;
     let mut door = crate::front_door::FrontDoor::new(
@@ -70,6 +73,13 @@ fn actual_zero_body_creche_places_body_and_plot_groups_in_one_band() {
         },
     )
     .unwrap();
+    (face, recipe, expression)
+}
+
+#[test]
+fn actual_zero_body_creche_places_body_and_plot_groups_in_one_band() {
+    use conduit_face::*;
+    let (face, recipe, expression) = actual_creche();
     let baseline = NativeFaceScene::prepare(face.clone(), 1280, 800).unwrap();
     let mut scene =
         NativeFaceScene::prepare_configured(face.clone(), 1280, 800, true, &recipe, &expression)
@@ -201,5 +211,56 @@ fn actual_zero_body_creche_places_body_and_plot_groups_in_one_band() {
             command.payload().len() <= MAX_GRAPHICS_TEXT_BYTES
                 && command.clip_class() == GraphicsClipClass::FullyVisible
         }));
+    }
+}
+
+#[test]
+fn full_unicode_name_draft_fits_narrow_and_wide_without_shortening_submission() {
+    use conduit_human::{KeyEvent, KeyModifiers, KeyTransition};
+    let (face, recipe, expression) = actual_creche();
+    let show = scene_tests::fixture::show(&face);
+    let key = |usage, modifiers| KeyEvent::new(usage, KeyTransition::Pressed, modifiers).unwrap();
+    for (width, height) in [(640, 480), (1280, 800)] {
+        let mut scene = NativeFaceScene::prepare_configured(
+            face.clone(),
+            width,
+            height,
+            true,
+            &recipe,
+            &expression,
+        )
+        .unwrap();
+        scene
+            .focus_named(&FaceFocusRequest {
+                action_id: "creche.name".into(),
+                argument_name: Some("value".into()),
+            })
+            .unwrap();
+        let mut sequence = 0;
+        let keys = core::iter::repeat_n((4, KeyModifiers::NONE), 52)
+            .chain((0..6).flat_map(|_| [(52, KeyModifiers::RIGHT_ALT), (8, KeyModifiers::NONE)]));
+        for (usage, modifiers) in keys {
+            sequence += 1;
+            scene.key(key(usage, modifiers), &show, sequence).unwrap();
+            let frame = scene.frame().unwrap();
+            assert!(frame.scene.commands().len() <= conduit_face::MAX_GRAPHICS_COMMANDS);
+            assert!(frame.scene.commands().iter().all(
+                |command| command.clip_class() == conduit_face::GraphicsClipClass::FullyVisible
+            ));
+            assert_eq!(scene.face(), &face);
+        }
+        let expected = alloc::format!("{}{}", "a".repeat(52), "é".repeat(6));
+        assert_eq!(expected.len(), 64);
+        sequence += 1;
+        let FaceSceneInput::Submitted { interaction, .. } = scene
+            .key(key(40, KeyModifiers::NONE), &show, sequence)
+            .unwrap()
+        else {
+            panic!("full draft must submit through the ordinary checked action");
+        };
+        assert_eq!(interaction.action_id, "creche.name");
+        assert_eq!(interaction.arguments.len(), 1);
+        assert_eq!(interaction.arguments[0].value, expected.as_bytes());
+        assert_eq!(scene.face(), &face);
     }
 }
