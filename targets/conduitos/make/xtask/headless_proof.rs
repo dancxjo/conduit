@@ -21,15 +21,10 @@ pub fn execute(output: PathBuf, opts: &GlobalOpts) -> Result<(), ConduitosError>
     }
     let manifest =
         host_target::verify_target(&output).map_err(|e| refusal("headless-artifact-invalid", e))?;
-    let resolved = &manifest.resolved_build;
-    if manifest.target != "conduitos/x86_64/pc"
-        || !resolved.presenters.is_empty()
-        || !resolved.facilities.is_empty()
-        || !resolved.resource_budgets.is_empty()
-        || !resolved.base_selections.is_empty()
-        || !resolved.driver_selections.is_empty()
-        || !resolved.host_calls.is_empty()
-    {
+    if !super::headless_profile::is_headless_product(
+        &manifest.resolved_build,
+        manifest.artifact_role,
+    ) {
         return Err(refusal(
             "headless-profile-mismatch",
             "the exact x86 headless profile must exclude graphical resources and providers",

@@ -13,6 +13,15 @@ mod graph;
 #[path = "tour_workspace_lesson.rs"]
 pub(crate) mod lesson;
 
+// Six compact cells retain their icon gutters. At 640px the Host's three
+// logical lines occupy four measured Label lines; reserve the same metrics
+// used by the status painter rather than assuming the rescue line height.
+#[cfg(feature = "native-compositor")]
+pub(crate) const STATUS_HEIGHT: u16 =
+    4 * crate::display::typography::metrics(crate::display::typography::TextRole::Label)
+        .line_height
+        + 2 * crate::display::SPACE_SM;
+#[cfg(not(feature = "native-compositor"))]
 pub(crate) const STATUS_HEIGHT: u16 = 64;
 pub(crate) const LESSON_CONTROL_BAR_HEIGHT: u16 = 40;
 
