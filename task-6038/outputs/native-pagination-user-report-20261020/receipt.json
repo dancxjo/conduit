@@ -1,0 +1,28 @@
+{
+  "kind": "user-reported native pagination screenshots",
+  "reported_at": "2026-10-20",
+  "source_identity": "not supplied",
+  "product_image_identity": "not supplied",
+  "guest_viewport": "not established by full desktop screenshot dimensions",
+  "boundary": "Original user attachments preserved byte-for-byte; report evidence, not a new current-head reproduction",
+  "files": [
+    {
+      "file": "page-1.png",
+      "bytes": 254866,
+      "sha256": "7b5cd8f32ac8066f96118802ee4416a7c94e703f166dc9e6a9cf16accc42240f",
+      "screenshot_dimensions": [
+        2664,
+        1830
+      ]
+    },
+    {
+      "file": "page-2.png",
+      "bytes": 129511,
+      "sha256": "1aaf1ef8c58fe8f8fe6e38dd0ac87670852e447a15f94827a9b0273e8c6ac8cf",
+      "screenshot_dimensions": [
+        2664,
+        1830
+      ]
+    }
+  ]
+}
