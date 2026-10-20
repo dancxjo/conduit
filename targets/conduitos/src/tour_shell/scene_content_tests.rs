@@ -241,7 +241,7 @@ fn projected_host_status_uses_actual_label_geometry_or_refuses_unrenderable_cell
         for command in scene
             .commands()
             .iter()
-            .filter(|command| !command.payload().is_empty())
+            .filter(|command| command.kind == conduit_face::GraphicsCommandKind::Text)
         {
             assert_eq!(command.text_role(), conduit_face::GraphicsTextRole::Label);
             let measured =

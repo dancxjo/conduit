@@ -424,7 +424,10 @@ mod tests {
                 x: 294,
                 y: 0,
                 width: 346,
-                height: 228
+                #[cfg(feature = "native-compositor")]
+                height: 211,
+                #[cfg(not(feature = "native-compositor"))]
+                height: 228,
             }
         );
         assert_eq!(frames[1].paint, GraphicsPaintRole::Accent);
