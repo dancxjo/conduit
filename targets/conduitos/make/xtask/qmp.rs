@@ -16,6 +16,7 @@ pub(super) struct Reader {
     inner: BufReader<UnixStream>,
     transcript: Option<std::fs::File>,
     trace_bytes: usize,
+    observation_origin: Instant,
     next_request_slot: u16,
 }
 impl Reader {
@@ -24,6 +25,7 @@ impl Reader {
             inner: BufReader::new(stream),
             transcript: None,
             trace_bytes: 0,
+            observation_origin: Instant::now(),
             next_request_slot: 0,
         }
     }
@@ -38,8 +40,10 @@ impl Reader {
             return Ok(());
         };
         let entry =
-            serde_json::json!({"direction":direction,"message":String::from_utf8_lossy(bytes)})
-                .to_string();
+            serde_json::json!({"direction":direction,"message":String::from_utf8_lossy(bytes),
+                    "observer_elapsed_ns":self.observation_origin.elapsed().as_nanos(),
+                    "observer_clock":"std::time::Instant"})
+            .to_string();
         if self.trace_bytes + entry.len() + 1 > 1024 * 1024 {
             return Err(ConduitosError::refusal(
                 "qemu-qmp-transcript-bound",
@@ -77,6 +81,17 @@ pub(super) fn connect_traced(
     child: &mut Child,
     transcript: Option<&Path>,
 ) -> Result<(UnixStream, Reader), ConduitosError> {
+    connect_traced_at(socket, child, transcript, Instant::now())
+}
+
+/// Use the frame observer's origin so input requests and capture intervals can
+/// be correlated without mixing independently started elapsed clocks.
+pub(super) fn connect_traced_at(
+    socket: &Path,
+    child: &mut Child,
+    transcript: Option<&Path>,
+    observation_origin: Instant,
+) -> Result<(UnixStream, Reader), ConduitosError> {
     let deadline = Instant::now() + Duration::from_secs(2);
     let mut qmp = loop {
         match UnixStream::connect(socket) {
@@ -98,6 +113,7 @@ pub(super) fn connect_traced(
         qmp.try_clone()
             .map_err(|error| ConduitosError::refusal("qemu-qmp-failed", error.to_string()))?,
     );
+    reader.observation_origin = observation_origin;
     if let Some(path) = transcript {
         reader.transcript = Some(std::fs::File::create(path).map_err(|error| {
             ConduitosError::refusal("qemu-qmp-transcript-io", error.to_string())

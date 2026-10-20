@@ -40,6 +40,10 @@ impl Artifacts {
         Ok(result)
     }
 
+    pub(super) fn observation_origin(&self) -> Instant {
+        self.started
+    }
+
     /// Prepare a finite capture plan before the journey starts. Once any
     /// capture exists, the admitted bound cannot be changed to erase pressure.
     pub(super) fn with_capture_limit(mut self, maximum: usize) -> Result<Self, ConduitosError> {

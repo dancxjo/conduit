@@ -48,13 +48,14 @@ pub(super) fn execute_profile(
     manifest: &BuildManifest,
     opts: &GlobalOpts,
 ) -> Result<BuildRecord, ConduitosError> {
-    execute_profile_for_role(manifest, ArtifactRole::ProductHost, opts)
+    execute_profile_for_role(manifest, ArtifactRole::ProductHost, opts, false)
 }
 
 fn execute_profile_for_role(
     manifest: &BuildManifest,
     artifact_role: ArtifactRole,
     opts: &GlobalOpts,
+    timing: bool,
 ) -> Result<BuildRecord, ConduitosError> {
     let arch = super::target_backend::select(&manifest.target)?.arch;
     let product_artifact = if artifact_role == ArtifactRole::ProductHost {
@@ -73,7 +74,10 @@ fn execute_profile_for_role(
     fs::create_dir_all(&paths.target)
         .map_err(|error| ConduitosError::refusal("build-output-unavailable", error.to_string()))?;
     let generated = paths.target.join("make-record.rs");
-    let lowering = target_lowering::lower(manifest)?;
+    let mut lowering = target_lowering::lower(manifest)?;
+    if timing {
+        lowering.cargo_features.push("native-latency-observation");
+    }
     let source = format!(
         "pub const EMBEDDED_MAKE: MakeRecord = MakeRecord {{ schema: {schema:?}, profile_id: {profile:?}, build_id: {build:?}, image_binding: {binding:?}, target: {target:?}, implementations: {implementations}, facilities: {facilities}, resources: {resources}, bases: {bases}, drivers: {drivers}, presenters: {presenters}, proof_instrumentation: {proof_instrumentation}, face_surface_slots: {surface_slots}, face_surface_bytes: {surface_bytes}, runtime_arena_ceiling: {arena}, operation_slot_ceiling: {operations}, timer_slot_ceiling: {timers}, evidence_item_ceiling: {evidence} }};\n",
         schema = conduitos::make::MAKE_SCHEMA,
@@ -207,13 +211,26 @@ fn execute_embedded_profile(
     opts: &GlobalOpts,
 ) -> Result<BuildRecord, ConduitosError> {
     let manifest = resolve_embedded_profile(arch, source)?;
-    execute_profile_for_role(&manifest, artifact_role, opts)
+    execute_profile_for_role(&manifest, artifact_role, opts, false)
 }
 
 pub(super) fn proof_manifest(arch: ConduitosArch) -> Result<BuildManifest, ConduitosError> {
     resolve_embedded_profile(
         arch,
         include_str!("../../proof/profiles/conduitos-proof.profile.json"),
+    )
+}
+
+pub(super) fn execute_native_latency(opts: &GlobalOpts) -> Result<BuildRecord, ConduitosError> {
+    let manifest = resolve_embedded_profile(
+        ConduitosArch::X86_64,
+        include_str!("../../profiles/conduitos-native.host.conduit"),
+    )?;
+    execute_profile_for_role(
+        &manifest,
+        ArtifactRole::ArchitectureProofAppliance,
+        opts,
+        true,
     )
 }
 

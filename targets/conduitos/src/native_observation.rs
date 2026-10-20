@@ -33,7 +33,7 @@ impl Stage {
 #[cfg(all(
     target_arch = "x86_64",
     target_os = "none",
-    feature = "native-compositor"
+    feature = "native-latency-observation"
 ))]
 #[path = "native_observation/counter.rs"]
 mod counter;
@@ -42,13 +42,13 @@ pub struct Interval {
     #[cfg(all(
         target_arch = "x86_64",
         target_os = "none",
-        feature = "native-compositor"
+        feature = "native-latency-observation"
     ))]
     stage: Stage,
     #[cfg(all(
         target_arch = "x86_64",
         target_os = "none",
-        feature = "native-compositor"
+        feature = "native-latency-observation"
     ))]
     start: u64,
 }
@@ -58,7 +58,7 @@ impl Interval {
         #[cfg(all(
             target_arch = "x86_64",
             target_os = "none",
-            feature = "native-compositor"
+            feature = "native-latency-observation"
         ))]
         {
             Self {
@@ -69,7 +69,7 @@ impl Interval {
         #[cfg(not(all(
             target_arch = "x86_64",
             target_os = "none",
-            feature = "native-compositor"
+            feature = "native-latency-observation"
         )))]
         {
             let _ = stage;
@@ -82,7 +82,7 @@ impl Drop for Interval {
         #[cfg(all(
             target_arch = "x86_64",
             target_os = "none",
-            feature = "native-compositor"
+            feature = "native-latency-observation"
         ))]
         counter::publish(self.stage, self.start, counter::read());
     }
@@ -93,7 +93,7 @@ pub fn point(stage: Stage) {
     #[cfg(all(
         target_arch = "x86_64",
         target_os = "none",
-        feature = "native-compositor"
+        feature = "native-latency-observation"
     ))]
     {
         let tick = counter::read();
@@ -102,7 +102,7 @@ pub fn point(stage: Stage) {
     #[cfg(not(all(
         target_arch = "x86_64",
         target_os = "none",
-        feature = "native-compositor"
+        feature = "native-latency-observation"
     )))]
     let _ = stage;
 }
