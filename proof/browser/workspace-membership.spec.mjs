@@ -527,6 +527,7 @@ test("an unavailable running host leaves the current body and browser Host intac
 });
 
 test("an already-running host joins without displacing the browser Host or its body", async ({ page }) => {
+  test.setTimeout(20_000 + 2 * BROWSER_COLD_PREPARATION_MS);
   const installed = await startInstalledHost();
   const running = spawn("target/debug/conduit", ["host", "rendezvous", "--state-dir", installed.stateDir, "--timeout-seconds", "30"], {
     cwd: installed.root,
