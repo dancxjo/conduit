@@ -73,4 +73,5 @@ availability for gated proofs. Add `--dry-run` to inspect planned work without
 running execution oracles. The report distinguishes failed, unavailable,
 not-applicable, and refused results.
 
-- [Quantity projection](quantity-projection/README.md): a bounded authored numerical Each, driven by the ordinary stdin Fore with verified NearQuantity receipts.
+[Quantity projection](quantity-projection/README.md) drives a bounded authored
+numerical Each through the ordinary stdin Fore with verified NearQuantity receipts.

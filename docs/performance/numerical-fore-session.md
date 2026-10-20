@@ -74,6 +74,7 @@ FARGAN adoption, model-weight reuse, RSS or shared main/release publication.
 ## Local checks
 
 ```sh
+cargo xtask check plots run --deterministic --plot quantity-projection
 cargo test -p conduit --bin conduit numerical_run::tests
 cargo test -p conduit --test numerical_owner_cost observe_numerical_owner -- \
   --ignored --nocapture --test-threads=1
