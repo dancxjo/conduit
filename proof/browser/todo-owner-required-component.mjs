@@ -113,11 +113,22 @@ export async function captureRequiredTodoComponent({ page, face, output, state }
     for (const details of ancestors.reverse()) {
       if (!await details.evaluate(node => node.open)) await details.locator(':scope > summary').click();
     }
+    await form.evaluate(element => {
+      globalThis.__todoRequiredActivationEvents = [];
+      for (const type of ['click', 'submit']) element.addEventListener(type, event => {
+        globalThis.__todoRequiredActivationEvents.push({ type, trusted: event.isTrusted,
+          action_id: element.dataset.ownerAction });
+      }, { capture: true });
+    });
     const button = form.getByRole('button');
     assert.equal(await button.count(), 1); assert.equal(await button.isEnabled(), true);
     if (method === 'keyboard') { await button.focus(); await page.keyboard.press('Enter'); }
     else await button.click();
     await ready(before.view.show_id);
+    const activationEvents = await page.evaluate(() => globalThis.__todoRequiredActivationEvents);
+    assert.equal(activationEvents.filter(event => event.type === 'submit').length, 1,
+      'one trusted activation produces one native form submission');
+    assert.ok(activationEvents.every(event => event.trusted && event.action_id === identity));
     const after = await observe(label);
     assert.equal(after.owner.face.basis.body_id, before.owner.face.basis.body_id);
     assert.notEqual(after.owner.face.identity, before.owner.face.identity);
@@ -129,7 +140,7 @@ export async function captureRequiredTodoComponent({ page, face, output, state }
     assert.deepEqual(identities(after.owner), identities(before.owner), 'actions retain source item identity/name');
     const mutation = await observedTodoMutation(state, directory, label, after.owner.face.basis.body_id,
       { ...before.view, face_revision_decimal: before.owner.face_revision_decimal }, after.owner, identity);
-    actions.push({ method, action, mutation, initiating_show: before.view.show_id,
+    actions.push({ method, activation_events: activationEvents, action, mutation, initiating_show: before.view.show_id,
       initiating_face: before.owner.face.identity, resulting_show: after.view.show_id,
       resulting_face: after.owner.face.identity, label });
     await retain(); return after;
