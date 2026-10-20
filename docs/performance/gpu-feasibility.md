@@ -70,7 +70,9 @@ creation failure is checked, but no actual driver/device-loss event was induced.
 These are local observations, not a calibrated product speedup claim.
 
 The [initial hardware family](../../proof/performance/gpu/initial-observation-20261020.json)
-and the preceding GCC AMX-header compilation failure are preserved separately;
+and the preceding [GCC AMX-header compilation failure](../../proof/performance/gpu/initial-compiler-failure-20261020.txt) are preserved separately;
 no successful retry overwrites a failed trial. The supported family owns its
 committed source. Stable publication remains under #6078; development experiment
 closure does not assert a released GPU capability.
+
+Altered upstream-source and named-tensor metadata also [refuse before device probing or compilation](../../proof/performance/gpu/custody-controls-20261020.json).
