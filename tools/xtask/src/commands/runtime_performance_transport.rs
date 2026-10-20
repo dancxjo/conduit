@@ -146,6 +146,20 @@ pub(super) fn run(arguments: &[String], dry_run: bool) -> Result<(), Box<dyn std
     {
         return Err("source changed during two-Host preparation".into());
     }
+    let toolchain = Command::new("rustc")
+        .args(["--version", "--verbose"])
+        .current_dir(&root)
+        .output()?;
+    if !toolchain.status.success() {
+        return Err("two-Host toolchain observation refused".into());
+    }
+    let environment = serde_json::json!({
+        "rustc":String::from_utf8(toolchain.stdout)?,
+        "os":std::env::consts::OS,"architecture":std::env::consts::ARCH,
+        "available_parallelism":std::thread::available_parallelism()?.get(),
+        "clock":"std::time::Instant monotonic wall clock; nanosecond representation, resolution not calibrated",
+        "isolation":"local shared machine; exclusive CPU and quiet environment not established"
+    });
     let worker = &artifacts[0];
     let worker_sha = format!("{:x}", Sha256::digest(fs::read(worker)?));
     let mut worker_args = vec![
@@ -175,7 +189,7 @@ pub(super) fn run(arguments: &[String], dry_run: bool) -> Result<(), Box<dyn std
     fs::write(
         output.join("command.json"),
         serde_json::to_vec_pretty(
-            &serde_json::json!({"schema":"conduit.two-host-performance-command@1","source_commit":source,"source_custody_verified":custody,"worker":worker,"worker_sha256":worker_sha,"worker_exit_code":status.code(),"worker_success":status.success(),"conformance_success":true,"build_command":build,"features":feature,"worker_arguments":worker_args,"role":"capture only; independent timing acceptance required"}),
+            &serde_json::json!({"schema":"conduit.two-host-performance-command@1","source_commit":source,"source_custody_verified":custody,"worker":worker,"worker_sha256":worker_sha,"worker_exit_code":status.code(),"worker_success":status.success(),"conformance_success":true,"build_command":build,"features":feature,"worker_arguments":worker_args,"environment":environment,"role":"capture only; independent timing acceptance required"}),
         )?,
     )?;
     if !status.success() || !custody {
