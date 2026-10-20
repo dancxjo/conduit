@@ -1,0 +1,19 @@
+   Compiling conduit-birth-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/collection-source/plots/birth)
+    Finished `test` profile [optimized] target(s) in 2.65s
+     Running unittests src/lib.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/portable-source-target/debug/deps/conduit_birth_plot-3fc1da80cfc5c45a)
+
+running 1 test
+
+thread 'face::tests::choice_identity::distinct_source_documents_with_one_checked_plot_retain_distinct_choice_subjects' (2125107) panicked at plots/birth/src/face/choice_identity_tests.rs:221:10:
+both authoritative Source/check pairs must project: View(InvalidChoiceGroup)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test face::tests::choice_identity::distinct_source_documents_with_one_checked_plot_retain_distinct_choice_subjects ... FAILED
+
+failures:
+
+failures:
+    face::tests::choice_identity::distinct_source_documents_with_one_checked_plot_retain_distinct_choice_subjects
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 39 filtered out; finished in 0.01s
+
+error: test failed, to rerun pass `-p conduit-birth-plot --lib`

@@ -1,0 +1,13 @@
+{
+  "measured_base": "9b0b9c25d5ae512ef690fbcf19256fcd1de05961",
+  "face_bytes": 56232,
+  "face_sha256": "b7dec20937ec2496fc8aa7d9575db8b97ea6768ad5dc61c96a29981378305ac1",
+  "face_identity": "41dadc0c4ccaa0b4f74dd5433fd3556e461064cafc0ea4b0d36670bc1850a9ce",
+  "existing_snapshot_bytes": 49152,
+  "snapshot_overage_bytes": 7080,
+  "existing_route_frame_bytes": 32768,
+  "scope": "canonical native default-five FrontDoor::creche_face Source producer in deterministic CPU test with checked producer/testHost basis; not Host/Mask/QEMU admission",
+  "whole_route_or_observer_record": "not emitted; not fabricated",
+  "test_outcome": "Face export completed; subsequent existing configured recipe preparation refused SlotCapacity; exact raw log retained",
+  "temporary_instrumentation_restored": true
+}

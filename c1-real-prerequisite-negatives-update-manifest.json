@@ -1,0 +1,54 @@
+{
+  "parent": "a8af7aa94c9013f6dbc0de648747e74d3ffcec9f",
+  "scope": "Preserve refreshed Source and pending proof runner, verified prior repair restoration, and confirmed renderer occlusion red diagnostic",
+  "files": [
+    {
+      "source": "outputs/6039-refresh-9b0b9c25d/native-canonical-five-face.json",
+      "tree_path": "task-6038/outputs/6039-refresh-9b0b9c25d/native-canonical-five-face.json",
+      "bytes": 56233,
+      "sha256": "274ef89a51e3e570af1e173bec5c078ad09cf0281fb04915197647bb0bdccfcc",
+      "mode": "100644",
+      "blob": "353fda9974d646d6286978cf4ee43576c855902d"
+    },
+    {
+      "source": "outputs/6039-refresh-9b0b9c25d/native-canonical-five-measurement.json",
+      "tree_path": "task-6038/outputs/6039-refresh-9b0b9c25d/native-canonical-five-measurement.json",
+      "bytes": 798,
+      "sha256": "d64010f8854b701151324814814e40b6412e12fe93636a7d0233beb2eecd4b8c",
+      "mode": "100644",
+      "blob": "ff8b570deba40f5a7201f33741fa8bfa6bd8614f"
+    },
+    {
+      "source": "outputs/6039-refresh-9b0b9c25d/temporary-native-canonical-producer-export.patch",
+      "tree_path": "task-6038/outputs/6039-refresh-9b0b9c25d/temporary-native-canonical-producer-export.patch",
+      "bytes": 782,
+      "sha256": "c21c7204ebb262731d44cc10b5b2e3e7c921b4835d993ddf743cd41dc0752cd9",
+      "mode": "100644",
+      "blob": "beff20be0a5fd25b7961a3c157246ba799cdf56a"
+    },
+    {
+      "source": "outputs/6039-refresh-9b0b9c25d/native-canonical-five-export.log",
+      "tree_path": "task-6038/outputs/6039-refresh-9b0b9c25d/native-canonical-five-export.log",
+      "bytes": 57414,
+      "sha256": "f842b93738e2783a2f81e067dadda864df9c0d9dd82777577f149c2e0a3d1ff8",
+      "mode": "100644",
+      "blob": "eb93afc7479238480de9a391669d0d0f1365536b"
+    },
+    {
+      "source": "outputs/6039-refresh-9b0b9c25d/pair-identity-before.log",
+      "tree_path": "task-6038/outputs/6039-refresh-9b0b9c25d/pair-identity-before.log",
+      "bytes": 1142,
+      "sha256": "3122140175b5ffc810cd0b5477be7d0348f9151cba84e31f934de9267b0a3557",
+      "mode": "100644",
+      "blob": "3ecae3d4f4bd9d75ca434585bae7cd7b102dc53b"
+    },
+    {
+      "source": "outputs/6039-refresh-9b0b9c25d/native-default-five-measurement.json",
+      "tree_path": "task-6038/outputs/6039-refresh-9b0b9c25d/native-default-five-measurement.json",
+      "bytes": 859,
+      "sha256": "26550c991597feb3f368baac5cccf26e2e32f7600f4a9cbcb2c7150292093dd1",
+      "mode": "100644",
+      "blob": "016403e8905fb85e7b944652b24d044da97f4b99"
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "measured_base": "9b0b9c25d5ae512ef690fbcf19256fcd1de05961",
+  "face_bytes": 6849,
+  "sha256": "90d85fa0ba985b0afded52627af9b6716d92a68fae6db283a7b1c960a1c86b50",
+  "face_identity": "8558acd9100980362c94a360c57c4b5e0d4ac39dfb8f954b3dc1ae8eb3016314",
+  "basis": {
+    "body_id": null,
+    "wake_id": null,
+    "source_document_id": null,
+    "checked_plot_id": null,
+    "expanded_plot_id": null,
+    "plan_id": null,
+    "active_play_id": null,
+    "sign_ids": []
+  },
+  "existing_snapshot_bytes": 49152,
+  "exceeds_snapshot_bytes": false,
+  "route_or_observer_envelope": "not emitted by this test; not fabricated",
+  "proof_class": "legacy migration default-five view diagnostic, not canonical collection producer",
+  "correction": "This is legacy migration FrontDoor::face, not canonical creche_face; does not measure C1 canonical producer capacity."
+}
