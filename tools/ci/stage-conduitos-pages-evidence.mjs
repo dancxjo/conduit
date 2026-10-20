@@ -18,6 +18,7 @@ const STEPS = Object.freeze([
   step('body-playing', 'Start Play', 'The Body awaits keyboard input in its admitted Play.', 'The user presses F6.', 'The Body identity persists across Wake, Plan, and Play.', 'F6'),
   step('protected-keyboard-canvas', 'Type into Keyboard canvas', 'Keyboard canvas presents an uppercase A.', 'The user selects Keyboard canvas and presses A.', 'The checked keyboard Plot executes within the same admitted Body Plan and Play.', 'Tab · A'),
   step('protected-memory-lantern', 'Edit retained text', 'Memory Lantern retains café with a native focus border and insertion caret.', 'The user selects Memory Lantern, edits text, then types café using the authored Right Alt mapping.', 'The editor retains bounded private state; the captured receipt records the committed Unicode bytes.', 'Tab · A · Backspace · C · A · F · Right Alt+E'),
+  step('stale-refused', 'Refuse the old Face', 'The old Face refuses Enter after the current owner advances, without applying Stop.', 'The user holds Shift, leaves the editor with F1, opens the ordinary inspector and Details with F2 twice, focuses Stop with Shift+Tab, then releases Shift and presses Enter in one input report.', 'The stale interaction retains its original Face and Show; the newer owner Face admits zero effects, and the later fresh Stop proves recovery.', 'Held Shift · F1 · F2 · F2 · Shift+Tab · Shift release + Enter'),
   step('home', 'Go Home', 'Home opens while the Body continues to exist.', 'The user presses Escape.', 'Navigation changes the Face, not the Body identity.', 'Escape'),
   step('patchbay-workspace', 'Open Patchbay', 'The resident Patchbay becomes the foreground application.', 'The user selects Patchbay in Home and presses Enter.', 'The same Body and Plan remain current.', 'Tab · Enter'),
   step('patchbay-face', 'Inspect the Face', 'The native Mask presents the current semantic Face.', 'The user presses F2.', 'Content, actions, and structural relationships are projected from the running application.', 'F2'),
@@ -179,6 +180,7 @@ function validatePaired(paired, proof, serial) {
     || birth.before.born_sign_id !== null || birth.after?.body_id !== proof.body_id
     || typeof birth.after.born_sign_id !== 'string') fail();
   let accepted = 0; let refused = 0; let recovered = false;
+  let unavailable = 0; let staleRecovered = false; const stale = [];
   for (const action of [birth, ...actions]) {
     if (action.schema !== 'conduit.native-action/v1'
       || !faces.some(record => record.show.show_id === action.show_id
@@ -189,12 +191,43 @@ function validatePaired(paired, proof, serial) {
     }
     if (action.disposition?.Accepted) {
       if (action.accepted_effects !== 1 || isDeepStrictEqual(action.before, action.after)) fail();
-      accepted++; recovered ||= refused > 0;
+      accepted++; recovered ||= refused > 0; staleRecovered ||= stale.length > 0;
     } else if (action.disposition?.Refused) {
       if (action.accepted_effects !== 0 || !isDeepStrictEqual(action.before, action.after)
         || typeof action.disposition.Refused.reason !== 'string' || !action.disposition.Refused.reason) fail();
+      const reason = action.disposition.Refused.reason;
+      if (reason === 'UnavailableAction') unavailable++;
+      else if (reason === 'StaleFace') {
+        const source = faces.find(record => record.show.show_id === action.show_id);
+        const interaction = action.interaction, admission = action.admission_face;
+        if (!interaction || source.mask_show?.show_id !== action.show_id
+          || interaction.show_id !== action.show_id || interaction.face_id !== source.face.identity
+          || interaction.face_revision !== source.face.revision
+          || !source.face.actions.some(candidate => candidate.identity === interaction.action_id
+            && candidate.target === interaction.target && candidate.availability === 'Available')
+          || !admission || typeof admission.identity !== 'string' || admission.identity === source.face.identity
+          || !(admission.revision > source.face.revision) || admission.basis?.body_id !== action.before.body_id
+          || !Array.isArray(admission.actions) || !admission.interaction_context) fail();
+        stale.push(action); staleRecovered = false;
+      } else fail();
       refused++;
     } else fail();
+  }
+  const replay = paired.stale_show_replay;
+  if (!unavailable || !stale.length || !staleRecovered || replay?.installed_enactment !== true
+    || replay.validated_event_count !== stale.length || replay.fresh_action_after_refusal !== staleRecovered
+    || !Array.isArray(replay.admission_faces) || replay.admission_faces.length !== stale.length) fail();
+  for (const [index, action] of stale.entries()) {
+    const retained = replay.admission_faces[index], admission = action.admission_face, linear = retained?.linear;
+    if (retained?.interaction_id !== action.interaction.identity
+      || !isDeepStrictEqual(retained.admission_face, admission)
+      || linear?.proof_class !== 'deterministic-semantic-reconstruction'
+      || linear.face_id !== admission.identity || linear.face_revision !== admission.revision
+      || !isDeepStrictEqual(linear.actions, admission.actions)
+      || !isDeepStrictEqual(linear.basis, admission.basis)
+      || !isDeepStrictEqual(linear.context, admission.interaction_context)
+      || !Array.isArray(linear.lines) || !linear.lines.length
+      || linear.acknowledged_show !== null || linear.input_enactment !== false) fail();
   }
   if (!accepted || !refused || !recovered || paired.accepted_action_count !== accepted
     || paired.refused_action_count !== refused || paired.fresh_action_after_refusal !== recovered) fail();
