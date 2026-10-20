@@ -98,6 +98,14 @@ failures do not cancel sibling lanes. Code tests have no retries; acquisition
 may have one bounded infrastructure retry. Browser acceptance retains pinned
 Chromium, one worker and zero retries.
 
+## On-demand runtime measurements
+
+Runtime measurements are diagnostic and have no calibrated regression threshold.
+They run through the **Runtime performance measurements** manual workflow for the
+selected ref, or locally through `cargo xtask prove runtime-performance`. They do
+not start on every PR or occupy a runner needed for Candidate admission. Failed
+measurements retain diagnostics and remain visible as failures in their own run.
+
 ## Tool acquisition
 
 Each lane resolves one package set and checks installed tools before acquiring
