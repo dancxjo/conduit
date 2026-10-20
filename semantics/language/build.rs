@@ -123,6 +123,10 @@ fn main() {
         ),
         ("language/prosody-frontier", "prosody_frontier_program.hex"),
         (
+            "language-parser-revision-rebase",
+            "parser_rebase_program.hex",
+        ),
+        (
             "language/committed-dependency-evidence",
             "committed_dependency_program.hex",
         ),

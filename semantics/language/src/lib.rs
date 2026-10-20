@@ -142,3 +142,6 @@ pub use generated::{
 };
 
 pub mod analysis_session;
+
+/// Opaque replay of the existing single-survivor checked revision rebase.
+pub mod parser_rebase_replay;
