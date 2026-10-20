@@ -1,0 +1,38 @@
+{
+  "parent": "7a2cf4cc7fdd8bbb7550ecae4c39ff4db4e0c01d",
+  "scope": "Native stage05 current-dev refresh and exact preflight receipt; normal product and all five emulator runs passed; Candidate still running",
+  "files": [
+    {
+      "source": "work/6151-repair-restoration-hold.json",
+      "tree_path": "task-6038/work/6151-repair-restoration-hold.json",
+      "bytes": 1001,
+      "sha256": "22fbe5c9dba97da4f22692987e9cd8b25ef28b5231d5ef5d1ef5aba0bc55324f",
+      "mode": "100644",
+      "blob": "d3e46c8f35e1a8e88c9c05ada5b0e7ae32a174bf"
+    },
+    {
+      "source": "work/6055-body-final-ceaefa32c.md",
+      "tree_path": "task-6038/work/6055-body-final-ceaefa32c.md",
+      "bytes": 6676,
+      "sha256": "fb826f956c810c2cfe7277548fb0a726ec4d56b49be1d2322052f2cd78998e21",
+      "mode": "100644",
+      "blob": "8ce628ec75d4e86fb04d9b86c7acf96016899af8"
+    },
+    {
+      "source": "work/6055-body-final-ceaefa32c.json",
+      "tree_path": "task-6038/work/6055-body-final-ceaefa32c.json",
+      "bytes": 6733,
+      "sha256": "22325db2f2004f0a55e31c9aa17353ea1afdc65ab60ce8d9b332ebd45331d56b",
+      "mode": "100644",
+      "blob": "e9fe20461e801fcc80b7640d136763210d6e47bb"
+    },
+    {
+      "source": "work/open-prs-repair-hold-1551.json",
+      "tree_path": "task-6038/work/open-prs-repair-hold-1551.json",
+      "bytes": 498,
+      "sha256": "18fb3d89f96fd9c733e69fa0ef203f3a601278276f5b802ced0988b615f4f70c",
+      "mode": "100644",
+      "blob": "074b4bb0a6c140e1070979e9155ebcd3b63b021f"
+    }
+  ]
+}

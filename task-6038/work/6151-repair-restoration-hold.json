@@ -1,0 +1,18 @@
+{
+  "observed": "2026-10-20T15:51UTC",
+  "owning_contract": "docs/contributing/ci.md:388-409",
+  "cause": "Prior exactdev005 Integration failed shared tooling test module path; merged repair6151 restores shared path and bothconsumers admission coverage",
+  "repair_source": "956e9e069366af9f3065e020e9067c653d3fb097",
+  "integration": 39445459109,
+  "integration_last_observed": "running at15:45UTC",
+  "release_pr_inventory": "No open release PR at15:51UTC; do not create competingmanualtrain",
+  "held_feature": 6055,
+  "held_source": "ceaefa32c00dd9a15aa4365f831cf68862771dd4",
+  "local_proof": "complete;105tests/295preflight/strictClippy/normal22+4supplements",
+  "gate": [
+    "Exact repairedsource exhaustiveIntegration success",
+    "Automated stable promotion/publication verifies sameartifacts+acceptedtree",
+    "Exact heldfeature Candidate success beforemerge"
+  ],
+  "action": "Keep6055draft with autoMerge disabled; automation ownsrelease/publication; no mainpush or competingrelease"
+}
