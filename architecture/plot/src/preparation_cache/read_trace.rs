@@ -190,6 +190,17 @@ mod tests {
         );
     }
     #[test]
+    fn enumeration_and_surviving_observer_require_whole_context() {
+        let trace = TraceHandle::new();
+        let clone = trace.clone();
+        trace.record(CatalogueTable::Signature, "one");
+        assert!(trace.reads().is_none());
+        drop(clone);
+        assert_eq!(trace.reads().unwrap().len(), 1);
+        trace.observe_all();
+        assert!(trace.reads().is_none());
+    }
+    #[test]
     fn slot_or_byte_pressure_requires_whole_context_fallback() {
         let slots = ReadTrace::with_limits(1, 64);
         slots.record(CatalogueTable::Signature, "one");

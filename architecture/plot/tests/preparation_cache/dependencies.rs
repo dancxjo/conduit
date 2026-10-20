@@ -129,22 +129,25 @@ fn private_initial_bytes_and_type_context_are_not_hidden_by_kind_read_slicing() 
     let (startup, _) = catalog("unit@1");
     let mut cache = cache();
     let original = cache.check(SOURCE, &startup).unwrap();
-    for byte in [1, 2] {
+    for mutation in 0..3 {
         let mut changed = (*startup).clone();
-        changed
-            .insert_exact_initial_info(
-                kind_id("private/custom-info"),
-                "private-token",
-                vec![byte],
-                |bytes| bytes.len() == 1,
-            )
-            .unwrap();
-        changed
-            .insert_structured_type(
-                "PrivateAlias",
-                StructuredInfoType::leaf(kind_id("value/text")).unwrap(),
-            )
-            .unwrap();
+        if mutation < 2 {
+            changed
+                .insert_exact_initial_info(
+                    kind_id("private/custom-info"),
+                    "private-token",
+                    vec![mutation],
+                    |bytes| bytes.len() == 1,
+                )
+                .unwrap();
+        } else {
+            changed
+                .insert_structured_type(
+                    "PrivateAlias",
+                    StructuredInfoType::leaf(kind_id("value/text")).unwrap(),
+                )
+                .unwrap();
+        }
         let changed = Arc::new(changed);
         let current = cache.check(SOURCE, &changed).unwrap();
         assert!(!Arc::ptr_eq(original.checked(), current.checked()));
@@ -153,5 +156,57 @@ fn private_initial_bytes_and_type_context_are_not_hidden_by_kind_read_slicing() 
             check_syntax_document(&parse_syntax_document(SOURCE), &changed).unwrap()
         );
     }
-    assert_eq!(cache.stats().checks, 3);
+    assert_eq!(cache.stats().checks, 4);
+}
+
+#[test]
+fn imported_native_type_range_and_law_changes_match_cold_refusals() {
+    let make = |range: &str, law: &str| {
+        let owner_source = format!(
+            "type Interval = {{\n low: U32 in {range}\n high: U32 in {range}\n where {law}\n}}\n"
+        );
+        let owner = check_syntax_document(
+            &parse_syntax_document(&owner_source),
+            &StartupCatalog::new(),
+        )
+        .unwrap();
+        let mut startup = StartupCatalog::new();
+        startup
+            .insert_checked_native_type("Interval", &owner.native_types[0])
+            .unwrap();
+        startup
+            .insert(KindSignature {
+                kind: "fixture/check".into(),
+                startup_parameters: vec![StartupParameterSignature {
+                    name: "interval".into(),
+                    value_type: "Interval".into(),
+                    default: None,
+                }],
+            })
+            .unwrap();
+        Arc::new(startup)
+    };
+    let source = "plot main {\n verify: fixture/check(interval = {low: 2, high: 5})\n}\n";
+    let mut cache = cache();
+    let original = cache
+        .check(source, &make("1..=10", ".low <= .high"))
+        .unwrap();
+    for (range, law, accepted) in [
+        ("1..=4", ".low <= .high", false),
+        ("1..=10", ".high <= .low", false),
+        ("1..=12", ".low <= .high", true),
+    ] {
+        let startup = make(range, law);
+        let expected = check_syntax_document(&parse_syntax_document(source), &startup);
+        assert_eq!(expected.is_ok(), accepted);
+        match (cache.check(source, &startup), expected) {
+            (Ok(actual), Ok(expected)) => {
+                assert!(!Arc::ptr_eq(original.checked(), actual.checked()));
+                assert_eq!(**actual.checked(), expected);
+            }
+            (Err(actual), Err(expected)) => assert_eq!(actual, expected),
+            _ => panic!("incremental Type law/refinement disagreed with cold checking"),
+        }
+    }
+    assert_eq!(cache.stats().checks, 4);
 }
