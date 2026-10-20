@@ -155,12 +155,7 @@ pub fn prepare(
                     play_created: false,
                 },
             });
-    if let Some(request) = &routed_request {
-        let encoded = serde_json::to_vec(request).map_err(|_| JoinError::Serialization)?;
-        if encoded.len() > MAXIMUM_ROUTE_REQUEST_BYTES {
-            return Err(JoinError::Bound);
-        }
-    }
+    let route_bytes = routed_request.as_ref().map(|request| serde_json::to_vec(request).unwrap().len()).unwrap_or(0);
     let envelope = JoinEnvelope {
         schema: JOIN_SCHEMA,
         protocol: 1,
@@ -179,7 +174,12 @@ pub fn prepare(
         membership_claimed: false,
     };
     let encoded = serde_json::to_vec(&envelope).map_err(|_| JoinError::Serialization)?;
-    if encoded.len() > MAXIMUM_JOIN_BYTES {
+    #[cfg(test)]
+    {
+        std::eprintln!("BOUND_DIAG advertisement={} routed_request={} serial={} route_cap={} serial_cap={}", serde_json::to_vec(advertisement).unwrap().len(), route_bytes, encoded.len(), MAXIMUM_ROUTE_REQUEST_BYTES, MAXIMUM_JOIN_BYTES);
+        for offer in &advertisement.capabilities { std::eprintln!("BOUND_OFFER {} bytes={}", offer.capability_id.as_str(), serde_json::to_vec(offer).unwrap().len()); }
+    }
+    if encoded.len() > MAXIMUM_JOIN_BYTES || route_bytes > MAXIMUM_ROUTE_REQUEST_BYTES {
         return Err(JoinError::Bound);
     }
     Ok(PreparedNativeJoin {
