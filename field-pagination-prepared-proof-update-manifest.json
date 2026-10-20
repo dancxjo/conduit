@@ -1,0 +1,142 @@
+{
+  "parent": "6ad33342cfd15753c07a10199b19d499a2193b7a",
+  "scope": "Read-only native capacity seam plan and public Source measurement correction; no implementation or platform proof",
+  "files": [
+    {
+      "source": "work/6158-bounded-field-cluster-prep-e299.md",
+      "tree_path": "task-6038/work/6158-bounded-field-cluster-prep-e299.md",
+      "bytes": 5896,
+      "sha256": "9726ab116bc33d7a3bf520fdcc0b0ed44f3b912cb0eb77161fb80e7bba7c721c",
+      "mode": "100644",
+      "blob": "7a5db5764a280ef59af3f8457087ddfe08101f7c"
+    },
+    {
+      "source": "work/6158-field-pagination-handoff.md",
+      "tree_path": "task-6038/work/6158-field-pagination-handoff.md",
+      "bytes": 2799,
+      "sha256": "ffe9fa6fb1f1b75e0714bf12a312b81245cc8ba8d0efce28fff724c05d3e02e6",
+      "mode": "100644",
+      "blob": "c90908eb8205ec04edc9dfa0ee5a74ef261a5d96"
+    },
+    {
+      "source": "work/6158-current-before-origin.json",
+      "tree_path": "task-6038/work/6158-current-before-origin.json",
+      "bytes": 217,
+      "sha256": "c2ca9a9f8fb668221fd84dc72a44f4dbb586570b4f556b15290993c795fd1cfb",
+      "mode": "100644",
+      "blob": "2c80824617958baa716873838135df146d89cc16"
+    },
+    {
+      "source": "work/6158-current-product-reproduction.md",
+      "tree_path": "task-6038/work/6158-current-product-reproduction.md",
+      "bytes": 1528,
+      "sha256": "225583f072d897e32177041112ed1979282e5602999e9448673c6d480694a617",
+      "mode": "100644",
+      "blob": "30c96fd493752897933dde0664a305b307fa0fb9"
+    },
+    {
+      "source": "outputs/6158-field-pagination-e299/first-fix-row-cap.log",
+      "tree_path": "task-6038/outputs/6158-field-pagination-e299/first-fix-row-cap.log",
+      "bytes": 582,
+      "sha256": "512f237dc9b7e26c97900764dc8547af9106a99ae968fc614d1c4e18e4180548",
+      "mode": "100644",
+      "blob": "41f66693db9e5dadc3a5b403cc20f6d3e98457de"
+    },
+    {
+      "source": "outputs/6158-field-pagination-e299/fmt-verified.log",
+      "tree_path": "task-6038/outputs/6158-field-pagination-e299/fmt-verified.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "mode": "100644",
+      "blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+    },
+    {
+      "source": "outputs/6158-field-pagination-e299/focused-clusters.log",
+      "tree_path": "task-6038/outputs/6158-field-pagination-e299/focused-clusters.log",
+      "bytes": 1105,
+      "sha256": "bef8496c141ec1b82dcd78f706d863a68a202f31774f3b122ac9dbd1a9c933bd",
+      "mode": "100644",
+      "blob": "7fa53f4057bccf062034edd208f7c0cba59a54af"
+    },
+    {
+      "source": "outputs/6158-field-pagination-e299/native-face-final.log",
+      "tree_path": "task-6038/outputs/6158-field-pagination-e299/native-face-final.log",
+      "bytes": 13231,
+      "sha256": "b379264a39f580fa0da76baac067e549443b205549084cfae579a10b1b206730",
+      "mode": "100644",
+      "blob": "bbb89b61bcd28ab43a348b10dd7242ac8bd14ce7"
+    },
+    {
+      "source": "outputs/6158-field-pagination-e299/native-face-verified.log",
+      "tree_path": "task-6038/outputs/6158-field-pagination-e299/native-face-verified.log",
+      "bytes": 13231,
+      "sha256": "fdd4d4f4e79b095cf0343b286e9dee55522e7c7c841390217ef9ac969b666abc",
+      "mode": "100644",
+      "blob": "de78702563e191608118ba3941ad69315a3ed4b1"
+    },
+    {
+      "source": "outputs/6158-field-pagination-e299/receipt.json",
+      "tree_path": "task-6038/outputs/6158-field-pagination-e299/receipt.json",
+      "bytes": 5906,
+      "sha256": "10ae7913c82077e7588688935a51271872a9565111baa0256c393b12ddbac78d",
+      "mode": "100644",
+      "blob": "4e07b8aee83adf5ecd83d27ccea625ca0155dfb3"
+    },
+    {
+      "source": "outputs/6158-field-pagination-e299/red-row-cap-reproduction-test.rs",
+      "tree_path": "task-6038/outputs/6158-field-pagination-e299/red-row-cap-reproduction-test.rs",
+      "bytes": 2082,
+      "sha256": "254bc895b76f3c379372430538ac8605eecf65fa9e3ed65b904cec066f4bca6a",
+      "mode": "100644",
+      "blob": "d993255e518baa62edda99b25f333ffe47ac7675"
+    },
+    {
+      "source": "outputs/6158-field-pagination-e299/red-row-cap-reproduction.patch",
+      "tree_path": "task-6038/outputs/6158-field-pagination-e299/red-row-cap-reproduction.patch",
+      "bytes": 2502,
+      "sha256": "9be75f2967267b4e9a35339a3b09461b3f66d53bd875ecabb55e22ef23ce9e71",
+      "mode": "100644",
+      "blob": "e6d28f87cee679d25c2a2aafee4de960f9d4f4ef"
+    },
+    {
+      "source": "outputs/6158-field-pagination-e299/red-row-cap.log",
+      "tree_path": "task-6038/outputs/6158-field-pagination-e299/red-row-cap.log",
+      "bytes": 11682,
+      "sha256": "e086b560664ce894ca9dbecf149d94b9e262c5b687dc16321ab0a482633fe264",
+      "mode": "100644",
+      "blob": "e451b57fd21ad9b8e209e07d150e00c0929a5144"
+    },
+    {
+      "source": "outputs/6158-field-pagination-e299/status.json",
+      "tree_path": "task-6038/outputs/6158-field-pagination-e299/status.json",
+      "bytes": 692,
+      "sha256": "27fd9f1bdce8612233f5468f3680576741b5c6788bf435fd12e197d1752e9b45",
+      "mode": "100644",
+      "blob": "7105c44241e5eeec9d1b156efd4cf11f04984b2b"
+    },
+    {
+      "source": "outputs/6158-field-pagination-e299/strict-clippy-final.log",
+      "tree_path": "task-6038/outputs/6158-field-pagination-e299/strict-clippy-final.log",
+      "bytes": 12913,
+      "sha256": "89095cdade2a94daf0b6574c584d06988625d260ef2408b11f931ef06cff1fcf",
+      "mode": "100644",
+      "blob": "dfe1f2b7573d537e81633f60bea4baf0c2712d72"
+    },
+    {
+      "source": "outputs/6158-field-pagination-e299/strict-clippy-verified.log",
+      "tree_path": "task-6038/outputs/6158-field-pagination-e299/strict-clippy-verified.log",
+      "bytes": 190,
+      "sha256": "5f8d54bb2858ca89b1f3bb154e58043108780aff1535fd3953f6c3d7bba0fea2",
+      "mode": "100644",
+      "blob": "5c97ae6a95820daee07300b2b82c5af7c822e79a"
+    },
+    {
+      "source": "outputs/6158-field-pagination-e299/verified-status.json",
+      "tree_path": "task-6038/outputs/6158-field-pagination-e299/verified-status.json",
+      "bytes": 915,
+      "sha256": "0cfa8c207f1fff11fed139eabf08c3b1ffe142512adfe0a7f32c93dc3ef75d11",
+      "mode": "100644",
+      "blob": "3de7eb7b3e1ebd976027eb20df2268c195ed88b9"
+    }
+  ]
+}

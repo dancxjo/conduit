@@ -1,0 +1,55 @@
+[
+  {
+    "name": "native-face-verified",
+    "args": [
+      "cargo",
+      "+stable",
+      "test",
+      "-p",
+      "conduitos",
+      "--lib",
+      "--locked",
+      "--features",
+      "hosted-tools,native-compositor",
+      "native_face",
+      "--",
+      "--test-threads=1"
+    ],
+    "status": 0,
+    "seconds": 60.86137676239014
+  },
+  {
+    "name": "strict-clippy-verified",
+    "args": [
+      "cargo",
+      "+stable",
+      "clippy",
+      "-p",
+      "conduitos",
+      "--lib",
+      "--tests",
+      "--locked",
+      "--features",
+      "hosted-tools,native-compositor",
+      "--",
+      "-D",
+      "warnings"
+    ],
+    "status": 0,
+    "seconds": 8.148681879043579
+  },
+  {
+    "name": "fmt-verified",
+    "args": [
+      "cargo",
+      "+stable",
+      "fmt",
+      "--package",
+      "conduitos",
+      "--",
+      "--check"
+    ],
+    "status": 0,
+    "seconds": 1.3527414798736572
+  }
+]

@@ -1,0 +1,75 @@
+//! CPU pagination conformance, not owner/guest interaction proof.
+use super::*;
+
+fn item(text: &str, subject: Option<usize>, control: Option<FaceControl>) -> document::Item {
+    document::Item {
+        text: text.into(),
+        role: GraphicsTextRole::Label,
+        paint: GraphicsPaintRole::Foreground,
+        control,
+        indent: 0,
+        subject_index: subject,
+        region: None,
+        region_order: None,
+        checkbox: None,
+    }
+}
+
+#[test]
+fn field_help_action_and_argument_stay_together_at_row_capacity() {
+    let screen = LayoutRect {
+        x: 0,
+        y: 0,
+        width: 1280,
+        height: 1024,
+    };
+    let mut items = (0..18)
+        .map(|_| item("Prefix", None, None))
+        .collect::<Vec<_>>();
+    items.extend([
+        item("Choose a naming tradition", Some(7), None),
+        item(
+            "Change tradition",
+            Some(7),
+            Some(FaceControl {
+                action: 3,
+                argument: None,
+            }),
+        ),
+        item(
+            "Current tradition: roman",
+            Some(7),
+            Some(FaceControl {
+                action: 3,
+                argument: Some(0),
+            }),
+        ),
+    ]);
+    // Isolate the 20-row cap: all first twenty rows fit height and commands.
+    let chrome = chrome::Chrome::prepare(screen, 100).unwrap();
+    let height = measure_prefix("Prefix", GraphicsTextRole::Label, 1200, 900, 100)
+        .unwrap()
+        .1;
+    assert!(chrome.top + 20 * (height + SPACE_SM * 3) <= chrome.bottom);
+    let rows = admit_with_expression(items, screen, 12, 1, 100, SPACE_SM).unwrap();
+    assert_eq!(
+        rows.iter()
+            .map(|r| r.text.as_str())
+            .collect::<Vec<_>>()
+            .len(),
+        21
+    );
+    assert_eq!(rows[18].page, rows[19].page);
+    assert_eq!(
+        rows[19].page, rows[20].page,
+        "argument orphaned from exact same-subject action/help"
+    );
+    assert_eq!(
+        rows[20].control,
+        Some(FaceControl {
+            action: 3,
+            argument: Some(0)
+        })
+    );
+}
+

@@ -1,0 +1,153 @@
+{
+  "base": "e29922753a2fca04145551bbb6ae00504fed76a9",
+  "head": "63af5abb13a8939d2c52665f61dfd5666e76d50b",
+  "tree": "a6f1e11f2071bf278b348d80a0f6ee33845c496d",
+  "branch": "codex/6158-field-pagination",
+  "clean": true,
+  "proof_class": "deterministic CPU conformance only, held preparation; no product/QEMU/CI/stable acceptance",
+  "tests": {
+    "pass": 111,
+    "fail": 0,
+    "ignore": 0,
+    "existing": 105,
+    "new": 6,
+    "cases": [
+      "test native_face_scene::layout::field_cluster_tests::actual_face_target_rows_keep_typed_refs_and_exact_reading_without_mutation ... ok",
+      "test native_face_scene::layout::field_cluster_tests::field_help_action_and_argument_stay_together_at_row_capacity ... ok",
+      "test native_face_scene::layout::field_cluster_tests::graphics_command_pressure_moves_whole_field_before_global_limit ... ok",
+      "test native_face_scene::layout::field_cluster_tests::large_text_height_pressure_keeps_field_in_flat_and_panel_geometry ... ok",
+      "test native_face_scene::layout::field_cluster_tests::oversized_help_continues_without_empty_pages_lost_text_or_duplicate_controls ... ok",
+      "test native_face_scene::layout::field_cluster_tests::panel_preflight_respects_global_row_and_command_caps_not_only_lane_height ... ok"
+    ]
+  },
+  "strict_clippy": "pass",
+  "fmt": "pass",
+  "env": {
+    "CARGO_TARGET_DIR": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target",
+    "CARGO_BUILD_JOBS": "4",
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0",
+    "CARGO_PROFILE_TEST_OPT_LEVEL": "1",
+    "CARGO_PROFILE_TEST_DEBUG_ASSERTIONS": "true",
+    "CARGO_PROFILE_TEST_OVERFLOW_CHECKS": "true"
+  },
+  "commands_and_status": [
+    {
+      "name": "native-face-verified",
+      "args": [
+        "cargo",
+        "+stable",
+        "test",
+        "-p",
+        "conduitos",
+        "--lib",
+        "--locked",
+        "--features",
+        "hosted-tools,native-compositor",
+        "native_face",
+        "--",
+        "--test-threads=1"
+      ],
+      "status": 0,
+      "seconds": 60.86137676239014
+    },
+    {
+      "name": "strict-clippy-verified",
+      "args": [
+        "cargo",
+        "+stable",
+        "clippy",
+        "-p",
+        "conduitos",
+        "--lib",
+        "--tests",
+        "--locked",
+        "--features",
+        "hosted-tools,native-compositor",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "status": 0,
+      "seconds": 8.148681879043579
+    },
+    {
+      "name": "fmt-verified",
+      "args": [
+        "cargo",
+        "+stable",
+        "fmt",
+        "--package",
+        "conduitos",
+        "--",
+        "--check"
+      ],
+      "status": 0,
+      "seconds": 1.3527414798736572
+    }
+  ],
+  "source_file_sha256": {
+    "targets/conduitos/src/native_face_scene/layout.rs": "0c308e23133db9dc977b9b3c9c30fca81016feb433f169e8311962255a4a4754",
+    "targets/conduitos/src/native_face_scene/layout/field_cluster_tests.rs": "f713bf6e1069f04fa79684a7083874c0b17b31e5b0f1306175eb165bad54d3bb",
+    "targets/conduitos/src/native_face_scene/layout/field_clusters.rs": "e4ebb5ea5542ac6a18f86283dde965fe79a6ab1c57a3bfe21a529679458625f6",
+    "targets/conduitos/src/native_face_scene/layout/panels.rs": "565542a5bb2d9b4362050414741b15c69cc660a95a3f581d0dace8eca87d2349"
+  },
+  "negative_evidence": {
+    "red-row-cap.log": "original pre-fix observed help/action page0 versus argument page1; height precondition passed",
+    "red-row-cap-reproduction.patch": "minimal test-only reproduction, formatting normalized; not claimed byte-identical to initial unformatted test",
+    "strict-clippy-final.log": "two test assertions_on_constants; repaired with const blocks, unchanged production Source"
+  },
+  "finite_work": "run-start only; existing32768items/2MiBtext admission, freshheight/20rows/48commands bounded measurement; no scratch; ownedIntoIter/as_slice text release preserved",
+  "hold": "Refresh onto actualdev after6055merge before product proof/admission. Known existing640e299 screenshot before-case retained separately; original reported Source remains unknown. No new PR or6055mutation.",
+  "artifacts": {
+    "verified-status.json": {
+      "sha256": "0cfa8c207f1fff11fed139eabf08c3b1ffe142512adfe0a7f32c93dc3ef75d11",
+      "bytes": 915
+    },
+    "focused-clusters.log": {
+      "sha256": "bef8496c141ec1b82dcd78f706d863a68a202f31774f3b122ac9dbd1a9c933bd",
+      "bytes": 1105
+    },
+    "strict-clippy-verified.log": {
+      "sha256": "5f8d54bb2858ca89b1f3bb154e58043108780aff1535fd3953f6c3d7bba0fea2",
+      "bytes": 190
+    },
+    "native-face-final.log": {
+      "sha256": "b379264a39f580fa0da76baac067e549443b205549084cfae579a10b1b206730",
+      "bytes": 13231
+    },
+    "fmt-verified.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "red-row-cap-reproduction-test.rs": {
+      "sha256": "254bc895b76f3c379372430538ac8605eecf65fa9e3ed65b904cec066f4bca6a",
+      "bytes": 2082
+    },
+    "first-fix-row-cap.log": {
+      "sha256": "512f237dc9b7e26c97900764dc8547af9106a99ae968fc614d1c4e18e4180548",
+      "bytes": 582
+    },
+    "red-row-cap-reproduction.patch": {
+      "sha256": "9be75f2967267b4e9a35339a3b09461b3f66d53bd875ecabb55e22ef23ce9e71",
+      "bytes": 2502
+    },
+    "status.json": {
+      "sha256": "27fd9f1bdce8612233f5468f3680576741b5c6788bf435fd12e197d1752e9b45",
+      "bytes": 692
+    },
+    "strict-clippy-final.log": {
+      "sha256": "89095cdade2a94daf0b6574c584d06988625d260ef2408b11f931ef06cff1fcf",
+      "bytes": 12913
+    },
+    "native-face-verified.log": {
+      "sha256": "fdd4d4f4e79b095cf0343b286e9dee55522e7c7c841390217ef9ac969b666abc",
+      "bytes": 13231
+    },
+    "red-row-cap.log": {
+      "sha256": "e086b560664ce894ca9dbecf149d94b9e262c5b687dc16321ab0a482633fe264",
+      "bytes": 11682
+    }
+  }
+}

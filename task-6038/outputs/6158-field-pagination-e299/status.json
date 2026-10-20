@@ -1,0 +1,41 @@
+[
+  {
+    "name": "native-face-final",
+    "args": [
+      "cargo",
+      "+stable",
+      "test",
+      "-p",
+      "conduitos",
+      "--lib",
+      "--locked",
+      "--features",
+      "hosted-tools,native-compositor",
+      "native_face",
+      "--",
+      "--test-threads=1"
+    ],
+    "status": 0,
+    "seconds": 61.03212881088257
+  },
+  {
+    "name": "strict-clippy-final",
+    "args": [
+      "cargo",
+      "+stable",
+      "clippy",
+      "-p",
+      "conduitos",
+      "--lib",
+      "--tests",
+      "--locked",
+      "--features",
+      "hosted-tools,native-compositor",
+      "--",
+      "-D",
+      "warnings"
+    ],
+    "status": 101,
+    "seconds": 163.35430002212524
+  }
+]

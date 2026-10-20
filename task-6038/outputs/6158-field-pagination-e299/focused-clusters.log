@@ -1,0 +1,13 @@
+   Compiling conduitos v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-field-pagination/targets/conduitos)
+    Finished `test` profile [optimized] target(s) in 40.45s
+     Running unittests src/lib.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/deps/conduitos-9bf31814da61c6ef)
+
+running 5 tests
+test native_face_scene::layout::field_cluster_tests::actual_face_target_rows_keep_typed_refs_and_exact_reading_without_mutation ... ok
+test native_face_scene::layout::field_cluster_tests::field_help_action_and_argument_stay_together_at_row_capacity ... ok
+test native_face_scene::layout::field_cluster_tests::graphics_command_pressure_moves_whole_field_before_global_limit ... ok
+test native_face_scene::layout::field_cluster_tests::large_text_height_pressure_keeps_field_in_flat_and_panel_geometry ... ok
+test native_face_scene::layout::field_cluster_tests::oversized_help_continues_without_empty_pages_lost_text_or_duplicate_controls ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 1210 filtered out; finished in 0.02s
+
