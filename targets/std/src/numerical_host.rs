@@ -10,6 +10,7 @@ pub(crate) mod ieee_native;
 pub(crate) mod ieee_step;
 pub(crate) mod near_encoding;
 pub(crate) mod near_step;
+pub(crate) mod preparation_cache;
 impl StdHost {
     /// Initialize the finite numerical strategies supported by this std Host.
     /// This changes its advertised generation; plans must use the resulting
@@ -101,9 +102,12 @@ impl StdHost {
             advertisement.capabilities.push(offer);
         }
         for gear in near_gears {
-            advertisement
-                .capabilities
-                .extend(installed_std::near_offers(&gear.configuration)?);
+            advertisement.capabilities.extend(
+                self.numerical_preparation
+                    .near(plot, gear, &self.advertisement)?
+                    .iter()
+                    .cloned(),
+            );
         }
         normalize_capability_offers(&mut advertisement.capabilities)?;
         if advertisement.capabilities == self.advertisement.capabilities {
