@@ -37,6 +37,14 @@ fn semantic_data_refusal(detail: u16) -> HostCallOutcome {
     }
 }
 
+/// Exact retained offer metadata, without creating a second payload owner.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct RemoteValueIdentity {
+    pub endpoint: RemoteEndpointId,
+    pub cord: CordId,
+    pub sequence: u64,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct RemoteValueTransfer {
     pub endpoint: RemoteEndpointId,
@@ -547,12 +555,7 @@ impl InstalledRemoteFragment {
         &mut self,
         endpoint: RemoteEndpointId,
     ) -> Result<Option<RemoteValueTransfer>, String> {
-        let cord = self.endpoint_cord(endpoint, RemoteCordDirection::Egress)?;
-        let Some(offer) = self
-            .scheduler
-            .remote_egress_offer(endpoint, cord)
-            .map_err(|error| format!("offer remote std value: {error:?}"))?
-        else {
+        let Some((cord, offer)) = self.egress_offer(endpoint)? else {
             return Ok(None);
         };
         let bytes = self
@@ -567,15 +570,56 @@ impl InstalledRemoteFragment {
             bytes,
         }))
     }
-    pub fn accept_egress(&mut self, transfer: &RemoteValueTransfer) -> Result<(), String> {
+    fn egress_offer(
+        &mut self,
+        endpoint: RemoteEndpointId,
+    ) -> Result<Option<(CordId, conduit_kernel::scheduler::RemoteValueOffer)>, String> {
+        let cord = self.endpoint_cord(endpoint, RemoteCordDirection::Egress)?;
+        self.scheduler
+            .remote_egress_offer(endpoint, cord)
+            .map(|offer| offer.map(|offer| (cord, offer)))
+            .map_err(|error| format!("offer remote std value: {error:?}"))
+    }
+
+    /// Inspect the pending offer for ACK/delivery without copying its payload.
+    pub fn next_egress_identity(
+        &mut self,
+        endpoint: RemoteEndpointId,
+    ) -> Result<Option<RemoteValueIdentity>, String> {
+        Ok(self
+            .egress_offer(endpoint)?
+            .map(|(cord, offer)| RemoteValueIdentity {
+                endpoint,
+                cord,
+                sequence: offer.sequence,
+            }))
+    }
+    pub fn accept_egress_identity(&mut self, transfer: &RemoteValueIdentity) -> Result<(), String> {
         self.scheduler
             .remote_egress_accept(transfer.endpoint, transfer.cord, transfer.sequence)
             .map_err(|error| format!("accept remote std value: {error:?}"))
     }
-    pub fn deliver_egress(&mut self, transfer: &RemoteValueTransfer) -> Result<(), String> {
+    pub fn deliver_egress_identity(
+        &mut self,
+        transfer: &RemoteValueIdentity,
+    ) -> Result<(), String> {
         self.scheduler
             .remote_egress_delivered(transfer.endpoint, transfer.cord, transfer.sequence)
             .map_err(|error| format!("deliver remote std value: {error:?}"))
+    }
+    pub fn accept_egress(&mut self, transfer: &RemoteValueTransfer) -> Result<(), String> {
+        self.accept_egress_identity(&RemoteValueIdentity {
+            endpoint: transfer.endpoint,
+            cord: transfer.cord,
+            sequence: transfer.sequence,
+        })
+    }
+    pub fn deliver_egress(&mut self, transfer: &RemoteValueTransfer) -> Result<(), String> {
+        self.deliver_egress_identity(&RemoteValueIdentity {
+            endpoint: transfer.endpoint,
+            cord: transfer.cord,
+            sequence: transfer.sequence,
+        })
     }
     pub fn admit_ingress(
         &mut self,

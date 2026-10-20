@@ -211,7 +211,7 @@ pub(crate) use self::catalog::supports;
 use self::contract::parse_tick_configuration;
 use self::contract::{decode_tick, TICK_ENCODED_LEN};
 pub use self::remote_fragment_kernel::{
-    InstalledRemoteFragment, RemoteHostWork, RemoteValueTransfer,
+    InstalledRemoteFragment, RemoteHostWork, RemoteValueIdentity, RemoteValueTransfer,
 };
 #[cfg(test)]
 use self::tick_backs::{TEST_OBSERVER_IMPLEMENTATION, TICK_FACTORY};
