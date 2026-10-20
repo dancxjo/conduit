@@ -56,7 +56,16 @@ pub(super) fn prepare(
             &mut host,
         )?;
         back.bind_parent_play(parent)?;
-        let maximum = each.limits.maximum_queue_bytes;
+        let (maximum, value_bytes) = each.selected_plan.fragments[0].fore_ports.iter().try_fold(
+            (1_u32, 0_u32),
+            |(maximum, bytes), port| {
+                bytes
+                    .checked_add(port.byte_capacity)
+                    .filter(|bytes| *bytes <= 16 * 1024 * 1024)
+                    .map(|bytes| (maximum.max(port.byte_capacity), bytes))
+                    .ok_or("Each value bytes overflow")
+            },
+        )?;
         let sign_items = each
             .limits
             .maximum_items
@@ -68,7 +77,7 @@ pub(super) fn prepare(
             owner: each.owner_placement_id.clone(),
             budget: BackBudget {
                 value_items: 2,
-                value_bytes: maximum.checked_mul(2).ok_or("Each value bytes overflow")?,
+                value_bytes,
                 maximum_value_bytes: maximum,
                 host_requests: 0,
                 sign_items,

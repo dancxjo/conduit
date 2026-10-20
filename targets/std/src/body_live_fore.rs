@@ -12,6 +12,7 @@ use std::{
     time::{Duration, Instant},
 };
 
+mod numerical;
 mod parsec;
 
 pub const MAX_LIVE_FORE_SLOTS: usize = 8;
