@@ -146,7 +146,10 @@ impl NumericalFore {
                 )
             })
             .map_err(error)?;
-        let play = match started_rx.recv_timeout(Duration::from_secs(30)) {
+        // Preparation is finite admitted work, before Play. Wait for its exact
+        // result rather than treating a slow cold CPU as an execution timeout.
+        // Every failure/panic drops the sender, so it cannot hide startup refusal.
+        let play = match started_rx.recv() {
             Ok(play) => play,
             Err(why) => {
                 let _ = control.request_stop(RunControlRequestId::new("numerical-start-refused")?);
