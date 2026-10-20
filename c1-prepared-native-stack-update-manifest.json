@@ -1,0 +1,22 @@
+{
+  "parent": "2cb142c41b907e8ef9a66d5686f6a3013f840ef3",
+  "scope": "Preserve refreshed Source and pending proof runner, verified prior repair restoration, and confirmed renderer occlusion red diagnostic",
+  "files": [
+    {
+      "source": "work/6039-prepared-native-stack.json",
+      "tree_path": "task-6038/work/6039-prepared-native-stack.json",
+      "bytes": 738,
+      "sha256": "a5c950f24e8e011e58b42078351549111bd5cff234c16662369468470aacef29",
+      "mode": "100644",
+      "blob": "d8a939c88e410b90b0a7690decd3ce12c670b30d"
+    },
+    {
+      "source": "work/6039-9b0b9c25d-range-diff.log",
+      "tree_path": "task-6038/work/6039-9b0b9c25d-range-diff.log",
+      "bytes": 2144,
+      "sha256": "f893101ccafdedcaf2c9090d8bf3cc379c2ff400a7e9717e4b204cd3e83912cc",
+      "mode": "100644",
+      "blob": "f794e8636a07d7b7183a96bda476f04ad5265e92"
+    }
+  ]
+}

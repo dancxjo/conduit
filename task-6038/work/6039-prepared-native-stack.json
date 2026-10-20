@@ -1,0 +1,11 @@
+{
+  "source": "9b0b9c25d5ae512ef690fbcf19256fcd1de05961",
+  "base": "03bd8b99d1018544f7df9bae159e8f416c859689",
+  "old_source": "2489304d6644a94bb15e1672ca7ac75d86c3ce9e",
+  "recovery": "origin/recovery/6039-2489304-before-native-stack",
+  "branch": "origin/codex/6039-source-contract",
+  "origin_verified": "2026-10-20T17:13:55Z",
+  "patches": "9 equal; collection selector preserves existing Bound/ActionTarget and adds Collection; only2 forecast conflicts",
+  "proof": "Refreshed final schema fingerprint and producer golden regeneration plus Face/Birth conformance in progress; no result transferred",
+  "scope": "Prepared stack, no PR, no native Host admission or stable acceptance; eventual PR delta C1 only after native05 merge"
+}

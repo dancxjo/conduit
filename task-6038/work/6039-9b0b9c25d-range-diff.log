@@ -1,0 +1,34 @@
+ 1:  87a57397f =  1:  158ad8ef5 Extract atomic Birth field projection before collection contracts
+ 2:  7e54c12d3 =  2:  c2b7ed0a4 Preserve source Creche choice identities through filtering
+ 3:  22891c982 !  3:  8545fb8ed Prepare source-owned informational and selectable collection profiles
+    @@ semantics/face/src/component_recipe.rs: pub enum ComponentRecipeRefusal {
+      
+      /// Finite references into the supplied immutable Face, not another semantic tree.
+     @@ semantics/face/src/component_recipe.rs: pub fn prepare_component_recipe(
+    -                         false
+    -                     }
+    +                         &action.identity == identity && action.target == subject.identity
+    +                     })
+                      }
+     +                ComponentSubjectSelector::Collection(binding) => {
+     +                    if subject.role != FaceRole::Collection {
+    @@ semantics/face/src/lib.rs: mod configured_mask;
+      
+     
+      ## semantics/face/types.conduit ##
+    -@@ semantics/face/types.conduit: type ComponentSubjectBinding = {
+    - type ComponentSubjectSelector =
+    +@@ semantics/face/types.conduit: type ComponentSubjectSelector =
+          subject Text <= 256B not in [""]
+          | bound ComponentSubjectBinding
+    +     | action_target Text <= 256B not in [""]
+     +    | collection {
+     +        mode: Text <= 16B in ["information", "exclusive", "independent"]
+     +        maximum_items: U16 in 1..=64
+ 4:  d545693e4 =  4:  6da7f491f Require exclusive collection alternatives to cover the checked domain
+ 5:  de55e1509 =  5:  3d4e7ab8f Preserve exact collection selection bounds at u64 limits
+ 6:  d48c4b603 =  6:  87dadf1a5 Preserve exact typed values in linear Face records
+ 7:  87d97d7d3 =  7:  de167fe8f Prove collection meaning through independent linear reconstruction
+ 8:  3e2d7e364 =  8:  b14d8696d Retain actual generic collection observation alongside linear proof
+ 9:  afcc28f6a =  9:  0b5d53957 Document collection contracts and downstream realization handoff
+10:  2489304d6 = 10:  9b0b9c25d test: commit linear-derived collection choices through Birth source
