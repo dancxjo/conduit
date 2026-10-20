@@ -1,0 +1,83 @@
+{
+  "source": "e29922753a2fca04145551bbb6ae00504fed76a9",
+  "image_sha256": "30dc2264c11a911f2f4712a328339041585574719be945c6b592d0b9151d5775",
+  "method": "Lossless preview only; original PPMs and83filepacket unchanged",
+  "files": [
+    {
+      "source_file": "outputs/5990-panels-narrow-e29922753/navigation-page-1.ppm",
+      "source_sha256": "b9a26468972357d5ce547aa82e99115b26924423363d8b5b022107f632a3bd55",
+      "preview": "navigation-page-1.png",
+      "preview_sha256": "c2986ba69e2e5f1b6c4b81224f8f7b94a047418448ddc8400e6dbde885c0ed02",
+      "pixels_equal": true
+    },
+    {
+      "source_file": "outputs/5990-panels-narrow-e29922753/navigation-page-3.ppm",
+      "source_sha256": "cc30440c68c1465c2752ae38413629198121b779b424f8a66f5a3ae7df7330a3",
+      "preview": "navigation-page-3.png",
+      "preview_sha256": "3143c0bf0f788530dc8ef6480a92371768d902e12315274ac97625f6ac5fdfac",
+      "pixels_equal": true
+    },
+    {
+      "source_file": "outputs/5990-panels-narrow-e29922753/arrival.ppm",
+      "source_sha256": "effc3bc8344ac0585be99ca7ec5369a32466c9a81473fd1c7954260571c3d13d",
+      "preview": "navigation-page-2.png",
+      "preview_sha256": "9ff4e5bb34ee6bf9d9d54c4eacdd35ff4d0ffd99a9e61bc54b34b1c08893099a",
+      "pixels_equal": true
+    }
+  ],
+  "paired_captures": [
+    {
+      "file": "navigation-page-1.ppm",
+      "sha256": "b9a26468972357d5ce547aa82e99115b26924423363d8b5b022107f632a3bd55",
+      "focus": {
+        "action_id": "creche.birth",
+        "argument_name": null,
+        "display_bounds": {
+          "height": 480,
+          "width": 640,
+          "x": 0,
+          "y": 0
+        },
+        "face_id": "678bc05dc72576de70173d1ac10da51ed1caef546ef3752ac7aa8efb8e9e7679",
+        "face_revision": 1,
+        "hit_bounds": {
+          "height": 40,
+          "width": 588,
+          "x": 40,
+          "y": 149
+        },
+        "page": 1,
+        "pages": 3,
+        "schema": "conduit.creche-focus/v1",
+        "show_id": "show/180c12e76ca4a0735c842b6cd2cf1420be8584e40729559f6e0b04c57ade2eaf"
+      }
+    },
+    {
+      "file": "arrival.ppm",
+      "sha256": "effc3bc8344ac0585be99ca7ec5369a32466c9a81473fd1c7954260571c3d13d",
+      "focus": {
+        "action_id": "creche.name",
+        "argument_name": "value",
+        "display_bounds": {
+          "height": 480,
+          "width": 640,
+          "x": 0,
+          "y": 0
+        },
+        "face_id": "678bc05dc72576de70173d1ac10da51ed1caef546ef3752ac7aa8efb8e9e7679",
+        "face_revision": 1,
+        "hit_bounds": {
+          "height": 33,
+          "width": 588,
+          "x": 40,
+          "y": 97
+        },
+        "page": 2,
+        "pages": 3,
+        "schema": "conduit.creche-focus/v1",
+        "show_id": "show/180c12e76ca4a0735c842b6cd2cf1420be8584e40729559f6e0b04c57ade2eaf"
+      }
+    }
+  ],
+  "finding": "Actual640x480 page1ends withBodynamehelp; page2has itsaction/currentvalue. SameinitialShowbeforeSourceedits. Exact originaluserimageSource remainsunknown."
+}
