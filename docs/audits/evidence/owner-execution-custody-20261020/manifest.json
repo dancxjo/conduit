@@ -1,0 +1,65 @@
+{
+  "source": "f8aaabeb829469016a52341a5358eae358133ff9",
+  "logs": [
+    {
+      "file": "todo-durability.log.gz",
+      "sha256": "e837b73100e21c50511ae6883814ec31639834707abeb496401d37e215b3656d",
+      "raw_sha256": "0a2cd212a02e78c07fba5369df55c36220bf3d9a38826652b79a34773ae21361",
+      "raw_bytes": 408145
+    },
+    {
+      "file": "format.log.gz",
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    {
+      "file": "product-clippy.log.gz",
+      "sha256": "ba002e658c915e7720a29cd765ab61cef0130a07ffaa9985d4e413031541f776",
+      "raw_sha256": "829556cd4d58166bf4a29632433a65db91d78c4c907490f50e3d26f5d661bcb7",
+      "raw_bytes": 836
+    },
+    {
+      "file": "parsec-regressions.log.gz",
+      "sha256": "ab2201bf7446eb4cf34e09a6c608c10a53dd9cc677b6c0bf0de6142bedcb2152",
+      "raw_sha256": "18b371b5e83092f73e52b6142135e8d703dd6cb310789e9e632ff26f9eefe765",
+      "raw_bytes": 1298
+    },
+    {
+      "file": "cancellation-regressions.log.gz",
+      "sha256": "54c69074e0406d4f5de1fa13dd1671df27e4bf5183f209fa8b14cc07178ec78f",
+      "raw_sha256": "9985119c2353251520c6f3e49797635c9543ed5175404cd3f54f568082efe39c",
+      "raw_bytes": 413
+    },
+    {
+      "file": "release-regressions.log.gz",
+      "sha256": "7500f06774e8004c27655d76e31e5efaac173fd16fd9c9eaa64fd03bfe6af68b",
+      "raw_sha256": "3afca995ded1ad55acb99f1a43f264411db12f09a26bd8c27291041fb63e2a2d",
+      "raw_bytes": 392
+    },
+    {
+      "file": "verify-plan-replacement-custody.log.gz",
+      "sha256": "d83f58be5e9cbac4160372aa026bdb937f043e4fb7066286362bd5f4237bc5f8",
+      "raw_sha256": "70db2bd032e6c52c567fea756a5f02fcbf5c5c20bc44e10af9ebe4d535af5209",
+      "raw_bytes": 93
+    },
+    {
+      "file": "check-plan-replacement-custody-negatives.log.gz",
+      "sha256": "1f4bd37b963162ba2449fb653c63a63354ce9562d329b9db6d0561257d04082e",
+      "raw_sha256": "3b4e8732e356c0f889cbf994db5ba0228346f53ae44ff1442ab86739c9e5a882",
+      "raw_bytes": 546
+    },
+    {
+      "file": "verify-owner-execution-custody.log.gz",
+      "sha256": "1705b18e81a01c2000151bde97f489e68f7a73932e638741a8f7ae0d0ac8518f",
+      "raw_sha256": "3df685791cb6a4aad75e12f2b5d9bf26e8f48b30effb6f18867c385f7c48b470",
+      "raw_bytes": 74
+    },
+    {
+      "file": "check-owner-execution-custody-negatives.log.gz",
+      "sha256": "d797bb9a3920c1d7ed7a47f5e1141e79c09e4ff53f1c94a9c92b3f4a5c42e104",
+      "raw_sha256": "21e9903c53c061106643424ef0cebc28391a791f863f3033fda21e54007249e5",
+      "raw_bytes": 491
+    }
+  ]
+}

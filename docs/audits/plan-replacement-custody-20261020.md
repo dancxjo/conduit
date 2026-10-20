@@ -1,9 +1,9 @@
 # Plan replacement and retained Fore outcome custody
 
-**Partial implementation:** #6102 and #5571 remain open. The public run report
-and local API lifecycle now retain stopped output custody, but the normal
-foreground owner still replaces its durable execution receipt with the latest
-receipt. That remaining boundary must be fixed before either issue closes.
+**Historical API implementation snapshot:** its remaining normal-owner boundary
+is completed by [durable owner execution custody](owner-execution-custody-20261020.md).
+The original source-pinned API evidence below is preserved; it alone did not
+establish durable prior-receipt retention.
 
 For #6102 and the remaining outcome-custody criterion of #5571, the installed
 std Body runner now retains an interrupted Fore output in its owning
