@@ -1,0 +1,1498 @@
+{
+  "source": "e29922753a2fca04145551bbb6ae00504fed76a9",
+  "proof_runner_sha256": "026db27fe9c59d851fea4500a5e11f97670793650d10a2861d6731430e6230e6",
+  "image_sha256": "30dc2264c11a911f2f4712a328339041585574719be945c6b592d0b9151d5775",
+  "proof_class": "freestanding-emulator",
+  "viewport": [
+    1280,
+    800
+  ],
+  "status": "passed",
+  "captures": [
+    {
+      "file": "arrival.ppm",
+      "sha256": "21561ac634d76cf7556cf53e77b36c97da1f7d85fc31bd90990beec9bbe3abb0",
+      "focus": {
+        "action_id": "creche.name",
+        "argument_name": "value",
+        "display_bounds": {
+          "height": 800,
+          "width": 1280,
+          "x": 0,
+          "y": 0
+        },
+        "face_id": "5056cb5f89cc4a56ea3aa753371db4d41302c32a62feee529b19e91902008338",
+        "face_revision": 1,
+        "hit_bounds": {
+          "height": 33,
+          "width": 578,
+          "x": 48,
+          "y": 371
+        },
+        "page": 1,
+        "pages": 2,
+        "schema": "conduit.creche-focus/v1",
+        "show_id": "show/ccfc2a294c61519218de750cf5ee44590ca1c18fecc959052606152ef0d905de"
+      }
+    }
+  ],
+  "edits": [],
+  "argv": [
+    "qemu-system-x86_64",
+    "-M",
+    "q35",
+    "-cpu",
+    "max",
+    "-m",
+    "512M",
+    "-smp",
+    "1",
+    "-display",
+    "none",
+    "-vga",
+    "std",
+    "-global",
+    "VGA.xres=1280",
+    "-global",
+    "VGA.yres=800",
+    "-monitor",
+    "none",
+    "-qmp",
+    "unix:/tmp/creche-panels-zy4mvp02/qmp,server=on,wait=off",
+    "-serial",
+    "file:/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/outputs/5990-pointer-wide-e29922753-cold-birth/serial.log",
+    "-no-reboot",
+    "-net",
+    "none",
+    "-device",
+    "qemu-xhci,id=conduitos-xhci,p2=3,p3=0",
+    "-device",
+    "usb-kbd,id=conduitos-keyboard,bus=conduitos-xhci.0,port=1",
+    "-device",
+    "usb-mouse,id=conduitos-pointer,bus=conduitos-xhci.0,port=2",
+    "-cdrom",
+    "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/outputs/5990-product-e29922753/conduitos-x86_64.iso",
+    "-boot",
+    "d"
+  ],
+  "owned_pid": 2153862,
+  "arrival_observed_ms": 20778.88,
+  "pointer_runner_sha256": "c4e6d65b60bbd6050fd05e63db7575f02e04ddb9b51da12506dd5a7c1df972c8",
+  "imported_runner_sha256": "026db27fe9c59d851fea4500a5e11f97670793650d10a2861d6731430e6230e6",
+  "pointer_hits": [
+    {
+      "action": "creche.name",
+      "argument": "value",
+      "target": {
+        "focus": {
+          "action_id": "creche.name",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "5056cb5f89cc4a56ea3aa753371db4d41302c32a62feee529b19e91902008338",
+          "face_revision": 1,
+          "hit_bounds": {
+            "height": 33,
+            "width": 578,
+            "x": 48,
+            "y": 371
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/ccfc2a294c61519218de750cf5ee44590ca1c18fecc959052606152ef0d905de"
+        },
+        "sample": {
+          "coalesced": 0,
+          "delta_x": -240000,
+          "delta_y": -20000,
+          "display_x": 337,
+          "display_y": 387,
+          "dropped": 0,
+          "face_id": "5056cb5f89cc4a56ea3aa753371db4d41302c32a62feee529b19e91902008338",
+          "face_revision": 1,
+          "manifestation_id": "5f355aa14773f36dbface0e879c34e41d7f79de088e252d972ab553f9eb8ed46",
+          "position_x": 264000,
+          "position_y": 484000,
+          "press_edge": false,
+          "primary_pressed": false,
+          "schema": "conduit.native-pointer/v1",
+          "sequence": 3,
+          "show_id": "show/ccfc2a294c61519218de750cf5ee44590ca1c18fecc959052606152ef0d905de"
+        },
+        "moves": []
+      },
+      "transfer_origin": {
+        "action_id": "creche.plot.0",
+        "argument_name": null,
+        "display_bounds": {
+          "height": 800,
+          "width": 1280,
+          "x": 0,
+          "y": 0
+        },
+        "face_id": "5056cb5f89cc4a56ea3aa753371db4d41302c32a62feee529b19e91902008338",
+        "face_revision": 1,
+        "hit_bounds": {
+          "height": 33,
+          "width": 578,
+          "x": 682,
+          "y": 460
+        },
+        "page": 1,
+        "pages": 2,
+        "schema": "conduit.creche-focus/v1",
+        "show_id": "show/ccfc2a294c61519218de750cf5ee44590ca1c18fecc959052606152ef0d905de"
+      },
+      "click": {
+        "press": {
+          "coalesced": 0,
+          "delta_x": 0,
+          "delta_y": 0,
+          "display_x": 337,
+          "display_y": 387,
+          "dropped": 0,
+          "face_id": "5056cb5f89cc4a56ea3aa753371db4d41302c32a62feee529b19e91902008338",
+          "face_revision": 1,
+          "manifestation_id": "5f355aa14773f36dbface0e879c34e41d7f79de088e252d972ab553f9eb8ed46",
+          "position_x": 264000,
+          "position_y": 484000,
+          "press_edge": true,
+          "primary_pressed": true,
+          "schema": "conduit.native-pointer/v1",
+          "sequence": 4,
+          "show_id": "show/ccfc2a294c61519218de750cf5ee44590ca1c18fecc959052606152ef0d905de"
+        },
+        "release": {
+          "coalesced": 0,
+          "delta_x": 0,
+          "delta_y": 0,
+          "display_x": 337,
+          "display_y": 387,
+          "dropped": 0,
+          "face_id": "5056cb5f89cc4a56ea3aa753371db4d41302c32a62feee529b19e91902008338",
+          "face_revision": 1,
+          "manifestation_id": "5f355aa14773f36dbface0e879c34e41d7f79de088e252d972ab553f9eb8ed46",
+          "position_x": 264000,
+          "position_y": 484000,
+          "press_edge": false,
+          "primary_pressed": false,
+          "schema": "conduit.native-pointer/v1",
+          "sequence": 5,
+          "show_id": "show/ccfc2a294c61519218de750cf5ee44590ca1c18fecc959052606152ef0d905de"
+        }
+      },
+      "transferred_focus": {
+        "action_id": "creche.name",
+        "argument_name": "value",
+        "display_bounds": {
+          "height": 800,
+          "width": 1280,
+          "x": 0,
+          "y": 0
+        },
+        "face_id": "5056cb5f89cc4a56ea3aa753371db4d41302c32a62feee529b19e91902008338",
+        "face_revision": 1,
+        "hit_bounds": {
+          "height": 33,
+          "width": 578,
+          "x": 48,
+          "y": 371
+        },
+        "page": 1,
+        "pages": 2,
+        "schema": "conduit.creche-focus/v1",
+        "show_id": "show/ccfc2a294c61519218de750cf5ee44590ca1c18fecc959052606152ef0d905de"
+      }
+    },
+    {
+      "action": "creche.plot.0",
+      "argument": null,
+      "target": {
+        "focus": {
+          "action_id": "creche.plot.0",
+          "argument_name": null,
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "5056cb5f89cc4a56ea3aa753371db4d41302c32a62feee529b19e91902008338",
+          "face_revision": 1,
+          "hit_bounds": {
+            "height": 33,
+            "width": 578,
+            "x": 682,
+            "y": 460
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/ccfc2a294c61519218de750cf5ee44590ca1c18fecc959052606152ef0d905de"
+        },
+        "sample": {
+          "coalesced": 0,
+          "delta_x": 496000,
+          "delta_y": 112000,
+          "display_x": 972,
+          "display_y": 476,
+          "dropped": 0,
+          "face_id": "5056cb5f89cc4a56ea3aa753371db4d41302c32a62feee529b19e91902008338",
+          "face_revision": 1,
+          "manifestation_id": "5f355aa14773f36dbface0e879c34e41d7f79de088e252d972ab553f9eb8ed46",
+          "position_x": 760000,
+          "position_y": 596000,
+          "press_edge": false,
+          "primary_pressed": false,
+          "schema": "conduit.native-pointer/v1",
+          "sequence": 6,
+          "show_id": "show/ccfc2a294c61519218de750cf5ee44590ca1c18fecc959052606152ef0d905de"
+        },
+        "moves": [
+          {
+            "coalesced": 0,
+            "delta_x": 496000,
+            "delta_y": 112000,
+            "display_x": 972,
+            "display_y": 476,
+            "dropped": 0,
+            "face_id": "5056cb5f89cc4a56ea3aa753371db4d41302c32a62feee529b19e91902008338",
+            "face_revision": 1,
+            "manifestation_id": "5f355aa14773f36dbface0e879c34e41d7f79de088e252d972ab553f9eb8ed46",
+            "position_x": 760000,
+            "position_y": 596000,
+            "press_edge": false,
+            "primary_pressed": false,
+            "schema": "conduit.native-pointer/v1",
+            "sequence": 6,
+            "show_id": "show/ccfc2a294c61519218de750cf5ee44590ca1c18fecc959052606152ef0d905de"
+          }
+        ]
+      }
+    },
+    {
+      "action": "creche.plot.1",
+      "argument": null,
+      "target": {
+        "focus": {
+          "action_id": "creche.plot.1",
+          "argument_name": null,
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "5056cb5f89cc4a56ea3aa753371db4d41302c32a62feee529b19e91902008338",
+          "face_revision": 1,
+          "hit_bounds": {
+            "height": 33,
+            "width": 578,
+            "x": 682,
+            "y": 501
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/ccfc2a294c61519218de750cf5ee44590ca1c18fecc959052606152ef0d905de"
+        },
+        "sample": {
+          "coalesced": 0,
+          "delta_x": 0,
+          "delta_y": 52000,
+          "display_x": 972,
+          "display_y": 518,
+          "dropped": 0,
+          "face_id": "5056cb5f89cc4a56ea3aa753371db4d41302c32a62feee529b19e91902008338",
+          "face_revision": 1,
+          "manifestation_id": "5f355aa14773f36dbface0e879c34e41d7f79de088e252d972ab553f9eb8ed46",
+          "position_x": 760000,
+          "position_y": 648000,
+          "press_edge": false,
+          "primary_pressed": false,
+          "schema": "conduit.native-pointer/v1",
+          "sequence": 7,
+          "show_id": "show/ccfc2a294c61519218de750cf5ee44590ca1c18fecc959052606152ef0d905de"
+        },
+        "moves": [
+          {
+            "coalesced": 0,
+            "delta_x": 0,
+            "delta_y": 52000,
+            "display_x": 972,
+            "display_y": 518,
+            "dropped": 0,
+            "face_id": "5056cb5f89cc4a56ea3aa753371db4d41302c32a62feee529b19e91902008338",
+            "face_revision": 1,
+            "manifestation_id": "5f355aa14773f36dbface0e879c34e41d7f79de088e252d972ab553f9eb8ed46",
+            "position_x": 760000,
+            "position_y": 648000,
+            "press_edge": false,
+            "primary_pressed": false,
+            "schema": "conduit.native-pointer/v1",
+            "sequence": 7,
+            "show_id": "show/ccfc2a294c61519218de750cf5ee44590ca1c18fecc959052606152ef0d905de"
+          }
+        ]
+      }
+    },
+    {
+      "action": "creche.plot.2",
+      "argument": null,
+      "target": {
+        "focus": {
+          "action_id": "creche.plot.2",
+          "argument_name": null,
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "5056cb5f89cc4a56ea3aa753371db4d41302c32a62feee529b19e91902008338",
+          "face_revision": 1,
+          "hit_bounds": {
+            "height": 33,
+            "width": 578,
+            "x": 682,
+            "y": 64
+          },
+          "page": 2,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/ccfc2a294c61519218de750cf5ee44590ca1c18fecc959052606152ef0d905de"
+        },
+        "sample": {
+          "coalesced": 0,
+          "delta_x": 0,
+          "delta_y": -40000,
+          "display_x": 972,
+          "display_y": 80,
+          "dropped": 0,
+          "face_id": "5056cb5f89cc4a56ea3aa753371db4d41302c32a62feee529b19e91902008338",
+          "face_revision": 1,
+          "manifestation_id": "5f355aa14773f36dbface0e879c34e41d7f79de088e252d972ab553f9eb8ed46",
+          "position_x": 760000,
+          "position_y": 100000,
+          "press_edge": false,
+          "primary_pressed": false,
+          "schema": "conduit.native-pointer/v1",
+          "sequence": 9,
+          "show_id": "show/ccfc2a294c61519218de750cf5ee44590ca1c18fecc959052606152ef0d905de"
+        },
+        "moves": [
+          {
+            "coalesced": 0,
+            "delta_x": 0,
+            "delta_y": -508000,
+            "display_x": 972,
+            "display_y": 112,
+            "dropped": 0,
+            "face_id": "5056cb5f89cc4a56ea3aa753371db4d41302c32a62feee529b19e91902008338",
+            "face_revision": 1,
+            "manifestation_id": "5f355aa14773f36dbface0e879c34e41d7f79de088e252d972ab553f9eb8ed46",
+            "position_x": 760000,
+            "position_y": 140000,
+            "press_edge": false,
+            "primary_pressed": false,
+            "schema": "conduit.native-pointer/v1",
+            "sequence": 8,
+            "show_id": "show/ccfc2a294c61519218de750cf5ee44590ca1c18fecc959052606152ef0d905de"
+          },
+          {
+            "coalesced": 0,
+            "delta_x": 0,
+            "delta_y": -40000,
+            "display_x": 972,
+            "display_y": 80,
+            "dropped": 0,
+            "face_id": "5056cb5f89cc4a56ea3aa753371db4d41302c32a62feee529b19e91902008338",
+            "face_revision": 1,
+            "manifestation_id": "5f355aa14773f36dbface0e879c34e41d7f79de088e252d972ab553f9eb8ed46",
+            "position_x": 760000,
+            "position_y": 100000,
+            "press_edge": false,
+            "primary_pressed": false,
+            "schema": "conduit.native-pointer/v1",
+            "sequence": 9,
+            "show_id": "show/ccfc2a294c61519218de750cf5ee44590ca1c18fecc959052606152ef0d905de"
+          }
+        ]
+      }
+    },
+    {
+      "action": "creche.plot.3",
+      "argument": null,
+      "target": {
+        "focus": {
+          "action_id": "creche.plot.3",
+          "argument_name": null,
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "5056cb5f89cc4a56ea3aa753371db4d41302c32a62feee529b19e91902008338",
+          "face_revision": 1,
+          "hit_bounds": {
+            "height": 33,
+            "width": 578,
+            "x": 682,
+            "y": 105
+          },
+          "page": 2,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/ccfc2a294c61519218de750cf5ee44590ca1c18fecc959052606152ef0d905de"
+        },
+        "sample": {
+          "coalesced": 0,
+          "delta_x": 0,
+          "delta_y": 52000,
+          "display_x": 972,
+          "display_y": 121,
+          "dropped": 0,
+          "face_id": "5056cb5f89cc4a56ea3aa753371db4d41302c32a62feee529b19e91902008338",
+          "face_revision": 1,
+          "manifestation_id": "5f355aa14773f36dbface0e879c34e41d7f79de088e252d972ab553f9eb8ed46",
+          "position_x": 760000,
+          "position_y": 152000,
+          "press_edge": false,
+          "primary_pressed": false,
+          "schema": "conduit.native-pointer/v1",
+          "sequence": 10,
+          "show_id": "show/ccfc2a294c61519218de750cf5ee44590ca1c18fecc959052606152ef0d905de"
+        },
+        "moves": [
+          {
+            "coalesced": 0,
+            "delta_x": 0,
+            "delta_y": 52000,
+            "display_x": 972,
+            "display_y": 121,
+            "dropped": 0,
+            "face_id": "5056cb5f89cc4a56ea3aa753371db4d41302c32a62feee529b19e91902008338",
+            "face_revision": 1,
+            "manifestation_id": "5f355aa14773f36dbface0e879c34e41d7f79de088e252d972ab553f9eb8ed46",
+            "position_x": 760000,
+            "position_y": 152000,
+            "press_edge": false,
+            "primary_pressed": false,
+            "schema": "conduit.native-pointer/v1",
+            "sequence": 10,
+            "show_id": "show/ccfc2a294c61519218de750cf5ee44590ca1c18fecc959052606152ef0d905de"
+          }
+        ]
+      }
+    },
+    {
+      "action": "creche.naming",
+      "argument": null,
+      "target": {
+        "focus": {
+          "action_id": "creche.naming",
+          "argument_name": null,
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "5056cb5f89cc4a56ea3aa753371db4d41302c32a62feee529b19e91902008338",
+          "face_revision": 1,
+          "hit_bounds": {
+            "height": 33,
+            "width": 578,
+            "x": 48,
+            "y": 455
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/ccfc2a294c61519218de750cf5ee44590ca1c18fecc959052606152ef0d905de"
+        },
+        "sample": {
+          "coalesced": 0,
+          "delta_x": -496000,
+          "delta_y": 436000,
+          "display_x": 337,
+          "display_y": 470,
+          "dropped": 0,
+          "face_id": "5056cb5f89cc4a56ea3aa753371db4d41302c32a62feee529b19e91902008338",
+          "face_revision": 1,
+          "manifestation_id": "5f355aa14773f36dbface0e879c34e41d7f79de088e252d972ab553f9eb8ed46",
+          "position_x": 264000,
+          "position_y": 588000,
+          "press_edge": false,
+          "primary_pressed": false,
+          "schema": "conduit.native-pointer/v1",
+          "sequence": 11,
+          "show_id": "show/ccfc2a294c61519218de750cf5ee44590ca1c18fecc959052606152ef0d905de"
+        },
+        "moves": [
+          {
+            "coalesced": 0,
+            "delta_x": -496000,
+            "delta_y": 436000,
+            "display_x": 337,
+            "display_y": 470,
+            "dropped": 0,
+            "face_id": "5056cb5f89cc4a56ea3aa753371db4d41302c32a62feee529b19e91902008338",
+            "face_revision": 1,
+            "manifestation_id": "5f355aa14773f36dbface0e879c34e41d7f79de088e252d972ab553f9eb8ed46",
+            "position_x": 264000,
+            "position_y": 588000,
+            "press_edge": false,
+            "primary_pressed": false,
+            "schema": "conduit.native-pointer/v1",
+            "sequence": 11,
+            "show_id": "show/ccfc2a294c61519218de750cf5ee44590ca1c18fecc959052606152ef0d905de"
+          }
+        ]
+      }
+    },
+    {
+      "action": "creche.naming",
+      "argument": "value",
+      "target": {
+        "focus": {
+          "action_id": "creche.naming",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "5056cb5f89cc4a56ea3aa753371db4d41302c32a62feee529b19e91902008338",
+          "face_revision": 1,
+          "hit_bounds": {
+            "height": 33,
+            "width": 578,
+            "x": 48,
+            "y": 496
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/ccfc2a294c61519218de750cf5ee44590ca1c18fecc959052606152ef0d905de"
+        },
+        "sample": {
+          "coalesced": 0,
+          "delta_x": 0,
+          "delta_y": 52000,
+          "display_x": 337,
+          "display_y": 512,
+          "dropped": 0,
+          "face_id": "5056cb5f89cc4a56ea3aa753371db4d41302c32a62feee529b19e91902008338",
+          "face_revision": 1,
+          "manifestation_id": "5f355aa14773f36dbface0e879c34e41d7f79de088e252d972ab553f9eb8ed46",
+          "position_x": 264000,
+          "position_y": 640000,
+          "press_edge": false,
+          "primary_pressed": false,
+          "schema": "conduit.native-pointer/v1",
+          "sequence": 12,
+          "show_id": "show/ccfc2a294c61519218de750cf5ee44590ca1c18fecc959052606152ef0d905de"
+        },
+        "moves": []
+      },
+      "transfer_origin": {
+        "action_id": "creche.name",
+        "argument_name": "value",
+        "display_bounds": {
+          "height": 800,
+          "width": 1280,
+          "x": 0,
+          "y": 0
+        },
+        "face_id": "5056cb5f89cc4a56ea3aa753371db4d41302c32a62feee529b19e91902008338",
+        "face_revision": 1,
+        "hit_bounds": {
+          "height": 33,
+          "width": 578,
+          "x": 48,
+          "y": 371
+        },
+        "page": 1,
+        "pages": 2,
+        "schema": "conduit.creche-focus/v1",
+        "show_id": "show/ccfc2a294c61519218de750cf5ee44590ca1c18fecc959052606152ef0d905de"
+      },
+      "click": {
+        "press": {
+          "coalesced": 0,
+          "delta_x": 0,
+          "delta_y": 0,
+          "display_x": 337,
+          "display_y": 512,
+          "dropped": 0,
+          "face_id": "5056cb5f89cc4a56ea3aa753371db4d41302c32a62feee529b19e91902008338",
+          "face_revision": 1,
+          "manifestation_id": "5f355aa14773f36dbface0e879c34e41d7f79de088e252d972ab553f9eb8ed46",
+          "position_x": 264000,
+          "position_y": 640000,
+          "press_edge": true,
+          "primary_pressed": true,
+          "schema": "conduit.native-pointer/v1",
+          "sequence": 13,
+          "show_id": "show/ccfc2a294c61519218de750cf5ee44590ca1c18fecc959052606152ef0d905de"
+        },
+        "release": {
+          "coalesced": 0,
+          "delta_x": 0,
+          "delta_y": 0,
+          "display_x": 337,
+          "display_y": 512,
+          "dropped": 0,
+          "face_id": "5056cb5f89cc4a56ea3aa753371db4d41302c32a62feee529b19e91902008338",
+          "face_revision": 1,
+          "manifestation_id": "5f355aa14773f36dbface0e879c34e41d7f79de088e252d972ab553f9eb8ed46",
+          "position_x": 264000,
+          "position_y": 640000,
+          "press_edge": false,
+          "primary_pressed": false,
+          "schema": "conduit.native-pointer/v1",
+          "sequence": 14,
+          "show_id": "show/ccfc2a294c61519218de750cf5ee44590ca1c18fecc959052606152ef0d905de"
+        }
+      },
+      "transferred_focus": {
+        "action_id": "creche.naming",
+        "argument_name": "value",
+        "display_bounds": {
+          "height": 800,
+          "width": 1280,
+          "x": 0,
+          "y": 0
+        },
+        "face_id": "5056cb5f89cc4a56ea3aa753371db4d41302c32a62feee529b19e91902008338",
+        "face_revision": 1,
+        "hit_bounds": {
+          "height": 33,
+          "width": 578,
+          "x": 48,
+          "y": 496
+        },
+        "page": 1,
+        "pages": 2,
+        "schema": "conduit.creche-focus/v1",
+        "show_id": "show/ccfc2a294c61519218de750cf5ee44590ca1c18fecc959052606152ef0d905de"
+      }
+    },
+    {
+      "action": "creche.search",
+      "argument": null,
+      "target": {
+        "focus": {
+          "action_id": "creche.search",
+          "argument_name": null,
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "5056cb5f89cc4a56ea3aa753371db4d41302c32a62feee529b19e91902008338",
+          "face_revision": 1,
+          "hit_bounds": {
+            "height": 33,
+            "width": 578,
+            "x": 682,
+            "y": 330
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/ccfc2a294c61519218de750cf5ee44590ca1c18fecc959052606152ef0d905de"
+        },
+        "sample": {
+          "coalesced": 0,
+          "delta_x": 496000,
+          "delta_y": -208000,
+          "display_x": 972,
+          "display_y": 345,
+          "dropped": 0,
+          "face_id": "5056cb5f89cc4a56ea3aa753371db4d41302c32a62feee529b19e91902008338",
+          "face_revision": 1,
+          "manifestation_id": "5f355aa14773f36dbface0e879c34e41d7f79de088e252d972ab553f9eb8ed46",
+          "position_x": 760000,
+          "position_y": 432000,
+          "press_edge": false,
+          "primary_pressed": false,
+          "schema": "conduit.native-pointer/v1",
+          "sequence": 15,
+          "show_id": "show/ccfc2a294c61519218de750cf5ee44590ca1c18fecc959052606152ef0d905de"
+        },
+        "moves": [
+          {
+            "coalesced": 0,
+            "delta_x": 496000,
+            "delta_y": -208000,
+            "display_x": 972,
+            "display_y": 345,
+            "dropped": 0,
+            "face_id": "5056cb5f89cc4a56ea3aa753371db4d41302c32a62feee529b19e91902008338",
+            "face_revision": 1,
+            "manifestation_id": "5f355aa14773f36dbface0e879c34e41d7f79de088e252d972ab553f9eb8ed46",
+            "position_x": 760000,
+            "position_y": 432000,
+            "press_edge": false,
+            "primary_pressed": false,
+            "schema": "conduit.native-pointer/v1",
+            "sequence": 15,
+            "show_id": "show/ccfc2a294c61519218de750cf5ee44590ca1c18fecc959052606152ef0d905de"
+          }
+        ]
+      }
+    },
+    {
+      "action": "creche.search",
+      "argument": "value",
+      "target": {
+        "focus": {
+          "action_id": "creche.search",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "5056cb5f89cc4a56ea3aa753371db4d41302c32a62feee529b19e91902008338",
+          "face_revision": 1,
+          "hit_bounds": {
+            "height": 33,
+            "width": 578,
+            "x": 682,
+            "y": 371
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/ccfc2a294c61519218de750cf5ee44590ca1c18fecc959052606152ef0d905de"
+        },
+        "sample": {
+          "coalesced": 0,
+          "delta_x": 0,
+          "delta_y": 52000,
+          "display_x": 972,
+          "display_y": 387,
+          "dropped": 0,
+          "face_id": "5056cb5f89cc4a56ea3aa753371db4d41302c32a62feee529b19e91902008338",
+          "face_revision": 1,
+          "manifestation_id": "5f355aa14773f36dbface0e879c34e41d7f79de088e252d972ab553f9eb8ed46",
+          "position_x": 760000,
+          "position_y": 484000,
+          "press_edge": false,
+          "primary_pressed": false,
+          "schema": "conduit.native-pointer/v1",
+          "sequence": 16,
+          "show_id": "show/ccfc2a294c61519218de750cf5ee44590ca1c18fecc959052606152ef0d905de"
+        },
+        "moves": []
+      },
+      "transfer_origin": {
+        "action_id": "creche.name",
+        "argument_name": "value",
+        "display_bounds": {
+          "height": 800,
+          "width": 1280,
+          "x": 0,
+          "y": 0
+        },
+        "face_id": "5056cb5f89cc4a56ea3aa753371db4d41302c32a62feee529b19e91902008338",
+        "face_revision": 1,
+        "hit_bounds": {
+          "height": 33,
+          "width": 578,
+          "x": 48,
+          "y": 371
+        },
+        "page": 1,
+        "pages": 2,
+        "schema": "conduit.creche-focus/v1",
+        "show_id": "show/ccfc2a294c61519218de750cf5ee44590ca1c18fecc959052606152ef0d905de"
+      },
+      "click": {
+        "press": {
+          "coalesced": 0,
+          "delta_x": 0,
+          "delta_y": 0,
+          "display_x": 972,
+          "display_y": 387,
+          "dropped": 0,
+          "face_id": "5056cb5f89cc4a56ea3aa753371db4d41302c32a62feee529b19e91902008338",
+          "face_revision": 1,
+          "manifestation_id": "5f355aa14773f36dbface0e879c34e41d7f79de088e252d972ab553f9eb8ed46",
+          "position_x": 760000,
+          "position_y": 484000,
+          "press_edge": true,
+          "primary_pressed": true,
+          "schema": "conduit.native-pointer/v1",
+          "sequence": 17,
+          "show_id": "show/ccfc2a294c61519218de750cf5ee44590ca1c18fecc959052606152ef0d905de"
+        },
+        "release": {
+          "coalesced": 0,
+          "delta_x": 0,
+          "delta_y": 0,
+          "display_x": 972,
+          "display_y": 387,
+          "dropped": 0,
+          "face_id": "5056cb5f89cc4a56ea3aa753371db4d41302c32a62feee529b19e91902008338",
+          "face_revision": 1,
+          "manifestation_id": "5f355aa14773f36dbface0e879c34e41d7f79de088e252d972ab553f9eb8ed46",
+          "position_x": 760000,
+          "position_y": 484000,
+          "press_edge": false,
+          "primary_pressed": false,
+          "schema": "conduit.native-pointer/v1",
+          "sequence": 18,
+          "show_id": "show/ccfc2a294c61519218de750cf5ee44590ca1c18fecc959052606152ef0d905de"
+        }
+      },
+      "transferred_focus": {
+        "action_id": "creche.search",
+        "argument_name": "value",
+        "display_bounds": {
+          "height": 800,
+          "width": 1280,
+          "x": 0,
+          "y": 0
+        },
+        "face_id": "5056cb5f89cc4a56ea3aa753371db4d41302c32a62feee529b19e91902008338",
+        "face_revision": 1,
+        "hit_bounds": {
+          "height": 33,
+          "width": 578,
+          "x": 682,
+          "y": 371
+        },
+        "page": 1,
+        "pages": 2,
+        "schema": "conduit.creche-focus/v1",
+        "show_id": "show/ccfc2a294c61519218de750cf5ee44590ca1c18fecc959052606152ef0d905de"
+      }
+    },
+    {
+      "action": "creche.birth",
+      "argument": null,
+      "target": {
+        "focus": {
+          "action_id": "creche.birth",
+          "argument_name": null,
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "5056cb5f89cc4a56ea3aa753371db4d41302c32a62feee529b19e91902008338",
+          "face_revision": 1,
+          "hit_bounds": {
+            "height": 40,
+            "width": 1228,
+            "x": 40,
+            "y": 149
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/ccfc2a294c61519218de750cf5ee44590ca1c18fecc959052606152ef0d905de"
+        },
+        "sample": {
+          "coalesced": 0,
+          "delta_x": -248000,
+          "delta_y": -272000,
+          "display_x": 655,
+          "display_y": 169,
+          "dropped": 0,
+          "face_id": "5056cb5f89cc4a56ea3aa753371db4d41302c32a62feee529b19e91902008338",
+          "face_revision": 1,
+          "manifestation_id": "5f355aa14773f36dbface0e879c34e41d7f79de088e252d972ab553f9eb8ed46",
+          "position_x": 512000,
+          "position_y": 212000,
+          "press_edge": false,
+          "primary_pressed": false,
+          "schema": "conduit.native-pointer/v1",
+          "sequence": 19,
+          "show_id": "show/ccfc2a294c61519218de750cf5ee44590ca1c18fecc959052606152ef0d905de"
+        },
+        "moves": [
+          {
+            "coalesced": 0,
+            "delta_x": -248000,
+            "delta_y": -272000,
+            "display_x": 655,
+            "display_y": 169,
+            "dropped": 0,
+            "face_id": "5056cb5f89cc4a56ea3aa753371db4d41302c32a62feee529b19e91902008338",
+            "face_revision": 1,
+            "manifestation_id": "5f355aa14773f36dbface0e879c34e41d7f79de088e252d972ab553f9eb8ed46",
+            "position_x": 512000,
+            "position_y": 212000,
+            "press_edge": false,
+            "primary_pressed": false,
+            "schema": "conduit.native-pointer/v1",
+            "sequence": 19,
+            "show_id": "show/ccfc2a294c61519218de750cf5ee44590ca1c18fecc959052606152ef0d905de"
+          }
+        ]
+      }
+    },
+    {
+      "action": "creche.suggest",
+      "argument": null,
+      "target": {
+        "focus": {
+          "action_id": "creche.suggest",
+          "argument_name": null,
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "5056cb5f89cc4a56ea3aa753371db4d41302c32a62feee529b19e91902008338",
+          "face_revision": 1,
+          "hit_bounds": {
+            "height": 33,
+            "width": 1228,
+            "x": 40,
+            "y": 197
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/ccfc2a294c61519218de750cf5ee44590ca1c18fecc959052606152ef0d905de"
+        },
+        "sample": {
+          "coalesced": 0,
+          "delta_x": 0,
+          "delta_y": 56000,
+          "display_x": 655,
+          "display_y": 214,
+          "dropped": 0,
+          "face_id": "5056cb5f89cc4a56ea3aa753371db4d41302c32a62feee529b19e91902008338",
+          "face_revision": 1,
+          "manifestation_id": "5f355aa14773f36dbface0e879c34e41d7f79de088e252d972ab553f9eb8ed46",
+          "position_x": 512000,
+          "position_y": 268000,
+          "press_edge": false,
+          "primary_pressed": false,
+          "schema": "conduit.native-pointer/v1",
+          "sequence": 20,
+          "show_id": "show/ccfc2a294c61519218de750cf5ee44590ca1c18fecc959052606152ef0d905de"
+        },
+        "moves": [
+          {
+            "coalesced": 0,
+            "delta_x": 0,
+            "delta_y": 56000,
+            "display_x": 655,
+            "display_y": 214,
+            "dropped": 0,
+            "face_id": "5056cb5f89cc4a56ea3aa753371db4d41302c32a62feee529b19e91902008338",
+            "face_revision": 1,
+            "manifestation_id": "5f355aa14773f36dbface0e879c34e41d7f79de088e252d972ab553f9eb8ed46",
+            "position_x": 512000,
+            "position_y": 268000,
+            "press_edge": false,
+            "primary_pressed": false,
+            "schema": "conduit.native-pointer/v1",
+            "sequence": 20,
+            "show_id": "show/ccfc2a294c61519218de750cf5ee44590ca1c18fecc959052606152ef0d905de"
+          }
+        ]
+      }
+    },
+    {
+      "action": "creche.name",
+      "argument": null,
+      "target": {
+        "focus": {
+          "action_id": "creche.name",
+          "argument_name": null,
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "5056cb5f89cc4a56ea3aa753371db4d41302c32a62feee529b19e91902008338",
+          "face_revision": 1,
+          "hit_bounds": {
+            "height": 33,
+            "width": 578,
+            "x": 48,
+            "y": 330
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/ccfc2a294c61519218de750cf5ee44590ca1c18fecc959052606152ef0d905de"
+        },
+        "sample": {
+          "coalesced": 0,
+          "delta_x": -248000,
+          "delta_y": 164000,
+          "display_x": 337,
+          "display_y": 345,
+          "dropped": 0,
+          "face_id": "5056cb5f89cc4a56ea3aa753371db4d41302c32a62feee529b19e91902008338",
+          "face_revision": 1,
+          "manifestation_id": "5f355aa14773f36dbface0e879c34e41d7f79de088e252d972ab553f9eb8ed46",
+          "position_x": 264000,
+          "position_y": 432000,
+          "press_edge": false,
+          "primary_pressed": false,
+          "schema": "conduit.native-pointer/v1",
+          "sequence": 21,
+          "show_id": "show/ccfc2a294c61519218de750cf5ee44590ca1c18fecc959052606152ef0d905de"
+        },
+        "moves": [
+          {
+            "coalesced": 0,
+            "delta_x": -248000,
+            "delta_y": 164000,
+            "display_x": 337,
+            "display_y": 345,
+            "dropped": 0,
+            "face_id": "5056cb5f89cc4a56ea3aa753371db4d41302c32a62feee529b19e91902008338",
+            "face_revision": 1,
+            "manifestation_id": "5f355aa14773f36dbface0e879c34e41d7f79de088e252d972ab553f9eb8ed46",
+            "position_x": 264000,
+            "position_y": 432000,
+            "press_edge": false,
+            "primary_pressed": false,
+            "schema": "conduit.native-pointer/v1",
+            "sequence": 21,
+            "show_id": "show/ccfc2a294c61519218de750cf5ee44590ca1c18fecc959052606152ef0d905de"
+          }
+        ]
+      }
+    }
+  ],
+  "dispatches": [
+    {
+      "click": {
+        "press": {
+          "coalesced": 0,
+          "delta_x": 0,
+          "delta_y": 0,
+          "display_x": 972,
+          "display_y": 476,
+          "dropped": 0,
+          "face_id": "5056cb5f89cc4a56ea3aa753371db4d41302c32a62feee529b19e91902008338",
+          "face_revision": 1,
+          "manifestation_id": "5f355aa14773f36dbface0e879c34e41d7f79de088e252d972ab553f9eb8ed46",
+          "position_x": 760000,
+          "position_y": 596000,
+          "press_edge": true,
+          "primary_pressed": true,
+          "schema": "conduit.native-pointer/v1",
+          "sequence": 23,
+          "show_id": "show/ccfc2a294c61519218de750cf5ee44590ca1c18fecc959052606152ef0d905de"
+        },
+        "release": {
+          "coalesced": 0,
+          "delta_x": 0,
+          "delta_y": 0,
+          "display_x": 972,
+          "display_y": 476,
+          "dropped": 0,
+          "face_id": "8f8fc315799d3c3a4380c8270bf407e1edcbc003d2955c0b8d38f529d155d592",
+          "face_revision": 2,
+          "manifestation_id": "7ccaf4f5eea3d28be9f5330cda2f1c0a1293d6b11114b1d61a2c83f3fbd30630",
+          "position_x": 760000,
+          "position_y": 596000,
+          "press_edge": false,
+          "primary_pressed": false,
+          "schema": "conduit.native-pointer/v1",
+          "sequence": 24,
+          "show_id": "show/56c3e5979f8f13ccf430457cdaa45c79be58a5e6706a2428d441c9e280ff48c9"
+        }
+      },
+      "change": {
+        "after_face_id": "8f8fc315799d3c3a4380c8270bf407e1edcbc003d2955c0b8d38f529d155d592",
+        "after_revision": 2,
+        "after_show_id": "show/56c3e5979f8f13ccf430457cdaa45c79be58a5e6706a2428d441c9e280ff48c9",
+        "before_face_id": "5056cb5f89cc4a56ea3aa753371db4d41302c32a62feee529b19e91902008338",
+        "before_revision": 1,
+        "before_show_id": "show/ccfc2a294c61519218de750cf5ee44590ca1c18fecc959052606152ef0d905de",
+        "disposition": "source-accepted-and-shown",
+        "interaction": {
+          "action_id": "creche.plot.0",
+          "arguments": [
+            {
+              "name": "value",
+              "value": [
+                0
+              ],
+              "value_kind": "value/bool"
+            }
+          ],
+          "face_id": "5056cb5f89cc4a56ea3aa753371db4d41302c32a62feee529b19e91902008338",
+          "face_revision": 1,
+          "identity": "349387e886d1b377176da4e977d6c2d14d3c70b9111757f3daef3af4d2d0a2f8",
+          "sequence": 76,
+          "show_id": "show/ccfc2a294c61519218de750cf5ee44590ca1c18fecc959052606152ef0d905de",
+          "target": "birth/conduitos/creche/current/initial-plots/0"
+        },
+        "schema": "conduit.creche-change/v1"
+      }
+    },
+    {
+      "click": {
+        "press": {
+          "coalesced": 0,
+          "delta_x": 0,
+          "delta_y": 0,
+          "display_x": 972,
+          "display_y": 476,
+          "dropped": 0,
+          "face_id": "8f8fc315799d3c3a4380c8270bf407e1edcbc003d2955c0b8d38f529d155d592",
+          "face_revision": 2,
+          "manifestation_id": "7ccaf4f5eea3d28be9f5330cda2f1c0a1293d6b11114b1d61a2c83f3fbd30630",
+          "position_x": 760000,
+          "position_y": 596000,
+          "press_edge": true,
+          "primary_pressed": true,
+          "schema": "conduit.native-pointer/v1",
+          "sequence": 25,
+          "show_id": "show/56c3e5979f8f13ccf430457cdaa45c79be58a5e6706a2428d441c9e280ff48c9"
+        },
+        "release": {
+          "coalesced": 0,
+          "delta_x": 0,
+          "delta_y": 0,
+          "display_x": 972,
+          "display_y": 476,
+          "dropped": 0,
+          "face_id": "76198300d70e6be870640142f352db29b6eabac3d2308ca194858e93bb9084ec",
+          "face_revision": 3,
+          "manifestation_id": "151ae8c6388445173fdfe7d8efdb83711029c5984843ce0ea41738a39f919e41",
+          "position_x": 760000,
+          "position_y": 596000,
+          "press_edge": false,
+          "primary_pressed": false,
+          "schema": "conduit.native-pointer/v1",
+          "sequence": 26,
+          "show_id": "show/f540d4da45fd29deaaa1d5e6f1c2e1c55a723b9726a6be13691823a835430734"
+        }
+      },
+      "change": {
+        "after_face_id": "76198300d70e6be870640142f352db29b6eabac3d2308ca194858e93bb9084ec",
+        "after_revision": 3,
+        "after_show_id": "show/f540d4da45fd29deaaa1d5e6f1c2e1c55a723b9726a6be13691823a835430734",
+        "before_face_id": "8f8fc315799d3c3a4380c8270bf407e1edcbc003d2955c0b8d38f529d155d592",
+        "before_revision": 2,
+        "before_show_id": "show/56c3e5979f8f13ccf430457cdaa45c79be58a5e6706a2428d441c9e280ff48c9",
+        "disposition": "source-accepted-and-shown",
+        "interaction": {
+          "action_id": "creche.plot.0",
+          "arguments": [
+            {
+              "name": "value",
+              "value": [
+                1
+              ],
+              "value_kind": "value/bool"
+            }
+          ],
+          "face_id": "8f8fc315799d3c3a4380c8270bf407e1edcbc003d2955c0b8d38f529d155d592",
+          "face_revision": 2,
+          "identity": "b9d071cd62b19e8e90654685923ac8fd285f61a04608dbb4603aa7de0e927de7",
+          "sequence": 77,
+          "show_id": "show/56c3e5979f8f13ccf430457cdaa45c79be58a5e6706a2428d441c9e280ff48c9",
+          "target": "birth/conduitos/creche/current/initial-plots/0"
+        },
+        "schema": "conduit.creche-change/v1"
+      }
+    }
+  ],
+  "boundary": "All eligible hits physically reached; argument fields pointer-focused from distinct same-page controls without Source mutation; one Boolean toggled/restored; Birth enacted last. Main action rows with arguments and Suggest are reached without dispatch.",
+  "expected_source_control_order": [
+    [
+      "creche.birth",
+      null
+    ],
+    [
+      "creche.suggest",
+      null
+    ],
+    [
+      "creche.name",
+      null
+    ],
+    [
+      "creche.name",
+      "value"
+    ],
+    [
+      "creche.plot.0",
+      null
+    ],
+    [
+      "creche.plot.1",
+      null
+    ],
+    [
+      "creche.plot.2",
+      null
+    ],
+    [
+      "creche.plot.3",
+      null
+    ],
+    [
+      "creche.naming",
+      null
+    ],
+    [
+      "creche.naming",
+      "value"
+    ],
+    [
+      "creche.search",
+      null
+    ],
+    [
+      "creche.search",
+      "value"
+    ]
+  ],
+  "pointer_scale": [
+    4000,
+    4000
+  ],
+  "birth_attempt": {
+    "target": {
+      "focus": {
+        "action_id": "creche.birth",
+        "argument_name": null,
+        "display_bounds": {
+          "height": 800,
+          "width": 1280,
+          "x": 0,
+          "y": 0
+        },
+        "face_id": "76198300d70e6be870640142f352db29b6eabac3d2308ca194858e93bb9084ec",
+        "face_revision": 3,
+        "hit_bounds": {
+          "height": 40,
+          "width": 1228,
+          "x": 40,
+          "y": 149
+        },
+        "page": 1,
+        "pages": 2,
+        "schema": "conduit.creche-focus/v1",
+        "show_id": "show/f540d4da45fd29deaaa1d5e6f1c2e1c55a723b9726a6be13691823a835430734"
+      },
+      "sample": {
+        "coalesced": 0,
+        "delta_x": -248000,
+        "delta_y": -384000,
+        "display_x": 655,
+        "display_y": 169,
+        "dropped": 0,
+        "face_id": "76198300d70e6be870640142f352db29b6eabac3d2308ca194858e93bb9084ec",
+        "face_revision": 3,
+        "manifestation_id": "151ae8c6388445173fdfe7d8efdb83711029c5984843ce0ea41738a39f919e41",
+        "position_x": 512000,
+        "position_y": 212000,
+        "press_edge": false,
+        "primary_pressed": false,
+        "schema": "conduit.native-pointer/v1",
+        "sequence": 27,
+        "show_id": "show/f540d4da45fd29deaaa1d5e6f1c2e1c55a723b9726a6be13691823a835430734"
+      },
+      "moves": [
+        {
+          "coalesced": 0,
+          "delta_x": -248000,
+          "delta_y": -384000,
+          "display_x": 655,
+          "display_y": 169,
+          "dropped": 0,
+          "face_id": "76198300d70e6be870640142f352db29b6eabac3d2308ca194858e93bb9084ec",
+          "face_revision": 3,
+          "manifestation_id": "151ae8c6388445173fdfe7d8efdb83711029c5984843ce0ea41738a39f919e41",
+          "position_x": 512000,
+          "position_y": 212000,
+          "press_edge": false,
+          "primary_pressed": false,
+          "schema": "conduit.native-pointer/v1",
+          "sequence": 27,
+          "show_id": "show/f540d4da45fd29deaaa1d5e6f1c2e1c55a723b9726a6be13691823a835430734"
+        }
+      ]
+    },
+    "cold_preparation_timeout_seconds": 60,
+    "timeout_source_sha256": "6ce3a4cc648a0e7258d0cf227821e9db2f32ea5e1cd338dd03314b3c7c937eac",
+    "physical_press": {
+      "coalesced": 0,
+      "delta_x": 0,
+      "delta_y": 0,
+      "display_x": 655,
+      "display_y": 169,
+      "dropped": 0,
+      "face_id": "76198300d70e6be870640142f352db29b6eabac3d2308ca194858e93bb9084ec",
+      "face_revision": 3,
+      "manifestation_id": "151ae8c6388445173fdfe7d8efdb83711029c5984843ce0ea41738a39f919e41",
+      "position_x": 512000,
+      "position_y": 212000,
+      "press_edge": true,
+      "primary_pressed": true,
+      "schema": "conduit.native-pointer/v1",
+      "sequence": 28,
+      "show_id": "show/f540d4da45fd29deaaa1d5e6f1c2e1c55a723b9726a6be13691823a835430734"
+    },
+    "release": {
+      "qmp_acknowledged": true,
+      "physical_guest_observation": false,
+      "boundary": "Cr\u00e8che pointer observation ends when Birth closes its entrance"
+    }
+  },
+  "birth": {
+    "click": {
+      "press": {
+        "coalesced": 0,
+        "delta_x": 0,
+        "delta_y": 0,
+        "display_x": 655,
+        "display_y": 169,
+        "dropped": 0,
+        "face_id": "76198300d70e6be870640142f352db29b6eabac3d2308ca194858e93bb9084ec",
+        "face_revision": 3,
+        "manifestation_id": "151ae8c6388445173fdfe7d8efdb83711029c5984843ce0ea41738a39f919e41",
+        "position_x": 512000,
+        "position_y": 212000,
+        "press_edge": true,
+        "primary_pressed": true,
+        "schema": "conduit.native-pointer/v1",
+        "sequence": 28,
+        "show_id": "show/f540d4da45fd29deaaa1d5e6f1c2e1c55a723b9726a6be13691823a835430734"
+      },
+      "release": {
+        "qmp_acknowledged": true,
+        "physical_guest_observation": false,
+        "boundary": "Cr\u00e8che pointer observation ends when Birth closes its entrance"
+      }
+    },
+    "receipt": {
+      "accepted_effects": 1,
+      "after": {
+        "active_play_id": null,
+        "body_id": "1935380c88fb2286f5eadea9de297c563a24e5649480c8b80768d44512426a41",
+        "boot_id": "bb128da55c67f5db8f0c3a8df4c73e5343bbbdf92dde521f44c8708a468a3fd7",
+        "born_sign_id": "conduitos/product/born/bb128da55c67f5db8f0c3a8df4c73e5343bbbdf92dde521f44c8708a468a3fd7/1",
+        "checked_plot_id": "ecac33a08de2f696f8745a4cc1882adf207cf023d7dbc9fd977149841f0847ab",
+        "cord_ids": [],
+        "expanded_plot_id": "b741c1c52dca2fe25ab1d83fc97cbf0222119800b35a7e320a6899c635ef3c28",
+        "friendly_name": "Li Huaijin",
+        "fulfilled_sign_id": null,
+        "gear_ids": [],
+        "host_id": "255d1345b723a9fca3ac83d311fe82cf95ba784969a15cb7d0ffff9cf91602e2",
+        "input_count": 0,
+        "input_sign_id": null,
+        "kernel_sign_gap": null,
+        "last_request_id": "conduitos/creche/birth/bb128da55c67f5db8f0c3a8df4c73e5343bbbdf92dde521f44c8708a468a3fd7/3",
+        "loss_kind": null,
+        "loss_sign_id": null,
+        "lull_sign_id": null,
+        "mask": null,
+        "offer_generation": 1,
+        "part_id": "45e59dae2fa514e0223667c98b1cb731748e63906636daef401ede787704fbd7",
+        "partition_plan_id": null,
+        "plan_id": null,
+        "plan_sign_id": null,
+        "play_sign_id": null,
+        "port_ids": [],
+        "result": null,
+        "result_omitted_bytes": 0,
+        "result_sign_id": null,
+        "revision": 3,
+        "source_document_id": "aa98b04cce0746f84fc8965cd59890e2d45cf79677e17b7a4eb908e8bff212b3",
+        "status": "born-lulled",
+        "text_editor_active": false,
+        "text_editor_label": null,
+        "wake_id": null,
+        "wake_sign_id": null,
+        "workload_capacity_available": false,
+        "workload_revision": 0,
+        "workload_sign_id": null
+      },
+      "before": {
+        "active_play_id": null,
+        "body_id": null,
+        "boot_id": "bb128da55c67f5db8f0c3a8df4c73e5343bbbdf92dde521f44c8708a468a3fd7",
+        "born_sign_id": null,
+        "checked_plot_id": null,
+        "cord_ids": [],
+        "expanded_plot_id": null,
+        "friendly_name": null,
+        "fulfilled_sign_id": null,
+        "gear_ids": [],
+        "host_id": "255d1345b723a9fca3ac83d311fe82cf95ba784969a15cb7d0ffff9cf91602e2",
+        "input_count": 0,
+        "input_sign_id": null,
+        "kernel_sign_gap": null,
+        "last_request_id": null,
+        "loss_kind": null,
+        "loss_sign_id": null,
+        "lull_sign_id": null,
+        "mask": null,
+        "offer_generation": 1,
+        "part_id": null,
+        "partition_plan_id": null,
+        "plan_id": null,
+        "plan_sign_id": null,
+        "play_sign_id": null,
+        "port_ids": [],
+        "result": null,
+        "result_omitted_bytes": 0,
+        "result_sign_id": null,
+        "revision": 1,
+        "source_document_id": null,
+        "status": "world",
+        "text_editor_active": false,
+        "text_editor_label": null,
+        "wake_id": null,
+        "wake_sign_id": null,
+        "workload_capacity_available": false,
+        "workload_revision": null,
+        "workload_sign_id": null
+      },
+      "disposition": {
+        "Accepted": {
+          "operation_request_id": "conduitos/creche/birth/bb128da55c67f5db8f0c3a8df4c73e5343bbbdf92dde521f44c8708a468a3fd7/3"
+        }
+      },
+      "face_id": "76198300d70e6be870640142f352db29b6eabac3d2308ca194858e93bb9084ec",
+      "face_revision": 3,
+      "interaction": {
+        "action_id": "creche.birth",
+        "arguments": [],
+        "face_id": "76198300d70e6be870640142f352db29b6eabac3d2308ca194858e93bb9084ec",
+        "face_revision": 3,
+        "identity": "b8fffb350c3179815c1cbc355d95e9bb028380ec7f2f160e1d49c7eb32962839",
+        "sequence": 94,
+        "show_id": "show/f540d4da45fd29deaaa1d5e6f1c2e1c55a723b9726a6be13691823a835430734",
+        "target": "birth/conduitos/creche/current/navigation"
+      },
+      "requested_intent": "conduit.intent/creche.birth@1",
+      "schema": "conduit.native-action/v1",
+      "show_id": "show/f540d4da45fd29deaaa1d5e6f1c2e1c55a723b9726a6be13691823a835430734"
+    }
+  },
+  "exit_code": 0
+}

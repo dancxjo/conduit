@@ -1,0 +1,88 @@
+[
+  {
+    "name": "6055-e29922753-preflight",
+    "argv": [
+      "cargo",
+      "+stable",
+      "xtask",
+      "ci",
+      "pipeline",
+      "preflight",
+      "80bf55640ae789952bd98f54258b0c02d0d5bd5d"
+    ],
+    "status": 0,
+    "seconds": 15.884080410003662
+  },
+  {
+    "name": "5990-e29922753-strict-clippy",
+    "argv": [
+      "cargo",
+      "+stable",
+      "clippy",
+      "-p",
+      "conduitos",
+      "--lib",
+      "--tests",
+      "--locked",
+      "--features",
+      "hosted-tools,native-compositor",
+      "--",
+      "-D",
+      "warnings"
+    ],
+    "status": 0,
+    "seconds": 59.23576855659485
+  },
+  {
+    "name": "5990-e29922753-native-face-tests",
+    "argv": [
+      "cargo",
+      "+stable",
+      "test",
+      "-p",
+      "conduitos",
+      "--lib",
+      "--locked",
+      "--features",
+      "hosted-tools,native-compositor",
+      "native_face",
+      "--",
+      "--test-threads=1"
+    ],
+    "status": 0,
+    "seconds": 293.3533306121826
+  },
+  {
+    "name": "5990-product-e29922753-build",
+    "argv": [
+      "cargo",
+      "+stable",
+      "xtask",
+      "make",
+      "conduitos",
+      "live",
+      "x86_64",
+      "--locked"
+    ],
+    "status": 0,
+    "seconds": 137.14897418022156
+  },
+  {
+    "name": "5990-e29922753-five-runs",
+    "argv": [
+      "python3",
+      "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/run-5990-e29922753-product-proof.py"
+    ],
+    "status": 0,
+    "seconds": 264.9314007759094
+  },
+  {
+    "name": "5990-e29922753-consolidation",
+    "argv": [
+      "python3",
+      "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/consolidate-5990-e29922753.py"
+    ],
+    "status": 0,
+    "seconds": 0.15767908096313477
+  }
+]

@@ -1,0 +1,45 @@
+{
+  "source": "e29922753a2fca04145551bbb6ae00504fed76a9",
+  "tree": "77166933eb300f12a64e2ddf445d7a39b69183ee",
+  "base": "80bf55640ae789952bd98f54258b0c02d0d5bd5d",
+  "recovery": "origin/recovery/6055-03bd-before-80bf-refresh = 03bd8b99d1018544f7df9bae159e8f416c859689, pushed and ls-remote verified before rebase",
+  "range_diff": "six entries =; no source changes",
+  "preflight": {
+    "pass": 295,
+    "fail": 0
+  },
+  "strict_clippy": "conduitos lib/tests hosted-tools,native-compositor warnings denied passed",
+  "native_face_tests": {
+    "pass": 105,
+    "fail": 0,
+    "ignore": 0
+  },
+  "candidate_integration_stable": "not observed by worker; parent owns current CI/merge admission",
+  "source_clean": true,
+  "logs": {
+    "work/6055-e29922753-preflight.log": {
+      "sha256": "72de22464e8107621f1dd04ef8b820bff21b7bd1a683f4991793ade0e4cae782",
+      "bytes": 30784
+    },
+    "work/5990-e29922753-strict-clippy.log": {
+      "sha256": "2280db5adeca61740100f48f07168b410938141e99e7934d237d72766dc379d4",
+      "bytes": 6996
+    },
+    "work/5990-e29922753-native-face-tests.log": {
+      "sha256": "21bef1d3c35439f93ead842481fe73e723737e693e2338f7b23f9873a58604d1",
+      "bytes": 26888
+    },
+    "work/5990-product-e29922753-build.log": {
+      "sha256": "0935a131ce5b55310ff642c5e4049be556c400968cb73cb745e0e14ac3b3ec8a",
+      "bytes": 13300
+    },
+    "work/5990-e29922753-sequence-status.json": {
+      "sha256": "958e69bbea4c00f669ba9b83fdc8284cd6e3dd7a4faa6540869987d4a4faf390",
+      "bytes": 1705
+    },
+    "work/6055-e29922753-range-diff.txt": {
+      "sha256": "7744d966cb333a822d5f20fab993a9d027a3727c9f8f1b5b6a0fd2977ab6541e",
+      "bytes": 537
+    }
+  }
+}

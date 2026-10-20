@@ -1,0 +1,348 @@
+   Compiling typenum v1.20.1
+   Compiling zeroize v1.9.0
+   Compiling generic-array v0.14.7
+   Compiling subtle v2.6.1
+   Compiling const-oid v0.9.6
+   Compiling serde_core v1.0.229
+   Compiling serde v1.0.229
+   Compiling libc v0.2.189
+   Compiling conduit-time v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels/semantics/time)
+   Compiling itoa v1.0.18
+   Compiling curve25519-dalek v4.1.3
+   Compiling zmij v1.0.23
+   Compiling serde_json v1.0.151
+   Compiling memchr v2.8.3
+   Compiling getrandom v0.2.17
+   Compiling crypto-common v0.1.7
+   Compiling block-buffer v0.10.4
+   Compiling rand_core v0.6.4
+   Compiling digest v0.10.7
+   Compiling sha2 v0.10.9
+   Compiling signature v2.2.0
+   Compiling conduit-assigned-plan v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels/architecture/assigned-plan)
+   Compiling ed25519 v2.2.3
+   Compiling conduit-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels/architecture/core)
+   Compiling conduit-kernel v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels/architecture/kernel)
+   Compiling ed25519-dalek v2.2.0
+   Compiling postcard v1.1.3
+   Compiling unicode-normalization v0.1.25
+   Compiling conduit-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels/semantics/face)
+   Compiling minicbor v2.3.0
+   Compiling conduit-data v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels/semantics/data)
+   Compiling conduit-web v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels/semantics/web)
+   Compiling conduit-net v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels/semantics/net)
+   Compiling conduit-process v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels/semantics/process)
+   Compiling conduit-text v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels/semantics/text)
+   Compiling conduit-alife v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels/semantics/alife)
+   Compiling conduit-purpose v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels/semantics/purpose)
+   Compiling conduit-robotics v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels/semantics/robotics)
+   Compiling conduit-education v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels/semantics/education)
+   Compiling byteorder v1.5.0
+   Compiling hashbrown v0.17.1
+   Compiling equivalent v1.0.2
+   Compiling serde_spanned v0.6.9
+   Compiling toml_datetime v0.6.11
+   Compiling indexmap v2.14.2
+   Compiling toml_write v0.1.2
+   Compiling winnow v0.7.15
+   Compiling stable_deref_trait v1.2.1
+   Compiling hybrid-array v0.4.15
+   Compiling const-oid v0.10.2
+   Compiling hash32 v0.3.1
+   Compiling cpufeatures v0.3.1
+   Compiling crypto-common v0.2.2
+   Compiling block-buffer v0.12.1
+   Compiling inout v0.1.4
+   Compiling siphasher v1.0.3
+   Compiling phf_shared v0.11.3
+   Compiling conduit-ai v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels/semantics/ai)
+   Compiling toml_edit v0.22.27
+   Compiling digest v0.11.3
+   Compiling cipher v0.4.4
+   Compiling universal-hash v0.5.1
+   Compiling option-ext v0.2.0
+   Compiling opaque-debug v0.3.1
+   Compiling anyhow v1.0.104
+   Compiling heapless v0.8.0
+   Compiling dirs-sys v0.5.0
+   Compiling static-automata v1.0.3
+   Compiling str-newtype v2.0.0
+   Compiling phf v0.11.3
+   Compiling speaking v0.1.0 (https://github.com/dancxjo/tongues.git?rev=b5d7535b2ccd3730b4db878fb61b2e4e48ae89c9#b5d7535b)
+   Compiling isolang v2.4.0
+   Compiling langtag v1.1.0
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels/architecture/plot)
+   Compiling conduit-body v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels/architecture/body)
+   Compiling toml v0.8.23
+   Compiling conduit-plan-lowering v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels/architecture/plan-lowering)
+   Compiling conduit-language v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels/semantics/language)
+   Compiling conduit-human v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels/semantics/human)
+   Compiling conduit-planner v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels/architecture/planner)
+   Compiling conduit-audio v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels/semantics/audio)
+   Compiling conduit-midi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels/mechanisms/protocols/midi)
+   Compiling conduit-semantic-catalog v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels/semantics/catalog)
+   Compiling dirs v6.0.0
+   Compiling conduit-host-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels/make/host)
+   Compiling sha2 v0.11.0
+   Compiling ryu v1.0.23
+   Compiling unicode-segmentation v1.13.3
+   Compiling crossbeam-utils v0.8.23
+   Compiling serde-json-core v0.6.0
+   Compiling conduit-signal v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels/semantics/signal)
+   Compiling conduit-chat v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels/semantics/chat)
+   Compiling conduit-tongues v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels/semantics/tongues)
+   Compiling conduit-todo-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels/plots/todo/model)
+   Compiling conduit-thermostat-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels/plots/thermostat/model)
+   Compiling hmac v0.12.1
+   Compiling aead v0.5.2
+   Compiling scopeguard v1.2.0
+   Compiling crossbeam-epoch v0.9.21
+   Compiling zerocopy v0.8.57
+   Compiling httparse v1.10.1
+   Compiling lock_api v0.4.14
+   Compiling conduit-wire v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels/architecture/wire)
+   Compiling ring v0.17.14
+   Compiling ff v0.13.1
+   Compiling der v0.7.10
+   Compiling rustls-pki-types v1.15.1
+   Compiling base16ct v0.2.0
+   Compiling crossbeam-deque v0.8.8
+   Compiling sec1 v0.7.3
+   Compiling conduit-std-offers v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels/targets/std/offers)
+   Compiling group v0.13.0
+   Compiling hkdf v0.12.4
+   Compiling poly1305 v0.8.0
+   Compiling chacha20 v0.9.1
+   Compiling crypto-bigint v0.5.5
+   Compiling arrayvec v0.7.8
+   Compiling untrusted v0.9.0
+   Compiling rand_core v0.10.1
+   Compiling log v0.4.34
+   Compiling bytes v1.12.1
+   Compiling heapless v0.9.3
+   Compiling getrandom v0.4.3
+   Compiling http v1.5.0
+   Compiling rayon-core v1.13.0
+   Compiling noise-protocol v0.2.1
+   Compiling parking_lot_core v0.9.12
+   Compiling ppv-lite86 v0.2.21
+   Compiling elliptic-curve v0.13.8
+   Compiling chacha20poly1305 v0.10.1
+   Compiling conduit-bluetooth v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels/mechanisms/protocols/bluetooth)
+   Compiling num-traits v0.2.19
+   Compiling futures-sink v0.3.34
+   Compiling futures-core v0.3.34
+   Compiling smallvec v1.16.1
+   Compiling rustls v0.23.45
+   Compiling conduit-body-invitation-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels/semantics/body-invitation)
+   Compiling conduit-tutorial-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels/semantics/tutorial)
+   Compiling conduit-plot-library v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels/semantics/plot-library)
+   Compiling conduit-signal-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels/proof/conformance/signal)
+   Compiling noise-rust-crypto v0.6.2
+   Compiling rand_chacha v0.3.1
+   Compiling conduit-speech v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels/semantics/speech)
+   Compiling rustls-webpki v0.103.15
+   Compiling chacha20 v0.10.2
+   Compiling rfc6979 v0.4.0
+   Compiling conduit-host-browser-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels/targets/browser/make)
+   Compiling patchbay-graph v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels/plots/patchbay/graph)
+   Compiling polyval v0.6.2
+   Compiling patchbay-control v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels/plots/patchbay)
+   Compiling x25519-dalek v2.0.1
+   Compiling powerfmt v0.2.0
+   Compiling num-conv v0.2.2
+   Compiling pin-project-lite v0.2.17
+   Compiling base64 v0.23.1
+   Compiling once_cell v1.21.4
+   Compiling either v1.18.0
+   Compiling deranged v0.5.8
+   Compiling time-core v0.1.9
+   Compiling futures-task v0.3.34
+   Compiling futures-util v0.3.34
+   Compiling getrandom v0.3.4
+   Compiling time v0.3.55
+   Compiling portable-atomic v1.15.0
+   Compiling rayon v1.12.0
+   Compiling ureq-proto v0.6.4
+   Compiling conduit-browser-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels/targets/browser/runtime)
+   Compiling conduit-finance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels/semantics/finance)
+   Compiling heapless v0.7.17
+   Compiling conduit-protected-line v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels/architecture/protected-line)
+   Compiling patchbay-application v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels/plots/patchbay/application)
+   Compiling ghash v0.5.1
+   Compiling conduit-browser-mask-offer v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels/targets/browser/mask-offer)
+   Compiling ecdsa v0.16.9
+   Compiling rand v0.10.3
+   Compiling rand v0.8.8
+   Compiling ordered-float v3.9.2
+   Compiling parking_lot v0.12.5
+   Compiling futures-channel v0.3.34
+   Compiling primeorder v0.13.6
+   Compiling conduit-host-hosted v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels/targets/std/make)
+   Compiling webpki-roots v1.0.9
+   Compiling spin v0.9.9
+   Compiling conduit-thermostat-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels/plots/thermostat/face)
+   Compiling conduit-linear-framebuffer-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels/mechanisms/implementations/linear-framebuffer-make)
+   Compiling conduit-host-conduitos-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels/targets/conduitos/make)
+   Compiling conduit-host-rp2040 v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels/targets/rp2040/make)
+   Compiling conduit-host-avr-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels/targets/avr/make)
+   Compiling conduit-body-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels/make/body)
+   Compiling conduit-host-raspberry-pi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels/targets/raspberry-pi/make)
+   Compiling conduit-host-esp32-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels/targets/esp32/make)
+   Compiling conduit-host-orange-pi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels/targets/orange-pi/make)
+   Compiling conduit-tour-model v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels/plots/tour)
+   Compiling conduit-synth v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels/mechanisms/implementations/synth)
+   Compiling conduit-little-seismograph-fixture v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels/plots/little-seismograph/fixture)
+   Compiling conduit-birth-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels/plots/birth)
+   Compiling conduit-composite v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels/architecture/composite)
+   Compiling aes v0.8.4
+   Compiling ctr v0.9.2
+   Compiling sha1 v0.11.0
+   Compiling hash32 v0.2.1
+   Compiling num_cpus v1.17.0
+   Compiling percent-encoding v2.3.2
+   Compiling embedded-io v0.7.1
+   Compiling qrcode v0.14.1
+   Compiling utf8-zero v0.8.1
+   Compiling data-encoding v2.11.1
+   Compiling futures-io v0.3.34
+   Compiling futures v0.3.34
+   Compiling tungstenite v0.30.0
+   Compiling ureq v3.4.2
+   Compiling embedded-io-async v0.7.0
+   Compiling smoltcp v0.13.1
+   Compiling der v0.8.2
+   Compiling conduit-home-model v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels/semantics/home)
+   Compiling instant-distance v0.6.1
+   Compiling aes-gcm v0.10.3
+   Compiling p256 v0.13.2
+   Compiling conduit-r1-network-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels/proof/conformance/network-r1)
+   Compiling rustls-pemfile v2.2.0
+   Compiling conduit-todo-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels/plots/todo/face)
+   Compiling conduit-observatory v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels/architecture/observatory)
+   Compiling conduit-alife-distributed-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels/proof/conformance/alife-distributed)
+   Compiling conduit-rp2040-network-realization v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels/targets/rp2040/network-realization)
+   Compiling sha1 v0.10.7
+   Compiling bitflags v1.3.2
+   Compiling base64 v0.13.1
+   Compiling bitflags v2.13.2
+   Compiling conduit-emergency-keyword-spotter v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels/mechanisms/implementations/emergency-keyword-spotter)
+   Compiling managed v0.8.0
+   Compiling limine v0.5.0
+   Compiling embedded-websocket v0.9.5
+   Compiling embedded-tls v0.19.0
+   Compiling conduitos v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels/targets/conduitos)
+   Compiling conduit-conduitos-mask-offer v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels/targets/conduitos/mask-offer)
+   Compiling conduit-std-host v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels/targets/std)
+    Finished `test` profile [optimized] target(s) in 4m 32s
+     Running unittests src/lib.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/deps/conduitos-9bf31814da61c6ef)
+
+running 105 tests
+test native_face_mask::creche_tests::checked_creche_masks_admit_three_fields_and_present_both_column_counts ... ok
+test native_face_mask::creche_tests::full_inventory_fixture_keeps_long_and_empty_names_and_filtered_review_readable ... ok
+test native_face_mask::tests::birth_face_crosses_producer_mask_scanout_and_exact_interaction_fore ... ok
+test native_face_mask::tests::compositor_refusal_keeps_its_specific_machine_reason ... ok
+test native_face_mask::tests::failed_scanout_does_not_publish_a_mask_show ... ok
+test native_face_mask::tests::layout_receipt::cpu_native_mask_reflow_retains_face_and_retires_old_show ... ok
+test native_face_mask::tests::owner_body_face_keeps_exact_identity_and_has_read_only_mask_navigation ... ok
+test native_face_mask::tests::pointer_motion::cursor_requires_acknowledged_show_and_scanout_loss_retires_it ... ok
+test native_face_mask::tests::pointer_motion::motion_draws_cursor_without_submitting_or_republishing_the_face ... ok
+test native_face_mask::tests::stale_scene_input_redraws_a_notice_and_preserves_the_refusal ... ok
+test native_face_mask::tests::valid_face_beyond_checked_recipe_capacity_keeps_generic_reading_and_controls ... ok
+test native_face_scene::boolean_choice_tests::generic_or_one_way_boolean_is_not_inferred_as_reversible_choice ... ok
+test native_face_scene::boolean_choice_tests::keyboard_boolean_false_then_true_requires_source_acceptance_and_fresh_show ... ok
+test native_face_scene::boolean_choice_tests::ordinary_name_entry_reaches_first_choice_with_one_tab ... ok
+test native_face_scene::boolean_choice_tests::pointer_checkbox_has_named_hit_and_independent_non_color_state_geometry ... ok
+test native_face_scene::boolean_choice_tests::subject_name_stays_primary_when_boolean_association_is_absent ... ok
+test native_face_scene::boolean_choice_tests::unavailable_and_stale_choices_never_toggle_or_grow_scene_budget ... ok
+test native_face_scene::chrome::draft_tests::suffix_is_measured_at_each_supported_width_and_scale ... ok
+test native_face_scene::connected_layout::tests::cycles_and_self_links_preserve_every_declared_cord_and_bounded_pages ... ok
+test native_face_scene::connected_layout::tests::directional_fan_graphs_and_disconnected_components_have_stable_order ... ok
+test native_face_scene::connected_layout::tests::exact_node_and_cord_limits_are_admitted_without_bitmap_overflow ... ok
+test native_face_scene::connected_layout::tests::missing_and_off_page_ambiguous_owners_never_invent_connectivity ... ok
+test native_face_scene::connected_layout::tests::over_budget_layout_keeps_original_order_and_all_details ... ok
+test native_face_scene::creche_navigation_tests::installed_creche_all_controls_and_named_choices_survive_narrow_overflow ... ok
+test native_face_scene::creche_navigation_tests::real_naming_catalogue_uses_checked_membership_and_keeps_choice_uncommitted ... ok
+test native_face_scene::creche_navigation_tests::refreshed_creche_focus_uses_action_names_and_filtered_choice_refuses ... ok
+test native_face_scene::creche_navigation_tests::source_disclosure_presents_one_title_and_preserves_every_exact_clause ... ok
+test native_face_scene::creche_navigation_tests::unavailable_birth_remains_readable_but_never_focusable ... ok
+test native_face_scene::diagram::geometry::tests::overflow_notice_never_overlaps_visible_port_rows ... ok
+test native_face_scene::diagram::tests::notice_counts_capped_links_and_missing_endpoints_without_changing_face ... ok
+test native_face_scene::input::preview_tests::checked_binary_argument_keeps_exact_bytes_without_text_preview ... ok
+test native_face_scene::layout::panels::ordering::tests::ordering_refuses_count_and_text_before_permutation_allocation ... ok
+test native_face_scene::layout::panels::ordering::tests::restoration_handles_three_cycle_fixed_point_and_original_item_chunks ... ok
+test native_face_scene::layout::panels::tests::authored_pair_is_independent_of_early_review_reading_order ... ok
+test native_face_scene::layout::panels::tests::creche::actual_zero_body_creche_places_body_and_plot_groups_in_one_band ... ok
+test native_face_scene::layout::panels::tests::creche::full_unicode_name_draft_fits_narrow_and_wide_without_shortening_submission ... ok
+test native_face_scene::layout::panels::tests::empty_group_does_not_add_panel_geometry_or_displace_reading ... ok
+test native_face_scene::layout::panels::tests::impossible_panel_width_refuses_without_an_overflow_scene ... ok
+test native_face_scene::layout::panels::tests::interleaved_unmatched_reading_uses_complete_tail_without_losing_rows ... ok
+test native_face_scene::layout::panels::tests::layout_preserves_the_original_face_control_traversal_and_complete_details ... ok
+test native_face_scene::layout::panels::tests::measured_unicode_command_pressure_retains_every_byte_and_reserves_panel_outlines ... ok
+test native_face_scene::layout::panels::tests::narrow_configuration_preserves_existing_linear_reading_geometry ... ok
+test native_face_scene::layout::panels::tests::nonmonotonic_pages_include_later_visual_pages_and_preserve_turning ... ok
+test native_face_scene::layout::panels::tests::panel_metadata_has_a_finite_preparation_storage_delta ... ok
+test native_face_scene::measured_layout_tests::dense_regions_and_multiple_typed_arguments_admit_complete_bounded_pages ... ok
+test native_face_scene::measured_layout_tests::editor_geometry_tests::active_editor_uses_measured_regions_and_retains_exact_long_names_in_details ... ok
+test native_face_scene::measured_layout_tests::every_canonical_page_fits_measured_chrome_at_supported_extents_and_scales ... ok
+test native_face_scene::measured_layout_tests::independent_diagram_geometry_refuses_expanded_chrome_with_readable_facts_fallback ... ok
+test native_face_scene::measured_layout_tests::minimum_viewport_reflows_a_permitted_two_column_recipe_to_one_column ... ok
+test native_face_scene::measured_layout_tests::read_only_chrome_is_measured_without_exposing_action_hits ... ok
+test native_face_scene::measured_layout_tests::runtime_face_tests::captured_current_owner_faces_fit_without_semantic_mutation_or_detail_loss ... ok
+test native_face_scene::measured_layout_tests::source_body_status_is_readable_without_native_lifecycle_inference ... ok
+test native_face_scene::measured_layout_tests::unicode_and_unbroken_names_reconstruct_exactly_in_details ... ok
+test native_face_scene::measured_layout_tests::unsupported_bounds_and_unmeasurable_notice_refuse_before_replacing_frame ... ok
+test native_face_scene::navigation_tests::keyboard_reaches_every_available_control_and_every_detail_page ... ok
+test native_face_scene::navigation_tests::pointer_selection_survives_keyboard_details_and_return ... ok
+test native_face_scene::observation_tests::observed_display_bounds_contain_real_control_hits ... ok
+test native_face_scene::open_domain_tests::native_generic_mask_keeps_lifecycle_basis_and_refuses_the_other_states_face ... ok
+test native_face_scene::open_domain_tests::native_generic_mask_preserves_finite_places_without_inventing_connectivity ... ok
+test native_face_scene::open_domain_tests::native_generic_mask_preserves_open_domain_meaning_and_typed_controls ... ok
+test native_face_scene::open_domain_tests::native_mask_preserves_complete_source_derived_patchbay_face ... ok
+test native_face_scene::open_domain_tests::native_prebirth_layout_preserves_choices_without_inventing_a_body ... ok
+test native_face_scene::ports::tests::large_graphs_keep_every_identity_reachable_and_report_omitted_geometry ... ok
+test native_face_scene::ports::tests::missing_port_facts_are_not_inferred_from_misleading_wording ... ok
+test native_face_scene::ports::tests::missing_relationship_cannot_be_replaced_by_a_nearby_port ... ok
+test native_face_scene::ports::tests::off_page_ambiguous_endpoint_never_borrows_a_visible_ports_geometry ... ok
+test native_face_scene::ports::tests::typed_direction_labels_and_exact_endpoints_survive_mixed_fan_graphs ... ok
+test native_face_scene::raster_layout_tests::measured_frames_rasterize_at_the_same_scale_without_touching_guard_pixels ... ok
+test native_face_scene::tests::bounded_local_return_notice_does_not_mutate_owner_face ... ok
+test native_face_scene::tests::checked_mask_show_survives_compact_bounded_wire_roundtrip ... ok
+test native_face_scene::tests::checked_native_recipe_marks_contiguous_runs_without_reordering_controls ... ok
+test native_face_scene::tests::creche_name_argument_reverses_to_birth_without_inventory_index_guessing ... ok
+test native_face_scene::tests::every_utf8_byte_survives_layout_pages_with_bounded_commands ... ok
+test native_face_scene::tests::face_words_render_as_nonuniform_scene_pixels ... ok
+test native_face_scene::tests::focused_action_has_visible_focus_and_unavailable_action_has_no_hit ... ok
+test native_face_scene::tests::full_face_retained_and_semantic_order_is_not_action_index_order ... ok
+test native_face_scene::tests::incomplete_local_input_can_be_corrected_on_the_same_show ... ok
+test native_face_scene::tests::maximum_todo_projection_keeps_all_controls_and_detail_pages_in_both_native_looks ... ok
+test native_face_scene::tests::modifier_press_on_argument_free_action_does_not_submit_or_refuse ... ok
+test native_face_scene::tests::native_density_changes_measured_padding_without_changing_source_geometry ... ok
+test native_face_scene::tests::ordinary_graphics_lead_with_primary_content_and_keep_context_inspectable ... ok
+test native_face_scene::tests::patchbay_diagram_uses_exact_face_gears_ports_and_cord_endpoints ... ok
+test native_face_scene::tests::pointer_mapping_retains_contract_and_never_invokes_an_unavailable_action ... ok
+test native_face_scene::tests::primary_action_names_bounded_text_choices_from_current_face_contract ... ok
+test native_face_scene::tests::primary_view_keeps_relationships_and_composition_in_inspection ... ok
+test native_face_scene::tests::primary_view_leaves_properties_in_details ... ok
+test native_face_scene::tests::stale_show_unacknowledged_show_and_stale_mapping_refuse ... ok
+test native_face_scene::tests::text_bound_and_backspace_preserve_valid_replacement ... ok
+test native_face_scene::tests::typing_and_tab_commit_exact_argument_then_refuse_more_input_on_old_show ... ok
+test native_face_scene::text_editor::tests::immutable_unicode_document_has_a_clipped_visible_end_caret_at_bounded_extents ... ok
+test native_face_scene::text_field_tests::a_finite_choice_cannot_bypass_other_constraints_or_expand_its_admitted_view ... ok
+test native_face_scene::text_field_tests::a_foreign_action_contract_or_subject_cannot_become_the_field_binding ... ok
+test native_face_scene::text_field_tests::ambiguous_or_untyped_current_values_fall_back_without_reading_prose ... ok
+test native_face_scene::text_field_tests::arrow_choice_is_a_cancellable_draft_until_the_checked_enter_submission ... ok
+test native_face_scene::text_field_tests::current_field_row_targets_the_existing_argument_and_details_retain_the_contract ... ok
+test native_face_scene::text_field_tests::finite_choices_wrap_only_inside_the_bound_source_contract ... ok
+test native_face_scene::text_field_tests::verified_current_text_is_read_only_and_unavailable_state_does_not_erase_it ... ok
+test native_face_snapshot::tests::another_plan_or_claimed_body_play_cannot_be_laundered_as_snapshot_provenance ... ok
+test native_face_snapshot::tests::long_semantic_face_crosses_the_admitted_native_fore ... ok
+test native_face_snapshot::tests::prepared_kernel_can_cancel_without_publishing_or_changing_the_snapshot ... ok
+test native_face_snapshot::tests::real_zero_body_birth_face_crosses_exact_kernel_fore_without_changing_facts ... ok
+test native_face_snapshot::tests::resting_body_snapshot_forwarding_does_not_wake_the_body ... ok
+test native_face_snapshot::tests::stale_plan_seal_is_refused_before_kernel_preparation ... ok
+test native_face_snapshot::tests::whole_valid_face_above_profile_capacity_is_refused_before_execution ... ok
+test product_front_door::workspace_input::tests::physical_memory_lantern_commits_unicode_to_the_immutable_native_face_scene ... ok
+
+test result: ok. 105 passed; 0 failed; 0 ignored; 0 measured; 1105 filtered out; finished in 21.22s
+
