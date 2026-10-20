@@ -19,6 +19,8 @@ fn main() {
     println!("cargo:rerun-if-changed=parser_beam.conduit");
     println!("cargo:rerun-if-changed=discourse.conduit");
     println!("cargo:rerun-if-changed=prosody.conduit");
+    println!("cargo:rerun-if-changed=prosody_commitment.conduit");
+    println!("cargo:rerun-if-changed=dependency_commitment.conduit");
     for file in [
         "parser_scorer_features.conduit",
         "parser_scorer_actions.conduit",
@@ -50,6 +52,8 @@ fn main() {
         include_str!("parser_scorer_tournament.conduit"),
         include_str!("discourse.conduit"),
         include_str!("prosody.conduit"),
+        include_str!("dependency_commitment.conduit"),
+        include_str!("prosody_commitment.conduit"),
     ]
     .join("\n");
     let checked = check_syntax_document(&parse_syntax_document(&source), &StartupCatalog::new())
@@ -113,6 +117,23 @@ fn main() {
         ),
         ("language/vocative-prosody", "rich_prosody_program.hex"),
         ("language/fallback-prosody", "fallback_prosody_program.hex"),
+        (
+            "language/committed-vocative-prosody",
+            "committed_prosody_program.hex",
+        ),
+        ("language/prosody-frontier", "prosody_frontier_program.hex"),
+        (
+            "language/committed-dependency-evidence",
+            "committed_dependency_program.hex",
+        ),
+        (
+            "language/dependency-execution-evidence",
+            "dependency_execution_evidence.hex",
+        ),
+        (
+            "language/dependency-execution-context",
+            "dependency_execution_context.hex",
+        ),
     ] {
         let expanded = conduit_plot::expand_canonical_plot_for_authoring(
             &checked,

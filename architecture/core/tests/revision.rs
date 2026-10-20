@@ -256,3 +256,6 @@ fn withdrawal_truncation_and_history_pressure_are_explicit() {
 
 #[path = "revision/admission.rs"]
 mod admission;
+
+#[path = "revision/context.rs"]
+mod referenced_context;

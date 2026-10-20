@@ -55,6 +55,19 @@ impl RevisionDomain for DependencyRevisions<'_> {
             TokenFrontier(*token.ordinal() + 1),
         )
     }
+    fn observation_end(&self, delta: &DependencyDelta) -> TokenFrontier {
+        match delta {
+            DependencyDelta::Assert(arc) => {
+                let dependent = *arc.dependent().token().ordinal();
+                let observed = match arc.governor() {
+                    LanguageDependencyHead::Token(head) => dependent.max(*head.token().ordinal()),
+                    LanguageDependencyHead::Root => dependent,
+                };
+                TokenFrontier(observed + 1)
+            }
+            DependencyDelta::Withdraw(token) => TokenFrontier(*token.ordinal() + 1),
+        }
+    }
     fn distance(&self, start: TokenFrontier, end: TokenFrontier) -> Option<u64> {
         end.0.checked_sub(start.0)
     }
