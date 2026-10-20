@@ -323,7 +323,7 @@ mod tests {
             advertisement_bytes < MAXIMUM_ROUTE_REQUEST_BYTES,
             "actual native advertisement alone is {advertisement_bytes} bytes; routed request bound is {MAXIMUM_ROUTE_REQUEST_BYTES}"
         );
-        let prepared = prepare(provision, &advertisement).unwrap();
+        let prepared = prepare(provision.clone(), &advertisement).unwrap();
         let request = prepared.routed_request.unwrap();
         assert_eq!(request.schema, ROUTED_ADMISSION_REQUEST_SCHEMA);
         assert_eq!(request.invitation_id, "invitation/one");
@@ -332,7 +332,32 @@ mod tests {
         assert!(!request.request.membership_admitted);
         assert!(!request.request.plan_created);
         assert!(!request.request.play_created);
-        assert!(serde_json::to_vec(&request).unwrap().len() <= MAXIMUM_ROUTE_REQUEST_BYTES);
+        let request_bytes = serde_json::to_vec(&request).unwrap().len();
+        assert!(
+            request_bytes <= MAXIMUM_ROUTE_REQUEST_BYTES,
+            "complete native routed request is {request_bytes} bytes, bound {MAXIMUM_ROUTE_REQUEST_BYTES}"
+        );
+        // Representative 192-byte Host/Boot identities fit the same envelope;
+        // this is not a claim that HostId has a global 192-byte maximum.
+        let long_identity = crate::mask_control::native_host_advertisement(
+            &HostId::from("h".repeat(192)),
+            &BootId::from("b".repeat(192)),
+            u64::MAX,
+            &crate::product_bases::fixture_surface_provider().entry,
+        );
+        let long = prepare(provision.clone(), &long_identity).unwrap();
+        let long_request = long.routed_request.unwrap();
+        assert!(serde_json::to_vec(&long_request).unwrap().len() <= MAXIMUM_ROUTE_REQUEST_BYTES);
+        assert!(!long_request.request.membership_admitted);
+        assert!(!long_request.request.plan_created);
+        assert!(!long_request.request.play_created);
+        // Pressure cannot yield even a provisional request or serial result.
+        let mut oversized = advertisement.clone();
+        oversized.profile = "x".repeat(MAXIMUM_ROUTE_REQUEST_BYTES).into();
+        assert!(matches!(
+            prepare(provision, &oversized),
+            Err(JoinError::Bound)
+        ));
         let observation: serde_json::Value =
             serde_json::from_slice(&prepared.serial_observation).unwrap();
         assert_eq!(
