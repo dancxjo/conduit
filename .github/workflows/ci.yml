@@ -115,7 +115,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           key: unit-${{ matrix.shard }}
-          cache-on-failure: false
+          cache-on-failure: true
       - name: Install native test prerequisites
         run: cargo xtask ci pipeline setup-unit
       - name: Prove portable meaning
@@ -185,7 +185,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           key: admission
-          cache-on-failure: false
+          cache-on-failure: true
       - run: cargo xtask ci pipeline setup-unit
       - name: Lint, affected tests and relevant integration smoke
         env:

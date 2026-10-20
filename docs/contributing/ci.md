@@ -101,6 +101,8 @@ failures do not cancel sibling lanes. Code tests have no retries; acquisition
 may have one bounded infrastructure retry. Browser acceptance retains pinned
 Chromium, one worker and zero retries.
 
+Unit and admission jobs retain Rust compiler caches even after a failed check, so a test correction can reuse compiled dependencies. Cargo still validates its dependency fingerprints and every required check runs again. These are build caches, not accepted test results or release evidence; target proof caches retain their existing failure policy.
+
 ## On-demand runtime measurements
 
 Runtime measurements are diagnostic and have no calibrated regression threshold.
@@ -434,3 +436,4 @@ built source. `live_pages_publication` reads the existing publisher-owned
 `site-publication.json` from the configured Pages URL; only that observed
 manifest supplies the current deployed build source. Unobserved deployment
 record source stays null, and failed observations refuse the report.
+
