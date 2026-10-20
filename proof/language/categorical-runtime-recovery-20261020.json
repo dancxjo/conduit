@@ -1,0 +1,28 @@
+{
+  "scope": "Current-dev generic categorical invocation custody and finite Sign admission; not Language/parser/Current authority or stable acceptance",
+  "source": "d3c7c7f084d6c573b44f5729aa5714636e0d48f3",
+  "recovered_from": "af8e8fe81f73cb9231fa872ca5776b8d7db4d84d",
+  "checks": [
+    {
+      "command": "cargo xtask check categorical-runtime",
+      "result": "12 passed; actual32 submit/ACK retained,33rd pressure,0alloc/realloc/dealloc in admitted scope",
+      "local_log_sha256": "6ee55f4d8397affa0f0b8a43c9ae5a390f3740cabd92e2695ffc7dd91f6fa1bb"
+    },
+    {
+      "command": "cargo fmt --all --check",
+      "result": "passed",
+      "local_log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "command": "cargo clippy -p conduit-ai --features kernel-operation-owners --all-targets -- -D warnings",
+      "result": "passed",
+      "local_log_sha256": "a3ebce0fefdb02d0c933c64a2cce45e1596b9faef2795c15bbba6f03059903e3"
+    },
+    {
+      "command": "cargo check -p conduit-ai --no-default-features --lib",
+      "result": "passed",
+      "local_log_sha256": "f3d2968fa83c03a01ed99446f19e911d09301949b2fee73fba4f783a887692a0"
+    }
+  ],
+  "limits": "Capacity128 slots/1MiB payload admission; retained lifecycle history finite; observed free slots do not reserve authority; terminal channel retains pending lease. Original compile failure due omitted test deallocation counter retained separately."
+}

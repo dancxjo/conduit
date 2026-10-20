@@ -84,3 +84,31 @@ fn canonical_admission_before_foreground_preserves_identity_result_and_face() {
     door.observe_product(&journey).unwrap();
     door.face().unwrap();
 }
+
+#[test]
+fn creche_eligibility_cannot_bypass_current_workset_admission() {
+    let (ids, mut offer, mut journey) = fixture();
+    let plot = NativePlot::KeyboardCanvas;
+    assert_eq!(native_workset::eligibility(plot, &offer), Ok(()));
+    journey
+        .birth_from_creche(BirthSelection {
+            revision: 1,
+            friendly_name: "Deferred admission".into(),
+            workset: BodyWorkset::one(native_workset::resident(plot).unwrap()).unwrap(),
+        })
+        .unwrap();
+    assert_eq!(journey.status(), JourneyStatus::BornLulled);
+    assert!(journey.current_plan().is_none());
+    assert!(journey.current_play().is_none());
+    let before = journey.biography().unwrap().clone();
+    // Selection evidence from the earlier offer grants no execution authority.
+    offer.keyboard = None;
+    assert_eq!(
+        invoke(&mut journey, JourneyAction::Wake, &ids, &offer),
+        Err(JourneyError::Workset(native_workset::WorksetRefusal::Host))
+    );
+    assert_eq!(journey.biography(), Some(&before));
+    assert!(journey.current_plan().is_none());
+    assert!(journey.current_play().is_none());
+    assert!(journey.kernel.is_none());
+}

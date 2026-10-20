@@ -223,3 +223,12 @@ with proportional UI typography, a distinct code front, deterministic Unicode
 fallback, and bounded shell icons. `cargo xtask make conduitos graphical-profile-proof`
 boots that exact live ISO and retains its profile receipt and shell screenshots.
 This development capability is separate from stable or physical acceptance.
+
+Crèche arrival checks embedded Source identities and offers candidates from the
+finite installed profile when native input is present. It does not plan or lower
+every candidate before displaying the first Face. Selection eligibility is not
+execution admission: Birth creates a lulled Body; Wake plans only its selected
+workset against the current Host offer, Plan prepares its admitted kernel tables,
+and Play starts execution. Missing input and candidates outside the installed
+profile remain unavailable. Resource or realization refusals discovered during
+Wake/Plan remain lifecycle refusals; an earlier selectable choice cannot bypass them.
