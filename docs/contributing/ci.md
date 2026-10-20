@@ -436,4 +436,3 @@ built source. `live_pages_publication` reads the existing publisher-owned
 `site-publication.json` from the configured Pages URL; only that observed
 manifest supplies the current deployed build source. Unobserved deployment
 record source stays null, and failed observations refuse the report.
-
