@@ -1,0 +1,21 @@
+{
+  "source": "66d34c83e3b21f6a2a3a39b0c3fe1c5b26b13884",
+  "pull_request": 6151,
+  "scope": "CI shared test module resolution only; native product source unchanged",
+  "validation": {
+    "strict_clippy": "both tooling packages, all targets, warnings denied",
+    "feature_inventory_tests": {
+      "dispatch": 2,
+      "full_xtask": 2
+    },
+    "supported_preflight": {
+      "passed": 288
+    }
+  },
+  "logs": {
+    "shared-shard-path-clippy.log": "d682d55387befc9f21cfa554ca78085f009048cdc7f9543765e1d920cc6af37e",
+    "shared-shard-path-tests.log": "ec4a1649bb3d4cfa68309fe5b91cecd77431a7a0a60a3137669aa039e55aeff9",
+    "shared-shard-path-preflight.log": "7f75578b970fde7874a34ad8b965ce689b88588fff4b36132dae3fdfde91e297"
+  },
+  "acceptance": "local proof only; Candidate and merged Integration remain required"
+}

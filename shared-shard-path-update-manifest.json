@@ -1,0 +1,22 @@
+{
+  "parent": "57e094244cad6aa0b6a7f0214f9e56ca2b443384",
+  "scope": "Shared CI dispatcher repair description and lightweight validation receipt; raw products and logs excluded",
+  "files": [
+    {
+      "source": "work/shared-shard-path-pr.md",
+      "tree_path": "task-6038/work/shared-shard-path-pr.md",
+      "bytes": 815,
+      "sha256": "4fb7ac12775972eacf96592fc1aade816d5bd559079f34d4a54c984b1f8c720c",
+      "mode": "100644",
+      "blob": "f3526abc2eff5f4ff317838483ae9111714c1758"
+    },
+    {
+      "source": "outputs/shared-shard-path-66d34c83e/receipt.json",
+      "tree_path": "task-6038/outputs/shared-shard-path-66d34c83e/receipt.json",
+      "bytes": 821,
+      "sha256": "307ff7b3ddf77c3a6f10a1f2b60348863b524a5040af83159942dcbac101c1ff",
+      "mode": "100644",
+      "blob": "ea98612c59ab8ad448dd4b066a62eec53730b9db"
+    }
+  ]
+}
