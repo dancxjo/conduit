@@ -103,14 +103,27 @@ pub(super) fn assert_actual_failure_custody(
                 bytes: value.to_le_bytes().to_vec(),
             }]
         };
-        host.run_external_plot_to(
-            fragment.clone(),
-            &input(1),
-            &mut outputs,
-            &mut Vec::new(),
-            &mut NoTimer,
-        )
-        .unwrap();
+        let report = host
+            .run_external_plot_to(
+                fragment.clone(),
+                &input(1),
+                &mut outputs,
+                &mut Vec::new(),
+                &mut NoTimer,
+            )
+            .unwrap();
+        let kernel = report.kernel.as_ref().unwrap();
+        assert_eq!(usize::from(kernel.kernel_events), kernel.kernel_sign.len());
+        let lowered = conduit_plan_lowering::lowering::lower_plan_fragment(fragment).unwrap();
+        assert_eq!(lowered.identity.placements.len(), 32);
+        for (node, placement) in &lowered.identity.placements {
+            assert!(
+                kernel.kernel_sign.iter().any(|event| event.node == *node
+                    && event.kind == conduit_kernel::KernelEventKind::BackCompleted),
+                "missing logical completion Sign for {}",
+                placement.as_str()
+            );
+        }
         assert_eq!(outputs.0.len(), 1);
         assert_eq!(&*outputs.0[0].bytes, &33_u64.to_le_bytes());
         outputs.0.clear();
