@@ -1,0 +1,38 @@
+{
+  "parent": "2298c60ff520203a83c9ef822fc02f1c9adec31a",
+  "scope": "Native stage05 current-dev refresh and exact preflight receipt; product build remains pending",
+  "files": [
+    {
+      "source": "work/6055-body-final-ceaefa32c.md",
+      "tree_path": "task-6038/work/6055-body-final-ceaefa32c.md",
+      "bytes": 5645,
+      "sha256": "121c015752eb2ffded632b5d2e18ef417cc4ac9d86ad4649a92ff31d19a22361",
+      "mode": "100644",
+      "blob": "ebc5fb423c9366931066eee94b75a11615d61daa"
+    },
+    {
+      "source": "work/6055-body-final-ceaefa32c.json",
+      "tree_path": "task-6038/work/6055-body-final-ceaefa32c.json",
+      "bytes": 5700,
+      "sha256": "2751b49f7b093c8fb19a34238b10842ebc92aaa8e106e5624e744db4298c69ca",
+      "mode": "100644",
+      "blob": "a03e9f3db7305385f68811008e51827043eb9c1a"
+    },
+    {
+      "source": "work/6055-current-dev-range-diff.log",
+      "tree_path": "task-6038/work/6055-current-dev-range-diff.log",
+      "bytes": 537,
+      "sha256": "59c6ba3931e03ccb3ce2f45b274ea59eef79010dfa6440a4ddbaaa0d3ea99917",
+      "mode": "100644",
+      "blob": "50526a1a08eec1656023475640a7021c73f2cec5"
+    },
+    {
+      "source": "outputs/5990-current-refresh-ceaefa32c/receipt.json",
+      "tree_path": "task-6038/outputs/5990-current-refresh-ceaefa32c/receipt.json",
+      "bytes": 1811,
+      "sha256": "822d1e6fbcd233cb4aa211a2fa64b23c984abc4af72efb5d78b7d36a68616198",
+      "mode": "100644",
+      "blob": "a31c0e8cb07def6a6ae99a59c4f5d060bad5a6b6"
+    }
+  ]
+}

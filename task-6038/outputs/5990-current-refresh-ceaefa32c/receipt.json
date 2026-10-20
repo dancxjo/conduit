@@ -1,0 +1,36 @@
+{
+  "source": "ceaefa32c00dd9a15aa4365f831cf68862771dd4",
+  "base": "956e9e069366af9f3065e020e9067c653d3fb097",
+  "previous_head": "a6378a3ad741d73bd5997bd90c4d7723b762636a",
+  "previous_head_recovery": "recovery/6055-a637-before-current-dev",
+  "published_verified": true,
+  "feature_commits": 6,
+  "range_diff": "all6 unchanged",
+  "preflight": {
+    "passed": 295,
+    "failed": 0,
+    "log_sha256": "3e1b786cbe22063fda3ffc3ba501bd338d31a712e9a03496e4cde2c52cc63ce6"
+  },
+  "changed_since_old_product_witness": [
+    "architecture/plot/src/checked_syntax/startup_catalog.rs",
+    "architecture/plot/src/checked_syntax/startup_catalog/read_dependencies.rs",
+    "architecture/plot/src/checked_syntax/startup_catalog/typed_literal.rs",
+    "architecture/plot/src/lib.rs",
+    "architecture/plot/src/preparation_cache.rs",
+    "architecture/plot/src/preparation_cache/read_trace.rs",
+    "architecture/plot/src/profile_read_dependencies.rs",
+    "architecture/plot/tests/preparation_cache.rs",
+    "architecture/plot/tests/preparation_cache/dependencies.rs",
+    "docs/performance/source-dependency-reuse.md",
+    "proof/ci/pipeline-admission.spec.mjs",
+    "proof/performance/source/dependency-cache-cost-20261020.json",
+    "targets/std/src/installed_std/near_back_tests.rs",
+    "targets/std/src/installed_std/near_back_tests/source_dependencies.rs",
+    "tools/ci/pipeline/admission.mjs",
+    "tools/xtask/src/suites/host_protocol_shards.rs",
+    "tools/xtask/src/suites/workspace_shard_features_tests.rs"
+  ],
+  "normal_product": "fresh supported build running in dedicated native-panels-host-target; no new pass claim",
+  "required_next": "new exact Candidate, fresh normal22checkpoint journey and wide/narrow panel+pointer packets; then merge/Integration/stable evidence",
+  "working_tree_clean": true
+}
