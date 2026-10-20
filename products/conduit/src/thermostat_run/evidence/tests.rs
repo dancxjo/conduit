@@ -100,6 +100,22 @@ fn ordinary_reportless_execution_avoids_descriptive_reconstruction() {
             child.child_active_play_id.as_str()
         );
         assert_eq!(row["events"].as_array().unwrap().len(), child.events.len());
+        assert_eq!(
+            row["activation_id"],
+            serde_json::to_value(&child.activation_id).unwrap()
+        );
+        assert_eq!(
+            row["selected_plan_id"],
+            serde_json::to_value(&child.selected_plan_id).unwrap()
+        );
+        assert_eq!(
+            row["invocation"],
+            serde_json::to_value(child.invocation).unwrap()
+        );
+        assert_eq!(
+            row["child_host_id"],
+            serde_json::to_value(&child.child_host_id).unwrap()
+        );
     }
     println!(
         "SIGN_RECONSTRUCTION={}",
