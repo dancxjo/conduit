@@ -1,0 +1,41 @@
+{
+  "target": "/home/dancxjo/Documents/Codex/2026-10-18/goal-finish-and-close-https-github/work/energy-target",
+  "process_refs": [],
+  "debug_children": [
+    "pool-webchat-server",
+    "browser-webrtc-rendezvous-probe",
+    "protected-line-browser-peer",
+    ".fingerprint",
+    "browser-admission-probe",
+    "browser-body-camera-realization-capstone",
+    "webchat-server",
+    "conduit-relay",
+    "browser-spawn-probe",
+    "conduit-xtask-dispatch",
+    "triple-signal-server",
+    "text-lab-live-server",
+    "examples",
+    ".cargo-build-lock",
+    "deps",
+    "xtask",
+    "conduit",
+    "incremental",
+    "r1-three-peer-input-server",
+    ".cargo-artifact-lock",
+    "websocket-line-probe",
+    "build",
+    ".cargo-lock",
+    "xtask.d",
+    "distributed-signal-server",
+    "distributed-toggle-server",
+    "conduit-xtask-dispatch.d"
+  ],
+  "unknown_directories": [],
+  "before_free": 57073229824,
+  "clean": {
+    "code": 0,
+    "log": "     Removed 36917 files, 57.6GiB total\n"
+  },
+  "after_free": 114930561024,
+  "finished": "2026-10-20T16:57:10Z"
+}

@@ -1,0 +1,22 @@
+{
+  "parent": "eb18388621732f2f61a0fb46d4db65f19a9ffd87",
+  "scope": "Preserve refreshed Source and pending proof runner, verified prior repair restoration, and confirmed renderer occlusion red diagnostic",
+  "files": [
+    {
+      "source": "work/stewardship-20261020/late-energy-cache-clean.json",
+      "tree_path": "task-6038/work/stewardship-20261020/late-energy-cache-clean.json",
+      "bytes": 1067,
+      "sha256": "f78faafd53f7258aeaebfcf1de732b990d9e51a81cd6c124675314b71cb1ffb6",
+      "mode": "100644",
+      "blob": "2538c0b8270c61896ab704328482143d11074177"
+    },
+    {
+      "source": "work/6055-body-pending-03bd8b99d.md",
+      "tree_path": "task-6038/work/6055-body-pending-03bd8b99d.md",
+      "bytes": 3273,
+      "sha256": "64d29c835f8263013f946b52dd338995f2ed13b688df3ed4c964955ac1d0ecc2",
+      "mode": "100644",
+      "blob": "e6913d3ecc0c73b26c39172176ee85f04149f978"
+    }
+  ]
+}
