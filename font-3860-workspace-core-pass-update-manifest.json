@@ -1,0 +1,38 @@
+{
+  "parent": "3cf3678fbee21f765a29cd3b706bb2091b0b9ee9",
+  "scope": "Source3860 completed wholeworkspace fmt, Clippy,10020tests and retained48ignored; extra checker gates remain active, final guest refresh held for6173",
+  "files": [
+    {
+      "source": "work/revised-native-goal-state.json",
+      "tree_path": "task-6038/work/revised-native-goal-state.json",
+      "bytes": 4701,
+      "sha256": "8b91524dff9b935913905a262eb5de20fe816f2c0b42d05ba5528786ac2fef6b",
+      "mode": "100644",
+      "blob": "96129723bf2b44d3dddc04b231b05cc0fff938b4"
+    },
+    {
+      "source": "work/5992-draft-pr-body.md",
+      "tree_path": "task-6038/work/5992-draft-pr-body.md",
+      "bytes": 3536,
+      "sha256": "6921b4b20fe05219a9eb12f1a02aa775490458993308d9136dbcc370d89f2f3e",
+      "mode": "100644",
+      "blob": "8b95974f6f3f2d40188fef100df401adfa0b42dc"
+    },
+    {
+      "source": "outputs/5992-3860faa7e/workspace-core-pass.json",
+      "tree_path": "task-6038/outputs/5992-3860faa7e/workspace-core-pass.json",
+      "bytes": 668,
+      "sha256": "b871d8883bfeb7b71e73c6c0702b15744bc25d847eba028328da499cb65fb77e",
+      "mode": "100644",
+      "blob": "bbe0c22918f53f247227539a65192a1401575e2e"
+    },
+    {
+      "source": "outputs/5992-3860faa7e/workspace-ignored-tests.txt",
+      "tree_path": "task-6038/outputs/5992-3860faa7e/workspace-ignored-tests.txt",
+      "bytes": 8263,
+      "sha256": "38de9f9a17d55bf3426a4b04e120a3273615c6f9d39eef793b5f27befc877248",
+      "mode": "100644",
+      "blob": "3298ed275e47a0492302e227b878e1a62a9bddba"
+    }
+  ]
+}

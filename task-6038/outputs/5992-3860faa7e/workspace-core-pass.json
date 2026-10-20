@@ -1,0 +1,19 @@
+{
+  "source": "3860faa7e51d0ca8c85f244cbdf9b0101877981f",
+  "command": "cargo +stable xtask check workspace --locked",
+  "completed_steps": [
+    "check.committed-todo-mask-exchange",
+    "check.fmt",
+    "check.clippy",
+    "check.test"
+  ],
+  "workspace_test_results": {
+    "result_sections": 1354,
+    "passed": 10020,
+    "failed": 0,
+    "ignored": 48,
+    "measured": 0,
+    "filtered_out": 0
+  },
+  "boundary": "Counts only completed check.test step (cargo test --workspace with locked forwarded), excluding earlier Todo gate and later kernel-alloc/portability gates. Full supported command still running. Not CI, product emulator, physical or human proof."
+}

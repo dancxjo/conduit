@@ -1,0 +1,48 @@
+test durable_host::owner::cli_smoke::installed_cli_runs_and_recovers_same_body_on_new_boot ... ignored, requires a freshly built product executable in CONDUIT_OWNER_SMOKE_BINARY
+test durable_host::owner::controller::checkpoint_once::tests::todo_continuity::retained_dom_reconstruction::actual_retained_dom_completion_reconstructs_native_linear_and_utterance_meaning ... ignored, requires exact-source retained DOM exchange and retained verified owner receipt
+test durable_host::owner::service_clock_smoke::installed_service_start_inspect_lull_and_restart_clock ... ignored, requires a freshly built product executable in CONDUIT_OWNER_SMOKE_BINARY
+test parsec_cross_mask_counterexample_tests::actual_parsec_instruction_is_lost_at_face_only_mask_boundary ... ignored, requires actual Body exchange in CONDUIT_CROSS_MASK_PARSEC_ARTIFACT; diagnostic only
+test parsec_instruction_encounter_tests::actual_parsec_component_frames_survive_native_linear_and_aural_reconstruction ... ignored, requires actual Source-frame artifact in CONDUIT_CROSS_MASK_PARSEC_ARTIFACT; reconstruction only
+test screen_free_birth::tests::zero_body_face_produces_real_ordered_speech ... ignored, requires installed eSpeak NG and retains a real WAV
+test selected_installed_birth_speaks_one_current_face_clause ... ignored, requires explicit ALSA card/device, installed eSpeak NG, and a real speaker
+test observe_numerical_owner ... ignored, matched full-owner allocation/timing observation; run alone
+test owner_face_mask::committed_todo_tests::checked_browser_mask_consumes_actual_committed_todo_exchange ... ignored, requires a freshly executed owner checkpoint exchange
+test owner_face_mask::parsec_agency_tests::checked_browser_mask_returns_exact_captured_parsec_actions ... ignored, requires original-frame validated records in CONDUIT_PARSEC_BROWSER_RECORDS
+test spoken_template_looks::tests::actual_control_face_retains_human_settings_and_actions_in_checked_summary ... ignored, requires an actual retained control Face; no runtime or audio claim
+test spoken_template_looks::tests::actual_retained_face_preserves_essential_clauses_in_both_checked_looks ... ignored, requires explicit actual retained Face; never manufactures owner state
+test scheduler::scan_characterization::capture_small_and_large_selector_replay ... ignored, manual deterministic replay and timing; diagnostic fixed stack, no SMP claim
+test scheduler::scan_characterization::characterize_loaded_and_sparse_fixed_scheduler_scans ... ignored, manual optimized instrumented kernel scan baseline; no timing threshold
+test scheduler::scan_characterization::terminal_completion::capture_completion_prefix ... ignored, manual optimized completion-prefix measurements
+test observe_production_scheduler_footprint ... ignored, manual native production-layout observation; no size threshold
+test observe_production_sign_capacity_cost ... ignored, manual Sign reservation cost capture; no timing threshold
+test observe_production_sign_record_cost ... ignored, manual optimized native Sign cost observations; no timing threshold
+test measure_connected_placement_processing ... ignored, manual finite planner processing measurement; not inference or physical acceptance
+test physical_declarations::registry::catalogue::tests::characterize_builtin_catalogue_clone_against_owned_reference ... ignored, explicit characterization; does not claim whole-Planner or guest latency
+test body_clock_line::tests::real_process_clock_responder ... ignored
+test direct_spoken_mask::tests::installed_espeak_admits_the_direct_face_mask_without_terminal_attachment ... ignored, requires installed eSpeak NG and data; proves live-provider planning, not audio playback
+test direct_spoken_template_mask::tests::native_provider_acknowledges_both_template_openings_on_the_same_actual_face ... ignored, requires real eSpeak, native coverage, artifact directory and actual retained Face
+test direct_spoken_template_mask::tests::native_provider_completes_both_templates_on_the_same_actual_face ... ignored, requires real eSpeak, native coverage, artifact directory and actual retained Face
+test direct_spoken_template_mask::tests::native_provider_completes_control_template_on_actual_retained_face ... ignored, requires real selected eSpeak, native coverage, artifact directory and actual retained control Face
+test flow_activation::spoken_template_plan::tests::actual_retained_face_uses_current_host_checked_templates ... ignored, requires an explicitly supplied actual retained Todo Face
+test flow_activation::todo_spoken_template_plan::retained_matrix::actual_owner_matrix_preserves_grammar_pages_and_full_linear_inspection ... ignored, requires actual public owner count matrix through CONDUIT_TODO_COUNT_MATRIX
+test flow_activation::todo_spoken_template_plan::tests::actual_owner_face_uses_current_host_selected_todo_source ... ignored, requires actual retained owner Face through CONDUIT_TODO_TEMPLATE_FACE
+test hosted_speech_synthesis::tests::installed_espeak_produces_real_bounded_pcm_from_parameter_like_text ... ignored, requires explicitly selected installed eSpeak NG and English voice data; creates audio bytes but never playback
+test installed_std::streaming_speech_tests::installed_espeak_narrates_a_chapter_through_incremental_plan_and_play ... ignored, requires installed eSpeak NG and data; produces a substantive real WAV, no playback/model inference
+test local_model_pool_member::completion::tests::characterize_measurement_processing ... ignored, manual bounded measurement-processing characterization, not provider performance
+test numerical_host::preparation_cost_tests::observe_numerical_preparation_cost ... ignored, local preparation-cost observation, not a calibrated timing gate
+test spoken_face_stream_execution::tests::platform::installed_espeak_produces_exact_plan_play_pcm_receipt ... ignored, requires installed eSpeak NG and writes a real WAV
+test spoken_face_stream_execution::tests::platform::installed_espeak_stream_drains_selected_alsa_speaker ... ignored, requires installed eSpeak NG, explicit ALSA card/device, and speaker output
+test spoken_mask_journey::cancellation_tests::streamed_mask_stop_reaps_provider_and_never_acknowledges_partial_audio ... ignored, requires installed eSpeak NG; observes actual PCM, cancels and verifies no completed Mask artifact
+test spoken_mask_journey::tests::installed_espeak_mask_retains_acknowledged_wav_through_plan_and_play ... ignored, requires explicitly installed eSpeak NG, English data and shared library; produces WAV only, no playback
+test spoken_mask_journey::tests::installed_espeak_streaming_mask_acknowledges_substantive_chapter ... ignored, requires installed eSpeak NG; validates real streaming Mask audio using an explicitly fixture Presenter candidate
+test spoken_template_reading::tests::actual_face_reading_is_source_backed_complete_and_stale_safe ... ignored, requires explicit actual retained Todo Face; no manufactured Body or template grant
+test measure_cold_and_warm_pipeline_phases ... ignored, manual optimized phase samples; report only, no latency threshold
+test captured_parsec_readings_cannot_plan_on_a_host_without_speech_offers ... ignored, requires validated original-frame records in CONDUIT_PARSEC_BROWSER_RECORDS
+test source_pinned_scalar_profiles_measure_preparation_and_actual_kernel_play ... ignored, manual report-only release benchmark; timings are not correctness thresholds
+test established_native_line_compares_copy_and_borrow_without_reconnection ... ignored, manual matched persistent-Line transport measurement
+test observe_ordinary_body_owner ... ignored, local owner cost observation; run alone, not a timing gate
+test actual_owner_face_binds_checked_todo_wording ... ignored, requires retained actual owner Face through CONDUIT_TODO_TEMPLATE_FACE
+test display::raw::tests::volatile_scanout_performance ... ignored, manual optimized volatile scanout observation
+test native_compositor::frame_composition::differential::span_compositor_performance ... ignored, manual optimized compositor performance observation
+test native_compositor::raster_reuse::performance::retained_raster_performance ... ignored, manual optimized retained raster observation
+test mechanisms/implementations/burn-model/src/lib.rs - (line 202) ... ignored

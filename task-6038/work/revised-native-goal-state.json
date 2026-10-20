@@ -49,7 +49,7 @@
     "tree": "927ce36da9c289d9cc587db308ad906c71e81865",
     "draft": true,
     "candidate": 39506387888,
-    "observed": "in_progress2026-10-20T22:15UTC",
+    "observed": "terminal_success2026-10-20T23:03UTC",
     "old_prepared_source": "ef8c6c8300236ba7e43845ea24a72e6a2d7a6ff0",
     "old_source_checks": "20typography/113native/2allocation/Clippy/fmt passed; fresh exactSource checks running",
     "product_proof": "exact01d normal7graphicalproofsPassed;headlessblockedBeforeBootByUnregisteredEntranceAndStrippedSymbols;6167repairInProgress",
@@ -57,7 +57,22 @@
     "proof_origin": "6391be2de4ae5ee7e693833135585b311799babb",
     "previous_published_head": "6f579f684500e6bf54c5dd7b5870c5c5c6fb7d6d",
     "local_broad_negative": "41cbc:1216pass/2testexpectationfail/3ignored/4filtered;testonlycorrectionfocused3green",
-    "screenshots_origin": "13e4c79af3575c6b06ea5d2d39b9fd67add4ce2a"
+    "screenshots_origin": "13e4c79af3575c6b06ea5d2d39b9fd67add4ce2a",
+    "candidate_preview": "fc528b00cbb6c4ef82d149870bce3b507806a2e3",
+    "candidate_preview_base": "400412f7a94a3e6c3a8c0f0afb6fd33bde18adb6",
+    "candidate_preview_tree": "928f5533bd17b1c3776ceaef5050a97ba3ff60e7",
+    "workspace_core": {
+      "source": "3860faa7e51d0ca8c85f244cbdf9b0101877981f",
+      "fmt": "passed",
+      "clippy": "wholeworkspace_alltargets_warningsDenied_passed",
+      "tests": {
+        "passed": 10020,
+        "failed": 0,
+        "ignored": 48,
+        "filtered": 0
+      },
+      "aggregate": "extra_alloc_cross_target_gates_running"
+    }
   },
   "stable_through_stage06": {
     "tested_source": "72ab3b367c236653dff0b5726939e08de62390b9",
@@ -77,6 +92,11 @@
     "failed_source": "00525faf30522b6851d226613e61e277f2b48f43",
     "failed_artifact": 12304194618,
     "scope": "restore defaultsingleworker; keep2batchoptin; untouchedtimeouts/retries/specs",
-    "local": "20focusedchecksPassed;actualChromiumpending"
+    "local": "20focusedchecksPassed;actualChromiumpending",
+    "candidate": 39510280635,
+    "observed": "browser_running/other_selected_success2026-10-20T23:03UTC",
+    "current_dev": "c93a4cca2ac48405415ce813e43e973d93005bad",
+    "current_dev_integration": 39509619906,
+    "current_dev_observed": "c93Integration_cancelled_coalesced_notacceptance23:03UTC"
   }
 }
