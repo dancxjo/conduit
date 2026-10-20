@@ -20,6 +20,11 @@ pub use parsec_instruction_observation::ParsecInputInstructionObservation;
 mod parsec_instruction_effect_observation;
 pub use parsec_instruction_effect_observation::ParsecInstructionEffectObservation;
 
+mod fore_custody;
+pub use fore_custody::{
+    BodyForeDeliveryStage, BodyForePendingOutput, BodyForePendingOutputMetadata,
+};
+
 mod parsec_terminal;
 mod todo_checkpoint;
 pub(crate) use parsec_terminal::ParsecTerminalAttachment;
@@ -96,6 +101,8 @@ pub struct BodyRunReport {
     pub scan_cancellation_failed: bool,
     pub scan_output_completion_failed: bool,
     pub fore_deliveries: Vec<ExternalForeDelivery>,
+    /// Stopped delivery, including an adapter error with unknown external outcome.
+    pub fore_pending_output: Option<BodyForePendingOutput>,
     /// Host-staged versus kernel-admitted live values at terminal. Neither
     /// count claims that the Todo state transition committed.
     pub live_fore_status: Option<BodyLiveForeStatus>,
@@ -512,6 +519,7 @@ impl StdHost {
                 scan_cancellation_failed: result.scan_cancellation_failed,
                 scan_output_completion_failed: result.scan_output_completion_failed,
                 fore_deliveries: result.fore_deliveries,
+                fore_pending_output: result.fore_pending_output,
                 live_fore_status: live_queue.map(BodyLiveForeQueue::status),
                 clock_observations: result.clock_observations,
                 clock_quality: result.clock_quality,

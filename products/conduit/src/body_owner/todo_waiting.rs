@@ -423,6 +423,7 @@ impl TodoWaitingWorker {
             "body_id":proposed.wake.body_id, "plan_id":proposed.plan.plan_id,
             "play":report.play, "terminal":report.terminal,
             "failure":report.failure, "cleanup_failure":report.cleanup_failure,
+            "fore_pending_output":report.fore_pending_output.as_ref().map(|pending|pending.metadata()),
             "terminal_sign":report.terminal_sign,
             "interaction_id":self.accepted_interaction.as_ref(),
             "initiating_show":self.accepted_mask.as_ref().map(|(show, _)| show),

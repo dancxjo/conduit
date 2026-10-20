@@ -323,6 +323,7 @@ impl ThermostatWorker {
             "body_id":proposed.wake.body_id, "plan_id":proposed.plan.plan_id,
             "play":report.play, "terminal":report.terminal, "terminal_sign":report.terminal_sign,
             "failure":report.failure, "cleanup_failure":report.cleanup_failure,
+            "fore_pending_output":report.fore_pending_output.as_ref().map(|pending|pending.metadata()),
             "live_fore_status":report.live_fore_status.map(|status| serde_json::json!({
                 "queue_accepted":status.queue_accepted,"kernel_admitted":status.kernel_admitted,
                 "queued":status.queued,"close_requested":status.close_requested,

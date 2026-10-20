@@ -71,6 +71,7 @@ pub(crate) struct BodyKernelResult {
     pub scan_cancellation_failed: bool,
     pub scan_output_completion_failed: bool,
     pub fore_deliveries: Vec<ExternalForeDelivery>,
+    pub fore_pending_output: Option<crate::body_execution::BodyForePendingOutput>,
     pub clock_observations: Vec<ObservedKernelEvent>,
     pub clock_quality: Option<BodyTimeQuality>,
     pub clock_execution_bounds: Option<(
@@ -1352,6 +1353,7 @@ impl<'a> BodyKernel<'a> {
         let scan_output_completion_failed = self.scheduler.drivers().iter().any(|driver| {
             matches!(driver, InstalledBack::BodyScan(scan) if scan.output_completion_failed())
         });
+        let (fore_deliveries, fore_pending_output) = self.fore.into_custody();
         BodyKernelResult {
             terminal,
             failure,
@@ -1363,7 +1365,8 @@ impl<'a> BodyKernel<'a> {
             scan_child_signs,
             scan_cancellation_failed,
             scan_output_completion_failed,
-            fore_deliveries: self.fore.into_deliveries(),
+            fore_deliveries,
+            fore_pending_output,
             clock_observations: self.clock_observations.into_observations(),
             clock_quality,
             clock_execution_bounds: execution_bounds,

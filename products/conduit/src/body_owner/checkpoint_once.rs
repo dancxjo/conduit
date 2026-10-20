@@ -272,7 +272,8 @@ impl Owner {
             "body_id":proposed.wake.body_id, "plan_id":proposed.plan.plan_id,
             "wake_id":proposed.wake.wake_id, "play":report.play,
             "terminal":report.terminal, "failure":report.failure,
-            "cleanup_failure":report.cleanup_failure, "terminal_sign":report.terminal_sign,
+            "cleanup_failure":report.cleanup_failure,
+            "fore_pending_output":report.fore_pending_output.as_ref().map(|pending|pending.metadata()), "terminal_sign":report.terminal_sign,
             "committed_fore_count":report.fore_deliveries.len(),
             "committed_fore_sha256":report.fore_deliveries.first().map(|fore| super::super::super::digest(&fore.bytes)),
         });

@@ -314,6 +314,7 @@ fn report(terminal: TerminalDisposition) -> BodyRunReport {
         scan_cancellation_failed: false,
         scan_output_completion_failed: false,
         fore_deliveries: Vec::new(),
+        fore_pending_output: None,
         live_fore_status: None,
         clock_observations: Vec::new(),
         clock_quality: None,

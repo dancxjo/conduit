@@ -98,6 +98,15 @@ pub(super) const TODO_DURABILITY_STEPS: &[Step] = &[
         ],
     ),
     Step::new(
+        "todo-durability.replacement-custody",
+        "Retain old Plan/Play output custody through provider loss, cancellation and separately admitted replacement",
+        "cargo",
+        &[
+            "test", "--locked", "-p", "conduit-std-host", "--test",
+            "replacement_fore_custody", "--", "--nocapture",
+        ],
+    ),
+    Step::new(
         "todo-durability.read",
         "Prove exact selected reads and namespace, schema, generation and authority refusals",
         "cargo",

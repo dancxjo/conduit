@@ -467,6 +467,7 @@ impl Owner {
                 "code":failure.code.as_str(), "detail":failure.detail,
             })),
             "read_cleanup_failure":report.cleanup_failure,
+            "fore_pending_output":report.fore_pending_output.as_ref().map(|pending|pending.metadata()),
             "read_terminal_sign":report.terminal_sign,
             "read_host_call":report.requests.first().map(|call| serde_json::json!({
                 "node":call.node.0,"request":call.request.0,"call":call.call.0
