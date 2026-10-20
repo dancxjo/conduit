@@ -1,6 +1,6 @@
 {
   "parent": "6391be2de4ae5ee7e693833135585b311799babb",
-  "scope": "Three visually reviewed normal-product public guest screenshots; source and capture bindings in prior receipt",
+  "scope": "67 exact6f579 normal-product QEMU PNG previews; decoded RGB equality checked for all; root visually reviewed four specified captures",
   "files": [
     {
       "source": "outputs/5992-visual-6f579f684/details-narrow-details-page-1.png",
@@ -538,5 +538,7 @@
       "mode": "100644",
       "blob": "0b8e754c051e6bd179661be18d2e3144b5c8128c"
     }
-  ]
+  ],
+  "source": "6f579f684500e6bf54c5dd7b5870c5c5c6fb7d6d",
+  "correction_of": "13e4c79af3575c6b06ea5d2d39b9fd67add4ce2a manifest reused an old three-capture scope label; bytes and file list were already correct"
 }

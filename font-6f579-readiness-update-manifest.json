@@ -1,0 +1,38 @@
+{
+  "parent": "13e4c79af3575c6b06ea5d2d39b9fd67add4ce2a",
+  "scope": "Current font PR ready, Candidate queued; correct old three-capture label to actual67 PNG files without changing image bytes",
+  "files": [
+    {
+      "source": "work/5992-font-preview-origin-manifest.json",
+      "tree_path": "font-6f579-preview-update-manifest.json",
+      "bytes": 26115,
+      "sha256": "3c158d2adbafd351f050af479359f698ae4c267b5a5b00b11ce8fabcef5fd9f7",
+      "mode": "100644",
+      "blob": "edaedefaacd299d5b9e6b4bc7764b5d5344a0a58"
+    },
+    {
+      "source": "work/revised-native-goal-state.json",
+      "tree_path": "task-6038/work/revised-native-goal-state.json",
+      "bytes": 3278,
+      "sha256": "a49759c443c564d3926aa15bbb82d1200b371d6634d8603371e7c4d02a4089a3",
+      "mode": "100644",
+      "blob": "3fdc21b74e35b1d0271f7580e53fa1e084938d2f"
+    },
+    {
+      "source": "work/5992-draft-pr-body.md",
+      "tree_path": "task-6038/work/5992-draft-pr-body.md",
+      "bytes": 2943,
+      "sha256": "0c552b03b2b5f5829165342a3a46ef508ca37d39308d2b7de2d22b9e62044dba",
+      "mode": "100644",
+      "blob": "24c2812b9065bb1f247dc8f9116ea0e4ca369dcd"
+    },
+    {
+      "source": "work/5992-6f579-root-visual-review.md",
+      "tree_path": "task-6038/work/5992-6f579-root-visual-review.md",
+      "bytes": 1594,
+      "sha256": "b79dfaaf658c2905196528c908503a6b9eb77ce41d53f09fbda7483de45e3192",
+      "mode": "100644",
+      "blob": "93e061c6e9a9cdb55ec41beeb9ea4292e429f766"
+    }
+  ]
+}

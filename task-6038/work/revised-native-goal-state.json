@@ -47,16 +47,17 @@
     "head": "6f579f684500e6bf54c5dd7b5870c5c5c6fb7d6d",
     "base": "00525faf30522b6851d226613e61e277f2b48f43",
     "tree": "22e4f4f26457a43ba34a289f50fa6de4d7f4ac0d",
-    "draft": true,
-    "candidate": null,
-    "observed": "newheadpushed;Candidateunobserved",
+    "draft": false,
+    "candidate": 39503773424,
+    "observed": "queued2026-10-20T22:03UTC",
     "old_prepared_source": "ef8c6c8300236ba7e43845ea24a72e6a2d7a6ff0",
     "old_source_checks": "20typography/113native/2allocation/Clippy/fmt passed; fresh exactSource checks running",
     "product_proof": "exact01d normal7graphicalproofsPassed;headlessblockedBeforeBootByUnregisteredEntranceAndStrippedSymbols;6167repairInProgress",
-    "current_work": "focused3/Clippy/fmt/preflight296green;normalproductbuildrunning",
-    "proof_origin": "fc2d74cb42cc3ff4956e888a9275109158f60772",
+    "current_work": "all7normal+2headlessproofPassed;rootvisualAndArtifactAuditPassed;CandidatePending",
+    "proof_origin": "6391be2de4ae5ee7e693833135585b311799babb",
     "previous_published_head": "01d9a08e4d8925a0b81ff4e561500d7ceb5e6e2f",
-    "local_broad_negative": "41cbc:1216pass/2testexpectationfail/3ignored/4filtered;testonlycorrectionfocused3green"
+    "local_broad_negative": "41cbc:1216pass/2testexpectationfail/3ignored/4filtered;testonlycorrectionfocused3green",
+    "screenshots_origin": "13e4c79af3575c6b06ea5d2d39b9fd67add4ce2a"
   },
   "stable_through_stage06": {
     "tested_source": "72ab3b367c236653dff0b5726939e08de62390b9",
