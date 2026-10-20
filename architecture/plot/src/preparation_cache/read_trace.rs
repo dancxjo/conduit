@@ -169,6 +169,47 @@ impl ReadTrace {
     }
 }
 
+/// Auxiliary observations have no catalogue semantic identity. Only cold
+/// preparation installs this handle; published snapshots keep the disabled default.
+#[derive(Clone, Default)]
+pub(crate) struct TraceHandle(Option<alloc::sync::Arc<ReadTrace>>);
+impl TraceHandle {
+    pub fn new() -> Self {
+        Self(Some(alloc::sync::Arc::new(ReadTrace::new())))
+    }
+    #[inline]
+    pub fn record(&self, table: CatalogueTable, key: &str) {
+        if let Some(trace) = &self.0 {
+            trace.record(table, key);
+        }
+    }
+    pub fn observe_all(&self) {
+        if let Some(trace) = &self.0 {
+            trace.observe_all();
+        }
+    }
+    pub fn reads(&self) -> Option<alloc::sync::Arc<[CatalogueRead]>> {
+        let trace = self.0.as_ref()?;
+        // All internal catalogue clones must have retired before a read set is
+        // retained. A surviving observer causes whole-context fallback.
+        if alloc::sync::Arc::strong_count(trace) != 1 {
+            return None;
+        }
+        trace.finish().ok().map(Into::into)
+    }
+}
+impl PartialEq for TraceHandle {
+    fn eq(&self, _: &Self) -> bool {
+        true
+    }
+}
+impl Eq for TraceHandle {}
+impl core::fmt::Debug for TraceHandle {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str("PreparationObserver")
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -236,46 +277,5 @@ mod tests {
             thread.join().unwrap();
         }
         assert_eq!(trace.finish().unwrap().len(), 256);
-    }
-}
-
-/// Auxiliary observations have no catalogue semantic identity. Only cold
-/// preparation installs this handle; published snapshots keep the disabled default.
-#[derive(Clone, Default)]
-pub(crate) struct TraceHandle(Option<alloc::sync::Arc<ReadTrace>>);
-impl TraceHandle {
-    pub fn new() -> Self {
-        Self(Some(alloc::sync::Arc::new(ReadTrace::new())))
-    }
-    #[inline]
-    pub fn record(&self, table: CatalogueTable, key: &str) {
-        if let Some(trace) = &self.0 {
-            trace.record(table, key);
-        }
-    }
-    pub fn observe_all(&self) {
-        if let Some(trace) = &self.0 {
-            trace.observe_all();
-        }
-    }
-    pub fn reads(&self) -> Option<alloc::sync::Arc<[CatalogueRead]>> {
-        let trace = self.0.as_ref()?;
-        // All internal catalogue clones must have retired before a read set is
-        // retained. A surviving observer causes whole-context fallback.
-        if alloc::sync::Arc::strong_count(trace) != 1 {
-            return None;
-        }
-        trace.finish().ok().map(Into::into)
-    }
-}
-impl PartialEq for TraceHandle {
-    fn eq(&self, _: &Self) -> bool {
-        true
-    }
-}
-impl Eq for TraceHandle {}
-impl core::fmt::Debug for TraceHandle {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_str("PreparationObserver")
     }
 }
