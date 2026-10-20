@@ -72,7 +72,7 @@ fn observe_ordinary_body_owner() {
     let prepared = snapshot();
     let mut expected = ThermostatState::default();
     for index in 0..32 {
-        let command = Command::SetTarget(180 + index);
+        let command = Command::SetTarget(180 + (index % 8) * 5);
         expected = expected.apply(command).unwrap();
         assert_eq!(execution.execute(command).unwrap().state, expected);
     }
