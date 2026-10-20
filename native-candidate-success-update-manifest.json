@@ -1,0 +1,46 @@
+{
+  "parent": "5592943f8014e75d2fbf1ed39f1d2ed2fa1949f4",
+  "scope": "Native stage05 current-dev refresh and exact preflight receipt; normal product and all five emulator runs passed; Candidate still running",
+  "files": [
+    {
+      "source": "outputs/6055-candidate-ceaefa32c/receipt.json",
+      "tree_path": "task-6038/outputs/6055-candidate-ceaefa32c/receipt.json",
+      "bytes": 1169,
+      "sha256": "1d68870ecf7cf6647744670894e60168185d66a85f283f65a871922a2879643e",
+      "mode": "100644",
+      "blob": "bc4dad93c18e343775f8e5ff96eda4d0eb05b6f2"
+    },
+    {
+      "source": "outputs/6055-candidate-ceaefa32c/tested-commit.json",
+      "tree_path": "task-6038/outputs/6055-candidate-ceaefa32c/tested-commit.json",
+      "bytes": 225,
+      "sha256": "c175cd119c1e62e524ea42e50790611ec3da3eab6e7225196c1c62cb74c3a3bf",
+      "mode": "100644",
+      "blob": "36291048029a375c2756cbd1be827048e786082e"
+    },
+    {
+      "source": "outputs/5990-stage05-ceaefa32c/receipt.json",
+      "tree_path": "task-6038/outputs/5990-stage05-ceaefa32c/receipt.json",
+      "bytes": 18004,
+      "sha256": "5ccb0ad3f5e2d67a015c2fd8b5709c835f77846772b6f35b4b4cda8eb50325fd",
+      "mode": "100644",
+      "blob": "b64ead4ab774da35a4867572cf2f826cde8b39e8"
+    },
+    {
+      "source": "work/6055-body-final-ceaefa32c.md",
+      "tree_path": "task-6038/work/6055-body-final-ceaefa32c.md",
+      "bytes": 6865,
+      "sha256": "e52a92c766df8c86c97156db6ca77c6fdfbc425a69892747383d7a9af5d45483",
+      "mode": "100644",
+      "blob": "0c8d4883abdcbe644c21cf760fb6fb45759645ee"
+    },
+    {
+      "source": "work/6055-body-final-ceaefa32c.json",
+      "tree_path": "task-6038/work/6055-body-final-ceaefa32c.json",
+      "bytes": 6922,
+      "sha256": "58a983435325e7a146baedce161f0e4253f366539839157e48a37238aefdac21",
+      "mode": "100644",
+      "blob": "b85e91a6512d5a2b2876bbc6bd1a36c73c7d18bc"
+    }
+  ]
+}

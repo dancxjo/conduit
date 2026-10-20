@@ -5,7 +5,16 @@
   "proof_class": "freestanding-emulator",
   "physical_hardware": false,
   "human_enactment": false,
-  "candidate_integration_stable": "pending; no acceptance claim",
+  "candidate_integration_stable": {
+    "candidate": {
+      "id": 39447128904,
+      "status": "success",
+      "preview": "681a7cf71169f80ac9dee62f90c3c759575081db",
+      "tree_equals_head": true
+    },
+    "feature_admission": "held pending repaireddev956 Integration and verifiedpublication",
+    "feature_merge_integration_stable": "not yet achieved"
+  },
   "supplements": {
     "5990-panels-wide-ceaefa32c": {
       "controls": 12,

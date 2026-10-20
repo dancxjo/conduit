@@ -1,0 +1,21 @@
+{
+  "pr": 6055,
+  "head": "ceaefa32c00dd9a15aa4365f831cf68862771dd4",
+  "candidate_run": 39447128904,
+  "status": "success",
+  "jobs": 17,
+  "tested_preview": "681a7cf71169f80ac9dee62f90c3c759575081db",
+  "actual_preview_parents": [
+    "956e9e069366af9f3065e020e9067c653d3fb097",
+    "ceaefa32c00dd9a15aa4365f831cf68862771dd4"
+  ],
+  "tested_tree": "ac062415a85c949e8cccd130bb6a3648373bca20",
+  "head_tree_equal": true,
+  "quick_checkout_log_sha256": "330b60a6f53ab77dea9b94053cb44478ba1a9386ac17afdb1d40f23ded6e2e83",
+  "raw_job_receipt_sha256": "a8e420752a6337f2afac0ced7cf80644bbe57a4365814df621ffa5de2d908a73",
+  "local_product_source": "ceaefa32c00dd9a15aa4365f831cf68862771dd4",
+  "local_product_image_sha256": "aed60e75304e9cb09b504e6b2d2f55da344691a883a22863cb9cf01568ada67b",
+  "boundary": "Candidate exact merge-preview success and equal source tree; not identical binaries, repaired-dev Integration, accepted-main, stable publication or issue closure",
+  "admission_hold": "Repair956 exhaustiveIntegration39445459109 and verified sameartifact/acceptedtree publication before feature admission;6055 staysdraft/noauto",
+  "observed": "2026-10-20T16:30:29Z"
+}
