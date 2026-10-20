@@ -62,6 +62,18 @@ impl HostedValueStore {
         if count > self.slots.len() {
             return Err(StorageError::ItemCapacityExceeded);
         }
+        let mut available: Vec<_> = self
+            .slots
+            .iter()
+            .enumerate()
+            .filter(|(index, slot)| {
+                slot.references == 0
+                    && slot.generation != u16::MAX
+                    && !self.is_owned_compact(*index)
+            })
+            .map(|(index, _)| index)
+            .collect();
+        available.sort_unstable_by_key(|index| (self.slots[*index].bytes.capacity(), *index));
         let mut selected: Vec<Vec<u16>> = Vec::with_capacity(requests.len());
         for (layout, count) in requests {
             let physical = layout
@@ -72,45 +84,26 @@ impl HostedValueStore {
             }
             let mut group = Vec::with_capacity(usize::from(*count));
             for _ in 0..*count {
-                let index = self
-                    .slots
-                    .iter()
-                    .enumerate()
-                    .filter(|(index, slot)| {
-                        slot.references == 0
-                            && slot.generation != u16::MAX
-                            && slot.bytes.capacity() >= layout.logical_bytes as usize
-                            && !self.is_owned_compact(*index)
-                            && !group.contains(&(*index as u16))
-                            && !selected.iter().any(|pool| pool.contains(&(*index as u16)))
-                    })
-                    .min_by_key(|(_, slot)| slot.bytes.capacity())
-                    .map(|(index, _)| index)
-                    .ok_or(StorageError::ItemCapacityExceeded)?;
+                let position = available.partition_point(|index| {
+                    self.slots[*index].bytes.capacity() < layout.logical_bytes as usize
+                });
+                if position == available.len() {
+                    return Err(StorageError::ItemCapacityExceeded);
+                }
+                let index = available.remove(position);
                 group.push(index as u16);
             }
             selected.push(group);
         }
         // Reserve the remaining generic slots by exact capacity. Existing live
         // values and earlier typed pools cannot satisfy these obligations.
-        let mut canonical = Vec::with_capacity(canonical_reservations.len());
         for bytes in canonical_reservations {
-            let index = self
-                .slots
-                .iter()
-                .enumerate()
-                .filter(|(index, slot)| {
-                    slot.references == 0
-                        && slot.generation != u16::MAX
-                        && slot.bytes.capacity() >= *bytes as usize
-                        && !self.is_owned_compact(*index)
-                        && !canonical.contains(index)
-                        && !selected.iter().any(|pool| pool.contains(&(*index as u16)))
-                })
-                .min_by_key(|(_, slot)| slot.bytes.capacity())
-                .map(|(index, _)| index)
-                .ok_or(StorageError::ItemCapacityExceeded)?;
-            canonical.push(index);
+            let position = available
+                .partition_point(|index| self.slots[*index].bytes.capacity() < *bytes as usize);
+            if position == available.len() {
+                return Err(StorageError::ItemCapacityExceeded);
+            }
+            available.remove(position);
         }
         Ok(selected)
     }

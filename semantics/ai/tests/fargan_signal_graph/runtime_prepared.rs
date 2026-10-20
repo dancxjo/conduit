@@ -23,8 +23,12 @@ pub(super) fn prepare(
     mode: ExecutionMode,
     reuse: bool,
     sequence: u64,
+    owned_compact: bool,
 ) -> PreparedExecution {
     let start = Instant::now();
+    if owned_compact {
+        assert!(reuse, "owned profile retains its prepared buffers");
+    }
     let timing = Rc::new(std::cell::RefCell::new(WorkTiming::default()));
     assert!(verify_plan(&plan));
     let fragment = &plan.fragments[0];
@@ -198,6 +202,12 @@ pub(super) fn prepare(
             .unwrap();
     }
     routes.seal().unwrap();
+    if owned_compact {
+        assert!(
+            lowered.host_calls.is_empty(),
+            "owned profile requires local expression owners"
+        );
+    }
     let mut bindings = conduit_kernel::FixedHostCallBindings::<N>::new(1);
     for b in &lowered.host_calls {
         bindings.install(b.node, b.binding).unwrap();
@@ -253,9 +263,15 @@ pub(super) fn prepare(
                             .unwrap_or_default()
                     })
                     .collect();
-                scheduler
-                    .bind_compact_f32_dag_with_canonical_inputs(&dag.nodes, &canonical)
-                    .unwrap();
+                if owned_compact {
+                    scheduler
+                        .bind_owned_compact_f32_dag(&dag.nodes, &canonical, &[])
+                        .unwrap();
+                } else {
+                    scheduler
+                        .bind_compact_f32_dag_with_canonical_inputs(&dag.nodes, &canonical)
+                        .unwrap();
+                }
             } else {
                 assert_eq!(
                     dag.implementation_id.as_str(),
@@ -268,7 +284,13 @@ pub(super) fn prepare(
         assert_eq!(dag.artifact_id.as_str(), DAG_ARTIFACT);
         if dag.execution_profile_id.as_str() == COMPACT_DAG_PROFILE {
             assert_eq!(dag.implementation_id.as_str(), COMPACT_DAG_IMPLEMENTATION);
-            scheduler.bind_compact_f32_dag(&dag.nodes).unwrap();
+            if owned_compact {
+                scheduler
+                    .bind_owned_compact_f32_dag(&dag.nodes, &[], &[])
+                    .unwrap();
+            } else {
+                scheduler.bind_compact_f32_dag(&dag.nodes).unwrap();
+            }
         } else {
             assert_eq!(dag.execution_profile_id.as_str(), CANONICAL_DAG_PROFILE);
             assert_eq!(dag.implementation_id.as_str(), CANONICAL_DAG_IMPLEMENTATION);

@@ -352,7 +352,10 @@ where
                 let slots = self.cord_specs[..self.active_cords]
                     .iter()
                     .filter(|cord| cord.source_local() == Some((node, port)))
-                    .try_fold(1u16, |count, cord| count.checked_add(cord.item_capacity))
+                    .map(|cord| cord.item_capacity)
+                    .max()
+                    .unwrap_or(0)
+                    .checked_add(1)
                     .ok_or(SchedulerError::InvalidPlan)?;
                 owned_nodes.push(node);
                 owned_requests.push((layout, slots));
@@ -361,18 +364,43 @@ where
                 return Err(SchedulerError::InvalidPlan);
             }
             let mut staging = 0;
+            let mut canonical_sources = Vec::new();
             for cord in &self.cord_specs[..self.active_cords] {
-                if cord
-                    .source_local()
-                    .is_some_and(|(node, _)| owned_nodes.contains(&node))
-                {
+                let source = cord.source_local();
+                if source.is_some_and(|(node, _)| owned_nodes.contains(&node)) {
                     continue;
                 }
-                staging = staging.max(cord.maximum_value_bytes);
-                canonical.extend(core::iter::repeat_n(
-                    cord.maximum_value_bytes,
-                    usize::from(cord.item_capacity),
-                ));
+                // Atomic fan-out publishes the same reference to every queue.
+                // FIFO consumption leaves nested suffixes of the publication
+                // sequence, so the longest outstanding queue bounds the union.
+                let shared_fifo = source.filter(|source| {
+                    self.cord_specs[..self.active_cords]
+                        .iter()
+                        .filter(|c| c.source_local() == Some(*source))
+                        .all(|c| {
+                            c.track == AssignedConnectionTrack::Payload
+                                && c.pressure_policy == AssignedPressurePolicy::PreserveOrder
+                        })
+                });
+                if let Some(source) = shared_fifo {
+                    if canonical_sources.contains(&source) {
+                        continue;
+                    }
+                    canonical_sources.push(source);
+                    let outgoing = self.cord_specs[..self.active_cords]
+                        .iter()
+                        .filter(|c| c.source_local() == Some(source));
+                    let count = outgoing.clone().map(|c| c.item_capacity).max().unwrap_or(0);
+                    let bytes = outgoing.map(|c| c.maximum_value_bytes).max().unwrap_or(0);
+                    staging = staging.max(bytes);
+                    canonical.extend(core::iter::repeat_n(bytes, usize::from(count)));
+                } else {
+                    staging = staging.max(cord.maximum_value_bytes);
+                    canonical.extend(core::iter::repeat_n(
+                        cord.maximum_value_bytes,
+                        usize::from(cord.item_capacity),
+                    ));
+                }
             }
             if staging != 0 {
                 canonical.push(staging);

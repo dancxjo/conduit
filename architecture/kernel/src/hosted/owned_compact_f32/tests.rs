@@ -215,3 +215,20 @@ fn conversion_preserves_explicit_canonical_capacity_or_refuses_atomically() {
         Err(StorageError::InvalidBudget)
     );
 }
+
+#[test]
+fn best_fit_conversion_preserves_larger_canonical_slots() {
+    let mut values = HostedValueStore::new_with_slot_capacities(&[24, 20, 24], 68).unwrap();
+    values
+        .preflight_owned_compact_f32_outputs(&[(layout(), 1)], &[24, 24])
+        .unwrap();
+    let owners = values
+        .prepare_owned_compact_f32_outputs(&[(layout(), 1)], &[24, 24])
+        .unwrap();
+    assert_eq!(owners[0].slots, [1]);
+    let a = values.store(&[1; 24]).unwrap();
+    let b = values.store(&[2; 24]).unwrap();
+    assert_ne!(a.slot, b.slot);
+    assert_eq!(values.get(a).unwrap(), [1; 24]);
+    assert_eq!(values.get(b).unwrap(), [2; 24]);
+}
