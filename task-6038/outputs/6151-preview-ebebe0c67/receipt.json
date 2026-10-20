@@ -1,0 +1,29 @@
+{
+  "current_dev": "54a579d9a9ab8deb522b3888fd9182beee3e9618",
+  "merged_6150_at": "2026-10-20T14:26:54Z",
+  "pull6151_metadata_base": "00574baf4453cac3d82a63696c3a6149987d0a3c",
+  "actual_merge_preview": "ebebe0c675c99cb39fcff635d496f73fab4e6a23",
+  "preview_parents": [
+    "54a579d9a9ab8deb522b3888fd9182beee3e9618",
+    "e24fe3f402ab22a78df3bbfdb17e12b13331e7f4"
+  ],
+  "preview_tree": "e3e379ad5e69233093ddc8f83cfe9812f9ff06f9",
+  "preview_committed_at": "2026-10-20T14:31:20Z",
+  "source_identity_scope": "Exact current pull/6151/merge fetched; Candidate quick checkout confirmation requested from sole CI observer. No overall green/merge claim.",
+  "new_dev_paths": [
+    "architecture/plot/src/checked_syntax/startup_catalog.rs",
+    "architecture/plot/src/checked_syntax/startup_catalog/read_dependencies.rs",
+    "architecture/plot/src/checked_syntax/startup_catalog/typed_literal.rs",
+    "architecture/plot/src/lib.rs",
+    "architecture/plot/src/preparation_cache.rs",
+    "architecture/plot/src/preparation_cache/read_trace.rs",
+    "architecture/plot/src/profile_read_dependencies.rs",
+    "architecture/plot/tests/preparation_cache.rs",
+    "architecture/plot/tests/preparation_cache/dependencies.rs",
+    "docs/performance/source-dependency-reuse.md",
+    "proof/performance/source/dependency-cache-cost-20261020.json",
+    "targets/std/src/installed_std/near_back_tests.rs",
+    "targets/std/src/installed_std/near_back_tests/source_dependencies.rs"
+  ],
+  "native_refresh_consequence": "Refreshing6055 onto accepted repair also admits6150 Plot preparation/cache runtime code, so old ed262 product witness is no longer equal runtime Source to refreshed feature. Preserve old receipts; rebuild supported normal product, rerun22checkpoint journey and wide/narrow panel+pointer supplements on the final refreshed Source before stage05 closure. Feature6commit delta may remain unchanged, but cannot claim only4CI files differ from old product witness."
+}

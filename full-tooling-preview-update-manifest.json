@@ -1,0 +1,38 @@
+{
+  "parent": "e8a5cc7bd02559b3535fbdd8f4e37a1e056e80ac",
+  "scope": "Full dual-tooling tests and new native product witness prerequisite; raw logs excluded",
+  "files": [
+    {
+      "source": "work/5990-ed262de88-acceptance-audit.md",
+      "tree_path": "task-6038/work/5990-ed262de88-acceptance-audit.md",
+      "bytes": 4434,
+      "sha256": "fae563a256b2b51bd8a972e5c2021e657b175438b6ffc2bc183f56519a719f6c",
+      "mode": "100644",
+      "blob": "0eb868676b5e1639c9e79a774f030624aebba6b1"
+    },
+    {
+      "source": "work/shared-shard-path-pr.md",
+      "tree_path": "task-6038/work/shared-shard-path-pr.md",
+      "bytes": 1561,
+      "sha256": "37fe90eb5ce71b2e681fbee0035adb82c62e14b060c20f5c44d04598a9faca34",
+      "mode": "100644",
+      "blob": "8cdcc38f2683b64fd7bad9e5223607f5ab3f4873"
+    },
+    {
+      "source": "outputs/shared-tooling-e24-full-tests/receipt.json",
+      "tree_path": "task-6038/outputs/shared-tooling-e24-full-tests/receipt.json",
+      "bytes": 765,
+      "sha256": "03c813196f9361a4ac6ec0199ac9571b47205cef06c40c1820fe6a390486a6f0",
+      "mode": "100644",
+      "blob": "4bf5f6a18bab6276136166d5ae23dd57adb3b9c2"
+    },
+    {
+      "source": "outputs/6151-preview-ebebe0c67/receipt.json",
+      "tree_path": "task-6038/outputs/6151-preview-ebebe0c67/receipt.json",
+      "bytes": 1969,
+      "sha256": "75cecb529ae8e26aa1b8f62480e2d5ba3ce3f08ae7fd89b8151eddec90a45f00",
+      "mode": "100644",
+      "blob": "19260622fa7a26e9a215db628712e702c434417e"
+    }
+  ]
+}

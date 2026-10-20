@@ -1,0 +1,15 @@
+{
+  "source": "e24fe3f402ab22a78df3bbfdb17e12b13331e7f4",
+  "command": "cargo +stable test --locked --no-fail-fast -p conduit-xtask-dispatch -p xtask -- --test-threads=1",
+  "exit_code": 0,
+  "totals": {
+    "targets": 15,
+    "passed": 671,
+    "failed": 0,
+    "ignored": 0
+  },
+  "profile": "Local unoptimized test profile, debug stripped, assertions/checks retained; CI admission sets test optimization1. No local/CI latency equivalence claim.",
+  "log_sha256": "0331b6f66c50a16e38cc101c7227dd941c1aa4e5aa573a42ca854f50fb164b2c",
+  "proof_boundary": "Local exact branch head with005base; current GitHub merge preview includes54a performance update. Does not prove that combined preview, merged Integration or stable acceptance.",
+  "working_tree_clean": true
+}
