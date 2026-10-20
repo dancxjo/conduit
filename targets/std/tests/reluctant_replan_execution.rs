@@ -1,9 +1,12 @@
 //! Ordinary installed execution, exact old custody and no implicit effect retries.
+#[path = "replan_common/conformance_costs.rs"]
+mod fixed_costs;
 #[path = "replan_common/expression.rs"]
 mod fixture;
 use conduit_core::ExactNumericWork;
 use conduit_planner::resource_cost::*;
 use conduit_std_host::*;
+use fixed_costs::with_request;
 use fixture::*;
 fn work() -> ExactNumericWork {
     ExactNumericWork::new(1_000_000_000)
