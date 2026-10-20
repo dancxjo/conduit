@@ -25,6 +25,9 @@ pub struct WorkTiming {
     pub compact_values: u64,
     pub compact_bytes: u64,
     pub compact_logical_bytes: u64,
+    pub owned_values: u64,
+    pub owned_bytes: u64,
+    pub owned_logical_bytes: u64,
     pub logical_invocations: u64,
     pub physical_decisions: u32,
     pub compact_binding_bytes: usize,
@@ -51,6 +54,12 @@ impl<B: StepBack<PORTS> + ?Sized> StepBack<PORTS> for TimedNumeric<B> {
     }
     fn compact_f32_output(&self) -> Option<(KPort, conduit_kernel::scheduler::CompactF32Layout)> {
         self.back.compact_f32_output()
+    }
+    fn owns_compact_f32_output(&self, port: KPort) -> bool {
+        self.back.owns_compact_f32_output(port)
+    }
+    fn prepared_compact_f32_output_mut(&mut self, port: KPort) -> Option<&mut Vec<u8>> {
+        self.back.prepared_compact_f32_output_mut(port)
     }
     fn prepared_output(&self, port: KPort) -> Option<&[u8]> {
         self.back.prepared_output(port)
@@ -126,6 +135,20 @@ impl StepBack<PORTS> for Driver {
         match self {
             Self::Operation(back) => back.compact_f32_output(),
             Self::ReusableOperation(back) => back.compact_f32_output(),
+            _ => None,
+        }
+    }
+    fn owns_compact_f32_output(&self, port: KPort) -> bool {
+        match self {
+            Self::Operation(back) => back.owns_compact_f32_output(port),
+            Self::ReusableOperation(back) => back.owns_compact_f32_output(port),
+            _ => false,
+        }
+    }
+    fn prepared_compact_f32_output_mut(&mut self, port: KPort) -> Option<&mut Vec<u8>> {
+        match self {
+            Self::Operation(back) => back.prepared_compact_f32_output_mut(port),
+            Self::ReusableOperation(back) => back.prepared_compact_f32_output_mut(port),
             _ => None,
         }
     }

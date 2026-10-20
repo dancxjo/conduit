@@ -56,8 +56,10 @@ impl HostedValueStore {
         let count = self
             .slots
             .iter()
-            .filter(|slot| {
-                slot.references == 0
+            .enumerate()
+            .filter(|(index, slot)| {
+                !self.is_owned_compact(*index)
+                    && slot.references == 0
                     && slot.generation != u16::MAX
                     && slot.bytes.capacity() >= logical_size
             })

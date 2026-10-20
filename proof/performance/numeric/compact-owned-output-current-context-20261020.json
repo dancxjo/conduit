@@ -1,0 +1,29 @@
+{
+  "source": "2d9c9cf4eb7bf9b2f858451e29b91461e883e78f",
+  "scope": "Functional, refusal and allocation controls after combining current development interfaces and numerical Fore work; no new full-owner timing/heap observation",
+  "checks": {
+    "kernel": "205unitpass/3existingignored plus allintegrations;15compactDAGpass",
+    "real_providers": "40/128/160lanes including overflow, output/event parity andpublication counters;3tests pass",
+    "private_fargan": {
+      "source": "2d9c9cf4eb7bf9b2f858451e29b91461e883e78f",
+      "diagnostic_sha256": "f4bc3f29c689592f08733a0d045a4c613aaaa85621150e7eea58953276d11ba3",
+      "observations": 2,
+      "outputs_events_equal": true,
+      "copied_bytes_baseline": 158208,
+      "copied_bytes_owned_profile": 39936,
+      "transferred_bytes": 118272,
+      "owned_publications": 164,
+      "play_allocations_reallocations_deallocations": 0,
+      "scope": "same pinned first frame repeated twice with fresh active Play identity; diagnostic, not calibrated full-owner performance",
+      "limits": "Current-source functional/allocation diagnostic; retained full48frame release observations remain pinned to e992687c343a and a020695ca510; no new latency or full-owner heap claim"
+    },
+    "clippy": "kernel/AI/Std all-targets with alloc,operationowners,hostedcatalogcache; warningsdenied;passed"
+  },
+  "local_log_sha256": {
+    "6099-refreshed-kernel.log": "8940abfb9d02667bd1efe1e4fde0c2999a401dcbc9f9abf16340cf35e5dc86b8",
+    "6099-refreshed-pointwise.log": "d5191a03eb6b71bf4e015faeaf6c58b0b98c747cab05c1c87a335eb9e0d0bb39",
+    "6099-refreshed-fargan-diagnostic.log": "5c9ee7e18a751de82d273da0d4b4caa59238ae37b7e45d167bf07b620acb9995",
+    "6099-refreshed-clippy.log": "ab842925b1ab9861ba3dc206f458e35cda3982a9985eb67f4d3ac331e11da021"
+  },
+  "retained_full_owner_observation": "compact-owned-output-20261020.json remains pinned to e992687c343a/a020695ca510; no observations discarded or relabelled as current-source release proof"
+}

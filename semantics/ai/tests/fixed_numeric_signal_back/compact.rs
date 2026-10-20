@@ -57,6 +57,15 @@ impl StepBack<PORTS> for Back {
             _ => None,
         }
     }
+    fn owns_compact_f32_output(&self, port: KPort) -> bool {
+        matches!(self, Self::Numeric(back) if back.owns_compact_f32_output(port))
+    }
+    fn prepared_compact_f32_output_mut(&mut self, port: KPort) -> Option<&mut Vec<u8>> {
+        match self {
+            Self::Numeric(back) => back.prepared_compact_f32_output_mut(port),
+            _ => None,
+        }
+    }
     fn step_committed(&mut self) {
         if let Self::Numeric(back) = self {
             back.step_committed();
@@ -76,6 +85,8 @@ struct ResultRow {
     canonical_values: u64,
     compact_values: u64,
     compact_bytes: u64,
+    owned_values: u64,
+    owned_bytes: u64,
 }
 fn run<const W: usize>(mode: u8, overflow: bool) -> ResultRow {
     const N: usize = 8;
@@ -156,7 +167,7 @@ fn run<const W: usize>(mode: u8, overflow: bool) -> ResultRow {
         capabilities: offers,
     }];
     let placements = conduit_planner::default_placements(&plot, &hosts).unwrap();
-    let plan = selected_plan::prepare(&plot, &hosts, &placements, mode);
+    let plan = selected_plan::prepare(&plot, &hosts, &placements, mode.min(2));
     let factories =
         conduit_ai::operation_owners::fixed_numeric::FixedNumericOperationFactory::for_plan(
             &plan,
@@ -176,6 +187,8 @@ fn run<const W: usize>(mode: u8, overflow: bool) -> ResultRow {
         canonical: 0,
         compact: 0,
         physical: 0,
+        owned: 0,
+        owned_bytes: 0,
     };
     let mut codec = FixedF32VectorCodec::<W>::prepare(&ty).unwrap();
     let a = store
@@ -202,7 +215,7 @@ fn run<const W: usize>(mode: u8, overflow: bool) -> ResultRow {
             "compact/source-b" => Back::Source(b, false),
             "compact/sink" => Back::Sink(output.clone()),
             _ => {
-                let owner: Box<dyn StepBack<PORTS>> = if mode == 2 {
+                let owner: Box<dyn StepBack<PORTS>> = if mode >= 2 {
                     let factory = factories
                         .iter()
                         .find(|factory| factory.implementation_id() == &gear.implementation_id)
@@ -268,8 +281,21 @@ fn run<const W: usize>(mode: u8, overflow: bool) -> ResultRow {
     if mode == 1 {
         scheduler.bind_execution_dag(&order).unwrap();
     }
-    if mode == 2 {
-        scheduler.bind_compact_f32_dag(&order).unwrap();
+    if mode >= 2 {
+        if mode == 3 {
+            let used = scheduler.values().used_items();
+            assert!(scheduler
+                .bind_owned_compact_f32_dag(&order, &[], &[16384; 32])
+                .is_err());
+            assert_eq!(scheduler.values().used_items(), used);
+            // Refusal must not publish dispatch or compact bindings; the same
+            // Source/Plan can still prepare its exact feasible reservation.
+            scheduler
+                .bind_owned_compact_f32_dag(&order, &[], &[])
+                .unwrap();
+        } else {
+            scheduler.bind_compact_f32_dag(&order).unwrap();
+        }
     }
     let mut physical = 0;
     for _ in 0..128 {
@@ -295,6 +321,8 @@ fn run<const W: usize>(mode: u8, overflow: bool) -> ResultRow {
         canonical_values: scheduler.values().canonical,
         compact_values: scheduler.values().compact,
         compact_bytes: scheduler.values().physical,
+        owned_values: scheduler.values().owned,
+        owned_bytes: scheduler.values().owned_bytes,
     };
     row
 }
@@ -322,6 +350,14 @@ fn compare<const W: usize>() {
         let canonical = run::<W>(0, overflow);
         let dispatch = run::<W>(1, overflow);
         let compact = run::<W>(2, overflow);
+        let owned = run::<W>(3, overflow);
+        assert_eq!(compact.output, owned.output);
+        assert_eq!(compact.events, owned.events);
+        assert_eq!(compact.physical, owned.physical);
+        assert_eq!(owned.compact_bytes, 0);
+        assert_eq!(owned.compact_values, 0);
+        assert_eq!(owned.owned_values, compact.compact_values);
+        assert_eq!(owned.owned_bytes, compact.compact_bytes);
         assert_eq!(canonical.output, dispatch.output);
         assert_eq!(dispatch.output, compact.output);
         assert_eq!(dispatch.events, compact.events);

@@ -50,6 +50,17 @@ impl<const I: usize, const O: usize, const P: usize> StepBack<P> for CompactLine
     fn compact_f32_output(&self) -> Option<(PortId, CompactF32Layout)> {
         Some((PortId(0), self.output))
     }
+    fn owns_compact_f32_output(&self, port: PortId) -> bool {
+        port == PortId(0)
+    }
+    fn prepared_compact_f32_output_mut(
+        &mut self,
+        port: PortId,
+    ) -> Option<&mut alloc::vec::Vec<u8>> {
+        (port == PortId(0))
+            .then(|| self.buffer.published_buffer_mut())
+            .flatten()
+    }
     fn step(&mut self, io: &mut StepIo<P>, inputs: &StepInputBytes<'_, P>) -> StepOutcome {
         self.buffer.reset();
         self.owner

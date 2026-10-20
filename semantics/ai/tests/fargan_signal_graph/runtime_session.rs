@@ -23,6 +23,26 @@ impl PreparedTrajectory {
         inputs: BTreeMap<String, Vec<u8>>,
         invocations: usize,
     ) -> Self {
+        Self::prepare(plan, resources, inputs, invocations, false)
+    }
+    // This shared fixture module also compiles in the ordinary graph suite;
+    // the ownership profile is selected by the performance worker.
+    #[allow(dead_code)]
+    pub fn new_owned_compact(
+        plan: Plan,
+        resources: &Resources,
+        inputs: BTreeMap<String, Vec<u8>>,
+        invocations: usize,
+    ) -> Self {
+        Self::prepare(plan, resources, inputs, invocations, true)
+    }
+    fn prepare(
+        plan: Plan,
+        resources: &Resources,
+        inputs: BTreeMap<String, Vec<u8>>,
+        invocations: usize,
+        owned_compact: bool,
+    ) -> Self {
         assert!(
             (1..=96).contains(&invocations),
             "finite trajectory reservation"
@@ -46,7 +66,15 @@ impl PreparedTrajectory {
             })
             .collect();
         Self {
-            prepared: prepared::prepare(plan, resources, inputs, ExecutionMode::Normal, true, 0),
+            prepared: prepared::prepare(
+                plan,
+                resources,
+                inputs,
+                ExecutionMode::Normal,
+                true,
+                0,
+                owned_compact,
+            ),
             active,
             inputs: validators,
             evidence,

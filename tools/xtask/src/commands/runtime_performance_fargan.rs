@@ -31,9 +31,10 @@ pub fn run(arguments: &[String], dry_run: bool) -> Result<(), Box<dyn std::error
             | "prepared"
             | "prepared-compact-local"
             | "prepared-matrix-local"
+            | "prepared-owned-matrix-local"
             | "prepared-matrix-source-cache"
     ) {
-        return Err("FARGAN owners must be fresh, prepared, prepared-compact-local, prepared-matrix-local or prepared-matrix-source-cache".into());
+        return Err("FARGAN owners must be fresh, prepared, prepared-compact-local, prepared-matrix-local, prepared-owned-matrix-local or prepared-matrix-source-cache".into());
     }
     let root = crate::workspace::workspace_root()?;
     let fixture = fixture
