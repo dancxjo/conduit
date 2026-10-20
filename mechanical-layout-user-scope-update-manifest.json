@@ -1,0 +1,70 @@
+{
+  "parent": "fc18ddb28fcabbad3cb4aac546993b87edc52440",
+  "scope": "Read-only native capacity seam plan and public Source measurement correction; no implementation or platform proof",
+  "files": [
+    {
+      "source": "work/native-pagination-user-bug.md",
+      "tree_path": "task-6038/work/native-pagination-user-bug.md",
+      "bytes": 3127,
+      "sha256": "48e58ca873a222d2d0f8f996e0401c98318a2c5df73fc50f1f02f68a3001385a",
+      "mode": "100644",
+      "blob": "3c8903d0d02cd60dc883d39286e75959f01d4e9a"
+    },
+    {
+      "source": "work/pagination-user-report-origin.json",
+      "tree_path": "task-6038/work/pagination-user-report-origin.json",
+      "bytes": 610,
+      "sha256": "7c6a81d58a99b5b6226e6916e0a6efc443585d24e88a0a577f367d1e35bf4a22",
+      "mode": "100644",
+      "blob": "97e99088ceb8f2e3cb4b8a3a58d23a09fb35cb0d"
+    },
+    {
+      "source": "work/mechanical-layout-current-gap-audit.md",
+      "tree_path": "task-6038/work/mechanical-layout-current-gap-audit.md",
+      "bytes": 13015,
+      "sha256": "d4adee137bb303c6d5b1743ea563b3f2e769ea240cbdba8df0db2e0296a38faa",
+      "mode": "100644",
+      "blob": "430108a4e4dd42358b26e9965b2b33e6fa595921"
+    },
+    {
+      "source": "work/mechanical-layout-issue.md",
+      "tree_path": "task-6038/work/mechanical-layout-issue.md",
+      "bytes": 4952,
+      "sha256": "1184ff580d2276d001600f13b10771e33e38aabab3b5442068fb8c78133141ec",
+      "mode": "100644",
+      "blob": "a3aa6ecef9e89bbcf71097041f6f2aa743708723"
+    },
+    {
+      "source": "work/mechanical-layout-issue-v2.md",
+      "tree_path": "task-6038/work/mechanical-layout-issue-v2.md",
+      "bytes": 8077,
+      "sha256": "7faf342a74320e6d30f07f79e46406022b6dd4e61b9ba9c337271fe00d4722db",
+      "mode": "100644",
+      "blob": "6548f41d3fdb99dd595a9595ec106170f5a05adc"
+    },
+    {
+      "source": "work/mechanical-layout-issue-v2.json",
+      "tree_path": "task-6038/work/mechanical-layout-issue-v2.json",
+      "bytes": 8143,
+      "sha256": "641e6795d9815fab1a7de4b44e679800fde43c5c770de9a54bc5906c59d7922a",
+      "mode": "100644",
+      "blob": "af48e819ea173c08adc3f5154dedb231981c70bf"
+    },
+    {
+      "source": "work/6158-general-layout-coordination.md",
+      "tree_path": "task-6038/work/6158-general-layout-coordination.md",
+      "bytes": 534,
+      "sha256": "0a2dc4147649a3404ab9b88d42e25f0154c912101c35b7534021eb564e333b70",
+      "mode": "100644",
+      "blob": "575b1be73d56cfb2b440f2f17ac4bda57de76c5d"
+    },
+    {
+      "source": "work/6038-general-layout-scope-update.md",
+      "tree_path": "task-6038/work/6038-general-layout-scope-update.md",
+      "bytes": 911,
+      "sha256": "e4535928ad82ec5d8585b957b3de2bf323dbe74922e8422bd38184b39888c6d7",
+      "mode": "100644",
+      "blob": "ea7aa04a500ec5a06b89d8884af07a8036b1ad42"
+    }
+  ]
+}
