@@ -1,0 +1,2 @@
+# Retained firmware/debugger transcripts preserve terminal whitespace byte for byte.
+**/*.log whitespace=-trailing-space,-blank-at-eof,cr-at-eol
