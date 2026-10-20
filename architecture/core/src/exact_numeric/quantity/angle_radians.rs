@@ -95,6 +95,15 @@ impl PreparedAngleRadianQuantityConversion {
         output: &mut [u8],
         work: &mut ExactNumericWork,
     ) -> Result<AngleRadianQuantityConversion<'a>, R> {
+        Self::convert_prepared(&mut self.builder, &mut self.coordinate, input, output, work)
+    }
+    pub(super) fn convert_prepared<'a>(
+        builder: &mut PreparedMathematicalValueBuilder,
+        coordinate: &mut [u8],
+        input: &'a [u8],
+        output: &mut [u8],
+        work: &mut ExactNumericWork,
+    ) -> Result<AngleRadianQuantityConversion<'a>, R> {
         let source = QuantityValueProfile::Mathematical
             .decode(ANGLE_INFO_ID, input, work)
             .map_err(R::Input)?;
@@ -128,7 +137,7 @@ impl PreparedAngleRadianQuantityConversion {
             }
             Err(why) => return Err(R::Physical(why)),
         };
-        self.builder.reset();
+        builder.reset();
         let mathematical = if input.first() == Some(&3) {
             Some(
                 MathematicalQuantityView::decode(input, work).map_err(|why| {
@@ -156,22 +165,20 @@ impl PreparedAngleRadianQuantityConversion {
         let root = if let Some(value) = rational {
             let coefficient = value.checked_multiply(scale, work).map_err(R::Numeric)?;
             if !uses_pi_law || coefficient == ExactRational::ZERO {
-                self.builder
+                builder
                     .insert(MathematicalNode::Rational(coefficient), work)
                     .map_err(R::Mathematical)?
             } else {
-                let pi = self
-                    .builder
+                let pi = builder
                     .insert(MathematicalNode::Pi, work)
                     .map_err(R::Mathematical)?;
                 if coefficient == ExactRational::ONE {
                     pi
                 } else {
-                    let factor = self
-                        .builder
+                    let factor = builder
                         .insert(MathematicalNode::Rational(coefficient), work)
                         .map_err(R::Mathematical)?;
-                    self.builder
+                    builder
                         .insert(MathematicalNode::Multiply(factor, pi), work)
                         .map_err(R::Mathematical)?
                 }
@@ -180,38 +187,32 @@ impl PreparedAngleRadianQuantityConversion {
             let value = mathematical.ok_or(R::Input(QuantityValueContractRefusal::Encoding(
                 QuantityValueRefusal::Truncated,
             )))?;
-            let mut root = self
-                .builder
+            let mut root = builder
                 .append_value(value.coordinate(), work)
                 .map_err(R::Mathematical)?;
             if scale != ExactRational::ONE {
-                let factor = self
-                    .builder
+                let factor = builder
                     .insert(MathematicalNode::Rational(scale), work)
                     .map_err(R::Mathematical)?;
-                root = self
-                    .builder
+                root = builder
                     .insert(MathematicalNode::Multiply(root, factor), work)
                     .map_err(R::Mathematical)?;
             }
             if uses_pi_law {
-                let pi = self
-                    .builder
+                let pi = builder
                     .insert(MathematicalNode::Pi, work)
                     .map_err(R::Mathematical)?;
-                root = self
-                    .builder
+                root = builder
                     .insert(MathematicalNode::Multiply(root, pi), work)
                     .map_err(R::Mathematical)?;
             }
             root
         };
-        let n = self
-            .builder
-            .encode(root, &mut self.coordinate, work)
+        let n = builder
+            .encode(root, coordinate, work)
             .map_err(R::Mathematical)?;
         let value =
-            MathematicalValueView::decode(&self.coordinate[..n], work).map_err(R::Mathematical)?;
+            MathematicalValueView::decode(&coordinate[..n], work).map_err(R::Mathematical)?;
         work.charge((2 + UNIT_ENCODED_LEN + n) as u64)
             .map_err(R::Numeric)?;
         let encoded_bytes = encode_mathematical_quantity_value(

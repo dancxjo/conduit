@@ -29,6 +29,7 @@ pub struct QuantityCoordinateConversion<'source> {
     target_representation: QuantityCoordinateRepresentation,
     scale: ExactRational,
     offset: ExactRational,
+    reference_law: Option<&'static str>,
     encoded_bytes: usize,
     target_digest: [u8; 32],
     spent_work: u64,
@@ -46,6 +47,10 @@ impl QuantityCoordinateConversion<'_> {
     }
     pub const fn scale(&self) -> ExactRational {
         self.scale
+    }
+    /// Additional exact reference law; scale is its rational coefficient.
+    pub const fn reference_law(&self) -> Option<&'static str> {
+        self.reference_law
     }
     pub const fn offset(&self) -> ExactRational {
         self.offset
@@ -124,37 +129,62 @@ impl PreparedQuantityCoordinateConversion {
         // Coefficients come from the role-aware physical law independently of
         // the source magnitude. Exact native conversion does not first
         // materialize an owning rational coordinate.
-        let zero = RationalQuantity::new(ExactRational::ZERO, source.unit(), source.role())
-            .and_then(|q| q.convert_to_unit(target, work))
-            .map_err(R::Physical)?;
-        let one = RationalQuantity::new(ExactRational::ONE, source.unit(), source.role())
-            .and_then(|q| q.convert_to_unit(target, work))
-            .map_err(R::Physical)?;
-        let offset = zero.coordinate();
-        let scale = one
-            .coordinate()
-            .checked_subtract(offset, work)
-            .map_err(R::Numeric)?;
-        let n = if source.representation() == QuantityCoordinateRepresentation::Mathematical {
-            self.mathematical
-                .execute(encoded, target, &mut self.staged, work)
-                .map_err(R::Mathematical)?
-                .encoded_bytes()
-        } else if let Some(native) = source.decimal() {
-            work.charge(1).map_err(R::Numeric)?;
-            match native.convert(target) {
-                Ok(value) => {
-                    let bytes = value.encode();
-                    self.staged[..bytes.len()].copy_from_slice(&bytes);
-                    bytes.len()
-                }
-                Err(QuantityConversionRefusal::Inexact | QuantityConversionRefusal::Overflow) => {
-                    self.rational(source, target, work)?
-                }
-                Err(why) => return Err(R::Physical(RationalQuantityRefusal::Physical(why))),
-            }
+        let (scale, offset, n, reference_law) = if target == Unit::Radian
+            && source.family() == Unit::Turn.family()
+            && source.unit().reference_anchor() != Unit::Radian.reference_anchor()
+        {
+            let converted = self
+                .mathematical
+                .execute_radians(encoded, &mut self.staged, work)
+                .map_err(|why| match why {
+                    AngleRadianQuantityRefusal::Input(n) => R::Input(n),
+                    AngleRadianQuantityRefusal::Physical(n) => R::Physical(n),
+                    AngleRadianQuantityRefusal::Numeric(n) => R::Numeric(n),
+                    AngleRadianQuantityRefusal::Mathematical(n) => {
+                        R::Mathematical(MathematicalQuantityConversionRefusal::Mathematical(n))
+                    }
+                    AngleRadianQuantityRefusal::RetainedStorageLimit => R::RetainedStorageLimit,
+                })?;
+            (
+                converted.scale(),
+                ExactRational::ZERO,
+                converted.encoded_bytes(),
+                converted.reference_law(),
+            )
         } else {
-            self.rational(source, target, work)?
+            let zero = RationalQuantity::new(ExactRational::ZERO, source.unit(), source.role())
+                .and_then(|q| q.convert_to_unit(target, work))
+                .map_err(R::Physical)?;
+            let one = RationalQuantity::new(ExactRational::ONE, source.unit(), source.role())
+                .and_then(|q| q.convert_to_unit(target, work))
+                .map_err(R::Physical)?;
+            let offset = zero.coordinate();
+            let scale = one
+                .coordinate()
+                .checked_subtract(offset, work)
+                .map_err(R::Numeric)?;
+            let n = if source.representation() == QuantityCoordinateRepresentation::Mathematical {
+                self.mathematical
+                    .execute(encoded, target, &mut self.staged, work)
+                    .map_err(R::Mathematical)?
+                    .encoded_bytes()
+            } else if let Some(native) = source.decimal() {
+                work.charge(1).map_err(R::Numeric)?;
+                match native.convert(target) {
+                    Ok(value) => {
+                        let bytes = value.encode();
+                        self.staged[..bytes.len()].copy_from_slice(&bytes);
+                        bytes.len()
+                    }
+                    Err(
+                        QuantityConversionRefusal::Inexact | QuantityConversionRefusal::Overflow,
+                    ) => self.rational(source, target, work)?,
+                    Err(why) => return Err(R::Physical(RationalQuantityRefusal::Physical(why))),
+                }
+            } else {
+                self.rational(source, target, work)?
+            };
+            (scale, offset, n, None)
         };
         let target_view = QuantityValueProfile::Mathematical
             .decode(crate::QUANTITY_INFO_ID, &self.staged[..n], work)
@@ -171,6 +201,7 @@ impl PreparedQuantityCoordinateConversion {
             source,
             target_unit: target,
             target_representation,
+            reference_law,
             scale,
             offset,
             encoded_bytes: n,

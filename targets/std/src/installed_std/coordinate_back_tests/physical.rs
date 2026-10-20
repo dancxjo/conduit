@@ -168,3 +168,45 @@ fn installed_affine_point_and_delta_keep_separate_exact_offsets_and_numeric_evid
         assert_eq!(guard.finish(), 0);
     }
 }
+
+#[test]
+fn installed_turn_to_radian_conversion_retains_pi_until_near_consumes_it() {
+    let source = Quantity::parse_plot_literal("1turn").unwrap().encode();
+    let (coordinate, numeric) = execute(&source, "rad", "0.01rad");
+    let target = field(&numeric, "source-wire");
+    let value = MathematicalQuantityView::decode(target, &mut work()).unwrap();
+    assert_eq!(value.unit(), Unit::Radian);
+    assert_eq!(
+        value
+            .coordinate()
+            .rational_pi_coefficient(&mut work())
+            .unwrap(),
+        Some(ExactRational::from_i128(2))
+    );
+    replay_coordinate(&source, target, Unit::Radian, &coordinate);
+    let allowance = RationalQuantity::from_quantity(
+        Quantity::parse_plot_literal("0.01rad").unwrap(),
+        &mut work(),
+    )
+    .unwrap();
+    let mut verifier = PreparedMathematicalNearQuantityVerifier::new(
+        &near_quantity_type(),
+        crate::numerical_host::near_step::mathematical_near_requirements(),
+        Binary32Rounding::NearestTiesEven,
+        allowance,
+        900_000_000,
+    )
+    .unwrap();
+    let bytes = numeric.canonical_bytes().unwrap();
+    let guard = crate::allocation_probe::begin();
+    let checked = verifier
+        .verify(
+            &bytes,
+            QUANTITY_INFO_ID,
+            Some(semantic_digest(QUANTITY_INFO_ID, target)),
+            &mut ExactNumericWork::new(900_000_000),
+        )
+        .unwrap();
+    assert_eq!(checked.source().encoded(), target);
+    assert_eq!(guard.finish(), 0);
+}

@@ -31,7 +31,11 @@ impl QuantityCoordinateConversionDomain<'_, '_> {
             },
             ProjectionFact::Transformed {
                 obligation: text(COORDINATES),
-                law: text(MATHEMATICAL_QUANTITY_CONVERSION_LAW),
+                law: text(
+                    receipt
+                        .reference_law()
+                        .unwrap_or(MATHEMATICAL_QUANTITY_CONVERSION_LAW),
+                ),
             },
             if receipt.source().representation() == receipt.target_representation() {
                 ProjectionFact::Preserved {
@@ -96,7 +100,7 @@ impl<'source, 'target> ProjectionDomain for QuantityCoordinateConversionDomain<'
         wire && facts.iter().any(|f| matches!(f, ProjectionFact::Preserved { obligation } if obligation.as_str()==VALUE))
             && facts.iter().any(|f| matches!(f, ProjectionFact::Preserved { obligation } if obligation.as_str()==ROLE))
             && facts.iter().any(|f| matches!(f, ProjectionFact::Transformed { obligation,law }
-                if obligation.as_str()==COORDINATES && law.as_str()==MATHEMATICAL_QUANTITY_CONVERSION_LAW))
+                if obligation.as_str()==COORDINATES && law.as_str()==source.reference_law().unwrap_or(MATHEMATICAL_QUANTITY_CONVERSION_LAW)))
     }
 }
 #[derive(Debug, Clone, Copy)]

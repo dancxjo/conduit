@@ -109,6 +109,20 @@ impl PreparedMathematicalQuantityConversion {
         work.charge(local.spent()).map_err(R::Numeric)?;
         result
     }
+    pub(super) fn execute_radians<'a>(
+        &mut self,
+        input: &'a [u8],
+        output: &mut [u8],
+        work: &mut ExactNumericWork,
+    ) -> Result<super::AngleRadianQuantityConversion<'a>, super::AngleRadianQuantityRefusal> {
+        super::PreparedAngleRadianQuantityConversion::convert_prepared(
+            &mut self.builder,
+            &mut self.coordinate,
+            input,
+            output,
+            work,
+        )
+    }
     fn convert<'source>(
         &mut self,
         encoded: &'source [u8],
