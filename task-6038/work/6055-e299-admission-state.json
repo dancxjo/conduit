@@ -7,11 +7,17 @@
   "previous_tested_tree": "ce42a8135de9d544103be105290b31b6a6cbbf7d",
   "patches_equal": 6,
   "reason": "Current dev advanced through #6153; previous passing lanes do not admit new combined tree",
-  "current_local_proof": "running sequential guarded runner; no current pass claim yet",
+  "current_local_proof": "295 preflight and strict native Clippy and105 native Face tests passed; supported product build running",
   "ci_observer": "ci_receipts",
-  "next_ci_observation_not_before": "2026-10-20T18:13:00Z",
+  "next_ci_observation_not_before": "2026-10-20T18:24:00Z",
   "serial_native_next": "stage08 #5992 only after6055/scoped05and06acceptance",
   "held_c1_source": "97277a818aae7e01b0a4812e0dfc4b0fd0ddb1b7",
   "held_c1_capacity_issue": 6156,
-  "auxiliary_backup": "dc9bfd5bf2b782115b3cddedbd789b44897001f3"
+  "auxiliary_backup": "dc9bfd5bf2b782115b3cddedbd789b44897001f3",
+  "current_candidate_run": 39471533018,
+  "current_candidate_last_observed": "queued 2026-10-20T18:13Z",
+  "current_dev_integration_run": 39465043673,
+  "current_dev_integration_last_observed": "running without observed failure 2026-10-20T18:13Z",
+  "previous_candidate_run": 39461761302,
+  "previous_candidate_terminal": "automatically cancelled on refresh;15 underlying lanes passed, aggregate never accepted"
 }

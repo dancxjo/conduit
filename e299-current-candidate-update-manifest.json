@@ -1,0 +1,30 @@
+{
+  "parent": "882fbc6b518b8903cdf03d195a3487c04a9e15c6",
+  "scope": "Read-only native capacity seam plan and public Source measurement correction; no implementation or platform proof",
+  "files": [
+    {
+      "source": "work/6156-route-audit-update.md",
+      "tree_path": "task-6038/work/6156-route-audit-update.md",
+      "bytes": 1626,
+      "sha256": "1e23f6d0a0dfda42484e189826fa9610ee10b2f72a2748530544a5ce62da7b15",
+      "mode": "100644",
+      "blob": "e75807b3a1502e786c37de908324b4a3bb4c7a99"
+    },
+    {
+      "source": "work/5645-e299-readonly-merge-forecast.json",
+      "tree_path": "task-6038/work/5645-e299-readonly-merge-forecast.json",
+      "bytes": 582,
+      "sha256": "2b94a8cbe7fbc5626dc94d8dc4dd643ec18e713162482cd50c300069d1572c24",
+      "mode": "100644",
+      "blob": "7c1ab5f4da7510f69bd3c85dc9cf1ac87859b3d5"
+    },
+    {
+      "source": "work/6055-e299-admission-state.json",
+      "tree_path": "task-6038/work/6055-e299-admission-state.json",
+      "bytes": 1392,
+      "sha256": "9ac5152ba667d75714153b8a0510222a6c0b8d1c335773e46ca3641ac9eacf8a",
+      "mode": "100644",
+      "blob": "ba65b80fd1ddbcfd4fffc9378ce8e0337057dfba"
+    }
+  ]
+}

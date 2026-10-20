@@ -1,0 +1,8 @@
+{
+  "native_candidate": "e29922753a2fca04145551bbb6ae00504fed76a9",
+  "held_owner_presentation": "bc1448c4bd233257c416bfe5b30c21c940b57293",
+  "forecast_tree": "7c76fbc885a1645a22e69714f4fa7f2c5ef2a9a1",
+  "command": "git merge-tree --write-tree e29922753a2fca04145551bbb6ae00504fed76a9 bc1448c4bd233257c416bfe5b30c21c940b57293",
+  "result": "clean read-only forecast; no Source checkout mutation, branch update, proof or admission",
+  "required_next": "Refresh W1 only after6055 merge; freeze finalSource and execute ordered current-head proof plan. Forecast is not acceptance."
+}
