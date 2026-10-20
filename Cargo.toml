@@ -132,3 +132,7 @@ opt-level = 1
 
 [profile.test.build-override]
 opt-level = 1
+
+# Release generators execute the same Source checking as dev/test generators.
+[profile.release.build-override]
+opt-level = 1
