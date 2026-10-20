@@ -18,6 +18,12 @@ recipe may use `ComponentSubjectSelector::collection` with mode `information`,
 `exclusive` or `independent` and its own `maximum_items` within the same bound.
 The selected collection must satisfy that mode before the recipe is admitted.
 
+The Crèche selection region binds the checked `independent` collection profile
+with at most 16 items and one selected collection subject. Its existing region
+groups and action-target field bindings remain unchanged. The exclusive naming
+and informational review collections retain their ordinary complete generic
+reading/Details path; they do not consume additional selection-region slots.
+
 A collection has role `Collection`, unique direct `Contains` targets and exactly
 one `item-count: Count` matching those targets. Each target is an existing source
 subject, including an `Item` or domain `Plot`, with one distinct `order: Count`.
@@ -122,3 +128,17 @@ one accepted source Face and demonstrate their actual selected Back/generic
 fallback, exact acknowledged Show and Host/Plan/Play identities, bounded
 resources and rejected actions with zero committed mutation. N4 follows
 #5994's accepted finite native route; this contract does not reorder that queue.
+
+The held canonical native five-candidate producer receipt at the pair-identity
+fix measures 56,232 Face JSON bytes, exceeding the existing 49,152-byte snapshot
+bound. [#6156](https://github.com/dancxjo/conduit/issues/6156) owns that separate
+finite native capacity prerequisite after the existing #5994 route. The checked
+collection selector resolves recipe membership, not storage or routed-envelope
+admission; no native budget is raised by this preparation. C1 admission remains
+held while the known native consumer capacity refusal is unresolved.
+
+The held native consumer inventory also retains a separate focus-order failure:
+`ordinary_name_entry_reaches_first_choice_with_one_tab` reaches `creche.plot.2`
+where the existing test expects `creche.plot.0`. This is not classified as a
+capacity failure or waived by changing the test expectation; explicit collection
+order and native traversal still need independent correspondence review.

@@ -4,7 +4,7 @@ plot creche-component-single (
  show: Show >>
  interaction: FaceInteraction...| >>
 ) {
- renderer: face/component-mask(label = "Crèche", recipe = {gutter: 12, identity: "conduit.face/creche-single@1", maximum_columns: 1, reflow_width: 720, regions: [{group: 0, identity: "body-name", maximum_subjects: 1, selector: action_target("creche.name")}, {group: 0, identity: "naming", maximum_subjects: 1, selector: action_target("creche.naming")}, {group: 0, identity: "search", maximum_subjects: 1, selector: action_target("creche.search")}, {group: 0, identity: "selection", maximum_subjects: 1, selector: role("Collection")}, {group: 0, identity: "plots", maximum_subjects: 16, selector: role("Plot")}, {group: 0, identity: "review", maximum_subjects: 20, selector: role("Status")}], version: 1}, expression = expression)
+ renderer: face/component-mask(label = "Crèche", recipe = {gutter: 12, identity: "conduit.face/creche-single@1", maximum_columns: 1, reflow_width: 720, regions: [{group: 0, identity: "body-name", maximum_subjects: 1, selector: action_target("creche.name")}, {group: 0, identity: "naming", maximum_subjects: 1, selector: action_target("creche.naming")}, {group: 0, identity: "search", maximum_subjects: 1, selector: action_target("creche.search")}, {group: 0, identity: "selection", maximum_subjects: 1, selector: collection({mode: "independent", maximum_items: 16})}, {group: 0, identity: "plots", maximum_subjects: 16, selector: role("Plot")}, {group: 0, identity: "review", maximum_subjects: 20, selector: role("Status")}], version: 1}, expression = expression)
  face >> renderer.face
  renderer.show >> show
  renderer.interaction >> interaction
@@ -25,7 +25,7 @@ plot creche-component-columns (
  show: Show >>
  interaction: FaceInteraction...| >>
 ) {
- renderer: face/component-mask(label = "Crèche", recipe = {gutter: 12, identity: "conduit.face/creche-columns@1", maximum_columns: 2, reflow_width: 720, regions: [{group: 0, identity: "body-name", maximum_subjects: 1, selector: action_target("creche.name")}, {group: 0, identity: "naming", maximum_subjects: 1, selector: action_target("creche.naming")}, {group: 1, identity: "search", maximum_subjects: 1, selector: action_target("creche.search")}, {group: 1, identity: "selection", maximum_subjects: 1, selector: role("Collection")}, {group: 1, identity: "plots", maximum_subjects: 16, selector: role("Plot")}, {group: 2, identity: "review", maximum_subjects: 20, selector: role("Status")}], version: 1}, expression = expression)
+ renderer: face/component-mask(label = "Crèche", recipe = {gutter: 12, identity: "conduit.face/creche-columns@1", maximum_columns: 2, reflow_width: 720, regions: [{group: 0, identity: "body-name", maximum_subjects: 1, selector: action_target("creche.name")}, {group: 0, identity: "naming", maximum_subjects: 1, selector: action_target("creche.naming")}, {group: 1, identity: "search", maximum_subjects: 1, selector: action_target("creche.search")}, {group: 1, identity: "selection", maximum_subjects: 1, selector: collection({mode: "independent", maximum_items: 16})}, {group: 1, identity: "plots", maximum_subjects: 16, selector: role("Plot")}, {group: 2, identity: "review", maximum_subjects: 20, selector: role("Status")}], version: 1}, expression = expression)
  face >> renderer.face
  renderer.show >> show
  renderer.interaction >> interaction
