@@ -17,8 +17,8 @@ use conduit_kernel::HostCallOutcome;
 mod parent_play;
 mod preparation;
 mod reuse_pool;
+use crate::reusable_value_pool::ReusableValuePool;
 pub use parent_play::ScanChildSignReceipt;
-use reuse_pool::ReusableScanPool;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BoundedScanState {
@@ -48,7 +48,7 @@ pub enum BoundedScanAdmission {
 pub struct BoundedScanActivationHost {
     planned: PlannedScanActivation,
     ready: Vec<KernelCompositeHost>,
-    reusable: Option<Box<ReusableScanPool>>,
+    reusable: Option<Box<ReusableValuePool>>,
     receipts: Vec<KernelCompositeHost>,
     accumulator: ValuePayload,
     queued: ValuePayload,

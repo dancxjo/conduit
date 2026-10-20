@@ -33,6 +33,7 @@ pub use value_pair::ValuePairBack;
 mod kernel_executor;
 mod operation;
 mod planned_activation;
+mod reusable_value_pool;
 mod seeded_state;
 #[cfg(test)]
 mod test_support;
