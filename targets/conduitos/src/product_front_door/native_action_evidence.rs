@@ -194,44 +194,6 @@ pub(super) fn action(
     )
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn snapshot_carries_actual_planned_editor_state_and_label() {
-        let (mut journey, _) = crate::product_front_door::workspace_input::tests::listening();
-        let resident =
-            crate::native_workset::resident(crate::native_workset::NativePlot::MemoryLantern)
-                .unwrap();
-        journey.select_plot(&resident, journey.revision()).unwrap();
-        let projection = journey.projection();
-        assert!(projection.text_editor_active);
-        assert_eq!(projection.text_editor_label.as_deref(), Some("Message"));
-        let record = snapshot(&projection);
-        assert_eq!(record["text_editor_active"], projection.text_editor_active);
-        assert_eq!(
-            record["text_editor_label"],
-            json!(projection.text_editor_label)
-        );
-        let (ids, offer, _) = crate::product_journey::test_support::fixture();
-        crate::product_journey::test_support::invoke(
-            &mut journey,
-            patchbay_control::PatchbayAction::Stop,
-            &ids,
-            &offer,
-        )
-        .unwrap();
-        let stopped = journey.projection();
-        assert!(!stopped.text_editor_active);
-        assert_eq!(snapshot(&stopped)["text_editor_active"], false);
-        assert_eq!(
-            snapshot(&stopped)["text_editor_label"],
-            json!(stopped.text_editor_label)
-        );
-    }
-}
-
 /// Mask-local reading acknowledgement after exact Show validation and scanout.
 /// The owning Face remains unchanged; page navigation is a presenter operation.
 pub(super) fn reading(
@@ -280,5 +242,43 @@ pub(super) fn journey_timing(
     {
         #[cfg(not(test))]
         crate::arch::early_write(b"CONDUIT_NATIVE_TIMING_REFUSAL custody-record-bound\n");
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn snapshot_carries_actual_planned_editor_state_and_label() {
+        let (mut journey, _) = crate::product_front_door::workspace_input::tests::listening();
+        let resident =
+            crate::native_workset::resident(crate::native_workset::NativePlot::MemoryLantern)
+                .unwrap();
+        journey.select_plot(&resident, journey.revision()).unwrap();
+        let projection = journey.projection();
+        assert!(projection.text_editor_active);
+        assert_eq!(projection.text_editor_label.as_deref(), Some("Message"));
+        let record = snapshot(&projection);
+        assert_eq!(record["text_editor_active"], projection.text_editor_active);
+        assert_eq!(
+            record["text_editor_label"],
+            json!(projection.text_editor_label)
+        );
+        let (ids, offer, _) = crate::product_journey::test_support::fixture();
+        crate::product_journey::test_support::invoke(
+            &mut journey,
+            patchbay_control::PatchbayAction::Stop,
+            &ids,
+            &offer,
+        )
+        .unwrap();
+        let stopped = journey.projection();
+        assert!(!stopped.text_editor_active);
+        assert_eq!(snapshot(&stopped)["text_editor_active"], false);
+        assert_eq!(
+            snapshot(&stopped)["text_editor_label"],
+            json!(stopped.text_editor_label)
+        );
     }
 }
