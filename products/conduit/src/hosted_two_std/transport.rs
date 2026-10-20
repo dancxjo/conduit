@@ -173,7 +173,7 @@ pub(super) fn execute_line<const OBSERVE: bool>(
         .map_err(|error| format!("source Line timeout: {error:?}"))?;
     activate_source(&mut source, source_endpoint, &mut line)?;
     let mut final_transfer = None;
-    for expected_sequence in 1..=workload.count() {
+    for expected_sequence in 0..workload.count() {
         let transfer = next_transfer(&mut source)?;
         if transfer.sequence != expected_sequence {
             return Err("two-Host source sequence mismatch".into());
@@ -264,7 +264,7 @@ fn run_sink<const OBSERVE: bool>(
         .map_err(|error| format!("sink Line timeout: {error:?}"))?;
     activate_sink(&mut sink, sink_endpoint, &mut line)?;
     let mut output = Vec::with_capacity(conduit_text::MAX_TEXT_BYTES as usize + 1);
-    for expected_sequence in 1..=workload.count() {
+    for expected_sequence in 0..workload.count() {
         let sequence =
             with_message(
                 &mut sink,

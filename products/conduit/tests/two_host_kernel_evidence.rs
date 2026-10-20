@@ -148,7 +148,7 @@ fn persistent_tick_flow_retains_all_values_and_both_kernel_lifecycles() {
         assert!(host.retention_gap.is_none());
         assert_eq!(host.identity.plan_id, execution.plan_id);
     }
-    for wire_sequence in 1..=u64::from(count) {
+    for wire_sequence in 0..u64::from(count) {
         let mut kinds = Vec::new();
         for event in &evidence.source.events {
             if !matches!(
