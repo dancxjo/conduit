@@ -172,6 +172,13 @@ pub(super) fn execute_supplied(
         artifacts.capture(&mut qmp, &mut reader, "protected-memory-lantern", true)?;
 
         keyboard_domain::verify_sibling(&serial_path, &mut child, &mut qmp, &mut reader)?;
+        face_input::stale_modifier_release(
+            &serial_path,
+            &mut child,
+            &mut qmp,
+            &mut reader,
+            &mut artifacts,
+        )?;
 
         journey_input::key_pair(&mut qmp, &mut reader, "esc", "journey-home")?;
         hid_qmp::wait_for_stage(
@@ -260,7 +267,9 @@ pub(super) fn execute_supplied(
         )?;
         let records = journey_records::decode(&serial)?;
         let identity = validate(&records, &serial)?;
-        let keyboard_cost = keyboard_domain::validate_cost(&serial, &keyboard_identity, 5, 1)?;
+        // Actual held Shift and its owned release add two keyboard entries;
+        // neither emits a new text Face gate.
+        let keyboard_cost = keyboard_domain::validate_cost(&serial, &keyboard_identity, 7, 1)?;
         // Initial empty Current manifests the caret before input: one extra
         // Face Host Call and its two protected domain entries.
         let editor_cost = keyboard_domain::validate_cost(&serial, &editor_identity, 29, 7)?;
@@ -286,7 +295,7 @@ pub(super) fn execute_supplied(
             "protected_keyboard_domain": keyboard_cost,
             "protected_retained_text_domain": editor_cost,
             "committed_edit_receipt": "memory-lantern-native-edit.json",
-            "steps":["arrive","birth","wake","unavailable-wake-refused","plan","play","protected-keyboard-canvas","protected-memory-lantern","home","patchbay","face","diagram","gear-details","diagram-return","stop","home-returned","patchbay-reentered"],
+            "steps":["arrive","birth","wake","unavailable-wake-refused","plan","play","protected-keyboard-canvas","protected-memory-lantern","stale-face-refused","home","patchbay","face","diagram","gear-details","diagram-return","stop","home-returned","patchbay-reentered"],
             "paired_reconstruction":"native-shell-paired-linear.json",
             "pointer_actions":"unsupported", "browser_comparison":"unsupported",
             "parent_5356_acceptance":"open",

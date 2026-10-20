@@ -180,7 +180,7 @@ impl FaceWorkspace {
             observation,
             play,
         )?;
-        Ok(receipt)
+        self.restore_refusal_notice(receipt, display)
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -226,7 +226,7 @@ impl FaceWorkspace {
             NativeFaceMaskInput::Unchanged => Ok(None),
             NativeFaceMaskInput::Redrawn(receipt) => Ok(Some(receipt)),
             NativeFaceMaskInput::Submitted { correlation, .. } => self
-                .apply_interaction(
+                .accept_submission(
                     door,
                     journey,
                     display,
@@ -479,3 +479,5 @@ mod continuity_tests;
 #[cfg(test)]
 #[path = "face_workspace_editor_admission_tests.rs"]
 mod editor_admission_tests;
+
+mod submission;

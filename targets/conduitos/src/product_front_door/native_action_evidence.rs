@@ -34,7 +34,7 @@ pub(super) fn face(
     emit(
         b"CONDUIT_NATIVE_FACE ",
         &json!({
-            "schema": "conduit.native-face/v1", "face": face,
+            "schema": "conduit.native-face/v1", "face": face, "mask_show": show,
             "show": {
                 "show_id": show.show_id, "mask_plot": show.mask_plot,
                 "mask_plan_id": show.planned_mask.plan.plan_id,
@@ -92,18 +92,64 @@ pub(super) fn action(
     };
     emit(
         prefix,
-        &json!({
-            "schema": "conduit.native-action/v1", "interaction": interaction,
-            "show_id": show.show_id, "face_id": face.identity, "face_revision": face.revision,
-            "requested_intent": intent,
-            "disposition": match refusal {
-                Some(reason) => json!({"Refused": {"reason": reason}}),
-                None => json!({"Accepted": {"operation_request_id": after.last_request_id}}),
-            },
-            "accepted_effects": u8::from(refusal.is_none()),
-            "before": snapshot(before), "after": snapshot(after),
-        }),
+        &action_record(face, show, interaction, intent, before, after, refusal),
     )
+}
+
+pub(super) fn refused_interaction(
+    source: &Face,
+    show: &MaskShow,
+    interaction: &FaceInteraction,
+    current: &Face,
+    owner: &JourneyProjection,
+    reason: &str,
+) -> Result<(), &'static str> {
+    let intent = source
+        .actions
+        .iter()
+        .find(|action| action.identity == interaction.action_id)
+        .map(|action| action.intent.as_str())
+        .ok_or("native-refusal-source-action-absent")?;
+    let typed = match reason {
+        "workspace-face-stale-face" | "workspace-face-owner-changed" => "StaleFace",
+        "workspace-face-stale-show" | "workspace-face-show-not-selected" => "StaleShow",
+        _ => return Err("native-refusal-not-stale"),
+    };
+    let mut record = action_record(
+        source,
+        show,
+        Some(interaction),
+        intent,
+        owner,
+        owner,
+        Some(typed),
+    );
+    record["admission_face"] = json!(current);
+    record["refusal_code"] = json!(reason);
+    emit(b"CONDUIT_NATIVE_ACTION ", &record)
+}
+
+#[allow(clippy::too_many_arguments)]
+fn action_record(
+    face: &Face,
+    show: &MaskShow,
+    interaction: Option<&FaceInteraction>,
+    intent: &str,
+    before: &JourneyProjection,
+    after: &JourneyProjection,
+    refusal: Option<&str>,
+) -> Value {
+    json!({
+        "schema": "conduit.native-action/v1", "interaction": interaction,
+        "show_id": show.show_id, "face_id": face.identity, "face_revision": face.revision,
+        "requested_intent": intent,
+        "disposition": match refusal {
+            Some(reason) => json!({"Refused": {"reason": reason}}),
+            None => json!({"Accepted": {"operation_request_id": after.last_request_id}}),
+        },
+        "accepted_effects": u8::from(refusal.is_none()),
+        "before": snapshot(before), "after": snapshot(after),
+    })
 }
 
 #[cfg(test)]
