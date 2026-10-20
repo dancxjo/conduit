@@ -269,6 +269,11 @@ fn boot_aarch64_product(
             ));
         }
         let transcript = fs::read_to_string(&serial_path).unwrap_or_default();
+        if let Some(reason) = complete_aarch64_product_refusal(&transcript) {
+            let _ = child.kill();
+            let _ = child.wait();
+            return Err(ConduitosError::refusal("aarch64-product-refused", reason));
+        }
         if let (Some(json), Some(_)) = (
             complete_aarch64_product_sign(&transcript),
             super::emitted_line::complete_json_line(
@@ -393,6 +398,15 @@ fn boot_aarch64_product(
         }
         thread::sleep(Duration::from_millis(10));
     }
+}
+
+fn complete_aarch64_product_refusal(transcript: &str) -> Option<&str> {
+    transcript.split_inclusive('\n').find_map(|record| {
+        record
+            .strip_suffix('\n')?
+            .trim_end_matches('\r')
+            .strip_prefix("CONDUIT_AARCH64_PRODUCT_REFUSAL ")
+    })
 }
 
 fn complete_aarch64_product_sign(transcript: &str) -> Option<&str> {

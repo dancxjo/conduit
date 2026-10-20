@@ -31,11 +31,20 @@ impl FirmwareScanout {
         {
             return Err("aarch64-framebuffer-translation-regime-unsupported");
         }
+        let mut observed = None;
         let mapping = mapping::validate(virtual_start,physical_start,bytes as u64,|address| {
             let par: u64;
             unsafe { core::arch::asm!("at s1e1w, {address}","isb","mrs {par}, par_el1",address=in(reg) address,par=out(reg) par,options(nostack)); }
+            observed = Some((address, par));
             par
-        }).map_err(|e| e.as_str())?;
+        }).map_err(|error| {
+            if let Some((address, par)) = observed {
+                super::present(alloc::format!(
+                    "CONDUIT_FRAMEBUFFER_TRANSLATION {{\"virtual_address\":{address},\"par_el1\":{par},\"par_memory_attribute\":{}}}\n",
+                    par >> 56).as_bytes());
+            }
+            error.as_str()
+        })?;
         Ok(Self { raw, mapping })
     }
     pub fn mapping(&self) -> &MappingEvidence {
