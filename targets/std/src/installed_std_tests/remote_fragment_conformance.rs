@@ -327,7 +327,26 @@ fn run_body_time_qualified_remote_fragment_flow() {
             None
         })
         .expect("literal reaches remote Cord");
-    source_runtime.accept_egress(&transfer).unwrap();
+    let identity = source_runtime
+        .next_egress_identity(source_endpoint)
+        .unwrap()
+        .unwrap();
+    assert_eq!(
+        (identity.endpoint, identity.cord, identity.sequence),
+        (transfer.endpoint, transfer.cord, transfer.sequence)
+    );
+    let stale = crate::RemoteValueIdentity {
+        sequence: identity.sequence.checked_add(1).unwrap(),
+        ..identity
+    };
+    assert!(source_runtime.accept_egress_identity(&stale).is_err());
+    assert_eq!(
+        source_runtime
+            .next_egress_identity(source_endpoint)
+            .unwrap(),
+        Some(identity)
+    );
+    source_runtime.accept_egress_identity(&identity).unwrap();
     middle_runtime
         .admit_ingress(middle_ingress, transfer.sequence, &transfer.bytes)
         .unwrap();
