@@ -22,7 +22,8 @@ try {
     return { url: request.url(), errorText: request.failure()?.errorText,
       method: request.method(), resourceType: request.resourceType(),
       ...request.timing(), status: response?.status(),
-      contentLength: Number(response?.headers()['content-length']) };
+      contentLength: Number(response?.headers()['content-length']),
+      transferIdentity: response?.headers()['x-conduit-proof-transfer'] };
   })());
   page.on('requestfailed', recordRequestFailure);
   await page.goto(entrance.url);
@@ -54,7 +55,16 @@ try {
   writeFileSync(output, JSON.stringify({ violations: axe.violations, pageErrors: errors, checkedLinks,
     requestFailures, resourceTimings: timing,
     completedAbortNotifications: network.completedAbortNotifications }, null, 2));
-  if (axe.violations.length || errors.length) throw new Error(`Workspace accessibility/runtime failure: ${JSON.stringify({ violations: axe.violations, errors })}`);
+  if (axe.violations.length || errors.length) {
+    // Failed lanes do not publish their product artifact. Preserve the exact
+    // classifier inputs in the retained job log rather than only its verdict.
+    const failedUrls = new Set(requestFailures.map(request => request.url));
+    const networkEvidence = { requestFailures, timeOrigin: timing.timeOrigin,
+      resources: timing.resources.filter(resource => failedUrls.has(resource.name)) };
+    throw new Error(`Workspace accessibility/runtime failure: ${JSON.stringify({
+      violations: axe.violations, errors, networkEvidence,
+    })}`);
+  }
 } finally {
   await browser?.close();
   entrance.child.kill();

@@ -1,0 +1,14 @@
+{
+  "schema": "conduit.pipeline-release/v1",
+  "repository": "dancxjo/conduit",
+  "integrationRun": "39465043673",
+  "testedSourceSha": "80bf55640ae789952bd98f54258b0c02d0d5bd5d",
+  "acceptedMainSha": "0af57f97b8fd96e078635d7a951ff7dcf5333180",
+  "treeSha": "f50e7c0ea25d35054e79fd2061b96567ee173cca",
+  "manifest_url": "https://github.com/dancxjo/conduit/releases/download/release-80bf55640ae789952bd98f54258b0c02d0d5bd5d/manifest.json",
+  "manifest_sha256": "48a351c22ad5140ddbc2b3d9d2001afe989459f32ef9bec4ae7964895b3b17f8",
+  "integration_conclusion": "success",
+  "source_tree_verified": "f50e7c0ea25d35054e79fd2061b96567ee173cca",
+  "accepted_main_tree_verified": "f50e7c0ea25d35054e79fd2061b96567ee173cca",
+  "scope": "GitHub source/accepted-main tree identity and existing release manifest; packaged product assets not downloaded or re-executed by this audit"
+}
