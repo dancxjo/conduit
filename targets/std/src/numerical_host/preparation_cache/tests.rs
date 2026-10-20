@@ -31,7 +31,7 @@ fn exact_fragment_reuse_and_changed_facts_match_cold_factory() {
     assert!(original
         .iter()
         .all(|offer| offer.authority_requirements.is_empty()));
-    for mutation in 0..8 {
+    for mutation in 0..10 {
         let mut changed_plot = plot.clone();
         let mut changed_gear = gear.clone();
         let mut changed_host = host.advertisement().clone();
@@ -43,7 +43,14 @@ fn exact_fragment_reuse_and_changed_facts_match_cold_factory() {
             4 => changed_host.boot_id = "changed/boot".into(),
             5 => changed_host.host_id = "changed/host".into(),
             6 => changed_host.profile = "changed/profile".into(),
-            _ => changed_host.protocol_version += 1,
+            7 => changed_host.protocol_version += 1,
+            8 => changed_gear.inputs[0].value_kind = "changed/private-type@2".into(),
+            _ => changed_gear
+                .semantic_contract
+                .laws
+                .push(conduit_core::KindSemanticLaw::Replay(
+                    conduit_core::ReplayBehavior::Exact,
+                )),
         }
         let current = cache
             .near(&changed_plot, &changed_gear, &changed_host)

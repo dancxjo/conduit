@@ -16,6 +16,7 @@ fn observe_numerical_preparation_cost() {
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
     let authored = expand_canonical_plot_for_authoring(&checked, "project", &profile).unwrap();
     let mut host = StdHost::new();
+    let seed = host.advertisement().clone();
     let start = Instant::now();
     let allocations = crate::allocation_probe::begin();
     host.prepare_numerical_realizations(&authored.expanded)
@@ -41,5 +42,21 @@ fn observe_numerical_preparation_cost() {
     }
     let fragment_allocations = allocations.finish();
     let fragment_ns = start.elapsed().as_nanos();
+    let start = Instant::now();
+    let allocations = crate::allocation_probe::begin();
+    {
+        let mut owner = StdHost::from_advertisement(seed.clone()).unwrap();
+        for _ in 0..33 {
+            owner
+                .prepare_numerical_realizations(&authored.expanded)
+                .unwrap();
+            assert_eq!(owner.advertisement(), &original);
+        }
+        // Includes final Host/cache/key/fragment destruction in the boundary.
+        drop(owner);
+    }
+    let owner_allocations = allocations.finish();
+    let owner_ns = start.elapsed().as_nanos();
+    println!("OWNER_COST {{\"calls\":33,\"allocation_requests\":{owner_allocations},\"elapsed_ns_uncalibrated\":{owner_ns}}}");
     println!("PREPARATION_COST {{\"schema\":\"conduit.numeric-preparation-observation@1\",\"repetitions\":32,\"ordinary_cold_allocations\":{cold_allocations},\"ordinary_cold_ns_uncalibrated\":{cold_ns},\"ordinary_warm_allocations\":{warm_allocations},\"ordinary_warm_ns_uncalibrated\":{warm_ns},\"fragment_allocations\":{fragment_allocations},\"fragment_ns_uncalibrated\":{fragment_ns}}}");
 }
