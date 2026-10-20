@@ -367,7 +367,14 @@ where
             let mut canonical_sources = Vec::new();
             for cord in &self.cord_specs[..self.active_cords] {
                 let source = cord.source_local();
-                if source.is_some_and(|(node, _)| owned_nodes.contains(&node)) {
+                if source.is_some_and(|(node, _)| {
+                    owned_nodes.contains(&node)
+                        || self
+                            .compact_f32_bindings
+                            .as_deref()
+                            .and_then(|b| b.owned.as_deref())
+                            .is_some_and(|owners| owners[usize::from(node.0)].is_some())
+                }) {
                     continue;
                 }
                 // Atomic fan-out publishes the same reference to every queue.
