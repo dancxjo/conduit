@@ -1,0 +1,59 @@
+## Mission
+
+One agent, **one issue at a time**, progressively turn the real x86_64 QEMU ConduitOS experience (Crèche → Home/Body → Patchbay) from an accurate but flat/debug-like Face readout into a readable, genuinely interactive, typographically expressive native Mask. **Do not sacrifice Conduit's architecture or proven execution semantics for screenshots.**
+
+User-supplied normal-QEMU Crèche screenshot on 2026-10-18 showed repeated `A body of your own`, an unstructured long list, ambiguously painted actions, four selected Plots with one below the viewport, and a Boolean-argument selection that could refuse `native-face-mask-input-incomplete`. The present DejaVu Sans proportional body is attractive but typographically monotonous. The desired result: truthful native checkboxes, two deliberately grouped columns on wide screens, editable name/naming/search, focused and accessible controls, clear Birth CTA/review, and a bounded editorial-serif + interface-sans + technical-mono native Look, then clean Home/Body and Patchbay evidence.
+
+**Canonical law:** Body/Host/Plot truth → context-scoped Face (subjects, text, relationships, action availability/contracts) → checked component Plot/Fore and structural recipe → selected visual Look + Host font/input resources → admitted native Mask → acknowledged Show; typed Show/revision/Host-scoped `FaceInteraction` returns to the existing producer. Mask may keep focus/page/editor drafts locally; it may **never** invent a Body, mutate choice truth, add a control action, or bypass Plan/Play.
+
+## Serial execution queue (finish/merge one before starting the next)
+
+This is an **ordered issue path**, not a request for one enormous PR. On each step: confirm its current status and latest `dev`/open PR ownership, satisfy its precise existing acceptance, use a focused PR to `dev`, wait for candidate green and merge; if accepted/closed, record proof and skip it. If genuinely blocked, report the concrete gap and do not claim it is completed or jump ahead into contradictory code.
+
+### Foundation: make the displayed action real
+
+- [x] **01 #5604**: Canonical native Home/Crèche/Body action path. Do not style around a broken Face/Show round trip. May already have in-flight implementation; check it first.
+- [x] **02 #5605**: Normal real-QEMU source action and deliberate refusal, with paired linear/browser semantic truth where supported. Establish the trusted installed entrance and baseline, not a CPU raster fixture.
+
+### Native Crèche: make the interface usable before ornamental work
+
+- [x] **03 #5989**: A starting Plot is an actual checked/unchecked **reversible Boolean source choice**, keyboard/pointer and fresh Show, without missing-argument activation. Link to #5372/#5367.
+- [x] **04 #5991**: Reduce repeated headings; make Body name/naming options real visible controls and concise source-backed readiness/review. Preserve authored semantic order, help/disclosure and screen-free equivalence.
+- [x] **05 #5990**: Admit meaningful **two-column grouping** (Body/naming beside Plot inventory), an obvious Birth action and narrow single-column collapse. Reuse accepted #5606 measured layout; do not merely flow rows into column two.
+- [x] **06 #5607**: Finish native focus/checked/disabled distinction, keyboard/pointer traversal, all offscreen actions, visible pagination/continuation and stale-safe focus migration. Verify 1280×800 and constrained/Unicode examples.
+
+### Typography and genuine Looks, not a new theme engine
+
+- [x] **07 #5627**: Converge active Phosphor / `ApplicationTheme` into the existing canonical, typed visual Look law. Do not create a parallel style wire or a permanent compatibility reader.
+- [ ] **08 #5992**: Admit a finite pinned serif/sans/mono **native typographic ensemble**, font metrics/coverage/provenance/fallback and measured real-QEMU rendering. Maintain exactly matching layout and paint metrics, bounded bytes and no runtime font parser.
+- [x] **09 #5624**: Check the foundational ordinary reusable component Plot/Fore slots **if still unaccepted** before asserting reusable two-Look component proof; do not make a fresh GUI widget ontology. Preserve component recipe (structure) versus Look (appearance).
+- [ ] **10 #5628**: Actually select two visually distinct Looks, for example restrained **editorial** and sparse **engineering**, over the same checked component + Face, differing in typography/palette/density expression without changing semantics or affordance.
+- [ ] **11 #5629**: Prove focus, meaningful reading order, contrast/accessibility, Unicode/long text and user overrides survive actual Look swaps with safe fallback. Coordinate existing #5367 certification work; don't claim universal accessibility.
+
+### Integrate and prove the ordinary QEMU product
+
+- [ ] **12 #5608**: Real native Crèche/Home/Body QEMU screenshots and interactions on the correct current `dev` image, with command/compositor budgets and failed layout fallback. Prove a real checked choice toggles 4→3→4, new Show and source state; test stale/disabled/refused paths.
+
+### Finish existing Patchbay native UX instead of rebuilding its graph
+
+- [ ] **13 #5516**: Native keyboard/pointer inspect exact Gear/Port/Cord, source-linked identities and meaningful focus.
+- [ ] **14 #5518**: Same Patchbay graph truths through native/browser/linear Masks; semantic conformance, not pixel sameness.
+- [ ] **15 #5519**: Capture real QEMU compact Patchbay and exact-head acceptance with final native Look, typed control and overflow evidence.
+
+Pre-existing accepted Patchbay groundwork: #5512 compact cards, #5513 nonhidden cords, #5514 typed input/output ports, #5515 bounded topology layout, #5517 overflow continuation **closed**. Don't reimplement them. Parent #5358 owns remaining Patchbay graphical acceptance; #5357 owns native Home/Crèche/Body. Parent #5366 owns visual Look integration.
+
+## Preflight before each PR
+
+1. Read `AGENTS.md`, `CONTRIBUTING.md`, `docs/conduit-canon.md`, `STATUS.md`, `docs/presenter-hourglass.md`, `docs/architecture/face-grammar-conformance.md`, and the selected issue's existing task/proof contract. Respect #5355 (accepted Face semantics), #5364 (accepted separation), #5372 (renderer correspondence), #5367 (certified accessibility), and #5520 (thin PR/WIP). Historical pointers to `presentation-grammar-conformance.md` are stale.
+2. Inspect current `dev`, selected issue, its actual closure/PR status and all overlapping open PRs **before** editing. The route as of 2026-10-18 has #5606 and #3163 closed; do not reopen their foundations. Stage order is a default; if current code makes an earlier issue fully accepted, record source-pinned proof and move forward.
+3. Identify the **installed product** entry and actual Face/Mask/Show route. Don't replace it with fixture renderer, convenience preview or browser simulation and call it product acceptance. Code to inspect as appropriate: `plots/birth/src/{widget_face.rs,face/projection.rs}`, `targets/conduitos/src/{native_face_mask.rs,native_face_scene/{document,layout,input,frame}.rs,front_door/,product_front_door/,display/typography.rs}`, `targets/conduitos/{build/typography.rs,assets/graphical/}`, plus accepted Look/component modules.
+4. Make *one independently verifiable user-visible change* per PR, with its focused negative/refusal tests. Source-derived screen-free/browser and real-QEMU proofs must be labeled correctly. Preserve original issue text and acceptance, don't prematurely close parent epic.
+5. Never silently grow max 48 graphics scene commands, 192-byte command text, glyph corpus/coverage budgets or eight retained compositor surfaces. Prepare/admit finite resources and deterministic accessible fallback before Play. Font substitutions that change metrics must remeasure/reflow and refresh the Show.
+6. Avoid structural shortcuts: **no CSS/kernel DOM, separate checkbox state reducer, generic Button/Checkbox semantic Kind, font loader/cache during Play, guessed action binding, magic-coordinate Crèche-only subsystem, host-owned Body state, bogus show acceptance or action dispatch without typed validated argument**.
+7. No agent should claim 35-second boot became fast due to fonts/layout unless separately *measured*. Boot/performance diagnostics are out of this aesthetic track unless a new regression blocks use.
+
+## Closeout
+
+This coordination issue can close **only after** the exact accepted PR/source links and evidence for steps 01–15 are recorded or explicitly marked already satisfied by a reviewed equivalent. Capture real QEMU Crèche, Home, resident Body, Patchbay, narrow/wide mode, two Looks where admitted, keyboard/pointer completion, failure/fallback, Unicode and a small resource/performance ledger. Parent issues remain open until their *own* original acceptance contracts are satisfied.
+
+Agent may stop and report a dependency conflict, but not silently bypass one. The queue is intentionally finite and serial; no background infinite ticket sweeper or broad UI rewrite.

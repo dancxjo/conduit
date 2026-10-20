@@ -1,0 +1,118 @@
+{
+  "parent": "0adb2deafcc1027e9d0fb24ae65534cb3709ee21",
+  "scope": "Native panels, field cohesion and focus implementation closeout; stable Integration remains pending",
+  "files": [
+    {
+      "source": "work/6158-implementation-closeout.md",
+      "tree_path": "task-6038/work/6158-implementation-closeout.md",
+      "bytes": 1591,
+      "sha256": "4384cf9e47ff5437d24c2fa8187a22254acbd1be37ffb95088eb16396cf5c3c4",
+      "mode": "100644",
+      "blob": "1ae38b3994f47effd3a94fe121e8bd5815ec691f"
+    },
+    {
+      "source": "work/5990-implementation-closeout.md",
+      "tree_path": "task-6038/work/5990-implementation-closeout.md",
+      "bytes": 3274,
+      "sha256": "5ffce404051cfc50891268f6928382f34864702ab1fc9a09ff1daa6e7967e811",
+      "mode": "100644",
+      "blob": "08764ef6eca38c27b384e7b0dab4942dc120f4d0"
+    },
+    {
+      "source": "work/5607-implementation-closeout.md",
+      "tree_path": "task-6038/work/5607-implementation-closeout.md",
+      "bytes": 3400,
+      "sha256": "db8e970080d2fed3e2a5424ec7c199c3c7ac64b2569efa867b185628897154f8",
+      "mode": "100644",
+      "blob": "e9fbaa72f94e58431faafe08044ca0f14042943a"
+    },
+    {
+      "source": "work/5994-through-stage06.md",
+      "tree_path": "task-6038/work/5994-through-stage06.md",
+      "bytes": 9019,
+      "sha256": "3edb54f7a9e9cfe3373ee30e9cf6d83d2390d8514654f4e98019f99f993c9f96",
+      "mode": "100644",
+      "blob": "1c959f8e0ad878bb05ad22e019fb74692f0bdfbf"
+    },
+    {
+      "source": "work/5994-stage05-progress.md",
+      "tree_path": "task-6038/work/5994-stage05-progress.md",
+      "bytes": 867,
+      "sha256": "e6f55d5b118120d73ba9033bde2da1248d19b5fa73f1b4c40483d63619a83439",
+      "mode": "100644",
+      "blob": "b63b64d978fcd93933d157a0275ccc138c2a289a"
+    },
+    {
+      "source": "work/5992-next-stage-review.md",
+      "tree_path": "task-6038/work/5992-next-stage-review.md",
+      "bytes": 1556,
+      "sha256": "16e749f9999e411780018aae874ce710de1e1b4b6dabc961391943f0ced36a3a",
+      "mode": "100644",
+      "blob": "1bbc5cd7937848f8178412c3f2a5ebfbca208818"
+    },
+    {
+      "source": "work/revised-native-goal-state.json",
+      "tree_path": "task-6038/work/revised-native-goal-state.json",
+      "bytes": 1771,
+      "sha256": "b4a45379c5d210549a1659c58ad7409c7f9908b2d467535e4d96a172b7e639f5",
+      "mode": "100644",
+      "blob": "b8215ab6729ed8ca0c6d72fed91becbefcae6460"
+    },
+    {
+      "source": "outputs/ci-resumed-20261020/observation-2021/6162-run.json",
+      "tree_path": "task-6038/outputs/ci-resumed-20261020/observation-2021/6162-run.json",
+      "bytes": 12196,
+      "sha256": "fdf0eeb0a6ce8f83fa51d1d2db3adf9cc0b574e5dbaea3fe0a5e3b8f1e3ff5b8",
+      "mode": "100644",
+      "blob": "f52f2a418f882bca6d855f5b01c72db1c5a34982"
+    },
+    {
+      "source": "outputs/ci-resumed-20261020/observation-2021/6162.json",
+      "tree_path": "task-6038/outputs/ci-resumed-20261020/observation-2021/6162.json",
+      "bytes": 29339,
+      "sha256": "043e49363e517217766242a970a4c58e8891b0486f0358735cdf20b5502bd15b",
+      "mode": "100644",
+      "blob": "a5221387c06cb79a15e04e4a928f595f2def4a31"
+    },
+    {
+      "source": "outputs/ci-resumed-20261020/observation-2021/integration2024-run.json",
+      "tree_path": "task-6038/outputs/ci-resumed-20261020/observation-2021/integration2024-run.json",
+      "bytes": 12251,
+      "sha256": "b3eba9b656e249f006df721d87241fea4edb3654010e1f56652d0cd886c56615",
+      "mode": "100644",
+      "blob": "dc8c9a2d354718b31fc0cc2c074a90cde4aface2"
+    },
+    {
+      "source": "outputs/ci-resumed-20261020/observation-2021/integration2024.json",
+      "tree_path": "task-6038/outputs/ci-resumed-20261020/observation-2021/integration2024.json",
+      "bytes": 27,
+      "sha256": "b3dab5870ff3a8209160335de7c1077b89e461d875d9041ac9d8b8ed7c1666f6",
+      "mode": "100644",
+      "blob": "4f9bdd7bcd783d2155d1f2e7dff68294c20eaffa"
+    },
+    {
+      "source": "outputs/ci-resumed-20261020/observation-2021/pr6162.json",
+      "tree_path": "task-6038/outputs/ci-resumed-20261020/observation-2021/pr6162.json",
+      "bytes": 20069,
+      "sha256": "1ef646f1fa3674fc0a090903db191f17e1977f0150abb38e093168f86b48b036",
+      "mode": "100644",
+      "blob": "094ab4b4548dc057f53743da5319e72e3e588b5f"
+    },
+    {
+      "source": "outputs/ci-resumed-20261020/merged6162/mergecommit.json",
+      "tree_path": "task-6038/outputs/ci-resumed-20261020/merged6162/mergecommit.json",
+      "bytes": 2686,
+      "sha256": "4c2db9731fa7dc8d3e5a77a6e2c2723677470c64a98c6c38e469de57a8393faf",
+      "mode": "100644",
+      "blob": "e06be4efaa247af1c151cea17303e3db3dde5141"
+    },
+    {
+      "source": "outputs/ci-resumed-20261020/merged6162/runs72ab.json",
+      "tree_path": "task-6038/outputs/ci-resumed-20261020/merged6162/runs72ab.json",
+      "bytes": 24340,
+      "sha256": "7628afa039ef1f097edec0949fc8c289ce6472cb2472d334a6aef11ec4a569a5",
+      "mode": "100644",
+      "blob": "50e33060ed5f91ef6c8e849cfe67224d66d3551e"
+    }
+  ]
+}

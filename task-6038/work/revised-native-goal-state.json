@@ -1,7 +1,11 @@
 {
   "objective": "merge6055;fix6158/finish5990;close5607;finish5992/remainingnativeproof;Patchbayinteraction",
   "completed": {
-    "6055_merge": "2024df899d52cd89c6ca553c6626066a09a8cad9"
+    "6055_merge": "2024df899d52cd89c6ca553c6626066a09a8cad9",
+    "6158_merge": "72ab3b367c236653dff0b5726939e08de62390b9",
+    "5990": "closed2026-10-20T20:22:00Z",
+    "5607": "closed2026-10-20T20:22:03Z",
+    "6158": "closed2026-10-20T20:22:05Z"
   },
   "candidate": {
     "run": 39471533018,
@@ -12,11 +16,14 @@
   },
   "merged_tree": "f6088d8fc2d7c24233cb1eb7698d05aa9ed8a171",
   "combined_integration": {
-    "run": 39484454692,
-    "last_observed": "pending19:48UTC"
+    "run": 39490452233,
+    "source": "72ab3b367c236653dff0b5726939e08de62390b9",
+    "last_observed": "pending20:21UTC",
+    "superseded_pending_run": 39484454692,
+    "superseded_outcome": "cancelled/coalesced;notacceptance"
   },
   "6158_prepared_head": "63af5abb13a8939d2c52665f61dfd5666e76d50b",
-  "6158_next": "Candidate+combineddevhealth;exactbase/treecheck;merge;scopeclosure5990/5607",
+  "6158_next": "complete",
   "parked": [
     "C1/C2/W1/W4/N4 portablecontrols",
     "6159generalmechanicallayoutproposal"
@@ -31,6 +38,8 @@
     "proof_origin": "9aed8d8597480bebbb6b7f3ff3db9a4d6a57635b",
     "screens_origin": "aa7face54221ec1d4fb79f37e7a21ae290d81ddb",
     "candidate_run": 39485010086,
-    "candidate_observed": "in_progress19:48UTC"
-  }
+    "candidate_observed": "terminal_success20:21UTC",
+    "merged": "72ab3b367c236653dff0b5726939e08de62390b9"
+  },
+  "current_stage": "5992boundedfontmechanism;nativeworkerownsisolatedWT"
 }
