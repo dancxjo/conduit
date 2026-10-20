@@ -377,7 +377,10 @@ fn checked_fused_refusals_name_every_original_gear_and_preserve_unfused_errors(
                 "{index}: {reason}"
             );
             assert!(
-                reason.contains(&format!("source-document={}", fragment.source_document_id)),
+                reason.contains(&format!(
+                    "source-document={}",
+                    fragment.source_document_id.as_str()
+                )),
                 "{reason}"
             );
             assert!(original.source_span.is_some());
