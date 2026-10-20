@@ -2,6 +2,10 @@
 mod audio_imports;
 #[path = "build_support/authoring_types.rs"]
 mod authoring_types;
+#[path = "build_support/fargan_carrier_period_program.rs"]
+mod fargan_carrier_period_program;
+#[path = "build_support/fargan_endpoint50.rs"]
+mod fargan_endpoint50;
 #[path = "build_support/graph.rs"]
 mod graph;
 #[path = "build_support/linguistic_rate_program.rs"]
@@ -48,6 +52,10 @@ fn main() {
         "acoustic_scoped_energy.conduit",
         "fundamental.conduit",
         "linguistic_rate.conduit",
+        "fargan_carrier_period.conduit",
+        "fargan_endpoint_policy.conduit",
+        "build_support/fargan_endpoint50.rs",
+        "build_support/fargan_carrier_period_program.rs",
         "build_support/linguistic_rate_program.rs",
         "ipa.conduit",
         "ipa_syntax.conduit",
@@ -195,6 +203,8 @@ fn main() {
         .collect::<Vec<_>>();
     // IPA profiles retain the exact Language-owned variety Type.
     linguistic_rate_program::write(&semantic);
+    fargan_carrier_period_program::write(&semantic);
+    fargan_endpoint50::write(&semantic);
     let mut bindings = identities
         .iter()
         .zip(&paths)

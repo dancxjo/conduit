@@ -1,0 +1,10 @@
+{
+  "aligned_validation_sha256": "5f26797939a2817be463f560d27e45bbff1cadcdae95993305ac09e24ffecbb5",
+  "cohort_sha256": "386089eb3d9932fb37d5f013fcd045b56c38f1f42c2de68c609cc770bde5e2aa",
+  "gate_sha256": "5f75fc8101f03487b8b632a9280d088c919435a934b772c4e3b7b232aa50d1f7",
+  "models_fitted_at_freeze": false,
+  "original_reports_modified": false,
+  "root_review_sha256": "5a34f03d5ccf81f64483d69af19216f512222caabd80a3c2c7f4c833d624d8b3",
+  "status": "FROZEN_BEFORE_FIRST_FIT",
+  "trainer_sha256": "a1a000e40e47acfb7f10976e1b81846ea63008bd5f8bc81c7b2ad4abba1efd8d"
+}

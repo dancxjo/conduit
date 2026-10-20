@@ -1,6 +1,6 @@
 #[path = "build_support/fallback_programs.rs"]
 mod fallback_programs;
-use conduit_plot::rust_binding::{generate_rust_bindings, RustBindingOptions};
+use conduit_plot::rust_binding::{generate_rust_bindings_with_prepared_storage, RustBindingOptions};
 use conduit_plot::{check_syntax_document, parse_syntax_document, StartupCatalog};
 use std::{env, fs, path::PathBuf};
 
@@ -12,11 +12,13 @@ fn main() {
     println!("cargo:rerun-if-changed=text_revision.conduit");
     println!("cargo:rerun-if-changed=revision_lineage.conduit");
     println!("cargo:rerun-if-changed=lexical.conduit");
+    println!("cargo:rerun-if-changed=resource_lexicon_snapshot.conduit");
     println!("cargo:rerun-if-changed=pronunciation_selection.conduit");
     println!("cargo:rerun-if-changed=lexical_consumer.conduit");
     println!("cargo:rerun-if-changed=parser.conduit");
     println!("cargo:rerun-if-changed=parser_available.conduit");
     println!("cargo:rerun-if-changed=parser_revision_rebase.conduit");
+    println!("cargo:rerun-if-changed=resource_parser_rebase.conduit");
     println!("cargo:rerun-if-changed=parser_beam_commit.conduit");
     println!("cargo:rerun-if-changed=parser_beam.conduit");
     println!("cargo:rerun-if-changed=discourse.conduit");
@@ -43,12 +45,14 @@ fn main() {
         include_str!("text_revision.conduit"),
         include_str!("revision_lineage.conduit"),
         include_str!("lexical.conduit"),
+        include_str!("resource_lexicon_snapshot.conduit"),
         include_str!("pronunciation_selection.conduit"),
         include_str!("lexical_consumer.conduit"),
         include_str!("parser.conduit"),
         include_str!("parser_beam.conduit"),
         include_str!("parser_available.conduit"),
         include_str!("parser_revision_rebase.conduit"),
+        include_str!("resource_parser_rebase.conduit"),
         include_str!("parser_beam_commit.conduit"),
         include_str!("parser_scorer_features.conduit"),
         include_str!("parser_scorer_search.conduit"),
@@ -63,7 +67,19 @@ fn main() {
         include_str!("analysis_fallback_round.conduit"),
     ]
     .join("\n");
-    let checked = check_syntax_document(&parse_syntax_document(&source), &StartupCatalog::new())
+    fs::write(
+        PathBuf::from(env::var_os("OUT_DIR").unwrap()).join("language_owner_source.conduit"),
+        &source,
+    )
+    .expect("retain exact full Language owner Source");
+    let mut startup = StartupCatalog::new();
+    startup
+        .insert_value_kind_alias(
+            "ResourceRef",
+            conduit_core::kind_id(conduit_core::RESOURCE_REFERENCE_INFO_ID),
+        )
+        .expect("Core ResourceRef builtin");
+    let checked = check_syntax_document(&parse_syntax_document(&source), &startup)
         .expect("language semantic Types must check");
     fallback_programs::retain(&checked);
     let commitment = conduit_plot::expand_canonical_plot_for_authoring(
@@ -111,6 +127,10 @@ fn main() {
     fs::write(PathBuf::from(env::var_os("OUT_DIR").unwrap()).join("commitment_programs.rs"), format!("pub const COMMITMENT_SOURCE_ID: &str = {:?};\npub(crate) const COMMITMENT_PROGRAMS: [&str; 8] = {:?};\n", checked.source_document_id.as_str(), ordered)).unwrap();
     for (plot, file) in [
         (
+            "language/resource-lexical-binding",
+            "resource_lexical_binding.hex",
+        ),
+        (
             "language-parser-initialize",
             "analysis_initialize_program.hex",
         ),
@@ -143,8 +163,16 @@ fn main() {
         ),
         ("language/prosody-frontier", "prosody_frontier_program.hex"),
         (
-            "language-parser-revision-rebase",
+            "language-parser-rebase-numeric",
             "parser_rebase_program.hex",
+        ),
+        (
+            "language-parser-revision-rebase-adapter",
+            "parser_rebase_adapter.hex",
+        ),
+        (
+            "language-resource-parser-rebase-adapter",
+            "resource_parser_rebase_adapter.hex",
         ),
         (
             "language/committed-dependency-evidence",
@@ -164,7 +192,7 @@ fn main() {
             plot,
             &conduit_plot::ProfileCatalog::new(),
         )
-        .expect("checked language Plot expands");
+        .unwrap_or_else(|error| panic!("checked language Plot {plot} expands: {error:?}"));
         assert_eq!(
             expanded.expanded.gears.len(),
             1,
@@ -183,7 +211,11 @@ fn main() {
         )
         .expect("retain checked language program");
     }
-    let generated = generate_rust_bindings(&checked.native_types, &RustBindingOptions::default())
+    let generated = generate_rust_bindings_with_prepared_storage(
+        &checked.native_types,
+        &RustBindingOptions::default(),
+        &["LanguageParserScorerBeam"],
+    )
         .expect("language semantic Types must generate exact Rust bindings");
     let output = PathBuf::from(env::var_os("OUT_DIR").expect("Cargo supplies OUT_DIR"))
         .join("semantic_types.rs");

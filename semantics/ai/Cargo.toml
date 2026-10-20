@@ -26,6 +26,9 @@ kernel-operation-owners = ["kernel-step", "dep:conduit-composite", "dep:conduit-
 plot-catalog = ["dep:conduit-web"]
 
 [dev-dependencies]
+conduit-speech = { path = "../speech", features = ["semantic-bindings", "kernel"] }
+conduit-language = { path = "../language" }
+conduit-audio = { path = "../audio" }
 serde_json = { version = "1", features = ["std"] }
 libc = "0.2"
 conduitos = { path = "../../targets/conduitos" }

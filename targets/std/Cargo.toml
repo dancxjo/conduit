@@ -5,6 +5,7 @@ edition = "2021"
 
 [features]
 default = []
+analysis-round-model = ["conduit-language/parser-model"]
 burn-model = ["dep:conduit-burn-model"]
 burn-model-cuda = ["burn-model", "conduit-burn-model/cuda"]
 bluetooth-bluez = ["dep:bluer", "dep:dbus", "dep:futures", "dep:tokio", "dep:uuid"]

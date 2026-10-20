@@ -1,0 +1,27 @@
+{
+  "artifact_bounds": {
+    "causal": 20098,
+    "full": 21448
+  },
+  "artifacts": {
+    "causal": {
+      "maximum_group_score_bound": 20098,
+      "samples": 1571,
+      "sha256": "55bfbfd44618cd8b0b099a56c516d4ea8a2937b463691f87bfd5191c4086d518",
+      "steps": 18852,
+      "updates": 639
+    },
+    "full": {
+      "maximum_group_score_bound": 21448,
+      "samples": 1571,
+      "sha256": "ba9eafe2ac59ddd396b106925eb94cf7cc7bcd9e1eca713817654ddb993637c2",
+      "steps": 18852,
+      "updates": 395
+    }
+  },
+  "cases_sha256": "f73a22ee9da54cc29e26f91bbf13fe98d5ff978cbad53abe673cdfd002d28494",
+  "cohort_sha256": "386089eb3d9932fb37d5f013fcd045b56c38f1f42c2de68c609cc770bde5e2aa",
+  "fit_receipt_sha256": "93acba36cf514ff6e3a940ac3ddbcf3d295f2a85fbdbe8aff7f2fb1a160a05b8",
+  "scope": "Independent binary header/size/I16/group bound check only; no inference or regeneration",
+  "status": "FITTED_BYTES_ABI_AND_SOURCE_GROUP_BOUND_PASS_NOT_RUNTIME_EVALUATION"
+}

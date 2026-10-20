@@ -1,0 +1,22 @@
+{
+  "status": "PASS_CURRENT_FOUR_REMOTE_STORAGE_TWO_LEARNED_ROUNDS_AND_FULL32",
+  "log": "reserved-learned-full32-current-v3.log",
+  "exact_execution_receipt": "coordinated-native-execution-20261020T024227941387Z.json",
+  "compile_seconds": 1.48,
+  "learned_seconds": 60.22,
+  "generic32_seconds": 0.01,
+  "allocator": "alloc/realloc/dealloc zero across actual tested execution scopes",
+  "scope": "Two actual same-epoch learned Std rounds, retained same-channel numerical receipts; full32 generic channel capacity. No commitment/newarrival/installed Current/consumer/playback claim.",
+  "source_sha256": {
+    "semantics/ai/src/integer_categorical_step/channel.rs": "08831b50b20c613ea1cfec41ff85dcbde12157101c8214b76d5e0fd886046deb",
+    "targets/std/tests/analysis_round_driver/reserved_learned.rs": "de0c40520dcef547c6b5ec8eb3e00a9b8efc8c4c0f35c5d1eb688133bc5c5d73",
+    "semantics/language/src/analysis_round_learned_slot.rs": "3fa95d6f0b827ef705fe97c4afb9ea40a816e1389fbf70b94c12a55caeaad8a3",
+    "semantics/language/src/analysis_round_numeric.rs": "bab3996a25ed7dc677ffda91652fb0b661e37b58433c72cc5d2d941d87047818",
+    "semantics/language/src/analysis_round_slot.rs": "b04ab16e21790220b3324ff1c10f0e198be2981aecfbe64395a69acc3e4ea886"
+  },
+  "preserved_failures": [
+    "reserved-learned-slots-first-check.log",
+    "reserved-learned-slots-diagnostic-second.log"
+  ],
+  "smaller_budget_smoke": "reserved-learned-slots-sign-storage-third.log remains valid narrower historical2remote proof"
+}

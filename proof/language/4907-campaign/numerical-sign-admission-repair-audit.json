@@ -1,0 +1,18 @@
+{
+  "arithmetic": "checked multiply/u16 conversion; existingoutlet<=128/1MiB andparser<=16round/128epoch unchanged",
+  "full_bound_regression": "PASS0.01s; 32 actual submit/ACK cycles, all tokens held,4*32 lifecycle records,33rdPressure,alloc/realloc/dealloc0",
+  "main_sign_normal_per_invocation": 6,
+  "original_failure": "invocation5, RemoteItemCapacityExceeded, round1,freeoutlet28",
+  "prepared_extra_local": "16*admitted_outlet_capacity",
+  "prepared_extra_remote": "4*admitted_outlet_capacity",
+  "remote_per_invocation": [
+    "RemoteInputAdmitted",
+    "RemoteValueOffered",
+    "RemoteValueAccepted",
+    "RemoteValueDelivered"
+  ],
+  "scope": "Explicit finite preparation via existing KernelCompositeSignStorage, no new authority or unlimited channel lifetime. Retained numerical receipts bound occupied slots; generic indefinitely recycled lifetime still finite Sign pressure.",
+  "status": "PASS_FULL32_RETAINED_LIFECYCLE_ZERO_GROWTH",
+  "third_smoke": "PASS74.48s using initial2remote proposal; narrower two-round smoke only, not full32/current4 proof",
+  "third_smoke_channel_sha256": "01fbdd1ca3a8d3c0d9047804da1985a6f7157e4d5547c9b2905f81c136b37a7e"
+}

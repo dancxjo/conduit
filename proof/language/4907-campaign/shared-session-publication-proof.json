@@ -1,0 +1,19 @@
+{
+  "status": "PASS",
+  "scope": "Actual fallback scenario with session append/current allocator probe PASS; complete owner commitment path is NOT claimed heap-free",
+  "source_sha256": {
+    "semantics/language/src/analysis_session.rs": "6b1402aef461b972f5fab208372f676b05154e780c3e39e9fd4d8a019f455799",
+    "semantics/language/src/dependency_commitment.rs": "400fb88c45a5814af6e6fe4448557d710369ba7184bbc55d2da304711fbec761",
+    "semantics/language/tests/analysis_fallback_round.rs": "1b4559cd3fe483add150f9a8a7d65b90a40ea549af967379aeb2e16e15082fe2",
+    "semantics/language/tests/common/analysis_session_probe.rs": "71a5fdef129404309746547ca08cbb9e3bc800339de38446337a30a3155945ad"
+  },
+  "log": "shared-session-publication-first.log",
+  "audit": "Read-only independent audit found no authority/atomicity regression; full admission+lexical equality preserved, Vec bounded by journal history events",
+  "limits": [
+    "Probe covers single commit with original receipt retained; no second distinct replacement/last-share test",
+    "Preparation and final destruction outside Play",
+    "Owner Beam update and complete commitment Source/correlation/decoder path remain allocating or unimplemented"
+  ],
+  "seconds": 101.26,
+  "actual_source_operations": 157
+}

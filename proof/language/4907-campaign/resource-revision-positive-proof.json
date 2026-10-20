@@ -1,0 +1,39 @@
+{
+  "observed_at": "2026-10-19T22:28:24.472688+00:00",
+  "head": "b9bff0a10b139dc30ce4a2de462895e3641e34dc",
+  "working_tree_changes": true,
+  "log": "resource-revision-and-beam-check.log",
+  "terminal_exit": 0,
+  "tests": {
+    "prepared_beam_admission": {
+      "passed": 1,
+      "seconds": 26.54
+    },
+    "resource_lexicon_revision": {
+      "passed": 2,
+      "seconds": 3.72
+    }
+  },
+  "scope": "actual pinned resource streaming revisions and all-four same-epoch handoff; retained committed candidates and foreign/absent lineage refusals; generic Native template affected Beam admission",
+  "nonclaims": [
+    "installed reader",
+    "learned prefinal commitment",
+    "parent completion"
+  ],
+  "source_inputs": {
+    "semantics/language/build.rs": "acfe4c4f0f8dbc48d89a0137d7d28abd7c445bb7946908dad1ed71634e5f1f79",
+    "semantics/language/parser_revision_rebase.conduit": "7442e915543a5983028ccd4b1061e407df1428c52013f0f2df26d7de2818be06",
+    "semantics/language/resource_parser_rebase.conduit": "3a7a52765a8366c3f9540ca1a8d187ac165e5dd66c2a9cb446e53ea3f1c02325",
+    "semantics/language/resource_lexicon_snapshot.conduit": "21dd279aa5ca5a0bf67727d13924217fc912b78539b54ac1a8e34a641c9c0994",
+    "semantics/language/src/analysis_epoch_owner.rs": "3b0a9cc04ef5a0d9a8807f636f16fb0c5e0267d972d8f2d8576a555d4197ed28",
+    "semantics/language/src/analysis_epoch_rebase.rs": "15d2f9b51e4ed797c2d6b598ca8a0251531a2e5649c13f1c1d95d983be3b06e9",
+    "semantics/language/src/analysis_epoch_resource.rs": "70626359ddfd73a1337ba7dab5657d32a1585ba75eabb256795254848e5befa6",
+    "semantics/language/src/resource_parser_rebase.rs": "d134ac66ee2fbf64ab077b4c6fea4f037e5407ed75941d1843c39da37c8b7988",
+    "semantics/language/src/resource_lexicon_snapshot.rs": "7b624c0578c2afc1c4fcca52473d45ffb25844d815d3c4433f3105e6ca8ef12b",
+    "semantics/language/src/lexical.rs": "b59a521c1c2556acc8373992d18006f52a88779f740ecaa2bd0c049176c8ba62",
+    "semantics/language/tests/resource_lexicon_revision.rs": "75c3601bcc669a3a13141448a9758524330de82c1e2483a18d92232212f893ec",
+    "semantics/language/tests/prepared_beam_admission.rs": "b7b599d6d4fc1b799631ac9732efe01e17ac272e6952a50a4d24f26e680b03be",
+    "architecture/plot/src/rust_binding/prepared_native.rs": "8bdc15e7b4a67736498ffa51e4e6b832031767bc949d1464b97f34bb027d0fd4",
+    "architecture/plot/src/rust_binding/prepared_native/traversal.rs": "73bdfb93123559f8efa84aadd620e2c759dce2ae772b96b79b380bad7b219a63"
+  }
+}

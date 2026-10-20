@@ -1,0 +1,38 @@
+{
+  "revision": "8ce3f9b1c5f6e65a81c2e14ceec17f2258f30732",
+  "observed_at": "2026-10-19T20:57:08.551097+00:00",
+  "command": "cargo +stable test --locked -p conduit-ai --features kernel-operation-owners --test integer_categorical_step channel_cases -- --nocapture --test-threads=1",
+  "profile": {
+    "test_opt_level": 1,
+    "debug": 0,
+    "incremental": false,
+    "jobs": 4
+  },
+  "result": {
+    "passed": 2,
+    "failed": 0,
+    "seconds": 0.02,
+    "compile_seconds": 32.82
+  },
+  "log": "work/goal4907/categorical-channel-first-check.log",
+  "inputs": {
+    "semantics/ai/src/integer_categorical_step.rs": "d148e9c742f2b0fa29ef2d2ad5d106f33c730c291c4fa18d6f8983c3f5dc5e4f",
+    "semantics/ai/src/integer_categorical_step/channel.rs": "c17a3cbbd23b2fbf3ff7ebc7e384570214f0ead3b38640c0ba6d6401d6c9080d",
+    "semantics/ai/src/integer_categorical_step/invocation.rs": "05c6d01658dd6709b2bf9a5e5a6a9e2ca0e819c3c4b37fa7ee6f80b54f911371",
+    "semantics/ai/tests/integer_categorical_step.rs": "6e950f15797e8cd7a1f1c7f35fb82095c4d75ef6bedc22c1040a48db4ce952d6",
+    "semantics/ai/tests/integer_categorical_step/channel_cases.rs": "efbadf266ad3ba0f18ca75de6b812b24e120c5cf445d41d82cd9d12c32c890fe"
+  },
+  "proves": [
+    "Actual existing KernelCompositeHost executes categorical factory; no test Back/manual ACK",
+    "Equal canonical inputs retain distinct moved request leases",
+    "Busy, held receipt pressure and malformed input return unchanged leases before ingress",
+    "Exact real runtime identity, Plan, numerical output and invocation retained",
+    "Foreign checked definition refuses; cancellation retains pending lease and prevents reuse"
+  ],
+  "remaining": [
+    "Language private Source feature request integration",
+    "Installed resumable streaming controller and containing Std Play custody",
+    "Required public entrance and exact-head Candidate/Integration/stable acceptance"
+  ],
+  "scope": "Local affected numerical dispatch tests only; no learned language accuracy or parent completion claim"
+}

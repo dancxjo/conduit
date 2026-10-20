@@ -124,9 +124,9 @@ fn actual_source_features_and_owned_numeric_ack_feed_single_round_and_refuse_for
         ),
     };
     assert_eq!(prepared.mode(), AnalysisRoundMode::AuthenticatedCategorical);
-    assert!(!prepared.learned_evidence().is_empty());
-    assert!(prepared.learned_evidence().len() <= MAX_LEARNED_REQUESTS_PER_ROUND);
-    for (ordinal, evidence) in prepared.learned_evidence().iter().enumerate() {
+    assert!(!prepared.hosted_learned_evidence().unwrap().is_empty());
+    assert!(prepared.hosted_learned_evidence().unwrap().len() <= MAX_LEARNED_REQUESTS_PER_ROUND);
+    for (ordinal, evidence) in prepared.hosted_learned_evidence().unwrap().iter().enumerate() {
         let request = evidence.request();
         assert_eq!(request.request_ordinal(), ordinal);
         assert_eq!(request.generation(), owner.generation());

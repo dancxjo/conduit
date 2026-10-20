@@ -1,0 +1,39 @@
+{
+  "revision": "c9cdfefee80fe5bce30c458b72ee0f6937f6e813",
+  "inputs": {
+    "architecture/composite/src/lib.rs": "1db3d306c403baf9a3d6d24d0c40f1df72471a45dc8077cbc9a954f579e92385",
+    "architecture/composite/src/canonical_export.rs": "7ad222b7af4d9f72592a4222fb03d773b0ddcea41590a9945e8a1c5fb2a97bd0",
+    "semantics/ai/src/integer_categorical_step/channel.rs": "1a6ee5753685dc26ea7f4057b98760fb98429ce264705b9231a61fee790de586",
+    "semantics/language/tests/common/parser_round_model_channel.rs": "b20010e451006fe6dfa1d01059c50b6898cefd15a399097656cf9768b3606e66",
+    "semantics/language/tests/categorical_full_model_channel.rs": "54d4386fc93638aafd3836984a02c114e4112eff56a44a304899fca32bc0f0b1"
+  },
+  "positive": {
+    "result": "1PASS, full413/76/25numericmodel, >=200B canonicalinput, actualkernelACK/76scores/runtimeidentity",
+    "log": "work/goal4907/canonical-full-model-first-check.log",
+    "boundary": "Same run negativefixtureFAILED; positive result alone retained; no all-pass claim for first run"
+  },
+  "negative": {
+    "result": "1PASS0FAIL after fixtureclassification correction",
+    "log": "work/goal4907/canonical-full-model-negative-second-check.log",
+    "fore": {
+      "Source_rejected_integrity_valid": 2,
+      "Core_rejected": 3
+    },
+    "graph": {
+      "Source_rejected_integrity_valid": 3,
+      "Core_rejected": 0
+    },
+    "also": "ForeignSource, unexpectedcord, forgedcompositeexternaldefinition refuse"
+  },
+  "proof_reuse": "Positivefunction+productioninputsunchanged during negativefixture correction; no redundant positive rerun",
+  "remaining": [
+    "Requiredfmt/lints/exact-headCandidate/Integration/stableacceptance"
+  ],
+  "scope": "Canonical export and numerical dispatch only; no installed streaming or learned accuracy claim",
+  "legacy_channel_regression": {
+    "result": "2PASS0FAIL0.03s",
+    "log": "work/goal4907/canonical-channel-legacy-regression-check.log",
+    "compile_seconds": 1.38
+  },
+  "learned_and_fallback": "work/goal4907/analysis-learned-round-positive-proof.json"
+}

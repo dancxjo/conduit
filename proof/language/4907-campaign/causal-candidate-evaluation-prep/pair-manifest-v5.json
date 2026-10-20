@@ -1,0 +1,191 @@
+{
+  "abi": {
+    "bytes": 62796,
+    "classes": 76,
+    "features": 413,
+    "lookups": 25,
+    "ordered_groups": [
+      [
+        0,
+        18
+      ],
+      [
+        18,
+        36
+      ],
+      [
+        36,
+        360
+      ],
+      [
+        360,
+        366
+      ],
+      [
+        366,
+        371
+      ],
+      [
+        371,
+        373
+      ],
+      [
+        373,
+        374
+      ],
+      [
+        374,
+        379
+      ],
+      [
+        379,
+        381
+      ],
+      [
+        381,
+        383
+      ],
+      [
+        383,
+        385
+      ],
+      [
+        385,
+        387
+      ],
+      [
+        387,
+        389
+      ],
+      [
+        389,
+        391
+      ],
+      [
+        391,
+        393
+      ],
+      [
+        393,
+        395
+      ],
+      [
+        395,
+        397
+      ],
+      [
+        397,
+        399
+      ],
+      [
+        399,
+        401
+      ],
+      [
+        401,
+        403
+      ],
+      [
+        403,
+        405
+      ],
+      [
+        405,
+        407
+      ],
+      [
+        407,
+        409
+      ],
+      [
+        409,
+        411
+      ],
+      [
+        411,
+        413
+      ]
+    ]
+  },
+  "ablation_spec": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-18/goal-finish-and-close-https-github/work/goal4907/causal-prefix-ablation-proposal/SPEC.md",
+    "sha256": "27f7ee6253b71529a33af77f67acd77e790fd07b4d469a7c5333f85414730b3e"
+  },
+  "arms": {
+    "causal": {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-18/goal-finish-and-close-https-github/work/goal4907/causal-prefix-matched-fit-first/causal.i16",
+      "sha256": "55bfbfd44618cd8b0b099a56c516d4ea8a2937b463691f87bfd5191c4086d518"
+    },
+    "full": {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-18/goal-finish-and-close-https-github/work/goal4907/causal-prefix-matched-fit-first/full.i16",
+      "sha256": "ba9eafe2ac59ddd396b106925eb94cf7cc7bcd9e1eca713817654ddb993637c2"
+    }
+  },
+  "batching": {
+    "arm_order": [
+      "causal",
+      "full"
+    ],
+    "artifacts_loaded_once": true,
+    "batches": 34,
+    "case_order": [
+      "email-enronsent29_01-0077",
+      "email-enronsent19_02-0045",
+      "email-enronsent00_02-0052",
+      "reviews-356361-0001",
+      "reviews-371492-0001",
+      "email-enronsent27_02-0013",
+      "email-enronsent04_02-0007",
+      "email-enronsent36_01-0001",
+      "email-enronsent36_01-0007",
+      "email-enronsent36_01-0031",
+      "reserved-punctuation-evaluation/motivator-partial",
+      "reserved-punctuation-evaluation/motivator-period",
+      "reserved-punctuation-evaluation/reserved-name",
+      "reserved-punctuation-evaluation/reserved-greeting",
+      "reserved-punctuation-evaluation/reserved-initial",
+      "reserved-punctuation-evaluation/reserved-terminal",
+      "reserved-punctuation-evaluation/reserved-medial"
+    ],
+    "counter_reset_scope": "new_prepared_decoder_per_case_not_installed_capacity",
+    "decoder_scope": "one_case_one_arm",
+    "model_maximum_invocations": 4096,
+    "schema": "sequential-case-arm-batches@1",
+    "trace_maximum_bytes": 67108864,
+    "trace_scope": "one_prefix_one_case_one_arm"
+  },
+  "cases": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-18/goal-finish-and-close-https-github/work/goal4907/causal-candidate-evaluation-prep/cases.json",
+    "sha256": "f73a22ee9da54cc29e26f91bbf13fe98d5ff978cbad53abe673cdfd002d28494"
+  },
+  "classification": "UNACCEPTED_FROZEN_NONBLIND_EVALUATION_ONLY",
+  "crosslink": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-18/goal-finish-and-close-https-github/work/goal4907/causal-prefix-aligned-cohort-v1/frozen-crosslink-report.json",
+    "sha256": "e66fe1991ba8fe3482a37aeb3d511be1d07a759f120052338fa2f2adb57321ee"
+  },
+  "fit_receipt": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-18/goal-finish-and-close-https-github/work/goal4907/causal-prefix-matched-fit-first/receipt.json",
+    "sha256": "93acba36cf514ff6e3a940ac3ddbcf3d295f2a85fbdbe8aff7f2fb1a160a05b8"
+  },
+  "lexical_profile": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-18/goal-finish-and-close-https-github/work/carried-fore-dependency-check/semantics/language/training/ewt_punctuation_v3/lexical_profile.json",
+    "sha256": "045a51b00224785f77983a7c8127f690a1ca8e3c471eb40f6339ceec60c5251b"
+  },
+  "reviewed_cohort": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-18/goal-finish-and-close-https-github/work/goal4907/causal-prefix-aligned-cohort-v1/cohort.json",
+    "sha256": "386089eb3d9932fb37d5f013fcd045b56c38f1f42c2de68c609cc770bde5e2aa"
+  },
+  "schema": "matched-causal-candidate-evaluation@1",
+  "source_pins": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-18/goal-finish-and-close-https-github/work/goal4907/causal-candidate-evaluation-prep/evaluation-source-pins-v5.json",
+    "sha256": "76b5e086b8fc603e6d416b183531aafcfe41ba13ef624e7762adf55dad78e927"
+  },
+  "trainer": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-18/goal-finish-and-close-https-github/work/goal4907/causal-prefix-trainer-preparation/train_matched.py",
+    "sha256": "a1a000e40e47acfb7f10976e1b81846ea63008bd5f8bc81c7b2ad4abba1efd8d"
+  },
+  "trainer_gate": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-18/goal-finish-and-close-https-github/work/goal4907/causal-prefix-trainer-preparation/gate.py",
+    "sha256": "5f75fc8101f03487b8b632a9280d088c919435a934b772c4e3b7b232aa50d1f7"
+  }
+}

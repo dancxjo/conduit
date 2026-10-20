@@ -309,3 +309,9 @@ pub mod linguistic_rate;
 pub mod record_pronunciation;
 #[cfg(feature = "semantic-bindings")]
 pub mod record_pronunciation_commitment;
+
+#[cfg(all(feature = "semantic-bindings", feature = "kernel"))]
+pub mod fargan_carrier_epochs;
+
+#[cfg(all(feature = "semantic-bindings", feature = "kernel"))]
+pub mod fargan_endpoint50;

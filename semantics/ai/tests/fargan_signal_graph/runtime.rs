@@ -263,7 +263,8 @@ pub fn run_entry_plan_observed(
             t.steps += 1;
             t.kernel_steps += elapsed;
         }
-        if step_result.is_err() {
+        if let Err(ref error) = step_result {
+            eprintln!("FARGAN kernel step refused: {error:?}");
             break;
         }
         if let Some(call) = scheduler.next_host_request() {
@@ -341,6 +342,21 @@ pub fn run_entry_plan_observed(
     let execution = execute.elapsed();
     after_play();
     if !drained || scheduler.pending_host_call_count() != 0 {
+        if matches!(mode, ExecutionMode::Normal) {
+            let events: Vec<_> = scheduler.signs().events().collect();
+            for (i, gear) in fragment.placements.iter().enumerate() {
+                if !events.iter().any(|e| {
+                    usize::from(e.node.0) == i
+                        && matches!(e.kind, conduit_kernel::KernelEventKind::BackCompleted)
+                }) {
+                    eprintln!(
+                        "unfinished node={i} gear={:?} kind={:?}",
+                        gear.gear_id, gear.kind_id
+                    );
+                }
+            }
+            eprintln!("FARGAN incomplete: nodes={nodes} cords={cords} steps={} pending={} final_signs={:?}", timing.borrow().steps, scheduler.pending_host_call_count(), &events[events.len().saturating_sub(8)..]);
+        }
         return None;
     }
     let outputs: BTreeMap<_, _> = received

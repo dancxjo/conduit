@@ -67,6 +67,7 @@ impl ProtocolSourcePackage {
         let (mut startup, mut profile) = crate::i2c_base::contract::I2cContract::prepare()
             .map_err(Error::Contract)?
             .catalogs();
+        install_resource_reference(&mut startup)?;
         install_clock(&mut startup, &mut profile)?;
         install_literal(&mut startup, &mut profile)?;
         usb_catalog::install(&mut startup, &mut profile)?;

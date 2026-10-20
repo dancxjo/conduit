@@ -1,0 +1,252 @@
+{
+  "alternative_query_counts": {
+    "causal": 1823,
+    "full": 1823
+  },
+  "arm_samples_each": 1620,
+  "cohort_count": 394,
+  "cohort_manifest_sha256": "16be8f69d28429e7e471eb03d0539b4aabc87792f5c6d7ef557cf4a6d81b4837",
+  "fixed_profile": {
+    "!": [
+      12
+    ],
+    "!!": [
+      12
+    ],
+    "!!!": [
+      12
+    ],
+    ",": [
+      12
+    ],
+    "-": [
+      12,
+      14,
+      16
+    ],
+    "--": [
+      12
+    ],
+    ".": [
+      12
+    ],
+    "...": [
+      12,
+      14
+    ],
+    "11/28/2000": [
+      8
+    ],
+    "4": [
+      8
+    ],
+    ":": [
+      12
+    ],
+    "?": [
+      12
+    ],
+    "A": [
+      5,
+      11,
+      14,
+      16
+    ],
+    "AM": [
+      7
+    ],
+    "Alex": [
+      7,
+      11
+    ],
+    "Best": [
+      0
+    ],
+    "By": [
+      1
+    ],
+    "Chris": [
+      11
+    ],
+    "David": [
+      11
+    ],
+    "Dear": [
+      0
+    ],
+    "Ed": [
+      11
+    ],
+    "Excellent": [
+      0
+    ],
+    "Good": [
+      0,
+      6
+    ],
+    "Great": [
+      0
+    ],
+    "Gregg": [
+      11
+    ],
+    "Hello": [
+      6,
+      7
+    ],
+    "Hi": [
+      6,
+      7
+    ],
+    "I": [
+      10
+    ],
+    "Jeff": [
+      11
+    ],
+    "Jim": [
+      11
+    ],
+    "John": [
+      11
+    ],
+    "Kay": [
+      11
+    ],
+    "Ken": [
+      11
+    ],
+    "Kim": [
+      11
+    ],
+    "Marie": [
+      11
+    ],
+    "Mark": [
+      7,
+      11
+    ],
+    "Mike": [
+      11
+    ],
+    "Morgan": [
+      7,
+      11
+    ],
+    "No": [
+      5,
+      6
+    ],
+    "PM": [
+      7
+    ],
+    "Please": [
+      6
+    ],
+    "Regards": [
+      7
+    ],
+    "Sara": [
+      11
+    ],
+    "Service": [
+      7
+    ],
+    "Shackleton": [
+      11
+    ],
+    "Thank": [
+      15
+    ],
+    "Thanks": [
+      7
+    ],
+    "The": [
+      5
+    ],
+    "Travis": [
+      7,
+      11
+    ],
+    "Vince": [
+      11
+    ],
+    "a": [
+      5
+    ],
+    "and": [
+      4
+    ],
+    "friend": [
+      7
+    ],
+    "in": [
+      1
+    ],
+    "is": [
+      3
+    ],
+    "it": [
+      10
+    ],
+    "luck": [
+      7
+    ],
+    "pal": [
+      7
+    ],
+    "service": [
+      7
+    ],
+    "thanks": [
+      7
+    ],
+    "the": [
+      5
+    ],
+    "to": [
+      1
+    ],
+    "was": [
+      3
+    ],
+    "you": [
+      10
+    ]
+  },
+  "future_shuffle_proposal": "Pair IDs lexicographic initial order; one Random(4907) pair-order shuffle per epoch shared by both arms,12epochs; no sample fitting executed",
+  "generator_sha256": "cf77d5dbd9706c384018d564d9fb65fbcd932d055bac94ddde2cd53855d4a486",
+  "independent_partition": "unchanged QUARANTINED;394previously fitted TRAIN reused explicitly; no blind calibration/quality proof",
+  "inputs": {
+    "base": {
+      "path": "work/carried-fore-dependency-check/semantics/language/training/train_ewt.py",
+      "sha256": "7e738a0e3656fa2b90b6e94d199894dba84de5a343dd1cb1b1e83dbf09b23530"
+    },
+    "profile": {
+      "path": "work/carried-fore-dependency-check/semantics/language/training/ewt_punctuation_v3/lexical_profile.json",
+      "sha256": "045a51b00224785f77983a7c8127f690a1ca8e3c471eb40f6339ceec60c5251b"
+    },
+    "raw_train": {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-16/goal-own-a-focused-implementation-campaign/work/ewt/en_ewt-ud-train.conllu",
+      "sha256": "d68e06122a702464c613076523d56740f047e5bbe89dd90ec32737e04d952143"
+    },
+    "trainer": {
+      "path": "work/carried-fore-dependency-check/semantics/language/training/train_ewt_punctuation_v3.py",
+      "sha256": "16790f2d71ffee98ed32a0ab0a31aa1e4e55b47c03fd381c629291da318ac85b"
+    }
+  },
+  "multiplicity": "one lexicographically smallest choicevector per distinct ordered25indices per arm; goldchoice+gold25 separately retained",
+  "outputs": {
+    "paired-requests.jsonl": "d566230d31d0b4496cd8c7d9598f359293646cece7b0beafa3627e7a4230e555",
+    "stops.jsonl": "b706743e50611b703b2510573214031d529e4c2ea3a4d71ce4702611f2d71059"
+  },
+  "paired_target_count": 1620,
+  "prefix_schedule_count": 650,
+  "schema": "causal-train-pair@1",
+  "status": "UNVALIDATED_OFFLINE_EXPECTATIONS_NO_TRAINING_INFERENCE",
+  "stop_counts": {
+    "future_endpoint_not_arrived": 254,
+    "no_arrived_buffer_token": 2,
+    "teacher_complete": 394
+  }
+}

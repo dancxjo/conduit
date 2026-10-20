@@ -1,0 +1,30 @@
+{
+  "status": "PASS_GENERIC_RUNTIME_ONLY_REAL_BEAM_AND_LINT_PENDING",
+  "log": "../prepared-native-decode-third-check.log",
+  "generic_outer_cases": 2,
+  "generated_inner_cases": 4,
+  "generated_inner_seconds": 0.04,
+  "outer_seconds": 0.62,
+  "existing_native_admission_cases": 3,
+  "existing_native_admission_seconds": 0.05,
+  "allocation_count_during_generated_step_finish": 0,
+  "reallocation_count_during_generated_step_finish": 0,
+  "leaf_steps": 10,
+  "ordinary_generated_prefix_and_semantic_bytes": "asserted byteidentical",
+  "generated_no_std_consumer_compile": "PASS",
+  "tested_files": {
+    "architecture/plot/src/rust_binding/mod.rs": "eab506fcd9ea274a76b4601e67e677c19349802e62f884fe13219f6476a40369",
+    "architecture/plot/src/rust_binding/prepared_decode.rs": "8057fd4aae7b8aec585bfc539588b43ff08b66a8bdcd263e2b576493d3d3a0d4",
+    "architecture/plot/src/rust_binding/generate_prepared_storage.rs": "f13a42216298cfcc3ac26cddb5c812f5f1ce9e456b5fa295996c74330c7d6d8a",
+    "architecture/plot/src/rust_binding/generate_prepared_storage/emit.rs": "eed1b06453685fd61db8ceb3855ded357d01888e2825177934d52c33498ff6f2",
+    "architecture/plot/tests/prepared_native_decode.rs": "b2641ecf05cf111af135a7f0f631a3ba0181f432fef7b86be5d819f95b3f1e99"
+  },
+  "fixes": [
+    "Removed duplicateRusttest fromConduitSOURCEfixture beforeexecution",
+    "u16collectionlength isvalue notref",
+    "Unsupportedsequence fixture nowcanonical sequenceU64<=4",
+    "Positivefixture includesbool andnegativeI64"
+  ],
+  "scope": "Pure generatedbinding conversion fromactualNativeadmission witness; no installedowner/current/controller/model/audio/publicationclaim",
+  "real_beam_check_session": 23264
+}

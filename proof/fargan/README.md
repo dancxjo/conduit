@@ -87,3 +87,38 @@ status. Retained performance evidence is a separate obligation.
 phase coverage, zero Play allocations, structural drain, and exact repeated
 output/Sign/work parity. Its comparison mode reports repetition-cluster
 bootstrap intervals for descriptive timing ratios.
+
+## Actual-carrier endpoint profile (development)
+
+`cargo +stable xtask check fargan-carrier-endpoint` checks the public mathematical
+coefficients, actual consecutive carrier epochs, opaque Source endpoint admission,
+and generic PCM framing without private model parameters. The finite profile
+requires exactly 50 complete 80-sample epochs at 8 kHz with the same original,
+unreduced cycle ratio. It preserves the original carrier, projection, Audio
+basis, period and control receipts. Gaps, tails and unsupported controls refuse.
+Its causal 16 kHz analysis frontend is an explicit spectral approximation.
+
+The separately checked endpoint Source describes 51 raw synthesis calls:
+features 1..49 followed by two explicit copies of feature 49. Warm initialization
+uses 320 unheard zeros and five copies of actual feature 0. Ordinary Source
+concatenation assembles 50 audible 160-sample packets; both unheard 80-sample endpoint
+halves remain evidence outputs. No producer output is silently abandoned.
+
+The development-only private numerical comparison is:
+
+```sh
+cargo +stable xtask check fargan-neural-endpoint
+```
+
+It requires absolute `CONDUIT_FARGAN_DEVELOPMENT_FIXTURE`,
+`CONDUIT_FARGAN_ENDPOINT50_ORACLE`, `CONDUIT_FARGAN_ENDPOINT50_BUILD_RECEIPT`
+and a fresh `CONDUIT_FARGAN_ENDPOINT50_OUTPUT` directory. The oracle is built
+independently from pinned upstream scalar code; the command downloads nothing.
+It checks all 51 raw frames, accumulated state/history/period, 8000 audible samples
+and both unheard halves. Product recurrence starts from its own accepted Source
+warm outputs; C state is comparison evidence only. Frozen maximum errors remain
+PCM 0.002, state 0.05 and history 0.001.
+
+These development checks establish local numerical correspondence and fixture
+staging. They do not establish an installed atomic streaming controller,
+perceptual quality, physical playback, target cadence or stable acceptance.

@@ -5,6 +5,8 @@ use conduit_core::{StructuredInfoValue, ValuePayload, MAXIMUM_STRUCTURED_CANONIC
 use conduit_kernel::scheduler::RemoteIngressOutcome;
 use conduit_plot::rust_binding::NativeRustBinding;
 
+#[path = "parser_selection_trace.rs"]
+mod trace;
 pub const MAXIMUM_SOURCE_STEPS: usize = 4000;
 
 /// Complete current language Source, including the optional scorer contracts.
@@ -40,6 +42,7 @@ pub fn language_source() -> String {
 /// Inputs and outputs use their actual checked boundary types and canonical
 /// frames. This helper supplies transport only, with no linguistic policy.
 pub struct SourceGraph {
+    entry: String,
     execution: Execution,
     sequence: u64,
     closed: bool,
@@ -47,22 +50,22 @@ pub struct SourceGraph {
 }
 impl SourceGraph {
     pub fn prepare(source: String, entry: &str) -> Self {
-        Self::from_execution(Execution::prepare(source, entry))
+        Self::from_execution(Execution::prepare(source, entry), entry)
     }
     pub fn from_package(
         package: &conduitos::protocol_source::ProtocolSourcePackage,
         entry: &str,
     ) -> Self {
-        Self::from_execution(Execution::prepare_package(package, entry))
+        Self::from_execution(Execution::prepare_package(package, entry), entry)
     }
     pub fn from_source(
         source: &conduitos::protocol_source::PreparedProtocolSource,
         entry: &str,
         artifact: &conduit_core::ArtifactId,
     ) -> Self {
-        Self::from_execution(Execution::prepare_source(source, entry, artifact))
+        Self::from_execution(Execution::prepare_source(source, entry, artifact), entry)
     }
-    fn from_execution(mut execution: Execution) -> Self {
+    fn from_execution(mut execution: Execution, entry: &str) -> Self {
         let boundary = &execution.kernel.definition().boundary;
         assert_eq!(boundary.input_fronts.len(), 1, "one graph input");
         assert_eq!(boundary.output_fronts.len(), 1, "one graph output");
@@ -72,6 +75,7 @@ impl SourceGraph {
         };
         execution.kernel.start().unwrap();
         Self {
+            entry: entry.into(),
             execution,
             sequence: 0,
             closed: false,
@@ -139,6 +143,7 @@ impl SourceGraph {
                     .kernel
                     .complete_output(&output_port.port_id, received)
                     .unwrap();
+                trace::record(&self.entry, self.sequence, &input.encoded, &result);
                 self.sequence = self.sequence.checked_add(1).expect("finite graph sequence");
                 return result;
             }

@@ -1,0 +1,21 @@
+{
+  "status": "PASS",
+  "tests": 3,
+  "duration_seconds": 0.03,
+  "compile_seconds": 23.01,
+  "observed_at": "2026-10-19T21:50:02.604412+00:00",
+  "command": "cargo +stable test --locked -p conduit-plot --test prepared_native_admission -- --nocapture --test-threads=1",
+  "files": {
+    "architecture/plot/src/rust_binding/mod.rs": "ba075fbc5f3ca23b61e00b65df81848b06a80114d7844a28e14f9f4b0f6b9868",
+    "architecture/plot/src/rust_binding/prepared_native.rs": "8676a3a96039ca47e9b18483d64ff76eb8dae5aa02e2c1c2ada344b136987d91",
+    "architecture/plot/tests/prepared_native_admission.rs": "3661ca259947f2a099bc32f0de1f595b43922d1a91b6e24d6a6a6b786dd9ef1b"
+  },
+  "log_sha256": "5d4eaf68a6ab5adaa75263330467c279c57c2dc4f143d401d30c0a6864a98938",
+  "scope": "Exact Native schemas and actual nested Source laws; zero runtime allocation in fixture; no installed Language Beam/controller/current authority claim",
+  "remaining": [
+    "Actual full Language Beam scope closure and lawful raw-field composition",
+    "Complete resumable round cursor and actual existing-kernel driver",
+    "Learned useful prefinal commitment and consumers",
+    "Required Candidate/Integration/publication"
+  ]
+}

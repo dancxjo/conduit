@@ -8,6 +8,10 @@ mod angle_reference;
 mod dsp_shared_compositions;
 #[path = "../suites/expression_baseline.rs"]
 mod expression_baseline;
+#[path = "../suites/fargan_endpoint.rs"]
+mod fargan_endpoint;
+#[path = "../suites/fargan_feature_frontend.rs"]
+mod fargan_feature_frontend;
 #[path = "../suites/inverse_angle.rs"]
 mod inverse_angle;
 #[path = "../suites/model_inference.rs"]
@@ -110,6 +114,9 @@ pub fn run(args: CheckArgs, opts: &GlobalOpts) -> Result<(), StepError> {
         CheckSuite::ParserSelection => run_suite(parser_scorer::SELECTION, &root, opts),
         CheckSuite::ParserRebaseReplay => run_suite(parser_rebase_replay::STEPS, &root, opts),
         CheckSuite::RecordPronunciation => run_suite(record_pronunciation::STEPS, &root, opts),
+        CheckSuite::FarganFeatureFrontend => run_suite(fargan_feature_frontend::STEPS, &root, opts),
+        CheckSuite::FarganCarrierEndpoint => run_suite(fargan_endpoint::PUBLIC, &root, opts),
+        CheckSuite::FarganNeuralEndpoint => fargan_endpoint::run_neural(&root, opts),
         CheckSuite::ProsodyCommitment => run_suite(prosody_commitment::STEPS, &root, opts),
         CheckSuite::ParserScorer => run_suite(parser_scorer::STEPS, &root, opts),
         CheckSuite::ParserScorerReproduce => run_suite(parser_scorer::REPRODUCE, &root, opts),

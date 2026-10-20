@@ -1,0 +1,54 @@
+{
+  "revision": "b7faacdc2",
+  "log": "analysis-epoch-initialization-third-check.log",
+  "result": {
+    "passed": 3,
+    "failed": 0,
+    "seconds": 1.87,
+    "compile_seconds": 50.32
+  },
+  "scope": "Preparation replay and private owner initialization/zero-prefix consuming handoff, not installed decoder",
+  "cases": [
+    "Exact Source init seeds all4 private slots",
+    "Foreign observed result refuses before owner creation",
+    "Untrusted Stable event refuses",
+    "Cross-stream epoch transfer refuses with original owner/replays returned",
+    "Zero-prefix handoff retains all4 slots and archives immutable history"
+  ],
+  "inputs": {
+    "semantics/language/analysis_epoch_initialization.conduit": "f6619762e88ab5ee4f01c5a02d3c43c9c087054c9c04d30e966521edf534262f",
+    "semantics/language/src/analysis_epoch_initialization.rs": "630307fe16f1224af1377830b6621b901f74c9f31289db99065527c93d8a5136",
+    "semantics/language/src/analysis_epoch_owner.rs": "a4e110c16ce16cc4c2736423ab38ac27ed282f79352eb111e17c62995bc57eb6",
+    "semantics/language/tests/analysis_epoch_initialization.rs": "b010e3d850beee4504bf4824c6c217f15b77f73445747d190f65a3f33ed789b1"
+  },
+  "remaining": [
+    "Nonzero commitment reachability via actual opaque complete-round Source custody",
+    "Installed selected runtime/model ingress",
+    "Pressure/cancel/stale completion owner proof",
+    "Currentness of carried committed occurrences needs explicit law",
+    "No speech/physical playback proof follows"
+  ],
+  "historical_failures": [
+    "first CND-FRM019 pure expression multiline syntax",
+    "second E0308 raw/refined hypothesis mismatch; now full Native admission used"
+  ],
+  "latest_revision": "d9e14c098104138d2cb910994a207a5c342891a6",
+  "closed_stream_regression": {
+    "log": "analysis-epoch-closed-second-check.log",
+    "passed": 4,
+    "failed": 0,
+    "seconds": 2.99,
+    "scope": "Closed stream refuses handoff; returned owner and all4 receipts preserve beam/frontiers/generation/history; existing3cases still pass",
+    "historical_fixture_failure": "first closure test omitted required evidence; EvidenceBound correctly refused; supplied explicit fixture evidence then4pass"
+  },
+  "capacity_check": {
+    "log": "analysis-epoch-capacity-check.log",
+    "passed": 1,
+    "scope": "Explicit logical receipt limit wins over spare allocator capacity"
+  },
+  "latest_inputs": {
+    "semantics/language/src/analysis_session.rs": "1e9e95c275946027a475fa3fdec645e3ce6ffcff902e781aba6b39ffe60b856a",
+    "semantics/language/src/analysis_epoch_owner.rs": "573892acb3e633b48e069cf074ad47c2d68ea2cea0a39dd532117fe66d9919e9",
+    "semantics/language/tests/analysis_epoch_initialization.rs": "404583f69739ee796a927c6b8de928d053c5535a816d149485130d10b090a302"
+  }
+}

@@ -1633,17 +1633,20 @@ dependencies = [
 name = "conduit-ai"
 version = "0.1.0"
 dependencies = [
+ "conduit-audio",
  "conduit-composite",
  "conduit-core",
  "conduit-data",
  "conduit-face",
  "conduit-kernel",
+ "conduit-language",
  "conduit-plan-lowering",
  "conduit-planner",
  "conduit-plot",
  "conduit-semantic-catalog",
  "conduit-signal",
  "conduit-signal-conformance",
+ "conduit-speech",
  "conduit-time",
  "conduit-web",
  "conduitos",

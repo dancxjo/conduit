@@ -23,15 +23,12 @@ pub struct Runtime {
 }
 impl Runtime {
     pub fn new() -> Self {
-        let source = [
-            parser_selection_io::language_source(),
-            include_str!("../../dependency_commitment.conduit").into(),
-            include_str!("../../prosody_commitment.conduit").into(),
-            include_str!("../../analysis_epoch_initialization.conduit").into(),
-            include_str!("../../analysis_fallback_round.conduit").into(),
-        ]
-        .join("\n");
+        let source = conduit_language::language_semantic_source().to_owned();
         let source_id = conduit_plot::parse_syntax_document(&source).source_document_id();
+        assert_eq!(
+            source_id.as_str(),
+            conduit_language::parser_commitment::COMMITMENT_SOURCE_ID
+        );
         let package = ProtocolSourcePackage::compile(source, &[]).unwrap();
         let digest = semantic_digest(
             "language/epoch-fallback-runtime-fixture@1",

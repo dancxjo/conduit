@@ -5,8 +5,8 @@ use crate::protocol_operations::ProtocolOperations;
 use alloc::{string::String, vec, vec::Vec};
 use conduit_core::{CapabilityOffer, CheckedValueContract, StructuredInfoType};
 use conduit_plot::{
-    CanonicalBackCatalog, CheckedSyntaxDocument, ProfileCatalog, StartupCatalog,
-    check_syntax_document, parse_syntax_document,
+    check_syntax_document, parse_syntax_document, CanonicalBackCatalog, CheckedSyntaxDocument,
+    ProfileCatalog, StartupCatalog,
 };
 use serde::{Deserialize, Serialize};
 
@@ -115,6 +115,7 @@ impl PreparedProtocolSource {
         package.validate_bounds()?;
         let i2c = crate::i2c_base::contract::I2cContract::prepare().map_err(Error::Contract)?;
         let (mut startup, mut profile) = i2c.catalogs();
+        install_resource_reference(&mut startup)?;
         install_clock(&mut startup, &mut profile)?;
         install_literal(&mut startup, &mut profile)?;
         usb_catalog::install(&mut startup, &mut profile)?;
@@ -314,6 +315,16 @@ fn preparation_stage(stage: &str) {
     let _ = stage;
 }
 
+// Naming Core's portable reference grants no resource access or authority.
+fn install_resource_reference(startup: &mut StartupCatalog) -> Result<(), ProtocolSourceRefusal> {
+    startup
+        .insert_value_kind_alias(
+            "ResourceRef",
+            conduit_core::kind_id(conduit_core::RESOURCE_REFERENCE_INFO_ID),
+        )
+        .map_err(ProtocolSourceRefusal::Catalog)
+}
+
 fn install_clock(
     startup: &mut StartupCatalog,
     profile: &mut ProfileCatalog,
@@ -393,7 +404,7 @@ mod entry;
 pub use entry::PreparedProtocolEntry;
 
 mod boot_source;
-pub use boot_source::{PROTOCOL_MODULE_COMMAND, ProtocolBootRefusal, prepare_boot_source};
+pub use boot_source::{prepare_boot_source, ProtocolBootRefusal, PROTOCOL_MODULE_COMMAND};
 
 mod issuer;
 pub use issuer::{NativeProtocolIssueRefusal, NativeProtocolIssuer, NativeProtocolPossession};
@@ -406,8 +417,8 @@ pub use body_play::{
 
 mod native_preparation;
 pub use native_preparation::{
-    NativeProtocolOwners, NativeProtocolPreparationLimits, NativeProtocolPreparationReason,
-    NativeProtocolPreparationRefusal, prepare_native_protocol,
+    prepare_native_protocol, NativeProtocolOwners, NativeProtocolPreparationLimits,
+    NativeProtocolPreparationReason, NativeProtocolPreparationRefusal,
 };
 
 mod package_compilation;
@@ -436,7 +447,7 @@ pub(crate) use native_usb_preparation::NativeEthernetPreparation;
     all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
 ))]
 pub(crate) use native_usb_preparation::{
-    NativeStoragePreparation, prepare_native_usb_duplex, prepare_native_usb_endpoint_protocol,
+    prepare_native_usb_duplex, prepare_native_usb_endpoint_protocol, NativeStoragePreparation,
 };
 
 // A checked literal is inert Source configuration, not native I/O authority.

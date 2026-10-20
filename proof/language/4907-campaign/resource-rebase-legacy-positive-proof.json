@@ -1,0 +1,34 @@
+{
+  "observed_at": "2026-10-19T22:30:42.509274+00:00",
+  "log": "resource-rebase-legacy-affected-check.log",
+  "terminal_exit": 0,
+  "scope": "Affected legacy lexical/correspondence/rebase/all-four epoch/fallback after extracting shared numeric rebase body; no unrelated speech rerun",
+  "tests": {
+    "analysis_epoch_initialization": {
+      "passed": 4,
+      "failed": 0,
+      "seconds": 2.8
+    },
+    "analysis_fallback_round": {
+      "passed": 1,
+      "failed": 0,
+      "seconds": 89.13
+    },
+    "lexical": {
+      "passed": 7,
+      "failed": 0,
+      "seconds": 0.3
+    },
+    "lexical_consumer": {
+      "passed": 3,
+      "failed": 0,
+      "seconds": 0.12
+    },
+    "parser_rebase_replay": {
+      "passed": 2,
+      "failed": 0,
+      "seconds": 2.43
+    }
+  },
+  "resource_change_binding": "resource-revision-positive-proof.json"
+}

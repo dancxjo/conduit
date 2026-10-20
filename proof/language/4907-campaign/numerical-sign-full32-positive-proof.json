@@ -1,0 +1,30 @@
+{
+  "status": "PASS_FULL32_RETAINED_LIFECYCLE_AND_ZERO_GROWTH",
+  "scope": "Generic actual Kernel channel: 32 retained submit/ACK results, all four remote lifecycle events each, 33rd Pressure; not installed Language Current or unlimited recycled lifetime",
+  "log": "numerical-sign-full32-first.log",
+  "source_sha256": {
+    "semantics/ai/src/integer_categorical_step/channel.rs": "08831b50b20c613ea1cfec41ff85dcbde12157101c8214b76d5e0fd886046deb",
+    "semantics/ai/tests/integer_categorical_step/channel_cases.rs": "e45a160a84193dcd35a8204a7ababdbbfec9b0aed79c5748e32244adf1a2e1c0"
+  },
+  "runner": "coordinated_native_check_v2.py",
+  "runner_scope": "This fixture uses no package-relative runtime files/dynamic libraries; v2 context limitations do not weaken this fixture",
+  "earlier_failure": "reserved-learned-slots-diagnostic-second.log: invocation5 RemoteItemCapacityExceeded",
+  "smaller_budget_smoke": {
+    "log": "reserved-learned-slots-sign-storage-third.log",
+    "status": "PASS",
+    "seconds": 74.48,
+    "scope": "Two actual Std learned rounds, zero growth; initial 2*capacity remote storage only; not full-capacity/current-4 code proof",
+    "source": "reserved-learned-third-smoke-channel-two-remote.rs"
+  },
+  "current_exact_clippy": {
+    "status": "PASS",
+    "log": "sign-full-capacity-current-clippy-second.log",
+    "seconds": 6.05,
+    "targets": [
+      "integer_categorical_step",
+      "analysis_round_driver",
+      "parser_causal_candidate_evaluation"
+    ],
+    "first_failure": "Five existing cloned_ref_to_slice_refs test-only lints; replaced with std::slice::from_ref without fixture/model/Source changes"
+  }
+}

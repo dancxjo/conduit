@@ -1,0 +1,41 @@
+{
+  "artifacts": {
+    "causal": {
+      "maximum_group_score_bound": 20098,
+      "samples": 1571,
+      "sha256": "55bfbfd44618cd8b0b099a56c516d4ea8a2937b463691f87bfd5191c4086d518",
+      "steps": 18852,
+      "updates": 639
+    },
+    "full": {
+      "maximum_group_score_bound": 21448,
+      "samples": 1571,
+      "sha256": "ba9eafe2ac59ddd396b106925eb94cf7cc7bcd9e1eca713817654ddb993637c2",
+      "steps": 18852,
+      "updates": 395
+    }
+  },
+  "classes": 76,
+  "cohort_sha256": "386089eb3d9932fb37d5f013fcd045b56c38f1f42c2de68c609cc770bde5e2aa",
+  "epoch_orders_sha256": "15ee95dcf9566da72b1ad6f2dc895d1fc243c627f653afe4fa899f8145346b1c",
+  "epochs": 12,
+  "features": 413,
+  "gate_sha256": "5f75fc8101f03487b8b632a9280d088c919435a934b772c4e3b7b232aa50d1f7",
+  "lookups": 25,
+  "pair_order_sha256": "3ed12c8cbc871130ee5cc29fd30f09883c24c931017346fe069a74b1b6b9c6cd",
+  "scale": 256,
+  "scope": "Previously fitted TRAIN reused; frozen profile prior exposure. No heldout evaluation, probability, survivor calibration, default or quality acceptance.",
+  "seed": 4907,
+  "source_evidence_files": {
+    "aligned-validation.json": "5f26797939a2817be463f560d27e45bbff1cadcdae95993305ac09e24ffecbb5",
+    "input-identities.json": "1f1af0bfa6bcd842b36c749ba23d5afe0e19cfe6a5641e30fcf78d1336f12da6",
+    "observed-pairs.jsonl": "517b1254e3192fb323c9acd971ff04f7d83dd133aec62c94f66687c816b9e0af",
+    "observed-stops.jsonl": "f274f39eacf6f928a05779fc865cd7c9ed4543677b061822228a0fa9e1c208e7",
+    "quarantine.json": "d447e6b7416c991e3db65cee755e430cef651202c1229d21428fdccfc751090c",
+    "source-identities.json": "e3f34af2a5921c42a3ea79bf4ea10bd9d4a466c580a150951778e7ec49f3f1cf",
+    "source-observations.jsonl": "aaf16f68755f5e9fb631b02db2227c9d007fd06295a0a307df3bb6a4c765ee0c",
+    "validation-manifest.json": "cfab10f75662e335bb0d26414d63c1b5f3c0b73bfe429d42cd9e0d44486ce659"
+  },
+  "status": "FITTED_NONBLIND_TRAIN_ABLATION_NOT_DEFAULT_NOT_CALIBRATED",
+  "trainer_sha256": "a1a000e40e47acfb7f10976e1b81846ea63008bd5f8bc81c7b2ad4abba1efd8d"
+}

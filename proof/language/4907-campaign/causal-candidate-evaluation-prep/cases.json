@@ -1,0 +1,711 @@
+{
+  "at": "2026-10-20T01:52:30.686611+00:00",
+  "case_sources": {
+    "dev_annotations.jsonl": "eeda046711d1f0a8d4df5fc6e2addde925021b31de693880afbef52a701758a7",
+    "reserved_evaluation.json": "74e35548215f2f92a1e8f5ff2341dab9fbccfb5cbfa441a4c998738b0b8effe9",
+    "test_annotations.jsonl": "51c781e15df8e41999caaf2cd4164c94aba5b5955b68e99119914b2c20e5eda1"
+  },
+  "cases": [
+    {
+      "forms": [
+        "Jeff",
+        "!"
+      ],
+      "gold_heads": [
+        4,
+        0
+      ],
+      "gold_pos": [
+        11,
+        12
+      ],
+      "gold_relations": [
+        "root",
+        "punct"
+      ],
+      "gold_scope": "evaluation only; never query features or action policy",
+      "id": "email-enronsent29_01-0077",
+      "partition": "previously_observed_dev",
+      "pending_consumer_through": 2,
+      "steps": [
+        {
+          "expected_available_count": 1,
+          "stable_prefix_scalars": 5,
+          "text": "Jeff "
+        },
+        {
+          "expected_available_count": 2,
+          "stable_prefix_scalars": 7,
+          "text": "Jeff ! "
+        }
+      ]
+    },
+    {
+      "forms": [
+        "Hi",
+        "."
+      ],
+      "gold_heads": [
+        4,
+        0
+      ],
+      "gold_pos": [
+        6,
+        12
+      ],
+      "gold_relations": [
+        "root",
+        "punct"
+      ],
+      "gold_scope": "evaluation only; never query features or action policy",
+      "id": "email-enronsent19_02-0045",
+      "partition": "previously_observed_dev",
+      "pending_consumer_through": 2,
+      "steps": [
+        {
+          "expected_available_count": 1,
+          "stable_prefix_scalars": 3,
+          "text": "Hi "
+        },
+        {
+          "expected_available_count": 2,
+          "stable_prefix_scalars": 5,
+          "text": "Hi . "
+        }
+      ]
+    },
+    {
+      "forms": [
+        "Jim",
+        ","
+      ],
+      "gold_heads": [
+        4,
+        0
+      ],
+      "gold_pos": [
+        11,
+        12
+      ],
+      "gold_relations": [
+        "root",
+        "punct"
+      ],
+      "gold_scope": "evaluation only; never query features or action policy",
+      "id": "email-enronsent00_02-0052",
+      "partition": "previously_observed_dev",
+      "pending_consumer_through": 2,
+      "steps": [
+        {
+          "expected_available_count": 1,
+          "stable_prefix_scalars": 4,
+          "text": "Jim "
+        },
+        {
+          "expected_available_count": 2,
+          "stable_prefix_scalars": 6,
+          "text": "Jim , "
+        }
+      ]
+    },
+    {
+      "forms": [
+        "Great",
+        "service"
+      ],
+      "gold_heads": [
+        1,
+        4
+      ],
+      "gold_pos": [
+        0,
+        7
+      ],
+      "gold_relations": [
+        "amod",
+        "root"
+      ],
+      "gold_scope": "evaluation only; never query features or action policy",
+      "id": "reviews-356361-0001",
+      "partition": "previously_observed_dev",
+      "pending_consumer_through": 2,
+      "steps": [
+        {
+          "expected_available_count": 1,
+          "stable_prefix_scalars": 6,
+          "text": "Great "
+        },
+        {
+          "expected_available_count": 2,
+          "stable_prefix_scalars": 14,
+          "text": "Great service "
+        }
+      ]
+    },
+    {
+      "forms": [
+        "Excellent",
+        "service",
+        "!"
+      ],
+      "gold_heads": [
+        1,
+        4,
+        1
+      ],
+      "gold_pos": [
+        0,
+        7,
+        12
+      ],
+      "gold_relations": [
+        "amod",
+        "root",
+        "punct"
+      ],
+      "gold_scope": "evaluation only; never query features or action policy",
+      "id": "reviews-371492-0001",
+      "partition": "previously_observed_dev",
+      "pending_consumer_through": 3,
+      "steps": [
+        {
+          "expected_available_count": 1,
+          "stable_prefix_scalars": 10,
+          "text": "Excellent "
+        },
+        {
+          "expected_available_count": 2,
+          "stable_prefix_scalars": 18,
+          "text": "Excellent service "
+        },
+        {
+          "expected_available_count": 3,
+          "stable_prefix_scalars": 20,
+          "text": "Excellent service ! "
+        }
+      ]
+    },
+    {
+      "forms": [
+        "Good",
+        "luck",
+        ","
+      ],
+      "gold_heads": [
+        1,
+        4,
+        1
+      ],
+      "gold_pos": [
+        0,
+        7,
+        12
+      ],
+      "gold_relations": [
+        "amod",
+        "root",
+        "punct"
+      ],
+      "gold_scope": "evaluation only; never query features or action policy",
+      "id": "email-enronsent27_02-0013",
+      "partition": "previously_observed_test",
+      "pending_consumer_through": 3,
+      "steps": [
+        {
+          "expected_available_count": 1,
+          "stable_prefix_scalars": 5,
+          "text": "Good "
+        },
+        {
+          "expected_available_count": 2,
+          "stable_prefix_scalars": 10,
+          "text": "Good luck "
+        },
+        {
+          "expected_available_count": 3,
+          "stable_prefix_scalars": 12,
+          "text": "Good luck , "
+        }
+      ]
+    },
+    {
+      "forms": [
+        "Hi",
+        "David",
+        ":"
+      ],
+      "gold_heads": [
+        1,
+        4,
+        1
+      ],
+      "gold_pos": [
+        6,
+        11,
+        12
+      ],
+      "gold_relations": [
+        "discourse",
+        "root",
+        "punct"
+      ],
+      "gold_scope": "evaluation only; never query features or action policy",
+      "id": "email-enronsent04_02-0007",
+      "partition": "previously_observed_test",
+      "pending_consumer_through": 3,
+      "steps": [
+        {
+          "expected_available_count": 1,
+          "stable_prefix_scalars": 3,
+          "text": "Hi "
+        },
+        {
+          "expected_available_count": 2,
+          "stable_prefix_scalars": 9,
+          "text": "Hi David "
+        },
+        {
+          "expected_available_count": 3,
+          "stable_prefix_scalars": 11,
+          "text": "Hi David : "
+        }
+      ]
+    },
+    {
+      "forms": [
+        "Sara",
+        ","
+      ],
+      "gold_heads": [
+        4,
+        0
+      ],
+      "gold_pos": [
+        11,
+        12
+      ],
+      "gold_relations": [
+        "root",
+        "punct"
+      ],
+      "gold_scope": "evaluation only; never query features or action policy",
+      "id": "email-enronsent36_01-0001",
+      "partition": "previously_observed_test",
+      "pending_consumer_through": 2,
+      "steps": [
+        {
+          "expected_available_count": 1,
+          "stable_prefix_scalars": 5,
+          "text": "Sara "
+        },
+        {
+          "expected_available_count": 2,
+          "stable_prefix_scalars": 7,
+          "text": "Sara , "
+        }
+      ]
+    },
+    {
+      "forms": [
+        "Thanks",
+        "-"
+      ],
+      "gold_heads": [
+        4,
+        0
+      ],
+      "gold_pos": [
+        7,
+        12
+      ],
+      "gold_relations": [
+        "root",
+        "punct"
+      ],
+      "gold_scope": "evaluation only; never query features or action policy",
+      "id": "email-enronsent36_01-0007",
+      "partition": "previously_observed_test",
+      "pending_consumer_through": 2,
+      "steps": [
+        {
+          "expected_available_count": 1,
+          "stable_prefix_scalars": 7,
+          "text": "Thanks "
+        },
+        {
+          "expected_available_count": 2,
+          "stable_prefix_scalars": 9,
+          "text": "Thanks - "
+        }
+      ]
+    },
+    {
+      "forms": [
+        "Hi",
+        "Sara",
+        ","
+      ],
+      "gold_heads": [
+        4,
+        0,
+        0
+      ],
+      "gold_pos": [
+        6,
+        11,
+        12
+      ],
+      "gold_relations": [
+        "root",
+        "vocative",
+        "punct"
+      ],
+      "gold_scope": "evaluation only; never query features or action policy",
+      "id": "email-enronsent36_01-0031",
+      "partition": "previously_observed_test",
+      "pending_consumer_through": 3,
+      "steps": [
+        {
+          "expected_available_count": 1,
+          "stable_prefix_scalars": 3,
+          "text": "Hi "
+        },
+        {
+          "expected_available_count": 2,
+          "stable_prefix_scalars": 8,
+          "text": "Hi Sara "
+        },
+        {
+          "expected_available_count": 3,
+          "stable_prefix_scalars": 10,
+          "text": "Hi Sara , "
+        }
+      ]
+    },
+    {
+      "forms": [
+        "Hello",
+        ",",
+        "Travis"
+      ],
+      "gold_heads": [
+        4,
+        2,
+        0
+      ],
+      "gold_pos": [
+        6,
+        12,
+        11
+      ],
+      "gold_relations": [
+        "root",
+        "punct",
+        "vocative"
+      ],
+      "gold_scope": "evaluation only; never query features or action policy",
+      "id": "reserved-punctuation-evaluation/motivator-partial",
+      "partition": "previously_observed_reserved",
+      "pending_consumer_through": 3,
+      "steps": [
+        {
+          "expected_available_count": 1,
+          "stable_prefix_scalars": 6,
+          "text": "Hello "
+        },
+        {
+          "expected_available_count": 2,
+          "stable_prefix_scalars": 8,
+          "text": "Hello , "
+        },
+        {
+          "expected_available_count": 3,
+          "stable_prefix_scalars": 15,
+          "text": "Hello , Travis "
+        }
+      ]
+    },
+    {
+      "forms": [
+        "Hello",
+        ",",
+        "Travis",
+        "."
+      ],
+      "gold_heads": [
+        4,
+        2,
+        0,
+        0
+      ],
+      "gold_pos": [
+        6,
+        12,
+        11,
+        12
+      ],
+      "gold_relations": [
+        "root",
+        "punct",
+        "vocative",
+        "punct"
+      ],
+      "gold_scope": "evaluation only; never query features or action policy",
+      "id": "reserved-punctuation-evaluation/motivator-period",
+      "partition": "previously_observed_reserved",
+      "pending_consumer_through": 3,
+      "steps": [
+        {
+          "expected_available_count": 1,
+          "stable_prefix_scalars": 5,
+          "text": "Hello "
+        },
+        {
+          "expected_available_count": 2,
+          "stable_prefix_scalars": 6,
+          "text": "Hello, "
+        },
+        {
+          "expected_available_count": 3,
+          "stable_prefix_scalars": 13,
+          "text": "Hello, Travis "
+        },
+        {
+          "expected_available_count": 4,
+          "stable_prefix_scalars": 14,
+          "text": "Hello, Travis."
+        }
+      ]
+    },
+    {
+      "forms": [
+        "Hi",
+        ",",
+        "Travis"
+      ],
+      "gold_heads": [
+        4,
+        2,
+        0
+      ],
+      "gold_pos": [
+        6,
+        12,
+        11
+      ],
+      "gold_relations": [
+        "root",
+        "punct",
+        "vocative"
+      ],
+      "gold_scope": "evaluation only; never query features or action policy",
+      "id": "reserved-punctuation-evaluation/reserved-name",
+      "partition": "previously_observed_reserved",
+      "pending_consumer_through": 3,
+      "steps": [
+        {
+          "expected_available_count": 1,
+          "stable_prefix_scalars": 3,
+          "text": "Hi "
+        },
+        {
+          "expected_available_count": 2,
+          "stable_prefix_scalars": 5,
+          "text": "Hi , "
+        },
+        {
+          "expected_available_count": 3,
+          "stable_prefix_scalars": 12,
+          "text": "Hi , Travis "
+        }
+      ]
+    },
+    {
+      "forms": [
+        "Hello",
+        ",",
+        "Morgan"
+      ],
+      "gold_heads": [
+        4,
+        2,
+        0
+      ],
+      "gold_pos": [
+        6,
+        12,
+        11
+      ],
+      "gold_relations": [
+        "root",
+        "punct",
+        "vocative"
+      ],
+      "gold_scope": "evaluation only; never query features or action policy",
+      "id": "reserved-punctuation-evaluation/reserved-greeting",
+      "partition": "previously_observed_reserved",
+      "pending_consumer_through": 3,
+      "steps": [
+        {
+          "expected_available_count": 1,
+          "stable_prefix_scalars": 6,
+          "text": "Hello "
+        },
+        {
+          "expected_available_count": 2,
+          "stable_prefix_scalars": 8,
+          "text": "Hello , "
+        },
+        {
+          "expected_available_count": 3,
+          "stable_prefix_scalars": 15,
+          "text": "Hello , Morgan "
+        }
+      ]
+    },
+    {
+      "forms": [
+        "Travis",
+        ",",
+        "Hello"
+      ],
+      "gold_heads": [
+        2,
+        0,
+        4
+      ],
+      "gold_pos": [
+        11,
+        12,
+        6
+      ],
+      "gold_relations": [
+        "vocative",
+        "punct",
+        "root"
+      ],
+      "gold_scope": "evaluation only; never query features or action policy",
+      "id": "reserved-punctuation-evaluation/reserved-initial",
+      "partition": "previously_observed_reserved",
+      "pending_consumer_through": 3,
+      "steps": [
+        {
+          "expected_available_count": 1,
+          "stable_prefix_scalars": 7,
+          "text": "Travis "
+        },
+        {
+          "expected_available_count": 2,
+          "stable_prefix_scalars": 9,
+          "text": "Travis , "
+        },
+        {
+          "expected_available_count": 3,
+          "stable_prefix_scalars": 15,
+          "text": "Travis , Hello "
+        }
+      ]
+    },
+    {
+      "forms": [
+        "Hello",
+        "Travis",
+        "!"
+      ],
+      "gold_heads": [
+        4,
+        0,
+        0
+      ],
+      "gold_pos": [
+        6,
+        11,
+        12
+      ],
+      "gold_relations": [
+        "root",
+        "vocative",
+        "punct"
+      ],
+      "gold_scope": "evaluation only; never query features or action policy",
+      "id": "reserved-punctuation-evaluation/reserved-terminal",
+      "partition": "previously_observed_reserved",
+      "pending_consumer_through": 3,
+      "steps": [
+        {
+          "expected_available_count": 1,
+          "stable_prefix_scalars": 6,
+          "text": "Hello "
+        },
+        {
+          "expected_available_count": 2,
+          "stable_prefix_scalars": 13,
+          "text": "Hello Travis "
+        },
+        {
+          "expected_available_count": 3,
+          "stable_prefix_scalars": 15,
+          "text": "Hello Travis ! "
+        }
+      ]
+    },
+    {
+      "forms": [
+        "Hello",
+        "Travis",
+        ",",
+        "friend"
+      ],
+      "gold_heads": [
+        4,
+        0,
+        1,
+        0
+      ],
+      "gold_pos": [
+        6,
+        11,
+        12,
+        7
+      ],
+      "gold_relations": [
+        "root",
+        "vocative",
+        "punct",
+        "obj"
+      ],
+      "gold_scope": "evaluation only; never query features or action policy",
+      "id": "reserved-punctuation-evaluation/reserved-medial",
+      "partition": "previously_observed_reserved",
+      "pending_consumer_through": 4,
+      "steps": [
+        {
+          "expected_available_count": 1,
+          "stable_prefix_scalars": 6,
+          "text": "Hello "
+        },
+        {
+          "expected_available_count": 2,
+          "stable_prefix_scalars": 13,
+          "text": "Hello Travis "
+        },
+        {
+          "expected_available_count": 3,
+          "stable_prefix_scalars": 15,
+          "text": "Hello Travis , "
+        },
+        {
+          "expected_available_count": 4,
+          "stable_prefix_scalars": 22,
+          "text": "Hello Travis , friend "
+        }
+      ]
+    }
+  ],
+  "schedule_source": {
+    "parser_punctuation_selection.rs": "a44a17d0b1413cfce16fb72a320b520bc2586458134ab57bed8cb6e47ae5844a"
+  },
+  "schema": "causal-candidate-evaluation-cases@1",
+  "scope": "Exact17 previously observed v3 rows; existing causal schedules. No new case selection from C/F inference (none executed). Exactserialization after fitting, before evaluation. No blind accuracy claim. Initial/medial/terminal are original reserved rows, not synthesized prosody fixtures.",
+  "status": "FROZEN_PRE_EVALUATION_NONBLIND_REGRESSION"
+}

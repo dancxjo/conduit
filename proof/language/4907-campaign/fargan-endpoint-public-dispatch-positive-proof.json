@@ -1,0 +1,12 @@
+{
+  "status": "PASS dryrun and preflight",
+  "public_dispatch_log": "fargan-endpoint-public-dispatch-first.log",
+  "private_dispatch_log": "fargan-neural-endpoint-dispatch-second.log",
+  "missing_input_log": "fargan-neural-endpoint-missing-inputs-second.log",
+  "binary_sha256": "e9a6e715946e1a9364abc55707ea341ada540b6b851faf0b7a88f8fde4b048b7",
+  "scope": "Dispatcher compilation/dryrun plus immediate missinginput refusal; underlying fullneural runtime proof reused from actual-endpoint50-positive-proof.json, no repeated speechsuite",
+  "historical_cwd_failures": [
+    "fargan-neural-endpoint-dispatch.log",
+    "fargan-neural-endpoint-missing-inputs.log"
+  ]
+}

@@ -58,7 +58,7 @@ impl<'a> AnalysisEpochOwner<'a> {
         match result {
             Ok(frontier) => Ok(PreparedFallbackFrontier {
                 generation: self.generation,
-                beam: self.beam.clone(),
+                beam: self.beam().clone(),
                 lexical: self.lexical().tape().clone(),
                 frontier,
                 observations: super::io::compact_observations(observations),
@@ -90,7 +90,7 @@ impl<'a> AnalysisEpochOwner<'a> {
         match result {
             Ok(frontier) => Ok(PreparedFallbackFrontier {
                 generation: self.generation,
-                beam: self.beam.clone(),
+                beam: self.beam().clone(),
                 lexical: self.lexical().tape().clone(),
                 frontier,
                 observations: super::io::compact_observations(observations),
@@ -139,6 +139,8 @@ impl<'a> AnalysisEpochOwner<'a> {
         }
         Ok(frontier)
     }
+    // Transactional refusal returns the original frontier receipt without allocating.
+    #[allow(clippy::result_large_err)]
     pub fn append_fallback_frontier(
         &mut self,
         event: &'a RevisionEvent<'a, DependencyRevisions<'a>>,
@@ -152,7 +154,7 @@ impl<'a> AnalysisEpochOwner<'a> {
         {
             Some(AnalysisEpochRefusal::Capacity)
         } else if prepared.generation != self.generation
-            || prepared.beam != self.beam
+            || &prepared.beam != self.beam()
             || &prepared.lexical != self.lexical().tape()
         {
             Some(AnalysisEpochRefusal::Replay)

@@ -84,6 +84,12 @@ pub enum CheckSuite {
     ProsodyCommitment,
     /// Check committed noun/verb pronunciation and installed compact PCM.
     RecordPronunciation,
+    /// Public coefficient reproduction and checked FARGAN analysis frontend (no neural PCM claim).
+    FarganFeatureFrontend,
+    /// Check actual carrier epochs, endpoint admission and numeric PCM framing.
+    FarganCarrierEndpoint,
+    /// Compare own-state neural synthesis with an explicitly supplied private oracle.
+    FarganNeuralEndpoint,
     /// Check exact checked parser-rebase replay and public Source correlation.
     ParserRebaseReplay,
     /// Prove bounded speech selection and explicit detail from exact Faces.

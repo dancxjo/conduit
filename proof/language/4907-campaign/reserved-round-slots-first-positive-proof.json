@@ -1,0 +1,32 @@
+{
+  "at": "2026-10-20T02:08:30.919635+00:00",
+  "exit": 0,
+  "files": {
+    "semantics/language/src/analysis_round_bind.rs": "6a5332183c61c7809ef3e8807c495b449ebd1a64b987df698590446d7a4ddc1d",
+    "semantics/language/src/analysis_round_cursor.rs": "1fab02435b129c0d219f35fe1731dab33c5c32cd90f3ee27292784e4a25346e7",
+    "semantics/language/src/analysis_round_machine.rs": "a4a2103da1c80d1571c252bf3132fe810f3ca47ba3f6afc5297b7e456bde54ab",
+    "semantics/language/src/analysis_round_material.rs": "4ceb4488a7fa4c263238dca7f5da12c645f730dd322e409d9f1cd3e738d932cd",
+    "semantics/language/src/analysis_round_slot.rs": "50c61c63dc80569c05aa5faedb51540f3e0aee76e113ccbea126ab4396c23ef5",
+    "semantics/language/src/analysis_round_storage.rs": "b77d7256d69ebbba8808f56018c98ebaff6e9e39b8ff3298b4406efc78fe048c",
+    "targets/std/tests/analysis_round_driver.rs": "20a7fa89ebb48d3cb2a41cecb2f98908a5c0641c125016b5ac3868b215682abc",
+    "targets/std/tests/analysis_round_driver/reserved_slots.rs": "0c2951658bd8213ef9956ec2526cd36afa2eacbcfec8b4e4e9cfcd2f4cfd2dec"
+  },
+  "limits": [
+    "one-token fallbackfixture only; nolearnedreservedbinding",
+    "no committed Beam canonical publication or newarrival/rebase controller",
+    "no physical speech/quality/default/stable acceptance",
+    "newsource strictClippy still required"
+  ],
+  "log_sha256": "7b4c53c214c878d86e1edb50ab58d4f9c98ca3091e7ce196a4fcd2b32e08a9ee",
+  "proof": [
+    "three futurecursor slots,two realStd drivers,two completion slots and spentVec prepared before firstbind",
+    "two actualsuccessive Source rounds consume current exact retained prior, generations0/1 thenowner2",
+    "whole bind/Sourcepoll/Nativeadmission/decode/detach/apply probes allocations0,reallocations0,deallocations0",
+    "foreignowner andconsumedslot refuse; held thirdslot pressurebeforeSource andownerunchanged",
+    "actualdriverACK/Plan/Source inputoutput exactly match retainedreceipts"
+  ],
+  "review": "Independent readonly owner/canonical/heap audit found no conclusion-changing defects; scratch may change on materialization refusal while ownership and ownerstate retained.",
+  "source_before_edit": "before-round-slot-reservation/manifest.json",
+  "status": "TWO_RESERVED_SAME_EPOCH_FALLBACK_ROUNDS_ACTUAL_STD_PASS",
+  "test_seconds": 71.96
+}

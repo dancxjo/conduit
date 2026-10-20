@@ -1,0 +1,74 @@
+{
+  "revision": "c8946a6f33db8515dba14d9eaf3fbffe463046bd",
+  "inputs": {
+    "semantics/language/Cargo.toml": "7cd953a30d24d7f0386a48d45937c5e31a41290b9567ff973a5300e74212235f",
+    "semantics/language/build_support/fallback_programs.rs": "cc550b679290b0628f7f90b703c5b22e9cd1e2f963e5447d3d7774c5024d5e52",
+    "semantics/language/src/analysis_fallback_round.rs": "d9eeaee56b55634c29c4d17896873acdb3f4e2219c54c0f847aaa0f41aa76a11",
+    "semantics/language/src/analysis_learned_round.rs": "5e04d04cfa7c61fda7793f025cd75f83c17f6f67894b2ba337c8d253a85ffa92",
+    "semantics/language/src/analysis_round_scoring.rs": "9184a9e4432d3acb9a82f358c596eeba41ed11e1a8c9651832e10cb58e85a3cf",
+    "semantics/language/tests/analysis_learned_round.rs": "594902910b97f25a771ddcebcc163840bd14abcc5a6c32773e3707e87e4308dc"
+  },
+  "language_source_inputs": {
+    "semantics/language/analysis_epoch_initialization.conduit": "f6619762e88ab5ee4f01c5a02d3c43c9c087054c9c04d30e966521edf534262f",
+    "semantics/language/analysis_fallback_round.conduit": "c0c9ca0b50b091f3472b73e9e6494f2311ca1b7ebb3ef6c98ff1cab6f6b2e91e",
+    "semantics/language/coverage.conduit": "bde67f40a36a651edd525bc5f143cee80f80f343f2b60d87bd644530526d5e08",
+    "semantics/language/dependency_commitment.conduit": "21a71238aa20d7a4a9f40b332ff59dc7367c595726974bf723a34335a846c906",
+    "semantics/language/dependency_commitment_execution.conduit": "ce5c8e1bfacb0ab3dd5571091d253852ad2e1b08cb5df64b6eae6833423e0bbb",
+    "semantics/language/discourse.conduit": "059f0d3d6358d847222fe936bca3ef1c87b55aa06eb82a1ea44c931e12d2797a",
+    "semantics/language/identity.conduit": "50b9fdebfbfcffad785d27018851693c90217c0a4356719e264f9a7cb8ff2d15",
+    "semantics/language/lexical.conduit": "38321dfb82348024610d11aee219cb4ae0cd763b7a0b84722b9bfaad7e56e353",
+    "semantics/language/lexical_consumer.conduit": "8c6b49f889af0ec3656816bdc1b9546095736f67565f3b079ff0d80d6597b96b",
+    "semantics/language/parser.conduit": "511c5626117a2f5082ea863bd72c9f91ad351acffc7e7994b55ddeff4ef8a79d",
+    "semantics/language/parser_available.conduit": "780faadcc2adbc56c7b05f6e5608d4f5961a154c2c892975a6035b93c8bf8448",
+    "semantics/language/parser_beam.conduit": "804e69bb21937042405c949fe66d3e7ebbb0b23ccccb765b8993891004808fb1",
+    "semantics/language/parser_beam_commit.conduit": "7e72d348ce8459878f85b9ae56bcc0cfc6ff93cbd81ec22c1086a476d42d6a2f",
+    "semantics/language/parser_revision_rebase.conduit": "2ce50b6d4651b7ff22f9b2c77ebc2ea91ede6911250fb41dc81a7155ad0ad06f",
+    "semantics/language/parser_scorer_actions.conduit": "eb980145939ac2f563c69d621c6004d7b2c26da24d0dfa47d95c9ccd0ddad176",
+    "semantics/language/parser_scorer_features.conduit": "d415a1728fdcfa7b59e7479eea663317feaf79c0bc83c81fc1fbcda95a577e7a",
+    "semantics/language/parser_scorer_ranking.conduit": "4fb1d19210d6dfdd391afa26010270924c77b28c73442e538379bc80de7cc271",
+    "semantics/language/parser_scorer_search.conduit": "0a7e3ab211941fb4d35153bfba9f7b3f7214ba5efc6d0ce4827ec5f49ceb7277",
+    "semantics/language/parser_scorer_tournament.conduit": "85a19ee8418c10b6ae59ddbc8dd1c9b53599a2fe3ff96f7b1f6d4510ceb6df3d",
+    "semantics/language/parser_scorer_transition.conduit": "5a5522469da9c5d3da92d1d1d62afb6270021155030a8ad524b3fe39666746af",
+    "semantics/language/pronunciation_selection.conduit": "3b15790a26f224a4f6e2a803ca97d46db68d1882ad6c2bd68e7a43f7f963065d",
+    "semantics/language/prosody.conduit": "1a888b10e2e1aa2eb252d01e69f5265b0c569aa63e584ed302a0e3d647c77313",
+    "semantics/language/prosody_commitment.conduit": "9e06b35c972582df40a58afa9473dd9afe65e582ca6c22d96c6ded38bfbbaac6",
+    "semantics/language/revision_lineage.conduit": "867816717c77af5fbc1b7379187f3f10fc92fce30e398b63491b8973ac38149a",
+    "semantics/language/syntax.conduit": "aead616a809963208e583d5920493e2546b73669c0772c2651885467744f98b8",
+    "semantics/language/text_revision.conduit": "3eed6d51e5f22abf562466e3adaf06b053c2c9521ee162f2689c8fe6b36c35e5",
+    "semantics/language/types.conduit": "bb09c057db886c0b86bb013f95ce7607d74ad3bf09b5e6acfc8eb35586715854"
+  },
+  "result": {
+    "passed": 1,
+    "failed": 0,
+    "runtime_seconds": 38.26,
+    "compile_seconds": 0.77
+  },
+  "log": "work/goal4907/analysis-learned-round-sixth-check.log",
+  "command": "cargo +stable test --locked -p conduit-language --features parser-model --test analysis_learned_round -- --nocapture --test-threads=1",
+  "scope": "Actual existing checked Source feature extraction + canonical ordinary numeric kernel -> one shared parser round; bounded HOSTED preparation, not installed resumable streaming/accuracy/nonzero committed speech",
+  "proves": [
+    "Exact actual Source identity equals opaque initialization Source identity",
+    "Exact model artifact/signature/weights and25feature inputs tied to private context/generation/prior/branch/choice/order lease",
+    "Actual kernel ACK and numerical evidence retained; wrong model relabel refuses",
+    "Foreignstream samebeam/generation/lexical preparation refuses unchanged, rightfulowner applies",
+    "Injected Source failure after real numeric ACK retains completed receipt; owner unchanged; wrapper stopped; retry performs zero Source operations"
+  ],
+  "remaining": [
+    "Installed resumable stream controller/resource-backed lexical epochs",
+    "Positive learned prefinal agreement/commit and all rich consumers",
+    "Exact-head Candidate/Integration/stable acceptance"
+  ],
+  "historical_failures": [
+    "analysis-learned-round-first-check.log: nonexistent authored feature export corrected",
+    "analysis-learned-round-second-check.log: nonClone fixture corrected",
+    "analysis-learned-round-third-check.log through fifth: numeric ingress refused withpendinglease; diagnosed unsealed64BlegacyFore",
+    "full-model-channel-and-lexicon-first-check.log: canonical Plan pairedwrong legacycheckedidentity; correctcanonicalbridge nowpasses"
+  ],
+  "affected_fallback": {
+    "result": "1PASS0FAIL92.20s",
+    "log": "work/goal4907/analysis-fallback-shared-traversal-check.log",
+    "compile_seconds": 0.19,
+    "scope": "Existing full actualSourcefallback nonzero commit/handoff/protectedprefix and correction/storage scenarios after sharedtraversalrefactor",
+    "observed_first_scenario": "157Sourceoperations, repeatedprefixreplay0,8finite rounds"
+  }
+}

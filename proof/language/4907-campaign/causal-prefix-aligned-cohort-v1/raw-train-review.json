@@ -1,0 +1,22 @@
+{
+  "audit_sha256": "47985c432c335b6aaeb451c5deea5571c3fb902dd2cc5f658e2cd7fcfbf27f5d",
+  "pairs": 1620,
+  "raw_train_sha256": "d68e06122a702464c613076523d56740f047e5bbe89dd90ec32737e04d952143",
+  "requests_sha256": "d566230d31d0b4496cd8c7d9598f359293646cece7b0beafa3627e7a4230e555",
+  "scope": "Independent raw FORM/UPOS/head/base-relation check and bounded path replay. No labels from DEV/TEST, no new Source execution, no fit or runtime acceptance.",
+  "sentences": 394,
+  "status": "RAW_TRAIN_FORMS_POS_GOLD_PATH_PROVENANCE_PASS_NOT_SOURCE_EXECUTION",
+  "unique_sentence_path_actions": {
+    "0": 17,
+    "1": 633,
+    "5": 11,
+    "12": 2,
+    "18": 2,
+    "34": 2,
+    "59": 7,
+    "67": 17,
+    "71": 210,
+    "73": 394,
+    "74": 5
+  }
+}

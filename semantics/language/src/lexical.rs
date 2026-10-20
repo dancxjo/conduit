@@ -35,6 +35,31 @@ pub fn prepare_lexical_tape(
     previous: Option<&PreparedLexicalTape>,
 ) -> Result<PreparedLexicalTape, LexicalRefusal> {
     use LexicalRefusal::*;
+    validate_profile(source, profile)?;
+    if let Some(old) = previous {
+        if old.tape.profile() != profile {
+            return Err(Profile);
+        }
+    } else if source.prior().is_some() {
+        return Err(Prior);
+    }
+    prepare_lexical_tape_inner(source, profile, previous)
+}
+
+/// Only the resource snapshot owner can construct this proof. The legacy
+/// entrance above retains its exact full-profile equality contract.
+#[cfg(target_has_atomic = "ptr")]
+pub(crate) fn prepare_resource_lexical_tape(
+    proof: &crate::resource_lexicon_snapshot::ResourceRevisionProfile<'_, '_>,
+) -> Result<PreparedLexicalTape, LexicalRefusal> {
+    validate_profile(proof.source(), proof.profile())?;
+    prepare_lexical_tape_inner(proof.source(), proof.profile(), Some(proof.previous()))
+}
+fn validate_profile(
+    source: &LanguageTextRevision,
+    profile: &LanguageLexicalProfile,
+) -> Result<(), LexicalRefusal> {
+    use LexicalRefusal::*;
     if source.material().language() != profile.language() {
         return Err(Language);
     }
@@ -48,13 +73,14 @@ pub fn prepare_lexical_tape(
             return Err(DuplicateEntry);
         }
     }
-    if let Some(old) = previous {
-        if old.tape.profile() != profile {
-            return Err(Profile);
-        }
-    } else if source.prior().is_some() {
-        return Err(Prior);
-    }
+    Ok(())
+}
+fn prepare_lexical_tape_inner(
+    source: &LanguageTextRevision,
+    profile: &LanguageLexicalProfile,
+    previous: Option<&PreparedLexicalTape>,
+) -> Result<PreparedLexicalTape, LexicalRefusal> {
+    use LexicalRefusal::*;
     validate_text_revision(previous.map(|old| old.tape.source()), source, 0, 4096)
         .map_err(Revision)?;
     let chars: Vec<_> = source.material().text().chars().collect();

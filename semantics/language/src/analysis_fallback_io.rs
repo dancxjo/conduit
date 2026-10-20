@@ -40,6 +40,7 @@ pub trait FallbackObservationProvider {
     fn observe(&mut self, operation: &str, input: &[u8]) -> Result<Vec<u8>, FallbackRoundRefusal>;
 }
 pub struct PreparedFallbackRoundPrograms {
+    checked: conduit_plot::CheckedSyntaxDocument,
     operations: Vec<(&'static str, Vec<PortableExpressionProgram>)>,
 }
 impl PreparedFallbackRoundPrograms {
@@ -55,7 +56,34 @@ impl PreparedFallbackRoundPrograms {
                 .collect::<Result<Vec<_>, _>>()?;
             operations.push((*name, programs));
         }
-        Ok(Self { operations })
+        let mut startup = conduit_plot::StartupCatalog::new();
+        startup
+            .insert_value_kind_alias(
+                "ResourceRef",
+                conduit_core::kind_id(conduit_core::RESOURCE_REFERENCE_INFO_ID),
+            )
+            .map_err(|_| FallbackRoundRefusal::Program)?;
+        let checked = conduit_plot::check_syntax_document(
+            &conduit_plot::parse_syntax_document(crate::language_semantic_source()),
+            &startup,
+        )
+        .map_err(|_| FallbackRoundRefusal::Program)?;
+        if checked.source_document_id.as_str() != crate::parser_commitment::COMMITMENT_SOURCE_ID {
+            return Err(FallbackRoundRefusal::Program);
+        }
+        Ok(Self {
+            operations,
+            checked,
+        })
+    }
+    pub(super) fn operation(&self, name: &str) -> Option<&[PortableExpressionProgram]> {
+        self.operations
+            .iter()
+            .find(|(actual, _)| *actual == name)
+            .map(|(_, programs)| programs.as_slice())
+    }
+    pub fn checked_document(&self) -> &conduit_plot::CheckedSyntaxDocument {
+        &self.checked
     }
     pub fn programs(&self) -> &'static [(&'static str, &'static [&'static str])] {
         FALLBACK_ROUND_PROGRAMS
@@ -129,21 +157,6 @@ impl<'a> Replay<'a> {
             .encode()
             .map_err(FallbackRoundRefusal::Native)?;
         O::decode(&self.run_encoded(name, bytes)?).map_err(FallbackRoundRefusal::Native)
-    }
-    pub fn run_bool<I: NativeRustBinding + Clone>(
-        &mut self,
-        name: &str,
-        input: &I,
-    ) -> Result<bool, FallbackRoundRefusal> {
-        let bytes = input
-            .clone()
-            .encode()
-            .map_err(FallbackRoundRefusal::Native)?;
-        match self.run_encoded(name, bytes)?.as_slice() {
-            [0] => Ok(false),
-            [1] => Ok(true),
-            _ => Err(FallbackRoundRefusal::Admission),
-        }
     }
     fn run_encoded(&mut self, name: &str, bytes: Vec<u8>) -> Result<Vec<u8>, FallbackRoundRefusal> {
         use FallbackRoundRefusal::*;

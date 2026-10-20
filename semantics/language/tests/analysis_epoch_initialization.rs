@@ -244,6 +244,11 @@ fn check_handoff(close: bool) {
         "/parser_rebase_program.hex"
     )))
     .unwrap();
+    let adapter = PortableExpressionProgram::from_canonical_hex(include_str!(concat!(
+        env!("OUT_DIR"),
+        "/parser_rebase_adapter.hex"
+    )))
+    .unwrap();
     let mut receipts = Vec::new();
     for slot in [
         previous.candidate0(),
@@ -261,7 +266,11 @@ fn check_handoff(close: bool) {
         .unwrap();
         let observed = LanguageParserNumericState::decode(
             &expression
-                .evaluate(&p.request().clone().encode().unwrap())
+                .evaluate(
+                    &adapter
+                        .evaluate(&p.request().clone().encode().unwrap())
+                        .unwrap(),
+                )
                 .unwrap(),
         )
         .unwrap();
