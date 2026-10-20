@@ -122,3 +122,41 @@ fn exact_request_bytes_fence_identity_collisions_precision_errors_and_fifo_lifet
         "final owner releases immutable fragment"
     );
 }
+
+#[test]
+fn failed_ordinary_preparation_never_publishes_a_partial_host_advertisement() {
+    let plot = plot();
+    let mut host = crate::StdHost::new();
+    host.prepare_numerical_realizations(&plot).unwrap();
+    let before = host.advertisement().clone();
+    let retained = host
+        .numerical_preparation
+        .near(&plot, &plot.gears[0], &before)
+        .unwrap();
+    let mut invalid = plot.clone();
+    invalid.gears[0].configuration.clear();
+    assert!(host.prepare_numerical_realizations(&invalid).is_err());
+    assert_eq!(host.advertisement(), &before);
+    assert!(Arc::ptr_eq(
+        &retained,
+        &host
+            .numerical_preparation
+            .near(&plot, &plot.gears[0], &before)
+            .unwrap()
+    ));
+    let mut seed = before;
+    seed.offer_generation = conduit_core::OfferGeneration(u64::MAX);
+    seed.capabilities
+        .retain(|offer| !crate::installed_std::owns_near_offer(offer));
+    let mut exhausted = crate::StdHost::from_advertisement(seed.clone()).unwrap();
+    assert!(exhausted
+        .prepare_numerical_realizations(&plot)
+        .unwrap_err()
+        .contains("generation exhausted"));
+    assert_eq!(exhausted.advertisement(), &seed);
+    assert_eq!(
+        exhausted.numerical_preparation.entries.len(),
+        1,
+        "independently prepared immutable metadata may survive; no partial offers are published"
+    );
+}
