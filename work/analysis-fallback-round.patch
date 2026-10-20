@@ -1,0 +1,1558 @@
+diff --git a/semantics/language/analysis_fallback_round.conduit b/semantics/language/analysis_fallback_round.conduit
+new file mode 100644
+index 000000000..6c76701b9
+--- /dev/null
++++ b/semantics/language/analysis_fallback_round.conduit
+@@ -0,0 +1,5 @@
++# Round seed affects only inactive envelope membership; graph/choice fields are
++# exact caller-prepared copies of the actual private four-slot prior snapshot.
++plot language/analysis-round-empty (
++    input: LanguageAnalysisInitialRawBeam...| >> output: LanguageAnalysisInitialRawBeam...|
++) = ({ candidate0: {parser:{state:.candidate0.parser.state,identity:.candidate0.parser.identity,score:0,active:false},choices:.candidate0.choices,selected:.candidate0.selected}, candidate1: {parser:{state:.candidate1.parser.state,identity:.candidate1.parser.identity,score:0,active:false},choices:.candidate1.choices,selected:.candidate1.selected}, candidate2: {parser:{state:.candidate2.parser.state,identity:.candidate2.parser.identity,score:0,active:false},choices:.candidate2.choices,selected:.candidate2.selected}, candidate3: {parser:{state:.candidate3.parser.state,identity:.candidate3.parser.identity,score:0,active:false},choices:.candidate3.choices,selected:.candidate3.selected} })
+diff --git a/semantics/language/build.rs b/semantics/language/build.rs
+index 2c5afa570..2c3b9f2a7 100644
+--- a/semantics/language/build.rs
++++ b/semantics/language/build.rs
+@@ -1,3 +1,5 @@
++#[path = "build_support/fallback_programs.rs"]
++mod fallback_programs;
+ use conduit_plot::rust_binding::{generate_rust_bindings, RustBindingOptions};
+ use conduit_plot::{check_syntax_document, parse_syntax_document, StartupCatalog};
+ use std::{env, fs, path::PathBuf};
+@@ -31,6 +33,8 @@ fn main() {
+         println!("cargo:rerun-if-changed={file}");
+     }
+     println!("cargo:rerun-if-changed=analysis_epoch_initialization.conduit");
++    println!("cargo:rerun-if-changed=analysis_fallback_round.conduit");
++    println!("cargo:rerun-if-changed=build_support/fallback_programs.rs");
+     let source = [
+         include_str!("types.conduit"),
+         include_str!("identity.conduit"),
+@@ -56,10 +60,12 @@ fn main() {
+         include_str!("dependency_commitment.conduit"),
+         include_str!("prosody_commitment.conduit"),
+         include_str!("analysis_epoch_initialization.conduit"),
++        include_str!("analysis_fallback_round.conduit"),
+     ]
+     .join("\n");
+     let checked = check_syntax_document(&parse_syntax_document(&source), &StartupCatalog::new())
+         .expect("language semantic Types must check");
++    fallback_programs::retain(&checked);
+     let commitment = conduit_plot::expand_canonical_plot_for_authoring(
+         &checked,
+         "language-parser-beam-commit",
+diff --git a/semantics/language/build_support/fallback_programs.rs b/semantics/language/build_support/fallback_programs.rs
+new file mode 100644
+index 000000000..528052bf1
+--- /dev/null
++++ b/semantics/language/build_support/fallback_programs.rs
+@@ -0,0 +1,76 @@
++//! Retain existing linear authored expression topology; no semantic decisions.
++use conduit_plot::*;
++pub fn retain(checked: &CheckedSyntaxDocument) {
++    let names = [
++        "language-parser-score-proposal",
++        "language-parser-transition",
++        "language-parser-decode-complete",
++        "language-parser-scorer-branch",
++        "language-parser-scorer-legality",
++        "language-parser-scorer-fallback",
++        "language-parser-scorer-rank",
++        "language-parser-scorer-ranking-next",
++        "language-parser-scorer-expand",
++        "language-parser-scorer-merge",
++        "language/analysis-round-empty",
++        "language-parser-admitted-agreement",
++        "language-parser-advance-stable",
++    ];
++    let mut retained = Vec::new();
++    for name in names {
++        let authored =
++            expand_canonical_plot_for_authoring(checked, name, &ProfileCatalog::new()).unwrap();
++        assert_eq!(authored.input_bindings.len(), 1);
++        assert_eq!(authored.output_bindings.len(), 1);
++        let mut id = authored.input_bindings[0].gear_id.clone();
++        let mut seen = Vec::new();
++        let mut programs = Vec::new();
++        loop {
++            assert!(!seen.contains(&id));
++            seen.push(id.clone());
++            let gear = authored
++                .expanded
++                .gears
++                .iter()
++                .find(|g| g.gear_id == id)
++                .unwrap();
++            assert!(gear.resource_ports.is_empty());
++            let [entry] = gear.configuration.as_slice() else {
++                panic!("pure expression")
++            };
++            assert_eq!(entry.key, "program");
++            let conduit_core::ConfigurationValue::Text(hex) = &entry.value else {
++                panic!("program")
++            };
++            programs.push(hex.clone());
++            let next: Vec<_> = authored
++                .expanded
++                .connections
++                .iter()
++                .filter(|c| c.source_gear_id == id)
++                .collect();
++            if next.is_empty() {
++                assert_eq!(id, authored.output_bindings[0].gear_id);
++                break;
++            }
++            assert_eq!(next.len(), 1);
++            id = next[0].sink_gear_id.clone();
++        }
++        assert_eq!(seen.len(), authored.expanded.gears.len());
++        retained.push((name, programs));
++    }
++    let rows: Vec<_> = retained
++        .iter()
++        .map(|(name, programs)| format!("({name:?}, &{programs:?})"))
++        .collect();
++    let text = format!(
++        "pub const FALLBACK_ROUND_PROGRAMS: &[(&str,&[&str])] = &[{}];\n",
++        rows.join(",")
++    );
++    std::fs::write(
++        std::path::PathBuf::from(std::env::var_os("OUT_DIR").unwrap())
++            .join("fallback_round_programs.rs"),
++        text,
++    )
++    .unwrap();
++}
+diff --git a/semantics/language/src/analysis_epoch_owner.rs b/semantics/language/src/analysis_epoch_owner.rs
+index 80afcece6..f19096adb 100644
+--- a/semantics/language/src/analysis_epoch_owner.rs
++++ b/semantics/language/src/analysis_epoch_owner.rs
+@@ -45,6 +45,10 @@ pub struct AnalysisEpochOwner<'a> {
+     generation: u64,
+     commitments: Vec<&'a crate::dependency_commitment::PreparedCommittedDependency>,
+     commitment_limit: usize,
++    identity_cursor: u64,
++    rounds: Vec<fallback_round::PreparedFallbackRound>,
++    round_limit: usize,
++    frontier_receipts: Vec<fallback_round::frontier::PreparedFallbackFrontier>,
+ }
+ pub struct ArchivedAnalysisEpoch<'a> {
+     owner: AnalysisEpochOwner<'a>,
+@@ -69,6 +73,16 @@ impl<'a> AnalysisEpochOwner<'a> {
+         let session = AnalysisSession::new(domain, context, limits)
+             .map_err(AnalysisEpochRefusal::Revision)?;
+         let beam = initial.beam.clone();
++        let identity_cursor = [
++            beam.candidate0(),
++            beam.candidate1(),
++            beam.candidate2(),
++            beam.candidate3(),
++        ]
++        .iter()
++        .map(|s| *s.parser().identity())
++        .max()
++        .ok_or(AnalysisEpochRefusal::Generation)?;
+         Ok(Self {
+             session,
+             material: Material::Initial(initial),
+@@ -76,6 +90,10 @@ impl<'a> AnalysisEpochOwner<'a> {
+             generation: 0,
+             commitments: Vec::with_capacity(limits.history_events),
+             commitment_limit: limits.history_events,
++            identity_cursor,
++            rounds: Vec::with_capacity(limits.history_events),
++            round_limit: limits.history_events,
++            frontier_receipts: Vec::with_capacity(limits.history_events),
+         })
+     }
+     pub fn beam(&self) -> &LanguageParserScorerBeam {
+@@ -258,6 +276,10 @@ impl<'a> AnalysisEpochOwner<'a> {
+             generation,
+             commitments: Vec::with_capacity(limits.history_events),
+             commitment_limit: limits.history_events,
++            identity_cursor: self.identity_cursor,
++            rounds: Vec::with_capacity(limits.history_events),
++            round_limit: limits.history_events,
++            frontier_receipts: Vec::with_capacity(limits.history_events),
+         };
+         Ok((next, ArchivedAnalysisEpoch { owner: self }))
+     }
+@@ -422,3 +444,6 @@ mod capacity_tests {
+         assert!(require_commitment_capacity(1, 2, 8).is_ok());
+     }
+ }
++
++#[path = "analysis_fallback_round.rs"]
++pub mod fallback_round;
+diff --git a/semantics/language/src/analysis_fallback_frontier.rs b/semantics/language/src/analysis_fallback_frontier.rs
+new file mode 100644
+index 000000000..bd864201e
+--- /dev/null
++++ b/semantics/language/src/analysis_fallback_frontier.rs
+@@ -0,0 +1,186 @@
++//! True all-survivor contiguous stability; no caller-supplied stable Boolean.
++use super::FallbackObservationProvider;
++use super::{
++    io::Replay, FallbackOperationObservation, FallbackRoundRefusal, PreparedFallbackRoundPrograms,
++};
++use crate::{
++    analysis_epoch_owner::{AnalysisEpochOwner, AnalysisEpochRefusal},
++    revision::*,
++    *,
++};
++use alloc::vec::Vec;
++use conduit_core::revision::*;
++pub struct PreparedFallbackFrontier {
++    generation: u64,
++    beam: LanguageParserScorerBeam,
++    lexical: LanguageLexicalTape,
++    frontier: LanguageParserRawFrontier,
++    observations: Vec<FallbackOperationObservation>,
++    cancelled: bool,
++    pressure: bool,
++}
++pub struct FrontierPreparationFailure {
++    pub refusal: FallbackRoundRefusal,
++    pub observations: Vec<FallbackOperationObservation>,
++}
++pub struct FrontierApplyFailure {
++    pub refusal: AnalysisEpochRefusal,
++    pub prepared: PreparedFallbackFrontier,
++}
++impl PreparedFallbackFrontier {
++    pub fn frontier(&self) -> &LanguageParserRawFrontier {
++        &self.frontier
++    }
++    pub fn observations(&self) -> &[FallbackOperationObservation] {
++        &self.observations
++    }
++    pub fn source_id(&self) -> &'static str {
++        crate::parser_commitment::COMMITMENT_SOURCE_ID
++    }
++}
++impl<'a> AnalysisEpochOwner<'a> {
++    pub fn prepare_fallback_frontier(
++        &self,
++        programs: &PreparedFallbackRoundPrograms,
++        observations: Vec<FallbackOperationObservation>,
++        cancelled: bool,
++        pressure: bool,
++    ) -> Result<PreparedFallbackFrontier, FrontierPreparationFailure> {
++        let result = (|| {
++            if self.session.is_closed() {
++                return Err(FallbackRoundRefusal::Closed);
++            }
++            let mut replay = Replay::new(programs, &observations)?;
++            let result = self.run_frontier(&mut replay, cancelled, pressure)?;
++            replay.finish()?;
++            Ok(result)
++        })();
++        match result {
++            Ok(frontier) => Ok(PreparedFallbackFrontier {
++                generation: self.generation,
++                beam: self.beam.clone(),
++                lexical: self.lexical().tape().clone(),
++                frontier,
++                observations,
++                cancelled,
++                pressure,
++            }),
++            Err(refusal) => Err(FrontierPreparationFailure {
++                refusal,
++                observations,
++            }),
++        }
++    }
++    pub fn prepare_fallback_frontier_with(
++        &self,
++        programs: &PreparedFallbackRoundPrograms,
++        provider: &mut dyn FallbackObservationProvider,
++        cancelled: bool,
++        pressure: bool,
++    ) -> Result<PreparedFallbackFrontier, FrontierPreparationFailure> {
++        if self.session.is_closed() {
++            return Err(FrontierPreparationFailure {
++                refusal: FallbackRoundRefusal::Closed,
++                observations: Vec::new(),
++            });
++        }
++        let mut replay = Replay::with_provider(programs, provider);
++        let result = self.run_frontier(&mut replay, cancelled, pressure);
++        let observations = replay.into_captured();
++        match result {
++            Ok(frontier) => Ok(PreparedFallbackFrontier {
++                generation: self.generation,
++                beam: self.beam.clone(),
++                lexical: self.lexical().tape().clone(),
++                frontier,
++                observations,
++                cancelled,
++                pressure,
++            }),
++            Err(refusal) => Err(FrontierPreparationFailure {
++                refusal,
++                observations,
++            }),
++        }
++    }
++    fn run_frontier(
++        &self,
++        replay: &mut Replay<'_>,
++        cancelled: bool,
++        pressure: bool,
++    ) -> Result<LanguageParserRawFrontier, FallbackRoundRefusal> {
++        use FallbackRoundRefusal::Native;
++        let basis = self.beam.candidate0().parser().state().basis().clone();
++        let beam = LanguageParserAdmittedBeam::new(
++            basis.clone(),
++            self.beam.candidate0().parser().clone(),
++            self.beam.candidate1().parser().clone(),
++            self.beam.candidate2().parser().clone(),
++            self.beam.candidate3().parser().clone(),
++        )
++        .map_err(Native)?;
++        let committed = self.frontiers().committed.0;
++        let mut frontier =
++            LanguageParserRawFrontier::new(basis, committed, committed).map_err(Native)?;
++        for dependent in committed..*self.beam.candidate0().parser().state().token_count() {
++            let query = LanguageParserAdmittedAgreementQuery::new(beam.clone(), dependent)
++                .map_err(Native)?;
++            let agreement: LanguageParserAgreement =
++                replay.run("language-parser-admitted-agreement", &query)?;
++            let input =
++                LanguageParserAdvanceRequest::new(agreement, cancelled, frontier.clone(), pressure)
++                    .map_err(Native)?;
++            let actual: LanguageParserFrontierResult =
++                replay.run("language-parser-advance-stable", &input)?;
++            frontier = actual.frontier().clone();
++            if !*actual.accepted() {
++                break;
++            }
++        }
++        Ok(frontier)
++    }
++    pub fn append_fallback_frontier(
++        &mut self,
++        event: &'a RevisionEvent<'a, DependencyRevisions<'a>>,
++        prepared: PreparedFallbackFrontier,
++    ) -> Result<(), FrontierApplyFailure> {
++        let generation = self.generation.checked_add(1);
++        let refusal = if self.session.is_closed() {
++            Some(AnalysisEpochRefusal::Closed)
++        } else if self.frontier_receipts.len() >= self.round_limit
++            || self.frontier_receipts.len() >= self.frontier_receipts.capacity()
++        {
++            Some(AnalysisEpochRefusal::Capacity)
++        } else if prepared.generation != self.generation
++            || prepared.beam != self.beam
++            || &prepared.lexical != self.lexical().tape()
++        {
++            Some(AnalysisEpochRefusal::Replay)
++        } else if !matches!(event.change(),RevisionChange::Stable{through,..} if through.0==*prepared.frontier.stable())
++        {
++            Some(AnalysisEpochRefusal::FrontierCustody)
++        } else if generation.is_none() {
++            Some(AnalysisEpochRefusal::Generation)
++        } else {
++            None
++        };
++        if let Some(refusal) = refusal {
++            return Err(FrontierApplyFailure { refusal, prepared });
++        }
++        if let Err(e) = self
++            .session
++            .append(event, None, prepared.cancelled, prepared.pressure)
++        {
++            return Err(FrontierApplyFailure {
++                refusal: AnalysisEpochRefusal::Session(e),
++                prepared,
++            });
++        }
++        self.generation = generation.unwrap_or(self.generation);
++        self.frontier_receipts.push(prepared);
++        Ok(())
++    }
++    pub fn fallback_frontier_receipts(&self) -> &[PreparedFallbackFrontier] {
++        &self.frontier_receipts
++    }
++}
+diff --git a/semantics/language/src/analysis_fallback_io.rs b/semantics/language/src/analysis_fallback_io.rs
+new file mode 100644
+index 000000000..39d09b587
+--- /dev/null
++++ b/semantics/language/src/analysis_fallback_io.rs
+@@ -0,0 +1,240 @@
++//! Bounded actual-operation observations and replay of existing expression chains.
++use super::FallbackRoundRefusal;
++use alloc::{
++    string::{String, ToString},
++    vec::Vec,
++};
++use conduit_plot::{rust_binding::NativeRustBinding, PortableExpressionProgram};
++include!(concat!(env!("OUT_DIR"), "/fallback_round_programs.rs"));
++pub const MAXIMUM_ROUND_OBSERVATIONS: usize = 1024;
++pub const MAXIMUM_ROUND_BYTES: usize = 32 * 1024 * 1024;
++#[derive(Clone)]
++pub struct FallbackOperationObservation {
++    pub operation: String,
++    pub input: Vec<u8>,
++    pub output: Vec<u8>,
++}
++/// Supplies only actual output of the exact requested pure Source operation.
++/// Implementing this trait is not an installed-execution attestation.
++pub trait FallbackObservationProvider {
++    fn observe(&mut self, operation: &str, input: &[u8]) -> Result<Vec<u8>, FallbackRoundRefusal>;
++}
++pub struct PreparedFallbackRoundPrograms {
++    operations: Vec<(&'static str, Vec<PortableExpressionProgram>)>,
++}
++impl PreparedFallbackRoundPrograms {
++    pub fn prepare() -> Result<Self, FallbackRoundRefusal> {
++        let mut operations = Vec::new();
++        for (name, hexes) in FALLBACK_ROUND_PROGRAMS {
++            let programs = hexes
++                .iter()
++                .map(|hex| {
++                    PortableExpressionProgram::from_canonical_hex(hex)
++                        .map_err(|_| FallbackRoundRefusal::Program)
++                })
++                .collect::<Result<Vec<_>, _>>()?;
++            operations.push((*name, programs));
++        }
++        Ok(Self { operations })
++    }
++    pub fn programs(&self) -> &'static [(&'static str, &'static [&'static str])] {
++        FALLBACK_ROUND_PROGRAMS
++    }
++}
++pub(crate) struct Replay<'a> {
++    programs: &'a PreparedFallbackRoundPrograms,
++    observations: &'a [FallbackOperationObservation],
++    cursor: usize,
++    provider: Option<&'a mut dyn FallbackObservationProvider>,
++    captured: Vec<FallbackOperationObservation>,
++    captured_bytes: usize,
++}
++impl<'a> Replay<'a> {
++    pub fn new(
++        programs: &'a PreparedFallbackRoundPrograms,
++        observations: &'a [FallbackOperationObservation],
++    ) -> Result<Self, FallbackRoundRefusal> {
++        use FallbackRoundRefusal::*;
++        if observations.len() > MAXIMUM_ROUND_OBSERVATIONS {
++            return Err(Bound);
++        }
++        let mut bytes = 0usize;
++        for frame in observations {
++            if frame.operation.len() > 128
++                || frame.input.len() > 65536
++                || frame.output.len() > 65536
++            {
++                return Err(Bound);
++            }
++            bytes = bytes
++                .checked_add(frame.input.len())
++                .and_then(|v| v.checked_add(frame.output.len()))
++                .ok_or(Bound)?;
++            if bytes > MAXIMUM_ROUND_BYTES {
++                return Err(Bound);
++            }
++        }
++        Ok(Self {
++            programs,
++            observations,
++            cursor: 0,
++            provider: None,
++            captured: Vec::new(),
++            captured_bytes: 0,
++        })
++    }
++    pub fn with_provider(
++        programs: &'a PreparedFallbackRoundPrograms,
++        provider: &'a mut dyn FallbackObservationProvider,
++    ) -> Self {
++        Self {
++            programs,
++            observations: &[],
++            cursor: 0,
++            provider: Some(provider),
++            captured: Vec::with_capacity(MAXIMUM_ROUND_OBSERVATIONS),
++            captured_bytes: 0,
++        }
++    }
++    pub fn into_captured(self) -> Vec<FallbackOperationObservation> {
++        self.captured
++    }
++    pub fn run<I: NativeRustBinding + Clone, O: NativeRustBinding>(
++        &mut self,
++        name: &str,
++        input: &I,
++    ) -> Result<O, FallbackRoundRefusal> {
++        let bytes = input
++            .clone()
++            .encode()
++            .map_err(FallbackRoundRefusal::Native)?;
++        O::decode(&self.run_encoded(name, bytes)?).map_err(FallbackRoundRefusal::Native)
++    }
++    pub fn run_bool<I: NativeRustBinding + Clone>(
++        &mut self,
++        name: &str,
++        input: &I,
++    ) -> Result<bool, FallbackRoundRefusal> {
++        let bytes = input
++            .clone()
++            .encode()
++            .map_err(FallbackRoundRefusal::Native)?;
++        match self.run_encoded(name, bytes)?.as_slice() {
++            [0] => Ok(false),
++            [1] => Ok(true),
++            _ => Err(FallbackRoundRefusal::Admission),
++        }
++    }
++    fn run_encoded(&mut self, name: &str, bytes: Vec<u8>) -> Result<Vec<u8>, FallbackRoundRefusal> {
++        use FallbackRoundRefusal::*;
++        if bytes.len() > 65536 {
++            return Err(Bound);
++        }
++        let frame = if let Some(provider) = self.provider.as_mut() {
++            if self.captured.len() >= MAXIMUM_ROUND_OBSERVATIONS {
++                return Err(Bound);
++            }
++            let output = provider.observe(name, &bytes)?;
++            if output.len() > 65536 {
++                return Err(Bound);
++            }
++            let total = self
++                .captured_bytes
++                .checked_add(bytes.len())
++                .and_then(|v| v.checked_add(output.len()))
++                .ok_or(Bound)?;
++            if total > MAXIMUM_ROUND_BYTES {
++                return Err(Bound);
++            }
++            self.captured.push(FallbackOperationObservation {
++                operation: name.to_string(),
++                input: bytes.clone(),
++                output,
++            });
++            self.captured_bytes = total;
++            self.captured.last().ok_or(Bound)?
++        } else {
++            self.observations
++                .get(self.cursor)
++                .ok_or_else(|| IncompleteTrace {
++                    operation: name.to_string(),
++                    input: bytes.clone(),
++                })?
++        };
++        if frame.operation != name || frame.input != bytes {
++            return Err(ForeignObservation);
++        }
++        let programs = &self
++            .programs
++            .operations
++            .iter()
++            .find(|(n, _)| *n == name)
++            .ok_or(Program)?
++            .1;
++        let mut actual = bytes;
++        for program in programs {
++            actual = program.evaluate(&actual).map_err(|_| Evaluation)?;
++            if actual.len() > 65536 {
++                return Err(Bound);
++            }
++        }
++        if actual != frame.output {
++            return Err(ForeignObservation);
++        }
++        self.cursor += 1;
++        Ok(actual)
++    }
++    pub fn finish(self) -> Result<(), FallbackRoundRefusal> {
++        if self.provider.is_some() || self.cursor == self.observations.len() {
++            Ok(())
++        } else {
++            Err(FallbackRoundRefusal::ExtraObservation)
++        }
++    }
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    fn empty_programs() -> PreparedFallbackRoundPrograms {
++        PreparedFallbackRoundPrograms {
++            operations: Vec::new(),
++        }
++    }
++    #[test]
++    fn missing_foreign_and_extra_observations_refuse_without_execution() {
++        let programs = empty_programs();
++        let mut missing = Replay::new(&programs, &[]).unwrap();
++        assert!(matches!(
++            missing.run_encoded("expected", Vec::new()),
++            Err(FallbackRoundRefusal::IncompleteTrace { .. })
++        ));
++        let frames = [FallbackOperationObservation {
++            operation: "foreign".into(),
++            input: Vec::new(),
++            output: Vec::new(),
++        }];
++        let mut foreign = Replay::new(&programs, &frames).unwrap();
++        assert!(matches!(
++            foreign.run_encoded("expected", Vec::new()),
++            Err(FallbackRoundRefusal::ForeignObservation)
++        ));
++        assert!(matches!(
++            foreign.finish(),
++            Err(FallbackRoundRefusal::ExtraObservation)
++        ));
++    }
++    #[test]
++    fn oversized_frame_refuses_before_program_lookup_or_replay() {
++        let programs = empty_programs();
++        let frames = [FallbackOperationObservation {
++            operation: "expected".into(),
++            input: alloc::vec![0;65537],
++            output: Vec::new(),
++        }];
++        assert!(matches!(
++            Replay::new(&programs, &frames),
++            Err(FallbackRoundRefusal::Bound)
++        ));
++    }
++}
+diff --git a/semantics/language/src/analysis_fallback_round.rs b/semantics/language/src/analysis_fallback_round.rs
+new file mode 100644
+index 000000000..5b455de9a
+--- /dev/null
++++ b/semantics/language/src/analysis_fallback_round.rs
+@@ -0,0 +1,354 @@
++//! One complete deterministic fallback round, never learned model evidence.
++//! Existing authored Source owns legality, lexical branching, rank and merge.
++use super::AnalysisEpochOwner;
++use crate::{analysis_epoch_initialization::admit, generated::LanguageAnalysisInitialRawBeam, *};
++use alloc::vec::Vec;
++use conduit_plot::rust_binding::NativeBindingRefusal;
++#[path = "analysis_fallback_io.rs"]
++pub(super) mod io;
++use io::Replay;
++pub use io::{
++    FallbackObservationProvider, FallbackOperationObservation, PreparedFallbackRoundPrograms,
++    MAXIMUM_ROUND_BYTES, MAXIMUM_ROUND_OBSERVATIONS,
++};
++#[derive(Debug)]
++pub enum FallbackRoundRefusal {
++    Native(NativeBindingRefusal),
++    Program,
++    Evaluation,
++    Bound,
++    IncompleteTrace {
++        operation: alloc::string::String,
++        input: Vec<u8>,
++    },
++    ExtraObservation,
++    ForeignObservation,
++    Admission,
++    Generation,
++    Stale,
++    Capacity,
++    Closed,
++}
++pub struct PreparedFallbackRound {
++    generation: u64,
++    prior: LanguageParserScorerBeam,
++    lexical: LanguageLexicalTape,
++    result: LanguageParserScorerBeam,
++    next_identity: u64,
++    observations: Vec<FallbackOperationObservation>,
++}
++pub struct FallbackRoundPreparationFailure {
++    pub refusal: FallbackRoundRefusal,
++    pub observations: Vec<FallbackOperationObservation>,
++}
++pub struct FallbackRoundApplyFailure {
++    pub refusal: FallbackRoundRefusal,
++    pub prepared: PreparedFallbackRound,
++}
++impl PreparedFallbackRound {
++    pub fn profile(&self) -> &'static str {
++        "language/complete-round/beam4/zero-score-fallback@1"
++    }
++    pub fn prior(&self) -> &LanguageParserScorerBeam {
++        &self.prior
++    }
++    pub fn result(&self) -> &LanguageParserScorerBeam {
++        &self.result
++    }
++    pub fn observations(&self) -> &[FallbackOperationObservation] {
++        &self.observations
++    }
++    pub fn source_id(&self) -> &'static str {
++        crate::parser_commitment::COMMITMENT_SOURCE_ID
++    }
++}
++impl<'a> AnalysisEpochOwner<'a> {
++    pub fn prepare_fallback_round(
++        &self,
++        programs: &PreparedFallbackRoundPrograms,
++        observations: Vec<FallbackOperationObservation>,
++    ) -> Result<PreparedFallbackRound, FallbackRoundPreparationFailure> {
++        let result = (|| {
++            if self.session.is_closed() {
++                return Err(FallbackRoundRefusal::Closed);
++            }
++            let mut replay = Replay::new(programs, &observations)?;
++            let result = self.run_fallback_round(&mut replay)?;
++            replay.finish()?;
++            Ok(result)
++        })();
++        match result {
++            Ok((result, next_identity)) => Ok(PreparedFallbackRound {
++                generation: self.generation,
++                prior: self.beam.clone(),
++                lexical: self.lexical().tape().clone(),
++                result,
++                next_identity,
++                observations,
++            }),
++            Err(refusal) => Err(FallbackRoundPreparationFailure {
++                refusal,
++                observations,
++            }),
++        }
++    }
++    pub fn prepare_fallback_round_with(
++        &self,
++        programs: &PreparedFallbackRoundPrograms,
++        provider: &mut dyn FallbackObservationProvider,
++    ) -> Result<PreparedFallbackRound, FallbackRoundPreparationFailure> {
++        if self.session.is_closed() {
++            return Err(FallbackRoundPreparationFailure {
++                refusal: FallbackRoundRefusal::Closed,
++                observations: Vec::new(),
++            });
++        }
++        let mut replay = Replay::with_provider(programs, provider);
++        let result = self.run_fallback_round(&mut replay);
++        let observations = replay.into_captured();
++        match result {
++            Ok((result, next_identity)) => Ok(PreparedFallbackRound {
++                generation: self.generation,
++                prior: self.beam.clone(),
++                lexical: self.lexical().tape().clone(),
++                result,
++                next_identity,
++                observations,
++            }),
++            Err(refusal) => Err(FallbackRoundPreparationFailure {
++                refusal,
++                observations,
++            }),
++        }
++    }
++    fn run_fallback_round(
++        &self,
++        replay: &mut Replay<'_>,
++    ) -> Result<(LanguageParserScorerBeam, u64), FallbackRoundRefusal> {
++        use FallbackRoundRefusal::*;
++        let lexical = LanguageParserAvailableLexical::new(
++            self.lexical().tape().clone(),
++            *self.beam.candidate0().parser().state().token_count(),
++        )
++        .map_err(Native)?;
++        let raw = raw_beam(&self.beam)?;
++        let seed: LanguageAnalysisInitialRawBeam =
++            replay.run("language/analysis-round-empty", &raw)?;
++        let mut next = admit_beam(&seed)?;
++        let mut identity = self.identity_cursor;
++        for prior in slots(&self.beam) {
++            if !*prior.parser().active() {
++                continue;
++            }
++            let complete =
++                replay.run_bool("language-parser-decode-complete", prior.parser().state())?;
++            if complete {
++                next = merge(replay, next, prior.clone())?;
++                continue;
++            }
++            let mut results = Vec::new();
++            for class in [0, 1, 2, 39, 73] {
++                let scored = scored(prior, class, 0)?;
++                let proposal: LanguageParserScoredProposal =
++                    replay.run("language-parser-score-proposal", &scored)?;
++                let actual: LanguageParserResult =
++                    replay.run("language-parser-transition", proposal.request())?;
++                results.push(actual);
++            }
++            let legality = LanguageParserScorerLegality::new(
++                prior.parser().state().basis().clone(),
++                results[2].clone(),
++                results[1].clone(),
++                results[3].clone(),
++                results[4].clone(),
++                results[0].clone(),
++            )
++            .map_err(Native)?;
++            let mask: LanguageParserScorerRanking =
++                replay.run("language-parser-scorer-legality", &legality)?;
++            // Enumerate every bounded alternative; only checked branch Source
++            // decides acceptance. No caller-selected candidate list is accepted.
++            let alternatives = if prior.parser().state().unread() < lexical.token_count() {
++                4
++            } else {
++                1
++            };
++            for choice in 0..alternatives {
++                let branch = if prior.parser().state().unread() < lexical.token_count() {
++                    let query =
++                        LanguageParserScorerBranch::new(choice, lexical.clone(), prior.clone())
++                            .map_err(Native)?;
++                    let actual: LanguageParserScorerBranchResult =
++                        replay.run("language-parser-scorer-branch", &query)?;
++                    if !*actual.accepted() {
++                        continue;
++                    }
++                    admit(actual.candidate()).map_err(|_| Admission)?
++                } else {
++                    prior.clone()
++                };
++                // Fallback Source overwrites every score; no numerical/model
++                // result can enter this deliberately reduced proof profile.
++                let mut rank: LanguageParserScorerRanking =
++                    replay.run("language-parser-scorer-fallback", &mask)?;
++                for _ in 0..4 {
++                    rank = replay.run("language-parser-scorer-rank", &rank)?;
++                    if !*rank.found() {
++                        break;
++                    }
++                    let scored = scored(&branch, *rank.class(), *rank.score())?;
++                    let proposal: LanguageParserScoredProposal =
++                        replay.run("language-parser-score-proposal", &scored)?;
++                    let actual: LanguageParserResult =
++                        replay.run("language-parser-transition", proposal.request())?;
++                    identity = identity.checked_add(1).ok_or(Generation)?;
++                    let query = LanguageParserScorerExpansion::new(
++                        identity,
++                        branch.clone(),
++                        actual,
++                        *rank.score(),
++                    )
++                    .map_err(Native)?;
++                    let raw: LanguageParserScorerRawHypothesis =
++                        replay.run("language-parser-scorer-expand", &query)?;
++                    if *raw.parser().active() {
++                        let candidate = admit(&raw).map_err(|_| Admission)?;
++                        next = merge(replay, next, candidate)?;
++                    }
++                    rank = replay.run("language-parser-scorer-ranking-next", &rank)?;
++                }
++            }
++        }
++        Ok((next, identity))
++    }
++
++    pub fn apply_fallback_round(
++        &mut self,
++        prepared: PreparedFallbackRound,
++    ) -> Result<(), FallbackRoundApplyFailure> {
++        let refusal = if self.session.is_closed() {
++            Some(FallbackRoundRefusal::Closed)
++        } else if self
++            .frontiers()
++            .stable_through
++            .is_some_and(|stable| stable > self.frontiers().committed)
++            || prepared.generation != self.generation
++            || prepared.prior != self.beam
++            || &prepared.lexical != self.lexical().tape()
++        {
++            Some(FallbackRoundRefusal::Stale)
++        } else if self.rounds.len() >= self.round_limit
++            || self.rounds.len() >= self.rounds.capacity()
++        {
++            Some(FallbackRoundRefusal::Capacity)
++        } else if self.generation.checked_add(1).is_none() {
++            Some(FallbackRoundRefusal::Generation)
++        } else {
++            None
++        };
++        if let Some(refusal) = refusal {
++            return Err(FallbackRoundApplyFailure { refusal, prepared });
++        }
++        self.beam = prepared.result.clone();
++        self.identity_cursor = prepared.next_identity;
++        self.generation += 1;
++        self.rounds.push(prepared);
++        Ok(())
++    }
++    pub fn fallback_rounds(&self) -> &[PreparedFallbackRound] {
++        &self.rounds
++    }
++}
++fn slots(beam: &LanguageParserScorerBeam) -> [&LanguageParserScorerHypothesis; 4] {
++    [
++        beam.candidate0(),
++        beam.candidate1(),
++        beam.candidate2(),
++        beam.candidate3(),
++    ]
++}
++fn numeric(s: &LanguageParserState) -> Result<LanguageParserNumericState, FallbackRoundRefusal> {
++    LanguageParserNumericState::new(
++        s.basis().clone(),
++        *s.committed(),
++        *s.depth(),
++        *s.heads(),
++        s.relation0().clone(),
++        s.relation1().clone(),
++        s.relation2().clone(),
++        s.relation3().clone(),
++        *s.stack(),
++        *s.token_count(),
++        *s.unread(),
++    )
++    .map_err(FallbackRoundRefusal::Native)
++}
++fn raw_hyp(
++    s: &LanguageParserScorerHypothesis,
++) -> Result<LanguageParserScorerRawHypothesis, FallbackRoundRefusal> {
++    use FallbackRoundRefusal::Native;
++    let p = s.parser();
++    let raw = LanguageParserRawHypothesis::new(
++        *p.active(),
++        *p.identity(),
++        *p.score(),
++        numeric(p.state())?,
++    )
++    .map_err(Native)?;
++    LanguageParserScorerRawHypothesis::new(*s.choices(), raw, *s.selected()).map_err(Native)
++}
++fn raw_beam(
++    b: &LanguageParserScorerBeam,
++) -> Result<LanguageAnalysisInitialRawBeam, FallbackRoundRefusal> {
++    LanguageAnalysisInitialRawBeam::new(
++        raw_hyp(b.candidate0())?,
++        raw_hyp(b.candidate1())?,
++        raw_hyp(b.candidate2())?,
++        raw_hyp(b.candidate3())?,
++    )
++    .map_err(FallbackRoundRefusal::Native)
++}
++fn admit_beam(
++    b: &LanguageAnalysisInitialRawBeam,
++) -> Result<LanguageParserScorerBeam, FallbackRoundRefusal> {
++    let conv = |h| admit(h).map_err(|_| FallbackRoundRefusal::Admission);
++    LanguageParserScorerBeam::new(
++        conv(b.candidate0())?,
++        conv(b.candidate1())?,
++        conv(b.candidate2())?,
++        conv(b.candidate3())?,
++    )
++    .map_err(FallbackRoundRefusal::Native)
++}
++fn scored(
++    h: &LanguageParserScorerHypothesis,
++    class: u64,
++    score: i64,
++) -> Result<LanguageParserScoredClass, FallbackRoundRefusal> {
++    use FallbackRoundRefusal::Native;
++    let relation = LanguageParserRelation::new(
++        LanguageUniversalDependencyRelation::Dep,
++        LanguageParserSubtype::new("".into()).map_err(Native)?,
++    )
++    .map_err(Native)?;
++    LanguageParserScoredClass::new(
++        h.parser().state().basis().clone(),
++        class,
++        relation,
++        score,
++        numeric(h.parser().state())?,
++    )
++    .map_err(Native)
++}
++fn merge(
++    replay: &mut Replay<'_>,
++    beam: LanguageParserScorerBeam,
++    candidate: LanguageParserScorerHypothesis,
++) -> Result<LanguageParserScorerBeam, FallbackRoundRefusal> {
++    let input =
++        LanguageParserScorerMerge::new(beam, candidate).map_err(FallbackRoundRefusal::Native)?;
++    replay.run("language-parser-scorer-merge", &input)
++}
++
++#[path = "analysis_fallback_frontier.rs"]
++pub mod frontier;
+diff --git a/semantics/language/tests/analysis_fallback_round.rs b/semantics/language/tests/analysis_fallback_round.rs
+new file mode 100644
+index 000000000..3c88025a0
+--- /dev/null
++++ b/semantics/language/tests/analysis_fallback_round.rs
+@@ -0,0 +1,435 @@
++//! Actual checked Source/Plan/Play, explicitly deterministic fallback only.
++//! No model inference, learned accuracy, audio or installed async-ingress claim.
++#[path = "common/parser_revision_fixture.rs"]
++mod fixture;
++#[path = "common/analysis_epoch_runtime.rs"]
++mod runtime;
++use conduit_core::revision::*;
++use conduit_language::{
++    analysis_epoch_initialization::*,
++    analysis_epoch_owner::{fallback_round::*, *},
++    dependency_commitment::PreparedCommittedDependency,
++    lexical::prepare_lexical_tape,
++    parser_rebase_replay::*,
++    revision::*,
++    *,
++};
++use conduit_plot::rust_binding::NativeRustBinding;
++fn text(s: &str) -> RevisionText<'_> {
++    RevisionText::new(s).unwrap()
++}
++fn snapshot(
++    owner: &AnalysisEpochOwner<'_>,
++) -> (Vec<u8>, u64, RevisionFrontiers<TokenFrontier>, usize) {
++    (
++        owner.beam().clone().encode().unwrap(),
++        owner.generation(),
++        owner.frontiers(),
++        owner.history().count(),
++    )
++}
++#[test]
++fn actual_fallback_rounds_commit_then_handoff_without_reopening_protected_prefix() {
++    let mut runtime = runtime::Runtime::new();
++    let old = fixture::revision("answer ", None, 7);
++    let next = fixture::revision("answer record ", Some(&old), 7);
++    let old_domain = DependencyRevisions {
++        source_text: old.material(),
++        tokens: 1,
++    };
++    let next_domain = DependencyRevisions {
++        source_text: next.material(),
++        tokens: 2,
++    };
++    let context = RevisionContext {
++        stream: text("analysis"),
++        subject: text("utterance"),
++        epoch: text("1"),
++        producer: text("fallback-fixture"),
++        policy: text("complete-round-zero-score@1"),
++    };
++    let reference = |sequence, label| RevisionReference {
++        context,
++        sequence,
++        event: text(label),
++    };
++    let evidence = [RevisionEvidence {
++        source: text("actual-Source-Plan-Play-fallback"),
++        generation: text("1"),
++    }];
++    // Caller-owned stable slots precede the owner; no self-referential arena.
++    let delta;
++    let proposed;
++    let cancelled_stable;
++    let pressure_stable;
++    let stable;
++    let commit;
++    let receipt;
++    let protected_delta;
++    let protected_proposal;
++    let correction;
++    let closed;
++    let lexical = prepare_lexical_tape(&old, &fixture::profile(), None).unwrap();
++    let basis = LanguageParserBasis::new(
++        LanguageAnalysisRevisionId::new("analysis/1".into()).unwrap(),
++        old.material().revision().clone(),
++        old.material().identity().clone(),
++    )
++    .unwrap();
++    let begin = LanguageParserBegin::new(basis.clone(), fixture::dep(), 1).unwrap();
++    let observed = LanguageParserNumericState::decode(&runtime.execute(
++        "language-parser-initialize",
++        &begin.clone().encode().unwrap(),
++    ))
++    .unwrap();
++    let initial = PreparedAnalysisInitializationProgram::prepare()
++        .unwrap()
++        .replay(lexical, &begin, &observed)
++        .unwrap();
++    assert_eq!(runtime.source_id.as_str(), initial.source_id());
++    let actual_envelope = runtime.execute(
++        "language/analysis-initial-envelope",
++        &observed.encode().unwrap(),
++    );
++    assert_eq!(actual_envelope, initial.envelope_output_canonical());
++    let limits = RevisionLimits {
++        history_events: 16,
++        revisable_units: 4,
++    };
++    let mut owner = AnalysisEpochOwner::initialize(initial, &old_domain, context, limits).unwrap();
++    let programs = PreparedFallbackRoundPrograms::prepare().unwrap();
++    let mut old_stale_round = None;
++    for round in 0..8 {
++        let prepared = match owner.prepare_fallback_round_with(&programs, &mut runtime) {
++            Ok(p) => p,
++            Err(f) => panic!("fallback round {round}: {:?}", f.refusal),
++        };
++        assert_eq!(
++            prepared.profile(),
++            "language/complete-round/beam4/zero-score-fallback@1"
++        );
++        assert!(!prepared.observations().is_empty());
++        // One duplicate semantic replay creates a stale value without repeating
++        // any actual Source/Plan execution or injecting a replacement beam.
++        let stale = if round == 0 {
++            Some(
++                match owner.prepare_fallback_round(&programs, prepared.observations().to_vec()) {
++                    Ok(p) => p,
++                    Err(f) => panic!("same exact observed round: {:?}", f.refusal),
++                },
++            )
++        } else {
++            None
++        };
++        match owner.apply_fallback_round(prepared) {
++            Ok(()) => (),
++            Err(f) => panic!("round apply: {:?}", f.refusal),
++        }
++        if let Some(stale) = stale {
++            let before = snapshot(&owner);
++            match owner.apply_fallback_round(stale) {
++                Err(f) => {
++                    assert!(matches!(f.refusal, FallbackRoundRefusal::Stale));
++                    old_stale_round = Some(f.prepared);
++                }
++                Ok(()) => panic!("stale preparation applied"),
++            }
++            assert_eq!(snapshot(&owner), before);
++        }
++    }
++    assert_eq!(owner.fallback_rounds().len(), 8);
++    // The expected one-token root is a consumer assertion, never an injected
++    // owner graph: actual commitment below must replay and correlate it.
++    let token = owner.lexical().tape().tokens()[0].identity().clone();
++    let arc = LanguageDependencyArc::new(
++        LanguageAnalysisTokenRef::new(basis.analysis_revision().clone(), token).unwrap(),
++        LanguageDependencyHead::Root,
++        LanguageDependencyRelation::new(LanguageUniversalDependencyRelation::Root, None).unwrap(),
++    )
++    .unwrap();
++    delta = DependencyDelta::Assert(arc.clone());
++    proposed = RevisionEvent::new(
++        &old_domain,
++        reference(1, "proposal"),
++        &evidence,
++        RevisionChange::Proposed { delta: &delta },
++    )
++    .unwrap();
++    owner.append_event(&proposed, false, false).unwrap();
++    let prepared = match owner.prepare_fallback_frontier_with(&programs, &mut runtime, true, false)
++    {
++        Ok(p) => p,
++        Err(f) => panic!("refusal frontier replay: {:?}", f.refusal),
++    };
++    assert_eq!(*prepared.frontier().stable(), 0);
++    let before = snapshot(&owner);
++    cancelled_stable = RevisionEvent::new(
++        &old_domain,
++        reference(2, "cancelled-stable"),
++        &evidence,
++        RevisionChange::Stable {
++            revision: proposed.reference(),
++            through: TokenFrontier(0),
++        },
++    )
++    .unwrap();
++    assert!(matches!(
++        owner.append_fallback_frontier(&cancelled_stable, prepared),
++        Err(frontier::FrontierApplyFailure {
++            refusal: AnalysisEpochRefusal::Session(
++                conduit_language::analysis_session::AnalysisSessionRefusal::Cancelled
++            ),
++            ..
++        })
++    ));
++    assert_eq!(snapshot(&owner), before);
++    let prepared = match owner.prepare_fallback_frontier_with(&programs, &mut runtime, false, true)
++    {
++        Ok(p) => p,
++        Err(f) => panic!("refusal frontier replay: {:?}", f.refusal),
++    };
++    assert_eq!(*prepared.frontier().stable(), 0);
++    let before = snapshot(&owner);
++    pressure_stable = RevisionEvent::new(
++        &old_domain,
++        reference(2, "pressure-stable"),
++        &evidence,
++        RevisionChange::Stable {
++            revision: proposed.reference(),
++            through: TokenFrontier(0),
++        },
++    )
++    .unwrap();
++    assert!(matches!(
++        owner.append_fallback_frontier(&pressure_stable, prepared),
++        Err(frontier::FrontierApplyFailure {
++            refusal: AnalysisEpochRefusal::Session(
++                conduit_language::analysis_session::AnalysisSessionRefusal::Pressure
++            ),
++            ..
++        })
++    ));
++    assert_eq!(snapshot(&owner), before);
++    let prepared = match owner.prepare_fallback_frontier_with(&programs, &mut runtime, false, false)
++    {
++        Ok(p) => p,
++        Err(f) => panic!("actual all-survivor frontier: {:?}", f.refusal),
++    };
++    assert_eq!(
++        *prepared.frontier().stable(),
++        1,
++        "actual surviving Source graphs must agree"
++    );
++    let frontier = prepared.frontier().clone();
++    stable = RevisionEvent::new(
++        &old_domain,
++        reference(2, "stable"),
++        &evidence,
++        RevisionChange::Stable {
++            revision: proposed.reference(),
++            through: TokenFrontier(1),
++        },
++    )
++    .unwrap();
++    match owner.append_fallback_frontier(&stable, prepared) {
++        Ok(()) => (),
++        Err(f) => panic!("stable admission: {:?}", f.refusal),
++    }
++    let b = owner.beam();
++    let beam = LanguageParserAdmittedBeam::new(
++        basis,
++        b.candidate0().parser().clone(),
++        b.candidate1().parser().clone(),
++        b.candidate2().parser().clone(),
++        b.candidate3().parser().clone(),
++    )
++    .unwrap();
++    let request = LanguageParserBeamCommitRequest::new(beam, false, frontier, false, 1).unwrap();
++    let actual = LanguageParserBeamCommitResult::decode(&runtime.execute(
++        "language-parser-beam-commit",
++        &request.clone().encode().unwrap(),
++    ))
++    .unwrap();
++    assert!(*actual.accepted());
++    receipt =
++        PreparedCommittedDependency::prepare(owner.lexical(), &arc, &request, &actual).unwrap();
++    commit = RevisionEvent::new(
++        &old_domain,
++        reference(3, "commit"),
++        &evidence,
++        RevisionChange::Committed {
++            revision: proposed.reference(),
++            through: TokenFrontier(1),
++        },
++    )
++    .unwrap();
++    let choices: [_; 4] = [
++        owner.beam().candidate0(),
++        owner.beam().candidate1(),
++        owner.beam().candidate2(),
++        owner.beam().candidate3(),
++    ]
++    .map(|s| *s.choices());
++    owner
++        .append_commitment(&commit, &receipt, false, false)
++        .unwrap();
++    assert_eq!(owner.frontiers().committed, TokenFrontier(1));
++    assert_eq!(
++        owner
++            .current(proposed.reference(), &receipt)
++            .unwrap()
++            .frontier(),
++        TokenFrontier(1)
++    );
++    for (slot, choice) in [
++        owner.beam().candidate0(),
++        owner.beam().candidate1(),
++        owner.beam().candidate2(),
++        owner.beam().candidate3(),
++    ]
++    .into_iter()
++    .zip(choices)
++    {
++        assert_eq!(slot.choices(), &choice);
++        if *slot.parser().active() {
++            assert_eq!(*slot.parser().state().committed(), 1)
++        }
++    }
++    let previous = owner.beam().clone();
++    let rebase = PreparedParserRebaseProgram::prepare().unwrap();
++    let mut replays = Vec::new();
++    for prior in [
++        previous.candidate0(),
++        previous.candidate1(),
++        previous.candidate2(),
++        previous.candidate3(),
++    ] {
++        let p = PreparedParserRevisionRebase::prepare(
++            prior.parser().state(),
++            owner.lexical(),
++            &next,
++            LanguageAnalysisRevisionId::new("analysis/2".into()).unwrap(),
++            fixture::dep(),
++        )
++        .unwrap();
++        let raw = LanguageParserNumericState::decode(&runtime.execute(
++            "language-parser-revision-rebase",
++            &p.request().clone().encode().unwrap(),
++        ))
++        .unwrap();
++        replays.push(rebase.replay(p, &raw).unwrap());
++    }
++    let next_context = RevisionContext {
++        epoch: text("2"),
++        ..context
++    };
++    let (mut next_owner, archive) = match owner.handoff(
++        replays.try_into().ok().unwrap(),
++        &next_domain,
++        next_context,
++        limits,
++    ) {
++        Ok(value) => value,
++        Err(f) => panic!("committed handoff: {:?}", f.refusal),
++    };
++    assert_eq!(archive.beam(), &previous);
++    assert_eq!(archive.commitment_receipts().len(), 1);
++    assert_eq!(archive.frontiers().committed, TokenFrontier(1));
++    assert_eq!(next_owner.frontiers().committed, TokenFrontier(1));
++    assert_eq!(next_owner.history().count(), 0);
++    assert!(next_owner.commitment_receipts().is_empty());
++    assert!(next_owner.current(proposed.reference(), &receipt).is_err());
++    let new_token = next_owner.lexical().tape().tokens()[0].identity().clone();
++    let new_arc = LanguageDependencyArc::new(
++        LanguageAnalysisTokenRef::new(
++            LanguageAnalysisRevisionId::new("analysis/2".into()).unwrap(),
++            new_token,
++        )
++        .unwrap(),
++        LanguageDependencyHead::Root,
++        arc.relation().clone(),
++    )
++    .unwrap();
++    protected_delta = DependencyDelta::Assert(new_arc);
++    protected_proposal = RevisionEvent::new(
++        &next_domain,
++        RevisionReference {
++            context: next_context,
++            sequence: 1,
++            event: text("protected-reproposal"),
++        },
++        &evidence,
++        RevisionChange::Proposed {
++            delta: &protected_delta,
++        },
++    )
++    .unwrap();
++    let before = snapshot(&next_owner);
++    assert!(matches!(
++        next_owner.append_event(&protected_proposal, false, false),
++        Err(AnalysisEpochRefusal::Session(
++            conduit_language::analysis_session::AnalysisSessionRefusal::Revision(
++                RevisionRefusal::CommittedHistoryRequiresCorrection
++            )
++        ))
++    ));
++    correction = RevisionEvent::new(
++        &next_domain,
++        RevisionReference {
++            context: next_context,
++            sequence: 1,
++            event: text("foreign-old-correction"),
++        },
++        &evidence,
++        RevisionChange::Corrected {
++            commit: commit.reference(),
++            delta: &protected_delta,
++            reason: text("cannot rewrite archived epoch"),
++        },
++    )
++    .unwrap();
++    assert!(matches!(
++        next_owner.append_event(&correction, false, false),
++        Err(AnalysisEpochRefusal::Session(
++            conduit_language::analysis_session::AnalysisSessionRefusal::Revision(
++                RevisionRefusal::UnknownCommit
++            )
++        ))
++    ));
++    assert_eq!(snapshot(&next_owner), before);
++    closed = RevisionEvent::new(
++        &next_domain,
++        RevisionReference {
++            context: next_context,
++            sequence: 1,
++            event: text("closed"),
++        },
++        &evidence,
++        RevisionChange::Closed,
++    )
++    .unwrap();
++    next_owner.append_event(&closed, false, false).unwrap();
++    let before = snapshot(&next_owner);
++    let operation_count = runtime.operations;
++    assert!(matches!(
++        next_owner.prepare_fallback_round_with(&programs, &mut runtime),
++        Err(FallbackRoundPreparationFailure {
++            refusal: FallbackRoundRefusal::Closed,
++            ..
++        })
++    ));
++    assert_eq!(
++        runtime.operations, operation_count,
++        "closed owner executes no new Source operation"
++    );
++    assert!(matches!(
++        next_owner.apply_fallback_round(old_stale_round.take().unwrap()),
++        Err(FallbackRoundApplyFailure {
++            refusal: FallbackRoundRefusal::Closed,
++            ..
++        })
++    ));
++    assert_eq!(snapshot(&next_owner), before);
++    runtime.assert_signs();
++    eprintln!("fallback-only actual Source operations={}, repeated-prefix replay=0; one duplicate round replay for stale proof; eight finite rounds",runtime.operations);
++}
+diff --git a/semantics/language/tests/common/analysis_epoch_runtime.rs b/semantics/language/tests/common/analysis_epoch_runtime.rs
+new file mode 100644
+index 000000000..793fb0ee6
+--- /dev/null
++++ b/semantics/language/tests/common/analysis_epoch_runtime.rs
+@@ -0,0 +1,127 @@
++//! Existing kernel fixture supplies actual typed Source/Plan/Play observations.
++#[path = "parser_kernel.rs"]
++mod parser_kernel;
++#[path = "parser_selection_io.rs"]
++mod parser_selection_io;
++use conduit_core::*;
++use conduit_kernel::scheduler::RemoteIngressOutcome;
++use conduit_language::analysis_epoch_owner::fallback_round::{
++    FallbackObservationProvider, FallbackRoundRefusal,
++};
++use conduitos::protocol_source::*;
++use std::collections::BTreeMap;
++struct Live {
++    execution: parser_kernel::Execution,
++    sequence: u64,
++}
++pub struct Runtime {
++    source: PreparedProtocolSource,
++    artifact: ArtifactId,
++    live: BTreeMap<String, Live>,
++    pub operations: u64,
++    pub source_id: SourceDocumentId,
++}
++impl Runtime {
++    pub fn new() -> Self {
++        let source = [
++            parser_selection_io::language_source(),
++            include_str!("../../dependency_commitment.conduit").into(),
++            include_str!("../../prosody_commitment.conduit").into(),
++            include_str!("../../analysis_epoch_initialization.conduit").into(),
++            include_str!("../../analysis_fallback_round.conduit").into(),
++        ]
++        .join("\n");
++        let source_id = conduit_plot::parse_syntax_document(&source).source_document_id();
++        let package = ProtocolSourcePackage::compile(source, &[]).unwrap();
++        let digest = semantic_digest(
++            "language/epoch-fallback-runtime-fixture@1",
++            &serde_json::to_vec(&package).unwrap(),
++        );
++        let artifact = ArtifactId::from(format!(
++            "language/epoch-fallback/{}",
++            digest
++                .iter()
++                .map(|b| format!("{b:02x}"))
++                .collect::<String>()
++        ));
++        Self {
++            source: PreparedProtocolSource::prepare(package).unwrap(),
++            artifact,
++            live: BTreeMap::new(),
++            operations: 0,
++            source_id,
++        }
++    }
++    pub fn execute(&mut self, operation: &str, input: &[u8]) -> Vec<u8> {
++        if !self.live.contains_key(operation) {
++            let mut execution =
++                parser_kernel::Execution::prepare_source(&self.source, operation, &self.artifact);
++            assert!(verify_plan(&execution.kernel.definition().internal_plan));
++            assert!(!execution.kernel.start().unwrap().is_empty());
++            self.live.insert(
++                operation.into(),
++                Live {
++                    execution,
++                    sequence: 0,
++                },
++            );
++        }
++        let live = self.live.get_mut(operation).unwrap();
++        let boundary = &live.execution.kernel.definition().boundary;
++        let input_port = boundary.input_fronts[0].external_port.clone();
++        let output_port = boundary.output_fronts[0].external_port.clone();
++        let value = ValuePayload {
++            value_kind: input_port.value_kind,
++            encoded: input.to_vec(),
++        };
++        assert!(matches!(
++            live.execution
++                .kernel
++                .admit_input(&input_port.port_id, live.sequence, &value)
++                .unwrap(),
++            RemoteIngressOutcome::Accepted { .. }
++        ));
++        let mut output = ValuePayload {
++            value_kind: output_port.value_kind,
++            encoded: Vec::with_capacity(MAXIMUM_STRUCTURED_CANONICAL_BYTES),
++        };
++        for _ in 0..parser_selection_io::MAXIMUM_SOURCE_STEPS {
++            live.execution.step();
++            if let Some(sequence) = live
++                .execution
++                .kernel
++                .output_into(&output_port.port_id, &mut output)
++                .unwrap()
++            {
++                assert_eq!(sequence, live.sequence);
++                live.execution
++                    .kernel
++                    .complete_output(&output_port.port_id, sequence)
++                    .unwrap();
++                live.sequence += 1;
++                self.operations += 1;
++                return output.encoded;
++            }
++        }
++        panic!("bounded actual Source operation failed: {operation}")
++    }
++    pub fn assert_signs(&self) {
++        assert!(!self.live.is_empty());
++        assert!(self
++            .live
++            .values()
++            .all(|run| !run.execution.kernel.active_plays().is_empty()));
++        assert!(self.live.values().all(|run| run
++            .execution
++            .kernel
++            .signs()
++            .values()
++            .flatten()
++            .any(|event| event.kind == conduit_kernel::KernelEventKind::HostCallCompleted)));
++    }
++}
++impl FallbackObservationProvider for Runtime {
++    fn observe(&mut self, operation: &str, input: &[u8]) -> Result<Vec<u8>, FallbackRoundRefusal> {
++        Ok(self.execute(operation, input))
++    }
++}

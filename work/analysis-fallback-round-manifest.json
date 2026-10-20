@@ -1,0 +1,51 @@
+{
+  "root_reviewed_prerequisite": "d9e14c098",
+  "scope": "unbuilt zero-score fallback preparation and actual-runtime positive/refusal fixture; not learned completion",
+  "files": [
+    {
+      "repository_path": "semantics/language/analysis_fallback_round.conduit",
+      "path": "/home/dancxjo/Documents/Codex/2026-10-18/goal-finish-and-close-https-github/work/analysis-fallback-round-prep/semantics/language/analysis_fallback_round.conduit",
+      "sha256": "c0c9ca0b50b091f3472b73e9e6494f2311ca1b7ebb3ef6c98ff1cab6f6b2e91e"
+    },
+    {
+      "repository_path": "semantics/language/build.rs",
+      "path": "/home/dancxjo/Documents/Codex/2026-10-18/goal-finish-and-close-https-github/work/analysis-fallback-round-prep/semantics/language/build.rs",
+      "sha256": "205644d636e51595cea73fbcb7dbbd43d5623eaf213c836beb2ed834317c544f"
+    },
+    {
+      "repository_path": "semantics/language/build_support/fallback_programs.rs",
+      "path": "/home/dancxjo/Documents/Codex/2026-10-18/goal-finish-and-close-https-github/work/analysis-fallback-round-prep/semantics/language/build_support/fallback_programs.rs",
+      "sha256": "e678407cb8f31b2f75673d318e2c6d081e14690d76c6fc232dbb4acf1e252095"
+    },
+    {
+      "repository_path": "semantics/language/src/analysis_epoch_owner.rs",
+      "path": "/home/dancxjo/Documents/Codex/2026-10-18/goal-finish-and-close-https-github/work/analysis-fallback-round-prep/semantics/language/src/analysis_epoch_owner.rs",
+      "sha256": "e63a3d566b2ce250756075c15720e86454c8aae1225b88066678cfb31563e387"
+    },
+    {
+      "repository_path": "semantics/language/src/analysis_fallback_frontier.rs",
+      "path": "/home/dancxjo/Documents/Codex/2026-10-18/goal-finish-and-close-https-github/work/analysis-fallback-round-prep/semantics/language/src/analysis_fallback_frontier.rs",
+      "sha256": "9f97188950b34f5a63c177687125ddd59dbf345f9da1c13f2eb9960f4228303f"
+    },
+    {
+      "repository_path": "semantics/language/src/analysis_fallback_io.rs",
+      "path": "/home/dancxjo/Documents/Codex/2026-10-18/goal-finish-and-close-https-github/work/analysis-fallback-round-prep/semantics/language/src/analysis_fallback_io.rs",
+      "sha256": "b1247d7320d08e8d8f19eaf9db8bafb2086691bcd4c3dfcad03760fdeb7d2e0d"
+    },
+    {
+      "repository_path": "semantics/language/src/analysis_fallback_round.rs",
+      "path": "/home/dancxjo/Documents/Codex/2026-10-18/goal-finish-and-close-https-github/work/analysis-fallback-round-prep/semantics/language/src/analysis_fallback_round.rs",
+      "sha256": "08bfdeae91ad386858c78377fe4da84ae5b1c5ad6390b6277c86b760c96fd2cb"
+    },
+    {
+      "repository_path": "semantics/language/tests/analysis_fallback_round.rs",
+      "path": "/home/dancxjo/Documents/Codex/2026-10-18/goal-finish-and-close-https-github/work/analysis-fallback-round-prep/semantics/language/tests/analysis_fallback_round.rs",
+      "sha256": "ea647cdce612813be05e610bb15c8e1d47b739f234f26616323cc364ca5d3662"
+    },
+    {
+      "repository_path": "semantics/language/tests/common/analysis_epoch_runtime.rs",
+      "path": "/home/dancxjo/Documents/Codex/2026-10-18/goal-finish-and-close-https-github/work/analysis-fallback-round-prep/semantics/language/tests/common/analysis_epoch_runtime.rs",
+      "sha256": "4f080caa38028471d9c37a72c2eb0f577a2523c51af5865c79280d301ae682e4"
+    }
+  ]
+}

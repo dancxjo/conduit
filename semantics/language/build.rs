@@ -1,3 +1,5 @@
+#[path = "build_support/fallback_programs.rs"]
+mod fallback_programs;
 use conduit_plot::rust_binding::{generate_rust_bindings, RustBindingOptions};
 use conduit_plot::{check_syntax_document, parse_syntax_document, StartupCatalog};
 use std::{env, fs, path::PathBuf};
@@ -30,6 +32,9 @@ fn main() {
     ] {
         println!("cargo:rerun-if-changed={file}");
     }
+    println!("cargo:rerun-if-changed=analysis_epoch_initialization.conduit");
+    println!("cargo:rerun-if-changed=analysis_fallback_round.conduit");
+    println!("cargo:rerun-if-changed=build_support/fallback_programs.rs");
     let source = [
         include_str!("types.conduit"),
         include_str!("identity.conduit"),
@@ -54,10 +59,13 @@ fn main() {
         include_str!("prosody.conduit"),
         include_str!("dependency_commitment.conduit"),
         include_str!("prosody_commitment.conduit"),
+        include_str!("analysis_epoch_initialization.conduit"),
+        include_str!("analysis_fallback_round.conduit"),
     ]
     .join("\n");
     let checked = check_syntax_document(&parse_syntax_document(&source), &StartupCatalog::new())
         .expect("language semantic Types must check");
+    fallback_programs::retain(&checked);
     let commitment = conduit_plot::expand_canonical_plot_for_authoring(
         &checked,
         "language-parser-beam-commit",
@@ -102,6 +110,18 @@ fn main() {
     assert_eq!(ordered.len(), 8);
     fs::write(PathBuf::from(env::var_os("OUT_DIR").unwrap()).join("commitment_programs.rs"), format!("pub const COMMITMENT_SOURCE_ID: &str = {:?};\npub(crate) const COMMITMENT_PROGRAMS: [&str; 8] = {:?};\n", checked.source_document_id.as_str(), ordered)).unwrap();
     for (plot, file) in [
+        (
+            "language-parser-initialize",
+            "analysis_initialize_program.hex",
+        ),
+        (
+            "language/analysis-rebased-envelope",
+            "analysis_rebased_envelope.hex",
+        ),
+        (
+            "language/analysis-initial-envelope",
+            "analysis_initial_envelope.hex",
+        ),
         (
             "language-parser-availability",
             "parser_availability_program.hex",
