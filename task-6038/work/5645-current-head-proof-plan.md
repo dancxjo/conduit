@@ -28,3 +28,11 @@ Historical127 selection verified directly from raw log: only owner-face-componen
 ## 2026-10-20 15:09 UTC read-only reconciliation
 
 The held checkout remains clean a252; no expensive proof or implementation was started. outputs/5645-a252-proof-reconciliation/receipt.json reconciles the terminal full-workspace failure, actual Chromium127/SDK58/CSP-Node4 child receipts and current-dev fixture corrections. Historical232d join failure and earlier installed/fixture Sources remain preserved, not transferred to a252 or dev. Before admission, refresh after native05 and run the ordered frozen-Source proof above. Do not duplicate the already merged frame-boundary correction or mistake old running-status text for a live process.
+
+## 2026-10-20 bounded occlusion correction before final refresh
+
+Held Source is now clean, pushed bc1448c4bd233257c416bfe5b30c21c940b57293. The actual diagnostic at a252 accepted a shadow/document pointer blocker; both negative cases failed while baseline passed. The bounded production correction checks current shadow-aware native pointer reachability before acknowledgement/activation, retains deferred ordinary scroll/disclosure preparation, and explicitly declares the existing presentation module dependency. It introduces no new selected Back asset or raised cap.
+
+After that concrete change, the unchanged diagnostic passes3/3, the focused two-file Chromium selection passes131 (previous127 plus4 regressions), SDK58 and CSP Node4 pass. outputs/5645-occlusion-followup/receipt.json pins file hashes and the narrower proof boundary. Pointer-transparent opaque overlays demonstrate that this guard is not full visual accessibility certification. All original red evidence is preserved.
+
+This prerequisite correction was reviewed, committed and pushed before final H. The ordered current-dev refresh, full workspace, retained release and actual installed-owner proof remain pending until native05 merges. Run the actual current test selection/count at H; do not transfer the131 result or original127 to an untested refreshed Source. Current disk is about107GiB free after verified unrelated inactive-cache cleanup; remeasure before large proof.

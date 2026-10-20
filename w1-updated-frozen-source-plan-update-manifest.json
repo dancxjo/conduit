@@ -1,0 +1,14 @@
+{
+  "parent": "d6cc5e5ea2bd4edbd8780244f5a2dca0a6aa0ad6",
+  "scope": "Preserve refreshed Source and pending proof runner, verified prior repair restoration, and confirmed renderer occlusion red diagnostic",
+  "files": [
+    {
+      "source": "work/5645-current-head-proof-plan.md",
+      "tree_path": "task-6038/work/5645-current-head-proof-plan.md",
+      "bytes": 9839,
+      "sha256": "d666a6da26759d54375580b9191d0641ec73fc3205938ce006eb4767d5812995",
+      "mode": "100644",
+      "blob": "94c2b3e997cf6bb61a90f5a5593391b552eb2d5e"
+    }
+  ]
+}
