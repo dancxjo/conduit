@@ -28,8 +28,10 @@ Changing only draft/readiness does not rerun or cancel proof for the same source
 Opening, reopening and new commits still run Candidate against the exact merge
 preview; all required checks and branch protection remain unchanged.
 
-PR admission runs workspace Clippy with warnings denied and the owning workspace
-packages' unit, integration and doc tests, with one test thread. Both sides of
+PR admission runs Clippy with warnings denied for the selected packages and their
+dependencies, then the owning packages' unit, integration and doc tests, with one
+test thread. Broad changes retain workspace Clippy; every dev Integration still
+runs exhaustive workspace lint and tests. Both sides of
 renames are scanned against the actual dev parent of the tested merge preview;
 GitHub's PR metadata can retain an older base SHA after dev advances. Unknown paths, removed packages, shared files and empty
 diffs select all workspace packages. CI scripts and workflow changes run tooling
