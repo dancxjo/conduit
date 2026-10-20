@@ -20,3 +20,7 @@ Installed evidence root: outputs/5645-installed-required-232d80b13. Required obs
 Adversarial receipt is complete: nine typed refusals plus local reading/hostile-appearance recovery outcomes total fourteen zero-mutation records, followed by one accepted current-Show Add. Whole owner-execution bytes remain unchanged throughout refusals.
 
 W1 functional slice is locally supported; W2 positives/identity retention are locally supported. Strict literal wrong-item coverage remains narrow additional proof. Known workspace native join failure and required merge/Candidate/Integration/release gates remain separate. The Todo producer emits a partial local journey packet, not complete publication or stable acceptance.
+
+## Current held-source reconciliation, 2026-10-20
+
+This matrix's232d/74a evidence remains historical. The later clean a252 source includes literal wrong-item/unknown-argument probe code and has its own127Chromium fixture/58SDK/4CSP-Node successes, but still needs actual fresh installed capture after native05 refresh. Its full workspace test run ended with two chunk-fixture failures (partial totals8894passes/2failures/42ignores), not a live test process. Current dev54a already includes c197957e1's boundary-derived fixture correction; preserve/reuse it at refresh rather than recreating native protocol code. No current full-workspace, installed owner, Candidate or stable acceptance follows from this audit. Receipt: outputs/5645-a252-proof-reconciliation/receipt.json.

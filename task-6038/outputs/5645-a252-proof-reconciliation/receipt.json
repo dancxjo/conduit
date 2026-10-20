@@ -1,0 +1,58 @@
+{
+  "held_source": "a252d091c95de386da8132f71d7221263d578083",
+  "audited_current_dev": "54a579d9a9ab8deb522b3888fd9182beee3e9618",
+  "scope": "Read-only reconciliation, no source change/build/browser/guest/CI observation",
+  "full_workspace_status": {
+    "status": "failed",
+    "command": "cargo +stable test --workspace --locked -- --test-threads=1",
+    "profile": {
+      "opt_level": 1,
+      "debug_assertions": true,
+      "overflow_checks": true,
+      "strip": "debuginfo"
+    },
+    "exit_code": 101,
+    "log": "workspace-tests.log",
+    "log_sha256": "24bd4a16a318d64d90e1f4cfdc887ee410c685357f24a9747b32476f45654785",
+    "completed_result_blocks": 1196,
+    "completed_totals": {
+      "passed": 8894,
+      "failed": 2,
+      "ignored": 42
+    },
+    "failed_tests": [
+      "native_owner_document::tests::truncated_or_tampered_owner_document_refuses",
+      "native_owner_return::tests::action_chunks_are_finite_ordered_and_digest_bound"
+    ],
+    "entire_workspace_completed": false
+  },
+  "already_merged_fixture_fix": "c197957e18c003fd3ee90b201d81a3005ee0cc70",
+  "fix_summary": "Replace20,000-byte assumptions with actual admitted frame capacity; assert first frame incomplete/multiple frames and reconstructed bytes/digest/order/zero partial output under pressure. This preserves intended negative tests rather than weakening checks.",
+  "fix_files": [
+    "targets/conduitos/src/native_owner_document.rs",
+    "targets/conduitos/src/native_owner_return/tests.rs"
+  ],
+  "retained_child_receipts": {
+    "browser_fixture_tests": 127,
+    "browser_workers": 1,
+    "browser_retries": 0,
+    "sdk_tests": 58,
+    "csp_node_tests": 4
+  },
+  "boundaries": [
+    "No full-workspace green at held source; 8894passes/2failures/42ignores are partial completed totals only.",
+    "Chromium fixture execution does not establish installed owner/WASM/Linux release or actual source mutation.",
+    "Historical232d native join failure remains at its original Source; do not mislabel it a current unresolved blocker.",
+    "After native05 merge refresh W1 onto accepted dev preserving ActionTarget/current UI/collector fixes; no duplicate fixture fix cherry-pick.",
+    "Then run fresh full required checks/releases/installed actual Todo selected-generic/refusal proof at one frozen Source. No early PR or queue expansion."
+  ],
+  "evidence_hashes": {
+    "receipt.json": "021b9f58ede6e4e0f148a8f2e46b2b309f54116db290df07a304f6175c83bc21",
+    "workspace-tests.log": "24bd4a16a318d64d90e1f4cfdc887ee410c685357f24a9747b32476f45654785",
+    "browser-controls-receipt.json": "44ca0cf9d678f63d94f26a8386bedb9578caee195aa275e131f30812a88e861a",
+    "static-csp-receipt.json": "b5993ee1e8d79347802c7ea41b871e20883efb9af33ae7800a99e0c7a562a76c"
+  },
+  "review_diff_sha256": "909c906b85dafdefbd35e21362e8d894ba09de40424a3b5050611e7828799bad",
+  "source_clean_after": true,
+  "finished": "2026-10-20T15:09:37Z"
+}

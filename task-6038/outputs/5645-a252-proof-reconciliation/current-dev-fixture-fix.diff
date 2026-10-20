@@ -1,0 +1,82 @@
+diff --git a/targets/conduitos/src/native_owner_document.rs b/targets/conduitos/src/native_owner_document.rs
+index fe2d82376..571804950 100644
+--- a/targets/conduitos/src/native_owner_document.rs
++++ b/targets/conduitos/src/native_owner_document.rs
+@@ -85,7 +85,7 @@ mod tests {
+ 
+     #[test]
+     fn large_owner_document_crosses_finite_native_frames() {
+-        let value = serde_json::json!({"face":"x".repeat(20_000)});
++        let value = serde_json::json!({"face":"x".repeat(MAXIMUM_BINARY_MESSAGE_BYTES)});
+         let document = serde_json::to_vec(&value).unwrap();
+         let digest: [u8; 32] = Sha256::digest(&document).into();
+         let mut frame = vec![0; MAXIMUM_BINARY_MESSAGE_BYTES];
+@@ -97,6 +97,7 @@ mod tests {
+             frames.push(frame[..length].to_vec());
+             offset = next;
+         }
++        assert!(frames.len() > 1, "exercise document continuation");
+         let mut line = Frames { frames, next: 0 };
+         let received: serde_json::Value = receive(&mut line, 64 * 1024).unwrap();
+         assert_eq!(received, value);
+@@ -105,11 +106,13 @@ mod tests {
+ 
+     #[test]
+     fn truncated_or_tampered_owner_document_refuses() {
+-        let value = serde_json::json!({"face":"x".repeat(20_000)});
++        let value = serde_json::json!({"face":"x".repeat(MAXIMUM_BINARY_MESSAGE_BYTES)});
+         let document = serde_json::to_vec(&value).unwrap();
+         let digest: [u8; 32] = Sha256::digest(&document).into();
+         let mut frame = vec![0; MAXIMUM_BINARY_MESSAGE_BYTES];
+-        let (length, _) = encode_bounded_document_chunk(&mut frame, &document, 0, &digest).unwrap();
++        let (length, next) =
++            encode_bounded_document_chunk(&mut frame, &document, 0, &digest).unwrap();
++        assert!(next < document.len(), "the first frame must be incomplete");
+         let mut line = Frames {
+             frames: vec![frame[..length].to_vec()],
+             next: 0,
+diff --git a/targets/conduitos/src/native_owner_return/tests.rs b/targets/conduitos/src/native_owner_return/tests.rs
+index 11e74839d..a56bf08a2 100644
+--- a/targets/conduitos/src/native_owner_return/tests.rs
++++ b/targets/conduitos/src/native_owner_return/tests.rs
+@@ -44,7 +44,8 @@ impl BinaryWebSocketIo for RecordedLine {
+ 
+ #[test]
+ fn action_chunks_are_finite_ordered_and_digest_bound() {
+-    let data = vec![0x5a; 20_000];
++    let payload_capacity = MAXIMUM_BINARY_MESSAGE_BYTES - CHUNK_HEADER_BYTES;
++    let data = vec![0x5a; payload_capacity + 1];
+     let mut frame = vec![0; MAXIMUM_BINARY_MESSAGE_BYTES];
+     let mut line = RecordedLine::default();
+     send_chunks(&mut line, &data, &mut frame).unwrap();
+@@ -52,17 +53,29 @@ fn action_chunks_are_finite_ordered_and_digest_bound() {
+     let digest = Sha256::digest(&data);
+     for (index, chunk) in line.0.iter().enumerate() {
+         assert!(chunk.len() <= MAXIMUM_BINARY_MESSAGE_BYTES);
+-        assert_eq!(u32::from_le_bytes(chunk[..4].try_into().unwrap()), 20_000);
++        assert_eq!(
++            u32::from_le_bytes(chunk[..4].try_into().unwrap()) as usize,
++            data.len()
++        );
+         assert_eq!(
+             u32::from_le_bytes(chunk[4..8].try_into().unwrap()) as usize,
+             index * (MAXIMUM_BINARY_MESSAGE_BYTES - CHUNK_HEADER_BYTES)
+         );
+         assert_eq!(&chunk[8..CHUNK_HEADER_BYTES], digest.as_slice());
+     }
++    assert_eq!(
++        line.0
++            .iter()
++            .flat_map(|chunk| &chunk[CHUNK_HEADER_BYTES..])
++            .copied()
++            .collect::<Vec<_>>(),
++        data
++    );
+     assert_eq!(
+         send_chunks(&mut line, &vec![0; MAX_RETURN_ACTION_BYTES + 1], &mut frame),
+         Err("native-owner-return-action-pressure")
+     );
++    assert_eq!(line.0.len(), 2, "pressure must not send a partial action");
+ }
+ 
+ #[test]

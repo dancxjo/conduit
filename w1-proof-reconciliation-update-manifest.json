@@ -1,0 +1,38 @@
+{
+  "parent": "fea8d24af6a2edeea035ab882415e6eb9817b5b9",
+  "scope": "Held Web Component prerequisite proof reconciliation and already merged fixture fix; raw execution logs excluded",
+  "files": [
+    {
+      "source": "work/5645-current-head-proof-plan.md",
+      "tree_path": "task-6038/work/5645-current-head-proof-plan.md",
+      "bytes": 8388,
+      "sha256": "b631067694d4530a0aeef51bdedeec8e099fee092d1e33c1449584448013a6f4",
+      "mode": "100644",
+      "blob": "5706e52e73157058e4e652209dc04df2d153b284"
+    },
+    {
+      "source": "work/5645-5646-readonly-acceptance-matrix.md",
+      "tree_path": "task-6038/work/5645-5646-readonly-acceptance-matrix.md",
+      "bytes": 4512,
+      "sha256": "a6929bdbb50b0d1f3032f13e539df9347f395b51c9413e6f96961806371091f0",
+      "mode": "100644",
+      "blob": "b1e92e5a4ee8ffb0596a52b515e5e116970fbe9d"
+    },
+    {
+      "source": "outputs/5645-a252-proof-reconciliation/receipt.json",
+      "tree_path": "task-6038/outputs/5645-a252-proof-reconciliation/receipt.json",
+      "bytes": 2914,
+      "sha256": "9d889566c8d95b4d11678e0cc6404837d54bdbbf2a45b00cc53e707f06413da0",
+      "mode": "100644",
+      "blob": "5bc834991ef4ae1ade2c97d0f6e85322790576fc"
+    },
+    {
+      "source": "outputs/5645-a252-proof-reconciliation/current-dev-fixture-fix.diff",
+      "tree_path": "task-6038/outputs/5645-a252-proof-reconciliation/current-dev-fixture-fix.diff",
+      "bytes": 3810,
+      "sha256": "909c906b85dafdefbd35e21362e8d894ba09de40424a3b5050611e7828799bad",
+      "mode": "100644",
+      "blob": "74380fca1356b0594f358b6da1a048f822ced1a0"
+    }
+  ]
+}
