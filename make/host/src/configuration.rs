@@ -391,6 +391,16 @@ pub fn check_host_configuration(
     })
 }
 
+fn target_matches(patterns: &[String], target: &str) -> bool {
+    let actual = target.split('/').collect::<Vec<_>>();
+    patterns.iter().any(|pattern| {
+        pattern
+            .split('/')
+            .zip(&actual)
+            .all(|(expected, found)| expected == "*" || expected == *found)
+    })
+}
+
 fn validate_limits(
     limits: &HostBounds,
     maxima: &HostBounds,

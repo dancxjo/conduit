@@ -1,5 +1,5 @@
 //! Resolve a fixed anchor and one uniquely selected optional Face realization.
-use super::ConfigurationDiagnostic;
+use super::{target_matches, ConfigurationDiagnostic};
 use crate::{MakeCatalog, PresenterSelection, ResourceBudget, TargetDescriptor};
 use std::collections::BTreeSet;
 
@@ -131,16 +131,6 @@ fn collect_derived_face_requirements(
             );
         }
     }
-}
-
-fn target_matches(patterns: &[String], target: &str) -> bool {
-    let actual = target.split('/').collect::<Vec<_>>();
-    patterns.iter().any(|pattern| {
-        pattern
-            .split('/')
-            .zip(&actual)
-            .all(|(expected, found)| expected == "*" || expected == *found)
-    })
 }
 
 #[cfg(test)]
