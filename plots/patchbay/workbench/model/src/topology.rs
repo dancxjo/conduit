@@ -4,6 +4,8 @@ use conduit_observatory::{build_report, ObservatoryReport, ObservatorySnapshot};
 use std::collections::VecDeque;
 
 use crate::topology_hosts::render_hosts;
+#[path = "fusion_inspection.rs"]
+mod fusion_inspection;
 
 pub const MAX_TOPOLOGY_LINES: usize = 256;
 // The complete standard Hosted adapter report remains below 96 KiB while the
@@ -16,6 +18,7 @@ pub enum TopologyViewError {
     InvalidReport(String),
     ReportTooLarge,
     FaceTooLarge,
+    InvalidFusionExplanation,
 }
 
 impl std::fmt::Display for TopologyViewError {
@@ -27,6 +30,9 @@ impl std::fmt::Display for TopologyViewError {
             }
             Self::ReportTooLarge => {
                 formatter.write_str("Observatory report exceeds Patchbay retention bounds")
+            }
+            Self::InvalidFusionExplanation => {
+                formatter.write_str("fusion explanation does not match the inspected sealed Plan")
             }
             Self::FaceTooLarge => {
                 formatter.write_str("topology face exceeds its finite line bound")
