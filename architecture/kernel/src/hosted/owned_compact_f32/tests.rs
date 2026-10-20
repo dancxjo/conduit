@@ -242,7 +242,7 @@ fn typed_pools_preserve_the_generic_uniform_cursor_bound() {
     let b = values.store(&[2; 24]).unwrap();
     assert!(!owner.slots.contains(&a.slot));
     assert!(!owner.slots.contains(&b.slot));
-    assert!(values.slot_probes <= values.slots.len());
+    assert!(values.slot_probes <= values.slots.len() as u64);
     assert_eq!(values.get(a).unwrap(), [1; 24]);
     assert_eq!(values.get(b).unwrap(), [2; 24]);
 }
