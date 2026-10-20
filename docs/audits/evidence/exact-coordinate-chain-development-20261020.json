@@ -1,0 +1,160 @@
+{
+  "schema": "conduit.exact-coordinate-development@1",
+  "captured_utc": "2026-10-20T01:51:06.658667+00:00",
+  "issue": 5392,
+  "production_checkpoint": "09a34abd6fe5d5a976d23296f3ced57cc0a45f99",
+  "final_test_checkpoint": "347f80aebb68d186f16666dd47669dbc6bbbf9e8",
+  "validation": {
+    "full_core": {
+      "passed": 596,
+      "failed": 0,
+      "ignored": 0,
+      "executed_elf_count": 111
+    },
+    "full_std_at_production_checkpoint": {
+      "passed": 886,
+      "failed": 0,
+      "ignored": 18
+    },
+    "final_instrumented_coordinate_suite": {
+      "passed": 8,
+      "failed": 0,
+      "filtered_out": 897
+    },
+    "focused_product": {
+      "passed": 1,
+      "actual_executions": 4
+    },
+    "fore_export_regression": {
+      "passed": 2,
+      "actual_executions": 7
+    },
+    "inspection_regression": {
+      "passed": 3
+    },
+    "strict_core_std_product_lint": "pass",
+    "core_no_default_features": "native compilation passed",
+    "workspace_format": "pass",
+    "patch_check": "pass"
+  },
+  "cases": [
+    {
+      "case": "1m to cm",
+      "input_sha256": "73aa8eaf8355f31cc0e4a8151cc22e21c89ea7df1b3185c524a491c83bb90df2",
+      "input_wire_tag": 1,
+      "values": [
+        {
+          "file": "value-a115f0018d2cdc191a1b92bec6ad08e9ac97fc2ddaeb610f0badbb0f96bf3622.json",
+          "context": "Cord",
+          "sha256": "e3048d8e63811fa094484d4b6333c9a93761e8f40216364d3024339c3774608e",
+          "inspection_sha256": "822aac3f88320e6a853c5dfbade50d45e5a1de1957c78160412481a8c8ec0d96"
+        },
+        {
+          "file": "value-2277e7164e7865bc7fd9c1810633cee424cdb0951e2434fcdadb6aca084d4a09.json",
+          "context": "Fore",
+          "sha256": "8a0e3904d61a87eb15af110c487f6c198b13d9312f5cf6b88ef26bff98062ba7",
+          "inspection_sha256": "2c4dbdd91771fc791922f1122397b11d0b9e7fe2ba50141f8546bcecb4a2bd9c"
+        },
+        {
+          "file": "value-82b8ccc6923b0384ff4ec02e9766ec3e2c5ba0bfa627b1093846186197a1d0a6.json",
+          "context": "Fore",
+          "sha256": "4ebf44ccfece9e1113639b9d95548cfda2d13fed3b1c1e0055d0d26557a6dafb",
+          "inspection_sha256": "71a991cd337149ce60e43486c98ec6c569d29382ac7007047bc38e0ca3be7c39"
+        }
+      ]
+    },
+    {
+      "case": "1turn to rad",
+      "input_sha256": "8d2e53efc8ed5a68d7d87c019626374bbcd39b7656de84cd54473887967f5581",
+      "input_wire_tag": 1,
+      "values": [
+        {
+          "file": "value-9c0948ab80bddcccaa645dee860af374717b8cc08c97cc4cf266b8094ab138de.json",
+          "context": "Fore",
+          "sha256": "966f3265220f7c3cae2d8c6e34188cf3c21d5fdcacbeeb793873c5dc4dc339b3",
+          "inspection_sha256": "2f45c00247067a37ecf2491b21e8be05b12967e91eebc5d34fefe74c57371fd3"
+        },
+        {
+          "file": "value-01e47a73709d51518bc5ea6222dbbdc485bb848688391d95e5188c0617fee998.json",
+          "context": "Cord",
+          "sha256": "ca30a96845bc53660dd9d9f8e7036cac334831d4fdaba404b057749121f80f21",
+          "inspection_sha256": "9a04ec4310e936ce6f2da70b1d8f2162962754f09dea5990fc01c92ae109ab3f"
+        },
+        {
+          "file": "value-399ff5de45bb8f5cd6bf07df590f259613d1efb61543217e8eca58b757088ab0.json",
+          "context": "Fore",
+          "sha256": "515c7a94df8b13cfc7e220ba6622235cab04610579abd9a363a60231f6b5f07c",
+          "inspection_sha256": "22a7e633aec5394147ddf047a15a468db12488ce16d190956847d215b59728cc"
+        }
+      ]
+    },
+    {
+      "case": "Pi rad to turn, zero tolerance",
+      "input_sha256": "dbf75e087d5f85baeef32413ebe2d1d105537ba19d3629f6e927b5d7a757cae4",
+      "input_wire_tag": 3,
+      "values": [
+        {
+          "file": "value-19175f283302ec920b7be86b498ccd62e0998d6f4e7520d9dc7fa0dc4612d934.json",
+          "context": "Fore",
+          "sha256": "fd54c61bceb6447ecdd414a1c51719639c5a7df9efe80ea30293c0fcc302d0bc",
+          "inspection_sha256": "28c8cb7961e3b7a209b9c02ad4e9bc3fcab121d57b5932bc72b39b1de0f3d955"
+        },
+        {
+          "file": "value-caca7474e788e1f8cf018558c7a8886b072f940e1230dc195078eb9485295db9.json",
+          "context": "Cord",
+          "sha256": "5c4acdf842ac9f87548d03ae2806cb53b7c4050d6678cfd026b0ecaecc366dbf",
+          "inspection_sha256": "7e559921c2a8a9ac74ac77e476d7a53734d886a7a38fb51d569f4a0e470580e4"
+        },
+        {
+          "file": "value-db29fa04d2cb78436c40b3d4b67375b49bd4326b236246e051c97546e1d34387.json",
+          "context": "Fore",
+          "sha256": "a0ffbb4ef8dde5d3cc23d5a63d9c28a9fe091bc10c021e5a2ac7863477f3ea82",
+          "inspection_sha256": "518bd9de9921159146fa746b77dc30e06d8480dd7481f7fd697e502edd07428b"
+        }
+      ]
+    },
+    {
+      "case": "1rad to turn, bounded reciprocal Pi",
+      "input_sha256": "ef796006775337b1715caf1db002a45eedb47ef1433389ac5a8d0b501fc25f63",
+      "input_wire_tag": 1,
+      "values": [
+        {
+          "file": "value-1b1ceb6114d50823bc70d8b812cbdd56ae0b3280da0c28f4971590bba327f956.json",
+          "context": "Fore",
+          "sha256": "66d5d88c1b596a2d0d2667856f4f87b12d39175d5a8a58ff70176b981dd5f34b",
+          "inspection_sha256": "e885511a8039eca1b031617f204c61c9e47d06eb4abafca34ec26577e3b83ca0"
+        },
+        {
+          "file": "value-645b7a6d630c96812f45d62754972841aaa8d06374f57a4cfa949c7bbb7bfae3.json",
+          "context": "Fore",
+          "sha256": "eb5cb3474bfb84a3dbc25d91b340d7e81113c65f2f374a4cbb87dfd61d128aff",
+          "inspection_sha256": "43ea976ecd9bfa0db434e36733080facf0e51d1bc37c579a49cbd759aee8ae5b"
+        },
+        {
+          "file": "value-a15526e3555433c2bf4171e011e87fec3df92400cec436b9684d7051064f9ef3.json",
+          "context": "Cord",
+          "sha256": "6fb130be2dd70262f4c09ee3c098ecefed1bd8d8137019a813e8ff970b54549d",
+          "inspection_sha256": "eff9a4013da85d42b8a592dcb7b7dc4744d4bda4e37a1484d4dd3346510c3b6a"
+        }
+      ]
+    }
+  ],
+  "independent_artifact_verification": {
+    "fore_values": 8,
+    "intermediate_cord_values": 4
+  },
+  "ordinary_cli": {
+    "sha256": "925e9b443cb358949f2dcf717759a438e054f26c1fba1382d3e196a65992e115",
+    "inspected_values": 12,
+    "certificate_values": 8,
+    "stdout_matches_in_process_inspection": true
+  },
+  "scope": {
+    "full_workspace_test_pass": false,
+    "stable_main_acceptance": false,
+    "hardware_acceptance": false,
+    "ordered_approximate_composite_acceptance": false,
+    "execution_authenticity_established": false
+  },
+  "remaining": "Original parent93 requirements/statuses unchanged; source-derived qualified composite execution and broad target/stable gates remain."
+}
