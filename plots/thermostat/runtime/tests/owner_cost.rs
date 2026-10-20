@@ -66,6 +66,10 @@ fn delta(before: Snapshot, after: Snapshot) -> serde_json::Value {
 #[test]
 #[ignore = "local owner cost observation; run alone, not a timing gate"]
 fn observe_ordinary_body_owner() {
+    // Settle process/thread initialization before matching complete owner costs.
+    let mut primer = Execution::new().unwrap();
+    primer.execute(Command::SetTarget(200)).unwrap();
+    drop(primer.finish().unwrap());
     let before = snapshot();
     PEAK.store(before.live, Relaxed);
     let mut execution = Execution::new().unwrap();

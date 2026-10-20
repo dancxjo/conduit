@@ -78,3 +78,32 @@ fn stopping_thermostat_terminates_the_native_body_play() {
     assert!(report.live_fore_status.unwrap().play_terminal);
     assert!(!report.scan_cancellation_failed);
 }
+
+#[test]
+fn empty_body_scan_retains_no_phantom_child_invocation() {
+    let report = Execution::new().unwrap().finish().unwrap();
+    assert_eq!(
+        report.terminal,
+        conduit_core::TerminalDisposition::Completed
+    );
+    assert!(report.scan_child_signs.unwrap().is_empty());
+}
+
+#[test]
+fn last_reserved_value_completes_without_an_extra_rearm() {
+    let mut execution = Execution::new().unwrap();
+    let mut expected = ThermostatState::default();
+    for index in 0..256 {
+        let command = Command::SetTarget(180 + (index % 8) * 5);
+        expected = expected.apply(command).unwrap();
+        assert_eq!(execution.execute(command).unwrap().state, expected);
+    }
+    let report = execution.finish().unwrap();
+    assert_eq!(
+        report.terminal,
+        conduit_core::TerminalDisposition::Completed
+    );
+    let receipts = report.scan_child_signs.unwrap();
+    assert_eq!(receipts.len(), 256);
+    assert_eq!(receipts.last().unwrap().invocation, 255);
+}
