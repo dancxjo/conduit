@@ -1,0 +1,61 @@
+{
+  "schema": "conduit.native-typography-source/v1",
+  "release": "DejaVu2.37",
+  "upstream": "https://github.com/dejavu-fonts/dejavu-fonts/releases/tag/version_2_37",
+  "archive_sha256": "fa9ca4d13871dd122f61258a80d01751d603b4d3ee14095d65453b4e846e17d7",
+  "license": "LICENSE",
+  "license_sha256": "f88d5294af5a772f9114eb385009e3478d62b21f3e5bbc34d159d328047c8867",
+  "sources": [
+    {
+      "file": "DejaVuSans.ttf",
+      "bytes": 757076,
+      "sha256": "7da195a74c55bef988d0d48f9508bd5d849425c1770dba5d7bfc6ce9ed848954"
+    },
+    {
+      "file": "DejaVuSerif.ttf",
+      "bytes": 380132,
+      "sha256": "42d1edeb7952f31b1f96d767ed7030b08a39e0c372b0071641518864e2bffb51"
+    },
+    {
+      "file": "DejaVuSansMono.ttf",
+      "bytes": 340712,
+      "sha256": "b4a6c3e4faab8773f4ff761d56451646409f29abedd68f05d38c2df667d3c582"
+    }
+  ],
+  "profiles": [
+    {
+      "purpose": "Label",
+      "file": "DejaVuSans.ttf",
+      "pixels": 14
+    },
+    {
+      "purpose": "Body",
+      "file": "DejaVuSans.ttf",
+      "pixels": 16
+    },
+    {
+      "purpose": "Heading",
+      "file": "DejaVuSans.ttf",
+      "pixels": 20
+    },
+    {
+      "purpose": "Title",
+      "file": "DejaVuSerif.ttf",
+      "pixels": 24
+    },
+    {
+      "purpose": "Code",
+      "file": "DejaVuSansMono.ttf",
+      "pixels": 14
+    }
+  ],
+  "fallback": "Absent selected scalar uses pinnedSans; Code keeps Mono cell advance. Remaining scalars use pinnedUnifont rescue/replacement. No shaping or ambientfontclaim.",
+  "admission": {
+    "font_source_bytes_each": 1048576,
+    "scalars": 1024,
+    "coverage_bytes": 4194304,
+    "glyph_edge": 64
+  },
+  "active_make_path": "targets/conduitos/build/typography.rs -> OUT_DIR/native_typography.rs + native_coverage.bin; resource ledger native_typography_resources.tsv",
+  "historical_asset_manifest": "assets/graphical/manifest.json is retained legacy four-atlas provenance, not consumed by current native generator"
+}

@@ -104,7 +104,7 @@ impl Chrome {
         };
         for footer in footers {
             footer_height =
-                footer_height.max(height(footer, GraphicsTextRole::Muted, width, scale)?);
+                footer_height.max(height(footer, GraphicsTextRole::Label, width, scale)?);
         }
         let footer_extent = FOOTER.max(
             footer_height
@@ -183,7 +183,7 @@ impl Chrome {
     }
 
     pub fn admit_footer(&self, text: &str, scale: u16) -> Result<(), FaceSceneError> {
-        if height(text, GraphicsTextRole::Muted, self.footer.width, scale)? > self.footer.height {
+        if height(text, GraphicsTextRole::Label, self.footer.width, scale)? > self.footer.height {
             return Err(FaceSceneError::InputBound);
         }
         Ok(())

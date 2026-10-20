@@ -165,6 +165,12 @@ pub(super) fn admit(
 ) -> Result<Vec<Row>, FaceSceneError> {
     let items = ordering::prepare(items, groups)?;
     let mut flow = Flow::new(screen, gutter, scale, groups)?;
+    let padding = fit_padding(
+        items.iter().map(|(_, item)| item),
+        (flow.bottom - flow.top).saturating_sub(EDGE * 2),
+        scale,
+        padding,
+    );
     let mut rows = Vec::new();
     let mut reading_order = Vec::new();
     let mut bytes = 0usize;
