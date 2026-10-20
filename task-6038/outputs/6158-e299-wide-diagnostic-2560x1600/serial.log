@@ -1,0 +1,21 @@
+limine: Loading executable `boot():/boot/conduitos`...
+limine: Loading module `boot():/boot/conduit-spore.bin`...
+CONDUIT_BOOT_STAGE xhci-start
+CONDUIT_BOOT_STAGE xhci-ready
+CONDUIT_BOOT_STAGE usb-enumeration-start
+CONDUIT_BOOT_STAGE usb-configured
+CONDUIT_BOOT_STAGE machine-gdt
+CONDUIT_BOOT_STAGE machine-idt
+CONDUIT_BOOT_STAGE machine-pic
+CONDUIT_BOOT_STAGE machine-acpi
+CONDUIT_DEADLINE_CLOCK hpet-ready
+CONDUIT_BOOT_STAGE machine-controller
+CONDUIT_BOOT_STAGE machine-ready
+CONDUIT_XHCI_SIGN {"schema":"conduit.conduitos.xhci-base/v1","status":"ready","proof_class":"freestanding-emulator","base_id":"39a5ad9cd62270b9cfbc91c6d1e9a4b96973df35dc984629be26a4985ec3aee8","boot_id":"a24807d845c2ae06cc3084fe4ed019848345a68621fb00d4f3174b7903406415","segment":0,"bus":0,"device":2,"function":0,"vendor":6966,"device_id":13,"bar_physical":4273930240,"hardware_slots":64,"admitted_slots":3,"command_trbs":16,"event_trbs":16,"dma_bytes":640,"dma_alignment":64,"maximum_pending_commands":1,"poll_steps":2000000,"sign_slots":8,"semantic_keyboard_offer":false}
+CONDUIT_USB_SIGN {"schema":"conduit.conduitos.usb-device/v1","status":"configured","proof_class":"freestanding-emulator","controller_base_id":"39a5ad9cd62270b9cfbc91c6d1e9a4b96973df35dc984629be26a4985ec3aee8","boot_id":"a24807d845c2ae06cc3084fe4ed019848345a68621fb00d4f3174b7903406415","device_instance_id":"c606ef9db08ee8f5e0fda0643a1d63bb5ef1286226e80ae68e92536b6e56ee95","root_port":1,"slot":1,"address":1,"attachment_epoch":1,"usb_version":512,"device_class":0,"device_subclass":0,"device_protocol":0,"ep0_maximum_packet_size":64,"vendor_id":1575,"product_id":1,"device_version":0,"configuration_value":1,"configuration_bytes":34,"descriptor_records":4,"interface_count":1,"endpoint_count":1,"first_interface_id":"017d2299e5ee076fd60e229f41f532b4c83bd118ecac61dfbcedd394d62d2d1c","first_interface_number":0,"first_interface_alternate":0,"first_interface_class":3,"first_interface_subclass":1,"first_interface_protocol":1,"first_endpoint_id":"e809bd078b598dd8316e074f93e37cafdeb72b83e55d4b4ac0e7bc04ccaca3cf","first_endpoint_address":129,"first_endpoint_direction_in":true,"first_endpoint_transfer_type":3,"first_endpoint_maximum_packet_size":8,"first_endpoint_interval":7,"configuration_limit_bytes":256,"interface_limit":4,"endpoint_limit":8,"descriptor_record_limit":16,"outstanding_control_transfer_limit":1,"enumeration_retries":0,"control_transfers":5,"short_packets":1,"transfer_trbs":32,"dma_bytes":8192,"dma_alignment":4096,"port_poll_steps":2000000,"sign_slots":12,"semantic_keyboard_offer":false}
+CONDUIT_BOOT_STAGE hid-start
+CONDUIT_BOOT_STAGE local-rescue-ready
+CONDUIT_BOOT_SIGN {"schema":"conduit.conduitos.boot-sign/v1","status":"accepted","arch":"x86_64","firmware":"x86-bios","profile_id":"sha256:0cff773abd0b177ddcbac249c7a9ce22ed4e9fdb9151a5683c03d0f8acf4f5cd","build_id":"build:sha256:bc6c9639dcb533b9d5c2ac79b2693b2c1f43e3a307b24b47a053a5d802256bf8","image_binding":"image:sha256:717dfbb68a7f025dd16852dbfafc0c9dd2f71c2866deb3c927de72253d65e98d","offer_generation":1,"limine":"12.5.2","qemu_profile":"q35-single-cpu-512m-normal-product","host_id":"67313d98f67823e623cd347257cf5a02bb48351291cbaa6819019cd340c8e160","boot_id":"a24807d845c2ae06cc3084fe4ed019848345a68621fb00d4f3174b7903406415","memory_regions":19,"artifacts":1,"framebuffers":1,"command_line_bytes":38,"runtime_arena_bytes":268435456}
+CONDUIT_BOOT_STAGE identities
+CONDUIT_SPORE_PROVISION {"schema":"conduit.conduitos/spore-provision@1","status":"absent","membership_claimed":false}
+CONDUIT_KERNEL_SIGN {"schema":"conduit.conduitos.kernel-sign/v2","status":"refused","reason":"compositor-surface-capacity-exceeded"}

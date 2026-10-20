@@ -1,0 +1,40 @@
+{
+  "original_screenshot": [
+    2664,
+    1830
+  ],
+  "method": "Lossless ffmpeg RGB decoding; long horizontal gold border rows selected by r>95,g>70,b<70,r>g; no source image changed",
+  "rows": [
+    {
+      "y": 171,
+      "first_x": 54,
+      "last_x": 2611,
+      "matching_pixels": 2558
+    },
+    {
+      "y": 172,
+      "first_x": 53,
+      "last_x": 2612,
+      "matching_pixels": 2560
+    },
+    {
+      "y": 173,
+      "first_x": 53,
+      "last_x": 2612,
+      "matching_pixels": 2560
+    },
+    {
+      "y": 1770,
+      "first_x": 53,
+      "last_x": 2612,
+      "matching_pixels": 2560
+    },
+    {
+      "y": 1771,
+      "first_x": 53,
+      "last_x": 2612,
+      "matching_pixels": 2560
+    }
+  ],
+  "boundary": "Pixel inference of guest border only; not a QMP/display manifest or Source identity; borders may be scaled by the host window."
+}

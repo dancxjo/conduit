@@ -1,0 +1,38 @@
+{
+  "source": "e29922753a2fca04145551bbb6ae00504fed76a9",
+  "iso_sha256": "30dc2264c11a911f2f4712a328339041585574719be945c6b592d0b9151d5775",
+  "chosen_viewport": [
+    2560,
+    1600
+  ],
+  "requested_pixels": 4096000,
+  "source_max_compositor_pixels": 2097152,
+  "result": "boot refused compositor-surface-capacity-exceeded; ready timeout is diagnostic harness consequence",
+  "front_door_ready": false,
+  "face_show_controls": null,
+  "primary_pages_captured": 0,
+  "source_commits": 0,
+  "owned_guest_exit_code": 0,
+  "boundary": "ONE chosen-extent diagnostic; reported Source/image unknown. No orphaning/configured/fallback conclusion. Screenshot border analysis is conditional pixel inference only. No extra run or limit change.",
+  "runner_sha256": "ce4c6d1643fdfdc6cd5406e94a8ebf37ab0f0a10dd828a5376313e56781c7e71",
+  "imported_runner_sha256": "026db27fe9c59d851fea4500a5e11f97670793650d10a2861d6731430e6230e6",
+  "source_order_helper_sha256": "c4e6d65b60bbd6050fd05e63db7575f02e04ddb9b51da12506dd5a7c1df972c8",
+  "raw_files": {
+    "serial.log": {
+      "sha256": "696b15118944639c483d0be7dc3d693da0f7bc90eb47f2dff7ca12d0d19d7ea0",
+      "bytes": 3661
+    },
+    "qemu-stderr.log": {
+      "sha256": "a907461367bb88601f7f6e6db2de4e7baf5fcca4554016c2cd87c65b3089cc69",
+      "bytes": 72
+    },
+    "receipt.json": {
+      "sha256": "6e29d8c180db892e77d0132d8d29ab2b48641570d6e5c22f38fe599c28f53abf",
+      "bytes": 1371
+    },
+    "qmp.jsonl": {
+      "sha256": "a0f1425ce5d7545dec6dc9ae8d09165f3690d88b35ab3a71fe296c8c571f1e9b",
+      "bytes": 32
+    }
+  }
+}

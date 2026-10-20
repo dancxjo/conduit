@@ -1,0 +1,70 @@
+{
+  "parent": "d74dc4303b58ffa59ef822e04556dfeb494e2bc3",
+  "scope": "Read-only native capacity seam plan and public Source measurement correction; no implementation or platform proof",
+  "files": [
+    {
+      "source": "work/6158-screenshot-border-analysis.json",
+      "tree_path": "task-6038/work/6158-screenshot-border-analysis.json",
+      "bytes": 860,
+      "sha256": "0d41148b8d969bda32b3e95878b9bf5c574761ed2ae32a8d8e2e983386051d49",
+      "mode": "100644",
+      "blob": "def5eb24ebc01984548496e2b30df5d6b5ae3a61"
+    },
+    {
+      "source": "work/diagnose-6158-e299-wide.py",
+      "tree_path": "task-6038/work/diagnose-6158-e299-wide.py",
+      "bytes": 2280,
+      "sha256": "ce4c6d1643fdfdc6cd5406e94a8ebf37ab0f0a10dd828a5376313e56781c7e71",
+      "mode": "100644",
+      "blob": "50c2bc2204ac495c16ac27b15b8793f823aa6b84"
+    },
+    {
+      "source": "work/6158-e299-wide-diagnostic-audit.md",
+      "tree_path": "task-6038/work/6158-e299-wide-diagnostic-audit.md",
+      "bytes": 2246,
+      "sha256": "095e44dab5d5481aabd48199cbd11141175e367e9f58d5d6105211a63b57a5c5",
+      "mode": "100644",
+      "blob": "2f16af587d8955dda43ac8151f40f4e864ee59be"
+    },
+    {
+      "source": "outputs/6158-e299-wide-diagnostic-2560x1600/diagnostic-audit.json",
+      "tree_path": "task-6038/outputs/6158-e299-wide-diagnostic-2560x1600/diagnostic-audit.json",
+      "bytes": 1568,
+      "sha256": "f653377a85a978c5c04b72acc1b5a4c03edee22bf3dd281ecea0c3f2cf7dbcca",
+      "mode": "100644",
+      "blob": "003b766ac822b3085f449c67449a9f2cf4985dfe"
+    },
+    {
+      "source": "outputs/6158-e299-wide-diagnostic-2560x1600/qemu-stderr.log",
+      "tree_path": "task-6038/outputs/6158-e299-wide-diagnostic-2560x1600/qemu-stderr.log",
+      "bytes": 72,
+      "sha256": "a907461367bb88601f7f6e6db2de4e7baf5fcca4554016c2cd87c65b3089cc69",
+      "mode": "100644",
+      "blob": "0d7a94685a6ed53d9f78bd8fe99f1cb9ee9c4cf2"
+    },
+    {
+      "source": "outputs/6158-e299-wide-diagnostic-2560x1600/qmp.jsonl",
+      "tree_path": "task-6038/outputs/6158-e299-wide-diagnostic-2560x1600/qmp.jsonl",
+      "bytes": 32,
+      "sha256": "a0f1425ce5d7545dec6dc9ae8d09165f3690d88b35ab3a71fe296c8c571f1e9b",
+      "mode": "100644",
+      "blob": "5320e2cffd1c123c04006fdf11e0db1afd454923"
+    },
+    {
+      "source": "outputs/6158-e299-wide-diagnostic-2560x1600/receipt.json",
+      "tree_path": "task-6038/outputs/6158-e299-wide-diagnostic-2560x1600/receipt.json",
+      "bytes": 1371,
+      "sha256": "6e29d8c180db892e77d0132d8d29ab2b48641570d6e5c22f38fe599c28f53abf",
+      "mode": "100644",
+      "blob": "c59b1b5c7bd42d16c4b7467dc0516a706d61a4ae"
+    },
+    {
+      "source": "outputs/6158-e299-wide-diagnostic-2560x1600/serial.log",
+      "tree_path": "task-6038/outputs/6158-e299-wide-diagnostic-2560x1600/serial.log",
+      "bytes": 3661,
+      "sha256": "696b15118944639c483d0be7dc3d693da0f7bc90eb47f2dff7ca12d0d19d7ea0",
+      "mode": "100644",
+      "blob": "560001f5a9ddc9760c95c62b48d56bc797b405c6"
+    }
+  ]
+}
