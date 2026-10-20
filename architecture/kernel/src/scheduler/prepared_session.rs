@@ -9,6 +9,8 @@ use crate::{
     CordEndpoint, HostCallOutcome, NodeId, RequestId, SignQuery, SignSink, ValueRef, ValueStorage,
 };
 use alloc::boxed::Box;
+mod owned_boundaries;
+pub use owned_boundaries::OwnedValueBoundary;
 
 /// Opt-in preparation contract for a Back with retained immutable bindings.
 ///
@@ -26,6 +28,7 @@ pub trait ReusableStepBack<const PORTS: usize>: StepBack<PORTS> {
 pub enum SessionRefusal {
     NotFresh,
     UnsupportedRemote,
+    InvalidOwnedBoundary,
     NotNormallyDrained,
     OutstandingOwnership,
     EvidenceReservation,
@@ -69,6 +72,7 @@ pub struct PreparedKernelSession<
 {
     kernel: Box<FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A>>,
     phase: Phase,
+    remote_sign_reservation: u16,
 }
 impl<
         D,
@@ -100,6 +104,25 @@ where
             Box<FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A>>,
         ),
     > {
+        Self::new_with_owned_value_boundaries(kernel, &[], 0)
+    }
+    /// Opt-in for exclusively owned process-local Value adapters. The Host must
+    /// establish exact Plan/Boot/Type and output acceptance outside this owner.
+    /// Every non-local endpoint must be listed exactly once. This does not admit
+    /// a network Line, restart transport epochs, or acknowledge output delivery.
+    /// Remote payload sequences survive rearm; evidence storage is pre-admitted.
+    #[allow(clippy::type_complexity)]
+    pub fn new_with_owned_value_boundaries(
+        kernel: Box<FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A>>,
+        boundaries: &[OwnedValueBoundary],
+        remote_sign_reservation: u16,
+    ) -> Result<
+        Self,
+        (
+            SessionRefusal,
+            Box<FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A>>,
+        ),
+    > {
         if kernel.decisions != 0
             || kernel.logical_invocations != 0
             || kernel.cancelled
@@ -110,15 +133,30 @@ where
         {
             return Err((SessionRefusal::NotFresh, kernel));
         }
-        if kernel.cord_specs[..kernel.active_cords].iter().any(|cord| {
+        let cords = &kernel.cord_specs[..kernel.active_cords];
+        let remote = cords.iter().any(|cord| {
             !matches!(cord.source, CordEndpoint::Local { .. })
                 || !matches!(cord.sink, CordEndpoint::Local { .. })
-        }) {
+        });
+        if remote && boundaries.is_empty() {
             return Err((SessionRefusal::UnsupportedRemote, kernel));
+        }
+        if !owned_boundaries::exact(cords, boundaries) {
+            return Err((SessionRefusal::InvalidOwnedBoundary, kernel));
+        }
+        if (remote && remote_sign_reservation == 0)
+            || (remote_sign_reservation != 0
+                && kernel
+                    .signs
+                    .ensure_remote_capacity(remote_sign_reservation)
+                    .is_err())
+        {
+            return Err((SessionRefusal::EvidenceReservation, kernel));
         }
         Ok(Self {
             kernel,
             phase: Phase::Prepared,
+            remote_sign_reservation,
         })
     }
     pub fn kernel(&self) -> &FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A> {
@@ -269,6 +307,7 @@ where
                     || cord.offered_remote_sequence.is_some()
                     || cord.remote_accepted
                     || cord.producer_abnormal
+                    || (self.remote_sign_reservation != 0 && !cord.producer_closed)
             })
         {
             return Err(SessionRefusal::OutstandingOwnership);
@@ -277,6 +316,10 @@ where
             || signs.item_capacity() != kernel.signs.item_capacity()
             || signs.byte_capacity() != kernel.signs.byte_capacity()
             || signs.retention_gap().is_some()
+            || (self.remote_sign_reservation != 0
+                && signs
+                    .ensure_remote_capacity(self.remote_sign_reservation)
+                    .is_err())
         {
             return Err(SessionRefusal::EvidenceReservation);
         }
