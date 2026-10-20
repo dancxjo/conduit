@@ -92,6 +92,9 @@ impl ProjectionPolicy<Binary64AlgorithmDomain> for Binary64AlgorithmPolicy {
     fn identity(&self) -> ProjectionText<'_> {
         text("numeric/finite-binary64-policy@1")
     }
+    fn configuration_digest(&self) -> Option<[u8; 32]> {
+        Some(super::evidence::policy_digest(*self))
+    }
     fn permits(
         &self,
         source: &PreparedBinary64Algorithm,
